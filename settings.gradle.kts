@@ -2,16 +2,16 @@ pluginManagement {
     // No Gradle plugin portal: its artifact CDN is blocked in cloud sessions. Every plugin id is mapped to
     // its implementation module on Google Maven / Maven Central instead (versions from the catalog).
     repositories {
-        // Cloud sessions set FE8_MAVEN_MIRROR (tools/maven_mirror.py: retries the proxy's spurious 404/429s).
-        // CI never sets it. Google is restricted to its own groups so other lookups never hit it.
+        // Cloud sessions set FE8_MAVEN_MIRROR (tools/maven_mirror.py: retries the proxy's spurious 404/429s);
+        // they never build :app, so only Maven Central (+ AndroidX/AGP groups, unused there) go via the mirror.
+        // CI never sets it and uses the standard repositories.
         val mirror = System.getenv("FE8_MAVEN_MIRROR")
-        val googleGroups = "androidx\\..*|com\\.android(\\..*)?|com\\.google\\..*"
         if (mirror.isNullOrBlank()) {
-            google { content { includeGroupByRegex(googleGroups) } }
+            google()
             mavenCentral()
         } else {
-            maven("$mirror/google") { isAllowInsecureProtocol = true; content { includeGroupByRegex(googleGroups) } }
             maven("$mirror/central") { isAllowInsecureProtocol = true }
+            maven("$mirror/google") { isAllowInsecureProtocol = true; content { includeGroupByRegex("androidx\\..*|com\\.android(\\..*)?") } }
         }
     }
     val versions = file("gradle/libs.versions.toml").readLines()
@@ -31,16 +31,16 @@ pluginManagement {
 }
 dependencyResolutionManagement {
     repositories {
-        // Cloud sessions set FE8_MAVEN_MIRROR (tools/maven_mirror.py: retries the proxy's spurious 404/429s).
-        // CI never sets it. Google is restricted to its own groups so other lookups never hit it.
+        // Cloud sessions set FE8_MAVEN_MIRROR (tools/maven_mirror.py: retries the proxy's spurious 404/429s);
+        // they never build :app, so only Maven Central (+ AndroidX/AGP groups, unused there) go via the mirror.
+        // CI never sets it and uses the standard repositories.
         val mirror = System.getenv("FE8_MAVEN_MIRROR")
-        val googleGroups = "androidx\\..*|com\\.android(\\..*)?|com\\.google\\..*"
         if (mirror.isNullOrBlank()) {
-            google { content { includeGroupByRegex(googleGroups) } }
+            google()
             mavenCentral()
         } else {
-            maven("$mirror/google") { isAllowInsecureProtocol = true; content { includeGroupByRegex(googleGroups) } }
             maven("$mirror/central") { isAllowInsecureProtocol = true }
+            maven("$mirror/google") { isAllowInsecureProtocol = true; content { includeGroupByRegex("androidx\\..*|com\\.android(\\..*)?") } }
         }
     }
 }

@@ -125,7 +125,7 @@ Everything runs on Anthropic's cloud sessions plus GitHub Actions. Never use my 
 
 ## Schedule (scheduled tasks)
 - **Times:** one daily scheduled task firing every 8 hours, at 00:50, 08:50 and 16:50 Asia/Jerusalem time (cron: `CRON_TZ=Asia/Jerusalem 50 0,8,16 * * *`).
-- **Budget:** each run lasts 30–35 minutes, measured from the run's own start time.
+- **Budget:** each run lasts 40–45 minutes, measured from the run's own start time.
 - **Fresh sessions:** each run starts with no memory of earlier runs.
 
 Every run:
@@ -139,11 +139,12 @@ Every run:
    4. The next task from `docs/TASKS.md`.
 5. If `TASKS.md` has fewer than 5 open tasks, spend the run on planning instead: break the next milestone into tasks of 20 minutes or less and add them.
 6. **Commit and push after every completed step**, not only at the end, so an interrupted run loses almost nothing. Unfinished work goes on a `wip/<task-id>` branch. Never leave `main` broken.
-7. At minute 28, stop new work no matter what. Then, by minute 35:
+7. At minute 38, stop new work no matter what. Then, by minute 45:
    - Run the local tests.
    - Update `docs/MANUAL_TEST.md` if anything became testable.
    - Write the NEXT task precisely into `HANDOFF.md`.
    - Commit and push.
+   - Do NOT wait for CI to finish after the final push: end the run. The next run checks the last CI result first (step 3).
 8. **Out of credits / usage limit:**
    - If a run hits a usage limit, it simply stops. Thanks to frequent pushes, the next scheduled run resumes from `HANDOFF.md` and the latest `wip/` branch.
    - At the start of each run, if a `wip/` branch is newer than HANDOFF's last update, assume the previous run was interrupted and continue that work first.
@@ -190,3 +191,4 @@ Be honest: flag uncertainty, never claim untested behavior works, and say clearl
 | 2026-10-24 | The default branch is **`master`** (the repo's existing default); "main" in this brief means `master`. | Repo was created with `master`. |
 | 2026-10-24 | Sessions use the Gradle wrapper (JVM modules only, no Android SDK) in addition to JDK + kotlinc, plus a local retrying Maven mirror. | Needed to run the tests; Maven Central is rate-limited through the session proxy. See `docs/decisions/0005-toolchain-and-sessions.md`. |
 | 2026-10-24 | The ROM repo's release is published by its own GitHub Actions workflow (`publish-assets`). | Session tokens may not create releases. |
+| 2026-10-24 | Runs last **40–45 min** (stop new work at minute 38, wrap up by 45) instead of 30–35; runs **don't wait for CI** after the final push. Requested by the owner. | ~17% of a run was spent waiting on CI at the end; the next run checks CI first anyway. |

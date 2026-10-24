@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated: 2026-10-24 22:15 UTC (scheduled run). Brief unchanged since the Amendments in docs/PROJECT_BRIEF.md._
+_Updated: 2026-10-24 (owner follow-up). Brief changed: runs are now 40–45 min and do not wait for CI at the end (see Amendments)._
 
 ## NEEDS USER
 _(nothing blocked)_

@@ -6,10 +6,13 @@ _Updated: 2026-10-24 (session 1, interactive). Brief changed: see Amendments in 
 1. **CI can't read the private ROM repo** (issue labelled `needs-user`). Add ONE repository secret in
    Fire-Emblem-8-android → Settings → Secrets and variables → Actions (never paste it anywhere else):
    `ROM_REPO_TOKEN` = fine-grained PAT, *Only select repositories: Fire-Emblem-8-rom*, *Contents: Read-only*.
-   Until then CI skips differential tests (they never count as passed). Unblocks M1-06.
+   Until then CI skips differential tests (they never count as passed). Unblocks M1-06. Issue #1.
+2. **M1-09 needs a yes/no:** may a ROM-repo workflow build the fireemblem8u decomp (to get its symbol map)?
+   A local decomp build was blocked by the permission system in session 1. Answer on issue #1 or a new issue.
 
 ## Status
-- Last CI: see Actions tab / `latest` release notes (session 1 verified one green run on `master`).
+- Last CI: ✅ green on `master` @37f4e61 (run 40129576919): 10 passed, 2 skipped (differential — no ROM secret), APK on `latest`.
+- Session setup (measured 2026-10-24): cold 87 s, warm re-run 3 s. Local `./gradlew jvmTest`: 12/12 pass.
 - Branch: `master` (default). No `wip/` branches.
 - Progress: 4 functions verified (rng.c) when reference data is present; 0 in CI until NEEDS USER 1.
 

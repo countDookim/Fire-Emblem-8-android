@@ -38,6 +38,7 @@ testing ───────────► game                  └── eng
 | `game` | Game systems (boot/title, chapter flow, map, units, battle, AI, events, menus, world map, prep, save menu) | shell |
 | `testing` | Reference-data access, differential tests, `AllocationMeter`, frame benchmark | working |
 | `app` | Activity, GL ES 3.0 view + scaling shader, Compose launcher/settings, AudioTrack, input sources | shell |
+| `tools:extract` | JVM CLI: ROM → JSON/PNG/Tiled/MIDI (Milestone 2); refuses to write inside the code repo; never shipped | skeleton (`--help`, arg checks) |
 
 Game systems map to the decomp's files via the `system` column of `reference/decomp_functions.tsv`
 (core, battle_map, battle_logic, battle_anim, map_anim, ai, events, menus, prep_screen, worldmap, save,

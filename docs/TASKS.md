@@ -24,7 +24,7 @@ Take the first `todo` whose dependencies are `done`. If fewer than 5 `todo` rema
 
 | ID | Task | Done when | Status |
 |---|---|---|---|
-| M2-01 | New module `:tools:extract` (JVM CLI): args `--rom --decomp --map --out`; refuses to write inside the code repo | `./gradlew :tools:extract:run --args=--help` works | todo |
+| M2-01 | New module `:tools:extract` (JVM CLI): args `--rom --decomp --map --out`; refuses to write inside the code repo | `./gradlew :tools:extract:run --args=--help` works | done |
 | M2-02 | LZ77 (BIOS `LZ77UnCompWram`) decompressor in `engine:data` (load-time use) + golden test on a ROM blob | decompressed size/bytes match header + known tileset | todo |
 | M2-03 | 4bpp/8bpp tile + BGR555 palette → indexed PNG writer (keeps palette indices for vanilla palette behaviour) | round-trip test PNG → tiles identical | todo |
 | M2-04 | `schemas/items.schema.json` + item table extractor (`struct ItemData`, `src/data_items.c`) → `data/items.json` | schema-valid; 1st/last item spot-checked vs decomp | todo |

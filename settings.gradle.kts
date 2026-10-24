@@ -50,7 +50,7 @@ rootProject.name = "fe8-android"
 include(
     ":engine:core", ":engine:vfs", ":engine:data", ":engine:input", ":engine:render",
     ":engine:audio", ":engine:script", ":engine:text", ":engine:save",
-    ":game", ":testing",
+    ":game", ":testing", ":tools:extract",
 )
 
 // The thin Android shell is only included when an SDK is available (CI). Sessions never install one.

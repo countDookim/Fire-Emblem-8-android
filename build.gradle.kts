@@ -23,7 +23,7 @@ plugins {
 val docs = (gradle as ExtensionAware).extensions.extraProperties["fe8.docs"] == true
 val jvmModules = listOf(
     ":engine:core", ":engine:vfs", ":engine:data", ":engine:input", ":engine:render",
-    ":engine:audio", ":engine:script", ":engine:text", ":engine:save", ":game", ":testing",
+    ":engine:audio", ":engine:script", ":engine:text", ":engine:save", ":game", ":testing", ":tools:extract",
 )
 val jdk = providers.gradleProperty("fe8.jdk").orElse("21").get().toInt()
 val catalog = libs

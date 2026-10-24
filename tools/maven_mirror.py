@@ -29,6 +29,7 @@ TRANSIENT_RETRIES = 10   # 429 / 5xx / network errors
 NOT_FOUND_RETRIES = 12   # spurious 404s (CDN rate limiting): retry before believing them
 CACHE: Path = Path()
 LOCK = threading.Lock()
+MISSING: set[str] = set()  # "route/path" confirmed absent upstream; persisted in <cache>/missing.txt
 
 
 def fetch(route: str, path: str) -> tuple[int, bytes]:
@@ -69,10 +70,20 @@ class Handler(BaseHTTPRequestHandler):
             return
         route, path = parts
         cached = CACHE / route / path
+        if f"{route}/{path}" in MISSING:
+            self.send_response(404)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         if cached.is_file():
             data = cached.read_bytes()
         else:
             code, data = fetch(route, path)
+            if code == 404:
+                with LOCK:
+                    MISSING.add(f"{route}/{path}")
+                    with open(CACHE / "missing.txt", "a") as f:
+                        f.write(f"{route}/{path}\n")
             if code != 200:
                 self.send_response(code)
                 self.send_header("Content-Length", "0")
@@ -106,6 +117,8 @@ def main() -> None:
     a = ap.parse_args()
     CACHE = a.cache
     CACHE.mkdir(parents=True, exist_ok=True)
+    if (CACHE / "missing.txt").exists():
+        MISSING.update(l.strip() for l in (CACHE / "missing.txt").read_text().splitlines() if l.strip())
     ThreadingHTTPServer(("127.0.0.1", a.port), Handler).serve_forever()
 
 

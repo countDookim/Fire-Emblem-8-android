@@ -61,9 +61,20 @@ fi
 
 # 4. Local retrying Maven mirror (Maven Central answers spurious 404/429 through the session proxy).
 MIRROR_PORT="${FE8_MIRROR_PORT:-8765}"
+MCACHE="$HOME/.cache/fe8-maven"
+if [ ! -d "$MCACHE/central" ]; then
+  # Seed from the ROM repo release (built by its CI from deps/maven-files.txt, unthrottled).
+  mkdir -p "$MCACHE"
+  if gh release download -R "$ROM_REPO" -D "$MCACHE" --clobber -p maven-cache.tar 2>/dev/null; then
+    tar -C "$MCACHE" -xf "$MCACHE/maven-cache.tar" && rm -f "$MCACHE/maven-cache.tar"
+    log "maven cache seeded from release ($(find "$MCACHE" -type f | wc -l) files)"
+  else
+    log "no maven-cache.tar in release; mirror will fetch from Maven Central (slow)"
+  fi
+fi
 export FE8_MAVEN_MIRROR="http://127.0.0.1:$MIRROR_PORT"
 if ! curl -fs -o /dev/null "$FE8_MAVEN_MIRROR/health" 2>/dev/null; then
-  nohup python3 "$ROOT/tools/maven_mirror.py" --port "$MIRROR_PORT" --cache "$HOME/.cache/fe8-maven" >/dev/null 2>&1 &
+  nohup python3 "$ROOT/tools/maven_mirror.py" --port "$MIRROR_PORT" --cache "$MCACHE" >/dev/null 2>&1 &
   for _ in $(seq 1 20); do curl -fs -o /dev/null "$FE8_MAVEN_MIRROR/health" && break; sleep 0.5; done
 fi
 log "maven mirror on $FE8_MAVEN_MIRROR"

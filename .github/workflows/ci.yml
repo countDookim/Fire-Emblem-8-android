@@ -50,6 +50,7 @@ jobs:
       - name: Summary
         if: always()
         run: |
+          set -o pipefail
           python3 tools/ci_summary.py "${{ steps.assets.outputs.available }}" | tee ci-summary.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload APK
         if: always()

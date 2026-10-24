@@ -41,3 +41,9 @@ for title, items in (("Failed", failed), ("Skipped", skipped)):
         for i in items[:50]:
             print(f"- `{i}`")
         print("\n</details>")
+
+# Guard: with reference assets present, nothing may be skipped (a skip then means a broken test setup,
+# e.g. stale build-cache results). Fails the CI job so the `latest` release is not published.
+if assets == "true" and skips:
+    print(f"\n**ERROR:** assets are available but {skips} test(s) were skipped.", file=sys.stderr)
+    sys.exit(1)

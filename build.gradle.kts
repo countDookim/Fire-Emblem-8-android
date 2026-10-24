@@ -50,7 +50,14 @@ subprojects {
         tasks.withType<Test>().configureEach {
             useJUnitPlatform()
             // Differential tests read mGBA reference data from here; they are SKIPPED (never passed) when absent.
-            systemProperty("fe8.assets", System.getenv("FE8_ASSETS") ?: rootProject.file(".assets").absolutePath)
+            val assetsDir = System.getenv("FE8_ASSETS") ?: rootProject.file(".assets").absolutePath
+            systemProperty("fe8.assets", assetsDir)
+            // The reference data must be a declared input: otherwise the build cache happily restores
+            // results from a run without assets (all differential tests skipped) — this happened in CI.
+            val manifest = File(assetsDir, "MANIFEST.sha1")
+            val refOut = File(assetsDir, "reference/out")
+            inputs.property("fe8.assets.manifest", if (manifest.isFile) manifest.readText() else "absent")
+            inputs.property("fe8.assets.extracted", refOut.isDirectory)
             jvmArgs("-XX:+UseSerialGC")
             testLogging {
                 events("failed", "skipped")

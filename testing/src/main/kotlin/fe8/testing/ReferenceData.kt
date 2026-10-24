@@ -10,6 +10,8 @@ import java.nio.ByteOrder
  *
  * Each script directory holds `manifest.txt` (`<dump> <frame>` lines), `inputs.bin` (one little-endian
  * uint16 GBA key mask per frame) and per-dump files `<dump>.{ewram,iwram,frame.rgb,vram,pal,oam,io}.bin`.
+ * Runs may also hold `states.txt` (savestate/loadstate timeline; dump frames are monotonic emulated steps)
+ * and `frames.rgb` + `frames.txt` (screen every N steps); see the ROM repo's harness/harness.c.
  *
  * This is test-only infrastructure: GBA addresses appear here (to locate the original game's state in
  * the dumps) and must never leak into the port itself.

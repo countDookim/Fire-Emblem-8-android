@@ -18,7 +18,7 @@ Take the first `todo` whose dependencies are `done`. If fewer than 5 `todo` rema
 | M1-09 | Decomp symbol map: ROM-repo workflow that builds fireemblem8u (agbcc + binutils) and publishes `fireemblem8.map` as a release asset; (owner approved 2026-10-25; also publishes ELF `nm` symbols) | release has the map, or NEEDS USER entry | done |
 | M1-10 | `gen_reference.py --map`: emit `reference/ram_symbols.tsv` (EWRAM+IWRAM name → address → size) from the map; commit | file committed; `RngDifferentialTest` reads addresses from it instead of constants | done |
 | M1-11 | `reference/` README: column docs, regeneration steps, decomp pin | file exists | done |
-| M1-12 | Harness: `savestate NAME` / `loadstate NAME` commands + `--frames-every N` for long traces (ROM repo) | new script produces files; release republished | todo |
+| M1-12 | Harness: `savestate NAME` / `loadstate NAME` commands + `--frames-every N` for long traces (ROM repo) | new script produces files; release republished | done |
 
 ## M2 — Asset and data extraction (outputs go to the ROM repo only)
 

@@ -44,6 +44,8 @@ jobs:
       - name: Dokka site
         if: always()
         run: ./gradlew dokkaGenerate --console=plain
+      - name: progress.py self-test
+        run: python3 -m unittest discover -v tools/tests
       - name: Progress + port map
         if: always()
         run: python3 tools/progress.py --write

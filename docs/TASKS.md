@@ -13,8 +13,8 @@ Take the first `todo` whose dependencies are `done`. If fewer than 5 `todo` rema
 | M1-04 | CI workflow: tests, APK, benchmark, Dokka, progress commit, `latest` release | one green run on master | done |
 | M1-05 | Docs: README, ARCHITECTURE, MODDING, ADRs 0001–0008, module READMEs, HANDOFF, MANUAL_TEST | files exist and are linked | done |
 | M1-06 | CI reads ROM assets (needs owner secret, see HANDOFF) and differential tests run in CI | CI summary shows `assets available: true`, 0 skipped | done |
-| M1-07 | KDoc lint: Dokka `reportUndocumented=true` for JVM modules; fix all warnings; fail CI on undocumented public API | `./gradlew dokkaGenerate -Pfe8.docs=true` has no undocumented warnings | todo |
-| M1-08 | `progress.py` self-test: tiny fixture (fake Kotlin + JUnit XML) under `tools/tests/`, run in CI | `python3 -m unittest discover tools/tests` passes; skipped/failed tests never count | todo |
+| M1-07 | KDoc lint: Dokka `reportUndocumented=true` for JVM modules; fix all warnings; fail CI on undocumented public API | `./gradlew dokkaGenerate -Pfe8.docs=true` has no undocumented warnings | done |
+| M1-08 | `progress.py` self-test: tiny fixture (fake Kotlin + JUnit XML) under `tools/tests/`, run in CI | `python3 -m unittest discover tools/tests` passes; skipped/failed tests never count | done |
 | M1-09 | Decomp symbol map: ROM-repo workflow that builds fireemblem8u (agbcc + binutils) and publishes `fireemblem8.map` as a release asset; (owner approved 2026-10-25; also publishes ELF `nm` symbols) | release has the map, or NEEDS USER entry | done |
 | M1-10 | `gen_reference.py --map`: emit `reference/ram_symbols.tsv` (EWRAM+IWRAM name → address → size) from the map; commit | file committed; `RngDifferentialTest` reads addresses from it instead of constants | done |
 | M1-11 | `reference/` README: column docs, regeneration steps, decomp pin | file exists | done |

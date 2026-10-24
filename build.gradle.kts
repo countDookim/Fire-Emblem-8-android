@@ -58,6 +58,9 @@ subprojects {
             val refOut = File(assetsDir, "reference/out")
             inputs.property("fe8.assets.manifest", if (manifest.isFile) manifest.readText() else "absent")
             inputs.property("fe8.assets.extracted", refOut.isDirectory)
+            // Committed decomp reference data (function list, RAM symbols) for differential tests.
+            systemProperty("fe8.reference", rootProject.file("reference").absolutePath)
+            inputs.dir(rootProject.file("reference")).withPathSensitivity(PathSensitivity.RELATIVE)
             jvmArgs("-XX:+UseSerialGC")
             testLogging {
                 events("failed", "skipped")

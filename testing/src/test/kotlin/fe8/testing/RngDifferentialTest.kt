@@ -10,11 +10,13 @@ import org.junit.jupiter.api.Test
  * Differential test: the RNG state our port produces at boot must equal the state mGBA shows in IWRAM.
  *
  * Ground truth: `ram_trace_boot` dump at frame 10 (state is fixed from boot until the first gameplay
- * draw). Addresses come from the decomp's `sym_iwram.txt`, where `src/rng.o(.bss)` is placed first:
- * `gRNSeeds` (u16[3]) at 0x03000000 and `gLCGRNValue` (int) at 0x03000008.
+ * draw). `gRNSeeds` (u16[3]) and `gLCGRNValue` (int) are located via [RamSymbols] (decomp ELF symbols).
  */
 class RngDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
+    private val sym = RamSymbols.fromEnvironment()
+    private val rnSeeds get() = sym["gRNSeeds"].also { check(it.size == 6) }.address
+    private val lcgValue get() = sym["gLCGRNValue"].also { check(it.size == 4) }.address
 
     @Test
     @VerifiesPort("NextRN", "InitRN", "SetLCGRNValue", "AdvanceGetLCGRNValue")
@@ -25,9 +27,9 @@ class RngDifferentialTest {
         val rng = RngService()
         rng.seedLikeBoot()
 
-        assertEquals(GbaMem.u32(iwram, GbaMem.IWRAM, LCG_VALUE), rng.lcg.value, "gLCGRNValue")
+        assertEquals(GbaMem.u32(iwram, GbaMem.IWRAM, lcgValue), rng.lcg.value, "gLCGRNValue")
         for (i in 0..2) {
-            assertEquals(GbaMem.u16(iwram, GbaMem.IWRAM, RN_SEEDS + 2 * i), rng.primary.word(i), "gRNSeeds[$i]")
+            assertEquals(GbaMem.u16(iwram, GbaMem.IWRAM, rnSeeds + 2 * i), rng.primary.word(i), "gRNSeeds[$i]")
         }
     }
 
@@ -41,10 +43,5 @@ class RngDifferentialTest {
             // be re-anchored to the first frame after InitRN.
             assertEquals(first.toList(), run.region(d, "iwram").copyOf(12).toList(), "RNG words changed at $d")
         }
-    }
-
-    private companion object {
-        const val RN_SEEDS = 0x03000000
-        const val LCG_VALUE = 0x03000008
     }
 }

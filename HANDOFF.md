@@ -1,20 +1,18 @@
 # HANDOFF
 
-_Updated: 2026-10-24 (session 1, interactive). Brief changed: see Amendments in docs/PROJECT_BRIEF.md._
+_Updated: 2026-10-25 (session 1 follow-up, interactive). Brief changed: see Amendments in docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
-1. **CI can't read the private ROM repo** (issue labelled `needs-user`). Add ONE repository secret in
-   Fire-Emblem-8-android → Settings → Secrets and variables → Actions (never paste it anywhere else):
-   `ROM_REPO_TOKEN` = fine-grained PAT, *Only select repositories: Fire-Emblem-8-rom*, *Contents: Read-only*.
-   Until then CI skips differential tests (they never count as passed). Unblocks M1-06. Issue #1.
-2. **M1-09 needs a yes/no:** may a ROM-repo workflow build the fireemblem8u decomp (to get its symbol map)?
-   A local decomp build was blocked by the permission system in session 1. Answer on issue #1 or a new issue.
+_(nothing blocked)_
 
 ## Status
-- Last CI: ✅ green on `master` @37f4e61 (run 40129576919): 10 passed, 2 skipped (differential — no ROM secret), APK on `latest`.
-- Session setup (measured 2026-10-24): cold 87 s, warm re-run 3 s. Local `./gradlew jvmTest`: 12/12 pass.
-- Branch: `master` (default). No `wip/` branches.
-- Progress: 4 functions verified (rng.c) when reference data is present; 0 in CI until NEEDS USER 1.
+- Last CI: ✅ `master` run 40133276579: 12 passed, 0 skipped, ROM assets available (secret `ROM_REPO_TOKEN` works).
+  CI now FAILS if assets are present but any test is skipped (guards against stale build-cache results).
+- Session setup (measured 2026-10-24): cold 87 s, warm re-run 3 s.
+- Branch: `master`. No `wip/` branches.
+- Progress: 4 / 8352 verified (src/rng.c).
+- Decomp pin verified: the ROM repo's `decomp-map` workflow builds fireemblem8u byte-identical to the ROM;
+  `reference/ram_symbols.tsv` + function addresses come from its ELF symbols (`RamSymbols` in :testing).
 
 ## Next task: M1-07 — KDoc lint
 - Files: `build.gradle.kts` (dokka config in `if (docs)` block), any `engine/*/src/main/**/*.kt` lacking KDoc.
@@ -29,5 +27,4 @@ _Updated: 2026-10-24 (session 1, interactive). Brief changed: see Amendments in 
 - Maven Central through the session proxy returns spurious 404/429; `tools/setup.sh` starts
   `tools/maven_mirror.py` (retries) — first warm-up can take several minutes. CI is unaffected.
 - `GameSurfaceView` is untested on a real device (no gameplay yet; manual test only).
-- RAM symbol addresses for differential tests are currently hand-derived from `sym_iwram.txt`
-  (M1-09/M1-10 add a real map).
+- Static C names can repeat across files; `RamSymbols[name]` throws if ambiguous — use unique names.

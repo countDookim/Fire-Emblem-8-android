@@ -10,6 +10,12 @@ Outputs (all under reference/):
     DECOMP_VERSION          repo URL + pinned commit the data was generated from
     decomp_functions.tsv    name, file, line, kind (c|asm), system  -- one row per decomp function
     iwram_symbols.tsv       name, address  -- explicit IWRAM addresses from sym_iwram.txt
+    ram_symbols.tsv         name, address, size, binding, region  -- EWRAM/IWRAM symbols (--nm or --map)
+
+With --nm (preferred: `arm-none-eabi-nm -S -n` of fireemblem8.elf, published by the ROM repo's
+decomp-map workflow) function rows get their ROM address and ram_symbols.tsv gets every RAM symbol
+including `static` ones, with exact sizes. Static names may repeat across files (binding=local); test
+code must only look up names that are unique. --map (globals only, sizes estimated) is a fallback.
 
 Function detection is a heuristic C parser (top-level `type name(args) {` at brace depth 0, with
 comments, strings and preprocessor lines stripped), plus THUMB_FUNC_START/ARM_FUNC_START labels in the
@@ -128,9 +134,39 @@ def asm_functions(path: Path) -> list[tuple[str, int]]:
     return [(m.group(1), text.count("\n", 0, m.start()) + 1) for m in ASM_RX.finditer(text)]
 
 
+MAP_SYM_RX = re.compile(r"^\s+0x([0-9A-Fa-f]{8,16})\s+([A-Za-z_]\w*)\s*$")
+
+
+NM_RX = re.compile(r"^([0-9A-Fa-f]{8})\s+(?:([0-9A-Fa-f]{8})\s+)?([A-Za-z])\s+(\S+)$")
+
+
+def parse_nm(path: Path) -> list[tuple[int, int | None, str, str]]:
+    """(address, size, binding, name) from `nm -S -n` output; skips local labels and section markers."""
+    out = []
+    for line in path.read_text(errors="replace").splitlines():
+        m = NM_RX.match(line.strip())
+        if not m or m.group(4).startswith((".", "$")):
+            continue
+        size = int(m.group(2), 16) if m.group(2) else None
+        out.append((int(m.group(1), 16), size, "global" if m.group(3).isupper() else "local", m.group(4)))
+    return out
+
+
+def parse_map(path: Path) -> dict[str, int]:
+    """Symbol -> address from a GNU ld map file (lines of the form `   0x08000abc   Name`)."""
+    out: dict[str, int] = {}
+    for line in path.read_text(errors="replace").splitlines():
+        m = MAP_SYM_RX.match(line)
+        if m and not m.group(2).startswith(("__", ".")):
+            out.setdefault(m.group(2), int(m.group(1), 16))
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--decomp", required=True, type=Path, help="fireemblem8u checkout")
+    ap.add_argument("--nm", type=Path, help="fireemblem8.nm.txt (nm -S -n of the decomp ELF); preferred")
+    ap.add_argument("--map", type=Path, help="fireemblem8.map from the decomp build (fallback)")
     args = ap.parse_args()
     d: Path = args.decomp.resolve()
     if not (d / "src" / "main.c").exists():
@@ -148,12 +184,35 @@ def main() -> int:
         for name, line in asm_functions(p):
             rows.setdefault(name, (rel, line, "asm", system_for(rel)))
 
+    syms: list[tuple[int, int | None, str, str]] = []  # (address, size, binding, name)
+    if args.nm:
+        syms = parse_nm(args.nm)
+    elif args.map:
+        syms = [(a, None, "global", n) for n, a in parse_map(args.map).items()]
+    addr: dict[str, int] = {}
+    for a, _, _, n in syms:
+        addr.setdefault(n, a)
+
     OUT.mkdir(exist_ok=True)
     (OUT / "DECOMP_VERSION").write_text(f"{url}\n{commit}\n")
     with open(OUT / "decomp_functions.tsv", "w") as f:
-        f.write("name\tfile\tline\tkind\tsystem\n")
+        f.write("name\tfile\tline\tkind\tsystem\taddress\n")
         for name, (rel, line, kind, sysname) in sorted(rows.items(), key=lambda kv: (kv[1][0], kv[1][1])):
-            f.write(f"{name}\t{rel}\t{line}\t{kind}\t{sysname}\n")
+            a = addr.get(name)
+            f.write(f"{name}\t{rel}\t{line}\t{kind}\t{sysname}\t{'' if a is None else f'0x{a:08X}'}\n")
+    if syms:
+        ram = sorted((s for s in syms if 0x02000000 <= s[0] < 0x02040000 or 0x03000000 <= s[0] < 0x03008000), key=lambda s: (s[0], s[3]))
+        with open(OUT / "ram_symbols.tsv", "w") as f:
+            f.write("name\taddress\tsize\tbinding\tregion\n")
+            for i, (a, size, binding, n) in enumerate(ram):
+                region = "ewram" if a < 0x03000000 else "iwram"
+                if size is None:  # map fallback: distance to the next symbol (upper bound)
+                    end = 0x02040000 if region == "ewram" else 0x03008000
+                    if i + 1 < len(ram) and ram[i + 1][0] < end:
+                        end = ram[i + 1][0]
+                    size = end - a
+                f.write(f"{n}\t0x{a:08X}\t{size}\t{binding}\t{region}\n")
+        print(f"symbols: {len(syms)} total, {len(ram)} in RAM, {sum(1 for n in rows if n in addr)}/{len(rows)} functions addressed")
 
     sym = []
     sym_file = d / "sym_iwram.txt"

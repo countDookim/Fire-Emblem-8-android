@@ -1,0 +1,92 @@
+{
+  "generated_by": "tools/progress.py",
+  "decomp": [
+    "https://github.com/FireEmblemUniverse/fireemblem8u",
+    "04d1edb163d14bd10777a065697e1a9f17be65f2"
+  ],
+  "summary": {
+    "total": 8352,
+    "verified": 4,
+    "implemented_unverified": 6
+  },
+  "functions": {
+    "AdvanceGetLCGRNValue": {
+      "decomp_file": "src/rng.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/fe8/core/rng/Rng.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
+      ]
+    },
+    "InitRN": {
+      "decomp_file": "src/rng.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/fe8/core/rng/Rng.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
+      ]
+    },
+    "LoadRNState": {
+      "decomp_file": "src/rng.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/fe8/core/rng/Rng.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "NextRN": {
+      "decomp_file": "src/rng.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/fe8/core/rng/Rng.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
+      ]
+    },
+    "NextRN_100": {
+      "decomp_file": "src/rng.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/fe8/core/rng/Rng.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "NextRN_N": {
+      "decomp_file": "src/rng.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/fe8/core/rng/Rng.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Roll1RN": {
+      "decomp_file": "src/rng.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/fe8/core/rng/Rng.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Roll2RN": {
+      "decomp_file": "src/rng.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/fe8/core/rng/Rng.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "SetLCGRNValue": {
+      "decomp_file": "src/rng.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/fe8/core/rng/Rng.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
+      ]
+    },
+    "StoreRNState": {
+      "decomp_file": "src/rng.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/fe8/core/rng/Rng.kt",
+      "status": "implemented",
+      "tests": []
+    }
+  }
+}

@@ -1,0 +1,32 @@
+# Build
+build/
+.gradle/
+.kotlin/
+local.properties
+*.iml
+.idea/
+captures/
+
+# ROM and ANYTHING derived from it: never in this repo (lives in the private ROM repo)
+*.gba
+*.GBA
+*.sav
+*.srm
+*.ss[0-9]
+.assets/
+.assets.env
+extracted/
+rom/
+reference/out/
+**/frames/*.rgb
+*.ewram.bin
+*.iwram.bin
+*.vram.bin
+*.pal.bin
+*.oam.bin
+*.io.bin
+*.frame.rgb
+
+# Local tooling
+.cache/
+.gradle-setup.log

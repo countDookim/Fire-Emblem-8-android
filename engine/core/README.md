@@ -1,0 +1,11 @@
+# engine:core
+
+Foundation shared by every module. Pure Kotlin/JVM, no dependencies.
+
+- `time` — `FixedStepClock` (exact 2^24/280896 Hz ticks, catch-up cap), `GameLoop`, `Simulation`.
+- `rng` — `Fe8Rng`, `LcgRng` (ported from `src/rng.c`, verified vs mGBA), `RngService`, `RandomSource`.
+- `event` — `EventChannel` (typed, allocation-free, priority-ordered), `CoreEvents`.
+- `flags` — `FeatureFlag`/`FeatureFlags` with vanilla override.
+- `VerifiesPort` — test annotation read by `tools/progress.py`.
+
+Rules: nothing here may allocate in per-tick paths; see `docs/decisions/0004-event-bus.md`.

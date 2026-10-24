@@ -1,0 +1,66 @@
+# Task backlog
+
+Ordered; each task ≤ 20 minutes. Status: `todo` · `wip` (branch `wip/<id>`) · `done` · `blocked` (see HANDOFF NEEDS USER).
+Take the first `todo` whose dependencies are `done`. If fewer than 5 `todo` remain, plan the next milestone.
+
+## M1 — Toolchain, CI, skeleton, docs
+
+| ID | Task | Done when | Status |
+|---|---|---|---|
+| M1-01 | Repo skeleton, Gradle (JVM modules + conditional :app), wrapper | `./gradlew jvmClasses` green in a session | done |
+| M1-02 | ROM repo: ROM, mgba-harness, reference scripts/data, publish workflow | release `assets-*` exists with 4 assets | done |
+| M1-03 | `tools/setup.sh`, `gen_reference.py`, `progress.py`, `maven_mirror.py` | setup idempotent, timed; progress prints bar | done |
+| M1-04 | CI workflow: tests, APK, benchmark, Dokka, progress commit, `latest` release | one green run on master | done |
+| M1-05 | Docs: README, ARCHITECTURE, MODDING, ADRs 0001–0008, module READMEs, HANDOFF, MANUAL_TEST | files exist and are linked | done |
+| M1-06 | CI reads ROM assets (needs owner secret, see HANDOFF) and differential tests run in CI | CI summary shows `assets available: true`, 0 skipped | blocked |
+| M1-07 | KDoc lint: Dokka `reportUndocumented=true` for JVM modules; fix all warnings; fail CI on undocumented public API | `./gradlew dokkaGenerate -Pfe8.docs=true` has no undocumented warnings | todo |
+| M1-08 | `progress.py` self-test: tiny fixture (fake Kotlin + JUnit XML) under `tools/tests/`, run in CI | `python3 -m unittest discover tools/tests` passes; skipped/failed tests never count | todo |
+| M1-09 | Decomp symbol map: ROM-repo workflow that builds fireemblem8u (agbcc + binutils) and publishes `fireemblem8.map` as a release asset; **confirm with owner first** (a local decomp build was blocked by the permission system in session 1) | release has the map, or NEEDS USER entry | todo |
+| M1-10 | `gen_reference.py --map`: emit `reference/ram_symbols.tsv` (EWRAM+IWRAM name → address → size) from the map; commit | file committed; `RngDifferentialTest` reads addresses from it instead of constants | todo |
+| M1-11 | `reference/` README: column docs, regeneration steps, decomp pin | file exists | todo |
+| M1-12 | Harness: `savestate NAME` / `loadstate NAME` commands + `--frames-every N` for long traces (ROM repo) | new script produces files; release republished | todo |
+
+## M2 — Asset and data extraction (outputs go to the ROM repo only)
+
+| ID | Task | Done when | Status |
+|---|---|---|---|
+| M2-01 | New module `:tools:extract` (JVM CLI): args `--rom --decomp --map --out`; refuses to write inside the code repo | `./gradlew :tools:extract:run --args=--help` works | todo |
+| M2-02 | LZ77 (BIOS `LZ77UnCompWram`) decompressor in `engine:data` (load-time use) + golden test on a ROM blob | decompressed size/bytes match header + known tileset | todo |
+| M2-03 | 4bpp/8bpp tile + BGR555 palette → indexed PNG writer (keeps palette indices for vanilla palette behaviour) | round-trip test PNG → tiles identical | todo |
+| M2-04 | `schemas/items.schema.json` + item table extractor (`struct ItemData`, `src/data_items.c`) → `data/items.json` | schema-valid; 1st/last item spot-checked vs decomp | todo |
+| M2-05 | Classes: schema + extractor (`data_classes.c`) | schema-valid; counts match decomp | todo |
+| M2-06 | Characters: schema + extractor (`data_characters.c`) | schema-valid | todo |
+| M2-07 | Terrain tables (`data_terrains.c`) + item bonus tables | schema-valid | todo |
+| M2-08 | Text: Huffman string decoder (port of `msg.c` decode) + golden test (title screen string) | decoded text matches ROM-rendered string | todo |
+| M2-09 | Text control codes → readable tags; all strings → `text/en/*.json` | every string round-trips to identical bytes | todo |
+| M2-10 | Font glyphs (`fontgrp`) → PNG atlas + JSON metrics | glyph widths match decomp tables | todo |
+| M2-11 | Portraits (`face.c` data) → PNG + JSON (mouth/eye frames, anchors) | 3 portraits visually checked + counts | todo |
+| M2-12 | Chapter data (`chapterdata.c`) → `data/chapters.json` | schema-valid | todo |
+| M2-13 | Map layouts + tile config → Tiled `.tmj` + tileset PNG (one chapter) | opens in Tiled (validated by `.tmj` schema), tiles match | todo |
+| M2-14 | All chapter maps converted; map changes (doors, chests) as Tiled layers | count matches chapter table | todo |
+| M2-15 | Event script converter v0: command table from decomp event macros → `.fe8s` (prologue only) | output parses with M5 grammar draft; diffable | todo |
+| M2-16 | Unit placement (`UNIT` defs) → Tiled object layer | prologue units correct | todo |
+| M2-17 | Map sprites (standing/moving) → PNG + anim JSON | counts match class table | todo |
+| M2-18 | m4a songs → MIDI + `voicegroups/*.json` (one song end-to-end) | MIDI note events match song data | todo |
+| M2-19 | All songs + direct-sound samples → MIDI + WAV | counts match song table | todo |
+| M2-20 | UI graphics (windows, cursors, icons) → PNG + JSON | icon sheet visually checked | todo |
+| M2-21 | Extraction runs in ROM-repo CI; `extracted.tar.xz` in release; `setup.sh` fetches it | session has `$FE8_ASSETS/extracted` | todo |
+
+## M3 — Rendering, input, audio, override layer
+
+| ID | Task | Done when | Status |
+|---|---|---|---|
+| M3-01 | Finalise ADR 0008 (render model): HBlank effects + texture-pack/palette interaction | ADR accepted | todo |
+| M3-02 | Render state types: `TileLayer`, `SpriteBatch`, `PaletteBank`, `Effects` (primitive arrays) | compiles; allocation test | todo |
+| M3-03 | Software compositor: text-mode BG layers + priorities | renders a test scene; unit tests | todo |
+| M3-04 | Software compositor: sprites (regular + affine), OBJ priority vs BG | tests | todo |
+| M3-05 | Blend/brightness/windows/mosaic | tests | todo |
+| M3-06 | Frame-compare utility: ARGB vs mGBA dump (5-bit), diff PNG written on failure | first frame-compare test (health & safety screen from extracted assets) passes | todo |
+| M3-07 | GPU backend v1 in `:app`: tile layers + sprites via shaders, same render state | APK shows extracted test scene (manual test) | todo |
+| M3-08 | Asset override layer: resolver for replacement/hi-res textures by path + scale | test with a 2× override | todo |
+| M3-09 | Input: port key repeat/new-press logic (`hardware.c` key status) onto `InputFrame` + differential test (key status RAM) | `@VerifiesPort` passes | todo |
+| M3-10 | Android `ActionSource`s: hardware keys + gamepad mapping | manual test | todo |
+| M3-11 | UI element contract: screen bounds + actions for touch hit-testing (no game-logic change) | interface + doc in MODDING | todo |
+| M3-12 | Low-latency `AudioTrack` sink (`PERFORMANCE_MODE_LOW_LATENCY`, mixer thread, no per-buffer allocs) | APK plays a test tone (manual test) | todo |
+| M3-13 | m4a sequencer core (tempo, tracks, note on/off) from `m4a.c`/MIDI | unit tests vs MIDI timing | todo |
+| M3-14 | m4a mixer: direct-sound + PSG channels; compare against mGBA audio dump (harness: add audio capture) | RMS diff below threshold | todo |

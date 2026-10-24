@@ -22,6 +22,8 @@ _Updated: 2026-10-24 (session 1, interactive). Brief changed: see Amendments in 
 - Do: in the docs block configure every JVM module's `dokka { dokkaSourceSets.configureEach { reportUndocumented.set(true) } }`
   and `dokka { dokkaPublications.configureEach { failOnWarning.set(true) } }`; add missing KDoc until clean.
 - Done when: the command above prints nothing and CI's Dokka step is green.
+- Note: Dokka's deps are not in the seeded Maven cache, so the first `-Pfe8.docs=true` run in a session
+  goes through the slow mirror. Afterwards refresh `deps/maven-files.txt` in the ROM repo (see its deps/README.md).
 
 ## Known bugs / caveats
 - Maven Central through the session proxy returns spurious 404/429; `tools/setup.sh` starts

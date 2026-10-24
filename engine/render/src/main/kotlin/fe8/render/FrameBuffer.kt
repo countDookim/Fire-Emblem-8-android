@@ -6,7 +6,12 @@ package fe8.render
  * Used by the offscreen/software render path that differential tests compare against mGBA frame dumps,
  * and as the upload source for the GPU path while the full GPU compositor is being built.
  */
-public class FrameBuffer(public val width: Int = GBA_WIDTH, public val height: Int = GBA_HEIGHT) {
+public class FrameBuffer(
+    /** Width in pixels (240 = native GBA). */
+    public val width: Int = GBA_WIDTH,
+    /** Height in pixels (160 = native GBA). */
+    public val height: Int = GBA_HEIGHT,
+) {
     /** Pixels, row-major. Exposed for zero-copy upload; do not resize. */
     public val pixels: IntArray = IntArray(width * height)
 
@@ -23,6 +28,7 @@ public class FrameBuffer(public val width: Int = GBA_WIDTH, public val height: I
     /** Gets pixel ([x], [y]). */
     public operator fun get(x: Int, y: Int): Int = pixels[y * width + x]
 
+    /** Native resolution and colour conversion helpers. */
     public companion object {
         /** Native GBA width. */
         public const val GBA_WIDTH: Int = 240

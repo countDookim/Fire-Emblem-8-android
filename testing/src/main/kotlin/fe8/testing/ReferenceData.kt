@@ -14,12 +14,18 @@ import java.nio.ByteOrder
  * This is test-only infrastructure: GBA addresses appear here (to locate the original game's state in
  * the dumps) and must never leak into the port itself.
  */
-public class ReferenceData(public val root: File) {
+public class ReferenceData(
+    /** Directory holding one sub-directory per reference run (`reference/out` of the ROM assets). */
+    public val root: File,
+) {
     /** True if the reference data is present (tests skip — not pass — when it is not). */
     public val available: Boolean get() = File(root, "boot_to_title/manifest.txt").isFile
 
     /** One reference run. */
-    public inner class Run(public val name: String) {
+    public inner class Run(
+        /** Run directory name, e.g. `boot_to_title`. */
+        public val name: String,
+    ) {
         private val dir = File(root, name)
 
         /** Dump name → frame number, in file order. */
@@ -48,6 +54,7 @@ public class ReferenceData(public val root: File) {
     /** Opens the run named [name] (a script stem, e.g. `ram_trace_boot`). */
     public fun run(name: String): Run = Run(name)
 
+    /** Factory for the reference data configured by Gradle. */
     public companion object {
         /** Reference data from the `fe8.assets` system property / `FE8_ASSETS` env (set by Gradle). */
         public fun fromEnvironment(): ReferenceData {

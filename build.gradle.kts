@@ -32,7 +32,10 @@ val catalog = libs
 // kotlin-dsl plugin that needs is only on the Gradle plugin portal, which sessions cannot reach).
 subprojects {
     pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
-        if (docs) apply(plugin = "org.jetbrains.dokka")
+        if (docs) {
+            apply(plugin = "org.jetbrains.dokka")
+            configureDokkaLint()
+        }
         extensions.configure<KotlinJvmProjectExtension> {
             jvmToolchain(jdk)
             compilerOptions {
@@ -70,10 +73,29 @@ subprojects {
     }
 }
 
+/**
+ * KDoc lint (brief: "KDoc on every public class and function"): every module reports undocumented public
+ * declarations and any Dokka warning fails the build. Dokka is only on the classpath for docs builds, so
+ * its extension is configured through Groovy property access instead of its (absent) Kotlin types.
+ */
+fun Project.configureDokkaLint() {
+    fun Any.prop(name: String): Any = withGroovyBuilder { getProperty(name) }!!
+    val dokka = extensions.getByName("dokka")
+    @Suppress("UNCHECKED_CAST")
+    (dokka.prop("dokkaSourceSets") as DomainObjectCollection<Any>).configureEach {
+        (prop("reportUndocumented") as Property<Boolean>).set(true)
+    }
+    @Suppress("UNCHECKED_CAST")
+    (dokka.prop("dokkaPublications") as DomainObjectCollection<Any>).configureEach {
+        (prop("failOnWarning") as Property<Boolean>).set(true)
+    }
+}
+
 // Aggregated Dokka site (docs builds only): ./gradlew dokkaGenerate -Pfe8.docs=true -> build/dokka/html
 if (docs) {
     apply(plugin = "org.jetbrains.dokka")
     dependencies { jvmModules.forEach { "dokka"(project(it)) } }
+    configureDokkaLint()
 }
 
 /** Compiles all pure-JVM modules incl. tests (tools/setup.sh uses it to warm Gradle). */

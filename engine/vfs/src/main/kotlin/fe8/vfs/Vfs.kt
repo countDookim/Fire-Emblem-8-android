@@ -72,6 +72,7 @@ public class VirtualFileSystem {
     /** Union of files under [dir] across all layers, de-duplicated, sorted. */
     public fun list(dir: String): List<String> = layers.flatMap { it.list(dir) }.distinct().sorted()
 
+    /** Path helpers shared by all layers. */
     public companion object {
         /** Normalises a virtual path: forward slashes, no leading slash, no `.`/`..` escapes. */
         public fun normalize(path: String): String {

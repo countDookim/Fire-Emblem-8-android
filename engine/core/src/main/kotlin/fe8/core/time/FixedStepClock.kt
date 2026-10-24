@@ -53,6 +53,7 @@ public class FixedStepClock(private val maxStepsPerAdvance: Int = 4) {
     /** Fraction (0..1) of the next tick already elapsed; renderers may use it to interpolate. */
     public val alpha: Float get() = (accumulator.toDouble() / UNITS_PER_TICK).toFloat()
 
+    /** GBA timing constants that define the fixed logic rate (~59.73 Hz). */
     public companion object {
         /** GBA master clock, Hz (2^24). */
         public const val CPU_HZ: Long = 16_777_216L

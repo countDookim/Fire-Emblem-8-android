@@ -1,7 +1,24 @@
 package fe8.input
 
 /** The four movement directions, in GBA d-pad bit order (Right, Left, Up, Down). */
-public enum class Direction(public val dx: Int, public val dy: Int) { RIGHT(1, 0), LEFT(-1, 0), UP(0, -1), DOWN(0, 1) }
+public enum class Direction(
+    /** Horizontal step in map cells (+1 = right). */
+    public val dx: Int,
+    /** Vertical step in map cells (+1 = down, screen coordinates). */
+    public val dy: Int,
+) {
+    /** D-pad right. */
+    RIGHT(1, 0),
+
+    /** D-pad left. */
+    LEFT(-1, 0),
+
+    /** D-pad up. */
+    UP(0, -1),
+
+    /** D-pad down. */
+    DOWN(0, 1),
+}
 
 /**
  * Abstract game actions. Game logic only ever sees these, never raw buttons, so buttons, touch and
@@ -13,7 +30,10 @@ public enum class Direction(public val dx: Int, public val dy: Int) { RIGHT(1, 0
  * In vanilla mode each action maps 1:1 to the GBA button the original game reads (see
  * [VanillaButtonMap]), which is what keeps differential tests input-identical with mGBA.
  */
-public sealed class GameAction(public val bit: Int) {
+public sealed class GameAction(
+    /** Dense bit index of this action in [InputFrame] masks; unique per action. */
+    public val bit: Int,
+) {
     /** A button: confirm / advance text. */
     public data object Confirm : GameAction(0)
 
@@ -27,9 +47,14 @@ public sealed class GameAction(public val bit: Int) {
     public data object Menu : GameAction(3)
 
     /** D-pad direction. Use [of] to get the singleton. */
-    public class Move private constructor(public val direction: Direction) : GameAction(4 + direction.ordinal) {
+    public class Move private constructor(
+        /** The direction moved. */
+        public val direction: Direction,
+    ) : GameAction(4 + direction.ordinal) {
+        /** Debug form, e.g. `Move(UP)`. */
         override fun toString(): String = "Move($direction)"
 
+        /** Holds the four pre-allocated instances. */
         public companion object {
             private val all = Direction.entries.map { Move(it) }
 
@@ -45,9 +70,14 @@ public sealed class GameAction(public val bit: Int) {
     public data object NextUnit : GameAction(9)
 
     /** Direct selection of list item [index] (touch, number keys). Not produced in vanilla mode. */
-    public class SelectItem private constructor(public val index: Int) : GameAction(FIRST_SELECT_BIT + index) {
+    public class SelectItem private constructor(
+        /** Zero-based list position. */
+        public val index: Int,
+    ) : GameAction(FIRST_SELECT_BIT + index) {
+        /** Debug form, e.g. `SelectItem(3)`. */
         override fun toString(): String = "SelectItem($index)"
 
+        /** Holds the [MAX] pre-allocated instances. */
         public companion object {
             /** Maximum directly selectable items. */
             public const val MAX: Int = 16
@@ -58,6 +88,7 @@ public sealed class GameAction(public val bit: Int) {
         }
     }
 
+    /** Bit layout constants. */
     public companion object {
         internal const val FIRST_SELECT_BIT: Int = 16
     }

@@ -37,6 +37,7 @@ public class Fe8Game(
     /** Source of held actions; set by the platform layer. Defaults to "nothing held". */
     public var actionSource: fe8.input.ActionSource = fe8.input.ActionSource { 0L }
 
+    /** Runs one fixed logic step: polls input, fires tick-start/end events, advances [tickCount]. */
     override fun tick() {
         input.update(actionSource.poll())
         val t = tickCount
@@ -46,6 +47,7 @@ public class Fe8Game(
         tickCount = t + 1
     }
 
+    /** Draws the current state into [frame]; [alpha] is ignored until interpolation is needed. */
     override fun present(alpha: Float) {
         // Placeholder test pattern until the renderer exists: a slow vertical gradient.
         val px = frame.pixels

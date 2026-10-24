@@ -164,6 +164,7 @@ public class RngService(
         primary.init(lcg.advance())
     }
 
+    /** Constants shared with the original boot sequence. */
     public companion object {
         /** Constant LCG seed used at boot by the original game. */
         public const val BOOT_LCG_SEED: Int = 0x42D690E9

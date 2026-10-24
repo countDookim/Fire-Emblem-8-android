@@ -10,8 +10,17 @@ import java.io.File
  * names. Test-only: GBA addresses must never be used by the port itself.
  */
 public class RamSymbols(file: File) {
-    /** One symbol. [binding] is `global` or `local` (C `static`). */
-    public data class Symbol(val name: String, val address: Int, val size: Int, val binding: String)
+    /** One symbol from `reference/ram_symbols.tsv`. */
+    public data class Symbol(
+        /** C identifier. */
+        val name: String,
+        /** Absolute GBA address (EWRAM 0x02xxxxxx / IWRAM 0x03xxxxxx). */
+        val address: Int,
+        /** Size in bytes, from the ELF symbol table. */
+        val size: Int,
+        /** `global`, or `local` for a C `static`. */
+        val binding: String,
+    )
 
     private val byName: Map<String, List<Symbol>> = file.readLines().drop(1).filter { it.isNotBlank() }.map { line ->
         val c = line.split('\t')
@@ -25,6 +34,7 @@ public class RamSymbols(file: File) {
         return all[0]
     }
 
+    /** Factory for the committed reference table. */
     public companion object {
         /** Loads from the `fe8.reference` system property (set by Gradle to `<repo>/reference`). */
         public fun fromEnvironment(): RamSymbols =

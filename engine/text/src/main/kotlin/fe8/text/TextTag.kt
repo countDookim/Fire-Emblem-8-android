@@ -22,6 +22,7 @@ public enum class TextTag(public val tag: String, public val argCount: Int) {
     PLAYER("PLAYER", 0),
     ;
 
+    /** Name-based lookup of tags. */
     public companion object {
         private val byTag = entries.associateBy { it.tag }
 

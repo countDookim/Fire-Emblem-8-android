@@ -17,6 +17,7 @@ public class FeatureFlag internal constructor(
     public val description: String,
     public val defaultEnabled: Boolean,
 ) {
+    /** Short debug form, e.g. `FeatureFlag(qol.fastText)`; the id alone identifies the flag. */
     override fun toString(): String = "FeatureFlag($id)"
 }
 

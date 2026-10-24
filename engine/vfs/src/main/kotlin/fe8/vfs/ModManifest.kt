@@ -19,6 +19,7 @@ public data class ModManifest(
     val loadOrder: Int = 0,
     val formatVersion: Int = CURRENT_FORMAT,
 ) {
+    /** Manifest format constants. */
     public companion object {
         /** Current manifest format version. */
         public const val CURRENT_FORMAT: Int = 1

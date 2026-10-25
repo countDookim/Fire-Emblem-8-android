@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/countDookim/Fire-Emblem-8-android/schemas/text.schema.json",
+  "title": "GBA Fire Emblem message strings (text/<lang>/messages.json)",
+  "description": "Every gMsgTable string as tagged text (gbafe.text.MessageCodec): characters are printable ASCII or Latin-1; control codes are {Name} tags from the decomp's texts/textdefs.txt ({NL}, {A}, {LoadFace FID_Eirika}, ...); bytes without a name are {0xNN ...}. Position in 'entries' = message id.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "game", "version", "entries"],
+  "properties": {
+    "format": { "const": "gbafe.text" },
+    "game": {
+      "enum": ["fe6", "fe7", "fe8"],
+      "description": "Game whose ROM the text was extracted from (docs/decisions/0010-multi-game-reuse.md)."
+    },
+    "version": { "const": 1 },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "text"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^MSG_[0-9A-F]{3,}$" },
+          "text": {
+            "type": "string",
+            "description": "Tagged text without the terminator. Literal braces never appear outside tags.",
+            "pattern": "^([ -z|~ -ÿ]|\\{[^{} ]+( [^{} ]+)*\\})*$"
+          }
+        }
+      }
+    }
+  }
+}

@@ -17,8 +17,9 @@ import gbafe.extract.Json
  * `paletteId` = 10 palettes, of which the game uses 0..4 for lit tiles (BG palette 6 + n) and 5..9 under
  * fog (`DisplayBmTile`).
  *
- * The tileset PNG renders all 1024 metatiles (32 per row, 16×16 px) with the lit palettes, as indices
- * `palette * 16 + color` into an 80-color PNG palette. The Tiled tileset carries each metatile's
+ * The tileset PNG renders all 1024 metatiles (32 per row, 16×16 px) as indices `palette * 16 + color`
+ * (the tilemap entry's palette field, i.e. as lit) into a 256-color PNG palette holding the 10 asset
+ * palettes (fields 10..15 never occur and are black). The Tiled tileset carries each metatile's
  * terrain as an int property `terrain`.
  */
 public object MapsExtractor {
@@ -37,7 +38,7 @@ public object MapsExtractor {
         public val terrain: IntArray,
         /** Rendered tileset (512×512, indexed). */
         public val tileset: IndexedImage,
-        /** Tileset PNG palette (lit palettes 0..4, ARGB). */
+        /** Tileset PNG palette (the 10 asset palettes, padded to 256, ARGB). */
         public val palette: IntArray,
         /** Map changes (doors, chests, ...) in table order. */
         public val changes: List<MapChange> = emptyList(),
@@ -154,7 +155,9 @@ public object MapsExtractor {
             }
         }
         val changes = if (changeLayerId != 0 && asset(changeLayerId) >= 0) readChanges(rom, asset(changeLayerId)) else emptyList()
-        return Output(w, h, cells, terrain, img, Bgr555.readPalette(rom, asset(paletteId), 5 * 16), changes)
+        // All 10 palettes: a few metatiles reference palette fields >= 5. Fields 10..15 (none seen) map to black.
+        val palette = Bgr555.readPalette(rom, asset(paletteId), 10 * 16).copyOf(256).also { it.fill(0xFF000000.toInt(), 160, 256) }
+        return Output(w, h, cells, terrain, img, palette, changes)
     }
 
     private fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)

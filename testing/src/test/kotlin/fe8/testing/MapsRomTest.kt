@@ -34,6 +34,7 @@ class MapsRomTest {
                 m.getValue("tileConfigId"), m.getValue("mainLayerId"), m.getValue("changeLayerId"),
             )
             assertTrue(o.width in 1..127 && o.height in 1..127, "chapter ${ch["index"]}: ${o.width}x${o.height}")
+            o.tilesetPng()
             for (c in o.changes) assertTrue(c.x + c.w <= o.width && c.y + c.h <= o.height, "chapter ${ch["index"]} change ${c.id}")
             maps++
         }

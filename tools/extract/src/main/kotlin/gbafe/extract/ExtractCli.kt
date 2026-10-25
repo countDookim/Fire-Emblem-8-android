@@ -92,7 +92,7 @@ public fun locateCodeRepo(): File? {
 
 /**
  * Runs the extraction steps the inputs allow and returns the paths written (relative to `args.out`).
- * Currently `data/items.json`, `data/classes.json`, `data/characters.json`, `data/terrains.json`,
+ * Currently `data/items.json`, `data/classes.json`, `data/characters.json`, `data/terrains.json`, `data/chapters.json`,
  * `text/en/messages.json` and `fonts/{system,talk,special}.{png,json}`,
  * `portraits/` (sheets, chibis, mouths, cards + `portraits.json`) (need `--symbols`; ids and face names need `--decomp`).
  */
@@ -135,6 +135,13 @@ public fun runSteps(args: ExtractArgs): List<String> {
         gbafe.extract.fe8.terrains.TerrainsExtractor.extractJson(rom, terrainTables, terrainNames),
     )
     written += "data/terrains.json"
+    File(args.out, "data/chapters.json").writeText(
+        gbafe.extract.fe8.chapters.ChaptersExtractor.extractJson(
+            rom, symbols["gChapterDataTable"].address - ROM_BASE,
+            symbols.sizeOrSpan("gChapterDataTable") / gbafe.extract.fe8.chapters.ChaptersExtractor.ENTRY_SIZE,
+        ),
+    )
+    written += "data/chapters.json"
     val faces = args.decomp?.let { File(it, "texts/textdefs.txt") }?.takeIf { it.isFile }
         ?.let(gbafe.extract.text.MessagesExtractor::readFaces) ?: emptyMap()
     val rootPtr = symbols["gMsgHuffmanTableRoot"].address - ROM_BASE

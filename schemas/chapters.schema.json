@@ -1,0 +1,463 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/countDookim/Fire-Emblem-8-android/schemas/chapters.schema.json",
+  "title": "Fire Emblem 8 chapter settings (data/chapters.json)",
+  "description": "gChapterDataTable (struct ROMChapterData, decomp include/chapterdata.h), one entry per chapter id, every struct byte kept (FE7 leftovers included). Field names follow the struct; [2] arrays are [normal, hard]; mapBgmIds follows the MAP_BGM_* order; enum fields (initialWeather, goalWindowDataType) are numeric.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "game",
+    "version",
+    "entries"
+  ],
+  "properties": {
+    "format": {
+      "const": "gbafe.chapters"
+    },
+    "game": {
+      "enum": [
+        "fe6",
+        "fe7",
+        "fe8"
+      ]
+    },
+    "version": {
+      "const": 1
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "index",
+          "internalName",
+          "map",
+          "initialFogLevel",
+          "hasPrepScreen",
+          "chapTitleId",
+          "chapTitleIdInHectorStory",
+          "initialPosX",
+          "initialPosY",
+          "initialWeather",
+          "battleTileSet",
+          "easyModeLevelMalus",
+          "difficultModeLevelBonus",
+          "normalModeLevelMalus",
+          "levelBitsUnused",
+          "mapBgmIds",
+          "mapCrackedWallHeath",
+          "turnsForTacticsRankAInEliwoodStory",
+          "turnsForTacticsRankAInHectorStory",
+          "turnsForTacticsRankBInEliwoodStory",
+          "turnsForTacticsRankBInHectorStory",
+          "turnsForTacticsRankCInEliwoodStory",
+          "turnsForTacticsRankCInHectorStory",
+          "turnsForTacticsRankDInEliwoodStory",
+          "turnsForTacticsRankDInHectorStory",
+          "unk3D",
+          "gainedExpForExpRankAInEliwoodStory",
+          "gainedExpForExpRankAInHectorStory",
+          "gainedExpForExpRankBInEliwoodStory",
+          "gainedExpForExpRankBInHectorStory",
+          "gainedExpForExpRankCInEliwoodStory",
+          "gainedExpForExpRankCInHectorStory",
+          "gainedExpForExpRankDInEliwoodStory",
+          "gainedExpForExpRankDInHectorStory",
+          "unk5E",
+          "goldForFundsRankInEliwoodStory",
+          "goldForFundsRankInHectorStory",
+          "chapTitleTextId",
+          "chapTitleTextIdInHectorStory",
+          "mapEventDataId",
+          "gmapEventId",
+          "divinationTextIdBeginning",
+          "divinationTextIdInEliwoodStory",
+          "divinationTextIdInHectorStory",
+          "divinationTextIdEnding",
+          "divinationPortrait",
+          "divinationFee",
+          "prepScreenNumber",
+          "prepScreenNumberInHectorStory",
+          "merchantPosX",
+          "merchantPosXInHectorStory",
+          "merchantPosY",
+          "merchantPosYInHectorStory",
+          "victorySongEnemyThreshold",
+          "fadeToBlack",
+          "statusObjectiveTextId",
+          "goalWindowTextId",
+          "goalWindowDataType",
+          "goalWindowEndTurnNumber",
+          "protectCharacterIndex",
+          "destPosX",
+          "destPosY",
+          "unk91",
+          "unk92",
+          "unk93"
+        ],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "internalName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "map": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "obj1Id",
+              "obj2Id",
+              "paletteId",
+              "tileConfigId",
+              "mainLayerId",
+              "objAnimId",
+              "paletteAnimId",
+              "changeLayerId"
+            ],
+            "properties": {
+              "obj1Id": {
+                "$ref": "#/$defs/u8"
+              },
+              "obj2Id": {
+                "$ref": "#/$defs/u8"
+              },
+              "paletteId": {
+                "$ref": "#/$defs/u8"
+              },
+              "tileConfigId": {
+                "$ref": "#/$defs/u8"
+              },
+              "mainLayerId": {
+                "$ref": "#/$defs/u8"
+              },
+              "objAnimId": {
+                "$ref": "#/$defs/u8"
+              },
+              "paletteAnimId": {
+                "$ref": "#/$defs/u8"
+              },
+              "changeLayerId": {
+                "$ref": "#/$defs/u8"
+              }
+            }
+          },
+          "initialFogLevel": {
+            "$ref": "#/$defs/u8"
+          },
+          "hasPrepScreen": {
+            "$ref": "#/$defs/u8"
+          },
+          "chapTitleId": {
+            "$ref": "#/$defs/u8"
+          },
+          "chapTitleIdInHectorStory": {
+            "$ref": "#/$defs/u8"
+          },
+          "initialPosX": {
+            "$ref": "#/$defs/u8"
+          },
+          "initialPosY": {
+            "$ref": "#/$defs/u8"
+          },
+          "initialWeather": {
+            "$ref": "#/$defs/u8"
+          },
+          "battleTileSet": {
+            "$ref": "#/$defs/u8"
+          },
+          "easyModeLevelMalus": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "difficultModeLevelBonus": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "normalModeLevelMalus": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "levelBitsUnused": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "mapBgmIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u16"
+            },
+            "minItems": 11,
+            "maxItems": 11
+          },
+          "mapCrackedWallHeath": {
+            "$ref": "#/$defs/u8"
+          },
+          "turnsForTacticsRankAInEliwoodStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u8"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "turnsForTacticsRankAInHectorStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u8"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "turnsForTacticsRankBInEliwoodStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u8"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "turnsForTacticsRankBInHectorStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u8"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "turnsForTacticsRankCInEliwoodStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u8"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "turnsForTacticsRankCInHectorStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u8"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "turnsForTacticsRankDInEliwoodStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u8"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "turnsForTacticsRankDInHectorStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u8"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "unk3D": {
+            "$ref": "#/$defs/u8"
+          },
+          "gainedExpForExpRankAInEliwoodStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u16"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "gainedExpForExpRankAInHectorStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u16"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "gainedExpForExpRankBInEliwoodStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u16"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "gainedExpForExpRankBInHectorStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u16"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "gainedExpForExpRankCInEliwoodStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u16"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "gainedExpForExpRankCInHectorStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u16"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "gainedExpForExpRankDInEliwoodStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u16"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "gainedExpForExpRankDInHectorStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u16"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "unk5E": {
+            "$ref": "#/$defs/u16"
+          },
+          "goldForFundsRankInEliwoodStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u32"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "goldForFundsRankInHectorStory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/u32"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "chapTitleTextId": {
+            "$ref": "#/$defs/u16"
+          },
+          "chapTitleTextIdInHectorStory": {
+            "$ref": "#/$defs/u16"
+          },
+          "mapEventDataId": {
+            "$ref": "#/$defs/u8"
+          },
+          "gmapEventId": {
+            "$ref": "#/$defs/u8"
+          },
+          "divinationTextIdBeginning": {
+            "$ref": "#/$defs/u16"
+          },
+          "divinationTextIdInEliwoodStory": {
+            "$ref": "#/$defs/u16"
+          },
+          "divinationTextIdInHectorStory": {
+            "$ref": "#/$defs/u16"
+          },
+          "divinationTextIdEnding": {
+            "$ref": "#/$defs/u16"
+          },
+          "divinationPortrait": {
+            "$ref": "#/$defs/u8"
+          },
+          "divinationFee": {
+            "$ref": "#/$defs/u8"
+          },
+          "prepScreenNumber": {
+            "$ref": "#/$defs/u8"
+          },
+          "prepScreenNumberInHectorStory": {
+            "$ref": "#/$defs/u8"
+          },
+          "merchantPosX": {
+            "$ref": "#/$defs/u8"
+          },
+          "merchantPosXInHectorStory": {
+            "$ref": "#/$defs/u8"
+          },
+          "merchantPosY": {
+            "$ref": "#/$defs/u8"
+          },
+          "merchantPosYInHectorStory": {
+            "$ref": "#/$defs/u8"
+          },
+          "victorySongEnemyThreshold": {
+            "type": "integer",
+            "minimum": -128,
+            "maximum": 127
+          },
+          "fadeToBlack": {
+            "$ref": "#/$defs/u8"
+          },
+          "statusObjectiveTextId": {
+            "$ref": "#/$defs/u16"
+          },
+          "goalWindowTextId": {
+            "$ref": "#/$defs/u16"
+          },
+          "goalWindowDataType": {
+            "$ref": "#/$defs/u8"
+          },
+          "goalWindowEndTurnNumber": {
+            "$ref": "#/$defs/u8"
+          },
+          "protectCharacterIndex": {
+            "$ref": "#/$defs/u8"
+          },
+          "destPosX": {
+            "$ref": "#/$defs/u8"
+          },
+          "destPosY": {
+            "$ref": "#/$defs/u8"
+          },
+          "unk91": {
+            "$ref": "#/$defs/u8"
+          },
+          "unk92": {
+            "$ref": "#/$defs/u8"
+          },
+          "unk93": {
+            "$ref": "#/$defs/u8"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "u8": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "u16": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "u32": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    }
+  }
+}

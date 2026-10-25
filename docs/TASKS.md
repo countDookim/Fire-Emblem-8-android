@@ -35,7 +35,7 @@ Take the first `todo` whose dependencies are `done`. If fewer than 5 `todo` rema
 | M2-09 | Text control codes → readable tags; all strings → `text/en/*.json` | every string round-trips to identical bytes | done (`MessageCodec`, `MessagesRomTest`: 3404 round-trip + MSG_002/212/904 vs texts.txt; schema `text.schema.json`) |
 | M2-10 | Font glyphs (`fontgrp`) → PNG atlas + JSON metrics | glyph widths match decomp tables | done (`FontExtractor` → `fonts/{system,talk,special}.{png,json}`; `FontsRomTest` widths + bitmap rows vs `data/fonts/glyphs_*.h`; `font.schema.json`) |
 | M2-11 | Portraits (`face.c` data) → PNG + JSON (mouth/eye frames, anchors) | 3 portraits visually checked + counts | done (`PortraitsExtractor`: 172 entries, unassembled tile sheets + chibi/mouth/card PNGs; `PortraitsRomTest` vs `portrait_data.c`; Eirika/Seth/card checked by eye; 96×80 assembly = face renderer, M3) |
-| M2-12 | Chapter data (`chapterdata.c`) → `data/chapters.json` | schema-valid | todo |
+| M2-12 | Chapter data (`chapterdata.c`) → `data/chapters.json` | schema-valid | done (`ChaptersExtractor`, 79 chapters, every struct byte; `ChaptersRomTest` + one-off full cross-check vs decomp `src/data/chapter_settings.json`: 0 mismatches) |
 | M2-13 | Map layouts + tile config → Tiled `.tmj` + tileset PNG (one chapter) | opens in Tiled (validated by `.tmj` schema), tiles match | todo |
 | M2-14 | All chapter maps converted; map changes (doors, chests) as Tiled layers | count matches chapter table | todo |
 | M2-15 | Event script converter v0: command table from decomp event macros → `.fe8s` (prologue only) | output parses with M5 grammar draft; diffable | todo |

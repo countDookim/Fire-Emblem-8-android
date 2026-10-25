@@ -1,7 +1,7 @@
 """Validates schemas/*.schema.json (JSON Schema 2020-12) and extracted data against them.
 
 Extracted data is ROM-derived, so it only exists in build dirs: testing/build/extracted/ is written by
-ItemsRomTest/ClassesRomTest/CharactersRomTest/TerrainsRomTest/MessagesRomTest/FontsRomTest/PortraitsRomTest when the ROM is available. Missing files are skipped, never counted as passing.
+ItemsRomTest/ClassesRomTest/CharactersRomTest/TerrainsRomTest/MessagesRomTest/FontsRomTest/PortraitsRomTest/ChaptersRomTest when the ROM is available. Missing files are skipped, never counted as passing.
 """
 import json
 import pathlib
@@ -123,6 +123,18 @@ class SchemaTest(unittest.TestCase):
             for k in ("sheet", "chibi", "mouth", "card"):
                 if e[k] is not None:
                     self.assertTrue((path.parent / e[k]).is_file(), e[k])
+
+    def test_extracted_chapters_are_schema_valid(self):
+        path = EXTRACTED / "data" / "chapters.json"
+        if not path.is_file():
+            self.skipTest("no extracted chapters.json (needs the ROM; run ./gradlew :testing:test)")
+        doc = load(path)
+        v = jsonschema.Draft202012Validator(load(SCHEMAS / "chapters.schema.json"))
+        v.validate(doc)
+        self.assertEqual(79, len(doc["entries"]))
+        bad = json.loads(json.dumps(doc))
+        bad["entries"][0]["mapBgmIds"] = [0]
+        self.assertFalse(v.is_valid(bad))
 
 
 if __name__ == "__main__":

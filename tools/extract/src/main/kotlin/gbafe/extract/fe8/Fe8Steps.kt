@@ -164,6 +164,13 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
     File(args.out, "ui/icons.png").apply { parentFile.mkdirs() }.writeBytes(icons.png)
     File(args.out, "ui/icons.json").writeText(icons.json)
     written += "ui/icons.png (${icons.count} icons)"
+    val frames = gbafe.extract.fe8.ui.WindowFramesExtractor.extract(
+        rom, symbols["sUiFrameImageLookup"].address - ROM_BASE, symbols["sUiFramePaletteLookup"].address - ROM_BASE,
+        symbols["sUiFrameModelTilemapLookup"].address - ROM_BASE,
+    )
+    for ((n, png) in frames.files) File(args.out, "ui/$n").writeBytes(png)
+    File(args.out, "ui/windowframes.json").writeText(frames.json)
+    written += "ui/windowframes.json (+${frames.files.size} PNG)"
     return written
 }
 

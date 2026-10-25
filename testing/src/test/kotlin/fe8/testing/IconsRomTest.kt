@@ -30,4 +30,17 @@ class IconsRomTest {
         File(dir, "icons.png").writeBytes(o.png)
         File(dir, "icons.json").writeText(o.json)
     }
+
+    @Test
+    fun `window frames extract for all 4 colors`() {
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        // sUiFrameModelTilemapLookup 0x085B6430, sUiFramePaletteLookup 0x085B6450, sUiFrameImageLookup 0x085B6470
+        // (static, decomp/fireemblem8.nm.txt); style 0 model = gUnknown_080DA2F4. Frames checked by eye.
+        val o = gbafe.extract.fe8.ui.WindowFramesExtractor.extract(romFile.readBytes(), 0x5B6470, 0x5B6450, 0x5B6430)
+        assertEquals(4, o.files.size)
+        val dir = File(System.getProperty("fe8.extractedOut") ?: "build/extracted", "ui")
+        dir.mkdirs()
+        for ((n, png) in o.files) File(dir, n).writeBytes(png)
+        File(dir, "windowframes.json").writeText(o.json)
+    }
 }

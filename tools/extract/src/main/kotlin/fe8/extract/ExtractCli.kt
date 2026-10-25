@@ -92,7 +92,7 @@ public fun locateCodeRepo(): File? {
 
 /**
  * Runs the extraction steps the inputs allow and returns the paths written (relative to `args.out`).
- * Currently `data/items.json` and `data/classes.json` (need `--symbols`; ids need `--decomp`).
+ * Currently `data/items.json`, `data/classes.json` and `data/characters.json` (need `--symbols`; ids need `--decomp`).
  */
 public fun runSteps(args: ExtractArgs): List<String> {
     val written = ArrayList<String>()
@@ -115,6 +115,15 @@ public fun runSteps(args: ExtractArgs): List<String> {
         ),
     )
     written += "data/classes.json"
+    val charNames = args.decomp?.let { DecompEnums.read(it, "include/constants/characters.h", "CHARACTER_") } ?: emptyMap()
+    val chars = symbols["gCharacterData"]
+    File(args.out, "data/characters.json").writeText(
+        fe8.extract.characters.CharactersExtractor.extractJson(
+            rom, chars.address, symbols.sizeOrSpan("gCharacterData") / fe8.extract.characters.CharactersExtractor.ENTRY_SIZE,
+            charNames, classNames,
+        ),
+    )
+    written += "data/characters.json"
     return written
 }
 

@@ -1,0 +1,320 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/countDookim/Fire-Emblem-8-android/schemas/characters.schema.json",
+  "title": "Fire Emblem 8 character table (data/characters.json)",
+  "description": "One entry per character; there is no character 0, so an entry's position + 1 is its vanilla character number. Source struct: struct CharacterData in the decomp's include/bmunit.h.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "version",
+    "entries"
+  ],
+  "properties": {
+    "format": {
+      "const": "fe8.characters"
+    },
+    "version": {
+      "const": 1
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/character"
+      }
+    }
+  },
+  "$defs": {
+    "u8": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "u16": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "s8": {
+      "type": "integer",
+      "minimum": -128,
+      "maximum": 127
+    },
+    "character": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "description": "Decomp constant without CHARACTER_ (CHARACTER_EIRIKA -> EIRIKA)."
+        },
+        "nameText": {
+          "$ref": "#/$defs/u16"
+        },
+        "descText": {
+          "$ref": "#/$defs/u16"
+        },
+        "defaultClass": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            }
+          ],
+          "description": "Class id, or null for none."
+        },
+        "portrait": {
+          "$ref": "#/$defs/u16"
+        },
+        "miniPortrait": {
+          "$ref": "#/$defs/u8"
+        },
+        "affinity": {
+          "enum": [
+            "NONE",
+            "FIRE",
+            "THUNDER",
+            "WIND",
+            "ICE",
+            "DARK",
+            "LIGHT",
+            "ANIMA"
+          ]
+        },
+        "sortOrder": {
+          "$ref": "#/$defs/u8"
+        },
+        "level": {
+          "$ref": "#/$defs/s8",
+          "description": "Base level."
+        },
+        "bases": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "hp",
+            "pow",
+            "skl",
+            "spd",
+            "def",
+            "res",
+            "lck",
+            "con"
+          ],
+          "properties": {
+            "hp": {
+              "$ref": "#/$defs/s8"
+            },
+            "pow": {
+              "$ref": "#/$defs/s8"
+            },
+            "skl": {
+              "$ref": "#/$defs/s8"
+            },
+            "spd": {
+              "$ref": "#/$defs/s8"
+            },
+            "def": {
+              "$ref": "#/$defs/s8"
+            },
+            "res": {
+              "$ref": "#/$defs/s8"
+            },
+            "lck": {
+              "$ref": "#/$defs/s8"
+            },
+            "con": {
+              "$ref": "#/$defs/s8"
+            }
+          },
+          "description": "Personal bases, added to the class bases."
+        },
+        "baseRanks": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "SWORD",
+            "LANCE",
+            "AXE",
+            "BOW",
+            "STAFF",
+            "ANIMA",
+            "LIGHT",
+            "DARK"
+          ],
+          "properties": {
+            "SWORD": {
+              "$ref": "#/$defs/u8"
+            },
+            "LANCE": {
+              "$ref": "#/$defs/u8"
+            },
+            "AXE": {
+              "$ref": "#/$defs/u8"
+            },
+            "BOW": {
+              "$ref": "#/$defs/u8"
+            },
+            "STAFF": {
+              "$ref": "#/$defs/u8"
+            },
+            "ANIMA": {
+              "$ref": "#/$defs/u8"
+            },
+            "LIGHT": {
+              "$ref": "#/$defs/u8"
+            },
+            "DARK": {
+              "$ref": "#/$defs/u8"
+            }
+          },
+          "description": "Starting weapon exp per type."
+        },
+        "growths": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "hp",
+            "pow",
+            "skl",
+            "spd",
+            "def",
+            "res",
+            "lck"
+          ],
+          "properties": {
+            "hp": {
+              "$ref": "#/$defs/u8"
+            },
+            "pow": {
+              "$ref": "#/$defs/u8"
+            },
+            "skl": {
+              "$ref": "#/$defs/u8"
+            },
+            "spd": {
+              "$ref": "#/$defs/u8"
+            },
+            "def": {
+              "$ref": "#/$defs/u8"
+            },
+            "res": {
+              "$ref": "#/$defs/u8"
+            },
+            "lck": {
+              "$ref": "#/$defs/u8"
+            }
+          },
+          "description": "Growth rates in percent."
+        },
+        "unknown23": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/u8"
+          },
+          "description": "CharacterData _u23.._u27 (unknown; kept for exact round trips)."
+        },
+        "attributes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "mounted_aid",
+              "canto",
+              "steal",
+              "thief",
+              "dance",
+              "play",
+              "crit_bonus",
+              "ballistae",
+              "promoted",
+              "supply",
+              "mounted",
+              "wyvern",
+              "pegasus",
+              "lord",
+              "female",
+              "boss",
+              "lock_1",
+              "lock_2",
+              "lock_3",
+              "max_level_10",
+              "unselectable",
+              "triangle_attack_pegasi",
+              "triangle_attack_armors",
+              "bit_23",
+              "negate_lethality",
+              "assassin",
+              "magic_seal",
+              "summon",
+              "lock_4",
+              "lock_5",
+              "lock_6",
+              "lock_7"
+            ]
+          }
+        },
+        "supports": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "maxItems": 7,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "partner",
+                  "baseExp",
+                  "growth"
+                ],
+                "properties": {
+                  "partner": {
+                    "type": "string",
+                    "pattern": "^[A-Z][A-Z0-9_]*$"
+                  },
+                  "baseExp": {
+                    "$ref": "#/$defs/u8"
+                  },
+                  "growth": {
+                    "$ref": "#/$defs/u8"
+                  }
+                }
+              }
+            }
+          ],
+          "description": "Support partners (struct SupportData), max 7."
+        },
+        "visitGroup": {
+          "$ref": "#/$defs/u8"
+        }
+      },
+      "required": [
+        "id",
+        "nameText",
+        "descText",
+        "defaultClass",
+        "portrait",
+        "miniPortrait",
+        "affinity",
+        "sortOrder",
+        "level",
+        "bases",
+        "baseRanks",
+        "growths",
+        "unknown23",
+        "attributes",
+        "supports",
+        "visitGroup"
+      ]
+    }
+  }
+}

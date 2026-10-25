@@ -14,7 +14,7 @@ path as a base file overrides it; the highest layer wins ([0003](docs/decisions/
 
 | Path prefix | Content | Format | Status |
 |---|---|---|---|
-| `data/` | items, classes, characters, terrain, shops, chapters, AI tables... | JSON + `schemas/*.schema.json`; patch with `*.merge.json` | `items.json`, `classes.json` formats published ([schemas](schemas/)); extracted by `:tools:extract`, not yet loaded by the game. Others *(planned, M2)* |
+| `data/` | items, classes, characters, terrain, shops, chapters, AI tables... | JSON + `schemas/*.schema.json`; patch with `*.merge.json` | `items.json`, `classes.json`, `characters.json` formats published ([schemas](schemas/)); extracted by `:tools:extract`, not yet loaded by the game. Others *(planned, M2)* |
 | `maps/` | chapter maps: layout, collision, events, units, warps | Tiled `.tmj` + tileset PNGs | *(planned, M2)* |
 | `scripts/` | event scripts | `.fe8s` ([0001](docs/decisions/0001-script-format.md)) | *(planned, M5)* |
 | `gfx/` | sprites, portraits, UI, tilesets; hi-res packs | PNG + JSON metadata | *(planned, M2–3)* |
@@ -64,3 +64,7 @@ numbers until the class table exists (M2-05). The game does not load these files
 entry's position + 1 is its vanilla class number. Ids are `CLASS_*` without the prefix. Terrain tables
 (`moveCost.normal/rain/snow`, `terrainAvoid/Defense/Resistance`) have one value per terrain id (65,
 `-1` = impassable) and are inlined per class; `battleAnims` is matched first-to-last by weapon type or item.
+
+`data/characters.json` (`fe8.characters` v1, [schema](schemas/characters.schema.json)): position + 1 is the
+vanilla character number (256 rows). `bases` are personal bonuses added to the class bases; `supports`
+lists up to 7 partners with starting support exp and per-turn growth.

@@ -16,8 +16,8 @@ JVM command-line tool that converts the original ROM into the moddable formats t
 - No CLI library: sessions cannot reach the Gradle plugin portal and the tool needs nothing fancy.
 - `IndexedPng` writes/reads palette PNGs (colour type 3, 8-bit) with JDK zlib only — no ImageIO, which
   may reorder palettes. Reading supports all scanline filters, so PNGs re-saved by editors still load.
-- Steps: `data/items.json` (`items/ItemsExtractor`), `data/classes.json` (`classes/ClassesExtractor`); both need `--symbols`; `--decomp` supplies ids from
-  `include/constants/{items,classes}.h`). Values always come from the ROM; the decomp only provides names and layout.
+- Steps: `data/items.json` (`items/ItemsExtractor`), `data/classes.json` (`classes/ClassesExtractor`), `data/characters.json` (`characters/CharactersExtractor`); all need `--symbols`; `--decomp` supplies ids from
+  `include/constants/{items,classes,characters}.h`). Values always come from the ROM; the decomp only provides names and layout.
 - `Json` is a small deterministic writer (stable key order, diffable output); `Symbols` reads `nm` output;
   `DecompEnums` reads `NAME = literal,` constants from decomp headers.
 - Schemas live in `schemas/` (committed, not ROM-derived) and are checked by `tools/tests/test_schemas.py`

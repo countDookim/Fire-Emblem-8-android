@@ -39,7 +39,7 @@ Take the first `todo` whose dependencies are `done`. If fewer than 5 `todo` rema
 | M2-13 | Map layouts + tile config → Tiled `.tmj` + tileset PNG (one chapter) | opens in Tiled (validated by `.tmj` schema), tiles match | done (`MapsExtractor`: prologue `.tmj` + 1024-metatile tileset PNG with terrain properties; `MapsRomTest` + Tiled-structure test; render checked by eye; no CLI step yet → M2-14) |
 | M2-14 | All chapter maps converted; map changes (doors, chests) as Tiled layers | count matches chapter table | done (CLI `maps/chapter_NN.tmj` ×79 + shared tilesets; `MapsRomTest`: all 79 convert, changes in bounds; ch. 2 villages/chests checked by eye) |
 | M2-15 | Event script converter v0: command table from decomp event macros → `.fe8s` (prologue only) | output parses with M5 grammar draft; diffable | todo |
-| M2-16 | Unit placement (`UNIT` defs) → Tiled object layer | prologue units correct | todo |
+| M2-16 | Unit placement (`UNIT` defs) → Tiled object layer | prologue units correct | done (`UnitsExtractor`: `UnitDefinition` + REDAs, every field; prologue's 9 `UnitDef_Event_Prologue*` arrays → hidden object layers in `chapter_00.tmj`; `UnitsRomTest` vs `prologue-eventudefs.h`; other chapters need M2-15's LOAD targets) |
 | M2-17 | Map sprites (standing/moving) → PNG + anim JSON | counts match class table | done: `MapSpritesExtractor` standing (107 sheets) + moving (127 entries, `moving/NNN.png` + AP frames/anims JSON), `MapSpritesRomTest` |
 | M2-18 | m4a songs → MIDI + `voicegroups/*.json` (one song end-to-end) | MIDI note events match song data | todo |
 | M2-19 | All songs + direct-sound samples → MIDI + WAV | counts match song table | todo |

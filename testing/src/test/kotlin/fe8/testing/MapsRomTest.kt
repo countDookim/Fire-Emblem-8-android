@@ -62,7 +62,9 @@ class MapsRomTest {
         val dir = File(System.getProperty("fe8.extractedOut") ?: "build/extracted", "maps")
         dir.mkdirs()
         File(dir, "tileset_03.png").writeBytes(m.tilesetPng())
-        File(dir, "chapter_00.tmj").writeText(m.tmj("tileset_03", "tileset_03.png"))
+        // With the prologue's opening allies (UnitDef_Event_PrologueAlly 0x088B3C14) as an object layer (M2-16).
+        val allies = gbafe.extract.fe8.units.UnitsExtractor.readGroup(romFile.readBytes(), 0x8B3C14, 3)
+        File(dir, "chapter_00.tmj").writeText(m.tmj("tileset_03", "tileset_03.png", listOf("UnitDef_Event_PrologueAlly" to allies)))
         // Chapter 2 (map ids from chapter_settings.json) has map changes (doors/chests).
         val c2 = MapsExtractor.extract(romFile.readBytes(), 0x8B363C, CH2[0], CH2[1], CH2[2], CH2[3], CH2[4], CH2[5])
         assertTrue(c2.changes.isNotEmpty())

@@ -46,12 +46,24 @@ public object MapsExtractor {
         /** The tileset as PNG bytes. */
         public fun tilesetPng(): ByteArray = IndexedPng.write(tileset, palette)
 
-        /** Tiled JSON map with an embedded tileset referencing [tilesetImage]. */
-        public fun tmj(name: String, tilesetImage: String): String = Json.write(
+        /**
+         * Tiled JSON map with an embedded tileset referencing [tilesetImage]; each of [unitGroups] (array name →
+         * units from [gbafe.extract.fe8.units.UnitsExtractor.readGroup]) becomes a hidden object layer after the
+         * change layers.
+         */
+        public fun tmj(name: String, tilesetImage: String, unitGroups: List<Pair<String, List<Map<String, Any>>>> = emptyList()): String {
+            var nextObject = 1
+            val unitLayers = unitGroups.mapIndexed { i, (group, units) ->
+                gbafe.extract.fe8.units.UnitsExtractor.objectLayer(2 + changes.size + i, group, units, nextObject).also { nextObject += units.size }
+            }
+            return tmjJson(name, tilesetImage, unitLayers, nextObject)
+        }
+
+        private fun tmjJson(name: String, tilesetImage: String, unitLayers: List<Map<String, Any>>, nextObject: Int): String = Json.write(
             linkedMapOf(
                 "type" to "map", "version" to "1.10", "tiledversion" to "1.10.2", "orientation" to "orthogonal",
                 "renderorder" to "right-down", "width" to width, "height" to height, "tilewidth" to 16, "tileheight" to 16,
-                "infinite" to false, "nextlayerid" to 2 + changes.size, "nextobjectid" to 1,
+                "infinite" to false, "nextlayerid" to 2 + changes.size + unitLayers.size, "nextobjectid" to nextObject,
                 "layers" to listOf(
                     linkedMapOf(
                         "id" to 1, "name" to "main", "type" to "tilelayer", "x" to 0, "y" to 0, "width" to width,
@@ -69,7 +81,7 @@ public object MapsExtractor {
                         "properties" to listOf("id" to c.id, "x" to c.x, "y" to c.y, "w" to c.w, "h" to c.h)
                             .map { (k, v) -> linkedMapOf("name" to k, "type" to "int", "value" to v) },
                     )
-                },
+                } + unitLayers,
                 "tilesets" to listOf(
                     linkedMapOf(
                         "firstgid" to 1, "name" to name, "image" to tilesetImage, "imagewidth" to 512, "imageheight" to 512,

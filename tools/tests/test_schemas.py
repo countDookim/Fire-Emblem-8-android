@@ -151,6 +151,13 @@ class SchemaTest(unittest.TestCase):
         self.assertEqual(("tilelayer", m["width"] * m["height"]), (layer["type"], len(layer["data"])))
         self.assertTrue(all(ts["firstgid"] <= g < ts["firstgid"] + ts["tilecount"] for g in layer["data"]))
         self.assertEqual(list(range(ts["tilecount"])), [t["id"] for t in ts["tiles"]])
+        ids = [l["id"] for l in m["layers"]]
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertTrue(m["nextlayerid"] > max(ids))
+        objs = [o for l in m["layers"] if l["type"] == "objectgroup" for o in l["objects"]]
+        self.assertTrue(objs, "prologue .tmj has unit objects")
+        self.assertTrue(m["nextobjectid"] > max(o["id"] for o in objs))
+        self.assertTrue(all(0 <= o["x"] < m["width"] * 16 and 0 <= o["y"] < m["height"] * 16 for o in objs))
 
     def test_extracted_mapsprites_are_schema_valid(self):
         path = EXTRACTED / "mapsprites" / "mapsprites.json"

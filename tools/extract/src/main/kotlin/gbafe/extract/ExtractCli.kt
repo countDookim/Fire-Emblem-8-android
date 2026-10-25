@@ -158,7 +158,11 @@ public fun runSteps(args: ExtractArgs): List<String> {
         val ts = "tileset_%d_%d_%d_%d".format(m["obj1Id"], m["obj2Id"], m["paletteId"], m["tileConfigId"])
         File(args.out, "maps/tilesets").mkdirs()
         if (tilesetsDone.add(ts)) File(args.out, "maps/tilesets/$ts.png").writeBytes(o.tilesetPng())
-        File(args.out, "maps/chapter_%02d.tmj".format(ch["index"])).writeText(o.tmj(ts, "tilesets/$ts.png"))
+        // Unit placement: prologue only until the event converter (M2-15) finds every chapter's LOAD targets.
+        val units = if (ch["index"] != 0) emptyList() else symbols.namesWithPrefix("UnitDef_Event_Prologue")
+            .sortedBy { symbols[it].address.toUInt() }
+            .map { it to gbafe.extract.fe8.units.UnitsExtractor.readGroup(rom, symbols[it].address - ROM_BASE, symbols.sizeOrSpan(it) / gbafe.extract.fe8.units.UnitsExtractor.ENTRY_SIZE) }
+        File(args.out, "maps/chapter_%02d.tmj".format(ch["index"])).writeText(o.tmj(ts, "tilesets/$ts.png", units))
         maps++
     }
     written += "maps/ ($maps .tmj, ${tilesetsDone.size} tilesets)"

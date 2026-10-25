@@ -27,4 +27,13 @@ public object DecompEnums {
     /** [parse] applied to `<decomp>/<relPath>`. */
     public fun read(decomp: File, relPath: String, prefix: String): Map<Int, String> =
         parse(File(decomp, relPath).readText(), prefix)
+
+    /**
+     * Data id for decomp constant [name]: [prefix] removed (`ITEM_SWORD_IRON` → `SWORD_IRON`), unless that
+     * would not start with a letter (`ITEM_200G` stays `ITEM_200G`), so ids always match `[A-Z][A-Z0-9_]*`.
+     */
+    public fun id(name: String, prefix: String): String {
+        val short = name.removePrefix(prefix)
+        return if (short.firstOrNull()?.isLetter() == true) short else name
+    }
 }

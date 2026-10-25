@@ -40,3 +40,11 @@ class SymbolsTest {
         assertEquals(0x08000020, s["c"].address)
     }
 }
+
+class DecompIdTest {
+    @Test
+    fun `ids drop the prefix only when a letter follows`() {
+        assertEquals("SWORD_IRON", DecompEnums.id("ITEM_SWORD_IRON", "ITEM_"))
+        assertEquals("ITEM_200G", DecompEnums.id("ITEM_200G", "ITEM_"))
+    }
+}

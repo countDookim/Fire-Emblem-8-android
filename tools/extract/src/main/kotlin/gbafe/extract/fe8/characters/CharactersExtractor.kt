@@ -38,8 +38,8 @@ public object CharactersExtractor {
     public fun extract(
         rom: ByteArray, tableAddress: Int, count: Int, names: Map<Int, String>, classNames: Map<Int, String> = emptyMap(),
     ): Map<String, Any?> {
-        fun charId(n: Int) = names[n]?.removePrefix("CHARACTER_") ?: "CHARACTER_%02X".format(n)
-        fun classId(n: Int) = if (n == 0) null else classNames[n]?.removePrefix("CLASS_") ?: "CLASS_%02X".format(n)
+        fun charId(n: Int) = names[n]?.let { gbafe.extract.DecompEnums.id(it, "CHARACTER_") } ?: "CHARACTER_%02X".format(n)
+        fun classId(n: Int) = if (n == 0) null else classNames[n]?.let { gbafe.extract.DecompEnums.id(it, "CLASS_") } ?: "CLASS_%02X".format(n)
         val entries = ArrayList<Map<String, Any?>>(count)
         for (i in 0 until count) {
             val o = off(tableAddress) + i * ENTRY_SIZE

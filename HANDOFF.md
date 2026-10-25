@@ -2,6 +2,13 @@
 
 _Updated: 2026-10-25 07:21 UTC (scheduled run, started 06:51)._
 
+## Owner decisions 2026-10-25 (read docs/decisions/0009)
+- The app is a 1:1 copy. Modding = extension points only; ship no touch gameplay, QoL flags or alternate
+  formulas. Only touch input shipped: on-screen GBA buttons (task M3-15).
+- Every ported system adds strategy interfaces to `fe8.core.mechanics.Mechanics` (vanilla impl only,
+  alternatives only in tests). Battle must use `mechanics.battleRolls` for hit/crit/skill rolls, never
+  `rng.roll1/roll2` directly.
+
 ## NEEDS USER
 _(nothing blocked)_
 

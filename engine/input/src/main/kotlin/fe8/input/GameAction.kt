@@ -69,7 +69,8 @@ public sealed class GameAction(
     /** L button: cycle to next unit. */
     public data object NextUnit : GameAction(9)
 
-    /** Direct selection of list item [index] (touch, number keys). Not produced in vanilla mode. */
+    /** Direct selection of list item [index]: an extension point for touch/number-key mods. The base game
+     * never produces it (docs/decisions/0009-vanilla-product-mod-groundwork.md). */
     public class SelectItem private constructor(
         /** Zero-based list position. */
         public val index: Int,

@@ -57,10 +57,11 @@ Take the first `todo` whose dependencies are `done`. If fewer than 5 `todo` rema
 | M3-05 | Blend/brightness/windows/mosaic | tests | todo |
 | M3-06 | Frame-compare utility: ARGB vs mGBA dump (5-bit), diff PNG written on failure | first frame-compare test (health & safety screen from extracted assets) passes | todo |
 | M3-07 | GPU backend v1 in `:app`: tile layers + sprites via shaders, same render state | APK shows extracted test scene (manual test) | todo |
-| M3-08 | Asset override layer: resolver for replacement/hi-res textures by path + scale | test with a 2× override | todo |
+| M3-08 | Asset override layer: resolver for replacement/hi-res textures by path + scale (mod groundwork; base game ships originals only) | test with a 2× override | todo |
 | M3-09 | Input: port key repeat/new-press logic (`hardware.c` key status) onto `InputFrame` + differential test (key status RAM) | `@VerifiesPort` passes | todo |
 | M3-10 | Android `ActionSource`s: hardware keys + gamepad mapping | manual test | todo |
-| M3-11 | UI element contract: screen bounds + actions for touch hit-testing (no game-logic change) | interface + doc in MODDING | todo |
+| M3-11 | UI element contract: screen bounds + actions for touch hit-testing (no game-logic change; groundwork for mods, 0009) | interface + doc in MODDING | todo |
+| M3-15 | On-screen GBA button overlay `ActionSource` in `:app` (D-pad, A, B, L, R, Start, Select; emits exactly GBA keys, multi-touch, no game-logic change) | manual test on device | todo |
 | M3-12 | Low-latency `AudioTrack` sink (`PERFORMANCE_MODE_LOW_LATENCY`, mixer thread, no per-buffer allocs) | APK plays a test tone (manual test) | todo |
 | M3-13 | m4a sequencer core (tempo, tracks, note on/off) from `m4a.c`/MIDI | unit tests vs MIDI timing | todo |
 | M3-14 | m4a mixer: direct-sound + PSG channels; compare against mGBA audio dump (harness: add audio capture) | RMS diff below threshold | todo |

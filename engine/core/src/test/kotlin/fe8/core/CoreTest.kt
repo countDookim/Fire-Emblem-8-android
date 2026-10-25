@@ -54,11 +54,11 @@ class FeatureFlagsTest {
     @Test
     fun `vanilla forces every flag off`() {
         val flags = FeatureFlags()
-        val f = flags.register("qol.test", "test", defaultEnabled = true)
+        val f = flags.register("mod.test.flag", "test", defaultEnabled = true)
         assertFalse(flags.isEnabled(f))
         flags.vanilla = false
         assertTrue(flags.isEnabled(f))
-        assertEquals(f, flags.register("qol.test", "again"))
+        assertEquals(f, flags.register("mod.test.flag", "again"))
     }
 }
 

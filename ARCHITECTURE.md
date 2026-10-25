@@ -7,8 +7,11 @@
 2. **Modern design, original behaviour.** Organised by game system with idiomatic Kotlin (sealed state
    classes, enums, value classes, data classes). No GBA memory map, registers or VRAM mimicry in game
    code; only `:testing` knows GBA addresses (to read reference dumps).
-3. **Vanilla is the default and is bit-exact.** Every non-original behaviour is behind a
-   `FeatureFlag`; `FeatureFlags.vanilla` forces all of them off.
+3. **The product is the original, bit-exact; modding is groundwork only**
+   ([0009](docs/decisions/0009-vanilla-product-mod-groundwork.md)). Behaviour goes through strategy
+   interfaces in `fe8.core.mechanics.Mechanics` (e.g. `BattleRolls`) whose only shipped implementations
+   are vanilla. Non-original behaviour comes only from mods, behind a `FeatureFlag` that
+   `FeatureFlags.vanilla` forces off; the base game registers no flags.
 4. **Zero allocations per frame.** Hot data lives in primitive arrays behind typed wrappers; event
    dispatch is inline over arrays; enforced by `AllocationTest` and the CI benchmark.
 5. **Android-free core.** Everything except `:app` is pure Kotlin/JVM and testable headless in seconds.
@@ -55,7 +58,7 @@ differential test can drive `tick()` directly with the same per-frame inputs as 
 Two backends over one semantic render state ([0008](docs/decisions/0008-render-model.md), proposed):
 software (JVM, frame comparison against mGBA dumps; 5-bit channel compare) and OpenGL ES 3.0 (native
 240×160 texture scaled by a shader, aspect-correct, nearest filtering). `Camera` is not tied to
-240×160 so widescreen mods are possible; vanilla is fixed at 240×160.
+240×160 so widescreen mods are possible; the shipped game is fixed at 240×160.
 
 ## Verification pipeline
 ```

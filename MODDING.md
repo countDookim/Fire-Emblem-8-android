@@ -17,14 +17,39 @@ path as a base file overrides it; the highest layer wins ([0003](docs/decisions/
 | `data/` | items, classes, characters, terrain, shops, chapters, AI tables... | JSON + `schemas/*.schema.json`; patch with `*.merge.json` | `items.json`, `classes.json`, `characters.json`, `terrains.json` formats published ([schemas](schemas/)); extracted by `:tools:extract`, not yet loaded by the game. Others *(planned, M2)* |
 | `maps/` | chapter maps: layout, collision, events, units, warps | Tiled `.tmj` + tileset PNGs | *(planned, M2)* |
 | `scripts/` | event scripts | `.fe8s` ([0001](docs/decisions/0001-script-format.md)) | *(planned, M5)* |
-| `gfx/` | sprites, portraits, UI, tilesets; hi-res packs | PNG + JSON metadata | *(planned, M2–3)* |
+| `gfx/` | sprites, portraits, UI, tilesets; replacement/hi-res packs (mods) | PNG + JSON metadata | *(planned, M2–3)* |
 | `audio/` | music, voicegroups, SFX | MIDI + JSON, WAV/OGG | *(planned, M2–3)* |
 | `text/<lang>/` | all strings, tags like `{PLAYER}`, `{PAUSE 30}` | JSON | *(planned, M2)* |
 
+## Scope
+The game itself ships only the original behaviour ([0009](docs/decisions/0009-vanilla-product-mod-groundwork.md)).
+Everything below is an extension point for mods; the base game adds no options of its own.
+
+## Gameplay strategies (available now)
+`game.mechanics` holds swappable strategies, each defaulting to the verified vanilla implementation.
+Replace one at mod load time, never per frame. Implementations must not allocate.
+
+| Strategy | Vanilla | Example mod |
+|---|---|---|
+| `battleRolls: BattleRolls` (`hit`, `crit`, `skill`) | hit = average of 2 RNs < hit rate ("true hit"); crit/skill = 1 RN | 1-RN hit: override only `hit` |
+
+```kotlin
+object OneRnHit : BattleRolls by VanillaBattleRolls {
+    override fun hit(rng: RngService, hitRate: Int) = rng.roll1(hitRate)
+}
+game.mechanics.battleRolls = OneRnHit
+```
+More strategies (damage, exp, growths, AI...) are added as each system is ported.
+
+## Input (available now)
+Game logic sees only `GameAction`s. A touch UI is a mod that supplies an `ActionSource` (and may use
+`SelectItem`, which the base game never produces). The shipped app's only touch input is an on-screen
+GBA button overlay.
+
 ## Feature flags (available now)
 Non-original behaviour must be registered as a `FeatureFlag` (`fe8.core.flags.FeatureFlags.register`).
-Vanilla mode (default) forces all flags off. Id convention: `qol.*` (built-in quality of life),
-`mod.<modid>.*` (mod-defined). No built-in flags exist yet.
+Vanilla mode (default) forces all flags off. Id convention: `mod.<modid>.*`. The base game registers
+no flags.
 
 ## Event bus (available now)
 Hook gameplay without editing core code ([0004](docs/decisions/0004-event-bus.md)):

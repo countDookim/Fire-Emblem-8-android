@@ -21,6 +21,9 @@ public class Fe8Game(
     /** Central RNG. */
     public val rng: RngService = RngService().apply { seedLikeBoot() }
 
+    /** Swappable gameplay strategies (battle rolls, ...); all vanilla unless a mod replaces one. */
+    public val mechanics: fe8.core.mechanics.Mechanics = fe8.core.mechanics.Mechanics()
+
     /** Engine-level event channels. */
     public val events: CoreEvents = CoreEvents()
 

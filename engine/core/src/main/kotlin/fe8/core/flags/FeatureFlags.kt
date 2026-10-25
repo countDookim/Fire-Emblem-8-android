@@ -1,12 +1,13 @@
 package fe8.core.flags
 
 /**
- * A single switchable non-original behaviour (QoL, widescreen, alternate formulas, ...).
+ * A single switchable non-original behaviour added by a mod (QoL, widescreen, alternate formulas, ...).
+ * The base game registers none (docs/decisions/0009-vanilla-product-mod-groundwork.md).
  *
  * Instances are created only through [FeatureFlags.register], which assigns a dense [index] so checks
  * are a single `BooleanArray` read in hot code.
  *
- * @property id stable dotted identifier, e.g. `qol.fast_cursor` or `mod.example.double_exp`.
+ * @property id stable dotted identifier, e.g. `mod.example.double_exp`.
  * @property index dense registry index.
  * @property description one-line, user-facing explanation (shown in settings).
  * @property defaultEnabled value used when not in vanilla mode and the user has not chosen.
@@ -17,7 +18,7 @@ public class FeatureFlag internal constructor(
     public val description: String,
     public val defaultEnabled: Boolean,
 ) {
-    /** Short debug form, e.g. `FeatureFlag(qol.fastText)`; the id alone identifies the flag. */
+    /** Short debug form, e.g. `FeatureFlag(mod.example.fast_text)`; the id alone identifies the flag. */
     override fun toString(): String = "FeatureFlag($id)"
 }
 

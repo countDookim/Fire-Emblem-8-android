@@ -13,3 +13,4 @@ Format: Context → Decision → Consequences. Keep each under one screen.
 | [0006](0006-verification-policy.md) | What counts as "ported" | Accepted |
 | [0007](0007-decomp-choice.md) | Decomp: fireemblem8u instead of StanHash/fe8 | Accepted |
 | [0008](0008-render-model.md) | Render model: typed tile layers + sprite batches | Proposed |
+| [0009](0009-vanilla-product-mod-groundwork.md) | Product is a 1:1 copy; modding is groundwork only | Accepted |

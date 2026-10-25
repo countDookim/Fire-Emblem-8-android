@@ -1,4 +1,4 @@
-// Thin Android shell: Activity, GL surface, AudioTrack, touch/controller input sources, Compose menus.
+// Thin Android shell: Activity, GL surface, AudioTrack, controller + on-screen GBA button input sources, Compose menus.
 // All game logic lives in the pure-JVM modules. Only built where an Android SDK exists (CI).
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 

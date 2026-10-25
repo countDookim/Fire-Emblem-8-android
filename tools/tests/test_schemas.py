@@ -1,7 +1,7 @@
 """Validates schemas/*.schema.json (JSON Schema 2020-12) and extracted data against them.
 
 Extracted data is ROM-derived, so it only exists in build dirs: testing/build/extracted/ is written by
-ItemsRomTest/ClassesRomTest/CharactersRomTest/TerrainsRomTest/MessagesRomTest/FontsRomTest when the ROM is available. Missing files are skipped, never counted as passing.
+ItemsRomTest/ClassesRomTest/CharactersRomTest/TerrainsRomTest/MessagesRomTest/FontsRomTest/PortraitsRomTest when the ROM is available. Missing files are skipped, never counted as passing.
 """
 import json
 import pathlib
@@ -111,6 +111,18 @@ class SchemaTest(unittest.TestCase):
             self.assertEqual(codes, sorted(set(codes)))
             self.assertTrue((path.parent / doc["image"]).is_file())
         self.assertFalse(v.is_valid({**doc, "cell": 8}))
+
+    def test_extracted_portraits_are_schema_valid(self):
+        path = EXTRACTED / "portraits" / "portraits.json"
+        if not path.is_file():
+            self.skipTest("no extracted portraits (needs the ROM; run ./gradlew :testing:test)")
+        doc = load(path)
+        jsonschema.Draft202012Validator(load(SCHEMAS / "portraits.schema.json")).validate(doc)
+        self.assertEqual(list(range(1, 173)), [e["fid"] for e in doc["entries"]])
+        for e in doc["entries"]:
+            for k in ("sheet", "chibi", "mouth", "card"):
+                if e[k] is not None:
+                    self.assertTrue((path.parent / e[k]).is_file(), e[k])
 
 
 if __name__ == "__main__":

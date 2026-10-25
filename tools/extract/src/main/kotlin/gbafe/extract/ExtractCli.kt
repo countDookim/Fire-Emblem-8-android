@@ -93,7 +93,8 @@ public fun locateCodeRepo(): File? {
 /**
  * Runs the extraction steps the inputs allow and returns the paths written (relative to `args.out`).
  * Currently `data/items.json`, `data/classes.json`, `data/characters.json`, `data/terrains.json`,
- * `text/en/messages.json` and `fonts/{system,talk,special}.{png,json}` (need `--symbols`; ids and face names need `--decomp`).
+ * `text/en/messages.json` and `fonts/{system,talk,special}.{png,json}`,
+ * `portraits/` (sheets, chibis, mouths, cards + `portraits.json`) (need `--symbols`; ids and face names need `--decomp`).
  */
 public fun runSteps(args: ExtractArgs): List<String> {
     val written = ArrayList<String>()
@@ -153,6 +154,13 @@ public fun runSteps(args: ExtractArgs): List<String> {
         File(args.out, "fonts/$name.json").writeText(gbafe.extract.font.FontExtractor.toJson("fe8", name, "$name.png", glyphs))
         written += listOf("fonts/$name.png", "fonts/$name.json")
     }
+    val portraits = gbafe.extract.fe8.portraits.PortraitsExtractor.extract(
+        rom, symbols["portrait_data"].address - ROM_BASE,
+        symbols.sizeOrSpan("portrait_data") / gbafe.extract.fe8.portraits.PortraitsExtractor.ENTRY_SIZE,
+    )
+    for ((path, png) in portraits.files) File(args.out, "portraits/$path").apply { parentFile.mkdirs() }.writeBytes(png)
+    File(args.out, "portraits/portraits.json").writeText(portraits.json)
+    written += "portraits/portraits.json (+${portraits.files.size} PNG)"
     return written
 }
 

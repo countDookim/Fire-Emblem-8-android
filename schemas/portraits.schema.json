@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/countDookim/Fire-Emblem-8-android/schemas/portraits.schema.json",
+  "title": "GBA Fire Emblem portraits (portraits/portraits.json)",
+  "description": "One entry per portrait id (decomp portrait_data[], struct FaceData; entry i is fid i + 1). Image paths are relative to this file and point to 4bpp tile sheets as indexed PNGs with the portrait's 16-color palette (index 0 transparent), unassembled: sheet = 32x4 tiles, chibi = 4x4, mouth = 6 frames of 4x2 tiles stacked (4x12), card = 10x9. Positions are in tiles, as in FaceData; blink is FaceData.blinkKind (1 = normal, 6 = eyes closed).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "game", "version", "entries"],
+  "properties": {
+    "format": { "const": "gbafe.portraits" },
+    "game": { "enum": ["fe6", "fe7", "fe8"] },
+    "version": { "const": 1 },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fid", "sheet", "chibi", "mouth", "card", "mouthPos", "eyesPos", "blink"],
+        "properties": {
+          "fid": { "type": "integer", "minimum": 1 },
+          "sheet": { "$ref": "#/$defs/png" },
+          "chibi": { "$ref": "#/$defs/png" },
+          "mouth": { "$ref": "#/$defs/png" },
+          "card": { "$ref": "#/$defs/png" },
+          "mouthPos": { "$ref": "#/$defs/pos" },
+          "eyesPos": { "$ref": "#/$defs/pos" },
+          "blink": { "type": "integer", "minimum": 0, "maximum": 255 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "png": { "type": ["string", "null"], "pattern": "^(sheet|chibi|mouth|card)/[0-9]{3}\\.png$" },
+    "pos": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 255 }, "minItems": 2, "maxItems": 2 }
+  }
+}

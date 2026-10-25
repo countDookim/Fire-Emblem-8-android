@@ -25,7 +25,7 @@ _(nothing blocked)_
   M2-17 standing map sprites, M2-13/14 maps (`MapsExtractor`: 79 `maps/chapter_NN.tmj` + 24 tilesets, map changes as hidden layers
   `change_<id>`). Schemas: `text`, `font`, `portraits`, `chapters` (+ Tiled structure test for `.tmj`).
   All extracted output is committed in the ROM repo (`extracted/`, last 1a23a8b).
-- Last CI before this run: ✅ master (de5c6a3). Not yet seen: CI on this run's commits (145e4d9..c469e04).
+- CI: ✅ through 2e56261 (M2-10); later runs were cancelled by newer pushes — check the run for the final commit first.
 - Session setup: 94 s. Branch: `master`. No `wip/` branches.
 - Progress: 5 / 8352 verified (unchanged: this run was extraction, no game-code ports).
 

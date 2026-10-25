@@ -34,11 +34,24 @@ class SongsRomTest {
     }
 
     @Test
+    fun `voicegroup000 matches the decomp`() {
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        // voicegroup000 0x08207470 (sound/voicegroups/voicegroup000.s): 0 = voice_square_1 0, 2, 0, 0, 15, 0;
+        // 14 = voice_directsound 60, 0, DirectSoundData_k_tubular_c4_13k_s, 255, 246, 0, 165.
+        val v = M4aSong.readVoicegroup(romFile.readBytes(), 0x207470)
+        assertEquals(128, v.size)
+        assertEquals(listOf(1, 60, 0, 0, 2, 0, 0, 15, 0).map { it.toString() }, listOf("type", "key", "length", "panSweep", "data", "attack", "decay", "sustain", "release").map { v[0][it].toString() })
+        assertEquals(listOf(0, 60, 0, 0, 255, 246, 0, 165), listOf("type", "key", "length", "panSweep", "attack", "decay", "sustain", "release").map { v[14][it] })
+    }
+
+    @Test
     fun `dump song 1 midi`() {
         val s = song(1)
         val dir = File(System.getProperty("fe8.extractedOut") ?: "build/extracted", "songs")
         dir.mkdirs()
         File(dir, "song001.mid").writeBytes(M4aSong.toMidi(s))
+        val vg = M4aSong.readVoicegroup(romFile.readBytes(), s.voicegroup - 0x08000000)
+        File(dir, "voicegroup_song001.json").writeText(gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.voicegroup", "game" to "fe8", "version" to 1, "voices" to vg)))
         assertEquals(true, s.tracks.isNotEmpty())
     }
 }

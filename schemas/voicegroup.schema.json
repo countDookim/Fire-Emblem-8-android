@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/countDookim/Fire-Emblem-8-android/schemas/voicegroup.schema.json",
+  "title": "GBA m4a voicegroup (voicegroups/<name>.json)",
+  "description": "One m4a voicegroup: 'voices' are ToneData entries (decomp asm/macros/music_voice.inc) indexed by program number, every byte kept. 'data' is the sample/wave/sub-voicegroup pointer (symbol name when known, else the GBA address) or a square voice's duty cycle; 'split' (keysplit voices, type bit 0x40) is the keysplit table pointer stored in the attack..release bytes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "game",
+    "version",
+    "voices"
+  ],
+  "properties": {
+    "format": {
+      "const": "gbafe.voicegroup"
+    },
+    "game": {
+      "enum": [
+        "fe6",
+        "fe7",
+        "fe8"
+      ]
+    },
+    "version": {
+      "const": 1
+    },
+    "voices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "key",
+          "length",
+          "panSweep",
+          "data",
+          "attack",
+          "decay",
+          "sustain",
+          "release"
+        ],
+        "properties": {
+          "type": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "key": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "length": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "panSweep": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              }
+            ]
+          },
+          "attack": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "decay": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "sustain": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "release": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "split": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

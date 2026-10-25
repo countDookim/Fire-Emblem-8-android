@@ -172,6 +172,14 @@ class SchemaTest(unittest.TestCase):
         for m in doc["moving"]:
             self.assertTrue(all(s["frame"] < len(m["frames"]) for a in m["anims"] for s in a["steps"]), m["id"])
 
+    def test_extracted_voicegroup_is_schema_valid(self):
+        path = EXTRACTED / "songs" / "voicegroup_song001.json"
+        if not path.is_file():
+            self.skipTest("no extracted voicegroup (needs the ROM; run ./gradlew :testing:test)")
+        doc = load(path)
+        jsonschema.Draft202012Validator(load(SCHEMAS / "voicegroup.schema.json")).validate(doc)
+        self.assertEqual(128, len(doc["voices"]))
+
 
 if __name__ == "__main__":
     unittest.main()

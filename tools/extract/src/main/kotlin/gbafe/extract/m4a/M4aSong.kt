@@ -146,6 +146,28 @@ public object M4aSong {
         return out.toByteArray()
     }
 
+    /** Size of `ToneData`. */
+    public const val TONE_SIZE: Int = 12
+
+    /**
+     * Reads [count] `ToneData` entries (decomp `asm/macros/music_voice.inc`) at ROM offset [offset], every byte
+     * kept: `{u8 type, key, length, panSweep; u32 data; u8 attack, decay, sustain, release}`. `data` is the sample /
+     * wave / sub-voicegroup pointer (a square voice's duty cycle for types 1/2/9/10); ROM pointers are given as their
+     * symbol name when [symbols] knows them, else as an int. Keysplit voices (type 0x40) keep their table pointer
+     * in the 4 trailing bytes, so `attack..release` are also reported as `split` (u32) for them.
+     */
+    public fun readVoicegroup(rom: ByteArray, offset: Int, count: Int = 128, symbols: Map<Int, String> = emptyMap()): List<Map<String, Any>> =
+        List(count) { i ->
+            val o = offset + i * TONE_SIZE
+            val type = u8(rom, o)
+            fun ref(v: Int): Any = symbols[v] ?: v.toLong().and(0xFFFFFFFFL)
+            linkedMapOf<String, Any>(
+                "type" to type, "key" to u8(rom, o + 1), "length" to u8(rom, o + 2), "panSweep" to u8(rom, o + 3),
+                "data" to ref(u32(rom, o + 4)),
+                "attack" to u8(rom, o + 8), "decay" to u8(rom, o + 9), "sustain" to u8(rom, o + 10), "release" to u8(rom, o + 11),
+            ).also { if (type and 0x40 != 0) it["split"] = ref(u32(rom, o + 8)) }
+        }
+
     private fun track(msgs: List<Pair<Int, ByteArray>>): ByteArray {
         val o = ByteArrayOutputStream()
         var last = 0

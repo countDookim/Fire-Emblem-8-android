@@ -36,4 +36,21 @@ class MsgHuffmanRomTest {
         assertEquals("Eirika", text(0x212))
         assertEquals("Seth", text(0x213))
     }
+
+    /** Every `gMsgTable` entry decodes and terminates (groundwork for M2-09); not a port verification. */
+    @Test
+    fun `all 3404 messages decode`() {
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        val rom = romFile.readBytes()
+        val huff = MsgHuffman(rom, 0x0815A72C - 0x08000000, u32(rom, 0x0815D488 - 0x08000000) - 0x08000000)
+        var total = 0
+        for (id in 0 until 0x3530 / 4) {
+            val ptr = u32(rom, 0x0815D48C - 0x08000000 + id * 4)
+            assertEquals(4, ptr ushr 25, "message $id pointer 0x${ptr.toUInt().toString(16)}")
+            val bytes = huff.decode(ptr - 0x08000000)
+            assertEquals(0, bytes.last().toInt(), "message $id terminator")
+            total += bytes.size
+        }
+        assertEquals(true, total > 100_000, "decoded $total bytes")
+    }
 }

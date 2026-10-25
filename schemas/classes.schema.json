@@ -1,0 +1,519 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/countDookim/Fire-Emblem-8-android/schemas/classes.schema.json",
+  "title": "Fire Emblem 8 class table (data/classes.json)",
+  "description": "One entry per class; there is no class 0, so an entry's position + 1 is its vanilla class number (new classes are appended). Source struct: struct ClassData in the decomp's include/bmunit.h.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "version",
+    "entries"
+  ],
+  "properties": {
+    "format": {
+      "const": "fe8.classes"
+    },
+    "version": {
+      "const": 1
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/class"
+      }
+    }
+  },
+  "$defs": {
+    "u8": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "u16": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "s8": {
+      "type": "integer",
+      "minimum": -128,
+      "maximum": 127
+    },
+    "class": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "description": "Decomp constant without CLASS_ (CLASS_EPHRAIM_LORD -> EPHRAIM_LORD)."
+        },
+        "nameText": {
+          "$ref": "#/$defs/u16"
+        },
+        "descText": {
+          "$ref": "#/$defs/u16"
+        },
+        "promotion": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            }
+          ],
+          "description": "Class id this class promotes into, or null."
+        },
+        "mapSprite": {
+          "$ref": "#/$defs/u8",
+          "description": "Standing map sprite (SMS) id."
+        },
+        "slowWalking": {
+          "type": "boolean"
+        },
+        "defaultPortrait": {
+          "$ref": "#/$defs/u16",
+          "description": "Portrait used by generic units of this class."
+        },
+        "sortOrder": {
+          "$ref": "#/$defs/u8"
+        },
+        "bases": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "hp",
+            "pow",
+            "skl",
+            "spd",
+            "def",
+            "res",
+            "con",
+            "mov"
+          ],
+          "properties": {
+            "hp": {
+              "$ref": "#/$defs/s8"
+            },
+            "pow": {
+              "$ref": "#/$defs/s8"
+            },
+            "skl": {
+              "$ref": "#/$defs/s8"
+            },
+            "spd": {
+              "$ref": "#/$defs/s8"
+            },
+            "def": {
+              "$ref": "#/$defs/s8"
+            },
+            "res": {
+              "$ref": "#/$defs/s8"
+            },
+            "con": {
+              "$ref": "#/$defs/s8"
+            },
+            "mov": {
+              "$ref": "#/$defs/s8"
+            }
+          }
+        },
+        "caps": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "hp",
+            "pow",
+            "skl",
+            "spd",
+            "def",
+            "res",
+            "con"
+          ],
+          "properties": {
+            "hp": {
+              "$ref": "#/$defs/s8"
+            },
+            "pow": {
+              "$ref": "#/$defs/s8"
+            },
+            "skl": {
+              "$ref": "#/$defs/s8"
+            },
+            "spd": {
+              "$ref": "#/$defs/s8"
+            },
+            "def": {
+              "$ref": "#/$defs/s8"
+            },
+            "res": {
+              "$ref": "#/$defs/s8"
+            },
+            "con": {
+              "$ref": "#/$defs/s8"
+            }
+          }
+        },
+        "relativePower": {
+          "$ref": "#/$defs/s8",
+          "description": "classRelativePower: weights exp gained/given."
+        },
+        "growths": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "hp",
+            "pow",
+            "skl",
+            "spd",
+            "def",
+            "res",
+            "lck"
+          ],
+          "properties": {
+            "hp": {
+              "$ref": "#/$defs/s8"
+            },
+            "pow": {
+              "$ref": "#/$defs/s8"
+            },
+            "skl": {
+              "$ref": "#/$defs/s8"
+            },
+            "spd": {
+              "$ref": "#/$defs/s8"
+            },
+            "def": {
+              "$ref": "#/$defs/s8"
+            },
+            "res": {
+              "$ref": "#/$defs/s8"
+            },
+            "lck": {
+              "$ref": "#/$defs/s8"
+            }
+          }
+        },
+        "promotionGains": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "hp",
+            "pow",
+            "skl",
+            "spd",
+            "def",
+            "res"
+          ],
+          "properties": {
+            "hp": {
+              "$ref": "#/$defs/s8"
+            },
+            "pow": {
+              "$ref": "#/$defs/s8"
+            },
+            "skl": {
+              "$ref": "#/$defs/s8"
+            },
+            "spd": {
+              "$ref": "#/$defs/s8"
+            },
+            "def": {
+              "$ref": "#/$defs/s8"
+            },
+            "res": {
+              "$ref": "#/$defs/s8"
+            }
+          }
+        },
+        "attributes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "mounted_aid",
+              "canto",
+              "steal",
+              "thief",
+              "dance",
+              "play",
+              "crit_bonus",
+              "ballistae",
+              "promoted",
+              "supply",
+              "mounted",
+              "wyvern",
+              "pegasus",
+              "lord",
+              "female",
+              "boss",
+              "lock_1",
+              "lock_2",
+              "lock_3",
+              "max_level_10",
+              "unselectable",
+              "triangle_attack_pegasi",
+              "triangle_attack_armors",
+              "bit_23",
+              "negate_lethality",
+              "assassin",
+              "magic_seal",
+              "summon",
+              "lock_4",
+              "lock_5",
+              "lock_6",
+              "lock_7"
+            ]
+          }
+        },
+        "baseRanks": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "SWORD",
+            "LANCE",
+            "AXE",
+            "BOW",
+            "STAFF",
+            "ANIMA",
+            "LIGHT",
+            "DARK"
+          ],
+          "properties": {
+            "SWORD": {
+              "$ref": "#/$defs/u8"
+            },
+            "LANCE": {
+              "$ref": "#/$defs/u8"
+            },
+            "AXE": {
+              "$ref": "#/$defs/u8"
+            },
+            "BOW": {
+              "$ref": "#/$defs/u8"
+            },
+            "STAFF": {
+              "$ref": "#/$defs/u8"
+            },
+            "ANIMA": {
+              "$ref": "#/$defs/u8"
+            },
+            "LIGHT": {
+              "$ref": "#/$defs/u8"
+            },
+            "DARK": {
+              "$ref": "#/$defs/u8"
+            }
+          },
+          "description": "Starting weapon exp per type (WPN_EXP_E=1 ... S=251)."
+        },
+        "battleAnims": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "weaponType",
+                      "anim"
+                    ],
+                    "properties": {
+                      "weaponType": {
+                        "enum": [
+                          "SWORD",
+                          "LANCE",
+                          "AXE",
+                          "BOW",
+                          "STAFF",
+                          "ANIMA",
+                          "LIGHT",
+                          "DARK",
+                          "BALLISTA",
+                          "ITEM",
+                          "DRAGONSTONE",
+                          "MONSTER",
+                          "DANCE"
+                        ]
+                      },
+                      "anim": {
+                        "$ref": "#/$defs/u16"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "item",
+                      "anim"
+                    ],
+                    "properties": {
+                      "item": {
+                        "type": "string",
+                        "pattern": "^[A-Z][A-Z0-9_]*$"
+                      },
+                      "anim": {
+                        "$ref": "#/$defs/u16"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "description": "Battle animation per weapon type or specific item, first match wins (struct BattleAnimDef)."
+        },
+        "moveCost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "normal",
+            "rain",
+            "snow"
+          ],
+          "properties": {
+            "normal": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "array",
+                  "minItems": 65,
+                  "maxItems": 65,
+                  "items": {
+                    "$ref": "#/$defs/s8"
+                  }
+                }
+              ]
+            },
+            "rain": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "array",
+                  "minItems": 65,
+                  "maxItems": 65,
+                  "items": {
+                    "$ref": "#/$defs/s8"
+                  }
+                }
+              ]
+            },
+            "snow": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "array",
+                  "minItems": 65,
+                  "maxItems": 65,
+                  "items": {
+                    "$ref": "#/$defs/s8"
+                  }
+                }
+              ]
+            }
+          },
+          "description": "Movement cost per terrain id (65 entries, -1 = impassable)."
+        },
+        "terrainAvoid": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 65,
+              "maxItems": 65,
+              "items": {
+                "$ref": "#/$defs/s8"
+              }
+            }
+          ]
+        },
+        "terrainDefense": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 65,
+              "maxItems": 65,
+              "items": {
+                "$ref": "#/$defs/s8"
+              }
+            }
+          ]
+        },
+        "terrainResistance": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 65,
+              "maxItems": 65,
+              "items": {
+                "$ref": "#/$defs/s8"
+              }
+            }
+          ]
+        },
+        "terrainUnknown50": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 65,
+              "maxItems": 65,
+              "items": {
+                "$ref": "#/$defs/s8"
+              }
+            }
+          ],
+          "description": "ClassData._pU50: a further per-terrain table of unknown use (set for a few classes)."
+        }
+      },
+      "required": [
+        "id",
+        "nameText",
+        "descText",
+        "promotion",
+        "mapSprite",
+        "slowWalking",
+        "defaultPortrait",
+        "sortOrder",
+        "bases",
+        "caps",
+        "relativePower",
+        "growths",
+        "promotionGains",
+        "attributes",
+        "baseRanks",
+        "battleAnims",
+        "moveCost",
+        "terrainAvoid",
+        "terrainDefense",
+        "terrainResistance",
+        "terrainUnknown50"
+      ]
+    }
+  }
+}

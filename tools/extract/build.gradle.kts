@@ -6,7 +6,8 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":engine:data"))
+    // api: IndexedPng exposes fe8.data.IndexedImage.
+    api(project(":engine:data"))
 }
 
 application {

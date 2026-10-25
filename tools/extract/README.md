@@ -13,3 +13,5 @@ JVM command-line tool that converts the original ROM into the moddable formats t
 - Decoders that the game also needs at load time (LZ77, tiles, Huffman text) live in `engine/*`; this
   module only orchestrates them and writes files.
 - No CLI library: sessions cannot reach the Gradle plugin portal and the tool needs nothing fancy.
+- `IndexedPng` writes/reads palette PNGs (colour type 3, 8-bit) with JDK zlib only — no ImageIO, which
+  may reorder palettes. Reading supports all scanline filters, so PNGs re-saved by editors still load.

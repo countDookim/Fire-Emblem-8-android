@@ -5,6 +5,8 @@ plugins {
 
 dependencies {
     api(project(":game"))
+    // Round-trip tests of the extraction path (IndexedPng); test scope only, the app never ships it.
+    testImplementation(project(":tools:extract"))
 }
 
 /** JVM frame-time benchmark of the game loop; fails on regression. CI runs it on every push. */

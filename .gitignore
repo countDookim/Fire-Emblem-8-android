@@ -30,3 +30,4 @@ reference/out/
 # Local tooling
 .cache/
 .gradle-setup.log
+__pycache__/

@@ -40,7 +40,7 @@ Take the first `todo` whose dependencies are `done`. If fewer than 5 `todo` rema
 | M2-14 | All chapter maps converted; map changes (doors, chests) as Tiled layers | count matches chapter table | done (CLI `maps/chapter_NN.tmj` ×79 + shared tilesets; `MapsRomTest`: all 79 convert, changes in bounds; ch. 2 villages/chests checked by eye) |
 | M2-15 | Event script converter v0: command table from decomp event macros → `.fe8s` (prologue only) | output parses with M5 grammar draft; diffable | todo |
 | M2-16 | Unit placement (`UNIT` defs) → Tiled object layer | prologue units correct | todo |
-| M2-17 | Map sprites (standing/moving) → PNG + anim JSON | counts match class table | partial: standing done (`MapSpritesExtractor`, 107 sheets, `MapSpritesRomTest`); moving (`unit_icon_move_table` + AP anims) todo |
+| M2-17 | Map sprites (standing/moving) → PNG + anim JSON | counts match class table | done: `MapSpritesExtractor` standing (107 sheets) + moving (127 entries, `moving/NNN.png` + AP frames/anims JSON), `MapSpritesRomTest` |
 | M2-18 | m4a songs → MIDI + `voicegroups/*.json` (one song end-to-end) | MIDI note events match song data | todo |
 | M2-19 | All songs + direct-sound samples → MIDI + WAV | counts match song table | todo |
 | M2-20 | UI graphics (windows, cursors, icons) → PNG + JSON | icon sheet visually checked | todo |

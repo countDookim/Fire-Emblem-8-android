@@ -94,7 +94,7 @@ public fun locateCodeRepo(): File? {
  * Runs the extraction steps the inputs allow and returns the paths written (relative to `args.out`).
  * Currently `data/items.json`, `data/classes.json`, `data/characters.json`, `data/terrains.json`, `data/chapters.json`, `maps/`,
  * `text/en/messages.json` and `fonts/{system,talk,special}.{png,json}`,
- * `mapsprites/` (standing), `portraits/` (sheets, chibis, mouths, cards + `portraits.json`) (need `--symbols`; ids and face names need `--decomp`).
+ * `mapsprites/` (standing + moving), `portraits/` (sheets, chibis, mouths, cards + `portraits.json`) (need `--symbols`; ids and face names need `--decomp`).
  */
 public fun runSteps(args: ExtractArgs): List<String> {
     val written = ArrayList<String>()
@@ -192,6 +192,8 @@ public fun runSteps(args: ExtractArgs): List<String> {
         rom, symbols["unit_icon_wait_table"].address - ROM_BASE,
         symbols.sizeOrSpan("unit_icon_wait_table") / gbafe.extract.fe8.mapsprites.MapSpritesExtractor.ENTRY_SIZE,
         symbols["gPal_MapSprite"].address - ROM_BASE,
+        symbols["unit_icon_move_table"].address - ROM_BASE,
+        symbols.sizeOrSpan("unit_icon_move_table") / gbafe.extract.fe8.mapsprites.MapSpritesExtractor.MOVE_ENTRY_SIZE,
     )
     for ((path, png) in sprites.files) File(args.out, "mapsprites/$path").apply { parentFile.mkdirs() }.writeBytes(png)
     File(args.out, "mapsprites/mapsprites.json").writeText(sprites.json)

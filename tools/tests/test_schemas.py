@@ -160,6 +160,10 @@ class SchemaTest(unittest.TestCase):
         jsonschema.Draft202012Validator(load(SCHEMAS / "mapsprites.schema.json")).validate(doc)
         self.assertEqual(107, len(doc["standing"]))
         self.assertTrue(all((path.parent / e["image"]).is_file() for e in doc["standing"]))
+        self.assertEqual(127, len(doc["moving"]))
+        self.assertTrue(all((path.parent / e["image"]).is_file() for e in doc["moving"]))
+        for m in doc["moving"]:
+            self.assertTrue(all(s["frame"] < len(m["frames"]) for a in m["anims"] for s in a["steps"]), m["id"])
 
 
 if __name__ == "__main__":

@@ -2,14 +2,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/countDookim/Fire-Emblem-8-android/schemas/mapsprites.schema.json",
   "title": "GBA Fire Emblem map sprites (mapsprites/mapsprites.json)",
-  "description": "Standing map sprites (decomp unit_icon_wait_table): entry position = standing sprite id (class SMS id). Each image is a 4bpp sheet as an indexed PNG (blue faction palette; other factions swap palettes) with 'frames' frames of width x height stacked vertically. 'pattern' is UnitIconWait.pattern, kept as is.",
+  "description": "Standing map sprites (decomp unit_icon_wait_table): entry position = standing sprite id (class SMS id). Each image is a 4bpp sheet as an indexed PNG (blue faction palette; other factions swap palettes) with 'frames' frames of width x height stacked vertically. 'pattern' is UnitIconWait.pattern, kept as is. 'moving' (decomp unit_icon_move_table, entry = class id - 1): a 4bpp sheet PNG 32 px wide whose tiles are copied linearly per OAM object (tile index * 32 bytes), plus the AP animation definition: 'frames' are OAM object lists (raw attr0/attr1/attr2 with x/y offsets, shape, size, flips, and the sheet tile); 'anims' are indexed by MU_FACING (0 left, 1 right, 2 down, 3 up, 4 selected, ...) and hold {duration, frame} steps (duration in frames at the default interval) ended by 'loop', 'stop' or 'delete'.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "format",
     "game",
     "version",
-    "standing"
+    "standing",
+    "moving"
   ],
   "properties": {
     "format": {
@@ -66,6 +67,115 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 65535
+          }
+        }
+      }
+    },
+    "moving": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "classId",
+          "image",
+          "frames",
+          "anims"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "classId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "image": {
+            "type": "string",
+            "pattern": "^moving/[0-9]{3}\\.png$"
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "attr0",
+                  "attr1",
+                  "attr2",
+                  "tile"
+                ],
+                "properties": {
+                  "attr0": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 65535
+                  },
+                  "attr1": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 65535
+                  },
+                  "attr2": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 65535
+                  },
+                  "tile": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1023
+                  }
+                }
+              }
+            }
+          },
+          "anims": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "steps",
+                "end"
+              ],
+              "properties": {
+                "steps": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "duration",
+                      "frame"
+                    ],
+                    "properties": {
+                      "duration": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 65535
+                      },
+                      "frame": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                },
+                "end": {
+                  "enum": [
+                    "loop",
+                    "stop",
+                    "delete"
+                  ]
+                }
+              }
+            }
           }
         }
       }

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/countDookim/Fire-Emblem-8-android/schemas/font.schema.json",
+  "title": "GBA Fire Emblem text font metrics (fonts/<name>.json)",
+  "description": "A text font (decomp TextGlyphs_* tables): 'image' is a 16x16-cell PNG atlas next to this file whose pixel indices 0..3 are the glyph's 2bpp values (0 = background); the cell of character code c is column c % 16, row c / 16. 'glyphs' lists only codes that have a glyph, with their advance width in pixels.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "game", "version", "name", "image", "cell", "glyphs"],
+  "properties": {
+    "format": { "const": "gbafe.font" },
+    "game": {
+      "enum": ["fe6", "fe7", "fe8"],
+      "description": "Game whose ROM the font was extracted from (docs/decisions/0010-multi-game-reuse.md)."
+    },
+    "version": { "const": 1 },
+    "name": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "image": { "type": "string", "pattern": "^[a-z][a-z0-9_]*\\.png$" },
+    "cell": { "const": 16 },
+    "glyphs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "width"],
+        "properties": {
+          "code": { "type": "integer", "minimum": 0, "maximum": 255 },
+          "width": { "type": "integer", "minimum": 0, "maximum": 16 }
+        }
+      }
+    }
+  }
+}

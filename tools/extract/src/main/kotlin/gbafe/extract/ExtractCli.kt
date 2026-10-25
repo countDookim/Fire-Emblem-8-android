@@ -92,8 +92,8 @@ public fun locateCodeRepo(): File? {
 
 /**
  * Runs the extraction steps the inputs allow and returns the paths written (relative to `args.out`).
- * Currently `data/items.json`, `data/classes.json`, `data/characters.json`, `data/terrains.json` and
- * `text/en/messages.json` (need `--symbols`; ids and face names need `--decomp`).
+ * Currently `data/items.json`, `data/classes.json`, `data/characters.json`, `data/terrains.json`,
+ * `text/en/messages.json` and `fonts/{system,talk,special}.{png,json}` (need `--symbols`; ids and face names need `--decomp`).
  */
 public fun runSteps(args: ExtractArgs): List<String> {
     val written = ArrayList<String>()
@@ -146,6 +146,13 @@ public fun runSteps(args: ExtractArgs): List<String> {
     File(args.out, "text/en").mkdirs()
     File(args.out, "text/en/messages.json").writeText(gbafe.extract.text.MessagesExtractor.toJson("fe8", messages))
     written += "text/en/messages.json"
+    File(args.out, "fonts").mkdirs()
+    for ((name, symbol) in listOf("system" to "TextGlyphs_System", "talk" to "TextGlyphs_Talk", "special" to "TextGlyphs_Special")) {
+        val glyphs = gbafe.extract.font.FontExtractor.read(rom, symbols[symbol].address - ROM_BASE)
+        File(args.out, "fonts/$name.png").writeBytes(gbafe.extract.font.FontExtractor.png(glyphs))
+        File(args.out, "fonts/$name.json").writeText(gbafe.extract.font.FontExtractor.toJson("fe8", name, "$name.png", glyphs))
+        written += listOf("fonts/$name.png", "fonts/$name.json")
+    }
     return written
 }
 

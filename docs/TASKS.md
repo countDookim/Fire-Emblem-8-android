@@ -32,8 +32,8 @@ Take the first `todo` whose dependencies are `done`. If fewer than 5 `todo` rema
 | M2-06 | Characters: schema + extractor (`data_characters.c`) | schema-valid | done (`CharactersRomTest`, 256 rows incl. supports; schema test) |
 | M2-07 | Terrain tables (`data_terrains.c`) + item bonus tables | schema-valid | done (`TerrainsRomTest`, 108 tables; item bonuses inlined in items.json) |
 | M2-08 | Text: Huffman string decoder (port of `msg.c` decode) + golden test (title screen string) | decoded text matches ROM-rendered string | done (`MsgHuffman`, port of asm/arm.s DecodeString; `MsgHuffmanRomTest`: Iron Sword/Eirika/Seth) |
-| M2-09 | Text control codes → readable tags; all strings → `text/en/*.json` | every string round-trips to identical bytes | todo |
-| M2-10 | Font glyphs (`fontgrp`) → PNG atlas + JSON metrics | glyph widths match decomp tables | todo |
+| M2-09 | Text control codes → readable tags; all strings → `text/en/*.json` | every string round-trips to identical bytes | done (`MessageCodec`, `MessagesRomTest`: 3404 round-trip + MSG_002/212/904 vs texts.txt; schema `text.schema.json`) |
+| M2-10 | Font glyphs (`fontgrp`) → PNG atlas + JSON metrics | glyph widths match decomp tables | done (`FontExtractor` → `fonts/{system,talk,special}.{png,json}`; `FontsRomTest` widths + bitmap rows vs `data/fonts/glyphs_*.h`; `font.schema.json`) |
 | M2-11 | Portraits (`face.c` data) → PNG + JSON (mouth/eye frames, anchors) | 3 portraits visually checked + counts | todo |
 | M2-12 | Chapter data (`chapterdata.c`) → `data/chapters.json` | schema-valid | todo |
 | M2-13 | Map layouts + tile config → Tiled `.tmj` + tileset PNG (one chapter) | opens in Tiled (validated by `.tmj` schema), tiles match | todo |

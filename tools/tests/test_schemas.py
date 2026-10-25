@@ -1,7 +1,7 @@
 """Validates schemas/*.schema.json (JSON Schema 2020-12) and extracted data against them.
 
 Extracted data is ROM-derived, so it only exists in build dirs: testing/build/extracted/ is written by
-ItemsRomTest/ClassesRomTest/CharactersRomTest/TerrainsRomTest/MessagesRomTest/FontsRomTest/PortraitsRomTest/ChaptersRomTest when the ROM is available. Missing files are skipped, never counted as passing.
+ItemsRomTest/ClassesRomTest/CharactersRomTest/TerrainsRomTest/MessagesRomTest/FontsRomTest/PortraitsRomTest/ChaptersRomTest/MapsRomTest when the ROM is available. Missing files are skipped, never counted as passing.
 """
 import json
 import pathlib
@@ -135,6 +135,22 @@ class SchemaTest(unittest.TestCase):
         bad = json.loads(json.dumps(doc))
         bad["entries"][0]["mapBgmIds"] = [0]
         self.assertFalse(v.is_valid(bad))
+
+    def test_extracted_map_is_well_formed_tiled_json(self):
+        path = EXTRACTED / "maps" / "chapter_00.tmj"
+        if not path.is_file():
+            self.skipTest("no extracted map (needs the ROM; run ./gradlew :testing:test)")
+        m = load(path)
+        for k in ("type", "version", "orientation", "width", "height", "tilewidth", "tileheight", "layers", "tilesets"):
+            self.assertIn(k, m)
+        self.assertEqual(("map", "orthogonal", 16, 16), (m["type"], m["orientation"], m["tilewidth"], m["tileheight"]))
+        ts = m["tilesets"][0]
+        self.assertTrue((path.parent / ts["image"]).is_file())
+        self.assertEqual(ts["tilecount"], ts["columns"] * (ts["imageheight"] // ts["tileheight"]))
+        layer = m["layers"][0]
+        self.assertEqual(("tilelayer", m["width"] * m["height"]), (layer["type"], len(layer["data"])))
+        self.assertTrue(all(ts["firstgid"] <= g < ts["firstgid"] + ts["tilecount"] for g in layer["data"]))
+        self.assertEqual(list(range(ts["tilecount"])), [t["id"] for t in ts["tiles"]])
 
 
 if __name__ == "__main__":

@@ -1,0 +1,110 @@
+package gbafe.extract.fe8.maps
+
+import gbafe.data.Bgr555
+import gbafe.data.IndexedImage
+import gbafe.data.Lz77
+import gbafe.extract.IndexedPng
+import gbafe.extract.Json
+
+/**
+ * Converts a chapter's map (decomp `src/bmmap.c: UnpackChapterMap/UnpackChapterMapGraphics`) into a
+ * Tiled map (`.tmj`) plus a tileset PNG.
+ *
+ * Assets come from `gChapterDataAssetTable` by the chapter's `map.*Id` fields (all LZ77 except the raw
+ * palette): `mainLayerId` = width, height bytes then `u16` cells (metatile index × 4); `tileConfigId` =
+ * 1024 metatiles × 4 BG tilemap entries (TL, TR, BL, BR; tile | hflip << 10 | vflip << 11 | palette << 12)
+ * followed by 1024 terrain bytes; `obj1Id` tiles load at BG tile 0 and `obj2Id` (optional) at tile 0x200;
+ * `paletteId` = 10 palettes, of which the game uses 0..4 for lit tiles (BG palette 6 + n) and 5..9 under
+ * fog (`DisplayBmTile`).
+ *
+ * The tileset PNG renders all 1024 metatiles (32 per row, 16×16 px) with the lit palettes, as indices
+ * `palette * 16 + color` into an 80-color PNG palette. The Tiled tileset carries each metatile's
+ * terrain as an int property `terrain`.
+ */
+public object MapsExtractor {
+    /** Metatiles per tile config. */
+    public const val METATILES: Int = 1024
+
+    /** Result for one chapter. */
+    public class Output(
+        /** Map width in metatiles. */
+        public val width: Int,
+        /** Map height in metatiles. */
+        public val height: Int,
+        /** Metatile index per cell, row-major. */
+        public val cells: IntArray,
+        /** Terrain id per metatile. */
+        public val terrain: IntArray,
+        /** Rendered tileset (512×512, indexed). */
+        public val tileset: IndexedImage,
+        /** Tileset PNG palette (lit palettes 0..4, ARGB). */
+        public val palette: IntArray,
+    ) {
+        /** The tileset as PNG bytes. */
+        public fun tilesetPng(): ByteArray = IndexedPng.write(tileset, palette)
+
+        /** Tiled JSON map with an embedded tileset referencing [tilesetImage]. */
+        public fun tmj(name: String, tilesetImage: String): String = Json.write(
+            linkedMapOf(
+                "type" to "map", "version" to "1.10", "tiledversion" to "1.10.2", "orientation" to "orthogonal",
+                "renderorder" to "right-down", "width" to width, "height" to height, "tilewidth" to 16, "tileheight" to 16,
+                "infinite" to false, "nextlayerid" to 2, "nextobjectid" to 1,
+                "layers" to listOf(
+                    linkedMapOf(
+                        "id" to 1, "name" to "main", "type" to "tilelayer", "x" to 0, "y" to 0, "width" to width,
+                        "height" to height, "opacity" to 1, "visible" to true, "data" to cells.map { it + 1 },
+                    ),
+                ),
+                "tilesets" to listOf(
+                    linkedMapOf(
+                        "firstgid" to 1, "name" to name, "image" to tilesetImage, "imagewidth" to 512, "imageheight" to 512,
+                        "tilewidth" to 16, "tileheight" to 16, "columns" to 32, "tilecount" to METATILES, "margin" to 0, "spacing" to 0,
+                        "tiles" to terrain.mapIndexed { i, t ->
+                            linkedMapOf("id" to i, "properties" to listOf(linkedMapOf("name" to "terrain", "type" to "int", "value" to t)))
+                        },
+                    ),
+                ),
+            ),
+        )
+    }
+
+    /**
+     * Extracts the map of the chapter whose `struct ChapterMap` ids are [obj1Id], [obj2Id], [paletteId],
+     * [tileConfigId], [mainLayerId], from the asset pointer table at ROM offset [assetTable].
+     */
+    public fun extract(rom: ByteArray, assetTable: Int, obj1Id: Int, obj2Id: Int, paletteId: Int, tileConfigId: Int, mainLayerId: Int): Output {
+        fun asset(id: Int): Int = u32(rom, assetTable + 4 * id).let { if (it == 0) -1 else it - 0x08000000 }
+        val tiles = ByteArray(METATILES * 32)
+        Lz77.decode(rom, asset(obj1Id)).data.let { it.copyInto(tiles, 0, 0, minOf(it.size, tiles.size)) }
+        if (obj2Id != 0 && asset(obj2Id) >= 0) Lz77.decode(rom, asset(obj2Id)).data.let { it.copyInto(tiles, 0x200 * 32, 0, minOf(it.size, tiles.size - 0x200 * 32)) }
+        val cfg = Lz77.decode(rom, asset(tileConfigId)).data
+        val map = Lz77.decode(rom, asset(mainLayerId)).data
+        val w = map[0].toInt() and 0xFF
+        val h = map[1].toInt() and 0xFF
+        val cells = IntArray(w * h) { u16(map, 2 + 2 * it) shr 2 }
+        val terrain = IntArray(METATILES) { cfg[METATILES * 8 + it].toInt() and 0xFF }
+        val img = IndexedImage(512, 512)
+        for (mt in 0 until METATILES) {
+            for (k in 0 until 4) {
+                val e = u16(cfg, mt * 8 + k * 2)
+                val t = e and 0x3FF
+                val hf = e shr 10 and 1 == 1
+                val vf = e shr 11 and 1 == 1
+                val pal = e shr 12
+                val ox = mt % 32 * 16 + (k and 1) * 8
+                val oy = mt / 32 * 16 + (k shr 1) * 8
+                for (y in 0 until 8) for (x in 0 until 8) {
+                    val sx = if (hf) 7 - x else x
+                    val sy = if (vf) 7 - y else y
+                    val b = tiles[t * 32 + sy * 4 + sx / 2].toInt() and 0xFF
+                    val px = if (sx and 1 == 1) b shr 4 else b and 15
+                    img.pixels[(oy + y) * 512 + ox + x] = (pal * 16 + px).toByte()
+                }
+            }
+        }
+        return Output(w, h, cells, terrain, img, Bgr555.readPalette(rom, asset(paletteId), 5 * 16))
+    }
+
+    private fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
+    private fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)
+}

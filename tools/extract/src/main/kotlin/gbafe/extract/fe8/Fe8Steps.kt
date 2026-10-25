@@ -117,6 +117,12 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
     for ((path, png) in sprites.files) File(args.out, "mapsprites/$path").apply { parentFile.mkdirs() }.writeBytes(png)
     File(args.out, "mapsprites/mapsprites.json").writeText(sprites.json)
     written += "mapsprites/mapsprites.json (+${sprites.files.size} PNG)"
+    // Event scripts v0 (M2-15): the prologue's EventScr_Prologue_* lists.
+    val romNames = symbols.romNamesByAddress()
+    val scripts = symbols.namesWithPrefix("EventScr_Prologue").sortedBy { symbols[it].address.toUInt() }
+        .map { it to gbafe.extract.fe8.events.EventScriptConverter.convert(rom, symbols[it].address - ROM_BASE, romNames) }
+    File(args.out, "scripts/prologue.fe8s").apply { parentFile.mkdirs() }.writeText(gbafe.extract.fe8.events.EventScriptConverter.render(scripts))
+    written += "scripts/prologue.fe8s (${scripts.size} scripts)"
     return written
 }
 

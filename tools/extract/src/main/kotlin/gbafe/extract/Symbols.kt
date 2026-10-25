@@ -49,6 +49,10 @@ public class Symbols(lines: List<String>) {
     /** Names of all symbols starting with [prefix], each once. */
     public fun namesWithPrefix(prefix: String): List<String> = byName.keys.filter { it.startsWith(prefix) }.sorted()
 
+    /** Address → name for ROM symbols (0x08xxxxxx-0x09xxxxxx); the alphabetically first name wins on aliases. */
+    public fun romNamesByAddress(): Map<Int, String> =
+        all.filter { it.address ushr 25 == 4 }.groupBy { it.address }.mapValues { (_, v) -> v.minOf { it.name } }
+
     /** Size of [name], or the gap to the next higher symbol address if it has none. */
     public fun sizeOrSpan(name: String): Int {
         val s = get(name)

@@ -157,6 +157,13 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
     File(args.out, "samples/samples.json").writeText(gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.samples", "game" to "fe8", "version" to 1, "samples" to sampleRows)))
     written += "samples/ (${sampleRows.size} WAV)"
     written += "songs/ (${rows.size} entries, ${midiByHeader.size} MIDI), voicegroups/ (${voicegroups.size})"
+    // UI icons (M2-20): item_icon_tiles (up to item_icon_palette) -> ui/icons.png + ui/icons.json.
+    val iconTiles = symbols["item_icon_tiles"].address
+    val iconPal = symbols["item_icon_palette"].address
+    val icons = gbafe.extract.fe8.ui.IconsExtractor.extract(rom, iconTiles - ROM_BASE, (iconPal - iconTiles) / gbafe.extract.fe8.ui.IconsExtractor.ICON_BYTES, iconPal - ROM_BASE)
+    File(args.out, "ui/icons.png").apply { parentFile.mkdirs() }.writeBytes(icons.png)
+    File(args.out, "ui/icons.json").writeText(icons.json)
+    written += "ui/icons.png (${icons.count} icons)"
     return written
 }
 

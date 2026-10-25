@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 4,
+    "verified": 5,
     "implemented_unverified": 6
   },
   "functions": {
@@ -17,6 +17,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
+      ]
+    },
+    "DecodeString": {
+      "decomp_file": "asm/arm.s",
+      "system": "core",
+      "kotlin_file": "engine/text/src/main/kotlin/fe8/text/MsgHuffman.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MsgHuffmanRomTest#known names decode exactly"
       ]
     },
     "InitRN": {

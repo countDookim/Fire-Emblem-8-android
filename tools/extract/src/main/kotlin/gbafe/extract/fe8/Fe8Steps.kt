@@ -145,6 +145,17 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
                 "voices" to gbafe.extract.m4a.M4aSong.readVoicegroup(rom, vg - ROM_BASE, symbols = romNames))),
         )
     }
+    // Direct-sound samples (M2-19) -> samples/<symbol>.wav + samples/samples.json (every WaveData header field).
+    val waves = gbafe.extract.m4a.M4aSong.collectWaves(rom, voicegroups.map { it - ROM_BASE })
+    val sampleRows = waves.map { off ->
+        val w = gbafe.extract.m4a.M4aSong.readWave(rom, off)
+        val name = romNames[off + ROM_BASE] ?: "wave_%08X".format(off + ROM_BASE)
+        File(args.out, "samples/$name.wav").apply { parentFile.mkdirs() }.writeBytes(gbafe.extract.m4a.M4aSong.toWav(w))
+        linkedMapOf("name" to name, "wav" to "$name.wav", "type" to w.type, "status" to w.status, "freq" to w.freq.toLong().and(0xFFFFFFFFL),
+            "loopStart" to w.loopStart, "size" to w.data.size)
+    }
+    File(args.out, "samples/samples.json").writeText(gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.samples", "game" to "fe8", "version" to 1, "samples" to sampleRows)))
+    written += "samples/ (${sampleRows.size} WAV)"
     written += "songs/ (${rows.size} entries, ${midiByHeader.size} MIDI), voicegroups/ (${voicegroups.size})"
     return written
 }

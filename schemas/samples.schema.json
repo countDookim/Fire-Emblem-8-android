@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/countDookim/Fire-Emblem-8-android/schemas/samples.schema.json",
+  "title": "GBA m4a direct-sound samples (samples/samples.json)",
+  "description": "One row per direct-sound sample (struct WaveData, decomp include/gba/m4a_internal.h) reachable from the songs' voicegroups; the PCM is in 'wav' (8-bit unsigned mono at freq/1024 Hz, smpl loop chunk when status has 0x4000). Header fields are kept as is.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "game",
+    "version",
+    "samples"
+  ],
+  "properties": {
+    "format": {
+      "const": "gbafe.samples"
+    },
+    "game": {
+      "enum": [
+        "fe6",
+        "fe7",
+        "fe8"
+      ]
+    },
+    "version": {
+      "const": 1
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "wav",
+          "type",
+          "status",
+          "freq",
+          "loopStart",
+          "size"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "wav": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*\\.wav$"
+          },
+          "type": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "freq": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "loopStart": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

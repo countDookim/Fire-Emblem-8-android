@@ -185,6 +185,71 @@ public object M4aSong {
             ).also { if (type and 0x40 != 0) it["split"] = ref(u32(rom, o + 8)) }
         }
 
+    /** A direct-sound sample (`struct WaveData`, decomp `include/gba/m4a_internal.h`); [data] = [size] signed samples. */
+    public class Wave(public val type: Int, public val status: Int, public val freq: Int, public val loopStart: Int, public val data: ByteArray) {
+        /** Loop flag (`status & 0x4000`, the m4a's WAVE_LOOP). */
+        public val loops: Boolean get() = status and 0x4000 != 0
+
+        /** Sample rate in Hz (`freq` is the rate × 1024, the pitch at the sample's base key). */
+        public val sampleRate: Int get() = freq ushr 10
+    }
+
+    /** Reads the `WaveData` at ROM offset [offset]. */
+    public fun readWave(rom: ByteArray, offset: Int): Wave {
+        val size = u32(rom, offset + 12)
+        require(size in 0..0x400000 && offset + 16 + size <= rom.size) { "wave at 0x%X: size %d".format(offset, size) }
+        return Wave(u8(rom, offset) or (u8(rom, offset + 1) shl 8), u8(rom, offset + 2) or (u8(rom, offset + 3) shl 8),
+            u32(rom, offset + 4), u32(rom, offset + 8), rom.copyOfRange(offset + 16, offset + 16 + size))
+    }
+
+    /**
+     * Every direct-sound sample (voice types 0/8/16) reachable from [voicegroups] (ROM offsets), following
+     * keysplit (0x40) and drum (0x80) sub-voicegroups one level (128 entries scanned; entries whose wave header
+     * is implausible are skipped). Result: wave ROM offsets in first-seen order.
+     */
+    public fun collectWaves(rom: ByteArray, voicegroups: Collection<Int>): List<Int> {
+        val waves = LinkedHashSet<Int>()
+        val visited = HashSet<Int>()
+        fun plausible(o: Int) = o in 0 until rom.size - 16 && u16w(rom, o) == 0 && (u16w(rom, o + 2) and 0xBFFF) == 0 && u32(rom, o + 12) in 1..0x400000
+        fun scan(vg: Int, depth: Int) {
+            if (!visited.add(vg)) return
+            for (i in 0 until 128) {
+                val o = vg + i * TONE_SIZE
+                if (o + TONE_SIZE > rom.size) return
+                val type = u8(rom, o)
+                val ptr = u32(rom, o + 4) - ROM
+                when {
+                    type == 0 || type == 8 || type == 16 -> if (plausible(ptr)) waves += ptr
+                    (type == 0x40 || type == 0x80) && depth == 0 && ptr in 0 until rom.size -> scan(ptr, 1)
+                }
+            }
+        }
+        for (vg in voicegroups) scan(vg, 0)
+        return waves.toList()
+    }
+
+    /** RIFF WAVE, 8-bit unsigned mono at [Wave.sampleRate]; a looping sample gets a `smpl` chunk (loop to the end). */
+    public fun toWav(w: Wave): ByteArray {
+        val body = ByteArrayOutputStream()
+        fun le32(v: Int) = bytes(v and 0xFF, v shr 8 and 0xFF, v shr 16 and 0xFF, v ushr 24)
+        fun le16(v: Int) = bytes(v and 0xFF, v shr 8 and 0xFF)
+        body.write("WAVE".toByteArray())
+        body.write("fmt ".toByteArray()); body.write(le32(16)); body.write(le16(1)); body.write(le16(1))
+        body.write(le32(w.sampleRate)); body.write(le32(w.sampleRate)); body.write(le16(1)); body.write(le16(8))
+        body.write("data".toByteArray()); body.write(le32(w.data.size)); body.write(ByteArray(w.data.size) { (w.data[it] + 128).toByte() })
+        if (w.data.size % 2 == 1) body.write(0)
+        if (w.loops) {
+            body.write("smpl".toByteArray()); body.write(le32(36 + 24))
+            for (v in intArrayOf(0, 0, 1_000_000_000 / maxOf(1, w.sampleRate), 60, 0, 0, 0, 1, 0)) body.write(le32(v))
+            for (v in intArrayOf(0, 0, w.loopStart, w.data.size - 1, 0, 0)) body.write(le32(v))
+        }
+        val out = ByteArrayOutputStream()
+        out.write("RIFF".toByteArray()); out.write(le32(body.size())); out.write(body.toByteArray())
+        return out.toByteArray()
+    }
+
+    private fun u16w(b: ByteArray, o: Int) = u8(b, o) or (u8(b, o + 1) shl 8)
+
     private fun track(msgs: List<Pair<Int, ByteArray>>): ByteArray {
         val o = ByteArrayOutputStream()
         var last = 0

@@ -47,6 +47,24 @@ class SongsRomTest {
     }
 
     @Test
+    fun `direct-sound samples match the decomp`() {
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        val rom = romFile.readBytes()
+        // DirectSoundData_k_tubular_c4_13k_s 0x082263B4 (sound/direct_sound_samples/k_tubular_c4_13k_s.aif):
+        // looping, loop start 3608, 5571 samples, 13379 Hz. A one-off compare of all 439 extracted samples
+        // (every song's voicegroup, keysplits and drum kits followed) with the decomp's 439 .aif files found
+        // identical PCM and sample rates.
+        val w = M4aSong.readWave(rom, 0x2263B4)
+        assertEquals(listOf(0, 0x4000, 3608, 5571, 13379), listOf(w.type, w.status, w.loopStart, w.data.size, w.sampleRate))
+        val table = M4aSong.readSongTable(rom, 0x224470, 1000)
+        val vgs = table.map { it.header }.distinct().map { M4aSong.decode(rom, it - 0x08000000) }.filter { it.tracks.isNotEmpty() }.map { it.voicegroup - 0x08000000 }.toSet()
+        assertEquals(84, vgs.size)
+        assertEquals(439, M4aSong.collectWaves(rom, vgs).size)
+        val wav = M4aSong.toWav(w)
+        assertEquals("RIFF", String(wav, 0, 4))
+    }
+
+    @Test
     fun `voicegroup000 matches the decomp`() {
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
         // voicegroup000 0x08207470 (sound/voicegroups/voicegroup000.s): 0 = voice_square_1 0, 2, 0, 0, 15, 0;

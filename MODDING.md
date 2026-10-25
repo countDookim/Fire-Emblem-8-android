@@ -14,7 +14,7 @@ path as a base file overrides it; the highest layer wins ([0003](docs/decisions/
 
 | Path prefix | Content | Format | Status |
 |---|---|---|---|
-| `data/` | items, classes, characters, terrain, shops, chapters, AI tables... | JSON + `schemas/*.schema.json`; patch with `*.merge.json` | `items.json`, `classes.json`, `characters.json` formats published ([schemas](schemas/)); extracted by `:tools:extract`, not yet loaded by the game. Others *(planned, M2)* |
+| `data/` | items, classes, characters, terrain, shops, chapters, AI tables... | JSON + `schemas/*.schema.json`; patch with `*.merge.json` | `items.json`, `classes.json`, `characters.json`, `terrains.json` formats published ([schemas](schemas/)); extracted by `:tools:extract`, not yet loaded by the game. Others *(planned, M2)* |
 | `maps/` | chapter maps: layout, collision, events, units, warps | Tiled `.tmj` + tileset PNGs | *(planned, M2)* |
 | `scripts/` | event scripts | `.fe8s` ([0001](docs/decisions/0001-script-format.md)) | *(planned, M5)* |
 | `gfx/` | sprites, portraits, UI, tilesets; hi-res packs | PNG + JSON metadata | *(planned, M2–3)* |
@@ -68,3 +68,8 @@ entry's position + 1 is its vanilla class number. Ids are `CLASS_*` without the 
 `data/characters.json` (`fe8.characters` v1, [schema](schemas/characters.schema.json)): position + 1 is the
 vanilla character number (256 rows). `bases` are personal bonuses added to the class bases; `supports`
 lists up to 7 partners with starting support exp and per-turn growth.
+
+`data/terrains.json` (`fe8.terrains` v1, [schema](schemas/terrains.schema.json)): `entries` has one row per
+terrain id (65) with `healAmount` (% HP per turn) and `healsStatus`; `tables` holds every other 65-value
+terrain table from `src/data_terrains.c` keyed by its decomp symbol (movement costs, avoid/def/res,
+battle-animation lookups). How classes will reference shared tables by name is decided with the loader.

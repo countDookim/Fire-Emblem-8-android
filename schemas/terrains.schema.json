@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/countDookim/Fire-Emblem-8-android/schemas/terrains.schema.json",
+  "title": "Fire Emblem 8 terrain tables (data/terrains.json)",
+  "description": "Terrain-indexed data from the decomp's src/data_terrains.c. 'entries' has exactly one row per terrain id (position = id, TERRAIN_COUNT = 65); 'tables' maps decomp symbol names to 65-value s8 tables (movement costs, avoid/def/res bonuses, battle-animation ground/background lookups).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "version",
+    "entries",
+    "tables"
+  ],
+  "properties": {
+    "format": {
+      "const": "fe8.terrains"
+    },
+    "version": {
+      "const": 1
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 65,
+      "maxItems": 65,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "healAmount",
+          "healsStatus"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "description": "Decomp constant without TERRAIN_ (TERRAIN_FORT -> FORT)."
+          },
+          "healAmount": {
+            "type": "integer",
+            "minimum": -128,
+            "maximum": 127,
+            "description": "HP healed per turn, in percent of max HP (GetTerrainHealAmount)."
+          },
+          "healsStatus": {
+            "type": "boolean",
+            "description": "Cures status ailments at turn start (GetTerrainHealsStatus)."
+          }
+        }
+      }
+    },
+    "tables": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 65,
+        "maxItems": 65,
+        "items": {
+          "type": "integer",
+          "minimum": -128,
+          "maximum": 127
+        }
+      }
+    }
+  }
+}

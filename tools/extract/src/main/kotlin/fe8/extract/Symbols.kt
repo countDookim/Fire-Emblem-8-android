@@ -46,6 +46,9 @@ public class Symbols(lines: List<String>) {
         return byName.getValue(name).maxBy { it.size }
     }
 
+    /** Names of all symbols starting with [prefix], each once. */
+    public fun namesWithPrefix(prefix: String): List<String> = byName.keys.filter { it.startsWith(prefix) }.sorted()
+
     /** Size of [name], or the gap to the next higher symbol address if it has none. */
     public fun sizeOrSpan(name: String): Int {
         val s = get(name)

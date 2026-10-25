@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/countDookim/Fire-Emblem-8-android/schemas/mapsprites.schema.json",
+  "title": "GBA Fire Emblem map sprites (mapsprites/mapsprites.json)",
+  "description": "Standing map sprites (decomp unit_icon_wait_table): entry position = standing sprite id (class SMS id). Each image is a 4bpp sheet as an indexed PNG (blue faction palette; other factions swap palettes) with 'frames' frames of width x height stacked vertically. 'pattern' is UnitIconWait.pattern, kept as is.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "game",
+    "version",
+    "standing"
+  ],
+  "properties": {
+    "format": {
+      "const": "gbafe.mapsprites"
+    },
+    "game": {
+      "enum": [
+        "fe6",
+        "fe7",
+        "fe8"
+      ]
+    },
+    "version": {
+      "const": 1
+    },
+    "standing": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "image",
+          "width",
+          "height",
+          "frames",
+          "pattern"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "image": {
+            "type": "string",
+            "pattern": "^standing/[0-9]{3}\\.png$"
+          },
+          "width": {
+            "enum": [
+              16,
+              32
+            ]
+          },
+          "height": {
+            "enum": [
+              16,
+              32
+            ]
+          },
+          "frames": {
+            "const": 3
+          },
+          "pattern": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          }
+        }
+      }
+    }
+  }
+}

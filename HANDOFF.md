@@ -22,27 +22,26 @@ _(nothing blocked)_
   all 3404 messages round-trip), M2-10 fonts (`FontExtractor`, 3 atlases), M2-11 portraits
   (`PortraitsExtractor`, unassembled tile sheets + chibi/mouth/card), M2-12 `data/chapters.json`
   (every struct byte; full cross-check vs decomp `src/data/chapter_settings.json` = 0 mismatches),
-  M2-13/14 maps (`MapsExtractor`: 79 `maps/chapter_NN.tmj` + 24 tilesets, map changes as hidden layers
+  M2-17 standing map sprites, M2-13/14 maps (`MapsExtractor`: 79 `maps/chapter_NN.tmj` + 24 tilesets, map changes as hidden layers
   `change_<id>`). Schemas: `text`, `font`, `portraits`, `chapters` (+ Tiled structure test for `.tmj`).
   All extracted output is committed in the ROM repo (`extracted/`, last 1a23a8b).
 - Last CI before this run: ✅ master (de5c6a3). Not yet seen: CI on this run's commits (145e4d9..c469e04).
 - Session setup: 94 s. Branch: `master`. No `wip/` branches.
 - Progress: 5 / 8352 verified (unchanged: this run was extraction, no game-code ports).
 
-## Next task: M2-17 — map sprites (standing + moving) → PNG + anim JSON
-- Standing: `unit_icon_wait_table` 0x088AF880 (0x358 bytes; decomp `src/unit_icon_wait_data.c`,
-  `include/unit_icon_data.h` for `UnitIconWait` = {u16 ?, u16 size (UNIT_ICON_SIZE_16x16/16x32/32x32),
-  sheet ptr}; check the struct before coding). Sheets are likely LZ77 4bpp, 3 frames stacked; palette is
-  the unit faction palette (find it via `src/bmudisp.c` / `SMS_DisplayOne`, e.g. `gPal_MapSprite`).
-- Moving: `unit_icon_move_table` 0x089A2E00 (0x3F8 bytes, `struct MuInfo {img, anim}`, `include/mu.h`);
-  `anim` is an AP animation script (`src/ap.c`) — export frames + the raw script as JSON for now.
-- Files: new `tools/extract/.../fe8/mapsprites/MapSpritesExtractor.kt`, CLI step `mapsprites/`,
-  `testing/.../MapSpritesRomTest.kt`, schema + `tools/tests/test_schemas.py` case (pattern of
-  `PortraitsExtractor`/`PortraitsRomTest`).
-- Done when: counts match the tables (and the class table's SMS ids, `GetClassSMSId`), Eirika/Ephraim
-  standing frames checked by eye, schema test passes.
-- Decomp source checkout for names/cross-checks: see caveat below (add `data` and `include` to the
-  sparse set for these tables).
+## Next task: M2-17 (rest) — moving map sprites → PNG + anim JSON
+- Standing sprites are done this run (`MapSpritesExtractor`, `mapsprites/standing/NNN.png` + `mapsprites.json`,
+  107 entries; 4bpp LZ77, 3 frames stacked, 2 tiles wide for 16x16/16x32, 4 for 32x32; palette
+  `gPal_MapSprite` 0x0859EE20, 4 factions × 16 colors).
+- Moving: `unit_icon_move_table` 0x089A2E00 (0x3F8 bytes, `struct MuInfo {img, anim}`, decomp
+  `include/mu.h`; names in `include/unit_icon_pointer.h`). `img` is a sheet (check compression/size like
+  the standing ones), `anim` an AP animation script (`src/ap.c`: frame data + per-mode scripts). Export
+  the sheet PNG + the raw script decoded to JSON (frames list, per-direction scripts) under
+  `mapsprites/moving/`; extend `MapSpritesExtractor.Output`/`mapsprites.schema.json` with a `moving` array.
+- Done when: `MapSpritesRomTest` checks moving count (0x3F8/8 = 127 = class count) and the SMS ids used
+  by the class table (`classes.json` field holding `SMSId`) are all < 107; Eirika's walk frames checked by
+  eye; schema test passes. Then mark M2-17 done in `docs/TASKS.md`.
+- Decomp source checkout for names/cross-checks: see caveat below.
 
 ## Known bugs / caveats
 - The decomp **source** is not in the session assets (only `decomp/fireemblem8.{map,nm.txt}` in the ROM

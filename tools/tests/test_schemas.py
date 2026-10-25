@@ -1,7 +1,7 @@
 """Validates schemas/*.schema.json (JSON Schema 2020-12) and extracted data against them.
 
 Extracted data is ROM-derived, so it only exists in build dirs: testing/build/extracted/ is written by
-ItemsRomTest/ClassesRomTest/CharactersRomTest/TerrainsRomTest/MessagesRomTest/FontsRomTest/PortraitsRomTest/ChaptersRomTest/MapsRomTest when the ROM is available. Missing files are skipped, never counted as passing.
+ItemsRomTest/ClassesRomTest/CharactersRomTest/TerrainsRomTest/MessagesRomTest/FontsRomTest/PortraitsRomTest/ChaptersRomTest/MapsRomTest/MapSpritesRomTest when the ROM is available. Missing files are skipped, never counted as passing.
 """
 import json
 import pathlib
@@ -151,6 +151,15 @@ class SchemaTest(unittest.TestCase):
         self.assertEqual(("tilelayer", m["width"] * m["height"]), (layer["type"], len(layer["data"])))
         self.assertTrue(all(ts["firstgid"] <= g < ts["firstgid"] + ts["tilecount"] for g in layer["data"]))
         self.assertEqual(list(range(ts["tilecount"])), [t["id"] for t in ts["tiles"]])
+
+    def test_extracted_mapsprites_are_schema_valid(self):
+        path = EXTRACTED / "mapsprites" / "mapsprites.json"
+        if not path.is_file():
+            self.skipTest("no extracted map sprites (needs the ROM; run ./gradlew :testing:test)")
+        doc = load(path)
+        jsonschema.Draft202012Validator(load(SCHEMAS / "mapsprites.schema.json")).validate(doc)
+        self.assertEqual(107, len(doc["standing"]))
+        self.assertTrue(all((path.parent / e["image"]).is_file() for e in doc["standing"]))
 
 
 if __name__ == "__main__":

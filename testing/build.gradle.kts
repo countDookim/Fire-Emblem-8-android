@@ -18,3 +18,10 @@ tasks.register<JavaExec>("benchmark") {
     args(layout.buildDirectory.file("reports/benchmark/frame_time.json").get().asFile.absolutePath)
     jvmArgs("-XX:+UseSerialGC")
 }
+
+// ROM-extracted test output (build dir only) that tools/tests/test_schemas.py validates.
+tasks.named<Test>("test") {
+    val extracted = layout.buildDirectory.dir("extracted")
+    systemProperty("fe8.extractedOut", extracted.get().asFile.absolutePath)
+    outputs.dir(extracted)
+}

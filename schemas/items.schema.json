@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/countDookim/Fire-Emblem-8-android/schemas/items.schema.json",
+  "title": "Fire Emblem 8 item table (data/items.json)",
+  "description": "One entry per item, in vanilla item-number order (an entry's position is its number; new mod items are appended). Source struct: struct ItemData in the decomp's include/bmitem.h. See docs/decisions/0002-data-schemas.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "version", "entries"],
+  "properties": {
+    "format": { "const": "fe8.items" },
+    "version": { "const": 1 },
+    "entries": { "type": "array", "items": { "$ref": "#/$defs/item" } }
+  },
+  "$defs": {
+    "u8": { "type": "integer", "minimum": 0, "maximum": 255 },
+    "u16": { "type": "integer", "minimum": 0, "maximum": 65535 },
+    "s8": { "type": "integer", "minimum": -128, "maximum": 127 },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "nameText", "descText", "useDescText", "weaponType", "attributes", "statBonuses",
+        "effectiveAgainst", "uses", "might", "hit", "weight", "crit", "minRange", "maxRange", "costPerUse",
+        "rankExp", "icon", "useEffect", "weaponEffect", "weaponExp"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$", "description": "Decomp constant without ITEM_ (ITEM_SWORD_IRON -> SWORD_IRON)." },
+        "nameText": { "$ref": "#/$defs/u16", "description": "Text id of the name." },
+        "descText": { "$ref": "#/$defs/u16", "description": "Text id of the help description." },
+        "useDescText": { "$ref": "#/$defs/u16", "description": "Text id shown when using the item (0 = none)." },
+        "weaponType": { "enum": ["SWORD", "LANCE", "AXE", "BOW", "STAFF", "ANIMA", "LIGHT", "DARK", "BALLISTA", "ITEM", "DRAGONSTONE", "MONSTER", "DANCE"] },
+        "attributes": {
+          "type": "array", "uniqueItems": true,
+          "items": { "enum": ["weapon", "magic", "staff", "unbreakable", "unsellable", "brave", "magic_damage",
+            "uncounterable", "reverse_triangle", "hammerne", "lock_3", "lock_1", "lock_2", "lock_0", "negate_flying",
+            "negate_crit", "unusable", "negate_defense", "lock_4", "lock_5", "lock_6", "lock_7"] }
+        },
+        "statBonuses": {
+          "description": "Stat bonuses while held (struct ItemStatBonuses), or null for none.",
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object", "additionalProperties": false,
+              "required": ["hp", "pow", "skl", "spd", "def", "res", "lck", "mov", "con"],
+              "properties": {
+                "hp": { "$ref": "#/$defs/s8" }, "pow": { "$ref": "#/$defs/s8" }, "skl": { "$ref": "#/$defs/s8" },
+                "spd": { "$ref": "#/$defs/s8" }, "def": { "$ref": "#/$defs/s8" }, "res": { "$ref": "#/$defs/s8" },
+                "lck": { "$ref": "#/$defs/s8" }, "mov": { "$ref": "#/$defs/s8" }, "con": { "$ref": "#/$defs/s8" }
+              }
+            }
+          ]
+        },
+        "effectiveAgainst": {
+          "description": "Class numbers this weapon is effective against, or null. (Class ids replace numbers once the class table exists.)",
+          "oneOf": [ { "type": "null" }, { "type": "array", "items": { "type": "integer", "minimum": 1, "maximum": 255 } } ]
+        },
+        "uses": { "$ref": "#/$defs/u8", "description": "Max uses (0 with 'unbreakable' or for non-consumables)." },
+        "might": { "$ref": "#/$defs/u8" },
+        "hit": { "$ref": "#/$defs/u8" },
+        "weight": { "$ref": "#/$defs/u8" },
+        "crit": { "$ref": "#/$defs/u8" },
+        "minRange": { "type": "integer", "minimum": 0, "maximum": 15 },
+        "maxRange": { "type": "integer", "minimum": 0, "maximum": 15, "description": "0 = magic-based range (Mag/2), as in the original." },
+        "costPerUse": { "$ref": "#/$defs/u16", "description": "Gold per use; price = costPerUse * uses." },
+        "rankExp": { "$ref": "#/$defs/u8", "description": "Weapon exp required to wield (WPN_EXP_E=1, D=31, C=71, B=121, A=181, S=251)." },
+        "icon": { "$ref": "#/$defs/u8" },
+        "useEffect": { "$ref": "#/$defs/u8", "description": "Use-effect id (staff/item behaviour); names arrive with the item-use port." },
+        "weaponEffect": { "enum": ["NONE", "POISON", "HP_DRAIN", "HP_HALVE", "DEVIL", "PETRIFY"] },
+        "weaponExp": { "$ref": "#/$defs/u8", "description": "Weapon exp gained per use." }
+      }
+    }
+  }
+}

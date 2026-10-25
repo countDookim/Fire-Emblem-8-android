@@ -14,7 +14,7 @@ path as a base file overrides it; the highest layer wins ([0003](docs/decisions/
 
 | Path prefix | Content | Format | Status |
 |---|---|---|---|
-| `data/` | items, classes, characters, terrain, shops, chapters, AI tables... | JSON + `schemas/*.schema.json`; patch with `*.merge.json` | *(planned, M2)* |
+| `data/` | items, classes, characters, terrain, shops, chapters, AI tables... | JSON + `schemas/*.schema.json`; patch with `*.merge.json` | `items.json` format published ([schema](schemas/items.schema.json)); extracted by `:tools:extract`, not yet loaded by the game. Others *(planned, M2)* |
 | `maps/` | chapter maps: layout, collision, events, units, warps | Tiled `.tmj` + tileset PNGs | *(planned, M2)* |
 | `scripts/` | event scripts | `.fe8s` ([0001](docs/decisions/0001-script-format.md)) | *(planned, M5)* |
 | `gfx/` | sprites, portraits, UI, tilesets; hi-res packs | PNG + JSON metadata | *(planned, M2–3)* |
@@ -52,3 +52,10 @@ Registry named after the decomp constants (e.g. `FLAG_...`); mods register new o
 
 ## Saves *(planned, M5)*
 Versioned container with per-mod sections (keyed by mod id) and migrations; original `.sav` import.
+
+## Data tables
+`data/items.json` (`fe8.items` v1, [schema](schemas/items.schema.json)): one entry per item in vanilla
+item-number order; an entry's position is its number, so new items go at the end. Ids are the decomp's
+`ITEM_*` constants without the prefix (`ITEM_SWORD_IRON` → `SWORD_IRON`); unnamed rows get `ITEM_XX`.
+`maxRange: 0` means a magic-based range (Mag/2), as in the original. `effectiveAgainst` holds class
+numbers until the class table exists (M2-05). The game does not load these files yet (loader: M2 later).

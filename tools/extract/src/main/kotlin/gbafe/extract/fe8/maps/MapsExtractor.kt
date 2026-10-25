@@ -39,6 +39,8 @@ public object MapsExtractor {
         public val tileset: IndexedImage,
         /** Tileset PNG palette (lit palettes 0..4, ARGB). */
         public val palette: IntArray,
+        /** Map changes (doors, chests, ...) in table order. */
+        public val changes: List<MapChange> = emptyList(),
     ) {
         /** The tileset as PNG bytes. */
         public fun tilesetPng(): ByteArray = IndexedPng.write(tileset, palette)
@@ -48,13 +50,25 @@ public object MapsExtractor {
             linkedMapOf(
                 "type" to "map", "version" to "1.10", "tiledversion" to "1.10.2", "orientation" to "orthogonal",
                 "renderorder" to "right-down", "width" to width, "height" to height, "tilewidth" to 16, "tileheight" to 16,
-                "infinite" to false, "nextlayerid" to 2, "nextobjectid" to 1,
+                "infinite" to false, "nextlayerid" to 2 + changes.size, "nextobjectid" to 1,
                 "layers" to listOf(
                     linkedMapOf(
                         "id" to 1, "name" to "main", "type" to "tilelayer", "x" to 0, "y" to 0, "width" to width,
                         "height" to height, "opacity" to 1, "visible" to true, "data" to cells.map { it + 1 },
                     ),
-                ),
+                ) + changes.mapIndexed { i, c ->
+                    val data = IntArray(width * height)
+                    for (y in 0 until c.h) for (x in 0 until c.w) {
+                        val v = c.cells[y * c.w + x]
+                        if (v != 0 && c.x + x < width && c.y + y < height) data[(c.y + y) * width + c.x + x] = (v shr 2) + 1
+                    }
+                    linkedMapOf(
+                        "id" to 2 + i, "name" to "change_${c.id}", "type" to "tilelayer", "x" to 0, "y" to 0, "width" to width,
+                        "height" to height, "opacity" to 1, "visible" to false, "data" to data.toList(),
+                        "properties" to listOf("id" to c.id, "x" to c.x, "y" to c.y, "w" to c.w, "h" to c.h)
+                            .map { (k, v) -> linkedMapOf("name" to k, "type" to "int", "value" to v) },
+                    )
+                },
                 "tilesets" to listOf(
                     linkedMapOf(
                         "firstgid" to 1, "name" to name, "image" to tilesetImage, "imagewidth" to 512, "imageheight" to 512,
@@ -69,10 +83,47 @@ public object MapsExtractor {
     }
 
     /**
-     * Extracts the map of the chapter whose `struct ChapterMap` ids are [obj1Id], [obj2Id], [paletteId],
-     * [tileConfigId], [mainLayerId], from the asset pointer table at ROM offset [assetTable].
+     * One `struct MapChange` (decomp `include/types.h`; applied by `src/bmtrick.c: ApplyMapChangesById`):
+     * a [w]×[h] block of raw map cells at ([x], [y]); cell value 0 leaves the map unchanged. In the
+     * `.tmj` each change is a hidden tile layer `change_<id>` (gid 0 = unchanged) with its rectangle as
+     * properties.
      */
-    public fun extract(rom: ByteArray, assetTable: Int, obj1Id: Int, obj2Id: Int, paletteId: Int, tileConfigId: Int, mainLayerId: Int): Output {
+    public class MapChange(
+        /** Change id (`TILE_CHANGE` event argument). */
+        public val id: Int,
+        /** Left column. */
+        public val x: Int,
+        /** Top row. */
+        public val y: Int,
+        /** Width in metatiles. */
+        public val w: Int,
+        /** Height in metatiles. */
+        public val h: Int,
+        /** Raw cells (metatile × 4, 0 = unchanged), row-major. */
+        public val cells: IntArray,
+    )
+
+    /** Reads the `MapChange` list at ROM offset [offset] (terminated by a negative id). */
+    public fun readChanges(rom: ByteArray, offset: Int): List<MapChange> {
+        val out = ArrayList<MapChange>()
+        var o = offset
+        while (rom[o] >= 0) {
+            val w = rom[o + 3].toInt() and 0xFF
+            val h = rom[o + 4].toInt() and 0xFF
+            val data = u32(rom, o + 8) - 0x08000000
+            out += MapChange(rom[o].toInt(), rom[o + 1].toInt() and 0xFF, rom[o + 2].toInt() and 0xFF, w, h, IntArray(w * h) { u16(rom, data + 2 * it) })
+            o += 12
+        }
+        return out
+    }
+
+    /**
+     * Extracts the map of the chapter whose `struct ChapterMap` ids are [obj1Id], [obj2Id], [paletteId],
+     * [tileConfigId], [mainLayerId] and [changeLayerId] (0 = none), from the asset pointer table at ROM offset [assetTable].
+     */
+    public fun extract(
+        rom: ByteArray, assetTable: Int, obj1Id: Int, obj2Id: Int, paletteId: Int, tileConfigId: Int, mainLayerId: Int, changeLayerId: Int = 0,
+    ): Output {
         fun asset(id: Int): Int = u32(rom, assetTable + 4 * id).let { if (it == 0) -1 else it - 0x08000000 }
         val tiles = ByteArray(METATILES * 32)
         Lz77.decode(rom, asset(obj1Id)).data.let { it.copyInto(tiles, 0, 0, minOf(it.size, tiles.size)) }
@@ -102,7 +153,8 @@ public object MapsExtractor {
                 }
             }
         }
-        return Output(w, h, cells, terrain, img, Bgr555.readPalette(rom, asset(paletteId), 5 * 16))
+        val changes = if (changeLayerId != 0 && asset(changeLayerId) >= 0) readChanges(rom, asset(changeLayerId)) else emptyList()
+        return Output(w, h, cells, terrain, img, Bgr555.readPalette(rom, asset(paletteId), 5 * 16), changes)
     }
 
     private fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)

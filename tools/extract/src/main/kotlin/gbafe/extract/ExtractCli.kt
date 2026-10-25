@@ -92,7 +92,7 @@ public fun locateCodeRepo(): File? {
 
 /**
  * Runs the extraction steps the inputs allow and returns the paths written (relative to `args.out`).
- * Currently `data/items.json`, `data/classes.json`, `data/characters.json`, `data/terrains.json`, `data/chapters.json`,
+ * Currently `data/items.json`, `data/classes.json`, `data/characters.json`, `data/terrains.json`, `data/chapters.json`, `maps/`,
  * `text/en/messages.json` and `fonts/{system,talk,special}.{png,json}`,
  * `portraits/` (sheets, chibis, mouths, cards + `portraits.json`) (need `--symbols`; ids and face names need `--decomp`).
  */
@@ -142,6 +142,26 @@ public fun runSteps(args: ExtractArgs): List<String> {
         ),
     )
     written += "data/chapters.json"
+    val assetTable = symbols["gChapterDataAssetTable"].address - ROM_BASE
+    val tilesetsDone = HashSet<String>()
+    var maps = 0
+    for (ch in gbafe.extract.fe8.chapters.ChaptersExtractor.extract(
+        rom, symbols["gChapterDataTable"].address - ROM_BASE,
+        symbols.sizeOrSpan("gChapterDataTable") / gbafe.extract.fe8.chapters.ChaptersExtractor.ENTRY_SIZE,
+    )) {
+        val m = (ch["map"] as Map<*, *>).mapValues { it.value as Int }
+        if (m.getValue("mainLayerId") == 0) continue
+        val o = gbafe.extract.fe8.maps.MapsExtractor.extract(
+            rom, assetTable, m.getValue("obj1Id"), m.getValue("obj2Id"), m.getValue("paletteId"),
+            m.getValue("tileConfigId"), m.getValue("mainLayerId"), m.getValue("changeLayerId"),
+        )
+        val ts = "tileset_%d_%d_%d_%d".format(m["obj1Id"], m["obj2Id"], m["paletteId"], m["tileConfigId"])
+        File(args.out, "maps/tilesets").mkdirs()
+        if (tilesetsDone.add(ts)) File(args.out, "maps/tilesets/$ts.png").writeBytes(o.tilesetPng())
+        File(args.out, "maps/chapter_%02d.tmj".format(ch["index"])).writeText(o.tmj(ts, "tilesets/$ts.png"))
+        maps++
+    }
+    written += "maps/ ($maps .tmj, ${tilesetsDone.size} tilesets)"
     val faces = args.decomp?.let { File(it, "texts/textdefs.txt") }?.takeIf { it.isFile }
         ?.let(gbafe.extract.text.MessagesExtractor::readFaces) ?: emptyMap()
     val rootPtr = symbols["gMsgHuffmanTableRoot"].address - ROM_BASE

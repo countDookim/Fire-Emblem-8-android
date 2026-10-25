@@ -37,7 +37,7 @@ Take the first `todo` whose dependencies are `done`. If fewer than 5 `todo` rema
 | M2-11 | Portraits (`face.c` data) → PNG + JSON (mouth/eye frames, anchors) | 3 portraits visually checked + counts | done (`PortraitsExtractor`: 172 entries, unassembled tile sheets + chibi/mouth/card PNGs; `PortraitsRomTest` vs `portrait_data.c`; Eirika/Seth/card checked by eye; 96×80 assembly = face renderer, M3) |
 | M2-12 | Chapter data (`chapterdata.c`) → `data/chapters.json` | schema-valid | done (`ChaptersExtractor`, 79 chapters, every struct byte; `ChaptersRomTest` + one-off full cross-check vs decomp `src/data/chapter_settings.json`: 0 mismatches) |
 | M2-13 | Map layouts + tile config → Tiled `.tmj` + tileset PNG (one chapter) | opens in Tiled (validated by `.tmj` schema), tiles match | done (`MapsExtractor`: prologue `.tmj` + 1024-metatile tileset PNG with terrain properties; `MapsRomTest` + Tiled-structure test; render checked by eye; no CLI step yet → M2-14) |
-| M2-14 | All chapter maps converted; map changes (doors, chests) as Tiled layers | count matches chapter table | todo |
+| M2-14 | All chapter maps converted; map changes (doors, chests) as Tiled layers | count matches chapter table | done (CLI `maps/chapter_NN.tmj` ×79 + shared tilesets; `MapsRomTest`: all 79 convert, changes in bounds; ch. 2 villages/chests checked by eye) |
 | M2-15 | Event script converter v0: command table from decomp event macros → `.fe8s` (prologue only) | output parses with M5 grammar draft; diffable | todo |
 | M2-16 | Unit placement (`UNIT` defs) → Tiled object layer | prologue units correct | todo |
 | M2-17 | Map sprites (standing/moving) → PNG + anim JSON | counts match class table | todo |

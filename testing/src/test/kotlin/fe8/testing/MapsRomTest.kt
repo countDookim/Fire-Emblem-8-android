@@ -16,6 +16,30 @@ import java.io.File
 class MapsRomTest {
     private val romFile = File(System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets", "baserom.gba")
 
+    private companion object {
+        /** Chapter 2's `map` ids (obj1, obj2, palette, tileConfig, mainLayer, changeLayer) in chapter_settings.json. */
+        val CH2 = intArrayOf(1, 0, 2, 3, 11, 12)
+    }
+
+    @Test
+    fun `every chapter map converts`() {
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        val rom = romFile.readBytes()
+        var maps = 0
+        for (ch in gbafe.extract.fe8.chapters.ChaptersExtractor.extract(rom, 0x8B0890, 79)) {
+            val m = (ch["map"] as Map<*, *>).mapValues { it.value as Int }
+            if (m.getValue("mainLayerId") == 0) continue
+            val o = MapsExtractor.extract(
+                rom, 0x8B363C, m.getValue("obj1Id"), m.getValue("obj2Id"), m.getValue("paletteId"),
+                m.getValue("tileConfigId"), m.getValue("mainLayerId"), m.getValue("changeLayerId"),
+            )
+            assertTrue(o.width in 1..127 && o.height in 1..127, "chapter ${ch["index"]}: ${o.width}x${o.height}")
+            for (c in o.changes) assertTrue(c.x + c.w <= o.width && c.y + c.h <= o.height, "chapter ${ch["index"]} change ${c.id}")
+            maps++
+        }
+        assertEquals(79, maps, "every chapter in the table has a main layer")
+    }
+
     private fun prologue(): MapsExtractor.Output {
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
         return MapsExtractor.extract(romFile.readBytes(), 0x8B363C, 1, 0, 2, 3, 4)
@@ -38,5 +62,10 @@ class MapsRomTest {
         dir.mkdirs()
         File(dir, "tileset_03.png").writeBytes(m.tilesetPng())
         File(dir, "chapter_00.tmj").writeText(m.tmj("tileset_03", "tileset_03.png"))
+        // Chapter 2 (map ids from chapter_settings.json) has map changes (doors/chests).
+        val c2 = MapsExtractor.extract(romFile.readBytes(), 0x8B363C, CH2[0], CH2[1], CH2[2], CH2[3], CH2[4], CH2[5])
+        assertTrue(c2.changes.isNotEmpty())
+        File(dir, "tileset_c2.png").writeBytes(c2.tilesetPng())
+        File(dir, "chapter_02.tmj").writeText(c2.tmj("tileset_c2", "tileset_c2.png"))
     }
 }

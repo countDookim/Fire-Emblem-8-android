@@ -34,6 +34,19 @@ class SongsRomTest {
     }
 
     @Test
+    fun `every song table entry decodes`() {
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        val rom = romFile.readBytes()
+        // gSongTable: 0x1F40 bytes = 1000 entries over 594 distinct song labels (sound/song_table.s). A one-off
+        // compare of all 589 decomp sound/songs/midi/*.mid with our MIDI (note time/key/velocity/length per
+        // track) found 0 mismatches; the other 5 are dummy_song and 4 MML-sourced sound effects.
+        val table = M4aSong.readSongTable(rom, 0x224470, 1000)
+        assertEquals(594, table.map { it.header }.distinct().size)
+        for (h in table.map { it.header }.distinct()) M4aSong.toMidi(M4aSong.decode(rom, h - 0x08000000))
+        assertEquals(listOf(1, 1), listOf(table[4].musicPlayer, table[4].unknown)) // song song004_..., 1, 1
+    }
+
+    @Test
     fun `voicegroup000 matches the decomp`() {
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
         // voicegroup000 0x08207470 (sound/voicegroups/voicegroup000.s): 0 = voice_square_1 0, 2, 0, 0, 15, 0;

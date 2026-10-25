@@ -10,8 +10,9 @@ import java.io.ByteArrayOutputStream
  * N01–N96). Bytes below 0x80 repeat the last command ≥ 0xBD with new arguments (running status). Note and TIE
  * arguments (key, velocity, gate extra) are optional and sticky. Time is in m4a clocks (24 per quarter note).
  *
- * The decoder follows one pass: PATT is a one-level call, REPT repeats its pattern, GOTO marks the loop and
- * ends the track (the original loops forever).
+ * The decoder follows one pass: PATT is a one-level call, REPT repeats its pattern, GOTO becomes a `GOTO`
+ * event (arg = loop start time) and decoding continues to FINE, because mid2agb writes the track's tail after
+ * the loop jump (unreachable in game, but part of the data). Every track ends with an `END` event at FINE.
  */
 public object M4aSong {
     /** `gClockTable`: WAIT/N lengths in clocks for command - 0x80 (WAIT) or - 0xCF (N01 = index 1). */
@@ -28,6 +29,15 @@ public object M4aSong {
         public val blockCount: Int, public val priority: Int, public val reverb: Int, public val voicegroup: Int,
         public val tracks: List<List<Event>>, public val loopStarts: List<Int>,
     )
+
+    /** One song table entry (`.4byte header; .2byte ms, me`, decomp `asm/macros/m4a.inc: song`). */
+    public data class SongEntry(val header: Int, val musicPlayer: Int, val unknown: Int)
+
+    /** Reads [count] 8-byte song table entries at ROM offset [offset]. */
+    public fun readSongTable(rom: ByteArray, offset: Int, count: Int): List<SongEntry> = List(count) {
+        val o = offset + 8 * it
+        SongEntry(u32(rom, o), u8(rom, o + 4) or (u8(rom, o + 5) shl 8), u8(rom, o + 6) or (u8(rom, o + 7) shl 8))
+    }
 
     /** Decodes the song header at ROM offset [offset]. */
     public fun decode(rom: ByteArray, offset: Int): Song {
@@ -63,10 +73,11 @@ public object M4aSong {
             if (b >= 0xBD) status = b
             when {
                 b <= 0xB0 -> time += CLOCKS[b - 0x80]
-                b == 0xB1 -> break
+                b == 0xB1 -> { out += Event(time, "END", emptyList()); break }
                 b == 0xB2 -> {
-                    loop = posTime[u32(rom, p) - ROM] ?: -1
-                    break
+                    if (loop < 0) loop = posTime[u32(rom, p) - ROM] ?: -1
+                    out += Event(time, "GOTO", listOf(posTime[u32(rom, p) - ROM] ?: -1))
+                    p += 4
                 }
                 b == 0xB3 -> { ret = p + 4; p = u32(rom, p) - ROM }
                 b == 0xB4 -> if (ret >= 0) { p = ret; ret = -1 }
@@ -105,7 +116,8 @@ public object M4aSong {
      * Standard MIDI file (format 1, 24 ticks per quarter = m4a clocks). Track 0 holds TEMPO (bpm = value × 2);
      * m4a track i → MIDI track i + 1 on channel i % 16. Keys include KEYSH. VOICE → program change, VOL → CC7,
      * PAN → CC10, BEND → pitch bend ((v - 64) × 128 + 8192), BENDR → RPN 0, MOD → CC1, LFOS → CC21, LFODL → CC26,
-     * MODT → CC22, TUNE → CC24, PRIO → CC33; MEMACC/XCMD are dropped (they stay in the event lists).
+     * MODT → CC22, TUNE → CC24, PRIO → CC33; GOTO → markers `[` (at the loop start) and `]`; ties still open at
+     * END are released there. MEMACC/XCMD are dropped (they stay in the event lists).
      */
     public fun toMidi(song: Song): ByteArray {
         val tracks = ArrayList<ByteArray>()
@@ -136,6 +148,11 @@ public object M4aSong {
                         val k = (e.args[0] + shift).coerceIn(0, 127)
                         if (tieKeys.remove(k)) msgs += e.time to bytes(0x80 or ch, k, 0)
                     }
+                    "GOTO" -> if (e.args[0] >= 0) {
+                        msgs += e.args[0] to (bytes(0xFF, 0x06, 1) + "[".toByteArray())
+                        msgs += e.time to (bytes(0xFF, 0x06, 1) + "]".toByteArray())
+                    }
+                    "END" -> { for (k in tieKeys) msgs += e.time to bytes(0x80 or ch, k, 0); tieKeys.clear() }
                 }
             }
             tracks += track(msgs.withIndex().sortedWith(compareBy({ it.value.first }, { if (it.value.second[0].toInt() and 0xF0 == 0x80) 0 else 1 }, { it.index })).map { it.value })

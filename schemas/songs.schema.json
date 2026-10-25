@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/countDookim/Fire-Emblem-8-android/schemas/songs.schema.json",
+  "title": "GBA m4a song table (songs/songs.json)",
+  "description": "One row per song table entry (decomp sound/song_table.s, 'song label, music_player, unknown'); entry position = song id. 'header' is the song header symbol (or GBA address); 'midi' the converted file (shared by entries with the same header). MIDI: 24 ticks per quarter (m4a clocks), markers '[' / ']' at the loop start / GOTO.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "game",
+    "version",
+    "songs"
+  ],
+  "properties": {
+    "format": {
+      "const": "gbafe.songs"
+    },
+    "game": {
+      "enum": [
+        "fe6",
+        "fe7",
+        "fe8"
+      ]
+    },
+    "version": {
+      "const": 1
+    },
+    "songs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "header",
+          "musicPlayer",
+          "unknown",
+          "midi"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "header": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "musicPlayer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "unknown": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "midi": {
+            "type": "string",
+            "pattern": "^song[0-9]{3}\\.mid$"
+          }
+        }
+      }
+    }
+  }
+}

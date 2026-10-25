@@ -123,18 +123,29 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
         .map { it to gbafe.extract.fe8.events.EventScriptConverter.convert(rom, symbols[it].address - ROM_BASE, romNames) }
     File(args.out, "scripts/prologue.fe8s").apply { parentFile.mkdirs() }.writeText(gbafe.extract.fe8.events.EventScriptConverter.render(scripts))
     written += "scripts/prologue.fe8s (${scripts.size} scripts)"
-    // m4a (M2-18): song 1 end-to-end -> songs/song001.mid + its voicegroup JSON. All songs: M2-19.
+    // m4a (M2-18/19): every gSongTable entry -> songs/songNNN.mid (once per distinct header) + songs/songs.json,
+    // and the voicegroups the songs use -> voicegroups/<name>.json.
     val songTable = symbols["gSongTable"].address - ROM_BASE
-    val songHeader = (rom[songTable + 8].toInt() and 0xFF) or ((rom[songTable + 9].toInt() and 0xFF) shl 8) or
-        ((rom[songTable + 10].toInt() and 0xFF) shl 16) or ((rom[songTable + 11].toInt() and 0xFF) shl 24)
-    val song = gbafe.extract.m4a.M4aSong.decode(rom, songHeader - ROM_BASE)
-    File(args.out, "songs/song001.mid").apply { parentFile.mkdirs() }.writeBytes(gbafe.extract.m4a.M4aSong.toMidi(song))
-    val vgName = romNames[song.voicegroup] ?: "voicegroup_%08X".format(song.voicegroup)
-    File(args.out, "voicegroups/$vgName.json").apply { parentFile.mkdirs() }.writeText(
-        gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.voicegroup", "game" to "fe8", "version" to 1,
-            "voices" to gbafe.extract.m4a.M4aSong.readVoicegroup(rom, song.voicegroup - ROM_BASE, symbols = romNames))),
-    )
-    written += "songs/song001.mid, voicegroups/$vgName.json"
+    val songs = gbafe.extract.m4a.M4aSong.readSongTable(rom, songTable, symbols.sizeOrSpan("gSongTable") / 8)
+    val midiByHeader = HashMap<Int, String>()
+    val voicegroups = LinkedHashSet<Int>()
+    val rows = songs.mapIndexed { id, e ->
+        val midi = midiByHeader.getOrPut(e.header) {
+            val song = gbafe.extract.m4a.M4aSong.decode(rom, e.header - ROM_BASE)
+            if (song.tracks.isNotEmpty()) voicegroups += song.voicegroup
+            "song%03d.mid".format(id).also { File(args.out, "songs/$it").apply { parentFile.mkdirs() }.writeBytes(gbafe.extract.m4a.M4aSong.toMidi(song)) }
+        }
+        linkedMapOf("id" to id, "header" to (romNames[e.header] ?: e.header), "musicPlayer" to e.musicPlayer, "unknown" to e.unknown, "midi" to midi)
+    }
+    File(args.out, "songs/songs.json").writeText(gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.songs", "game" to "fe8", "version" to 1, "songs" to rows)))
+    for (vg in voicegroups) {
+        val vgName = romNames[vg] ?: "voicegroup_%08X".format(vg)
+        File(args.out, "voicegroups/$vgName.json").apply { parentFile.mkdirs() }.writeText(
+            gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.voicegroup", "game" to "fe8", "version" to 1,
+                "voices" to gbafe.extract.m4a.M4aSong.readVoicegroup(rom, vg - ROM_BASE, symbols = romNames))),
+        )
+    }
+    written += "songs/ (${rows.size} entries, ${midiByHeader.size} MIDI), voicegroups/ (${voicegroups.size})"
     return written
 }
 

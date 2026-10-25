@@ -9,7 +9,7 @@ the app ships any of them.
   flags, no alternate formulas, no widescreen, no touch gameplay UI. `FeatureFlags` stays as the
   mechanism for mods; the base game registers no flags.
 - Every system exposes extension points instead: data/assets through the VFS (0002, 0003), hooks through
-  the event bus (0004), and behaviour through strategy interfaces collected in `fe8.core.mechanics.
+  the event bus (0004), and behaviour through strategy interfaces collected in `gbafe.core.mechanics.
   Mechanics`, each defaulting to a vanilla implementation verified against the original. Example:
   `BattleRolls` (hit = 2 RN in vanilla; a mod can make it 1 RN by replacing one method).
 - Input stays action-based (`ActionSource`, `GameAction`), and UI elements expose bounds/actions

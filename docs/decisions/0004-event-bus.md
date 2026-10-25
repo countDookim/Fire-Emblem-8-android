@@ -3,7 +3,7 @@
 **Context.** Mods hook into gameplay (onStep, onMapEnter, onBattleStart, onItemUsed, ...) without editing
 core code; dispatch must not allocate because some events fire every tick.
 
-**Decision.** `fe8.core.event.EventChannel<L>`: one channel per event, typed by a `fun interface`
+**Decision.** `gbafe.core.event.EventChannel<L>`: one channel per event, typed by a `fun interface`
 listener whose method takes primitives/ids (`fun onStep(unit: Int, x: Int, y: Int)`).
 - Dispatch is `inline fun dispatch(call: (L) -> Unit)` over an array snapshot: no event objects, no
   iterators, no lambda allocation.

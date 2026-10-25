@@ -1,11 +1,11 @@
 package fe8.game
 
-import fe8.core.event.CoreEvents
-import fe8.core.flags.FeatureFlags
-import fe8.core.rng.RngService
-import fe8.core.time.Simulation
-import fe8.input.InputFrame
-import fe8.render.FrameBuffer
+import gbafe.core.event.CoreEvents
+import gbafe.core.flags.FeatureFlags
+import gbafe.core.rng.RngService
+import gbafe.core.time.Simulation
+import gbafe.input.InputFrame
+import gbafe.render.FrameBuffer
 
 /**
  * Root of the game: owns the shared services and runs the game systems once per tick.
@@ -22,7 +22,7 @@ public class Fe8Game(
     public val rng: RngService = RngService().apply { seedLikeBoot() }
 
     /** Swappable gameplay strategies (battle rolls, ...); all vanilla unless a mod replaces one. */
-    public val mechanics: fe8.core.mechanics.Mechanics = fe8.core.mechanics.Mechanics()
+    public val mechanics: gbafe.core.mechanics.Mechanics = gbafe.core.mechanics.Mechanics()
 
     /** Engine-level event channels. */
     public val events: CoreEvents = CoreEvents()
@@ -38,7 +38,7 @@ public class Fe8Game(
         private set
 
     /** Source of held actions; set by the platform layer. Defaults to "nothing held". */
-    public var actionSource: fe8.input.ActionSource = fe8.input.ActionSource { 0L }
+    public var actionSource: gbafe.input.ActionSource = gbafe.input.ActionSource { 0L }
 
     /** Runs one fixed logic step: polls input, fires tick-start/end events, advances [tickCount]. */
     override fun tick() {

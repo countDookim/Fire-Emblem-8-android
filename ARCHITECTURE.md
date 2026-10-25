@@ -9,13 +9,16 @@
    code; only `:testing` knows GBA addresses (to read reference dumps).
 3. **The product is the original, bit-exact; modding is groundwork only**
    ([0009](docs/decisions/0009-vanilla-product-mod-groundwork.md)). Behaviour goes through strategy
-   interfaces in `fe8.core.mechanics.Mechanics` (e.g. `BattleRolls`) whose only shipped implementations
+   interfaces in `gbafe.core.mechanics.Mechanics` (e.g. `BattleRolls`) whose only shipped implementations
    are vanilla. Non-original behaviour comes only from mods, behind a `FeatureFlag` that
    `FeatureFlags.vanilla` forces off; the base game registers no flags.
 4. **Zero allocations per frame.** Hot data lives in primitive arrays behind typed wrappers; event
    dispatch is inline over arrays; enforced by `AllocationTest` and the CI benchmark.
 5. **Android-free core.** Everything except `:app` is pure Kotlin/JVM and testable headless in seconds.
-6. **Moddable by construction.** All content is read through the layered VFS; data is JSON (compiled to
+6. **Reusable by FE6/FE7 ports** ([0010](docs/decisions/0010-multi-game-reuse.md)). `gbafe.*` (engine,
+   shared FE systems, formats, extract tools) is game-neutral; `fe8.*` holds FE8-only systems, ROM layouts
+   and ground-truth tests. `tools/tests/test_layering.py` fails CI if `gbafe` code uses `fe8`.
+7. **Moddable by construction.** All content is read through the layered VFS; data is JSON (compiled to
    primitive tables), maps are Tiled, scripts are `.fe8s`, assets are PNG/MIDI/WAV with JSON metadata.
 
 ## Modules
@@ -38,10 +41,10 @@ testing ───────────► game                  └── eng
 | `engine:script` | `.fe8s` parser/compiler/interpreter | interface |
 | `engine:text` | Localised strings, tags, font/glyph layout | skeleton |
 | `engine:save` | Versioned save container, migrations, `.sav` import | skeleton |
-| `game` | Game systems (boot/title, chapter flow, map, units, battle, AI, events, menus, world map, prep, save menu) | shell |
+| `game` | FE8 game layer (`fe8.game`): wires shared systems with FE8 strategies; FE8-only systems (world map, skirmishes, Creature Campaign, branched promotions). Shared FE systems (map, units, battle, AI, menus...) get `gbafe.<system>` modules when ported (0010) | shell |
 | `testing` | Reference-data access, differential tests, `AllocationMeter`, frame benchmark | working |
 | `app` | Activity, GL ES 3.0 view + scaling shader, Compose launcher/settings, AudioTrack, input sources | shell |
-| `tools:extract` | JVM CLI: ROM → JSON/PNG/Tiled/MIDI (Milestone 2); refuses to write inside the code repo; never shipped | skeleton (`--help`, arg checks) |
+| `tools:extract` | JVM CLI: ROM → JSON/PNG/Tiled/MIDI (Milestone 2); generic decoders in `gbafe.extract`, FE8 struct layouts in `gbafe.extract.fe8`; refuses to write inside the code repo; never shipped | skeleton (`--help`, arg checks) |
 
 Game systems map to the decomp's files via the `system` column of `reference/decomp_functions.tsv`
 (core, battle_map, battle_logic, battle_anim, map_anim, ai, events, menus, prep_screen, worldmap, save,

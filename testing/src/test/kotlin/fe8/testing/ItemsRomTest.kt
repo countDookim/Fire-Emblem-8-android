@@ -1,6 +1,6 @@
 package fe8.testing
 
-import fe8.extract.items.ItemsExtractor
+import gbafe.extract.fe8.items.ItemsExtractor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test

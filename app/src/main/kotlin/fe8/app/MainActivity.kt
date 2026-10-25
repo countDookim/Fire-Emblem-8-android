@@ -21,7 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import fe8.core.time.FixedStepClock
+import gbafe.core.time.FixedStepClock
 import fe8.game.Fe8Game
 import io.github.countdookim.fe8.BuildConfig
 

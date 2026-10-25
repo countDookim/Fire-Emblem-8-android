@@ -47,7 +47,7 @@ Game logic sees only `GameAction`s. A touch UI is a mod that supplies an `Action
 GBA button overlay.
 
 ## Feature flags (available now)
-Non-original behaviour must be registered as a `FeatureFlag` (`fe8.core.flags.FeatureFlags.register`).
+Non-original behaviour must be registered as a `FeatureFlag` (`gbafe.core.flags.FeatureFlags.register`).
 Vanilla mode (default) forces all flags off. Id convention: `mod.<modid>.*`. The base game registers
 no flags.
 
@@ -79,22 +79,22 @@ Registry named after the decomp constants (e.g. `FLAG_...`); mods register new o
 Versioned container with per-mod sections (keyed by mod id) and migrations; original `.sav` import.
 
 ## Data tables
-`data/items.json` (`fe8.items` v1, [schema](schemas/items.schema.json)): one entry per item in vanilla
+`data/items.json` (`gbafe.items` v1, [schema](schemas/items.schema.json)): one entry per item in vanilla
 item-number order; an entry's position is its number, so new items go at the end. Ids are the decomp's
 `ITEM_*` constants without the prefix (`ITEM_SWORD_IRON` → `SWORD_IRON`); unnamed rows get `ITEM_XX`.
 `maxRange: 0` means a magic-based range (Mag/2), as in the original. `effectiveAgainst` holds class
 numbers until the class table exists (M2-05). The game does not load these files yet (loader: M2 later).
 
-`data/classes.json` (`fe8.classes` v1, [schema](schemas/classes.schema.json)): there is no class 0, so an
+`data/classes.json` (`gbafe.classes` v1, [schema](schemas/classes.schema.json)): there is no class 0, so an
 entry's position + 1 is its vanilla class number. Ids are `CLASS_*` without the prefix. Terrain tables
 (`moveCost.normal/rain/snow`, `terrainAvoid/Defense/Resistance`) have one value per terrain id (65,
 `-1` = impassable) and are inlined per class; `battleAnims` is matched first-to-last by weapon type or item.
 
-`data/characters.json` (`fe8.characters` v1, [schema](schemas/characters.schema.json)): position + 1 is the
+`data/characters.json` (`gbafe.characters` v1, [schema](schemas/characters.schema.json)): position + 1 is the
 vanilla character number (256 rows). `bases` are personal bonuses added to the class bases; `supports`
 lists up to 7 partners with starting support exp and per-turn growth.
 
-`data/terrains.json` (`fe8.terrains` v1, [schema](schemas/terrains.schema.json)): `entries` has one row per
+`data/terrains.json` (`gbafe.terrains` v1, [schema](schemas/terrains.schema.json)): `entries` has one row per
 terrain id (65) with `healAmount` (% HP per turn) and `healsStatus`; `tables` holds every other 65-value
 terrain table from `src/data_terrains.c` keyed by its decomp symbol (movement costs, avoid/def/res,
 battle-animation lookups). How classes will reference shared tables by name is decided with the loader.

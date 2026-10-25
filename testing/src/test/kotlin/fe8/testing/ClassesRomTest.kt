@@ -1,6 +1,6 @@
 package fe8.testing
 
-import fe8.extract.classes.ClassesExtractor
+import gbafe.extract.fe8.classes.ClassesExtractor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assumptions.assumeTrue

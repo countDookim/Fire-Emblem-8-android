@@ -1,7 +1,7 @@
 package fe8.testing
 
-import fe8.core.VerifiesPort
-import fe8.text.MsgHuffman
+import gbafe.core.VerifiesPort
+import gbafe.text.MsgHuffman
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test

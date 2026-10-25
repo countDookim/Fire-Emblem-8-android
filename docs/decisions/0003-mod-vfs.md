@@ -3,7 +3,7 @@
 **Context.** Mods must override any data, map, script, asset or string by path, as folders or zips,
 with dependencies, load order and hot reload in debug builds.
 
-**Decision.** `fe8.vfs.VirtualFileSystem` is the *only* way game code reads content.
+**Decision.** `gbafe.vfs.VirtualFileSystem` is the *only* way game code reads content.
 - Normalised virtual paths (`data/items.json`, `maps/ch01.tmj`, `gfx/portraits/eirika.png`,
   `text/en/ch01.json`, `audio/music/SONG_X.mid`); `..` escapes are rejected.
 - Layer stack, lowest first: `base` (extracted vanilla content: APK assets / `$FE8_ASSETS` in tests) →

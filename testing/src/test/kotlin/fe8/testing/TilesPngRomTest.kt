@@ -1,9 +1,9 @@
 package fe8.testing
 
-import fe8.data.Bgr555
-import fe8.data.Lz77
-import fe8.data.Tiles
-import fe8.extract.IndexedPng
+import gbafe.data.Bgr555
+import gbafe.data.Lz77
+import gbafe.data.Tiles
+import gbafe.extract.IndexedPng
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test

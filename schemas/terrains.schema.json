@@ -7,13 +7,22 @@
   "additionalProperties": false,
   "required": [
     "format",
+    "game",
     "version",
     "entries",
     "tables"
   ],
   "properties": {
     "format": {
-      "const": "fe8.terrains"
+      "const": "gbafe.terrains"
+    },
+    "game": {
+      "enum": [
+        "fe6",
+        "fe7",
+        "fe8"
+      ],
+      "description": "Game whose ROM this table was extracted from. Formats are shared by the GBA Fire Emblem games (docs/decisions/0010-multi-game-reuse.md); game-specific values are allowed only where the schema says so."
     },
     "version": {
       "const": 1

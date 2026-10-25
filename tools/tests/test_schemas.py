@@ -30,7 +30,7 @@ def minimal_item(**over):
         "icon": 0, "useEffect": 0, "weaponEffect": "NONE", "weaponExp": 1,
     }
     item.update(over)
-    return {"format": "fe8.items", "version": 1, "entries": [item]}
+    return {"format": "gbafe.items", "game": "fe8", "version": 1, "entries": [item]}
 
 
 @unittest.skipIf(jsonschema is None, "jsonschema not installed (pip install jsonschema)")

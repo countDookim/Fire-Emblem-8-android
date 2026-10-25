@@ -1,8 +1,8 @@
 package fe8.testing
 
-import fe8.core.event.TickListener
-import fe8.core.time.FixedStepClock
-import fe8.core.time.GameLoop
+import gbafe.core.event.TickListener
+import gbafe.core.time.FixedStepClock
+import gbafe.core.time.GameLoop
 import fe8.game.Fe8Game
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue

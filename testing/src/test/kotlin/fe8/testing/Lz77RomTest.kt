@@ -1,6 +1,6 @@
 package fe8.testing
 
-import fe8.data.Lz77
+import gbafe.data.Lz77
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue

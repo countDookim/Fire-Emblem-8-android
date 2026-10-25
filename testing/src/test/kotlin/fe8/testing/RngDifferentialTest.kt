@@ -1,7 +1,7 @@
 package fe8.testing
 
-import fe8.core.VerifiesPort
-import fe8.core.rng.RngService
+import gbafe.core.VerifiesPort
+import gbafe.core.rng.RngService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test

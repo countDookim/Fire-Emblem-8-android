@@ -7,3 +7,5 @@
 5. A function is "ported" only with a `Ported from <file>: <Func>` KDoc AND a passing `@VerifiesPort` test
    against ground truth (docs/decisions/0006-verification-policy.md). Never inflate progress.
 6. Default branch is `master`. Commit + push after every completed step; unfinished work on `wip/<task-id>`.
+7. Product = 1:1 original; modding = extension points only (docs/decisions/0009). Code is split for reuse by
+   FE6/FE7 ports: game-neutral `gbafe.*` vs FE8-only `fe8.*` (docs/decisions/0010); never use `fe8` from `gbafe`.

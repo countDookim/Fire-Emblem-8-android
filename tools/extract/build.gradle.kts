@@ -6,17 +6,17 @@ plugins {
 }
 
 dependencies {
-    // api: IndexedPng exposes fe8.data.IndexedImage.
+    // api: IndexedPng exposes gbafe.data.IndexedImage.
     api(project(":engine:data"))
 }
 
 application {
-    mainClass.set("fe8.extract.ExtractCliKt")
+    mainClass.set("gbafe.extract.ExtractCliKt")
 }
 
 tasks.named<JavaExec>("run") {
     // Relative --out paths resolve against the directory Gradle was started from, not tools/extract/.
     workingDir = rootProject.projectDir
     // The code-repo guard needs to know where the repo is even when the CLI runs from a jar elsewhere.
-    systemProperty("fe8.codeRepo", rootProject.projectDir.absolutePath)
+    systemProperty("extract.codeRepo", rootProject.projectDir.absolutePath)
 }

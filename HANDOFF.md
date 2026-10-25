@@ -5,9 +5,14 @@ _Updated: 2026-10-25 07:21 UTC (scheduled run, started 06:51)._
 ## Owner decisions 2026-10-25 (read docs/decisions/0009)
 - The app is a 1:1 copy. Modding = extension points only; ship no touch gameplay, QoL flags or alternate
   formulas. Only touch input shipped: on-screen GBA buttons (task M3-15).
-- Every ported system adds strategy interfaces to `fe8.core.mechanics.Mechanics` (vanilla impl only,
+- Every ported system adds strategy interfaces to `gbafe.core.mechanics.Mechanics` (vanilla impl only,
   alternatives only in tests). Battle must use `mechanics.battleRolls` for hit/crit/skill rolls, never
   `rng.roll1/roll2` directly.
+
+- Reuse by future FE6/FE7 ports (docs/decisions/0010): packages are now `gbafe.*` (engine, extract) vs
+  `fe8.*` (game, app, testing, `gbafe.extract.fe8`); data formats `gbafe.<table>` + `"game": "fe8"`.
+  New shared systems go in `gbafe.<system>` modules; FE8-only ones (world map, skirmishes...) in `fe8`.
+  Known gap: `ExtractCli` calls the FE8 extractors directly; add `--game` dispatch when touching it.
 
 ## NEEDS USER
 _(nothing blocked)_
@@ -29,10 +34,10 @@ _(nothing blocked)_
   2-byte face id like `[FID_Anna]`, `0x80, XX` two-byte codes such as `[G] = 0x80, 0x05`, `[X] = 0` end)
   and `texts/texts.txt` (all strings in source form, `## MSG_xxx` headers). Get them with the sparse
   clone below (`git sparse-checkout set --no-cone include src texts asm`).
-- Files: extend `engine/text/src/main/kotlin/fe8/text/TextTag.kt` (or a generated code table) and add
+- Files: extend `engine/text/src/main/kotlin/gbafe/text/TextTag.kt` (or a generated code table) and add
   `MessageCodec` in engine:text: bytes → tagged string (`{NL}`, `{A}`, `{LoadFace FID_Anna}`, ...) and
   tagged string → bytes. Unknown bytes must survive as `{0xNN}`. Extractor step `text/en/messages.json`
-  (`{format: "fe8.text", version: 1, entries: [{id: "MSG_001", text: "..."}]}` + schema).
+  (`{format: "gbafe.text", version: 1, entries: [{id: "MSG_001", text: "..."}]}` + schema).
 - Done when: a `:testing` ROM test decodes all 3404 strings (`MsgHuffmanRomTest` shows how) to tags and
   re-encodes each to identical bytes; spot-check 2 strings against `texts/texts.txt`; schema test passes.
 

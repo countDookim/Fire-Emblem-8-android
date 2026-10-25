@@ -19,6 +19,8 @@ class ExtractCliTest {
     fun `parses all flags`() {
         val a = parseArgs(arrayOf("--rom", "r.gba", "--out", "o", "--map", "m.map", "--decomp", "d"))!!
         assertEquals(ExtractArgs(File("r.gba"), File("d"), File("m.map"), File("o")), a)
+        assertEquals("fe8", a.game)
+        assertEquals("fe8", parseArgs(arrayOf("--rom", "r", "--out", "o", "--game", "fe8"))!!.game)
     }
 
     @Test
@@ -26,6 +28,7 @@ class ExtractCliTest {
         assertThrows<UsageException> { parseArgs(arrayOf("--out", "o")) }
         assertThrows<UsageException> { parseArgs(arrayOf("--rom", "r", "--out")) }
         assertThrows<UsageException> { parseArgs(arrayOf("--rom", "r", "--out", "o", "--bogus", "1")) }
+        assertThrows<UsageException> { parseArgs(arrayOf("--rom", "r", "--out", "o", "--game", "fe9")) }
     }
 
     @Test

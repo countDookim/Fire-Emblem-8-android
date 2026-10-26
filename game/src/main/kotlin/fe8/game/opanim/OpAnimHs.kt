@@ -1,10 +1,53 @@
 package fe8.game.opanim
 
+import gbafe.input.KeyStatus
+import gbafe.render.LcdControl
+
 /**
  * Boot intro screens (Nintendo / Intelligent Systems logos, health & safety), decomp
  * `src/opanim-healthsafetyscreen.c`. So far: the palette fade helper the logo and warning screens use.
  */
 public object OpAnimHs {
+    /** Fields of `struct ProcOpAnimHS` used by the steps. */
+    public class Proc {
+        /** `status` (+0x2C): 0 health & safety, 1 Nintendo, 2 Intelligent Systems. */
+        public var status: Int = 0
+
+        /** `palette_timer` (+0x30): frames into the current fade / pulse. */
+        public var paletteTimer: Int = 0
+
+        /** `delay_timer` (+0x34): frames left in `GameEarlyStartDelay`. */
+        public var delayTimer: Int = 0
+    }
+
+    /**
+     * One frame of the health & safety screen waiting for a button: on its first frame shows BG0 + BG1, makes
+     * BG0 the brighten target and stops ignoring keys; then pulses BG0's brightness (EVY = |16 - (t mod 64) / 2|).
+     * After 0xE0F frames or any key press, clears the effect, hides BG0 and returns true (`Proc_Break`).
+     *
+     * Ported from src/opanim-healthsafetyscreen.c: GameIntroHealthSafetyWaitButton
+     */
+    public fun healthSafetyWaitButton(proc: Proc, lcd: LcdControl, keys: KeyStatus): Boolean {
+        if (proc.paletteTimer == 0) {
+            lcd.setDispEnable(1, 1, 0, 0, 0)
+            lcd.setBlendTargetA(1, 0, 0, 0, 0)
+            keys.ignoreMask = 0
+        }
+        proc.paletteTimer++
+        val t = proc.paletteTimer
+        val v = (0x10 - ((t - (t / 64) * 64) shr 1)).toShort().toInt()
+        lcd.setBlendConfig(2, 0, 0, if (v >= 0) v else -v)
+        if (t > 0xE0F || keys.newKeys and 0x3FF != 0) {
+            proc.paletteTimer = 0
+            lcd.setDispEnable(0, 1, 0, 0, 0)
+            lcd.setBlendTargetA(0, 0, 0, 0, 0)
+            lcd.setBlendTargetB(0, 0, 0, 0, 0)
+            lcd.setBlendConfig(0, 0, 0, 0)
+            return true
+        }
+        return false
+    }
+
     /**
      * Writes [lines] × 16 colours of [src] into BG palette bank [palId] onwards of [paletteBuffer] (the game's
      * `gPaletteBuffer`, 512 colours, BG banks first), each 5-bit channel scaled by `cur / max` with C integer

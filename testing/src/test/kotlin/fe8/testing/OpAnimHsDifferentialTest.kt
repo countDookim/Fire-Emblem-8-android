@@ -2,6 +2,7 @@ package fe8.testing
 
 import fe8.game.opanim.OpAnimHs
 import gbafe.core.VerifiesPort
+import gbafe.render.LcdControl
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -63,7 +64,41 @@ class OpAnimHsDifferentialTest {
         assertEquals(steps.size, checkedSteps.size, "not every fade step appears in the trace")
     }
 
+    @Test
+    @VerifiesPort("GameIntroHealthSafetyWaitButton", "SetBlendConfig")
+    fun `health and safety brightness pulse matches the boot RAM trace`() {
+        assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
+        val rom = romFile.readBytes()
+        val run = ref.run("ram_trace_boot")
+        val procArray = sym["sProcArray"]
+        val lcdAt = sym["gLCDControlBuffer"].address - GbaMem.IWRAM
+        val keyAt = sym["sKeyStatusBuffer"].address - GbaMem.EWRAM
+        var checked = 0
+        for (dump in run.dumps.keys) {
+            val ew = run.region(dump, "ewram")
+            val iw = run.region(dump, "iwram")
+            for (p in 0 until procArray.size / PROC_SIZE) {
+                val o = procArray.address - GbaMem.EWRAM + p * PROC_SIZE
+                if (u32(ew, o) != PROC_SCRIPT || u32(rom, u32(ew, o + 4) - ROM - 4) != WAIT_BUTTON) continue
+                val timer = u32(ew, o + 0x30)
+                // Rewind one call: timer - 1 and the fields the step writes scrambled; keys are this frame's.
+                val proc = OpAnimHs.Proc().apply { paletteTimer = timer - 1 }
+                val lcd = LcdControl().apply { readFrom(iw, lcdAt) }
+                val expected = listOf(lcd.dispcnt, lcd.bldcnt, lcd.blendCoeffA, lcd.blendCoeffB, lcd.blendY)
+                lcd.bldcnt = lcd.bldcnt xor 0xC0; lcd.blendCoeffA = 0x55; lcd.blendCoeffB = 0x55; lcd.blendY = 0x55
+                val keys = gbafe.input.KeyStatus().apply { readFrom(ew, keyAt) }
+                val broke = OpAnimHs.healthSafetyWaitButton(proc, lcd, keys)
+                assertEquals(false, broke, dump)
+                assertEquals(timer, proc.paletteTimer, "$dump palette_timer")
+                assertEquals(expected, listOf(lcd.dispcnt, lcd.bldcnt, lcd.blendCoeffA, lcd.blendCoeffB, lcd.blendY), "$dump LCD")
+                checked++
+            }
+        }
+        assertTrue(checked >= 3, "only $checked wait-button dumps checked")
+    }
+
     private companion object {
+        const val WAIT_BUTTON = 0x080CC32D // GameIntroHealthSafetyWaitButton
         const val ROM = 0x08000000
         const val PROC_SCRIPT = 0x08AA7680 // ProcScr_GameEarlyStartUI
         const val PROC_SIZE = 0x6C

@@ -66,6 +66,37 @@ public class LcdControl {
         bgVofs[bg] = y and 0xFFFF
     }
 
+    /**
+     * Sets the colour effect (`bldcnt.effect`, 0 none / 1 alpha / 2 brighten / 3 darken) and the EVA, EVB and
+     * EVY coefficients (u8 each).
+     *
+     * Ported from src/hardware.c: SetBlendConfig
+     */
+    public fun setBlendConfig(effect: Int, coeffA: Int, coeffB: Int, blendY: Int) {
+        bldcnt = (bldcnt and 0xC0.inv()) or ((effect and 3) shl 6)
+        blendCoeffA = coeffA and 0xFF
+        blendCoeffB = coeffB and 0xFF
+        this.blendY = blendY and 0xFF
+    }
+
+    /** First-target layers (BLDCNT bits 0..4) of `SetBlendTargetA` (src/hardware.c; not yet verified). */
+    public fun setBlendTargetA(bg0: Int, bg1: Int, bg2: Int, bg3: Int, obj: Int) {
+        bldcnt = (bldcnt and 0x1F.inv()) or targets(bg0, bg1, bg2, bg3, obj)
+    }
+
+    /** Second-target layers (BLDCNT bits 8..12) of `SetBlendTargetB` (src/hardware.c; not yet verified). */
+    public fun setBlendTargetB(bg0: Int, bg1: Int, bg2: Int, bg3: Int, obj: Int) {
+        bldcnt = (bldcnt and 0x1F00.inv()) or (targets(bg0, bg1, bg2, bg3, obj) shl 8)
+    }
+
+    /** The `SetDispEnable` macro (include/hardware.h): DISPCNT BG0..BG3 and OBJ enable bits (8..12). */
+    public fun setDispEnable(bg0: Int, bg1: Int, bg2: Int, bg3: Int, obj: Int) {
+        dispcnt = (dispcnt and 0x1F00.inv()) or (targets(bg0, bg1, bg2, bg3, obj) shl 8)
+    }
+
+    private fun targets(bg0: Int, bg1: Int, bg2: Int, bg3: Int, obj: Int): Int =
+        (bg0 and 1) or ((bg1 and 1) shl 1) or ((bg2 and 1) shl 2) or ((bg3 and 1) shl 3) or ((obj and 1) shl 4)
+
     /** Loads every field from a 0x6C-byte `struct LCDControlBuffer` image in [src] at [offset]. */
     public fun readFrom(src: ByteArray, offset: Int = 0) {
         fun u8(i: Int) = src[offset + i].toInt() and 0xFF

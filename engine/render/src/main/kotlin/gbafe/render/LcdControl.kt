@@ -55,6 +55,17 @@ public class LcdControl {
     /** `colorAddition` (s8): not a register; used by the palette colour-addition helpers. */
     public var colorAddition: Int = 0
 
+    /**
+     * Sets BG [bg]'s scroll offset (`bgoffset[bg]`, u16 each); other [bg] values are ignored.
+     *
+     * Ported from src/hardware.c: BG_SetPosition
+     */
+    public fun setBgPosition(bg: Int, x: Int, y: Int) {
+        if (bg !in 0..3) return
+        bgHofs[bg] = x and 0xFFFF
+        bgVofs[bg] = y and 0xFFFF
+    }
+
     /** Loads every field from a 0x6C-byte `struct LCDControlBuffer` image in [src] at [offset]. */
     public fun readFrom(src: ByteArray, offset: Int = 0) {
         fun u8(i: Int) = src[offset + i].toInt() and 0xFF

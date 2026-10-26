@@ -20,9 +20,6 @@ class OpAnimHsDifferentialTest {
     private val sym = RamSymbols.fromEnvironment()
     private val romFile = File(System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets", "baserom.gba")
 
-    /** One fade step: its function (PROC_REPEAT target, Thumb bit set) and its BrightenPalette arguments. */
-    private class Step(val func: Int, val pal: Int, val palId: Int, val lines: Int, val max: Int, val out: Boolean)
-
     private val steps = listOf(
         Step(0x080CC2F5, 0x08B125F4, 0, 1, 30, false), // GameIntroHealthSafetyFadeIN
         Step(0x080CC431, 0x08B125F4, 0, 1, 30, true), // GameIntroHealthSafetyFadeOUT
@@ -75,3 +72,6 @@ class OpAnimHsDifferentialTest {
         fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)
     }
 }
+
+/** One intro fade step: its function (PROC_REPEAT target, Thumb bit set) and its BrightenPalette arguments. */
+private class Step(val func: Int, val pal: Int, val palId: Int, val lines: Int, val max: Int, val out: Boolean)

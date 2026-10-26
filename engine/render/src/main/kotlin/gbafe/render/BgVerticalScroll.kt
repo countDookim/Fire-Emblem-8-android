@@ -85,6 +85,23 @@ public class BgVerticalScroll {
         }
     }
 
+    /**
+     * Offset in [buf] of register [i]'s 160-line table in the half `frameFlip + flip` (`flip` 1 = the half the
+     * game fills for the next frame).
+     *
+     * Ported from src/bmlib-hblank.c: GetBgVerticalScrollBuffer
+     */
+    public fun bufferOffset(i: Int, flip: Int): Int = ((frameFlip + flip) and 1) * 480 + i * LINES
+
+    /**
+     * Makes the half just filled the one the handler latches at the next VBlank.
+     *
+     * Ported from src/bmlib-hblank.c: FlipBgVerticalScroll
+     */
+    public fun flip() {
+        frameFlip = frameFlip xor 1
+    }
+
     private companion object {
         const val LINES = 160
         const val TOTAL_LINES = 228

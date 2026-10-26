@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 8,
+    "verified": 9,
     "implemented_unverified": 6
   },
   "functions": {
@@ -26,6 +26,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.MsgHuffmanRomTest#known names decode exactly"
+      ]
+    },
+    "FlushLCDControl": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/LcdControl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.LcdControlDifferentialTest#flushed registers match mGBA I-O for every full dump"
       ]
     },
     "InitRN": {

@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated: 2026-10-25 23:20 UTC (scheduled run, started 22:51)._
+_Updated: 2026-10-26 07:15 UTC (scheduled run, started 06:51)._
 
 ## Owner decisions 2026-10-25 (read docs/decisions/0009)
 - The app is a 1:1 copy. Modding = extension points only; ship no touch gameplay, QoL flags or alternate
@@ -18,31 +18,40 @@ _Updated: 2026-10-25 23:20 UTC (scheduled run, started 22:51)._
 _(nothing blocked)_
 
 ## Status
-- This run: M2-17 done (moving map sprites: `moving/NNN.png` 32-px-wide sheets + AP frames/anims JSON),
-  M2-16 done (`UnitsExtractor`: prologue's 9 `UnitDef_Event_Prologue*` arrays → hidden object layers in
-  `chapter_00.tmj`), M2-15 done (`.fe8s` converter v0: `tools/gen_fe8_event_commands.py` → `Fe8EventCommands`,
-  `EventScriptConverter`; `scripts/prologue.fe8s`, all 32 scripts exact size, 0 `raw`), M2-18 + M2-19 done
-  (`gbafe.extract.m4a.M4aSong`: 1000 song entries → 594 MIDI identical to all 589 decomp `.mid`; 84 voicegroups;
-  439 WAV identical to the decomp `.aif`), M2-20 partial (icons + window frames), `--game` CLI dispatch.
-  New schemas: `songs`, `voicegroup`, `samples` (+ `moving` in `mapsprites`). ROM repo `extracted/` last ff16883.
-- CI: run for cbc8ac4 failed in the Dokka step (29 undocumented constructor properties from this run); fixed by the KDoc commit after it.
+- This run: M2-20 done (cursors: `CursorsExtractor` → `ui/cursors.png` 18×4-tile misc OBJ UI sheet, `cursor_hand.png`,
+  `cursors.json` with both palettes + map-cursor OAM lists), M2-21 done (ROM-repo `publish-assets` packs `extracted/`
+  as `extracted.tar.xz`; `setup.sh` fetches it into `$FE8_ASSETS/extracted` via REST; code CI step
+  `tools/ci_check_extraction.sh` re-runs the extractor and fails on drift), M3-01 done (ADR 0008 accepted:
+  `LineTable` for HBlank effects; indexed vs RGBA texture replacements), M3-02 done (`gbafe.render.RenderState`).
+  **Milestone 2 is complete.** ROM repo `extracted/` last 6b6e885; release `assets-9db5d11`.
+- CI: green on ce469f7 (incl. the new extraction step, 23 s; its log was not read, so "ran" vs "skipped" is unconfirmed).
 - Session setup: ~6 s (assets cached). Branch: `master`. No `wip/` branches.
-- Progress: 5 / 8352 verified (unchanged: extraction only, no game-code ports).
+- Progress: 5 / 8352 verified (unchanged: no game-code ports this run).
 
-## Next task: M2-20 (rest) — UI cursors → PNG + JSON, then M2-21
-- Map cursor + misc OBJ UI: `LoadObjUIGfx` (decomp `src/bm.c:570`): `gGfx_MiscUiGraphics` LZ77 → copied as
-  a 2D block 0x12 tiles wide × 4 rows (`Copy2dChr`), palettes `gPal_MiscUiGraphics` (2 × 16, OBJ pal 0x10).
-  Decode as a 18×4-tile sheet. Frames: `sMapCursorSpriteLut` (`src/bm.c` `PutMapCursor`) = OAM data lists;
-  export them raw like the AP frames in `MapSpritesExtractor` (u16 count + attrs).
-- Hand cursor: `gImg_UiCursorHandTop`/`Bottom` (LZ77, `src/cursor_hand.c:171`, OBJ VRAM 0x060100C0 / 0x060104C0).
-- Output `ui/cursors.png` (+ hand) and `ui/cursors.json`; add to `IconsRomTest` (rename to `UiRomTest` if it
-  grows) with symbol addresses from `decomp/fireemblem8.nm.txt`; check by eye; mark M2-20 done in TASKS.
-- Then M2-21 (extraction in ROM-repo CI + release tarball fetched by `setup.sh`).
+## Next task: M3-03 — software compositor, text-mode BG layers + priorities
+- New `gbafe.render.SoftwareRenderer(state: RenderState, sheets: TileSheets, fb: FrameBuffer)` (`Renderer`). Needs a
+  tile-sheet store first: `TileSheets` = sheet id → 4bpp/8bpp tile bytes (`ByteArray`, GBA tile format, decode with
+  `gbafe.data.Tiles` semantics) — keep it in `engine:render` with no `fe8` dependency.
+- Per scanline (apply `state.lines` overrides when `lines.active`): for each enabled text-mode layer compute the
+  map entry at ((x+scrollX) mod W, (y+scrollY) mod H) with 32/64-tile wrap, flips, 4bpp palette bank; colour 0 =
+  transparent. Pick the front-most opaque pixel by (priority, BG number); fall back to backdrop `palettes.bg[0]`.
+  Output via `FrameBuffer.bgr555ToArgb`. Must not allocate (add to `RenderStateTest`-style allocation test).
+- Tests: synthetic scenes (two layers, priority swap, scroll wrap at 512 px, flips) with hand-computed pixels.
+  Real-frame compare against mGBA is M3-06.
+- Then M3-04 (sprites), M3-05 (blend/windows/mosaic + LineTable effects).
 - Follow-ups noted, not tasks yet: unit placement / `.fe8s` for chapters other than the prologue need the event
   converter to follow `LOAD1/LOAD2` targets from each chapter's `ChapterEventGroup` (`include/chapterdata.h`);
   keysplit/drum sub-voicegroups are scanned for samples but not written as their own `voicegroups/*.json`.
+- Re-extracting after an extractor change: run the CLI (see the M2-21 lines in Known bugs), copy the output into the
+  ROM repo's `extracted/`, commit + push there (publish-assets makes a new release); CI fails until you do.
 
 ## Known bugs / caveats
+- Extractor CLI: `./gradlew :tools:extract:run --args="--rom $FE8_ASSETS/baserom.gba --out <dir outside repo> --decomp
+  <fireemblem8u checkout> --map <rom repo>/decomp/fireemblem8.map --symbols <rom repo>/decomp/fireemblem8.nm.txt"`.
+- `gh release view/download <tag>` (GraphQL) is refused in Claude sessions; use `gh api repos/.../releases/...`
+  (REST), as `setup.sh` 3b does. `gh release download` without a tag still works.
+- Hand cursor colours in `cursor_hand.png` are a stand-in: the game draws it with whatever OBJ palette 0 the calling
+  screen loaded (`paletteSource: caller` in cursors.json).
 - CI's Dokka step fails on ANY warning (every public declaration, incl. constructor `val`s, needs KDoc). Before
   pushing new public API run `./gradlew dokkaGenerate -Pfe8.docs=true` (after `tools/setup.sh` + `source .assets.env`).
 - Decomp checkout for this work: sparse set must include `texts` (face names in messages.json) and `sound`

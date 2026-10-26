@@ -39,6 +39,9 @@ jobs:
         run: tools/ci_fetch_assets.sh
       - name: JVM tests + debug APK
         run: ./gradlew jvmTest :app:assembleDebug --continue --console=plain
+      - name: Extraction reproduces ROM-repo extracted/ (M2-21)
+        if: steps.assets.outputs.available == 'true'
+        run: tools/ci_check_extraction.sh
       - name: Frame-time benchmark
         run: ./gradlew :testing:benchmark --console=plain
       - name: Dokka site

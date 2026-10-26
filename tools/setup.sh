@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Session bootstrap for scheduled/interactive cloud sessions. NOT used by CI (CI has its own setup).
 #
-#   Minimal:    JDK check, kotlinc, ROM-repo assets (ROM, headless mGBA harness, reference data),
+#   Minimal:    JDK check, kotlinc, ROM-repo assets (ROM, headless mGBA harness, reference data, extracted/),
 #               and a Gradle warm-up for the pure-JVM modules (no Android SDK, ever).
 #   Idempotent: every step is skipped when its output already exists and verifies.
 #   Fast:       target < 3 min on a fresh session; logs its own duration.
@@ -57,6 +57,34 @@ else
   chmod +x "$FE8_ASSETS/mgba-harness"
   rm -rf "$FE8_ASSETS/reference" && mkdir -p "$FE8_ASSETS/reference" && tar -C "$FE8_ASSETS/reference" -xJf "$FE8_ASSETS/reference.tar.xz"
   log "assets ready ($FE8_ASSETS)"
+fi
+
+# 3b. Extracted assets (M2-21): extracted.tar.xz from the latest ROM-repo release -> $FE8_ASSETS/extracted.
+#     Re-downloaded only when the release tag changes; falls back to the ROM repo's extracted/ via a sparse clone.
+#     Non-fatal: most tests read the ROM directly.
+# REST only: GraphQL-backed `gh release view/download <tag>` is refused in Claude sessions.
+read -r EX_TAG EX_ID < <(gh api "repos/$ROM_REPO/releases/latest" \
+  --jq '.tag_name + " " + ([.assets[] | select(.name == "extracted.tar.xz") | .id | tostring] + ["none"] | first)' 2>/dev/null || true) || true
+if [ -n "${EX_TAG:-}" ] && [ "$(cat "$FE8_ASSETS/extracted/.release" 2>/dev/null)" = "$EX_TAG" ]; then
+  log "extracted ok ($EX_TAG)"
+elif [ -n "${EX_TAG:-}" ] && [ "${EX_ID:-none}" != none ] \
+     && gh api -H "Accept: application/octet-stream" "repos/$ROM_REPO/releases/assets/$EX_ID" > "$FE8_ASSETS/extracted.tar.xz" 2>/dev/null; then
+  rm -rf "$FE8_ASSETS/extracted" && mkdir -p "$FE8_ASSETS/extracted"
+  tar -C "$FE8_ASSETS/extracted" -xJf "$FE8_ASSETS/extracted.tar.xz" && rm -f "$FE8_ASSETS/extracted.tar.xz"
+  echo "$EX_TAG" > "$FE8_ASSETS/extracted/.release"
+  log "extracted assets from $EX_TAG"
+elif [ ! -d "$FE8_ASSETS/extracted" ]; then
+  TMP="$(mktemp -d)"
+  if git clone -q --depth 1 --filter=blob:none --sparse "https://github.com/$ROM_REPO" "$TMP/rom" 2>/dev/null \
+     && (cd "$TMP/rom" && git sparse-checkout set extracted) 2>/dev/null && [ -d "$TMP/rom/extracted" ]; then
+    mv "$TMP/rom/extracted" "$FE8_ASSETS/extracted"
+    log "extracted assets from a sparse clone of $ROM_REPO"
+  else
+    log "WARNING: no extracted assets (release has no extracted.tar.xz and clone failed)"
+  fi
+  rm -rf "$TMP"
+else
+  log "WARNING: could not check the release; keeping existing $FE8_ASSETS/extracted"
 fi
 
 # 4. Local retrying Maven mirror (Maven Central answers spurious 404/429 through the session proxy).

@@ -51,7 +51,7 @@ Take the first `todo` whose dependencies are `done`. If fewer than 5 `todo` rema
 | ID | Task | Done when | Status |
 |---|---|---|---|
 | M3-01 | Finalise ADR 0008 (render model): HBlank effects + texture-pack/palette interaction | ADR accepted | done: `LineTable` (per-line overrides, data texture on GPU); indexed vs RGBA replacements (`paletteVariants`) |
-| M3-02 | Render state types: `TileLayer`, `SpriteBatch`, `PaletteBank`, `Effects`, `LineTable` (primitive arrays) | compiles; allocation test | todo |
+| M3-02 | Render state types: `TileLayer`, `SpriteBatch`, `PaletteBank`, `Effects`, `LineTable` (primitive arrays) | compiles; allocation test | done: `gbafe.render.RenderState` (`TileLayer`, `SpriteBatch`, `PaletteBank`, `Effects`, `LineTable`); `RenderStateTest` (0 bytes/frame) |
 | M3-03 | Software compositor: text-mode BG layers + priorities | renders a test scene; unit tests | todo |
 | M3-04 | Software compositor: sprites (regular + affine), OBJ priority vs BG | tests | todo |
 | M3-05 | Blend/brightness/windows/mosaic | tests | todo |

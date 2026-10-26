@@ -27,16 +27,16 @@ _(nothing blocked)_
   Health & safety from **extracted assets**: `gbafe.data.Tsa` (TSA rows stored bottom-up), generic
   `gbafe.extract.ScreenExtractor` (`gbafe.screen` json + tile-set PNG), FE8 step writes `ui/health_safety.*`
   (ROM repo `c6f4189`, release published); `HealthSafetyScreenTest` pixel-exact.
-- New verified ports (+8 -> 17): `HBlank_BgVerticalScroll`, `GetBgVerticalScrollBuffer`, `FlipBgVerticalScroll`,
+- New verified ports (+10 -> 19): `HBlank_BgVerticalScroll`, `GetBgVerticalScrollBuffer`, `FlipBgVerticalScroll`,
   `BG_SetPosition`, `SetBlendConfig` (`LcdControl`), `SaveDraw_ScrollFogBG` (`fe8.game.savemenu.SaveDraw`),
-  `OpAnimHS_BrightenPalette`, `GameIntroHealthSafetyWaitButton` (`fe8.game.opanim.OpAnimHs`). Differential tests
+  `OpAnimHS_BrightenPalette`, `GameIntroHealthSafetyWaitButton`, `GameIntroHealthSafetyFadeIN/OUT` (`fe8.game.opanim.OpAnimHs`). Differential tests
   vs mGBA RAM: `SaveDrawDifferentialTest` (menu dumps), `OpAnimHsDifferentialTest` (`ram_trace_boot`).
   Unverified helpers added: `LcdControl.setBlendTargetA/B`, `setDispEnable` (no Ported-from KDoc yet).
 - CI: `tools/ci_check_extraction.sh` now compares PNGs by content (`tools/compare_extraction.py`): the session
   JDK's zlib writes different deflate bytes than CI's for identical pixels (all 228 PNGs differed bytewise).
 - CI: green through aec1f96; later runs were in progress at wrap-up (a run cancelled by a newer push shows its
   test step as failed: not a real failure). Check the latest run first.
-- Session setup: ~114 s. Branch: `master`. No `wip/` branches. Progress: 17 / 8352 verified.
+- Session setup: ~114 s. Branch: `master`. No `wip/` branches. Progress: 19 / 8352 verified.
 
 ## Run rules (owner, 2026-10-26)
 - Budget **~45 min** (guideline; a little over is fine to finish a nearly done task). Work until ~minute 38, never end
@@ -48,8 +48,8 @@ _(nothing blocked)_
 ## Next task: M3-07 GPU backend (or more verifiable ports first)
 - M3-07 GPU backend (`:app`, manual test) can now show a real scene: the health & safety screen from
   `ui/health_safety.*` (see `HealthSafetyScreenTest` for the assets -> `RenderState` steps).
-- Verifiable port candidates (interleave rule): the rest of `opanim-healthsafetyscreen.c` (fade steps
-  `GameIntro*FadeIN/OUT`, `GameEarlyStartDelay`, `PrepareHealthAndSafetyScreen`) against `ram_trace_boot` (the
+- Verifiable port candidates (interleave rule): the rest of `opanim-healthsafetyscreen.c` (Nintendo / IS
+  fade steps + `GameEarlyStartDelay`, which also call `TryTickHSScreenExit`, `PrepareHealthAndSafetyScreen`) against `ram_trace_boot` (the
   intro proc is `ProcScr_GameEarlyStartUI` 0x08AA7680; `proc_scrCur` points PAST the running command, so the
   active `PROC_REPEAT` function is at `scrCur - 4`); `StartBgVerticalScroll` / `SetBgVerticalScrollPosition`
   (menu entry); `SetBlendTargetA/B` need a dump where they run (first frame of a step).
@@ -70,6 +70,8 @@ _(nothing blocked)_
   the harness on a scratch script and convert `*.frame.rgb` (240×160 RGB888) to PNG to look at it.
 
 ## Known bugs / caveats
+- `RenderStateTest.filling a frame allocates nothing` failed once locally right after a full build and passed on 4
+  reruns (allocation measurement flake, JIT timing); if it recurs in CI, raise the warm-up rather than skip it.
 - `tools/progress.py` attributes a `@VerifiesPort` test to the LAST `class` declared before it in the file: keep
   helper classes below the test class (or top-level after it), or the port is not counted.
 - Local `master` in a fresh session can be an old unrelated history (seen this run): the checkout came up detached

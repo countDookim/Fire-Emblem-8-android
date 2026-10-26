@@ -21,6 +21,42 @@ public object OpAnimHs {
     }
 
     /**
+     * One frame of the health & safety fade-in: advances the timer and fades [hsPalette] (`Pal_OpAnimHealthSafetyScreen`,
+     * 16 colours) into BG bank 0 of [paletteBuffer] over 30 frames; after the last one sets a 90-frame delay and
+     * returns true (`Proc_Break`). The caller marks the palette for upload.
+     *
+     * Ported from src/opanim-healthsafetyscreen.c: GameIntroHealthSafetyFadeIN
+     */
+    public fun healthSafetyFadeIn(proc: Proc, hsPalette: ShortArray, paletteBuffer: ShortArray): Boolean {
+        proc.paletteTimer++
+        brightenPalette(hsPalette, paletteBuffer, 0, 1, proc.paletteTimer, FADE_FRAMES)
+        if (proc.paletteTimer > FADE_FRAMES - 1) {
+            proc.delayTimer = 0x5A
+            return true
+        }
+        return false
+    }
+
+    /**
+     * One frame of the health & safety fade-out (the fade-in reversed); after the last frame sets a 40-frame
+     * delay and returns true (`Proc_Break`).
+     *
+     * Ported from src/opanim-healthsafetyscreen.c: GameIntroHealthSafetyFadeOUT
+     */
+    public fun healthSafetyFadeOut(proc: Proc, hsPalette: ShortArray, paletteBuffer: ShortArray): Boolean {
+        proc.paletteTimer++
+        brightenPalette(hsPalette, paletteBuffer, 0, 1, FADE_FRAMES - proc.paletteTimer, FADE_FRAMES)
+        if (proc.paletteTimer > FADE_FRAMES - 1) {
+            proc.delayTimer = 0x28
+            return true
+        }
+        return false
+    }
+
+    /** Length of the logo / warning fades in frames (0x1E). */
+    private const val FADE_FRAMES = 0x1E
+
+    /**
      * One frame of the health & safety screen waiting for a button: on its first frame shows BG0 + BG1, makes
      * BG0 the brighten target and stops ignoring keys; then pulses BG0's brightness (EVY = |16 - (t mod 64) / 2|).
      * After 0xE0F frames or any key press, clears the effect, hides BG0 and returns true (`Proc_Break`).

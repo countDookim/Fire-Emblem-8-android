@@ -97,7 +97,46 @@ class OpAnimHsDifferentialTest {
         assertTrue(checked >= 3, "only $checked wait-button dumps checked")
     }
 
+    @Test
+    @VerifiesPort("GameIntroHealthSafetyFadeIN", "GameIntroHealthSafetyFadeOUT")
+    fun `health and safety fade steps match the boot RAM trace`() {
+        assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
+        val rom = romFile.readBytes()
+        val hsPal = ShortArray(16) { u16(rom, 0xB125F4 + 2 * it).toShort() } // Pal_OpAnimHealthSafetyScreen
+        val run = ref.run("ram_trace_boot")
+        val procArray = sym["sProcArray"]
+        val palBuf = sym["gPaletteBuffer"].address - GbaMem.EWRAM
+        val seen = HashSet<Int>()
+        for (dump in run.dumps.keys) {
+            val ew = run.region(dump, "ewram")
+            for (p in 0 until procArray.size / PROC_SIZE) {
+                val o = procArray.address - GbaMem.EWRAM + p * PROC_SIZE
+                if (u32(ew, o) != PROC_SCRIPT) continue
+                val func = u32(rom, u32(ew, o + 4) - ROM - 4)
+                if (func != HS_FADE_IN && func != HS_FADE_OUT) continue
+                // Rewind one call: timer - 1, delay scrambled, bank 0 cleared.
+                val proc = OpAnimHs.Proc().apply { paletteTimer = u32(ew, o + 0x30) - 1; delayTimer = 0x7777 }
+                val pal = ShortArray(512) { u16(ew, palBuf + 2 * it).toShort() }
+                for (i in 0 until 16) pal[i] = 0x7C1F
+                val broke = if (func == HS_FADE_IN) OpAnimHs.healthSafetyFadeIn(proc, hsPal, pal) else OpAnimHs.healthSafetyFadeOut(proc, hsPal, pal)
+                assertEquals(false, broke, dump) // a breaking frame is never on the trace: the proc moved on
+                assertEquals(u32(ew, o + 0x30), proc.paletteTimer, "$dump palette_timer")
+                assertEquals(0x7777, proc.delayTimer, "$dump delay_timer")
+                for (i in 0 until 512) assertEquals(u16(ew, palBuf + 2 * i), pal[i].toInt() and 0xFFFF, "$dump colour $i")
+                seen += func
+            }
+        }
+        assertEquals(setOf(HS_FADE_IN, HS_FADE_OUT), seen)
+        // The breaking frame: delay timers as in the source (0x5A after the fade-in, 0x28 after the fade-out).
+        val p = OpAnimHs.Proc().apply { paletteTimer = 29 }
+        assertTrue(OpAnimHs.healthSafetyFadeIn(p, hsPal, ShortArray(512)) && p.delayTimer == 0x5A)
+        p.paletteTimer = 29
+        assertTrue(OpAnimHs.healthSafetyFadeOut(p, hsPal, ShortArray(512)) && p.delayTimer == 0x28)
+    }
+
     private companion object {
+        const val HS_FADE_IN = 0x080CC2F5 // GameIntroHealthSafetyFadeIN
+        const val HS_FADE_OUT = 0x080CC431 // GameIntroHealthSafetyFadeOUT
         const val WAIT_BUTTON = 0x080CC32D // GameIntroHealthSafetyWaitButton
         const val ROM = 0x08000000
         const val PROC_SCRIPT = 0x08AA7680 // ProcScr_GameEarlyStartUI

@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated: 2026-10-26 15:25 UTC (scheduled run, started 14:51)._
+_Updated: 2026-10-26 23:20 UTC (scheduled run, started 22:50)._
 
 ## Owner decisions 2026-10-25 (read docs/decisions/0009)
 - The app is a 1:1 copy. Modding = extension points only; ship no touch gameplay, QoL flags or alternate
@@ -18,18 +18,25 @@ _Updated: 2026-10-26 15:25 UTC (scheduled run, started 14:51)._
 _(nothing blocked)_
 
 ## Status
-- This run: **M3-09** done (`gbafe.input.KeyStatus`: `_UpdateKeyStatus`, `UpdateKeyStatus`, `ResetKeyStatus`, per-frame
-  byte-identical vs mGBA; new ROM-repo reference run `key_status_title`), **M3-03/04/05** done
-  (`gbafe.render.SoftwareRenderer` + `TileSheets`: text + affine BGs, sprites incl. affine/1D/2D, windows, blending,
-  semi-transparent OBJ, BG mosaic, LineTable), **M3-06** part (`fe8.testing.HardwareScene`: mGBA VRAM/PAL/OAM/IO
-  dump → RenderState; `FrameCompareTest`: health & safety, logos, intro, title frames pixel-exact vs mGBA),
-  **M3-16** (new) done (`gbafe.render.LcdControl` = `gLCDControlBuffer` + `FlushLCDControl`, `applyTo(RenderState)`),
-  **M3-08** done (`gbafe.vfs.TextureOverrides`), **M3-11** done (`gbafe.input.UiElements`).
-- ROM repo: `2ae5423` (key_status_title), `65d04f4` (menu_screens: main menu / mode select / save-slot select, full
-  dumps). Release `assets-65d04f4` should be published by its workflow (check; setup.sh takes the latest).
-- CI: green through f929282 (progress commit after it shows 9 / 8352 verified); later pushes not checked yet.
-- Session setup: ~153 s cold (Gradle warm-up). Branch: `master`. No `wip/` branches.
-- Progress: 9 / 8352 verified (+4 this run: 3 key-status functions, `FlushLCDControl`).
+- This run: **M3-06 done**. Menu frames (m0962/m1024/m1086/m1087) were off for two reasons, both fixed:
+  (1) the menus run `HBlank_BgVerticalScroll` (BG2HOFS rewritten per line, the rune "fog" wave) -> ported as
+  `gbafe.render.BgVerticalScroll` + `gbafe.render.HBlankLines` (replays a frame's HBlank handler, vcount 159..227
+  then 0..158, into `LineTable` overrides); (2) mGBA 0.10.5 (32-bit colour build) blends on 8-bit channels
+  (`c<<3|c>>2`), up to +1 at 5 bits vs hardware -> `SoftwareRenderer` takes a `ColorMath` strategy
+  (`ColorMath.Hardware` default = product), frame compares use test-side `fe8.testing.MgbaColorMath`.
+  Health & safety from **extracted assets**: `gbafe.data.Tsa` (TSA rows stored bottom-up), generic
+  `gbafe.extract.ScreenExtractor` (`gbafe.screen` json + tile-set PNG), FE8 step writes `ui/health_safety.*`
+  (ROM repo `c6f4189`, release published); `HealthSafetyScreenTest` pixel-exact.
+- New verified ports (+8 -> 17): `HBlank_BgVerticalScroll`, `GetBgVerticalScrollBuffer`, `FlipBgVerticalScroll`,
+  `BG_SetPosition`, `SetBlendConfig` (`LcdControl`), `SaveDraw_ScrollFogBG` (`fe8.game.savemenu.SaveDraw`),
+  `OpAnimHS_BrightenPalette`, `GameIntroHealthSafetyWaitButton` (`fe8.game.opanim.OpAnimHs`). Differential tests
+  vs mGBA RAM: `SaveDrawDifferentialTest` (menu dumps), `OpAnimHsDifferentialTest` (`ram_trace_boot`).
+  Unverified helpers added: `LcdControl.setBlendTargetA/B`, `setDispEnable` (no Ported-from KDoc yet).
+- CI: `tools/ci_check_extraction.sh` now compares PNGs by content (`tools/compare_extraction.py`): the session
+  JDK's zlib writes different deflate bytes than CI's for identical pixels (all 228 PNGs differed bytewise).
+- CI: green through aec1f96; later runs were in progress at wrap-up (a run cancelled by a newer push shows its
+  test step as failed: not a real failure). Check the latest run first.
+- Session setup: ~114 s. Branch: `master`. No `wip/` branches. Progress: 17 / 8352 verified.
 
 ## Run rules (owner, 2026-10-26)
 - Budget **~45 min** (guideline; a little over is fine to finish a nearly done task). Work until ~minute 38, never end
@@ -38,36 +45,33 @@ _(nothing blocked)_
   first, then `tail_lines` <= 80 of the failing job).
 - Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.
 
-## Next task: M3-06 rest (menu frames + HBlank), then a verifiable port, then M3-07
-- `menu_screens` frames (m0962/m1024/m1086/m1087) do NOT match yet (12k–24k px): UI windows/text match, the rune
-  background (BG2 over BG3, BLDCNT 0x0844, EVA 6/EVB 16) differs everywhere, not a scroll offset (probed ±2 px).
-  Probes done (end of run, code not kept): not dump timing (swapping VRAM/PAL/IO between consecutive dumps m1086/m1087
-  changes nothing), not BG0/BG1 (disabling them changes nothing), the 128 OAM entries matter a lot (no OBJ: 35k
-  diffs), disabling BG2, BG3 or the blend each gives 16.7k. Ours is darker in the background (e.g. expected 5-bit
-  (13,14,13) vs ours (11,12,12)). Suspects: OBJ/BG priority or semi-transparent OBJ blending rules (save menu draws
-  sparkle sprites, `src/savedraw.c` `sub_80AB56C`), or an HBlank effect. Compare rows of the diff PNG, then check
-  GBATEK/mGBA rules for OBJ-vs-BG blending (`build/frame-diff/*.png` after adding the frames to the test list). Dump timing note: `io.bin` holds the
-  registers used to draw the dumped frame (the VBlank flush of the new values has not run yet; RAM is one step
-  ahead), see `LcdControlDifferentialTest`.
-- Then M3-06's remaining acceptance: build the health & safety screen from **extracted assets** (not VRAM) and
-  frame-compare it.
-- Verifiable port candidates (interleave rule): `hardware.c` palette helpers (`ApplyColorAddition_ClampMax/Min`,
-  `ColorFadeSetup*`, `EnablePaletteSync`), `BG_SetPosition`/`BG_SetPriority`-style setters on `LcdControl`, verified
-  via RAM traces. A gameplay reference run (new game → prologue map) would also exercise scroll/window registers
-  (LcdControl test notes they are all zero in current dumps).
-- M3-07 GPU backend (`:app`, manual test), M3-10 Android ActionSources, M3-12..15 audio/overlay.
-- Open renderer items: OBJ mosaic, mosaic on affine BGs (no reference frame yet).
+## Next task: M3-07 GPU backend (or more verifiable ports first)
+- M3-07 GPU backend (`:app`, manual test) can now show a real scene: the health & safety screen from
+  `ui/health_safety.*` (see `HealthSafetyScreenTest` for the assets -> `RenderState` steps).
+- Verifiable port candidates (interleave rule): the rest of `opanim-healthsafetyscreen.c` (fade steps
+  `GameIntro*FadeIN/OUT`, `GameEarlyStartDelay`, `PrepareHealthAndSafetyScreen`) against `ram_trace_boot` (the
+  intro proc is `ProcScr_GameEarlyStartUI` 0x08AA7680; `proc_scrCur` points PAST the running command, so the
+  active `PROC_REPEAT` function is at `scrCur - 4`); `StartBgVerticalScroll` / `SetBgVerticalScrollPosition`
+  (menu entry); `SetBlendTargetA/B` need a dump where they run (first frame of a step).
+- Data gap: `gSinLookup` (0x080D751C, 256+ s16) is read from the ROM in tests; the product needs it extracted
+  (shared FE trig table -> a `gbafe.*` data file) before `SaveDraw` can run in the app.
+- Frame-compare notes: `FrameCompareTest.applyHBlank` only knows `HBlank_BgVerticalScroll` and fails on any other
+  handler; dumped RAM is one game step ahead (the menu already flipped its scroll buffer: the test un-flips).
+- M3-10 Android ActionSources, M3-12..15 audio/overlay. Open renderer items: OBJ mosaic, mosaic on affine BGs.
 - Follow-ups noted, not tasks yet: unit placement / `.fe8s` for chapters other than the prologue need the event
   converter to follow `LOAD1/LOAD2` targets from each chapter's `ChapterEventGroup` (`include/chapterdata.h`);
   keysplit/drum sub-voicegroups are scanned for samples but not written as their own `voicegroups/*.json`.
 - Re-extracting after an extractor change: run the CLI (see the M2-21 lines in Known bugs), copy the output into the
-  ROM repo's `extracted/`, commit + push there (publish-assets makes a new release); CI fails until you do.
+  ROM repo's `extracted/` (only the changed/new files: PNG bytes differ by zlib build), commit + push there
+  (publish-assets makes a new release); CI fails until you do.
 - New reference runs: add to the ROM repo's `harness/gen_scripts.py`, run it + `harness/make_reference.sh` (seconds;
   `bin/mgba-harness` is committed), check old runs are byte-identical, `tar -C reference -cJf dist/reference.tar.xz
   out`, update the sha1 in `dist/MANIFEST.sha1`, push (publish workflow releases it). Quick screen exploration: run
   the harness on a scratch script and convert `*.frame.rgb` (240×160 RGB888) to PNG to look at it.
 
 ## Known bugs / caveats
+- `tools/progress.py` attributes a `@VerifiesPort` test to the LAST `class` declared before it in the file: keep
+  helper classes below the test class (or top-level after it), or the port is not counted.
 - Local `master` in a fresh session can be an old unrelated history (seen this run): the checkout came up detached
   at origin/master; use `git checkout -B master origin/master` style recovery (rename the stale branch first).
 - Extractor CLI: `./gradlew :tools:extract:run --args="--rom $FE8_ASSETS/baserom.gba --out <dir outside repo> --decomp

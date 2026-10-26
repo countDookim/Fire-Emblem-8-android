@@ -54,9 +54,9 @@ _Order rule (owner, 2026-10-26): interleave verifiable ports (`@VerifiesPort`) w
 |---|---|---|---|
 | M3-01 | Finalise ADR 0008 (render model): HBlank effects + texture-pack/palette interaction | ADR accepted | done: `LineTable` (per-line overrides, data texture on GPU); indexed vs RGBA replacements (`paletteVariants`) |
 | M3-02 | Render state types: `TileLayer`, `SpriteBatch`, `PaletteBank`, `Effects`, `LineTable` (primitive arrays) | compiles; allocation test | done: `gbafe.render.RenderState` (`TileLayer`, `SpriteBatch`, `PaletteBank`, `Effects`, `LineTable`); `RenderStateTest` (0 bytes/frame) |
-| M3-09 | Input: port key repeat/new-press logic (`hardware.c` key status) onto `InputFrame` + differential test (key status RAM) | `@VerifiesPort` passes | todo |
-| M3-03 | Software compositor: text-mode BG layers + priorities | renders a test scene; unit tests | todo |
-| M3-04 | Software compositor: sprites (regular + affine), OBJ priority vs BG | tests | todo |
+| M3-09 | Input: port key repeat/new-press logic (`hardware.c` key status) onto `InputFrame` + differential test (key status RAM) | `@VerifiesPort` passes | done: `gbafe.input.KeyStatus` (`_UpdateKeyStatus`, `UpdateKeyStatus`, `ResetKeyStatus`), byte-identical per frame vs mGBA (`KeyStatusDifferentialTest`, ROM-repo run `key_status_title`); kept beside `InputFrame` (game menus read these exact fields) |
+| M3-03 | Software compositor: text-mode BG layers + priorities | renders a test scene; unit tests | done: `gbafe.render.SoftwareRenderer` + `TileSheets`; `SoftwareRendererTest` (priority, banks, flips, 256/512 wrap, 8bpp, LineTable scroll/palette, no allocation) |
+| M3-04 | Software compositor: sprites (regular + affine), OBJ priority vs BG | tests | done: regular/affine/double-size, 1D/2D mapping (`SpriteBatch.mapping1d`), OBJ vs BG and OBJ vs OBJ priority; OBJ-window sprites skipped until M3-05 |
 | M3-05 | Blend/brightness/windows/mosaic | tests | todo |
 | M3-06 | Frame-compare utility: ARGB vs mGBA dump (5-bit), diff PNG written on failure | first frame-compare test (health & safety screen from extracted assets) passes | todo |
 | M3-07 | GPU backend v1 in `:app`: tile layers + sprites via shaders, same render state | APK shows extracted test scene (manual test) | todo |

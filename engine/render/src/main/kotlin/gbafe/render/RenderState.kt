@@ -166,7 +166,7 @@ public class SpriteBatch(
     /** Sheet id holding the sprite's tiles. */
     public val sheet: IntArray = IntArray(capacity)
 
-    /** First tile index in [sheet]. */
+    /** First tile index in [sheet], in 32-byte units as in OAM (an 8bpp tile spans two units). */
     public val tile: ShortArray = ShortArray(capacity)
 
     /** Palette 0..15 (4bpp; ignored for 8bpp). */
@@ -183,6 +183,13 @@ public class SpriteBatch(
 
     /** 32 affine matrices × (pa, pb, pc, pd), 8.8 fixed point. */
     public val affine: ShortArray = ShortArray(AFFINE_MATRICES * 4)
+
+    /**
+     * Tile layout of multi-tile sprites (`DISPCNT` OBJ character mapping). False = 2D: the sheet is 32 units
+     * wide, so the tile below unit `t` is `t + 32` (FE8's usual mode). True = 1D: a sprite's tiles are
+     * consecutive, row after row (FE8 uses it in the opening animation). Kept by [clear].
+     */
+    public var mapping1d: Boolean = false
 
     /** Removes all sprites (matrices are kept). */
     public fun clear() {

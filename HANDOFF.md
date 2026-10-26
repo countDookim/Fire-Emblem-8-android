@@ -41,9 +41,12 @@ _(nothing blocked)_
 ## Next task: M3-06 rest (menu frames + HBlank), then a verifiable port, then M3-07
 - `menu_screens` frames (m0962/m1024/m1086/m1087) do NOT match yet (12k–24k px): UI windows/text match, the rune
   background (BG2 over BG3, BLDCNT 0x0844, EVA 6/EVB 16) differs everywhere, not a scroll offset (probed ±2 px).
-  Likely an HBlank handler (per-line BLDALPHA or palette) or palette animation: find the main-menu HBlank / palette
-  code in the decomp (`SetPrimaryHBlankHandler` callers under src/*menu*, `opsubtitle`, `titlescreen`...), port it
-  into a `LineTable` fill, then add these frames to `FrameCompareTest`. Dump timing note: `io.bin` holds the
+  Probes done (end of run, code not kept): not dump timing (swapping VRAM/PAL/IO between consecutive dumps m1086/m1087
+  changes nothing), not BG0/BG1 (disabling them changes nothing), the 128 OAM entries matter a lot (no OBJ: 35k
+  diffs), disabling BG2, BG3 or the blend each gives 16.7k. Ours is darker in the background (e.g. expected 5-bit
+  (13,14,13) vs ours (11,12,12)). Suspects: OBJ/BG priority or semi-transparent OBJ blending rules (save menu draws
+  sparkle sprites, `src/savedraw.c` `sub_80AB56C`), or an HBlank effect. Compare rows of the diff PNG, then check
+  GBATEK/mGBA rules for OBJ-vs-BG blending (`build/frame-diff/*.png` after adding the frames to the test list). Dump timing note: `io.bin` holds the
   registers used to draw the dumped frame (the VBlank flush of the new values has not run yet; RAM is one step
   ahead), see `LcdControlDifferentialTest`.
 - Then M3-06's remaining acceptance: build the health & safety screen from **extracted assets** (not VRAM) and

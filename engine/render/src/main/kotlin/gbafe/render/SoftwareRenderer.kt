@@ -12,8 +12,12 @@ package gbafe.render
  * Sprites (M3-04): regular and affine (incl. double-size) objects, 4bpp/8bpp, flips, 1D/2D tile mapping,
  * OBJ palette; per pixel the opaque sprite with the lowest priority value wins (ties: lower index), and it
  * is drawn in front of every BG layer whose priority value is greater than or equal to its own.
- * OBJ-window sprites are not drawn. Not yet: affine BG layers (skipped), blending, semi-transparency,
- * windows and mosaic (M3-05).
+ * Effects (M3-05): windows 0/1 (incl. wrap-around bounds when left > right) and the OBJ window select
+ * per pixel which layers are visible and whether colour effects apply; alpha blending of the top two
+ * visible pixels, brightness up/down, semi-transparent sprites (always blended over a second target),
+ * BG mosaic. Per-line window x bounds and blend coefficients from [RenderState.lines] are applied.
+ * Not yet: OBJ mosaic, affine BG layers (skipped). Hardware edge cases are confirmed against mGBA frames
+ * in M3-06.
  *
  * The camera offset is ignored: vanilla mode always shows the 240×160 screen at the origin.
  * [render] allocates nothing.
@@ -34,6 +38,16 @@ public class SoftwareRenderer(
     private val lineSheet = arrayOfNulls<ByteArray>(RenderState.LAYERS)
     private val objColor = IntArray(FrameBuffer.GBA_WIDTH)
     private val objPrio = IntArray(FrameBuffer.GBA_WIDTH)
+    private val objSemi = BooleanArray(FrameBuffer.GBA_WIDTH)
+    private val objWin = BooleanArray(FrameBuffer.GBA_WIDTH)
+
+    // Top two visible pixels of the current composite: colour and layer bit (Effects mask bits).
+    private var c1 = 0
+    private var l1 = 0
+    private var semi1 = false
+    private var c2 = 0
+    private var l2 = 0
+    private var filled = 0
 
     override fun render(camera: Camera) {
         state.palettes.bg.copyInto(palette)
@@ -64,34 +78,91 @@ public class SoftwareRenderer(
                 }
             }
             spriteLine(y)
+            val fx = state.effects
+            val windows = fx.win0 || fx.win1 || fx.objWindow
+            var w0l = fx.winLeft[0]; var w0r = fx.winRight[0]; var w1l = fx.winLeft[1]; var w1r = fx.winRight[1]
+            if (lineMask and LineTable.WIN0_X != 0) { w0l = lines.winLeft[y]; w0r = lines.winRight[y] }
+            if (lineMask and LineTable.WIN1_X != 0) { w1l = lines.winLeft[RenderState.LINES + y]; w1r = lines.winRight[RenderState.LINES + y] }
+            val in0y = fx.win0 && inside(y, fx.winTop[0], fx.winBottom[0])
+            val in1y = fx.win1 && inside(y, fx.winTop[1], fx.winBottom[1])
+            var eva = fx.eva; var evb = fx.evb; var evy = fx.evy
+            if (lineMask and LineTable.BLEND != 0) {
+                val b = lines.blend[y]
+                eva = b and 0xFF; evb = (b shr 8) and 0xFF; evy = (b shr 16) and 0xFF
+            }
+            eva = minOf(eva, 16); evb = minOf(evb, 16); evy = minOf(evy, 16)
+            val mh = maxOf(1, fx.mosaic[0])
+            val mvY = y - y % maxOf(1, fx.mosaic[1])
             val backdrop = palette[0].toInt() and 0x7FFF
             val row = y * fb.width
             for (x in 0 until width) {
-                val oc = objColor[x]
-                val op = objPrio[x]
-                var color = -1
+                val wmask = when {
+                    !windows -> ALL
+                    in0y && inside(x, w0l, w0r) -> fx.winInside[0]
+                    in1y && inside(x, w1l, w1r) -> fx.winInside[1]
+                    fx.objWindow && objWin[x] -> fx.winInside[2]
+                    else -> fx.winOutside
+                }
+                filled = 0
+                var objPending = objColor[x] >= 0 && wmask and Effects.OBJ != 0
                 for (i in 0 until layerCount) {
-                    val layer = state.layers[order[i]]
-                    if (oc >= 0 && op <= layer.priority) break
-                    val c = textPixel(layer, lineSheet[i] ?: continue, x + lineScrollX[i], y + lineScrollY[i])
+                    val bg = order[i]
+                    val layer = state.layers[bg]
+                    if (objPending && objPrio[x] <= layer.priority) {
+                        push(objColor[x], Effects.OBJ, objSemi[x])
+                        objPending = false
+                        if (filled == 2) break
+                    }
+                    if (wmask and (1 shl bg) == 0) continue
+                    val sheet = lineSheet[i] ?: continue
+                    val c = if (layer.mosaic) {
+                        textPixel(layer, sheet, x - x % mh + lineScrollX[i], mvY + lineScrollY[i])
+                    } else {
+                        textPixel(layer, sheet, x + lineScrollX[i], y + lineScrollY[i])
+                    }
                     if (c >= 0) {
-                        color = c
-                        break
+                        push(c, 1 shl bg, false)
+                        if (filled == 2) break
                     }
                 }
-                if (color < 0) color = if (oc >= 0) oc else backdrop
+                if (filled < 2 && objPending) push(objColor[x], Effects.OBJ, objSemi[x])
+                if (filled < 2) push(backdrop, Effects.BACKDROP, false)
+                var color = c1
+                if (wmask and Effects.BACKDROP != 0) {
+                    if (semi1 && fx.blendBottom and l2 != 0) {
+                        color = alpha(c1, c2, eva, evb)
+                    } else if (fx.blendTop and l1 != 0) {
+                        color = when (fx.blendMode) {
+                            Effects.BLEND_ALPHA -> if (fx.blendBottom and l2 != 0) alpha(c1, c2, eva, evb) else c1
+                            Effects.BLEND_BRIGHTEN -> brighten(c1, evy)
+                            Effects.BLEND_DARKEN -> darken(c1, evy)
+                            else -> c1
+                        }
+                    }
+                }
                 fb.pixels[row + x] = FrameBuffer.bgr555ToArgb(color)
             }
         }
     }
 
-    /** Fills [objColor] / [objPrio] for scanline [y] (-1 colour = no sprite pixel). */
+    private fun push(c: Int, layerBit: Int, semi: Boolean) {
+        if (filled == 0) {
+            c1 = c; l1 = layerBit; semi1 = semi
+        } else {
+            c2 = c; l2 = layerBit
+        }
+        filled++
+    }
+
+    /** Fills [objColor] / [objPrio] / [objSemi] / [objWin] for scanline [y] (-1 colour = no sprite pixel). */
     private fun spriteLine(y: Int) {
         objColor.fill(-1)
+        objWin.fill(false)
         val sp = state.sprites
         for (i in 0 until sp.count) {
             val flags = sp.flags[i].toInt()
-            if (flags and SpriteBatch.MODE_WINDOW != 0) continue
+            val window = flags and SpriteBatch.MODE_WINDOW != 0
+            val semi = flags and SpriteBatch.MODE_SEMI != 0
             val w = sp.width[i].toInt() and 0xFF
             val h = sp.height[i].toInt() and 0xFF
             val affine = flags and SpriteBatch.AFFINE != 0
@@ -114,7 +185,7 @@ public class SoftwareRenderer(
             }
             val ry = y - sy
             for (x in maxOf(0, sx) until minOf(FrameBuffer.GBA_WIDTH, sx + bw)) {
-                if (objColor[x] >= 0 && objPrio[x] <= prio) continue
+                if (!window && objColor[x] >= 0 && objPrio[x] <= prio) continue
                 var tx: Int
                 var ty: Int
                 if (affine) {
@@ -139,8 +210,13 @@ public class SoftwareRenderer(
                     TileSheets.pixel(sheet, unit and 0x3FF, px, py, false)
                 }
                 if (idx == 0) continue
+                if (window) {
+                    objWin[x] = true
+                    continue
+                }
                 objColor[x] = palette[palBase + idx].toInt() and 0x7FFF
                 objPrio[x] = prio
+                objSemi[x] = semi
             }
         }
     }
@@ -170,5 +246,36 @@ public class SoftwareRenderer(
         if (idx == 0) return -1
         val ci = if (layer.bpp8) idx else ((e ushr TileLayer.PALETTE_SHIFT) shl 4) or idx
         return palette[ci].toInt() and 0x7FFF
+    }
+
+    private companion object {
+        /** Window mask with every layer and colour effects enabled (no windows active). */
+        const val ALL = 0x3F
+
+        /** Hardware window bound test: [lo] until [hi], wrapping around when lo > hi. */
+        fun inside(v: Int, lo: Int, hi: Int): Boolean = if (lo <= hi) v in lo until hi else v >= lo || v < hi
+
+        /** BLDALPHA: per 5-bit channel min(31, (a*eva + b*evb) / 16). */
+        fun alpha(a: Int, b: Int, eva: Int, evb: Int): Int =
+            alphaCh(a, b, 0, eva, evb) or alphaCh(a, b, 5, eva, evb) or alphaCh(a, b, 10, eva, evb)
+
+        fun alphaCh(a: Int, b: Int, s: Int, eva: Int, evb: Int): Int =
+            minOf(31, (((a shr s) and 0x1F) * eva + ((b shr s) and 0x1F) * evb) shr 4) shl s
+
+        /** BLDY brightness increase: c + (31 - c) * evy / 16 per channel. */
+        fun brighten(c: Int, evy: Int): Int = brightCh(c, 0, evy) or brightCh(c, 5, evy) or brightCh(c, 10, evy)
+
+        fun brightCh(c: Int, s: Int, evy: Int): Int {
+            val v = (c shr s) and 0x1F
+            return (v + (((31 - v) * evy) shr 4)) shl s
+        }
+
+        /** BLDY brightness decrease: c - c * evy / 16 per channel. */
+        fun darken(c: Int, evy: Int): Int = darkCh(c, 0, evy) or darkCh(c, 5, evy) or darkCh(c, 10, evy)
+
+        fun darkCh(c: Int, s: Int, evy: Int): Int {
+            val v = (c shr s) and 0x1F
+            return (v - ((v * evy) shr 4)) shl s
+        }
     }
 }

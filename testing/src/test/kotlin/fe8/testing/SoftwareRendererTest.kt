@@ -1,6 +1,7 @@
 package fe8.testing
 
 import gbafe.render.Camera
+import gbafe.render.Effects
 import gbafe.render.FrameBuffer
 import gbafe.render.RenderState
 import gbafe.render.SoftwareRenderer
@@ -161,7 +162,15 @@ class SoftwareRendererTest {
         state.sprites.add(x = 5, y = 5, width = 32, height = 32, sheet = 2, tile = 0, palette = 1, priority = 0)
         state.sprites.add(x = 50, y = 5, width = 16, height = 16, sheet = 2, tile = 0, palette = 1, priority = 2,
             flags = SpriteBatch.AFFINE or SpriteBatch.DOUBLE_SIZE)
-        val bytes = AllocationMeter.measure(warmup = 50, iterations = 50) { renderer.render(cam) }
+        state.sprites.add(x = 90, y = 5, width = 8, height = 8, sheet = 2, tile = 0, palette = 1, priority = 0, flags = SpriteBatch.MODE_WINDOW)
+        state.effects.apply {
+            win0 = true; winLeft[0] = 20; winRight[0] = 60; winTop[0] = 10; winBottom[0] = 100; winInside[0] = 0x3F
+            objWindow = true; winInside[2] = 0x13; winOutside = 0x33
+            blendMode = Effects.BLEND_ALPHA; blendTop = 0x3; blendBottom = 0x3C; eva = 9; evb = 7
+            mosaic[0] = 2
+        }
+        state.layers[1].mosaic = true
+        val bytes = AllocationMeter.measure(warmup = 500, iterations = 200) { renderer.render(cam) }
         assertEquals(0L, bytes)
     }
 
@@ -237,5 +246,105 @@ class SoftwareRendererTest {
         assertEquals(objTile(0), fb[0, 3])
         assertEquals(argb(0x0DDD), fb[0, 4])
         assertEquals(argb(0x101), fb[8, 4])
+    }
+
+    /** BG0 (front) solid red 0x001F (16 in the effect tests below), BG1 solid blue 0x7C00. */
+    private fun twoLayers(red: Int = 0x1F) {
+        state.palettes.bg[1] = red.toShort()
+        state.palettes.bg[2] = 0x7C00
+        layer(0, prio = 0, fill = 1)
+        layer(1, prio = 1, fill = 3)
+    }
+
+    @Test
+    fun `alpha blend mixes the top two targets`() {
+        twoLayers()
+        val fx = state.effects
+        fx.blendMode = Effects.BLEND_ALPHA; fx.blendTop = 1; fx.blendBottom = 2; fx.eva = 8; fx.evb = 8
+        renderer.render(cam)
+        assertEquals(argb(15 or (15 shl 10)), fb[0, 0])
+        fx.blendBottom = 4 // BG1 is not a second target: no blend
+        renderer.render(cam)
+        assertEquals(argb(0x1F), fb[0, 0])
+        fx.blendBottom = 2; fx.eva = 16; fx.evb = 16 // saturates at 31
+        renderer.render(cam)
+        assertEquals(argb(0x1F or (0x1F shl 10)), fb[0, 0])
+    }
+
+    @Test
+    fun `brightness up and down`() {
+        twoLayers(red = 16)
+        val fx = state.effects
+        fx.blendMode = Effects.BLEND_BRIGHTEN; fx.blendTop = 1; fx.evy = 8
+        renderer.render(cam)
+        assertEquals(argb(23 or (15 shl 5) or (15 shl 10)), fb[0, 0])
+        fx.blendMode = Effects.BLEND_DARKEN
+        renderer.render(cam)
+        assertEquals(argb(8), fb[0, 0])
+        fx.blendTop = Effects.BACKDROP // BG0 not a first target
+        renderer.render(cam)
+        assertEquals(argb(16), fb[0, 0])
+    }
+
+    @Test
+    fun `windows select layers and colour effects per pixel`() {
+        twoLayers(red = 16)
+        val fx = state.effects
+        fx.win0 = true
+        fx.winLeft[0] = 10; fx.winRight[0] = 20; fx.winTop[0] = 0; fx.winBottom[0] = 160
+        fx.winInside[0] = 2 // BG1 only, no effects
+        fx.winOutside = 0x3F
+        fx.blendMode = Effects.BLEND_DARKEN; fx.blendTop = 1 or 2; fx.evy = 16
+        renderer.render(cam)
+        assertEquals(argb(0x7C00), fb[15, 0]) // BG0 hidden, BG1 not darkened
+        assertEquals(argb(0), fb[5, 0]) // outside: BG0 darkened to black
+        fx.winLeft[0] = 230; fx.winRight[0] = 10 // wraps: 230..239 and 0..9
+        renderer.render(cam)
+        assertEquals(argb(0x7C00), fb[235, 0])
+        assertEquals(argb(0x7C00), fb[5, 0])
+        assertEquals(argb(0), fb[100, 0])
+        state.lines.setWindowX(line = 3, win = 0, left = 100, right = 110) // per-line override
+        renderer.render(cam)
+        assertEquals(argb(0x7C00), fb[105, 3])
+        assertEquals(argb(0), fb[5, 3])
+    }
+
+    @Test
+    fun `OBJ window sprites gate layers and are not drawn`() {
+        twoLayers()
+        state.sprites.add(x = 0, y = 0, width = 8, height = 8, sheet = 2, tile = 0, palette = 0, priority = 0, flags = SpriteBatch.MODE_WINDOW)
+        val fx = state.effects
+        fx.objWindow = true; fx.winInside[2] = 2; fx.winOutside = 0x3F
+        renderer.render(cam)
+        assertEquals(argb(0x7C00), fb[3, 3])
+        assertEquals(argb(0x1F), fb[8, 3])
+    }
+
+    @Test
+    fun `semi-transparent sprites blend over a second target in any mode`() {
+        twoLayers()
+        state.palettes.obj[1] = 0x03E0 // green
+        state.sprites.add(x = 0, y = 0, width = 8, height = 8, sheet = 2, tile = 15, palette = 0, priority = 0, flags = SpriteBatch.MODE_SEMI)
+        val fx = state.effects
+        fx.blendBottom = 1; fx.eva = 8; fx.evb = 8 // blendMode stays NONE
+        renderer.render(cam)
+        assertEquals(argb(15 or (15 shl 5)), fb[0, 0])
+        state.lines.setBlend(line = 2, eva = 16, evb = 0, evy = 0)
+        renderer.render(cam)
+        assertEquals(argb(0x03E0), fb[0, 2])
+    }
+
+    @Test
+    fun `BG mosaic samples the top-left pixel of each block`() {
+        val l = layer(0, prio = 0, fill = 0)
+        l.setEntry(0, 0, 2) // row 0: index 1 + x
+        l.mosaic = true
+        state.effects.mosaic[0] = 4
+        state.effects.mosaic[1] = 2
+        renderer.render(cam)
+        assertEquals(argb(0x101), fb[3, 0])
+        assertEquals(argb(0x105), fb[5, 0])
+        assertEquals(argb(0x105), fb[7, 1]) // line 1 samples line 0
+        assertEquals(argb(0x0001), fb[0, 2])
     }
 }

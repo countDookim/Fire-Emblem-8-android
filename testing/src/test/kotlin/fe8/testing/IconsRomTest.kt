@@ -43,4 +43,26 @@ class IconsRomTest {
         for ((n, png) in o.files) File(dir, n).writeBytes(png)
         File(dir, "windowframes.json").writeText(o.json)
     }
+
+    @Test
+    fun `cursors and misc OBJ UI extract`() {
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        // decomp/fireemblem8.nm.txt: gGfx_MiscUiGraphics 0x0859E8E0, gPal_MiscUiGraphics 0x0859ED70,
+        // gImg_UiCursorHandTop 0x0859EDB0, gImg_UiCursorHandBottom 0x0859EDEC, sMapCursorSpriteLut 0x0859A4C0,
+        // sSprite_MapCursorStretched 0x0859A4A6, gSprite_UiCursorHand_08A20B3C / _08A20B44. Checked by eye.
+        val o = gbafe.extract.fe8.ui.CursorsExtractor.extract(
+            romFile.readBytes(), 0x59E8E0, 0x59ED70, 0x59A4C0, 0x59A4A6, 0x59EDB0, 0x59EDEC, listOf(0xA20B3C, 0xA20B44),
+        )
+        val sheet = IndexedPng.read(o.files.getValue("cursors.png")).image
+        assertEquals(144 to 32, sheet.width to sheet.height)
+        val hand = IndexedPng.read(o.files.getValue("cursor_hand.png")).image
+        assertTrue((0 until hand.height).any { y -> (0 until hand.width).any { x -> hand[x, y] != 0 } })
+        // sMapCursorSpriteLut: 10 x A, B, 4 x C, B (src/bm.c) -> 4 distinct sprites with the stretched one.
+        assertTrue(o.json.contains("\"frames\": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 1]") ||
+            o.json.contains("\"frames\":[0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,1]"), o.json)
+        val dir = File(System.getProperty("fe8.extractedOut") ?: "build/extracted", "ui")
+        dir.mkdirs()
+        for ((n, png) in o.files) File(dir, n).writeBytes(png)
+        File(dir, "cursors.json").writeText(o.json)
+    }
 }

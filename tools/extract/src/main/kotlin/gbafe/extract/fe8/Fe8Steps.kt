@@ -171,6 +171,15 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
     for ((n, png) in frames.files) File(args.out, "ui/$n").writeBytes(png)
     File(args.out, "ui/windowframes.json").writeText(frames.json)
     written += "ui/windowframes.json (+${frames.files.size} PNG)"
+    val cursors = gbafe.extract.fe8.ui.CursorsExtractor.extract(
+        rom, symbols["gGfx_MiscUiGraphics"].address - ROM_BASE, symbols["gPal_MiscUiGraphics"].address - ROM_BASE,
+        symbols["sMapCursorSpriteLut"].address - ROM_BASE, symbols["sSprite_MapCursorStretched"].address - ROM_BASE,
+        symbols["gImg_UiCursorHandTop"].address - ROM_BASE, symbols["gImg_UiCursorHandBottom"].address - ROM_BASE,
+        listOf("gSprite_UiCursorHand_08A20B3C", "gSprite_UiCursorHand_08A20B44").map { symbols[it].address - ROM_BASE },
+    )
+    for ((n, png) in cursors.files) File(args.out, "ui/$n").writeBytes(png)
+    File(args.out, "ui/cursors.json").writeText(cursors.json)
+    written += "ui/cursors.json (+${cursors.files.size} PNG)"
     return written
 }
 

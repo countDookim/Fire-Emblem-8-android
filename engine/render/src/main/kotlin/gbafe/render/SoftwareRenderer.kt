@@ -32,6 +32,8 @@ public class SoftwareRenderer(
     public val sheets: TileSheets,
     /** Output; every pixel in its first 160 lines and 240 columns is written each frame. */
     public val fb: FrameBuffer,
+    /** Colour-effect arithmetic; [ColorMath.Hardware] except in emulator comparisons. */
+    public val colorMath: ColorMath = ColorMath.Hardware,
 ) : Renderer {
     /** Working palette for this frame: 0..255 BG, 256..511 OBJ (LineTable writes land here, not in [state]). */
     private val palette = ShortArray(2 * PaletteBank.COLORS)
@@ -151,12 +153,12 @@ public class SoftwareRenderer(
                 var color = c1
                 if (wmask and Effects.BACKDROP != 0) {
                     if (semi1 && fx.blendBottom and l2 != 0) {
-                        color = alpha(c1, c2, eva, evb)
+                        color = colorMath.alpha(c1, c2, eva, evb)
                     } else if (fx.blendTop and l1 != 0) {
                         color = when (fx.blendMode) {
-                            Effects.BLEND_ALPHA -> if (fx.blendBottom and l2 != 0) alpha(c1, c2, eva, evb) else c1
-                            Effects.BLEND_BRIGHTEN -> brighten(c1, evy)
-                            Effects.BLEND_DARKEN -> darken(c1, evy)
+                            Effects.BLEND_ALPHA -> if (fx.blendBottom and l2 != 0) colorMath.alpha(c1, c2, eva, evb) else c1
+                            Effects.BLEND_BRIGHTEN -> colorMath.brighten(c1, evy)
+                            Effects.BLEND_DARKEN -> colorMath.darken(c1, evy)
                             else -> c1
                         }
                     }
@@ -291,28 +293,5 @@ public class SoftwareRenderer(
 
         /** Hardware window bound test: [lo] until [hi], wrapping around when lo > hi. */
         fun inside(v: Int, lo: Int, hi: Int): Boolean = if (lo <= hi) v in lo until hi else v >= lo || v < hi
-
-        /** BLDALPHA: per 5-bit channel min(31, (a*eva + b*evb) / 16). */
-        fun alpha(a: Int, b: Int, eva: Int, evb: Int): Int =
-            alphaCh(a, b, 0, eva, evb) or alphaCh(a, b, 5, eva, evb) or alphaCh(a, b, 10, eva, evb)
-
-        fun alphaCh(a: Int, b: Int, s: Int, eva: Int, evb: Int): Int =
-            minOf(31, (((a shr s) and 0x1F) * eva + ((b shr s) and 0x1F) * evb) shr 4) shl s
-
-        /** BLDY brightness increase: c + (31 - c) * evy / 16 per channel. */
-        fun brighten(c: Int, evy: Int): Int = brightCh(c, 0, evy) or brightCh(c, 5, evy) or brightCh(c, 10, evy)
-
-        fun brightCh(c: Int, s: Int, evy: Int): Int {
-            val v = (c shr s) and 0x1F
-            return (v + (((31 - v) * evy) shr 4)) shl s
-        }
-
-        /** BLDY brightness decrease: c - c * evy / 16 per channel. */
-        fun darken(c: Int, evy: Int): Int = darkCh(c, 0, evy) or darkCh(c, 5, evy) or darkCh(c, 10, evy)
-
-        fun darkCh(c: Int, s: Int, evy: Int): Int {
-            val v = (c shr s) and 0x1F
-            return (v - ((v * evy) shr 4)) shl s
-        }
     }
 }

@@ -1,6 +1,9 @@
 package fe8.testing
 
+import gbafe.core.VerifiesPort
+import gbafe.render.BgVerticalScroll
 import gbafe.render.Camera
+import gbafe.render.HBlankLines
 import gbafe.render.FrameBuffer
 import gbafe.render.RenderState
 import gbafe.render.SoftwareRenderer
@@ -21,6 +24,7 @@ import java.io.File
  */
 class FrameCompareTest {
     private val ref = ReferenceData.fromEnvironment()
+    private val sym = RamSymbols.fromEnvironment()
 
     private fun diffs(run: String, dump: String): Int {
         val r = ref.run(run)
@@ -30,9 +34,47 @@ class FrameCompareTest {
         val io = r.region(dump, "io")
         check(!HardwareScene.forcedBlank(io)) { "$run/$dump is a forced-blank frame" }
         HardwareScene.load(state, sheets, r.region(dump, "vram"), r.region(dump, "pal"), r.region(dump, "oam"), io)
-        SoftwareRenderer(state, sheets, fb).render(Camera())
+        applyHBlank(r, dump, state, io)
+        SoftwareRenderer(state, sheets, fb, MgbaColorMath).render(Camera())
         val out = File(System.getProperty("fe8.frameDiffDir") ?: "build/frame-diff", "${run}_$dump.png")
         return HardwareScene.compare(fb, r.frameRgb(dump), out)
+    }
+
+    /**
+     * Replays the frame's HBlank handler into per-line overrides. Only `HBlank_BgVerticalScroll` (menus) is
+     * known so far; any other handler fails the frame so it is not silently drawn without its effect.
+     */
+    private fun applyHBlank(r: ReferenceData.Run, dump: String, state: RenderState, io: ByteArray) {
+        if (r.dumps[dump] == null || !File(ref.root, "${r.name}/$dump.iwram.bin").isFile) return
+        val iwram = r.region(dump, "iwram")
+        fun ptr(name: String) = u32(iwram, sym[name].address - GbaMem.IWRAM)
+        val h1 = ptr("sHBlankHandler1")
+        val h2 = ptr("sHBlankHandler2")
+        if (h1 == 0 && h2 == 0) return
+        check(h2 == 0 && h1 == HBLANK_BG_VERTICAL_SCROLL) { "${r.name}/$dump: unsupported HBlank handler 0x%08x/0x%08x".format(h1, h2) }
+        val p = ptr("gpBgVerticalScrollSt")
+        val mem = if (p ushr 24 == 2) r.region(dump, "ewram") else iwram
+        val scroll = BgVerticalScroll()
+        scroll.readFrom(mem, p and 0xFFFFFF)
+        // The dumped RAM is one game step ahead: the menu's SaveDraw_ScrollFogBG already wrote the next frame's
+        // table into the other half and called FlipBgVerticalScroll, so the dumped frame was drawn from the
+        // half before the flip.
+        scroll.frameFlip = scroll.frameFlip xor 1
+        HBlankLines.capture(io, state) { v, regs -> scroll.onHBlank(v, regs) }
+    }
+
+    private fun u32(b: ByteArray, o: Int): Int =
+        (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8) or ((b[o + 2].toInt() and 0xFF) shl 16) or
+            ((b[o + 3].toInt() and 0xFF) shl 24)
+
+    @Test
+    @VerifiesPort("HBlank_BgVerticalScroll")
+    fun `menu frames with the wavy rune background match mGBA`() {
+        assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
+        // Main menu, mode select, save-slot select: BG2 (runes, HOFS rewritten per line) blended over BG3.
+        val frames = listOf("m0962", "m1024", "m1086", "m1087")
+        val failed = frames.map { "menu_screens/$it" to diffs("menu_screens", it) }.filter { it.second != 0 }
+        assertEquals(emptyList<Pair<String, Int>>(), failed, "frames with differing pixels (see build/frame-diff)")
     }
 
     @Test
@@ -61,5 +103,10 @@ class FrameCompareTest {
         fb.clear(0)
         val d = HardwareScene.compare(fb, r.frameRgb("f00900"))
         assertTrue(d > 10_000, "an all-black frame differs from the title in only $d pixels")
+    }
+
+    private companion object {
+        /** ROM address of `HBlank_BgVerticalScroll` (Thumb bit set), from `decomp/fireemblem8.nm.txt`. */
+        const val HBLANK_BG_VERTICAL_SCROLL = 0x08014CC5
     }
 }

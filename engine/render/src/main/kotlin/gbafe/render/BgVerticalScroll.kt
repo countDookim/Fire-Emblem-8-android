@@ -1,0 +1,94 @@
+package gbafe.render
+
+/**
+ * Per-scanline register program used by the save/main menus (and other screens) for wavy backgrounds: a port
+ * of `struct BgVerticalScrollSt` (`include/bmlib.h`, 0x7A0 bytes) and its HBlank handler. Each frame the game
+ * fills a table of one value per scanline for up to three I/O registers (e.g. `BG2HOFS`), and the HBlank
+ * handler writes the next line's value before that line is drawn.
+ *
+ * I/O register pointers are stored as offsets from 0x04000000 (-1 = NULL), so the handler writes into a
+ * register image (`ByteArray` laid out like the I/O region) that [HBlankLines] turns into [LineTable]
+ * overrides.
+ */
+public class BgVerticalScroll {
+    /** `buf`: two frames × three registers × 160 lines, index `frame * 480 + reg * 160 + line`. */
+    public val buf: ShortArray = ShortArray(3 * 320)
+
+    /** `src[3]`: registers armed by the game for the next frame (I/O offset, -1 = none). */
+    public val src: IntArray = IntArray(3) { -1 }
+
+    /** `dst[3]`: registers written during the current frame (I/O offset, -1 = none). */
+    public val dst: IntArray = IntArray(3) { -1 }
+
+    /** `unk_798[3]`: per-register mode bits (not used by the handler). */
+    public val mode: IntArray = IntArray(3)
+
+    /** `frame_flip`: half of [buf] the game is about to show. */
+    public var frameFlip: Int = 0
+
+    /** `frame`: half of [buf] the handler reads this frame. */
+    public var frame: Int = 0
+
+    /** `updating`: the handler writes registers this frame. */
+    public var updating: Boolean = false
+
+    /** `scroll_en`: start updating at the next VBlank. */
+    public var scrollEnabled: Boolean = false
+
+    /** Loads every field from a 0x7A0-byte `struct BgVerticalScrollSt` image in [mem] at [offset]. */
+    public fun readFrom(mem: ByteArray, offset: Int) {
+        fun u8(i: Int) = mem[offset + i].toInt() and 0xFF
+        fun u32(i: Int) = u8(i) or (u8(i + 1) shl 8) or (u8(i + 2) shl 16) or (u8(i + 3) shl 24)
+        for (i in buf.indices) buf[i] = (u8(2 * i) or (u8(2 * i + 1) shl 8)).toShort()
+        for (i in 0 until 3) {
+            src[i] = ioOffset(u32(0x780 + 4 * i))
+            dst[i] = ioOffset(u32(0x78C + 4 * i))
+            mode[i] = u8(0x798 + i)
+        }
+        frameFlip = u8(0x79B)
+        frame = u8(0x79C)
+        updating = u8(0x79D) != 0
+        scrollEnabled = u8(0x79E) != 0
+    }
+
+    /**
+     * HBlank handler, called with the line just drawn ([vcount] = `REG_VCOUNT`, 0..227): writes line
+     * `vcount + 1`'s values into the register image [io] while updating; on entering VBlank latches the
+     * armed registers and buffer half for the next frame.
+     *
+     * Ported from src/bmlib-hblank.c: HBlank_BgVerticalScroll
+     */
+    public fun onHBlank(vcount: Int, io: ByteArray) {
+        var line = (vcount + 1) and 0xFFFF
+        if (line == TOTAL_LINES) line = 0
+        if (line < LINES) {
+            if (updating) {
+                val base = frame * 480
+                for (i in 0 until 3) {
+                    val reg = dst[i]
+                    if (reg < 0) continue
+                    val v = buf[base + LINES * i + line].toInt()
+                    io[reg] = v.toByte()
+                    io[reg + 1] = (v shr 8).toByte()
+                }
+            }
+            return
+        }
+        if (line == LINES) {
+            if (scrollEnabled) {
+                updating = true
+                frame = frameFlip
+                for (i in 0 until 3) dst[i] = src[i]
+            } else {
+                updating = false
+            }
+        }
+    }
+
+    private companion object {
+        const val LINES = 160
+        const val TOTAL_LINES = 228
+
+        fun ioOffset(ptr: Int): Int = if (ptr == 0) -1 else ptr - 0x04000000
+    }
+}

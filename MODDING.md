@@ -45,6 +45,10 @@ More strategies (damage, exp, growths, AI...) are added as each system is ported
 Game logic sees only `GameAction`s. A touch UI is a mod that supplies an `ActionSource` (and may use
 `SelectItem`, which the base game never produces). The shipped app's only touch input is an on-screen
 GBA button overlay.
+Screens publish their selectable elements each frame into `UiElements` (bounds in GBA pixels + the
+`GameAction` selecting them means, e.g. `SelectItem.of(row)`); a touch mod calls `hitTest(x, y)` on a tap
+and emits that action. The base game only publishes, never reads it (M3-11; screens fill it as they are
+ported).
 
 ## Feature flags (available now)
 Non-original behaviour must be registered as a `FeatureFlag` (`gbafe.core.flags.FeatureFlags.register`).

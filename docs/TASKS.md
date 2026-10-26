@@ -63,7 +63,7 @@ _Order rule (owner, 2026-10-26): interleave verifiable ports (`@VerifiesPort`) w
 | M3-07 | GPU backend v1 in `:app`: tile layers + sprites via shaders, same render state | APK shows extracted test scene (manual test) | todo |
 | M3-08 | Asset override layer: resolver for replacement/hi-res textures by path + scale (mod groundwork; base game ships originals only) | test with a 2× override | done: `gbafe.vfs.TextureOverrides` (`<asset>@<N>x.png`, indexed vs true colour from the PNG colour type, `@<N>x.<paletteHash>.png` variants; highest VFS layer wins); `TextureOverridesTest`. GPU use comes with M3-07 |
 | M3-10 | Android `ActionSource`s: hardware keys + gamepad mapping | manual test | todo |
-| M3-11 | UI element contract: screen bounds + actions for touch hit-testing (no game-logic change; groundwork for mods, 0009) | interface + doc in MODDING | todo |
+| M3-11 | UI element contract: screen bounds + actions for touch hit-testing (no game-logic change; groundwork for mods, 0009) | interface + doc in MODDING | done: `gbafe.input.UiElements` (publish bounds + action per frame, `hitTest`), MODDING Input section; screens fill it as they are ported |
 | M3-15 | On-screen GBA button overlay `ActionSource` in `:app` (D-pad, A, B, L, R, Start, Select; emits exactly GBA keys, multi-touch, no game-logic change) | manual test on device | todo |
 | M3-12 | Low-latency `AudioTrack` sink (`PERFORMANCE_MODE_LOW_LATENCY`, mixer thread, no per-buffer allocs) | APK plays a test tone (manual test) | todo |
 | M3-13 | m4a sequencer core (tempo, tracks, note on/off) from `m4a.c`/MIDI | unit tests vs MIDI timing | todo |

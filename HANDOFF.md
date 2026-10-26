@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated: 2026-10-26 07:15 UTC (scheduled run, started 06:51)._
+_Updated: 2026-10-26 15:25 UTC (scheduled run, started 14:51)._
 
 ## Owner decisions 2026-10-25 (read docs/decisions/0009)
 - The app is a 1:1 copy. Modding = extension points only; ship no touch gameplay, QoL flags or alternate
@@ -18,15 +18,18 @@ _Updated: 2026-10-26 07:15 UTC (scheduled run, started 06:51)._
 _(nothing blocked)_
 
 ## Status
-- This run: M2-20 done (cursors: `CursorsExtractor` → `ui/cursors.png` 18×4-tile misc OBJ UI sheet, `cursor_hand.png`,
-  `cursors.json` with both palettes + map-cursor OAM lists), M2-21 done (ROM-repo `publish-assets` packs `extracted/`
-  as `extracted.tar.xz`; `setup.sh` fetches it into `$FE8_ASSETS/extracted` via REST; code CI step
-  `tools/ci_check_extraction.sh` re-runs the extractor and fails on drift), M3-01 done (ADR 0008 accepted:
-  `LineTable` for HBlank effects; indexed vs RGBA texture replacements), M3-02 done (`gbafe.render.RenderState`).
-  **Milestone 2 is complete.** ROM repo `extracted/` last 6b6e885; release `assets-9db5d11`.
-- CI: green on ce469f7 (incl. the new extraction step, 23 s; its log was not read, so "ran" vs "skipped" is unconfirmed).
-- Session setup: ~6 s (assets cached). Branch: `master`. No `wip/` branches.
-- Progress: 5 / 8352 verified (unchanged: no game-code ports this run).
+- This run: **M3-09** done (`gbafe.input.KeyStatus`: `_UpdateKeyStatus`, `UpdateKeyStatus`, `ResetKeyStatus`, per-frame
+  byte-identical vs mGBA; new ROM-repo reference run `key_status_title`), **M3-03/04/05** done
+  (`gbafe.render.SoftwareRenderer` + `TileSheets`: text + affine BGs, sprites incl. affine/1D/2D, windows, blending,
+  semi-transparent OBJ, BG mosaic, LineTable), **M3-06** part (`fe8.testing.HardwareScene`: mGBA VRAM/PAL/OAM/IO
+  dump → RenderState; `FrameCompareTest`: health & safety, logos, intro, title frames pixel-exact vs mGBA),
+  **M3-16** (new) done (`gbafe.render.LcdControl` = `gLCDControlBuffer` + `FlushLCDControl`, `applyTo(RenderState)`),
+  **M3-08** done (`gbafe.vfs.TextureOverrides`), **M3-11** done (`gbafe.input.UiElements`).
+- ROM repo: `2ae5423` (key_status_title), `65d04f4` (menu_screens: main menu / mode select / save-slot select, full
+  dumps). Release `assets-65d04f4` should be published by its workflow (check; setup.sh takes the latest).
+- CI: green through f929282 (progress commit after it shows 9 / 8352 verified); later pushes not checked yet.
+- Session setup: ~153 s cold (Gradle warm-up). Branch: `master`. No `wip/` branches.
+- Progress: 9 / 8352 verified (+4 this run: 3 key-status functions, `FlushLCDControl`).
 
 ## Run rules (owner, 2026-10-26)
 - Budget **~45 min** (guideline; a little over is fine to finish a nearly done task). Work until ~minute 38, never end
@@ -35,33 +38,35 @@ _(nothing blocked)_
   first, then `tail_lines` <= 80 of the failing job).
 - Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.
 
-## Next task: M3-09 — port key status (verifiable), then M3-03
-- Port `src/hardware.c`: `_UpdateKeyStatus`, `UpdateKeyStatus`, `ResetKeyStatus` (+ `SetKeyStatus_IgnoreMask` /
-  `GetKeyStatus_IgnoreMask` if trivial) into `gbafe.input` on `InputFrame` / a `KeyStatus` class with the same fields
-  as `struct KeyStatusBuffer` (`include/`; RAM `sKeyStatusBuffer` 0x02024CC0, size 0x14; `gKeyStatusPtr` 0x0858791C).
-  Keep repeat timings identical (decomp constants). KDoc `Ported from src/hardware.c: <Func>`.
-- `@VerifiesPort` test: drive the port with the input script of reference run `title_state_replay` (or
-  `boot_to_title`) in `$FE8_ASSETS/reference/out/` and compare the 0x14-byte buffer against the run's RAM dumps at
-  each dumped frame (see `RngDifferentialTest` for how reference RAM is read). If the runs do not dump that address,
-  add a harness reference run in the ROM repo that does (input script with held/repeat/release sequences).
-- Then M3-03 — software compositor, text-mode BG layers + priorities:
-- New `gbafe.render.SoftwareRenderer(state: RenderState, sheets: TileSheets, fb: FrameBuffer)` (`Renderer`). Needs a
-  tile-sheet store first: `TileSheets` = sheet id → 4bpp/8bpp tile bytes (`ByteArray`, GBA tile format, decode with
-  `gbafe.data.Tiles` semantics) — keep it in `engine:render` with no `fe8` dependency.
-- Per scanline (apply `state.lines` overrides when `lines.active`): for each enabled text-mode layer compute the
-  map entry at ((x+scrollX) mod W, (y+scrollY) mod H) with 32/64-tile wrap, flips, 4bpp palette bank; colour 0 =
-  transparent. Pick the front-most opaque pixel by (priority, BG number); fall back to backdrop `palettes.bg[0]`.
-  Output via `FrameBuffer.bgr555ToArgb`. Must not allocate (add to `RenderStateTest`-style allocation test).
-- Tests: synthetic scenes (two layers, priority swap, scroll wrap at 512 px, flips) with hand-computed pixels.
-  Real-frame compare against mGBA is M3-06.
-- Then M3-04 (sprites), M3-05 (blend/windows/mosaic + LineTable effects).
+## Next task: M3-06 rest (menu frames + HBlank), then a verifiable port, then M3-07
+- `menu_screens` frames (m0962/m1024/m1086/m1087) do NOT match yet (12k–24k px): UI windows/text match, the rune
+  background (BG2 over BG3, BLDCNT 0x0844, EVA 6/EVB 16) differs everywhere, not a scroll offset (probed ±2 px).
+  Likely an HBlank handler (per-line BLDALPHA or palette) or palette animation: find the main-menu HBlank / palette
+  code in the decomp (`SetPrimaryHBlankHandler` callers under src/*menu*, `opsubtitle`, `titlescreen`...), port it
+  into a `LineTable` fill, then add these frames to `FrameCompareTest`. Dump timing note: `io.bin` holds the
+  registers used to draw the dumped frame (the VBlank flush of the new values has not run yet; RAM is one step
+  ahead), see `LcdControlDifferentialTest`.
+- Then M3-06's remaining acceptance: build the health & safety screen from **extracted assets** (not VRAM) and
+  frame-compare it.
+- Verifiable port candidates (interleave rule): `hardware.c` palette helpers (`ApplyColorAddition_ClampMax/Min`,
+  `ColorFadeSetup*`, `EnablePaletteSync`), `BG_SetPosition`/`BG_SetPriority`-style setters on `LcdControl`, verified
+  via RAM traces. A gameplay reference run (new game → prologue map) would also exercise scroll/window registers
+  (LcdControl test notes they are all zero in current dumps).
+- M3-07 GPU backend (`:app`, manual test), M3-10 Android ActionSources, M3-12..15 audio/overlay.
+- Open renderer items: OBJ mosaic, mosaic on affine BGs (no reference frame yet).
 - Follow-ups noted, not tasks yet: unit placement / `.fe8s` for chapters other than the prologue need the event
   converter to follow `LOAD1/LOAD2` targets from each chapter's `ChapterEventGroup` (`include/chapterdata.h`);
   keysplit/drum sub-voicegroups are scanned for samples but not written as their own `voicegroups/*.json`.
 - Re-extracting after an extractor change: run the CLI (see the M2-21 lines in Known bugs), copy the output into the
   ROM repo's `extracted/`, commit + push there (publish-assets makes a new release); CI fails until you do.
+- New reference runs: add to the ROM repo's `harness/gen_scripts.py`, run it + `harness/make_reference.sh` (seconds;
+  `bin/mgba-harness` is committed), check old runs are byte-identical, `tar -C reference -cJf dist/reference.tar.xz
+  out`, update the sha1 in `dist/MANIFEST.sha1`, push (publish workflow releases it). Quick screen exploration: run
+  the harness on a scratch script and convert `*.frame.rgb` (240×160 RGB888) to PNG to look at it.
 
 ## Known bugs / caveats
+- Local `master` in a fresh session can be an old unrelated history (seen this run): the checkout came up detached
+  at origin/master; use `git checkout -B master origin/master` style recovery (rename the stale branch first).
 - Extractor CLI: `./gradlew :tools:extract:run --args="--rom $FE8_ASSETS/baserom.gba --out <dir outside repo> --decomp
   <fireemblem8u checkout> --map <rom repo>/decomp/fireemblem8.map --symbols <rom repo>/decomp/fireemblem8.nm.txt"`.
 - `gh release view/download <tag>` (GraphQL) is refused in Claude sessions; use `gh api repos/.../releases/...`

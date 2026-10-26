@@ -48,17 +48,19 @@ Take the first `todo` whose dependencies are `done`. If fewer than 5 `todo` rema
 
 ## M3 — Rendering, input, audio, override layer
 
+_Order rule (owner, 2026-10-26): interleave verifiable ports (`@VerifiesPort`) with infrastructure so a verified port lands every run or two; M3-09 moved ahead of the compositor for this reason._
+
 | ID | Task | Done when | Status |
 |---|---|---|---|
 | M3-01 | Finalise ADR 0008 (render model): HBlank effects + texture-pack/palette interaction | ADR accepted | done: `LineTable` (per-line overrides, data texture on GPU); indexed vs RGBA replacements (`paletteVariants`) |
 | M3-02 | Render state types: `TileLayer`, `SpriteBatch`, `PaletteBank`, `Effects`, `LineTable` (primitive arrays) | compiles; allocation test | done: `gbafe.render.RenderState` (`TileLayer`, `SpriteBatch`, `PaletteBank`, `Effects`, `LineTable`); `RenderStateTest` (0 bytes/frame) |
+| M3-09 | Input: port key repeat/new-press logic (`hardware.c` key status) onto `InputFrame` + differential test (key status RAM) | `@VerifiesPort` passes | todo |
 | M3-03 | Software compositor: text-mode BG layers + priorities | renders a test scene; unit tests | todo |
 | M3-04 | Software compositor: sprites (regular + affine), OBJ priority vs BG | tests | todo |
 | M3-05 | Blend/brightness/windows/mosaic | tests | todo |
 | M3-06 | Frame-compare utility: ARGB vs mGBA dump (5-bit), diff PNG written on failure | first frame-compare test (health & safety screen from extracted assets) passes | todo |
 | M3-07 | GPU backend v1 in `:app`: tile layers + sprites via shaders, same render state | APK shows extracted test scene (manual test) | todo |
 | M3-08 | Asset override layer: resolver for replacement/hi-res textures by path + scale (mod groundwork; base game ships originals only) | test with a 2× override | todo |
-| M3-09 | Input: port key repeat/new-press logic (`hardware.c` key status) onto `InputFrame` + differential test (key status RAM) | `@VerifiesPort` passes | todo |
 | M3-10 | Android `ActionSource`s: hardware keys + gamepad mapping | manual test | todo |
 | M3-11 | UI element contract: screen bounds + actions for touch hit-testing (no game-logic change; groundwork for mods, 0009) | interface + doc in MODDING | todo |
 | M3-15 | On-screen GBA button overlay `ActionSource` in `:app` (D-pad, A, B, L, R, Start, Select; emits exactly GBA keys, multi-touch, no game-logic change) | manual test on device | todo |

@@ -28,7 +28,23 @@ _(nothing blocked)_
 - Session setup: ~6 s (assets cached). Branch: `master`. No `wip/` branches.
 - Progress: 5 / 8352 verified (unchanged: no game-code ports this run).
 
-## Next task: M3-03 — software compositor, text-mode BG layers + priorities
+## Run rules (owner, 2026-10-26)
+- Budget **~45 min** (guideline; a little over is fine to finish a nearly done task). Work until ~minute 38, never end
+  early: when a task finishes, start the next (on `wip/<task-id>` if it may not finish). Wrap up by ~45.
+- Run `tools/setup.sh` in the background with a log and poll it. Never fetch full CI job logs (step conclusions
+  first, then `tail_lines` <= 80 of the failing job).
+- Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.
+
+## Next task: M3-09 — port key status (verifiable), then M3-03
+- Port `src/hardware.c`: `_UpdateKeyStatus`, `UpdateKeyStatus`, `ResetKeyStatus` (+ `SetKeyStatus_IgnoreMask` /
+  `GetKeyStatus_IgnoreMask` if trivial) into `gbafe.input` on `InputFrame` / a `KeyStatus` class with the same fields
+  as `struct KeyStatusBuffer` (`include/`; RAM `sKeyStatusBuffer` 0x02024CC0, size 0x14; `gKeyStatusPtr` 0x0858791C).
+  Keep repeat timings identical (decomp constants). KDoc `Ported from src/hardware.c: <Func>`.
+- `@VerifiesPort` test: drive the port with the input script of reference run `title_state_replay` (or
+  `boot_to_title`) in `$FE8_ASSETS/reference/out/` and compare the 0x14-byte buffer against the run's RAM dumps at
+  each dumped frame (see `RngDifferentialTest` for how reference RAM is read). If the runs do not dump that address,
+  add a harness reference run in the ROM repo that does (input script with held/repeat/release sequences).
+- Then M3-03 — software compositor, text-mode BG layers + priorities:
 - New `gbafe.render.SoftwareRenderer(state: RenderState, sheets: TileSheets, fb: FrameBuffer)` (`Renderer`). Needs a
   tile-sheet store first: `TileSheets` = sheet id → 4bpp/8bpp tile bytes (`ByteArray`, GBA tile format, decode with
   `gbafe.data.Tiles` semantics) — keep it in `engine:render` with no `fe8` dependency.

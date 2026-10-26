@@ -53,8 +53,9 @@ _(nothing blocked)_
   intro proc is `ProcScr_GameEarlyStartUI` 0x08AA7680; `proc_scrCur` points PAST the running command, so the
   active `PROC_REPEAT` function is at `scrCur - 4`); `StartBgVerticalScroll` / `SetBgVerticalScrollPosition`
   (menu entry); `SetBlendTargetA/B` need a dump where they run (first frame of a step).
-- Data gap: `gSinLookup` (0x080D751C, 256+ s16) is read from the ROM in tests; the product needs it extracted
-  (shared FE trig table -> a `gbafe.*` data file) before `SaveDraw` can run in the app.
+- `gSinLookup` is now extracted as `data/trig.json` (`gbafe.trig`, schema `schemas/trig.schema.json`; ROM repo
+  `f92fe18`), but nothing loads it yet: add a `gbafe.data` loader before `SaveDraw` runs in the app (tests still
+  read the table from the ROM). New `schemas/screen.schema.json` for `gbafe.screen`.
 - Frame-compare notes: `FrameCompareTest.applyHBlank` only knows `HBlank_BgVerticalScroll` and fails on any other
   handler; dumped RAM is one game step ahead (the menu already flipped its scroll buffer: the test un-flips).
 - M3-10 Android ActionSources, M3-12..15 audio/overlay. Open renderer items: OBJ mosaic, mosaic on affine BGs.

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/countDookim/Fire-Emblem-8-android/schemas/screen.schema.json",
+  "title": "GBA FE full-screen still image (ui/<name>.json, format gbafe.screen)",
+  "description": "One 4bpp tile set (the PNG named by 'image', 16 tiles per row in tile order, palette = the screen's 'paletteBanks' x 16 colours) plus one tilemap per BG layer: raw u16 BG map entries (tile | hflip 0x400 | vflip 0x800 | palette << 12), top row first, the game's tile base already added. Written by gbafe.extract.ScreenExtractor.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "game", "version", "name", "image", "tiles", "paletteBanks", "layers"],
+  "properties": {
+    "format": { "const": "gbafe.screen" },
+    "game": { "type": "string" },
+    "version": { "const": 1 },
+    "name": { "type": "string" },
+    "image": { "type": "string" },
+    "tiles": { "type": "integer", "minimum": 1, "maximum": 1024 },
+    "paletteBanks": { "type": "integer", "minimum": 1, "maximum": 16 },
+    "layers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["bg", "width", "height", "entries"],
+        "properties": {
+          "bg": { "type": "integer", "minimum": 0, "maximum": 3 },
+          "width": { "type": "integer", "minimum": 1, "maximum": 256 },
+          "height": { "type": "integer", "minimum": 1, "maximum": 256 },
+          "entries": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 65535 } }
+        }
+      }
+    }
+  }
+}

@@ -171,6 +171,13 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
     for ((n, png) in frames.files) File(args.out, "ui/$n").writeBytes(png)
     File(args.out, "ui/windowframes.json").writeText(frames.json)
     written += "ui/windowframes.json (+${frames.files.size} PNG)"
+    // Trig table: gSinLookup (data/trig_rodata.s), 320 s16 in 4.12 fixed point; SIN(a) = [a & 0xFF],
+    // COS(a) = [0x40 + (a & 0xFF)] (include/hardware.h), hence 256 + 64 entries.
+    val sinAt = symbols["gSinLookup"].address - ROM_BASE
+    val sinTable = List(320) { ((rom[sinAt + 2 * it].toInt() and 0xFF) or (rom[sinAt + 2 * it + 1].toInt() shl 8)) }
+    File(args.out, "data/trig.json").writeText(gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.trig", "game" to "fe8",
+        "version" to 1, "fractionBits" to 12, "sin" to sinTable)))
+    written += "data/trig.json"
     // Health & safety screen (M3-06), src/opanim-healthsafetyscreen.c PrepareHealthAndSafetyScreen: one tile set
     // at VRAM 0, BG1 and BG0 TSAs with tile base 0, palette bank 0 (OpAnimHS_BrightenPalette(.., 0, 1, ..)).
     val hs = gbafe.extract.ScreenExtractor.extract(

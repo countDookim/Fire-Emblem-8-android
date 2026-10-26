@@ -34,8 +34,8 @@ _(nothing blocked)_
   Unverified helpers added: `LcdControl.setBlendTargetA/B`, `setDispEnable` (no Ported-from KDoc yet).
 - CI: `tools/ci_check_extraction.sh` now compares PNGs by content (`tools/compare_extraction.py`): the session
   JDK's zlib writes different deflate bytes than CI's for identical pixels (all 228 PNGs differed bytewise).
-- CI: green through aec1f96; later runs were in progress at wrap-up (a run cancelled by a newer push shows its
-  test step as failed: not a real failure). Check the latest run first.
+- CI: green through aec1f96; later runs were cancelled by newer pushes (a cancelled run shows its test step as
+  failed) except run 73 (1b37a59), which hit the allocation flake fixed in the final push. Check the latest run first.
 - Session setup: ~114 s. Branch: `master`. No `wip/` branches. Progress: 19 / 8352 verified.
 
 ## Run rules (owner, 2026-10-26)
@@ -71,8 +71,9 @@ _(nothing blocked)_
   the harness on a scratch script and convert `*.frame.rgb` (240×160 RGB888) to PNG to look at it.
 
 ## Known bugs / caveats
-- `RenderStateTest.filling a frame allocates nothing` failed once locally right after a full build and passed on 4
-  reruns (allocation measurement flake, JIT timing); if it recurs in CI, raise the warm-up rather than skip it.
+- `RenderStateTest.filling a frame allocates nothing` flaked (200 bytes once in 1000 frames, locally and in CI run
+  73): now uses `AllocationMeter.measureMin` (min over 3 rounds; a real per-frame allocation still fails). Use it
+  for other allocation tests if they flake.
 - `tools/progress.py` attributes a `@VerifiesPort` test to the LAST `class` declared before it in the file: keep
   helper classes below the test class (or top-level after it), or the port is not counted.
 - Local `master` in a fresh session can be an old unrelated history (seen this run): the checkout came up detached

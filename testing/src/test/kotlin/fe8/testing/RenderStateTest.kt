@@ -34,7 +34,7 @@ class RenderStateTest {
         assumeTrue(AllocationMeter.supported)
         val s = RenderState()
         var f = 0
-        val bytes = AllocationMeter.measure(warmup = 2_000, iterations = 1_000) { fill(s, f++) }
+        val bytes = AllocationMeter.measureMin(warmup = 5_000, iterations = 1_000) { fill(s, f++) }
         assertEquals(0L, bytes, "bytes allocated over 1000 frames")
     }
 

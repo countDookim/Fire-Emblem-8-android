@@ -30,4 +30,20 @@ public object AllocationMeter {
         repeat(iterations) { block() }
         return current() - before
     }
+
+    /**
+     * Like [measure], but repeats the measured part [rounds] times and returns the smallest count. A real
+     * per-iteration allocation shows up in every round; a one-off runtime allocation (JIT/OSR transition while
+     * the code is being compiled) only in one, so this keeps the zero-allocation check without flaking.
+     */
+    public inline fun measureMin(warmup: Int, iterations: Int, rounds: Int = 3, block: () -> Unit): Long {
+        repeat(warmup) { block() }
+        var best = Long.MAX_VALUE
+        repeat(rounds) {
+            val before = current()
+            repeat(iterations) { block() }
+            best = minOf(best, current() - before)
+        }
+        return best
+    }
 }

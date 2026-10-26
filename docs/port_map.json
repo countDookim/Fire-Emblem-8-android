@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 5,
+    "verified": 8,
     "implemented_unverified": 6
   },
   "functions": {
@@ -67,6 +67,15 @@
       "status": "implemented",
       "tests": []
     },
+    "ResetKeyStatus": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/input/src/main/kotlin/gbafe/input/KeyStatus.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.KeyStatusDifferentialTest#boot key status matches ResetKeyStatus plus idle updates"
+      ]
+    },
     "Roll1RN": {
       "decomp_file": "src/rng.c",
       "system": "core",
@@ -96,6 +105,24 @@
       "kotlin_file": "engine/core/src/main/kotlin/gbafe/core/rng/Rng.kt",
       "status": "implemented",
       "tests": []
+    },
+    "UpdateKeyStatus": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/input/src/main/kotlin/gbafe/input/KeyStatus.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
+      ]
+    },
+    "_UpdateKeyStatus": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/input/src/main/kotlin/gbafe/input/KeyStatus.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
+      ]
     }
   }
 }

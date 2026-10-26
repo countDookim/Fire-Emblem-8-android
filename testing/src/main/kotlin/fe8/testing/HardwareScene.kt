@@ -1,7 +1,7 @@
 package fe8.testing
 
-import gbafe.render.Effects
 import gbafe.render.FrameBuffer
+import gbafe.render.LcdControl
 import gbafe.render.RenderState
 import gbafe.render.SpriteBatch
 import gbafe.render.TileLayer
@@ -14,8 +14,7 @@ import java.awt.image.BufferedImage
  * Test-only bridge from raw GBA hardware state (an mGBA dump: VRAM, palette RAM, OAM, I/O registers) to the
  * semantic [RenderState] + [TileSheets] the [gbafe.render.SoftwareRenderer] draws. Lets frame-compare tests
  * check the compositor against mGBA's own output for any dumped frame, before game systems fill the render
- * state themselves. Text-mode backgrounds (mode 0, and BG0/BG1 of mode 1) only; affine BGs are marked
- * [TileLayer.affine] and skipped by the renderer for now.
+ * state themselves. Video modes 0..2 (text and affine backgrounds); bitmap modes 3..5 are not supported.
  *
  * Sheet ids: 0..3 = BG character base blocks (VRAM 0x0000, 0x4000, 0x8000, 0xC000, each up to the end
  * of BG VRAM), 4 = OBJ tiles (VRAM 0x10000).
@@ -37,29 +36,25 @@ public object HardwareScene {
     public fun load(state: RenderState, sheets: TileSheets, vram: ByteArray, pal: ByteArray, oam: ByteArray, io: ByteArray) {
         state.reset()
         val dispcnt = u16(io, 0)
-        val mode = dispcnt and 7
         for (b in 0 until 4) sheets[b] = vram.copyOfRange(b * 0x4000, 0x10000)
         sheets[OBJ_SHEET] = vram.copyOfRange(0x10000, 0x18000)
         for (i in 0 until 256) {
             state.palettes.bg[i] = u16(pal, 2 * i).toShort()
             state.palettes.obj[i] = u16(pal, 0x200 + 2 * i).toShort()
         }
+        val lcd = LcdControl()
+        lcd.readRegisters(io)
+        lcd.applyTo(state)
         for (bg in 0 until 4) {
             val l = state.layers[bg]
-            val cnt = u16(io, 0x08 + 2 * bg)
-            l.enabled = dispcnt and (0x100 shl bg) != 0
-            l.priority = cnt and 3
-            l.sheet = (cnt shr 2) and 3
-            l.mosaic = cnt and 0x40 != 0
-            l.bpp8 = cnt and 0x80 != 0
-            l.affine = mode == 2 || (mode == 1 && bg == 2)
-            if (mode > 2 || (mode == 1 && bg == 3) || (mode == 2 && bg < 2)) l.enabled = false
-            val size = (cnt shr 14) and 3
-            l.widthTiles = if (size and 1 != 0) 64 else 32
-            l.heightTiles = if (size and 2 != 0) 64 else 32
-            l.scrollX = u16(io, 0x10 + 4 * bg) and 0x1FF
-            l.scrollY = u16(io, 0x12 + 4 * bg) and 0x1FF
-            val screenBase = ((cnt shr 8) and 0x1F) * 0x800
+            val screenBase = ((lcd.bgCnt[bg] shr 8) and 0x1F) * 0x800
+            if (l.affine) { // one byte per entry, row-major
+                for (ty in 0 until l.heightTiles) for (tx in 0 until l.widthTiles) {
+                    val o = screenBase + ty * l.widthTiles + tx
+                    l.setEntry(tx, ty, if (o < 0x10000) vram[o].toInt() and 0xFF else 0)
+                }
+                continue
+            }
             for (ty in 0 until l.heightTiles) for (tx in 0 until l.widthTiles) {
                 var block = 0
                 if (tx >= 32) block += 1
@@ -68,32 +63,7 @@ public object HardwareScene {
                 l.setEntry(tx, ty, if (o + 1 < 0x10000) u16(vram, o) else 0)
             }
         }
-        val fx = state.effects
-        fx.win0 = dispcnt and 0x2000 != 0
-        fx.win1 = dispcnt and 0x4000 != 0
-        fx.objWindow = dispcnt and 0x8000 != 0
-        for (w in 0..1) {
-            val h = u16(io, 0x40 + 2 * w)
-            val v = u16(io, 0x44 + 2 * w)
-            fx.winLeft[w] = h ushr 8; fx.winRight[w] = h and 0xFF
-            fx.winTop[w] = v ushr 8; fx.winBottom[w] = v and 0xFF
-        }
-        val winin = u16(io, 0x48)
-        val winout = u16(io, 0x4A)
-        fx.winInside[0] = winin and 0x3F; fx.winInside[1] = (winin shr 8) and 0x3F
-        fx.winOutside = winout and 0x3F; fx.winInside[2] = (winout shr 8) and 0x3F
-        val mosaic = u16(io, 0x4C)
-        for (i in 0 until 4) fx.mosaic[i] = ((mosaic shr (4 * i)) and 0xF) + 1
-        val bldcnt = u16(io, 0x50)
-        fx.blendTop = bldcnt and 0x3F
-        fx.blendMode = (bldcnt shr 6) and 3 // same numbering as Effects.BLEND_*
-        fx.blendBottom = (bldcnt shr 8) and 0x3F
-        val bldalpha = u16(io, 0x52)
-        fx.eva = bldalpha and 0x1F; fx.evb = (bldalpha shr 8) and 0x1F
-        fx.evy = u16(io, 0x54) and 0x1F
-
         val sp = state.sprites
-        sp.mapping1d = dispcnt and 0x40 != 0
         for (m in 0 until SpriteBatch.AFFINE_MATRICES) {
             sp.setAffine(m, s16(oam, m * 32 + 6), s16(oam, m * 32 + 14), s16(oam, m * 32 + 22), s16(oam, m * 32 + 30))
         }

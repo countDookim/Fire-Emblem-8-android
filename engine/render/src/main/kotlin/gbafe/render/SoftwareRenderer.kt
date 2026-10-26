@@ -16,7 +16,10 @@ package gbafe.render
  * per pixel which layers are visible and whether colour effects apply; alpha blending of the top two
  * visible pixels, brightness up/down, semi-transparent sprites (always blended over a second target),
  * BG mosaic. Per-line window x bounds and blend coefficients from [RenderState.lines] are applied.
- * Not yet: OBJ mosaic, affine BG layers (skipped). Hardware edge cases are confirmed against mGBA frames
+ * Affine BG layers: 8bpp maps of 16..128 tiles with one-byte tile indices, sampled at
+ * `(ref + pa·x, ref + pc·x) >> 8` per line, the line reference advancing by `pb`/`pd` per line (a LineTable
+ * scroll override reloads it, like an HBlank write to `BGxX/Y`); wrap or transparent outside.
+ * Not yet: OBJ mosaic, mosaic on affine BGs. Hardware edge cases are confirmed against mGBA frames
  * in M3-06.
  *
  * The camera offset is ignored: vanilla mode always shows the 240×160 screen at the origin.
@@ -35,6 +38,8 @@ public class SoftwareRenderer(
     private val order = IntArray(RenderState.LAYERS)
     private val lineScrollX = IntArray(RenderState.LAYERS)
     private val lineScrollY = IntArray(RenderState.LAYERS)
+    private val affX = IntArray(RenderState.LAYERS)
+    private val affY = IntArray(RenderState.LAYERS)
     private val lineSheet = arrayOfNulls<ByteArray>(RenderState.LAYERS)
     private val objColor = IntArray(FrameBuffer.GBA_WIDTH)
     private val objPrio = IntArray(FrameBuffer.GBA_WIDTH)
@@ -57,7 +62,12 @@ public class SoftwareRenderer(
         var nextWrite = 0
         val width = minOf(fb.width, FrameBuffer.GBA_WIDTH)
         val height = minOf(fb.height, FrameBuffer.GBA_HEIGHT)
-        for (i in 0 until layerCount) lineSheet[i] = sheets[state.layers[order[i]].sheet]
+        for (i in 0 until layerCount) {
+            val l = state.layers[order[i]]
+            lineSheet[i] = sheets[l.sheet]
+            affX[i] = l.refX
+            affY[i] = l.refY
+        }
         for (y in 0 until height) {
             val lineMask = if (lines.active) lines.mask[y] else 0
             if (lines.active) {
@@ -69,7 +79,16 @@ public class SoftwareRenderer(
             for (i in 0 until layerCount) {
                 val bg = order[i]
                 val layer = state.layers[bg]
-                if (lineMask and (LineTable.BG_SCROLL shl bg) != 0) {
+                if (layer.affine) {
+                    if (lineMask and (LineTable.BG_SCROLL shl bg) != 0) {
+                        affX[i] = lines.scrollX[bg * RenderState.LINES + y]
+                        affY[i] = lines.scrollY[bg * RenderState.LINES + y]
+                    }
+                    lineScrollX[i] = affX[i]
+                    lineScrollY[i] = affY[i]
+                    affX[i] += layer.pb
+                    affY[i] += layer.pd
+                } else if (lineMask and (LineTable.BG_SCROLL shl bg) != 0) {
                     lineScrollX[i] = lines.scrollX[bg * RenderState.LINES + y]
                     lineScrollY[i] = lines.scrollY[bg * RenderState.LINES + y]
                 } else {
@@ -115,7 +134,9 @@ public class SoftwareRenderer(
                     }
                     if (wmask and (1 shl bg) == 0) continue
                     val sheet = lineSheet[i] ?: continue
-                    val c = if (layer.mosaic) {
+                    val c = if (layer.affine) {
+                        affinePixel(layer, sheet, lineScrollX[i] + layer.pa * x, lineScrollY[i] + layer.pc * x)
+                    } else if (layer.mosaic) {
                         textPixel(layer, sheet, x - x % mh + lineScrollX[i], mvY + lineScrollY[i])
                     } else {
                         textPixel(layer, sheet, x + lineScrollX[i], y + lineScrollY[i])
@@ -221,16 +242,32 @@ public class SoftwareRenderer(
         }
     }
 
-    /** Fills [order] with the enabled text-mode layers front to back; returns how many. */
+    /** Fills [order] with the enabled layers front to back; returns how many. */
     private fun sortLayers(): Int {
         var n = 0
         for (prio in 0..3) {
             for (bg in 0 until RenderState.LAYERS) {
                 val l = state.layers[bg]
-                if (l.enabled && !l.affine && l.priority == prio) order[n++] = bg
+                if (l.enabled && l.priority == prio) order[n++] = bg
             }
         }
         return n
+    }
+
+    /** BGR555 colour of affine layer [layer] at texture position ([fx], [fy]) in 8.8 fixed point, or -1. */
+    private fun affinePixel(layer: TileLayer, sheet: ByteArray, fx: Int, fy: Int): Int {
+        val size = layer.widthTiles * 8
+        var tx = fx shr 8
+        var ty = fy shr 8
+        if (layer.wrap) {
+            tx = tx and (size - 1)
+            ty = ty and (size - 1)
+        } else if (tx < 0 || ty < 0 || tx >= size || ty >= size) {
+            return -1
+        }
+        val tile = layer.entry(tx shr 3, ty shr 3) and 0xFF
+        val idx = TileSheets.pixel(sheet, tile, tx and 7, ty and 7, true)
+        return if (idx == 0) -1 else palette[idx].toInt() and 0x7FFF
     }
 
     /** BGR555 colour of the layer at world pixel ([wx], [wy]) (scroll applied, not yet wrapped), or -1. */

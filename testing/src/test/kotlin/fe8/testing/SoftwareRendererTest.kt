@@ -347,4 +347,45 @@ class SoftwareRendererTest {
         assertEquals(argb(0x105), fb[7, 1]) // line 1 samples line 0
         assertEquals(argb(0x0001), fb[0, 2])
     }
+
+    private fun affineLayer(): TileLayer = state.layers[2].also { l ->
+        l.enabled = true; l.affine = true; l.bpp8 = true; l.sheet = 1
+        l.widthTiles = 16; l.heightTiles = 16
+        l.setEntry(0, 0, 0x101) // only the low byte (tile 1) counts on affine maps
+    }
+
+    @Test
+    fun `affine BG samples with the reference point and matrix`() {
+        val l = affineLayer()
+        val green = argb(0x03E0)
+        val back = argb(0x0001)
+        renderer.render(cam)
+        assertEquals(green, fb[0, 0]); assertEquals(green, fb[7, 7]); assertEquals(back, fb[8, 0])
+        l.refX = -8 shl 8 // shift right by 8 px; no wrap: outside is transparent
+        renderer.render(cam)
+        assertEquals(back, fb[0, 0]); assertEquals(green, fb[8, 0])
+        l.wrap = true; l.setEntry(15, 0, 1) // wrap: x = -8 is tile 15
+        renderer.render(cam)
+        assertEquals(green, fb[0, 0])
+        l.refX = 0; l.wrap = false; l.pa = 0x80 // 2x horizontal magnification
+        renderer.render(cam)
+        assertEquals(green, fb[15, 0]); assertEquals(back, fb[16, 0])
+    }
+
+    @Test
+    fun `affine BG reference advances by pb and pd per line and line overrides reload it`() {
+        val l = affineLayer()
+        val green = argb(0x03E0)
+        val back = argb(0x0001)
+        l.pd = 0x200 // each line steps two texels down
+        renderer.render(cam)
+        assertEquals(green, fb[0, 3]); assertEquals(back, fb[0, 4])
+        state.lines.setScroll(line = 4, bg = 2, x = 0, y = 0) // reload the reference on line 4
+        renderer.render(cam)
+        assertEquals(green, fb[0, 4]); assertEquals(green, fb[0, 7]); assertEquals(back, fb[0, 8])
+        state.lines.clear()
+        l.pd = 0x100; l.pb = 0x100 // shear: line y starts y texels to the right
+        renderer.render(cam)
+        assertEquals(green, fb[0, 7]); assertEquals(back, fb[1, 7])
+    }
 }

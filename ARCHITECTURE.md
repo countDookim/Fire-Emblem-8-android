@@ -58,7 +58,7 @@ the render state to the backend. Logic never reads wall-clock time, so vanilla i
 differential test can drive `tick()` directly with the same per-frame inputs as mGBA.
 
 ## Rendering
-Two backends over one semantic render state ([0008](docs/decisions/0008-render-model.md), proposed):
+Two backends over one semantic render state ([0008](docs/decisions/0008-render-model.md), accepted; per-scanline effects via a `LineTable`):
 software (JVM, frame comparison against mGBA dumps; 5-bit channel compare) and OpenGL ES 3.0 (native
 240×160 texture scaled by a shader, aspect-correct, nearest filtering). `Camera` is not tied to
 240×160 so widescreen mods are possible; the shipped game is fixed at 240×160.

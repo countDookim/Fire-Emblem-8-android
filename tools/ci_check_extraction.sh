@@ -19,7 +19,8 @@ git clone -q --filter=blob:none --sparse https://github.com/FireEmblemUniverse/f
 (cd "$WORK/decomp" && git checkout -q "$PIN" && git sparse-checkout set --no-cone include src texts asm data sound)
 "$ROOT/gradlew" -q :tools:extract:run --console=plain --args="--rom $FE8_ASSETS/baserom.gba --out $WORK/out \
   --decomp $WORK/decomp --map $FE8_ASSETS/fireemblem8.map --symbols $FE8_ASSETS/fireemblem8.nm.txt"
-if diff -rq -x .release "$FE8_ASSETS/extracted" "$WORK/out" > "$WORK/diff.txt"; then
+# PNGs compare by content (chunks + inflated pixels): Deflater output differs between zlib builds.
+if python3 "$ROOT/tools/compare_extraction.py" "$FE8_ASSETS/extracted" "$WORK/out" > "$WORK/diff.txt"; then
   echo "extraction reproduces the committed extracted/ ($(find "$WORK/out" -type f | wc -l) files)"
 else
   echo "::error title=Extraction drift::extractor output differs from the ROM repo's extracted/ (re-extract and commit to the ROM repo)"

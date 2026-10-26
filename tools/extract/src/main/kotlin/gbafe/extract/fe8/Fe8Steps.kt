@@ -171,6 +171,19 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
     for ((n, png) in frames.files) File(args.out, "ui/$n").writeBytes(png)
     File(args.out, "ui/windowframes.json").writeText(frames.json)
     written += "ui/windowframes.json (+${frames.files.size} PNG)"
+    // Health & safety screen (M3-06), src/opanim-healthsafetyscreen.c PrepareHealthAndSafetyScreen: one tile set
+    // at VRAM 0, BG1 and BG0 TSAs with tile base 0, palette bank 0 (OpAnimHS_BrightenPalette(.., 0, 1, ..)).
+    val hs = gbafe.extract.ScreenExtractor.extract(
+        rom, "fe8", "health_safety", symbols["Img_OpAnimHealthSafetyScreen"].address - ROM_BASE,
+        symbols["Pal_OpAnimHealthSafetyScreen"].address - ROM_BASE, 1,
+        listOf(
+            gbafe.extract.ScreenExtractor.Layer(1, symbols["Tsa_OpAnimHealthSafetyScreenBG1"].address - ROM_BASE),
+            gbafe.extract.ScreenExtractor.Layer(0, symbols["Tsa_OpAnimHealthSafetyScreenBG0"].address - ROM_BASE),
+        ),
+    )
+    File(args.out, "ui/health_safety.png").writeBytes(hs.png)
+    File(args.out, "ui/health_safety.json").writeText(hs.json)
+    written += "ui/health_safety.json (+PNG)"
     val cursors = gbafe.extract.fe8.ui.CursorsExtractor.extract(
         rom, symbols["gGfx_MiscUiGraphics"].address - ROM_BASE, symbols["gPal_MiscUiGraphics"].address - ROM_BASE,
         symbols["sMapCursorSpriteLut"].address - ROM_BASE, symbols["sSprite_MapCursorStretched"].address - ROM_BASE,

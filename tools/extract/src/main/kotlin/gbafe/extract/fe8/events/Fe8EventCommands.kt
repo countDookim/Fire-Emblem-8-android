@@ -5,7 +5,16 @@ package gbafe.extract.fe8.events
 /** FE8 event commands keyed by header `(cmd shl 8) or (len shl 4) or sub` (M2-15). */
 public object Fe8EventCommands {
     /** One command form: [name] (snake_case macro name), decomp [macro], its [params] and aliases. */
-    public class Command(public val name: String, public val macro: String, public val params: List<String>, public val aliases: List<String>)
+    public class Command(
+        /** `.fe8s` command name. */
+        public val name: String,
+        /** Decomp macro it comes from. */
+        public val macro: String,
+        /** The macro's parameter names. */
+        public val params: List<String>,
+        /** Other macros encoding the same header. */
+        public val aliases: List<String>,
+    )
 
     /** Header word → command. */
     public val byHeader: Map<Int, Command> = mapOf(

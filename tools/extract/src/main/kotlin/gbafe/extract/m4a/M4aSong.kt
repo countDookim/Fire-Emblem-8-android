@@ -22,16 +22,40 @@ public object M4aSong {
     )
 
     /** One decoded event at [time] (clocks). [type] is the m4a mnemonic (`NOTE`, `TIE`, `EOT`, `VOL`, ...). */
-    public data class Event(val time: Int, val type: String, val args: List<Int>)
+    public data class Event(
+        /** Time in m4a clocks. */
+        val time: Int,
+        /** m4a mnemonic. */
+        val type: String,
+        /** Command arguments. */
+        val args: List<Int>,
+    )
 
     /** A decoded song: header fields, and per track its events plus the loop start time (GOTO target) or -1. */
     public class Song(
-        public val blockCount: Int, public val priority: Int, public val reverb: Int, public val voicegroup: Int,
-        public val tracks: List<List<Event>>, public val loopStarts: List<Int>,
+        /** `SongHeader.blockCount`. */
+        public val blockCount: Int,
+        /** `SongHeader.priority`. */
+        public val priority: Int,
+        /** `SongHeader.reverb`. */
+        public val reverb: Int,
+        /** Voicegroup GBA address (`SongHeader.tone`). */
+        public val voicegroup: Int,
+        /** Events per track. */
+        public val tracks: List<List<Event>>,
+        /** Loop start time per track (first GOTO target), or -1. */
+        public val loopStarts: List<Int>,
     )
 
     /** One song table entry (`.4byte header; .2byte ms, me`, decomp `asm/macros/m4a.inc: song`). */
-    public data class SongEntry(val header: Int, val musicPlayer: Int, val unknown: Int)
+    public data class SongEntry(
+        /** Song header GBA address. */
+        val header: Int,
+        /** Music player index. */
+        val musicPlayer: Int,
+        /** Second u16 (`unknown` in the decomp macro). */
+        val unknown: Int,
+    )
 
     /** Reads [count] 8-byte song table entries at ROM offset [offset]. */
     public fun readSongTable(rom: ByteArray, offset: Int, count: Int): List<SongEntry> = List(count) {
@@ -186,7 +210,18 @@ public object M4aSong {
         }
 
     /** A direct-sound sample (`struct WaveData`, decomp `include/gba/m4a_internal.h`); [data] = [size] signed samples. */
-    public class Wave(public val type: Int, public val status: Int, public val freq: Int, public val loopStart: Int, public val data: ByteArray) {
+    public class Wave(
+        /** `WaveData.type`. */
+        public val type: Int,
+        /** `WaveData.status` (loop flag 0x4000). */
+        public val status: Int,
+        /** `WaveData.freq` (sample rate × 1024). */
+        public val freq: Int,
+        /** `WaveData.loopStart` in samples. */
+        public val loopStart: Int,
+        /** Signed 8-bit samples. */
+        public val data: ByteArray,
+    ) {
         /** Loop flag (`status & 0x4000`, the m4a's WAVE_LOOP). */
         public val loops: Boolean get() = status and 0x4000 != 0
 

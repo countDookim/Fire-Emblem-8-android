@@ -14,7 +14,12 @@ import gbafe.extract.Json
  */
 public object WindowFramesExtractor {
     /** Result: PNG files by name and the `gbafe.windowframes` document. */
-    public class Output(public val files: Map<String, ByteArray>, public val json: String)
+    public class Output(
+        /** PNG bytes by file name. */
+        public val files: Map<String, ByteArray>,
+        /** The `gbafe.windowframes` document. */
+        public val json: String,
+    )
 
     /** Extracts from the three lookup tables (ROM offsets). */
     public fun extract(rom: ByteArray, imageLookup: Int, paletteLookup: Int, modelLookup: Int): Output {

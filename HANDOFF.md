@@ -25,7 +25,7 @@ _(nothing blocked)_
   (`gbafe.extract.m4a.M4aSong`: 1000 song entries → 594 MIDI identical to all 589 decomp `.mid`; 84 voicegroups;
   439 WAV identical to the decomp `.aif`), M2-20 partial (icons + window frames), `--game` CLI dispatch.
   New schemas: `songs`, `voicegroup`, `samples` (+ `moving` in `mapsprites`). ROM repo `extracted/` last ff16883.
-- CI: ✅ through 2c702f7 (start of run); this run's pushes not yet checked — check the run for the final commit first.
+- CI: run for cbc8ac4 failed in the Dokka step (29 undocumented constructor properties from this run); fixed by the KDoc commit after it.
 - Session setup: ~6 s (assets cached). Branch: `master`. No `wip/` branches.
 - Progress: 5 / 8352 verified (unchanged: extraction only, no game-code ports).
 
@@ -43,6 +43,8 @@ _(nothing blocked)_
   keysplit/drum sub-voicegroups are scanned for samples but not written as their own `voicegroups/*.json`.
 
 ## Known bugs / caveats
+- CI's Dokka step fails on ANY warning (every public declaration, incl. constructor `val`s, needs KDoc). Before
+  pushing new public API run `./gradlew dokkaGenerate -Pfe8.docs=true` (after `tools/setup.sh` + `source .assets.env`).
 - Decomp checkout for this work: sparse set must include `texts` (face names in messages.json) and `sound`
   (song/sample ground truth): `git sparse-checkout set --no-cone include src texts asm data sound`.
 - `.fe8s` v0 prints args as raw numbers (u16, or u32 for ROM pointers/`set_slot`); symbolic constants and a

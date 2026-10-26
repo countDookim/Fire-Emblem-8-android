@@ -18,7 +18,14 @@ public object EventScriptConverter {
     private val JUMPS = setOf(0x09, 0x0C) // goto, branches: first argument word is a label id
 
     /** Result: the `.fe8s` lines (no header) and the ROM addresses of every symbol-resolved pointer. */
-    public class Result(public val lines: List<String>, public val referenced: List<Int>, public val byteLength: Int)
+    public class Result(
+        /** One `.fe8s` command per original command, in order. */
+        public val lines: List<String>,
+        /** GBA addresses printed as symbol names. */
+        public val referenced: List<Int>,
+        /** Bytes of bytecode consumed. */
+        public val byteLength: Int,
+    )
 
     /** Converts the script at ROM offset [offset]; [symbols] maps GBA addresses (0x08xxxxxx) to names. */
     public fun convert(rom: ByteArray, offset: Int, symbols: Map<Int, String> = emptyMap(), maxWords: Int = 0x4000): Result {

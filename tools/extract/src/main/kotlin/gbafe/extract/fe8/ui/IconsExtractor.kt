@@ -20,7 +20,14 @@ public object IconsExtractor {
     public const val PER_ROW: Int = 16
 
     /** Result: sheet PNG bytes and the `gbafe.icons` document. */
-    public class Output(public val png: ByteArray, public val json: String, public val count: Int)
+    public class Output(
+        /** The icon sheet PNG. */
+        public val png: ByteArray,
+        /** The `gbafe.icons` document. */
+        public val json: String,
+        /** Number of icons. */
+        public val count: Int,
+    )
 
     /** Extracts [count] icons at [tilesOffset] with the 2 palettes at [paletteOffset]. */
     public fun extract(rom: ByteArray, tilesOffset: Int, count: Int, paletteOffset: Int): Output {

@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 10,
+    "verified": 19,
     "implemented_unverified": 6
   },
   "functions": {
@@ -19,6 +19,15 @@
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
       ]
     },
+    "BG_SetPosition": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/LcdControl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SaveDrawDifferentialTest#fog scroll reproduces the dumped table, proc fields and LCD buffer"
+      ]
+    },
     "DecodeString": {
       "decomp_file": "asm/arm.s",
       "system": "core",
@@ -28,6 +37,15 @@
         "fe8.testing.MsgHuffmanRomTest#known names decode exactly"
       ]
     },
+    "FlipBgVerticalScroll": {
+      "decomp_file": "src/bmlib-hblank.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgVerticalScroll.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SaveDrawDifferentialTest#fog scroll reproduces the dumped table, proc fields and LCD buffer"
+      ]
+    },
     "FlushLCDControl": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -35,6 +53,42 @@
       "status": "verified",
       "tests": [
         "fe8.testing.LcdControlDifferentialTest#flushed registers match mGBA I-O for every full dump"
+      ]
+    },
+    "GameIntroHealthSafetyFadeIN": {
+      "decomp_file": "src/opanim-healthsafetyscreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsDifferentialTest#health and safety fade steps match the boot RAM trace"
+      ]
+    },
+    "GameIntroHealthSafetyFadeOUT": {
+      "decomp_file": "src/opanim-healthsafetyscreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsDifferentialTest#health and safety fade steps match the boot RAM trace"
+      ]
+    },
+    "GameIntroHealthSafetyWaitButton": {
+      "decomp_file": "src/opanim-healthsafetyscreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsDifferentialTest#health and safety brightness pulse matches the boot RAM trace"
+      ]
+    },
+    "GetBgVerticalScrollBuffer": {
+      "decomp_file": "src/bmlib-hblank.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgVerticalScroll.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SaveDrawDifferentialTest#fog scroll reproduces the dumped table, proc fields and LCD buffer"
       ]
     },
     "HBlank_BgVerticalScroll": {
@@ -85,6 +139,15 @@
       "status": "implemented",
       "tests": []
     },
+    "OpAnimHS_BrightenPalette": {
+      "decomp_file": "src/opanim-healthsafetyscreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsDifferentialTest#intro fades match gPaletteBuffer in the boot RAM trace"
+      ]
+    },
     "ResetKeyStatus": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -107,6 +170,24 @@
       "kotlin_file": "engine/core/src/main/kotlin/gbafe/core/rng/Rng.kt",
       "status": "implemented",
       "tests": []
+    },
+    "SaveDraw_ScrollFogBG": {
+      "decomp_file": "src/savedraw.c",
+      "system": "save",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/savemenu/SaveDraw.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SaveDrawDifferentialTest#fog scroll reproduces the dumped table, proc fields and LCD buffer"
+      ]
+    },
+    "SetBlendConfig": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/LcdControl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsDifferentialTest#health and safety brightness pulse matches the boot RAM trace"
+      ]
     },
     "SetLCGRNValue": {
       "decomp_file": "src/rng.c",

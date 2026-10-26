@@ -17,7 +17,7 @@ path as a base file overrides it; the highest layer wins ([0003](docs/decisions/
 | `data/` | items, classes, characters, terrain, shops, chapters, AI tables... | JSON + `schemas/*.schema.json`; patch with `*.merge.json` | `items.json`, `classes.json`, `characters.json`, `terrains.json` formats published ([schemas](schemas/)); extracted by `:tools:extract`, not yet loaded by the game. Others *(planned, M2)* |
 | `maps/` | chapter maps: layout, collision, events, units, warps | Tiled `.tmj` + tileset PNGs | *(planned, M2)* |
 | `scripts/` | event scripts | `.fe8s` ([0001](docs/decisions/0001-script-format.md)) | *(planned, M5)* |
-| `gfx/` | sprites, portraits, UI, tilesets; replacement/hi-res packs (mods): indexed replacements keep palette animation, RGBA ones need `paletteVariants` (ADR 0008) | PNG + JSON metadata | *(planned, M2–3)* |
+| `gfx/` | sprites, portraits, UI, tilesets; replacement/hi-res packs (mods): put `<asset>@<N>x.png` (N = 1..8) next to the original path; an indexed PNG keeps palette animation, a true-colour one can add `<asset>@<N>x.<paletteHash>.png` variants (`TextureOverrides.paletteHash`, ADR 0008); the highest mod layer wins | PNG + JSON metadata | resolver done (`gbafe.vfs.TextureOverrides`, M3-08); drawn by the GPU backend (M3-07) |
 | `audio/` | music, voicegroups, SFX | MIDI + JSON, WAV/OGG | *(planned, M2–3)* |
 | `text/<lang>/` | all strings, tags like `{PLAYER}`, `{PAUSE 30}` | JSON | *(planned, M2)* |
 

@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 9,
+    "verified": 10,
     "implemented_unverified": 6
   },
   "functions": {
@@ -35,6 +35,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.LcdControlDifferentialTest#flushed registers match mGBA I-O for every full dump"
+      ]
+    },
+    "HBlank_BgVerticalScroll": {
+      "decomp_file": "src/bmlib-hblank.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgVerticalScroll.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.FrameCompareTest#menu frames with the wavy rune background match mGBA"
       ]
     },
     "InitRN": {

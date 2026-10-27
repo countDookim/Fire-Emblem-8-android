@@ -34,9 +34,14 @@ public object ScreenExtractor {
 
     /**
      * Extracts screen [name] for [game]: LZ77 4bpp tiles at [image], [paletteBanks] × 16 colours at [palette],
-     * and [layers].
+     * and [layers]. The game loads the tile set at BG tile [firstTile] and the palette at BG bank [firstPalette]
+     * (written to the JSON only when non-zero); layer entries are the game's VRAM references, so a layer's
+     * [Layer.tileBase] usually includes them.
      */
-    public fun extract(rom: ByteArray, game: String, name: String, image: Int, palette: Int, paletteBanks: Int, layers: List<Layer>): Output {
+    public fun extract(
+        rom: ByteArray, game: String, name: String, image: Int, palette: Int, paletteBanks: Int, layers: List<Layer>,
+        firstTile: Int = 0, firstPalette: Int = 0,
+    ): Output {
         val img = Lz77.decode(rom, image).data
         val tiles = img.size / Tiles.BYTES_4BPP
         val padded = img.copyOf((tiles + 15) / 16 * 16 * Tiles.BYTES_4BPP)
@@ -49,8 +54,12 @@ public object ScreenExtractor {
         val rows = maps.map { (bg, t) ->
             linkedMapOf("bg" to bg, "width" to t.width, "height" to t.height, "entries" to t.entries.toList())
         }
-        val json = Json.write(linkedMapOf("format" to "gbafe.screen", "game" to game, "version" to 1, "name" to name,
-            "image" to "$name.png", "tiles" to tiles, "paletteBanks" to paletteBanks, "layers" to rows))
+        val doc = linkedMapOf<String, Any>("format" to "gbafe.screen", "game" to game, "version" to 1, "name" to name,
+            "image" to "$name.png", "tiles" to tiles, "paletteBanks" to paletteBanks)
+        if (firstTile != 0) doc["firstTile"] = firstTile
+        if (firstPalette != 0) doc["firstPalette"] = firstPalette
+        doc["layers"] = rows
+        val json = Json.write(doc)
         return Output(png, json, maps)
     }
 }

@@ -191,6 +191,21 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
     File(args.out, "ui/health_safety.png").writeBytes(hs.png)
     File(args.out, "ui/health_safety.json").writeText(hs.json)
     written += "ui/health_safety.json (+PNG)"
+    // Intro logos, GameIntroPrepareNintendofx: Nintendo tiles at VRAM 0 on BG0 (tile base 0, palette bank 0);
+    // Intelligent Systems tiles at VRAM + 0x2000 (tile 0x100) on BG1 with tile base 0x1100 (palette banks 1..3).
+    for ((n, img, pal, banks, bg, tsa, base) in listOf(
+        IntroLogo("intro_nintendo", "Img_GameIntroNintendo", "Pal_GameIntroNintendo", 1, 0, "Tsa_GameIntroNintendo", 0),
+        IntroLogo("intro_is", "Img_IntelligentSystems", "Pal_IntelligentSystems", 3, 1, "Tsa_IntelligentSystems", 0x1100),
+    )) {
+        val o = gbafe.extract.ScreenExtractor.extract(
+            rom, "fe8", n, symbols[img].address - ROM_BASE, symbols[pal].address - ROM_BASE, banks,
+            listOf(gbafe.extract.ScreenExtractor.Layer(bg, symbols[tsa].address - ROM_BASE, base)),
+            firstTile = base and 0x3FF, firstPalette = base shr 12,
+        )
+        File(args.out, "ui/$n.png").writeBytes(o.png)
+        File(args.out, "ui/$n.json").writeText(o.json)
+        written += "ui/$n.json (+PNG)"
+    }
     val cursors = gbafe.extract.fe8.ui.CursorsExtractor.extract(
         rom, symbols["gGfx_MiscUiGraphics"].address - ROM_BASE, symbols["gPal_MiscUiGraphics"].address - ROM_BASE,
         symbols["sMapCursorSpriteLut"].address - ROM_BASE, symbols["sSprite_MapCursorStretched"].address - ROM_BASE,
@@ -204,3 +219,8 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
 }
 
 private const val ROM_BASE = 0x08000000
+
+/** One intro logo screen: output name, ROM symbols, palette banks, BG and TSA tile base. */
+private data class IntroLogo(
+    val name: String, val image: String, val palette: String, val banks: Int, val bg: Int, val tsa: String, val tileBase: Int,
+)

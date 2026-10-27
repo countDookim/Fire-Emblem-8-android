@@ -14,6 +14,8 @@
     "image": { "type": "string" },
     "tiles": { "type": "integer", "minimum": 1, "maximum": 1024 },
     "paletteBanks": { "type": "integer", "minimum": 1, "maximum": 16 },
+    "firstTile": { "type": "integer", "minimum": 0, "maximum": 1023, "description": "BG tile index the game loads the tile set at (default 0); layer entries refer to VRAM tiles, i.e. PNG tile + firstTile." },
+    "firstPalette": { "type": "integer", "minimum": 0, "maximum": 15, "description": "BG palette bank the game loads the palette at (default 0); entry palette bits are VRAM banks, i.e. PNG bank + firstPalette." },
     "layers": {
       "type": "array",
       "items": {

@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 21,
-    "implemented_unverified": 15
+    "verified": 42,
+    "implemented_unverified": 10
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -28,6 +28,24 @@
         "fe8.testing.SaveDrawDifferentialTest#fog scroll reproduces the dumped table, proc fields and LCD buffer"
       ]
     },
+    "CallARM_FillTileRect": {
+      "decomp_file": "asm/arm_call.s",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgTilemap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BgTilemapDifferentialTest#TSA tilemaps match the BG buffers in mGBA RAM"
+      ]
+    },
+    "CheckCanKeyComboReset": {
+      "decomp_file": "src/time.c",
+      "system": "core",
+      "kotlin_file": "engine/input/src/main/kotlin/gbafe/input/KeyComboReset.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
     "DecodeString": {
       "decomp_file": "asm/arm.s",
       "system": "core",
@@ -35,6 +53,22 @@
       "status": "verified",
       "tests": [
         "fe8.testing.MsgHuffmanRomTest#known names decode exactly"
+      ]
+    },
+    "DisableKeyComboResetEN": {
+      "decomp_file": "src/time.c",
+      "system": "core",
+      "kotlin_file": "engine/input/src/main/kotlin/gbafe/input/KeyComboReset.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "EnableKeyComboResetEN": {
+      "decomp_file": "src/time.c",
+      "system": "core",
+      "kotlin_file": "engine/input/src/main/kotlin/gbafe/input/KeyComboReset.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
     "FlipBgVerticalScroll": {
@@ -59,8 +93,10 @@
       "decomp_file": "src/opanim-healthsafetyscreen.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsLogoDifferentialTest#delay steps match the boot RAM trace"
+      ]
     },
     "GameIntroHealthSafetyFadeIN": {
       "decomp_file": "src/opanim-healthsafetyscreen.c",
@@ -93,29 +129,37 @@
       "decomp_file": "src/opanim-healthsafetyscreen.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
+      ]
     },
     "GameIntroIntelligentSystemsFadeOUT": {
       "decomp_file": "src/opanim-healthsafetyscreen.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
+      ]
     },
     "GameIntroNintendoFadeIN": {
       "decomp_file": "src/opanim-healthsafetyscreen.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
+      ]
     },
     "GameIntroNintendoFadeOUT": {
       "decomp_file": "src/opanim-healthsafetyscreen.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
+      ]
     },
     "GetBgVerticalScrollBuffer": {
       "decomp_file": "src/bmlib-hblank.c",
@@ -126,6 +170,15 @@
         "fe8.testing.SaveDrawDifferentialTest#fog scroll reproduces the dumped table, proc fields and LCD buffer"
       ]
     },
+    "GetGameClock": {
+      "decomp_file": "src/time.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/core/time/GameClock.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
     "HBlank_BgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
       "system": "battle_map",
@@ -133,6 +186,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.FrameCompareTest#menu frames with the wavy rune background match mGBA"
+      ]
+    },
+    "IncrementGameClock": {
+      "decomp_file": "src/time.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/core/time/GameClock.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
     "InitRN": {
@@ -183,6 +245,74 @@
         "fe8.testing.OpAnimHsDifferentialTest#intro fades match gPaletteBuffer in the boot RAM trace"
       ]
     },
+    "Proc_Break": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "Proc_End": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "Proc_Find": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "Proc_Goto": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "Proc_Init": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Proc_Run": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "Proc_Start": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "Proc_StartBlocking": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "ResetKeyStatus": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -224,6 +354,13 @@
         "fe8.testing.OpAnimHsDifferentialTest#health and safety brightness pulse matches the boot RAM trace"
       ]
     },
+    "SetGameTime": {
+      "decomp_file": "src/time.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/core/time/GameClock.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "SetLCGRNValue": {
       "decomp_file": "src/rng.c",
       "system": "core",
@@ -237,22 +374,28 @@
       "decomp_file": "src/opanim-healthsafetyscreen.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsLogoDifferentialTest#status per script section matches the boot RAM trace"
+      ]
     },
     "SetOpAnimHsStatus1": {
       "decomp_file": "src/opanim-healthsafetyscreen.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsLogoDifferentialTest#status per script section matches the boot RAM trace"
+      ]
     },
     "SetOpAnimHsStatus2": {
       "decomp_file": "src/opanim-healthsafetyscreen.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsLogoDifferentialTest#status per script section matches the boot RAM trace"
+      ]
     },
     "StoreRNState": {
       "decomp_file": "src/rng.c",
@@ -261,12 +404,23 @@
       "status": "implemented",
       "tests": []
     },
+    "TmApplyTsa": {
+      "decomp_file": "asm/arm.s",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgTilemap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BgTilemapDifferentialTest#TSA tilemaps match the BG buffers in mGBA RAM"
+      ]
+    },
     "TryTickHSScreenExit": {
       "decomp_file": "src/opanim-healthsafetyscreen.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
+      ]
     },
     "UpdateKeyStatus": {
       "decomp_file": "src/hardware.c",

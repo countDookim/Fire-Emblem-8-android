@@ -23,8 +23,8 @@ _Updated: 2026-10-27 07:25 UTC (scheduled run, started 06:51)._
 - Owner request 2026-10-27: a game-neutral **GBA port library** (`:gba:*`, below `gbafe`) so future GBA ports start
   with tools, rendering, input, audio, VFS and the test kit ready. Task M4-06 (plan and module list there); do it
   before or with M4-03. Not started (a first attempt was reverted at the owner's request: to-do only for now).
-- Owner request 2026-10-27: build with **Kotlin Multiplatform** (task M4-07) so the game can move to other platforms
-  later. Until it lands, keep new engine/game code free of `java.*`/`javax.*` (only `engine/vfs` uses `java.io` today).
+- Owner request 2026-10-27: build with **Kotlin Multiplatform** (task M4-07), targets **jvm + android only** for now
+  (owner, 2026-10-27; other platforms later on request). Until it lands, keep new engine/game code free of `java.*`/`javax.*` (only `engine/vfs` uses `java.io` today).
 
 ## NEEDS USER
 _(nothing blocked)_

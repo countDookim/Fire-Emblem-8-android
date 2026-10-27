@@ -1,6 +1,9 @@
 package fe8.game.opanim
 
 import gbafe.input.KeyStatus
+import gbafe.data.Decompress
+import gbafe.render.BgHardware
+import gbafe.render.BgTilemap
 import gbafe.render.LcdControl
 
 /**
@@ -286,4 +289,68 @@ public object OpAnimHs {
             src.copyInto(paletteBuffer, dst, 0, len)
         }
     }
+
+    /** A compressed graphics blob (`Decompress` format) at [offset] of [data], e.g. a ROM symbol. */
+    public class Blob(
+        /** Bytes holding the blob (the ROM image, or the blob alone). */
+        public val data: ByteArray,
+        /** Offset of the blob's header in [data]. */
+        public val offset: Int = 0,
+    )
+
+    private fun tsaInto(hw: BgHardware, bg: Int, tsa: Blob, tileBase: Int) {
+        val generic = Decompress.decode(tsa.data, tsa.offset) // gGenericBuffer
+        BgTilemap.applyTsa(hw.mapBuffer(bg), 0, generic, 0, tileBase)
+    }
+
+    private fun clearPaletteAndSync(hw: BgHardware) {
+        hw.palette.fill(0) // CpuFastFill16(0, gPaletteBuffer, 0x400)
+        hw.enablePaletteSync()
+        hw.enableBgSyncByMask(0x3)
+    }
+
+    /**
+     * `GameIntroPrepareNintendofx`: loads the Nintendo logo (tiles at VRAM 0, TSA on BG0) and the Intelligent
+     * Systems logo (tiles at VRAM 0x2000, TSA on BG1 with tile base 0x1100), clears the palette buffer, shows BG0
+     * only. `Sound_FadeOutBGM(1)` and `SetPrimaryHBlankHandler(NULL)` are not modelled yet (no BGM or HBlank
+     * handler is active at this point of the boot).
+     *
+     * Partially ported from src/opanim-healthsafetyscreen.c: GameIntroPrepareNintendofx
+     */
+    public fun prepareNintendofx(proc: Proc, hw: BgHardware, nintendoImg: Blob, nintendoTsa: Blob, isImg: Blob, isTsa: Blob) {
+        hw.setupBackgrounds()
+        hw.lcd.setDispEnable(0, 0, 0, 0, 0)
+        Decompress.into(nintendoImg.data, nintendoImg.offset, hw.vram, 0)
+        tsaInto(hw, 0, nintendoTsa, 0)
+        Decompress.into(isImg.data, isImg.offset, hw.vram, 0x2000)
+        tsaInto(hw, 1, isTsa, 0x1100)
+        clearPaletteAndSync(hw)
+        hw.lcd.setDispEnable(1, 0, 0, 0, 0)
+        proc.paletteTimer = 0
+    }
+
+    /**
+     * `PrepareHealthAndSafetyScreen`: on a software reset returns false (the caller does `Proc_Goto(proc, 0x3E7)`);
+     * else loads the screen (tiles at VRAM 0, BG1 then BG0 TSA), clears the palette buffer, shows BG1 only and
+     * ignores all keys (`SetKeyStatus_IgnoreMask(0x3FF)`), and returns true. Sound and HBlank as in
+     * [prepareNintendofx].
+     *
+     * Partially ported from src/opanim-healthsafetyscreen.c: PrepareHealthAndSafetyScreen
+     */
+    public fun prepareHealthSafety(
+        proc: Proc, hw: BgHardware, keys: KeyStatus, softwareReset: Boolean, img: Blob, tsaBg1: Blob, tsaBg0: Blob,
+    ): Boolean {
+        if (softwareReset) return false
+        hw.setupBackgrounds()
+        hw.lcd.setDispEnable(0, 0, 0, 0, 0)
+        Decompress.into(img.data, img.offset, hw.vram, 0)
+        tsaInto(hw, 1, tsaBg1, 0)
+        tsaInto(hw, 0, tsaBg0, 0)
+        clearPaletteAndSync(hw)
+        hw.lcd.setDispEnable(0, 1, 0, 0, 0)
+        proc.paletteTimer = 0
+        keys.applyIgnoreMask(0x3FF)
+        return true
+    }
+
 }

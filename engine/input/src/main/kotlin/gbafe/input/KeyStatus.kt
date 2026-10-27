@@ -55,6 +55,15 @@ public class KeyStatus {
     public var ignoreMask: Int = 0
 
     /**
+     * `SetKeyStatus_IgnoreMask`: sets [ignoreMask].
+     *
+     * Ported from src/hardware.c: SetKeyStatus_IgnoreMask
+     */
+    public fun applyIgnoreMask(mask: Int) {
+        ignoreMask = mask
+    }
+
+    /**
      * Folds this frame's held [keys] into the buffer: new presses, auto-repeat, A/B/L/R release
      * detection and the Start/Select idle counter.
      *

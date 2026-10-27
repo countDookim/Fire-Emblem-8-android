@@ -85,6 +85,15 @@ public class GameControl(
     }
 
     /**
+     * Sets `nextAction` of the running game control proc.
+     *
+     * Ported from src/gamecontrol.c: SetNextGameActionId
+     */
+    public fun setNextGameActionId(id: Int) {
+        (engine.find(script)!!.state as State).nextAction = id and 0xFF
+    }
+
+    /**
      * Clears the `disableBgm` and `disableSoundEffects` option bits.
      *
      * Ported from src/gamecontrol.c: GameControl_EnableSoundEffects
@@ -142,6 +151,12 @@ public class GameControl(
 
         /** `GAME_ACTION_EVENT_RETURN`. */
         public const val GAME_ACTION_EVENT_RETURN: Int = 0
+
+        /** `GAME_ACTION_USR_SKIPPED`. */
+        public const val GAME_ACTION_USR_SKIPPED: Int = 2
+
+        /** `GAME_ACTION_PLAYED_THROUGH`. */
+        public const val GAME_ACTION_PLAYED_THROUGH: Int = 3
 
         /** `gPlaySt.config.disableBgm` bit. */
         public const val CONFIG_DISABLE_BGM: Int = 1 shl 8

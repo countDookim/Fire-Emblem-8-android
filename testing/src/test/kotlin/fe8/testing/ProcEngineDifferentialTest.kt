@@ -49,12 +49,12 @@ class ProcEngineDifferentialTest {
     @VerifiesPort("Proc_Start", "Proc_Run", "Proc_Break", "Proc_Goto", "Proc_End", "Proc_Find", "EnableKeyComboResetEN", "CheckCanKeyComboReset", "IncrementGameClock", "GetGameClock", "GameControl_EnableSoundEffects", "Proc_StartBlocking",
         "SetNextGameActionId", "CopyToPalOpAnim",
         "OpAnimBldAlphaUpdateBgPalette", "OpAnimBldAlphaExists",
-        "OpAnimUpdateScreen1", "sub_80C6F70", "sub_80C69B0", "NewProcOpAnimFadeIn", "OpAnimAllBlack", "OpAnimFadeInMain")
+        "OpAnimUpdateScreen1", "sub_80C6F70", "sub_80C69B0", "NewProcOpAnimFadeIn", "OpAnimAllBlack", "OpAnimFadeInMain", "sub_80C7050")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
         val run = ref.run("ram_trace_logo_skip")
-        val run2 = ref.run("ram_trace_opanim") // same inputs, f515..f815
+        val run2 = ref.run("ram_trace_opanim") // same inputs, f515..f1100
         fun ew(f: Int) = (if (f <= 520) run else run2).region("r%05d".format(f), "ewram")
         fun iw(f: Int) = (if (f <= 520) run else run2).region("r%05d".format(f), "iwram")
         fun romPal(at: Int, n: Int) = ShortArray(n) { u16(rom, at - 0x08000000 + 2 * it).toShort() }
@@ -125,7 +125,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && ram != 4 && ram <= 8) {
+                if (ram != null && ram != 4 && ram <= 10) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -143,6 +143,8 @@ class ProcEngineDifferentialTest {
                             listOf(ourFade.scrCur, fs.cur and 0xFFFF, fs.max and 0xFFFF), "f$f fade-in scrCur, cur, max")
                     }
                     // unk2C/2E keep the slot's old bytes (Proc_Start does not clear fields) until OpAnimUpdateScreen1.
+                    if (ram >= 9) assertEquals(listOf(0x38, 0x3A, 0x3C, 0x3E, 0x46).map { u16(e, op + it) },
+                        (ours.state as OpAnim.State).unk38to46.toList(), "f$f op anim unk38..46")
                     if (ram >= 7) assertEquals(listOf(u16(e, op + 0x2C), u16(e, op + 0x2E)),
                         listOf((ours.state as OpAnim.State).unk2C and 0xFFFF, (ours.state as OpAnim.State).unk2E and 0xFFFF), "f$f op anim unk2C/2E")
                     if (bld != null) {
@@ -179,7 +181,7 @@ class ProcEngineDifferentialTest {
         const val TERMINATOR_SCRIPT = 0x08AA6CA4 // ProcScr_OpAnimfxTerminator
         const val BLDALPHA_SCRIPT = 0x08AA6CDC // ProcScr_OpAnimBLDALPHA
         const val FADE_IN_SCRIPT = 0x08AA6CBC // ProcScr_OpAnimFadeIn
-        const val LAST = 815
+        const val LAST = 1100
         const val PROC_SIZE = 0x6C
 
         fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)

@@ -20,7 +20,7 @@ import gbafe.render.BgHardware
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`, `src/opanimfx.c`).
  * Partial: only its start (`OpAnimInit` through the world map scene) is ported; a stand-in `PROC_BLOCK`
- * sits where `sub_80C7050` would run.
+ * sits where `OpAnimPreparefxEphraim` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -105,6 +105,9 @@ public class OpAnim(
 
         /** `unk2E`: BG1 y scroll. */
         public var unk2E: Int = 0
+
+        /** `unk38`, `unk3A`, `unk3C`, `unk3E`, `unk46`. */
+        public val unk38to46: IntArray = IntArray(5)
     }
 
     /** `gOpAnimSt.pal`: colour forced into palette entry 0 by [copyToPal]. */
@@ -128,7 +131,9 @@ public class OpAnim(
             whileTrue(ProcBoolFunc { bldAlphaExists() }),
             call(ProcFunc { updateScreen1(it) }),
             repeat(ProcFunc { worldMapScroll(it) }),
-            block(), // not ported: sub_80C7050 and the rest of the cutscene
+            call(ProcFunc { setupEphraimScene(it) }),
+            yield(),
+            block(), // not ported: OpAnimPreparefxEphraim and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -308,6 +313,36 @@ public class OpAnim(
     }
 
     /**
+     * Resets the BG layout for the Ephraim / Eirika scenes: offsets, priorities, empty tilemaps, display off, blend
+     * setup.
+     *
+     * Ported from src/opanim-main.c: sub_80C7050
+     */
+    public fun setupEphraimScene(proc: Proc) {
+        val hw = hardware
+        val lcd = hw.lcd
+        lcd.dispcnt = lcd.dispcnt and 7.inv()
+        intArrayOf(0x0000, 0x0000, 0x4000, 0x4000).forEachIndexed { bg, o -> hw.setTileDataOffset(bg, o) }
+        intArrayOf(0xD800, 0xE000, 0xE800, 0xF800).forEachIndexed { bg, o -> hw.setMapDataOffset(bg, o) }
+        for (bg in 0..3) {
+            hw.setScreenSize(bg, 0)
+            lcd.setBgPosition(bg, 0, 0)
+            lcd.bgCnt[bg] = (lcd.bgCnt[bg] and 3.inv()) or bg
+        }
+        lcd.setDispEnable(0, 0, 0, 0, 0)
+        lcd.dispcnt = lcd.dispcnt and 0xE000.inv() // SetWinEnable(0, 0, 0)
+        for (bg in 0..3) hw.fill(hw.mapBuffer(bg), 0)
+        hw.enableBgSyncByMask(0xF)
+        lcd.bldcnt = lcd.bldcnt and (BLD_BACKDROP_A or BLD_BACKDROP_B).inv() // SetBlendBackdropA(0), SetBlendBackdropB(0)
+        lcd.setBlendConfig(1, 8, 8, 8)
+        lcd.setBlendTargetA(0, 1, 0, 0, 0)
+        lcd.setBlendTargetB(0, 0, 1, 1, 0)
+        val st = proc.state as State
+        st.timer = 0
+        st.unk38to46.fill(0)
+    }
+
+    /**
      * Blends the 16 colours of the palette buffer at entry [at] towards [color] by [blend]/16.
      *
      * Ported from src/opanimfx.c: sub_80C69B0
@@ -385,6 +420,8 @@ public class OpAnim(
 
     private companion object {
         const val OBJ_VRAM = 0x10000
+        const val BLD_BACKDROP_A = 1 shl 5
+        const val BLD_BACKDROP_B = 1 shl 13
         const val DISPCNT_OBJ_1D = 0x40
         const val A_BUTTON = 0x1
         const val B_BUTTON = 0x2

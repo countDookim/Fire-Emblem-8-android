@@ -3,6 +3,8 @@ package fe8.testing
 import fe8.game.opanim.EarlyStartUi
 import fe8.game.opanim.OpAnimHs
 import gbafe.core.VerifiesPort
+import gbafe.core.time.GameClock
+import gbafe.input.KeyComboReset
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
 import gbafe.render.LcdControl
@@ -18,7 +20,8 @@ import java.io.File
  * (RAM every frame f400..f520; B on the IS logo at f470): starting from the proc as dumped at f400 (script position,
  * repeat callback, fields, `gPaletteBuffer`), each frame feeds that frame's dumped key status and runs the proc
  * tree; script position (`proc_scrCur`), whether a repeat callback is set, `ProcOpAnimHS` fields and the palette
- * buffer must match every dump, through the skip (Proc_Goto), the skip fade and the proc's end (PROC_END) at f475.
+ * buffer (plus `gKeyComboResetEN`, set by the script's `EnableKeyComboResetEN` at f413, and `gGameClock`)
+ * must match every dump, through the skip (Proc_Goto), the skip fade and the proc's end (PROC_END) at f475.
  */
 class ProcEngineDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -33,7 +36,7 @@ class ProcEngineDifferentialTest {
     private fun palette(ew: ByteArray) = ShortArray(512) { u16(ew, sym["gPaletteBuffer"].address - GbaMem.EWRAM + 2 * it).toShort() }
 
     @Test
-    @VerifiesPort("Proc_Start", "Proc_Run", "Proc_Break", "Proc_Goto", "Proc_End")
+    @VerifiesPort("Proc_Start", "Proc_Run", "Proc_Break", "Proc_Goto", "Proc_End", "EnableKeyComboResetEN", "CheckCanKeyComboReset", "IncrementGameClock", "GetGameClock")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -42,8 +45,12 @@ class ProcEngineDifferentialTest {
         fun romPal(at: Int, n: Int) = ShortArray(n) { u16(rom, at - 0x08000000 + 2 * it).toShort() }
         val keys = KeyStatus()
         val e0 = ew(400)
-        val env = EarlyStartUi.Env(palette(e0), ShortArray(512), LcdControl().apply { readFrom(run.region("r00400", "iwram"), sym["gLCDControlBuffer"].address - GbaMem.IWRAM) },
-            keys, romPal(0x08B125F4, 16), romPal(0x08B10ABC, 16), romPal(0x08B11864, 48))
+        val i0 = run.region("r00400", "iwram")
+        val combo = KeyComboReset().apply { enabled = i0[sym["gKeyComboResetEN"].address - GbaMem.IWRAM].toInt() != 0 }
+        val clock = GameClock().apply { frames = u32(i0, sym["gGameClock"].address - GbaMem.IWRAM).toLong() and 0xFFFFFFFFL }
+        val env = EarlyStartUi.Env(palette(e0), ShortArray(512), LcdControl().apply { readFrom(i0, sym["gLCDControlBuffer"].address - GbaMem.IWRAM) },
+            keys, romPal(0x08B125F4, 16), romPal(0x08B10ABC, 16), romPal(0x08B11864, 48),
+            enableKeyComboReset = { combo.enable() })
         val engine = ProcEngine()
         val ui = EarlyStartUi(engine, env)
         val o = procAt(e0)!!
@@ -59,10 +66,16 @@ class ProcEngineDifferentialTest {
         val st = proc.state as OpAnimHs.Proc
         st.status = u32(e0, o + 0x2C); st.paletteTimer = u32(e0, o + 0x30); st.delayTimer = u32(e0, o + 0x34); st.skipFadeTimer = u32(e0, o + 0x38)
         var ended = 0
+        var enabledSeen = false
         for (f in 401..520) {
             val e = ew(f)
             keys.readFrom(e, sym["sKeyStatusBuffer"].address - GbaMem.EWRAM)
+            clock.increment()
             engine.run(engine.root(rootIndex))
+            val i = run.region("r%05d".format(f), "iwram")
+            assertEquals(i[sym["gKeyComboResetEN"].address - GbaMem.IWRAM].toInt() != 0, combo.canReset(), "f$f gKeyComboResetEN")
+            assertEquals(u32(i, sym["gGameClock"].address - GbaMem.IWRAM).toLong() and 0xFFFFFFFFL, clock.get(), "f$f gGameClock")
+            if (f == 413) enabledSeen = combo.canReset()
             val d = procAt(e)
             if (d == null) {
                 assertNull(proc.script, "f$f: proc should have ended")
@@ -77,6 +90,7 @@ class ProcEngineDifferentialTest {
             assertArrayEquals(palette(e), env.paletteBuffer, "f$f gPaletteBuffer")
         }
         assertEquals(46, ended) // f475..f520
+        assertEquals(true, enabledSeen, "key combo reset enabled after the Nintendo logo")
     }
 
     private companion object {

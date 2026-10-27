@@ -79,19 +79,17 @@ class EarlyStartUiBootDifferentialTest {
             keyFrame = f
             loop.frame()
         }
-        frame(0) // GAMECTRL: name, mark, calls, PROC_REPEAT (breaks itself next frame)
-        frame(0) // ... then starts the intro as a blocking child
+        // From StartGame, one VBlank + step per frame until the clock (0 at f10, before StartGame) reaches its f20
+        // value; the state must then equal the f20 dump. AgbMain runs a first step before the first VBlank, yet the
+        // trace matches only without an extra step here (unexplained: clock reset or a startup lag frame?).
+        val clockAt = sym["gGameClock"].address
+        while (clock.get() < (GbaMem.u32(run.region("r00020", "iwram"), GbaMem.IWRAM, clockAt).toLong() and 0xFFFFFFFFL)) frame(0)
         val proc = gameCtrl.child!!
         val st = proc.state as OpAnimHs.Proc
         val e20 = run.region("r00020", "ewram")
         val d20 = procAt(e20)!!
-        var steps = 0
-        while (!(proc.scrCur == (GbaMem.u32(e20, 0, d20 + 4) - PROC_SCRIPT) / 8 && st.paletteTimer == GbaMem.u32(e20, 0, d20 + 0x30))) {
-            frame(0)
-            assertTrue(++steps < 20, "proc never reached its f20 state")
-        }
-        val clockAt = sym["gGameClock"].address
-        clock.frames = GbaMem.u32(run.region("r00020", "iwram"), GbaMem.IWRAM, clockAt).toLong() and 0xFFFFFFFFL
+        assertEquals((GbaMem.u32(e20, 0, d20 + 4) - PROC_SCRIPT) / 8, proc.scrCur, "f20 scrCur")
+        assertEquals(GbaMem.u32(e20, 0, d20 + 0x30), st.paletteTimer, "f20 palette timer")
         var checked = 0
         for (f in 21..490) {
             frame(f)

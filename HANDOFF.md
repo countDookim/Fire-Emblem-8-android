@@ -20,6 +20,10 @@ _Updated: 2026-10-27 07:25 UTC (scheduled run, started 06:51)._
   decomp at runtime), M4-04 (import UI), M4-05 (CI guard). Do these before the first manual-test APK that shows
   real game screens (M3-07 may use test-only assets until then, never bundled in release builds).
 
+- Owner request 2026-10-27: a game-neutral **GBA port library** (`:gba:*`, below `gbafe`) so future GBA ports start
+  with tools, rendering, input, audio, VFS and the test kit ready. Task M4-06 (plan and module list there); do it
+  before or with M4-03. Not started (a first attempt was reverted at the owner's request: to-do only for now).
+
 ## NEEDS USER
 _(nothing blocked)_
 

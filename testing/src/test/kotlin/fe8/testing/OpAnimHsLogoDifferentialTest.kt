@@ -23,9 +23,6 @@ class OpAnimHsLogoDifferentialTest {
     private val sym = RamSymbols.fromEnvironment()
     private val romFile = File(System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets", "baserom.gba")
 
-    /** One dump where the intro proc runs a step: script command index, proc offset in EWRAM, dump regions. */
-    private class Hit(val dump: String, val index: Int, val proc: Int, val ew: ByteArray, val iw: ByteArray)
-
     private fun hits(rom: ByteArray): List<Hit> {
         val run = ref.run("ram_trace_boot")
         val procArray = sym["sProcArray"]
@@ -158,3 +155,6 @@ class OpAnimHsLogoDifferentialTest {
         fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)
     }
 }
+
+/** One dump where the intro proc runs a step: script command index, proc offset in EWRAM, dump regions. */
+private class Hit(val dump: String, val index: Int, val proc: Int, val ew: ByteArray, val iw: ByteArray)

@@ -14,6 +14,8 @@ public object BgTilemap {
      * y * 32 + x), adding [tileBase] to every entry (16-bit wrap).
      *
      * Ported from asm/arm.s: TmApplyTsa
+     *
+     * Ported from asm/arm_call.s: CallARM_FillTileRect
      */
     public fun applyTsa(tilemap: ShortArray, offset: Int, tsa: ByteArray, tsaOffset: Int, tileBase: Int) {
         val wMinus1 = tsa[tsaOffset].toInt() and 0xFF

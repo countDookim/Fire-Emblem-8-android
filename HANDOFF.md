@@ -37,8 +37,8 @@ _(nothing blocked)_
   - `gbafe.data.JsonReader` (tiny dependency-free JSON reader) + `TrigTable` (`data/trig.json` loader); `TrigAssetTest`.
   - New reference runs (ROM repo `399c4d4`, `89e1944`): `ram_trace_logo_skip` (B at f470 on the IS logo, RAM every frame
     f400..f520), `boot_logos` (full dumps f300/360/430/470). `gen_scripts.py` `script()` takes `ram_from`.
-- Verified ports this run: +25 (OpAnimHs steps x11, sub_80CBF9C/FC0, Proc_Start/Run/Break/Goto/End, TmApplyTsa,
-  CallARM_FillTileRect, EnableKeyComboResetEN, CheckCanKeyComboReset, IncrementGameClock, GetGameClock). Check `tools/progress.py` output in CI for the total.
+- Verified ports this run: +22 -> **41 / 8352** locally (OpAnimHs steps x9, sub_80CBF9C/FC0, Proc_Start/Run/Break/Goto/End, TmApplyTsa,
+  CallARM_FillTileRect, EnableKeyComboResetEN, CheckCanKeyComboReset, IncrementGameClock, GetGameClock). `tools/progress.py` counts a test only for the LAST class declared before it: helper classes go below the test class (fixed this run in `OpAnimHsLogoDifferentialTest`).
 - CI: green through 6e9602d; later pushes not checked at wrap-up. Session setup: ~105 s. No `wip/` branches.
 
 ## Run rules (owner, 2026-10-26)

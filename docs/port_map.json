@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 77,
-    "implemented_unverified": 24
+    "verified": 79,
+    "implemented_unverified": 22
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -397,8 +397,10 @@
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
     },
     "OpAnimBldAlphaExists": {
       "decomp_file": "src/opanim-main.c",
@@ -413,8 +415,10 @@
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
     },
     "OpAnimBldAlphaUpdateBgPalette": {
       "decomp_file": "src/opanim-main.c",

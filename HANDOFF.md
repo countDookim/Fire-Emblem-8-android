@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated: 2026-10-26 23:20 UTC (scheduled run, started 22:50)._
+_Updated: 2026-10-27 07:25 UTC (scheduled run, started 06:51)._
 
 ## Owner decisions 2026-10-25 (read docs/decisions/0009)
 - The app is a 1:1 copy. Modding = extension points only; ship no touch gameplay, QoL flags or alternate
@@ -18,25 +18,26 @@ _Updated: 2026-10-26 23:20 UTC (scheduled run, started 22:50)._
 _(nothing blocked)_
 
 ## Status
-- This run: **M3-06 done**. Menu frames (m0962/m1024/m1086/m1087) were off for two reasons, both fixed:
-  (1) the menus run `HBlank_BgVerticalScroll` (BG2HOFS rewritten per line, the rune "fog" wave) -> ported as
-  `gbafe.render.BgVerticalScroll` + `gbafe.render.HBlankLines` (replays a frame's HBlank handler, vcount 159..227
-  then 0..158, into `LineTable` overrides); (2) mGBA 0.10.5 (32-bit colour build) blends on 8-bit channels
-  (`c<<3|c>>2`), up to +1 at 5 bits vs hardware -> `SoftwareRenderer` takes a `ColorMath` strategy
-  (`ColorMath.Hardware` default = product), frame compares use test-side `fe8.testing.MgbaColorMath`.
-  Health & safety from **extracted assets**: `gbafe.data.Tsa` (TSA rows stored bottom-up), generic
-  `gbafe.extract.ScreenExtractor` (`gbafe.screen` json + tile-set PNG), FE8 step writes `ui/health_safety.*`
-  (ROM repo `c6f4189`, release published); `HealthSafetyScreenTest` pixel-exact.
-- New verified ports (+10 -> 19): `HBlank_BgVerticalScroll`, `GetBgVerticalScrollBuffer`, `FlipBgVerticalScroll`,
-  `BG_SetPosition`, `SetBlendConfig` (`LcdControl`), `SaveDraw_ScrollFogBG` (`fe8.game.savemenu.SaveDraw`),
-  `OpAnimHS_BrightenPalette`, `GameIntroHealthSafetyWaitButton`, `GameIntroHealthSafetyFadeIN/OUT` (`fe8.game.opanim.OpAnimHs`). Differential tests
-  vs mGBA RAM: `SaveDrawDifferentialTest` (menu dumps), `OpAnimHsDifferentialTest` (`ram_trace_boot`).
-  Unverified helpers added: `LcdControl.setBlendTargetA/B`, `setDispEnable` (no Ported-from KDoc yet).
-- CI: `tools/ci_check_extraction.sh` now compares PNGs by content (`tools/compare_extraction.py`): the session
-  JDK's zlib writes different deflate bytes than CI's for identical pixels (all 228 PNGs differed bytewise).
-- CI: green through aec1f96; later runs were cancelled by newer pushes (a cancelled run shows its test step as
-  failed) except run 73 (1b37a59), which hit the allocation flake fixed in the final push. Check the latest run first.
-- Session setup: ~114 s. Branch: `master`. No `wip/` branches. Progress: 19 / 8352 verified.
+- This run: intro (`opanim-healthsafetyscreen.c`) step logic fully ported + **proc scheduler** (M4-01, new TASKS M4 section).
+  - `gbafe.proc` (engine/core): `ProcEngine` (src/proc.c: alloc stack, 8 root trees, `Proc_Start/StartBlocking/End/Run/
+    Break/Goto/Find`, all 26 opcodes incl. `PROC_JUMP` via `Proc.scrScript`), `ProcScript`/`ProcScripts` (`PROC_*` builders),
+    proc-specific fields in `Proc.state` (`ProcScript.newState`). `fe8.game.opanim.EarlyStartUi` = `ProcScr_GameEarlyStartUI`
+    with the same 28 commands (indices match `proc_scrCur`); not-yet-ported calls are `Env` hooks.
+  - `ProcEngineDifferentialTest` runs the intro proc frame by frame from the f400 state of the new `ram_trace_logo_skip`
+    run and matches scrCur / idleCb / fields / palette every frame through the B skip and `PROC_END`. `ProcEngineTest` =
+    unit tests for opcodes the trace misses.
+  - `OpAnimHs`: `StepResult` (CONTINUE/BREAK/SKIP), Nintendo / IS fades, `earlyStartDelay`, `tryTickExit`, status setters,
+    skip fade (`startSkipFade`/`skipFade` = `sub_80CBF9C`/`sub_80CBFC0`). `softwareReset` is a parameter (`IsSoftwareReset`).
+  - `gbafe.render.BgTilemap.applyTsa` = `TmApplyTsa`/`CallARM_FillTileRect`, verified vs the BG tilemap buffers.
+  - Assets: `ui/intro_nintendo.*`, `ui/intro_is.*` (`gbafe.screen` gains optional `firstTile`/`firstPalette`, schema updated;
+    ROM repo `2d00c82`); `IntroLogosScreenTest` pixel-exact on 4 `boot_logos` frames incl. fades (palette = PNG palette
+    through `brightenPalette` with the dumped proc timer **minus one**: the frame shows the previous step's palette).
+  - `gbafe.data.JsonReader` (tiny dependency-free JSON reader) + `TrigTable` (`data/trig.json` loader); `TrigAssetTest`.
+  - New reference runs (ROM repo `399c4d4`, `89e1944`): `ram_trace_logo_skip` (B at f470 on the IS logo, RAM every frame
+    f400..f520), `boot_logos` (full dumps f300/360/430/470). `gen_scripts.py` `script()` takes `ram_from`.
+- Verified ports this run: +21 (OpAnimHs steps x11, sub_80CBF9C/FC0, Proc_Start/Run/Break/Goto/End, TmApplyTsa,
+  CallARM_FillTileRect). Check `tools/progress.py` output in CI for the total.
+- CI: green through 6e9602d; later pushes not checked at wrap-up. Session setup: ~105 s. No `wip/` branches.
 
 ## Run rules (owner, 2026-10-26)
 - Budget **~45 min** (guideline; a little over is fine to finish a nearly done task). Work until ~minute 38, never end
@@ -45,32 +46,31 @@ _(nothing blocked)_
   first, then `tail_lines` <= 80 of the failing job).
 - Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.
 
-## Next task: M3-07 GPU backend (or more verifiable ports first)
-- M3-07 GPU backend (`:app`, manual test) can now show a real scene: the health & safety screen from
-  `ui/health_safety.*` (see `HealthSafetyScreenTest` for the assets -> `RenderState` steps).
-- Verifiable port candidates (interleave rule): the rest of `opanim-healthsafetyscreen.c` (Nintendo / IS
-  fade steps + `GameEarlyStartDelay`, which also call `TryTickHSScreenExit`, `PrepareHealthAndSafetyScreen`) against `ram_trace_boot` (the
-  intro proc is `ProcScr_GameEarlyStartUI` 0x08AA7680; `proc_scrCur` points PAST the running command, so the
-  active `PROC_REPEAT` function is at `scrCur - 4`); `StartBgVerticalScroll` / `SetBgVerticalScrollPosition`
-  (menu entry); `SetBlendTargetA/B` need a dump where they run (first frame of a step).
-- `gSinLookup` is now extracted as `data/trig.json` (`gbafe.trig`, schema `schemas/trig.schema.json`; ROM repo
-  `f92fe18`), but nothing loads it yet: add a `gbafe.data` loader before `SaveDraw` runs in the app (tests still
-  read the table from the ROM). New `schemas/screen.schema.json` for `gbafe.screen`.
-- Frame-compare notes: `FrameCompareTest.applyHBlank` only knows `HBlank_BgVerticalScroll` and fails on any other
-  handler; dumped RAM is one game step ahead (the menu already flipped its scroll buffer: the test un-flips).
+## Next task: M4-02 rest (screen loads) or M3-07 GPU backend
+- M4-02: port `PrepareHealthAndSafetyScreen` and `GameIntroPrepareNintendofx` so `EarlyStartUi.Env` hooks go away. They need
+  `SetupBackgrounds` (bgconfig + clear tilemap buffers), `SetPrimaryHBlankHandler`, `Sound_FadeOutBGM` (stub until M3-13),
+  `Decompress` to a VRAM model, `CpuFastFill16`, `EnablePaletteSync`/`BG_EnableSyncByMask` (sync flags), `SetDispEnable`
+  (exists), `SetKeyStatus_IgnoreMask`. Verify vs `boot_logos`/`ram_trace_boot` full dumps (VRAM, tilemap buffers, LCD).
+  Then a boot driver: game main loop (`AgbMain`/`OnGameLoopMain`: keys -> `Proc_Run` on roots -> sync) to run the intro
+  from power-on and compare against `boot_to_title`.
+- Proc engine gaps: `Proc_ForEach*`, mark block/unblock/end, `Proc_FindAfter*`, `CountProcs`, `Proc_SetRepeatCb` not ported.
+  The game's main proc (intro's parent; `u32 @+0x14` is an EWRAM proc) is not modelled: tests use a blocking stand-in root.
+- M3-07 GPU backend (`:app`, manual test): can now show H&S and both logos from `ui/*` (see `IntroLogosScreenTest`).
+- `gSinLookup` loader exists (`TrigTable`), but `SaveDraw` still takes a `ShortArray` and the app does not load it yet.
+- Re-extracting after an extractor change: run the CLI (see Known bugs), compare with `python3 tools/compare_extraction.py
+  <rom repo>/extracted <out>`, copy only changed/new files into the ROM repo's `extracted/`, push there; CI fails until you do.
+- New reference runs: add to `harness/gen_scripts.py`, run it + `harness/make_reference.sh` (seconds), diff old `out/` vs a
+  fresh untar of the old `dist/reference.tar.xz` (only PROVENANCE.sha1 may differ), `tar -C reference -cJf
+  dist/reference.tar.xz out`, update the sha1 in `dist/MANIFEST.sha1`, push. Also untar into `.assets/reference` locally.
+  Fetch the ROM repo before committing there (the session checkout can be behind origin).
 - M3-10 Android ActionSources, M3-12..15 audio/overlay. Open renderer items: OBJ mosaic, mosaic on affine BGs.
 - Follow-ups noted, not tasks yet: unit placement / `.fe8s` for chapters other than the prologue need the event
   converter to follow `LOAD1/LOAD2` targets from each chapter's `ChapterEventGroup` (`include/chapterdata.h`);
   keysplit/drum sub-voicegroups are scanned for samples but not written as their own `voicegroups/*.json`.
-- Re-extracting after an extractor change: run the CLI (see the M2-21 lines in Known bugs), copy the output into the
-  ROM repo's `extracted/` (only the changed/new files: PNG bytes differ by zlib build), commit + push there
-  (publish-assets makes a new release); CI fails until you do.
-- New reference runs: add to the ROM repo's `harness/gen_scripts.py`, run it + `harness/make_reference.sh` (seconds;
-  `bin/mgba-harness` is committed), check old runs are byte-identical, `tar -C reference -cJf dist/reference.tar.xz
-  out`, update the sha1 in `dist/MANIFEST.sha1`, push (publish workflow releases it). Quick screen exploration: run
-  the harness on a scratch script and convert `*.frame.rgb` (240×160 RGB888) to PNG to look at it.
 
 ## Known bugs / caveats
+- Frame compares: `FrameCompareTest.applyHBlank` only knows `HBlank_BgVerticalScroll` and fails on any other handler;
+  dumped RAM is one game step ahead of the dumped frame (the menu already flipped its scroll buffer: the test un-flips).
 - `RenderStateTest.filling a frame allocates nothing` flaked (200 bytes once in 1000 frames, locally and in CI run
   73): now uses `AllocationMeter.measureMin` (min over 3 rounds; a real per-frame allocation still fails). Use it
   for other allocation tests if they flake.

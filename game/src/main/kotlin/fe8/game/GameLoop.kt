@@ -5,16 +5,17 @@ import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
 
 /**
- * The game's main loop, decomp `src/bm.c`: [onMain] (one game step: keys, then proc trees 1, 2, 3, 5, 4) and
- * [onVBlank] (game clock, proc tree 0, display sync once a step has finished), driven one hardware frame at a time
- * by [frame].
+ * The game's main loop, decomp `src/bm.c`: [onMain] (one game step: keys, then proc trees 1, 2, 3,
+ * 5, 4) and [onVBlank] (game clock, proc tree 0, display sync once a step has finished), driven one
+ * hardware frame at a time by [frame].
  *
- * A step that overruns its frame (on hardware: a screen load with decompression) misses the next VBlank's sync and
- * starts no step on the next frame; [overran] tells the loop after each step whether that happened (the original
- * timing is not modelled, so the caller decides from what the step did).
+ * A step that overruns its frame (on hardware: a screen load with decompression) misses the next
+ * VBlank's sync and starts no step on the next frame; [overran] tells the loop after each step
+ * whether that happened (the original timing is not modelled, so the caller decides from what the
+ * step did).
  *
- * Not modelled yet: sound (`m4aSoundVSync`, `m4aSoundMain`), sprites (`ClearSprites`, `PushSpriteLayerObjects`,
- * `SyncLoOam`, `SyncHiOam`), `FlushTiles`, `FlushLCDControl`.
+ * Not modelled yet: sound (`m4aSoundVSync`, `m4aSoundMain`), sprites (`ClearSprites`,
+ * `PushSpriteLayerObjects`, `SyncLoOam`, `SyncHiOam`), `FlushTiles`, `FlushLCDControl`.
  */
 public class GameLoop(
     /** Proc trees run by the loop. */
@@ -66,8 +67,8 @@ public class GameLoop(
     public fun gameLock(): Int = lock
 
     /**
-     * One game step: updates [keys], runs proc trees 1, 2 (unless locked), 3, 5 and 4, and marks the step ended.
-     * Sprite layer pushes are not modelled.
+     * One game step: updates [keys], runs proc trees 1, 2 (unless locked), 3, 5 and 4, and marks
+     * the step ended. Sprite layer pushes are not modelled.
      *
      * Partially ported from src/bm.c: OnMain
      */
@@ -81,7 +82,10 @@ public class GameLoop(
         mainLoopEnded = true
     }
 
-    /** The VBlank interrupt (`OnVBlank`, partial): clock, proc tree 0, then [flush] if a step has ended. */
+    /**
+     * The VBlank interrupt (`OnVBlank`, partial): clock, proc tree 0, then [flush] if a step has
+     * ended.
+     */
     public fun onVBlank() {
         clock.increment()
         procs.run(procs.root(0))
@@ -92,8 +96,8 @@ public class GameLoop(
     }
 
     /**
-     * One hardware frame: the VBlank, then a step unless the previous step overran (then that step only finishes
-     * now, after this frame's VBlank, which therefore syncs nothing).
+     * One hardware frame: the VBlank, then a step unless the previous step overran (then that step
+     * only finishes now, after this frame's VBlank, which therefore syncs nothing).
      */
     public fun frame() {
         if (lagPending) {

@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated: 2026-10-27 15:10 UTC (scheduled run, started 14:53)._
+_Updated: 2026-10-27 23:15 UTC (scheduled run, started 22:51)._
 
 ## Owner decisions 2026-10-25 (read docs/decisions/0009)
 - The app is a 1:1 copy. Modding = extension points only; ship no touch gameplay, QoL flags or alternate
@@ -30,20 +30,31 @@ _Updated: 2026-10-27 15:10 UTC (scheduled run, started 14:53)._
 _(nothing blocked)_
 
 ## Status
-- This run (M4-02 screen loads): `gbafe.render.BgHardware` (tilemap buffers, VRAM, palette, sync flags, OAM split;
-  `SetupBackgrounds` + its helpers, `BG_Fill`, `InitBmBgLayers`, `InitOam`), `gbafe.render.HBlankHandlers`
-  (`Set{Primary,Secondary}HBlankHandler`, `UpdateHBlankHandlerState`, `ExecBothHBlankHandlers` (unverified); `BgHardware.hblank`), `FlushBackgrounds` (BG + palette sync; colour-addition branches unverified),
-  `gbafe.data.Decompress` (raw + LZ77; Huffman/RL throw: partial), `KeyStatus.applyIgnoreMask` (`SetKeyStatus_IgnoreMask`).
-  `OpAnimHs.prepareHealthSafety` / `prepareNintendofx` (partial: `Sound_FadeOutBGM` not modelled). `EarlyStartUi.Env` lost
-  its hooks: it takes `gfx` (ROM blobs), `keyComboReset`, `hardware`.
-  - Tests: `ScreenPrepareDifferentialTest` (RAM + VRAM after each load), `EarlyStartUiBootDifferentialTest` (whole intro
-    proc from its start vs `ram_trace_boot` f20..f490: proc, palette, tilemaps, bgcnt/dispcnt, ignore mask, combo flag),
-    `HBlankHandlersDifferentialTest`.
-  - **Finding: lag frame.** After a screen load (SetupBackgrounds + decompression) the game misses one VBlank: no proc step
-    on the next frame. The boot test models it (BG sync request left by the load => skip next step). The boot driver /
-    main loop must reproduce this to stay frame-aligned with mGBA (decide how: a per-load "lag" signal).
-- Verified ports: 42 -> **58 / 8352**.
-- CI: green through 8a8be5b; this run's pushes not checked at wrap-up. Session setup: ~121 s. No `wip/` branches.
+- This run (M4-08 new + M4-05): `fe8.game.GameLoop` (`OnMain` partial: no sprites; `OnVBlank` partial; game lock;
+  `frame()` with an `overran` lag rule), `fe8.game.GameControl` (`StartGame`, GAMECTRL script up to the op anim, then a
+  stand-in block; `SetNextGameActionId`, `GameControl_EnableSoundEffects`; `playStConfig` = `gPlaySt+0x40` bits),
+  `fe8.game.opanim.OpAnim` (`OpAnimInit` partial (no BGM), terminator (label 99 jump is a no-op: not ported),
+  `SetupOpAnimWorldMapfx` partial (no `StartBgmExt`), BLDALPHA proc, world map scroll `sub_80C6F70`, fade-in proc,
+  `sub_80C69B0`, `sub_80C7050`), proc helpers (`Proc_ForAll/ForEach/*Marked`, `SetMark/SetEndCb/SetRepeatCb`,
+  `Proc_FindAfter*`, `CountProcs`).
+  - Tests: `EarlyStartUiBootDifferentialTest` now boots via `StartGame` + `GameLoop`, aligned by `gGameClock` (f20 state
+    must match exactly), checks GAMECTRL fields, live proc count and proc slots vs `sProcArray`.
+    `ProcEngineDifferentialTest` runs under GAMECTRL from f400 through the op anim to **f1100** (`ram_trace_logo_skip`,
+    then the new `ram_trace_opanim`), checking op anim / BLDALPHA / fade-in procs, palette, blend regs, BG offsets.
+  - **Findings:** (1) a slow step can overrun several frames (world map setup: 3): the test skips steps while the previous
+    dump shows the proc mid-call; `GameLoop.frame()` only models a 1-frame lag: generalise (lag count) when the boot driver
+    runs the op anim. (2) `Proc_Start` does not clear user fields: a new proc's state holds the slot's old bytes until its
+    init writes them. (3) Boot: one VBlank is counted before StartGame's first step (OnVBlank is installed during init).
+  - M4-05 done: `tools/check_no_game_content.py` + CI steps (after the APK build, before the `latest` release).
+  - ROM repo: new reference run `ram_trace_opanim` (RAM every frame f515..f1100, 1.4 MB tarball).
+- Verified ports: 58 -> **79 / 8352**.
+- CI: green through 380e048; this run's pushes not checked at wrap-up (ROM repo release must publish the new
+  reference tarball first, else `ProcEngineDifferentialTest` fails on the missing run). Session setup: ~109 s.
+- `wip/m4-08-opanim`: draft `OpAnim.prepareEphraim` (`OpAnimPreparefxEphraim`, unverified, not in the script yet). To
+  verify: script idx 10 `repeat(prepareEphraim)`, idx 11 `NewProc08AA6D04` (tree 0); RAM shows idx 11 from f844 to
+  f853 for 7 timer steps, so its decompressions overrun too: generalise the test's lag rule (e.g. skip a step while the
+  RAM op anim `timer`/scrCur is unchanged from the previous dump). Master now has `add16`/`setOffsets` helpers and
+  100-column reflow in OpAnim.kt: drop the branch's own `add16` when merging.
 
 ## Run rules (owner, 2026-10-26)
 - Budget **~30 min** (owner, 2026-10-27; a little over is fine to finish a nearly done task). Work until ~minute 23,
@@ -53,12 +64,15 @@ _(nothing blocked)_
   first, then `tail_lines` <= 80 of the failing job).
 - Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.
 
-## Next task: boot driver (M4-02 rest) or M3-07 GPU backend
-- Boot driver: game main loop (`AgbMain`/`OnGameLoopMain`: keys -> `Proc_Run` on roots -> sync incl. BG/palette sync from
-  `BgHardware` flags) to run the intro from power-on and compare against `boot_to_title`; needs the lag-frame rule above.
-  `IsSoftwareReset` / `SetSoftwareResetFlag` not ported. Assets for `EarlyStartUi.Gfx` on device: from the ROM import (M4-03).
-- Proc engine gaps: `Proc_ForEach*`, mark block/unblock/end, `Proc_FindAfter*`, `CountProcs`, `Proc_SetRepeatCb` not ported.
-  The game's main proc (intro's parent; `u32 @+0x14` is an EWRAM proc) is not modelled: tests use a blocking stand-in root.
+## Next task: M4-08 op anim (continue) or M3-07 GPU backend
+- Next op anim step: `OpAnimPreparefxEphraim` (script idx 10, reached f843; 7 frames by `timer`): needs `gGenericBuffer`
+  (0x02020188) and ROM blobs Img/Tsa_OpAnimCharacterBG 08ab7dd0/08ab87e0, Img_OpAnimEphraimClose1/2 08abf168/08ac0bd8,
+  Tsa_..Close1/2 08ac1878/08ac1b98, Img/Tsa_OpAnimEphraim 08abb14c/08abc074, Pal_OpAnimEphraimBlur 08ac1c8c,
+  Img/Tsa_..Blur3 08abe304/08abef70, Img/Tsa_..Blur2 08abd348/08abe120. Then `NewProc08AA6D04` starts a proc on tree 0
+  (VSync): the test must run tree 0 too (as `GameLoop.onVBlank` does). Script positions per frame are in the trace.
+- Boot driver: `GameLoop` + `GameControl` exist; still missing AgbMain init pieces, `SoftResetIfKeyComboPressed` hookup,
+  `IsSoftwareReset` / `SetSoftwareResetFlag`. Assets for `EarlyStartUi.Gfx`/`OpAnim.Gfx` on device: from the ROM import (M4-03).
+- Proc helpers `Proc_ForAll/ForEach/*Marked`, `SetMark/SetEndCb/SetRepeatCb` exist but are unverified (no trace uses them yet).
 - M3-07 GPU backend (`:app`, manual test): can now show H&S and both logos from `ui/*` (see `IntroLogosScreenTest`).
 - `gSinLookup` loader exists (`TrigTable`), but `SaveDraw` still takes a `ShortArray` and the app does not load it yet.
 - Re-extracting after an extractor change: run the CLI (see Known bugs), compare with `python3 tools/compare_extraction.py

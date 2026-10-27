@@ -23,5 +23,6 @@ Keep each row to one line; add the totals line below the table up to date.
 | 2026-10-27 14:53 | `session_01NGGw9NS5vR8Xyx9jdNSaNi` | scheduled run | ~20 | ~120,000 | — | M4-02 screen loads (BgHardware, SetupBackgrounds, Decompress, HBlank handlers, FlushBackgrounds), intro proc from its start vs boot trace, lag-frame finding; 42 → 58 verified |
 | 2026-10-27 15:15 | `session_01NGGw9NS5vR8Xyx9jdNSaNi` | interactive (same session, owner question) | ~4 | ~6,000 | — | why the run ended early; `tools/run_clock.sh` wrap-up gate (CLAUDE.md, HANDOFF, setup.sh) |
 | 2026-10-27 15:25 | `session_01NGGw9NS5vR8Xyx9jdNSaNi` | interactive (same session, owner request) | ~2 | ~4,000 | — | CLAUDE.md rule 10 + brief amendment: Android Kotlin style guide |
+| 2026-10-27 22:51 | `session_01NGGw9NG2hKhUCR67jzPm4P` | scheduled | ~26 | ~190,000 | — | GameLoop, GameControl, OpAnim to f1100 (M4-08), proc helpers, M4-05 CI guard; 58 -> 79 verified |
 
-Totals recorded so far: ~478,000 tokens (counter), 2026-10-27 onward only.
+Totals recorded so far: ~668,000 tokens (counter), 2026-10-27 onward only.

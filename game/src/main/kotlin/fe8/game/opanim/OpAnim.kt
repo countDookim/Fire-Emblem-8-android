@@ -18,9 +18,9 @@ import gbafe.proc.ProcScripts.yield
 import gbafe.render.BgHardware
 
 /**
- * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`, `src/opanimfx.c`).
- * Partial: only its start (`OpAnimInit` through the world map scene) is ported; a stand-in `PROC_BLOCK`
- * sits where `OpAnimPreparefxEphraim` would run.
+ * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
+ * `src/opanimfx.c`). Partial: only its start (`OpAnimInit` through the world map scene) is ported;
+ * a stand-in `PROC_BLOCK` sits where `OpAnimPreparefxEphraim` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -64,7 +64,12 @@ public class OpAnim(
     /** `ProcScr_OpAnimFadeIn`: fades the screen in from black over `max` frames. */
     public val fadeInScript: ProcScript = ProcScript(
         "ProcScr_OpAnimFadeIn",
-        listOf(yield(), call(ProcFunc { allBlack(it) }), repeat(ProcFunc { fadeInMain(it) }), end()),
+        listOf(
+            yield(),
+            call(ProcFunc { allBlack(it) }),
+            repeat(ProcFunc { fadeInMain(it) }),
+            end(),
+        ),
         newState = { FadeInState() },
     )
 
@@ -74,7 +79,10 @@ public class OpAnim(
         public var timer: Int = 0
     }
 
-    /** `ProcScr_OpAnimBLDALPHA`: fades the BG palette in from black to white, waits, then blends the fog in. */
+    /**
+     * `ProcScr_OpAnimBLDALPHA`: fades the BG palette in from black to white, waits, then blends the
+     * fog in.
+     */
     public val bldAlphaScript: ProcScript = ProcScript(
         "ProcScr_OpAnimBLDALPHA",
         listOf(
@@ -89,7 +97,9 @@ public class OpAnim(
 
     /** ROM data used by [init]: four compressed OBJ images and their 16-colour palettes. */
     public class Gfx(
-        /** `Img_OpAnimSplitLine`, `Img_opanim_unk1`, `Img_OpAnimEphEirikaName`, `Img_OpAnimDivlEye`. */
+        /**
+         * `Img_OpAnimSplitLine`, `Img_opanim_unk1`, `Img_OpAnimEphEirikaName`, `Img_OpAnimDivlEye`.
+         */
         public val images: List<OpAnimHs.Blob>,
         /** The matching `Pal_*` (16 colours each). */
         public val palettes: List<ShortArray>,
@@ -140,8 +150,8 @@ public class OpAnim(
     )
 
     /**
-     * Resets the display, loads the cutscene's OBJ graphics and palettes, sets the next game action to "played
-     * through" and starts the terminator. `Sound_FadeOutBGM` is not modelled.
+     * Resets the display, loads the cutscene's OBJ graphics and palettes, sets the next game action
+     * to "played through" and starts the terminator. `Sound_FadeOutBGM` is not modelled.
      *
      * Partially ported from src/opanim-main.c: OpAnimInit
      */
@@ -165,7 +175,8 @@ public class OpAnim(
     }
 
     /**
-     * Sets up BG2 (world map) and BG1 (fog, palette 2), blending and display. `StartBgmExt` is not modelled.
+     * Sets up BG2 (world map) and BG1 (fog, palette 2), blending and display. `StartBgmExt` is not
+     * modelled.
      *
      * Partially ported from src/opanim-main.c: SetupOpAnimWorldMapfx
      */
@@ -173,8 +184,10 @@ public class OpAnim(
         val hw = hardware
         val lcd = hw.lcd
         lcd.dispcnt = lcd.dispcnt and 7.inv()
-        intArrayOf(0x0000, 0x4000, 0x8000, 0x0000).forEachIndexed { bg, o -> hw.setTileDataOffset(bg, o) }
-        intArrayOf(0xD800, 0xE800, 0xF000, 0xF800).forEachIndexed { bg, o -> hw.setMapDataOffset(bg, o) }
+        setOffsets(
+            intArrayOf(0x0000, 0x4000, 0x8000, 0x0000),
+            intArrayOf(0xD800, 0xE800, 0xF000, 0xF800),
+        )
         for (bg in 0..3) {
             hw.setScreenSize(bg, 0)
             lcd.setBgPosition(bg, 0, 0)
@@ -192,9 +205,7 @@ public class OpAnim(
         Decompress.into(w.fogTsa.data, w.fogTsa.offset, hw.vram, 0xE800)
         for (i in 0 until 0x400) {
             val o = 0xE800 + 2 * i
-            val v = ((hw.vram[o].toInt() and 0xFF) or ((hw.vram[o + 1].toInt() and 0xFF) shl 8)) + 0x2000
-            hw.vram[o] = v.toByte()
-            hw.vram[o + 1] = (v shr 8).toByte()
+            add16(hw.vram, o, 0x2000)
         }
         hw.enablePaletteSync()
         lcd.setBlendConfig(1, 0, 0x10, 8)
@@ -205,8 +216,8 @@ public class OpAnim(
     }
 
     /**
-     * Fills BG palette 0 with a grey interpolated from black to white over 0x3E frames, then sets [pal] to white,
-     * keeps only OBJ as first blend target and breaks.
+     * Fills BG palette 0 with a grey interpolated from black to white over 0x3E frames, then sets
+     * [pal] to white, keeps only OBJ as first blend target and breaks.
      *
      * Ported from src/opanim-main.c: OpAnimBldAlphaUpdateBgPalette
      */
@@ -283,8 +294,8 @@ public class OpAnim(
     }
 
     /**
-     * World map scene, one frame: scrolls the fog, fades the map palette in from white and the fog out, starts the
-     * screen fade-in at frame 0xEF and breaks at 0x110.
+     * World map scene, one frame: scrolls the fog, fades the map palette in from white and the fog
+     * out, starts the screen fade-in at frame 0xEF and breaks at 0x110.
      *
      * Ported from src/opanim-main.c: sub_80C6F70
      */
@@ -299,7 +310,9 @@ public class OpAnim(
             copyToPal(worldMap.pal, 0, 0x20)
             blendPalette(0, 0x7FFF, v)
         }
-        if (st.timer - 0x80 in 0..0x60) lcd.blendCoeffA = linear(8, 0, st.timer - 0x80, 0x60) and 0xFF
+        if (st.timer - 0x80 in 0..0x60) {
+            lcd.blendCoeffA = linear(8, 0, st.timer - 0x80, 0x60) and 0xFF
+        }
         if (st.timer == 0xEF) {
             lcd.setDispEnable(0, 0, 1, 0, 1)
             newFadeIn(0x20, proc)
@@ -313,8 +326,8 @@ public class OpAnim(
     }
 
     /**
-     * Resets the BG layout for the Ephraim / Eirika scenes: offsets, priorities, empty tilemaps, display off, blend
-     * setup.
+     * Resets the BG layout for the Ephraim / Eirika scenes: offsets, priorities, empty tilemaps,
+     * display off, blend setup.
      *
      * Ported from src/opanim-main.c: sub_80C7050
      */
@@ -322,8 +335,10 @@ public class OpAnim(
         val hw = hardware
         val lcd = hw.lcd
         lcd.dispcnt = lcd.dispcnt and 7.inv()
-        intArrayOf(0x0000, 0x0000, 0x4000, 0x4000).forEachIndexed { bg, o -> hw.setTileDataOffset(bg, o) }
-        intArrayOf(0xD800, 0xE000, 0xE800, 0xF800).forEachIndexed { bg, o -> hw.setMapDataOffset(bg, o) }
+        setOffsets(
+            intArrayOf(0x0000, 0x0000, 0x4000, 0x4000),
+            intArrayOf(0xD800, 0xE000, 0xE800, 0xF800),
+        )
         for (bg in 0..3) {
             hw.setScreenSize(bg, 0)
             lcd.setBgPosition(bg, 0, 0)
@@ -333,7 +348,8 @@ public class OpAnim(
         lcd.dispcnt = lcd.dispcnt and 0xE000.inv() // SetWinEnable(0, 0, 0)
         for (bg in 0..3) hw.fill(hw.mapBuffer(bg), 0)
         hw.enableBgSyncByMask(0xF)
-        lcd.bldcnt = lcd.bldcnt and (BLD_BACKDROP_A or BLD_BACKDROP_B).inv() // SetBlendBackdropA(0), SetBlendBackdropB(0)
+        // SetBlendBackdropA(0), SetBlendBackdropB(0)
+        lcd.bldcnt = lcd.bldcnt and (BLD_BACKDROP_A or BLD_BACKDROP_B).inv()
         lcd.setBlendConfig(1, 8, 8, 8)
         lcd.setBlendTargetA(0, 1, 0, 0, 0)
         lcd.setBlendTargetB(0, 0, 1, 1, 0)
@@ -351,7 +367,11 @@ public class OpAnim(
         val p = hardware.palette
         for (i in at until at + 16) {
             val c = p[i].toInt()
-            fun ch(v: Int, shift: Int) = ((((v shr shift) and 0x1F) * (0x10 - blend) + ((color shr shift) and 0x1F) * blend) shr 4) and 0x1F
+            fun ch(v: Int, shift: Int): Int {
+                val a = (v shr shift) and 0x1F
+                val b = (color shr shift) and 0x1F
+                return ((a * (0x10 - blend) + b * blend) shr 4) and 0x1F
+            }
             p[i] = ((ch(c, 10) shl 10) or (ch(c, 5) shl 5) or ch(c, 0)).toShort()
         }
     }
@@ -391,11 +411,25 @@ public class OpAnim(
     }
 
     /** `Interpolate(INTERPOLATE_LINEAR, ...)` (src/bmlib.c), the only method used here. */
-    private fun linear(lo: Int, hi: Int, x: Int, xMax: Int): Int = if (xMax == 0) hi else lo + (hi - lo) * x / xMax
+    private fun linear(lo: Int, hi: Int, x: Int, xMax: Int): Int =
+        if (xMax == 0) hi else lo + (hi - lo) * x / xMax
+
+    private fun setOffsets(tiles: IntArray, maps: IntArray) {
+        for (bg in 0..3) {
+            hardware.setTileDataOffset(bg, tiles[bg])
+            hardware.setMapDataOffset(bg, maps[bg])
+        }
+    }
+
+    private fun add16(b: ByteArray, o: Int, d: Int) {
+        val v = ((b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)) + d
+        b[o] = v.toByte()
+        b[o + 1] = (v shr 8).toByte()
+    }
 
     /**
-     * Copies [size] bytes of [src] to the palette buffer at byte [offset], requests a palette sync and forces entry
-     * 0 to [pal].
+     * Copies [size] bytes of [src] to the palette buffer at byte [offset], requests a palette sync
+     * and forces entry 0 to [pal].
      *
      * Ported from src/opanimfx.c: CopyToPalOpAnim
      */
@@ -406,9 +440,12 @@ public class OpAnim(
     }
 
     /**
-     * On A, B or Start: sets the next game action to "user skipped", clears [pal] and jumps the op anim to label 99.
+     * On A, B or Start: sets the next game action to "user skipped", clears [pal] and jumps the op
+     * anim to label 99.
      *
-     * Partially ported from src/opanimfx.c: OpAnimfxTerminatorMain (label 99 not ported yet: the jump is a no-op)
+     * Label 99 is not ported yet: the jump is a no-op.
+     *
+     * Partially ported from src/opanimfx.c: OpAnimfxTerminatorMain
      */
     public fun terminatorMain(proc: Proc) {
         if (keys.newKeys and (A_BUTTON or B_BUTTON or START_BUTTON) != 0) {

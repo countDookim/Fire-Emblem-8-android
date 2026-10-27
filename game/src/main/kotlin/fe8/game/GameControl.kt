@@ -16,9 +16,10 @@ import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.startChildBlocking
 
 /**
- * The game control proc `gProcScr_GameControl` (decomp `src/gamecontrol.c`), the root of the game's flow: intro,
- * title, save menu, chapters. Partial: only its start up to the op anim (`ProcScr_GameEarlyStartUI` and
- * `ProcScr_OpAnim`, given as [introScript] and [opAnimScript]) is ported; after that a stand-in `PROC_BLOCK` holds it.
+ * The game control proc `gProcScr_GameControl` (decomp `src/gamecontrol.c`), the root of the game's
+ * flow: intro, title, save menu, chapters. Partial: only its start up to the op anim
+ * (`ProcScr_GameEarlyStartUI` and `ProcScr_OpAnim`, given as [introScript] and [opAnimScript]) is
+ * ported; after that a stand-in `PROC_BLOCK` holds it.
  */
 public class GameControl(
     /** The proc engine the game control proc runs on. */
@@ -27,10 +28,15 @@ public class GameControl(
     public val keys: KeyStatus,
     /** The intro proc script, started as a blocking child. */
     private val introScript: () -> ProcScript,
-    /** The op anim (intro cutscene) script `ProcScr_OpAnim`, started as a blocking child after the intro. */
+    /**
+     * The op anim (intro cutscene) script `ProcScr_OpAnim`, started as a blocking child after the
+     * intro.
+     */
     private val opAnimScript: () -> ProcScript,
 ) {
-    /** `gPlaySt.config` option bits (u32 at `gPlaySt+0x40`); only the sound bits are used so far. */
+    /**
+     * `gPlaySt.config` option bits (u32 at `gPlaySt+0x40`); only the sound bits are used so far.
+     */
     public var playStConfig: Int = 0
     /** `struct GameCtrlProc` fields after the proc header. */
     public class State {
@@ -75,13 +81,15 @@ public class GameControl(
     )
 
     /**
-     * Jumps [proc] to the erase-save label when L + Right + Select are held (no-op while that part of the script
-     * is not ported).
+     * Jumps [proc] to the erase-save label when L + Right + Select are held (no-op while that part
+     * of the script is not ported).
      *
      * Partially ported from src/gamecontrol.c: GameControl_CallEraseSaveEventWithKeyCombo
      */
     public fun callEraseSaveEventWithKeyCombo(proc: Proc) {
-        if (keys.heldKeys == L_BUTTON or DPAD_RIGHT or SELECT_BUTTON) engine.goto(proc, LGAMECTRL_ERASE_SAVE)
+        if (keys.heldKeys == L_BUTTON or DPAD_RIGHT or SELECT_BUTTON) {
+            engine.goto(proc, LGAMECTRL_ERASE_SAVE)
+        }
     }
 
     /**
@@ -121,8 +129,8 @@ public class GameControl(
     }
 
     /**
-     * Starts the game control proc on tree 3 with `nextAction = GAME_ACTION_EVENT_RETURN`. The main loop and VBlank
-     * routines are set by the caller (they are fixed in [GameLoop]).
+     * Starts the game control proc on tree 3 with `nextAction = GAME_ACTION_EVENT_RETURN`. The main
+     * loop and VBlank routines are set by the caller (they are fixed in [GameLoop]).
      *
      * Ported from src/gamecontrol.c: StartGame
      */

@@ -2,7 +2,9 @@ package fe8.testing
 
 import fe8.game.opanim.EarlyStartUi
 import fe8.game.opanim.OpAnimHs
+import fe8.game.GameLoop
 import gbafe.core.VerifiesPort
+import gbafe.core.time.GameClock
 import gbafe.input.KeyComboReset
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
@@ -21,9 +23,9 @@ import java.io.File
  * (RAM every 10 frames; A on health & safety at f181): health & safety fade in / wait / fade out, the Nintendo
  * logo and the Intelligent Systems logo. Our proc starts on a fresh engine and is stepped until its script
  * position and palette timer equal the first dump that holds it (f20); from there each frame feeds the scripted
- * keys and runs the proc tree (skipping the lag frame after each screen load), and every dump must match: `proc_scrCur`, `ProcOpAnimHS` fields, `gPaletteBuffer`,
+ * keys and runs the proc tree through [GameLoop] (which skips a step on the lag frame after each screen load), and every dump must match: `proc_scrCur`, `ProcOpAnimHS` fields, `gPaletteBuffer`,
  * the four BG tilemap buffers, BG control / DISPCNT in `gLCDControlBuffer`, `gKeyStatusIgnoredSt` and
- * `gKeyComboResetEN`. Addresses from decomp/fireemblem8.nm.txt (pinned 04d1edb).
+ * `gKeyComboResetEN` and `gGameClock`. Addresses from decomp/fireemblem8.nm.txt (pinned 04d1edb).
  */
 class EarlyStartUiBootDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -37,7 +39,7 @@ class EarlyStartUiBootDifferentialTest {
     }
 
     @Test
-    @VerifiesPort("GameIntroPrepareNintendofx", "PrepareHealthAndSafetyScreen", "EnableKeyComboResetEN")
+    @VerifiesPort("GameIntroPrepareNintendofx", "PrepareHealthAndSafetyScreen", "EnableKeyComboResetEN", "OnMain")
     fun `intro proc from its start matches the boot trace`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -66,18 +68,15 @@ class EarlyStartUiBootDifferentialTest {
         val st = proc.state as OpAnimHs.Proc
 
         // A screen load (SetupBackgrounds + decompression) overruns its frame on hardware, so the game loop misses one
-        // VBlank and runs no step on the next frame. Detected by the BG sync request a load leaves (cleared each step,
-        // standing in for the VBlank sync).
-        var lag = false
+        // VBlank and runs no step on the next frame. Detected by the BG sync request a load leaves (the VBlank flush
+        // clears it).
+        var keyFrame = 0
+        val clock = GameClock()
+        val loop = GameLoop(engine, keys, clock, keyInput = { if (keyFrame == A_FRAME) A_BUTTON else 0 },
+            overran = { hw.modifiedBgs != 0 }, flush = hw::flushBackgrounds)
         fun frame(f: Int) {
-            if (lag) {
-                lag = false
-                return
-            }
-            keys.update(if (f == A_FRAME) A_BUTTON else 0)
-            engine.run(engine.root(1))
-            lag = hw.modifiedBgs != 0
-            hw.modifiedBgs = 0
+            keyFrame = f
+            loop.frame()
         }
         val e20 = run.region("r00020", "ewram")
         val d20 = procAt(e20)!!
@@ -86,6 +85,8 @@ class EarlyStartUiBootDifferentialTest {
             frame(0)
             assertTrue(++steps < 20, "proc never reached its f20 state")
         }
+        val clockAt = sym["gGameClock"].address
+        clock.frames = GbaMem.u32(run.region("r00020", "iwram"), GbaMem.IWRAM, clockAt).toLong() and 0xFFFFFFFFL
         var checked = 0
         for (f in 21..490) {
             frame(f)
@@ -107,6 +108,7 @@ class EarlyStartUiBootDifferentialTest {
             assertEquals(lcd.dispcnt.toString(16), hw.lcd.dispcnt.toString(16), "f$f dispcnt")
             assertEquals(GbaMem.u16(i, GbaMem.IWRAM, sym["gKeyStatusIgnoredSt"].address), keys.ignoreMask, "f$f gKeyStatusIgnoredSt")
             assertEquals(i[sym["gKeyComboResetEN"].address - GbaMem.IWRAM].toInt() != 0, combo.canReset(), "f$f gKeyComboResetEN")
+            assertEquals(GbaMem.u32(i, GbaMem.IWRAM, clockAt).toLong() and 0xFFFFFFFFL, clock.get(), "f$f gGameClock")
             checked++
         }
         assertEquals(47, checked)

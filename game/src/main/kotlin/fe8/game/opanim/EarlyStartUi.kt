@@ -12,12 +12,14 @@ import gbafe.proc.ProcScripts.goto
 import gbafe.proc.ProcScripts.label
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.yield
+import gbafe.input.KeyComboReset
+import gbafe.render.BgHardware
 import gbafe.render.LcdControl
 
 /**
  * `ProcScr_GameEarlyStartUI` (src/opanim-healthsafetyscreen.c): health & safety screen, Nintendo and
  * Intelligent Systems logos, with the A/B logo skip. Same 28 commands as the ROM script, so command indices match
- * `proc_scrCur`. Screen loading and other not-yet-ported calls are the [Env] hooks.
+ * `proc_scrCur`. Screen loads use [Env.gfx] and [Env.hardware].
  */
 public class EarlyStartUi(
     /** The proc engine the script runs on. */
@@ -43,12 +45,30 @@ public class EarlyStartUi(
         public val isPalette: ShortArray,
         /** `IsSoftwareReset()`. */
         public val softwareReset: () -> Boolean = { false },
-        /** `PrepareHealthAndSafetyScreen` (not ported yet). */
-        public val prepareHealthSafety: ProcFunc = ProcFunc { },
-        /** `GameIntroPrepareNintendofx` (not ported yet). */
-        public val prepareLogos: ProcFunc = ProcFunc { },
-        /** `EnableKeyComboResetEN` (not ported yet). */
-        public val enableKeyComboReset: ProcFunc = ProcFunc { },
+        /** The compressed screen graphics `PrepareHealthAndSafetyScreen` and `GameIntroPrepareNintendofx` load. */
+        public val gfx: Gfx,
+        /** `gKeyComboResetEN` (`EnableKeyComboResetEN`). */
+        public val keyComboReset: KeyComboReset = KeyComboReset(),
+        /** BG buffers, VRAM and sync flags; shares [lcd] and [paletteBuffer]. */
+        public val hardware: BgHardware = BgHardware(lcd, paletteBuffer),
+    )
+
+    /** ROM graphics of the three screens (`Decompress` blobs). */
+    public class Gfx(
+        /** `Img_OpAnimHealthSafetyScreen`. */
+        public val hsImg: OpAnimHs.Blob,
+        /** `Tsa_OpAnimHealthSafetyScreenBG1`. */
+        public val hsTsaBg1: OpAnimHs.Blob,
+        /** `Tsa_OpAnimHealthSafetyScreenBG0`. */
+        public val hsTsaBg0: OpAnimHs.Blob,
+        /** `Img_GameIntroNintendo`. */
+        public val nintendoImg: OpAnimHs.Blob,
+        /** `Tsa_GameIntroNintendo`. */
+        public val nintendoTsa: OpAnimHs.Blob,
+        /** `Img_IntelligentSystems`. */
+        public val isImg: OpAnimHs.Blob,
+        /** `Tsa_IntelligentSystems`. */
+        public val isTsa: OpAnimHs.Blob,
     )
 
     private fun st(p: Proc) = p.state as OpAnimHs.Proc
@@ -72,20 +92,28 @@ public class EarlyStartUi(
     public val script: ProcScript = ProcScript("ProcScr_GameEarlyStartUI", listOf(
         yield(),
         call { OpAnimHs.setStatus0(st(it)) },
-        call(e.prepareHealthSafety),
+        call {
+            val g = e.gfx
+            if (!OpAnimHs.prepareHealthSafety(st(it), e.hardware, e.keys, e.softwareReset(), g.hsImg, g.hsTsaBg1, g.hsTsaBg0)) {
+                engine.goto(it, 0x3E7)
+            }
+        },
         repeat { bool(it, OpAnimHs.healthSafetyFadeIn(st(it), e.hsPalette, e.paletteBuffer)) },
         repeat(delay),
         repeat { bool(it, OpAnimHs.healthSafetyWaitButton(st(it), e.lcd, e.keys)) },
         repeat { bool(it, OpAnimHs.healthSafetyFadeOut(st(it), e.hsPalette, e.paletteBuffer)) },
         repeat(delay),
         label(0x3E7),
-        call(e.prepareLogos),
+        call {
+            val g = e.gfx
+            OpAnimHs.prepareNintendofx(st(it), e.hardware, g.nintendoImg, g.nintendoTsa, g.isImg, g.isTsa)
+        },
         call { OpAnimHs.setStatus1(st(it)) },
         repeat { apply(it, OpAnimHs.nintendoFadeIn(st(it), e.nintendoPalette, e.paletteBuffer, e.lcd, e.keys, e.softwareReset())) },
         repeat(delay),
         repeat { apply(it, OpAnimHs.nintendoFadeOut(st(it), e.nintendoPalette, e.paletteBuffer, e.keys, e.softwareReset())) },
         repeat(delay),
-        call(e.enableKeyComboReset),
+        call { e.keyComboReset.enable() },
         call { OpAnimHs.setStatus2(st(it)) },
         repeat { apply(it, OpAnimHs.intelligentSystemsFadeIn(st(it), e.isPalette, e.paletteBuffer, e.lcd, e.keys, e.softwareReset())) },
         repeat(delay),
@@ -93,7 +121,7 @@ public class EarlyStartUi(
         repeat(delay),
         goto(1),
         label(0),
-        call(e.enableKeyComboReset),
+        call { e.keyComboReset.enable() },
         call { OpAnimHs.startSkipFade(st(it), e.paletteBuffer, e.paletteBackup) },
         repeat { bool(it, OpAnimHs.skipFade(st(it), e.paletteBuffer, e.paletteBackup)) },
         label(1),

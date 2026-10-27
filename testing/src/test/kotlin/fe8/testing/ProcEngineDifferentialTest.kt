@@ -43,6 +43,7 @@ class ProcEngineDifferentialTest {
         val run = ref.run("ram_trace_logo_skip")
         fun ew(f: Int) = run.region("r%05d".format(f), "ewram")
         fun romPal(at: Int, n: Int) = ShortArray(n) { u16(rom, at - 0x08000000 + 2 * it).toShort() }
+        fun blob(at: Int) = OpAnimHs.Blob(rom, at - 0x08000000)
         val keys = KeyStatus()
         val e0 = ew(400)
         val i0 = run.region("r00400", "iwram")
@@ -50,7 +51,9 @@ class ProcEngineDifferentialTest {
         val clock = GameClock().apply { frames = u32(i0, sym["gGameClock"].address - GbaMem.IWRAM).toLong() and 0xFFFFFFFFL }
         val env = EarlyStartUi.Env(palette(e0), ShortArray(512), LcdControl().apply { readFrom(i0, sym["gLCDControlBuffer"].address - GbaMem.IWRAM) },
             keys, romPal(0x08B125F4, 16), romPal(0x08B10ABC, 16), romPal(0x08B11864, 48),
-            enableKeyComboReset = { combo.enable() })
+            gfx = EarlyStartUi.Gfx(blob(0x08B11D0C), blob(0x08B118C4), blob(0x08B11C0C), blob(0x08B10630),
+                blob(0x08B104D8), blob(0x08B10CA4), blob(0x08B10ADC)),
+            keyComboReset = combo)
         val engine = ProcEngine()
         val ui = EarlyStartUi(engine, env)
         val o = procAt(e0)!!

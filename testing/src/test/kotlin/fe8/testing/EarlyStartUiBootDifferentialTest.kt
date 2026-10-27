@@ -2,14 +2,13 @@ package fe8.testing
 
 import fe8.game.opanim.EarlyStartUi
 import fe8.game.opanim.OpAnimHs
+import fe8.game.GameControl
 import fe8.game.GameLoop
 import gbafe.core.VerifiesPort
 import gbafe.core.time.GameClock
 import gbafe.input.KeyComboReset
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
-import gbafe.proc.ProcScript
-import gbafe.proc.ProcScripts
 import gbafe.render.LcdControl
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -21,25 +20,27 @@ import java.io.File
 /**
  * Runs `ProcScr_GameEarlyStartUI` ([EarlyStartUi]) from its start, screen loads included, against `ram_trace_boot`
  * (RAM every 10 frames; A on health & safety at f181): health & safety fade in / wait / fade out, the Nintendo
- * logo and the Intelligent Systems logo. Our proc starts on a fresh engine and is stepped until its script
+ * logo and the Intelligent Systems logo. `StartGame` starts the game control proc ([GameControl]), which starts
+ * the intro as its blocking child, on a fresh engine; the game is stepped until its script
  * position and palette timer equal the first dump that holds it (f20); from there each frame feeds the scripted
  * keys and runs the proc tree through [GameLoop] (which skips a step on the lag frame after each screen load), and every dump must match: `proc_scrCur`, `ProcOpAnimHS` fields, `gPaletteBuffer`,
  * the four BG tilemap buffers, BG control / DISPCNT in `gLCDControlBuffer`, `gKeyStatusIgnoredSt` and
- * `gKeyComboResetEN` and `gGameClock`. Addresses from decomp/fireemblem8.nm.txt (pinned 04d1edb).
+ * `gKeyComboResetEN`, `gGameClock`, and the game control proc (intro parent, script position, mark, lock, fields). Addresses from decomp/fireemblem8.nm.txt (pinned 04d1edb).
  */
 class EarlyStartUiBootDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
     private val sym = RamSymbols.fromEnvironment()
     private val romFile = File(System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets", "baserom.gba")
 
-    private fun procAt(ew: ByteArray): Int? {
+    private fun procAt(ew: ByteArray, script: Int = PROC_SCRIPT): Int? {
         val a = sym["sProcArray"]
         return (0 until a.size / PROC_SIZE).map { a.address - GbaMem.EWRAM + it * PROC_SIZE }
-            .firstOrNull { GbaMem.u32(ew, 0, it) == PROC_SCRIPT }
+            .firstOrNull { GbaMem.u32(ew, 0, it) == script }
     }
 
     @Test
-    @VerifiesPort("GameIntroPrepareNintendofx", "PrepareHealthAndSafetyScreen", "EnableKeyComboResetEN", "OnMain")
+    @VerifiesPort("GameIntroPrepareNintendofx", "PrepareHealthAndSafetyScreen", "EnableKeyComboResetEN", "OnMain", "StartGame",
+        "GameControl_CallEraseSaveEventWithKeyCombo", "GameControl_8009A58", "GameControl_8009A60_Null")
     fun `intro proc from its start matches the boot trace`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -63,9 +64,9 @@ class EarlyStartUiBootDifferentialTest {
         val hw = env.hardware
         val engine = ProcEngine()
         val ui = EarlyStartUi(engine, env)
-        val parent = engine.start(ProcScript("parent", listOf(ProcScripts.block(), ProcScripts.end())), 1)
-        val proc = engine.start(ui.script, parent)
-        val st = proc.state as OpAnimHs.Proc
+        val ctrl = GameControl(engine, keys) { ui.script }
+        val gameCtrl = ctrl.startGame()
+        val ctrlSt = gameCtrl.state as GameControl.State
 
         // A screen load (SetupBackgrounds + decompression) overruns its frame on hardware, so the game loop misses one
         // VBlank and runs no step on the next frame. Detected by the BG sync request a load leaves (the VBlank flush
@@ -78,6 +79,10 @@ class EarlyStartUiBootDifferentialTest {
             keyFrame = f
             loop.frame()
         }
+        frame(0) // GAMECTRL: name, mark, calls, PROC_REPEAT (breaks itself next frame)
+        frame(0) // ... then starts the intro as a blocking child
+        val proc = gameCtrl.child!!
+        val st = proc.state as OpAnimHs.Proc
         val e20 = run.region("r00020", "ewram")
         val d20 = procAt(e20)!!
         var steps = 0
@@ -109,6 +114,13 @@ class EarlyStartUiBootDifferentialTest {
             assertEquals(GbaMem.u16(i, GbaMem.IWRAM, sym["gKeyStatusIgnoredSt"].address), keys.ignoreMask, "f$f gKeyStatusIgnoredSt")
             assertEquals(i[sym["gKeyComboResetEN"].address - GbaMem.IWRAM].toInt() != 0, combo.canReset(), "f$f gKeyComboResetEN")
             assertEquals(GbaMem.u32(i, GbaMem.IWRAM, clockAt).toLong() and 0xFFFFFFFFL, clock.get(), "f$f gGameClock")
+            val c = procAt(e, GAME_CTRL_SCRIPT)!!
+            assertEquals(GbaMem.EWRAM + c, GbaMem.u32(e, 0, d + 0x14), "f$f intro parent is GAMECTRL")
+            assertEquals((GbaMem.u32(e, 0, c + 4) - GAME_CTRL_SCRIPT) / 8, gameCtrl.scrCur, "f$f GAMECTRL scrCur")
+            assertEquals(listOf(e[c + 0x26], e[c + 0x28], e[c + 0x29], e[c + 0x2A], e[c + 0x2B], e[c + 0x2C]).map { it.toInt() and 0xFF } +
+                listOf(GbaMem.u16(e, 0, c + 0x2E), e[c + 0x30].toInt() and 0xFF),
+                listOf(gameCtrl.mark, gameCtrl.lockCnt, ctrlSt.nextAction, ctrlSt.nextChapter, ctrlSt.idleStatus, ctrlSt.unk2C, ctrlSt.unk2E, ctrlSt.chIndex),
+                "f$f GAMECTRL mark, lock, fields")
             checked++
         }
         assertEquals(47, checked)
@@ -117,6 +129,7 @@ class EarlyStartUiBootDifferentialTest {
 
     private companion object {
         const val PROC_SCRIPT = 0x08AA7680 // ProcScr_GameEarlyStartUI
+        const val GAME_CTRL_SCRIPT = 0x085916D4 // gProcScr_GameControl
         const val PROC_SIZE = 0x6C
         const val A_FRAME = 181
         const val A_BUTTON = 1

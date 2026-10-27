@@ -125,7 +125,7 @@ Everything runs on Anthropic's cloud sessions plus GitHub Actions. Never use my 
 
 ## Schedule (scheduled tasks)
 - **Times:** one daily scheduled task firing every 8 hours, at 00:50, 08:50 and 16:50 Asia/Jerusalem time (cron: `CRON_TZ=Asia/Jerusalem 50 0,8,16 * * *`).
-- **Budget:** each run lasts 40–45 minutes, measured from the run's own start time.
+- **Budget:** each run lasts about 30 minutes, measured from the run's own start time (amendment 2026-10-27).
 - **Fresh sessions:** each run starts with no memory of earlier runs.
 
 Every run:
@@ -139,8 +139,9 @@ Every run:
    4. The next task from `docs/TASKS.md`.
 5. If `TASKS.md` has fewer than 5 open tasks, spend the run on planning instead: break the next milestone into tasks of 20 minutes or less and add them.
 6. **Commit and push after every completed step**, not only at the end, so an interrupted run loses almost nothing. Unfinished work goes on a `wip/<task-id>` branch. Never leave `main` broken.
-7. At minute 38, stop new work no matter what. Then, by minute 45:
+7. At about minute 23, stop new work. Then, by about minute 30:
    - Run the local tests.
+   - Append this run's row to `docs/USAGE.md` (see its header for what to record).
    - Update `docs/MANUAL_TEST.md` if anything became testable.
    - Write the NEXT task precisely into `HANDOFF.md`.
    - Commit and push.
@@ -198,3 +199,4 @@ Be honest: flag uncertainty, never claim untested behavior works, and say clearl
 | 2026-10-25 | **Build for reuse by future FE6/FE7 ports.** Engine, shared FE systems, data/asset formats, schemas and tools are game-neutral (`gbafe.*` packages, `gbafe.<table>` formats with a `game` field); FE8-only systems and ROM layouts live in the `fe8` layer. Per-game differences only via data, strategies or per-game extractor packages. CI enforces that `gbafe` code never uses `fe8`. See `docs/decisions/0010-multi-game-reuse.md`. | Owner request. |
 | 2026-10-27 | **The player supplies the ROM.** Distributed builds (APK, `latest` release) contain no game content. On first launch the app imports the player's `.gba` (SHA1-checked), extracts the assets on the device with the `:tools:extract` code into the VFS `base` layer, and does not keep the ROM. Extraction needs a committed manifest of ROM offsets/ids instead of the decomp. CI checks the APK holds no game content. See `docs/decisions/0011-player-supplied-rom.md`; tasks M4-03..05. | Owner request (avoid distributing copyrighted material). |
 | 2026-10-26 | Runs last **about 45 min** as a guideline (may go a little over to finish a nearly done task or something important). Work until ~minute 38, wrap up by ~45; **never end early** with time left (start the next task on a `wip/` branch instead). Schedule section updated in place. | Owner request; a run had ended at minute 19 because the stale 30–35 min text in the Schedule section was followed instead of the amendment. |
+| 2026-10-27 | Runs last **about 30 min** (work until ~minute 23, wrap up by ~30; still never end early). Every session (scheduled or interactive) appends a row to **`docs/USAGE.md`** with its token usage. Schedule section updated in place; supersedes the 45-min amendments. | Owner request: the project was on track to exceed the weekly usage limit. |

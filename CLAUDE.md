@@ -1,7 +1,8 @@
 # Instructions for Claude sessions
 
 1. Read `HANDOFF.md` first (one screen). Follow the Schedule section of `docs/PROJECT_BRIEF.md` AND its Amendments table
-   (amendments win). Scheduled runs: **~45 min** budget; work until ~minute 38, wrap up by ~45, never end early.
+   (amendments win). Scheduled runs: **~30 min** budget; work until ~minute 23, wrap up by ~30, never end early.
+   Every session appends its token usage to `docs/USAGE.md` before its final push (format in that file).
 2. Run `tools/setup.sh` (idempotent, logs its duration), then `source .assets.env`. Run it in the background with a log
    (`tools/setup.sh > /tmp/setup.log 2>&1 &`, then poll): a cold Gradle warm-up can exceed a 2-min tool timeout.
 3. Tests: `./gradlew jvmTest` (JVM only; never install the Android SDK in a session).

@@ -54,8 +54,9 @@ _(nothing blocked)_
 - CI: green through 6e9602d; later pushes not checked at wrap-up (check the latest run first). Session setup: ~105 s. No `wip/` branches.
 
 ## Run rules (owner, 2026-10-26)
-- Budget **~45 min** (guideline; a little over is fine to finish a nearly done task). Work until ~minute 38, never end
-  early: when a task finishes, start the next (on `wip/<task-id>` if it may not finish). Wrap up by ~45.
+- Budget **~30 min** (owner, 2026-10-27; a little over is fine to finish a nearly done task). Work until ~minute 23,
+  never end early: when a task finishes, start the next (on `wip/<task-id>` if it may not finish). Wrap up by ~30.
+- Before the final push, append this session's row to `docs/USAGE.md`.
 - Run `tools/setup.sh` in the background with a log and poll it. Never fetch full CI job logs (step conclusions
   first, then `tail_lines` <= 80 of the failing job).
 - Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.

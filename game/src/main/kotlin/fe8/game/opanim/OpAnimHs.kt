@@ -5,9 +5,32 @@ import gbafe.render.LcdControl
 
 /**
  * Boot intro screens (Nintendo / Intelligent Systems logos, health & safety), decomp
- * `src/opanim-healthsafetyscreen.c`. So far: the palette fade helper the logo and warning screens use.
+ * `src/opanim-healthsafetyscreen.c`: the `ProcScr_GameEarlyStartUI` steps (palette fades, delays, the
+ * health & safety brightness pulse and the logo skip). Step functions return a [StepResult] (what the proc
+ * engine does next); screen loading (`PrepareHealthAndSafetyScreen`, `GameIntroPrepareNintendofx`) is not here yet.
  */
 public object OpAnimHs {
+    /** What a `PROC_REPEAT` step asks of the proc engine after this frame. */
+    public enum class StepResult {
+        /** Keep repeating the step next frame. */
+        CONTINUE,
+
+        /** `Proc_Break`: go on to the next script command. */
+        BREAK,
+
+        /** `Proc_Goto(proc, 0)`: the logos were skipped; jump to label 0 (palette fade to black, then end). */
+        SKIP,
+    }
+
+    /** `status` of the health & safety screen. */
+    public const val STATUS_HEALTH_SAFETY: Int = 0
+
+    /** `status` of the Nintendo logo. */
+    public const val STATUS_NINTENDO: Int = 1
+
+    /** `status` of the Intelligent Systems logo. */
+    public const val STATUS_INTELLIGENT_SYSTEMS: Int = 2
+
     /** Fields of `struct ProcOpAnimHS` used by the steps. */
     public class Proc {
         /** `status` (+0x2C): 0 health & safety, 1 Nintendo, 2 Intelligent Systems. */
@@ -18,7 +41,163 @@ public object OpAnimHs {
 
         /** `delay_timer` (+0x34): frames left in `GameEarlyStartDelay`. */
         public var delayTimer: Int = 0
+
+        /** `unk38` (+0x38): frames left in the skip fade to black (`sub_80CBFC0`). */
+        public var skipFadeTimer: Int = 0
     }
+
+    /**
+     * Sets `status` to health & safety (0).
+     *
+     * Ported from src/opanim-healthsafetyscreen.c: SetOpAnimHsStatus0
+     */
+    public fun setStatus0(proc: Proc) {
+        proc.status = STATUS_HEALTH_SAFETY
+    }
+
+    /**
+     * Sets `status` to the Nintendo logo (1).
+     *
+     * Ported from src/opanim-healthsafetyscreen.c: SetOpAnimHsStatus1
+     */
+    public fun setStatus1(proc: Proc) {
+        proc.status = STATUS_NINTENDO
+    }
+
+    /**
+     * Sets `status` to the Intelligent Systems logo (2).
+     *
+     * Ported from src/opanim-healthsafetyscreen.c: SetOpAnimHsStatus2
+     */
+    public fun setStatus2(proc: Proc) {
+        proc.status = STATUS_INTELLIGENT_SYSTEMS
+    }
+
+    /**
+     * Whether this frame skips the logos: A or B newly pressed (`newKeys & 0xA`), allowed only on the
+     * Intelligent Systems logo or after a software reset ([softwareReset], the game's `IsSoftwareReset()`).
+     * [base] is what the step decided before the check; a skip overrides it (`Proc_Goto` after `Proc_Break`).
+     *
+     * Ported from src/opanim-healthsafetyscreen.c: TryTickHSScreenExit
+     */
+    public fun tryTickExit(proc: Proc, keys: KeyStatus, softwareReset: Boolean, base: StepResult): StepResult {
+        if (proc.status == STATUS_INTELLIGENT_SYSTEMS || softwareReset) {
+            if (keys.newKeys and 0xA != 0) return StepResult.SKIP
+        }
+        return base
+    }
+
+    /**
+     * One frame of the pause between screens: counts `delay_timer` down; at zero resets `palette_timer` and
+     * breaks. Then checks for a logo skip ([tryTickExit]).
+     *
+     * Ported from src/opanim-healthsafetyscreen.c: GameEarlyStartDelay
+     */
+    public fun earlyStartDelay(proc: Proc, keys: KeyStatus, softwareReset: Boolean): StepResult {
+        var r = StepResult.CONTINUE
+        if (--proc.delayTimer <= 0) {
+            proc.paletteTimer = 0
+            r = StepResult.BREAK
+        }
+        return tryTickExit(proc, keys, softwareReset, r)
+    }
+
+    /**
+     * One frame of the Nintendo logo fade-in ([nintendoPalette] = `Pal_GameIntroNintendo` into BG bank 0 over
+     * 30 frames; shows BG0 on the first frame); then a 60-frame delay. Checks for a logo skip.
+     *
+     * Ported from src/opanim-healthsafetyscreen.c: GameIntroNintendoFadeIN
+     */
+    public fun nintendoFadeIn(
+        proc: Proc, nintendoPalette: ShortArray, paletteBuffer: ShortArray, lcd: LcdControl, keys: KeyStatus, softwareReset: Boolean,
+    ): StepResult {
+        if (proc.paletteTimer == 0) lcd.setDispEnable(1, 0, 0, 0, 0)
+        proc.paletteTimer++
+        brightenPalette(nintendoPalette, paletteBuffer, 0, 1, proc.paletteTimer, FADE_FRAMES)
+        return tryTickExit(proc, keys, softwareReset, fadeDone(proc, FADE_FRAMES, 0x3C))
+    }
+
+    /**
+     * One frame of the Nintendo logo fade-out (30 frames); then a 40-frame delay. Checks for a logo skip.
+     *
+     * Ported from src/opanim-healthsafetyscreen.c: GameIntroNintendoFadeOUT
+     */
+    public fun nintendoFadeOut(proc: Proc, nintendoPalette: ShortArray, paletteBuffer: ShortArray, keys: KeyStatus, softwareReset: Boolean): StepResult {
+        proc.paletteTimer++
+        brightenPalette(nintendoPalette, paletteBuffer, 0, 1, FADE_FRAMES - proc.paletteTimer, FADE_FRAMES)
+        return tryTickExit(proc, keys, softwareReset, fadeDone(proc, FADE_FRAMES, 0x28))
+    }
+
+    /**
+     * One frame of the Intelligent Systems logo fade-in ([isPalette] = `Pal_IntelligentSystems`, 3 banks into BG
+     * banks 1..3 over 30 frames; shows BG1 on the first frame); then a 60-frame delay. Checks for a logo skip.
+     *
+     * Ported from src/opanim-healthsafetyscreen.c: GameIntroIntelligentSystemsFadeIN
+     */
+    public fun intelligentSystemsFadeIn(
+        proc: Proc, isPalette: ShortArray, paletteBuffer: ShortArray, lcd: LcdControl, keys: KeyStatus, softwareReset: Boolean,
+    ): StepResult {
+        if (proc.paletteTimer == 0) lcd.setDispEnable(0, 1, 0, 0, 0)
+        proc.paletteTimer++
+        brightenPalette(isPalette, paletteBuffer, 1, 3, proc.paletteTimer, FADE_FRAMES)
+        return tryTickExit(proc, keys, softwareReset, fadeDone(proc, FADE_FRAMES, 0x3C))
+    }
+
+    /**
+     * One frame of the Intelligent Systems logo fade-out (40 frames, longer than the others); then a 60-frame
+     * delay. Checks for a logo skip.
+     *
+     * Ported from src/opanim-healthsafetyscreen.c: GameIntroIntelligentSystemsFadeOUT
+     */
+    public fun intelligentSystemsFadeOut(proc: Proc, isPalette: ShortArray, paletteBuffer: ShortArray, keys: KeyStatus, softwareReset: Boolean): StepResult {
+        proc.paletteTimer++
+        brightenPalette(isPalette, paletteBuffer, 1, 3, IS_FADE_OUT_FRAMES - proc.paletteTimer, IS_FADE_OUT_FRAMES)
+        return tryTickExit(proc, keys, softwareReset, fadeDone(proc, IS_FADE_OUT_FRAMES, 0x3C))
+    }
+
+    /**
+     * Start of the skip fade: saves all 512 colours of [paletteBuffer] into [backup] (`gPaletteOpAnimHsBackup`)
+     * and starts a 4-frame countdown.
+     *
+     * Ported from src/opanim-healthsafetyscreen.c: sub_80CBF9C
+     */
+    public fun startSkipFade(proc: Proc, paletteBuffer: ShortArray, backup: ShortArray) {
+        paletteBuffer.copyInto(backup, 0, 0, 0x200)
+        proc.skipFadeTimer = 4
+    }
+
+    /**
+     * One frame of the skip fade: scales every colour of [backup] by `n / 4` into [paletteBuffer] for n = 3, 2, 1;
+     * then blacks the whole palette and returns true (`Proc_Break`). The caller marks the palette for upload.
+     *
+     * Ported from src/opanim-healthsafetyscreen.c: sub_80CBFC0
+     */
+    public fun skipFade(proc: Proc, paletteBuffer: ShortArray, backup: ShortArray): Boolean {
+        if (--proc.skipFadeTimer > 0) {
+            val n = proc.skipFadeTimer
+            for (i in 0 until 0x200) {
+                val c = backup[i].toInt() and 0xFFFF
+                val r = (c and 0x1F) * n / 4
+                val g = ((c shr 5) and 0x1F) * n / 4
+                val b = ((c shr 10) and 0x1F) * n / 4
+                paletteBuffer[i] = (r or (g shl 5) or (b shl 10)).toShort()
+            }
+            return false
+        }
+        paletteBuffer.fill(0, 0, 0x200)
+        return true
+    }
+
+    private fun fadeDone(proc: Proc, frames: Int, delay: Int): StepResult {
+        if (proc.paletteTimer > frames - 1) {
+            proc.delayTimer = delay
+            return StepResult.BREAK
+        }
+        return StepResult.CONTINUE
+    }
+
+    /** Length of the Intelligent Systems fade-out in frames (0x28). */
+    private const val IS_FADE_OUT_FRAMES = 0x28
 
     /**
      * One frame of the health & safety fade-in: advances the timer and fades [hsPalette] (`Pal_OpAnimHealthSafetyScreen`,

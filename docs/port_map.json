@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 19,
-    "implemented_unverified": 6
+    "verified": 21,
+    "implemented_unverified": 15
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -55,6 +55,13 @@
         "fe8.testing.LcdControlDifferentialTest#flushed registers match mGBA I-O for every full dump"
       ]
     },
+    "GameEarlyStartDelay": {
+      "decomp_file": "src/opanim-healthsafetyscreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "GameIntroHealthSafetyFadeIN": {
       "decomp_file": "src/opanim-healthsafetyscreen.c",
       "system": "presentation",
@@ -81,6 +88,34 @@
       "tests": [
         "fe8.testing.OpAnimHsDifferentialTest#health and safety brightness pulse matches the boot RAM trace"
       ]
+    },
+    "GameIntroIntelligentSystemsFadeIN": {
+      "decomp_file": "src/opanim-healthsafetyscreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GameIntroIntelligentSystemsFadeOUT": {
+      "decomp_file": "src/opanim-healthsafetyscreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GameIntroNintendoFadeIN": {
+      "decomp_file": "src/opanim-healthsafetyscreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GameIntroNintendoFadeOUT": {
+      "decomp_file": "src/opanim-healthsafetyscreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
+      "status": "implemented",
+      "tests": []
     },
     "GetBgVerticalScrollBuffer": {
       "decomp_file": "src/bmlib-hblank.c",
@@ -198,10 +233,38 @@
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
       ]
     },
+    "SetOpAnimHsStatus0": {
+      "decomp_file": "src/opanim-healthsafetyscreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "SetOpAnimHsStatus1": {
+      "decomp_file": "src/opanim-healthsafetyscreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "SetOpAnimHsStatus2": {
+      "decomp_file": "src/opanim-healthsafetyscreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "StoreRNState": {
       "decomp_file": "src/rng.c",
       "system": "core",
       "kotlin_file": "engine/core/src/main/kotlin/gbafe/core/rng/Rng.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "TryTickHSScreenExit": {
+      "decomp_file": "src/opanim-healthsafetyscreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
       "status": "implemented",
       "tests": []
     },
@@ -221,6 +284,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
+      ]
+    },
+    "sub_80CBF9C": {
+      "decomp_file": "src/opanim-healthsafetyscreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsSkipDifferentialTest#logo skip fade matches the per-frame RAM trace"
+      ]
+    },
+    "sub_80CBFC0": {
+      "decomp_file": "src/opanim-healthsafetyscreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnimHs.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpAnimHsSkipDifferentialTest#logo skip fade matches the per-frame RAM trace"
       ]
     }
   }

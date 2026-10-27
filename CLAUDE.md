@@ -15,3 +15,9 @@
    FE6/FE7 ports: game-neutral `gbafe.*` vs FE8-only `fe8.*` (docs/decisions/0010); never use `fe8` from `gbafe`.
 8. Token hygiene: never fetch full CI job logs; check step conclusions first, then `tail_lines` <= 80 of the one
    failing job. Prefer reading files in excerpts over whole-file dumps.
+9. Save tokens without lowering quality: be concise (short replies, commit messages and HANDOFF lines; no narration
+   of routine steps). Don't over-verify: during work run only the tests for what changed; run the full `jvmTest`
+   (+ Dokka if public API changed) once before the final push, not after every step. Don't re-read files you just
+   wrote or dump large files/logs; read excerpts. Stop when a task is done: no extra polish, refactors or
+   features beyond its acceptance line, then start the next task (scheduled runs still use their full budget).
+   Rule 5 (ground-truth `@VerifiesPort` tests) is never relaxed to save tokens.

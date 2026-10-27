@@ -81,7 +81,8 @@ class EarlyStartUiBootDifferentialTest {
         }
         // From StartGame, one VBlank + step per frame until the clock (0 at f10, before StartGame) reaches its f20
         // value; the state must then equal the f20 dump. AgbMain runs a first step before the first VBlank, yet the
-        // trace matches only without an extra step here (unexplained: clock reset or a startup lag frame?).
+        // trace matches only without an extra step here (likely: AgbMain
+        // installs OnVBlank before GmDataInit/StartGame, so a VBlank during init already counts one clock frame).
         val clockAt = sym["gGameClock"].address
         while (clock.get() < (GbaMem.u32(run.region("r00020", "iwram"), GbaMem.IWRAM, clockAt).toLong() and 0xFFFFFFFFL)) frame(0)
         val proc = gameCtrl.child!!

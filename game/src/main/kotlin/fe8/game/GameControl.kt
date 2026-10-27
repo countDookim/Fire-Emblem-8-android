@@ -17,8 +17,8 @@ import gbafe.proc.ProcScripts.startChildBlocking
 
 /**
  * The game control proc `gProcScr_GameControl` (decomp `src/gamecontrol.c`), the root of the game's flow: intro,
- * title, save menu, chapters. Partial: only its start up to the intro (`ProcScr_GameEarlyStartUI`, given as
- * [introScript]) is ported; after the intro a stand-in `PROC_BLOCK` holds it where the op anim would start.
+ * title, save menu, chapters. Partial: only its start up to the op anim (`ProcScr_GameEarlyStartUI` and
+ * `ProcScr_OpAnim`, given as [introScript] and [opAnimScript]) is ported; after that a stand-in `PROC_BLOCK` holds it.
  */
 public class GameControl(
     /** The proc engine the game control proc runs on. */
@@ -27,7 +27,11 @@ public class GameControl(
     public val keys: KeyStatus,
     /** The intro proc script, started as a blocking child. */
     private val introScript: () -> ProcScript,
+    /** The op anim (intro cutscene) script `ProcScr_OpAnim`, started as a blocking child after the intro. */
+    private val opAnimScript: () -> ProcScript,
 ) {
+    /** `gPlaySt.config` option bits (u32 at `gPlaySt+0x40`); only the sound bits are used so far. */
+    public var playStConfig: Int = 0
     /** `struct GameCtrlProc` fields after the proc header. */
     public class State {
         /** `nextAction` (`GAME_ACTION_*`). */
@@ -62,7 +66,9 @@ public class GameControl(
             label(LGAMECTRL_GAME_INTRO_UI),
             startChildBlocking(introScript),
             label(LGAMECTRL_OP_ANIM),
-            block(), // not ported: GameControl_EnableSoundEffects, ProcScr_OpAnim, ...
+            call(ProcFunc { enableSoundEffects() }),
+            startChildBlocking(opAnimScript),
+            block(), // not ported: GameControl_PostIntro, class reel, title, ...
             end(),
         ),
         newState = { State() },
@@ -76,6 +82,15 @@ public class GameControl(
      */
     public fun callEraseSaveEventWithKeyCombo(proc: Proc) {
         if (keys.heldKeys == L_BUTTON or DPAD_RIGHT or SELECT_BUTTON) engine.goto(proc, LGAMECTRL_ERASE_SAVE)
+    }
+
+    /**
+     * Clears the `disableBgm` and `disableSoundEffects` option bits.
+     *
+     * Ported from src/gamecontrol.c: GameControl_EnableSoundEffects
+     */
+    public fun enableSoundEffects() {
+        playStConfig = playStConfig and (CONFIG_DISABLE_BGM or CONFIG_DISABLE_SOUND_EFFECTS).inv()
     }
 
     /**
@@ -127,6 +142,12 @@ public class GameControl(
 
         /** `GAME_ACTION_EVENT_RETURN`. */
         public const val GAME_ACTION_EVENT_RETURN: Int = 0
+
+        /** `gPlaySt.config.disableBgm` bit. */
+        public const val CONFIG_DISABLE_BGM: Int = 1 shl 8
+
+        /** `gPlaySt.config.disableSoundEffects` bit. */
+        public const val CONFIG_DISABLE_SOUND_EFFECTS: Int = 1 shl 9
 
         private const val L_BUTTON = 0x200
         private const val DPAD_RIGHT = 0x10

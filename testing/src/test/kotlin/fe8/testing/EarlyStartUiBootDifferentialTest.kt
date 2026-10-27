@@ -9,6 +9,8 @@ import gbafe.core.time.GameClock
 import gbafe.input.KeyComboReset
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
+import gbafe.proc.ProcScript
+import gbafe.proc.ProcScripts
 import gbafe.render.LcdControl
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -64,7 +66,7 @@ class EarlyStartUiBootDifferentialTest {
         val hw = env.hardware
         val engine = ProcEngine()
         val ui = EarlyStartUi(engine, env)
-        val ctrl = GameControl(engine, keys) { ui.script }
+        val ctrl = GameControl(engine, keys, { ui.script }, { OP_ANIM_STAND_IN })
         val gameCtrl = ctrl.startGame()
         val ctrlSt = gameCtrl.state as GameControl.State
 
@@ -134,6 +136,7 @@ class EarlyStartUiBootDifferentialTest {
     }
 
     private companion object {
+        val OP_ANIM_STAND_IN = ProcScript("ProcScr_OpAnim (not ported)", listOf(ProcScripts.block(), ProcScripts.end()))
         const val PROC_SCRIPT = 0x08AA7680 // ProcScr_GameEarlyStartUI
         const val GAME_CTRL_SCRIPT = 0x085916D4 // gProcScr_GameControl
         const val PROC_SIZE = 0x6C

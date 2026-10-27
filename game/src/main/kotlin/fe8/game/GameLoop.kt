@@ -69,7 +69,7 @@ public class GameLoop(
      * One game step: updates [keys], runs proc trees 1, 2 (unless locked), 3, 5 and 4, and marks the step ended.
      * Sprite layer pushes are not modelled.
      *
-     * Ported from src/bm.c: OnMain
+     * Partially ported from src/bm.c: OnMain
      */
     public fun onMain() {
         keys.update(keyInput())

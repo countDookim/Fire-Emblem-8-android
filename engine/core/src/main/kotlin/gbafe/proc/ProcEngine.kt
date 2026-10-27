@@ -200,6 +200,116 @@ public class ProcEngine(
         for (p in procs) if (p.script === script) p.idleCb = null
     }
 
+    /**
+     * Sets [proc]'s mark.
+     *
+     * Ported from src/proc.c: Proc_SetMark
+     */
+    public fun setMark(proc: Proc, mark: Int) {
+        proc.mark = mark and 0xFF
+    }
+
+    /**
+     * Sets [proc]'s end callback.
+     *
+     * Ported from src/proc.c: Proc_SetEndCb
+     */
+    public fun setEndCb(proc: Proc, func: ProcFunc?) {
+        proc.endCb = func
+    }
+
+    /**
+     * Sets [proc]'s repeat callback.
+     *
+     * Ported from src/proc.c: Proc_SetRepeatCb
+     */
+    public fun setRepeatCb(proc: Proc, func: ProcFunc?) {
+        proc.idleCb = func
+    }
+
+    /**
+     * Calls [func] on every live proc in array order.
+     *
+     * Ported from src/proc.c: Proc_ForAll
+     */
+    public fun forAll(func: ProcFunc) {
+        for (p in procs) if (p.script != null) func.invoke(p)
+    }
+
+    /**
+     * Calls [func] on every proc running [script] in array order.
+     *
+     * Ported from src/proc.c: Proc_ForEach
+     */
+    public fun forEach(script: ProcScript, func: ProcFunc) {
+        for (p in procs) if (p.script === script) func.invoke(p)
+    }
+
+    /**
+     * Calls [func] on every proc (ended ones included, as in the original) with [mark].
+     *
+     * Ported from src/proc.c: Proc_ForEachMarked
+     */
+    public fun forEachMarked(mark: Int, func: ProcFunc) {
+        for (p in procs) if (p.mark == mark) func.invoke(p)
+    }
+
+    /**
+     * Increments the lock count of every proc with [mark].
+     *
+     * Ported from src/proc.c: Proc_BlockEachMarked
+     */
+    public fun blockEachMarked(mark: Int) {
+        for (p in procs) if (p.mark == mark) p.lockCnt = (p.lockCnt + 1) and 0xFF
+    }
+
+    /**
+     * Decrements the lock count of every locked proc with [mark].
+     *
+     * Ported from src/proc.c: Proc_UnblockEachMarked
+     */
+    public fun unblockEachMarked(mark: Int) {
+        for (p in procs) if (p.mark == mark && p.lockCnt > 0) p.lockCnt--
+    }
+
+    /**
+     * Ends every proc with [mark].
+     *
+     * Ported from src/proc.c: Proc_EndEachMarked
+     */
+    public fun endEachMarked(mark: Int) {
+        for (p in procs) if (p.mark == mark) end(p)
+    }
+
+    /**
+     * The first proc running [script] after [proc] in array order (from the start if [proc] is null), or null.
+     *
+     * Ported from src/proc.c: Proc_FindAfter
+     */
+    public fun findAfter(script: ProcScript?, proc: Proc?): Proc? {
+        for (i in (proc?.slot?.plus(1) ?: 0) until maxProcs) if (procs[i].script === script) return procs[i]
+        return null
+    }
+
+    /**
+     * The first proc whose parent is [parent] after [proc] in array order (from the start if [proc] is null), or
+     * null.
+     *
+     * Ported from src/proc.c: Proc_FindAfterWithParent
+     */
+    public fun findAfterWithParent(proc: Proc?, parent: Proc?): Proc? {
+        for (i in (proc?.slot?.plus(1) ?: 0) until maxProcs) if (procs[i].parent === parent) return procs[i]
+        return null
+    }
+
+    /**
+     * Number of procs running [script], or of all live procs if [script] is null.
+     *
+     * Ported from src/proc.c: CountProcs
+     */
+    public fun count(script: ProcScript?): Int =
+        if (script == null) procs.count { it.script != null } else procs.count { it.script === script }
+
     private val sleepCb = ProcFunc { p ->
         p.sleepTime--
         if (p.sleepTime == 0) breakProc(p)

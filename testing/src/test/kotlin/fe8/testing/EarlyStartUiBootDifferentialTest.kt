@@ -39,8 +39,8 @@ class EarlyStartUiBootDifferentialTest {
     }
 
     @Test
-    @VerifiesPort("GameIntroPrepareNintendofx", "PrepareHealthAndSafetyScreen", "EnableKeyComboResetEN", "OnMain", "StartGame",
-        "GameControl_CallEraseSaveEventWithKeyCombo", "GameControl_8009A58", "GameControl_8009A60_Null")
+    @VerifiesPort("GameIntroPrepareNintendofx", "PrepareHealthAndSafetyScreen", "EnableKeyComboResetEN", "StartGame",
+        "GameControl_8009A58", "GameControl_8009A60_Null", "CountProcs", "Proc_FindAfter", "Proc_FindAfterWithParent")
     fun `intro proc from its start matches the boot trace`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -114,6 +114,13 @@ class EarlyStartUiBootDifferentialTest {
             assertEquals(i[sym["gKeyComboResetEN"].address - GbaMem.IWRAM].toInt() != 0, combo.canReset(), "f$f gKeyComboResetEN")
             assertEquals(GbaMem.u32(i, GbaMem.IWRAM, clockAt).toLong() and 0xFFFFFFFFL, clock.get(), "f$f gGameClock")
             val c = procAt(e, GAME_CTRL_SCRIPT)!!
+            val arr = sym["sProcArray"].address - GbaMem.EWRAM
+            val live = (0 until 64).filter { GbaMem.u32(e, 0, arr + it * PROC_SIZE) != 0 }
+            assertEquals(live.size, engine.count(null), "f$f live procs (CountProcs)")
+            assertEquals(live.count { GbaMem.u32(e, 0, arr + it * PROC_SIZE) == PROC_SCRIPT }, engine.count(ui.script), "f$f intro procs")
+            assertEquals((d - arr) / PROC_SIZE, engine.findAfter(ui.script, null)?.slot, "f$f Proc_FindAfter")
+            assertEquals(null, engine.findAfter(ui.script, proc), "f$f no later intro proc")
+            assertEquals(listOf((c - arr) / PROC_SIZE, (d - arr) / PROC_SIZE), listOf(gameCtrl.slot, engine.findAfterWithParent(null, gameCtrl)?.slot), "f$f proc slots")
             assertEquals(GbaMem.EWRAM + c, GbaMem.u32(e, 0, d + 0x14), "f$f intro parent is GAMECTRL")
             assertEquals((GbaMem.u32(e, 0, c + 4) - GAME_CTRL_SCRIPT) / 8, gameCtrl.scrCur, "f$f GAMECTRL scrCur")
             assertEquals(listOf(e[c + 0x26], e[c + 0x28], e[c + 0x29], e[c + 0x2A], e[c + 0x2B], e[c + 0x2C]).map { it.toInt() and 0xFF } +

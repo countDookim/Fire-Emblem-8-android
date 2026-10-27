@@ -72,7 +72,7 @@ public class GameControl(
      * Jumps [proc] to the erase-save label when L + Right + Select are held (no-op while that part of the script
      * is not ported).
      *
-     * Ported from src/gamecontrol.c: GameControl_CallEraseSaveEventWithKeyCombo
+     * Partially ported from src/gamecontrol.c: GameControl_CallEraseSaveEventWithKeyCombo
      */
     public fun callEraseSaveEventWithKeyCombo(proc: Proc) {
         if (keys.heldKeys == L_BUTTON or DPAD_RIGHT or SELECT_BUTTON) engine.goto(proc, LGAMECTRL_ERASE_SAVE)

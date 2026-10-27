@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 42,
-    "implemented_unverified": 10
+    "verified": 52,
+    "implemented_unverified": 12
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -17,6 +17,31 @@
       "status": "verified",
       "tests": [
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
+      ]
+    },
+    "BG_EnableSyncByMask": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgHardware.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "BG_Fill": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgHardware.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
+      ]
+    },
+    "BG_GetMapBuffer": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgHardware.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
     "BG_SetPosition": {
@@ -68,8 +93,16 @@
       "kotlin_file": "engine/input/src/main/kotlin/gbafe/input/KeyComboReset.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace",
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
+    },
+    "EnablePaletteSync": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgHardware.kt",
+      "status": "implemented",
+      "tests": []
     },
     "FlipBgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
@@ -161,6 +194,15 @@
         "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
       ]
     },
+    "GetBackgroundTileDataOffset": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgHardware.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
+      ]
+    },
     "GetBgVerticalScrollBuffer": {
       "decomp_file": "src/bmlib-hblank.c",
       "system": "battle_map",
@@ -195,6 +237,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "InitBmBgLayers": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgHardware.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
+      ]
+    },
+    "InitOam": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgHardware.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
     "InitRN": {
@@ -345,6 +405,33 @@
         "fe8.testing.SaveDrawDifferentialTest#fog scroll reproduces the dumped table, proc fields and LCD buffer"
       ]
     },
+    "SetBackgroundMapDataOffset": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgHardware.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
+      ]
+    },
+    "SetBackgroundScreenSize": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgHardware.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
+      ]
+    },
+    "SetBackgroundTileDataOffset": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgHardware.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
+      ]
+    },
     "SetBlendConfig": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -360,6 +447,15 @@
       "kotlin_file": "engine/core/src/main/kotlin/gbafe/core/time/GameClock.kt",
       "status": "implemented",
       "tests": []
+    },
+    "SetKeyStatus_IgnoreMask": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/input/src/main/kotlin/gbafe/input/KeyStatus.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ScreenPrepareDifferentialTest#health and safety screen setup matches mGBA"
+      ]
     },
     "SetLCGRNValue": {
       "decomp_file": "src/rng.c",
@@ -395,6 +491,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.OpAnimHsLogoDifferentialTest#status per script section matches the boot RAM trace"
+      ]
+    },
+    "SetupBackgrounds": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgHardware.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
     "StoreRNState": {

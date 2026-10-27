@@ -25,3 +25,6 @@
    features beyond its acceptance line, then start the next task (scheduled runs still use their full budget:
    saving tokens means less waste per minute, never fewer minutes).
    Rule 5 (ground-truth `@VerifiesPort` tests) is never relaxed to save tokens.
+10. Kotlin follows Google's Android Kotlin style guide (https://developer.android.com/kotlin/style-guide; owner,
+    2026-10-27): 4-space indent, 100-column lines, no wildcard imports, its naming, brace and KDoc rules. Applies to
+    code you write or change; existing code (~1300 lines over 100 columns) is not mass-reformatted unless a task says so.

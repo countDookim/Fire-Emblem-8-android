@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 58,
-    "implemented_unverified": 11
+    "verified": 77,
+    "implemented_unverified": 24
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -71,6 +71,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "CopyToPalOpAnim": {
+      "decomp_file": "src/opanimfx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "CountProcs": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
       ]
     },
     "DecodeString": {
@@ -140,6 +158,33 @@
       "status": "verified",
       "tests": [
         "fe8.testing.LcdControlDifferentialTest#flushed registers match mGBA I-O for every full dump"
+      ]
+    },
+    "GameControl_8009A58": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/GameControl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
+      ]
+    },
+    "GameControl_8009A60_Null": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/GameControl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
+      ]
+    },
+    "GameControl_EnableSoundEffects": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/GameControl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
     "GameEarlyStartDelay": {
@@ -241,6 +286,13 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "GetGameLock": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/GameLoop.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "HBlank_BgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
       "system": "battle_map",
@@ -293,6 +345,22 @@
       "status": "implemented",
       "tests": []
     },
+    "LockGame": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/GameLoop.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "NewProcOpAnimFadeIn": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
     "NextRN": {
       "decomp_file": "src/rng.c",
       "system": "core",
@@ -316,6 +384,56 @@
       "status": "implemented",
       "tests": []
     },
+    "OpAnimAllBlack": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "OpAnimBldAlphaDelay": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "OpAnimBldAlphaExists": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "OpAnimBldAlphaMain": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "OpAnimBldAlphaUpdateBgPalette": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "OpAnimFadeInMain": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
     "OpAnimHS_BrightenPalette": {
       "decomp_file": "src/opanim-healthsafetyscreen.c",
       "system": "presentation",
@@ -324,6 +442,22 @@
       "tests": [
         "fe8.testing.OpAnimHsDifferentialTest#intro fades match gPaletteBuffer in the boot RAM trace"
       ]
+    },
+    "OpAnimUpdateScreen1": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "Proc_BlockEachMarked": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "implemented",
+      "tests": []
     },
     "Proc_Break": {
       "decomp_file": "src/proc.c",
@@ -343,6 +477,13 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "Proc_EndEachMarked": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "Proc_Find": {
       "decomp_file": "src/proc.c",
       "system": "core",
@@ -351,6 +492,45 @@
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
+    },
+    "Proc_FindAfter": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
+      ]
+    },
+    "Proc_FindAfterWithParent": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
+      ]
+    },
+    "Proc_ForAll": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Proc_ForEach": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Proc_ForEachMarked": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "implemented",
+      "tests": []
     },
     "Proc_Goto": {
       "decomp_file": "src/proc.c",
@@ -377,6 +557,27 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "Proc_SetEndCb": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Proc_SetMark": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Proc_SetRepeatCb": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "Proc_Start": {
       "decomp_file": "src/proc.c",
       "system": "core",
@@ -387,6 +588,15 @@
       ]
     },
     "Proc_StartBlocking": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "Proc_UnblockEachMarked": {
       "decomp_file": "src/proc.c",
       "system": "core",
       "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
@@ -486,6 +696,15 @@
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
       ]
     },
+    "SetNextGameActionId": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/GameControl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
     "SetOpAnimHsStatus0": {
       "decomp_file": "src/opanim-healthsafetyscreen.c",
       "system": "presentation",
@@ -540,6 +759,15 @@
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
+    "StartGame": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/GameControl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
+      ]
+    },
     "StoreRNState": {
       "decomp_file": "src/rng.c",
       "system": "core",
@@ -564,6 +792,13 @@
       "tests": [
         "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
       ]
+    },
+    "UnlockGame": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/GameLoop.kt",
+      "status": "implemented",
+      "tests": []
     },
     "UpdateHBlankHandlerState": {
       "decomp_file": "src/hardware.c",
@@ -590,6 +825,33 @@
       "status": "verified",
       "tests": [
         "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
+      ]
+    },
+    "sub_80C69B0": {
+      "decomp_file": "src/opanimfx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80C6F70": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80C7050": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
     "sub_80CBF9C": {

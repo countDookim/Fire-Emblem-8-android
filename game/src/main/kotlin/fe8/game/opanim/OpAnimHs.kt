@@ -312,13 +312,14 @@ public object OpAnimHs {
     /**
      * `GameIntroPrepareNintendofx`: loads the Nintendo logo (tiles at VRAM 0, TSA on BG0) and the Intelligent
      * Systems logo (tiles at VRAM 0x2000, TSA on BG1 with tile base 0x1100), clears the palette buffer, shows BG0
-     * only. `Sound_FadeOutBGM(1)` and `SetPrimaryHBlankHandler(NULL)` are not modelled yet (no BGM or HBlank
-     * handler is active at this point of the boot).
+     * only, removes the primary HBlank handler. `Sound_FadeOutBGM(1)` is not modelled yet (no BGM plays at this
+     * point of the boot).
      *
      * Partially ported from src/opanim-healthsafetyscreen.c: GameIntroPrepareNintendofx
      */
     public fun prepareNintendofx(proc: Proc, hw: BgHardware, nintendoImg: Blob, nintendoTsa: Blob, isImg: Blob, isTsa: Blob) {
         hw.setupBackgrounds()
+        hw.hblank.setPrimary(null)
         hw.lcd.setDispEnable(0, 0, 0, 0, 0)
         Decompress.into(nintendoImg.data, nintendoImg.offset, hw.vram, 0)
         tsaInto(hw, 0, nintendoTsa, 0)
@@ -332,7 +333,7 @@ public object OpAnimHs {
     /**
      * `PrepareHealthAndSafetyScreen`: on a software reset returns false (the caller does `Proc_Goto(proc, 0x3E7)`);
      * else loads the screen (tiles at VRAM 0, BG1 then BG0 TSA), clears the palette buffer, shows BG1 only and
-     * ignores all keys (`SetKeyStatus_IgnoreMask(0x3FF)`), and returns true. Sound and HBlank as in
+     * ignores all keys (`SetKeyStatus_IgnoreMask(0x3FF)`), and returns true. HBlank and sound as in
      * [prepareNintendofx].
      *
      * Partially ported from src/opanim-healthsafetyscreen.c: PrepareHealthAndSafetyScreen
@@ -342,6 +343,7 @@ public object OpAnimHs {
     ): Boolean {
         if (softwareReset) return false
         hw.setupBackgrounds()
+        hw.hblank.setPrimary(null)
         hw.lcd.setDispEnable(0, 0, 0, 0, 0)
         Decompress.into(img.data, img.offset, hw.vram, 0)
         tsaInto(hw, 1, tsaBg1, 0)

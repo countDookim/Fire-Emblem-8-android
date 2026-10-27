@@ -47,7 +47,7 @@ class ScreenPrepareDifferentialTest {
     @VerifiesPort(
         "SetupBackgrounds", "SetBackgroundTileDataOffset", "SetBackgroundMapDataOffset", "SetBackgroundScreenSize",
         "GetBackgroundTileDataOffset", "BG_Fill", "BG_GetMapBuffer", "InitBmBgLayers", "InitOam",
-        "GameIntroPrepareNintendofx", "Decompress",
+        "GameIntroPrepareNintendofx", "Decompress", "FlushBackgrounds",
     )
     fun `intro logo screen setup matches mGBA`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
@@ -65,6 +65,16 @@ class ScreenPrepareDifferentialTest {
             assertArrayEquals(vram.copyOfRange(at, at + n), hw.vram.copyOfRange(at, at + n), "VRAM tiles at 0x${at.toString(16)}")
         }
         assertArrayEquals(vram.copyOfRange(0x8000, 0x8040), hw.vram.copyOfRange(0x8000, 0x8040), "BG3 first tiles")
+        // VBlank sync: f300 is in the Nintendo logo's hold (palette constant), so PLTT = the dumped palette buffer.
+        val ew = run.region("f00300", "ewram")
+        val palAt = sym["gPaletteBuffer"].address
+        ShortArray(512) { GbaMem.u16(ew, GbaMem.EWRAM, palAt + 2 * it).toShort() }.copyInto(hw.palette)
+        hw.enablePaletteSync()
+        hw.flushBackgrounds()
+        assertEquals(0, hw.modifiedBgs)
+        assertArrayEquals(vram.copyOfRange(0x6000, 0x8000), hw.vram.copyOfRange(0x6000, 0x8000), "VRAM tilemaps BG0..BG3")
+        val pal = run.region("f00300", "pal")
+        assertArrayEquals(ShortArray(512) { GbaMem.u16(pal, 0, 2 * it).toShort() }, hw.paletteRam, "palette RAM")
     }
 
     @Test

@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated: 2026-10-27 07:25 UTC (scheduled run, started 06:51)._
+_Updated: 2026-10-27 15:10 UTC (scheduled run, started 14:53)._
 
 ## Owner decisions 2026-10-25 (read docs/decisions/0009)
 - The app is a 1:1 copy. Modding = extension points only; ship no touch gameplay, QoL flags or alternate
@@ -30,28 +30,20 @@ _Updated: 2026-10-27 07:25 UTC (scheduled run, started 06:51)._
 _(nothing blocked)_
 
 ## Status
-- This run: intro (`opanim-healthsafetyscreen.c`) step logic fully ported + **proc scheduler** (M4-01, new TASKS M4 section).
-  - `gbafe.proc` (engine/core): `ProcEngine` (src/proc.c: alloc stack, 8 root trees, `Proc_Start/StartBlocking/End/Run/
-    Break/Goto/Find`, all 26 opcodes incl. `PROC_JUMP` via `Proc.scrScript`), `ProcScript`/`ProcScripts` (`PROC_*` builders),
-    proc-specific fields in `Proc.state` (`ProcScript.newState`). `fe8.game.opanim.EarlyStartUi` = `ProcScr_GameEarlyStartUI`
-    with the same 28 commands (indices match `proc_scrCur`); not-yet-ported calls are `Env` hooks.
-  - `ProcEngineDifferentialTest` runs the intro proc frame by frame from the f400 state of the new `ram_trace_logo_skip`
-    run and matches scrCur / idleCb / fields / palette every frame through the B skip and `PROC_END`. `ProcEngineTest` =
-    unit tests for opcodes the trace misses.
-  - `OpAnimHs`: `StepResult` (CONTINUE/BREAK/SKIP), Nintendo / IS fades, `earlyStartDelay`, `tryTickExit`, status setters,
-    skip fade (`startSkipFade`/`skipFade` = `sub_80CBF9C`/`sub_80CBFC0`). `softwareReset` is a parameter (`IsSoftwareReset`).
-  - `gbafe.render.BgTilemap.applyTsa` = `TmApplyTsa`/`CallARM_FillTileRect`, verified vs the BG tilemap buffers.
-  - Assets: `ui/intro_nintendo.*`, `ui/intro_is.*` (`gbafe.screen` gains optional `firstTile`/`firstPalette`, schema updated;
-    ROM repo `2d00c82`); `IntroLogosScreenTest` pixel-exact on 4 `boot_logos` frames incl. fades (palette = PNG palette
-    through `brightenPalette` with the dumped proc timer **minus one**: the frame shows the previous step's palette).
-  - `gbafe.core.time.GameClock` (`src/time.c` clock) and `gbafe.input.KeyComboReset` (`gKeyComboResetEN`; `shouldReset`
-    = the `SoftResetIfKeyComboPressed` test, no reset yet), checked every frame in `ProcEngineDifferentialTest`.
-  - `gbafe.data.JsonReader` (tiny dependency-free JSON reader) + `TrigTable` (`data/trig.json` loader); `TrigAssetTest`.
-  - New reference runs (ROM repo `399c4d4`, `89e1944`): `ram_trace_logo_skip` (B at f470 on the IS logo, RAM every frame
-    f400..f520), `boot_logos` (full dumps f300/360/430/470). `gen_scripts.py` `script()` takes `ram_from`.
-- Verified ports this run: +23 -> **42 / 8352** locally (OpAnimHs steps x9, sub_80CBF9C/FC0, Proc_Start/Run/Break/Goto/End/Find, TmApplyTsa,
-  CallARM_FillTileRect, EnableKeyComboResetEN, CheckCanKeyComboReset, IncrementGameClock, GetGameClock). `tools/progress.py` counts a test only for the LAST class declared before it: helper classes go below the test class (fixed this run in `OpAnimHsLogoDifferentialTest`).
-- CI: green through 6e9602d; later pushes not checked at wrap-up (check the latest run first). Session setup: ~105 s. No `wip/` branches.
+- This run (M4-02 screen loads): `gbafe.render.BgHardware` (tilemap buffers, VRAM, palette, sync flags, OAM split;
+  `SetupBackgrounds` + its helpers, `BG_Fill`, `InitBmBgLayers`, `InitOam`), `gbafe.render.HBlankHandlers`
+  (`Set{Primary,Secondary}HBlankHandler`, `UpdateHBlankHandlerState`, `ExecBothHBlankHandlers` (unverified); `BgHardware.hblank`), `FlushBackgrounds` (BG + palette sync; colour-addition branches unverified),
+  `gbafe.data.Decompress` (raw + LZ77; Huffman/RL throw: partial), `KeyStatus.applyIgnoreMask` (`SetKeyStatus_IgnoreMask`).
+  `OpAnimHs.prepareHealthSafety` / `prepareNintendofx` (partial: `Sound_FadeOutBGM` not modelled). `EarlyStartUi.Env` lost
+  its hooks: it takes `gfx` (ROM blobs), `keyComboReset`, `hardware`.
+  - Tests: `ScreenPrepareDifferentialTest` (RAM + VRAM after each load), `EarlyStartUiBootDifferentialTest` (whole intro
+    proc from its start vs `ram_trace_boot` f20..f490: proc, palette, tilemaps, bgcnt/dispcnt, ignore mask, combo flag),
+    `HBlankHandlersDifferentialTest`.
+  - **Finding: lag frame.** After a screen load (SetupBackgrounds + decompression) the game misses one VBlank: no proc step
+    on the next frame. The boot test models it (BG sync request left by the load => skip next step). The boot driver /
+    main loop must reproduce this to stay frame-aligned with mGBA (decide how: a per-load "lag" signal).
+- Verified ports: 42 -> **56 / 8352**.
+- CI: green through 8a8be5b; this run's pushes not checked at wrap-up. Session setup: ~121 s. No `wip/` branches.
 
 ## Run rules (owner, 2026-10-26)
 - Budget **~30 min** (owner, 2026-10-27; a little over is fine to finish a nearly done task). Work until ~minute 23,
@@ -61,13 +53,10 @@ _(nothing blocked)_
   first, then `tail_lines` <= 80 of the failing job).
 - Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.
 
-## Next task: M4-02 rest (screen loads) or M3-07 GPU backend
-- M4-02: port `PrepareHealthAndSafetyScreen` and `GameIntroPrepareNintendofx` so `EarlyStartUi.Env` hooks go away. They need
-  `SetupBackgrounds` (bgconfig + clear tilemap buffers), `SetPrimaryHBlankHandler`, `Sound_FadeOutBGM` (stub until M3-13),
-  `Decompress` to a VRAM model, `CpuFastFill16`, `EnablePaletteSync`/`BG_EnableSyncByMask` (sync flags), `SetDispEnable`
-  (exists), `SetKeyStatus_IgnoreMask`. Verify vs `boot_logos`/`ram_trace_boot` full dumps (VRAM, tilemap buffers, LCD).
-  Then a boot driver: game main loop (`AgbMain`/`OnGameLoopMain`: keys -> `Proc_Run` on roots -> sync) to run the intro
-  from power-on and compare against `boot_to_title`.
+## Next task: boot driver (M4-02 rest) or M3-07 GPU backend
+- Boot driver: game main loop (`AgbMain`/`OnGameLoopMain`: keys -> `Proc_Run` on roots -> sync incl. BG/palette sync from
+  `BgHardware` flags) to run the intro from power-on and compare against `boot_to_title`; needs the lag-frame rule above.
+  `IsSoftwareReset` / `SetSoftwareResetFlag` not ported. Assets for `EarlyStartUi.Gfx` on device: from the ROM import (M4-03).
 - Proc engine gaps: `Proc_ForEach*`, mark block/unblock/end, `Proc_FindAfter*`, `CountProcs`, `Proc_SetRepeatCb` not ported.
   The game's main proc (intro's parent; `u32 @+0x14` is an EWRAM proc) is not modelled: tests use a blocking stand-in root.
 - M3-07 GPU backend (`:app`, manual test): can now show H&S and both logos from `ui/*` (see `IntroLogosScreenTest`).

@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 52,
-    "implemented_unverified": 12
+    "verified": 56,
+    "implemented_unverified": 13
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -104,6 +104,13 @@
       "status": "implemented",
       "tests": []
     },
+    "ExecBothHBlankHandlers": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/HBlankHandlers.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "FlipBgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
       "system": "battle_map",
@@ -111,6 +118,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SaveDrawDifferentialTest#fog scroll reproduces the dumped table, proc fields and LCD buffer"
+      ]
+    },
+    "FlushBackgrounds": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/BgHardware.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
     "FlushLCDControl": {
@@ -493,6 +509,24 @@
         "fe8.testing.OpAnimHsLogoDifferentialTest#status per script section matches the boot RAM trace"
       ]
     },
+    "SetPrimaryHBlankHandler": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/HBlankHandlers.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.HBlankHandlersDifferentialTest#HBlank handler state matches mGBA"
+      ]
+    },
+    "SetSecondaryHBlankHandler": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/HBlankHandlers.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.HBlankHandlersDifferentialTest#HBlank handler state matches mGBA"
+      ]
+    },
     "SetupBackgrounds": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -525,6 +559,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
+      ]
+    },
+    "UpdateHBlankHandlerState": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/HBlankHandlers.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.HBlankHandlersDifferentialTest#HBlank handler state matches mGBA"
       ]
     },
     "UpdateKeyStatus": {

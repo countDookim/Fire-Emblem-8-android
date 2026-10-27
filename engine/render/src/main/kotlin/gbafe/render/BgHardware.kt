@@ -16,6 +16,9 @@ public class BgHardware(
     /** BG/OBJ VRAM (`0x06000000`, 96 KiB). */
     public val vram: ByteArray = ByteArray(VRAM_SIZE)
 
+    /** Palette RAM (`PLTT`, 512 colours), written by [flushBackgrounds]. */
+    public val paletteRam: ShortArray = ShortArray(PALETTE_COLORS)
+
     /** `gBGVramTilemapPointers[bg] - VRAM`: where BG sync copies each tilemap buffer. */
     public val vramTilemapOffsets: IntArray = IntArray(4)
 
@@ -24,6 +27,9 @@ public class BgHardware(
 
     /** `sModifiedPalette`: copy [palette] to palette RAM on the next sync. */
     public var modifiedPalette: Boolean = false
+
+    /** HBlank handler slots (`SetPrimaryHBlankHandler` / `SetSecondaryHBlankHandler`). */
+    public val hblank: HBlankHandlers = HBlankHandlers(lcd)
 
     /** `sOamLo.count` (`InitOam` argument); `sOamHi` gets the other `128 - oamLoCount` entries. */
     public var oamLoCount: Int = 0
@@ -160,6 +166,44 @@ public class BgHardware(
         modifiedPalette = true
         // forcedBlank (7), mode (0..2), win0/win1/objWin (13..15) off; BG0..3 + OBJ (8..12) on.
         lcd.dispcnt = (lcd.dispcnt and (0xE000 or 0x0087).inv()) or 0x1F00
+    }
+
+    /**
+     * `FlushBackgrounds` (VBlank sync): copies each BG tilemap buffer flagged in [modifiedBgs] to its VRAM
+     * destination, then, if [modifiedPalette], the palette buffer to [paletteRam], with `colorAddition` added to
+     * every channel (clamped to 0..31) when it is not 0 (`ApplyColorAddition_ClampMax/Min`, not verified yet).
+     * Clears both flags.
+     *
+     * Ported from src/hardware.c: FlushBackgrounds
+     */
+    public fun flushBackgrounds() {
+        for (bg in 0..3) {
+            if (modifiedBgs and (1 shl bg) == 0) continue
+            val t = tilemaps[bg]
+            var o = vramTilemapOffsets[bg]
+            for (i in 0 until TILEMAP_ENTRIES) {
+                val v = t[i].toInt()
+                vram[o] = v.toByte()
+                vram[o + 1] = (v shr 8).toByte()
+                o += 2
+            }
+        }
+        modifiedBgs = 0
+        if (modifiedPalette) {
+            modifiedPalette = false
+            val a = lcd.colorAddition
+            if (a == 0) {
+                palette.copyInto(paletteRam)
+            } else {
+                for (i in 0 until PALETTE_COLORS) {
+                    val c = palette[i].toInt()
+                    val r = ((c and 0x1F) + a).coerceIn(0, 31)
+                    val g = (((c shr 5) and 0x1F) + a).coerceIn(0, 31)
+                    val b = (((c shr 10) and 0x1F) + a).coerceIn(0, 31)
+                    paletteRam[i] = ((b shl 10) + (g shl 5) + r).toShort()
+                }
+            }
+        }
     }
 
     /** Sizes and defaults. */

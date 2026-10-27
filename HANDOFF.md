@@ -47,7 +47,7 @@ _(nothing blocked)_
 
 ## Run rules (owner, 2026-10-26)
 - Budget **~30 min** (owner, 2026-10-27; a little over is fine to finish a nearly done task). Work until ~minute 23,
-  never end early: when a task finishes, start the next (on `wip/<task-id>` if it may not finish). Wrap up by ~30.
+  never end early (`tools/run_clock.sh check` must pass before wrap-up; the 14:53 run wrongly stopped at ~17 min): when a task finishes, start the next (on `wip/<task-id>` if it may not finish). Wrap up by ~30.
 - Before the final push, append this session's row to `docs/USAGE.md`.
 - Run `tools/setup.sh` in the background with a log and poll it. Never fetch full CI job logs (step conclusions
   first, then `tail_lines` <= 80 of the failing job).

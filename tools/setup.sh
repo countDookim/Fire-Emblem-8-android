@@ -13,6 +13,7 @@
 #   SKIP_GRADLE  set to 1 to skip the Gradle warm-up
 set -euo pipefail
 START=$(date +%s)
+"$(dirname "$0")/run_clock.sh" start || true
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FE8_ASSETS="${FE8_ASSETS:-$ROOT/.assets}"
 FE8_TOOLS="${FE8_TOOLS:-$HOME/.local/fe8-tools}"

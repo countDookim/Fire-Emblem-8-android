@@ -2,6 +2,9 @@
 
 1. Read `HANDOFF.md` first (one screen). Follow the Schedule section of `docs/PROJECT_BRIEF.md` AND its Amendments table
    (amendments win). Scheduled runs: **~30 min** budget; work until ~minute 23, wrap up by ~30, never end early.
+   **Gate:** `tools/setup.sh` records the start (`tools/run_clock.sh start`). Before any wrap-up step (final full test,
+   HANDOFF, USAGE row) run `tools/run_clock.sh check`; if it fails, start the next HANDOFF task instead (on
+   `wip/<task-id>` if it may not finish), and check again later. Rule 9 never shortens a run (a run ended at ~17 min).
    Every session appends its token usage to `docs/USAGE.md` before its final push (format in that file).
 2. Run `tools/setup.sh` (idempotent, logs its duration), then `source .assets.env`. Run it in the background with a log
    (`tools/setup.sh > /tmp/setup.log 2>&1 &`, then poll): a cold Gradle warm-up can exceed a 2-min tool timeout.
@@ -19,5 +22,6 @@
    of routine steps). Don't over-verify: during work run only the tests for what changed; run the full `jvmTest`
    (+ Dokka if public API changed) once before the final push, not after every step. Don't re-read files you just
    wrote or dump large files/logs; read excerpts. Stop when a task is done: no extra polish, refactors or
-   features beyond its acceptance line, then start the next task (scheduled runs still use their full budget).
+   features beyond its acceptance line, then start the next task (scheduled runs still use their full budget:
+   saving tokens means less waste per minute, never fewer minutes).
    Rule 5 (ground-truth `@VerifiesPort` tests) is never relaxed to save tokens.

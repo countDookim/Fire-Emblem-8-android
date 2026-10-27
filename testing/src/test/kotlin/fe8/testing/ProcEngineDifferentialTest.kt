@@ -36,7 +36,7 @@ class ProcEngineDifferentialTest {
     private fun palette(ew: ByteArray) = ShortArray(512) { u16(ew, sym["gPaletteBuffer"].address - GbaMem.EWRAM + 2 * it).toShort() }
 
     @Test
-    @VerifiesPort("Proc_Start", "Proc_Run", "Proc_Break", "Proc_Goto", "Proc_End", "EnableKeyComboResetEN", "CheckCanKeyComboReset", "IncrementGameClock", "GetGameClock")
+    @VerifiesPort("Proc_Start", "Proc_Run", "Proc_Break", "Proc_Goto", "Proc_End", "Proc_Find", "EnableKeyComboResetEN", "CheckCanKeyComboReset", "IncrementGameClock", "GetGameClock")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -77,6 +77,7 @@ class ProcEngineDifferentialTest {
             assertEquals(u32(i, sym["gGameClock"].address - GbaMem.IWRAM).toLong() and 0xFFFFFFFFL, clock.get(), "f$f gGameClock")
             if (f == 413) enabledSeen = combo.canReset()
             val d = procAt(e)
+            assertEquals(d != null, engine.find(ui.script) === proc, "f$f Proc_Find")
             if (d == null) {
                 assertNull(proc.script, "f$f: proc should have ended")
                 assertNull(parent.child, "f$f: unlinked from its parent")

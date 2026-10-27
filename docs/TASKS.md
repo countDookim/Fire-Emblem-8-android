@@ -68,3 +68,10 @@ _Order rule (owner, 2026-10-26): interleave verifiable ports (`@VerifiesPort`) w
 | M3-12 | Low-latency `AudioTrack` sink (`PERFORMANCE_MODE_LOW_LATENCY`, mixer thread, no per-buffer allocs) | APK plays a test tone (manual test) | todo |
 | M3-13 | m4a sequencer core (tempo, tracks, note on/off) from `m4a.c`/MIDI | unit tests vs MIDI timing | todo |
 | M3-14 | m4a mixer: direct-sound + PSG channels; compare against mGBA audio dump (harness: add audio capture) | RMS diff below threshold | todo |
+
+## M4 — Boot to title screen, verified against mGBA
+
+| ID | Task | Acceptance | Status |
+|---|---|---|---|
+| M4-01 | Proc scheduler `src/proc.c` (`gbafe.proc`: `ProcEngine`, `ProcScript`, all 26 opcodes) | intro proc runs frame-by-frame like the game | done: `ProcEngineDifferentialTest` (`ProcScr_GameEarlyStartUI` vs per-frame RAM in `ram_trace_logo_skip`, through the skip and `PROC_END`), `ProcEngineTest` for opcodes the trace does not reach. Not ported yet: `Proc_ForEach*`, marks/blocking helpers, `Proc_FindAfter*`, `CountProcs` |
+| M4-02 | Intro screens `opanim-healthsafetyscreen.c` (`fe8.game.opanim.OpAnimHs`, `EarlyStartUi`) | step functions `@VerifiesPort` vs RAM traces; screens pixel-exact | partly done: all step functions verified; logo assets `ui/intro_nintendo`, `ui/intro_is` (`IntroLogosScreenTest`, pixel-exact incl. fades). Todo: `PrepareHealthAndSafetyScreen`, `GameIntroPrepareNintendofx` (VRAM/tilemap loads; `EarlyStartUi.Env` hooks for now), `EnableKeyComboResetEN`, `IsSoftwareReset` |

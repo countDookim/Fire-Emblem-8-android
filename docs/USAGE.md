@@ -20,5 +20,6 @@ Keep each row to one line; add the totals line below the table up to date.
 | 2026-10-24 → 27 | earlier sessions | session 1 + 8 scheduled runs | — | not recorded | — | M1–M3, start of M4 (before this log existed) |
 | 2026-10-27 06:51 | `session_01NGGw9QdfFkmB74pCTyfRrp` | scheduled run | 37 | ~263,000 | — | proc engine, intro steps, logos, TmApplyTsa, time.c, TrigTable; 19 → 42 verified |
 | 2026-10-27 09:30–11:25 | `session_01NGGw9QdfFkmB74pCTyfRrp` | interactive (same session, owner questions) | — | ~85,000 | 58% (owner, before this row) | CI check, ADR 0011 (player-supplied ROM), M4-06 GBA library + M4-07 KMP planned, 30-min runs, this log, CLAUDE.md token rule |
+| 2026-10-27 14:53 | `session_01NGGw9NS5vR8Xyx9jdNSaNi` | scheduled run | ~20 | ~120,000 | — | M4-02 screen loads (BgHardware, SetupBackgrounds, Decompress, HBlank handlers, FlushBackgrounds), intro proc from its start vs boot trace, lag-frame finding; 42 → 58 verified |
 
-Totals recorded so far: ~348,000 tokens (counter), 2026-10-27 onward only.
+Totals recorded so far: ~468,000 tokens (counter), 2026-10-27 onward only.

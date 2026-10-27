@@ -42,7 +42,7 @@ _(nothing blocked)_
   - **Finding: lag frame.** After a screen load (SetupBackgrounds + decompression) the game misses one VBlank: no proc step
     on the next frame. The boot test models it (BG sync request left by the load => skip next step). The boot driver /
     main loop must reproduce this to stay frame-aligned with mGBA (decide how: a per-load "lag" signal).
-- Verified ports: 42 -> **56 / 8352**.
+- Verified ports: 42 -> **58 / 8352**.
 - CI: green through 8a8be5b; this run's pushes not checked at wrap-up. Session setup: ~121 s. No `wip/` branches.
 
 ## Run rules (owner, 2026-10-26)

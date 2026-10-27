@@ -47,7 +47,8 @@ class ScreenPrepareDifferentialTest {
     @VerifiesPort(
         "SetupBackgrounds", "SetBackgroundTileDataOffset", "SetBackgroundMapDataOffset", "SetBackgroundScreenSize",
         "GetBackgroundTileDataOffset", "BG_Fill", "BG_GetMapBuffer", "InitBmBgLayers", "InitOam",
-        "GameIntroPrepareNintendofx", "Decompress", "FlushBackgrounds",
+        "GameIntroPrepareNintendofx", "Decompress", "FlushBackgrounds", "EnablePaletteSync",
+        "BG_EnableSyncByMask",
     )
     fun `intro logo screen setup matches mGBA`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
@@ -69,6 +70,13 @@ class ScreenPrepareDifferentialTest {
         val ew = run.region("f00300", "ewram")
         val palAt = sym["gPaletteBuffer"].address
         ShortArray(512) { GbaMem.u16(ew, GbaMem.EWRAM, palAt + 2 * it).toShort() }.copyInto(hw.palette)
+        // Sync flags: a flush without requests copies nothing; after the requests it reproduces mGBA's VRAM / PLTT.
+        hw.modifiedBgs = 0
+        hw.modifiedPalette = false
+        hw.flushBackgrounds()
+        assertArrayEquals(ByteArray(0x2000), hw.vram.copyOfRange(0x6000, 0x8000), "nothing synced without requests")
+        hw.enableBgSyncByMask(0x3)
+        hw.enableBgSyncByMask(0xC)
         hw.enablePaletteSync()
         hw.flushBackgrounds()
         assertEquals(0, hw.modifiedBgs)

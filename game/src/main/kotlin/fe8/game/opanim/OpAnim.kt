@@ -19,8 +19,8 @@ import gbafe.render.BgHardware
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`, `src/opanimfx.c`).
- * Partial: only its start (`OpAnimInit`, the world map setup and its fade-in) is ported; a stand-in `PROC_BLOCK`
- * sits where `OpAnimUpdateScreen1` would run.
+ * Partial: only its start (`OpAnimInit` through the world map scene) is ported; a stand-in `PROC_BLOCK`
+ * sits where `sub_80C7050` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -48,6 +48,24 @@ public class OpAnim(
         public val fogTsa: OpAnimHs.Blob,
         /** `Pal_OpAnimWorldMapFog` (16 colours). */
         public val fogPal: ShortArray,
+        /** `Pal_OpAnimWorldMap` (16 colours). */
+        public val pal: ShortArray,
+    )
+
+    /** `struct ProcOpAnimFadeIn`. */
+    public class FadeInState {
+        /** `cur`. */
+        public var cur: Int = 0
+
+        /** `max`. */
+        public var max: Int = 0
+    }
+
+    /** `ProcScr_OpAnimFadeIn`: fades the screen in from black over `max` frames. */
+    public val fadeInScript: ProcScript = ProcScript(
+        "ProcScr_OpAnimFadeIn",
+        listOf(yield(), call(ProcFunc { allBlack(it) }), repeat(ProcFunc { fadeInMain(it) }), end()),
+        newState = { FadeInState() },
     )
 
     /** `struct ProcOpAnimBLDALPHA`. */
@@ -81,6 +99,12 @@ public class OpAnim(
     public class State {
         /** `timer`. */
         public var timer: Int = 0
+
+        /** `unk2C`: BG1 x scroll. */
+        public var unk2C: Int = 0
+
+        /** `unk2E`: BG1 y scroll. */
+        public var unk2E: Int = 0
     }
 
     /** `gOpAnimSt.pal`: colour forced into palette entry 0 by [copyToPal]. */
@@ -102,7 +126,9 @@ public class OpAnim(
             call(ProcFunc { setupWorldMap(it) }),
             startChild { bldAlphaScript },
             whileTrue(ProcBoolFunc { bldAlphaExists() }),
-            block(), // not ported: OpAnimUpdateScreen1 and the rest of the cutscene
+            call(ProcFunc { updateScreen1(it) }),
+            repeat(ProcFunc { worldMapScroll(it) }),
+            block(), // not ported: sub_80C7050 and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -234,6 +260,100 @@ public class OpAnim(
      * Ported from src/opanim-main.c: OpAnimBldAlphaExists
      */
     public fun bldAlphaExists(): Boolean = engine.find(bldAlphaScript) != null
+
+    /**
+     * Blends the fog (BG1) over the world map (BG2) and shows BG1, BG2 and OBJ.
+     *
+     * Ported from src/opanim-main.c: OpAnimUpdateScreen1
+     */
+    public fun updateScreen1(proc: Proc) {
+        val lcd = hardware.lcd
+        lcd.setBlendConfig(1, 8, 0x10, 8)
+        lcd.setBlendTargetA(0, 1, 0, 0, 0)
+        lcd.setBlendTargetB(0, 0, 1, 0, 0)
+        lcd.setDispEnable(0, 1, 1, 0, 1)
+        val st = proc.state as State
+        st.unk2C = 0
+        st.unk2E = 0
+    }
+
+    /**
+     * World map scene, one frame: scrolls the fog, fades the map palette in from white and the fog out, starts the
+     * screen fade-in at frame 0xEF and breaks at 0x110.
+     *
+     * Ported from src/opanim-main.c: sub_80C6F70
+     */
+    public fun worldMapScroll(proc: Proc) {
+        val st = proc.state as State
+        val lcd = hardware.lcd
+        if (st.timer and 1 == 0) st.unk2C = (st.unk2C + 1).toShort().toInt()
+        if (st.timer and 3 == 0) st.unk2E = (st.unk2E + 1).toShort().toInt()
+        lcd.setBgPosition(1, st.unk2C, st.unk2E)
+        if (st.timer <= 0x60) {
+            val v = linear(0x10, 0, st.timer, 0x60)
+            copyToPal(worldMap.pal, 0, 0x20)
+            blendPalette(0, 0x7FFF, v)
+        }
+        if (st.timer - 0x80 in 0..0x60) lcd.blendCoeffA = linear(8, 0, st.timer - 0x80, 0x60) and 0xFF
+        if (st.timer == 0xEF) {
+            lcd.setDispEnable(0, 0, 1, 0, 1)
+            newFadeIn(0x20, proc)
+        }
+        if (st.timer == 0x110) {
+            st.timer = 0
+            engine.breakProc(proc)
+            return
+        }
+        st.timer = (st.timer + 1) and 0xFFFF
+    }
+
+    /**
+     * Blends the 16 colours of the palette buffer at entry [at] towards [color] by [blend]/16.
+     *
+     * Ported from src/opanimfx.c: sub_80C69B0
+     */
+    public fun blendPalette(at: Int, color: Int, blend: Int) {
+        val p = hardware.palette
+        for (i in at until at + 16) {
+            val c = p[i].toInt()
+            fun ch(v: Int, shift: Int) = ((((v shr shift) and 0x1F) * (0x10 - blend) + ((color shr shift) and 0x1F) * blend) shr 4) and 0x1F
+            p[i] = ((ch(c, 10) shl 10) or (ch(c, 5) shl 5) or ch(c, 0)).toShort()
+        }
+    }
+
+    /**
+     * Starts the fade-in proc with [max] frames as a child of [parent].
+     *
+     * Ported from src/opanim-main.c: NewProcOpAnimFadeIn
+     */
+    public fun newFadeIn(max: Int, parent: Proc) {
+        (engine.start(fadeInScript, parent).state as FadeInState).max = max.toShort().toInt()
+    }
+
+    /**
+     * Brightness-fade setup: effect 2, BLDY 0, all layers first target.
+     *
+     * Ported from src/opanim-main.c: OpAnimAllBlack
+     */
+    public fun allBlack(proc: Proc) {
+        val lcd = hardware.lcd
+        lcd.bldcnt = (lcd.bldcnt and 0xC0.inv()) or (2 shl 6)
+        lcd.blendY = 0
+        lcd.setBlendTargetA(1, 1, 1, 1, 1)
+        (proc.state as FadeInState).cur = 0
+    }
+
+    /**
+     * Fade-in frame: BLDY from 0 to 0x10 over `max` frames, then breaks.
+     *
+     * Ported from src/opanim-main.c: OpAnimFadeInMain
+     */
+    public fun fadeInMain(proc: Proc) {
+        val st = proc.state as FadeInState
+        hardware.lcd.blendY = linear(0, 0x10, st.cur, st.max) and 0xFF
+        if (st.cur == st.max) engine.breakProc(proc)
+        st.cur = (st.cur + 1).toShort().toInt()
+    }
 
     /** `Interpolate(INTERPOLATE_LINEAR, ...)` (src/bmlib.c), the only method used here. */
     private fun linear(lo: Int, hi: Int, x: Int, xMax: Int): Int = if (xMax == 0) hi else lo + (hi - lo) * x / xMax

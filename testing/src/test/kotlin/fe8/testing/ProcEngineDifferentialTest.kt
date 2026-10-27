@@ -28,7 +28,8 @@ import java.io.File
  * is the game control proc ([GameControl], tree 3), which then sets the sound option bits and starts the op anim
  * ([OpAnim], ported up to `OpAnimInit`) as its blocking child at f476; its script position and `gPlaySt.config`
  * sound bits are checked too, and on f476 the op anim (script position, timer, terminator child, `gOpAnimSt.pal`,
- * palette buffer, DISPCNT) and GAMECTRL `nextAction`.
+ * palette buffer, DISPCNT) and GAMECTRL `nextAction`; then the world map setup (which overruns 3 frames) and the
+ * `ProcScr_OpAnimBLDALPHA` fade (timer, palette, blend registers) until f520.
  */
 class ProcEngineDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -46,7 +47,8 @@ class ProcEngineDifferentialTest {
 
     @Test
     @VerifiesPort("Proc_Start", "Proc_Run", "Proc_Break", "Proc_Goto", "Proc_End", "Proc_Find", "EnableKeyComboResetEN", "CheckCanKeyComboReset", "IncrementGameClock", "GetGameClock", "GameControl_EnableSoundEffects", "Proc_StartBlocking",
-        "SetNextGameActionId", "CopyToPalOpAnim")
+        "SetNextGameActionId", "CopyToPalOpAnim",
+        "OpAnimBldAlphaUpdateBgPalette", "OpAnimBldAlphaExists")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -77,7 +79,8 @@ class ProcEngineDifferentialTest {
             listOf(0x08AF1AE8, 0x08AF1B38, 0x08AF1FD0, 0x08AF2654).map { blob(it) },
             listOf(0x08AF1B18, 0x08AF1FB0, 0x08AF2634, 0x08AF310C).map { romPal(it, 16) },
         )
-        opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx)
+        val worldMap = OpAnim.WorldMapGfx(blob(0x08AB21D8), blob(0x08AB5D90), blob(0x08AB632C), blob(0x08AB7AC0), romPal(0x08AB7DB0, 16))
+        opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx, worldMap)
         val opAnim = opPort.script
         val parent = engine.start(ctrl.script, rootIndex)
         parent.idleCb = null
@@ -98,7 +101,11 @@ class ProcEngineDifferentialTest {
             val e = ew(f)
             keys.readFrom(e, sym["sKeyStatusBuffer"].address - GbaMem.EWRAM)
             clock.increment()
-            engine.run(engine.root(rootIndex))
+            // SetupOpAnimWorldMapfx (two large decompressions) overruns: while the previous dump shows the op anim
+            // inside that call (scrCur 4), the game is still finishing that step and starts none.
+            val prevOp = procAt(ew(f - 1), OP_ANIM_SCRIPT)
+            val lagging = prevOp != null && (u32(ew(f - 1), prevOp + 4) - OP_ANIM_SCRIPT) / 8 == 4
+            if (!lagging) engine.run(engine.root(rootIndex))
             val i = run.region("r%05d".format(f), "iwram")
             assertEquals(i[sym["gKeyComboResetEN"].address - GbaMem.IWRAM].toInt() != 0, combo.canReset(), "f$f gKeyComboResetEN")
             assertEquals(u32(i, sym["gGameClock"].address - GbaMem.IWRAM).toLong() and 0xFFFFFFFFL, clock.get(), "f$f gGameClock")
@@ -115,15 +122,25 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && ram <= 3) {
+                if (ram != null && ram != 4 && ram <= 5) {
                     val ours = parent.child!!
+                    val bld = procAt(e, BLDALPHA_SCRIPT)
+                    val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
                     assertEquals(ram, ours.scrCur, "f$f op anim scrCur")
                     assertEquals(e[c + 0x29].toInt() and 0xFF, (parent.state as GameControl.State).nextAction, "f$f nextAction")
-                    assertEquals(procAt(e, TERMINATOR_SCRIPT) != null, ours.child?.script === opPort.terminatorScript, "f$f terminator")
+                    assertEquals(procAt(e, TERMINATOR_SCRIPT) != null, engine.find(opPort.terminatorScript) != null, "f$f terminator")
                     assertEquals(u16(e, op + 0x2A), (ours.state as OpAnim.State).timer, "f$f op anim timer")
+                    assertEquals(bld != null, ourBld != null, "f$f BLDALPHA proc")
+                    if (bld != null) {
+                        assertEquals(listOf((u32(e, bld + 4) - BLDALPHA_SCRIPT) / 8, u16(e, bld + 0x2A)),
+                            listOf(ourBld!!.scrCur, (ourBld.state as OpAnim.BldAlphaState).timer), "f$f BLDALPHA scrCur, timer")
+                    }
                     assertEquals(u16(e, sym["gOpAnimSt"].address - GbaMem.EWRAM + 0x0C), opPort.pal, "f$f gOpAnimSt.pal")
                     assertArrayEquals(palette(e), env.paletteBuffer, "f$f gPaletteBuffer (op anim)")
-                    assertEquals(lcdDispcnt(run.region("r%05d".format(f), "iwram")), env.lcd.dispcnt, "f$f dispcnt")
+                    val lcd = LcdControl().apply { readFrom(run.region("r%05d".format(f), "iwram"), sym["gLCDControlBuffer"].address - GbaMem.IWRAM) }
+                    assertEquals(listOf(lcd.dispcnt, lcd.bldcnt, lcd.blendCoeffA, lcd.blendCoeffB, lcd.blendY) + lcd.bgCnt.toList(),
+                        listOf(env.lcd.dispcnt, env.lcd.bldcnt, env.lcd.blendCoeffA, env.lcd.blendCoeffB, env.lcd.blendY) + env.lcd.bgCnt.toList(),
+                        "f$f dispcnt, bldcnt, BLDALPHA, BLDY, bgcnt")
                     opChecked++
                 }
                 ended++
@@ -137,7 +154,7 @@ class ProcEngineDifferentialTest {
         }
         assertEquals(46, ended) // f475..f520
         assertEquals(45, opStarted) // f476..f520
-        assertEquals(1, opChecked, "op anim checked on f476, after OpAnimInit (from f477 on it runs unported code)")
+        assertTrue(opChecked >= 30, "op anim checked on $opChecked frames")
         assertEquals(true, enabledSeen, "key combo reset enabled after the Nintendo logo")
     }
 
@@ -146,6 +163,7 @@ class ProcEngineDifferentialTest {
         const val GAME_CTRL_SCRIPT = 0x085916D4 // gProcScr_GameControl
         const val OP_ANIM_SCRIPT = 0x08AA71C8 // ProcScr_OpAnim
         const val TERMINATOR_SCRIPT = 0x08AA6CA4 // ProcScr_OpAnimfxTerminator
+        const val BLDALPHA_SCRIPT = 0x08AA6CDC // ProcScr_OpAnimBLDALPHA
         const val PROC_SIZE = 0x6C
 
         fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)

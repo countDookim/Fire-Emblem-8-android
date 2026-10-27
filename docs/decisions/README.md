@@ -15,3 +15,4 @@ Format: Context → Decision → Consequences. Keep each under one screen.
 | [0008](0008-render-model.md) | Render model: typed tile layers + sprite batches | Accepted |
 | [0009](0009-vanilla-product-mod-groundwork.md) | Product is a 1:1 copy; modding is groundwork only | Accepted |
 | [0010](0010-multi-game-reuse.md) | Built for reuse by FE6 and FE7 ports (`gbafe` vs `fe8` layers) | Accepted |
+| [0011](0011-player-supplied-rom.md) | Player supplies the ROM; assets extracted on the device, none shipped | Accepted |

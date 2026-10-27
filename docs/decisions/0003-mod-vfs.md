@@ -6,7 +6,7 @@ with dependencies, load order and hot reload in debug builds.
 **Decision.** `gbafe.vfs.VirtualFileSystem` is the *only* way game code reads content.
 - Normalised virtual paths (`data/items.json`, `maps/ch01.tmj`, `gfx/portraits/eirika.png`,
   `text/en/ch01.json`, `audio/music/SONG_X.mid`); `..` escapes are rejected.
-- Layer stack, lowest first: `base` (extracted vanilla content: APK assets / `$FE8_ASSETS` in tests) →
+- Layer stack, lowest first: `base` (vanilla content extracted on the device from the player's ROM, `filesDir/base/`, see 0011; `$FE8_ASSETS` in tests) →
   enabled mods sorted by dependencies then `loadOrder` → `override/` dev folder (debug builds). The
   top-most layer containing a path wins; `list()` is the union. Merge patches (0002) are the exception
   to "top wins" for data tables.

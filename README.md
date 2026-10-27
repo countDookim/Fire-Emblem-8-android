@@ -53,4 +53,5 @@ python3 tools/progress.py               # progress estimate from the latest test
 ```
 
 Legal: you must own the game. This repo contains no ROM data; the private ROM repo holds the user's own
-dump for personal use.
+dump for personal use. The app ships no game content: on first launch it asks for your own ROM and extracts
+the assets on the device (docs/decisions/0011).

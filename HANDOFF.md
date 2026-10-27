@@ -14,6 +14,12 @@ _Updated: 2026-10-27 07:25 UTC (scheduled run, started 06:51)._
   New shared systems go in `gbafe.<system>` modules; FE8-only ones (world map, skirmishes...) in `fe8`.
   `ExtractCli` now dispatches on `--game` (default fe8) to `gbafe.extract.fe8.runFe8Steps` (Fe8Steps.kt).
 
+## Owner decision 2026-10-27 (read docs/decisions/0011)
+- The player supplies the ROM: the APK ships **no game content**; first launch imports the player's `.gba`, checks
+  its SHA1, extracts on device into the VFS `base` layer. Tasks M4-03 (extraction library + offsets manifest, no
+  decomp at runtime), M4-04 (import UI), M4-05 (CI guard). Do these before the first manual-test APK that shows
+  real game screens (M3-07 may use test-only assets until then, never bundled in release builds).
+
 ## NEEDS USER
 _(nothing blocked)_
 

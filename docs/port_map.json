@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 157,
-    "implemented_unverified": 24
+    "verified": 172,
+    "implemented_unverified": 25
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -151,6 +151,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
+      ]
+    },
+    "EndAllProcChildren": {
+      "decomp_file": "src/sysutil.c",
+      "system": "core",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
     "ExecBothHBlankHandlers": {
@@ -1043,6 +1052,13 @@
         "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
       ]
     },
+    "sub_8009B64": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/GameControl.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "sub_80C689C": {
       "decomp_file": "src/opanimfx.c",
       "system": "presentation",
@@ -1331,6 +1347,78 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "sub_80C940C": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80C955C": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80C9638": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80C9750": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80C98A0": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80C99B8": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80C9A94": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80C9AFC": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
     "sub_80C9B6C": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
@@ -1566,6 +1654,60 @@
       ]
     },
     "sub_80CB320": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80CB594": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80CB6A0": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80CB878": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80CBA64": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80CBC40": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80CBD7C": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",

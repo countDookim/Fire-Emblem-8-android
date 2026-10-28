@@ -14,6 +14,11 @@ _Updated: 2026-10-28 15:20 UTC (scheduled run, started 14:52)._
   New shared systems go in `gbafe.<system>` modules; FE8-only ones (world map, skirmishes...) in `fe8`.
   `ExtractCli` now dispatches on `--game` (default fe8) to `gbafe.extract.fe8.runFe8Steps` (Fe8Steps.kt).
 
+## Owner decision 2026-10-28: no ROM needed before the public release
+- Debug/test APKs may bundle the ROM repo's extracted assets (amendment; CLAUDE.md rule 4; 0011 amended). Goal now:
+  **first manual-test APK** booting to the title. Order: M4-08, M3-07, M4-09, M3-10, M3-15, M4-10, M4-11 (TASKS.md).
+  M4-03/04/06/07 (ROM import, GBA library, KMP) come after that APK.
+
 ## Owner decision 2026-10-27 (read docs/decisions/0011)
 - The player supplies the ROM: the APK ships **no game content**; first launch imports the player's `.gba`, checks
   its SHA1, extracts on device into the VFS `base` layer. Tasks M4-03 (extraction library + offsets manifest, no

@@ -2,7 +2,12 @@
 
 **Status.** Accepted by the owner, 2026-10-27.
 
-**Context.** ADR 0003 made the VFS `base` layer "extracted vanilla content: APK assets". Built that way,
+**Amended 2026-10-28 (owner).** This decision governs **public release builds** only. Until the game is ready
+for public release, debug/test APKs (private repo, `latest` release) may bundle the ROM repo's extracted assets
+so the owner can test without importing a ROM; the CI guard (M4-05) applies to release builds. The on-device
+import (M4-03, M4-04) is done before the public release.
+
+**Context. ADR 0003 made the VFS `base` layer "extracted vanilla content: APK assets". Built that way,
 every APK would carry Nintendo / Intelligent Systems graphics, music and text, so the app could not be shared
 without distributing copyrighted material. The owner wants the finished product to need the player's own,
 legally obtained ROM.

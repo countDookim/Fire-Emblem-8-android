@@ -9,8 +9,9 @@
 2. Run `tools/setup.sh` (idempotent, logs its duration), then `source .assets.env`. Run it in the background with a log
    (`tools/setup.sh > /tmp/setup.log 2>&1 &`, then poll): a cold Gradle warm-up can exceed a 2-min tool timeout.
 3. Tests: `./gradlew jvmTest` (JVM only; never install the Android SDK in a session).
-4. Never commit the ROM or anything extracted from it. ROM-derived data goes to the ROM repo only; the APK and
-   releases ship none either (players supply their ROM, extracted on device: docs/decisions/0011).
+4. Never commit the ROM or anything extracted from it. ROM-derived data goes to the ROM repo only. Until the public
+   release, **debug/test APKs may bundle the ROM repo's extracted assets** (private `latest` release, owner 2026-10-28);
+   public release builds ship none (players supply their ROM, extracted on device: docs/decisions/0011).
 5. A function is "ported" only with a `Ported from <file>: <Func>` KDoc AND a passing `@VerifiesPort` test
    against ground truth (docs/decisions/0006-verification-policy.md). Never inflate progress.
 6. Default branch is `master`. Commit + push after every completed step; unfinished work on `wip/<task-id>`.

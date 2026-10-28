@@ -3,6 +3,7 @@ package fe8.testing
 import fe8.game.opanim.OpAnimHs
 import fe8.game.title.TitleScreen
 import gbafe.core.VerifiesPort
+import gbafe.data.Decompress
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.block
@@ -60,6 +61,7 @@ class TitleScreenDifferentialTest {
         title.start(parent, 1)
         var checked = 0
         var fxChecked = 0
+        var vramChecked = 0
         for (f in first..3000) {
             val e = ew(f)
             val o = procAt(e) ?: break
@@ -81,9 +83,21 @@ class TitleScreenDifferentialTest {
             val g = BgHardware().lcd.apply { readFrom(iw(f), sym["gLCDControlBuffer"].address - GbaMem.IWRAM) }
             assertEquals(listOf(g.dispcnt, g.bldcnt) + g.bgCnt.toList(), listOf(lcd.dispcnt, lcd.bldcnt) + lcd.bgCnt.toList(),
                 "f$f dispcnt, bldcnt, bgcnt")
+            if (f % 10 == 0) { // full dump: VRAM written by the loaders so far (exact decompressed lengths)
+                val v = run.region("f%05d".format(f), "vram")
+                for ((at, dst) in listOf(0x08AA7760 to 0, 0x08AA9708 to 0x3000, 0x08AAB414 to 0x5000, 0x08AAC5AC to 0x10000,
+                    0x08AACEDC to 0x13000, 0x08AAFD14 to 0x8000, 0x08AAFF10 to 0xB000, 0x08AADC08 to 0xC000)) {
+                    val n = Decompress.into(rom, at - 0x08000000, ByteArray(0x10000), 0)
+                    if (hw.vram.copyOfRange(dst, dst + n).any { it != 0.toByte() }) {
+                        assertArrayEquals(v.copyOfRange(dst, dst + n), hw.vram.copyOfRange(dst, dst + n), "f$f VRAM %X".format(dst))
+                        vramChecked++
+                    }
+                }
+            }
             checked++
         }
         assertTrue(checked >= 5, "checked $checked frames from f$first")
+        assertTrue(vramChecked >= 5, "VRAM ranges checked: $vramChecked")
         assertTrue(fxChecked >= 4, "Title_SetupSpecialEffectGraphics checked on $fxChecked frames")
     }
 

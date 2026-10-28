@@ -24,7 +24,7 @@ import gbafe.render.SpriteObject
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
  * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `OpAnimEphraimfxFlyIn`; a stand-in
- * `PROC_BLOCK` sits where `sub_80C8100` would run.
+ * `PROC_BLOCK` sits where `sub_80C8278` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -62,6 +62,8 @@ public class OpAnim(
         public val blur2: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
         /** `Img_OpAnimEirikaBlur1`, `Tsa_OpAnimEirikaBlur1` (loaded by [eirikaFlyIn]). */
         public val blur1: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Obj_08AA6C0E` (Eirika's name sprite). */
+        public val nameObj: SpriteObject,
     )
 
     /** ROM data used by [setupWorldMap]. */
@@ -225,7 +227,10 @@ public class OpAnim(
             repeat(ProcFunc { ephraimExit(it) }),
             repeat(ProcFunc { prepareEirika(it) }),
             repeat(ProcFunc { eirikaFlyIn(it) }),
-            block(), // not ported: sub_80C8100 and the rest of the cutscene
+            repeat(ProcFunc { eirikaSetupSplitScreen(it) }),
+            repeat(ProcFunc { eirikaAdvanceSplitLine(it) }),
+            repeat(ProcFunc { eirikaMergeShadow(it) }),
+            block(), // not ported: sub_80C8278 and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -924,6 +929,68 @@ public class OpAnim(
             }
         }
         st.timer = (st.timer + 1) and 0xFFFF
+    }
+
+    /**
+     * Sets up the split screen for Eirika: [hBlank1], window 0 from `gOpAnimSt.x` to the right
+     * edge, BG2 map at 0xF000, blend target A BG1/BG2, then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C8100
+     */
+    public fun eirikaSetupSplitScreen(proc: Proc) {
+        val hw = hardware
+        val lcd = hw.lcd
+        hw.hblank.setPrimary(hBlank1)
+        lcd.setWinEnable(1, 0, 0)
+        lcd.setDispEnable(1, 1, 1, 1, 1)
+        lcd.setWin0Box(opAnimSt[0], 0, 240, 160)
+        hw.setMapDataOffset(2, 0xF000)
+        lcd.setBlendTargetA(0, 1, 1, 0, 0)
+        engine.breakProc(proc)
+    }
+
+    /**
+     * Moves the split point (`gOpAnimSt.x`, `y`) from (240, 0) to (0, 160) over 0x10 steps with
+     * window 0 and the split line; then switches to [hBlank2] and breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C8184
+     */
+    public fun eirikaAdvanceSplitLine(proc: Proc) {
+        val st = proc.state as State
+        opAnimSt[0] = Interpolate.interpolate(Interpolate.RSQUARE, 240, 0, st.timer, 0x10)
+            .toShort().toInt()
+        opAnimSt[1] = Interpolate.interpolate(Interpolate.RSQUARE, 0, 160, st.timer, 0x10)
+            .toShort().toInt()
+        hardware.lcd.setWin0Box(opAnimSt[0], 0, 240, 160)
+        drawSplitLine(maxOf(opAnimSt[0], 8), minOf(opAnimSt[1], 0x88))
+        if (st.timer == 0x10) {
+            hardware.hblank.setPrimary(hBlank2)
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /**
+     * Raises the shadow split (`gOpAnimSt.unk06`, 160 to 120) over 0x10 steps with the split line
+     * at the left, showing Eirika's name sprite from step 15; then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C8214
+     */
+    public fun eirikaMergeShadow(proc: Proc) {
+        val st = proc.state as State
+        val g = eirika ?: error("OpAnim.eirika graphics not supplied")
+        opAnimSt[3] = Interpolate.interpolate(Interpolate.RSQUARE, 160, 120, st.timer, 0x10)
+            .toShort().toInt()
+        drawSplitLine(8, 0x88)
+        if (st.timer > 0xE) sprites.putExt(1, 8, 0x88, g.nameObj, 0x206E)
+        if (st.timer == 0x10) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
     }
 
     private fun putName(chr: Int) {

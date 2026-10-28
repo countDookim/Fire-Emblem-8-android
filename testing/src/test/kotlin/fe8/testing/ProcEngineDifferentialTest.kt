@@ -79,14 +79,21 @@ class ProcEngineDifferentialTest {
         "OpAnimMergeBGProcInit", "OpAnimMergeBGProcUpdateBgPalette", "sub_80C7900",
         "ClearSprites", "PutSpriteExt", "OpAnimDrawSplitLine", "OpAnim1AdvanceSplitLine", "OpAnimEphraimMergeShadow",
         "OpAnimEphraimDisplayName", "OpAnimEphraimExit", "OpAnimPreparefxEirika",
-        "sub_80C7F90", "sub_80C8100", "sub_80C8184", "sub_80C8214")
+        "sub_80C7F90", "sub_80C8100", "sub_80C8184", "sub_80C8214", "sub_80C8278", "OpAnim1_UpdateScrollOneLine",
+        "sub_80C835C", "sub_80C84D8")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
         val run = ref.run("ram_trace_logo_skip")
         val run2 = ref.run("ram_trace_opanim") // same inputs, f515..f1100
-        fun ew(f: Int) = (if (f <= 520) run else run2).region("r%05d".format(f), "ewram")
-        fun iw(f: Int) = (if (f <= 520) run else run2).region("r%05d".format(f), "iwram")
+        val run3 = ref.run("ram_trace_opanim2") // same inputs, f1090..f1600 (full dumps every 10 frames from f1100)
+        fun dump(f: Int, region: String) = when {
+            f <= 520 -> run.region("r%05d".format(f), region)
+            f <= 1100 -> run2.region("r%05d".format(f), region)
+            else -> run3.region((if (f % 10 == 0) "f%05d" else "r%05d").format(f), region)
+        }
+        fun ew(f: Int) = dump(f, "ewram")
+        fun iw(f: Int) = dump(f, "iwram")
         fun romPal(at: Int, n: Int) = ShortArray(n) { u16(rom, at - 0x08000000 + 2 * it).toShort() }
         fun blob(at: Int) = OpAnimHs.Blob(rom, at - 0x08000000)
         val keys = KeyStatus()
@@ -152,6 +159,10 @@ class ProcEngineDifferentialTest {
         var eirikaFlyInChecked = 0
         var eirikaSplitChecked = 0
         var eirikaNameChecked = 0
+        var eirikaNameEnded = false
+        var scrollVramChecked = 0
+        var eirikaExitChecked = 0
+        var darkChecked = 0
         var enabledSeen = false
         for (f in 401..LAST) {
             val e = ew(f)
@@ -185,7 +196,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && !midStep && ram <= 24) {
+                if (ram != null && !midStep && ram <= 26) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -245,6 +256,21 @@ class ProcEngineDifferentialTest {
                         if (ram == 20) eirikaFlyInChecked++
                         if (ram in 21..23) eirikaSplitChecked++
                         if (ram == 24) eirikaNameChecked++
+                        if (ram == 25) eirikaExitChecked++
+                        if (ram == 26) darkChecked++
+                        if (ram == 25 && u16(e, op + 0x2A) <= 1) eirikaNameEnded = true
+                        // Scroll lines (OpAnim1_UpdateScrollOneLine): tiles at VRAM 0x8000.., map rows at 0xE800.
+                        if (ram == 24 && f > 1100 && f % 10 == 0) {
+                            val v = run3.region("f%05d".format(f), "vram")
+                            assertArrayEquals(v.copyOfRange(0x8000, 0x8000 + 0x16 * 0x400),
+                                env.hardware.vram.copyOfRange(0x8000, 0x8000 + 0x16 * 0x400), "f$f scroll line tiles")
+                            for (row in 10..31) { // lines 0..21 (row ~line & 0x1F); other rows hold earlier leftovers
+                                val a = 0xE800 + row * 0x40
+                                assertArrayEquals(v.copyOfRange(a, a + 0x3C), env.hardware.vram.copyOfRange(a, a + 0x3C),
+                                    "f$f scroll line map row $row")
+                            }
+                            scrollVramChecked++
+                        }
                         // unk34/36 hold the slot's old bytes until OpAnimEphraimDisplayName breaks (timer back to 0).
                         if ((ram == 17 || ram == 24) && u16(e, op + 0x2A) == 0) {
                             assertEquals(listOf(u16(e, op + 0x34), u16(e, op + 0x36)),
@@ -287,8 +313,11 @@ class ProcEngineDifferentialTest {
         assertTrue(eirikaChecked >= 5, "OpAnimPreparefxEirika checked on $eirikaChecked frames")
         assertTrue(eirikaFlyInChecked >= 20, "sub_80C7F90 checked on $eirikaFlyInChecked frames")
         assertTrue(eirikaSplitChecked >= 33, "sub_80C8100..8214 checked on $eirikaSplitChecked frames")
-        // The trace ends during sub_80C8278 (step 28 of 0x38): its end is not checked yet.
-        assertTrue(eirikaNameChecked >= 25, "sub_80C8278 checked on $eirikaNameChecked frames")
+        assertTrue(eirikaNameChecked >= 50, "sub_80C8278 checked on $eirikaNameChecked frames")
+        assertTrue(eirikaNameEnded, "sub_80C8278's last step checked")
+        assertTrue(scrollVramChecked >= 1, "scroll line VRAM checked on $scrollVramChecked frames")
+        assertTrue(eirikaExitChecked >= 30, "sub_80C835C checked on $eirikaExitChecked frames")
+        assertTrue(darkChecked >= 8, "sub_80C84D8 checked on $darkChecked frames")
         assertEquals(true, enabledSeen, "key combo reset enabled after the Nintendo logo")
     }
 
@@ -302,7 +331,7 @@ class ProcEngineDifferentialTest {
         const val PROC_6D04_SCRIPT = 0x08AA6D04 // ProcScr_08AA6D04
         const val MERGE_BG_SCRIPT = 0x08AA7034 // ProcScr_OpAnimMergeBG
         const val OP_ANIM_HBLANK1 = 0x080C7845 // OpAnimHBlank1 (Thumb)
-        const val LAST = 1100
+        const val LAST = 1600
         const val PROC_SIZE = 0x6C
 
         fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)

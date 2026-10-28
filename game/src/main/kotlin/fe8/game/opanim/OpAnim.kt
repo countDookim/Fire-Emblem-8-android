@@ -23,8 +23,8 @@ import gbafe.render.SpriteObject
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
- * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `OpAnimEphraimfxFlyIn`; a stand-in
- * `PROC_BLOCK` sits where `sub_80C835C` would run.
+ * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80C84D8`; a stand-in
+ * `PROC_BLOCK` sits where `sub_80C8564` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -235,7 +235,9 @@ public class OpAnim(
             repeat(ProcFunc { eirikaAdvanceSplitLine(it) }),
             repeat(ProcFunc { eirikaMergeShadow(it) }),
             repeat(ProcFunc { eirikaDisplayName(it) }),
-            block(), // not ported: sub_80C835C and the rest of the cutscene
+            repeat(ProcFunc { eirikaExit(it) }),
+            repeat(ProcFunc { fadeToDark(it) }),
+            block(), // not ported: sub_80C8564 and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -1049,6 +1051,80 @@ public class OpAnim(
             hardware.lcd.setDispEnable(1, 0, 1, 1, 1)
             val map = hardware.mapBuffer(2)
             for (i in 0 until 0x280) map[i] = ((map[i].toInt() and 0x7FFF) or 0xF000).toShort()
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /**
+     * Eirika's exit, mirroring [ephraimExit] from the left: hides her name, closes the split line,
+     * scrolls BG2 (her) out to the left and BG0 out, then fades BG0 over BG3 and breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C835C
+     */
+    public fun eirikaExit(proc: Proc) {
+        val hw = hardware
+        val lcd = hw.lcd
+        val st = proc.state as State
+        hw.enableBgSyncByMask(5)
+        val g = eirika ?: error("OpAnim.eirika graphics not supplied")
+        if (st.timer < 2) sprites.putExt(1, 8, 0x88, g.nameObj, 0x6E + (2 shl 12))
+        if (st.timer < 0x11) {
+            opAnimSt[3] = Interpolate.interpolate(Interpolate.SQUARE, 0x78, 0xA0, st.timer, 0x10)
+                .toShort().toInt()
+            val x = Interpolate.interpolate(Interpolate.SQUARE, 8, 0, st.timer, 0x10)
+            drawSplitLine(x, 0x10 + opAnimSt[3])
+            if (st.timer == 0x10) hw.hblank.setPrimary(null)
+        }
+        val time = st.timer
+        val time1 = time - 4
+        if (time1 >= 0) {
+            if (time1 <= 0x18) {
+                val ret = Interpolate.interpolate(Interpolate.SQUARE, st.unk34, 0x158, time1, 0x18)
+                scrollInFirstPal(ret, st.unk30, 0x98, 2, genericBuffer, 0x1000, null, setPal = true)
+                st.unk30 = ret.toShort().toInt()
+            }
+            val time2 = time - 0xB
+            if (time2 >= 0) {
+                if (time1 == 0x18) {
+                    lcd.setBlendTargetA(1, 0, 0, 0, 0)
+                    lcd.setBlendTargetB(0, 0, 0, 1, 0)
+                }
+                if (time1 > 0x17) {
+                    val a = Interpolate.interpolate(Interpolate.LINEAR, 0x10, 0, time - 0x1B, 8)
+                    lcd.setBlendConfig(1, a, 0x10 - a, 8)
+                }
+                val ret = Interpolate.interpolate(Interpolate.SQUARE, st.unk36, 0x1BC, time2, 0x18)
+                tsaModifyFirstPal(ret, st.unk32, 0, genericBuffer, 0, 0x800, setPal = false)
+                st.unk32 = ret.toShort().toInt()
+                if (time2 == 0x18) {
+                    hw.hblank.setPrimary(null)
+                    st.timer = 0
+                    engine.breakProc(proc)
+                    return
+                }
+            }
+        }
+        st.timer = (st.timer + 1) and 0xFFFF
+    }
+
+    /**
+     * Shows only BG3 and OBJ and darkens everything to black over 8 steps, then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C84D8
+     */
+    public fun fadeToDark(proc: Proc) {
+        val lcd = hardware.lcd
+        val st = proc.state as State
+        if (st.timer == 0) {
+            lcd.setDispEnable(0, 0, 0, 1, 1)
+            lcd.setBlendConfig(3, 8, 8, 0)
+            lcd.setBlendTargetA(1, 1, 1, 1, 1)
+        }
+        lcd.blendY = Interpolate.interpolate(Interpolate.LINEAR, 0, 0x10, st.timer, 8)
+        if (st.timer == 8) {
+            st.timer = 0
             engine.breakProc(proc)
         } else {
             st.timer = (st.timer + 1) and 0xFFFF

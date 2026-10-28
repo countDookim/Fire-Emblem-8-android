@@ -50,7 +50,9 @@ class ProcEngineDifferentialTest {
         "SetNextGameActionId", "CopyToPalOpAnim",
         "OpAnimBldAlphaUpdateBgPalette", "OpAnimBldAlphaExists", "OpAnimBldAlphaDelay", "OpAnimBldAlphaMain",
         "OpAnimUpdateScreen1", "sub_80C6F70", "sub_80C69B0", "NewProcOpAnimFadeIn", "OpAnimAllBlack", "OpAnimFadeInMain", "sub_80C7050",
-        "OpAnimPreparefxEphraim")
+        "OpAnimPreparefxEphraim", "NewProc08AA6D04", "Proc08AA6D04Main", "OpAnimEphraimfxFlyIn", "Interpolate",
+        "TsaModifyFirstPalMaybe", "sub_80C689C", "CopyFirstPalDirectly", "SetFirstPalDirectly", "ClearFirstPalDirectly",
+        "OpAnimMergeBGProcInit", "OpAnimMergeBGProcUpdateBgPalette")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -87,7 +89,8 @@ class ProcEngineDifferentialTest {
         fun pair(img: Int, tsa: Int) = blob(img) to blob(tsa)
         val ephraim = OpAnim.EphraimGfx(pair(0x08AB7DD0, 0x08AB87E0), pair(0x08ABF168, 0x08AC1878),
             pair(0x08AC0BD8, 0x08AC1B98), pair(0x08ABB14C, 0x08ABC074), romPal(0x08AC1C8C, 16 * 11),
-            pair(0x08ABE304, 0x08ABEF70), pair(0x08ABD348, 0x08ABE120))
+            pair(0x08ABE304, 0x08ABEF70), pair(0x08ABD348, 0x08ABE120), pair(0x08ABC22C, 0x08ABD174),
+            romPal(0x08AB8CAC, 16))
         opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx, worldMap, ephraim)
         val opAnim = opPort.script
         val parent = engine.start(ctrl.script, rootIndex)
@@ -105,6 +108,7 @@ class ProcEngineDifferentialTest {
         var opStarted = 0
         var opChecked = 0
         var ephraimChecked = 0
+        var flyInChecked = 0
         var enabledSeen = false
         for (f in 401..LAST) {
             val e = ew(f)
@@ -117,6 +121,7 @@ class ProcEngineDifferentialTest {
             // gGenericBuffer holds earlier screens' leftovers the op anim only partly overwrites: start from the game's.
             if (f == 843) ew(f - 1).copyInto(opPort.genericBuffer, 0, sym["gGenericBuffer"].address - GbaMem.EWRAM,
                 sym["gGenericBuffer"].address - GbaMem.EWRAM + 0x2000)
+            engine.run(engine.root(0)) // VSync tree (OnVBlank), before the step
             if (!lagging) engine.run(engine.root(rootIndex))
             val i = iw(f)
             assertEquals(i[sym["gKeyComboResetEN"].address - GbaMem.IWRAM].toInt() != 0, combo.canReset(), "f$f gKeyComboResetEN")
@@ -134,7 +139,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && !midStep && ram <= 11) {
+                if (ram != null && !midStep && ram <= 13) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -162,7 +167,7 @@ class ProcEngineDifferentialTest {
                     }
                     val opSt = sym["gOpAnimSt"].address - GbaMem.EWRAM
                     assertEquals(u16(e, opSt + 0x0C), opPort.pal, "f$f gOpAnimSt.pal")
-                    if (ram == 11) {
+                    if (ram >= 11) {
                         val os = ours.state as OpAnim.State
                         assertEquals((0 until 6).map { u16(e, opSt + 2 * it) }, opPort.opAnimSt.map { it and 0xFFFF },
                             "f$f gOpAnimSt x..unk0A")
@@ -172,8 +177,19 @@ class ProcEngineDifferentialTest {
                         val gb = sym["gGenericBuffer"].address - GbaMem.EWRAM
                         assertArrayEquals(e.copyOfRange(gb, gb + 0x2000), opPort.genericBuffer, "f$f gGenericBuffer")
                         val bg3 = sym["gBG3TilemapBuffer"].address - GbaMem.EWRAM
-                        assertArrayEquals(ShortArray(0x400) { u16(e, bg3 + 2 * it).toShort() }, env.hardware.mapBuffer(3),
-                            "f$f gBG3TilemapBuffer")
+                        for (bg in 0..3) {
+                            val m = sym["gBG${bg}TilemapBuffer"].address - GbaMem.EWRAM
+                            assertArrayEquals(ShortArray(0x400) { u16(e, m + 2 * it).toShort() }, env.hardware.mapBuffer(bg),
+                                "f$f gBG${bg}TilemapBuffer")
+                        }
+                        assertEquals(procAt(e, PROC_6D04_SCRIPT) != null, engine.find(opPort.proc08AA6D04Script) != null,
+                            "f$f ProcScr_08AA6D04")
+                        val merge = procAt(e, MERGE_BG_SCRIPT)
+                        val ourMerge = engine.find(opPort.mergeBgScript)
+                        assertEquals(merge != null, ourMerge != null, "f$f ProcScr_OpAnimMergeBG")
+                        if (merge != null) assertEquals(listOf((u32(e, merge + 4) - MERGE_BG_SCRIPT) / 8, u16(e, merge + 0x4C)),
+                            listOf(ourMerge!!.scrCur, (ourMerge.state as OpAnim.MergeBgState).timer and 0xFFFF), "f$f merge BG scrCur, timer")
+                        if (ram == 13) flyInChecked++
                         ephraimChecked++
                     }
                     assertArrayEquals(palette(e), env.paletteBuffer, "f$f gPaletteBuffer (op anim)")
@@ -196,6 +212,7 @@ class ProcEngineDifferentialTest {
         assertEquals(LAST - 475, opStarted) // f476..
         assertTrue(opChecked >= 300, "op anim checked on $opChecked frames")
         assertTrue(ephraimChecked >= 6, "OpAnimPreparefxEphraim checked on $ephraimChecked frames")
+        assertTrue(flyInChecked >= 20, "OpAnimEphraimfxFlyIn checked on $flyInChecked frames")
         assertEquals(true, enabledSeen, "key combo reset enabled after the Nintendo logo")
     }
 
@@ -206,6 +223,8 @@ class ProcEngineDifferentialTest {
         const val TERMINATOR_SCRIPT = 0x08AA6CA4 // ProcScr_OpAnimfxTerminator
         const val BLDALPHA_SCRIPT = 0x08AA6CDC // ProcScr_OpAnimBLDALPHA
         const val FADE_IN_SCRIPT = 0x08AA6CBC // ProcScr_OpAnimFadeIn
+        const val PROC_6D04_SCRIPT = 0x08AA6D04 // ProcScr_08AA6D04
+        const val MERGE_BG_SCRIPT = 0x08AA7034 // ProcScr_OpAnimMergeBG
         const val LAST = 1100
         const val PROC_SIZE = 0x6C
 

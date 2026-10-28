@@ -1,6 +1,7 @@
 package fe8.game.opanim
 
 import fe8.game.GameControl
+import gbafe.core.math.Interpolate
 import gbafe.data.Decompress
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
@@ -19,8 +20,8 @@ import gbafe.render.BgHardware
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
- * `src/opanimfx.c`). Partial: only its start (`OpAnimInit` through the world map scene) is ported;
- * a stand-in `PROC_BLOCK` sits where `OpAnimPreparefxEphraim` would run.
+ * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `OpAnimEphraimfxFlyIn`; a stand-in
+ * `PROC_BLOCK` sits where `sub_80C7900` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -70,6 +71,10 @@ public class OpAnim(
         public val blur3: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
         /** `Img_OpAnimEphraimBlur2`, `Tsa_OpAnimEphraimBlur2`. */
         public val blur2: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Img_OpAnimEphraimBlur1`, `Tsa_OpAnimEphraimBlur1` (loaded by [ephraimFlyIn]). */
+        public val blur1: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Pal_OpAnimCharacterBG` (1 palette, used by [mergeBgUpdatePalette]). */
+        public val characterBgPal: ShortArray,
     )
 
     /** `gGenericBuffer` (0x2000 bytes used here). */
@@ -177,7 +182,8 @@ public class OpAnim(
             yield(),
             repeat(ProcFunc { prepareEphraim(it) }),
             call(ProcFunc { newProc08AA6D04() }),
-            block(), // not ported: OpAnimEphraimfxFlyIn and the rest of the cutscene
+            repeat(ProcFunc { ephraimFlyIn(it) }),
+            block(), // not ported: sub_80C7900 and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -470,10 +476,181 @@ public class OpAnim(
         st.timer = (st.timer + 1) and 0xFFFF
     }
 
+    /** `struct Proc08AA7034`. */
+    public class MergeBgState {
+        /** `timer`. */
+        public var timer: Int = 0
+    }
+
+    /** `ProcScr_OpAnimMergeBG`: fades BG palette 14 from white to `Pal_OpAnimCharacterBG`. */
+    public val mergeBgScript: ProcScript = ProcScript(
+        "ProcScr_OpAnimMergeBG",
+        listOf(
+            call(ProcFunc { mergeBgInit(it) }),
+            repeat(ProcFunc { mergeBgUpdatePalette(it) }),
+            end(),
+        ),
+        newState = { MergeBgState() },
+    )
+
+    /**
+     * Clears the merge timer.
+     *
+     * Ported from src/opanim-main.c: OpAnimMergeBGProcInit
+     */
+    public fun mergeBgInit(proc: Proc) {
+        (proc.state as MergeBgState).timer = 0
+    }
+
+    /**
+     * Reloads BG palette 14 and blends it towards white by a factor falling from 16 to 0 over
+     * 0x20 frames, then breaks.
+     *
+     * Ported from src/opanim-main.c: OpAnimMergeBGProcUpdateBgPalette
+     */
+    public fun mergeBgUpdatePalette(proc: Proc) {
+        val st = proc.state as MergeBgState
+        val g = ephraim ?: error("OpAnim.ephraim graphics not supplied")
+        val v = Interpolate.interpolate(Interpolate.LINEAR, 0x10, 0, st.timer, 0x20)
+        copyToPal(g.characterBgPal, 0x20 * 14, 0x20)
+        blendPalette(16 * 14, 0x7FFF, v)
+        if (st.timer == 0x20) {
+            st.timer = 0
+            engine.breakProc(proc)
+            return
+        }
+        st.timer = (st.timer + 1).toShort().toInt()
+    }
+
+    /**
+     * Slides Ephraim's close-up in on BG2 (column by column, swapping in the blurred images) and
+     * BG0/BG1 from the right, then breaks; starts [mergeBgScript] at step 16.
+     *
+     * Ported from src/opanim-main.c: OpAnimEphraimfxFlyIn
+     */
+    public fun ephraimFlyIn(proc: Proc) {
+        val g = ephraim ?: error("OpAnim.ephraim graphics not supplied")
+        val hw = hardware
+        val vram = hw.vram
+        val st = proc.state as State
+        hw.enableBgSyncByMask(7)
+        if (st.timer <= 0x10) {
+            val ret = Interpolate.interpolate(Interpolate.RSQUARE, 0, 0x80, st.timer, 0x10)
+            when (st.timer) {
+                12 -> tsaModifyFirstPal(ret, 0, 2, vram, 0xC800)
+                13 -> {
+                    Decompress.into(g.blur1.first.data, g.blur1.first.offset, vram, 0x8000)
+                    tsaModifyFirstPal(ret, st.unk30, 2, vram, 0xC800)
+                }
+                14 -> {
+                    Decompress.into(g.blur1.second.data, g.blur1.second.offset, vram, 0xC000)
+                    tsaModifyFirstPal(ret, 0, 2, vram, 0xC000)
+                }
+                16 -> {
+                    tsaModifyFirstPal(ret, 0, 2, genericBuffer, 0x1000)
+                    hw.setTileDataOffset(2, 0x4000)
+                    engine.start(mergeBgScript, proc)
+                }
+                else -> tsaModifyFirstPal(ret, st.unk30, 2, vram, 0xC000)
+            }
+            st.unk30 = ret.toShort().toInt()
+        }
+        val v = st.timer - 5
+        if (v >= 0) {
+            val ret = Interpolate.interpolate(Interpolate.RSQUARE, 0, 0x90, v, 0x10)
+            scrollInFirstPal(ret, st.unk32, 0xC8, 1, setPal = true)
+            st.unk32 = ret.toShort().toInt()
+            if (v == 0x10) {
+                scrollInFirstPal(st.unk32, 0, 0xC8, 0, setPal = false)
+                st.timer = 0
+                engine.breakProc(proc)
+                return
+            }
+        }
+        st.timer = (st.timer + 1) and 0xFFFF
+    }
+
+    /**
+     * Copies tilemap columns `(start >> 3) + 1 until (end >> 3) + 1` (20 rows each) of the 32-wide
+     * map at byte [at] of [src] into BG [bg]'s map buffer (column 0..31; others cleared), then
+     * scrolls the BG to `end + 0x10`. Only the `src2 == NULL`, `flag == 0` form is used here.
+     *
+     * Ported from src/opanimfx.c: TsaModifyFirstPalMaybe
+     */
+    public fun tsaModifyFirstPal(end: Int, start: Int, bg: Int, src: ByteArray, at: Int) {
+        val dst = hardware.mapBuffer(bg)
+        val e = end.toShort().toInt()
+        var s = start.toShort().toInt()
+        if (s == 0) s -= 8
+        for (i in (s shr 3) + 1 until (e shr 3) + 1) {
+            if (i < 0 || i >= 0x20) {
+                clearFirstPal(dst, i and 0x1F)
+            } else {
+                copyFirstPal(src, at, i, dst)
+            }
+        }
+        hardware.lcd.setBgPosition(bg, e + 0x10, 0)
+    }
+
+    /**
+     * Copies tilemap columns from the right (two 32-wide maps in [genericBuffer] at 0 and 0x800),
+     * offset by [offset], into BG [bg]'s map buffer (forcing palette 15 if [setPal]), then scrolls
+     * the BG. Only the `src1 = gGenericBuffer`, `src2 = gGenericBuffer + 0x800` form is used here.
+     *
+     * Ported from src/opanimfx.c: sub_80C689C
+     */
+    public fun scrollInFirstPal(end: Int, start: Int, offset: Int, bg: Int, setPal: Boolean) {
+        val dst = hardware.mapBuffer(bg)
+        var s = start.toShort().toInt()
+        if (s == 0) s -= 8
+        var e = (end.toShort() + offset).toShort().toInt()
+        s = (s + offset).toShort().toInt()
+        e = (0x200 - e).toShort().toInt()
+        s = (0x200 - s).toShort().toInt()
+        var i = (s shr 3) - 1
+        while (i > (e shr 3) - 1) {
+            if (i < 0 || i >= 0x40) {
+                clearFirstPal(dst, i and 0x1F)
+            } else {
+                val at = if (i < 0x20) 0 else 0x800
+                if (setPal) {
+                    setFirstPal(genericBuffer, at, i, dst, 0xF)
+                } else {
+                    copyFirstPal(genericBuffer, at, i, dst)
+                }
+            }
+            i--
+        }
+        hardware.lcd.setBgPosition(bg, e, 0)
+    }
+
+    /** Ported from src/opanimfx.c: CopyFirstPalDirectly */
+    private fun copyFirstPal(src: ByteArray, at: Int, i: Int, dst: ShortArray) {
+        val c = i and 0x1F
+        for (r in 0 until 20) dst[c + r * 0x20] = u16(src, at + 2 * (c + r * 0x20)).toShort()
+    }
+
+    /** Ported from src/opanimfx.c: SetFirstPalDirectly */
+    private fun setFirstPal(src: ByteArray, at: Int, i: Int, dst: ShortArray, pal: Int) {
+        val c = i and 0x1F
+        for (r in 0 until 20) {
+            val v = u16(src, at + 2 * (c + r * 0x20))
+            dst[c + r * 0x20] = ((v and 0x7FFF) or (pal shl 12)).toShort()
+        }
+    }
+
+    /** Ported from src/opanimfx.c: ClearFirstPalDirectly */
+    private fun clearFirstPal(dst: ShortArray, c: Int) {
+        for (r in 0 until 20) dst[c + r * 0x20] = 0
+    }
+
+    private fun u16(b: ByteArray, o: Int): Int =
+        (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
+
     /**
      * Copies `gOpAnimSt.y` / `unk06` into `unk08` / `unk0A` every VBlank.
      *
-     * Not verified yet (no trace check): src/opanim-main.c: Proc08AA6D04Main
+     * Ported from src/opanim-main.c: Proc08AA6D04Main
      */
     public fun proc08AA6D04Main() {
         opAnimSt[4] = opAnimSt[1]
@@ -489,7 +666,7 @@ public class OpAnim(
     /**
      * Starts [proc08AA6D04Script] on tree 0.
      *
-     * Not verified yet (no trace check): src/opanim-main.c: NewProc08AA6D04
+     * Ported from src/opanim-main.c: NewProc08AA6D04
      */
     public fun newProc08AA6D04() {
         engine.start(proc08AA6D04Script, 0)

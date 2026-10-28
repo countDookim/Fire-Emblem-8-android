@@ -25,8 +25,8 @@ import gbafe.render.SpriteObject
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
- * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80C8D30`; a stand-in
- * `PROC_BLOCK` sits where `sub_80CA940` would run.
+ * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80CAA38`; a stand-in
+ * `PROC_BLOCK` sits after it.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -70,6 +70,10 @@ public class OpAnim(
         public val shadowPal: ShortArray,
         /** The first face screen's faces (Rennac, L'Arachel, Dozla), loaded by [loadFaces]. */
         public val faces1: List<Face>,
+        /** `gUnknown_08AA709C` (a face, 64x64 in OBJ window parts). */
+        public val faceObj: SpriteObject,
+        /** `gUnknown_08AA70BC` (a face's OBJ window mask). */
+        public val faceWindowObj: SpriteObject,
     )
 
     /** A face in the face screens: `Img_OpAnimFace<Name>`, `Img_OpAnimFace<Name>Shadow`, `Pal_OpAnimFace<Name>`. */
@@ -342,7 +346,9 @@ public class OpAnim(
             call(ProcFunc { endSparkles(it) }),
             call(ProcFunc { setupCastScroll(it) }),
             repeat(ProcFunc { loadFaces(it, castGfx().faces1) }),
-            block(), // not ported: sub_80CA940 and the rest of the cutscene
+            call(ProcFunc { setupFaceScreen() }),
+            repeat(ProcFunc { faces1In(it) }),
+            block(), // not ported: sub_80C8564 (4th) and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -1845,6 +1851,64 @@ public class OpAnim(
             }
         }
         if (st.timer == 0x26) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /**
+     * Sets up a face screen: ends the darkening proc, shows BG2 and OBJ, with the OBJ window
+     * showing BG2 and OBJ blended (4/8) and nothing outside it.
+     *
+     * Ported from src/opanim-main.c: sub_80CA940
+     */
+    public fun setupFaceScreen() {
+        val lcd = hardware.lcd
+        engine.endEach(castBrightenScript)
+        lcd.setBgPosition(3, 0, 0)
+        lcd.setDispEnable(0, 0, 1, 0, 1)
+        lcd.setWinEnable(0, 0, 1)
+        lcd.setWObjLayers(0, 0, 1, 0, 1)
+        lcd.setWOutLayers(0, 0, 0, 0, 0)
+        lcd.setWincntBit(29, true)
+        lcd.setWincntBit(21, false)
+        lcd.setBlendConfig(1, 4, 8, 8)
+        lcd.setBlendTargetA(0, 0, 0, 0, 0)
+    }
+
+    /**
+     * The position of a sliding face: `0xFFFF` (hidden) before step `d - 0x10`, then [a] + [b] *
+     * 240 easing to [a] over 0x10 steps of [c].
+     *
+     * Ported from src/opanim-main.c: sub_80CA9F8
+     */
+    public fun faceSlideX(a: Int, b: Int, c: Int, d: Int): Int {
+        val v = 0x10 - (d - c)
+        if (v < 0) return 0xFFFF
+        if (v >= 0x10) return a
+        return Interpolate.interpolate(Interpolate.RSQUARE, a + b * 240, a, v, 0x10)
+    }
+
+    /**
+     * Slides the first face screen's three faces (with shadows and window masks) in from the
+     * right, 4 steps apart, over 0x14 steps; then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80CAA38
+     */
+    public fun faces1In(proc: Proc) {
+        val st = proc.state as State
+        val g = castGfx()
+        for (k in 0 until 3) {
+            val x = faceSlideX(0x78, -1, st.timer + 10 - 4 * k, 0x14)
+            if (x == 0xFFFF) continue
+            val y = 0x34 * k - 0x14 // 0xEC, 0x20, 0x54 as u8
+            sprites.putExt(1, (x - 0x30) and 0x1FF, y and 0xFF, g.faceObj, 0xF0 * k + (2 * k shl 12))
+            sprites.putExt(2, (x - 0x2C) and 0x1FF, 0x400 or (y and 0xFF), g.faceObj, 0x78 + 0xF0 * k + ((2 * k + 1) shl 12))
+            sprites.putExt(0, (x - 0x30) and 0x1FF, 0x800 or ((y + 0x18) and 0xFF), g.faceWindowObj, 0)
+        }
+        if (st.timer == 0x14) {
             st.timer = 0
             engine.breakProc(proc)
         } else {

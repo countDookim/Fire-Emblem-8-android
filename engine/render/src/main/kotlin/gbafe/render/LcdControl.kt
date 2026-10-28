@@ -123,6 +123,11 @@ public class LcdControl {
         setWinLayers(16, bg0, bg1, bg2, bg3, obj)
     }
 
+    /** The `SetWObjLayers` macro (include/hardware.h): `wincnt.wobj_enableBg0..Obj` (bits 24..28). */
+    public fun setWObjLayers(bg0: Int, bg1: Int, bg2: Int, bg3: Int, obj: Int) {
+        setWinLayers(24, bg0, bg1, bg2, bg3, obj)
+    }
+
     /**
      * Sets or clears a `wincnt` bit: 5 `win0_enableBlend`, 13 `win1_enableBlend`, 21
      * `wout_enableBlend`, 29 `wobj_enableBlend` (or any other `wincnt` bit).

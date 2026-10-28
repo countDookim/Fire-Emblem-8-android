@@ -25,7 +25,7 @@ import gbafe.render.SpriteObject
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
- * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80CAE20`; a stand-in
+ * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80CAF2C`; a stand-in
  * `PROC_BLOCK` sits after it.
  */
 public class OpAnim(
@@ -82,6 +82,10 @@ public class OpAnim(
         public val faces3: List<Face>,
         /** `gUnknown_08AA70EA` (the third face screen's OBJ window mask). */
         public val faceWindowObj3: SpriteObject,
+        /** The fourth face screen's faces (Vanessa, Tana, Syrene). */
+        public val faces4: List<Face>,
+        /** `gUnknown_08AA7116` (the fourth face screen's OBJ window mask). */
+        public val faceWindowObj4: SpriteObject,
     )
 
     /** A face in the face screens: `Img_OpAnimFace<Name>`, `Img_OpAnimFace<Name>Shadow`, `Pal_OpAnimFace<Name>`. */
@@ -364,7 +368,11 @@ public class OpAnim(
             repeat(ProcFunc { loadFacesPulsed(it, castGfx().faces3, 0xE, 8) }),
             call(ProcFunc { setupFaceScreen() }),
             repeat(ProcFunc { faces3In(it) }),
-            block(), // not ported: sub_80C8564 (6th) and the rest of the cutscene
+            call(ProcFunc { setupCastScroll(it) }),
+            repeat(ProcFunc { loadFacesPulsed(it, castGfx().faces4, 0xC, 9) }),
+            call(ProcFunc { setupFaceScreen() }),
+            repeat(ProcFunc { faces4In(it) }),
+            block(), // not ported: sub_80C8564 (7th) and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -1936,7 +1944,7 @@ public class OpAnim(
      * Pulses the ring with [period] and loads [faces] into OBJ VRAM (one per step from step 1);
      * breaks at step [last]. Each C function hard-codes its faces, period and last step.
      *
-     * Ported from src/opanim-main.c: sub_80C8ED4, sub_80C9024
+     * Ported from src/opanim-main.c: sub_80C8ED4, sub_80C9024, sub_80C9100
      */
     public fun loadFacesPulsed(proc: Proc, faces: List<Face>, period: Int, last: Int) {
         val st = proc.state as State
@@ -2009,6 +2017,31 @@ public class OpAnim(
             sprites.putExt(0, (x - 0x38) and 0x1FF, 0x838, g.faceWindowObj3, 0)
         }
         if (st.timer == 0x10) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /**
+     * Drops the fourth face screen's three faces in from the top, 4 steps apart, over 0xF steps;
+     * then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80CAF2C
+     */
+    public fun faces4In(proc: Proc) {
+        val st = proc.state as State
+        val g = castGfx()
+        for (k in 0 until 3) {
+            val y = faceSlideX(0x50, -1, st.timer + 10 - 4 * k, 0xF)
+            if (y == 0xFFFF || y < -0x28 || y >= 0xC9) continue
+            val oy = (y - 0x28) and 0xFF
+            sprites.putExt(1, 0x48 * k, oy, g.faceObj, 0xF0 * k + (2 * k shl 12))
+            sprites.putExt(2, 0x48 * k + 4, oy or 0x400, g.faceObj, 0x78 + 0xF0 * k + ((2 * k + 1) shl 12))
+            sprites.putExt(0, 0x48 * k + 0x10, oy or 0x800, g.faceWindowObj4, 0)
+        }
+        if (st.timer == 0xF) {
             st.timer = 0
             engine.breakProc(proc)
         } else {

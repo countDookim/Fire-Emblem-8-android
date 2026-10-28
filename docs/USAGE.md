@@ -25,5 +25,6 @@ Keep each row to one line; add the totals line below the table up to date.
 | 2026-10-27 15:25 | `session_01NGGw9NS5vR8Xyx9jdNSaNi` | interactive (same session, owner request) | ~2 | ~4,000 | — | CLAUDE.md rule 10 + brief amendment: Android Kotlin style guide |
 | 2026-10-27 22:51 | `session_01NGGw9NG2hKhUCR67jzPm4P` | scheduled | ~26 | ~190,000 | — | GameLoop, GameControl, OpAnim to f1100 (M4-08), proc helpers, M4-05 CI guard; 58 -> 79 verified |
 | 2026-10-28 06:51 | `session_01NGGw9QmHeKqD6tZt5WaVqw` | scheduled | ~25 | ~157,000 | — | OpAnim f843..f1100 (Ephraim + Eirika scenes to idx 22), Interpolate, SpriteLayers, window macros; 79 -> ~105 verified |
+| 2026-10-28 14:52 | `session_01NGGw9MPE1YLzu6wY3C7fir` | scheduled | ~25 | ~183,000 | — | OpAnim idx 24..114 (Eirika exit, cast scroll, sparkles, 5 face screens), 3 new reference traces; ~105 -> 153 verified |
 
-Totals recorded so far: ~825,000 tokens (counter), 2026-10-27 onward only.
+Totals recorded so far: ~1,008,000 tokens (counter), 2026-10-27 onward only.

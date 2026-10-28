@@ -1144,8 +1144,7 @@ public class OpAnim(
      * Decompresses scroll line [index] (0..99, else nothing) into VRAM 0x8000 + 0x400 * slot and
      * writes its 30-entry row into the BG map at VRAM 0xE800, row `~index & 0x1F`.
      *
-     * Not verified yet (VRAM is not in the RAM traces): src/opanim-main.c:
-     * OpAnim1_UpdateScrollOneLine
+     * Ported from src/opanim-main.c: OpAnim1_UpdateScrollOneLine
      */
     public fun updateScrollOneLine(index: Int) {
         val g = eirika ?: error("OpAnim.eirika graphics not supplied")
@@ -1171,8 +1170,7 @@ public class OpAnim(
      * first three; then saves `unk30/32` into `unk34/36`, hides BG1, forces palette 15 on BG2's
      * map and breaks.
      *
-     * Not verified yet (checked up to step 28: `ram_trace_opanim` ends at f1100):
-     * src/opanim-main.c: sub_80C8278
+     * Ported from src/opanim-main.c: sub_80C8278
      */
     public fun eirikaDisplayName(proc: Proc) {
         val st = proc.state as State

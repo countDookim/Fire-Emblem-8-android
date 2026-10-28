@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated: 2026-10-28 07:15 UTC (scheduled run, started 06:51)._
+_Updated: 2026-10-28 15:20 UTC (scheduled run, started 14:52)._
 
 ## Owner decisions 2026-10-25 (read docs/decisions/0009)
 - The app is a 1:1 copy. Modding = extension points only; ship no touch gameplay, QoL flags or alternate
@@ -30,22 +30,14 @@ _Updated: 2026-10-28 07:15 UTC (scheduled run, started 06:51)._
 _(nothing blocked)_
 
 ## Status
-- This run (M4-08 op anim, f843..f1100): `OpAnim` now runs script idx 10..23: `OpAnimPreparefxEphraim`, `NewProc08AA6D04`
-  (tree 0), Ephraim fly-in + `ProcScr_OpAnimMergeBG`, split screen `sub_80C7900` (+ `OpAnimHBlank1/2`, unverified: no
-  frame trace), split line, merge shadow, name, exit, `OpAnimPreparefxEirika`, Eirika fly-in, `sub_80C8100/8184/8214`;
-  `sub_80C8278` + `OpAnim1_UpdateScrollOneLine` ported but unverified (trace ends at its step 28 of 0x38; VRAM not dumped).
-  New game-neutral pieces: `gbafe.core.math.Interpolate`, `gbafe.render.SpriteLayers` (ctc.c `ClearSprites/PutSprite/
-  PutSpriteExt/PushSpriteLayerObjects`; OAM push not ported), `LcdControl` window macros (`setWinEnable`, `setWin0Box`,
-  `setWin0/1Layers`, `setWOutLayers`, `setWincntBit`). `GameLoop.onMain` now clears/pushes `sprites` (push = no-op).
-  - `ProcEngineDifferentialTest`: lag rule is now `gBmSt.main_loop_ended == 0` in the previous dump (skip the step) and
-    no compare on a dump with it 0 (mid-step); runs tree 0 every frame; checks `gGenericBuffer`, BG0..3 map buffers,
-    `gOpAnimSt`, unk30..36 (after the step that clears them: slot leftovers), merge BG proc, `sHBlankHandler1`,
-    wincnt/window boxes, sprite layer chains (`sSpriteLayers` heads 0 and 13).
-- Verified ports: 79 -> ~**105 / 8352** (CI's progress commit has the exact count).
-- CI: this run's pushes all superseded/cancelled except the last (not checked at wrap-up). Local full `jvmTest` + Dokka
-  green before the final push. Session setup: ~120 s.
-- Owner note: the session's auto-mode refused `git push --delete` of `wip/m4-08-opanim` (merged into master now; delete
-  it by hand or leave it).
+- This run (M4-08 op anim, f1100..f2600): new reference runs `ram_trace_opanim2` (f1090..1600), `_opanim3` (f1590..2600),
+  `_opanim4` (f2590..3000, the op anim ends ~f2950; not used by tests yet), full dumps (VRAM) every 10 frames.
+  `OpAnim` now runs script idx 24..114: Eirika exit, fade, the cast scroll (Joshua + 5 `CastScene`s as data), sparkles
+  (`sub_80CA4DC`), five face screens (`Face` data, `loadFacesPulsed`, `faces1In..4In`); stand-in `PROC_BLOCK` at idx 115
+  (`sub_80CB0A0`). `ProcEngineDifferentialTest` checks every frame to f2600 (procs 705C/704C/707C, unk40..4C, sprite
+  layers 0..2+13, VRAM tiles/maps for scroll lines, ring, faces). `LcdControl.setWObjLayers` added.
+- Verified ports: ~105 -> **153 / 8352** (`tools/progress.py`).
+- CI: not checked at wrap-up. Local full `jvmTest` + Dokka green before the final push. Setup ~146 s.
 
 ## Run rules (owner, 2026-10-26)
 - Budget **~30 min** (owner, 2026-10-27; a little over is fine to finish a nearly done task). Work until ~minute 23,
@@ -55,10 +47,13 @@ _(nothing blocked)_
   first, then `tail_lines` <= 80 of the failing job).
 - Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.
 
-## Next task: M4-08 op anim (continue: needs a longer trace) or M3-07 GPU backend
-- `ram_trace_opanim` ends at f1100 inside `sub_80C8278`: add a reference run f1090..~f1600 (see "New reference runs"
-  below; same inputs) to verify `sub_80C8278` and continue with `sub_80C835C` onwards (data/opanim.s lists the script).
-  A VRAM dump (or a frame compare) would also cover `OpAnim1_UpdateScrollOneLine` and the HBlank handlers.
+## Next task: M4-08 op anim (finish) or M3-07 GPU backend
+- Op anim from idx 115 (`sub_80CB0A0`, then `sub_80C9330`/`sub_80CB20C`... up to `sub_80C9A94`, `sub_80C9AFC`,
+  `sub_80CBD7C`; data/opanim.s): add `ram_trace_opanim4` (f2590..3000, already in the release) to the test as run5.
+  Face loaders follow `loadFacesPulsed`; face slide-ins follow `faces1In..4In` (window masks `gUnknown_08AA7xxx`).
+  Then the op anim's end (what proc follows at f~2950: slot 0x24ed4 runs script 0x08AA6A50).
+- Unverified leftovers: `OpAnimHBlank1/2` (no HBlank emulation in the test), `sub_80C85FC`/`sub_80C8684` (end-cb lambdas,
+  no KDoc citation).
 - Test ROM addresses for op anim graphics are inline in `ProcEngineDifferentialTest` (from fireemblem8.nm.txt).
 - Boot driver: `GameLoop` + `GameControl` exist (OpAnim's `sprites` must be the loop's when wired); still missing AgbMain init pieces, `SoftResetIfKeyComboPressed` hookup,
   `IsSoftwareReset` / `SetSoftwareResetFlag`. Assets for `EarlyStartUi.Gfx`/`OpAnim.Gfx` on device: from the ROM import (M4-03).
@@ -69,7 +64,7 @@ _(nothing blocked)_
   <rom repo>/extracted <out>`, copy only changed/new files into the ROM repo's `extracted/`, push there; CI fails until you do.
 - New reference runs: add to `harness/gen_scripts.py`, run it + `harness/make_reference.sh` (seconds), diff old `out/` vs a
   fresh untar of the old `dist/reference.tar.xz` (only PROVENANCE.sha1 may differ), `tar -C reference -cJf
-  dist/reference.tar.xz out`, update the sha1 in `dist/MANIFEST.sha1`, push. Also untar into `.assets/reference` locally.
+  dist/reference.tar.xz out` (~15 s, now ~10 MB), update the sha1 in `dist/MANIFEST.sha1`, push. Also copy into `.assets/reference` locally.
   Fetch the ROM repo before committing there (the session checkout can be behind origin).
 - M3-10 Android ActionSources, M3-12..15 audio/overlay. Open renderer items: OBJ mosaic, mosaic on affine BGs.
 - Follow-ups noted, not tasks yet: unit placement / `.fe8s` for chapters other than the prologue need the event

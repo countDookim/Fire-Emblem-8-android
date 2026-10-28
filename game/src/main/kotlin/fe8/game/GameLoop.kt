@@ -3,6 +3,7 @@ package fe8.game
 import gbafe.core.time.GameClock
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
+import gbafe.render.SpriteLayers
 
 /**
  * The game's main loop, decomp `src/bm.c`: [onMain] (one game step: keys, then proc trees 1, 2, 3,
@@ -30,6 +31,10 @@ public class GameLoop(
     private val overran: () -> Boolean = { false },
     /** VBlank display sync after a finished step (`FlushLCDControl`, `FlushBackgrounds`, ...). */
     private val flush: () -> Unit = {},
+    /** The sprite lists cleared at the start of every step and pushed after trees 5 and 4. */
+    public val sprites: SpriteLayers = SpriteLayers(),
+    /** `CallARM_PushToSecondaryOAM` for one sprite (OAM building is not ported yet). */
+    private val pushSprite: (SpriteLayers.Entry) -> Unit = {},
 ) {
     /** `gBmSt.lock`: while not 0, proc tree 2 is not run. */
     public var lock: Int = 0
@@ -67,18 +72,21 @@ public class GameLoop(
     public fun gameLock(): Int = lock
 
     /**
-     * One game step: updates [keys], runs proc trees 1, 2 (unless locked), 3, 5 and 4, and marks
-     * the step ended. Sprite layer pushes are not modelled.
+     * One game step: updates [keys], clears [sprites], runs proc trees 1, 2 (unless locked), 3,
+     * 5 and 4 (pushing sprite layers 0 and 13 after 5 and 4), and marks the step ended.
      *
      * Partially ported from src/bm.c: OnMain
      */
     public fun onMain() {
         keys.update(keyInput())
+        sprites.clear()
         procs.run(procs.root(1))
         if (gameLock() == 0) procs.run(procs.root(2))
         procs.run(procs.root(3))
         procs.run(procs.root(5))
+        sprites.pushLayerObjects(0, pushSprite)
         procs.run(procs.root(4))
+        sprites.pushLayerObjects(13, pushSprite)
         mainLoopEnded = true
     }
 

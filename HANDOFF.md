@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated: 2026-10-27 23:15 UTC (scheduled run, started 22:51)._
+_Updated: 2026-10-28 07:15 UTC (scheduled run, started 06:51)._
 
 ## Owner decisions 2026-10-25 (read docs/decisions/0009)
 - The app is a 1:1 copy. Modding = extension points only; ship no touch gameplay, QoL flags or alternate
@@ -30,31 +30,22 @@ _Updated: 2026-10-27 23:15 UTC (scheduled run, started 22:51)._
 _(nothing blocked)_
 
 ## Status
-- This run (M4-08 new + M4-05): `fe8.game.GameLoop` (`OnMain` partial: no sprites; `OnVBlank` partial; game lock;
-  `frame()` with an `overran` lag rule), `fe8.game.GameControl` (`StartGame`, GAMECTRL script up to the op anim, then a
-  stand-in block; `SetNextGameActionId`, `GameControl_EnableSoundEffects`; `playStConfig` = `gPlaySt+0x40` bits),
-  `fe8.game.opanim.OpAnim` (`OpAnimInit` partial (no BGM), terminator (label 99 jump is a no-op: not ported),
-  `SetupOpAnimWorldMapfx` partial (no `StartBgmExt`), BLDALPHA proc, world map scroll `sub_80C6F70`, fade-in proc,
-  `sub_80C69B0`, `sub_80C7050`), proc helpers (`Proc_ForAll/ForEach/*Marked`, `SetMark/SetEndCb/SetRepeatCb`,
-  `Proc_FindAfter*`, `CountProcs`).
-  - Tests: `EarlyStartUiBootDifferentialTest` now boots via `StartGame` + `GameLoop`, aligned by `gGameClock` (f20 state
-    must match exactly), checks GAMECTRL fields, live proc count and proc slots vs `sProcArray`.
-    `ProcEngineDifferentialTest` runs under GAMECTRL from f400 through the op anim to **f1100** (`ram_trace_logo_skip`,
-    then the new `ram_trace_opanim`), checking op anim / BLDALPHA / fade-in procs, palette, blend regs, BG offsets.
-  - **Findings:** (1) a slow step can overrun several frames (world map setup: 3): the test skips steps while the previous
-    dump shows the proc mid-call; `GameLoop.frame()` only models a 1-frame lag: generalise (lag count) when the boot driver
-    runs the op anim. (2) `Proc_Start` does not clear user fields: a new proc's state holds the slot's old bytes until its
-    init writes them. (3) Boot: one VBlank is counted before StartGame's first step (OnVBlank is installed during init).
-  - M4-05 done: `tools/check_no_game_content.py` + CI steps (after the APK build, before the `latest` release).
-  - ROM repo: new reference run `ram_trace_opanim` (RAM every frame f515..f1100, 1.4 MB tarball).
-- Verified ports: 58 -> **79 / 8352**.
-- CI: green through 380e048; this run's pushes not checked at wrap-up (ROM repo release must publish the new
-  reference tarball first, else `ProcEngineDifferentialTest` fails on the missing run). Session setup: ~109 s.
-- `wip/m4-08-opanim`: draft `OpAnim.prepareEphraim` (`OpAnimPreparefxEphraim`, unverified, not in the script yet). To
-  verify: script idx 10 `repeat(prepareEphraim)`, idx 11 `NewProc08AA6D04` (tree 0); RAM shows idx 11 from f844 to
-  f853 for 7 timer steps, so its decompressions overrun too: generalise the test's lag rule (e.g. skip a step while the
-  RAM op anim `timer`/scrCur is unchanged from the previous dump). Master now has `add16`/`setOffsets` helpers and
-  100-column reflow in OpAnim.kt: drop the branch's own `add16` when merging.
+- This run (M4-08 op anim, f843..f1100): `OpAnim` now runs script idx 10..23: `OpAnimPreparefxEphraim`, `NewProc08AA6D04`
+  (tree 0), Ephraim fly-in + `ProcScr_OpAnimMergeBG`, split screen `sub_80C7900` (+ `OpAnimHBlank1/2`, unverified: no
+  frame trace), split line, merge shadow, name, exit, `OpAnimPreparefxEirika`, Eirika fly-in, `sub_80C8100/8184/8214`;
+  `sub_80C8278` + `OpAnim1_UpdateScrollOneLine` ported but unverified (trace ends at its step 28 of 0x38; VRAM not dumped).
+  New game-neutral pieces: `gbafe.core.math.Interpolate`, `gbafe.render.SpriteLayers` (ctc.c `ClearSprites/PutSprite/
+  PutSpriteExt/PushSpriteLayerObjects`; OAM push not ported), `LcdControl` window macros (`setWinEnable`, `setWin0Box`,
+  `setWin0/1Layers`, `setWOutLayers`, `setWincntBit`). `GameLoop.onMain` now clears/pushes `sprites` (push = no-op).
+  - `ProcEngineDifferentialTest`: lag rule is now `gBmSt.main_loop_ended == 0` in the previous dump (skip the step) and
+    no compare on a dump with it 0 (mid-step); runs tree 0 every frame; checks `gGenericBuffer`, BG0..3 map buffers,
+    `gOpAnimSt`, unk30..36 (after the step that clears them: slot leftovers), merge BG proc, `sHBlankHandler1`,
+    wincnt/window boxes, sprite layer chains (`sSpriteLayers` heads 0 and 13).
+- Verified ports: 79 -> ~**105 / 8352** (CI's progress commit has the exact count).
+- CI: this run's pushes all superseded/cancelled except the last (not checked at wrap-up). Local full `jvmTest` + Dokka
+  green before the final push. Session setup: ~120 s.
+- Owner note: the session's auto-mode refused `git push --delete` of `wip/m4-08-opanim` (merged into master now; delete
+  it by hand or leave it).
 
 ## Run rules (owner, 2026-10-26)
 - Budget **~30 min** (owner, 2026-10-27; a little over is fine to finish a nearly done task). Work until ~minute 23,
@@ -64,13 +55,12 @@ _(nothing blocked)_
   first, then `tail_lines` <= 80 of the failing job).
 - Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.
 
-## Next task: M4-08 op anim (continue) or M3-07 GPU backend
-- Next op anim step: `OpAnimPreparefxEphraim` (script idx 10, reached f843; 7 frames by `timer`): needs `gGenericBuffer`
-  (0x02020188) and ROM blobs Img/Tsa_OpAnimCharacterBG 08ab7dd0/08ab87e0, Img_OpAnimEphraimClose1/2 08abf168/08ac0bd8,
-  Tsa_..Close1/2 08ac1878/08ac1b98, Img/Tsa_OpAnimEphraim 08abb14c/08abc074, Pal_OpAnimEphraimBlur 08ac1c8c,
-  Img/Tsa_..Blur3 08abe304/08abef70, Img/Tsa_..Blur2 08abd348/08abe120. Then `NewProc08AA6D04` starts a proc on tree 0
-  (VSync): the test must run tree 0 too (as `GameLoop.onVBlank` does). Script positions per frame are in the trace.
-- Boot driver: `GameLoop` + `GameControl` exist; still missing AgbMain init pieces, `SoftResetIfKeyComboPressed` hookup,
+## Next task: M4-08 op anim (continue: needs a longer trace) or M3-07 GPU backend
+- `ram_trace_opanim` ends at f1100 inside `sub_80C8278`: add a reference run f1090..~f1600 (see "New reference runs"
+  below; same inputs) to verify `sub_80C8278` and continue with `sub_80C835C` onwards (data/opanim.s lists the script).
+  A VRAM dump (or a frame compare) would also cover `OpAnim1_UpdateScrollOneLine` and the HBlank handlers.
+- Test ROM addresses for op anim graphics are inline in `ProcEngineDifferentialTest` (from fireemblem8.nm.txt).
+- Boot driver: `GameLoop` + `GameControl` exist (OpAnim's `sprites` must be the loop's when wired); still missing AgbMain init pieces, `SoftResetIfKeyComboPressed` hookup,
   `IsSoftwareReset` / `SetSoftwareResetFlag`. Assets for `EarlyStartUi.Gfx`/`OpAnim.Gfx` on device: from the ROM import (M4-03).
 - Proc helpers `Proc_ForAll/ForEach/*Marked`, `SetMark/SetEndCb/SetRepeatCb` exist but are unverified (no trace uses them yet).
 - M3-07 GPU backend (`:app`, manual test): can now show H&S and both logos from `ui/*` (see `IntroLogosScreenTest`).

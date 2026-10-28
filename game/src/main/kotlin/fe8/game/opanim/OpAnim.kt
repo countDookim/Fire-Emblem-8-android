@@ -25,8 +25,8 @@ import gbafe.render.SpriteObject
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
- * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80CA4DC`; a stand-in
- * `PROC_BLOCK` sits where `sub_80CA92C` would run.
+ * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80C8D30`; a stand-in
+ * `PROC_BLOCK` sits where `sub_80CA940` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -66,6 +66,20 @@ public class OpAnim(
         public val scenes: List<CastScene>,
         /** `Obj_08AA6C22`, `6C36`, `6C4A`, `6C58`, `6C66`, `6C74`, `6C82`, `6C8A`, `6C92`, `6C9A` (sparkles). */
         public val sparkles: List<SpriteObject>,
+        /** `Pal_08ADBE78` (the face shadows' palette). */
+        public val shadowPal: ShortArray,
+        /** The first face screen's faces (Rennac, L'Arachel, Dozla), loaded by [loadFaces]. */
+        public val faces1: List<Face>,
+    )
+
+    /** A face in the face screens: `Img_OpAnimFace<Name>`, `Img_OpAnimFace<Name>Shadow`, `Pal_OpAnimFace<Name>`. */
+    public class Face(
+        /** The face image (compressed). */
+        public val img: OpAnimHs.Blob,
+        /** Its shadow image (compressed). */
+        public val shadow: OpAnimHs.Blob,
+        /** Its palette (16 colours). */
+        public val pal: ShortArray,
     )
 
     /**
@@ -325,7 +339,10 @@ public class OpAnim(
             repeat(ProcFunc { castScrollEnd(it) }),
             call(ProcFunc { showObjOnly() }),
             repeat(ProcFunc { sparkles(it) }),
-            block(), // not ported: sub_80CA92C and the rest of the cutscene
+            call(ProcFunc { endSparkles(it) }),
+            call(ProcFunc { setupCastScroll(it) }),
+            repeat(ProcFunc { loadFaces(it, castGfx().faces1) }),
+            block(), // not ported: sub_80CA940 and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -1790,6 +1807,57 @@ public class OpAnim(
         } else {
             st.timer = (st.timer + 1) and 0xFFFF
         }
+    }
+
+    /**
+     * Resets the blend; the next [setupCastScroll] then uses the full display (`unk46` = 1).
+     *
+     * Ported from src/opanim-main.c: sub_80CA92C
+     */
+    public fun endSparkles(proc: Proc) {
+        hardware.lcd.setBlendConfig(0, 0x10, 0, 0)
+        (proc.state as State).unk38to46[4] = 1
+    }
+
+    /**
+     * Pulses BG1's (the shining ring's) blend with `unk3E` (period 0x4C), fades the scroll lines'
+     * palettes in from black over 0x26 steps and loads [faces] into OBJ VRAM (steps 2..5), then
+     * breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C8D30
+     */
+    public fun loadFaces(proc: Proc, faces: List<Face>) {
+        val st = proc.state as State
+        val g = castGfx()
+        val vram = hardware.vram
+        pulseRing(st)
+        copyToPal(g.scrollPal, 0, 0x100)
+        val ret = Interpolate.interpolate(Interpolate.LINEAR, 0xC, 0, st.timer, 0x26)
+        for (i in 0 until 8) blendPalette(i * 0x10, 0, ret)
+        when (st.timer) {
+            2 -> for (at in intArrayOf(0x220, 0x260, 0x2A0, 0x2E0)) copyToPal(g.shadowPal, at, 0x20)
+            3, 4, 5 -> {
+                val k = st.timer - 3
+                val f = faces[k]
+                Decompress.into(f.img.data, f.img.offset, vram, OBJ_VRAM + 0x1E00 * k)
+                copyToPal(f.pal, 0x200 + 0x40 * k, 0x20)
+                Decompress.into(f.shadow.data, f.shadow.offset, vram, OBJ_VRAM + 0xF00 + 0x1E00 * k)
+            }
+        }
+        if (st.timer == 0x26) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /** The ring pulse: blend `(i, 16)` with `i` rising 0..12 and falling back as `unk3E` advances. */
+    private fun pulseRing(st: State) {
+        val u = st.unk38to46
+        val i = Interpolate.interpolate(Interpolate.LINEAR, 0, 0x1A, u[3] % 0x4C, 0x4C)
+        hardware.lcd.setBlendConfig(1, if (i < 0xD) i else 0x19 - i, 0x10, 8)
+        u[3] = (u[3] + 1) and 0xFFFF
     }
 
     private fun putName(chr: Int) {

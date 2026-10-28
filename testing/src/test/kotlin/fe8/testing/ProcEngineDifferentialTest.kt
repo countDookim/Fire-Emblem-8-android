@@ -88,7 +88,7 @@ class ProcEngineDifferentialTest {
         "sub_80C9C5C", "sub_80C9CAC", "sub_80C9CFC", "sub_80C9D4C", "sub_80C9DA0",
         "sub_80C8608", "sub_80C8638", "sub_80C8684", "sub_80C8CE4", "sub_80CA4A4",
         "sub_80CA4DC", "OpAnimPutObjCommon", "sub_80CA92C", "sub_80C8D30",
-        "sub_80CA940", "sub_80CA9F8", "sub_80CAA38", "sub_80C8ED4", "sub_80CABB0", "sub_80C9024", "sub_80CAE20", "sub_80C9100", "sub_80CAF2C")
+        "sub_80CA940", "sub_80CA9F8", "sub_80CAA38", "sub_80C8ED4", "sub_80CABB0", "sub_80C9024", "sub_80CAE20", "sub_80C9100", "sub_80CAF2C", "sub_80C9218")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -171,7 +171,10 @@ class ProcEngineDifferentialTest {
             listOf(OpAnim.Face(blob(0x08AE1654), blob(0x08AE1D00), romPal(0x08AE20C4, 16)),
                 OpAnim.Face(blob(0x08AE20E4), blob(0x08AE281C), romPal(0x08AE2BF4, 16)),
                 OpAnim.Face(blob(0x08AE2C14), blob(0x08AE33D4), romPal(0x08AE3734, 16))),
-            SpriteObject(0x08AA7116, romPal(0x08AA7116, 1 + 3 * u16(rom, 0xAA7116))))
+            SpriteObject(0x08AA7116, romPal(0x08AA7116, 1 + 3 * u16(rom, 0xAA7116))),
+            listOf(OpAnim.Face(blob(0x08AE3754), blob(0x08AE3E54), romPal(0x08AE41E4, 16)),
+                OpAnim.Face(blob(0x08AE4204), blob(0x08AE4940), romPal(0x08AE4CE8, 16)),
+                OpAnim.Face(blob(0x08AE4D08), blob(0x08AE53C8), romPal(0x08AE5730, 16))))
         opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx, worldMap, ephraim, eirika = eirika, cast = cast)
         val opAnim = opPort.script
         val parent = engine.start(ctrl.script, rootIndex)
@@ -219,6 +222,7 @@ class ProcEngineDifferentialTest {
         var faces3InChecked = 0
         var faces4Checked = 0
         var faces4InChecked = 0
+        var faces5Checked = 0
         var fadeOutProcChecked = 0
         val sceneInChecked = IntArray(5)
         var enabledSeen = false
@@ -254,7 +258,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && !midStep && ram <= 111) {
+                if (ram != null && !midStep && ram <= 113) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -331,6 +335,7 @@ class ProcEngineDifferentialTest {
                         if (ram == 107) faces3InChecked++
                         if (ram == 109) faces4Checked++
                         if (ram == 111) faces4InChecked++
+                        if (ram == 113) faces5Checked++
                         if (ram == 103 && f % 10 == 0) {
                             val v = dump(f, "vram")
                             assertArrayEquals(v.copyOfRange(0x10000, 0x17800), env.hardware.vram.copyOfRange(0x10000, 0x17800),
@@ -442,6 +447,7 @@ class ProcEngineDifferentialTest {
         assertTrue(joshuaChecked >= 0x28, "sub_80C8690 checked on $joshuaChecked frames")
         assertTrue(castFadeChecked >= 0x10, "sub_80C9E6C checked on $castFadeChecked frames")
         assertTrue(joshuaInChecked >= 0x1E, "sub_80C9FF8 checked on $joshuaInChecked frames")
+        assertTrue(faces5Checked >= 10, "sub_80C9218 checked on $faces5Checked frames")
         assertTrue(faces4Checked >= 9, "sub_80C9100 checked on $faces4Checked frames")
         assertTrue(faces4InChecked >= 0xF, "sub_80CAF2C checked on $faces4InChecked frames")
         assertTrue(faces3Checked >= 8, "sub_80C9024 checked on $faces3Checked frames")

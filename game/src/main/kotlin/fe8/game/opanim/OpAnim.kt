@@ -25,8 +25,8 @@ import gbafe.render.SpriteObject
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
- * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80CAF2C`; a stand-in
- * `PROC_BLOCK` sits after it.
+ * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80C9218` and its `sub_80CA940`;
+ * a stand-in `PROC_BLOCK` sits where `sub_80CB0A0` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -86,6 +86,8 @@ public class OpAnim(
         public val faces4: List<Face>,
         /** `gUnknown_08AA7116` (the fourth face screen's OBJ window mask). */
         public val faceWindowObj4: SpriteObject,
+        /** The fifth face screen's faces (Gilliam, Innes, Moulder). */
+        public val faces5: List<Face>,
     )
 
     /** A face in the face screens: `Img_OpAnimFace<Name>`, `Img_OpAnimFace<Name>Shadow`, `Pal_OpAnimFace<Name>`. */
@@ -372,7 +374,10 @@ public class OpAnim(
             repeat(ProcFunc { loadFacesPulsed(it, castGfx().faces4, 0xC, 9) }),
             call(ProcFunc { setupFaceScreen() }),
             repeat(ProcFunc { faces4In(it) }),
-            block(), // not ported: sub_80C8564 (7th) and the rest of the cutscene
+            call(ProcFunc { setupCastScroll(it) }),
+            repeat(ProcFunc { loadFacesPulsed(it, castGfx().faces5, 10, 10) }),
+            call(ProcFunc { setupFaceScreen() }),
+            block(), // not ported: sub_80CB0A0 and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -1944,7 +1949,7 @@ public class OpAnim(
      * Pulses the ring with [period] and loads [faces] into OBJ VRAM (one per step from step 1);
      * breaks at step [last]. Each C function hard-codes its faces, period and last step.
      *
-     * Ported from src/opanim-main.c: sub_80C8ED4, sub_80C9024, sub_80C9100
+     * Ported from src/opanim-main.c: sub_80C8ED4, sub_80C9024, sub_80C9100, sub_80C9218
      */
     public fun loadFacesPulsed(proc: Proc, faces: List<Face>, period: Int, last: Int) {
         val st = proc.state as State

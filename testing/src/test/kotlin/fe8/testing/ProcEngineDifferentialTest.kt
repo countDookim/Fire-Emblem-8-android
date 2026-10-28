@@ -82,7 +82,8 @@ class ProcEngineDifferentialTest {
         "sub_80C7F90", "sub_80C8100", "sub_80C8184", "sub_80C8214", "sub_80C8278", "OpAnim1_UpdateScrollOneLine",
         "sub_80C835C", "sub_80C84D8",
         "sub_80C8564", "sub_80C72A4", "OpAnim1_UpdateScroll", "sub_80C8580", "sub_80C85B0", "sub_80C85FC", "sub_80C8690",
-        "sub_80C8554", "sub_80C9DF0", "sub_80C9E6C", "sub_80C9B6C", "sub_80C9C08", "sub_80C9FF8")
+        "sub_80C8554", "sub_80C9DF0", "sub_80C9E6C", "sub_80C9B6C", "sub_80C9C08", "sub_80C9FF8",
+        "sub_80CA10C", "sub_80CA26C", "sub_80CA3B8", "sub_80C9EE8", "sub_80C9F7C")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -171,6 +172,7 @@ class ProcEngineDifferentialTest {
         var joshuaChecked = 0
         var castFadeChecked = 0
         var joshuaInChecked = 0
+        val sceneOutChecked = IntArray(3)
         var enabledSeen = false
         for (f in 401..LAST) {
             val e = ew(f)
@@ -204,7 +206,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && !midStep && ram <= 34) {
+                if (ram != null && !midStep && ram <= 38) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -269,6 +271,8 @@ class ProcEngineDifferentialTest {
                         if (ram == 29) joshuaChecked++
                         if (ram == 32) castFadeChecked++
                         if (ram == 34) joshuaInChecked++
+                        if (ram in 35..36) sceneOutChecked[ram - 35]++
+                        if (ram == 38) sceneOutChecked[2]++
                         assertEquals(procAt(e, BG3_SCROLL_SCRIPT) != null, engine.find(opPort.bg3ScrollScript) != null,
                             "f$f gUnknown_08AA704C")
                         if (ram >= 33) {
@@ -360,6 +364,7 @@ class ProcEngineDifferentialTest {
         assertTrue(joshuaChecked >= 0x28, "sub_80C8690 checked on $joshuaChecked frames")
         assertTrue(castFadeChecked >= 0x10, "sub_80C9E6C checked on $castFadeChecked frames")
         assertTrue(joshuaInChecked >= 0x1E, "sub_80C9FF8 checked on $joshuaInChecked frames")
+        assertTrue(sceneOutChecked.all { it >= 0x10 }, "sub_80CA10C, sub_80CA3B8, sub_80C9F7C checked on ${sceneOutChecked.toList()} frames")
         assertEquals(true, enabledSeen, "key combo reset enabled after the Nintendo logo")
     }
 

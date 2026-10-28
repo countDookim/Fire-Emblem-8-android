@@ -24,8 +24,8 @@ import gbafe.render.SpriteObject
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
- * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80C9FF8`; a stand-in
- * `PROC_BLOCK` sits where `sub_80CA10C` would run.
+ * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80C9F7C` (and the second
+ * `sub_80C8564`); a stand-in `PROC_BLOCK` sits where `sub_80C883C` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -278,7 +278,12 @@ public class OpAnim(
             repeat(ProcFunc { fadeInCastScroll(it) }),
             call(ProcFunc { setupJoshua(it) }),
             repeat(ProcFunc { castSceneScrollIn(it) }),
-            block(), // not ported: sub_80CA10C and the rest of the cutscene
+            repeat(ProcFunc { castSceneHold(it) }),
+            repeat(ProcFunc { castSceneScrollOut(it) }),
+            call(ProcFunc { showCastScrollFaded() }),
+            repeat(ProcFunc { fadeOutCastScene(it) }),
+            call(ProcFunc { setupCastScroll(it) }),
+            block(), // not ported: sub_80C883C and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -1439,23 +1444,155 @@ public class OpAnim(
         val st = proc.state as State
         val hw = hardware
         val u = st.unk40to44
-        val off = u[2].toShort().toInt()
         advanceCastScroll(st)
         hw.enableBgSyncByMask(1)
-        val ret = Interpolate.interpolate(Interpolate.RSQUARE, 0, u[0], st.timer, 0x1E)
-        if (st.unk47 != 0) tsaModifyFirstPal(ret, st.unk30, 0, genericBuffer, st.unk48, st.unk4C, setPal = false)
-        else scrollInFirstPal(ret, st.unk30, off, 0, genericBuffer, st.unk48, st.unk4C, setPal = false)
-        st.unk30 = ret.toShort().toInt()
+        castBg0(st, Interpolate.interpolate(Interpolate.RSQUARE, 0, u[0], st.timer, 0x1E))
         if (st.timer == 0x1E) {
             hw.enableBgSyncByMask(2)
-            st.unk32 = (u[1] + 240 - u[0]).toShort().toInt()
-            if (st.unk47 != 0) scrollInFirstPal(st.unk32, 0, off, 1, genericBuffer, st.unk48, st.unk4C, setPal = true)
-            else tsaModifyFirstPal(st.unk32, 0, 1, genericBuffer, st.unk48, st.unk4C, setPal = true)
+            st.unk32 = 0
+            castBg1(st, u[1] + 240 - u[0])
             st.timer = 0
             engine.breakProc(proc)
         } else {
             st.timer = (st.timer + 1) and 0xFFFF
         }
+    }
+
+    /** The scene's BG0 (front copy) to [x], from `unk30`: `TsaModifyFirstPalMaybe` / `sub_80C689C` by `unk47`. */
+    private fun castBg0(st: State, x: Int) {
+        val off = st.unk40to44[2].toShort().toInt()
+        if (st.unk47 != 0) tsaModifyFirstPal(x, st.unk30, 0, genericBuffer, st.unk48, st.unk4C, setPal = false)
+        else scrollInFirstPal(x, st.unk30, off, 0, genericBuffer, st.unk48, st.unk4C, setPal = false)
+        st.unk30 = x.toShort().toInt()
+    }
+
+    /** The scene's BG1 (palette-15 shadow) to [x], from `unk32`, mirrored relative to [castBg0]. */
+    private fun castBg1(st: State, x: Int) {
+        val off = st.unk40to44[2].toShort().toInt()
+        if (st.unk47 != 0) scrollInFirstPal(x, st.unk32, off, 1, genericBuffer, st.unk48, st.unk4C, setPal = true)
+        else tsaModifyFirstPal(x, st.unk32, 1, genericBuffer, st.unk48, st.unk4C, setPal = true)
+        st.unk32 = x.toShort().toInt()
+    }
+
+    /** `(240 - unk40) + unk42 + lin(0, 0x60, t, 0x3C) + sq(0, 0x60, t, 0x3C)`: BG1's drift. */
+    private fun castShadowX(st: State, t: Int): Int {
+        val u = st.unk40to44
+        return 240 - u[0] + u[1] + Interpolate.interpolate(Interpolate.LINEAR, 0, 0x60, t, 0x3C) +
+            Interpolate.interpolate(Interpolate.SQUARE, 0, 0x60, t, 0x3C)
+    }
+
+    /**
+     * Holds the scene for 0x1E steps: BG0 drifts 0x10 pixels, BG1 (the shadow) drifts away and its
+     * blend falls from 8/8.
+     *
+     * Ported from src/opanim-main.c: sub_80CA10C
+     */
+    public fun castSceneHold(proc: Proc) {
+        val st = proc.state as State
+        val hw = hardware
+        val u = st.unk40to44
+        advanceCastScroll(st)
+        val a = Interpolate.interpolate(Interpolate.SQUARE, 8, 0, st.timer, 0x28)
+        hw.lcd.setBlendConfig(1, a, 16 - a, 8)
+        hw.enableBgSyncByMask(1)
+        castBg0(st, Interpolate.interpolate(Interpolate.LINEAR, u[0], u[0] + 0x10, st.timer, 0x1E))
+        hw.enableBgSyncByMask(2)
+        castBg1(st, castShadowX(st, st.timer))
+        if (st.timer == 0x1E) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /**
+     * Continues [castSceneHold]'s shadow for 0xB more steps, then hides BG1 and blends BG0 over
+     * BG3 at 16/0.
+     *
+     * Ported from src/opanim-main.c: sub_80CA26C
+     */
+    public fun castShadowOut(proc: Proc) {
+        val st = proc.state as State
+        val hw = hardware
+        val lcd = hw.lcd
+        if (st.timer == 0xB) {
+            lcd.setDispEnable(1, 0, 0, 1, 1)
+            lcd.setBlendTargetA(1, 0, 0, 0, 0)
+            lcd.setBlendTargetB(0, 0, 0, 1, 0)
+            lcd.setBlendConfig(1, 0x10, 0, 8)
+            lcd.setDispEnable(1, 0, 0, 1, 1)
+        }
+        if (st.timer < 0xB) {
+            val a = Interpolate.interpolate(Interpolate.SQUARE, 8, 0, st.timer + 0x1E, 0x28)
+            lcd.setBlendConfig(1, a, 16 - a, 8)
+            hw.enableBgSyncByMask(2)
+            castBg1(st, castShadowX(st, st.timer + 0x1E))
+        }
+    }
+
+    /**
+     * Scrolls the scene's BG0 out over 0x1E steps while fading it out from step 0xF, then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80CA3B8
+     */
+    public fun castSceneScrollOut(proc: Proc) {
+        val st = proc.state as State
+        val hw = hardware
+        val u = st.unk40to44
+        castShadowOut(proc)
+        advanceCastScroll(st)
+        if (st.timer - 0xF >= 0) {
+            val a = Interpolate.interpolate(Interpolate.LINEAR, 0x10, 0, st.timer - 0xF, 0xF)
+            hw.lcd.blendCoeffA = a
+            hw.lcd.blendCoeffB = 16 - a
+        }
+        hw.enableBgSyncByMask(1)
+        castBg0(st, Interpolate.interpolate(Interpolate.SQUARE, u[0] + 0x10, u[0] * 2 + 0x10, st.timer, 0x1E))
+        if (st.timer == 0x1E) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /**
+     * Reloads the scroll lines' palettes and shows BG2 (on top) blended over BG3 at 0/16.
+     *
+     * Ported from src/opanim-main.c: sub_80C9EE8
+     */
+    public fun showCastScrollFaded() {
+        val g = cast ?: error("OpAnim.cast graphics not supplied")
+        val lcd = hardware.lcd
+        copyToPal(g.scrollPal, 0, 0x100)
+        lcd.setBlendConfig(1, 0, 0x10, 8)
+        lcd.setBlendTargetA(0, 0, 1, 0, 0)
+        lcd.setBlendTargetB(0, 0, 0, 1, 0)
+        lcd.setDispEnable(0, 0, 1, 1, 1)
+        setBgPriorities(1, 2, 0, 3)
+    }
+
+    /**
+     * Scrolls the cast lines and raises BG2's blend from 0/16 to 16/0 over 0x10 steps, then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C9F7C
+     */
+    public fun fadeOutCastScene(proc: Proc) {
+        val st = proc.state as State
+        val lcd = hardware.lcd
+        advanceCastScroll(st)
+        if (st.timer < 0x11) {
+            val a = Interpolate.interpolate(Interpolate.LINEAR, 0, 0x10, st.timer, 0x10)
+            lcd.blendCoeffA = a
+            lcd.blendCoeffB = 16 - a
+            if (st.timer == 0x10) {
+                st.timer = 0
+                engine.breakProc(proc)
+                return
+            }
+        }
+        st.timer = (st.timer + 1) and 0xFFFF
     }
 
     /** `gUnknown_08AA707C` (not ported yet: only ended here, by script identity). */

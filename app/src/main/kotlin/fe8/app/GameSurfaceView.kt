@@ -3,6 +3,8 @@ package fe8.app
 import android.content.Context
 import android.opengl.GLES30
 import android.opengl.GLSurfaceView
+import android.view.KeyEvent
+import android.view.MotionEvent
 import gbafe.core.time.GameLoop
 import fe8.game.Fe8Game
 import java.nio.ByteBuffer
@@ -21,10 +23,30 @@ import javax.microedition.khronos.opengles.GL10
  * buffer is a pre-allocated direct [IntBuffer].
  */
 public class GameSurfaceView(context: Context, game: Fe8Game) : GLSurfaceView(context) {
+    private val keys = HardwareKeySource()
+
     init {
+        game.actionSource = keys
         setEGLContextClientVersion(3)
         setRenderer(GameRenderer(game))
         renderMode = RENDERMODE_CONTINUOUSLY
+        isFocusable = true
+        isFocusableInTouchMode = true
+        requestFocus()
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean =
+        keys.onKey(event) || super.onKeyDown(keyCode, event)
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean =
+        keys.onKey(event) || super.onKeyUp(keyCode, event)
+
+    override fun onGenericMotionEvent(event: MotionEvent): Boolean =
+        keys.onMotion(event) || super.onGenericMotionEvent(event)
+
+    override fun onWindowFocusChanged(hasWindowFocus: Boolean) {
+        super.onWindowFocusChanged(hasWindowFocus)
+        if (!hasWindowFocus) keys.clear()
     }
 }
 

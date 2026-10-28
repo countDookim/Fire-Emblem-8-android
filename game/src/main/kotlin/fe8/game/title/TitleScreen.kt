@@ -12,6 +12,7 @@ import gbafe.proc.ProcScripts.goto
 import gbafe.proc.ProcScripts.label
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.yield
+import gbafe.render.BgAffine
 import gbafe.render.BgHardware
 
 /**
@@ -87,7 +88,8 @@ public class TitleScreen(
             yield(),
             call(ProcFunc { engine.start(skipListenerStandIn, it) }), // Title_StartSkipFxListener
             repeat(ProcFunc { setupSpecialEffectGraphics(it) }),
-            block(), // not ported: sub_80C5A44 and the rest of the intro fx
+            call(ProcFunc { setupBlueLights(it) }),
+            block(), // not ported: Title_Loop_DrawRotatingBlueLights and the rest of the intro fx
             label(1),
         ),
         newState = { State() },
@@ -141,6 +143,38 @@ public class TitleScreen(
             }
         }
         st.timer++
+    }
+
+    /**
+     * Switches to mode 1 with BG2 affine (256x256, no wrap) at scale 8 and only BG2 + OBJ shown;
+     * brightness fade (BLDY 16 on all layers), black backdrop.
+     *
+     * Ported from src/titlescreen.c: sub_80C5A44
+     */
+    public fun setupBlueLights(proc: Proc) {
+        val hw = hardware
+        val lcd = hw.lcd
+        lcd.dispcnt = (lcd.dispcnt and 7.inv()) or 1
+        hw.setScreenSize(2, 2)
+        bgAffineSetOpAnim(8, 0)
+        lcd.bgCnt[2] = lcd.bgCnt[2] and 0x2000.inv()
+        lcd.dispcnt = (lcd.dispcnt and 0x1F00.inv()) or 0x0400 or 0x1000
+        for ((bg, prio) in listOf(1, 2, 0, 3).withIndex()) lcd.bgCnt[bg] = (lcd.bgCnt[bg] and 3.inv()) or prio
+        lcd.setBlendConfig(2, 8, 8, 0x10)
+        lcd.setBlendTargetA(1, 1, 1, 1, 1)
+        hw.palette[0] = 0
+        hw.enablePaletteSync()
+        (proc.state as State).timer = 0
+    }
+
+    /**
+     * BG2's affine: texture and screen centre (0x100, 0x100) / (0x78, 0x50), scale [scale] both
+     * ways, rotation [angle] (256ths of a turn).
+     *
+     * Ported from src/opanim-main.c: BgAffineSetOpAnim
+     */
+    public fun bgAffineSetOpAnim(scale: Int, angle: Int) {
+        BgAffine.set(hardware.lcd.affine, 0, 0x10000, 0x10000, 0x78, 0x50, scale, scale, angle shl 8)
     }
 
     /**

@@ -13,6 +13,7 @@ import gbafe.proc.ProcScripts.block
 import gbafe.proc.ProcScripts.call
 import gbafe.proc.ProcScripts.end
 import gbafe.proc.ProcScripts.repeat
+import gbafe.proc.ProcScripts.setEndCb
 import gbafe.proc.ProcScripts.startChild
 import gbafe.proc.ProcScripts.whileTrue
 import gbafe.proc.ProcScripts.yield
@@ -23,8 +24,8 @@ import gbafe.render.SpriteObject
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
- * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80C84D8`; a stand-in
- * `PROC_BLOCK` sits where `sub_80C8564` would run.
+ * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80C8690`; a stand-in
+ * `PROC_BLOCK` sits where `gUnknown_08AA704C` would start.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -45,7 +46,25 @@ public class OpAnim(
     public val sprites: SpriteLayers = SpriteLayers(),
     /** Eirika scene graphics loaded by [prepareEirika] (null until a caller supplies them). */
     public val eirika: EirikaGfx? = null,
+    /** Graphics of the cast scenes after Eirika's (null until a caller supplies them). */
+    public val cast: CastGfx? = null,
 ) {
+    /** ROM data of the cast scenes (`sub_80C8564` onwards). */
+    public class CastGfx(
+        /** `Pal_OpAnimShiningRing` (4 palettes). */
+        public val ringPal: ShortArray,
+        /** `pal_08B103D8` (8 palettes, the scroll lines'). */
+        public val scrollPal: ShortArray,
+        /** `Img_OpAnimGenericCharacterBG`, `Tsa_OpAnimGenericCharacterBG`. */
+        public val characterBg: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Img_OpAnimJoshua`, `Tsa_OpAnimJoshua`. */
+        public val joshua: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Img_OpAnimJoshua2`, `Tsa_OpAnimJoshua2`. */
+        public val joshua2: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Img_OpAnimShiningRing`, `Tsa_OpAnimShiningRing`. */
+        public val ring: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+    )
+
     /** ROM data used by [prepareEirika], in `OpAnimPreparefxEirika` order. */
     public class EirikaGfx(
         /** `Img_OpAnimEirikaClose1`, `Tsa_OpAnimEirikaClose1`. */
@@ -237,7 +256,10 @@ public class OpAnim(
             repeat(ProcFunc { eirikaDisplayName(it) }),
             repeat(ProcFunc { eirikaExit(it) }),
             repeat(ProcFunc { fadeToDark(it) }),
-            block(), // not ported: sub_80C8564 and the rest of the cutscene
+            call(ProcFunc { setupCastScroll(it) }),
+            startChild { castDarkenScript },
+            repeat(ProcFunc { joshuaScroll(it) }),
+            block(), // not ported: gUnknown_08AA704C and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -1130,6 +1152,164 @@ public class OpAnim(
             st.timer = (st.timer + 1) and 0xFFFF
         }
     }
+
+    /**
+     * Sets up the cast scroll display: [type] 0 shows BG2 only; otherwise BG0..3 get priorities
+     * 0..3, BG1 shows the shining ring (tiles 0x4000, map 0xF000, palettes 8..11) blended over BG2.
+     * Either way BG2 shows the scroll lines (tiles 0x8000, map 0xE800, palettes 0..7).
+     *
+     * Ported from src/opanim-main.c: sub_80C72A4
+     */
+    public fun setupCastDisplay(type: Int) {
+        val hw = hardware
+        val lcd = hw.lcd
+        val g = cast ?: error("OpAnim.cast graphics not supplied")
+        lcd.setBlendConfig(0, 0x10, 0, 0) // SetDefaultColorEffects
+        if (type and 0xFF == 0) {
+            lcd.setDispEnable(0, 0, 1, 0, 0)
+        } else {
+            for (bg in 0..3) lcd.bgCnt[bg] = (lcd.bgCnt[bg] and 3.inv()) or bg
+            lcd.setDispEnable(1, 0, 0, 0, 0)
+            hw.setTileDataOffset(1, 0x4000)
+            hw.setMapDataOffset(1, 0xF000)
+            lcd.setBlendTargetA(0, 1, 0, 0, 0)
+            lcd.setBlendTargetB(0, 0, 1, 0, 0)
+            copyToPal(g.ringPal, 0x20 * 8, 0x20 * 4)
+            lcd.setBgPosition(1, 0, 0)
+            lcd.setWinEnable(0, 0, 0)
+        }
+        hw.setTileDataOffset(2, 0x8000)
+        hw.setMapDataOffset(2, 0xE800)
+        copyToPal(g.scrollPal, 0, 0x20 * 8)
+    }
+
+    /**
+     * Loads the scroll lines between [old] and [new] (in pixels, 8 per line, 0x15 lines ahead)
+     * and scrolls BG2 to `0x60 - new`.
+     *
+     * Ported from src/opanim-main.c: OpAnim1_UpdateScroll
+     */
+    public fun updateScroll(new: Int, old: Int) {
+        for (i in (old shr 3) + 0x15 until (new shr 3) + 0x15) updateScrollOneLine(i)
+        hardware.lcd.setBgPosition(2, 0, 0x60 - new)
+    }
+
+    /**
+     * Sets up the cast display (type `unk46`) and loads the scroll lines up to `unk38`.
+     *
+     * Ported from src/opanim-main.c: sub_80C8564
+     */
+    public fun setupCastScroll(proc: Proc) {
+        val st = proc.state as State
+        setupCastDisplay(st.unk38to46[4])
+        updateScroll(st.unk38to46[0].toShort().toInt(), st.unk38to46[1].toShort().toInt())
+    }
+
+    /** `struct ProcOpAnimBlend` (`gUnknown_08AA705C`, `gUnknown_08AA707C`). */
+    public class BlendState {
+        /** `unk4C`. */
+        public var timer: Int = 0
+    }
+
+    /** `gUnknown_08AA705C`: lifts a darkening of BG2 over 0x28 steps; resets the blend when ended. */
+    public val castDarkenScript: ProcScript = ProcScript(
+        "gUnknown_08AA705C",
+        listOf(
+            setEndCb(ProcFunc { hardware.lcd.setBlendConfig(0, 0x10, 0, 0) }), // sub_80C85FC
+            call(ProcFunc { castDarkenInit(it) }),
+            repeat(ProcFunc { castDarkenMain(it) }),
+            end(),
+        ),
+        newState = { BlendState() },
+    )
+
+    /**
+     * Darkens BG2 by 14/16 and clears the timer.
+     *
+     * Ported from src/opanim-main.c: sub_80C8580
+     */
+    public fun castDarkenInit(proc: Proc) {
+        hardware.lcd.setBlendConfig(3, 8, 8, 14)
+        hardware.lcd.setBlendTargetA(0, 0, 1, 0, 0)
+        (proc.state as BlendState).timer = 0
+    }
+
+    /**
+     * Lowers the darkening from 14 to 0 over 0x28 steps, then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C85B0
+     */
+    public fun castDarkenMain(proc: Proc) {
+        val st = proc.state as BlendState
+        hardware.lcd.setBlendConfig(3, 8, 8, Interpolate.interpolate(Interpolate.LINEAR, 0xE, 0, st.timer, 0x28))
+        if (st.timer == 0x28) engine.breakProc(proc) else st.timer = (st.timer + 1) and 0xFFFF
+    }
+
+    /**
+     * Scrolls the cast lines (`unk38` from 0 to 0x270 over 0x430 steps of `unk3C`) while loading
+     * Joshua's scene and the shining ring over steps 1..6; at step 0x28 ends the darken procs and
+     * breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C8690
+     */
+    public fun joshuaScroll(proc: Proc) {
+        val st = proc.state as State
+        val u = st.unk38to46
+        val hw = hardware
+        val vram = hw.vram
+        val g = cast ?: error("OpAnim.cast graphics not supplied")
+        updateScroll(u[0].toShort().toInt(), u[1].toShort().toInt())
+        u[1] = u[0]
+        u[0] = Interpolate.interpolate(Interpolate.LINEAR, 0, 0x270, u[2].toShort().toInt(), 0x430) and 0xFFFF
+        u[2] = (u[2] + 1) and 0xFFFF
+        fun dec(b: OpAnimHs.Blob, dst: ByteArray, at: Int) = Decompress.into(b.data, b.offset, dst, at)
+        when (st.timer) {
+            1 -> {
+                dec(g.characterBg.first, vram, 0x2000 + hw.tileDataOffset(3))
+                val t = Decompress.decode(g.characterBg.second.data, g.characterBg.second.offset)
+                val map = hw.mapBuffer(3)
+                for (i in 0 until minOf(t.size / 2, map.size)) {
+                    map[i] = ((t[2 * i].toInt() and 0xFF) or ((t[2 * i + 1].toInt() and 0xFF) shl 8)).toShort()
+                }
+                for (i in 0 until 0x280) map[i] = (map[i] + 0xE100).toShort()
+                hw.enableBgSyncByMask(8)
+            }
+            2 -> {
+                dec(g.joshua.first, vram, hw.tileDataOffset(0))
+                dec(g.joshua.second, genericBuffer, 0)
+            }
+            3 -> {
+                dec(g.joshua2.first, vram, 0x2000 + hw.tileDataOffset(0))
+                dec(g.joshua2.second, genericBuffer, 0x800)
+            }
+            4 -> {
+                hw.mapBuffer(0).fill(0)
+                hw.mapBuffer(1).fill(0)
+                vram.fill(0, 0xD800, 0xE800)
+            }
+            5 -> dec(g.ring.first, vram, 0x4000)
+            6 -> {
+                dec(g.ring.second, vram, 0xF000)
+                for (i in 0 until 0x280) {
+                    val a = 0xF000 + 2 * i
+                    val v = u16(vram, a) - 0x8000
+                    vram[a] = v.toByte()
+                    vram[a + 1] = (v shr 8).toByte()
+                }
+            }
+        }
+        if (st.timer == 0x28) {
+            engine.endEach(castDarkenScript)
+            engine.endEach(castBrightenScript)
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /** `gUnknown_08AA707C` (not ported yet: only ended here, by script identity). */
+    public val castBrightenScript: ProcScript = ProcScript("gUnknown_08AA707C", listOf(end()))
 
     private fun putName(chr: Int) {
         val g = ephraim ?: error("OpAnim.ephraim graphics not supplied")

@@ -80,7 +80,8 @@ class ProcEngineDifferentialTest {
         "ClearSprites", "PutSpriteExt", "OpAnimDrawSplitLine", "OpAnim1AdvanceSplitLine", "OpAnimEphraimMergeShadow",
         "OpAnimEphraimDisplayName", "OpAnimEphraimExit", "OpAnimPreparefxEirika",
         "sub_80C7F90", "sub_80C8100", "sub_80C8184", "sub_80C8214", "sub_80C8278", "OpAnim1_UpdateScrollOneLine",
-        "sub_80C835C", "sub_80C84D8")
+        "sub_80C835C", "sub_80C84D8",
+        "sub_80C8564", "sub_80C72A4", "OpAnim1_UpdateScroll", "sub_80C8580", "sub_80C85B0", "sub_80C85FC", "sub_80C8690")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -132,7 +133,9 @@ class ProcEngineDifferentialTest {
             pair(0x08AC3BC8, 0x08AC4760), pair(0x08AC2CB4, 0x08AC3A2C),
             SpriteObject(0x08AA6C0E, romPal(0x08AA6C0E, 10)),
             List(100) { blob(u32(rom, 0xAA6D14 + 4 * it)) }, List(100) { blob(u32(rom, 0xAA6EA4 + 4 * it)) })
-        opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx, worldMap, ephraim, eirika = eirika)
+        val cast = OpAnim.CastGfx(romPal(0x08AF47F0, 16 * 4), romPal(0x08B103D8, 16 * 8), pair(0x08AB8CCC, 0x08AB942C),
+            pair(0x08AC949C, 0x08ACBF58), pair(0x08ACAF70, 0x08ACC340), pair(0x08AF312C, 0x08AF404C))
+        opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx, worldMap, ephraim, eirika = eirika, cast = cast)
         val opAnim = opPort.script
         val parent = engine.start(ctrl.script, rootIndex)
         parent.idleCb = null
@@ -163,6 +166,8 @@ class ProcEngineDifferentialTest {
         var scrollVramChecked = 0
         var eirikaExitChecked = 0
         var darkChecked = 0
+        var castDarkenChecked = 0
+        var joshuaChecked = 0
         var enabledSeen = false
         for (f in 401..LAST) {
             val e = ew(f)
@@ -196,7 +201,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && !midStep && ram <= 26) {
+                if (ram != null && !midStep && ram <= 29) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -258,6 +263,23 @@ class ProcEngineDifferentialTest {
                         if (ram == 24) eirikaNameChecked++
                         if (ram == 25) eirikaExitChecked++
                         if (ram == 26) darkChecked++
+                        if (ram == 29) joshuaChecked++
+                        val cd = procAt(e, CAST_DARKEN_SCRIPT)
+                        val ourCd = engine.find(opPort.castDarkenScript)
+                        assertEquals(cd != null, ourCd != null, "f$f gUnknown_08AA705C")
+                        if (cd != null) {
+                            assertEquals(listOf((u32(e, cd + 4) - CAST_DARKEN_SCRIPT) / 8, u16(e, cd + 0x4C)),
+                                listOf(ourCd!!.scrCur, (ourCd.state as OpAnim.BlendState).timer), "f$f 705C scrCur, timer")
+                            castDarkenChecked++
+                        }
+                        if (ram == 29 && f % 10 == 0) { // after the step that loads each range (BG1's map buffer is not synced here)
+                            val v = run3.region("f%05d".format(f), "vram")
+                            val t = u16(e, op + 0x2A)
+                            for ((a, b) in listOf(0x4000 to 0x8000, 0xD800 to 0xE800, 0xF000 to 0xF500)
+                                .filterIndexed { k, _ -> t > listOf(5, 4, 6)[k] }) {
+                                assertArrayEquals(v.copyOfRange(a, b), env.hardware.vram.copyOfRange(a, b), "f$f VRAM %X".format(a))
+                            }
+                        }
                         if (ram == 25 && u16(e, op + 0x2A) <= 1) eirikaNameEnded = true
                         // Scroll lines (OpAnim1_UpdateScrollOneLine): tiles at VRAM 0x8000.., map rows at 0xE800.
                         if (ram == 24 && f > 1100 && f % 10 == 0) {
@@ -318,6 +340,8 @@ class ProcEngineDifferentialTest {
         assertTrue(scrollVramChecked >= 1, "scroll line VRAM checked on $scrollVramChecked frames")
         assertTrue(eirikaExitChecked >= 30, "sub_80C835C checked on $eirikaExitChecked frames")
         assertTrue(darkChecked >= 8, "sub_80C84D8 checked on $darkChecked frames")
+        assertTrue(castDarkenChecked >= 0x28, "gUnknown_08AA705C checked on $castDarkenChecked frames")
+        assertTrue(joshuaChecked >= 0x28, "sub_80C8690 checked on $joshuaChecked frames")
         assertEquals(true, enabledSeen, "key combo reset enabled after the Nintendo logo")
     }
 
@@ -330,6 +354,7 @@ class ProcEngineDifferentialTest {
         const val FADE_IN_SCRIPT = 0x08AA6CBC // ProcScr_OpAnimFadeIn
         const val PROC_6D04_SCRIPT = 0x08AA6D04 // ProcScr_08AA6D04
         const val MERGE_BG_SCRIPT = 0x08AA7034 // ProcScr_OpAnimMergeBG
+        const val CAST_DARKEN_SCRIPT = 0x08AA705C // gUnknown_08AA705C
         const val OP_ANIM_HBLANK1 = 0x080C7845 // OpAnimHBlank1 (Thumb)
         const val LAST = 1600
         const val PROC_SIZE = 0x6C

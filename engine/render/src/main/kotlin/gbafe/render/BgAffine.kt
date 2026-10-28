@@ -6,7 +6,7 @@ import kotlin.math.sin
 
 /**
  * The BIOS call `BgAffineSet` (SWI 0x0E) as mGBA (the reference emulator) computes it, in float.
- * Work in progress for the title screen (task M4-10): not verified yet.
+ * Matches mGBA on the title screen's BG2 zoom and turn (`TitleScreenDifferentialTest`).
  */
 public object BgAffine {
     /**

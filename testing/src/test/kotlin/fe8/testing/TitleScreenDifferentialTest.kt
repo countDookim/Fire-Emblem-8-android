@@ -8,6 +8,7 @@ import gbafe.proc.ProcEngine
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.block
 import gbafe.render.BgHardware
+import gbafe.render.SpriteLayers
 import gbafe.render.SpriteObject
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -35,9 +36,30 @@ class TitleScreenDifferentialTest {
     private fun shorts(ew: ByteArray, name: String, n: Int) =
         ShortArray(n) { u16(ew, sym[name].address - GbaMem.EWRAM + 2 * it).toShort() }
 
+    private fun spriteChain(ew: ByteArray, layer: Int): List<List<Int>> {
+        val out = ArrayList<List<Int>>()
+        var p = sym["sSpriteLayers"].address + 16 * layer
+        while (p != 0) {
+            val o = p - GbaMem.EWRAM
+            out += listOf(u16(ew, o + 4), u16(ew, o + 6), u16(ew, o + 8), u32(ew, o + 0x0C))
+            p = u32(ew, o)
+        }
+        return out
+    }
+
+    private fun ourChain(s: SpriteLayers, layer: Int): List<List<Int>> {
+        val out = ArrayList<List<Int>>()
+        var it: SpriteLayers.Entry? = s.layers[layer]
+        while (it != null) {
+            out += listOf(it.oam1 and 0xFFFF, it.oam0 and 0xFFFF, it.oam2, it.obj?.id ?: 0)
+            it = it.next
+        }
+        return out
+    }
+
     @Test
     @VerifiesPort("StartTitleScreen_FlagTrue", "Title_Init", "Title_SetupMainGraphics", "Title_SetupSpecialEffectGraphics",
-        "sub_80C5A44", "BgAffineSetOpAnim")
+        "sub_80C5A44", "BgAffineSetOpAnim", "Title_Loop_DrawRotatingBlueLights")
     fun `title screen start matches the per-frame RAM trace`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -74,7 +96,10 @@ class TitleScreenDifferentialTest {
             // frame after one starts no new step.
             val lagging = ew(f - 1)[sym["gBmSt"].address - GbaMem.EWRAM].toInt() == 0
             val midStep = e[sym["gBmSt"].address - GbaMem.EWRAM].toInt() == 0
-            if (!lagging) engine.run(engine.root(3))
+            if (!lagging) {
+                title.sprites.clear() // OnMain's ClearSprites
+                engine.run(engine.root(3))
+            }
             if (midStep) continue
             if (scr >= 16) break // the stand-in after the blue lights
             val ours = engine.find(title.script)!!
@@ -88,6 +113,7 @@ class TitleScreenDifferentialTest {
             assertEquals(listOf(g.dispcnt, g.bldcnt, g.blendY) + g.bgCnt.toList() + g.affine.toList().subList(0, 6),
                 listOf(lcd.dispcnt, lcd.bldcnt, lcd.blendY) + lcd.bgCnt.toList() + lcd.affine.toList().subList(0, 6),
                 "f$f dispcnt, bldcnt, BLDY, bgcnt, BG2 affine")
+            assertEquals(spriteChain(e, 0), ourChain(title.sprites, 0), "f$f sprite layer 0")
             if (scr == 15) blueChecked++
             if (f % 10 == 0) { // full dump: VRAM written by the loaders so far (exact decompressed lengths)
                 val v = run.region("f%05d".format(f), "vram")
@@ -103,7 +129,7 @@ class TitleScreenDifferentialTest {
             checked++
         }
         assertTrue(checked >= 5, "checked $checked frames from f$first")
-        assertTrue(blueChecked >= 70, "Title_Loop_DrawRotatingBlueLights (no sprite compare yet) checked on $blueChecked frames")
+        assertTrue(blueChecked >= 70, "Title_Loop_DrawRotatingBlueLights checked on $blueChecked frames")
         assertTrue(vramChecked >= 5, "VRAM ranges checked: $vramChecked")
         assertTrue(fxChecked >= 4, "Title_SetupSpecialEffectGraphics checked on $fxChecked frames")
     }

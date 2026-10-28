@@ -88,7 +88,7 @@ class ProcEngineDifferentialTest {
         "sub_80C9C5C", "sub_80C9CAC", "sub_80C9CFC", "sub_80C9D4C", "sub_80C9DA0",
         "sub_80C8608", "sub_80C8638", "sub_80C8684", "sub_80C8CE4", "sub_80CA4A4",
         "sub_80CA4DC", "OpAnimPutObjCommon", "sub_80CA92C", "sub_80C8D30",
-        "sub_80CA940", "sub_80CA9F8", "sub_80CAA38")
+        "sub_80CA940", "sub_80CA9F8", "sub_80CAA38", "sub_80C8ED4", "sub_80CABB0")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -159,7 +159,12 @@ class ProcEngineDifferentialTest {
                 OpAnim.Face(blob(0x08ADC728), blob(0x08ADCCB8), romPal(0x08ADD050, 16)),
                 OpAnim.Face(blob(0x08ADD070), blob(0x08ADD6EC), romPal(0x08ADDA54, 16))),
             SpriteObject(0x08AA709C, romPal(0x08AA709C, 1 + 3 * u16(rom, 0xAA709C))),
-            SpriteObject(0x08AA70BC, romPal(0x08AA70BC, 1 + 3 * u16(rom, 0xAA70BC))))
+            SpriteObject(0x08AA70BC, romPal(0x08AA70BC, 1 + 3 * u16(rom, 0xAA70BC))),
+            listOf(OpAnim.Face(blob(0x08ADDA74), blob(0x08ADE080), romPal(0x08ADE47C, 16)),
+                OpAnim.Face(blob(0x08ADEEF4), blob(0x08ADF58C), romPal(0x08ADFA08, 16)),
+                OpAnim.Face(blob(0x08ADE49C), blob(0x08ADEB1C), romPal(0x08ADEED4, 16)),
+                OpAnim.Face(blob(0x08ADFA28), blob(0x08AE00E4), romPal(0x08AE04D4, 16))),
+            SpriteObject(0x08AA70DC, romPal(0x08AA70DC, 1 + 3 * u16(rom, 0xAA70DC))))
         opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx, worldMap, ephraim, eirika = eirika, cast = cast)
         val opAnim = opPort.script
         val parent = engine.start(ctrl.script, rootIndex)
@@ -201,6 +206,8 @@ class ProcEngineDifferentialTest {
         var sparklesChecked = 0
         var facesChecked = 0
         var faces1InChecked = 0
+        var faces2Checked = 0
+        var faces2InChecked = 0
         var fadeOutProcChecked = 0
         val sceneInChecked = IntArray(5)
         var enabledSeen = false
@@ -236,7 +243,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && !midStep && ram <= 99) {
+                if (ram != null && !midStep && ram <= 103) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -307,6 +314,13 @@ class ProcEngineDifferentialTest {
                         if (ram == 94) sparklesChecked++
                         if (ram == 97) facesChecked++
                         if (ram == 99) faces1InChecked++
+                        if (ram == 101) faces2Checked++
+                        if (ram == 103) faces2InChecked++
+                        if (ram == 103 && f % 10 == 0) {
+                            val v = dump(f, "vram")
+                            assertArrayEquals(v.copyOfRange(0x10000, 0x17800), env.hardware.vram.copyOfRange(0x10000, 0x17800),
+                                "f$f face OBJ tiles (2)")
+                        }
                         if (ram == 97 && f % 10 == 0 && u16(e, op + 0x2A) > 5) {
                             val v = dump(f, "vram")
                             assertArrayEquals(v.copyOfRange(0x10000, 0x15A00), env.hardware.vram.copyOfRange(0x10000, 0x15A00),
@@ -413,6 +427,8 @@ class ProcEngineDifferentialTest {
         assertTrue(joshuaChecked >= 0x28, "sub_80C8690 checked on $joshuaChecked frames")
         assertTrue(castFadeChecked >= 0x10, "sub_80C9E6C checked on $castFadeChecked frames")
         assertTrue(joshuaInChecked >= 0x1E, "sub_80C9FF8 checked on $joshuaInChecked frames")
+        assertTrue(faces2Checked >= 7, "sub_80C8ED4 checked on $faces2Checked frames")
+        assertTrue(faces2InChecked >= 0x12, "sub_80CABB0 checked on $faces2InChecked frames")
         assertTrue(faces1InChecked >= 0x14, "sub_80CAA38 checked on $faces1InChecked frames")
         assertTrue(facesChecked >= 0x26, "sub_80C8D30 checked on $facesChecked frames")
         assertTrue(sparklesChecked >= 0xD1, "sub_80CA4DC checked on $sparklesChecked frames")

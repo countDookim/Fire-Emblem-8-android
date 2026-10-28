@@ -25,7 +25,7 @@ import gbafe.render.SpriteObject
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
- * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80CAA38`; a stand-in
+ * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80CABB0`; a stand-in
  * `PROC_BLOCK` sits after it.
  */
 public class OpAnim(
@@ -74,6 +74,10 @@ public class OpAnim(
         public val faceObj: SpriteObject,
         /** `gUnknown_08AA70BC` (a face's OBJ window mask). */
         public val faceWindowObj: SpriteObject,
+        /** The second face screen's faces (Ewan, Tethys, Gerik, Marisa), loaded by [loadFaces2]. */
+        public val faces2: List<Face>,
+        /** `gUnknown_08AA70DC` (the second face screen's OBJ window mask). */
+        public val faceWindowObj2: SpriteObject,
     )
 
     /** A face in the face screens: `Img_OpAnimFace<Name>`, `Img_OpAnimFace<Name>Shadow`, `Pal_OpAnimFace<Name>`. */
@@ -348,7 +352,11 @@ public class OpAnim(
             repeat(ProcFunc { loadFaces(it, castGfx().faces1) }),
             call(ProcFunc { setupFaceScreen() }),
             repeat(ProcFunc { faces1In(it) }),
-            block(), // not ported: sub_80C8564 (4th) and the rest of the cutscene
+            call(ProcFunc { setupCastScroll(it) }),
+            repeat(ProcFunc { loadFaces2(it, castGfx().faces2) }),
+            call(ProcFunc { setupFaceScreen() }),
+            repeat(ProcFunc { faces2In(it) }),
+            block(), // not ported: sub_80C8564 (5th) and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -1836,7 +1844,7 @@ public class OpAnim(
         val st = proc.state as State
         val g = castGfx()
         val vram = hardware.vram
-        pulseRing(st)
+        pulseRing(st, 0x4C)
         copyToPal(g.scrollPal, 0, 0x100)
         val ret = Interpolate.interpolate(Interpolate.LINEAR, 0xC, 0, st.timer, 0x26)
         for (i in 0 until 8) blendPalette(i * 0x10, 0, ret)
@@ -1916,10 +1924,68 @@ public class OpAnim(
         }
     }
 
+    /**
+     * Pulses the ring (period 0x12) and loads the four [faces] into OBJ VRAM (steps 1..4); breaks at
+     * step 7.
+     *
+     * Ported from src/opanim-main.c: sub_80C8ED4
+     */
+    public fun loadFaces2(proc: Proc, faces: List<Face>) {
+        val st = proc.state as State
+        val vram = hardware.vram
+        pulseRing(st, 0x12)
+        if (st.timer in 1..4) {
+            val k = st.timer - 1
+            val f = faces[k]
+            Decompress.into(f.img.data, f.img.offset, vram, OBJ_VRAM + 0x1E00 * k)
+            copyToPal(f.pal, 0x200 + 0x40 * k, 0x20)
+            Decompress.into(f.shadow.data, f.shadow.offset, vram, OBJ_VRAM + 0xF00 + 0x1E00 * k)
+        }
+        if (st.timer == 7) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /**
+     * Slides the second face screen's four faces in diagonally from the corners over 0x12 steps;
+     * then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80CABB0
+     */
+    public fun faces2In(proc: Proc) {
+        val st = proc.state as State
+        val g = castGfx()
+        val t = st.timer + 2
+        val x1 = faceSlideX(0x42, -1, t, 0x12)
+        val y1 = faceSlideX(0x2A, -1, t, 0x12)
+        val x2 = faceSlideX(0xAE, 1, t, 0x12)
+        val y2 = faceSlideX(0x76, 1, t, 0x12)
+        fun put(k: Int, x: Int, y: Int) {
+            if (x == 0xFFFF || y == 0xFFFF || y < -0x28 || y >= 0xC9) return
+            sprites.putExt(1, (x - 0x30) and 0x1FF, (y - 0x28) and 0xFF, g.faceObj, 0xF0 * k + (2 * k shl 12))
+            sprites.putExt(2, (x - 0x2C) and 0x1FF, ((y - 0x28) and 0xFF) or 0x400, g.faceObj,
+                0x78 + 0xF0 * k + ((2 * k + 1) shl 12))
+            sprites.putExt(0, (x - 0x30) and 0x1FF, ((y - 0x20) and 0xFF) or 0x800, g.faceWindowObj2, 0)
+        }
+        put(0, x1, y1)
+        put(1, x1, y2)
+        put(2, x2, y1)
+        put(3, x2, y2)
+        if (st.timer == 0x12) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
     /** The ring pulse: blend `(i, 16)` with `i` rising 0..12 and falling back as `unk3E` advances. */
-    private fun pulseRing(st: State) {
+    private fun pulseRing(st: State, period: Int) {
         val u = st.unk38to46
-        val i = Interpolate.interpolate(Interpolate.LINEAR, 0, 0x1A, u[3] % 0x4C, 0x4C)
+        val i = Interpolate.interpolate(Interpolate.LINEAR, 0, 0x1A, u[3] % period, period)
         hardware.lcd.setBlendConfig(1, if (i < 0xD) i else 0x19 - i, 0x10, 8)
         u[3] = (u[3] + 1) and 0xFFFF
     }

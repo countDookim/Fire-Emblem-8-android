@@ -78,7 +78,8 @@ class ProcEngineDifferentialTest {
         "TsaModifyFirstPalMaybe", "sub_80C689C", "CopyFirstPalDirectly", "SetFirstPalDirectly", "ClearFirstPalDirectly",
         "OpAnimMergeBGProcInit", "OpAnimMergeBGProcUpdateBgPalette", "sub_80C7900",
         "ClearSprites", "PutSpriteExt", "OpAnimDrawSplitLine", "OpAnim1AdvanceSplitLine", "OpAnimEphraimMergeShadow",
-        "OpAnimEphraimDisplayName", "OpAnimEphraimExit", "OpAnimPreparefxEirika")
+        "OpAnimEphraimDisplayName", "OpAnimEphraimExit", "OpAnimPreparefxEirika",
+        "sub_80C7F90")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -121,7 +122,7 @@ class ProcEngineDifferentialTest {
             SpriteObject(0x08AA6BFA, romPal(0x08AA6BFA, 10)))
         val eirika = OpAnim.EirikaGfx(pair(0x08AC5614, 0x08AC8DDC), pair(0x08AC7374, 0x08AC91F8),
             pair(0x08AC1DEC, 0x08AC2B24), romPal(0x08AC933C, 16 * 11), pair(0x08AC4928, 0x08AC5420),
-            pair(0x08AC3BC8, 0x08AC4760))
+            pair(0x08AC3BC8, 0x08AC4760), pair(0x08AC2CB4, 0x08AC3A2C))
         opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx, worldMap, ephraim, eirika = eirika)
         val opAnim = opPort.script
         val parent = engine.start(ctrl.script, rootIndex)
@@ -146,6 +147,7 @@ class ProcEngineDifferentialTest {
         var nameEnded = false
         var exitChecked = 0
         var eirikaChecked = 0
+        var eirikaFlyInChecked = 0
         var enabledSeen = false
         for (f in 401..LAST) {
             val e = ew(f)
@@ -179,7 +181,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && !midStep && ram <= 19) {
+                if (ram != null && !midStep && ram <= 20) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -236,6 +238,7 @@ class ProcEngineDifferentialTest {
                         if (ram == 17) nameChecked++
                         if (ram == 18) exitChecked++
                         if (ram == 19) eirikaChecked++
+                        if (ram == 20) eirikaFlyInChecked++
                         // unk34/36 hold the slot's old bytes until OpAnimEphraimDisplayName breaks (timer back to 0).
                         if (ram == 17 && u16(e, op + 0x2A) == 0) {
                             assertEquals(listOf(u16(e, op + 0x34), u16(e, op + 0x36)),
@@ -276,6 +279,7 @@ class ProcEngineDifferentialTest {
         assertTrue(nameEnded, "OpAnimEphraimDisplayName's last step checked")
         assertTrue(exitChecked >= 30, "OpAnimEphraimExit checked on $exitChecked frames")
         assertTrue(eirikaChecked >= 5, "OpAnimPreparefxEirika checked on $eirikaChecked frames")
+        assertTrue(eirikaFlyInChecked >= 20, "sub_80C7F90 checked on $eirikaFlyInChecked frames")
         assertEquals(true, enabledSeen, "key combo reset enabled after the Nintendo logo")
     }
 

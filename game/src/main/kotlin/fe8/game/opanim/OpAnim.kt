@@ -24,7 +24,7 @@ import gbafe.render.SpriteObject
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
  * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `OpAnimEphraimfxFlyIn`; a stand-in
- * `PROC_BLOCK` sits where `sub_80C7F90` would run.
+ * `PROC_BLOCK` sits where `sub_80C8100` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -60,6 +60,8 @@ public class OpAnim(
         public val blur3: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
         /** `Img_OpAnimEirikaBlur2`, `Tsa_OpAnimEirikaBlur2`. */
         public val blur2: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Img_OpAnimEirikaBlur1`, `Tsa_OpAnimEirikaBlur1` (loaded by [eirikaFlyIn]). */
+        public val blur1: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
     )
 
     /** ROM data used by [setupWorldMap]. */
@@ -222,7 +224,8 @@ public class OpAnim(
             repeat(ProcFunc { ephraimDisplayName(it) }),
             repeat(ProcFunc { ephraimExit(it) }),
             repeat(ProcFunc { prepareEirika(it) }),
-            block(), // not ported: sub_80C7F90 and the rest of the cutscene
+            repeat(ProcFunc { eirikaFlyIn(it) }),
+            block(), // not ported: sub_80C8100 and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -597,10 +600,10 @@ public class OpAnim(
         val v = st.timer - 5
         if (v >= 0) {
             val ret = Interpolate.interpolate(Interpolate.RSQUARE, 0, 0x90, v, 0x10)
-            scrollInFirstPal(ret, st.unk32, 0xC8, 1, setPal = true)
+            scrollInFirstPal(ret, st.unk32, 0xC8, 1, genericBuffer, 0, 0x800, setPal = true)
             st.unk32 = ret.toShort().toInt()
             if (v == 0x10) {
-                scrollInFirstPal(st.unk32, 0, 0xC8, 0, setPal = false)
+                scrollInFirstPal(st.unk32, 0, 0xC8, 0, genericBuffer, 0, 0x800, setPal = false)
                 st.timer = 0
                 engine.breakProc(proc)
                 return
@@ -786,7 +789,7 @@ public class OpAnim(
                     lcd.setBlendConfig(1, a, 0x10 - a, 8)
                 }
                 val ret = Interpolate.interpolate(Interpolate.SQUARE, st.unk36, 0x180, time2, 0x18)
-                scrollInFirstPal(ret, st.unk32, 0xC8, 0, setPal = false)
+                scrollInFirstPal(ret, st.unk32, 0xC8, 0, genericBuffer, 0, 0x800, setPal = false)
                 st.unk32 = ret.toShort().toInt()
                 if (time2 == 0x18) {
                     st.timer = 0
@@ -874,16 +877,65 @@ public class OpAnim(
         st.timer = (st.timer + 1) and 0xFFFF
     }
 
+    /**
+     * Slides Eirika's close-up in on BG2 from the right (swapping in the blurred images) and
+     * BG0/BG1 from the left, then breaks: the mirror of [ephraimFlyIn].
+     *
+     * Ported from src/opanim-main.c: sub_80C7F90
+     */
+    public fun eirikaFlyIn(proc: Proc) {
+        val g = eirika ?: error("OpAnim.eirika graphics not supplied")
+        val hw = hardware
+        val vram = hw.vram
+        val st = proc.state as State
+        hw.enableBgSyncByMask(7)
+        if (st.timer <= 0x10) {
+            val ret = Interpolate.interpolate(Interpolate.RSQUARE, 0, 0x68, st.timer, 0x10)
+            fun slide(start: Int, src: ByteArray, at: Int) =
+                scrollInFirstPal(ret, start, 0x98, 2, src, at, null, setPal = false)
+            when (st.timer) {
+                12 -> slide(0, vram, 0xC800)
+                13 -> {
+                    Decompress.into(g.blur1.first.data, g.blur1.first.offset, vram, 0x8000)
+                    slide(st.unk30, vram, 0xC800)
+                }
+                14 -> {
+                    Decompress.into(g.blur1.second.data, g.blur1.second.offset, vram, 0xC000)
+                    slide(0, vram, 0xC000)
+                }
+                16 -> {
+                    slide(0, genericBuffer, 0x1000)
+                    hw.setTileDataOffset(2, 0x4000)
+                }
+                else -> slide(st.unk30, vram, 0xC000)
+            }
+            st.unk30 = ret.toShort().toInt()
+        }
+        val time = st.timer - 5
+        if (time >= 0) {
+            val ret = Interpolate.interpolate(Interpolate.RSQUARE, 0, 0xCC, time, 0x10)
+            tsaModifyFirstPal(ret, st.unk32, 1, genericBuffer, 0, 0x800, setPal = true)
+            st.unk32 = ret.toShort().toInt()
+            if (time == 0x10) {
+                tsaModifyFirstPal(st.unk32, 0, 0, genericBuffer, 0, 0x800, setPal = false)
+                st.timer = 0
+                engine.breakProc(proc)
+                return
+            }
+        }
+        st.timer = (st.timer + 1) and 0xFFFF
+    }
+
     private fun putName(chr: Int) {
         val g = ephraim ?: error("OpAnim.ephraim graphics not supplied")
         sprites.putExt(1, 0x98, 0x88, g.nameObj, (2 shl 12) + chr)
     }
 
     /**
-     * Copies tilemap columns `(start >> 3) + 1 until (end >> 3) + 1` (20 rows each) of the 32-wide
-     * map at byte [at] of [src] into BG [bg]'s map buffer (column 0..31; others cleared), then
-     * scrolls the BG to `end + 0x10`; [setPal] (`flag`) forces palette 15. Only the `src2 == NULL`
-     * form is used here.
+     * Copies tilemap columns `(start >> 3) + 1 until (end >> 3) + 1` (20 rows each) into BG
+     * [bg]'s map buffer, columns 0..31 from the 32-wide map at byte [at] of [src] and 32..63 from
+     * the one at [at2] (cleared if null, as are columns outside 0..63), forcing palette 15 if
+     * [setPal] (`flag`); then scrolls the BG to `end + 0x10`.
      *
      * Ported from src/opanimfx.c: TsaModifyFirstPalMaybe
      */
@@ -893,55 +945,66 @@ public class OpAnim(
         bg: Int,
         src: ByteArray,
         at: Int,
+        at2: Int? = null,
         setPal: Boolean = false,
     ) {
         val dst = hardware.mapBuffer(bg)
         val e = end.toShort().toInt()
         var s = start.toShort().toInt()
         if (s == 0) s -= 8
-        for (i in (s shr 3) + 1 until (e shr 3) + 1) {
-            if (i < 0 || i >= 0x20) {
-                clearFirstPal(dst, i and 0x1F)
-            } else if (setPal) {
-                setFirstPal(src, at, i, dst, 0xF)
-            } else {
-                copyFirstPal(src, at, i, dst)
-            }
-        }
+        for (i in (s shr 3) + 1 until (e shr 3) + 1) firstPalColumn(i, dst, src, at, at2, setPal)
         hardware.lcd.setBgPosition(bg, e + 0x10, 0)
     }
 
     /**
-     * Copies tilemap columns from the right (two 32-wide maps in [genericBuffer] at 0 and 0x800),
-     * offset by [offset], into BG [bg]'s map buffer (forcing palette 15 if [setPal]), then scrolls
-     * the BG. Only the `src1 = gGenericBuffer`, `src2 = gGenericBuffer + 0x800` form is used here.
+     * Like [tsaModifyFirstPal] but from the right: columns `(start' >> 3) - 1 downTo` above
+     * `(end' >> 3) - 1`, where `x' = w - (x + offset)` with `w` 0x200 if [at2] is set, else 0x100;
+     * then scrolls the BG to `end'`.
      *
      * Ported from src/opanimfx.c: sub_80C689C
      */
-    public fun scrollInFirstPal(end: Int, start: Int, offset: Int, bg: Int, setPal: Boolean) {
+    public fun scrollInFirstPal(
+        end: Int,
+        start: Int,
+        offset: Int,
+        bg: Int,
+        src: ByteArray,
+        at: Int,
+        at2: Int?,
+        setPal: Boolean,
+    ) {
         val dst = hardware.mapBuffer(bg)
         var s = start.toShort().toInt()
         if (s == 0) s -= 8
         var e = (end.toShort() + offset).toShort().toInt()
         s = (s + offset).toShort().toInt()
-        e = (0x200 - e).toShort().toInt()
-        s = (0x200 - s).toShort().toInt()
+        val w = if (at2 != null) 0x200 else 0x100
+        e = (w - e).toShort().toInt()
+        s = (w - s).toShort().toInt()
         var i = (s shr 3) - 1
         while (i > (e shr 3) - 1) {
-            if (i < 0 || i >= 0x40) {
-                clearFirstPal(dst, i and 0x1F)
-            } else {
-                val at = if (i < 0x20) 0 else 0x800
-                if (setPal) {
-                    setFirstPal(genericBuffer, at, i, dst, 0xF)
-                } else {
-                    copyFirstPal(genericBuffer, at, i, dst)
-                }
-            }
+            firstPalColumn(i, dst, src, at, at2, setPal)
             i--
         }
         hardware.lcd.setBgPosition(bg, e, 0)
     }
+
+    private fun firstPalColumn(
+        i: Int,
+        dst: ShortArray,
+        src: ByteArray,
+        at: Int,
+        at2: Int?,
+        setPal: Boolean,
+    ) {
+        if (i < 0 || i >= 0x40 || (i >= 0x20 && at2 == null)) {
+            clearFirstPal(dst, i and 0x1F)
+            return
+        }
+        val o = if (i < 0x20) at else at2!!
+        if (setPal) setFirstPal(src, o, i, dst, 0xF) else copyFirstPal(src, o, i, dst)
+    }
+
 
     /** Ported from src/opanimfx.c: CopyFirstPalDirectly */
     private fun copyFirstPal(src: ByteArray, at: Int, i: Int, dst: ShortArray) {

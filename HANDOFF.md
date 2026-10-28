@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated: 2026-10-28 15:20 UTC (scheduled run, started 14:52)._
+_Updated: 2026-10-28 23:15 UTC (scheduled run, started 22:51)._
 
 ## Owner decisions 2026-10-25 (read docs/decisions/0009)
 - The app is a 1:1 copy. Modding = extension points only; ship no touch gameplay, QoL flags or alternate
@@ -35,14 +35,21 @@ _Updated: 2026-10-28 15:20 UTC (scheduled run, started 14:52)._
 _(nothing blocked)_
 
 ## Status
-- This run (M4-08 op anim, f1100..f2600): new reference runs `ram_trace_opanim2` (f1090..1600), `_opanim3` (f1590..2600),
-  `_opanim4` (f2590..3000, the op anim ends ~f2950; not used by tests yet), full dumps (VRAM) every 10 frames.
-  `OpAnim` now runs script idx 24..114: Eirika exit, fade, the cast scroll (Joshua + 5 `CastScene`s as data), sparkles
-  (`sub_80CA4DC`), five face screens (`Face` data, `loadFacesPulsed`, `faces1In..4In`); stand-in `PROC_BLOCK` at idx 115
-  (`sub_80CB0A0`). `ProcEngineDifferentialTest` checks every frame to f2600 (procs 705C/704C/707C, unk40..4C, sprite
-  layers 0..2+13, VRAM tiles/maps for scroll lines, ring, faces). `LcdControl.setWObjLayers` added.
-- Verified ports: ~105 -> **153 / 8352** (`tools/progress.py`).
-- CI: not checked at wrap-up. Local full `jvmTest` + Dokka green before the final push. Setup ~146 s.
+- This run: **M4-08 done**: `OpAnim` runs the whole `ProcScr_OpAnim` (face screens 5..12 via `LATER_FACES` +
+  `faces4In/6In/7In/ColumnIn/10In/12In`, `fadeRingOut`, `fadeToWhite`, `endCutscene`; `ProcEngine.endAllChildren`,
+  `LcdControl.setWin1Box`); `ProcEngineDifferentialTest` uses run5 (`ram_trace_opanim4`) and runs to f3000.
+  `GameControl` script mirrored through `POST_TITLE_IDLE` (indices match C; `postIntro` partial, `postClassReel`;
+  a title **stand-in** proc is started at label 24).
+- **M4-10 started**: `fe8.game.title.TitleScreen` (start, `Title_Init`, `SetupMainGraphics`, `SetupSpecialEffectGraphics`,
+  `sub_80C5A44`, `Title_Loop_DrawRotatingBlueLights`; skip listener and the rest are stand-ins) verified by
+  `TitleScreenDifferentialTest` (state from f2909, mid-step dumps skipped like the main test). `gbafe.render.BgAffine.set`
+  = mGBA's float `BgAffineSet`, matches the trace exactly. New reference `ram_trace_title1` (f2990..3600) pushed to the
+  ROM repo (release rebuilt by its workflow; not used by tests yet).
+- **M4-09 done** (CI 137 green): debug APK bundles `assets/extracted/`, `fe8.app.AssetLayer`, guard on the release APK.
+  **M3-10 done** (CI 138 green, manual test pending): `fe8.app.HardwareKeySource`. MANUAL_TEST.md updated.
+- Verified ports: 157 (README) -> **179 / 8352** (local `progress.py` after a full `jvmTest`; it only counts
+  tests whose results exist). Local full `jvmTest` + Dokka green before the final push.
+- Stale remote branches (merged; deleting refused with 403): `wip/M4-09`, `wip/M3-10`, `wip/M4-10`, `wip/M4-10-affine`.
 
 ## Run rules (owner, 2026-10-26)
 - Budget **~30 min** (owner, 2026-10-27; a little over is fine to finish a nearly done task). Work until ~minute 23,
@@ -52,26 +59,23 @@ _(nothing blocked)_
   first, then `tail_lines` <= 80 of the failing job).
 - Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.
 
-## Next task: M4-08 op anim (finish) or M3-07 GPU backend
-- Op anim from idx 115 (`sub_80CB0A0`, then `sub_80C9330`/`sub_80CB20C`... up to `sub_80C9A94`, `sub_80C9AFC`,
-  `sub_80CBD7C`; data/opanim.s): add `ram_trace_opanim4` (f2590..3000, already in the release) to the test as run5.
-  Face loaders follow `loadFacesPulsed`; face slide-ins follow `faces1In..4In` (window masks `gUnknown_08AA7xxx`).
-  Then the op anim's end (what proc follows at f~2950: slot 0x24ed4 runs script 0x08AA6A50).
-- Unverified leftovers: `OpAnimHBlank1/2` (no HBlank emulation in the test), `sub_80C85FC`/`sub_80C8684` (end-cb lambdas,
-  no KDoc citation).
-- Test ROM addresses for op anim graphics are inline in `ProcEngineDifferentialTest` (from fireemblem8.nm.txt).
-- Boot driver: `GameLoop` + `GameControl` exist (OpAnim's `sprites` must be the loop's when wired); still missing AgbMain init pieces, `SoftResetIfKeyComboPressed` hookup,
-  `IsSoftwareReset` / `SetSoftwareResetFlag`. Assets for `EarlyStartUi.Gfx`/`OpAnim.Gfx` on device: from the ROM import (M4-03).
-- Proc helpers `Proc_ForAll/ForEach/*Marked`, `SetMark/SetEndCb/SetRepeatCb` exist but are unverified (no trace uses them yet).
-- M3-07 GPU backend (`:app`, manual test): can now show H&S and both logos from `ui/*` (see `IntroLogosScreenTest`).
-- `gSinLookup` loader exists (`TrigTable`), but `SaveDraw` still takes a `ShortArray` and the app does not load it yet.
+## Next task: M4-10 title screen (then M3-07 GPU backend, M3-15, M4-11)
+- Continue `gProcScr_TitleScreen` from idx 16 (`sub_80C5BD4`: BG2 fill, mode 0, blend, `CpuFastFill` BG pal 0xE;
+  then `Title_Loop_DrawRedBlueOrbs`, dragon flash, demon king BG2, logo zoom, light explosion, `sub_80C62DC`, `Title_IDLE`,
+  `gProcScr_DrawTitleSprites`). Extend `TitleScreenDifferentialTest` to `ram_trace_title1` (f2990..3600; add its frames
+  past f3000) and raise its break index. Port the real `gProcScr_SkipTitleFxKeyListener` (needs `KeyStatus`).
+- Then wire `TitleScreen` into `GameControl.startTitleScreen` (replace the stand-in) and give the main test the title gfx.
+- M3-07 GPU backend: the app already shows a CPU-rendered frame via GL; v1 = draw `RenderState` with shaders.
+- M4-11 boot wiring needs `Fe8Game` to build OpAnim/Title/EarlyStartUi from VFS assets (`AssetLayer`).
+- Unverified leftovers: `OpAnimHBlank1/2`, `sub_80C85FC`/`sub_80C8684`, `GameControl_PostIntro` (partial), `sub_8009B64`.
+- Test ROM addresses for op anim / title graphics are inline in the tests (from fireemblem8.nm.txt).
 - Re-extracting after an extractor change: run the CLI (see Known bugs), compare with `python3 tools/compare_extraction.py
   <rom repo>/extracted <out>`, copy only changed/new files into the ROM repo's `extracted/`, push there; CI fails until you do.
 - New reference runs: add to `harness/gen_scripts.py`, run it + `harness/make_reference.sh` (seconds), diff old `out/` vs a
   fresh untar of the old `dist/reference.tar.xz` (only PROVENANCE.sha1 may differ), `tar -C reference -cJf
-  dist/reference.tar.xz out` (~15 s, now ~10 MB), update the sha1 in `dist/MANIFEST.sha1`, push. Also copy into `.assets/reference` locally.
+  dist/reference.tar.xz out` (~15 s, now ~12 MB), update the sha1 in `dist/MANIFEST.sha1`, push. Also copy into `.assets/reference` locally.
   Fetch the ROM repo before committing there (the session checkout can be behind origin).
-- M3-10 Android ActionSources, M3-12..15 audio/overlay. Open renderer items: OBJ mosaic, mosaic on affine BGs.
+- M3-12..15 audio/overlay. Open renderer items: OBJ mosaic, mosaic on affine BGs.
 - Follow-ups noted, not tasks yet: unit placement / `.fe8s` for chapters other than the prologue need the event
   converter to follow `LOAD1/LOAD2` targets from each chapter's `ChapterEventGroup` (`include/chapterdata.h`);
   keysplit/drum sub-voicegroups are scanned for samples but not written as their own `voicegroups/*.json`.
@@ -84,6 +88,7 @@ _(nothing blocked)_
   for other allocation tests if they flake.
 - `tools/progress.py` attributes a `@VerifiesPort` test to the LAST `class` declared before it in the file: keep
   helper classes below the test class (or top-level after it), or the port is not counted.
+- Pushes to master often race CI's `ci: update progress [skip ci]` commit: `git fetch && git rebase origin/master`, push again.
 - Local `master` in a fresh session can be an old unrelated history (seen this run): the checkout came up detached
   at origin/master; use `git checkout -B master origin/master` style recovery (rename the stale branch first).
 - Extractor CLI: `./gradlew :tools:extract:run --args="--rom $FE8_ASSETS/baserom.gba --out <dir outside repo> --decomp

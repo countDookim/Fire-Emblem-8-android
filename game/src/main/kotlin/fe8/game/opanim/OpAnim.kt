@@ -25,8 +25,8 @@ import gbafe.render.SpriteObject
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
- * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80CA4A4`; a stand-in
- * `PROC_BLOCK` sits where `sub_80CA4DC` would run.
+ * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80CA4DC`; a stand-in
+ * `PROC_BLOCK` sits where `sub_80CA92C` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -64,6 +64,8 @@ public class OpAnim(
         public val joshua: CastScene,
         /** L'Arachel's, Seth's, Myrrh's, Saleh's and Tethys's scenes, in script order. */
         public val scenes: List<CastScene>,
+        /** `Obj_08AA6C22`, `6C36`, `6C4A`, `6C58`, `6C66`, `6C74`, `6C82`, `6C8A`, `6C92`, `6C9A` (sparkles). */
+        public val sparkles: List<SpriteObject>,
     )
 
     /**
@@ -322,7 +324,8 @@ public class OpAnim(
             endEach { bg3ScrollScript },
             repeat(ProcFunc { castScrollEnd(it) }),
             call(ProcFunc { showObjOnly() }),
-            block(), // not ported: sub_80CA4DC and the rest of the cutscene
+            repeat(ProcFunc { sparkles(it) }),
+            block(), // not ported: sub_80CA92C and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -1726,6 +1729,69 @@ public class OpAnim(
         hardware.lcd.setBlendConfig(0, 0x10, 0, 0)
     }
 
+    /**
+     * Puts sparkle sprite [kind] (0..4: size class) variant [variant] at ([x], [y]) on layer 0,
+     * palette 3.
+     *
+     * Ported from src/opanim-main.c: OpAnimPutObjCommon
+     */
+    public fun putSparkle(x: Int, y: Int, kind: Int, variant: Int) {
+        val chr = SPARKLE_CHR[kind][variant shr 1]
+        sprites.putExt(0, x, y, castGfx().sparkles[2 * kind + (variant and 1)], 0x3000 or chr)
+    }
+
+    /**
+     * After the cast scroll: loads its last lines (steps 1..4), shows the sparkles appearing one by
+     * one (step 0x1E onwards), shows BG2 again and fades its palettes from white (step 0x52, 0x60
+     * steps), then fades OBJ out over it (step 0xB1, 0x20 steps); breaks at step 0xD1.
+     *
+     * Ported from src/opanim-main.c: sub_80CA4DC
+     */
+    public fun sparkles(proc: Proc) {
+        val st = proc.state as State
+        val hw = hardware
+        val lcd = hw.lcd
+        when (st.timer) {
+            1 -> updateScroll(0x1B0, 0x188)
+            2 -> updateScroll(0x1F0, 0x1B0)
+            3 -> updateScroll(0x230, 0x1F0)
+            4 -> {
+                st.unk38to46[1] = 0x230
+                st.unk38to46[0] = 0x230
+            }
+        }
+        val t = SPARKLES
+        for (i in t.indices step 5) if (st.timer > t[i]) putSparkle(t[i + 1], t[i + 2], t[i + 3], t[i + 4])
+        var timer = st.timer - 0x52 // u32 in C: negative values compare as large
+        if (timer == 0) {
+            lcd.setDispEnable(0, 0, 1, 0, 1)
+            hw.setTileDataOffset(2, 0x8000)
+            hw.setMapDataOffset(2, 0xE800)
+        }
+        if (timer in 0 until 0x60) {
+            copyToPal(castGfx().scrollPal, 0, 0x100)
+            val ret = Interpolate.interpolate(Interpolate.RSQUARE, 0x10, 0xC, timer, 0x5F)
+            for (i in 0 until 8) blendPalette(i * 0x10, 0, ret)
+        }
+        timer = st.timer - 0xB1
+        if (timer == 0) {
+            lcd.setBlendConfig(1, 0x10, 0, 0)
+            lcd.setBlendTargetA(0, 0, 0, 0, 1)
+            lcd.setBlendTargetB(0, 0, 1, 0, 0)
+        }
+        if (timer in 0 until 0x21) {
+            val a = Interpolate.interpolate(Interpolate.LINEAR, 0x10, 0, timer, 0x20)
+            lcd.blendCoeffA = a
+            lcd.blendCoeffB = 16 - a
+        }
+        if (st.timer == 0xD1) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
     private fun putName(chr: Int) {
         val g = ephraim ?: error("OpAnim.ephraim graphics not supplied")
         sprites.putExt(1, 0x98, 0x88, g.nameObj, (2 shl 12) + chr)
@@ -1952,6 +2018,29 @@ public class OpAnim(
     }
 
     private companion object {
+        /** `OpAnimPutObjCommon`'s tile numbers by kind and `variant >> 1`. */
+        val SPARKLE_CHR = arrayOf(
+            intArrayOf(0x8A, 0xB2),
+            intArrayOf(0xDA, 0xF2),
+            intArrayOf(0x10A, 0x116, 0x13A),
+            intArrayOf(0x122, 0x126, 0x12E),
+            intArrayOf(0x12A, 0x12C, 0x132, 0x134, 0x136, 0x138),
+        )
+
+        /** `sub_80CA4DC`'s sparkles in call order: (shown after step, x, y, kind, variant). */
+        val SPARKLES = intArrayOf(
+            0x8E, 0xAE, 10, 4, 9, 0x8D, 0x38, 0x28, 4, 7, 0x8C, 0x9C, 0x3A, 3, 3, 0x8B, 0x22, 0, 4, 1,
+            0x8A, 0xD2, 0x10, 4, 5, 0x89, 0xC, 0x1A, 3, 1, 0x88, 0xCC, 0x2A, 3, 4, 0x87, 0x60, 0, 4, 0,
+            0x86, 0xE4, 0x10, 4, 0xB, 0x85, 0x58, 0x1E, 3, 3, 0x84, 0x54, 0x2E, 2, 1, 0x83, 0, 2, 4, 2,
+            0x82, 0xC6, 0x18, 4, 9, 0x81, 0x90, 0x22, 3, 5, 0x80, 0xA8, 0x44, 2, 0, 0x7F, 0xCA, 2, 4, 7,
+            0x7E, 0x26, 0x18, 4, 2, 0x7D, 0x80, 0x26, 3, 0, 0x7B, 0x80, 0x32, 2, 5, 0x79, 0x86, 6, 4, 0,
+            0x77, 0x98, 0x16, 4, 1, 0x75, 0xE8, 0x16, 3, 3, 0x73, 100, 0x48, 2, 1, 0x71, 0x70, 6, 4, 10,
+            0x6F, 0x40, 0x14, 4, 8, 0x6D, 0, 0x2E, 3, 4, 0x6B, 0x2C, 0x4A, 2, 4, 0x69, 0x40, 8, 4, 6,
+            0x67, 0x78, 0x1A, 4, 2, 0x65, 0x24, 0x32, 3, 2, 0x62, 0xE, 0x4E, 2, 0, 0x5F, 0x16, 10, 4, 4,
+            0x5C, 0xB4, 0x28, 4, 1, 0x59, 0x42, 0x36, 3, 1, 0x55, 0xDC, 0x32, 2, 2, 0x51, 200, 0x48, 1, 0,
+            0x4C, 0x38, 0x28, 4, 0, 0x47, 0x8C, 0x54, 1, 2, 0x41, 0x10, 100, 1, 1, 0x37, 0, 0x7E, 0, 1,
+            0x31, 0xA0, 0x78, 0, 2, 0x1D, 0x58, 0x70, 0, 0,
+        )
         const val OBJ_VRAM = 0x10000
         const val BLD_BACKDROP_A = 1 shl 5
         const val BLD_BACKDROP_B = 1 shl 13

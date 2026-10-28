@@ -86,7 +86,8 @@ class ProcEngineDifferentialTest {
         "sub_80CA10C", "sub_80CA26C", "sub_80CA3B8", "sub_80C9EE8", "sub_80C9F7C",
         "sub_80C883C", "sub_80C8934", "sub_80C8A20", "sub_80C8B0C", "sub_80C8BF8",
         "sub_80C9C5C", "sub_80C9CAC", "sub_80C9CFC", "sub_80C9D4C", "sub_80C9DA0",
-        "sub_80C8608", "sub_80C8638", "sub_80C8684", "sub_80C8CE4", "sub_80CA4A4")
+        "sub_80C8608", "sub_80C8638", "sub_80C8684", "sub_80C8CE4", "sub_80CA4A4",
+        "sub_80CA4DC", "OpAnimPutObjCommon")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -149,7 +150,9 @@ class ProcEngineDifferentialTest {
                 OpAnim.CastScene(pair(0x08AD2614, 0x08AD5094), pair(0x08AD423C, 0x08AD543C), romPal(0x08AD54DC, 16 * 11), false, 0x110, 0xF0, 0x108),
                 OpAnim.CastScene(pair(0x08AD563C, 0x08AD8518), pair(0x08AD72FC, 0x08AD88D4), romPal(0x08AD89A8, 16 * 11), true, 0xE8, 0x118, 0xE8),
                 OpAnim.CastScene(pair(0x08AD8B08, 0x08ADB804), pair(0x08ADA31C, 0x08ADBC0C), romPal(0x08ADBD18, 16 * 11), false, 200, 0x138, 0x128),
-            ))
+            ),
+            listOf(0x08AA6C22, 0x08AA6C36, 0x08AA6C4A, 0x08AA6C58, 0x08AA6C66, 0x08AA6C74, 0x08AA6C82, 0x08AA6C8A,
+                0x08AA6C92, 0x08AA6C9A).map { SpriteObject(it, romPal(it, 1 + 3 * u16(rom, it - 0x08000000))) })
         opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx, worldMap, ephraim, eirika = eirika, cast = cast)
         val opAnim = opPort.script
         val parent = engine.start(ctrl.script, rootIndex)
@@ -188,6 +191,7 @@ class ProcEngineDifferentialTest {
         val sceneOutChecked = IntArray(3)
         val sceneLoadChecked = IntArray(5)
         var castEndChecked = 0
+        var sparklesChecked = 0
         var fadeOutProcChecked = 0
         val sceneInChecked = IntArray(5)
         var enabledSeen = false
@@ -223,7 +227,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && !midStep && ram <= 92) {
+                if (ram != null && !midStep && ram <= 94) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -291,6 +295,7 @@ class ProcEngineDifferentialTest {
                         if (ram in 35..36) sceneOutChecked[ram - 35]++
                         if (ram == 38) sceneOutChecked[2]++
                         if (ram == 92) castEndChecked++
+                        if (ram == 94) sparklesChecked++
                         val fo = procAt(e, CAST_FADE_OUT_SCRIPT)
                         val ourFo = engine.find(opPort.castBrightenScript)
                         assertEquals(fo != null, ourFo != null, "f$f gUnknown_08AA707C")
@@ -299,8 +304,8 @@ class ProcEngineDifferentialTest {
                                 listOf(ourFo!!.scrCur, (ourFo.state as OpAnim.BlendState).timer), "f$f 707C scrCur, timer")
                             fadeOutProcChecked++
                         }
-                        if (ram >= 40 && (ram - 40) % 10 == 0) sceneLoadChecked[(ram - 40) / 10]++
-                        if (ram >= 44 && (ram - 44) % 10 == 0) sceneInChecked[(ram - 44) / 10]++
+                        if (ram in 40..88 && (ram - 40) % 10 == 0) sceneLoadChecked[(ram - 40) / 10]++
+                        if (ram in 44..88 && (ram - 44) % 10 == 0) sceneInChecked[(ram - 44) / 10]++
                         assertEquals(procAt(e, BG3_SCROLL_SCRIPT) != null, engine.find(opPort.bg3ScrollScript) != null,
                             "f$f gUnknown_08AA704C")
                         if (ram >= 33) {
@@ -392,6 +397,7 @@ class ProcEngineDifferentialTest {
         assertTrue(joshuaChecked >= 0x28, "sub_80C8690 checked on $joshuaChecked frames")
         assertTrue(castFadeChecked >= 0x10, "sub_80C9E6C checked on $castFadeChecked frames")
         assertTrue(joshuaInChecked >= 0x1E, "sub_80C9FF8 checked on $joshuaInChecked frames")
+        assertTrue(sparklesChecked >= 0xD1, "sub_80CA4DC checked on $sparklesChecked frames")
         assertTrue(castEndChecked >= 0x28, "sub_80C8CE4 checked on $castEndChecked frames")
         assertTrue(fadeOutProcChecked >= 0x28, "gUnknown_08AA707C checked on $fadeOutProcChecked frames")
         assertTrue(sceneLoadChecked.all { it >= 0x28 }, "sub_80C883C..8BF8 checked on ${sceneLoadChecked.toList()} frames")

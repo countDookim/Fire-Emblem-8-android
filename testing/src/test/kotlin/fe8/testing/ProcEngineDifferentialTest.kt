@@ -4,6 +4,8 @@ import fe8.game.opanim.EarlyStartUi
 import fe8.game.opanim.OpAnimHs
 import fe8.game.GameControl
 import fe8.game.opanim.OpAnim
+import gbafe.render.SpriteLayers
+import gbafe.render.SpriteObject
 import gbafe.core.VerifiesPort
 import gbafe.core.time.GameClock
 import gbafe.input.KeyComboReset
@@ -41,6 +43,28 @@ class ProcEngineDifferentialTest {
         return (0 until a.size / PROC_SIZE).map { a.address - GbaMem.EWRAM + it * PROC_SIZE }.firstOrNull { u32(ew, it) == script }
     }
 
+    /** The game's sprite chain from layer head [layer]: (oam1, oam0, oam2, object address or 0) per entry. */
+    private fun spriteChain(ew: ByteArray, layer: Int): List<List<Int>> {
+        val out = ArrayList<List<Int>>()
+        var p = sym["sSpriteLayers"].address + 16 * layer
+        while (p != 0) {
+            val o = p - GbaMem.EWRAM
+            out += listOf(u16(ew, o + 4), u16(ew, o + 6), u16(ew, o + 8), u32(ew, o + 0x0C))
+            p = u32(ew, o)
+        }
+        return out
+    }
+
+    private fun ourChain(s: SpriteLayers, layer: Int): List<List<Int>> {
+        val out = ArrayList<List<Int>>()
+        var it: SpriteLayers.Entry? = s.layers[layer]
+        while (it != null) {
+            out += listOf(it.oam1 and 0xFFFF, it.oam0 and 0xFFFF, it.oam2, it.obj?.id ?: 0)
+            it = it.next
+        }
+        return out
+    }
+
     private fun palette(ew: ByteArray) = ShortArray(512) { u16(ew, sym["gPaletteBuffer"].address - GbaMem.EWRAM + 2 * it).toShort() }
 
     private fun lcdDispcnt(iw: ByteArray) = LcdControl().apply { readFrom(iw, sym["gLCDControlBuffer"].address - GbaMem.IWRAM) }.dispcnt
@@ -52,7 +76,8 @@ class ProcEngineDifferentialTest {
         "OpAnimUpdateScreen1", "sub_80C6F70", "sub_80C69B0", "NewProcOpAnimFadeIn", "OpAnimAllBlack", "OpAnimFadeInMain", "sub_80C7050",
         "OpAnimPreparefxEphraim", "NewProc08AA6D04", "Proc08AA6D04Main", "OpAnimEphraimfxFlyIn", "Interpolate",
         "TsaModifyFirstPalMaybe", "sub_80C689C", "CopyFirstPalDirectly", "SetFirstPalDirectly", "ClearFirstPalDirectly",
-        "OpAnimMergeBGProcInit", "OpAnimMergeBGProcUpdateBgPalette", "sub_80C7900")
+        "OpAnimMergeBGProcInit", "OpAnimMergeBGProcUpdateBgPalette", "sub_80C7900",
+        "ClearSprites", "PutSpriteExt", "OpAnimDrawSplitLine", "OpAnim1AdvanceSplitLine")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -87,10 +112,11 @@ class ProcEngineDifferentialTest {
         )
         val worldMap = OpAnim.WorldMapGfx(blob(0x08AB21D8), blob(0x08AB5D90), blob(0x08AB632C), blob(0x08AB7AC0), romPal(0x08AB7DB0, 16), romPal(0x08AB630C, 16))
         fun pair(img: Int, tsa: Int) = blob(img) to blob(tsa)
+        fun obj(at: Int) = SpriteObject(at, romPal(at, 4))
         val ephraim = OpAnim.EphraimGfx(pair(0x08AB7DD0, 0x08AB87E0), pair(0x08ABF168, 0x08AC1878),
             pair(0x08AC0BD8, 0x08AC1B98), pair(0x08ABB14C, 0x08ABC074), romPal(0x08AC1C8C, 16 * 11),
             pair(0x08ABE304, 0x08ABEF70), pair(0x08ABD348, 0x08ABE120), pair(0x08ABC22C, 0x08ABD174),
-            romPal(0x08AB8CAC, 16))
+            romPal(0x08AB8CAC, 16), obj(0x08590F9C) to obj(0x08590FA4))
         opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx, worldMap, ephraim)
         val opAnim = opPort.script
         val parent = engine.start(ctrl.script, rootIndex)
@@ -110,6 +136,7 @@ class ProcEngineDifferentialTest {
         var ephraimChecked = 0
         var flyInChecked = 0
         var splitChecked = 0
+        var splitLineChecked = 0
         var enabledSeen = false
         for (f in 401..LAST) {
             val e = ew(f)
@@ -123,7 +150,10 @@ class ProcEngineDifferentialTest {
             if (f == 843) ew(f - 1).copyInto(opPort.genericBuffer, 0, sym["gGenericBuffer"].address - GbaMem.EWRAM,
                 sym["gGenericBuffer"].address - GbaMem.EWRAM + 0x2000)
             engine.run(engine.root(0)) // VSync tree (OnVBlank), before the step
-            if (!lagging) engine.run(engine.root(rootIndex))
+            if (!lagging) {
+                opPort.sprites.clear() // OnMain's ClearSprites
+                engine.run(engine.root(rootIndex))
+            }
             val i = iw(f)
             assertEquals(i[sym["gKeyComboResetEN"].address - GbaMem.IWRAM].toInt() != 0, combo.canReset(), "f$f gKeyComboResetEN")
             assertEquals(u32(i, sym["gGameClock"].address - GbaMem.IWRAM).toLong() and 0xFFFFFFFFL, clock.get(), "f$f gGameClock")
@@ -140,7 +170,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && !midStep && ram <= 14) {
+                if (ram != null && !midStep && ram <= 15) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -193,6 +223,9 @@ class ProcEngineDifferentialTest {
                             listOf(ourMerge!!.scrCur, (ourMerge.state as OpAnim.MergeBgState).timer and 0xFFFF), "f$f merge BG scrCur, timer")
                         if (ram == 13) flyInChecked++
                         if (ram == 14) splitChecked++
+                        if (ram == 15) splitLineChecked++
+                        assertEquals(spriteChain(e, 0) + spriteChain(e, 13), ourChain(opPort.sprites, 0) + ourChain(opPort.sprites, 13),
+                            "f$f sprite layers")
                         val hb = u32(iw(f), sym["sHBlankHandler1"].address - GbaMem.IWRAM)
                         assertEquals(hb == OP_ANIM_HBLANK1, env.hardware.hblank.primary === opPort.hBlank1, "f$f sHBlankHandler1")
                         assertEquals(listOf(lcd.wincnt) + lcd.winH.toList() + lcd.winV.toList(),
@@ -220,6 +253,7 @@ class ProcEngineDifferentialTest {
         assertTrue(ephraimChecked >= 6, "OpAnimPreparefxEphraim checked on $ephraimChecked frames")
         assertTrue(flyInChecked >= 20, "OpAnimEphraimfxFlyIn checked on $flyInChecked frames")
         assertTrue(splitChecked >= 1, "sub_80C7900 checked on $splitChecked frames")
+        assertTrue(splitLineChecked >= 16, "OpAnim1AdvanceSplitLine checked on $splitLineChecked frames")
         assertEquals(true, enabledSeen, "key combo reset enabled after the Nintendo logo")
     }
 

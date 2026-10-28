@@ -18,11 +18,13 @@ import gbafe.proc.ProcScripts.whileTrue
 import gbafe.proc.ProcScripts.yield
 import gbafe.render.BgHardware
 import gbafe.render.HBlankHandler
+import gbafe.render.SpriteLayers
+import gbafe.render.SpriteObject
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
  * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `OpAnimEphraimfxFlyIn`; a stand-in
- * `PROC_BLOCK` sits where `OpAnim1AdvanceSplitLine` would run.
+ * `PROC_BLOCK` sits where `OpAnimEphraimMergeShadow` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -39,6 +41,8 @@ public class OpAnim(
     public val worldMap: WorldMapGfx,
     /** Ephraim scene graphics loaded by [prepareEphraim] (null until a caller supplies them). */
     public val ephraim: EphraimGfx? = null,
+    /** The sprite lists (`src/ctc.c`) the split line is put into. */
+    public val sprites: SpriteLayers = SpriteLayers(),
 ) {
     /** ROM data used by [setupWorldMap]. */
     public class WorldMapGfx(
@@ -76,6 +80,8 @@ public class OpAnim(
         public val blur1: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
         /** `Pal_OpAnimCharacterBG` (1 palette, used by [mergeBgUpdatePalette]). */
         public val characterBgPal: ShortArray,
+        /** `gObject_32x8`, `gObject_8x32` (the split line's sprites). */
+        public val splitLineObjs: Pair<SpriteObject, SpriteObject>,
     )
 
     /** `gGenericBuffer` (0x2000 bytes used here). */
@@ -185,7 +191,8 @@ public class OpAnim(
             call(ProcFunc { newProc08AA6D04() }),
             repeat(ProcFunc { ephraimFlyIn(it) }),
             repeat(ProcFunc { setupSplitScreen(it) }),
-            block(), // not ported: OpAnim1AdvanceSplitLine and the rest of the cutscene
+            repeat(ProcFunc { advanceSplitLine(it) }),
+            block(), // not ported: OpAnimEphraimMergeShadow and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -613,6 +620,56 @@ public class OpAnim(
         hw.setMapDataOffset(2, 0xF000)
         lcd.setBlendTargetA(0, 1, 1, 0, 0)
         engine.breakProc(proc)
+    }
+
+    /**
+     * `OpAnimHBlank2` (not verified yet: no frame trace covers it): BLDCNT 0xC46 from the first
+     * line, 0xCCF from line `gOpAnimSt.unk0A`.
+     */
+    public val hBlank2: HBlankHandler = HBlankHandler { vcount, io ->
+        if (((vcount - 1) and 0xFFFF) > 0x9F) {
+            io[0x50] = 0x46
+            io[0x51] = 0x0C
+        }
+        if (vcount == (opAnimSt[5] and 0xFFFF)) {
+            io[0x50] = 0xCF.toByte()
+            io[0x51] = 0x0C
+        }
+    }
+
+    /**
+     * Puts the split line: eight 32x8 sprites along line [yOam0] and eight 8x32 sprites down
+     * column [xOam1], all on layer 0.
+     *
+     * Ported from src/opanim-main.c: OpAnimDrawSplitLine
+     */
+    public fun drawSplitLine(xOam1: Int, yOam0: Int) {
+        val (h, v) = (ephraim ?: error("OpAnim.ephraim graphics not supplied")).splitLineObjs
+        for (i in 0 until 8) sprites.putExt(0, i shl 5, yOam0, h, 0x80 / 0x20)
+        for (i in 0 until 8) sprites.putExt(0, xOam1, i shl 5, v, 0)
+    }
+
+    /**
+     * Moves the split point (`gOpAnimSt.x`, `y`) to (0xF0, 0xA0) over 0x10 steps, widening
+     * window 0 and drawing the split line; then switches to [hBlank2] and breaks.
+     *
+     * Ported from src/opanim-main.c: OpAnim1AdvanceSplitLine
+     */
+    public fun advanceSplitLine(proc: Proc) {
+        val st = proc.state as State
+        opAnimSt[0] = Interpolate.interpolate(Interpolate.RSQUARE, 0, 0xF0, st.timer, 0x10)
+            .toShort().toInt()
+        opAnimSt[1] = Interpolate.interpolate(Interpolate.RSQUARE, 0, 0xA0, st.timer, 0x10)
+            .toShort().toInt()
+        hardware.lcd.setWin0Box(0, 0, opAnimSt[0], 0xA0)
+        drawSplitLine(minOf(opAnimSt[0], 0xE8), minOf(opAnimSt[1], 0x88))
+        if (st.timer == 0x10) {
+            hardware.hblank.setPrimary(hBlank2)
+            st.timer = 0
+            engine.breakProc(proc)
+            return
+        }
+        st.timer = (st.timer + 1) and 0xFFFF
     }
 
     /**

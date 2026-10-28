@@ -43,6 +43,17 @@ public class TitleScreen(
         public val pressStart: OpAnimHs.Blob,
         /** `gPal_PressStart` (4 palettes). */
         public val pressStartPal: ShortArray,
+        /**
+         * The intro fx graphics: `gGfx_08AAFD14`, `gTsa_08AAFF10`, `gGfx_08AADC08`,
+         * `gTsa_08AAE61C`, `gGfx_08AAE8EC`, `gTsa_08AAF928`, `gGfx_TitleLargeGlowingOrb`,
+         * `gGfx_TitleSmallLightBubbles` (compressed).
+         */
+        public val fx: List<OpAnimHs.Blob>,
+        /**
+         * Their palettes: `gPal_08AB0114`, `gPal_08AAE8CC`, `gPal_08AAFCF4` (16 colours each),
+         * `gPal_TitleLargeGlowingOrb` (3 palettes), `gPal_TitleSmallLightBubbles`.
+         */
+        public val fxPals: List<ShortArray>,
     )
 
     /** `struct TitleScreenProc` fields. */
@@ -74,11 +85,63 @@ public class TitleScreen(
             goto(1),
             label(0),
             yield(),
-            block(), // not ported: the intro fx (Title_StartSkipFxListener ...) and the rest
+            call(ProcFunc { engine.start(skipListenerStandIn, it) }), // Title_StartSkipFxListener
+            repeat(ProcFunc { setupSpecialEffectGraphics(it) }),
+            block(), // not ported: sub_80C5A44 and the rest of the intro fx
             label(1),
         ),
         newState = { State() },
     )
+
+    /** Stand-in for `gProcScr_SkipTitleFxKeyListener` (A/B/Start skip; not ported yet). */
+    public val skipListenerStandIn: ProcScript =
+        ProcScript("gProcScr_SkipTitleFxKeyListener (stand-in)", listOf(yield(), block()))
+
+    /**
+     * Loads the intro fx: BG0 moves to tiles 0xC000 / map 0x7800, two BG2-area images and maps,
+     * two BG0 layers, the glowing orb and light bubble OBJs; white backdrop. Breaks at step 4.
+     *
+     * Ported from src/titlescreen.c: Title_SetupSpecialEffectGraphics
+     */
+    public fun setupSpecialEffectGraphics(proc: Proc) {
+        val st = proc.state as State
+        val hw = hardware
+        val f = gfx.fx
+        val p = gfx.fxPals
+        when (st.timer) {
+            0 -> {
+                hw.setTileDataOffset(0, 0xC000)
+                hw.setMapDataOffset(0, 0x7800)
+                Decompress.into(f[0].data, f[0].offset, hw.vram, 0x8000)
+                Decompress.into(f[1].data, f[1].offset, hw.vram, 0xB000)
+                applyPalette(p[0], 0, 1)
+                hw.palette[0] = 0x7FFF
+            }
+            1 -> {
+                Decompress.into(f[2].data, f[2].offset, hw.vram, 0xC000)
+                loadMap(f[3], 0, 0x1000)
+                applyPalette(p[1], 1, 1)
+                hw.enableBgSyncByMask(1)
+            }
+            2 -> {
+                Decompress.into(f[4].data, f[4].offset, hw.vram, 0xD000)
+                loadMap(f[5], 0, 0x2080)
+                applyPalette(p[2], 2, 1)
+            }
+            3 -> {
+                Decompress.into(f[6].data, f[6].offset, hw.vram, 0x14400)
+                applyPalette(p[3], 0x14, 3)
+                Decompress.into(f[7].data, f[7].offset, hw.vram, 0x15400)
+                applyPalette(p[4], 0x17, 1)
+            }
+            4 -> {
+                st.timer = 0
+                engine.breakProc(proc)
+                return
+            }
+        }
+        st.timer++
+    }
 
     /**
      * Starts the title screen as a blocking child of [parent] with [mode] (1 after the op anim

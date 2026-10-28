@@ -34,7 +34,7 @@ class TitleScreenDifferentialTest {
         ShortArray(n) { u16(ew, sym[name].address - GbaMem.EWRAM + 2 * it).toShort() }
 
     @Test
-    @VerifiesPort("StartTitleScreen_FlagTrue", "Title_Init", "Title_SetupMainGraphics")
+    @VerifiesPort("StartTitleScreen_FlagTrue", "Title_Init", "Title_SetupMainGraphics", "Title_SetupSpecialEffectGraphics")
     fun `title screen start matches the per-frame RAM trace`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -53,10 +53,13 @@ class TitleScreenDifferentialTest {
         val title = TitleScreen(engine, hw, TitleScreen.Gfx(
             listOf(blob(0x08AA7760), blob(0x08AA9708), blob(0x08AAAE90)), pal(0x08AAB3F4, 16),
             blob(0x08AAB414) to blob(0x08AAC2A4), pal(0x08AAC58C, 16),
-            blob(0x08AAC5AC), blob(0x08AACEDC), pal(0x08AADB68, 64)))
+            blob(0x08AAC5AC), blob(0x08AACEDC), pal(0x08AADB68, 64),
+            listOf(0x08AAFD14, 0x08AAFF10, 0x08AADC08, 0x08AAE61C, 0x08AAE8EC, 0x08AAF928, 0x08AB1C24, 0x08AB216C).map { blob(it) },
+            listOf(pal(0x08AB0114, 16), pal(0x08AAE8CC, 16), pal(0x08AAFCF4, 16), pal(0x08AB210C, 48), pal(0x08AB21B8, 16))))
         val parent = engine.start(ProcScript("parent", listOf(block())), 3)
         title.start(parent, 1)
         var checked = 0
+        var fxChecked = 0
         for (f in first..3000) {
             val e = ew(f)
             val o = procAt(e) ?: break
@@ -67,9 +70,10 @@ class TitleScreenDifferentialTest {
             val midStep = e[sym["gBmSt"].address - GbaMem.EWRAM].toInt() == 0
             if (!lagging) engine.run(engine.root(3))
             if (midStep) continue
+            if (scr >= 14) break // the stand-in after Title_SetupSpecialEffectGraphics
             val ours = engine.find(title.script)!!
             assertEquals(scr, ours.scrCur, "f$f title scrCur")
-            if (scr >= 10) break // label 0's stand-in
+            if (scr == 13) fxChecked++
             assertEquals(u16(e, o + 0x2A), (ours.state as TitleScreen.State).timer, "f$f timer")
             assertArrayEquals(shorts(e, "gPaletteBuffer", 512), hw.palette, "f$f gPaletteBuffer")
             for (bg in 0..1) assertArrayEquals(shorts(e, "gBG${bg}TilemapBuffer", 0x400), hw.mapBuffer(bg), "f$f BG$bg map")
@@ -80,6 +84,7 @@ class TitleScreenDifferentialTest {
             checked++
         }
         assertTrue(checked >= 5, "checked $checked frames from f$first")
+        assertTrue(fxChecked >= 4, "Title_SetupSpecialEffectGraphics checked on $fxChecked frames")
     }
 
     private companion object {

@@ -24,7 +24,7 @@ import gbafe.render.SpriteObject
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
  * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `OpAnimEphraimfxFlyIn`; a stand-in
- * `PROC_BLOCK` sits where `OpAnimPreparefxEirika` would run.
+ * `PROC_BLOCK` sits where `sub_80C7F90` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -43,7 +43,25 @@ public class OpAnim(
     public val ephraim: EphraimGfx? = null,
     /** The sprite lists (`src/ctc.c`) the split line is put into. */
     public val sprites: SpriteLayers = SpriteLayers(),
+    /** Eirika scene graphics loaded by [prepareEirika] (null until a caller supplies them). */
+    public val eirika: EirikaGfx? = null,
 ) {
+    /** ROM data used by [prepareEirika], in `OpAnimPreparefxEirika` order. */
+    public class EirikaGfx(
+        /** `Img_OpAnimEirikaClose1`, `Tsa_OpAnimEirikaClose1`. */
+        public val close1: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Img_OpAnimEirikaClose2`, `Tsa_OpAnimEirikaClose2`. */
+        public val close2: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Img_OpAnimEirika`, `Tsa_OpAnimEirika`. */
+        public val eirika: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Pal_OpAnimEirikaBlur` (11 palettes). */
+        public val blurPal: ShortArray,
+        /** `Img_OpAnimEirikaBlur3`, `Tsa_OpAnimEirikaBlur3`. */
+        public val blur3: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Img_OpAnimEirikaBlur2`, `Tsa_OpAnimEirikaBlur2`. */
+        public val blur2: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+    )
+
     /** ROM data used by [setupWorldMap]. */
     public class WorldMapGfx(
         /** `Img_OpAnimWorldMap`. */
@@ -203,7 +221,8 @@ public class OpAnim(
             repeat(ProcFunc { ephraimMergeShadow(it) }),
             repeat(ProcFunc { ephraimDisplayName(it) }),
             repeat(ProcFunc { ephraimExit(it) }),
-            block(), // not ported: OpAnimPreparefxEirika and the rest of the cutscene
+            repeat(ProcFunc { prepareEirika(it) }),
+            block(), // not ported: sub_80C7F90 and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -774,6 +793,82 @@ public class OpAnim(
                     engine.breakProc(proc)
                     return
                 }
+            }
+        }
+        st.timer = (st.timer + 1) and 0xFFFF
+    }
+
+    /**
+     * Resets BG0..2 and the blend for the Eirika scene, then loads it over 6 more steps (by
+     * `timer`), sets `gOpAnimSt` and breaks.
+     *
+     * Ported from src/opanim-main.c: OpAnimPreparefxEirika
+     */
+    public fun prepareEirika(proc: Proc) {
+        val g = eirika ?: error("OpAnim.eirika graphics not supplied")
+        val hw = hardware
+        val lcd = hw.lcd
+        val vram = hw.vram
+        val buf = genericBuffer
+        val st = proc.state as State
+        fun dec(b: OpAnimHs.Blob, dst: ByteArray, at: Int) =
+            Decompress.into(b.data, b.offset, dst, at)
+        when (st.timer) {
+            0 -> {
+                lcd.setDispEnable(0, 0, 0, 1, 1)
+                lcd.setWinEnable(0, 0, 0)
+                hw.setMapDataOffset(2, 0xE800)
+                for (bg in 0..2) lcd.setBgPosition(bg, 0, 0)
+                for (bg in 0..2) hw.fill(hw.mapBuffer(bg), 0)
+                hw.enableBgSyncByMask(7)
+                lcd.bldcnt = lcd.bldcnt and (0x20 or 0x2000).inv() // SetBlendBackdropA/B(0)
+                lcd.setBlendConfig(1, 8, 8, 8)
+                lcd.setBlendTargetA(0, 1, 0, 0, 0)
+                lcd.setBlendTargetB(0, 0, 1, 1, 0)
+            }
+            1 -> {
+                dec(g.close1.first, vram, hw.tileDataOffset(0))
+                dec(g.close1.second, buf, 0)
+            }
+            2 -> {
+                dec(g.close2.first, vram, 0x2000 + hw.tileDataOffset(0))
+                dec(g.close2.second, buf, 0x800)
+            }
+            3 -> {
+                dec(g.eirika.first, vram, hw.tileDataOffset(2))
+                dec(g.eirika.second, buf, 0x1000)
+                copyToPal(g.blurPal, 0, 0x160)
+            }
+            4 -> {
+                dec(g.blur3.first, vram, 0x8000)
+                dec(g.blur3.second, vram, 0xC000)
+            }
+            5 -> {
+                dec(g.blur2.first, vram, 0xA000)
+                dec(g.blur2.second, vram, 0xC800)
+                for (i in 0 until 0x280) add16(vram, 0xC800 + 2 * i, 0x100)
+            }
+            6 -> {
+                buf.copyInto(buf, 0x1800, 0x1000, 0x1800)
+                for (i in 0 until 0x280) {
+                    val o = 0x1800 + 2 * i
+                    val n = (u16(buf, o) and 0xFFF) or 0xF000
+                    buf[o] = n.toByte()
+                    buf[o + 1] = (n shr 8).toByte()
+                }
+                buf.copyInto(vram, 0xF000, 0x1800, 0x1D00)
+                hw.enablePaletteSync()
+                lcd.setDispEnable(0, 1, 1, 1, 1)
+                st.timer = 0
+                st.unk30 = 0
+                st.unk32 = 0
+                opAnimSt[0] = 240
+                opAnimSt[1] = 0
+                opAnimSt[2] = 0
+                opAnimSt[3] = 160
+                hw.setTileDataOffset(2, 0x8000)
+                engine.breakProc(proc)
+                return
             }
         }
         st.timer = (st.timer + 1) and 0xFFFF

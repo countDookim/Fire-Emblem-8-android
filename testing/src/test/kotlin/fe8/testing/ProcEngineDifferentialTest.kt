@@ -81,7 +81,8 @@ class ProcEngineDifferentialTest {
         "OpAnimEphraimDisplayName", "OpAnimEphraimExit", "OpAnimPreparefxEirika",
         "sub_80C7F90", "sub_80C8100", "sub_80C8184", "sub_80C8214", "sub_80C8278", "OpAnim1_UpdateScrollOneLine",
         "sub_80C835C", "sub_80C84D8",
-        "sub_80C8564", "sub_80C72A4", "OpAnim1_UpdateScroll", "sub_80C8580", "sub_80C85B0", "sub_80C85FC", "sub_80C8690")
+        "sub_80C8564", "sub_80C72A4", "OpAnim1_UpdateScroll", "sub_80C8580", "sub_80C85B0", "sub_80C85FC", "sub_80C8690",
+        "sub_80C8554", "sub_80C9DF0", "sub_80C9E6C", "sub_80C9B6C", "sub_80C9C08", "sub_80C9FF8")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -134,7 +135,7 @@ class ProcEngineDifferentialTest {
             SpriteObject(0x08AA6C0E, romPal(0x08AA6C0E, 10)),
             List(100) { blob(u32(rom, 0xAA6D14 + 4 * it)) }, List(100) { blob(u32(rom, 0xAA6EA4 + 4 * it)) })
         val cast = OpAnim.CastGfx(romPal(0x08AF47F0, 16 * 4), romPal(0x08B103D8, 16 * 8), pair(0x08AB8CCC, 0x08AB942C),
-            pair(0x08AC949C, 0x08ACBF58), pair(0x08ACAF70, 0x08ACC340), pair(0x08AF312C, 0x08AF404C))
+            pair(0x08AC949C, 0x08ACBF58), pair(0x08ACAF70, 0x08ACC340), pair(0x08AF312C, 0x08AF404C), romPal(0x08ACC3E0, 16 * 11))
         opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx, worldMap, ephraim, eirika = eirika, cast = cast)
         val opAnim = opPort.script
         val parent = engine.start(ctrl.script, rootIndex)
@@ -168,6 +169,8 @@ class ProcEngineDifferentialTest {
         var darkChecked = 0
         var castDarkenChecked = 0
         var joshuaChecked = 0
+        var castFadeChecked = 0
+        var joshuaInChecked = 0
         var enabledSeen = false
         for (f in 401..LAST) {
             val e = ew(f)
@@ -201,7 +204,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && !midStep && ram <= 29) {
+                if (ram != null && !midStep && ram <= 34) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -219,7 +222,7 @@ class ProcEngineDifferentialTest {
                             listOf(ourFade.scrCur, fs.cur and 0xFFFF, fs.max and 0xFFFF), "f$f fade-in scrCur, cur, max")
                     }
                     // unk2C/2E keep the slot's old bytes (Proc_Start does not clear fields) until OpAnimUpdateScreen1.
-                    if (ram >= 9) assertEquals(listOf(0x38, 0x3A, 0x3C, 0x3E, 0x46).map { u16(e, op + it) },
+                    if (ram >= 9) assertEquals(listOf(0x38, 0x3A, 0x3C, 0x3E).map { u16(e, op + it) } + (e[op + 0x46].toInt() and 0xFF),
                         (ours.state as OpAnim.State).unk38to46.toList(), "f$f op anim unk38..46")
                     if (ram >= 7) assertEquals(listOf(u16(e, op + 0x2C), u16(e, op + 0x2E)),
                         listOf((ours.state as OpAnim.State).unk2C and 0xFFFF, (ours.state as OpAnim.State).unk2E and 0xFFFF), "f$f op anim unk2C/2E")
@@ -264,6 +267,19 @@ class ProcEngineDifferentialTest {
                         if (ram == 25) eirikaExitChecked++
                         if (ram == 26) darkChecked++
                         if (ram == 29) joshuaChecked++
+                        if (ram == 32) castFadeChecked++
+                        if (ram == 34) joshuaInChecked++
+                        assertEquals(procAt(e, BG3_SCROLL_SCRIPT) != null, engine.find(opPort.bg3ScrollScript) != null,
+                            "f$f gUnknown_08AA704C")
+                        if (ram >= 33) {
+                            val gb = sym["gGenericBuffer"].address
+                            assertEquals(listOf(u16(e, op + 0x40), u16(e, op + 0x42), u16(e, op + 0x44), e[op + 0x47].toInt() and 0xFF,
+                                u32(e, op + 0x48) - gb, u32(e, op + 0x4C) - gb),
+                                listOf(os.unk40to44[0], os.unk40to44[1], os.unk40to44[2] and 0xFFFF, os.unk47, os.unk48, os.unk4C),
+                                "f$f op anim unk40..4C")
+                            assertEquals(listOf(u16(e, op + 0x30), u16(e, op + 0x32)),
+                                listOf(os.unk30 and 0xFFFF, os.unk32 and 0xFFFF), "f$f op anim unk30/32 (cast)")
+                        }
                         val cd = procAt(e, CAST_DARKEN_SCRIPT)
                         val ourCd = engine.find(opPort.castDarkenScript)
                         assertEquals(cd != null, ourCd != null, "f$f gUnknown_08AA705C")
@@ -342,6 +358,8 @@ class ProcEngineDifferentialTest {
         assertTrue(darkChecked >= 8, "sub_80C84D8 checked on $darkChecked frames")
         assertTrue(castDarkenChecked >= 0x28, "gUnknown_08AA705C checked on $castDarkenChecked frames")
         assertTrue(joshuaChecked >= 0x28, "sub_80C8690 checked on $joshuaChecked frames")
+        assertTrue(castFadeChecked >= 0x10, "sub_80C9E6C checked on $castFadeChecked frames")
+        assertTrue(joshuaInChecked >= 0x1E, "sub_80C9FF8 checked on $joshuaInChecked frames")
         assertEquals(true, enabledSeen, "key combo reset enabled after the Nintendo logo")
     }
 
@@ -354,6 +372,7 @@ class ProcEngineDifferentialTest {
         const val FADE_IN_SCRIPT = 0x08AA6CBC // ProcScr_OpAnimFadeIn
         const val PROC_6D04_SCRIPT = 0x08AA6D04 // ProcScr_08AA6D04
         const val MERGE_BG_SCRIPT = 0x08AA7034 // ProcScr_OpAnimMergeBG
+        const val BG3_SCROLL_SCRIPT = 0x08AA704C // gUnknown_08AA704C
         const val CAST_DARKEN_SCRIPT = 0x08AA705C // gUnknown_08AA705C
         const val OP_ANIM_HBLANK1 = 0x080C7845 // OpAnimHBlank1 (Thumb)
         const val LAST = 1600

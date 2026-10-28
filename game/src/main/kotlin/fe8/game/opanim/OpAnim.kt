@@ -24,8 +24,8 @@ import gbafe.render.SpriteObject
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
- * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80C8690`; a stand-in
- * `PROC_BLOCK` sits where `gUnknown_08AA704C` would start.
+ * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80C9FF8`; a stand-in
+ * `PROC_BLOCK` sits where `sub_80CA10C` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -63,6 +63,8 @@ public class OpAnim(
         public val joshua2: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
         /** `Img_OpAnimShiningRing`, `Tsa_OpAnimShiningRing`. */
         public val ring: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Pal_OpAnimJoshua` (11 palettes). */
+        public val joshuaPal: ShortArray,
     )
 
     /** ROM data used by [prepareEirika], in `OpAnimPreparefxEirika` order. */
@@ -212,6 +214,18 @@ public class OpAnim(
 
         /** `unk38`, `unk3A`, `unk3C`, `unk3E`, `unk46`. */
         public val unk38to46: IntArray = IntArray(5)
+
+        /** `unk40`, `unk42` (u16), `unk44` (s16): scene scroll distance, base and offset. */
+        public val unk40to44: IntArray = IntArray(3)
+
+        /** `unk47`: scene scrolls in from the left (non-zero) or the right. */
+        public var unk47: Int = 0
+
+        /** `unk48`: byte offset of the scene's first tilemap in [genericBuffer]. */
+        public var unk48: Int = 0
+
+        /** `unk4C`: byte offset of its second tilemap in [genericBuffer], or null. */
+        public var unk4C: Int? = null
     }
 
     /** `gOpAnimSt.x`, `y`, `unk04`, `unk06`, `unk08`, `unk0A` (s16 each). */
@@ -259,7 +273,12 @@ public class OpAnim(
             call(ProcFunc { setupCastScroll(it) }),
             startChild { castDarkenScript },
             repeat(ProcFunc { joshuaScroll(it) }),
-            block(), // not ported: gUnknown_08AA704C and the rest of the cutscene
+            startChild { bg3ScrollScript },
+            call(ProcFunc { showCastScroll() }),
+            repeat(ProcFunc { fadeInCastScroll(it) }),
+            call(ProcFunc { setupJoshua(it) }),
+            repeat(ProcFunc { castSceneScrollIn(it) }),
+            block(), // not ported: sub_80CA10C and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -1202,7 +1221,7 @@ public class OpAnim(
     public fun setupCastScroll(proc: Proc) {
         val st = proc.state as State
         setupCastDisplay(st.unk38to46[4])
-        updateScroll(st.unk38to46[0].toShort().toInt(), st.unk38to46[1].toShort().toInt())
+        updateScroll(st.unk38to46[0], st.unk38to46[1])
     }
 
     /** `struct ProcOpAnimBlend` (`gUnknown_08AA705C`, `gUnknown_08AA707C`). */
@@ -1254,14 +1273,10 @@ public class OpAnim(
      */
     public fun joshuaScroll(proc: Proc) {
         val st = proc.state as State
-        val u = st.unk38to46
         val hw = hardware
         val vram = hw.vram
         val g = cast ?: error("OpAnim.cast graphics not supplied")
-        updateScroll(u[0].toShort().toInt(), u[1].toShort().toInt())
-        u[1] = u[0]
-        u[0] = Interpolate.interpolate(Interpolate.LINEAR, 0, 0x270, u[2].toShort().toInt(), 0x430) and 0xFFFF
-        u[2] = (u[2] + 1) and 0xFFFF
+        advanceCastScroll(st)
         fun dec(b: OpAnimHs.Blob, dst: ByteArray, at: Int) = Decompress.into(b.data, b.offset, dst, at)
         when (st.timer) {
             1 -> {
@@ -1301,6 +1316,141 @@ public class OpAnim(
         if (st.timer == 0x28) {
             engine.endEach(castDarkenScript)
             engine.endEach(castBrightenScript)
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /** One cast scroll step: loads lines up to `unk38`, then moves `unk38` along 0..0x270 by `unk3C`. */
+    private fun advanceCastScroll(st: State) {
+        val u = st.unk38to46
+        updateScroll(u[0], u[1])
+        u[1] = u[0]
+        u[0] = Interpolate.interpolate(Interpolate.LINEAR, 0, 0x270, u[2], 0x430) and 0xFFFF
+        u[2] = (u[2] + 1) and 0xFFFF
+    }
+
+    /** `gUnknown_08AA704C`: scrolls BG3 right by 2 pixels every step, forever. */
+    public val bg3ScrollScript: ProcScript = ProcScript(
+        "gUnknown_08AA704C",
+        listOf(repeat(ProcFunc { scrollBg3() }), end()),
+    )
+
+    /**
+     * Scrolls BG3 by 2 pixels.
+     *
+     * Ported from src/opanim-main.c: sub_80C8554
+     */
+    public fun scrollBg3() {
+        val lcd = hardware.lcd
+        lcd.bgHofs[3] = (lcd.bgHofs[3] + 2) and 0xFFFF
+    }
+
+    /**
+     * Shows all layers with BG2 (the scroll lines) on top, fully blended over BG3.
+     *
+     * Ported from src/opanim-main.c: sub_80C9DF0
+     */
+    public fun showCastScroll() {
+        val lcd = hardware.lcd
+        lcd.setBlendConfig(1, 0x10, 0, 8)
+        lcd.setBlendTargetA(0, 0, 1, 0, 0)
+        lcd.setBlendTargetB(0, 0, 0, 1, 0)
+        lcd.setDispEnable(1, 1, 1, 1, 1)
+        setBgPriorities(1, 2, 0, 3)
+    }
+
+    private fun setBgPriorities(p0: Int, p1: Int, p2: Int, p3: Int) {
+        val c = hardware.lcd.bgCnt
+        c[0] = (c[0] and 3.inv()) or p0
+        c[1] = (c[1] and 3.inv()) or p1
+        c[2] = (c[2] and 3.inv()) or p2
+        c[3] = (c[3] and 3.inv()) or p3
+    }
+
+    /**
+     * Scrolls the cast lines and fades BG2's blend from 16/0 to 0/16 over 0x10 steps, then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C9E6C
+     */
+    public fun fadeInCastScroll(proc: Proc) {
+        val st = proc.state as State
+        val lcd = hardware.lcd
+        advanceCastScroll(st)
+        if (st.timer < 0x11) {
+            val a = Interpolate.interpolate(Interpolate.LINEAR, 0x10, 0, st.timer, 0x10)
+            lcd.blendCoeffA = a
+            lcd.blendCoeffB = 16 - a
+            if (st.timer == 0x10) {
+                st.timer = 0
+                engine.breakProc(proc)
+                return
+            }
+        }
+        st.timer = (st.timer + 1) and 0xFFFF
+    }
+
+    /**
+     * BG0..3 priorities 0..3, BG1 (tiles 0, map 0xE000) blended over BG3, BG2 hidden.
+     *
+     * Ported from src/opanim-main.c: sub_80C9B6C
+     */
+    public fun setupCastSceneDisplay() {
+        val hw = hardware
+        val lcd = hw.lcd
+        setBgPriorities(0, 1, 2, 3)
+        lcd.setBlendConfig(1, 0x10, 0, 8)
+        lcd.setBlendTargetA(0, 1, 0, 0, 0)
+        lcd.setBlendTargetB(0, 0, 0, 1, 0)
+        lcd.setDispEnable(1, 1, 0, 1, 1)
+        hw.setTileDataOffset(1, 0)
+        hw.setMapDataOffset(1, 0xE000)
+    }
+
+    /**
+     * Sets up Joshua's scene: display, palettes 0..10, and a scroll in from the left of 0xE8 pixels.
+     *
+     * Ported from src/opanim-main.c: sub_80C9C08
+     */
+    public fun setupJoshua(proc: Proc) {
+        val st = proc.state as State
+        val g = cast ?: error("OpAnim.cast graphics not supplied")
+        setupCastSceneDisplay()
+        copyToPal(g.joshuaPal, 0, 0x160)
+        st.unk47 = 1
+        st.unk48 = 0
+        st.unk4C = 0x800
+        st.unk40to44[2] = 0x118
+        st.unk40to44[1] = 0xE8
+        st.unk40to44[0] = 0xE8
+        st.unk30 = 0
+        st.unk32 = 0
+    }
+
+    /**
+     * Scrolls the scene's BG0 in over 0x1E steps (from the left if `unk47`, else from the right),
+     * then draws its BG1 copy at the end position and breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C9FF8
+     */
+    public fun castSceneScrollIn(proc: Proc) {
+        val st = proc.state as State
+        val hw = hardware
+        val u = st.unk40to44
+        val off = u[2].toShort().toInt()
+        advanceCastScroll(st)
+        hw.enableBgSyncByMask(1)
+        val ret = Interpolate.interpolate(Interpolate.RSQUARE, 0, u[0], st.timer, 0x1E)
+        if (st.unk47 != 0) tsaModifyFirstPal(ret, st.unk30, 0, genericBuffer, st.unk48, st.unk4C, setPal = false)
+        else scrollInFirstPal(ret, st.unk30, off, 0, genericBuffer, st.unk48, st.unk4C, setPal = false)
+        st.unk30 = ret.toShort().toInt()
+        if (st.timer == 0x1E) {
+            hw.enableBgSyncByMask(2)
+            st.unk32 = (u[1] + 240 - u[0]).toShort().toInt()
+            if (st.unk47 != 0) scrollInFirstPal(st.unk32, 0, off, 1, genericBuffer, st.unk48, st.unk4C, setPal = true)
+            else tsaModifyFirstPal(st.unk32, 0, 1, genericBuffer, st.unk48, st.unk4C, setPal = true)
             st.timer = 0
             engine.breakProc(proc)
         } else {

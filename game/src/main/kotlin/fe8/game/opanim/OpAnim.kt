@@ -24,8 +24,8 @@ import gbafe.render.SpriteObject
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
- * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80C9F7C` (and the second
- * `sub_80C8564`); a stand-in `PROC_BLOCK` sits where `sub_80C883C` would run.
+ * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through the cast scroll's last
+ * `sub_80C8564`; a stand-in `PROC_BLOCK` sits where `gUnknown_08AA707C` would start.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -57,14 +57,34 @@ public class OpAnim(
         public val scrollPal: ShortArray,
         /** `Img_OpAnimGenericCharacterBG`, `Tsa_OpAnimGenericCharacterBG`. */
         public val characterBg: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
-        /** `Img_OpAnimJoshua`, `Tsa_OpAnimJoshua`. */
-        public val joshua: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
-        /** `Img_OpAnimJoshua2`, `Tsa_OpAnimJoshua2`. */
-        public val joshua2: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
         /** `Img_OpAnimShiningRing`, `Tsa_OpAnimShiningRing`. */
         public val ring: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
-        /** `Pal_OpAnimJoshua` (11 palettes). */
-        public val joshuaPal: ShortArray,
+        /** Joshua's scene (loaded by [joshuaScroll]). */
+        public val joshua: CastScene,
+        /** L'Arachel's, Seth's, Myrrh's, Saleh's and Tethys's scenes, in script order. */
+        public val scenes: List<CastScene>,
+    )
+
+    /**
+     * One character's scene in the cast scroll: two images and tilemaps (`Img_OpAnim<Name>`,
+     * `Img_OpAnim<Name>2`...), 11 palettes and the scroll parameters its `sub_80C9C08`-like setup
+     * function sets.
+     */
+    public class CastScene(
+        /** `Img_OpAnim<Name>`, `Tsa_OpAnim<Name>`. */
+        public val first: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Img_OpAnim<Name>2`, `Tsa_OpAnim<Name>2`. */
+        public val second: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Pal_OpAnim<Name>` (11 palettes). */
+        public val pal: ShortArray,
+        /** `unk47`: scrolls in from the left. */
+        public val fromLeft: Boolean,
+        /** `unk44`. */
+        public val offset: Int,
+        /** `unk42`. */
+        public val base: Int,
+        /** `unk40`. */
+        public val distance: Int,
     )
 
     /** ROM data used by [prepareEirika], in `OpAnimPreparefxEirika` order. */
@@ -276,14 +296,28 @@ public class OpAnim(
             startChild { bg3ScrollScript },
             call(ProcFunc { showCastScroll() }),
             repeat(ProcFunc { fadeInCastScroll(it) }),
-            call(ProcFunc { setupJoshua(it) }),
+            call(ProcFunc { setupCastScene(it, castGfx().joshua) }),
             repeat(ProcFunc { castSceneScrollIn(it) }),
             repeat(ProcFunc { castSceneHold(it) }),
             repeat(ProcFunc { castSceneScrollOut(it) }),
             call(ProcFunc { showCastScrollFaded() }),
             repeat(ProcFunc { fadeOutCastScene(it) }),
             call(ProcFunc { setupCastScroll(it) }),
-            block(), // not ported: sub_80C883C and the rest of the cutscene
+        ) + (0 until 5).flatMap { i ->
+            listOf(
+                repeat(ProcFunc { loadCastScene(it, castGfx().scenes[i], endDarken = i == 0) }),
+                call(ProcFunc { showCastScroll() }),
+                repeat(ProcFunc { fadeInCastScroll(it) }),
+                call(ProcFunc { setupCastScene(it, castGfx().scenes[i]) }),
+                repeat(ProcFunc { castSceneScrollIn(it) }),
+                repeat(ProcFunc { castSceneHold(it) }),
+                repeat(ProcFunc { castSceneScrollOut(it) }),
+                call(ProcFunc { showCastScrollFaded() }),
+                repeat(ProcFunc { fadeOutCastScene(it) }),
+                call(ProcFunc { setupCastScroll(it) }),
+            )
+        } + listOf(
+            block(), // not ported: gUnknown_08AA707C and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -1294,19 +1328,7 @@ public class OpAnim(
                 for (i in 0 until 0x280) map[i] = (map[i] + 0xE100).toShort()
                 hw.enableBgSyncByMask(8)
             }
-            2 -> {
-                dec(g.joshua.first, vram, hw.tileDataOffset(0))
-                dec(g.joshua.second, genericBuffer, 0)
-            }
-            3 -> {
-                dec(g.joshua2.first, vram, 0x2000 + hw.tileDataOffset(0))
-                dec(g.joshua2.second, genericBuffer, 0x800)
-            }
-            4 -> {
-                hw.mapBuffer(0).fill(0)
-                hw.mapBuffer(1).fill(0)
-                vram.fill(0, 0xD800, 0xE800)
-            }
+            2, 3, 4 -> loadCastSceneStep(g.joshua, st.timer - 1)
             5 -> dec(g.ring.first, vram, 0x4000)
             6 -> {
                 dec(g.ring.second, vram, 0xF000)
@@ -1327,6 +1349,8 @@ public class OpAnim(
             st.timer = (st.timer + 1) and 0xFFFF
         }
     }
+
+    private fun castGfx(): CastGfx = cast ?: error("OpAnim.cast graphics not supplied")
 
     /** One cast scroll step: loads lines up to `unk38`, then moves `unk38` along 0..0x270 by `unk3C`. */
     private fun advanceCastScroll(st: State) {
@@ -1415,23 +1439,64 @@ public class OpAnim(
     }
 
     /**
-     * Sets up Joshua's scene: display, palettes 0..10, and a scroll in from the left of 0xE8 pixels.
+     * Sets up a character's scene: display ([setupCastSceneDisplay]), its palettes 0..10 and
+     * scroll parameters; clears `unk30/32`. Each C function hard-codes one [CastScene].
      *
-     * Ported from src/opanim-main.c: sub_80C9C08
+     * Ported from src/opanim-main.c: sub_80C9C08, sub_80C9C5C, sub_80C9CAC, sub_80C9CFC, sub_80C9D4C, sub_80C9DA0
      */
-    public fun setupJoshua(proc: Proc) {
+    public fun setupCastScene(proc: Proc, scene: CastScene) {
         val st = proc.state as State
-        val g = cast ?: error("OpAnim.cast graphics not supplied")
         setupCastSceneDisplay()
-        copyToPal(g.joshuaPal, 0, 0x160)
-        st.unk47 = 1
+        copyToPal(scene.pal, 0, 0x160)
+        st.unk47 = if (scene.fromLeft) 1 else 0
         st.unk48 = 0
         st.unk4C = 0x800
-        st.unk40to44[2] = 0x118
-        st.unk40to44[1] = 0xE8
-        st.unk40to44[0] = 0xE8
+        st.unk40to44[2] = scene.offset
+        st.unk40to44[1] = scene.base
+        st.unk40to44[0] = scene.distance
         st.unk30 = 0
         st.unk32 = 0
+    }
+
+    /** Steps 1..3 of a scene load: image + tilemap 1, image + tilemap 2, clear BG0/1 and VRAM 0xD800. */
+    private fun loadCastSceneStep(scene: CastScene, step: Int) {
+        val hw = hardware
+        val vram = hw.vram
+        fun dec(b: OpAnimHs.Blob, dst: ByteArray, at: Int) = Decompress.into(b.data, b.offset, dst, at)
+        when (step) {
+            1 -> {
+                dec(scene.first.first, vram, hw.tileDataOffset(0))
+                dec(scene.first.second, genericBuffer, 0)
+            }
+            2 -> {
+                dec(scene.second.first, vram, 0x2000 + hw.tileDataOffset(0))
+                dec(scene.second.second, genericBuffer, 0x800)
+            }
+            3 -> {
+                hw.mapBuffer(0).fill(0)
+                hw.mapBuffer(1).fill(0)
+                vram.fill(0, 0xD800, 0xE800)
+            }
+        }
+    }
+
+    /**
+     * Scrolls the cast lines while loading [scene] over steps 1..3; at step 0x28 breaks (the
+     * first, L'Arachel's, also ends the darken proc). Each C function hard-codes one [CastScene].
+     *
+     * Ported from src/opanim-main.c: sub_80C883C, sub_80C8934, sub_80C8A20, sub_80C8B0C, sub_80C8BF8
+     */
+    public fun loadCastScene(proc: Proc, scene: CastScene, endDarken: Boolean) {
+        val st = proc.state as State
+        advanceCastScroll(st)
+        loadCastSceneStep(scene, st.timer)
+        if (st.timer == 0x28) {
+            if (endDarken) engine.endEach(castDarkenScript)
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
     }
 
     /**

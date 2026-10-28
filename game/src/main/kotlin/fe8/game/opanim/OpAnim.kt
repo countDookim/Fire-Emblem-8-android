@@ -24,7 +24,7 @@ import gbafe.render.SpriteObject
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
  * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `OpAnimEphraimfxFlyIn`; a stand-in
- * `PROC_BLOCK` sits where `sub_80C8278` would run.
+ * `PROC_BLOCK` sits where `sub_80C835C` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -64,6 +64,10 @@ public class OpAnim(
         public val blur1: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
         /** `Obj_08AA6C0E` (Eirika's name sprite). */
         public val nameObj: SpriteObject,
+        /** `imgs_08AA6D14` (100 compressed images, one per scroll line). */
+        public val scrollImgs: List<OpAnimHs.Blob>,
+        /** `tsas_08AA6EA4` (100 uncompressed 30-entry TSA rows). */
+        public val scrollTsas: List<OpAnimHs.Blob>,
     )
 
     /** ROM data used by [setupWorldMap]. */
@@ -230,7 +234,8 @@ public class OpAnim(
             repeat(ProcFunc { eirikaSetupSplitScreen(it) }),
             repeat(ProcFunc { eirikaAdvanceSplitLine(it) }),
             repeat(ProcFunc { eirikaMergeShadow(it) }),
-            block(), // not ported: sub_80C8278 and the rest of the cutscene
+            repeat(ProcFunc { eirikaDisplayName(it) }),
+            block(), // not ported: sub_80C835C and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -987,6 +992,63 @@ public class OpAnim(
         if (st.timer > 0xE) sprites.putExt(1, 8, 0x88, g.nameObj, 0x206E)
         if (st.timer == 0x10) {
             st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /**
+     * Decompresses scroll line [index] (0..99, else nothing) into VRAM 0x8000 + 0x400 * slot and
+     * writes its 30-entry row into the BG map at VRAM 0xE800, row `~index & 0x1F`.
+     *
+     * Not verified yet (VRAM is not in the RAM traces): src/opanim-main.c:
+     * OpAnim1_UpdateScrollOneLine
+     */
+    public fun updateScrollOneLine(index: Int) {
+        val g = eirika ?: error("OpAnim.eirika graphics not supplied")
+        val idx = index.toShort().toInt()
+        if (idx < 0 || idx > 99) return
+        val vram = hardware.vram
+        var at = 0xE800 + ((idx.inv() and 0x1F) shl 6)
+        val n = 99 - idx
+        val slot = n % 0x16
+        val img = g.scrollImgs[n]
+        Decompress.into(img.data, img.offset, vram, 0x8000 + 0x400 * slot)
+        val tsa = g.scrollTsas[n]
+        for (i in 0 until 0x1E) {
+            val v = (u16(tsa.data, tsa.offset + 2 * i) and 0xFC00) or (32 * slot + i)
+            vram[at] = v.toByte()
+            vram[at + 1] = (v shr 8).toByte()
+            at += 2
+        }
+    }
+
+    /**
+     * Shows the split line and Eirika's name for 0x38 steps, loading scroll lines 0..21 over the
+     * first three; then saves `unk30/32` into `unk34/36`, hides BG1, forces palette 15 on BG2's
+     * map and breaks.
+     *
+     * Not verified yet (checked up to step 28: `ram_trace_opanim` ends at f1100):
+     * src/opanim-main.c: sub_80C8278
+     */
+    public fun eirikaDisplayName(proc: Proc) {
+        val st = proc.state as State
+        val g = eirika ?: error("OpAnim.eirika graphics not supplied")
+        drawSplitLine(8, 0x88)
+        sprites.putExt(1, 8, 0x88, g.nameObj, 0x7C + (2 shl 12))
+        when (st.timer) {
+            0 -> for (i in 0 until 8) updateScrollOneLine(i)
+            1 -> for (i in 8 until 0x10) updateScrollOneLine(i)
+            2 -> for (i in 0x10 until 0x16) updateScrollOneLine(i)
+        }
+        if (st.timer == 0x38) {
+            st.timer = 0
+            st.unk34 = st.unk30
+            st.unk36 = st.unk32
+            hardware.lcd.setDispEnable(1, 0, 1, 1, 1)
+            val map = hardware.mapBuffer(2)
+            for (i in 0 until 0x280) map[i] = ((map[i].toInt() and 0x7FFF) or 0xF000).toShort()
             engine.breakProc(proc)
         } else {
             st.timer = (st.timer + 1) and 0xFFFF

@@ -24,7 +24,7 @@ import gbafe.render.SpriteObject
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
  * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `OpAnimEphraimfxFlyIn`; a stand-in
- * `PROC_BLOCK` sits where `OpAnimEphraimMergeShadow` would run.
+ * `PROC_BLOCK` sits where `OpAnimEphraimExit` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -82,6 +82,8 @@ public class OpAnim(
         public val characterBgPal: ShortArray,
         /** `gObject_32x8`, `gObject_8x32` (the split line's sprites). */
         public val splitLineObjs: Pair<SpriteObject, SpriteObject>,
+        /** `Obj_OpAnimEphEirikaName` (the name sprite). */
+        public val nameObj: SpriteObject,
     )
 
     /** `gGenericBuffer` (0x2000 bytes used here). */
@@ -157,6 +159,12 @@ public class OpAnim(
         /** `unk32`. */
         public var unk32: Int = 0
 
+        /** `unk34`. */
+        public var unk34: Int = 0
+
+        /** `unk36`. */
+        public var unk36: Int = 0
+
         /** `unk38`, `unk3A`, `unk3C`, `unk3E`, `unk46`. */
         public val unk38to46: IntArray = IntArray(5)
     }
@@ -192,7 +200,9 @@ public class OpAnim(
             repeat(ProcFunc { ephraimFlyIn(it) }),
             repeat(ProcFunc { setupSplitScreen(it) }),
             repeat(ProcFunc { advanceSplitLine(it) }),
-            block(), // not ported: OpAnimEphraimMergeShadow and the rest of the cutscene
+            repeat(ProcFunc { ephraimMergeShadow(it) }),
+            repeat(ProcFunc { ephraimDisplayName(it) }),
+            block(), // not ported: OpAnimEphraimExit and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -581,7 +591,8 @@ public class OpAnim(
 
     /**
      * `OpAnimHBlank1` (not verified yet: no frame trace covers it): BG2 uses map block 0x1E and
-     * BLDCNT 0xC46 from the first line, map block 0x1D and BLDCNT 0xC42 from line `gOpAnimSt.unk08`.
+     * BLDCNT 0xC46 from the first line, map block 0x1D and BLDCNT 0xC42 from line
+     * `gOpAnimSt.unk08`.
      */
     public val hBlank1: HBlankHandler = HBlankHandler { vcount, io ->
         fun put16(at: Int, v: Int) {
@@ -670,6 +681,54 @@ public class OpAnim(
             return
         }
         st.timer = (st.timer + 1) and 0xFFFF
+    }
+
+    /**
+     * Raises the shadow split (`gOpAnimSt.unk06`, 0xA0 to 0x78) over 0x10 steps with the split
+     * line at its end position, showing the name sprite from step 15; then breaks.
+     *
+     * Ported from src/opanim-main.c: OpAnimEphraimMergeShadow
+     */
+    public fun ephraimMergeShadow(proc: Proc) {
+        val st = proc.state as State
+        opAnimSt[3] = Interpolate.interpolate(Interpolate.RSQUARE, 0xA0, 0x78, st.timer, 0x10)
+            .toShort().toInt()
+        drawSplitLine(0xE8, 0x88)
+        if (st.timer > 0xE) putName(0x8C0 / 0x20)
+        if (st.timer == 0x10) {
+            st.timer = 0
+            engine.breakProc(proc)
+            return
+        }
+        st.timer = (st.timer + 1) and 0xFFFF
+    }
+
+    /**
+     * Shows the split line and the name sprite for 0x38 steps; then saves `unk30/32` into
+     * `unk34/36`, hides BG1, forces palette 15 on BG2's map and breaks.
+     *
+     * Ported from src/opanim-main.c: OpAnimEphraimDisplayName
+     */
+    public fun ephraimDisplayName(proc: Proc) {
+        val st = proc.state as State
+        drawSplitLine(0xE8, 0x88)
+        putName(0xB40 / 0x20)
+        if (st.timer == 0x38) {
+            st.timer = 0
+            st.unk34 = st.unk30
+            st.unk36 = st.unk32
+            hardware.lcd.setDispEnable(1, 0, 1, 1, 1)
+            val map = hardware.mapBuffer(2)
+            for (i in 0 until 0x280) map[i] = ((map[i].toInt() and 0x7FFF) or 0xF000).toShort()
+            engine.breakProc(proc)
+            return
+        }
+        st.timer = (st.timer + 1) and 0xFFFF
+    }
+
+    private fun putName(chr: Int) {
+        val g = ephraim ?: error("OpAnim.ephraim graphics not supplied")
+        sprites.putExt(1, 0x98, 0x88, g.nameObj, (2 shl 12) + chr)
     }
 
     /**

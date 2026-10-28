@@ -77,7 +77,8 @@ class ProcEngineDifferentialTest {
         "OpAnimPreparefxEphraim", "NewProc08AA6D04", "Proc08AA6D04Main", "OpAnimEphraimfxFlyIn", "Interpolate",
         "TsaModifyFirstPalMaybe", "sub_80C689C", "CopyFirstPalDirectly", "SetFirstPalDirectly", "ClearFirstPalDirectly",
         "OpAnimMergeBGProcInit", "OpAnimMergeBGProcUpdateBgPalette", "sub_80C7900",
-        "ClearSprites", "PutSpriteExt", "OpAnimDrawSplitLine", "OpAnim1AdvanceSplitLine")
+        "ClearSprites", "PutSpriteExt", "OpAnimDrawSplitLine", "OpAnim1AdvanceSplitLine", "OpAnimEphraimMergeShadow",
+        "OpAnimEphraimDisplayName")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -116,7 +117,8 @@ class ProcEngineDifferentialTest {
         val ephraim = OpAnim.EphraimGfx(pair(0x08AB7DD0, 0x08AB87E0), pair(0x08ABF168, 0x08AC1878),
             pair(0x08AC0BD8, 0x08AC1B98), pair(0x08ABB14C, 0x08ABC074), romPal(0x08AC1C8C, 16 * 11),
             pair(0x08ABE304, 0x08ABEF70), pair(0x08ABD348, 0x08ABE120), pair(0x08ABC22C, 0x08ABD174),
-            romPal(0x08AB8CAC, 16), obj(0x08590F9C) to obj(0x08590FA4))
+            romPal(0x08AB8CAC, 16), obj(0x08590F9C) to obj(0x08590FA4),
+            SpriteObject(0x08AA6BFA, romPal(0x08AA6BFA, 10)))
         opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx, worldMap, ephraim)
         val opAnim = opPort.script
         val parent = engine.start(ctrl.script, rootIndex)
@@ -137,6 +139,8 @@ class ProcEngineDifferentialTest {
         var flyInChecked = 0
         var splitChecked = 0
         var splitLineChecked = 0
+        var nameChecked = 0
+        var nameEnded = false
         var enabledSeen = false
         for (f in 401..LAST) {
             val e = ew(f)
@@ -170,7 +174,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && !midStep && ram <= 15) {
+                if (ram != null && !midStep && ram <= 17) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -224,6 +228,13 @@ class ProcEngineDifferentialTest {
                         if (ram == 13) flyInChecked++
                         if (ram == 14) splitChecked++
                         if (ram == 15) splitLineChecked++
+                        if (ram == 17) nameChecked++
+                        // unk34/36 hold the slot's old bytes until OpAnimEphraimDisplayName breaks (timer back to 0).
+                        if (ram == 17 && u16(e, op + 0x2A) == 0) {
+                            assertEquals(listOf(u16(e, op + 0x34), u16(e, op + 0x36)),
+                                listOf(os.unk34 and 0xFFFF, os.unk36 and 0xFFFF), "f$f op anim unk34/36")
+                            nameEnded = true
+                        }
                         assertEquals(spriteChain(e, 0) + spriteChain(e, 13), ourChain(opPort.sprites, 0) + ourChain(opPort.sprites, 13),
                             "f$f sprite layers")
                         val hb = u32(iw(f), sym["sHBlankHandler1"].address - GbaMem.IWRAM)
@@ -254,6 +265,8 @@ class ProcEngineDifferentialTest {
         assertTrue(flyInChecked >= 20, "OpAnimEphraimfxFlyIn checked on $flyInChecked frames")
         assertTrue(splitChecked >= 1, "sub_80C7900 checked on $splitChecked frames")
         assertTrue(splitLineChecked >= 16, "OpAnim1AdvanceSplitLine checked on $splitLineChecked frames")
+        assertTrue(nameChecked >= 50, "OpAnimEphraimDisplayName checked on $nameChecked frames")
+        assertTrue(nameEnded, "OpAnimEphraimDisplayName's last step checked")
         assertEquals(true, enabledSeen, "key combo reset enabled after the Nintendo logo")
     }
 

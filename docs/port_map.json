@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 80,
-    "implemented_unverified": 22
+    "verified": 104,
+    "implemented_unverified": 24
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -68,6 +68,33 @@
       "decomp_file": "src/time.c",
       "system": "core",
       "kotlin_file": "engine/input/src/main/kotlin/gbafe/input/KeyComboReset.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "ClearFirstPalDirectly": {
+      "decomp_file": "src/opanimfx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "ClearSprites": {
+      "decomp_file": "src/ctc.c",
+      "system": "presentation",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/SpriteLayers.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "CopyFirstPalDirectly": {
+      "decomp_file": "src/opanimfx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
@@ -338,6 +365,15 @@
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
       ]
     },
+    "Interpolate": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/core/src/main/kotlin/gbafe/core/math/Interpolate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
     "LoadRNState": {
       "decomp_file": "src/rng.c",
       "system": "core",
@@ -351,6 +387,15 @@
       "kotlin_file": "game/src/main/kotlin/fe8/game/GameLoop.kt",
       "status": "implemented",
       "tests": []
+    },
+    "NewProc08AA6D04": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
     },
     "NewProcOpAnimFadeIn": {
       "decomp_file": "src/opanim-main.c",
@@ -383,6 +428,15 @@
       "kotlin_file": "engine/core/src/main/kotlin/gbafe/core/rng/Rng.kt",
       "status": "implemented",
       "tests": []
+    },
+    "OpAnim1AdvanceSplitLine": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
     },
     "OpAnimAllBlack": {
       "decomp_file": "src/opanim-main.c",
@@ -429,6 +483,51 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "OpAnimDrawSplitLine": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "OpAnimEphraimDisplayName": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "OpAnimEphraimExit": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "OpAnimEphraimMergeShadow": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "OpAnimEphraimfxFlyIn": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
     "OpAnimFadeInMain": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
@@ -447,6 +546,33 @@
         "fe8.testing.OpAnimHsDifferentialTest#intro fades match gPaletteBuffer in the boot RAM trace"
       ]
     },
+    "OpAnimMergeBGProcInit": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "OpAnimMergeBGProcUpdateBgPalette": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "OpAnimPreparefxEirika": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
     "OpAnimPreparefxEphraim": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
@@ -457,6 +583,15 @@
       ]
     },
     "OpAnimUpdateScreen1": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "Proc08AA6D04Main": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
@@ -616,6 +751,29 @@
       "status": "implemented",
       "tests": []
     },
+    "PushSpriteLayerObjects": {
+      "decomp_file": "src/ctc.c",
+      "system": "presentation",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/SpriteLayers.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "PutSprite": {
+      "decomp_file": "src/ctc.c",
+      "system": "presentation",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/SpriteLayers.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "PutSpriteExt": {
+      "decomp_file": "src/ctc.c",
+      "system": "presentation",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/SpriteLayers.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
     "ResetKeyStatus": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -682,6 +840,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.OpAnimHsDifferentialTest#health and safety brightness pulse matches the boot RAM trace"
+      ]
+    },
+    "SetFirstPalDirectly": {
+      "decomp_file": "src/opanimfx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
     "SetGameTime": {
@@ -806,6 +973,15 @@
         "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
       ]
     },
+    "TsaModifyFirstPalMaybe": {
+      "decomp_file": "src/opanimfx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
     "UnlockGame": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -840,6 +1016,15 @@
         "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
       ]
     },
+    "sub_80C689C": {
+      "decomp_file": "src/opanimfx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
     "sub_80C69B0": {
       "decomp_file": "src/opanimfx.c",
       "system": "presentation",
@@ -859,6 +1044,51 @@
       ]
     },
     "sub_80C7050": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80C7900": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80C7F90": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80C8100": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80C8184": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80C8214": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",

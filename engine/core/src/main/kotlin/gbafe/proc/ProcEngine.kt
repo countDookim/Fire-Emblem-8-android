@@ -303,6 +303,19 @@ public class ProcEngine(
     }
 
     /**
+     * Ends every child of [parent] (and their subtrees), in array order.
+     *
+     * Ported from src/sysutil.c: EndAllProcChildren
+     */
+    public fun endAllChildren(parent: Proc) {
+        var proc: Proc? = null
+        while (true) {
+            proc = findAfterWithParent(proc, parent) ?: break
+            end(proc)
+        }
+    }
+
+    /**
      * Number of procs running [script], or of all live procs if [script] is null.
      *
      * Ported from src/proc.c: CountProcs

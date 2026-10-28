@@ -416,7 +416,8 @@ public class OpAnim(
             repeat(ProcFunc { fadeToWhite(it) }),
             sleep(0x20),
             label(0x63),
-            block(), // not ported: sub_80CBD7C (the cutscene's end)
+            call(ProcFunc { endCutscene(it) }),
+            sleep(1),
             end(),
         ),
         newState = { State() },
@@ -2302,6 +2303,25 @@ public class OpAnim(
         } else {
             st.timer = (st.timer + 1) and 0xFFFF
         }
+    }
+
+    /**
+     * Ends the cutscene: ends its children, the input watcher and the terminator, clears the
+     * HBlank handler and OBJ 1D mapping, sets palette entry 0 to `gOpAnimSt.pal` and hides all
+     * layers.
+     *
+     * Ported from src/opanim-main.c: sub_80CBD7C
+     */
+    public fun endCutscene(proc: Proc) {
+        val hw = hardware
+        engine.endAllChildren(proc)
+        engine.endEach(proc08AA6D04Script)
+        hw.hblank.setPrimary(null)
+        engine.end(engine.find(terminatorScript))
+        hw.lcd.dispcnt = hw.lcd.dispcnt and DISPCNT_OBJ_1D.inv()
+        hw.palette[0] = pal.toShort()
+        hw.enablePaletteSync()
+        hw.lcd.setDispEnable(0, 0, 0, 0, 0)
     }
 
     /** The ring pulse: blend `(i, 16)` with `i` rising 0..12 and falling back as `unk3E` advances. */

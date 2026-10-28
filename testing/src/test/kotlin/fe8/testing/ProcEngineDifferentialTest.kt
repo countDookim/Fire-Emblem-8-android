@@ -91,7 +91,8 @@ class ProcEngineDifferentialTest {
         "sub_80CA940", "sub_80CA9F8", "sub_80CAA38", "sub_80C8ED4", "sub_80CABB0", "sub_80C9024", "sub_80CAE20", "sub_80C9100", "sub_80CAF2C", "sub_80C9218",
         "sub_80CB0A0", "sub_80C9330", "sub_80CB20C", "sub_80C940C", "sub_80CB320",
         "sub_80C955C", "sub_80CB594", "sub_80C9638", "sub_80CB6A0", "sub_80C9750", "sub_80CB878", "sub_80C98A0",
-        "sub_80CBA64", "sub_80C99B8", "sub_80CBC40", "sub_80C9A94", "sub_80C9AFC")
+        "sub_80CBA64", "sub_80C99B8", "sub_80CBC40", "sub_80C9A94", "sub_80C9AFC",
+        "sub_80CBD7C", "EndAllProcChildren")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -249,6 +250,7 @@ class ProcEngineDifferentialTest {
         var ringOutChecked = 0
         var whiteChecked = 0
         var sleepChecked = 0
+        var endChecked = 0
         var fadeOutProcChecked = 0
         val sceneInChecked = IntArray(5)
         var enabledSeen = false
@@ -284,7 +286,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && !midStep && ram <= 148) {
+                if (ram != null && !midStep && ram <= 150) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -371,6 +373,7 @@ class ProcEngineDifferentialTest {
                         if (ram == 145) ringOutChecked++
                         if (ram == 146) whiteChecked++
                         if (ram == 147) sleepChecked++
+                        if (ram == 150) endChecked++
                         if (ram in 144..146 && f % 10 == 0) {
                             assertArrayEquals(dump(f, "vram").copyOfRange(0xF000, 0xF500),
                                 env.hardware.vram.copyOfRange(0xF000, 0xF500), "f$f blinking ring map")
@@ -508,6 +511,7 @@ class ProcEngineDifferentialTest {
         assertTrue(ringOutChecked >= 0x30, "sub_80C9A94 checked on $ringOutChecked frames")
         assertTrue(whiteChecked >= 0x30, "sub_80C9AFC checked on $whiteChecked frames")
         assertTrue(sleepChecked >= 0x1F, "the end's PROC_SLEEP checked on $sleepChecked frames")
+        assertTrue(endChecked >= 1, "sub_80CBD7C checked on $endChecked frames")
         assertTrue(ringBlinkChecked >= 1, "Tsa_OpAnimShiningRingBlinking checked on $ringBlinkChecked frames")
         assertTrue(faces4Checked >= 9, "sub_80C9100 checked on $faces4Checked frames")
         assertTrue(faces4InChecked >= 0xF, "sub_80CAF2C checked on $faces4InChecked frames")
@@ -539,7 +543,7 @@ class ProcEngineDifferentialTest {
         const val CAST_FADE_OUT_SCRIPT = 0x08AA707C // gUnknown_08AA707C
         const val CAST_DARKEN_SCRIPT = 0x08AA705C // gUnknown_08AA705C
         const val OP_ANIM_HBLANK1 = 0x080C7845 // OpAnimHBlank1 (Thumb)
-        const val LAST = 2906
+        const val LAST = 2908
         const val PROC_SIZE = 0x6C
 
         fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)

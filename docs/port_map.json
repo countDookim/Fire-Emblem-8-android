@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 79,
+    "verified": 80,
     "implemented_unverified": 22
   },
   "functions": {
@@ -445,6 +445,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.OpAnimHsDifferentialTest#intro fades match gPaletteBuffer in the boot RAM trace"
+      ]
+    },
+    "OpAnimPreparefxEphraim": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
     "OpAnimUpdateScreen1": {

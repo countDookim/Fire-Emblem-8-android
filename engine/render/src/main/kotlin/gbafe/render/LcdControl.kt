@@ -94,6 +94,47 @@ public class LcdControl {
         dispcnt = (dispcnt and 0x1F00.inv()) or (targets(bg0, bg1, bg2, bg3, obj) shl 8)
     }
 
+    /** The `SetWinEnable` macro (include/hardware.h): DISPCNT WIN0 / WIN1 / OBJ window bits. */
+    public fun setWinEnable(win0: Int, win1: Int, objWin: Int) {
+        val bits = ((win0 and 1) shl 13) or ((win1 and 1) shl 14) or ((objWin and 1) shl 15)
+        dispcnt = (dispcnt and 0xE000.inv()) or bits
+    }
+
+    /** The `SetWin0Box` macro (include/hardware.h): `win0_left/top/right/bottom` (u8 each). */
+    public fun setWin0Box(left: Int, top: Int, right: Int, bottom: Int) {
+        winH[1] = left and 0xFF
+        winV[1] = top and 0xFF
+        winH[0] = right and 0xFF
+        winV[0] = bottom and 0xFF
+    }
+
+    /** The `SetWin0Layers` macro (include/hardware.h): `wincnt.win0_enableBg0..Obj` (bits 0..4). */
+    public fun setWin0Layers(bg0: Int, bg1: Int, bg2: Int, bg3: Int, obj: Int) {
+        setWinLayers(0, bg0, bg1, bg2, bg3, obj)
+    }
+
+    /** The `SetWin1Layers` macro (include/hardware.h): `wincnt.win1_enableBg0..Obj` (bits 8..12). */
+    public fun setWin1Layers(bg0: Int, bg1: Int, bg2: Int, bg3: Int, obj: Int) {
+        setWinLayers(8, bg0, bg1, bg2, bg3, obj)
+    }
+
+    /** The `SetWOutLayers` macro (include/hardware.h): `wincnt.wout_enableBg0..Obj` (bits 16..20). */
+    public fun setWOutLayers(bg0: Int, bg1: Int, bg2: Int, bg3: Int, obj: Int) {
+        setWinLayers(16, bg0, bg1, bg2, bg3, obj)
+    }
+
+    /**
+     * Sets or clears a `wincnt` bit: 5 `win0_enableBlend`, 13 `win1_enableBlend`, 21
+     * `wout_enableBlend`, 29 `wobj_enableBlend` (or any other `wincnt` bit).
+     */
+    public fun setWincntBit(bit: Int, on: Boolean) {
+        wincnt = if (on) wincnt or (1 shl bit) else wincnt and (1 shl bit).inv()
+    }
+
+    private fun setWinLayers(shift: Int, bg0: Int, bg1: Int, bg2: Int, bg3: Int, obj: Int) {
+        wincnt = (wincnt and (0x1F shl shift).inv()) or (targets(bg0, bg1, bg2, bg3, obj) shl shift)
+    }
+
     private fun targets(bg0: Int, bg1: Int, bg2: Int, bg3: Int, obj: Int): Int =
         (bg0 and 1) or ((bg1 and 1) shl 1) or ((bg2 and 1) shl 2) or ((bg3 and 1) shl 3) or ((obj and 1) shl 4)
 

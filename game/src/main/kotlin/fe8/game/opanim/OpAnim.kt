@@ -17,11 +17,12 @@ import gbafe.proc.ProcScripts.startChild
 import gbafe.proc.ProcScripts.whileTrue
 import gbafe.proc.ProcScripts.yield
 import gbafe.render.BgHardware
+import gbafe.render.HBlankHandler
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
  * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `OpAnimEphraimfxFlyIn`; a stand-in
- * `PROC_BLOCK` sits where `sub_80C7900` would run.
+ * `PROC_BLOCK` sits where `OpAnim1AdvanceSplitLine` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -183,7 +184,8 @@ public class OpAnim(
             repeat(ProcFunc { prepareEphraim(it) }),
             call(ProcFunc { newProc08AA6D04() }),
             repeat(ProcFunc { ephraimFlyIn(it) }),
-            block(), // not ported: sub_80C7900 and the rest of the cutscene
+            repeat(ProcFunc { setupSplitScreen(it) }),
+            block(), // not ported: OpAnim1AdvanceSplitLine and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -568,6 +570,49 @@ public class OpAnim(
             }
         }
         st.timer = (st.timer + 1) and 0xFFFF
+    }
+
+    /**
+     * `OpAnimHBlank1` (not verified yet: no frame trace covers it): BG2 uses map block 0x1E and
+     * BLDCNT 0xC46 from the first line, map block 0x1D and BLDCNT 0xC42 from line `gOpAnimSt.unk08`.
+     */
+    public val hBlank1: HBlankHandler = HBlankHandler { vcount, io ->
+        fun put16(at: Int, v: Int) {
+            io[at] = v.toByte()
+            io[at + 1] = (v shr 8).toByte()
+        }
+        if (((vcount - 1) and 0xFFFF) > 0x9F) {
+            put16(0x0C, (u16(io, 0x0C) and 0xC0FF) or 0x1E00)
+            put16(0x50, 0xC46)
+        }
+        val split = opAnimSt[4] and 0xFFFF
+        if (vcount == split || split == 0) {
+            put16(0x0C, (u16(io, 0x0C) and 0xC0FF) or 0x1D00)
+            put16(0x50, 0xC42)
+        }
+    }
+
+    /**
+     * Sets up the split screen: [hBlank1], window 0 (`gOpAnimSt.x` wide) and the outside window,
+     * BG2 map at 0xF000, blend target A BG1/BG2, then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C7900
+     */
+    public fun setupSplitScreen(proc: Proc) {
+        val hw = hardware
+        val lcd = hw.lcd
+        hw.hblank.setPrimary(hBlank1)
+        lcd.setWinEnable(1, 0, 0)
+        lcd.setWin0Layers(1, 1, 1, 1, 1)
+        lcd.setWin1Layers(1, 1, 0, 1, 1)
+        lcd.setWOutLayers(0, 1, 1, 1, 1)
+        lcd.setDispEnable(1, 1, 1, 1, 1)
+        lcd.setWincntBit(5, true)
+        lcd.setWincntBit(21, true)
+        lcd.setWin0Box(0, 0, opAnimSt[0], 0xA0)
+        hw.setMapDataOffset(2, 0xF000)
+        lcd.setBlendTargetA(0, 1, 1, 0, 0)
+        engine.breakProc(proc)
     }
 
     /**

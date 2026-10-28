@@ -52,7 +52,7 @@ class ProcEngineDifferentialTest {
         "OpAnimUpdateScreen1", "sub_80C6F70", "sub_80C69B0", "NewProcOpAnimFadeIn", "OpAnimAllBlack", "OpAnimFadeInMain", "sub_80C7050",
         "OpAnimPreparefxEphraim", "NewProc08AA6D04", "Proc08AA6D04Main", "OpAnimEphraimfxFlyIn", "Interpolate",
         "TsaModifyFirstPalMaybe", "sub_80C689C", "CopyFirstPalDirectly", "SetFirstPalDirectly", "ClearFirstPalDirectly",
-        "OpAnimMergeBGProcInit", "OpAnimMergeBGProcUpdateBgPalette")
+        "OpAnimMergeBGProcInit", "OpAnimMergeBGProcUpdateBgPalette", "sub_80C7900")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -109,6 +109,7 @@ class ProcEngineDifferentialTest {
         var opChecked = 0
         var ephraimChecked = 0
         var flyInChecked = 0
+        var splitChecked = 0
         var enabledSeen = false
         for (f in 401..LAST) {
             val e = ew(f)
@@ -139,7 +140,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && !midStep && ram <= 13) {
+                if (ram != null && !midStep && ram <= 14) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -167,6 +168,7 @@ class ProcEngineDifferentialTest {
                     }
                     val opSt = sym["gOpAnimSt"].address - GbaMem.EWRAM
                     assertEquals(u16(e, opSt + 0x0C), opPort.pal, "f$f gOpAnimSt.pal")
+                    val lcd = LcdControl().apply { readFrom(iw(f), sym["gLCDControlBuffer"].address - GbaMem.IWRAM) }
                     if (ram >= 11) {
                         val os = ours.state as OpAnim.State
                         assertEquals((0 until 6).map { u16(e, opSt + 2 * it) }, opPort.opAnimSt.map { it and 0xFFFF },
@@ -190,10 +192,14 @@ class ProcEngineDifferentialTest {
                         if (merge != null) assertEquals(listOf((u32(e, merge + 4) - MERGE_BG_SCRIPT) / 8, u16(e, merge + 0x4C)),
                             listOf(ourMerge!!.scrCur, (ourMerge.state as OpAnim.MergeBgState).timer and 0xFFFF), "f$f merge BG scrCur, timer")
                         if (ram == 13) flyInChecked++
+                        if (ram == 14) splitChecked++
+                        val hb = u32(iw(f), sym["sHBlankHandler1"].address - GbaMem.IWRAM)
+                        assertEquals(hb == OP_ANIM_HBLANK1, env.hardware.hblank.primary === opPort.hBlank1, "f$f sHBlankHandler1")
+                        assertEquals(listOf(lcd.wincnt) + lcd.winH.toList() + lcd.winV.toList(),
+                            listOf(env.lcd.wincnt) + env.lcd.winH.toList() + env.lcd.winV.toList(), "f$f wincnt, win0/1 boxes")
                         ephraimChecked++
                     }
                     assertArrayEquals(palette(e), env.paletteBuffer, "f$f gPaletteBuffer (op anim)")
-                    val lcd = LcdControl().apply { readFrom(iw(f), sym["gLCDControlBuffer"].address - GbaMem.IWRAM) }
                     assertEquals(listOf(lcd.dispcnt, lcd.bldcnt, lcd.blendCoeffA, lcd.blendCoeffB, lcd.blendY) + lcd.bgCnt.toList() + lcd.bgHofs.toList() + lcd.bgVofs.toList(),
                         listOf(env.lcd.dispcnt, env.lcd.bldcnt, env.lcd.blendCoeffA, env.lcd.blendCoeffB, env.lcd.blendY) + env.lcd.bgCnt.toList() + env.lcd.bgHofs.toList() + env.lcd.bgVofs.toList(),
                         "f$f dispcnt, bldcnt, BLDALPHA, BLDY, bgcnt, bg offsets")
@@ -213,6 +219,7 @@ class ProcEngineDifferentialTest {
         assertTrue(opChecked >= 300, "op anim checked on $opChecked frames")
         assertTrue(ephraimChecked >= 6, "OpAnimPreparefxEphraim checked on $ephraimChecked frames")
         assertTrue(flyInChecked >= 20, "OpAnimEphraimfxFlyIn checked on $flyInChecked frames")
+        assertTrue(splitChecked >= 1, "sub_80C7900 checked on $splitChecked frames")
         assertEquals(true, enabledSeen, "key combo reset enabled after the Nintendo logo")
     }
 
@@ -225,6 +232,7 @@ class ProcEngineDifferentialTest {
         const val FADE_IN_SCRIPT = 0x08AA6CBC // ProcScr_OpAnimFadeIn
         const val PROC_6D04_SCRIPT = 0x08AA6D04 // ProcScr_08AA6D04
         const val MERGE_BG_SCRIPT = 0x08AA7034 // ProcScr_OpAnimMergeBG
+        const val OP_ANIM_HBLANK1 = 0x080C7845 // OpAnimHBlank1 (Thumb)
         const val LAST = 1100
         const val PROC_SIZE = 0x6C
 

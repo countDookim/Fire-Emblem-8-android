@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 153,
+    "verified": 157,
     "implemented_unverified": 24
   },
   "functions": {
@@ -1322,6 +1322,15 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "sub_80C9330": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
     "sub_80C9B6C": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
@@ -1530,6 +1539,33 @@
       ]
     },
     "sub_80CAF2C": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80CB0A0": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80CB20C": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "sub_80CB320": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",

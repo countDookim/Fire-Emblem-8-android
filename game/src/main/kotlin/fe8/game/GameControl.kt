@@ -9,11 +9,13 @@ import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.block
 import gbafe.proc.ProcScripts.call
 import gbafe.proc.ProcScripts.end
+import gbafe.proc.ProcScripts.goto
 import gbafe.proc.ProcScripts.label
 import gbafe.proc.ProcScripts.mark
 import gbafe.proc.ProcScripts.name
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.startChildBlocking
+import gbafe.proc.ProcScripts.yield
 
 /**
  * The game control proc `gProcScr_GameControl` (decomp `src/gamecontrol.c`), the root of the game's
@@ -74,7 +76,38 @@ public class GameControl(
             label(LGAMECTRL_OP_ANIM),
             call(ProcFunc { enableSoundEffects() }),
             startChildBlocking(opAnimScript),
-            block(), // not ported: GameControl_PostIntro, class reel, title, ...
+            call(ProcFunc { postIntro(it) }),
+            yield(),
+            goto(LGAMECTRL_TITLE_DIRECT),
+            label(LGAMECTRL_CLASS_REEL),
+            block(), // not ported: GamceControl_StartClassReel
+            call(ProcFunc { postClassReel(it) }),
+            yield(),
+            goto(LGAMECTRL_OP_ANIM),
+            label(3),
+            yield(),
+            block(), // not ported: sub_8009A84
+            call(ProcFunc { postClassReel(it) }),
+            yield(),
+            goto(LGAMECTRL_OP_ANIM),
+            label(LGAMECTRL_TITLE_DIRECT),
+            call(ProcFunc { enableSoundEffects() }),
+            call(ProcFunc { startTitleScreen(it) }), // StartTitleScreen_WithMusic
+            goto(LGAMECTRL_POST_TITLE_IDLE),
+            label(24),
+            call(ProcFunc { enableSoundEffects() }),
+            call(ProcFunc { startTitleScreen(it) }), // StartTitleScreen_FlagTrue
+            goto(LGAMECTRL_POST_TITLE_IDLE),
+            label(25),
+            call(ProcFunc { enableSoundEffects() }),
+            call(ProcFunc { startTitleScreen(it) }), // StartTitleScreen_FlagFalse
+            goto(LGAMECTRL_POST_TITLE_IDLE),
+            label(LGAMECTRL_POST_TITLE_IDLE),
+            yield(),
+            call(ProcFunc { postIntro(it) }),
+            yield(),
+            goto(LGAMECTRL_OP_ANIM),
+            block(), // not ported: save menu, battle map, chapters, ...
             end(),
         ),
         newState = { State() },
@@ -108,6 +141,48 @@ public class GameControl(
      */
     public fun enableSoundEffects() {
         playStConfig = playStConfig and (CONFIG_DISABLE_BGM or CONFIG_DISABLE_SOUND_EFFECTS).inv()
+    }
+
+    /**
+     * Stand-in for the title screen (task M4-10): a blocking child that holds the game control
+     * proc where the title screen would.
+     */
+    public val titleStandInScript: ProcScript = ProcScript("gProcScr_TitleScreen (stand-in)", listOf(block()))
+
+    private fun startTitleScreen(proc: Proc) {
+        engine.startBlocking(titleStandInScript, proc)
+    }
+
+    /**
+     * Branches after the op anim or the title screen on `nextAction`: title (skipped), title with
+     * flag (played through), class reel or op anim (alternating on `idle_status`), save menu (event
+     * return; `sub_8009AD8` is not modelled).
+     *
+     * Partially ported from src/gamecontrol.c: GameControl_PostIntro
+     */
+    public fun postIntro(proc: Proc) {
+        val st = proc.state as State
+        when (st.nextAction) {
+            GAME_ACTION_USR_SKIPPED -> engine.goto(proc, LGAMECTRL_TITLE_DIRECT)
+            GAME_ACTION_EVENT_RETURN -> engine.goto(proc, LGAMECTRL_EXEC_SAVEMENU)
+            GAME_ACTION_CLASS_REEL -> {
+                engine.goto(proc, if (st.idleStatus and 1 == 0) LGAMECTRL_CLASS_REEL else LGAMECTRL_OP_ANIM)
+                st.idleStatus++
+            }
+            GAME_ACTION_PLAYED_THROUGH -> engine.goto(proc, 24)
+        }
+    }
+
+    /**
+     * After the class reel: title on event return, op anim on class reel.
+     *
+     * Ported from src/gamecontrol.c: sub_8009B64
+     */
+    public fun postClassReel(proc: Proc) {
+        when ((proc.state as State).nextAction) {
+            GAME_ACTION_EVENT_RETURN -> engine.goto(proc, LGAMECTRL_TITLE_DIRECT)
+            GAME_ACTION_CLASS_REEL -> engine.goto(proc, LGAMECTRL_OP_ANIM)
+        }
     }
 
     /**
@@ -154,6 +229,18 @@ public class GameControl(
         /** `LGAMECTRL_OP_ANIM`. */
         public const val LGAMECTRL_OP_ANIM: Int = 1
 
+        /** `LGAMECTRL_CLASS_REEL`. */
+        public const val LGAMECTRL_CLASS_REEL: Int = 2
+
+        /** `LGAMECTRL_TITLE_DIRECT`. */
+        public const val LGAMECTRL_TITLE_DIRECT: Int = 4
+
+        /** `LGAMECTRL_EXEC_SAVEMENU`. */
+        public const val LGAMECTRL_EXEC_SAVEMENU: Int = 5
+
+        /** `LGAMECTRL_POST_TITLE_IDLE`. */
+        public const val LGAMECTRL_POST_TITLE_IDLE: Int = 26
+
         /** `LGAMECTRL_ERASE_SAVE`. */
         public const val LGAMECTRL_ERASE_SAVE: Int = 18
 
@@ -162,6 +249,9 @@ public class GameControl(
 
         /** `GAME_ACTION_USR_SKIPPED`. */
         public const val GAME_ACTION_USR_SKIPPED: Int = 2
+
+        /** `GAME_ACTION_CLASS_REEL`. */
+        public const val GAME_ACTION_CLASS_REEL: Int = 1
 
         /** `GAME_ACTION_PLAYED_THROUGH`. */
         public const val GAME_ACTION_PLAYED_THROUGH: Int = 3

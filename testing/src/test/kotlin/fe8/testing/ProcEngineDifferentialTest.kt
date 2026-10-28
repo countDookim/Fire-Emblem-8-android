@@ -474,7 +474,7 @@ class ProcEngineDifferentialTest {
             assertArrayEquals(palette(e), env.paletteBuffer, "f$f gPaletteBuffer")
         }
         assertEquals(LAST - 474, ended) // f475..
-        assertEquals(LAST - 475, opStarted) // f476..
+        assertEquals(OP_END - 475, opStarted) // f476..f2908; then GAMECTRL starts the title screen (stand-in)
         assertTrue(opChecked >= 300, "op anim checked on $opChecked frames")
         assertTrue(ephraimChecked >= 6, "OpAnimPreparefxEphraim checked on $ephraimChecked frames")
         assertTrue(flyInChecked >= 20, "OpAnimEphraimfxFlyIn checked on $flyInChecked frames")
@@ -543,7 +543,8 @@ class ProcEngineDifferentialTest {
         const val CAST_FADE_OUT_SCRIPT = 0x08AA707C // gUnknown_08AA707C
         const val CAST_DARKEN_SCRIPT = 0x08AA705C // gUnknown_08AA705C
         const val OP_ANIM_HBLANK1 = 0x080C7845 // OpAnimHBlank1 (Thumb)
-        const val LAST = 2908
+        const val LAST = 3000
+        const val OP_END = 2908
         const val PROC_SIZE = 0x6C
 
         fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)

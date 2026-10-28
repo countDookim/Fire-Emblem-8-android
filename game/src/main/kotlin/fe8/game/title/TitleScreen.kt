@@ -17,7 +17,7 @@ import gbafe.render.BgHardware
 /**
  * The title screen `gProcScr_TitleScreen` (decomp `src/titlescreen.c`). Work in progress (task
  * M4-10): only its start (init and main graphics) exists; stand-in `PROC_BLOCK`s hold the rest.
- * Not verified yet (no `@VerifiesPort` test).
+ * Not yet started by [fe8.game.GameControl] (it still uses a stand-in proc).
  */
 public class TitleScreen(
     /** Proc engine. */
@@ -80,7 +80,12 @@ public class TitleScreen(
         newState = { State() },
     )
 
-    /** Starts the title screen as a blocking child of [parent] with [mode] (`StartTitleScreen_*`). */
+    /**
+     * Starts the title screen as a blocking child of [parent] with [mode] (1 after the op anim
+     * played through). `StartTitleScreen_WithMusic` / `_FlagFalse` use mode 0 (BGM not modelled).
+     *
+     * Ported from src/titlescreen.c: StartTitleScreen_FlagTrue
+     */
     public fun start(parent: Proc, mode: Int): Proc? =
         engine.startBlocking(script, parent)?.also { (it.state as State).mode = mode }
 
@@ -88,7 +93,7 @@ public class TitleScreen(
      * Resets the display: mode 0, all layers and windows off, BG offsets/sizes/priorities, maps
      * cleared, default colour effects.
      *
-     * Ported from src/titlescreen.c: Title_Init (not verified yet)
+     * Ported from src/titlescreen.c: Title_Init
      */
     public fun init(proc: Proc) {
         val hw = hardware
@@ -120,7 +125,7 @@ public class TitleScreen(
      * Loads the main background, dragon, logo and "Press Start" graphics over 5 steps; then
      * breaks.
      *
-     * Ported from src/titlescreen.c: Title_SetupMainGraphics (not verified yet)
+     * Ported from src/titlescreen.c: Title_SetupMainGraphics
      */
     public fun setupMainGraphics(proc: Proc) {
         val st = proc.state as State

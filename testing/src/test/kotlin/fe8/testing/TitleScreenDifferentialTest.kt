@@ -2,6 +2,7 @@ package fe8.testing
 
 import fe8.game.opanim.OpAnimHs
 import fe8.game.title.TitleScreen
+import gbafe.core.VerifiesPort
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.block
@@ -10,7 +11,6 @@ import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.io.File
 
@@ -34,7 +34,7 @@ class TitleScreenDifferentialTest {
         ShortArray(n) { u16(ew, sym[name].address - GbaMem.EWRAM + 2 * it).toShort() }
 
     @Test
-    @Disabled("wip M4-10: f2910 game timer 0 at scrCur 4 (repeat not yet run), ours 1; see HANDOFF")
+    @VerifiesPort("StartTitleScreen_FlagTrue", "Title_Init", "Title_SetupMainGraphics")
     fun `title screen start matches the per-frame RAM trace`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -61,14 +61,19 @@ class TitleScreenDifferentialTest {
             val e = ew(f)
             val o = procAt(e) ?: break
             val scr = (u32(e, o + 4) - TITLE_SCRIPT) / 8
-            engine.run(engine.root(3)) // started in this frame's step, it runs again when the tree walk reaches it
+            // Decompressions overrun: a dump with gBmSt.main_loop_ended 0 is mid-step (compare nothing), and the
+            // frame after one starts no new step.
+            val lagging = ew(f - 1)[sym["gBmSt"].address - GbaMem.EWRAM].toInt() == 0
+            val midStep = e[sym["gBmSt"].address - GbaMem.EWRAM].toInt() == 0
+            if (!lagging) engine.run(engine.root(3))
+            if (midStep) continue
             val ours = engine.find(title.script)!!
             assertEquals(scr, ours.scrCur, "f$f title scrCur")
             if (scr >= 10) break // label 0's stand-in
             assertEquals(u16(e, o + 0x2A), (ours.state as TitleScreen.State).timer, "f$f timer")
             assertArrayEquals(shorts(e, "gPaletteBuffer", 512), hw.palette, "f$f gPaletteBuffer")
             for (bg in 0..1) assertArrayEquals(shorts(e, "gBG${bg}TilemapBuffer", 0x400), hw.mapBuffer(bg), "f$f BG$bg map")
-            val lcd = hw.lcd.also { } // compare a fresh read of the game's buffer
+            val lcd = hw.lcd
             val g = BgHardware().lcd.apply { readFrom(iw(f), sym["gLCDControlBuffer"].address - GbaMem.IWRAM) }
             assertEquals(listOf(g.dispcnt, g.bldcnt) + g.bgCnt.toList(), listOf(lcd.dispcnt, lcd.bldcnt) + lcd.bgCnt.toList(),
                 "f$f dispcnt, bldcnt, bgcnt")

@@ -12,6 +12,7 @@ import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.block
 import gbafe.proc.ProcScripts.call
 import gbafe.proc.ProcScripts.end
+import gbafe.proc.ProcScripts.endEach
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.setEndCb
 import gbafe.proc.ProcScripts.startChild
@@ -24,8 +25,8 @@ import gbafe.render.SpriteObject
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
- * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through the cast scroll's last
- * `sub_80C8564`; a stand-in `PROC_BLOCK` sits where `gUnknown_08AA707C` would start.
+ * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80CA4A4`; a stand-in
+ * `PROC_BLOCK` sits where `sub_80CA4DC` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -317,7 +318,11 @@ public class OpAnim(
                 call(ProcFunc { setupCastScroll(it) }),
             )
         } + listOf(
-            block(), // not ported: gUnknown_08AA707C and the rest of the cutscene
+            startChild { castBrightenScript },
+            endEach { bg3ScrollScript },
+            repeat(ProcFunc { castScrollEnd(it) }),
+            call(ProcFunc { showObjOnly() }),
+            block(), // not ported: sub_80CA4DC and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -1660,8 +1665,66 @@ public class OpAnim(
         st.timer = (st.timer + 1) and 0xFFFF
     }
 
-    /** `gUnknown_08AA707C` (not ported yet: only ended here, by script identity). */
-    public val castBrightenScript: ProcScript = ProcScript("gUnknown_08AA707C", listOf(end()))
+    /** `gUnknown_08AA707C`: darkens BG2 from 0 to 12/16 over 0x28 steps; resets the blend when ended. */
+    public val castBrightenScript: ProcScript = ProcScript(
+        "gUnknown_08AA707C",
+        listOf(
+            setEndCb(ProcFunc { hardware.lcd.setBlendConfig(0, 0x10, 0, 0) }), // sub_80C8684
+            call(ProcFunc { castFadeOutInit(it) }),
+            repeat(ProcFunc { castFadeOutMain(it) }),
+            end(),
+        ),
+        newState = { BlendState() },
+    )
+
+    /**
+     * Sets a darken blend (0) on BG2 and clears the timer.
+     *
+     * Ported from src/opanim-main.c: sub_80C8608
+     */
+    public fun castFadeOutInit(proc: Proc) {
+        hardware.lcd.setBlendConfig(3, 8, 8, 0)
+        hardware.lcd.setBlendTargetA(0, 0, 1, 0, 0)
+        (proc.state as BlendState).timer = 0
+    }
+
+    /**
+     * Raises the darkening from 0 to 12 over 0x28 steps, then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C8638
+     */
+    public fun castFadeOutMain(proc: Proc) {
+        val st = proc.state as BlendState
+        hardware.lcd.setBlendConfig(3, 8, 8, Interpolate.interpolate(Interpolate.LINEAR, 0, 12, st.timer, 0x28))
+        if (st.timer == 0x28) engine.breakProc(proc) else st.timer = (st.timer + 1) and 0xFFFF
+    }
+
+    /**
+     * Keeps scrolling the cast lines for 0x28 steps, then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C8CE4
+     */
+    public fun castScrollEnd(proc: Proc) {
+        val st = proc.state as State
+        advanceCastScroll(st)
+        if (st.timer == 0x28) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /**
+     * Ends the darkening proc and shows only OBJ, with no blend.
+     *
+     * Ported from src/opanim-main.c: sub_80CA4A4
+     */
+    public fun showObjOnly() {
+        engine.endEach(castBrightenScript)
+        hardware.lcd.setDispEnable(0, 0, 0, 0, 1)
+        hardware.lcd.setBlendConfig(0, 0x10, 0, 0)
+    }
 
     private fun putName(chr: Int) {
         val g = ephraim ?: error("OpAnim.ephraim graphics not supplied")

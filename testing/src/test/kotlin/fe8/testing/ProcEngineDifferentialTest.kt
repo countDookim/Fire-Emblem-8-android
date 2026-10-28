@@ -85,7 +85,8 @@ class ProcEngineDifferentialTest {
         "sub_80C8554", "sub_80C9DF0", "sub_80C9E6C", "sub_80C9B6C", "sub_80C9C08", "sub_80C9FF8",
         "sub_80CA10C", "sub_80CA26C", "sub_80CA3B8", "sub_80C9EE8", "sub_80C9F7C",
         "sub_80C883C", "sub_80C8934", "sub_80C8A20", "sub_80C8B0C", "sub_80C8BF8",
-        "sub_80C9C5C", "sub_80C9CAC", "sub_80C9CFC", "sub_80C9D4C", "sub_80C9DA0")
+        "sub_80C9C5C", "sub_80C9CAC", "sub_80C9CFC", "sub_80C9D4C", "sub_80C9DA0",
+        "sub_80C8608", "sub_80C8638", "sub_80C8684", "sub_80C8CE4", "sub_80CA4A4")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -186,6 +187,8 @@ class ProcEngineDifferentialTest {
         var joshuaInChecked = 0
         val sceneOutChecked = IntArray(3)
         val sceneLoadChecked = IntArray(5)
+        var castEndChecked = 0
+        var fadeOutProcChecked = 0
         val sceneInChecked = IntArray(5)
         var enabledSeen = false
         for (f in 401..LAST) {
@@ -220,7 +223,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && !midStep && ram <= 88) {
+                if (ram != null && !midStep && ram <= 92) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -287,6 +290,15 @@ class ProcEngineDifferentialTest {
                         if (ram == 34) joshuaInChecked++
                         if (ram in 35..36) sceneOutChecked[ram - 35]++
                         if (ram == 38) sceneOutChecked[2]++
+                        if (ram == 92) castEndChecked++
+                        val fo = procAt(e, CAST_FADE_OUT_SCRIPT)
+                        val ourFo = engine.find(opPort.castBrightenScript)
+                        assertEquals(fo != null, ourFo != null, "f$f gUnknown_08AA707C")
+                        if (fo != null) {
+                            assertEquals(listOf((u32(e, fo + 4) - CAST_FADE_OUT_SCRIPT) / 8, u16(e, fo + 0x4C)),
+                                listOf(ourFo!!.scrCur, (ourFo.state as OpAnim.BlendState).timer), "f$f 707C scrCur, timer")
+                            fadeOutProcChecked++
+                        }
                         if (ram >= 40 && (ram - 40) % 10 == 0) sceneLoadChecked[(ram - 40) / 10]++
                         if (ram >= 44 && (ram - 44) % 10 == 0) sceneInChecked[(ram - 44) / 10]++
                         assertEquals(procAt(e, BG3_SCROLL_SCRIPT) != null, engine.find(opPort.bg3ScrollScript) != null,
@@ -380,6 +392,8 @@ class ProcEngineDifferentialTest {
         assertTrue(joshuaChecked >= 0x28, "sub_80C8690 checked on $joshuaChecked frames")
         assertTrue(castFadeChecked >= 0x10, "sub_80C9E6C checked on $castFadeChecked frames")
         assertTrue(joshuaInChecked >= 0x1E, "sub_80C9FF8 checked on $joshuaInChecked frames")
+        assertTrue(castEndChecked >= 0x28, "sub_80C8CE4 checked on $castEndChecked frames")
+        assertTrue(fadeOutProcChecked >= 0x28, "gUnknown_08AA707C checked on $fadeOutProcChecked frames")
         assertTrue(sceneLoadChecked.all { it >= 0x28 }, "sub_80C883C..8BF8 checked on ${sceneLoadChecked.toList()} frames")
         assertTrue(sceneInChecked.all { it >= 0x1E }, "sub_80C9C5C..9DA0 (scroll-in) checked on ${sceneInChecked.toList()} frames")
         assertTrue(sceneOutChecked.all { it >= 0x10 }, "sub_80CA10C, sub_80CA3B8, sub_80C9F7C checked on ${sceneOutChecked.toList()} frames")
@@ -396,6 +410,7 @@ class ProcEngineDifferentialTest {
         const val PROC_6D04_SCRIPT = 0x08AA6D04 // ProcScr_08AA6D04
         const val MERGE_BG_SCRIPT = 0x08AA7034 // ProcScr_OpAnimMergeBG
         const val BG3_SCROLL_SCRIPT = 0x08AA704C // gUnknown_08AA704C
+        const val CAST_FADE_OUT_SCRIPT = 0x08AA707C // gUnknown_08AA707C
         const val CAST_DARKEN_SCRIPT = 0x08AA705C // gUnknown_08AA705C
         const val OP_ANIM_HBLANK1 = 0x080C7845 // OpAnimHBlank1 (Thumb)
         const val LAST = 2600

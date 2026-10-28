@@ -108,6 +108,14 @@ public class LcdControl {
         winV[0] = bottom and 0xFF
     }
 
+    /** The `SetWin1Box` macro (include/hardware.h): `win1_left/top/right/bottom` (u8 each). */
+    public fun setWin1Box(left: Int, top: Int, right: Int, bottom: Int) {
+        winH[3] = left and 0xFF
+        winV[3] = top and 0xFF
+        winH[2] = right and 0xFF
+        winV[2] = bottom and 0xFF
+    }
+
     /** The `SetWin0Layers` macro (include/hardware.h): `wincnt.win0_enableBg0..Obj` (bits 0..4). */
     public fun setWin0Layers(bg0: Int, bg1: Int, bg2: Int, bg3: Int, obj: Int) {
         setWinLayers(0, bg0, bg1, bg2, bg3, obj)

@@ -1987,8 +1987,9 @@ public class OpAnim(
      * Pulses the ring with [period] and loads [faces] into OBJ VRAM (one per step from step 1);
      * breaks at step [last]. Each C function hard-codes its faces, period and last step.
      *
-     * Ported from src/opanim-main.c: sub_80C8ED4, sub_80C9024, sub_80C9100, sub_80C9218, sub_80C9330,
-     * sub_80C940C, sub_80C955C, sub_80C9638, sub_80C9750, sub_80C98A0, sub_80C99B8
+     * Ported from src/opanim-main.c: sub_80C8ED4, sub_80C9024, sub_80C9100, sub_80C9218
+     * Ported from src/opanim-main.c: sub_80C9330, sub_80C940C, sub_80C955C, sub_80C9638
+     * Ported from src/opanim-main.c: sub_80C9750, sub_80C98A0, sub_80C99B8
      */
     public fun loadFacesPulsed(proc: Proc, faces: List<Face>, period: Int, last: Int) {
         val st = proc.state as State

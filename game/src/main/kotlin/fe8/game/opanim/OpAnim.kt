@@ -35,6 +35,8 @@ public class OpAnim(
     public val gfx: Gfx,
     /** World map graphics loaded by [setupWorldMap]. */
     public val worldMap: WorldMapGfx,
+    /** Ephraim scene graphics loaded by [prepareEphraim] (null until a caller supplies them). */
+    public val ephraim: EphraimGfx? = null,
 ) {
     /** ROM data used by [setupWorldMap]. */
     public class WorldMapGfx(
@@ -51,6 +53,27 @@ public class OpAnim(
         /** `Pal_OpAnimWorldMap` (16 colours). */
         public val pal: ShortArray,
     )
+
+    /** ROM data used by [prepareEphraim], in `OpAnimPreparefxEphraim` order. */
+    public class EphraimGfx(
+        /** `Img_OpAnimCharacterBG`, `Tsa_OpAnimCharacterBG`. */
+        public val characterBg: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Img_OpAnimEphraimClose1`, `Tsa_OpAnimEphraimClose1`. */
+        public val close1: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Img_OpAnimEphraimClose2`, `Tsa_OpAnimEphraimClose2`. */
+        public val close2: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Img_OpAnimEphraim`, `Tsa_OpAnimEphraim`. */
+        public val ephraim: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Pal_OpAnimEphraimBlur` (11 palettes). */
+        public val blurPal: ShortArray,
+        /** `Img_OpAnimEphraimBlur3`, `Tsa_OpAnimEphraimBlur3`. */
+        public val blur3: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+        /** `Img_OpAnimEphraimBlur2`, `Tsa_OpAnimEphraimBlur2`. */
+        public val blur2: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
+    )
+
+    /** `gGenericBuffer` (0x2000 bytes used here). */
+    public val genericBuffer: ByteArray = ByteArray(0x2000)
 
     /** `struct ProcOpAnimFadeIn`. */
     public class FadeInState {
@@ -116,9 +139,18 @@ public class OpAnim(
         /** `unk2E`: BG1 y scroll. */
         public var unk2E: Int = 0
 
+        /** `unk30`. */
+        public var unk30: Int = 0
+
+        /** `unk32`. */
+        public var unk32: Int = 0
+
         /** `unk38`, `unk3A`, `unk3C`, `unk3E`, `unk46`. */
         public val unk38to46: IntArray = IntArray(5)
     }
+
+    /** `gOpAnimSt.x`, `y`, `unk04`, `unk06`, `unk08`, `unk0A` (s16 each). */
+    public val opAnimSt: IntArray = IntArray(6)
 
     /** `gOpAnimSt.pal`: colour forced into palette entry 0 by [copyToPal]. */
     public var pal: Int = 0
@@ -143,7 +175,9 @@ public class OpAnim(
             repeat(ProcFunc { worldMapScroll(it) }),
             call(ProcFunc { setupEphraimScene(it) }),
             yield(),
-            block(), // not ported: OpAnimPreparefxEphraim and the rest of the cutscene
+            repeat(ProcFunc { prepareEphraim(it) }),
+            call(ProcFunc { newProc08AA6D04() }),
+            block(), // not ported: OpAnimEphraimfxFlyIn and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -356,6 +390,109 @@ public class OpAnim(
         val st = proc.state as State
         st.timer = 0
         st.unk38to46.fill(0)
+    }
+
+    /**
+     * Loads the Ephraim scene over 7 steps (by `timer`: one or two ROM blobs per step), then sets
+     * up BG3 / palettes / `gOpAnimSt` and breaks.
+     *
+     * Ported from src/opanim-main.c: OpAnimPreparefxEphraim
+     */
+    public fun prepareEphraim(proc: Proc) {
+        val g = ephraim ?: error("OpAnim.ephraim graphics not supplied")
+        val hw = hardware
+        val vram = hw.vram
+        val buf = genericBuffer
+        val st = proc.state as State
+        fun dec(b: OpAnimHs.Blob, dst: ByteArray, at: Int) =
+            Decompress.into(b.data, b.offset, dst, at)
+        when (st.timer) {
+            0 -> {
+                dec(g.characterBg.first, vram, 0x2000 + hw.tileDataOffset(3))
+                val t = Decompress.decode(g.characterBg.second.data, g.characterBg.second.offset)
+                val map = hw.mapBuffer(3)
+                for (i in 0 until minOf(t.size / 2, map.size)) {
+                    map[i] = ((t[2 * i].toInt() and 0xFF) or
+                        ((t[2 * i + 1].toInt() and 0xFF) shl 8)).toShort()
+                }
+                for (i in 1 until 16) hw.palette[0xE0 + i] = 0x7FFF
+                for (i in 0 until 0x280) map[i] = (map[i] + 0xE100).toShort()
+                hw.enableBgSyncByMask(8)
+            }
+            1 -> {
+                dec(g.close1.first, vram, hw.tileDataOffset(0))
+                dec(g.close1.second, buf, 0)
+            }
+            2 -> {
+                dec(g.close2.first, vram, 0x2000 + hw.tileDataOffset(0))
+                dec(g.close2.second, buf, 0x800)
+            }
+            3 -> {
+                dec(g.ephraim.first, vram, hw.tileDataOffset(2))
+                dec(g.ephraim.second, buf, 0x1000)
+                copyToPal(g.blurPal, 0, 0x20 * 11)
+            }
+            4 -> {
+                dec(g.blur3.first, vram, 0x8000)
+                dec(g.blur3.second, vram, 0xC000)
+            }
+            5 -> {
+                dec(g.blur2.first, vram, 0xA000)
+                dec(g.blur2.second, vram, 0xC800)
+                for (i in 0 until 0x280) add16(vram, 0xC800 + 2 * i, 0x100)
+            }
+            6 -> {
+                for (i in 1 until 16) hw.palette[0xF0 + i] = 0
+                buf.copyInto(buf, 0x1800, 0x1000, 0x1800)
+                for (i in 0 until 0x280) {
+                    val o = 0x1800 + 2 * i
+                    val v = (buf[o].toInt() and 0xFF) or ((buf[o + 1].toInt() and 0xFF) shl 8)
+                    val n = (v and 0xFFF) or 0xF000
+                    buf[o] = n.toByte()
+                    buf[o + 1] = (n shr 8).toByte()
+                }
+                buf.copyInto(vram, 0xF000, 0x1800, 0x1D00)
+                hw.enablePaletteSync()
+                hw.lcd.setDispEnable(0, 1, 1, 1, 1)
+                st.timer = 0
+                st.unk30 = 0
+                st.unk32 = 0
+                opAnimSt[0] = 0
+                opAnimSt[1] = 0
+                opAnimSt[2] = 0
+                opAnimSt[3] = 0xA0
+                pal = 0
+                hw.setTileDataOffset(2, 0x8000)
+                engine.breakProc(proc)
+                return
+            }
+        }
+        st.timer = (st.timer + 1) and 0xFFFF
+    }
+
+    /**
+     * Copies `gOpAnimSt.y` / `unk06` into `unk08` / `unk0A` every VBlank.
+     *
+     * Not verified yet (no trace check): src/opanim-main.c: Proc08AA6D04Main
+     */
+    public fun proc08AA6D04Main() {
+        opAnimSt[4] = opAnimSt[1]
+        opAnimSt[5] = opAnimSt[3]
+    }
+
+    /** `ProcScr_08AA6D04` (runs on tree 0, VSync). */
+    public val proc08AA6D04Script: ProcScript = ProcScript(
+        "ProcScr_08AA6D04",
+        listOf(repeat(ProcFunc { proc08AA6D04Main() }), end()),
+    )
+
+    /**
+     * Starts [proc08AA6D04Script] on tree 0.
+     *
+     * Not verified yet (no trace check): src/opanim-main.c: NewProc08AA6D04
+     */
+    public fun newProc08AA6D04() {
+        engine.start(proc08AA6D04Script, 0)
     }
 
     /**

@@ -49,7 +49,8 @@ class ProcEngineDifferentialTest {
     @VerifiesPort("Proc_Start", "Proc_Run", "Proc_Break", "Proc_Goto", "Proc_End", "Proc_Find", "EnableKeyComboResetEN", "CheckCanKeyComboReset", "IncrementGameClock", "GetGameClock", "GameControl_EnableSoundEffects", "Proc_StartBlocking",
         "SetNextGameActionId", "CopyToPalOpAnim",
         "OpAnimBldAlphaUpdateBgPalette", "OpAnimBldAlphaExists", "OpAnimBldAlphaDelay", "OpAnimBldAlphaMain",
-        "OpAnimUpdateScreen1", "sub_80C6F70", "sub_80C69B0", "NewProcOpAnimFadeIn", "OpAnimAllBlack", "OpAnimFadeInMain", "sub_80C7050")
+        "OpAnimUpdateScreen1", "sub_80C6F70", "sub_80C69B0", "NewProcOpAnimFadeIn", "OpAnimAllBlack", "OpAnimFadeInMain", "sub_80C7050",
+        "OpAnimPreparefxEphraim")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -83,7 +84,11 @@ class ProcEngineDifferentialTest {
             listOf(0x08AF1B18, 0x08AF1FB0, 0x08AF2634, 0x08AF310C).map { romPal(it, 16) },
         )
         val worldMap = OpAnim.WorldMapGfx(blob(0x08AB21D8), blob(0x08AB5D90), blob(0x08AB632C), blob(0x08AB7AC0), romPal(0x08AB7DB0, 16), romPal(0x08AB630C, 16))
-        opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx, worldMap)
+        fun pair(img: Int, tsa: Int) = blob(img) to blob(tsa)
+        val ephraim = OpAnim.EphraimGfx(pair(0x08AB7DD0, 0x08AB87E0), pair(0x08ABF168, 0x08AC1878),
+            pair(0x08AC0BD8, 0x08AC1B98), pair(0x08ABB14C, 0x08ABC074), romPal(0x08AC1C8C, 16 * 11),
+            pair(0x08ABE304, 0x08ABEF70), pair(0x08ABD348, 0x08ABE120))
+        opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx, worldMap, ephraim)
         val opAnim = opPort.script
         val parent = engine.start(ctrl.script, rootIndex)
         parent.idleCb = null
@@ -99,15 +104,19 @@ class ProcEngineDifferentialTest {
         var ended = 0
         var opStarted = 0
         var opChecked = 0
+        var ephraimChecked = 0
         var enabledSeen = false
         for (f in 401..LAST) {
             val e = ew(f)
             keys.readFrom(e, sym["sKeyStatusBuffer"].address - GbaMem.EWRAM)
             clock.increment()
-            // SetupOpAnimWorldMapfx (two large decompressions) overruns: while the previous dump shows the op anim
-            // inside that call (scrCur 4), the game is still finishing that step and starts none.
-            val prevOp = procAt(ew(f - 1), OP_ANIM_SCRIPT)
-            val lagging = prevOp != null && (u32(ew(f - 1), prevOp + 4) - OP_ANIM_SCRIPT) / 8 == 4
+            // Large decompressions (SetupOpAnimWorldMapfx, OpAnimPreparefxEphraim) overrun: while the previous dump
+            // shows a step still running (gBmSt.main_loop_ended 0), the game is still finishing it and starts none.
+            val lagging = ew(f - 1)[sym["gBmSt"].address - GbaMem.EWRAM].toInt() == 0
+            val midStep = e[sym["gBmSt"].address - GbaMem.EWRAM].toInt() == 0
+            // gGenericBuffer holds earlier screens' leftovers the op anim only partly overwrites: start from the game's.
+            if (f == 843) ew(f - 1).copyInto(opPort.genericBuffer, 0, sym["gGenericBuffer"].address - GbaMem.EWRAM,
+                sym["gGenericBuffer"].address - GbaMem.EWRAM + 0x2000)
             if (!lagging) engine.run(engine.root(rootIndex))
             val i = iw(f)
             assertEquals(i[sym["gKeyComboResetEN"].address - GbaMem.IWRAM].toInt() != 0, combo.canReset(), "f$f gKeyComboResetEN")
@@ -125,7 +134,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && ram != 4 && ram <= 10) {
+                if (ram != null && !midStep && ram <= 11) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -151,7 +160,22 @@ class ProcEngineDifferentialTest {
                         assertEquals(listOf((u32(e, bld + 4) - BLDALPHA_SCRIPT) / 8, u16(e, bld + 0x2A)),
                             listOf(ourBld!!.scrCur, (ourBld.state as OpAnim.BldAlphaState).timer), "f$f BLDALPHA scrCur, timer")
                     }
-                    assertEquals(u16(e, sym["gOpAnimSt"].address - GbaMem.EWRAM + 0x0C), opPort.pal, "f$f gOpAnimSt.pal")
+                    val opSt = sym["gOpAnimSt"].address - GbaMem.EWRAM
+                    assertEquals(u16(e, opSt + 0x0C), opPort.pal, "f$f gOpAnimSt.pal")
+                    if (ram == 11) {
+                        val os = ours.state as OpAnim.State
+                        assertEquals((0 until 6).map { u16(e, opSt + 2 * it) }, opPort.opAnimSt.map { it and 0xFFFF },
+                            "f$f gOpAnimSt x..unk0A")
+                        // unk30/32 hold the slot's old bytes until the last step (gOpAnimSt.unk06 = 0xA0) clears them.
+                        if (u16(e, opSt + 6) == 0xA0) assertEquals(listOf(u16(e, op + 0x30), u16(e, op + 0x32)),
+                            listOf(os.unk30 and 0xFFFF, os.unk32 and 0xFFFF), "f$f op anim unk30/32")
+                        val gb = sym["gGenericBuffer"].address - GbaMem.EWRAM
+                        assertArrayEquals(e.copyOfRange(gb, gb + 0x2000), opPort.genericBuffer, "f$f gGenericBuffer")
+                        val bg3 = sym["gBG3TilemapBuffer"].address - GbaMem.EWRAM
+                        assertArrayEquals(ShortArray(0x400) { u16(e, bg3 + 2 * it).toShort() }, env.hardware.mapBuffer(3),
+                            "f$f gBG3TilemapBuffer")
+                        ephraimChecked++
+                    }
                     assertArrayEquals(palette(e), env.paletteBuffer, "f$f gPaletteBuffer (op anim)")
                     val lcd = LcdControl().apply { readFrom(iw(f), sym["gLCDControlBuffer"].address - GbaMem.IWRAM) }
                     assertEquals(listOf(lcd.dispcnt, lcd.bldcnt, lcd.blendCoeffA, lcd.blendCoeffB, lcd.blendY) + lcd.bgCnt.toList() + lcd.bgHofs.toList() + lcd.bgVofs.toList(),
@@ -171,6 +195,7 @@ class ProcEngineDifferentialTest {
         assertEquals(LAST - 474, ended) // f475..
         assertEquals(LAST - 475, opStarted) // f476..
         assertTrue(opChecked >= 300, "op anim checked on $opChecked frames")
+        assertTrue(ephraimChecked >= 6, "OpAnimPreparefxEphraim checked on $ephraimChecked frames")
         assertEquals(true, enabledSeen, "key combo reset enabled after the Nintendo logo")
     }
 

@@ -1,6 +1,7 @@
 package fe8.game.title
 
 import fe8.game.opanim.OpAnimHs
+import gbafe.core.math.Interpolate
 import gbafe.data.Decompress
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
@@ -14,6 +15,8 @@ import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.yield
 import gbafe.render.BgAffine
 import gbafe.render.BgHardware
+import gbafe.render.SpriteLayers
+import gbafe.render.SpriteObject
 
 /**
  * The title screen `gProcScr_TitleScreen` (decomp `src/titlescreen.c`). Work in progress (task
@@ -27,6 +30,10 @@ public class TitleScreen(
     public val hardware: BgHardware,
     /** ROM graphics. */
     public val gfx: Gfx,
+    /** `gObject_32x32` (the blue light sprite). */
+    public val object32x32: SpriteObject? = null,
+    /** The sprite lists (`src/ctc.c`). */
+    public val sprites: SpriteLayers = SpriteLayers(),
 ) {
     /** ROM data of the title screen. */
     public class Gfx(
@@ -89,7 +96,8 @@ public class TitleScreen(
             call(ProcFunc { engine.start(skipListenerStandIn, it) }), // Title_StartSkipFxListener
             repeat(ProcFunc { setupSpecialEffectGraphics(it) }),
             call(ProcFunc { setupBlueLights(it) }),
-            block(), // not ported: Title_Loop_DrawRotatingBlueLights and the rest of the intro fx
+            repeat(ProcFunc { rotatingBlueLights(it) }),
+            block(), // not ported: sub_80C5BD4 and the rest of the intro fx
             label(1),
         ),
         newState = { State() },
@@ -165,6 +173,40 @@ public class TitleScreen(
         hw.palette[0] = 0
         hw.enablePaletteSync()
         (proc.state as State).timer = 0
+    }
+
+    /**
+     * Zooms and turns BG2 over 90 steps with a blue light sprite once zoomed past 1x; fades in
+     * from white, then (from step 68) out to black. Breaks at step 90.
+     *
+     * Ported from src/titlescreen.c: Title_Loop_DrawRotatingBlueLights
+     */
+    public fun rotatingBlueLights(proc: Proc) {
+        val st = proc.state as State
+        val lcd = hardware.lcd
+        val t = st.timer
+        val res = if (t < 45) {
+            Interpolate.interpolate(Interpolate.LINEAR, 64, 256, t, 45)
+        } else {
+            Interpolate.interpolate(Interpolate.LINEAR, 256, 448, t - 45, 45)
+        }
+        bgAffineSetOpAnim(res, Interpolate.interpolate(Interpolate.LINEAR, 0, 64, t, 90))
+        if (res > 0xFF) sprites.putExt(0, 104, 64, object32x32 ?: error("object32x32 not supplied"), 0x4220)
+        if (t < 23) lcd.blendY = Interpolate.interpolate(Interpolate.LINEAR, 16, 0, t, 22)
+        val time = t - 68
+        if (time > -1) {
+            if (time == 0) {
+                lcd.bldcnt = (lcd.bldcnt and 0xC0.inv()) or (3 shl 6)
+                lcd.setBlendTargetA(1, 1, 1, 1, 0)
+            }
+            lcd.blendY = Interpolate.interpolate(Interpolate.LINEAR, 0, 16, time, 22)
+        }
+        if (t == 90) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
     }
 
     /**

@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 172,
-    "implemented_unverified": 25
+    "verified": 179,
+    "implemented_unverified": 26
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -53,6 +53,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SaveDrawDifferentialTest#fog scroll reproduces the dumped table, proc fields and LCD buffer"
+      ]
+    },
+    "BgAffineSetOpAnim": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
     },
     "CallARM_FillTileRect": {
@@ -984,12 +993,57 @@
         "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
       ]
     },
+    "StartTitleScreen_FlagTrue": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
     "StoreRNState": {
       "decomp_file": "src/rng.c",
       "system": "core",
       "kotlin_file": "engine/core/src/main/kotlin/gbafe/core/rng/Rng.kt",
       "status": "implemented",
       "tests": []
+    },
+    "Title_Init": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "Title_Loop_DrawRotatingBlueLights": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "Title_SetupMainGraphics": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "Title_SetupSpecialEffectGraphics": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
     },
     "TmApplyTsa": {
       "decomp_file": "asm/arm.s",
@@ -1058,6 +1112,22 @@
       "kotlin_file": "game/src/main/kotlin/fe8/game/GameControl.kt",
       "status": "implemented",
       "tests": []
+    },
+    "sub_80C5870": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_80C5A44": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
     },
     "sub_80C689C": {
       "decomp_file": "src/opanimfx.c",

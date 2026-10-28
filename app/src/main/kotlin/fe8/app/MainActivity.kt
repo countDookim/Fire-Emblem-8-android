@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import gbafe.core.time.FixedStepClock
@@ -75,6 +76,9 @@ private fun Launcher(onPlay: () -> Unit) {
         Text("Fire Emblem: The Sacred Stones — Kotlin port", style = MaterialTheme.typography.titleLarge)
         Text("Build ${BuildConfig.VERSION_NAME} (${BuildConfig.GIT_SHA}) · vanilla mode · %.4f Hz logic".format(FixedStepClock.TICK_HZ))
         Text("Milestone 1: engine skeleton. No gameplay yet — Play shows a GL test pattern.")
+        val context = LocalContext.current
+        val bundled = remember { AssetLayer(context.assets).list("").size }
+        Text("Bundled test assets (debug builds only): $bundled files")
         Button(onClick = onPlay) { Text("Play (test pattern)") }
     }
 }

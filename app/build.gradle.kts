@@ -10,6 +10,16 @@ plugins {
 
 val runNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
 
+// Debug/test APKs bundle the ROM repo's extracted assets as `assets/extracted/` (amendment 2026-10-28,
+// task M4-09); release APKs bundle none (decision 0011, guarded by tools/check_no_game_content.py).
+val extractedAssets = System.getenv("FE8_ASSETS")?.let { file("$it/extracted") }?.takeIf { it.isDirectory }
+val testAssetsDir = layout.buildDirectory.dir("generated/testAssets")
+val syncTestAssets by tasks.registering(Sync::class) {
+    if (extractedAssets != null) from(extractedAssets)
+    into(testAssetsDir.map { it.dir("extracted") })
+}
+tasks.matching { it.name == "mergeDebugAssets" }.configureEach { dependsOn(syncTestAssets) }
+
 android {
     namespace = "io.github.countdookim.fe8"
     compileSdk = 36
@@ -32,6 +42,7 @@ android {
         }
     }
     buildTypes { getByName("debug") { signingConfig = signingConfigs.getByName("debug") } }
+    sourceSets.getByName("debug").assets.srcDir(testAssetsDir)
     buildFeatures {
         compose = true
         buildConfig = true

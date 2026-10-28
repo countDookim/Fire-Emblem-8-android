@@ -14,6 +14,11 @@ Nothing game-related yet. This APK only proves the Android shell, GL path and lo
       bars at the sides (landscape), and slowly scrolls. No stretching, no flicker.
 - [ ] Rotate the phone / lock and unlock: the app does not crash and the pattern resumes.
 - [ ] Battery/heat after ~2 minutes on the pattern screen feels normal.
+- [ ] (M4-09) The launcher shows *"Bundled test assets (debug builds only): N files"* with N in the
+      thousands (the extracted game data travels in this test APK).
+- [ ] (M3-10) With a Bluetooth/USB gamepad or keyboard: pressing keys on the test-pattern screen does
+      not crash and is not swallowed by Android (Back on a gamepad's B does not leave the app). Input has
+      no visible effect yet (no game screen consumes it).
 
 ## Known not working (don't report)
 Everything gameplay-related: no title screen, sound, input or saves yet.

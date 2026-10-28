@@ -13,8 +13,10 @@ import gbafe.proc.ProcScripts.block
 import gbafe.proc.ProcScripts.call
 import gbafe.proc.ProcScripts.end
 import gbafe.proc.ProcScripts.endEach
+import gbafe.proc.ProcScripts.label
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.setEndCb
+import gbafe.proc.ProcScripts.sleep
 import gbafe.proc.ProcScripts.startChild
 import gbafe.proc.ProcScripts.whileTrue
 import gbafe.proc.ProcScripts.yield
@@ -88,10 +90,20 @@ public class OpAnim(
         public val faceWindowObj4: SpriteObject,
         /** The fifth face screen's faces (Gilliam, Innes, Moulder). */
         public val faces5: List<Face>,
-        /** The sixth face screen's faces (Colm, Neimi). */
-        public val faces6: List<Face>,
-        /** The seventh face screen's faces (Knoll, Natasha, Cormag, Amelia). */
-        public val faces7: List<Face>,
+        /**
+         * The sixth to twelfth face screens' faces: (Colm, Neimi), (Knoll, Natasha, Cormag,
+         * Amelia), (Lute, Artur), (Duessel, Selena, Glen), (Kyle, Franz, Forde, Seth), (Valter,
+         * Riev, Caellach), (Lyon, Vigarde).
+         */
+        public val laterFaces: List<List<Face>>,
+        /** `gUnknown_08AA712A` (the tenth face screen's OBJ window mask). */
+        public val faceWindowObj5: SpriteObject,
+        /** `gUnknown_08AA715C` (the ninth and eleventh face screens' OBJ window mask). */
+        public val faceWindowObj6: SpriteObject,
+        /** `gUnknown_08AA7194` (the twelfth face screen's OBJ window mask). */
+        public val faceWindowObj7: SpriteObject,
+        /** `Tsa_OpAnimShiningRingBlinking` (compressed). */
+        public val ringBlinkingTsa: OpAnimHs.Blob,
     )
 
     /** A face in the face screens: `Img_OpAnimFace<Name>`, `Img_OpAnimFace<Name>Shadow`, `Pal_OpAnimFace<Name>`. */
@@ -383,15 +395,28 @@ public class OpAnim(
             call(ProcFunc { setupFaceScreen() }),
             repeat(ProcFunc { faces4In(it, 1, 0xD) }),
             call(ProcFunc { setupCastScroll(it) }),
-            repeat(ProcFunc { loadFacesPulsed(it, castGfx().faces6, 9, 11) }),
-            call(ProcFunc { setupFaceScreen() }),
-            repeat(ProcFunc { faces6In(it) }),
-            call(ProcFunc { setupCastScroll(it) }),
-            repeat(ProcFunc { loadFacesPulsed(it, castGfx().faces7, 8, 12) }),
-            call(ProcFunc { setupFaceScreen() }),
-            repeat(ProcFunc { faces7In(it) }),
-            call(ProcFunc { setupCastScroll(it) }),
-            block(), // not ported: sub_80C955C and the rest of the cutscene
+        ) + LATER_FACES.indices.flatMap { i ->
+            val (period, last) = LATER_FACES[i]
+            listOf(
+                repeat(ProcFunc { loadFacesPulsed(it, castGfx().laterFaces[i], period, last) }),
+                call(ProcFunc { setupFaceScreen() }),
+                repeat(when (i) {
+                    0 -> ProcFunc { faces6In(it, 0x3C, -1, 0xB) }
+                    1 -> ProcFunc { faces7In(it) }
+                    2 -> ProcFunc { faces6In(it, 0xB4, 1, 9) }
+                    3 -> ProcFunc { facesColumnIn(it, 1, 8) }
+                    4 -> ProcFunc { faces10In(it) }
+                    5 -> ProcFunc { facesColumnIn(it, -1, 6) }
+                    else -> ProcFunc { faces12In(it) }
+                }),
+                call(ProcFunc { setupCastScroll(it) }),
+            )
+        } + listOf(
+            repeat(ProcFunc { fadeRingOut(it) }),
+            repeat(ProcFunc { fadeToWhite(it) }),
+            sleep(0x20),
+            label(0x63),
+            block(), // not ported: sub_80CBD7C (the cutscene's end)
             end(),
         ),
         newState = { State() },
@@ -1962,7 +1987,7 @@ public class OpAnim(
      * breaks at step [last]. Each C function hard-codes its faces, period and last step.
      *
      * Ported from src/opanim-main.c: sub_80C8ED4, sub_80C9024, sub_80C9100, sub_80C9218, sub_80C9330,
-     * sub_80C940C
+     * sub_80C940C, sub_80C955C, sub_80C9638, sub_80C9750, sub_80C98A0, sub_80C99B8
      */
     public fun loadFacesPulsed(proc: Proc, faces: List<Face>, period: Int, last: Int) {
         val st = proc.state as State
@@ -2068,16 +2093,16 @@ public class OpAnim(
     }
 
     /**
-     * Slides the sixth face screen's two faces in from the right (upper face 4 steps later) over
-     * 0xB steps; then breaks.
+     * Slides the sixth (eighth) face screen's two faces in from the left ([dir] -1; right: +1) to
+     * x [a], the upper face 4 steps later, over [last] steps (0xB, 9); then breaks.
      *
-     * Ported from src/opanim-main.c: sub_80CB20C
+     * Ported from src/opanim-main.c: sub_80CB20C, sub_80CB594
      */
-    public fun faces6In(proc: Proc) {
+    public fun faces6In(proc: Proc, a: Int, dir: Int, last: Int) {
         val st = proc.state as State
         val g = castGfx()
         for (k in 0 until 2) {
-            val x = faceSlideX(0x3C, -1, st.timer + 6 - 4 * k, 0xB)
+            val x = faceSlideX(a, dir, st.timer + 6 - 4 * k, last)
             if (x == 0xFFFF) continue
             val dx = 0x20 * (k + 1)
             val y = 6 + 0x34 * k
@@ -2086,7 +2111,7 @@ public class OpAnim(
                 0x78 + 0xF0 * k + ((2 * k + 1) shl 12))
             sprites.putExt(0, (x - 0x38) and 0x1FF, (y + 0x18) or 0x800, g.faceWindowObj3, 0)
         }
-        if (st.timer == 0xB) {
+        if (st.timer == last) {
             st.timer = 0
             engine.breakProc(proc)
         } else {
@@ -2135,6 +2160,143 @@ public class OpAnim(
         sprites.putExt(1, 0x82, 0x20, g.faceObj, 0x2D0 + (6 shl 12))
         sprites.putExt(2, 0x86, 0x420, g.faceObj, 0x348 + (7 shl 12))
         if (st.timer == 10) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /**
+     * Slides the ninth (eleventh) face screen's three faces, one above the other, in from the
+     * bottom ([dir] +1, lowest face first; top: -1, highest first), 4 steps apart, over [last]
+     * steps (8, 6); then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80CB6A0, sub_80CBA64
+     */
+    public fun facesColumnIn(proc: Proc, dir: Int, last: Int) {
+        val st = proc.state as State
+        val g = castGfx()
+        val x = 0x78
+        for (k in 0 until 3) {
+            val t = st.timer + if (dir > 0) 10 - 4 * k else 2 + 4 * k
+            val y = faceSlideX(0x1C + 0x34 * k, dir, t, last)
+            if (y == 0xFFFF || y < -0x28 || y >= 0xC9) continue
+            val oy = (y - 0x30) and 0xFF
+            sprites.putExt(1, (x - 0x30) and 0x1FF, oy, g.faceObj, 0xF0 * k + (2 * k shl 12))
+            sprites.putExt(2, (x - 0x2C) and 0x1FF, oy or 0x400, g.faceObj,
+                0x78 + 0xF0 * k + ((2 * k + 1) shl 12))
+            sprites.putExt(0, (x - 0x60) and 0x1FF, ((y - 0x18) and 0xFF) or 0x800,
+                g.faceWindowObj6, 0)
+        }
+        if (st.timer == last) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /**
+     * Slides the tenth face screen's four faces in, faces 0 and 2 from the top, 1 and 3 from the
+     * bottom, over 7 steps; then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80CB878
+     */
+    public fun faces10In(proc: Proc) {
+        val st = proc.state as State
+        val g = castGfx()
+        val t = st.timer + 2
+        fun put(k: Int, x: Int, wx: Int, y: Int) {
+            if (y == 0xFFFF || y < -0x28 || y >= 0xC9) return
+            val oy = (y - 0x28) and 0xFF
+            sprites.putExt(1, x and 0x1FF, oy, g.faceObj, 0xF0 * k + (2 * k shl 12))
+            sprites.putExt(2, (x + 4) and 0x1FF, oy or 0x400, g.faceObj,
+                0x78 + 0xF0 * k + ((2 * k + 1) shl 12))
+            sprites.putExt(0, wx, oy or 0x800, g.faceWindowObj5, 0)
+        }
+        val y1 = faceSlideX(0x50, -1, t, 7)
+        put(0, 0x1E - 0x30, 2, y1)
+        put(2, 0x66, 0x7A, y1)
+        val y2 = faceSlideX(0x50, 1, t, 7)
+        put(1, 0x2A, 0x3E, y2)
+        put(3, 0xA2, 0xB6, y2)
+        if (st.timer == 7) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /**
+     * Slides the twelfth face screen's two faces in from the left and right over 5 steps; on step
+     * 1 loads the blinking ring's map (`Tsa_OpAnimShiningRingBlinking`, palette bank 8) to BG VRAM
+     * 0xF000; then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80CBC40
+     */
+    public fun faces12In(proc: Proc) {
+        val st = proc.state as State
+        val g = castGfx()
+        val t = st.timer + 2
+        for (k in 0 until 2) {
+            val x = faceSlideX(if (k == 0) 0x3E else 0xB2, if (k == 0) -1 else 1, t, 5)
+            if (x == 0xFFFF) continue
+            sprites.putExt(1, (x - 0x30) and 0x1FF, 0x28, g.faceObj, 0xF0 * k + (2 * k shl 12))
+            sprites.putExt(2, (x - 0x2C) and 0x1FF, 0x428, g.faceObj,
+                0x78 + 0xF0 * k + ((2 * k + 1) shl 12))
+            sprites.putExt(0, (x - 0x38) and 0x1FF, 0x828, g.faceWindowObj7, 0)
+        }
+        if (st.timer == 1) {
+            val vram = hardware.vram
+            Decompress.into(g.ringBlinkingTsa.data, g.ringBlinkingTsa.offset, vram, 0xF000)
+            for (i in 0 until 0x280) {
+                val a = 0xF000 + 2 * i
+                val v = ((vram[a].toInt() and 0xFF) or ((vram[a + 1].toInt() and 0xFF) shl 8)) + 0x8000
+                vram[a] = v.toByte()
+                vram[a + 1] = (v shr 8).toByte()
+            }
+        }
+        if (st.timer == 5) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /**
+     * Shows only BG1 and BG2 and fades the ring's blend in over 0x30 steps; then breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C9A94
+     */
+    public fun fadeRingOut(proc: Proc) {
+        val st = proc.state as State
+        val lcd = hardware.lcd
+        lcd.setDispEnable(0, 1, 1, 0, 0)
+        lcd.setBlendConfig(1, Interpolate.interpolate(Interpolate.LINEAR, 0, 0xD, st.timer, 0x30), 0x10, 8)
+        if (st.timer == 0x30) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer = (st.timer + 1) and 0xFFFF
+        }
+    }
+
+    /**
+     * Fades the first 8 palettes (reloaded from `pal_08B103D8` each step) to white over 0x30
+     * steps; then sets `gOpAnimSt.pal` to white and breaks.
+     *
+     * Ported from src/opanim-main.c: sub_80C9AFC
+     */
+    public fun fadeToWhite(proc: Proc) {
+        val st = proc.state as State
+        val ret = Interpolate.interpolate(Interpolate.LINEAR, 0, 0x10, st.timer, 0x30)
+        copyToPal(castGfx().scrollPal, 0, 0x100)
+        for (i in 0 until 8) blendPalette(i * 0x10, 0x7FFF, ret)
+        if (st.timer == 0x30) {
+            pal = 0x7FFF
             st.timer = 0
             engine.breakProc(proc)
         } else {
@@ -2376,6 +2538,8 @@ public class OpAnim(
     }
 
     private companion object {
+        /** Ring pulse period and last step of each later face screen's loader (screens 6..12). */
+        val LATER_FACES = listOf(9 to 11, 8 to 12, 7 to 13, 6 to 14, 5 to 15, 4 to 16, 3 to 18)
         /** `OpAnimPutObjCommon`'s tile numbers by kind and `variant >> 1`. */
         val SPARKLE_CHR = arrayOf(
             intArrayOf(0x8A, 0xB2),

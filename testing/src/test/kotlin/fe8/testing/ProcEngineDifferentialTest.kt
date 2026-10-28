@@ -78,7 +78,7 @@ class ProcEngineDifferentialTest {
         "TsaModifyFirstPalMaybe", "sub_80C689C", "CopyFirstPalDirectly", "SetFirstPalDirectly", "ClearFirstPalDirectly",
         "OpAnimMergeBGProcInit", "OpAnimMergeBGProcUpdateBgPalette", "sub_80C7900",
         "ClearSprites", "PutSpriteExt", "OpAnimDrawSplitLine", "OpAnim1AdvanceSplitLine", "OpAnimEphraimMergeShadow",
-        "OpAnimEphraimDisplayName")
+        "OpAnimEphraimDisplayName", "OpAnimEphraimExit")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -141,6 +141,7 @@ class ProcEngineDifferentialTest {
         var splitLineChecked = 0
         var nameChecked = 0
         var nameEnded = false
+        var exitChecked = 0
         var enabledSeen = false
         for (f in 401..LAST) {
             val e = ew(f)
@@ -174,7 +175,7 @@ class ProcEngineDifferentialTest {
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
-                if (ram != null && !midStep && ram <= 17) {
+                if (ram != null && !midStep && ram <= 18) {
                     val ours = parent.child!!
                     val bld = procAt(e, BLDALPHA_SCRIPT)
                     val ourBld = ours.child?.takeIf { it.script === opPort.bldAlphaScript }
@@ -229,6 +230,7 @@ class ProcEngineDifferentialTest {
                         if (ram == 14) splitChecked++
                         if (ram == 15) splitLineChecked++
                         if (ram == 17) nameChecked++
+                        if (ram == 18) exitChecked++
                         // unk34/36 hold the slot's old bytes until OpAnimEphraimDisplayName breaks (timer back to 0).
                         if (ram == 17 && u16(e, op + 0x2A) == 0) {
                             assertEquals(listOf(u16(e, op + 0x34), u16(e, op + 0x36)),
@@ -267,6 +269,7 @@ class ProcEngineDifferentialTest {
         assertTrue(splitLineChecked >= 16, "OpAnim1AdvanceSplitLine checked on $splitLineChecked frames")
         assertTrue(nameChecked >= 50, "OpAnimEphraimDisplayName checked on $nameChecked frames")
         assertTrue(nameEnded, "OpAnimEphraimDisplayName's last step checked")
+        assertTrue(exitChecked >= 30, "OpAnimEphraimExit checked on $exitChecked frames")
         assertEquals(true, enabledSeen, "key combo reset enabled after the Nintendo logo")
     }
 

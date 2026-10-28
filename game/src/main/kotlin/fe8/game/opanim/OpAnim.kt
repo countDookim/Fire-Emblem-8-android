@@ -24,7 +24,7 @@ import gbafe.render.SpriteObject
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
  * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `OpAnimEphraimfxFlyIn`; a stand-in
- * `PROC_BLOCK` sits where `OpAnimEphraimExit` would run.
+ * `PROC_BLOCK` sits where `OpAnimPreparefxEirika` would run.
  */
 public class OpAnim(
     /** Proc engine. */
@@ -202,7 +202,8 @@ public class OpAnim(
             repeat(ProcFunc { advanceSplitLine(it) }),
             repeat(ProcFunc { ephraimMergeShadow(it) }),
             repeat(ProcFunc { ephraimDisplayName(it) }),
-            block(), // not ported: OpAnimEphraimExit and the rest of the cutscene
+            repeat(ProcFunc { ephraimExit(it) }),
+            block(), // not ported: OpAnimPreparefxEirika and the rest of the cutscene
             end(),
         ),
         newState = { State() },
@@ -726,6 +727,58 @@ public class OpAnim(
         st.timer = (st.timer + 1) and 0xFFFF
     }
 
+    /**
+     * Ephraim's exit: the split line and shadow slide away (HBlank handler cleared at step 16),
+     * BG2 slides out from step 4 and BG0 from step 11 with a blend fade from step 0x1C; breaks
+     * at step 0x23.
+     *
+     * Ported from src/opanim-main.c: OpAnimEphraimExit
+     */
+    public fun ephraimExit(proc: Proc) {
+        val hw = hardware
+        val lcd = hw.lcd
+        val st = proc.state as State
+        hw.enableBgSyncByMask(5)
+        val g = ephraim ?: error("OpAnim.ephraim graphics not supplied")
+        if (st.timer < 2) sprites.putExt(1, 0x98, 0x88, g.nameObj, 0x2046)
+        if (st.timer < 0x11) {
+            opAnimSt[3] = Interpolate.interpolate(Interpolate.SQUARE, 0x78, 0xA0, st.timer, 0x10)
+                .toShort().toInt()
+            val x = Interpolate.interpolate(Interpolate.SQUARE, 0xE8, 0x100, st.timer, 0x10)
+            drawSplitLine(x, opAnimSt[3] + 0x10)
+            if (st.timer == 0x10) hw.hblank.setPrimary(null)
+        }
+        val time = st.timer
+        val time1 = time - 4
+        if (time1 >= 0) {
+            if (time1 <= 0x18) {
+                val ret = Interpolate.interpolate(Interpolate.SQUARE, st.unk34, 0x170, time1, 0x18)
+                tsaModifyFirstPal(ret, st.unk30, 2, genericBuffer, 0x1000, setPal = true)
+                st.unk30 = ret.toShort().toInt()
+            }
+            val time2 = time - 0xB
+            if (time2 >= 0) {
+                if (time1 == 0x18) {
+                    lcd.setBlendTargetA(1, 0, 0, 0, 0)
+                    lcd.setBlendTargetB(0, 0, 0, 1, 0)
+                }
+                if (time1 > 0x17) {
+                    val a = Interpolate.interpolate(Interpolate.LINEAR, 0x10, 0, time - 0x1B, 0x8)
+                    lcd.setBlendConfig(1, a, 0x10 - a, 8)
+                }
+                val ret = Interpolate.interpolate(Interpolate.SQUARE, st.unk36, 0x180, time2, 0x18)
+                scrollInFirstPal(ret, st.unk32, 0xC8, 0, setPal = false)
+                st.unk32 = ret.toShort().toInt()
+                if (time2 == 0x18) {
+                    st.timer = 0
+                    engine.breakProc(proc)
+                    return
+                }
+            }
+        }
+        st.timer = (st.timer + 1) and 0xFFFF
+    }
+
     private fun putName(chr: Int) {
         val g = ephraim ?: error("OpAnim.ephraim graphics not supplied")
         sprites.putExt(1, 0x98, 0x88, g.nameObj, (2 shl 12) + chr)
@@ -734,11 +787,19 @@ public class OpAnim(
     /**
      * Copies tilemap columns `(start >> 3) + 1 until (end >> 3) + 1` (20 rows each) of the 32-wide
      * map at byte [at] of [src] into BG [bg]'s map buffer (column 0..31; others cleared), then
-     * scrolls the BG to `end + 0x10`. Only the `src2 == NULL`, `flag == 0` form is used here.
+     * scrolls the BG to `end + 0x10`; [setPal] (`flag`) forces palette 15. Only the `src2 == NULL`
+     * form is used here.
      *
      * Ported from src/opanimfx.c: TsaModifyFirstPalMaybe
      */
-    public fun tsaModifyFirstPal(end: Int, start: Int, bg: Int, src: ByteArray, at: Int) {
+    public fun tsaModifyFirstPal(
+        end: Int,
+        start: Int,
+        bg: Int,
+        src: ByteArray,
+        at: Int,
+        setPal: Boolean = false,
+    ) {
         val dst = hardware.mapBuffer(bg)
         val e = end.toShort().toInt()
         var s = start.toShort().toInt()
@@ -746,6 +807,8 @@ public class OpAnim(
         for (i in (s shr 3) + 1 until (e shr 3) + 1) {
             if (i < 0 || i >= 0x20) {
                 clearFirstPal(dst, i and 0x1F)
+            } else if (setPal) {
+                setFirstPal(src, at, i, dst, 0xF)
             } else {
                 copyFirstPal(src, at, i, dst)
             }

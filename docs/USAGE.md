@@ -28,5 +28,6 @@ Keep each row to one line; add the totals line below the table up to date.
 | 2026-10-28 14:52 | `session_01NGGw9MPE1YLzu6wY3C7fir` | scheduled | ~25 | ~183,000 | — | OpAnim idx 24..114 (Eirika exit, cast scroll, sparkles, 5 face screens), 3 new reference traces; ~105 -> 153 verified |
 | 2026-10-28 22:51 | `session_01NGGw9RNv1MEWHxMPDD8SzH` | scheduled | ~30 | ~224,000 | — | M4-08 done (op anim to its end), M4-09 + M3-10 (CI green), M4-10 title start (6 ports), ram_trace_title1; 157 -> 179 verified |
 | 2026-10-29 06:50 | `session_01NGGw9Q1SuZxnUVKotcVNeC` | scheduled | ~30 | ~150,000 | — | M4-10 (a)..(d): whole title proc + ColorFade/FadeCore verified, GameControl starts the real title, ram_trace_title_fade; 179 -> 204 verified |
+| 2026-10-29 15:17 | `session_01NGGw9QAQfXPMFE2Jfjg2A3` | scheduled | ~25 | ~138,000 | — | M4-10 (e): OamBuffer + production HardwareScene; idle title, boot logos and 150+ op anim frames drawn from our state match mGBA; EarlyStartUi palette-sync bug fixed; 204 -> 208 verified |
 
-Totals recorded so far: ~1,382,000 tokens (counter), 2026-10-27 onward only.
+Totals recorded so far: ~1,520,000 tokens (counter), 2026-10-27 onward only.

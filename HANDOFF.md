@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated: 2026-10-29 07:20 UTC (scheduled run, started ~06:50)._
+_Updated: 2026-10-29 15:40 UTC (scheduled run, started ~15:17)._
 
 ## Owner decisions 2026-10-25 (read docs/decisions/0009)
 - The app is a 1:1 copy. Modding = extension points only; ship no touch gameplay, QoL flags or alternate
@@ -35,17 +35,16 @@ _Updated: 2026-10-29 07:20 UTC (scheduled run, started ~06:50)._
 _(nothing blocked)_
 
 ## Status
-- This run: **M4-10 (a)..(d) done**: whole `gProcScr_TitleScreen` ported in `fe8.game.title.TitleScreen` (intro fx, logo zoom,
-  light explosion, `DrawTitleSprites`, `Title_IDLE`, real skip listener, `Title_RestartProc`, fades) and verified by
-  `TitleScreenDifferentialTest` (mode 1 to the idle title, f3600; mode 0 fade-in on new trace `ram_trace_title_fade`,
-  f690..f800, which also checks `gFadeComponents`). New `gbafe.render.ColorFade` + `FadeCore` (`StartFadeCore`,
-  `ColorFadeTick`, `sub_80141B0` = `darkenEnd`). `blendPalette` (sub_80C69B0) is now top-level in `fe8.game.opanim`.
-  `GameControl` takes an optional `titleScreen` factory and starts the real title (stand-in only when null); the main
-  `ProcEngineDifferentialTest` builds it via `titleScreenFor(...)` (helper at the end of TitleScreenDifferentialTest.kt).
-- ROM repo: `ram_trace_title_fade` added (release rebuild by its workflow; CI needs it). No dumps f700..f702 there
-  (START held): the test syncs the proc from the first settled dump.
-- Verified ports: 179 -> **204 / 8352** (local `progress.py` after a full `jvmTest`). `Title_IDLE` stays unverified until a key trace
-  covers its A/Start branch. Local full `jvmTest` + Dokka green before the final push.
+- This run: **M4-10 (e) done** + frames drawn from OUR display state now match mGBA across the boot:
+  - New `gbafe.render.OamBuffer` (`PutOamHi`, `SyncHiOam`, `SyncLoOam`, `ClearOam`, `SetObjAffine`); `fe8.game.GameLoop`
+    now pushes sprite layers into it (`loop.oam`) and syncs OAM in VBlank like `OnVBlank`.
+  - `HardwareScene.load` moved to production `gbafe.render.HardwareScene` (+ overload `load(state, sheets, hw, oam, io)`:
+    BgHardware/OamBuffer/flushed registers -> RenderState). `fe8.testing.HardwareScene` keeps `compare`/`forcedBlank`.
+  - Tests: `TitleScreenDifferentialTest` checks OAM + whole frame on idle-title full dumps (f3160..f3600) and BG2's
+    VRAM map (sync now modelled); `EarlyStartUiBootDifferentialTest` compares `boot_logos` f300/360/430/470 from our
+    state; `ProcEngineDifferentialTest` compares 150+ op anim frames f1100..f3000 (no-HBlank ones) from our state.
+  - **Bug fixed**: `EarlyStartUi` fades never called `EnablePaletteSync` (palette RAM stayed stale on device).
+- Verified ports: 204 -> **208 / 8352** (local `progress.py` after a full `jvmTest`; Dokka green).
 - Stale remote branches (merged; deleting refused with 403): `wip/M4-09`, `wip/M3-10`, `wip/M4-10`, `wip/M4-10-affine`.
 
 ## Run rules (owner, 2026-10-26)
@@ -56,10 +55,16 @@ _(nothing blocked)_
   first, then `tail_lines` <= 80 of the failing job).
 - Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.
 
-## Next task: M4-10 (e) title frame-compare, then M3-07 GPU backend, M3-15, M4-11
-- M4-10 (e): frame-compare the idle title vs `boot_to_title` (f900/f1200 full dumps) or `ram_trace_title1` f3600 VRAM/frame:
-  needs BG map sync to VRAM (TitleScreen writes map buffers only; check how OpAnim tests sync) and OBJ rendering of the
-  title sprites. Key paths (skip listener -> label 3, A/Start -> `sub_8013F40` fade out) need a key trace on the title.
+## Next task: M4-11 boot wiring (Fe8Game: GameLoop + BgHardware + OamBuffer -> HardwareScene -> frame), M3-07, M3-15
+- Renderer gap (`FRAME_GAPS` in ProcEngineDifferentialTest): frames with BLDCNT effect 3 (darken, e.g. f1170 BLDY 6,
+  f1190 BLDY 10; f2200..2230) come out one 5-bit step brighter than mGBA even from the dump's own state (checked via
+  FrameCompareTest). `MgbaColorMath.darken` widened-8-bit, 5-bit and unwidened-8-bit variants all tried: none fits;
+  read mGBA 0.10.5 `_darken`/`software-private.h` (maybe darken applies to the blended/OBJ-semi path differently).
+  f1180: BG VRAM 0xD800..0xE800 differs (sync timing); f3000: title's first frame, sprites one step off.
+- M4-11: `Fe8Game` still draws a test pattern. Needs boot assets on device: the screens take compressed ROM blobs
+  (`OpAnimHs.Blob` accepts a blob alone), so an extractor step could write them (ROM repo `extracted/`, debug only).
+  `HardwareScene.load` allocates sheets per frame (AllocationTest covers Fe8Game: make it allocation-free first).
+- Key-press title paths (skip listener -> label 3, A/Start -> `sub_8013F40` fade out) need a key trace on the title.
 - Unverified: `Title_RestartProc`, `SkipTitleFx_Loop_KeyListener`, `Title_EndAllProcChildren` path, `FadeCore.darkenEnd`,
   `ColorFadeSetupFromColorToBlack/White`, `ColorFadeSetupFromWhite` (no trace yet).
 - M3-07 GPU backend: the app already shows a CPU-rendered frame via GL; v1 = draw `RenderState` with shaders.

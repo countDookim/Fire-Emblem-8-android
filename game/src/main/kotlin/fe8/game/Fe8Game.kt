@@ -12,14 +12,14 @@ import gbafe.render.FrameBuffer
  * Root of the game: owns the shared services and runs the game systems once per tick.
  *
  * Services (RNG seeded exactly like the original boot, input, events, flags, an offscreen frame) and,
- * given boot assets, the boot sequence ([Fe8Boot]). Title, map, battle... plug in later.
+ * given ROM data, the boot sequence ([Fe8Boot]). Title, map, battle... plug in later.
  * Everything here is Android-free so it runs headless on the JVM for tests and benchmarks.
  */
 public class Fe8Game(
     /** Feature flags; vanilla by default. */
     public val flags: FeatureFlags = FeatureFlags(),
-    /** Boot screen assets; null: no game systems run and [present] draws a test pattern. */
-    bootAssets: Fe8Boot.Assets? = null,
+    /** ROM data for the boot screens; null: no game systems run and [present] draws a test pattern. */
+    rom: RomView? = null,
 ) : Simulation {
     /** Central RNG. */
     public val rng: RngService = RngService().apply { seedLikeBoot() }
@@ -43,8 +43,8 @@ public class Fe8Game(
     /** Source of held actions; set by the platform layer. Defaults to "nothing held". */
     public var actionSource: gbafe.input.ActionSource = gbafe.input.ActionSource { 0L }
 
-    /** The boot sequence (one GBA frame per [tick]), when [bootAssets] were given. */
-    public val boot: Fe8Boot? = bootAssets?.let {
+    /** The boot sequence (one GBA frame per [tick]), when [rom] was given. */
+    public val boot: Fe8Boot? = rom?.let {
         Fe8Boot(it, keyInput = { VanillaButtonMap.toGbaKeys(input.held) }, screen = frame)
     }
 

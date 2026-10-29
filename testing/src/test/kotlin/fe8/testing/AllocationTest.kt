@@ -3,8 +3,8 @@ package fe8.testing
 import gbafe.core.event.TickListener
 import gbafe.core.time.FixedStepClock
 import gbafe.core.time.GameLoop
-import fe8.game.Fe8Boot
 import fe8.game.Fe8Game
+import fe8.game.RomView
 import gbafe.render.BgHardware
 import gbafe.render.HardwareSceneLoader
 import gbafe.render.OamBuffer
@@ -46,7 +46,7 @@ class AllocationTest {
     fun `booting game tick and present allocate nothing between screen loads`() {
         val rom = java.io.File(System.getenv("FE8_ASSETS") ?: ".assets", "baserom.gba")
         assumeTrue(AllocationMeter.supported && rom.isFile)
-        val game = Fe8Game(bootAssets = Fe8Boot.Assets.fromRom(rom.readBytes()))
+        val game = Fe8Game(rom = RomView.ofRom(rom.readBytes()))
         repeat(40) { game.tick() } // past the health & safety screen load
         val tick = AllocationMeter.measureMin(warmup = 10, iterations = 50) { game.tick() }
         val present = AllocationMeter.measureMin(warmup = 10, iterations = 50) { game.present(0f) }

@@ -9,7 +9,7 @@ import java.io.File
  * Runs the FE8 extraction steps the inputs allow and returns the paths written (relative to `args.out`).
  * Currently `data/items.json`, `data/classes.json`, `data/characters.json`, `data/terrains.json`, `data/chapters.json`, `maps/`,
  * `text/en/messages.json` and `fonts/{system,talk,special}.{png,json}`,
- * `boot/` (boot screen blobs), `mapsprites/` (standing + moving), `portraits/` (sheets, chibis, mouths, cards + `portraits.json`) (need `--symbols`; ids and face names need `--decomp`).
+ * `boot/` (boot screen ROM windows), `mapsprites/` (standing + moving), `portraits/` (sheets, chibis, mouths, cards + `portraits.json`) (need `--symbols`; ids and face names need `--decomp`).
  */
 public fun runFe8Steps(args: ExtractArgs): List<String> {
     val written = ArrayList<String>()
@@ -215,23 +215,17 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
     for ((n, png) in cursors.files) File(args.out, "ui/$n").writeBytes(png)
     File(args.out, "ui/cursors.json").writeText(cursors.json)
     written += "ui/cursors.json (+${cursors.files.size} PNG)"
-    // Boot screens load these as-is (compressed images/TSAs, raw palettes): ROM bytes, one file per symbol.
+    // Boot screens read their data by ROM address (fe8.game.RomView.BOOT_WINDOWS): raw ROM windows.
     File(args.out, "boot").mkdirs()
-    for ((sym, len) in BOOT_BLOBS) {
-        val o = symbols[sym].address - ROM_BASE
-        File(args.out, "boot/$sym.bin").writeBytes(rom.copyOfRange(o, o + (len ?: symbols.sizeOrSpan(sym))))
+    for ((start, end) in BOOT_WINDOWS) {
+        File(args.out, "boot/rom_%08X.bin".format(start)).writeBytes(rom.copyOfRange(start - ROM_BASE, end - ROM_BASE))
     }
-    written += "boot/ (${BOOT_BLOBS.size} blobs)"
+    written += "boot/ (${BOOT_WINDOWS.size} ROM windows)"
     return written
 }
 
-/** Boot screen data written to `boot/<symbol>.bin`: symbol to byte length (null: span to the next symbol). */
-private val BOOT_BLOBS = listOf(
-    "Pal_OpAnimHealthSafetyScreen" to 32, "Pal_GameIntroNintendo" to 32, "Pal_IntelligentSystems" to 96,
-    "Img_OpAnimHealthSafetyScreen" to null, "Tsa_OpAnimHealthSafetyScreenBG1" to null,
-    "Tsa_OpAnimHealthSafetyScreenBG0" to null, "Img_GameIntroNintendo" to null, "Tsa_GameIntroNintendo" to null,
-    "Img_IntelligentSystems" to null, "Tsa_IntelligentSystems" to null,
-)
+/** ROM windows (start, end exclusive) the boot screens read; same as fe8.game.RomView.BOOT_WINDOWS. */
+private val BOOT_WINDOWS = listOf(0x08590F00 to 0x08591000, 0x08AA6000 to 0x08B13000)
 
 private const val ROM_BASE = 0x08000000
 

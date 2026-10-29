@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import gbafe.core.time.FixedStepClock
 import fe8.game.Fe8Boot
+import fe8.game.RomView
 import fe8.game.Fe8Game
 import io.github.countdookim.fe8.BuildConfig
 
@@ -48,7 +49,7 @@ public class MainActivity : ComponentActivity() {
                     if (playing) {
                         AndroidView(
                             factory = { ctx ->
-                                val game = Fe8Game(bootAssets = bundledBootAssets(ctx))
+                                val game = Fe8Game(rom = bundledBootRom(ctx))
                                 GameSurfaceView(ctx, game).also { surface = it }
                             },
                             modifier = Modifier.fillMaxSize(),
@@ -72,10 +73,10 @@ public class MainActivity : ComponentActivity() {
     }
 }
 
-/** Boot assets from the APK's bundled `extracted/boot/` (debug/test builds only), or null. */
-private fun bundledBootAssets(ctx: Context): Fe8Boot.Assets? {
+/** Boot ROM windows from the APK's bundled `extracted/boot/` (debug/test builds only), or null. */
+private fun bundledBootRom(ctx: Context): RomView? {
     if (ctx.assets.list("extracted/boot").isNullOrEmpty()) return null
-    return Fe8Boot.Assets.fromFiles { name ->
+    return RomView.ofBootWindows { name ->
         ctx.assets.open("extracted/boot/$name").use { it.readBytes() }
     }
 }

@@ -3,6 +3,7 @@ package fe8.game
 import gbafe.core.time.GameClock
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
+import gbafe.render.OamBuffer
 import gbafe.render.SpriteLayers
 
 /**
@@ -15,8 +16,7 @@ import gbafe.render.SpriteLayers
  * whether that happened (the original timing is not modelled, so the caller decides from what the
  * step did).
  *
- * Not modelled yet: sound (`m4aSoundVSync`, `m4aSoundMain`), sprites (`ClearSprites`,
- * `PushSpriteLayerObjects`, `SyncLoOam`, `SyncHiOam`), `FlushTiles`, `FlushLCDControl`.
+ * Not modelled yet: sound (`m4aSoundVSync`, `m4aSoundMain`), `FlushTiles`, `FlushLCDControl`.
  */
 public class GameLoop(
     /** Proc trees run by the loop. */
@@ -33,8 +33,8 @@ public class GameLoop(
     private val flush: () -> Unit = {},
     /** The sprite lists cleared at the start of every step and pushed after trees 5 and 4. */
     public val sprites: SpriteLayers = SpriteLayers(),
-    /** `CallARM_PushToSecondaryOAM` for one sprite (OAM building is not ported yet). */
-    private val pushSprite: (SpriteLayers.Entry) -> Unit = {},
+    /** `gOam` and hardware OAM: sprites are pushed into it by [onMain] and synced by [onVBlank]. */
+    public val oam: OamBuffer = OamBuffer(),
 ) {
     /** `gBmSt.lock`: while not 0, proc tree 2 is not run. */
     public var lock: Int = 0
@@ -84,22 +84,29 @@ public class GameLoop(
         if (gameLock() == 0) procs.run(procs.root(2))
         procs.run(procs.root(3))
         procs.run(procs.root(5))
-        sprites.pushLayerObjects(0, pushSprite)
+        sprites.pushLayerObjects(0, ::pushSprite)
         procs.run(procs.root(4))
-        sprites.pushLayerObjects(13, pushSprite)
+        sprites.pushLayerObjects(13, ::pushSprite)
         mainLoopEnded = true
     }
 
+    /** `CallARM_PushToSecondaryOAM` for one sprite (`PutOamHi`). */
+    private fun pushSprite(e: SpriteLayers.Entry) {
+        oam.putHi(e.oam1, e.oam0, e.obj!!.data, e.oam2)
+    }
+
     /**
-     * The VBlank interrupt (`OnVBlank`, partial): clock, proc tree 0, then [flush] if a step has
-     * ended.
+     * The VBlank interrupt (`OnVBlank`, partial): clock, proc tree 0, `SyncLoOam`, then [flush] and
+     * `SyncHiOam` if a step has ended.
      */
     public fun onVBlank() {
         clock.increment()
         procs.run(procs.root(0))
+        oam.syncLo()
         if (mainLoopEnded) {
             mainLoopEnded = false
             flush()
+            oam.syncHi()
         }
     }
 

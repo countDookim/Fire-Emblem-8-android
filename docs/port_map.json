@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 179,
-    "implemented_unverified": 26
+    "verified": 204,
+    "implemented_unverified": 32
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -100,6 +100,45 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "ColorFadeSetupFromBlack": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/ColorFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
+      ]
+    },
+    "ColorFadeSetupFromColorToBlack": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/ColorFade.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "ColorFadeSetupFromColorToWhite": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/ColorFade.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "ColorFadeSetupFromWhite": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/ColorFade.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "ColorFadeTick": {
+      "decomp_file": "asm/arm.s",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/ColorFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
+      ]
+    },
     "CopyFirstPalDirectly": {
       "decomp_file": "src/opanimfx.c",
       "system": "presentation",
@@ -143,6 +182,24 @@
       "status": "implemented",
       "tests": []
     },
+    "DrawTitleLightBubbleSprites": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "DrawTitleSprites_Loop": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
     "EnableKeyComboResetEN": {
       "decomp_file": "src/time.c",
       "system": "core",
@@ -177,6 +234,33 @@
       "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/HBlankHandlers.kt",
       "status": "implemented",
       "tests": []
+    },
+    "FadeCore_Init": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/ColorFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
+      ]
+    },
+    "FadeCore_Loop": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/ColorFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
+      ]
+    },
+    "FadeCore_Tick": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/ColorFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
+      ]
     },
     "FlipBgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
@@ -984,6 +1068,22 @@
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
+    "SkipTitleFx_Loop_KeyListener": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "StartFadeCore": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/ColorFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
+      ]
+    },
     "StartGame": {
       "decomp_file": "src/gamecontrol.c",
       "system": "core",
@@ -1009,7 +1109,50 @@
       "status": "implemented",
       "tests": []
     },
+    "TitleScreenTryJumpIntroAnim": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
+      ]
+    },
+    "Title_EndSkipFxListener": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "Title_IDLE": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "Title_Init": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "Title_LoadDemonKingOnBg2": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "Title_Loop_DrawRedBlueOrbs": {
       "decomp_file": "src/titlescreen.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
@@ -1027,6 +1170,67 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
     },
+    "Title_Loop_FlashFxExpand": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "Title_Loop_LightExplosionFx": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "Title_Loop_MainLogoZoom": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "Title_Loop_RevealGreenDragonFlashFx": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "Title_PrepareMainLogoZoom": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "Title_PrepareMainScreenWithExtendedBgm": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "Title_RestartProc": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "Title_SetupMainGraphics": {
       "decomp_file": "src/titlescreen.c",
       "system": "presentation",
@@ -1037,6 +1241,15 @@
       ]
     },
     "Title_SetupSpecialEffectGraphics": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "Title_ShowBg2": {
       "decomp_file": "src/titlescreen.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
@@ -1113,14 +1326,68 @@
       "status": "implemented",
       "tests": []
     },
+    "sub_80141B0": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/ColorFade.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_80C5548": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
     "sub_80C5870": {
       "decomp_file": "src/titlescreen.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
+      ]
     },
     "sub_80C5A44": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "sub_80C5BD4": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "sub_80C5FB4": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "sub_80C6104": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "sub_80C62DC": {
       "decomp_file": "src/titlescreen.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
@@ -1144,7 +1411,8 @@
       "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game",
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
     },
     "sub_80C6F70": {

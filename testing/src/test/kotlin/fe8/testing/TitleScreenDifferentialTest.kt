@@ -269,25 +269,8 @@ class TitleScreenDifferentialTest {
     }
 }
 
-/** The title screen with its ROM graphics (addresses from fireemblem8.nm.txt), for the differential tests. */
+/** The title screen with its ROM graphics (production [fe8.game.BootRom]), for the differential tests. */
 internal fun titleScreenFor(
     rom: ByteArray, engine: ProcEngine, hw: BgHardware, sprites: SpriteLayers = SpriteLayers(),
     keys: KeyStatus = KeyStatus(), gameControl: GameControl? = null,
-): TitleScreen {
-    fun u16(o: Int) = (rom[o].toInt() and 0xFF) or ((rom[o + 1].toInt() and 0xFF) shl 8)
-    fun blob(at: Int) = OpAnimHs.Blob(rom, at - 0x08000000)
-    fun pal(at: Int, n: Int) = ShortArray(n) { u16(at - 0x08000000 + 2 * it).toShort() }
-    return TitleScreen(engine, hw, TitleScreen.Gfx(
-            listOf(blob(0x08AA7760), blob(0x08AA9708), blob(0x08AAAE90)), pal(0x08AAB3F4, 16),
-            blob(0x08AAB414) to blob(0x08AAC2A4), pal(0x08AAC58C, 16),
-            blob(0x08AAC5AC), blob(0x08AACEDC), pal(0x08AADB68, 64),
-            listOf(0x08AAFD14, 0x08AAFF10, 0x08AADC08, 0x08AAE61C, 0x08AAE8EC, 0x08AAF928, 0x08AB1C24, 0x08AB216C).map { blob(it) },
-            listOf(pal(0x08AB0114, 16), pal(0x08AAE8CC, 16), pal(0x08AAFCF4, 16), pal(0x08AB210C, 48), pal(0x08AB21B8, 16)),
-            Triple(blob(0x08AB0B44), blob(0x08AB1890), pal(0x08AB1C04, 16)),
-            Triple(blob(0x08AB0134), blob(0x08AB0A20), pal(0x08AB0B24, 16))),
-            SpriteObject(0x08590F54, pal(0x08590F54, 4)), sprites, object8x8 = SpriteObject(0x08590F44, pal(0x08590F44, 4)),
-            bannerSprite = SpriteObject(0x08AA6794, pal(0x08AA6794, 13)),
-            menuSprites = listOf(SpriteObject(0x08590F4C, pal(0x08590F4C, 4)), SpriteObject(0x08AA6774, pal(0x08AA6774, 16)),
-                SpriteObject(0x08AA67E0, pal(0x08AA67E0, 13)), SpriteObject(0x08AA67AE, pal(0x08AA67AE, 25))),
-            glowPal = pal(0x08AADBE8, 16), keys = keys, gameControl = gameControl)
-}
+): TitleScreen = fe8.game.BootRom.titleScreen(fe8.game.RomView.ofRom(rom), engine, hw, sprites, keys, gameControl)

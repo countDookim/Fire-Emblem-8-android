@@ -1,6 +1,7 @@
 package fe8.game.title
 
 import fe8.game.opanim.OpAnimHs
+import fe8.game.opanim.blendPalette
 import gbafe.core.math.Interpolate
 import gbafe.data.Decompress
 import gbafe.proc.Proc
@@ -12,6 +13,7 @@ import gbafe.proc.ProcScripts.call
 import gbafe.proc.ProcScripts.goto
 import gbafe.proc.ProcScripts.label
 import gbafe.proc.ProcScripts.repeat
+import gbafe.proc.ProcScripts.sleep
 import gbafe.proc.ProcScripts.yield
 import gbafe.render.BgAffine
 import gbafe.render.BgHardware
@@ -20,7 +22,7 @@ import gbafe.render.SpriteObject
 
 /**
  * The title screen `gProcScr_TitleScreen` (decomp `src/titlescreen.c`). Work in progress (task
- * M4-10): only its start (init and main graphics) exists; stand-in `PROC_BLOCK`s hold the rest.
+ * M4-10): ported up to the logo zoom; stand-in `PROC_BLOCK`s hold the rest.
  * Not yet started by [fe8.game.GameControl] (it still uses a stand-in proc).
  */
 public class TitleScreen(
@@ -62,6 +64,10 @@ public class TitleScreen(
          * `gPal_TitleLargeGlowingOrb` (3 palettes), `gPal_TitleSmallLightBubbles`.
          */
         public val fxPals: List<ShortArray>,
+        /** `gGfx_TitleDemonKing`, `gTsa_TitleDemonKing` (compressed) and `gPal_TitleDemonKing`. */
+        public val demonKing: Triple<OpAnimHs.Blob, OpAnimHs.Blob, ShortArray>,
+        /** `gGfx_08AB0134`, `gTsa_08AB0A20` (compressed) and `gPal_08AB0B24`: the zooming logo. */
+        public val logoZoom: Triple<OpAnimHs.Blob, OpAnimHs.Blob, ShortArray>,
     )
 
     /** `struct TitleScreenProc` fields. */
@@ -97,11 +103,212 @@ public class TitleScreen(
             repeat(ProcFunc { setupSpecialEffectGraphics(it) }),
             call(ProcFunc { setupBlueLights(it) }),
             repeat(ProcFunc { rotatingBlueLights(it) }),
-            block(), // not ported: sub_80C5BD4 and the rest of the intro fx
+            call(ProcFunc { showRedBlueOrbs() }),
+            repeat(ProcFunc { redBlueOrbs(it) }),
+            call(ProcFunc { prepareMainScreen() }),
+            repeat(ProcFunc { revealDragonFlash(it) }),
+            repeat(ProcFunc { flashExpand(it) }),
+            yield(),
+            call(ProcFunc { loadDemonKing() }),
+            sleep(8),
+            call(ProcFunc { showBg2() }),
+            sleep(2),
+            call(ProcFunc { showBg1Obj() }),
+            sleep(8),
+            // Title_EndSkipFxListener
+            call(ProcFunc { engine.end(engine.find(skipListenerStandIn)) }),
+            call(ProcFunc { prepareLogoZoom() }),
+            repeat(ProcFunc { logoZoom(it) }),
+            block(), // not ported: sub_80C6104 and the rest of the intro fx
             label(1),
         ),
         newState = { State() },
     )
+
+    /**
+     * Clears BG2, switches to mode 0 showing BG1 + OBJ with a 16/16 blend of OBJ over BG1, and
+     * blacks out BG palette 14.
+     *
+     * Ported from src/titlescreen.c: sub_80C5BD4
+     */
+    public fun showRedBlueOrbs() {
+        val hw = hardware
+        val lcd = hw.lcd
+        hw.fill(hw.mapBuffer(2), 0)
+        hw.enableBgSyncByMask(6)
+        lcd.dispcnt = lcd.dispcnt and 7.inv()
+        lcd.setBlendConfig(1, 0x10, 0x10, 0x10)
+        lcd.setBlendTargetA(0, 0, 0, 0, 1)
+        lcd.setBlendTargetB(0, 1, 0, 0, 0)
+        lcd.dispcnt = (lcd.dispcnt and 0x1F00.inv()) or 0x0200 or 0x1000
+        hw.palette.fill(0, 0xE * 16, 0xF * 16)
+        hw.enablePaletteSync()
+    }
+
+    /**
+     * Fades the main background palette in from black over 48 steps while a blue light sprite
+     * flickers into a red and a blue orb that split apart. Breaks at step 48. (The BGM start at
+     * step 20 is not modelled.)
+     *
+     * Ported from src/titlescreen.c: Title_Loop_DrawRedBlueOrbs
+     */
+    public fun redBlueOrbs(proc: Proc) {
+        val st = proc.state as State
+        val t = st.timer
+        val obj = object32x32 ?: error("object32x32 not supplied")
+        applyPalette(gfx.backgroundPal, 0xE, 1)
+        val fade = Interpolate.interpolate(Interpolate.LINEAR, 16, 0, t, 48)
+        blendPalette(hardware.palette, 0xE * 16, 0, fade)
+        if (t < 20) {
+            sprites.putExt(0, 104, 64, obj, 0x4220)
+        } else if (t < 24) {
+            val odd = (t and 1) != 0
+            sprites.putExt(0, 104, 64, obj, if (odd) 0x6228 else 0x5224)
+            sprites.putExt(1, 104, 64, obj, if (odd) 0x5224 else 0x6228)
+        } else if (t - 24 < 9) {
+            val d = Interpolate.interpolate(Interpolate.SQUARE, 0, 128, t - 24, 8)
+            if ((t and 1) != 0) {
+                sprites.putExt(0, (104 - d) and 0x1FF, 64, obj, 0x6228)
+                sprites.putExt(1, (d + 104) and 0x1FF, 64, obj, 0x5224)
+            } else {
+                sprites.putExt(0, (d + 104) and 0x1FF, 64, obj, 0x5224)
+                sprites.putExt(1, (104 - d) and 0x1FF, 64, obj, 0x6228)
+            }
+        }
+        stepUntil(proc, 48)
+    }
+
+    /**
+     * Shows BG0, BG1 and OBJ with an alpha blend of BG0 (coefficient 0) over BG1. (Sound effect
+     * 317 is not modelled.)
+     *
+     * Ported from src/titlescreen.c: Title_PrepareMainScreenWithExtendedBgm
+     */
+    public fun prepareMainScreen() {
+        val lcd = hardware.lcd
+        lcd.dispcnt = (lcd.dispcnt and 0x1F00.inv()) or 0x0100 or 0x0200 or 0x1000
+        lcd.setBlendConfig(1, 0, 0x10, 0)
+        lcd.setBlendTargetA(1, 0, 0, 0, 0)
+        lcd.setBlendTargetB(0, 1, 0, 0, 0)
+    }
+
+    /**
+     * Raises the BG0 blend coefficient from 0 to 13 over 12 steps. Breaks at step 12.
+     *
+     * Ported from src/titlescreen.c: Title_Loop_RevealGreenDragonFlashFx
+     */
+    public fun revealDragonFlash(proc: Proc) {
+        val t = (proc.state as State).timer
+        hardware.lcd.blendCoeffA = Interpolate.interpolate(Interpolate.LINEAR, 0, 13, t, 12)
+        stepUntil(proc, 12)
+    }
+
+    /**
+     * Fades BG palettes 2 and 14 to white over 12 steps. Breaks at step 12.
+     *
+     * Ported from src/titlescreen.c: Title_Loop_FlashFxExpand
+     */
+    public fun flashExpand(proc: Proc) {
+        val t = (proc.state as State).timer
+        val res = Interpolate.interpolate(Interpolate.LINEAR, 0, 16, t, 12)
+        if (t == 0) hardware.enableBgSyncByMask(1)
+        applyPalette(gfx.fxPals[2], 2, 1)
+        blendPalette(hardware.palette, 2 * 16, 0x7FFF, res)
+        applyPalette(gfx.backgroundPal, 0xE, 1)
+        blendPalette(hardware.palette, 0xE * 16, 0x7FFF, res)
+        stepUntil(proc, 12)
+    }
+
+    /**
+     * Loads the demon king image to BG2 (tiles 0x8000, palette 3).
+     *
+     * Ported from src/titlescreen.c: Title_LoadDemonKingOnBg2
+     */
+    public fun loadDemonKing() {
+        val (tiles, map, pal) = gfx.demonKing
+        Decompress.into(tiles.data, tiles.offset, hardware.vram, 0x8000)
+        loadMap(map, 2, 0x3000)
+        applyPalette(pal, 3, 1)
+        hardware.enableBgSyncByMask(4)
+    }
+
+    /**
+     * Shows only BG2, colour effect off.
+     *
+     * Ported from src/titlescreen.c: Title_ShowBg2
+     */
+    public fun showBg2() {
+        val lcd = hardware.lcd
+        lcd.dispcnt = (lcd.dispcnt and 0x1F00.inv()) or 0x0400
+        lcd.bldcnt = lcd.bldcnt and 0xC0.inv()
+    }
+
+    /**
+     * Shows BG1 and OBJ, alpha blend on.
+     *
+     * Ported from src/titlescreen.c: sub_80C5FB4
+     */
+    public fun showBg1Obj() {
+        val lcd = hardware.lcd
+        lcd.dispcnt = (lcd.dispcnt and 0x1F00.inv()) or 0x0200 or 0x1000
+        lcd.bldcnt = (lcd.bldcnt and 0xC0.inv()) or 0x40
+    }
+
+    /**
+     * Mode 1 with the zooming logo on BG2 (affine 256x256 at scale 0x40, palette 0), BG palettes
+     * 14 and 15 white, BG0 back to tiles 0 / map 0x6800; shows BG0..2 and OBJ.
+     *
+     * Ported from src/titlescreen.c: Title_PrepareMainLogoZoom
+     */
+    public fun prepareLogoZoom() {
+        val hw = hardware
+        val lcd = hw.lcd
+        val (tiles, map, pal) = gfx.logoZoom
+        lcd.dispcnt = (lcd.dispcnt and 7.inv()) or 1
+        hw.setScreenSize(2, 1)
+        logoAffine(0x40)
+        Decompress.into(tiles.data, tiles.offset, hw.vram, 0x8000)
+        loadMap(map, 2, 0)
+        applyPalette(pal, 0, 1)
+        hw.enableBgSyncByMask(4)
+        hw.palette.fill(0x7FFF, 0xE * 16, 0x10 * 16)
+        hw.enablePaletteSync()
+        hw.setTileDataOffset(0, 0)
+        hw.setMapDataOffset(0, 0x6800)
+        lcd.dispcnt = (lcd.dispcnt and 0x1F00.inv()) or 0x0100 or 0x0200 or 0x0400 or 0x1000
+    }
+
+    /**
+     * Zooms the logo from scale 32 to 256 over 16 steps. Breaks at step 16.
+     *
+     * Ported from src/titlescreen.c: Title_Loop_MainLogoZoom
+     */
+    public fun logoZoom(proc: Proc) {
+        val t = (proc.state as State).timer
+        logoAffine(Interpolate.interpolate(Interpolate.SQUARE, 32, 256, t, 16))
+        stepUntil(proc, 16)
+    }
+
+    /**
+     * BG2's affine for the logo: texture centre (0x78, 0x50) at screen (0x78, 0x50), scale
+     * [scale] both ways, no rotation.
+     *
+     * Ported from src/titlescreen.c: sub_80C5548
+     */
+    public fun logoAffine(scale: Int) {
+        BgAffine.set(hardware.lcd.affine, 0, 0x7800, 0x5000, 0x78, 0x50, scale, scale, 0)
+    }
+
+    /** Breaks [proc] and resets its timer at step [last], else counts on. */
+    private fun stepUntil(proc: Proc, last: Int) {
+        val st = proc.state as State
+        if (st.timer == last) {
+            st.timer = 0
+            engine.breakProc(proc)
+        } else {
+            st.timer++
+        }
+    }
 
     /** Stand-in for `gProcScr_SkipTitleFxKeyListener` (A/B/Start skip; not ported yet). */
     public val skipListenerStandIn: ProcScript =
@@ -327,7 +534,7 @@ public class TitleScreen(
         for (i in 0 until minOf(n / 2, map.size)) {
             map[i] = ((mapBytes[2 * i].toInt() and 0xFF) or ((mapBytes[2 * i + 1].toInt() and 0xFF) shl 8)).toShort()
         }
-        for (i in 0 until 0x280) map[i] = (map[i] + add).toShort()
+        if (add != 0) for (i in 0 until 0x280) map[i] = (map[i] + add).toShort()
     }
 
     /** `ApplyPalettes(src, bank, count)`: copies [count] palettes into the palette buffer. */

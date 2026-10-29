@@ -19,8 +19,9 @@ import java.io.File
 
 /**
  * The title screen's start after the op anim (`StartTitleScreen_FlagTrue`, mode 1) against
- * `ram_trace_opanim4` (RAM every frame to f3000): state from the frame before the title proc
- * appears, then frame by frame until it reaches the intro fx (label 0).
+ * `ram_trace_opanim4` (RAM every frame to f3000) and `ram_trace_title1` (to f3600): state from
+ * the frame before the title proc appears, then frame by frame through the intro fx up to the
+ * logo zoom.
  */
 class TitleScreenDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -59,13 +60,18 @@ class TitleScreenDifferentialTest {
 
     @Test
     @VerifiesPort("StartTitleScreen_FlagTrue", "Title_Init", "Title_SetupMainGraphics", "Title_SetupSpecialEffectGraphics",
-        "sub_80C5A44", "BgAffineSetOpAnim", "Title_Loop_DrawRotatingBlueLights")
+        "sub_80C5A44", "BgAffineSetOpAnim", "Title_Loop_DrawRotatingBlueLights", "sub_80C5BD4",
+        "Title_Loop_DrawRedBlueOrbs", "Title_PrepareMainScreenWithExtendedBgm", "Title_Loop_RevealGreenDragonFlashFx",
+        "Title_Loop_FlashFxExpand", "Title_LoadDemonKingOnBg2", "Title_ShowBg2", "sub_80C5FB4", "Title_EndSkipFxListener",
+        "Title_PrepareMainLogoZoom", "Title_Loop_MainLogoZoom", "sub_80C5548", "sub_80C69B0")
     fun `title screen start matches the per-frame RAM trace`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
-        val run = ref.run("ram_trace_opanim4")
-        fun ew(f: Int) = run.region((if (f % 10 == 0) "f%05d" else "r%05d").format(f), "ewram")
-        fun iw(f: Int) = run.region((if (f % 10 == 0) "f%05d" else "r%05d").format(f), "iwram")
+        val run4 = ref.run("ram_trace_opanim4")
+        val runT = ref.run("ram_trace_title1")
+        fun run(f: Int) = if (f <= 3000) run4 else runT
+        fun ew(f: Int) = run(f).region((if (f % 10 == 0) "f%05d" else "r%05d").format(f), "ewram")
+        fun iw(f: Int) = run(f).region((if (f % 10 == 0) "f%05d" else "r%05d").format(f), "iwram")
         fun blob(at: Int) = OpAnimHs.Blob(rom, at - 0x08000000)
         fun pal(at: Int, n: Int) = ShortArray(n) { u16(rom, at - 0x08000000 + 2 * it).toShort() }
         val first = (2890..3000).first { procAt(ew(it)) != null }
@@ -80,7 +86,9 @@ class TitleScreenDifferentialTest {
             blob(0x08AAB414) to blob(0x08AAC2A4), pal(0x08AAC58C, 16),
             blob(0x08AAC5AC), blob(0x08AACEDC), pal(0x08AADB68, 64),
             listOf(0x08AAFD14, 0x08AAFF10, 0x08AADC08, 0x08AAE61C, 0x08AAE8EC, 0x08AAF928, 0x08AB1C24, 0x08AB216C).map { blob(it) },
-            listOf(pal(0x08AB0114, 16), pal(0x08AAE8CC, 16), pal(0x08AAFCF4, 16), pal(0x08AB210C, 48), pal(0x08AB21B8, 16))),
+            listOf(pal(0x08AB0114, 16), pal(0x08AAE8CC, 16), pal(0x08AAFCF4, 16), pal(0x08AB210C, 48), pal(0x08AB21B8, 16)),
+            Triple(blob(0x08AB0B44), blob(0x08AB1890), pal(0x08AB1C04, 16)),
+            Triple(blob(0x08AB0134), blob(0x08AB0A20), pal(0x08AB0B24, 16))),
             SpriteObject(0x08590F54, pal(0x08590F54, 4)))
         val parent = engine.start(ProcScript("parent", listOf(block())), 3)
         title.start(parent, 1)
@@ -88,7 +96,9 @@ class TitleScreenDifferentialTest {
         var fxChecked = 0
         var vramChecked = 0
         var blueChecked = 0
-        for (f in first..3000) {
+        var orbsChecked = 0
+        var zoomChecked = 0
+        for (f in first..LAST_FRAME) {
             val e = ew(f)
             val o = procAt(e) ?: break
             val scr = (u32(e, o + 4) - TITLE_SCRIPT) / 8
@@ -101,24 +111,29 @@ class TitleScreenDifferentialTest {
                 engine.run(engine.root(3))
             }
             if (midStep) continue
-            if (scr >= 16) break // the stand-in after the blue lights
+            if (scr >= LAST_INDEX) break // the stand-in after the logo zoom
             val ours = engine.find(title.script)!!
             assertEquals(scr, ours.scrCur, "f$f title scrCur")
             if (scr == 13) fxChecked++
             assertEquals(u16(e, o + 0x2A), (ours.state as TitleScreen.State).timer, "f$f timer")
             assertArrayEquals(shorts(e, "gPaletteBuffer", 512), hw.palette, "f$f gPaletteBuffer")
-            for (bg in 0..1) assertArrayEquals(shorts(e, "gBG${bg}TilemapBuffer", 0x400), hw.mapBuffer(bg), "f$f BG$bg map")
+            for (bg in 0..2) assertArrayEquals(shorts(e, "gBG${bg}TilemapBuffer", 0x400), hw.mapBuffer(bg), "f$f BG$bg map")
             val lcd = hw.lcd
             val g = BgHardware().lcd.apply { readFrom(iw(f), sym["gLCDControlBuffer"].address - GbaMem.IWRAM) }
-            assertEquals(listOf(g.dispcnt, g.bldcnt, g.blendY) + g.bgCnt.toList() + g.affine.toList().subList(0, 6),
-                listOf(lcd.dispcnt, lcd.bldcnt, lcd.blendY) + lcd.bgCnt.toList() + lcd.affine.toList().subList(0, 6),
-                "f$f dispcnt, bldcnt, BLDY, bgcnt, BG2 affine")
-            assertEquals(spriteChain(e, 0), ourChain(title.sprites, 0), "f$f sprite layer 0")
+            assertEquals(listOf(g.dispcnt, g.bldcnt, g.blendCoeffA, g.blendCoeffB, g.blendY) + g.bgCnt.toList() + g.affine.toList().subList(0, 6),
+                listOf(lcd.dispcnt, lcd.bldcnt, lcd.blendCoeffA, lcd.blendCoeffB, lcd.blendY) + lcd.bgCnt.toList() + lcd.affine.toList().subList(0, 6),
+                "f$f dispcnt, bldcnt, BLDALPHA, BLDY, bgcnt, BG2 affine")
+            for (layer in 0..1) assertEquals(spriteChain(e, layer), ourChain(title.sprites, layer), "f$f sprite layer $layer")
             if (scr == 15) blueChecked++
+            if (scr == 17) orbsChecked++
+            if (scr == 30) zoomChecked++
             if (f % 10 == 0) { // full dump: VRAM written by the loaders so far (exact decompressed lengths)
-                val v = run.region("f%05d".format(f), "vram")
+                val v = run(f).region("f%05d".format(f), "vram")
                 for ((at, dst) in listOf(0x08AA7760 to 0, 0x08AA9708 to 0x3000, 0x08AAB414 to 0x5000, 0x08AAC5AC to 0x10000,
-                    0x08AACEDC to 0x13000, 0x08AAFD14 to 0x8000, 0x08AAFF10 to 0xB000, 0x08AADC08 to 0xC000)) {
+                    0x08AACEDC to 0x13000, 0x08AAFD14 to 0x8000, 0x08AAFF10 to 0xB000, 0x08AADC08 to 0xC000, 0x08AB0B44 to 0x8000, 0x08AB0134 to 0x8000)) {
+                    if (dst == 0xB000 && scr > 15) continue // BG2's map from sub_80C5BD4 on (map sync not modelled)
+                    if (at == 0x08AB0B44 && scr !in 23..29) continue // demon king, until the logo replaces it
+                    if (at == 0x08AB0134 && scr < 30) continue // the zooming logo
                     val n = Decompress.into(rom, at - 0x08000000, ByteArray(0x10000), 0)
                     if (hw.vram.copyOfRange(dst, dst + n).any { it != 0.toByte() }) {
                         assertArrayEquals(v.copyOfRange(dst, dst + n), hw.vram.copyOfRange(dst, dst + n), "f$f VRAM %X".format(dst))
@@ -131,12 +146,16 @@ class TitleScreenDifferentialTest {
         assertTrue(checked >= 5, "checked $checked frames from f$first")
         assertTrue(blueChecked >= 70, "Title_Loop_DrawRotatingBlueLights checked on $blueChecked frames")
         assertTrue(vramChecked >= 5, "VRAM ranges checked: $vramChecked")
+        assertTrue(orbsChecked >= 40, "Title_Loop_DrawRedBlueOrbs checked on $orbsChecked frames")
+        assertTrue(zoomChecked >= 12, "Title_Loop_MainLogoZoom checked on $zoomChecked frames")
         assertTrue(fxChecked >= 4, "Title_SetupSpecialEffectGraphics checked on $fxChecked frames")
     }
 
     private companion object {
         const val PROC_SIZE = 0x6C
         const val TITLE_SCRIPT = 0x08AA6A50
+        const val LAST_FRAME = 3600
+        const val LAST_INDEX = 31 // the stand-in after the logo zoom
         fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
         fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)
     }

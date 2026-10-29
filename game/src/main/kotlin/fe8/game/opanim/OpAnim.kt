@@ -2461,22 +2461,9 @@ public class OpAnim(
         engine.start(proc08AA6D04Script, 0)
     }
 
-    /**
-     * Blends the 16 colours of the palette buffer at entry [at] towards [color] by [blend]/16.
-     *
-     * Ported from src/opanimfx.c: sub_80C69B0
-     */
+    /** Blends the 16 colours of the palette buffer at entry [at] towards [color] by [blend]/16. */
     public fun blendPalette(at: Int, color: Int, blend: Int) {
-        val p = hardware.palette
-        for (i in at until at + 16) {
-            val c = p[i].toInt()
-            fun ch(v: Int, shift: Int): Int {
-                val a = (v shr shift) and 0x1F
-                val b = (color shr shift) and 0x1F
-                return ((a * (0x10 - blend) + b * blend) shr 4) and 0x1F
-            }
-            p[i] = ((ch(c, 10) shl 10) or (ch(c, 5) shl 5) or ch(c, 0)).toShort()
-        }
+        fe8.game.opanim.blendPalette(hardware.palette, at, color, blend)
     }
 
     /**
@@ -2591,5 +2578,22 @@ public class OpAnim(
         const val A_BUTTON = 0x1
         const val B_BUTTON = 0x2
         const val START_BUTTON = 0x8
+    }
+}
+
+/**
+ * Blends the 16 colours of [palette] at entry [at] towards [color] by [blend]/16.
+ *
+ * Ported from src/opanimfx.c: sub_80C69B0
+ */
+public fun blendPalette(palette: ShortArray, at: Int, color: Int, blend: Int) {
+    for (i in at until at + 16) {
+        val c = palette[i].toInt()
+        fun ch(v: Int, shift: Int): Int {
+            val a = (v shr shift) and 0x1F
+            val b = (color shr shift) and 0x1F
+            return ((a * (0x10 - blend) + b * blend) shr 4) and 0x1F
+        }
+        palette[i] = ((ch(c, 10) shl 10) or (ch(c, 5) shl 5) or ch(c, 0)).toShort()
     }
 }

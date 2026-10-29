@@ -29,6 +29,8 @@ public class Fe8Boot(
     keyInput: () -> Int,
     /** Colour-effect arithmetic of [render]; hardware by default. */
     colorMath: ColorMath = ColorMath.Hardware,
+    /** The picture [render] draws into. */
+    public val screen: FrameBuffer = FrameBuffer(),
 ) {
     /** ROM data the boot screens load (from the ROM image or extracted blobs). */
     public class Assets(
@@ -104,8 +106,6 @@ public class Fe8Boot(
     private val sheets = TileSheets()
     private val loader = HardwareSceneLoader()
 
-    /** The picture [render] draws into. */
-    public val screen: FrameBuffer = FrameBuffer()
     private val renderer = SoftwareRenderer(state, sheets, screen, colorMath)
     private val camera = Camera()
 

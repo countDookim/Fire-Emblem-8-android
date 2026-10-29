@@ -5,18 +5,21 @@ import gbafe.core.flags.FeatureFlags
 import gbafe.core.rng.RngService
 import gbafe.core.time.Simulation
 import gbafe.input.InputFrame
+import gbafe.input.VanillaButtonMap
 import gbafe.render.FrameBuffer
 
 /**
  * Root of the game: owns the shared services and runs the game systems once per tick.
  *
- * Milestone-1 state: services only (RNG seeded exactly like the original boot, input, events, flags,
- * an offscreen frame). Game systems (boot sequence, title, map, battle...) plug in from milestone 4 on.
+ * Services (RNG seeded exactly like the original boot, input, events, flags, an offscreen frame) and,
+ * given boot assets, the boot sequence ([Fe8Boot]). Title, map, battle... plug in later.
  * Everything here is Android-free so it runs headless on the JVM for tests and benchmarks.
  */
 public class Fe8Game(
     /** Feature flags; vanilla by default. */
     public val flags: FeatureFlags = FeatureFlags(),
+    /** Boot screen assets; null: no game systems run and [present] draws a test pattern. */
+    bootAssets: Fe8Boot.Assets? = null,
 ) : Simulation {
     /** Central RNG. */
     public val rng: RngService = RngService().apply { seedLikeBoot() }
@@ -40,18 +43,28 @@ public class Fe8Game(
     /** Source of held actions; set by the platform layer. Defaults to "nothing held". */
     public var actionSource: gbafe.input.ActionSource = gbafe.input.ActionSource { 0L }
 
+    /** The boot sequence (one GBA frame per [tick]), when [bootAssets] were given. */
+    public val boot: Fe8Boot? = bootAssets?.let {
+        Fe8Boot(it, keyInput = { VanillaButtonMap.toGbaKeys(input.held) }, screen = frame)
+    }
+
     /** Runs one fixed logic step: polls input, fires tick-start/end events, advances [tickCount]. */
     override fun tick() {
         input.update(actionSource.poll())
         val t = tickCount
         events.onTickStart.dispatch { it.onTick(t) }
-        // Game systems run here (milestone 4+).
+        boot?.frame()
         events.onTickEnd.dispatch { it.onTick(t) }
         tickCount = t + 1
     }
 
     /** Draws the current state into [frame]; [alpha] is ignored until interpolation is needed. */
     override fun present(alpha: Float) {
+        val b = boot
+        if (b != null) {
+            b.render()
+            return
+        }
         // Placeholder test pattern until the renderer exists: a slow vertical gradient.
         val px = frame.pixels
         val shade = (tickCount and 0xFF).toInt()

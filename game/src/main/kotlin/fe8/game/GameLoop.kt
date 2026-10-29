@@ -84,16 +84,14 @@ public class GameLoop(
         if (gameLock() == 0) procs.run(procs.root(2))
         procs.run(procs.root(3))
         procs.run(procs.root(5))
-        sprites.pushLayerObjects(0, ::pushSprite)
+        sprites.pushLayerObjects(0, pushSprite)
         procs.run(procs.root(4))
-        sprites.pushLayerObjects(13, ::pushSprite)
+        sprites.pushLayerObjects(13, pushSprite)
         mainLoopEnded = true
     }
 
     /** `CallARM_PushToSecondaryOAM` for one sprite (`PutOamHi`). */
-    private fun pushSprite(e: SpriteLayers.Entry) {
-        oam.putHi(e.oam1, e.oam0, e.obj!!.data, e.oam2)
-    }
+    private val pushSprite: (SpriteLayers.Entry) -> Unit = { e -> oam.putHi(e.oam1, e.oam0, e.obj!!.data, e.oam2) }
 
     /**
      * The VBlank interrupt (`OnVBlank`, partial): clock, proc tree 0, `SyncLoOam`, then [flush] and

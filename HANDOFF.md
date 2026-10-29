@@ -44,7 +44,8 @@ _(nothing blocked)_
   `ProcEngineDifferentialTest` builds it via `titleScreenFor(...)` (helper at the end of TitleScreenDifferentialTest.kt).
 - ROM repo: `ram_trace_title_fade` added (release rebuild by its workflow; CI needs it). No dumps f700..f702 there
   (START held): the test syncs the proc from the first settled dump.
-- Verified ports: see README / `progress.py` (was 179 / 8352 before this run; ~30 added).
+- Verified ports: 179 -> **204 / 8352** (local `progress.py` after a full `jvmTest`). `Title_IDLE` stays unverified until a key trace
+  covers its A/Start branch. Local full `jvmTest` + Dokka green before the final push.
 - Stale remote branches (merged; deleting refused with 403): `wip/M4-09`, `wip/M3-10`, `wip/M4-10`, `wip/M4-10-affine`.
 
 ## Run rules (owner, 2026-10-26)

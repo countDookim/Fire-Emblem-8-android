@@ -10,6 +10,12 @@ import gbafe.proc.ProcEngine
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.block
 import gbafe.render.BgHardware
+import gbafe.render.Camera
+import gbafe.render.FrameBuffer
+import gbafe.render.OamBuffer
+import gbafe.render.RenderState
+import gbafe.render.SoftwareRenderer
+import gbafe.render.TileSheets
 import gbafe.render.SpriteLayers
 import gbafe.render.SpriteObject
 import org.junit.jupiter.api.Assertions.assertArrayEquals
@@ -23,7 +29,8 @@ import java.io.File
  * The title screen's start after the op anim (`StartTitleScreen_FlagTrue`, mode 1) against
  * `ram_trace_opanim4` (RAM every frame to f3000) and `ram_trace_title1` (to f3600): state from
  * the frame before the title proc appears, then frame by frame through the intro fx to the idle
- * title.
+ * title. Each step's sprites are pushed to OAM and the VBlank sync applied; on idle-title full dumps
+ * the OAM and the whole frame drawn from our VRAM, palette, OAM and LCD registers must match mGBA.
  */
 class TitleScreenDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -61,7 +68,7 @@ class TitleScreenDifferentialTest {
     }
 
     @Test
-    @VerifiesPort("StartTitleScreen_FlagTrue", "Title_Init", "Title_SetupMainGraphics", "Title_SetupSpecialEffectGraphics",
+    @VerifiesPort("PutOamHi", "SyncHiOam", "ClearOam", "PushSpriteLayerObjects", "StartTitleScreen_FlagTrue", "Title_Init", "Title_SetupMainGraphics", "Title_SetupSpecialEffectGraphics",
         "sub_80C5A44", "BgAffineSetOpAnim", "Title_Loop_DrawRotatingBlueLights", "sub_80C5BD4",
         "Title_Loop_DrawRedBlueOrbs", "Title_PrepareMainScreenWithExtendedBgm", "Title_Loop_RevealGreenDragonFlashFx",
         "Title_Loop_FlashFxExpand", "Title_LoadDemonKingOnBg2", "Title_ShowBg2", "sub_80C5FB4", "Title_EndSkipFxListener",
@@ -94,6 +101,13 @@ class TitleScreenDifferentialTest {
         var zoomChecked = 0
         var explosionChecked = 0
         var idleChecked = 0
+        var framesChecked = 0
+        val oam = OamBuffer().apply { // gOam, sOamLo.count and gOamHiPutIt from the start dump
+            val w = iw(first - 1)
+            for (i in buffer.indices) buffer[i] = u16(w, G_OAM - GbaMem.IWRAM + 2 * i).toShort()
+            loCount = u32(w, sym["sOamLo"].address - GbaMem.IWRAM + 12)
+            hiPut = (u32(w, G_OAM_HI_PUT_IT - GbaMem.IWRAM) - G_OAM) / 2
+        }
         for (f in first..LAST_FRAME) {
             val e = ew(f)
             val o = procAt(e) ?: break
@@ -105,6 +119,11 @@ class TitleScreenDifferentialTest {
             if (!lagging) {
                 title.sprites.clear() // OnMain's ClearSprites
                 engine.run(engine.root(3))
+                // OnMain pushes layers 0 and 13; the VBlank syncs the step's display state.
+                for (head in listOf(0, 13)) title.sprites.pushLayerObjects(head) { oam.putHi(it.oam1, it.oam0, it.obj!!.data, it.oam2) }
+                hw.flushBackgrounds()
+                oam.syncLo()
+                oam.syncHi()
             }
             if (midStep) continue
             if (scr >= LAST_INDEX) break // the fade-out stand-in
@@ -125,6 +144,13 @@ class TitleScreenDifferentialTest {
             if (scr == 30) zoomChecked++
             if (scr == 32) explosionChecked++
             if (scr == 35) idleChecked++
+            if (scr == 35 && (f + 1) % 10 == 0 && f + 1 <= LAST_FRAME) { // frame f+1 shows the state synced after step f
+                val dump = "f%05d".format(f + 1)
+                val dumpOam = run(f + 1).region(dump, "oam")
+                assertArrayEquals(ShortArray(0x200) { u16(dumpOam, 2 * it).toShort() }, oam.oam, "$dump OAM")
+                assertEquals(0, ourFrameDiffs(hw, oam, run(f + 1), dump), "$dump: idle title frame from our state")
+                framesChecked++
+            }
             assertEquals(procAt(e, SKIP_SCRIPT) != null, engine.find(title.skipListenerScript) != null, "f$f skip listener")
             assertEquals(procAt(e, SPRITES_SCRIPT) != null, engine.find(title.drawSpritesScript) != null, "f$f title sprites")
             assertEquals(u32(e, o + 0x2C), (ours.state as TitleScreen.State).timerIdle, "f$f timer_idle")
@@ -132,7 +158,6 @@ class TitleScreenDifferentialTest {
                 val v = run(f).region("f%05d".format(f), "vram")
                 for ((at, dst) in listOf(0x08AA7760 to 0, 0x08AA9708 to 0x3000, 0x08AAB414 to 0x5000, 0x08AAC5AC to 0x10000,
                     0x08AACEDC to 0x13000, 0x08AAFD14 to 0x8000, 0x08AAFF10 to 0xB000, 0x08AADC08 to 0xC000, 0x08AB0B44 to 0x8000, 0x08AB0134 to 0x8000)) {
-                    if (dst == 0xB000 && scr > 15) continue // BG2's map from sub_80C5BD4 on (map sync not modelled)
                     if (at == 0x08AB0B44 && scr !in 23..29) continue // demon king, until the logo replaces it
                     if (at == 0x08AB0134 && scr < 30) continue // the zooming logo
                     val n = Decompress.into(rom, at - 0x08000000, ByteArray(0x10000), 0)
@@ -151,6 +176,7 @@ class TitleScreenDifferentialTest {
         assertTrue(zoomChecked >= 12, "Title_Loop_MainLogoZoom checked on $zoomChecked frames")
         assertTrue(explosionChecked >= 20, "Title_Loop_LightExplosionFx checked on $explosionChecked frames")
         assertTrue(idleChecked >= 300, "Title_IDLE checked on $idleChecked frames")
+        assertTrue(framesChecked >= 20, "idle title frames compared: $framesChecked")
         assertTrue(fxChecked >= 4, "Title_SetupSpecialEffectGraphics checked on $fxChecked frames")
     }
 
@@ -214,8 +240,36 @@ class TitleScreenDifferentialTest {
         assertTrue(idleChecked >= 20, "idle checked on $idleChecked frames")
     }
 
+    /**
+     * Draws the frame from our display state (VRAM, palette RAM and LCD registers after the VBlank sync) and
+     * compares it with mGBA's [dump] frame.
+     */
+    private fun ourFrameDiffs(hw: BgHardware, oam: OamBuffer, r: ReferenceData.Run, dump: String): Int {
+        val io = ByteArray(0x400)
+        hw.lcd.flushTo(io)
+        val pal = ByteArray(0x400)
+        for (i in 0 until 0x200) {
+            pal[2 * i] = hw.paletteRam[i].toByte()
+            pal[2 * i + 1] = (hw.paletteRam[i].toInt() shr 8).toByte()
+        }
+        val state = RenderState()
+        val sheets = TileSheets()
+        val oamBytes = ByteArray(0x400)
+        for (i in 0 until 0x200) {
+            oamBytes[2 * i] = oam.oam[i].toByte()
+            oamBytes[2 * i + 1] = (oam.oam[i].toInt() shr 8).toByte()
+        }
+        HardwareScene.load(state, sheets, hw.vram, pal, oamBytes, io)
+        val fb = FrameBuffer()
+        SoftwareRenderer(state, sheets, fb, MgbaColorMath).render(Camera())
+        val out = File(System.getProperty("fe8.frameDiffDir") ?: "build/frame-diff", "title_ours_$dump.png")
+        return HardwareScene.compare(fb, r.frameRgb(dump), out)
+    }
+
     private companion object {
         const val PROC_SIZE = 0x6C
+        const val G_OAM = 0x03003140 // reference/iwram_symbols.tsv (not in ram_symbols.tsv)
+        const val G_OAM_HI_PUT_IT = 0x03003744
         const val TITLE_SCRIPT = 0x08AA6A50
         const val SKIP_SCRIPT = 0x08AA6814
         const val FADE_SCRIPT = 0x0859A0A4

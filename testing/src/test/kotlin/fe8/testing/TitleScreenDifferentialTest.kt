@@ -21,7 +21,7 @@ import java.io.File
  * The title screen's start after the op anim (`StartTitleScreen_FlagTrue`, mode 1) against
  * `ram_trace_opanim4` (RAM every frame to f3000) and `ram_trace_title1` (to f3600): state from
  * the frame before the title proc appears, then frame by frame through the intro fx up to the
- * logo zoom.
+ * light explosion.
  */
 class TitleScreenDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -63,7 +63,8 @@ class TitleScreenDifferentialTest {
         "sub_80C5A44", "BgAffineSetOpAnim", "Title_Loop_DrawRotatingBlueLights", "sub_80C5BD4",
         "Title_Loop_DrawRedBlueOrbs", "Title_PrepareMainScreenWithExtendedBgm", "Title_Loop_RevealGreenDragonFlashFx",
         "Title_Loop_FlashFxExpand", "Title_LoadDemonKingOnBg2", "Title_ShowBg2", "sub_80C5FB4", "Title_EndSkipFxListener",
-        "Title_PrepareMainLogoZoom", "Title_Loop_MainLogoZoom", "sub_80C5548", "sub_80C69B0")
+        "Title_PrepareMainLogoZoom", "Title_Loop_MainLogoZoom", "sub_80C5548", "sub_80C69B0", "sub_80C6104",
+        "Title_Loop_LightExplosionFx", "DrawTitleLightBubbleSprites")
     fun `title screen start matches the per-frame RAM trace`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -89,7 +90,8 @@ class TitleScreenDifferentialTest {
             listOf(pal(0x08AB0114, 16), pal(0x08AAE8CC, 16), pal(0x08AAFCF4, 16), pal(0x08AB210C, 48), pal(0x08AB21B8, 16)),
             Triple(blob(0x08AB0B44), blob(0x08AB1890), pal(0x08AB1C04, 16)),
             Triple(blob(0x08AB0134), blob(0x08AB0A20), pal(0x08AB0B24, 16))),
-            SpriteObject(0x08590F54, pal(0x08590F54, 4)))
+            SpriteObject(0x08590F54, pal(0x08590F54, 4)), object8x8 = SpriteObject(0x08590F44, pal(0x08590F44, 4)),
+            bannerSprite = SpriteObject(0x08AA6794, pal(0x08AA6794, 13)))
         val parent = engine.start(ProcScript("parent", listOf(block())), 3)
         title.start(parent, 1)
         var checked = 0
@@ -98,6 +100,7 @@ class TitleScreenDifferentialTest {
         var blueChecked = 0
         var orbsChecked = 0
         var zoomChecked = 0
+        var explosionChecked = 0
         for (f in first..LAST_FRAME) {
             val e = ew(f)
             val o = procAt(e) ?: break
@@ -111,7 +114,7 @@ class TitleScreenDifferentialTest {
                 engine.run(engine.root(3))
             }
             if (midStep) continue
-            if (scr >= LAST_INDEX) break // the stand-in after the logo zoom
+            if (scr >= LAST_INDEX) break // the stand-in after the light explosion
             val ours = engine.find(title.script)!!
             assertEquals(scr, ours.scrCur, "f$f title scrCur")
             if (scr == 13) fxChecked++
@@ -123,10 +126,11 @@ class TitleScreenDifferentialTest {
             assertEquals(listOf(g.dispcnt, g.bldcnt, g.blendCoeffA, g.blendCoeffB, g.blendY) + g.bgCnt.toList() + g.affine.toList().subList(0, 6),
                 listOf(lcd.dispcnt, lcd.bldcnt, lcd.blendCoeffA, lcd.blendCoeffB, lcd.blendY) + lcd.bgCnt.toList() + lcd.affine.toList().subList(0, 6),
                 "f$f dispcnt, bldcnt, BLDALPHA, BLDY, bgcnt, BG2 affine")
-            for (layer in 0..1) assertEquals(spriteChain(e, layer), ourChain(title.sprites, layer), "f$f sprite layer $layer")
+            for (layer in 0..4) assertEquals(spriteChain(e, layer), ourChain(title.sprites, layer), "f$f sprite layer $layer")
             if (scr == 15) blueChecked++
             if (scr == 17) orbsChecked++
             if (scr == 30) zoomChecked++
+            if (scr == 32) explosionChecked++
             if (f % 10 == 0) { // full dump: VRAM written by the loaders so far (exact decompressed lengths)
                 val v = run(f).region("f%05d".format(f), "vram")
                 for ((at, dst) in listOf(0x08AA7760 to 0, 0x08AA9708 to 0x3000, 0x08AAB414 to 0x5000, 0x08AAC5AC to 0x10000,
@@ -148,6 +152,7 @@ class TitleScreenDifferentialTest {
         assertTrue(vramChecked >= 5, "VRAM ranges checked: $vramChecked")
         assertTrue(orbsChecked >= 40, "Title_Loop_DrawRedBlueOrbs checked on $orbsChecked frames")
         assertTrue(zoomChecked >= 12, "Title_Loop_MainLogoZoom checked on $zoomChecked frames")
+        assertTrue(explosionChecked >= 20, "Title_Loop_LightExplosionFx checked on $explosionChecked frames")
         assertTrue(fxChecked >= 4, "Title_SetupSpecialEffectGraphics checked on $fxChecked frames")
     }
 
@@ -155,7 +160,7 @@ class TitleScreenDifferentialTest {
         const val PROC_SIZE = 0x6C
         const val TITLE_SCRIPT = 0x08AA6A50
         const val LAST_FRAME = 3600
-        const val LAST_INDEX = 31 // the stand-in after the logo zoom
+        const val LAST_INDEX = 33 // the stand-in after the light explosion
         fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
         fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)
     }

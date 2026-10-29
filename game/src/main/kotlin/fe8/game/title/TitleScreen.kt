@@ -36,6 +36,10 @@ public class TitleScreen(
     public val object32x32: SpriteObject? = null,
     /** The sprite lists (`src/ctc.c`). */
     public val sprites: SpriteLayers = SpriteLayers(),
+    /** `gObject_8x8` (the light bubbles). */
+    public val object8x8: SpriteObject? = null,
+    /** `gSprite_Title_SacredStonesBanner`. */
+    public val bannerSprite: SpriteObject? = null,
 ) {
     /** ROM data of the title screen. */
     public class Gfx(
@@ -80,6 +84,9 @@ public class TitleScreen(
 
         /** `timer_idle`. */
         public var timerIdle: Int = 0
+
+        /** `unk_30`: the last light explosion progress (0..63). */
+        public var unk30: Int = 0
     }
 
     private val mapBytes = ByteArray(0x800)
@@ -119,7 +126,9 @@ public class TitleScreen(
             call(ProcFunc { engine.end(engine.find(skipListenerStandIn)) }),
             call(ProcFunc { prepareLogoZoom() }),
             repeat(ProcFunc { logoZoom(it) }),
-            block(), // not ported: sub_80C6104 and the rest of the intro fx
+            call(ProcFunc { prepareLightExplosion(it) }),
+            repeat(ProcFunc { lightExplosion(it) }),
+            block(), // not ported: sub_80C62DC (title sprites) and the rest
             label(1),
         ),
         newState = { State() },
@@ -297,6 +306,62 @@ public class TitleScreen(
      */
     public fun logoAffine(scale: Int) {
         BgAffine.set(hardware.lcd.affine, 0, 0x7800, 0x5000, 0x78, 0x50, scale, scale, 0)
+    }
+
+    /**
+     * Alpha blend of nothing over BG0/BG1 at 16/16; resets `unk_30`. (Its `gGenericBuffer`
+     * clear, `sub_80C60CC`, is not modelled: nothing reads that buffer here.)
+     *
+     * Ported from src/titlescreen.c: sub_80C6104
+     */
+    public fun prepareLightExplosion(proc: Proc) {
+        val lcd = hardware.lcd
+        lcd.setBlendConfig(1, 0x10, 0x10, 0)
+        lcd.setBlendTargetA(0, 0, 0, 0, 0)
+        lcd.setBlendTargetB(1, 1, 0, 0, 0)
+        (proc.state as State).unk30 = 0
+    }
+
+    /**
+     * Fades the blend and BG palettes 14/15 back from white over 24 steps, with the "Sacred
+     * Stones" banner and the light bubbles flying out. Breaks at step 24.
+     *
+     * Ported from src/titlescreen.c: Title_Loop_LightExplosionFx
+     */
+    public fun lightExplosion(proc: Proc) {
+        val st = proc.state as State
+        val t = st.timer
+        val hw = hardware
+        hw.lcd.blendCoeffA = Interpolate.interpolate(Interpolate.LINEAR, 16, 0, t, 24)
+        val res = Interpolate.interpolate(Interpolate.LINEAR, 16, 0, t, 24)
+        applyPalette(gfx.backgroundPal, 0xE, 1)
+        blendPalette(hw.palette, 0xE * 16, 0x7FFF, res)
+        applyPalette(gfx.dragonPal, 0xF, 1)
+        blendPalette(hw.palette, 0xF * 16, 0x7FFF, res)
+        st.unk30 = Interpolate.interpolate(Interpolate.LINEAR, 0, 63, t, 24) // nullsub_23
+        sprites.putExt(1, 16, 85, bannerSprite ?: error("bannerSprite not supplied"), 0x31A0)
+        drawLightBubbles(t)
+        stepUntil(proc, 24)
+    }
+
+    /**
+     * Puts the 61 light bubbles (8x8, layer 4, semi-transparent) on their rays from the centre
+     * at step [step] of 24.
+     *
+     * Ported from src/titlescreen.c: DrawTitleLightBubbleSprites
+     */
+    public fun drawLightBubbles(step: Int) {
+        val obj = object8x8 ?: error("object8x8 not supplied")
+        for (i in 0 until BUBBLES.size / 4) {
+            val a = BUBBLES[4 * i]
+            val b = BUBBLES[4 * i + 1]
+            val c = BUBBLES[4 * i + 2]
+            val m = RAYS[2 * c]
+            val n = RAYS[2 * c + 1]
+            val x = Interpolate.interpolate(Interpolate.LINEAR, (m * a) shr 8, (b * m) shr 8, step, 24) + 116
+            val y = Interpolate.interpolate(Interpolate.LINEAR, (n * a) shr 8, (b * n) shr 8, step, 24) + 56
+            sprites.putExt(4, x and 0x1FF, (y and 0xFF) or 0x400, obj, (BUBBLES[4 * i + 3] + 0x2A0) or 0x7400)
+        }
     }
 
     /** Breaks [proc] and resets its timer at step [last], else counts on. */
@@ -541,5 +606,39 @@ public class TitleScreen(
     private fun applyPalette(src: ShortArray, bank: Int, count: Int) {
         src.copyInto(hardware.palette, bank * 16, 0, 16 * count)
         hardware.enablePaletteSync()
+    }
+
+    private companion object {
+        /** `gUnknown_08AA682C`: (x, y) direction of each ray (s8 pairs). */
+        val RAYS: IntArray = intArrayOf(
+            0x68, 0xC4, 0x6B, 0xCA, 0x6E, 0xCF, 0x70, 0xD5, 0x72, 0xDB, 0x74, 0xE1, 0x75, 0xE7,
+            0x77, 0xED, 0x77, 0xF3, 0x78, 0xFA, 0x78, 0x00, 0x78, 0x06, 0x77, 0x0D, 0x77, 0x13,
+            0x75, 0x19, 0x74, 0x1F, 0x72, 0x25, 0x70, 0x2B, 0x6E, 0x31, 0x6B, 0x36, 0x68, 0x3C,
+        ).map { it.toByte().toInt() }.toIntArray()
+
+        /** `gUnknown_08AA6858` without its terminator: start, end distance (s16), ray, tile. */
+        val BUBBLES: IntArray = intArrayOf(
+            0x0060, 0x0100, 0x00, 0x00, 0x00A0, 0x0140, 0x01, 0x01, 0x0070, 0x0180, 0x02, 0x02,
+            0x0080, 0x0120, 0x03, 0x03, 0x0050, 0x0110, 0x04, 0x00, 0x0090, 0x0170, 0x05, 0x01,
+            0x00C0, 0x0140, 0x06, 0x02, 0x0060, 0x0130, 0x07, 0x03, 0x00B0, 0x0100, 0x08, 0x00,
+            0x0080, 0x0170, 0x09, 0x01, 0x0070, 0x0120, 0x0A, 0x02, 0x0080, 0x0110, 0x0B, 0x03,
+            0x0060, 0x0120, 0x0C, 0x00, 0x00A0, 0x0160, 0x0D, 0x01, 0x0090, 0x0120, 0x0E, 0x02,
+            0x0060, 0x0150, 0x0F, 0x03, 0x0070, 0x0170, 0x10, 0x00, 0x00A0, 0x0110, 0x11, 0x01,
+            0x00A0, 0x0180, 0x12, 0x02, 0x0080, 0x0130, 0x13, 0x03, 0x0070, 0x0120, 0x14, 0x00,
+            0x0060, 0x0160, 0x05, 0x01, 0x0080, 0x0110, 0x06, 0x02, 0x00A0, 0x0100, 0x07, 0x03,
+            0x00C0, 0x0180, 0x08, 0x00, 0x00B0, 0x0160, 0x09, 0x01, 0x0080, 0x0130, 0x0A, 0x02,
+            0x0060, 0x0150, 0x0B, 0x03, 0x0080, 0x0120, 0x0C, 0x00, 0x0070, 0x0140, 0x0D, 0x01,
+            0x0090, 0x0180, 0x0E, 0x02, 0xFFA0, 0xFF00, 0x00, 0x00, 0xFF60, 0xFEC0, 0x01, 0x01,
+            0xFF90, 0xFE80, 0x02, 0x02, 0xFF80, 0xFEE0, 0x03, 0x03, 0xFFB0, 0xFEF0, 0x04, 0x00,
+            0xFF70, 0xFE90, 0x05, 0x01, 0xFF40, 0xFEC0, 0x06, 0x02, 0xFFA0, 0xFED0, 0x07, 0x03,
+            0xFF50, 0xFF00, 0x08, 0x00, 0xFF80, 0xFE90, 0x09, 0x01, 0xFF90, 0xFEE0, 0x0A, 0x02,
+            0xFF80, 0xFEF0, 0x0B, 0x03, 0xFFA0, 0xFEE0, 0x0C, 0x00, 0xFF60, 0xFEA0, 0x0D, 0x01,
+            0xFF70, 0xFEE0, 0x0E, 0x02, 0xFFA0, 0xFEB0, 0x0F, 0x03, 0xFF90, 0xFE90, 0x10, 0x00,
+            0xFF60, 0xFEF0, 0x11, 0x01, 0xFF60, 0xFE80, 0x12, 0x02, 0xFF80, 0xFED0, 0x13, 0x03,
+            0xFF90, 0xFEE0, 0x14, 0x00, 0xFFA0, 0xFEA0, 0x05, 0x01, 0xFF80, 0xFEF0, 0x06, 0x02,
+            0xFF60, 0xFF00, 0x07, 0x03, 0xFF40, 0xFE80, 0x08, 0x00, 0xFF50, 0xFEA0, 0x09, 0x01,
+            0xFF80, 0xFED0, 0x0A, 0x02, 0xFFA0, 0xFEB0, 0x0B, 0x03, 0xFF80, 0xFEE0, 0x0C, 0x00,
+            0xFF90, 0xFEC0, 0x0D, 0x01, 0xFF70, 0xFE80, 0x0E, 0x02,
+        ).let { a -> IntArray(a.size) { if (it % 4 < 2) a[it].toShort().toInt() else a[it] } }
     }
 }

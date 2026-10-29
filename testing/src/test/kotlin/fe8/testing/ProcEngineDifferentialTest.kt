@@ -102,12 +102,14 @@ class ProcEngineDifferentialTest {
         val run3 = ref.run("ram_trace_opanim2") // same inputs, f1090..f1600 (full dumps every 10 frames from f1100)
         val run4 = ref.run("ram_trace_opanim3") // same inputs, f1590..f2600 (full dumps every 10 frames from f1600)
         val run5 = ref.run("ram_trace_opanim4") // same inputs, f2590..f3000 (full dumps every 10 frames from f2600)
+        val run6 = ref.run("ram_trace_title1") // same inputs, f2990..f3600: the title screen
         fun dump(f: Int, region: String) = when {
             f <= 520 -> run.region("r%05d".format(f), region)
             f <= 1100 -> run2.region("r%05d".format(f), region)
             f <= 1600 -> run3.region((if (f % 10 == 0) "f%05d" else "r%05d").format(f), region)
             f <= 2600 -> run4.region((if (f % 10 == 0) "f%05d" else "r%05d").format(f), region)
-            else -> run5.region((if (f % 10 == 0) "f%05d" else "r%05d").format(f), region)
+            f <= 3000 -> run5.region((if (f % 10 == 0) "f%05d" else "r%05d").format(f), region)
+            else -> run6.region((if (f % 10 == 0) "f%05d" else "r%05d").format(f), region)
         }
         fun ew(f: Int) = dump(f, "ewram")
         fun iw(f: Int) = dump(f, "iwram")
@@ -486,7 +488,7 @@ class ProcEngineDifferentialTest {
         }
         assertEquals(LAST - 474, ended) // f475..
         assertEquals(OP_END - 475, opStarted) // f476..f2908; then GAMECTRL starts the title screen
-        assertTrue(titleChecked >= 60, "title screen checked on $titleChecked frames")
+        assertTrue(titleChecked >= 600, "title screen checked on $titleChecked frames")
         assertTrue(opChecked >= 300, "op anim checked on $opChecked frames")
         assertTrue(ephraimChecked >= 6, "OpAnimPreparefxEphraim checked on $ephraimChecked frames")
         assertTrue(flyInChecked >= 20, "OpAnimEphraimfxFlyIn checked on $flyInChecked frames")
@@ -556,7 +558,7 @@ class ProcEngineDifferentialTest {
         const val CAST_FADE_OUT_SCRIPT = 0x08AA707C // gUnknown_08AA707C
         const val CAST_DARKEN_SCRIPT = 0x08AA705C // gUnknown_08AA705C
         const val OP_ANIM_HBLANK1 = 0x080C7845 // OpAnimHBlank1 (Thumb)
-        const val LAST = 3000
+        const val LAST = 3600
         const val OP_END = 2908
         const val PROC_SIZE = 0x6C
 

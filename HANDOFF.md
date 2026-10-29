@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated: 2026-10-28 23:15 UTC (scheduled run, started 22:51)._
+_Updated: 2026-10-29 07:20 UTC (scheduled run, started ~06:50)._
 
 ## Owner decisions 2026-10-25 (read docs/decisions/0009)
 - The app is a 1:1 copy. Modding = extension points only; ship no touch gameplay, QoL flags or alternate
@@ -35,20 +35,16 @@ _Updated: 2026-10-28 23:15 UTC (scheduled run, started 22:51)._
 _(nothing blocked)_
 
 ## Status
-- This run: **M4-08 done**: `OpAnim` runs the whole `ProcScr_OpAnim` (face screens 5..12 via `LATER_FACES` +
-  `faces4In/6In/7In/ColumnIn/10In/12In`, `fadeRingOut`, `fadeToWhite`, `endCutscene`; `ProcEngine.endAllChildren`,
-  `LcdControl.setWin1Box`); `ProcEngineDifferentialTest` uses run5 (`ram_trace_opanim4`) and runs to f3000.
-  `GameControl` script mirrored through `POST_TITLE_IDLE` (indices match C; `postIntro` partial, `postClassReel`;
-  a title **stand-in** proc is started at label 24).
-- **M4-10 started**: `fe8.game.title.TitleScreen` (start, `Title_Init`, `SetupMainGraphics`, `SetupSpecialEffectGraphics`,
-  `sub_80C5A44`, `Title_Loop_DrawRotatingBlueLights`; skip listener and the rest are stand-ins) verified by
-  `TitleScreenDifferentialTest` (state from f2909, mid-step dumps skipped like the main test). `gbafe.render.BgAffine.set`
-  = mGBA's float `BgAffineSet`, matches the trace exactly. New reference `ram_trace_title1` (f2990..3600) pushed to the
-  ROM repo (release rebuilt by its workflow; not used by tests yet).
-- **M4-09 done** (CI 137 green): debug APK bundles `assets/extracted/`, `fe8.app.AssetLayer`, guard on the release APK.
-  **M3-10 done** (CI 138 green, manual test pending): `fe8.app.HardwareKeySource`. MANUAL_TEST.md updated.
-- Verified ports: 157 (README) -> **179 / 8352** (local `progress.py` after a full `jvmTest`; it only counts
-  tests whose results exist). Local full `jvmTest` + Dokka green before the final push.
+- This run: **M4-10 (a)..(d) done**: whole `gProcScr_TitleScreen` ported in `fe8.game.title.TitleScreen` (intro fx, logo zoom,
+  light explosion, `DrawTitleSprites`, `Title_IDLE`, real skip listener, `Title_RestartProc`, fades) and verified by
+  `TitleScreenDifferentialTest` (mode 1 to the idle title, f3600; mode 0 fade-in on new trace `ram_trace_title_fade`,
+  f690..f800, which also checks `gFadeComponents`). New `gbafe.render.ColorFade` + `FadeCore` (`StartFadeCore`,
+  `ColorFadeTick`, `sub_80141B0` = `darkenEnd`). `blendPalette` (sub_80C69B0) is now top-level in `fe8.game.opanim`.
+  `GameControl` takes an optional `titleScreen` factory and starts the real title (stand-in only when null); the main
+  `ProcEngineDifferentialTest` builds it via `titleScreenFor(...)` (helper at the end of TitleScreenDifferentialTest.kt).
+- ROM repo: `ram_trace_title_fade` added (release rebuild by its workflow; CI needs it). No dumps f700..f702 there
+  (START held): the test syncs the proc from the first settled dump.
+- Verified ports: see README / `progress.py` (was 179 / 8352 before this run; ~30 added).
 - Stale remote branches (merged; deleting refused with 403): `wip/M4-09`, `wip/M3-10`, `wip/M4-10`, `wip/M4-10-affine`.
 
 ## Run rules (owner, 2026-10-26)
@@ -59,12 +55,12 @@ _(nothing blocked)_
   first, then `tail_lines` <= 80 of the failing job).
 - Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.
 
-## Next task: M4-10 title screen (then M3-07 GPU backend, M3-15, M4-11)
-- Continue `gProcScr_TitleScreen` from idx 16 (`sub_80C5BD4`: BG2 fill, mode 0, blend, `CpuFastFill` BG pal 0xE;
-  then `Title_Loop_DrawRedBlueOrbs`, dragon flash, demon king BG2, logo zoom, light explosion, `sub_80C62DC`, `Title_IDLE`,
-  `gProcScr_DrawTitleSprites`). Extend `TitleScreenDifferentialTest` to `ram_trace_title1` (f2990..3600; add its frames
-  past f3000) and raise its break index. Port the real `gProcScr_SkipTitleFxKeyListener` (needs `KeyStatus`).
-- Then wire `TitleScreen` into `GameControl.startTitleScreen` (replace the stand-in) and give the main test the title gfx.
+## Next task: M4-10 (e) title frame-compare, then M3-07 GPU backend, M3-15, M4-11
+- M4-10 (e): frame-compare the idle title vs `boot_to_title` (f900/f1200 full dumps) or `ram_trace_title1` f3600 VRAM/frame:
+  needs BG map sync to VRAM (TitleScreen writes map buffers only; check how OpAnim tests sync) and OBJ rendering of the
+  title sprites. Key paths (skip listener -> label 3, A/Start -> `sub_8013F40` fade out) need a key trace on the title.
+- Unverified: `Title_RestartProc`, `SkipTitleFx_Loop_KeyListener`, `Title_EndAllProcChildren` path, `FadeCore.darkenEnd`,
+  `ColorFadeSetupFromColorToBlack/White`, `ColorFadeSetupFromWhite` (no trace yet).
 - M3-07 GPU backend: the app already shows a CPU-rendered frame via GL; v1 = draw `RenderState` with shaders.
 - M4-11 boot wiring needs `Fe8Game` to build OpAnim/Title/EarlyStartUi from VFS assets (`AssetLayer`).
 - Unverified leftovers: `OpAnimHBlank1/2`, `sub_80C85FC`/`sub_80C8684`, `GameControl_PostIntro` (partial), `sub_8009B64`.

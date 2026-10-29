@@ -143,66 +143,7 @@ class ProcEngineDifferentialTest {
         lateinit var opPort: OpAnim
         lateinit var title: TitleScreen
         val ctrl = GameControl(engine, keys, { ui.script }, { opPort.script }, { title })
-        val opGfx = OpAnim.Gfx(
-            listOf(0x08AF1AE8, 0x08AF1B38, 0x08AF1FD0, 0x08AF2654).map { blob(it) },
-            listOf(0x08AF1B18, 0x08AF1FB0, 0x08AF2634, 0x08AF310C).map { romPal(it, 16) },
-        )
-        val worldMap = OpAnim.WorldMapGfx(blob(0x08AB21D8), blob(0x08AB5D90), blob(0x08AB632C), blob(0x08AB7AC0), romPal(0x08AB7DB0, 16), romPal(0x08AB630C, 16))
-        fun pair(img: Int, tsa: Int) = blob(img) to blob(tsa)
-        fun obj(at: Int) = SpriteObject(at, romPal(at, 4))
-        val ephraim = OpAnim.EphraimGfx(pair(0x08AB7DD0, 0x08AB87E0), pair(0x08ABF168, 0x08AC1878),
-            pair(0x08AC0BD8, 0x08AC1B98), pair(0x08ABB14C, 0x08ABC074), romPal(0x08AC1C8C, 16 * 11),
-            pair(0x08ABE304, 0x08ABEF70), pair(0x08ABD348, 0x08ABE120), pair(0x08ABC22C, 0x08ABD174),
-            romPal(0x08AB8CAC, 16), obj(0x08590F9C) to obj(0x08590FA4),
-            SpriteObject(0x08AA6BFA, romPal(0x08AA6BFA, 10)))
-        val eirika = OpAnim.EirikaGfx(pair(0x08AC5614, 0x08AC8DDC), pair(0x08AC7374, 0x08AC91F8),
-            pair(0x08AC1DEC, 0x08AC2B24), romPal(0x08AC933C, 16 * 11), pair(0x08AC4928, 0x08AC5420),
-            pair(0x08AC3BC8, 0x08AC4760), pair(0x08AC2CB4, 0x08AC3A2C),
-            SpriteObject(0x08AA6C0E, romPal(0x08AA6C0E, 10)),
-            List(100) { blob(u32(rom, 0xAA6D14 + 4 * it)) }, List(100) { blob(u32(rom, 0xAA6EA4 + 4 * it)) })
-        val cast = OpAnim.CastGfx(romPal(0x08AF47F0, 16 * 4), romPal(0x08B103D8, 16 * 8), pair(0x08AB8CCC, 0x08AB942C),
-            pair(0x08AF312C, 0x08AF404C),
-            OpAnim.CastScene(pair(0x08AC949C, 0x08ACBF58), pair(0x08ACAF70, 0x08ACC340), romPal(0x08ACC3E0, 16 * 11), true, 0x118, 0xE8, 0xE8),
-            listOf(
-                OpAnim.CastScene(pair(0x08ACC540, 0x08ACEED0), pair(0x08ACE0B8, 0x08ACF200), romPal(0x08ACF314, 16 * 11), false, 0xC0, 0x140, 0x108),
-                OpAnim.CastScene(pair(0x08ACF474, 0x08AD206C), pair(0x08AD1048, 0x08AD236C), romPal(0x08AD24B4, 16 * 11), true, 0xC0, 0x140, 0x118),
-                OpAnim.CastScene(pair(0x08AD2614, 0x08AD5094), pair(0x08AD423C, 0x08AD543C), romPal(0x08AD54DC, 16 * 11), false, 0x110, 0xF0, 0x108),
-                OpAnim.CastScene(pair(0x08AD563C, 0x08AD8518), pair(0x08AD72FC, 0x08AD88D4), romPal(0x08AD89A8, 16 * 11), true, 0xE8, 0x118, 0xE8),
-                OpAnim.CastScene(pair(0x08AD8B08, 0x08ADB804), pair(0x08ADA31C, 0x08ADBC0C), romPal(0x08ADBD18, 16 * 11), false, 200, 0x138, 0x128),
-            ),
-            listOf(0x08AA6C22, 0x08AA6C36, 0x08AA6C4A, 0x08AA6C58, 0x08AA6C66, 0x08AA6C74, 0x08AA6C82, 0x08AA6C8A,
-                0x08AA6C92, 0x08AA6C9A).map { SpriteObject(it, romPal(it, 1 + 3 * u16(rom, it - 0x08000000))) },
-            romPal(0x08ADBE78, 16),
-            listOf(OpAnim.Face(blob(0x08ADBE98), blob(0x08ADC3C0), romPal(0x08ADC708, 16)),
-                OpAnim.Face(blob(0x08ADC728), blob(0x08ADCCB8), romPal(0x08ADD050, 16)),
-                OpAnim.Face(blob(0x08ADD070), blob(0x08ADD6EC), romPal(0x08ADDA54, 16))),
-            SpriteObject(0x08AA709C, romPal(0x08AA709C, 1 + 3 * u16(rom, 0xAA709C))),
-            SpriteObject(0x08AA70BC, romPal(0x08AA70BC, 1 + 3 * u16(rom, 0xAA70BC))),
-            listOf(OpAnim.Face(blob(0x08ADDA74), blob(0x08ADE080), romPal(0x08ADE47C, 16)),
-                OpAnim.Face(blob(0x08ADEEF4), blob(0x08ADF58C), romPal(0x08ADFA08, 16)),
-                OpAnim.Face(blob(0x08ADE49C), blob(0x08ADEB1C), romPal(0x08ADEED4, 16)),
-                OpAnim.Face(blob(0x08ADFA28), blob(0x08AE00E4), romPal(0x08AE04D4, 16))),
-            SpriteObject(0x08AA70DC, romPal(0x08AA70DC, 1 + 3 * u16(rom, 0xAA70DC))),
-            listOf(OpAnim.Face(blob(0x08AE04F4), blob(0x08AE0A48), romPal(0x08AE0D74, 16)),
-                OpAnim.Face(blob(0x08AE0D94), blob(0x08AE12BC), romPal(0x08AE1634, 16))),
-            SpriteObject(0x08AA70EA, romPal(0x08AA70EA, 1 + 3 * u16(rom, 0xAA70EA))),
-            listOf(OpAnim.Face(blob(0x08AE1654), blob(0x08AE1D00), romPal(0x08AE20C4, 16)),
-                OpAnim.Face(blob(0x08AE20E4), blob(0x08AE281C), romPal(0x08AE2BF4, 16)),
-                OpAnim.Face(blob(0x08AE2C14), blob(0x08AE33D4), romPal(0x08AE3734, 16))),
-            SpriteObject(0x08AA7116, romPal(0x08AA7116, 1 + 3 * u16(rom, 0xAA7116))),
-            listOf(OpAnim.Face(blob(0x08AE3754), blob(0x08AE3E54), romPal(0x08AE41E4, 16)),
-                OpAnim.Face(blob(0x08AE4204), blob(0x08AE4940), romPal(0x08AE4CE8, 16)),
-                OpAnim.Face(blob(0x08AE4D08), blob(0x08AE53C8), romPal(0x08AE5730, 16))),
-            listOf(
-                listOf(face(0x08AE5750, 0x08AE5D54, 0x08AE60B0), face(0x08AE60D0, 0x08AE6648, 0x08AE69EC)),
-                listOf(face(0x08AE6A0C, 0x08AE6FA8, 0x08AE72C8), face(0x08AE84DC, 0x08AE8AB8, 0x08AE8D84), face(0x08AE72E8, 0x08AE78B0, 0x08AE7C2C), face(0x08AE7C4C, 0x08AE819C, 0x08AE84BC)),
-                listOf(face(0x08AE8DA4, 0x08AE9364, 0x08AE9720), face(0x08AE9740, 0x08AE9CA4, 0x08AEA02C)),
-                listOf(face(0x08AECAE0, 0x08AED0A4, 0x08AED3E8), face(0x08AED408, 0x08AED95C, 0x08AEDC80), face(0x08AEDCA0, 0x08AEE218, 0x08AEE564)),
-                listOf(face(0x08AEA04C, 0x08AEA7A8, 0x08AEAB50), face(0x08AEAB70, 0x08AEB1B8, 0x08AEB56C), face(0x08AEB58C, 0x08AEBCEC, 0x08AEC048), face(0x08AEC068, 0x08AEC724, 0x08AECAC0)),
-                listOf(face(0x08AEE584, 0x08AEEBB0, 0x08AEEECC), face(0x08AEEEEC, 0x08AEF580, 0x08AEF880), face(0x08AEF8A0, 0x08AEFDC8, 0x08AF0130)),
-                listOf(face(0x08AF0150, 0x08AF09E4, 0x08AF0DE8), face(0x08AF0E08, 0x08AF16CC, 0x08AF1AC8))),
-            objN(0x08AA712A), objN(0x08AA715C), objN(0x08AA7194), blob(0x08AF4330))
-        opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx, worldMap, ephraim, eirika = eirika, cast = cast)
+        opPort = fe8.game.BootRom.opAnim(fe8.game.RomView.ofRom(rom), engine, env.hardware, keys, ctrl)
         title = titleScreenFor(rom, engine, env.hardware, opPort.sprites, keys, ctrl)
         val opAnim = opPort.script
         val parent = engine.start(ctrl.script, rootIndex)

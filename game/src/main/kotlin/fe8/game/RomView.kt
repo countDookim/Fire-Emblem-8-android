@@ -25,6 +25,9 @@ public class RomView(
         return (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
     }
 
+    /** The word at [at]. */
+    public fun u32(at: Int): Int = u16(at) or (u16(at + 2) shl 16)
+
     /** [n] BGR555 colours (or halfwords) from [at]. */
     public fun pal(at: Int, n: Int): ShortArray = ShortArray(n) { u16(at + 2 * it).toShort() }
 

@@ -4,6 +4,11 @@ import gbafe.core.event.TickListener
 import gbafe.core.time.FixedStepClock
 import gbafe.core.time.GameLoop
 import fe8.game.Fe8Game
+import gbafe.render.BgHardware
+import gbafe.render.HardwareSceneLoader
+import gbafe.render.OamBuffer
+import gbafe.render.RenderState
+import gbafe.render.TileSheets
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
@@ -32,6 +37,22 @@ class AllocationTest {
         val bytes = AllocationMeter.measure(warmup = 20_000, iterations = 10_000) {
             now += 8_333_333 // 120 Hz display
             loop.frame(now)
+        }
+        assertEquals(0L, bytes)
+    }
+
+    @Test
+    fun `hardware scene loader allocates nothing per frame`() {
+        assumeTrue(AllocationMeter.supported)
+        val hw = BgHardware()
+        hw.lcd.dispcnt = 0x1F01 // mode 1 (BG2 affine), all BGs + OBJ on
+        val oam = OamBuffer()
+        for (i in 0 until 128) oam.oam[i * 4 + 1] = (i * 2).toShort()
+        val loader = HardwareSceneLoader()
+        val state = RenderState()
+        val sheets = TileSheets()
+        val bytes = AllocationMeter.measureMin(warmup = 200, iterations = 200) {
+            loader.load(state, sheets, hw, oam)
         }
         assertEquals(0L, bytes)
     }

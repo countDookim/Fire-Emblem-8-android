@@ -4,7 +4,8 @@ package gbafe.render
  * Builds the semantic [RenderState] + [TileSheets] the [SoftwareRenderer] draws from raw GBA display
  * hardware state (VRAM, palette RAM, OAM, I/O registers), as the game leaves it after its VBlank sync
  * ([BgHardware] + [OamBuffer]) or as an mGBA dump holds it. Video modes 0..2 (text and affine
- * backgrounds); bitmap modes 3..5 are not supported. Allocates the tile sheets on every load.
+ * backgrounds); bitmap modes 3..5 are not supported. [HardwareScene] allocates fresh sheets
+ * on every load; a [HardwareSceneLoader] reuses its own (allocation-free, for the per-frame device path).
  *
  * Sheet ids: 0..3 = BG character base blocks (VRAM 0x0000, 0x4000, 0x8000, 0xC000, each up to the end
  * of BG VRAM), 4 = OBJ tiles (VRAM 0x10000).
@@ -13,6 +14,32 @@ public object HardwareScene {
     /** Sheet id of the OBJ tile area. */
     public const val OBJ_SHEET: Int = 4
 
+    /**
+     * Fills [state] and [sheets] (fresh arrays) from one frame's hardware state: [vram] (0x18000 bytes),
+     * [pal] (palette RAM, 0x400 bytes), [oam] (0x400 bytes) and [io] (I/O registers from 0x04000000).
+     */
+    public fun load(state: RenderState, sheets: TileSheets, vram: ByteArray, pal: ByteArray, oam: ByteArray, io: ByteArray) {
+        HardwareSceneLoader().load(state, sheets, vram, pal, oam, io)
+    }
+
+    /** Like [HardwareSceneLoader.load] from the game's synced display state, into fresh sheet arrays. */
+    public fun load(state: RenderState, sheets: TileSheets, hw: BgHardware, oam: OamBuffer, io: ByteArray? = null) {
+        HardwareSceneLoader().load(state, sheets, hw, oam, io)
+    }
+}
+
+/**
+ * Allocation-free [HardwareScene] loader: owns the tile sheet arrays it hands to [TileSheets] and the
+ * scratch register/palette/OAM buffers, so one instance can load every frame without garbage.
+ */
+public class HardwareSceneLoader {
+    private val bgSheets = Array(4) { ByteArray(0x10000 - it * 0x4000) }
+    private val objSheet = ByteArray(0x8000)
+    private val lcd = LcdControl()
+    private val palBytes = ByteArray(0x400)
+    private val oamBytes = ByteArray(0x400)
+    private val ioBytes = ByteArray(0x60)
+
     private val objSizes = arrayOf(
         intArrayOf(8, 8, 16, 16, 32, 32, 64, 64),
         intArrayOf(16, 8, 32, 8, 32, 16, 64, 32),
@@ -20,19 +47,22 @@ public object HardwareScene {
     )
 
     /**
-     * Fills [state] and [sheets] from one frame's hardware state: [vram] (0x18000 bytes), [pal] (palette
+     * Fills [state] and [sheets] (with this loader's reused sheet arrays) from one frame's hardware state: [vram] (0x18000 bytes), [pal] (palette
      * RAM, 0x400 bytes), [oam] (0x400 bytes) and [io] (I/O registers from 0x04000000).
      */
     public fun load(state: RenderState, sheets: TileSheets, vram: ByteArray, pal: ByteArray, oam: ByteArray, io: ByteArray) {
         state.reset()
         val dispcnt = u16(io, 0)
-        for (b in 0 until 4) sheets[b] = vram.copyOfRange(b * 0x4000, 0x10000)
-        sheets[OBJ_SHEET] = vram.copyOfRange(0x10000, 0x18000)
+        for (b in 0 until 4) {
+            vram.copyInto(bgSheets[b], 0, b * 0x4000, 0x10000)
+            sheets[b] = bgSheets[b]
+        }
+        vram.copyInto(objSheet, 0, 0x10000, 0x18000)
+        sheets[HardwareScene.OBJ_SHEET] = objSheet
         for (i in 0 until 256) {
             state.palettes.bg[i] = u16(pal, 2 * i).toShort()
             state.palettes.obj[i] = u16(pal, 0x200 + 2 * i).toShort()
         }
-        val lcd = LcdControl()
         lcd.readRegisters(io)
         lcd.applyTo(state)
         for (bg in 0 until 4) {
@@ -86,22 +116,21 @@ public object HardwareScene {
                 2 -> flags = flags or SpriteBatch.MODE_WINDOW
                 3 -> continue // prohibited mode
             }
-            sp.add(x, y, w, h, OBJ_SHEET, a2 and 0x3FF, (a2 shr 12) and 0xF, (a2 shr 10) and 3, flags, (a1 shr 9) and 0x1F)
+            sp.add(x, y, w, h, HardwareScene.OBJ_SHEET, a2 and 0x3FF, (a2 shr 12) and 0xF, (a2 shr 10) and 3, flags, (a1 shr 9) and 0x1F)
         }
     }
 
     /**
      * Fills [state] and [sheets] from the game's synced display state ([BgHardware.vram],
      * [BgHardware.paletteRam], [OamBuffer.oam]) and the I/O registers [io] as `FlushLCDControl` last wrote
-     * them (null: flushes [BgHardware.lcd] now).
+     * them (null: flushes [BgHardware.lcd] now). Allocates nothing.
      */
     public fun load(state: RenderState, sheets: TileSheets, hw: BgHardware, oam: OamBuffer, io: ByteArray? = null) {
-        val regs = io ?: ByteArray(0x60).also { hw.lcd.flushTo(it) }
-        load(state, sheets, hw.vram, bytes(hw.paletteRam), bytes(oam.oam), regs)
+        val regs = io ?: ioBytes.also { hw.lcd.flushTo(it) }
+        load(state, sheets, hw.vram, bytes(hw.paletteRam, palBytes), bytes(oam.oam, oamBytes), regs)
     }
 
-    private fun bytes(h: ShortArray): ByteArray {
-        val b = ByteArray(2 * h.size)
+    private fun bytes(h: ShortArray, b: ByteArray): ByteArray {
         for (i in h.indices) {
             b[2 * i] = h[i].toByte()
             b[2 * i + 1] = (h[i].toInt() shr 8).toByte()

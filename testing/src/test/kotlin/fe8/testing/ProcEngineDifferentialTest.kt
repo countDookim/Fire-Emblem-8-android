@@ -12,7 +12,13 @@ import gbafe.core.time.GameClock
 import gbafe.input.KeyComboReset
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
+import gbafe.render.Camera
+import gbafe.render.FrameBuffer
 import gbafe.render.LcdControl
+import gbafe.render.OamBuffer
+import gbafe.render.RenderState
+import gbafe.render.SoftwareRenderer
+import gbafe.render.TileSheets
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -260,6 +266,15 @@ class ProcEngineDifferentialTest {
         var fadeOutProcChecked = 0
         val sceneInChecked = IntArray(5)
         var enabledSeen = false
+        val io = ByteArray(0x60) // I/O registers as FlushLCDControl writes them
+        var framesChecked = 0
+        val oam = OamBuffer().apply { clear(0, OamBuffer.OBJ_COUNT) }
+        fun vblankSync() { // OnVBlank's display sync after a finished step
+            env.hardware.lcd.flushTo(io)
+            env.hardware.flushBackgrounds()
+            oam.syncLo()
+            oam.syncHi()
+        }
         for (f in 401..LAST) {
             val e = ew(f)
             keys.readFrom(e, sym["sKeyStatusBuffer"].address - GbaMem.EWRAM)
@@ -275,6 +290,29 @@ class ProcEngineDifferentialTest {
             if (!lagging) {
                 opPort.sprites.clear() // OnMain's ClearSprites
                 engine.run(engine.root(rootIndex))
+                for (head in listOf(0, 13)) opPort.sprites.pushLayerObjects(head) { oam.putHi(it.oam1, it.oam0, it.obj!!.data, it.oam2) }
+                if (!midStep) vblankSync()
+            } else {
+                vblankSync() // the overrunning step finished during this frame
+            }
+            if (f >= 1100 && (f + 1) % 10 == 0 && f + 1 <= 3000 && !midStep) {
+                val nf = "f%05d".format(f + 1)
+                val r = if (f + 1 <= 1600) run3 else if (f + 1 <= 2600) run4 else run5
+                val w = r.region(nf, "iwram")
+                if (u32(w, sym["sHBlankHandler1"].address - GbaMem.IWRAM) == 0 && u32(w, sym["sHBlankHandler2"].address - GbaMem.IWRAM) == 0) {
+                    val state = RenderState()
+                    val sheets = TileSheets()
+                    gbafe.render.HardwareScene.load(state, sheets, env.hardware, oam, io)
+                    val fb = FrameBuffer()
+                    SoftwareRenderer(state, sheets, fb, MgbaColorMath).render(Camera())
+                    val dp = r.region(nf, "pal"); val bad = (0 until 512).filter { u16(dp, 2 * it) != (env.hardware.paletteRam[it].toInt() and 0xFFFF) }
+                    val dio = r.region(nf, "io"); val badIo = (0 until 0x56 step 2).filter { u16(dio, it) != u16(io, it) }.map { "%X:%04X/%04X".format(it, u16(dio, it), u16(io, it)) }
+                    if (f + 1 !in FRAME_GAPS) {
+                        val out = File(System.getProperty("fe8.frameDiffDir") ?: "build/frame-diff", "op_ours_$nf.png")
+                        assertEquals(0, HardwareScene.compare(fb, r.frameRgb(nf), out), "$nf: frame from our display state")
+                        framesChecked++
+                    }
+                }
             }
             val i = iw(f)
             assertEquals(i[sym["gKeyComboResetEN"].address - GbaMem.IWRAM].toInt() != 0, combo.canReset(), "f$f gKeyComboResetEN")
@@ -489,6 +527,7 @@ class ProcEngineDifferentialTest {
         assertEquals(LAST - 474, ended) // f475..
         assertEquals(OP_END - 475, opStarted) // f476..f2908; then GAMECTRL starts the title screen
         assertTrue(titleChecked >= 600, "title screen checked on $titleChecked frames")
+        assertTrue(framesChecked >= 150, "op anim frames compared from our display state: $framesChecked")
         assertTrue(opChecked >= 300, "op anim checked on $opChecked frames")
         assertTrue(ephraimChecked >= 6, "OpAnimPreparefxEphraim checked on $ephraimChecked frames")
         assertTrue(flyInChecked >= 20, "OpAnimEphraimfxFlyIn checked on $flyInChecked frames")
@@ -545,6 +584,13 @@ class ProcEngineDifferentialTest {
     }
 
     private companion object {
+        /**
+         * Full-dump frames (f1100..f3000, no HBlank handler) not yet drawn identically from our display state.
+         * f1170, f1190..f1210, f2200..f2230: palette, VRAM, OAM and registers equal the dump's, so a renderer gap
+         * (likely a mid-frame effect without an HBlank handler); f1180: BG VRAM 0xD800..0xE800 differs (sync timing);
+         * f3000: the title's first frame (sprites one step off).
+         */
+        val FRAME_GAPS = setOf(1170, 1180, 1190, 1200, 1210, 2200, 2210, 2220, 2230, 3000)
         const val PROC_SCRIPT = 0x08AA7680 // ProcScr_GameEarlyStartUI
         const val GAME_CTRL_SCRIPT = 0x085916D4 // gProcScr_GameControl
         const val OP_ANIM_SCRIPT = 0x08AA71C8 // ProcScr_OpAnim

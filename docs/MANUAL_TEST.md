@@ -22,7 +22,8 @@ Nothing game-related yet. This APK only proves the Android shell, GL path and lo
 
 - [ ] (M4-11, partial) Tap **Play**: instead of the test pattern, the boot runs like the original: health &
       safety screen (press **A** on a gamepad/keyboard to continue, or wait), Nintendo logo, Intelligent
-      Systems logo with their fades. After the logos the screen stays black (op anim and title not wired yet).
+      Systems logo with their fades. The op anim and title then run too, but are known to differ from the
+      original (timing/graphics; being fixed): only report crashes there.
 
 ## Known not working (don't report)
 Everything gameplay-related: no title screen, sound, input or saves yet.

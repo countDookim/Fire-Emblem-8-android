@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated: 2026-10-29 15:40 UTC (scheduled run, started ~15:17)._
+_Updated: 2026-10-29 23:15 UTC (scheduled run, started ~22:51)._
 
 ## Owner decisions 2026-10-25 (read docs/decisions/0009)
 - The app is a 1:1 copy. Modding = extension points only; ship no touch gameplay, QoL flags or alternate
@@ -35,17 +35,17 @@ _Updated: 2026-10-29 15:40 UTC (scheduled run, started ~15:17)._
 _(nothing blocked)_
 
 ## Status
-- This run: **M4-10 (e) done** + frames drawn from OUR display state now match mGBA across the boot:
-  - New `gbafe.render.OamBuffer` (`PutOamHi`, `SyncHiOam`, `SyncLoOam`, `ClearOam`, `SetObjAffine`); `fe8.game.GameLoop`
-    now pushes sprite layers into it (`loop.oam`) and syncs OAM in VBlank like `OnVBlank`.
-  - `HardwareScene.load` moved to production `gbafe.render.HardwareScene` (+ overload `load(state, sheets, hw, oam, io)`:
-    BgHardware/OamBuffer/flushed registers -> RenderState). `fe8.testing.HardwareScene` keeps `compare`/`forcedBlank`.
-  - Tests: `TitleScreenDifferentialTest` checks OAM + whole frame on idle-title full dumps (f3160..f3600) and BG2's
-    VRAM map (sync now modelled); `EarlyStartUiBootDifferentialTest` compares `boot_logos` f300/360/430/470 from our
-    state; `ProcEngineDifferentialTest` compares 150+ op anim frames f1100..f3000 (no-HBlank ones) from our state.
-  - **Bug fixed**: `EarlyStartUi` fades never called `EnablePaletteSync` (palette RAM stayed stale on device).
-- Verified ports: 204 -> **208 / 8352** (local `progress.py` after a full `jvmTest`; Dokka green).
-- Stale remote branches (merged; deleting refused with 403): `wip/M4-09`, `wip/M3-10`, `wip/M4-10`, `wip/M4-10-affine`.
+- This run: **M4-11 boot wiring (partial)**:
+  - `gbafe.render.HardwareSceneLoader`: allocation-free per-frame load (reused sheets/buffers); `HardwareScene` delegates.
+  - `fe8.game.RomView` (ROM data by GBA address: whole ROM or the extracted `RomView.BOOT_WINDOWS`) and `fe8.game.BootRom`
+    (`titleScreen`, `opAnim`: the ROM data the tests used, now production; tests delegate).
+  - `fe8.game.Fe8Boot`: GameLoop + GameControl + EarlyStartUi -> OpAnim -> TitleScreen + loader/SoftwareRenderer.
+    `Fe8Game(rom = RomView)` runs it (tick = one GBA frame); app builds it from bundled `extracted/boot/` (debug APKs).
+  - Extractor writes `boot/rom_08590F00.bin` + `boot/rom_08AA6000.bin` (pushed to the ROM repo's `extracted/boot/`).
+  - Tests: `Fe8BootTest` (from power-on, ROM or extracted windows: boot_logos f300..470 match mGBA), AllocationTest
+    (booting Fe8Game tick+present, loader). **Bug fixed**: `GameLoop.onMain` allocated two bound refs per step.
+- Verified ports: 208 / 8352 (unchanged: wiring run).
+- Stale remote branches (merged; deleting refused with 403): `wip/M4-09`, `wip/M3-10`, `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`.
 
 ## Run rules (owner, 2026-10-26)
 - Budget **~30 min** (owner, 2026-10-27; a little over is fine to finish a nearly done task). Work until ~minute 23,
@@ -55,20 +55,25 @@ _(nothing blocked)_
   first, then `tail_lines` <= 80 of the failing job).
 - Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.
 
-## Next task: M4-11 boot wiring (Fe8Game: GameLoop + BgHardware + OamBuffer -> HardwareScene -> frame), M3-07, M3-15
+## Next task: M4-11 op anim on device (Fe8Boot diverges from mGBA after the logos), then M3-07, M3-15
+- `Fe8Boot` from power-on with the ram_trace_logo_skip inputs (A f181, B f470) draws NO op anim frame like mGBA
+  (f1100..f3600 compared where no HBlank handler; f1600: ours shows the Ephraim scene, mGBA differs). The test harness
+  in ProcEngineDifferentialTest gets two things from the dumps that the device loop lacks: (1) lag frames
+  (`gBmSt.main_loop_ended` 0: SetupOpAnimWorldMapfx / OpAnimPreparefxEphraim decompressions overrun) vs `Fe8Boot`'s
+  `overran = { hw.modifiedBgs != 0 }`; (2) `gGenericBuffer` leftovers copied in at f843 (model one shared generic
+  buffer across screens). First compare our per-frame proc state with ram_trace_opanim (RAM every frame f515..f1100)
+  to find the first diverging frame, fix, then add the op anim + title frame test to `Fe8BootTest` (code was in this
+  run's wip commit 'Fe8Boot wires op anim + title'; removed because 0 frames matched). HBlank effects are not drawn
+  on device yet either (renderer has no HBlank handler hook in Fe8Boot).
 - Renderer gap (`FRAME_GAPS` in ProcEngineDifferentialTest): frames with BLDCNT effect 3 (darken, e.g. f1170 BLDY 6,
   f1190 BLDY 10; f2200..2230) come out one 5-bit step brighter than mGBA even from the dump's own state (checked via
   FrameCompareTest). `MgbaColorMath.darken` widened-8-bit, 5-bit and unwidened-8-bit variants all tried: none fits;
   read mGBA 0.10.5 `_darken`/`software-private.h` (maybe darken applies to the blended/OBJ-semi path differently).
   f1180: BG VRAM 0xD800..0xE800 differs (sync timing); f3000: title's first frame, sprites one step off.
-- M4-11: `Fe8Game` still draws a test pattern. Needs boot assets on device: the screens take compressed ROM blobs
-  (`OpAnimHs.Blob` accepts a blob alone), so an extractor step could write them (ROM repo `extracted/`, debug only).
-  `HardwareScene.load` allocates sheets per frame (AllocationTest covers Fe8Game: make it allocation-free first).
 - Key-press title paths (skip listener -> label 3, A/Start -> `sub_8013F40` fade out) need a key trace on the title.
 - Unverified: `Title_RestartProc`, `SkipTitleFx_Loop_KeyListener`, `Title_EndAllProcChildren` path, `FadeCore.darkenEnd`,
   `ColorFadeSetupFromColorToBlack/White`, `ColorFadeSetupFromWhite` (no trace yet).
 - M3-07 GPU backend: the app already shows a CPU-rendered frame via GL; v1 = draw `RenderState` with shaders.
-- M4-11 boot wiring needs `Fe8Game` to build OpAnim/Title/EarlyStartUi from VFS assets (`AssetLayer`).
 - Unverified leftovers: `OpAnimHBlank1/2`, `sub_80C85FC`/`sub_80C8684`, `GameControl_PostIntro` (partial), `sub_8009B64`.
 - Test ROM addresses for op anim / title graphics are inline in the tests (from fireemblem8.nm.txt).
 - Re-extracting after an extractor change: run the CLI (see Known bugs), compare with `python3 tools/compare_extraction.py

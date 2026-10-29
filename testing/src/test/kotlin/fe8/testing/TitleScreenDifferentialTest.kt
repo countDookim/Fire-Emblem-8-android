@@ -245,21 +245,9 @@ class TitleScreenDifferentialTest {
      * compares it with mGBA's [dump] frame.
      */
     private fun ourFrameDiffs(hw: BgHardware, oam: OamBuffer, r: ReferenceData.Run, dump: String): Int {
-        val io = ByteArray(0x400)
-        hw.lcd.flushTo(io)
-        val pal = ByteArray(0x400)
-        for (i in 0 until 0x200) {
-            pal[2 * i] = hw.paletteRam[i].toByte()
-            pal[2 * i + 1] = (hw.paletteRam[i].toInt() shr 8).toByte()
-        }
         val state = RenderState()
         val sheets = TileSheets()
-        val oamBytes = ByteArray(0x400)
-        for (i in 0 until 0x200) {
-            oamBytes[2 * i] = oam.oam[i].toByte()
-            oamBytes[2 * i + 1] = (oam.oam[i].toInt() shr 8).toByte()
-        }
-        HardwareScene.load(state, sheets, hw.vram, pal, oamBytes, io)
+        gbafe.render.HardwareScene.load(state, sheets, hw, oam)
         val fb = FrameBuffer()
         SoftwareRenderer(state, sheets, fb, MgbaColorMath).render(Camera())
         val out = File(System.getProperty("fe8.frameDiffDir") ?: "build/frame-diff", "title_ours_$dump.png")

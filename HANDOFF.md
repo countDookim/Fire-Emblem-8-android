@@ -62,7 +62,9 @@ _(nothing blocked)_
   (`gBmSt.main_loop_ended` 0: SetupOpAnimWorldMapfx / OpAnimPreparefxEphraim decompressions overrun) vs `Fe8Boot`'s
   `overran = { hw.modifiedBgs != 0 }`; (2) `gGenericBuffer` leftovers copied in at f843 (model one shared generic
   buffer across screens). First compare our per-frame proc state with ram_trace_opanim (RAM every frame f515..f1100)
-  to find the first diverging frame, fix, then add the op anim + title frame test to `Fe8BootTest` (code was in this
+  to find the first diverging frame (this run, op anim proc `scrCur` vs dump, clocks equal: ours is ahead at f569
+  only (8 vs 5), ahead by 2 from f842 (10 vs 8; the f843 world map load), then stalls at 13 from f876 while mGBA goes
+  14, 15: suspect the lag-frame model around the world map/Ephraim loads), fix, then add the op anim + title frame test to `Fe8BootTest` (code was in this
   run's wip commit 'Fe8Boot wires op anim + title'; removed because 0 frames matched). HBlank effects are not drawn
   on device yet either (renderer has no HBlank handler hook in Fe8Boot).
 - Renderer gap (`FRAME_GAPS` in ProcEngineDifferentialTest): frames with BLDCNT effect 3 (darken, e.g. f1170 BLDY 6,

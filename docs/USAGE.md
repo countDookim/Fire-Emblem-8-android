@@ -29,5 +29,6 @@ Keep each row to one line; add the totals line below the table up to date.
 | 2026-10-28 22:51 | `session_01NGGw9RNv1MEWHxMPDD8SzH` | scheduled | ~30 | ~224,000 | — | M4-08 done (op anim to its end), M4-09 + M3-10 (CI green), M4-10 title start (6 ports), ram_trace_title1; 157 -> 179 verified |
 | 2026-10-29 06:50 | `session_01NGGw9Q1SuZxnUVKotcVNeC` | scheduled | ~30 | ~150,000 | — | M4-10 (a)..(d): whole title proc + ColorFade/FadeCore verified, GameControl starts the real title, ram_trace_title_fade; 179 -> 204 verified |
 | 2026-10-29 15:17 | `session_01NGGw9QAQfXPMFE2Jfjg2A3` | scheduled | ~25 | ~138,000 | — | M4-10 (e): OamBuffer + production HardwareScene; idle title, boot logos and 150+ op anim frames drawn from our state match mGBA; EarlyStartUi palette-sync bug fixed; 204 -> 208 verified |
+| 2026-10-29 22:51 | `session_01NGGw9N4VQvPhrtUPhJ2L5N` | scheduled | ~25 | ~133,000 | — | M4-11 partial: allocation-free HardwareSceneLoader, RomView/BootRom, Fe8Boot (H&S+logos match mGBA from power-on; op anim+title wired, diverge), Fe8Game(rom) + debug APK boot windows; GameLoop alloc bug fixed |
 
-Totals recorded so far: ~1,520,000 tokens (counter), 2026-10-27 onward only.
+Totals recorded so far: ~1,653,000 tokens (counter), 2026-10-27 onward only.

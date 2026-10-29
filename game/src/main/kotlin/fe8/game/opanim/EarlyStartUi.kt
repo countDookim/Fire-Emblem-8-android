@@ -86,6 +86,12 @@ public class EarlyStartUi(
     }
 
     private val e = env
+
+    /** `EnablePaletteSync` after a fade wrote [Env.paletteBuffer] (`OpAnimHS_BrightenPalette`, `sub_80CBFC0`). */
+    private fun <T> synced(result: T): T {
+        e.hardware.enablePaletteSync()
+        return result
+    }
     private val delay = ProcFunc { p -> apply(p, OpAnimHs.earlyStartDelay(st(p), e.keys, e.softwareReset())) }
 
     /** The script; [ProcScript.newState] creates an [OpAnimHs.Proc]. */
@@ -98,10 +104,10 @@ public class EarlyStartUi(
                 engine.goto(it, 0x3E7)
             }
         },
-        repeat { bool(it, OpAnimHs.healthSafetyFadeIn(st(it), e.hsPalette, e.paletteBuffer)) },
+        repeat { bool(it, synced(OpAnimHs.healthSafetyFadeIn(st(it), e.hsPalette, e.paletteBuffer))) },
         repeat(delay),
         repeat { bool(it, OpAnimHs.healthSafetyWaitButton(st(it), e.lcd, e.keys)) },
-        repeat { bool(it, OpAnimHs.healthSafetyFadeOut(st(it), e.hsPalette, e.paletteBuffer)) },
+        repeat { bool(it, synced(OpAnimHs.healthSafetyFadeOut(st(it), e.hsPalette, e.paletteBuffer))) },
         repeat(delay),
         label(0x3E7),
         call {
@@ -109,21 +115,21 @@ public class EarlyStartUi(
             OpAnimHs.prepareNintendofx(st(it), e.hardware, g.nintendoImg, g.nintendoTsa, g.isImg, g.isTsa)
         },
         call { OpAnimHs.setStatus1(st(it)) },
-        repeat { apply(it, OpAnimHs.nintendoFadeIn(st(it), e.nintendoPalette, e.paletteBuffer, e.lcd, e.keys, e.softwareReset())) },
+        repeat { apply(it, synced(OpAnimHs.nintendoFadeIn(st(it), e.nintendoPalette, e.paletteBuffer, e.lcd, e.keys, e.softwareReset()))) },
         repeat(delay),
-        repeat { apply(it, OpAnimHs.nintendoFadeOut(st(it), e.nintendoPalette, e.paletteBuffer, e.keys, e.softwareReset())) },
+        repeat { apply(it, synced(OpAnimHs.nintendoFadeOut(st(it), e.nintendoPalette, e.paletteBuffer, e.keys, e.softwareReset()))) },
         repeat(delay),
         call { e.keyComboReset.enable() },
         call { OpAnimHs.setStatus2(st(it)) },
-        repeat { apply(it, OpAnimHs.intelligentSystemsFadeIn(st(it), e.isPalette, e.paletteBuffer, e.lcd, e.keys, e.softwareReset())) },
+        repeat { apply(it, synced(OpAnimHs.intelligentSystemsFadeIn(st(it), e.isPalette, e.paletteBuffer, e.lcd, e.keys, e.softwareReset()))) },
         repeat(delay),
-        repeat { apply(it, OpAnimHs.intelligentSystemsFadeOut(st(it), e.isPalette, e.paletteBuffer, e.keys, e.softwareReset())) },
+        repeat { apply(it, synced(OpAnimHs.intelligentSystemsFadeOut(st(it), e.isPalette, e.paletteBuffer, e.keys, e.softwareReset()))) },
         repeat(delay),
         goto(1),
         label(0),
         call { e.keyComboReset.enable() },
         call { OpAnimHs.startSkipFade(st(it), e.paletteBuffer, e.paletteBackup) },
-        repeat { bool(it, OpAnimHs.skipFade(st(it), e.paletteBuffer, e.paletteBackup)) },
+        repeat { bool(it, synced(OpAnimHs.skipFade(st(it), e.paletteBuffer, e.paletteBackup))) },
         label(1),
         end(),
     ), newState = { OpAnimHs.Proc() })

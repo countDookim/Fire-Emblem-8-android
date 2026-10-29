@@ -90,11 +90,14 @@ public object HardwareScene {
         }
     }
 
-    /** Fills [state] and [sheets] from the game's synced display state ([BgHardware.paletteRam], [OamBuffer.oam]). */
-    public fun load(state: RenderState, sheets: TileSheets, hw: BgHardware, oam: OamBuffer) {
-        val io = ByteArray(0x60)
-        hw.lcd.flushTo(io)
-        load(state, sheets, hw.vram, bytes(hw.paletteRam), bytes(oam.oam), io)
+    /**
+     * Fills [state] and [sheets] from the game's synced display state ([BgHardware.vram],
+     * [BgHardware.paletteRam], [OamBuffer.oam]) and the I/O registers [io] as `FlushLCDControl` last wrote
+     * them (null: flushes [BgHardware.lcd] now).
+     */
+    public fun load(state: RenderState, sheets: TileSheets, hw: BgHardware, oam: OamBuffer, io: ByteArray? = null) {
+        val regs = io ?: ByteArray(0x60).also { hw.lcd.flushTo(it) }
+        load(state, sheets, hw.vram, bytes(hw.paletteRam), bytes(oam.oam), regs)
     }
 
     private fun bytes(h: ShortArray): ByteArray {

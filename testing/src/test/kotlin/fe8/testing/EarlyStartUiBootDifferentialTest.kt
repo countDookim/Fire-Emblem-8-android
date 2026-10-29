@@ -11,7 +11,12 @@ import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts
+import gbafe.render.Camera
+import gbafe.render.FrameBuffer
 import gbafe.render.LcdControl
+import gbafe.render.RenderState
+import gbafe.render.SoftwareRenderer
+import gbafe.render.TileSheets
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -75,8 +80,9 @@ class EarlyStartUiBootDifferentialTest {
         // clears it).
         var keyFrame = 0
         val clock = GameClock()
+        val io = ByteArray(0x60) // I/O registers as FlushLCDControl writes them
         val loop = GameLoop(engine, keys, clock, keyInput = { if (keyFrame == A_FRAME) A_BUTTON else 0 },
-            overran = { hw.modifiedBgs != 0 }, flush = hw::flushBackgrounds)
+            overran = { hw.modifiedBgs != 0 }, flush = { hw.lcd.flushTo(io); hw.flushBackgrounds() })
         fun frame(f: Int) {
             keyFrame = f
             loop.frame()
@@ -94,8 +100,21 @@ class EarlyStartUiBootDifferentialTest {
         assertEquals((GbaMem.u32(e20, 0, d20 + 4) - PROC_SCRIPT) / 8, proc.scrCur, "f20 scrCur")
         assertEquals(GbaMem.u32(e20, 0, d20 + 0x30), st.paletteTimer, "f20 palette timer")
         var checked = 0
+        val logos = ref.run("boot_logos") // the same boot and A press, with full dumps and frames
+        var framesChecked = 0
         for (f in 21..490) {
             frame(f)
+            if (f in LOGO_FRAMES) { // the frame now shown = the display state synced in this frame's VBlank
+                val state = RenderState()
+                val sheets = TileSheets()
+                gbafe.render.HardwareScene.load(state, sheets, hw, loop.oam, io)
+                val fb = FrameBuffer()
+                SoftwareRenderer(state, sheets, fb, MgbaColorMath).render(Camera())
+                val dump = "f%05d".format(f)
+                val out = File(System.getProperty("fe8.frameDiffDir") ?: "build/frame-diff", "boot_ours_$dump.png")
+                assertEquals(0, HardwareScene.compare(fb, logos.frameRgb(dump), out), "boot_logos/$dump from our state")
+                framesChecked++
+            }
             if (f % 10 != 0) continue
             val name = "r%05d".format(f)
             val e = run.region(name, "ewram")
@@ -132,6 +151,7 @@ class EarlyStartUiBootDifferentialTest {
             checked++
         }
         assertEquals(47, checked)
+        assertEquals(LOGO_FRAMES.size, framesChecked, "boot_logos frames compared")
         assertEquals(2, st.status, "reached the Intelligent Systems logo")
     }
 
@@ -141,6 +161,7 @@ class EarlyStartUiBootDifferentialTest {
         const val GAME_CTRL_SCRIPT = 0x085916D4 // gProcScr_GameControl
         const val PROC_SIZE = 0x6C
         const val A_FRAME = 181
+        val LOGO_FRAMES = setOf(300, 360, 430, 470)
         const val A_BUTTON = 1
     }
 }

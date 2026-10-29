@@ -4,6 +4,7 @@ import fe8.game.opanim.EarlyStartUi
 import fe8.game.opanim.OpAnimHs
 import fe8.game.GameControl
 import fe8.game.opanim.OpAnim
+import fe8.game.title.TitleScreen
 import gbafe.render.SpriteLayers
 import gbafe.render.SpriteObject
 import gbafe.core.VerifiesPort
@@ -132,7 +133,8 @@ class ProcEngineDifferentialTest {
         // The game control proc (GAMECTRL, tree 3) as at f400: blocked on the intro, its blocking child.
         val rootIndex = 3
         lateinit var opPort: OpAnim
-        val ctrl = GameControl(engine, keys, { ui.script }, { opPort.script })
+        lateinit var title: TitleScreen
+        val ctrl = GameControl(engine, keys, { ui.script }, { opPort.script }, { title })
         val opGfx = OpAnim.Gfx(
             listOf(0x08AF1AE8, 0x08AF1B38, 0x08AF1FD0, 0x08AF2654).map { blob(it) },
             listOf(0x08AF1B18, 0x08AF1FB0, 0x08AF2634, 0x08AF310C).map { romPal(it, 16) },
@@ -193,6 +195,7 @@ class ProcEngineDifferentialTest {
                 listOf(face(0x08AF0150, 0x08AF09E4, 0x08AF0DE8), face(0x08AF0E08, 0x08AF16CC, 0x08AF1AC8))),
             objN(0x08AA712A), objN(0x08AA715C), objN(0x08AA7194), blob(0x08AF4330))
         opPort = OpAnim(engine, env.hardware, keys, ctrl, opGfx, worldMap, ephraim, eirika = eirika, cast = cast)
+        title = titleScreenFor(rom, engine, env.hardware, opPort.sprites, keys, ctrl)
         val opAnim = opPort.script
         val parent = engine.start(ctrl.script, rootIndex)
         parent.idleCb = null
@@ -208,6 +211,7 @@ class ProcEngineDifferentialTest {
         var ended = 0
         var opStarted = 0
         var opChecked = 0
+        var titleChecked = 0
         var ephraimChecked = 0
         var flyInChecked = 0
         var splitChecked = 0
@@ -285,6 +289,13 @@ class ProcEngineDifferentialTest {
                 if (op != null) assertEquals(GbaMem.EWRAM + c, u32(e, op + 0x14), "f$f op anim is GAMECTRL's child")
                 assertEquals(op != null, parent.child?.script === opAnim, "f$f GAMECTRL started the op anim")
                 if (op != null) opStarted++
+                val t = procAt(e, TITLE_SCRIPT)
+                assertEquals(t != null, parent.child?.script === title.script, "f$f GAMECTRL started the title screen")
+                if (t != null && !midStep) {
+                    assertEquals((u32(e, t + 4) - TITLE_SCRIPT) / 8, parent.child!!.scrCur, "f$f title scrCur")
+                    assertArrayEquals(palette(e), env.paletteBuffer, "f$f gPaletteBuffer (title)")
+                    titleChecked++
+                }
                 val ram = op?.let { (u32(e, it + 4) - OP_ANIM_SCRIPT) / 8 }
                 if (ram != null && !midStep && ram <= 150) {
                     val ours = parent.child!!
@@ -474,7 +485,8 @@ class ProcEngineDifferentialTest {
             assertArrayEquals(palette(e), env.paletteBuffer, "f$f gPaletteBuffer")
         }
         assertEquals(LAST - 474, ended) // f475..
-        assertEquals(OP_END - 475, opStarted) // f476..f2908; then GAMECTRL starts the title screen (stand-in)
+        assertEquals(OP_END - 475, opStarted) // f476..f2908; then GAMECTRL starts the title screen
+        assertTrue(titleChecked >= 60, "title screen checked on $titleChecked frames")
         assertTrue(opChecked >= 300, "op anim checked on $opChecked frames")
         assertTrue(ephraimChecked >= 6, "OpAnimPreparefxEphraim checked on $ephraimChecked frames")
         assertTrue(flyInChecked >= 20, "OpAnimEphraimfxFlyIn checked on $flyInChecked frames")
@@ -534,6 +546,7 @@ class ProcEngineDifferentialTest {
         const val PROC_SCRIPT = 0x08AA7680 // ProcScr_GameEarlyStartUI
         const val GAME_CTRL_SCRIPT = 0x085916D4 // gProcScr_GameControl
         const val OP_ANIM_SCRIPT = 0x08AA71C8 // ProcScr_OpAnim
+        const val TITLE_SCRIPT = 0x08AA6A50 // gProcScr_TitleScreen
         const val TERMINATOR_SCRIPT = 0x08AA6CA4 // ProcScr_OpAnimfxTerminator
         const val BLDALPHA_SCRIPT = 0x08AA6CDC // ProcScr_OpAnimBLDALPHA
         const val FADE_IN_SCRIPT = 0x08AA6CBC // ProcScr_OpAnimFadeIn

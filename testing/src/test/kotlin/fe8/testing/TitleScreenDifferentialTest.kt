@@ -1,9 +1,11 @@
 package fe8.testing
 
+import fe8.game.GameControl
 import fe8.game.opanim.OpAnimHs
 import fe8.game.title.TitleScreen
 import gbafe.core.VerifiesPort
 import gbafe.data.Decompress
+import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.block
@@ -74,8 +76,6 @@ class TitleScreenDifferentialTest {
         fun run(f: Int) = if (f <= 3000) run4 else runT
         fun ew(f: Int) = run(f).region((if (f % 10 == 0) "f%05d" else "r%05d").format(f), "ewram")
         fun iw(f: Int) = run(f).region((if (f % 10 == 0) "f%05d" else "r%05d").format(f), "iwram")
-        fun blob(at: Int) = OpAnimHs.Blob(rom, at - 0x08000000)
-        fun pal(at: Int, n: Int) = ShortArray(n) { u16(rom, at - 0x08000000 + 2 * it).toShort() }
         val first = (2890..3000).first { procAt(ew(it)) != null }
         val e0 = ew(first - 1)
         val hw = BgHardware()
@@ -83,19 +83,7 @@ class TitleScreenDifferentialTest {
         shorts(e0, "gPaletteBuffer", 512).copyInto(hw.palette)
         for (bg in 0..3) shorts(e0, "gBG${bg}TilemapBuffer", 0x400).copyInto(hw.mapBuffer(bg))
         val engine = ProcEngine()
-        val title = TitleScreen(engine, hw, TitleScreen.Gfx(
-            listOf(blob(0x08AA7760), blob(0x08AA9708), blob(0x08AAAE90)), pal(0x08AAB3F4, 16),
-            blob(0x08AAB414) to blob(0x08AAC2A4), pal(0x08AAC58C, 16),
-            blob(0x08AAC5AC), blob(0x08AACEDC), pal(0x08AADB68, 64),
-            listOf(0x08AAFD14, 0x08AAFF10, 0x08AADC08, 0x08AAE61C, 0x08AAE8EC, 0x08AAF928, 0x08AB1C24, 0x08AB216C).map { blob(it) },
-            listOf(pal(0x08AB0114, 16), pal(0x08AAE8CC, 16), pal(0x08AAFCF4, 16), pal(0x08AB210C, 48), pal(0x08AB21B8, 16)),
-            Triple(blob(0x08AB0B44), blob(0x08AB1890), pal(0x08AB1C04, 16)),
-            Triple(blob(0x08AB0134), blob(0x08AB0A20), pal(0x08AB0B24, 16))),
-            SpriteObject(0x08590F54, pal(0x08590F54, 4)), object8x8 = SpriteObject(0x08590F44, pal(0x08590F44, 4)),
-            bannerSprite = SpriteObject(0x08AA6794, pal(0x08AA6794, 13)),
-            menuSprites = listOf(SpriteObject(0x08590F4C, pal(0x08590F4C, 4)), SpriteObject(0x08AA6774, pal(0x08AA6774, 16)),
-                SpriteObject(0x08AA67E0, pal(0x08AA67E0, 13)), SpriteObject(0x08AA67AE, pal(0x08AA67AE, 25))),
-            glowPal = pal(0x08AADBE8, 16))
+        val title = titleScreenFor(rom, engine, hw)
         val parent = engine.start(ProcScript("parent", listOf(block())), 3)
         title.start(parent, 1)
         var checked = 0
@@ -176,4 +164,27 @@ class TitleScreenDifferentialTest {
         fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
         fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)
     }
+}
+
+/** The title screen with its ROM graphics (addresses from fireemblem8.nm.txt), for the differential tests. */
+internal fun titleScreenFor(
+    rom: ByteArray, engine: ProcEngine, hw: BgHardware, sprites: SpriteLayers = SpriteLayers(),
+    keys: KeyStatus = KeyStatus(), gameControl: GameControl? = null,
+): TitleScreen {
+    fun u16(o: Int) = (rom[o].toInt() and 0xFF) or ((rom[o + 1].toInt() and 0xFF) shl 8)
+    fun blob(at: Int) = OpAnimHs.Blob(rom, at - 0x08000000)
+    fun pal(at: Int, n: Int) = ShortArray(n) { u16(at - 0x08000000 + 2 * it).toShort() }
+    return TitleScreen(engine, hw, TitleScreen.Gfx(
+            listOf(blob(0x08AA7760), blob(0x08AA9708), blob(0x08AAAE90)), pal(0x08AAB3F4, 16),
+            blob(0x08AAB414) to blob(0x08AAC2A4), pal(0x08AAC58C, 16),
+            blob(0x08AAC5AC), blob(0x08AACEDC), pal(0x08AADB68, 64),
+            listOf(0x08AAFD14, 0x08AAFF10, 0x08AADC08, 0x08AAE61C, 0x08AAE8EC, 0x08AAF928, 0x08AB1C24, 0x08AB216C).map { blob(it) },
+            listOf(pal(0x08AB0114, 16), pal(0x08AAE8CC, 16), pal(0x08AAFCF4, 16), pal(0x08AB210C, 48), pal(0x08AB21B8, 16)),
+            Triple(blob(0x08AB0B44), blob(0x08AB1890), pal(0x08AB1C04, 16)),
+            Triple(blob(0x08AB0134), blob(0x08AB0A20), pal(0x08AB0B24, 16))),
+            SpriteObject(0x08590F54, pal(0x08590F54, 4)), sprites, object8x8 = SpriteObject(0x08590F44, pal(0x08590F44, 4)),
+            bannerSprite = SpriteObject(0x08AA6794, pal(0x08AA6794, 13)),
+            menuSprites = listOf(SpriteObject(0x08590F4C, pal(0x08590F4C, 4)), SpriteObject(0x08AA6774, pal(0x08AA6774, 16)),
+                SpriteObject(0x08AA67E0, pal(0x08AA67E0, 13)), SpriteObject(0x08AA67AE, pal(0x08AA67AE, 25))),
+            glowPal = pal(0x08AADBE8, 16), keys = keys, gameControl = gameControl)
 }

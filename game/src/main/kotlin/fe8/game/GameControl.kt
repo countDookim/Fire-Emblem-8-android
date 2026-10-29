@@ -1,5 +1,6 @@
 package fe8.game
 
+import fe8.game.title.TitleScreen
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcCmd
@@ -35,6 +36,8 @@ public class GameControl(
      * intro.
      */
     private val opAnimScript: () -> ProcScript,
+    /** The title screen (null: a stand-in proc holds the game control proc there). */
+    private val titleScreen: (() -> TitleScreen)? = null,
 ) {
     /**
      * `gPlaySt.config` option bits (u32 at `gPlaySt+0x40`); only the sound bits are used so far.
@@ -92,15 +95,15 @@ public class GameControl(
             goto(LGAMECTRL_OP_ANIM),
             label(LGAMECTRL_TITLE_DIRECT),
             call(ProcFunc { enableSoundEffects() }),
-            call(ProcFunc { startTitleScreen(it) }), // StartTitleScreen_WithMusic
+            call(ProcFunc { startTitleScreen(it, 0) }), // StartTitleScreen_WithMusic
             goto(LGAMECTRL_POST_TITLE_IDLE),
             label(24),
             call(ProcFunc { enableSoundEffects() }),
-            call(ProcFunc { startTitleScreen(it) }), // StartTitleScreen_FlagTrue
+            call(ProcFunc { startTitleScreen(it, 1) }), // StartTitleScreen_FlagTrue
             goto(LGAMECTRL_POST_TITLE_IDLE),
             label(25),
             call(ProcFunc { enableSoundEffects() }),
-            call(ProcFunc { startTitleScreen(it) }), // StartTitleScreen_FlagFalse
+            call(ProcFunc { startTitleScreen(it, 0) }), // StartTitleScreen_FlagFalse
             goto(LGAMECTRL_POST_TITLE_IDLE),
             label(LGAMECTRL_POST_TITLE_IDLE),
             yield(),
@@ -149,8 +152,9 @@ public class GameControl(
      */
     public val titleStandInScript: ProcScript = ProcScript("gProcScr_TitleScreen (stand-in)", listOf(block()))
 
-    private fun startTitleScreen(proc: Proc) {
-        engine.startBlocking(titleStandInScript, proc)
+    private fun startTitleScreen(proc: Proc, mode: Int) {
+        val title = titleScreen
+        if (title != null) title().start(proc, mode) else engine.startBlocking(titleStandInScript, proc)
     }
 
     /**

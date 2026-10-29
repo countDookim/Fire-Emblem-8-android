@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 204,
-    "implemented_unverified": 32
+    "verified": 208,
+    "implemented_unverified": 33
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -89,6 +89,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "ClearOam": {
+      "decomp_file": "asm/arm.s",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/OamBuffer.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
     },
     "ClearSprites": {
@@ -884,8 +893,19 @@
       "decomp_file": "src/ctc.c",
       "system": "presentation",
       "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/SpriteLayers.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "PutOamHi": {
+      "decomp_file": "asm/arm.s",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/OamBuffer.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
     },
     "PutSprite": {
       "decomp_file": "src/ctc.c",
@@ -1014,6 +1034,13 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "SetObjAffine": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/OamBuffer.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "SetOpAnimHsStatus0": {
       "decomp_file": "src/opanim-healthsafetyscreen.c",
       "system": "presentation",
@@ -1106,6 +1133,22 @@
       "decomp_file": "src/rng.c",
       "system": "core",
       "kotlin_file": "engine/core/src/main/kotlin/gbafe/core/rng/Rng.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "SyncHiOam": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/OamBuffer.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "SyncLoOam": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/OamBuffer.kt",
       "status": "implemented",
       "tests": []
     },

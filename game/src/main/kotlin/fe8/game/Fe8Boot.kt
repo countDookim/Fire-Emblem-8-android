@@ -61,6 +61,35 @@ public class Fe8Boot(
                 )
             }
 
+            /**
+             * Reads the boot assets from the extractor's `boot/<symbol>.bin` files; [read]
+             * returns the bytes of one file name (e.g. `Img_GameIntroNintendo.bin`).
+             */
+            public fun fromFiles(read: (String) -> ByteArray): Assets {
+                fun blob(sym: String) = OpAnimHs.Blob(read("$sym.bin"))
+                fun pal(sym: String): ShortArray {
+                    val b = read("$sym.bin")
+                    return ShortArray(b.size / 2) {
+                        val lo = b[2 * it].toInt() and 0xFF
+                        (lo or ((b[2 * it + 1].toInt() and 0xFF) shl 8)).toShort()
+                    }
+                }
+                return Assets(
+                    pal("Pal_OpAnimHealthSafetyScreen"),
+                    pal("Pal_GameIntroNintendo"),
+                    pal("Pal_IntelligentSystems"),
+                    EarlyStartUi.Gfx(
+                        blob("Img_OpAnimHealthSafetyScreen"),
+                        blob("Tsa_OpAnimHealthSafetyScreenBG1"),
+                        blob("Tsa_OpAnimHealthSafetyScreenBG0"),
+                        blob("Img_GameIntroNintendo"),
+                        blob("Tsa_GameIntroNintendo"),
+                        blob("Img_IntelligentSystems"),
+                        blob("Tsa_IntelligentSystems"),
+                    ),
+                )
+            }
+
             private const val ROM_BASE = 0x08000000
         }
     }

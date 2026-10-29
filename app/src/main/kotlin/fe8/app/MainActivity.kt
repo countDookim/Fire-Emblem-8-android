@@ -1,5 +1,6 @@
 package fe8.app
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -23,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import gbafe.core.time.FixedStepClock
+import fe8.game.Fe8Boot
 import fe8.game.Fe8Game
 import io.github.countdookim.fe8.BuildConfig
 
@@ -30,8 +32,9 @@ import io.github.countdookim.fe8.BuildConfig
  * Single activity. Compose is used for the launcher/settings shell only; once the game starts the
  * content is a [GameSurfaceView] (OpenGL ES 3.0) and Compose does no per-frame work.
  *
- * Milestone-1 state: the game view shows the placeholder pattern produced by [Fe8Game.present] to prove
- * the GL path, scaling shader and fixed-rate loop work on a device.
+ * Debug/test APKs bundle the extracted assets (`assets/extracted/`): the game view then runs
+ * the boot sequence ([Fe8Boot]). Without them (release builds until ROM import exists) it shows
+ * the placeholder pattern of [Fe8Game.present].
  */
 public class MainActivity : ComponentActivity() {
     private var surface: GameSurfaceView? = null
@@ -44,7 +47,10 @@ public class MainActivity : ComponentActivity() {
                     var playing by remember { mutableStateOf(false) }
                     if (playing) {
                         AndroidView(
-                            factory = { ctx -> GameSurfaceView(ctx, Fe8Game()).also { surface = it } },
+                            factory = { ctx ->
+                                val game = Fe8Game(bootAssets = bundledBootAssets(ctx))
+                                GameSurfaceView(ctx, game).also { surface = it }
+                            },
                             modifier = Modifier.fillMaxSize(),
                         )
                     } else {
@@ -66,6 +72,14 @@ public class MainActivity : ComponentActivity() {
     }
 }
 
+/** Boot assets from the APK's bundled `extracted/boot/` (debug/test builds only), or null. */
+private fun bundledBootAssets(ctx: Context): Fe8Boot.Assets? {
+    if (ctx.assets.list("extracted/boot").isNullOrEmpty()) return null
+    return Fe8Boot.Assets.fromFiles { name ->
+        ctx.assets.open("extracted/boot/$name").use { it.readBytes() }
+    }
+}
+
 @Composable
 private fun Launcher(onPlay: () -> Unit) {
     Column(
@@ -75,10 +89,10 @@ private fun Launcher(onPlay: () -> Unit) {
     ) {
         Text("Fire Emblem: The Sacred Stones — Kotlin port", style = MaterialTheme.typography.titleLarge)
         Text("Build ${BuildConfig.VERSION_NAME} (${BuildConfig.GIT_SHA}) · vanilla mode · %.4f Hz logic".format(FixedStepClock.TICK_HZ))
-        Text("Milestone 1: engine skeleton. No gameplay yet — Play shows a GL test pattern.")
+        Text("Debug builds: Play runs the boot screens. Without bundled assets: a GL test pattern.")
         val context = LocalContext.current
         val bundled = remember { AssetLayer(context.assets).list("").size }
         Text("Bundled test assets (debug builds only): $bundled files")
-        Button(onClick = onPlay) { Text("Play (test pattern)") }
+        Button(onClick = onPlay) { Text("Play") }
     }
 }

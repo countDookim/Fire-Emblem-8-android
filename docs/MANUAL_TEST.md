@@ -10,7 +10,7 @@ Nothing game-related yet. This APK only proves the Android shell, GL path and lo
 
 - [ ] App installs and launches; the launcher shows *"Fire Emblem: The Sacred Stones — Kotlin port"*,
       a build string `0.1.<run> (<sha>)` and `59.7275 Hz logic`.
-- [ ] Tap **Play (test pattern)**: a green/blue vertical gradient fills a centred 3:2 area with black
+- [ ] Tap **Play** (release build or no bundled assets): a green/blue vertical gradient fills a centred 3:2 area with black
       bars at the sides (landscape), and slowly scrolls. No stretching, no flicker.
 - [ ] Rotate the phone / lock and unlock: the app does not crash and the pattern resumes.
 - [ ] Battery/heat after ~2 minutes on the pattern screen feels normal.
@@ -19,6 +19,10 @@ Nothing game-related yet. This APK only proves the Android shell, GL path and lo
 - [ ] (M3-10) With a Bluetooth/USB gamepad or keyboard: pressing keys on the test-pattern screen does
       not crash and is not swallowed by Android (Back on a gamepad's B does not leave the app). Input has
       no visible effect yet (no game screen consumes it).
+
+- [ ] (M4-11, partial) Tap **Play**: instead of the test pattern, the boot runs like the original: health &
+      safety screen (press **A** on a gamepad/keyboard to continue, or wait), Nintendo logo, Intelligent
+      Systems logo with their fades. After the logos the screen stays black (op anim and title not wired yet).
 
 ## Known not working (don't report)
 Everything gameplay-related: no title screen, sound, input or saves yet.

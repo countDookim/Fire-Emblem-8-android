@@ -154,10 +154,71 @@ class TitleScreenDifferentialTest {
         assertTrue(fxChecked >= 4, "Title_SetupSpecialEffectGraphics checked on $fxChecked frames")
     }
 
+    @Test
+    @VerifiesPort("TitleScreenTryJumpIntroAnim", "sub_80C5870",
+        "StartFadeCore", "FadeCore_Init", "FadeCore_Tick", "FadeCore_Loop", "ColorFadeSetupFromBlack", "ColorFadeTick")
+    fun `title screen in mode 0 fades in like the per-frame RAM trace`() {
+        assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
+        val run = ref.run("ram_trace_title_fade")
+        fun ew(f: Int) = run.region("r%05d".format(f), "ewram")
+        fun iw(f: Int) = run.region("r%05d".format(f), "iwram")
+        // No dumps f700..f702 (START held): the title proc already runs at f703. Start ours from the first
+        // settled dump's display state and step it (re-applying idempotent setup steps) to its script
+        // position and timer.
+        fun done(f: Int) = ew(f)[sym["gBmSt"].address - GbaMem.EWRAM].toInt() != 0 // step finished in the dump
+        val first = (705..800).first { done(it - 1) && done(it - 2) }
+        val e0 = ew(first - 1)
+        val hw = BgHardware()
+        hw.lcd.readFrom(iw(first - 1), sym["gLCDControlBuffer"].address - GbaMem.IWRAM)
+        shorts(e0, "gPaletteBuffer", 512).copyInto(hw.palette)
+        for (bg in 0..3) shorts(e0, "gBG${bg}TilemapBuffer", 0x400).copyInto(hw.mapBuffer(bg))
+        val engine = ProcEngine()
+        val title = titleScreenFor(romFile.readBytes(), engine, hw)
+        val parent = engine.start(ProcScript("parent", listOf(block())), 3)
+        title.start(parent, 0)
+        val o0 = procAt(e0)!!
+        fun at(p: gbafe.proc.Proc) = p.scrCur == (u32(e0, o0 + 4) - TITLE_SCRIPT) / 8 &&
+            (p.state as TitleScreen.State).timer == u16(e0, o0 + 0x2A)
+        repeat(10) { if (!at(engine.find(title.script)!!)) engine.run(engine.root(3)) }
+        assertTrue(at(engine.find(title.script)!!), "title proc synced to f${first - 1}")
+        var fadeChecked = 0
+        var idleChecked = 0
+        for (f in first..800) {
+            val e = ew(f)
+            val o = procAt(e) ?: break
+            val lagging = ew(f - 1)[sym["gBmSt"].address - GbaMem.EWRAM].toInt() == 0
+            if (!lagging) {
+                title.sprites.clear()
+                engine.run(engine.root(3))
+            }
+            if (e[sym["gBmSt"].address - GbaMem.EWRAM].toInt() == 0) continue
+            val scr = (u32(e, o + 4) - TITLE_SCRIPT) / 8
+            val ours = engine.find(title.script)!!
+            assertEquals(scr, ours.scrCur, "f$f title scrCur")
+            assertEquals(u16(e, o + 0x2A), (ours.state as TitleScreen.State).timer, "f$f timer")
+            assertArrayEquals(shorts(e, "gPaletteBuffer", 512), hw.palette, "f$f gPaletteBuffer")
+            val fade = procAt(e, FADE_SCRIPT)
+            assertEquals(fade != null, engine.find(title.fadeCore.script) != null, "f$f fade proc")
+            val fc = sym["gFadeComponents"].address - GbaMem.EWRAM
+            assertArrayEquals(e.copyOfRange(fc, fc + 0x600), title.fadeCore.colorFade.components, "f$f gFadeComponents")
+            val fs = sym["gFadeComponentStep"].address - GbaMem.EWRAM
+            assertArrayEquals(e.copyOfRange(fs, fs + 0x20), title.fadeCore.colorFade.step, "f$f gFadeComponentStep")
+            val g = BgHardware().lcd.apply { readFrom(iw(f), sym["gLCDControlBuffer"].address - GbaMem.IWRAM) }
+            assertEquals(listOf(g.dispcnt, g.bldcnt, g.blendCoeffA, g.blendCoeffB, g.blendY),
+                listOf(hw.lcd.dispcnt, hw.lcd.bldcnt, hw.lcd.blendCoeffA, hw.lcd.blendCoeffB, hw.lcd.blendY), "f$f lcd")
+            for (layer in 0..2) assertEquals(spriteChain(e, layer), ourChain(title.sprites, layer), "f$f sprite layer $layer")
+            if (fade != null) fadeChecked++
+            if (scr == 35) idleChecked++
+        }
+        assertTrue(fadeChecked >= 14, "fade checked on $fadeChecked frames")
+        assertTrue(idleChecked >= 20, "idle checked on $idleChecked frames")
+    }
+
     private companion object {
         const val PROC_SIZE = 0x6C
         const val TITLE_SCRIPT = 0x08AA6A50
         const val SKIP_SCRIPT = 0x08AA6814
+        const val FADE_SCRIPT = 0x0859A0A4
         const val SPRITES_SCRIPT = 0x08AA67FC
         const val LAST_FRAME = 3600
         const val LAST_INDEX = 37 // the fade-out stand-in (label 2)

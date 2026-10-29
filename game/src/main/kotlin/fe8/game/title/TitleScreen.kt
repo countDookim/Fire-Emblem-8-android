@@ -20,13 +20,13 @@ import gbafe.proc.ProcScripts.sleep
 import gbafe.proc.ProcScripts.yield
 import gbafe.render.BgAffine
 import gbafe.render.BgHardware
+import gbafe.render.FadeCore
 import gbafe.render.SpriteLayers
 import gbafe.render.SpriteObject
 
 /**
- * The title screen `gProcScr_TitleScreen` (decomp `src/titlescreen.c`). Work in progress (task
- * M4-10): all but the fade-out (`sub_8013F40`, a stand-in `PROC_BLOCK`) is ported.
- * Not yet started by [fe8.game.GameControl] (it still uses a stand-in proc).
+ * The title screen `gProcScr_TitleScreen` (decomp `src/titlescreen.c`; sound calls are not
+ * modelled). Started by [fe8.game.GameControl].
  */
 public class TitleScreen(
     /** Proc engine. */
@@ -54,6 +54,8 @@ public class TitleScreen(
     public val keys: KeyStatus = KeyStatus(),
     /** The game control proc's owner, for `SetNextGameActionId` (null: not set). */
     public val gameControl: GameControl? = null,
+    /** Screen fades (`StartFadeCore`). */
+    public val fadeCore: FadeCore = FadeCore(engine, hardware),
 ) {
     /** ROM data of the title screen. */
     public class Gfx(
@@ -115,7 +117,7 @@ public class TitleScreen(
             repeat(ProcFunc { setupMainGraphics(it) }),
             call(ProcFunc { tryJumpIntroAnim(it) }),
             call(ProcFunc { showMain() }),
-            block(), // not ported: FadeInBlackSpeed20
+            call(ProcFunc { fadeCore.start(2, 0x20, it) }), // FadeInBlackSpeed20
             yield(),
             goto(1),
             label(0),
@@ -146,7 +148,7 @@ public class TitleScreen(
             label(1),
             repeat(ProcFunc { idle(it) }),
             label(2),
-            block(), // not ported: sub_8013F40 (fade out)
+            call(ProcFunc { fadeCore.start(3, 0x20, it) { fadeCore.darkenEnd() } }), // sub_8013F40
             yield(),
             call(ProcFunc { engine.endAllChildren(it) }), // Title_EndAllProcChildren
             goto(5),
@@ -729,7 +731,7 @@ public class TitleScreen(
     /**
      * Shows BG0, BG1 and OBJ with an alpha blend of BG0 over BG0/BG1.
      *
-     * Ported from src/titlescreen.c: sub_80C5870 (not verified yet)
+     * Ported from src/titlescreen.c: sub_80C5870
      */
     public fun showMain() {
         val lcd = hardware.lcd

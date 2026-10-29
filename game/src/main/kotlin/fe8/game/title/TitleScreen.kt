@@ -1,15 +1,18 @@
 package fe8.game.title
 
+import fe8.game.GameControl
 import fe8.game.opanim.OpAnimHs
 import fe8.game.opanim.blendPalette
 import gbafe.core.math.Interpolate
 import gbafe.data.Decompress
+import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.block
 import gbafe.proc.ProcScripts.call
+import gbafe.proc.ProcScripts.end
 import gbafe.proc.ProcScripts.goto
 import gbafe.proc.ProcScripts.label
 import gbafe.proc.ProcScripts.repeat
@@ -22,7 +25,7 @@ import gbafe.render.SpriteObject
 
 /**
  * The title screen `gProcScr_TitleScreen` (decomp `src/titlescreen.c`). Work in progress (task
- * M4-10): ported up to the logo zoom; stand-in `PROC_BLOCK`s hold the rest.
+ * M4-10): all but the fade-out (`sub_8013F40`, a stand-in `PROC_BLOCK`) is ported.
  * Not yet started by [fe8.game.GameControl] (it still uses a stand-in proc).
  */
 public class TitleScreen(
@@ -40,6 +43,17 @@ public class TitleScreen(
     public val object8x8: SpriteObject? = null,
     /** `gSprite_Title_SacredStonesBanner`. */
     public val bannerSprite: SpriteObject? = null,
+    /**
+     * `gObject_16x16` (the TM sign), `gSprite_Title_FireEmblemLogo`, `_PressStart` and
+     * `_CopyrightInfo`.
+     */
+    public val menuSprites: List<SpriteObject> = emptyList(),
+    /** `gPal_08AADBE8`: the "Press Start" glow colours (16). */
+    public val glowPal: ShortArray = ShortArray(16),
+    /** `gKeyStatusPtr`. */
+    public val keys: KeyStatus = KeyStatus(),
+    /** The game control proc's owner, for `SetNextGameActionId` (null: not set). */
+    public val gameControl: GameControl? = null,
 ) {
     /** ROM data of the title screen. */
     public class Gfx(
@@ -106,7 +120,7 @@ public class TitleScreen(
             goto(1),
             label(0),
             yield(),
-            call(ProcFunc { engine.start(skipListenerStandIn, it) }), // Title_StartSkipFxListener
+            call(ProcFunc { engine.start(skipListenerScript, it) }), // Title_StartSkipFxListener
             repeat(ProcFunc { setupSpecialEffectGraphics(it) }),
             call(ProcFunc { setupBlueLights(it) }),
             repeat(ProcFunc { rotatingBlueLights(it) }),
@@ -123,13 +137,24 @@ public class TitleScreen(
             call(ProcFunc { showBg1Obj() }),
             sleep(8),
             // Title_EndSkipFxListener
-            call(ProcFunc { engine.end(engine.find(skipListenerStandIn)) }),
+            call(ProcFunc { endSkipListener() }),
             call(ProcFunc { prepareLogoZoom() }),
             repeat(ProcFunc { logoZoom(it) }),
             call(ProcFunc { prepareLightExplosion(it) }),
             repeat(ProcFunc { lightExplosion(it) }),
-            block(), // not ported: sub_80C62DC (title sprites) and the rest
+            call(ProcFunc { showTitle(it) }),
             label(1),
+            repeat(ProcFunc { idle(it) }),
+            label(2),
+            block(), // not ported: sub_8013F40 (fade out)
+            yield(),
+            call(ProcFunc { engine.endAllChildren(it) }), // Title_EndAllProcChildren
+            goto(5),
+            label(3),
+            call(ProcFunc { restart(it) }),
+            goto(4),
+            label(5),
+            end(),
         ),
         newState = { State() },
     )
@@ -358,9 +383,11 @@ public class TitleScreen(
             val c = BUBBLES[4 * i + 2]
             val m = RAYS[2 * c]
             val n = RAYS[2 * c + 1]
-            val x = Interpolate.interpolate(Interpolate.LINEAR, (m * a) shr 8, (b * m) shr 8, step, 24) + 116
-            val y = Interpolate.interpolate(Interpolate.LINEAR, (n * a) shr 8, (b * n) shr 8, step, 24) + 56
-            sprites.putExt(4, x and 0x1FF, (y and 0xFF) or 0x400, obj, (BUBBLES[4 * i + 3] + 0x2A0) or 0x7400)
+            val lin = Interpolate.LINEAR
+            val x = Interpolate.interpolate(lin, (m * a) shr 8, (b * m) shr 8, step, 24) + 116
+            val y = Interpolate.interpolate(lin, (n * a) shr 8, (b * n) shr 8, step, 24) + 56
+            val tile = (BUBBLES[4 * i + 3] + 0x2A0) or 0x7400
+            sprites.putExt(4, x and 0x1FF, (y and 0xFF) or 0x400, obj, tile)
         }
     }
 
@@ -375,9 +402,127 @@ public class TitleScreen(
         }
     }
 
-    /** Stand-in for `gProcScr_SkipTitleFxKeyListener` (A/B/Start skip; not ported yet). */
-    public val skipListenerStandIn: ProcScript =
-        ProcScript("gProcScr_SkipTitleFxKeyListener (stand-in)", listOf(yield(), block()))
+    /** `gProcScr_SkipTitleFxKeyListener`: A, B or Start jumps the title proc to label 3. */
+    public val skipListenerScript: ProcScript = ProcScript(
+        "gProcScr_SkipTitleFxKeyListener",
+        listOf(yield(), repeat(ProcFunc { skipListener(it) }), end()),
+    )
+
+    /**
+     * Restarts the title screen (label 3) when A, B or Start is pressed.
+     *
+     * Ported from src/titlescreen.c: SkipTitleFx_Loop_KeyListener
+     */
+    public fun skipListener(proc: Proc) {
+        if ((keys.newKeys and (A_BUTTON or B_BUTTON or START_BUTTON)) != 0) {
+            engine.goto(proc.parent!!, 3)
+        }
+    }
+
+    /**
+     * Ends the skip listener.
+     *
+     * Ported from src/titlescreen.c: Title_EndSkipFxListener
+     */
+    public fun endSkipListener() {
+        engine.end(engine.find(skipListenerScript))
+    }
+
+    /** `gProcScr_DrawTitleSprites` state (`unk_4c`, `unk_52` of its proc). */
+    public class SpritesState {
+        /** `unk_4c`: step counter (s16). */
+        public var unk4c: Int = 0
+
+        /** `unk_52`: glow phase (0..31). */
+        public var unk52: Int = 0
+    }
+
+    /** `gProcScr_DrawTitleSprites`: the logo, banner, "Press Start" and copyright sprites. */
+    public val drawSpritesScript: ProcScript = ProcScript(
+        "gProcScr_DrawTitleSprites",
+        listOf(
+            call(ProcFunc { st(it).apply { unk4c = 0; unk52 = 0 } }), // DrawTitleSprites_Init
+            repeat(ProcFunc { drawSprites(it) }),
+            end(),
+        ),
+        newState = { SpritesState() },
+    )
+
+    private fun st(proc: Proc) = proc.state as SpritesState
+
+    /**
+     * Puts the title sprites and cycles the "Press Start" glow colour (OBJ palette 0 entry 8)
+     * one step every 3 frames.
+     *
+     * Ported from src/titlescreen.c: DrawTitleSprites_Loop
+     */
+    public fun drawSprites(proc: Proc) {
+        val st = st(proc)
+        val (tm, logo, pressStart, copyright) = menuSprites
+        sprites.putExt(0, 4, 48, logo, 0x2000)
+        sprites.putExt(0, 220, 41, tm, 0x201E)
+        sprites.putExt(2, 4, 1077, logo, 0x2080)
+        sprites.putExt(1, 16, 85, bannerSprite ?: error("bannerSprite not supplied"), 0x31A0)
+        sprites.putExt(1, 72, 124, pressStart, 0x1BA)
+        sprites.putExt(1, 4, 148, copyright, 0x1180)
+        if (st.unk4c % 3 == 0) st.unk52 = (st.unk52 + 1) and 0x1F
+        val i = if ((st.unk52 and 0x10) != 0) st.unk52 and 0xF else (0x1F - st.unk52) and 0xF
+        hardware.palette[0x108] = glowPal[i]
+        hardware.enablePaletteSync()
+        st.unk4c = (st.unk4c + 1).toShort().toInt()
+    }
+
+    /**
+     * Mode 0, BG2 back to 256x256, shows BG0, BG1 and OBJ with the title's alpha blend (8/8 of
+     * BG0/BG1 targets), and starts the title sprites.
+     *
+     * Ported from src/titlescreen.c: sub_80C62DC
+     */
+    public fun showTitle(proc: Proc) {
+        val hw = hardware
+        val lcd = hw.lcd
+        lcd.dispcnt = lcd.dispcnt and 7.inv()
+        hw.setScreenSize(2, 0)
+        lcd.dispcnt = (lcd.dispcnt and 0x1F00.inv()) or 0x0100 or 0x0200 or 0x1000
+        engine.start(drawSpritesScript, proc)
+        lcd.setBlendConfig(1, 8, 8, 0)
+        lcd.setBlendTargetA(0, 0, 0, 0, 0)
+        lcd.setBlendTargetB(1, 1, 0, 0, 0)
+    }
+
+    /**
+     * Waits on the title: A or Start continues to the save menu (event return); after 815 steps
+     * the class reel plays. (Sound effect 0x6D is not modelled.)
+     *
+     * Ported from src/titlescreen.c: Title_IDLE
+     */
+    public fun idle(proc: Proc) {
+        val st = proc.state as State
+        st.timerIdle++
+        st.timer = (st.timer + 1) and 0x3F
+        if ((keys.newKeys and (A_BUTTON or START_BUTTON)) != 0) {
+            gameControl?.setNextGameActionId(GameControl.GAME_ACTION_EVENT_RETURN)
+            engine.breakProc(proc)
+        } else if (st.timerIdle == 815) {
+            gameControl?.setNextGameActionId(GameControl.GAME_ACTION_CLASS_REEL)
+            engine.breakProc(proc)
+        }
+    }
+
+    /**
+     * Ends the children and the skip listener, black backdrop, mode 0, all layers off; restarts
+     * at label 4. (The main theme restart is not modelled.)
+     *
+     * Ported from src/titlescreen.c: Title_RestartProc
+     */
+    public fun restart(proc: Proc) {
+        engine.endAllChildren(proc)
+        endSkipListener()
+        hardware.palette[0] = 0
+        hardware.enablePaletteSync()
+        (proc.state as State).mode = 0
+        hardware.lcd.dispcnt = hardware.lcd.dispcnt and 0x1F00.inv()
+    }
 
     /**
      * Loads the intro fx: BG0 moves to tiles 0xC000 / map 0x7800, two BG2-area images and maps,
@@ -569,13 +714,16 @@ public class TitleScreen(
     }
 
     /**
-     * Mode 1 jumps to the intro fx (label 0); otherwise starts the title sprites proc (not
-     * ported yet).
+     * Mode 1 jumps to the intro fx (label 0); otherwise starts the title sprites proc.
      *
-     * Partially ported from src/titlescreen.c: TitleScreenTryJumpIntroAnim
+     * Ported from src/titlescreen.c: TitleScreenTryJumpIntroAnim
      */
     public fun tryJumpIntroAnim(proc: Proc) {
-        if ((proc.state as State).mode != 0) engine.goto(proc, 0)
+        if ((proc.state as State).mode != 0) {
+            engine.goto(proc, 0)
+        } else {
+            engine.start(drawSpritesScript, proc)
+        }
     }
 
     /**
@@ -609,6 +757,10 @@ public class TitleScreen(
     }
 
     private companion object {
+        const val A_BUTTON = 0x1
+        const val B_BUTTON = 0x2
+        const val START_BUTTON = 0x8
+
         /** `gUnknown_08AA682C`: (x, y) direction of each ray (s8 pairs). */
         val RAYS: IntArray = intArrayOf(
             0x68, 0xC4, 0x6B, 0xCA, 0x6E, 0xCF, 0x70, 0xD5, 0x72, 0xDB, 0x74, 0xE1, 0x75, 0xE7,

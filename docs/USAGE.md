@@ -25,5 +25,6 @@ Keep the totals line below the table current.
 | 2026-10-30 14:12 | `session_01NGGw9PqPBBpbSTMPeUbbVo` | scheduled | ~22 | ~150,000 | — | md files condensed (TASKS, brief, HANDOFF, CLAUDE, USAGE); M3-15… |
 | 2026-10-30 14:41 | `session_01NGGw9PqPBBpbSTMPeUbbVo` | interactive (owner request) | ~25 | ~250,000 | — | all md condensed, stale comments removed, slow-startup fix… |
 | 2026-10-30 14:53 | `session_01NGGw9NMrgHXvAZN4eQ9aK8` | scheduled run | ~24 | ~180,000 | — | M4-10 done: title A/Start fade-out and skip/restart paths verified (+7 ports), 2 new reference runs; MODDING dirs note; M3-07 plan |
+| 2026-10-30 22:50 | `session_01NGGw9Qb4ji9x4yv3gmgWS2` | scheduled run | ~22 | ~170,000 | — | M3-07 GPU backend (GpuFrame packer, PackedCompositor spec, GLES shader pixel-exact on 15 mGBA frames via WebGL2 tool, FBO, dirty uploads); M3-12 AudioTrack sink + test tone; both await manual test |
 
-Totals recorded so far: ~2,393,000 tokens (counter), 2026-10-27 onward only.
+Totals recorded so far: ~2,563,000 tokens (counter), 2026-10-27 onward only.

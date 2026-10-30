@@ -28,10 +28,13 @@ _(nothing blocked)_
   shader/`PackedCompositor` change; `glslangValidator` (apt `glslang-tools`) checks syntax.
 - Open: owner manual test (then mark M3-07 done); maps/sheets upload only when changed (palette, lines, OBJ plane every frame); sprites
   are still rasterised on CPU (OK for v1); GPU colour math is hardware (no mGBA variant).
-- M3-12 (branch `wip/M3-12`, merge once its CI is green): `gbafe.audio.AudioSource`/`ToneSource`,
+- M3-12 (merged; CI built the APK): `gbafe.audio.AudioSource`/`ToneSource`,
   `app/AudioTrackSink` (`PERFORMANCE_MODE_LOW_LATENCY`, 48 kHz, chunk = half the device minimum buffer) +
   `AudioThread` (URGENT_AUDIO, one pre-allocated buffer), launcher "Test tone" button, MANUAL_TEST step.
-  Next: M3-13 m4a sequencer core (`m4a.c`), feeding an `AudioSource`.
+  Next: M3-13 m4a sequencer core, feeding an `AudioSource`. Sources (decomp sparse-checkout `src/m4a*`):
+  `src/m4a.c` (1553 lines, C: MPlay init/start/stop, MidiKeyToFreq, ply_* helpers), `src/m4a_1.s` (ARM/Thumb asm:
+  `MPlayMain` sequencer, `ply_note`/`ply_*` commands, `SoundMain` mixer), `src/m4a_tables.c`. Ground truth: trace
+  `gMPlayInfo_*`/`SoundInfo` RAM per frame in a new reference run (harness), compare track state per tick.
 - If the owner still reports slow startup: measure what runs before the launcher draws (`Application`/
   `MainActivity.onCreate`, Compose init) or the first Play frame (`bundledBootRom`, `Fe8Game` setup).
 - Trace timing: a game frame that overruns its VBlank (e.g. the fade setup) is dumped mid-frame and the next dump

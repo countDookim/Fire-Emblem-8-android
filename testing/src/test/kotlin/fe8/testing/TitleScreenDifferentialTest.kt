@@ -243,14 +243,32 @@ class TitleScreenDifferentialTest {
     @Test
     @VerifiesPort("Title_IDLE", "sub_8013F40", "ColorFadeSetupFromColorToBlack")
     fun `A on the idle title starts the fade to dark like the per-frame RAM trace`() {
-        assumeTrue(ref.available && romFile.isFile && File(ref.root, "key_status_title/manifest.txt").isFile,
-            "ROM / mGBA reference run key_status_title not present (run tools/setup.sh)")
-        val run = ref.run("key_status_title")
-        fun ew(f: Int) = run.region("k%05d".format(f), "ewram")
-        fun iw(f: Int) = run.region("k%05d".format(f), "iwram")
+        val c = titleKeyPath("key_status_title", "k", 901)
+        assertTrue(c.idle >= 40 && c.fade >= 5, "checked $c")
+    }
+
+    @Test
+    @VerifiesPort("sub_80141B0", "Title_EndAllProcChildren")
+    fun `START on the idle title fades to dark and ends the title like the per-frame RAM trace`() {
+        val c = titleKeyPath("ram_trace_title_start", "t", 900)
+        assertTrue(c.fade >= 14 && c.ended == 1, "checked $c")
+    }
+
+    private data class KeyPathChecks(val idle: Int, val fade: Int, val ended: Int)
+
+    /**
+     * Syncs our idle title to dump [first] of [runName] (per-frame RAM dumps `<prefix><frame>`), then steps it
+     * with the dumped key status of each frame, comparing the title, sprite and fade procs, the palette, the
+     * fade components and the LCD blend/display registers.
+     */
+    private fun titleKeyPath(runName: String, prefix: String, first: Int): KeyPathChecks {
+        assumeTrue(ref.available && romFile.isFile && File(ref.root, "$runName/manifest.txt").isFile,
+            "ROM / mGBA reference run $runName not present (run tools/setup.sh)")
+        val run = ref.run(runName)
+        fun ew(f: Int) = run.region("$prefix%05d".format(f), "ewram")
+        fun iw(f: Int) = run.region("$prefix%05d".format(f), "iwram")
         val keyAddr = sym["sKeyStatusBuffer"].address - GbaMem.EWRAM
         fun keyStruct(f: Int) = ew(f).copyOfRange(keyAddr, keyAddr + KeyStatus.STRUCT_SIZE)
-        val first = 901
         val e0 = ew(first)
         val o0 = procAt(e0)!!
         val hw = BgHardware()
@@ -263,8 +281,9 @@ class TitleScreenDifferentialTest {
         repeat(200) { if (engine.find(title.script)!!.scrCur != idleScr) engine.run(engine.root(3)) }
         val ours = engine.find(title.script)!!
         assertEquals(idleScr, ours.scrCur, "title proc synced to the idle loop")
-        // Sync the display and the proc fields to the f901 dump.
-        hw.lcd.readFrom(iw(first), sym["gLCDControlBuffer"].address - GbaMem.IWRAM)
+        // Sync the display and the proc fields to the first dump.
+        val lcdAddr = sym["gLCDControlBuffer"].address - GbaMem.IWRAM
+        hw.lcd.readFrom(iw(first), lcdAddr)
         shorts(e0, "gPaletteBuffer", 512).copyInto(hw.palette)
         (ours.state as TitleScreen.State).apply {
             timer = u16(e0, o0 + 0x2A)
@@ -275,8 +294,9 @@ class TitleScreenDifferentialTest {
             unk4c = u16(e0, so + 0x4C).toShort().toInt()
             unk52 = u16(e0, so + 0x52)
         }
-        var idleChecked = 0
-        var fadeChecked = 0
+        var idle = 0
+        var fade = 0
+        var ended = 0
         val last = run.dumps.values.max()
         for (f in first + 1..last) {
             // A game frame that overran its VBlank is dumped mid-frame and skips the next key update:
@@ -286,29 +306,39 @@ class TitleScreenDifferentialTest {
             title.sprites.clear()
             engine.run(engine.root(3))
             val e = ew(f)
-            val o = procAt(e)!!
-            val scr = (u32(e, o + 4) - TITLE_SCRIPT) / 8
-            val st = engine.find(title.script)!!
-            assertEquals(scr, st.scrCur, "f$f title scrCur")
-            assertEquals(u16(e, o + 0x2A), (st.state as TitleScreen.State).timer, "f$f timer")
-            assertEquals(u32(e, o + 0x2C), (st.state as TitleScreen.State).timerIdle, "f$f timer_idle")
+            val o = procAt(e)
+            val st = engine.find(title.script)
+            assertEquals(o != null, st != null, "f$f title proc")
+            if (o != null && st != null) {
+                assertEquals((u32(e, o + 4) - TITLE_SCRIPT) / 8, st.scrCur, "f$f title scrCur")
+                assertEquals(u16(e, o + 0x2A), (st.state as TitleScreen.State).timer, "f$f timer")
+                assertEquals(u32(e, o + 0x2C), (st.state as TitleScreen.State).timerIdle, "f$f timer_idle")
+            }
+            assertEquals(procAt(e, SPRITES_SCRIPT) != null, engine.find(title.drawSpritesScript) != null,
+                "f$f sprites proc")
             assertArrayEquals(shorts(e, "gPaletteBuffer", 512), hw.palette, "f$f gPaletteBuffer")
-            val fade = procAt(e, FADE_SCRIPT)
-            assertEquals(fade != null, engine.find(title.fadeCore.script) != null, "f$f fade proc")
-            if (fade != null) {
+            val g = BgHardware().lcd.apply { readFrom(iw(f), lcdAddr) }
+            assertEquals(listOf(g.dispcnt, g.bldcnt, g.blendCoeffA, g.blendCoeffB, g.blendY),
+                listOf(hw.lcd.dispcnt, hw.lcd.bldcnt, hw.lcd.blendCoeffA, hw.lcd.blendCoeffB, hw.lcd.blendY),
+                "f$f lcd")
+            val fadeProc = procAt(e, FADE_SCRIPT)
+            assertEquals(fadeProc != null, engine.find(title.fadeCore.script) != null, "f$f fade proc")
+            if (fadeProc != null) {
                 val fc = sym["gFadeComponents"].address - GbaMem.EWRAM
                 assertArrayEquals(e.copyOfRange(fc, fc + 0x600), title.fadeCore.colorFade.components,
                     "f$f gFadeComponents")
                 val fs = sym["gFadeComponentStep"].address - GbaMem.EWRAM
                 assertArrayEquals(e.copyOfRange(fs, fs + 0x20), title.fadeCore.colorFade.step,
                     "f$f gFadeComponentStep")
-                fadeChecked++
+                fade++
+            } else if (o != null) {
+                idle++
             } else {
-                idleChecked++
+                ended++
+                break // GameControl starts the next screen here (not part of the title).
             }
         }
-        assertTrue(idleChecked >= 40, "idle checked on $idleChecked frames")
-        assertTrue(fadeChecked >= 5, "fade checked on $fadeChecked frames")
+        return KeyPathChecks(idle, fade, ended)
     }
 
     /**

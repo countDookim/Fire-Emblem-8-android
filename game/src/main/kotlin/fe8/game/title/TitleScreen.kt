@@ -157,7 +157,7 @@ public class TitleScreen(
             label(2),
             call(ProcFunc { fadeCore.startFadeToDark(it) }), // sub_8013F40
             yield(),
-            call(ProcFunc { engine.endAllChildren(it) }), // Title_EndAllProcChildren
+            call(ProcFunc { endAllProcChildren(it) }),
             goto(5),
             label(3),
             call(ProcFunc { restart(it) }),
@@ -517,6 +517,15 @@ public class TitleScreen(
             gameControl?.setNextGameActionId(GameControl.GAME_ACTION_CLASS_REEL)
             engine.breakProc(proc)
         }
+    }
+
+    /**
+     * Ends the title's children (the sprites proc) after the fade out.
+     *
+     * Ported from src/titlescreen.c: Title_EndAllProcChildren
+     */
+    public fun endAllProcChildren(proc: Proc) {
+        engine.endAllChildren(proc)
     }
 
     /**

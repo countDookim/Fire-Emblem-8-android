@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-10-30 (interactive). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-10-30 (scheduled run 14:53). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
@@ -10,26 +10,25 @@ _(nothing blocked)_
   Likely cause fixed (unconfirmed on device): the launcher counted thousands of bundled assets on the main thread
   (`AssetLayer.list` also did a per-file `exists()`, quadratic); now counted on `Dispatchers.IO`, no `exists()`.
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
-- Verified ports: 209 / 8352. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
+- Verified ports: 214 / 8352 (+ Title_IDLE, sub_8013F40, ColorFadeSetupFromColorToBlack, sub_80141B0,
+  Title_EndAllProcChildren: title A/Start path vs `key_status_title` and new run `ram_trace_title_start`). Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
   `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`.
 - Rules: a `@VerifiesPort` every run or two; no `java.*`/`javax.*` in new engine/game code (KMP, M4-07); battle
   rolls only via `mechanics.battleRolls`.
 
-## Next task: title key paths (M4-10), then M3-07 GPU backend
-- Unfinished (interactive session, stopped at owner's request): the startup fix (`MainActivity`, `AssetLayer`)
-  and the doc/comment cleanup were pushed before the local full `jvmTest` finished: check that CI is green
-  (`:app` compiles only in CI) and fix if not. A sub-agent condensed ARCHITECTURE, MODDING, README, module
-  READMEs and ADRs (−36%); MODDING notes extractor output dirs (`fonts/`, `songs/`...) differ from the documented
-  `gfx/`/`audio/` prefixes: reconcile docs or code.
+## Next task: title skip path (M4-10 rest), then M3-07 GPU backend
+- CI of d9dfa4c (startup fix) was still running at this run's start: check it, fix if red (`:app` compiles only in CI).
 - If the owner still reports slow startup: measure what runs before the launcher draws (`Application`/
   `MainActivity.onCreate`, Compose init) or the first Play frame (`bundledBootRom`, `Fe8Game` setup).
-- Title key paths (skip listener -> label 3, A/Start -> `sub_8013F40` fade out) need a key trace on the title
-  (new reference run, see How-to). M3-07: draw `RenderState` with shaders (today a CPU frame is uploaded to GL).
+- Title A/Start path verified (`TitleScreenDifferentialTest.titleKeyPath`). Left: skip listener -> label 3
+  (`SkipTitleFx_Loop_KeyListener`, `Title_RestartProc`): needs a reference run pressing A during the title's intro fx
+  (mode 1, after the op anim, ~f3000+ in `ram_trace_title1` timing). M3-07: draw `RenderState` with shaders.
+- Trace timing: a game frame that overruns its VBlank (e.g. the fade setup) is dumped mid-frame and the next dump
+  shows no key update; step only on dumps whose successor's key struct differs (see `titleKeyPath`).
 - f1180: BG VRAM 0xD800..0xE800 differs from the dump (sync timing of a BG map copy).
 - Unverified (no trace): `OpAnimHBlank1` (never active at compared frames f1110+), `Title_RestartProc`,
-  `SkipTitleFx_Loop_KeyListener`, `Title_EndAllProcChildren` path, `FadeCore.darkenEnd`,
-  `ColorFadeSetupFrom{ColorToBlack,ColorToWhite,White}`, `sub_80C85FC`/`sub_80C8684`, `GameControl_PostIntro`
-  (partial), `sub_8009B64`.
+  `SkipTitleFx_Loop_KeyListener`, `ColorFadeSetupFrom{ColorToWhite,White}`, `sub_80C85FC`/`sub_80C8684`,
+  `GameControl_PostIntro` (partial), `sub_8009B64`.
 - Follow-ups: units/`.fe8s` beyond the prologue need `LOAD1/LOAD2` targets of each `ChapterEventGroup`;
   keysplit/drum sub-voicegroups not written as `voicegroups/*.json`; OBJ mosaic, mosaic on affine BGs.
 

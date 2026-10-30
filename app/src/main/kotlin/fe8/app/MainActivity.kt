@@ -34,9 +34,6 @@ import io.github.countdookim.fe8.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** Intent extra (boolean): draw with the GPU backend (M3-07) instead of the software renderer. */
-internal const val EXTRA_GPU: String = "gpu"
-
 /**
  * Single activity. Compose is used for the launcher/settings shell only; once the game starts the
  * content is a [GameSurfaceView] (OpenGL ES 3.0) and Compose does no per-frame work.
@@ -54,13 +51,13 @@ public class MainActivity : ComponentActivity() {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 Surface(Modifier.fillMaxSize()) {
                     var playing by remember { mutableStateOf(false) }
+                    var gpu by remember { mutableStateOf(false) }
                     if (playing) {
                         AndroidView(
                             factory = { ctx ->
                                 val game = Fe8Game(rom = bundledBootRom(ctx))
                                 val touch = TouchButtons()
                                 FrameLayout(ctx).apply {
-                                    val gpu = intent.getBooleanExtra(EXTRA_GPU, false)
                                     addView(GameSurfaceView(ctx, game, touch, gpu).also { surface = it })
                                     addView(TouchOverlayView(ctx, touch))
                                 }
@@ -68,7 +65,10 @@ public class MainActivity : ComponentActivity() {
                             modifier = Modifier.fillMaxSize(),
                         )
                     } else {
-                        Launcher(onPlay = { playing = true })
+                        Launcher(onPlay = { useGpu ->
+                            gpu = useGpu
+                            playing = true
+                        })
                     }
                 }
             }
@@ -95,7 +95,7 @@ private fun bundledBootRom(ctx: Context): RomView? {
 }
 
 @Composable
-private fun Launcher(onPlay: () -> Unit) {
+private fun Launcher(onPlay: (gpu: Boolean) -> Unit) {
     Column(
         Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
@@ -110,6 +110,7 @@ private fun Launcher(onPlay: () -> Unit) {
             value = withContext(Dispatchers.IO) { AssetLayer(context.assets).list("").size }
         }
         Text("Bundled test assets (debug builds only): ${bundled ?: "counting…"} files")
-        Button(onClick = onPlay) { Text("Play") }
+        Button(onClick = { onPlay(false) }) { Text("Play") }
+        Button(onClick = { onPlay(true) }) { Text("Play (GPU renderer, experimental)") }
     }
 }

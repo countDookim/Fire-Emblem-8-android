@@ -110,6 +110,11 @@ class FrameCompareTest {
             val frame = GpuFrame(state, sheets)
             frame.pack()
             PackedCompositor(frame, sheets, MgbaColorMath).render(gpu)
+            System.getenv("FE8_SHADER_DUMP")?.let { dir ->
+                val hw = FrameBuffer()
+                SoftwareRenderer(state, sheets, hw).render(Camera())
+                ShaderDump.write(File(dir, "${run}_$dump.json"), frame, sheets, hw)
+            }
             !soft.pixels.contentEquals(gpu.pixels)
         }
         assertEquals(emptyList<Pair<String, String>>(), failed)
@@ -134,5 +139,48 @@ class FrameCompareTest {
 
         /** ROM address of `HBlank_BgVerticalScroll` (Thumb bit set), from `decomp/fireemblem8.nm.txt`. */
         const val HBLANK_BG_VERTICAL_SCROLL = 0x08014CC5
+    }
+}
+
+/** Writes a packed frame + expected pixels as JSON for `tools/shader_parity.mjs` (WebGL2 shader check). */
+internal object ShaderDump {
+    fun write(out: File, frame: GpuFrame, sheets: TileSheets, expected: FrameBuffer) {
+        val st = frame.state
+        val fx = st.effects
+        val sb = StringBuilder()
+        fun arr(name: String, n: Int, get: (Int) -> Int) {
+            sb.append('"').append(name).append("\":[")
+            for (i in 0 until n) { if (i > 0) sb.append(','); sb.append(get(i)) }
+            sb.append("],")
+        }
+        sb.append('{')
+        arr("palette", GpuFrame.PALETTE_WIDTH * frame.paletteRows) { frame.palette[it].toInt() and 0xFFFF }
+        sb.append("\"paletteRows\":").append(frame.paletteRows).append(',')
+        arr("lines", frame.lines.size) { frame.lines[it] }
+        arr("obj", frame.obj.size) { frame.obj[it] }
+        for (bg in 0 until RenderState.LAYERS) {
+            val l = st.layers[bg]
+            val s = sheets[l.sheet]
+            arr("map$bg", l.entries.size) { l.entries[it].toInt() and 0xFFFF }
+            val n = if (!l.enabled || s == null) 0 else minOf(s.size, 0x10000)
+            arr("sheet$bg", n) { s!![it].toInt() and 0xFF }
+            var f = 0
+            if (l.enabled) f = f or 1
+            if (l.affine) f = f or 2
+            if (l.wrap) f = f or 4
+            if (l.mosaic) f = f or 8
+            if (l.bpp8) f = f or 16
+            arr("layer$bg", 6) { intArrayOf(f, l.priority, l.widthTiles, l.heightTiles, l.pa, l.pc)[it] }
+        }
+        val winOn = (if (fx.win0) 1 else 0) or (if (fx.win1) 2 else 0) or (if (fx.objWindow) 4 else 0)
+        arr("win", 5) { intArrayOf(winOn, fx.winInside[0], fx.winInside[1], fx.winInside[2], fx.winOutside)[it] }
+        sb.append("\"mosaicH\":").append(maxOf(1, fx.mosaic[0])).append(',')
+        arr("expected", FrameBuffer.GBA_WIDTH * FrameBuffer.GBA_HEIGHT) {
+            expected.pixels[(it / FrameBuffer.GBA_WIDTH) * expected.width + it % FrameBuffer.GBA_WIDTH] and 0xFFFFFF
+        }
+        sb.setLength(sb.length - 1)
+        sb.append('}')
+        out.parentFile.mkdirs()
+        out.writeText(sb.toString())
     }
 }

@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 208,
+    "verified": 209,
     "implemented_unverified": 33
   },
   "functions": {
@@ -664,6 +664,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "OpAnimHBlank2": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Fe8BootTest#op anim and title lag and draw like mGBA"
       ]
     },
     "OpAnimHS_BrightenPalette": {

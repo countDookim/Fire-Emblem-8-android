@@ -8,7 +8,7 @@ import java.io.File
 
 /**
  * Extracts `gItemData` from the ROM and spot-checks rows against the decomp's `src/data_items.c`,
- * `src/data_itemuse.c` and `src/data_itembonus.c` (M2-04). Schema validity of the full output is checked
+ * `src/data_itemuse.c` and `src/data_itembonus.c`. Schema validity of the full output is checked
  * by `tools/tests/test_schemas.py` on the same JSON.
  */
 class ItemsRomTest {

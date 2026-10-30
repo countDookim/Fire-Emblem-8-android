@@ -1,8 +1,7 @@
 # engine:text
 
-Readable text tags (`TextTag`: `{NL}`, `{A}`, `{PAUSE n}`, `{PLAYER}`, ...). Planned: localisation tables,
-Unicode font/glyph layout matching the original's text renderer in vanilla mode.
-
-`MsgHuffman` decodes the original's Huffman-compressed message strings (port of `asm/arm.s: DecodeString`,
-verified by `MsgHuffmanRomTest` on known names). Extract/load time only; output is raw message bytes with
-control codes, converted to `TextTag`s in M2-09.
+- `TextTag`: readable tags (`{NL}`, `{A}`, `{PAUSE n}`, `{PLAYER}`...).
+- `MsgHuffman`: decodes Huffman-compressed messages (port of `asm/arm.s: DecodeString`, `MsgHuffmanRomTest`);
+  extract/load time only.
+- `MessageCodec`: lossless raw message bytes ⇄ tagged text (`text/<lang>/messages.json`).
+- Planned: localisation tables, glyph layout matching the original renderer.

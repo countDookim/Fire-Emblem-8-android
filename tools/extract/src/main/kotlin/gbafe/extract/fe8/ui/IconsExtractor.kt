@@ -7,7 +7,7 @@ import gbafe.extract.IndexedPng
 import gbafe.extract.Json
 
 /**
- * FE8 item/UI icons (M2-20): `item_icon_tiles` (decomp `data/data_item_icon.s`, uncompressed 4bpp, 0x80 bytes =
+ * FE8 item/UI icons: `item_icon_tiles` (decomp `data/data_item_icon.s`, uncompressed 4bpp, 0x80 bytes =
  * 2×2 tiles row-major per 16×16 icon; `src/icon.c` copies them to 4 consecutive tiles and `DrawIcon` places
  * them 2 wide) and `item_icon_palette[2][16]`. The sheet PNG has 16 icons per row in icon-index order and a
  * 32-color palette (palette 0, then 1); pixel indices are 0–15, the caller picks the palette at run time.

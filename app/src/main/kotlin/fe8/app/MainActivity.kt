@@ -17,6 +17,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -30,6 +31,8 @@ import fe8.game.Fe8Boot
 import fe8.game.RomView
 import fe8.game.Fe8Game
 import io.github.countdookim.fe8.BuildConfig
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Single activity. Compose is used for the launcher/settings shell only; once the game starts the
@@ -98,8 +101,11 @@ private fun Launcher(onPlay: () -> Unit) {
         Text("Build ${BuildConfig.VERSION_NAME} (${BuildConfig.GIT_SHA}) · vanilla mode · %.4f Hz logic".format(FixedStepClock.TICK_HZ))
         Text("Debug builds: Play runs the boot screens. Without bundled assets: a GL test pattern.")
         val context = LocalContext.current
-        val bundled = remember { AssetLayer(context.assets).list("").size }
-        Text("Bundled test assets (debug builds only): $bundled files")
+        // Counting walks thousands of APK asset entries: off the main thread, so launch isn't blocked.
+        val bundled by produceState<Int?>(null) {
+            value = withContext(Dispatchers.IO) { AssetLayer(context.assets).list("").size }
+        }
+        Text("Bundled test assets (debug builds only): ${bundled ?: "counting…"} files")
         Button(onClick = onPlay) { Text("Play") }
     }
 }

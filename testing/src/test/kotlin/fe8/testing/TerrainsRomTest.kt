@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * Extracts terrain tables from the ROM and spot-checks them against the decomp's `src/data_terrains.c`
- * (M2-07). Addresses from decomp/fireemblem8.nm.txt (each table is 0x41 bytes). Also dumps
+ * Extracts terrain tables from the ROM and spot-checks them against the decomp's `src/data_terrains.c`.
+ * Addresses from decomp/fireemblem8.nm.txt (each table is 0x41 bytes). Also dumps
  * `testing/build/extracted/data/terrains.json` for `tools/tests/test_schemas.py`.
  */
 class TerrainsRomTest {

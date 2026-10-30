@@ -1,20 +1,15 @@
 # 0005 — Toolchain: sessions are JVM-only, CI builds Android
 
-**Context.** Scheduled cloud sessions must start fast (<3 min) and never install the Android SDK; CI
-(GitHub Actions) builds the APK. Session networking: Gradle plugin portal artifacts are blocked (403) and
-Maven Central intermittently answers 404/429 through the egress proxy.
+**Status.** Accepted.
+
+**Context.** Sessions must start in < 3 min without the Android SDK; CI builds the APK. Sessions get 403 from the
+Gradle plugin portal and intermittent 404/429 from Maven Central.
 
 **Decision.**
-- Gradle 8.14.3 wrapper, Kotlin 2.2.21, AGP 8.13.2, JDK 21 toolchain emitting JVM 17 bytecode.
-- `settings.gradle.kts` includes `:app` only when an Android SDK is present. AGP, the Compose compiler
-  plugin and Dokka go on the build classpath only when needed (`fe8.android` / `fe8.docs` flags), so
-  sessions resolve only the Kotlin plugin + test libraries.
-- No Gradle plugin portal: plugin ids are mapped to their Maven modules in `pluginManagement`. No
-  `build-logic`/`kotlin-dsl` (portal-only); JVM-module conventions live in the root `build.gradle.kts`.
-- Sessions start `tools/maven_mirror.py` (local, retrying, caching) and set `FE8_MAVEN_MIRROR`; CI talks
-  to Google Maven / Maven Central directly.
-- `tools/setup.sh` installs kotlinc (for quick scripts; Gradle has its own compiler), fetches ROM-repo
-  assets, warms Gradle.
+- Versions in `gradle/libs.versions.toml` (Gradle 8.14.3, Kotlin 2.2.21, AGP 8.13.2); JDK 21, JVM 17 bytecode.
+- `:app` is included only with an Android SDK; AGP/Compose/Dokka load only via `fe8.android` / `fe8.docs`.
+- No plugin portal: plugin ids mapped to Maven modules in `pluginManagement`; no `build-logic`/`kotlin-dsl`.
+- Sessions use `tools/maven_mirror.py` (`FE8_MAVEN_MIRROR`); CI uses Maven repos directly.
+- `tools/setup.sh`: kotlinc, ROM-repo assets, Gradle warm-up.
 
-**Consequences.** One extra moving part in sessions (the mirror). If Maven Central throttling worsens,
-next step is a pre-built dependency cache tarball in the ROM repo release (`GRADLE_RO_DEP_CACHE`).
+**Consequences.** Fallback if throttling worsens: dependency cache tarball in the ROM repo (`GRADLE_RO_DEP_CACHE`).

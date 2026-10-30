@@ -5,22 +5,21 @@ package gbafe.render
  * GBA PPU does. Used by JVM tests and frame comparison against mGBA, and as the behavioural spec for the
  * GPU backend.
  *
- * Implemented so far (M3-03): text-mode (tiled, scrolling) background layers with 32/64-tile wrap,
+ * Backgrounds: text-mode (tiled, scrolling) background layers with 32/64-tile wrap,
  * horizontal/vertical tile flips, 4bpp palette banks and 8bpp tiles, colour 0 transparency, priority
  * ordering (lower priority value first, ties by lower BG number) and the backdrop colour (BG palette
  * colour 0). Per-line scroll overrides and palette writes from [RenderState.lines] are applied.
- * Sprites (M3-04): regular and affine (incl. double-size) objects, 4bpp/8bpp, flips, 1D/2D tile mapping,
+ * Sprites: regular and affine (incl. double-size) objects, 4bpp/8bpp, flips, 1D/2D tile mapping,
  * OBJ palette; per pixel the opaque sprite with the lowest priority value wins (ties: lower index), and it
  * is drawn in front of every BG layer whose priority value is greater than or equal to its own.
- * Effects (M3-05): windows 0/1 (incl. wrap-around bounds when left > right) and the OBJ window select
+ * Effects: windows 0/1 (incl. wrap-around bounds when left > right) and the OBJ window select
  * per pixel which layers are visible and whether colour effects apply; alpha blending of the top two
  * visible pixels, brightness up/down, semi-transparent sprites (always blended over a second target),
  * BG mosaic. Per-line window x bounds and blend coefficients from [RenderState.lines] are applied.
  * Affine BG layers: 8bpp maps of 16..128 tiles with one-byte tile indices, sampled at
  * `(ref + pa·x, ref + pc·x) >> 8` per line, the line reference advancing by `pb`/`pd` per line (a LineTable
  * scroll override reloads it, like an HBlank write to `BGxX/Y`); wrap or transparent outside.
- * Not yet: OBJ mosaic, mosaic on affine BGs. Hardware edge cases are confirmed against mGBA frames
- * in M3-06.
+ * Not yet: OBJ mosaic, mosaic on affine BGs. Checked against mGBA frames (`FrameCompareTest`, `Fe8BootTest`).
  *
  * The camera offset is ignored: vanilla mode always shows the 240×160 screen at the origin.
  * [render] allocates nothing.

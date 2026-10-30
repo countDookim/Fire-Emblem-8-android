@@ -5,30 +5,13 @@ apps" for your browser once). Each new APK installs over the previous one (same 
 Report anything wrong as a GitHub Issue with label **`user-report`** (include the build string shown
 on the launcher screen).
 
-## Newly testable — build 0.1.x (milestone 1)
-Nothing game-related yet. This APK only proves the Android shell, GL path and loop work on your phone.
+## Passed (owner, 2026-10-30)
+Install and launch, boot to the title (H&S, logos, op anim, title) with the original timing, gamepad/keyboard,
+on-screen touch buttons (D-pad diagonals, multi-touch).
 
-- [ ] App installs and launches; the launcher shows *"Fire Emblem: The Sacred Stones — Kotlin port"*,
-      a build string `0.1.<run> (<sha>)` and `59.7275 Hz logic`.
-- [ ] Tap **Play** (release build or no bundled assets): a green/blue vertical gradient fills a centred 3:2 area with black
-      bars at the sides (landscape), and slowly scrolls. No stretching, no flicker.
-- [ ] Rotate the phone / lock and unlock: the app does not crash and the pattern resumes.
-- [ ] Battery/heat after ~2 minutes on the pattern screen feels normal.
-- [ ] (M4-09) The launcher shows *"Bundled test assets (debug builds only): N files"* with N in the
-      thousands (the extracted game data travels in this test APK).
-- [ ] (M3-10) With a Bluetooth/USB gamepad or keyboard: pressing keys on the test-pattern screen does
-      not crash and is not swallowed by Android (Back on a gamepad's B does not leave the app). Input has
-      no visible effect yet (no game screen consumes it).
-
-- [ ] (M4-11, partial) Tap **Play**: instead of the test pattern, the boot runs like the original: health &
-      safety screen (press **A** on a gamepad/keyboard to continue, or wait), Nintendo logo, Intelligent
-      Systems logo with their fades, then the opening animation (world map, Ephraim, Eirika, cast, sparkles)
-      and the title screen, with the original's timing (they match mGBA frame by frame in tests). All compared
-      frames are pixel-exact except one (f1180). No sound.
-- [ ] (M3-15) Touch buttons over the game view: D-pad (bottom left, corners = diagonals), A/B (bottom right),
-      L/R (top corners), Select/Start (bottom centre). On the health & safety screen, tap **A** to continue; on
-      the title, tap **Start**/**A** (title key paths not ported yet: may do nothing). Two fingers at once work;
-      sliding a finger between buttons switches the key.
+## Newly testable
+- [ ] The app opens quickly: the launcher appears at once and the bundled-asset count fills in after
+      ("counting…" first). Before, opening took a while.
 
 ## Known not working (don't report)
-Everything after the title: no gameplay, sound or saves yet.
+Everything after the title: no gameplay, sound or saves; title key presses do nothing yet.

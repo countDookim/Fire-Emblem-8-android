@@ -1,10 +1,8 @@
 # testing
 
-Verification module.
-- `ReferenceData` / `GbaMem` — read mGBA reference dumps from `$FE8_ASSETS/reference/out`. The only place GBA
-  addresses may appear.
-- Differential tests (`src/test`) — e.g. `RngDifferentialTest` (boot RNG state vs mGBA IWRAM).
-- `AllocationMeter` + `AllocationTest` — zero bytes per frame, measured with HotSpot's per-thread counter.
-- `FrameTimeBenchmark` — `./gradlew :testing:benchmark`, JSON report, loose regression budgets.
-
-Tests needing reference data are *skipped* (never passed) when it is missing.
+Verification; the only place GBA addresses may appear. Tests lacking reference data are *skipped*, never passed.
+- `ReferenceData`, `GbaMem`, `RamSymbols`: mGBA dumps from `$FE8_ASSETS/reference/out`, state by decomp symbol.
+- `MgbaColorMath`: mGBA blend/fade arithmetic for frame comparison.
+- Tests: `*DifferentialTest`/`Fe8BootTest` (vs mGBA), `*RomTest` (ROM golden values), `AllocationTest`
+  (`AllocationMeter`, zero bytes per frame).
+- `FrameTimeBenchmark`: `./gradlew :testing:benchmark`, JSON report.

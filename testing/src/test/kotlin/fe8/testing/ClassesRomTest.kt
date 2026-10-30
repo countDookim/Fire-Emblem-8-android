@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * Extracts `gClassData` from the ROM and spot-checks rows against the decomp's `src/data_classes.c`
- * (M2-05). Also dumps `testing/build/extracted/data/classes.json` for `tools/tests/test_schemas.py`.
+ * Extracts `gClassData` from the ROM and spot-checks rows against the decomp's `src/data_classes.c`.
+ * Also dumps `testing/build/extracted/data/classes.json` for `tools/tests/test_schemas.py`.
  */
 class ClassesRomTest {
     private val rom = File(System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets", "baserom.gba")

@@ -1,20 +1,16 @@
 # 0003 — Layered virtual filesystem for mods
 
-**Context.** Mods must override any data, map, script, asset or string by path, as folders or zips,
-with dependencies, load order and hot reload in debug builds.
+**Status.** Accepted; `base` layer per 0011.
 
-**Decision.** `gbafe.vfs.VirtualFileSystem` is the *only* way game code reads content.
-- Normalised virtual paths (`data/items.json`, `maps/ch01.tmj`, `gfx/portraits/eirika.png`,
-  `text/en/ch01.json`, `audio/music/SONG_X.mid`); `..` escapes are rejected.
-- Layer stack, lowest first: `base` (vanilla content extracted on the device from the player's ROM, `filesDir/base/`, see 0011; `$FE8_ASSETS` in tests) →
-  enabled mods sorted by dependencies then `loadOrder` → `override/` dev folder (debug builds). The
-  top-most layer containing a path wins; `list()` is the union. Merge patches (0002) are the exception
-  to "top wins" for data tables.
-- Mods: folder or zip with `mod.json` (`ModManifest`: id, version, name, dependencies, loadOrder,
-  formatVersion). Missing/incompatible dependencies disable the mod with a visible error, never crash.
-- Hot reload (debug): file watcher on folder layers → invalidate affected compiled tables/textures at the
-  next safe point (between ticks), never mid-tick.
-- Read only at load/reload time; nothing touches the VFS inside the frame loop.
+**Context.** Mods override any content by path (folders or zips), with dependencies, load order, hot reload.
 
-**Consequences.** Assets are addressed by stable paths, which become part of the modding API and are
-listed in `MODDING.md`. Renaming a path is a breaking change for mods.
+**Decision.** `gbafe.vfs.VirtualFileSystem` is the *only* way to read content, at load/reload time only.
+- Normalised virtual paths (`data/items.json`, `maps/ch01.tmj`, `text/en/ch01.json`); `..` rejected.
+- Layers, lowest first: `base` (release: extracted to `filesDir/base/`; debug/test: APK assets; tests:
+  `$FE8_ASSETS`) → mods by dependencies then `loadOrder` → `override/` (debug). Top layer wins; `list()` is the
+  union; data merge patches (0002) are the exception.
+- `mod.json` (`ModManifest`: id, version, name, dependencies, loadOrder, formatVersion). Bad dependencies
+  disable the mod with a visible error, never crash.
+- Debug hot reload: watch folder layers, invalidate between ticks.
+
+**Consequences.** Virtual paths are modding API (`MODDING.md`); renaming one breaks mods.

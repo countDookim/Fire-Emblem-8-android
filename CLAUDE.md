@@ -17,13 +17,9 @@
    FE6/FE7 ports: game-neutral `gbafe.*` vs FE8-only `fe8.*` (docs/decisions/0010); never use `fe8` from `gbafe`.
 8. Token hygiene: never fetch full CI job logs; check step conclusions first, then `tail_lines` <= 80 of the one
    failing job. Prefer reading files in excerpts over whole-file dumps.
-9. Save tokens without lowering quality: be concise (short replies, commit messages and HANDOFF lines; no narration
-   of routine steps). Don't over-verify: during work run only the tests for what changed; run the full `jvmTest`
-   (+ Dokka if public API changed) once before the final push, not after every step. Don't re-read files you just
-   wrote or dump large files/logs; read excerpts. Stop when a task is done: no extra polish, refactors or
-   features beyond its acceptance line, then start the next task (scheduled runs still use their full budget:
-   saving tokens means less waste per minute, never fewer minutes).
-   Rule 5 (ground-truth `@VerifiesPort` tests) is never relaxed to save tokens.
-10. Kotlin follows Google's Android Kotlin style guide (https://developer.android.com/kotlin/style-guide; owner,
-    2026-10-27): 4-space indent, 100-column lines, no wildcard imports, its naming, brace and KDoc rules. Applies to
-    code you write or change; existing code (~1300 lines over 100 columns) is not mass-reformatted unless a task says so.
+9. Save tokens, not quality: short replies, commits and HANDOFF lines; no narration. During work run only the tests for
+   what changed; full `jvmTest` (+ Dokka if public API changed) once before the final push. Read excerpts, don't
+   re-read what you wrote. Stop a task at its acceptance line, then start the next (runs still use their full time).
+   Rule 5 is never relaxed.
+10. Kotlin follows Google's Android Kotlin style guide (4-space indent, 100 columns, no wildcard imports, its naming,
+    brace and KDoc rules) for code you write or change; don't mass-reformat existing code.

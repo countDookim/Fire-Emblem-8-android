@@ -8,7 +8,7 @@ import java.io.File
 
 /**
  * Extracts `gCharacterData` from the ROM and spot-checks Eirika against the decomp's
- * `src/data_characters.c` and `src/data_supports.c` (M2-06). Also dumps
+ * `src/data_characters.c` and `src/data_supports.c`. Also dumps
  * `testing/build/extracted/data/characters.json` for `tools/tests/test_schemas.py`.
  */
 class CharactersRomTest {

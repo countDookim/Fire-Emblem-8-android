@@ -1,9 +1,8 @@
 # engine:render
 
-`FrameBuffer` (offscreen ARGB frame, BGR555 conversion identical to mGBA dumps), `Camera` (viewport not
-tied to 240×160), `Renderer` contract, the semantic `RenderState` (tile layers, sprite batches, palettes,
-effects, per-line `LineTable`), `TileSheets` (sheet id → GBA-format tile bytes) and `SoftwareRenderer`, the
-CPU reference compositor (text + affine BGs, sprites, windows, blending, BG mosaic; OBJ mosaic open). Design: `docs/decisions/0008-render-model.md`.
-
-`LcdControl` is the port of the game's `gLCDControlBuffer` shadow registers and `FlushLCDControl`;
-`applyTo(RenderState)` decodes those registers the way the PPU does (BG modes, windows, blending, mosaic).
+ADR 0008. `RenderState` (tile layers, sprite batches, palettes, effects, `LineTable`), `TileSheets`.
+- `SoftwareRenderer`: CPU reference (text/affine BGs, sprites, windows, blending, BG mosaic; OBJ and affine-BG
+  mosaic open).
+- `LcdControl`: port of `gLCDControlBuffer` + `FlushLCDControl`; `applyTo(RenderState)` decodes like the PPU.
+  `HBlankLines`/`HBlankHandlers`: per-line effects.
+- `FrameBuffer` (ARGB; BGR555 conversion as in mGBA dumps), `Camera` (not tied to 240×160).

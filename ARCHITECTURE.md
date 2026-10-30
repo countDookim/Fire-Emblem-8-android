@@ -1,67 +1,48 @@
 # Architecture
 
 ## Principles
-1. **The decomp is the spec, the ROM is the test oracle.** Every ported function cites its source
-   (`Ported from src/x.c: Func`) and only counts once a test against mGBA/ROM ground truth passes
+1. **Decomp = spec, ROM = oracle;** ported only with ground-truth tests
    ([0006](docs/decisions/0006-verification-policy.md)).
-2. **Modern design, original behaviour.** Organised by game system with idiomatic Kotlin (sealed state
-   classes, enums, value classes, data classes). No GBA memory map, registers or VRAM mimicry in game
-   code; only `:testing` knows GBA addresses (to read reference dumps).
-3. **The product is the original, bit-exact; modding is groundwork only**
-   ([0009](docs/decisions/0009-vanilla-product-mod-groundwork.md)). Behaviour goes through strategy
-   interfaces in `gbafe.core.mechanics.Mechanics` (e.g. `BattleRolls`) whose only shipped implementations
-   are vanilla. Non-original behaviour comes only from mods, behind a `FeatureFlag` that
-   `FeatureFlags.vanilla` forces off; the base game registers no flags.
-4. **Zero allocations per frame.** Hot data lives in primitive arrays behind typed wrappers; event
-   dispatch is inline over arrays; enforced by `AllocationTest` and the CI benchmark.
-5. **Android-free core.** Everything except `:app` is pure Kotlin/JVM and testable headless in seconds.
-6. **Reusable by FE6/FE7 ports** ([0010](docs/decisions/0010-multi-game-reuse.md)). `gbafe.*` (engine,
-   shared FE systems, formats, extract tools) is game-neutral; `fe8.*` holds FE8-only systems, ROM layouts
-   and ground-truth tests. `tools/tests/test_layering.py` fails CI if `gbafe` code uses `fe8`.
-7. **Moddable by construction.** All content is read through the layered VFS; data is JSON (compiled to
-   primitive tables), maps are Tiled, scripts are `.fe8s`, assets are PNG/MIDI/WAV with JSON metadata.
+2. **Original behaviour, modern design:** idiomatic Kotlin per game system; GBA addresses only in `:testing`.
+3. **1:1 product; modding = extension points** ([0009](docs/decisions/0009-vanilla-product-mod-groundwork.md),
+   [MODDING.md](MODDING.md)).
+4. **Zero allocations per frame** (`AllocationTest`, CI benchmark). All but `:app` is Android-free.
+5. **`gbafe.*` game-neutral, `fe8.*` FE8-only** ([0010](docs/decisions/0010-multi-game-reuse.md)), CI-enforced.
+6. **All content through the layered VFS** (JSON, Tiled, `.fe8s`, PNG/MIDI/WAV).
 
 ## Modules
 
 ```
-app ─────────────► game ───► engine:{core,vfs,data,input,render,audio,script,text,save}
-(Android shell)    (game systems)          ▲
-testing ───────────► game                  └── engine:core is the only dependency of every engine module
-(differential, allocation, benchmark)
+app ──► game ──► engine:{core,vfs,data,input,render,audio,script,text,save}
+testing ──► game         (every engine module depends only on engine:core)
 ```
 
-| Module | Responsibility | Status |
+| Module | Holds | Status |
 |---|---|---|
-| `engine:core` | Fixed-step clock + loop (59.7275 Hz), RNG service (ported), event bus, feature flags, porting annotations | working |
-| `engine:vfs` | Layered virtual filesystem, mod manifest | working (dir layers) |
-| `engine:data` | JSON → primitive table compiler, typed tables | interface |
-| `engine:input` | `GameAction`, `InputFrame`, `ActionSource`, vanilla button map | working |
-| `engine:render` | Render state model, software renderer, `FrameBuffer`, `Camera` | skeleton |
-| `engine:audio` | m4a/MP2K-equivalent sequencer + mixer, `AudioSink` | interface |
-| `engine:script` | `.fe8s` parser/compiler/interpreter | interface |
-| `engine:text` | Localised strings, tags, font/glyph layout | skeleton |
-| `engine:save` | Versioned save container, migrations, `.sav` import | skeleton |
-| `game` | FE8 game layer (`fe8.game`): wires shared systems with FE8 strategies; FE8-only systems (world map, skirmishes, Creature Campaign, branched promotions). Shared FE systems (map, units, battle, AI, menus...) get `gbafe.<system>` modules when ported (0010) | shell |
-| `testing` | Reference-data access, differential tests, `AllocationMeter`, frame benchmark | working |
-| `app` | Activity, GL ES 3.0 view + scaling shader, Compose launcher/settings, AudioTrack, input sources | shell |
-| `tools:extract` | JVM CLI: ROM → JSON/PNG/Tiled/MIDI (Milestone 2); generic decoders in `gbafe.extract`, FE8 struct layouts in `gbafe.extract.fe8`; refuses to write inside the code repo; never shipped | skeleton (`--help`, arg checks) |
+| `engine:core` | clock + loop (59.7275 Hz), RNG, procs, event bus, flags, mechanics | working |
+| `engine:vfs` | layered VFS, mod manifest, texture overrides | dir layers |
+| `engine:data` | LZ77/tile/TSA/colour decoders; JSON table contract | decoders |
+| `engine:input` | actions, `KeyStatus`, `TouchButtons`, button map | working |
+| `engine:render` | `RenderState`, `SoftwareRenderer`, `LcdControl` | software |
+| `engine:audio` / `script` / `save` | m4a + `AudioSink` / `.fe8s` VM / save container | contracts |
+| `engine:text` | text tags, Huffman messages | partial |
+| `game` | `fe8.game` systems; shared FE systems become `gbafe.<system>` (0010) | boot → title |
+| `testing` | reference data, differential tests, allocation meter, benchmark | working |
+| `app` | Activity, GL view, key + on-screen-button input, APK asset layer | shell |
+| `tools:extract` | ROM → JSON/PNG/Tiled/MIDI/WAV/`.fe8s`; never shipped | working |
 
-Game systems map to the decomp's files via the `system` column of `reference/decomp_functions.tsv`
-(core, battle_map, battle_logic, battle_anim, map_anim, ai, events, menus, prep_screen, worldmap, save,
-text_face, presentation, audio, link, data) — the same split as the README progress table.
+Systems follow the `system` column of `reference/decomp_functions.tsv` (= README progress table).
 
 ## Frame loop
-`GameLoop.frame(now)` is called once per display refresh (GL thread). `FixedStepClock` converts wall
-time to whole GBA frames using exact integer maths (2^24 Hz / 280 896 cycles) with a catch-up cap; each
-tick: `InputFrame.update` → `core.onTickStart` → game systems → `core.onTickEnd`. Then `present()` hands
-the render state to the backend. Logic never reads wall-clock time, so vanilla is deterministic and a
-differential test can drive `tick()` directly with the same per-frame inputs as mGBA.
+`GameLoop.frame(now)` runs per display refresh on the GL thread. `FixedStepClock` converts wall time to whole
+GBA frames (exact 2^24 Hz / 280 896 cycles, catch-up cap). Tick: `InputFrame.update` → `core.onTickStart` →
+systems → `core.onTickEnd`; then `present()`. Logic never reads wall time, so tests drive `tick()` with mGBA's
+inputs.
 
 ## Rendering
-Two backends over one semantic render state ([0008](docs/decisions/0008-render-model.md), accepted; per-scanline effects via a `LineTable`):
-software (JVM, frame comparison against mGBA dumps; 5-bit channel compare) and OpenGL ES 3.0 (native
-240×160 texture scaled by a shader, aspect-correct, nearest filtering). `Camera` is not tied to
-240×160 so widescreen mods are possible; the shipped game is fixed at 240×160.
+One semantic render state ([0008](docs/decisions/0008-render-model.md), per-line `LineTable`), two backends:
+software (JVM reference, compared with mGBA on 5-bit channels) and GL ES 3.0 (240×160, aspect-correct nearest
+scaling; shader backend M3-07). Fixed 240×160.
 
 ## Verification pipeline
 ```
@@ -71,7 +52,3 @@ ROM repo: rom/baserom.gba ─► mgba-harness (headless mGBA 0.10.5) + reference
 code repo: :testing differential tests replay inputs.bin into the port and compare state/frames
           ─► JUnit XML ─► tools/progress.py ─► README bar + docs/port_map.json
 ```
-
-## Key decisions
-See [docs/decisions/](docs/decisions/README.md): script format, data schemas, mod VFS, event bus,
-toolchain, verification policy, decomp choice, render model.

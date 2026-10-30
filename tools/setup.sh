@@ -60,7 +60,7 @@ else
   log "assets ready ($FE8_ASSETS)"
 fi
 
-# 3b. Extracted assets (M2-21): extracted.tar.xz from the latest ROM-repo release -> $FE8_ASSETS/extracted.
+# 3b. Extracted assets: extracted.tar.xz from the latest ROM-repo release -> $FE8_ASSETS/extracted.
 #     Re-downloaded only when the release tag changes; falls back to the ROM repo's extracted/ via a sparse clone.
 #     Non-fatal: most tests read the ROM directly.
 # REST only: GraphQL-backed `gh release view/download <tag>` is refused in Claude sessions.

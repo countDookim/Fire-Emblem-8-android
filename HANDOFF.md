@@ -1,42 +1,37 @@
 # HANDOFF
 
-_Updated: 2026-10-30 14:35 UTC (scheduled run, started 14:12). Owner decisions live in docs/PROJECT_BRIEF.md (amendments merged in)._
+_Updated 2026-10-30 (interactive). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
 
 ## Status
-- This run: docs condensed (owner request: TASKS 21→7 KB, brief 18→9 KB with amendments merged, HANDOFF, CLAUDE,
-  USAGE header). **M3-15 done** (manual test pending): `gbafe.input.TouchButtons` (layout, D-pad diagonals,
-  multi-touch; `TouchButtonsTest`) + `fe8.app.TouchOverlayView` over `GameSurfaceView`, always on (product feature).
-- **Darken gap fixed:** mGBA's `_darken` on 8-bit widened channels rounds red `c - c*evy/16` but green/blue
-  `c*(16-evy)/16` (packed-colour subtraction); fit 100% of darkened pixels. `MgbaColorMath.darken` updated; all
-  op anim/title frames now pixel-exact except f1180 (`Fe8BootTest` 249 frames, `@VerifiesPort("OpAnimHBlank2")`).
-- M4-11: H&S, logos, op anim, title match mGBA on the device path (27 lag frames f401..3600). Overrun = missed
-  VBlanks per load (`GameLoop.overran`, `OpAnim/TitleScreen.missedVBlanks`).
+- Owner tested the APK 2026-10-30: boot to title, touch buttons and gamepad work; **only issue: slow app open**.
+  Likely cause fixed (unconfirmed on device): the launcher counted thousands of bundled assets on the main thread
+  (`AssetLayer.list` also did a per-file `exists()`, quadratic); now counted on `Dispatchers.IO`, no `exists()`.
+- Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
 - Verified ports: 209 / 8352. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
   `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`.
-- Rules: interleave verifiable ports with infrastructure (a `@VerifiesPort` every run or two); keep new
-  engine/game code free of `java.*`/`javax.*` (KMP coming, M4-07); battle rolls only via `mechanics.battleRolls`.
+- Rules: a `@VerifiesPort` every run or two; no `java.*`/`javax.*` in new engine/game code (KMP, M4-07); battle
+  rolls only via `mechanics.battleRolls`.
 
-## Next task: manual-test APK (M4-11 acceptance), then title key paths, M3-07
-- CI run 179 (M3-15): every step green incl. APK build (`:app` compiles), only "Rolling `latest` release" failed
-  (likely a race with the next push; log tail uninformative). If it fails again, read that step's log only.
-- **APK:** check the last CI run built `fe8-debug.apk` (`:app` compiles only in CI: `TouchOverlayView`,
-  `GameSurfaceView(ctx, game, touch)`, `MainActivity` FrameLayout are new). If green, mark M4-11 ready for manual
-  test in MANUAL_TEST.md/TASKS.
-- **f1180** (last frame gap): BG VRAM 0xD800..0xE800 differs from the dump (sync timing of a BG map copy).
+## Next task: title key paths (M4-10), then M3-07 GPU backend
+- Unfinished (interactive session, stopped at owner's request): the startup fix (`MainActivity`, `AssetLayer`)
+  and the doc/comment cleanup were pushed before the local full `jvmTest` finished: check that CI is green
+  (`:app` compiles only in CI) and fix if not. A sub-agent condensed ARCHITECTURE, MODDING, README, module
+  READMEs and ADRs (−36%); MODDING notes extractor output dirs (`fonts/`, `songs/`...) differ from the documented
+  `gfx/`/`audio/` prefixes: reconcile docs or code.
+- If the owner still reports slow startup: measure what runs before the launcher draws (`Application`/
+  `MainActivity.onCreate`, Compose init) or the first Play frame (`bundledBootRom`, `Fe8Game` setup).
 - Title key paths (skip listener -> label 3, A/Start -> `sub_8013F40` fade out) need a key trace on the title
-  (new reference run, see How-to). Then M3-07 GPU backend (draw `RenderState` with shaders).
-- Unverified (no trace yet): `OpAnimHBlank1` (never the active handler at compared frames f1110+: needs dumps
-  before f1110),
-  `Title_RestartProc`, `SkipTitleFx_Loop_KeyListener`, `Title_EndAllProcChildren` path, `FadeCore.darkenEnd`,
-  `ColorFadeSetupFromColorToBlack/White`, `ColorFadeSetupFromWhite`, `sub_80C85FC`/`sub_80C8684`,
-  `GameControl_PostIntro` (partial), `sub_8009B64`.
-- Follow-ups (not tasks yet): units/`.fe8s` beyond the prologue need the event converter to follow `LOAD1/LOAD2`
-  of each `ChapterEventGroup`; keysplit/drum sub-voicegroups not written as `voicegroups/*.json`; renderer: OBJ
-  mosaic, mosaic on affine BGs. `MgbaColorMath.alpha` may have the same packed-rounding quirk (check if an alpha
-  frame ever differs by one step).
+  (new reference run, see How-to). M3-07: draw `RenderState` with shaders (today a CPU frame is uploaded to GL).
+- f1180: BG VRAM 0xD800..0xE800 differs from the dump (sync timing of a BG map copy).
+- Unverified (no trace): `OpAnimHBlank1` (never active at compared frames f1110+), `Title_RestartProc`,
+  `SkipTitleFx_Loop_KeyListener`, `Title_EndAllProcChildren` path, `FadeCore.darkenEnd`,
+  `ColorFadeSetupFrom{ColorToBlack,ColorToWhite,White}`, `sub_80C85FC`/`sub_80C8684`, `GameControl_PostIntro`
+  (partial), `sub_8009B64`.
+- Follow-ups: units/`.fe8s` beyond the prologue need `LOAD1/LOAD2` targets of each `ChapterEventGroup`;
+  keysplit/drum sub-voicegroups not written as `voicegroups/*.json`; OBJ mosaic, mosaic on affine BGs.
 
 ## How-to
 - Re-extract: run the CLI (below), `python3 tools/compare_extraction.py <rom repo>/extracted <out>`, copy only
@@ -66,8 +61,8 @@ _(nothing blocked)_
 - `FrameCompareTest.applyHBlank` knows only `HBlank_BgVerticalScroll`; dumped RAM is one game step ahead of the
   dumped frame (the test un-flips the menu scroll buffer).
 - `gh release view/download <tag>` (GraphQL) is refused; use `gh api repos/.../releases/...` (REST).
-- `cursor_hand.png` colours are a stand-in (`paletteSource: caller`). `effectiveAgainst` in items.json holds class
+- `cursor_hand.png` colours: `paletteSource: caller`. `effectiveAgainst` in items.json holds class
   numbers; classes inline shared terrain tables (decide with the data loader).
 - `.fe8s` v0 prints args as raw numbers; symbolic constants and a parser are M5.
-- `RamSymbols[name]` throws on ambiguous static names. `GameSurfaceView` is device-untested.
+- `RamSymbols[name]` throws on ambiguous static names.
 - Dokka's Kotlin types are only on the docs classpath: keep `configureDokkaLint()` using Groovy property access.

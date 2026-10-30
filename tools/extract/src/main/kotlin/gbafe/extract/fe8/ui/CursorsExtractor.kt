@@ -7,7 +7,7 @@ import gbafe.extract.IndexedPng
 import gbafe.extract.Json
 
 /**
- * FE8 map cursor, misc OBJ UI graphics and the menu hand cursor (M2-20).
+ * FE8 map cursor, misc OBJ UI graphics and the menu hand cursor.
  *
  * - `LoadObjUIGfx` (decomp `src/bm.c`): `gGfx_MiscUiGraphics` (LZ77 4bpp) is copied with `Copy2dChr(.., 0x12, 4)`
  *   to OBJ VRAM 0x06010000, i.e. 18 tiles × 4 rows of the 32-tile-wide 2D OBJ layout; palettes

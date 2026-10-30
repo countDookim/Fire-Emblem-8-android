@@ -5,7 +5,7 @@ package gbafe.text
  *
  * Load/extract time only: the game will ship decoded text as JSON (`text/<lang>/`), so this exists for the
  * extractor and for verifying it. It returns raw message bytes, control codes included; turning those
- * into readable tags is a separate step (M2-09).
+ * into readable tags is a separate step.
  *
  * Tree layout (`gMsgHuffmanTable`): 4-byte nodes. An internal node holds two `u16` child indices (left
  * for bit 0, right for bit 1) and has bit 31 clear when read as a `u32`; a leaf has bit 31 set and holds

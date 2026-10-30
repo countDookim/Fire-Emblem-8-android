@@ -12,7 +12,7 @@ out() { echo "available=$1" >> "${GITHUB_OUTPUT:-/dev/null}"; }
 if [ -n "${ROM_REPO_TOKEN:-}" ]; then
   GH_TOKEN="$ROM_REPO_TOKEN" gh release download -R "$ROM_REPO" -D "$FE8_ASSETS" --clobber \
     -p baserom.gba -p mgba-harness -p reference.tar.xz -p MANIFEST.sha1
-  # Optional (M2-21): committed extraction + decomp symbols, for tools/ci_check_extraction.sh.
+  # Optional: committed extraction + decomp symbols, for tools/ci_check_extraction.sh.
   GH_TOKEN="$ROM_REPO_TOKEN" gh release download -R "$ROM_REPO" -D "$FE8_ASSETS" --clobber \
     -p extracted.tar.xz -p fireemblem8.map -p fireemblem8.nm.txt || echo "::warning::release lacks extracted.tar.xz / decomp symbols"
   if [ -f "$FE8_ASSETS/extracted.tar.xz" ]; then

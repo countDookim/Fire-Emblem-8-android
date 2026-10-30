@@ -1,4 +1,4 @@
 # engine:audio
 
-`AudioSink` contract. Planned (M3): reimplementation of the m4a (MP2K) sequencer/mixer driven by MIDI +
-voicegroup JSON, verified against mGBA audio output; `:app` provides a low-latency `AudioTrack` sink.
+`AudioSink` contract. Planned (M3-12..14): m4a (MP2K) sequencer/mixer from MIDI + voicegroup JSON, verified
+against mGBA audio; `:app` supplies an `AudioTrack` sink.

@@ -3,7 +3,7 @@
 Tasks ≤ 20 min. Status `todo`/`wip` (branch `wip/<id>`)/`done`/`blocked`. Take the first `todo` whose deps are
 `done`; if fewer than 5 `todo` remain, plan the next milestone.
 
-**Priority (owner, 2026-10-28/30): first manual-test APK:** M3-15, M4-11 (+ M4-10 key paths), M3-07. Then
+**Priority:** first manual-test APK done (owner, 2026-10-30). Next: M4-10 title key paths, M3-07 GPU backend, then
 M4-03/04/06/07 (ROM import, public release only), audio M3-12..14.
 
 ## M1 — Toolchain, CI, skeleton, docs
@@ -19,13 +19,11 @@ Done (details in git log): M2-01 New module :tools:extract; M2-02 LZ77; M2-03 4b
 | ID | Task | Done when | Status |
 |---|---|---|---|
 | M3-07 | GPU backend v1 in `:app`: tile layers + sprites via shaders, same render state | APK shows extracted test scene (manual test) | todo |
-| M3-10 | Android `ActionSource`s: hardware keys + gamepad mapping | manual test | done, manual test pending: `fe8.app.HardwareKeySource` (gamepad A/B/Select/Start/L1/R1/L2/R2, D-pad, hat, left stick; keyboard X/Z/Backspace/Enter/A/S/arrows) wired into `GameSurfaceView` |
-| M3-15 | On-screen GBA button overlay `ActionSource` in `:app` (D-pad, A, B, L, R, Start, Select; emits exactly GBA keys, multi-touch, no game-logic change). **Owner request 2026-10-30: needed for debugging on a phone without a gamepad; do it before the M4-11 manual-test APK** (enabled in debug APKs by default) | manual test on device: boot to the title and press A/Start with touch only | done, manual test pending: `gbafe.input.TouchButtons` (layout, D-pad diagonals, multi-touch; `TouchButtonsTest`) + `fe8.app.TouchOverlayView` over `GameSurfaceView` (always on) |
 | M3-12 | Low-latency `AudioTrack` sink (`PERFORMANCE_MODE_LOW_LATENCY`, mixer thread, no per-buffer allocs) | APK plays a test tone (manual test) | todo |
 | M3-13 | m4a sequencer core (tempo, tracks, note on/off) from `m4a.c`/MIDI | unit tests vs MIDI timing | todo |
 | M3-14 | m4a mixer: direct-sound + PSG channels; compare against mGBA audio dump (harness: add audio capture) | RMS diff below threshold | todo |
 
-Done (details in git log): M3-01 Finalise ADR 0008; M3-02 Render state types; M3-09 Input; M3-03 Software compositor; M3-04 Software compositor; M3-05 Blend/brightness/windows/mosaic; M3-06 Frame-compare utility; M3-16 Port gLCDControlBuffer + FlushLCDControl; M3-08 Asset override layer; M3-11 UI element contract.
+Done (details in git log): M3-01 Finalise ADR 0008; M3-02 Render state types; M3-09 Input; M3-03 Software compositor; M3-04 Software compositor; M3-05 Blend/brightness/windows/mosaic; M3-06 Frame-compare utility; M3-16 Port gLCDControlBuffer + FlushLCDControl; M3-08 Asset override layer; M3-11 UI element contract; M3-10 Android ActionSources; M3-15 On-screen GBA button overlay ActionSource in :app.
 
 ## M4 — Boot to title screen, verified against mGBA
 
@@ -37,8 +35,7 @@ Done (details in git log): M3-01 Finalise ADR 0008; M3-02 Render state types; M3
 | M4-07 | Kotlin Multiplatform (owner 2026-10-27): `:gba:*`, `:engine:*`, `:game` become KMP with `commonMain`; targets **jvm + android only** (others on owner request); platform code via `expect`/`actual` (today only `engine/vfs` uses `java.io`); `:testing`, `:tools:extract` stay JVM, but the M4-03 extraction core goes in `commonMain`; CI check: no `java.*`/`javax.*` in `commonMain`; KMP plugin must resolve via the session Maven mirror. With/after M4-06 | jvmTest, Dokka, CI green; `:app` builds; ADR records targets | todo |
 | M4-02 | Intro screens `opanim-healthsafetyscreen.c` (`fe8.game.opanim.OpAnimHs`, `EarlyStartUi`) | step functions `@VerifiesPort` vs RAM traces; screens pixel-exact | partly done: all step functions verified; logo assets `ui/intro_nintendo`, `ui/intro_is` (`IntroLogosScreenTest`, pixel-exact incl. fades); screen loads (`OpAnimHs.prepareHealthSafety`/`prepareNintendofx` on `gbafe.render.BgHardware`, `gbafe.data.Decompress`) verified vs RAM/VRAM, and the whole proc from its start vs `ram_trace_boot` (`EarlyStartUiBootDifferentialTest`). Todo: `Sound_FadeOutBGM` call (partial until M3-13), boot driver with the lag frame after screen loads, `IsSoftwareReset`, Huffman/RL in `Decompress` |
 | M4-10 | Title screen: port the title proc(s) after the op anim (`src/titlescreen.c` or what follows the op anim's end ~f2950 in `ram_trace_opanim4`; plan its subtasks first) | step functions `@VerifiesPort` vs RAM traces; title frame-compare vs `boot_to_title` | in progress: subtasks (a)..(d) done: the whole `gProcScr_TitleScreen` (+ skip listener, `DrawTitleSprites`, fades via new `gbafe.render.ColorFade`/`FadeCore`) verified frame by frame by `TitleScreenDifferentialTest` (mode 1 vs `ram_trace_opanim4`+`ram_trace_title1` to the idle title f3600; mode 0 fade-in vs `ram_trace_title_fade`); `GameControl` starts the real title (main test checks it to f3000). (e) done: idle-title frames drawn from our VRAM/palette/OAM/LCD state match mGBA (`OamBuffer`, production `gbafe.render.HardwareScene`). Left: key-press paths (skip -> label 3 restart, A/Start -> fade out) vs a key trace |
-| M4-11 | Wire boot in `:app`: `GameLoop` + `GameControl` drive H&S → logos → op anim → title on device with the bundled test assets and input | manual test: APK boots to the title (update MANUAL_TEST.md) | partial: `Fe8Boot` + `Fe8Game(rom)` + bundled `extracted/boot/` windows; H&S + logos + op anim + title match mGBA (27 lag frames, 249 frames f1110..3600 pixel-exact, gap f1180); left: title key paths, manual test |
 
 Leftovers of done tasks: proc.c `Proc_ForEach*`, marks/blocking, `Proc_FindAfter*`, `CountProcs`.
 
-Done (details in git log): M4-01 Proc scheduler src/proc.c; M4-05 CI guard; M4-08 Op anim cutscene opanim-main.c/opanimfx.c; M4-09 Test-build assets.
+Done (details in git log): M4-01 Proc scheduler src/proc.c; M4-05 CI guard; M4-08 Op anim cutscene opanim-main.c/opanimfx.c; M4-09 Test-build assets; M4-11 Wire boot in :app.

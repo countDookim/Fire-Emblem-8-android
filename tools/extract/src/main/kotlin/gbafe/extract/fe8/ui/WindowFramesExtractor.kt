@@ -7,7 +7,7 @@ import gbafe.extract.IndexedPng
 import gbafe.extract.Json
 
 /**
- * FE8 window frames (M2-20), decomp `src/uiutils.c`: `sUiFrameImageLookup[4]` (LZ77 4bpp tile sets, one per
+ * FE8 window frames, decomp `src/uiutils.c`: `sUiFrameImageLookup[4]` (LZ77 4bpp tile sets, one per
  * `config.windowColor`), `sUiFramePaletteLookup[4]` (16 colors each) and `sUiFrameModelTilemapLookup[4]`
  * (16 raw BG tile entries per frame style used by `DrawUiFrame`). Tile sheets are written 16 tiles wide in
  * tile order; the JSON keeps the model tilemaps as raw u16 (tile | flip | palette bits).

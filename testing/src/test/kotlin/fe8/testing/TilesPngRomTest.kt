@@ -11,7 +11,7 @@ import java.io.File
 
 /**
  * ROM round trip of the extraction path for tile graphics: LZ77 stream → 4bpp tiles → indexed PNG →
- * tiles → bytes must reproduce the decompressed ROM data exactly (M2-03).
+ * tiles → bytes must reproduce the decompressed ROM data exactly.
  */
 class TilesPngRomTest {
     private val rom = File(System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets", "baserom.gba")

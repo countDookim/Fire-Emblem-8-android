@@ -1,7 +1,7 @@
 package gbafe.extract.fe8.events
 
 /**
- * Event script converter v0 (M2-15): FE8 event bytecode → `.fe8s` text (docs/decisions/0001), one line per
+ * Event script converter v0: FE8 event bytecode → `.fe8s` text (docs/decisions/0001), one line per
  * original command, named by [Fe8EventCommands] (decomp `include/eventscript.h` macros in snake_case).
  *
  * Encoding (decomp `include/event.h`, `_EvtCmd`): header u16 = `cmd shl 8 | len shl 4 | sub`, `len` counted in

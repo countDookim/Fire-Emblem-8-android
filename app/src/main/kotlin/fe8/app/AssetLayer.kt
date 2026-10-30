@@ -31,7 +31,8 @@ public class AssetLayer(
             val full = if (rel.isEmpty()) prefix else "$prefix/$rel"
             val names = assets.list(full) ?: return
             if (names.isEmpty()) {
-                if (rel.isNotEmpty() && exists(rel)) out += rel
+                // A leaf: APKs store no empty directories, so it is a file (no per-file exists()).
+                if (rel.isNotEmpty()) out += rel
                 return
             }
             for (n in names) walk(if (rel.isEmpty()) n else "$rel/$n")

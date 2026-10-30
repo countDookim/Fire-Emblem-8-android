@@ -24,34 +24,27 @@
 
 # Fire Emblem: The Sacred Stones — native Kotlin Android reimplementation
 
-A from-scratch reimplementation of *Fire Emblem: The Sacred Stones* (GBA, USA) as a modern, moddable
-Android game in Kotlin. **Not an emulator** and not a transliteration: the
-[fireemblem8u decompilation](https://github.com/FireEmblemUniverse/fireemblem8u) is the specification,
-the ROM (kept in a separate private repo, never here) supplies assets and is the ground truth for tests.
-In *vanilla* mode, behaviour must match the original exactly, which is verified against headless mGBA.
+A 1:1 Kotlin reimplementation of *Fire Emblem: The Sacred Stones* (GBA, USA) for Android. **Not an emulator.**
+The [fireemblem8u decomp](https://github.com/FireEmblemUniverse/fireemblem8u) is the spec; the ROM (private
+repo) supplies assets and is the test oracle via headless mGBA.
 
-**Status:** milestone 1 (toolchain, CI, skeleton, docs). No gameplay yet. See [HANDOFF.md](HANDOFF.md)
-and [docs/TASKS.md](docs/TASKS.md).
+**Status:** boot (health & safety, logos, opening, title) runs on device, matching mGBA; no gameplay yet.
+[HANDOFF.md](HANDOFF.md) · [docs/TASKS.md](docs/TASKS.md)
 
-| | |
-|---|---|
-| Install on phone | Download `fe8-debug.apk` from the [`latest` release](../../releases/tag/latest) |
-| What to test | [docs/MANUAL_TEST.md](docs/MANUAL_TEST.md) — report issues with label `user-report` |
-| Architecture | [ARCHITECTURE.md](ARCHITECTURE.md) · [decision records](docs/decisions/) |
-| Modding | [MODDING.md](MODDING.md) |
-| API docs | Dokka site: `dokka-site` artifact of each CI run (`./gradlew dokkaGenerate -Pfe8.docs=true`) |
-| Port map | [docs/port_map.json](docs/port_map.json) (decomp function → Kotlin → status → test) |
-
-## Building
+- Install: `fe8-debug.apk` from the [`latest` release](../../releases/tag/latest); test per
+  [docs/MANUAL_TEST.md](docs/MANUAL_TEST.md), report with label `user-report`.
+- Docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [decisions](docs/decisions/) · [MODDING.md](MODDING.md) ·
+  [docs/port_map.json](docs/port_map.json) (function → Kotlin → status → test) · API: `dokka-site` CI artifact.
 
 ```bash
-tools/setup.sh && source .assets.env   # cloud session: kotlinc, ROM-repo assets, Gradle warm-up
+tools/setup.sh && source .assets.env   # session setup: kotlinc, ROM-repo assets, Gradle warm-up
 ./gradlew jvmTest                       # all JVM tests (unit, differential vs mGBA, allocation)
-./gradlew :testing:benchmark            # JVM frame-time benchmark
-./gradlew :app:assembleDebug            # APK (needs an Android SDK; CI does this)
-python3 tools/progress.py               # progress estimate from the latest test results
+./gradlew :testing:benchmark            # frame-time benchmark
+./gradlew :app:assembleDebug            # APK (needs Android SDK; CI only)
+./gradlew dokkaGenerate -Pfe8.docs=true # API docs
+python3 tools/progress.py               # progress from latest test results
 ```
 
-Legal: you must own the game. This repo contains no ROM data; the private ROM repo holds the user's own
-dump for personal use. The app ships no game content: on first launch it asks for your own ROM and extracts
-the assets on the device (docs/decisions/0011).
+Legal: you must own the game; this repo has no ROM data. Debug/test APKs bundle extracted assets until public
+release; release builds ship none and extract the player's ROM on device
+([0011](docs/decisions/0011-player-supplied-rom.md)).

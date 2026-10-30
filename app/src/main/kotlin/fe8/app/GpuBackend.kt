@@ -16,8 +16,9 @@ import java.nio.ShortBuffer
  * line-by-line copy of [gbafe.render.PackedCompositor] (keep them in sync; the JVM tests check the
  * Kotlin spec against [gbafe.render.SoftwareRenderer]). Textures: per-line palettes `R16UI` 512×rows,
  * line parameters `RGBA32I` 3×160, the CPU-rasterised OBJ plane `R32UI` 240×160, the 4 BG maps as an
- * `R16UI` 128×128×4 array and the 4 BG tile sheets as raw bytes in an `R8UI` 1024×64×4 array. All upload
- * buffers are pre-allocated: [draw] allocates nothing. Colour effects use hardware arithmetic.
+ * `R16UI` 128×128×4 array and the 4 BG tile sheets as raw bytes in an `R8UI` 1024×64×4 array. The shader
+ * runs once per GBA pixel into a 240×160 texture, which [BLIT] scales to the view. All upload buffers are
+ * pre-allocated: [draw] allocates nothing. Colour effects use hardware arithmetic.
  * Call everything on the GL thread after a context exists.
  */
 internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileSheets) {
@@ -30,8 +31,11 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
     private val layerU = IntArray(4 * RenderState.LAYERS)
     private val affU = IntArray(2 * RenderState.LAYERS)
     private val sheetSizeU = IntArray(RenderState.LAYERS)
-    private val tex = IntArray(5)
+    private val tex = IntArray(6)
+    private val fbo = IntArray(1)
     private var program = 0
+    private var blit = 0
+    private var uBlitScale = 0
     private var uScale = 0
     private var uLayer = 0
     private var uAff = 0
@@ -53,20 +57,33 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
         uWinMask = GLES30.glGetUniformLocation(program, "uWinMask")
         uMosaicH = GLES30.glGetUniformLocation(program, "uMosaicH")
         uPalRows = GLES30.glGetUniformLocation(program, "uPalRows")
+        blit = link(vertex, BLIT)
+        uBlitScale = GLES30.glGetUniformLocation(blit, "uScale")
+        GLES30.glUseProgram(blit)
+        GLES30.glUniform1i(GLES30.glGetUniformLocation(blit, "uTex"), T_OUT)
+        GLES30.glUseProgram(program)
         GLES30.glGenTextures(tex.size, tex, 0)
         storage2d(T_PAL, GLES30.GL_R16UI, GpuFrame.PALETTE_WIDTH, RenderState.LINES)
         storage2d(T_LINES, GLES30.GL_RGBA32I, GpuFrame.LINE_INTS / 4, RenderState.LINES)
         storage2d(T_OBJ, GLES30.GL_R32UI, FrameBuffer.GBA_WIDTH, FrameBuffer.GBA_HEIGHT)
         storage3d(T_MAP, GLES30.GL_R16UI, TileLayer.MAX_TILES, TileLayer.MAX_TILES)
         storage3d(T_SHEET, GLES30.GL_R8UI, SHEET_WIDTH, SHEET_BYTES / SHEET_WIDTH)
+        storage2d(T_OUT, GLES30.GL_RGBA8, FrameBuffer.GBA_WIDTH, FrameBuffer.GBA_HEIGHT)
+        GLES30.glGenFramebuffers(1, fbo, 0)
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, fbo[0])
+        GLES30.glFramebufferTexture2D(GLES30.GL_FRAMEBUFFER, GLES30.GL_COLOR_ATTACHMENT0, GLES30.GL_TEXTURE_2D, tex[T_OUT], 0)
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
         val names = arrayOf("uPal", "uLines", "uObj", "uMap", "uSheet")
         for (i in names.indices) GLES30.glUniform1i(GLES30.glGetUniformLocation(program, names[i]), i)
     }
 
-    /** Uploads the packed frame and draws it; [sx]/[sy] scale the quad (aspect fit). */
-    fun draw(sx: Float, sy: Float) {
+    /**
+     * Uploads the packed frame, composites it at 240×160 into an offscreen texture, then scales that onto
+     * the current framebuffer of [viewW]×[viewH]; [sx]/[sy] scale the quad (aspect fit).
+     */
+    fun draw(viewW: Int, viewH: Int, sx: Float, sy: Float) {
         GLES30.glUseProgram(program)
-        GLES30.glUniform2f(uScale, sx, sy)
+        GLES30.glUniform2f(uScale, 1f, 1f)
         GLES30.glPixelStorei(GLES30.GL_UNPACK_ALIGNMENT, 1)
         pal.position(0)
         pal.put(frame.palette, 0, GpuFrame.PALETTE_WIDTH * frame.paletteRows).position(0)
@@ -117,12 +134,21 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
         GLES30.glUniform4i(uWinMask, fx.winInside[0], fx.winInside[1], fx.winInside[2], fx.winOutside)
         GLES30.glUniform1i(uMosaicH, maxOf(1, fx.mosaic[0]))
         GLES30.glUniform1i(uPalRows, frame.paletteRows)
-        for (i in tex.indices) {
+        for (i in 0 until T_OUT) {
             GLES30.glActiveTexture(GLES30.GL_TEXTURE0 + i)
             GLES30.glBindTexture(if (i >= T_MAP) GLES30.GL_TEXTURE_2D_ARRAY else GLES30.GL_TEXTURE_2D, tex[i])
         }
-        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, fbo[0])
+        GLES30.glViewport(0, 0, FrameBuffer.GBA_WIDTH, FrameBuffer.GBA_HEIGHT)
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+        GLES30.glViewport(0, 0, viewW, viewH)
+        GLES30.glUseProgram(blit)
+        GLES30.glUniform2f(uBlitScale, sx, sy)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0 + T_OUT)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, tex[T_OUT])
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
     }
 
     private fun storage2d(t: Int, format: Int, w: Int, h: Int) {
@@ -153,11 +179,21 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
         const val T_OBJ = 2
         const val T_MAP = 3
         const val T_SHEET = 4
+        const val T_OUT = 5
         const val MAP_ENTRIES = TileLayer.MAX_TILES * TileLayer.MAX_TILES
         const val SHEET_WIDTH = 1024
         const val SHEET_BYTES = 0x10000
 
         fun direct(bytes: Int): ByteBuffer = ByteBuffer.allocateDirect(bytes).order(ByteOrder.nativeOrder())
+
+        /** Nearest-filtered scale of the composited 240×160 texture (rows already top-first). */
+        const val BLIT = """#version 300 es
+precision mediump float;
+uniform sampler2D uTex;
+in vec2 vUv;
+out vec4 color;
+void main() { color = texture(uTex, vec2(vUv.x, 1.0 - vUv.y)); }
+"""
 
         /** Copy of PackedCompositor.pixel; see that class for the rules. */
         const val FRAGMENT = """#version 300 es

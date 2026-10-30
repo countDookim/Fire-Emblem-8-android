@@ -104,7 +104,7 @@ private class GameRenderer(private val game: Fe8Game, gpu: Boolean) : GLSurfaceV
         if (gpu != null) {
             GLES30.glClearColor(0f, 0f, 0f, 1f)
             GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
-            gpu.draw(sx, sy)
+            gpu.draw(viewW, viewH, sx, sy)
             return
         }
         upload.position(0)

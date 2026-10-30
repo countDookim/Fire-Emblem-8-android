@@ -22,5 +22,6 @@ Keep the totals line below the table current.
 | 2026-10-29 15:17 | `session_01NGGw9QAQfXPMFE2Jfjg2A3` | scheduled | ~25 | ~138,000 | — | M4-10 (e): OamBuffer + production HardwareScene; idle title, boot logos and 150+ op anim frames drawn from our state match mGBA; EarlyStartUi palette-sync bug fixed; 204 -> 208 verified |
 | 2026-10-29 22:51 | `session_01NGGw9N4VQvPhrtUPhJ2L5N` | scheduled | ~25 | ~133,000 | — | M4-11 partial: allocation-free HardwareSceneLoader, RomView/BootRom, Fe8Boot (H&S+logos match mGBA from power-on; op anim+title wired, diverge), Fe8Game(rom) + debug APK boot windows; GameLoop alloc bug fixed |
 | 2026-10-30 06:52 | `session_01NGGw9PqPBBpbSTMPeUbbVo` | scheduled | ~24 | ~160,000 | — | M4-11: measured step overruns (missedVBlanks) -> op anim + title lag frames (27) and 239 frames match mGBA on the device path; HBlank on device + per-line BLDCNT; darken gap located |
+| 2026-10-30 14:12 | `session_01NGGw9PqPBBpbSTMPeUbbVo` | scheduled | ~22 | ~150,000 | — | md files condensed (TASKS, brief, HANDOFF, CLAUDE, USAGE); M3-15 touch buttons; darken fixed (mGBA packed rounding) → op anim/title pixel-exact but f1180; 208 → 209 verified |
 
-Totals recorded so far: ~1,813,000 tokens (counter), 2026-10-27 onward only.
+Totals recorded so far: ~1,963,000 tokens (counter), 2026-10-27 onward only.

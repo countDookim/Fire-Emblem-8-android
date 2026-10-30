@@ -1,40 +1,41 @@
 # HANDOFF
 
-_Updated: 2026-10-30 (scheduled run). Owner decisions live in docs/PROJECT_BRIEF.md (amendments merged in)._
+_Updated: 2026-10-30 14:35 UTC (scheduled run, started 14:12). Owner decisions live in docs/PROJECT_BRIEF.md (amendments merged in)._
 
 ## NEEDS USER
 _(nothing blocked)_
 
 ## Status
-- Docs condensed this run (owner request): TASKS 21→7 KB, brief 18→9 KB, HANDOFF, CLAUDE, USAGE header.
-- M4-11: H&S, logos, op anim and title match mGBA on the device path (`Fe8BootTest`: 27 lag frames f401..3600,
-  239 frames f1110..3600 every 10; gaps below). Overrun = missed VBlanks per load (`GameLoop.overran`,
-  `OpAnim/TitleScreen.missedVBlanks`, measured from `gBmSt.main_loop_ended`). `Fe8Boot.render` runs the active HBlank
-  handler; per-line BLDCNT via `LineTable.setBlendControl`.
-- Verified ports: 208 / 8352. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
+- This run: docs condensed (owner request: TASKS 21→7 KB, brief 18→9 KB with amendments merged, HANDOFF, CLAUDE,
+  USAGE header). **M3-15 done** (manual test pending): `gbafe.input.TouchButtons` (layout, D-pad diagonals,
+  multi-touch; `TouchButtonsTest`) + `fe8.app.TouchOverlayView` over `GameSurfaceView`, always on (product feature).
+- **Darken gap fixed:** mGBA's `_darken` on 8-bit widened channels rounds red `c - c*evy/16` but green/blue
+  `c*(16-evy)/16` (packed-colour subtraction); fit 100% of darkened pixels. `MgbaColorMath.darken` updated; all
+  op anim/title frames now pixel-exact except f1180 (`Fe8BootTest` 249 frames, `@VerifiesPort("OpAnimHBlank2")`).
+- M4-11: H&S, logos, op anim, title match mGBA on the device path (27 lag frames f401..3600). Overrun = missed
+  VBlanks per load (`GameLoop.overran`, `OpAnim/TitleScreen.missedVBlanks`).
+- Verified ports: 209 / 8352. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
   `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`.
 - Rules: interleave verifiable ports with infrastructure (a `@VerifiesPort` every run or two); keep new
   engine/game code free of `java.*`/`javax.*` (KMP coming, M4-07); battle rolls only via `mechanics.battleRolls`.
 
-## Next task: M3-15 touch buttons (owner 2026-10-30), then darken gap, manual-test APK, M3-07
-- **M3-15** (TASKS.md): on-screen GBA button overlay `ActionSource` in `:app`, multi-touch, on by default in debug
-  APKs. `:app` can't compile in sessions: mirror `fe8.app.HardwareKeySource`, keep logic in a JVM-testable class.
-- **Darken gap**: `Fe8BootTest.SPLIT_FRAMES` f1110..1140 (limit <= 80 px) differ only at x125..139, y137..151, below
-  `gOpAnimSt.unk0A` where `OpAnimHBlank2` sets BLDCNT 0xCCF (darken); same one-step-too-bright gap as f1170..1210,
-  f2200..2230 (`FRAME_GAPS` in ProcEngineDifferentialTest/Fe8BootTest; also from the dump's own state in
-  FrameCompareTest). Sample f1110 (127,149): ours 16,14,12 vs mGBA 16,15,12; BLDY 8, BLDALPHA 0x0808, where every
-  darken formula gives ceil(c/2): suspect OBJ semi-transparency/target handling, not the formula (all
-  `MgbaColorMath.darken` variants tried). Dump both channel values for one pixel first; read mGBA 0.10.5 `_darken`
-  / `software-private.h`. When fixed: limit 0, drop those gaps, add `@VerifiesPort("OpAnimHBlank1")`/`2`.
-- Other gaps: f1180 BG VRAM 0xD800..0xE800 (sync timing); f3000 (+f3010 device path) title sprites one step off.
-- Then: manual-test APK (M4-11 acceptance), title key paths (need a key trace), M3-07 GPU backend (draw
-  `RenderState` with shaders; the app shows a CPU frame via GL today).
-- Unverified (no trace yet): `Title_RestartProc`, `SkipTitleFx_Loop_KeyListener`, `Title_EndAllProcChildren` path,
-  `FadeCore.darkenEnd`, `ColorFadeSetupFromColorToBlack/White`, `ColorFadeSetupFromWhite`, `OpAnimHBlank1/2`,
-  `sub_80C85FC`/`sub_80C8684`, `GameControl_PostIntro` (partial), `sub_8009B64`.
+## Next task: manual-test APK (M4-11 acceptance), then title key paths, M3-07
+- CI run 179 (M3-15): every step green incl. APK build (`:app` compiles), only "Rolling `latest` release" failed
+  (likely a race with the next push; log tail uninformative). If it fails again, read that step's log only.
+- **APK:** check the last CI run built `fe8-debug.apk` (`:app` compiles only in CI: `TouchOverlayView`,
+  `GameSurfaceView(ctx, game, touch)`, `MainActivity` FrameLayout are new). If green, mark M4-11 ready for manual
+  test in MANUAL_TEST.md/TASKS.
+- **f1180** (last frame gap): BG VRAM 0xD800..0xE800 differs from the dump (sync timing of a BG map copy).
+- Title key paths (skip listener -> label 3, A/Start -> `sub_8013F40` fade out) need a key trace on the title
+  (new reference run, see How-to). Then M3-07 GPU backend (draw `RenderState` with shaders).
+- Unverified (no trace yet): `OpAnimHBlank1` (BG2 map block switch never happens: `unk08` 0xA0),
+  `Title_RestartProc`, `SkipTitleFx_Loop_KeyListener`, `Title_EndAllProcChildren` path, `FadeCore.darkenEnd`,
+  `ColorFadeSetupFromColorToBlack/White`, `ColorFadeSetupFromWhite`, `sub_80C85FC`/`sub_80C8684`,
+  `GameControl_PostIntro` (partial), `sub_8009B64`.
 - Follow-ups (not tasks yet): units/`.fe8s` beyond the prologue need the event converter to follow `LOAD1/LOAD2`
   of each `ChapterEventGroup`; keysplit/drum sub-voicegroups not written as `voicegroups/*.json`; renderer: OBJ
-  mosaic, mosaic on affine BGs.
+  mosaic, mosaic on affine BGs. `MgbaColorMath.alpha` may have the same packed-rounding quirk (check if an alpha
+  frame ever differs by one step).
 
 ## How-to
 - Re-extract: run the CLI (below), `python3 tools/compare_extraction.py <rom repo>/extracted <out>`, copy only

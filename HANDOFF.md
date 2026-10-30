@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated: 2026-10-29 23:15 UTC (scheduled run, started ~22:51)._
+_Updated: 2026-10-30 07:15 UTC (scheduled run, started ~06:52)._
 
 ## Owner decisions 2026-10-25 (read docs/decisions/0009)
 - The app is a 1:1 copy. Modding = extension points only; ship no touch gameplay, QoL flags or alternate
@@ -35,16 +35,17 @@ _Updated: 2026-10-29 23:15 UTC (scheduled run, started ~22:51)._
 _(nothing blocked)_
 
 ## Status
-- This run: **M4-11 boot wiring (partial)**:
-  - `gbafe.render.HardwareSceneLoader`: allocation-free per-frame load (reused sheets/buffers); `HardwareScene` delegates.
-  - `fe8.game.RomView` (ROM data by GBA address: whole ROM or the extracted `RomView.BOOT_WINDOWS`) and `fe8.game.BootRom`
-    (`titleScreen`, `opAnim`: the ROM data the tests used, now production; tests delegate).
-  - `fe8.game.Fe8Boot`: GameLoop + GameControl + EarlyStartUi -> OpAnim -> TitleScreen + loader/SoftwareRenderer.
-    `Fe8Game(rom = RomView)` runs it (tick = one GBA frame); app builds it from bundled `extracted/boot/` (debug APKs).
-  - Extractor writes `boot/rom_08590F00.bin` + `boot/rom_08AA6000.bin` (pushed to the ROM repo's `extracted/boot/`).
-  - Tests: `Fe8BootTest` (from power-on, ROM or extracted windows: boot_logos f300..470 match mGBA), AllocationTest
-    (booting Fe8Game tick+present, loader). **Bug fixed**: `GameLoop.onMain` allocated two bound refs per step.
-- Verified ports: 208 / 8352 (unchanged: wiring run).
+- This run: **M4-11 op anim + title now match mGBA on the device path** (`Fe8BootTest`: from power-on with the
+  ram_trace_logo_skip inputs, all 27 lag frames f401..3600 and 239 frames f1110..3600 every 10 match, gaps below).
+  - Cause of the divergence: `overran = { hw.modifiedBgs != 0 }` fired on every BG-sync step (op anim ran at half
+    speed). Now `GameLoop.overran` returns missed VBlanks (multi-frame), `OpAnim.missedVBlanks` /
+    `TitleScreen.missedVBlanks` are set by the loads that overrun on hardware (measured from `gBmSt.main_loop_ended`:
+    SetupOpAnimWorldMapfx 3; Ephraim prepare stages 0,1,5; Eirika 1,2; sub_80C8278 0..2; Joshua scroll 2; cast scenes
+    timer 1 (+2 for scenes 3,4); sparkles 1..3; Title_SetupMainGraphics 0..2, SetupSpecialEffectGraphics 2,
+    LoadDemonKing). The BG-sync heuristic is kept only while the early start UI proc exists.
+  - `Fe8Boot.render` runs the active HBlank handler (`HBlankLines.capture`, now allocation-free overload); new per-line
+    BLDCNT override (`LineTable.setBlendControl`, renderer uses it). `GameLoop.overrunning` (public).
+- Verified ports: 208 / 8352 (unchanged: wiring/timing run).
 - Stale remote branches (merged; deleting refused with 403): `wip/M4-09`, `wip/M3-10`, `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`.
 
 ## Run rules (owner, 2026-10-26)
@@ -55,23 +56,18 @@ _(nothing blocked)_
   first, then `tail_lines` <= 80 of the failing job).
 - Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.
 
-## Next task: M4-11 op anim on device (Fe8Boot diverges from mGBA after the logos), then M3-07, M3-15
-- `Fe8Boot` from power-on with the ram_trace_logo_skip inputs (A f181, B f470) draws NO op anim frame like mGBA
-  (f1100..f3600 compared where no HBlank handler; f1600: ours shows the Ephraim scene, mGBA differs). The test harness
-  in ProcEngineDifferentialTest gets two things from the dumps that the device loop lacks: (1) lag frames
-  (`gBmSt.main_loop_ended` 0: SetupOpAnimWorldMapfx / OpAnimPreparefxEphraim decompressions overrun) vs `Fe8Boot`'s
-  `overran = { hw.modifiedBgs != 0 }`; (2) `gGenericBuffer` leftovers copied in at f843 (model one shared generic
-  buffer across screens). First compare our per-frame proc state with ram_trace_opanim (RAM every frame f515..f1100)
-  to find the first diverging frame (this run, op anim proc `scrCur` vs dump, clocks equal: ours is ahead at f569
-  only (8 vs 5), ahead by 2 from f842 (10 vs 8; the f843 world map load), then stalls at 13 from f876 while mGBA goes
-  14, 15: suspect the lag-frame model around the world map/Ephraim loads), fix, then add the op anim + title frame test to `Fe8BootTest` (code was in this
-  run's wip commit 'Fe8Boot wires op anim + title'; removed because 0 frames matched). HBlank effects are not drawn
-  on device yet either (renderer has no HBlank handler hook in Fe8Boot).
-- Renderer gap (`FRAME_GAPS` in ProcEngineDifferentialTest): frames with BLDCNT effect 3 (darken, e.g. f1170 BLDY 6,
+## Next task: per-line BG map block switch (OpAnimHBlank1), then M3-07, M3-15
+- `OpAnimHBlank1` switches BG2CNT's screen block (0x1E -> 0x1D at `gOpAnimSt.unk08`): `HBlankLines.capture` records
+  no BGCNT change, so f1110..1140 still differ by 78-80 px (`Fe8BootTest.SPLIT_FRAMES`, asserted <= 80). Idea: a
+  per-line BG control override + the loader filling a second map for that layer (TileLayer entries have room:
+  128x128), renderer picks it per line. Then tighten SPLIT_FRAMES to 0 and mark `OpAnimHBlank1/2` verified
+  (`@VerifiesPort` in Fe8BootTest).
+- Then: manual-test APK (M4-11 acceptance), title key paths, M3-07 GPU backend, M3-15.
+- Renderer gap (`FRAME_GAPS` in ProcEngineDifferentialTest and Fe8BootTest): frames with BLDCNT effect 3 (darken, e.g. f1170 BLDY 6,
   f1190 BLDY 10; f2200..2230) come out one 5-bit step brighter than mGBA even from the dump's own state (checked via
   FrameCompareTest). `MgbaColorMath.darken` widened-8-bit, 5-bit and unwidened-8-bit variants all tried: none fits;
   read mGBA 0.10.5 `_darken`/`software-private.h` (maybe darken applies to the blended/OBJ-semi path differently).
-  f1180: BG VRAM 0xD800..0xE800 differs (sync timing); f3000: title's first frame, sprites one step off.
+  f1180: BG VRAM 0xD800..0xE800 differs (sync timing); f3000 (and f3010 on the device path): title's first frames, sprites one step off.
 - Key-press title paths (skip listener -> label 3, A/Start -> `sub_8013F40` fade out) need a key trace on the title.
 - Unverified: `Title_RestartProc`, `SkipTitleFx_Loop_KeyListener`, `Title_EndAllProcChildren` path, `FadeCore.darkenEnd`,
   `ColorFadeSetupFromColorToBlack/White`, `ColorFadeSetupFromWhite` (no trace yet).

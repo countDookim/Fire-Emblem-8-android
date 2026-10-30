@@ -22,8 +22,10 @@ Nothing game-related yet. This APK only proves the Android shell, GL path and lo
 
 - [ ] (M4-11, partial) Tap **Play**: instead of the test pattern, the boot runs like the original: health &
       safety screen (press **A** on a gamepad/keyboard to continue, or wait), Nintendo logo, Intelligent
-      Systems logo with their fades. The op anim and title then run too, but are known to differ from the
-      original (timing/graphics; being fixed): only report crashes there.
+      Systems logo with their fades, then the opening animation (world map, Ephraim, Eirika, cast, sparkles)
+      and the title screen, with the original's timing (they match mGBA frame by frame in tests). Known small
+      differences: the Eirika split-screen name band (a few pixels), darkened frames one shade too bright,
+      title sprites on its first frames. No sound.
 
 ## Known not working (don't report)
 Everything gameplay-related: no title screen, sound, input or saves yet.

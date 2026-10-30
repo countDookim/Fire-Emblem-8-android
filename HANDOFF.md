@@ -28,7 +28,8 @@ _(nothing blocked)_
 - **f1180** (last frame gap): BG VRAM 0xD800..0xE800 differs from the dump (sync timing of a BG map copy).
 - Title key paths (skip listener -> label 3, A/Start -> `sub_8013F40` fade out) need a key trace on the title
   (new reference run, see How-to). Then M3-07 GPU backend (draw `RenderState` with shaders).
-- Unverified (no trace yet): `OpAnimHBlank1` (BG2 map block switch never happens: `unk08` 0xA0),
+- Unverified (no trace yet): `OpAnimHBlank1` (never the active handler at compared frames f1110+: needs dumps
+  before f1110),
   `Title_RestartProc`, `SkipTitleFx_Loop_KeyListener`, `Title_EndAllProcChildren` path, `FadeCore.darkenEnd`,
   `ColorFadeSetupFromColorToBlack/White`, `ColorFadeSetupFromWhite`, `sub_80C85FC`/`sub_80C8684`,
   `GameControl_PostIntro` (partial), `sub_8009B64`.

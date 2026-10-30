@@ -414,6 +414,16 @@ public class LineTable(
         blend[line] = eva or (evb shl 8) or (evy shl 16)
     }
 
+    /** `BLDCNT` per line (valid where [mask] has [BLEND_CONTROL]). */
+    public val blendControl: IntArray = IntArray(RenderState.LINES)
+
+    /** Overrides the blend mode and targets on [line] with the `BLDCNT` value [bldcnt]. */
+    public fun setBlendControl(line: Int, bldcnt: Int) {
+        active = true
+        mask[line] = mask[line] or BLEND_CONTROL
+        blendControl[line] = bldcnt and 0x3FFF
+    }
+
     /** Queues a palette write before [line]; false if the list is full. Writes must be added in line order. */
     public fun writePalette(line: Int, index: Int, color: Int): Boolean {
         if (paletteWrites == paletteWriteCapacity) return false
@@ -445,5 +455,8 @@ public class LineTable(
 
         /** Blend coefficients override. */
         public const val BLEND: Int = 1 shl 6
+
+        /** Blend control (`BLDCNT`: mode and targets) override. */
+        public const val BLEND_CONTROL: Int = 1 shl 7
     }
 }

@@ -3,6 +3,7 @@ package fe8.testing
 import fe8.game.Fe8Boot
 import fe8.game.RomView
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import java.io.File
@@ -52,20 +53,20 @@ class Fe8BootTest {
             if (frame == FIRST_TRACED) continue
             assertEquals(theirLag, oursLag, "f$frame lag frame")
             if (theirLag) lagFrames++
-            if (frame < 1100 || frame % 10 != 0 || frame in FRAME_GAPS) continue
+            if (frame <= 1100 || frame % 10 != 0 || frame in FRAME_GAPS) continue
             val nf = "f%05d".format(frame)
-            val iw = dump(frame, "iwram")
-            val hblank = GbaMem.u32(iw, GbaMem.IWRAM, sym["sHBlankHandler1"].address) or
-                GbaMem.u32(iw, GbaMem.IWRAM, sym["sHBlankHandler2"].address)
-            if (hblank != 0) continue // HBlank effects are not drawn on device yet
             boot.render()
             val out = File(diffDir, "fe8boot_$nf.png")
             val diff = HardwareScene.compare(boot.screen, traceRun(frame).frameRgb(nf), out)
-            assertEquals(0, diff, nf)
+            if (frame in SPLIT_FRAMES) {
+                assertTrue(diff <= 80, "$nf: $diff pixels") // HBlank BLDCNT drawn, map switch not
+            } else {
+                assertEquals(0, diff, nf)
+            }
             compared++
         }
         assertEquals(27, lagFrames)
-        assertEquals(235, compared)
+        assertEquals(239, compared)
     }
 
     private fun traceRun(frame: Int) = ref.run(
@@ -127,7 +128,10 @@ class Fe8BootTest {
         const val LAST = 3600
 
         // BLDCNT darken one step brighter than mGBA (f1170..1210, f2200..2230: see HANDOFF);
-        // f3000 / f3010: the title's first frames, sprites one step off.
+        // f3000 / f3010: the title's first frames, sprites one step off;
+        // OpAnimHBlank1 frames: its per-line BLDCNT is drawn, its BG2 map block switch is not (78-80 px).
+        val SPLIT_FRAMES = setOf(1110, 1120, 1130, 1140)
+
         val FRAME_GAPS = setOf(1170, 1180, 1190, 1200, 1210, 2200, 2210, 2220, 2230, 3000, 3010)
         val LOGO_FRAMES = listOf(300, 360, 430, 470)
     }

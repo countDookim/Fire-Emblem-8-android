@@ -3,7 +3,7 @@ package gbafe.render
 /**
  * Runs a frame's HBlank handlers against an I/O register image and records the per-line register values that
  * differ from the frame's base registers as [LineTable] overrides (text BG scroll, window x, blend
- * coefficients), so the renderers reproduce mid-frame register writes without emulating HBlank timing.
+ * coefficients and control), so the renderers reproduce mid-frame register writes without emulating HBlank timing.
  *
  * Timing matches the hardware: the handler runs after every line 0..227 (`vcount` = the line just drawn),
  * so values written at `vcount` 159..227 apply from line 0 and a value written at line L applies from L + 1.
@@ -16,7 +16,20 @@ public object HBlankLines {
      * (after the game's flush); it is not modified. [handler] receives `vcount` and the live register image.
      */
     public fun capture(base: ByteArray, state: RenderState, handler: (vcount: Int, io: ByteArray) -> Unit) {
-        val io = base.copyOf()
+        capture(base, state, base.copyOf(), handler)
+    }
+
+    /**
+     * [capture] with a caller-owned register image [io] (at least [base]'s size; overwritten), so a
+     * per-frame caller allocates nothing.
+     */
+    public fun capture(
+        base: ByteArray,
+        state: RenderState,
+        io: ByteArray,
+        handler: (vcount: Int, io: ByteArray) -> Unit,
+    ) {
+        base.copyInto(io)
         val lines = state.lines
         for (v in RenderState.LINES - 1 until TOTAL_LINES) handler(v, io)
         for (line in 0 until RenderState.LINES) {
@@ -39,6 +52,9 @@ public object HBlankLines {
             val evb = (alpha shr 8) and 0x1F
             val evy = u16(io, 0x54) and 0x1F
             if (eva != fx.eva || evb != fx.evb || evy != fx.evy) lines.setBlend(line, eva, evb, evy)
+            val bldcnt = u16(io, 0x50) and 0x3FFF
+            val baseCnt = fx.blendTop or (fx.blendMode shl 6) or (fx.blendBottom shl 8)
+            if (bldcnt != baseCnt) lines.setBlendControl(line, bldcnt)
             if (line < RenderState.LINES - 1) handler(line, io)
         }
     }

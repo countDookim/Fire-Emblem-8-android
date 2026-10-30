@@ -9,6 +9,7 @@ import gbafe.proc.ProcEngine
 import gbafe.render.Camera
 import gbafe.render.ColorMath
 import gbafe.render.FrameBuffer
+import gbafe.render.HBlankLines
 import gbafe.render.HardwareSceneLoader
 import gbafe.render.RenderState
 import gbafe.render.SoftwareRenderer
@@ -104,9 +105,18 @@ public class Fe8Boot(
         loop.frame()
     }
 
-    /** Draws the display state synced by the last VBlank into [screen]. */
+    private val hblankIo = ByteArray(io.size)
+    private val hblankLine: (Int, ByteArray) -> Unit = { v, regs -> hw.hblank.active?.onHBlank(v, regs) }
+
+    /**
+     * Draws the display state synced by the last VBlank into [screen], with the active HBlank
+     * handler's per-line register writes (run here, once per drawn frame).
+     */
     public fun render() {
         loader.load(state, sheets, hw, loop.oam, io)
+        if (hw.hblank.irqEnabled && hw.hblank.active != null) {
+            HBlankLines.capture(io, state, hblankIo, hblankLine)
+        }
         renderer.render(camera)
     }
 }

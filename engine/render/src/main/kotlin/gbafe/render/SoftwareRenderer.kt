@@ -112,6 +112,11 @@ public class SoftwareRenderer(
                 eva = b and 0xFF; evb = (b shr 8) and 0xFF; evy = (b shr 16) and 0xFF
             }
             eva = minOf(eva, 16); evb = minOf(evb, 16); evy = minOf(evy, 16)
+            var blendMode = fx.blendMode; var blendTop = fx.blendTop; var blendBottom = fx.blendBottom
+            if (lineMask and LineTable.BLEND_CONTROL != 0) {
+                val c = lines.blendControl[y]
+                blendTop = c and 0x3F; blendMode = (c shr 6) and 3; blendBottom = (c shr 8) and 0x3F
+            }
             val mh = maxOf(1, fx.mosaic[0])
             val mvY = y - y % maxOf(1, fx.mosaic[1])
             val backdrop = palette[0].toInt() and 0x7FFF
@@ -152,11 +157,11 @@ public class SoftwareRenderer(
                 if (filled < 2) push(backdrop, Effects.BACKDROP, false)
                 var color = c1
                 if (wmask and Effects.BACKDROP != 0) {
-                    if (semi1 && fx.blendBottom and l2 != 0) {
+                    if (semi1 && blendBottom and l2 != 0) {
                         color = colorMath.alpha(c1, c2, eva, evb)
-                    } else if (fx.blendTop and l1 != 0) {
-                        color = when (fx.blendMode) {
-                            Effects.BLEND_ALPHA -> if (fx.blendBottom and l2 != 0) colorMath.alpha(c1, c2, eva, evb) else c1
+                    } else if (blendTop and l1 != 0) {
+                        color = when (blendMode) {
+                            Effects.BLEND_ALPHA -> if (blendBottom and l2 != 0) colorMath.alpha(c1, c2, eva, evb) else c1
                             Effects.BLEND_BRIGHTEN -> colorMath.brighten(c1, evy)
                             Effects.BLEND_DARKEN -> colorMath.darken(c1, evy)
                             else -> c1

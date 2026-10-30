@@ -18,7 +18,7 @@ _(nothing blocked)_
   rolls only via `mechanics.battleRolls`.
 
 ## Next task: M3-07 GPU backend
-- CI of d9dfa4c (startup fix) was still running at this run's start: check it, fix if red (`:app` compiles only in CI).
+- CI green through cc19d4c (startup fix compiled); ROM repo `publish-assets` published the new reference runs.
 - If the owner still reports slow startup: measure what runs before the launcher draws (`Application`/
   `MainActivity.onCreate`, Compose init) or the first Play frame (`bundledBootRom`, `Fe8Game` setup).
 - M3-07: draw `RenderState` with shaders (today a CPU frame is uploaded to GL).

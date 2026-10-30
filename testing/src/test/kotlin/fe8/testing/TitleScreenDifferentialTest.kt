@@ -240,6 +240,77 @@ class TitleScreenDifferentialTest {
         assertTrue(idleChecked >= 20, "idle checked on $idleChecked frames")
     }
 
+    @Test
+    @VerifiesPort("Title_IDLE", "sub_8013F40", "ColorFadeSetupFromColorToBlack")
+    fun `A on the idle title starts the fade to dark like the per-frame RAM trace`() {
+        assumeTrue(ref.available && romFile.isFile && File(ref.root, "key_status_title/manifest.txt").isFile,
+            "ROM / mGBA reference run key_status_title not present (run tools/setup.sh)")
+        val run = ref.run("key_status_title")
+        fun ew(f: Int) = run.region("k%05d".format(f), "ewram")
+        fun iw(f: Int) = run.region("k%05d".format(f), "iwram")
+        val keyAddr = sym["sKeyStatusBuffer"].address - GbaMem.EWRAM
+        fun keyStruct(f: Int) = ew(f).copyOfRange(keyAddr, keyAddr + KeyStatus.STRUCT_SIZE)
+        val first = 901
+        val e0 = ew(first)
+        val o0 = procAt(e0)!!
+        val hw = BgHardware()
+        val keys = KeyStatus()
+        val engine = ProcEngine()
+        val title = titleScreenFor(romFile.readBytes(), engine, hw, keys = keys)
+        val parent = engine.start(ProcScript("parent", listOf(block())), 3)
+        title.start(parent, 0)
+        val idleScr = (u32(e0, o0 + 4) - TITLE_SCRIPT) / 8
+        repeat(200) { if (engine.find(title.script)!!.scrCur != idleScr) engine.run(engine.root(3)) }
+        val ours = engine.find(title.script)!!
+        assertEquals(idleScr, ours.scrCur, "title proc synced to the idle loop")
+        // Sync the display and the proc fields to the f901 dump.
+        hw.lcd.readFrom(iw(first), sym["gLCDControlBuffer"].address - GbaMem.IWRAM)
+        shorts(e0, "gPaletteBuffer", 512).copyInto(hw.palette)
+        (ours.state as TitleScreen.State).apply {
+            timer = u16(e0, o0 + 0x2A)
+            timerIdle = u32(e0, o0 + 0x2C)
+        }
+        val so = procAt(e0, SPRITES_SCRIPT)!!
+        (engine.find(title.drawSpritesScript)!!.state as TitleScreen.SpritesState).apply {
+            unk4c = u16(e0, so + 0x4C).toShort().toInt()
+            unk52 = u16(e0, so + 0x52)
+        }
+        var idleChecked = 0
+        var fadeChecked = 0
+        val last = run.dumps.values.max()
+        for (f in first + 1..last) {
+            // A game frame that overran its VBlank is dumped mid-frame and skips the next key update:
+            // compare it only once it has finished (the next dump).
+            if (f < last && keyStruct(f + 1).contentEquals(keyStruct(f))) continue
+            keys.readFrom(keyStruct(f))
+            title.sprites.clear()
+            engine.run(engine.root(3))
+            val e = ew(f)
+            val o = procAt(e)!!
+            val scr = (u32(e, o + 4) - TITLE_SCRIPT) / 8
+            val st = engine.find(title.script)!!
+            assertEquals(scr, st.scrCur, "f$f title scrCur")
+            assertEquals(u16(e, o + 0x2A), (st.state as TitleScreen.State).timer, "f$f timer")
+            assertEquals(u32(e, o + 0x2C), (st.state as TitleScreen.State).timerIdle, "f$f timer_idle")
+            assertArrayEquals(shorts(e, "gPaletteBuffer", 512), hw.palette, "f$f gPaletteBuffer")
+            val fade = procAt(e, FADE_SCRIPT)
+            assertEquals(fade != null, engine.find(title.fadeCore.script) != null, "f$f fade proc")
+            if (fade != null) {
+                val fc = sym["gFadeComponents"].address - GbaMem.EWRAM
+                assertArrayEquals(e.copyOfRange(fc, fc + 0x600), title.fadeCore.colorFade.components,
+                    "f$f gFadeComponents")
+                val fs = sym["gFadeComponentStep"].address - GbaMem.EWRAM
+                assertArrayEquals(e.copyOfRange(fs, fs + 0x20), title.fadeCore.colorFade.step,
+                    "f$f gFadeComponentStep")
+                fadeChecked++
+            } else {
+                idleChecked++
+            }
+        }
+        assertTrue(idleChecked >= 40, "idle checked on $idleChecked frames")
+        assertTrue(fadeChecked >= 5, "fade checked on $fadeChecked frames")
+    }
+
     /**
      * Draws the frame from our display state (VRAM, palette RAM and LCD registers after the VBlank sync) and
      * compares it with mGBA's [dump] frame.

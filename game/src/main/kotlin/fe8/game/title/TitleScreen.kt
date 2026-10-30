@@ -155,7 +155,7 @@ public class TitleScreen(
             label(1),
             repeat(ProcFunc { idle(it) }),
             label(2),
-            call(ProcFunc { fadeCore.start(3, 0x20, it) { fadeCore.darkenEnd() } }), // sub_8013F40
+            call(ProcFunc { fadeCore.startFadeToDark(it) }), // sub_8013F40
             yield(),
             call(ProcFunc { engine.endAllChildren(it) }), // Title_EndAllProcChildren
             goto(5),

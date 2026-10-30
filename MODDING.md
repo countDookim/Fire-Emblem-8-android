@@ -21,8 +21,9 @@ layer wins ([0003](docs/decisions/0003-mod-vfs.md)).
 | `audio/` | MIDI + voicegroup JSON, WAV | *(planned)* |
 | `text/<lang>/` | strings with tags (`{PLAYER}`, `{PAUSE 30}`) | `text/en/messages.json` extracted |
 
-Extractor output also has `fonts/`, `portraits/`, `mapsprites/`, `ui/`, `songs/`, `samples/`, `voicegroups/`
-(final paths fixed once loaded).
+Today the extractor writes graphics to `fonts/`, `portraits/`, `mapsprites/`, `ui/` and audio to `songs/`,
+`samples/`, `voicegroups/` (top level, no `gfx/`/`audio/` prefix). Mod paths follow the extractor's layout when the
+loaders land (M3-07 graphics, audio milestone); until then `gfx/`/`audio/` above are the planned grouping.
 
 **Texture packs** (`gbafe.vfs.TextureOverrides`, ADR 0008): `<asset>@<N>x.png` (N = 1..8) beside the original.
 Indexed PNGs keep palette animation; true-colour ones may add `<asset>@<N>x.<paletteHash>.png` variants.

@@ -151,6 +151,15 @@ public class FadeCore(
         }
     }
 
+    private val darkenEndCallback: () -> Unit = { darkenEnd() }
+
+    /**
+     * Starts a blocking fade to black at speed 0x20 that leaves the screen dark ([darkenEnd]).
+     *
+     * Ported from src/bmlib.c: sub_8013F40
+     */
+    public fun startFadeToDark(parent: Proc): Unit = start(3, 0x20, parent, darkenEndCallback)
+
     /**
      * Ported from src/bmlib.c: FadeCore_Init
      */

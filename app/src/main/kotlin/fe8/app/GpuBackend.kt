@@ -17,6 +17,7 @@ import java.nio.ShortBuffer
  * Kotlin spec against [gbafe.render.SoftwareRenderer]). Textures: per-line palettes `R16UI` 512×rows,
  * line parameters `RGBA32I` 3×160, the CPU-rasterised OBJ plane `R32UI` 240×160, the 4 BG maps as an
  * `R16UI` 128×128×4 array and the 4 BG tile sheets as raw bytes in an `R8UI` 1024×64×4 array. The shader
+ * maps and sheets are re-uploaded only when their contents changed. The shader
  * runs once per GBA pixel into a 240×160 texture, which [BLIT] scales to the view. All upload buffers are
  * pre-allocated: [draw] allocates nothing. Colour effects use hardware arithmetic.
  * Call everything on the GL thread after a context exists.
@@ -28,6 +29,11 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
     private val obj: IntBuffer = direct(frame.obj.size * 4).asIntBuffer()
     private val map: ShortBuffer = direct(MAP_ENTRIES * 2).asShortBuffer()
     private val sheet: ByteBuffer = direct(SHEET_BYTES)
+    // Last uploaded map/sheet contents per BG: re-upload only what changed.
+    private val lastMap = Array(RenderState.LAYERS) { ShortArray(MAP_ENTRIES) }
+    private val lastSheet = Array(RenderState.LAYERS) { ByteArray(SHEET_BYTES) }
+    private val lastSheetSize = IntArray(RenderState.LAYERS) { -1 }
+    private val mapValid = BooleanArray(RenderState.LAYERS)
     private val layerU = IntArray(4 * RenderState.LAYERS)
     private val affU = IntArray(2 * RenderState.LAYERS)
     private val sheetSizeU = IntArray(RenderState.LAYERS)
@@ -63,6 +69,8 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
         GLES30.glUniform1i(GLES30.glGetUniformLocation(blit, "uTex"), T_OUT)
         GLES30.glUseProgram(program)
         GLES30.glGenTextures(tex.size, tex, 0)
+        lastSheetSize.fill(-1)
+        mapValid.fill(false)
         storage2d(T_PAL, GLES30.GL_R16UI, GpuFrame.PALETTE_WIDTH, RenderState.LINES)
         storage2d(T_LINES, GLES30.GL_RGBA32I, GpuFrame.LINE_INTS / 4, RenderState.LINES)
         storage2d(T_OBJ, GLES30.GL_R32UI, FrameBuffer.GBA_WIDTH, FrameBuffer.GBA_HEIGHT)
@@ -116,16 +124,8 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
             }
             val n = minOf(s.size, SHEET_BYTES)
             sheetSizeU[bg] = n
-            sheet.position(0)
-            sheet.put(s, 0, n).position(0)
-            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D_ARRAY, tex[T_SHEET])
-            GLES30.glTexSubImage3D(GLES30.GL_TEXTURE_2D_ARRAY, 0, 0, 0, bg, SHEET_WIDTH, (n + SHEET_WIDTH - 1) / SHEET_WIDTH,
-                1, GLES30.GL_RED_INTEGER, GLES30.GL_UNSIGNED_BYTE, sheet)
-            map.position(0)
-            map.put(l.entries).position(0)
-            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D_ARRAY, tex[T_MAP])
-            GLES30.glTexSubImage3D(GLES30.GL_TEXTURE_2D_ARRAY, 0, 0, 0, bg, TileLayer.MAX_TILES, TileLayer.MAX_TILES, 1,
-                GLES30.GL_RED_INTEGER, GLES30.GL_UNSIGNED_SHORT, map)
+            uploadSheet(bg, s, n)
+            uploadMap(bg, l.entries)
         }
         GLES30.glUniform4iv(uLayer, RenderState.LAYERS, layerU, 0)
         GLES30.glUniform2iv(uAff, RenderState.LAYERS, affU, 0)
@@ -149,6 +149,35 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, tex[T_OUT])
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+    }
+
+    private fun uploadSheet(bg: Int, s: ByteArray, n: Int) {
+        val last = lastSheet[bg]
+        if (lastSheetSize[bg] == n && s.contentEqualsRange(last, n)) return
+        s.copyInto(last, 0, 0, n)
+        lastSheetSize[bg] = n
+        sheet.position(0)
+        sheet.put(s, 0, n).position(0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D_ARRAY, tex[T_SHEET])
+        GLES30.glTexSubImage3D(GLES30.GL_TEXTURE_2D_ARRAY, 0, 0, 0, bg, SHEET_WIDTH, (n + SHEET_WIDTH - 1) / SHEET_WIDTH,
+            1, GLES30.GL_RED_INTEGER, GLES30.GL_UNSIGNED_BYTE, sheet)
+    }
+
+    private fun uploadMap(bg: Int, entries: ShortArray) {
+        val last = lastMap[bg]
+        if (mapValid[bg] && entries.contentEquals(last)) return
+        entries.copyInto(last)
+        mapValid[bg] = true
+        map.position(0)
+        map.put(entries).position(0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D_ARRAY, tex[T_MAP])
+        GLES30.glTexSubImage3D(GLES30.GL_TEXTURE_2D_ARRAY, 0, 0, 0, bg, TileLayer.MAX_TILES, TileLayer.MAX_TILES, 1,
+            GLES30.GL_RED_INTEGER, GLES30.GL_UNSIGNED_SHORT, map)
+    }
+
+    private fun ByteArray.contentEqualsRange(other: ByteArray, n: Int): Boolean {
+        for (i in 0 until n) if (this[i] != other[i]) return false
+        return true
     }
 
     private fun storage2d(t: Int, format: Int, w: Int, h: Int) {

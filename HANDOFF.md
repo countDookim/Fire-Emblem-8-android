@@ -26,7 +26,7 @@ _(nothing blocked)_
 - Shader check: `FE8_SHADER_DUMP=<dir> ./gradlew :testing:test --tests '*FrameCompareTest'` then
   `node tools/shader_parity.mjs <dir>` (headless Chromium WebGL2): all 15 frames pixel-exact. Re-run after any
   shader/`PackedCompositor` change; `glslangValidator` (apt `glslang-tools`) checks syntax.
-- Open: owner manual test (then mark M3-07 done); upload only dirty maps/sheets (now ~0.5 MB/frame); sprites
+- Open: owner manual test (then mark M3-07 done); maps/sheets upload only when changed (palette, lines, OBJ plane every frame); sprites
   are still rasterised on CPU (OK for v1); GPU colour math is hardware (no mGBA variant).
 - If the owner still reports slow startup: measure what runs before the launcher draws (`Application`/
   `MainActivity.onCreate`, Compose init) or the first Play frame (`bundledBootRom`, `Fe8Game` setup).

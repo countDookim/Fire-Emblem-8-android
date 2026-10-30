@@ -76,7 +76,12 @@ public class Fe8Boot(
     public val loop: GameLoop = GameLoop(
         engine, keys, clock, keyInput,
         sprites = opAnim.sprites,
-        overran = { hw.modifiedBgs != 0 },
+        overran = {
+            val n = opAnim.missedVBlanks + title.missedVBlanks
+            opAnim.missedVBlanks = 0
+            title.missedVBlanks = 0
+            if (n == 0 && hw.modifiedBgs != 0 && engine.find(ui.script) != null) 1 else n
+        },
         flush = {
             hw.lcd.flushTo(io)
             hw.flushBackgrounds()

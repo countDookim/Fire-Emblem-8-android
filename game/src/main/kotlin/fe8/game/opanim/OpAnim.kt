@@ -305,6 +305,14 @@ public class OpAnim(
     /** `gOpAnimSt.pal`: colour forced into palette entry 0 by [copyToPal]. */
     public var pal: Int = 0
 
+    /**
+     * VBlanks the current step's screen load misses on hardware (its CPU time overruns the frame),
+     * read and reset by the main loop after each step. Not computed from cycle counts: the loads
+     * that overrun and by how much were measured with mGBA (`gBmSt.main_loop_ended` in the
+     * `ram_trace_opanim` dumps).
+     */
+    public var missedVBlanks: Int = 0
+
     /** `ProcScr_OpAnimfxTerminator`: ends the op anim on A, B or Start. */
     public val terminatorScript: ProcScript = ProcScript(
         "ProcScr_OpAnimfxTerminator",
@@ -455,6 +463,7 @@ public class OpAnim(
      * Partially ported from src/opanim-main.c: SetupOpAnimWorldMapfx
      */
     public fun setupWorldMap(proc: Proc) {
+        missedVBlanks = 3
         val hw = hardware
         val lcd = hw.lcd
         lcd.dispcnt = lcd.dispcnt and 7.inv()
@@ -646,6 +655,7 @@ public class OpAnim(
         val st = proc.state as State
         fun dec(b: OpAnimHs.Blob, dst: ByteArray, at: Int) =
             Decompress.into(b.data, b.offset, dst, at)
+        if (st.timer == 0 || st.timer == 1 || st.timer == 5) missedVBlanks = 1
         when (st.timer) {
             0 -> {
                 dec(g.characterBg.first, vram, 0x2000 + hw.tileDataOffset(3))
@@ -1008,6 +1018,7 @@ public class OpAnim(
         val st = proc.state as State
         fun dec(b: OpAnimHs.Blob, dst: ByteArray, at: Int) =
             Decompress.into(b.data, b.offset, dst, at)
+        if (st.timer == 1 || st.timer == 2) missedVBlanks = 1
         when (st.timer) {
             0 -> {
                 lcd.setDispEnable(0, 0, 0, 1, 1)
@@ -1217,6 +1228,7 @@ public class OpAnim(
         val g = eirika ?: error("OpAnim.eirika graphics not supplied")
         drawSplitLine(8, 0x88)
         sprites.putExt(1, 8, 0x88, g.nameObj, 0x7C + (2 shl 12))
+        if (st.timer <= 2) missedVBlanks = 1
         when (st.timer) {
             0 -> for (i in 0 until 8) updateScrollOneLine(i)
             1 -> for (i in 8 until 0x10) updateScrollOneLine(i)
@@ -1415,6 +1427,7 @@ public class OpAnim(
         val g = cast ?: error("OpAnim.cast graphics not supplied")
         advanceCastScroll(st)
         fun dec(b: OpAnimHs.Blob, dst: ByteArray, at: Int) = Decompress.into(b.data, b.offset, dst, at)
+        if (st.timer == 2) missedVBlanks = 1
         when (st.timer) {
             1 -> {
                 dec(g.characterBg.first, vram, 0x2000 + hw.tileDataOffset(3))
@@ -1587,6 +1600,8 @@ public class OpAnim(
     public fun loadCastScene(proc: Proc, scene: CastScene, endDarken: Boolean) {
         val st = proc.state as State
         advanceCastScroll(st)
+        val late = castGfx().scenes.indexOf(scene) >= 3
+        if (st.timer == 1 || (st.timer == 2 && late)) missedVBlanks = 1
         loadCastSceneStep(scene, st.timer)
         if (st.timer == 0x28) {
             if (endDarken) engine.endEach(castDarkenScript)
@@ -1841,6 +1856,7 @@ public class OpAnim(
         val st = proc.state as State
         val hw = hardware
         val lcd = hw.lcd
+        if (st.timer in 1..3) missedVBlanks = 1
         when (st.timer) {
             1 -> updateScroll(0x1B0, 0x188)
             2 -> updateScroll(0x1F0, 0x1B0)

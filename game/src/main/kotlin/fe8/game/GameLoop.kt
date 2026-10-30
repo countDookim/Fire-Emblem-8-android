@@ -12,7 +12,7 @@ import gbafe.render.SpriteLayers
  * hardware frame at a time by [frame].
  *
  * A step that overruns its frame (on hardware: a screen load with decompression) misses the next
- * VBlank's sync and starts no step on the next frame; [overran] tells the loop after each step
+ * VBlank's sync and starts no step on the next frame(s); [overran] tells the loop after each step
  * whether that happened (the original timing is not modelled, so the caller decides from what the
  * step did).
  *
@@ -27,8 +27,8 @@ public class GameLoop(
     public val clock: GameClock,
     /** Raw pressed keys (`REG_KEYINPUT`, active high) for the step about to run. */
     private val keyInput: () -> Int,
-    /** True if the step that just ran overran its frame. */
-    private val overran: () -> Boolean = { false },
+    /** How many VBlanks the step that just ran missed (0: it finished within its frame). */
+    private val overran: () -> Int = { 0 },
     /** VBlank display sync after a finished step (`FlushLCDControl`, `FlushBackgrounds`, ...). */
     private val flush: () -> Unit = {},
     /** The sprite lists cleared at the start of every step and pushed after trees 5 and 4. */
@@ -44,7 +44,10 @@ public class GameLoop(
     public var mainLoopEnded: Boolean = false
         private set
 
-    private var lagPending = false
+    private var lagFrames = 0
+
+    /** True if the next [frame] runs no step: the previous step is still overrunning. */
+    public val overrunning: Boolean get() = lagFrames > 0
 
     /**
      * Increments [lock].
@@ -110,18 +113,19 @@ public class GameLoop(
 
     /**
      * One hardware frame: the VBlank, then a step unless the previous step overran (then that step
-     * only finishes now, after this frame's VBlank, which therefore syncs nothing).
+     * is still running during this frame's VBlank, which therefore syncs nothing; it finishes in
+     * the last frame it overran into).
      */
     public fun frame() {
-        if (lagPending) {
-            lagPending = false
+        if (lagFrames > 0) {
+            lagFrames--
             mainLoopEnded = false
             onVBlank()
-            mainLoopEnded = true
+            mainLoopEnded = lagFrames == 0
             return
         }
         onVBlank()
         onMain()
-        lagPending = overran()
+        lagFrames = overran()
     }
 }

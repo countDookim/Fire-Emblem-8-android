@@ -82,7 +82,7 @@ class EarlyStartUiBootDifferentialTest {
         val clock = GameClock()
         val io = ByteArray(0x60) // I/O registers as FlushLCDControl writes them
         val loop = GameLoop(engine, keys, clock, keyInput = { if (keyFrame == A_FRAME) A_BUTTON else 0 },
-            overran = { hw.modifiedBgs != 0 }, flush = { hw.lcd.flushTo(io); hw.flushBackgrounds() })
+            overran = { if (hw.modifiedBgs != 0) 1 else 0 }, flush = { hw.lcd.flushTo(io); hw.flushBackgrounds() })
         fun frame(f: Int) {
             keyFrame = f
             loop.frame()

@@ -57,6 +57,13 @@ public class TitleScreen(
     /** Screen fades (`StartFadeCore`). */
     public val fadeCore: FadeCore = FadeCore(engine, hardware),
 ) {
+    /**
+     * VBlanks the current step's screen load misses on hardware (its CPU time overruns the frame),
+     * read and reset by the main loop after each step. Measured with mGBA
+     * (`gBmSt.main_loop_ended` in the `ram_trace_title1` dumps), not computed from cycle counts.
+     */
+    public var missedVBlanks: Int = 0
+
     /** ROM data of the title screen. */
     public class Gfx(
         /** `gGfx_TitleMainBackground_1`, `_2`, `gTsa_TitleMainBackground` (compressed). */
@@ -261,6 +268,7 @@ public class TitleScreen(
      * Ported from src/titlescreen.c: Title_LoadDemonKingOnBg2
      */
     public fun loadDemonKing() {
+        missedVBlanks = 1
         val (tiles, map, pal) = gfx.demonKing
         Decompress.into(tiles.data, tiles.offset, hardware.vram, 0x8000)
         loadMap(map, 2, 0x3000)
@@ -537,6 +545,7 @@ public class TitleScreen(
         val hw = hardware
         val f = gfx.fx
         val p = gfx.fxPals
+        if (st.timer == 2) missedVBlanks = 1
         when (st.timer) {
             0 -> {
                 hw.setTileDataOffset(0, 0xC000)
@@ -689,6 +698,7 @@ public class TitleScreen(
         val st = proc.state as State
         val hw = hardware
         val g = gfx
+        if (st.timer <= 2) missedVBlanks = 1
         when (st.timer) {
             0 -> Decompress.into(g.background[0].data, g.background[0].offset, hw.vram, 0)
             1 -> {

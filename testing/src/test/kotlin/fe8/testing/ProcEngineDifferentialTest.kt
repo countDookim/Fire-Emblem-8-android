@@ -527,11 +527,10 @@ class ProcEngineDifferentialTest {
     private companion object {
         /**
          * Full-dump frames (f1100..f3000, no HBlank handler) not yet drawn identically from our display state.
-         * f1170, f1190..f1210, f2200..f2230: palette, VRAM, OAM and registers equal the dump's, so a renderer gap
-         * (likely a mid-frame effect without an HBlank handler); f1180: BG VRAM 0xD800..0xE800 differs (sync timing);
+         * f1180: BG VRAM 0xD800..0xE800 differs (sync timing);
          * f3000: the title's first frame (sprites one step off).
          */
-        val FRAME_GAPS = setOf(1170, 1180, 1190, 1200, 1210, 2200, 2210, 2220, 2230, 3000)
+        val FRAME_GAPS = setOf(1180, 3000)
         const val PROC_SCRIPT = 0x08AA7680 // ProcScr_GameEarlyStartUI
         const val GAME_CTRL_SCRIPT = 0x085916D4 // gProcScr_GameControl
         const val OP_ANIM_SCRIPT = 0x08AA71C8 // ProcScr_OpAnim

@@ -859,8 +859,10 @@ public class OpAnim(
     }
 
     /**
-     * `OpAnimHBlank2` (not verified yet: no frame trace covers it): BLDCNT 0xC46 from the first
-     * line, 0xCCF from line `gOpAnimSt.unk0A`.
+     * `OpAnimHBlank2`: BLDCNT 0xC46 from the first line, 0xCCF from line `gOpAnimSt.unk0A`
+     * (verified by the f1110..1140 frame compares in `Fe8BootTest`).
+     *
+     * Ported from src/opanim-main.c: OpAnimHBlank2
      */
     public val hBlank2: HBlankHandler = HBlankHandler { vcount, io ->
         if (((vcount - 1) and 0xFFFF) > 0x9F) {

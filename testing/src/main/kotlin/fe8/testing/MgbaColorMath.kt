@@ -17,8 +17,20 @@ public object MgbaColorMath : ColorMath {
     /** Per 8-bit channel c + (255 - c) * evy / 16. */
     override fun brighten(c: Int, evy: Int): Int = map2(c, 0) { x, _ -> x + (255 - x) * evy / 16 }
 
-    /** Per 8-bit channel c - c * evy / 16. */
-    override fun darken(c: Int, evy: Int): Int = map2(c, 0) { x, _ -> x - x * evy / 16 }
+    /**
+     * Per 8-bit channel: red `c - c * evy / 16`, green and blue `c * (16 - evy) / 16` (= c - ceil(c * evy / 16)).
+     * mGBA's `_darken` subtracts on the packed colour, so the truncated product of the higher channels rounds the
+     * other way (fits every darkened pixel of op anim frames f1110..2230).
+     */
+    override fun darken(c: Int, evy: Int): Int {
+        val r = widen(c and 0x1F)
+        val g = widen((c shr 5) and 0x1F)
+        val b = widen((c shr 10) and 0x1F)
+        val r2 = r - r * evy / 16
+        val g2 = g * (16 - evy) / 16
+        val b2 = b * (16 - evy) / 16
+        return (r2 shr 3) or ((g2 shr 3) shl 5) or ((b2 shr 3) shl 10)
+    }
 
     private inline fun map2(a: Int, b: Int, f: (Int, Int) -> Int): Int {
         var out = 0

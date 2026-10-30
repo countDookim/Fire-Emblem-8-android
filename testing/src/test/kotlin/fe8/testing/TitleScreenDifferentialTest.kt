@@ -241,6 +241,66 @@ class TitleScreenDifferentialTest {
     }
 
     @Test
+    @VerifiesPort("SkipTitleFx_Loop_KeyListener", "Title_RestartProc")
+    fun `A on the title intro fx restarts the title like the per-frame RAM trace`() {
+        assumeTrue(ref.available && romFile.isFile && File(ref.root, "ram_trace_title_skip/manifest.txt").isFile,
+            "ROM / mGBA reference run ram_trace_title_skip not present (run tools/setup.sh)")
+        val run4 = ref.run("ram_trace_opanim4")
+        val runT = ref.run("ram_trace_title1")
+        val runS = ref.run("ram_trace_title_skip") // same input as runT until A at f3040
+        fun ew(f: Int) = when {
+            f >= 3030 -> runS.region("r%05d".format(f), "ewram")
+            else -> (if (f <= 3000) run4 else runT).region((if (f % 10 == 0) "f%05d" else "r%05d").format(f), "ewram")
+        }
+        fun iw(f: Int) = when {
+            f >= 3030 -> runS.region("r%05d".format(f), "iwram")
+            else -> (if (f <= 3000) run4 else runT).region((if (f % 10 == 0) "f%05d" else "r%05d").format(f), "iwram")
+        }
+        val keyAddr = sym["sKeyStatusBuffer"].address - GbaMem.EWRAM
+        val first = (2890..3000).first { procAt(ew(it)) != null }
+        val e0 = ew(first - 1)
+        val hw = BgHardware()
+        hw.lcd.readFrom(iw(first - 1), sym["gLCDControlBuffer"].address - GbaMem.IWRAM)
+        shorts(e0, "gPaletteBuffer", 512).copyInto(hw.palette)
+        for (bg in 0..3) shorts(e0, "gBG${bg}TilemapBuffer", 0x400).copyInto(hw.mapBuffer(bg))
+        val engine = ProcEngine()
+        val keys = KeyStatus()
+        val title = titleScreenFor(romFile.readBytes(), engine, hw, keys = keys)
+        val parent = engine.start(ProcScript("parent", listOf(block())), 3)
+        title.start(parent, 1)
+        var checked = 0
+        var restarted = 0
+        val bmSt = sym["gBmSt"].address - GbaMem.EWRAM
+        for (f in first..3200) {
+            val e = ew(f)
+            val o = procAt(e) ?: break
+            val scr = (u32(e, o + 4) - TITLE_SCRIPT) / 8
+            val lagging = ew(f - 1)[bmSt].toInt() == 0
+            val midStep = e[bmSt].toInt() == 0
+            if (!lagging) {
+                keys.readFrom(e, keyAddr)
+                title.sprites.clear()
+                engine.run(engine.root(3))
+            }
+            if (midStep || f < 3030) continue
+            val ours = engine.find(title.script)!!
+            assertEquals(scr, ours.scrCur, "f$f title scrCur")
+            assertEquals(u16(e, o + 0x2A), (ours.state as TitleScreen.State).timer, "f$f timer")
+            assertEquals(e[o + 0x29].toInt(), (ours.state as TitleScreen.State).mode, "f$f mode")
+            assertArrayEquals(shorts(e, "gPaletteBuffer", 512), hw.palette, "f$f gPaletteBuffer")
+            val g = BgHardware().lcd.apply { readFrom(iw(f), sym["gLCDControlBuffer"].address - GbaMem.IWRAM) }
+            assertEquals(listOf(g.dispcnt, g.bldcnt, g.blendCoeffA, g.blendCoeffB, g.blendY),
+                listOf(hw.lcd.dispcnt, hw.lcd.bldcnt, hw.lcd.blendCoeffA, hw.lcd.blendCoeffB, hw.lcd.blendY), "f$f lcd")
+            assertEquals(procAt(e, SKIP_SCRIPT) != null, engine.find(title.skipListenerScript) != null, "f$f skip listener")
+            assertEquals(procAt(e, SPRITES_SCRIPT) != null, engine.find(title.drawSpritesScript) != null, "f$f title sprites")
+            assertEquals(procAt(e, FADE_SCRIPT) != null, engine.find(title.fadeCore.script) != null, "f$f fade proc")
+            if (f > 3040 && scr < 36) restarted++
+            checked++
+        }
+        assertTrue(checked >= 100 && restarted >= 50, "checked $checked frames, $restarted after the restart")
+    }
+
+    @Test
     @VerifiesPort("Title_IDLE", "sub_8013F40", "ColorFadeSetupFromColorToBlack")
     fun `A on the idle title starts the fade to dark like the per-frame RAM trace`() {
         val c = titleKeyPath("key_status_title", "k", 901)

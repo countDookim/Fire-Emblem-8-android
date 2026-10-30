@@ -5,6 +5,8 @@ import gbafe.render.BgVerticalScroll
 import gbafe.render.Camera
 import gbafe.render.HBlankLines
 import gbafe.render.FrameBuffer
+import gbafe.render.GpuFrame
+import gbafe.render.PackedCompositor
 import gbafe.render.RenderState
 import gbafe.render.SoftwareRenderer
 import gbafe.render.TileSheets
@@ -26,15 +28,21 @@ class FrameCompareTest {
     private val ref = ReferenceData.fromEnvironment()
     private val sym = RamSymbols.fromEnvironment()
 
-    private fun diffs(run: String, dump: String): Int {
+    private fun load(run: String, dump: String): Pair<RenderState, TileSheets> {
         val r = ref.run(run)
         val state = RenderState()
         val sheets = TileSheets()
-        val fb = FrameBuffer()
         val io = r.region(dump, "io")
         check(!HardwareScene.forcedBlank(io)) { "$run/$dump is a forced-blank frame" }
         HardwareScene.load(state, sheets, r.region(dump, "vram"), r.region(dump, "pal"), r.region(dump, "oam"), io)
         applyHBlank(r, dump, state, io)
+        return state to sheets
+    }
+
+    private fun diffs(run: String, dump: String): Int {
+        val r = ref.run(run)
+        val (state, sheets) = load(run, dump)
+        val fb = FrameBuffer()
         SoftwareRenderer(state, sheets, fb, MgbaColorMath).render(Camera())
         val out = File(System.getProperty("fe8.frameDiffDir") ?: "build/frame-diff", "${run}_$dump.png")
         return HardwareScene.compare(fb, r.frameRgb(dump), out)
@@ -72,8 +80,7 @@ class FrameCompareTest {
     fun `menu frames with the wavy rune background match mGBA`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         // Main menu, mode select, save-slot select: BG2 (runes, HOFS rewritten per line) blended over BG3.
-        val frames = listOf("m0962", "m1024", "m1086", "m1087")
-        val failed = frames.map { "menu_screens/$it" to diffs("menu_screens", it) }.filter { it.second != 0 }
+        val failed = MENU_FRAMES.map { "menu_screens/$it" to diffs("menu_screens", it) }.filter { it.second != 0 }
         assertEquals(emptyList<Pair<String, Int>>(), failed, "frames with differing pixels (see build/frame-diff)")
     }
 
@@ -87,12 +94,25 @@ class FrameCompareTest {
     fun `boot logos, intro and title screen frames match mGBA`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         // f00720.. = title screen: BG0-1 + 128 OAM entries, alpha blend (BLDCNT 0x0340); 85 colours.
-        val frames = listOf("boot_idle" to "f00060", "boot_idle" to "f00300", "boot_to_title" to "f00240",
-            "boot_to_title" to "f00360", "boot_to_title" to "f00600", "boot_to_title" to "f00720",
-            "boot_to_title" to "f00900", "boot_to_title" to "f01200", "boot_to_title" to "f01500",
-            "title_state_replay" to "down_c")
-        val failed = frames.map { (run, dump) -> "$run/$dump" to diffs(run, dump) }.filter { it.second != 0 }
+        val failed = BOOT_FRAMES.map { (run, dump) -> "$run/$dump" to diffs(run, dump) }.filter { it.second != 0 }
         assertEquals(emptyList<Pair<String, Int>>(), failed, "frames with differing pixels (see build/frame-diff)")
+    }
+
+    @Test
+    fun `GPU packed compositor draws every compared frame like the software renderer`() {
+        assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
+        val frames = MENU_FRAMES.map { "menu_screens" to it } + BOOT_FRAMES + ("boot_idle" to "f00600")
+        val failed = frames.filter { (run, dump) ->
+            val (state, sheets) = load(run, dump)
+            val soft = FrameBuffer()
+            val gpu = FrameBuffer()
+            SoftwareRenderer(state, sheets, soft, MgbaColorMath).render(Camera())
+            val frame = GpuFrame(state, sheets)
+            frame.pack()
+            PackedCompositor(frame, sheets, MgbaColorMath).render(gpu)
+            !soft.pixels.contentEquals(gpu.pixels)
+        }
+        assertEquals(emptyList<Pair<String, String>>(), failed)
     }
 
     @Test
@@ -106,6 +126,12 @@ class FrameCompareTest {
     }
 
     private companion object {
+        val MENU_FRAMES = listOf("m0962", "m1024", "m1086", "m1087")
+        val BOOT_FRAMES = listOf("boot_idle" to "f00060", "boot_idle" to "f00300", "boot_to_title" to "f00240",
+            "boot_to_title" to "f00360", "boot_to_title" to "f00600", "boot_to_title" to "f00720",
+            "boot_to_title" to "f00900", "boot_to_title" to "f01200", "boot_to_title" to "f01500",
+            "title_state_replay" to "down_c")
+
         /** ROM address of `HBlank_BgVerticalScroll` (Thumb bit set), from `decomp/fireemblem8.nm.txt`. */
         const val HBLANK_BG_VERTICAL_SCROLL = 0x08014CC5
     }

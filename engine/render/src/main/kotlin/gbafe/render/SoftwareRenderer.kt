@@ -9,7 +9,7 @@ package gbafe.render
  * horizontal/vertical tile flips, 4bpp palette banks and 8bpp tiles, colour 0 transparency, priority
  * ordering (lower priority value first, ties by lower BG number) and the backdrop colour (BG palette
  * colour 0). Per-line scroll overrides and palette writes from [RenderState.lines] are applied.
- * Sprites: regular and affine (incl. double-size) objects, 4bpp/8bpp, flips, 1D/2D tile mapping,
+ * Sprites ([SpriteRasterizer]): regular and affine (incl. double-size) objects, 4bpp/8bpp, flips, 1D/2D tile mapping,
  * OBJ palette; per pixel the opaque sprite with the lowest priority value wins (ties: lower index), and it
  * is drawn in front of every BG layer whose priority value is greater than or equal to its own.
  * Effects: windows 0/1 (incl. wrap-around bounds when left > right) and the OBJ window select
@@ -42,10 +42,11 @@ public class SoftwareRenderer(
     private val affX = IntArray(RenderState.LAYERS)
     private val affY = IntArray(RenderState.LAYERS)
     private val lineSheet = arrayOfNulls<ByteArray>(RenderState.LAYERS)
-    private val objColor = IntArray(FrameBuffer.GBA_WIDTH)
-    private val objPrio = IntArray(FrameBuffer.GBA_WIDTH)
-    private val objSemi = BooleanArray(FrameBuffer.GBA_WIDTH)
-    private val objWin = BooleanArray(FrameBuffer.GBA_WIDTH)
+    private val objs = SpriteRasterizer(state, sheets)
+    private val objColor = objs.color
+    private val objPrio = objs.priority
+    private val objSemi = objs.semi
+    private val objWin = objs.window
 
     // Top two visible pixels of the current composite: colour and layer bit (Effects mask bits).
     private var c1 = 0
@@ -97,7 +98,7 @@ public class SoftwareRenderer(
                     lineScrollY[i] = layer.scrollY
                 }
             }
-            spriteLine(y)
+            objs.line(y, palette)
             val fx = state.effects
             val windows = fx.win0 || fx.win1 || fx.objWindow
             var w0l = fx.winLeft[0]; var w0r = fx.winRight[0]; var w1l = fx.winLeft[1]; var w1r = fx.winRight[1]
@@ -179,73 +180,6 @@ public class SoftwareRenderer(
             c2 = c; l2 = layerBit
         }
         filled++
-    }
-
-    /** Fills [objColor] / [objPrio] / [objSemi] / [objWin] for scanline [y] (-1 colour = no sprite pixel). */
-    private fun spriteLine(y: Int) {
-        objColor.fill(-1)
-        objWin.fill(false)
-        val sp = state.sprites
-        for (i in 0 until sp.count) {
-            val flags = sp.flags[i].toInt()
-            val window = flags and SpriteBatch.MODE_WINDOW != 0
-            val semi = flags and SpriteBatch.MODE_SEMI != 0
-            val w = sp.width[i].toInt() and 0xFF
-            val h = sp.height[i].toInt() and 0xFF
-            val affine = flags and SpriteBatch.AFFINE != 0
-            val dbl = affine && flags and SpriteBatch.DOUBLE_SIZE != 0
-            val bw = if (dbl) 2 * w else w
-            val bh = if (dbl) 2 * h else h
-            val sy = sp.y[i]
-            if (y < sy || y >= sy + bh) continue
-            val sheet = sheets[sp.sheet[i]] ?: continue
-            val sx = sp.x[i]
-            val prio = sp.priority[i].toInt()
-            val bpp8 = flags and SpriteBatch.BPP8 != 0
-            val base = sp.tile[i].toInt() and 0x3FF
-            val stride = if (sp.mapping1d) (w shr 3) * (if (bpp8) 2 else 1) else 32
-            val palBase = PaletteBank.COLORS + if (bpp8) 0 else (sp.palette[i].toInt() and 0xF) shl 4
-            var pa = 0x100; var pb = 0; var pc = 0; var pd = 0x100
-            if (affine) {
-                val m = (sp.affineIndex[i].toInt() and 0x1F) * 4
-                pa = sp.affine[m].toInt(); pb = sp.affine[m + 1].toInt(); pc = sp.affine[m + 2].toInt(); pd = sp.affine[m + 3].toInt()
-            }
-            val ry = y - sy
-            for (x in maxOf(0, sx) until minOf(FrameBuffer.GBA_WIDTH, sx + bw)) {
-                if (!window && objColor[x] >= 0 && objPrio[x] <= prio) continue
-                var tx: Int
-                var ty: Int
-                if (affine) {
-                    val dx = x - sx - (bw shr 1)
-                    val dy = ry - (bh shr 1)
-                    tx = ((pa * dx + pb * dy) shr 8) + (w shr 1)
-                    ty = ((pc * dx + pd * dy) shr 8) + (h shr 1)
-                    if (tx < 0 || tx >= w || ty < 0 || ty >= h) continue
-                } else {
-                    tx = x - sx
-                    ty = ry
-                    if (flags and SpriteBatch.HFLIP != 0) tx = w - 1 - tx
-                    if (flags and SpriteBatch.VFLIP != 0) ty = h - 1 - ty
-                }
-                val unit = base + (ty shr 3) * stride + (tx shr 3) * (if (bpp8) 2 else 1)
-                val px = tx and 7
-                val py = ty and 7
-                val idx = if (bpp8) {
-                    val o = (unit and 0x3FF) * TileSheets.TILE_BYTES_4BPP + py * 8 + px
-                    if (o >= sheet.size) 0 else sheet[o].toInt() and 0xFF
-                } else {
-                    TileSheets.pixel(sheet, unit and 0x3FF, px, py, false)
-                }
-                if (idx == 0) continue
-                if (window) {
-                    objWin[x] = true
-                    continue
-                }
-                objColor[x] = palette[palBase + idx].toInt() and 0x7FFF
-                objPrio[x] = prio
-                objSemi[x] = semi
-            }
-        }
     }
 
     /** Fills [order] with the enabled layers front to back; returns how many. */

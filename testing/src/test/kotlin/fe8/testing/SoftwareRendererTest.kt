@@ -3,12 +3,15 @@ package fe8.testing
 import gbafe.render.Camera
 import gbafe.render.Effects
 import gbafe.render.FrameBuffer
+import gbafe.render.GpuFrame
+import gbafe.render.PackedCompositor
 import gbafe.render.RenderState
 import gbafe.render.SoftwareRenderer
 import gbafe.render.SpriteBatch
 import gbafe.render.TileLayer
 import gbafe.render.TileSheets
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -152,6 +155,21 @@ class SoftwareRendererTest {
         assertEquals(argb(0xABC), fb[0, 5])
         assertEquals(argb(0xABC), fb[0, 7])
         assertEquals(0x101, state.palettes.bg[1].toInt(), "state palette is not modified")
+    }
+
+    /** Every scene must also draw identically through the GPU backend's packed data and shader spec. */
+    @AfterEach
+    fun gpuParity() {
+        val soft = FrameBuffer()
+        SoftwareRenderer(state, sheets, soft).render(cam)
+        val gpu = FrameBuffer()
+        val frame = GpuFrame(state, sheets)
+        frame.pack()
+        PackedCompositor(frame, sheets).render(gpu)
+        val bad = (soft.pixels.indices).firstOrNull { soft.pixels[it] != gpu.pixels[it] }
+        assertEquals(null, bad, "first pixel where GPU spec != software")
+        val bytes = AllocationMeter.measureMin(warmup = 50, iterations = 20) { frame.pack() }
+        assertEquals(0L, bytes, "GpuFrame.pack allocates")
     }
 
     @Test

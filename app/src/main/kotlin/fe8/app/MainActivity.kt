@@ -2,6 +2,7 @@ package fe8.app
 
 import android.content.Context
 import android.os.Bundle
+import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import gbafe.core.time.FixedStepClock
+import gbafe.input.TouchButtons
 import fe8.game.Fe8Boot
 import fe8.game.RomView
 import fe8.game.Fe8Game
@@ -50,7 +52,11 @@ public class MainActivity : ComponentActivity() {
                         AndroidView(
                             factory = { ctx ->
                                 val game = Fe8Game(rom = bundledBootRom(ctx))
-                                GameSurfaceView(ctx, game).also { surface = it }
+                                val touch = TouchButtons()
+                                FrameLayout(ctx).apply {
+                                    addView(GameSurfaceView(ctx, game, touch).also { surface = it })
+                                    addView(TouchOverlayView(ctx, touch))
+                                }
                             },
                             modifier = Modifier.fillMaxSize(),
                         )

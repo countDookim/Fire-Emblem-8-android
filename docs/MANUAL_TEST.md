@@ -26,6 +26,10 @@ Nothing game-related yet. This APK only proves the Android shell, GL path and lo
       and the title screen, with the original's timing (they match mGBA frame by frame in tests). Known small
       differences: the Eirika split-screen name band (a few pixels), darkened frames one shade too bright,
       title sprites on its first frames. No sound.
+- [ ] (M3-15) Touch buttons over the game view: D-pad (bottom left, corners = diagonals), A/B (bottom right),
+      L/R (top corners), Select/Start (bottom centre). On the health & safety screen, tap **A** to continue; on
+      the title, tap **Start**/**A** (title key paths not ported yet: may do nothing). Two fingers at once work;
+      sliding a finger between buttons switches the key.
 
 ## Known not working (don't report)
-Everything gameplay-related: no title screen, sound, input or saves yet.
+Everything after the title: no gameplay, sound or saves yet.

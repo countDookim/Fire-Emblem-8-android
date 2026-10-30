@@ -6,6 +6,7 @@ import android.opengl.GLSurfaceView
 import android.view.KeyEvent
 import android.view.MotionEvent
 import gbafe.core.time.GameLoop
+import gbafe.input.ActionSource
 import fe8.game.Fe8Game
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -22,11 +23,15 @@ import javax.microedition.khronos.opengles.GL10
  * fixed at ~59.73 Hz by [gbafe.core.time.FixedStepClock]. Nothing here allocates per frame: the upload
  * buffer is a pre-allocated direct [IntBuffer].
  */
-public class GameSurfaceView(context: Context, game: Fe8Game) : GLSurfaceView(context) {
+public class GameSurfaceView(
+    context: Context,
+    game: Fe8Game,
+    touch: ActionSource? = null,
+) : GLSurfaceView(context) {
     private val keys = HardwareKeySource()
 
     init {
-        game.actionSource = keys
+        game.actionSource = if (touch == null) keys else ActionSource { keys.poll() or touch.poll() }
         setEGLContextClientVersion(3)
         setRenderer(GameRenderer(game))
         renderMode = RENDERMODE_CONTINUOUSLY

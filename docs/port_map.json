@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 209,
-    "implemented_unverified": 33
+    "verified": 212,
+    "implemented_unverified": 31
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -122,8 +122,10 @@
       "decomp_file": "src/hardware.c",
       "system": "core",
       "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/ColorFade.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#A on the idle title starts the fade to dark like the per-frame RAM trace"
+      ]
     },
     "ColorFadeSetupFromColorToWhite": {
       "decomp_file": "src/hardware.c",
@@ -1183,8 +1185,10 @@
       "decomp_file": "src/titlescreen.c",
       "system": "presentation",
       "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#A on the idle title starts the fade to dark like the per-frame RAM trace"
+      ]
     },
     "Title_Init": {
       "decomp_file": "src/titlescreen.c",
@@ -1377,6 +1381,15 @@
       "kotlin_file": "game/src/main/kotlin/fe8/game/GameControl.kt",
       "status": "implemented",
       "tests": []
+    },
+    "sub_8013F40": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/ColorFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#A on the idle title starts the fade to dark like the per-frame RAM trace"
+      ]
     },
     "sub_80141B0": {
       "decomp_file": "src/bmlib.c",

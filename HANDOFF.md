@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-10-30 (scheduled run 14:53). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-10-30 (scheduled run 22:50). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
@@ -17,16 +17,19 @@ _(nothing blocked)_
 - Rules: a `@VerifiesPort` every run or two; no `java.*`/`javax.*` in new engine/game code (KMP, M4-07); battle
   rolls only via `mechanics.battleRolls`.
 
-## Next task: M3-07 GPU backend
-- CI green through cc19d4c (startup fix compiled); ROM repo `publish-assets` published the new reference runs.
+## Next task: finish M3-07 (GPU backend), then M3-12 audio sink
+- Done (merged to master; CI built the APK): `SpriteRasterizer` (shared OBJ rules), `GpuFrame` (per-line
+  packing: layer origins, windows, blend, per-line palettes, CPU OBJ plane), `PackedCompositor` (Kotlin spec of
+  the shader; parity with `SoftwareRenderer` in every `SoftwareRendererTest` scene via `@AfterEach` and on 15 mGBA
+  frames), `app/GpuBackend` (GLES 3.0, composites 240×160 into an FBO, then scales), launcher button
+  "Play (GPU renderer, experimental)", MANUAL_TEST step.
+- Shader check: `FE8_SHADER_DUMP=<dir> ./gradlew :testing:test --tests '*FrameCompareTest'` then
+  `node tools/shader_parity.mjs <dir>` (headless Chromium WebGL2): all 15 frames pixel-exact. Re-run after any
+  shader/`PackedCompositor` change; `glslangValidator` (apt `glslang-tools`) checks syntax.
+- Open: owner manual test (then mark M3-07 done); upload only dirty maps/sheets (now ~0.5 MB/frame); sprites
+  are still rasterised on CPU (OK for v1); GPU colour math is hardware (no mGBA variant).
 - If the owner still reports slow startup: measure what runs before the launcher draws (`Application`/
   `MainActivity.onCreate`, Compose init) or the first Play frame (`bundledBootRom`, `Fe8Game` setup).
-- M3-07: draw `RenderState` with shaders (today `GameSurfaceView` uploads the `SoftwareRenderer` frame). Plan:
-  (a) textures: tile sheets as `R8UI` index textures re-uploaded only when dirty, palettes as a 512x1 RGBA
-  texture, 4 layer maps as `R16UI`, sprites as an instanced quad buffer; (b) one fragment shader composites per
-  pixel like `SoftwareRenderer` (priority, blend/brightness, windows, `LineTable` rows as a 160-row texture);
-  (c) parity: JVM can't run GL, so keep the compositing rules in one table both backends read, and add a manual
-  test step (docs/MANUAL_TEST.md) comparing GPU vs software toggle; (d) zero per-frame allocation in the upload.
 - Trace timing: a game frame that overruns its VBlank (e.g. the fade setup) is dumped mid-frame and the next dump
   shows no key update; step only on dumps whose successor's key struct differs (see `titleKeyPath`).
 - f1180: BG VRAM 0xD800..0xE800 differs from the dump (sync timing of a BG map copy).

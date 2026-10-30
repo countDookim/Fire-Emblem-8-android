@@ -68,7 +68,8 @@ _(nothing blocked)_
   RGB 16,14,12 vs mGBA 16,15,12 (ours darker there, unlike f1170).
   BLDY 8, BLDALPHA 0x0808 there: every darken formula gives the same result for evy 8 (ceil(c/2)), so the source
   colour or the effect differs (alpha 8/8 vs darken: suspect OBJ semi-transparency / target handling, not the formula).
-- Then: manual-test APK (M4-11 acceptance), title key paths, M3-07 GPU backend, M3-15.
+- Then: **M3-15 touch buttons** (owner 2026-10-30: debugging without a gamepad; before the manual-test APK), manual-test
+  APK (M4-11 acceptance), title key paths, M3-07 GPU backend.
 - Renderer gap (`FRAME_GAPS` in ProcEngineDifferentialTest and Fe8BootTest): frames with BLDCNT effect 3 (darken, e.g. f1170 BLDY 6,
   f1190 BLDY 10; f2200..2230) come out one 5-bit step brighter than mGBA even from the dump's own state (checked via
   FrameCompareTest). `MgbaColorMath.darken` widened-8-bit, 5-bit and unwidened-8-bit variants all tried: none fits;

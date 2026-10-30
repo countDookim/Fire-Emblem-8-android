@@ -4,7 +4,6 @@ import fe8.game.Fe8Boot
 import fe8.game.RomView
 import gbafe.core.VerifiesPort
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import java.io.File
@@ -64,7 +63,7 @@ class Fe8BootTest {
             compared++
         }
         assertEquals(27, lagFrames)
-        assertEquals(247, compared)
+        assertEquals(249, compared)
     }
 
     private fun traceRun(frame: Int) = ref.run(
@@ -125,9 +124,9 @@ class Fe8BootTest {
         const val FIRST_TRACED = 400
         const val LAST = 3600
 
-        // f1180: BG VRAM sync timing; f3000 / f3010: the title's first frames, sprites one step off.
+        // f1180: BG VRAM 0xD800..0xE800 differs (sync timing).
 
-        val FRAME_GAPS = setOf(1180, 3000, 3010)
+        val FRAME_GAPS = setOf(1180)
         val LOGO_FRAMES = listOf(300, 360, 430, 470)
     }
 }

@@ -27,13 +27,15 @@ public class GameSurfaceView(
     context: Context,
     game: Fe8Game,
     touch: ActionSource? = null,
+    /** Draw with [GpuBackend] (shaders) instead of uploading the software frame; boot ROM only. */
+    gpu: Boolean = false,
 ) : GLSurfaceView(context) {
     private val keys = HardwareKeySource()
 
     init {
         game.actionSource = if (touch == null) keys else ActionSource { keys.poll() or touch.poll() }
         setEGLContextClientVersion(3)
-        setRenderer(GameRenderer(game))
+        setRenderer(GameRenderer(game, gpu))
         renderMode = RENDERMODE_CONTINUOUSLY
         isFocusable = true
         isFocusableInTouchMode = true
@@ -55,8 +57,9 @@ public class GameSurfaceView(
     }
 }
 
-private class GameRenderer(private val game: Fe8Game) : GLSurfaceView.Renderer {
+private class GameRenderer(private val game: Fe8Game, gpu: Boolean) : GLSurfaceView.Renderer {
     private val loop = GameLoop(game)
+    private val gpuBackend = game.boot?.takeIf { gpu }?.let { GpuBackend(it.gpuFrame, it.tileSheets) }
     private val frame = game.frame
     private val upload: IntBuffer = ByteBuffer.allocateDirect(frame.pixels.size * 4).order(ByteOrder.nativeOrder()).asIntBuffer()
     private var program = 0
@@ -66,6 +69,8 @@ private class GameRenderer(private val game: Fe8Game) : GLSurfaceView.Renderer {
     private var viewH = 1
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+        game.gpuPresent = gpuBackend != null
+        gpuBackend?.init(::link, VERTEX)
         program = link(VERTEX, FRAGMENT)
         uScale = GLES30.glGetUniformLocation(program, "uScale")
         val ids = IntArray(1)
@@ -90,17 +95,25 @@ private class GameRenderer(private val game: Fe8Game) : GLSurfaceView.Renderer {
 
     override fun onDrawFrame(gl: GL10?) {
         loop.frame(System.nanoTime())
+        // Aspect-correct fit: scale the [-1,1] quad so the 3:2 image fits the view.
+        val gameAspect = frame.width.toFloat() / frame.height
+        val viewAspect = viewW.toFloat() / viewH
+        val sx = if (viewAspect > gameAspect) gameAspect / viewAspect else 1f
+        val sy = if (viewAspect > gameAspect) 1f else viewAspect / gameAspect
+        val gpu = gpuBackend
+        if (gpu != null) {
+            GLES30.glClearColor(0f, 0f, 0f, 1f)
+            GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
+            gpu.draw(sx, sy)
+            return
+        }
         upload.position(0)
         upload.put(frame.pixels)
         upload.position(0)
         GLES30.glClearColor(0f, 0f, 0f, 1f)
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
         GLES30.glUseProgram(program)
-        // Aspect-correct fit: scale the [-1,1] quad so the 3:2 image fits the view.
-        val gameAspect = frame.width.toFloat() / frame.height
-        val viewAspect = viewW.toFloat() / viewH
-        if (viewAspect > gameAspect) GLES30.glUniform2f(uScale, gameAspect / viewAspect, 1f)
-        else GLES30.glUniform2f(uScale, 1f, viewAspect / gameAspect)
+        GLES30.glUniform2f(uScale, sx, sy)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texture)
         // ARGB ints are B,G,R,A bytes in little-endian memory; the shader swizzles back.
         GLES30.glTexSubImage2D(GLES30.GL_TEXTURE_2D, 0, 0, 0, frame.width, frame.height, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, upload)

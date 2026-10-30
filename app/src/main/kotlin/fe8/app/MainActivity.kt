@@ -34,6 +34,9 @@ import io.github.countdookim.fe8.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/** Intent extra (boolean): draw with the GPU backend (M3-07) instead of the software renderer. */
+internal const val EXTRA_GPU: String = "gpu"
+
 /**
  * Single activity. Compose is used for the launcher/settings shell only; once the game starts the
  * content is a [GameSurfaceView] (OpenGL ES 3.0) and Compose does no per-frame work.
@@ -57,7 +60,8 @@ public class MainActivity : ComponentActivity() {
                                 val game = Fe8Game(rom = bundledBootRom(ctx))
                                 val touch = TouchButtons()
                                 FrameLayout(ctx).apply {
-                                    addView(GameSurfaceView(ctx, game, touch).also { surface = it })
+                                    val gpu = intent.getBooleanExtra(EXTRA_GPU, false)
+                                    addView(GameSurfaceView(ctx, game, touch, gpu).also { surface = it })
                                     addView(TouchOverlayView(ctx, touch))
                                 }
                             },

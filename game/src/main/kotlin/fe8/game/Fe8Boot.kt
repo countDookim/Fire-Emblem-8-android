@@ -9,6 +9,7 @@ import gbafe.proc.ProcEngine
 import gbafe.render.Camera
 import gbafe.render.ColorMath
 import gbafe.render.FrameBuffer
+import gbafe.render.GpuFrame
 import gbafe.render.HBlankLines
 import gbafe.render.HardwareSceneLoader
 import gbafe.render.RenderState
@@ -91,6 +92,12 @@ public class Fe8Boot(
 
     private val state = RenderState()
     private val sheets = TileSheets()
+
+    /** Packed per-frame data for the GPU backend, drawn from the same state as [screen]. */
+    public val gpuFrame: GpuFrame = GpuFrame(state, sheets)
+
+    /** Tile graphics the GPU backend uploads (sheet ids as in [gpuFrame]'s state). */
+    public val tileSheets: TileSheets get() = sheets
     private val loader = HardwareSceneLoader()
 
     private val renderer = SoftwareRenderer(state, sheets, screen, colorMath)
@@ -113,10 +120,20 @@ public class Fe8Boot(
      * handler's per-line register writes (run here, once per drawn frame).
      */
     public fun render() {
+        prepare()
+        renderer.render(camera)
+    }
+
+    /** Like [render], but packs [gpuFrame] for the GPU backend instead of drawing [screen]. */
+    public fun pack() {
+        prepare()
+        gpuFrame.pack()
+    }
+
+    private fun prepare() {
         loader.load(state, sheets, hw, loop.oam, io)
         if (hw.hblank.irqEnabled && hw.hblank.active != null) {
             HBlankLines.capture(io, state, hblankIo, hblankLine)
         }
-        renderer.render(camera)
     }
 }

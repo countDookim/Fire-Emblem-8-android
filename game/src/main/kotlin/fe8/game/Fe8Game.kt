@@ -58,11 +58,17 @@ public class Fe8Game(
         tickCount = t + 1
     }
 
+    /**
+     * Whether [present] packs [Fe8Boot.gpuFrame] for the GPU backend instead of drawing [frame] in
+     * software (only when [boot] exists; the test pattern is always software).
+     */
+    public var gpuPresent: Boolean = false
+
     /** Draws the current state into [frame]; [alpha] is ignored until interpolation is needed. */
     override fun present(alpha: Float) {
         val b = boot
         if (b != null) {
-            b.render()
+            if (gpuPresent) b.pack() else b.render()
             return
         }
         // Placeholder test pattern until the renderer exists: a slow vertical gradient.

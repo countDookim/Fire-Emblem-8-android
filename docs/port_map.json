@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 212,
-    "implemented_unverified": 31
+    "verified": 214,
+    "implemented_unverified": 30
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -1172,6 +1172,15 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
       ]
     },
+    "Title_EndAllProcChildren": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#START on the idle title fades to dark and ends the title like the per-frame RAM trace"
+      ]
+    },
     "Title_EndSkipFxListener": {
       "decomp_file": "src/titlescreen.c",
       "system": "presentation",
@@ -1395,8 +1404,10 @@
       "decomp_file": "src/bmlib.c",
       "system": "battle_map",
       "kotlin_file": "engine/render/src/main/kotlin/gbafe/render/ColorFade.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#START on the idle title fades to dark and ends the title like the per-frame RAM trace"
+      ]
     },
     "sub_80C5548": {
       "decomp_file": "src/titlescreen.c",

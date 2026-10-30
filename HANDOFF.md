@@ -56,12 +56,15 @@ _(nothing blocked)_
   first, then `tail_lines` <= 80 of the failing job).
 - Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.
 
-## Next task: per-line BG map block switch (OpAnimHBlank1), then M3-07, M3-15
-- `OpAnimHBlank1` switches BG2CNT's screen block (0x1E -> 0x1D at `gOpAnimSt.unk08`): `HBlankLines.capture` records
-  no BGCNT change, so f1110..1140 still differ by 78-80 px (`Fe8BootTest.SPLIT_FRAMES`, asserted <= 80). Idea: a
-  per-line BG control override + the loader filling a second map for that layer (TileLayer entries have room:
-  128x128), renderer picks it per line. Then tighten SPLIT_FRAMES to 0 and mark `OpAnimHBlank1/2` verified
-  (`@VerifiesPort` in Fe8BootTest).
+## Next task: the darken gap (now also f1110..1140), then M3-07, M3-15
+- `Fe8BootTest.SPLIT_FRAMES` f1110..1140 (asserted <= 80 px) differ only at x125..139, y137..151, below line
+  `gOpAnimSt.unk0A` (0x78..0x84) where `OpAnimHBlank2` sets BLDCNT 0xCCF (darken): the same one-step-too-bright
+  darken gap as f1170..1210 / f2200..2230 (see Renderer gap below; the split `unk08` is 0xA0, so BG2's map block never
+  switches). Fixing darken should zero all of them: then set the limit to 0, drop those FRAME_GAPS and add
+  `@VerifiesPort("OpAnimHBlank1")`/`OpAnimHBlank2` in Fe8BootTest.
+- Darken lead (not yet checked against pixels): only some pixels in those areas differ, so look at which layer/target
+  pairs differ (OBJ semi-transparent pixels? BG0 not a target in 0xCCF's top bits 0xF? backdrop). Dump our and mGBA's
+  channel values for one differing pixel (FrameCompareTest + `fe8.frameDiffDir`) before trying formulas again.
 - Then: manual-test APK (M4-11 acceptance), title key paths, M3-07 GPU backend, M3-15.
 - Renderer gap (`FRAME_GAPS` in ProcEngineDifferentialTest and Fe8BootTest): frames with BLDCNT effect 3 (darken, e.g. f1170 BLDY 6,
   f1190 BLDY 10; f2200..2230) come out one 5-bit step brighter than mGBA even from the dump's own state (checked via

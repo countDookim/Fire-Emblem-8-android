@@ -17,7 +17,7 @@ _(nothing blocked)_
 - Rules: a `@VerifiesPort` every run or two; no `java.*`/`javax.*` in new engine/game code (KMP, M4-07); battle
   rolls only via `mechanics.battleRolls`.
 
-## Next task: finish M3-07 (GPU backend), then M3-12 audio sink
+## Next task: owner manual tests of M3-07/M3-12, meanwhile M3-13 m4a sequencer
 - Done (merged to master; CI built the APK): `SpriteRasterizer` (shared OBJ rules), `GpuFrame` (per-line
   packing: layer origins, windows, blend, per-line palettes, CPU OBJ plane), `PackedCompositor` (Kotlin spec of
   the shader; parity with `SoftwareRenderer` in every `SoftwareRendererTest` scene via `@AfterEach` and on 15 mGBA
@@ -28,6 +28,10 @@ _(nothing blocked)_
   shader/`PackedCompositor` change; `glslangValidator` (apt `glslang-tools`) checks syntax.
 - Open: owner manual test (then mark M3-07 done); maps/sheets upload only when changed (palette, lines, OBJ plane every frame); sprites
   are still rasterised on CPU (OK for v1); GPU colour math is hardware (no mGBA variant).
+- M3-12 (branch `wip/M3-12`, merge once its CI is green): `gbafe.audio.AudioSource`/`ToneSource`,
+  `app/AudioTrackSink` (`PERFORMANCE_MODE_LOW_LATENCY`, 48 kHz, chunk = half the device minimum buffer) +
+  `AudioThread` (URGENT_AUDIO, one pre-allocated buffer), launcher "Test tone" button, MANUAL_TEST step.
+  Next: M3-13 m4a sequencer core (`m4a.c`), feeding an `AudioSource`.
 - If the owner still reports slow startup: measure what runs before the launcher draws (`Application`/
   `MainActivity.onCreate`, Compose init) or the first Play frame (`bundledBootRom`, `Fe8Game` setup).
 - Trace timing: a game frame that overruns its VBlank (e.g. the fade setup) is dumped mid-frame and the next dump

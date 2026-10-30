@@ -1,13 +1,11 @@
 # Instructions for Claude sessions
 
-1. Read `HANDOFF.md` first (one screen). Follow the Schedule section of `docs/PROJECT_BRIEF.md` AND its Amendments table
-   (amendments win). Scheduled runs: **~30 min** budget; work until ~minute 23, wrap up by ~30, never end early.
-   **Gate:** `tools/setup.sh` records the start (`tools/run_clock.sh start`). Before any wrap-up step (final full test,
-   HANDOFF, USAGE row) run `tools/run_clock.sh check`; if it fails, start the next HANDOFF task instead (on
-   `wip/<task-id>` if it may not finish), and check again later. Rule 9 never shortens a run (a run ended at ~17 min).
-   Every session appends its token usage to `docs/USAGE.md` before its final push (format in that file).
-2. Run `tools/setup.sh` (idempotent, logs its duration), then `source .assets.env`. Run it in the background with a log
-   (`tools/setup.sh > /tmp/setup.log 2>&1 &`, then poll): a cold Gradle warm-up can exceed a 2-min tool timeout.
+1. Read `HANDOFF.md` first; follow the Schedule of `docs/PROJECT_BRIEF.md` and its Amendments (amendments win).
+   Scheduled runs: ~30 min; work until ~minute 23, wrap up by ~30, never end early. Before any wrap-up step run
+   `tools/run_clock.sh check` (started by setup.sh); if it fails, start the next task (on `wip/<task-id>`). Every
+   session appends its `docs/USAGE.md` row before its final push.
+2. `tools/setup.sh > /tmp/setup.log 2>&1 &` (idempotent; poll the log: cold Gradle can pass 2 min), then
+   `source .assets.env`.
 3. Tests: `./gradlew jvmTest` (JVM only; never install the Android SDK in a session).
 4. Never commit the ROM or anything extracted from it. ROM-derived data goes to the ROM repo only. Until the public
    release, **debug/test APKs may bundle the ROM repo's extracted assets** (private `latest` release, owner 2026-10-28);

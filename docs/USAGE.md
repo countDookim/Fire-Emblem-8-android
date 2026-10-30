@@ -1,19 +1,10 @@
 # Session usage log
 
-One row per session (scheduled run or interactive conversation), appended by that session before its final push
-(owner request 2026-10-27, to track the project against the weekly usage limit).
-
-**What a session can measure, and what it can't.** A session cannot see the account's weekly-limit percentage
-or its billed token totals; only the owner's usage page in the Claude account settings shows those. What a session
-*can* see is its own token counter (the "tokens left" figure of its context budget, 15,000,000 per turn). Record:
-
-- **Tokens (counter):** tokens consumed per that counter: start-of-session value minus end-of-session value,
-  summed over turns (the counter resets each turn). It counts what the model processed, not billing; cached
-  re-reads may be weighted differently in the weekly limit. Mark estimated values with `~`.
-- **Minutes:** wall-clock from the session's start to its last push.
-- **Weekly %:** only if the owner stated it in the conversation (sessions cannot read it); else `—`.
-
-Keep each row to one line; add the totals line below the table up to date.
+One line per session (scheduled or interactive), appended before its final push (owner, 2026-10-27).
+- **Tokens (counter):** this session's token counter, start minus end, summed over turns (counts processing, not
+  billing; `~` = estimate). Sessions can't see the account's weekly % or billed totals.
+- **Minutes:** wall clock from start to last push. **Weekly %:** only if the owner stated it, else `—`.
+Keep the totals line below the table current.
 
 | Date (UTC) | Session | Kind | Minutes | Tokens (counter) | Weekly % | Work |
 |---|---|---|---|---|---|---|

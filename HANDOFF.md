@@ -56,7 +56,8 @@ _(nothing blocked)_
   first, then `tail_lines` <= 80 of the failing job).
 - Interleave verifiable ports with infrastructure: a `@VerifiesPort` lands every run or two.
 
-## Next task: the darken gap (now also f1110..1140), then M3-07, M3-15
+## Next task: rewrite the md files to be more concise and require less tokens to read.
+the darken gap (now also f1110..1140), then M3-07, M3-15
 - `Fe8BootTest.SPLIT_FRAMES` f1110..1140 (asserted <= 80 px) differ only at x125..139, y137..151, below line
   `gOpAnimSt.unk0A` (0x78..0x84) where `OpAnimHBlank2` sets BLDCNT 0xCCF (darken): the same one-step-too-bright
   darken gap as f1170..1210 / f2200..2230 (see Renderer gap below; the split `unk08` is 0xA0, so BG2's map block never

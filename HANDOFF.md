@@ -62,9 +62,12 @@ _(nothing blocked)_
   darken gap as f1170..1210 / f2200..2230 (see Renderer gap below; the split `unk08` is 0xA0, so BG2's map block never
   switches). Fixing darken should zero all of them: then set the limit to 0, drop those FRAME_GAPS and add
   `@VerifiesPort("OpAnimHBlank1")`/`OpAnimHBlank2` in Fe8BootTest.
-- Darken lead (not yet checked against pixels): only some pixels in those areas differ, so look at which layer/target
+- Darken lead: only some pixels in those areas differ, so look at which layer/target
   pairs differ (OBJ semi-transparent pixels? BG0 not a target in 0xCCF's top bits 0xF? backdrop). Dump our and mGBA's
-  channel values for one differing pixel (FrameCompareTest + `fe8.frameDiffDir`) before trying formulas again.
+  channel values for one differing pixel before trying formulas again. First sample: f1110 (127,149) ours 5-bit
+  RGB 16,14,12 vs mGBA 16,15,12 (ours darker there, unlike f1170).
+  BLDY 8, BLDALPHA 0x0808 there: every darken formula gives the same result for evy 8 (ceil(c/2)), so the source
+  colour or the effect differs (alpha 8/8 vs darken: suspect OBJ semi-transparency / target handling, not the formula).
 - Then: manual-test APK (M4-11 acceptance), title key paths, M3-07 GPU backend, M3-15.
 - Renderer gap (`FRAME_GAPS` in ProcEngineDifferentialTest and Fe8BootTest): frames with BLDCNT effect 3 (darken, e.g. f1170 BLDY 6,
   f1190 BLDY 10; f2200..2230) come out one 5-bit step brighter than mGBA even from the dump's own state (checked via

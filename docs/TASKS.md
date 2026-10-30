@@ -19,7 +19,7 @@ Done (details in git log): M2-01 New module :tools:extract; M2-02 LZ77; M2-03 4b
 | ID | Task | Done when | Status |
 |---|---|---|---|
 | M3-07 | GPU backend v1 in `:app`: tile layers + sprites via shaders, same render state | APK shows extracted test scene (manual test) | wip: code + shader parity done, awaiting manual test |
-| M3-12 | Low-latency `AudioTrack` sink (`PERFORMANCE_MODE_LOW_LATENCY`, mixer thread, no per-buffer allocs) | APK plays a test tone (manual test) | todo |
+| M3-12 | Low-latency `AudioTrack` sink (`PERFORMANCE_MODE_LOW_LATENCY`, mixer thread, no per-buffer allocs) | APK plays a test tone (manual test) | wip: code done, awaiting manual test |
 | M3-13 | m4a sequencer core (tempo, tracks, note on/off) from `m4a.c`/MIDI | unit tests vs MIDI timing | todo |
 | M3-14 | m4a mixer: direct-sound + PSG channels; compare against mGBA audio dump (harness: add audio capture) | RMS diff below threshold | todo |
 

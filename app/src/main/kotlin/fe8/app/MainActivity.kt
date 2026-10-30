@@ -30,6 +30,7 @@ import gbafe.input.TouchButtons
 import fe8.game.Fe8Boot
 import fe8.game.RomView
 import fe8.game.Fe8Game
+import gbafe.audio.ToneSource
 import io.github.countdookim.fe8.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -44,6 +45,20 @@ import kotlinx.coroutines.withContext
  */
 public class MainActivity : ComponentActivity() {
     private var surface: GameSurfaceView? = null
+    private var toneSink: AudioTrackSink? = null
+    private var tone: AudioThread? = null
+    private var tonePlaying = false
+
+    /** M3-12 manual test: starts/stops a 440 Hz tone through the low-latency sink; returns the new state. */
+    private fun toggleTone(): Boolean {
+        val thread = tone ?: AudioTrackSink().let { sink ->
+            toneSink = sink
+            AudioThread(ToneSource(sink.sampleRate), sink).also { tone = it }
+        }
+        tonePlaying = !tonePlaying
+        if (tonePlaying) thread.start() else thread.stop()
+        return tonePlaying
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,10 +80,15 @@ public class MainActivity : ComponentActivity() {
                             modifier = Modifier.fillMaxSize(),
                         )
                     } else {
-                        Launcher(onPlay = { useGpu ->
-                            gpu = useGpu
-                            playing = true
-                        })
+                        Launcher(
+                            onPlay = { useGpu ->
+                                gpu = useGpu
+                                tone?.stop()
+                                tonePlaying = false
+                                playing = true
+                            },
+                            onTone = ::toggleTone,
+                        )
                     }
                 }
             }
@@ -78,6 +98,14 @@ public class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         surface?.onPause()
+        tone?.stop()
+        tonePlaying = false
+    }
+
+    override fun onDestroy() {
+        tone?.stop()
+        toneSink?.release()
+        super.onDestroy()
     }
 
     override fun onResume() {
@@ -95,7 +123,7 @@ private fun bundledBootRom(ctx: Context): RomView? {
 }
 
 @Composable
-private fun Launcher(onPlay: (gpu: Boolean) -> Unit) {
+private fun Launcher(onPlay: (gpu: Boolean) -> Unit, onTone: () -> Boolean) {
     Column(
         Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
@@ -112,5 +140,7 @@ private fun Launcher(onPlay: (gpu: Boolean) -> Unit) {
         Text("Bundled test assets (debug builds only): ${bundled ?: "counting…"} files")
         Button(onClick = { onPlay(false) }) { Text("Play") }
         Button(onClick = { onPlay(true) }) { Text("Play (GPU renderer, experimental)") }
+        var toneOn by remember { mutableStateOf(false) }
+        Button(onClick = { toneOn = onTone() }) { Text(if (toneOn) "Stop test tone" else "Test tone (440 Hz)") }
     }
 }

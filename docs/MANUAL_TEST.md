@@ -15,6 +15,8 @@ on-screen touch buttons (D-pad diagonals, multi-touch).
 - [ ] **Play (GPU renderer, experimental)** on the launcher: the boot screens and title look exactly like
       with plain **Play** (same colours, fades, scrolling menu background), and run as smoothly. Report any
       difference, a black/garbled screen or a crash, with the phone model.
+- [ ] **Test tone (440 Hz)** on the launcher: a steady beep starts at once (no crackles or gaps, also while
+      you tap around), stops at once on **Stop test tone**, and stops when you switch apps.
 
 ## Known not working (don't report)
 Everything after the title: no gameplay, sound or saves; title key presses do nothing yet.

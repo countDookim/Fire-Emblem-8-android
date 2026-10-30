@@ -21,7 +21,12 @@ _(nothing blocked)_
 - CI green through cc19d4c (startup fix compiled); ROM repo `publish-assets` published the new reference runs.
 - If the owner still reports slow startup: measure what runs before the launcher draws (`Application`/
   `MainActivity.onCreate`, Compose init) or the first Play frame (`bundledBootRom`, `Fe8Game` setup).
-- M3-07: draw `RenderState` with shaders (today a CPU frame is uploaded to GL).
+- M3-07: draw `RenderState` with shaders (today `GameSurfaceView` uploads the `SoftwareRenderer` frame). Plan:
+  (a) textures: tile sheets as `R8UI` index textures re-uploaded only when dirty, palettes as a 512x1 RGBA
+  texture, 4 layer maps as `R16UI`, sprites as an instanced quad buffer; (b) one fragment shader composites per
+  pixel like `SoftwareRenderer` (priority, blend/brightness, windows, `LineTable` rows as a 160-row texture);
+  (c) parity: JVM can't run GL, so keep the compositing rules in one table both backends read, and add a manual
+  test step (docs/MANUAL_TEST.md) comparing GPU vs software toggle; (d) zero per-frame allocation in the upload.
 - Trace timing: a game frame that overruns its VBlank (e.g. the fade setup) is dumped mid-frame and the next dump
   shows no key update; step only on dumps whose successor's key struct differs (see `titleKeyPath`).
 - f1180: BG VRAM 0xD800..0xE800 differs from the dump (sync timing of a BG map copy).

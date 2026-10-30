@@ -24,5 +24,6 @@ Keep the totals line below the table current.
 | 2026-10-30 06:52 | `session_01NGGw9PqPBBpbSTMPeUbbVo` | scheduled | ~24 | ~160,000 | — | M4-11: measured step overruns (missedVBlanks) -> op anim + title… |
 | 2026-10-30 14:12 | `session_01NGGw9PqPBBpbSTMPeUbbVo` | scheduled | ~22 | ~150,000 | — | md files condensed (TASKS, brief, HANDOFF, CLAUDE, USAGE); M3-15… |
 | 2026-10-30 14:41 | `session_01NGGw9PqPBBpbSTMPeUbbVo` | interactive (owner request) | ~25 | ~250,000 | — | all md condensed, stale comments removed, slow-startup fix… |
+| 2026-10-30 14:53 | `session_01NGGw9NMrgHXvAZN4eQ9aK8` | scheduled run | ~24 | ~180,000 | — | M4-10 done: title A/Start fade-out and skip/restart paths verified (+7 ports), 2 new reference runs; MODDING dirs note; M3-07 plan |
 
-Totals recorded so far: ~2,213,000 tokens (counter), 2026-10-27 onward only.
+Totals recorded so far: ~2,393,000 tokens (counter), 2026-10-27 onward only.

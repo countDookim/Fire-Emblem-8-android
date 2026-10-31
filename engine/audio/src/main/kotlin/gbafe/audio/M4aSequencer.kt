@@ -2,9 +2,10 @@ package gbafe.audio
 
 /**
  * WIP (M3-13): `MPlayMain`'s tempo/tick/command loop, gate countdown and channel volume/pitch
- * updates. With [info], notes (`ply_note`, incl. `TIE`) are played; `PORT`, `MEMACC`, `XCMD`
+ * updates. With [info], notes (`ply_note`, incl. `TIE`) are played; `PORT`, `MEMACC`
  * (and notes without [info]) are not modelled: a track reaching one is reported
- * in [unsupported] and its state is then undefined. Not yet `Ported from`.
+ * in [unsupported] and its state is then undefined. Fades (`FadeOutBody`) are unverified.
+ * Not yet `Ported from`.
  */
 public class M4aSequencer(
     private val bus: M4aBus,
@@ -22,7 +23,9 @@ public class M4aSequencer(
     public fun step(p: M4aPlayer): Boolean {
         unsupported = 0
         commandsRun.fill(0)
-        if (p.ident != M4aPlayer.ID_NUMBER || p.status < 0 || p.fadeOI != 0) return false
+        if (p.ident != M4aPlayer.ID_NUMBER || p.status < 0) return false
+        M4aCommands.fadeOutBody(p, info)
+        if (p.status < 0) return true
         p.tempoC = (p.tempoC + p.tempoI) and 0xFFFF
         while (p.tempoC >= TICK) {
             var live = 0
@@ -181,7 +184,7 @@ public class M4aSequencer(
     private fun command(p: M4aPlayer, t: M4aTrack, cmd: Int): Boolean {
         when (cmd) {
             0xB2 -> M4aCommands.goto(t, bus)
-            0xB3 -> if (t.patternLevel < 3) M4aCommands.patt(t, bus) {} else return false
+            0xB3 -> M4aCommands.patt(t, bus, M4aCommands::fine)
             0xB4 -> M4aCommands.pend(t)
             0xB5 -> M4aCommands.rept(t, bus)
             0xBA -> M4aCommands.prio(t, bus)
@@ -198,8 +201,9 @@ public class M4aSequencer(
             0xC5 -> M4aCommands.modt(t, bus)
             0xC8 -> M4aCommands.tune(t, bus)
             0xB1, 0xB6, 0xB7, 0xB8, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB -> M4aCommands.fine(t)
+            0xCD -> return M4aCommands.xcmd(t, bus)
             0xCE -> M4aCommands.endtie(t, bus)
-            else -> return false // MEMACC, PORT, XCMD
+            else -> return false // MEMACC, PORT
         }
         return true
     }

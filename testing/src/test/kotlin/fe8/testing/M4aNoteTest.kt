@@ -32,6 +32,7 @@ class M4aNoteTest {
         var skipped = 0
         var notes = 0
         val why = IntArray(3)
+        val frameRuns = IntArray(64)
         val cmds = IntArray(256)
         var fines = 0
         var endties = 0
@@ -76,6 +77,7 @@ class M4aNoteTest {
                     continue
                 }
                 frames++
+                for (c in 0 until 64) if (runs ushr c and 1L != 0L) frameRuns[c]++
                 if (runs and 1L != 0L) fines++
                 if (runs ushr (0xCE - 0xB1) and 1L != 0L) endties++
                 val all = info.chans + info.cgbChans!!
@@ -105,6 +107,8 @@ class M4aNoteTest {
         )
         println("M4aNoteTest: why ${why.toList()} " + (0 until 256).filter { cmds[it] > 0 }
             .joinToString { "0x%02X=%d".format(it, cmds[it]) })
+        println("M4aNoteTest: frames running " + (0 until 64).filter { frameRuns[it] > 0 }
+            .joinToString { "0x%02X=%d".format(it + 0xB1, frameRuns[it]) })
         assertTrue(frames > 500 && notes > 100, "frames $frames, notes $notes")
         assertTrue(fines >= 2 && endties >= 4, "FINE in $fines frames, EOT in $endties")
     }

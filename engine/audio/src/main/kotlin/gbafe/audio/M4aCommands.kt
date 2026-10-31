@@ -381,6 +381,109 @@ public object M4aCommands {
         }
     }
 
+    /**
+     * `XCMD`: sub-command byte `n`, then `gXcmdTable[n]`: 0/3 `FINE`, 1 `wav` (4 bytes), 2 `type`,
+     * 4..7 attack/decay/sustain/release, 8/9 echo volume/length, 10 `length`, 11 `pan_sweep`.
+     * Returns false for `n` >= 12 (out of the table: undefined in the original). From src/m4a.c
+     * `ply_xcmd`; not verified yet (no trace runs an `XCMD`).
+     */
+    public fun xcmd(t: M4aTrack, bus: M4aBus): Boolean {
+        val n = bus.read8(t.cmdPtr)
+        t.cmdPtr += 1
+        val b = bus.read8(t.cmdPtr)
+        fun setByte(word: Int, shift: Int) {
+            t.tone[word] = (t.tone[word] and (0xFF shl shift).inv()) or (b shl shift)
+            t.cmdPtr += 1
+        }
+        when (n) {
+            0, 3 -> fine(t)
+            1 -> {
+                t.tone[1] = read32(bus, t.cmdPtr)
+                t.cmdPtr += 4
+            }
+            2 -> setByte(0, 0)
+            4, 5, 6, 7 -> setByte(2, 8 * (n - 4))
+            8 -> {
+                t.echoVolume = b
+                t.cmdPtr += 1
+            }
+            9 -> {
+                t.echoLength = b
+                t.cmdPtr += 1
+            }
+            10 -> setByte(0, 16)
+            11 -> setByte(0, 24)
+            else -> return false
+        }
+        return true
+    }
+
+    /**
+     * Silences every channel of [t] (status 0; CGB ones also through [M4aSoundInfo.cgbOscOff]),
+     * drops their track link and empties the chain. No-op for a track not in use. From
+     * src/m4a_1.s `TrackStop`; not verified yet (no trace stops a song).
+     */
+    public fun trackStop(info: M4aSoundInfo?, t: M4aTrack) {
+        if (t.flags and M4aTrack.FLG_EXIST == 0) return
+        var c = t.chan
+        while (c != null) {
+            if (c.status != 0) {
+                val cgb = c.type and 7
+                if (cgb != 0) info?.cgbOscOff?.invoke(cgb)
+                c.status = 0
+            }
+            c.track = null
+            c = c.next
+        }
+        t.chan = null
+    }
+
+    /**
+     * One fade step of [p] every `fadeOI` frames: fade-in raises `fadeOV` by 4 << 2 up to 64 << 2;
+     * fade-out lowers it and at 0 stops all tracks (keeping them if `TEMPORARY_FADE`) and pauses
+     * the player; otherwise every live track gets `volX = fadeOV >> 2` and a volume change.
+     * WIP: unverified (no reference trace has an active fade).
+     */
+    public fun fadeOutBody(p: M4aPlayer, info: M4aSoundInfo?) {
+        if (p.fadeOI == 0) return
+        p.fadeOC = (p.fadeOC - 1) and 0xFFFF
+        if (p.fadeOC != 0) return
+        p.fadeOC = p.fadeOI
+        if (p.fadeOV and FADE_IN != 0) {
+            p.fadeOV = (p.fadeOV + (4 shl 2)) and 0xFFFF
+            if (p.fadeOV >= 64 shl 2) {
+                p.fadeOV = 64 shl 2
+                p.fadeOI = 0
+            }
+        } else {
+            p.fadeOV = (p.fadeOV - (4 shl 2)) and 0xFFFF
+            if (((p.fadeOV shl 16) shr 16) <= 0) {
+                for (i in 0 until p.trackCount) {
+                    val t = p.tracks[i]
+                    trackStop(info, t)
+                    if (p.fadeOV and TEMPORARY_FADE == 0) t.flags = 0
+                }
+                p.status = if (p.fadeOV and TEMPORARY_FADE != 0) {
+                    p.status or M4aPlayer.STATUS_PAUSE
+                } else {
+                    M4aPlayer.STATUS_PAUSE
+                }
+                p.fadeOI = 0
+                return
+            }
+        }
+        for (i in 0 until p.trackCount) {
+            val t = p.tracks[i]
+            if (t.flags and M4aTrack.FLG_EXIST != 0) {
+                t.volX = p.fadeOV shr 2
+                t.flags = t.flags or M4aTrack.FLG_VOLCHG
+            }
+        }
+    }
+
+    private const val FADE_IN = 0x1
+    private const val TEMPORARY_FADE = 0x2
+
     /** `clear_modM`: modM = 0, lfoSpeedC = 0, flag the modulated target. */
     public fun clearModM(t: M4aTrack) {
         t.modM = 0

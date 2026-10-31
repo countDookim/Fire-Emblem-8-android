@@ -40,6 +40,10 @@ _(nothing blocked)_
   Unverified (no trace): `FadeOutBody`, `TrackStop`, `ply_xcmd` (needs a run with a BGM fade / song stop).
   `PcmStream` (not a port): SPSC ring, game thread `push(info)` after `M4aMixer.frame`, audio thread
   `render` resamples 13379 Hz (`pcmFreq`, 224 samples/frame) to the device rate.
+  `wip/M3-13-start`: `M4aSequencer.start` (`MPlayStart` + reverb `m4aSoundMode`), test FAILS: in the
+  traces a song start runs before SoundMain in some frames (r00480 logo_skip) and after it in others
+  (r03043 title_skip, r03065 title1); try both orders per frame (accept either) or find the order from
+  the dump (e.g. compare `tempoC`/`clock`), then merge.
   Next: wire a per-frame driver (sequencers in `intp` order -> `M4aMixer.frame` -> `PcmStream.push`) into
   the app's `AudioThread` once song start (`m4aSongNumStart`/`MPlayStart`) is ported; `CgbSound` (CGB
   channels 1-4 -> PSG; needs a PSG model); claim `MPlayMain` once fades are verified.

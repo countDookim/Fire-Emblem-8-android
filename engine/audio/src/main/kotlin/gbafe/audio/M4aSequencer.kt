@@ -2,8 +2,8 @@ package gbafe.audio
 
 /**
  * WIP (M3-13): `MPlayMain`'s tempo/tick/command loop, gate countdown and channel volume/pitch
- * updates. With [info], notes (`ply_note`, incl. `TIE`) are played; `FINE`, `EOT`, `PORT`,
- * `MEMACC`, `XCMD` (and notes without [info]) are not modelled: a track reaching one is reported
+ * updates. With [info], notes (`ply_note`, incl. `TIE`) are played; `PORT`, `MEMACC`, `XCMD`
+ * (and notes without [info]) are not modelled: a track reaching one is reported
  * in [unsupported] and its state is then undefined. Not yet `Ported from`.
  */
 public class M4aSequencer(
@@ -197,7 +197,9 @@ public class M4aSequencer(
             0xC4 -> M4aCommands.mod(t, bus)
             0xC5 -> M4aCommands.modt(t, bus)
             0xC8 -> M4aCommands.tune(t, bus)
-            else -> return false // FINE (and aliases), MEMACC, PORT, XCMD, EOT
+            0xB1, 0xB6, 0xB7, 0xB8, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB -> M4aCommands.fine(t)
+            0xCE -> M4aCommands.endtie(t, bus)
+            else -> return false // MEMACC, PORT, XCMD
         }
         return true
     }

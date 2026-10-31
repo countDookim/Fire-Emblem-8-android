@@ -24,13 +24,17 @@ class M4aNoteTest {
     )
 
     @Test
-    @VerifiesPort("ply_note", "RealClearChain")
+    @VerifiesPort("ply_note", "RealClearChain", "ply_fine", "ply_endtie")
     fun `channels step like the per-frame RAM traces`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present")
         val rom = romFile.readBytes()
         var frames = 0
         var skipped = 0
         var notes = 0
+        val why = IntArray(3)
+        val cmds = IntArray(256)
+        var fines = 0
+        var endties = 0
         for (dir in ref.root.listFiles().orEmpty().filter { it.isDirectory }) {
             val dumps = dir.listFiles().orEmpty().mapNotNull { f ->
                 DUMP.matchEntire(f.name)?.let { it.groupValues[1].toInt() to f }
@@ -41,23 +45,39 @@ class M4aNoteTest {
                 val b = next.readBytes()
                 val (players, info) = M4aRam.sound(a)
                 val (qs, infoB) = M4aRam.sound(b)
-                val order = chain(a).map { addr -> M4aRam.PLAYERS.values.indexOfFirst { it.first == addr } }
+                val order = chain(a).map { addr ->
+                    M4aRam.PLAYERS.values.indexOfFirst { it.first == addr }
+                }
                 if (order.any { it < 0 }) continue
                 val seq = M4aSequencer({ x -> rom[x - 0x08000000].toInt() and 0xFF }, info)
                 var ok = true
+                var runs = 0L
                 for (i in order) {
                     val p = players[i]
                     val q = qs[i]
-                    if (p.songHeader != q.songHeader || q.fadeOI != 0 || p.fadeOI != 0) ok = false
+                    // A live player's fade (FadeOutBody) is not modelled; paused ones skip it.
+                    val fade = (p.status >= 0 && p.fadeOI != 0) || (q.status >= 0 && q.fadeOI != 0)
+                    if (p.songHeader != q.songHeader) why[0]++
+                    if (fade) why[1]++
+                    if (p.songHeader != q.songHeader || fade) ok = false
                     if (!ok) break
                     seq.step(p)
-                    if (seq.unsupported != 0) ok = false
+                    if (seq.unsupported != 0) {
+                        ok = false
+                        why[2]++
+                        for (k in 0 until p.trackCount) {
+                            if (seq.unsupported ushr k and 1 != 0) cmds[p.tracks[k].runningStatus]++
+                        }
+                    }
+                    for (c in seq.commandsRun) runs = runs or c
                 }
                 if (!ok) {
                     skipped++
                     continue
                 }
                 frames++
+                if (runs and 1L != 0L) fines++
+                if (runs ushr (0xCE - 0xB1) and 1L != 0L) endties++
                 val all = info.chans + info.cgbChans!!
                 val allB = infoB.chans + infoB.cgbChans!!
                 for (c in all.indices) {
@@ -79,8 +99,14 @@ class M4aNoteTest {
                 }
             }
         }
-        println("M4aNoteTest: frames $frames, skipped $skipped, notes started $notes")
+        println(
+            "M4aNoteTest: frames $frames, skipped $skipped, notes $notes, FINE $fines, " +
+                "EOT $endties",
+        )
+        println("M4aNoteTest: why ${why.toList()} " + (0 until 256).filter { cmds[it] > 0 }
+            .joinToString { "0x%02X=%d".format(it, cmds[it]) })
         assertTrue(frames > 500 && notes > 100, "frames $frames, notes $notes")
+        assertTrue(fines >= 2 && endties >= 4, "FINE in $fines frames, EOT in $endties")
     }
 
     private fun fields(c: M4aChannel): List<Int> = listOf(

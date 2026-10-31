@@ -182,7 +182,7 @@ public object M4aCommands {
     }
 
     /**
-     * `ply_note` argument parse (m4a_1.s 1348..1380): gateTime = `gClockTable[noteIndex]`, then up to
+     * `ply_note` argument parse: gateTime = `gClockTable[noteIndex]`, then up to
      * three bytes < 0x80 at cmdPtr: key, velocity, extra gate time.
      */
     private fun noteArgs(t: M4aTrack, bus: M4aBus, gate: Int) {
@@ -206,7 +206,7 @@ public object M4aCommands {
     }
 
     /**
-     * `ply_note` voice resolution (m4a_1.s ~1388..1420) for a key-split (0x40) or rhythm (0x80) track
+     * `ply_note` voice resolution for a key-split (0x40) or rhythm (0x80) track
      * voice: the sub-voice entry address is `tone.wav + 12 * (split ? keySplitTable[key] : key)`.
      * Returns that address, or -1 if the entry is itself split/rhythm (note dropped). For a rhythm
      * voice the caller then plays the entry's key (byte 1) and, if its pan byte 3 has bit 7, rhythm
@@ -222,7 +222,7 @@ public object M4aCommands {
     /**
      * `ply_note` (commands 0xCF..0xFF; [index] = command - 0xCF): parses key/velocity/gate time,
      * resolves key-split/rhythm voices, takes a free or lower-priority channel (CGB: the voice's
-     * fixed channel; DirectSound: free, else the lowest-priority releasing, else the lowest-priority
+     * fixed channel; DirectSound: free, else the lowest-priority releasing, else lowest-priority
      * playing one, ties to the higher track address), links it at the head of the track's chain
      * and starts it (status 0x80); then clears the track's low flags. Dropped notes change only
      * the parsed track fields.
@@ -339,6 +339,47 @@ public object M4aCommands {
     }
 
     private fun trackAddress(c: M4aChannel): Int = c.track?.address ?: 0
+
+    /**
+     * `FINE`: releases every active channel of [t], unlinks the whole chain and stops the track
+     * (flags = 0).
+     *
+     * Ported from src/m4a_1.s: ply_fine
+     */
+    public fun fine(t: M4aTrack) {
+        var c = t.chan
+        while (c != null) {
+            if (c.isActive) c.status = c.status or 0x40
+            c.clearChain()
+            c = c.next
+        }
+        t.flags = 0
+    }
+
+    /**
+     * `EOT`: optional key argument (else the track key); releases the newest playing, not yet
+     * releasing channel of [t] whose `midiKey` is that key.
+     *
+     * Ported from src/m4a_1.s: ply_endtie
+     */
+    public fun endtie(t: M4aTrack, bus: M4aBus) {
+        val b = bus.read8(t.cmdPtr)
+        val key = if (b < 0x80) {
+            t.key = b
+            t.cmdPtr += 1
+            b
+        } else {
+            t.key
+        }
+        var c = t.chan
+        while (c != null) {
+            if (c.status and 0x83 != 0 && c.status and 0x40 == 0 && c.midiKey == key) {
+                c.status = c.status or 0x40
+                return
+            }
+            c = c.next
+        }
+    }
 
     /** `clear_modM`: modM = 0, lfoSpeedC = 0, flag the modulated target. */
     public fun clearModM(t: M4aTrack) {

@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 226,
+    "verified": 233,
     "implemented_unverified": 28
   },
   "functions": {
@@ -510,6 +510,15 @@
       "status": "implemented",
       "tests": []
     },
+    "MPlayStart": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aSequencer.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
     "MidiKeyToCgbFreq": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -961,6 +970,15 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "RealClearChain": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aChannel.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
     "ResetKeyStatus": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -1140,6 +1158,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#A on the title intro fx restarts the title like the per-frame RAM trace"
+      ]
+    },
+    "SoundMainRAM": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aMixer.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
       ]
     },
     "StartFadeCore": {
@@ -1424,6 +1451,33 @@
         "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
       ]
     },
+    "m4aMPlayImmInit": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aSequencer.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "ply_endtie": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "ply_fine": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
     "ply_keysh": {
       "decomp_file": "src/m4a_1.s",
       "system": "audio",
@@ -1431,6 +1485,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
+      ]
+    },
+    "ply_note": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
       ]
     },
     "ply_pan": {

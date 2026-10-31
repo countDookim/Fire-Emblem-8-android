@@ -43,9 +43,9 @@ _(nothing blocked)_
   `wip/M3-13-start`: `M4aSequencer.start` (`MPlayStart` + reverb `m4aSoundMode`), test FAILS: in the
   traces a song start runs before SoundMain in some frames (r00480 logo_skip) and after it in others
   (r03043 title_skip, r03065 title1). The branch picks the order from the next dump's track-0 START flag;
-  r00480 still differs: real track 0 has the `Clear64byte` defaults (flags 0x80) but ran no command
-  (cmdPtr unchanged, wait 0), ours ran one tick. Check how `MPlayMain` handles START in the tick (asm
-  m4a_1.s ~1036-1090, `_081DD8BA` -> `_081DD938`) or an ident lock (`MPlayStart` ident++), then merge.
+  r00480 still differs: real player has clock 0, tempoC 0, track 0 flags 0x80 with `Clear64byte`
+  defaults and cmdPtr unchanged = the game ran `MPlayStart` + `m4aMPlayImmInit` (m4a.c) after SoundMain.
+  Port `m4aMPlayImmInit` and use it when the next dump shows that pattern, then merge.
   Next: wire a per-frame driver (sequencers in `intp` order -> `M4aMixer.frame` -> `PcmStream.push`) into
   the app's `AudioThread` once song start (`m4aSongNumStart`/`MPlayStart`) is ported; `CgbSound` (CGB
   channels 1-4 -> PSG; needs a PSG model); claim `MPlayMain` once fades are verified.

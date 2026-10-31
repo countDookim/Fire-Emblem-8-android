@@ -53,6 +53,29 @@ public class M4aPlayer(
     /** `ident`: [ID_NUMBER] when idle; other values lock the player. */
     public var ident: Int = ID_NUMBER
 
+    /** `intp`: the next player `SoundMain` runs (`func` = `MPlayMain` when non-null). */
+    public var intp: M4aPlayer? = null
+
+    /** `Clear64byte`: zeroes the struct's first 64 bytes (every field above, incl. [ident]). */
+    internal fun clear64() {
+        songHeader = 0
+        status = 0
+        trackCount = 0
+        priority = 0
+        unkB = 0
+        clock = 0
+        tempoD = 0
+        tempoU = 0
+        tempoI = 0
+        tempoC = 0
+        fadeOI = 0
+        fadeOC = 0
+        fadeOV = 0
+        tone = 0
+        ident = 0
+        intp = null
+    }
+
     /** `MusicPlayerInfo` constants. */
     public companion object {
         /** `MUSICPLAYER_STATUS_PAUSE`. */

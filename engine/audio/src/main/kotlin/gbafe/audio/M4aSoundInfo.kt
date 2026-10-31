@@ -13,6 +13,42 @@ public class M4aSoundInfo(
     /** `ident`: `ID_NUMBER` when idle, `ID_NUMBER + 1` while `SoundMain` runs; else locked. */
     public var ident: Int = M4aPlayer.ID_NUMBER
 
+    /** `intp`: the first player `SoundMain` runs (`func` = `MPlayMain` when non-null). */
+    public var intp: M4aPlayer? = null
+
+    /** The players `SoundMain` runs, in order: [intp], then along [M4aPlayer.intp]. */
+    public fun chain(): List<M4aPlayer> {
+        val out = ArrayList<M4aPlayer>()
+        var p = intp
+        while (p != null) {
+            out += p
+            p = p.intp
+        }
+        return out
+    }
+
+    /**
+     * `MPlayOpen`: clears [p], gives it [trackCount] (at most 16 and its track slots) cleared
+     * tracks, pauses it and puts it at the head of the `SoundMain` chain ([intp]). Does nothing
+     * if [trackCount] is 0 or this is locked ([ident] is not `ID_NUMBER`).
+     *
+     * Ported from src/m4a.c: MPlayOpen
+     */
+    public fun open(p: M4aPlayer, trackCount: Int) {
+        var n = trackCount and 0xFF
+        if (n == 0) return
+        if (n > MAX_TRACKS) n = MAX_TRACKS
+        require(n <= p.tracks.size) { "$n tracks, ${p.tracks.size} slots" }
+        if (ident != M4aPlayer.ID_NUMBER) return
+        p.clear64()
+        p.trackCount = n
+        p.status = M4aPlayer.STATUS_PAUSE
+        for (i in 0 until n) p.tracks[i].flags = 0
+        p.intp = intp // func != 0 exactly when intp is set
+        intp = p
+        p.ident = M4aPlayer.ID_NUMBER
+    }
+
     /** `maxChans` (u8): DirectSound channels in use. */
     public var maxChans: Int = chans.size
 
@@ -63,5 +99,8 @@ public class M4aSoundInfo(
     public companion object {
         /** `PCM_DMA_BUF_SIZE`. */
         public const val PCM_DMA_BUF_SIZE: Int = 0x630
+
+        /** `MAX_MUSICPLAYER_TRACKS`. */
+        public const val MAX_TRACKS: Int = 16
     }
 }

@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 233,
+    "verified": 240,
     "implemented_unverified": 28
   },
   "functions": {
@@ -510,6 +510,24 @@
       "status": "implemented",
       "tests": []
     },
+    "MPlayFadeOut": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aOpenTest#opening the players gives the traced chain and idle state"
+      ]
+    },
+    "MPlayOpen": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aSoundInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aOpenTest#opening the players gives the traced chain and idle state"
+      ]
+    },
     "MPlayStart": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -1002,6 +1020,15 @@
       "status": "implemented",
       "tests": []
     },
+    "SampleFreqSet": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aSoundInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aOpenTest#sample rate setup matches the traced SoundInfo"
+      ]
+    },
     "SaveDraw_ScrollFogBG": {
       "decomp_file": "src/savedraw.c",
       "system": "save",
@@ -1158,6 +1185,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#A on the title intro fx restarts the title like the per-frame RAM trace"
+      ]
+    },
+    "SoundInit": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aSoundInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aOpenTest#sample rate setup matches the traced SoundInfo"
       ]
     },
     "SoundMainRAM": {
@@ -1455,6 +1491,33 @@
       "decomp_file": "src/m4a.c",
       "system": "audio",
       "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aSequencer.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "m4aSongNumStart": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aSequencer.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "m4aSoundMode": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aSoundInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aOpenTest#sample rate setup matches the traced SoundInfo"
+      ]
+    },
+    "m4aSoundVSync": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aSoundInfo.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"

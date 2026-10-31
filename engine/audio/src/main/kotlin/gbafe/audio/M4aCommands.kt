@@ -136,6 +136,12 @@ public object M4aCommands {
         if (t.mod == 0) clearModM(t)
     }
 
+    /** `VOICE`: copies the 12-byte `ToneData` entry of the player's voice group into the track. */
+    public fun voice(p: M4aPlayer, t: M4aTrack, bus: M4aBus) {
+        val a = p.tone + arg(t, bus) * 12
+        for (i in 0 until 3) t.tone[i] = read32(bus, a + 4 * i)
+    }
+
     /** `clear_modM`: modM = 0, lfoSpeedC = 0, flag the modulated target. */
     public fun clearModM(t: M4aTrack) {
         t.modM = 0

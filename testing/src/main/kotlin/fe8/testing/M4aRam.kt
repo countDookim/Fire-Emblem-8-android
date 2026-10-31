@@ -37,6 +37,8 @@ public object M4aRam {
         p.fadeOI = u16(iwram, o + 0x24)
         p.fadeOC = u16(iwram, o + 0x26)
         p.fadeOV = u16(iwram, o + 0x28)
+        p.tone = u32(iwram, o + 0x30)
+        p.ident = u32(iwram, o + 0x34)
         return p
     }
 
@@ -76,6 +78,7 @@ public object M4aRam {
             lfoDelay = u(0x1B)
             lfoDelayC = u(0x1C)
             priority = u(0x1D)
+            for (i in 0 until 3) tone[i] = u32(iwram, o + 0x24 + 4 * i)
             cmdPtr = u32(iwram, o + 0x40)
             for (i in 0 until 3) patternStack[i] = u32(iwram, o + 0x44 + 4 * i)
         }

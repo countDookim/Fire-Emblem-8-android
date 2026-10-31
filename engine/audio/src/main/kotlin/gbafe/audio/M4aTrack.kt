@@ -53,6 +53,9 @@ public class M4aTrack {
     /** `patternStack`: return addresses of `PATT` calls. */
     public val patternStack: IntArray = IntArray(3)
 
+    /** `tone` (struct ToneData, 12 bytes) as its three little-endian words. */
+    public val tone: IntArray = IntArray(3)
+
     /** `keyM` (u8): key offset in semitones applied to playing notes. */
     public var keyM: Int = 0
 

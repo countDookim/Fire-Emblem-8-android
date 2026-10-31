@@ -44,9 +44,18 @@ public class M4aPlayer(
     /** `fadeOV` (u16): fade volume << 2 | `FADE_IN` | `TEMPORARY_FADE`. */
     public var fadeOV: Int = 0
 
+    /** `tone`: GBA address of the song's voice group. */
+    public var tone: Int = 0
+
+    /** `ident`: [ID_NUMBER] when idle; other values lock the player. */
+    public var ident: Int = ID_NUMBER
+
     /** `MusicPlayerInfo` constants. */
     public companion object {
         /** `MUSICPLAYER_STATUS_PAUSE`. */
         public const val STATUS_PAUSE: Int = Int.MIN_VALUE
+
+        /** `ID_NUMBER` ("Smsh"). */
+        public const val ID_NUMBER: Int = 0x68736D53
     }
 }

@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-10-30 (scheduled run 22:50). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-10-31 (scheduled run 06:51). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
@@ -10,14 +10,13 @@ _(nothing blocked)_
   Likely cause fixed (unconfirmed on device): the launcher counted thousands of bundled assets on the main thread
   (`AssetLayer.list` also did a per-file `exists()`, quadratic); now counted on `Dispatchers.IO`, no `exists()`.
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
-- Verified ports: 216 / 8352 (this run: Title_IDLE, sub_8013F40, ColorFadeSetupFromColorToBlack, sub_80141B0,
-  Title_EndAllProcChildren, SkipTitleFx_Loop_KeyListener, Title_RestartProc; new runs `ram_trace_title_start`,
-  `ram_trace_title_skip`). M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
-  `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`.
+- Verified ports: 226 / 8352 (this run, m4a: MidiKeyToFreq, MidiKeyToCgbFreq, TrkVolPitSet, ChnVolSetAsm,
+  ply_pend, ply_tempo, ply_keysh, ply_voice, ply_vol, ply_pan). M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
+  `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`, `wip/M3-13-seq` (merged).
 - Rules: a `@VerifiesPort` every run or two; no `java.*`/`javax.*` in new engine/game code (KMP, M4-07); battle
   rolls only via `mechanics.battleRolls`.
 
-## Next task: owner manual tests of M3-07/M3-12, meanwhile M3-13 m4a sequencer
+## Next task: owner manual tests of M3-07/M3-12, meanwhile M3-13 m4a sequencer (ply_note next)
 - Done (merged to master; CI built the APK): `SpriteRasterizer` (shared OBJ rules), `GpuFrame` (per-line
   packing: layer origins, windows, blend, per-line palettes, CPU OBJ plane), `PackedCompositor` (Kotlin spec of
   the shader; parity with `SoftwareRenderer` in every `SoftwareRendererTest` scene via `@AfterEach` and on 15 mGBA
@@ -31,7 +30,16 @@ _(nothing blocked)_
 - M3-12 (merged; CI built the APK): `gbafe.audio.AudioSource`/`ToneSource`,
   `app/AudioTrackSink` (`PERFORMANCE_MODE_LOW_LATENCY`, 48 kHz, chunk = half the device minimum buffer) +
   `AudioThread` (URGENT_AUDIO, one pre-allocated buffer), launcher "Test tone" button, MANUAL_TEST step.
-  Next: M3-13 m4a sequencer core, feeding an `AudioSource`. Sources (decomp sparse-checkout `src/m4a*`):
+- M3-13 (in progress, on master): `gbafe.audio` `M4aPitch` (pitch tables generated, checked vs ROM),
+  `M4aTrack`/`M4aChannel`/`M4aPlayer` state, `M4aCommands` (ply_* handlers incl. `chk_adr_r2`), `M4aSequencer`
+  (WIP `MPlayMain` tick/tempo/LFO/command loop, no notes/channels). Ground truth needs no new run:
+  `testing/M4aRam` loads players/tracks from any IWRAM dump; `M4aSequencerTest` steps each per-frame dump and
+  matches 22955 track steps (771 skipped: tracks hitting a note/FINE/EOT/TIE/PORT/MEMACC/XCMD). Next: `ply_note`
+  (channel allocation, then remove its skip), `ply_fine`/`ply_endtie`/`TrackStop`/`RealClearChain`, gate-time
+  loop, then `MPlayMain` (claim when nothing is skipped), then `SoundMainRAM` mixer into an `AudioSource`.
+  Facts: `ply_note` clears all low track flags after starting a note, so older channels keep stale volume
+  (check head channels only); `FadeOutBody` has no active fade in any trace (needs a new run with a BGM fade).
+  Was: M3-13 m4a sequencer core, feeding an `AudioSource`. Sources (decomp sparse-checkout `src/m4a*`):
   `src/m4a.c` (1553 lines, C: MPlay init/start/stop, MidiKeyToFreq, ply_* helpers), `src/m4a_1.s` (ARM/Thumb asm:
   `MPlayMain` sequencer, `ply_note`/`ply_*` commands, `SoundMain` mixer), `src/m4a_tables.c`. Ground truth: trace
   `gMPlayInfo_*`/`SoundInfo` RAM per frame in a new reference run (harness), compare track state per tick.

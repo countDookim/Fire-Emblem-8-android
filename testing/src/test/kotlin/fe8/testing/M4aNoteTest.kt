@@ -31,7 +31,7 @@ class M4aNoteTest {
     @Test
     @VerifiesPort(
         "ply_note", "RealClearChain", "ply_fine", "ply_endtie", "SoundMainRAM",
-        "MPlayStart", "m4aMPlayImmInit", "m4aSongNumStart",
+        "MPlayStart", "m4aMPlayImmInit", "m4aSongNumStart", "m4aSoundVSync",
     )
     fun `channels step like the per-frame RAM traces`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present")
@@ -47,6 +47,7 @@ class M4aNoteTest {
         var enveloped = 0
         var pcmFrames = 0
         var immInits = 0
+        var vSyncs = 0
         val songNums = sortedSetOf<Int>()
         var fixed = 0
         var looped = 0
@@ -118,7 +119,9 @@ class M4aNoteTest {
                 maxLines = maxOf(maxLines, a[0x5410 + 0x0C].toInt() and 0xFF)
                 notes += info.chans.count { it.status == 0x80 }
                 // m4aSoundVSync (VBlank IRQ) steps the DMA counter before SoundMain runs.
-                info.pcmDmaCounter = infoB.pcmDmaCounter
+                info.vSync()
+                assertEquals(infoB.pcmDmaCounter, info.pcmDmaCounter, "pcmDmaCounter r$n")
+                vSyncs++
                 M4aMixer.frame(info, bus)
                 // The game starts songs after SoundMain (mixer) in the frame.
                 for ((n, imm) in starts) {
@@ -189,7 +192,7 @@ class M4aNoteTest {
             .joinToString { "0x%02X=%d".format(it + 0xB1, frameRuns[it]) })
         assertTrue(frames > 500 && notes > 100, "frames $frames, notes $notes")
         assertTrue(pcmFrames > 500 && fixed > 0 && looped > 0, "pcm $pcmFrames, fixed $fixed")
-        assertTrue(why[0] >= 4 && immInits >= 1, "song starts ${why[0]} (songs $songNums), ImmInit $immInits")
+        assertTrue(why[0] >= 4 && immInits >= 1 && vSyncs > 0, "song starts ${why[0]} (songs $songNums), ImmInit $immInits")
         assertTrue(fines >= 2 && endties >= 4, "FINE in $fines frames, EOT in $endties")
     }
 

@@ -105,6 +105,7 @@ public object M4aRam {
         }
         for (t in tracks.values) t.chan = chans[u32(iwram, t.address - IWRAM + 0x20)]
         val info = M4aSoundInfo(direct, cgb)
+        info.ident = u32(iwram, SOUND_INFO - IWRAM)
         info.maxChans = u8(iwram, SOUND_INFO - IWRAM + 6)
         info.masterVolume = u8(iwram, SOUND_INFO - IWRAM + 7)
         info.pcmDmaCounter = u8(iwram, SOUND_INFO - IWRAM + 4)

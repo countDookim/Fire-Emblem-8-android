@@ -10,6 +10,9 @@ public class M4aSoundInfo(
     /** `cgbChans`: CGB channels 1..4, or null. */
     public val cgbChans: Array<M4aChannel>?,
 ) {
+    /** `ident`: `ID_NUMBER` when idle, `ID_NUMBER + 1` while `SoundMain` runs; else locked. */
+    public var ident: Int = M4aPlayer.ID_NUMBER
+
     /** `maxChans` (u8): DirectSound channels in use. */
     public var maxChans: Int = chans.size
 
@@ -21,6 +24,22 @@ public class M4aSoundInfo(
 
     /** `pcmDmaPeriod` (u8): VBlanks per PCM buffer. */
     public var pcmDmaPeriod: Int = 0
+
+    /**
+     * `m4aSoundVSync` (VBlank IRQ): counts [pcmDmaCounter] down; at 0 reloads it from
+     * [pcmDmaPeriod] and returns true (the original restarts the sound FIFO DMAs at the buffer
+     * start there; a port's audio output owns playback). Skipped (false) unless [ident] is
+     * `ID_NUMBER` or `ID_NUMBER + 1`.
+     *
+     * Ported from src/m4a_1.s: m4aSoundVSync
+     */
+    public fun vSync(): Boolean {
+        if ((ident - M4aPlayer.ID_NUMBER).toUInt() > 1u) return false
+        pcmDmaCounter = (pcmDmaCounter - 1) and 0xFF
+        if (pcmDmaCounter.toByte() > 0) return false
+        pcmDmaCounter = pcmDmaPeriod
+        return true
+    }
 
     /** `pcmSamplesPerVBlank`. */
     public var pcmSamplesPerVBlank: Int = 0

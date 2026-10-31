@@ -42,8 +42,10 @@ _(nothing blocked)_
   `render` resamples 13379 Hz (`pcmFreq`, 224 samples/frame) to the device rate.
   `wip/M3-13-start`: `M4aSequencer.start` (`MPlayStart` + reverb `m4aSoundMode`), test FAILS: in the
   traces a song start runs before SoundMain in some frames (r00480 logo_skip) and after it in others
-  (r03043 title_skip, r03065 title1); try both orders per frame (accept either) or find the order from
-  the dump (e.g. compare `tempoC`/`clock`), then merge.
+  (r03043 title_skip, r03065 title1). The branch picks the order from the next dump's track-0 START flag;
+  r00480 still differs: real track 0 has the `Clear64byte` defaults (flags 0x80) but ran no command
+  (cmdPtr unchanged, wait 0), ours ran one tick. Check how `MPlayMain` handles START in the tick (asm
+  m4a_1.s ~1036-1090, `_081DD8BA` -> `_081DD938`) or an ident lock (`MPlayStart` ident++), then merge.
   Next: wire a per-frame driver (sequencers in `intp` order -> `M4aMixer.frame` -> `PcmStream.push`) into
   the app's `AudioThread` once song start (`m4aSongNumStart`/`MPlayStart`) is ported; `CgbSound` (CGB
   channels 1-4 -> PSG; needs a PSG model); claim `MPlayMain` once fades are verified.

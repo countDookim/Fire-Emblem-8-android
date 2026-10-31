@@ -8,6 +8,51 @@ public class M4aTrack {
     /** `flags`: the `FLG_*` bits ([FLG_VOLSET], [FLG_PITSET], [FLG_START], [FLG_EXIST], ...). */
     public var flags: Int = 0
 
+    /** `wait` (u8): ticks until the next command. */
+    public var wait: Int = 0
+
+    /** `patternLevel` (u8): `PATT` call depth (0..3). */
+    public var patternLevel: Int = 0
+
+    /** `repN` (u8): `REPT` loop counter. */
+    public var repN: Int = 0
+
+    /** `gateTime` (u8): gate time of the last note. */
+    public var gateTime: Int = 0
+
+    /** `key` (u8): last note key. */
+    public var key: Int = 0
+
+    /** `velocity` (u8): last note velocity. */
+    public var velocity: Int = 0
+
+    /** `runningStatus` (u8): last command byte, repeated by bytes < 0x80. */
+    public var runningStatus: Int = 0
+
+    /** `mod` (u8): `MOD` depth. */
+    public var mod: Int = 0
+
+    /** `lfoSpeed` (u8): `LFOS`. */
+    public var lfoSpeed: Int = 0
+
+    /** `lfoSpeedC` (u8): LFO phase. */
+    public var lfoSpeedC: Int = 0
+
+    /** `lfoDelay` (u8): `LFODL`. */
+    public var lfoDelay: Int = 0
+
+    /** `lfoDelayC` (u8): LFO delay countdown. */
+    public var lfoDelayC: Int = 0
+
+    /** `priority` (u8): `PRIO`. */
+    public var priority: Int = 0
+
+    /** `cmdPtr`: GBA address of the next command byte. */
+    public var cmdPtr: Int = 0
+
+    /** `patternStack`: return addresses of `PATT` calls. */
+    public val patternStack: IntArray = IntArray(3)
+
     /** `keyM` (u8): key offset in semitones applied to playing notes. */
     public var keyM: Int = 0
 

@@ -76,7 +76,13 @@ class M4aNoteTest {
                     if (!ok) break
                     if (p.songHeader != q.songHeader) {
                         why[0]++
-                        starts += p to q.songHeader // after this frame's SoundMain (below)
+                        // START still set in the next dump: the game started the song after this
+                        // frame's SoundMain; else before it.
+                        if (q.tracks[0].flags and 0x40 != 0) {
+                            starts += p to q.songHeader
+                        } else if (!seq.start(p, q.songHeader)) {
+                            ok = false
+                        }
                     }
                     seq.step(p)
                     if (seq.unsupported != 0) {

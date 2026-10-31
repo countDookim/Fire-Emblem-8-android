@@ -181,6 +181,30 @@ public object M4aCommands {
         for (i in 0 until 3) t.tone[i] = if (a ushr 25 == 0) 0 else read32(bus, a + 4 * i)
     }
 
+    /**
+     * `ply_note` argument parse (m4a_1.s 1348..1380): gateTime = `gClockTable[noteIndex]`, then up to
+     * three bytes < 0x80 at cmdPtr: key, velocity, extra gate time. WIP: the channel part follows.
+     */
+    public fun noteArgs(t: M4aTrack, bus: M4aBus, gate: Int) {
+        t.gateTime = gate
+        var a = t.cmdPtr
+        var b = bus.read8(a)
+        if (b >= 0x80) return
+        t.key = b
+        a += 1
+        b = bus.read8(a)
+        if (b < 0x80) {
+            t.velocity = b
+            a += 1
+            b = bus.read8(a)
+            if (b < 0x80) {
+                t.gateTime = (t.gateTime + b) and 0xFF
+                a += 1
+            }
+        }
+        t.cmdPtr = a
+    }
+
     /** `clear_modM`: modM = 0, lfoSpeedC = 0, flag the modulated target. */
     public fun clearModM(t: M4aTrack) {
         t.modM = 0

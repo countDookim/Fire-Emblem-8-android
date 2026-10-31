@@ -49,6 +49,24 @@ public class M4aSoundInfo(
         p.ident = M4aPlayer.ID_NUMBER
     }
 
+    /** `freq` (u8): the `SOUND_MODE_FREQ_*` index (1..12). */
+    public var freq: Int = 0
+
+    /**
+     * `SampleFreqSet`: sets [freq], [pcmSamplesPerVBlank], [pcmDmaPeriod], [pcmFreq] and
+     * [divFreq] from a `SOUND_MODE_FREQ_*` value ([mode] bits 16..19, 1..12). The timer 0 setup,
+     * `m4aSoundVSyncOn` and the VCOUNT wait (hardware) are left to the port's audio output.
+     *
+     * Ported from src/m4a.c: SampleFreqSet
+     */
+    public fun sampleFreqSet(mode: Int) {
+        freq = (mode and 0xF0000) shr 16
+        pcmSamplesPerVBlank = SAMPLES_PER_VBLANK[freq - 1]
+        pcmDmaPeriod = PCM_DMA_BUF_SIZE / pcmSamplesPerVBlank
+        pcmFreq = (597275 * pcmSamplesPerVBlank + 5000) / 10000 // LCD 59.7275 Hz
+        divFreq = (16777216 / pcmFreq + 1) shr 1 // CPU 16.78 MHz
+    }
+
     /** `maxChans` (u8): DirectSound channels in use. */
     public var maxChans: Int = chans.size
 
@@ -99,6 +117,14 @@ public class M4aSoundInfo(
     public companion object {
         /** `PCM_DMA_BUF_SIZE`. */
         public const val PCM_DMA_BUF_SIZE: Int = 0x630
+
+        /** `SOUND_MODE_FREQ_13379` (FE8's rate). */
+        public const val FREQ_13379: Int = 0x40000
+
+        /** `gPcmSamplesPerVBlankTable` (src/m4a_tables.c). */
+        private val SAMPLES_PER_VBLANK = intArrayOf(
+            96, 132, 176, 224, 264, 304, 352, 448, 528, 608, 672, 704,
+        )
 
         /** `MAX_MUSICPLAYER_TRACKS`. */
         public const val MAX_TRACKS: Int = 16

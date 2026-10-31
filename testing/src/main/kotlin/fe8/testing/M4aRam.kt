@@ -106,6 +106,9 @@ public object M4aRam {
         for (t in tracks.values) t.chan = chans[u32(iwram, t.address - IWRAM + 0x20)]
         val info = M4aSoundInfo(direct, cgb)
         info.ident = u32(iwram, SOUND_INFO - IWRAM)
+        val byAddress = PLAYERS.values.map { it.first }.zip(players).toMap()
+        info.intp = byAddress[u32(iwram, SOUND_INFO - IWRAM + 0x24)]
+        for ((a, p) in byAddress) p.intp = byAddress[u32(iwram, a - IWRAM + 0x3C)]
         info.maxChans = u8(iwram, SOUND_INFO - IWRAM + 6)
         info.masterVolume = u8(iwram, SOUND_INFO - IWRAM + 7)
         info.pcmDmaCounter = u8(iwram, SOUND_INFO - IWRAM + 4)

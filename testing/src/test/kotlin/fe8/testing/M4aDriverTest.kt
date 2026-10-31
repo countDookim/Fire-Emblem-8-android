@@ -23,9 +23,10 @@ class M4aDriverTest {
         assumeTrue(ref.available && romFile.isFile && dump.isFile, "reference data not present")
         val rom = romFile.readBytes()
         val bus = M4aBus { x -> rom[x - 0x08000000].toInt() and 0xFF }
-        val (players, info) = M4aRam.sound(dump.readBytes())
+        val (_, info) = M4aRam.sound(dump.readBytes())
         val pcm = PcmStream(info.pcmFreq, 48000, capacity = 16384)
-        val driver = M4aDriver(bus, info, players, pcm)
+        val driver = M4aDriver(bus, info, info.chain(), pcm)
+        assertEquals(9, driver.chain.size)
         val frames = 60
         repeat(frames) { driver.frame() }
         assertEquals(frames * info.pcmSamplesPerVBlank, pcm.queued)

@@ -48,7 +48,7 @@ _(nothing blocked)_
   the frame; the test detects `m4aMPlayImmInit` from the next dump (clock 0, track 0 flags 0x80).
   `M4aSequencer.songNumStart` (`M4aSongTable`; players = `gMPlayTable` order = `M4aRam.PLAYERS`).
   `M4aDriver` (not a port): `vSync` -> sequencers in `intp` order -> `M4aMixer.frame` -> `PcmStream.push`
-  (`M4aDriverTest`). Next: port `m4aSoundInit` (`soundInit`, `soundMode`, `open` per table entry, `unk_B` = `gMPlayTable.unk_A`; `MPlayExtender` = CGB) to feed the app's `AudioThread`; `CgbSound` (CGB
+  (`M4aDriverTest`; `M4aRam.sound` links `intp`, so `info.chain()` gives the traced order). Next: port `m4aSoundInit` (`soundInit`, `soundMode`, `open` per table entry, `unk_B` = `gMPlayTable.unk_A`; `MPlayExtender` = CGB) to feed the app's `AudioThread`; `CgbSound` (CGB
   channels 1-4 -> PSG; needs a PSG model); claim `MPlayMain` once fades are verified.
   Sources (decomp sparse-checkout `src/m4a* include/m4a* include/gba`): `src/m4a.c`, `src/m4a_1.s`,
   `src/m4a_tables.c`, offsets in `include/m4a.inc` / `include/gba/m4a_internal.h`.

@@ -53,6 +53,18 @@ public class M4aTrack {
     /** `patternStack`: return addresses of `PATT` calls. */
     public val patternStack: IntArray = IntArray(3)
 
+    /** GBA address of this track struct (`ply_note` breaks priority ties by it). */
+    public var address: Int = 0
+
+    /** `echoVolume` (u8). */
+    public var echoVolume: Int = 0
+
+    /** `echoLength` (u8). */
+    public var echoLength: Int = 0
+
+    /** `chan`: head of this track's channel chain (newest note), or null. */
+    public var chan: M4aChannel? = null
+
     /** `tone` (struct ToneData, 12 bytes) as its three little-endian words. */
     public val tone: IntArray = IntArray(3)
 

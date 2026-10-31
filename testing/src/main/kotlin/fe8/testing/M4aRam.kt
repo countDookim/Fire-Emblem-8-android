@@ -1,6 +1,8 @@
 package fe8.testing
 
+import gbafe.audio.M4aChannel
 import gbafe.audio.M4aPlayer
+import gbafe.audio.M4aSoundInfo
 import gbafe.audio.M4aTrack
 
 /**
@@ -78,11 +80,62 @@ public object M4aRam {
             lfoDelay = u(0x1B)
             lfoDelayC = u(0x1C)
             priority = u(0x1D)
+            echoVolume = u(0x1E)
+            echoLength = u(0x1F)
+            this.address = address
             for (i in 0 until 3) tone[i] = u32(iwram, o + 0x24 + 4 * i)
             cmdPtr = u32(iwram, o + 0x40)
             for (i in 0 until 3) patternStack[i] = u32(iwram, o + 0x44 + 4 * i)
         }
     }
+
+    /** All [PLAYERS] (same order) and the shared channels, linked as in [iwram]. */
+    public fun sound(iwram: ByteArray): Pair<List<M4aPlayer>, M4aSoundInfo> {
+        val players = PLAYERS.values.map { (a, n) -> player(iwram, a, n) }
+        val tracks = players.flatMap { it.tracks.toList() }.associateBy { it.address }
+        val direct = Array(12) { channel(iwram, DIRECT_CHANS + it * CHANNEL_SIZE) }
+        val cgb = Array(4) { channel(iwram, CGB_CHANS + it * CHANNEL_SIZE) }
+        val chans = (direct + cgb).associateBy { it.address }
+        for (c in direct + cgb) {
+            val o = c.address - IWRAM
+            c.track = tracks[u32(iwram, o + 0x2C)]
+            c.prev = chans[u32(iwram, o + 0x30)]
+            c.next = chans[u32(iwram, o + 0x34)]
+        }
+        for (t in tracks.values) t.chan = chans[u32(iwram, t.address - IWRAM + 0x20)]
+        val info = M4aSoundInfo(direct, cgb)
+        info.maxChans = u8(iwram, SOUND_INFO - IWRAM + 6)
+        return players to info
+    }
+
+    /** The channel at [address] (DirectSound or CGB; shared offsets), unlinked. */
+    public fun channel(iwram: ByteArray, address: Int): M4aChannel {
+        val o = address - IWRAM
+        return M4aChannel(address).apply {
+            status = u8(iwram, o)
+            type = u8(iwram, o + 1)
+            rightVolume = u8(iwram, o + 2)
+            leftVolume = u8(iwram, o + 3)
+            adsr = u32(iwram, o + 4)
+            key = u8(iwram, o + 8)
+            echoVolume = u8(iwram, o + 0x0C)
+            echoLength = u8(iwram, o + 0x0D)
+            gateTime = u8(iwram, o + 0x10)
+            midiKey = u8(iwram, o + 0x11)
+            velocity = u8(iwram, o + 0x12)
+            priority = u8(iwram, o + 0x13)
+            rhythmPan = iwram[o + 0x14].toInt()
+            length = u8(iwram, o + 0x1E)
+            sweep = u8(iwram, o + 0x1F)
+            frequency = u32(iwram, o + 0x20)
+            wav = u32(iwram, o + 0x24)
+        }
+    }
+
+    private const val SOUND_INFO = 0x03005410
+    private const val DIRECT_CHANS = 0x03005460
+    private const val CGB_CHANS = 0x03006510
+    private const val CHANNEL_SIZE = 0x40
 
     private fun u8(b: ByteArray, o: Int) = b[o].toInt() and 0xFF
 

@@ -1,11 +1,16 @@
 package gbafe.audio
 
 /**
- * WIP (M3-13): `MPlayMain`'s tempo/tick/command loop at track level. Notes, `FINE`, `EOT`/`TIE`,
- * `PORT`, `MEMACC`, `XCMD` and channel bookkeeping are not modelled yet: a track reaching one is
- * reported in [unsupported] and its state is then undefined. Not yet `Ported from`.
+ * WIP (M3-13): `MPlayMain`'s tempo/tick/command loop, gate countdown and channel volume/pitch
+ * updates. With [info], notes (`ply_note`, incl. `TIE`) are played; `FINE`, `EOT`, `PORT`,
+ * `MEMACC`, `XCMD` (and notes without [info]) are not modelled: a track reaching one is reported
+ * in [unsupported] and its state is then undefined. Not yet `Ported from`.
  */
-public class M4aSequencer(private val bus: M4aBus) {
+public class M4aSequencer(
+    private val bus: M4aBus,
+    /** Shared channels; null leaves notes unmodelled (reported in [unsupported]). */
+    private val info: M4aSoundInfo? = null,
+) {
     /** Bit per track slot that hit an unmodelled command in the last [step]. */
     public var unsupported: Int = 0
         private set
@@ -25,6 +30,7 @@ public class M4aSequencer(private val bus: M4aBus) {
                 val t = p.tracks[i]
                 if (t.flags and M4aTrack.FLG_EXIST == 0) continue
                 live = live or (1 shl i)
+                if (info != null) gate(t)
                 if (t.flags and M4aTrack.FLG_START != 0) start(t)
                 if (!tick(p, t, i)) continue
             }
@@ -40,13 +46,57 @@ public class M4aSequencer(private val bus: M4aBus) {
             val t = p.tracks[i]
             if (t.flags and M4aTrack.FLG_EXIST == 0 || t.flags and 0x0F == 0) continue
             t.volPitSet()
+            if (info != null) updateChannels(t)
             t.flags = t.flags and 0xF0
         }
         return true
     }
 
+    /** Gate countdown of [t]'s channels: release at 0, unlink inactive ones. */
+    private fun gate(t: M4aTrack) {
+        var c = t.chan
+        while (c != null) {
+            if (!c.isActive) {
+                c.clearChain()
+            } else if (c.gateTime != 0) {
+                c.gateTime -= 1
+                if (c.gateTime == 0) c.status = c.status or 0x40
+            }
+            c = c.next
+        }
+    }
+
+    /** Volume / pitch changes of [t] pushed to its channels (end of `MPlayMain`). */
+    private fun updateChannels(t: M4aTrack) {
+        var c = t.chan
+        while (c != null) {
+            if (!c.isActive) {
+                c.clearChain()
+                c = c.next
+                continue
+            }
+            val cgb = c.type and 7
+            if (t.flags and M4aTrack.FLG_VOLCHG != 0) c.volSet(t)
+            if (t.flags and M4aTrack.FLG_PITCHG != 0) {
+                val k = maxOf(0, c.key + ((t.keyM shl 24) shr 24))
+                c.frequency = if (cgb != 0) {
+                    M4aPitch.midiKeyToCgbFreq(cgb, k, t.pitM)
+                } else {
+                    M4aPitch.midiKeyToFreq(read32(c.wav + 4), k, t.pitM)
+                }
+            }
+            c = c.next
+        }
+    }
+
+    private fun read32(a: Int): Int = bus.read8(a) or (bus.read8(a + 1) shl 8) or
+        (bus.read8(a + 2) shl 16) or (bus.read8(a + 3) shl 24)
+
     /** The `Clear64byte` + defaults of a starting track. */
     private fun start(t: M4aTrack) {
+        t.chan = null
+        t.echoVolume = 0
+        t.echoLength = 0
         t.flags = M4aTrack.FLG_EXIST
         t.wait = 0
         t.patternLevel = 0
@@ -93,13 +143,16 @@ public class M4aSequencer(private val bus: M4aBus) {
                 if (cmd >= 0xBD) t.runningStatus = cmd
             }
             when {
-                cmd >= 0xCF -> return unsupported(slot)
+                cmd >= 0xCF -> {
+                    val i = info ?: return unsupported(slot)
+                    M4aCommands.note(i, p, t, bus, cmd - 0xCF)
+                }
                 cmd > 0xB0 -> {
                     if (!command(p, t, cmd)) return unsupported(slot)
                     commandsRun[slot] = commandsRun[slot] or (1L shl (cmd - 0xB1))
                     if (t.flags == 0) return false
                 }
-                else -> t.wait = CLOCK_TABLE[cmd - 0x80]
+                else -> t.wait = M4aCommands.CLOCK_TABLE[cmd - 0x80]
             }
         }
         t.wait -= 1
@@ -152,11 +205,5 @@ public class M4aSequencer(private val bus: M4aBus) {
     private companion object {
         const val TICK = 150
 
-        /** `gClockTable`: wait lengths of commands 0x80..0xB0. */
-        val CLOCK_TABLE = intArrayOf(
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
-            24, 28, 30, 32, 36, 40, 42, 44, 48, 52, 54, 56, 60, 64, 66, 68, 72, 76, 78, 80, 84, 88,
-            90, 92, 96,
-        )
     }
 }

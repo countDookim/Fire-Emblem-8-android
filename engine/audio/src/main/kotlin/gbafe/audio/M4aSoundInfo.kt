@@ -68,6 +68,26 @@ public class M4aSoundInfo(
     }
 
     /**
+     * `SoundInit`: clears the modelled `SoundInfo` state (no players, no live channels, silent
+     * [pcmBuffer], no reverb), then 8 channels, master volume 15 and the 13379 Hz rate
+     * ([sampleFreqSet]), and unlocks ([ident] = `ID_NUMBER`). DMA / sound registers, the
+     * function pointers and `MPlayJumpTableCopy` are hardware or fixed in the port.
+     *
+     * Ported from src/m4a.c: SoundInit
+     */
+    public fun soundInit() {
+        reverb = 0
+        intp = null
+        for (i in 0 until minOf(12, chans.size)) chans[i].status = 0
+        pcmBuffer.fill(0)
+        maxChans = 8
+        masterVolume = 15
+        sampleFreqSet(FREQ_13379)
+        pcmDmaCounter = 0 // m4aSoundVSyncOn
+        ident = M4aPlayer.ID_NUMBER
+    }
+
+    /**
      * `m4aSoundMode`: applies each non-zero field of [mode]: reverb (`0x80 | value`), max
      * channels (bits 8..11; frees all 12 DirectSound channels), master volume (bits 12..15) and
      * sample rate (bits 16..19: `m4aSoundVSyncOff` clears [pcmBuffer], then [sampleFreqSet] and

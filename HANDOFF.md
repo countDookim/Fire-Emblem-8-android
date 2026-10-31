@@ -10,11 +10,11 @@ _(nothing blocked)_
   Likely cause fixed (unconfirmed on device): the launcher counted thousands of bundled assets on the main thread
   (`AssetLayer.list` also did a per-file `exists()`, quadratic); now counted on `Dispatchers.IO`, no `exists()`.
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
-- Verified ports: 239 / 8352 (this run: m4aSongNumStart via `M4aSongTable`, FE8 `gSongTable` 0x08224470, 1000 songs;
+- Verified ports: 240 / 8352 (this run: m4aSongNumStart via `M4aSongTable`, FE8 `gSongTable` 0x08224470, 1000 songs;
   m4aSoundVSync = `M4aSoundInfo.vSync`, the test now steps the DMA counter itself;
   MPlayOpen = `M4aSoundInfo.open` + `chain()` (`M4aOpenTest`: f20 chain = reverse table order);
   MPlayFadeOut = `M4aCommands.fadeOut` (f20: `sub_8002AC8` fades BGM1/2 at speed 1); SampleFreqSet =
-  `M4aSoundInfo.sampleFreqSet`; m4aSoundMode = `M4aSoundInfo.soundMode` (also used by `MPlayStart` reverb). M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
+  `M4aSoundInfo.sampleFreqSet`; m4aSoundMode = `M4aSoundInfo.soundMode` (also used by `MPlayStart` reverb); SoundInit = `soundInit`. M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
   `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`, `wip/M3-13-seq`, `wip/M3-13-note`, `wip/M3-13-mix`, `wip/M3-13-mix2`, `wip/M3-13-start` (merged).
 - Rules: a `@VerifiesPort` every run or two; no `java.*`/`javax.*` in new engine/game code (KMP, M4-07); battle
   rolls only via `mechanics.battleRolls`.
@@ -48,7 +48,7 @@ _(nothing blocked)_
   the frame; the test detects `m4aMPlayImmInit` from the next dump (clock 0, track 0 flags 0x80).
   `M4aSequencer.songNumStart` (`M4aSongTable`; players = `gMPlayTable` order = `M4aRam.PLAYERS`).
   `M4aDriver` (not a port): `vSync` -> sequencers in `intp` order -> `M4aMixer.frame` -> `PcmStream.push`
-  (`M4aDriverTest`). Next: port `SoundInit` + `m4aSoundInit` (`soundMode`, `open` per table entry, `unk_B` = `gMPlayTable.unk_A`; `MPlayExtender` = CGB) to feed the app's `AudioThread`; `CgbSound` (CGB
+  (`M4aDriverTest`). Next: port `m4aSoundInit` (`soundInit`, `soundMode`, `open` per table entry, `unk_B` = `gMPlayTable.unk_A`; `MPlayExtender` = CGB) to feed the app's `AudioThread`; `CgbSound` (CGB
   channels 1-4 -> PSG; needs a PSG model); claim `MPlayMain` once fades are verified.
   Sources (decomp sparse-checkout `src/m4a* include/m4a* include/gba`): `src/m4a.c`, `src/m4a_1.s`,
   `src/m4a_tables.c`, offsets in `include/m4a.inc` / `include/gba/m4a_internal.h`.

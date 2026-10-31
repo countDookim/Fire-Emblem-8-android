@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 216,
+    "verified": 220,
     "implemented_unverified": 28
   },
   "functions": {
@@ -80,6 +80,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "ChnVolSetAsm": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aChannel.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aChannelTest#head channel volumes match the reference RAM dumps"
       ]
     },
     "ClearFirstPalDirectly": {
@@ -500,6 +509,24 @@
       "kotlin_file": "game/src/main/kotlin/fe8/game/GameLoop.kt",
       "status": "implemented",
       "tests": []
+    },
+    "MidiKeyToCgbFreq": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aPitch.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aPitchTest#CGB channel frequencies match every reference RAM dump"
+      ]
+    },
+    "MidiKeyToFreq": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aPitch.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aPitchTest#DirectSound channel frequencies match every reference RAM dump"
+      ]
     },
     "NewProc08AA6D04": {
       "decomp_file": "src/opanim-main.c",
@@ -1334,6 +1361,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BgTilemapDifferentialTest#TSA tilemaps match the BG buffers in mGBA RAM"
+      ]
+    },
+    "TrkVolPitSet": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aTrack.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aTrackTest#volume and pitch of every settled track match the reference RAM dumps"
       ]
     },
     "TryTickHSScreenExit": {

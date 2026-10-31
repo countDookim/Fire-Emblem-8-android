@@ -20,6 +20,9 @@ public class M4aPlayer(
     /** `priority` (u8). */
     public var priority: Int = 0
 
+    /** `unk_B` (u8): non-zero = song start obeys [priority]. */
+    public var unkB: Int = 0
+
     /** `clock`: ticks played. */
     public var clock: Int = 0
 

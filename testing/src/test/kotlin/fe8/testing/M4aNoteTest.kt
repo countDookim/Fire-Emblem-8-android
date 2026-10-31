@@ -3,6 +3,7 @@ package fe8.testing
 import gbafe.audio.M4aBus
 import gbafe.audio.M4aChannel
 import gbafe.audio.M4aMixer
+import gbafe.audio.M4aPlayer
 import gbafe.audio.M4aSequencer
 import gbafe.audio.M4aTrack
 import gbafe.core.VerifiesPort
@@ -64,15 +65,19 @@ class M4aNoteTest {
                 val seq = M4aSequencer(bus, info)
                 var ok = true
                 var runs = 0L
+                val starts = mutableListOf<Pair<M4aPlayer, Int>>()
                 for (i in order) {
                     val p = players[i]
                     val q = qs[i]
                     // A live player's fade (FadeOutBody) is not modelled; paused ones skip it.
                     val fade = (p.status >= 0 && p.fadeOI != 0) || (q.status >= 0 && q.fadeOI != 0)
-                    if (p.songHeader != q.songHeader) why[0]++
                     if (fade) why[1]++
-                    if (p.songHeader != q.songHeader || fade) ok = false
+                    if (fade) ok = false
                     if (!ok) break
+                    if (p.songHeader != q.songHeader) {
+                        why[0]++
+                        starts += p to q.songHeader // after this frame's SoundMain (below)
+                    }
                     seq.step(p)
                     if (seq.unsupported != 0) {
                         ok = false
@@ -97,6 +102,8 @@ class M4aNoteTest {
                 // m4aSoundVSync (VBlank IRQ) steps the DMA counter before SoundMain runs.
                 info.pcmDmaCounter = infoB.pcmDmaCounter
                 M4aMixer.frame(info, bus)
+                // The game starts songs after SoundMain (mixer) in the frame.
+                for ((p, header) in starts) if (!seq.start(p, header)) ok = false
                 var allMixed = true
                 for (c in 0 until info.maxChans) {
                     val ch = info.chans[c]

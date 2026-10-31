@@ -55,6 +55,48 @@ public class M4aSequencer(
         return true
     }
 
+    /**
+     * `MPlayStart`: starts the song at [header] on [p] unless a higher-priority song is playing
+     * (only if `unk_B`): resets tempo/fade, stops all tracks, arms the song's tracks with
+     * `EXIST | START` at their part pointers and clears the rest. A song with `reverb & 0x80` sets
+     * the mixer reverb (`m4aSoundMode`); returns false if that needs [info] and there is none.
+     * WIP: checked on the traces' few song starts only.
+     */
+    public fun start(p: M4aPlayer, header: Int): Boolean {
+        if (p.ident != M4aPlayer.ID_NUMBER) return true
+        val trackCount = bus.read8(header)
+        val priority = bus.read8(header + 2)
+        val reverb = bus.read8(header + 3)
+        val busy = (p.songHeader != 0 && p.tracks[0].flags and M4aTrack.FLG_START != 0) ||
+            (p.status and 0xFFFF != 0 && p.status >= 0)
+        if (p.unkB != 0 && busy && p.priority > priority) return true
+        p.status = 0
+        p.songHeader = header
+        p.tone = read32(header + 4)
+        p.priority = priority
+        p.clock = 0
+        p.tempoD = 150
+        p.tempoI = 150
+        p.tempoU = 0x100
+        p.tempoC = 0
+        p.fadeOI = 0
+        for (i in 0 until p.trackCount) {
+            val t = p.tracks[i]
+            M4aCommands.trackStop(info, t)
+            if (i < trackCount) {
+                t.flags = M4aTrack.FLG_EXIST or M4aTrack.FLG_START
+                t.chan = null
+                t.cmdPtr = read32(header + 8 + 4 * i)
+            } else {
+                t.flags = 0
+            }
+        }
+        if (reverb and 0x80 == 0) return true
+        val i = info ?: return false
+        i.reverb = reverb and 0x7F // m4aSoundMode(reverb): only the reverb bits fit in a byte
+        return true
+    }
+
     /** Gate countdown of [t]'s channels: release at 0, unlink inactive ones. */
     private fun gate(t: M4aTrack) {
         var c = t.chan

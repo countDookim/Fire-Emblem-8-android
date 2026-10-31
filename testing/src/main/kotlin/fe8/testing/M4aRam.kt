@@ -31,6 +31,7 @@ public object M4aRam {
         p.status = u32(iwram, o + 4)
         p.trackCount = u8(iwram, o + 8)
         p.priority = u8(iwram, o + 9)
+        p.unkB = u8(iwram, o + 0x0B)
         p.clock = u32(iwram, o + 0x0C)
         p.tempoD = u16(iwram, o + 0x1C)
         p.tempoU = u16(iwram, o + 0x1E)

@@ -39,7 +39,11 @@ _(nothing blocked)_
   loop, then `MPlayMain` (claim when nothing is skipped), then `SoundMainRAM` mixer into an `AudioSource`.
   Facts: `ply_note` clears all low track flags after starting a note, so older channels keep stale volume
   (check head channels only); `FadeOutBody` has no active fade in any trace (needs a new run with a BGM fade).
-  Was: M3-13 m4a sequencer core, feeding an `AudioSource`. Sources (decomp sparse-checkout `src/m4a*`):
+  `ply_note` map (m4a_1.s): 1348-1380 arg parse (gateTime/key/velocity), 1380-1420 keysplit/rhythm voice
+  lookup, 1420-1540 channel pick (CGB by type, else lowest-priority DirectSound of `maxChans`, `ClearChain`),
+  1540-1626 channel init + `TrkVolPitSet` + `ChnVolSetAsm` + `MidiKeyTo(Cgb)Freq`, then track flags &= 0xF0.
+  Test it on the per-frame dumps by comparing channel arrays too (`gSoundInfo`+0x50, `gCgbChans`).
+  Skips by last status byte: ~740 notes (0xCF+), 14 EOT (0xCE), 2 other (test prints the histogram). Sources (decomp sparse-checkout `src/m4a*`):
   `src/m4a.c` (1553 lines, C: MPlay init/start/stop, MidiKeyToFreq, ply_* helpers), `src/m4a_1.s` (ARM/Thumb asm:
   `MPlayMain` sequencer, `ply_note`/`ply_*` commands, `SoundMain` mixer), `src/m4a_tables.c`. Ground truth: trace
   `gMPlayInfo_*`/`SoundInfo` RAM per frame in a new reference run (harness), compare track state per tick.

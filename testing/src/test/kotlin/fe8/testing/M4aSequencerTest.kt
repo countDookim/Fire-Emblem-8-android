@@ -30,6 +30,7 @@ class M4aSequencerTest {
         var checked = 0
         var skipped = 0
         val runs = IntArray(64)
+        val skipCmd = IntArray(256) // last command byte (runningStatus) of skipped tracks
         for (dir in ref.root.listFiles().orEmpty().filter { it.isDirectory }) {
             val frames = dir.listFiles().orEmpty().mapNotNull { f ->
                 DUMP.matchEntire(f.name)?.let { it.groupValues[1].toInt() to f }
@@ -45,6 +46,7 @@ class M4aSequencerTest {
                     for (i in 0 until p.trackCount) {
                         if (seq.unsupported and (1 shl i) != 0) {
                             skipped++
+                            skipCmd[p.tracks[i].runningStatus]++
                             continue
                         }
                         val msg = "$next $address track $i"
@@ -66,6 +68,9 @@ class M4aSequencerTest {
         println("M4aSequencerTest: checked $checked, skipped $skipped")
         println("M4aSequencerTest: commands " + (0 until 64).filter { runs[it] > 0 }
             .joinToString { "0x%02X=%d".format(it + 0xB1, runs[it]) })
+        val skips = (0 until 256).filter { skipCmd[it] > 0 }
+            .joinToString { "0x%02X=%d".format(it, skipCmd[it]) }
+        println("M4aSequencerTest: skipped by last status $skips")
     }
 
     private fun state(t: M4aTrack): List<Int> = listOf(

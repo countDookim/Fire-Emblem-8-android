@@ -17,9 +17,9 @@ public object M4aPitch {
     private val freqTable: IntArray = IntArray(12) { 2.0.pow(31 + it / 12.0).roundToLong().toInt() }
 
     /**
-     * Sample step of a DirectSound channel playing a wave whose `WaveData.freq` is [waveFreq] at MIDI
-     * [key] (0..255) with fine pitch [fineAdjust] (0..255, 1/256 semitone). Returns the unsigned
-     * 32-bit result as Int bits (`SoundChannel.freq`).
+     * Sample step of a DirectSound channel playing a wave whose `WaveData.freq` is [waveFreq] at
+     * MIDI [key] (0..255) with fine pitch [fineAdjust] (0..255, 1/256 semitone). Returns the
+     * unsigned 32-bit result as Int bits (`SoundChannel.freq`).
      *
      * Ported from src/m4a.c: MidiKeyToFreq
      */
@@ -32,8 +32,51 @@ public object M4aPitch {
         }
         val v1 = scaled(k)
         val v2 = scaled(k + 1)
-        return umulHigh(waveFreq.toLong() and MASK, (v1 + umulHigh((v2 - v1) and MASK, fine)) and MASK)
-            .toInt()
+        val step = (v1 + umulHigh((v2 - v1) and MASK, fine)) and MASK
+        return umulHigh(waveFreq.toLong() and MASK, step).toInt()
+    }
+
+    /**
+     * Frequency register value of CGB channel [chanNum] (1..3 tone/wave: `NRx3/NRx4` period + 2048;
+     * 4 noise: `NR43` polynomial) at MIDI [key] (0..255) with fine pitch [fineAdjust] (0..255).
+     *
+     * Ported from src/m4a.c: MidiKeyToCgbFreq
+     */
+    public fun midiKeyToCgbFreq(chanNum: Int, key: Int, fineAdjust: Int): Int {
+        var k = key and 0xFF
+        if ((chanNum and 0xFF) == 4) {
+            k = if (k <= 20) 0 else minOf(k - 21, 59)
+            return noiseTableEntry(k)
+        }
+        var fine = fineAdjust and 0xFF
+        if (k <= 35) {
+            fine = 0
+            k = 0
+        } else {
+            k -= 36
+            if (k > 130) {
+                k = 130
+                fine = 255
+            }
+        }
+        val v1 = cgbScaled(k)
+        val v2 = cgbScaled(k + 1)
+        return v1 + ((fine * (v2 - v1)) shr 8) + 2048
+    }
+
+    /** Entry [index] (0..131) of `gCgbScaleTable`: `(k / 12) shl 4 or k % 12`. */
+    public fun cgbScaleTableEntry(index: Int): Int = ((index / 12) shl 4) or (index % 12)
+
+    /** Entry [note] (0..11) of `gCgbFreqTable` (signed). */
+    public fun cgbFreqTableEntry(note: Int): Int = CGB_FREQ[note]
+
+    /** Entry [index] (0..59) of `gNoiseTable` (`NR43`: shift 13..0 x ratio 7..4, then 3..0). */
+    public fun noiseTableEntry(index: Int): Int =
+        if (index < 56) ((13 - index / 4) shl 4) or (7 - index % 4) else 59 - index
+
+    private fun cgbScaled(key: Int): Int {
+        val s = cgbScaleTableEntry(key)
+        return CGB_FREQ[s and 0xF] shr (s shr 4)
     }
 
     /** Entry [index] (0..180) of `gScaleTable`. */
@@ -54,6 +97,12 @@ public object M4aPitch {
         val hi = a * (b ushr 16)
         return ((hi + (lo ushr 16)) ushr 16) and MASK
     }
+
+    /** `gCgbFreqTable` (m4a library constants; checked against the ROM). */
+    private val CGB_FREQ =
+        intArrayOf(
+            -2004, -1891, -1785, -1685, -1591, -1501, -1417, -1337, -1262, -1192, -1125, -1062,
+        )
 
     private const val MAX_KEY = 178
     private const val SCALE_SIZE = 181

@@ -205,6 +205,20 @@ public object M4aCommands {
         t.cmdPtr = a
     }
 
+    /**
+     * `ply_note` voice resolution (m4a_1.s ~1388..1420) for a key-split (0x40) or rhythm (0x80) track
+     * voice: the sub-voice entry address is `tone.wav + 12 * (split ? keySplitTable[key] : key)`.
+     * Returns that address, or -1 if the entry is itself split/rhythm (note dropped). For a rhythm
+     * voice the caller then plays the entry's key (byte 1) and, if its pan byte 3 has bit 7, rhythm
+     * pan `(pan - 0xC0) * 2`. WIP, unverified.
+     */
+    public fun noteSubVoice(t: M4aTrack, bus: M4aBus): Int {
+        val type = t.tone[0] and 0xFF
+        val index = if (type and 0x40 != 0) bus.read8(t.tone[2] + t.key) else t.key
+        val entry = t.tone[1] + index * 12
+        return if (bus.read8(entry) and 0xC0 != 0) -1 else entry
+    }
+
     /** `clear_modM`: modM = 0, lfoSpeedC = 0, flag the modulated target. */
     public fun clearModM(t: M4aTrack) {
         t.modM = 0

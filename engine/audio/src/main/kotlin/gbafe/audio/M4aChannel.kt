@@ -4,18 +4,72 @@ package gbafe.audio
  * One m4a voice (`struct SoundChannel`; the shared head of `struct CgbChannel`). Fields hold the
  * C values as Ints. Only the state ported so far is modelled.
  */
-public class M4aChannel {
+public class M4aChannel(
+    /** GBA address of this channel struct (identifies it in RAM traces). */
+    public val address: Int = 0,
+) {
+    /** `statusFlags` (u8): 0x80 start, 0x40 releasing, 0x07 envelope phase; 0xC7 clear = free. */
+    public var status: Int = 0
+
+    /** `type` (u8): the voice's ToneData type (low 3 bits: CGB channel 1..4, 0 = DirectSound). */
+    public var type: Int = 0
+
     /** `rightVolume` (u8). */
     public var rightVolume: Int = 0
 
     /** `leftVolume` (u8). */
     public var leftVolume: Int = 0
 
+    /** `attack`..`release` (4 x u8) as one little-endian word. */
+    public var adsr: Int = 0
+
+    /** `ky` (u8): played key (rhythm voices: the drum's key). */
+    public var key: Int = 0
+
+    /** `echoVolume` (u8). */
+    public var echoVolume: Int = 0
+
+    /** `echoLength` (u8). */
+    public var echoLength: Int = 0
+
+    /** `gateTime` (u8): ticks until release (0 = held). */
+    public var gateTime: Int = 0
+
+    /** `midiKey` (u8): the track key of the note. */
+    public var midiKey: Int = 0
+
     /** `ve` (u8): note velocity. */
     public var velocity: Int = 0
 
+    /** `priority` (u8). */
+    public var priority: Int = 0
+
     /** `rp` (s8): rhythm pan of the note's instrument. */
     public var rhythmPan: Int = 0
+
+    /** CGB `length` (u8, offset 0x1E). */
+    public var length: Int = 0
+
+    /** CGB `sweep` (u8, offset 0x1F). */
+    public var sweep: Int = 0
+
+    /** `freq`: DirectSound playback rate, or the CGB frequency register value. */
+    public var frequency: Int = 0
+
+    /** `wav`: GBA address of the WaveData (CGB: wave/duty data). */
+    public var wav: Int = 0
+
+    /** `track`: owning track, or null. */
+    public var track: M4aTrack? = null
+
+    /** `prevChannelPointer`: newer channel of the same track. */
+    public var prev: M4aChannel? = null
+
+    /** `nextChannelPointer`: older channel of the same track. */
+    public var next: M4aChannel? = null
+
+    /** True if the channel plays or releases a note (`statusFlags & 0xC7`). */
+    public val isActive: Boolean get() = status and 0xC7 != 0
 
     /**
      * Sets [rightVolume]/[leftVolume] from [velocity], [rhythmPan] and the [track]'s
@@ -26,5 +80,19 @@ public class M4aChannel {
     public fun volSet(track: M4aTrack) {
         rightVolume = minOf(255, ((128 + rhythmPan) * velocity * track.volMR) shr 14)
         leftVolume = minOf(255, ((127 - rhythmPan) * velocity * track.volML) shr 14)
+    }
+
+    /**
+     * Unlinks this channel from its track's chain and clears [track].
+     *
+     * Ported from src/m4a_1.s: RealClearChain
+     */
+    public fun clearChain() {
+        val t = track ?: return
+        val n = next
+        val p = prev
+        if (p != null) p.next = n else t.chan = n
+        if (n != null) n.prev = p
+        track = null
     }
 }

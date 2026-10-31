@@ -26,7 +26,7 @@ class M4aSequencerTest {
     fun `track state steps like the per-frame RAM traces`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present")
         val rom = romFile.readBytes()
-        val seq = M4aSequencer { a -> rom[a - 0x08000000].toInt() and 0xFF }
+        val seq = M4aSequencer({ a -> rom[a - 0x08000000].toInt() and 0xFF })
         var checked = 0
         var skipped = 0
         val runs = IntArray(64)

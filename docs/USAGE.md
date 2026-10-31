@@ -27,6 +27,6 @@ Keep the totals line below the table current.
 | 2026-10-30 14:53 | `session_01NGGw9NMrgHXvAZN4eQ9aK8` | scheduled run | ~24 | ~180,000 | — | M4-10 done: title A/Start fade-out and skip/restart paths verified (+7 ports), 2 new reference runs; MODDING dirs note; M3-07 plan |
 | 2026-10-30 22:50 | `session_01NGGw9Qb4ji9x4yv3gmgWS2` | scheduled run | ~22 | ~170,000 | — | M3-07 GPU backend (GpuFrame packer, PackedCompositor spec, GLES shader pixel-exact on 15 mGBA frames via WebGL2 tool, FBO, dirty uploads); M3-12 AudioTrack sink + test tone; both await manual test |
 | 2026-10-31 06:51 | `session_01NGGw9Q3vUgyFHafCDxdmcG` | scheduled run | ~22 | ~160,000 | — | M3-13 m4a: pitch (MidiKeyTo(Cgb)Freq), TrkVolPitSet, ChnVolSetAsm, M4aSequencer tick loop (22955 track steps match mGBA), 6 ply_* handlers; 10 ports verified |
-| 2026-10-31 14:51 | `session_01NGGw9Mq2nCryhH4ngR2MNE` | scheduled run | ~25 | ~330,000 | — | M3-13 m4a: ply_note, RealClearChain, ply_fine, ply_endtie, SoundMainRAM (PCM buffer byte-exact on 3017 frames), MPlayStart, m4aMPlayImmInit; XCMD/fade/TrackStop (unverified), PcmStream; 7 ports verified |
+| 2026-10-31 14:51 | `session_01NGGw9Mq2nCryhH4ngR2MNE` | scheduled run | ~23 | ~330,000 | — | M3-13 m4a: ply_note, RealClearChain, ply_fine, ply_endtie, SoundMainRAM (PCM buffer byte-exact on 3017 frames), MPlayStart, m4aMPlayImmInit; XCMD/fade/TrackStop (unverified), PcmStream; 7 ports verified |
 
 Totals recorded so far: ~3,053,000 tokens (counter), 2026-10-27 onward only.

@@ -2,8 +2,8 @@
 
 1. Read `HANDOFF.md` first; follow the Schedule of `docs/PROJECT_BRIEF.md` and its Amendments (amendments win).
    Scheduled runs: ~30 min; work until ~minute 23, wrap up by ~30, never end early. Before any wrap-up step run
-   `tools/run_clock.sh check` (started by setup.sh); if it fails, start the next task (on `wip/<task-id>`). Every
-   session appends its `docs/USAGE.md` row before its final push.
+   `tools/run_clock.sh check` (started by setup.sh); if it fails, start the next task (on `wip/<task-id>`). No
+   token/usage reporting (owner, 2026-10-31).
 2. `tools/setup.sh > /tmp/setup.log 2>&1 &` (idempotent; poll the log: cold Gradle can pass 2 min), then
    `source .assets.env`.
 3. Tests: `./gradlew jvmTest` (JVM only; never install the Android SDK in a session).

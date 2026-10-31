@@ -43,6 +43,7 @@ _(nothing blocked)_
   lookup, 1420-1540 channel pick (CGB by type, else lowest-priority DirectSound of `maxChans`, `ClearChain`),
   1540-1626 channel init + `TrkVolPitSet` + `ChnVolSetAsm` + `MidiKeyTo(Cgb)Freq`, then track flags &= 0xF0.
   Test it on the per-frame dumps by comparing channel arrays too (`gSoundInfo`+0x50, `gCgbChans`).
+  `wip/M3-13-note`: `M4aCommands.noteArgs` (ply_note arg parse, unverified) to build on.
   Skips by last status byte: ~740 notes (0xCF+), 14 EOT (0xCE), 2 other (test prints the histogram). Sources (decomp sparse-checkout `src/m4a*`):
   `src/m4a.c` (1553 lines, C: MPlay init/start/stop, MidiKeyToFreq, ply_* helpers), `src/m4a_1.s` (ARM/Thumb asm:
   `MPlayMain` sequencer, `ply_note`/`ply_*` commands, `SoundMain` mixer), `src/m4a_tables.c`. Ground truth: trace

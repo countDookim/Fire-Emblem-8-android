@@ -94,7 +94,7 @@ public class M4aSequencer(
         }
         if (reverb and 0x80 == 0) return true
         val i = info ?: return false
-        i.reverb = reverb and 0x7F // m4aSoundMode(reverb): only the reverb bits fit in a byte
+        i.soundMode(reverb) // m4aSoundMode: a byte holds only the reverb bits
         return true
     }
 

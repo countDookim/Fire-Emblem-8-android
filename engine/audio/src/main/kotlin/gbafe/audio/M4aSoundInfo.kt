@@ -67,6 +67,30 @@ public class M4aSoundInfo(
         divFreq = (16777216 / pcmFreq + 1) shr 1 // CPU 16.78 MHz
     }
 
+    /**
+     * `m4aSoundMode`: applies each non-zero field of [mode]: reverb (`0x80 | value`), max
+     * channels (bits 8..11; frees all 12 DirectSound channels), master volume (bits 12..15) and
+     * sample rate (bits 16..19: `m4aSoundVSyncOff` clears [pcmBuffer], then [sampleFreqSet] and
+     * `m4aSoundVSyncOn` reset [pcmDmaCounter]). The DA bit depth (`SOUNDBIAS`) is hardware.
+     * Ignored unless [ident] is `ID_NUMBER`.
+     *
+     * Ported from src/m4a.c: m4aSoundMode
+     */
+    public fun soundMode(mode: Int) {
+        if (ident != M4aPlayer.ID_NUMBER) return
+        if (mode and 0xFF != 0) reverb = mode and 0x7F
+        if (mode and 0xF00 != 0) {
+            maxChans = (mode and 0xF00) shr 8
+            for (i in 0 until minOf(12, chans.size)) chans[i].status = 0
+        }
+        if (mode and 0xF000 != 0) masterVolume = (mode and 0xF000) shr 12
+        if (mode and 0xF0000 != 0) {
+            pcmBuffer.fill(0) // m4aSoundVSyncOff
+            sampleFreqSet(mode and 0xF0000)
+            pcmDmaCounter = 0 // m4aSoundVSyncOn
+        }
+    }
+
     /** `maxChans` (u8): DirectSound channels in use. */
     public var maxChans: Int = chans.size
 

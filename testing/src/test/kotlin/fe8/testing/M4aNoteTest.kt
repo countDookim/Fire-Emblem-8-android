@@ -13,11 +13,11 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * Notes, channel bookkeeping and the mixer's envelope stage: from each per-frame dump, every player's `MPlayMain` (in the
+ * Notes, channels and the mixer: from each per-frame dump, every player's `MPlayMain` (in the
  * dump's `intp` chain order, sharing one set of channels) reproduces the next dump's channel
- * chains and the channel fields the mixer does not touch; then [M4aMixer.envelope] reproduces each
- * DirectSound channel's status and envelope volumes (except where the sample ended while mixing). Frames with a fade, a song change or an
- * unmodelled command are skipped.
+ * chains and the channel fields the mixer does not touch; then [M4aMixer.frame] reproduces each
+ * DirectSound channel's status, envelope and sample position, and the whole PCM buffer. Frames
+ * with a fade, a song change or an unmodelled command are skipped.
  */
 class M4aNoteTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -27,7 +27,7 @@ class M4aNoteTest {
     )
 
     @Test
-    @VerifiesPort("ply_note", "RealClearChain", "ply_fine", "ply_endtie")
+    @VerifiesPort("ply_note", "RealClearChain", "ply_fine", "ply_endtie", "SoundMainRAM")
     fun `channels step like the per-frame RAM traces`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present")
         val rom = romFile.readBytes()
@@ -40,6 +40,10 @@ class M4aNoteTest {
         var fines = 0
         var ended = 0
         var enveloped = 0
+        var pcmFrames = 0
+        var fixed = 0
+        var looped = 0
+        var maxLines = 0
         var endties = 0
         for (dir in ref.root.listFiles().orEmpty().filter { it.isDirectory }) {
             val dumps = dir.listFiles().orEmpty().mapNotNull { f ->
@@ -83,18 +87,37 @@ class M4aNoteTest {
                     continue
                 }
                 frames++
+                val wasActive = info.chans.map { it.isActive }
+                fixed += info.chans.take(info.maxChans).count { it.isActive && it.type and 8 != 0 }
+                looped += info.chans.take(info.maxChans).count { it.status and 0x10 != 0 }
+                maxLines = maxOf(maxLines, a[0x5410 + 0x0C].toInt() and 0xFF)
+                notes += info.chans.count { it.status == 0x80 }
+                // m4aSoundVSync (VBlank IRQ) steps the DMA counter before SoundMain runs.
+                info.pcmDmaCounter = infoB.pcmDmaCounter
+                M4aMixer.frame(info, bus)
+                var allMixed = true
                 for (c in 0 until info.maxChans) {
                     val ch = info.chans[c]
                     val chB = infoB.chans[c]
-                    val wasActive = ch.isActive
-                    if (ch.status == 0x80) notes++
-                    M4aMixer.envelope(ch, info, bus)
                     if (ch.status != 0 && chB.status == 0) {
                         ended++ // sample end in the mixing loop (not modelled yet)
+                        allMixed = false
                         continue
                     }
-                    if (wasActive) enveloped++
+                    if (wasActive[c]) enveloped++
                     assertEquals(env(chB), env(ch), "$next channel $c envelope")
+                    if (ch.status != 0) {
+                        assertEquals(mixState(chB), mixState(ch), "$next channel $c mix")
+                    }
+                }
+                if (allMixed) {
+                    val pcm = info.pcmBuffer
+                    val diff = pcm.indices.filter { pcm[it] != infoB.pcmBuffer[it] }
+                    val m = "$next pcm: counter ${info.pcmDmaCounter}->${infoB.pcmDmaCounter} " +
+                        "period ${info.pcmDmaPeriod} spv ${info.pcmSamplesPerVBlank} " +
+                        "reverb ${info.reverb} diffs ${diff.size} first ${diff.take(3)}"
+                    assertTrue(diff.isEmpty(), m)
+                    pcmFrames++
                 }
                 for (c in 0 until 64) if (runs ushr c and 1L != 0L) frameRuns[c]++
                 if (runs and 1L != 0L) fines++
@@ -124,18 +147,22 @@ class M4aNoteTest {
             "M4aNoteTest: frames $frames, skipped $skipped, notes $notes, FINE $fines, " +
                 "EOT $endties",
         )
-        println("M4aNoteTest: envelopes $enveloped, sample ends $ended")
+        println("M4aNoteTest: envelopes $enveloped, sample ends $ended, pcm frames $pcmFrames, " +
+            "fixed-rate $fixed, looping $looped, maxLines $maxLines")
         println("M4aNoteTest: why ${why.toList()} " + (0 until 256).filter { cmds[it] > 0 }
             .joinToString { "0x%02X=%d".format(it, cmds[it]) })
         println("M4aNoteTest: frames running " + (0 until 64).filter { frameRuns[it] > 0 }
             .joinToString { "0x%02X=%d".format(it + 0xB1, frameRuns[it]) })
         assertTrue(frames > 500 && notes > 100, "frames $frames, notes $notes")
+        assertTrue(pcmFrames > 500 && fixed > 0 && looped > 0, "pcm $pcmFrames, fixed $fixed")
         assertTrue(fines >= 2 && endties >= 4, "FINE in $fines frames, EOT in $endties")
     }
 
     private fun env(c: M4aChannel): List<Int> = listOf(
         c.status, c.envelopeVolume, c.envelopeRight, c.envelopeLeft, c.echoLength,
     )
+
+    private fun mixState(c: M4aChannel): List<Int> = listOf(c.count, c.fw, c.currentPointer)
 
     private fun fields(c: M4aChannel): List<Int> = listOf(
         c.type, c.key, c.gateTime, c.midiKey, c.velocity, c.priority, c.rhythmPan, c.frequency,

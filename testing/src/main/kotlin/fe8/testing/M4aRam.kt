@@ -106,6 +106,13 @@ public object M4aRam {
         val info = M4aSoundInfo(direct, cgb)
         info.maxChans = u8(iwram, SOUND_INFO - IWRAM + 6)
         info.masterVolume = u8(iwram, SOUND_INFO - IWRAM + 7)
+        info.pcmDmaCounter = u8(iwram, SOUND_INFO - IWRAM + 4)
+        info.reverb = u8(iwram, SOUND_INFO - IWRAM + 5)
+        info.pcmDmaPeriod = u8(iwram, SOUND_INFO - IWRAM + 0x0B)
+        info.pcmSamplesPerVBlank = u32(iwram, SOUND_INFO - IWRAM + 0x10)
+        info.divFreq = u32(iwram, SOUND_INFO - IWRAM + 0x18)
+        val pcm = PCM_BUFFER - IWRAM
+        iwram.copyInto(info.pcmBuffer, 0, pcm, pcm + info.pcmBuffer.size)
         return players to info
     }
 
@@ -140,6 +147,7 @@ public object M4aRam {
     }
 
     private const val SOUND_INFO = 0x03005410
+    private const val PCM_BUFFER = SOUND_INFO + 0x350
     private const val DIRECT_CHANS = 0x03005460
     private const val CGB_CHANS = 0x03006510
     private const val CHANNEL_SIZE = 0x40

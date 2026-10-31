@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-10-31 (scheduled run 06:51). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-10-31 (scheduled run 14:51). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
@@ -10,13 +10,12 @@ _(nothing blocked)_
   Likely cause fixed (unconfirmed on device): the launcher counted thousands of bundled assets on the main thread
   (`AssetLayer.list` also did a per-file `exists()`, quadratic); now counted on `Dispatchers.IO`, no `exists()`.
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
-- Verified ports: 226 / 8352 (this run, m4a: MidiKeyToFreq, MidiKeyToCgbFreq, TrkVolPitSet, ChnVolSetAsm,
-  ply_pend, ply_tempo, ply_keysh, ply_voice, ply_vol, ply_pan). M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
-  `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`, `wip/M3-13-seq` (merged).
+- Verified ports: 231 / 8352 (this run, m4a: ply_note, RealClearChain, ply_fine, ply_endtie, SoundMainRAM). M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
+  `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`, `wip/M3-13-seq`, `wip/M3-13-note`, `wip/M3-13-mix`, `wip/M3-13-mix2` (merged).
 - Rules: a `@VerifiesPort` every run or two; no `java.*`/`javax.*` in new engine/game code (KMP, M4-07); battle
   rolls only via `mechanics.battleRolls`.
 
-## Next task: owner manual tests of M3-07/M3-12, meanwhile M3-13 m4a sequencer (ply_note next)
+## Next task: owner manual tests of M3-07/M3-12, meanwhile M3-13 m4a (CgbSound, then AudioSource)
 - Done (merged to master; CI built the APK): `SpriteRasterizer` (shared OBJ rules), `GpuFrame` (per-line
   packing: layer origins, windows, blend, per-line palettes, CPU OBJ plane), `PackedCompositor` (Kotlin spec of
   the shader; parity with `SoftwareRenderer` in every `SoftwareRendererTest` scene via `@AfterEach` and on 15 mGBA
@@ -30,24 +29,20 @@ _(nothing blocked)_
 - M3-12 (merged; CI built the APK): `gbafe.audio.AudioSource`/`ToneSource`,
   `app/AudioTrackSink` (`PERFORMANCE_MODE_LOW_LATENCY`, 48 kHz, chunk = half the device minimum buffer) +
   `AudioThread` (URGENT_AUDIO, one pre-allocated buffer), launcher "Test tone" button, MANUAL_TEST step.
-- M3-13 (in progress, on master): `gbafe.audio` `M4aPitch` (pitch tables generated, checked vs ROM),
-  `M4aTrack`/`M4aChannel`/`M4aPlayer` state, `M4aCommands` (ply_* handlers incl. `chk_adr_r2`), `M4aSequencer`
-  (WIP `MPlayMain` tick/tempo/LFO/command loop, no notes/channels). Ground truth needs no new run:
-  `testing/M4aRam` loads players/tracks from any IWRAM dump; `M4aSequencerTest` steps each per-frame dump and
-  matches 22955 track steps (771 skipped: tracks hitting a note/FINE/EOT/TIE/PORT/MEMACC/XCMD). Next: `ply_note`
-  (channel allocation, then remove its skip), `ply_fine`/`ply_endtie`/`TrackStop`/`RealClearChain`, gate-time
-  loop, then `MPlayMain` (claim when nothing is skipped), then `SoundMainRAM` mixer into an `AudioSource`.
-  Facts: `ply_note` clears all low track flags after starting a note, so older channels keep stale volume
-  (check head channels only); `FadeOutBody` has no active fade in any trace (needs a new run with a BGM fade).
-  `ply_note` map (m4a_1.s): 1348-1380 arg parse (gateTime/key/velocity), 1380-1420 keysplit/rhythm voice
-  lookup, 1420-1540 channel pick (CGB by type, else lowest-priority DirectSound of `maxChans`, `ClearChain`),
-  1540-1626 channel init + `TrkVolPitSet` + `ChnVolSetAsm` + `MidiKeyTo(Cgb)Freq`, then track flags &= 0xF0.
-  Test it on the per-frame dumps by comparing channel arrays too (`gSoundInfo`+0x50, `gCgbChans`).
-  `wip/M3-13-note`: `M4aCommands.noteArgs` (ply_note arg parse, unverified) to build on.
-  Skips by last status byte: ~740 notes (0xCF+), 14 EOT (0xCE), 2 other (test prints the histogram). Sources (decomp sparse-checkout `src/m4a*`):
-  `src/m4a.c` (1553 lines, C: MPlay init/start/stop, MidiKeyToFreq, ply_* helpers), `src/m4a_1.s` (ARM/Thumb asm:
-  `MPlayMain` sequencer, `ply_note`/`ply_*` commands, `SoundMain` mixer), `src/m4a_tables.c`. Ground truth: trace
-  `gMPlayInfo_*`/`SoundInfo` RAM per frame in a new reference run (harness), compare track state per tick.
+- M3-13 (in progress, on master): `gbafe.audio` `M4aPitch`, `M4aTrack`/`M4aChannel`/`M4aPlayer`/
+  `M4aSoundInfo` state, `M4aCommands` (all ply_* incl. note/fine/endtie/xcmd; fade, TrackStop),
+  `M4aSequencer` (`MPlayMain`: ticks, gate countdown, channel vol/pitch updates; needs an `M4aSoundInfo`
+  for notes), `M4aMixer` (`SoundMainRAM`: reverb, envelope, fixed + interpolated mixing).
+  `M4aNoteTest`: per-frame IWRAM dumps, all players in `gSoundInfo.intp` chain order on shared channels
+  (`M4aRam.sound`), DMA counter taken from the next dump (VSync runs first): 3011 frames, track state,
+  channel chains/fields and the **whole PCM buffer byte-exact** (6 skipped: song changes).
+  Not modelled: `PORT`, `MEMACC` (no trace uses them; unsupported), `maxLines` cut-off (FE8: 0).
+  Unverified (no trace): `FadeOutBody`, `TrackStop`, `ply_xcmd` (needs a run with a BGM fade / song stop).
+  Next: `CgbSound` (CGB channels 1-4 -> GBA PSG registers; ground truth = IO dump if the harness has one,
+  else emulate the PSG), then an `AudioSource` that runs sequencers + mixer per frame and resamples the
+  PCM buffer (rate from `pcmFreq`) to the sink; claim `MPlayMain` once fades are verified.
+  Sources (decomp sparse-checkout `src/m4a* include/m4a* include/gba`): `src/m4a.c`, `src/m4a_1.s`,
+  `src/m4a_tables.c`, offsets in `include/m4a.inc` / `include/gba/m4a_internal.h`.
 - If the owner still reports slow startup: measure what runs before the launcher draws (`Application`/
   `MainActivity.onCreate`, Compose init) or the first Play frame (`bundledBootRom`, `Fe8Game` setup).
 - Trace timing: a game frame that overruns its VBlank (e.g. the fade setup) is dumped mid-frame and the next dump

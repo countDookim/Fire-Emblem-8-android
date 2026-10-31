@@ -1,6 +1,8 @@
 package fe8.testing
 
+import gbafe.audio.M4aBus
 import gbafe.audio.M4aChannel
+import gbafe.audio.M4aMixer
 import gbafe.audio.M4aSequencer
 import gbafe.audio.M4aTrack
 import gbafe.core.VerifiesPort
@@ -11,9 +13,10 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * Notes and channel bookkeeping: from each per-frame dump, every player's `MPlayMain` (in the
+ * Notes, channel bookkeeping and the mixer's envelope stage: from each per-frame dump, every player's `MPlayMain` (in the
  * dump's `intp` chain order, sharing one set of channels) reproduces the next dump's channel
- * chains and the channel fields the mixer does not touch. Frames with a fade, a song change or an
+ * chains and the channel fields the mixer does not touch; then [M4aMixer.envelope] reproduces each
+ * DirectSound channel's status and envelope volumes (except where the sample ended while mixing). Frames with a fade, a song change or an
  * unmodelled command are skipped.
  */
 class M4aNoteTest {
@@ -35,6 +38,8 @@ class M4aNoteTest {
         val frameRuns = IntArray(64)
         val cmds = IntArray(256)
         var fines = 0
+        var ended = 0
+        var enveloped = 0
         var endties = 0
         for (dir in ref.root.listFiles().orEmpty().filter { it.isDirectory }) {
             val dumps = dir.listFiles().orEmpty().mapNotNull { f ->
@@ -50,7 +55,8 @@ class M4aNoteTest {
                     M4aRam.PLAYERS.values.indexOfFirst { it.first == addr }
                 }
                 if (order.any { it < 0 }) continue
-                val seq = M4aSequencer({ x -> rom[x - 0x08000000].toInt() and 0xFF }, info)
+                val bus = M4aBus { x -> rom[x - 0x08000000].toInt() and 0xFF }
+                val seq = M4aSequencer(bus, info)
                 var ok = true
                 var runs = 0L
                 for (i in order) {
@@ -77,13 +83,26 @@ class M4aNoteTest {
                     continue
                 }
                 frames++
+                for (c in 0 until info.maxChans) {
+                    val ch = info.chans[c]
+                    val chB = infoB.chans[c]
+                    val wasActive = ch.isActive
+                    if (ch.status == 0x80) notes++
+                    M4aMixer.envelope(ch, info, bus)
+                    if (ch.status != 0 && chB.status == 0) {
+                        ended++ // sample end in the mixing loop (not modelled yet)
+                        continue
+                    }
+                    if (wasActive) enveloped++
+                    assertEquals(env(chB), env(ch), "$next channel $c envelope")
+                }
                 for (c in 0 until 64) if (runs ushr c and 1L != 0L) frameRuns[c]++
                 if (runs and 1L != 0L) fines++
                 if (runs ushr (0xCE - 0xB1) and 1L != 0L) endties++
                 val all = info.chans + info.cgbChans!!
                 val allB = infoB.chans + infoB.cgbChans!!
                 for (c in all.indices) {
-                    if (all[c].status == 0x80) notes++
+                    if (c >= info.chans.size && all[c].status == 0x80) notes++ // CGB
                     assertEquals(fields(allB[c]), fields(all[c]), "$next channel $c")
                 }
                 for (i in players.indices) {
@@ -105,6 +124,7 @@ class M4aNoteTest {
             "M4aNoteTest: frames $frames, skipped $skipped, notes $notes, FINE $fines, " +
                 "EOT $endties",
         )
+        println("M4aNoteTest: envelopes $enveloped, sample ends $ended")
         println("M4aNoteTest: why ${why.toList()} " + (0 until 256).filter { cmds[it] > 0 }
             .joinToString { "0x%02X=%d".format(it, cmds[it]) })
         println("M4aNoteTest: frames running " + (0 until 64).filter { frameRuns[it] > 0 }
@@ -112,6 +132,10 @@ class M4aNoteTest {
         assertTrue(frames > 500 && notes > 100, "frames $frames, notes $notes")
         assertTrue(fines >= 2 && endties >= 4, "FINE in $fines frames, EOT in $endties")
     }
+
+    private fun env(c: M4aChannel): List<Int> = listOf(
+        c.status, c.envelopeVolume, c.envelopeRight, c.envelopeLeft, c.echoLength,
+    )
 
     private fun fields(c: M4aChannel): List<Int> = listOf(
         c.type, c.key, c.gateTime, c.midiKey, c.velocity, c.priority, c.rhythmPan, c.frequency,

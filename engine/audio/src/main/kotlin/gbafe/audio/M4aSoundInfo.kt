@@ -13,6 +13,9 @@ public class M4aSoundInfo(
     /** `maxChans` (u8): DirectSound channels in use. */
     public var maxChans: Int = chans.size
 
+    /** `masterVolume` (u8, 0..15). */
+    public var masterVolume: Int = 15
+
     /** `CgbOscOff(n)`: silences CGB channel n (1..4) in hardware; null = no hardware. */
     public var cgbOscOff: ((Int) -> Unit)? = null
 }

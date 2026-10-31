@@ -26,6 +26,24 @@ public class M4aChannel(
     /** `ky` (u8): played key (rhythm voices: the drum's key). */
     public var key: Int = 0
 
+    /** `ev` (u8): envelope level 0..255. */
+    public var envelopeVolume: Int = 0
+
+    /** `er` (u8): right output volume after the envelope. */
+    public var envelopeRight: Int = 0
+
+    /** `el` (u8): left output volume after the envelope. */
+    public var envelopeLeft: Int = 0
+
+    /** `ct`: samples left in the wave (DirectSound). */
+    public var count: Int = 0
+
+    /** `fw`: fractional sample position (DirectSound). */
+    public var fw: Int = 0
+
+    /** `cp`: GBA address of the next sample (DirectSound). */
+    public var currentPointer: Int = 0
+
     /** `echoVolume` (u8). */
     public var echoVolume: Int = 0
 

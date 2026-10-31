@@ -105,6 +105,7 @@ public object M4aRam {
         for (t in tracks.values) t.chan = chans[u32(iwram, t.address - IWRAM + 0x20)]
         val info = M4aSoundInfo(direct, cgb)
         info.maxChans = u8(iwram, SOUND_INFO - IWRAM + 6)
+        info.masterVolume = u8(iwram, SOUND_INFO - IWRAM + 7)
         return players to info
     }
 
@@ -118,6 +119,12 @@ public object M4aRam {
             leftVolume = u8(iwram, o + 3)
             adsr = u32(iwram, o + 4)
             key = u8(iwram, o + 8)
+            envelopeVolume = u8(iwram, o + 9)
+            envelopeRight = u8(iwram, o + 0x0A)
+            envelopeLeft = u8(iwram, o + 0x0B)
+            count = u32(iwram, o + 0x18)
+            fw = u32(iwram, o + 0x1C)
+            currentPointer = u32(iwram, o + 0x28)
             echoVolume = u8(iwram, o + 0x0C)
             echoLength = u8(iwram, o + 0x0D)
             gateTime = u8(iwram, o + 0x10)

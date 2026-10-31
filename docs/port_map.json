@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 220,
+    "verified": 226,
     "implemented_unverified": 28
   },
   "functions": {
@@ -1422,6 +1422,60 @@
       "status": "verified",
       "tests": [
         "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
+      ]
+    },
+    "ply_keysh": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
+      ]
+    },
+    "ply_pan": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
+      ]
+    },
+    "ply_pend": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
+      ]
+    },
+    "ply_tempo": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
+      ]
+    },
+    "ply_voice": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
+      ]
+    },
+    "ply_vol": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
       ]
     },
     "sub_8009B64": {

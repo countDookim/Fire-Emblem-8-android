@@ -10,8 +10,9 @@ _(nothing blocked)_
   Likely cause fixed (unconfirmed on device): the launcher counted thousands of bundled assets on the main thread
   (`AssetLayer.list` also did a per-file `exists()`, quadratic); now counted on `Dispatchers.IO`, no `exists()`.
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
-- Verified ports: 231 / 8352 (this run, m4a: ply_note, RealClearChain, ply_fine, ply_endtie, SoundMainRAM). M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
-  `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`, `wip/M3-13-seq`, `wip/M3-13-note`, `wip/M3-13-mix`, `wip/M3-13-mix2` (merged).
+- Verified ports: 233 / 8352 (this run, m4a: ply_note, RealClearChain, ply_fine, ply_endtie, SoundMainRAM,
+  MPlayStart, m4aMPlayImmInit). M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
+  `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`, `wip/M3-13-seq`, `wip/M3-13-note`, `wip/M3-13-mix`, `wip/M3-13-mix2`, `wip/M3-13-start` (merged).
 - Rules: a `@VerifiesPort` every run or two; no `java.*`/`javax.*` in new engine/game code (KMP, M4-07); battle
   rolls only via `mechanics.battleRolls`.
 
@@ -35,19 +36,15 @@ _(nothing blocked)_
   for notes), `M4aMixer` (`SoundMainRAM`: reverb, envelope, fixed + interpolated mixing).
   `M4aNoteTest`: per-frame IWRAM dumps, all players in `gSoundInfo.intp` chain order on shared channels
   (`M4aRam.sound`), DMA counter taken from the next dump (VSync runs first): 3011 frames, track state,
-  channel chains/fields and the **whole PCM buffer byte-exact** (6 skipped: song changes).
+  channel chains/fields and the **whole PCM buffer byte-exact** (0 skipped).
   Not modelled: `PORT`, `MEMACC` (no trace uses them; unsupported), `maxLines` cut-off (FE8: 0).
   Unverified (no trace): `FadeOutBody`, `TrackStop`, `ply_xcmd` (needs a run with a BGM fade / song stop).
   `PcmStream` (not a port): SPSC ring, game thread `push(info)` after `M4aMixer.frame`, audio thread
   `render` resamples 13379 Hz (`pcmFreq`, 224 samples/frame) to the device rate.
-  `wip/M3-13-start`: `M4aSequencer.start` (`MPlayStart` + reverb `m4aSoundMode`), test FAILS: in the
-  traces a song start runs before SoundMain in some frames (r00480 logo_skip) and after it in others
-  (r03043 title_skip, r03065 title1). The branch picks the order from the next dump's track-0 START flag;
-  r00480 still differs: real player has clock 0, tempoC 0, track 0 flags 0x80 with `Clear64byte`
-  defaults and cmdPtr unchanged = the game ran `MPlayStart` + `m4aMPlayImmInit` (m4a.c) after SoundMain.
-  Port `m4aMPlayImmInit` and use it when the next dump shows that pattern, then merge.
-  Next: wire a per-frame driver (sequencers in `intp` order -> `M4aMixer.frame` -> `PcmStream.push`) into
-  the app's `AudioThread` once song start (`m4aSongNumStart`/`MPlayStart`) is ported; `CgbSound` (CGB
+  Song starts (`M4aSequencer.start` = `MPlayStart`, `immInit`): the game calls them after SoundMain in
+  the frame; the test detects `m4aMPlayImmInit` from the next dump (clock 0, track 0 flags 0x80).
+  Next: port `m4aSongNumStart` (song table -> player -> `start`), then a per-frame driver (sequencers in
+  `intp` order -> `M4aMixer.frame` -> `PcmStream.push`) fed to the app's `AudioThread`; `CgbSound` (CGB
   channels 1-4 -> PSG; needs a PSG model); claim `MPlayMain` once fades are verified.
   Sources (decomp sparse-checkout `src/m4a* include/m4a* include/gba`): `src/m4a.c`, `src/m4a_1.s`,
   `src/m4a_tables.c`, offsets in `include/m4a.inc` / `include/gba/m4a_internal.h`.

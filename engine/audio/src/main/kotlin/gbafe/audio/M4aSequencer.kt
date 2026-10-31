@@ -10,9 +10,13 @@ public class M4aSequencer(private val bus: M4aBus) {
     public var unsupported: Int = 0
         private set
 
+    /** Per track slot: bit `cmd - 0xB1` for each jump-table command run in the last [step]. */
+    public val commandsRun: LongArray = LongArray(16)
+
     /** One `MPlayMain` call (one VBlank) for [p]. Returns false if the player was skipped. */
     public fun step(p: M4aPlayer): Boolean {
         unsupported = 0
+        commandsRun.fill(0)
         if (p.ident != M4aPlayer.ID_NUMBER || p.status < 0 || p.fadeOI != 0) return false
         p.tempoC = (p.tempoC + p.tempoI) and 0xFFFF
         while (p.tempoC >= TICK) {
@@ -44,12 +48,38 @@ public class M4aSequencer(private val bus: M4aBus) {
     /** The `Clear64byte` + defaults of a starting track. */
     private fun start(t: M4aTrack) {
         t.flags = M4aTrack.FLG_EXIST
-        t.wait = 0; t.patternLevel = 0; t.repN = 0; t.gateTime = 0; t.key = 0; t.velocity = 0
-        t.runningStatus = 0; t.keyM = 0; t.pitM = 0; t.keyShift = 0; t.keyShiftX = 0; t.tune = 0
-        t.pitX = 0; t.bend = 0; t.bendRange = 2; t.volMR = 0; t.volML = 0; t.vol = 0; t.volX = 64
-        t.pan = 0; t.panX = 0; t.modM = 0; t.mod = 0; t.modT = 0; t.lfoSpeed = 22; t.lfoSpeedC = 0
-        t.lfoDelay = 0; t.lfoDelayC = 0; t.priority = 0
-        t.tone[0] = 1; t.tone[1] = 0; t.tone[2] = 0
+        t.wait = 0
+        t.patternLevel = 0
+        t.repN = 0
+        t.gateTime = 0
+        t.key = 0
+        t.velocity = 0
+        t.runningStatus = 0
+        t.keyM = 0
+        t.pitM = 0
+        t.keyShift = 0
+        t.keyShiftX = 0
+        t.tune = 0
+        t.pitX = 0
+        t.bend = 0
+        t.bendRange = 2
+        t.volMR = 0
+        t.volML = 0
+        t.vol = 0
+        t.volX = 64
+        t.pan = 0
+        t.panX = 0
+        t.modM = 0
+        t.mod = 0
+        t.modT = 0
+        t.lfoSpeed = 22
+        t.lfoSpeedC = 0
+        t.lfoDelay = 0
+        t.lfoDelayC = 0
+        t.priority = 0
+        t.tone[0] = 1
+        t.tone[1] = 0
+        t.tone[2] = 0
     }
 
     /** Commands until a wait, then the wait countdown and LFO. False if the track stopped early. */
@@ -66,6 +96,7 @@ public class M4aSequencer(private val bus: M4aBus) {
                 cmd >= 0xCF -> return unsupported(slot)
                 cmd > 0xB0 -> {
                     if (!command(p, t, cmd)) return unsupported(slot)
+                    commandsRun[slot] = commandsRun[slot] or (1L shl (cmd - 0xB1))
                     if (t.flags == 0) return false
                 }
                 else -> t.wait = CLOCK_TABLE[cmd - 0x80]
@@ -123,8 +154,9 @@ public class M4aSequencer(private val bus: M4aBus) {
 
         /** `gClockTable`: wait lengths of commands 0x80..0xB0. */
         val CLOCK_TABLE = intArrayOf(
-            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-            28, 30, 32, 36, 40, 42, 44, 48, 52, 54, 56, 60, 64, 66, 68, 72, 76, 78, 80, 84, 88, 90, 92, 96,
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+            24, 28, 30, 32, 36, 40, 42, 44, 48, 52, 54, 56, 60, 64, 66, 68, 72, 76, 78, 80, 84, 88,
+            90, 92, 96,
         )
     }
 }

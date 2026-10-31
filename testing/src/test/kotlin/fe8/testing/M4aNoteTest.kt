@@ -28,7 +28,10 @@ class M4aNoteTest {
     )
 
     @Test
-    @VerifiesPort("ply_note", "RealClearChain", "ply_fine", "ply_endtie", "SoundMainRAM")
+    @VerifiesPort(
+        "ply_note", "RealClearChain", "ply_fine", "ply_endtie", "SoundMainRAM",
+        "MPlayStart", "m4aMPlayImmInit",
+    )
     fun `channels step like the per-frame RAM traces`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present")
         val rom = romFile.readBytes()
@@ -42,6 +45,7 @@ class M4aNoteTest {
         var ended = 0
         var enveloped = 0
         var pcmFrames = 0
+        var immInits = 0
         var fixed = 0
         var looped = 0
         var maxLines = 0
@@ -65,7 +69,7 @@ class M4aNoteTest {
                 val seq = M4aSequencer(bus, info)
                 var ok = true
                 var runs = 0L
-                val starts = mutableListOf<Pair<M4aPlayer, Int>>()
+                val starts = mutableListOf<Triple<M4aPlayer, Int, Boolean>>()
                 for (i in order) {
                     val p = players[i]
                     val q = qs[i]
@@ -78,8 +82,9 @@ class M4aNoteTest {
                         why[0]++
                         // START still set in the next dump: the game started the song after this
                         // frame's SoundMain; else before it.
-                        if (q.tracks[0].flags and 0x40 != 0) {
-                            starts += p to q.songHeader
+                        val imm = q.clock == 0 && q.status == 0 && q.tracks[0].flags == 0x80
+                        if (q.tracks[0].flags and 0x40 != 0 || imm) {
+                            starts += Triple(p, q.songHeader, imm)
                         } else if (!seq.start(p, q.songHeader)) {
                             ok = false
                         }
@@ -109,7 +114,13 @@ class M4aNoteTest {
                 info.pcmDmaCounter = infoB.pcmDmaCounter
                 M4aMixer.frame(info, bus)
                 // The game starts songs after SoundMain (mixer) in the frame.
-                for ((p, header) in starts) if (!seq.start(p, header)) ok = false
+                for ((p, header, imm) in starts) {
+                    if (!seq.start(p, header)) ok = false
+                    if (imm) {
+                        seq.immInit(p) // m4aMPlayImmInit right after
+                        immInits++
+                    }
+                }
                 var allMixed = true
                 for (c in 0 until info.maxChans) {
                     val ch = info.chans[c]
@@ -171,6 +182,7 @@ class M4aNoteTest {
             .joinToString { "0x%02X=%d".format(it + 0xB1, frameRuns[it]) })
         assertTrue(frames > 500 && notes > 100, "frames $frames, notes $notes")
         assertTrue(pcmFrames > 500 && fixed > 0 && looped > 0, "pcm $pcmFrames, fixed $fixed")
+        assertTrue(why[0] >= 4 && immInits >= 1, "song starts ${why[0]}, ImmInit $immInits")
         assertTrue(fines >= 2 && endties >= 4, "FINE in $fines frames, EOT in $endties")
     }
 

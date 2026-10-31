@@ -34,7 +34,7 @@ public class M4aSequencer(
                 if (t.flags and M4aTrack.FLG_EXIST == 0) continue
                 live = live or (1 shl i)
                 if (info != null) gate(t)
-                if (t.flags and M4aTrack.FLG_START != 0) start(t)
+                if (t.flags and M4aTrack.FLG_START != 0) clearTrack(t)
                 if (!tick(p, t, i)) continue
             }
             p.clock += 1
@@ -60,7 +60,8 @@ public class M4aSequencer(
      * (only if `unk_B`): resets tempo/fade, stops all tracks, arms the song's tracks with
      * `EXIST | START` at their part pointers and clears the rest. A song with `reverb & 0x80` sets
      * the mixer reverb (`m4aSoundMode`); returns false if that needs [info] and there is none.
-     * WIP: checked on the traces' few song starts only.
+     *
+     * Ported from src/m4a.c: MPlayStart
      */
     public fun start(p: M4aPlayer, header: Int): Boolean {
         if (p.ident != M4aPlayer.ID_NUMBER) return true
@@ -95,6 +96,21 @@ public class M4aSequencer(
         val i = info ?: return false
         i.reverb = reverb and 0x7F // m4aSoundMode(reverb): only the reverb bits fit in a byte
         return true
+    }
+
+    /**
+     * `m4aMPlayImmInit`: resets each starting track (`EXIST | START`) to the `Clear64byte`
+     * defaults at once, as `MPlayMain` would on its next tick.
+     *
+     * Ported from src/m4a.c: m4aMPlayImmInit
+     */
+    public fun immInit(p: M4aPlayer) {
+        for (i in 0 until p.trackCount) {
+            val t = p.tracks[i]
+            if (t.flags and M4aTrack.FLG_EXIST != 0 && t.flags and M4aTrack.FLG_START != 0) {
+                clearTrack(t)
+            }
+        }
     }
 
     /** Gate countdown of [t]'s channels: release at 0, unlink inactive ones. */
@@ -138,7 +154,7 @@ public class M4aSequencer(
         (bus.read8(a + 2) shl 16) or (bus.read8(a + 3) shl 24)
 
     /** The `Clear64byte` + defaults of a starting track. */
-    private fun start(t: M4aTrack) {
+    private fun clearTrack(t: M4aTrack) {
         t.chan = null
         t.echoVolume = 0
         t.echoLength = 0

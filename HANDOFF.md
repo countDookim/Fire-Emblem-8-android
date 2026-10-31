@@ -10,9 +10,10 @@ _(nothing blocked)_
   Likely cause fixed (unconfirmed on device): the launcher counted thousands of bundled assets on the main thread
   (`AssetLayer.list` also did a per-file `exists()`, quadratic); now counted on `Dispatchers.IO`, no `exists()`.
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
-- Verified ports: 236 / 8352 (this run: m4aSongNumStart via `M4aSongTable`, FE8 `gSongTable` 0x08224470, 1000 songs;
+- Verified ports: 237 / 8352 (this run: m4aSongNumStart via `M4aSongTable`, FE8 `gSongTable` 0x08224470, 1000 songs;
   m4aSoundVSync = `M4aSoundInfo.vSync`, the test now steps the DMA counter itself;
-  MPlayOpen = `M4aSoundInfo.open` + `chain()` (`M4aOpenTest`: f20 chain = reverse table order). M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
+  MPlayOpen = `M4aSoundInfo.open` + `chain()` (`M4aOpenTest`: f20 chain = reverse table order);
+  MPlayFadeOut = `M4aCommands.fadeOut` (f20: `sub_8002AC8` fades BGM1/2 at speed 1). M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
   `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`, `wip/M3-13-seq`, `wip/M3-13-note`, `wip/M3-13-mix`, `wip/M3-13-mix2`, `wip/M3-13-start` (merged).
 - Rules: a `@VerifiesPort` every run or two; no `java.*`/`javax.*` in new engine/game code (KMP, M4-07); battle
   rolls only via `mechanics.battleRolls`.

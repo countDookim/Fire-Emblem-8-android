@@ -439,6 +439,19 @@ public object M4aCommands {
     }
 
     /**
+     * `m4aMPlayFadeOut` / `MPlayFadeOut`: fades [p] out from full volume, one step every [speed]
+     * frames (see [fadeOutBody]). Ignored while [p] is locked (`ident` is not `ID_NUMBER`).
+     *
+     * Ported from src/m4a.c: MPlayFadeOut
+     */
+    public fun fadeOut(p: M4aPlayer, speed: Int) {
+        if (p.ident != M4aPlayer.ID_NUMBER) return
+        p.fadeOC = speed and 0xFFFF
+        p.fadeOI = speed and 0xFFFF
+        p.fadeOV = 64 shl 2
+    }
+
+    /**
      * One fade step of [p] every `fadeOI` frames: fade-in raises `fadeOV` by 4 << 2 up to 64 << 2;
      * fade-out lowers it and at 0 stops all tracks (keeping them if `TEMPORARY_FADE`) and pauses
      * the player; otherwise every live track gets `volX = fadeOV >> 2` and a volume change.

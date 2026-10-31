@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-10-31 (scheduled run 14:51). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-10-31 (scheduled run 15:2x). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
@@ -10,8 +10,7 @@ _(nothing blocked)_
   Likely cause fixed (unconfirmed on device): the launcher counted thousands of bundled assets on the main thread
   (`AssetLayer.list` also did a per-file `exists()`, quadratic); now counted on `Dispatchers.IO`, no `exists()`.
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
-- Verified ports: 233 / 8352 (this run, m4a: ply_note, RealClearChain, ply_fine, ply_endtie, SoundMainRAM,
-  MPlayStart, m4aMPlayImmInit). M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
+- Verified ports: 234 / 8352 (this run: m4aSongNumStart via `M4aSongTable`, FE8 `gSongTable` 0x08224470, 1000 songs). M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
   `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`, `wip/M3-13-seq`, `wip/M3-13-note`, `wip/M3-13-mix`, `wip/M3-13-mix2`, `wip/M3-13-start` (merged).
 - Rules: a `@VerifiesPort` every run or two; no `java.*`/`javax.*` in new engine/game code (KMP, M4-07); battle
   rolls only via `mechanics.battleRolls`.
@@ -43,7 +42,8 @@ _(nothing blocked)_
   `render` resamples 13379 Hz (`pcmFreq`, 224 samples/frame) to the device rate.
   Song starts (`M4aSequencer.start` = `MPlayStart`, `immInit`): the game calls them after SoundMain in
   the frame; the test detects `m4aMPlayImmInit` from the next dump (clock 0, track 0 flags 0x80).
-  Next: port `m4aSongNumStart` (song table -> player -> `start`), then a per-frame driver (sequencers in
+  `M4aSequencer.songNumStart` (`M4aSongTable`; players = `gMPlayTable` order = `M4aRam.PLAYERS`).
+  Next: a per-frame driver (sequencers in
   `intp` order -> `M4aMixer.frame` -> `PcmStream.push`) fed to the app's `AudioThread`; `CgbSound` (CGB
   channels 1-4 -> PSG; needs a PSG model); claim `MPlayMain` once fades are verified.
   Sources (decomp sparse-checkout `src/m4a* include/m4a* include/gba`): `src/m4a.c`, `src/m4a_1.s`,

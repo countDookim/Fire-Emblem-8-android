@@ -99,6 +99,15 @@ public class M4aSequencer(
     }
 
     /**
+     * `m4aSongNumStart`: starts song [n] of [songs] on its player (`ms`) via [start].
+     * [players] are the game's `gMPlayTable` players, in table order.
+     *
+     * Ported from src/m4a.c: m4aSongNumStart
+     */
+    public fun songNumStart(players: List<M4aPlayer>, songs: M4aSongTable, n: Int): Boolean =
+        start(players[songs.player(n and 0xFFFF)], songs.header(n and 0xFFFF))
+
+    /**
      * `m4aMPlayImmInit`: resets each starting track (`EXIST | START`) to the `Clear64byte`
      * defaults at once, as `MPlayMain` would on its next tick.
      *

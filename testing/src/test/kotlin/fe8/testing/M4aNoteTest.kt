@@ -5,6 +5,7 @@ import gbafe.audio.M4aChannel
 import gbafe.audio.M4aMixer
 import gbafe.audio.M4aPlayer
 import gbafe.audio.M4aSequencer
+import gbafe.audio.M4aSongTable
 import gbafe.audio.M4aTrack
 import gbafe.core.VerifiesPort
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -30,7 +31,7 @@ class M4aNoteTest {
     @Test
     @VerifiesPort(
         "ply_note", "RealClearChain", "ply_fine", "ply_endtie", "SoundMainRAM",
-        "MPlayStart", "m4aMPlayImmInit",
+        "MPlayStart", "m4aMPlayImmInit", "m4aSongNumStart",
     )
     fun `channels step like the per-frame RAM traces`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present")
@@ -46,6 +47,7 @@ class M4aNoteTest {
         var enveloped = 0
         var pcmFrames = 0
         var immInits = 0
+        val songNums = sortedSetOf<Int>()
         var fixed = 0
         var looped = 0
         var maxLines = 0
@@ -69,7 +71,8 @@ class M4aNoteTest {
                 val seq = M4aSequencer(bus, info)
                 var ok = true
                 var runs = 0L
-                val starts = mutableListOf<Triple<M4aPlayer, Int, Boolean>>()
+                val songs = M4aSongTable(bus, SONG_TABLE, SONG_COUNT)
+                val starts = mutableListOf<Pair<Int, Boolean>>()
                 for (i in order) {
                     val p = players[i]
                     val q = qs[i]
@@ -83,9 +86,13 @@ class M4aNoteTest {
                         // START still set in the next dump: the game started the song after this
                         // frame's SoundMain; else before it.
                         val imm = q.clock == 0 && q.status == 0 && q.tracks[0].flags == 0x80
+                        // The song number: every entry with this header plays on this player.
+                        val ns = (0 until SONG_COUNT).filter { songs.header(it) == q.songHeader }
+                        assertTrue(ns.isNotEmpty() && ns.all { songs.player(it) == i }, "song $ns")
+                        songNums += ns[0]
                         if (q.tracks[0].flags and 0x40 != 0 || imm) {
-                            starts += Triple(p, q.songHeader, imm)
-                        } else if (!seq.start(p, q.songHeader)) {
+                            starts += ns[0] to imm
+                        } else if (!seq.songNumStart(players, songs, ns[0])) {
                             ok = false
                         }
                     }
@@ -114,10 +121,10 @@ class M4aNoteTest {
                 info.pcmDmaCounter = infoB.pcmDmaCounter
                 M4aMixer.frame(info, bus)
                 // The game starts songs after SoundMain (mixer) in the frame.
-                for ((p, header, imm) in starts) {
-                    if (!seq.start(p, header)) ok = false
+                for ((n, imm) in starts) {
+                    if (!seq.songNumStart(players, songs, n)) ok = false
                     if (imm) {
-                        seq.immInit(p) // m4aMPlayImmInit right after
+                        seq.immInit(players[songs.player(n)]) // m4aMPlayImmInit right after
                         immInits++
                     }
                 }
@@ -182,7 +189,7 @@ class M4aNoteTest {
             .joinToString { "0x%02X=%d".format(it + 0xB1, frameRuns[it]) })
         assertTrue(frames > 500 && notes > 100, "frames $frames, notes $notes")
         assertTrue(pcmFrames > 500 && fixed > 0 && looped > 0, "pcm $pcmFrames, fixed $fixed")
-        assertTrue(why[0] >= 4 && immInits >= 1, "song starts ${why[0]}, ImmInit $immInits")
+        assertTrue(why[0] >= 4 && immInits >= 1, "song starts ${why[0]} (songs $songNums), ImmInit $immInits")
         assertTrue(fines >= 2 && endties >= 4, "FINE in $fines frames, EOT in $endties")
     }
 
@@ -221,6 +228,9 @@ class M4aNoteTest {
         ((b[o + 3].toInt() and 0xFF) shl 24)
 
     private companion object {
+        /** `gSongTable` (fireemblem8.nm.txt); 1000 entries up to `dummy_song`. */
+        const val SONG_TABLE = 0x08224470
+        const val SONG_COUNT = 1000
         val DUMP = Regex("""r(\d+)\.iwram\.bin""")
     }
 }

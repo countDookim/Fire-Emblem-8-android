@@ -38,9 +38,11 @@ _(nothing blocked)_
   channel chains/fields and the **whole PCM buffer byte-exact** (6 skipped: song changes).
   Not modelled: `PORT`, `MEMACC` (no trace uses them; unsupported), `maxLines` cut-off (FE8: 0).
   Unverified (no trace): `FadeOutBody`, `TrackStop`, `ply_xcmd` (needs a run with a BGM fade / song stop).
-  Next: `CgbSound` (CGB channels 1-4 -> GBA PSG registers; ground truth = IO dump if the harness has one,
-  else emulate the PSG), then an `AudioSource` that runs sequencers + mixer per frame and resamples the
-  PCM buffer (rate from `pcmFreq`) to the sink; claim `MPlayMain` once fades are verified.
+  `PcmStream` (not a port): SPSC ring, game thread `push(info)` after `M4aMixer.frame`, audio thread
+  `render` resamples 13379 Hz (`pcmFreq`, 224 samples/frame) to the device rate.
+  Next: wire a per-frame driver (sequencers in `intp` order -> `M4aMixer.frame` -> `PcmStream.push`) into
+  the app's `AudioThread` once song start (`m4aSongNumStart`/`MPlayStart`) is ported; `CgbSound` (CGB
+  channels 1-4 -> PSG; needs a PSG model); claim `MPlayMain` once fades are verified.
   Sources (decomp sparse-checkout `src/m4a* include/m4a* include/gba`): `src/m4a.c`, `src/m4a_1.s`,
   `src/m4a_tables.c`, offsets in `include/m4a.inc` / `include/gba/m4a_internal.h`.
 - If the owner still reports slow startup: measure what runs before the launcher draws (`Application`/

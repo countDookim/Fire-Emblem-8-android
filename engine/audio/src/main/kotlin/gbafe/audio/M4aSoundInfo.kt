@@ -25,6 +25,9 @@ public class M4aSoundInfo(
     /** `pcmSamplesPerVBlank`. */
     public var pcmSamplesPerVBlank: Int = 0
 
+    /** `pcmFreq`: mixer output rate in Hz. */
+    public var pcmFreq: Int = 0
+
     /** `divFreq`: 2^24 / sample rate scale for `freq`. */
     public var divFreq: Int = 0
 

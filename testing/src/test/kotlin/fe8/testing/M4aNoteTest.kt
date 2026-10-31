@@ -44,6 +44,7 @@ class M4aNoteTest {
         var fixed = 0
         var looped = 0
         var maxLines = 0
+        var pcmFreq = 0
         var endties = 0
         for (dir in ref.root.listFiles().orEmpty().filter { it.isDirectory }) {
             val dumps = dir.listFiles().orEmpty().mapNotNull { f ->
@@ -90,6 +91,7 @@ class M4aNoteTest {
                 val wasActive = info.chans.map { it.isActive }
                 fixed += info.chans.take(info.maxChans).count { it.isActive && it.type and 8 != 0 }
                 looped += info.chans.take(info.maxChans).count { it.status and 0x10 != 0 }
+                pcmFreq = info.pcmFreq
                 maxLines = maxOf(maxLines, a[0x5410 + 0x0C].toInt() and 0xFF)
                 notes += info.chans.count { it.status == 0x80 }
                 // m4aSoundVSync (VBlank IRQ) steps the DMA counter before SoundMain runs.
@@ -148,7 +150,8 @@ class M4aNoteTest {
                 "EOT $endties",
         )
         println("M4aNoteTest: envelopes $enveloped, sample ends $ended, pcm frames $pcmFrames, " +
-            "fixed-rate $fixed, looping $looped, maxLines $maxLines")
+            "fixed-rate $fixed, looping $looped, maxLines $maxLines, " +
+            "pcmFreq $pcmFreq")
         println("M4aNoteTest: why ${why.toList()} " + (0 until 256).filter { cmds[it] > 0 }
             .joinToString { "0x%02X=%d".format(it, cmds[it]) })
         println("M4aNoteTest: frames running " + (0 until 64).filter { frameRuns[it] > 0 }

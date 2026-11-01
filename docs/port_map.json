@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 246,
+    "verified": 247,
     "implemented_unverified": 28
   },
   "functions": {
@@ -518,6 +518,15 @@
       "kotlin_file": "game/src/main/kotlin/fe8/game/GameLoop.kt",
       "status": "implemented",
       "tests": []
+    },
+    "MPlayExtender": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aSound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSoundTest#init gives the traced chain, idle players and rates"
+      ]
     },
     "MPlayFadeOut": {
       "decomp_file": "src/m4a.c",

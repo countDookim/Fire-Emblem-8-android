@@ -11,8 +11,8 @@ _(nothing blocked)_
   removed). Boot sound: `fe8.game.SoundWrapper` (`gSoundSt`, StartBgmExt/StartOrChangeBgm/StartBgmCore/
   Sound_FadeOutBGM/StartSongDelayed/PlaySoundEffect...), `GameLoop` runs `m4aSoundVSync`/`m4aSoundMain` in
   VBlank, `GameLoop.afterStep` defers code after a long decompression (op anim BGM starts 3 VBlanks late, as
-  traced). `Fe8BootSoundTest`: all 9 players + `gSoundSt` match every dump f21..f3600 (3201 dumps). Awaiting
-  the owner's listen test (MANUAL_TEST).
+  traced). `Fe8BootSoundTest`: all 9 players + `gSoundSt` match every dump f21..f3600 (3201 dumps). Owner
+  listen test passed 2026-11-01 (in sync through title, op anim restart, pause/resume).
 - `ram_trace_menu_cgb` (ROM repo, per-frame RAM f880..f1100): title START / menu SEs (songs 96/106/109-ish) on
   `gCgbChans` 1/2 (active f990..). No older trace ever has a CGB channel active. `CgbSound` (src/m4a.c:852)
   reads `NRx2` registers (`evAdd = *nrx2ptr`) and writes NRx0..4: needs a small PSG register model in

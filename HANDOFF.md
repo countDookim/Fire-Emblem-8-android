@@ -13,7 +13,7 @@ _(nothing blocked)_
   reads `NRx2` registers (`evAdd = *nrx2ptr`) and writes NRx0..4: needs a small PSG register model in
   `gbafe.audio` (dumps have no IO: compare channel state `sf/ev/eg/ec/sg/n4/pan/mo/fr` only). Steps: CGB fields
   on `M4aChannel` (struct CgbChannel offsets 0x04..0x1F; `panMask` on master, `sg/n4/pan/mo` on branch
-  `wip/M3-13-cgb`, merge it first) + `M4aRam` parse, port `CgbModVol`
+  `wip/M3-13-cgb` with unverified `M4aCgb.modVol`, merge it first) + `M4aRam` parse, port `CgbModVol`
   then `CgbSound`, call it in `M4aDriver.frame` before the mixer, test against the new trace; then a PSG synth
   (square/wave/noise) for the audio output.
 - Songs using CGB channels (600-frame scan, 74 songs): 67 (op theme, ch1), 96..126 (system SEs), 179, 184, ...

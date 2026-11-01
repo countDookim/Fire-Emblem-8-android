@@ -18,7 +18,8 @@ _(nothing blocked)_
   (LFSR 15/7), NR51 pan; rendered at `pcmFreq` on the game thread and added in `PcmStream.push` (`PSG_GAIN` 512
   = guess: one channel at 15 ~ 1/4 DirectSound). `PsgSynthTest` (frequency, duty level, pan, envelope, length).
 - Also done: ch1 sweep (NR10, writes NR13/14 back), length loads on NRx1 writes (`M4aPsg.lengthLoads`).
-- Open: NR50/SOUNDCNT_H levels, aliasing at 13379 Hz (band-limit or
+- NR50/SOUNDCNT_H scaling (FE8 sets max: 0x77, 100%) done.
+- Open: aliasing at 13379 Hz (band-limit or
   render at device rate), measure level vs mGBA audio (harness audio capture, M3-14 RMS test). Owner listen test.
 - Songs using CGB channels (600-frame scan, 74 songs): 67 (op theme, ch1), 96..126 (system SEs), 179, 184, ...
 

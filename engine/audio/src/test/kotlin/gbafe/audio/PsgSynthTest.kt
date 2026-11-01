@@ -78,4 +78,20 @@ class PsgSynthTest {
         synth.render(out, rate / 10, 1f) // keeps rising past 2047: channel off
         assertFalse(synth.isOn(1))
     }
+
+    @Test
+    fun `NR50 and SOUNDCNT_H scale the mix`() {
+        val psg = M4aPsg()
+        val synth = PsgSynth(psg, rate)
+        psg.write(M4aPsg.NR51, 0x22)
+        psg.write(M4aPsg.NR50, 0x37) // left 4/8, right 8/8
+        psg.write(M4aPsg.SOUNDCNT_H, 0x01) // 50%
+        psg.write(0x04000068, 0x80)
+        psg.write(0x04000069, 0xF0)
+        psg.write(0x0400006D, 0x80)
+        val out = FloatArray(2 * 1000)
+        synth.render(out, 1000, 1f)
+        assertEquals(3.75f, (0 until 1000).maxOf { out[2 * it] })
+        assertEquals(7.5f, (0 until 1000).maxOf { out[2 * it + 1] })
+    }
 }

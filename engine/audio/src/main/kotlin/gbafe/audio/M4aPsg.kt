@@ -7,8 +7,14 @@ package gbafe.audio
  * samples is separate (task M3-13). Not a port.
  */
 public class M4aPsg {
-    /** Register bytes, offset = IO address - `0x04000060`. */
-    public val regs: IntArray = IntArray(0x40)
+    /**
+     * Register bytes, offset = IO address - `0x04000060`. Starts as `MPlayExtender` / `SoundInit`
+     * leave it: NR50 = 0x77 (full master volume), SOUNDCNT_H PSG ratio 100%.
+     */
+    public val regs: IntArray = IntArray(0x40).also {
+        it[NR50 - BASE] = 0x77
+        it[SOUNDCNT_H - BASE] = 0x02
+    }
 
     /** High byte of `SOUNDBIAS` (`0x04000089`): sampling-cycle bits 6..7 (init sets 0x40). */
     public var soundBiasH: Int = 0x42
@@ -56,6 +62,12 @@ public class M4aPsg {
     public companion object {
         /** `REG_NR10`, first PSG register. */
         public const val BASE: Int = 0x04000060
+
+        /** `REG_NR50`: PSG master volume (left bits 4..6, right bits 0..2). */
+        public const val NR50: Int = 0x04000080
+
+        /** Low byte of `REG_SOUNDCNT_H`: PSG mix ratio in bits 0..1 (25/50/100%). */
+        public const val SOUNDCNT_H: Int = 0x04000082
 
         /** `REG_NR51`: PSG pan (left/right enable per channel). */
         public const val NR51: Int = 0x04000081

@@ -3,8 +3,8 @@ package gbafe.audio
 /**
  * Plays the PSG registers of [psg] (written by `CgbSound`): square 1/2 (duty, envelope, length),
  * wave (32 4-bit samples, volume shift) and noise (7/15-bit LFSR, envelope), panned by NR51.
- * Square 1 has the frequency sweep (NR10). Not a port (hardware behaviour, GBATEK); WIP M3-13:
- * NR50/SOUNDCNT_H levels are not modelled yet. Nothing allocates per call.
+ * Square 1 has the frequency sweep (NR10); NR50 master volume and the SOUNDCNT_H PSG ratio
+ * scale the mix. Not a port (hardware behaviour, GBATEK). Nothing allocates per call.
  */
 public class PsgSynth(
     /** Register file to play. */
@@ -44,6 +44,10 @@ public class PsgSynth(
         for (c in 0 until 4) if (t ushr c and 1 != 0) trigger(c)
         if (psg.read(0x04000070) and 0x80 == 0) on[2] = false // NR30 DAC off
         val nr51 = psg.read(M4aPsg.NR51)
+        val nr50 = psg.read(M4aPsg.NR50)
+        val ratio = RATIO[psg.read(M4aPsg.SOUNDCNT_H) and 3]
+        val gainL = gain * ratio * (((nr50 ushr 4) and 7) + 1) / 8f
+        val gainR = gain * ratio * ((nr50 and 7) + 1) / 8f
         for (i in 0 until frames) {
             seqPhase += SEQUENCER_HZ / sampleRate
             while (seqPhase >= 1.0) {
@@ -58,8 +62,8 @@ public class PsgSynth(
                 if (nr51 ushr (4 + c) and 1 != 0) l += v
                 if (nr51 ushr c and 1 != 0) r += v
             }
-            out[2 * i] += l * gain
-            out[2 * i + 1] += r * gain
+            out[2 * i] += l * gainL
+            out[2 * i + 1] += r * gainR
         }
     }
 
@@ -181,6 +185,7 @@ public class PsgSynth(
     private companion object {
         const val SEQUENCER_HZ = 512.0
         const val NR10 = 0x04000060
+        val RATIO = floatArrayOf(0.25f, 0.5f, 1f, 0f)
         val ENVELOPE_CHANNELS = intArrayOf(0, 1, 3)
         val DUTY = doubleArrayOf(0.125, 0.25, 0.5, 0.75)
         val WAVE_SHIFT = intArrayOf(-1, 0, 1, 2)

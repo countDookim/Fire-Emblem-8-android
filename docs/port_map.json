@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 247,
+    "verified": 258,
     "implemented_unverified": 28
   },
   "functions": {
@@ -193,6 +193,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.MsgHuffmanRomTest#known names decode exactly"
+      ]
+    },
+    "DelaySong_OnLoop": {
+      "decomp_file": "src/soundwrapper.c",
+      "system": "audio",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/SoundWrapper.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
       ]
     },
     "DisableKeyComboResetEN": {
@@ -767,6 +776,15 @@
         "fe8.testing.OpAnimHsDifferentialTest#intro fades match gPaletteBuffer in the boot RAM trace"
       ]
     },
+    "OpAnimInit": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
+      ]
+    },
     "OpAnimMergeBGProcInit": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
@@ -1205,6 +1223,15 @@
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
+    "SetupOpAnimWorldMapfx": {
+      "decomp_file": "src/opanim-main.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/opanim/OpAnim.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
+      ]
+    },
     "SkipTitleFx_Loop_KeyListener": {
       "decomp_file": "src/titlescreen.c",
       "system": "presentation",
@@ -1232,6 +1259,51 @@
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
       ]
     },
+    "Sound_FadeOutBGM": {
+      "decomp_file": "src/soundwrapper.c",
+      "system": "audio",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/SoundWrapper.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
+      ]
+    },
+    "Sound_SetDefaultMaxNumChannels": {
+      "decomp_file": "src/soundwrapper.c",
+      "system": "audio",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/SoundWrapper.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
+      ]
+    },
+    "Sound_SetMaxNumChannels": {
+      "decomp_file": "src/soundwrapper.c",
+      "system": "audio",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/SoundWrapper.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
+      ]
+    },
+    "StartBgmCore": {
+      "decomp_file": "src/soundwrapper.c",
+      "system": "audio",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/SoundWrapper.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
+      ]
+    },
+    "StartBgmExt": {
+      "decomp_file": "src/soundwrapper.c",
+      "system": "audio",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/SoundWrapper.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
+      ]
+    },
     "StartFadeCore": {
       "decomp_file": "src/bmlib.c",
       "system": "battle_map",
@@ -1248,6 +1320,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
+      ]
+    },
+    "StartOrChangeBgm": {
+      "decomp_file": "src/soundwrapper.c",
+      "system": "audio",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/SoundWrapper.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
+      ]
+    },
+    "StartSongDelayed": {
+      "decomp_file": "src/soundwrapper.c",
+      "system": "audio",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/SoundWrapper.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
       ]
     },
     "StartTitleScreen_FlagTrue": {
@@ -1665,6 +1755,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
+      ]
+    },
+    "sub_80028FC": {
+      "decomp_file": "src/soundwrapper.c",
+      "system": "audio",
+      "kotlin_file": "game/src/main/kotlin/fe8/game/SoundWrapper.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
       ]
     },
     "sub_8009B64": {

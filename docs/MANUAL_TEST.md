@@ -19,6 +19,9 @@ on-screen touch buttons (D-pad diagonals, multi-touch).
       you tap around), stops at once on **Stop test tone**, and stops when you switch apps.
 - [ ] (#2) Start the tone, switch apps and come back: the button reads **Test tone (440 Hz)** again and one
       press starts the beep.
+- [ ] (debug APK) **Test music (opening)**: the opening theme plays as in the original (tempo, instruments;
+      square-wave/noise parts are still missing), without crackles; stops on **Stop test music**, when you
+      switch apps and when you press Play. Report anything that sounds wrong.
 
 ## Known not working (don't report)
 Everything after the title: no gameplay, sound or saves; title key presses do nothing yet.

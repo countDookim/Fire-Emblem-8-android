@@ -30,6 +30,9 @@ import gbafe.input.TouchButtons
 import fe8.game.Fe8Boot
 import fe8.game.RomView
 import fe8.game.Fe8Game
+import fe8.game.Fe8Sound
+import gbafe.audio.M4aPullSource
+import gbafe.audio.PcmStream
 import gbafe.audio.ToneSource
 import io.github.countdookim.fe8.BuildConfig
 import kotlinx.coroutines.Dispatchers
@@ -53,13 +56,43 @@ public class MainActivity : ComponentActivity() {
 
     /** M3-12 manual test: starts/stops a 440 Hz tone through the low-latency sink; returns the new state. */
     private fun toggleTone(): Boolean {
-        val thread = tone ?: AudioTrackSink().let { sink ->
-            toneSink = sink
+        if (musicPlaying) toggleMusic() // one sink: never both at once
+        val thread = tone ?: (toneSink ?: AudioTrackSink().also { toneSink = it }).let { sink ->
             AudioThread(ToneSource(sink.sampleRate), sink).also { tone = it }
         }
         tonePlaying = !tonePlaying
         if (tonePlaying) thread.start() else thread.stop()
         return tonePlaying
+    }
+
+    private var music: AudioThread? = null
+
+    /** Compose state of the "Test music" button (follows stops from [onPause]/Play). */
+    private var musicPlaying by mutableStateOf(false)
+
+    /**
+     * M3-13 manual test: starts/stops the opening BGM, mixed by the m4a port from the bundled
+     * sound window (debug builds) and run from the audio thread ([M4aPullSource]).
+     */
+    private fun toggleMusic() {
+        val thread = music ?: run {
+            val rom = bundledSoundRom(this) ?: return
+            val sink = toneSink ?: AudioTrackSink().also { toneSink = it }
+            val sound = Fe8Sound.create(rom)
+            val pcm = PcmStream(sound.info.pcmFreq, sink.sampleRate)
+            sound.songNumStart(Fe8Sound.SONG_OPENING)
+            AudioThread(M4aPullSource(sound.driver(pcm), pcm), sink).also { music = it }
+        }
+        if (tonePlaying) toggleTone() // one sink: never both at once
+        musicPlaying = !musicPlaying
+        if (musicPlaying) thread.start() else thread.stop()
+    }
+
+    private fun stopSound() {
+        tone?.stop()
+        tonePlaying = false
+        music?.stop()
+        musicPlaying = false
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,12 +118,13 @@ public class MainActivity : ComponentActivity() {
                         Launcher(
                             onPlay = { useGpu ->
                                 gpu = useGpu
-                                tone?.stop()
-                                tonePlaying = false
+                                stopSound()
                                 playing = true
                             },
                             toneOn = tonePlaying,
                             onTone = { toggleTone() },
+                            musicOn = musicPlaying,
+                            onMusic = ::toggleMusic,
                         )
                     }
                 }
@@ -101,12 +135,11 @@ public class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         surface?.onPause()
-        tone?.stop()
-        tonePlaying = false
+        stopSound()
     }
 
     override fun onDestroy() {
-        tone?.stop()
+        stopSound()
         toneSink?.release()
         super.onDestroy()
     }
@@ -114,6 +147,14 @@ public class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         surface?.onResume()
+    }
+}
+
+/** The sound ROM window from the APK's bundled `extracted/sound/` (debug/test builds only), or null. */
+private fun bundledSoundRom(ctx: Context): RomView? {
+    if (ctx.assets.list("extracted/sound").isNullOrEmpty()) return null
+    return RomView.ofSoundWindows { name ->
+        ctx.assets.open("extracted/sound/$name").use { it.readBytes() }
     }
 }
 
@@ -126,7 +167,13 @@ private fun bundledBootRom(ctx: Context): RomView? {
 }
 
 @Composable
-private fun Launcher(onPlay: (gpu: Boolean) -> Unit, toneOn: Boolean, onTone: () -> Unit) {
+private fun Launcher(
+    onPlay: (gpu: Boolean) -> Unit,
+    toneOn: Boolean,
+    onTone: () -> Unit,
+    musicOn: Boolean,
+    onMusic: () -> Unit,
+) {
     Column(
         Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
@@ -144,5 +191,9 @@ private fun Launcher(onPlay: (gpu: Boolean) -> Unit, toneOn: Boolean, onTone: ()
         Button(onClick = { onPlay(false) }) { Text("Play") }
         Button(onClick = { onPlay(true) }) { Text("Play (GPU renderer, experimental)") }
         Button(onClick = onTone) { Text(if (toneOn) "Stop test tone" else "Test tone (440 Hz)") }
+        // Debug builds only (needs the bundled sound window); release builds have no ROM data yet.
+        if (bundled != null && bundled != 0) {
+            Button(onClick = onMusic) { Text(if (musicOn) "Stop test music" else "Test music (opening)") }
+        }
     }
 }

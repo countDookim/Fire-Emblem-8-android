@@ -18,17 +18,41 @@ public class TouchButtons : ActionSource {
     /** Rectangles of the buttons, in view pixels, as `left, top, right, bottom` per [Button]. */
     public val layout: FloatArray = FloatArray(Button.entries.size * 4)
 
-    /** Lays the buttons out for a view of [width] x [height] pixels (call on size change). */
-    public fun resize(width: Int, height: Int) {
-        val u = minOf(width, height) / 8f
-        val bottom = height - u * 0.5f
+    /**
+     * Lays the buttons out for a view of [width] x [height] pixels (call on size or inset
+     * change). The `inset*` arguments are the system bar / display cutout insets in pixels:
+     * every button stays inside that safe area, with a margin, so nothing sits under a camera
+     * notch or the gesture bar (issue #3).
+     */
+    public fun resize(
+        width: Int,
+        height: Int,
+        insetLeft: Int = 0,
+        insetTop: Int = 0,
+        insetRight: Int = 0,
+        insetBottom: Int = 0,
+    ) {
+        val left = insetLeft.toFloat()
+        val top = insetTop.toFloat()
+        val right = (width - insetRight).toFloat()
+        val safeW = right - left
+        val safeH = height - insetBottom - top
+        val u = minOf(safeW, safeH) / 8f
+        val m = u * MARGIN
+        val bottom = top + safeH - m
         // D-pad: a 3x3 grid of cells of size u at the bottom left; corners are diagonals.
-        set(Button.DPAD, u * 0.5f, bottom - u * 3, u * 3.5f, bottom)
-        set(Button.A, width - u * 1.6f, bottom - u * 2.6f, width - u * 0.4f, bottom - u * 1.4f)
-        set(Button.B, width - u * 3.0f, bottom - u * 1.6f, width - u * 1.8f, bottom - u * 0.4f)
-        set(Button.L, 0f, 0f, u * 2.5f, u)
-        set(Button.R, width - u * 2.5f, 0f, width.toFloat(), u)
-        val mid = width / 2f
+        set(Button.DPAD, left + m, bottom - u * 3, left + m + u * 3, bottom)
+        set(Button.A, right - m - u * 1.2f, bottom - u * 2.6f, right - m, bottom - u * 1.4f)
+        set(
+            Button.B,
+            right - m - u * 2.6f,
+            bottom - u * 1.6f,
+            right - m - u * 1.4f,
+            bottom - u * 0.4f,
+        )
+        set(Button.L, left + m, top + m, left + m + u * 2.5f, top + m + u)
+        set(Button.R, right - m - u * 2.5f, top + m, right - m, top + m + u)
+        val mid = left + safeW / 2f
         set(Button.SELECT, mid - u * 2.1f, bottom - u * 0.7f, mid - u * 0.1f, bottom)
         set(Button.START, mid + u * 0.1f, bottom - u * 0.7f, mid + u * 2.1f, bottom)
     }
@@ -121,6 +145,7 @@ public class TouchButtons : ActionSource {
     public companion object {
         /** Pointers tracked at once. */
         public const val MAX_POINTERS: Int = 10
+        private const val MARGIN = 0.4f
         private const val RIGHT = 4
         private const val LEFT = 5
         private const val UP = 6

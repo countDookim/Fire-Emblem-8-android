@@ -6,7 +6,10 @@ import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -174,26 +177,30 @@ private fun Launcher(
     musicOn: Boolean,
     onMusic: () -> Unit,
 ) {
+    // Landscape: scrollable, buttons in rows, so nothing falls below the screen edge.
     Column(
-        Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text("Fire Emblem: The Sacred Stones — Kotlin port", style = MaterialTheme.typography.titleLarge)
         Text("Build ${BuildConfig.VERSION_NAME} (${BuildConfig.GIT_SHA}) · vanilla mode · %.4f Hz logic".format(FixedStepClock.TICK_HZ))
-        Text("Debug builds: Play runs the boot screens. Without bundled assets: a GL test pattern.")
         val context = LocalContext.current
         // Counting walks thousands of APK asset entries: off the main thread, so launch isn't blocked.
         val bundled by produceState<Int?>(null) {
             value = withContext(Dispatchers.IO) { AssetLayer(context.assets).list("").size }
         }
         Text("Bundled test assets (debug builds only): ${bundled ?: "counting…"} files")
-        Button(onClick = { onPlay(false) }) { Text("Play") }
-        Button(onClick = { onPlay(true) }) { Text("Play (GPU renderer, experimental)") }
-        Button(onClick = onTone) { Text(if (toneOn) "Stop test tone" else "Test tone (440 Hz)") }
-        // Debug builds only (needs the bundled sound window); release builds have no ROM data yet.
-        if (bundled != null && bundled != 0) {
-            Button(onClick = onMusic) { Text(if (musicOn) "Stop test music" else "Test music (opening)") }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = { onPlay(false) }) { Text("Play") }
+            Button(onClick = { onPlay(true) }) { Text("Play (GPU renderer, experimental)") }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = onTone) { Text(if (toneOn) "Stop test tone" else "Test tone (440 Hz)") }
+            // Debug builds only (needs the bundled sound window); release builds have no ROM data yet.
+            if (bundled != null && bundled != 0) {
+                Button(onClick = onMusic) { Text(if (musicOn) "Stop test music" else "Test music (opening)") }
+            }
         }
     }
 }

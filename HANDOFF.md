@@ -6,8 +6,8 @@ _Updated 2026-11-01 (scheduled run 14:5x). Owner decisions: docs/PROJECT_BRIEF.m
 _(nothing blocked)_
 
 ## NEXT RUN, FIRST: M3-13 CgbSound (new trace `ram_trace_menu_cgb`)
-- Issue #2 fixed (511f398, CI green): launcher tone/music labels are Activity `mutableStateOf`. Asked the owner
-  on #2 to confirm with the next APK (MANUAL_TEST step); don't close it yourself.
+- Owner 2026-11-01: #2 confirmed and closed; app open, GPU renderer, test tone pass (M3-07, M3-12 done). Test
+  music button was below the screen edge (landscape): launcher now scrolls, buttons in rows; awaiting the test.
 - `ram_trace_menu_cgb` (ROM repo, per-frame RAM f880..f1100): title START / menu SEs (songs 96/106/109-ish) on
   `gCgbChans` 1/2 (active f990..). No older trace ever has a CGB channel active. `CgbSound` (src/m4a.c:852)
   reads `NRx2` registers (`evAdd = *nrx2ptr`) and writes NRx0..4: needs a small PSG register model in

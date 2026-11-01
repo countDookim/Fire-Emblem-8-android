@@ -31,7 +31,7 @@ class M4aNoteTest {
     @Test
     @VerifiesPort(
         "ply_note", "RealClearChain", "ply_fine", "ply_endtie", "SoundMainRAM",
-        "MPlayStart", "m4aMPlayImmInit", "m4aSongNumStart", "m4aSoundVSync",
+        "MPlayStart", "m4aMPlayImmInit", "m4aSongNumStart", "m4aSoundVSync", "MPlayMain",
     )
     fun `channels step like the per-frame RAM traces`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present")
@@ -54,7 +54,11 @@ class M4aNoteTest {
         var maxLines = 0
         var pcmFreq = 0
         var endties = 0
-        for (dir in ref.root.listFiles().orEmpty().filter { it.isDirectory }) {
+        // Menu traces: the game re-flags BGM track volume after SoundMain every frame (not
+        // modelled here); M4aStopTest and M4aFadeTest cover them.
+        val dirs = ref.root.listFiles().orEmpty()
+            .filter { it.isDirectory && !it.name.startsWith("ram_trace_menu") }
+        for (dir in dirs) {
             val dumps = dir.listFiles().orEmpty().mapNotNull { f ->
                 DUMP.matchEntire(f.name)?.let { it.groupValues[1].toInt() to f }
             }.toMap()

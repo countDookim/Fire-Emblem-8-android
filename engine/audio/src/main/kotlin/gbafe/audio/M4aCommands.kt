@@ -470,7 +470,10 @@ public object M4aCommands {
      * One fade step of [p] every `fadeOI` frames: fade-in raises `fadeOV` by 4 << 2 up to 64 << 2;
      * fade-out lowers it and at 0 stops all tracks (keeping them if `TEMPORARY_FADE`) and pauses
      * the player; otherwise every live track gets `volX = fadeOV >> 2` and a volume change.
-     * WIP: unverified (no reference trace has an active fade).
+     * Verified on a fade-out to stop (`M4aFadeTest`); the fade-in and `TEMPORARY_FADE` branches
+     * have no trace yet.
+     *
+     * Ported from src/m4a.c: FadeOutBody
      */
     public fun fadeOutBody(p: M4aPlayer, info: M4aSoundInfo?) {
         if (p.fadeOI == 0) return

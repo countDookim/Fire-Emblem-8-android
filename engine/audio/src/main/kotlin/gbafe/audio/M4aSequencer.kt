@@ -19,7 +19,14 @@ public class M4aSequencer(
     /** Per track slot: bit `cmd - 0xB1` for each jump-table command run in the last [step]. */
     public val commandsRun: LongArray = LongArray(16)
 
-    /** One `MPlayMain` call (one VBlank) for [p]. Returns false if the player was skipped. */
+    /**
+     * One `MPlayMain` call (one VBlank) for [p]: [M4aCommands.fadeOutBody], tempo ticks, track
+     * commands and the channel volume/pitch updates. Returns false if the player was skipped.
+     * Verified with the note traces (`M4aNoteTest`) and a fade (`M4aFadeTest`); `PORT` and
+     * `MEMACC` are not modelled (counted in [unsupported]).
+     *
+     * Ported from src/m4a_1.s: MPlayMain
+     */
     public fun step(p: M4aPlayer): Boolean {
         unsupported = 0
         commandsRun.fill(0)

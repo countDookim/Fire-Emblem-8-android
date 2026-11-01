@@ -31,7 +31,11 @@ class M4aSequencerTest {
         var skipped = 0
         val runs = IntArray(64)
         val skipCmd = IntArray(256) // last command byte (runningStatus) of skipped tracks
-        for (dir in ref.root.listFiles().orEmpty().filter { it.isDirectory }) {
+        // Menu traces: the game re-flags BGM track volume after SoundMain every frame (not
+        // modelled here); M4aStopTest and M4aFadeTest cover them.
+        val dirs = ref.root.listFiles().orEmpty()
+            .filter { it.isDirectory && !it.name.startsWith("ram_trace_menu") }
+        for (dir in dirs) {
             val frames = dir.listFiles().orEmpty().mapNotNull { f ->
                 DUMP.matchEntire(f.name)?.let { it.groupValues[1].toInt() to f }
             }.toMap()

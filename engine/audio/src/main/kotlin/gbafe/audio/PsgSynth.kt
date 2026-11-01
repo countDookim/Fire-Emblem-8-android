@@ -3,8 +3,8 @@ package gbafe.audio
 /**
  * Plays the PSG registers of [psg] (written by `CgbSound`): square 1/2 (duty, envelope, length),
  * wave (32 4-bit samples, volume shift) and noise (7/15-bit LFSR, envelope), panned by NR51.
- * Not a port (hardware behaviour, GBATEK); WIP M3-13: sweep (ch1) and NR50/SOUNDCNT_H levels
- * are not modelled yet. Nothing allocates per call.
+ * Square 1 has the frequency sweep (NR10). Not a port (hardware behaviour, GBATEK); WIP M3-13:
+ * NR50/SOUNDCNT_H levels are not modelled yet. Nothing allocates per call.
  */
 public class PsgSynth(
     /** Register file to play. */
@@ -19,6 +19,9 @@ public class PsgSynth(
     private val length = IntArray(4)
     private var lfsr = 0x7FFF
     private var seqPhase = 0.0
+    private var shadowFreq = 0
+    private var sweepTimer = 0
+    private var sweepOn = false
 
     /** Channel [ch] (1..4) is currently sounding. */
     public fun isOn(ch: Int): Boolean = on[ch - 1]
@@ -31,6 +34,12 @@ public class PsgSynth(
      * [gain] per unit of PSG level (one channel at volume 15 = 15 * [gain]).
      */
     public fun render(out: FloatArray, frames: Int, gain: Float) {
+        val loads = psg.takeLengthLoads()
+        for (c in 0 until 4) {
+            if (loads ushr c and 1 == 0) continue
+            val v = psg.read(NRX1[c])
+            length[c] = if (c == 2) 256 - v else 64 - (v and 0x3F)
+        }
         val t = psg.takeTriggers()
         for (c in 0 until 4) if (t ushr c and 1 != 0) trigger(c)
         if (psg.read(0x04000070) and 0x80 == 0) on[2] = false // NR30 DAC off
@@ -58,6 +67,7 @@ public class PsgSynth(
 
     private fun sequencerStep() {
         seqStep = (seqStep + 1) and 7
+        if (seqStep == 2 || seqStep == 6) sweepStep()
         if (seqStep and 1 == 0) {
             for (c in 0 until 4) {
                 if (!on[c] || length[c] <= 0 || n4(c) and 0x40 == 0) continue
@@ -89,15 +99,47 @@ public class PsgSynth(
         phase[c] = 0.0
         if (c == 2) {
             on[c] = psg.read(0x04000070) and 0x80 != 0
-            length[c] = 256 - psg.read(0x04000072)
+            if (length[c] == 0) length[c] = 256
             return
         }
         val nrx2 = psg.read(NRX2[c])
         volume[c] = nrx2 ushr 4
         envTimer[c] = nrx2 and 7
-        length[c] = 64 - (psg.read(NRX1[c]) and 0x3F)
+        if (length[c] == 0) length[c] = 64
         if (nrx2 and 0xF8 == 0) on[c] = false // DAC off
         if (c == 3) lfsr = 0x7FFF
+        if (c == 0) {
+            val nr10 = psg.read(NR10)
+            shadowFreq = freqReg(0)
+            sweepTimer = ((nr10 ushr 4) and 7).let { if (it == 0) 8 else it }
+            sweepOn = nr10 and 0x77 != 0
+            if (nr10 and 7 != 0 && sweepTarget(nr10) > 2047) on[0] = false
+        }
+    }
+
+    private fun sweepTarget(nr10: Int): Int {
+        val d = shadowFreq ushr (nr10 and 7)
+        return if (nr10 and 8 != 0) shadowFreq - d else shadowFreq + d
+    }
+
+    /** 128 Hz sweep clock of square 1: new frequency written back to NR13/NR14. */
+    private fun sweepStep() {
+        if (!on[0] || !sweepOn || --sweepTimer > 0) return
+        val nr10 = psg.read(NR10)
+        val period = (nr10 ushr 4) and 7
+        sweepTimer = if (period == 0) 8 else period
+        if (period == 0) return
+        val f = sweepTarget(nr10)
+        if (f > 2047) {
+            on[0] = false
+            return
+        }
+        if (nr10 and 7 == 0) return
+        shadowFreq = f
+        psg.regs[NRX3[0] - M4aPsg.BASE] = f and 0xFF
+        val i = NRX4[0] - M4aPsg.BASE
+        psg.regs[i] = (psg.regs[i] and 0xF8) or (f ushr 8)
+        if (sweepTarget(nr10) > 2047) on[0] = false
     }
 
     private fun sample(c: Int): Float {
@@ -138,6 +180,7 @@ public class PsgSynth(
 
     private companion object {
         const val SEQUENCER_HZ = 512.0
+        const val NR10 = 0x04000060
         val ENVELOPE_CHANNELS = intArrayOf(0, 1, 3)
         val DUTY = doubleArrayOf(0.125, 0.25, 0.5, 0.75)
         val WAVE_SHIFT = intArrayOf(-1, 0, 1, 2)

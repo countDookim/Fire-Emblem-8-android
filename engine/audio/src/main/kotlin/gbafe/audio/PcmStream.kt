@@ -30,7 +30,7 @@ public class PcmStream(
     /** Input frames queued and not yet consumed. */
     public val queued: Int get() = (written - read).toInt()
 
-    /** PSG channels mixed into each pushed frame (rendered at `pcmFreq`); null: DirectSound only. */
+    /** PSG channels mixed into each pushed frame (at `pcmFreq`); null: DirectSound only. */
     public var psg: PsgSynth? = null
 
     private val psgOut = FloatArray(2 * MAX_SAMPLES_PER_VBLANK)
@@ -86,8 +86,8 @@ public class PcmStream(
         const val MAX_SAMPLES_PER_VBLANK = 704
 
         /**
-         * Output units per PSG level step: one channel at volume 15 is about a quarter of full-scale
-         * DirectSound (NR50 7/7, SOUNDCNT_H PSG 100%). An approximation, not measured.
+         * Output units per PSG level step: one channel at volume 15 is about a quarter of
+         * full-scale DirectSound (NR50 7/7, SOUNDCNT_H PSG 100%). An approximation, not measured.
          */
         const val PSG_GAIN = 512f
     }

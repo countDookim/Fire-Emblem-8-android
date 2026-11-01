@@ -60,4 +60,22 @@ class PsgSynthTest {
         assertEquals(8, psg.takeTriggers())
         assertEquals(0, psg.takeTriggers())
     }
+
+    @Test
+    fun `sweep raises square 1 and writes the frequency back`() {
+        val psg = M4aPsg()
+        val synth = PsgSynth(psg, rate)
+        psg.write(M4aPsg.NR51, 0x11)
+        psg.write(0x04000060, 0x11) // period 1 (128 Hz), increase, shift 1
+        psg.write(0x04000062, 0x80)
+        psg.write(0x04000063, 0xF0)
+        psg.write(0x04000064, 0x00)
+        psg.write(0x04000065, 0x81) // 0x100, trigger
+        val out = FloatArray(2 * rate)
+        synth.render(out, rate / 100, 1f) // 10 ms: one or two sweep clocks
+        val f = psg.read(0x04000064) or ((psg.read(0x04000065) and 7) shl 8)
+        assertTrue(f == 0x180 || f == 0x240, "freq 0x%X".format(f))
+        synth.render(out, rate / 10, 1f) // keeps rising past 2047: channel off
+        assertFalse(synth.isOn(1))
+    }
 }

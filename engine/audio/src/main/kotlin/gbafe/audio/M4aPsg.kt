@@ -10,7 +10,7 @@ public class M4aPsg {
     /** Register bytes, offset = IO address - `0x04000060`. */
     public val regs: IntArray = IntArray(0x40)
 
-    /** High byte of `SOUNDBIAS` (`0x04000089`): sampling-cycle bits 6..7 (FE8: 0x40 set by init). */
+    /** High byte of `SOUNDBIAS` (`0x04000089`): sampling-cycle bits 6..7 (init sets 0x40). */
     public var soundBiasH: Int = 0x42
 
     /** Reads the byte at IO [address]. */
@@ -20,9 +20,22 @@ public class M4aPsg {
     public var triggers: Int = 0
         private set
 
-    /** Writes the byte [value] at IO [address]; an NRx4 write with bit 7 set triggers a channel. */
+    /** Bit per channel 1..4: length counter loaded (NRx1 written) since [takeLengthLoads]. */
+    public var lengthLoads: Int = 0
+        private set
+
+    /**
+     * Writes the byte [value] at IO [address]; an NRx4 write with bit 7 set triggers a channel,
+     * an NRx1 write loads its length counter.
+     */
     public fun write(address: Int, value: Int) {
         regs[address - BASE] = value and 0xFF
+        when (address) {
+            0x04000062 -> lengthLoads = lengthLoads or 1
+            0x04000068 -> lengthLoads = lengthLoads or 2
+            0x04000072 -> lengthLoads = lengthLoads or 4
+            0x04000078 -> lengthLoads = lengthLoads or 8
+        }
         if (value and 0x80 != 0) {
             when (address) {
                 0x04000065 -> triggers = triggers or 1
@@ -32,6 +45,9 @@ public class M4aPsg {
             }
         }
     }
+
+    /** Returns and clears [lengthLoads] (read by the synth). */
+    public fun takeLengthLoads(): Int = lengthLoads.also { lengthLoads = 0 }
 
     /** Returns and clears [triggers] (read by the synth). */
     public fun takeTriggers(): Int = triggers.also { triggers = 0 }

@@ -440,6 +440,25 @@ public object M4aCommands {
     }
 
     /**
+     * `m4aMPlayVolumeControl`: each live track of [p] selected by [trackBits] gets
+     * `volX = volume / 4` and a volume change. Ignored while [p] is locked.
+     *
+     * Ported from src/m4a.c: m4aMPlayVolumeControl
+     */
+    public fun volumeControl(p: M4aPlayer, trackBits: Int, volume: Int) {
+        if (p.ident != M4aPlayer.ID_NUMBER) return
+        p.ident++
+        for (i in 0 until p.trackCount) {
+            val t = p.tracks[i]
+            if (trackBits ushr i and 1 != 0 && t.flags and M4aTrack.FLG_EXIST != 0) {
+                t.volX = (volume and 0xFFFF) / 4
+                t.flags = t.flags or M4aTrack.FLG_VOLCHG
+            }
+        }
+        p.ident = M4aPlayer.ID_NUMBER
+    }
+
+    /**
      * `m4aMPlayStop`: pauses [p] and stops each of its tracks ([trackStop]). Ignored while [p]
      * is locked (`ident` is not `ID_NUMBER`).
      *

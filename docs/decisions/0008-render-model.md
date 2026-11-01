@@ -20,4 +20,4 @@ per-line effects) without GBA memory mimicry, with a GPU path. Texture packs are
   *true-colour* (own colours; optional per-palette-hash variants, else static; blending/fades/windows/mosaic
   still apply). Only the GPU backend uses them.
 
-**Consequences.** Done: types, software rules incl. `LineTable`, override resolver. Open: GPU backend (M3-07).
+**Consequences.** Done: types, software rules incl. `LineTable`, override resolver. GPU backend (M3-07, `app/GpuBackend` + `PackedCompositor` spec) done 2026-11-01. Open: drawing texture overrides (boot screens read ROM data).

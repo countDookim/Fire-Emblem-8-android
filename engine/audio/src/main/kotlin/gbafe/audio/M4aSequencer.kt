@@ -1,11 +1,11 @@
 package gbafe.audio
 
 /**
- * WIP (M3-13): `MPlayMain`'s tempo/tick/command loop, gate countdown and channel volume/pitch
- * updates. With [info], notes (`ply_note`, incl. `TIE`) are played; `PORT`, `MEMACC`
- * (and notes without [info]) are not modelled: a track reaching one is reported
- * in [unsupported] and its state is then undefined. Fades (`FadeOutBody`) are unverified.
- * Not yet `Ported from`.
+ * The m4a sequencer: `MPlayMain`'s tempo/tick/command loop, gate countdown and channel
+ * volume/pitch updates, plus song starts. With [info], notes (`ply_note`, incl. `TIE`) are
+ * played; `PORT`, `MEMACC` (no FE8 trace uses them) and notes without [info] are not modelled:
+ * a track reaching one is reported in [unsupported] and its state is then undefined. Verified
+ * members carry their own `Ported from` line (fade-out is verified; fade-in is not traced).
  */
 public class M4aSequencer(
     private val bus: M4aBus,

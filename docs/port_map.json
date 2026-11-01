@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 258,
+    "verified": 260,
     "implemented_unverified": 28
   },
   "functions": {
@@ -71,6 +71,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BgTilemapDifferentialTest#TSA tilemaps match the BG buffers in mGBA RAM"
+      ]
+    },
+    "CgbModVol": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCgb.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "CgbSound": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCgb.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
       ]
     },
     "CheckCanKeyComboReset": {

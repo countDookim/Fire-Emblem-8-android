@@ -3,8 +3,8 @@ package gbafe.audio
 /**
  * One frame of m4a sound, in the original's order: the VBlank IRQ's `m4aSoundVSync`, then
  * `SoundMain` (each player's `MPlayMain` along the `intp` chain, then the mixer), then the mixed
- * samples to [pcm]. Not a port of `SoundMain`: `CgbSound` (CGB channels) and the `ident` lock
- * are not modelled yet.
+ * samples to [pcm]. Not a port of `SoundMain`: `CgbSound` (CGB channels, task M3-13) and the
+ * `ident` lock are not modelled yet. In the game this runs inside the VBlank (`GameLoop`).
  */
 public class M4aDriver(
     private val bus: M4aBus,

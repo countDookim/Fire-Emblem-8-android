@@ -23,7 +23,9 @@ import gbafe.render.TileSheets
  * The boot sequence wired for a device: `StartGame` -> game control -> health & safety screen ->
  * Nintendo / Intelligent Systems logos ([EarlyStartUi]) -> op anim ([OpAnim]) -> title
  * ([TitleScreen]), driven by the [GameLoop] (one [frame] per GBA frame) and drawn from the
- * synced display state ([HardwareSceneLoader] -> [SoftwareRenderer]).
+ * synced display state ([HardwareSceneLoader] -> [SoftwareRenderer], or the GPU renderer on
+ * device). With [m4a], the boot's BGM and sound effects play through [SoundWrapper], mixed in
+ * the VBlank exactly as traced (`Fe8BootSoundTest`); CGB (PSG) channels are still silent.
  */
 public class Fe8Boot(
     /** ROM data of the boot screens (whole ROM, or the extracted [RomView.BOOT_WINDOWS]). */

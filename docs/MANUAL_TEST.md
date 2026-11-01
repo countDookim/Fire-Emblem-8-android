@@ -14,7 +14,7 @@ on the launcher screen).
 ## Newly testable
 - Touch layout (#3): in Play, landscape, every button is fully visible (none under the camera notch, status bar
   or gesture bar) with a small margin; the D-pad is a cross with arrows (no "+" square). Pressing the D-pad does
-  nothing visible until gameplay (boot and title ignore directions); A/START still skip the boot.
+  nothing visible until gameplay (boot and title ignore directions).
 
 ## Known not working (don't report)
 Everything after the title: no gameplay or saves; title key presses do nothing yet.

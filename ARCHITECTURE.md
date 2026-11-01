@@ -23,12 +23,13 @@ testing ──► game         (every engine module depends only on engine:core)
 | `engine:vfs` | layered VFS, mod manifest, texture overrides | dir layers |
 | `engine:data` | LZ77/tile/TSA/colour decoders; JSON table contract | decoders |
 | `engine:input` | actions, `KeyStatus`, `TouchButtons`, button map | working |
-| `engine:render` | `RenderState`, `SoftwareRenderer`, `LcdControl` | software |
-| `engine:audio` / `script` / `save` | m4a + `AudioSink` / `.fe8s` VM / save container | contracts |
+| `engine:render` | `RenderState`, `SoftwareRenderer`, `GpuFrame` + `PackedCompositor` (shader spec), `LcdControl` | software + GPU |
+| `engine:audio` | m4a sequencer, DirectSound mixer, `M4aDriver`, `PcmStream`, `AudioSink` (CGB/PSG: todo) | working |
+| `engine:script` / `save` | `.fe8s` VM / save container | contracts |
 | `engine:text` | text tags, Huffman messages | partial |
-| `game` | `fe8.game` systems; shared FE systems become `gbafe.<system>` (0010) | boot → title |
+| `game` | `fe8.game` systems; shared FE systems become `gbafe.<system>` (0010) | boot → title, sound |
 | `testing` | reference data, differential tests, allocation meter, benchmark | working |
-| `app` | Activity, GL view, key + on-screen-button input, APK asset layer | shell |
+| `app` | launcher (one Play), GLES 3.0 `GpuBackend`, `AudioTrackSink` + `AudioThread`, keys/gamepad + safe-area touch overlay, APK asset layer | boot playable |
 | `tools:extract` | ROM → JSON/PNG/Tiled/MIDI/WAV/`.fe8s`; never shipped | working |
 
 Systems follow the `system` column of `reference/decomp_functions.tsv` (= README progress table).
@@ -37,12 +38,15 @@ Systems follow the `system` column of `reference/decomp_functions.tsv` (= README
 `GameLoop.frame(now)` runs per display refresh on the GL thread. `FixedStepClock` converts wall time to whole
 GBA frames (exact 2^24 Hz / 280 896 cycles, catch-up cap). Tick: `InputFrame.update` → `core.onTickStart` →
 systems → `core.onTickEnd`; then `present()`. Logic never reads wall time, so tests drive `tick()` with mGBA's
-inputs.
+inputs. Inside a GBA frame, `fe8.game.GameLoop` mirrors `src/bm.c`: the game step (keys, proc trees), then the
+VBlank (clock, `m4aSoundVSync`, proc tree 0, display sync, `m4aSoundMain` → mixer → `PcmStream` → audio thread).
 
 ## Rendering
 One semantic render state ([0008](docs/decisions/0008-render-model.md), per-line `LineTable`), two backends:
-software (JVM reference, compared with mGBA on 5-bit channels) and GL ES 3.0 (240×160, aspect-correct nearest
-scaling; shader backend M3-07). Fixed 240×160.
+software (JVM reference, compared with mGBA on 5-bit channels) and GL ES 3.0 (`app/GpuBackend`: `GpuFrame` packs
+per-line state, the shader composites 240×160 into an FBO, then aspect-correct nearest scaling; `PackedCompositor`
+is its Kotlin spec, checked against `SoftwareRenderer` and, via `tools/shader_parity.mjs`, WebGL2). Sprites are
+rasterised on the CPU (`SpriteRasterizer`). Fixed 240×160.
 
 ## Verification pipeline
 ```

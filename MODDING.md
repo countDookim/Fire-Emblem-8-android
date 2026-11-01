@@ -17,13 +17,14 @@ layer wins ([0003](docs/decisions/0003-mod-vfs.md)).
 | `data/` | JSON tables ([schemas](schemas/)); `*.merge.json` patches *(planned)* | extracted, not loaded yet |
 | `maps/` | Tiled `.tmj` + tileset PNGs | extracted, not loaded yet |
 | `scripts/` | `.fe8s` ([0001](docs/decisions/0001-script-format.md)) | prologue converted; VM *(M5)* |
-| `gfx/` | PNG + JSON metadata | texture overrides resolved; drawn from M3-07 |
-| `audio/` | MIDI + voicegroup JSON, WAV | *(planned)* |
+| `gfx/` | PNG + JSON metadata | texture overrides resolved; not yet drawn (boot screens read ROM data) |
+| `audio/` | MIDI + voicegroup JSON, WAV | *(planned; the game plays the ROM's m4a data)* |
 | `text/<lang>/` | strings with tags (`{PLAYER}`, `{PAUSE 30}`) | `text/en/messages.json` extracted |
 
 Today the extractor writes graphics to `fonts/`, `portraits/`, `mapsprites/`, `ui/` and audio to `songs/`,
 `samples/`, `voicegroups/` (top level, no `gfx/`/`audio/` prefix). Mod paths follow the extractor's layout when the
-loaders land (M3-07 graphics, audio milestone); until then `gfx/`/`audio/` above are the planned grouping.
+loaders land; until then `gfx/`/`audio/` above are the planned grouping. The boot screens and all sound currently
+run on raw ROM windows (`RomView.BOOT_WINDOWS`, `RomView.SOUND_WINDOWS`), so no asset override reaches them yet.
 
 **Texture packs** (`gbafe.vfs.TextureOverrides`, ADR 0008): `<asset>@<N>x.png` (N = 1..8) beside the original.
 Indexed PNGs keep palette animation; true-colour ones may add `<asset>@<N>x.<paletteHash>.png` variants.

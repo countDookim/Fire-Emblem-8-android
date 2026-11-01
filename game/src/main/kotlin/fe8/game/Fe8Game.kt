@@ -12,7 +12,8 @@ import gbafe.render.FrameBuffer
  * Root of the game: owns the shared services and runs the game systems once per tick.
  *
  * Services (RNG seeded exactly like the original boot, input, events, flags, an offscreen frame) and,
- * given ROM data, the boot sequence ([Fe8Boot]). Title, map, battle... plug in later.
+ * given ROM data, the boot sequence ([Fe8Boot]: logos, op anim, title, with sound). Map, battle...
+ * plug in later.
  * Everything here is Android-free so it runs headless on the JVM for tests and benchmarks.
  */
 public class Fe8Game(

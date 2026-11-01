@@ -47,5 +47,16 @@ public class M4aSound(
     /** `m4aSongNumStart(n)`. */
     public fun songNumStart(n: Int): Boolean = sequencer.songNumStart(players, songs, n)
 
+    /**
+     * `m4aSongNumStartOrChange(n)`: starts song [n] unless its player already plays it (live
+     * tracks, not paused). WIP: only the different-song branch is traced (`M4aSoundTest`).
+     */
+    public fun songNumStartOrChange(n: Int): Boolean {
+        val p = players[songs.player(n and 0xFFFF)]
+        val header = songs.header(n and 0xFFFF)
+        val playing = p.status and 0xFFFF != 0 && p.status >= 0
+        return if (p.songHeader != header || !playing) sequencer.start(p, header) else true
+    }
+
     private fun entry(i: Int, offset: Int): Int = bus.read8(mPlayTable + 12 * i + offset)
 }

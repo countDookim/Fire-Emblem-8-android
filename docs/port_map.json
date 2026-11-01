@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 240,
+    "verified": 241,
     "implemented_unverified": 28
   },
   "functions": {
@@ -1503,6 +1503,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "m4aSoundInit": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aSound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSoundTest#init gives the traced chain, idle players and rates"
       ]
     },
     "m4aSoundMode": {

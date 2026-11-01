@@ -78,6 +78,10 @@ public class M4aSound(
                 count = 0
                 fw = 0
                 length = 0
+                sustainGoal = 0
+                n4 = 0
+                pan = 0
+                modify = 0
                 sweep = 0
                 frequency = 0
                 wav = 0

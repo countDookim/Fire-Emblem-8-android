@@ -65,6 +65,18 @@ public class M4aChannel(
     /** `rp` (s8): rhythm pan of the note's instrument. */
     public var rhythmPan: Int = 0
 
+    /** CGB `sg` (u8, offset 0x19): sustain goal of the envelope. */
+    public var sustainGoal: Int = 0
+
+    /** CGB `n4` (u8, offset 0x1A): length-enable bits of NRx4. */
+    public var n4: Int = 0
+
+    /** CGB `pan` (u8, offset 0x1B): this channel's `SOUNDCNT_L` pan bits. */
+    public var pan: Int = 0
+
+    /** CGB `mo` (u8, offset 0x1D): pending register updates (1 volume, 2 frequency). */
+    public var modify: Int = 0
+
     /** CGB `panMask` (u8, offset 0x1C): the channel's bits of `SOUNDCNT_L` panning. */
     public var panMask: Int = 0
 

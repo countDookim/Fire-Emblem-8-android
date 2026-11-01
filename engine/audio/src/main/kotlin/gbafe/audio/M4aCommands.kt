@@ -420,8 +420,9 @@ public object M4aCommands {
 
     /**
      * Silences every channel of [t] (status 0; CGB ones also through [M4aSoundInfo.cgbOscOff]),
-     * drops their track link and empties the chain. No-op for a track not in use. From
-     * src/m4a_1.s `TrackStop`; not verified yet (no trace stops a song).
+     * drops their track link and empties the chain. No-op for a track not in use.
+     *
+     * Ported from src/m4a_1.s: TrackStop
      */
     public fun trackStop(info: M4aSoundInfo?, t: M4aTrack) {
         if (t.flags and M4aTrack.FLG_EXIST == 0) return
@@ -436,6 +437,20 @@ public object M4aCommands {
             c = c.next
         }
         t.chan = null
+    }
+
+    /**
+     * `m4aMPlayStop`: pauses [p] and stops each of its tracks ([trackStop]). Ignored while [p]
+     * is locked (`ident` is not `ID_NUMBER`).
+     *
+     * Ported from src/m4a.c: m4aMPlayStop
+     */
+    public fun mPlayStop(p: M4aPlayer, info: M4aSoundInfo?) {
+        if (p.ident != M4aPlayer.ID_NUMBER) return
+        p.ident++
+        p.status = p.status or M4aPlayer.STATUS_PAUSE
+        for (i in 0 until p.trackCount) trackStop(info, p.tracks[i])
+        p.ident = M4aPlayer.ID_NUMBER
     }
 
     /**

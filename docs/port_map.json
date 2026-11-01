@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 241,
+    "verified": 246,
     "implemented_unverified": 28
   },
   "functions": {
@@ -282,6 +282,15 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
       ]
     },
+    "FadeOutBody": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aFadeTest#fade steps match the trace"
+      ]
+    },
     "FlipBgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
       "system": "battle_map",
@@ -517,6 +526,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aOpenTest#opening the players gives the traced chain and idle state"
+      ]
+    },
+    "MPlayMain": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aSequencer.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
       ]
     },
     "MPlayOpen": {
@@ -1426,6 +1444,15 @@
         "fe8.testing.BgTilemapDifferentialTest#TSA tilemaps match the BG buffers in mGBA RAM"
       ]
     },
+    "TrackStop": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aStopTest#stopping BGM1 matches the next dump"
+      ]
+    },
     "TrkVolPitSet": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -1494,6 +1521,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "m4aMPlayStop": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aStopTest#stopping BGM1 matches the next dump"
+      ]
+    },
+    "m4aMPlayVolumeControl": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "engine/audio/src/main/kotlin/gbafe/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aVolumeTest#per-frame volume control matches the trace"
       ]
     },
     "m4aSongNumStart": {

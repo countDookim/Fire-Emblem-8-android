@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-10-31 (scheduled run 15:2x). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-11-01 (scheduled run 06:5x). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
@@ -10,16 +10,18 @@ _(nothing blocked)_
   Likely cause fixed (unconfirmed on device): the launcher counted thousands of bundled assets on the main thread
   (`AssetLayer.list` also did a per-file `exists()`, quadratic); now counted on `Dispatchers.IO`, no `exists()`.
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
-- Verified ports: 240 / 8352 (this run; `M4aOpenTest` also checks `unk_B` = table `unk_A`: m4aSongNumStart via `M4aSongTable`, FE8 `gSongTable` 0x08224470, 1000 songs;
-  m4aSoundVSync = `M4aSoundInfo.vSync`, the test now steps the DMA counter itself;
-  MPlayOpen = `M4aSoundInfo.open` + `chain()` (`M4aOpenTest`: f20 chain = reverse table order);
-  MPlayFadeOut = `M4aCommands.fadeOut` (f20: `sub_8002AC8` fades BGM1/2 at speed 1); SampleFreqSet =
-  `M4aSoundInfo.sampleFreqSet`; m4aSoundMode = `M4aSoundInfo.soundMode` (also used by `MPlayStart` reverb); SoundInit = `soundInit`. M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
+- Verified ports: 246 / 8352 (this run: `m4aSoundInit` = `M4aSound.init` (gMPlayTable open, `unk_B`;
+  `M4aSoundTest`, also a song started by number plays); `m4aMPlayStop` = `M4aCommands.mPlayStop` + `TrackStop`
+  (`M4aStopTest`); `FadeOutBody` (fade-out to stop only; fade-in/`TEMPORARY_FADE` untraced) + `MPlayMain` claimed
+  (`M4aFadeTest`, `M4aNoteTest`); `m4aMPlayVolumeControl` = `M4aCommands.volumeControl` (`M4aVolumeTest`).
+  New ROM-repo reference runs `ram_trace_menu_bgm` (title START, A every 120 f; BGM1 volume ramp + stop f1301,
+  next song f1323) and `ram_trace_menu_fade` (BGM1 fade speed 4, f4908..f4972); `M4aSequencerTest` replays them
+  with the game's volume control/stop; `M4aNoteTest` still skips `ram_trace_menu*`. M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
   `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`, `wip/M3-13-seq`, `wip/M3-13-note`, `wip/M3-13-mix`, `wip/M3-13-mix2`, `wip/M3-13-start` (merged).
 - Rules: a `@VerifiesPort` every run or two; no `java.*`/`javax.*` in new engine/game code (KMP, M4-07); battle
   rolls only via `mechanics.battleRolls`.
 
-## Next task: owner manual tests of M3-07/M3-12, meanwhile M3-13 m4a (CgbSound, then AudioSource)
+## Next task: owner manual tests of M3-07/M3-12, meanwhile M3-13 m4a (sound ROM data for the app, CgbSound)
 - Done (merged to master; CI built the APK): `SpriteRasterizer` (shared OBJ rules), `GpuFrame` (per-line
   packing: layer origins, windows, blend, per-line palettes, CPU OBJ plane), `PackedCompositor` (Kotlin spec of
   the shader; parity with `SoftwareRenderer` in every `SoftwareRendererTest` scene via `@AfterEach` and on 15 mGBA
@@ -48,8 +50,10 @@ _(nothing blocked)_
   the frame; the test detects `m4aMPlayImmInit` from the next dump (clock 0, track 0 flags 0x80).
   `M4aSequencer.songNumStart` (`M4aSongTable`; players = `gMPlayTable` order = `M4aRam.PLAYERS`).
   `M4aDriver` (not a port): `vSync` -> sequencers in `intp` order -> `M4aMixer.frame` -> `PcmStream.push`
-  (`M4aDriverTest`; `M4aRam.sound` links `intp`, so `info.chain()` gives the traced order). Next: port `m4aSoundInit` (`soundInit`, `soundMode`, `open` per table entry, `unk_B` = `gMPlayTable.unk_A`; `MPlayExtender` = CGB) to feed the app's `AudioThread`; `CgbSound` (CGB
-  channels 1-4 -> PSG; needs a PSG model); claim `MPlayMain` once fades are verified.
+  (`M4aDriverTest`; `M4aRam.sound` links `intp`, so `info.chain()` gives the traced order). Next: the app has no sound data (debug APK bundles only `extracted/boot/` windows, not the
+  song/voice/sample ROM ranges): add a sound ROM window to the ROM repo's extracted assets (debug only) or wait for
+  M4-04, then a launcher "Test music" button (`M4aSound` + `driver(PcmStream)` on a 59.73 Hz thread +
+  `AudioThread`); `CgbSound` (CGB channels 1-4 -> PSG; needs a PSG model); `m4aSongNumStartOrChange` etc.
   Sources (decomp sparse-checkout `src/m4a* include/m4a* include/gba`): `src/m4a.c`, `src/m4a_1.s`,
   `src/m4a_tables.c`, offsets in `include/m4a.inc` / `include/gba/m4a_internal.h`.
 - If the owner still reports slow startup: measure what runs before the launcher draws (`Application`/

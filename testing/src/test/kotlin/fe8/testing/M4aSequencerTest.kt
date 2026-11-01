@@ -1,5 +1,6 @@
 package fe8.testing
 
+import gbafe.audio.M4aCommands
 import gbafe.audio.M4aSequencer
 import gbafe.audio.M4aTrack
 import gbafe.core.VerifiesPort
@@ -31,11 +32,7 @@ class M4aSequencerTest {
         var skipped = 0
         val runs = IntArray(64)
         val skipCmd = IntArray(256) // last command byte (runningStatus) of skipped tracks
-        // Menu traces: the game re-flags BGM track volume after SoundMain every frame (not
-        // modelled here); M4aStopTest and M4aFadeTest cover them.
-        val dirs = ref.root.listFiles().orEmpty()
-            .filter { it.isDirectory && !it.name.startsWith("ram_trace_menu") }
-        for (dir in dirs) {
+        for (dir in ref.root.listFiles().orEmpty().filter { it.isDirectory }) {
             val frames = dir.listFiles().orEmpty().mapNotNull { f ->
                 DUMP.matchEntire(f.name)?.let { it.groupValues[1].toInt() to f }
             }.toMap()
@@ -47,6 +44,12 @@ class M4aSequencerTest {
                     val p = M4aRam.player(a, address, slots)
                     val q = M4aRam.player(b, address, slots)
                     if (p.songHeader != q.songHeader || q.fadeOI != 0 || !seq.step(p)) continue
+                    // Menu traces: the game sets BGM1's volume after SoundMain (volume ramp), then
+                    // stops it (m4aMPlayVolumeControl, m4aMPlayStop).
+                    if (address == BGM1 && q.tracks[0].flags and 0x83 == 0x83) {
+                        M4aCommands.volumeControl(p, 0xFFFF, 4 * q.tracks[0].volX)
+                    }
+                    if (q.status < 0 && p.status >= 0) M4aCommands.mPlayStop(p, null)
                     for (i in 0 until p.trackCount) {
                         if (seq.unsupported and (1 shl i) != 0) {
                             skipped++
@@ -84,6 +87,7 @@ class M4aSequencerTest {
     ) + t.tone.toList()
 
     private companion object {
+        const val BGM1 = 0x03006440
         val DUMP = Regex("""r(\d+)\.iwram\.bin""")
     }
 }

@@ -19,9 +19,6 @@ public object Fe8Sound {
     /** Entries of `gSongTable`. */
     public const val SONGS: Int = 1000
 
-    /** `SONG_OPENING` (song 1): the op anim / title BGM. */
-    public const val SONG_OPENING: Int = 1
-
     /** `m4aSoundInit` mode: DA_BIT_8 | FREQ_13379 | 13 << MASVOL | 7 << MAXCHN. */
     public const val MODE: Int = 0x900000 or M4aSoundInfo.FREQ_13379 or (13 shl 12) or (7 shl 8)
 

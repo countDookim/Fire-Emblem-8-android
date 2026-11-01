@@ -20,6 +20,10 @@ public class Fe8Game(
     public val flags: FeatureFlags = FeatureFlags(),
     /** ROM data for the boot screens; null: no game systems run and [present] draws a test pattern. */
     rom: RomView? = null,
+    /** The game's m4a state ([Fe8Sound.create]); null: silent. Used only with [rom]. */
+    sound: gbafe.audio.M4aSound? = null,
+    /** Receives the mixed samples each frame (to the audio thread); null: mix only. */
+    pcm: gbafe.audio.PcmStream? = null,
 ) : Simulation {
     /** Central RNG. */
     public val rng: RngService = RngService().apply { seedLikeBoot() }
@@ -45,7 +49,10 @@ public class Fe8Game(
 
     /** The boot sequence (one GBA frame per [tick]), when [rom] was given. */
     public val boot: Fe8Boot? = rom?.let {
-        Fe8Boot(it, keyInput = { VanillaButtonMap.toGbaKeys(input.held) }, screen = frame)
+        Fe8Boot(
+            it, keyInput = { VanillaButtonMap.toGbaKeys(input.held) }, screen = frame,
+            m4a = sound, pcm = pcm,
+        )
     }
 
     /** Runs one fixed logic step: polls input, fires tick-start/end events, advances [tickCount]. */

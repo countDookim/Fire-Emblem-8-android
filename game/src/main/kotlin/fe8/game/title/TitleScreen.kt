@@ -1,6 +1,7 @@
 package fe8.game.title
 
 import fe8.game.GameControl
+import fe8.game.SoundWrapper
 import fe8.game.opanim.OpAnimHs
 import fe8.game.opanim.blendPalette
 import gbafe.core.math.Interpolate
@@ -25,8 +26,8 @@ import gbafe.render.SpriteLayers
 import gbafe.render.SpriteObject
 
 /**
- * The title screen `gProcScr_TitleScreen` (decomp `src/titlescreen.c`; sound calls are not
- * modelled). Started by [fe8.game.GameControl].
+ * The title screen `gProcScr_TitleScreen` (decomp `src/titlescreen.c`; sound calls go to
+ * [GameControl.sound]). Started by [fe8.game.GameControl].
  */
 public class TitleScreen(
     /** Proc engine. */
@@ -190,8 +191,8 @@ public class TitleScreen(
 
     /**
      * Fades the main background palette in from black over 48 steps while a blue light sprite
-     * flickers into a red and a blue orb that split apart. Breaks at step 48. (The BGM start at
-     * step 20 is not modelled.)
+     * flickers into a red and a blue orb that split apart; starts `SONG_MAIN_THEME_EXT` at step 20.
+     * Breaks at step 48.
      *
      * Ported from src/titlescreen.c: Title_Loop_DrawRedBlueOrbs
      */
@@ -202,6 +203,7 @@ public class TitleScreen(
         applyPalette(gfx.backgroundPal, 0xE, 1)
         val fade = Interpolate.interpolate(Interpolate.LINEAR, 16, 0, t, 48)
         blendPalette(hardware.palette, 0xE * 16, 0, fade)
+        if (t == 20) gameControl?.sound?.startBgmExt(SoundWrapper.SONG_MAIN_THEME_EXT, 0, -1)
         if (t < 20) {
             sprites.putExt(0, 104, 64, obj, 0x4220)
         } else if (t < 24) {
@@ -222,8 +224,8 @@ public class TitleScreen(
     }
 
     /**
-     * Shows BG0, BG1 and OBJ with an alpha blend of BG0 (coefficient 0) over BG1. (Sound effect
-     * 317 is not modelled.)
+     * Shows BG0, BG1 and OBJ with an alpha blend of BG0 (coefficient 0) over BG1 and plays sound
+     * effect 0x317.
      *
      * Ported from src/titlescreen.c: Title_PrepareMainScreenWithExtendedBgm
      */
@@ -233,6 +235,7 @@ public class TitleScreen(
         lcd.setBlendConfig(1, 0, 0x10, 0)
         lcd.setBlendTargetA(1, 0, 0, 0, 0)
         lcd.setBlendTargetB(0, 1, 0, 0, 0)
+        gameControl?.sound?.playSoundEffect(SoundWrapper.SONG_317)
     }
 
     /**
@@ -502,7 +505,7 @@ public class TitleScreen(
 
     /**
      * Waits on the title: A or Start continues to the save menu (event return); after 815 steps
-     * the class reel plays. (Sound effect 0x6D is not modelled.)
+     * the class reel plays. A or Start plays sound effect 0x6D.
      *
      * Ported from src/titlescreen.c: Title_IDLE
      */
@@ -511,6 +514,7 @@ public class TitleScreen(
         st.timerIdle++
         st.timer = (st.timer + 1) and 0x3F
         if ((keys.newKeys and (A_BUTTON or START_BUTTON)) != 0) {
+            gameControl?.sound?.playSoundEffect(SoundWrapper.SONG_6D)
             gameControl?.setNextGameActionId(GameControl.GAME_ACTION_EVENT_RETURN)
             engine.breakProc(proc)
         } else if (st.timerIdle == 815) {
@@ -530,7 +534,7 @@ public class TitleScreen(
 
     /**
      * Ends the children and the skip listener, black backdrop, mode 0, all layers off; restarts
-     * at label 4. (The main theme restart is not modelled.)
+     * at label 4; restarts the main theme (`StartBgmExt(SONG_MAIN_THEME, 0, 0)`).
      *
      * Ported from src/titlescreen.c: Title_RestartProc
      */
@@ -541,6 +545,7 @@ public class TitleScreen(
         hardware.enablePaletteSync()
         (proc.state as State).mode = 0
         hardware.lcd.dispcnt = hardware.lcd.dispcnt and 0x1F00.inv()
+        gameControl?.sound?.startBgmExt(SoundWrapper.SONG_MAIN_THEME, 0, -1)
     }
 
     /**
@@ -658,7 +663,8 @@ public class TitleScreen(
 
     /**
      * Starts the title screen as a blocking child of [parent] with [mode] (1 after the op anim
-     * played through). `StartTitleScreen_WithMusic` / `_FlagFalse` use mode 0 (BGM not modelled).
+     * played through). `StartTitleScreen_WithMusic` / `_FlagFalse` use mode 0 (the former also
+     * starts the BGM, see [GameControl]).
      *
      * Ported from src/titlescreen.c: StartTitleScreen_FlagTrue
      */

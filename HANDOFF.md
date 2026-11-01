@@ -6,8 +6,13 @@ _Updated 2026-11-01 (scheduled run 14:5x). Owner decisions: docs/PROJECT_BRIEF.m
 _(nothing blocked)_
 
 ## NEXT RUN, FIRST: M3-13 CgbSound (new trace `ram_trace_menu_cgb`)
-- Owner 2026-11-01: #2 confirmed and closed; app open, GPU renderer, test tone pass (M3-07, M3-12 done). Test
-  music button was below the screen edge (landscape): launcher now scrolls, buttons in rows; awaiting the test.
+- Owner 2026-11-01: #2 closed; app open, GPU renderer, test tone, test music pass (M3-07, M3-12 done). Owner
+  asked for one Play button = GPU renderer + boot with sound: done (launcher test buttons and `M4aPullSource`
+  removed). Boot sound: `fe8.game.SoundWrapper` (`gSoundSt`, StartBgmExt/StartOrChangeBgm/StartBgmCore/
+  Sound_FadeOutBGM/StartSongDelayed/PlaySoundEffect...), `GameLoop` runs `m4aSoundVSync`/`m4aSoundMain` in
+  VBlank, `GameLoop.afterStep` defers code after a long decompression (op anim BGM starts 3 VBlanks late, as
+  traced). `Fe8BootSoundTest`: all 9 players + `gSoundSt` match every dump f21..f3600 (3201 dumps). Awaiting
+  the owner's listen test (MANUAL_TEST).
 - `ram_trace_menu_cgb` (ROM repo, per-frame RAM f880..f1100): title START / menu SEs (songs 96/106/109-ish) on
   `gCgbChans` 1/2 (active f990..). No older trace ever has a CGB channel active. `CgbSound` (src/m4a.c:852)
   reads `NRx2` registers (`evAdd = *nrx2ptr`) and writes NRx0..4: needs a small PSG register model in

@@ -38,11 +38,16 @@ public class GameControl(
     private val opAnimScript: () -> ProcScript,
     /** The title screen (null: a stand-in proc holds the game control proc there). */
     private val titleScreen: (() -> TitleScreen)? = null,
+    /** The m4a state the [sound] wrapper drives (null: no sound data). */
+    m4a: gbafe.audio.M4aSound? = null,
 ) {
     /**
      * `gPlaySt.config` option bits (u32 at `gPlaySt+0x40`); only the sound bits are used so far.
      */
     public var playStConfig: Int = 0
+
+    /** `src/soundwrapper.c` state and calls (`gSoundSt`), reading [playStConfig]. */
+    public val sound: SoundWrapper = SoundWrapper(engine, m4a) { playStConfig }
     /** `struct GameCtrlProc` fields after the proc header. */
     public class State {
         /** `nextAction` (`GAME_ACTION_*`). */
@@ -95,7 +100,7 @@ public class GameControl(
             goto(LGAMECTRL_OP_ANIM),
             label(LGAMECTRL_TITLE_DIRECT),
             call(ProcFunc { enableSoundEffects() }),
-            call(ProcFunc { startTitleScreen(it, 0) }), // StartTitleScreen_WithMusic
+            call(ProcFunc { startTitleScreenWithMusic(it) }),
             goto(LGAMECTRL_POST_TITLE_IDLE),
             label(24),
             call(ProcFunc { enableSoundEffects() }),
@@ -151,6 +156,12 @@ public class GameControl(
      * proc where the title screen would.
      */
     public val titleStandInScript: ProcScript = ProcScript("gProcScr_TitleScreen (stand-in)", listOf(block()))
+
+    /** `StartTitleScreen_WithMusic`: title in mode 0, then `StartBgmExt(SONG_MAIN_THEME, 0, 0)`. */
+    private fun startTitleScreenWithMusic(proc: Proc) {
+        startTitleScreen(proc, 0)
+        sound.startBgmExt(SoundWrapper.SONG_MAIN_THEME, 0, -1)
+    }
 
     private fun startTitleScreen(proc: Proc, mode: Int) {
         val title = titleScreen

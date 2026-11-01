@@ -312,8 +312,8 @@ public object OpAnimHs {
     /**
      * `GameIntroPrepareNintendofx`: loads the Nintendo logo (tiles at VRAM 0, TSA on BG0) and the Intelligent
      * Systems logo (tiles at VRAM 0x2000, TSA on BG1 with tile base 0x1100), clears the palette buffer, shows BG0
-     * only, removes the primary HBlank handler. `Sound_FadeOutBGM(1)` is not modelled yet (no BGM plays at this
-     * point of the boot).
+     * only, removes the primary HBlank handler. `Sound_FadeOutBGM(1)` is called by [EarlyStartUi]
+     * (`Env.fadeOutBgm`) before this.
      *
      * Partially ported from src/opanim-healthsafetyscreen.c: GameIntroPrepareNintendofx
      */

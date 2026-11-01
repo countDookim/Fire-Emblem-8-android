@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -34,9 +33,7 @@ import fe8.game.Fe8Boot
 import fe8.game.RomView
 import fe8.game.Fe8Game
 import fe8.game.Fe8Sound
-import gbafe.audio.M4aPullSource
 import gbafe.audio.PcmStream
-import gbafe.audio.ToneSource
 import io.github.countdookim.fe8.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -51,51 +48,21 @@ import kotlinx.coroutines.withContext
  */
 public class MainActivity : ComponentActivity() {
     private var surface: GameSurfaceView? = null
-    private var toneSink: AudioTrackSink? = null
-    private var tone: AudioThread? = null
-
-    /** Compose state, so the launcher label follows stops from [onPause]/Play (issue #2). */
-    private var tonePlaying by mutableStateOf(false)
-
-    /** M3-12 manual test: starts/stops a 440 Hz tone through the low-latency sink; returns the new state. */
-    private fun toggleTone(): Boolean {
-        if (musicPlaying) toggleMusic() // one sink: never both at once
-        val thread = tone ?: (toneSink ?: AudioTrackSink().also { toneSink = it }).let { sink ->
-            AudioThread(ToneSource(sink.sampleRate), sink).also { tone = it }
-        }
-        tonePlaying = !tonePlaying
-        if (tonePlaying) thread.start() else thread.stop()
-        return tonePlaying
-    }
-
-    private var music: AudioThread? = null
-
-    /** Compose state of the "Test music" button (follows stops from [onPause]/Play). */
-    private var musicPlaying by mutableStateOf(false)
+    private var sink: AudioTrackSink? = null
+    private var audio: AudioThread? = null
 
     /**
-     * M3-13 manual test: starts/stops the opening BGM, mixed by the m4a port from the bundled
-     * sound window (debug builds) and run from the audio thread ([M4aPullSource]).
+     * Starts the game (boot sequence, GPU renderer) with its sound: the game loop mixes each frame
+     * into a [PcmStream] that the audio thread plays (debug builds with the bundled sound window).
      */
-    private fun toggleMusic() {
-        val thread = music ?: run {
-            val rom = bundledSoundRom(this) ?: return
-            val sink = toneSink ?: AudioTrackSink().also { toneSink = it }
-            val sound = Fe8Sound.create(rom)
-            val pcm = PcmStream(sound.info.pcmFreq, sink.sampleRate)
-            sound.songNumStart(Fe8Sound.SONG_OPENING)
-            AudioThread(M4aPullSource(sound.driver(pcm), pcm), sink).also { music = it }
-        }
-        if (tonePlaying) toggleTone() // one sink: never both at once
-        musicPlaying = !musicPlaying
-        if (musicPlaying) thread.start() else thread.stop()
-    }
-
-    private fun stopSound() {
-        tone?.stop()
-        tonePlaying = false
-        music?.stop()
-        musicPlaying = false
+    private fun createGame(ctx: Context): Fe8Game {
+        val soundRom = bundledSoundRom(ctx) ?: return Fe8Game(rom = bundledBootRom(ctx))
+        val sound = Fe8Sound.create(soundRom)
+        val out = AudioTrackSink().also { sink = it }
+        // ~150 ms of input: bounds the delay if the game clock runs slightly ahead of the device.
+        val pcm = PcmStream(sound.info.pcmFreq, out.sampleRate, capacity = 2048)
+        audio = AudioThread(pcm, out).also { it.start() }
+        return Fe8Game(rom = bundledBootRom(ctx), sound = sound, pcm = pcm)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -104,31 +71,20 @@ public class MainActivity : ComponentActivity() {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 Surface(Modifier.fillMaxSize()) {
                     var playing by remember { mutableStateOf(false) }
-                    var gpu by remember { mutableStateOf(false) }
                     if (playing) {
                         AndroidView(
                             factory = { ctx ->
-                                val game = Fe8Game(rom = bundledBootRom(ctx))
+                                val game = createGame(ctx)
                                 val touch = TouchButtons()
                                 FrameLayout(ctx).apply {
-                                    addView(GameSurfaceView(ctx, game, touch, gpu).also { surface = it })
+                                    addView(GameSurfaceView(ctx, game, touch, gpu = true).also { surface = it })
                                     addView(TouchOverlayView(ctx, touch))
                                 }
                             },
                             modifier = Modifier.fillMaxSize(),
                         )
                     } else {
-                        Launcher(
-                            onPlay = { useGpu ->
-                                gpu = useGpu
-                                stopSound()
-                                playing = true
-                            },
-                            toneOn = tonePlaying,
-                            onTone = { toggleTone() },
-                            musicOn = musicPlaying,
-                            onMusic = ::toggleMusic,
-                        )
+                        Launcher(onPlay = { playing = true })
                     }
                 }
             }
@@ -138,18 +94,19 @@ public class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         surface?.onPause()
-        stopSound()
+        audio?.stop()
     }
 
     override fun onDestroy() {
-        stopSound()
-        toneSink?.release()
+        audio?.stop()
+        sink?.release()
         super.onDestroy()
     }
 
     override fun onResume() {
         super.onResume()
         surface?.onResume()
+        audio?.start()
     }
 }
 
@@ -170,14 +127,7 @@ private fun bundledBootRom(ctx: Context): RomView? {
 }
 
 @Composable
-private fun Launcher(
-    onPlay: (gpu: Boolean) -> Unit,
-    toneOn: Boolean,
-    onTone: () -> Unit,
-    musicOn: Boolean,
-    onMusic: () -> Unit,
-) {
-    // Landscape: scrollable, buttons in rows, so nothing falls below the screen edge.
+private fun Launcher(onPlay: () -> Unit) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
@@ -191,16 +141,6 @@ private fun Launcher(
             value = withContext(Dispatchers.IO) { AssetLayer(context.assets).list("").size }
         }
         Text("Bundled test assets (debug builds only): ${bundled ?: "counting…"} files")
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(onClick = { onPlay(false) }) { Text("Play") }
-            Button(onClick = { onPlay(true) }) { Text("Play (GPU renderer, experimental)") }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(onClick = onTone) { Text(if (toneOn) "Stop test tone" else "Test tone (440 Hz)") }
-            // Debug builds only (needs the bundled sound window); release builds have no ROM data yet.
-            if (bundled != null && bundled != 0) {
-                Button(onClick = onMusic) { Text(if (musicOn) "Stop test music" else "Test music (opening)") }
-            }
-        }
+        Button(onClick = onPlay) { Text("Play") }
     }
 }

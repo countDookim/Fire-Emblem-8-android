@@ -3,6 +3,9 @@ package fe8.game
 import fe8.game.opanim.EarlyStartUi
 import fe8.game.opanim.OpAnim
 import fe8.game.title.TitleScreen
+import gbafe.audio.M4aDriver
+import gbafe.audio.M4aSound
+import gbafe.audio.PcmStream
 import gbafe.core.time.GameClock
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
@@ -31,6 +34,10 @@ public class Fe8Boot(
     colorMath: ColorMath = ColorMath.Hardware,
     /** The picture [render] draws into. */
     public val screen: FrameBuffer = FrameBuffer(),
+    /** The game's m4a state ([Fe8Sound.create], already `m4aSoundInit`ed), or null: silent. */
+    public val m4a: M4aSound? = null,
+    /** Receives each frame's mixed samples (null: mix only). */
+    pcm: PcmStream? = null,
 ) {
     /** `gKeyStatusPtr`. */
     public val keys: KeyStatus = KeyStatus()
@@ -51,6 +58,7 @@ public class Fe8Boot(
                 rom.blob(0x08B11D0C), rom.blob(0x08B118C4), rom.blob(0x08B11C0C), rom.blob(0x08B10630),
                 rom.blob(0x08B104D8), rom.blob(0x08B10CA4), rom.blob(0x08B10ADC),
             ),
+            fadeOutBgm = { control.sound.fadeOutBgm(it) },
         ),
     )
 
@@ -62,7 +70,9 @@ public class Fe8Boot(
 
     /** The game control proc's owner. */
     public val control: GameControl =
-        GameControl(engine, keys, { ui.script }, { opAnimRef.script }, { titleRef })
+        GameControl(engine, keys, { ui.script }, { opAnimRef.script }, { titleRef }, m4a)
+
+    private val driver: M4aDriver? = m4a?.driver(pcm)
 
     /** The op anim. */
     public val opAnim: OpAnim = BootRom.opAnim(rom, engine, hw, keys, control).also { opAnimRef = it }
@@ -88,6 +98,8 @@ public class Fe8Boot(
             hw.lcd.flushTo(io)
             hw.flushBackgrounds()
         },
+        soundVSync = { driver?.vSync() },
+        soundMain = { driver?.main() },
     )
 
     private val state = RenderState()
@@ -104,6 +116,8 @@ public class Fe8Boot(
     private val camera = Camera()
 
     init {
+        opAnim.afterStep = loop::afterStep
+        control.sound.setDefaultMaxNumChannels() // AgbMain, after m4aSoundInit
         control.startGame()
     }
 

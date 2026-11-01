@@ -51,6 +51,8 @@ public class EarlyStartUi(
         public val keyComboReset: KeyComboReset = KeyComboReset(),
         /** BG buffers, VRAM and sync flags; shares [lcd] and [paletteBuffer]. */
         public val hardware: BgHardware = BgHardware(lcd, paletteBuffer),
+        /** `Sound_FadeOutBGM(speed)` (both screens' setup calls it with speed 1). */
+        public val fadeOutBgm: (Int) -> Unit = {},
     )
 
     /** ROM graphics of the three screens (`Decompress` blobs). */
@@ -102,6 +104,8 @@ public class EarlyStartUi(
             val g = e.gfx
             if (!OpAnimHs.prepareHealthSafety(st(it), e.hardware, e.keys, e.softwareReset(), g.hsImg, g.hsTsaBg1, g.hsTsaBg0)) {
                 engine.goto(it, 0x3E7)
+            } else {
+                e.fadeOutBgm(1) // after the software-reset check, as in the original
             }
         },
         repeat { bool(it, synced(OpAnimHs.healthSafetyFadeIn(st(it), e.hsPalette, e.paletteBuffer))) },
@@ -112,6 +116,7 @@ public class EarlyStartUi(
         label(0x3E7),
         call {
             val g = e.gfx
+            e.fadeOutBgm(1)
             OpAnimHs.prepareNintendofx(st(it), e.hardware, g.nintendoImg, g.nintendoTsa, g.isImg, g.isTsa)
         },
         call { OpAnimHs.setStatus1(st(it)) },

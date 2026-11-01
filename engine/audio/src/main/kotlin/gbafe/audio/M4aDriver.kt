@@ -20,7 +20,17 @@ public class M4aDriver(
 
     /** Runs one frame (VBlank + `SoundMain`) and pushes its samples to [pcm]. */
     public fun frame() {
+        vSync()
+        main()
+    }
+
+    /** `m4aSoundVSync` (start of the VBlank interrupt). */
+    public fun vSync() {
         info.vSync()
+    }
+
+    /** `m4aSoundMain` (end of the VBlank interrupt): sequencers, mixer, then [pcm]. */
+    public fun main() {
         for (p in chain) sequencer.step(p)
         M4aMixer.frame(info, bus)
         pcm?.push(info)

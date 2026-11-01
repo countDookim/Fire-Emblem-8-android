@@ -16,7 +16,7 @@ import gbafe.render.SpriteLayers
  * whether that happened (the original timing is not modelled, so the caller decides from what the
  * step did).
  *
- * Not modelled yet: sound (`m4aSoundVSync`, `m4aSoundMain`), `FlushTiles`, `FlushLCDControl`.
+ * Not modelled yet: `FlushTiles`, `FlushLCDControl`.
  */
 public class GameLoop(
     /** Proc trees run by the loop. */
@@ -35,6 +35,10 @@ public class GameLoop(
     public val sprites: SpriteLayers = SpriteLayers(),
     /** `gOam` and hardware OAM: sprites are pushed into it by [onMain] and synced by [onVBlank]. */
     public val oam: OamBuffer = OamBuffer(),
+    /** `m4aSoundVSync` (start of the VBlank interrupt, after the clock). */
+    private val soundVSync: () -> Unit = {},
+    /** `m4aSoundMain` (end of the VBlank interrupt). */
+    private val soundMain: () -> Unit = {},
 ) {
     /** `gBmSt.lock`: while not 0, proc tree 2 is not run. */
     public var lock: Int = 0
@@ -45,6 +49,23 @@ public class GameLoop(
         private set
 
     private var lagFrames = 0
+
+    private val stepEnd = ArrayList<() -> Unit>(4)
+
+    /**
+     * Runs [action] when the current step finishes: at the end of [onMain], or, if the step
+     * overruns, after the VBlank of the last frame it overran into (code that ran after a long
+     * decompression on hardware).
+     */
+    public fun afterStep(action: () -> Unit) {
+        stepEnd += action
+    }
+
+    private fun finishStep() {
+        if (stepEnd.isEmpty()) return
+        for (a in stepEnd) a()
+        stepEnd.clear()
+    }
 
     /** True if the next [frame] runs no step: the previous step is still overrunning. */
     public val overrunning: Boolean get() = lagFrames > 0
@@ -97,11 +118,12 @@ public class GameLoop(
     private val pushSprite: (SpriteLayers.Entry) -> Unit = { e -> oam.putHi(e.oam1, e.oam0, e.obj!!.data, e.oam2) }
 
     /**
-     * The VBlank interrupt (`OnVBlank`, partial): clock, proc tree 0, `SyncLoOam`, then [flush] and
-     * `SyncHiOam` if a step has ended.
+     * The VBlank interrupt (`OnVBlank`, partial): clock, `m4aSoundVSync`, proc tree 0,
+     * `SyncLoOam`, then [flush] and `SyncHiOam` if a step has ended, then `m4aSoundMain`.
      */
     public fun onVBlank() {
         clock.increment()
+        soundVSync()
         procs.run(procs.root(0))
         oam.syncLo()
         if (mainLoopEnded) {
@@ -109,6 +131,7 @@ public class GameLoop(
             flush()
             oam.syncHi()
         }
+        soundMain()
     }
 
     /**
@@ -122,10 +145,12 @@ public class GameLoop(
             mainLoopEnded = false
             onVBlank()
             mainLoopEnded = lagFrames == 0
+            if (lagFrames == 0) finishStep()
             return
         }
         onVBlank()
         onMain()
         lagFrames = overran()
+        if (lagFrames == 0) finishStep()
     }
 }

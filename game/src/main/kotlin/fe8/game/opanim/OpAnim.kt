@@ -1,6 +1,7 @@
 package fe8.game.opanim
 
 import fe8.game.GameControl
+import fe8.game.SoundWrapper
 import gbafe.core.math.Interpolate
 import gbafe.data.Decompress
 import gbafe.input.KeyStatus
@@ -313,6 +314,13 @@ public class OpAnim(
      */
     public var missedVBlanks: Int = 0
 
+    /**
+     * Runs an action at the end of the current step, after the VBlanks it overran ([missedVBlanks];
+     * on hardware: code after a long decompression). Set by the loop owner ([GameLoop.afterStep]);
+     * by default runs it at once.
+     */
+    public var afterStep: (() -> Unit) -> Unit = { it() }
+
     /** `ProcScr_OpAnimfxTerminator`: ends the op anim on A, B or Start. */
     public val terminatorScript: ProcScript = ProcScript(
         "ProcScr_OpAnimfxTerminator",
@@ -433,11 +441,12 @@ public class OpAnim(
 
     /**
      * Resets the display, loads the cutscene's OBJ graphics and palettes, sets the next game action
-     * to "played through" and starts the terminator. `Sound_FadeOutBGM` is not modelled.
+     * to "played through" and starts the terminator.
      *
-     * Partially ported from src/opanim-main.c: OpAnimInit
+     * Ported from src/opanim-main.c: OpAnimInit
      */
     public fun init(proc: Proc) {
+        gameControl.sound.fadeOutBgm(1)
         val hw = hardware
         hw.setupBackgrounds()
         hw.hblank.setPrimary(null)
@@ -457,10 +466,10 @@ public class OpAnim(
     }
 
     /**
-     * Sets up BG2 (world map) and BG1 (fog, palette 2), blending and display. `StartBgmExt` is not
-     * modelled.
+     * Sets up BG2 (world map) and BG1 (fog, palette 2), blending and display, and starts the op
+     * anim BGM (`SONG_THE_VALIANT`).
      *
-     * Partially ported from src/opanim-main.c: SetupOpAnimWorldMapfx
+     * Ported from src/opanim-main.c: SetupOpAnimWorldMapfx
      */
     public fun setupWorldMap(proc: Proc) {
         missedVBlanks = 3
@@ -496,6 +505,8 @@ public class OpAnim(
         lcd.setBlendTargetB(1, 1, 1, 1, 0)
         (proc.state as State).timer = 0
         lcd.setDispEnable(0, 0, 1, 0, 1)
+        // After the decompressions above: on hardware this runs 3 VBlanks later.
+        afterStep { gameControl.sound.startBgmExt(SoundWrapper.SONG_THE_VALIANT, 0, -1) }
     }
 
     /**

@@ -5,7 +5,7 @@ _Updated 2026-11-01 (scheduled run 22:5x). Owner decisions: docs/PROJECT_BRIEF.m
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: M3-13 PSG synth (CGB channels audible)
+## NEXT RUN, FIRST: owner feedback (#3 touch layout, PSG sound), then M3-13 PSG accuracy
 - Done 2026-11-01 (22:5x run): issue #3 touch layout (`TouchButtons.resize` takes system bar / cutout insets +
   margin, `TouchOverlayView` reads `WindowInsetsCompat`, cross D-pad with arrows; `TouchButtonsTest` safe-area
   cases; MANUAL_TEST step; asked owner on #3, don't close until confirmed). Docs sweep (README, ARCHITECTURE,
@@ -13,11 +13,12 @@ _(nothing blocked)_
   ported (`M4aCgb.sound`, label loop for the gotos) and verified on channel state (sf/ev/eg/ec/sg/n4/pan/mo/fr/
   echoLength) in `M4aNoteTest` (all traces incl. `ram_trace_menu_cgb`, 225 active CGB channel-frames; fails
   without it). `M4aDriver.main` runs it before the mixer into `M4aDriver.psg` (`M4aPsg`: NR10..wave RAM
-  register file, `soundBiasH` 0x42 after init). Register writes follow the source but are untraced.
-- Next: PSG synth in `gbafe.audio` (not a port): square 1/2 (duty from NRx1, sweep on ch1, envelope from NRx2,
-  freq NRx3/4, length), wave (32 4-bit samples, NR32 volume), noise (LFSR 7/15 bit, NR43), mixed at the GBA PSG
-  level vs DirectSound (SOUNDCNT_H/NR50/NR51), added into `PcmStream` output; JVM test: known register sequences ->
-  expected periods/levels. Owner listen test: title START / menu SEs, op theme channel 1 (MANUAL_TEST).
+  register file + NRx4 trigger bits, `soundBiasH` 0x42 after init). Register writes are untraced.
+- `PsgSynth` (not a port, GBATEK behaviour): squares (duty, envelope, length), wave (4-bit, NR32 shift), noise
+  (LFSR 15/7), NR51 pan; rendered at `pcmFreq` on the game thread and added in `PcmStream.push` (`PSG_GAIN` 512
+  = guess: one channel at 15 ~ 1/4 DirectSound). `PsgSynthTest` (frequency, duty level, pan, envelope, length).
+- Open: ch1 sweep (NR10), NR50/SOUNDCNT_H levels, length reload only when 0, aliasing at 13379 Hz (band-limit or
+  render at device rate), measure level vs mGBA audio (harness audio capture, M3-14 RMS test). Owner listen test.
 - Songs using CGB channels (600-frame scan, 74 songs): 67 (op theme, ch1), 96..126 (system SEs), 179, 184, ...
 
 ## Status
@@ -69,7 +70,7 @@ _(nothing blocked)_
   the frame; the test detects `m4aMPlayImmInit` from the next dump (clock 0, track 0 flags 0x80).
   `M4aSequencer.songNumStart` (`M4aSongTable`; players = `gMPlayTable` order = `M4aRam.PLAYERS`).
   `M4aDriver` (not a port): `vSync` -> sequencers in `intp` order -> `M4aMixer.frame` -> `PcmStream.push`
-  (`M4aDriverTest`; `M4aRam.sound` links `intp`, so `info.chain()` gives the traced order). Done: sound window, boot sound, `CgbSound`. Next: PSG synth (top of file).
+  (`M4aDriverTest`; `M4aRam.sound` links `intp`, so `info.chain()` gives the traced order). Done: sound window, boot sound, `CgbSound`, `PsgSynth` v1 (top of file).
   Sources (decomp sparse-checkout `src/m4a* include/m4a* include/gba`): `src/m4a.c`, `src/m4a_1.s`,
   `src/m4a_tables.c`, offsets in `include/m4a.inc` / `include/gba/m4a_internal.h`.
 - If the owner still reports slow startup: measure what runs before the launcher draws (`Application`/

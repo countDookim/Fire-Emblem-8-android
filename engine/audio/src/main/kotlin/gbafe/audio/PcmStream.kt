@@ -30,17 +30,28 @@ public class PcmStream(
     /** Input frames queued and not yet consumed. */
     public val queued: Int get() = (written - read).toInt()
 
+    /** PSG channels mixed into each pushed frame (rendered at `pcmFreq`); null: DirectSound only. */
+    public var psg: PsgSynth? = null
+
+    private val psgOut = FloatArray(2 * MAX_SAMPLES_PER_VBLANK)
+
     /** Queues this frame's samples of [info] (call right after [M4aMixer.frame]). */
     public fun push(info: M4aSoundInfo) {
         val n = M4aSoundInfo.PCM_DMA_BUF_SIZE
         val r7 = info.pcmDmaCounter - 1
         val at = if (r7 == 0) 0 else (info.pcmDmaPeriod - r7) * info.pcmSamplesPerVBlank
+        val count = minOf(info.pcmSamplesPerVBlank, MAX_SAMPLES_PER_VBLANK)
+        val synth = psg
+        psgOut.fill(0f, 0, 2 * count)
+        synth?.render(psgOut, count, PSG_GAIN)
         var w = written
-        for (i in 0 until info.pcmSamplesPerVBlank) {
+        for (i in 0 until count) {
             if (w - read > mask) break // full: drop the rest of this frame
             val o = 2 * (w and mask.toLong()).toInt()
-            ring[o] = (info.pcmBuffer[at + i + n].toInt() shl 8).toShort() // left
-            ring[o + 1] = (info.pcmBuffer[at + i].toInt() shl 8).toShort() // right
+            val l = (info.pcmBuffer[at + i + n].toInt() shl 8) + psgOut[2 * i].toInt()
+            val r = (info.pcmBuffer[at + i].toInt() shl 8) + psgOut[2 * i + 1].toInt()
+            ring[o] = l.coerceIn(-32768, 32767).toShort()
+            ring[o + 1] = r.coerceIn(-32768, 32767).toShort()
             w++
         }
         written = w
@@ -69,4 +80,15 @@ public class PcmStream(
     }
 
     private fun lerp(x: Short, y: Short): Short = (x + (((y - x) * frac) shr 16)).toShort()
+
+    private companion object {
+        /** Upper bound of `pcmSamplesPerVBlank` (42048 Hz mode: 701). */
+        const val MAX_SAMPLES_PER_VBLANK = 704
+
+        /**
+         * Output units per PSG level step: one channel at volume 15 is about a quarter of full-scale
+         * DirectSound (NR50 7/7, SOUNDCNT_H PSG 100%). An approximation, not measured.
+         */
+        const val PSG_GAIN = 512f
+    }
 }

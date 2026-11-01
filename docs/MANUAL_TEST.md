@@ -15,6 +15,9 @@ on the launcher screen).
 - Touch layout (#3): in Play, landscape, every button is fully visible (none under the camera notch, status bar
   or gesture bar) with a small margin; the D-pad is a cross with arrows (no "+" square). Pressing the D-pad does
   nothing visible until gameplay (boot and title ignore directions).
+- PSG sound (new, approximate): the opening theme now has its square-wave (PSG channel 1) voice.
+  Report if it sounds wrong (harsh, too loud/quiet vs the music, stuck notes), ideally
+  compared with an emulator.
 
 ## Known not working (don't report)
 Everything after the title: no gameplay or saves; title key presses do nothing yet.

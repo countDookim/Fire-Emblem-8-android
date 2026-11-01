@@ -29,7 +29,7 @@ The [fireemblem8u decomp](https://github.com/FireEmblemUniverse/fireemblem8u) is
 repo) supplies assets and is the test oracle via headless mGBA.
 
 **Status:** boot (health & safety, logos, opening, title) runs on device with the original sound (m4a
-sequencer + mixer, byte-exact vs mGBA RAM traces; CGB/PSG channels still silent), GPU renderer (OpenGL ES 3.0),
+sequencer + mixer, byte-exact vs mGBA RAM traces; CGB/PSG channels via an approximate synth), GPU renderer (OpenGL ES 3.0),
 on-screen GBA buttons and gamepad; no gameplay yet. The launcher has one **Play** button.
 [HANDOFF.md](HANDOFF.md) · [docs/TASKS.md](docs/TASKS.md)
 

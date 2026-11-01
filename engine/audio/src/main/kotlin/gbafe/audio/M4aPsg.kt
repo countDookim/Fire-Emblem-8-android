@@ -16,10 +16,25 @@ public class M4aPsg {
     /** Reads the byte at IO [address]. */
     public fun read(address: Int): Int = regs[address - BASE]
 
-    /** Writes the byte [value] at IO [address]. */
+    /** Bit per channel 1..4 (bit n-1): triggered (NRx4 bit 7 written) since [takeTriggers]. */
+    public var triggers: Int = 0
+        private set
+
+    /** Writes the byte [value] at IO [address]; an NRx4 write with bit 7 set triggers a channel. */
     public fun write(address: Int, value: Int) {
         regs[address - BASE] = value and 0xFF
+        if (value and 0x80 != 0) {
+            when (address) {
+                0x04000065 -> triggers = triggers or 1
+                0x0400006D -> triggers = triggers or 2
+                0x04000075 -> triggers = triggers or 4
+                0x0400007D -> triggers = triggers or 8
+            }
+        }
     }
+
+    /** Returns and clears [triggers] (read by the synth). */
+    public fun takeTriggers(): Int = triggers.also { triggers = 0 }
 
     /** Register addresses. */
     public companion object {

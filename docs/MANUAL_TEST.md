@@ -17,6 +17,8 @@ on-screen touch buttons (D-pad diagonals, multi-touch).
       difference, a black/garbled screen or a crash, with the phone model.
 - [ ] **Test tone (440 Hz)** on the launcher: a steady beep starts at once (no crackles or gaps, also while
       you tap around), stops at once on **Stop test tone**, and stops when you switch apps.
+- [ ] (#2) Start the tone, switch apps and come back: the button reads **Test tone (440 Hz)** again and one
+      press starts the beep.
 
 ## Known not working (don't report)
 Everything after the title: no gameplay, sound or saves; title key presses do nothing yet.

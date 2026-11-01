@@ -47,7 +47,9 @@ public class MainActivity : ComponentActivity() {
     private var surface: GameSurfaceView? = null
     private var toneSink: AudioTrackSink? = null
     private var tone: AudioThread? = null
-    private var tonePlaying = false
+
+    /** Compose state, so the launcher label follows stops from [onPause]/Play (issue #2). */
+    private var tonePlaying by mutableStateOf(false)
 
     /** M3-12 manual test: starts/stops a 440 Hz tone through the low-latency sink; returns the new state. */
     private fun toggleTone(): Boolean {
@@ -87,7 +89,8 @@ public class MainActivity : ComponentActivity() {
                                 tonePlaying = false
                                 playing = true
                             },
-                            onTone = ::toggleTone,
+                            toneOn = tonePlaying,
+                            onTone = { toggleTone() },
                         )
                     }
                 }
@@ -123,7 +126,7 @@ private fun bundledBootRom(ctx: Context): RomView? {
 }
 
 @Composable
-private fun Launcher(onPlay: (gpu: Boolean) -> Unit, onTone: () -> Boolean) {
+private fun Launcher(onPlay: (gpu: Boolean) -> Unit, toneOn: Boolean, onTone: () -> Unit) {
     Column(
         Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
@@ -140,7 +143,6 @@ private fun Launcher(onPlay: (gpu: Boolean) -> Unit, onTone: () -> Boolean) {
         Text("Bundled test assets (debug builds only): ${bundled ?: "counting…"} files")
         Button(onClick = { onPlay(false) }) { Text("Play") }
         Button(onClick = { onPlay(true) }) { Text("Play (GPU renderer, experimental)") }
-        var toneOn by remember { mutableStateOf(false) }
-        Button(onClick = { toneOn = onTone() }) { Text(if (toneOn) "Stop test tone" else "Test tone (440 Hz)") }
+        Button(onClick = onTone) { Text(if (toneOn) "Stop test tone" else "Test tone (440 Hz)") }
     }
 }

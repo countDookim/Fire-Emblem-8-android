@@ -1,24 +1,32 @@
 # HANDOFF
 
-_Updated 2026-11-01 (scheduled run 06:5x). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-11-01 (scheduled run 14:5x). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: user-report issue #2 (top priority, CLAUDE.md/brief)
-- "Test tone" button label is stale after the tone stops on pause: `MainActivity.onPause` sets `tonePlaying=false`
-  and stops the thread, but the Launcher's Compose `toneOn` state stays true, so the first press after resuming
-  calls `toggleTone()` (starts the tone) and the label does not change. Likely fix: hoist the state so
-  `onPause`/`onPlay` reset it (e.g. `toneOn` as Activity-level `mutableStateOf`, read by `Launcher`), or derive the
-  label from `tonePlaying`. Reference `#2` in the fix commit; add a MANUAL_TEST step; ask the owner to confirm
-  before closing (no JVM test covers `:app`).
+## NEXT RUN, FIRST: M3-13 CgbSound (new trace `ram_trace_menu_cgb`)
+- Issue #2 fixed (511f398, CI green): launcher tone/music labels are Activity `mutableStateOf`. Asked the owner
+  on #2 to confirm with the next APK (MANUAL_TEST step); don't close it yourself.
+- `ram_trace_menu_cgb` (ROM repo, per-frame RAM f880..f1100): title START / menu SEs (songs 96/106/109-ish) on
+  `gCgbChans` 1/2 (active f990..). No older trace ever has a CGB channel active. `CgbSound` (src/m4a.c:852)
+  reads `NRx2` registers (`evAdd = *nrx2ptr`) and writes NRx0..4: needs a small PSG register model in
+  `gbafe.audio` (dumps have no IO: compare channel state `sf/ev/eg/ec/sg/n4/pan/mo/fr` only). Steps: CGB fields
+  on `M4aChannel` (struct CgbChannel offsets 0x04..0x1F; `panMask` done) + `M4aRam` parse, port `CgbModVol`
+  then `CgbSound`, call it in `M4aDriver.frame` before the mixer, test against the new trace; then a PSG synth
+  (square/wave/noise) for the audio output.
+- Songs using CGB channels (600-frame scan, 74 songs): 67 (op theme, ch1), 96..126 (system SEs), 179, 184, ...
 
 ## Status
 - Owner tested the APK 2026-10-30: boot to title, touch buttons and gamepad work; **only issue: slow app open**.
   Likely cause fixed (unconfirmed on device): the launcher counted thousands of bundled assets on the main thread
   (`AssetLayer.list` also did a per-file `exists()`, quadratic); now counted on `Dispatchers.IO`, no `exists()`.
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
-- Verified ports: 246 / 8352 (this run: `m4aSoundInit` = `M4aSound.init` (gMPlayTable open, `unk_B`;
+- Run 2026-11-01 15:0x: `MPlayExtender` = `M4aSound.mPlayExtender` (M4aSoundTest: CGB types/pan masks);
+  `RomView.SOUND_WINDOWS` (0x08207200..0x08587700, ROM repo `extracted/sound/`; `SoundWindowTest`: all 1000
+  songs mix from it), `fe8.game.Fe8Sound`, `M4aPullSource`, launcher "Test music (opening)" (debug; MANUAL_TEST).
+  `m4aSongNumStartOrChange`: FE8 never calls it (unverifiable, leave unclaimed).
+- Verified ports: 247 / 8352 (earlier: `m4aSoundInit` = `M4aSound.init` (gMPlayTable open, `unk_B`;
   `M4aSoundTest`, also a song started by number plays); `m4aMPlayStop` = `M4aCommands.mPlayStop` + `TrackStop`
   (`M4aStopTest`); `FadeOutBody` (fade-out to stop only; fade-in/`TEMPORARY_FADE` untraced) + `MPlayMain` claimed
   (`M4aFadeTest`, `M4aNoteTest`); `m4aMPlayVolumeControl` = `M4aCommands.volumeControl` (`M4aVolumeTest`).
@@ -58,10 +66,7 @@ _(nothing blocked)_
   the frame; the test detects `m4aMPlayImmInit` from the next dump (clock 0, track 0 flags 0x80).
   `M4aSequencer.songNumStart` (`M4aSongTable`; players = `gMPlayTable` order = `M4aRam.PLAYERS`).
   `M4aDriver` (not a port): `vSync` -> sequencers in `intp` order -> `M4aMixer.frame` -> `PcmStream.push`
-  (`M4aDriverTest`; `M4aRam.sound` links `intp`, so `info.chain()` gives the traced order). Next: the app has no sound data (debug APK bundles only `extracted/boot/` windows, not the
-  song/voice/sample ROM ranges): add a sound ROM window to the ROM repo's extracted assets (debug only) or wait for
-  M4-04, then a launcher "Test music" button (`M4aSound` + `driver(PcmStream)` on a 59.73 Hz thread +
-  `AudioThread`); `CgbSound` (CGB channels 1-4 -> PSG; needs a PSG model); `M4aSound.songNumStartOrChange` (WIP, needs a trace test: inject dump state into `M4aSound`).
+  (`M4aDriverTest`; `M4aRam.sound` links `intp`, so `info.chain()` gives the traced order). Done: sound window + "Test music" (see Status). Next: `CgbSound` (top of file).
   Sources (decomp sparse-checkout `src/m4a* include/m4a* include/gba`): `src/m4a.c`, `src/m4a_1.s`,
   `src/m4a_tables.c`, offsets in `include/m4a.inc` / `include/gba/m4a_internal.h`.
 - If the owner still reports slow startup: measure what runs before the launcher draws (`Application`/

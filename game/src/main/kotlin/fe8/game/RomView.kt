@@ -18,6 +18,12 @@ public class RomView(
         return OpAnimHs.Blob(b, at - base)
     }
 
+    /** The unsigned byte at [at]. */
+    public fun u8(at: Int): Int {
+        val (base, b) = segment(at)
+        return b[at - base].toInt() and 0xFF
+    }
+
     /** The unsigned halfword at [at]. */
     public fun u16(at: Int): Int {
         val (base, b) = segment(at)
@@ -55,12 +61,24 @@ public class RomView(
             0x08AA6000 to 0x08B13000,
         )
 
+        /**
+         * ROM range (start, end exclusive) of all m4a sound data: the driver tables
+         * (`gScaleTable`..`gXcmdTable`), voicegroups, `gMPlayTable`, `gSongTable`, songs and
+         * DirectSound samples (`gScaleTable` .. after `song998`). Extracted as `sound/rom_<start>.bin`
+         * for debug builds' sound tests.
+         */
+        public val SOUND_WINDOWS: List<Pair<Int, Int>> = listOf(0x08207200 to 0x08587700)
+
         /** A view over the whole ROM image. */
         public fun ofRom(rom: ByteArray): RomView = RomView(listOf(ROM_BASE to rom))
 
         /** A view over the extracted [BOOT_WINDOWS]; [read] returns a file's bytes by name. */
         public fun ofBootWindows(read: (String) -> ByteArray): RomView =
             RomView(BOOT_WINDOWS.map { (start, _) -> start to read(windowFile(start)) })
+
+        /** A view over the extracted [SOUND_WINDOWS]; [read] returns a file's bytes by name. */
+        public fun ofSoundWindows(read: (String) -> ByteArray): RomView =
+            RomView(SOUND_WINDOWS.map { (start, _) -> start to read(windowFile(start)) })
 
         /** File name of the extracted window starting at [start]. */
         public fun windowFile(start: Int): String = "rom_%08X.bin".format(start)

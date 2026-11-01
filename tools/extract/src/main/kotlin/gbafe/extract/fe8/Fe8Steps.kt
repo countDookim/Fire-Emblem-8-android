@@ -221,11 +221,20 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
         File(args.out, "boot/rom_%08X.bin".format(start)).writeBytes(rom.copyOfRange(start - ROM_BASE, end - ROM_BASE))
     }
     written += "boot/ (${BOOT_WINDOWS.size} ROM windows)"
+    // m4a sound data, read by ROM address (fe8.game.RomView.SOUND_WINDOWS).
+    File(args.out, "sound").mkdirs()
+    for ((start, end) in SOUND_WINDOWS) {
+        File(args.out, "sound/rom_%08X.bin".format(start)).writeBytes(rom.copyOfRange(start - ROM_BASE, end - ROM_BASE))
+    }
+    written += "sound/ (${SOUND_WINDOWS.size} ROM window)"
     return written
 }
 
 /** ROM windows (start, end exclusive) the boot screens read; same as fe8.game.RomView.BOOT_WINDOWS. */
 private val BOOT_WINDOWS = listOf(0x08590F00 to 0x08591000, 0x08AA6000 to 0x08B13000)
+
+/** ROM window of the m4a sound data; same as fe8.game.RomView.SOUND_WINDOWS. */
+private val SOUND_WINDOWS = listOf(0x08207200 to 0x08587700)
 
 private const val ROM_BASE = 0x08000000
 

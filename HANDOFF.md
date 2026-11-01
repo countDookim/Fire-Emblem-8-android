@@ -5,6 +5,14 @@ _Updated 2026-11-01 (scheduled run 06:5x). Owner decisions: docs/PROJECT_BRIEF.m
 ## NEEDS USER
 _(nothing blocked)_
 
+## NEXT RUN, FIRST: user-report issue #2 (top priority, CLAUDE.md/brief)
+- "Test tone" button label is stale after the tone stops on pause: `MainActivity.onPause` sets `tonePlaying=false`
+  and stops the thread, but the Launcher's Compose `toneOn` state stays true, so the first press after resuming
+  calls `toggleTone()` (starts the tone) and the label does not change. Likely fix: hoist the state so
+  `onPause`/`onPlay` reset it (e.g. `toneOn` as Activity-level `mutableStateOf`, read by `Launcher`), or derive the
+  label from `tonePlaying`. Reference `#2` in the fix commit; add a MANUAL_TEST step; ask the owner to confirm
+  before closing (no JVM test covers `:app`).
+
 ## Status
 - Owner tested the APK 2026-10-30: boot to title, touch buttons and gamepad work; **only issue: slow app open**.
   Likely cause fixed (unconfirmed on device): the launcher counted thousands of bundled assets on the main thread

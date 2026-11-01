@@ -75,11 +75,17 @@ class M4aNoteTest {
                 var runs = 0L
                 val songs = M4aSongTable(bus, SONG_TABLE, SONG_COUNT)
                 val starts = mutableListOf<Pair<Int, Boolean>>()
+                val fadeStarts = mutableListOf<Pair<Int, Int>>()
                 for (i in order) {
                     val p = players[i]
                     val q = qs[i]
-                    // A live player's fade (FadeOutBody) is not modelled; paused ones skip it.
-                    val fade = (p.status >= 0 && p.fadeOI != 0) || (q.status >= 0 && q.fadeOI != 0)
+                    // Live fades step in MPlayMain (FadeOutBody); a fade the game starts after
+                    // SoundMain (MPlayFadeOut, counter = speed in the next dump) is replayed; other
+                    // fade changes on a live player are skipped.
+                    val live = p.status >= 0 || q.status >= 0
+                    val started = p.fadeOI == 0 && q.fadeOI != 0 && q.fadeOC == q.fadeOI
+                    if (live && started) fadeStarts += i to q.fadeOI
+                    val fade = live && !started && q.fadeOI != 0 && q.fadeOI != p.fadeOI
                     if (fade) why[1]++
                     if (fade) ok = false
                     if (!ok) break
@@ -132,6 +138,7 @@ class M4aNoteTest {
                         immInits++
                     }
                 }
+                for ((i, speed) in fadeStarts) M4aCommands.fadeOut(players[i], speed)
                 // Menu traces: the game sets BGM1's volume (a ramp), then stops it.
                 if (qs[0].tracks[0].flags and 0x83 == 0x83 && players[0].status >= 0) {
                     M4aCommands.volumeControl(players[0], 0xFFFF, 4 * qs[0].tracks[0].volX)

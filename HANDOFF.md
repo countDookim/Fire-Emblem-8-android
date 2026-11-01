@@ -16,7 +16,7 @@ _(nothing blocked)_
   (`M4aFadeTest`, `M4aNoteTest`); `m4aMPlayVolumeControl` = `M4aCommands.volumeControl` (`M4aVolumeTest`).
   New ROM-repo reference runs `ram_trace_menu_bgm` (title START, A every 120 f; BGM1 volume ramp + stop f1301,
   next song f1323) and `ram_trace_menu_fade` (BGM1 fade speed 4, f4908..f4972); `M4aSequencerTest` replays them
-  with the game's volume control/stop (also `M4aNoteTest`, PCM byte-exact, 3082 frames; it still skips 63 live-fade frames). M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
+  with the game's volume control/stop (also `M4aNoteTest`: now replays fades too, 0 skipped, 3145 frames PCM byte-exact). M4-10 title key paths done. Stale merged remote branches (delete refused, 403): `wip/M4-09`, `wip/M3-10`,
   `wip/M4-10`, `wip/M4-10-affine`, `wip/M4-11`, `wip/M3-13-seq`, `wip/M3-13-note`, `wip/M3-13-mix`, `wip/M3-13-mix2`, `wip/M3-13-start` (merged).
 - Rules: a `@VerifiesPort` every run or two; no `java.*`/`javax.*` in new engine/game code (KMP, M4-07); battle
   rolls only via `mechanics.battleRolls`.

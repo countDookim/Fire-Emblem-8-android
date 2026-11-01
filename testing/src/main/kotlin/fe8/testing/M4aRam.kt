@@ -114,6 +114,7 @@ public object M4aRam {
         info.pcmDmaCounter = u8(iwram, SOUND_INFO - IWRAM + 4)
         info.reverb = u8(iwram, SOUND_INFO - IWRAM + 5)
         info.pcmDmaPeriod = u8(iwram, SOUND_INFO - IWRAM + 0x0B)
+        info.c15 = u8(iwram, SOUND_INFO - IWRAM + 0x0A)
         info.pcmSamplesPerVBlank = u32(iwram, SOUND_INFO - IWRAM + 0x10)
         info.pcmFreq = u32(iwram, SOUND_INFO - IWRAM + 0x14)
         info.divFreq = u32(iwram, SOUND_INFO - IWRAM + 0x18)

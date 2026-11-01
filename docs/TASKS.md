@@ -21,7 +21,7 @@ Done (details in git log): M2-01 New module :tools:extract; M2-02 LZ77; M2-03 4b
 | M3-07 | GPU backend v1 in `:app`: tile layers + sprites via shaders, same render state | APK shows extracted test scene (manual test) | done (owner manual test 2026-11-01) |
 | M3-12 | Low-latency `AudioTrack` sink (`PERFORMANCE_MODE_LOW_LATENCY`, mixer thread, no per-buffer allocs) | APK plays a test tone (manual test) | done (owner manual test 2026-11-01) |
 | M3-13 | m4a sequencer core (tempo, tracks, note on/off) from `m4a.c`/MIDI | unit tests vs MIDI timing | done: sequencer verified against per-frame mGBA RAM traces (stronger than MIDI timing): `M4aSequencerTest`, `M4aNoteTest` |
-| M3-14 | m4a mixer: direct-sound + PSG channels; compare against mGBA audio dump (harness: add audio capture) | RMS diff below threshold | wip: DirectSound mixer PCM byte-exact vs RAM traces (3145 frames); sound data in the app and boot sound done (`Fe8BootSoundTest`, owner listen test 2026-11-01); todo: `CgbSound`/PSG synth |
+| M3-14 | m4a mixer: direct-sound + PSG channels; compare against mGBA audio dump (harness: add audio capture) | RMS diff below threshold | wip: DirectSound mixer PCM byte-exact vs RAM traces (3145 frames); sound data in the app and boot sound done (`Fe8BootSoundTest`, owner listen test 2026-11-01); `CgbSound` verified (channel state); todo: PSG synth |
 
 Done (details in git log): M3-01 Finalise ADR 0008; M3-02 Render state types; M3-09 Input; M3-03 Software compositor; M3-04 Software compositor; M3-05 Blend/brightness/windows/mosaic; M3-06 Frame-compare utility; M3-16 Port gLCDControlBuffer + FlushLCDControl; M3-08 Asset override layer; M3-11 UI element contract; M3-10 Android ActionSources; M3-15 On-screen GBA button overlay ActionSource in :app.
 

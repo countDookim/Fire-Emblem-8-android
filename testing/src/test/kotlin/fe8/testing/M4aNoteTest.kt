@@ -1,10 +1,12 @@
 package fe8.testing
 
 import gbafe.audio.M4aBus
+import gbafe.audio.M4aCgb
 import gbafe.audio.M4aChannel
 import gbafe.audio.M4aCommands
 import gbafe.audio.M4aMixer
 import gbafe.audio.M4aPlayer
+import gbafe.audio.M4aPsg
 import gbafe.audio.M4aSequencer
 import gbafe.audio.M4aSongTable
 import gbafe.audio.M4aTrack
@@ -33,6 +35,7 @@ class M4aNoteTest {
     @VerifiesPort(
         "ply_note", "RealClearChain", "ply_fine", "ply_endtie", "SoundMainRAM",
         "MPlayStart", "m4aMPlayImmInit", "m4aSongNumStart", "m4aSoundVSync", "MPlayMain",
+        "CgbSound", "CgbModVol",
     )
     fun `channels step like the per-frame RAM traces`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present")
@@ -55,6 +58,7 @@ class M4aNoteTest {
         var maxLines = 0
         var pcmFreq = 0
         var endties = 0
+        var cgbActive = 0
         for (dir in ref.root.listFiles().orEmpty().filter { it.isDirectory }) {
             val dumps = dir.listFiles().orEmpty().mapNotNull { f ->
                 DUMP.matchEntire(f.name)?.let { it.groupValues[1].toInt() to f }
@@ -129,6 +133,7 @@ class M4aNoteTest {
                 info.vSync()
                 assertEquals(infoB.pcmDmaCounter, info.pcmDmaCounter, "pcmDmaCounter r$n")
                 vSyncs++
+                M4aCgb.sound(info, M4aPsg(), bus)
                 M4aMixer.frame(info, bus)
                 // The game starts songs after SoundMain (mixer) in the frame.
                 for ((n, imm) in starts) {
@@ -180,6 +185,10 @@ class M4aNoteTest {
                 for (c in all.indices) {
                     if (c >= info.chans.size && all[c].status == 0x80) notes++ // CGB
                     assertEquals(fields(allB[c]), fields(all[c]), "$next channel $c")
+                    if (c >= info.chans.size) {
+                        if (all[c].status != 0) cgbActive++
+                        assertEquals(cgb(allB[c]), cgb(all[c]), "$next CGB channel $c")
+                    }
                 }
                 for (i in players.indices) {
                     for (t in 0 until players[i].trackCount) {
@@ -202,12 +211,13 @@ class M4aNoteTest {
         )
         println("M4aNoteTest: envelopes $enveloped, sample ends $ended, pcm frames $pcmFrames, " +
             "fixed-rate $fixed, looping $looped, maxLines $maxLines, " +
-            "pcmFreq $pcmFreq")
+            "pcmFreq $pcmFreq, CGB active $cgbActive")
         println("M4aNoteTest: why ${why.toList()} " + (0 until 256).filter { cmds[it] > 0 }
             .joinToString { "0x%02X=%d".format(it, cmds[it]) })
         println("M4aNoteTest: frames running " + (0 until 64).filter { frameRuns[it] > 0 }
             .joinToString { "0x%02X=%d".format(it + 0xB1, frameRuns[it]) })
         assertTrue(frames > 500 && notes > 100, "frames $frames, notes $notes")
+        assertTrue(cgbActive > 100, "CGB active channel-frames $cgbActive")
         assertTrue(pcmFrames > 500 && fixed > 0 && looped > 0, "pcm $pcmFrames, fixed $fixed")
         assertTrue(why[0] >= 4 && immInits >= 1 && vSyncs > 0, "song starts ${why[0]} (songs $songNums), ImmInit $immInits")
         assertTrue(fines >= 2 && endties >= 4, "FINE in $fines frames, EOT in $endties")
@@ -215,6 +225,11 @@ class M4aNoteTest {
 
     private fun env(c: M4aChannel): List<Int> = listOf(
         c.status, c.envelopeVolume, c.envelopeRight, c.envelopeLeft, c.echoLength,
+    )
+
+    private fun cgb(c: M4aChannel): List<Int> = listOf(
+        c.status, c.envelopeVolume, c.envelopeRight, c.envelopeLeft, c.sustainGoal, c.n4, c.pan,
+        c.modify, c.frequency, c.echoLength,
     )
 
     private fun mixState(c: M4aChannel): List<Int> = listOf(c.count, c.fw, c.currentPointer)

@@ -3,8 +3,9 @@ package gbafe.audio
 /**
  * One frame of m4a sound, in the original's order: the VBlank IRQ's `m4aSoundVSync`, then
  * `SoundMain` (each player's `MPlayMain` along the `intp` chain, then the mixer), then the mixed
- * samples to [pcm]. Not a port of `SoundMain`: `CgbSound` (CGB channels, task M3-13) and the
- * `ident` lock are not modelled yet. In the game this runs inside the VBlank (`GameLoop`).
+ * samples to [pcm]. Not a port of `SoundMain`: the `ident` lock is not modelled. CGB channels
+ * are stepped ([M4aCgb.sound]) into [psg] registers, but no PSG synth plays them yet (M3-13).
+ * In the game this runs inside the VBlank (`GameLoop`).
  */
 public class M4aDriver(
     private val bus: M4aBus,
@@ -15,6 +16,9 @@ public class M4aDriver(
     /** Receives each frame's samples; null to only mix. */
     public val pcm: PcmStream? = null,
 ) {
+    /** PSG registers written by `CgbSound` (input of the PSG synth, still todo). */
+    public val psg: M4aPsg = M4aPsg()
+
     /** The sequencer that runs [chain]; also starts songs (`songNumStart`). */
     public val sequencer: M4aSequencer = M4aSequencer(bus, info)
 
@@ -29,9 +33,10 @@ public class M4aDriver(
         info.vSync()
     }
 
-    /** `m4aSoundMain` (end of the VBlank interrupt): sequencers, mixer, then [pcm]. */
+    /** `m4aSoundMain` (end of the VBlank interrupt): sequencers, `CgbSound`, mixer, then [pcm]. */
     public fun main() {
         for (p in chain) sequencer.step(p)
+        M4aCgb.sound(info, psg, bus)
         M4aMixer.frame(info, bus)
         pcm?.push(info)
     }

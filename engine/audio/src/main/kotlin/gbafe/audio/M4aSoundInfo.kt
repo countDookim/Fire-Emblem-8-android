@@ -151,6 +151,9 @@ public class M4aSoundInfo(
     /** `pcmBuffer`: right half (0..0x62F) and left half (0x630..), signed 8-bit samples. */
     public val pcmBuffer: ByteArray = ByteArray(2 * PCM_DMA_BUF_SIZE)
 
+    /** `c15` (u8, offset 0x0A): `CgbSound`'s 15-frame envelope divider (14 down to 0). */
+    public var c15: Int = 0
+
     /** `masterVolume` (u8, 0..15). */
     public var masterVolume: Int = 15
 

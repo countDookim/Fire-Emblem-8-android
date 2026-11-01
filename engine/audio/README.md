@@ -6,4 +6,4 @@ RAM traces (track/channel state and the whole PCM buffer byte-exact: `M4aNoteTes
   fades, stop), `M4aMixer` (`SoundMain` DirectSound mixing, reverb, envelopes), `M4aDriver` (one VBlank of sound).
 - `PcmStream`: lock-free ring from the game thread to the audio thread, resampled to the device rate.
 - `AudioSource` / `AudioSink`: `:app` supplies the low-latency `AudioTrack` sink.
-- Open (M3-13): `CgbSound` and a PSG synth (square/wave/noise channels; system SEs, op theme channel 1).
+- `M4aCgb` (`CgbSound`, `CgbModVol`) steps CGB channels into `M4aPsg` registers. Open (M3-13): the PSG synth (square/wave/noise channels; system SEs, op theme channel 1).

@@ -90,6 +90,9 @@ class M4aSoundTest {
             loud = loud || out.any { it.toInt() != 0 }
         }
         assertTrue(loud, "silence (song $n)")
+        val clock = s.players[0].clock
+        s.songNumStartOrChange(n) // already playing: no restart
+        assertEquals(clock, s.players[0].clock)
         assertEquals(0, s.sequencer.unsupported)
         println("M4aSoundTest: song $n")
     }

@@ -49,7 +49,7 @@ public class M4aSound(
 
     /**
      * `m4aSongNumStartOrChange(n)`: starts song [n] unless its player already plays it (live
-     * tracks, not paused). WIP: only the different-song branch is traced (`M4aSoundTest`).
+     * tracks, not paused). WIP: not checked against a trace yet.
      */
     public fun songNumStartOrChange(n: Int): Boolean {
         val p = players[songs.player(n and 0xFFFF)]

@@ -53,7 +53,7 @@ _(nothing blocked)_
   (`M4aDriverTest`; `M4aRam.sound` links `intp`, so `info.chain()` gives the traced order). Next: the app has no sound data (debug APK bundles only `extracted/boot/` windows, not the
   song/voice/sample ROM ranges): add a sound ROM window to the ROM repo's extracted assets (debug only) or wait for
   M4-04, then a launcher "Test music" button (`M4aSound` + `driver(PcmStream)` on a 59.73 Hz thread +
-  `AudioThread`); `CgbSound` (CGB channels 1-4 -> PSG; needs a PSG model); `m4aSongNumStartOrChange` etc.
+  `AudioThread`); `CgbSound` (CGB channels 1-4 -> PSG; needs a PSG model); `M4aSound.songNumStartOrChange` (WIP, needs a trace test: inject dump state into `M4aSound`).
   Sources (decomp sparse-checkout `src/m4a* include/m4a* include/gba`): `src/m4a.c`, `src/m4a_1.s`,
   `src/m4a_tables.c`, offsets in `include/m4a.inc` / `include/gba/m4a_internal.h`.
 - If the owner still reports slow startup: measure what runs before the launcher draws (`Application`/

@@ -145,6 +145,7 @@ public object M4aRam {
             velocity = u8(iwram, o + 0x12)
             priority = u8(iwram, o + 0x13)
             rhythmPan = iwram[o + 0x14].toInt()
+            panMask = u8(iwram, o + 0x1C)
             length = u8(iwram, o + 0x1E)
             sweep = u8(iwram, o + 0x1F)
             frequency = u32(iwram, o + 0x20)

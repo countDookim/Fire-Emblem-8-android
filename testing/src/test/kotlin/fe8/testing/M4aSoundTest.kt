@@ -15,7 +15,8 @@ import org.junit.jupiter.api.Test
 
 /**
  * [M4aSound.init] (`m4aSoundInit`) from the ROM's `gMPlayTable` gives the first boot dump with
- * sound set up (f20): the `SoundMain` chain, idle players and the `SoundInfo` rate fields; then a
+ * sound set up (f20): the `SoundMain` chain, idle players, the CGB channels (`MPlayExtender`)
+ * and the `SoundInfo` rate fields; then a
  * song the op anim plays, started by number, mixes into the stream.
  */
 class M4aSoundTest {
@@ -31,7 +32,7 @@ class M4aSoundTest {
     }
 
     @Test
-    @VerifiesPort("m4aSoundInit")
+    @VerifiesPort("m4aSoundInit", "MPlayExtender")
     fun `init gives the traced chain, idle players and rates`() {
         val dump = File(ref.root, "ram_trace_boot/r00020.iwram.bin")
         assumeTrue(ref.available && romFile.isFile && dump.isFile, "reference data not present")
@@ -62,6 +63,11 @@ class M4aSoundTest {
             )
         }
         assertTrue(idle >= 1, "no idle player")
+        val cgb = d.cgbChans!!
+        assertEquals(
+            cgb.map { listOf(it.status, it.type, it.panMask, it.frequency, it.wav) },
+            s.info.cgbChans!!.map { listOf(it.status, it.type, it.panMask, it.frequency, it.wav) },
+        )
         val i = s.info
         assertEquals(
             listOf(d.pcmSamplesPerVBlank, d.pcmDmaPeriod, d.pcmFreq, d.maxChans, d.masterVolume),

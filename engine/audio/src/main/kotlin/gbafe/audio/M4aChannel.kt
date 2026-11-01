@@ -65,6 +65,9 @@ public class M4aChannel(
     /** `rp` (s8): rhythm pan of the note's instrument. */
     public var rhythmPan: Int = 0
 
+    /** CGB `panMask` (u8, offset 0x1C): the channel's bits of `SOUNDCNT_L` panning. */
+    public var panMask: Int = 0
+
     /** CGB `length` (u8, offset 0x1E). */
     public var length: Int = 0
 

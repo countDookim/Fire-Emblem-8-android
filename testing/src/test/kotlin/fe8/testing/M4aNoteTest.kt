@@ -2,6 +2,7 @@ package fe8.testing
 
 import gbafe.audio.M4aBus
 import gbafe.audio.M4aChannel
+import gbafe.audio.M4aCommands
 import gbafe.audio.M4aMixer
 import gbafe.audio.M4aPlayer
 import gbafe.audio.M4aSequencer
@@ -54,11 +55,7 @@ class M4aNoteTest {
         var maxLines = 0
         var pcmFreq = 0
         var endties = 0
-        // Menu traces: the game re-flags BGM track volume after SoundMain every frame (not
-        // modelled here); M4aStopTest and M4aFadeTest cover them.
-        val dirs = ref.root.listFiles().orEmpty()
-            .filter { it.isDirectory && !it.name.startsWith("ram_trace_menu") }
-        for (dir in dirs) {
+        for (dir in ref.root.listFiles().orEmpty().filter { it.isDirectory }) {
             val dumps = dir.listFiles().orEmpty().mapNotNull { f ->
                 DUMP.matchEntire(f.name)?.let { it.groupValues[1].toInt() to f }
             }.toMap()
@@ -133,6 +130,15 @@ class M4aNoteTest {
                     if (imm) {
                         seq.immInit(players[songs.player(n)]) // m4aMPlayImmInit right after
                         immInits++
+                    }
+                }
+                // Menu traces: the game sets BGM1's volume (a ramp), then stops it.
+                if (qs[0].tracks[0].flags and 0x83 == 0x83 && players[0].status >= 0) {
+                    M4aCommands.volumeControl(players[0], 0xFFFF, 4 * qs[0].tracks[0].volX)
+                }
+                for (i in players.indices) {
+                    if (qs[i].status < 0 && players[i].status >= 0) {
+                        M4aCommands.mPlayStop(players[i], info)
                     }
                 }
                 var allMixed = true

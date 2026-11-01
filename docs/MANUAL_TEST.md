@@ -10,14 +10,10 @@ on the launcher screen).
   gamepad/keyboard, on-screen touch buttons (D-pad diagonals, multi-touch).
 - 2026-11-01: quick app open, GPU renderer (same as plain Play), test tone, tone button label (#2), test music;
   single Play (GPU) boot with sound in sync through the title and a restarted op anim, pause/resume.
+- 2026-11-01: touch layout inside the safe area, cross D-pad (#3); PSG (CGB) sound in the op theme.
 
 ## Newly testable
-- Touch layout (#3): in Play, landscape, every button is fully visible (none under the camera notch, status bar
-  or gesture bar) with a small margin; the D-pad is a cross with arrows (no "+" square). Pressing the D-pad does
-  nothing visible until gameplay (boot and title ignore directions).
-- PSG sound (new, approximate): the opening theme now has its square-wave (PSG channel 1) voice.
-  Report if it sounds wrong (harsh, too loud/quiet vs the music, stuck notes), ideally
-  compared with an emulator.
+_(nothing open)_
 
 ## Known not working (don't report)
 Everything after the title: no gameplay or saves; title key presses do nothing yet.

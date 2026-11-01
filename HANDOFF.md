@@ -5,9 +5,7 @@ _Updated 2026-11-01 (scheduled run 22:5x). Owner decisions: docs/PROJECT_BRIEF.m
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: owner feedback (#3 touch layout, PSG sound), then M3-13 PSG accuracy
-- First check CI on master: `TouchOverlayView` (insets, `WindowInsetsCompat`) was never compiled in a session (no
-  Android SDK); every run of the 22:5x session's pushes was superseded. If `:app` fails, fix before anything else.
+## NEXT RUN, FIRST: M3-13 PSG accuracy (owner manual test passed 2026-11-01: #3 layout, PSG sound; #3 closed)
 - Done 2026-11-01 (22:5x run): issue #3 touch layout (`TouchButtons.resize` takes system bar / cutout insets +
   margin, `TouchOverlayView` reads `WindowInsetsCompat`, cross D-pad with arrows; `TouchButtonsTest` safe-area
   cases; MANUAL_TEST step; asked owner on #3, don't close until confirmed). Docs sweep (README, ARCHITECTURE,

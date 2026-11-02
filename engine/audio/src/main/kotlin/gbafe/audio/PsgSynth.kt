@@ -1,10 +1,12 @@
 package gbafe.audio
 
+import kotlin.math.pow
+
 /**
  * Plays the PSG registers of [psg] (written by `CgbSound`): square 1/2 (duty, envelope, length),
  * wave (32 4-bit samples, volume shift) and noise (7/15-bit LFSR, envelope), panned by NR51.
  * Square 1 has the frequency sweep (NR10); NR50 master volume and the SOUNDCNT_H PSG ratio
- * scale the mix. Output is box-filtered per sample (band-limited
+ * scale the mix, then a DC blocker (as mGBA). Output is box-filtered per sample (band-limited
  * edges, no aliasing whine at the 13379 Hz mixer rate). Not a port (hardware behaviour, GBATEK). Nothing allocates per call.
  */
 public class PsgSynth(
@@ -29,6 +31,9 @@ public class PsgSynth(
 
     /** Current envelope volume (0..15) of channel [ch] (1..4). */
     public fun volumeOf(ch: Int): Int = volume[ch - 1]
+
+    /** DC blocker on (default); off makes the output the raw centred channel levels (tests). */
+    public var highPass: Boolean = true
 
     /** Channels mixed into the output (bit 0 = square 1 .. bit 3 = noise); others still run. */
     public var channelMask: Int = 0xF
@@ -67,10 +72,24 @@ public class PsgSynth(
                 if (nr51 ushr (4 + c) and 1 != 0) l += v
                 if (nr51 ushr c and 1 != 0) r += v
             }
-            out[2 * i] += l * gainL
-            out[2 * i + 1] += r * gainR
+            // DC blocker (one-pole high-pass), as mGBA's blip_buf (bass_shift 9 at 32768 Hz) and
+            // the GBA's AC-coupled output: the PSG levels are unipolar on hardware.
+            val xl = l * gainL
+            val xr = r * gainR
+            hpL = hpL * hpPole + xl - prevL
+            hpR = hpR * hpPole + xr - prevR
+            prevL = xl
+            prevR = xr
+            out[2 * i] += if (highPass) hpL else xl
+            out[2 * i + 1] += if (highPass) hpR else xr
         }
     }
+
+    private val hpPole = (1.0 - 1.0 / 512).pow(32768.0 / sampleRate).toFloat()
+    private var hpL = 0f
+    private var hpR = 0f
+    private var prevL = 0f
+    private var prevR = 0f
 
     private var seqStep = 0
 
@@ -215,12 +234,16 @@ public class PsgSynth(
         }
     }
 
-    /** Wave sample [pos] (0..31) as a centred level. */
+    /**
+     * Wave sample [pos] (0..31) as a centred level, two units per 4-bit step: the squares swing
+     * +-volume (2 * volume peak to peak), and mGBA adds wave samples and square volumes (0..15)
+     * in the same unit (measured: `audio_psg4` at 100% is 2x the old 1-unit-per-step level).
+     */
     private fun waveLevel(pos: Int, shift: Int): Float {
         val b = psg.read(M4aPsg.WAVE_RAM + pos / 2)
         val s = if (pos and 1 == 0) b ushr 4 else b and 0x0F
-        if (shift == FORCE_75) return ((s * 3 shr 2) * 2 - 11) / 2f
-        return ((s shr shift) * 2 - (15 shr shift)) / 2f
+        if (shift == FORCE_75) return ((s * 3 shr 2) * 2 - 11).toFloat()
+        return ((s shr shift) * 2 - (15 shr shift)).toFloat()
     }
 
     /** Integral of the wave level from sample position 0 to [x] (0..32). */

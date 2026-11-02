@@ -63,16 +63,18 @@ class M4aNoteTest {
         // PSG level (M3-14): CgbSound's register writes in ram_trace_menu_cgb f900..f1100 played
         // by PsgSynth, compared with the PSG share of mGBA's audio_menu output.
         val psgRegs = M4aPsg()
+        var loadedWave = 0
         val synth = PsgSynth(psgRegs, 13379)
         // FE8_PSG_MASK=1|2|4|8 solos one channel (compare with mGBA's per-channel output).
         System.getenv("FE8_PSG_MASK")?.let { synth.channelMask = it.toInt() }
         val psgOut = FloatArray(2 * 224)
         var psgSum = 0.0
+        var psgMean = 0.0
         var psgSamples = 0
         for (dir in ref.root.listFiles().orEmpty().filter { it.isDirectory }) {
             val dumps = dir.listFiles().orEmpty().mapNotNull { f ->
                 DUMP.matchEntire(f.name)?.let { it.groupValues[1].toInt() to f }
-            }.toMap()
+            }.toMap().toSortedMap() // in frame order: the PSG synth carries state across frames
             for ((n, file) in dumps) {
                 val next = dumps[n + 1] ?: continue
                 val a = file.readBytes()
@@ -143,12 +145,26 @@ class M4aNoteTest {
                 info.vSync()
                 assertEquals(infoB.pcmDmaCounter, info.pcmDmaCounter, "pcmDmaCounter r$n")
                 vSyncs++
-                val level = dir.name == "ram_trace_menu_cgb" && n in 900 until 1100
-                M4aCgb.sound(info, if (level) psgRegs else M4aPsg(), bus)
-                if (level) {
+                val cgbRun = dir.name == "ram_trace_menu_cgb"
+                val level = cgbRun && n in 900 until 1100
+                // One PSG for the whole run: the wave RAM is loaded once, before the window.
+                // Channel state comes from each dump (currentPointer already = wav), so load the
+                // wave RAM the game loaded from it.
+                val wavPtr = info.cgbChans?.get(2)?.currentPointer ?: 0
+                if (cgbRun && wavPtr != loadedWave && wavPtr ushr 24 == 0x08) {
+                    for (k in 0 until 16) psgRegs.write(M4aPsg.WAVE_RAM + k, bus.read8(wavPtr + k))
+                    loadedWave = wavPtr
+                }
+                M4aCgb.sound(info, if (cgbRun) psgRegs else M4aPsg(), bus)
+                if (cgbRun) {
                     psgOut.fill(0f)
                     synth.render(psgOut, 224, 512f) // PcmStream.PSG_GAIN
-                    for (v in psgOut) psgSum += v.toDouble() * v
+                }
+                if (level) {
+                    for (v in psgOut) {
+                        psgSum += v.toDouble() * v
+                        psgMean += v
+                    }
                     psgSamples += psgOut.size
                 }
                 M4aMixer.frame(info, bus)
@@ -236,7 +252,9 @@ class M4aNoteTest {
         assertTrue(frames > 500 && notes > 100, "frames $frames, notes $notes")
         if (psgSamples > 0) {
             // Output units -> mGBA int16: 48 * 4 per DirectSound byte vs 256 here = 0.75.
-            val psgRms = 0.75 * kotlin.math.sqrt(psgSum / psgSamples)
+            val m = psgMean / psgSamples
+            // AC RMS (mean removed), as measured on mGBA's output.
+            val psgRms = 0.75 * kotlin.math.sqrt(psgSum / psgSamples - m * m)
             println("M4aNoteTest: PSG RMS $psgRms (mGBA int16 units) over $psgSamples samples")
         }
         assertTrue(cgbActive > 100, "CGB active channel-frames $cgbActive")

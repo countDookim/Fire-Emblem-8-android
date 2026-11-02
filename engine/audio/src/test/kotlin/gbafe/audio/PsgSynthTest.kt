@@ -19,6 +19,7 @@ class PsgSynthTest {
     fun `square 2 plays its register frequency and duty, panned by NR51`() {
         val psg = M4aPsg()
         val synth = PsgSynth(psg, rate)
+        synth.highPass = false
         psg.write(M4aPsg.NR51, 0x02) // ch2 right only
         psg.write(0x04000068, 0x80) // 50% duty
         psg.write(0x04000069, 0xF0) // volume 15, no envelope
@@ -38,6 +39,7 @@ class PsgSynthTest {
     fun `envelope decays and length stops the channel`() {
         val psg = M4aPsg()
         val synth = PsgSynth(psg, rate)
+        synth.highPass = false
         psg.write(M4aPsg.NR51, 0x11)
         psg.write(0x04000062, 0x80 or 0x30) // length 64 - 48 = 16 ticks of 256 Hz = 62.5 ms
         psg.write(0x04000063, 0xF1) // volume 15, decrease every 1/64 s
@@ -65,6 +67,7 @@ class PsgSynthTest {
     fun `sweep raises square 1 and writes the frequency back`() {
         val psg = M4aPsg()
         val synth = PsgSynth(psg, rate)
+        synth.highPass = false
         psg.write(M4aPsg.NR51, 0x11)
         psg.write(0x04000060, 0x11) // period 1 (128 Hz), increase, shift 1
         psg.write(0x04000062, 0x80)
@@ -83,6 +86,7 @@ class PsgSynthTest {
     fun `NR50 and SOUNDCNT_H scale the mix`() {
         val psg = M4aPsg()
         val synth = PsgSynth(psg, rate)
+        synth.highPass = false
         psg.write(M4aPsg.NR51, 0x22)
         psg.write(M4aPsg.NR50, 0x37) // left 4/8, right 8/8
         psg.write(M4aPsg.SOUNDCNT_H, 0x01) // 50%
@@ -107,6 +111,7 @@ class PsgSynthTest {
     fun `squares above the output Nyquist rate average out instead of aliasing`() {
         val psg = M4aPsg()
         val synth = PsgSynth(psg, rate)
+        synth.highPass = false
         square2(psg, duty = 2, fr = 2048 - 4) // 32768 Hz, 50% duty
         val out = FloatArray(2 * rate)
         synth.render(out, rate, 1f)
@@ -118,6 +123,7 @@ class PsgSynthTest {
     fun `box filter keeps the duty-cycle mean`() {
         val psg = M4aPsg()
         val synth = PsgSynth(psg, rate)
+        synth.highPass = false
         square2(psg, duty = 0, fr = 2048 - 37) // 3542 Hz, 12.5%: edges fall between samples
         val out = FloatArray(2 * rate)
         synth.render(out, rate, 1f)
@@ -129,6 +135,7 @@ class PsgSynthTest {
     fun `wave channel is box-filtered with the right mean`() {
         val psg = M4aPsg()
         val synth = PsgSynth(psg, rate)
+        synth.highPass = false
         psg.write(M4aPsg.NR51, 0x44)
         psg.write(0x04000070, 0x80)
         psg.write(0x04000073, 0x20) // 100%
@@ -140,7 +147,7 @@ class PsgSynthTest {
         synth.render(out, rate, 1f)
         val peak = (0 until rate).maxOf { kotlin.math.abs(out[2 * it]) }
         val mean = (0 until rate).sumOf { out[2 * it].toDouble() } / rate
-        assertTrue(peak < 7.5f, "peak $peak")
+        assertTrue(peak < 15f, "peak $peak")
         assertEquals(0.0, mean, 0.05)
     }
 
@@ -148,6 +155,7 @@ class PsgSynthTest {
     fun `NR32 bit 7 plays the wave at 75 percent`() {
         val psg = M4aPsg()
         val synth = PsgSynth(psg, rate)
+        synth.highPass = false
         psg.write(M4aPsg.NR51, 0x44)
         psg.write(0x04000070, 0x80)
         psg.write(0x04000073, 0x80) // CgbSound's CGB3_VOL 0x80
@@ -157,6 +165,22 @@ class PsgSynthTest {
         psg.write(0x04000075, 0x80 or (fr ushr 8))
         val out = FloatArray(2 * 1000)
         synth.render(out, 1000, 1f)
-        assertEquals(5.5f, (0 until 1000).maxOf { out[2 * it] }) // (15 * 3 >> 2) - 11 / 2
+        assertEquals(11f, (0 until 1000).maxOf { out[2 * it] }) // (15 * 3 >> 2) * 2 - 11
+    }
+
+    @Test
+    fun `DC blocker removes a constant level and passes tones`() {
+        val psg = M4aPsg()
+        val synth = PsgSynth(psg, rate)
+        psg.write(M4aPsg.NR51, 0x44)
+        psg.write(0x04000070, 0x80)
+        psg.write(0x04000073, 0x20)
+        for (i in 0 until 16) psg.write(M4aPsg.WAVE_RAM + i, 0x00) // constant -15
+        psg.write(0x04000074, 0)
+        psg.write(0x04000075, 0x80)
+        val out = FloatArray(2 * rate)
+        synth.render(out, rate, 1f)
+        assertTrue(out[0] < -14f, "step passes: ${out[0]}")
+        assertTrue(kotlin.math.abs(out[2 * (rate - 1)]) < 0.1f, "DC left ${out[2 * (rate - 1)]}")
     }
 }

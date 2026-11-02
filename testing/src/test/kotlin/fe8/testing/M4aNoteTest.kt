@@ -256,6 +256,17 @@ class M4aNoteTest {
             // AC RMS (mean removed), as measured on mGBA's output.
             val psgRms = 0.75 * kotlin.math.sqrt(psgSum / psgSamples - m * m)
             println("M4aNoteTest: PSG RMS $psgRms (mGBA int16 units) over $psgSamples samples")
+            // mGBA's PSG mix = sum of the one-channel runs (linear; noise unused here).
+            val runs = listOf(1, 2, 4).map { ref.run("audio_psg$it") }
+            if (System.getenv("FE8_PSG_MASK") == null && runs.all { it.hasAudio }) {
+                val a = runs[0].audioEnd[900] * 2
+                val b = runs[0].audioEnd[1100] * 2
+                val x = DoubleArray(b - a) { i -> runs.sumOf { it.audio[a + i].toDouble() } }
+                val mean = x.average()
+                val mgba = kotlin.math.sqrt(x.sumOf { (it - mean) * (it - mean) } / x.size)
+                println("M4aNoteTest: mGBA PSG RMS $mgba")
+                assertTrue(psgRms / mgba in 0.75..1.2, "PSG RMS $psgRms vs mGBA $mgba")
+            }
         }
         assertTrue(cgbActive > 100, "CGB active channel-frames $cgbActive")
         assertTrue(pcmFrames > 500 && fixed > 0 && looped > 0, "pcm $pcmFrames, fixed $fixed")

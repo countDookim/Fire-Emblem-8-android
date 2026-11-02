@@ -18,7 +18,8 @@ _(nothing blocked)_
   runs exist (skipped otherwise). Remaining gap: per-frame compare as in this run (ours vol-1 square pp
   788 vs mGBA 997: envelope/trigger timing?).
 - ROM repo: harness `--audio --psg-mask N` (DirectSound off, PSG channels by bit) + reference runs
-  `audio_psg1/2/4` (pushed 5045a8e; check release `latest` has them, `ReferenceData.run("audio_psg1").hasAudio`).
+  `audio_psg1/2/4` (release `latest` rebuilt OK at 43f9476; note: changing harness/scripts needs `harness/make_reference.sh`, then
+  `tar -C reference -cJf dist/reference.tar.xz out` and a new `dist/MANIFEST.sha1`, else publish fails).
   `FE8_PSG_MASK` solos ours (use `--rerun`: env is not a Gradle input).
 - `PsgSynth` (not a port, GBATEK behaviour): squares, wave, noise, NR51 pan, sweep, length, NR50/SOUNDCNT_H;
   box-filtered; `PSG_GAIN` 512 derived from mGBA's mixer.

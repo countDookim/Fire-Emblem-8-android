@@ -22,6 +22,8 @@ public class M4aDriver(
     /** The sequencer that runs [chain]; also starts songs (`songNumStart`). */
     public val sequencer: M4aSequencer = M4aSequencer(bus, info)
 
+    private var frames = 0
+
     /** Runs one frame (VBlank + `SoundMain`) and pushes its samples to [pcm]. */
     public fun frame() {
         vSync()
@@ -35,11 +37,13 @@ public class M4aDriver(
 
     /** `m4aSoundMain` (end of the VBlank interrupt): sequencers, `CgbSound`, mixer, then [pcm]. */
     public fun main() {
+        frames++
         for (p in chain) sequencer.step(p)
         M4aCgb.sound(info, psg, bus)
         M4aMixer.frame(info, bus)
         if (pcm != null && pcm.psg == null && info.pcmFreq > 0) {
-            pcm.psg = PsgSynth(psg, info.pcmFreq) // once: allocation-free afterwards
+            // once: allocation-free afterwards; sequencer phase as if run since boot (frame 0)
+            pcm.psg = PsgSynth(psg, info.pcmFreq).also { it.startAtFrame(frames) }
         }
         pcm?.push(info)
     }

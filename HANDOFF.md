@@ -1,24 +1,27 @@
 # HANDOFF
 
-_Updated 2026-11-02 (scheduled run 15:3x). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-11-02 (scheduled run 22:5x). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: M3-14 PSG mix now 1.04x mGBA (was 0.86x): per-note envelope timing, then owner listen test
+## NEXT RUN, FIRST: M3-14 PSG: remaining ch2 first-step misses, then owner listen test
+- Done 2026-11-02 (22:5x run): frame sequencer locked to the CPU clock as in mGBA: `PsgSynth.startAtFrame`
+  (step 7 at cycle 68198 + k*262144; writes land 17408 cycles into a frame, applied at render start, so the
+  grid is shifted by that). `M4aDriver` calls it with its frame count. `M4aNoteTest` now runs ch1/ch2/wave
+  solo synths and compares peak-to-peak per quarter frame with `audio_psg1/2/4` (f900..f1099): 41 of 856 off
+  (was 133 unaligned; asserted < 1/15). Per channel (scratch analysis): ch1 70 -> 4, ch2 18, wave 4.
+  Mix RMS unchanged 1246/1200.
+- Open: ch2 notes at dumps 906 and 932 step one 64 Hz event later in mGBA than ours (others match; 947 with
+  a similar trigger phase matches). mGBA 0.10.5 `src/gb/audio.c` logic = ours (checked: `_resetEnvelope`,
+  case 7, `_updateEnvelopeDead` reloads `nextStep` on an NRx2 write only when dead). Likely the in-frame write
+  time varies (CgbSound runs after the DirectSound mix: work varies per frame); a constant `TRIGGER_CYCLES`
+  can't model it. Measure write times by logging mGBA's cycle at NR24 writes (harness).
 - Done 2026-11-02 (15:3x run), both from mGBA 0.10.5 `src/gb/audio.c`: levels unipolar
   (`_squareChannelDuty * currentVolume`; square/noise 0..2*vol, wave 0..2*s; note on/off DC steps
   now give mGBA's DC-blocker transients) and square duty position kept across triggers (NR14/NR24
   restart never resets it). PSG RMS f900..f1100: ours 1248 vs mGBA 1200; solo ch1 777/786, ch2
   260/277, wave 686/683 (13379 Hz; rendering at 32768 Hz adds only ~2.5%).
-- Open: first envelope step lands ~1 tick later in mGBA (ch2 NR22=0x32 note at f906: vol 3 for
-  36 ms, then 31.8 ms per step; ours 2 ticks max). mGBA code = ours (nextStep = stepTime at trigger,
-  case 7 of 512 Hz sequencer); `envTimer + 1` always overshoots (ch2 308), `+1 if seqStep == 6`
-  ~no change. Suspect trigger write timing within the frame (ours applies at frame start).
-  Next: measure first-step length over many mGBA notes (only f906 measured) to tell phase vs
-  fixed delay; or log mGBA `audio->frame` at NR24 writes via the harness.
-  Note: the f906 ch2 trigger sounds ~1 ms into mGBA chunk end[906]..end[907] (one chunk later than
-  `M4aNoteTest` renders it); align before per-frame compares (whole-window RMS unaffected).
 - Done 2026-11-02 (15:0x run): the "wave 3.2x" was a test artefact: `M4aNoteTest` replayed frames in
   directory order (now sorted) and never saw the wave RAM load (state comes from each dump; now loads it from
   the dumped ch3 `currentPointer`). Fixes in `PsgSynth`: wave 2 units per 4-bit step (per-level pp now = mGBA

@@ -1,5 +1,6 @@
 package gbafe.audio
 
+import kotlin.math.floor
 import kotlin.math.pow
 
 /**
@@ -83,6 +84,21 @@ public class PsgSynth(
             out[2 * i] += if (highPass) hpL else xl
             out[2 * i + 1] += if (highPass) hpR else xr
         }
+    }
+
+    /**
+     * Sets the 512 Hz frame sequencer phase for output starting at game frame [frame] (frames
+     * since boot): the sequencer runs off the CPU clock (280896 cycles per frame), so envelope,
+     * length and sweep steps fall at the same points of each frame as in mGBA. A synth that
+     * renders every frame from boot needs no call.
+     */
+    public fun startAtFrame(frame: Int) {
+        // Writes apply at the start of a render (frame); in mGBA they land TRIGGER_CYCLES later.
+        val cycle = frame.toLong() * FRAME_CYCLES - SEQ_OFFSET_CYCLES + TRIGGER_CYCLES
+        val t = cycle.toDouble() / SEQ_TICK_CYCLES
+        val tick = floor(t)
+        seqPhase = t - tick
+        seqStep = ((tick.toLong() + 7) and 7).toInt()
     }
 
     private val hpPole = (1.0 - 1.0 / 512).pow(32768.0 / sampleRate).toFloat()
@@ -274,6 +290,13 @@ public class PsgSynth(
 
 
         const val SEQUENCER_HZ = 512.0
+        const val FRAME_CYCLES = 280896L
+        const val SEQ_TICK_CYCLES = 32768L
+
+        // Measured on mGBA's audio_psg2 output (envelope steps, note onsets vs frame ends):
+        // step 7 at cycle SEQ_OFFSET_CYCLES + 8k * 32768, register writes ~34 samples into a frame.
+        const val SEQ_OFFSET_CYCLES = 68198L
+        const val TRIGGER_CYCLES = 17408
         const val NR10 = 0x04000060
         val RATIO = floatArrayOf(0.25f, 0.5f, 1f, 0f)
         val ENVELOPE_CHANNELS = intArrayOf(0, 1, 3)

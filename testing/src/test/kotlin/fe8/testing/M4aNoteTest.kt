@@ -64,6 +64,13 @@ class M4aNoteTest {
         // by PsgSynth, compared with the PSG share of mGBA's audio_menu output.
         val psgRegs = M4aPsg()
         var loadedWave = 0
+        var psgStarted = false
+        // Envelope timing: square 1, square 2 and wave each played alone (as mGBA's audio_psg1/2/4),
+        // peak-to-peak per quarter frame (L + R, mGBA units), f900..f1099.
+        val soloPsgs = List(3) { M4aPsg() }
+        val solos = List(3) { c -> PsgSynth(soloPsgs[c], 13379).also { it.channelMask = 1 shl c } }
+        val soloOut = FloatArray(2 * 224)
+        val psgQuarters = Array(3) { DoubleArray(4 * 200) }
         val synth = PsgSynth(psgRegs, 13379)
         // FE8_PSG_MASK=1|2|4|8 solos one channel (compare with mGBA's per-channel output).
         System.getenv("FE8_PSG_MASK")?.let { synth.channelMask = it.toInt() }
@@ -157,6 +164,32 @@ class M4aNoteTest {
                 }
                 M4aCgb.sound(info, if (cgbRun) psgRegs else M4aPsg(), bus)
                 if (cgbRun) {
+                    // Dump n's writes sound in mGBA's frame n + 1 output chunk.
+                    if (!psgStarted) (solos + synth).forEach { it.startAtFrame(n + 1) }
+                    psgStarted = true
+                    for ((c, solo) in solos.withIndex()) {
+                        val regs = soloPsgs[c]
+                        psgRegs.regs.copyInto(regs.regs)
+                        for (ch in 0 until 4) {
+                            if (psgRegs.lengthLoads ushr ch and 1 != 0) {
+                                regs.write(NR_X1[ch], psgRegs.read(NR_X1[ch]))
+                            }
+                            if (psgRegs.triggers ushr ch and 1 != 0) {
+                                regs.write(NR_X4[ch], psgRegs.read(NR_X4[ch]) or 0x80)
+                            }
+                        }
+                        soloOut.fill(0f)
+                        solo.render(soloOut, 224, 512f)
+                        if (level) {
+                            for (q in 0 until 4) {
+                                val x = DoubleArray(56) { k ->
+                                    val i = 2 * (q * 56 + k)
+                                    0.75 * (soloOut[i] + soloOut[i + 1])
+                                }
+                                psgQuarters[c][4 * (n - 900) + q] = peakToPeak(x)
+                            }
+                        }
+                    }
                     psgOut.fill(0f)
                     synth.render(psgOut, 224, 512f) // PcmStream.PSG_GAIN
                 }
@@ -265,6 +298,28 @@ class M4aNoteTest {
                 val mean = x.average()
                 val mgba = kotlin.math.sqrt(x.sumOf { (it - mean) * (it - mean) } / x.size)
                 println("M4aNoteTest: mGBA PSG RMS $mgba")
+                // Envelope/trigger timing (frame sequencer phase): dump n sounds in mGBA's
+                // frame n + 1 chunk [audioEnd[n], audioEnd[n + 1]); compare per quarter frame.
+                var bad = 0
+                var loud = 0
+                for ((c, run) in runs.withIndex()) for (f in 900 until 1099) {
+                    val s0 = run.audioEnd[f]
+                    val len = run.audioEnd[f + 1] - s0
+                    for (q in 0 until 4) {
+                        val k0 = s0 + q * len / 4
+                        val x = DoubleArray(len / 4) { i ->
+                            run.audio[2 * (k0 + i)] + run.audio[2 * (k0 + i) + 1].toDouble()
+                        }
+                        val ours = psgQuarters[c][4 * (f - 900) + q]
+                        val theirs = peakToPeak(x)
+                        val big = maxOf(ours, theirs)
+                        if (big < 200) continue
+                        loud++
+                        if (kotlin.math.abs(ours - theirs) > 0.15 * big) bad++
+                    }
+                }
+                println("M4aNoteTest: PSG quarter frames off vs mGBA: $bad of $loud")
+                assertTrue(bad * 15 < loud, "PSG envelope timing: $bad of $loud quarter frames off")
                 assertTrue(psgRms / mgba in 0.75..1.2, "PSG RMS $psgRms vs mGBA $mgba")
             }
         }
@@ -273,6 +328,11 @@ class M4aNoteTest {
         assertTrue(why[0] >= 4 && immInits >= 1 && vSyncs > 0, "song starts ${why[0]} (songs $songNums), ImmInit $immInits")
         assertTrue(fines >= 2 && endties >= 4, "FINE in $fines frames, EOT in $endties")
     }
+
+    private val NR_X1 = intArrayOf(0x04000062, 0x04000068, 0x04000072, 0x04000078)
+    private val NR_X4 = intArrayOf(0x04000065, 0x0400006D, 0x04000075, 0x0400007D)
+
+    private fun peakToPeak(x: DoubleArray): Double = x.max() - x.min()
 
     private fun env(c: M4aChannel): List<Int> = listOf(
         c.status, c.envelopeVolume, c.envelopeRight, c.envelopeLeft, c.echoLength,

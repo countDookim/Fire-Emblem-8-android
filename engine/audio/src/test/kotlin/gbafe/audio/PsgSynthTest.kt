@@ -94,4 +94,53 @@ class PsgSynthTest {
         assertEquals(3.75f, (0 until 1000).maxOf { out[2 * it] })
         assertEquals(7.5f, (0 until 1000).maxOf { out[2 * it + 1] })
     }
+
+    private fun square2(psg: M4aPsg, duty: Int, fr: Int) {
+        psg.write(M4aPsg.NR51, 0x22)
+        psg.write(0x04000068, duty shl 6)
+        psg.write(0x04000069, 0xF0)
+        psg.write(0x0400006C, fr and 0xFF)
+        psg.write(0x0400006D, 0x80 or (fr ushr 8))
+    }
+
+    @Test
+    fun `squares above the output Nyquist rate average out instead of aliasing`() {
+        val psg = M4aPsg()
+        val synth = PsgSynth(psg, rate)
+        square2(psg, duty = 2, fr = 2048 - 4) // 32768 Hz, 50% duty
+        val out = FloatArray(2 * rate)
+        synth.render(out, rate, 1f)
+        val peak = (0 until rate).maxOf { kotlin.math.abs(out[2 * it]) }
+        assertTrue(peak < 15f * 0.75f, "peak $peak") // unfiltered: +-15 at a beat frequency
+    }
+
+    @Test
+    fun `box filter keeps the duty-cycle mean`() {
+        val psg = M4aPsg()
+        val synth = PsgSynth(psg, rate)
+        square2(psg, duty = 0, fr = 2048 - 37) // 3542 Hz, 12.5%: edges fall between samples
+        val out = FloatArray(2 * rate)
+        synth.render(out, rate, 1f)
+        val mean = (0 until rate).sumOf { out[2 * it].toDouble() } / rate
+        assertEquals(15 * (2 * 0.125 - 1), mean, 0.05)
+    }
+
+    @Test
+    fun `wave channel is box-filtered with the right mean`() {
+        val psg = M4aPsg()
+        val synth = PsgSynth(psg, rate)
+        psg.write(M4aPsg.NR51, 0x44)
+        psg.write(0x04000070, 0x80)
+        psg.write(0x04000073, 0x20) // 100%
+        for (i in 0 until 16) psg.write(M4aPsg.WAVE_RAM + i, if (i < 8) 0xFF else 0x00)
+        val fr = 2048 - 1 // 65536 Hz: 44 wave steps per output sample
+        psg.write(0x04000074, fr and 0xFF)
+        psg.write(0x04000075, 0x80 or (fr ushr 8))
+        val out = FloatArray(2 * rate)
+        synth.render(out, rate, 1f)
+        val peak = (0 until rate).maxOf { kotlin.math.abs(out[2 * it]) }
+        val mean = (0 until rate).sumOf { out[2 * it].toDouble() } / rate
+        assertTrue(peak < 7.5f, "peak $peak")
+        assertEquals(0.0, mean, 0.05)
+    }
 }

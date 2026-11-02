@@ -4,7 +4,8 @@ package gbafe.audio
  * Plays the PSG registers of [psg] (written by `CgbSound`): square 1/2 (duty, envelope, length),
  * wave (32 4-bit samples, volume shift) and noise (7/15-bit LFSR, envelope), panned by NR51.
  * Square 1 has the frequency sweep (NR10); NR50 master volume and the SOUNDCNT_H PSG ratio
- * scale the mix. Not a port (hardware behaviour, GBATEK). Nothing allocates per call.
+ * scale the mix. Output is box-filtered per sample (band-limited
+ * edges, no aliasing whine at the 13379 Hz mixer rate). Not a port (hardware behaviour, GBATEK). Nothing allocates per call.
  */
 public class PsgSynth(
     /** Register file to play. */
@@ -146,43 +147,94 @@ public class PsgSynth(
         if (sweepTarget(nr10) > 2047) on[0] = false
     }
 
+    /**
+     * Channel [c]'s mean level over the next output sample (box filter): edges between samples
+     * give fractional levels instead of aliasing at the low mixer rate.
+     */
     private fun sample(c: Int): Float {
         when (c) {
             0, 1 -> {
-                val hz = 131072.0 / (2048 - freqReg(c))
-                phase[c] += hz / sampleRate
-                phase[c] -= phase[c].toInt()
+                val dp = 131072.0 / (2048 - freqReg(c)) / sampleRate
                 val duty = DUTY[(psg.read(NRX1[c]) ushr 6) and 3]
-                return if (phase[c] < duty) volume[c].toFloat() else -volume[c].toFloat()
+                val a = phase[c]
+                val b = a + dp
+                phase[c] = b - b.toInt()
+                val vol = volume[c].toFloat()
+                if (b < 1.0 && (b <= duty || a >= duty)) return if (a < duty) vol else -vol
+                val high = highTime(b, duty) - highTime(a, duty)
+                return vol * (2.0 * high / dp - 1.0).toFloat()
             }
             2 -> {
-                val hz = 65536.0 / (2048 - freqReg(c)) // 32 samples per period
-                phase[c] += hz / sampleRate
-                phase[c] -= phase[c].toInt()
-                val pos = (phase[c] * 32).toInt()
-                val b = psg.read(M4aPsg.WAVE_RAM + pos / 2)
-                val s = if (pos and 1 == 0) b ushr 4 else b and 0x0F
                 val shift = WAVE_SHIFT[(psg.read(0x04000073) ushr 5) and 3]
-                if (shift < 0) return 0f
-                return ((s shr shift) * 2 - (15 shr shift)) / 2f
+                if (shift < 0) {
+                    phase[c] = 0.0
+                    return 0f
+                }
+                val dx = 65536.0 * 32 / (2048 - freqReg(c)) / sampleRate
+                val a = phase[c] * 32
+                val b = a + dx
+                val bw = b % 32
+                phase[c] = bw / 32
+                if (a.toInt() == b.toInt()) return waveLevel(a.toInt(), shift)
+                val total = waveArea(32, shift)
+                val area = (b - bw) / 32 * total + waveArea(bw, shift) - waveArea(a, shift)
+                return (area / dx).toFloat()
             }
             else -> {
                 val nr43 = psg.read(0x0400007C)
                 val r = (nr43 and 7).let { if (it == 0) 0.5 else it.toDouble() }
-                val hz = 524288.0 / r / (1 shl ((nr43 ushr 4) + 1))
-                phase[c] += hz / sampleRate
-                while (phase[c] >= 1.0) {
-                    phase[c] -= 1.0
+                val dp = 524288.0 / r / (1 shl ((nr43 ushr 4) + 1)) / sampleRate
+                val vol = volume[c].toFloat()
+                var level = if (lfsr and 1 == 0) vol else -vol
+                var t = phase[c]
+                var end = t + dp
+                if (end < 1.0) {
+                    phase[c] = end
+                    return level
+                }
+                var acc = 0.0
+                while (end >= 1.0) {
+                    acc += (1.0 - t) * level
                     val bit = (lfsr xor (lfsr ushr 1)) and 1
                     lfsr = (lfsr ushr 1) or (bit shl 14)
                     if (nr43 and 8 != 0) lfsr = (lfsr and 0x40.inv()) or (bit shl 6)
+                    level = if (lfsr and 1 == 0) vol else -vol
+                    t = 0.0
+                    end -= 1.0
                 }
-                return if (lfsr and 1 == 0) volume[c].toFloat() else -volume[c].toFloat()
+                acc += (end - t) * level
+                phase[c] = end
+                return (acc / dp).toFloat()
             }
         }
     }
 
+    /** Wave sample [pos] (0..31) as a centred level. */
+    private fun waveLevel(pos: Int, shift: Int): Float {
+        val b = psg.read(M4aPsg.WAVE_RAM + pos / 2)
+        val s = if (pos and 1 == 0) b ushr 4 else b and 0x0F
+        return ((s shr shift) * 2 - (15 shr shift)) / 2f
+    }
+
+    /** Integral of the wave level from sample position 0 to [x] (0..32). */
+    private fun waveArea(x: Double, shift: Int): Double {
+        val n = x.toInt()
+        var sum = 0.0
+        for (i in 0 until n) sum += waveLevel(i, shift)
+        if (n < 32) sum += (x - n) * waveLevel(n, shift)
+        return sum
+    }
+
+    private fun waveArea(n: Int, shift: Int): Double = waveArea(n.toDouble(), shift)
+
     private companion object {
+        /** Time spent high by a square of [duty] from phase 0 to [x] (in periods). */
+        fun highTime(x: Double, duty: Double): Double {
+            val n = x.toInt()
+            return n * duty + minOf(x - n, duty)
+        }
+
+
         const val SEQUENCER_HZ = 512.0
         const val NR10 = 0x04000060
         val RATIO = floatArrayOf(0.25f, 0.5f, 1f, 0f)

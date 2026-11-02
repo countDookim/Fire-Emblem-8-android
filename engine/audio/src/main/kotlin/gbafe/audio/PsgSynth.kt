@@ -178,12 +178,17 @@ public class PsgSynth(
         when (c) {
             0, 1 -> {
                 val dp = 131072.0 / (2048 - freqReg(c)) / sampleRate
-                val duty = DUTY[(psg.read(NRX1[c]) ushr 6) and 3]
-                val a = phase[c]
+                val d = (psg.read(NRX1[c]) ushr 6) and 3
+                val duty = DUTY[d]
+                // Hardware duty patterns (00000001, 10000001, 10000111, 01111110): the high part
+                // starts at step 7, 7, 5, 1 of 8; shift so it starts at phase 0 here.
+                val a = phase[c] + DUTY_SHIFT[d]
                 val b = a + dp
-                phase[c] = b - b.toInt()
+                phase[c] = (b - DUTY_SHIFT[d]).let { it - it.toInt() }
                 val vol = volume[c].toFloat()
-                if (b < 1.0 && (b <= duty || a >= duty)) return if (a < duty) vol else -vol
+                val fa = a - a.toInt()
+                val fb = fa + dp
+                if (fb < 1.0 && (fb <= duty || fa >= duty)) return if (fa < duty) vol else -vol
                 val high = highTime(b, duty) - highTime(a, duty)
                 return vol * (2.0 * high / dp - 1.0).toFloat()
             }
@@ -270,6 +275,7 @@ public class PsgSynth(
         val RATIO = floatArrayOf(0.25f, 0.5f, 1f, 0f)
         val ENVELOPE_CHANNELS = intArrayOf(0, 1, 3)
         val DUTY = doubleArrayOf(0.125, 0.25, 0.5, 0.75)
+        val DUTY_SHIFT = doubleArrayOf(1.0 / 8, 1.0 / 8, 3.0 / 8, 7.0 / 8)
         val WAVE_SHIFT = intArrayOf(-1, 0, 1, 2)
         const val FORCE_75 = 4
         val NRX1 = intArrayOf(0x04000062, 0x04000068, 0x04000072, 0x04000078)

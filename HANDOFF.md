@@ -1,32 +1,27 @@
 # HANDOFF
 
-_Updated 2026-11-02 (scheduled run 06:5x). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-11-02 (scheduled run 15:0x). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: M3-14 PSG wave level (ours 3.2x mGBA), then a PSG RMS test
-- Done 2026-11-02 (06:5x run): `PsgSynth` box-filters every channel (no aliasing at 13379 Hz; tests: >Nyquist
-  square averages out, duty mean kept, wave mean). ROM repo: harness `--audio` (mGBA mix, 32768 Hz s16 stereo
-  `audio.s16` + `audio.txt` "STEP SAMPLES"; needs master volume 0x100, the old runs keep 0) and reference run
-  `audio_menu` (= menu_bgm input to f1340; other runs re-run byte-identical). Release `latest` rebuilds on push;
-  if setup.sh lacks `audio_menu`, check the ROM repo publish workflow. `ReferenceData.Run.audio/audioEnd/
-  hasAudio`; `MgbaAudioReferenceTest` (rate/alignment; DirectSound RMS from menu_cgb PCM bytes = 0.8..1.0 of mGBA).
-  `PSG_GAIN` 512 now derived from mGBA's mixer (KDoc), not a guess. `PsgSynth.channelMask` (solo channels).
-- Measured (f900..f1100, AC RMS, mGBA int16): mGBA PSG-only 1200 (ch1 786, ch2 277, wave 683, noise 0);
-  ours (`M4aNoteTest` prints "PSG RMS", `FE8_PSG_MASK=1|2|4|8` solos) ch1 612, ch2 209 (~0.77x: fewer
-  frames/skips?), **wave 2194 (3.2x)** after the NR32 bit-7 75% fix (CGB3_VOL uses 0x80; was muted, 1813). mGBA wave active f902..f1276, peak +-1935 (= +-10 levels). Check
-  wave bank/dimension (NR30 bits 5/6: writes go to the non-playing bank),
-  and whether ours keeps playing after m4a stops it. PSG-only mGBA capture: local harness patch (not
-  committed) setting `gba->audio.forceDisableChA/B` and `audio.psg.forceDisableCh[c]` from env
-  `HARNESS_PSG_ONLY` / `HARNESS_PSG_MASK` (include `mgba/internal/gba/gba.h`); commit it as flags
-  (`--psg-only`, `--psg-mask N`) + a reference run when building the RMS test.
-- `PsgSynth` (not a port, GBATEK behaviour): squares (duty, envelope, length), wave (4-bit, NR32 shift), noise
-  (LFSR 15/7), NR51 pan; rendered at `pcmFreq` on the game thread and added in `PcmStream.push` (`PSG_GAIN` 512
-  = guess: one channel at 15 ~ 1/4 DirectSound). `PsgSynthTest` (frequency, duty level, pan, envelope, length).
-- Also done: ch1 sweep (NR10, writes NR13/14 back), length loads on NRx1 writes (`M4aPsg.lengthLoads`).
-- NR50/SOUNDCNT_H scaling (FE8 sets max: 0x77, 100%) done.
-- Open: wave level (above), M3-14 RMS test, owner listen test (box filter).
+## NEXT RUN, FIRST: M3-14 PSG RMS test vs `audio_psg1/2/4` (then owner listen test)
+- Done 2026-11-02 (15:0x run): the "wave 3.2x" was a test artefact: `M4aNoteTest` replayed frames in
+  directory order (now sorted) and never saw the wave RAM load (state comes from each dump; now loads it from
+  the dumped ch3 `currentPointer`). Fixes in `PsgSynth`: wave 2 units per 4-bit step (per-level pp now = mGBA
+  at 100/75/50%), DC blocker (`highPass`, as mGBA blip_buf bass_shift 9 @ 32768 Hz; tests turn it off),
+  square duty patterns in hardware phase (`DUTY_SHIFT`; ch1 and wave were anti-correlated vs mGBA).
+- Now (AC RMS f900..f1100, mGBA int16): ch1 669/786, ch2 239/277, wave 679/683, ch1+2+3 967/1200 (0.81x).
+  Remaining square gap: `ram_trace_menu_cgb` has **no dump at f1000** (input frame), so the SE note started
+  at f999/1000 never triggers in the replay (mGBA ch1 pp 7033 at f1000). Fix: dumps on input frames in the
+  ROM repo (or let the test trigger notes whose dump status jumps to an active phase).
+- ROM repo: harness `--audio --psg-mask N` (DirectSound off, PSG channels by bit) + reference runs
+  `audio_psg1/2/4` (pushed 5045a8e; check release `latest` has them, `ReferenceData.run("audio_psg1").hasAudio`).
+  Next: `PsgLevelTest`/M4aNoteTest assertion: ours per channel vs those runs within ~15% (sum psg1+2+4 =
+  mGBA PSG mix, linear). `FE8_PSG_MASK` solos ours (use `--rerun`: env is not a Gradle input).
+- `PsgSynth` (not a port, GBATEK behaviour): squares, wave, noise, NR51 pan, sweep, length, NR50/SOUNDCNT_H;
+  box-filtered; `PSG_GAIN` 512 derived from mGBA's mixer.
+- Open: RMS test (above), owner listen test (box filter, DC blocker).
 - Songs using CGB channels (600-frame scan, 74 songs): 67 (op theme, ch1), 96..126 (system SEs), 179, 184, ...
 
 ## Status

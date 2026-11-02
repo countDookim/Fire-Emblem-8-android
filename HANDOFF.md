@@ -1,26 +1,32 @@
 # HANDOFF
 
-_Updated 2026-11-01 (scheduled run 22:5x). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-11-02 (scheduled run 06:5x). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: M3-13 PSG accuracy (owner manual test passed 2026-11-01: #3 layout, PSG sound; #3 closed)
-- Done 2026-11-01 (22:5x run): issue #3 touch layout (`TouchButtons.resize` takes system bar / cutout insets +
-  margin, `TouchOverlayView` reads `WindowInsetsCompat`, cross D-pad with arrows; `TouchButtonsTest` safe-area
-  cases; MANUAL_TEST step; asked owner on #3, don't close until confirmed). Docs sweep (README, ARCHITECTURE,
-  MODDING, TASKS, module READMEs, ADR 0008, m4a/boot KDoc). `wip/M3-13-cgb` merged. `CgbSound` + `CgbModVol`
-  ported (`M4aCgb.sound`, label loop for the gotos) and verified on channel state (sf/ev/eg/ec/sg/n4/pan/mo/fr/
-  echoLength) in `M4aNoteTest` (all traces incl. `ram_trace_menu_cgb`, 225 active CGB channel-frames; fails
-  without it). `M4aDriver.main` runs it before the mixer into `M4aDriver.psg` (`M4aPsg`: NR10..wave RAM
-  register file + NRx4 trigger bits, `soundBiasH` 0x42 after init). Register writes are untraced.
+## NEXT RUN, FIRST: M3-14 PSG wave level (ours 2.65x mGBA), then a PSG RMS test
+- Done 2026-11-02 (06:5x run): `PsgSynth` box-filters every channel (no aliasing at 13379 Hz; tests: >Nyquist
+  square averages out, duty mean kept, wave mean). ROM repo: harness `--audio` (mGBA mix, 32768 Hz s16 stereo
+  `audio.s16` + `audio.txt` "STEP SAMPLES"; needs master volume 0x100, the old runs keep 0) and reference run
+  `audio_menu` (= menu_bgm input to f1340; other runs re-run byte-identical). Release `latest` rebuilds on push;
+  if setup.sh lacks `audio_menu`, check the ROM repo publish workflow. `ReferenceData.Run.audio/audioEnd/
+  hasAudio`; `MgbaAudioReferenceTest` (rate/alignment; DirectSound RMS from menu_cgb PCM bytes = 0.8..1.0 of mGBA).
+  `PSG_GAIN` 512 now derived from mGBA's mixer (KDoc), not a guess. `PsgSynth.channelMask` (solo channels).
+- Measured (f900..f1100, AC RMS, mGBA int16): mGBA PSG-only 1200 (ch1 786, ch2 277, wave 683, noise 0);
+  ours (`M4aNoteTest` prints "PSG RMS", `FE8_PSG_MASK=1|2|4|8` solos) ch1 612, ch2 209 (~0.77x: fewer
+  frames/skips?), **wave 1813 (2.65x)**. mGBA wave active f902..f1276, peak +-1935 (= +-10 levels). Check
+  NR32 volume codes (bit 7 = 75%), wave bank/dimension (NR30 bits 5/6: writes go to the non-playing bank),
+  and whether ours keeps playing after m4a stops it. PSG-only mGBA capture: local harness patch (not
+  committed) setting `gba->audio.forceDisableChA/B` and `audio.psg.forceDisableCh[c]` from env
+  `HARNESS_PSG_ONLY` / `HARNESS_PSG_MASK` (include `mgba/internal/gba/gba.h`); commit it as flags
+  (`--psg-only`, `--psg-mask N`) + a reference run when building the RMS test.
 - `PsgSynth` (not a port, GBATEK behaviour): squares (duty, envelope, length), wave (4-bit, NR32 shift), noise
   (LFSR 15/7), NR51 pan; rendered at `pcmFreq` on the game thread and added in `PcmStream.push` (`PSG_GAIN` 512
   = guess: one channel at 15 ~ 1/4 DirectSound). `PsgSynthTest` (frequency, duty level, pan, envelope, length).
 - Also done: ch1 sweep (NR10, writes NR13/14 back), length loads on NRx1 writes (`M4aPsg.lengthLoads`).
 - NR50/SOUNDCNT_H scaling (FE8 sets max: 0x77, 100%) done.
-- Open: aliasing at 13379 Hz (band-limit or
-  render at device rate), measure level vs mGBA audio (harness audio capture, M3-14 RMS test). Owner listen test.
+- Open: wave level (above), M3-14 RMS test, owner listen test (box filter).
 - Songs using CGB channels (600-frame scan, 74 songs): 67 (op theme, ch1), 96..126 (system SEs), 179, 184, ...
 
 ## Status

@@ -10,6 +10,7 @@ import gbafe.audio.M4aPsg
 import gbafe.audio.M4aSequencer
 import gbafe.audio.M4aSongTable
 import gbafe.audio.M4aTrack
+import gbafe.audio.PsgSynth
 import gbafe.core.VerifiesPort
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -59,6 +60,15 @@ class M4aNoteTest {
         var pcmFreq = 0
         var endties = 0
         var cgbActive = 0
+        // PSG level (M3-14): CgbSound's register writes in ram_trace_menu_cgb f900..f1100 played
+        // by PsgSynth, compared with the PSG share of mGBA's audio_menu output.
+        val psgRegs = M4aPsg()
+        val synth = PsgSynth(psgRegs, 13379)
+        // FE8_PSG_MASK=1|2|4|8 solos one channel (compare with mGBA's per-channel output).
+        System.getenv("FE8_PSG_MASK")?.let { synth.channelMask = it.toInt() }
+        val psgOut = FloatArray(2 * 224)
+        var psgSum = 0.0
+        var psgSamples = 0
         for (dir in ref.root.listFiles().orEmpty().filter { it.isDirectory }) {
             val dumps = dir.listFiles().orEmpty().mapNotNull { f ->
                 DUMP.matchEntire(f.name)?.let { it.groupValues[1].toInt() to f }
@@ -133,7 +143,14 @@ class M4aNoteTest {
                 info.vSync()
                 assertEquals(infoB.pcmDmaCounter, info.pcmDmaCounter, "pcmDmaCounter r$n")
                 vSyncs++
-                M4aCgb.sound(info, M4aPsg(), bus)
+                val level = dir.name == "ram_trace_menu_cgb" && n in 900 until 1100
+                M4aCgb.sound(info, if (level) psgRegs else M4aPsg(), bus)
+                if (level) {
+                    psgOut.fill(0f)
+                    synth.render(psgOut, 224, 512f) // PcmStream.PSG_GAIN
+                    for (v in psgOut) psgSum += v.toDouble() * v
+                    psgSamples += psgOut.size
+                }
                 M4aMixer.frame(info, bus)
                 // The game starts songs after SoundMain (mixer) in the frame.
                 for ((n, imm) in starts) {
@@ -217,6 +234,11 @@ class M4aNoteTest {
         println("M4aNoteTest: frames running " + (0 until 64).filter { frameRuns[it] > 0 }
             .joinToString { "0x%02X=%d".format(it + 0xB1, frameRuns[it]) })
         assertTrue(frames > 500 && notes > 100, "frames $frames, notes $notes")
+        if (psgSamples > 0) {
+            // Output units -> mGBA int16: 48 * 4 per DirectSound byte vs 256 here = 0.75.
+            val psgRms = 0.75 * kotlin.math.sqrt(psgSum / psgSamples)
+            println("M4aNoteTest: PSG RMS $psgRms (mGBA int16 units) over $psgSamples samples")
+        }
         assertTrue(cgbActive > 100, "CGB active channel-frames $cgbActive")
         assertTrue(pcmFrames > 500 && fixed > 0 && looped > 0, "pcm $pcmFrames, fixed $fixed")
         assertTrue(why[0] >= 4 && immInits >= 1 && vSyncs > 0, "song starts ${why[0]} (songs $songNums), ImmInit $immInits")

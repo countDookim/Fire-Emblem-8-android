@@ -30,6 +30,9 @@ public class PsgSynth(
     /** Current envelope volume (0..15) of channel [ch] (1..4). */
     public fun volumeOf(ch: Int): Int = volume[ch - 1]
 
+    /** Channels mixed into the output (bit 0 = square 1 .. bit 3 = noise); others still run. */
+    public var channelMask: Int = 0xF
+
     /**
      * Mixes [frames] stereo frames into [out] (interleaved left/right, added, not cleared) at
      * [gain] per unit of PSG level (one channel at volume 15 = 15 * [gain]).
@@ -60,6 +63,7 @@ public class PsgSynth(
             for (c in 0 until 4) {
                 if (!on[c]) continue
                 val v = sample(c)
+                if (channelMask ushr c and 1 == 0) continue
                 if (nr51 ushr (4 + c) and 1 != 0) l += v
                 if (nr51 ushr c and 1 != 0) r += v
             }

@@ -17,6 +17,8 @@ _(nothing blocked)_
   ~no change. Suspect trigger write timing within the frame (ours applies at frame start).
   Next: measure first-step length over many mGBA notes (only f906 measured) to tell phase vs
   fixed delay; or log mGBA `audio->frame` at NR24 writes via the harness.
+  Note: the f906 ch2 trigger sounds ~1 ms into mGBA chunk end[906]..end[907] (one chunk later than
+  `M4aNoteTest` renders it); align before per-frame compares (whole-window RMS unaffected).
 - Done 2026-11-02 (15:0x run): the "wave 3.2x" was a test artefact: `M4aNoteTest` replayed frames in
   directory order (now sorted) and never saw the wave RAM load (state comes from each dump; now loads it from
   the dumped ch3 `currentPointer`). Fixes in `PsgSynth`: wave 2 units per 4-bit step (per-level pp now = mGBA

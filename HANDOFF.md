@@ -15,6 +15,10 @@ _(nothing blocked)_
   36 ms, then 31.8 ms per step; ours 2 ticks max). mGBA code = ours (nextStep = stepTime at trigger,
   case 7 of 512 Hz sequencer); `envTimer + 1` always overshoots (ch2 308), `+1 if seqStep == 6`
   ~no change. Suspect trigger write timing within the frame (ours applies at frame start).
+  Clue: ch2 notes at f906 and f911 (5 frames = 5.36 ticks apart, so global-sequencer phase differs
+  by 5.6 ms) both hold vol 3 for 35.9 ms: in mGBA the first step looks trigger-relative. mGBA only
+  reschedules `frameEvent` in `GBAAudioReset`; cause still unknown (next: log mGBA `audio->frame`
+  at NR24 writes via the harness).
 - Done 2026-11-02 (15:0x run): the "wave 3.2x" was a test artefact: `M4aNoteTest` replayed frames in
   directory order (now sorted) and never saw the wave RAM load (state comes from each dump; now loads it from
   the dumped ch3 `currentPointer`). Fixes in `PsgSynth`: wave 2 units per 4-bit step (per-level pp now = mGBA

@@ -5,7 +5,7 @@ _Updated 2026-11-02 (scheduled run 06:5x). Owner decisions: docs/PROJECT_BRIEF.m
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: M3-14 PSG wave level (ours 2.65x mGBA), then a PSG RMS test
+## NEXT RUN, FIRST: M3-14 PSG wave level (ours 3.2x mGBA), then a PSG RMS test
 - Done 2026-11-02 (06:5x run): `PsgSynth` box-filters every channel (no aliasing at 13379 Hz; tests: >Nyquist
   square averages out, duty mean kept, wave mean). ROM repo: harness `--audio` (mGBA mix, 32768 Hz s16 stereo
   `audio.s16` + `audio.txt` "STEP SAMPLES"; needs master volume 0x100, the old runs keep 0) and reference run
@@ -15,8 +15,8 @@ _(nothing blocked)_
   `PSG_GAIN` 512 now derived from mGBA's mixer (KDoc), not a guess. `PsgSynth.channelMask` (solo channels).
 - Measured (f900..f1100, AC RMS, mGBA int16): mGBA PSG-only 1200 (ch1 786, ch2 277, wave 683, noise 0);
   ours (`M4aNoteTest` prints "PSG RMS", `FE8_PSG_MASK=1|2|4|8` solos) ch1 612, ch2 209 (~0.77x: fewer
-  frames/skips?), **wave 1813 (2.65x)**. mGBA wave active f902..f1276, peak +-1935 (= +-10 levels). Check
-  NR32 volume codes (bit 7 = 75%), wave bank/dimension (NR30 bits 5/6: writes go to the non-playing bank),
+  frames/skips?), **wave 2194 (3.2x)** after the NR32 bit-7 75% fix (CGB3_VOL uses 0x80; was muted, 1813). mGBA wave active f902..f1276, peak +-1935 (= +-10 levels). Check
+  wave bank/dimension (NR30 bits 5/6: writes go to the non-playing bank),
   and whether ours keeps playing after m4a stops it. PSG-only mGBA capture: local harness patch (not
   committed) setting `gba->audio.forceDisableChA/B` and `audio.psg.forceDisableCh[c]` from env
   `HARNESS_PSG_ONLY` / `HARNESS_PSG_MASK` (include `mgba/internal/gba/gba.h`); commit it as flags

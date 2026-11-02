@@ -169,7 +169,9 @@ public class PsgSynth(
                 return vol * (2.0 * high / dp - 1.0).toFloat()
             }
             2 -> {
-                val shift = WAVE_SHIFT[(psg.read(0x04000073) ushr 5) and 3]
+                val nr32 = psg.read(0x04000073)
+                // Bit 7 forces 75% (GBA only); else bits 5-6: 0%, 100%, 50%, 25%.
+                val shift = if (nr32 and 0x80 != 0) FORCE_75 else WAVE_SHIFT[(nr32 ushr 5) and 3]
                 if (shift < 0) {
                     phase[c] = 0.0
                     return 0f
@@ -217,6 +219,7 @@ public class PsgSynth(
     private fun waveLevel(pos: Int, shift: Int): Float {
         val b = psg.read(M4aPsg.WAVE_RAM + pos / 2)
         val s = if (pos and 1 == 0) b ushr 4 else b and 0x0F
+        if (shift == FORCE_75) return ((s * 3 shr 2) * 2 - 11) / 2f
         return ((s shr shift) * 2 - (15 shr shift)) / 2f
     }
 
@@ -245,6 +248,7 @@ public class PsgSynth(
         val ENVELOPE_CHANNELS = intArrayOf(0, 1, 3)
         val DUTY = doubleArrayOf(0.125, 0.25, 0.5, 0.75)
         val WAVE_SHIFT = intArrayOf(-1, 0, 1, 2)
+        const val FORCE_75 = 4
         val NRX1 = intArrayOf(0x04000062, 0x04000068, 0x04000072, 0x04000078)
         val NRX2 = intArrayOf(0x04000063, 0x04000069, 0x04000073, 0x04000079)
         val NRX3 = intArrayOf(0x04000064, 0x0400006C, 0x04000074, 0x0400007C)

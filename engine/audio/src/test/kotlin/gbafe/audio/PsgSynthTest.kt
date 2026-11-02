@@ -143,4 +143,20 @@ class PsgSynthTest {
         assertTrue(peak < 7.5f, "peak $peak")
         assertEquals(0.0, mean, 0.05)
     }
+
+    @Test
+    fun `NR32 bit 7 plays the wave at 75 percent`() {
+        val psg = M4aPsg()
+        val synth = PsgSynth(psg, rate)
+        psg.write(M4aPsg.NR51, 0x44)
+        psg.write(0x04000070, 0x80)
+        psg.write(0x04000073, 0x80) // CgbSound's CGB3_VOL 0x80
+        for (i in 0 until 16) psg.write(M4aPsg.WAVE_RAM + i, if (i < 8) 0xFF else 0x00)
+        val fr = 2048 - 1024 // 64 Hz: whole samples
+        psg.write(0x04000074, fr and 0xFF)
+        psg.write(0x04000075, 0x80 or (fr ushr 8))
+        val out = FloatArray(2 * 1000)
+        synth.render(out, 1000, 1f)
+        assertEquals(5.5f, (0 until 1000).maxOf { out[2 * it] }) // (15 * 3 >> 2) - 11 / 2
+    }
 }

@@ -32,7 +32,7 @@ public class PsgSynth(
     /** Current envelope volume (0..15) of channel [ch] (1..4). */
     public fun volumeOf(ch: Int): Int = volume[ch - 1]
 
-    /** DC blocker on (default); off makes the output the raw centred channel levels (tests). */
+    /** DC blocker on (default); off makes the output the raw unipolar channel levels (tests). */
     public var highPass: Boolean = true
 
     /** Channels mixed into the output (bit 0 = square 1 .. bit 3 = noise); others still run. */
@@ -40,7 +40,7 @@ public class PsgSynth(
 
     /**
      * Mixes [frames] stereo frames into [out] (interleaved left/right, added, not cleared) at
-     * [gain] per unit of PSG level (one channel at volume 15 = 15 * [gain]).
+     * [gain] per unit of PSG level (one square at volume 15 swings 0..30 * [gain]).
      */
     public fun render(out: FloatArray, frames: Int, gain: Float) {
         val loads = psg.takeLengthLoads()
@@ -188,9 +188,9 @@ public class PsgSynth(
                 val vol = volume[c].toFloat()
                 val fa = a - a.toInt()
                 val fb = fa + dp
-                if (fb < 1.0 && (fb <= duty || fa >= duty)) return if (fa < duty) vol else -vol
+                if (fb < 1.0 && (fb <= duty || fa >= duty)) return if (fa < duty) 2 * vol else 0f
                 val high = highTime(b, duty) - highTime(a, duty)
-                return vol * (2.0 * high / dp - 1.0).toFloat()
+                return vol * (2.0 * high / dp).toFloat()
             }
             2 -> {
                 val nr32 = psg.read(0x04000073)
@@ -215,7 +215,7 @@ public class PsgSynth(
                 val r = (nr43 and 7).let { if (it == 0) 0.5 else it.toDouble() }
                 val dp = 524288.0 / r / (1 shl ((nr43 ushr 4) + 1)) / sampleRate
                 val vol = volume[c].toFloat()
-                var level = if (lfsr and 1 == 0) vol else -vol
+                var level = if (lfsr and 1 == 0) 2 * vol else 0f
                 var t = phase[c]
                 var end = t + dp
                 if (end < 1.0) {
@@ -228,7 +228,7 @@ public class PsgSynth(
                     val bit = (lfsr xor (lfsr ushr 1)) and 1
                     lfsr = (lfsr ushr 1) or (bit shl 14)
                     if (nr43 and 8 != 0) lfsr = (lfsr and 0x40.inv()) or (bit shl 6)
-                    level = if (lfsr and 1 == 0) vol else -vol
+                    level = if (lfsr and 1 == 0) 2 * vol else 0f
                     t = 0.0
                     end -= 1.0
                 }
@@ -240,15 +240,17 @@ public class PsgSynth(
     }
 
     /**
-     * Wave sample [pos] (0..31) as a centred level, two units per 4-bit step: the squares swing
-     * +-volume (2 * volume peak to peak), and mGBA adds wave samples and square volumes (0..15)
-     * in the same unit (measured: `audio_psg4` at 100% is 2x the old 1-unit-per-step level).
+     * Wave sample [pos] (0..31) as a unipolar level, two units per 4-bit step: the squares
+     * swing 0..2 * volume, and mGBA adds wave samples and square volumes (0..15) in the same
+     * unit (measured: `audio_psg4` at 100% is 2x the old 1-unit-per-step level). Unipolar as in
+     * mGBA (`_squareChannelDuty * currentVolume`): note on/off steps the DC level, which the DC
+     * blocker turns into the same transients.
      */
     private fun waveLevel(pos: Int, shift: Int): Float {
         val b = psg.read(M4aPsg.WAVE_RAM + pos / 2)
         val s = if (pos and 1 == 0) b ushr 4 else b and 0x0F
-        if (shift == FORCE_75) return ((s * 3 shr 2) * 2 - 11).toFloat()
-        return ((s shr shift) * 2 - (15 shr shift)).toFloat()
+        if (shift == FORCE_75) return ((s * 3 shr 2) * 2).toFloat()
+        return ((s shr shift) * 2).toFloat()
     }
 
     /** Integral of the wave level from sample position 0 to [x] (0..32). */

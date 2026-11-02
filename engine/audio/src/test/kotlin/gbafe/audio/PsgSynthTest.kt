@@ -8,10 +8,11 @@ import org.junit.jupiter.api.Test
 class PsgSynthTest {
     private val rate = 48000
 
-    private fun crossings(out: FloatArray, frames: Int, right: Boolean): Int {
+    /** Upward crossings of [mid]: levels are unipolar (0..2 * volume), as in mGBA. */
+    private fun crossings(out: FloatArray, frames: Int, right: Boolean, mid: Float): Int {
         var n = 0
         val o = if (right) 1 else 0
-        for (i in 1 until frames) if (out[2 * i - 2 + o] < 0 && out[2 * i + o] >= 0) n++
+        for (i in 1 until frames) if (out[2 * i - 2 + o] < mid && out[2 * i + o] >= mid) n++
         return n
     }
 
@@ -28,10 +29,10 @@ class PsgSynthTest {
         psg.write(0x0400006D, 0x80 or (fr ushr 8))
         val out = FloatArray(2 * rate)
         synth.render(out, rate, 1f)
-        val n = crossings(out, rate, right = true)
+        val n = crossings(out, rate, right = true, mid = 15f)
         assertTrue(n in 438..441, "crossings $n")
         assertTrue((0 until rate).all { out[2 * it] == 0f }, "left silent")
-        assertEquals(15f, out.maxOrNull())
+        assertEquals(30f, out.maxOrNull())
         assertTrue(synth.isOn(2))
     }
 
@@ -95,8 +96,8 @@ class PsgSynthTest {
         psg.write(0x0400006D, 0x80)
         val out = FloatArray(2 * 1000)
         synth.render(out, 1000, 1f)
-        assertEquals(3.75f, (0 until 1000).maxOf { out[2 * it] })
-        assertEquals(7.5f, (0 until 1000).maxOf { out[2 * it + 1] })
+        assertEquals(7.5f, (0 until 1000).maxOf { out[2 * it] })
+        assertEquals(15f, (0 until 1000).maxOf { out[2 * it + 1] })
     }
 
     private fun square2(psg: M4aPsg, duty: Int, fr: Int) {
@@ -115,8 +116,8 @@ class PsgSynthTest {
         square2(psg, duty = 2, fr = 2048 - 4) // 32768 Hz, 50% duty
         val out = FloatArray(2 * rate)
         synth.render(out, rate, 1f)
-        val peak = (0 until rate).maxOf { kotlin.math.abs(out[2 * it]) }
-        assertTrue(peak < 15f * 0.75f, "peak $peak") // unfiltered: +-15 at a beat frequency
+        val peak = (0 until rate).maxOf { kotlin.math.abs(out[2 * it] - 15f) }
+        assertTrue(peak < 15f * 0.75f, "peak $peak") // unfiltered: 15 +-15 at a beat frequency
     }
 
     @Test
@@ -128,7 +129,7 @@ class PsgSynthTest {
         val out = FloatArray(2 * rate)
         synth.render(out, rate, 1f)
         val mean = (0 until rate).sumOf { out[2 * it].toDouble() } / rate
-        assertEquals(15 * (2 * 0.125 - 1), mean, 0.05)
+        assertEquals(30 * 0.125, mean, 0.05)
     }
 
     @Test
@@ -145,10 +146,10 @@ class PsgSynthTest {
         psg.write(0x04000075, 0x80 or (fr ushr 8))
         val out = FloatArray(2 * rate)
         synth.render(out, rate, 1f)
-        val peak = (0 until rate).maxOf { kotlin.math.abs(out[2 * it]) }
+        val peak = (0 until rate).maxOf { kotlin.math.abs(out[2 * it] - 15f) }
         val mean = (0 until rate).sumOf { out[2 * it].toDouble() } / rate
         assertTrue(peak < 15f, "peak $peak")
-        assertEquals(0.0, mean, 0.05)
+        assertEquals(15.0, mean, 0.05)
     }
 
     @Test
@@ -165,7 +166,7 @@ class PsgSynthTest {
         psg.write(0x04000075, 0x80 or (fr ushr 8))
         val out = FloatArray(2 * 1000)
         synth.render(out, 1000, 1f)
-        assertEquals(11f, (0 until 1000).maxOf { out[2 * it] }) // (15 * 3 >> 2) * 2 - 11
+        assertEquals(22f, (0 until 1000).maxOf { out[2 * it] }) // (15 * 3 >> 2) * 2
     }
 
     @Test
@@ -175,12 +176,12 @@ class PsgSynthTest {
         psg.write(M4aPsg.NR51, 0x44)
         psg.write(0x04000070, 0x80)
         psg.write(0x04000073, 0x20)
-        for (i in 0 until 16) psg.write(M4aPsg.WAVE_RAM + i, 0x00) // constant -15
+        for (i in 0 until 16) psg.write(M4aPsg.WAVE_RAM + i, 0xFF) // constant 30
         psg.write(0x04000074, 0)
         psg.write(0x04000075, 0x80)
         val out = FloatArray(2 * rate)
         synth.render(out, rate, 1f)
-        assertTrue(out[0] < -14f, "step passes: ${out[0]}")
+        assertTrue(out[0] > 29f, "step passes: ${out[0]}")
         assertTrue(kotlin.math.abs(out[2 * (rate - 1)]) < 0.1f, "DC left ${out[2 * (rate - 1)]}")
     }
 }

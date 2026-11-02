@@ -86,8 +86,12 @@ public class PcmStream(
         const val MAX_SAMPLES_PER_VBLANK = 704
 
         /**
-         * Output units per PSG level step: one channel at volume 15 is about a quarter of
-         * full-scale DirectSound (NR50 7/7, SOUNDCNT_H PSG 100%). An approximation, not measured.
+         * Output units per PSG level step (bipolar, so peak-to-peak = 2 * level * gain). Derived
+         * from mGBA 0.10.5's mixer (`GBAudioSamplePSG`, `GBAAudioSample`): a PSG channel adds
+         * `level * 8 * (NR50 + 1) >> (4 - SOUNDCNT_H psg)` (0..240 at 100%, NR50 7), a DirectSound
+         * byte `s8 << 2` at 100%; DirectSound here is `s8 << 8`, so one mGBA unit = 64 output units
+         * and one level step (16 units, unipolar) = 1024 peak-to-peak = 2 * 512. The DC offset of
+         * the unipolar hardware output and the 10-bit bias clamp are not modelled.
          */
         const val PSG_GAIN = 512f
     }

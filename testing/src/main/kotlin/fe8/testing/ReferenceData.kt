@@ -51,6 +51,26 @@ public class ReferenceData(
 
         /** RGB888 frame of a full dump (240×160×3). */
         public fun frameRgb(dump: String): ByteArray = File(dir, "$dump.frame.rgb").readBytes()
+
+        /** True when the run was made with `--audio`. */
+        public val hasAudio: Boolean get() = File(dir, "audio.s16").isFile
+
+        /** mGBA's mixed output (`--audio`): interleaved L/R at [AUDIO_RATE] Hz. */
+        public val audio: ShortArray by lazy {
+            val b = ByteBuffer.wrap(File(dir, "audio.s16").readBytes()).order(ByteOrder.LITTLE_ENDIAN)
+            ShortArray(b.remaining() / 2) { b.short }
+        }
+
+        /** Stereo samples written by the end of each step: `audioEnd[step]` (`audioEnd[0]` = 0). */
+        public val audioEnd: IntArray by lazy {
+            val lines = File(dir, "audio.txt").readLines().filter { it.isNotBlank() }
+            val end = IntArray(lines.size + 1)
+            for (line in lines) {
+                val (step, n) = line.trim().split(' ')
+                end[step.toInt()] = n.toInt()
+            }
+            end
+        }
     }
 
     /** Opens the run named [name] (a script stem, e.g. `ram_trace_boot`). */
@@ -58,6 +78,9 @@ public class ReferenceData(
 
     /** Factory for the reference data configured by Gradle. */
     public companion object {
+        /** Sample rate of `audio.s16` (harness `AUDIO_RATE`). */
+        public const val AUDIO_RATE: Int = 32768
+
         /** Reference data from the `fe8.assets` system property / `FE8_ASSETS` env (set by Gradle). */
         public fun fromEnvironment(): ReferenceData {
             val base = System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets"

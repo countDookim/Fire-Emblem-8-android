@@ -124,7 +124,8 @@ public class PsgSynth(
 
     private fun trigger(c: Int) {
         on[c] = true
-        phase[c] = 0.0
+        // mGBA keeps the square duty position across triggers (as hardware); others restart.
+        if (c >= 2) phase[c] = 0.0
         if (c == 2) {
             on[c] = psg.read(0x04000070) and 0x80 != 0
             if (length[c] == 0) length[c] = 256

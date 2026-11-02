@@ -1,11 +1,20 @@
 # HANDOFF
 
-_Updated 2026-11-02 (scheduled run 15:0x). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-11-02 (scheduled run 15:3x). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: M3-14 square level gap (ours 0.86x mGBA PSG mix), then owner listen test
+## NEXT RUN, FIRST: M3-14 PSG mix now 1.04x mGBA (was 0.86x): per-note envelope timing, then owner listen test
+- Done 2026-11-02 (15:3x run), both from mGBA 0.10.5 `src/gb/audio.c`: levels unipolar
+  (`_squareChannelDuty * currentVolume`; square/noise 0..2*vol, wave 0..2*s; note on/off DC steps
+  now give mGBA's DC-blocker transients) and square duty position kept across triggers (NR14/NR24
+  restart never resets it). PSG RMS f900..f1100: ours 1248 vs mGBA 1200; solo ch1 777/786, ch2
+  260/277, wave 686/683 (13379 Hz; rendering at 32768 Hz adds only ~2.5%).
+- Open: first envelope step lands ~1 tick later in mGBA (ch2 NR22=0x32 note at f906: vol 3 for
+  36 ms, then 31.8 ms per step; ours 2 ticks max). mGBA code = ours (nextStep = stepTime at trigger,
+  case 7 of 512 Hz sequencer); `envTimer + 1` always overshoots (ch2 308), `+1 if seqStep == 6`
+  ~no change. Suspect trigger write timing within the frame (ours applies at frame start).
 - Done 2026-11-02 (15:0x run): the "wave 3.2x" was a test artefact: `M4aNoteTest` replayed frames in
   directory order (now sorted) and never saw the wave RAM load (state comes from each dump; now loads it from
   the dumped ch3 `currentPointer`). Fixes in `PsgSynth`: wave 2 units per 4-bit step (per-level pp now = mGBA

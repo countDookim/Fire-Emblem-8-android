@@ -121,19 +121,21 @@ public class MainActivity : ComponentActivity() {
     }
 }
 
-/** The sound ROM window from the APK's bundled `extracted/sound/` (debug/test builds only), or null. */
+/** The sound ROM window from the base layer's `sound/` (imported ROM, else bundled assets), or null. */
 private fun bundledSoundRom(ctx: Context): RomView? {
-    if (ctx.assets.list("extracted/sound").isNullOrEmpty()) return null
+    val base = baseLayer(ctx)
+    if (base.list("sound").isEmpty()) return null
     return RomView.ofSoundWindows { name ->
-        ctx.assets.open("extracted/sound/$name").use { it.readBytes() }
+        base.open("sound/$name").use { it.readBytes() }
     }
 }
 
-/** Boot ROM windows from the APK's bundled `extracted/boot/` (debug/test builds only), or null. */
+/** Boot ROM windows from the base layer's `boot/` (imported ROM, else bundled assets), or null. */
 private fun bundledBootRom(ctx: Context): RomView? {
-    if (ctx.assets.list("extracted/boot").isNullOrEmpty()) return null
+    val base = baseLayer(ctx)
+    if (base.list("boot").isEmpty()) return null
     return RomView.ofBootWindows { name ->
-        ctx.assets.open("extracted/boot/$name").use { it.readBytes() }
+        base.open("boot/$name").use { it.readBytes() }
     }
 }
 

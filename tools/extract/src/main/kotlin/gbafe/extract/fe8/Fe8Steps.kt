@@ -1,13 +1,14 @@
 package gbafe.extract.fe8
 
 import gbafe.extract.DecompSources
+import gbafe.extract.ExtractOutput
 import gbafe.extract.ExtractSources
+import gbafe.extract.FileOutput
 import gbafe.extract.Json
 import gbafe.extract.ManifestSources
 import gbafe.extract.RecordingSources
 import gbafe.extract.ExtractArgs
 import gbafe.extract.Symbols
-import java.io.File
 
 /**
  * Runs the FE8 extraction steps the inputs allow and returns the paths written (relative to `args.out`).
@@ -25,7 +26,11 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
 }
 
 /** Runs the FE8 steps with the decomp answers from [symbols]; see [runFe8Steps]. */
-public fun runFe8Steps(args: ExtractArgs, symbols: ExtractSources): List<String> {
+public fun runFe8Steps(
+    args: ExtractArgs,
+    symbols: ExtractSources,
+    out: ExtractOutput = FileOutput(args.out),
+): List<String> {
     val written = ArrayList<String>()
     val rom by lazy { args.rom.readBytes() }
     val names = symbols.enumNames("include/constants/items.h", "ITEM_")
@@ -33,12 +38,11 @@ public fun runFe8Steps(args: ExtractArgs, symbols: ExtractSources): List<String>
     val json = gbafe.extract.fe8.items.ItemsExtractor.extractJson(
         rom, items.address, symbols.sizeOrSpan("gItemData") / gbafe.extract.fe8.items.ItemsExtractor.ENTRY_SIZE, names,
     )
-    File(args.out, "data").mkdirs()
-    File(args.out, "data/items.json").writeText(json)
+    out.writeText("data/items.json", json)
     written += "data/items.json"
     val classNames = symbols.enumNames("include/constants/classes.h", "CLASS_")
     val classes = symbols["gClassData"]
-    File(args.out, "data/classes.json").writeText(
+    out.writeText("data/classes.json", 
         gbafe.extract.fe8.classes.ClassesExtractor.extractJson(
             rom, classes.address, symbols.sizeOrSpan("gClassData") / gbafe.extract.fe8.classes.ClassesExtractor.ENTRY_SIZE,
             classNames, names,
@@ -47,7 +51,7 @@ public fun runFe8Steps(args: ExtractArgs, symbols: ExtractSources): List<String>
     written += "data/classes.json"
     val charNames = symbols.enumNames("include/constants/characters.h", "CHARACTER_")
     val chars = symbols["gCharacterData"]
-    File(args.out, "data/characters.json").writeText(
+    out.writeText("data/characters.json", 
         gbafe.extract.fe8.characters.CharactersExtractor.extractJson(
             rom, chars.address, symbols.sizeOrSpan("gCharacterData") / gbafe.extract.fe8.characters.CharactersExtractor.ENTRY_SIZE,
             charNames, classNames,
@@ -59,11 +63,11 @@ public fun runFe8Steps(args: ExtractArgs, symbols: ExtractSources): List<String>
         .filter { symbols.sizeOrSpan(it) == gbafe.extract.fe8.classes.ClassesExtractor.TERRAIN_COUNT }
         .associateWith { symbols[it].address }
     val terrainNames = symbols.enumNames("include/constants/terrains.h", "TERRAIN_")
-    File(args.out, "data/terrains.json").writeText(
+    out.writeText("data/terrains.json", 
         gbafe.extract.fe8.terrains.TerrainsExtractor.extractJson(rom, terrainTables, terrainNames),
     )
     written += "data/terrains.json"
-    File(args.out, "data/chapters.json").writeText(
+    out.writeText("data/chapters.json", 
         gbafe.extract.fe8.chapters.ChaptersExtractor.extractJson(
             rom, symbols["gChapterDataTable"].address - ROM_BASE,
             symbols.sizeOrSpan("gChapterDataTable") / gbafe.extract.fe8.chapters.ChaptersExtractor.ENTRY_SIZE,
@@ -84,13 +88,12 @@ public fun runFe8Steps(args: ExtractArgs, symbols: ExtractSources): List<String>
             m.getValue("tileConfigId"), m.getValue("mainLayerId"), m.getValue("changeLayerId"),
         )
         val ts = "tileset_%d_%d_%d_%d".format(m["obj1Id"], m["obj2Id"], m["paletteId"], m["tileConfigId"])
-        File(args.out, "maps/tilesets").mkdirs()
-        if (tilesetsDone.add(ts)) File(args.out, "maps/tilesets/$ts.png").writeBytes(o.tilesetPng())
+        if (tilesetsDone.add(ts)) out.write("maps/tilesets/$ts.png", o.tilesetPng())
         // Unit placement: prologue only until the event converter finds every chapter's LOAD targets.
         val units = if (ch["index"] != 0) emptyList() else symbols.namesWithPrefix("UnitDef_Event_Prologue")
             .sortedBy { symbols[it].address.toUInt() }
             .map { it to gbafe.extract.fe8.units.UnitsExtractor.readGroup(rom, symbols[it].address - ROM_BASE, symbols.sizeOrSpan(it) / gbafe.extract.fe8.units.UnitsExtractor.ENTRY_SIZE) }
-        File(args.out, "maps/chapter_%02d.tmj".format(ch["index"])).writeText(o.tmj(ts, "tilesets/$ts.png", units))
+        out.writeText("maps/chapter_%02d.tmj".format(ch["index"]), o.tmj(ts, "tilesets/$ts.png", units))
         maps++
     }
     written += "maps/ ($maps .tmj, ${tilesetsDone.size} tilesets)"
@@ -102,22 +105,20 @@ public fun runFe8Steps(args: ExtractArgs, symbols: ExtractSources): List<String>
         rom, symbols["gMsgHuffmanTable"].address - ROM_BASE, rootOffset - ROM_BASE,
         symbols["gMsgTable"].address - ROM_BASE, symbols.sizeOrSpan("gMsgTable") / 4, gbafe.text.MessageCodec(faces = faces),
     )
-    File(args.out, "text/en").mkdirs()
-    File(args.out, "text/en/messages.json").writeText(gbafe.extract.text.MessagesExtractor.toJson("fe8", messages))
+    out.writeText("text/en/messages.json", gbafe.extract.text.MessagesExtractor.toJson("fe8", messages))
     written += "text/en/messages.json"
-    File(args.out, "fonts").mkdirs()
     for ((name, symbol) in listOf("system" to "TextGlyphs_System", "talk" to "TextGlyphs_Talk", "special" to "TextGlyphs_Special")) {
         val glyphs = gbafe.extract.font.FontExtractor.read(rom, symbols[symbol].address - ROM_BASE)
-        File(args.out, "fonts/$name.png").writeBytes(gbafe.extract.font.FontExtractor.png(glyphs))
-        File(args.out, "fonts/$name.json").writeText(gbafe.extract.font.FontExtractor.toJson("fe8", name, "$name.png", glyphs))
+        out.write("fonts/$name.png", gbafe.extract.font.FontExtractor.png(glyphs))
+        out.writeText("fonts/$name.json", gbafe.extract.font.FontExtractor.toJson("fe8", name, "$name.png", glyphs))
         written += listOf("fonts/$name.png", "fonts/$name.json")
     }
     val portraits = gbafe.extract.fe8.portraits.PortraitsExtractor.extract(
         rom, symbols["portrait_data"].address - ROM_BASE,
         symbols.sizeOrSpan("portrait_data") / gbafe.extract.fe8.portraits.PortraitsExtractor.ENTRY_SIZE,
     )
-    for ((path, png) in portraits.files) File(args.out, "portraits/$path").apply { parentFile.mkdirs() }.writeBytes(png)
-    File(args.out, "portraits/portraits.json").writeText(portraits.json)
+    for ((path, png) in portraits.files) out.write("portraits/$path", png)
+    out.writeText("portraits/portraits.json", portraits.json)
     written += "portraits/portraits.json (+${portraits.files.size} PNG)"
     val sprites = gbafe.extract.fe8.mapsprites.MapSpritesExtractor.extract(
         rom, symbols["unit_icon_wait_table"].address - ROM_BASE,
@@ -126,14 +127,14 @@ public fun runFe8Steps(args: ExtractArgs, symbols: ExtractSources): List<String>
         symbols["unit_icon_move_table"].address - ROM_BASE,
         symbols.sizeOrSpan("unit_icon_move_table") / gbafe.extract.fe8.mapsprites.MapSpritesExtractor.MOVE_ENTRY_SIZE,
     )
-    for ((path, png) in sprites.files) File(args.out, "mapsprites/$path").apply { parentFile.mkdirs() }.writeBytes(png)
-    File(args.out, "mapsprites/mapsprites.json").writeText(sprites.json)
+    for ((path, png) in sprites.files) out.write("mapsprites/$path", png)
+    out.writeText("mapsprites/mapsprites.json", sprites.json)
     written += "mapsprites/mapsprites.json (+${sprites.files.size} PNG)"
     // Event scripts v0: the prologue's EventScr_Prologue_* lists.
     val romNames = symbols.romNamesByAddress()
     val scripts = symbols.namesWithPrefix("EventScr_Prologue").sortedBy { symbols[it].address.toUInt() }
         .map { it to gbafe.extract.fe8.events.EventScriptConverter.convert(rom, symbols[it].address - ROM_BASE, romNames) }
-    File(args.out, "scripts/prologue.fe8s").apply { parentFile.mkdirs() }.writeText(gbafe.extract.fe8.events.EventScriptConverter.render(scripts))
+    out.writeText("scripts/prologue.fe8s", gbafe.extract.fe8.events.EventScriptConverter.render(scripts))
     written += "scripts/prologue.fe8s (${scripts.size} scripts)"
     // m4a (M2-18/19): every gSongTable entry -> songs/songNNN.mid (once per distinct header) + songs/songs.json,
     // and the voicegroups the songs use -> voicegroups/<name>.json.
@@ -145,14 +146,14 @@ public fun runFe8Steps(args: ExtractArgs, symbols: ExtractSources): List<String>
         val midi = midiByHeader.getOrPut(e.header) {
             val song = gbafe.extract.m4a.M4aSong.decode(rom, e.header - ROM_BASE)
             if (song.tracks.isNotEmpty()) voicegroups += song.voicegroup
-            "song%03d.mid".format(id).also { File(args.out, "songs/$it").apply { parentFile.mkdirs() }.writeBytes(gbafe.extract.m4a.M4aSong.toMidi(song)) }
+            "song%03d.mid".format(id).also { out.write("songs/$it", gbafe.extract.m4a.M4aSong.toMidi(song)) }
         }
         linkedMapOf("id" to id, "header" to (romNames[e.header] ?: e.header), "musicPlayer" to e.musicPlayer, "unknown" to e.unknown, "midi" to midi)
     }
-    File(args.out, "songs/songs.json").writeText(gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.songs", "game" to "fe8", "version" to 1, "songs" to rows)))
+    out.writeText("songs/songs.json", gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.songs", "game" to "fe8", "version" to 1, "songs" to rows)))
     for (vg in voicegroups) {
         val vgName = romNames[vg] ?: "voicegroup_%08X".format(vg)
-        File(args.out, "voicegroups/$vgName.json").apply { parentFile.mkdirs() }.writeText(
+        out.writeText("voicegroups/$vgName.json", 
             gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.voicegroup", "game" to "fe8", "version" to 1,
                 "voices" to gbafe.extract.m4a.M4aSong.readVoicegroup(rom, vg - ROM_BASE, symbols = romNames))),
         )
@@ -162,32 +163,32 @@ public fun runFe8Steps(args: ExtractArgs, symbols: ExtractSources): List<String>
     val sampleRows = waves.map { off ->
         val w = gbafe.extract.m4a.M4aSong.readWave(rom, off)
         val name = romNames[off + ROM_BASE] ?: "wave_%08X".format(off + ROM_BASE)
-        File(args.out, "samples/$name.wav").apply { parentFile.mkdirs() }.writeBytes(gbafe.extract.m4a.M4aSong.toWav(w))
+        out.write("samples/$name.wav", gbafe.extract.m4a.M4aSong.toWav(w))
         linkedMapOf("name" to name, "wav" to "$name.wav", "type" to w.type, "status" to w.status, "freq" to w.freq.toLong().and(0xFFFFFFFFL),
             "loopStart" to w.loopStart, "size" to w.data.size)
     }
-    File(args.out, "samples/samples.json").writeText(gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.samples", "game" to "fe8", "version" to 1, "samples" to sampleRows)))
+    out.writeText("samples/samples.json", gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.samples", "game" to "fe8", "version" to 1, "samples" to sampleRows)))
     written += "samples/ (${sampleRows.size} WAV)"
     written += "songs/ (${rows.size} entries, ${midiByHeader.size} MIDI), voicegroups/ (${voicegroups.size})"
     // UI icons: item_icon_tiles (up to item_icon_palette) -> ui/icons.png + ui/icons.json.
     val iconTiles = symbols["item_icon_tiles"].address
     val iconPal = symbols["item_icon_palette"].address
     val icons = gbafe.extract.fe8.ui.IconsExtractor.extract(rom, iconTiles - ROM_BASE, (iconPal - iconTiles) / gbafe.extract.fe8.ui.IconsExtractor.ICON_BYTES, iconPal - ROM_BASE)
-    File(args.out, "ui/icons.png").apply { parentFile.mkdirs() }.writeBytes(icons.png)
-    File(args.out, "ui/icons.json").writeText(icons.json)
+    out.write("ui/icons.png", icons.png)
+    out.writeText("ui/icons.json", icons.json)
     written += "ui/icons.png (${icons.count} icons)"
     val frames = gbafe.extract.fe8.ui.WindowFramesExtractor.extract(
         rom, symbols["sUiFrameImageLookup"].address - ROM_BASE, symbols["sUiFramePaletteLookup"].address - ROM_BASE,
         symbols["sUiFrameModelTilemapLookup"].address - ROM_BASE,
     )
-    for ((n, png) in frames.files) File(args.out, "ui/$n").writeBytes(png)
-    File(args.out, "ui/windowframes.json").writeText(frames.json)
+    for ((n, png) in frames.files) out.write("ui/$n", png)
+    out.writeText("ui/windowframes.json", frames.json)
     written += "ui/windowframes.json (+${frames.files.size} PNG)"
     // Trig table: gSinLookup (data/trig_rodata.s), 320 s16 in 4.12 fixed point; SIN(a) = [a & 0xFF],
     // COS(a) = [0x40 + (a & 0xFF)] (include/hardware.h), hence 256 + 64 entries.
     val sinAt = symbols["gSinLookup"].address - ROM_BASE
     val sinTable = List(320) { ((rom[sinAt + 2 * it].toInt() and 0xFF) or (rom[sinAt + 2 * it + 1].toInt() shl 8)) }
-    File(args.out, "data/trig.json").writeText(gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.trig", "game" to "fe8",
+    out.writeText("data/trig.json", gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.trig", "game" to "fe8",
         "version" to 1, "fractionBits" to 12, "sin" to sinTable)))
     written += "data/trig.json"
     // Health & safety screen, src/opanim-healthsafetyscreen.c PrepareHealthAndSafetyScreen: one tile set
@@ -200,8 +201,8 @@ public fun runFe8Steps(args: ExtractArgs, symbols: ExtractSources): List<String>
             gbafe.extract.ScreenExtractor.Layer(0, symbols["Tsa_OpAnimHealthSafetyScreenBG0"].address - ROM_BASE),
         ),
     )
-    File(args.out, "ui/health_safety.png").writeBytes(hs.png)
-    File(args.out, "ui/health_safety.json").writeText(hs.json)
+    out.write("ui/health_safety.png", hs.png)
+    out.writeText("ui/health_safety.json", hs.json)
     written += "ui/health_safety.json (+PNG)"
     // Intro logos, GameIntroPrepareNintendofx: Nintendo tiles at VRAM 0 on BG0 (tile base 0, palette bank 0);
     // Intelligent Systems tiles at VRAM + 0x2000 (tile 0x100) on BG1 with tile base 0x1100 (palette banks 1..3).
@@ -214,8 +215,8 @@ public fun runFe8Steps(args: ExtractArgs, symbols: ExtractSources): List<String>
             listOf(gbafe.extract.ScreenExtractor.Layer(bg, symbols[tsa].address - ROM_BASE, base)),
             firstTile = base and 0x3FF, firstPalette = base shr 12,
         )
-        File(args.out, "ui/$n.png").writeBytes(o.png)
-        File(args.out, "ui/$n.json").writeText(o.json)
+        out.write("ui/$n.png", o.png)
+        out.writeText("ui/$n.json", o.json)
         written += "ui/$n.json (+PNG)"
     }
     val cursors = gbafe.extract.fe8.ui.CursorsExtractor.extract(
@@ -224,19 +225,17 @@ public fun runFe8Steps(args: ExtractArgs, symbols: ExtractSources): List<String>
         symbols["gImg_UiCursorHandTop"].address - ROM_BASE, symbols["gImg_UiCursorHandBottom"].address - ROM_BASE,
         listOf("gSprite_UiCursorHand_08A20B3C", "gSprite_UiCursorHand_08A20B44").map { symbols[it].address - ROM_BASE },
     )
-    for ((n, png) in cursors.files) File(args.out, "ui/$n").writeBytes(png)
-    File(args.out, "ui/cursors.json").writeText(cursors.json)
+    for ((n, png) in cursors.files) out.write("ui/$n", png)
+    out.writeText("ui/cursors.json", cursors.json)
     written += "ui/cursors.json (+${cursors.files.size} PNG)"
     // Boot screens read their data by ROM address (fe8.game.RomView.BOOT_WINDOWS): raw ROM windows.
-    File(args.out, "boot").mkdirs()
     for ((start, end) in BOOT_WINDOWS) {
-        File(args.out, "boot/rom_%08X.bin".format(start)).writeBytes(rom.copyOfRange(start - ROM_BASE, end - ROM_BASE))
+        out.write("boot/rom_%08X.bin".format(start), rom.copyOfRange(start - ROM_BASE, end - ROM_BASE))
     }
     written += "boot/ (${BOOT_WINDOWS.size} ROM windows)"
     // m4a sound data, read by ROM address (fe8.game.RomView.SOUND_WINDOWS).
-    File(args.out, "sound").mkdirs()
     for ((start, end) in SOUND_WINDOWS) {
-        File(args.out, "sound/rom_%08X.bin".format(start)).writeBytes(rom.copyOfRange(start - ROM_BASE, end - ROM_BASE))
+        out.write("sound/rom_%08X.bin".format(start), rom.copyOfRange(start - ROM_BASE, end - ROM_BASE))
     }
     written += "sound/ (${SOUND_WINDOWS.size} ROM window)"
     return written

@@ -1,6 +1,9 @@
 package gbafe.extract.fe8
 
-import gbafe.extract.DecompEnums
+import gbafe.extract.DecompSources
+import gbafe.extract.ExtractSources
+import gbafe.extract.Json
+import gbafe.extract.RecordingSources
 import gbafe.extract.ExtractArgs
 import gbafe.extract.Symbols
 import java.io.File
@@ -12,10 +15,18 @@ import java.io.File
  * `boot/` (boot screen ROM windows), `mapsprites/` (standing + moving), `portraits/` (sheets, chibis, mouths, cards + `portraits.json`) (need `--symbols`; ids and face names need `--decomp`).
  */
 public fun runFe8Steps(args: ExtractArgs): List<String> {
+    val decomp = args.symbols?.let { DecompSources(Symbols(it), args.decomp) } ?: return emptyList()
+    val recording = args.writeManifest?.let { RecordingSources(decomp) }
+    val written = runFe8Steps(args, recording ?: decomp)
+    if (recording != null) args.writeManifest.writeText(Json.write(recording.manifest()))
+    return written
+}
+
+/** Runs the FE8 steps with the decomp answers from [symbols]; see [runFe8Steps]. */
+public fun runFe8Steps(args: ExtractArgs, symbols: ExtractSources): List<String> {
     val written = ArrayList<String>()
     val rom by lazy { args.rom.readBytes() }
-    val symbols = args.symbols?.let(::Symbols) ?: return written
-    val names = args.decomp?.let { DecompEnums.read(it, "include/constants/items.h", "ITEM_") } ?: emptyMap()
+    val names = symbols.enumNames("include/constants/items.h", "ITEM_")
     val items = symbols["gItemData"]
     val json = gbafe.extract.fe8.items.ItemsExtractor.extractJson(
         rom, items.address, symbols.sizeOrSpan("gItemData") / gbafe.extract.fe8.items.ItemsExtractor.ENTRY_SIZE, names,
@@ -23,7 +34,7 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
     File(args.out, "data").mkdirs()
     File(args.out, "data/items.json").writeText(json)
     written += "data/items.json"
-    val classNames = args.decomp?.let { DecompEnums.read(it, "include/constants/classes.h", "CLASS_") } ?: emptyMap()
+    val classNames = symbols.enumNames("include/constants/classes.h", "CLASS_")
     val classes = symbols["gClassData"]
     File(args.out, "data/classes.json").writeText(
         gbafe.extract.fe8.classes.ClassesExtractor.extractJson(
@@ -32,7 +43,7 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
         ),
     )
     written += "data/classes.json"
-    val charNames = args.decomp?.let { DecompEnums.read(it, "include/constants/characters.h", "CHARACTER_") } ?: emptyMap()
+    val charNames = symbols.enumNames("include/constants/characters.h", "CHARACTER_")
     val chars = symbols["gCharacterData"]
     File(args.out, "data/characters.json").writeText(
         gbafe.extract.fe8.characters.CharactersExtractor.extractJson(
@@ -45,7 +56,7 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
         .flatMap(symbols::namesWithPrefix).distinct()
         .filter { symbols.sizeOrSpan(it) == gbafe.extract.fe8.classes.ClassesExtractor.TERRAIN_COUNT }
         .associateWith { symbols[it].address }
-    val terrainNames = args.decomp?.let { DecompEnums.read(it, "include/constants/terrains.h", "TERRAIN_") } ?: emptyMap()
+    val terrainNames = symbols.enumNames("include/constants/terrains.h", "TERRAIN_")
     File(args.out, "data/terrains.json").writeText(
         gbafe.extract.fe8.terrains.TerrainsExtractor.extractJson(rom, terrainTables, terrainNames),
     )
@@ -81,8 +92,7 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
         maps++
     }
     written += "maps/ ($maps .tmj, ${tilesetsDone.size} tilesets)"
-    val faces = args.decomp?.let { File(it, "texts/textdefs.txt") }?.takeIf { it.isFile }
-        ?.let(gbafe.extract.text.MessagesExtractor::readFaces) ?: emptyMap()
+    val faces = symbols.faces()
     val rootPtr = symbols["gMsgHuffmanTableRoot"].address - ROM_BASE
     val rootOffset = (rom[rootPtr].toInt() and 0xFF) or ((rom[rootPtr + 1].toInt() and 0xFF) shl 8) or
         ((rom[rootPtr + 2].toInt() and 0xFF) shl 16) or ((rom[rootPtr + 3].toInt() and 0xFF) shl 24)

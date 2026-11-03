@@ -22,13 +22,15 @@ public data class ExtractArgs(
     val symbols: File? = null,
     /** Which game's layouts to use (one of [GAMES]); FE6/FE7 ports add theirs. */
     val game: String = "fe8",
+    /** If set, the decomp answers the run used are written here as the extraction manifest (M4-03). */
+    val writeManifest: File? = null,
 )
 
 /** Thrown for unusable command lines; [message] is shown to the user together with the usage text. */
 public class UsageException(message: String) : IllegalArgumentException(message)
 
 /** Help text printed by `--help` and on usage errors. */
-public const val USAGE: String = """usage: extract --rom <baserom.gba> --out <dir> [--decomp <fireemblem8u>] [--map <fireemblem8.map>] [--symbols <fireemblem8.nm.txt>] [--game fe8]
+public const val USAGE: String = """usage: extract --rom <baserom.gba> --out <dir> [--decomp <fireemblem8u>] [--map <fireemblem8.map>] [--symbols <fireemblem8.nm.txt>] [--game fe8] [--write-manifest <file>]
 
 Extracts Fire Emblem 8 assets from the ROM into moddable formats (JSON, PNG, Tiled, MIDI).
   --rom     original ROM (never copied, never committed to the code repo)
@@ -37,6 +39,7 @@ Extracts Fire Emblem 8 assets from the ROM into moddable formats (JSON, PNG, Til
   --map     fireemblem8.map linker map (ROM addresses of data symbols)
   --symbols fireemblem8.nm.txt symbol list with sizes (enables data tables: data/items.json)
   --game    which game the ROM is (default fe8; only fe8 so far)
+  --write-manifest  also write the decomp answers used (symbols, names) as a JSON manifest
   --help    show this text"""
 
 /**
@@ -50,7 +53,7 @@ public fun parseArgs(argv: Array<String>): ExtractArgs? {
     var i = 0
     while (i < argv.size) {
         val key = argv[i]
-        if (key !in setOf("--rom", "--decomp", "--map", "--out", "--symbols", "--game")) throw UsageException("unknown argument '$key'")
+        if (key !in setOf("--rom", "--decomp", "--map", "--out", "--symbols", "--game", "--write-manifest")) throw UsageException("unknown argument '$key'")
         val value = argv.getOrNull(i + 1) ?: throw UsageException("$key needs a value")
         values[key] = value
         i += 2
@@ -62,6 +65,7 @@ public fun parseArgs(argv: Array<String>): ExtractArgs? {
         map = values["--map"]?.let(::File),
         out = required("--out"),
         symbols = values["--symbols"]?.let(::File),
+        writeManifest = values["--write-manifest"]?.let(::File),
         game = (values["--game"] ?: "fe8").also { if (it !in GAMES) throw UsageException("unsupported game '$it' (known: ${GAMES.joinToString()})") },
     )
 }

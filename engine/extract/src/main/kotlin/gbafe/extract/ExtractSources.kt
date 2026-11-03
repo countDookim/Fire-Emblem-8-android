@@ -78,6 +78,7 @@ public class RecordingSources(private val inner: ExtractSources) : ExtractSource
  * changed its queries fails loudly until the manifest is regenerated.
  */
 public class ManifestSources(json: String) : ExtractSources {
+    /** Bundled manifests. */
     public companion object {
         /**
          * The committed manifest of [game] (its file name, e.g. the FE8 one) bundled as the

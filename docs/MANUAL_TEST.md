@@ -16,5 +16,9 @@ on the launcher screen).
 - PSG (square/wave) sound after the 2026-11-03 fixes: the op theme's PSG parts sound like mGBA/hardware (no
   clicks or missing note restarts); compare with an emulator if you can.
 
+- ROM import (M4-04): launcher "Import ROM", pick your FE8 (U) `.gba`: progress bar, then "Game data imported:
+  N files"; a wrong file shows a clear SHA-1 message. Note the time (logcat tag `Fe8Import`, target < ~30 s).
+  Play then boots from the imported data (also after reinstalling the debug APK).
+
 ## Known not working (don't report)
 Everything after the title: no gameplay or saves; title key presses do nothing yet.

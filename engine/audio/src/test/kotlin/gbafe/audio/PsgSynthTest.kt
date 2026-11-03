@@ -124,6 +124,30 @@ class PsgSynthTest {
         assertEquals(15f, (0 until 1000).maxOf { out[2 * it + 1] })
     }
 
+    @Test
+    fun `NRx2 writes without trigger follow mGBA's envelope rules`() {
+        val psg = M4aPsg()
+        val synth = PsgSynth(psg, rate)
+        // Volume 1, decreasing every 1/64 s: reaches 0 and stops stepping (dead).
+        psg.write(M4aPsg.NR51, 0x22)
+        psg.write(0x04000069, 0x11)
+        psg.write(0x0400006D, 0x87)
+        val out = FloatArray(2 * rate)
+        synth.render(out, rate / 10, 1f)
+        assertTrue(synth.isOn(2) && synth.volumeOf(2) == 0)
+        // Period 0: the volume holds (GBA style: no zombie-mode change).
+        psg.write(0x04000069, 0x31)
+        psg.write(0x0400006D, 0x87)
+        synth.render(out, 1, 1f)
+        psg.write(0x04000069, 0x08)
+        synth.render(out, rate / 10, 1f)
+        assertTrue(synth.isOn(2) && synth.volumeOf(2) == 3, "volume ${synth.volumeOf(2)}")
+        // Volume 0 and decreasing: the DAC is off, the channel stops without a trigger.
+        psg.write(0x04000069, 0x00)
+        synth.render(out, 1, 1f)
+        assertFalse(synth.isOn(2))
+    }
+
     private fun square2(psg: M4aPsg, duty: Int, fr: Int) {
         psg.write(M4aPsg.NR51, 0x22)
         psg.write(0x04000068, duty shl 6)

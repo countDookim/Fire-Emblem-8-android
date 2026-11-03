@@ -30,6 +30,10 @@ public class M4aPsg {
     public var lengthLoads: Int = 0
         private set
 
+    /** Bit per channel 1, 2, 4 (bit n-1): envelope register NRx2 written since [takeEnvelopeWrites]. */
+    public var envelopeWrites: Int = 0
+        private set
+
     /**
      * Writes the byte [value] at IO [address]; an NRx4 write with bit 7 set triggers a channel,
      * an NRx1 write loads its length counter.
@@ -41,6 +45,9 @@ public class M4aPsg {
             0x04000068 -> lengthLoads = lengthLoads or 2
             0x04000072 -> lengthLoads = lengthLoads or 4
             0x04000078 -> lengthLoads = lengthLoads or 8
+            0x04000063 -> envelopeWrites = envelopeWrites or 1
+            0x04000069 -> envelopeWrites = envelopeWrites or 2
+            0x04000079 -> envelopeWrites = envelopeWrites or 8
         }
         if (value and 0x80 != 0) {
             when (address) {
@@ -54,6 +61,9 @@ public class M4aPsg {
 
     /** Returns and clears [lengthLoads] (read by the synth). */
     public fun takeLengthLoads(): Int = lengthLoads.also { lengthLoads = 0 }
+
+    /** Returns and clears [envelopeWrites] (read by the synth). */
+    public fun takeEnvelopeWrites(): Int = envelopeWrites.also { envelopeWrites = 0 }
 
     /** Returns and clears [triggers] (read by the synth). */
     public fun takeTriggers(): Int = triggers.also { triggers = 0 }

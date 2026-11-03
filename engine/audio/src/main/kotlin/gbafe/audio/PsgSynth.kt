@@ -20,6 +20,9 @@ public class PsgSynth(
     private val phase = DoubleArray(4)
     private val volume = IntArray(4)
     private val envTimer = IntArray(4)
+
+    /** mGBA `envelope.dead`: 0 steps, 1 held at 15 (or period 0), 2 held at 0. */
+    private val dead = IntArray(4)
     private val length = IntArray(4)
     private var lfsr = 0x7FFF
     private var seqPhase = 0.0
@@ -100,6 +103,9 @@ public class PsgSynth(
             val v = reg(NRX1[c])
             length[c] = if (c == 2) 256 - v else 64 - (v and 0x3F)
         }
+        // NRx2 writes (mGBA `_writeEnvelope`): before the triggers, as `CgbSound` writes them.
+        val e = psg.takeEnvelopeWrites()
+        for (c in ENVELOPE_CHANNELS) if (e ushr c and 1 != 0) writeEnvelope(c)
         val t = psg.takeTriggers()
         for (c in 0 until 4) if (t ushr c and 1 != 0) trigger(c)
         if (reg(0x04000070) and 0x80 == 0) on[2] = false // NR30 DAC off
@@ -147,18 +153,52 @@ public class PsgSynth(
         }
         if (seqStep == 7) {
             for (c in ENVELOPE_CHANNELS) {
-                val nrx2 = reg(NRX2[c])
-                val period = nrx2 and 7
-                if (!on[c] || period == 0) continue
-                if (--envTimer[c] > 0) continue
-                envTimer[c] = period
-                if (nrx2 and 8 != 0) {
-                    if (volume[c] < 15) volume[c]++
-                } else if (volume[c] > 0) {
-                    volume[c]--
-                }
+                if (!on[c] || dead[c] != 0) continue
+                if (--envTimer[c] == 0) updateEnvelope(c)
             }
         }
+    }
+
+    /** One envelope step (mGBA `_updateEnvelope`): stops at 0 or 15 until the next NRx2 write. */
+    private fun updateEnvelope(c: Int) {
+        val nrx2 = reg(NRX2[c])
+        volume[c] += if (nrx2 and 8 != 0) 1 else -1
+        when {
+            volume[c] >= 15 -> {
+                volume[c] = 15
+                dead[c] = 1
+            }
+            volume[c] <= 0 -> {
+                volume[c] = 0
+                dead[c] = 2
+            }
+            else -> envTimer[c] = nrx2 and 7
+        }
+    }
+
+    /**
+     * mGBA `_updateEnvelopeDead` (GBA style): whether the envelope still steps; a stopped one
+     * restarted by an NRx2 write reloads its step timer.
+     */
+    private fun updateEnvelopeDead(c: Int) {
+        val nrx2 = reg(NRX2[c])
+        val period = nrx2 and 7
+        val up = nrx2 and 8 != 0
+        when {
+            period == 0 -> dead[c] = if (volume[c] != 0) 1 else 2
+            !up && volume[c] == 0 -> dead[c] = 2
+            up && volume[c] == 15 -> dead[c] = 1
+            dead[c] != 0 -> {
+                envTimer[c] = period
+                dead[c] = 0
+            }
+        }
+    }
+
+    /** An NRx2 write without trigger (mGBA `_writeEnvelope`, GBA style: no zombie mode). */
+    private fun writeEnvelope(c: Int) {
+        updateEnvelopeDead(c)
+        if (reg(NRX2[c]) and 0xF8 == 0) on[c] = false // DAC off
     }
 
     private fun n4(c: Int): Int = reg(NRX4[c])
@@ -177,6 +217,7 @@ public class PsgSynth(
         val nrx2 = reg(NRX2[c])
         volume[c] = nrx2 ushr 4
         envTimer[c] = nrx2 and 7
+        updateEnvelopeDead(c)
         if (length[c] == 0) length[c] = 64
         if (nrx2 and 0xF8 == 0) on[c] = false // DAC off
         if (c == 3) lfsr = 0x7FFF

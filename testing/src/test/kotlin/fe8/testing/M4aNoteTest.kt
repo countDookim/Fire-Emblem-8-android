@@ -177,6 +177,9 @@ class M4aNoteTest {
                             if (psgRegs.lengthLoads ushr ch and 1 != 0) {
                                 regs.write(NR_X1[ch], psgRegs.read(NR_X1[ch]))
                             }
+                            if (psgRegs.envelopeWrites ushr ch and 1 != 0) {
+                                regs.write(NR_X2[ch], psgRegs.read(NR_X2[ch]))
+                            }
                             if (psgRegs.triggers ushr ch and 1 != 0) {
                                 regs.write(NR_X4[ch], psgRegs.read(NR_X4[ch]) or 0x80)
                             }
@@ -318,7 +321,10 @@ class M4aNoteTest {
                         val big = maxOf(ours, theirs)
                         if (big < 200) continue
                         loud++
-                        if (kotlin.math.abs(ours - theirs) > 0.15 * big) bad++
+                        if (kotlin.math.abs(ours - theirs) > 0.15 * big) {
+                            bad++
+                            println("M4aNoteTest: PSG off ${run.name} f$f q$q ours $ours mGBA $theirs")
+                        }
                     }
                 }
                 println("M4aNoteTest: PSG quarter frames off vs mGBA: $bad of $loud")
@@ -353,6 +359,7 @@ class M4aNoteTest {
 
     private val NR_X1 = intArrayOf(0x04000062, 0x04000068, 0x04000072, 0x04000078)
     private val NR_X4 = intArrayOf(0x04000065, 0x0400006D, 0x04000075, 0x0400007D)
+    private val NR_X2 = intArrayOf(0x04000063, 0x04000069, 0x04000073, 0x04000079)
 
     private fun peakToPeak(x: DoubleArray): Double = x.max() - x.min()
 

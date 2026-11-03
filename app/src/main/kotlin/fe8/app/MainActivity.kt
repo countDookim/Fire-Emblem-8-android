@@ -4,23 +4,31 @@ import android.content.Context
 import android.os.Bundle
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,8 +42,11 @@ import fe8.game.RomView
 import fe8.game.Fe8Game
 import fe8.game.Fe8Sound
 import gbafe.audio.PcmStream
+import gbafe.extract.fe8.Fe8Import
+import gbafe.vfs.DirectoryLayer
 import io.github.countdookim.fe8.BuildConfig
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -128,6 +139,42 @@ private fun bundledBootRom(ctx: Context): RomView? {
 
 @Composable
 private fun Launcher(onPlay: () -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var current by remember { mutableStateOf<Boolean?>(null) }
+    var importing by remember { mutableStateOf(false) }
+    var progress by remember { mutableFloatStateOf(0f) }
+    var message by remember { mutableStateOf<String?>(null) }
+    var fileCount by remember { mutableStateOf<Int?>(null) }
+    // Counting walks thousands of APK asset entries: off the main thread, so launch isn't blocked.
+    val bundled by produceState<Int?>(null) {
+        value = withContext(Dispatchers.IO) { AssetLayer(context.assets).list("").size }
+    }
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            val ok = baseIsCurrent(context)
+            if (ok) fileCount = DirectoryLayer(baseDir(context), "base").list("").size
+            current = ok
+        }
+    }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        importing = true
+        progress = 0f
+        message = null
+        scope.launch {
+            when (val r = importRom(context, uri) { progress = it }) {
+                is ImportResult.Done -> {
+                    fileCount = r.count
+                    current = true
+                }
+                is ImportResult.WrongRom -> message = "This is not Fire Emblem: The Sacred Stones " +
+                    "(U). SHA-1 must be ${Fe8Import.ROM_SHA1.take(8)}\u2026; got ${r.sha1}."
+                is ImportResult.Failed -> message = "Import failed: ${r.message}"
+            }
+            importing = false
+        }
+    }
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
@@ -135,12 +182,22 @@ private fun Launcher(onPlay: () -> Unit) {
     ) {
         Text("Fire Emblem: The Sacred Stones — Kotlin port", style = MaterialTheme.typography.titleLarge)
         Text("Build ${BuildConfig.VERSION_NAME} (${BuildConfig.GIT_SHA}) · vanilla mode · %.4f Hz logic".format(FixedStepClock.TICK_HZ))
-        val context = LocalContext.current
-        // Counting walks thousands of APK asset entries: off the main thread, so launch isn't blocked.
-        val bundled by produceState<Int?>(null) {
-            value = withContext(Dispatchers.IO) { AssetLayer(context.assets).list("").size }
-        }
         Text("Bundled test assets (debug builds only): ${bundled ?: "counting…"} files")
-        Button(onClick = onPlay) { Text("Play") }
+        if (importing) {
+            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+            Text("Importing ROM… ${(progress * 100).toInt()}%")
+        } else if (current == true) {
+            Text("Game data imported: ${fileCount ?: "…"} files")
+        } else if (current == false) {
+            Text("Choose your Fire Emblem: The Sacred Stones (U) ROM to import it. It stays on this device.")
+            Button(onClick = { picker.launch(arrayOf("*/*")) }) { Text("Import ROM") }
+        }
+        message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        if (current == true && !importing) {
+            OutlinedButton(onClick = { picker.launch(arrayOf("*/*")) }) { Text("Re-import ROM") }
+        }
+        // Debug builds bundle assets and can play without importing.
+        val canPlay = current == true || (bundled ?: 0) > 0
+        Button(onClick = onPlay, enabled = canPlay && !importing) { Text("Play") }
     }
 }

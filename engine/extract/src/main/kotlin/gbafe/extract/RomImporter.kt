@@ -8,7 +8,10 @@ public sealed interface RomCheck {
     public data object Ok : RomCheck
 
     /** Wrong ROM; [sha1] is the lowercase hex SHA-1 of what was given. */
-    public data class WrongRom(val sha1: String) : RomCheck
+    public data class WrongRom(
+        /** Lowercase hex SHA-1 of the given ROM. */
+        val sha1: String,
+    ) : RomCheck
 }
 
 /**
@@ -18,7 +21,9 @@ public sealed interface RomCheck {
  * changes; [isCurrent] then reports false and the app re-extracts.
  */
 public class RomImporter(
+    /** Lowercase hex SHA-1 of the only accepted ROM. */
     public val expectedSha1: String,
+    /** Extractor output format; part of the stamp. */
     public val formatVersion: Int,
     private val extract: (rom: ByteArray, out: ExtractOutput) -> List<String>,
 ) {
@@ -62,6 +67,7 @@ public class RomImporter(
 
     private fun stampText(): String = "$expectedSha1 $formatVersion\n"
 
+    /** Stamp location. */
     public companion object {
         /** Path of the format stamp, written after everything else. */
         public const val STAMP_PATH: String = "extract-format.txt"

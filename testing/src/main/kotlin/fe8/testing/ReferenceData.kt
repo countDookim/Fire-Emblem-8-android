@@ -71,7 +71,36 @@ public class ReferenceData(
             }
             end
         }
+
+        /** True when the run was made with `--psg-writes`. */
+        public val hasPsgWrites: Boolean get() = File(dir, "psg_writes.txt").isFile
+
+        /** Sound register writes (`--psg-writes`) in emulation order. */
+        public val psgWrites: List<PsgWrite> by lazy {
+            File(dir, "psg_writes.txt").readLines().filter { it.isNotBlank() }.map { line ->
+                val f = line.trim().split(' ')
+                PsgWrite(f[0].toInt(), f[1].toLong(), f[3].toInt(16), f[4].toLong(16), f[5].toInt())
+            }
+        }
     }
+
+    /**
+     * One write to the sound registers in mGBA (`--psg-writes`): during [step] (1-based; a step
+     * starts at VBlank), [cycleInStep] CPU cycles after the step started, [width] bytes of
+     * [value] at IO offset [offset] (`0x60..0xAF`).
+     */
+    public data class PsgWrite(
+        /** Step being run (1-based). */
+        val step: Int,
+        /** CPU cycles since the step started. */
+        val cycleInStep: Long,
+        /** IO register offset from `0x04000000`. */
+        val offset: Int,
+        /** Value written. */
+        val value: Long,
+        /** Access width in bytes (1, 2 or 4). */
+        val width: Int,
+    )
 
     /** Opens the run named [name] (a script stem, e.g. `ram_trace_boot`). */
     public fun run(name: String): Run = Run(name)

@@ -153,10 +153,15 @@ public class M4aSequencer(
                 continue
             }
             val cgb = c.type and 7
-            if (t.flags and M4aTrack.FLG_VOLCHG != 0) c.volSet(t)
+            if (t.flags and M4aTrack.FLG_VOLCHG != 0) {
+                c.volSet(t)
+                // CGB channels: CgbSound rewrites NRx2 and retriggers (`mo` bit 0).
+                if (cgb != 0) c.modify = c.modify or 1
+            }
             if (t.flags and M4aTrack.FLG_PITCHG != 0) {
                 val k = maxOf(0, c.key + ((t.keyM shl 24) shr 24))
                 c.frequency = if (cgb != 0) {
+                    c.modify = c.modify or 2 // CgbSound rewrites NRx3/NRx4
                     M4aPitch.midiKeyToCgbFreq(cgb, k, t.pitM)
                 } else {
                     M4aPitch.midiKeyToFreq(read32(c.wav + 4), k, t.pitM)

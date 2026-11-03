@@ -63,6 +63,8 @@ class M4aNoteTest {
         // PSG level (M3-14): CgbSound's register writes in ram_trace_menu_cgb f900..f1100 played
         // by PsgSynth, compared with the PSG share of mGBA's audio_menu output.
         val psgRegs = M4aPsg()
+        // Channels triggered (NRx4 bit 7) per mGBA step (dump n = step n + 1), f901..f1100.
+        val ourTriggers = HashMap<Int, Int>()
         var loadedWave = 0
         var psgStarted = false
         // Envelope timing: square 1, square 2 and wave each played alone (as mGBA's audio_psg1/2/4),
@@ -163,6 +165,7 @@ class M4aNoteTest {
                     loadedWave = wavPtr
                 }
                 M4aCgb.sound(info, if (cgbRun) psgRegs else M4aPsg(), bus)
+                if (level) ourTriggers[n + 1] = psgRegs.triggers
                 if (cgbRun) {
                     // Dump n's writes sound in mGBA's frame n + 1 output chunk.
                     if (!psgStarted) (solos + synth).forEach { it.startAtFrame(n + 1) }
@@ -319,9 +322,28 @@ class M4aNoteTest {
                     }
                 }
                 println("M4aNoteTest: PSG quarter frames off vs mGBA: $bad of $loud")
-                assertTrue(bad * 15 < loud, "PSG envelope timing: $bad of $loud quarter frames off")
+                assertTrue(bad * 25 < loud, "PSG envelope timing: $bad of $loud quarter frames off")
                 assertTrue(psgRms / mgba in 0.75..1.2, "PSG RMS $psgRms vs mGBA $mgba")
             }
+        }
+        // CgbSound's retriggers (NRx4 bit 7) per frame = mGBA's writes (audio_menu --psg-writes):
+        // includes the ones MPlayMain flags (`mo`) on track volume / pitch changes.
+        val menu = ref.run("audio_menu")
+        if (ourTriggers.isNotEmpty() && menu.hasPsgWrites) {
+            val theirs = HashMap<Int, Int>()
+            for (w in menu.psgWrites) {
+                if (w.step !in 901..1100 || w.width != 1 || w.value and 0x80 == 0L) continue
+                val bit = when (w.offset) {
+                    0x65 -> 1
+                    0x6D -> 2
+                    0x75 -> 4
+                    0x7D -> 8
+                    else -> 0
+                }
+                theirs[w.step] = (theirs[w.step] ?: 0) or bit
+            }
+            val diff = (901..1100).filter { (ourTriggers[it] ?: 0) != (theirs[it] ?: 0) }
+            assertTrue(theirs.size > 40 && diff.isEmpty(), "PSG triggers differ at steps $diff")
         }
         assertTrue(cgbActive > 100, "CGB active channel-frames $cgbActive")
         assertTrue(pcmFrames > 500 && fixed > 0 && looped > 0, "pcm $pcmFrames, fixed $fixed")

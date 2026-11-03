@@ -1,11 +1,22 @@
 # HANDOFF
 
-_Updated 2026-11-03 (scheduled run 14:5x). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-11-03 (scheduled run 22:5x). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: M4-03 library module (TASKS.md); M3-14 waits on the owner listen test (MANUAL_TEST)
+## NEXT RUN, FIRST: check CI of `wip/M4-04` (`:app` compiles only in CI), fix, merge to master; then M4-06 slices
+- Done 2026-11-03 (22:5x run), M4-03: library `:engine:extract` (core, extractors, `ManifestSources.bundled("fe8")`
+  = resource `engine/extract/src/main/resources/gbafe/extract/manifest/fe8.json`; no `java.io.File`, checked by
+  `ManifestResourceTest`); `:tools:extract` = CLI (`DecompSources`, `FileOutput`, `Fe8StepsCli`). gbafe code
+  must not name `fe8.` even in strings/paths (`test_layering.py`). Master CI failed on Dokka (cross-module
+  overrides need their own KDoc): fixed, re-check.
+- wip 2026-11-03 M4-04 (`wip/M4-04`): `RomImporter`/`Fe8Import` + app import UI (`RomImport.kt`, `Launcher`);
+  written without an SDK: check CI compile first. Then owner device test (MANUAL_TEST entry to add): import,
+  logcat `Fe8Import` time, game boots from `filesDir/base`. PNG bytes differ from extracted/ for 228 files
+  (zlib build), pixels equal (test compares decoded pixels).
+- Done 2026-11-03, M4-06 slice 1: `:gba:vfs` (package `gba.vfs`). Next: move `gbafe.data` etc. one module per
+  brief (git mv + sed of package/imports + settings/build lists); `:app` imports must follow (grep app/).
 - Done 2026-11-03 (14:5x run), M4-03 manifest: steps ask the decomp via `gbafe.extract.ExtractSources`
   (`DecompSources`; `RecordingSources` = CLI `--write-manifest`; `ManifestSources` = CLI `--manifest`, no decomp).
   Committed `tools/extract/manifest/fe8.json` (94 KB: 189 symbols, 126 spans, 1234 ROM-name lookups, enums,

@@ -16,7 +16,13 @@ _(nothing blocked)_
   logs sound register writes with cycle (`psg_writes.txt`; `ReferenceData.Run.psgWrites`); `audio_menu` has it.
   mGBA write times vary 4.6k..31k cycles after VBlank. Tried feeding the measured time per frame to the solo
   synths: still 6 misses (other ones), so timing doesn't explain them. Left: ch1 f953 q0 (ours 1545 vs 216:
-  mGBA's note already silent; note triggered step 949) and f991 q1, wave f980 q1..2 (ours ~250 vs 2), ch1 f925.
+  mGBA's note already silent; note triggered step 949) and f991 q1, wave f980 q1..2 (ours ~250 vs 2), ch1 f1009.
+  f953: by the grid (step 7 at 68198 + k*262144 from boot) NR12 0x32 written in step 949 reaches volume 0 at
+  step 954 cycle ~4.6k whatever the write time, so ours is one envelope step late on this note only: check
+  `PsgSynth.trigger`/`sequencerStep` vs mGBA `_resetEnvelope` + case 7 for this phase (scratch: print our
+  envelope steps for ch1 f949..f954). Wave f980: NR30 DAC off in step 981 (mGBA flat after, ours DC tail).
+  Stopped channels now hold their last level (mGBA `GBAudioSamplePSG` adds `chN.sample` regardless; no change
+  in the test metrics).
 - Done 2026-11-02 (22:5x run): frame sequencer locked to the CPU clock as in mGBA: `PsgSynth.startAtFrame`
   (step 7 at cycle 68198 + k*262144; writes land 17408 cycles into a frame, applied at render start, so the
   grid is shifted by that). `M4aDriver` calls it with its frame count. `M4aNoteTest` now runs ch1/ch2/wave

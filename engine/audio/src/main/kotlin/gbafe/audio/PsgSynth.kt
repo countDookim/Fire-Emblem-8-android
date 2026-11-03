@@ -57,8 +57,10 @@ public class PsgSynth(
             var l = 0f
             var r = 0f
             for (c in 0 until 4) {
-                if (!on[c]) continue
-                val v = sample(c)
+                // A stopped channel holds its last level (mGBA: `GBAudioSamplePSG` adds `chN.sample`,
+                // which only updates while playing); the DC blocker removes it slowly.
+                val v = if (on[c]) sample(c).also { held[c] = it } else held[c]
+                if (v == 0f) continue
                 if (channelMask ushr c and 1 == 0) continue
                 if (nr51 ushr (4 + c) and 1 != 0) l += v
                 if (nr51 ushr c and 1 != 0) r += v
@@ -80,6 +82,7 @@ public class PsgSynth(
     /** Samples into a frame at which the driver's register writes take effect. */
     private val writeSamples = (WRITE_CYCLES.toLong() * sampleRate / CPU_HZ).toInt()
     private var frameTiming = false
+    private val held = FloatArray(4)
     private var nr51 = 0
     private var gainL = 0f
     private var gainR = 0f

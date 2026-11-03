@@ -322,7 +322,7 @@ class M4aNoteTest {
                     }
                 }
                 println("M4aNoteTest: PSG quarter frames off vs mGBA: $bad of $loud")
-                assertTrue(bad * 25 < loud, "PSG envelope timing: $bad of $loud quarter frames off")
+                assertTrue(bad * 50 < loud, "PSG envelope timing: $bad of $loud quarter frames off")
                 assertTrue(psgRms / mgba in 0.75..1.2, "PSG RMS $psgRms vs mGBA $mgba")
             }
         }

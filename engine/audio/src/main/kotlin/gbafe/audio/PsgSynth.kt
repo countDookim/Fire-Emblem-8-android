@@ -44,21 +44,11 @@ public class PsgSynth(
      * [gain] per unit of PSG level (one square at volume 15 swings 0..30 * [gain]).
      */
     public fun render(out: FloatArray, frames: Int, gain: Float) {
-        val loads = psg.takeLengthLoads()
-        for (c in 0 until 4) {
-            if (loads ushr c and 1 == 0) continue
-            val v = psg.read(NRX1[c])
-            length[c] = if (c == 2) 256 - v else 64 - (v and 0x3F)
-        }
-        val t = psg.takeTriggers()
-        for (c in 0 until 4) if (t ushr c and 1 != 0) trigger(c)
-        if (psg.read(0x04000070) and 0x80 == 0) on[2] = false // NR30 DAC off
-        val nr51 = psg.read(M4aPsg.NR51)
-        val nr50 = psg.read(M4aPsg.NR50)
-        val ratio = RATIO[psg.read(M4aPsg.SOUNDCNT_H) and 3]
-        val gainL = gain * ratio * (((nr50 ushr 4) and 7) + 1) / 8f
-        val gainR = gain * ratio * ((nr50 and 7) + 1) / 8f
+        // Frame timing: the driver's writes land WRITE_CYCLES into the frame (as in mGBA), the
+        // first samples still play the previous state.
+        val w = if (frameTiming) minOf(frames, writeSamples) else 0
         for (i in 0 until frames) {
+            if (i == w) applyWrites(gain)
             seqPhase += SEQUENCER_HZ / sampleRate
             while (seqPhase >= 1.0) {
                 seqPhase -= 1.0
@@ -84,17 +74,51 @@ public class PsgSynth(
             out[2 * i] += if (highPass) hpL else xl
             out[2 * i + 1] += if (highPass) hpR else xr
         }
+        if (w == frames) applyWrites(gain)
+    }
+
+    /** Samples into a frame at which the driver's register writes take effect. */
+    private val writeSamples = (WRITE_CYCLES.toLong() * sampleRate / CPU_HZ).toInt()
+    private var frameTiming = false
+    private var nr51 = 0
+    private var gainL = 0f
+    private var gainR = 0f
+
+    /** The registers as the synth last latched them (at the write point of a frame). */
+    private val latched = IntArray(0x40)
+
+    private fun reg(address: Int): Int = latched[address - M4aPsg.BASE]
+
+    private fun applyWrites(gain: Float) {
+        psg.regs.copyInto(latched)
+        val loads = psg.takeLengthLoads()
+        for (c in 0 until 4) {
+            if (loads ushr c and 1 == 0) continue
+            val v = reg(NRX1[c])
+            length[c] = if (c == 2) 256 - v else 64 - (v and 0x3F)
+        }
+        val t = psg.takeTriggers()
+        for (c in 0 until 4) if (t ushr c and 1 != 0) trigger(c)
+        if (reg(0x04000070) and 0x80 == 0) on[2] = false // NR30 DAC off
+        nr51 = reg(M4aPsg.NR51)
+        val nr50 = reg(M4aPsg.NR50)
+        val ratio = RATIO[reg(M4aPsg.SOUNDCNT_H) and 3]
+        gainL = gain * ratio * (((nr50 ushr 4) and 7) + 1) / 8f
+        gainR = gain * ratio * ((nr50 and 7) + 1) / 8f
     }
 
     /**
      * Sets the 512 Hz frame sequencer phase for output starting at game frame [frame] (frames
      * since boot): the sequencer runs off the CPU clock (280896 cycles per frame), so envelope,
      * length and sweep steps fall at the same points of each frame as in mGBA. A synth that
-     * renders every frame from boot needs no call.
+     * renders every frame from boot needs no call. Each [render] is then one frame: register
+     * writes take effect `WRITE_CYCLES` (17408) CPU cycles into it, as the game's `SoundMain`
+     * writes them in mGBA (measured: 4.6k..31k cycles after VBlank, varying with the frame's work).
      */
     public fun startAtFrame(frame: Int) {
-        // Writes apply at the start of a render (frame); in mGBA they land TRIGGER_CYCLES later.
-        val cycle = frame.toLong() * FRAME_CYCLES - SEQ_OFFSET_CYCLES + TRIGGER_CYCLES
+        frameTiming = true
+        // A render starts at the frame boundary (VBlank); the driver's writes apply later in it.
+        val cycle = frame.toLong() * FRAME_CYCLES - SEQ_OFFSET_CYCLES
         val t = cycle.toDouble() / SEQ_TICK_CYCLES
         val tick = floor(t)
         seqPhase = t - tick
@@ -120,7 +144,7 @@ public class PsgSynth(
         }
         if (seqStep == 7) {
             for (c in ENVELOPE_CHANNELS) {
-                val nrx2 = psg.read(NRX2[c])
+                val nrx2 = reg(NRX2[c])
                 val period = nrx2 and 7
                 if (!on[c] || period == 0) continue
                 if (--envTimer[c] > 0) continue
@@ -134,27 +158,27 @@ public class PsgSynth(
         }
     }
 
-    private fun n4(c: Int): Int = psg.read(NRX4[c])
+    private fun n4(c: Int): Int = reg(NRX4[c])
 
-    private fun freqReg(c: Int): Int = psg.read(NRX3[c]) or ((n4(c) and 7) shl 8)
+    private fun freqReg(c: Int): Int = reg(NRX3[c]) or ((n4(c) and 7) shl 8)
 
     private fun trigger(c: Int) {
         on[c] = true
         // mGBA keeps the square duty position across triggers (as hardware); others restart.
         if (c >= 2) phase[c] = 0.0
         if (c == 2) {
-            on[c] = psg.read(0x04000070) and 0x80 != 0
+            on[c] = reg(0x04000070) and 0x80 != 0
             if (length[c] == 0) length[c] = 256
             return
         }
-        val nrx2 = psg.read(NRX2[c])
+        val nrx2 = reg(NRX2[c])
         volume[c] = nrx2 ushr 4
         envTimer[c] = nrx2 and 7
         if (length[c] == 0) length[c] = 64
         if (nrx2 and 0xF8 == 0) on[c] = false // DAC off
         if (c == 3) lfsr = 0x7FFF
         if (c == 0) {
-            val nr10 = psg.read(NR10)
+            val nr10 = reg(NR10)
             shadowFreq = freqReg(0)
             sweepTimer = ((nr10 ushr 4) and 7).let { if (it == 0) 8 else it }
             sweepOn = nr10 and 0x77 != 0
@@ -170,7 +194,7 @@ public class PsgSynth(
     /** 128 Hz sweep clock of square 1: new frequency written back to NR13/NR14. */
     private fun sweepStep() {
         if (!on[0] || !sweepOn || --sweepTimer > 0) return
-        val nr10 = psg.read(NR10)
+        val nr10 = reg(NR10)
         val period = (nr10 ushr 4) and 7
         sweepTimer = if (period == 0) 8 else period
         if (period == 0) return
@@ -195,7 +219,7 @@ public class PsgSynth(
         when (c) {
             0, 1 -> {
                 val dp = 131072.0 / (2048 - freqReg(c)) / sampleRate
-                val d = (psg.read(NRX1[c]) ushr 6) and 3
+                val d = (reg(NRX1[c]) ushr 6) and 3
                 val duty = DUTY[d]
                 // Hardware duty patterns (00000001, 10000001, 10000111, 01111110): the high part
                 // starts at step 7, 7, 5, 1 of 8; shift so it starts at phase 0 here.
@@ -210,7 +234,7 @@ public class PsgSynth(
                 return vol * (2.0 * high / dp).toFloat()
             }
             2 -> {
-                val nr32 = psg.read(0x04000073)
+                val nr32 = reg(0x04000073)
                 // Bit 7 forces 75% (GBA only); else bits 5-6: 0%, 100%, 50%, 25%.
                 val shift = if (nr32 and 0x80 != 0) FORCE_75 else WAVE_SHIFT[(nr32 ushr 5) and 3]
                 if (shift < 0) {
@@ -228,7 +252,7 @@ public class PsgSynth(
                 return (area / dx).toFloat()
             }
             else -> {
-                val nr43 = psg.read(0x0400007C)
+                val nr43 = reg(0x0400007C)
                 val r = (nr43 and 7).let { if (it == 0) 0.5 else it.toDouble() }
                 val dp = 524288.0 / r / (1 shl ((nr43 ushr 4) + 1)) / sampleRate
                 val vol = volume[c].toFloat()
@@ -264,7 +288,7 @@ public class PsgSynth(
      * blocker turns into the same transients.
      */
     private fun waveLevel(pos: Int, shift: Int): Float {
-        val b = psg.read(M4aPsg.WAVE_RAM + pos / 2)
+        val b = reg(M4aPsg.WAVE_RAM + pos / 2)
         val s = if (pos and 1 == 0) b ushr 4 else b and 0x0F
         if (shift == FORCE_75) return ((s * 3 shr 2) * 2).toFloat()
         return ((s shr shift) * 2).toFloat()
@@ -294,9 +318,11 @@ public class PsgSynth(
         const val SEQ_TICK_CYCLES = 32768L
 
         // Measured on mGBA's audio_psg2 output (envelope steps, note onsets vs frame ends):
-        // step 7 at cycle SEQ_OFFSET_CYCLES + 8k * 32768, register writes ~34 samples into a frame.
+        // step 7 at cycle SEQ_OFFSET_CYCLES + 8k * 32768; register writes land
+        // ~WRITE_CYCLES after VBlank (harness --psg-writes: 4.6k..31k, varies with the frame).
         const val SEQ_OFFSET_CYCLES = 68198L
-        const val TRIGGER_CYCLES = 17408
+        const val WRITE_CYCLES = 17408
+        const val CPU_HZ = 16777216L
         const val NR10 = 0x04000060
         val RATIO = floatArrayOf(0.25f, 0.5f, 1f, 0f)
         val ENVELOPE_CHANNELS = intArrayOf(0, 1, 3)

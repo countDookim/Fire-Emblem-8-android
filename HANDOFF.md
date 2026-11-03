@@ -10,9 +10,12 @@ _(nothing blocked)_
   (`DecompSources`; `RecordingSources` = CLI `--write-manifest`; `ManifestSources` = CLI `--manifest`, no decomp).
   Committed `tools/extract/manifest/fe8.json` (94 KB: 189 symbols, 126 spans, 1234 ROM-name lookups, enums,
   faces). `tools/ci_check_extraction.sh` now also fails on a stale manifest and on manifest-only output != decomp
-  output (run locally with symlinked map/nm: 1830 files OK). Next: library module (move `Fe8Steps` + extractors
-  out of the CLI: write through an output sink (path -> bytes) instead of `File`, ROM as `ByteArray`, no
-  `java.io` in the core so it can go to KMP `commonMain`, M4-07); then M4-04.
+  output (run locally with symlinked map/nm: 1830 files OK). Also done: core `runFe8Steps(rom: ByteArray,
+  ExtractSources, ExtractOutput)` (no `File`; CLI wrapper uses `FileOutput`). Next: new module (e.g.
+  `:engine:extract` or `:gba:extract` per M4-06) holding the core + extractors + `ManifestSources` + manifest as a
+  resource, `:tools:extract` keeps CLI/`DecompSources`/`Symbols`/`DecompEnums`; check no `java.*` in the moved
+  code (`MessagesExtractor.readFaces(File)` stays in the CLI); then M4-04. Local CI check: symlink baserom,
+  extracted, ROM-repo `decomp/fireemblem8.{map,nm.txt}` into a dir and run with `FE8_ASSETS=<dir>`.
 - Done 2026-11-03 (14:5x run), M3-14: `PsgSynth` NRx2 writes without trigger as mGBA `_writeEnvelope` (GBA
   style): DAC off (vol 0 + decrease) stops the channel, envelope `dead` state (held at 0/15, period 0), a dead
   envelope revived by a write reloads its timer (`M4aPsg.envelopeWrites`; `PsgSynthTest`). No change in the 6

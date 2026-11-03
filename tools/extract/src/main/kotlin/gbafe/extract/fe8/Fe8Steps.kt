@@ -20,19 +20,17 @@ public fun runFe8Steps(args: ExtractArgs): List<String> {
     val decomp = args.manifest?.let { ManifestSources(it.readText()) }
         ?: args.symbols?.let { DecompSources(Symbols(it), args.decomp) } ?: return emptyList()
     val recording = args.writeManifest?.let { RecordingSources(decomp) }
-    val written = runFe8Steps(args, recording ?: decomp)
+    val written = runFe8Steps(args.rom.readBytes(), recording ?: decomp, FileOutput(args.out))
     if (recording != null) args.writeManifest.writeText(Json.write(recording.manifest()))
     return written
 }
 
-/** Runs the FE8 steps with the decomp answers from [symbols]; see [runFe8Steps]. */
-public fun runFe8Steps(
-    args: ExtractArgs,
-    symbols: ExtractSources,
-    out: ExtractOutput = FileOutput(args.out),
-): List<String> {
+/**
+ * The extraction core (no files: what the app runs on device, M4-04): every FE8 step on [rom] with
+ * the decomp answers from [symbols], written to [out]; returns the paths written (see [runFe8Steps]).
+ */
+public fun runFe8Steps(rom: ByteArray, symbols: ExtractSources, out: ExtractOutput): List<String> {
     val written = ArrayList<String>()
-    val rom by lazy { args.rom.readBytes() }
     val names = symbols.enumNames("include/constants/items.h", "ITEM_")
     val items = symbols["gItemData"]
     val json = gbafe.extract.fe8.items.ItemsExtractor.extractJson(

@@ -23,7 +23,8 @@ _(nothing blocked)_
   envelope steps for ch1 f949..f954). Measured: our ch1 volume per eighth frame r948 3 (trigger), r949 3->2,
   r951 2->1, r953 0 from its first sample; mGBA's f953 chunk is already flat, so mGBA reached 0 earlier: the
   grid estimate above is off somewhere; compare our `seqStep` at each step-7 with mGBA's (log
-  `audio->frame` in the harness hook if needed). Wave f980: NR30 DAC off in step 981 (mGBA flat after, ours DC tail).
+  `audio->frame` in the harness hook if needed). `SEQ_OFFSET_CYCLES` sweep (misses): 60000 25, 67092 6,
+  68198 6, 69304 9, 76000 12: the phase is right; the misses are note-specific. Wave f980: NR30 DAC off in step 981 (mGBA flat after, ours DC tail).
   Stopped channels now hold their last level (mGBA `GBAudioSamplePSG` adds `chN.sample` regardless; no change
   in the test metrics).
 - Done 2026-11-02 (22:5x run): frame sequencer locked to the CPU clock as in mGBA: `PsgSynth.startAtFrame`

@@ -4,5 +4,5 @@ plugins {
 
 dependencies {
     api(project(":engine:core"))
-    api(project(":engine:vfs"))
+    api(project(":gba:vfs"))
 }

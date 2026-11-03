@@ -1,4 +1,4 @@
-package gbafe.vfs
+package gba.vfs
 
 import java.util.zip.CRC32
 

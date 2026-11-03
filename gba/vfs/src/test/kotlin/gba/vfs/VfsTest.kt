@@ -1,4 +1,4 @@
-package gbafe.vfs
+package gba.vfs
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

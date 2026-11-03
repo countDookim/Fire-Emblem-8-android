@@ -4,7 +4,7 @@
 
 **Context.** Mods override any content by path (folders or zips), with dependencies, load order, hot reload.
 
-**Decision.** `gbafe.vfs.VirtualFileSystem` is the *only* way to read content, at load/reload time only.
+**Decision.** `gba.vfs.VirtualFileSystem` is the *only* way to read content, at load/reload time only.
 - Normalised virtual paths (`data/items.json`, `maps/ch01.tmj`, `text/en/ch01.json`); `..` rejected.
 - Layers, lowest first: `base` (release: extracted to `filesDir/base/`; debug/test: APK assets; tests:
   `$FE8_ASSETS`) → mods by dependencies then `loadOrder` → `override/` (debug). Top layer wins; `list()` is the

@@ -13,14 +13,14 @@
 ## Modules
 
 ```
-app ──► game ──► engine:{core,vfs,data,input,render,audio,script,text,save}
+app ──► game ──► gba:vfs, engine:{core,data,input,render,audio,script,text,save}
 testing ──► game         (every engine module depends only on engine:core)
 ```
 
 | Module | Holds | Status |
 |---|---|---|
 | `engine:core` | clock + loop (59.7275 Hz), RNG, procs, event bus, flags, mechanics | working |
-| `engine:vfs` | layered VFS, mod manifest, texture overrides | dir layers |
+| `gba:vfs` | layered VFS, mod manifest, texture overrides | dir layers |
 | `engine:data` | LZ77/tile/TSA/colour decoders; JSON table contract | decoders |
 | `engine:input` | actions, `KeyStatus`, `TouchButtons`, button map | working |
 | `engine:render` | `RenderState`, `SoftwareRenderer`, `GpuFrame` + `PackedCompositor` (shader spec), `LcdControl` | software + GPU |

@@ -1,8 +1,8 @@
 package fe8.app
 
 import android.content.res.AssetManager
-import gbafe.vfs.VfsLayer
-import gbafe.vfs.VirtualFileSystem
+import gba.vfs.VfsLayer
+import gba.vfs.VirtualFileSystem
 import java.io.InputStream
 
 /**

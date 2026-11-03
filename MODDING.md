@@ -26,7 +26,7 @@ Today the extractor writes graphics to `fonts/`, `portraits/`, `mapsprites/`, `u
 loaders land; until then `gfx/`/`audio/` above are the planned grouping. The boot screens and all sound currently
 run on raw ROM windows (`RomView.BOOT_WINDOWS`, `RomView.SOUND_WINDOWS`), so no asset override reaches them yet.
 
-**Texture packs** (`gbafe.vfs.TextureOverrides`, ADR 0008): `<asset>@<N>x.png` (N = 1..8) beside the original.
+**Texture packs** (`gba.vfs.TextureOverrides`, ADR 0008): `<asset>@<N>x.png` (N = 1..8) beside the original.
 Indexed PNGs keep palette animation; true-colour ones may add `<asset>@<N>x.<paletteHash>.png` variants.
 
 ## Strategies

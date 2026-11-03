@@ -1,4 +1,4 @@
-package gbafe.vfs
+package gba.vfs
 
 /**
  * Parsed `mod.json` manifest of a mod folder or zip. The loader (milestone 7) validates dependencies,

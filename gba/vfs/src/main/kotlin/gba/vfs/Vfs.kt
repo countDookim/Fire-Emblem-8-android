@@ -1,4 +1,4 @@
-package gbafe.vfs
+package gba.vfs
 
 import java.io.File
 import java.io.InputStream

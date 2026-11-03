@@ -13,7 +13,8 @@ on the launcher screen).
 - 2026-11-01: touch layout inside the safe area, cross D-pad (#3); PSG (CGB) sound in the op theme.
 
 ## Newly testable
-_(nothing open)_
+- PSG (square/wave) sound after the 2026-11-03 fixes: the op theme's PSG parts sound like mGBA/hardware (no
+  clicks or missing note restarts); compare with an emulator if you can.
 
 ## Known not working (don't report)
 Everything after the title: no gameplay or saves; title key presses do nothing yet.

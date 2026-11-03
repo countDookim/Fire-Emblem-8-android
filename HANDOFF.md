@@ -1,18 +1,29 @@
 # HANDOFF
 
-_Updated 2026-11-02 (scheduled run 22:5x). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-11-03 (scheduled run 06:5x). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: M3-14 PSG: remaining ch2 first-step misses, then owner listen test
+## NEXT RUN, FIRST: M3-14 owner listen test (MANUAL_TEST), meanwhile the last 6 PSG quarter-frame misses
+- Done 2026-11-03 (06:5x run): **port bug fixed**: `MPlayMain` (m4a_1.s `_081DD9F6`) sets CGB `mo |= 1` on a
+  track volume change and `mo |= 2` on pitch change; `M4aSequencer.updateChannels` didn't, so `CgbSound` missed
+  retriggers (ch2 notes at r906/r932 = the "first-step misses"). `PsgSynth` frame timing: after `startAtFrame`
+  each render is one frame and the register file is latched `WRITE_CYCLES` (17408) after VBlank (old state
+  plays first; all reads go through the latched copy). Quarter frames off 41 -> 6 of 857 (asserted < 1/50),
+  RMS 1249/1200. `M4aNoteTest` asserts per-frame PSG trigger sets = mGBA (f901..f1100).
+- ROM repo 5b4fbe3: harness `--psg-writes` (build.sh patches libmgba `GBAIOWrite*` with `gbaHarnessIoHook`)
+  logs sound register writes with cycle (`psg_writes.txt`; `ReferenceData.Run.psgWrites`); `audio_menu` has it.
+  mGBA write times vary 4.6k..31k cycles after VBlank. Tried feeding the measured time per frame to the solo
+  synths: still 6 misses (other ones), so timing doesn't explain them. Left: ch1 f953 q0 (ours 1545 vs 216:
+  mGBA's note already silent; note triggered step 949) and f991 q1, wave f980 q1..2 (ours ~250 vs 2), ch1 f925.
 - Done 2026-11-02 (22:5x run): frame sequencer locked to the CPU clock as in mGBA: `PsgSynth.startAtFrame`
   (step 7 at cycle 68198 + k*262144; writes land 17408 cycles into a frame, applied at render start, so the
   grid is shifted by that). `M4aDriver` calls it with its frame count. `M4aNoteTest` now runs ch1/ch2/wave
   solo synths and compares peak-to-peak per quarter frame with `audio_psg1/2/4` (f900..f1099): 41 of 856 off
   (was 133 unaligned; asserted < 1/15). Per channel (scratch analysis): ch1 70 -> 4, ch2 18, wave 4.
   Mix RMS unchanged 1246/1200.
-- Open: ch2 notes at dumps 906 and 932 step one 64 Hz event later in mGBA than ours (others match; 947 with
+- Resolved 2026-11-03 (missing MPlayMain `mo` flags, not timing): ch2 notes at dumps 906 and 932 step one 64 Hz event later in mGBA than ours (others match; 947 with
   a similar trigger phase matches). mGBA 0.10.5 `src/gb/audio.c` logic = ours (checked: `_resetEnvelope`,
   case 7, `_updateEnvelopeDead` reloads `nextStep` on an NRx2 write only when dead). Likely the in-frame write
   time varies (CgbSound runs after the DirectSound mix: work varies per frame); a constant `TRIGGER_CYCLES`

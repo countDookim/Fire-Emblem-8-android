@@ -1,11 +1,26 @@
 # HANDOFF
 
-_Updated 2026-11-03 (scheduled run 06:5x). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-11-03 (scheduled run 14:5x). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: M3-14 owner listen test (MANUAL_TEST), meanwhile the last 6 PSG quarter-frame misses
+## NEXT RUN, FIRST: M4-03 library module (TASKS.md); M3-14 waits on the owner listen test (MANUAL_TEST)
+- Done 2026-11-03 (14:5x run), M4-03 manifest: steps ask the decomp via `gbafe.extract.ExtractSources`
+  (`DecompSources`; `RecordingSources` = CLI `--write-manifest`; `ManifestSources` = CLI `--manifest`, no decomp).
+  Committed `tools/extract/manifest/fe8.json` (94 KB: 189 symbols, 126 spans, 1234 ROM-name lookups, enums,
+  faces). `tools/ci_check_extraction.sh` now also fails on a stale manifest and on manifest-only output != decomp
+  output (run locally with symlinked map/nm: 1830 files OK). Next: library module (move `Fe8Steps` + extractors
+  out of the CLI: write through an output sink (path -> bytes) instead of `File`, ROM as `ByteArray`, no
+  `java.io` in the core so it can go to KMP `commonMain`, M4-07); then M4-04.
+- Done 2026-11-03 (14:5x run), M3-14: `PsgSynth` NRx2 writes without trigger as mGBA `_writeEnvelope` (GBA
+  style): DAC off (vol 0 + decrease) stops the channel, envelope `dead` state (held at 0/15, period 0), a dead
+  envelope revived by a write reloads its timer (`M4aPsg.envelopeWrites`; `PsgSynthTest`). No change in the 6
+  quarter-frame misses (`M4aNoteTest` now prints them). Analysis: they are envelope steps landing within ~2k
+  cycles of a quarter boundary, ours late at f953/f981 and early at f991: not one constant phase offset.
+  Deriving mGBA's grid from `psg_writes.txt` abs cycles (frame event every 32768 from reset, NR52 enable at
+  f13 -> step 7 at events = 2 mod 8) gives offset 43290 (or +k*32768): 43290 -> 30 misses, 76058 -> 12; so the
+  log's abs cycle or my chunk mapping is off. Low value; leave unless the owner hears a problem.
 - Done 2026-11-03 (06:5x run): **port bug fixed**: `MPlayMain` (m4a_1.s `_081DD9F6`) sets CGB `mo |= 1` on a
   track volume change and `mo |= 2` on pitch change; `M4aSequencer.updateChannels` didn't, so `CgbSound` missed
   retriggers (ch2 notes at r906/r932 = the "first-step misses"). `PsgSynth` frame timing: after `startAtFrame`

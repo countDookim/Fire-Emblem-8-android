@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test
 class ManifestResourceTest {
     @Test
     fun `the bundled FE8 manifest loads and answers lookups`() {
-        val m = ManifestSources.fe8()
+        val m = ManifestSources.bundled("fe8")
         assertNotNull(m)
         m!!
         assertEquals(0x08000000, m["gItemData"].address and 0xFF000000.toInt())

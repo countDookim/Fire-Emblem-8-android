@@ -79,9 +79,12 @@ public class RecordingSources(private val inner: ExtractSources) : ExtractSource
  */
 public class ManifestSources(json: String) : ExtractSources {
     public companion object {
-        /** The committed FE8 (U) manifest bundled as a resource, or null if absent. */
-        public fun fe8(): ManifestSources? =
-            ManifestSources::class.java.getResource("/gbafe/extract/manifest/fe8.json")
+        /**
+         * The committed manifest of [game] (its file name, e.g. the FE8 one) bundled as the
+         * resource `gbafe/extract/manifest/<game>.json`, or null if absent.
+         */
+        public fun bundled(game: String): ManifestSources? =
+            ManifestSources::class.java.getResource("/gbafe/extract/manifest/$game.json")
                 ?.readText()?.let(::ManifestSources)
     }
 

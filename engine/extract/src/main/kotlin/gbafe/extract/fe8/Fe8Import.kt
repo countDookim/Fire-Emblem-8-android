@@ -11,9 +11,9 @@ public object Fe8Import {
     /** Bump when extractor output changes (forces re-extraction on device). */
     public const val FORMAT_VERSION: Int = 1
 
-    /** Importer running [runFe8Steps] from the bundled manifest ([ManifestSources.fe8]). */
+    /** Importer running [runFe8Steps] from the bundled manifest ([ManifestSources.bundled]). */
     public fun importer(): RomImporter {
-        val symbols = ManifestSources.fe8()
+        val symbols = ManifestSources.bundled("fe8")
             ?: throw IllegalStateException("extraction manifest missing")
         return RomImporter(ROM_SHA1, FORMAT_VERSION) { rom, out -> runFe8Steps(rom, symbols, out) }
     }

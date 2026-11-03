@@ -94,3 +94,55 @@ public class RecordingSources(private val inner: ExtractSources) : ExtractSource
         "faces" to faceNames,
     )
 }
+
+/**
+ * [ExtractSources] answered from a manifest written by [RecordingSources] (no decomp needed): the
+ * way extraction runs on device. Asking for something the manifest lacks throws, so a step that
+ * changed its queries fails loudly until the manifest is regenerated.
+ */
+public class ManifestSources(json: String) : ExtractSources {
+    private val m = gbafe.data.JsonReader.parse(json) as Map<*, *>
+
+    init {
+        require(m["format"] == 1L) { "unsupported manifest format ${m["format"]}" }
+    }
+
+    private fun section(key: String): Map<*, *> = m[key] as Map<*, *>
+
+    private fun missing(what: String): Nothing =
+        throw IllegalArgumentException("$what not in the extraction manifest (regenerate it)")
+
+    override fun get(name: String): Symbols.Symbol {
+        val s = section("symbols")[name] as? Map<*, *> ?: missing("symbol $name")
+        return Symbols.Symbol(name, (s["address"] as Long).toInt(), (s["size"] as Long).toInt())
+    }
+
+    override fun sizeOrSpan(name: String): Int =
+        (section("spans")[name] as? Long ?: missing("span of $name")).toInt()
+
+    override fun namesWithPrefix(prefix: String): List<String> =
+        (section("prefixes")[prefix] as? List<*> ?: missing("prefix $prefix")).map { it as String }
+
+    override fun romNamesByAddress(): Map<Int, String> {
+        val names = section("romNames")
+        return object : AbstractMap<Int, String>() {
+            override val entries: Set<Map.Entry<Int, String>>
+                get() = throw UnsupportedOperationException("manifest ROM names are lookup-only")
+
+            override fun get(key: Int): String? {
+                val k = "0x%08X".format(key.toLong() and 0xFFFFFFFFL)
+                if (!names.containsKey(k)) missing("ROM name of $k")
+                return names[k] as String?
+            }
+        }
+    }
+
+    override fun enumNames(relPath: String, prefix: String): Map<Int, String> {
+        val e = section("enums")["$relPath $prefix"] as? Map<*, *> ?: missing("enum $relPath $prefix")
+        return e.entries.associate { (k, v) -> (k as String).toInt() to v as String }
+    }
+
+    override fun faces(): Map<String, Int> =
+        (m["faces"] as? Map<*, *> ?: missing("faces")).entries
+            .associate { (k, v) -> k as String to (v as Long).toInt() }
+}

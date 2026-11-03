@@ -3,6 +3,7 @@ package gbafe.extract.fe8
 import gbafe.extract.DecompSources
 import gbafe.extract.ExtractSources
 import gbafe.extract.Json
+import gbafe.extract.ManifestSources
 import gbafe.extract.RecordingSources
 import gbafe.extract.ExtractArgs
 import gbafe.extract.Symbols
@@ -15,7 +16,8 @@ import java.io.File
  * `boot/` (boot screen ROM windows), `mapsprites/` (standing + moving), `portraits/` (sheets, chibis, mouths, cards + `portraits.json`) (need `--symbols`; ids and face names need `--decomp`).
  */
 public fun runFe8Steps(args: ExtractArgs): List<String> {
-    val decomp = args.symbols?.let { DecompSources(Symbols(it), args.decomp) } ?: return emptyList()
+    val decomp = args.manifest?.let { ManifestSources(it.readText()) }
+        ?: args.symbols?.let { DecompSources(Symbols(it), args.decomp) } ?: return emptyList()
     val recording = args.writeManifest?.let { RecordingSources(decomp) }
     val written = runFe8Steps(args, recording ?: decomp)
     if (recording != null) args.writeManifest.writeText(Json.write(recording.manifest()))

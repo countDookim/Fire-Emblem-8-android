@@ -43,7 +43,7 @@ import fe8.game.Fe8Game
 import fe8.game.Fe8Sound
 import gbafe.audio.PcmStream
 import gbafe.extract.fe8.Fe8Import
-import gbafe.vfs.DirectoryLayer
+import gba.vfs.DirectoryLayer
 import io.github.countdookim.fe8.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

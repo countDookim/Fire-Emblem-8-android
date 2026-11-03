@@ -7,8 +7,8 @@ import gbafe.extract.ExtractOutput
 import gbafe.extract.RomCheck
 import gbafe.extract.RomImporter
 import gbafe.extract.fe8.Fe8Import
-import gbafe.vfs.DirectoryLayer
-import gbafe.vfs.VfsLayer
+import gba.vfs.DirectoryLayer
+import gba.vfs.VfsLayer
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

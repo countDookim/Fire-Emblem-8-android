@@ -17,6 +17,30 @@ class PsgSynthTest {
     }
 
     @Test
+    fun `frame timing applies writes 17408 cycles into the frame and holds a stopped level`() {
+        val psg = M4aPsg()
+        val synth = PsgSynth(psg, 13379)
+        synth.highPass = false
+        synth.startAtFrame(1000)
+        psg.write(M4aPsg.NR51, 0x22)
+        psg.write(0x04000068, 0xC0) // 75% duty
+        psg.write(0x04000069, 0xF0)
+        psg.write(0x0400006D, 0x87) // freq 0x700: 2048 Hz
+        val out = FloatArray(2 * 224)
+        synth.render(out, 224, 1f)
+        val w = (17408L * 13379 / 16777216).toInt() // 13 samples
+        assertTrue((0 until w).all { out[2 * it] == 0f }, "silent before the write point")
+        assertTrue((w until 224).any { out[2 * it] > 0f }, "playing after it")
+        psg.write(0x04000069, 0x00) // DAC off: the channel stops
+        psg.write(0x0400006D, 0x87)
+        out.fill(0f)
+        synth.render(out, 224, 1f)
+        val last = out[2 * (w - 1)]
+        assertTrue(last > 0f, "previous level until the write point")
+        assertTrue((w until 224).all { out[2 * it] == out[2 * w] }, "stopped: last level held")
+    }
+
+    @Test
     fun `square 2 plays its register frequency and duty, panned by NR51`() {
         val psg = M4aPsg()
         val synth = PsgSynth(psg, rate)

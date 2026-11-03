@@ -6,9 +6,8 @@ plugins {
 }
 
 dependencies {
-    // api: IndexedPng exposes gbafe.data.IndexedImage.
-    api(project(":engine:data"))
-    implementation(project(":engine:text"))
+    // api: the CLI's callers (testing) use the extraction core directly.
+    api(project(":engine:extract"))
 }
 
 application {

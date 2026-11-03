@@ -15,7 +15,7 @@ class RecordingSourcesTest {
 
     @Test
     fun `records exactly the answers the run used`() {
-        val rec = RecordingSources(DecompSources(symbols, null))
+        val rec = RecordingSources(SymbolSources(symbols))
         assertEquals(0x08000100, rec["gTableA"].address)
         assertEquals(0xF0, rec.sizeOrSpan("gTableB"))
         assertEquals(listOf("gTableA", "gTableB"), rec.namesWithPrefix("gTable"))
@@ -32,7 +32,7 @@ class RecordingSourcesTest {
 
     @Test
     fun `a written manifest answers the same as the decomp and refuses other queries`() {
-        val rec = RecordingSources(DecompSources(symbols, null))
+        val rec = RecordingSources(SymbolSources(symbols))
         rec["gTableA"]
         rec.sizeOrSpan("gTableB")
         rec.namesWithPrefix("gTable")
@@ -50,4 +50,19 @@ class RecordingSourcesTest {
         assertThrows<IllegalArgumentException> { m["gOther"] }
         assertThrows<IllegalArgumentException> { m.romNamesByAddress()[0x08000100] }
     }
+}
+
+/** [ExtractSources] over [symbols] alone (no enums or faces), as a decomp-less run would give. */
+private class SymbolSources(private val symbols: Symbols) : ExtractSources {
+    override fun get(name: String): Symbols.Symbol = symbols[name]
+
+    override fun sizeOrSpan(name: String): Int = symbols.sizeOrSpan(name)
+
+    override fun namesWithPrefix(prefix: String): List<String> = symbols.namesWithPrefix(prefix)
+
+    override fun romNamesByAddress(): Map<Int, String> = symbols.romNamesByAddress()
+
+    override fun enumNames(relPath: String, prefix: String): Map<Int, String> = emptyMap()
+
+    override fun faces(): Map<String, Int> = emptyMap()
 }

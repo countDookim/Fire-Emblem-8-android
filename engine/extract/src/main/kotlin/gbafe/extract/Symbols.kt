@@ -1,7 +1,5 @@
 package gbafe.extract
 
-import java.io.File
-
 /**
  * Decomp ELF symbols from `nm`-style output (`fireemblem8.nm.txt` in the ROM repo):
  * `ADDR [SIZE] TYPE NAME` per line, hex fields. Used to locate ROM data tables by name, so the extractor
@@ -31,9 +29,6 @@ public class Symbols(lines: List<String>) {
     }
     private val byName: Map<String, List<Symbol>> = all.groupBy { it.name }
     private val sortedAddresses: IntArray = all.map { it.address }.distinct().sortedBy { it.toUInt() }.toIntArray()
-
-    /** Reads [file]. */
-    public constructor(file: File) : this(file.readLines())
 
     /**
      * The unique symbol [name].

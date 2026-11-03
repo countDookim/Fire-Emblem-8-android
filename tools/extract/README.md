@@ -13,7 +13,7 @@ JVM CLI: ROM → JSON tables, indexed PNGs, Tiled maps, MIDI + voicegroups, WAV,
 - Steps: `gbafe.extract.fe8.Fe8Steps`. Values come from the ROM; `--symbols`/`--map` give addresses, `--decomp`
   only names/layout. Steps ask them through `ExtractSources`: `DecompSources` (decomp), `RecordingSources`
   (`--write-manifest <file>`: records the answers used) and `ManifestSources` (`--manifest <file>`: no decomp,
-  as on device, ADR 0011). Committed manifest: `manifest/fe8.json`; `tools/ci_check_extraction.sh` fails if it
+  as on device, ADR 0011). Committed manifest: `engine/extract/src/main/resources/gbafe/extract/manifest/fe8.json`; `tools/ci_check_extraction.sh` fails if it
   is stale or if manifest-only output differs. Regenerate after changing what a step looks up.
 - Decoders the game also needs (LZ77, tiles, Huffman) live in `engine/*`. No CLI library (no plugin portal).
 - `IndexedPng`: palette PNGs via JDK zlib, no ImageIO (it reorders palettes); reads all filters.

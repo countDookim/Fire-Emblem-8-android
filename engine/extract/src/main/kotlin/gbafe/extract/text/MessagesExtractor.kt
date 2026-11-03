@@ -3,7 +3,6 @@ package gbafe.extract.text
 import gbafe.extract.Json
 import gbafe.text.MessageCodec
 import gbafe.text.MsgHuffman
-import java.io.File
 
 /**
  * Extracts every `gMsgTable` string as tagged text (`text/<lang>/messages.json`, format `gbafe.text`).
@@ -35,13 +34,13 @@ public object MessagesExtractor {
     )
 
     /**
-     * Reads face names from the decomp's `texts/textdefs.txt` lines `[FID_Name] = 0xLO, 0xHI`; the value
-     * is `lo | hi << 8` as stored after `LoadFace`.
+     * Parses `texts/textdefs.txt` content [textdefs] for face names, lines `[FID_Name] = 0xLO, 0xHI`; the
+     * value is `lo | hi << 8` as stored after `LoadFace`.
      */
-    public fun readFaces(textdefs: File): Map<String, Int> {
+    public fun parseFaces(textdefs: String): Map<String, Int> {
         val re = Regex("""^\[(FID_\w+)]\s*=\s*(0x[0-9A-Fa-f]+|\d+)\s*,\s*(0x[0-9A-Fa-f]+|\d+)\s*$""")
         val out = LinkedHashMap<String, Int>()
-        for (line in textdefs.readLines()) {
+        for (line in textdefs.lines()) {
             val m = re.matchEntire(line.trim()) ?: continue
             out[m.groupValues[1]] = num(m.groupValues[2]) or (num(m.groupValues[3]) shl 8)
         }

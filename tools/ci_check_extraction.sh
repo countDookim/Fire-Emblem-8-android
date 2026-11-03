@@ -22,9 +22,9 @@ git clone -q --filter=blob:none --sparse https://github.com/FireEmblemUniverse/f
   --write-manifest $WORK/manifest.json"
 # M4-03: the committed extraction manifest must be what the decomp gives, and extraction from the ROM and the
 # manifest alone (as on device) must give the same output.
-MANIFEST="$ROOT/tools/extract/manifest/fe8.json"
+MANIFEST="$ROOT/engine/extract/src/main/resources/gbafe/extract/manifest/fe8.json"
 if ! cmp -s "$WORK/manifest.json" "$MANIFEST"; then
-  echo "::error title=Manifest drift::tools/extract/manifest/fe8.json is stale (regenerate with --write-manifest)"
+  echo "::error title=Manifest drift::engine/extract/src/main/resources/gbafe/extract/manifest/fe8.json is stale (regenerate with --write-manifest)"
   diff "$WORK/manifest.json" "$MANIFEST" | head -20
   exit 1
 fi

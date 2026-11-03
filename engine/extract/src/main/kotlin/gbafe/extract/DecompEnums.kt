@@ -1,7 +1,5 @@
 package gbafe.extract
 
-import java.io.File
-
 /**
  * Reads `NAME = value` constants from decomp C headers (e.g. `include/constants/items.h`), to give
  * extracted rows the decomp's names as stable ids. Only plain integer literals (decimal or hex) are
@@ -23,10 +21,6 @@ public object DecompEnums {
         }
         return out
     }
-
-    /** [parse] applied to `<decomp>/<relPath>`. */
-    public fun read(decomp: File, relPath: String, prefix: String): Map<Int, String> =
-        parse(File(decomp, relPath).readText(), prefix)
 
     /**
      * Data id for decomp constant [name]: [prefix] removed (`ITEM_SWORD_IRON` → `SWORD_IRON`), unless that

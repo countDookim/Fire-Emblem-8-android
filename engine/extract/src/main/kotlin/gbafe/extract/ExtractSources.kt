@@ -1,7 +1,5 @@
 package gbafe.extract
 
-import java.io.File
-
 /**
  * Everything the extraction steps need besides the ROM: symbol addresses and sizes, ROM
  * address names and decomp enum/face names. Behind an interface so extraction can run either
@@ -26,27 +24,6 @@ public interface ExtractSources {
 
     /** Face names (`FID_*`) to ids from `texts/textdefs.txt` (empty without a decomp). */
     public fun faces(): Map<String, Int>
-}
-
-/** [ExtractSources] read from the decomp's symbol list and (optional) checkout [decomp]. */
-public class DecompSources(
-    private val symbols: Symbols,
-    private val decomp: File?,
-) : ExtractSources {
-    override fun get(name: String): Symbols.Symbol = symbols[name]
-
-    override fun sizeOrSpan(name: String): Int = symbols.sizeOrSpan(name)
-
-    override fun namesWithPrefix(prefix: String): List<String> = symbols.namesWithPrefix(prefix)
-
-    override fun romNamesByAddress(): Map<Int, String> = symbols.romNamesByAddress()
-
-    override fun enumNames(relPath: String, prefix: String): Map<Int, String> =
-        decomp?.let { DecompEnums.read(it, relPath, prefix) } ?: emptyMap()
-
-    override fun faces(): Map<String, Int> =
-        decomp?.let { File(it, "texts/textdefs.txt") }?.takeIf { it.isFile }
-            ?.let(gbafe.extract.text.MessagesExtractor::readFaces) ?: emptyMap()
 }
 
 /**
@@ -101,6 +78,13 @@ public class RecordingSources(private val inner: ExtractSources) : ExtractSource
  * changed its queries fails loudly until the manifest is regenerated.
  */
 public class ManifestSources(json: String) : ExtractSources {
+    public companion object {
+        /** The committed FE8 (U) manifest bundled as a resource, or null if absent. */
+        public fun fe8(): ManifestSources? =
+            ManifestSources::class.java.getResource("/gbafe/extract/manifest/fe8.json")
+                ?.readText()?.let(::ManifestSources)
+    }
+
     private val m = gbafe.data.JsonReader.parse(json) as Map<*, *>
 
     init {

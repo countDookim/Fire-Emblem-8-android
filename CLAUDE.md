@@ -23,3 +23,12 @@
    Rule 5 is never relaxed.
 10. Kotlin follows Google's Android Kotlin style guide (4-space indent, 100 columns, no wildcard imports, its naming,
     brace and KDoc rules) for code you write or change; don't mass-reformat existing code.
+11. **Delegate coding (owner, 2026-11-03).** The session model plans and reviews; a Sonnet subagent writes the
+    code. Per task: (a) read HANDOFF/TASKS and only the excerpts needed to plan; (b) split the task into small,
+    self-contained coding briefs (one per `Agent` call, `model: "sonnet"`), each stating: goal, files and
+    symbols to touch, exact behaviour/API (signatures, KDoc wording if public), source to port (decomp file +
+    function, `Ported from` line), the test to add/run and its command, the acceptance check, and rules 4/5/7/10
+    that apply; tell it not to commit, push or edit HANDOFF; (c) review the result from `git diff --stat` + the
+    diff of the key hunks and the test output, not by re-reading whole files; send a fix brief to the same agent
+    (`SendMessage`) rather than coding it yourself; (d) commit/push/HANDOFF yourself. Code yourself only for a
+    trivial (< ~10 line) fix or when a brief failed twice. Independent briefs may run in parallel (separate files).

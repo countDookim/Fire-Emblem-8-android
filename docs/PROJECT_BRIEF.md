@@ -115,4 +115,4 @@ script interpreter. 6. Remaining systems, each with strategy interfaces and even
 
 | Date | Change | Why |
 |---|---|---|
-| — | _(none since the 2026-10-30 consolidation)_ | |
+| 2026-11-03 | Runs are orchestrated: the session model breaks work into small, well-explained coding briefs and delegates the coding to a Sonnet subagent, then reviews diffs/tests and commits (CLAUDE.md rule 11) | Owner: save tokens |

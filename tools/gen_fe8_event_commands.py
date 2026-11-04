@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generates the FE8 event command table from the decomp's include/eventscript.h.
 
-usage: tools/gen_fe8_event_commands.py <fireemblem8u checkout> > tools/extract/src/main/kotlin/gbafe/extract/fe8/events/Fe8EventCommands.kt
+usage: tools/gen_fe8_event_commands.py <fireemblem8u checkout> > engine/extract/src/commonMain/kotlin/gbafe/extract/fe8/events/Fe8EventCommands.kt
 
 Every `#define Evt...(...)` built from exactly one `_EvtArg0`/`_EvtAutoCmdLen*` gives one row keyed by the
 encoded header (cmd, len, sub); the first macro per key wins (aliases are listed after it). Names are the

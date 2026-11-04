@@ -1,15 +1,15 @@
 package fe8.testing
 
 import gba.core.VerifiesPort
+import gba.render.Camera
+import gba.render.FrameBuffer
+import gba.render.GpuFrame
+import gba.render.HBlankLines
+import gba.render.PackedCompositor
+import gba.render.RenderState
+import gba.render.SoftwareRenderer
+import gba.render.TileSheets
 import gbafe.render.BgVerticalScroll
-import gbafe.render.Camera
-import gbafe.render.FrameBuffer
-import gbafe.render.GpuFrame
-import gbafe.render.HBlankLines
-import gbafe.render.PackedCompositor
-import gbafe.render.RenderState
-import gbafe.render.SoftwareRenderer
-import gbafe.render.TileSheets
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

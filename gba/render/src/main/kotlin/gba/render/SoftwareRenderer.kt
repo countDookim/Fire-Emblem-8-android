@@ -1,4 +1,4 @@
-package gbafe.render
+package gba.render
 
 /**
  * Reference CPU backend: composes a [RenderState] into a [FrameBuffer] scanline by scanline, the way the

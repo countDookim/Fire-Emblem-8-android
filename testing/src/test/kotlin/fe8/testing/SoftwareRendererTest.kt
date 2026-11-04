@@ -1,17 +1,17 @@
 package fe8.testing
 
-import gbafe.render.Camera
-import gbafe.render.Effects
-import gbafe.render.FrameBuffer
-import gbafe.render.GpuFrame
-import gbafe.render.PackedCompositor
-import gbafe.render.RenderState
-import gbafe.render.SoftwareRenderer
-import gbafe.render.SpriteBatch
-import gbafe.render.TileLayer
-import gbafe.render.TileSheets
-import org.junit.jupiter.api.Assertions.assertEquals
+import gba.render.Camera
+import gba.render.Effects
+import gba.render.FrameBuffer
+import gba.render.GpuFrame
+import gba.render.PackedCompositor
+import gba.render.RenderState
+import gba.render.SoftwareRenderer
+import gba.render.SpriteBatch
+import gba.render.TileLayer
+import gba.render.TileSheets
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 

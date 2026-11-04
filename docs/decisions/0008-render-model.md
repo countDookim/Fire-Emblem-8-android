@@ -9,7 +9,7 @@ per-line effects) without GBA memory mimicry, with a GPU path. Texture packs are
 - `TileLayer` (`ShortArray` tile+palette+flip map, scroll, priority, size, text/affine), `SpriteBatch`
   (fixed-capacity primitive arrays), `PaletteBank` (BG + OBJ BGR555, 2 × 256), `Effects` (blend, brightness,
   windows 0/1/OBJ, mosaic). Tile graphics addressed by sheet + index; no VRAM/OAM/register mirrors.
-- Software backend (`gbafe.render`) composes per scanline by hardware rules: the **reference** for mGBA frame
+- Software backend (`gba.render`) composes per scanline by hardware rules: the **reference** for mGBA frame
   tests. GPU backend (`:app`, shaders) must match it pixel for pixel on vanilla content.
 - **Per-line effects:** ported HBlank handlers fill an optional `LineTable` (160 lines: BG scroll/affine origin,
   window 0/1 x bounds, blend/brightness, a few palette writes). Software applies it per line; GPU uploads it as

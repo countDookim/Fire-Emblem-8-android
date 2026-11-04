@@ -1,4 +1,4 @@
-package gbafe.render
+package gba.render
 
 /**
  * Per-frame data the GPU backend uploads: everything [SoftwareRenderer] resolves per scanline, packed into

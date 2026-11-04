@@ -22,7 +22,7 @@ plugins {
 
 val docs = (gradle as ExtensionAware).extensions.extraProperties["fe8.docs"] == true
 val jvmModules = listOf(
-    ":gba:vfs", ":gba:data", ":gba:core", ":engine:core", ":engine:data", ":engine:input", ":engine:render",
+    ":gba:vfs", ":gba:data", ":gba:core", ":gba:render", ":engine:core", ":engine:data", ":engine:input", ":engine:render",
     ":engine:audio", ":engine:script", ":engine:text", ":engine:extract", ":engine:save", ":game", ":testing",
     ":tools:extract",
 )

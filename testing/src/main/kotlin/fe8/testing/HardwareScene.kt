@@ -1,11 +1,11 @@
 package fe8.testing
 
-import gbafe.render.FrameBuffer
-import gbafe.render.RenderState
-import gbafe.render.TileSheets
+import gba.render.FrameBuffer
+import gba.render.RenderState
+import gba.render.TileSheets
+import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
-import java.awt.image.BufferedImage
 
 /**
  * Test helpers for frame compares against mGBA dumps: loading a dumped frame's hardware state (via

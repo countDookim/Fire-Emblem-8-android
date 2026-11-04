@@ -1,4 +1,4 @@
-package gbafe.render
+package gba.render
 
 /**
  * Per-frame semantic render state (ADR 0008), filled by game systems each tick and consumed by the software

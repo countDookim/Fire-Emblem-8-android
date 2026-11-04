@@ -1,4 +1,4 @@
-package gbafe.render
+package gba.render
 
 /**
  * Colour-effect arithmetic used by the compositor (BGR555 in, BGR555 out). [Hardware] is the GBA's 5-bit

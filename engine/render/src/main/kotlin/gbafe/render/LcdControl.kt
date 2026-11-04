@@ -1,5 +1,7 @@
 package gbafe.render
 
+import gba.render.RenderState
+
 /**
  * The game's shadow copy of the LCD I/O registers: a port of `struct LCDControlBuffer` (`include/hardware.h`,
  * 0x6C bytes; FE8 keeps it at IWRAM 0x03003080 as `gLCDControlBuffer`). Game code edits these fields during

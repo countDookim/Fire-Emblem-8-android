@@ -1,8 +1,8 @@
 package fe8.testing
 
-import gbafe.render.LineTable
-import gbafe.render.RenderState
-import gbafe.render.SpriteBatch
+import gba.render.LineTable
+import gba.render.RenderState
+import gba.render.SpriteBatch
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

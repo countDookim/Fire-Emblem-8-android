@@ -2,14 +2,14 @@ package fe8.testing
 
 import gba.data.Bgr555
 import gba.data.Tiles
+import gba.render.Camera
+import gba.render.FrameBuffer
+import gba.render.RenderState
+import gba.render.SoftwareRenderer
+import gba.render.TileSheets
 import gbafe.extract.IndexedPng
 import gbafe.extract.ScreenExtractor
-import gbafe.render.Camera
-import gbafe.render.FrameBuffer
 import gbafe.render.LcdControl
-import gbafe.render.RenderState
-import gbafe.render.SoftwareRenderer
-import gbafe.render.TileSheets
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue

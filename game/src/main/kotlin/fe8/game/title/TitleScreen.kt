@@ -5,6 +5,7 @@ import fe8.game.SoundWrapper
 import fe8.game.opanim.OpAnimHs
 import fe8.game.opanim.blendPalette
 import gba.data.Decompress
+import gba.render.BgAffine
 import gbafe.core.math.Interpolate
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
@@ -19,7 +20,6 @@ import gbafe.proc.ProcScripts.label
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.sleep
 import gbafe.proc.ProcScripts.yield
-import gbafe.render.BgAffine
 import gbafe.render.BgHardware
 import gbafe.render.FadeCore
 import gbafe.render.SpriteLayers

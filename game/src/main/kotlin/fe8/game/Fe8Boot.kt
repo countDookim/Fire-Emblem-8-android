@@ -3,21 +3,21 @@ package fe8.game
 import fe8.game.opanim.EarlyStartUi
 import fe8.game.opanim.OpAnim
 import fe8.game.title.TitleScreen
+import gba.render.Camera
+import gba.render.ColorMath
+import gba.render.FrameBuffer
+import gba.render.GpuFrame
+import gba.render.HBlankLines
+import gba.render.RenderState
+import gba.render.SoftwareRenderer
+import gba.render.TileSheets
 import gbafe.audio.M4aDriver
 import gbafe.audio.M4aSound
 import gbafe.audio.PcmStream
 import gbafe.core.time.GameClock
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
-import gbafe.render.Camera
-import gbafe.render.ColorMath
-import gbafe.render.FrameBuffer
-import gbafe.render.GpuFrame
-import gbafe.render.HBlankLines
 import gbafe.render.HardwareSceneLoader
-import gbafe.render.RenderState
-import gbafe.render.SoftwareRenderer
-import gbafe.render.TileSheets
 
 /**
  * The boot sequence wired for a device: `StartGame` -> game control -> health & safety screen ->

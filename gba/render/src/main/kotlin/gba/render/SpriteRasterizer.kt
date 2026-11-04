@@ -1,4 +1,4 @@
-package gbafe.render
+package gba.render
 
 /**
  * Rasterises the [RenderState.sprites] of one scanline into per-pixel OBJ buffers, the way the GBA OBJ

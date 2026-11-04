@@ -4,4 +4,5 @@ plugins {
 
 dependencies {
     api(project(":engine:core"))
+    api(project(":gba:render"))
 }

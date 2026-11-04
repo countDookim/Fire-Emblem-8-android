@@ -1,4 +1,4 @@
-package gbafe.render
+package gba.render
 
 /**
  * Tile graphics addressed by sheet id (ADR 0008): sheet id → raw tile bytes in the GBA tile format

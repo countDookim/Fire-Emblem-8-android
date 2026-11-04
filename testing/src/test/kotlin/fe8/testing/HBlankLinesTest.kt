@@ -1,9 +1,9 @@
 package fe8.testing
 
+import gba.render.HBlankLines
+import gba.render.LineTable
+import gba.render.RenderState
 import gbafe.render.BgVerticalScroll
-import gbafe.render.HBlankLines
-import gbafe.render.LineTable
-import gbafe.render.RenderState
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test

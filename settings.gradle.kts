@@ -48,7 +48,7 @@ rootProject.name = "fe8-android"
 
 // Pure Kotlin/JVM modules: testable in a cloud session in seconds, no Android SDK.
 include(
-    ":gba:vfs", ":gba:data", ":gba:core", ":engine:core", ":engine:data", ":engine:input", ":engine:render",
+    ":gba:vfs", ":gba:data", ":gba:core", ":gba:render", ":engine:core", ":engine:data", ":engine:input", ":engine:render",
     ":engine:audio", ":engine:script", ":engine:text", ":engine:extract", ":engine:save",
     ":game", ":testing", ":tools:extract",
 )

@@ -1,4 +1,4 @@
-package gbafe.render
+package gba.render
 
 /**
  * A CPU-side RGBA8888 frame (one `Int` per pixel, `0xAARRGGBB`).

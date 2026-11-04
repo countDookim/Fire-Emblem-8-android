@@ -13,7 +13,7 @@
 ## Modules
 
 ```
-app ──► game ──► gba:{vfs,data,core}, engine:{core,data,input,render,audio,script,text,save}
+app ──► game ──► gba:{vfs,data,core,render}, engine:{core,data,input,render,audio,script,text,save}
 testing ──► game         (every engine module depends only on engine:core)
 ```
 
@@ -25,7 +25,8 @@ testing ──► game         (every engine module depends only on engine:core)
 | `gba:data` | LZ77, tile, colour decoders; JSON reader (package `gba.data`) | decoders |
 | `engine:data` | TSA decoder; JSON table contract (trig) | decoders |
 | `engine:input` | actions, `KeyStatus`, `TouchButtons`, button map | working |
-| `engine:render` | `RenderState`, `SoftwareRenderer`, `GpuFrame` + `PackedCompositor` (shader spec), `LcdControl` | software + GPU |
+| `gba:render` | `RenderState`, `SoftwareRenderer`, `GpuFrame` + `PackedCompositor` (shader spec), `TileSheets`, `FrameBuffer`, `BgAffine`, `HBlankLines` | software + GPU |
+| `engine:render` | `LcdControl`, `BgHardware`, `OamBuffer`, `HardwareScene`, fades, HBlank handlers (FE ports) | software + GPU |
 | `engine:audio` | m4a sequencer, DirectSound mixer, `M4aDriver`, `PcmStream`, `AudioSink` (CGB/PSG: todo) | working |
 | `engine:script` / `save` | `.fe8s` VM / save container | contracts |
 | `engine:text` | text tags, Huffman messages | partial |

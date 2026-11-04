@@ -1,4 +1,4 @@
-package gbafe.render
+package gba.render
 
 /**
  * Runs a frame's HBlank handlers against an I/O register image and records the per-line register values that

@@ -1,11 +1,11 @@
 package fe8.app
 
 import android.opengl.GLES30
-import gbafe.render.FrameBuffer
-import gbafe.render.GpuFrame
-import gbafe.render.RenderState
-import gbafe.render.TileLayer
-import gbafe.render.TileSheets
+import gba.render.FrameBuffer
+import gba.render.GpuFrame
+import gba.render.RenderState
+import gba.render.TileLayer
+import gba.render.TileSheets
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.IntBuffer
@@ -13,8 +13,8 @@ import java.nio.ShortBuffer
 
 /**
  * GPU backend v1 (M3-07): composites a packed [GpuFrame] per pixel in a fragment shader that is a
- * line-by-line copy of [gbafe.render.PackedCompositor] (keep them in sync; the JVM tests check the
- * Kotlin spec against [gbafe.render.SoftwareRenderer]). Textures: per-line palettes `R16UI` 512×rows,
+ * line-by-line copy of [gba.render.PackedCompositor] (keep them in sync; the JVM tests check the
+ * Kotlin spec against [gba.render.SoftwareRenderer]). Textures: per-line palettes `R16UI` 512×rows,
  * line parameters `RGBA32I` 3×160, the CPU-rasterised OBJ plane `R32UI` 240×160, the 4 BG maps as an
  * `R16UI` 128×128×4 array and the 4 BG tile sheets as raw bytes in an `R8UI` 1024×64×4 array. The shader
  * maps and sheets are re-uploaded only when their contents changed. The shader

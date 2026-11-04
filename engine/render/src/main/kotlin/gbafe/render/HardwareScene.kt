@@ -1,5 +1,9 @@
 package gbafe.render
 
+import gba.render.RenderState
+import gba.render.SpriteBatch
+import gba.render.TileSheets
+
 /**
  * Builds the semantic [RenderState] + [TileSheets] the [SoftwareRenderer] draws from raw GBA display
  * hardware state (VRAM, palette RAM, OAM, I/O registers), as the game leaves it after its VBlank sync

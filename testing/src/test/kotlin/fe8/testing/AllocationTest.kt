@@ -5,11 +5,11 @@ import fe8.game.RomView
 import gba.core.event.TickListener
 import gba.core.time.FixedStepClock
 import gba.core.time.GameLoop
+import gba.render.RenderState
+import gba.render.TileSheets
 import gbafe.render.BgHardware
 import gbafe.render.HardwareSceneLoader
 import gbafe.render.OamBuffer
-import gbafe.render.RenderState
-import gbafe.render.TileSheets
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test

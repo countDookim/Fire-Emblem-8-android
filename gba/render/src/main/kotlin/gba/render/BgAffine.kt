@@ -1,4 +1,4 @@
-package gbafe.render
+package gba.render
 
 import kotlin.math.PI
 import kotlin.math.cos
@@ -10,7 +10,7 @@ import kotlin.math.sin
  */
 public object BgAffine {
     /**
-     * Writes `pa, pb, pc, pd, dx, dy` for one BG into [dst] at [at] (the [LcdControl.affine]
+     * Writes `pa, pb, pc, pd, dx, dy` for one BG into [dst] at [at] (the `LcdControl.affine`
      * layout) from texture centre [texX]/[texY] (24.8), screen centre [scrX]/[scrY], scales
      * [sx]/[sy] (8.8) and angle [alpha] (u16, only the high byte is used).
      */

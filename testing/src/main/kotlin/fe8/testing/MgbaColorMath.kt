@@ -1,6 +1,7 @@
 package fe8.testing
 
-import gbafe.render.ColorMath
+import gba.render.ColorMath
+
 
 /**
  * Colour-effect arithmetic of the pinned reference emulator (mGBA 0.10.5, 32-bit colour build): each 5-bit

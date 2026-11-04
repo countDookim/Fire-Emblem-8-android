@@ -1,4 +1,4 @@
-package gbafe.render
+package gba.render
 
 /**
  * CPU transliteration of the GPU backend's fragment shader: composites one pixel from a packed [GpuFrame]

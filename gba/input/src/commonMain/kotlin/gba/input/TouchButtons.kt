@@ -1,5 +1,7 @@
 package gba.input
 
+import kotlin.concurrent.Volatile
+
 /**
  * On-screen GBA button overlay (task M3-15): the only touch input the product ships (decision
  * 0009). It emits exactly the GBA keys (bits in KEYINPUT order, as [VanillaButtonMap]), so game

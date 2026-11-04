@@ -29,12 +29,10 @@ val jvmModules = listOf(
     ":tools:extract",
 )
 /** Modules converted to Kotlin Multiplatform (their JVM tasks are `jvmTest`/`jvmTestClasses`). */
-val kmpModules = setOf(":gba:data")
+val kmpModules = setOf(":gba:data", ":gba:core", ":gba:input", ":gba:render", ":gba:audio")
 val jdk = providers.gradleProperty("fe8.jdk").orElse("21").get().toInt()
 val catalog = libs
 
-// Convention for every pure-JVM module (kept here rather than in a build-logic plugin because the
-// kotlin-dsl plugin that needs is only on the Gradle plugin portal, which sessions cannot reach).
 /** Test-task settings shared by the JVM and multiplatform conventions. */
 fun Project.configureTests() {
     tasks.withType<Test>().configureEach {

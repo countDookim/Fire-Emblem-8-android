@@ -35,12 +35,12 @@ public class EventChannel<L : Any>(public val name: String) {
         while (at > 0 && priorities[at - 1] > priority) at--
         val next = arrayOfNulls<Any>(old.size + 1)
         val nextP = IntArray(old.size + 1)
-        System.arraycopy(old, 0, next, 0, at)
-        System.arraycopy(priorities, 0, nextP, 0, at)
+        old.copyInto(next, 0, 0, at)
+        priorities.copyInto(nextP, 0, 0, at)
         next[at] = listener
         nextP[at] = priority
-        System.arraycopy(old, at, next, at + 1, old.size - at)
-        System.arraycopy(priorities, at, nextP, at + 1, old.size - at)
+        old.copyInto(next, at + 1, at, old.size)
+        priorities.copyInto(nextP, at + 1, at, old.size)
         priorities = nextP
         listeners = next
         return listener
@@ -53,10 +53,10 @@ public class EventChannel<L : Any>(public val name: String) {
         if (i < 0) return false
         val next = arrayOfNulls<Any>(old.size - 1)
         val nextP = IntArray(old.size - 1)
-        System.arraycopy(old, 0, next, 0, i)
-        System.arraycopy(priorities, 0, nextP, 0, i)
-        System.arraycopy(old, i + 1, next, i, old.size - i - 1)
-        System.arraycopy(priorities, i + 1, nextP, i, old.size - i - 1)
+        old.copyInto(next, 0, 0, i)
+        priorities.copyInto(nextP, 0, 0, i)
+        old.copyInto(next, i, i + 1, old.size)
+        priorities.copyInto(nextP, i, i + 1, old.size)
         priorities = nextP
         listeners = if (next.isEmpty()) EMPTY else next
         return true

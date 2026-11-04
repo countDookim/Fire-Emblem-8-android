@@ -1,5 +1,7 @@
 package gba.audio
 
+import kotlin.concurrent.Volatile
+
 /**
  * Hands the m4a mixer's per-frame PCM to an audio thread: the game thread [push]es each frame's
  * `pcmSamplesPerVBlank` stereo samples (signed 8-bit, at [inputRate] Hz); the audio thread

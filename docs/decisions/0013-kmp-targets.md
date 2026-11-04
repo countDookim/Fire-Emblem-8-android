@@ -1,0 +1,23 @@
+# 0013 — Kotlin Multiplatform: targets and platform code
+
+**Status.** Accepted 2026-11-04 (owner request 2026-10-27, M4-07).
+
+**Context.** The owner wants the libraries ready for Kotlin Multiplatform so the `gba`/`gbafe` code is not
+tied to the JVM. Sessions have no Android SDK (ADR 0005), so anything needing AGP builds only in CI.
+
+**Decision.**
+- Targets: **`jvm()` only for now**; `android` is added when it buys something (AGP in CI only). Android
+  consumers (`:app`) resolve the `jvm` variant (Kotlin's `jvm` -> `androidJvm` compatibility rule; CI run
+  315 built the APKs against KMP `:gba:data`). No iOS/JS/native targets unless the owner asks.
+- Layout: `src/commonMain` + `src/jvmTest` (tests stay JVM: JUnit 5, reference data on disk). Root
+  `build.gradle.kts` has one KMP convention (explicit API, JDK toolchain, JUnit) and lists converted modules
+  in `kmpModules` so `jvmClasses`/`jvmTest` pick the right tasks.
+- `commonMain` uses only the Kotlin stdlib: no `java.*`/`javax.*` imports (`tools/tests/test_kmp_common.py`),
+  no `System.*` (`copyInto` instead of `arraycopy`, `kotlin.concurrent.Volatile`).
+- Platform code (`java.io.File`, `java.util.zip`, `MessageDigest`) goes behind `expect`/`actual` or a small
+  interface with a `jvmMain` implementation, decided per module when it is converted (`:gba:vfs`,
+  `:gba:extract`).
+- Stay plain JVM: `:gba:testkit`, `:testing`, `:tools:extract` (test/CLI code), `:app` (Android).
+
+**Consequences.** Hot-path code must keep zero per-frame allocations without JVM helpers; source paths moved
+(`src/main` -> `src/commonMain`), no behaviour change. Dokka documents KMP modules via the same lint.

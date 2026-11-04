@@ -1,6 +1,6 @@
 package gba.vfs
 
-import java.util.zip.CRC32
+import gba.data.Crc32
 
 /**
  * One replacement texture found for an original asset (ADR 0008, "Texture packs vs palette animation").
@@ -58,16 +58,8 @@ public class TextureOverrides(private val vfs: VirtualFileSystem) {
             }
         }
         val path = best ?: return null
-        val indexed = vfs.open(path).use { input ->
-            val head = ByteArray(26)
-            var n = 0
-            while (n < head.size) {
-                val r = input.read(head, n, head.size - n)
-                if (r < 0) break
-                n += r
-            }
-            pngColourType(head)
-        } == PNG_INDEXED
+        val bytes = vfs.read(path)
+        val indexed = pngColourType(if (bytes.size > 26) bytes.copyOf(26) else bytes) == PNG_INDEXED
         val dir = path.substringBeforeLast('/', "")
         val prefix = "${stem.substringAfterLast('/')}@${bestScale}x."
         val variants = HashMap<String, String>()
@@ -94,13 +86,13 @@ public class TextureOverrides(private val vfs: VirtualFileSystem) {
          * 8 lowercase hex digits. [colors] holds `count` colours from [offset] (e.g. one 16-colour bank).
          */
         public fun paletteHash(colors: ShortArray, offset: Int = 0, count: Int = colors.size - offset): String {
-            val crc = CRC32()
+            val crc = Crc32()
             for (i in offset until offset + count) {
                 val c = colors[i].toInt() and 0x7FFF
                 crc.update(c and 0xFF)
                 crc.update(c ushr 8)
             }
-            return "%08x".format(crc.value)
+            return crc.value.toString(16).padStart(8, '0')
         }
 
         /** PNG colour type from the first 26 bytes (signature + IHDR), or -1 if not a PNG. */

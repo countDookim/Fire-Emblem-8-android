@@ -29,7 +29,7 @@ val jvmModules = listOf(
     ":tools:extract",
 )
 /** Modules converted to Kotlin Multiplatform (their JVM tasks are `jvmTest`/`jvmTestClasses`). */
-val kmpModules = setOf(":gba:data", ":gba:core", ":gba:input", ":gba:render", ":gba:audio")
+val kmpModules = setOf(":gba:data", ":gba:core", ":gba:input", ":gba:render", ":gba:audio", ":gba:vfs")
 val jdk = providers.gradleProperty("fe8.jdk").orElse("21").get().toInt()
 val catalog = libs
 

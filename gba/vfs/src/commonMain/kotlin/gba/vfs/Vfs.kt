@@ -1,8 +1,5 @@
 package gba.vfs
 
-import java.io.File
-import java.io.InputStream
-
 /**
  * One read-only source of files addressed by normalised virtual paths such as `data/items.json` or
  * `maps/ch01.tmj`. Implementations: [DirectoryLayer] (dev overrides, unpacked mods), a zip layer for
@@ -15,26 +12,18 @@ public interface VfsLayer {
     /** True if [path] exists in this layer. */
     public fun exists(path: String): Boolean
 
-    /** Opens [path]; caller closes. Only called after [exists] returned true. */
-    public fun open(path: String): InputStream
+    /** Reads the whole file at [path]. Only called after [exists] returned true. */
+    public fun read(path: String): ByteArray
 
     /** Lists files directly or recursively under [dir] (virtual paths). */
     public fun list(dir: String): List<String>
 }
 
-/** A layer backed by a directory on disk. */
-public class DirectoryLayer(private val root: File, override val origin: String) : VfsLayer {
-    override fun exists(path: String): Boolean = File(root, VirtualFileSystem.normalize(path)).isFile
-
-    override fun open(path: String): InputStream = File(root, VirtualFileSystem.normalize(path)).inputStream()
-
-    override fun list(dir: String): List<String> {
-        val base = File(root, VirtualFileSystem.normalize(dir))
-        if (!base.isDirectory) return emptyList()
-        return base.walkTopDown().filter { it.isFile }
-            .map { it.relativeTo(root).invariantSeparatorsPath }.sorted().toList()
-    }
-}
+/** Thrown by [VirtualFileSystem.read] when no layer has the file. */
+public class VfsFileNotFoundException(
+    /** The virtual path that was not found. */
+    public val path: String,
+) : RuntimeException("not found in any VFS layer: $path")
 
 /**
  * Layered virtual filesystem: the single way game code reads any data, map, script, asset or string.
@@ -62,12 +51,12 @@ public class VirtualFileSystem {
         return null
     }
 
-    /** Opens [path] from the highest-priority layer that has it. */
-    public fun open(path: String): InputStream =
-        (resolve(path) ?: throw NoSuchFileException(File(path), reason = "not found in any VFS layer")).open(normalize(path))
+    /** Reads [path] from the highest-priority layer that has it. */
+    public fun read(path: String): ByteArray =
+        (resolve(path) ?: throw VfsFileNotFoundException(path)).read(normalize(path))
 
     /** Reads [path] as UTF-8 text. */
-    public fun readText(path: String): String = open(path).use { it.readBytes().toString(Charsets.UTF_8) }
+    public fun readText(path: String): String = read(path).decodeToString()
 
     /** Union of files under [dir] across all layers, de-duplicated, sorted. */
     public fun list(dir: String): List<String> = layers.flatMap { it.list(dir) }.distinct().sorted()

@@ -3,7 +3,6 @@ package fe8.app
 import android.content.res.AssetManager
 import gba.vfs.VfsLayer
 import gba.vfs.VirtualFileSystem
-import java.io.InputStream
 
 /**
  * A [VfsLayer] over the APK's assets under [prefix]. Debug/test builds bundle the ROM repo's
@@ -22,8 +21,8 @@ public class AssetLayer(
         return assets.list(dir)?.contains(p.substring(slash + 1)) == true
     }
 
-    override fun open(path: String): InputStream =
-        assets.open("$prefix/${VirtualFileSystem.normalize(path)}")
+    override fun read(path: String): ByteArray =
+        assets.open("$prefix/${VirtualFileSystem.normalize(path)}").use { it.readBytes() }
 
     override fun list(dir: String): List<String> {
         val out = ArrayList<String>()

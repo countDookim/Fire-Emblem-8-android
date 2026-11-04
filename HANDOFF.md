@@ -1,21 +1,29 @@
 # HANDOFF
 
-_Updated 2026-11-04 (scheduled run 16:5x). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-11-04 (run 17:4x, on the owner's Windows PC). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: check `wip/M4-07` CI run 315 (APKs built OK against KMP `:gba:data`; Dokka step pending at wrap-up)
-- Done 2026-11-04 (16:5x run): M4-06 finished. `:gba:testkit` (`gba.testkit`: ReferenceData, GbaMem,
-  RamSymbols, AllocationMeter, MgbaColorMath; `fe8.assets`/`fe8.reference` property names kept);
-  `gba.extract.SymbolSources` + `RecordingSymbolSources`/`ManifestSymbolSources` (FE `ExtractSources` adds
-  `faces()` + bundled manifest; manifest JSON unchanged); docs/gba-harness-reuse.md. jvmTest green; master CI (run 314) green incl. Dokka
-  (local Dokka hit Maven 429).
-- WIP `wip/M4-07` slice 1: `kotlin-multiplatform` plugin resolves via mirror; `:gba:data` is KMP `jvm()`
-  (src/commonMain, src/jvmTest); root build has a KMP convention block + `kmpModules` set for the
-  `jvmTest`/`jvmClasses` aggregators; `tools/tests/test_kmp_common.py` (no java imports in commonMain).
-  jvmTest + pytest green locally. Next: if CI green, merge to master; ADR for targets (jvm now; android
-  target needs AGP = CI only); then convert the other `:gba:*` (vfs/extract need expect/actual for java.io).
+## NEXT RUN, FIRST: check `wip/M4-07` CI (slices 3-5; slice 3 changes `:app`: VFS `read()`, Dokka on KMP modules); if green, merge to master
+- Done 2026-11-04 (17:4x run), M4-07: slice 1 merged (CI 315 green); slice 2 on master (65b33a4, master CI
+  317 green before it): `:gba:core/input/render/audio` KMP `jvm()` (`copyInto`, `kotlin.concurrent.Volatile`);
+  ADR 0013 (targets jvm + android; android target needs AGP = CI-only slice). Full jvmTest green, 0 skipped.
+- WIP `wip/M4-07` (pushed): slice 3 (055a166) `:gba:vfs` KMP: `VfsLayer.open(): InputStream` ->
+  `read(): ByteArray`, `VfsFileNotFoundException`, `DirectoryLayer` in jvmMain, pure `gba.data.Crc32`
+  (`Crc32Test` vs JDK); `:app` `AssetLayer`/`MainActivity` follow (CI-only compile). Slice 4 (333624a)
+  `:gba:extract` KMP: `gba.data.Sha1` (`Sha1Test` vs MessageDigest + ROM), `internal expect fun
+  zlibDeflate/zlibInflate` (JDK loops in jvmMain, PNG bytes unchanged), `ByteSink`; truncated PNG now
+  `IllegalArgumentException`. jvmTest green after each slice. Slice 5 (wip): `:engine:core/data/input/render/save/
+  script/text` + `:game` KMP (only `String.format` -> `padStart` in MessageCodec/RomView); jvmTest green.
+  Master fix this run: `tools/progress.py` + `test_layering.py` scanned only `src/main`/`src/test`, so moved
+  KMP sources were missed (slice 2 dropped m4a ports on master); now also commonMain/jvmMain/jvmTest
+  (count 260 again).
+  Then: `android` target (AGP in CI: `androidTarget()` in the KMP convention only when the SDK exists, like
+  settings.gradle.kts does for `:app`), then `:engine:*`/`:game` (grep `java.` per module first).
+- Local Windows runs (owner PC): no `gh` (REST via `git credential fill` token + curl), JDK 17 only (add
+  `-Pfe8.jdk=17`), ROM repo at `../FE8Rom` has CRLF text: build `.assets` from it with `git -c
+  core.autocrlf=false archive HEAD extracted` (else `RomImporterTest` fails), Python tests need `PYTHONUTF8=1`.
 - Owner 2026-11-04: M4-04 device test passed (ROM import ~4 s on phone, boots from it); PSG sound sounds
   correct by ear. M4-04 done.
 - Done 2026-11-04 (06:5x run), M4-06 slices 2-7 (ADR 0012 lists what moved / stays): `:gba:data` (Lz77, Decompress,

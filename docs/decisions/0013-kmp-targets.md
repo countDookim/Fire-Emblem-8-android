@@ -6,9 +6,10 @@
 tied to the JVM. Sessions have no Android SDK (ADR 0005), so anything needing AGP builds only in CI.
 
 **Decision.**
-- Targets: **`jvm()` only for now**; `android` is added when it buys something (AGP in CI only). Android
-  consumers (`:app`) resolve the `jvm` variant (Kotlin's `jvm` -> `androidJvm` compatibility rule; CI run
-  315 built the APKs against KMP `:gba:data`). No iOS/JS/native targets unless the owner asks.
+- Targets: **jvm + android** (owner, 2026-10-27); no iOS/JS/native unless the owner asks. Modules start
+  with `jvm()` only; the `android` target comes in a later M4-07 slice because it needs AGP, which only CI
+  has (sessions compile `jvm`). Until then Android consumers (`:app`) resolve the `jvm` variant (Kotlin's
+  `jvm` -> `androidJvm` compatibility rule; CI run 315 built the APKs against KMP `:gba:data`).
 - Layout: `src/commonMain` + `src/jvmTest` (tests stay JVM: JUnit 5, reference data on disk). Root
   `build.gradle.kts` has one KMP convention (explicit API, JDK toolchain, JUnit) and lists converted modules
   in `kmpModules` so `jvmClasses`/`jvmTest` pick the right tasks.

@@ -1,4 +1,4 @@
-package gbafe.data
+package gba.data
 
 /**
  * Minimal JSON reader for the engine's data files (no reflection, no dependencies): objects become

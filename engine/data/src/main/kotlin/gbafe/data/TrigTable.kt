@@ -1,5 +1,7 @@
 package gbafe.data
 
+import gba.data.JsonReader
+
 /**
  * The games' sine table (`data/trig.json`, format `gbafe.trig`; FE8 `gSinLookup`): 256 + 64 s16 entries in
  * [fractionBits] fixed point, so `SIN(a) = table[a & 0xFF]` and `COS(a) = table[0x40 + (a & 0xFF)]`

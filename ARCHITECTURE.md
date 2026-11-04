@@ -13,7 +13,7 @@
 ## Modules
 
 ```
-app ──► game ──► gba:vfs, engine:{core,data,input,render,audio,script,text,save}
+app ──► game ──► gba:{vfs,data}, engine:{core,data,input,render,audio,script,text,save}
 testing ──► game         (every engine module depends only on engine:core)
 ```
 
@@ -21,7 +21,8 @@ testing ──► game         (every engine module depends only on engine:core)
 |---|---|---|
 | `engine:core` | clock + loop (59.7275 Hz), RNG, procs, event bus, flags, mechanics | working |
 | `gba:vfs` | layered VFS, mod manifest, texture overrides | dir layers |
-| `engine:data` | LZ77/tile/TSA/colour decoders; JSON table contract | decoders |
+| `gba:data` | LZ77, tile, colour decoders; JSON reader (package `gba.data`) | decoders |
+| `engine:data` | TSA decoder; JSON table contract (trig) | decoders |
 | `engine:input` | actions, `KeyStatus`, `TouchButtons`, button map | working |
 | `engine:render` | `RenderState`, `SoftwareRenderer`, `GpuFrame` + `PackedCompositor` (shader spec), `LcdControl` | software + GPU |
 | `engine:audio` | m4a sequencer, DirectSound mixer, `M4aDriver`, `PcmStream`, `AudioSink` (CGB/PSG: todo) | working |

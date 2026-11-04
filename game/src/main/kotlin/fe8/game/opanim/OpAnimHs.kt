@@ -1,7 +1,7 @@
 package fe8.game.opanim
 
+import gba.data.Decompress
 import gbafe.input.KeyStatus
-import gbafe.data.Decompress
 import gbafe.render.BgHardware
 import gbafe.render.BgTilemap
 import gbafe.render.LcdControl

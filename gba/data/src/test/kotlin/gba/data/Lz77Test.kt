@@ -1,4 +1,4 @@
-package gbafe.data
+package gba.data
 
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals

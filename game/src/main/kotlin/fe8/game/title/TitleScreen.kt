@@ -4,8 +4,8 @@ import fe8.game.GameControl
 import fe8.game.SoundWrapper
 import fe8.game.opanim.OpAnimHs
 import fe8.game.opanim.blendPalette
+import gba.data.Decompress
 import gbafe.core.math.Interpolate
-import gbafe.data.Decompress
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine

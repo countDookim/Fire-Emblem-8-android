@@ -1,16 +1,16 @@
 package fe8.testing
 
 import fe8.game.opanim.OpAnimHs
+import gba.data.Lz77
 import gbafe.core.VerifiesPort
-import gbafe.data.Lz77
 import gbafe.input.KeyStatus
 import gbafe.render.BgHardware
 import gbafe.render.LcdControl
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * `GameIntroPrepareNintendofx` and `PrepareHealthAndSafetyScreen` (with `SetupBackgrounds` and `Decompress`) run

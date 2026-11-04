@@ -1,6 +1,6 @@
 package gbafe.extract
 
-import gbafe.data.IndexedImage
+import gba.data.IndexedImage
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream

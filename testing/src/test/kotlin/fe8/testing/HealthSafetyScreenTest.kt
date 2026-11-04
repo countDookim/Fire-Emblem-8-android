@@ -1,7 +1,7 @@
 package fe8.testing
 
-import gbafe.data.Bgr555
-import gbafe.data.Tiles
+import gba.data.Bgr555
+import gba.data.Tiles
 import gbafe.extract.IndexedPng
 import gbafe.extract.ScreenExtractor
 import gbafe.render.Camera
@@ -10,10 +10,10 @@ import gbafe.render.LcdControl
 import gbafe.render.RenderState
 import gbafe.render.SoftwareRenderer
 import gbafe.render.TileSheets
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * M3-06 acceptance: the health & safety screen built from **extracted assets** (tile-set PNG, palette and

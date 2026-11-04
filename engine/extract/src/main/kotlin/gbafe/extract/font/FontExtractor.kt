@@ -1,6 +1,6 @@
 package gbafe.extract.font
 
-import gbafe.data.IndexedImage
+import gba.data.IndexedImage
 import gbafe.extract.IndexedPng
 import gbafe.extract.Json
 

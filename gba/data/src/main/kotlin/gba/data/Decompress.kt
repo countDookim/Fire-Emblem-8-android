@@ -1,4 +1,4 @@
-package gbafe.data
+package gba.data
 
 /**
  * `Decompress` (src/bmlib.c): unpacks a ROM graphics blob by the type in its header's high nibble: 0x00 raw

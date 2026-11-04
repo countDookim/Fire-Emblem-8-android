@@ -89,7 +89,7 @@ public class ManifestSources(json: String) : ExtractSources {
                 ?.readText()?.let(::ManifestSources)
     }
 
-    private val m = gbafe.data.JsonReader.parse(json) as Map<*, *>
+    private val m = gba.data.JsonReader.parse(json) as Map<*, *>
 
     init {
         require(m["format"] == 1L) { "unsupported manifest format ${m["format"]}" }

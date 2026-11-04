@@ -1,8 +1,8 @@
 package gbafe.extract
 
-import gbafe.data.Bgr555
-import gbafe.data.Lz77
-import gbafe.data.Tiles
+import gba.data.Bgr555
+import gba.data.Lz77
+import gba.data.Tiles
 import gbafe.data.Tsa
 
 /**

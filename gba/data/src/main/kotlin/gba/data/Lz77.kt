@@ -1,4 +1,4 @@
-package gbafe.data
+package gba.data
 
 /**
  * Decompressor for the GBA BIOS LZ77 format (`LZ77UnCompWram`/`LZ77UnCompVram`, SWI 0x11/0x12), which

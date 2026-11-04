@@ -1,13 +1,13 @@
 package fe8.testing
 
-import gbafe.data.Bgr555
-import gbafe.data.Lz77
-import gbafe.data.Tiles
+import gba.data.Bgr555
+import gba.data.Lz77
+import gba.data.Tiles
 import gbafe.extract.IndexedPng
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * ROM round trip of the extraction path for tile graphics: LZ77 stream → 4bpp tiles → indexed PNG →

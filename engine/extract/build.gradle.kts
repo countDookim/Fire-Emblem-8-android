@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-    // api: IndexedPng exposes gbafe.data.IndexedImage.
+    // api: IndexedPng exposes gba.data.IndexedImage.
     api(project(":engine:data"))
     implementation(project(":engine:text"))
 }

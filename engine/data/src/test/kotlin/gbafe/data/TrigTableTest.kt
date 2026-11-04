@@ -1,5 +1,6 @@
 package gbafe.data
 
+import gba.data.JsonReader
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test

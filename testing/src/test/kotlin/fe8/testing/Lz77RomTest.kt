@@ -1,11 +1,11 @@
 package fe8.testing
 
-import gbafe.data.Lz77
+import gba.data.Lz77
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * Golden test of [Lz77] on real compressed graphics from the ROM. The streams are located by decomp ELF

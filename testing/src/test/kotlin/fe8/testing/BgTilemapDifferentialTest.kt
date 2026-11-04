@@ -1,12 +1,12 @@
 package fe8.testing
 
+import gba.data.Lz77
 import gbafe.core.VerifiesPort
-import gbafe.data.Lz77
 import gbafe.render.BgTilemap
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * [BgTilemap.applyTsa] against the BG tilemap buffers in mGBA RAM: the health & safety screen

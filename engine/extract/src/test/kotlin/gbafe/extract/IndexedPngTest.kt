@@ -1,12 +1,12 @@
 package gbafe.extract
 
-import gbafe.data.IndexedImage
+import gba.data.IndexedImage
+import java.awt.image.IndexColorModel
+import javax.imageio.ImageIO
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.awt.image.IndexColorModel
-import javax.imageio.ImageIO
 
 class IndexedPngTest {
     private val palette = IntArray(16) { (0xFF shl 24) or (it * 0x101010) }

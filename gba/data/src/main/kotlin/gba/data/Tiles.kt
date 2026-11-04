@@ -1,4 +1,4 @@
-package gbafe.data
+package gba.data
 
 /**
  * An image of palette indices: one byte per pixel, row-major, `width * height` bytes.

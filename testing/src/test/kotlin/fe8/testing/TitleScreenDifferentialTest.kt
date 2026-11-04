@@ -3,8 +3,8 @@ package fe8.testing
 import fe8.game.GameControl
 import fe8.game.opanim.OpAnimHs
 import fe8.game.title.TitleScreen
+import gba.data.Decompress
 import gbafe.core.VerifiesPort
-import gbafe.data.Decompress
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcScript
@@ -15,15 +15,15 @@ import gbafe.render.FrameBuffer
 import gbafe.render.OamBuffer
 import gbafe.render.RenderState
 import gbafe.render.SoftwareRenderer
-import gbafe.render.TileSheets
 import gbafe.render.SpriteLayers
 import gbafe.render.SpriteObject
+import gbafe.render.TileSheets
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * The title screen's start after the op anim (`StartTitleScreen_FlagTrue`, mode 1) against

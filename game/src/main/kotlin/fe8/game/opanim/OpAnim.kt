@@ -2,12 +2,12 @@ package fe8.game.opanim
 
 import fe8.game.GameControl
 import fe8.game.SoundWrapper
+import gba.data.Decompress
 import gbafe.core.math.Interpolate
-import gbafe.data.Decompress
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
-import gbafe.proc.ProcEngine
 import gbafe.proc.ProcBoolFunc
+import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.block

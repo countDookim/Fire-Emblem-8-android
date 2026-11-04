@@ -1,8 +1,8 @@
 package gbafe.extract.fe8.maps
 
-import gbafe.data.Bgr555
-import gbafe.data.IndexedImage
-import gbafe.data.Lz77
+import gba.data.Bgr555
+import gba.data.IndexedImage
+import gba.data.Lz77
 import gbafe.extract.IndexedPng
 import gbafe.extract.Json
 

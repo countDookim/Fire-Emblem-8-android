@@ -11,7 +11,9 @@ GPU renderer; gamepad/keyboard; on-screen touch buttons (cross D-pad, diagonals,
 layout); pause/resume; ROM import (~4 s) and Play from the imported data.
 
 ## Newly testable
-_(nothing pending)_
+- **KMP rebuild (no new feature, 2026-11-04):** the game libraries are now Kotlin Multiplatform and the APK uses
+  their Android builds. Check nothing regressed: launch, Play boots to the title with music and sound effects,
+  touch buttons and gamepad work, and ROM import (if you use it) still completes and Play boots from it.
 
 ## Known not working (don't report)
 Everything after the title: no gameplay or saves; title key presses do nothing yet.

@@ -126,7 +126,7 @@ private fun bundledSoundRom(ctx: Context): RomView? {
     val base = baseLayer(ctx)
     if (base.list("sound").isEmpty()) return null
     return RomView.ofSoundWindows { name ->
-        base.open("sound/$name").use { it.readBytes() }
+        base.read("sound/$name")
     }
 }
 
@@ -135,7 +135,7 @@ private fun bundledBootRom(ctx: Context): RomView? {
     val base = baseLayer(ctx)
     if (base.list("boot").isEmpty()) return null
     return RomView.ofBootWindows { name ->
-        base.open("boot/$name").use { it.readBytes() }
+        base.read("boot/$name")
     }
 }
 

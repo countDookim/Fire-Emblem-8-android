@@ -15,10 +15,10 @@ JVM CLI: ROM → JSON tables, indexed PNGs, Tiled maps, MIDI + voicegroups, WAV,
 - Values come from the ROM; `--symbols`/`--map` give addresses, `--decomp` only names/layout. Steps ask them
   through `ExtractSources`: `DecompSources` (decomp), `RecordingSources` (`--write-manifest <file>`: records the
   answers used) and `ManifestSources` (`--manifest <file>`: no decomp, as on device, ADR 0011).
-- The committed manifest is `engine/extract/src/main/resources/gbafe/extract/manifest/fe8.json`;
+- The committed manifest is `engine/extract/src/jvmMain/resources/gbafe/extract/manifest/fe8.json`;
   `tools/ci_check_extraction.sh` fails if it is stale or if manifest-only output differs. Regenerate it after
   changing what a step looks up.
-- Generic helpers live in `:gba:extract`: `IndexedPng` (palette PNGs via JDK zlib, no ImageIO, which reorders
+- Generic helpers live in `:gba:extract`: `IndexedPng` (palette PNGs via the platform's zlib, no ImageIO, which reorders
   palettes; reads all filters), `Json` (deterministic writer), `Symbols` (reads `nm`), `DecompEnums` (reads
   `NAME = literal,` constants). Decoders (LZ77, tiles, Huffman) live in `gba/*` and `engine/*`.
 - No CLI library (no plugin portal).

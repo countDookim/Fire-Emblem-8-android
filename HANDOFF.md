@@ -1,29 +1,16 @@
 # HANDOFF
 
-_Updated 2026-11-04 (run 17:4x). Owner decisions: docs/PROJECT_BRIEF.md. History: git log._
+_Updated 2026-11-04 (owner-PC session, evening). Owner decisions: docs/PROJECT_BRIEF.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## Next task: finish M4-07 (Kotlin Multiplatform), branch `wip/M4-07`
-1. Check CI of `wip/M4-07` head (b701d05 = slices 3-5 + master merged). Green: merge into `master`, push,
-   check master CI and that README progress is still 260. Red: fix on `wip/M4-07`. Likely causes: the
-   `:app` edits of slice 3 (`AssetLayer.read`, `MainActivity` `base.read(...)`; `:app` compiles only in CI),
-   or Dokka on KMP modules (every public declaration in commonMain/jvmMain needs KDoc).
-2. Then `:engine:extract` to KMP (owner: the extraction core goes in `commonMain`; its `java.*` uses and the
-   bundled-manifest resource read need a jvmMain/`expect` reader). Then the last slice: `android` target (ADR 0013: targets jvm + android). Add `androidTarget()` in the root
-   KMP convention only when an Android SDK exists, as `settings.gradle.kts` does for `:app` (CI only).
-   Done when jvmTest, Dokka, CI green and `:app` builds; then mark M4-07 done in docs/TASKS.md.
-3. Then fewer than 5 open tasks remain: plan M5 (core loop, saves, flag registry, script interpreter) into
-   ≤ 20-min tasks in docs/TASKS.md.
-
-On `wip/M4-07` (each slice passed full jvmTest locally):
-- Slice 3: `:gba:vfs` KMP. `VfsLayer.open(): InputStream` became `read(): ByteArray`; not found throws
-  `VfsFileNotFoundException`; `DirectoryLayer` in jvmMain; pure-Kotlin `gba.data.Crc32`.
-- Slice 4: `:gba:extract` KMP. `gba.data.Sha1`; `internal expect fun zlibDeflate/zlibInflate` (JDK loops in
-  jvmMain, PNG bytes unchanged); `ByteSink`. A truncated PNG now throws `IllegalArgumentException`.
-- Slice 5: `:engine:core/data/input/render/save/script/text` and `:game` KMP. `:testing`,
-  `:tools:extract`, `:gba:testkit` stay JVM; `:engine:extract` is still to convert.
+## Next task: plan M5 in docs/TASKS.md, then start its first task
+M4-07 (Kotlin Multiplatform) is done and merged (2026-11-04, owner-PC session; ADR 0013). Fewer than 5 tasks
+are open, so first plan M5 (brief: core loop, saves, flag registry, script interpreter) into ≤ 20-min tasks
+with IDs, acceptance lines and decomp sources, then start the first one. New code goes in `commonMain`
+(no `java.*`, `System.*`, `String.format`: `tools/tests/test_kmp_common.py`); platform code in `src/jvmMain`
+(also compiled for android).
 
 ## State
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
@@ -33,7 +20,9 @@ On `wip/M4-07` (each slice passed full jvmTest locally):
   (2026-11-01); ROM import ~4 s, boots from it, PSG sound correct by ear (2026-11-04).
 - Verified ports: 260 / 8352 (`tools/progress.py`).
 - Layout: game-neutral `:gba:*` (ADR 0012), FE-shared `gbafe.*` in `:engine:*`, FE8-only `fe8.*` in `:game`
-  and `:app`. KMP (ADR 0013): `:gba:data/core/input/render/audio` on master, the rest on `wip/M4-07`.
+  and `:app`. KMP (ADR 0013): all of them except `:gba:testkit`, `:testing`, `:tools:extract` (plain JVM);
+  android target only in CI (`com.android.kotlin.multiplatform.library`; CI log shows `compileAndroidMain`).
+- Owner to smoke-test the first APK built on the KMP android variants (MANUAL_TEST "Newly testable").
 
 ## Open leads (low priority unless the owner reports a problem)
 - Slow app open (owner 2026-10-30): likely fixed (assets counted on `Dispatchers.IO`), not confirmed. If it is
@@ -83,7 +72,7 @@ On `wip/M4-07` (each slice passed full jvmTest locally):
 - `FrameCompareTest.applyHBlank` knows only `HBlank_BgVerticalScroll`; dumped RAM is one game step ahead of
   the dumped frame (the test un-flips the menu scroll buffer).
 - `gh release view/download <tag>` (GraphQL) is refused; use `gh api repos/.../releases/...` (REST).
-- Merged `wip/*` branches older than M4-07 can't be deleted (403); ignore them.
+- Old merged `wip/*` branches were deleted 2026-11-04 (owner PC); delete a `wip/` branch once merged.
 - Data: `cursor_hand.png` colours `paletteSource: caller`; `effectiveAgainst` in items.json holds class
   numbers; classes inline shared terrain tables (decide with the data loader); `.fe8s` v0 prints args as raw
   numbers (symbolic constants and a parser are M5). `RamSymbols[name]` throws on ambiguous static names.

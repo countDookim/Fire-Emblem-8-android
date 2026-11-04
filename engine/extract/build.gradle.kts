@@ -1,12 +1,18 @@
 // ROM -> assets extraction core (ADR 0011): file-free, runs from the ROM bytes and the bundled
-// manifest; used by :tools:extract (CLI) and later :app.
+// manifest; used by :tools:extract (CLI) and :app.
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.multiplatform)
 }
 
-dependencies {
-    // api: IndexedPng (now :gba:extract) exposes gba.data.IndexedImage.
-    api(project(":gba:extract"))
-    api(project(":engine:data"))
-    implementation(project(":engine:text"))
+kotlin {
+    jvm()
+
+    sourceSets {
+        commonMain.dependencies {
+            // api: IndexedPng (now :gba:extract) exposes gba.data.IndexedImage.
+            api(project(":gba:extract"))
+            api(project(":engine:data"))
+            implementation(project(":engine:text"))
+        }
+    }
 }

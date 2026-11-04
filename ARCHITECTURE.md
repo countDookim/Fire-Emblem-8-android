@@ -19,7 +19,8 @@ testing ──► game, gba:testkit    (engine modules depend on their gba count
 tools:extract ──► engine:extract
 ```
 
-`gba:{data,core,input,render,audio}` are Kotlin Multiplatform (`commonMain`, ADR 0013); the rest is plain JVM.
+All `gba:*` (except `gba:testkit`), `engine:*` and `game` are Kotlin Multiplatform (`commonMain`; jvm + android
+targets, ADR 0013); `gba:testkit`, `testing` and `tools:extract` are plain JVM; `app` is Android.
 
 | Module | Holds | Status |
 |---|---|---|

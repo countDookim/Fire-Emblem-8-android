@@ -1,11 +1,21 @@
 # HANDOFF
 
-_Updated 2026-11-04 (scheduled run 06:5x). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-11-04 (scheduled run 16:5x). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: check master CI (slices 2-7 pushed; :app compiles only in CI); M4-06 rest
+## NEXT RUN, FIRST: check CI of master (M4-06 done) and of `wip/M4-07` (does `:app` build against KMP `:gba:data`?)
+- Done 2026-11-04 (16:5x run): M4-06 finished. `:gba:testkit` (`gba.testkit`: ReferenceData, GbaMem,
+  RamSymbols, AllocationMeter, MgbaColorMath; `fe8.assets`/`fe8.reference` property names kept);
+  `gba.extract.SymbolSources` + `RecordingSymbolSources`/`ManifestSymbolSources` (FE `ExtractSources` adds
+  `faces()` + bundled manifest; manifest JSON unchanged); docs/gba-harness-reuse.md. jvmTest green; Dokka
+  not run locally (Maven 429): CI checks it.
+- WIP `wip/M4-07` slice 1: `kotlin-multiplatform` plugin resolves via mirror; `:gba:data` is KMP `jvm()`
+  (src/commonMain, src/jvmTest); root build has a KMP convention block + `kmpModules` set for the
+  `jvmTest`/`jvmClasses` aggregators; `tools/tests/test_kmp_common.py` (no java imports in commonMain).
+  jvmTest + pytest green locally. Next: if CI green, merge to master; ADR for targets (jvm now; android
+  target needs AGP = CI only); then convert the other `:gba:*` (vfs/extract need expect/actual for java.io).
 - Owner 2026-11-04: M4-04 device test passed (ROM import ~4 s on phone, boots from it); PSG sound sounds
   correct by ear. M4-04 done.
 - Done 2026-11-04 (06:5x run), M4-06 slices 2-7 (ADR 0012 lists what moved / stays): `:gba:data` (Lz77, Decompress,

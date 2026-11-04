@@ -14,6 +14,7 @@ game-only systems (FE8: world map, skirmishes, Creature Campaign, branched promo
      - Slice 4: PPU model (RenderState, SoftwareRenderer, GpuFrame, PackedCompositor, SpriteRasterizer, TileSheets, FrameBuffer, ColorMath, BgAffine, HBlankLines) moved `:engine:render` -> `:gba:render`.
      - Slice 5: GameAction, InputFrame, ActionSource, VanillaButtonMap, TouchButtons, UiElements moved `:engine:input` -> `:gba:input`.
      - Slice 6: whole module `:engine:audio` -> `:gba:audio` (m4a driver, `PcmStream`, `AudioSink`).
+     - Slice 7: `:gba:extract` (package `gba.extract`): `Json`, `Symbols`, `DecompEnums`, `IndexedPng`, `ExtractOutput`, `RomImporter`; per-game parts, `ExtractSources`, `ScreenExtractor` stay in `:engine:extract`.
    - `gbafe.*` (`:engine:*`, `:tools:extract` minus `gbafe.extract.fe8`): game-neutral; never names a game,
      FE8 constant, id or address.
    - Shared FE systems (battle, map, units, items, AI, menus, chapter flow, text, portraits, animations, saves):

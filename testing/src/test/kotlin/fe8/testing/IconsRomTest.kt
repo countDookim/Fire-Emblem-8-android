@@ -1,12 +1,12 @@
 package fe8.testing
 
-import gbafe.extract.IndexedPng
+import gba.extract.IndexedPng
 import gbafe.extract.fe8.ui.IconsExtractor
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * M2-20 (icons): `item_icon_tiles` 0x085926F4 up to `item_icon_palette` 0x085996F4 (0x7000 bytes = 224 icons)

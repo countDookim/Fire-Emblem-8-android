@@ -13,7 +13,7 @@
 ## Modules
 
 ```
-app ──► game ──► gba:{vfs,data,core,render,input,audio}, engine:{core,data,input,render,audio,script,text,save}
+app ──► game ──► gba:{vfs,data,core,render,input,audio,extract}, engine:{core,data,input,render,audio,script,text,save}
 testing ──► game         (every engine module depends only on engine:core)
 ```
 
@@ -34,6 +34,7 @@ testing ──► game         (every engine module depends only on engine:core)
 | `game` | `fe8.game` systems; shared FE systems become `gbafe.<system>` (0010) | boot → title, sound |
 | `testing` | reference data, differential tests, allocation meter, benchmark | working |
 | `app` | launcher (one Play), GLES 3.0 `GpuBackend`, `AudioTrackSink` + `AudioThread`, keys/gamepad + safe-area touch overlay, APK asset layer | boot playable |
+| `gba:extract` | generic extraction helpers: `Json`, `Symbols`, `IndexedPng`, `RomImporter` | working |
 | `engine:extract` | ROM → assets extraction core (JSON/PNG/Tiled/MIDI/WAV/`.fe8s`): file-free, runs from ROM + bundled manifest (ADR 0011); used by `tools:extract` and later `:app` | working |
 | `tools:extract` | The extraction CLI: decomp reads, files (`DecompSources`, `FileOutput`); never shipped | working |
 

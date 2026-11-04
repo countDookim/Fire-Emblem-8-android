@@ -1,5 +1,7 @@
 package gbafe.extract
 
+import gba.extract.Symbols
+
 /**
  * Everything the extraction steps need besides the ROM: symbol addresses and sizes, ROM
  * address names and decomp enum/face names. Behind an interface so extraction can run either

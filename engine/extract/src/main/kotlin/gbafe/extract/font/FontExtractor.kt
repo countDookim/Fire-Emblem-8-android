@@ -1,8 +1,8 @@
 package gbafe.extract.font
 
 import gba.data.IndexedImage
-import gbafe.extract.IndexedPng
-import gbafe.extract.Json
+import gba.extract.IndexedPng
+import gba.extract.Json
 
 /**
  * Extracts a text font (`struct Glyph *TextGlyphs_*[256]`, decomp `include/fontgrp.h`) into a 16×16-cell

@@ -1,4 +1,4 @@
-package gbafe.extract
+package gba.extract
 
 /**
  * Where extraction steps put their files (paths relative to the output root, `/`-separated):

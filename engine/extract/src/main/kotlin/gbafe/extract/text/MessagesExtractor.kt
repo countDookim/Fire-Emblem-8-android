@@ -1,6 +1,6 @@
 package gbafe.extract.text
 
-import gbafe.extract.Json
+import gba.extract.Json
 import gbafe.text.MessageCodec
 import gbafe.text.MsgHuffman
 

@@ -1,6 +1,6 @@
 package gbafe.extract.fe8.terrains
 
-import gbafe.extract.Json
+import gba.extract.Json
 import gbafe.extract.fe8.classes.ClassesExtractor
 
 /**
@@ -42,7 +42,7 @@ public object TerrainsExtractor {
         val status = table(tables[HEALS_STATUS] ?: error("missing $HEALS_STATUS"))
         val entries = List(ClassesExtractor.TERRAIN_COUNT) { t ->
             linkedMapOf<String, Any?>(
-                "id" to (names[t]?.let { gbafe.extract.DecompEnums.id(it, "TERRAIN_") } ?: "TERRAIN_%02X".format(t)),
+                "id" to (names[t]?.let { gba.extract.DecompEnums.id(it, "TERRAIN_") } ?: "TERRAIN_%02X".format(t)),
                 "healAmount" to heal[t],
                 "healsStatus" to (status[t] != 0),
             )

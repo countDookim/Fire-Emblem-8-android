@@ -1,6 +1,7 @@
 package gbafe.extract.fe8.items
 
-import gbafe.extract.Json
+import gba.extract.Json
+
 
 /**
  * Extracts the item table (`gItemData`, `struct ItemData` in the decomp's `include/bmitem.h`, values in
@@ -58,7 +59,7 @@ public object ItemsExtractor {
             require(attrs ushr ATTRIBUTES.size == 0) { "item $i has unknown attribute bits 0x${attrs.toString(16)}" }
             val range = u8(rom, o + 0x19)
             entries += linkedMapOf(
-                "id" to (names[i]?.let { gbafe.extract.DecompEnums.id(it, "ITEM_") } ?: "ITEM_%02X".format(i)),
+                "id" to (names[i]?.let { gba.extract.DecompEnums.id(it, "ITEM_") } ?: "ITEM_%02X".format(i)),
                 "nameText" to u16(rom, o), "descText" to u16(rom, o + 2), "useDescText" to u16(rom, o + 4),
                 "weaponType" to WEAPON_TYPES.getOrElse(u8(rom, o + 0x07)) { error("item $i: weapon type $it") },
                 "attributes" to attrNames,

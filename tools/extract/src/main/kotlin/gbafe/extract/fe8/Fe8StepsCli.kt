@@ -1,12 +1,12 @@
 package gbafe.extract.fe8
 
+import gba.extract.Json
+import gba.extract.Symbols
 import gbafe.extract.DecompSources
 import gbafe.extract.ExtractArgs
 import gbafe.extract.FileOutput
-import gbafe.extract.Json
 import gbafe.extract.ManifestSources
 import gbafe.extract.RecordingSources
-import gbafe.extract.Symbols
 
 /**
  * Runs the FE8 extraction steps the inputs allow and returns the paths written (relative to `args.out`).

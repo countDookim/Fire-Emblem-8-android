@@ -3,8 +3,8 @@ package gbafe.extract.fe8.maps
 import gba.data.Bgr555
 import gba.data.IndexedImage
 import gba.data.Lz77
-import gbafe.extract.IndexedPng
-import gbafe.extract.Json
+import gba.extract.IndexedPng
+import gba.extract.Json
 
 /**
  * Converts a chapter's map (decomp `src/bmmap.c: UnpackChapterMap/UnpackChapterMapGraphics`) into a

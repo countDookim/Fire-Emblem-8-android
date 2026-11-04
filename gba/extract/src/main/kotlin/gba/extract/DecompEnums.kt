@@ -1,4 +1,4 @@
-package gbafe.extract
+package gba.extract
 
 /**
  * Reads `NAME = value` constants from decomp C headers (e.g. `include/constants/items.h`), to give

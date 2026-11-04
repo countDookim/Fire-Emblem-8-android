@@ -1,12 +1,12 @@
 package fe8.testing
 
-import gbafe.extract.IndexedPng
+import gba.extract.IndexedPng
 import gbafe.extract.font.FontExtractor
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * M2-10: text fonts against the decomp's `data/fonts/glyphs_{1,2}.h` (pinned 04d1edb). Table addresses

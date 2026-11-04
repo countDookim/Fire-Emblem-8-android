@@ -1,4 +1,4 @@
-package gbafe.extract
+package gba.extract
 
 import java.security.MessageDigest
 

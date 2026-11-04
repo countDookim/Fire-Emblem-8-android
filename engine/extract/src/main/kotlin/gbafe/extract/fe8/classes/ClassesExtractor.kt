@@ -1,6 +1,6 @@
 package gbafe.extract.fe8.classes
 
-import gbafe.extract.Json
+import gba.extract.Json
 import gbafe.extract.fe8.items.ItemsExtractor
 
 /**
@@ -45,7 +45,7 @@ public object ClassesExtractor {
     public fun extract(
         rom: ByteArray, tableAddress: Int, count: Int, names: Map<Int, String>, itemNames: Map<Int, String> = emptyMap(),
     ): Map<String, Any?> {
-        fun classId(n: Int) = names[n]?.let { gbafe.extract.DecompEnums.id(it, "CLASS_") } ?: "CLASS_%02X".format(n)
+        fun classId(n: Int) = names[n]?.let { gba.extract.DecompEnums.id(it, "CLASS_") } ?: "CLASS_%02X".format(n)
         val entries = ArrayList<Map<String, Any?>>(count)
         for (i in 0 until count) {
             val o = off(tableAddress) + i * ENTRY_SIZE
@@ -112,7 +112,7 @@ public object ClassesExtractor {
             out += if (wtype >= 0x100) {
                 linkedMapOf("weaponType" to ItemsExtractor.WEAPON_TYPES.getOrElse(wtype - 0x100) { error("banim wtype $wtype") }, "anim" to anim)
             } else {
-                linkedMapOf("item" to (itemNames[wtype]?.let { gbafe.extract.DecompEnums.id(it, "ITEM_") } ?: "ITEM_%02X".format(wtype)), "anim" to anim)
+                linkedMapOf("item" to (itemNames[wtype]?.let { gba.extract.DecompEnums.id(it, "ITEM_") } ?: "ITEM_%02X".format(wtype)), "anim" to anim)
             }
             o += 4
         }

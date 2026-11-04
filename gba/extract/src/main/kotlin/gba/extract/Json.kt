@@ -1,4 +1,4 @@
-package gbafe.extract
+package gba.extract
 
 /**
  * Tiny deterministic JSON writer for extractor output (no serialization dependency in sessions).

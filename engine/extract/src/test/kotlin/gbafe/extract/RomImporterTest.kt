@@ -1,5 +1,8 @@
 package gbafe.extract
 
+import gba.extract.ExtractOutput
+import gba.extract.RomCheck
+import gba.extract.RomImporter
 import gbafe.extract.fe8.Fe8Import
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals

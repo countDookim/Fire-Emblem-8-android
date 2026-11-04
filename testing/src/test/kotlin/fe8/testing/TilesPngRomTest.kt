@@ -3,7 +3,7 @@ package fe8.testing
 import gba.data.Bgr555
 import gba.data.Lz77
 import gba.data.Tiles
-import gbafe.extract.IndexedPng
+import gba.extract.IndexedPng
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue

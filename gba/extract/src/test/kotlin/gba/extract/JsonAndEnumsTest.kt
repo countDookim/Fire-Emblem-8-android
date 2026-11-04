@@ -1,4 +1,4 @@
-package gbafe.extract
+package gba.extract
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

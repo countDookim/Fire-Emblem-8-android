@@ -1,11 +1,11 @@
 package fe8.testing
 
-import gbafe.extract.IndexedPng
+import gba.extract.IndexedPng
 import gbafe.extract.fe8.mapsprites.MapSpritesExtractor
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * M2-17: `unit_icon_wait_table` 0x088AF880 (0x358 bytes = 107 entries), `unit_icon_move_table` 0x089A2E00

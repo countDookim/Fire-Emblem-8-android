@@ -3,8 +3,8 @@ package gbafe.extract.fe8.ui
 import gba.data.Bgr555
 import gba.data.IndexedImage
 import gba.data.Tiles
-import gbafe.extract.IndexedPng
-import gbafe.extract.Json
+import gba.extract.IndexedPng
+import gba.extract.Json
 
 /**
  * FE8 item/UI icons: `item_icon_tiles` (decomp `data/data_item_icon.s`, uncompressed 4bpp, 0x80 bytes =

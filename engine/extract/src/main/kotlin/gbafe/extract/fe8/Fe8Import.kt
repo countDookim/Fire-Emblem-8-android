@@ -1,7 +1,7 @@
 package gbafe.extract.fe8
 
+import gba.extract.RomImporter
 import gbafe.extract.ManifestSources
-import gbafe.extract.RomImporter
 
 /** FE8 (U) import settings (docs/decisions/0011). */
 public object Fe8Import {

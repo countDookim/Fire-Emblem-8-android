@@ -3,12 +3,12 @@ package fe8.app
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import gbafe.extract.ExtractOutput
-import gbafe.extract.RomCheck
-import gbafe.extract.RomImporter
-import gbafe.extract.fe8.Fe8Import
+import gba.extract.ExtractOutput
+import gba.extract.RomCheck
+import gba.extract.RomImporter
 import gba.vfs.DirectoryLayer
 import gba.vfs.VfsLayer
+import gbafe.extract.fe8.Fe8Import
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

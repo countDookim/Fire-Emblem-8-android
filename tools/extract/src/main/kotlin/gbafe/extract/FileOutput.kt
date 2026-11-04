@@ -1,5 +1,6 @@
 package gbafe.extract
 
+import gba.extract.ExtractOutput
 import java.io.File
 
 /** [ExtractOutput] into the directory [root]. */

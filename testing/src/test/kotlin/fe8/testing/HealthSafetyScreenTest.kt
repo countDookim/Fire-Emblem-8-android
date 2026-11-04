@@ -2,12 +2,12 @@ package fe8.testing
 
 import gba.data.Bgr555
 import gba.data.Tiles
+import gba.extract.IndexedPng
 import gba.render.Camera
 import gba.render.FrameBuffer
 import gba.render.RenderState
 import gba.render.SoftwareRenderer
 import gba.render.TileSheets
-import gbafe.extract.IndexedPng
 import gbafe.extract.ScreenExtractor
 import gbafe.render.LcdControl
 import java.io.File

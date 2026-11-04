@@ -3,8 +3,8 @@ package gbafe.extract.fe8.mapsprites
 import gba.data.Bgr555
 import gba.data.Lz77
 import gba.data.Tiles
-import gbafe.extract.IndexedPng
-import gbafe.extract.Json
+import gba.extract.IndexedPng
+import gba.extract.Json
 
 /**
  * Extracts FE8 standing map sprites (`unit_icon_wait_table`, decomp `src/unit_icon_wait_data.c`,

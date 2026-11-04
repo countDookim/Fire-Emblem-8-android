@@ -1,11 +1,11 @@
 package fe8.testing
 
-import gbafe.extract.IndexedPng
+import gba.extract.IndexedPng
 import gbafe.extract.fe8.portraits.PortraitsExtractor
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * M2-11: `portrait_data` (0x088ACBE0, 0x12D0 bytes = 172 entries, decomp/fireemblem8.nm.txt) against

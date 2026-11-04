@@ -1,6 +1,6 @@
 package gbafe.extract.fe8
 
-import gbafe.extract.ExtractOutput
+import gba.extract.ExtractOutput
 import gbafe.extract.ExtractSources
 
 /**
@@ -126,11 +126,11 @@ public fun runFe8Steps(rom: ByteArray, symbols: ExtractSources, out: ExtractOutp
         }
         linkedMapOf("id" to id, "header" to (romNames[e.header] ?: e.header), "musicPlayer" to e.musicPlayer, "unknown" to e.unknown, "midi" to midi)
     }
-    out.writeText("songs/songs.json", gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.songs", "game" to "fe8", "version" to 1, "songs" to rows)))
+    out.writeText("songs/songs.json", gba.extract.Json.write(linkedMapOf("format" to "gbafe.songs", "game" to "fe8", "version" to 1, "songs" to rows)))
     for (vg in voicegroups) {
         val vgName = romNames[vg] ?: "voicegroup_%08X".format(vg)
         out.writeText("voicegroups/$vgName.json", 
-            gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.voicegroup", "game" to "fe8", "version" to 1,
+            gba.extract.Json.write(linkedMapOf("format" to "gbafe.voicegroup", "game" to "fe8", "version" to 1,
                 "voices" to gbafe.extract.m4a.M4aSong.readVoicegroup(rom, vg - ROM_BASE, symbols = romNames))),
         )
     }
@@ -143,7 +143,7 @@ public fun runFe8Steps(rom: ByteArray, symbols: ExtractSources, out: ExtractOutp
         linkedMapOf("name" to name, "wav" to "$name.wav", "type" to w.type, "status" to w.status, "freq" to w.freq.toLong().and(0xFFFFFFFFL),
             "loopStart" to w.loopStart, "size" to w.data.size)
     }
-    out.writeText("samples/samples.json", gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.samples", "game" to "fe8", "version" to 1, "samples" to sampleRows)))
+    out.writeText("samples/samples.json", gba.extract.Json.write(linkedMapOf("format" to "gbafe.samples", "game" to "fe8", "version" to 1, "samples" to sampleRows)))
     written += "samples/ (${sampleRows.size} WAV)"
     written += "songs/ (${rows.size} entries, ${midiByHeader.size} MIDI), voicegroups/ (${voicegroups.size})"
     // UI icons: item_icon_tiles (up to item_icon_palette) -> ui/icons.png + ui/icons.json.
@@ -164,7 +164,7 @@ public fun runFe8Steps(rom: ByteArray, symbols: ExtractSources, out: ExtractOutp
     // COS(a) = [0x40 + (a & 0xFF)] (include/hardware.h), hence 256 + 64 entries.
     val sinAt = symbols["gSinLookup"].address - ROM_BASE
     val sinTable = List(320) { ((rom[sinAt + 2 * it].toInt() and 0xFF) or (rom[sinAt + 2 * it + 1].toInt() shl 8)) }
-    out.writeText("data/trig.json", gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.trig", "game" to "fe8",
+    out.writeText("data/trig.json", gba.extract.Json.write(linkedMapOf("format" to "gbafe.trig", "game" to "fe8",
         "version" to 1, "fractionBits" to 12, "sin" to sinTable)))
     written += "data/trig.json"
     // Health & safety screen, src/opanim-healthsafetyscreen.c PrepareHealthAndSafetyScreen: one tile set

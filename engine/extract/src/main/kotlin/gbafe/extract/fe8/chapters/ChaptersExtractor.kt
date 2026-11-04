@@ -1,6 +1,7 @@
 package gbafe.extract.fe8.chapters
 
-import gbafe.extract.Json
+import gba.extract.Json
+
 
 /**
  * Extracts `gChapterDataTable` (`struct ROMChapterData`, decomp `include/chapterdata.h`, 0x94 bytes per

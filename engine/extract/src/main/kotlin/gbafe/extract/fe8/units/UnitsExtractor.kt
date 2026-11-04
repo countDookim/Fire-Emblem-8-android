@@ -1,6 +1,7 @@
 package gbafe.extract.fe8.units
 
-import gbafe.extract.Json
+import gba.extract.Json
+
 
 /**
  * Reads FE8 unit placement arrays (`struct UnitDefinition`, decomp `include/bmunit.h`, 20 bytes, BITPACKED;

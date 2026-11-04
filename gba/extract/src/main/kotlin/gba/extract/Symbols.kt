@@ -1,4 +1,4 @@
-package gbafe.extract
+package gba.extract
 
 /**
  * Decomp ELF symbols from `nm`-style output (`fireemblem8.nm.txt` in the ROM repo):

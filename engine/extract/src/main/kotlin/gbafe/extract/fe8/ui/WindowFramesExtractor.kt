@@ -3,8 +3,8 @@ package gbafe.extract.fe8.ui
 import gba.data.Bgr555
 import gba.data.Lz77
 import gba.data.Tiles
-import gbafe.extract.IndexedPng
-import gbafe.extract.Json
+import gba.extract.IndexedPng
+import gba.extract.Json
 
 /**
  * FE8 window frames, decomp `src/uiutils.c`: `sUiFrameImageLookup[4]` (LZ77 4bpp tile sets, one per

@@ -4,8 +4,8 @@ import gba.data.Bgr555
 import gba.data.IndexedImage
 import gba.data.Lz77
 import gba.data.Tiles
-import gbafe.extract.IndexedPng
-import gbafe.extract.Json
+import gba.extract.IndexedPng
+import gba.extract.Json
 
 /**
  * Extracts FE8 portraits (`portrait_data[]`, `struct FaceData` in decomp `include/types.h`, 28 bytes:

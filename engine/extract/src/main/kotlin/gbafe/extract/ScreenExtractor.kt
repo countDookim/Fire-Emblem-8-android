@@ -3,6 +3,8 @@ package gbafe.extract
 import gba.data.Bgr555
 import gba.data.Lz77
 import gba.data.Tiles
+import gba.extract.IndexedPng
+import gba.extract.Json
 import gbafe.data.Tsa
 
 /**

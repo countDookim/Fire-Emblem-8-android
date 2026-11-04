@@ -1,5 +1,7 @@
 package gbafe.extract
 
+import gba.extract.DecompEnums
+import gba.extract.Symbols
 import java.io.File
 
 /** [ExtractSources] read from the decomp's symbol list and (optional) checkout [decomp]. */

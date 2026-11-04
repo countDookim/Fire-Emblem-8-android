@@ -1,4 +1,4 @@
-package gbafe.extract
+package gba.extract
 
 import gba.data.IndexedImage
 import java.awt.image.IndexColorModel

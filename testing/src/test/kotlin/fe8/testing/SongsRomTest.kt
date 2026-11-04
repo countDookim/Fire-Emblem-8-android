@@ -1,10 +1,10 @@
 package fe8.testing
 
 import gbafe.extract.m4a.M4aSong
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * M2-18: m4a song → MIDI. `gSongTable` 0x08224470 (decomp/fireemblem8.nm.txt; `sound/song_table.s`, 8-byte
@@ -82,7 +82,7 @@ class SongsRomTest {
         dir.mkdirs()
         File(dir, "song001.mid").writeBytes(M4aSong.toMidi(s))
         val vg = M4aSong.readVoicegroup(romFile.readBytes(), s.voicegroup - 0x08000000)
-        File(dir, "voicegroup_song001.json").writeText(gbafe.extract.Json.write(linkedMapOf("format" to "gbafe.voicegroup", "game" to "fe8", "version" to 1, "voices" to vg)))
+        File(dir, "voicegroup_song001.json").writeText(gba.extract.Json.write(linkedMapOf("format" to "gbafe.voicegroup", "game" to "fe8", "version" to 1, "voices" to vg)))
         assertEquals(true, s.tracks.isNotEmpty())
     }
 }

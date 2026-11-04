@@ -41,8 +41,14 @@ def load_reference(root: Path = ROOT) -> dict[str, dict]:
         return {r["name"]: r for r in csv.DictReader(f, delimiter="\t")}
 
 
+# Source-set dirs per kind: plain JVM modules use main/test, Kotlin Multiplatform ones (ADR 0013)
+# commonMain/jvmMain and jvmTest.
+SOURCE_SETS = {"main": ("main", "commonMain", "jvmMain"), "test": ("test", "jvmTest")}
+
+
 def kotlin_files(kind: str, root: Path = ROOT) -> list[Path]:
-    return [p for p in root.glob(f"**/src/{kind}/kotlin/**/*.kt") if "/build/" not in p.relative_to(root).as_posix()]
+    return [p for k in SOURCE_SETS.get(kind, (kind,)) for p in root.glob(f"**/src/{k}/kotlin/**/*.kt")
+            if "/build/" not in p.relative_to(root).as_posix()]
 
 
 def find_ported(ref: dict[str, dict], root: Path = ROOT) -> tuple[dict[str, str], list[str]]:

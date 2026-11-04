@@ -15,7 +15,7 @@ class LayeringTest(unittest.TestCase):
     def test_shared_code_does_not_use_the_fe8_layer(self):
         offenders = []
         checked = 0
-        for f in ROOT.glob("**/src/main/kotlin/**/*.kt"):
+        for f in [p for d in ("main", "commonMain", "jvmMain") for p in ROOT.glob(f"**/src/{d}/kotlin/**/*.kt")]:
             if "build" in f.parts:
                 continue
             text = f.read_text(encoding="utf-8")

@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 // Conditional classpath (see settings.gradle.kts): AGP/Compose only with an Android SDK, Dokka only for
 // docs builds. Cloud sessions therefore resolve just the Kotlin plugin + test libraries.
@@ -23,6 +24,7 @@ plugins {
 }
 
 val docs = (gradle as ExtensionAware).extensions.extraProperties["fe8.docs"] == true
+val androidSdk = (gradle as ExtensionAware).extensions.extraProperties["fe8.android"] == true
 val jvmModules = listOf(
     ":gba:vfs", ":gba:data", ":gba:core", ":gba:render", ":gba:input", ":gba:audio", ":gba:extract", ":gba:testkit", ":engine:core", ":engine:data", ":engine:input", ":engine:render",
     ":engine:script", ":engine:text", ":engine:extract", ":engine:save", ":game", ":testing",
@@ -85,9 +87,10 @@ subprojects {
         }
         configureTests()
     }
-    // Kotlin Multiplatform modules (jvm target now; android target comes with AGP in CI).
+    // Kotlin Multiplatform modules: jvm everywhere, plus android where AGP is on the classpath (CI).
     pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
         applyDokka()
+        if (androidSdk) configureAndroidTarget()
         extensions.configure<KotlinMultiplatformExtension> {
             jvmToolchain(jdk)
             explicitApi()
@@ -109,6 +112,35 @@ subprojects {
 }
 
 /**
+ * Adds the `android` target (decision 0013) with AGP's KMP library plugin. Only called when AGP is on the
+ * classpath, and AGP's types are not on this script's compile classpath otherwise, so the target is created
+ * by applying the plugin by id and configured through Groovy property access (like Dokka below) rather than
+ * through the `androidLibrary {}` accessor. Android has no tests of its own: the plugin adds no host/device
+ * test compilations unless asked, and all tests stay in `jvmTest`.
+ */
+fun Project.configureAndroidTarget() {
+    apply(plugin = "com.android.kotlin.multiplatform.library")
+    val kmp = extensions.getByType<KotlinMultiplatformExtension>()
+    // The extension name is the one AGP's own `kotlin { androidLibrary { } }` accessor uses.
+    (kmp as ExtensionAware).extensions.getByName("androidLibrary").withGroovyBuilder {
+        // `:gba:vfs` -> io.github.countdookim.fe8.gba.vfs (unique; the `:app` namespace is the bare prefix).
+        setProperty("namespace", "io.github.countdookim.fe8" + path.replace(':', '.'))
+        setProperty("compileSdk", 36)
+        setProperty("minSdk", 26)
+    }
+    // Platform code lives in `src/jvmMain` (java.io.File, java.util.zip, Class.getResource: all valid on
+    // Android) and is compiled twice, once per target. Adding the directories to `androidMain` instead of an
+    // intermediate jvm+android source set keeps the layout and the default hierarchy template untouched.
+    kmp.sourceSets.matching { it.name == "androidMain" }.configureEach {
+        this.kotlin.srcDir("src/jvmMain/kotlin")
+        resources.srcDir("src/jvmMain/resources")
+    }
+    // Same bytecode level as the jvm target (and :app); the android compile has no -Xjdk-release because AGP
+    // puts android.jar on its bootclasspath.
+    tasks.withType<KotlinCompile>().configureEach { compilerOptions.jvmTarget.set(JvmTarget.JVM_17) }
+}
+
+/**
  * KDoc lint (brief: "KDoc on every public class and function"): every module reports undocumented public
  * declarations and any Dokka warning fails the build. Dokka is only on the classpath for docs builds, so
  * its extension is configured through Groovy property access instead of its (absent) Kotlin types.
@@ -119,6 +151,9 @@ fun Project.configureDokkaLint() {
     @Suppress("UNCHECKED_CAST")
     (dokka.prop("dokkaSourceSets") as DomainObjectCollection<Any>).configureEach {
         (prop("reportUndocumented") as Property<Boolean>).set(true)
+        // `androidMain` compiles the same `src/jvmMain` files as `jvmMain` (see configureAndroidTarget): skip
+        // it so nothing is analysed or reported twice, and Dokka needs no Android classpath.
+        if (prop("name") == "androidMain") (prop("suppress") as Property<Boolean>).set(true)
     }
     @Suppress("UNCHECKED_CAST")
     (dokka.prop("dokkaPublications") as DomainObjectCollection<Any>).configureEach {

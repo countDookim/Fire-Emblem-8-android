@@ -58,6 +58,9 @@ M5-22, M5-28. New code goes in `commonMain` (no `java.*`, `System.*`, `String.fo
 ## Rules and caveats
 - A `@VerifiesPort` every run or two. No `java.*`/`javax.*`/`System.*` in `commonMain` (KMP); battle rolls
   only via `mechanics.battleRolls`.
+- Scheduled runs and owner-PC sessions both push to `master`: before starting a task, `git fetch` and skip it if a
+  `wip/<id>` branch exists or TASKS marks it `wip`; push `wip/<id>` early for long tasks. M5-02 needs cmake, ninja
+  and network (mGBA clone); without them take a ROM-only task.
 - Fresh session: `git fetch` first; if local `master` is an old unrelated history: `git branch -m master
   stale-master && git checkout -B master origin/master`.
 - Pushes race CI's `ci: update progress [skip ci]` commit: `git fetch && git rebase origin/master`, push again.

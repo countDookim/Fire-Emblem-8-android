@@ -42,7 +42,7 @@ PSG), GPU renderer (OpenGL ES 3.0), on-screen GBA buttons and gamepad. The launc
 tools/setup.sh && source .assets.env   # session setup: kotlinc, ROM-repo assets, Gradle warm-up
 ./gradlew jvmTest                       # all JVM tests (unit, differential vs mGBA, allocation)
 ./gradlew :testing:benchmark            # frame-time benchmark
-./gradlew :app:assembleDebug            # APK (needs Android SDK; CI only)
+./gradlew :app:assembleDebug            # APK (needs Android SDK: CI or owner PC)
 ./gradlew dokkaGenerate -Pfe8.docs=true # API docs
 python3 tools/progress.py               # progress from latest test results
 ```

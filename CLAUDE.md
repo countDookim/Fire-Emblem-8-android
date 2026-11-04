@@ -1,12 +1,17 @@
 # Instructions for Claude sessions
 
+Two run types share `master`: **scheduled runs** (Claude Cowork task every 6 h: fresh clone, ~30 min, no Android
+SDK) and **owner-PC sessions** (Claude Code in the owner's WSL, persistent `~/FE8` checkouts, SDK, owner present).
+Rules marked *(scheduled)* apply only to scheduled runs; everything else applies to both.
+
 1. Read `HANDOFF.md` first; follow the Schedule of `docs/PROJECT_BRIEF.md` and its Amendments (amendments win).
-   Scheduled runs: ~30 min; work until ~minute 23, wrap up by ~30, never end early. Before any wrap-up step run
+   *(scheduled)* ~30 min; work until ~minute 23, wrap up by ~30, never end early. Before any wrap-up step run
    `tools/run_clock.sh check` (started by setup.sh); if it fails, start the next task (on `wip/<task-id>`). No
    token/usage reporting (owner, 2026-10-31).
 2. `tools/setup.sh > /tmp/setup.log 2>&1 &` (idempotent; poll the log: cold Gradle can pass 2 min), then
-   `source .assets.env`.
-3. Tests: `./gradlew jvmTest`. Android SDK: cloud sessions never install it; the owner's PC (WSL) has it in
+   `source .assets.env`. Owner-PC sessions: `git fetch` + rebase the existing checkout instead of cloning; no time
+   box; ask the owner directly instead of NEEDS USER; export `ANDROID_HOME=~/android-sdk` in non-interactive shells.
+3. Tests: `./gradlew jvmTest`. Android SDK: scheduled runs never install it; the owner's PC (WSL) has it in
    `~/android-sdk` (`ANDROID_HOME`), so `:app` and the android targets build there too.
 4. Never commit the ROM or anything extracted from it. ROM-derived data goes to the ROM repo only. Until the public
    release, **debug/test APKs may bundle the ROM repo's extracted assets** (private `latest` release, owner 2026-10-28);
@@ -32,4 +37,5 @@
     that apply; tell it not to commit, push or edit HANDOFF; (c) review the result from `git diff --stat` + the
     diff of the key hunks and the test output, not by re-reading whole files; send a fix brief to the same agent
     (`SendMessage`) rather than coding it yourself; (d) commit/push/HANDOFF yourself. Code yourself only for a
-    trivial (< ~10 line) fix or when a brief failed twice. Independent briefs may run in parallel (separate files).
+    trivial (< ~10 line) fix, when a brief failed twice, or when no subagent tool is available. Independent
+    briefs may run in parallel (separate files).

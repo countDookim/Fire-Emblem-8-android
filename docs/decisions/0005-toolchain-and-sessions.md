@@ -1,6 +1,6 @@
 # 0005 — Toolchain: sessions are JVM-only, CI builds Android
 
-**Status.** Accepted.
+**Status.** Accepted. Amended 2026-11-04: applies to scheduled runs; owner-PC (WSL) sessions have the SDK (brief Amendments).
 
 **Context.** Sessions must start in < 3 min without the Android SDK; CI builds the APK. Sessions get 403 from the
 Gradle plugin portal and intermittent 404/429 from Maven Central.

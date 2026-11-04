@@ -1,0 +1,7 @@
+# LF everywhere, including Windows checkouts (owner 2026-11-04). Binaries are never converted.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.jar binary
+*.keystore binary
+*.png binary
+*.gba binary

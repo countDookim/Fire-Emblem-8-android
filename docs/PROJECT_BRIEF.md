@@ -115,4 +115,5 @@ script interpreter. 6. Remaining systems, each with strategy interfaces and even
 
 | Date | Change | Why |
 |---|---|---|
+| 2026-11-04 | Sessions may also run on the owner's PC in WSL2 (Ubuntu), which has the Android SDK (command-line tools, `~/android-sdk`) and may build `:app`. Cloud sessions still never install the SDK; still no Android Studio or emulator | Owner moved local work to WSL |
 | 2026-11-03 | Runs are orchestrated: the session model breaks work into small, well-explained coding briefs and delegates the coding to a Sonnet subagent, then reviews diffs/tests and commits (CLAUDE.md rule 11) | Owner: save tokens |

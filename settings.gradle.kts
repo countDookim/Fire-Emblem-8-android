@@ -3,15 +3,15 @@ pluginManagement {
     // its implementation module on Google Maven / Maven Central instead (versions from the catalog).
     repositories {
         // Cloud sessions set FE8_MAVEN_MIRROR (tools/maven_mirror.py: retries the proxy's spurious 404/429s);
-        // they never build :app, so only Maven Central (+ AndroidX/AGP groups, unused there) go via the mirror.
+        // The owner's WSL also builds :app: Google-only groups go to /google first (Central 404s are retried slowly).
         // CI never sets it and uses the standard repositories.
         val mirror = System.getenv("FE8_MAVEN_MIRROR")
         if (mirror.isNullOrBlank()) {
             google()
             mavenCentral()
         } else {
+            maven("$mirror/google") { isAllowInsecureProtocol = true; content { includeGroupByRegex("androidx\\..*|com\\.android(\\..*)?|com\\.google\\.(android|testing)\\..*") } }
             maven("$mirror/central") { isAllowInsecureProtocol = true }
-            maven("$mirror/google") { isAllowInsecureProtocol = true; content { includeGroupByRegex("androidx\\..*|com\\.android(\\..*)?") } }
         }
     }
     val versions = file("gradle/libs.versions.toml").readLines()
@@ -32,15 +32,15 @@ pluginManagement {
 dependencyResolutionManagement {
     repositories {
         // Cloud sessions set FE8_MAVEN_MIRROR (tools/maven_mirror.py: retries the proxy's spurious 404/429s);
-        // they never build :app, so only Maven Central (+ AndroidX/AGP groups, unused there) go via the mirror.
+        // The owner's WSL also builds :app: Google-only groups go to /google first (Central 404s are retried slowly).
         // CI never sets it and uses the standard repositories.
         val mirror = System.getenv("FE8_MAVEN_MIRROR")
         if (mirror.isNullOrBlank()) {
             google()
             mavenCentral()
         } else {
+            maven("$mirror/google") { isAllowInsecureProtocol = true; content { includeGroupByRegex("androidx\\..*|com\\.android(\\..*)?|com\\.google\\.(android|testing)\\..*") } }
             maven("$mirror/central") { isAllowInsecureProtocol = true }
-            maven("$mirror/google") { isAllowInsecureProtocol = true; content { includeGroupByRegex("androidx\\..*|com\\.android(\\..*)?") } }
         }
     }
 }

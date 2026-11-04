@@ -6,7 +6,8 @@
    token/usage reporting (owner, 2026-10-31).
 2. `tools/setup.sh > /tmp/setup.log 2>&1 &` (idempotent; poll the log: cold Gradle can pass 2 min), then
    `source .assets.env`.
-3. Tests: `./gradlew jvmTest` (JVM only; never install the Android SDK in a session).
+3. Tests: `./gradlew jvmTest`. Android SDK: cloud sessions never install it; the owner's PC (WSL) has it in
+   `~/android-sdk` (`ANDROID_HOME`), so `:app` and the android targets build there too.
 4. Never commit the ROM or anything extracted from it. ROM-derived data goes to the ROM repo only. Until the public
    release, **debug/test APKs may bundle the ROM repo's extracted assets** (private `latest` release, owner 2026-10-28);
    public release builds ship none (players supply their ROM, extracted on device: docs/decisions/0011).

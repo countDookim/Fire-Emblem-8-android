@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 /**
  * The channel part of `struct SoundInfo` shared by all players: [maxChans] DirectSound [chans]

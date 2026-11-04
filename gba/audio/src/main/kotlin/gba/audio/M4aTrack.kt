@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 /**
  * One m4a sequencer track (`struct MusicPlayerTrack`). Fields hold the C values as Ints: `u8`

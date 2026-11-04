@@ -1,8 +1,8 @@
 package fe8.game
 
-import gbafe.audio.M4aCommands
-import gbafe.audio.M4aPlayer
-import gbafe.audio.M4aSound
+import gba.audio.M4aCommands
+import gba.audio.M4aPlayer
+import gba.audio.M4aSound
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc

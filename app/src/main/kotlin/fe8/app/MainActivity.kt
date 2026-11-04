@@ -39,10 +39,10 @@ import fe8.game.Fe8Boot
 import fe8.game.Fe8Game
 import fe8.game.Fe8Sound
 import fe8.game.RomView
+import gba.audio.PcmStream
 import gba.core.time.FixedStepClock
 import gba.input.TouchButtons
 import gba.vfs.DirectoryLayer
-import gbafe.audio.PcmStream
 import gbafe.extract.fe8.Fe8Import
 import io.github.countdookim.fe8.BuildConfig
 import kotlinx.coroutines.Dispatchers

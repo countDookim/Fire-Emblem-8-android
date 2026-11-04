@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 /**
  * Destination for mixed PCM. `:app` implements it with a low-latency `AudioTrack`; tests implement it

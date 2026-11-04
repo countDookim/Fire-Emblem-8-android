@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 /**
  * One frame of m4a sound, in the original's order: the VBlank IRQ's `m4aSoundVSync`, then

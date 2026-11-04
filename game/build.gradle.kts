@@ -4,5 +4,6 @@ plugins {
 
 dependencies {
     api(project(":gba:vfs"))
-    listOf("core", "data", "input", "render", "audio", "script", "text", "save").forEach { api(project(":engine:$it")) }
+    listOf("core", "data", "input", "render", "script", "text", "save").forEach { api(project(":engine:$it")) }
+    api(project(":gba:audio"))
 }

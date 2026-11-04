@@ -22,8 +22,8 @@ plugins {
 
 val docs = (gradle as ExtensionAware).extensions.extraProperties["fe8.docs"] == true
 val jvmModules = listOf(
-    ":gba:vfs", ":gba:data", ":gba:core", ":gba:render", ":gba:input", ":engine:core", ":engine:data", ":engine:input", ":engine:render",
-    ":engine:audio", ":engine:script", ":engine:text", ":engine:extract", ":engine:save", ":game", ":testing",
+    ":gba:vfs", ":gba:data", ":gba:core", ":gba:render", ":gba:input", ":gba:audio", ":engine:core", ":engine:data", ":engine:input", ":engine:render",
+    ":engine:script", ":engine:text", ":engine:extract", ":engine:save", ":game", ":testing",
     ":tools:extract",
 )
 val jdk = providers.gradleProperty("fe8.jdk").orElse("21").get().toInt()

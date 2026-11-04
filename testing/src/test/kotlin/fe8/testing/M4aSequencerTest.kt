@@ -1,9 +1,9 @@
 package fe8.testing
 
+import gba.audio.M4aCommands
+import gba.audio.M4aSequencer
+import gba.audio.M4aTrack
 import gba.core.VerifiesPort
-import gbafe.audio.M4aCommands
-import gbafe.audio.M4aSequencer
-import gbafe.audio.M4aTrack
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

@@ -1,4 +1,4 @@
-# engine:audio
+# gba:audio
 
 m4a (MP2K) sound driver, ported from the decomp's `src/m4a.c` / `src/m4a_1.s` and verified against per-frame mGBA
 RAM traces (track/channel state and the whole PCM buffer byte-exact: `M4aNoteTest`, `M4aSequencerTest`).

@@ -2,7 +2,7 @@ package fe8.testing
 
 import fe8.game.Fe8Sound
 import fe8.game.RomView
-import gbafe.audio.M4aSound
+import gba.audio.M4aSound
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

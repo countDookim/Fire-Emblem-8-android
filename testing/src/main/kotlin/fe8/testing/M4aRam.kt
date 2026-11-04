@@ -1,9 +1,9 @@
 package fe8.testing
 
-import gbafe.audio.M4aChannel
-import gbafe.audio.M4aPlayer
-import gbafe.audio.M4aSoundInfo
-import gbafe.audio.M4aTrack
+import gba.audio.M4aChannel
+import gba.audio.M4aPlayer
+import gba.audio.M4aSoundInfo
+import gba.audio.M4aTrack
 
 /**
  * Reads m4a state (`MusicPlayerInfo`, `MusicPlayerTrack`) out of a reference IWRAM dump, for

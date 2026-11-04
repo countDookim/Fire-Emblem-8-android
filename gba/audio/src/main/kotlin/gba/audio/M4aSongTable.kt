@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 /**
  * A ROM's `gSongTable` (`struct Song`: header pointer, `ms` player index, `me`) read through [bus].

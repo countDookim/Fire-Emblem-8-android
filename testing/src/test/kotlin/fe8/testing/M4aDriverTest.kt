@@ -1,8 +1,8 @@
 package fe8.testing
 
-import gbafe.audio.M4aBus
-import gbafe.audio.M4aDriver
-import gbafe.audio.PcmStream
+import gba.audio.M4aBus
+import gba.audio.M4aDriver
+import gba.audio.PcmStream
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

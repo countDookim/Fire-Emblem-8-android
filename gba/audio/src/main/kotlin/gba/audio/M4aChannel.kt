@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 /**
  * One m4a voice (`struct SoundChannel`; the shared head of `struct CgbChannel`). Fields hold the

@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 /**
  * A game's whole m4a sound state: the shared [info] and the `gMPlayTable` [players] (table order),

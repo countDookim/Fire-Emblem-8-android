@@ -4,8 +4,8 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
 import android.os.Process
-import gbafe.audio.AudioSink
-import gbafe.audio.AudioSource
+import gba.audio.AudioSink
+import gba.audio.AudioSource
 
 /**
  * Low-latency [AudioSink] (M3-12): a streaming 16-bit stereo `AudioTrack` with

@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse

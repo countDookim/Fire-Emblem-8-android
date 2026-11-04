@@ -3,6 +3,9 @@ package fe8.game
 import fe8.game.opanim.EarlyStartUi
 import fe8.game.opanim.OpAnim
 import fe8.game.title.TitleScreen
+import gba.audio.M4aDriver
+import gba.audio.M4aSound
+import gba.audio.PcmStream
 import gba.render.Camera
 import gba.render.ColorMath
 import gba.render.FrameBuffer
@@ -11,9 +14,6 @@ import gba.render.HBlankLines
 import gba.render.RenderState
 import gba.render.SoftwareRenderer
 import gba.render.TileSheets
-import gbafe.audio.M4aDriver
-import gbafe.audio.M4aSound
-import gbafe.audio.PcmStream
 import gbafe.core.time.GameClock
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine

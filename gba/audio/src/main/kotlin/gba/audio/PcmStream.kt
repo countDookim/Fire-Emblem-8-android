@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 /**
  * Hands the m4a mixer's per-frame PCM to an audio thread: the game thread [push]es each frame's

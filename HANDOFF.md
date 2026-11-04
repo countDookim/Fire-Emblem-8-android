@@ -125,10 +125,10 @@ _(nothing blocked)_
   shader/`PackedCompositor` change; `glslangValidator` (apt `glslang-tools`) checks syntax.
 - Open: owner manual test (then mark M3-07 done); maps/sheets upload only when changed (palette, lines, OBJ plane every frame); sprites
   are still rasterised on CPU (OK for v1); GPU colour math is hardware (no mGBA variant).
-- M3-12 (merged; CI built the APK): `gbafe.audio.AudioSource`/`ToneSource`,
+- M3-12 (merged; CI built the APK): `gba.audio.AudioSource`/`ToneSource`,
   `app/AudioTrackSink` (`PERFORMANCE_MODE_LOW_LATENCY`, 48 kHz, chunk = half the device minimum buffer) +
   `AudioThread` (URGENT_AUDIO, one pre-allocated buffer), launcher "Test tone" button, MANUAL_TEST step.
-- M3-13 (in progress, on master): `gbafe.audio` `M4aPitch`, `M4aTrack`/`M4aChannel`/`M4aPlayer`/
+- M3-13 (in progress, on master): `gba.audio` `M4aPitch`, `M4aTrack`/`M4aChannel`/`M4aPlayer`/
   `M4aSoundInfo` state, `M4aCommands` (all ply_* incl. note/fine/endtie/xcmd; fade, TrackStop),
   `M4aSequencer` (`MPlayMain`: ticks, gate countdown, channel vol/pitch updates; needs an `M4aSoundInfo`
   for notes), `M4aMixer` (`SoundMainRAM`: reverb, envelope, fixed + interpolated mixing).

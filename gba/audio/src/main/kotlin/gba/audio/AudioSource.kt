@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 /** Producer of mixed PCM pulled by an audio thread (the m4a mixer later; [ToneSource] for tests). */
 public fun interface AudioSource {

@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 /**
  * One m4a music player (`struct MusicPlayerInfo`) and its [tracks]. Fields hold the C values as

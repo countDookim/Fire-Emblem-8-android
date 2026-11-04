@@ -1,9 +1,9 @@
 package fe8.game
 
-import gbafe.audio.M4aBus
-import gbafe.audio.M4aSongTable
-import gbafe.audio.M4aSound
-import gbafe.audio.M4aSoundInfo
+import gba.audio.M4aBus
+import gba.audio.M4aSongTable
+import gba.audio.M4aSound
+import gba.audio.M4aSoundInfo
 
 /** FE8's m4a configuration (addresses from the decomp's symbol map, mode from `m4aSoundInit`). */
 public object Fe8Sound {

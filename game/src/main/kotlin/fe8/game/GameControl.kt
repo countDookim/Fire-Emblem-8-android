@@ -39,7 +39,7 @@ public class GameControl(
     /** The title screen (null: a stand-in proc holds the game control proc there). */
     private val titleScreen: (() -> TitleScreen)? = null,
     /** The m4a state the [sound] wrapper drives (null: no sound data). */
-    m4a: gbafe.audio.M4aSound? = null,
+    m4a: gba.audio.M4aSound? = null,
 ) {
     /**
      * `gPlaySt.config` option bits (u32 at `gPlaySt+0x40`); only the sound bits are used so far.

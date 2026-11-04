@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 /**
  * The m4a sequencer: `MPlayMain`'s tempo/tick/command loop, gate countdown and channel

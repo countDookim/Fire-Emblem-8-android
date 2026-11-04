@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 /** Byte reader over the GBA address space holding song data (ROM in practice). */
 public fun interface M4aBus {

@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 /** `SoundMainRAM`, the DirectSound mixer run once per VBlank after the sequencers. */
 public object M4aMixer {

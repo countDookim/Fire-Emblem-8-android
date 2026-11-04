@@ -13,7 +13,7 @@
 ## Modules
 
 ```
-app ──► game ──► gba:{vfs,data,core,render,input}, engine:{core,data,input,render,audio,script,text,save}
+app ──► game ──► gba:{vfs,data,core,render,input,audio}, engine:{core,data,input,render,audio,script,text,save}
 testing ──► game         (every engine module depends only on engine:core)
 ```
 
@@ -28,7 +28,7 @@ testing ──► game         (every engine module depends only on engine:core)
 | `engine:input` | `KeyStatus`, `KeyComboReset` (FE ports) | working |
 | `gba:render` | `RenderState`, `SoftwareRenderer`, `GpuFrame` + `PackedCompositor` (shader spec), `TileSheets`, `FrameBuffer`, `BgAffine`, `HBlankLines` | software + GPU |
 | `engine:render` | `LcdControl`, `BgHardware`, `OamBuffer`, `HardwareScene`, fades, HBlank handlers (FE ports) | software + GPU |
-| `engine:audio` | m4a sequencer, DirectSound mixer, `M4aDriver`, `PcmStream`, `AudioSink` (CGB/PSG: todo) | working |
+| `gba:audio` | m4a sequencer, DirectSound mixer, `M4aDriver`, `PcmStream`, `AudioSink` (CGB/PSG: todo) | working |
 | `engine:script` / `save` | `.fe8s` VM / save container | contracts |
 | `engine:text` | text tags, Huffman messages | partial |
 | `game` | `fe8.game` systems; shared FE systems become `gbafe.<system>` (0010) | boot → title, sound |

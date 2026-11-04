@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 import kotlin.math.floor
 import kotlin.math.pow

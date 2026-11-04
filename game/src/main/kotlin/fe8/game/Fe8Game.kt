@@ -22,9 +22,9 @@ public class Fe8Game(
     /** ROM data for the boot screens; null: no game systems run and [present] draws a test pattern. */
     rom: RomView? = null,
     /** The game's m4a state ([Fe8Sound.create]); null: silent. Used only with [rom]. */
-    sound: gbafe.audio.M4aSound? = null,
+    sound: gba.audio.M4aSound? = null,
     /** Receives the mixed samples each frame (to the audio thread); null: mix only. */
-    pcm: gbafe.audio.PcmStream? = null,
+    pcm: gba.audio.PcmStream? = null,
 ) : Simulation {
     /** Central RNG. */
     public val rng: RngService = RngService().apply { seedLikeBoot() }

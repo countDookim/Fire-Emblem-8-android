@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 /**
  * The CGB (PSG) half of the m4a driver: `CgbSound` steps the four CGB channels' envelopes once

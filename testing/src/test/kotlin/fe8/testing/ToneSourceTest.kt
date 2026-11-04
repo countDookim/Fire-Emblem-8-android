@@ -1,6 +1,6 @@
 package fe8.testing
 
-import gbafe.audio.ToneSource
+import gba.audio.ToneSource
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

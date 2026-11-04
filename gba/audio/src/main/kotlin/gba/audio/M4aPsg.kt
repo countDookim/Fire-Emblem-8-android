@@ -1,4 +1,4 @@
-package gbafe.audio
+package gba.audio
 
 /**
  * The GBA's PSG (CGB) sound registers as `CgbSound` sees them: one byte per IO address from

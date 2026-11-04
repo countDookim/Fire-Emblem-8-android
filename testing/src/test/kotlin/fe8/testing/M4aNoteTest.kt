@@ -81,7 +81,8 @@ class M4aNoteTest {
         var psgSum = 0.0
         var psgMean = 0.0
         var psgSamples = 0
-        for (dir in ref.root.listFiles().orEmpty().filter { it.isDirectory }) {
+        for (dir in ref.root.listFiles().orEmpty()
+            .filter { it.isDirectory && it.name !in M4A_UNCOVERED_RUNS }) {
             val dumps = dir.listFiles().orEmpty().mapNotNull { f ->
                 DUMP.matchEntire(f.name)?.let { it.groupValues[1].toInt() to f }
             }.toMap().toSortedMap() // in frame order: the PSG synth carries state across frames

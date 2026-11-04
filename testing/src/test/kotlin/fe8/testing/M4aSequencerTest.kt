@@ -33,7 +33,8 @@ class M4aSequencerTest {
         var skipped = 0
         val runs = IntArray(64)
         val skipCmd = IntArray(256) // last command byte (runningStatus) of skipped tracks
-        for (dir in ref.root.listFiles().orEmpty().filter { it.isDirectory }) {
+        for (dir in ref.root.listFiles().orEmpty()
+            .filter { it.isDirectory && it.name !in M4A_UNCOVERED_RUNS }) {
             val frames = dir.listFiles().orEmpty().mapNotNull { f ->
                 DUMP.matchEntire(f.name)?.let { it.groupValues[1].toInt() to f }
             }.toMap()

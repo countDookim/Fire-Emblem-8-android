@@ -52,6 +52,35 @@ public class ReferenceData(
         /** RGB888 frame of a full dump (240×160×3). */
         public fun frameRgb(dump: String): ByteArray = File(dir, "$dump.frame.rgb").readBytes()
 
+        /** True if the run holds any `*.sram.bin` dump (harness `dumpsram NAME`). */
+        public val hasSram: Boolean
+            get() = dir.list()?.any { it.endsWith(".sram.bin") } == true
+
+        /** The 32768-byte save RAM dumped as [dump] (`<dump>.sram.bin`). */
+        public fun sram(dump: String): ByteArray = File(dir, "$dump.sram.bin").readBytes()
+
+        private val watchSpecs: Map<String, List<String>> by lazy {
+            val f = File(dir, "watches.txt")
+            if (!f.isFile) {
+                emptyMap()
+            } else {
+                f.readLines().filter { it.isNotBlank() }
+                    .map { it.trim().split(Regex("\\s+")) }.associateBy { it[0] }
+            }
+        }
+
+        /** True if the run traces a watch called [name] (`watches.txt`). */
+        public fun hasWatch(name: String): Boolean = name in watchSpecs
+
+        /** Loads the per-step trace of watch [name] (`watches.txt` + `<name>.watch.bin`). */
+        public fun watch(name: String): WatchTrace {
+            val f = requireNotNull(watchSpecs[name]) { "no watch $name in run ${this.name}" }
+            return WatchTrace(
+                name, f[1].toLong(16).toInt(), f[2].toInt(), f[3].toInt(),
+                File(dir, "$name.watch.bin").readBytes(),
+            )
+        }
+
         /** True when the run was made with `--audio`. */
         public val hasAudio: Boolean get() = File(dir, "audio.s16").isFile
 

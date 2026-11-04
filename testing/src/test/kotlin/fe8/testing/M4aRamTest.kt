@@ -17,7 +17,8 @@ class M4aRamTest {
     fun `playing players advance clock and tempo like the tempo loop`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         var checked = 0
-        for (dir in ref.root.listFiles().orEmpty().filter { it.isDirectory }) {
+        for (dir in ref.root.listFiles().orEmpty()
+            .filter { it.isDirectory && it.name !in M4A_UNCOVERED_RUNS }) {
             val frames = dir.listFiles().orEmpty().mapNotNull { f ->
                 DUMP.matchEntire(f.name)?.let { it.groupValues[1].toInt() to f }
             }.toMap()

@@ -1,15 +1,17 @@
 # HANDOFF
 
-_Updated 2026-11-04 (owner-PC WSL session, night). Owner decisions: docs/PROJECT_BRIEF.md. History: git log._
+_Updated 2026-11-04 (scheduled run, late). Owner decisions: docs/PROJECT_BRIEF.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## Next task: M5-02 (ROM repo harness: `dumpsram`, `--sram`)
-M5 is planned in docs/TASKS.md (M5-01..59; facts, addresses, frames: docs/plans/M5-notes.md); M5-01 (ADR 0001
-amendment) is done. M5-02..08 (ROM repo: harness commands, NEWGAME reference runs, publish) unlock the
-trace-verified ports. If the harness rebuild is blocked, do ROM-only tasks instead: M5-10..15, M5-18, M5-21,
-M5-22, M5-28. New code goes in `commonMain` (no `java.*`, `System.*`, `String.format`).
+## Next task: M5-09 part 2 (`:testing` ProcArrayDump + refactor differentials onto it)
+M5-02..08 done (ROM repo harness `dumpsram`/`--sram`/`watch`, `scan_trace.py`, 6 new runs published, 23.7 MiB
+tarball). M5-09 part 1 done: `ReferenceData.Run.hasSram/sram/watch` + `WatchTrace`, `WatchTraceReferenceTest`.
+Pinned frames (per-step watches, ROM repo `harness/gen_scripts.py` comment by NEWGAME): BMapMain f9319,
+StdEventEngine f4907..9292 (WM) and f9508..19312, BattleEventEngine f14479..14631, PhaseIntro f19316 (= suspend
+info[4] commit; data f19313-14), PlayerPhase f19393. New-game save write f1130..1132 + 1 byte (0x7224) f1214.
+Then ROM-only tasks (M5-10..15, 18, 21, 22, 28) or M5-23/29 (now unblocked). New code in `commonMain`.
 
 ## State
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
@@ -24,6 +26,10 @@ M5-22, M5-28. New code goes in `commonMain` (no `java.*`, `System.*`, `String.fo
 - Owner to smoke-test the first APK built on the KMP android variants (MANUAL_TEST "Newly testable").
 
 ## Open leads (low priority unless the owner reports a problem)
+- m4a tests skip the M5 runs (`M4aRuns.kt`): our sequencer diverges on `ram_trace_newgame` r00975 channel 12
+  (new-game menu songs). Investigate before claiming m4a coverage there.
+- Prologue map fits the screen: M5-07 holds move the cursor (14,9) but never scroll BG3/camera; a scroll
+  trace needs a bigger map (later chapter).
 - Slow app open (owner 2026-10-30): likely fixed (assets counted on `Dispatchers.IO`), not confirmed. If it is
   reported again, measure `MainActivity.onCreate`/Compose init and the first Play frame (`bundledBootRom`).
 - PSG: 6 of 857 quarter frames differ from mGBA (`M4aNoteTest` prints them: ch1 f953/f991/f1009, wave
@@ -58,6 +64,9 @@ M5-22, M5-28. New code goes in `commonMain` (no `java.*`, `System.*`, `String.fo
 ## Rules and caveats
 - A `@VerifiesPort` every run or two. No `java.*`/`javax.*`/`System.*` in `commonMain` (KMP); battle rolls
   only via `mechanics.battleRolls`.
+- Harness (ROM repo): `watch NAME ADDR LEN` (≤16 watches, LEN ≤ 0x10000, hex LEN needs `0x`), `dumpsram`,
+  `--sram FILE`; `python3 -I harness/scan_trace.py <run dir>` names procs/gPlaySt/SRAM transitions;
+  `gen_scripts.py --scratch-newgame OUT END RAM_EVERY [FROM]`. loadstate does not restore SRAM.
 - Scheduled runs and owner-PC sessions both push to `master`: before starting a task, `git fetch` and skip it if a
   `wip/<id>` branch exists or TASKS marks it `wip`; push `wip/<id>` early for long tasks. M5-02 needs cmake, ninja
   and network (mGBA clone); without them take a ROM-only task.

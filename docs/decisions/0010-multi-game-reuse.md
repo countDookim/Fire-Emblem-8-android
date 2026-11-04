@@ -28,5 +28,7 @@ game-only systems (FE8: world map, skirmishes, Creature Campaign, branched promo
 4. **Per-game behaviour = strategy** (e.g. FE6 `NextRN_100` rounding), verified per game.
 5. **Enforced** by `tools/tests/test_layering.py` (no `fe8.*` in `gbafe`).
 
+See also [0012](0012-gba-library.md): the `:gba:*` game-neutral GBA modules.
+
 **Consequences.** Code, formats and tools carry over; asset files never (each port extracts its own ROM). Each
 ported system states shared vs FE8-only in its module README. Unverified until a second game exists.

@@ -14,3 +14,4 @@ new record; owner amendments are folded in with their date.
 - [0009](0009-vanilla-product-mod-groundwork.md) 1:1 product; modding = extension points
 - [0010](0010-multi-game-reuse.md) FE6/FE7 reuse: `gbafe` vs `fe8`
 - [0011](0011-player-supplied-rom.md) Player supplies the ROM; release ships no assets
+- [0012](0012-gba-library.md) Game-neutral GBA library: `gba.*` modules

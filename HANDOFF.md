@@ -1,11 +1,20 @@
 # HANDOFF
 
-_Updated 2026-11-03 (scheduled run 22:5x). Owner decisions: docs/PROJECT_BRIEF.md._
+_Updated 2026-11-04 (scheduled run 06:5x). Owner decisions: docs/PROJECT_BRIEF.md._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: check master CI (Dokka fixed locally); M4-06 slices; M4-04 waits on the owner device test
+## NEXT RUN, FIRST: check master CI (slices 2-7 pushed; :app compiles only in CI); M4-06 rest; M4-04 waits on owner device test
+- Done 2026-11-04 (06:5x run), M4-06 slices 2-7 (ADR 0012 lists what moved / stays): `:gba:data` (Lz77, Decompress,
+  Tiles/IndexedImage/Bgr555, JsonReader), `:gba:core` (VerifiesPort, EventChannel/CoreEvents, FixedStepClock,
+  GameLoop/Simulation), `:gba:render` (RenderState, SoftwareRenderer, PackedCompositor, HBlankLines, GpuFrame, ...;
+  HardwareScene stays: uses BgHardware/LcdControl/OamBuffer), `:gba:input` (GameAction, TouchButtons, UiElements),
+  `:gba:audio` (whole former `:engine:audio`), `:gba:extract` (ExtractOutput, RomImporter, IndexedPng, Json, Symbols,
+  DecompEnums). Engine modules `api`-depend on their gba twin. jvmTest + Dokka (`-Pfe8.docs=true`) green locally,
+  progress 260 unchanged. Left for M4-06: testkit (ReferenceData, RamSymbols, AllocationMeter out of `:testing`),
+  split `ExtractSources.kt` (interface generic; bundled-manifest path stays gbafe) so it + ScreenExtractor deps can
+  move, mGBA harness reuse doc; then M4-07 (KMP).
 - Done 2026-11-03 (22:5x run), M4-03: library `:engine:extract` (core, extractors, `ManifestSources.bundled("fe8")`
   = resource `engine/extract/src/main/resources/gbafe/extract/manifest/fe8.json`; no `java.io.File`, checked by
   `ManifestResourceTest`); `:tools:extract` = CLI (`DecompSources`, `FileOutput`, `Fe8StepsCli`). gbafe code

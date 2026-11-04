@@ -96,7 +96,7 @@ public class MessageCodec(
                 }
                 i = end + 1
             } else {
-                require(c != '}' && isLiteral(c.code)) { "character '$c' (U+%04X) has no encoding".format(c.code) }
+                require(c != '}' && isLiteral(c.code)) { "character '$c' (U+${c.code.toString(16).uppercase().padStart(4, '0')}) has no encoding" }
                 out.write(c.code)
                 i++
             }
@@ -109,7 +109,7 @@ public class MessageCodec(
         const val LOAD_FACE = 0x10
         val Byte.u8 get() = toInt() and 0xFF
         fun isLiteral(b: Int) = (b in 0x20..0x7E && b != '{'.code && b != '}'.code) || b in 0xA0..0xFF
-        fun hex(b: Int) = "0x%02X".format(b)
+        fun hex(b: Int) = "0x" + b.toString(16).uppercase().padStart(2, '0')
         fun isHex(s: String) = s.length in 3..4 && s.startsWith("0x") && s.substring(2).all { it in '0'..'9' || it in 'A'..'F' || it in 'a'..'f' }
     }
 }

@@ -45,7 +45,7 @@ public class RomView(
 
     private fun segment(at: Int): Pair<Int, ByteArray> = segments.firstOrNull { (base, b) ->
         at.toUInt() >= base.toUInt() && (at - base).toUInt() < b.size.toUInt()
-    } ?: throw IllegalArgumentException("ROM address 0x%08X not in this view".format(at))
+    } ?: throw IllegalArgumentException("ROM address 0x${hex8(at)} not in this view")
 
     /** Factories. */
     public companion object {
@@ -81,6 +81,9 @@ public class RomView(
             RomView(SOUND_WINDOWS.map { (start, _) -> start to read(windowFile(start)) })
 
         /** File name of the extracted window starting at [start]. */
-        public fun windowFile(start: Int): String = "rom_%08X.bin".format(start)
+        public fun windowFile(start: Int): String = "rom_${hex8(start)}.bin"
     }
 }
+
+/** 8 uppercase hex digits of the 32-bit value [v], as an unsigned number. */
+private fun hex8(v: Int): String = v.toUInt().toString(16).uppercase().padStart(8, '0')

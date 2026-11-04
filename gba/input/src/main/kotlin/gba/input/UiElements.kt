@@ -1,4 +1,4 @@
-package gbafe.input
+package gba.input
 
 /**
  * UI element contract (mod groundwork, task M3-11, docs/decisions/0009): each frame, screens that show

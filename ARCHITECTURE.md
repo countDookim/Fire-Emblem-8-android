@@ -13,7 +13,7 @@
 ## Modules
 
 ```
-app ──► game ──► gba:{vfs,data,core,render}, engine:{core,data,input,render,audio,script,text,save}
+app ──► game ──► gba:{vfs,data,core,render,input}, engine:{core,data,input,render,audio,script,text,save}
 testing ──► game         (every engine module depends only on engine:core)
 ```
 
@@ -24,7 +24,8 @@ testing ──► game         (every engine module depends only on engine:core)
 | `gba:vfs` | layered VFS, mod manifest, texture overrides | dir layers |
 | `gba:data` | LZ77, tile, colour decoders; JSON reader (package `gba.data`) | decoders |
 | `engine:data` | TSA decoder; JSON table contract (trig) | decoders |
-| `engine:input` | actions, `KeyStatus`, `TouchButtons`, button map | working |
+| `gba:input` | `GameAction`, `InputFrame`, `TouchButtons`, `UiElements`, button map | working |
+| `engine:input` | `KeyStatus`, `KeyComboReset` (FE ports) | working |
 | `gba:render` | `RenderState`, `SoftwareRenderer`, `GpuFrame` + `PackedCompositor` (shader spec), `TileSheets`, `FrameBuffer`, `BgAffine`, `HBlankLines` | software + GPU |
 | `engine:render` | `LcdControl`, `BgHardware`, `OamBuffer`, `HardwareScene`, fades, HBlank handlers (FE ports) | software + GPU |
 | `engine:audio` | m4a sequencer, DirectSound mixer, `M4aDriver`, `PcmStream`, `AudioSink` (CGB/PSG: todo) | working |

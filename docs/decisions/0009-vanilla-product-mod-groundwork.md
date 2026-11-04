@@ -11,7 +11,7 @@ must be easy for mods to add, not shipped.
 - Extension points: VFS data/assets (0002, 0003), event bus (0004), strategies in
   `gbafe.core.mechanics.Mechanics` defaulting to verified vanilla (e.g. `BattleRolls`).
 - Action-based input (`ActionSource`, `GameAction`) and `UiElements` bounds let a mod add touch gameplay.
-- Only shipped touch input: **on-screen GBA buttons** (`gbafe.input.TouchButtons` + `fe8.app.TouchOverlayView`),
+- Only shipped touch input: **on-screen GBA buttons** (`gba.input.TouchButtons` + `fe8.app.TouchOverlayView`),
   emitting exactly GBA keys.
 - Alternative implementations only in tests; debug tools only in debug builds.
 

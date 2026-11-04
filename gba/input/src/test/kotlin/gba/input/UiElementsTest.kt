@@ -1,4 +1,4 @@
-package gbafe.input
+package gba.input
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull

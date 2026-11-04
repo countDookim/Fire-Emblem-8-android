@@ -7,7 +7,7 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import fe8.game.Fe8Game
 import gba.core.time.GameLoop
-import gbafe.input.ActionSource
+import gba.input.ActionSource
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.IntBuffer

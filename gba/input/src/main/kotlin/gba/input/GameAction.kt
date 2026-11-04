@@ -1,4 +1,4 @@
-package gbafe.input
+package gba.input
 
 /** The four movement directions, in GBA d-pad bit order (Right, Left, Up, Down). */
 public enum class Direction(

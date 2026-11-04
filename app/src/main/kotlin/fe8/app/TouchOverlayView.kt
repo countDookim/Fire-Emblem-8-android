@@ -9,7 +9,7 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import gbafe.input.TouchButtons
+import gba.input.TouchButtons
 
 /**
  * Transparent view over the game that draws the on-screen GBA buttons and feeds touches to

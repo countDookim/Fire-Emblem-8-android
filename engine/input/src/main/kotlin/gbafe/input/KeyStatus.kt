@@ -6,12 +6,12 @@ package gbafe.input
  * reached via `gKeyStatusPtr`), plus the ignore mask `gKeyStatusIgnoredSt` (IWRAM 0x03000010).
  *
  * All masks are GBA key bits in `KEYINPUT` order (A=0, B=1, Select=2, Start=3, Right=4, Left=5, Up=6,
- * Down=7, R=8, L=9), i.e. the same bits [VanillaButtonMap] uses. Every field keeps the C width: `u8`
+ * Down=7, R=8, L=9), i.e. the same bits `VanillaButtonMap` uses. Every field keeps the C width: `u8`
  * fields wrap at 0x100 and `u16` fields at 0x10000, so the state stays byte-identical to the original
  * (checked against mGBA RAM by `KeyStatusDifferentialTest`). [writeTo]/[readFrom] convert to and from
  * the original 0x14-byte layout. Allocation-free.
  *
- * Game code should consume [GameAction]s via [InputFrame]; this class exists because original menus
+ * Game code should consume `GameAction`s via `InputFrame`; this class exists because original menus
  * and the auto-repeat timing are defined on these exact fields.
  */
 public class KeyStatus {

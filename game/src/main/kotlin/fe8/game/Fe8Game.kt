@@ -2,11 +2,11 @@ package fe8.game
 
 import gba.core.event.CoreEvents
 import gba.core.time.Simulation
+import gba.input.InputFrame
+import gba.input.VanillaButtonMap
 import gba.render.FrameBuffer
 import gbafe.core.flags.FeatureFlags
 import gbafe.core.rng.RngService
-import gbafe.input.InputFrame
-import gbafe.input.VanillaButtonMap
 
 /**
  * Root of the game: owns the shared services and runs the game systems once per tick.
@@ -46,7 +46,7 @@ public class Fe8Game(
         private set
 
     /** Source of held actions; set by the platform layer. Defaults to "nothing held". */
-    public var actionSource: gbafe.input.ActionSource = gbafe.input.ActionSource { 0L }
+    public var actionSource: gba.input.ActionSource = gba.input.ActionSource { 0L }
 
     /** The boot sequence (one GBA frame per [tick]), when [rom] was given. */
     public val boot: Fe8Boot? = rom?.let {

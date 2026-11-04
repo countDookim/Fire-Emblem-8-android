@@ -1,4 +1,4 @@
-package gbafe.input
+package gba.input
 
 /**
  * On-screen GBA button overlay (task M3-15): the only touch input the product ships (decision

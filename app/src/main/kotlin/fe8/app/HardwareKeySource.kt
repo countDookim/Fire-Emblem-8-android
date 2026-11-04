@@ -3,7 +3,7 @@ package fe8.app
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
-import gbafe.input.ActionSource
+import gba.input.ActionSource
 
 /**
  * [ActionSource] for hardware keys and gamepads (task M3-10): maps Android key codes, the D-pad

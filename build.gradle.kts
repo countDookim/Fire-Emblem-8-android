@@ -1,5 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 // Conditional classpath (see settings.gradle.kts): AGP/Compose only with an Android SDK, Dokka only for
 // docs builds. Cloud sessions therefore resolve just the Kotlin plugin + test libraries.
@@ -18,6 +19,7 @@ buildscript {
 
 plugins {
     alias(libs.plugins.kotlin.jvm) apply false
+    alias(libs.plugins.kotlin.multiplatform) apply false
 }
 
 val docs = (gradle as ExtensionAware).extensions.extraProperties["fe8.docs"] == true
@@ -26,17 +28,49 @@ val jvmModules = listOf(
     ":engine:script", ":engine:text", ":engine:extract", ":engine:save", ":game", ":testing",
     ":tools:extract",
 )
+/** Modules converted to Kotlin Multiplatform (their JVM tasks are `jvmTest`/`jvmTestClasses`). */
+val kmpModules = setOf(":gba:data")
 val jdk = providers.gradleProperty("fe8.jdk").orElse("21").get().toInt()
 val catalog = libs
 
 // Convention for every pure-JVM module (kept here rather than in a build-logic plugin because the
 // kotlin-dsl plugin that needs is only on the Gradle plugin portal, which sessions cannot reach).
+/** Test-task settings shared by the JVM and multiplatform conventions. */
+fun Project.configureTests() {
+    tasks.withType<Test>().configureEach {
+        useJUnitPlatform()
+        // Differential tests read mGBA reference data from here; they are SKIPPED (never passed) when absent.
+        val assetsDir = System.getenv("FE8_ASSETS") ?: rootProject.file(".assets").absolutePath
+        systemProperty("fe8.assets", assetsDir)
+        // The reference data must be a declared input: otherwise the build cache happily restores
+        // results from a run without assets (all differential tests skipped) — this happened in CI.
+        val manifest = File(assetsDir, "MANIFEST.sha1")
+        val refOut = File(assetsDir, "reference/out")
+        inputs.property("fe8.assets.manifest", if (manifest.isFile) manifest.readText() else "absent")
+        inputs.property("fe8.assets.extracted", refOut.isDirectory)
+        // Committed decomp reference data (function list, RAM symbols) for differential tests.
+        systemProperty("fe8.reference", rootProject.file("reference").absolutePath)
+        inputs.dir(rootProject.file("reference")).withPathSensitivity(PathSensitivity.RELATIVE)
+        jvmArgs("-XX:+UseSerialGC")
+        testLogging {
+            events("failed", "skipped")
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        }
+    }
+}
+
+fun Project.applyDokka() {
+    if (docs) {
+        apply(plugin = "org.jetbrains.dokka")
+        configureDokkaLint()
+    }
+}
+
+// Convention for every pure-JVM module (kept here rather than in a build-logic plugin because the
+// kotlin-dsl plugin that needs is only on the Gradle plugin portal, which sessions cannot reach).
 subprojects {
     pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
-        if (docs) {
-            apply(plugin = "org.jetbrains.dokka")
-            configureDokkaLint()
-        }
+        applyDokka()
         extensions.configure<KotlinJvmProjectExtension> {
             jvmToolchain(jdk)
             compilerOptions {
@@ -51,26 +85,28 @@ subprojects {
             "testImplementation"(catalog.junit.jupiter)
             "testRuntimeOnly"(catalog.junit.platform.launcher)
         }
-        tasks.withType<Test>().configureEach {
-            useJUnitPlatform()
-            // Differential tests read mGBA reference data from here; they are SKIPPED (never passed) when absent.
-            val assetsDir = System.getenv("FE8_ASSETS") ?: rootProject.file(".assets").absolutePath
-            systemProperty("fe8.assets", assetsDir)
-            // The reference data must be a declared input: otherwise the build cache happily restores
-            // results from a run without assets (all differential tests skipped) — this happened in CI.
-            val manifest = File(assetsDir, "MANIFEST.sha1")
-            val refOut = File(assetsDir, "reference/out")
-            inputs.property("fe8.assets.manifest", if (manifest.isFile) manifest.readText() else "absent")
-            inputs.property("fe8.assets.extracted", refOut.isDirectory)
-            // Committed decomp reference data (function list, RAM symbols) for differential tests.
-            systemProperty("fe8.reference", rootProject.file("reference").absolutePath)
-            inputs.dir(rootProject.file("reference")).withPathSensitivity(PathSensitivity.RELATIVE)
-            jvmArgs("-XX:+UseSerialGC")
-            testLogging {
-                events("failed", "skipped")
-                exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        configureTests()
+    }
+    // Kotlin Multiplatform modules (jvm target now; android target comes with AGP in CI).
+    pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+        applyDokka()
+        extensions.configure<KotlinMultiplatformExtension> {
+            jvmToolchain(jdk)
+            explicitApi()
+            jvm {
+                compilerOptions {
+                    jvmTarget.set(JvmTarget.JVM_17)
+                    freeCompilerArgs.add("-Xjdk-release=17")
+                }
             }
         }
+        tasks.withType<JavaCompile>().configureEach { options.release.set(17) }
+        dependencies {
+            "jvmTestImplementation"(platform(catalog.junit.bom))
+            "jvmTestImplementation"(catalog.junit.jupiter)
+            "jvmTestRuntimeOnly"(catalog.junit.platform.launcher)
+        }
+        configureTests()
     }
 }
 
@@ -100,7 +136,7 @@ if (docs) {
 }
 
 /** Compiles all pure-JVM modules incl. tests (tools/setup.sh uses it to warm Gradle). */
-tasks.register("jvmClasses") { dependsOn(jvmModules.map { "$it:testClasses" }) }
+tasks.register("jvmClasses") { dependsOn(jvmModules.map { "$it:${if (it in kmpModules) "jvmTestClasses" else "testClasses"}" }) }
 
 /** Runs every JVM test (unit, differential, allocation). Sessions run this; CI runs it plus :app. */
-tasks.register("jvmTest") { dependsOn(jvmModules.map { "$it:test" }) }
+tasks.register("jvmTest") { dependsOn(jvmModules.map { "$it:${if (it in kmpModules) "jvmTest" else "test"}" }) }

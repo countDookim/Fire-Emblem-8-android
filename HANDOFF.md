@@ -5,12 +5,12 @@ _Updated 2026-11-04 (scheduled run 16:5x). Owner decisions: docs/PROJECT_BRIEF.m
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: check CI of master (M4-06 done) and of `wip/M4-07` (does `:app` build against KMP `:gba:data`?)
+## NEXT RUN, FIRST: check `wip/M4-07` CI run 315 (APKs built OK against KMP `:gba:data`; Dokka step pending at wrap-up)
 - Done 2026-11-04 (16:5x run): M4-06 finished. `:gba:testkit` (`gba.testkit`: ReferenceData, GbaMem,
   RamSymbols, AllocationMeter, MgbaColorMath; `fe8.assets`/`fe8.reference` property names kept);
   `gba.extract.SymbolSources` + `RecordingSymbolSources`/`ManifestSymbolSources` (FE `ExtractSources` adds
-  `faces()` + bundled manifest; manifest JSON unchanged); docs/gba-harness-reuse.md. jvmTest green; Dokka
-  not run locally (Maven 429): CI checks it.
+  `faces()` + bundled manifest; manifest JSON unchanged); docs/gba-harness-reuse.md. jvmTest green; master CI (run 314) green incl. Dokka
+  (local Dokka hit Maven 429).
 - WIP `wip/M4-07` slice 1: `kotlin-multiplatform` plugin resolves via mirror; `:gba:data` is KMP `jvm()`
   (src/commonMain, src/jvmTest); root build has a KMP convention block + `kmpModules` set for the
   `jvmTest`/`jvmClasses` aggregators; `tools/tests/test_kmp_common.py` (no java imports in commonMain).

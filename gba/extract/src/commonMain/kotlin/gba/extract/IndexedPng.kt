@@ -1,5 +1,6 @@
 package gba.extract
 
+import gba.data.ByteSink
 import gba.data.Crc32
 import gba.data.IndexedImage
 

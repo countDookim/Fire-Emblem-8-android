@@ -1,6 +1,6 @@
 package gbafe.extract.m4a
 
-import gba.extract.ByteSink
+import gba.data.ByteSink
 import gbafe.extract.hexUpper
 
 /**

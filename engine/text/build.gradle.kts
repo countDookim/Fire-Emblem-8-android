@@ -9,6 +9,7 @@ kotlin {
         commonMain.dependencies {
             api(project(":engine:core"))
             api(project(":gba:vfs"))
+            implementation(project(":gba:data"))
         }
     }
 }

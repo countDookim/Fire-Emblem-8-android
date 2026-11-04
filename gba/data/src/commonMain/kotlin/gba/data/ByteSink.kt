@@ -1,4 +1,4 @@
-package gba.extract
+package gba.data
 
 /**
  * A growable byte buffer (common-code replacement for `ByteArrayOutputStream` +

@@ -1,5 +1,7 @@
 package gbafe.text
 
+import gba.data.ByteSink
+
 /**
  * Decoder for the original game's Huffman-compressed message strings (`gMsgTable` entries).
  *
@@ -29,7 +31,7 @@ public class MsgHuffman(
      * @throws IllegalArgumentException if the bit stream runs past the end of the ROM.
      */
     public fun decode(offset: Int): ByteArray {
-        val out = java.io.ByteArrayOutputStream()
+        val out = ByteSink()
         var src = offset
         var bits = 0
         var bitsLeft = 0

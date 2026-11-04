@@ -1,5 +1,7 @@
 package gbafe.text
 
+import gba.data.ByteSink
+
 /**
  * Lossless conversion between raw message bytes (as produced by [MsgHuffman]) and the readable tagged
  * text stored in `text/<lang>/messages.json`, e.g. `{LoadFace FID_Eirika}{OpenLeft}Seth!{A}`.
@@ -79,7 +81,7 @@ public class MessageCodec(
      *   single-byte encoding.
      */
     public fun encode(text: String): ByteArray {
-        val out = java.io.ByteArrayOutputStream()
+        val out = ByteSink()
         var i = 0
         while (i < text.length) {
             val c = text[i]

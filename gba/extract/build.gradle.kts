@@ -1,7 +1,13 @@
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.multiplatform)
 }
 
-dependencies {
-    api(project(":gba:data"))
+kotlin {
+    jvm()
+
+    sourceSets {
+        commonMain.dependencies {
+            api(project(":gba:data"))
+        }
+    }
 }

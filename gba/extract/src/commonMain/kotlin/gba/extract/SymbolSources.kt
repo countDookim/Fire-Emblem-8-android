@@ -63,7 +63,7 @@ public open class RecordingSymbolSources(private val inner: SymbolSources) : Sym
         },
         "spans" to spans,
         "prefixes" to prefixes,
-        "romNames" to romNames.mapKeys { "0x%08X".format(it.key) },
+        "romNames" to romNames.mapKeys { hex32(it.key.toLong() and 0xFFFFFFFFL) },
         "enums" to enums.mapValues { (_, m) -> m.mapKeys { it.key.toString() } },
     )
 }
@@ -105,7 +105,7 @@ public open class ManifestSymbolSources(json: String) : SymbolSources {
                 get() = throw UnsupportedOperationException("manifest ROM names are lookup-only")
 
             override fun get(key: Int): String? {
-                val k = "0x%08X".format(key.toLong() and 0xFFFFFFFFL)
+                val k = hex32(key.toLong() and 0xFFFFFFFFL)
                 if (!names.containsKey(k)) missing("ROM name of $k")
                 return names[k] as String?
             }
@@ -117,3 +117,7 @@ public open class ManifestSymbolSources(json: String) : SymbolSources {
         return e.entries.associate { (k, v) -> (k as String).toInt() to v as String }
     }
 }
+
+/** `0x` + 8 uppercase hex digits of [v] (a 32-bit value held in a Long). */
+private fun hex32(v: Long): String =
+    "0x" + v.toString(16).uppercase().padStart(8, '0')

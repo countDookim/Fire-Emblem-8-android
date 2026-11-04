@@ -1,6 +1,6 @@
 package gba.extract
 
-import java.security.MessageDigest
+import gba.data.Sha1
 
 /** Result of [RomImporter.check]. */
 public sealed interface RomCheck {
@@ -29,8 +29,8 @@ public class RomImporter(
 ) {
     /** Compares the SHA-1 of [rom] with [expectedSha1]. */
     public fun check(rom: ByteArray): RomCheck {
-        val sha1 = MessageDigest.getInstance("SHA-1").digest(rom)
-            .joinToString("") { "%02x".format(it) }
+        val sha1 = Sha1.digest(rom)
+            .joinToString("") { (it.toInt() and 0xFF).toString(16).padStart(2, '0') }
         return if (sha1 == expectedSha1.lowercase()) RomCheck.Ok else RomCheck.WrongRom(sha1)
     }
 

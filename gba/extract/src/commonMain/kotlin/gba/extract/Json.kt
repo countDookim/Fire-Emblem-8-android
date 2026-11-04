@@ -57,7 +57,7 @@ public object Json {
             c == '"' -> sb.append("\\\"")
             c == '\\' -> sb.append("\\\\")
             c == '\n' -> sb.append("\\n")
-            c < ' ' -> sb.append("\\u%04x".format(c.code))
+            c < ' ' -> sb.append("\\u").append(c.code.toString(16).padStart(4, '0'))
             else -> sb.append(c)
         }
         sb.append('"')

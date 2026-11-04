@@ -6,8 +6,8 @@ _Updated 2026-11-04 (run 17:4x, on the owner's Windows PC). Owner decisions: doc
 _(nothing blocked)_
 
 ## NEXT RUN, FIRST: check `wip/M4-07` CI (slices 3-5; slice 3 changes `:app`: VFS `read()`, Dokka on KMP modules); if green, merge to master
-- Done 2026-11-04 (17:4x run), M4-07: slice 1 merged (CI 315 green); slice 2 on master (65b33a4, master CI
-  317 green before it): `:gba:core/input/render/audio` KMP `jvm()` (`copyInto`, `kotlin.concurrent.Volatile`);
+- Done 2026-11-04 (17:4x run), M4-07: slice 1 merged (CI 315 green); slice 2 on master (65b33a4, master CI 318 green incl. `:app` + Dokka;
+  wip CI for slices 3-5 pending at wrap-up): `:gba:core/input/render/audio` KMP `jvm()` (`copyInto`, `kotlin.concurrent.Volatile`);
   ADR 0013 (targets jvm + android; android target needs AGP = CI-only slice). Full jvmTest green, 0 skipped.
 - WIP `wip/M4-07` (pushed): slice 3 (055a166) `:gba:vfs` KMP: `VfsLayer.open(): InputStream` ->
   `read(): ByteArray`, `VfsFileNotFoundException`, `DirectoryLayer` in jvmMain, pure `gba.data.Crc32`

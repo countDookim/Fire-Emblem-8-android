@@ -28,9 +28,9 @@ A 1:1 Kotlin reimplementation of *Fire Emblem: The Sacred Stones* (GBA, USA) for
 The [fireemblem8u decomp](https://github.com/FireEmblemUniverse/fireemblem8u) is the spec; the ROM (private
 repo) supplies assets and is the test oracle via headless mGBA.
 
-**Status:** boot (health & safety, logos, opening, title) runs on device with the original sound (m4a
-sequencer + mixer, byte-exact vs mGBA RAM traces; CGB/PSG channels via an approximate synth), GPU renderer (OpenGL ES 3.0),
-on-screen GBA buttons and gamepad; no gameplay yet. The launcher has one **Play** button.
+**Status:** boot (health & safety, logos, opening, title) runs on device with the original sound (m4a incl.
+PSG), GPU renderer (OpenGL ES 3.0), on-screen GBA buttons and gamepad. The launcher imports your ROM and has a
+**Play** button. No gameplay yet.
 [HANDOFF.md](HANDOFF.md) · [docs/TASKS.md](docs/TASKS.md)
 
 - Install: `fe8-debug.apk` from the [`latest` release](../../releases/tag/latest); test per

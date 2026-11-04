@@ -23,4 +23,4 @@ skip:
 - Mods add commands via `ScriptCommand` (Kotlin) or compose existing ones in new files.
 - Not Lua: LuaJ allocates per call; native Lua needs JNI/NDK (no fast JVM tests). Revisit if mods need it.
 
-**Consequences.** We own parser, compiler and interpreter; every command is documented in `MODDING.md`.
+**Consequences.** We own parser, compiler and interpreter; every command will be documented in `MODDING.md`.

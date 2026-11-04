@@ -21,10 +21,10 @@ layer wins ([0003](docs/decisions/0003-mod-vfs.md)).
 | `audio/` | MIDI + voicegroup JSON, WAV | *(planned; the game plays the ROM's m4a data)* |
 | `text/<lang>/` | strings with tags (`{PLAYER}`, `{PAUSE 30}`) | `text/en/messages.json` extracted |
 
-Today the extractor writes graphics to `fonts/`, `portraits/`, `mapsprites/`, `ui/` and audio to `songs/`,
-`samples/`, `voicegroups/` (top level, no `gfx/`/`audio/` prefix). Mod paths follow the extractor's layout when the
-loaders land; until then `gfx/`/`audio/` above are the planned grouping. The boot screens and all sound currently
-run on raw ROM windows (`RomView.BOOT_WINDOWS`, `RomView.SOUND_WINDOWS`), so no asset override reaches them yet.
+The extractor currently writes graphics to `fonts/`, `portraits/`, `mapsprites/`, `ui/` and audio to `songs/`,
+`samples/`, `voicegroups/` (no `gfx/`/`audio/` prefix); mod paths will follow that layout once loaders land.
+Boot screens and all sound run on raw ROM windows (`RomView.BOOT_WINDOWS`, `RomView.SOUND_WINDOWS`), so no
+asset override reaches them yet.
 
 **Texture packs** (`gba.vfs.TextureOverrides`, ADR 0008): `<asset>@<N>x.png` (N = 1..8) beside the original.
 Indexed PNGs keep palette animation; true-colour ones may add `<asset>@<N>x.<paletteHash>.png` variants.

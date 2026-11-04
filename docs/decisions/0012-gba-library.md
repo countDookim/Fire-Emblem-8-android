@@ -1,6 +1,6 @@
 # 0012 — Game-neutral GBA code lives in `:gba:*`
 
-**Status.** Accepted 2026-11-04 (owner request 2026-10-27, M4-06).
+**Status.** Accepted 2026-11-04 (owner request 2026-10-27).
 
 **Context.** ADR 0010 split `gbafe.*` (game-neutral engine) from `fe8.*`, but much of `gbafe.*` is not
 Fire Emblem at all: it models GBA hardware or decodes GBA formats. Other GBA ports can reuse that without
@@ -24,8 +24,6 @@ engine module `api`-depends on its `gba` counterpart, so downstream code sees bo
 **Stays FE-side (`gbafe.*`, `fe8.*`).** Procs, RNG, `BattleRolls`, `GameClock`, `Interpolate`, flags;
 `KeyStatus`/`KeyComboReset`; `Tsa`/`TrigTable`; `HardwareScene` and the ported BG/OAM/LCD/`ColorFade`
 code; `ScreenExtractor`/`ExtractSources` (faces + bundled manifest); text; scripts; everything in `fe8.*`.
-
-**Remaining M4-06 work.** None (harness reuse: docs/gba-harness-reuse.md).
 
 **Consequences.** Import paths changed (`gbafe.X` -> `gba.X`) with no behaviour change; `Ported from` KDoc
 and `@VerifiesPort` tests are untouched. Progress counts are unaffected.

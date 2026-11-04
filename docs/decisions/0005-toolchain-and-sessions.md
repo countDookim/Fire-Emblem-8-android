@@ -9,7 +9,9 @@ Gradle plugin portal and intermittent 404/429 from Maven Central.
 - Versions in `gradle/libs.versions.toml` (Gradle 8.14.3, Kotlin 2.2.21, AGP 8.13.2); JDK 21, JVM 17 bytecode.
 - `:app` is included only with an Android SDK; AGP/Compose/Dokka load only via `fe8.android` / `fe8.docs`.
 - No plugin portal: plugin ids mapped to Maven modules in `pluginManagement`; no `build-logic`/`kotlin-dsl`.
-- Sessions use `tools/maven_mirror.py` (`FE8_MAVEN_MIRROR`); CI uses Maven repos directly.
-- `tools/setup.sh`: kotlinc, ROM-repo assets, Gradle warm-up.
+- Sessions use `tools/maven_mirror.py` (`FE8_MAVEN_MIRROR`), seeded by `tools/setup.sh` from the ROM repo
+  release's `maven-cache.tar`; CI uses Maven repos directly.
+- `tools/setup.sh`: kotlinc, ROM-repo assets, Maven cache, Gradle warm-up.
 
-**Consequences.** Fallback if throttling worsens: dependency cache tarball in the ROM repo (`GRADLE_RO_DEP_CACHE`).
+**Consequences.** Dependency changes must also reach the ROM repo's `maven-cache.tar`, or sessions fall back to
+slow Maven Central fetches.

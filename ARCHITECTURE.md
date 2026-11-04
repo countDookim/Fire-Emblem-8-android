@@ -3,40 +3,45 @@
 ## Principles
 1. **Decomp = spec, ROM = oracle;** ported only with ground-truth tests
    ([0006](docs/decisions/0006-verification-policy.md)).
-2. **Original behaviour, modern design:** idiomatic Kotlin per game system; GBA addresses only in `:testing`.
+2. **Original behaviour, modern design:** idiomatic Kotlin per game system; GBA addresses only in tests.
 3. **1:1 product; modding = extension points** ([0009](docs/decisions/0009-vanilla-product-mod-groundwork.md),
    [MODDING.md](MODDING.md)).
 4. **Zero allocations per frame** (`AllocationTest`, CI benchmark). All but `:app` is Android-free.
-5. **`gbafe.*` game-neutral, `fe8.*` FE8-only** ([0010](docs/decisions/0010-multi-game-reuse.md)), CI-enforced.
+5. **`gba.*` knows no Fire Emblem, `gbafe.*` is game-neutral FE code, `fe8.*` is FE8-only**
+   ([0010](docs/decisions/0010-multi-game-reuse.md), [0012](docs/decisions/0012-gba-library.md)), CI-enforced.
 6. **All content through the layered VFS** (JSON, Tiled, `.fe8s`, PNG/MIDI/WAV).
 
 ## Modules
 
 ```
-app ──► game ──► gba:{vfs,data,core,render,input,audio,extract}, engine:{core,data,input,render,audio,script,text,save}
-testing ──► game         (every engine module depends only on engine:core)
+app ──► game ──► gba:{vfs,data,core,render,input,audio,extract}, engine:{core,data,input,render,script,text,save,extract}
+testing ──► game, gba:testkit    (engine modules depend on their gba counterpart and :engine:core)
+tools:extract ──► engine:extract
 ```
+
+`gba:{data,core,input,render,audio}` are Kotlin Multiplatform (`commonMain`, ADR 0013); the rest is plain JVM.
 
 | Module | Holds | Status |
 |---|---|---|
-| `gba:core` | `VerifiesPort`, fixed-step clock + loop (59.7275 Hz), event bus | working |
-| `engine:core` | game clock, RNG, procs, flags, mechanics (FE code) | working |
 | `gba:vfs` | layered VFS, mod manifest, texture overrides | dir layers |
-| `gba:data` | LZ77, tile, colour decoders; JSON reader (package `gba.data`) | decoders |
-| `engine:data` | TSA decoder; JSON table contract (trig) | decoders |
+| `gba:data` | LZ77, tile, colour decoders; JSON reader | decoders |
+| `gba:core` | `VerifiesPort`, fixed-step clock + loop (59.7275 Hz), event bus | working |
 | `gba:input` | `GameAction`, `InputFrame`, `TouchButtons`, `UiElements`, button map | working |
-| `engine:input` | `KeyStatus`, `KeyComboReset` (FE ports) | working |
 | `gba:render` | `RenderState`, `SoftwareRenderer`, `GpuFrame` + `PackedCompositor` (shader spec), `TileSheets`, `FrameBuffer`, `BgAffine`, `HBlankLines` | software + GPU |
+| `gba:audio` | m4a sequencer, DirectSound mixer + CGB/PSG, `M4aDriver`, `PcmStream`, `AudioSink` | working |
+| `gba:extract` | generic extraction helpers: `Json`, `Symbols`, `IndexedPng`, `RomImporter` | working |
+| `gba:testkit` | `ReferenceData`, `RamSymbols`, `AllocationMeter`, `MgbaColorMath` (test support) | working |
+| `engine:core` | game clock, RNG, procs, flags, mechanics (FE code) | working |
+| `engine:data` | TSA decoder; JSON table contract (trig) | decoders |
+| `engine:input` | `KeyStatus`, `KeyComboReset` (FE ports) | working |
 | `engine:render` | `LcdControl`, `BgHardware`, `OamBuffer`, `HardwareScene`, fades, HBlank handlers (FE ports) | software + GPU |
-| `gba:audio` | m4a sequencer, DirectSound mixer, `M4aDriver`, `PcmStream`, `AudioSink` (CGB/PSG: todo) | working |
 | `engine:script` / `save` | `.fe8s` VM / save container | contracts |
 | `engine:text` | text tags, Huffman messages | partial |
+| `engine:extract` | ROM → assets extraction core (JSON/PNG/Tiled/MIDI/WAV/`.fe8s`): file-free, runs from ROM + bundled manifest (ADR 0011); used by `tools:extract` and `:app` | working |
 | `game` | `fe8.game` systems; shared FE systems become `gbafe.<system>` (0010) | boot → title, sound |
-| `testing` | reference data, differential tests, allocation meter, benchmark | working |
-| `app` | launcher (one Play), GLES 3.0 `GpuBackend`, `AudioTrackSink` + `AudioThread`, keys/gamepad + safe-area touch overlay, APK asset layer | boot playable |
-| `gba:extract` | generic extraction helpers: `Json`, `Symbols`, `IndexedPng`, `RomImporter` | working |
-| `engine:extract` | ROM → assets extraction core (JSON/PNG/Tiled/MIDI/WAV/`.fe8s`): file-free, runs from ROM + bundled manifest (ADR 0011); used by `tools:extract` and later `:app` | working |
-| `tools:extract` | The extraction CLI: decomp reads, files (`DecompSources`, `FileOutput`); never shipped | working |
+| `testing` | differential tests vs mGBA, ROM golden tests, benchmark | working |
+| `tools:extract` | extraction CLI: decomp reads, files (`DecompSources`, `FileOutput`); never shipped | working |
+| `app` | launcher (ROM import, Play), GLES 3.0 `GpuBackend`, `AudioTrackSink` + `AudioThread`, keys/gamepad + safe-area touch overlay, APK asset layer | boot playable |
 
 Systems follow the `system` column of `reference/decomp_functions.tsv` (= README progress table).
 

@@ -5,15 +5,10 @@ apps" for your browser once). Each new APK installs over the previous one (same 
 Report anything wrong as a GitHub Issue with label **`user-report`** (include the build string shown
 on the launcher screen).
 
-## Passed (owner)
-- 2026-10-30: install and launch, boot to the title (H&S, logos, op anim, title) with the original timing,
-  gamepad/keyboard, on-screen touch buttons (D-pad diagonals, multi-touch).
-- 2026-11-01: quick app open, GPU renderer (same as plain Play), test tone, tone button label (#2), test music;
-  single Play (GPU) boot with sound in sync through the title and a restarted op anim, pause/resume.
-- 2026-11-01: touch layout inside the safe area, cross D-pad (#3); PSG (CGB) sound in the op theme.
-
-- 2026-11-04: PSG (square/wave) sound after the 2026-11-03 fixes sounds correct (not compared with an emulator);
-  ROM import (M4-04) works, ~4 s on the owner's phone, Play boots from the imported data.
+## Confirmed on device (owner)
+Install and launch; boot to the title (H&S, logos, op anim, title) with original timing and sound incl. PSG;
+GPU renderer; gamepad/keyboard; on-screen touch buttons (cross D-pad, diagonals, multi-touch, safe-area
+layout); pause/resume; ROM import (~4 s) and Play from the imported data.
 
 ## Newly testable
 _(nothing pending)_

@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 227,
+    "verified": 260,
     "implemented_unverified": 28
   },
   "functions": {
@@ -73,6 +73,24 @@
         "fe8.testing.BgTilemapDifferentialTest#TSA tilemaps match the BG buffers in mGBA RAM"
       ]
     },
+    "CgbModVol": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCgb.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "CgbSound": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCgb.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
     "CheckCanKeyComboReset": {
       "decomp_file": "src/time.c",
       "system": "core",
@@ -80,6 +98,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "ChnVolSetAsm": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aChannel.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aChannelTest#head channel volumes match the reference RAM dumps"
       ]
     },
     "ClearFirstPalDirectly": {
@@ -280,6 +307,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
+      ]
+    },
+    "FadeOutBody": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aFadeTest#fade steps match the trace"
       ]
     },
     "FlipBgVerticalScroll": {
@@ -509,6 +545,69 @@
       "kotlin_file": "game/src/main/kotlin/fe8/game/GameLoop.kt",
       "status": "implemented",
       "tests": []
+    },
+    "MPlayExtender": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aSound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSoundTest#init gives the traced chain, idle players and rates"
+      ]
+    },
+    "MPlayFadeOut": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aOpenTest#opening the players gives the traced chain and idle state"
+      ]
+    },
+    "MPlayMain": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aSequencer.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "MPlayOpen": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aSoundInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aOpenTest#opening the players gives the traced chain and idle state"
+      ]
+    },
+    "MPlayStart": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aSequencer.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "MidiKeyToCgbFreq": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aPitch.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aPitchTest#CGB channel frequencies match every reference RAM dump"
+      ]
+    },
+    "MidiKeyToFreq": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aPitch.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aPitchTest#DirectSound channel frequencies match every reference RAM dump"
+      ]
     },
     "NewProc08AA6D04": {
       "decomp_file": "src/opanim-main.c",
@@ -952,6 +1051,15 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "RealClearChain": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aChannel.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
     "ResetKeyStatus": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -974,6 +1082,15 @@
       "kotlin_file": "engine/core/src/main/kotlin/gbafe/core/rng/Rng.kt",
       "status": "implemented",
       "tests": []
+    },
+    "SampleFreqSet": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aSoundInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aOpenTest#sample rate setup matches the traced SoundInfo"
+      ]
     },
     "SaveDraw_ScrollFogBG": {
       "decomp_file": "src/savedraw.c",
@@ -1140,6 +1257,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#A on the title intro fx restarts the title like the per-frame RAM trace"
+      ]
+    },
+    "SoundInit": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aSoundInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aOpenTest#sample rate setup matches the traced SoundInfo"
+      ]
+    },
+    "SoundMainRAM": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aMixer.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
       ]
     },
     "Sound_FadeOutBGM": {
@@ -1426,6 +1561,24 @@
         "fe8.testing.BgTilemapDifferentialTest#TSA tilemaps match the BG buffers in mGBA RAM"
       ]
     },
+    "TrackStop": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aStopTest#stopping BGM1 matches the next dump"
+      ]
+    },
+    "TrkVolPitSet": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aTrack.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aTrackTest#volume and pitch of every settled track match the reference RAM dumps"
+      ]
+    },
     "TryTickHSScreenExit": {
       "decomp_file": "src/opanim-healthsafetyscreen.c",
       "system": "presentation",
@@ -1476,6 +1629,150 @@
       "status": "verified",
       "tests": [
         "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
+      ]
+    },
+    "m4aMPlayImmInit": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aSequencer.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "m4aMPlayStop": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aStopTest#stopping BGM1 matches the next dump"
+      ]
+    },
+    "m4aMPlayVolumeControl": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aVolumeTest#per-frame volume control matches the trace"
+      ]
+    },
+    "m4aSongNumStart": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aSequencer.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "m4aSoundInit": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aSound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSoundTest#init gives the traced chain, idle players and rates"
+      ]
+    },
+    "m4aSoundMode": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aSoundInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aOpenTest#sample rate setup matches the traced SoundInfo"
+      ]
+    },
+    "m4aSoundVSync": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aSoundInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "ply_endtie": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "ply_fine": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "ply_keysh": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
+      ]
+    },
+    "ply_note": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "ply_pan": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
+      ]
+    },
+    "ply_pend": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
+      ]
+    },
+    "ply_tempo": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
+      ]
+    },
+    "ply_voice": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
+      ]
+    },
+    "ply_vol": {
+      "decomp_file": "src/m4a_1.s",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
       ]
     },
     "sub_80028FC": {

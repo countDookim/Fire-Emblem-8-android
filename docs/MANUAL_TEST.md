@@ -12,13 +12,11 @@ on the launcher screen).
   single Play (GPU) boot with sound in sync through the title and a restarted op anim, pause/resume.
 - 2026-11-01: touch layout inside the safe area, cross D-pad (#3); PSG (CGB) sound in the op theme.
 
-## Newly testable
-- PSG (square/wave) sound after the 2026-11-03 fixes: the op theme's PSG parts sound like mGBA/hardware (no
-  clicks or missing note restarts); compare with an emulator if you can.
+- 2026-11-04: PSG (square/wave) sound after the 2026-11-03 fixes sounds correct (not compared with an emulator);
+  ROM import (M4-04) works, ~4 s on the owner's phone, Play boots from the imported data.
 
-- ROM import (M4-04): launcher "Import ROM", pick your FE8 (U) `.gba`: progress bar, then "Game data imported:
-  N files"; a wrong file shows a clear SHA-1 message. Note the time (logcat tag `Fe8Import`, target < ~30 s).
-  Play then boots from the imported data (also after reinstalling the debug APK).
+## Newly testable
+_(nothing pending)_
 
 ## Known not working (don't report)
 Everything after the title: no gameplay or saves; title key presses do nothing yet.

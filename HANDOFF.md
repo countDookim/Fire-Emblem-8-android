@@ -5,7 +5,9 @@ _Updated 2026-11-04 (scheduled run 06:5x). Owner decisions: docs/PROJECT_BRIEF.m
 ## NEEDS USER
 _(nothing blocked)_
 
-## NEXT RUN, FIRST: check master CI (slices 2-7 pushed; :app compiles only in CI); M4-06 rest; M4-04 waits on owner device test
+## NEXT RUN, FIRST: check master CI (slices 2-7 pushed; :app compiles only in CI); M4-06 rest
+- Owner 2026-11-04: M4-04 device test passed (ROM import ~4 s on phone, boots from it); PSG sound sounds
+  correct by ear. M4-04 done.
 - Done 2026-11-04 (06:5x run), M4-06 slices 2-7 (ADR 0012 lists what moved / stays): `:gba:data` (Lz77, Decompress,
   Tiles/IndexedImage/Bgr555, JsonReader), `:gba:core` (VerifiesPort, EventChannel/CoreEvents, FixedStepClock,
   GameLoop/Simulation), `:gba:render` (RenderState, SoftwareRenderer, PackedCompositor, HBlankLines, GpuFrame, ...;

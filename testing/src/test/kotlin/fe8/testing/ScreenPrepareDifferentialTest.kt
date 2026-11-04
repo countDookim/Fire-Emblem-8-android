@@ -1,8 +1,8 @@
 package fe8.testing
 
 import fe8.game.opanim.OpAnimHs
+import gba.core.VerifiesPort
 import gba.data.Lz77
-import gbafe.core.VerifiesPort
 import gbafe.input.KeyStatus
 import gbafe.render.BgHardware
 import gbafe.render.LcdControl

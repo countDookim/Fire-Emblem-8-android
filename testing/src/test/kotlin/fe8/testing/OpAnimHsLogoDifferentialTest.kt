@@ -2,14 +2,14 @@ package fe8.testing
 
 import fe8.game.opanim.OpAnimHs
 import fe8.game.opanim.OpAnimHs.StepResult
-import gbafe.core.VerifiesPort
+import gba.core.VerifiesPort
 import gbafe.input.KeyStatus
 import gbafe.render.LcdControl
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * Differential tests of the Nintendo / Intelligent Systems logo steps and the delays of `ProcScr_GameEarlyStartUI`

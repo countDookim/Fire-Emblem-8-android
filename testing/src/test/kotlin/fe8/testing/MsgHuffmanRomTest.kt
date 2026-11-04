@@ -1,11 +1,11 @@
 package fe8.testing
 
-import gbafe.core.VerifiesPort
+import gba.core.VerifiesPort
 import gbafe.text.MsgHuffman
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * Golden test of [MsgHuffman] on ROM strings whose text is known independently of our decoder: the

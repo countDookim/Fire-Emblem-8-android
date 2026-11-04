@@ -10,6 +10,7 @@ game-only systems (FE8: world map, skirmishes, Creature Campaign, branched promo
 1. **Layers, dependencies downwards only:**
    - `gba.*` (`:gba:*`, M4-06): any GBA port; imports neither `gbafe.*` nor `fe8.*` (`tools/tests/test_layering.py`).
      - Slice 2: Lz77, Decompress, Tiles (IndexedImage, Bgr555), JsonReader moved `:engine:data` -> `:gba:data`.
+     - Slice 3: `VerifiesPort`, `event.*`, `FixedStepClock`, `GameLoop`/`Simulation` moved `:engine:core` -> `:gba:core`.
    - `gbafe.*` (`:engine:*`, `:tools:extract` minus `gbafe.extract.fe8`): game-neutral; never names a game,
      FE8 constant, id or address.
    - Shared FE systems (battle, map, units, items, AI, menus, chapter flow, text, portraits, animations, saves):

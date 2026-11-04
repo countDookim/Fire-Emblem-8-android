@@ -1,6 +1,6 @@
 package fe8.testing
 
-import gbafe.core.VerifiesPort
+import gba.core.VerifiesPort
 import gbafe.input.KeyStatus
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

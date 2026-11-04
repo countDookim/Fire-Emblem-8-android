@@ -2,7 +2,7 @@ package fe8.testing
 
 import fe8.game.opanim.OpAnimHs
 import fe8.game.opanim.OpAnimHs.StepResult
-import gbafe.core.VerifiesPort
+import gba.core.VerifiesPort
 import gbafe.input.KeyStatus
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals

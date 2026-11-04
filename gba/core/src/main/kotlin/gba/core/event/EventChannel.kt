@@ -1,4 +1,4 @@
-package gbafe.core.event
+package gba.core.event
 
 /**
  * A typed, allocation-free event channel: the building block of the mod event bus.

@@ -1,20 +1,20 @@
 package fe8.testing
 
-import gbafe.core.VerifiesPort
+import gba.core.VerifiesPort
 import gbafe.render.BgVerticalScroll
 import gbafe.render.Camera
-import gbafe.render.HBlankLines
 import gbafe.render.FrameBuffer
 import gbafe.render.GpuFrame
+import gbafe.render.HBlankLines
 import gbafe.render.PackedCompositor
 import gbafe.render.RenderState
 import gbafe.render.SoftwareRenderer
 import gbafe.render.TileSheets
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * M3-06 frame compare: the software compositor, fed the hardware state mGBA dumped for a frame

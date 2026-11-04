@@ -1,12 +1,12 @@
 package fe8.testing
 
+import gba.core.VerifiesPort
 import gbafe.audio.M4aPitch
-import gbafe.core.VerifiesPort
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * m4a pitch math against the ROM and mGBA: the generated tables equal `gScaleTable` / `gFreqTable`,

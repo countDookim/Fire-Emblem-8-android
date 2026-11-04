@@ -1,12 +1,12 @@
 package fe8.testing
 
+import gba.core.VerifiesPort
 import gbafe.audio.M4aBus
 import gbafe.audio.M4aCommands
 import gbafe.audio.M4aSongTable
 import gbafe.audio.M4aSound
 import gbafe.audio.M4aSoundInfo
 import gbafe.audio.PcmStream
-import gbafe.core.VerifiesPort
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

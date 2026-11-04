@@ -1,4 +1,4 @@
-package gbafe.core.event
+package gba.core.event
 
 /** Listener for per-tick hooks. [tick] is the logic frame counter. */
 public fun interface TickListener {

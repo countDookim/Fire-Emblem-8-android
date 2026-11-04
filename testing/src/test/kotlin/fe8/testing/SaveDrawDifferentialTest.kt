@@ -1,14 +1,14 @@
 package fe8.testing
 
 import fe8.game.savemenu.SaveDraw
-import gbafe.core.VerifiesPort
+import gba.core.VerifiesPort
 import gbafe.render.BgVerticalScroll
 import gbafe.render.LcdControl
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * Differential test of the menu fog scroll ([SaveDraw.scrollFogBg] with [BgVerticalScroll.bufferOffset],

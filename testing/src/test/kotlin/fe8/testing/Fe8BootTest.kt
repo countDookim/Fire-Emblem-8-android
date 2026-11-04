@@ -2,11 +2,11 @@ package fe8.testing
 
 import fe8.game.Fe8Boot
 import fe8.game.RomView
-import gbafe.core.VerifiesPort
+import gba.core.VerifiesPort
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * The device boot wiring ([Fe8Boot]: game loop + game control + early start screens +

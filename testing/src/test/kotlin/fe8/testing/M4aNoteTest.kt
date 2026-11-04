@@ -1,5 +1,6 @@
 package fe8.testing
 
+import gba.core.VerifiesPort
 import gbafe.audio.M4aBus
 import gbafe.audio.M4aCgb
 import gbafe.audio.M4aChannel
@@ -11,12 +12,11 @@ import gbafe.audio.M4aSequencer
 import gbafe.audio.M4aSongTable
 import gbafe.audio.M4aTrack
 import gbafe.audio.PsgSynth
-import gbafe.core.VerifiesPort
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * Notes, channels and the mixer: from each per-frame dump, every player's `MPlayMain` (in the

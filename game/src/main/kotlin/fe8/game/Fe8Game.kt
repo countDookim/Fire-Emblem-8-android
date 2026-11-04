@@ -1,9 +1,9 @@
 package fe8.game
 
-import gbafe.core.event.CoreEvents
+import gba.core.event.CoreEvents
+import gba.core.time.Simulation
 import gbafe.core.flags.FeatureFlags
 import gbafe.core.rng.RngService
-import gbafe.core.time.Simulation
 import gbafe.input.InputFrame
 import gbafe.input.VanillaButtonMap
 import gbafe.render.FrameBuffer

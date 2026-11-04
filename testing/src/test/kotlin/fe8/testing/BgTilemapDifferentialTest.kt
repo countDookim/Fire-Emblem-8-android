@@ -1,7 +1,7 @@
 package fe8.testing
 
+import gba.core.VerifiesPort
 import gba.data.Lz77
-import gbafe.core.VerifiesPort
 import gbafe.render.BgTilemap
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertArrayEquals

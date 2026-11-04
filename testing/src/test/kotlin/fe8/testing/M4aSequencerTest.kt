@@ -1,14 +1,14 @@
 package fe8.testing
 
+import gba.core.VerifiesPort
 import gbafe.audio.M4aCommands
 import gbafe.audio.M4aSequencer
 import gbafe.audio.M4aTrack
-import gbafe.core.VerifiesPort
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * One [M4aSequencer.step] from each per-frame dump reproduces the next dump's track

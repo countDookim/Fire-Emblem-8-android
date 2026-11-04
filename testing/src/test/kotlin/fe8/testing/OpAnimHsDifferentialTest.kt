@@ -1,13 +1,13 @@
 package fe8.testing
 
 import fe8.game.opanim.OpAnimHs
-import gbafe.core.VerifiesPort
+import gba.core.VerifiesPort
 import gbafe.render.LcdControl
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * Differential test of [OpAnimHs.brightenPalette] against the mGBA boot RAM trace (`ram_trace_boot`, RAM every

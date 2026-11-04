@@ -1,6 +1,6 @@
 package fe8.testing
 
-import gbafe.core.VerifiesPort
+import gba.core.VerifiesPort
 import gbafe.render.HBlankHandler
 import gbafe.render.HBlankHandlers
 import gbafe.render.LcdControl

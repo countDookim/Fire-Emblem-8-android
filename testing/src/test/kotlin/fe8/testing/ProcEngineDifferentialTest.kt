@@ -1,13 +1,11 @@
 package fe8.testing
 
-import fe8.game.opanim.EarlyStartUi
-import fe8.game.opanim.OpAnimHs
 import fe8.game.GameControl
+import fe8.game.opanim.EarlyStartUi
 import fe8.game.opanim.OpAnim
+import fe8.game.opanim.OpAnimHs
 import fe8.game.title.TitleScreen
-import gbafe.render.SpriteLayers
-import gbafe.render.SpriteObject
-import gbafe.core.VerifiesPort
+import gba.core.VerifiesPort
 import gbafe.core.time.GameClock
 import gbafe.input.KeyComboReset
 import gbafe.input.KeyStatus
@@ -18,14 +16,16 @@ import gbafe.render.LcdControl
 import gbafe.render.OamBuffer
 import gbafe.render.RenderState
 import gbafe.render.SoftwareRenderer
+import gbafe.render.SpriteLayers
+import gbafe.render.SpriteObject
 import gbafe.render.TileSheets
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * Runs `ProcScr_GameEarlyStartUI` ([EarlyStartUi]) on our [ProcEngine] frame by frame against `ram_trace_logo_skip`

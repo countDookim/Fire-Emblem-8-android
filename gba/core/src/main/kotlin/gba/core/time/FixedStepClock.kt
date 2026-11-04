@@ -1,4 +1,4 @@
-package gbafe.core.time
+package gba.core.time
 
 /**
  * Fixed-timestep clock that converts wall-clock time into a whole number of logic ticks at the GBA

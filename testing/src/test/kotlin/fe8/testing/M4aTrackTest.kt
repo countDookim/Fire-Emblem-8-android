@@ -1,7 +1,7 @@
 package fe8.testing
 
+import gba.core.VerifiesPort
 import gbafe.audio.M4aTrack
-import gbafe.core.VerifiesPort
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue

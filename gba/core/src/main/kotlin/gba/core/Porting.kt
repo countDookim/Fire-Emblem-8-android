@@ -1,4 +1,4 @@
-package gbafe.core
+package gba.core
 
 /**
  * Marks a test as verifying one or more ported decomp functions.

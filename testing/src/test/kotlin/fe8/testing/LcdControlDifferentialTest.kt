@@ -1,12 +1,12 @@
 package fe8.testing
 
-import gbafe.core.VerifiesPort
+import gba.core.VerifiesPort
 import gbafe.render.LcdControl
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import java.io.File
 
 /**
  * Differential test of [LcdControl.flushTo] (`FlushLCDControl`): for every full mGBA dump (RAM + I/O), the

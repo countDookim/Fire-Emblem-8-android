@@ -13,13 +13,14 @@
 ## Modules
 
 ```
-app ──► game ──► gba:{vfs,data}, engine:{core,data,input,render,audio,script,text,save}
+app ──► game ──► gba:{vfs,data,core}, engine:{core,data,input,render,audio,script,text,save}
 testing ──► game         (every engine module depends only on engine:core)
 ```
 
 | Module | Holds | Status |
 |---|---|---|
-| `engine:core` | clock + loop (59.7275 Hz), RNG, procs, event bus, flags, mechanics | working |
+| `gba:core` | `VerifiesPort`, fixed-step clock + loop (59.7275 Hz), event bus | working |
+| `engine:core` | game clock, RNG, procs, flags, mechanics (FE code) | working |
 | `gba:vfs` | layered VFS, mod manifest, texture overrides | dir layers |
 | `gba:data` | LZ77, tile, colour decoders; JSON reader (package `gba.data`) | decoders |
 | `engine:data` | TSA decoder; JSON table contract (trig) | decoders |

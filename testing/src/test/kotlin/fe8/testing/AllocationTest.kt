@@ -1,10 +1,10 @@
 package fe8.testing
 
-import gbafe.core.event.TickListener
-import gbafe.core.time.FixedStepClock
-import gbafe.core.time.GameLoop
 import fe8.game.Fe8Game
 import fe8.game.RomView
+import gba.core.event.TickListener
+import gba.core.time.FixedStepClock
+import gba.core.time.GameLoop
 import gbafe.render.BgHardware
 import gbafe.render.HardwareSceneLoader
 import gbafe.render.OamBuffer

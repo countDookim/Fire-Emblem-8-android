@@ -1,4 +1,4 @@
-package gbafe.core.time
+package gba.core.time
 
 /**
  * Something that advances in fixed logic ticks and can be presented at any display rate.

@@ -5,9 +5,9 @@ import android.opengl.GLES30
 import android.opengl.GLSurfaceView
 import android.view.KeyEvent
 import android.view.MotionEvent
-import gbafe.core.time.GameLoop
-import gbafe.input.ActionSource
 import fe8.game.Fe8Game
+import gba.core.time.GameLoop
+import gbafe.input.ActionSource
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.IntBuffer
@@ -20,7 +20,7 @@ import javax.microedition.khronos.opengles.GL10
  * smoothing/CRT shader can be added behind a feature flag later).
  *
  * Threading: the [GameLoop] runs on the GL thread, driven by `onDrawFrame` (display rate), with logic
- * fixed at ~59.73 Hz by [gbafe.core.time.FixedStepClock]. Nothing here allocates per frame: the upload
+ * fixed at ~59.73 Hz by [gba.core.time.FixedStepClock]. Nothing here allocates per frame: the upload
  * buffer is a pre-allocated direct [IntBuffer].
  */
 public class GameSurfaceView(

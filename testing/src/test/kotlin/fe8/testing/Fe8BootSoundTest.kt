@@ -5,6 +5,10 @@ import fe8.game.Fe8Sound
 import fe8.game.RomView
 import gba.audio.M4aPlayer
 import gba.core.VerifiesPort
+import gba.testkit.GbaMem
+import gba.testkit.MgbaColorMath
+import gba.testkit.RamSymbols
+import gba.testkit.ReferenceData
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

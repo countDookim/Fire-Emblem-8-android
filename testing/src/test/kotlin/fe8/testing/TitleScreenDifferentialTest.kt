@@ -10,6 +10,10 @@ import gba.render.FrameBuffer
 import gba.render.RenderState
 import gba.render.SoftwareRenderer
 import gba.render.TileSheets
+import gba.testkit.GbaMem
+import gba.testkit.MgbaColorMath
+import gba.testkit.RamSymbols
+import gba.testkit.ReferenceData
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcScript

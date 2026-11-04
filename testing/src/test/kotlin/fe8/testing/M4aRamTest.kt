@@ -1,5 +1,6 @@
 package fe8.testing
 
+import gba.testkit.ReferenceData
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue

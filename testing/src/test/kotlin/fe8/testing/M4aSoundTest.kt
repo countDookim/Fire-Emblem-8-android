@@ -7,6 +7,7 @@ import gba.audio.M4aSound
 import gba.audio.M4aSoundInfo
 import gba.audio.PcmStream
 import gba.core.VerifiesPort
+import gba.testkit.ReferenceData
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

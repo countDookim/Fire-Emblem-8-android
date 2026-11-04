@@ -2,6 +2,9 @@ package fe8.testing
 
 import fe8.game.savemenu.SaveDraw
 import gba.core.VerifiesPort
+import gba.testkit.GbaMem
+import gba.testkit.RamSymbols
+import gba.testkit.ReferenceData
 import gbafe.render.BgVerticalScroll
 import gbafe.render.LcdControl
 import java.io.File

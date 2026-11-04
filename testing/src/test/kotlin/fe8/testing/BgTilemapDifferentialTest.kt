@@ -2,6 +2,9 @@ package fe8.testing
 
 import gba.core.VerifiesPort
 import gba.data.Lz77
+import gba.testkit.GbaMem
+import gba.testkit.RamSymbols
+import gba.testkit.ReferenceData
 import gbafe.render.BgTilemap
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertArrayEquals

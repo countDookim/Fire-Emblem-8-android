@@ -1,6 +1,9 @@
 package fe8.testing
 
 import gba.core.VerifiesPort
+import gba.testkit.GbaMem
+import gba.testkit.RamSymbols
+import gba.testkit.ReferenceData
 import gbafe.core.rng.RngService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue

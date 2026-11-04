@@ -10,6 +10,7 @@ import gba.render.SoftwareRenderer
 import gba.render.SpriteBatch
 import gba.render.TileLayer
 import gba.render.TileSheets
+import gba.testkit.AllocationMeter
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach

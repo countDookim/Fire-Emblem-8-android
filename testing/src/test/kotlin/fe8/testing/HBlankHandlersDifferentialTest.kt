@@ -1,6 +1,9 @@
 package fe8.testing
 
 import gba.core.VerifiesPort
+import gba.testkit.GbaMem
+import gba.testkit.RamSymbols
+import gba.testkit.ReferenceData
 import gbafe.render.HBlankHandler
 import gbafe.render.HBlankHandlers
 import gbafe.render.LcdControl

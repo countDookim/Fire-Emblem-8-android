@@ -1,9 +1,11 @@
 package fe8.testing
 
+import gba.testkit.GbaMem
+import gba.testkit.ReferenceData
+import kotlin.math.sqrt
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
-import kotlin.math.sqrt
 
 /** Sanity checks of the harness `--audio` capture (`audio_menu`) that M3-14 level tests use. */
 class MgbaAudioReferenceTest {

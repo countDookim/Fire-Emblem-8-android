@@ -14,20 +14,18 @@ the FE engine.
   `SpriteRasterizer`, `TileSheets`, `FrameBuffer`, `ColorMath`, `BgAffine`, `HBlankLines`.
 - `:gba:input` `GameAction`, `InputFrame`, `VanillaButtonMap`, `TouchButtons`, `UiElements`.
 - `:gba:audio` m4a driver, `PcmStream`, `AudioSink`.
-- `:gba:extract` `Json`, `Symbols`, `DecompEnums`, `IndexedPng`, `ExtractOutput`, `RomImporter`.
+- `:gba:extract` `Json`, `Symbols`, `SymbolSources` (+ `RecordingSymbolSources`/`ManifestSymbolSources` bases), `DecompEnums`,
+  `IndexedPng`, `ExtractOutput`, `RomImporter`.
+- `:gba:testkit` `ReferenceData`, `GbaMem`, `RamSymbols`, `AllocationMeter`, `MgbaColorMath` (package `gba.testkit`).
 
 **Rules.** `gba` imports neither `gbafe.*` nor `fe8.*` (`tools/tests/test_layering.py`). Each `gbafe`
 engine module `api`-depends on its `gba` counterpart, so downstream code sees both.
 
 **Stays FE-side (`gbafe.*`, `fe8.*`).** Procs, RNG, `BattleRolls`, `GameClock`, `Interpolate`, flags;
 `KeyStatus`/`KeyComboReset`; `Tsa`/`TrigTable`; `HardwareScene` and the ported BG/OAM/LCD/`ColorFade`
-code; `ScreenExtractor`/`ExtractSources`; text; scripts; everything in `fe8.*`.
+code; `ScreenExtractor`/`ExtractSources` (faces + bundled manifest); text; scripts; everything in `fe8.*`.
 
-**Remaining M4-06 work.**
-- Testkit: `ReferenceData`, `RamSymbols`, `AllocationMeter` out of `:testing`.
-- Split `ExtractSources` so the interface and `RecordingSources` can move (the bundled-manifest resource
-  path stays FE-side).
-- A doc on reusing the mGBA harness for another game.
+**Remaining M4-06 work.** None (harness reuse: docs/gba-harness-reuse.md).
 
 **Consequences.** Import paths changed (`gbafe.X` -> `gba.X`) with no behaviour change; `Ported from` KDoc
 and `@VerifiesPort` tests are untouched. Progress counts are unaffected.

@@ -1,6 +1,7 @@
 package fe8.testing
 
 import fe8.game.Fe8Game
+import gba.testkit.AllocationMeter
 import java.io.File
 import kotlin.system.exitProcess
 

@@ -9,6 +9,10 @@ import gba.render.FrameBuffer
 import gba.render.RenderState
 import gba.render.SoftwareRenderer
 import gba.render.TileSheets
+import gba.testkit.GbaMem
+import gba.testkit.MgbaColorMath
+import gba.testkit.RamSymbols
+import gba.testkit.ReferenceData
 import gbafe.extract.ScreenExtractor
 import gbafe.render.LcdControl
 import java.io.File

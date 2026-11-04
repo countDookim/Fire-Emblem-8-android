@@ -3,6 +3,7 @@ package fe8.testing
 import gba.render.LineTable
 import gba.render.RenderState
 import gba.render.SpriteBatch
+import gba.testkit.AllocationMeter
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

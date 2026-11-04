@@ -1,4 +1,4 @@
-package fe8.testing
+package gba.testkit
 
 import gba.render.ColorMath
 

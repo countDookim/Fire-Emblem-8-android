@@ -1,4 +1,4 @@
-package fe8.testing
+package gba.testkit
 
 import java.io.File
 
@@ -36,7 +36,10 @@ public class RamSymbols(file: File) {
 
     /** Factory for the committed reference table. */
     public companion object {
-        /** Loads from the `fe8.reference` system property (set by Gradle to `<repo>/reference`). */
+        /**
+         * Loads from the `fe8.reference` system property (set by Gradle to `<repo>/reference`);
+         * the name is the host build's convention.
+         */
         public fun fromEnvironment(): RamSymbols =
             RamSymbols(File(System.getProperty("fe8.reference") ?: "reference", "ram_symbols.tsv"))
     }

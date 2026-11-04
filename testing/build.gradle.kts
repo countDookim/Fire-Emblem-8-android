@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
     api(project(":game"))
+    api(project(":gba:testkit"))
     // Round-trip tests of the extraction path (IndexedPng); test scope only, the app never ships it.
     testImplementation(project(":tools:extract"))
 }

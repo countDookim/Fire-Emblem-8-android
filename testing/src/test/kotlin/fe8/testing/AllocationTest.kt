@@ -7,6 +7,7 @@ import gba.core.time.FixedStepClock
 import gba.core.time.GameLoop
 import gba.render.RenderState
 import gba.render.TileSheets
+import gba.testkit.AllocationMeter
 import gbafe.render.BgHardware
 import gbafe.render.HardwareSceneLoader
 import gbafe.render.OamBuffer

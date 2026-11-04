@@ -1,4 +1,4 @@
-package fe8.testing
+package gba.testkit
 
 import java.io.File
 import java.nio.ByteBuffer
@@ -110,7 +110,10 @@ public class ReferenceData(
         /** Sample rate of `audio.s16` (harness `AUDIO_RATE`). */
         public const val AUDIO_RATE: Int = 32768
 
-        /** Reference data from the `fe8.assets` system property / `FE8_ASSETS` env (set by Gradle). */
+        /**
+         * Reference data from the `fe8.assets` system property / `FE8_ASSETS` env (set by Gradle);
+         * those names are the host build's convention.
+         */
         public fun fromEnvironment(): ReferenceData {
             val base = System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets"
             return ReferenceData(File(base, "reference/out"))

@@ -1,6 +1,10 @@
 package fe8.testing
 
 import gba.core.VerifiesPort
+import gba.testkit.AllocationMeter
+import gba.testkit.GbaMem
+import gba.testkit.RamSymbols
+import gba.testkit.ReferenceData
 import gbafe.input.KeyStatus
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

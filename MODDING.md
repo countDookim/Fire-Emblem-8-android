@@ -16,7 +16,7 @@ layer wins ([0003](docs/decisions/0003-mod-vfs.md)).
 |---|---|---|
 | `data/` | JSON tables ([schemas](schemas/)); `*.merge.json` patches *(planned)* | extracted, not loaded yet |
 | `maps/` | Tiled `.tmj` + tileset PNGs | extracted, not loaded yet |
-| `scripts/` | `.fe8s` ([0001](docs/decisions/0001-script-format.md)) | prologue converted; VM *(M5)* |
+| `scripts/` | `.fe8s` ([0001](docs/decisions/0001-script-format.md)) | prologue converted; compiled form and VM: [0001 amendment](docs/decisions/0001-script-format.md#amendment-m5-2026-11-04) *(M5)* |
 | `gfx/` | PNG + JSON metadata | texture overrides resolved; not yet drawn (boot screens read ROM data) |
 | `audio/` | MIDI + voicegroup JSON, WAV | *(planned; the game plays the ROM's m4a data)* |
 | `text/<lang>/` | strings with tags (`{PLAYER}`, `{PAUSE 30}`) | `text/en/messages.json` extracted |
@@ -67,7 +67,8 @@ Now: `core.onTickStart`, `core.onTickEnd` (`TickListener(tick: Long)`). Planned 
 replace `RngService.source` with any `RandomSource`.
 
 ## Planned (M5)
-Flag/variable registry named after decomp constants (`FLAG_...`), extensible by id. Saves: versioned, per-mod
+Flag/variable registry named after decomp constants (`EVFLAG_...`; unnamed: `EVFLAG_<n>`); mods register
+additional flags/variables by name. Saves: versioned, per-mod
 sections, migrations, original `.sav` import.
 
 ## Data tables

@@ -1,16 +1,15 @@
 # HANDOFF
 
-_Updated 2026-11-04 (owner-PC session, evening). Owner decisions: docs/PROJECT_BRIEF.md. History: git log._
+_Updated 2026-11-04 (owner-PC WSL session, night). Owner decisions: docs/PROJECT_BRIEF.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## Next task: plan M5 in docs/TASKS.md, then start its first task
-M4-07 (Kotlin Multiplatform) is done and merged (2026-11-04, owner-PC session; ADR 0013). Fewer than 5 tasks
-are open, so first plan M5 (brief: core loop, saves, flag registry, script interpreter) into ≤ 20-min tasks
-with IDs, acceptance lines and decomp sources, then start the first one. New code goes in `commonMain`
-(no `java.*`, `System.*`, `String.format`: `tools/tests/test_kmp_common.py`); platform code in `src/jvmMain`
-(also compiled for android).
+## Next task: M5-02 (ROM repo harness: `dumpsram`, `--sram`)
+M5 is planned in docs/TASKS.md (M5-01..59; facts, addresses, frames: docs/plans/M5-notes.md); M5-01 (ADR 0001
+amendment) is done. M5-02..08 (ROM repo: harness commands, NEWGAME reference runs, publish) unlock the
+trace-verified ports. If the harness rebuild is blocked, do ROM-only tasks instead: M5-10..15, M5-18, M5-21,
+M5-22, M5-28. New code goes in `commonMain` (no `java.*`, `System.*`, `String.format`).
 
 ## State
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
@@ -76,6 +75,5 @@ with IDs, acceptance lines and decomp sources, then start the first one. New cod
 - Data: `cursor_hand.png` colours `paletteSource: caller`; `effectiveAgainst` in items.json holds class
   numbers; classes inline shared terrain tables (decide with the data loader); `.fe8s` v0 prints args as raw
   numbers (symbolic constants and a parser are M5). `RamSymbols[name]` throws on ambiguous static names.
-- Local Windows runs (owner PC, not the scheduled cloud run): no `gh` (REST with the `git credential fill`
-  token + curl); JDK 17 only (add `-Pfe8.jdk=17`); build `.assets` from `../FE8Rom` with `git -c
-  core.autocrlf=false archive HEAD extracted` (CRLF breaks `RomImporterTest`); Python tests need `PYTHONUTF8=1`.
+- Owner PC = WSL2 Ubuntu (2026-11-04): checkouts in `~/FE8/{Fire-Emblem-8-android,Fire-Emblem-8-rom,fireemblem8u}`;
+  Android SDK in `~/android-sdk` (`:app` builds locally); Playwright in `~/node_modules`; cmake/ninja for the harness.

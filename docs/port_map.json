@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 260,
-    "implemented_unverified": 28
+    "verified": 310,
+    "implemented_unverified": 55
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -64,6 +64,31 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
     },
+    "BmMapFill": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
+      ]
+    },
+    "BmMapFillEdges": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "BmMapInit": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
+      ]
+    },
     "CallARM_FillTileRect": {
       "decomp_file": "asm/arm_call.s",
       "system": "core",
@@ -100,6 +125,54 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "CheckChapterFlag": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "CheckFlag": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "CheckPermanentFlag": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "CheckPermanentFlagFrom": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Checksum16": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "engine/save/src/commonMain/kotlin/gbafe/save/SaveChecksums.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SaveChecksumsReferenceTest#checksum16 matches the stored global save info checksum",
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "Checksum32": {
+      "decomp_file": "asm/arm.s",
+      "system": "core",
+      "kotlin_file": "engine/save/src/commonMain/kotlin/gbafe/save/SaveChecksums.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SaveChecksumsReferenceTest#checksum32 matches the game block info after new game",
+        "fe8.testing.SaveChecksumsReferenceTest#checksum32 matches the suspend block info in first phase"
+      ]
+    },
     "ChnVolSetAsm": {
       "decomp_file": "src/m4a_1.s",
       "system": "audio",
@@ -108,6 +181,13 @@
       "tests": [
         "fe8.testing.M4aChannelTest#head channel volumes match the reference RAM dumps"
       ]
+    },
+    "ClearChapterFlag": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
+      "status": "implemented",
+      "tests": []
     },
     "ClearFirstPalDirectly": {
       "decomp_file": "src/opanimfx.c",
@@ -118,6 +198,13 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "ClearFlag": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "ClearOam": {
       "decomp_file": "asm/arm.s",
       "system": "core",
@@ -126,6 +213,13 @@
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
+    },
+    "ClearPermanentFlag": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
+      "status": "implemented",
+      "tests": []
     },
     "ClearSprites": {
       "decomp_file": "src/ctc.c",
@@ -175,6 +269,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
+      ]
+    },
+    "ComputeChecksum32": {
+      "decomp_file": "asm/arm_call.s",
+      "system": "core",
+      "kotlin_file": "engine/save/src/commonMain/kotlin/gbafe/save/SaveChecksums.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SaveChecksumsReferenceTest#checksum32 matches the game block info after new game",
+        "fe8.testing.SaveChecksumsReferenceTest#checksum32 matches the suspend block info in first phase"
       ]
     },
     "CopyFirstPalDirectly": {
@@ -275,6 +379,51 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "EraseBonusContentData": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "EraseLinkArenaStruct2": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "EraseSaveRankData": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "EraseSoundRoomSaveData": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "EraseSramDataIfInvalid": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
     "ExecBothHBlankHandlers": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -345,6 +494,13 @@
         "fe8.testing.LcdControlDifferentialTest#flushed registers match mGBA I-O for every full dump"
       ]
     },
+    "GameControlHandlePostNormalOrExtraChapter": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "GameControl_8009A58": {
       "decomp_file": "src/gamecontrol.c",
       "system": "core",
@@ -370,6 +526,58 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "GameControl_RememberChapterId": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.GameControlDifferentialTest#save menu return reaches the intro monologue like the game"
+      ]
+    },
+    "GameControl_RestoreChapterId": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GameControl_SwitchPostSaveMenu": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.GameControlDifferentialTest#save menu return reaches the intro monologue like the game"
+      ]
+    },
+    "GameCtrlStartIntroMonologue": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.GameControlDifferentialTest#save menu return reaches the intro monologue like the game"
+      ]
+    },
+    "GameCtrl_CheckGameCompleteAndBranch": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.GameControlDifferentialTest#save menu return reaches the intro monologue like the game"
+      ]
+    },
+    "GameCtrl_CheckNewGameAndBranch": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.GameControlDifferentialTest#save menu return reaches the intro monologue like the game"
       ]
     },
     "GameEarlyStartDelay": {
@@ -453,6 +661,13 @@
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
+    "GetBattleMapKind": {
+      "decomp_file": "src/worldmap_path.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleMapKind.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "GetBgVerticalScrollBuffer": {
       "decomp_file": "src/bmlib-hblank.c",
       "system": "battle_map",
@@ -460,6 +675,75 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SaveDrawDifferentialTest#fog scroll reproduces the dumped table, proc fields and LCD buffer"
+      ]
+    },
+    "GetCameraAdjustedX": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Camera.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetCameraAdjustedY": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Camera.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetCameraCenteredX": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Camera.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetCameraCenteredY": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Camera.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetChapterEventDataPointer": {
+      "decomp_file": "src/chapterdata.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterData.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterDataRomTest#every chapter matches direct ROM reads"
+      ]
+    },
+    "GetChapterFlagBits": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/flags/Fe8EventFlags.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetChapterFlagBitsSize": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/flags/Fe8EventFlags.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventFlagsRomTest#save sizes equal the movs immediates in the rom"
+      ]
+    },
+    "GetChapterMapChangesPointer": {
+      "decomp_file": "src/chapterdata.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterData.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetChapterMapPointer": {
+      "decomp_file": "src/chapterdata.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterData.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterDataRomTest#every chapter matches direct ROM reads"
       ]
     },
     "GetGameClock": {
@@ -477,6 +761,90 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameLoop.kt",
       "status": "implemented",
       "tests": []
+    },
+    "GetLastSuspendSaveId": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "GetNextSuspendSaveId": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "GetPermanentFlagBits": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/flags/Fe8EventFlags.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetPermanentFlagBitsSize": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/flags/Fe8EventFlags.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventFlagsRomTest#save sizes equal the movs immediates in the rom"
+      ]
+    },
+    "GetPhaseAbleUnitCount": {
+      "decomp_file": "src/bmphase.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitTableDifferentialTest#GetPhaseAbleUnitCount agrees with the cursor reset of each phase"
+      ]
+    },
+    "GetPlayerLeaderPid": {
+      "decomp_file": "src/prep_sallycursor.c",
+      "system": "prep_screen",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetROMChapterStruct": {
+      "decomp_file": "src/chapterdata.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterData.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterDataRomTest#every chapter matches direct ROM reads"
+      ]
+    },
+    "GetTrueTerrainAt": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
+      ]
+    },
+    "GetUnit": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetUnitFromCharId": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitTableDifferentialTest#GetUnitFromCharId finds Eirika where the player phase puts the cursor"
+      ]
     },
     "HBlank_BgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
@@ -496,6 +864,15 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "InitBaseTilesBmMap": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
+      ]
+    },
     "InitBmBgLayers": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -503,6 +880,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
+      ]
+    },
+    "InitChapterMap": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
+      ]
+    },
+    "InitGlobalSaveInfodata": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
     },
     "InitOam": {
@@ -530,6 +925,67 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "IsCameraNotWatchingPosition": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Camera.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "IsSramWorking": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "IsValidSuspendSave": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "LoadAndVerfyLinkArenaStruct2": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "LoadAndVerfyRankData": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "LoadAndVerifySoundRoomData": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "LoadBonusContentData": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
     },
     "LoadRNState": {
@@ -1051,6 +1507,24 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "ReadGlobalSaveInfo": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "ReadSramFast_Core": {
+      "decomp_file": "src/agb_sram.c",
+      "system": "save",
+      "kotlin_file": "gba/core/src/commonMain/kotlin/gba/core/sram/SramFast.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
     "RealClearChain": {
       "decomp_file": "src/m4a_1.s",
       "system": "audio",
@@ -1060,6 +1534,22 @@
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
       ]
     },
+    "RefreshTerrainBmMap": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
+      ]
+    },
+    "ResetChapterFlags": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "ResetKeyStatus": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -1068,6 +1558,13 @@
       "tests": [
         "fe8.testing.KeyStatusDifferentialTest#boot key status matches ResetKeyStatus plus idle updates"
       ]
+    },
+    "ResetPermanentFlags": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
+      "status": "implemented",
+      "tests": []
     },
     "Roll1RN": {
       "decomp_file": "src/rng.c",
@@ -1092,6 +1589,15 @@
         "fe8.testing.M4aOpenTest#sample rate setup matches the traced SoundInfo"
       ]
     },
+    "SaveBonusContentData": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
     "SaveDraw_ScrollFogBG": {
       "decomp_file": "src/savedraw.c",
       "system": "save",
@@ -1099,6 +1605,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SaveDrawDifferentialTest#fog scroll reproduces the dumped table, proc fields and LCD buffer"
+      ]
+    },
+    "SaveRankings": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
     },
     "SetBackgroundMapDataOffset": {
@@ -1137,6 +1652,22 @@
         "fe8.testing.OpAnimHsDifferentialTest#health and safety brightness pulse matches the boot RAM trace"
       ]
     },
+    "SetChapterFlag": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "SetCursorMapPosition": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Camera.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CameraDifferentialTest#cursor snap frames match SetCursorMapPosition"
+      ]
+    },
     "SetFirstPalDirectly": {
       "decomp_file": "src/opanimfx.c",
       "system": "presentation",
@@ -1145,6 +1676,13 @@
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
+    },
+    "SetFlag": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
+      "status": "implemented",
+      "tests": []
     },
     "SetGameTime": {
       "decomp_file": "src/time.c",
@@ -1213,6 +1751,13 @@
       "tests": [
         "fe8.testing.OpAnimHsLogoDifferentialTest#status per script section matches the boot RAM trace"
       ]
+    },
+    "SetPermanentFlag": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
+      "status": "implemented",
+      "tests": []
     },
     "SetPrimaryHBlankHandler": {
       "decomp_file": "src/hardware.c",
@@ -1304,6 +1849,15 @@
         "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
       ]
     },
+    "SramInit": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
     "StartBgmCore": {
       "decomp_file": "src/soundwrapper.c",
       "system": "audio",
@@ -1367,12 +1921,28 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
     },
+    "StoreAdjustedCameraPositions": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Camera.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "StoreRNState": {
       "decomp_file": "src/rng.c",
       "system": "core",
       "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt",
       "status": "implemented",
       "tests": []
+    },
+    "StringCompare": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
     },
     "SyncHiOam": {
       "decomp_file": "src/hardware.c",
@@ -1604,6 +2174,15 @@
       "status": "implemented",
       "tests": []
     },
+    "UnpackChapterMap": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
+      ]
+    },
     "UpdateHBlankHandlerState": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -1620,6 +2199,69 @@
       "status": "verified",
       "tests": [
         "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
+      ]
+    },
+    "VerifySramFast_Core": {
+      "decomp_file": "src/agb_sram.c",
+      "system": "save",
+      "kotlin_file": "gba/core/src/commonMain/kotlin/gba/core/sram/SramFast.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "WipeSram": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "WriteAndVerifySramFast": {
+      "decomp_file": "src/agb_sram.c",
+      "system": "save",
+      "kotlin_file": "gba/core/src/commonMain/kotlin/gba/core/sram/SramFast.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "WriteGlobalSaveInfo": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "WriteLinkArenaStruct2": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "WriteSoundRoomSaveData": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "WriteSramFast": {
+      "decomp_file": "src/agb_sram.c",
+      "system": "save",
+      "kotlin_file": "gba/core/src/commonMain/kotlin/gba/core/sram/SramFast.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
     },
     "_UpdateKeyStatus": {

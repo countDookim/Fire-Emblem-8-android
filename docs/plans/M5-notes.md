@@ -145,9 +145,10 @@ settles ~f9513; BattleEventEngine f14479..14631; PhaseIntro f19316 (= suspend en
   game slot 1 = Ch6 "Victims of War" (turn 0, fog). With a suspend the main menu's first item is Resume Chapter (then
   a slot list on the suspend's slot); without one it is Restart Chapter.
 - Watch files hold one entry per harness step, not per frame (`hold` without split_holds is one step).
-- Gaps (add a run when a task needs it): CamMove at a scrolling chapter start (ch6 has only 30-frame dumps before
-  f1990); SRAM after boot with a valid suspend preloaded (LoadAndVerfySuspendSave, M5-25: `--sram chapter2.sav` +
-  dumpsram); Reset*/chapter-clear flags; suspend/resume round trips (M6).
+- `sram_chapter2_boot` / `sram_chapter6_boot`: boot with the owner save preloaded (dumps f1..f5, f13, f60, f900);
+  SRAM is unchanged by the boot in both (M5-25).
+- Gaps (add a run when a task needs it): Reset*/chapter-clear flags; a scripted camera event or unit menu after
+  scrolling (StoreAdjustedCameraPositions, IsCameraNotWatchingPosition); suspend/resume round trips (M6).
 - Test patterns: seed from dump k, step, compare with k+1 (ProcEngineDifferentialTest); compare SRAM on the frame
   after a write, whole 32 KiB or named blocks; sentinels in buffers the port must overwrite.
 

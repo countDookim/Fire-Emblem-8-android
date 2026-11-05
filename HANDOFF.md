@@ -7,7 +7,7 @@ reference runs: docs/plans/M5-notes.md. History: git log._
 _(nothing blocked)_
 
 ## In progress
-- M5-39b, M5-41c, M5-42: owner PC, until ~17:30Z
+- M5-39b, M5-42, M5-25: owner PC, until ~17:30Z
 
 ## Next task: M5-53, then M5-54
 M5-53 state (on master): `EventVmDifferentialTest` replays ported handlers with onUpdate's loop from the prologue

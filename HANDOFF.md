@@ -10,10 +10,11 @@ Done 2026-11-05: M5-09..24, 26, 27, 28..36, 38, 41, 48..52; M5-49/50 (`EventEngi
 enqueue/callNextQueuedEvent/exists/delete/onEnd, externals behind `EventEngineHooks`), M5-51 (`EventScrCore`: 11
 eventscr.c handlers; assumptions in KDoc: div/mod by 0 = 0, shifts >= 32 = 0, goto scan limit -> EVC_ERROR, slot
 index > 13 aliases gEventSlotQueue). No `@VerifiesPort` yet. M5-53 started: `EventVmDifferentialTest` (prologue per-frame oracle, replays
-ported handlers with onUpdate's loop, stubs 0x12/0x15/0x30 as ADVANCE_YIELD when B.pc = next cmd): 0 mismatches,
-01x12, 05x4, 06x1, 07x3, 0Ex2443; 00/08/09/0A/0C/0F never reached (frames stop on unported 1D/30/3B/AC/BA/1B).
-Next: port 1D/02/03/19 etc. (or analyse them for stubs), then add tags for 01/0E/05-07 with a break check each.
-After END the proc lingers ~2 frames (still in the proc array). Scripts: 897 EventScr*/EventScrWM*
+ported handlers with onUpdate's loop, stubs 0x12/0x15/0x30 as ADVANCE_YIELD when B.pc = next cmd; flags compared;
+skips frames where the engine idles (fade/callback early return not modelled)): 0 mismatches over 2469 pairs:
+01x16, 02x3, 03x3, 05x4, 06x1, 07x3, 08x1, 09x1, 0Ax1, 0Cx3, 0Ex2443; 00/0F never reached. Event02/03 ported
+(flags via `gbafe.core.flags.EventFlags`). Most frames stop on unported 1D/30/3B/AC/BA/1B (port or stub next).
+Then add `@VerifiesPort` for executed handlers + engine functions, each break-checked (rule 5). After END the proc lingers ~2 frames (still in the proc array). Scripts: 897 EventScr*/EventScrWM*
 in 46 `.fe8s` files + `scripts/index.json`, 897/897 byte-exact. `EventTrace` (:testing) decodes the event engine per
 step; note the BeginningScene engine (step 9508) is already inside RenaisThroneCutscene, ends step 19311.
 EventEngine_CanStartSkip/StartSkip are still partial (an alternative full port is on local branch

@@ -35,7 +35,8 @@ class EventScrCoreTest {
         override fun aHeld() = aHeld
         override fun gameSpeed() = speed
     }
-    private val core = EventScrCore(state, mem, input)
+    private val flags = fe8.game.flags.Fe8EventFlags.create()
+    private val core = EventScrCore(state, mem, input, flags)
     private val proc = EventEngineProc()
 
     private fun script(vararg w: Int) {
@@ -322,5 +323,51 @@ class EventScrCoreTest {
         proc.evStateBits = EV_STATE_SKIPPING
         assertEquals(EVC_ADVANCE_CONTINUE, stal(0, 10))
         assertEquals(0, proc.evStallTimer)
+    }
+
+    @Test
+    fun `evbit set clear and check`() {
+        script(0x0228, 5) // EVBIT_T 5
+        assertEquals(EVC_ADVANCE_CONTINUE, run(core.event02EvBitAndIdMod))
+        assertEquals(1 shl 5, proc.evStateBits)
+        script(0x0320, 5) // check evbit
+        run(core.event03CheckEvBitOrId)
+        assertEquals(1, state.slots[0xC])
+        script(0x0220, 5) // EVBIT_F 5
+        run(core.event02EvBitAndIdMod)
+        assertEquals(0, proc.evStateBits)
+        script(0x0320, 5)
+        run(core.event03CheckEvBitOrId)
+        assertEquals(0, state.slots[0xC])
+    }
+
+    @Test
+    fun `evbit negative argument uses slot 2 and stays u16`() {
+        state.slots[2] = 15
+        proc.evStateBits = 0
+        script(0x0228, 0xFFFF)
+        run(core.event02EvBitAndIdMod)
+        assertEquals(0x8000, proc.evStateBits)
+        state.slots[2] = 40
+        script(0x0228, 0xFFFF) // shift by 40 gives 0 on ARM
+        run(core.event02EvBitAndIdMod)
+        assertEquals(0x8000, proc.evStateBits)
+    }
+
+    @Test
+    fun `event flag set clear and check`() {
+        script(0x0229, 0x65) // ENUT permanent flag 101
+        run(core.event02EvBitAndIdMod)
+        assertEquals(true, flags.checkFlag(0x65))
+        script(0x0321, 0x65)
+        run(core.event03CheckEvBitOrId)
+        assertEquals(1, state.slots[0xC])
+        script(0x0221, 0x65) // ENUF
+        run(core.event02EvBitAndIdMod)
+        assertEquals(false, flags.checkFlag(0x65))
+        state.slots[2] = 7
+        script(0x0229, 0xFFFF) // chapter flag 7 from slot 2
+        run(core.event02EvBitAndIdMod)
+        assertEquals(true, flags.checkFlag(7))
     }
 }

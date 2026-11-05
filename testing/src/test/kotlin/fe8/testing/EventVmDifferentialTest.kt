@@ -51,10 +51,13 @@ class EventVmDifferentialTest {
             (rom[o].toInt() and 0xFF) or ((rom[o + 1].toInt() and 0xFF) shl 8)
         }
         val state = EventState()
-        val core = EventScrCore(state, mem, object : fe8.game.event.EventInput {})
+        val flags = fe8.game.flags.Fe8EventFlags.create()
+        val core = EventScrCore(state, mem, object : fe8.game.event.EventInput {}, flags)
         val table = HashMap<Int, EventHandler>()
         table[0x00] = core.event00Null
         table[0x01] = core.event01End
+        table[0x02] = core.event02EvBitAndIdMod
+        table[0x03] = core.event03CheckEvBitOrId
         table[0x05] = core.event05SetSlot
         table[0x06] = core.event06SlotOperation
         table[0x07] = core.event07SlotQueueOperations
@@ -72,6 +75,7 @@ class EventVmDifferentialTest {
         var skippedUnported = 0
         var skippedStuck = 0
         var compared = 0
+        var skippedIdle = 0
         var stubbed = 0
         val unportedHist = TreeMap<Int, Int>()
         var partial = 0
@@ -89,6 +93,7 @@ class EventVmDifferentialTest {
                 continue
             }
             loadState(state, a)
+            flags.copyIn(a.permanentFlags!! + a.chapterFlags!!)
             val proc = EventEngineProc()
             proc.pEventStart = ea.pEventStart
             proc.pEventIdk = ea.pEventIdk
@@ -141,7 +146,7 @@ class EventVmDifferentialTest {
                 // place, so the effects of the ported prefix must be visible in B unchanged.
                 val eb = b.engine
                 if (codes.isNotEmpty() && eb != null && eb.pEventCurrent == proc.pEventCurrent) {
-                    val diffs = compare(proc, state, false, b)
+                    val diffs = compare(proc, state, false, b, flags)
                     partial++
                     for (code in codes.toSet()) {
                         val s = stats.getOrPut(code) { Stats() }
@@ -162,8 +167,17 @@ class EventVmDifferentialTest {
                 skippedStuck++
                 continue
             }
+            // B parked exactly where A was although the commands moved the pc: the engine did not
+            // run that frame (fade/callback early return in OnUpdate, not modelled), so skip.
+            val bEng = b.engine
+            if (bEng != null && bEng.pEventCurrent == ea.pEventCurrent &&
+                bEng.pEventIdk == ea.pEventIdk && proc.pEventCurrent != ea.pEventCurrent
+            ) {
+                skippedIdle++
+                continue
+            }
             compared++
-            val diffs = compare(proc, state, ended, b)
+            val diffs = compare(proc, state, ended, b, flags)
             for (code in codes.toSet()) {
                 val s = stats.getOrPut(code) { Stats() }
                 s.executed += codes.count { it == code }
@@ -175,7 +189,7 @@ class EventVmDifferentialTest {
             }
         }
         println(
-            "EventVm pairs=$pairs compared=$compared stubbed=$stubbed partial=$partial skippedNoEngine=$skippedNoEngine " +
+            "EventVm pairs=$pairs compared=$compared skippedIdle=$skippedIdle stubbed=$stubbed partial=$partial skippedNoEngine=$skippedNoEngine " +
                 "skippedUnported=$skippedUnported skippedStuck=$skippedStuck",
         )
         for ((code, s) in stats) {
@@ -212,8 +226,12 @@ class EventVmDifferentialTest {
         state: EventState,
         ended: Boolean,
         b: EventSnapshot,
+        flags: gbafe.core.flags.EventFlags,
     ): List<String> {
         val d = ArrayList<String>()
+        val out = ByteArray(0x30)
+        flags.copyOut(out)
+        if (!out.contentEquals(b.permanentFlags!! + b.chapterFlags!!)) d += "flags differ"
         val eb = b.engine
         if (eb == null) {
             // After EVC_END the proc is broken out of its repeat loop; it is removed a frame or

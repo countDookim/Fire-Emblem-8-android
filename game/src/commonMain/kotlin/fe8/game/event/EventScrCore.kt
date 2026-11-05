@@ -15,6 +15,8 @@ import fe8.game.event.EventConst.EV_STATE_0040
 import fe8.game.event.EventConst.EV_STATE_ABORT
 import fe8.game.event.EventConst.EV_STATE_NOSKIP
 import fe8.game.event.EventConst.EV_STATE_SKIPPING
+import fe8.game.flags.Fe8EventFlags
+import gbafe.core.flags.EventFlags
 
 /** ROM address of `EventScr_08592114`, the script `Event01_End` jumps to after a cutscene. */
 public const val EVENT_SCR_08592114: Int = 0x08592114
@@ -45,6 +47,7 @@ public class EventScrCore(
     private val state: EventState,
     private val memory: ScriptMemory,
     private val input: EventInput = object : EventInput {},
+    private val flags: EventFlags = Fe8EventFlags.create(),
 ) {
     private fun slot(i: Int): Int = when {
         i < EventState.SLOT_COUNT -> state.slots[i]
@@ -108,6 +111,64 @@ public class EventScrCore(
             }
             else -> EVC_END
         }
+    }
+
+    /** `(u16)EVT_CMD_ARGV(scr)[0]`, or `gEventSlots[2]` (as u16) when the s16 is negative. */
+    private fun evArg(cur: Int): Int {
+        val raw = argU16(cur, 0)
+        return if (raw.toShort() < 0) state.slots[2] and 0xFFFF else raw
+    }
+
+    /** `1 << (s16)n` as an ARM register shift: only the low byte counts, 32 or more gives 0. */
+    private fun bit(n: Int): Int {
+        val sh = n.toShort().toInt() and 0xFF
+        return if (sh >= 32) 0 else 1 shl sh
+    }
+
+    /**
+     * Ported from src/eventscr.c: Event02_EvBitAndIdMod
+     *
+     * Sub command low 3 bits 0 clear/set an `evStateBits` bit (`evStateBits` is `u16`), 1
+     * clear/set an event flag; the high bit (`0x8`) selects set.
+     */
+    public val event02EvBitAndIdMod: EventHandler = EventHandler { proc ->
+        val cur = proc.pEventCurrent
+        val word = memory.u16(cur)
+        val lo = word and 0x7
+        val hi = (word and 0xF) shr 3
+        val arg = evArg(cur)
+        when (lo) {
+            0 ->
+                proc.evStateBits = if (hi == 0) {
+                    proc.evStateBits and bit(arg).inv() and 0xFFFF
+                } else {
+                    (proc.evStateBits or bit(arg)) and 0xFFFF
+                }
+            1 -> {
+                val id = arg.toShort().toInt()
+                if (hi == 0) flags.clearFlag(id) else flags.setFlag(id)
+            }
+        }
+        EVC_ADVANCE_CONTINUE
+    }
+
+    /**
+     * Ported from src/eventscr.c: Event03_CheckEvBitOrId
+     *
+     * Sub command 0 stores whether an `evStateBits` bit is set in slot C, 1 whether an event
+     * flag is set.
+     */
+    public val event03CheckEvBitOrId: EventHandler = EventHandler { proc ->
+        val cur = proc.pEventCurrent
+        val arg = evArg(cur)
+        when (subCmd(cur)) {
+            0 -> {
+                val sh = arg.toShort().toInt() and 0xFF
+                state.slots[0xC] = if (sh < 32 && (proc.evStateBits ushr sh) and 1 != 0) 1 else 0
+            }
+            1 -> state.slots[0xC] = if (flags.checkFlag(arg.toShort().toInt())) 1 else 0
+        }
+        EVC_ADVANCE_CONTINUE
     }
 
     /** Ported from src/eventscr.c: Event05_SetSlot */
@@ -287,6 +348,8 @@ public class EventScrCore(
     public fun registerAll(engine: EventEngine) {
         engine.register(0x00, event00Null)
         engine.register(0x01, event01End)
+        engine.register(0x02, event02EvBitAndIdMod)
+        engine.register(0x03, event03CheckEvBitOrId)
         engine.register(0x05, event05SetSlot)
         engine.register(0x06, event06SlotOperation)
         engine.register(0x07, event07SlotQueueOperations)

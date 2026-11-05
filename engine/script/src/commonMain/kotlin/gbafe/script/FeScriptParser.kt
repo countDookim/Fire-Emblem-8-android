@@ -42,8 +42,9 @@ public class ScriptParseException(
  * `event <Name>` line starts a block that ends at the next `event` line or the end of the file.
  * Inside a block, `label N` declares a numeric label and every other line is
  * `command arg arg ...`. Arguments are integers (decimal, `0x` hex, optional `-`) or identifiers
- * (`[A-Za-z_][A-Za-z0-9_]*`). Commands come from [commands]; identifiers must be known to
- * [identifiers] or be an `event` name defined anywhere in the same file.
+ * (`[A-Za-z_][A-Za-z0-9_]*`, or several joined by `|` as a bit mask: `A|B`). Commands come from
+ * [commands]; identifiers must be known to [identifiers] or be an `event` name defined anywhere in
+ * the same file.
  */
 public class FeScriptParser(
     /** The commands a script may use (aliases resolved here). */
@@ -144,13 +145,13 @@ public class FeScriptParser(
                     return null
                 }
                 args += Arg.IntArg(v)
-            } else if (!isIdentifier(s)) {
+            } else if (!isIdentifierMask(s)) {
                 err("malformed identifier '$s'")
                 return null
             } else if (kind == ArgKind.INT) {
                 err("argument $k of '${t[0]}' must be a number, got '$s'")
                 return null
-            } else if (s !in events && !identifiers.isKnown(s)) {
+            } else if (!isKnownMask(s, events)) {
                 err("unknown identifier '$s'")
                 return null
             } else {
@@ -181,6 +182,12 @@ public class FeScriptParser(
     private fun looksNumeric(s: String): Boolean = isDigit(s[0]) || s[0] == '-' || s[0] == '+'
 
     private fun isDigit(c: Char): Boolean = c in '0'..'9'
+
+    /** An identifier, or identifiers joined by `|` (a bit mask such as `A|B`). */
+    private fun isIdentifierMask(s: String): Boolean = s.split('|').all { isIdentifier(it) }
+
+    private fun isKnownMask(s: String, events: Set<String>): Boolean =
+        s.split('|').all { it in events || identifiers.isKnown(it) }
 
     private fun isIdentifier(s: String): Boolean {
         if (s.isEmpty() || isDigit(s[0])) return false

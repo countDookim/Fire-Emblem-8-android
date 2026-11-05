@@ -223,6 +223,7 @@ public class BmSt {
         put8(b, o + 0x3F, unk3F)
     }
 
+    /** Struct size and layout constants. */
     public companion object {
         /** `sizeof(struct BmSt)`. */
         public const val SIZE: Int = 0x40

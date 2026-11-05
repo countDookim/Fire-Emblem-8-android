@@ -400,6 +400,7 @@ public class PlaySt {
         put8(b, o + 0x4B, tutorialCounter)
     }
 
+    /** Struct size and layout constants. */
     public companion object {
         /** `sizeof(struct PlaySt)`. */
         public const val SIZE: Int = 0x4C

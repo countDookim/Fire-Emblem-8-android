@@ -72,6 +72,7 @@ jobs:
           name: apk
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
+          retention-days: 7
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
@@ -83,13 +84,15 @@ jobs:
             testing/build/reports/benchmark/frame_time.json
             docs/port_map.json
           if-no-files-found: warn
+          retention-days: 7
       - name: Upload Dokka site
-        if: always()
+        if: always() && github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v4
         with:
           name: dokka-site
           path: build/dokka/html
           if-no-files-found: warn
+          retention-days: 3
       - name: Commit progress (master)
         if: success() && github.ref == 'refs/heads/master'
         run: |

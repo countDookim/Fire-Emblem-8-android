@@ -4,12 +4,13 @@ _Updated 2026-11-05 (owner-PC session, night). Owner decisions: docs/PROJECT_BRI
 
 ## NEEDS USER
 - GitHub Actions: every code-repo run since 2026-11-05 00:03Z (f50da92) is `startup_failure` ("workflow file
-  issue", also on a manual dispatch) although ci.yml is unchanged and valid; likely account Actions minutes or
-  spending limit (check github.com/settings/billing). Until fixed, run `jvmTest`, Dokka and `:app:assembleDebug`
-  locally before pushing; the README progress bar is not updated by CI.
+  issue", also on a manual dispatch) although ci.yml is unchanged and valid; billing (owner): compute $2.67/$12,
+  storage 0.4/0.5 GB, resets ~2026-12-01: likely the storage quota (not confirmed). Until fixed, run `jvmTest`, Dokka and `:app:assembleDebug`
+  locally before pushing; the README progress bar is not updated by CI. 2026-11-05: 766 old artifacts (4.2 GB,
+  90-day default retention) deleted with the owner's OK; ci.yml now keeps artifacts 3-7 days, Dokka on master only.
 
-## Next task: M5-15 (ScriptImage + assembler: prologue.fe8s v1 → ROM bytes)
-Done 2026-11-05 (owner PC): M5-09..14, 18..24, 28, 29, 33..36, 38, 41 (see TASKS). Open and unblocked:
+## Next task: M5-16 (all 765 non-WM EventScr_* → .fe8s, round-trip byte-exact with the M5-15 assembler)
+Done 2026-11-05 (owner PC): M5-09..15, 18..24, 28, 29, 33..36, 38, 41 (see TASKS). Open and unblocked:
 prologue.fe8s is v1 (symbolic, exact nm lengths; ROM repo `extracted/` updated, but its release is not re-published
 while Actions is blocked: refresh `.assets/extracted` from the ROM repo checkout); M5-25/26/30..32 (saves),
 M5-37/39/40 (map graphics/render), M5-41b (ROM run on a map larger than the screen: the prologue map is 15×10,
@@ -25,7 +26,7 @@ f1130..1132 + 1 byte (0x7224) f1214. Title START now enters GameControl's save-m
   `CgbSound` verified; `PsgSynth` (not a port, GBATEK/mGBA behaviour) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad (2026-10-30); GPU backend, audio
   (2026-11-01); ROM import ~4 s, boots from it, PSG sound correct by ear (2026-11-04).
-- Verified ports: 305 / 8352 (`tools/progress.py`, 2026-11-05).
+- Verified ports: 310 / 8352 (`tools/progress.py`, 2026-11-05).
 - Layout: game-neutral `:gba:*` (ADR 0012), FE-shared `gbafe.*` in `:engine:*`, FE8-only `fe8.*` in `:game`
   and `:app`. KMP (ADR 0013): all of them except `:gba:testkit`, `:testing`, `:tools:extract` (plain JVM);
   android target only in CI (`com.android.kotlin.multiplatform.library`; CI log shows `compileAndroidMain`).

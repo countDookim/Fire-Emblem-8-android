@@ -31,3 +31,4 @@ reference/out/
 .cache/
 .gradle-setup.log
 __pycache__/
+.claude/worktrees/

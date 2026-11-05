@@ -34,14 +34,12 @@ class SaveDrawDifferentialTest {
         val rom = romFile.readBytes()
         val sin = ShortArray(256) { u16(rom, SIN_LOOKUP - ROM + 2 * it).toShort() }
         val run = ref.run("menu_screens")
-        val procArray = sym["sProcArray"]
         val lcdAt = sym["gLCDControlBuffer"].address - GbaMem.IWRAM
         var checked = 0
         for (dump in listOf("m0962", "m1024", "m1086", "m1087")) {
             val ew = run.region(dump, "ewram")
             val iw = run.region(dump, "iwram")
-            val proc = (0 until procArray.size / PROC_SIZE).map { procArray.address - GbaMem.EWRAM + it * PROC_SIZE }
-                .single { u32(ew, it) == PROC_SCRIPT }
+            val proc = ProcArrayDump.ofEwram(ew).findAll(PROC_SCRIPT).single().offset
             val stAddr = u32(iw, sym["gpBgVerticalScrollSt"].address - GbaMem.IWRAM)
             val stMem = if (stAddr ushr 24 == 2) ew else iw
             val expected = BgVerticalScroll().apply { readFrom(stMem, stAddr and 0xFFFFFF) }
@@ -74,7 +72,6 @@ class SaveDrawDifferentialTest {
         const val ROM = 0x08000000
         const val PROC_SCRIPT = 0x08A206A8 // ProcScr_savedraw
         const val SIN_LOOKUP = 0x080D751C // gSinLookup
-        const val PROC_SIZE = 0x6C
 
         fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
         fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)

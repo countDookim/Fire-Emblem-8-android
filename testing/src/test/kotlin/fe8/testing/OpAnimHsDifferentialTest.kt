@@ -39,15 +39,12 @@ class OpAnimHsDifferentialTest {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
         val run = ref.run("ram_trace_boot")
-        val procArray = sym["sProcArray"]
         val palBuf = sym["gPaletteBuffer"].address - GbaMem.EWRAM
         val checkedSteps = HashSet<Int>()
         var checked = 0
         for (dump in run.dumps.keys) {
             val ew = run.region(dump, "ewram")
-            for (p in 0 until procArray.size / PROC_SIZE) {
-                val o = procArray.address - GbaMem.EWRAM + p * PROC_SIZE
-                if (u32(ew, o) != PROC_SCRIPT) continue
+            for (o in ProcArrayDump.ofEwram(ew).findAll(PROC_SCRIPT).map { it.offset }) {
                 // proc_scrCur already points past the running PROC_REPEAT (8-byte commands, function at +4).
                 val cmd = u32(ew, o + 4) - ROM - 8
                 val step = steps.firstOrNull { it.func == u32(rom, cmd + 4) } ?: continue
@@ -73,16 +70,14 @@ class OpAnimHsDifferentialTest {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
         val run = ref.run("ram_trace_boot")
-        val procArray = sym["sProcArray"]
         val lcdAt = sym["gLCDControlBuffer"].address - GbaMem.IWRAM
         val keyAt = sym["sKeyStatusBuffer"].address - GbaMem.EWRAM
         var checked = 0
         for (dump in run.dumps.keys) {
             val ew = run.region(dump, "ewram")
             val iw = run.region(dump, "iwram")
-            for (p in 0 until procArray.size / PROC_SIZE) {
-                val o = procArray.address - GbaMem.EWRAM + p * PROC_SIZE
-                if (u32(ew, o) != PROC_SCRIPT || u32(rom, u32(ew, o + 4) - ROM - 4) != WAIT_BUTTON) continue
+            for (o in ProcArrayDump.ofEwram(ew).findAll(PROC_SCRIPT).map { it.offset }) {
+                if (u32(rom, u32(ew, o + 4) - ROM - 4) != WAIT_BUTTON) continue
                 val timer = u32(ew, o + 0x30)
                 // Rewind one call: timer - 1 and the fields the step writes scrambled; keys are this frame's.
                 val proc = OpAnimHs.Proc().apply { paletteTimer = timer - 1 }
@@ -107,14 +102,11 @@ class OpAnimHsDifferentialTest {
         val rom = romFile.readBytes()
         val hsPal = ShortArray(16) { u16(rom, 0xB125F4 + 2 * it).toShort() } // Pal_OpAnimHealthSafetyScreen
         val run = ref.run("ram_trace_boot")
-        val procArray = sym["sProcArray"]
         val palBuf = sym["gPaletteBuffer"].address - GbaMem.EWRAM
         val seen = HashSet<Int>()
         for (dump in run.dumps.keys) {
             val ew = run.region(dump, "ewram")
-            for (p in 0 until procArray.size / PROC_SIZE) {
-                val o = procArray.address - GbaMem.EWRAM + p * PROC_SIZE
-                if (u32(ew, o) != PROC_SCRIPT) continue
+            for (o in ProcArrayDump.ofEwram(ew).findAll(PROC_SCRIPT).map { it.offset }) {
                 val func = u32(rom, u32(ew, o + 4) - ROM - 4)
                 if (func != HS_FADE_IN && func != HS_FADE_OUT) continue
                 // Rewind one call: timer - 1, delay scrambled, bank 0 cleared.
@@ -143,7 +135,6 @@ class OpAnimHsDifferentialTest {
         const val WAIT_BUTTON = 0x080CC32D // GameIntroHealthSafetyWaitButton
         const val ROM = 0x08000000
         const val PROC_SCRIPT = 0x08AA7680 // ProcScr_GameEarlyStartUI
-        const val PROC_SIZE = 0x6C
 
         fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
         fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)

@@ -43,11 +43,7 @@ class EarlyStartUiBootDifferentialTest {
     private val sym = RamSymbols.fromEnvironment()
     private val romFile = File(System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets", "baserom.gba")
 
-    private fun procAt(ew: ByteArray, script: Int = PROC_SCRIPT): Int? {
-        val a = sym["sProcArray"]
-        return (0 until a.size / PROC_SIZE).map { a.address - GbaMem.EWRAM + it * PROC_SIZE }
-            .firstOrNull { GbaMem.u32(ew, 0, it) == script }
-    }
+    private fun procAt(ew: ByteArray, script: Int = PROC_SCRIPT): Int? = ProcArrayDump.ofEwram(ew).find(script)?.offset
 
     @Test
     @VerifiesPort("GameIntroPrepareNintendofx", "PrepareHealthAndSafetyScreen", "EnableKeyComboResetEN", "StartGame",
@@ -139,10 +135,10 @@ class EarlyStartUiBootDifferentialTest {
             assertEquals(i[sym["gKeyComboResetEN"].address - GbaMem.IWRAM].toInt() != 0, combo.canReset(), "f$f gKeyComboResetEN")
             assertEquals(GbaMem.u32(i, GbaMem.IWRAM, clockAt).toLong() and 0xFFFFFFFFL, clock.get(), "f$f gGameClock")
             val c = procAt(e, GAME_CTRL_SCRIPT)!!
-            val arr = sym["sProcArray"].address - GbaMem.EWRAM
-            val live = (0 until 64).filter { GbaMem.u32(e, 0, arr + it * PROC_SIZE) != 0 }
+            val arr = ProcArrayDump.ARRAY_ADDRESS - GbaMem.EWRAM
+            val live = ProcArrayDump.ofEwram(e).live
             assertEquals(live.size, engine.count(null), "f$f live procs (CountProcs)")
-            assertEquals(live.count { GbaMem.u32(e, 0, arr + it * PROC_SIZE) == PROC_SCRIPT }, engine.count(ui.script), "f$f intro procs")
+            assertEquals(live.count { it.script == PROC_SCRIPT }, engine.count(ui.script), "f$f intro procs")
             assertEquals((d - arr) / PROC_SIZE, engine.findAfter(ui.script, null)?.slot, "f$f Proc_FindAfter")
             assertEquals(null, engine.findAfter(ui.script, proc), "f$f no later intro proc")
             assertEquals(listOf((c - arr) / PROC_SIZE, (d - arr) / PROC_SIZE), listOf(gameCtrl.slot, engine.findAfterWithParent(null, gameCtrl)?.slot), "f$f proc slots")
@@ -163,7 +159,7 @@ class EarlyStartUiBootDifferentialTest {
         val OP_ANIM_STAND_IN = ProcScript("ProcScr_OpAnim (not ported)", listOf(ProcScripts.block(), ProcScripts.end()))
         const val PROC_SCRIPT = 0x08AA7680 // ProcScr_GameEarlyStartUI
         const val GAME_CTRL_SCRIPT = 0x085916D4 // gProcScr_GameControl
-        const val PROC_SIZE = 0x6C
+        const val PROC_SIZE = ProcArrayDump.PROC_SIZE
         const val A_FRAME = 181
         val LOGO_FRAMES = setOf(300, 360, 430, 470)
         const val A_BUTTON = 1

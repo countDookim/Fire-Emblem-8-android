@@ -41,11 +41,7 @@ class TitleScreenDifferentialTest {
     private val sym = RamSymbols.fromEnvironment()
     private val romFile = File(System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets", "baserom.gba")
 
-    private fun procAt(ew: ByteArray, script: Int = TITLE_SCRIPT): Int? {
-        val a = sym["sProcArray"]
-        return (0 until a.size / PROC_SIZE).map { a.address - GbaMem.EWRAM + it * PROC_SIZE }
-            .firstOrNull { u32(ew, it) == script }
-    }
+    private fun procAt(ew: ByteArray, script: Int = TITLE_SCRIPT): Int? = ProcArrayDump.ofEwram(ew).find(script)?.offset
 
     private fun shorts(ew: ByteArray, name: String, n: Int) =
         ShortArray(n) { u16(ew, sym[name].address - GbaMem.EWRAM + 2 * it).toShort() }
@@ -420,7 +416,6 @@ class TitleScreenDifferentialTest {
     }
 
     private companion object {
-        const val PROC_SIZE = 0x6C
         const val G_OAM = 0x03003140 // reference/iwram_symbols.tsv (not in ram_symbols.tsv)
         const val G_OAM_HI_PUT_IT = 0x03003744
         const val TITLE_SCRIPT = 0x08AA6A50

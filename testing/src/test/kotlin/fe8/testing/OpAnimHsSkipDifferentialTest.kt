@@ -22,14 +22,8 @@ class OpAnimHsSkipDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
     private val sym = RamSymbols.fromEnvironment()
 
-    private fun proc(ew: ByteArray): Int {
-        val a = sym["sProcArray"]
-        for (p in 0 until a.size / PROC_SIZE) {
-            val o = a.address - GbaMem.EWRAM + p * PROC_SIZE
-            if (u32(ew, o) == PROC_SCRIPT) return o
-        }
-        error("intro proc not found")
-    }
+    private fun proc(ew: ByteArray): Int =
+        checkNotNull(ProcArrayDump.ofEwram(ew).find(PROC_SCRIPT)) { "intro proc not found" }.offset
 
     private fun palette(ew: ByteArray) = ShortArray(512) { u16(ew, sym["gPaletteBuffer"].address - GbaMem.EWRAM + 2 * it).toShort() }
     private fun backup(ew: ByteArray) = ShortArray(512) { u16(ew, 2 * it).toShort() }
@@ -67,7 +61,6 @@ class OpAnimHsSkipDifferentialTest {
 
     private companion object {
         const val PROC_SCRIPT = 0x08AA7680 // ProcScr_GameEarlyStartUI
-        const val PROC_SIZE = 0x6C
 
         fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
         fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)

@@ -11,7 +11,6 @@ import gba.render.SoftwareRenderer
 import gba.render.TileSheets
 import gba.testkit.GbaMem
 import gba.testkit.MgbaColorMath
-import gba.testkit.RamSymbols
 import gba.testkit.ReferenceData
 import gbafe.extract.ScreenExtractor
 import gbafe.render.LcdControl
@@ -48,10 +47,9 @@ class IntroLogosScreenTest {
             File(dir, "$n.json").writeText(o.json)
         }
         val run = ref.run("boot_logos")
-        val sym = RamSymbols.fromEnvironment()
         for (dump in listOf("f00300", "f00360", "f00430", "f00470")) {
             val ew = run.region(dump, "ewram")
-            val procAt = (0 until 0x40).map { sym["sProcArray"].address - GbaMem.EWRAM + it * 0x6C }.first { u32(ew, it) == 0x08AA7680 }
+            val procAt = checkNotNull(ProcArrayDump.ofEwram(ew).find(0x08AA7680)).offset
             val index = (u32(ew, procAt + 4) - 0x08AA7680) / 8 - 1
             val timer = u32(ew, procAt + 0x30) - 1
             // Script command -> (screen, cur, max): 11/12/13 Nintendo fade-in / delay / fade-out, 17/18/19 the IS logo.

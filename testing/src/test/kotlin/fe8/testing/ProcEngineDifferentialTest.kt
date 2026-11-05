@@ -49,10 +49,7 @@ class ProcEngineDifferentialTest {
     private val sym = RamSymbols.fromEnvironment()
     private val romFile = File(System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets", "baserom.gba")
 
-    private fun procAt(ew: ByteArray, script: Int = PROC_SCRIPT): Int? {
-        val a = sym["sProcArray"]
-        return (0 until a.size / PROC_SIZE).map { a.address - GbaMem.EWRAM + it * PROC_SIZE }.firstOrNull { u32(ew, it) == script }
-    }
+    private fun procAt(ew: ByteArray, script: Int = PROC_SCRIPT): Int? = ProcArrayDump.ofEwram(ew).find(script)?.offset
 
     /** The game's sprite chain from layer head [layer]: (oam1, oam0, oam2, object address or 0) per entry. */
     private fun spriteChain(ew: ByteArray, layer: Int): List<List<Int>> {
@@ -549,7 +546,6 @@ class ProcEngineDifferentialTest {
         const val OP_ANIM_HBLANK1 = 0x080C7845 // OpAnimHBlank1 (Thumb)
         const val LAST = 3600
         const val OP_END = 2908
-        const val PROC_SIZE = 0x6C
 
         fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
         fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)

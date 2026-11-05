@@ -28,14 +28,11 @@ class OpAnimHsLogoDifferentialTest {
 
     private fun hits(rom: ByteArray): List<Hit> {
         val run = ref.run("ram_trace_boot")
-        val procArray = sym["sProcArray"]
         val out = ArrayList<Hit>()
         for (dump in run.dumps.keys) {
             val ew = run.region(dump, "ewram")
             val iw = run.region(dump, "iwram")
-            for (p in 0 until procArray.size / PROC_SIZE) {
-                val o = procArray.address - GbaMem.EWRAM + p * PROC_SIZE
-                if (u32(ew, o) != PROC_SCRIPT) continue
+            for (o in ProcArrayDump.ofEwram(ew).findAll(PROC_SCRIPT).map { it.offset }) {
                 // proc_scrCur points past the running PROC_REPEAT.
                 out += Hit(dump, (u32(ew, o + 4) - PROC_SCRIPT) / 8 - 1, o, ew, iw)
             }
@@ -148,7 +145,6 @@ class OpAnimHsLogoDifferentialTest {
     private companion object {
         const val ROM = 0x08000000
         const val PROC_SCRIPT = 0x08AA7680 // ProcScr_GameEarlyStartUI
-        const val PROC_SIZE = 0x6C
         const val N_IN = 11 // script command indices (see the script in src/opanim-healthsafetyscreen.c)
         const val N_OUT = 13
         const val IS_IN = 17

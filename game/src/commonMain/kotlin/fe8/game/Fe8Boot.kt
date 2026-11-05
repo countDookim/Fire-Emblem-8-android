@@ -19,6 +19,8 @@ import fe8.game.event.ScriptWords
 import fe8.game.flags.Fe8EventFlags
 import fe8.game.opanim.EarlyStartUi
 import fe8.game.opanim.OpAnim
+import fe8.game.save.BmSaveLib
+import fe8.game.save.NewGameRam
 import fe8.game.title.TitleScreen
 import gba.audio.M4aDriver
 import gba.audio.M4aSound
@@ -39,6 +41,7 @@ import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.render.HardwareSceneLoader
+import gba.core.sram.CartSram
 
 /**
  * The boot sequence wired for a device: `StartGame` -> game control -> health & safety screen ->
@@ -96,6 +99,24 @@ public class Fe8Boot(
     /** The game control proc's owner. */
     public val control: GameControl =
         GameControl(engine, keys, { ui.script }, { opAnimRef.script }, { titleRef }, m4a)
+
+    /** The cartridge save RAM of this boot (empty until a save is written). */
+    public val sram: CartSram = CartSram()
+
+    /** The save routines on [sram]. */
+    public val saveLib: BmSaveLib by lazy { BmSaveLib(sram).also { it.sramInit() } }
+
+    /**
+     * Stand-in for `StartSaveMenu` (the save menu is not ported): the dev "New Game" choice. Writes
+     * a fresh game to slot 0 ([BmSaveLib.writeNewGameSave]) and leaves `nextAction` at event
+     * return, so the game control proc continues to chapter 0.
+     */
+    private fun newGameSaveMenu() {
+        saveLib.writeNewGameSave(
+            NewGameRam(control.playSt, flags, ByteArray(200)), 0, false, 0, -1,
+        )
+        control.setNextGameActionId(GameControl.GAME_ACTION_EVENT_RETURN)
+    }
 
     /** The units the battle map start path touches (raw-unit stand-in). */
     public val units: UnitTable by lazy { UnitTable(rom) }
@@ -209,6 +230,7 @@ public class Fe8Boot(
     init {
         opAnim.afterStep = loop::afterStep
         control.hooks.startBattleMap = ProcFunc { battleMap.startBattleMap(it) }
+        control.hooks.startSaveMenu = ProcFunc { newGameSaveMenu() }
         control.sound.setDefaultMaxNumChannels() // AgbMain, after m4aSoundInit
         control.startGame()
     }

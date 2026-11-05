@@ -6,10 +6,10 @@ _Updated 2026-11-05 (scheduled run 10:5x). Owner decisions: docs/PROJECT_BRIEF.m
 _(nothing blocked)_
 
 ## In progress
-M5-41b: owner PC, until ~15:30Z (ROM-repo runs from owner saves: Ch2 suspend, Ch6 fog game save)
+_(none; claim tasks here before starting them, CLAUDE.md rule 12)_
 
 ## Next task: M5-53 (EventVmDifferentialTest over ram_trace_newgame_bm), then M5-54
-Done 2026-11-05: M5-09..24, 26, 27, 28..36, 38, 41, 48..52; M5-49/50 (`EventEngine`: create/createBattle/callEvent/
+Done 2026-11-05: M5-09..24, 26, 27, 28..36, 38, 41, 41b, 48..52; M5-49/50 (`EventEngine`: create/createBattle/callEvent/
 enqueue/callNextQueuedEvent/exists/delete/onEnd, externals behind `EventEngineHooks`), M5-51 (`EventScrCore`: 11
 eventscr.c handlers; assumptions in KDoc: div/mod by 0 = 0, shifts >= 32 = 0, goto scan limit -> EVC_ERROR, slot
 index > 13 aliases gEventSlotQueue). No `@VerifiesPort` yet. M5-53 started: `EventVmDifferentialTest` (prologue per-frame oracle, replays
@@ -24,7 +24,7 @@ EventEngine_CanStartSkip/StartSkip are still partial (an alternative full port i
 backup/event-engine-dup on the owner PC, never pushed).
 M5-32: only WriteNewGameSave/ClearPidChStatsSaveData/InitPlayConfig verified; zero-only
 copies (WritePermanentFlags, Write/SetBonusContentClaimFlags) and WriteSupplyItems/ClearWorldMapStuff stay transcribed.
-Open: M5-25 partial, M5-42 (map scrolling; needs M5-41b), M5-41b (needs a map larger than the screen).
+Open: M5-25 partial, M5-42 (map scrolling; unblocked by M5-41b).
 Test-quality review 2026-11-05 (owner asked), fixed: SRAM block-info/erase/invalidate/suspend-id/sound-room,
 SaveDraw (sentinel, no port-derived undo), BmMap (fog fill 1, pool handles), UnitTable (oracle from dumps + ROM
 gUnitLookup) now prove their tags on non-trivial dumps (each checked by breaking the port). Untagged for lack of a
@@ -58,7 +58,8 @@ f1130..1132 + 1 byte (0x7224) f1214. Title START now enters GameControl's save-m
 
 ## Open leads (low priority unless the owner reports a problem)
 - m4a tests skip the M5 runs (`M4aRuns.kt`): our sequencer diverges on `ram_trace_newgame` r00975 channel 12
-  (new-game menu songs). Investigate before claiming m4a coverage there.
+  (new-game menu songs). Investigate before claiming m4a coverage there. The save-based runs diverge too
+  (`ram_trace_ch2_scroll` r01469 track 0 status 0xC0 vs our 0x80; r01104 player 2 channel), also skipped.
 - Prologue map fits the screen: M5-07 holds move the cursor (14,9) but never scroll BG3/camera; a scroll
   trace needs a bigger map (later chapter).
 - Slow app open (owner 2026-10-30): likely fixed (assets counted on `Dispatchers.IO`), not confirmed. If it is

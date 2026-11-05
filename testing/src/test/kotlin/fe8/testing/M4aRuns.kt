@@ -8,5 +8,5 @@ package fe8.testing
 internal val M4A_UNCOVERED_RUNS: Set<String> = setOf(
     "sram_boot", "sram_preload", "ram_trace_newgame", "ram_trace_newgame_bm",
     "ram_trace_prologue", "ram_trace_first_phase", "ram_trace_ch2_scroll", "ram_trace_ch6_fog",
-    "sram_chapter2_boot", "sram_chapter6_boot",
+    "sram_chapter2_boot", "sram_chapter6_boot", "ram_trace_ch6_phase_start",
 )

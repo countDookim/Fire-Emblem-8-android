@@ -6,7 +6,7 @@ _Updated 2026-11-05 (scheduled run 10:5x). Owner decisions: docs/PROJECT_BRIEF.m
 _(nothing blocked)_
 
 ## In progress
-- M5-37: owner PC, until ~13:01Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 12)_
 
 ## Next task: M5-53 (EventVmDifferentialTest over ram_trace_newgame_bm), then M5-54
 Done 2026-11-05: M5-09..24, 26, 27, 28..36, 38, 41, 48..52; M5-49/50 (`EventEngine`: create/createBattle/callEvent/
@@ -50,7 +50,7 @@ f1130..1132 + 1 byte (0x7224) f1214. Title START now enters GameControl's save-m
   `CgbSound` verified; `PsgSynth` (not a port, GBATEK/mGBA behaviour) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad (2026-10-30); GPU backend, audio
   (2026-11-01); ROM import ~4 s, boots from it, PSG sound correct by ear (2026-11-04).
-- Verified ports: 306 / 8352 (`tools/progress.py`, 2026-11-05).
+- Verified ports: 310 / 8352 (`tools/progress.py`, 2026-11-05).
 - Layout: game-neutral `:gba:*` (ADR 0012), FE-shared `gbafe.*` in `:engine:*`, FE8-only `fe8.*` in `:game`
   and `:app`. KMP (ADR 0013): all of them except `:gba:testkit`, `:testing`, `:tools:extract` (plain JVM);
   android target only in CI (`com.android.kotlin.multiplatform.library`; CI log shows `compileAndroidMain`).

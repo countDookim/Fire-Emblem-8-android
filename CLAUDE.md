@@ -39,3 +39,7 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
     (`SendMessage`) rather than coding it yourself; (d) commit/push/HANDOFF yourself. Code yourself only for a
     trivial (< ~10 line) fix, when a brief failed twice, or when no subagent tool is available. Independent
     briefs may run in parallel (separate files).
+12. **Claim tasks before starting (owner, 2026-11-05).** Both run types pick tasks from HANDOFF, so before writing code
+    for a task: `git pull --rebase`, add a line under HANDOFF `## In progress` (`M5-xx: owner PC|scheduled, until
+    ~HH:MMZ`), commit with `[skip ci]` and push. Skip tasks with an unexpired claim; an expired claim is free. Remove
+    your line when the task is done or you stop (unfinished work goes to `wip/<task-id>`; say so in the line).

@@ -16,9 +16,7 @@ verified: why)". Seed from dump k, step, compare with dump k+1; use sentinels in
 
 | ID | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|
-| M5-54 | Strengthen the M5-53 oracle (it already replays the whole `ram_trace_prologue` watch range): also compare the call queue (gEventCallQueue) and the active queue per pair; tag CallEvent, EnqueueEventCall, CallNextQueuedEvent, EventEngine_OnEnd where their effects are compared (OnEnd: engine end ~step 19311) | queue state equal on every compared pair; new tags break-checked; remaining uncompared pairs are only 0x10/0x19 (M5-55) | M5-53 | todo |
-| M5-55 | Port Event04_CheckRandom, Event0B_EnqueueCall (+ EnqueueTutEvent), Event10_ModifyEvBit (16 oracle pairs end on it), Event11_SetIgnoredKeys, Event19_Checks (173 pairs end on it); stubs live in EventVmDifferentialTest's STUBS table | differential passes with flag bits, tutorial fields, key-ignore mask compared; `@VerifiesPort` for executed handlers and Set/Clear/Check*Flag where observed (incl. 0x84 transitions; Reset* only where a non-zero state is cleared) | M5-54, M5-19, M5-29 | todo |
-| M5-56 | Infra: wire FlagRegistry/VarRegistry: flag handlers route ids ≥ MOD_BASE to the registry; assembler resolves mod flag/var names; registry state saved in a container `mod:<id>` section | test: a mod flag set by a script survives a container save/load; vanilla flag bytes unchanged | M5-20, M5-22, M5-55 | todo |
+| M5-56 | Infra: wire FlagRegistry/VarRegistry (EventScrCore's flag handlers, ScriptAssembler, gbafe.save container): flag handlers route ids ≥ MOD_BASE to the registry; assembler resolves mod flag/var names; registry state saved in a container `mod:<id>` section | test: a mod flag set by a script survives a container save/load; vanilla flag bytes unchanged | M5-20, M5-22, M5-55 | todo |
 | M5-57 | Infra: mod-script end-to-end test: a `.fe8s` file loaded at runtime, assembled into the synthetic range, run on the VM, calling a vanilla script and returning | jvmTest passes; 0 B per frame while running | M5-56 | todo |
 | M5-58 | Wire `:game` (Fe8Boot already wires StartBattleMap → BMapMain; still to wire: `BMapMain.hooks.playerPhase` = `PlayerPhase.script`, `hooks.callEvent` → `EventEngine.callEvent`): after the title, EXEC_SAVEMENU uses a dev New-Game stand-in (WriteNewGameSave(0, …) on CartSram, nextAction EVENT_RETURN); monologue/world map/chapter intro/phase intro stand-ins end at once; CallBeginningEvents runs the VM in skip mode with release no-op stubs; units from UnitTable; Fe8Game.present renders battle-map BGs | headless JVM run from boot + NEWGAME inputs reaches PlayerPhase_MainIdle on chapter 0 | M5-32, M5-47, M5-55 | todo |
 | M5-59 | Tests + manual test for M5-58: BG3 vs the reference (camera seeded from reference, or map tiles only); AllocationTest 600 idle frames with cursor input; MANUAL_TEST "New Game shows the Prologue map; D-pad scrolls it" | BG3 matches; measureMin == 0 B/frame | M5-58 | todo |
@@ -31,14 +29,17 @@ verified: why)". Seed from dump k, step, compare with dump k+1; use sentinels in
   (M2-01..21). **M3** rendering, input, audio, override layer (M3-01..16; GPU backend, AudioTrack, m4a + mixer + PSG
   verified, owner device/listen tests). **M4** boot to title verified vs mGBA (M4-01, 03..11; ROM import, `:gba:*`,
   KMP, op anim, title, `:app` boot).
-- **M5** done: 01-53, 39b, 41b, 41c. Unverified for lack of data: StartBattleMap (deploy loop, fog/skirmish
+- **M5** done: 01-55, 39b, 41b, 41c. Unverified for lack of data: StartBattleMap (deploy loop, fog/skirmish
   branches: needs a per-frame trace of a real chapter start with units and fog), LoadAndVerfySuspendSave (extra-map
   branch), EraseInvalidSaveData (0x40603 conversion, TODO),
   StoreAdjustedCameraPositions, sub_8015D84, CameraMove_8015EDC, IsCameraNotWatchingPosition (need a scripted
   camera / unit menu after scrolling), GetEnemyStartCursorPosition (needs an enemy-phase reset),
   RenderBmMapColumn's y ring wrap, RefreshEntityBmMaps (trap passes are hooks), SetEventId_0x84/UnsetEventId_0x84/UndeployEveryone
   (no trace separates them), PlayerPhase_MainIdle actions (stand-ins), HandleMoveCameraWithMapCursor's tile-finish branch (needs a direction
-  reversal mid-scroll), Event03 sub 1 and Event06 operators (M5-55 traces may cover them), Event00/0F (not reached), DisplayMovementViewTile (not
+  reversal mid-scroll), Event03 sub 1, Event06 operators, Event10 (args 2-4), Event19 (10 of 11 subs),
+  Event04/0B/11/00/0F (not in the prologue), CallEvent/EnqueueEventCall/CallNextQueuedEvent/EventEngine_OnEnd (call
+  queue empty in the prologue), Clear*/Check*/Reset* flags (no non-zero state cleared; needs a later chapter),
+  172 Event19 pairs blocked on a Popup/GotItem child (no blocked-by-child model yet), DisplayMovementViewTile (not
   ported). Left transcribed for lack of ground truth: InvalidateGameSave (needs
   ReadSuspendSavePlaySt), WritePermanentFlags, Write/SetBonusContentClaimFlags, WriteSupplyItems, ClearWorldMapStuff
   (zero-only copies), RenderBmMapOnBg2 (never called), GetBattleMapKind; slots 3/4 block-info magic/checksum in

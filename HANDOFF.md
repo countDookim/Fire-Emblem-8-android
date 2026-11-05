@@ -1,22 +1,22 @@
 # HANDOFF
 
-_Updated 2026-11-05 (owner PC: M5-25, 39b, 41c, 42-47, 53). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
+_Updated 2026-11-05 (owner PC: M5-25, 39b, 41c, 42-47, 53-55). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
 docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
 ## In progress
-- M5-54, M5-55: owner PC, until ~20:30Z
+- M5-56, M5-58: owner PC, until ~21:00Z
 
-## Next task: M5-54, then M5-55
-M5-53 done (owner PC): `EventVmDifferentialTest` runs the real `EventEngine.onUpdate`/`create` per pair over the whole
-prologue trace: 12615 compared pairs, 0 mismatches; unported commands are test-only stubs (STUBS table, each with its
-C reasoning) that complete only when the trace pc moves past. Still ending pairs: 0x10 ×16, 0x19 ×173 (M5-55).
-Tagged: OnUpdate, Create, Event01/02/05/07/08/09/0A/0C/0E. Withheld: Event03 (sub 1 never runs), Event06 (operator
-breaks survive). The call queue is not compared yet (CallEvent/EnqueueEventCall/CallNextQueuedEvent/OnEnd untagged):
-M5-54 adds it. EventEngine_CanStartSkip/StartSkip are partial (an unpushed alternative port is on owner-PC branch
-`backup/event-engine-dup`). Core loop (M5-42..47) is done; M5-58 wiring waits for M5-55.
+## Next task: M5-56/57 (mod flags + mod script), M5-58/59 (wire New Game → Prologue map)
+M5-53..55 done (owner PC): `EventVmDifferentialTest` runs the real `EventEngine` over the whole prologue trace (12618
+pairs, 0 mismatches; RNG, tutorial fields, call/active queues and flags compared). Unported commands are test-only
+stubs (STUBS table). 172 Event19 pairs are skipped: the game engine idles while a Popup/GotItem child proc lives (no
+blocked-by-child model yet). Withheld tags and why: docs/TASKS.md Done/M5. EventEngine_CanStartSkip/StartSkip are
+partial (an unpushed alternative port is on owner-PC branch `backup/event-engine-dup`). `EventScrCore` takes the
+game's RngService/PlaySt/KeyStatus (no defaults). Wiring still open (M5-58): `BMapMain.hooks.playerPhase`,
+`hooks.callEvent` → EventEngine.
 
 ## State
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
@@ -24,7 +24,7 @@ M5-54 adds it. EventEngine_CanStartSkip/StartSkip are partial (an unpushed alter
   `CgbSound` verified; `PsgSynth` (GBATEK/mGBA behaviour, not a port) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad, GPU backend, audio, ROM import (~4 s) + boot
   from it. Pending: smoke test of the first APK built on the KMP android variants (MANUAL_TEST "Newly testable").
-- Verified ports: 348 / 8352 (`tools/progress.py`, 2026-11-05). Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
+- Verified ports: 350 / 8352 (`tools/progress.py`, 2026-11-05). Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
 - Layout: `:gba:*` game-neutral (ADR 0012), `gbafe.*` in `:engine:*`, `fe8.*` in `:game`/`:app`; KMP jvm+android
   (ADR 0013) except `:gba:testkit`, `:testing`, `:tools:extract`.
 

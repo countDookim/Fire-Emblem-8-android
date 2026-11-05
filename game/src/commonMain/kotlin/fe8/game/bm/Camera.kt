@@ -92,6 +92,9 @@ public object Camera {
      * Ported from src/bm.c: StoreAdjustedCameraPositions (the `*xOut` half; the C function
      * returns both through pointers, split here to avoid allocating).
      *
+     * Not verified: needs a run with a scripted camera move (sub_8015D84 / SetSomeRealCamPos,
+     * e.g. an event camera command); no reference run reaches it.
+     *
      * @param xIn watched map column (tiles).
      * @param mapSizeX `gBmMapSize.x` (s16, tiles).
      * @return the camera column in tiles.
@@ -105,7 +108,7 @@ public object Camera {
 
     /**
      * Ported from src/bm.c: StoreAdjustedCameraPositions (the `*yOut` half, see
-     * [storeAdjustedCameraPositionX]).
+     * [storeAdjustedCameraPositionX]). Not verified, same reason.
      *
      * @param yIn watched map row (tiles).
      * @param mapSizeY `gBmMapSize.y` (s16, tiles).
@@ -137,6 +140,9 @@ public object Camera {
      * Ported from src/bm.c: IsCameraNotWatchingPosition
      *
      * True (C `1`) if the camera would have to move to show map position ([x], [y]).
+     *
+     * Not verified: callers are the player action menu (bmmenu.c) and item use (bmitemuse.c);
+     * a run that opens a unit's menu after the camera has scrolled would reach it.
      */
     public fun isCameraNotWatchingPosition(bm: BmSt, x: Int, y: Int): Boolean {
         val xTarget = getCameraAdjustedX(bm, x * 16)

@@ -18,8 +18,8 @@ import org.junit.jupiter.api.Test
  * `SetCursorMapPosition` has an isolable effect there: one frame snaps the cursor, its target and
  * its display position at once (the cursor otherwise glides 4 px per frame). The camera functions
  * cannot be isolated in this trace (their result is 0 for every cursor position the trace
- * visits), so they are checked on the trace only as a consistency check and on tables over all
- * map sizes, and they are deliberately not tagged with `@VerifiesPort`.
+ * visits), so here they are checked only as a consistency check and on tables over all map
+ * sizes; the verifying tests are in [CameraScrollDifferentialTest].
  */
 class CameraDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()

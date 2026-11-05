@@ -60,6 +60,51 @@ public object Fe8SramLayout {
     /** End of the blocks above (`SRAM_OFFSET_END`). */
     public const val END_OFFSET: Int = ARENA_OFFSET + ARENA_SIZE
 
+    /** Offset of the ranking data (`gSram->gameRankSave`, `struct GameRankSaveDataPacks`). */
+    public const val RANK_OFFSET: Int = END_OFFSET
+
+    /** Size of the ranking data; its `u16 magic0` checksum is at [RANK_CHECKSUM]. */
+    public const val RANK_SIZE: Int = 0x94
+
+    /** Offset inside the ranking data of the `u16` checksum of its first [RANK_SUM_SIZE] bytes. */
+    public const val RANK_CHECKSUM: Int = 0x90
+
+    /** Bytes of the ranking data covered by its checksum. */
+    public const val RANK_SUM_SIZE: Int = 0x90
+
+    /** Offset of the sound room data (`gSram->soundRoomSave`). */
+    public const val SOUND_ROOM_OFFSET: Int = RANK_OFFSET + RANK_SIZE
+
+    /** Size of the sound room data (`struct SoundRoomSaveData`). */
+    public const val SOUND_ROOM_SIZE: Int = 0x24
+
+    /** Offset inside the sound room data of its `u16 magic1` checksum (covers the bytes before). */
+    public const val SOUND_ROOM_CHECKSUM: Int = 0x20
+
+    /** Offset of the link arena data (`gSram->unkstruct2`, `struct bmsave_unkstruct2`). */
+    public const val LINK_ARENA2_OFFSET: Int = SOUND_ROOM_OFFSET + SOUND_ROOM_SIZE
+
+    /** Size of the link arena data. */
+    public const val LINK_ARENA2_SIZE: Int = 0x14
+
+    /** Offset inside the link arena data of its `u16 magic1` checksum (covers the bytes before). */
+    public const val LINK_ARENA2_CHECKSUM: Int = 0x10
+
+    /** Offset of the bonus claim data (`gSram->bonusClaim`, `struct BonusClaimSaveData`). */
+    public const val BONUS_OFFSET: Int = LINK_ARENA2_OFFSET + LINK_ARENA2_SIZE
+
+    /** Size of the bonus claim data. */
+    public const val BONUS_SIZE: Int = 0x144
+
+    /** Offset inside the bonus claim data of the `u16 cksum16` over its first 0x140 bytes. */
+    public const val BONUS_CHECKSUM: Int = 0x140
+
+    /** Offset of the 4 bytes `SramInit` uses to probe the save RAM (`gSram->reserved`). */
+    public const val RESERVED_OFFSET: Int = BONUS_OFFSET + BONUS_SIZE
+
+    /** Size of the SRAM probe area. */
+    public const val RESERVED_SIZE: Int = 4
+
     /** Offset of the extra-map block (`SRAM_OFFSET_XMAP`). */
     public const val XMAP_OFFSET: Int = 0x7400
 

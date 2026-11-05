@@ -4,6 +4,7 @@ import fe8.game.event.EventConst.EVC_ADVANCE_CONTINUE
 import fe8.game.event.EventConst.EVC_ADVANCE_YIELD
 import fe8.game.event.EventConst.EVC_END
 import fe8.game.event.EventConst.EVC_STOP_YIELD
+import fe8.game.event.EventConst.EV_STATE_SKIPPING
 import fe8.game.event.EventEngineProc
 import fe8.game.event.EventHandler
 import fe8.game.event.EventScrCore
@@ -71,6 +72,8 @@ class EventVmDifferentialTest {
         var skippedUnported = 0
         var skippedStuck = 0
         var compared = 0
+        var stubbed = 0
+        val unportedHist = TreeMap<Int, Int>()
         var partial = 0
         val steps = trace!!.steps
         var prev: EventSnapshot? = null
@@ -106,6 +109,18 @@ class EventVmDifferentialTest {
                 val code = mem.u16(proc.pEventCurrent) ushr 8
                 val handler = table[code]
                 if (handler == null) {
+                    val eb = b.engine
+                    val skipping = proc.evStateBits and EV_STATE_SKIPPING != 0
+                    val stubbable = code in STUB_YIELD && eb != null &&
+                        eb.pEventCurrent == proc.pEventCurrent +
+                        ((mem.u16(proc.pEventCurrent) ushr 4) and 0xF) * 2 &&
+                        !(skipping && code != 0x30)
+                    if (stubbable) {
+                        proc.pEventCurrent += ((mem.u16(proc.pEventCurrent) ushr 4) and 0xF) * 2
+                        stubbed++
+                        break
+                    }
+                    unportedHist.merge(code, 1, Int::plus)
                     unported = true
                     break
                 }
@@ -160,13 +175,14 @@ class EventVmDifferentialTest {
             }
         }
         println(
-            "EventVm pairs=$pairs compared=$compared partial=$partial skippedNoEngine=$skippedNoEngine " +
+            "EventVm pairs=$pairs compared=$compared stubbed=$stubbed partial=$partial skippedNoEngine=$skippedNoEngine " +
                 "skippedUnported=$skippedUnported skippedStuck=$skippedStuck",
         )
         for ((code, s) in stats) {
             println("EventVm code %02X executed=%d mismatches=%d".format(code, s.executed, s.mismatches))
             s.details.take(5).forEach { println("EventVm   mismatch $it") }
         }
+        println("EventVm unported stop codes: ${unportedHist.map { "%02X=%d".format(it.key, it.value) }}")
         val never = table.keys.filter { (stats[it]?.executed ?: 0) == 0 }.sorted()
         println("EventVm ported codes never executed: ${never.map { "%02X".format(it) }}")
         val bad = stats.filter { it.value.mismatches > 0 }.keys
@@ -233,6 +249,21 @@ class EventVmDifferentialTest {
     }
 
     private companion object {
+        /**
+         * Unported commands stubbed as `EVC_ADVANCE_YIELD` (advance by the length nibble, end the
+         * frame), only when B's pEventCurrent is exactly the next command. Allowlist, none of them writes
+         * slots, slot queue, counter, active queue, evStallTimer, execType or pEventIdk, and the
+         * evStateBits are only read:
+         * - 0x12 Event12_StartBGM: starts a song, returns ADVANCE_YIELD (CONTINUE when skipping,
+         *   so not stubbed while the skipping bit is set).
+         * - 0x15 Event15_BgmVolume: starts a volume proc, ADVANCE_YIELD (CONTINUE when skipping,
+         *   likewise not stubbed while skipping).
+         * (0x1A Event1A_TEXTSTART is NOT allowed: sub_800E640 sets EV_STATE_GFXLOCKED, seen as
+         * evStateBits 0x1102 vs 0x102 in the trace.)
+         * - 0x30 Event30_ENUN: refreshes maps and sprites, ADVANCE_YIELD (STOP_YIELD while a MU
+         *   moves, which leaves pEventCurrent on the command and is excluded by the B check).
+         */
+        val STUB_YIELD = setOf(0x12, 0x15, 0x30)
         const val MAX_COMMANDS = 5000
     }
 }

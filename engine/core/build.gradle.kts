@@ -9,5 +9,8 @@ kotlin {
         commonMain.dependencies {
             api(project(":gba:core"))
         }
+        jvmTest.dependencies {
+            implementation(project(":gba:testkit"))
+        }
     }
 }

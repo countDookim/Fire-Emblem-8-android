@@ -4,4 +4,10 @@ plugins {
 
 kotlin {
     jvm()
+
+    sourceSets {
+        jvmTest.dependencies {
+            implementation(project(":gba:testkit"))
+        }
+    }
 }

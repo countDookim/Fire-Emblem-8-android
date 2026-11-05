@@ -78,7 +78,7 @@ class ProcEngineDifferentialTest {
     private fun lcdDispcnt(iw: ByteArray) = LcdControl().apply { readFrom(iw, sym["gLCDControlBuffer"].address - GbaMem.IWRAM) }.dispcnt
 
     @Test
-    @VerifiesPort("Proc_Start", "Proc_Run", "Proc_Break", "Proc_Goto", "Proc_End", "Proc_Find", "EnableKeyComboResetEN", "CheckCanKeyComboReset", "IncrementGameClock", "GetGameClock", "GameControl_EnableSoundEffects", "Proc_StartBlocking",
+    @VerifiesPort("Proc_Start", "Proc_Run", "Proc_Break", "Proc_Goto", "Proc_End", "Proc_Find", "EnableKeyComboResetEN", "CheckCanKeyComboReset", "IncrementGameClock", "GetGameClock", "Proc_StartBlocking",
         "SetNextGameActionId", "CopyToPalOpAnim",
         "OpAnimBldAlphaUpdateBgPalette", "OpAnimBldAlphaExists", "OpAnimBldAlphaDelay", "OpAnimBldAlphaMain",
         "OpAnimUpdateScreen1", "sub_80C6F70", "sub_80C69B0", "NewProcOpAnimFadeIn", "OpAnimAllBlack", "OpAnimFadeInMain", "sub_80C7050",
@@ -100,7 +100,7 @@ class ProcEngineDifferentialTest {
         "sub_80CB0A0", "sub_80C9330", "sub_80CB20C", "sub_80C940C", "sub_80CB320",
         "sub_80C955C", "sub_80CB594", "sub_80C9638", "sub_80CB6A0", "sub_80C9750", "sub_80CB878", "sub_80C98A0",
         "sub_80CBA64", "sub_80C99B8", "sub_80CBC40", "sub_80C9A94", "sub_80C9AFC",
-        "sub_80CBD7C", "EndAllProcChildren")
+        "sub_80CBD7C", "OpAnimInit", "SetupOpAnimWorldMapfx")
     fun `intro proc runs frame by frame like the game`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()

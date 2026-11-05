@@ -18,8 +18,11 @@ SaveDraw (sentinel, no port-derived undo), BmMap (fog fill 1, pool handles), Uni
 gUnitLookup) now prove their tags on non-trivial dumps (each checked by breaking the port). Untagged for lack of a
 trace (KDoc "Transcribed ... (not verified: why)"): SaveBonusContentData, SaveRankings, WriteLinkArenaStruct2,
 VerifySramFast_Core, GameControl_SwitchPostSaveMenu, GameCtrl_Check{NewGame,GameComplete}AndBranch,
-GetPhaseAbleUnitCount (exclusion branches unexercised). Not yet audited the same way: m4a, Title, OpAnim, EarlyStart,
-ProcEngine, Fe8Boot, KeyStatus, Camera differential tests (long tag lists per test).
+GetPhaseAbleUnitCount (exclusion branches unexercised). Second pass (all remaining tagged tests): also untagged
+ply_keysh, GameControl_EnableSoundEffects, EndAllProcChildren, StartOrChangeBgm, Title_IDLE, Title_EndAllProcChildren,
+DrawTitleSprites_Init, SetSecondaryHBlankHandler; LcdControl/Fe8BootSound/M4aSequencer/SaveChecksums strengthened;
+missing-dump `assumeTrue`s are assertions now. Residual risk: ~100 ProcEngine/OpAnim tags and M4aNote's list are
+kept on per-frame compares without one-by-one break tests; M4aVolume's volX compare is circular (flags/volMR/ML real).
 Unresolved (M5-32): slots 3/4 block-info checksum 1F1F1F1F in the dump vs our WriteSaveBlockInfo for invalid kinds.
 CI was red since ba4377e (stale extraction manifest; regenerated 2026-11-05).
 Pinned frames (ROM repo `harness/gen_scripts.py`, NEWGAME comment): InitChapterMap f9314..9319 (ch 0), event's
@@ -33,7 +36,7 @@ f1130..1132 + 1 byte (0x7224) f1214. Title START now enters GameControl's save-m
   `CgbSound` verified; `PsgSynth` (not a port, GBATEK/mGBA behaviour) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad (2026-10-30); GPU backend, audio
   (2026-11-01); ROM import ~4 s, boots from it, PSG sound correct by ear (2026-11-04).
-- Verified ports: 315 / 8352 (`tools/progress.py`, 2026-11-05).
+- Verified ports: 308 / 8352 (`tools/progress.py`, 2026-11-05).
 - Layout: game-neutral `:gba:*` (ADR 0012), FE-shared `gbafe.*` in `:engine:*`, FE8-only `fe8.*` in `:game`
   and `:app`. KMP (ADR 0013): all of them except `:gba:testkit`, `:testing`, `:tools:extract` (plain JVM);
   android target only in CI (`com.android.kotlin.multiplatform.library`; CI log shows `compileAndroidMain`).

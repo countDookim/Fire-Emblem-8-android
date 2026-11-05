@@ -6,7 +6,6 @@ import gba.testkit.ReferenceData
 import gbafe.save.SaveChecksums
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
@@ -35,13 +34,11 @@ class SaveChecksumsReferenceTest {
     fun `checksum16 matches the stored global save info checksum`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         val run = ref.run("sram_boot")
-        assumeTrue(run.hasSram, "sram_boot has no SRAM dumps")
+        assertTrue(run.hasSram, "sram_boot has no SRAM dumps")
         val names = run.dumps.keys.filter { File(ref.root, "sram_boot/$it.sram.bin").isFile }
         val first = names.indexOfFirst { hasMarker(run.sram(it)) }
-        assumeTrue(first >= 0, "no initialised SRAM header in sram_boot")
-        // Before initialisation the SRAM is erased (0xFF): the checksum of that is not 0xFFFF.
-        val erased = SaveChecksums.checksum16(run.sram(names[0]), 0, L.HEADER_CHECKSUM_SIZE)
-        assertNotEquals(0xFFFF, erased)
+        assertTrue(first >= 0, "no initialised SRAM header in sram_boot")
+        var checked = 0
         for (name in names.drop(first)) {
             val sram = run.sram(name)
             assertEquals(L.SRAM_SIZE, sram.size)
@@ -52,7 +49,9 @@ class SaveChecksumsReferenceTest {
                 SaveChecksums.checksum16(sram, L.HEADER_OFFSET, L.HEADER_CHECKSUM_SIZE),
                 "header checksum at $name",
             )
+            checked++
         }
+        assertTrue(checked >= 2, "only $checked initialised SRAM headers")
     }
 
     @Test
@@ -60,7 +59,7 @@ class SaveChecksumsReferenceTest {
     fun `checksum32 matches the game block info after new game`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         val run = ref.run("ram_trace_newgame")
-        assumeTrue(run.hasSram, "ram_trace_newgame has no SRAM dumps")
+        assertTrue(run.hasSram, "ram_trace_newgame has no SRAM dumps")
         val last = run.dumps.keys.last {
             File(ref.root, "ram_trace_newgame/$it.sram.bin").isFile
         }
@@ -72,6 +71,7 @@ class SaveChecksumsReferenceTest {
         assertEquals(L.GAME0_OFFSET, u16(sram, info + L.INFO_OFFSET))
         assertEquals(L.GAME_SIZE, u16(sram, info + L.INFO_SIZE))
         val stored = u32(sram, info + L.INFO_CHECKSUM32)
+        assertTrue(stored != 0)
         assertEquals(stored, SaveChecksums.checksum32(sram, L.GAME0_OFFSET, L.GAME_SIZE))
         assertEquals(stored, SaveChecksums.computeChecksum32(sram, L.GAME0_OFFSET, L.GAME_SIZE))
     }
@@ -81,7 +81,7 @@ class SaveChecksumsReferenceTest {
     fun `checksum32 matches the suspend block info in first phase`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         val run = ref.run("ram_trace_first_phase")
-        assumeTrue(run.hasSram, "ram_trace_first_phase has no SRAM dumps")
+        assertTrue(run.hasSram, "ram_trace_first_phase has no SRAM dumps")
         val last = run.dumps.keys.last {
             File(ref.root, "ram_trace_first_phase/$it.sram.bin").isFile
         }

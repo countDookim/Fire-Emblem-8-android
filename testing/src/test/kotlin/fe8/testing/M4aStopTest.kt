@@ -31,7 +31,8 @@ class M4aStopTest {
         val dir = File(ref.root, "ram_trace_menu_bgm")
         val before = File(dir, "r01300.iwram.bin")
         val after = File(dir, "r01301.iwram.bin")
-        assumeTrue(ref.available && romFile.isFile && after.isFile, "reference data not present")
+        assumeTrue(ref.available && romFile.isFile, "reference data not present")
+        assertTrue(before.isFile && after.isFile, "ram_trace_menu_bgm f1300/f1301 missing")
         val rom = romFile.readBytes()
         val bus = M4aBus { x -> rom[x - 0x08000000].toInt() and 0xFF }
         val (players, info) = M4aRam.sound(before.readBytes())

@@ -35,8 +35,8 @@ class KeyStatusDifferentialTest {
     @Test
     @VerifiesPort("_UpdateKeyStatus", "UpdateKeyStatus")
     fun `per-frame key status matches mGBA on the title screen`() {
-        assumeTrue(ref.available && java.io.File(ref.root, "key_status_title/manifest.txt").isFile,
-            "mGBA reference run key_status_title not present (run tools/setup.sh)")
+        assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
+        assertTrue(java.io.File(ref.root, "key_status_title/manifest.txt").isFile, "reference run key_status_title")
         val run = ref.run("key_status_title")
         val dumps = run.dumps.entries.toList()
         val ks = KeyStatus()

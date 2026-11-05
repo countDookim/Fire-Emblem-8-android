@@ -240,7 +240,8 @@ public class GameControl(
     /**
      * Clears the `disableBgm` and `disableSoundEffects` option bits.
      *
-     * Ported from src/gamecontrol.c: GameControl_EnableSoundEffects
+     * Transcribed from src/gamecontrol.c: GameControl_EnableSoundEffects (not verified: the traced
+     * option bits are already clear when it runs)
      */
     public fun enableSoundEffects() {
         playStConfig = playStConfig and (CONFIG_DISABLE_BGM or CONFIG_DISABLE_SOUND_EFFECTS).inv()

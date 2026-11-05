@@ -99,7 +99,8 @@ public class SoundWrapper(
      * delayed starts, then either fades the current song out at [speed] and starts [song]
      * `speed * 16` frames later, or starts it at once.
      *
-     * Ported from src/soundwrapper.c: StartOrChangeBgm
+     * Transcribed from src/soundwrapper.c: StartOrChangeBgm (not verified: the traces never run its
+     * already-playing / BGM-disabled returns or end a pending delayed start)
      */
     public fun startOrChangeBgm(song: Int, speed: Int, player: Int) {
         if (isSongPlaying && songId == song) return
@@ -130,7 +131,7 @@ public class SoundWrapper(
      * `StartSongDelayed`: unless BGM is disabled, starts a tree-3 proc that plays [song] after
      * [delay] more frames.
      *
-     * Ported from src/soundwrapper.c: StartSongDelayed
+     * Ported from src/soundwrapper.c: StartSongDelayed (the BGM-disabled return is not traced)
      */
     public fun startSongDelayed(song: Int, delay: Int, player: Int) {
         if (config() and GameControl.CONFIG_DISABLE_BGM != 0) return

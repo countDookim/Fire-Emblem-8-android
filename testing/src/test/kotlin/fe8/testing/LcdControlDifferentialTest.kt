@@ -19,6 +19,9 @@ import org.junit.jupiter.api.Test
  * flush in the same frame the two can legitimately differ. The two such cases in the data are recognised
  * explicitly (power-on frames before the first flush; the health & safety BLDY pulse, one step ahead);
  * any other difference fails.
+ * Our flush starts from a zeroed block and only the registers mGBA can read back are compared (DISPCNT,
+ * DISPSTAT, BGxCNT, BLDCNT, BLDALPHA, BLDY); scroll, window, mosaic and affine registers are write-only, so
+ * they read as zero in the dumps and are not verified.
  * Coverage note: in these boot/title frames DISPCNT, DISPSTAT, BGxCNT, BLDCNT, BLDALPHA and BLDY carry
  * non-zero values; scroll, window and affine registers are all zero (a gameplay reference run would
  * exercise them).
@@ -45,11 +48,11 @@ class LcdControlDifferentialTest {
                 if (!File(ref.root, "$runName/$dump.io.bin").isFile) continue
                 val io = run.region(dump, "io")
                 lcd.readFrom(run.region(dump, "iwram"), addr)
-                val ours = io.copyOf()
+                val ours = ByteArray(io.size) // zeros: only what the flush writes can match
                 lcd.flushTo(ours)
                 // DISPSTAT bits 0..2 are live status flags owned by the hardware.
                 ours[4] = ((ours[4].toInt() and 0xF8) or (io[4].toInt() and 7)).toByte()
-                val diff = (0 until io.size).filter { ours[it] != io[it] }
+                val diff = READABLE.filter { ours[it] != io[it] }
                 when {
                     diff.isEmpty() -> exact++
                     // Power-on: AgbMain has not flushed yet; DISPCNT still holds the reset value (forced blank).
@@ -67,5 +70,10 @@ class LcdControlDifferentialTest {
         // Pinned for the current reference data: 14 exact, 6 power-on, 4 BLDY pulse frames.
         assertEquals(listOf(14, 6, 4), listOf(exact, preFlush, pulse), "exact / pre-flush / pulse of $checked dumps")
         assertTrue(nonZero >= 3, "only $nonZero dumps exercise the blend registers")
+    }
+
+    private companion object {
+        /** I/O offsets of the readable registers `FlushLCDControl` writes. */
+        val READABLE = listOf(0x00, 0x01, 0x04, 0x05) + (0x08..0x0F) + (0x50..0x55)
     }
 }

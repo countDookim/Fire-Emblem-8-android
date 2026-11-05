@@ -73,8 +73,7 @@ class TitleScreenDifferentialTest {
         "Title_Loop_DrawRedBlueOrbs", "Title_PrepareMainScreenWithExtendedBgm", "Title_Loop_RevealGreenDragonFlashFx",
         "Title_Loop_FlashFxExpand", "Title_LoadDemonKingOnBg2", "Title_ShowBg2", "sub_80C5FB4", "Title_EndSkipFxListener",
         "Title_PrepareMainLogoZoom", "Title_Loop_MainLogoZoom", "sub_80C5548", "sub_80C69B0", "sub_80C6104",
-        "Title_Loop_LightExplosionFx", "DrawTitleLightBubbleSprites", "sub_80C62DC", "DrawTitleSprites_Init",
-        "DrawTitleSprites_Loop", "Title_StartSkipFxListener")
+        "Title_Loop_LightExplosionFx", "DrawTitleLightBubbleSprites", "sub_80C62DC", "DrawTitleSprites_Loop", "Title_StartSkipFxListener")
     fun `title screen start matches the per-frame RAM trace`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
         val rom = romFile.readBytes()
@@ -243,8 +242,8 @@ class TitleScreenDifferentialTest {
     @Test
     @VerifiesPort("SkipTitleFx_Loop_KeyListener", "Title_RestartProc")
     fun `A on the title intro fx restarts the title like the per-frame RAM trace`() {
-        assumeTrue(ref.available && romFile.isFile && File(ref.root, "ram_trace_title_skip/manifest.txt").isFile,
-            "ROM / mGBA reference run ram_trace_title_skip not present (run tools/setup.sh)")
+        assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
+        assertTrue(File(ref.root, "ram_trace_title_skip/manifest.txt").isFile, "reference run ram_trace_title_skip")
         val run4 = ref.run("ram_trace_opanim4")
         val runT = ref.run("ram_trace_title1")
         val runS = ref.run("ram_trace_title_skip") // same input as runT until A at f3040
@@ -301,14 +300,14 @@ class TitleScreenDifferentialTest {
     }
 
     @Test
-    @VerifiesPort("Title_IDLE", "sub_8013F40", "ColorFadeSetupFromColorToBlack")
+    @VerifiesPort("sub_8013F40", "ColorFadeSetupFromColorToBlack")
     fun `A on the idle title starts the fade to dark like the per-frame RAM trace`() {
         val c = titleKeyPath("key_status_title", "k", 901)
         assertTrue(c.idle >= 40 && c.fade >= 5, "checked $c")
     }
 
     @Test
-    @VerifiesPort("sub_80141B0", "Title_EndAllProcChildren")
+    @VerifiesPort("sub_80141B0")
     fun `START on the idle title fades to dark and ends the title like the per-frame RAM trace`() {
         val c = titleKeyPath("ram_trace_title_start", "t", 900)
         assertTrue(c.fade >= 14 && c.ended == 1, "checked $c")
@@ -322,8 +321,8 @@ class TitleScreenDifferentialTest {
      * fade components and the LCD blend/display registers.
      */
     private fun titleKeyPath(runName: String, prefix: String, first: Int): KeyPathChecks {
-        assumeTrue(ref.available && romFile.isFile && File(ref.root, "$runName/manifest.txt").isFile,
-            "ROM / mGBA reference run $runName not present (run tools/setup.sh)")
+        assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present (run tools/setup.sh)")
+        assertTrue(File(ref.root, "$runName/manifest.txt").isFile, "reference run $runName")
         val run = ref.run(runName)
         fun ew(f: Int) = run.region("$prefix%05d".format(f), "ewram")
         fun iw(f: Int) = run.region("$prefix%05d".format(f), "iwram")

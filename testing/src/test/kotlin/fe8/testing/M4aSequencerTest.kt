@@ -24,7 +24,7 @@ class M4aSequencerTest {
     )
 
     @Test
-    @VerifiesPort("ply_pend", "ply_tempo", "ply_keysh", "ply_voice", "ply_vol", "ply_pan")
+    @VerifiesPort("ply_pend", "ply_tempo", "ply_voice", "ply_vol", "ply_pan")
     fun `track state steps like the per-frame RAM traces`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present")
         val rom = romFile.readBytes()
@@ -52,6 +52,9 @@ class M4aSequencerTest {
                         M4aCommands.volumeControl(p, 0xFFFF, 4 * q.tracks[0].volX)
                     }
                     if (q.status < 0 && p.status >= 0) M4aCommands.mPlayStop(p, null)
+                    if (seq.unsupported == 0) { // ply_tempo's effect is on the player, not the track
+                        assertEquals(listOf(q.tempoD, q.tempoI), listOf(p.tempoD, p.tempoI), "$next $address")
+                    }
                     for (i in 0 until p.trackCount) {
                         if (seq.unsupported and (1 shl i) != 0) {
                             skipped++
@@ -70,7 +73,7 @@ class M4aSequencerTest {
         }
         assertTrue(checked > 1000, "checked $checked tracks ($skipped skipped)")
         // Each claimed handler ran in matching steps (indices: command - 0xB1).
-        for (cmd in listOf(0xB4, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF)) {
+        for (cmd in listOf(0xB4, 0xBB, 0xBD, 0xBE, 0xBF)) {
             val n = runs[cmd - 0xB1]
             assertTrue(n >= 4, "command 0x%02X ran %d times".format(cmd, n))
         }

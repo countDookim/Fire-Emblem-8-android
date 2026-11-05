@@ -30,9 +30,9 @@ class Fe8BootSoundTest {
 
     @Test
     @VerifiesPort(
-        "Sound_FadeOutBGM", "StartBgmCore", "StartOrChangeBgm", "StartBgmExt", "StartSongDelayed",
+        "Sound_FadeOutBGM", "StartBgmCore", "StartBgmExt", "StartSongDelayed",
         "DelaySong_OnLoop", "Sound_SetDefaultMaxNumChannels", "Sound_SetMaxNumChannels",
-        "sub_80028FC", "OpAnimInit", "SetupOpAnimWorldMapfx",
+        "sub_80028FC",
     )
     fun `boot sound state matches the traces`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / mGBA reference data not present")
@@ -83,7 +83,8 @@ class Fe8BootSoundTest {
     private fun state(p: M4aPlayer): List<Int> = listOf(
         p.songHeader, p.status, p.clock, p.tempoD, p.tempoI, p.fadeOI, p.fadeOC, p.fadeOV,
         p.priority,
-    )
+    ) + p.tracks.take(p.trackCount).map { it.flags and 0xFC } // VOLCHG/PITCHG: set by the game
+
 
     private fun traceRun(frame: Int) = ref.run(
         when {

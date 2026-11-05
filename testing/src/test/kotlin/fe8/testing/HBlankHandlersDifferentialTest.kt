@@ -24,7 +24,7 @@ class HBlankHandlersDifferentialTest {
     private val sym = RamSymbols.fromEnvironment()
 
     @Test
-    @VerifiesPort("SetPrimaryHBlankHandler", "SetSecondaryHBlankHandler", "UpdateHBlankHandlerState")
+    @VerifiesPort("SetPrimaryHBlankHandler", "UpdateHBlankHandlerState")
     fun `HBlank handler state matches mGBA`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         val scroll = HBlankHandler { _, _ -> }

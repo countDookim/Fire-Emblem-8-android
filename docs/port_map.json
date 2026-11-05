@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 315,
+    "verified": 308,
     "implemented_unverified": 63
   },
   "functions": {
@@ -380,15 +380,6 @@
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
-    "EndAllProcChildren": {
-      "decomp_file": "src/sysutil.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
-      ]
-    },
     "EraseBonusContentData": {
       "decomp_file": "src/bmsave-lib.c",
       "system": "save",
@@ -543,15 +534,6 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
-      ]
-    },
-    "GameControl_EnableSoundEffects": {
-      "decomp_file": "src/gamecontrol.c",
-      "system": "core",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
     "GameControl_RememberChapterId": {
@@ -1308,7 +1290,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpAnim.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
     "OpAnimMergeBGProcInit": {
@@ -1841,15 +1823,6 @@
         "fe8.testing.HBlankHandlersDifferentialTest#HBlank handler state matches mGBA"
       ]
     },
-    "SetSecondaryHBlankHandler": {
-      "decomp_file": "src/hardware.c",
-      "system": "core",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/HBlankHandlers.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.HBlankHandlersDifferentialTest#HBlank handler state matches mGBA"
-      ]
-    },
     "SetupBackgrounds": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -1865,7 +1838,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpAnim.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
+        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
     "SkipTitleFx_Loop_KeyListener": {
@@ -1990,15 +1963,6 @@
         "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
       ]
     },
-    "StartOrChangeBgm": {
-      "decomp_file": "src/soundwrapper.c",
-      "system": "audio",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/SoundWrapper.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
-      ]
-    },
     "StartSongDelayed": {
       "decomp_file": "src/soundwrapper.c",
       "system": "audio",
@@ -2065,15 +2029,6 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
       ]
     },
-    "Title_EndAllProcChildren": {
-      "decomp_file": "src/titlescreen.c",
-      "system": "presentation",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/title/TitleScreen.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.TitleScreenDifferentialTest#START on the idle title fades to dark and ends the title like the per-frame RAM trace"
-      ]
-    },
     "Title_EndSkipFxListener": {
       "decomp_file": "src/titlescreen.c",
       "system": "presentation",
@@ -2081,15 +2036,6 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
-      ]
-    },
-    "Title_IDLE": {
-      "decomp_file": "src/titlescreen.c",
-      "system": "presentation",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/title/TitleScreen.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.TitleScreenDifferentialTest#A on the idle title starts the fade to dark like the per-frame RAM trace"
       ]
     },
     "Title_Init": {
@@ -2457,15 +2403,6 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
-      ]
-    },
-    "ply_keysh": {
-      "decomp_file": "src/m4a_1.s",
-      "system": "audio",
-      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
       ]
     },
     "ply_note": {

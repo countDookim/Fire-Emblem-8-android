@@ -98,7 +98,7 @@ public object M4aCommands {
     /**
      * `KEYSH`.
      *
-     * Ported from src/m4a_1.s: ply_keysh
+     * Transcribed from src/m4a_1.s: ply_keysh (not verified: the traced key shifts never change)
      */
     public fun keysh(t: M4aTrack, bus: M4aBus) {
         t.keyShift = s8(arg(t, bus))

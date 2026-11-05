@@ -104,6 +104,18 @@ class M4aPitchTest {
         assertTrue(checked > 100, "checked $checked CGB channels")
     }
 
+    @Test
+    fun `noise channel frequencies are the clamped ROM noise table entries`() {
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        val rom = romFile.readBytes()
+        for (key in 0..127) {
+            // MidiKeyToCgbFreq, chan 4: key <= 20 -> 0, else key - 21 capped at 59.
+            val index = if (key <= 20) 0 else minOf(key - 21, 59)
+            val want = rom[NOISE_TABLE + index].toInt() and 0xFF
+            assertEquals(want, M4aPitch.midiKeyToCgbFreq(4, key, 0), "noise key $key")
+        }
+    }
+
     private fun iwramDumps(): List<File> = ref.root.listFiles().orEmpty().filter { it.isDirectory }
         .flatMap { d -> d.listFiles().orEmpty().filter { it.name.endsWith(".iwram.bin") } }
 

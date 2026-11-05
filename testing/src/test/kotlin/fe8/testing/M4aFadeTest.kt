@@ -27,7 +27,8 @@ class M4aFadeTest {
     @VerifiesPort("FadeOutBody")
     fun `fade steps match the trace`() {
         val dir = File(ref.root, "ram_trace_menu_fade")
-        assumeTrue(ref.available && romFile.isFile && dir.isDirectory, "reference data not present")
+        assumeTrue(ref.available && romFile.isFile, "reference data not present")
+        assertTrue(dir.isDirectory, "ram_trace_menu_fade missing")
         val rom = romFile.readBytes()
         val bus = M4aBus { x -> rom[x - 0x08000000].toInt() and 0xFF }
         var steps = 0

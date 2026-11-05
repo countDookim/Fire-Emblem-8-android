@@ -54,7 +54,8 @@ public class HBlankHandlers(
     /**
      * `SetSecondaryHBlankHandler`.
      *
-     * Ported from src/hardware.c: SetSecondaryHBlankHandler
+     * Transcribed from src/hardware.c: SetSecondaryHBlankHandler (not verified: no
+     * reference dump has a secondary handler set)
      */
     public fun setSecondary(handler: HBlankHandler?) {
         secondary = handler

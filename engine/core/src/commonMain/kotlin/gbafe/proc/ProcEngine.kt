@@ -305,7 +305,8 @@ public class ProcEngine(
     /**
      * Ends every child of [parent] (and their subtrees), in array order.
      *
-     * Ported from src/sysutil.c: EndAllProcChildren
+     * Transcribed from src/sysutil.c: EndAllProcChildren (not verified: the traces have no children
+     * left to end when it runs)
      */
     public fun endAllChildren(parent: Proc) {
         var proc: Proc? = null

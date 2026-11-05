@@ -507,7 +507,8 @@ public class TitleScreen(
      * Waits on the title: A or Start continues to the save menu (event return); after 815 steps
      * the class reel plays. A or Start plays sound effect 0x6D.
      *
-     * Ported from src/titlescreen.c: Title_IDLE
+     * Transcribed from src/titlescreen.c: Title_IDLE (not verified: the 815-step class reel branch never
+     * runs in the traces and the next-action id and sound effect are not compared)
      */
     public fun idle(proc: Proc) {
         val st = proc.state as State
@@ -526,7 +527,8 @@ public class TitleScreen(
     /**
      * Ends the title's children (the sprites proc) after the fade out.
      *
-     * Ported from src/titlescreen.c: Title_EndAllProcChildren
+     * Transcribed from src/titlescreen.c: Title_EndAllProcChildren (not verified: the title proc ends in the
+     * same step, so its children die either way)
      */
     public fun endAllProcChildren(proc: Proc) {
         engine.endAllChildren(proc)

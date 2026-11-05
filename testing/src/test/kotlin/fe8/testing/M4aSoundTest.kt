@@ -36,7 +36,8 @@ class M4aSoundTest {
     @VerifiesPort("m4aSoundInit", "MPlayExtender")
     fun `init gives the traced chain, idle players and rates`() {
         val dump = File(ref.root, "ram_trace_boot/r00020.iwram.bin")
-        assumeTrue(ref.available && romFile.isFile && dump.isFile, "reference data not present")
+        assumeTrue(ref.available && romFile.isFile, "reference data not present")
+        assertTrue(dump.isFile, "dump missing")
         val iw = dump.readBytes()
         val s = sound(romFile.readBytes())
         s.init(MODE)
@@ -79,7 +80,8 @@ class M4aSoundTest {
     @Test
     fun `a song started by number plays`() {
         val dump = File(ref.root, "ram_trace_opanim/r00600.iwram.bin")
-        assumeTrue(ref.available && romFile.isFile && dump.isFile, "reference data not present")
+        assumeTrue(ref.available && romFile.isFile, "reference data not present")
+        assertTrue(dump.isFile, "dump missing")
         val (dumped, _) = M4aRam.sound(dump.readBytes())
         val s = sound(romFile.readBytes())
         val header = dumped[0].songHeader

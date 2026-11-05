@@ -5,12 +5,12 @@ _Updated 2026-11-05 (scheduled run). Owner decisions: docs/PROJECT_BRIEF.md. His
 ## NEEDS USER
 _(nothing blocked)_
 
-## Next task: M5-52 (EventTrace reader; scripts/index.json now exists) or M5-30..32 (saves)
-Done 2026-11-05: M5-09..24, 26, 28, 29, 33..36, 38, 41 (see TASKS). Scripts: 897 EventScr*/EventScrWM* in 46 `.fe8s`
+## Next task: M5-52 (EventTrace reader; scripts/index.json now exists) or M5-31/32 (saves)
+Done 2026-11-05: M5-09..24, 26, 30, 28, 29, 33..36, 38, 41 (see TASKS). Scripts: 897 EventScr*/EventScrWM* in 46 `.fe8s`
 files (decomp header grouping, `Fe8ScriptFiles`) + `scripts/index.json`, 897/897 byte-exact (`ScriptRoundTripRomTest`);
 ROM repo `extracted/scripts` pushed (release re-publish by its CI). M5-25 partial: LoadAndVerfySuspendSave valid branch
 transcribed (non-xmap no-op checked; xmap 0x7F path no trace); EraseInvalidSaveData 0x40603: no dump has it.
-InvalidateGameSave (M5-26) waits for ReadSuspendSavePlaySt. Open: M5-30..32 (saves),
+InvalidateGameSave (M5-26) waits for ReadSuspendSavePlaySt. M5-30 transcribed (claims via M5-32). Open: M5-31/32 (saves),
 M5-37/39/40 (map graphics/render), M5-41b (ROM run on a map larger than the screen: the prologue map is 15×10,
 so the camera never scrolls in ram_trace_first_phase).
 Pinned frames (ROM repo `harness/gen_scripts.py`, NEWGAME comment): InitChapterMap f9314..9319 (ch 0), event's

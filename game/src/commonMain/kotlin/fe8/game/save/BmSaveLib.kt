@@ -1,5 +1,6 @@
 package fe8.game.save
 
+import fe8.game.bm.PlaySt
 import fe8.game.save.Fe8SramLayout as L
 import gba.core.sram.CartSram
 import gba.core.sram.readSramFast
@@ -45,6 +46,12 @@ public class BmSaveLib(public val sram: CartSram) {
 
     /** Stand-in for `gExtraMapSaveHead` (the part read: up to `unk0F`). */
     private val xmapHeadBuffer = ByteArray(XMAP_HEAD_READ_SIZE)
+
+    /** Stand-in for the `struct PlaySt` bytes read from SRAM. */
+    private val playStFull = ByteArray(PlaySt.SIZE)
+
+    /** Stand-in for the `struct PlaySt ram_ch` local of `IsPlaythroughIdUnique`. */
+    private val scratchPlaySt = PlaySt()
 
     /** The 0x40 bytes of 0xFF that `WipeSram` writes 0x200 times (`u32 buf[0x10]`). */
     private val wipeBuffer = ByteArray(WIPE_CHUNK)
@@ -480,6 +487,76 @@ public class BmSaveLib(public val sram: CartSram) {
         return if (ret > L.SAVE_ID_GAME2 || ret < 0) L.SAVE_ID_GAME0 else ret
     }
 
+    /**
+     * Transcribed from src/bmsave.c: ReadGameSavePlaySt (verified by M5-32's full-image check;
+     * not yet)
+     *
+     * Decodes the `PlaySt` at the start of the block [slot] reads from into [buf].
+     */
+    public fun readGameSavePlaySt(slot: Int, buf: PlaySt) {
+        readSramFast(sram, getSaveReadAddr(slot), playStFull, 0, PlaySt.SIZE)
+        buf.decode(playStFull, 0)
+    }
+
+    /**
+     * Transcribed from src/bmsave-bwl.c: IsPlaythroughIdUnique (verified by M5-32's full-image
+     * check; not yet)
+     *
+     * False when [index] is among the global info's cleared playthroughs or the playthrough id
+     * of a valid game save slot.
+     */
+    public fun isPlaythroughIdUnique(index: Int): Boolean {
+        readGlobalSaveInfo(infoBuffer)
+        for (i in 0 until CLEARED_PLAYTHROUGHS) {
+            if ((infoBuffer[L.HEADER_CLEARED_PLAYTHROUGHS + i].toInt() and 0xFF) == index) {
+                return false
+            }
+        }
+        for (i in 0 until 3) {
+            if (!isSaveValid(i)) continue
+            readGameSavePlaySt(i, scratchPlaySt)
+            if (scratchPlaySt.playthroughIdentifier == index) return false
+        }
+        return true
+    }
+
+    /**
+     * Transcribed from src/bmsave-bwl.c: GetNewPlaythroughId (verified by M5-32's full-image
+     * check; not yet)
+     *
+     * The smallest id in 1..0xFF that [isPlaythroughIdUnique] (the C code falls off the end
+     * without a value when none is; 0 here).
+     */
+    public fun getNewPlaythroughId(): Int {
+        for (i in 1 until 0x100) if (isPlaythroughIdUnique(i)) return i
+        return 0
+    }
+
+    /**
+     * Transcribed from src/bmsave-bwl.c: GetGlobalCompletionCntByInfo (verified by M5-32's
+     * full-image check; not yet)
+     *
+     * Number of non-zero `cleared_playthroughs` entries of the global info [info].
+     */
+    public fun getGlobalCompletionCntByInfo(info: ByteArray): Int {
+        var ret = 0
+        for (i in 0 until CLEARED_PLAYTHROUGHS) {
+            if (info[L.HEADER_CLEARED_PLAYTHROUGHS + i].toInt() != 0) ret++
+        }
+        return ret
+    }
+
+    /**
+     * Transcribed from src/bmsave-bwl.c: GetGlobalCompletionCount (verified by M5-32's full-image
+     * check; not yet)
+     *
+     * 0 when the global save info is invalid, else [getGlobalCompletionCntByInfo] of it.
+     */
+    public fun getGlobalCompletionCount(): Int {
+        if (!readGlobalSaveInfo(infoBuffer)) return 0
+        return getGlobalCompletionCntByInfo(infoBuffer)
+    }
+
     /** Shared body of the `LoadAndVerfy*`/`LoadBonusContentData` readers: read, then checksum. */
     private fun loadChecked(
         offset: Int,
@@ -512,6 +589,9 @@ public class BmSaveLib(public val sram: CartSram) {
 
         /** Bytes `WipeSram` writes per call (0x200 calls cover the 0x8000 bytes). */
         const val WIPE_CHUNK = 0x40
+
+        /** `MAX_SAVED_GAME_CLEARS`. */
+        const val CLEARED_PLAYTHROUGHS = 12
 
         /** Bytes of `PlaySt` read by `loadAndVerifySuspendSave` (through `unk_2C_*`). */
         const val PLAY_ST_READ_SIZE = 0x30

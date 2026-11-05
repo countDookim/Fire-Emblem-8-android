@@ -38,7 +38,8 @@ public fun readSramFast(
 }
 
 /**
- * Ported from src/agb_sram.c: VerifySramFast_Core
+ * Transcribed from src/agb_sram.c: VerifySramFast_Core (not verified: in-memory SRAM never
+ * mismatches in a reference run, so only a unit test exercises the mismatch result)
  *
  * Compares [size] bytes of [src] at [srcOffset] with [sram] at [destOffset]. Returns 0 when equal,
  * else the GBA bus address of the first differing SRAM byte (`CartSram.BASE_ADDRESS + offset`),

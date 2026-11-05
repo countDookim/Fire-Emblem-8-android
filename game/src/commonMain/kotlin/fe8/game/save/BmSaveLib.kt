@@ -189,7 +189,8 @@ public class BmSaveLib(public val sram: CartSram) {
         loadChecked(L.BONUS_OFFSET, L.BONUS_SIZE, L.BONUS_CHECKSUM, L.BONUS_CHECKSUM, buf)
 
     /**
-     * Ported from src/bmsave-lib.c: SaveBonusContentData
+     * Transcribed from src/bmsave-lib.c: SaveBonusContentData (not verified: every reference
+     * run holds an all-zero bonus block, so no run shows its checksum or data)
      *
      * Stores the checksum of the first 0x140 bytes of [buf] at 0x140 and writes the block.
      */
@@ -207,7 +208,8 @@ public class BmSaveLib(public val sram: CartSram) {
         loadChecked(L.RANK_OFFSET, L.RANK_SIZE, L.RANK_CHECKSUM, L.RANK_SUM_SIZE, buf)
 
     /**
-     * Ported from src/bmsave-lib.c: SaveRankings
+     * Transcribed from src/bmsave-lib.c: SaveRankings (not verified: every reference run holds
+     * an all-zero ranking block, so no run shows its checksum or data)
      *
      * Stores the checksum of the first 0x90 bytes of [buf] at 0x90 and writes the block.
      */
@@ -261,7 +263,8 @@ public class BmSaveLib(public val sram: CartSram) {
     )
 
     /**
-     * Ported from src/bmsave-lib.c: WriteLinkArenaStruct2
+     * Transcribed from src/bmsave-lib.c: WriteLinkArenaStruct2 (not verified: every reference
+     * run holds an all-zero link arena block, so no run shows its checksum or data)
      *
      * Stores the checksum of the first 0x10 bytes of [buf] at 0x10 and writes the block.
      */

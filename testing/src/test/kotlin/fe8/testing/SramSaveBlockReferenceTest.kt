@@ -19,7 +19,7 @@ class SramSaveBlockReferenceTest {
     private fun lib(run: String, dump: String): BmSaveLib {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         val r = ref.run(run)
-        assumeTrue(r.hasSram, "$run has no SRAM dumps")
+        assertTrue(r.hasSram, "$run has no SRAM dumps")
         val sram = CartSram()
         sram.copyIn(r.sram(dump))
         return BmSaveLib(sram).also { it.sramInit() }
@@ -73,26 +73,74 @@ class SramSaveBlockReferenceTest {
     }
 
     @Test
-    @VerifiesPort("IsSaveValid", "InvalidateSuspendSave", "EraseSaveBlockInfo")
-    fun `first phase sram has a valid suspend save that can be invalidated`() {
-        val run = "ram_trace_first_phase"
-        assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
-        val r = ref.run(run)
-        assumeTrue(r.hasSram, "$run has no SRAM dumps")
-        val dump = r.dumps.keys.last { java.io.File(ref.root, "$run/$it.sram.bin").isFile }
-        val lib = lib(run, dump)
-        assertTrue(lib.isSaveValid(L.SAVE_ID_SUSPEND) || lib.isSaveValid(L.SAVE_ID_SUSPEND_ALT))
-        lib.invalidateSuspendSave(L.SAVE_ID_SUSPEND)
-        val g = image(lib)
-        for (i in intArrayOf(L.SAVE_ID_SUSPEND, L.SAVE_ID_SUSPEND_ALT)) {
-            val o = L.blockInfoOffset(i)
-            assertEquals(0xFF, g[o + L.INFO_KIND].toInt() and 0xFF)
-            assertEquals(0, (g[o + L.INFO_SIZE].toInt() and 0xFF) or (g[o + L.INFO_SIZE + 1].toInt() shl 8))
-            assertEquals(0, (g[o + L.INFO_MAGIC16].toInt() and 0xFF) or (g[o + L.INFO_MAGIC16 + 1].toInt() shl 8))
-            assertFalse(lib.isSaveValid(i))
+    @VerifiesPort("IsSaveValid", "InvalidateSuspendSave")
+    fun `invalidating the suspend save writes the entries the game wrote`() {
+        // The game's own InvalidateSuspendSave (WriteNewGameSave, f1130): entries 3 and 4 go from
+        // all-0xFF (s01128) to the invalid entry (s01130).
+        val game = ref.run("ram_trace_newgame").sram("s01130")
+        val cases = listOf("ram_trace_newgame" to "s01128", "ram_trace_first_phase" to "s19316")
+        for ((run, dump) in cases) {
+            val lib = lib(run, dump)
+            val valid = lib.isSaveValid(L.SAVE_ID_SUSPEND_ALT)
+            // first_phase s19316 holds a valid suspend save in entry 4; newgame has none.
+            assertEquals(run == "ram_trace_first_phase", valid, "$run $dump entry 4 before")
+            val before = image(lib)
+            lib.invalidateSuspendSave(L.SAVE_ID_SUSPEND)
+            val after = image(lib)
+            for (i in intArrayOf(L.SAVE_ID_SUSPEND, L.SAVE_ID_SUSPEND_ALT)) {
+                assertFalse(lib.isSaveValid(i), "$run entry $i")
+                assertInvalidEntry(game, after, i)
+            }
+            // Nothing else changes (game save 0, header, aux blocks).
+            val at = L.blockInfoOffset(L.SAVE_ID_SUSPEND)
+            val end = L.blockInfoOffset(L.SAVE_ID_SUSPEND_ALT) + L.BLOCK_INFO_SIZE
+            for (i in before.indices) {
+                if (i in at until end) continue
+                assertEquals(before[i], after[i], "$run byte 0x${i.toString(16)}")
+            }
         }
-        lib.eraseSaveBlockInfo(L.SAVE_ID_GAME1)
-        assertEquals(0xFF, image(lib)[L.blockInfoOffset(1) + 5].toInt() and 0xFF)
+    }
+
+    /**
+     * Compares entry [i] of [got] with the game's invalidated entry in [want]. Excluded: magic32
+     * (stack garbage of the C `chunk` local, 1 in the dump, 0 here) and the exact checksum32:
+     * `Checksum32` of the size-0 block still reads one halfword of `gGenericBuffer` (1F1F in the
+     * dump, whatever this library's buffer held), so only its shape (low half == high half, as
+     * sum == xor for one halfword) is checked.
+     */
+    private fun assertInvalidEntry(want: ByteArray, got: ByteArray, i: Int) {
+        val o = L.blockInfoOffset(i)
+        for (k in L.INFO_MAGIC16 until L.INFO_CHECKSUM32) {
+            assertEquals(want[o + k], got[o + k], "entry $i byte $k")
+        }
+        assertEquals(0xFF, got[o + L.INFO_KIND].toInt() and 0xFF)
+        for (k in 0 until 2) {
+            assertEquals(got[o + L.INFO_CHECKSUM32 + k], got[o + L.INFO_CHECKSUM32 + 2 + k], "sum")
+            assertEquals(want[o + L.INFO_CHECKSUM32 + k], want[o + L.INFO_CHECKSUM32 + 2 + k])
+        }
+    }
+
+    @Test
+    @VerifiesPort("IsSaveValid", "EraseSaveBlockInfo")
+    fun `erasing a valid game slot leaves the 0xFF entry the dump has for unused slots`() {
+        val lib = lib("ram_trace_newgame", "s01230")
+        val dump = ref.run("ram_trace_newgame").sram("s01230")
+        assertTrue(lib.isSaveValid(L.SAVE_ID_GAME0))
+        val before = image(lib)
+        lib.eraseSaveBlockInfo(7) // index >= BLOCK_INFO_COUNT: no write
+        assertArrayEquals(before, image(lib))
+        lib.eraseSaveBlockInfo(L.SAVE_ID_GAME0)
+        assertFalse(lib.isSaveValid(L.SAVE_ID_GAME0))
+        val after = image(lib)
+        val e1 = L.blockInfoOffset(1)
+        val unused = dump.copyOfRange(e1, e1 + L.BLOCK_INFO_SIZE)
+        assertTrue(unused.all { it == 0xFF.toByte() })
+        val at = L.blockInfoOffset(L.SAVE_ID_GAME0)
+        assertArrayEquals(unused, after.copyOfRange(at, at + L.BLOCK_INFO_SIZE))
+        for (i in before.indices) {
+            if (i in at until at + L.BLOCK_INFO_SIZE) continue
+            assertEquals(before[i], after[i], "byte 0x${i.toString(16)}")
+        }
     }
 
     @Test

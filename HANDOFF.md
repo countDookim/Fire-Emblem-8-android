@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M5-56: scheduled, until ~17:25Z
+- M5-57: scheduled, until ~17:25Z (unfinished work → wip/M5-57)
 
 ## Next task: M5-58/59 (wire New Game → Prologue map), M5-56/57 (mod flags + mod script)
 M5-53..55 done (owner PC): `EventVmDifferentialTest` runs the real `EventEngine` over the whole prologue trace (12618
@@ -16,8 +16,8 @@ stubs (STUBS table). 172 Event19 pairs are skipped: the game engine idles while 
 blocked-by-child model yet). Withheld tags and why: docs/TASKS.md Done/M5. EventEngine_CanStartSkip/StartSkip are
 partial (an unpushed alternative port is on owner-PC branch `backup/event-engine-dup`). `EventScrCore` takes the
 game's RngService/PlaySt/KeyStatus (no defaults). Wiring still open (M5-58): `BMapMain.hooks.playerPhase`,
-`hooks.callEvent` → EventEngine. M5-56 was stopped by the owner mid-task: partial, untested work (FlagStore
-routing, ModFlagSymbols, ModSaveSections) is on `wip/M5-56`; review it before continuing. M5-58 was stopped before
+`hooks.callEvent` → EventEngine. M5-56 done (scheduled): `RoutedFlagStore`, `ModFlagSymbols`, `ModSaveSections`; caveat → M5-56b (mod flag
+literals need slot 2 preloaded). M5-58 was stopped before
 any change.
 
 ## State

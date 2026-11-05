@@ -55,7 +55,7 @@ public class EventFlagLayout(
  *
  * @property layout sizes and constants of the flag memory.
  */
-public class EventFlags(public val layout: EventFlagLayout) {
+public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
     private val bits = ByteArray(layout.totalBytes)
     private val chapterBase = layout.permanentStorageBytes
     private val masks = layout.bitMask
@@ -206,7 +206,7 @@ public class EventFlags(public val layout: EventFlagLayout) {
      *
      * Sets [flag] as a chapter flag below `chapterFlagLimit`, else as a permanent flag.
      */
-    public fun setFlag(flag: Int) {
+    override fun setFlag(flag: Int) {
         if (flag < layout.chapterFlagLimit) setChapterFlag(flag) else setPermanentFlag(flag)
     }
 
@@ -215,7 +215,7 @@ public class EventFlags(public val layout: EventFlagLayout) {
      *
      * Clears [flag] as a chapter flag below `chapterFlagLimit`, else as a permanent flag.
      */
-    public fun clearFlag(flag: Int) {
+    override fun clearFlag(flag: Int) {
         if (flag < layout.chapterFlagLimit) clearChapterFlag(flag) else clearPermanentFlag(flag)
     }
 
@@ -224,7 +224,7 @@ public class EventFlags(public val layout: EventFlagLayout) {
      *
      * True if [flag] is set (chapter flag below `chapterFlagLimit`, else permanent).
      */
-    public fun checkFlag(flag: Int): Boolean =
+    override fun checkFlag(flag: Int): Boolean =
         if (flag < layout.chapterFlagLimit) checkChapterFlag(flag) else checkPermanentFlag(flag)
 
     private fun chapterBit(flag: Int): Int {

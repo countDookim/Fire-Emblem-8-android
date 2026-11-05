@@ -4,6 +4,7 @@ import gbafe.extract.fe8.events.Fe8ScriptConstants
 import gbafe.script.CommandEncoder
 import gbafe.script.FeScriptParser
 import gbafe.script.IdentifierResolver
+import gbafe.script.ModFlagSymbols
 import gbafe.script.ScriptAssembler
 import gbafe.script.ScriptConstants
 import gbafe.script.SymbolResolver
@@ -111,21 +112,29 @@ public class Fe8ConstantSymbols(
 
 /**
  * The FE8 `.fe8s` toolchain: a parser and an assembler over [Fe8CommandSet], the FE8 constants and
- * the [external] symbols (names of ROM data and functions from the decomp symbol list).
+ * the [external] symbols (names of ROM data and functions from the decomp symbol list). [mods]
+ * adds mod-registered flag names after the FE8 constants.
  */
 public class Fe8ScriptTools(
     external: NmSymbolIndex,
     constants: ScriptConstants = Fe8ScriptConstants,
     encoder: CommandEncoder = Fe8CommandEncoder,
+    mods: ModFlagSymbols? = null,
 ) {
     private val constantSymbols = Fe8ConstantSymbols(constants)
 
     /** Parser for FE8 scripts: FE8 commands, constants and external symbol names. */
     public val parser: FeScriptParser = FeScriptParser(
         Fe8CommandSet,
-        IdentifierResolver { constantSymbols.isKnown(it) || external.isKnown(it) },
+        IdentifierResolver {
+            constantSymbols.isKnown(it) || external.isKnown(it) || mods?.isKnown(it) == true
+        },
     )
 
     /** Assembler for FE8 scripts. */
-    public val assembler: ScriptAssembler = ScriptAssembler(encoder, constantSymbols, external)
+    public val assembler: ScriptAssembler = ScriptAssembler(
+        encoder,
+        if (mods == null) constantSymbols else SymbolResolver.chain(constantSymbols, mods),
+        external,
+    )
 }

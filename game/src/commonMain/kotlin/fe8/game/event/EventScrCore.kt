@@ -20,7 +20,7 @@ import fe8.game.event.EventConst.EV_STATE_SKIPPING
 import fe8.game.bm.PLAY_FLAG_HARD
 import fe8.game.bm.PlaySt
 import fe8.game.flags.Fe8EventFlags
-import gbafe.core.flags.EventFlags
+import gbafe.core.flags.FlagStore
 import gbafe.core.rng.RngService
 import gbafe.input.KeyStatus
 
@@ -77,7 +77,7 @@ public class EventScrCore(
     private val state: EventState,
     private val memory: ScriptMemory,
     private val input: EventInput = object : EventInput {},
-    private val flags: EventFlags = Fe8EventFlags.create(),
+    private val flags: FlagStore = Fe8EventFlags.create(),
     private val rng: RngService,
     private val playSt: PlaySt,
     private val keys: KeyStatus,

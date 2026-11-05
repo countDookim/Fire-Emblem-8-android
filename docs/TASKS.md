@@ -38,7 +38,8 @@ verified: why)". Seed from dump k, step, compare with dump k+1; use sentinels in
   StoreAdjustedCameraPositions, sub_8015D84, CameraMove_8015EDC, IsCameraNotWatchingPosition (need a scripted
   camera / unit menu after scrolling), GetEnemyStartCursorPosition (needs an enemy-phase reset),
   RenderBmMapColumn's y ring wrap, RefreshEntityBmMaps (trap passes are hooks), SetEventId_0x84/UnsetEventId_0x84/UndeployEveryone
-  (no trace separates them), PlayerPhase_MainIdle actions (stand-ins), DisplayMovementViewTile (not
+  (no trace separates them), PlayerPhase_MainIdle actions (stand-ins), HandleMoveCameraWithMapCursor's tile-finish branch (needs a direction
+  reversal mid-scroll), DisplayMovementViewTile (not
   ported). Left transcribed for lack of ground truth: InvalidateGameSave (needs
   ReadSuspendSavePlaySt), WritePermanentFlags, Write/SetBonusContentClaimFlags, WriteSupplyItems, ClearWorldMapStuff
   (zero-only copies), RenderBmMapOnBg2 (never called), GetBattleMapKind; slots 3/4 block-info magic/checksum in

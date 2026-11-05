@@ -7,7 +7,7 @@ reference runs: docs/plans/M5-notes.md. History: git log._
 _(nothing blocked)_
 
 ## In progress
-_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
+- M5-39b, M5-41c, M5-42: owner PC, until ~17:30Z
 
 ## Next task: M5-53, then M5-54
 M5-53 state (on master): `EventVmDifferentialTest` replays ported handlers with onUpdate's loop from the prologue

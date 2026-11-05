@@ -7,7 +7,6 @@ _(nothing blocked)_
 
 ## In progress
 - M5-37: owner PC, until ~13:01Z
-- M5-39: owner PC, until ~13:01Z
 
 ## Next task: M5-53 (EventVmDifferentialTest over ram_trace_newgame_bm), then M5-54
 Done 2026-11-05: M5-09..24, 26, 27, 28..36, 38, 41, 48..52; M5-49/50 (`EventEngine`: create/createBattle/callEvent/

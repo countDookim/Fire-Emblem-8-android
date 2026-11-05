@@ -137,8 +137,9 @@ settles ~f9513; BattleEventEngine f14479..14631; PhaseIntro f19316 (= suspend en
 | `ram_trace_newgame_bm` | per-frame f9314..f9900 | M5-36/37/40/43, M5-53 |
 | `ram_trace_first_phase` | per-frame f19280..f19530; holds RIGHT f19421, DOWN f19461, B+RIGHT f19501 (map fits the screen: no scroll) | M5-38..47 |
 | `ram_trace_ch2_scroll` | `chapter2.sav` suspend resumed (map ~f1200, map 15 wide: camera y 0..80); holds RIGHT f1301, DOWN f1361, LEFT f1421, UP f1481 (60 f), B+RIGHT f1541; per-frame f1100..f1600 | M5-41c/42/47 |
+| `ram_trace_ch6_start` | `chapter6.sav` start per frame f1100..f1200: gPlaySt loaded f1139 (vision 3, prep-screen flag), gBmSt cleared f1143, BMVSync/BMapMain/MapTask f1149. This is GameCtrl_StartResumedGame (ClearBattleMapState + StartBMapMain), not StartBattleMap | M5-43 |
 | `ram_trace_ch6_phase_start` | `chapter6.sav` to the battle start: per-frame f1620..f1830, full every 10 f; cursor reset f1683, CamMove f1685..1701 (camera y 0→80), idle ~f1770 | M5-46 |
-| `ram_trace_ch6_fog` | `chapter6.sav` Ch6 restart (chapterIndex 7, vision 3); dumpram every 30 f f1100..f1990, per-frame f1990..f2273; holds RIGHT/DOWN/LEFT/UP 60 f from f2004 (camera x 0..112, y 74..160) | M5-39b/42/47 |
+| `ram_trace_ch6_fog` | `chapter6.sav` Ch6 start via the resume path (chapterIndex 7, vision 3); dumpram every 30 f f1100..f1990, per-frame f1990..f2273; holds RIGHT/DOWN/LEFT/UP 60 f from f2004 (camera x 0..112, y 74..160) | M5-39b/42/47 |
 
 - Fixtures (ROM repo `reference/fixtures/`, owner's mGBA saves 2026-11-05; ROM repo only): `prologue.sav` and
   `chapter1.sav` (chapter-start suspends, unused so far), `chapter2.sav`, `chapter6.sav`. Every owner save also holds

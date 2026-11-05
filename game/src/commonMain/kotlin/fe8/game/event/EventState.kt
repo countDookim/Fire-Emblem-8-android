@@ -140,6 +140,7 @@ public class EventState {
         for (i in src.indices) writeWord(m, o + i * 4, src[i])
     }
 
+    /** Block layout: addresses, sizes and byte offsets. */
     public companion object {
         /** `EVENT_SLOT_COUNT`. */
         public const val SLOT_COUNT: Int = 0xE

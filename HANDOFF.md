@@ -5,14 +5,22 @@ _Updated 2026-11-05 (scheduled run). Owner decisions: docs/PROJECT_BRIEF.md. His
 ## NEEDS USER
 _(nothing blocked)_
 
-## Next task: M5-52 (EventTrace reader; scripts/index.json now exists) or M5-32 (WriteNewGameSave)
-Done 2026-11-05: M5-09..24, 26, 30, 31, 28, 29, 33..36, 38, 41 (see TASKS). Scripts: 897 EventScr*/EventScrWM* in 46 `.fe8s`
-files (decomp header grouping, `Fe8ScriptFiles`) + `scripts/index.json`, 897/897 byte-exact (`ScriptRoundTripRomTest`);
-ROM repo `extracted/scripts` pushed (release re-publish by its CI). M5-25 partial: LoadAndVerfySuspendSave valid branch
-transcribed (non-xmap no-op checked; xmap 0x7F path no trace); EraseInvalidSaveData 0x40603: no dump has it.
-InvalidateGameSave (M5-26) waits for ReadSuspendSavePlaySt. M5-30/31 transcribed (claims via M5-32; WriteSupplyItems zero-inits C's uninitialised buf). Open: M5-32 (saves),
-M5-37/39/40 (map graphics/render), M5-41b (ROM run on a map larger than the screen: the prologue map is 15×10,
-so the camera never scrolls in ram_trace_first_phase).
+## Next task: M5-49 rest (EventEngine_OnEnd, EventEngine_Create full) + M5-50, then M5-51
+Done 2026-11-05: M5-09..24, 26, 27, 28..36, 38, 41, 48, 52; M5-49 partial (see TASKS). Scripts: 897 EventScr*/EventScrWM*
+in 46 `.fe8s` files + `scripts/index.json`, 897/897 byte-exact. `EventTrace` (:testing) decodes the event engine per
+step; note the BeginningScene engine (step 9508) is already inside RenaisThroneCutscene, ends step 19311.
+`EventEngine`: OnUpdate 1:1 except EVC_ERROR ends the frame (C hangs); ScriptVm contract does not fit a proc-driven
+engine (revisit in M5-53). M5-32: only WriteNewGameSave/ClearPidChStatsSaveData/InitPlayConfig verified; zero-only
+copies (WritePermanentFlags, Write/SetBonusContentClaimFlags) and WriteSupplyItems/ClearWorldMapStuff stay transcribed.
+Open: M5-25 partial, M5-37/39/40 (map graphics/render), M5-41b (needs a map larger than the screen).
+Test-quality review 2026-11-05 (owner asked; fix before new ports touch these): SramSaveBlockReferenceTest now wipes
+the entry before WriteSaveBlockInfo (fixed). Still weak: SramSaveBlockReferenceTest erase test (EraseSaveBlockInfo on
+an already-invalid slot, hand-written constants); SramBootReferenceTest tags Save*/Write* aux blocks only on blank
+SRAM; GameControlDifferentialTest tags GameCtrl_Check*AndBranch whose branch bodies never run; SaveDrawDifferentialTest
+undoes the game flip with the port's own flip() and pre-zeroes bytes the tagged functions write; BmMapDifferentialTest
+BmMapFill/BmMapInit only checked as all-zero; UnitTableDifferentialTest GetPhaseAbleUnitCount(0x40)==0 only.
+Unresolved (M5-32): slots 3/4 block-info checksum 1F1F1F1F in the dump vs our WriteSaveBlockInfo for invalid kinds.
+CI was red since ba4377e (stale extraction manifest; regenerated 2026-11-05).
 Pinned frames (ROM repo `harness/gen_scripts.py`, NEWGAME comment): InitChapterMap f9314..9319 (ch 0), event's
 load_map ch 16 settles ~f9513, StdEventEngine f4907..9292 (WM) and f9508..19312, BattleEventEngine
 f14479..14631, PhaseIntro f19316 (= suspend info[4] commit), PlayerPhase f19393. New-game save write
@@ -24,7 +32,7 @@ f1130..1132 + 1 byte (0x7224) f1214. Title START now enters GameControl's save-m
   `CgbSound` verified; `PsgSynth` (not a port, GBATEK/mGBA behaviour) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad (2026-10-30); GPU backend, audio
   (2026-11-01); ROM import ~4 s, boots from it, PSG sound correct by ear (2026-11-04).
-- Verified ports: 320 / 8352 (`tools/progress.py`, 2026-11-05).
+- Verified ports: 323 / 8352 (`tools/progress.py`, 2026-11-05).
 - Layout: game-neutral `:gba:*` (ADR 0012), FE-shared `gbafe.*` in `:engine:*`, FE8-only `fe8.*` in `:game`
   and `:app`. KMP (ADR 0013): all of them except `:gba:testkit`, `:testing`, `:tools:extract` (plain JVM);
   android target only in CI (`com.android.kotlin.multiplatform.library`; CI log shows `compileAndroidMain`).

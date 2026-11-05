@@ -910,7 +910,7 @@ public class BmSaveLib(public val sram: CartSram) {
             L.SAVE_MARKER.forEachIndexed { i, c -> m[i] = c.code.toByte() }
         }
 
-        /** Ported from src/bmlib.c: StringCompare, as used on the header marker (true = equal). */
+        /** Ported from src/bmlib.c: StringCompare (as used on the header marker; true = equal). */
         fun stringCompare(a: ByteArray, b: ByteArray): Boolean {
             var i = 0
             while (a[i].toInt() or b[i].toInt() != 0) {

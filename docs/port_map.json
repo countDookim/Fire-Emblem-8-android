@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 310,
-    "implemented_unverified": 55
+    "verified": 323,
+    "implemented_unverified": 63
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -221,6 +221,15 @@
       "status": "implemented",
       "tests": []
     },
+    "ClearPidChStatsSaveData": {
+      "decomp_file": "src/bmsave-bwl.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.NewGameSaveReferenceTest#new game save in slot 0 reproduces the sram and gPlaySt of the reference"
+      ]
+    },
     "ClearSprites": {
       "decomp_file": "src/ctc.c",
       "system": "presentation",
@@ -397,6 +406,15 @@
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
     },
+    "EraseSaveBlockInfo": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramSaveBlockReferenceTest#first phase sram has a valid suspend save that can be invalidated"
+      ]
+    },
     "EraseSaveRankData": {
       "decomp_file": "src/bmsave-lib.c",
       "system": "save",
@@ -423,6 +441,13 @@
       "tests": [
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
+    },
+    "EventEngine_OnUpdate": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
+      "status": "implemented",
+      "tests": []
     },
     "ExecBothHBlankHandlers": {
       "decomp_file": "src/hardware.c",
@@ -746,6 +771,13 @@
         "fe8.testing.ChapterDataRomTest#every chapter matches direct ROM reads"
       ]
     },
+    "GetEventSlotCounter": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "GetGameClock": {
       "decomp_file": "src/time.c",
       "system": "core",
@@ -759,6 +791,13 @@
       "decomp_file": "src/bm.c",
       "system": "battle_map",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameLoop.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetGlobalCompletionCntByInfo": {
+      "decomp_file": "src/bmsave-bwl.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "implemented",
       "tests": []
     },
@@ -819,6 +858,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterDataRomTest#every chapter matches direct ROM reads"
+      ]
+    },
+    "GetSaveReadAddr": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
+      ]
+    },
+    "GetSaveWriteAddr": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
       ]
     },
     "GetTrueTerrainAt": {
@@ -909,6 +966,15 @@
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
+    "InitPlayConfig": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayConfig.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.NewGameSaveReferenceTest#new game save in slot 0 reproduces the sram and gPlaySt of the reference"
+      ]
+    },
     "InitRN": {
       "decomp_file": "src/rng.c",
       "system": "core",
@@ -927,12 +993,31 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "InvalidateSuspendSave": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramSaveBlockReferenceTest#first phase sram has a valid suspend save that can be invalidated"
+      ]
+    },
     "IsCameraNotWatchingPosition": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Camera.kt",
       "status": "implemented",
       "tests": []
+    },
+    "IsSaveValid": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramSaveBlockReferenceTest#first phase sram has a valid suspend save that can be invalidated",
+        "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
+      ]
     },
     "IsSramWorking": {
       "decomp_file": "src/bmsave-lib.c",
@@ -1313,6 +1398,15 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "PopulateSaveBlockChecksum": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
+      ]
+    },
     "Proc08AA6D04Main": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
@@ -1507,6 +1601,13 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "ReadGameSavePlaySt": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "ReadGlobalSaveInfo": {
       "decomp_file": "src/bmsave-lib.c",
       "system": "save",
@@ -1514,6 +1615,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "ReadSaveBlockInfo": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
       ]
     },
     "ReadSramFast_Core": {
@@ -1668,6 +1778,20 @@
         "fe8.testing.CameraDifferentialTest#cursor snap frames match SetCursorMapPosition"
       ]
     },
+    "SetEventSlotC": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "SetEventSlotCounter": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "SetFirstPalDirectly": {
       "decomp_file": "src/opanimfx.c",
       "system": "presentation",
@@ -1804,6 +1928,20 @@
         "fe8.testing.TitleScreenDifferentialTest#A on the title intro fx restarts the title like the per-frame RAM trace"
       ]
     },
+    "SlotQueuePop": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "SlotQueuePush": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "SoundInit": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -1847,6 +1985,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
+      ]
+    },
+    "SramChecksum32": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
       ]
     },
     "SramInit": {
@@ -2201,6 +2348,15 @@
         "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
       ]
     },
+    "VerifySaveBlockChecksum": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
+      ]
+    },
     "VerifySramFast_Core": {
       "decomp_file": "src/agb_sram.c",
       "system": "save",
@@ -2244,6 +2400,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "WriteNewGameSave": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.NewGameSaveReferenceTest#new game save in slot 0 reproduces the sram and gPlaySt of the reference"
+      ]
+    },
+    "WriteSaveBlockInfo": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
       ]
     },
     "WriteSoundRoomSaveData": {

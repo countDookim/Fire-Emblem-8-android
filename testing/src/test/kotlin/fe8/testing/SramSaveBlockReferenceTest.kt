@@ -45,6 +45,12 @@ class SramSaveBlockReferenceTest {
         System.arraycopy(orig, L.blockInfoOffset(0), chunk, 0, L.BLOCK_INFO_SIZE)
         // Clear what WriteSaveBlockInfo derives; magic32 and kind are the caller's.
         for (o in L.INFO_MAGIC16..0x0F) if (o != L.INFO_KIND) chunk[o] = 0
+        // Erase slot 0's entry in SRAM too, so only WriteSaveBlockInfo can restore it.
+        val wiped = image(lib)
+        val at = L.blockInfoOffset(0)
+        wiped.fill(0xFF.toByte(), at, at + L.BLOCK_INFO_SIZE)
+        lib.sram.copyIn(wiped)
+        assertFalse(lib.isSaveValid(0), "slot 0 entry not erased")
         lib.writeSaveBlockInfo(chunk, L.SAVE_ID_GAME0)
         val got = image(lib)
         assertArrayEquals(

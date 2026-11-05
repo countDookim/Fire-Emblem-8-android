@@ -6,7 +6,8 @@ _Updated 2026-11-05 (owner-PC session, night). Owner decisions: docs/PROJECT_BRI
 - GitHub Actions: every code-repo run since 2026-11-05 00:03Z (f50da92) is `startup_failure` ("workflow file
   issue", also on a manual dispatch) although ci.yml is unchanged and valid; billing (owner): compute $2.67/$12,
   storage 0.4/0.5 GB, resets ~2026-12-01: likely the storage quota (not confirmed). Until fixed, run `jvmTest`, Dokka and `:app:assembleDebug`
-  locally before pushing; the README progress bar is not updated by CI. 2026-11-05: 766 old artifacts (4.2 GB,
+  locally before pushing. Progress bar: after a full local `jvmTest`, `python3 tools/progress.py --write` and
+  commit README.md + docs/port_map.json as `ci: update progress [skip ci]` (no failing run, no email). 2026-11-05: 766 old artifacts (4.2 GB,
   90-day default retention) deleted with the owner's OK; ci.yml now keeps artifacts 3-7 days, Dokka on master only.
 
 ## Next task: M5-16 (all 765 non-WM EventScr_* → .fe8s, round-trip byte-exact with the M5-15 assembler)

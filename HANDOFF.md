@@ -7,6 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
+- M5-56b: scheduled, until ~23:25Z
 _(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Next task: M5-58/59 (wire New Game → Prologue map), M5-56b (mod flag literals)

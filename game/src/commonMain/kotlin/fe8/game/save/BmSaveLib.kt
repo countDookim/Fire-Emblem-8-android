@@ -37,6 +37,9 @@ public class BmSaveLib(public val sram: CartSram) {
     /** Stand-in for the `struct SaveBlockInfo tmp` local of `ReadSaveBlockInfo`. */
     private val blockInfoBuffer = ByteArray(L.BLOCK_INFO_SIZE)
 
+    /** Stand-in for the `struct SaveBlockInfo chunk` locals of the callers of the above. */
+    private val scratchInfo = ByteArray(L.BLOCK_INFO_SIZE)
+
     /** The 0x40 bytes of 0xFF that `WipeSram` writes 0x200 times (`u32 buf[0x10]`). */
     private val wipeBuffer = ByteArray(WIPE_CHUNK)
 
@@ -332,14 +335,10 @@ public class BmSaveLib(public val sram: CartSram) {
     public fun getNextSuspendSaveId(): Int = 1 - getLastSuspendSaveId()
 
     /**
-     * Partially ported from src/bmsave-lib.c: ReadSaveBlockInfo (checksum verification missing,
-     * M5-25/M5-26)
+     * Ported from src/bmsave-lib.c: ReadSaveBlockInfo
      *
-     * Reads block info [index] into [chunk] (scratch when null) and returns false when its
-     * `magic16`, or its `magic32` for that block kind, is wrong. When both are right the C code
-     * goes on to verify the block checksum, which is not ported.
-     *
-     * @throws NotImplementedError when the magics are right (checksum verification).
+     * Reads block info [index] into [chunk] (scratch when null); true when its `magic16`, its
+     * `magic32` for that block kind and its block checksum ([verifySaveBlockChecksum]) are right.
      */
     public fun readSaveBlockInfo(chunk: ByteArray?, index: Int): Boolean {
         val info = chunk ?: blockInfoBuffer
@@ -353,7 +352,118 @@ public class BmSaveLib(public val sram: CartSram) {
             else -> return false
         }
         if (u32(info, L.INFO_MAGIC32) != magic) return false
-        TODO("ReadSaveBlockInfo: VerifySaveBlockChecksum (task M5-25)")
+        return verifySaveBlockChecksum(info)
+    }
+
+    /**
+     * Ported from src/bmsave-lib.c: WriteSaveBlockInfo
+     *
+     * Fills `magic16`, `offset` (the low 16 bits of the write address, which is the SRAM offset),
+     * `size` by `kind` and the block checksum of [chunk] (a 0x10-byte block info the caller has set
+     * `kind`, and for valid kinds `magic32`, on) and writes it to block info [index]. Like the C
+     * code it returns without writing for `index >= 7` or an unknown kind.
+     */
+    public fun writeSaveBlockInfo(chunk: ByteArray, index: Int) {
+        putU16(chunk, L.INFO_MAGIC16, L.SAVEMAGIC16)
+        putU16(chunk, L.INFO_OFFSET, getSaveWriteAddr(index))
+        if (index >= L.BLOCK_INFO_COUNT) return
+        when (chunk[L.INFO_KIND].toInt()) {
+            L.SAVEBLOCK_KIND_GAME -> putU16(chunk, L.INFO_SIZE, L.GAME_SIZE)
+            L.SAVEBLOCK_KIND_SUSPEND -> putU16(chunk, L.INFO_SIZE, L.SUSPEND_SIZE)
+            L.SAVEBLOCK_KIND_ARENA -> putU16(chunk, L.INFO_SIZE, L.ARENA_SIZE)
+            L.SAVEBLOCK_KIND_XMAP -> putU16(chunk, L.INFO_SIZE, L.XMAP_SIZE)
+            L.SAVEBLOCK_KIND_INVALID -> {
+                putU16(chunk, L.INFO_SIZE, 0)
+                putU16(chunk, L.INFO_OFFSET, 0)
+                putU16(chunk, L.INFO_MAGIC16, 0)
+            }
+            else -> return
+        }
+        populateSaveBlockChecksum(chunk)
+        writeAndVerifySramFast(chunk, 0, sram, L.blockInfoOffset(index), L.BLOCK_INFO_SIZE)
+    }
+
+    /** Ported from src/bmsave-lib.c: EraseSaveBlockInfo */
+    public fun eraseSaveBlockInfo(index: Int) {
+        if (index < L.BLOCK_INFO_COUNT) {
+            blockInfoBuffer.fill(0xFF.toByte())
+            writeAndVerifySramFast(
+                blockInfoBuffer, 0, sram, L.blockInfoOffset(index), L.BLOCK_INFO_SIZE,
+            )
+        }
+    }
+
+    /**
+     * Ported from src/bmsave-lib.c: GetSaveWriteAddr
+     *
+     * The SRAM offset block [index] is written at (the C pointer's low 16 bits), 0 (NULL) for an
+     * unknown index.
+     */
+    public fun getSaveWriteAddr(index: Int): Int = when (index) {
+        L.SAVE_ID_GAME0 -> L.GAME0_OFFSET
+        L.SAVE_ID_GAME1 -> L.GAME1_OFFSET
+        L.SAVE_ID_GAME2 -> L.GAME2_OFFSET
+        L.SAVE_ID_SUSPEND -> L.SUSPEND0_OFFSET
+        L.SAVE_ID_SUSPEND_ALT -> L.SUSPEND1_OFFSET
+        L.SAVE_ID_ARENA -> L.ARENA_OFFSET
+        L.SAVE_ID_XMAP -> L.XMAP_OFFSET
+        else -> 0
+    }
+
+    /**
+     * Ported from src/bmsave-lib.c: GetSaveReadAddr
+     *
+     * The SRAM offset stored in block info [index] (read even when the info is invalid).
+     */
+    public fun getSaveReadAddr(index: Int): Int {
+        readSaveBlockInfo(scratchInfo, index)
+        return u16(scratchInfo, L.INFO_OFFSET)
+    }
+
+    /** Ported from src/bmsave.c: SramChecksum32 (reads [size] bytes at SRAM [offset]). */
+    public fun sramChecksum32(offset: Int, size: Int): Int {
+        readSramFast(sram, offset, genericBuffer, 0, size)
+        return SaveChecksums.computeChecksum32(genericBuffer, 0, size)
+    }
+
+    /** Ported from src/bmsave.c: VerifySaveBlockChecksum */
+    public fun verifySaveBlockChecksum(info: ByteArray): Boolean =
+        u32(info, L.INFO_CHECKSUM32) ==
+            sramChecksum32(u16(info, L.INFO_OFFSET), u16(info, L.INFO_SIZE))
+
+    /** Ported from src/bmsave.c: PopulateSaveBlockChecksum */
+    public fun populateSaveBlockChecksum(info: ByteArray) {
+        putU32(info, L.INFO_CHECKSUM32, sramChecksum32(u16(info, L.INFO_OFFSET), u16(info, L.INFO_SIZE)))
+    }
+
+    /** Ported from src/bmsave.c: IsSaveValid */
+    public fun isSaveValid(index: Int): Boolean = readSaveBlockInfo(null, index)
+
+    /**
+     * Ported from src/bmsave.c: InvalidateSuspendSave
+     *
+     * Marks block info [slot] (and the alternate one for the first suspend slot) invalid. The
+     * C `chunk` local is uninitialised apart from `kind`; the unset fields are 0 here.
+     */
+    public fun invalidateSuspendSave(slot: Int) {
+        scratchInfo.fill(0)
+        scratchInfo[L.INFO_KIND] = L.SAVEBLOCK_KIND_INVALID.toByte()
+        writeSaveBlockInfo(scratchInfo, slot)
+        if (L.SAVE_ID_SUSPEND == slot) writeSaveBlockInfo(scratchInfo, L.SAVE_ID_SUSPEND_ALT)
+    }
+
+    /** Transcribed from src/bmsave.c: WriteLastGameSaveId (not verified: no trace writes it). */
+    public fun writeLastGameSaveId(num: Int) {
+        readGlobalSaveInfo(infoBuffer)
+        infoBuffer[L.HEADER_LAST_GAME_SAVE_ID] = num.toByte()
+        writeGlobalSaveInfoNoChecksum(infoBuffer)
+    }
+
+    /** Transcribed from src/bmsave.c: ReadLastGameSaveId (not verified: no trace reads it). */
+    public fun readLastGameSaveId(): Int {
+        if (!readGlobalSaveInfo(infoBuffer)) return 0
+        val ret = infoBuffer[L.HEADER_LAST_GAME_SAVE_ID].toInt()
+        return if (ret > L.SAVE_ID_GAME2 || ret < 0) L.SAVE_ID_GAME0 else ret
     }
 
     /** Shared body of the `LoadAndVerfy*`/`LoadBonusContentData` readers: read, then checksum. */
@@ -384,7 +494,7 @@ public class BmSaveLib(public val sram: CartSram) {
 
     private companion object {
         /** `gGenericBuffer` is 0x2000 bytes in C; the largest block used here is 0x144. */
-        const val GENERIC_BUFFER_SIZE = L.BONUS_SIZE
+        const val GENERIC_BUFFER_SIZE = L.SUSPEND_SIZE
 
         /** Bytes `WipeSram` writes per call (0x200 calls cover the 0x8000 bytes). */
         const val WIPE_CHUNK = 0x40

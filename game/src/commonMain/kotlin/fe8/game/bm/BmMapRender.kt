@@ -19,8 +19,7 @@ public class BmMapRender(
     private val hardware: BgHardware,
 ) {
     /**
-     * Transcribed from src/bmmap.c: DisplayBmTile (not verified: every traced map has a fog map
-     * of all 1s, so the fogged palette bank 11 branch never runs)
+     * Ported from src/bmmap.c: DisplayBmTile
      *
      * Writes the 2x2 tilemap entries of the tileset metatile of map tile ([xBmMap], [yBmMap]) to
      * [bg] at tile ([xTileMap], [yTileMap]) (`bg` has 0x20 entries per row), with palette bank 6,

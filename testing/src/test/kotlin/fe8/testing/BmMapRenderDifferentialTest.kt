@@ -28,8 +28,8 @@ import org.junit.jupiter.api.Test
  * whole 32x32 buffer is compared, along with the BG3 offsets, the BG3 sync bit and the display
  * enable bits.
  *
- * Not tagged: `DisplayBmTile` (every fog map in the dumps is all 1s, so its fogged branch never
- * runs) and `RenderBmMapOnBg2` (no trace calls it).
+ * `ram_trace_ch6_fog` (vision 3) covers the fogged branch of `DisplayBmTile` (see the ch6 test).
+ * Not tagged: `RenderBmMapOnBg2` (no trace calls it).
  */
 class BmMapRenderDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -59,63 +59,101 @@ class BmMapRenderDifferentialTest {
     fun `BG3 tilemap matches the dump`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
-        val rom = RomView.ofRom(romFile.readBytes())
-        val bg3Addr = sym["gBG3TilemapBuffer"].address
-        val fogHandle = sym["gBmMapFog"].address
         var compared = 0
         val chapters = HashSet<Int>()
         for ((runName, dump) in frames()) {
             if (!File(ref.root, "$runName/$dump.ewram.bin").isFile) continue
-            val run = ref.run(runName)
-            val ew = run.region(dump, "ewram")
-            val iw = run.region(dump, "iwram")
-            val at = "$runName/$dump"
-            val gameBm = BmSt().also { it.decode(ew, sym["gBmSt"].address - GbaMem.EWRAM) }
-            val playSt = PlaySt().also { it.decode(ew, sym["gPlaySt"].address - GbaMem.EWRAM) }
-            val bmSt = BmSt()
-            bmSt.cameraX = gameBm.cameraX
-            bmSt.cameraY = gameBm.cameraY
-            val map = BmMap(rom, ChapterData(rom), bmSt)
-            map.initChapterMap(playSt.chapterIndex)
-            val first = u32(ew, fogHandle) - 8
-            for (y in -2 until map.sizeY + 2) {
-                for (x in 0 until map.sizeX + 2) {
-                    map.fog[y, x] = u8(ew, first + (y + 2) * (map.sizeX + 2) + x)
-                }
-            }
-            val hw = BgHardware()
-            val dumped = LcdControl().apply {
-                readFrom(iw, sym["gLCDControlBuffer"].address - GbaMem.IWRAM)
-            }
-            val bgOff = bg3Addr - GbaMem.EWRAM
-            val expected = ShortArray(BgHardware.TILEMAP_ENTRIES) {
-                ((ew[bgOff + 2 * it].toInt() and 0xFF) or (ew[bgOff + 2 * it + 1].toInt() shl 8))
-                    .toShort()
-            }
-            for (i in expected.indices) {
-                val inside = i % 0x20 < 2 * BmMapRender.VISIBLE_COLUMNS &&
-                    i / 0x20 < 2 * BmMapRender.VISIBLE_ROWS
-                hw.tilemaps[3][i] = if (inside) SENTINEL else expected[i]
-            }
-            hw.lcd.setBgPosition(3, 0x1234, 0x2345)
-            hw.lcd.setDispEnable(0, 0, 0, 0, 0)
-
-            BmMapRender(bmSt, map, hw).renderBmMap()
-
-            for (i in expected.indices) {
-                assertEquals(expected[i], hw.tilemaps[3][i], "BG3 entry $i at $at")
-            }
-            assertEquals(dumped.bgHofs[3], hw.lcd.bgHofs[3], "BG3 hofs at $at")
-            assertEquals(dumped.bgVofs[3], hw.lcd.bgVofs[3], "BG3 vofs at $at")
-            assertEquals(dumped.dispcnt and 0x1F00, hw.lcd.dispcnt and 0x1F00, "dispcnt at $at")
-            assertEquals(BmMapRender.BG3_SYNC_BIT, hw.modifiedBgs, "sync mask at $at")
-            assertEquals(gameBm.cameraX shr 4, bmSt.mapRenderOriginX, "origin x at $at")
-            assertEquals(gameBm.cameraY shr 4, bmSt.mapRenderOriginY, "origin y at $at")
-            chapters += playSt.chapterIndex
+            chapters += compareFrame(runName, dump).chapter
             compared++
         }
         assertTrue(compared >= 100, "frames compared: $compared")
         assertTrue(0 in chapters && 16 in chapters, "chapters seen: $chapters")
+    }
+
+    /**
+     * Chapter 6 has fog (vision 3). Before the cursor holds start (f2004) the dumps' BG3 buffer is
+     * the output of RenderBmMap for the current camera; the window must contain fogged cells
+     * (`gBmMapFog` 0, palette bank 11) as well as lit ones (bank 6).
+     */
+    @Test
+    @VerifiesPort("DisplayBmTile")
+    fun `fogged BG3 tilemap matches the dump on chapter 6`() {
+        assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        var fogged = 0
+        var lit = 0
+        for (dump in listOf("f01990", "r01995", "f02000", "r02003")) {
+            val r = compareFrame("ram_trace_ch6_fog", dump)
+            assertEquals(7, r.chapter)
+            fogged += r.fogged
+            lit += r.lit
+        }
+        assertTrue(fogged > 0, "fogged entries compared: $fogged")
+        assertTrue(lit > 0, "lit entries compared: $lit")
+    }
+
+    private class Result(val chapter: Int, val fogged: Int, val lit: Int)
+
+    private fun compareFrame(runName: String, dump: String): Result {
+        val rom = RomView.ofRom(romFile.readBytes())
+        val bg3Addr = sym["gBG3TilemapBuffer"].address
+        val fogHandle = sym["gBmMapFog"].address
+        val run = ref.run(runName)
+        val ew = run.region(dump, "ewram")
+        val iw = run.region(dump, "iwram")
+        val at = "$runName/$dump"
+        val gameBm = BmSt().also { it.decode(ew, sym["gBmSt"].address - GbaMem.EWRAM) }
+        val playSt = PlaySt().also { it.decode(ew, sym["gPlaySt"].address - GbaMem.EWRAM) }
+        val bmSt = BmSt()
+        bmSt.cameraX = gameBm.cameraX
+        bmSt.cameraY = gameBm.cameraY
+        val map = BmMap(rom, ChapterData(rom), bmSt)
+        map.initChapterMap(playSt.chapterIndex)
+        val first = u32(ew, u32(ew, fogHandle) - 8)
+        for (y in -2 until map.sizeY + 2) {
+            for (x in 0 until map.sizeX + 2) {
+                map.fog[y, x] = u8(ew, first + (y + 2) * (map.sizeX + 2) + x)
+            }
+        }
+        val hw = BgHardware()
+        val dumped = LcdControl().apply {
+            readFrom(iw, sym["gLCDControlBuffer"].address - GbaMem.IWRAM)
+        }
+        val bgOff = bg3Addr - GbaMem.EWRAM
+        val expected = ShortArray(BgHardware.TILEMAP_ENTRIES) {
+            ((ew[bgOff + 2 * it].toInt() and 0xFF) or (ew[bgOff + 2 * it + 1].toInt() shl 8))
+                .toShort()
+        }
+        var fogged = 0
+        var lit = 0
+        for (i in expected.indices) {
+            val inside = i % 0x20 < 2 * BmMapRender.VISIBLE_COLUMNS &&
+                i / 0x20 < 2 * BmMapRender.VISIBLE_ROWS
+            hw.tilemaps[3][i] = if (inside) SENTINEL else expected[i]
+        }
+        // The palette bank in the entries is added to the tileset config's own bits, so count the
+        // fogged cells from the fog map instead.
+        for (iy in 0 until BmMapRender.VISIBLE_ROWS) {
+            for (ix in 0 until BmMapRender.VISIBLE_COLUMNS) {
+                val f = map.fog[(gameBm.cameraY shr 4) + iy, (gameBm.cameraX shr 4) + ix]
+                if (f == 0) fogged++ else lit++
+            }
+        }
+        hw.lcd.setBgPosition(3, 0x1234, 0x2345)
+        hw.lcd.setDispEnable(0, 0, 0, 0, 0)
+
+        BmMapRender(bmSt, map, hw).renderBmMap()
+
+        for (i in expected.indices) {
+            assertEquals(expected[i], hw.tilemaps[3][i], "BG3 entry $i at $at")
+        }
+        assertEquals(dumped.bgHofs[3], hw.lcd.bgHofs[3], "BG3 hofs at $at")
+        assertEquals(dumped.bgVofs[3], hw.lcd.bgVofs[3], "BG3 vofs at $at")
+        assertEquals(dumped.dispcnt and 0x1F00, hw.lcd.dispcnt and 0x1F00, "dispcnt at $at")
+        assertEquals(BmMapRender.BG3_SYNC_BIT, hw.modifiedBgs, "sync mask at $at")
+        assertEquals(gameBm.cameraX shr 4, bmSt.mapRenderOriginX, "origin x at $at")
+        assertEquals(gameBm.cameraY shr 4, bmSt.mapRenderOriginY, "origin y at $at")
+        return Result(playSt.chapterIndex, fogged, lit)
     }
 
     private companion object {

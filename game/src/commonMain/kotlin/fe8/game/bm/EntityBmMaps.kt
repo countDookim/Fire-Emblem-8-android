@@ -32,7 +32,8 @@ public class EntityBmMaps(
      * Clears the unit and hidden maps with 0 and the fog map with 1 (no fog) or 0 (fog), then
      * runs the torchlight hook, [refreshUnitsOnBmMap] and the mine hook.
      */
-    public fun refreshEntityBmMaps() {        map.bmMapFill(map.unit, 0)
+    public fun refreshEntityBmMaps() {
+        map.bmMapFill(map.unit, 0)
         map.bmMapFill(map.hidden, 0)
         map.bmMapFill(map.fog, if (playSt.chapterVisionRange == 0) 1 else 0)
 
@@ -42,8 +43,7 @@ public class EntityBmMaps(
     }
 
     /**
-     * Transcribed from src/bmmap.c: RefreshUnitsOnBmMap (not verified: no
-     * trace has fog, so the vision and hidden-unit branches never run)
+     * Ported from src/bmmap.c: RefreshUnitsOnBmMap
      *
      * Puts every visible blue/green unit on the unit map and, with fog, lights the fog map around
      * it; then handles the red/purple units: magic-seal units darken the fog map, and fogged

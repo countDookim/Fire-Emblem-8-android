@@ -93,7 +93,8 @@ public object Camera {
      * returns both through pointers, split here to avoid allocating).
      *
      * Not verified: needs a run with a scripted camera move (sub_8015D84 / SetSomeRealCamPos,
-     * e.g. an event camera command); no reference run reaches it.
+     * e.g. an event camera command); no reference run reaches it, so the CamMove start that
+     * uses it ([CamMove.startCameraOntoPositionCentred]) is untagged too (M5-46 checked).
      *
      * @param xIn watched map column (tiles).
      * @param mapSizeX `gBmMapSize.x` (s16, tiles).

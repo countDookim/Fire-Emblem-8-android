@@ -33,13 +33,6 @@ class UnitTableDifferentialTest {
         "baserom.gba",
     )
 
-    /** A dump in frame order with everything decoded. */
-    private class Frame(val name: String, val ewram: ByteArray, val table: UnitTable) {
-        val playSt = PlaySt().also { it.decode(ewram, PLAY_ST - EWRAM) }
-        val bmSt = BmSt().also { it.decode(ewram, BM_ST - EWRAM) }
-        val playerPhaseLive = ProcArrayDump.ofEwram(ewram).find(PLAYER_PHASE) != null
-    }
-
     private fun frames(): List<Frame> {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
@@ -152,4 +145,11 @@ class UnitTableDifferentialTest {
         const val BM_ST = 0x0202BCB0
         const val PLAYER_PHASE = 0x0859AAD8
     }
+}
+
+/** A dump in frame order with everything decoded (below the test class for tools/progress.py). */
+private class Frame(val name: String, val ewram: ByteArray, val table: UnitTable) {
+    val playSt = PlaySt().also { it.decode(ewram, 0x0202BCF0 - 0x02000000) }
+    val bmSt = BmSt().also { it.decode(ewram, 0x0202BCB0 - 0x02000000) }
+    val playerPhaseLive = ProcArrayDump.ofEwram(ewram).find(0x0859AAD8) != null
 }

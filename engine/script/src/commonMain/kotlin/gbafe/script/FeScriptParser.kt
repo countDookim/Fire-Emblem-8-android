@@ -9,6 +9,7 @@ public data class ScriptError(
     /** What is wrong. */
     public val message: String,
 ) {
+    /** Formats the error as `<file>:<line>: <message>`. */
     override fun toString(): String = "$file:$line: $message"
 }
 

@@ -74,8 +74,10 @@ public object Fe8ScriptConstants : ScriptConstants {
         ),
     )
 
+    /** The value of [name] in [kind], or `NONE` if unknown. */
     override fun valueOf(kind: String, name: String): Int = set.valueOf(kind, name)
 
+    /** The primary name of [value] in [kind], or null if none. */
     override fun nameOf(kind: String, value: Int): String? = set.nameOf(kind, value)
 
     /** The table of [kind] (names, values and origins), or null for an unknown kind. */

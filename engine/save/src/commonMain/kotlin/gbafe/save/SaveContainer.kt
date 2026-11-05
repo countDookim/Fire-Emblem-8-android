@@ -119,6 +119,7 @@ public class SaveContainer(
     /** Returns the encoded container as a new array. */
     public fun toByteArray(): ByteArray = ByteArray(encodedSize()).also { writeTo(it) }
 
+    /** Container format constants and readers. */
     public companion object {
         private const val FIXED_HEADER = 8
         private const val ENTRY_FIXED = 10

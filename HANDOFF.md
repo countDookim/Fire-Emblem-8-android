@@ -1,17 +1,20 @@
 # HANDOFF
 
-_Updated 2026-11-04 (scheduled run, late). Owner decisions: docs/PROJECT_BRIEF.md. History: git log._
+_Updated 2026-11-05 (owner-PC session, night). Owner decisions: docs/PROJECT_BRIEF.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## Next task: M5-09 part 2 (`:testing` ProcArrayDump + refactor differentials onto it)
-M5-02..08 done (ROM repo harness `dumpsram`/`--sram`/`watch`, `scan_trace.py`, 6 new runs published, 23.7 MiB
-tarball). M5-09 part 1 done: `ReferenceData.Run.hasSram/sram/watch` + `WatchTrace`, `WatchTraceReferenceTest`.
-Pinned frames (per-step watches, ROM repo `harness/gen_scripts.py` comment by NEWGAME): BMapMain f9319,
-StdEventEngine f4907..9292 (WM) and f9508..19312, BattleEventEngine f14479..14631, PhaseIntro f19316 (= suspend
-info[4] commit; data f19313-14), PlayerPhase f19393. New-game save write f1130..1132 + 1 byte (0x7224) f1214.
-Then ROM-only tasks (M5-10..15, 18, 21, 22, 28) or M5-23/29 (now unblocked). New code in `commonMain`.
+## Next task: M5-34 (GameControl functions), then M5-11 + M5-13 together
+Done 2026-11-05 (owner PC): M5-09..10, 12, 14, 18..24, 28, 29, 33, 36, 38, 41 (see TASKS). Open and unblocked:
+M5-34 → M5-35 (GameControl differential); M5-11 + M5-13 must land together with a ROM-repo re-extraction push
+(the converter's output changes, and CI's ci_check_extraction compares it with the ROM repo's `extracted/`);
+M5-15 (after M5-13), M5-25/26/30..32 (saves), M5-37/39/40 (map graphics/render), M5-41b (ROM run on a map
+larger than the screen: the prologue map is 15×10, so the camera never scrolls in ram_trace_first_phase).
+Pinned frames (ROM repo `harness/gen_scripts.py`, NEWGAME comment): InitChapterMap f9314..9319 (ch 0), event's
+load_map ch 16 settles ~f9513, StdEventEngine f4907..9292 (WM) and f9508..19312, BattleEventEngine
+f14479..14631, PhaseIntro f19316 (= suspend info[4] commit), PlayerPhase f19393. New-game save write
+f1130..1132 + 1 byte (0x7224) f1214. Title START now enters GameControl's save-menu stand-in (holds) until M5-58.
 
 ## State
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
@@ -19,7 +22,7 @@ Then ROM-only tasks (M5-10..15, 18, 21, 22, 28) or M5-23/29 (now unblocked). New
   `CgbSound` verified; `PsgSynth` (not a port, GBATEK/mGBA behaviour) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad (2026-10-30); GPU backend, audio
   (2026-11-01); ROM import ~4 s, boots from it, PSG sound correct by ear (2026-11-04).
-- Verified ports: 260 / 8352 (`tools/progress.py`).
+- Verified ports: 305 / 8352 (`tools/progress.py`, 2026-11-05).
 - Layout: game-neutral `:gba:*` (ADR 0012), FE-shared `gbafe.*` in `:engine:*`, FE8-only `fe8.*` in `:game`
   and `:app`. KMP (ADR 0013): all of them except `:gba:testkit`, `:testing`, `:tools:extract` (plain JVM);
   android target only in CI (`com.android.kotlin.multiplatform.library`; CI log shows `compileAndroidMain`).

@@ -323,8 +323,11 @@ public class BmSaveLib(public val sram: CartSram) {
      * `chapterIndex` (byte 0x0E) and the `unk_2C_0D` bit field (bits 13..22 of the word at 0x2C)
      * of the saved `PlaySt`, as `ReadSuspendSavePlaySt` does, and for the extra-map chapter 0x7F
      * compares it with `unk0F` of the extra-map save head at SRAM 0x7400, invalidating the
-     * suspend save on a mismatch. The extra-map path is transcribed but not verified (the
-     * reference runs have no extra-map suspend save), and the rest of `PlaySt` is not read.
+     * suspend save on a mismatch. The C code reads the whole `PlaySt` into a local and uses only
+     * those two fields, so the non-extra-map path is complete: on the owner's chapter 2 save
+     * (`sram_chapter2_boot`) the suspend save is kept and SRAM and `gSuspendSaveIdOffset` match
+     * the dumps. It stays untagged because the extra-map branch (chapter 0x7F, including
+     * `gExtraMapSaveHead`) is transcribed but no reference run has an extra-map suspend save.
      */
     public fun loadAndVerifySuspendSave() {
         if (!isValidSuspendSave(L.SAVE_ID_SUSPEND)) return

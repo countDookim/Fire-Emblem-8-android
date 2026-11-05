@@ -10,5 +10,8 @@ kotlin {
             api(project(":engine:core"))
             api(project(":gba:vfs"))
         }
+        jvmTest.dependencies {
+            implementation(project(":gba:testkit"))
+        }
     }
 }

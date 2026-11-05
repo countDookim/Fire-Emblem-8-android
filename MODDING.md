@@ -68,8 +68,9 @@ replace `RngService.source` with any `RandomSource`.
 
 ## Planned (M5)
 Flag/variable registry named after decomp constants (`EVFLAG_...`; unnamed: `EVFLAG_<n>`); mods register
-additional flags/variables by name. Saves: versioned, per-mod
-sections, migrations, original `.sav` import.
+additional flags/variables by name. Saves (`gbafe.save`, done): versioned container with a `core` SRAM section and opaque
+`mod:<id>` sections that survive rewrites; register `MigrationRegistry` steps per `(sectionId, fromVersion)`;
+original `.sav` import planned.
 
 ## Data tables
 Format `gbafe.<table>` v1. Ids = decomp constants minus prefix (`ITEM_SWORD_IRON` → `SWORD_IRON`; unnamed

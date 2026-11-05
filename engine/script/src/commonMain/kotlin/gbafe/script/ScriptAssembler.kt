@@ -98,6 +98,12 @@ public fun interface ScriptBases {
     }
 }
 
+/** Rewrites a command into one or more commands before the assembler sizes and encodes it. */
+public fun interface CommandExpander {
+    /** The commands replacing [cmd] (all with its line), or null to keep it unchanged. */
+    public fun expand(cmd: ScriptLine.Command): List<ScriptLine.Command>?
+}
+
 /**
  * Compiles parsed `.fe8s` records ([FeScriptParser]) to a [ScriptImage]: the original game's event
  * words, laid out per [encoder]. It runs at load time (allocation is fine).
@@ -112,6 +118,8 @@ public class ScriptAssembler(
     private val constants: SymbolResolver = SymbolResolver.NONE,
     /** Names outside the image, for example ROM symbols. */
     private val external: SymbolResolver = SymbolResolver.NONE,
+    /** Rewrites commands before sizing and encoding; null leaves every command as written. */
+    private val expander: CommandExpander? = null,
 ) {
     /** Address constants of the assembler. */
     public companion object {
@@ -180,7 +188,11 @@ public class ScriptAssembler(
                 blocks += Block(l.name, l.line)
             } else {
                 val b = blocks.lastOrNull() ?: fail(l.line, "record outside an event block")
-                b.lines += l
+                if (l is ScriptLine.Command && expander != null) {
+                    b.lines += expander.expand(l) ?: listOf(l)
+                } else {
+                    b.lines += l
+                }
             }
         }
         return blocks

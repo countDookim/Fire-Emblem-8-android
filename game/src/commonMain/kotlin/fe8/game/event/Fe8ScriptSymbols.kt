@@ -4,6 +4,7 @@ import gbafe.extract.fe8.events.Fe8ScriptConstants
 import gbafe.script.CommandEncoder
 import gbafe.script.FeScriptParser
 import gbafe.script.IdentifierResolver
+import gbafe.script.ModFlagSlotExpander
 import gbafe.script.ModFlagSymbols
 import gbafe.script.ScriptAssembler
 import gbafe.script.ScriptConstants
@@ -113,7 +114,8 @@ public class Fe8ConstantSymbols(
 /**
  * The FE8 `.fe8s` toolchain: a parser and an assembler over [Fe8CommandSet], the FE8 constants and
  * the [external] symbols (names of ROM data and functions from the decomp symbol list). [mods]
- * adds mod-registered flag names after the FE8 constants.
+ * adds mod-registered flag names after the FE8 constants; a command using one gets a `set_slot 2`
+ * before it ([ModFlagSlotExpander]).
  */
 public class Fe8ScriptTools(
     external: NmSymbolIndex,
@@ -136,5 +138,10 @@ public class Fe8ScriptTools(
         encoder,
         if (mods == null) constantSymbols else SymbolResolver.chain(constantSymbols, mods),
         external,
+        mods?.let { m ->
+            Fe8CommandSet.lookup("set_slot")?.let { setSlot ->
+                ModFlagSlotExpander(m, setSlot, 2, Fe8CommandSet::flagArgIndices)
+            }
+        },
     )
 }

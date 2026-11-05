@@ -62,6 +62,16 @@ public const val FLAG_AT_SLOT2_COMMAND: String = "clear_flag_at_slot2"
 public object Fe8CommandSet : CommandSet {
     /** Resolves [name] (canonical, macro name or alias) to its command spec, or null. */
     override fun lookup(name: String): CommandSpec? = Fe8Forms.lookup(name)?.spec
+
+    /** Indices into the arguments of [spec] of the fields that take an event flag id. */
+    public fun flagArgIndices(spec: CommandSpec): List<Int> {
+        val f = Fe8Forms.byName[spec.name] ?: return emptyList()
+        if (f.flagAtSlot2) return emptyList()
+        val first = if (f.command.subParam != null) 1 else 0
+        return f.fields.mapIndexedNotNull { i, fl ->
+            if (fl.valueKind == Fe8ScriptConstants.KIND_EVENT_FLAG) first + i else null
+        }
+    }
 }
 
 /** Encodes FE8 commands to the original event words per the [Fe8EventCommands] layouts. */

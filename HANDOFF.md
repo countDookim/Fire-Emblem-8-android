@@ -7,18 +7,18 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M5-56b: scheduled, until ~23:25Z
+- M5-58: scheduled, until ~23:25Z (wip/M5-58)
 _(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
-## Next task: M5-58/59 (wire New Game → Prologue map), M5-56b (mod flag literals)
+## Next task: M5-58/59 (wire New Game → Prologue map)
 M5-53..55 done (owner PC): `EventVmDifferentialTest` runs the real `EventEngine` over the whole prologue trace (12618
 pairs, 0 mismatches; RNG, tutorial fields, call/active queues and flags compared). Unported commands are test-only
 stubs (STUBS table). 172 Event19 pairs are skipped: the game engine idles while a Popup/GotItem child proc lives (no
 blocked-by-child model yet). Withheld tags and why: docs/TASKS.md Done/M5. EventEngine_CanStartSkip/StartSkip are
 partial (an unpushed alternative port is on owner-PC branch `backup/event-engine-dup`). `EventScrCore` takes the
 game's RngService/PlaySt/KeyStatus (no defaults). Wiring still open (M5-58): `BMapMain.hooks.playerPhase`,
-`hooks.callEvent` → EventEngine. M5-56 done (scheduled): `RoutedFlagStore`, `ModFlagSymbols`, `ModSaveSections`; caveat → M5-56b (mod flag
-literals need slot 2 preloaded). M5-57 done: `ModScriptEndToEndTest` (mod .fe8s → synthetic range → calls a
+`hooks.callEvent` → EventEngine. M5-56 done (scheduled): `RoutedFlagStore`, `ModFlagSymbols`, `ModSaveSections`; M5-56b done: a mod flag name in a flag
+arg gets `set_slot 2, handle` before it (`ModFlagSlotExpander`; overwrites slot 2). M5-57 done: `ModScriptEndToEndTest` (mod .fe8s → synthetic range → calls a
 ROM script → returns; 0 B/frame). `wip/M5-56` is merged and can be deleted. M5-58 was stopped before
 any change.
 

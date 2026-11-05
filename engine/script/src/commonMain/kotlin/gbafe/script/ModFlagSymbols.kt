@@ -34,3 +34,43 @@ public class ModFlagSymbols(
 
     override fun isKnown(name: String): Boolean = flags.resolve(name) >= MOD_BASE
 }
+
+/**
+ * A [CommandExpander] for scripts that name mod flags. A mod flag handle is negative as u16, which
+ * the event VM reads as "flag id in event slot [slot]"; so before a command with a mod flag name in
+ * a flag argument this inserts `set_slot <slot>, <handle>` ([setSlot]), copying the command's line.
+ * Side effect visible to the script: the expansion overwrites event slot [slot]. Commands without
+ * a mod flag are unchanged, so vanilla scripts assemble byte-exact.
+ *
+ * @property mods resolves mod flag names.
+ * @property setSlot the game's `set_slot` spec (arguments: slot, value).
+ * @property slot the slot the VM reads flag ids from.
+ * @property flagArgs indices of the flag arguments of a command spec.
+ */
+public class ModFlagSlotExpander(
+    private val mods: ModFlagSymbols,
+    private val setSlot: CommandSpec,
+    private val slot: Int,
+    private val flagArgs: (CommandSpec) -> List<Int>,
+) : CommandExpander {
+    override fun expand(cmd: ScriptLine.Command): List<ScriptLine.Command>? {
+        var handle = SymbolResolver.UNRESOLVED
+        for (i in flagArgs(cmd.spec)) {
+            val a = cmd.args.getOrNull(i) as? Arg.IdentArg ?: continue
+            val h = mods.resolve(a.name, mods.flagKind)
+            if (h == SymbolResolver.UNRESOLVED) continue
+            if (handle != SymbolResolver.UNRESOLVED) {
+                throw ScriptAssemblyException(
+                    cmd.line,
+                    "'${cmd.spec.name}' names two mod flags; only one fits event slot $slot",
+                )
+            }
+            handle = h
+        }
+        if (handle == SymbolResolver.UNRESOLVED) return null
+        val set = ScriptLine.Command(
+            setSlot, listOf(Arg.IntArg(slot), Arg.IntArg(handle.toInt())), cmd.line,
+        )
+        return listOf(set, cmd)
+    }
+}

@@ -40,10 +40,9 @@ class ModFlagSaveTest {
             val i = image.wordIndexOfAddress(a)
             if (i >= 0) image.words[i] and 0xFFFF else 0
         }
-        // A negative u16 flag argument (every mod handle) means "flag id in slot 2" in the vanilla
-        // VM, so the handle reaches the flag store through slot 2, as vanilla indirection does.
+        // The assembler put `set_slot 2, handle` before `set_flag MyMod_Seen`; slot 2 is not
+        // pre-set here. Vanilla `set_flag 101` stays one command.
         val state = EventState()
-        state.slots[2] = registry.resolve("MyMod_Seen")
         val core = EventScrCore(
             state, mem, object : EventInput {}, RoutedFlagStore(registry),
             RngService(), PlaySt(), KeyStatus(), object : EventScrHooks {},
@@ -52,9 +51,14 @@ class ModFlagSaveTest {
         proc.pEventStart = entry.baseAddress
         proc.pEventIdk = entry.baseAddress
         proc.pEventCurrent = entry.baseAddress
-        assertEquals(EVC_ADVANCE_CONTINUE, core.event02EvBitAndIdMod.run(proc))
+        val cont = EVC_ADVANCE_CONTINUE
+        assertEquals(cont, core.event02EvBitAndIdMod.run(proc)) // set_flag 101
         proc.pEventCurrent += 4
-        assertEquals(EVC_ADVANCE_CONTINUE, core.event02EvBitAndIdMod.run(proc))
+        assertEquals(cont, core.event05SetSlot.run(proc)) // set_slot 2, handle
+        assertEquals(registry.resolve("MyMod_Seen"), state.slots[2])
+        assertFalse(registry.check(registry.resolve("MyMod_Seen")))
+        proc.pEventCurrent += 8
+        assertEquals(cont, core.event02EvBitAndIdMod.run(proc)) // set_flag MyMod_Seen
 
         assertTrue(registry.check(registry.resolve("MyMod_Seen")))
         assertTrue(flags.checkFlag(101))

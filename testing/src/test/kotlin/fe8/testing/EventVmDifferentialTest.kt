@@ -32,7 +32,9 @@ import org.junit.jupiter.api.Test
  * state of A is loaded into a real [EventEngine] (real `EventEngine_Create` then the fields
  * overwritten from A), `EventEngine.onUpdate` runs once with the ported handlers and the result
  * is compared with B: pc, `pEventIdk`, `evStateBits`, `evStallTimer`, `execType`, slots 1-13,
- * the slot queue, the slot counter, the active queue and the flag bitfields. Slot 0 is not
+ * the slot queue, the slot counter, the active queue, the call queue, the flag bitfields, the
+ * tutorial fields of `gPlaySt` and, on pairs that ran `Event04_CheckRandom`, `gRNState`.
+ * Slot 0 is not
  * compared (`OnUpdate` zeroes it and other code may write it).
  *
  * Commands without a ported handler are test-only stubs ([STUBS]). A stub completes its command
@@ -99,6 +101,25 @@ class EventVmDifferentialTest {
     @VerifiesPort("Event09_Goto")
     fun `Event09 Goto`() = assertCode(0x09)
 
+    // Not @VerifiesPort: only args 0 and 1 run; the skipping branch and args 2-4 survive breaks.
+    @Test
+    fun `Event10 ModifyEvBit`() = assertCode(0x10)
+
+    // Not @VerifiesPort: only sub 7 of the 11 subs runs on data.
+    @Test
+    fun `Event19 Checks`() = assertCode(0x19)
+
+    // Event02 sub 1 sets a permanent flag once in the trace (step 9290); flag bytes are compared
+    // on every pair, so this covers SetFlag -> SetPermanentFlag. Check*Flag (Event03 sub 1) and
+    // ClearFlag never run on data, and no flag below 100 or 0x84 changes: those stay untagged.
+    @Test
+    @VerifiesPort("SetFlag", "SetPermanentFlag")
+    fun `flag bits changed by Event02 match the trace`() {
+        val r = replay() ?: return
+        assertTrue(r.flagChange.pairs >= 1, "no pair changed the flag bytes")
+        assertEquals(emptyList<String>(), r.flagChange.mismatches.take(5))
+    }
+
     @Test
     @VerifiesPort("Event0A_Call")
     fun `Event0A Call`() = assertCode(0x0A)
@@ -111,6 +132,11 @@ class EventVmDifferentialTest {
     @VerifiesPort("Event0E_STAL")
     fun `Event0E STAL`() = assertCode(0x0E)
 
+    // Not tagged: CallEvent, EnqueueEventCall, CallNextQueuedEvent, EventEngine_OnEnd. The call
+    // queue is compared on every pair but is all zero in the whole trace (no call is ever queued
+    // while an engine runs), and the engine ends (steps 9285, 9292, 19312) with an empty queue, so
+    // breaking the queue shift in CallNextQueuedEvent, dropping its call from OnEnd, or turning
+    // CallEvent into a no-op all survive.
     @Test
     fun `coverage of the replay does not silently drop`() {
         val r = replay() ?: return
@@ -158,6 +184,7 @@ class EventVmDifferentialTest {
         val codes = TreeMap<Int, Stats>()
         val onUpdate = Stats()
         val create = Stats()
+        val flagChange = Stats()
         val stubCompleted = TreeMap<Int, Int>()
         val stubParked = TreeMap<Int, Int>()
         val unportedHist = TreeMap<Int, Int>()
@@ -217,6 +244,9 @@ class EventVmDifferentialTest {
         }
         private val procs = ProcEngine()
         private val engine = EventEngine(procs, state, mem, hooks)
+        private val rng = gbafe.core.rng.RngService()
+        private val playSt = fe8.game.bm.PlaySt()
+        private val keys = gbafe.input.KeyStatus()
         private val result = Result()
 
         // Per-pair scratch, reset before each onUpdate.
@@ -231,9 +261,17 @@ class EventVmDifferentialTest {
 
         init {
             procs.init()
-            val core = EventScrCore(state, mem, object : fe8.game.event.EventInput {}, flags)
+            val core = EventScrCore(
+                state, mem, object : fe8.game.event.EventInput {}, flags, rng, playSt, keys,
+            )
+            core.registerAll(engine)
             val ported = mapOf(
                 0x00 to core.event00Null,
+                0x04 to core.event04CheckRandom,
+                0x0B to core.event0bEnqueueCall,
+                0x10 to core.event10ModifyEvBit,
+                0x11 to core.event11SetIgnoredKeys,
+                0x19 to core.event19Checks,
                 0x01 to core.event01End,
                 0x02 to core.event02EvBitAndIdMod,
                 0x03 to core.event03CheckEvBitOrId,
@@ -400,11 +438,17 @@ class EventVmDifferentialTest {
             }
             result.compared++
             val diffs = compare(proc, b)
+            val flagsChanged = !(a.permanentFlags!! + a.chapterFlags!!)
+                .contentEquals(b.permanentFlags!! + b.chapterFlags!!)
             val tag = "step ${b.step} ran ${ran.map { "%02X".format(it) }} stubs " +
                 "${completedStubs.map { "%02X".format(it) }} at %08X".format(ea.pEventCurrent) +
                 " parked=%d unported=%d".format(parkedStub, unportedCode)
             result.onUpdate.pairs++
             if (diffs.isNotEmpty()) result.onUpdate.mismatches += "$tag: $diffs"
+            if (flagsChanged) {
+                result.flagChange.pairs++
+                if (diffs.isNotEmpty()) result.flagChange.mismatches += "$tag: $diffs"
+            }
             for (code in (ran + completedStubs).toSet()) {
                 val s = result.codes.getOrPut(code) { Stats() }
                 s.pairs++
@@ -427,6 +471,8 @@ class EventVmDifferentialTest {
                 state.activeQueue[2 * i] = e.evt1
                 state.activeQueue[2 * i + 1] = e.evt2
             }
+            playSt.decode(a.playSt!!, 0)
+            rng.primary.load(a.rngState!![0], a.rngState[1], a.rngState[2])
         }
 
         private fun compare(proc: EventEngineProc, b: EventSnapshot): List<String> {
@@ -465,6 +511,31 @@ class EventVmDifferentialTest {
                     )
                 }
             }
+            b.callQueue.forEachIndexed { i, e ->
+                val meta = state.callQueue[2 * i + 1]
+                if (state.callQueue[2 * i] != e.events || meta and 0xFF != e.execType and 0xFF ||
+                    (meta ushr 8) and 0xFF != e.isUsed and 0xFF
+                ) {
+                    d += "callQueue[$i] got %X,%X want %X,%X".format(
+                        state.callQueue[2 * i], meta and 0xFFFF, e.events,
+                        (e.execType and 0xFF) or ((e.isUsed and 0xFF) shl 8),
+                    )
+                }
+            }
+            val bp = fe8.game.bm.PlaySt().also { it.decode(b.playSt!!, 0) }
+            if (playSt.tutorialCounter != bp.tutorialCounter ||
+                playSt.tutorialExecType != bp.tutorialExecType
+            ) {
+                d += "tutorial got %d,%d want %d,%d".format(
+                    playSt.tutorialCounter, playSt.tutorialExecType, bp.tutorialCounter,
+                    bp.tutorialExecType,
+                )
+            }
+            for (i in 0 until if (0x04 in ran) 3 else 0) {
+                if (rng.primary.word(i) != b.rngState!![i]) {
+                    d += "rng[$i] got %X want %X".format(rng.primary.word(i), b.rngState[i])
+                }
+            }
             return d
         }
     }
@@ -476,7 +547,8 @@ class EventVmDifferentialTest {
 
         /** Minimum compared pairs per ported handler code. */
         val MIN_CODE_PAIRS = mapOf(
-            0x01 to 14, 0x02 to 3, 0x03 to 8, 0x05 to 7, 0x06 to 3, 0x07 to 3, 0x08 to 7,
+            0x01 to 14, 0x02 to 3, 0x10 to 2, 0x19 to 1, 0x03 to 8, 0x05 to 7, 0x06 to 3, 0x07 to 3,
+            0x08 to 7,
             0x09 to 1, 0x0A to 9, 0x0C to 8, 0x0E to 2400,
         )
 

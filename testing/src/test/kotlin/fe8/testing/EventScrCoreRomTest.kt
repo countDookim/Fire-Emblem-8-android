@@ -54,7 +54,11 @@ class EventScrCoreRomTest {
         val state = EventState()
         state.slots[0xC] = slotC
         val mem = ScriptMemory { a -> word(rom, a) }
-        val core = EventScrCore(state, mem, object : fe8.game.event.EventInput {})
+        val core = EventScrCore(
+            state, mem, object : fe8.game.event.EventInput {},
+            rng = gbafe.core.rng.RngService(), playSt = fe8.game.bm.PlaySt(),
+            keys = gbafe.input.KeyStatus(),
+        )
         val table = HashMap<Int, EventHandler>()
         table[0x01] = core.event01End
         table[0x05] = core.event05SetSlot

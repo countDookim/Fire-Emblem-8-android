@@ -36,7 +36,18 @@ class EventScrCoreTest {
         override fun gameSpeed() = speed
     }
     private val flags = fe8.game.flags.Fe8EventFlags.create()
-    private val core = EventScrCore(state, mem, input, flags)
+    private val rng = gbafe.core.rng.RngService()
+    private val playSt = fe8.game.bm.PlaySt()
+    private val keys = gbafe.input.KeyStatus()
+    private val tutorial = intArrayOf(0x100, 0x200, 0x300, 0)
+    private val hooks = object : EventScrHooks {
+        override fun tutorialEvent(chapterIndex: Int, index: Int): Int = tutorial[index]
+        override fun countRedUnits(): Int = 7
+        override fun countGreenUnits(): Int = 3
+        override fun battleMapKind(): Int = 2
+        override fun eventTriggerId(script: Int): Int = script and 0xFF
+    }
+    private val core = EventScrCore(state, mem, input, flags, rng, playSt, keys, hooks)
     private val proc = EventEngineProc()
 
     private fun script(vararg w: Int) {
@@ -369,5 +380,114 @@ class EventScrCoreTest {
         script(0x0229, 0xFFFF) // chapter flag 7 from slot 2
         run(core.event02EvBitAndIdMod)
         assertEquals(true, flags.checkFlag(7))
+    }
+
+    @Test
+    fun `check random draws from the rng service`() {
+        rng.primary.load(0x1234, 0x5678, 0x9ABC)
+        val expect = gbafe.core.rng.Fe8Rng().also { it.load(0x1234, 0x5678, 0x9ABC) }
+        script(0x0420, 99)
+        run(core.event04CheckRandom)
+        assertEquals(expect.nextRaw() * 100 / 0x10000, state.slots[0xC])
+        script(0x0420, 0) // max 0: slot C = 0, no draw
+        run(core.event04CheckRandom)
+        assertEquals(0, state.slots[0xC])
+        assertEquals(expect.word(0), rng.primary.word(0))
+    }
+
+    @Test
+    fun `ignored keys sub 0 sets the mask`() {
+        script(0x1120, 0x3FF)
+        run(core.event11SetIgnoredKeys)
+        assertEquals(0x3FF, keys.ignoreMask)
+        script(0x1121, 0x1)
+        run(core.event11SetIgnoredKeys)
+        assertEquals(0x3FF, keys.ignoreMask)
+    }
+
+    @Test
+    fun `modify evbit arguments`() {
+        for ((arg, want) in listOf(0 to 0, 1 to 0x70, 2 to 0x40, 3 to 0x10, 4 to 0x30)) {
+            proc.evStateBits = 0x7B
+            script(0x1020, arg)
+            assertEquals(EVC_ADVANCE_CONTINUE, run(core.event10ModifyEvBit))
+            assertEquals(0x0B or want, proc.evStateBits, "arg $arg")
+        }
+        script(0x1020, 5)
+        assertEquals(EVC_ERROR, run(core.event10ModifyEvBit))
+        proc.evStateBits = EV_STATE_SKIPPING
+        script(0x1020, 0)
+        run(core.event10ModifyEvBit)
+        assertEquals(EV_STATE_SKIPPING, proc.evStateBits)
+        script(0x1020, 3)
+        run(core.event10ModifyEvBit)
+        assertEquals(0x100 or EV_STATE_NOSKIP, proc.evStateBits)
+    }
+
+    @Test
+    fun `checks store game state in slot C`() {
+        fun check(sub: Int): Int {
+            script(0x1920 or sub, 0)
+            proc.pEventStart = 0x1234
+            assertEquals(EVC_ADVANCE_CONTINUE, run(core.event19Checks))
+            return state.slots[0xC]
+        }
+        playSt.chapterModeIndex = 2
+        proc.chapterIndex = 9
+        playSt.chapterTurnNumber = 12
+        playSt.partyGoldAmount = 5000
+        playSt.chapterIndex = 3
+        assertEquals(2, check(0))
+        assertEquals(9, check(1))
+        assertEquals(0, check(2))
+        assertEquals(12, check(3))
+        assertEquals(7, check(4))
+        assertEquals(3, check(5))
+        assertEquals(2, check(6))
+        assertEquals(1, check(7))
+        assertEquals(5000, check(8))
+        assertEquals(0x34, check(9))
+        assertEquals(0, check(0xA))
+        playSt.chapterStateBits = 0x40 or 0x20
+        assertEquals(1, check(2))
+        assertEquals(0, check(7))
+        assertEquals(1, check(0xA))
+        playSt.chapterStateBits = 0
+        playSt.controller = 1
+        assertEquals(0, check(7))
+        playSt.chapterIndex = 5
+        assertEquals(0, check(8))
+        state.slots[0xC] = 77
+        check(0xB) // unknown sub command: slot C untouched
+        assertEquals(77, state.slots[0xC])
+    }
+
+    @Test
+    fun `enqueue tutorial event records index and exec type`() {
+        script(0x0B21, 0x4, 0x0200, 0) // arg 4, ptr 0x200 (32-bit LE words 0x0200, 0)
+        run(core.event0bEnqueueCall)
+        assertEquals(2, playSt.tutorialCounter)
+        assertEquals(4, playSt.tutorialExecType)
+        script(0x0B21, 0x5, 0x0999, 0) // not in the list: unchanged
+        run(core.event0bEnqueueCall)
+        assertEquals(2, playSt.tutorialCounter)
+        assertEquals(4, playSt.tutorialExecType)
+    }
+
+    @Test
+    fun `enqueue call sub 0 calls the event with the engine exec type`() {
+        val procs = gbafe.proc.ProcEngine()
+        procs.init()
+        val engine = EventEngine(procs, state, mem)
+        core.registerAll(engine)
+        proc.execType = EV_EXEC_GAMEPLAY
+        script(0x0B20, 0, 0x0400, 0)
+        run(core.event0bEnqueueCall)
+        val created = engine.findStd()!!.state as EventEngineProc
+        assertEquals(0x0400, created.pEventStart)
+        assertEquals(EV_EXEC_GAMEPLAY, created.execType)
+        script(0x0B20, 0, 0, 0) // null target: nothing
+        run(core.event0bEnqueueCall)
+        assertEquals(0, state.callQueue[1])
     }
 }

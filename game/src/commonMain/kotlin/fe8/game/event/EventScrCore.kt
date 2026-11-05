@@ -11,12 +11,18 @@ import fe8.game.event.EventConst.EV_EXEC_UNK4
 import fe8.game.event.EventConst.EV_EXEC_UNK5
 import fe8.game.event.EventConst.EV_EXEC_WORLDMAP
 import fe8.game.event.EventConst.EV_STATE_0008
+import fe8.game.event.EventConst.EV_STATE_0020
+import fe8.game.event.EventConst.EV_STATE_FADEDIN
 import fe8.game.event.EventConst.EV_STATE_0040
 import fe8.game.event.EventConst.EV_STATE_ABORT
 import fe8.game.event.EventConst.EV_STATE_NOSKIP
 import fe8.game.event.EventConst.EV_STATE_SKIPPING
+import fe8.game.bm.PLAY_FLAG_HARD
+import fe8.game.bm.PlaySt
 import fe8.game.flags.Fe8EventFlags
 import gbafe.core.flags.EventFlags
+import gbafe.core.rng.RngService
+import gbafe.input.KeyStatus
 
 /** ROM address of `EventScr_08592114`, the script `Event01_End` jumps to after a cutscene. */
 public const val EVENT_SCR_08592114: Int = 0x08592114
@@ -34,6 +40,30 @@ public interface EventInput {
 }
 
 /**
+ * Game state the checks of [EventScrCore] read that is not modelled here yet. The defaults are
+ * "empty": no tutorial events, no units, map kind 0, trigger id 0.
+ */
+public interface EventScrHooks {
+    /**
+     * Word [index] of `GetChapterEventDataPointer(chapterIndex)->tutorialEvents`; 0 ends the
+     * list. Needed by `EnqueueTutEvent` (chapter event tables are not ported).
+     */
+    public fun tutorialEvent(chapterIndex: Int, index: Int): Int = 0
+
+    /** `CountRedUnits`: living units with ids 0x81..0xBF (the unit table is not wired here). */
+    public fun countRedUnits(): Int = 0
+
+    /** `CountGreenUnits`: living units with ids 0x41..0x7F. */
+    public fun countGreenUnits(): Int = 0
+
+    /** `GetBattleMapKind` (needs the world map chapter tables). */
+    public fun battleMapKind(): Int = 0
+
+    /** `GetEventTriggerId(script)`: trigger id of the registered event at [script], else 0. */
+    public fun eventTriggerId(script: Int): Int = 0
+}
+
+/**
  * The control-flow and slot commands of `src/eventscr.c`: NULL, END, SETVAL, slot operations,
  * slot queue, LABEL, GOTO, CALL, branches, STAL and counter operations. Handlers are
  * preallocated; running them allocates nothing.
@@ -48,7 +78,13 @@ public class EventScrCore(
     private val memory: ScriptMemory,
     private val input: EventInput = object : EventInput {},
     private val flags: EventFlags = Fe8EventFlags.create(),
+    private val rng: RngService,
+    private val playSt: PlaySt,
+    private val keys: KeyStatus,
+    private val hooks: EventScrHooks = object : EventScrHooks {},
 ) {
+    private var engine: EventEngine? = null
+
     private fun slot(i: Int): Int = when {
         i < EventState.SLOT_COUNT -> state.slots[i]
         i < EventState.SLOT_COUNT + EventState.SLOT_QUEUE_WORDS ->
@@ -171,6 +207,18 @@ public class EventScrCore(
         EVC_ADVANCE_CONTINUE
     }
 
+    /**
+     * Ported from src/eventscr.c: Event04_CheckRandom
+     *
+     * Slot C gets a draw in `0..max` (`NextRN_N(max + 1)`) from [rng], or 0 when `max` is 0
+     * (no draw is consumed).
+     */
+    public val event04CheckRandom: EventHandler = EventHandler { proc ->
+        val max = argU16(proc.pEventCurrent, 0)
+        state.slots[0xC] = if (max == 0) 0 else rng.nextN(max + 1)
+        EVC_ADVANCE_CONTINUE
+    }
+
     /** Ported from src/eventscr.c: Event05_SetSlot */
     public val event05SetSlot: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent
@@ -263,6 +311,47 @@ public class EventScrCore(
         EVC_UNK4
     }
 
+    /**
+     * Ported from src/eventscr.c: Event0B_EnqueueCall
+     *
+     * A negative target is replaced by slot 2; a null target does nothing. Sub command 0 calls
+     * the event with this engine's `execType` (needs the engine given to [registerAll]), 1
+     * records it as the tutorial event ([enqueueTutEvent]) with the argument as exec type.
+     */
+    public val event0bEnqueueCall: EventHandler = EventHandler { proc ->
+        val cur = proc.pEventCurrent
+        var ptr = arg32(cur)
+        if (ptr < 0) ptr = state.slots[2]
+        if (ptr != 0) {
+            when (subCmd(cur)) {
+                0 -> engine?.callEvent(ptr, proc.execType)
+                1 -> enqueueTutEvent(ptr, argU16(cur, 0))
+            }
+        }
+        EVC_ADVANCE_CONTINUE
+    }
+
+    /**
+     * Ported from src/eventinfo.c: EnqueueTutEvent
+     *
+     * Looks [ptr] up in the current chapter's tutorial event list ([EventScrHooks.tutorialEvent])
+     * and, when found at index i, stores `tutorial_counter = i + 1` and
+     * `tutorial_exec_type = eventEnqueueType` (u8) in [PlaySt].
+     */
+    public fun enqueueTutEvent(ptr: Int, eventEnqueueType: Int) {
+        var i = 0
+        while (true) {
+            val e = hooks.tutorialEvent(playSt.chapterIndex, i)
+            if (e == 0) return
+            if (e == ptr) {
+                playSt.tutorialCounter = (i + 1) and 0xFF
+                playSt.tutorialExecType = eventEnqueueType and 0xFF
+                return
+            }
+            i = (i + 1) and 0xFFFF
+        }
+    }
+
     /** Ported from src/eventscr.c: Event0C_Branch (compares the slots as signed `int`). */
     public val event0cBranch: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent
@@ -320,6 +409,70 @@ public class EventScrCore(
     }
 
     /**
+     * Ported from src/eventscr.c: Event10_ModifyEvBit
+     *
+     * While skipping, a non-zero argument first clears `EV_STATE_SKIPPING` and sets
+     * `EV_STATE_FADEDIN`. Arguments 0-4 then set the NOSKIP/0020/0040 bits (0: all clear,
+     * 1: all set, 2: only 0040, 3: only NOSKIP, 4: NOSKIP and 0020); anything else is an error.
+     */
+    public val event10ModifyEvBit: EventHandler = EventHandler { proc ->
+        val arg = argU16(proc.pEventCurrent, 0)
+        if (proc.evStateBits and EV_STATE_SKIPPING != 0 && arg != 0) {
+            proc.evStateBits = (proc.evStateBits and EV_STATE_SKIPPING.inv()) or EV_STATE_FADEDIN
+        }
+        val mask = EV_STATE_NOSKIP or EV_STATE_0020 or EV_STATE_0040
+        val set = when (arg) {
+            0 -> 0
+            1 -> mask
+            2 -> EV_STATE_0040
+            3 -> EV_STATE_NOSKIP
+            4 -> EV_STATE_NOSKIP or EV_STATE_0020
+            else -> return@EventHandler EVC_ERROR
+        }
+        proc.evStateBits = (proc.evStateBits and mask.inv()) or set
+        EVC_ADVANCE_CONTINUE
+    }
+
+    /**
+     * Ported from src/eventscr.c: Event11_SetIgnoredKeys
+     *
+     * Sub command 0 sets the key ignore mask ([KeyStatus.applyIgnoreMask]) to the argument.
+     */
+    public val event11SetIgnoredKeys: EventHandler = EventHandler { proc ->
+        val cur = proc.pEventCurrent
+        if (subCmd(cur) == 0) keys.applyIgnoreMask(argU16(cur, 0))
+        EVC_ADVANCE_CONTINUE
+    }
+
+    /**
+     * Ported from src/eventscr.c: Event19_Checks
+     *
+     * Stores a game-state query in slot C. The unit counts, battle map kind and event trigger id
+     * come from [EventScrHooks]; the rest reads [PlaySt] and the proc. Unknown sub commands do
+     * nothing.
+     */
+    public val event19Checks: EventHandler = EventHandler { proc ->
+        val c = state.slots
+        when (subCmd(proc.pEventCurrent)) {
+            0 -> c[0xC] = playSt.chapterModeIndex
+            1 -> c[0xC] = proc.chapterIndex
+            2 -> c[0xC] = if (playSt.chapterStateBits and PLAY_FLAG_HARD != 0) 1 else 0
+            3 -> c[0xC] = playSt.chapterTurnNumber
+            4 -> c[0xC] = hooks.countRedUnits() and 0xFFFF
+            5 -> c[0xC] = hooks.countGreenUnits() and 0xFFFF
+            6 -> c[0xC] = hooks.battleMapKind()
+            7 -> {
+                val hard = playSt.chapterStateBits and PLAY_FLAG_HARD != 0
+                c[0xC] = if (playSt.controller != 0 || hard) 0 else 1
+            }
+            8 -> c[0xC] = if (playSt.chapterIndex == CHAPTER_NO_GOLD) 0 else playSt.partyGoldAmount
+            9 -> c[0xC] = hooks.eventTriggerId(proc.pEventStart) and 0xFFFF
+            0xA -> c[0xC] = if (playSt.chapterStateBits and PLAY_FLAG_COMPLETE != 0) 1 else 0
+        }
+        EVC_ADVANCE_CONTINUE
+    }
+
+    /**
      * Ported from src/eventscr.c: Event0F_CounterOps
      *
      * Nibble `(low byte of word 1) % 8` of `gEventSlotCounter`. An unknown sub command is
@@ -346,6 +499,12 @@ public class EventScrCore(
 
     /** Registers the handlers of this class on [engine]. */
     public fun registerAll(engine: EventEngine) {
+        this.engine = engine
+        engine.register(0x04, event04CheckRandom)
+        engine.register(0x0B, event0bEnqueueCall)
+        engine.register(0x10, event10ModifyEvBit)
+        engine.register(0x11, event11SetIgnoredKeys)
+        engine.register(0x19, event19Checks)
         engine.register(0x00, event00Null)
         engine.register(0x01, event01End)
         engine.register(0x02, event02EvBitAndIdMod)
@@ -363,6 +522,8 @@ public class EventScrCore(
 
     private companion object {
         const val EV_CMD_LABEL = 0x08
+        const val CHAPTER_NO_GOLD = 5
+        const val PLAY_FLAG_COMPLETE = 1 shl 5
         const val GOTO_SCAN_LIMIT = 0x10000
         const val EVSUBCMD_ENDB = 1
         const val EVSUBCMD_SADD = 0

@@ -40,6 +40,7 @@ class EventTrace private constructor(
         /** Bytes of the `flags` watch: permanent flags then chapter flags. */
         const val FLAGS_SIZE = 0x30
 
+        private const val RNG_WORDS = 3
         private const val EVENT_SLOT_COUNT = 14
         private const val CALL_QUEUE_ENTRIES = 16
         private const val SLOT_QUEUE_WORDS = 30
@@ -53,6 +54,8 @@ class EventTrace private constructor(
             val procs = run.watch("procs")
             val globals = run.watch("evglobals")
             val flags = if (run.hasWatch("flags")) run.watch("flags") else null
+            val playSt = if (run.hasWatch("gplayst")) run.watch("gplayst") else null
+            val rng = if (run.hasWatch("rng")) run.watch("rng") else null
             val names = ProcArrayDump.romNames()
             val scripts = ScriptNames.load()
             val first = maxOf(procs.firstStep, globals.firstStep, flags?.firstStep ?: 0)
@@ -64,6 +67,8 @@ class EventTrace private constructor(
                     globals.step(step),
                     flags?.step(step),
                     scripts,
+                    playSt?.step(step),
+                    rng?.step(step),
                 )
             }
         }
@@ -99,6 +104,8 @@ class EventTrace private constructor(
             g: ByteArray,
             flags: ByteArray?,
             scripts: ScriptNames,
+            playSt: ByteArray? = null,
+            rng: ByteArray? = null,
         ): EventSnapshot {
             fun u32(o: Int) = (g[o].toInt() and 0xFF) or ((g[o + 1].toInt() and 0xFF) shl 8) or
                 ((g[o + 2].toInt() and 0xFF) shl 16) or ((g[o + 3].toInt() and 0xFF) shl 24)
@@ -133,6 +140,12 @@ class EventTrace private constructor(
                 activeQueue = active,
                 permanentFlags = flags?.copyOfRange(0, 0x20),
                 chapterFlags = flags?.copyOfRange(0x20, 0x30),
+                playSt = playSt,
+                rngState = rng?.let { r ->
+                    IntArray(RNG_WORDS) {
+                        (r[2 * it].toInt() and 0xFF) or ((r[2 * it + 1].toInt() and 0xFF) shl 8)
+                    }
+                },
             )
         }
     }
@@ -158,6 +171,10 @@ data class EventSnapshot(
     val permanentFlags: ByteArray?,
     /** `gChapterFlagBits` (0x10 bytes), or null if the source has no flags. */
     val chapterFlags: ByteArray?,
+    /** `gPlaySt` (0x4C bytes, EWRAM 0x0202BCF0), or null if the source has no `gplayst` watch. */
+    val playSt: ByteArray? = null,
+    /** `gRNState` (3 u16 words, IWRAM 0x03000000), or null if the source has no `rng` watch. */
+    val rngState: IntArray? = null,
 )
 
 /** `struct EventEngineProc` fields of the StdEventEngine proc, pcs named via the script index. */

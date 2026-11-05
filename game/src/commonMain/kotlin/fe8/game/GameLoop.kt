@@ -1,5 +1,6 @@
 package fe8.game
 
+import fe8.game.bm.BmSt
 import gbafe.core.time.GameClock
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
@@ -40,13 +41,22 @@ public class GameLoop(
     /** `m4aSoundMain` (end of the VBlank interrupt). */
     private val soundMain: () -> Unit = {},
 ) {
+    /** `gBmSt`, the game state struct shared by everything that models its fields. */
+    public val bmSt: BmSt = BmSt()
+
     /** `gBmSt.lock`: while not 0, proc tree 2 is not run. */
-    public var lock: Int = 0
-        private set
+    public var lock: Int
+        get() = bmSt.lock and 0xFF
+        private set(value) {
+            bmSt.lock = value.toByte().toInt()
+        }
 
     /** `gBmSt.main_loop_ended`: a step finished and its display state waits for the VBlank sync. */
-    public var mainLoopEnded: Boolean = false
-        private set
+    public var mainLoopEnded: Boolean
+        get() = bmSt.mainLoopEnded != 0
+        private set(value) {
+            bmSt.mainLoopEnded = if (value) 1 else 0
+        }
 
     private var lagFrames = 0
 

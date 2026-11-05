@@ -1,11 +1,14 @@
 package fe8.game.save
 
 import fe8.game.bm.PlaySt
+import fe8.game.bm.initPlayConfig
+import fe8.game.flags.Fe8EventFlags
 import fe8.game.save.Fe8SramLayout as L
 import gba.core.sram.CartSram
 import gba.core.sram.readSramFast
 import gba.core.sram.writeAndVerifySramFast
 import gba.core.sram.writeSramFast
+import gbafe.core.flags.EventFlags
 import gbafe.save.SaveChecksums
 
 /**
@@ -498,8 +501,7 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave.c: ReadGameSavePlaySt (verified by M5-32's full-image check;
-     * not yet)
+     * Ported from src/bmsave.c: ReadGameSavePlaySt
      *
      * Decodes the `PlaySt` at the start of the block [slot] reads from into [buf].
      */
@@ -543,8 +545,7 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-bwl.c: GetGlobalCompletionCntByInfo (verified by M5-32's
-     * full-image check; not yet)
+     * Ported from src/bmsave-bwl.c: GetGlobalCompletionCntByInfo
      *
      * Number of non-zero `cleared_playthroughs` entries of the global info [info].
      */
@@ -615,8 +616,8 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-gmap.c: ClearWorldMapStuff (verified by M5-32's full-image
-     * check; not yet)
+     * Transcribed from src/bmsave-gmap.c: ClearWorldMapStuff (not verified: the dump zeroes 2
+     * bytes past the 0x22 written here, struct size unresolved)
      *
      * Writes a zeroed `GMapSaveInfo` (0x22 bytes) with `unk_1c_2` = 1 and `unk_1c_3` = 3 (byte
      * 0x1C = 0x0E) to SRAM [destOffset].
@@ -628,22 +629,162 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave.c: SetBonusContentClaimFlags (verified by M5-32's full-image
-     * check; not yet)
+     * Transcribed from src/bmsave.c: SetBonusContentClaimFlags (not verified: no trace sets a
+     * non-zero value).
      */
     public fun setBonusContentClaimFlags(num: Int) {
         bonusContentClaimFlags = num
     }
 
     /**
-     * Transcribed from src/bmsave-lib.c: WritePermanentFlags (verified by M5-32's full-image
-     * check; not yet)
+     * Transcribed from src/bmsave-lib.c: WritePermanentFlags (not verified: the New Game trace
+     * copies only zeros).
      *
      * Writes the 0x19 bytes of [permanentFlags] (`gPermanentFlagBits`) to SRAM [destOffset].
      */
     public fun writePermanentFlags(destOffset: Int, permanentFlags: ByteArray) {
         writeAndVerifySramFast(permanentFlags, 0, sram, destOffset, PERMANENT_FLAGS_SIZE)
     }
+
+
+    /** `gPidStatsData` (0x46 entries of 16 bytes). */
+    private val pidStatsData = ByteArray(PID_STATS_SIZE)
+
+    /** `gChapterStats` (0x30 entries of 4 bytes). */
+    private val chapterStatsData = ByteArray(CHAPTER_STATS_SIZE)
+
+    /** `gPidStatsSaveLoc` as an SRAM offset (-1 = NULL). */
+    public var pidStatsSaveLoc: Int = -1
+        private set
+
+    /**
+     * Transcribed from src/bmsave.c: WriteBonusContentClaimFlags (not verified: the New Game
+     * trace copies only zeros).
+     *
+     * Writes `gBonusContentClaimFlags` to the game block at SRAM [blockOffset].
+     */
+    public fun writeBonusContentClaimFlags(blockOffset: Int) {
+        val b = scratchInfo
+        putU32(b, 0, bonusContentClaimFlags)
+        writeAndVerifySramFast(b, 0, sram, blockOffset + GAME_BONUS_CLAIM, 4)
+    }
+
+    /**
+     * Ported from src/bmsave-bwl.c: ClearPidChStatsSaveData
+     *
+     * Zeroes `gPidStatsData` and `gChapterStats`, sets `favval` (0x2000) of every unit entry
+     * and writes entry 0 (the C code writes `gPidStatsData`, not `gPidStatsData[i]`) to each of
+     * the 0x46 pid stats slots, then the first chapter stats entry to each of the 0x30 slots, of
+     * the game block at SRAM [blockOffset].
+     */
+    public fun clearPidChStatsSaveData(blockOffset: Int) {
+        pidStatsData.fill(0)
+        chapterStatsData.fill(0)
+        for (i in 0 until BWL_ARRAY_NUM) {
+            // favval: u16 at bit 8 of the packed entry.
+            pidStatsData[i * PID_STATS_ENTRY + 1] = 0
+            pidStatsData[i * PID_STATS_ENTRY + 2] = 0x20
+            writeAndVerifySramFast(
+                pidStatsData, 0, sram, blockOffset + GAME_PID_STATS + i * PID_STATS_ENTRY,
+                PID_STATS_ENTRY,
+            )
+        }
+        for (i in 0 until WIN_ARRAY_NUM) {
+            writeAndVerifySramFast(
+                chapterStatsData, 0, sram, blockOffset + GAME_CHAPTER_STATS + i * CHAPTER_ENTRY,
+                CHAPTER_ENTRY,
+            )
+        }
+        pidStatsSaveLoc = blockOffset + GAME_PID_STATS
+    }
+
+    /**
+     * Ported from src/bmsave.c: WriteNewGameSave
+     *
+     * Initialises a fresh game in [ram] and writes it to game slot [index]. [mode] 0 keeps
+     * `chapterModeIndex`; a negative [isTutorial] keeps `config.controller`. The C calls to
+     * `SetGameTime`, `InitUnits` and `ClearSupplyItems` act on [ram] ([NewGameRam.gameClock],
+     * [NewGameRam.initUnits], [NewGameRam.convoy]); the unit array is not modelled here.
+     */
+    public fun writeNewGameSave(
+        ram: NewGameRam,
+        index: Int,
+        isDifficult: Boolean,
+        mode: Int,
+        isTutorial: Int,
+    ) {
+        val playSt = ram.playSt
+        val dest = getSaveWriteAddr(index)
+        val newMode = if (mode == 0) playSt.chapterModeIndex else mode
+        val tutorial = if (isTutorial < 0) playSt.controller else isTutorial
+
+        ram.gameClock = 0
+        initPlayConfig(playSt, isDifficult, tutorial)
+        ram.initUnits()
+        clearSupplyItems(ram.convoy)
+        ram.flags.resetPermanentFlags()
+        invalidateSuspendSave(L.SAVE_ID_SUSPEND)
+
+        playSt.unk2C1 = 0
+        playSt.unk2C04 = 0
+        playSt.totalGold = 0
+        playSt.unk30Unk400 = 0
+        playSt.unk30Unk414 = 0
+        playSt.unk30Unk81 = 0
+        playSt.unk30Unk82 = 0
+        playSt.unk30Unk83 = 0
+        playSt.unk30UnkC00 = 0
+        playSt.combatRank = 0
+        playSt.expRank = 0
+        playSt.unk30Unk3D04 = 0
+        playSt.fundsRank = 0
+        playSt.tacticsRank = 0
+        playSt.survivalRank = 0
+        playSt.unk30UnkF00 = 0
+        playSt.unk2C0D = 0
+        playSt.chapterModeIndex = newMode
+        playSt.unk2B00 = 1
+        playSt.playerName[0] = 0
+        playSt.chapterIndex = 0
+        playSt.playthroughIdentifier = getNewPlaythroughId()
+        playSt.gameSaveSlot = index
+        playSt.unk2C2 = getGlobalCompletionCount()
+
+        playSt.encode(playStFull, 0)
+        writeAndVerifySramFast(playStFull, 0, sram, dest, PlaySt.SIZE)
+        setBonusContentClaimFlags(0)
+        writeBonusContentClaimFlags(dest)
+
+        val unit = unitBuffer
+        unit.fill(0)
+        for (i in 0 until UNIT_SAVE_AMOUNT_BLUE) {
+            writeAndVerifySramFast(
+                unit, 0, sram, dest + GAME_UNITS + i * PACKED_UNIT_SIZE, PACKED_UNIT_SIZE,
+            )
+        }
+        writeAndVerifySramFast(unit, 0, sram, dest + GAME_GM_UNIT, PACKED_UNIT_SIZE)
+
+        for (i in 0 until CONVOY_ITEM_COUNT) ram.supplyScratch[i] = u16(ram.convoy, i * 2)
+        writeSupplyItems(dest + GAME_SUPPLY, ram.supplyScratch)
+        clearPidChStatsSaveData(dest)
+        writePermanentFlags(
+            dest + GAME_PERMANENT_FLAGS,
+            Fe8EventFlags.getPermanentFlagBits(ram.flags),
+        )
+        clearWorldMapStuff(dest + GAME_WM_STUFF)
+
+        unit.fill(0)
+        writeAndVerifySramFast(unit, 0, sram, dest + GAME_DUNGEONS, DUNGEONS_SIZE)
+
+        scratchInfo.fill(0)
+        putU32(scratchInfo, L.INFO_MAGIC32, L.SAVEMAGIC32)
+        scratchInfo[L.INFO_KIND] = L.SAVEBLOCK_KIND_GAME.toByte()
+        writeSaveBlockInfo(scratchInfo, index)
+        writeLastGameSaveId(index)
+    }
+
+    /** Stand-in for the `struct GameSavePackedUnit unitp` / `Dungeon dungeon[2]` locals. */
+    private val unitBuffer = ByteArray(PACKED_UNIT_SIZE.coerceAtLeast(DUNGEONS_SIZE))
 
     /** Shared body of the `LoadAndVerfy*`/`LoadBonusContentData` readers: read, then checksum. */
     private fun loadChecked(
@@ -698,6 +839,44 @@ public class BmSaveLib(public val sram: CartSram) {
 
         /** `sConvySavePackMask2`. */
         val SUPPLY_MASK2 = intArrayOf(0x00, 0x00, 0x00, 0xF7, 0xFC, 0xF8, 0xF0, 0xE0)
+
+        /** `BWL_ARRAY_NUM`. */
+        const val BWL_ARRAY_NUM = 0x46
+
+        /** `WIN_ARRAY_NUM`. */
+        const val WIN_ARRAY_NUM = 0x30
+
+        /** `sizeof(struct UnitUsageStats)` (0x460 / 0x46). */
+        const val PID_STATS_ENTRY = 16
+
+        /** `sizeof(gPidStatsData)`. */
+        const val PID_STATS_SIZE = BWL_ARRAY_NUM * PID_STATS_ENTRY
+
+        /** `sizeof(struct ChapterStats)`. */
+        const val CHAPTER_ENTRY = 4
+
+        /** `sizeof(gChapterStats)`. */
+        const val CHAPTER_STATS_SIZE = WIN_ARRAY_NUM * CHAPTER_ENTRY
+
+        /** `UNIT_SAVE_AMOUNT_BLUE`. */
+        const val UNIT_SAVE_AMOUNT_BLUE = 51
+
+        /** `sizeof(struct GameSavePackedUnit)`. */
+        const val PACKED_UNIT_SIZE = 0x24
+
+        /** `sizeof(struct Dungeon[2])`. */
+        const val DUNGEONS_SIZE = 0x18
+
+        /** Offsets into `struct GameSaveBlock`. */
+        const val GAME_UNITS = 0x4C
+        const val GAME_GM_UNIT = GAME_UNITS + UNIT_SAVE_AMOUNT_BLUE * PACKED_UNIT_SIZE
+        const val GAME_SUPPLY = GAME_GM_UNIT + PACKED_UNIT_SIZE
+        const val GAME_PID_STATS = GAME_SUPPLY + SUPPLY_SIZE
+        const val GAME_CHAPTER_STATS = GAME_PID_STATS + PID_STATS_SIZE
+        const val GAME_PERMANENT_FLAGS = GAME_CHAPTER_STATS + CHAPTER_STATS_SIZE
+        const val GAME_BONUS_CLAIM = GAME_PERMANENT_FLAGS + 0x1C
+        const val GAME_WM_STUFF = GAME_BONUS_CLAIM + 4
+        const val GAME_DUNGEONS = GAME_WM_STUFF + GMAP_SAVE_INFO_SIZE + 2
 
         /** `MAX_SAVED_GAME_CLEARS`. */
         const val CLEARED_PLAYTHROUGHS = 12

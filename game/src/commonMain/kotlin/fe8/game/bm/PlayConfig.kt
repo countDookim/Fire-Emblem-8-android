@@ -4,7 +4,7 @@ package fe8.game.bm
 public const val PLAY_FLAG_HARD: Int = 1 shl 6
 
 /**
- * Transcribed from src/bmio.c: InitPlayConfig (verified by M5-32's full-image check; not yet)
+ * Ported from src/bmio.c: InitPlayConfig
  *
  * Zeroes [playSt], clears `chapterIndex`, sets the hard flag when [isDifficult] and sets the
  * default option bits, with `config.controller` = [unk] and `config.textSpeed` = 1.

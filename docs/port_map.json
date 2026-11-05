@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 329,
-    "implemented_unverified": 83
+    "verified": 337,
+    "implemented_unverified": 93
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -80,6 +80,56 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
     },
+    "BmMain_ChangePhase": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BMapMainDifferentialTest#ch6 phase start scrolls the camera before the player phase",
+        "fe8.testing.BMapMainDifferentialTest#first phase runs from the end of the beginning event to the player phase"
+      ]
+    },
+    "BmMain_ResumePlayerPhase": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "BmMain_StartIntroFx": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "BmMain_StartPhase": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BMapMainDifferentialTest#ch6 phase start scrolls the camera before the player phase",
+        "fe8.testing.BMapMainDifferentialTest#first phase runs from the end of the beginning event to the player phase"
+      ]
+    },
+    "BmMain_SuspendBeforePhase": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BMapMainDifferentialTest#the phase change calls its hooks in the order of the C"
+      ]
+    },
+    "BmMain_UpdateTraps": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "BmMapFill": {
       "decomp_file": "src/bmmap.c",
       "system": "battle_map",
@@ -113,6 +163,13 @@
       "tests": [
         "fe8.testing.BgTilemapDifferentialTest#TSA tilemaps match the BG buffers in mGBA RAM"
       ]
+    },
+    "CallBeginningEvents": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
+      "status": "implemented",
+      "tests": []
     },
     "CallEvent": {
       "decomp_file": "src/event.c",
@@ -1097,6 +1154,13 @@
         "fe8.testing.UnitTableDifferentialTest#GetUnitFromCharId finds Eirika where the player phase puts the cursor"
       ]
     },
+    "GotoChapterWithoutSave": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "HBlank_BgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
       "system": "battle_map",
@@ -1104,6 +1168,50 @@
       "status": "verified",
       "tests": [
         "fe8.testing.FrameCompareTest#menu frames with the wavy rune background match mGBA"
+      ]
+    },
+    "HandleMapCursorInput": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 2 cursor holds scroll the camera like the game",
+        "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 6 cursor edge cases match the game",
+        "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 6 fog cursor holds scroll both axes like the game"
+      ]
+    },
+    "HandleMoveCameraWithMapCursor": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 2 cursor holds scroll the camera like the game",
+        "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 6 cursor edge cases match the game",
+        "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 6 fog cursor holds scroll both axes like the game"
+      ]
+    },
+    "HandleMoveMapCursor": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 2 cursor holds scroll the camera like the game",
+        "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 6 cursor edge cases match the game",
+        "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 6 fog cursor holds scroll both axes like the game"
+      ]
+    },
+    "HandlePlayerCursorMovement": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 2 cursor holds scroll the camera like the game",
+        "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 6 cursor edge cases match the game",
+        "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 6 fog cursor holds scroll both axes like the game"
       ]
     },
     "IncrementGameClock": {
@@ -1609,6 +1717,13 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "PlayerPhase_HandleAutoEnd": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "PopulateSaveBlockChecksum": {
       "decomp_file": "src/bmsave.c",
       "system": "save",
@@ -2018,6 +2133,13 @@
         "fe8.testing.CameraDifferentialTest#cursor snap frames match SetCursorMapPosition"
       ]
     },
+    "SetEventId_0x84": {
+      "decomp_file": "src/eventcall.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "SetEventSlotC": {
       "decomp_file": "src/event.c",
       "system": "events",
@@ -2335,6 +2457,16 @@
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
     },
+    "SwitchPhases": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BMapMainDifferentialTest#ch6 phase start scrolls the camera before the player phase",
+        "fe8.testing.BMapMainDifferentialTest#first phase runs from the end of the beginning event to the player phase"
+      ]
+    },
     "SyncHiOam": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -2540,6 +2672,13 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "UndeployEveryone": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "UnlockGame": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -2564,6 +2703,13 @@
       "tests": [
         "fe8.testing.ChapterMapGraphicsDifferentialTest#chapter palette alone matches the dump"
       ]
+    },
+    "UnsetEventId_0x84": {
+      "decomp_file": "src/eventcall.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
+      "status": "implemented",
+      "tests": []
     },
     "UpdateBmMapDisplay": {
       "decomp_file": "src/bmmap.c",
@@ -2846,6 +2992,13 @@
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#START on the idle title fades to dark and ends the title like the per-frame RAM trace"
       ]
+    },
+    "sub_8015434": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
+      "status": "implemented",
+      "tests": []
     },
     "sub_80156D4": {
       "decomp_file": "src/bm.c",

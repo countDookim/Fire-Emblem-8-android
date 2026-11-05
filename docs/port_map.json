@@ -7,7 +7,7 @@
   "summary": {
     "total": 8352,
     "verified": 306,
-    "implemented_unverified": 85
+    "implemented_unverified": 86
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -1234,6 +1234,13 @@
       "tests": [
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
       ]
+    },
+    "MapAddInRange": {
+      "decomp_file": "src/bmidoten.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt",
+      "status": "implemented",
+      "tests": []
     },
     "MidiKeyToCgbFreq": {
       "decomp_file": "src/m4a.c",

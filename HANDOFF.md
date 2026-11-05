@@ -6,7 +6,7 @@ _Updated 2026-11-05 (scheduled run 10:5x). Owner decisions: docs/PROJECT_BRIEF.m
 _(nothing blocked)_
 
 ## In progress
-- M5-40: owner PC, until ~13:05Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 12)_
 
 ## Next task: M5-53 (EventVmDifferentialTest over ram_trace_newgame_bm), then M5-54
 Done 2026-11-05: M5-09..24, 26, 27, 28..36, 38, 41, 48..52; M5-49/50 (`EventEngine`: create/createBattle/callEvent/
@@ -24,7 +24,7 @@ EventEngine_CanStartSkip/StartSkip are still partial (an alternative full port i
 backup/event-engine-dup on the owner PC, never pushed).
 M5-32: only WriteNewGameSave/ClearPidChStatsSaveData/InitPlayConfig verified; zero-only
 copies (WritePermanentFlags, Write/SetBonusContentClaimFlags) and WriteSupplyItems/ClearWorldMapStuff stay transcribed.
-Open: M5-25 partial, M5-37/39/40 (map graphics/render), M5-41b (needs a map larger than the screen).
+Open: M5-25 partial, M5-42 (map scrolling; needs M5-41b), M5-41b (needs a map larger than the screen).
 Test-quality review 2026-11-05 (owner asked), fixed: SRAM block-info/erase/invalidate/suspend-id/sound-room,
 SaveDraw (sentinel, no port-derived undo), BmMap (fog fill 1, pool handles), UnitTable (oracle from dumps + ROM
 gUnitLookup) now prove their tags on non-trivial dumps (each checked by breaking the port). Untagged for lack of a
@@ -50,7 +50,7 @@ f1130..1132 + 1 byte (0x7224) f1214. Title START now enters GameControl's save-m
   `CgbSound` verified; `PsgSynth` (not a port, GBATEK/mGBA behaviour) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad (2026-10-30); GPU backend, audio
   (2026-11-01); ROM import ~4 s, boots from it, PSG sound correct by ear (2026-11-04).
-- Verified ports: 310 / 8352 (`tools/progress.py`, 2026-11-05).
+- Verified ports: 311 / 8352 (`tools/progress.py`, 2026-11-05).
 - Layout: game-neutral `:gba:*` (ADR 0012), FE-shared `gbafe.*` in `:engine:*`, FE8-only `fe8.*` in `:game`
   and `:app`. KMP (ADR 0013): all of them except `:gba:testkit`, `:testing`, `:tools:extract` (plain JVM);
   android target only in CI (`com.android.kotlin.multiplatform.library`; CI log shows `compileAndroidMain`).

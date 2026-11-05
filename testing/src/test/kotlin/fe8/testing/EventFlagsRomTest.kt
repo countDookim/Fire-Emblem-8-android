@@ -18,11 +18,7 @@ class EventFlagsRomTest {
         System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets",
         "baserom.gba",
     )
-    private val nmFile = listOf(
-        File("decomp/fireemblem8.nm.txt"),
-        File("../Fire-Emblem-8-rom/decomp/fireemblem8.nm.txt"),
-        File("/home/dookim/FE8/Fire-Emblem-8-rom/decomp/fireemblem8.nm.txt"),
-    ).firstOrNull { it.isFile }
+    private val nmFile = ProcArrayDump.nmFile()
 
     private fun rom(): ByteArray {
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")

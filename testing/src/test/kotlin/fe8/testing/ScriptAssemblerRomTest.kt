@@ -18,15 +18,10 @@ class ScriptAssemblerRomTest {
     private val assets =
         System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets"
     private val romFile = File(assets, "baserom.gba")
-    private val nmFile = listOf(
-        File("decomp/fireemblem8.nm.txt"),
-        File("../Fire-Emblem-8-rom/decomp/fireemblem8.nm.txt"),
-        File("/home/dookim/FE8/Fire-Emblem-8-rom/decomp/fireemblem8.nm.txt"),
-    ).firstOrNull { it.isFile }
+    private val nmFile = ProcArrayDump.nmFile()
     private val scriptFile = listOf(
         File(assets, "extracted/scripts/prologue.fe8s"),
-        File("../Fire-Emblem-8-rom/extracted/scripts/prologue.fe8s"),
-        File("/home/dookim/FE8/Fire-Emblem-8-rom/extracted/scripts/prologue.fe8s"),
+        File("../../Fire-Emblem-8-rom/extracted/scripts/prologue.fe8s"),
     ).firstOrNull { it.isFile }
 
     private class Sized(val address: Int, val size: Int)

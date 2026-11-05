@@ -101,10 +101,26 @@ class ProcArrayDump private constructor(
          * environment variable (else `$FE8_ASSETS/fireemblem8.nm.txt`); empty if none is present.
          */
         fun romNames(): Map<Int, String> {
-            val assets = System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets"
+            val file = nmFile() ?: return emptyMap()
+            return Symbols(file.readLines()).romNamesByAddress()
+        }
+
+        /**
+         * The decomp nm file: the `fe8.nm` property or `FE8_NM_FILE`, else
+         * `$FE8_ASSETS/fireemblem8.nm.txt` (CI, setup.sh), else the ROM repo checkout next to
+         * this one (owner PC); null if none exists.
+         */
+        fun nmFile(): File? {
+            val assets =
+                System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets"
             val path = System.getProperty("fe8.nm") ?: System.getenv("FE8_NM_FILE")
-            val file = if (path != null) File(path) else File(assets, "fireemblem8.nm.txt")
-            return if (file.isFile) Symbols(file.readLines()).romNamesByAddress() else emptyMap()
+            val rel = "Fire-Emblem-8-rom/decomp/fireemblem8.nm.txt"
+            return listOfNotNull(
+                path?.let(::File),
+                File(assets, "fireemblem8.nm.txt"),
+                File("../$rel"),
+                File("../../$rel"),
+            ).firstOrNull { it.isFile }
         }
     }
 }

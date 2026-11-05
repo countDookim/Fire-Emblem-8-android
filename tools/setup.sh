@@ -88,6 +88,16 @@ else
   log "WARNING: could not check the release; keeping existing $FE8_ASSETS/extracted"
 fi
 
+# 3c. Decomp symbols (nm/map) from the release, for tests that name ROM addresses (CI fetches them too).
+if [ ! -f "$FE8_ASSETS/fireemblem8.nm.txt" ]; then
+  if gh release download -R "$ROM_REPO" -D "$FE8_ASSETS" --clobber \
+       -p fireemblem8.nm.txt -p fireemblem8.map 2>/dev/null; then
+    log "decomp symbols ready"
+  else
+    log "no decomp symbols in the release (nm-based tests skip)"
+  fi
+fi
+
 # 4. Local retrying Maven mirror (Maven Central answers spurious 404/429 through the session proxy).
 MIRROR_PORT="${FE8_MIRROR_PORT:-8765}"
 MCACHE="$HOME/.cache/fe8-maven"

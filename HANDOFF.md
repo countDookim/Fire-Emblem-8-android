@@ -3,13 +3,7 @@
 _Updated 2026-11-05 (owner-PC session, night). Owner decisions: docs/PROJECT_BRIEF.md. History: git log._
 
 ## NEEDS USER
-- GitHub Actions: every code-repo run since 2026-11-05 00:03Z (f50da92) is `startup_failure` ("workflow file
-  issue", also on a manual dispatch) although ci.yml is unchanged and valid. Cause (confirmed): the owner's GitHub
-  billing is locked (payment information); owner to update it. After that, re-run `ci.yml` and the ROM repo's
-  `publish.yml` (workflow_dispatch) so `extracted/` (prologue.fe8s v1) gets released. Until fixed, run `jvmTest`, Dokka and `:app:assembleDebug`
-  locally before pushing. Progress bar: after a full local `jvmTest`, `python3 tools/progress.py --write` and
-  commit README.md + docs/port_map.json as `ci: update progress [skip ci]` (no failing run, no email). 2026-11-05: 766 old artifacts (4.2 GB,
-  90-day default retention) deleted with the owner's OK; ci.yml now keeps artifacts 3-7 days, Dokka on master only.
+_(nothing blocked)_
 
 ## Next task: M5-16 (all 765 non-WM EventScr_* → .fe8s, round-trip byte-exact with the M5-15 assembler)
 Done 2026-11-05 (owner PC): M5-09..15, 18..24, 28, 29, 33..36, 38, 41 (see TASKS). Open and unblocked:
@@ -81,6 +75,8 @@ f1130..1132 + 1 byte (0x7224) f1214. Title START now enters GameControl's save-m
   and network (mGBA clone); without them take a ROM-only task.
 - Fresh session: `git fetch` first; if local `master` is an old unrelated history: `git branch -m master
   stale-master && git checkout -B master origin/master`.
+- CI was blocked 2026-11-05 00:03-01:10Z (owner's GitHub billing locked; fixed by the owner). If runs ever end in
+  `startup_failure` again, check billing first. Artifacts are kept 3-7 days (ci.yml) to stay under 0.5 GB.
 - Pushes race CI's `ci: update progress [skip ci]` commit: `git fetch && git rebase origin/master`, push again.
 - CI's Dokka fails on ANY warning (every public declaration incl. constructor `val`s needs KDoc): run
   `./gradlew dokkaGenerate -Pfe8.docs=true` before pushing public API (background: can exceed 2 min cold).

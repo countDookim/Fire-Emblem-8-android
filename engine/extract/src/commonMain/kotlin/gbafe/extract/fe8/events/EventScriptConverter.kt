@@ -42,7 +42,10 @@ public object EventScriptConverter {
             val len = (h shr 4) and 0xF
             require(len > 0) { "event at 0x${hexUpper(p)}: header 0x${hexUpper(h, 4)} with length 0" }
             val words = List(len - 1) { u16(rom, p + 2 + 2 * it) }
+            // Sub-parameter commands (`bgm_fade_in`...) keep the names of their sub 0/1 forms; other subs stay
+            // `raw` because v0 output has no place for the sub nibble.
             val c = Fe8EventCommands.byHeader[h]
+                ?: if ((h and 0xF) <= 1) Fe8EventCommands.bySubParam[h and 0xFFF0] else null
             val args = ArrayList<String>()
             if (words.isNotEmpty() && !(c != null && c.params.isEmpty() && words.size == 1 && words[0] == 0)) args += fmt16(words[0])
             var k = 1

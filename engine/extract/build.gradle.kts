@@ -12,6 +12,8 @@ kotlin {
             // api: IndexedPng (now :gba:extract) exposes gba.data.IndexedImage.
             api(project(":gba:extract"))
             api(project(":engine:data"))
+            // api: Fe8ScriptConstants implements gbafe.script.ScriptConstants.
+            api(project(":engine:script"))
             implementation(project(":engine:text"))
         }
     }

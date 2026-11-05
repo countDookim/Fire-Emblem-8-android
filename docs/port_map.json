@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 321,
-    "implemented_unverified": 82
+    "verified": 329,
+    "implemented_unverified": 83
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -128,6 +128,26 @@
       "status": "implemented",
       "tests": []
     },
+    "CamMove_OnInit": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CamMove.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CamMoveDifferentialTest#camera move without a parent scrolls onto the cursor",
+        "fe8.testing.CamMoveDifferentialTest#ch6 phase start resets the cursor and scrolls the camera"
+      ]
+    },
+    "CamMove_OnLoop": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CamMove.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CamMoveDifferentialTest#camera move without a parent scrolls onto the cursor",
+        "fe8.testing.CamMoveDifferentialTest#ch6 phase start resets the cursor and scrolls the camera"
+      ]
+    },
     "CgbModVol": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -211,6 +231,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aChannelTest#head channel volumes match the reference RAM dumps"
+      ]
+    },
+    "ClearBattleMapState": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleMapStartDifferentialTest#gBmSt is cleared"
       ]
     },
     "ClearChapterFlag": {
@@ -433,12 +462,29 @@
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
+    "EndBMapMain": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "EnqueueEventCall": {
       "decomp_file": "src/event.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
       "status": "implemented",
       "tests": []
+    },
+    "EnsureCameraOntoPosition": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CamMove.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CamMoveDifferentialTest#camera move without a parent scrolls onto the cursor",
+        "fe8.testing.CamMoveDifferentialTest#ch6 phase start resets the cursor and scrolls the camera"
+      ]
     },
     "EraseBonusContentData": {
       "decomp_file": "src/bmsave-lib.c",
@@ -988,6 +1034,16 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
       "status": "implemented",
       "tests": []
+    },
+    "GetPlayerStartCursorPosition": {
+      "decomp_file": "src/bmcamadjust.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ResetCursorPosition.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CamMoveDifferentialTest#ch6 phase start resets the cursor and scrolls the camera",
+        "fe8.testing.CamMoveDifferentialTest#first phase resets the cursor without moving the camera"
+      ]
     },
     "GetROMChapterStruct": {
       "decomp_file": "src/chapterdata.c",
@@ -1569,6 +1625,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "ProcFun_ResetCursorPosition": {
+      "decomp_file": "src/bmcamadjust.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ResetCursorPosition.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CamMoveDifferentialTest#ch6 phase start resets the cursor and scrolls the camera",
+        "fe8.testing.CamMoveDifferentialTest#first phase resets the cursor without moving the camera"
       ]
     },
     "Proc_BlockEachMarked": {
@@ -2171,6 +2237,25 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "StartBMapMain": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleMapStartDifferentialTest#procs and the game control lock match the dump",
+        "fe8.testing.BattleMapStartDifferentialTest#resume case starts the same procs as the game"
+      ]
+    },
+    "StartBattleMap": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleMapStartDifferentialTest#play state flags and map match the dump"
       ]
     },
     "StartBgmCore": {

@@ -8,8 +8,14 @@ import fe8.game.bm.BmMapRender
 import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterMapGfx
+import fe8.game.bm.EntityBmMaps
+import fe8.game.bm.PlayerPhase
 import fe8.game.bm.ResetCursorPosition
 import fe8.game.bm.UnitTable
+import fe8.game.event.EventEngine
+import fe8.game.event.EventScrCore
+import fe8.game.event.EventState
+import fe8.game.event.ScriptWords
 import fe8.game.flags.Fe8EventFlags
 import fe8.game.opanim.EarlyStartUi
 import fe8.game.opanim.OpAnim
@@ -31,6 +37,7 @@ import gbafe.core.time.GameClock
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
+import gbafe.proc.ProcScript
 import gbafe.render.HardwareSceneLoader
 
 /**
@@ -97,10 +104,37 @@ public class Fe8Boot(
     public val flags: EventFlags = Fe8EventFlags.create()
 
     /**
+     * The event engine (`EventEngine`) with the ported command handlers of [EventScrCore]
+     * registered; the other commands stay unknown. Hooks are the defaults (stand-ins).
+     */
+    public val eventEngine: EventEngine by lazy {
+        val state = EventState()
+        val memory = ScriptWords({ rom.u16(it) })
+        EventEngine(engine, state, memory).also {
+            EventScrCore(
+                state, memory, flags = flags, rng = rng, playSt = control.playSt, keys = keys,
+            ).registerAll(it)
+        }
+    }
+
+    /**
      * The battle map start path (`StartBattleMap`, `StartBMapMain`), built when the game control
      * proc first reaches it (it reads chapter data from the ROM, which the boot windows may lack).
      */
     public val battleMap: BattleMapStart by lazy {
+        bmapMainParts.second
+    }
+
+    /**
+     * The `BMapMain` of [battleMap] with its player phase and event hooks wired (player phase
+     * script, `EventEngine.callEvent`).
+     */
+    public val bmapMain: BMapMain by lazy { bmapMainParts.first }
+
+    /** The player phase script wired into [bmapMain]. */
+    public val playerPhaseScript: ProcScript get() = bmapMain.hooks.playerPhase
+
+    private val bmapMainParts: Pair<BMapMain, BattleMapStart> by lazy {
         val chapters = ChapterData(rom)
         val bm = loop.bmSt
         val map = BmMap(rom, chapters, bm)
@@ -111,14 +145,22 @@ public class Fe8Boot(
         val main = BMapMain(
             engine, control.playSt, units, flags, chapters, rom, reset, camMove,
         )
-        BattleMapStart(
+        val render = BmMapRender(bm, map, hw)
+        main.hooks.playerPhase = PlayerPhase(
+            engine, bm, control.playSt, map, units, camMove,
+            EntityBmMaps(map, units, control.playSt), render, keys,
+            eventEngine::eventEngineExists,
+        ).script
+        main.hooks.callEvent = { events, execType, _ -> eventEngine.callEvent(events, execType) }
+        val start = BattleMapStart(
             engine, control.playSt, bm, hw, chapters, map,
-            ChapterMapGfx(rom, chapters, hw, control.playSt), BmMapRender(bm, map, hw),
+            ChapterMapGfx(rom, chapters, hw, control.playSt), render,
             flags, rng, clock, units,
         ).also {
             main.hooks.getBattleMapKind = { it.hooks.getBattleMapKind() }
             it.hooks.bmapMainScript = main.script
         }
+        main to start
     }
 
     private val driver: M4aDriver? = m4a?.driver(pcm)

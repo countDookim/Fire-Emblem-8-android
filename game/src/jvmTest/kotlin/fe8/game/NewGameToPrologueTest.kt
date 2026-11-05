@@ -36,25 +36,10 @@ class NewGameToPrologueTest {
         assertNotNull(boot.sram)
         assert(reached >= 0) { "PlayerPhase not reached; $trail" }
         frame = 1 // no keys from here: the lambda reads frame % 20 == 1
+        // The beginning events (stubbed, skip mode) must run to their end. The unit load commands
+        // are stubs, so no unit exists and the phase auto-ends (label 3) instead of idling; the
+        // playerPhaseMainIdle assertion returns with the unit load port.
         repeat(120) { boot.frame() }
-        val proc = boot.engine.find(boot.playerPhaseScript)
-        assertNotNull(proc, "PlayerPhase proc ended")
-        val ee = boot.eventEngine.findStd()?.state as? fe8.game.event.EventEngineProc
-        val diag = ee?.let {
-            val w = RomView.ofRom(file.readBytes()).u16(it.pEventCurrent)
-            "event at 0x%08X word 0x%04X exec %d".format(it.pEventCurrent, w, it.execType)
-        }
-        val cmds = boot.playerPhaseScript.cmds
-        val idle = cmds.indexOfFirst { it.opcode == 0x03 }
-        if (diag == null) {
-            assertEquals(idle, proc!!.scrCur - 1, "not on the playerPhaseMainIdle repeat")
-            assertNotNull(proc.idleCb)
-        } else {
-            // Furthest stage: the chapter beginning event is stuck on an unregistered command
-            // (ASMC, word 0x2520 at 0x089EECC4 in the Prologue), so PlayerPhase waits at its
-            // `whileTrue(eventEngineExists)`. Replace by the idle assertion above once ported.
-            assertEquals(0x03, cmds[idle].opcode)
-            assertEquals(8, proc!!.scrCur - 1, diag)
-        }
+        assertEquals(false, boot.eventEngine.eventEngineExists(), "event engine still running")
     }
 }

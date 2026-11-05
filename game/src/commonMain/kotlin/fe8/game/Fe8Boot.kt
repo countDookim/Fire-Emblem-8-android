@@ -13,8 +13,10 @@ import fe8.game.bm.PlayerPhase
 import fe8.game.bm.ResetCursorPosition
 import fe8.game.bm.UnitTable
 import fe8.game.event.EventEngine
+import fe8.game.event.EventEngineHooks
 import fe8.game.event.EventScrCore
 import fe8.game.event.EventState
+import fe8.game.event.ReleaseEventStubs
 import fe8.game.event.ScriptWords
 import fe8.game.flags.Fe8EventFlags
 import fe8.game.opanim.EarlyStartUi
@@ -131,10 +133,16 @@ public class Fe8Boot(
     public val eventEngine: EventEngine by lazy {
         val state = EventState()
         val memory = ScriptWords({ rom.u16(it) })
-        EventEngine(engine, state, memory).also {
+        // Stand-in: every event runs in skip mode (Start held) until the text, fade and unit
+        // commands are ported.
+        val hooks = object : EventEngineHooks {
+            override fun startPressed(): Boolean = true
+        }
+        EventEngine(engine, state, memory, hooks).also {
             EventScrCore(
                 state, memory, flags = flags, rng = rng, playSt = control.playSt, keys = keys,
             ).registerAll(it)
+            ReleaseEventStubs.registerMissing(it)
         }
     }
 
@@ -172,7 +180,9 @@ public class Fe8Boot(
             EntityBmMaps(map, units, control.playSt), render, keys,
             eventEngine::eventEngineExists,
         ).script
-        main.hooks.callEvent = { events, execType, _ -> eventEngine.callEvent(events, execType) }
+        main.hooks.callEvent = { events, execType, _ ->
+            eventEngine.callEvent(events, execType)
+        }
         val start = BattleMapStart(
             engine, control.playSt, bm, hw, chapters, map,
             ChapterMapGfx(rom, chapters, hw, control.playSt), render,

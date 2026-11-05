@@ -83,6 +83,10 @@ public class EventEngine(
         { EventEngineProc() },
     )
 
+    /** True when command [code] (0x00-0xFF) still has the default handler (reports an error). */
+    public fun isUnregistered(code: Int): Boolean =
+        (if (code < CODES) lo[code] else hi[code - CODES]) === UNKNOWN
+
     /** Registers [handler] for command [code] (0x00-0xFF). */
     public fun register(code: Int, handler: EventHandler) {
         if (code < CODES) lo[code] = handler else hi[code - CODES] = handler

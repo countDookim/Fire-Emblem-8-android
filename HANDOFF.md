@@ -8,12 +8,12 @@ _Updated 2026-11-05 (owner-PC session, night). Owner decisions: docs/PROJECT_BRI
   spending limit (check github.com/settings/billing). Until fixed, run `jvmTest`, Dokka and `:app:assembleDebug`
   locally before pushing; the README progress bar is not updated by CI.
 
-## Next task: M5-11 + M5-13 together (if not done below), then M5-15
-Done 2026-11-05 (owner PC): M5-09..10, 12, 14, 18..24, 28, 29, 33, 36, 38, 41 (see TASKS). Open and unblocked:
-M5-34 → M5-35 (GameControl differential); M5-11 + M5-13 must land together with a ROM-repo re-extraction push
-(the converter's output changes, and CI's ci_check_extraction compares it with the ROM repo's `extracted/`);
-M5-15 (after M5-13), M5-25/26/30..32 (saves), M5-37/39/40 (map graphics/render), M5-41b (ROM run on a map
-larger than the screen: the prologue map is 15×10, so the camera never scrolls in ram_trace_first_phase).
+## Next task: M5-15 (ScriptImage + assembler: prologue.fe8s v1 → ROM bytes)
+Done 2026-11-05 (owner PC): M5-09..14, 18..24, 28, 29, 33..36, 38, 41 (see TASKS). Open and unblocked:
+prologue.fe8s is v1 (symbolic, exact nm lengths; ROM repo `extracted/` updated, but its release is not re-published
+while Actions is blocked: refresh `.assets/extracted` from the ROM repo checkout); M5-25/26/30..32 (saves),
+M5-37/39/40 (map graphics/render), M5-41b (ROM run on a map larger than the screen: the prologue map is 15×10,
+so the camera never scrolls in ram_trace_first_phase).
 Pinned frames (ROM repo `harness/gen_scripts.py`, NEWGAME comment): InitChapterMap f9314..9319 (ch 0), event's
 load_map ch 16 settles ~f9513, StdEventEngine f4907..9292 (WM) and f9508..19312, BattleEventEngine
 f14479..14631, PhaseIntro f19316 (= suspend info[4] commit), PlayerPhase f19393. New-game save write

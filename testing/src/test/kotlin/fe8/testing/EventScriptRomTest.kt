@@ -3,6 +3,7 @@ package fe8.testing
 import gbafe.extract.fe8.events.EventScriptConverter
 import gbafe.extract.fe8.events.Fe8EventCommands
 import gbafe.extract.fe8.events.Fe8EventCommands.FieldKind
+import gbafe.extract.fe8.events.Fe8ScriptConstants
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -10,7 +11,8 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M2-15: event converter v0 on the prologue. `EventScr_Prologue_BeginningScene` 0x089EEBE8 (0xD4
+ * M2-15/M5-11/M5-13: event converter v1 (exact length, layouts, symbols, constants) on the
+ * prologue. `EventScr_Prologue_BeginningScene` 0x089EEBE8 (0xD4
  * bytes) and `EventScr_Prologue_RenaisThroneCutscene` 0x089EECBC (0x3A4) in
  * decomp/fireemblem8.nm.txt, checked against `src/events/prologue-eventscript.h` (pinned 04d1edb).
  * Dumps `testing/build/extracted/scripts/prologue.fe8s`.
@@ -22,14 +24,22 @@ class EventScriptRomTest {
     )
     private val symbols = mapOf(
         0x089EECBC to "EventScr_Prologue_RenaisThroneCutscene",
+        0x089EF1BC to "EventScr_Prologue_EirikaAttacked",
         0x088B3C14 to "UnitDef_Event_PrologueAlly",
         0x088B3D18 to "UnitDef_Event_PrologueThroneRoomUnits",
         0x088B3DCC to "UnitDef_Event_PrologueMessager",
+        0x080CF460 to "BmGuideTextSetAllGreen", // Thumb: the script holds 0x080CF461
+        0x089EE0C0 to "EventScr_CallOnTutorialMode",
     )
 
     private fun convert(address: Int): EventScriptConverter.Result {
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
-        return EventScriptConverter.convert(romFile.readBytes(), address - 0x08000000, symbols)
+        return EventScriptConverter.convert(
+            romFile.readBytes(),
+            address - 0x08000000,
+            prologueScripts.toMap().getValue(address),
+            symbols,
+        )
     }
 
     @Test
@@ -120,17 +130,67 @@ class EventScriptRomTest {
         assertTrue(r.lines.none { it.startsWith("raw ") }, r.lines.joinToString("\n"))
         // CALL(EventScr_Prologue_RenaisThroneCutscene) first; LOAD1(1, UnitDef_Event_PrologueAlly)
         // after LABEL(0); ends ENDA.
-        assertTrue(
-            r.lines.first().endsWith(" EventScr_Prologue_RenaisThroneCutscene"),
-            r.lines.first(),
-        )
+        assertEquals("call EventScr_Prologue_RenaisThroneCutscene", r.lines.first())
         val label = r.lines.indexOf("label 0")
         assertTrue(label > 0)
-        assertTrue(
-            r.lines[label + 2].endsWith(" 1 UnitDef_Event_PrologueAlly"),
-            r.lines[label + 2],
-        )
+        assertEquals("load_unit1 1 UnitDef_Event_PrologueAlly", r.lines[label + 2])
         assertEquals("return", r.lines.last())
+    }
+
+    @Test
+    fun `prologue scripts print constants symbols and layouts`() {
+        val begin = convert(0x089EEBE8).lines
+        val throne = convert(0x089EECBC).lines
+        // set_slot 2 <script>: slot 2 by name, the pointer by symbol; a branch compares slots.
+        assertTrue(
+            "set_slot EVT_SLOT_2 EventScr_Prologue_EirikaAttacked" in begin,
+            begin.toString(),
+        )
+        assertTrue("call EventScr_CallOnTutorialMode" in begin)
+        assertTrue("bne 0 EVT_SLOT_C EVT_SLOT_0" in begin, begin.toString())
+        assertTrue("asm_call BmGuideTextSetAllGreen" in begin, begin.toString())
+        assertTrue("move_unit 24 CHARACTER_SETH 4 4" in begin, begin.toString())
+        assertTrue("display_cursor_at_unit CHARACTER_EIRIKA" in begin)
+        assertTrue("start_bgm SONG_RAID" in throne, throne.toString())
+        assertTrue("load_map CHAPTER_E_16" in throne, throne.toString())
+        assertTrue(
+            (begin + throne).any { it.startsWith("set_flag EVFLAG_") },
+            (begin + throne).toString(),
+        )
+        // Labels and text ids stay numbers.
+        assertTrue("text_show 0x90E" in begin)
+        assertTrue("label 0" in begin)
+    }
+
+    @Test
+    fun `prologue world map script converts without raw commands`() {
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        val r = EventScriptConverter.convert(romFile.readBytes(), 0x08A39768 - 0x08000000, 0x598)
+        assertEquals(0x598, r.byteLength)
+        assertTrue(r.lines.none { it.startsWith("raw ") }, r.lines.joinToString("\n"))
+    }
+
+    @Test
+    fun `flag in slot 2 sub nibbles and unrepresentable bits are lossless`() {
+        val raid = Fe8ScriptConstants.valueOf(Fe8ScriptConstants.KIND_SONG, "SONG_RAID")
+        val rom = byteArrayOf(
+            0x21, 0x02, 0xFF.toByte(), 0xFF.toByte(), // clear_flag 0xFFFF
+            0x29, 0x02, 0xFF.toByte(), 0xFF.toByte(), // set_flag 0xFFFF
+            0x20, 0x13, raid.toByte(), 0x00, // bgm_fade_in, sub nibble 0
+            0x25, 0x13, raid.toByte(), 0x00, // bgm_fade_in, sub nibble 5
+            0x20, 0x06, 0x21, 0x03, // slot_add: to 1, a 2, b 3
+            0x20, 0x06, 0x21, 0x40, // slot_add with the unused top nibble set: raw
+            0x20, 0x77, 0x00, 0x00, // unknown header: raw
+        )
+        val r = EventScriptConverter.convert(rom, 0, rom.size)
+        assertEquals(
+            listOf(
+                "clear_flag_at_slot2", "set_flag EVFLAG_AT_SLOT2", "bgm_fade_in 0 SONG_RAID",
+                "bgm_fade_in 5 SONG_RAID", "slot_add EVT_SLOT_1 EVT_SLOT_2 EVT_SLOT_3",
+                "raw 0x0620 0x4021", "raw 0x7720 0x0000",
+            ),
+            r.lines,
+        )
     }
 
     /**
@@ -199,7 +259,8 @@ class EventScriptRomTest {
         val text = EventScriptConverter.render(scripts)
         // Grammar draft (docs/decisions/0001): comments, `event <name>`, 4-space-indented
         // `<command> <arg>*` with args = decimal, 0x-hex or identifier.
-        val arg = "(?:\\d+|0x[0-9A-F]+|[A-Za-z_][A-Za-z0-9_]*)"
+        val id = "[A-Za-z_][A-Za-z0-9_]*"
+        val arg = "(?:\\d+|0x[0-9A-F]+|$id(?:\\|$id)*)"
         val grammar = Regex("^(?:|#.*|event [A-Za-z_][A-Za-z0-9_]*|    [a-z][a-z0-9_]*(?: $arg)*)$")
         assertTrue(
             text.lines().all { grammar.matches(it) },

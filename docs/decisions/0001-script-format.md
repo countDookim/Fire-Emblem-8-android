@@ -48,6 +48,10 @@ Earlier text stays; where it differs, this section wins.
   - `fe8.game.event`: VM and handlers.
   - `gbafe.core.flags`: `EventFlags` (layout as data) + `FlagRegistry`/`VarRegistry`; FE8 layout in `fe8.game.flags`.
   - Saves: `gba.core.sram` (cart SRAM), `gbafe.save` (container, checksums), `fe8.game.save` (FE8 layout).
+- **v1 notation (M5-11/13):** args in word-layout order (a sub-nibble parameter comes first); implicit zero
+  words omitted; pointers print as symbol names (Thumb targets: the name means address | 1); flag arg 0xFFFF prints
+  as `clear_flag_at_slot2` (decomp `EvtClearFlagAtSlot2`) or `EVFLAG_AT_SLOT2` (our name) elsewhere; menu-override
+  masks print as `A|B` bit names; negative constants are matched sign-extended (truncate to u16 when assembling).
 - **Deferred to M7 (authoring):** `if <cond> goto`, named labels, integer expressions. Until then `.fe8s` uses
   numeric `label N` and explicit branch commands.
 - **Scope (M5):** saves cover boot SRAM init, the New Game write and `.sav` import/export. Loading (Continue) and

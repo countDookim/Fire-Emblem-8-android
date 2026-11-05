@@ -108,10 +108,14 @@ public fun runFe8Steps(rom: ByteArray, symbols: ExtractSources, out: ExtractOutp
     for ((path, png) in sprites.files) out.write("mapsprites/$path", png)
     out.writeText("mapsprites/mapsprites.json", sprites.json)
     written += "mapsprites/mapsprites.json (+${sprites.files.size} PNG)"
-    // Event scripts v0: the prologue's EventScr_Prologue_* lists.
+    // Event scripts v1: the prologue's EventScr_Prologue_* lists.
     val romNames = symbols.romNamesByAddress()
     val scripts = symbols.namesWithPrefix("EventScr_Prologue").sortedBy { symbols[it].address.toUInt() }
-        .map { it to gbafe.extract.fe8.events.EventScriptConverter.convert(rom, symbols[it].address - ROM_BASE, romNames) }
+        .map {
+            it to gbafe.extract.fe8.events.EventScriptConverter.convert(
+                rom, symbols[it].address - ROM_BASE, symbols.sizeOrSpan(it), romNames,
+            )
+        }
     out.writeText("scripts/prologue.fe8s", gbafe.extract.fe8.events.EventScriptConverter.render(scripts))
     written += "scripts/prologue.fe8s (${scripts.size} scripts)"
     // m4a (M2-18/19): every gSongTable entry -> songs/songNNN.mid (once per distinct header) + songs/songs.json,

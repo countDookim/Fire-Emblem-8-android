@@ -17,6 +17,10 @@ A macro parameter that is the whole sub-command nibble (`_EvtArg0(cmd, 2, (speed
 wildcard (`bySubParam`, keyed by `(cmd shl 8) or (len shl 4)`); a 1-bit parameter inside the sub expression
 (`EvtMoveUnit`'s `modify`) enumerates one row per value.
 
+Each named field also gets a value kind (the `Fe8ScriptConstants` kind its values are drawn from) decided by the
+macro parameter's name (PARAM_KINDS, with OVERRIDES per macro): `pid` is a character, `jid` a class, `flag` an
+event flag, `bgm`/`songid` a song, `slot`/`s1`/`s2` an event slot... The converter prints such values by name.
+
 Commands 0x1F/0x20/0x23/0x24/0x28/0x35 have no macro in the decomp; their forms are taken from the handlers in
 src/eventscr.c (EXTRA below) and appended after the decomp macros.
 """
@@ -38,6 +42,44 @@ EXTRA = [
 
 # Macro names of EXTRA: the generated rows are marked `inferred = true`.
 INFERRED = {re.match(r"\w+", head).group(0) for head, _ in EXTRA}
+
+# Value kind (Fe8ScriptConstants.KIND_*) of a macro parameter by its name.
+PARAM_KINDS = {
+    "pid": "character", "pid_target": "character", "unit": "character",
+    "jid": "class", "item": "item", "songid": "song", "bgm": "song", "chapter": "chapter",
+    "bg": "background", "flag": "event_flag", "slot": "slot", "s1": "slot", "s2": "slot",
+    "bitfile": "menu_override", "node": "wm_node", "node1": "wm_node", "node2": "wm_node",
+    "path": "wm_path", "nation": "wm_nation", "wm_uid": "wm_mu",
+}
+# Per-macro exceptions to PARAM_KINDS: (macro, parameter) -> kind or None. Slot operations name their slots
+# `to`/`a`/`b`; the "flag" of the ev-bit commands is an event-state bit index, not an event flag; EvtSwapClass
+# passes a character in its `jid` (src/eventscr.c Event35_UnitClassChanging subcommand 1).
+OVERRIDES = {
+    ("EvtClearEvBits", "flag"): None,
+    ("EvtSetEvBits", "flag"): None,
+    ("EvtSwapClass", "jid"): "character",
+}
+for _op in ("ADD", "SUB", "MUL", "DIV", "MOD", "AND", "ORR", "XOR", "LSL", "LSR"):
+    for _p in ("to", "a", "b"):
+        OVERRIDES[("EvtSlot" + _op, _p)] = "slot"
+
+# Name of the Kotlin constant (K_<name> in the generated object) for each kind.
+KIND_CONSTS = {
+    "character": "CHARACTER", "class": "CLASS", "item": "ITEM", "song": "SONG", "chapter": "CHAPTER",
+    "background": "BACKGROUND", "event_flag": "EVENT_FLAG", "slot": "SLOT",
+    "menu_override": "MENU_OVERRIDE", "wm_node": "WM_NODE", "wm_path": "WM_PATH",
+    "wm_nation": "WM_NATION", "wm_mu": "WM_MU",
+}
+
+
+def kind_of(macro, param):
+    """Value kind of a macro parameter, or None."""
+    if (macro, param) in OVERRIDES:
+        return OVERRIDES[(macro, param)]
+    if param == "flag" and macro.startswith("WmEvt"):
+        return None  # WmEvtMoveUnit's `flag` is not an event flag
+    return PARAM_KINDS.get(param)
+
 
 # Casts to (EventListScr) that are really plain 32-bit values (SVAL's value, a worldmap node id).
 VALUE32 = {("EvtSetSlot", "value"), ("WmEvtLoadUnit", "node")}
@@ -98,7 +140,7 @@ def is_ident(e):
 
 
 class Layout:
-    """Collects the fields of one macro as (name or None, kind, word, shift)."""
+    """Collects the fields of one macro as (name or None, storage kind, word, shift, value kind)."""
 
     def __init__(self, macro, params):
         self.macro, self.params, self.fields = macro, params, []
@@ -114,7 +156,7 @@ class Layout:
     def sub(self, e, word, kind, shift):
         n = self.name(e)
         if n is not None:
-            self.fields.append((n, kind, word, shift))
+            self.fields.append((n, kind, word, shift, kind_of(self.macro, n)))
 
     def word16(self, e, word):
         for fn, kind, width, count in (("_EvtSubParam16u8", "U8", 8, 2), ("_EvtSubParam16u4", "U4", 4, 4)):
@@ -142,9 +184,9 @@ class Layout:
             n = self.name(m.group(2))
             if n is not None:
                 kind = "PTR" if m.group(1) == "EventListScr" and (self.macro, n) not in VALUE32 else "U32"
-                self.fields.append((n, kind, word, 0))
+                self.fields.append((n, kind, word, 0, kind_of(self.macro, n)))
             elif m.group(1) == "EventListScr":
-                self.fields.append((None, "PTR", word, 0))
+                self.fields.append((None, "PTR", word, 0, None))
             return
         if re.fullmatch(r"0|0x0+", e.strip()):
             return
@@ -153,13 +195,13 @@ class Layout:
     def finish(self, length):
         """Adds an unnamed zero U16 for every word no field covers."""
         covered = set()
-        for _, kind, word, _ in self.fields:
+        for _, kind, word, _, _ in self.fields:
             covered.add(word)
             if kind in ("U32", "PTR"):
                 covered.add(word + 1)
         for w in range(1, length):
             if w not in covered:
-                self.fields.append((None, "U16", w, 0))
+                self.fields.append((None, "U16", w, 0, None))
         self.fields.sort(key=lambda f: (f[2], f[3]))
         return self.fields
 
@@ -234,9 +276,10 @@ def main(decomp):
 
     def fields(fs):
         out = []
-        for n, kind, word, shift in fs:
+        for n, kind, word, shift, vk in fs:
             k = {"U4": "u4", "U8": "u8", "U16": "u16", "U32": "u32", "PTR": "ptr"}[kind]
-            out.append("%s(%s, %d%s)" % (k, kstr(n), word, ", %d" % shift if shift else ""))
+            extra = ", valueKind = K_%s" % KIND_CONSTS[vk] if vk is not None else ""
+            out.append("%s(%s, %d%s%s)" % (k, kstr(n), word, ", %d" % shift if shift else "", extra))
         return "listOf(%s)" % ", ".join(out)
 
     entries = []  # (header, kotlin Command(...) expression)
@@ -301,6 +344,11 @@ def main(decomp):
         public val word: Int,
         /** Bit position inside the word for sub-word kinds, else 0. */
         public val shift: Int,
+        /**
+         * The [Fe8ScriptConstants] kind (`Fe8ScriptConstants.KIND_*`) this field's values are
+         * drawn from, or null for plain numbers (also for ids and text ids).
+         */
+        public val valueKind: String? = null,
     ) {
         /**
          * Reads this field from [rom] for the command starting at byte [commandOffset] (no
@@ -343,13 +391,19 @@ def main(decomp):
         public val inferred: Boolean = false,
     )
 """)
-    out.append("    private fun u4(name: String?, word: Int, shift: Int = 0) =")
-    out.append("        Field(name, FieldKind.U4, word, shift)")
-    out.append("    private fun u8(name: String?, word: Int, shift: Int = 0) =")
-    out.append("        Field(name, FieldKind.U8, word, shift)")
-    out.append("    private fun u16(name: String?, word: Int) = Field(name, FieldKind.U16, word, 0)")
-    out.append("    private fun u32(name: String?, word: Int) = Field(name, FieldKind.U32, word, 0)")
-    out.append("    private fun ptr(name: String?, word: Int) = Field(name, FieldKind.POINTER, word, 0)\n")
+    for kk, cc in KIND_CONSTS.items():
+        out.append("    private const val K_%s = Fe8ScriptConstants.KIND_%s" % (cc, cc))
+    out.append("")
+    out.append("    private fun u4(name: String?, word: Int, shift: Int = 0, valueKind: String? = null) =")
+    out.append("        Field(name, FieldKind.U4, word, shift, valueKind)")
+    out.append("    private fun u8(name: String?, word: Int, shift: Int = 0, valueKind: String? = null) =")
+    out.append("        Field(name, FieldKind.U8, word, shift, valueKind)")
+    out.append("    private fun u16(name: String?, word: Int, valueKind: String? = null) =")
+    out.append("        Field(name, FieldKind.U16, word, 0, valueKind)")
+    out.append("    private fun u32(name: String?, word: Int, valueKind: String? = null) =")
+    out.append("        Field(name, FieldKind.U32, word, 0, valueKind)")
+    out.append("    private fun ptr(name: String?, word: Int, valueKind: String? = null) =")
+    out.append("        Field(name, FieldKind.POINTER, word, 0, valueKind)\n")
     parts = [entries[i:i + chunk] for i in range(0, len(entries), chunk)]
     for i, part in enumerate(parts):
         out.append("    private fun exact%d(m: MutableMap<Int, Command>) {" % i)

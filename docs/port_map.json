@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 310,
+    "verified": 311,
     "implemented_unverified": 87
   },
   "functions": {
@@ -1778,6 +1778,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
+      ]
+    },
+    "RenderBmMap": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmMapRender.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmMapRenderDifferentialTest#BG3 tilemap matches the dump"
       ]
     },
     "ResetChapterFlags": {

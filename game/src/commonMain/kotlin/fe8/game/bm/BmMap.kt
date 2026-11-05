@@ -120,7 +120,10 @@ public class BmMap(
      *
      * Unpacks chapter [chapterId]'s map, sets up the unit/terrain/movement/range/fog/hidden/other
      * pools, builds the base tiles and refreshes the terrain map. Graphics and palette unpack
-     * (`UnpackChapterMapGraphics`) is a separate task and is not done here.
+     * (`UnpackChapterMapGraphics`) is a separate task and is not done here. The base tile
+     * adjustments after the unpack (`ApplyEnabledMapChanges`, shadow and tile changes) are
+     * stand-ins ([applyEnabledMapChanges] is a hook), so a chapter that has them (e.g. Ch2)
+     * differs from the game's pool; see [loadBaseTiles].
      */
     public fun initChapterMap(chapterId: Int) {
         unpackChapterMap(chapterId)
@@ -139,6 +142,24 @@ public class BmMap(
         initBaseTilesBmMap()
         applyEnabledMapChanges()
         refreshTerrainBmMap()
+    }
+
+    /**
+     * Copies a raw `sBmBaseTilesPool` image (`gBmMapBaseTiles`: `sizeY + 1` row pointers of 4
+     * bytes, then `sizeY + 1` rows of `sizeX` little-endian u16 tiles) from [src] at [offset] into
+     * the base tiles, for the current [sizeX] x [sizeY]. It exists because the base tile
+     * adjustments of [initChapterMap] are still stand-ins: tests seed the pool from RAM dumps with
+     * it, and the suspend load will need it. Does not allocate.
+     */
+    public fun loadBaseTiles(src: ByteArray, offset: Int) {
+        val rows = sizeY + 1
+        baseTilesOrigin = rows * 2
+        var at = offset + rows * 4
+        for (i in 0 until rows * sizeX) {
+            baseTiles[baseTilesOrigin + i] =
+                ((src[at].toInt() and 0xFF) or (src[at + 1].toInt() shl 8)).toShort()
+            at += 2
+        }
     }
 
     /**

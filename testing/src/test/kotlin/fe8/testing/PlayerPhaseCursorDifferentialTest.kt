@@ -4,6 +4,7 @@ import fe8.game.RomView
 import fe8.game.bm.BmMap
 import fe8.game.bm.BmMapRender
 import fe8.game.bm.BmSt
+import fe8.game.bm.Camera
 import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.EntityBmMaps
@@ -65,6 +66,19 @@ class PlayerPhaseCursorDifferentialTest {
         assertTrue(c.compared >= 150 && c.cursorMoves >= 100 && c.cameraMoves >= 50, "$c")
     }
 
+    @Test
+    @VerifiesPort(
+        "HandlePlayerCursorMovement", "HandleMapCursorInput", "HandleMoveMapCursor",
+        "HandleMoveCameraWithMapCursor",
+    )
+    fun `chapter 6 cursor edge cases match the game`() {
+        val c = run("ram_trace_ch6_cursor_edges", 2004, 2420)
+        assertTrue(c.compared >= 250 && c.diagonals >= 10, "$c")
+        // finishX / finishY stay 0: the camera follows the cursor in step, so the tile-finish
+        // branches of HandleMoveCameraWithMapCursor are not reached by this run.
+        assertTrue(c.xClamps >= 1, "$c")
+    }
+
     private fun frameName(f: Int) = "r%05d".format(f)
 
     private fun run(name: String, first: Int, last: Int): Checks {
@@ -97,6 +111,10 @@ class PlayerPhaseCursorDifferentialTest {
             keys.readFrom(keyStruct(f))
             val displayBefore = bm.playerCursorDisplayX + bm.playerCursorDisplayY
             val camXBefore = bm.cameraX
+            val unk32Before = bm.unk32
+            val unk34Before = bm.unk34
+            val curXBefore = bm.playerCursorX
+            val curYBefore = bm.playerCursorY
             val camYBefore = bm.cameraY
             phase.handlePlayerCursorMovement()
             val want = BmSt().also { it.decode(ew(f), BM_ST - EWRAM) }
@@ -110,7 +128,30 @@ class PlayerPhaseCursorDifferentialTest {
             assertEquals(want.gameStateBits, bm.gameStateBits, "$at gameStateBits")
             assertEquals(want.cursorTargetX, bm.cursorTargetX, "$at target x")
             assertEquals(want.cursorTargetY, bm.cursorTargetY, "$at target y")
+            assertEquals(want.unk32, bm.unk32, "$at unk32")
+            assertEquals(want.unk34, bm.unk34, "$at unk34")
+            assertEquals(want.unk36, bm.unk36, "$at unk36")
+            assertEquals(want.unk37, bm.unk37, "$at unk37")
             c.compared++
+            if (curXBefore != bm.playerCursorX && curYBefore != bm.playerCursorY) c.diagonals++
+            if (bm.cameraMaxX > 0 && bm.cameraX == bm.cameraMaxX &&
+                bm.playerCursorDisplayX - Camera.MARGIN_RIGHT >= bm.cameraMaxX
+            ) {
+                c.xClamps++
+            }
+            // The tile-finish branches run when no scroll margin is crossed but unk32/unk34 != 0.
+            val xc = bm.playerCursorDisplayX
+            val yc = bm.playerCursorDisplayY
+            if (unk32Before != 0 && camXBefore + Camera.MARGIN_LEFT <= xc &&
+                camXBefore + Camera.MARGIN_RIGHT >= xc
+            ) {
+                c.finishX++
+            }
+            if (unk34Before != 0 && camYBefore + Camera.MARGIN_TOP <= yc &&
+                camYBefore + Camera.MARGIN_BOTTOM >= yc
+            ) {
+                c.finishY++
+            }
             if (displayBefore != bm.playerCursorDisplayX + bm.playerCursorDisplayY) c.cursorMoves++
             if (camXBefore != bm.cameraX || camYBefore != bm.cameraY) c.cameraMoves++
         }
@@ -123,9 +164,15 @@ class PlayerPhaseCursorDifferentialTest {
         var skipped = 0
         var cursorMoves = 0
         var cameraMoves = 0
+        var diagonals = 0
+        var xClamps = 0
+        var finishX = 0
+        var finishY = 0
 
         override fun toString() =
-            "compared=$compared skipped=$skipped cursorMoves=$cursorMoves cameraMoves=$cameraMoves"
+            "compared=$compared skipped=$skipped cursorMoves=$cursorMoves " +
+                "cameraMoves=$cameraMoves diagonals=$diagonals xClamps=$xClamps " +
+                "finishX=$finishX finishY=$finishY"
     }
 
     private companion object {

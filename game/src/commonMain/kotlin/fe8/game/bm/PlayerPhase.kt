@@ -376,6 +376,10 @@ public class PlayerPhase(
      * margins (clamping at 0 and `cameraMax`), remembering the direction and the offset into the
      * tile in `unk32`/`unk34`/`unk36`/`unk37`; when nothing scrolled it finishes the move to the
      * next 16 pixel boundary.
+     *
+     * Verified on the scroll and clamp paths; the tile-finish branch and the exact `cameraMax`
+     * boundary of the x clamp are not reached by any reference run (they need a direction
+     * reversal or a camera stop mid-tile).
      */
     public fun handleMoveCameraWithMapCursor(step: Int) {
         var isUpdated = false

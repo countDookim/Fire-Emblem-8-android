@@ -1,5 +1,6 @@
 package fe8.game
 
+import fe8.game.bm.PlaySt
 import fe8.game.title.TitleScreen
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
@@ -27,7 +28,7 @@ import gbafe.proc.ProcScripts.yield
  * flow: intro, title, save menu, chapters. The whole script is transcribed 1:1 (122 commands,
  * checked against the ROM by `GameControlScriptRomTest`); the intro and op anim scripts are given
  * as [introScript] and [opAnimScript], the title as [titleScreen], and every call past the title
- * is a stand-in in [hooks] or a `TODO(M5-34)` function until it is ported.
+ * is a stand-in in [hooks] until it is ported.
  */
 public class GameControl(
     /** The proc engine the game control proc runs on. */
@@ -48,10 +49,20 @@ public class GameControl(
     /** The stand-ins for the calls past the title that are not ported yet. */
     public val hooks: Hooks = Hooks(),
 ) {
+    /** `gPlaySt`, the play state the game control functions read and write. */
+    public val playSt: PlaySt = PlaySt()
+
     /**
-     * `gPlaySt.config` option bits (u32 at `gPlaySt+0x40`); only the sound bits are used so far.
+     * `gPlaySt.config` option bits (u32 at `gPlaySt+0x40`) as far as the sound wrapper uses them:
+     * only the `disableBgm` and `disableSoundEffects` bits are mapped onto [playSt]; the setter
+     * ignores the others.
      */
-    public var playStConfig: Int = 0
+    public var playStConfig: Int
+        get() = (playSt.disableBgm shl 8) or (playSt.disableSoundEffects shl 9)
+        set(value) {
+            playSt.disableBgm = (value shr 8) and 1
+            playSt.disableSoundEffects = (value shr 9) and 1
+        }
 
     /** `src/soundwrapper.c` state and calls (`gSoundSt`), reading [playStConfig]. */
     public val sound: SoundWrapper = SoundWrapper(engine, m4a) { playStConfig }
@@ -402,69 +413,136 @@ public class GameControl(
         public var startMidFadeToBlack: ProcFunc = ProcFunc { },
         /** `EndMuralBackground`. Stand-in until its port. */
         public var endMuralBackground: ProcFunc = ProcFunc { },
+        /** `GmDataInit` (world map data). Stand-in until its port. */
+        public var gmDataInit: ProcFunc = ProcFunc { },
+        /** `StartIntroMonologue`. Stand-in until its port. */
+        public var startIntroMonologue: ProcFunc = ProcFunc { },
+        /** `EndAllMus`. Stand-in until its port. */
+        public var endAllMus: ProcFunc = ProcFunc { },
+        /**
+         * The three blend calls of `sub_8009E28` (`SetBlendConfig(3, 0, 0, 16)`,
+         * `SetBlendTargetA(1, 1, 1, 1, 1)`, `SetBlendBackdropA(1)`) on the LCD control buffer.
+         * Stand-in until the buffer is shared with [GameControl].
+         */
+        public var blendSetup: ProcFunc = ProcFunc { },
     )
 
     /**
-     * `GameControl_SwitchPostSaveMenu`: stand-in until task M5-34 (no-op).
+     * Branches after the save menu on `nextAction`; on event return it first runs `GmDataInit`
+     * ([Hooks.gmDataInit]) and goes to the battle map label.
+     *
+     * Ported from src/gamecontrol.c: GameControl_SwitchPostSaveMenu
      */
     public fun switchPostSaveMenu(proc: Proc) {
-        // TODO(M5-34): port GameControl_SwitchPostSaveMenu
+        when ((proc.state as State).nextAction) {
+            GAME_ACTION_EVENT_RETURN -> {
+                hooks.gmDataInit.invoke(proc)
+                engine.goto(proc, LGAMECTRL_EXEC_BM)
+            }
+            GAME_ACTION_CLASS_REEL, GAME_ACTION_USR_SKIPPED, GAME_ACTION_PLAYED_THROUGH ->
+                engine.goto(proc, LGAMECTRL_EXEC_BM)
+            GAME_ACTION_4 -> engine.goto(proc, LGAMECTRL_RESUMED_GAME)
+            GAME_ACTION_5 -> engine.goto(proc, LGAMECTRL_TITLE_FLAG_FALSE)
+            GAME_ACTION_6 -> engine.goto(proc, LGAMECTRL_LINK_ARENA)
+            GAME_ACTION_EXTRA_MAP -> engine.goto(proc, LGAMECTRL_EXTRA_MAP)
+            GAME_ACTION_C -> engine.goto(proc, LGAMECTRL_EXEC_BM_)
+            else -> Unit
+        }
     }
 
     /**
-     * `GameCtrl_CheckNewGameAndBranch`: stand-in until task M5-34 (no-op).
+     * Skips to the direct battle map label when the save menu type is 2 or 4.
+     *
+     * Ported from src/gamecontrol.c: GameCtrl_CheckNewGameAndBranch
      */
     public fun checkNewGameAndBranch(proc: Proc) {
-        // TODO(M5-34): port GameCtrl_CheckNewGameAndBranch
+        if (playSt.saveMenuType == 2 || playSt.saveMenuType == 4) {
+            engine.goto(proc, LGAMECTRL_EXEC_BM_EXT)
+        }
     }
 
     /**
-     * `GameCtrl_CheckGameCompleteAndBranch`: stand-in until task M5-34 (no-op).
+     * Goes to the ending scene when the game is complete and not already in the post game.
+     *
+     * Ported from src/gamecontrol.c: GameCtrl_CheckGameCompleteAndBranch
      */
     public fun checkGameCompleteAndBranch(proc: Proc) {
-        // TODO(M5-34): port GameCtrl_CheckGameCompleteAndBranch
+        if (playSt.chapterStateBits and PLAY_FLAG_POSTGAME != 0) return
+        if (playSt.chapterStateBits and PLAY_FLAG_COMPLETE == 0) return
+        engine.goto(proc, LGAMECTRL_EXEC_ENDING_SCENE)
     }
 
     /**
-     * `GameControl_RememberChapterId`: stand-in until task M5-34 (no-op).
+     * Copies `gPlaySt.chapterIndex` to `ch_index`.
+     *
+     * Ported from src/gamecontrol.c: GameControl_RememberChapterId
      */
     public fun rememberChapterId(proc: Proc) {
-        // TODO(M5-34): port GameControl_RememberChapterId
+        (proc.state as State).chIndex = playSt.chapterIndex and 0xFF
     }
 
     /**
-     * `GameControl_RestoreChapterId`: stand-in until task M5-34 (no-op).
+     * Copies `ch_index` back to `gPlaySt.chapterIndex` (an s8).
+     *
+     * Ported from src/gamecontrol.c: GameControl_RestoreChapterId
      */
     public fun restoreChapterId(proc: Proc) {
-        // TODO(M5-34): port GameControl_RestoreChapterId
+        playSt.chapterIndex = (proc.state as State).chIndex.toByte().toInt()
     }
 
     /**
-     * `GameCtrlStartIntroMonologue`: stand-in until task M5-34 (no-op).
+     * Starts the intro monologue ([Hooks.startIntroMonologue]) in chapter 0 unless in the post
+     * game.
+     *
+     * Ported from src/gamecontrol.c: GameCtrlStartIntroMonologue
      */
     public fun startIntroMonologue(proc: Proc) {
-        // TODO(M5-34): port GameCtrlStartIntroMonologue
+        if (playSt.chapterStateBits and PLAY_FLAG_POSTGAME != 0) return
+        if (playSt.chapterIndex != 0) return
+        hooks.startIntroMonologue.invoke(proc)
     }
 
     /**
-     * `sub_8009E28`: stand-in until task M5-34 (no-op).
+     * Sets the alpha blend (`SetBlendConfig(3, 0, 0, 16)`, `SetBlendTargetA(1, 1, 1, 1, 1)`,
+     * `SetBlendBackdropA(1)`) through [Hooks.blendSetup], the LCD control buffer not being owned
+     * here.
+     *
+     * Partially ported from src/gamecontrol.c: sub_8009E28
      */
     public fun sub8009E28(proc: Proc) {
-        // TODO(M5-34): port sub_8009E28
+        hooks.blendSetup.invoke(proc)
     }
 
     /**
-     * `GameControl_PostChapterSwitch`: stand-in until task M5-34 (no-op).
+     * Ends all music ([Hooks.endAllMus]) then branches on `nextAction`: title on event return,
+     * label 16 (ending scene) when played through.
+     *
+     * Partially ported from src/gamecontrol.c: GameControl_PostChapterSwitch
      */
     public fun postChapterSwitch(proc: Proc) {
-        // TODO(M5-34): port GameControl_PostChapterSwitch
+        hooks.endAllMus.invoke(proc)
+        when ((proc.state as State).nextAction) {
+            GAME_ACTION_EVENT_RETURN -> engine.goto(proc, LGAMECTRL_TITLE_DIRECT)
+            GAME_ACTION_PLAYED_THROUGH -> engine.goto(proc, LGAMECTRL_POST_CHAPTER_ENDING)
+            else -> Unit
+        }
     }
 
     /**
-     * `GameControlHandlePostNormalOrExtraChapter`: stand-in until task M5-34 (no-op).
+     * Goes to the extra map label when `PLAY_FLAG_EXTRA_MAP` is set, else to the normal chapter
+     * label.
+     *
+     * Ported from src/gamecontrol.c: GameControlHandlePostNormalOrExtraChapter
      */
     public fun handlePostNormalOrExtraChapter(proc: Proc) {
-        // TODO(M5-34): port GameControlHandlePostNormalOrExtraChapter
+        engine.goto(
+            proc,
+            if (playSt.chapterStateBits and PLAY_FLAG_EXTRA_MAP != 0) {
+                LGAMECTRL_POST_EXTRA_MAP
+            } else {
+                LGAMECTRL_POST_NORMAL_CHAPTER
+            },
+        )
     }
 
     /** Constants from `gamecontrol.h` / `proc.h` / `gbaio.h`. */
@@ -523,11 +601,42 @@ public class GameControl(
         /** `GAME_ACTION_PLAYED_THROUGH`. */
         public const val GAME_ACTION_PLAYED_THROUGH: Int = 3
 
+        /** `GAME_ACTION_4`. */
+        public const val GAME_ACTION_4: Int = 4
+
+        /** `GAME_ACTION_5`. */
+        public const val GAME_ACTION_5: Int = 5
+
+        /** `GAME_ACTION_6`. */
+        public const val GAME_ACTION_6: Int = 6
+
+        /** `GAME_ACTION_EXTRA_MAP`. */
+        public const val GAME_ACTION_EXTRA_MAP: Int = 7
+
+        /** `GAME_ACTION_C`. */
+        public const val GAME_ACTION_C: Int = 0xC
+
+        /** `PLAY_FLAG_POSTGAME`. */
+        public const val PLAY_FLAG_POSTGAME: Int = 1 shl 2
+
+        /** `PLAY_FLAG_COMPLETE`. */
+        public const val PLAY_FLAG_COMPLETE: Int = 1 shl 5
+
+        /** `PLAY_FLAG_EXTRA_MAP`. */
+        public const val PLAY_FLAG_EXTRA_MAP: Int = 1 shl 7
+
         /** `gPlaySt.config.disableBgm` bit. */
         public const val CONFIG_DISABLE_BGM: Int = 1 shl 8
 
         /** `gPlaySt.config.disableSoundEffects` bit. */
         public const val CONFIG_DISABLE_SOUND_EFFECTS: Int = 1 shl 9
+
+        // Unnamed script labels (the numbers of the decomp's `PROC_LABEL`s).
+        private const val LGAMECTRL_RESUMED_GAME = 8
+        private const val LGAMECTRL_LINK_ARENA = 12
+        private const val LGAMECTRL_EXTRA_MAP = 14
+        private const val LGAMECTRL_POST_CHAPTER_ENDING = 16
+        private const val LGAMECTRL_TITLE_FLAG_FALSE = 25
 
         private const val L_BUTTON = 0x200
         private const val DPAD_RIGHT = 0x10

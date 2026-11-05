@@ -3,9 +3,12 @@
 _Updated 2026-11-05 (owner-PC session, night). Owner decisions: docs/PROJECT_BRIEF.md. History: git log._
 
 ## NEEDS USER
-_(nothing blocked)_
+- GitHub Actions: every code-repo run since 2026-11-05 00:03Z (f50da92) is `startup_failure` ("workflow file
+  issue", also on a manual dispatch) although ci.yml is unchanged and valid; likely account Actions minutes or
+  spending limit (check github.com/settings/billing). Until fixed, run `jvmTest`, Dokka and `:app:assembleDebug`
+  locally before pushing; the README progress bar is not updated by CI.
 
-## Next task: M5-34 (GameControl functions), then M5-11 + M5-13 together
+## Next task: M5-11 + M5-13 together (if not done below), then M5-15
 Done 2026-11-05 (owner PC): M5-09..10, 12, 14, 18..24, 28, 29, 33, 36, 38, 41 (see TASKS). Open and unblocked:
 M5-34 → M5-35 (GameControl differential); M5-11 + M5-13 must land together with a ROM-repo re-extraction push
 (the converter's output changes, and CI's ci_check_extraction compares it with the ROM repo's `extracted/`);

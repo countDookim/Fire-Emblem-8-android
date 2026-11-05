@@ -67,4 +67,17 @@ class SaveStateFunctionsTest {
         initPlayConfig(ps, false, 0)
         assertEquals(0, ps.chapterStateBits)
     }
+
+    @Test
+    fun `world map clear and empty supply blocks are written`() {
+        val sram = CartSram()
+        val lib = BmSaveLib(sram)
+        lib.clearWorldMapStuff(L.GAME0_OFFSET)
+        assertEquals(0x0E, sram.readByte(L.GAME0_OFFSET + 0x1C))
+        sram.writeByte(L.GAME0_OFFSET + 0x10, 0x55)
+        lib.writeSupplyItems(L.GAME0_OFFSET, IntArray(100))
+        for (i in 0 until 0xB0) assertEquals(0, sram.readByte(L.GAME0_OFFSET + i), "byte $i")
+        lib.setBonusContentClaimFlags(7)
+        assertEquals(7, lib.bonusContentClaimFlags)
+    }
 }

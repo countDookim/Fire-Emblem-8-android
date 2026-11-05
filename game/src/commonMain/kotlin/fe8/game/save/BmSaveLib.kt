@@ -53,6 +53,16 @@ public class BmSaveLib(public val sram: CartSram) {
     /** Stand-in for the `struct PlaySt ram_ch` local of `IsPlaythroughIdUnique`. */
     private val scratchPlaySt = PlaySt()
 
+    /** `gBonusContentClaimFlags`. */
+    public var bonusContentClaimFlags: Int = 0
+        private set
+
+    /** Stand-in for the `unsigned char buf[176]` of `WriteSupplyItems`. */
+    private val supplyBuffer = ByteArray(SUPPLY_SIZE)
+
+    /** Stand-in for the `struct GMapSaveInfo info` of `ClearWorldMapStuff`. */
+    private val gmapBuffer = ByteArray(GMAP_SAVE_INFO_SIZE)
+
     /** The 0x40 bytes of 0xFF that `WipeSram` writes 0x200 times (`u32 buf[0x10]`). */
     private val wipeBuffer = ByteArray(WIPE_CHUNK)
 
@@ -557,6 +567,84 @@ public class BmSaveLib(public val sram: CartSram) {
         return getGlobalCompletionCntByInfo(infoBuffer)
     }
 
+    /**
+     * Transcribed from src/bmsave-lib.c: WriteSupplyItems (verified by M5-32's full-image check;
+     * not yet)
+     *
+     * Packs the 100 convoy [items] (u16 each: item id in the low byte, uses in the high byte)
+     * into the 0xB0-byte supply block at SRAM [destOffset]: the ids in bytes 0..99, then the
+     * 6-bit uses back to back from byte 100. The C `buf` is an uninitialised stack array whose
+     * unwritten bits are masked, not cleared; here it starts as zeros.
+     */
+    public fun writeSupplyItems(destOffset: Int, items: IntArray) {
+        val buf = supplyBuffer
+        buf.fill(0)
+        var cur = CONVOY_ITEM_COUNT
+        var var1 = 0
+        for (i in 0 until CONVOY_ITEM_COUNT) {
+            buf[i] = items[i].toByte()
+            val itemUse = (items[i] shr 8) and 0x3F
+            val var0 = var1 and 0x7
+            buf[cur] = ((buf[cur].toInt() and SUPPLY_MASK1[var0]) or (itemUse shl var0)).toByte()
+            if (var0 > 1) {
+                cur++
+                if (var0 > 2) {
+                    buf[cur] = ((buf[cur].toInt() and SUPPLY_MASK2[var0]) or
+                        (itemUse shr (8 - var0))).toByte()
+                }
+            }
+            var1 += 6
+        }
+        writeAndVerifySramFast(buf, 0, sram, destOffset, SUPPLY_SIZE)
+    }
+
+    /**
+     * Stand-in for src/bmcontainer.c: ClearSupplyItems (zeroes the 100 convoy items) over a raw
+     * little-endian u16 array [convoy] (verified by M5-32's full-image check; not yet).
+     */
+    public fun clearSupplyItems(convoy: ByteArray) {
+        convoy.fill(0, 0, CONVOY_ITEM_COUNT * 2)
+    }
+
+    /**
+     * Stand-in for src/bmunit.c: InitUnits over the raw unit array [units]: zeroes all of it. The
+     * C code also stores each unit's `index`, which needs the `Unit` layout and is not done here.
+     */
+    public fun initUnits(units: ByteArray) {
+        units.fill(0)
+    }
+
+    /**
+     * Transcribed from src/bmsave-gmap.c: ClearWorldMapStuff (verified by M5-32's full-image
+     * check; not yet)
+     *
+     * Writes a zeroed `GMapSaveInfo` (0x22 bytes) with `unk_1c_2` = 1 and `unk_1c_3` = 3 (byte
+     * 0x1C = 0x0E) to SRAM [destOffset].
+     */
+    public fun clearWorldMapStuff(destOffset: Int) {
+        gmapBuffer.fill(0)
+        gmapBuffer[GMAP_BITS_1C] = 0x0E
+        writeAndVerifySramFast(gmapBuffer, 0, sram, destOffset, GMAP_SAVE_INFO_SIZE)
+    }
+
+    /**
+     * Transcribed from src/bmsave.c: SetBonusContentClaimFlags (verified by M5-32's full-image
+     * check; not yet)
+     */
+    public fun setBonusContentClaimFlags(num: Int) {
+        bonusContentClaimFlags = num
+    }
+
+    /**
+     * Transcribed from src/bmsave-lib.c: WritePermanentFlags (verified by M5-32's full-image
+     * check; not yet)
+     *
+     * Writes the 0x19 bytes of [permanentFlags] (`gPermanentFlagBits`) to SRAM [destOffset].
+     */
+    public fun writePermanentFlags(destOffset: Int, permanentFlags: ByteArray) {
+        writeAndVerifySramFast(permanentFlags, 0, sram, destOffset, PERMANENT_FLAGS_SIZE)
+    }
+
     /** Shared body of the `LoadAndVerfy*`/`LoadBonusContentData` readers: read, then checksum. */
     private fun loadChecked(
         offset: Int,
@@ -589,6 +677,27 @@ public class BmSaveLib(public val sram: CartSram) {
 
         /** Bytes `WipeSram` writes per call (0x200 calls cover the 0x8000 bytes). */
         const val WIPE_CHUNK = 0x40
+
+        /** `CONVOY_ITEM_COUNT`. */
+        const val CONVOY_ITEM_COUNT = 100
+
+        /** `GAMESAVE_SIZE_SUPPLY`. */
+        const val SUPPLY_SIZE = 0xB0
+
+        /** `GetPermanentFlagBitsSize()`. */
+        const val PERMANENT_FLAGS_SIZE = 0x19
+
+        /** `sizeof(struct GMapSaveInfo)` (0x21 rounded up to its u16 alignment). */
+        const val GMAP_SAVE_INFO_SIZE = 0x22
+
+        /** Offset of the `unk_1c_*` bit field byte in `GMapSaveInfo`. */
+        const val GMAP_BITS_1C = 0x1C
+
+        /** `sConvySavePackMask1`. */
+        val SUPPLY_MASK1 = intArrayOf(0xC0, 0x81, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F)
+
+        /** `sConvySavePackMask2`. */
+        val SUPPLY_MASK2 = intArrayOf(0x00, 0x00, 0x00, 0xF7, 0xFC, 0xF8, 0xF0, 0xE0)
 
         /** `MAX_SAVED_GAME_CLEARS`. */
         const val CLEARED_PLAYTHROUGHS = 12

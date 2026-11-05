@@ -226,6 +226,33 @@ public interface EventEngineHooks {
     /** `_FreezeMenu`. */
     public fun freezeMenu() {}
 
-    /** `EventEngine_OnEnd`. */
-    public fun onEnd(proc: EventEngineProc) {}
+    /** `gLCDControlBuffer.blendY`. */
+    public fun blendY(): Int = 0
+
+    /** `gPlaySt.chapterIndex`. */
+    public fun chapterIndex(): Int = 0
+
+    /** `LockGame`. */
+    public fun lockGame() {}
+
+    /** `SetTextFont(NULL)` + `InitSystemTextFont` + `LoadUiFrameGraphics`. */
+    public fun resetTextFont() {}
+
+    /** `ReadGameSaveCoreGfx` + `UnpackChapterMapPalette` + `ChangeUnitSpritePalette(palId)`. */
+    public fun restoreAfterEvent5(mapSpritePalIdOverride: Int) {}
+
+    /** `EndAllMus` + `EndBMapMain`. */
+    public fun endMapForChangeGm() {}
+
+    /** `UnlockGame` + `ResumeMenu` + `ResetBkselPalette` + `ClearCutsceneUnits`. */
+    public fun resumeGameplay() {}
+
+    /** `EndTalk` + `EndCgText` + `sub_808BB74`. */
+    public fun endEventTalk() {}
+
+    /** `ChangeUnitSpritePalette(palId)`. */
+    public fun changeUnitSpritePalette(palId: Int) {}
+
+    /** `sub_800E640(proc)`. */
+    public fun eventEndCleanup(proc: EventEngineProc) {}
 }

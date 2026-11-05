@@ -104,4 +104,99 @@ class EventEngineTest {
         }
         assertEquals(0L, bytes)
     }
+
+    private class Rec : EventEngineHooks {
+        var blend = 0
+        var chapter = 0
+        var locks = 0
+        override fun blendY(): Int = blend
+        override fun chapterIndex(): Int = chapter
+        override fun lockGame() {
+            locks++
+        }
+    }
+
+    private fun fresh(rec: Rec = Rec()): Triple<ProcEngine, EventEngine, EventState> {
+        val p = ProcEngine()
+        p.init()
+        val st = EventState()
+        return Triple(p, EventEngine(p, st, mem, rec), st)
+    }
+
+    @Test
+    fun `callEvent enqueues while a std engine runs`() {
+        val (p, e, st) = fresh()
+        e.callEvent(base, 3)
+        e.callEvent(base + 4, 2)
+        assertEquals(1, p.count(e.stdScript))
+        assertEquals(base + 4, st.callQueue[0])
+        assertEquals(0x102, st.callQueue[1])
+        assertEquals(0, st.callQueue[2])
+    }
+
+    @Test
+    fun `engine end starts the queued event and shifts the queue`() {
+        val (p, e, st) = fresh()
+        val first = e.create(base, 3)
+        e.callEvent(base + 4, 3)
+        e.callEvent(base + 6, 3)
+        p.end(first.proc)
+        assertEquals(1, p.count(e.stdScript))
+        assertEquals(base + 4, (e.findStd()!!.state as EventEngineProc).pEventStart)
+        assertEquals(base + 6, st.callQueue[0])
+        assertEquals(0x103, st.callQueue[1])
+        assertEquals(0, st.callQueue[2])
+        assertEquals(0, st.callQueue[3])
+    }
+
+    @Test
+    fun `abort bit keeps the queue`() {
+        val (p, e, st) = fresh()
+        val first = e.create(base, 3)
+        e.callEvent(base + 4, 3)
+        first.evStateBits = first.evStateBits or EventConst.EV_STATE_ABORT
+        p.end(first.proc)
+        assertNull(e.findStd())
+        assertEquals(base + 4, st.callQueue[0])
+        assertEquals(0x103, st.callQueue[1])
+    }
+
+    @Test
+    fun `create sets the C field values`() {
+        val rec = Rec().apply { blend = 0x10; chapter = 7 }
+        val (_, e, _) = fresh(rec)
+        val a = e.create(base, EventConst.EV_EXEC_CUTSCENE)
+        assertEquals(-1, a.overwrittenTextSpeed)
+        assertEquals(7, a.chapterIndex)
+        assertEquals(base, a.pEventIdk)
+        assertEquals(EventConst.EV_STATE_FADEDIN, a.evStateBits)
+        assertEquals(1, rec.locks)
+        val b = e.create(base, EventConst.EV_EXEC_WORLDMAP)
+        assertEquals(0xFF, b.chapterIndex)
+        assertEquals(1, rec.locks)
+        rec.blend = 0
+        assertEquals(0, e.create(base, EventConst.EV_EXEC_QUIET).evStateBits)
+    }
+
+    @Test
+    fun `createBattle sets the C field values`() {
+        val (_, e, _) = fresh()
+        val b = e.createBattle(base)
+        assertEquals(-1, b.overwrittenTextSpeed)
+        assertEquals(EventConst.EV_EXEC_QUIET, b.execType)
+        assertEquals(EventConst.EV_STATE_ABORT, b.evStateBits)
+        assertEquals(base, b.pEventCurrent)
+        assertEquals(true, e.battleEventEngineExists())
+        assertEquals(false, e.eventEngineExists())
+    }
+
+    @Test
+    fun `deleteEventEngines ends both`() {
+        val (_, e, _) = fresh()
+        e.create(base, 3)
+        e.createBattle(base)
+        e.deleteEventEngines()
+        assertEquals(false, e.eventEngineExists())
+        assertEquals(false, e.battleEventEngineExists())
+    }
 }

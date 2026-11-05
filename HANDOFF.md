@@ -1,12 +1,15 @@
 # HANDOFF
 
-_Updated 2026-11-05 (scheduled run). Owner decisions: docs/PROJECT_BRIEF.md. History: git log._
+_Updated 2026-11-05 (scheduled run 10:5x). Owner decisions: docs/PROJECT_BRIEF.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## Next task: M5-49 rest (EventEngine_OnEnd, EventEngine_Create full) + M5-50, then M5-51
-Done 2026-11-05: M5-09..24, 26, 27, 28..36, 38, 41, 48, 52; M5-49 partial (see TASKS). Scripts: 897 EventScr*/EventScrWM*
+## Next task: M5-53 (EventVmDifferentialTest over ram_trace_newgame_bm), then M5-54
+Done 2026-11-05: M5-09..24, 26, 27, 28..36, 38, 41, 48..52; M5-49/50 (`EventEngine`: create/createBattle/callEvent/
+enqueue/callNextQueuedEvent/exists/delete/onEnd, externals behind `EventEngineHooks`), M5-51 (`EventScrCore`: 11
+eventscr.c handlers; assumptions in KDoc: div/mod by 0 = 0, shifts >= 32 = 0, goto scan limit -> EVC_ERROR, slot
+index > 13 aliases gEventSlotQueue). No `@VerifiesPort` yet (M5-53). Scripts: 897 EventScr*/EventScrWM*
 in 46 `.fe8s` files + `scripts/index.json`, 897/897 byte-exact. `EventTrace` (:testing) decodes the event engine per
 step; note the BeginningScene engine (step 9508) is already inside RenaisThroneCutscene, ends step 19311.
 `EventEngine`: OnUpdate 1:1 except EVC_ERROR ends the frame (C hangs); ScriptVm contract does not fit a proc-driven

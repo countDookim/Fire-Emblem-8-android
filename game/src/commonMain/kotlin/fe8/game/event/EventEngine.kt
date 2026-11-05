@@ -5,9 +5,16 @@ import fe8.game.event.EventConst.EVC_ADVANCE_YIELD
 import fe8.game.event.EventConst.EVC_END
 import fe8.game.event.EventConst.EVC_ERROR
 import fe8.game.event.EventConst.EVC_STOP_YIELD
+import fe8.game.event.EventConst.EV_EXEC_CUTSCENE
+import fe8.game.event.EventConst.EV_EXEC_GAMEPLAY
+import fe8.game.event.EventConst.EV_EXEC_QUIET
 import fe8.game.event.EventConst.EV_EXEC_UNK4
+import fe8.game.event.EventConst.EV_EXEC_UNK5
 import fe8.game.event.EventConst.EV_EXEC_WORLDMAP
 import fe8.game.event.EventConst.EV_STATE_0002
+import fe8.game.event.EventConst.EV_STATE_ABORT
+import fe8.game.event.EventConst.EV_STATE_CHANGEGM
+import fe8.game.event.EventConst.EV_STATE_FADEDIN
 import fe8.game.event.EventConst.EV_STATE_NOSKIP
 import fe8.game.event.EventConst.EV_STATE_SKIPPING
 import gbafe.proc.Proc
@@ -44,7 +51,7 @@ public class EventEngine(
     public val hi: Array<EventHandler> = Array(CODES) { UNKNOWN }
 
     private val onUpdateFn = ProcFunc { onUpdate(it.state as EventEngineProc) }
-    private val onEndFn = ProcFunc { hooks.onEnd(it.state as EventEngineProc) }
+    private val onEndFn = ProcFunc { onEnd(it.state as EventEngineProc) }
     private val freezeMenuFn = ProcFunc { hooks.freezeMenu() }
 
     /** `ProcScr_StdEventEngine`. */
@@ -82,27 +89,154 @@ public class EventEngine(
     }
 
     /**
-     * Creates a standard (or, if [battle], battle) engine proc on proc tree [rootIndex] running
-     * the script at [events], and returns its state.
+     * Creates a standard engine proc on proc tree 3 running the script at [events].
      *
-     * Partially ported from src/event.c: EventEngine_Create. Missing: the slot queue/counter and
-     * call-queue resets, the `EventEngine_OnEnd` side effects and the std/battle existence
-     * checks; only the proc start and field set-up are done.
+     * Ported from src/event.c: EventEngine_Create. Delegated to hooks: `gLCDControlBuffer.blendY`
+     * ([EventEngineHooks.blendY]), `gPlaySt.chapterIndex` ([EventEngineHooks.chapterIndex]) and
+     * `LockGame` ([EventEngineHooks.lockGame]).
      */
-    public fun create(
-        events: Int,
-        execType: Int,
-        rootIndex: Int = 0,
-        battle: Boolean = false,
-    ): EventEngineProc {
-        val proc = procs.start(if (battle) battleScript else stdScript, rootIndex)
+    public fun create(events: Int, execType: Int): EventEngineProc {
+        val proc = procs.start(stdScript, PROC_TREE_3)
         val s = proc.state as EventEngineProc
         s.reset()
         s.proc = proc
+        s.callback = null
         s.pEventStart = events
+        s.pEventIdk = events
         s.pEventCurrent = events
+        s.evStateBits = 0
+        s.evStallTimer = 0
+        s.overwrittenTextSpeed = -1
         s.execType = execType
+        s.activeTextType = 0
+        s.chapterIndex = 0xFF
+        s.mapSpritePalIdOverride = 0
+        s.pUnitLoadData = 0
+        s.unitLoadCount = 0
+        s.chance = 0
+
+        if (hooks.blendY() == 0x10) s.evStateBits = s.evStateBits or EV_STATE_FADEDIN
+
+        if (execType == EV_EXEC_CUTSCENE || execType == EV_EXEC_GAMEPLAY) {
+            s.chapterIndex = hooks.chapterIndex() and 0xFF
+            hooks.lockGame()
+        }
         return s
+    }
+
+    /**
+     * Creates a battle engine proc on proc tree 3 running the script at [events].
+     *
+     * Ported from src/event.c: EventEngine_CreateBattle. `chapterIndex` keeps its reset value.
+     */
+    public fun createBattle(events: Int): EventEngineProc {
+        val proc = procs.start(battleScript, PROC_TREE_3)
+        val s = proc.state as EventEngineProc
+        s.reset()
+        s.proc = proc
+        s.callback = null
+        s.pEventStart = events
+        s.pEventIdk = events
+        s.pEventCurrent = events
+        s.evStateBits = 0
+        s.evStallTimer = 0
+        s.overwrittenTextSpeed = -1
+        s.execType = EV_EXEC_QUIET
+        s.activeTextType = 0
+        s.mapSpritePalIdOverride = 0
+        s.pUnitLoadData = 0
+        s.unitLoadCount = 0
+        s.chance = 0
+        s.evStateBits = s.evStateBits or EV_STATE_ABORT
+        return s
+    }
+
+    /** Ported from src/event.c: EventEngineExists. */
+    public fun eventEngineExists(): Boolean = findStd() != null
+
+    /** Ported from src/event.c: BattleEventEngineExists. */
+    public fun battleEventEngineExists(): Boolean = procs.find(battleScript) != null
+
+    /** Ported from src/event.c: DeleteEventEngines. */
+    public fun deleteEventEngines() {
+        procs.endEach(stdScript)
+        procs.endEach(battleScript)
+    }
+
+    /**
+     * Ported from src/event.c: EnqueueEventCall. The first unused entry of
+     * [EventState.callQueue] receives the call; only its `execType` and `isUsed` bytes are
+     * written, the padding bytes are kept.
+     */
+    public fun enqueueEventCall(events: Int, execType: Int) {
+        val q = state.callQueue
+        for (i in 0 until QUEUE_ENTRIES) {
+            val meta = q[2 * i + 1]
+            if ((meta ushr 8) and 0xFF == 0) {
+                q[2 * i] = events
+                q[2 * i + 1] = (meta and 0xFFFF0000.toInt()) or 0x100 or (execType and 0xFF)
+                break
+            }
+        }
+    }
+
+    /**
+     * Ported from src/event.c: CallNextQueuedEvent. Starts the first entry if used, then shifts
+     * the queue down one entry and clears the last (its padding bytes are kept).
+     */
+    public fun callNextQueuedEvent() {
+        val q = state.callQueue
+        if ((q[1] ushr 8) and 0xFF == 1) create(q[0], q[1] and 0xFF)
+
+        for (i in 0 until QUEUE_ENTRIES - 1) {
+            q[2 * i] = q[2 * i + 2]
+            q[2 * i + 1] = q[2 * i + 3]
+        }
+        val last = 2 * (QUEUE_ENTRIES - 1)
+        q[last] = 0
+        q[last + 1] = q[last + 1] and 0xFFFF0000.toInt()
+    }
+
+    /**
+     * Ported from src/event.c: CallEvent. Enqueues the call if a standard engine is running,
+     * else starts it now.
+     */
+    public fun callEvent(events: Int, execType: Int) {
+        if (findStd() != null) enqueueEventCall(events, execType) else create(events, execType)
+    }
+
+    /**
+     * Ported from src/event.c: EventEngine_OnEnd. Delegated to hooks:
+     * [EventEngineHooks.resetTextFont], [EventEngineHooks.restoreAfterEvent5],
+     * [EventEngineHooks.endMapForChangeGm], [EventEngineHooks.resumeGameplay],
+     * [EventEngineHooks.endEventTalk], [EventEngineHooks.changeUnitSpritePalette] and
+     * [EventEngineHooks.eventEndCleanup].
+     */
+    public fun onEnd(proc: EventEngineProc) {
+        hooks.resetTextFont()
+
+        when (proc.execType) {
+            EV_EXEC_UNK4 -> Unit
+            EV_EXEC_UNK5 -> {
+                hooks.restoreAfterEvent5(proc.mapSpritePalIdOverride)
+                if ((proc.evStateBits and EV_STATE_CHANGEGM) != 0) {
+                    hooks.endMapForChangeGm()
+                    state.callQueue.fill(0)
+                }
+                hooks.resumeGameplay() // C falls through into EV_EXEC_GAMEPLAY
+            }
+            EV_EXEC_GAMEPLAY -> hooks.resumeGameplay()
+        }
+
+        if (proc.execType != EV_EXEC_QUIET) {
+            hooks.endEventTalk()
+            if (proc.execType == EV_EXEC_CUTSCENE) {
+                hooks.changeUnitSpritePalette(proc.mapSpritePalIdOverride)
+            }
+            hooks.eventEndCleanup(proc)
+        }
+
+        if ((proc.evStateBits and EV_STATE_ABORT) == 0) callNextQueuedEvent()
     }
 
     /**
@@ -190,7 +324,11 @@ public class EventEngine(
         /** `PROC_MARK_EVENT`. */
         public const val PROC_MARK_EVENT: Int = 6
 
+        /** `PROC_TREE_3`. */
+        public const val PROC_TREE_3: Int = 3
+
         private const val CODES = 0x80
+        private const val QUEUE_ENTRIES = 16
 
         private val UNKNOWN = EventHandler { EVC_ERROR }
     }

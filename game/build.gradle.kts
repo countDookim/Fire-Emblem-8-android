@@ -13,5 +13,8 @@ kotlin {
             // Fe8ScriptConstants (EVFLAG_* names) lives with the extractor.
             api(project(":engine:extract"))
         }
+        jvmTest.dependencies {
+            implementation(project(":gba:testkit"))
+        }
     }
 }

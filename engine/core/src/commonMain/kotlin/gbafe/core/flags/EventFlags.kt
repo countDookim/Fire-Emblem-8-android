@@ -2,7 +2,7 @@ package gbafe.core.flags
 
 /**
  * Shape of the original's event-flag memory (`gPermanentFlagBits` and `gChapterFlagBits`,
- * src/eventinfo.c).
+ * src/eventinfo.c). Game-neutral; the FE8U values live in `fe8.game.flags.Fe8EventFlags`.
  *
  * The two arrays are adjacent in IWRAM (0x03005250 and 0x03005270 in FE8U) and each symbol is
  * larger than the range the game saves or resets: the permanent array is 32 bytes but only 0x19 are
@@ -39,23 +39,6 @@ public class EventFlagLayout(
 
     /** Total mirrored bytes: the permanent array followed by the chapter array. */
     public val totalBytes: Int get() = permanentStorageBytes + chapterStorageBytes
-
-    /** Layout constants of FE8U. */
-    public companion object {
-        /**
-         * FE8U: `GetPermanentFlagBitsSize` = 0x19, `GetChapterFlagBitsSize` = 5, symbol sizes 32
-         * and 16.
-         */
-        public val FE8: EventFlagLayout = EventFlagLayout(
-            permanentSaveBytes = 0x19,
-            chapterSaveBytes = 5,
-            permanentStorageBytes = 32,
-            chapterStorageBytes = 16,
-            chapterFlagLimit = 100,
-            permanentBaseId = 100,
-            bitMask = byteArrayOf(1, 2, 4, 8, 16, 32, 64, -128, 0, 0, 0, 0, 0),
-        )
-    }
 }
 
 /**
@@ -72,7 +55,7 @@ public class EventFlagLayout(
  *
  * @property layout sizes and constants of the flag memory.
  */
-public class EventFlags(public val layout: EventFlagLayout = EventFlagLayout.FE8) {
+public class EventFlags(public val layout: EventFlagLayout) {
     private val bits = ByteArray(layout.totalBytes)
     private val chapterBase = layout.permanentStorageBytes
     private val masks = layout.bitMask

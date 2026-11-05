@@ -26,18 +26,6 @@ class EventFlagsTest {
     private val chapterBase = 32
 
     @Test
-    fun `fe8 layout constant matches the c values`() {
-        val l = EventFlagLayout.FE8
-        assertEquals(layout.permanentSaveBytes, l.permanentSaveBytes)
-        assertEquals(layout.chapterSaveBytes, l.chapterSaveBytes)
-        assertEquals(layout.permanentStorageBytes, l.permanentStorageBytes)
-        assertEquals(layout.chapterStorageBytes, l.chapterStorageBytes)
-        assertEquals(layout.chapterFlagLimit, l.chapterFlagLimit)
-        assertEquals(layout.permanentBaseId, l.permanentBaseId)
-        assertTrue(layout.bitMask.contentEquals(l.bitMask))
-    }
-
-    @Test
     fun `flag 0 and flag 100 are no-ops that read false`() {
         val f = EventFlags(layout)
         for (id in intArrayOf(0, 100)) {

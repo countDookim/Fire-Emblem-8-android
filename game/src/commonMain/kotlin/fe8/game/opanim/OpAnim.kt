@@ -751,7 +751,8 @@ public class OpAnim(
     /**
      * Clears the merge timer.
      *
-     * Ported from src/opanim-main.c: OpAnimMergeBGProcInit
+     * Transcribed from src/opanim-main.c: OpAnimMergeBGProcInit (not verified: the timer already
+     * starts at 0 and no trace compare depends on this call)
      */
     public fun mergeBgInit(proc: Proc) {
         (proc.state as MergeBgState).timer = 0
@@ -1801,7 +1802,8 @@ public class OpAnim(
     /**
      * Sets a darken blend (0) on BG2 and clears the timer.
      *
-     * Ported from src/opanim-main.c: sub_80C8608
+     * Transcribed from src/opanim-main.c: sub_80C8608 (not verified: the blend registers it sets
+     * are rewritten before any traced frame compares them)
      */
     public fun castFadeOutInit(proc: Proc) {
         hardware.lcd.setBlendConfig(3, 8, 8, 0)

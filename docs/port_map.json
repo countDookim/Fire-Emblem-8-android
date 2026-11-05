@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 308,
-    "implemented_unverified": 63
+    "verified": 306,
+    "implemented_unverified": 83
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -55,6 +55,13 @@
         "fe8.testing.SaveDrawDifferentialTest#fog scroll turns the previous dump into the next one"
       ]
     },
+    "BattleEventEngineExists": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "BgAffineSetOpAnim": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
@@ -97,6 +104,20 @@
       "tests": [
         "fe8.testing.BgTilemapDifferentialTest#TSA tilemaps match the BG buffers in mGBA RAM"
       ]
+    },
+    "CallEvent": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "CallNextQueuedEvent": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
+      "status": "implemented",
+      "tests": []
     },
     "CgbModVol": {
       "decomp_file": "src/m4a.c",
@@ -336,6 +357,13 @@
         "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
       ]
     },
+    "DeleteEventEngines": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "DisableKeyComboResetEN": {
       "decomp_file": "src/time.c",
       "system": "core",
@@ -379,6 +407,13 @@
       "tests": [
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
+    },
+    "EnqueueEventCall": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
+      "status": "implemented",
+      "tests": []
     },
     "EraseBonusContentData": {
       "decomp_file": "src/bmsave-lib.c",
@@ -433,6 +468,111 @@
       "tests": [
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
+    },
+    "Event00_NULL": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event01_End": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event05_SetSlot": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event06_SlotOperation": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event07_SlotQueueOperations": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event08_Label": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event09_Goto": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event0A_Call": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event0C_Branch": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event0E_STAL": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event0F_CounterOps": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "EventEngineExists": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "EventEngine_Create": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "EventEngine_CreateBattle": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "EventEngine_OnEnd": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
+      "status": "implemented",
+      "tests": []
     },
     "EventEngine_OnUpdate": {
       "decomp_file": "src/event.c",
@@ -1285,15 +1425,6 @@
       ]
     },
     "OpAnimInit": {
-      "decomp_file": "src/opanim-main.c",
-      "system": "presentation",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpAnim.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
-      ]
-    },
-    "OpAnimMergeBGProcInit": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpAnim.kt",
@@ -2702,15 +2833,6 @@
       ]
     },
     "sub_80C85B0": {
-      "decomp_file": "src/opanim-main.c",
-      "system": "presentation",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpAnim.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
-      ]
-    },
-    "sub_80C8608": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpAnim.kt",

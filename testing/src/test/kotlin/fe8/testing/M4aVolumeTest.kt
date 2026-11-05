@@ -14,8 +14,9 @@ import org.junit.jupiter.api.Test
 /**
  * On the main menu the game sets BGM1's volume after `SoundMain` every frame
  * (`ram_trace_menu_bgm`, f1290..f1300, a ramp down): one frame, then `m4aMPlayVolumeControl` with
- * the volume the next dump shows, gives that dump's track flags and `volX` on every track, and
- * the `volMR`/`volML` that frame's `MPlayMain` derived from the previous call.
+ * the volume the next dump shows, gives that dump's track flags on every track and the
+ * `volMR`/`volML` that frame's `MPlayMain` derived from the previous call. `volX` is not compared:
+ * the volume is taken from it, so it would be circular.
  */
 class M4aVolumeTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -37,7 +38,8 @@ class M4aVolumeTest {
             val (players, info) = M4aRam.sound(File(dir, "r%05d.iwram.bin".format(f)).readBytes())
             val (next, _) = M4aRam.sound(File(dir, "r%05d.iwram.bin".format(f + 1)).readBytes())
             val p = players[0]
-            // The game's volume ramps down (a music fade proc); take the value it set from the dump.
+            // The game's volume ramps down (a music fade proc); take the value it set from the dump (an
+            // input only: volX itself is not compared).
             val volume = 4 * next[0].tracks[0].volX
             assertTrue(volume in 0..0x100, "volume $volume")
             M4aDriver(bus, info, info.chain()).frame()
@@ -45,8 +47,8 @@ class M4aVolumeTest {
             for (k in 0 until p.trackCount) {
                 val (x, y) = next[0].tracks[k] to p.tracks[k]
                 assertEquals(
-                    listOf(x.flags, x.volX, x.volMR, x.volML),
-                    listOf(y.flags, y.volX, y.volMR, y.volML),
+                    listOf(x.flags, x.volMR, x.volML),
+                    listOf(y.flags, y.volMR, y.volML),
                     "r$f track $k",
                 )
             }

@@ -16,8 +16,9 @@ Next: port 1D/02/03/19 etc. (or analyse them for stubs), then add tags for 01/0E
 After END the proc lingers ~2 frames (still in the proc array). Scripts: 897 EventScr*/EventScrWM*
 in 46 `.fe8s` files + `scripts/index.json`, 897/897 byte-exact. `EventTrace` (:testing) decodes the event engine per
 step; note the BeginningScene engine (step 9508) is already inside RenaisThroneCutscene, ends step 19311.
-`EventEngine`: OnUpdate 1:1 except EVC_ERROR ends the frame (C hangs); ScriptVm contract does not fit a proc-driven
-engine (revisit in M5-53). M5-32: only WriteNewGameSave/ClearPidChStatsSaveData/InitPlayConfig verified; zero-only
+EventEngine_CanStartSkip/StartSkip are still partial (an alternative full port is on local branch
+backup/event-engine-dup on the owner PC, never pushed).
+M5-32: only WriteNewGameSave/ClearPidChStatsSaveData/InitPlayConfig verified; zero-only
 copies (WritePermanentFlags, Write/SetBonusContentClaimFlags) and WriteSupplyItems/ClearWorldMapStuff stay transcribed.
 Open: M5-25 partial, M5-37/39/40 (map graphics/render), M5-41b (needs a map larger than the screen).
 Test-quality review 2026-11-05 (owner asked), fixed: SRAM block-info/erase/invalidate/suspend-id/sound-room,
@@ -29,7 +30,9 @@ GetPhaseAbleUnitCount (exclusion branches unexercised). Second pass (all remaini
 ply_keysh, GameControl_EnableSoundEffects, EndAllProcChildren, StartOrChangeBgm, Title_IDLE, Title_EndAllProcChildren,
 DrawTitleSprites_Init, SetSecondaryHBlankHandler; LcdControl/Fe8BootSound/M4aSequencer/SaveChecksums strengthened;
 missing-dump `assumeTrue`s are assertions now. Residual risk: ~100 ProcEngine/OpAnim tags and M4aNote's list are
-kept on per-frame compares without one-by-one break tests; M4aVolume's volX compare is circular (flags/volMR/ML real).
+now break-tested one by one (116/118 + all 12 fail; OpAnimMergeBGProcInit, sub_80C8608 untagged); ~40 ProcEngine tags
+share one Kotlin function with another tag, so a break proves the group, not each decomp name; M4aVolume no longer
+compares the volX it was fed.
 Unresolved (M5-32): slots 3/4 block-info checksum 1F1F1F1F in the dump vs our WriteSaveBlockInfo for invalid kinds.
 CI was red since ba4377e (stale extraction manifest; regenerated 2026-11-05).
 Pinned frames (ROM repo `harness/gen_scripts.py`, NEWGAME comment): InitChapterMap f9314..9319 (ch 0), event's
@@ -43,7 +46,7 @@ f1130..1132 + 1 byte (0x7224) f1214. Title START now enters GameControl's save-m
   `CgbSound` verified; `PsgSynth` (not a port, GBATEK/mGBA behaviour) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad (2026-10-30); GPU backend, audio
   (2026-11-01); ROM import ~4 s, boots from it, PSG sound correct by ear (2026-11-04).
-- Verified ports: 308 / 8352 (`tools/progress.py`, 2026-11-05).
+- Verified ports: 306 / 8352 (`tools/progress.py`, 2026-11-05).
 - Layout: game-neutral `:gba:*` (ADR 0012), FE-shared `gbafe.*` in `:engine:*`, FE8-only `fe8.*` in `:game`
   and `:app`. KMP (ADR 0013): all of them except `:gba:testkit`, `:testing`, `:tools:extract` (plain JVM);
   android target only in CI (`com.android.kotlin.multiplatform.library`; CI log shows `compileAndroidMain`).

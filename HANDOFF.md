@@ -9,7 +9,11 @@ _(nothing blocked)_
 Done 2026-11-05: M5-09..24, 26, 27, 28..36, 38, 41, 48..52; M5-49/50 (`EventEngine`: create/createBattle/callEvent/
 enqueue/callNextQueuedEvent/exists/delete/onEnd, externals behind `EventEngineHooks`), M5-51 (`EventScrCore`: 11
 eventscr.c handlers; assumptions in KDoc: div/mod by 0 = 0, shifts >= 32 = 0, goto scan limit -> EVC_ERROR, slot
-index > 13 aliases gEventSlotQueue). No `@VerifiesPort` yet (M5-53). Scripts: 897 EventScr*/EventScrWM*
+index > 13 aliases gEventSlotQueue). No `@VerifiesPort` yet. M5-53 started: `EventVmDifferentialTest` (prologue per-frame oracle, replays
+ported handlers with onUpdate's loop, stubs 0x12/0x15/0x30 as ADVANCE_YIELD when B.pc = next cmd): 0 mismatches,
+01x12, 05x4, 06x1, 07x3, 0Ex2443; 00/08/09/0A/0C/0F never reached (frames stop on unported 1D/30/3B/AC/BA/1B).
+Next: port 1D/02/03/19 etc. (or analyse them for stubs), then add tags for 01/0E/05-07 with a break check each.
+After END the proc lingers ~2 frames (still in the proc array). Scripts: 897 EventScr*/EventScrWM*
 in 46 `.fe8s` files + `scripts/index.json`, 897/897 byte-exact. `EventTrace` (:testing) decodes the event engine per
 step; note the BeginningScene engine (step 9508) is already inside RenaisThroneCutscene, ends step 19311.
 `EventEngine`: OnUpdate 1:1 except EVC_ERROR ends the frame (C hangs); ScriptVm contract does not fit a proc-driven

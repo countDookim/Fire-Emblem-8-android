@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 311,
-    "implemented_unverified": 87
+    "verified": 321,
+    "implemented_unverified": 82
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -386,6 +386,15 @@
       "kotlin_file": "engine/input/src/commonMain/kotlin/gbafe/input/KeyComboReset.kt",
       "status": "implemented",
       "tests": []
+    },
+    "DisplayBmTile": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmMapRender.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmMapRenderDifferentialTest#fogged BG3 tilemap matches the dump on chapter 6"
+      ]
     },
     "DrawTitleLightBubbleSprites": {
       "decomp_file": "src/titlescreen.c",
@@ -832,29 +841,39 @@
       "decomp_file": "src/bm.c",
       "system": "battle_map",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Camera.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CameraScrollDifferentialTest#camera move to the start cursor ends on the adjusted camera"
+      ]
     },
     "GetCameraAdjustedY": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Camera.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CameraScrollDifferentialTest#camera move to the start cursor ends on the adjusted camera"
+      ]
     },
     "GetCameraCenteredX": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Camera.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CameraScrollDifferentialTest#change map event centres the camera on its event slot position",
+        "fe8.testing.CameraScrollDifferentialTest#resumed chapter centres the camera on the cursor"
+      ]
     },
     "GetCameraCenteredY": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Camera.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CameraScrollDifferentialTest#change map event centres the camera on its event slot position",
+        "fe8.testing.CameraScrollDifferentialTest#resumed chapter centres the camera on the cursor"
+      ]
     },
     "GetChapterEventDataPointer": {
       "decomp_file": "src/chapterdata.c",
@@ -933,7 +952,9 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SramBootReferenceTest#suspend slot selection follows the dumps header and block infos"
+        "fe8.testing.SramBootReferenceTest#suspend slot selection follows the dumps header and block infos",
+        "fe8.testing.SramOwnerSaveBootTest#chapter 2 save with a valid suspend boots unchanged",
+        "fe8.testing.SramOwnerSaveBootTest#chapter 6 save without a suspend boots unchanged and selects 0x7F"
       ]
     },
     "GetNextSuspendSaveId": {
@@ -1133,6 +1154,9 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.SramOwnerSaveBootTest#a flipped data byte invalidates exactly its block",
+        "fe8.testing.SramOwnerSaveBootTest#chapter 2 save with a valid suspend boots unchanged",
+        "fe8.testing.SramOwnerSaveBootTest#chapter 6 save without a suspend boots unchanged and selects 0x7F",
         "fe8.testing.SramSaveBlockReferenceTest#erasing a valid game slot leaves the 0xFF entry the dump has for unused slots",
         "fe8.testing.SramSaveBlockReferenceTest#invalidating the suspend save writes the entries the game wrote",
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
@@ -1153,7 +1177,9 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SramBootReferenceTest#suspend slot selection follows the dumps header and block infos"
+        "fe8.testing.SramBootReferenceTest#suspend slot selection follows the dumps header and block infos",
+        "fe8.testing.SramOwnerSaveBootTest#chapter 2 save with a valid suspend boots unchanged",
+        "fe8.testing.SramOwnerSaveBootTest#chapter 6 save without a suspend boots unchanged and selects 0x7F"
       ]
     },
     "LoadAndVerfyLinkArenaStruct2": {
@@ -1265,8 +1291,10 @@
       "decomp_file": "src/bmidoten.c",
       "system": "battle_map",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EntityBmMapsDifferentialTest#fog maps match the game on chapter 6"
+      ]
     },
     "MidiKeyToCgbFreq": {
       "decomp_file": "src/m4a.c",
@@ -1780,6 +1808,15 @@
         "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
       ]
     },
+    "RefreshUnitsOnBmMap": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EntityBmMapsDifferentialTest#fog maps match the game on chapter 6"
+      ]
+    },
     "RenderBmMap": {
       "decomp_file": "src/bmmap.c",
       "system": "battle_map",
@@ -1787,6 +1824,25 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BmMapRenderDifferentialTest#BG3 tilemap matches the dump"
+      ]
+    },
+    "RenderBmMapColumn": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmMapRender.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmMapScrollDifferentialTest#ch6 fog scrolls in x and y"
+      ]
+    },
+    "RenderBmMapLine": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmMapRender.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmMapScrollDifferentialTest#ch2 vertical scroll redraws lines into the wrapped BG3 buffer",
+        "fe8.testing.BmMapScrollDifferentialTest#ch6 fog scrolls in x and y"
       ]
     },
     "ResetChapterFlags": {
@@ -2102,6 +2158,9 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.SramOwnerSaveBootTest#a flipped data byte invalidates exactly its block",
+        "fe8.testing.SramOwnerSaveBootTest#chapter 2 save with a valid suspend boots unchanged",
+        "fe8.testing.SramOwnerSaveBootTest#chapter 6 save without a suspend boots unchanged and selects 0x7F",
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
       ]
     },
@@ -2421,6 +2480,17 @@
         "fe8.testing.ChapterMapGraphicsDifferentialTest#chapter palette alone matches the dump"
       ]
     },
+    "UpdateBmMapDisplay": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmMapRender.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmMapScrollDifferentialTest#ch2 vertical scroll redraws lines into the wrapped BG3 buffer",
+        "fe8.testing.BmMapScrollDifferentialTest#ch6 fog scrolls in x and y",
+        "fe8.testing.BmMapScrollDifferentialTest#map that fits the screen never scrolls and leaves BG3 alone"
+      ]
+    },
     "UpdateHBlankHandlerState": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -2445,6 +2515,9 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.SramOwnerSaveBootTest#a flipped data byte invalidates exactly its block",
+        "fe8.testing.SramOwnerSaveBootTest#chapter 2 save with a valid suspend boots unchanged",
+        "fe8.testing.SramOwnerSaveBootTest#chapter 6 save without a suspend boots unchanged and selects 0x7F",
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
       ]
     },

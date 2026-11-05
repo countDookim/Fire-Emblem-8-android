@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 323,
+    "verified": 315,
     "implemented_unverified": 63
   },
   "functions": {
@@ -52,7 +52,7 @@
       "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/LcdControl.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SaveDrawDifferentialTest#fog scroll reproduces the dumped table, proc fields and LCD buffer"
+        "fe8.testing.SaveDrawDifferentialTest#fog scroll turns the previous dump into the next one"
       ]
     },
     "BgAffineSetOpAnim": {
@@ -160,7 +160,8 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SaveChecksumsReferenceTest#checksum16 matches the stored global save info checksum",
-        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps",
+        "fe8.testing.SramBootReferenceTest#sound room data of the dumps is written and verified byte for byte"
       ]
     },
     "Checksum32": {
@@ -412,7 +413,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SramSaveBlockReferenceTest#first phase sram has a valid suspend save that can be invalidated"
+        "fe8.testing.SramSaveBlockReferenceTest#erasing a valid game slot leaves the 0xFF entry the dump has for unused slots"
       ]
     },
     "EraseSaveRankData": {
@@ -498,7 +499,7 @@
       "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/BgVerticalScroll.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SaveDrawDifferentialTest#fog scroll reproduces the dumped table, proc fields and LCD buffer"
+        "fe8.testing.SaveDrawDifferentialTest#fog scroll turns the previous dump into the next one"
       ]
     },
     "FlushBackgrounds": {
@@ -569,34 +570,7 @@
       "status": "implemented",
       "tests": []
     },
-    "GameControl_SwitchPostSaveMenu": {
-      "decomp_file": "src/gamecontrol.c",
-      "system": "core",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.GameControlDifferentialTest#save menu return reaches the intro monologue like the game"
-      ]
-    },
     "GameCtrlStartIntroMonologue": {
-      "decomp_file": "src/gamecontrol.c",
-      "system": "core",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.GameControlDifferentialTest#save menu return reaches the intro monologue like the game"
-      ]
-    },
-    "GameCtrl_CheckGameCompleteAndBranch": {
-      "decomp_file": "src/gamecontrol.c",
-      "system": "core",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.GameControlDifferentialTest#save menu return reaches the intro monologue like the game"
-      ]
-    },
-    "GameCtrl_CheckNewGameAndBranch": {
       "decomp_file": "src/gamecontrol.c",
       "system": "core",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
@@ -699,7 +673,7 @@
       "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/BgVerticalScroll.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SaveDrawDifferentialTest#fog scroll reproduces the dumped table, proc fields and LCD buffer"
+        "fe8.testing.SaveDrawDifferentialTest#fog scroll turns the previous dump into the next one"
       ]
     },
     "GetCameraAdjustedX": {
@@ -807,7 +781,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+        "fe8.testing.SramBootReferenceTest#suspend slot selection follows the dumps header and block infos"
       ]
     },
     "GetNextSuspendSaveId": {
@@ -816,7 +790,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+        "fe8.testing.SramBootReferenceTest#suspend slot selection follows the dumps header and block infos"
       ]
     },
     "GetPermanentFlagBits": {
@@ -833,15 +807,6 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EventFlagsRomTest#save sizes equal the movs immediates in the rom"
-      ]
-    },
-    "GetPhaseAbleUnitCount": {
-      "decomp_file": "src/bmphase.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.UnitTableDifferentialTest#GetPhaseAbleUnitCount agrees with the cursor reset of each phase"
       ]
     },
     "GetPlayerLeaderPid": {
@@ -999,7 +964,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SramSaveBlockReferenceTest#first phase sram has a valid suspend save that can be invalidated"
+        "fe8.testing.SramSaveBlockReferenceTest#invalidating the suspend save writes the entries the game wrote"
       ]
     },
     "IsCameraNotWatchingPosition": {
@@ -1015,7 +980,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SramSaveBlockReferenceTest#first phase sram has a valid suspend save that can be invalidated",
+        "fe8.testing.SramSaveBlockReferenceTest#erasing a valid game slot leaves the 0xFF entry the dump has for unused slots",
+        "fe8.testing.SramSaveBlockReferenceTest#invalidating the suspend save writes the entries the game wrote",
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
       ]
     },
@@ -1034,7 +1000,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+        "fe8.testing.SramBootReferenceTest#suspend slot selection follows the dumps header and block infos"
       ]
     },
     "LoadAndVerfyLinkArenaStruct2": {
@@ -1061,7 +1027,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps",
+        "fe8.testing.SramBootReferenceTest#sound room data of the dumps is written and verified byte for byte"
       ]
     },
     "LoadBonusContentData": {
@@ -1632,7 +1599,7 @@
       "kotlin_file": "gba/core/src/commonMain/kotlin/gba/core/sram/SramFast.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+        "fe8.testing.SramBootReferenceTest#sound room data of the dumps is written and verified byte for byte"
       ]
     },
     "RealClearChain": {
@@ -1699,31 +1666,13 @@
         "fe8.testing.M4aOpenTest#sample rate setup matches the traced SoundInfo"
       ]
     },
-    "SaveBonusContentData": {
-      "decomp_file": "src/bmsave-lib.c",
-      "system": "save",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
-      ]
-    },
     "SaveDraw_ScrollFogBG": {
       "decomp_file": "src/savedraw.c",
       "system": "save",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/SaveDraw.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SaveDrawDifferentialTest#fog scroll reproduces the dumped table, proc fields and LCD buffer"
-      ]
-    },
-    "SaveRankings": {
-      "decomp_file": "src/bmsave-lib.c",
-      "system": "save",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+        "fe8.testing.SaveDrawDifferentialTest#fog scroll turns the previous dump into the next one"
       ]
     },
     "SetBackgroundMapDataOffset": {
@@ -2357,15 +2306,6 @@
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
       ]
     },
-    "VerifySramFast_Core": {
-      "decomp_file": "src/agb_sram.c",
-      "system": "save",
-      "kotlin_file": "gba/core/src/commonMain/kotlin/gba/core/sram/SramFast.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
-      ]
-    },
     "WipeSram": {
       "decomp_file": "src/bmsave-lib.c",
       "system": "save",
@@ -2381,19 +2321,10 @@
       "kotlin_file": "gba/core/src/commonMain/kotlin/gba/core/sram/SramFast.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+        "fe8.testing.SramBootReferenceTest#sound room data of the dumps is written and verified byte for byte"
       ]
     },
     "WriteGlobalSaveInfo": {
-      "decomp_file": "src/bmsave-lib.c",
-      "system": "save",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
-      ]
-    },
-    "WriteLinkArenaStruct2": {
       "decomp_file": "src/bmsave-lib.c",
       "system": "save",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
@@ -2426,7 +2357,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+        "fe8.testing.SramBootReferenceTest#sound room data of the dumps is written and verified byte for byte"
       ]
     },
     "WriteSramFast": {
@@ -2435,7 +2366,7 @@
       "kotlin_file": "gba/core/src/commonMain/kotlin/gba/core/sram/SramFast.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+        "fe8.testing.SramBootReferenceTest#sound room data of the dumps is written and verified byte for byte"
       ]
     },
     "_UpdateKeyStatus": {

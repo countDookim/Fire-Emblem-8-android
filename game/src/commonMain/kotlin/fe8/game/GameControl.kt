@@ -431,7 +431,8 @@ public class GameControl(
      * Branches after the save menu on `nextAction`; on event return it first runs `GmDataInit`
      * ([Hooks.gmDataInit]) and goes to the battle map label.
      *
-     * Ported from src/gamecontrol.c: GameControl_SwitchPostSaveMenu
+     * Transcribed from src/gamecontrol.c: GameControl_SwitchPostSaveMenu
+     * (not verified: only the event-return branch occurs in the reference traces)
      */
     public fun switchPostSaveMenu(proc: Proc) {
         when ((proc.state as State).nextAction) {
@@ -453,7 +454,8 @@ public class GameControl(
     /**
      * Skips to the direct battle map label when the save menu type is 2 or 4.
      *
-     * Ported from src/gamecontrol.c: GameCtrl_CheckNewGameAndBranch
+     * Transcribed from src/gamecontrol.c: GameCtrl_CheckNewGameAndBranch
+     * (not verified: no reference run has save_menu_type 2 or 4)
      */
     public fun checkNewGameAndBranch(proc: Proc) {
         if (playSt.saveMenuType == 2 || playSt.saveMenuType == 4) {
@@ -464,7 +466,8 @@ public class GameControl(
     /**
      * Goes to the ending scene when the game is complete and not already in the post game.
      *
-     * Ported from src/gamecontrol.c: GameCtrl_CheckGameCompleteAndBranch
+     * Transcribed from src/gamecontrol.c: GameCtrl_CheckGameCompleteAndBranch
+     * (not verified: no reference run has the complete state bit)
      */
     public fun checkGameCompleteAndBranch(proc: Proc) {
         if (playSt.chapterStateBits and PLAY_FLAG_POSTGAME != 0) return

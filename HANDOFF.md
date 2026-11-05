@@ -13,12 +13,13 @@ step; note the BeginningScene engine (step 9508) is already inside RenaisThroneC
 engine (revisit in M5-53). M5-32: only WriteNewGameSave/ClearPidChStatsSaveData/InitPlayConfig verified; zero-only
 copies (WritePermanentFlags, Write/SetBonusContentClaimFlags) and WriteSupplyItems/ClearWorldMapStuff stay transcribed.
 Open: M5-25 partial, M5-37/39/40 (map graphics/render), M5-41b (needs a map larger than the screen).
-Test-quality review 2026-11-05 (owner asked; fix before new ports touch these): SramSaveBlockReferenceTest now wipes
-the entry before WriteSaveBlockInfo (fixed). Still weak: SramSaveBlockReferenceTest erase test (EraseSaveBlockInfo on
-an already-invalid slot, hand-written constants); SramBootReferenceTest tags Save*/Write* aux blocks only on blank
-SRAM; GameControlDifferentialTest tags GameCtrl_Check*AndBranch whose branch bodies never run; SaveDrawDifferentialTest
-undoes the game flip with the port's own flip() and pre-zeroes bytes the tagged functions write; BmMapDifferentialTest
-BmMapFill/BmMapInit only checked as all-zero; UnitTableDifferentialTest GetPhaseAbleUnitCount(0x40)==0 only.
+Test-quality review 2026-11-05 (owner asked), fixed: SRAM block-info/erase/invalidate/suspend-id/sound-room,
+SaveDraw (sentinel, no port-derived undo), BmMap (fog fill 1, pool handles), UnitTable (oracle from dumps + ROM
+gUnitLookup) now prove their tags on non-trivial dumps (each checked by breaking the port). Untagged for lack of a
+trace (KDoc "Transcribed ... (not verified: why)"): SaveBonusContentData, SaveRankings, WriteLinkArenaStruct2,
+VerifySramFast_Core, GameControl_SwitchPostSaveMenu, GameCtrl_Check{NewGame,GameComplete}AndBranch,
+GetPhaseAbleUnitCount (exclusion branches unexercised). Not yet audited the same way: m4a, Title, OpAnim, EarlyStart,
+ProcEngine, Fe8Boot, KeyStatus, Camera differential tests (long tag lists per test).
 Unresolved (M5-32): slots 3/4 block-info checksum 1F1F1F1F in the dump vs our WriteSaveBlockInfo for invalid kinds.
 CI was red since ba4377e (stale extraction manifest; regenerated 2026-11-05).
 Pinned frames (ROM repo `harness/gen_scripts.py`, NEWGAME comment): InitChapterMap f9314..9319 (ch 0), event's
@@ -32,7 +33,7 @@ f1130..1132 + 1 byte (0x7224) f1214. Title START now enters GameControl's save-m
   `CgbSound` verified; `PsgSynth` (not a port, GBATEK/mGBA behaviour) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad (2026-10-30); GPU backend, audio
   (2026-11-01); ROM import ~4 s, boots from it, PSG sound correct by ear (2026-11-04).
-- Verified ports: 323 / 8352 (`tools/progress.py`, 2026-11-05).
+- Verified ports: 315 / 8352 (`tools/progress.py`, 2026-11-05).
 - Layout: game-neutral `:gba:*` (ADR 0012), FE-shared `gbafe.*` in `:engine:*`, FE8-only `fe8.*` in `:game`
   and `:app`. KMP (ADR 0013): all of them except `:gba:testkit`, `:testing`, `:tools:extract` (plain JVM);
   android target only in CI (`com.android.kotlin.multiplatform.library`; CI log shows `compileAndroidMain`).

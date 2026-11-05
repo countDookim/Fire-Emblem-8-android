@@ -17,6 +17,10 @@ import java.io.File
  * M5-36: [BmMap] against the EWRAM dumps of `ram_trace_newgame_bm`, taken right after the game's
  * `InitChapterMap` for chapter 0 (and for the next chapter the opening event loads). The game's
  * pools are decoded by following the row-pointer tables in EWRAM, independently of [BmMap].
+ * `BmMapInit` is checked by the pool bases and row-pointer tables of five pools (movement and
+ * range live in IWRAM, which these dumps do not cover). `BmMapFill` is checked with the fog map
+ * (`BmMapFill(gBmMapFog, 1)`, every dump) and the chapter 0 unit map (`BmMapFill(gBmMapUnit, 0)`)
+ * on a sentinel-filled pool. No dump holds a map uniformly filled with another value.
  */
 class BmMapDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -116,18 +120,71 @@ class BmMapDifferentialTest {
                 }
             }
 
+            checkPoolLayouts(ewram, map, sx, sy, at)
+
+            // BmMapFill: the port's pool is first filled with a sentinel (so a no-op fill leaves
+            // it), then filled with the value the game used; the game's fill region must match.
+            // The fog map holds 1 in every dump (RefreshEntityBmMaps: BmMapFill(gBmMapFog, 1)).
+            assertFill(ewram, map, map.fog, GBM_MAP_FOG, 1, sx, sy, "fog, $at")
             if (chapter == 0) {
-                // Nothing has been placed on the map yet: the whole unit pool is BmMapFill(0), the
-                // two safety rows above and below included.
-                val unitRows = ewram.u32(GBM_MAP_UNIT)
-                val first = ewram.u32(unitRows - 8)
-                for (i in 0 until (sy + 4) * (sx + 2)) {
-                    assertEquals(0, ewram.u8(first + i), "game unit pool byte $i")
-                }
-                for (y in -2 until sy + 2) {
-                    for (x in 0 until sx + 2) assertEquals(0, map.unit[y, x], "unit ($x,$y)")
-                }
+                // Nothing has been placed on the map yet: the whole unit pool is BmMapFill(0).
+                assertFill(ewram, map, map.unit, GBM_MAP_UNIT, 0, sx, sy, "unit, $at")
             }
+        }
+    }
+
+    /** Pool bases and row-pointer tables the game's BmMapInit laid out, against [BmMap.Pool]. */
+    private fun checkPoolLayouts(ewram: ByteArray, map: BmMap, sx: Int, sy: Int, at: String) {
+        val pools = listOf(
+            Triple(GBM_MAP_UNIT, SYM_UNIT_POOL, map.unit),
+            Triple(GBM_MAP_TERRAIN, SYM_TERRAIN_POOL, map.terrain),
+            Triple(GBM_MAP_FOG, SYM_FOG_POOL, map.fog),
+            Triple(GBM_MAP_HIDDEN, SYM_HIDDEN_POOL, map.hidden),
+            Triple(GBM_MAP_OTHER, SYM_OTHER_POOL, map.other),
+        )
+        for ((handle, base, pool) in pools) {
+            val rows = ewram.u32(handle)
+            assertEquals(base + 8, rows, "pool handle $handle at $at")
+            assertEquals(4 * (sy + 4), pool.rowTableBytes, "row table bytes of $handle at $at")
+            assertEquals(sx + 2, pool.stride, "stride of $handle at $at")
+            for (i in -2 until sy + 2) {
+                val expected = base + pool.rowTableBytes + (i + 2) * pool.stride
+                assertEquals(expected, ewram.u32(rows + 4 * i), "row $i of $handle at $at")
+            }
+        }
+    }
+
+    /**
+     * Sentinel-fills [pool], runs `BmMapFill([pool], [value])` and compares the whole fill region
+     * with the game's pool behind [handle]; bytes outside it must keep the sentinel.
+     */
+    private fun assertFill(
+        ewram: ByteArray,
+        map: BmMap,
+        pool: BmMap.Pool,
+        handle: Int,
+        value: Int,
+        sx: Int,
+        sy: Int,
+        at: String,
+    ) {
+        val rows = ewram.u32(handle)
+        val first = ewram.u32(rows - 8)
+        val size = (sy + 4) * (sx + 2)
+        for (i in 0 until size) assertEquals(value, ewram.u8(first + i), "game pool byte $i, $at")
+        pool.bytes.fill(SENTINEL)
+        map.bmMapFill(pool, value)
+        for (y in -2 until sy + 2) {
+            for (x in 0 until sx + 2) {
+                assertEquals(ewram.u8(first + (y + 2) * (sx + 2) + x), pool[y, x], "($x,$y), $at")
+            }
+        }
+        assertEquals(map.workingMap, pool, "working map, $at")
+        for (i in 0 until pool.rowTableBytes) {
+            assertEquals(SENTINEL, pool.bytes[i], "row table byte $i untouched, $at")
+        }
+        for (i in pool.rowTableBytes + size until pool.bytes.size) {
+            assertEquals(SENTINEL, pool.bytes[i], "byte $i past the region untouched, $at")
         }
     }
 
@@ -158,6 +215,15 @@ class BmMapDifferentialTest {
         const val BM_MAP_SIZE = 0x0202E4D4
         const val GBM_MAP_UNIT = 0x0202E4D8
         const val GBM_MAP_TERRAIN = 0x0202E4DC
+        const val GBM_MAP_FOG = 0x0202E4E8
+        const val GBM_MAP_HIDDEN = 0x0202E4EC
+        const val GBM_MAP_OTHER = 0x0202E4F0
+        const val SYM_UNIT_POOL = 0x0202E4F4
+        const val SYM_TERRAIN_POOL = 0x0202ECAC
+        const val SYM_FOG_POOL = 0x0202F464
+        const val SYM_HIDDEN_POOL = 0x0202FC1C
+        const val SYM_OTHER_POOL = 0x020303D4
+        const val SENTINEL: Byte = 0xAA.toByte()
         const val SYM_TILESET_CONFIG = 0x02030B8C
         const val SYM_BASE_TILES_POOL = 0x02032F8C
         const val BM_MAP_BASE_TILES_PTR = 0x0859A9D4

@@ -85,7 +85,8 @@ public class UnitTable(
     }
 
     /**
-     * Ported from src/bmphase.c: GetPhaseAbleUnitCount
+     * Transcribed from src/bmphase.c: GetPhaseAbleUnitCount (not verified: no trace has a unit
+     * that the asleep/berserk/unselectable/NOT_ABLE exclusions would skip)
      *
      * Number of units of [faction] (0x00 blue, 0x40 green, 0x80 red) that can act this phase:
      * valid, not unselectable / dead / undeployed / rescued / under a roof / bit 16, not asleep

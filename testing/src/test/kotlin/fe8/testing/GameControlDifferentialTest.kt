@@ -13,6 +13,7 @@ import gbafe.proc.ProcScripts.block
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
@@ -32,7 +33,9 @@ import org.junit.jupiter.api.Test
  * Each segment seeds the proc fields and `gPlaySt` from the step before, runs one frame with
  * stand-in children, and compares script position, fields, `gPlaySt` bytes and children with the
  * step after. Only chapter 0, `nextAction` 0, `save_menu_type` 0 and no state bits occur, so the
- * other branches are not covered; `GameControl_PostChapterSwitch`,
+ * other branches are not covered, so `GameControl_SwitchPostSaveMenu` (only the event-return
+ * branch runs), `GameCtrl_CheckNewGameAndBranch` and `GameCtrl_CheckGameCompleteAndBranch`
+ * (only their fall-through) are not tagged; `GameControl_PostChapterSwitch`,
  * `GameControl_RestoreChapterId` and `GameControlHandlePostNormalOrExtraChapter` do not run
  * before the battle map and are not tagged. `sub_8009E28` only has its hook checked.
  */
@@ -42,7 +45,7 @@ class GameControlDifferentialTest {
     private fun traces(): Pair<WatchTrace, WatchTrace> {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         val run = ref.run("ram_trace_prologue")
-        assumeTrue(
+        assertTrue(
             run.hasWatch("procs") && run.hasWatch("gplayst"),
             "ram_trace_prologue has no procs / gplayst watch",
         )
@@ -96,6 +99,8 @@ class GameControlDifferentialTest {
         assertEquals(ctrl.u8(0x29), state.nextAction, "step $step nextAction")
         assertEquals(ctrl.u8(0x2A), state.nextChapter, "step $step nextChapter")
         assertEquals(ctrl.u8(0x2B), state.idleStatus, "step $step idle_status")
+        assertEquals(ctrl.u8(0x2C), state.unk2C, "step $step unk2C")
+        assertEquals(ctrl.u16(0x2E), state.unk2E, "step $step unk2E")
         assertEquals(ctrl.u8(0x30), state.chIndex, "step $step ch_index")
         val ours = ByteArray(PLAY_ST_SIZE)
         seed.control.playSt.encode(ours, 0)
@@ -105,9 +110,6 @@ class GameControlDifferentialTest {
 
     @Test
     @VerifiesPort(
-        "GameControl_SwitchPostSaveMenu",
-        "GameCtrl_CheckNewGameAndBranch",
-        "GameCtrl_CheckGameCompleteAndBranch",
         "GameControl_RememberChapterId",
         "GameCtrlStartIntroMonologue",
     )

@@ -1,10 +1,14 @@
 package fe8.game
 
+import fe8.game.bm.BMapMain
+import fe8.game.bm.BattleMapNodes
 import fe8.game.bm.BattleMapStart
 import fe8.game.bm.BmMap
 import fe8.game.bm.BmMapRender
+import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterMapGfx
+import fe8.game.bm.ResetCursorPosition
 import fe8.game.bm.UnitTable
 import fe8.game.flags.Fe8EventFlags
 import fe8.game.opanim.EarlyStartUi
@@ -100,11 +104,21 @@ public class Fe8Boot(
         val chapters = ChapterData(rom)
         val bm = loop.bmSt
         val map = BmMap(rom, chapters, bm)
+        val camMove = CamMove(engine, bm)
+        val reset = ResetCursorPosition(
+            engine, bm, control.playSt, units, camMove, NO_WORLD_MAP_NODES,
+        )
+        val main = BMapMain(
+            engine, control.playSt, units, flags, chapters, rom, reset, camMove,
+        )
         BattleMapStart(
             engine, control.playSt, bm, hw, chapters, map,
             ChapterMapGfx(rom, chapters, hw, control.playSt), BmMapRender(bm, map, hw),
             flags, rng, clock, units,
-        )
+        ).also {
+            main.hooks.getBattleMapKind = { it.hooks.getBattleMapKind() }
+            it.hooks.bmapMainScript = main.script
+        }
     }
 
     private val driver: M4aDriver? = m4a?.driver(pcm)
@@ -186,4 +200,15 @@ public class Fe8Boot(
             HBlankLines.capture(io, state, hblankIo, hblankLine)
         }
     }
+}
+
+/** World map stand-in until the world map is ported: no node holds a chapter. */
+private val NO_WORLD_MAP_NODES = object : BattleMapNodes {
+    override fun chapterId(node: Int): Int = -1
+
+    override fun isCleared(node: Int): Boolean = false
+
+    override fun encounters(node: Int): Int = 0
+
+    override fun placementFlag(node: Int): Int = 0
 }

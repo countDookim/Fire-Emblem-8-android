@@ -34,7 +34,8 @@ import gbafe.render.BgHardware
  * switch. Stand-ins ([Hooks], all no-ops by default): the unit sprite and menu override resets,
  * the trap lists, temporary units, map obstacles, the sprite OAM / weather effect calls and
  * the map animation calls of the procs, and `GetBattleMapKind` (needs world map state). The
- * `gProc_BMapMain` script is a [Hooks.bmapMainScript] placeholder until task M5-44.
+ * `gProc_BMapMain` script is [Hooks.bmapMainScript]: a placeholder here, [BMapMain.script] in
+ * the boot.
  */
 public class BattleMapStart(
     /** The proc engine the procs are started on. */
@@ -94,7 +95,7 @@ public class BattleMapStart(
         public var getBattleMapKind: () -> Int = { BattleMapKind.STORY }
 
         /**
-         * The `gProc_BMapMain` script. Placeholder until `BMapMain` (M5-44): it has the name,
+         * The `gProc_BMapMain` script. Placeholder; [BMapMain.script] replaces it: it has the name,
          * `PROC_15` and the main mark of the real one and then only yields. A replacement must
          * use [BMapMainState] as its `newState`.
          */

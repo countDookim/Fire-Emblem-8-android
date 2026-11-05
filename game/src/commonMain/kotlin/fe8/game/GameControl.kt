@@ -3,26 +3,31 @@ package fe8.game
 import fe8.game.title.TitleScreen
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
+import gbafe.proc.ProcBoolFunc
 import gbafe.proc.ProcCmd
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.block
 import gbafe.proc.ProcScripts.call
+import gbafe.proc.ProcScripts.call2
 import gbafe.proc.ProcScripts.end
 import gbafe.proc.ProcScripts.goto
 import gbafe.proc.ProcScripts.label
 import gbafe.proc.ProcScripts.mark
 import gbafe.proc.ProcScripts.name
 import gbafe.proc.ProcScripts.repeat
+import gbafe.proc.ProcScripts.sleep
 import gbafe.proc.ProcScripts.startChildBlocking
+import gbafe.proc.ProcScripts.whileTrue
 import gbafe.proc.ProcScripts.yield
 
 /**
  * The game control proc `gProcScr_GameControl` (decomp `src/gamecontrol.c`), the root of the game's
- * flow: intro, title, save menu, chapters. Partial: only its start up to the op anim
- * (`ProcScr_GameEarlyStartUI` and `ProcScr_OpAnim`, given as [introScript] and [opAnimScript]) is
- * ported; after that a stand-in `PROC_BLOCK` holds it.
+ * flow: intro, title, save menu, chapters. The whole script is transcribed 1:1 (122 commands,
+ * checked against the ROM by `GameControlScriptRomTest`); the intro and op anim scripts are given
+ * as [introScript] and [opAnimScript], the title as [titleScreen], and every call past the title
+ * is a stand-in in [hooks] or a `TODO(M5-34)` function until it is ported.
  */
 public class GameControl(
     /** The proc engine the game control proc runs on. */
@@ -40,6 +45,8 @@ public class GameControl(
     private val titleScreen: (() -> TitleScreen)? = null,
     /** The m4a state the [sound] wrapper drives (null: no sound data). */
     m4a: gba.audio.M4aSound? = null,
+    /** The stand-ins for the calls past the title that are not ported yet. */
+    public val hooks: Hooks = Hooks(),
 ) {
     /**
      * `gPlaySt.config` option bits (u32 at `gPlaySt+0x40`); only the sound bits are used so far.
@@ -69,7 +76,7 @@ public class GameControl(
         public var chIndex: Int = 0
     }
 
-    /** The script (partial, see the class doc); [ProcScript.newState] creates a [State]. */
+    /** The script (see the class doc); [ProcScript.newState] creates a [State]. */
     public val script: ProcScript = ProcScript(
         "gProcScr_GameControl",
         listOf(
@@ -88,13 +95,13 @@ public class GameControl(
             yield(),
             goto(LGAMECTRL_TITLE_DIRECT),
             label(LGAMECTRL_CLASS_REEL),
-            block(), // not ported: GamceControl_StartClassReel
+            call2(ProcBoolFunc { startClassReel(it) }), // PROC_CALL_2
             call(ProcFunc { postClassReel(it) }),
             yield(),
             goto(LGAMECTRL_OP_ANIM),
             label(3),
             yield(),
-            block(), // not ported: sub_8009A84
+            call(ProcFunc { hooks.sub8009A84.invoke(it) }),
             call(ProcFunc { postClassReel(it) }),
             yield(),
             goto(LGAMECTRL_OP_ANIM),
@@ -115,15 +122,92 @@ public class GameControl(
             call(ProcFunc { postIntro(it) }),
             yield(),
             goto(LGAMECTRL_OP_ANIM),
-            block(), // not ported: save menu, battle map, chapters, ...
+            label(LGAMECTRL_EXEC_SAVEMENU),
+            call(ProcFunc { enableSoundEffects() }),
+            call(ProcFunc { startSaveMenu(it) }),
+            yield(),
+            call(ProcFunc { switchPostSaveMenu(it) }),
+            yield(),
+            goto(LGAMECTRL_EXEC_BM),
+            label(LGAMECTRL_EXEC_BM_EXT),
+            call(ProcFunc { rememberChapterId(it) }),
+            yield(),
+            call(ProcFunc { hooks.startBattleMap.invoke(it) }),
+            yield(),
+            goto(LGAMECTRL_POST_NORMAL_CHAPTER),
+            label(LGAMECTRL_EXEC_BM),
+            call(ProcFunc { checkNewGameAndBranch(it) }),
+            call(ProcFunc { checkGameCompleteAndBranch(it) }),
+            call(ProcFunc { rememberChapterId(it) }),
+            call(ProcFunc { startIntroMonologue(it) }),
+            yield(),
+            startChildBlocking { hooks.worldMapWrapperScript },
+            call(ProcFunc { hooks.endWorldMap.invoke(it) }),
+            call(ProcFunc { sub8009E28(it) }),
+            yield(),
+            call(ProcFunc { hooks.startBattleMap.invoke(it) }),
+            yield(),
+            label(LGAMECTRL_POST_NORMAL_CHAPTER),
+            yield(),
+            call(ProcFunc { postChapterSwitch(it) }),
+            yield(),
+            call(ProcFunc { restoreChapterId(it) }),
+            label(19),
+            call(ProcFunc { hooks.chapterSwitch.invoke(it) }),
+            call(ProcFunc { hooks.callPostChapterSaveMenu.invoke(it) }),
+            yield(),
+            goto(LGAMECTRL_EXEC_BM),
+            label(8),
+            call(ProcFunc { sub8009E28(it) }),
+            call(ProcFunc { hooks.startResumedGame.invoke(it) }),
+            yield(),
+            call(ProcFunc { rememberChapterId(it) }),
+            call(ProcFunc { handlePostNormalOrExtraChapter(it) }),
+            goto(LGAMECTRL_POST_NORMAL_CHAPTER),
+            label(14),
+            yield(),
+            label(LGAMECTRL_POST_EXTRA_MAP),
+            yield(),
+            goto(LGAMECTRL_TITLE_DIRECT),
+            label(LGAMECTRL_EXEC_BM_),
+            goto(LGAMECTRL_EXEC_BM),
+            label(12),
+            call(ProcFunc { hooks.startLinkArenaMainMenu.invoke(it) }),
+            yield(),
+            call(ProcFunc { hooks.sub8009ABC.invoke(it) }),
+            goto(LGAMECTRL_EXEC_SAVEMENU),
+            label(16),
+            call(ProcFunc { hooks.clearTemporaryUnits.invoke(it) }),
+            call(ProcFunc { hooks.declareCompletedChapter.invoke(it) }),
+            call(ProcFunc { hooks.makeSaveMenuPostChapter.invoke(it) }),
+            yield(),
+            label(LGAMECTRL_EXEC_ENDING_SCENE),
+            call(ProcFunc { hooks.savePlayThroughData.invoke(it) }),
+            call(ProcFunc { hooks.callGameEndingEvent.invoke(it) }),
+            yield(),
+            whileTrue(ProcBoolFunc { hooks.eventEngineExists.invoke(it) }),
+            call(ProcFunc { hooks.startFinScreen.invoke(it) }),
+            call(ProcFunc { hooks.setGameEndFlag.invoke(it) }),
+            sleep(30),
+            goto(LGAMECTRL_TITLE_DIRECT),
+            label(LGAMECTRL_ERASE_SAVE),
+            call(ProcFunc { hooks.callEraseMural.invoke(it) }),
+            call(ProcFunc { hooks.startMidFadeFromBlack.invoke(it) }),
+            repeat(ProcFunc { waitForFade(it) }),
+            call(ProcFunc { hooks.callEraseSaveEvent.invoke(it) }),
+            whileTrue(ProcBoolFunc { hooks.eventEngineExists.invoke(it) }),
+            yield(),
+            call(ProcFunc { hooks.startMidFadeToBlack.invoke(it) }),
+            repeat(ProcFunc { waitForFade(it) }),
+            call(ProcFunc { hooks.endMuralBackground.invoke(it) }),
+            goto(LGAMECTRL_GAME_INTRO_UI),
             end(),
         ),
         newState = { State() },
     )
 
     /**
-     * Jumps [proc] to the erase-save label when L + Right + Select are held (no-op while that part
-     * of the script is not ported).
+     * Jumps [proc] to the erase-save label when L + Right + Select are held .
      *
      * Partially ported from src/gamecontrol.c: GameControl_CallEraseSaveEventWithKeyCombo
      */
@@ -156,6 +240,28 @@ public class GameControl(
      * proc where the title screen would.
      */
     public val titleStandInScript: ProcScript = ProcScript("gProcScr_TitleScreen (stand-in)", listOf(block()))
+
+    /** Holds [proc] with a blocking stand-in child (the stand-in for screens not ported yet). */
+    private fun hold(proc: Proc, what: String) {
+        engine.startBlocking(ProcScript("$what (stand-in)", listOf(block())), proc)
+    }
+
+    private fun startClassReel(proc: Proc): Boolean {
+        val hook = hooks.startClassReel
+        if (hook != null) return hook.invoke(proc)
+        hold(proc, "GamceControl_StartClassReel")
+        return false
+    }
+
+    private fun startSaveMenu(proc: Proc) {
+        val hook = hooks.startSaveMenu
+        if (hook != null) hook.invoke(proc) else hold(proc, "StartSaveMenu")
+    }
+
+    private fun waitForFade(proc: Proc) {
+        val hook = hooks.waitForFade
+        if (hook != null) hook.invoke(proc) else engine.breakProc(proc)
+    }
 
     /** `StartTitleScreen_WithMusic`: title in mode 0, then `StartBgmExt(SONG_MAIN_THEME, 0, 0)`. */
     private fun startTitleScreenWithMusic(proc: Proc) {
@@ -233,6 +339,134 @@ public class GameControl(
         return proc
     }
 
+    /**
+     * Stand-ins for the calls of [script] past the title whose functions are not ported yet
+     * (each is replaced by its port in the task that ports it); the defaults do nothing, except
+     * where noted.
+     */
+    public class Hooks(
+        /**
+         * `StartSaveMenu` (save menu, task M5-35): the default holds the game control proc with a
+         * blocking child, like the title stand-in.
+         */
+        public var startSaveMenu: ProcFunc? = null,
+        /** `ProcScr_WorldMapWrapper` (the world map), started as a blocking child. */
+        public var worldMapWrapperScript: ProcScript =
+            ProcScript("ProcScr_WorldMapWrapper (stand-in)", listOf(end())),
+        /** `EventEngineExists` for `PROC_WHILE`: the event engine is not ported, so false. */
+        public var eventEngineExists: ProcBoolFunc = ProcBoolFunc { false },
+        /** `WaitForFade` for `PROC_REPEAT`: the default breaks at once. */
+        public var waitForFade: ProcFunc? = null,
+        /**
+         * `GamceControl_StartClassReel` (`PROC_CALL_2`, class reel, task M5-35): the default holds
+         * the game control proc with a blocking child, like the title stand-in.
+         */
+        public var startClassReel: ProcBoolFunc? = null,
+        /** `sub_8009A84`. Stand-in until its port. */
+        public var sub8009A84: ProcFunc = ProcFunc { },
+        /** `StartBattleMap`. Stand-in until its port. */
+        public var startBattleMap: ProcFunc = ProcFunc { },
+        /** `EndWM`. Stand-in until its port. */
+        public var endWorldMap: ProcFunc = ProcFunc { },
+        /** `GameControl_ChapterSwitch`. Stand-in until its port. */
+        public var chapterSwitch: ProcFunc = ProcFunc { },
+        /** `GameControl_CallPostChapterSaveMenu`. Stand-in until its port. */
+        public var callPostChapterSaveMenu: ProcFunc = ProcFunc { },
+        /** `GameCtrl_StartResumedGame`. Stand-in until its port. */
+        public var startResumedGame: ProcFunc = ProcFunc { },
+        /** `StartLinkArenaMainMenu`. Stand-in until its port. */
+        public var startLinkArenaMainMenu: ProcFunc = ProcFunc { },
+        /** `sub_8009ABC`. Stand-in until its port. */
+        public var sub8009ABC: ProcFunc = ProcFunc { },
+        /** `ClearTemporaryUnits`. Stand-in until its port. */
+        public var clearTemporaryUnits: ProcFunc = ProcFunc { },
+        /** `GameCtrl_DeclareCompletedChapter`. Stand-in until its port. */
+        public var declareCompletedChapter: ProcFunc = ProcFunc { },
+        /** `Make6C_SaveMenuPostChapter` (the post-chapter save menu). Stand-in until its port. */
+        public var makeSaveMenuPostChapter: ProcFunc = ProcFunc { },
+        /** `GameCtrl_SavePlayThroughData`. Stand-in until its port. */
+        public var savePlayThroughData: ProcFunc = ProcFunc { },
+        /** `CallGameEndingEvent` (the ending / credits). Stand-in until its port. */
+        public var callGameEndingEvent: ProcFunc = ProcFunc { },
+        /** `StartFinScreen`. Stand-in until its port. */
+        public var startFinScreen: ProcFunc = ProcFunc { },
+        /** `_SetGameEndFlag`. Stand-in until its port. */
+        public var setGameEndFlag: ProcFunc = ProcFunc { },
+        /** `GameControl_CallEraseMural` (erase-save). Stand-in until its port. */
+        public var callEraseMural: ProcFunc = ProcFunc { },
+        /** `StartMidFadeFromBlack`. Stand-in until its port. */
+        public var startMidFadeFromBlack: ProcFunc = ProcFunc { },
+        /** `CallEraseSaveEvent`. Stand-in until its port. */
+        public var callEraseSaveEvent: ProcFunc = ProcFunc { },
+        /** `StartMidFadeToBlack`. Stand-in until its port. */
+        public var startMidFadeToBlack: ProcFunc = ProcFunc { },
+        /** `EndMuralBackground`. Stand-in until its port. */
+        public var endMuralBackground: ProcFunc = ProcFunc { },
+    )
+
+    /**
+     * `GameControl_SwitchPostSaveMenu`: stand-in until task M5-34 (no-op).
+     */
+    public fun switchPostSaveMenu(proc: Proc) {
+        // TODO(M5-34): port GameControl_SwitchPostSaveMenu
+    }
+
+    /**
+     * `GameCtrl_CheckNewGameAndBranch`: stand-in until task M5-34 (no-op).
+     */
+    public fun checkNewGameAndBranch(proc: Proc) {
+        // TODO(M5-34): port GameCtrl_CheckNewGameAndBranch
+    }
+
+    /**
+     * `GameCtrl_CheckGameCompleteAndBranch`: stand-in until task M5-34 (no-op).
+     */
+    public fun checkGameCompleteAndBranch(proc: Proc) {
+        // TODO(M5-34): port GameCtrl_CheckGameCompleteAndBranch
+    }
+
+    /**
+     * `GameControl_RememberChapterId`: stand-in until task M5-34 (no-op).
+     */
+    public fun rememberChapterId(proc: Proc) {
+        // TODO(M5-34): port GameControl_RememberChapterId
+    }
+
+    /**
+     * `GameControl_RestoreChapterId`: stand-in until task M5-34 (no-op).
+     */
+    public fun restoreChapterId(proc: Proc) {
+        // TODO(M5-34): port GameControl_RestoreChapterId
+    }
+
+    /**
+     * `GameCtrlStartIntroMonologue`: stand-in until task M5-34 (no-op).
+     */
+    public fun startIntroMonologue(proc: Proc) {
+        // TODO(M5-34): port GameCtrlStartIntroMonologue
+    }
+
+    /**
+     * `sub_8009E28`: stand-in until task M5-34 (no-op).
+     */
+    public fun sub8009E28(proc: Proc) {
+        // TODO(M5-34): port sub_8009E28
+    }
+
+    /**
+     * `GameControl_PostChapterSwitch`: stand-in until task M5-34 (no-op).
+     */
+    public fun postChapterSwitch(proc: Proc) {
+        // TODO(M5-34): port GameControl_PostChapterSwitch
+    }
+
+    /**
+     * `GameControlHandlePostNormalOrExtraChapter`: stand-in until task M5-34 (no-op).
+     */
+    public fun handlePostNormalOrExtraChapter(proc: Proc) {
+        // TODO(M5-34): port GameControlHandlePostNormalOrExtraChapter
+    }
+
     /** Constants from `gamecontrol.h` / `proc.h` / `gbaio.h`. */
     public companion object {
         /** `PROC_MARK_GAMECTRL`. */
@@ -249,6 +483,24 @@ public class GameControl(
 
         /** `LGAMECTRL_TITLE_DIRECT`. */
         public const val LGAMECTRL_TITLE_DIRECT: Int = 4
+
+        /** `LGAMECTRL_EXEC_BM_EXT`. */
+        public const val LGAMECTRL_EXEC_BM_EXT: Int = 6
+
+        /** `LGAMECTRL_EXEC_BM`. */
+        public const val LGAMECTRL_EXEC_BM: Int = 7
+
+        /** `LGAMECTRL_POST_NORMAL_CHAPTER`. */
+        public const val LGAMECTRL_POST_NORMAL_CHAPTER: Int = 9
+
+        /** `LGAMECTRL_POST_EXTRA_MAP`. */
+        public const val LGAMECTRL_POST_EXTRA_MAP: Int = 10
+
+        /** `LGAMECTRL_EXEC_BM_`. */
+        public const val LGAMECTRL_EXEC_BM_: Int = 15
+
+        /** `LGAMECTRL_EXEC_ENDING_SCENE`. */
+        public const val LGAMECTRL_EXEC_ENDING_SCENE: Int = 17
 
         /** `LGAMECTRL_EXEC_SAVEMENU`. */
         public const val LGAMECTRL_EXEC_SAVEMENU: Int = 5

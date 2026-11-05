@@ -1,6 +1,7 @@
 package fe8.game
 
 import fe8.game.opanim.OpAnimHs
+import gba.data.Decompress
 import gbafe.render.SpriteObject
 
 /**
@@ -9,7 +10,7 @@ import gbafe.render.SpriteObject
  * code run from a ROM (tests, later on-device import) or from extracted files (debug APKs).
  */
 public class RomView(
-    /** Segments as (GBA start address, bytes); an address is read from the segment containing it. */
+    /** Segments as (GBA start address, bytes); an address is read from the segment holding it. */
     private val segments: List<Pair<Int, ByteArray>>,
 ) {
     /** The compressed blob (or raw data) starting at [at]. */
@@ -43,9 +44,24 @@ public class RomView(
     /** The sprite object at [at] sized by its count (`1 + 3 * count` halfwords). */
     public fun objN(at: Int): SpriteObject = obj(at, 1 + 3 * u16(at))
 
-    private fun segment(at: Int): Pair<Int, ByteArray> = segments.firstOrNull { (base, b) ->
-        at.toUInt() >= base.toUInt() && (at - base).toUInt() < b.size.toUInt()
-    } ?: throw IllegalArgumentException("ROM address 0x${hex8(at)} not in this view")
+    /**
+     * Decompresses the blob at [at] (raw or LZ77, see [Decompress.into]) into [dst] at [dstOffset];
+     * returns the bytes written. Does not allocate.
+     */
+    public fun decompressInto(at: Int, dst: ByteArray, dstOffset: Int): Int {
+        val (base, b) = segment(at)
+        return Decompress.into(b, at - base, dst, dstOffset)
+    }
+
+    private fun segment(at: Int): Pair<Int, ByteArray> {
+        for (i in segments.indices) {
+            val s = segments[i]
+            val inside = at.toUInt() >= s.first.toUInt() &&
+                (at - s.first).toUInt() < s.second.size.toUInt()
+            if (inside) return s
+        }
+        throw IllegalArgumentException("ROM address 0x${hex8(at)} not in this view")
+    }
 
     /** Factories. */
     public companion object {
@@ -64,7 +80,8 @@ public class RomView(
         /**
          * ROM range (start, end exclusive) of all m4a sound data: the driver tables
          * (`gScaleTable`..`gXcmdTable`), voicegroups, `gMPlayTable`, `gSongTable`, songs and
-         * DirectSound samples (`gScaleTable` .. after `song998`). Extracted as `sound/rom_<start>.bin`
+         * DirectSound samples (`gScaleTable` .. after `song998`). Extracted as
+         * `sound/rom_<start>.bin`
          * for debug builds' sound tests.
          */
         public val SOUND_WINDOWS: List<Pair<Int, Int>> = listOf(0x08207200 to 0x08587700)

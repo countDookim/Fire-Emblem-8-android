@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 337,
-    "implemented_unverified": 93
+    "verified": 348,
+    "implemented_unverified": 82
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -608,15 +608,19 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventVmDifferentialTest#Event01 End"
+      ]
     },
     "Event02_EvBitAndIdMod": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventVmDifferentialTest#Event02 EvBitAndIdMod"
+      ]
     },
     "Event03_CheckEvBitOrId": {
       "decomp_file": "src/eventscr.c",
@@ -629,8 +633,10 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventVmDifferentialTest#Event05 SetSlot"
+      ]
     },
     "Event06_SlotOperation": {
       "decomp_file": "src/eventscr.c",
@@ -643,43 +649,55 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventVmDifferentialTest#Event07 SlotQueueOperations"
+      ]
     },
     "Event08_Label": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventVmDifferentialTest#Event08 Label"
+      ]
     },
     "Event09_Goto": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventVmDifferentialTest#Event09 Goto"
+      ]
     },
     "Event0A_Call": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventVmDifferentialTest#Event0A Call"
+      ]
     },
     "Event0C_Branch": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventVmDifferentialTest#Event0C Branch"
+      ]
     },
     "Event0E_STAL": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventVmDifferentialTest#Event0E STAL"
+      ]
     },
     "Event0F_CounterOps": {
       "decomp_file": "src/eventscr.c",
@@ -699,8 +717,10 @@
       "decomp_file": "src/event.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventVmDifferentialTest#created engine starts at the script with clean state"
+      ]
     },
     "EventEngine_CreateBattle": {
       "decomp_file": "src/event.c",
@@ -720,8 +740,10 @@
       "decomp_file": "src/event.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventVmDifferentialTest#onUpdate drives the engine state to the trace"
+      ]
     },
     "ExecBothHBlankHandlers": {
       "decomp_file": "src/hardware.c",

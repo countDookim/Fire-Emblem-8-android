@@ -6,7 +6,7 @@ _Updated 2026-11-05 (scheduled run 10:5x). Owner decisions: docs/PROJECT_BRIEF.m
 _(nothing blocked)_
 
 ## In progress
-_(none; claim tasks here before starting them, CLAUDE.md rule 12)_
+- M5-40: owner PC, until ~13:05Z
 
 ## Next task: M5-53 (EventVmDifferentialTest over ram_trace_newgame_bm), then M5-54
 Done 2026-11-05: M5-09..24, 26, 27, 28..36, 38, 41, 48..52; M5-49/50 (`EventEngine`: create/createBattle/callEvent/

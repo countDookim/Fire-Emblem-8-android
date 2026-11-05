@@ -54,6 +54,19 @@ class SramSaveBlockReferenceTest {
     }
 
     @Test
+    fun `loading a valid non-xmap suspend save keeps it`() {
+        val run = "ram_trace_first_phase"
+        assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
+        val r = ref.run(run)
+        assumeTrue(r.hasSram, "$run has no SRAM dumps")
+        val dump = r.dumps.keys.last { java.io.File(ref.root, "$run/$it.sram.bin").isFile }
+        val lib = lib(run, dump)
+        val before = image(lib)
+        lib.loadAndVerifySuspendSave()
+        assertArrayEquals(before, image(lib))
+    }
+
+    @Test
     @VerifiesPort("IsSaveValid", "InvalidateSuspendSave", "EraseSaveBlockInfo")
     fun `first phase sram has a valid suspend save that can be invalidated`() {
         val run = "ram_trace_first_phase"

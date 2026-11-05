@@ -1,14 +1,16 @@
 # HANDOFF
 
-_Updated 2026-11-05 (owner-PC session, night). Owner decisions: docs/PROJECT_BRIEF.md. History: git log._
+_Updated 2026-11-05 (scheduled run). Owner decisions: docs/PROJECT_BRIEF.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
-## Next task: M5-16 (all 765 non-WM EventScr_* → .fe8s, round-trip byte-exact with the M5-15 assembler)
-Done 2026-11-05 (owner PC): M5-09..15, 18..24, 28, 29, 33..36, 38, 41 (see TASKS). Open and unblocked:
-prologue.fe8s is v1 (symbolic, exact nm lengths; ROM repo `extracted/` updated, but its release is not re-published
-while Actions is blocked: refresh `.assets/extracted` from the ROM repo checkout); M5-25/26/30..32 (saves),
+## Next task: M5-52 (EventTrace reader; scripts/index.json now exists) or M5-30..32 (saves)
+Done 2026-11-05: M5-09..24, 26, 28, 29, 33..36, 38, 41 (see TASKS). Scripts: 897 EventScr*/EventScrWM* in 46 `.fe8s`
+files (decomp header grouping, `Fe8ScriptFiles`) + `scripts/index.json`, 897/897 byte-exact (`ScriptRoundTripRomTest`);
+ROM repo `extracted/scripts` pushed (release re-publish by its CI). M5-25 partial: LoadAndVerfySuspendSave valid branch
+transcribed (non-xmap no-op checked; xmap 0x7F path no trace); EraseInvalidSaveData 0x40603: no dump has it.
+InvalidateGameSave (M5-26) waits for ReadSuspendSavePlaySt. Open: M5-30..32 (saves),
 M5-37/39/40 (map graphics/render), M5-41b (ROM run on a map larger than the screen: the prologue map is 15×10,
 so the camera never scrolls in ram_trace_first_phase).
 Pinned frames (ROM repo `harness/gen_scripts.py`, NEWGAME comment): InitChapterMap f9314..9319 (ch 0), event's
@@ -22,7 +24,7 @@ f1130..1132 + 1 byte (0x7224) f1214. Title START now enters GameControl's save-m
   `CgbSound` verified; `PsgSynth` (not a port, GBATEK/mGBA behaviour) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad (2026-10-30); GPU backend, audio
   (2026-11-01); ROM import ~4 s, boots from it, PSG sound correct by ear (2026-11-04).
-- Verified ports: 310 / 8352 (`tools/progress.py`, 2026-11-05).
+- Verified ports: 320 / 8352 (`tools/progress.py`, 2026-11-05).
 - Layout: game-neutral `:gba:*` (ADR 0012), FE-shared `gbafe.*` in `:engine:*`, FE8-only `fe8.*` in `:game`
   and `:app`. KMP (ADR 0013): all of them except `:gba:testkit`, `:testing`, `:tools:extract` (plain JVM);
   android target only in CI (`com.android.kotlin.multiplatform.library`; CI log shows `compileAndroidMain`).

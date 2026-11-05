@@ -40,6 +40,12 @@ public class BmSaveLib(public val sram: CartSram) {
     /** Stand-in for the `struct SaveBlockInfo chunk` locals of the callers of the above. */
     private val scratchInfo = ByteArray(L.BLOCK_INFO_SIZE)
 
+    /** Stand-in for the `struct PlaySt playSt` local of `LoadAndVerfySuspendSave` (head only). */
+    private val playStBuffer = ByteArray(PLAY_ST_READ_SIZE)
+
+    /** Stand-in for `gExtraMapSaveHead` (the part read: up to `unk0F`). */
+    private val xmapHeadBuffer = ByteArray(XMAP_HEAD_READ_SIZE)
+
     /** The 0x40 bytes of 0xFF that `WipeSram` writes 0x200 times (`u32 buf[0x10]`). */
     private val wipeBuffer = ByteArray(WIPE_CHUNK)
 
@@ -288,17 +294,25 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Partially ported from src/bmsave-xmap.c: LoadAndVerfySuspendSave (valid-suspend branch
-     * missing, M5-25/M5-26)
+     * Partially ported from src/bmsave-xmap.c: LoadAndVerfySuspendSave
      *
-     * Does nothing unless [isValidSuspendSave] finds a suspend save. The valid-save branch (read
-     * its PlaySt, check the extra-map header, maybe invalidate it) is not ported.
-     *
-     * @throws NotImplementedError when a valid suspend save exists.
+     * Does nothing unless [isValidSuspendSave] finds a suspend save. Then it reads the
+     * `chapterIndex` (byte 0x0E) and the `unk_2C_0D` bit field (bits 13..22 of the word at 0x2C)
+     * of the saved `PlaySt`, as `ReadSuspendSavePlaySt` does, and for the extra-map chapter 0x7F
+     * compares it with `unk0F` of the extra-map save head at SRAM 0x7400, invalidating the
+     * suspend save on a mismatch. The extra-map path is transcribed but not verified (the
+     * reference runs have no extra-map suspend save), and the rest of `PlaySt` is not read.
      */
     public fun loadAndVerifySuspendSave() {
-        if (isValidSuspendSave(L.SAVE_ID_SUSPEND)) {
-            TODO("LoadAndVerfySuspendSave: valid suspend save branch (task M5-25)")
+        if (!isValidSuspendSave(L.SAVE_ID_SUSPEND)) return
+        val base = getSaveReadAddr(L.SAVE_ID_SUSPEND + suspendSaveIdOffset)
+        readSramFast(sram, base, playStBuffer, 0, PLAY_ST_READ_SIZE)
+        if (playStBuffer[PLAY_ST_CHAPTER_INDEX].toInt() == 0x7F) {
+            readSramFast(sram, L.XMAP_OFFSET, xmapHeadBuffer, 0, XMAP_HEAD_READ_SIZE)
+            val unk2C0D = (u32(playStBuffer, PLAY_ST_BITS_2C) ushr 13) and 0x3FF
+            if (unk2C0D != (xmapHeadBuffer[XMAP_HEAD_UNK0F].toInt() and 0xFF)) {
+                invalidateSuspendSave(L.SAVE_ID_SUSPEND)
+            }
         }
     }
 
@@ -498,6 +512,21 @@ public class BmSaveLib(public val sram: CartSram) {
 
         /** Bytes `WipeSram` writes per call (0x200 calls cover the 0x8000 bytes). */
         const val WIPE_CHUNK = 0x40
+
+        /** Bytes of `PlaySt` read by `loadAndVerifySuspendSave` (through `unk_2C_*`). */
+        const val PLAY_ST_READ_SIZE = 0x30
+
+        /** Offset of `PlaySt.chapterIndex`. */
+        const val PLAY_ST_CHAPTER_INDEX = 0x0E
+
+        /** Offset of the word holding `PlaySt.unk_2C_0D` (bits 13..22). */
+        const val PLAY_ST_BITS_2C = 0x2C
+
+        /** Bytes of `ExtraMapSaveHead` read (through `unk0F`). */
+        const val XMAP_HEAD_READ_SIZE = 0x10
+
+        /** Offset of `ExtraMapSaveHead.unk0F`. */
+        const val XMAP_HEAD_UNK0F = 0x0F
 
         /** First probe word of `SramInit`. */
         const val PROBE_WORD0 = 0x12345678

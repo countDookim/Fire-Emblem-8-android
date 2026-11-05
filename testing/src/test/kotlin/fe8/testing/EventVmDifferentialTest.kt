@@ -533,8 +533,9 @@ class EventVmDifferentialTest {
          *   CONTINUE (the cursor proc is started).
          * - 0x3F Event3F_ScriptBattle: subcode 2 (FIGHT_SCRIPT) CONTINUE, else YIELD.
          * - World map codes 0x9E A0 A3 A7 A8 AF B4 B6 B8 B9 BC BD C1 C4 C5: CONTINUE. The waiting
-         *   ones 0xA5 (UnitFadeWait), 0xAC (UnitMoveWait), 0xB1, 0xBA, 0xBE and 0xC6 C7 C9: CONTINUE
-         *   when skipping, else YIELD (their STOP_YIELD is the parked case). 0xB2, 0xB3: YIELD.
+         *   ones 0xA5 (UnitFadeWait), 0xAC (UnitMoveWait), 0xB1, 0xBA, 0xBE and 0xC6 C7 C9:
+         *   CONTINUE when skipping, else YIELD (their STOP_YIELD is the parked case). 0xB2, 0xB3:
+         *   YIELD.
          */
         val STUBS: Map<Int, (EventEngineProc, ScriptMemory, EventState) -> Int> = buildMap {
             fun stub(code: Int, fn: (EventEngineProc, ScriptMemory, EventState) -> Int) {

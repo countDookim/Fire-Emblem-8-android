@@ -1,22 +1,22 @@
 # HANDOFF
 
-_Updated 2026-11-05 (owner PC: M5-25, 39b, 41c, 42-47). Owner decisions: docs/PROJECT_BRIEF.md. Backlog: docs/TASKS.md. M5 facts and
-reference runs: docs/plans/M5-notes.md. History: git log._
+_Updated 2026-11-05 (owner PC: M5-25, 39b, 41c, 42-47, 53). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
+docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
 ## In progress
-- M5-53: owner PC, until ~20:00Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
-## Next task: M5-53, then M5-54
-M5-53 state (on master): `EventVmDifferentialTest` replays ported handlers with onUpdate's loop from the prologue
-per-frame oracle; stubs 0x12/0x15/0x30 as ADVANCE_YIELD when the trace pc lands on the next command; compares flags;
-skips frames where the engine idles (fade/callback early return not modelled). 0 mismatches over 2469 pairs (0E ×2443,
-01 ×16, others ≤ 4); 00/0F never reached. Next: port or stub 1D/30/3B/AC/BA/1B (most frames stop on them), then
-`@VerifiesPort` for the executed handlers + engine functions, each break-checked. After END the proc lingers ~2 frames.
-EventEngine_CanStartSkip/StartSkip are partial (an unpushed alternative port is on owner-PC branch
-`backup/event-engine-dup`). Core loop (M5-42..47) is done; M5-58 wiring waits for the event VM (M5-53..55). 
+## Next task: M5-54, then M5-55
+M5-53 done (owner PC): `EventVmDifferentialTest` runs the real `EventEngine.onUpdate`/`create` per pair over the whole
+prologue trace: 12615 compared pairs, 0 mismatches; unported commands are test-only stubs (STUBS table, each with its
+C reasoning) that complete only when the trace pc moves past. Still ending pairs: 0x10 ×16, 0x19 ×173 (M5-55).
+Tagged: OnUpdate, Create, Event01/02/05/07/08/09/0A/0C/0E. Withheld: Event03 (sub 1 never runs), Event06 (operator
+breaks survive). The call queue is not compared yet (CallEvent/EnqueueEventCall/CallNextQueuedEvent/OnEnd untagged):
+M5-54 adds it. EventEngine_CanStartSkip/StartSkip are partial (an unpushed alternative port is on owner-PC branch
+`backup/event-engine-dup`). Core loop (M5-42..47) is done; M5-58 wiring waits for M5-55.
 
 ## State
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
@@ -24,7 +24,7 @@ EventEngine_CanStartSkip/StartSkip are partial (an unpushed alternative port is 
   `CgbSound` verified; `PsgSynth` (GBATEK/mGBA behaviour, not a port) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad, GPU backend, audio, ROM import (~4 s) + boot
   from it. Pending: smoke test of the first APK built on the KMP android variants (MANUAL_TEST "Newly testable").
-- Verified ports: 337 / 8352 (`tools/progress.py`, 2026-11-05). Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
+- Verified ports: 348 / 8352 (`tools/progress.py`, 2026-11-05). Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
 - Layout: `:gba:*` game-neutral (ADR 0012), `gbafe.*` in `:engine:*`, `fe8.*` in `:game`/`:app`; KMP jvm+android
   (ADR 0013) except `:gba:testkit`, `:testing`, `:tools:extract`.
 

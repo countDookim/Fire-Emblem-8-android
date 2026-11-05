@@ -1,6 +1,6 @@
 # app
 
-Android shell (minSdk 26, target/compile 36); built only with an Android SDK (CI). Signed with the committed
+Android shell (minSdk 26, target/compile 36); built only where an Android SDK is found (CI, owner PC). Signed with the committed
 `debug.keystore` so CI APKs update in place.
 - `MainActivity` (Compose launcher: ROM import, **Play**) → `GameSurfaceView` (GL ES 3.0, `GameLoop` on the GL
   thread; `GpuBackend` composites 240×160 in a shader, then nearest scaling) + `TouchOverlayView` (on-screen GBA

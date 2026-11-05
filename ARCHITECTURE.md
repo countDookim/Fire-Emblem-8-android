@@ -26,20 +26,21 @@ targets, ADR 0013); `gba:testkit`, `testing` and `tools:extract` are plain JVM; 
 |---|---|---|
 | `gba:vfs` | layered VFS, mod manifest, texture overrides | dir layers |
 | `gba:data` | LZ77, tile, colour decoders; JSON reader | decoders |
-| `gba:core` | `VerifiesPort`, fixed-step clock + loop (59.7275 Hz), event bus | working |
+| `gba:core` | `VerifiesPort`, fixed-step clock + loop (59.7275 Hz), event bus, cart SRAM | working |
 | `gba:input` | `GameAction`, `InputFrame`, `TouchButtons`, `UiElements`, button map | working |
 | `gba:render` | `RenderState`, `SoftwareRenderer`, `GpuFrame` + `PackedCompositor` (shader spec), `TileSheets`, `FrameBuffer`, `BgAffine`, `HBlankLines` | software + GPU |
 | `gba:audio` | m4a sequencer, DirectSound mixer + CGB/PSG, `M4aDriver`, `PcmStream`, `AudioSink` | working |
 | `gba:extract` | generic extraction helpers: `Json`, `Symbols`, `IndexedPng`, `RomImporter` | working |
-| `gba:testkit` | `ReferenceData`, `RamSymbols`, `AllocationMeter`, `MgbaColorMath` (test support) | working |
-| `engine:core` | game clock, RNG, procs, flags, mechanics (FE code) | working |
+| `gba:testkit` | `ReferenceData` (+ `WatchTrace`, `GbaMem`), `RamSymbols`, `AllocationMeter`, `MgbaColorMath` (test support) | working |
+| `engine:core` | game clock, RNG, procs, event flags + flag/var registry, feature flags, mechanics (FE code) | working |
 | `engine:data` | TSA decoder; JSON table contract (trig) | decoders |
 | `engine:input` | `KeyStatus`, `KeyComboReset` (FE ports) | working |
 | `engine:render` | `LcdControl`, `BgHardware`, `OamBuffer`, `HardwareScene`, fades, HBlank handlers (FE ports) | software + GPU |
-| `engine:script` / `save` | `.fe8s` VM / save container | contracts |
+| `engine:script` | `.fe8s` parser + assembler to FE8 event words (ADR 0001 amendment), `ScriptVm` contract | working |
+| `engine:save` | save container v1, FE checksums | working |
 | `engine:text` | text tags, Huffman messages | partial |
 | `engine:extract` | ROM → assets extraction core (JSON/PNG/Tiled/MIDI/WAV/`.fe8s`): file-free, runs from ROM + bundled manifest (ADR 0011); used by `tools:extract` and `:app` | working |
-| `game` | `fe8.game` systems; shared FE systems become `gbafe.<system>` (0010) | boot → title, sound |
+| `game` | `fe8.game` systems; shared FE systems become `gbafe.<system>` (0010) | boot → title, sound; M5 (bm, event, save, flags) in progress |
 | `testing` | differential tests vs mGBA, ROM golden tests, benchmark | working |
 | `tools:extract` | extraction CLI: decomp reads, files (`DecompSources`, `FileOutput`); never shipped | working |
 | `app` | launcher (ROM import, Play), GLES 3.0 `GpuBackend`, `AudioTrackSink` + `AudioThread`, keys/gamepad + safe-area touch overlay, APK asset layer | boot playable |

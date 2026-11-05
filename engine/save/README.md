@@ -9,4 +9,5 @@ section table (id, section version, length, crc32), then payloads.
   `readSectionInto` copies one payload into a caller buffer.
 - Errors are `SaveException`: `Corrupt`, `NewerVersion` (container or section newer than supported),
   `MissingMigration`.
-- `Crc32` is pure Kotlin (no `java.util.zip`). Import from the original `.sav` arrives with M5.
+- `Crc32` is pure Kotlin (no `java.util.zip`). `SaveChecksums`: the FE SRAM checksums (Checksum16, Checksum32). The original `.sav`
+  importer is `fe8.game.save.Fe8SavImporter`.

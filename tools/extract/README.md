@@ -4,8 +4,8 @@ JVM CLI: ROM → JSON tables, indexed PNGs, Tiled maps, MIDI + voicegroups, WAV,
 (the app extracts on device, ADR 0011).
 
 ```
-./gradlew :tools:extract:run --args="--rom $FE8_ASSETS/baserom.gba --out ../fire-emblem-8-rom/extracted \
-  --symbols ../fire-emblem-8-rom/decomp/fireemblem8.nm.txt --map <fireemblem8.map> --decomp <fireemblem8u>"
+./gradlew :tools:extract:run --args="--rom $FE8_ASSETS/baserom.gba --out ../Fire-Emblem-8-rom/extracted \
+  --symbols ../Fire-Emblem-8-rom/decomp/fireemblem8.nm.txt --map <fireemblem8.map> --decomp <fireemblem8u>"
 ./gradlew :tools:extract:run --args=--help
 ```
 

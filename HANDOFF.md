@@ -1,6 +1,7 @@
 # HANDOFF
 
-_Updated 2026-11-05 (scheduled run 10:5x). Owner decisions: docs/PROJECT_BRIEF.md. History: git log._
+_Updated 2026-11-05 (owner PC, doc review). Owner decisions: docs/PROJECT_BRIEF.md. Backlog: docs/TASKS.md. M5 facts and
+reference runs: docs/plans/M5-notes.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
@@ -8,118 +9,84 @@ _(nothing blocked)_
 ## In progress
 _(none; claim tasks here before starting them, CLAUDE.md rule 12)_
 
-## Next task: M5-53 (EventVmDifferentialTest over ram_trace_newgame_bm), then M5-54
-Done 2026-11-05: M5-09..24, 26, 27, 28..36, 38, 41, 41b, 48..52; M5-49/50 (`EventEngine`: create/createBattle/callEvent/
-enqueue/callNextQueuedEvent/exists/delete/onEnd, externals behind `EventEngineHooks`), M5-51 (`EventScrCore`: 11
-eventscr.c handlers; assumptions in KDoc: div/mod by 0 = 0, shifts >= 32 = 0, goto scan limit -> EVC_ERROR, slot
-index > 13 aliases gEventSlotQueue). No `@VerifiesPort` yet. M5-53 started: `EventVmDifferentialTest` (prologue per-frame oracle, replays
-ported handlers with onUpdate's loop, stubs 0x12/0x15/0x30 as ADVANCE_YIELD when B.pc = next cmd; flags compared;
-skips frames where the engine idles (fade/callback early return not modelled)): 0 mismatches over 2469 pairs:
-01x16, 02x3, 03x3, 05x4, 06x1, 07x3, 08x1, 09x1, 0Ax1, 0Cx3, 0Ex2443; 00/0F never reached. Event02/03 ported
-(flags via `gbafe.core.flags.EventFlags`). Most frames stop on unported 1D/30/3B/AC/BA/1B (port or stub next).
-Then add `@VerifiesPort` for executed handlers + engine functions, each break-checked (rule 5). After END the proc lingers ~2 frames (still in the proc array). Scripts: 897 EventScr*/EventScrWM*
-in 46 `.fe8s` files + `scripts/index.json`, 897/897 byte-exact. `EventTrace` (:testing) decodes the event engine per
-step; note the BeginningScene engine (step 9508) is already inside RenaisThroneCutscene, ends step 19311.
-EventEngine_CanStartSkip/StartSkip are still partial (an alternative full port is on local branch
-backup/event-engine-dup on the owner PC, never pushed).
-M5-32: only WriteNewGameSave/ClearPidChStatsSaveData/InitPlayConfig verified; zero-only
-copies (WritePermanentFlags, Write/SetBonusContentClaimFlags) and WriteSupplyItems/ClearWorldMapStuff stay transcribed.
-Open: M5-25 partial, M5-42 (map scrolling; unblocked by M5-41b).
-Test-quality review 2026-11-05 (owner asked), fixed: SRAM block-info/erase/invalidate/suspend-id/sound-room,
-SaveDraw (sentinel, no port-derived undo), BmMap (fog fill 1, pool handles), UnitTable (oracle from dumps + ROM
-gUnitLookup) now prove their tags on non-trivial dumps (each checked by breaking the port). Untagged for lack of a
-trace (KDoc "Transcribed ... (not verified: why)"): SaveBonusContentData, SaveRankings, WriteLinkArenaStruct2,
-VerifySramFast_Core, GameControl_SwitchPostSaveMenu, GameCtrl_Check{NewGame,GameComplete}AndBranch,
-GetPhaseAbleUnitCount (exclusion branches unexercised). Second pass (all remaining tagged tests): also untagged
-ply_keysh, GameControl_EnableSoundEffects, EndAllProcChildren, StartOrChangeBgm, Title_IDLE, Title_EndAllProcChildren,
-DrawTitleSprites_Init, SetSecondaryHBlankHandler; LcdControl/Fe8BootSound/M4aSequencer/SaveChecksums strengthened;
-missing-dump `assumeTrue`s are assertions now. Residual risk: ~100 ProcEngine/OpAnim tags and M4aNote's list are
-now break-tested one by one (116/118 + all 12 fail; OpAnimMergeBGProcInit, sub_80C8608 untagged); ~40 ProcEngine tags
-share one Kotlin function with another tag, so a break proves the group, not each decomp name; M4aVolume no longer
-compares the volX it was fed.
-Unresolved (M5-32): slots 3/4 block-info checksum 1F1F1F1F in the dump vs our WriteSaveBlockInfo for invalid kinds.
-CI was red since ba4377e (stale extraction manifest; regenerated 2026-11-05).
-Pinned frames (ROM repo `harness/gen_scripts.py`, NEWGAME comment): InitChapterMap f9314..9319 (ch 0), event's
-load_map ch 16 settles ~f9513, StdEventEngine f4907..9292 (WM) and f9508..19312, BattleEventEngine
-f14479..14631, PhaseIntro f19316 (= suspend info[4] commit), PlayerPhase f19393. New-game save write
-f1130..1132 + 1 byte (0x7224) f1214. Title START now enters GameControl's save-menu stand-in (holds) until M5-58.
+## Next task: M5-53, then M5-54
+M5-53 state (on master): `EventVmDifferentialTest` replays ported handlers with onUpdate's loop from the prologue
+per-frame oracle; stubs 0x12/0x15/0x30 as ADVANCE_YIELD when the trace pc lands on the next command; compares flags;
+skips frames where the engine idles (fade/callback early return not modelled). 0 mismatches over 2469 pairs (0E ×2443,
+01 ×16, others ≤ 4); 00/0F never reached. Next: port or stub 1D/30/3B/AC/BA/1B (most frames stop on them), then
+`@VerifiesPort` for the executed handlers + engine functions, each break-checked. After END the proc lingers ~2 frames.
+EventEngine_CanStartSkip/StartSkip are partial (an unpushed alternative port is on owner-PC branch
+`backup/event-engine-dup`). Free for owner-PC sessions meanwhile: M5-39b, M5-41c, M5-42, M5-25.
 
 ## State
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
 - Sound: m4a sequencer and DirectSound mixer byte-exact vs per-frame RAM traces (`M4aNoteTest`, 3145 frames);
-  `CgbSound` verified; `PsgSynth` (not a port, GBATEK/mGBA behaviour) RMS 1249 vs mGBA 1200.
-- Owner device tests passed: boot to title, touch buttons, gamepad (2026-10-30); GPU backend, audio
-  (2026-11-01); ROM import ~4 s, boots from it, PSG sound correct by ear (2026-11-04).
-- Verified ports: 311 / 8352 (`tools/progress.py`, 2026-11-05).
-- Layout: game-neutral `:gba:*` (ADR 0012), FE-shared `gbafe.*` in `:engine:*`, FE8-only `fe8.*` in `:game`
-  and `:app`. KMP (ADR 0013): all of them except `:gba:testkit`, `:testing`, `:tools:extract` (plain JVM);
-  android target only in CI (`com.android.kotlin.multiplatform.library`; CI log shows `compileAndroidMain`).
-- Owner to smoke-test the first APK built on the KMP android variants (MANUAL_TEST "Newly testable").
+  `CgbSound` verified; `PsgSynth` (GBATEK/mGBA behaviour, not a port) RMS 1249 vs mGBA 1200.
+- Owner device tests passed: boot to title, touch buttons, gamepad, GPU backend, audio, ROM import (~4 s) + boot
+  from it. Pending: smoke test of the first APK built on the KMP android variants (MANUAL_TEST "Newly testable").
+- Verified ports: 311 / 8352 (`tools/progress.py`, 2026-11-05). Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
+- Layout: `:gba:*` game-neutral (ADR 0012), `gbafe.*` in `:engine:*`, `fe8.*` in `:game`/`:app`; KMP jvm+android
+  (ADR 0013) except `:gba:testkit`, `:testing`, `:tools:extract`.
 
 ## Open leads (low priority unless the owner reports a problem)
 - m4a tests skip the M5 runs (`M4aRuns.kt`): our sequencer diverges on `ram_trace_newgame` r00975 channel 12
-  (new-game menu songs). Investigate before claiming m4a coverage there. The save-based runs diverge too
-  (`ram_trace_ch2_scroll` r01469 track 0 status 0xC0 vs our 0x80; r01104 player 2 channel), also skipped.
-- Prologue map fits the screen: M5-07 holds move the cursor (14,9) but never scroll BG3/camera; a scroll
-  trace needs a bigger map (later chapter).
-- Slow app open (owner 2026-10-30): likely fixed (assets counted on `Dispatchers.IO`), not confirmed. If it is
-  reported again, measure `MainActivity.onCreate`/Compose init and the first Play frame (`bundledBootRom`).
-- PSG: 6 of 857 quarter frames differ from mGBA (`M4aNoteTest` prints them: ch1 f953/f991/f1009, wave
-  f980). These are note-specific envelope steps near a quarter boundary, not a global phase error
-  (`SEQ_OFFSET_CYCLES` sweep: 68198 is best).
-- f1180: BG VRAM 0xD800..0xE800 differs from the dump (sync timing of a BG map copy).
-- Unverified (no trace): `OpAnimHBlank1`, `ColorFadeSetupFrom{ColorToWhite,White}`, `sub_80C85FC`,
-  `sub_80C8684`, `GameControl_PostIntro` (partial), `sub_8009B64`; m4a `ply_xcmd`, fade-in/`TEMPORARY_FADE`.
+  (new-game menu songs) and on `ram_trace_ch2_scroll` (r01469 track 0 status 0xC0 vs our 0x80; r01104 player 2).
+  Investigate before claiming m4a coverage there.
+- Test strength: ~40 ProcEngine tags share one Kotlin function with another tag (a break proves the group, not each
+  name); OpAnimMergeBGProcInit, sub_80C8608 untagged. Untagged for lack of a trace: SaveBonusContentData,
+  SaveRankings, WriteLinkArenaStruct2, VerifySramFast_Core, GameControl_SwitchPostSaveMenu,
+  GameCtrl_Check{NewGame,GameComplete}AndBranch, GetPhaseAbleUnitCount exclusion branches, ply_keysh, ply_xcmd,
+  GameControl_EnableSoundEffects, EndAllProcChildren, StartOrChangeBgm, Title_IDLE, Title_EndAllProcChildren,
+  DrawTitleSprites_Init, SetSecondaryHBlankHandler, OpAnimHBlank1, ColorFadeSetupFrom{ColorToWhite,White},
+  sub_80C85FC, sub_80C8684, sub_8009B64, GameControl_PostIntro (partial), m4a fade-in/`TEMPORARY_FADE`.
   `m4aSongNumStartOrChange` is never called by FE8: leave it unclaimed.
-- Follow-ups: units/`.fe8s` beyond the prologue need the `LOAD1/LOAD2` targets of each `ChapterEventGroup`;
-  keysplit/drum sub-voicegroups are not written as `voicegroups/*.json`; OBJ mosaic; mosaic on affine BGs;
-  GPU sprites are still rasterised on the CPU (fine for v1).
+- M5-32: slots 3/4 block-info checksum 1F1F1F1F in the dump vs ours for invalid kinds (stack garbage; test checks shape).
+- PSG: 6 of 857 quarter frames differ from mGBA (ch1 f953/f991/f1009, wave f980): note-specific envelope steps,
+  not a phase error (`SEQ_OFFSET_CYCLES` 68198 is best).
+- f1180: BG VRAM 0xD800..0xE800 differs from the dump (sync timing of a BG map copy).
+- Slow app open (2026-10-30): likely fixed (assets counted on `Dispatchers.IO`); if reported again, measure
+  `MainActivity.onCreate`/Compose init and the first Play frame.
+- Later: `.fe8s` beyond the prologue need each `ChapterEventGroup`'s LOAD targets; keysplit/drum sub-voicegroups
+  are not written as JSON; OBJ mosaic; mosaic on affine BGs; GPU sprites still rasterised on the CPU.
 
 ## How-to
-- Shader parity after any shader/`PackedCompositor` change: `FE8_SHADER_DUMP=<dir> ./gradlew :testing:test
-  --tests '*FrameCompareTest'`, then `node tools/shader_parity.mjs <dir>` (headless Chromium WebGL2).
-- Re-extract: run the CLI (below), `python3 tools/compare_extraction.py <rom repo>/extracted <out>`, copy only
-  changed/new files into the ROM repo's `extracted/`, push there (CI fails until you do).
-- Extractor CLI: `./gradlew :tools:extract:run --args="--rom $FE8_ASSETS/baserom.gba --out <dir outside repo>
-  --decomp <fireemblem8u> --map <rom repo>/decomp/fireemblem8.map --symbols <rom repo>/decomp/fireemblem8.nm.txt"`.
-- New reference runs (ROM repo; fetch it first): add to `harness/gen_scripts.py`, run it and
-  `harness/make_reference.sh`; diff old `out/` vs a fresh untar of `dist/reference.tar.xz` (only
-  PROVENANCE.sha1 may differ); `tar -C reference -cJf dist/reference.tar.xz out`; update `dist/MANIFEST.sha1`
-  (else publish fails); push; copy into `.assets/reference`. PSG solo runs: harness `--audio --psg-mask N`;
-  ours: `FE8_PSG_MASK` (with `--rerun`: env is not a Gradle input).
-- Decomp source: `git clone --filter=blob:none --sparse https://github.com/FireEmblemUniverse/fireemblem8u`,
-  checkout `04d1edb…`, `git sparse-checkout set --no-cone include src texts asm data sound`. Tests hard-code
-  the names/addresses they need; ROM data symbols mostly lack sizes: use the next symbol's address.
+- New reference runs (ROM repo; needs cmake, ninja, network for a harness rebuild): add to `harness/gen_scripts.py`
+  (`# args: --sram reference/fixtures/X.sav` header for save-based runs; owner saves go to `reference/fixtures/`),
+  run it and `harness/make_reference.sh` (rebuilds all runs); check old runs are byte-identical to a fresh untar of
+  `dist/reference.tar.xz` (only PROVENANCE.sha1 may differ); pack `tar -C reference --sort=name -cf - out | xz -9 -T0
+  > dist/reference.tar.xz`; update its sha1 in `dist/MANIFEST.sha1` (else publish fails); push. The `publish-assets`
+  workflow makes release `assets-<sha>` (latest); in the code repo `rm .assets/MANIFEST.sha1 && tools/setup.sh`.
+  If new runs break the m4a tests, list them in `M4aRuns.kt`. PSG solo runs: `--audio --psg-mask N`; ours:
+  `FE8_PSG_MASK` (with `--rerun`).
+- Harness script: `run N`, `hold KEYS N`, `press`, `dump`/`dumpram`/`dumpsram NAME`, `watch NAME ADDR LEN` (≤ 16,
+  LEN ≤ 0x10000, hex needs `0x`), `savestate`/`loadstate` (does not restore SRAM). `python3 -I harness/scan_trace.py
+  <run dir>` names procs/gPlaySt/SRAM transitions; `gen_scripts.py --scratch-newgame OUT END RAM_EVERY [FROM]`.
+- Re-extract: `./gradlew :tools:extract:run --args="--rom $FE8_ASSETS/baserom.gba --out <dir outside repo> --decomp
+  <fireemblem8u> --map <rom repo>/decomp/fireemblem8.map --symbols <rom repo>/decomp/fireemblem8.nm.txt"`, then
+  `python3 tools/compare_extraction.py <rom repo>/extracted <out>`, copy changed files into the ROM repo's
+  `extracted/`, push there (CI fails until you do).
+- Shader parity after a shader/`PackedCompositor` change: `FE8_SHADER_DUMP=<dir> ./gradlew :testing:test --tests
+  '*FrameCompareTest'`, then `node tools/shader_parity.mjs <dir>`.
+- Decomp: `git clone --filter=blob:none --sparse https://github.com/FireEmblemUniverse/fireemblem8u`, checkout
+  `04d1edb…`, `git sparse-checkout set --no-cone include src texts asm data sound`.
 - Trace timing: a frame that overruns its VBlank is dumped mid-frame; step only on dumps whose successor's key
-  struct differs (see `titleKeyPath`).
+  struct differs (`titleKeyPath`).
 
 ## Rules and caveats
-- A `@VerifiesPort` every run or two. No `java.*`/`javax.*`/`System.*` in `commonMain` (KMP); battle rolls
-  only via `mechanics.battleRolls`.
-- Harness (ROM repo): `watch NAME ADDR LEN` (≤16 watches, LEN ≤ 0x10000, hex LEN needs `0x`), `dumpsram`,
-  `--sram FILE`; `python3 -I harness/scan_trace.py <run dir>` names procs/gPlaySt/SRAM transitions;
-  `gen_scripts.py --scratch-newgame OUT END RAM_EVERY [FROM]`. loadstate does not restore SRAM.
-- Scheduled runs and owner-PC sessions both push to `master`: before starting a task, `git fetch` and skip it if a
-  `wip/<id>` branch exists or TASKS marks it `wip`; push `wip/<id>` early for long tasks. M5-02 needs cmake, ninja
-  and network (mGBA clone); without them take a ROM-only task.
-- Fresh session: `git fetch` first; if local `master` is an old unrelated history: `git branch -m master
-  stale-master && git checkout -B master origin/master`.
-- CI was blocked 2026-11-05 00:03-01:10Z (owner's GitHub billing locked; fixed by the owner). If runs ever end in
-  `startup_failure` again, check billing first. Artifacts are kept 3-7 days (ci.yml) to stay under 0.5 GB.
-- Pushes race CI's `ci: update progress [skip ci]` commit: `git fetch && git rebase origin/master`, push again.
-- CI's Dokka fails on ANY warning (every public declaration incl. constructor `val`s needs KDoc): run
-  `./gradlew dokkaGenerate -Pfe8.docs=true` before pushing public API (background: can exceed 2 min cold).
-  Keep `configureDokkaLint()` using Groovy property access (Dokka types are only on the docs classpath).
+- Aim for a `@VerifiesPort` every run or two. No `java.*`/`javax.*`/`System.*` in `commonMain`; battle rolls only
+  via `mechanics.battleRolls`.
 - Always `source .assets.env` before Gradle (else Maven Central 429s).
-- `tools/progress.py` scans `main`/`commonMain`/`jvmMain` and `test`/`jvmTest`; it credits a `@VerifiesPort`
-  test to the LAST `class` declared before it: keep helper classes below the test class.
+- Pushes race CI's `ci: update progress [skip ci]` commit: `git fetch && git rebase origin/master`, push again.
+- CI Dokka fails on ANY warning (every public declaration incl. constructor `val`s needs KDoc): run `./gradlew
+  dokkaGenerate -Pfe8.docs=true` (per module on the owner PC) before pushing public API. Keep `configureDokkaLint()`
+  on Groovy property access.
+- `tools/progress.py` credits a `@VerifiesPort` test to the LAST `class` declared before it: keep helper classes
+  below the test class.
 - Allocation tests can flake (200 B once in 1000 frames): use `AllocationMeter.measureMin`.
-- `FrameCompareTest.applyHBlank` knows only `HBlank_BgVerticalScroll`; dumped RAM is one game step ahead of
-  the dumped frame (the test un-flips the menu scroll buffer).
-- `gh release view/download <tag>` (GraphQL) is refused; use `gh api repos/.../releases/...` (REST).
-- Old merged `wip/*` branches were deleted 2026-11-04 (owner PC); delete a `wip/` branch once merged.
-- Data: `cursor_hand.png` colours `paletteSource: caller`; `effectiveAgainst` in items.json holds class
-  numbers; classes inline shared terrain tables (decide with the data loader); `.fe8s` v0 prints args as raw
-  numbers (symbolic constants and a parser are M5). `RamSymbols[name]` throws on ambiguous static names.
-- Owner PC = WSL2 Ubuntu (2026-11-04): checkouts in `~/FE8/{Fire-Emblem-8-android,Fire-Emblem-8-rom,fireemblem8u}`;
-  Android SDK in `~/android-sdk` (`:app` builds locally); Playwright in `~/node_modules`; cmake/ninja for the harness.
+- `FrameCompareTest.applyHBlank` knows only `HBlank_BgVerticalScroll`; dumped RAM is one game step ahead of the
+  dumped frame.
+- CI `startup_failure` → check the owner's GitHub billing first. Artifacts are kept 3-7 days (0.5 GB cap).
+- `gh release view/download` (GraphQL) is refused; use `gh api repos/.../releases/...` (REST). Delete a `wip/`
+  branch once merged.
+- Data: `cursor_hand.png` colours `paletteSource: caller`; `effectiveAgainst` holds class numbers; classes inline
+  shared terrain tables; `RamSymbols[name]` throws on ambiguous static names.

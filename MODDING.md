@@ -66,11 +66,12 @@ Now: `core.onTickStart`, `core.onTickEnd` (`TickListener(tick: Long)`). Planned 
 `RngService` is the only randomness source; vanilla `Fe8Rng` matches the original (verified vs mGBA). Mods may
 replace `RngService.source` with any `RandomSource`.
 
-## Planned (M5)
-Flag/variable registry named after decomp constants (`EVFLAG_...`; unnamed: `EVFLAG_<n>`); mods register
-additional flags/variables by name. Saves (`gbafe.save`, done): versioned container with a `core` SRAM section and opaque
-`mod:<id>` sections that survive rewrites; register `MigrationRegistry` steps per `(sectionId, fromVersion)`;
-original `.sav` import planned.
+## Flags, variables, saves (M5)
+`FlagRegistry`/`VarRegistry`: vanilla entries named after decomp constants (`EVFLAG_...`; unnamed `EVFLAG_<n>`);
+mods register their own by name and get handles ≥ `MOD_BASE`, never touching vanilla bytes. Wiring into scripts
+and saves is M5-56 (not usable from mods yet). Saves (`gbafe.save`): versioned container with a `core` SRAM section
+and opaque `mod:<id>` sections that survive rewrites; register `MigrationRegistry` steps per `(sectionId,
+fromVersion)`. Original `.sav` import: `Fe8SavImporter`.
 
 ## Data tables
 Format `gbafe.<table>` v1. Ids = decomp constants minus prefix (`ITEM_SWORD_IRON` → `SWORD_IRON`; unnamed

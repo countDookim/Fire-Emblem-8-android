@@ -5,4 +5,5 @@ Pure Kotlin; depends on `:gba:core`; nothing allocates in per-tick paths.
 - `rng`: `Fe8Rng`, `LcgRng` (`src/rng.c`, verified), `RngService`, `RandomSource`.
 - `gbafe.proc`: proc scheduler (`src/proc.c`).
 - `mechanics`: `Mechanics`/`BattleRolls`, vanilla only (0009).
-- `flags`: `FeatureFlag(s)`, vanilla override, mods only.
+- `flags`: `EventFlags` (chapter/permanent bits, layout = data), `FlagRegistry`/`VarRegistry`/`ModHandles`
+  (decomp names + mod-registered handles), `FeatureFlags` (mods only).

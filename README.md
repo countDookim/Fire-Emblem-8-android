@@ -33,8 +33,7 @@ PSG), GPU renderer (OpenGL ES 3.0), on-screen GBA buttons and gamepad. The launc
 **Play** button. No gameplay yet.
 [HANDOFF.md](HANDOFF.md) · [docs/TASKS.md](docs/TASKS.md)
 
-- Install: `fe8-debug.apk` from the [`latest` release](../../releases/tag/latest); test per
-  [docs/MANUAL_TEST.md](docs/MANUAL_TEST.md), report with label `user-report`.
+- Install and test: [docs/MANUAL_TEST.md](docs/MANUAL_TEST.md).
 - Docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [decisions](docs/decisions/) · [MODDING.md](MODDING.md) ·
   [docs/port_map.json](docs/port_map.json) (function → Kotlin → status → test) · API: `dokka-site` CI artifact.
 

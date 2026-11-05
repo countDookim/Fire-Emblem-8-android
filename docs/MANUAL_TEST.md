@@ -16,4 +16,5 @@ layout); pause/resume; ROM import (~4 s) and Play from the imported data.
   touch buttons and gamepad work, and ROM import (if you use it) still completes and Play boots from it.
 
 ## Known not working (don't report)
-Everything after the title: no gameplay or saves; title key presses do nothing yet.
+Everything after the title: no gameplay or saves. START on the title leads to a screen that stays put (the save menu
+is not ported yet; the battle-map code exists but is not reachable from the app until task M5-58).

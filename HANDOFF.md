@@ -7,16 +7,18 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M5-56, M5-58: owner PC, until ~21:00Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
-## Next task: M5-56/57 (mod flags + mod script), M5-58/59 (wire New Game → Prologue map)
+## Next task: M5-58/59 (wire New Game → Prologue map), M5-56/57 (mod flags + mod script)
 M5-53..55 done (owner PC): `EventVmDifferentialTest` runs the real `EventEngine` over the whole prologue trace (12618
 pairs, 0 mismatches; RNG, tutorial fields, call/active queues and flags compared). Unported commands are test-only
 stubs (STUBS table). 172 Event19 pairs are skipped: the game engine idles while a Popup/GotItem child proc lives (no
 blocked-by-child model yet). Withheld tags and why: docs/TASKS.md Done/M5. EventEngine_CanStartSkip/StartSkip are
 partial (an unpushed alternative port is on owner-PC branch `backup/event-engine-dup`). `EventScrCore` takes the
 game's RngService/PlaySt/KeyStatus (no defaults). Wiring still open (M5-58): `BMapMain.hooks.playerPhase`,
-`hooks.callEvent` → EventEngine.
+`hooks.callEvent` → EventEngine. M5-56 was stopped by the owner mid-task: partial, untested work (FlagStore
+routing, ModFlagSymbols, ModSaveSections) is on `wip/M5-56`; review it before continuing. M5-58 was stopped before
+any change.
 
 ## State
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.

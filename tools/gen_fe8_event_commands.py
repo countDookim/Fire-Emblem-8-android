@@ -15,7 +15,7 @@ literal zero (including the implicit zero arg0 of `_EvtAutoCmdLen*`) become unna
 
 A macro parameter that is the whole sub-command nibble (`_EvtArg0(cmd, 2, (speed), ..)`) makes the row a
 wildcard (`bySubParam`, keyed by `(cmd shl 8) or (len shl 4)`); a 1-bit parameter inside the sub expression
-(`EvtMoveUnit`'s `modify`) enumerates one row per value.
+(`EvtMoveUnit`'s `modify`; `faction` has 3 values) enumerates one row per value.
 
 Each named field also gets a value kind (the `Fe8ScriptConstants` kind its values are drawn from) decided by the
 macro parameter's name (PARAM_KINDS, with OVERRIDES per macro): `pid` is a character, `jid` a class, `flag` an
@@ -24,6 +24,7 @@ event flag, `bgm`/`songid` a song, `slot`/`s1`/`s2` an event slot... The convert
 Commands 0x1F/0x20/0x23/0x24/0x28/0x35 have no macro in the decomp; their forms are taken from the handlers in
 src/eventscr.c (EXTRA below) and appended after the decomp macros.
 """
+import math
 import re
 import sys
 from pathlib import Path
@@ -261,14 +262,21 @@ def main(decomp):
             wild.setdefault((val(cmd), length), []).append(
                 (name, [x for x in args if x != bare], bare, lay.finish(length)))
             continue
-        for bits in range(1 << len(inner)):
+        # `faction` takes 0..2 (EVSUBCMD_CUSA + faction: blue, green, red); other parameters are 1-bit.
+        sizes = [3 if x == "faction" else 2 for x in inner]
+        for combo in range(math.prod(sizes)):
+            vals, rest = [], combo
+            for sz in sizes:
+                vals.append(rest % sz)
+                rest //= sz
             env = dict(consts, true=1, false=0)
-            env.update({x: (bits >> i) & 1 for i, x in enumerate(inner)})
+            env.update({x: vals[i] for i, x in enumerate(inner)})
             try:
                 key = (val(cmd), length, eval(sub, {}, env) & 0xF)
             except (ValueError, NameError, SyntaxError):
                 break
-            suffix = "".join("_" + x for i, x in enumerate(inner) if (bits >> i) & 1)
+            suffix = "".join(
+                "_" + x + ("" if vals[i] == 1 else str(vals[i])) for i, x in enumerate(inner) if vals[i])
             rows.setdefault(key, []).append((name, [x for x in args if x not in inner], suffix, lay.finish(length)))
 
     def kstr(s):

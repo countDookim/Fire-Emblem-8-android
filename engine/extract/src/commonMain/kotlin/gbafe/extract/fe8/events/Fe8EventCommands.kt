@@ -260,16 +260,17 @@ public object Fe8EventCommands {
         m[0x3421] = Command("set_unit_unhidden", "EvtSetUnitUnhidden", listOf("pid"), listOf(), listOf(u16("pid", 1, valueKind = K_CHARACTER)))
         m[0x3422] = Command("change_faction", "EvtChangeFaction", listOf("pid"), listOf(), listOf(u16("pid", 1, valueKind = K_CHARACTER)))
         m[0x3423] = Command("change_faction_faction", "EvtChangeFaction", listOf("pid"), listOf(), listOf(u16("pid", 1, valueKind = K_CHARACTER)))
+        m[0x3424] = Command("change_faction_faction2", "EvtChangeFaction", listOf("pid"), listOf(), listOf(u16("pid", 1, valueKind = K_CHARACTER)))
         m[0x3425] = Command("set_unit_hp_form_slot1", "EvtSetUnitHpFormSlot1", listOf("pid"), listOf(), listOf(u16("pid", 1, valueKind = K_CHARACTER)))
         m[0x3426] = Command("set_unit_unselectable", "EvtSetUnitUnselectable", listOf("pid"), listOf(), listOf(u16("pid", 1, valueKind = K_CHARACTER)))
         m[0x3427] = Command("set_unit_has_moved", "EvtSetUnitHasMoved", listOf("pid"), listOf(), listOf(u16("pid", 1, valueKind = K_CHARACTER)))
         m[0x3428] = Command("set_unit_state_form_slot1", "EvtSetUnitStateFormSlot1", listOf("pid"), listOf(), listOf(u16("pid", 1, valueKind = K_CHARACTER)))
         m[0x342A] = Command("hide_all_alliess", "EvtHideAllAlliess", listOf(), listOf(), listOf(u16(null, 1)))
         m[0x342B] = Command("remove_all_npcs", "EvtRemoveAllNpcs", listOf(), listOf(), listOf(u16(null, 1)))
-        m[0x342C] = Command("remove_all_eimies", "EvtRemoveAllEimies", listOf(), listOf(), listOf(u16(null, 1)))
     }
 
     private fun exact3(m: MutableMap<Int, Command>) {
+        m[0x342C] = Command("remove_all_eimies", "EvtRemoveAllEimies", listOf(), listOf(), listOf(u16(null, 1)))
         m[0x342D] = Command("kill_unit", "EvtKillUnit", listOf("pid"), listOf(), listOf(u16("pid", 1, valueKind = K_CHARACTER)))
         m[0x342E] = Command("wait_unit_death_fade", "EvtWaitUnitDeathFade", listOf("pid"), listOf(), listOf(u16("pid", 1, valueKind = K_CHARACTER)))
         m[0x342F] = Command("remove_unit", "EvtRemoveUnit", listOf("pid"), listOf(), listOf(u16("pid", 1, valueKind = K_CHARACTER)))
@@ -317,10 +318,10 @@ public object Fe8EventCommands {
         m[0x9040] = Command("wm_draw_path", "WmEvtDrawPath", listOf("path"), listOf(), listOf(u16(null, 1), u32("path", 2, valueKind = K_WM_PATH)))
         m[0x9140] = Command("wm_add_path", "WmEvtAddPath", listOf("path"), listOf(), listOf(u16(null, 1), u32("path", 2, valueKind = K_WM_PATH)))
         m[0x9240] = Command("wm_remove_path", "WmEvtRemovePath", listOf("path"), listOf(), listOf(u16(null, 1), u32("path", 2, valueKind = K_WM_PATH)))
-        m[0x9340] = Command("wm_enable_node", "WmEvtEnableNode", listOf("node"), listOf(), listOf(u16(null, 1), u32("node", 2, valueKind = K_WM_NODE)))
     }
 
     private fun exact4(m: MutableMap<Int, Command>) {
+        m[0x9340] = Command("wm_enable_node", "WmEvtEnableNode", listOf("node"), listOf(), listOf(u16(null, 1), u32("node", 2, valueKind = K_WM_NODE)))
         m[0x9440] = Command("wm_remove_node", "WmEvtRemoveNode", listOf("node"), listOf(), listOf(u16(null, 1), u32("node", 2, valueKind = K_WM_NODE)))
         m[0x9540] = Command("wm_display_node", "WmEvtDisplayNode", listOf("node"), listOf(), listOf(u16(null, 1), u32("node", 2, valueKind = K_WM_NODE)))
         m[0x9640] = Command("wm_display_path", "WmEvtDisplayPath", listOf("path"), listOf(), listOf(u16(null, 1), u32("path", 2, valueKind = K_WM_PATH)))

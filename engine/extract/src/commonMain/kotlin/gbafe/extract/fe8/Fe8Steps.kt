@@ -108,16 +108,21 @@ public fun runFe8Steps(rom: ByteArray, symbols: ExtractSources, out: ExtractOutp
     for ((path, png) in sprites.files) out.write("mapsprites/$path", png)
     out.writeText("mapsprites/mapsprites.json", sprites.json)
     written += "mapsprites/mapsprites.json (+${sprites.files.size} PNG)"
-    // Event scripts v1: the prologue's EventScr_Prologue_* lists.
+    // Event scripts: every non-WM EventScr_*, grouped like the decomp's src/events/*.h headers.
     val romNames = symbols.romNamesByAddress()
-    val scripts = symbols.namesWithPrefix("EventScr_Prologue").sortedBy { symbols[it].address.toUInt() }
-        .map {
+    val scriptNames = symbols.namesWithPrefix("EventScr_").filter { !it.startsWith("EventScrWM") }
+    val groups = gbafe.extract.fe8.events.Fe8ScriptFiles.group(scriptNames.associateWith { symbols[it].address })
+    var rawLines = 0
+    for ((stem, names) in groups) {
+        val scripts = names.map {
             it to gbafe.extract.fe8.events.EventScriptConverter.convert(
                 rom, symbols[it].address - ROM_BASE, symbols.sizeOrSpan(it), romNames,
             )
         }
-    out.writeText("scripts/prologue.fe8s", gbafe.extract.fe8.events.EventScriptConverter.render(scripts))
-    written += "scripts/prologue.fe8s (${scripts.size} scripts)"
+        rawLines += scripts.sumOf { (_, r) -> r.lines.count { l -> l.trimStart().startsWith("raw") } }
+        out.writeText("scripts/$stem.fe8s", gbafe.extract.fe8.events.EventScriptConverter.render(scripts))
+    }
+    written += "scripts/*.fe8s (${scriptNames.size} scripts in ${groups.size} files, $rawLines raw lines)"
     // m4a (M2-18/19): every gSongTable entry -> songs/songNNN.mid (once per distinct header) + songs/songs.json,
     // and the voicegroups the songs use -> voicegroups/<name>.json.
     val songTable = symbols["gSongTable"].address - ROM_BASE

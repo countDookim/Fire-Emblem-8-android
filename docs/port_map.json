@@ -7,7 +7,7 @@
   "summary": {
     "total": 8352,
     "verified": 306,
-    "implemented_unverified": 83
+    "implemented_unverified": 85
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -477,6 +477,20 @@
       "tests": []
     },
     "Event01_End": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event02_EvBitAndIdMod": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event03_CheckEvBitOrId": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",

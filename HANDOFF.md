@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
+- M5-54, M5-55: owner PC, until ~20:30Z
 
 ## Next task: M5-54, then M5-55
 M5-53 done (owner PC): `EventVmDifferentialTest` runs the real `EventEngine.onUpdate`/`create` per pair over the whole

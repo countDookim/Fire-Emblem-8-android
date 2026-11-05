@@ -11,8 +11,8 @@ import org.junit.jupiter.api.Test
 /**
  * ROM-golden round trip of the whole event-script extraction (not a port): every
  * `.fe8s` script file extracted from the ROM, parsed and assembled together with every event at its
- * vanilla address (from `decomp/fireemblem8.nm.txt`), must reproduce the ROM bytes of all 765
- * non-world-map `EventScr_*` symbols at their symbol sizes.
+ * vanilla address (from `decomp/fireemblem8.nm.txt`), must reproduce the ROM bytes of all 897
+ * `EventScr_*` (including the 132 `EventScrWM*`) symbols at their symbol sizes.
  */
 class ScriptRoundTripRomTest {
     private val assets =
@@ -37,21 +37,22 @@ class ScriptRoundTripRomTest {
         for (row in nm.lineSequence()) {
             val p = row.trim().split(' ')
             if (p.size != 4 || p[2] != "T") continue
-            if (!p[3].startsWith("EventScr_") || p[3].startsWith("EventScrWM")) continue
+            if (!p[3].startsWith("EventScr_") && !p[3].startsWith("EventScrWM")) continue
             out[p[3]] = Sized(p[0].toLong(16).toInt(), p[1].toLong(16).toInt())
         }
         return out
     }
 
     @Test
-    fun `all 765 extracted scripts assemble to the ROM bytes`() {
+    fun `all 897 (765 + 132 world map) extracted scripts assemble to the ROM bytes`() {
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
         assumeTrue(nmFile != null, "decomp/fireemblem8.nm.txt not present")
         assumeTrue(scriptDir != null, "scripts/*.fe8s not extracted")
         val nmText = nmFile!!.readText()
         val rom = romFile.readBytes()
         val syms = symbols(nmText)
-        assertEquals(765, syms.size)
+        assertEquals(897, syms.size)
+        assertEquals(132, syms.keys.count { it.startsWith("EventScrWM") })
 
         val tools = Fe8ScriptTools(NmSymbolIndex(nmText))
         val files = scriptDir!!.listFiles { f -> f.extension == "fe8s" }!!.sortedBy { it.name }
@@ -74,7 +75,7 @@ class ScriptRoundTripRomTest {
         assertEquals(emptyList<String>(), rawIn, "raw lines outside the allow-list")
 
         val image = tools.assembler.assemble(lines) { syms[it]?.address ?: -1 }
-        assertEquals(765, image.entryCount)
+        assertEquals(897, image.entryCount)
 
         val bad = ArrayList<String>()
         var exact = 0
@@ -98,8 +99,27 @@ class ScriptRoundTripRomTest {
             bad += "$name: size ${got.size} vs ${want.size}, first differing word $w " +
                 "(got ${hex(got, w)}, want ${hex(want, w)})"
         }
-        assertEquals(emptyList<String>(), bad.take(20), "$exact of 765 scripts byte-exact")
-        assertEquals(765 - allowList.size, exact)
+        assertEquals(emptyList<String>(), bad.take(20), "$exact of 897 scripts byte-exact")
+        assertEquals(897 - allowList.size, exact)
+
+        // index.json: one row per script, sorted by address, matching the nm; files exist.
+        val index = gba.data.JsonReader.parse(File(scriptDir, "index.json").readText()) as Map<*, *>
+        val rows = index["scripts"] as List<*>
+        assertEquals(897, rows.size)
+        var last = -1L
+        val seen = HashSet<String>()
+        for (r in rows) {
+            val row = r as Map<*, *>
+            val name = row["name"] as String
+            seen += name
+            val sym = syms.getValue(name)
+            assertEquals("0x%08X".format(sym.address), row["address"], name)
+            assertEquals(sym.size, (row["size"] as Number).toInt(), name)
+            assertTrue(File(scriptDir, row["file"] as String).isFile, "$name: file missing")
+            assertTrue(sym.address.toLong() and 0xFFFFFFFFL > last, "$name: not sorted by address")
+            last = sym.address.toLong() and 0xFFFFFFFFL
+        }
+        assertEquals(syms.keys, seen)
 
         // Prologue references to other scripts resolve to assembled entries.
         val prologue = File(scriptDir, "prologue.fe8s").readText()

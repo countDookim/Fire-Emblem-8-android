@@ -112,17 +112,33 @@ public fun runFe8Steps(rom: ByteArray, symbols: ExtractSources, out: ExtractOutp
     val romNames = symbols.romNamesByAddress()
     val scriptNames = symbols.namesWithPrefix("EventScr_").filter { !it.startsWith("EventScrWM") }
     val groups = gbafe.extract.fe8.events.Fe8ScriptFiles.group(scriptNames.associateWith { symbols[it].address })
+    val wmNames = symbols.namesWithPrefix("EventScrWM").sortedBy { symbols[it].address.toUInt() }
     var rawLines = 0
-    for ((stem, names) in groups) {
+    val index = ArrayList<Pair<Int, Map<String, Any>>>()
+    fun convertFile(stem: String, names: List<String>) {
         val scripts = names.map {
             it to gbafe.extract.fe8.events.EventScriptConverter.convert(
                 rom, symbols[it].address - ROM_BASE, symbols.sizeOrSpan(it), romNames,
             )
         }
-        rawLines += scripts.sumOf { (_, r) -> r.lines.count { l -> l.trimStart().startsWith("raw") } }
+        for ((name, r) in scripts) {
+            rawLines += r.lines.count { l -> l.trimStart().startsWith("raw") }
+            index += symbols[name].address to linkedMapOf(
+                "name" to name, "file" to "$stem.fe8s",
+                "address" to "0x" + hexUpper(symbols[name].address, 8), "size" to r.byteLength,
+            )
+        }
         out.writeText("scripts/$stem.fe8s", gbafe.extract.fe8.events.EventScriptConverter.render(scripts))
     }
-    written += "scripts/*.fe8s (${scriptNames.size} scripts in ${groups.size} files, $rawLines raw lines)"
+    for ((stem, names) in groups) convertFile(stem, names)
+    convertFile("worldmap", wmNames)
+    val indexRows = index.sortedBy { it.first.toUInt() }.map { it.second }
+    out.writeText(
+        "scripts/index.json",
+        gba.extract.Json.write(linkedMapOf("format" to "gbafe.scripts", "game" to "fe8", "version" to 1, "scripts" to indexRows)),
+    )
+    written += "scripts/*.fe8s (${scriptNames.size + wmNames.size} scripts in ${groups.size + 1} files, " +
+        "$rawLines raw lines) + scripts/index.json"
     // m4a (M2-18/19): every gSongTable entry -> songs/songNNN.mid (once per distinct header) + songs/songs.json,
     // and the voicegroups the songs use -> voicegroups/<name>.json.
     val songTable = symbols["gSongTable"].address - ROM_BASE

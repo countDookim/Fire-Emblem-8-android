@@ -37,8 +37,9 @@ class EntityBmMapsDifferentialTest {
         u8(addr) or (u8(addr + 1) shl 8) or (u8(addr + 2) shl 16) or (u8(addr + 3) shl 24)
 
     @Test
-    // Not @VerifiesPort (rule 5): RefreshEntityBmMaps is partial (trap passes are hooks) and every
-    // dump has chapterVisionRange 0, so RefreshUnitsOnBmMap's fog/hidden branches never run.
+    // Not @VerifiesPort (CLAUDE.md rule 4): RefreshEntityBmMaps is partial (trap passes are hooks)
+    // and every dump has chapterVisionRange 0, so RefreshUnitsOnBmMap's fog/hidden branches never
+    // run (to verify on ram_trace_ch6_fog: M5-39b).
     fun `unit, fog and hidden maps match the game`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")

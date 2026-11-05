@@ -1,7 +1,7 @@
 # Task backlog
 
 Tasks ≤ 20 min. Status `todo` / `started` (details in HANDOFF) / `done` / `blocked`. Claim before starting (CLAUDE.md
-rule 12), then take the first `todo` whose deps are `done`. If fewer than 5 `todo` remain, plan the next milestone.
+rule 10), then take the first `todo` whose deps are `done`. If fewer than 5 `todo` remain, plan the next milestone.
 
 **M5** (core loop, saves, flag registry, script interpreter; planned 2026-11-04). Goal: New Game → Prologue map → first
 player phase with D-pad scrolling, on verified ports. Facts, frames, addresses and the reference-run table:

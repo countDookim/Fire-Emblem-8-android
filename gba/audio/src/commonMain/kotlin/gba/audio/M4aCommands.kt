@@ -13,7 +13,8 @@ public fun interface M4aBus {
  * `ld_r3_tp_adr_i` and `ldrb_r3_r2` go through `chk_adr_r2`, which reads 0 below 0x02000000 (the
  * BIOS guard: the jump table template it allows is in ROM, so nothing below EWRAM passes);
  * `ld_r3_tp_adr_i_unchecked` (`LFOS`, `MOD`) and the other `GOTO`/`REPT` bytes read directly.
- * Functions without a `Ported from` line are not verified by a test yet (no claim, rule 5).
+ * Functions without a `Ported from` line are not verified by a test yet (no claim, CLAUDE.md
+ * rule 4).
  */
 public object M4aCommands {
     /** `ld_r3_tp_adr_i`: next argument byte through `chk_adr_r2`. */

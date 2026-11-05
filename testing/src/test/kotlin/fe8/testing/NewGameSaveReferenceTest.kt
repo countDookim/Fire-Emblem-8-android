@@ -30,7 +30,7 @@ class NewGameSaveReferenceTest {
 
     @Test
     // WriteBonusContentClaimFlags, SetBonusContentClaimFlags and WritePermanentFlags run here but
-    // only copy zeros, which proves their target, not their data: left untagged (rule 5).
+    // only copy zeros, which proves their target, not their data: left untagged (CLAUDE.md rule 4).
     @VerifiesPort("WriteNewGameSave", "ClearPidChStatsSaveData", "InitPlayConfig")
     fun `new game save in slot 0 reproduces the sram and gPlaySt of the reference`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")

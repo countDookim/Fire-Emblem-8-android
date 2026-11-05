@@ -3,7 +3,7 @@
 Facts below were read from the ROM repo (`harness/`, `README.md`, `.github/workflows/`),
 `gba/testkit`, `build.gradle.kts`, `tools/{setup,ci_fetch_assets}.sh` and `reference/README.md`.
 Items marked (unverified) were not confirmed in those files. Never commit the ROM or anything
-produced from it (CLAUDE.md rule 4).
+produced from it (CLAUDE.md rule 3).
 
 ## What the harness produces
 - `bin/mgba-harness [--frames-every N] [--audio [--psg-mask N]] [--psg-writes] <rom> <script>
@@ -71,5 +71,5 @@ Game-specific:
    the FE8 repo; assets land in `$FE8_ASSETS`, extracted to `reference/out`); CI needs
    `ROM_REPO_TOKEN` or `ROM_REPO_DEPLOY_KEY`, else differential tests skip.
 8. Write tests: `ReferenceData` + `RamSymbols` + `GbaMem`, `assumeTrue(ref.available)`,
-   `@VerifiesPort` with a `Ported from <file>: <Func>` KDoc in main code (rule 5).
+   `@VerifiesPort` with a `Ported from <file>: <Func>` KDoc in main code (CLAUDE.md rule 4).
 

@@ -14,7 +14,7 @@ case "${1:-}" in
     echo "elapsed: ${m} min (work until 23, wrap up by 30)"
     if [ "${1:-}" = check ] && [ "$m" -lt 23 ]; then
       echo "TOO EARLY to wrap up: $((23 - m)) min of work left. Start the next HANDOFF task (on wip/<task-id> if it may not finish)."
-      echo "Token saving (CLAUDE.md rule 9) never shortens a run; 'no verifiable task fits' is not a reason to stop."
+      echo "Token saving (CLAUDE.md rule 7) never shortens a run; 'no verifiable task fits' is not a reason to stop."
       exit 1
     fi;;
 esac

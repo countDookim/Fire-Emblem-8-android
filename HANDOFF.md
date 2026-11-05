@@ -1,13 +1,13 @@
 # HANDOFF
 
-_Updated 2026-11-05 (owner PC: M5-25, 39b, 41c, 42, 43, 46). Owner decisions: docs/PROJECT_BRIEF.md. Backlog: docs/TASKS.md. M5 facts and
+_Updated 2026-11-05 (owner PC: M5-25, 39b, 41c, 42-47). Owner decisions: docs/PROJECT_BRIEF.md. Backlog: docs/TASKS.md. M5 facts and
 reference runs: docs/plans/M5-notes.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
 ## In progress
-- M5-44, M5-47: owner PC, until ~20:00Z
+- M5-47 follow-up (ch6_cursor_edges case): owner PC, until ~20:00Z
 
 ## Next task: M5-53, then M5-54
 M5-53 state (on master): `EventVmDifferentialTest` replays ported handlers with onUpdate's loop from the prologue
@@ -16,8 +16,7 @@ skips frames where the engine idles (fade/callback early return not modelled). 0
 01 ×16, others ≤ 4); 00/0F never reached. Next: port or stub 1D/30/3B/AC/BA/1B (most frames stop on them), then
 `@VerifiesPort` for the executed handlers + engine functions, each break-checked. After END the proc lingers ~2 frames.
 EventEngine_CanStartSkip/StartSkip are partial (an unpushed alternative port is on owner-PC branch
-`backup/event-engine-dup`). Next free core-loop task: M5-44 (BMapMain; replace `BattleMapStart.Hooks.bmapMainScript`'s
-placeholder, state class `BMapMainState`). 
+`backup/event-engine-dup`). Core loop (M5-42..47) is done; M5-58 wiring waits for the event VM (M5-53..55). 
 
 ## State
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
@@ -25,7 +24,7 @@ placeholder, state class `BMapMainState`).
   `CgbSound` verified; `PsgSynth` (GBATEK/mGBA behaviour, not a port) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad, GPU backend, audio, ROM import (~4 s) + boot
   from it. Pending: smoke test of the first APK built on the KMP android variants (MANUAL_TEST "Newly testable").
-- Verified ports: 329 / 8352 (`tools/progress.py`, 2026-11-05). Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
+- Verified ports: 337 / 8352 (`tools/progress.py`, 2026-11-05). Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
 - Layout: `:gba:*` game-neutral (ADR 0012), `gbafe.*` in `:engine:*`, `fe8.*` in `:game`/`:app`; KMP jvm+android
   (ADR 0013) except `:gba:testkit`, `:testing`, `:tools:extract`.
 

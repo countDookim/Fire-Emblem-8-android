@@ -37,14 +37,6 @@ class BmMapScrollDifferentialTest {
         "baserom.gba",
     )
 
-    private class Counts {
-        var scrolled = 0
-        var still = 0
-        var cols = 0
-        var rows = 0
-        var bytes = -1L
-    }
-
     private fun u8(b: ByteArray, addr: Int) = b[addr - GbaMem.EWRAM].toInt() and 0xFF
     private fun u32(b: ByteArray, addr: Int) =
         u8(b, addr) or (u8(b, addr + 1) shl 8) or (u8(b, addr + 2) shl 16) or
@@ -197,6 +189,15 @@ class BmMapScrollDifferentialTest {
             "scrolled=${c.scrolled} cols=${c.cols} lines=${c.rows}",
         )
         assertEquals(0L, c.bytes, "bytes allocated per call")
+    }
+
+    /** Transition counts of one run (declared below the tests: tools/progress.py). */
+    private class Counts {
+        var scrolled = 0
+        var still = 0
+        var cols = 0
+        var rows = 0
+        var bytes = -1L
     }
 
     private companion object {

@@ -4,8 +4,9 @@ _Updated 2026-11-05 (owner-PC session, night). Owner decisions: docs/PROJECT_BRI
 
 ## NEEDS USER
 - GitHub Actions: every code-repo run since 2026-11-05 00:03Z (f50da92) is `startup_failure` ("workflow file
-  issue", also on a manual dispatch) although ci.yml is unchanged and valid; billing (owner): compute $2.67/$12,
-  storage 0.4/0.5 GB, resets ~2026-12-01: likely the storage quota (not confirmed). Until fixed, run `jvmTest`, Dokka and `:app:assembleDebug`
+  issue", also on a manual dispatch) although ci.yml is unchanged and valid. Cause (confirmed): the owner's GitHub
+  billing is locked (payment information); owner to update it. After that, re-run `ci.yml` and the ROM repo's
+  `publish.yml` (workflow_dispatch) so `extracted/` (prologue.fe8s v1) gets released. Until fixed, run `jvmTest`, Dokka and `:app:assembleDebug`
   locally before pushing. Progress bar: after a full local `jvmTest`, `python3 tools/progress.py --write` and
   commit README.md + docs/port_map.json as `ci: update progress [skip ci]` (no failing run, no email). 2026-11-05: 766 old artifacts (4.2 GB,
   90-day default retention) deleted with the owner's OK; ci.yml now keeps artifacts 3-7 days, Dokka on master only.

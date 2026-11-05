@@ -65,6 +65,11 @@ public class UnitTable(
     /** `state` (u32, 0x0C) of unit [id]. */
     public fun state(id: Int): Int = u32(bytes, unitOffset(id) + 0x0C)
 
+    /** Sets `Unit.state` of unit [id] (the unit must exist). */
+    public fun setState(id: Int, value: Int) {
+        StructCodec.put32(bytes, unitOffset(id) + 0x0C, value)
+    }
+
     /** `xPos` (s8, 0x10) of unit [id]. */
     public fun xPos(id: Int): Int = s8(bytes, unitOffset(id) + 0x10)
 

@@ -1,5 +1,12 @@
 package fe8.game
 
+import fe8.game.bm.BattleMapStart
+import fe8.game.bm.BmMap
+import fe8.game.bm.BmMapRender
+import fe8.game.bm.ChapterData
+import fe8.game.bm.ChapterMapGfx
+import fe8.game.bm.UnitTable
+import fe8.game.flags.Fe8EventFlags
 import fe8.game.opanim.EarlyStartUi
 import fe8.game.opanim.OpAnim
 import fe8.game.title.TitleScreen
@@ -14,9 +21,12 @@ import gba.render.HBlankLines
 import gba.render.RenderState
 import gba.render.SoftwareRenderer
 import gba.render.TileSheets
+import gbafe.core.flags.EventFlags
+import gbafe.core.rng.RngService
 import gbafe.core.time.GameClock
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
+import gbafe.proc.ProcFunc
 import gbafe.render.HardwareSceneLoader
 
 /**
@@ -32,6 +42,8 @@ public class Fe8Boot(
     rom: RomView,
     /** Raw pressed GBA keys (`REG_KEYINPUT`, active high) for the next step. */
     keyInput: () -> Int,
+    /** The game's RNG ([Fe8Game.rng]); the battle map start path draws from it. */
+    public val rng: RngService,
     /** Colour-effect arithmetic of [render]; hardware by default. */
     colorMath: ColorMath = ColorMath.Hardware,
     /** The picture [render] draws into. */
@@ -73,6 +85,27 @@ public class Fe8Boot(
     /** The game control proc's owner. */
     public val control: GameControl =
         GameControl(engine, keys, { ui.script }, { opAnimRef.script }, { titleRef }, m4a)
+
+    /** The units the battle map start path touches (raw-unit stand-in). */
+    public val units: UnitTable by lazy { UnitTable(rom) }
+
+    /** `gChapterFlagBits` and friends. */
+    public val flags: EventFlags = Fe8EventFlags.create()
+
+    /**
+     * The battle map start path (`StartBattleMap`, `StartBMapMain`), built when the game control
+     * proc first reaches it (it reads chapter data from the ROM, which the boot windows may lack).
+     */
+    public val battleMap: BattleMapStart by lazy {
+        val chapters = ChapterData(rom)
+        val bm = loop.bmSt
+        val map = BmMap(rom, chapters, bm)
+        BattleMapStart(
+            engine, control.playSt, bm, hw, chapters, map,
+            ChapterMapGfx(rom, chapters, hw, control.playSt), BmMapRender(bm, map, hw),
+            flags, rng, clock, units,
+        )
+    }
 
     private val driver: M4aDriver? = m4a?.driver(pcm)
 
@@ -119,6 +152,7 @@ public class Fe8Boot(
 
     init {
         opAnim.afterStep = loop::afterStep
+        control.hooks.startBattleMap = ProcFunc { battleMap.startBattleMap(it) }
         control.sound.setDefaultMaxNumChannels() // AgbMain, after m4aSoundInit
         control.startGame()
     }

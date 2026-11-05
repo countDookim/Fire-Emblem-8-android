@@ -9,6 +9,7 @@ import gba.testkit.GbaMem
 import gba.testkit.MgbaColorMath
 import gba.testkit.RamSymbols
 import gba.testkit.ReferenceData
+import gbafe.core.rng.RngService
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -39,7 +40,7 @@ class Fe8BootSoundTest {
         val rom = RomView.ofRom(romFile.readBytes())
         var f = 0
         val keys = { if (f == A_FRAME) A_BUTTON else if (f == B_FRAME) B_BUTTON else 0 }
-        val boot = Fe8Boot(rom, keyInput = keys, colorMath = MgbaColorMath, m4a = Fe8Sound.create(rom))
+        val boot = Fe8Boot(rom, keyInput = keys, rng = RngService().apply { seedLikeBoot() }, colorMath = MgbaColorMath, m4a = Fe8Sound.create(rom))
         val clockAt = sym["gGameClock"].address
         val iwram20 = ref.run("ram_trace_boot").region("r00020", "iwram")
         val clock20 = GbaMem.u32(iwram20, GbaMem.IWRAM, clockAt).toLong() and 0xFFFFFFFFL

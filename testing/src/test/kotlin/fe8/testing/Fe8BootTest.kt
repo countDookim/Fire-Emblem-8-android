@@ -7,6 +7,7 @@ import gba.testkit.GbaMem
 import gba.testkit.MgbaColorMath
 import gba.testkit.RamSymbols
 import gba.testkit.ReferenceData
+import gbafe.core.rng.RngService
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -92,7 +93,7 @@ class Fe8BootTest {
 
     private fun startBoot(rom: RomView, bFrame: Int = -1): Fe8Boot {
         val keys = { if (f == A_FRAME) A_BUTTON else if (f == bFrame) B_BUTTON else 0 }
-        val boot = Fe8Boot(rom, keyInput = keys, colorMath = MgbaColorMath)
+        val boot = Fe8Boot(rom, keyInput = keys, rng = RngService().apply { seedLikeBoot() }, colorMath = MgbaColorMath)
         // The clock is 0 at f10 (before StartGame); frames numbered as in
         // EarlyStartUiBootDifferentialTest.
         val clockAt = sym["gGameClock"].address

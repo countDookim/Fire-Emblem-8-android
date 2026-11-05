@@ -52,6 +52,7 @@ class ChapterDataRomTest {
             assertEquals(bytes.u8(base + 0x74), data.mapEventDataId(ch))
             assertEquals(bytes.u8(base + 0x10), data.initialPosX(ch))
             assertEquals(bytes.u8(base + 0x11), data.initialPosY(ch))
+            assertEquals(bytes.u8(base + 0x0C), data.initialFogLevel(ch))
             assertEquals(bytes.u8(base + 0x12), data.initialWeather(ch))
             for (slot in 0 until 11) {
                 assertEquals(bytes.u16(base + 0x16 + 2 * slot), data.mapBgmId(ch, slot))

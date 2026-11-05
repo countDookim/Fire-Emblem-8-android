@@ -51,7 +51,7 @@ public class Fe8Game(
     /** The boot sequence (one GBA frame per [tick]), when [rom] was given. */
     public val boot: Fe8Boot? = rom?.let {
         Fe8Boot(
-            it, keyInput = { VanillaButtonMap.toGbaKeys(input.held) }, screen = frame,
+            it, keyInput = { VanillaButtonMap.toGbaKeys(input.held) }, rng = rng, screen = frame,
             m4a = sound, pcm = pcm,
         )
     }

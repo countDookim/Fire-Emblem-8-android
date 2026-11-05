@@ -85,6 +85,9 @@ public class ChapterData(
     /** `initialPosY` of chapter [chIndex]: initial camera tile Y. */
     public fun initialPosY(chIndex: Int): Int = u8(chIndex, OFF_INITIAL_POS_Y)
 
+    /** `initialFogLevel` of chapter [chIndex]: the starting vision range (0 = no fog). */
+    public fun initialFogLevel(chIndex: Int): Int = u8(chIndex, OFF_INITIAL_FOG_LEVEL)
+
     /** `initialWeather` of chapter [chIndex]. */
     public fun initialWeather(chIndex: Int): Int = u8(chIndex, OFF_INITIAL_WEATHER)
 
@@ -147,6 +150,9 @@ public class ChapterData(
 
         /** Offset of `initialPosY`. */
         public const val OFF_INITIAL_POS_Y: Int = 0x11
+
+        /** Offset of `initialFogLevel`. */
+        public const val OFF_INITIAL_FOG_LEVEL: Int = 0x0C
 
         /** Offset of `initialWeather`. */
         public const val OFF_INITIAL_WEATHER: Int = 0x12

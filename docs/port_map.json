@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 306,
-    "implemented_unverified": 86
+    "verified": 310,
+    "implemented_unverified": 87
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -17,6 +17,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
+      ]
+    },
+    "ApplySystemObjectsPalettes": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterMapGraphicsDifferentialTest#system object palettes match the dump"
       ]
     },
     "BG_EnableSyncByMask": {
@@ -311,6 +320,13 @@
         "fe8.testing.SaveChecksumsReferenceTest#checksum32 matches the game block info after new game",
         "fe8.testing.SaveChecksumsReferenceTest#checksum32 matches the suspend block info in first phase"
       ]
+    },
+    "Copy2dChr": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt",
+      "status": "implemented",
+      "tests": []
     },
     "CopyFirstPalDirectly": {
       "decomp_file": "src/opanimfx.c",
@@ -1037,6 +1053,7 @@
       "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/BgHardware.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.ChapterMapGraphicsDifferentialTest#bg layer priorities match the dump and clouds put bg3 on 2",
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
@@ -1174,6 +1191,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "LoadObjUIGfx": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterMapGraphicsDifferentialTest#OBJ UI graphics and palettes match the dump"
       ]
     },
     "LoadRNState": {
@@ -2377,6 +2403,15 @@
         "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
       ]
     },
+    "UnpackChapterMapPalette": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterMapGraphicsDifferentialTest#chapter palette alone matches the dump"
+      ]
+    },
     "UpdateHBlankHandlerState": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -2643,6 +2678,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#START on the idle title fades to dark and ends the title like the per-frame RAM trace"
+      ]
+    },
+    "sub_80156D4": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterMapGraphicsDifferentialTest#OBJ UI graphics and palettes match the dump"
       ]
     },
     "sub_80C5548": {

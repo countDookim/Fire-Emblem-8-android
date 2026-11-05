@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 348,
-    "implemented_unverified": 82
+    "verified": 350,
+    "implemented_unverified": 86
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -533,6 +533,13 @@
       "status": "implemented",
       "tests": []
     },
+    "EnqueueTutEvent": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "EnsureCameraOntoPosition": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -629,6 +636,13 @@
       "status": "implemented",
       "tests": []
     },
+    "Event04_CheckRandom": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "Event05_SetSlot": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -681,6 +695,13 @@
         "fe8.testing.EventVmDifferentialTest#Event0A Call"
       ]
     },
+    "Event0B_EnqueueCall": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "Event0C_Branch": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -700,6 +721,27 @@
       ]
     },
     "Event0F_CounterOps": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event10_ModifyEvBit": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event11_SetIgnoredKeys": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event19_Checks": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
@@ -2189,8 +2231,10 @@
       "decomp_file": "src/eventinfo.c",
       "system": "events",
       "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventVmDifferentialTest#flag bits changed by Event02 match the trace"
+      ]
     },
     "SetGameTime": {
       "decomp_file": "src/time.c",
@@ -2264,8 +2308,10 @@
       "decomp_file": "src/eventinfo.c",
       "system": "events",
       "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventVmDifferentialTest#flag bits changed by Event02 match the trace"
+      ]
     },
     "SetPrimaryHBlankHandler": {
       "decomp_file": "src/hardware.c",

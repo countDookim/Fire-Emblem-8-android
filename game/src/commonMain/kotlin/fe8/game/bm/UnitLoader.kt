@@ -46,8 +46,11 @@ public class UnitLoader(
      * allegiance. [terrainAt] is `gBmMapTerrain[y][x]`. Returns the new unit's id, or 0 where the
      * C returns NULL (no free slot, or an allegiance other than 0 blue, 1 green, 2 red).
      */
-    public fun loadUnit(defAddress: Int, terrainAt: (x: Int, y: Int) -> Int): Int {
-        val def = UnitDef(rom, defAddress)
+    public fun loadUnit(defAddress: Int, terrainAt: (x: Int, y: Int) -> Int): Int =
+        loadUnit(UnitDef(rom, defAddress), terrainAt)
+
+    /** [loadUnit] for a definition value (e.g. an entry of the event `gLoadUnitBuffer`). */
+    public fun loadUnit(def: UnitDef, terrainAt: (x: Int, y: Int) -> Int): Int {
         if (def.genMonster) {
             throw UnsupportedOperationException("LoadUnit: genMonster is not ported")
         }
@@ -310,8 +313,16 @@ public class UnitLoader(
         quiet: Boolean,
         d: Boolean,
         terrainAt: (x: Int, y: Int) -> Int,
+    ): Int = loadUnitForEvent(UnitDef(rom, defAddress), b, quiet, d, terrainAt)
+
+    /** [loadUnitForEvent] for a definition value (e.g. an entry of `gLoadUnitBuffer`). */
+    public fun loadUnitForEvent(
+        def: UnitDef,
+        b: Int,
+        quiet: Boolean,
+        d: Boolean,
+        terrainAt: (x: Int, y: Int) -> Int,
     ): Int {
-        val def = UnitDef(rom, defAddress)
         var flags = b
         var id = getUnitFromCharIdAndFaction(def.charIndex, FACTION_BLUE)
         if (def.allegiance != 0 && id >= 0) {
@@ -320,7 +331,7 @@ public class UnitLoader(
             id = table.getUnitFromCharId(def.charIndex)
         }
         if (id < 0) {
-            id = loadUnit(defAddress, terrainAt)
+            id = loadUnit(def, terrainAt)
             if (id == 0) throw NullPointerException("LoadUnit_800F704: no free unit slot")
             if (d && def.allegiance == 0) table.setState(id, table.state(id) or US_BIT22)
         } else if (def.allegiance == 0) {
@@ -651,24 +662,45 @@ public class UnitLoader(
     internal fun classData(classId: Int): Int =
         if (classId < 1) 0 else CLASS_DATA + (classId - 1) * CLASS_DATA_SIZE
 
-    /** A ROM `struct UnitDefinition` (20 bytes) decoded from [rom] at [address]. */
-    internal class UnitDef(rom: RomView, address: Int) {
-        val charIndex = rom.u8(address)
-        val classIndex = rom.u8(address + 1)
-        val leaderCharIndex = rom.u8(address + 2)
-        val autolevel = (rom.u8(address + 3) and 1) != 0
-        val allegiance = (rom.u8(address + 3) shr 1) and 3
-        val level = rom.u8(address + 3) shr 3
-        private val pos = rom.u16(address + 4)
-        val x = pos and 0x3F
-        val y = (pos shr 6) and 0x3F
-        val genMonster = (pos and (1 shl 12)) != 0
-        val itemDrop = (pos and (1 shl 13)) != 0
-        val sumFlag = (pos and (1 shl 14)) != 0
-        val redaCount = rom.u8(address + 7)
-        val redas = rom.u32(address + 8)
-        val items = IntArray(4) { rom.u8(address + 12 + it) }
-        val ai = IntArray(4) { rom.u8(address + 16 + it) }
+    /**
+     * A `struct UnitDefinition` (20 bytes), decoded from ROM or copied with changes. [redas] is
+     * the ROM address of the REDA list (0 for none).
+     */
+    public data class UnitDef(
+        val charIndex: Int,
+        val classIndex: Int,
+        val leaderCharIndex: Int,
+        val autolevel: Boolean,
+        val allegiance: Int,
+        val level: Int,
+        val x: Int,
+        val y: Int,
+        val genMonster: Boolean,
+        val itemDrop: Boolean,
+        val sumFlag: Boolean,
+        val redaCount: Int,
+        val redas: Int,
+        val items: IntArray,
+        val ai: IntArray,
+    ) {
+        /** Decodes the definition at [address] of [rom]. */
+        public constructor(rom: RomView, address: Int) : this(
+            charIndex = rom.u8(address),
+            classIndex = rom.u8(address + 1),
+            leaderCharIndex = rom.u8(address + 2),
+            autolevel = (rom.u8(address + 3) and 1) != 0,
+            allegiance = (rom.u8(address + 3) shr 1) and 3,
+            level = rom.u8(address + 3) shr 3,
+            x = rom.u16(address + 4) and 0x3F,
+            y = (rom.u16(address + 4) shr 6) and 0x3F,
+            genMonster = (rom.u16(address + 4) and (1 shl 12)) != 0,
+            itemDrop = (rom.u16(address + 4) and (1 shl 13)) != 0,
+            sumFlag = (rom.u16(address + 4) and (1 shl 14)) != 0,
+            redaCount = rom.u8(address + 7),
+            redas = rom.u32(address + 8),
+            items = IntArray(4) { rom.u8(address + 12 + it) },
+            ai = IntArray(4) { rom.u8(address + 16 + it) },
+        )
     }
 
     private companion object {

@@ -1,5 +1,6 @@
 package fe8.game.bm
 
+import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
@@ -44,8 +45,33 @@ public interface MuHooks {
     /** `GetClassData(jid)->attributes`. */
     public fun classAttributes(jid: Int): Int = 0
 
-    /** `PlayMuStepSe(proc)` (M6-26). */
-    public fun playMuStepSe(proc: MuProc) {}
+    /** `GetClassData(jid)->slowWalking`. */
+    public fun classSlowWalking(jid: Int): Int = 0
+
+    /** `IsGamePlayedThrough()` (reads the save). */
+    public fun isGamePlayedThrough(): Boolean = false
+
+    /**
+     * `StartPlayMuStepSe(scr[2 + pc], scr[1], position.x)` for the sound script [script]
+     * (`Mu.STEP_SE_*`) at step [pc]; the song table and `GetMuDisplayPosition` belong to the sound
+     * and display ports.
+     */
+    public fun startPlayMuStepSe(proc: MuProc, script: Int, pc: Int) {}
+
+    /** `StartMuFogBump(x, y)`: [x]/[y] are the screen-relative pixel position. */
+    public fun startMuFogBump(x: Int, y: Int) {}
+
+    /** `MU_IsFogBumpFxActive()`. */
+    public fun isFogBumpFxActive(): Boolean = false
+
+    /** `PutMuSMS(proc)` (facing standing). */
+    public fun putMuSms(proc: MuProc) {}
+
+    /** `PutMu(proc)`. */
+    public fun putMu(proc: MuProc) {}
+
+    /** `AP_Delete(proc->sprite_anim)`. */
+    public fun deleteMuAnim(proc: MuProc) {}
 }
 
 /** One `struct MuConfig` slot (`sMuConfig`). */
@@ -71,6 +97,9 @@ public class MuConfig {
 
 /** The fields of `struct MuProc` past `PROC_HEADER` (+0x2C..). */
 public class MuProc {
+    /** The proc this state belongs to (`EndMu(proc)` ends it). */
+    public var owner: Proc? = null
+
     /** `unit` (address; 0 = NULL). */
     public var unitAddress: Int = 0
 
@@ -133,15 +162,16 @@ public class MuProc {
  * mu.c start/query half: the MU slots and the `ProcScr_Mu` procs. Movement and display are
  * M6-26/27.
  */
-public class Mu(private val procs: ProcEngine, private val hooks: MuHooks = object : MuHooks {}) {
+public class Mu(
+    private val procs: ProcEngine,
+    private val bm: BmSt,
+    private val playSt: PlaySt,
+    private val keys: KeyStatus,
+    private val camMoveScript: ProcScript,
+    private val hooks: MuHooks = object : MuHooks {},
+) {
     /** `sMuConfig`. */
     public val configs: List<MuConfig> = List(MU_MAX_COUNT) { MuConfig() }
-
-    /** M6-26 hook: `Mu_OnLoop` (per-frame movement is not ported here). */
-    public var onLoop: ProcFunc = ProcFunc {}
-
-    /** M6-26 hook: `MU_OnEnd`. */
-    public var onEnd: ProcFunc = ProcFunc {}
 
     /** `ProcScr_Mu`. */
     public val script: ProcScript = ProcScript(
@@ -149,8 +179,8 @@ public class Mu(private val procs: ProcEngine, private val hooks: MuHooks = obje
         listOf(
             ProcScripts.name("MOVEUNIT"),
             ProcScripts.mark(PROC_MARK_MU),
-            ProcScripts.setEndCb { onEnd.invoke(it) },
-            ProcScripts.repeat { onLoop.invoke(it) },
+            ProcScripts.setEndCb(ProcFunc { onEnd(it.state as MuProc) }),
+            ProcScripts.repeat(ProcFunc { onLoop(it.state as MuProc) }),
             ProcScripts.end(),
         ),
         ::MuProc,
@@ -218,6 +248,7 @@ public class Mu(private val procs: ProcEngine, private val hooks: MuHooks = obje
         val delay = if (procs.find(script) != null) 0xFE else 0
         val proc = procs.start(script, 5)
         val mu = proc.state as MuProc
+        mu.owner = proc
         mu.unitAddress = 0
         mu.state = MU_STATE_INACTIVE
         mu.xQ4 = ((x * 16) shl MU_SUBPIXEL_PRECISION).toShort().toInt()
@@ -280,7 +311,7 @@ public class Mu(private val procs: ProcEngine, private val hooks: MuHooks = obje
         for (i in 0 until 0x40) config.movescr[i] = commands[i]
         config.pc = 0
         mu.state = MU_STATE_MOVEMENT
-        hooks.playMuStepSe(mu)
+        updateMuStepSounds(mu)
     }
 
     /**
@@ -314,6 +345,263 @@ public class Mu(private val procs: ProcEngine, private val hooks: MuHooks = obje
         return false
     }
 
+    /**
+     * Runs the move script commands of [proc] until one takes a frame (`proc->config->pc` is the
+     * cursor).
+     *
+     * Ported from src/mu.c: RunMuMoveScript
+     */
+    public fun runMuMoveScript(proc: MuProc) {
+        val config = proc.config!!
+        while (true) {
+            var command = config.movescr[config.pc++ and 0xFF].toByte().toInt()
+            when (command) {
+                MOVE_CMD_SLEEP -> {
+                    val ticks = config.movescr[config.pc++ and 0xFF].toByte().toInt()
+                    proc.moveClockQ4 = ticks and 0xFFFF
+                    proc.state = MU_STATE_SLEEPING
+                    return
+                }
+                MOVE_CMD_BUMP -> {
+                    proc.state = MU_STATE_BUMPING
+                    hooks.startMuFogBump(
+                        (proc.xQ4 shr MU_SUBPIXEL_PRECISION) - bm.cameraX,
+                        (proc.yQ4 shr MU_SUBPIXEL_PRECISION) - bm.cameraY,
+                    )
+                    return
+                }
+                MOVE_CMD_HALT -> {
+                    haltMu(proc)
+                    return
+                }
+                MOVE_CMD_END -> {
+                    endMu(proc)
+                    return
+                }
+                MOVE_CMD_MOVE_LEFT, MOVE_CMD_MOVE_RIGHT, MOVE_CMD_MOVE_DOWN, MOVE_CMD_MOVE_UP -> {
+                    command -= MOVE_CMD_MOVE_BASE
+                    if (command != proc.facing) {
+                        setMuFacing(proc, command - MOVE_CMD_MOVE_BASE)
+                        proc.state = MU_STATE_MOVEMENT
+                    }
+                    return
+                }
+                MOVE_CMD_FACE_LEFT, MOVE_CMD_FACE_RIGHT, MOVE_CMD_FACE_DOWN, MOVE_CMD_FACE_UP -> {
+                    command -= MOVE_CMD_FACE_BASE
+                    if (command != proc.facing) setMuFacing(proc, command)
+                }
+                MOVE_CMD_SET_SPEED ->
+                    proc.moveConfig = config.movescr[config.pc++ and 0xFF].toShort().toInt()
+                MOVE_CMD_CAMERA_ON -> enableMuCamera(proc)
+                MOVE_CMD_CAMERA_OFF -> disableMuCamera(proc)
+            }
+        }
+    }
+
+    /**
+     * Advances a walking MU by one frame step.
+     *
+     * Ported from src/mu.c: Mu_OnStateMovement
+     */
+    public fun onStateMovement(proc: MuProc) {
+        val moveSpeed = getMuQ4MovementSpeed(proc)
+        val dx = MOVE_OFFSET_LUT[proc.facing * 2]
+        val dy = MOVE_OFFSET_LUT[proc.facing * 2 + 1]
+        proc.moveClockQ4 = (moveSpeed + proc.moveClockQ4) and 0xFFFF
+        proc.xQ4 = (proc.xQ4 + moveSpeed * dx).toShort().toInt()
+        proc.yQ4 = (proc.yQ4 + moveSpeed * dy).toShort().toInt()
+        if (proc.moveClockQ4 / 16 >= 16) {
+            proc.moveClockQ4 = (proc.moveClockQ4 - 0x100) and 0xFFFF
+            proc.xQ4 = (proc.xQ4 - proc.moveClockQ4 * dx).toShort().toInt()
+            proc.yQ4 = (proc.yQ4 - proc.moveClockQ4 * dy).toShort().toInt()
+            proc.moveClockQ4 = 0
+            proc.xQ4 = (proc.xQ4 and 0xF.inv()).toShort().toInt()
+            proc.yQ4 = (proc.yQ4 and 0xF.inv()).toShort().toInt()
+        }
+        if (proc.camB && procs.find(camMoveScript) == null) {
+            bm.cameraX = Camera.getCameraAdjustedX(bm, proc.xQ4 shr MU_SUBPIXEL_PRECISION)
+                .toShort().toInt()
+            bm.cameraY = Camera.getCameraAdjustedY(bm, proc.yQ4 shr MU_SUBPIXEL_PRECISION)
+                .toShort().toInt()
+        }
+        if (proc.moveConfig and MU_CONFIG_SPEED_NORMAL == 0) updateMuStepSounds(proc)
+    }
+
+    /**
+     * The movement speed of [proc] in 1/16 pixel per frame.
+     *
+     * Ported from src/mu.c: GetMuQ4MovementSpeed
+     */
+    public fun getMuQ4MovementSpeed(proc: MuProc): Int {
+        var config = proc.moveConfig
+        if (config and 0x80 != 0) config += 0x80
+        if (proc.fastWalkB) return 0x100
+        if (config != 0x40) {
+            if (config != 0x00) {
+                var speed = config
+                if (speed and 0x40 != 0) {
+                    speed = speed xor 0x40
+                } else if (playSt.gameSpeed != 0 || keys.heldKeys and A_BUTTON != 0) {
+                    speed *= 4
+                }
+                if (speed > 0x80) speed = 0x80
+                return speed and 0xFFFF
+            }
+            if (!isFirstPlaythrough() && keys.heldKeys and A_BUTTON != 0) return 0x80
+            if (playSt.gameSpeed != 0) return 0x40
+        }
+        return 16 * WALK_SPEED_LUT[hooks.classSlowWalking(proc.jid) and 1]
+    }
+
+    private fun isFirstPlaythrough(): Boolean {
+        if (!hooks.isGamePlayedThrough()) return true
+        if (playSt.chapterStateBits and PLAY_FLAG_EXTRA_MAP != 0) return false
+        return playSt.unk41x5 != 0
+    }
+
+    /**
+     * Advances the step sound clock of [proc] and starts the step sound of its class.
+     *
+     * Transcribed from src/mu.c: UpdateMuStepSounds (not verified: the walk compares only the
+     * clock, not the sound chosen; the class lists are unexercised)
+     */
+    public fun updateMuStepSounds(proc: MuProc) {
+        val jid = proc.jid
+        val script: Int
+        if (hooks.classAttributes(jid) and CA_MOUNTEDAID != 0) {
+            script = when (jid) {
+                CLASS_WYVERN_RIDER, CLASS_WYVERN_RIDER_F, CLASS_WYVERN_LORD, CLASS_WYVERN_LORD_F,
+                CLASS_WYVERN_KNIGHT, CLASS_WYVERN_KNIGHT_F -> STEP_SE_WYVERN
+                CLASS_MOGALL, CLASS_ARCH_MOGALL -> STEP_SE_MOGALL
+                CLASS_PEGASUS_KNIGHT, CLASS_FALCON_KNIGHT -> STEP_SE_PEGASUS
+                else -> STEP_SE_MOUNTED
+            }
+        } else {
+            script = when (jid) {
+                CLASS_REVENANT, CLASS_ENTOUMBED -> STEP_SE_ZOMBIE
+                CLASS_BONEWALKER, CLASS_BONEWALKER_BOW, CLASS_WIGHT, CLASS_WIGHT_BOW ->
+                    STEP_SE_SKELETON
+                CLASS_BAEL, CLASS_ELDER_BAEL -> STEP_SE_SPIDER
+                CLASS_MAUTHEDOOG, CLASS_GWYLLGI -> STEP_SE_DOG
+                CLASS_TARVOS, CLASS_MAELDUIN -> STEP_SE_MOUNTED
+                CLASS_MOGALL, CLASS_ARCH_MOGALL -> STEP_SE_MOGALL
+                CLASS_GORGON -> STEP_SE_GORGON
+                CLASS_GARGOYLE, CLASS_DEATHGOYLE -> STEP_SE_WYVERN
+                CLASS_ARMOR_KNIGHT, CLASS_ARMOR_KNIGHT_F, CLASS_GENERAL, CLASS_GENERAL_F,
+                CLASS_MANAKETE_2, CLASS_CYCLOPS, CLASS_DRACO_ZOMBIE, CLASS_DEMON_KING,
+                CLASS_BLST_REGULAR_USED, CLASS_BLST_LONG_USED, CLASS_BLST_KILLER_USED ->
+                    STEP_SE_FOOT_HEAVY
+                CLASS_FLEET -> STEP_SE_BOAT
+                CLASS_MANAKETE_MYRRH -> STEP_SE_MYRRH
+                CLASS_FALLEN_PRINCE, CLASS_FALLEN_PEER -> return
+                else -> STEP_SE_FOOT
+            }
+        }
+        val pc = proc.stepSoundClock % STEP_SE_PERIOD[script]
+        proc.stepSoundClock = (proc.stepSoundClock + 1) and 0xFF
+        hooks.startPlayMuStepSe(proc, script, pc)
+    }
+
+    /**
+     * Runs one frame of [proc]: the move script when idle between tiles, then the state handler.
+     * The sprite is put through the hooks.
+     *
+     * Ported from src/mu.c: Mu_OnLoop
+     */
+    public fun onLoop(proc: MuProc) {
+        if (proc.state != 0) {
+            if (proc.moveClockQ4 == 0) {
+                if (proc.state == MU_STATE_SLEEPING || proc.state == MU_STATE_MOVEMENT) {
+                    runMuMoveScript(proc)
+                }
+            }
+            when (proc.state) {
+                MU_STATE_MOVEMENT -> onStateMovement(proc)
+                MU_STATE_SLEEPING -> {
+                    if (proc.moveClockQ4 == 0) {
+                        proc.state = MU_STATE_MOVEMENT
+                    } else {
+                        proc.moveClockQ4--
+                    }
+                }
+                MU_STATE_UNK4 -> proc.state = MU_STATE_MOVEMENT
+                MU_STATE_BUMPING -> if (!hooks.isFogBumpFxActive()) proc.state = MU_STATE_SLEEPING
+            }
+        }
+        if (proc.facing == MU_FACING_STANDING) hooks.putMuSms(proc) else hooks.putMu(proc)
+    }
+
+    /**
+     * Frees the slot and deletes the sprite animation.
+     *
+     * Ported from src/mu.c: MU_OnEnd
+     */
+    public fun onEnd(proc: MuProc) {
+        proc.config!!.slot = 0
+        hooks.deleteMuAnim(proc)
+    }
+
+    /**
+     * Ends every MU proc.
+     *
+     * Transcribed from src/mu.c: EndAllMus (not verified: the walk ends one MU through EndMu)
+     */
+    public fun endAllMus() {
+        procs.endEach(script)
+    }
+
+    /**
+     * Ends [proc]'s proc (`EndMuExt`: `Proc_End`).
+     *
+     * Ported from src/mu.c: EndMu
+     */
+    public fun endMu(proc: MuProc) {
+        procs.end(proc.owner)
+    }
+
+    /**
+     * Lets [proc] scroll the camera while it walks.
+     *
+     * Transcribed from src/mu.c: EnableMuCamera (not verified: trivial setter)
+     */
+    public fun enableMuCamera(proc: MuProc) {
+        proc.camB = true
+    }
+
+    /**
+     * Stops [proc] scrolling the camera.
+     *
+     * Transcribed from src/mu.c: DisableMuCamera (not verified: trivial setter, driven by the test
+     * only as the event code's input)
+     */
+    public fun disableMuCamera(proc: MuProc) {
+        proc.camB = false
+    }
+
+    private fun haltMu(proc: MuProc) {
+        proc.state = MU_STATE_INACTIVE
+    }
+
+    /**
+     * Applies the move script [movescr] to the tile coordinates in [xy] (`xy[0]` = x, `xy[1]` = y).
+     *
+     * Transcribed from src/mu.c: ApplyMoveScriptToCoordinates (not verified: not reached by the
+     * trace)
+     */
+    public fun applyMoveScriptToCoordinates(xy: IntArray, movescr: IntArray) {
+        var i = 0
+        while (true) {
+            when (movescr[i++].toByte().toInt()) {
+                MOVE_CMD_END, MOVE_CMD_HALT -> return
+                MOVE_CMD_MOVE_LEFT -> xy[0]--
+                MOVE_CMD_MOVE_RIGHT -> xy[0]++
+                MOVE_CMD_MOVE_UP -> xy[1]--
+                MOVE_CMD_MOVE_DOWN -> xy[1]++
+                MOVE_CMD_SLEEP -> i++
+            }
+        }
+    }
+
     /** Constants of mu.h / classes / items. */
     public companion object {
         /** `MU_MAX_COUNT`. */
@@ -342,6 +630,153 @@ public class Mu(private val procs: ProcEngine, private val hooks: MuHooks = obje
 
         /** `PROC_MARK_MU`. */
         public const val PROC_MARK_MU: Int = 4
+
+
+        /** `MU_STATE_SLEEPING`. */
+        public const val MU_STATE_SLEEPING: Int = 3
+
+        /** `MU_STATE_UNK4`. */
+        public const val MU_STATE_UNK4: Int = 4
+
+        /** `MU_STATE_BUMPING`. */
+        public const val MU_STATE_BUMPING: Int = 5
+
+        /** `MU_CONFIG_SPPED_NORMAL`. */
+        public const val MU_CONFIG_SPEED_NORMAL: Int = 0x80
+
+        /** `MOVE_CMD_END`. */
+        public const val MOVE_CMD_END: Int = -1
+
+        /** `MOVE_CMD_MOVE_BASE`. */
+        public const val MOVE_CMD_MOVE_BASE: Int = 0
+
+        /** `MOVE_CMD_MOVE_LEFT`. */
+        public const val MOVE_CMD_MOVE_LEFT: Int = 0
+
+        /** `MOVE_CMD_MOVE_RIGHT`. */
+        public const val MOVE_CMD_MOVE_RIGHT: Int = 1
+
+        /** `MOVE_CMD_MOVE_DOWN`. */
+        public const val MOVE_CMD_MOVE_DOWN: Int = 2
+
+        /** `MOVE_CMD_MOVE_UP`. */
+        public const val MOVE_CMD_MOVE_UP: Int = 3
+
+        /** `MOVE_CMD_HALT`. */
+        public const val MOVE_CMD_HALT: Int = 4
+
+        /** `MOVE_CMD_FACE_BASE`. */
+        public const val MOVE_CMD_FACE_BASE: Int = 5
+
+        /** `MOVE_CMD_FACE_LEFT`. */
+        public const val MOVE_CMD_FACE_LEFT: Int = 5
+
+        /** `MOVE_CMD_FACE_RIGHT`. */
+        public const val MOVE_CMD_FACE_RIGHT: Int = 6
+
+        /** `MOVE_CMD_FACE_DOWN`. */
+        public const val MOVE_CMD_FACE_DOWN: Int = 7
+
+        /** `MOVE_CMD_FACE_UP`. */
+        public const val MOVE_CMD_FACE_UP: Int = 8
+
+        /** `MOVE_CMD_SLEEP`. */
+        public const val MOVE_CMD_SLEEP: Int = 9
+
+        /** `MOVE_CMD_BUMP`. */
+        public const val MOVE_CMD_BUMP: Int = 10
+
+        /** `MOVE_CMD_SET_SPEED`. */
+        public const val MOVE_CMD_SET_SPEED: Int = 12
+
+        /** `MOVE_CMD_CAMERA_ON`. */
+        public const val MOVE_CMD_CAMERA_ON: Int = 13
+
+        /** `MOVE_CMD_CAMERA_OFF`. */
+        public const val MOVE_CMD_CAMERA_OFF: Int = 14
+
+        /** Step sound script `MuSoundScr_Foot` for [MuHooks.startPlayMuStepSe]. */
+        public const val STEP_SE_FOOT: Int = 0
+
+        /** `MuSoundScr_FootHeavy`. */
+        public const val STEP_SE_FOOT_HEAVY: Int = 1
+
+        /** `MuSoundScr_Mounted`. */
+        public const val STEP_SE_MOUNTED: Int = 2
+
+        /** `MuSoundScr_Wyvern`. */
+        public const val STEP_SE_WYVERN: Int = 3
+
+        /** `MuSoundScr_Pegasus`. */
+        public const val STEP_SE_PEGASUS: Int = 4
+
+        /** `MuSoundScr_Zombie`. */
+        public const val STEP_SE_ZOMBIE: Int = 5
+
+        /** `MuSoundScr_Skeleton`. */
+        public const val STEP_SE_SKELETON: Int = 6
+
+        /** `MuSoundScr_Mogall`. */
+        public const val STEP_SE_MOGALL: Int = 7
+
+        /** `MuSoundScr_Spider`. */
+        public const val STEP_SE_SPIDER: Int = 8
+
+        /** `MuSoundScr_Dog`. */
+        public const val STEP_SE_DOG: Int = 9
+
+        /** `MuSoundScr_Gorgon`. */
+        public const val STEP_SE_GORGON: Int = 10
+
+        /** `MuSoundScr_Boat`. */
+        public const val STEP_SE_BOAT: Int = 11
+
+        /** `MuSoundScr_Myrrh`. */
+        public const val STEP_SE_MYRRH: Int = 12
+
+        private const val A_BUTTON = 1
+        private const val PLAY_FLAG_EXTRA_MAP = 1 shl 7
+        private const val CLASS_ARMOR_KNIGHT = 0x09
+        private const val CLASS_ARMOR_KNIGHT_F = 0x0A
+        private const val CLASS_GENERAL = 0x0B
+        private const val CLASS_GENERAL_F = 0x0C
+        private const val CLASS_WYVERN_RIDER = 0x1F
+        private const val CLASS_WYVERN_RIDER_F = 0x20
+        private const val CLASS_WYVERN_LORD = 0x21
+        private const val CLASS_WYVERN_LORD_F = 0x22
+        private const val CLASS_WYVERN_KNIGHT = 0x23
+        private const val CLASS_WYVERN_KNIGHT_F = 0x24
+        private const val CLASS_MANAKETE_2 = 0x3B
+        private const val CLASS_MANAKETE_MYRRH = 0x3C
+        private const val CLASS_PEGASUS_KNIGHT = 0x48
+        private const val CLASS_FALCON_KNIGHT = 0x49
+        private const val CLASS_FLEET = 0x50
+        private const val CLASS_REVENANT = 0x52
+        private const val CLASS_ENTOUMBED = 0x53
+        private const val CLASS_BONEWALKER = 0x54
+        private const val CLASS_BONEWALKER_BOW = 0x55
+        private const val CLASS_WIGHT = 0x56
+        private const val CLASS_WIGHT_BOW = 0x57
+        private const val CLASS_BAEL = 0x58
+        private const val CLASS_ELDER_BAEL = 0x59
+        private const val CLASS_CYCLOPS = 0x5A
+        private const val CLASS_MAUTHEDOOG = 0x5B
+        private const val CLASS_GWYLLGI = 0x5C
+        private const val CLASS_TARVOS = 0x5D
+        private const val CLASS_MAELDUIN = 0x5E
+        private const val CLASS_MOGALL = 0x5F
+        private const val CLASS_ARCH_MOGALL = 0x60
+        private const val CLASS_GORGON = 0x61
+        private const val CLASS_GARGOYLE = 0x63
+        private const val CLASS_DEATHGOYLE = 0x64
+        private const val CLASS_DRACO_ZOMBIE = 0x65
+        private const val CLASS_DEMON_KING = 0x66
+        private const val CLASS_FALLEN_PRINCE = 0x78
+        private const val CLASS_FALLEN_PEER = 0x7B
+        private val MOVE_OFFSET_LUT = intArrayOf(-1, 0, 1, 0, 0, 1, 0, -1)
+        private val WALK_SPEED_LUT = intArrayOf(2, 1)
+        private val STEP_SE_PERIOD =
+            intArrayOf(0x10, 0x20, 0x15, 0x14, 0x14, 0x0F, 0x0F, 0x14, 0x0A, 0x15, 0x0F, 0x18, 0x10)
 
         private const val US_IN_BALLISTA = 1 shl 11
         private const val CA_MOUNTEDAID = 1

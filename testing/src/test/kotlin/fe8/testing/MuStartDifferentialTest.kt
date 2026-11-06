@@ -1,11 +1,15 @@
 package fe8.testing
 
+import fe8.game.bm.BmSt
+import fe8.game.bm.CamMove
 import fe8.game.bm.Mu
 import fe8.game.bm.MuProc
 import fe8.game.bm.MuUnit
+import fe8.game.bm.PlaySt
 import gba.core.VerifiesPort
 import gba.testkit.GbaMem
 import gba.testkit.ReferenceData
+import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -43,7 +47,9 @@ class MuStartDifferentialTest {
             state = GbaMem.u32(after, GbaMem.EWRAM, unitAddr + 0x0C),
             spritePalette = ib(1),
         )
-        val mu = Mu(ProcEngine())
+        val engine = ProcEngine()
+        val bm = BmSt()
+        val mu = Mu(engine, bm, PlaySt(), KeyStatus(), CamMove(engine, bm).script)
         val proc = checkNotNull(mu.startMu(unit))
         val s = proc.state as MuProc
         assertEquals(dumped.u8(0x26), proc.mark, "mark")

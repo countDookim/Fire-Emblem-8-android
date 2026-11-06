@@ -63,8 +63,8 @@ public class UnitLoader(
     /**
      * Ported from src/bmunit.c: LoadUnit
      *
-     * partial: `genMonster`, gorgon eggs, `sumFlag` positions and autolevel of blue units,
-     * bosses and characters below 0x40 throw [UnsupportedOperationException].
+     * partial: `genMonster`, gorgon eggs, `sumFlag` positions and autolevel of bosses and
+     * characters below 0x40 throws [UnsupportedOperationException].
      *
      * Loads the `struct UnitDefinition` at ROM address [defAddress] into a free slot of its
      * allegiance. [terrainAt] is `gBmMapTerrain[y][x]`. Returns the new unit's id, or 0 where the
@@ -95,10 +95,10 @@ public class UnitLoader(
         }
         if (def.autolevel) {
             if ((s8(table.bytes, o + OFF_INDEX) and 0xC0) == FACTION_BLUE) {
-                throw UnsupportedOperationException(
-                    "LoadUnit: autolevel of blue units (UnitAutolevelRealistic) is not ported",
-                )
-            }
+                unitAutolevelRealistic(o)
+                unitAutolevelWExp(o, def)
+                put8(table.bytes, o + OFF_SUPPORTS + 6, def.leaderCharIndex)
+            } else {
             val number = rom.u8(u32(table.bytes, o + OFF_CHARACTER) + 4)
             if ((cAttributes(o) and CA_BOSS) != 0 || number < 0x40) {
                 throw UnsupportedOperationException(
@@ -110,6 +110,7 @@ public class UnitLoader(
             unitAutolevelWExp(o, def)
             // SetUnitLeaderCharId
             put8(table.bytes, o + OFF_SUPPORTS + 6, def.leaderCharIndex)
+            }
         }
         fixROMUnitStructPtr(o)
         unitLoadSupports(o)
@@ -124,6 +125,86 @@ public class UnitLoader(
     private fun cAttributes(o: Int): Int =
         rom.u32(u32(table.bytes, o + OFF_CHARACTER) + 0x28) or
             rom.u32(u32(table.bytes, o + OFF_CLASS) + 0x28)
+
+    /**
+     * Ported from src/bmunit.c: UnitAutolevelRealistic
+     * Ported from src/bmbattle.c: CheckBattleUnitLevelUp, CanBattleUnitGainLevels,
+     * CheckBattleUnitStatCaps
+     * Ported from src/bmbattle.c: UpdateUnitFromBattle
+     *
+     * partial: works on the unit bytes without a `BattleUnit`; `gBmSt.gameStateBits & 0x40` is
+     * taken as clear; of `UpdateUnitFromBattle` only level, exp, the stat changes and
+     * `UnitCheckStatCaps` apply (curHP, state, items are unchanged, there is no status, weapon
+     * exp or `expGain`).
+     *
+     * Levels the unit at [o] from its character's base level up to its level by its level difference.
+     */
+    internal fun unitAutolevelRealistic(o: Int) {
+        val b = table.bytes
+        val ch = u32(b, o + OFF_CHARACTER)
+        val cl = u32(b, o + OFF_CLASS)
+        var levelsLeft = s8(b, o + OFF_LEVEL) - rom.s8(ch + 0x0B)
+        if (levelsLeft == 0) return
+        put8(b, o + OFF_LEVEL, s8(b, o + OFF_LEVEL) - levelsLeft)
+        val change = IntArray(7)
+        while (levelsLeft > 0) {
+            levelsLeft--
+            // InitBattleUnit: the changes start at 0.
+            change.fill(0)
+            var exp = u8(b, o + OFF_EXP) + 100
+            var level = s8(b, o + OFF_LEVEL)
+            // CanBattleUnitGainLevels: exp is not disabled and the unit is blue.
+            val canGain = exp != UNIT_EXP_DISABLED &&
+                (s8(b, o + OFF_INDEX) and 0xC0) == FACTION_BLUE
+            if (canGain && exp >= 100) {
+                exp -= 100
+                level++
+                if ((cAttributes(o) and CA_MAXLEVEL10) != 0) {
+                    if (level == 10) exp = UNIT_EXP_DISABLED
+                } else if (level == 20) {
+                    exp = UNIT_EXP_DISABLED
+                }
+                val bonus = if ((u32(b, o + OFF_STATE) and US_GROWTH_BOOST) != 0) 5 else 0
+                var total = 0
+                for (i in 0 until 7) {
+                    change[i] = getStatIncrease(rom.u8(ch + 0x1C + i) + bonus)
+                    total += change[i]
+                }
+                if (total == 0) {
+                    for (pass in 0 until 2) {
+                        var gained = false
+                        for (i in 0 until 7) {
+                            change[i] = getStatIncrease(rom.u8(ch + 0x1C + i))
+                            if (change[i] != 0) {
+                                gained = true
+                                break
+                            }
+                        }
+                        if (gained) break
+                    }
+                }
+                // CheckBattleUnitStatCaps
+                val red = (s8(b, o + OFF_INDEX) and 0xC0) == FACTION_RED
+                for (i in 0 until 7) {
+                    val at = if (i == 0) OFF_MAX_HP else 0x13 + i
+                    val max = when (i) {
+                        0 -> if (red) 120 else 60
+                        6 -> 30
+                        else -> rom.s8(cl + 0x13 + i)
+                    }
+                    if (s8(b, o + at) + change[i] > max) change[i] = max - s8(b, o + at)
+                }
+            }
+            // UpdateUnitFromBattle
+            put8(b, o + OFF_LEVEL, level)
+            put8(b, o + OFF_EXP, exp)
+            for (i in 0 until 7) {
+                val at = if (i == 0) OFF_MAX_HP else 0x13 + i
+                put8(b, o + at, s8(b, o + at) + change[i])
+            }
+            unitCheckStatCaps(o)
+        }
+    }
 
     /**
      * Ported from src/bmunit.c: UnitAutolevel
@@ -802,6 +883,9 @@ public class UnitLoader(
         const val UNIT_STATUS_BERSERK = 4
         const val CA_PROMOTED = 1 shl 8
         const val CA_BOSS = 1 shl 15
+        const val CA_MAXLEVEL10 = 1 shl 19
+        const val US_GROWTH_BOOST = 1 shl 13
+        const val UNIT_EXP_DISABLED = 0xFF
         const val UNIT_ITEM_COUNT = 5
         const val CLASS_GORGONEGG = 0x62
         const val CLASS_GORGONEGG2 = 0x34

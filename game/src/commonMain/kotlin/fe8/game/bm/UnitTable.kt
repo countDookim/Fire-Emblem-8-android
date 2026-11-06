@@ -56,6 +56,21 @@ public class UnitTable(
         return o >= 0 && u32(bytes, o + OFF_CHARACTER) != 0
     }
 
+    /**
+     * Ported from src/bmunit.c: InitUnits
+     *
+     * Clears every unit that `GetUnit` can return for ids 0..0xFF (`ClearUnit`: all 0x48 bytes
+     * zeroed, `index` kept) and stores its id in `index` (0x0B).
+     */
+    public fun initUnits() {
+        for (id in 0 until 0x100) {
+            val o = unitOffset(id)
+            if (o < 0) continue
+            bytes.fill(0, o, o + UNIT_SIZE)
+            bytes[o + 0x0B] = id.toByte()
+        }
+    }
+
     /** `pCharacterData->number` of unit [id], read from the ROM (the unit must be valid). */
     public fun charId(id: Int): Int = rom.u8(u32(bytes, unitOffset(id) + OFF_CHARACTER) + 4)
 

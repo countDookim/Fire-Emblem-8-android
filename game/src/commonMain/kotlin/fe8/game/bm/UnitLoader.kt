@@ -915,16 +915,14 @@ public class UnitLoader(
      *
      * ROM address of `gCharacterData[charId - 1]`, or 0 (NULL) where [charId] < 1.
      */
-    internal fun characterData(charId: Int): Int =
-        if (charId < 1) 0 else CHARACTER_DATA + (charId - 1) * CHARACTER_DATA_SIZE
+    internal fun characterData(charId: Int): Int = characterDataAt(charId)
 
     /**
      * Ported from src/bmunit.c: GetClassData
      *
      * ROM address of `gClassData[classId - 1]`, or 0 (NULL) where [classId] < 1.
      */
-    internal fun classData(classId: Int): Int =
-        if (classId < 1) 0 else CLASS_DATA + (classId - 1) * CLASS_DATA_SIZE
+    internal fun classData(classId: Int): Int = classDataAt(classId)
 
     /**
      * A `struct UnitDefinition` (20 bytes), decoded from ROM or copied with changes.
@@ -982,7 +980,15 @@ public class UnitLoader(
         )
     }
 
-    private companion object {
+    internal companion object {
+        /** [characterData] without a loader instance (the save reader needs it too). */
+        fun characterDataAt(charId: Int): Int =
+            if (charId < 1) 0 else CHARACTER_DATA + (charId - 1) * CHARACTER_DATA_SIZE
+
+        /** [classData] without a loader instance. */
+        fun classDataAt(classId: Int): Int =
+            if (classId < 1) 0 else CLASS_DATA + (classId - 1) * CLASS_DATA_SIZE
+
         const val MAP_MOVEMENT_MAX = 120
         const val WEATHER_RAIN = 4
         const val WEATHER_SNOW = 1

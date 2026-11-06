@@ -3,10 +3,12 @@ package fe8.game.save
 import fe8.game.RomView
 import fe8.game.bm.PlaySt
 import fe8.game.bm.StructCodec
+import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitTable
 import fe8.game.flags.Fe8EventFlags
 import fe8.game.save.Fe8SramLayout as L
 import fe8.game.save.Fe8SuspendLayout as S
+import gba.core.sram.readSramFast
 import gba.core.sram.writeAndVerifySramFast
 import gba.core.sram.writeSramFast
 
@@ -49,6 +51,9 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
 
     /** `gChapterFlagBits` as written. */
     private val chapterBuf = ByteArray(Fe8EventFlags.CHAPTER_SAVE_BYTES)
+
+    /** Stand-in for the `struct SuspendSavePackedUnit unit_su` local of the reader. */
+    private val packed = ByteArray(S.PACKED_UNIT_SIZE)
 
     /** The RN state words `StoreRNState` copies. */
     private val rnWords = IntArray(3)
@@ -140,6 +145,177 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
                 StructCodec.field(StructCodec.u16(u, o + U_ITEMS + 6), 4, 14) or
                 StructCodec.field(StructCodec.u16(u, o + U_ITEMS + 8), 18, 14),
         )
+    }
+
+    /**
+     * Ported from src/bmsave.c: ReadSuspendSavePackedUnit
+     *
+     * Reads the 0x34-byte `struct SuspendSavePackedUnit` at SRAM [srcOffset] and unpacks it into
+     * the unit at byte offset [unitOffset] of [units]. Every field the C code assigns is set
+     * (also for a record with `pid` 0, whose other bytes are whatever the writer left there);
+     * `index` and the bytes the packed record has no field for (0x3A..0x3F, 0x47) are kept.
+     * `exp` 0x7F and positions 0x3F become -1.
+     */
+    public fun readSuspendSavePackedUnit(srcOffset: Int, units: UnitTable, unitOffset: Int) {
+        val p = packed
+        readSramFast(lib.sram, srcOffset, p, 0, S.PACKED_UNIT_SIZE)
+        val u = units.bytes
+        val o = unitOffset
+        StructCodec.put32(u, o + U_CHARACTER, UnitLoader.characterDataAt(StructCodec.u8(p, P_PID)))
+        StructCodec.put32(u, o + U_CLASS, UnitLoader.classDataAt(StructCodec.u8(p, P_JID)))
+        val bits0 = StructCodec.u32(p, P_BITS0)
+        val bits1 = StructCodec.u32(p, P_BITS1)
+        val bits2 = StructCodec.u32(p, P_BITS2)
+        u[o + U_LEVEL] = StructCodec.bits(bits0, 0, 5).toByte()
+        u[o + U_EXP] = p[P_EXP]
+        StructCodec.put32(u, o + U_STATE, StructCodec.u32(p, P_STATE))
+        u[o + U_X_POS] = StructCodec.bits(bits0, 5, 6).toByte()
+        u[o + U_Y_POS] = StructCodec.bits(bits0, 11, 6).toByte()
+
+        u[o + U_MAX_HP] = p[P_MAX_HP]
+        u[o + U_CUR_HP] = p[P_CUR_HP]
+        u[o + U_POW] = StructCodec.bits(bits0, 17, 5).toByte()
+        u[o + U_SKL] = StructCodec.bits(bits0, 22, 5).toByte()
+        u[o + U_SPD] = StructCodec.bits(bits0, 27, 5).toByte()
+        u[o + U_DEF] = StructCodec.bits(bits1, 0, 5).toByte()
+        u[o + U_RES] = StructCodec.bits(bits1, 5, 5).toByte()
+        u[o + U_LCK] = StructCodec.bits(bits1, 10, 5).toByte()
+        u[o + U_CON_BONUS] = StructCodec.bits(bits1, 15, 5).toByte()
+
+        var statusIndex = StructCodec.bits(bits1, 20, 3)
+        if ((StructCodec.u8(p, P_AI1) and 0x80) != 0) statusIndex = statusIndex or 8
+        u[o + U_STATUS] =
+            (statusIndex or (StructCodec.bits(bits1, 23, 3) shl 4)).toByte()
+        u[o + U_TORCH] =
+            (StructCodec.bits(bits1, 26, 3) or (StructCodec.bits(bits1, 29, 3) shl 4)).toByte()
+
+        u[o + U_RESCUE] = p[P_RESCUE]
+        u[o + U_MOV_BONUS] = StructCodec.bits(bits2, 0, 4).toByte()
+        val ballista = StructCodec.u8(p, P_BALLISTA)
+        u[o + U_BALLISTA] = (ballista and 0x7F).toByte()
+
+        val item1 = StructCodec.u16(p, P_ITEM1)
+        val item2 = StructCodec.u16(p, P_ITEM2)
+        val item3 = StructCodec.u16(p, P_ITEM3)
+        StructCodec.put16(u, o + U_ITEMS, item1 and 0x3FFF)
+        StructCodec.put16(u, o + U_ITEMS + 2, item2 and 0x3FFF)
+        StructCodec.put16(u, o + U_ITEMS + 4, item3 and 0x3FFF)
+        StructCodec.put16(u, o + U_ITEMS + 6, StructCodec.bits(bits2, 4, 14))
+        StructCodec.put16(u, o + U_ITEMS + 8, StructCodec.bits(bits2, 18, 14))
+
+        u[o + U_SUPPORT_BITS] = (
+            ((ballista and 0x80) shr 7) or ((item1 and 0xC000) shr 0x0D) or
+                ((item2 and 0xC000) shr 0x0B) or ((item3 and 0xC000) shr 0x09)
+            ).toByte()
+
+        for (i in 0 until 8) u[o + U_RANKS + i] = p[P_RANKS + i]
+        for (i in 0 until UNIT_SUPPORT_MAX_COUNT) u[o + U_SUPPORTS + i] = p[P_SUPPORTS + i]
+
+        u[o + U_AI1] = (StructCodec.u8(p, P_AI1) and 0x7F).toByte()
+        u[o + U_AI_A_PC] = p[P_AI_A_PC]
+        u[o + U_AI2] = p[P_AI2]
+        u[o + U_AI_B_PC] = p[P_AI_B_PC]
+        StructCodec.put16(u, o + U_AI_CONFIG, StructCodec.u16(p, P_AI_CONFIG))
+        u[o + U_AI_COUNTER] = p[P_AI_COUNTER]
+        u[o + U_AI_FLAGS] = p[P_AI_FLAGS]
+
+        if (StructCodec.u8(u, o + U_EXP) == 0x7F) u[o + U_EXP] = -1
+        if (StructCodec.u8(u, o + U_X_POS) == 0x3F) u[o + U_X_POS] = -1
+        if (StructCodec.u8(u, o + U_Y_POS) == 0x3F) u[o + U_Y_POS] = -1
+    }
+
+    /**
+     * Transcribed from src/bmsave.c: ReadTraps (not verified: every trap in the reference is
+     * zero, which proves the target, not the data)
+     *
+     * Reads the 64 traps of SRAM [srcOffset] into [traps] (`GetTrap(0)`).
+     */
+    public fun readTraps(srcOffset: Int, traps: ByteArray) {
+        readSramFast(lib.sram, srcOffset, traps, 0, S.TRAP_MAX_COUNT * S.TRAP_SIZE)
+    }
+
+    /**
+     * Transcribed from src/bmsave.c: ReadGMMonsterRnState (not verified: no suspend-trace state
+     * covers it; its caller `ReadGameSave` is M6-07)
+     *
+     * Reads the `u32 buf[2]` at SRAM [srcOffset] and, as the world map's `sub_80A71F8` does,
+     * copies its first three halfwords to [rnState] (`gGMData.unk_ce`).
+     */
+    public fun readGmMonsterRnState(srcOffset: Int, rnState: IntArray) {
+        readSramFast(lib.sram, srcOffset, scalar, 0, 8)
+        for (i in 0 until 3) rnState[i] = StructCodec.u16(scalar, i * 2)
+    }
+
+    /**
+     * Ported from src/bmsave.c: ReadSuspendSave
+     *
+     * Loads the suspend block of [slot] (`SAVE_ID_SUSPEND`) + `gSuspendSaveIdOffset` (set by
+     * [BmSaveLib.isValidSuspendSave]) into [ram]: `gPlaySt` and the game clock, `gActionData`
+     * with the RN state in its first 6 bytes (`LoadRNStateFromActionStruct`), the units (after
+     * `InitUnits`), pid / chapter stats, the convoy, both flag sets, the traps, and the
+     * stand-ins of [SuspendRam] (menu override, world map stuff, dungeon records and state);
+     * then the event slot counter and the bonus claim flags of the game slot in `gPlaySt`.
+     */
+    public fun readSuspendSave(ram: SuspendRam, slot: Int) {
+        val src = lib.getSaveReadAddr(slot + lib.suspendSaveIdOffset)
+        val sram = lib.sram
+        readSramFast(sram, src + S.PLAY_ST, playStBytes, 0, PlaySt.SIZE)
+        ram.playSt.decode(playStBytes, 0)
+        ram.clock.set(ram.playSt.timeSaved.toLong() and 0xFFFFFFFFL)
+
+        readSramFast(sram, src + S.ACTION, ram.actionData, 0, S.ACTION_SIZE)
+        // LoadRNStateFromActionStruct: LoadRNState(gActionData._u00).
+        for (i in 0 until 3) rnWords[i] = StructCodec.u16(ram.actionData, i * 2)
+        ram.rng.primary.load(rnWords[0], rnWords[1], rnWords[2])
+        ram.units.initUnits()
+
+        for (i in 0 until S.UNIT_SAVE_AMOUNT_BLUE) {
+            readSuspendSavePackedUnit(
+                src + S.BLUE_UNITS + i * S.PACKED_UNIT_SIZE, ram.units,
+                BLUE_BASE + i * UnitTable.UNIT_SIZE,
+            )
+        }
+        for (i in 0 until S.UNIT_SAVE_AMOUNT_RED) {
+            readSuspendSavePackedUnit(
+                src + S.RED_UNITS + i * S.PACKED_UNIT_SIZE, ram.units,
+                RED_BASE + i * UnitTable.UNIT_SIZE,
+            )
+        }
+        for (i in 0 until S.UNIT_SAVE_AMOUNT_GREEN) {
+            readSuspendSavePackedUnit(
+                src + S.GREEN_UNITS + i * S.PACKED_UNIT_SIZE, ram.units,
+                GREEN_BASE + i * UnitTable.UNIT_SIZE,
+            )
+        }
+
+        lib.readPidStats(src + S.PID_STATS)
+        lib.readChapterStats(src + S.CHAPTER_STATS)
+        lib.readSupplyItems(src + S.SUPPLY, ram.convoy)
+        lib.readPermanentFlags(src + S.PERMANENT_FLAGS, permanentBuf)
+        ram.flags.copyInPermanent(permanentBuf)
+        lib.readChapterFlags(src + S.CHAPTER_FLAGS, chapterBuf)
+        ram.flags.copyInChapter(chapterBuf)
+        readTraps(src + S.TRAPS, ram.traps)
+
+        // SetForceDisabledMenuItems: the list is kept raw, see SuspendRam.menuOverride.
+        readSramFast(sram, src + S.MENU_OVERRIDE, ram.menuOverride, 0, S.MENU_OVERRIDE_MAX)
+        // ReadWorldMapStuff: not ported, see SuspendRam.worldMapStuff.
+        readSramFast(sram, src + S.WM_STUFF, ram.worldMapStuff, 0, S.GMAP_SAVE_INFO_SIZE)
+
+        // LoadDungeonRecords: the wmMonsterUnit slot into gDungeonState.dungeon[2].
+        readSramFast(sram, src + S.WM_MONSTER_UNIT, dungeon, 0, dungeon.size)
+        dungeon.copyInto(ram.dungeonState, DUNGEON_RECORDS, 0, dungeon.size)
+
+        // LoadDungeonState: current = *saved, then type = current.unk_0B_4.
+        readSramFast(sram, src + S.DUNGEON, dungeon, 0, S.DUNGEON_SIZE)
+        dungeon.copyInto(ram.dungeonState, 0, 0, S.DUNGEON_SIZE)
+        ram.dungeonState[DUNGEON_TYPE] =
+            ((StructCodec.u8(ram.dungeonState, UNK_0B) ushr 4) and 0x0F).toByte()
+
+        readSramFast(sram, src + S.EVENT_SLOT_CNT, scalar, 0, 4)
+        ram.eventState.setEventSlotCounter(StructCodec.u32(scalar, 0))
+
+        lib.setBonusContentClaimFlags(lib.loadSavedBonusClaimFlags(ram.playSt.gameSaveSlot))
     }
 
     /**

@@ -695,6 +695,83 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
+     * Ported from src/bmsave-bwl.c: ReadPidStats
+     *
+     * Reads `gPidStatsData` from SRAM [srcOffset] and remembers it as `gPidStatsSaveLoc`.
+     */
+    public fun readPidStats(srcOffset: Int) {
+        readSramFast(sram, srcOffset, pidStatsData, 0, PID_STATS_SIZE)
+        pidStatsSaveLoc = srcOffset
+    }
+
+    /**
+     * Transcribed from src/bmsave-bwl.c: ReadChapterStats (not verified: `gChapterStats` is all
+     * zero in the reference, which proves the target, not the data)
+     *
+     * Reads `gChapterStats` from SRAM [srcOffset].
+     */
+    public fun readChapterStats(srcOffset: Int) {
+        readSramFast(sram, srcOffset, chapterStatsData, 0, CHAPTER_STATS_SIZE)
+    }
+
+    /**
+     * Ported from src/bmsave-lib.c: ReadPermanentFlags
+     *
+     * Reads the 0x19 saved bytes of `gPermanentFlagBits` from SRAM [srcOffset] into [dest].
+     */
+    public fun readPermanentFlags(srcOffset: Int, dest: ByteArray) {
+        readSramFast(sram, srcOffset, dest, 0, PERMANENT_FLAGS_SIZE - 1)
+    }
+
+    /**
+     * Ported from src/bmsave-lib.c: ReadChapterFlags
+     *
+     * Reads the 5 saved bytes of `gChapterFlagBits` from SRAM [srcOffset] into [dest].
+     */
+    public fun readChapterFlags(srcOffset: Int, dest: ByteArray) {
+        readSramFast(sram, srcOffset, dest, 0, Fe8EventFlags.getChapterFlagBitsSize())
+    }
+
+    /**
+     * Transcribed from src/bmsave-lib.c: ReadSupplyItems (not verified: the reference convoy is
+     * empty, which proves the target, not the unpacking)
+     *
+     * Unpacks the 0xB0-byte supply block at SRAM [srcOffset] (see [writeSupplyItems]) into the
+     * 100 raw little-endian u16 convoy items of [convoy].
+     */
+    public fun readSupplyItems(srcOffset: Int, convoy: ByteArray) {
+        val buf = supplyBuffer
+        readSramFast(sram, srcOffset, buf, 0, SUPPLY_SIZE)
+        var cur = CONVOY_ITEM_COUNT
+        var var1 = 0
+        for (i in 0 until CONVOY_ITEM_COUNT) {
+            val var0 = var1 and 0x7
+            var itemUse = ((buf[cur].toInt() and SUPPLY_MASK1[var0].inv()) and 0xFF) shr var0
+            if (var0 > 1) {
+                cur++
+                if (var0 > 2) {
+                    itemUse = (itemUse or
+                        ((buf[cur].toInt() and SUPPLY_MASK2[var0].inv()) shl (8 - var0))) and 0xFF
+                }
+            }
+            putU16(convoy, i * 2, (buf[i].toInt() and 0xFF) or (itemUse shl 8))
+            var1 += 6
+        }
+    }
+
+    /**
+     * Transcribed from src/bmsave.c: LoadSavedBonusClaimFlags (not verified: the claim flags are
+     * zero in every reference save)
+     *
+     * `bonusClaimFlags` of the game block of [slot].
+     */
+    public fun loadSavedBonusClaimFlags(slot: Int): Int {
+        val b = scratchInfo
+        readSramFast(sram, getSaveReadAddr(slot) + GAME_BONUS_CLAIM, b, 0, 4)
+        return u32(b, 0)
+    }
+
+    /**
      * Transcribed from src/bmsave.c: WriteBonusContentClaimFlags (not verified: the New Game
      * trace copies only zeros).
      *

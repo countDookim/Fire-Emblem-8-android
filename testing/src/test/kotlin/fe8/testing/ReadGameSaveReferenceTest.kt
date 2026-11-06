@@ -114,6 +114,55 @@ class ReadGameSaveReferenceTest {
         assertTrue(!f.lib.isSaveValid(L.SAVE_ID_SUSPEND), "suspend save invalidated")
     }
 
+    // Not @VerifiesPort: WriteGMMonsterRnState (stand-in state, 2 bytes masked),
+    // WriteBonusContentClaimFlags (zero in the reference: its offset is unobserved), the
+    // SGM_SetCharacterKnown / WriteGlobalSaveInfo part (the fresh image keeps the known flags;
+    // break-check passes), InvalidateSuspendSave (already invalid).
+    @Test
+    @VerifiesPort(
+        "WriteGameSave", "WriteGameSavePackedUnit", "WriteLastGameSaveId", "WriteSupplyItems",
+        "WritePidStats", "WriteChapterStats", "WritePermanentFlags",
+    )
+    fun `write after read reproduces slot 1 of chapter6 sav`() {
+        val f = fixture()
+        val orig = f.image
+        f.game.readGameSave(f.ram, SLOT)
+        val dest = f.lib.getSaveWriteAddr(SLOT)
+        val info = L.blockInfoOffset(SLOT)
+        // A fresh image: the original without the slot 1 block, its info entry and the last id.
+        val fresh = orig.copyOf()
+        fresh.fill(0xFF.toByte(), dest, dest + L.GAME_SIZE)
+        fresh.fill(0xFF.toByte(), info, info + L.BLOCK_INFO_SIZE)
+        val sram = CartSram().also { it.copyIn(fresh) }
+        val lib = BmSaveLib(sram).also { it.sramInit() }
+        val loader = f.loader
+        val game = BmGameSave(lib, loader, f.rom)
+        // Stand-ins load does not restore from their own state: the saved ones are kept raw.
+        lib.pidStatsData.let { f.lib.pidStatsData.copyInto(it) }
+        lib.setBonusContentClaimFlags(f.lib.bonusContentClaimFlags)
+        f.lib.chapterStatsData.copyInto(lib.chapterStatsData)
+        lib.writeLastGameSaveId(2)
+        game.writeGameSave(f.ram, SLOT)
+        val out = ByteArray(L.SRAM_SIZE).also { sram.copyOut(it) }
+        val got = out.copyOfRange(dest, dest + L.GAME_SIZE)
+        val want = orig.copyOfRange(dest, dest + L.GAME_SIZE)
+        // Masked: the last 2 bytes of the 8-byte monster RN state (0x77E..0x77F, uninitialised
+        // stack in C) and the last supply byte (0x84B, the uninitialised `buf` of
+        // WriteSupplyItems).
+        for (i in intArrayOf(0x77E, 0x77F, 0x84B)) got[i] = want[i]
+        val bad = (0 until L.GAME_SIZE).filter { got[it] != want[it] }
+        val where = bad.take(30).joinToString { "0x%X".format(it) }
+        assertTrue(bad.isEmpty(), "block diff at $where")
+        // Block info: all but checksum32 equal (the checksum covers the 3 masked bytes, which
+        // differ); the written checksum is the one of the written block, as it is in the original.
+        assertArrayEquals(
+            orig.copyOfRange(info, info + L.INFO_CHECKSUM32),
+            out.copyOfRange(info, info + L.INFO_CHECKSUM32), "block info",
+        )
+        assertTrue(lib.isSaveValid(SLOT), "written block verifies against its checksum")
+        assertEquals(SLOT, lib.readLastGameSaveId())
+    }
+
     private fun fixture(): GameFixture {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
@@ -141,7 +190,7 @@ class ReadGameSaveReferenceTest {
         lib.setBonusContentClaimFlags(0x5A5A5A5A)
         val loader = UnitLoader(units, rom, { 0 }, RngService(), { false })
         return GameFixture(
-            ram, BmGameSave(lib, loader), lib, srcBlock,
+            ram, BmGameSave(lib, loader, rom), lib, srcBlock, image, loader, rom,
             r.region("r01142", "ewram"), r.region("r01142", "iwram"),
         )
     }
@@ -168,6 +217,9 @@ private class GameFixture(
     val game: BmGameSave,
     val lib: BmSaveLib,
     val srcBlock: Int,
+    val image: ByteArray,
+    val loader: UnitLoader,
+    val rom: RomView,
     val after: ByteArray,
     val iwAfter: ByteArray,
 )

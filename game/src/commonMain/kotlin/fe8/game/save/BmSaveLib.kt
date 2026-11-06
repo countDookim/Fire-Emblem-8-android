@@ -492,7 +492,7 @@ public class BmSaveLib(public val sram: CartSram) {
         if (L.SAVE_ID_SUSPEND == slot) writeSaveBlockInfo(scratchInfo, L.SAVE_ID_SUSPEND_ALT)
     }
 
-    /** Transcribed from src/bmsave.c: WriteLastGameSaveId (not verified: no trace writes it). */
+    /** Ported from src/bmsave.c: WriteLastGameSaveId. */
     public fun writeLastGameSaveId(num: Int) {
         readGlobalSaveInfo(infoBuffer)
         infoBuffer[L.HEADER_LAST_GAME_SAVE_ID] = num.toByte()
@@ -673,8 +673,7 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-bwl.c: WriteChapterStats (not verified: `gChapterStats` is all
-     * zero in the reference, which proves the target, not the data)
+     * Ported from src/bmsave-bwl.c: WriteChapterStats
      *
      * Writes `gChapterStats` to SRAM [destOffset].
      */

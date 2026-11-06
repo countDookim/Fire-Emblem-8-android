@@ -1,5 +1,6 @@
 package fe8.game.save
 
+import fe8.game.RomView
 import fe8.game.bm.BmSt
 import fe8.game.bm.PlaySt
 import fe8.game.bm.StructCodec
@@ -18,7 +19,9 @@ import fe8.game.save.BmSaveLib.Companion.GAME_UNITS
 import fe8.game.save.BmSaveLib.Companion.GAME_WM_STUFF
 import fe8.game.save.BmSaveLib.Companion.PACKED_UNIT_SIZE
 import fe8.game.save.BmSaveLib.Companion.UNIT_SAVE_AMOUNT_BLUE
+import fe8.game.save.Fe8SramLayout as L
 import gba.core.sram.readSramFast
+import gba.core.sram.writeAndVerifySramFast
 import gbafe.core.flags.EventFlags
 import gbafe.core.time.GameClock
 
@@ -64,8 +67,13 @@ public class GameSaveRam(
  *
  * @property lib the save RAM routines (and the owner of `gPidStatsData` / `gChapterStats`).
  * @property loader the unit routines (`GetUnitMaxHp`) over the same unit arrays as the RAM read.
+ * @property rom the ROM that unit `pCharacterData` / `pClassData` pointers point into.
  */
-public class BmGameSave(private val lib: BmSaveLib, private val loader: UnitLoader) {
+public class BmGameSave(
+    private val lib: BmSaveLib,
+    private val loader: UnitLoader,
+    private val rom: RomView,
+) {
     /** Stand-in for the `struct GameSavePackedUnit unitp` local. */
     private val packed = ByteArray(PACKED_UNIT_SIZE)
 
@@ -80,6 +88,21 @@ public class BmGameSave(private val lib: BmSaveLib, private val loader: UnitLoad
 
     /** Stand-in for the `struct Dungeon dungeon[2]` local. */
     private val dungeon = ByteArray(DUNGEONS_SIZE)
+
+    /** Stand-in for the `struct SaveBlockInfo chunk` local. */
+    private val chunk = ByteArray(L.BLOCK_INFO_SIZE)
+
+    /** Stand-in for the `struct GlobalSaveInfo info` local. */
+    private val info = ByteArray(L.HEADER_SIZE)
+
+    /** `gPermanentFlagBits` as written. */
+    private val permanentOut = ByteArray(Fe8EventFlags.PERMANENT_SAVE_BYTES)
+
+    /** The convoy as ints (for `WriteSupplyItems`). */
+    private val supply = IntArray(SuspendRam.CONVOY_BYTES / 2)
+
+    /** The unit written when the slot has no character (`ClearUnit(&tmp_unit)`). */
+    private val clearUnit = ByteArray(UnitTable.UNIT_SIZE)
 
     /** `n` bits of the little-endian bit stream [b] starting at bit [start] (n <= 16). */
     private fun bitsAt(b: ByteArray, start: Int, n: Int): Int {
@@ -218,7 +241,7 @@ public class BmGameSave(private val lib: BmSaveLib, private val loader: UnitLoad
         val src = lib.getSaveReadAddr(slot)
 
         if ((PLAY_FLAG_HARD and ram.bmSt.gameStateBits) == 0) {
-            lib.invalidateSuspendSave(Fe8SramLayout.SAVE_ID_SUSPEND)
+            lib.invalidateSuspendSave(L.SAVE_ID_SUSPEND)
         }
 
         readSramFast(lib.sram, src, playStBytes, 0, PlaySt.SIZE)
@@ -245,6 +268,148 @@ public class BmGameSave(private val lib: BmSaveLib, private val loader: UnitLoad
         readSramFast(lib.sram, src + GAME_DUNGEONS, dungeon, 0, DUNGEONS_SIZE)
         // LoadDungeonRecords: memcpy into gDungeonState.dungeon.
         dungeon.copyInto(ram.dungeons)
+        lib.writeLastGameSaveId(slot)
+    }
+
+    /** Stores the low [n] bits of [v] at bit [start] of the bit stream [b]. */
+    private fun putBits(b: ByteArray, start: Int, n: Int, v: Int) {
+        for (i in 0 until n) {
+            val bit = start + i
+            val mask = 1 shl (bit and 7)
+            val cur = b[bit shr 3].toInt()
+            val set = ((v shr i) and 1) != 0
+            b[bit shr 3] = (if (set) cur or mask else cur and mask.inv()).toByte()
+        }
+    }
+
+    /**
+     * Ported from src/bmsave.c: WriteGameSavePackedUnit
+     *
+     * Packs the unit at byte offset [unitOffset] of [units] into a 0x24-byte
+     * `struct GameSavePackedUnit` and writes it to SRAM [destOffset]. A unit without a character
+     * is written as a cleared unit with `pid` and `jid` 0. Values are truncated to their field
+     * width.
+     */
+    public fun writeGameSavePackedUnit(units: UnitTable, unitOffset: Int, destOffset: Int) {
+        val p = packed
+        var u = units.bytes
+        var o = unitOffset
+        val character = StructCodec.u32(u, o + U_CHARACTER)
+        val pid: Int
+        val jid: Int
+        if (character == 0) {
+            clearUnit.fill(0)
+            u = clearUnit
+            o = 0
+            pid = 0
+            jid = 0
+        } else {
+            pid = rom.u8(character + 4)
+            jid = rom.u8(StructCodec.u32(u, o + U_CLASS) + 4)
+        }
+        p.fill(0)
+        putBits(p, 0, 7, jid)
+        putBits(p, 7, 5, u[o + U_LEVEL].toInt())
+        putBits(p, 12, 7, u[o + U_EXP].toInt())
+        putBits(p, 19, 6, u[o + U_X_POS].toInt())
+        putBits(p, 25, 6, u[o + U_Y_POS].toInt())
+        val state = StructCodec.u32(u, o + U_STATE)
+        var flag = 0
+        if ((US_DEAD and state) != 0) flag = flag or PACKED_US_DEAD
+        if ((US_NOT_DEPLOYED and state) != 0) flag = flag or PACKED_US_UNDEPLOYED
+        if ((US_SOLOANIM_1 and state) != 0) flag = flag or PACKED_US_SOLO_ANIM1
+        if ((US_SOLOANIM_2 and state) != 0) flag = flag or PACKED_US_SOLO_ANIM2
+        if ((US_GROWTH_BOOST and state) != 0) flag = flag or PACKED_US_METIS_TOME
+        if ((US_BIT16 and state) != 0) flag = flag or PACKED_US_B4
+        if ((US_BIT25 and state) != 0) flag = flag or PACKED_US_B5
+        if ((US_BIT21 and state) != 0) flag = flag or PACKED_US_NEW_FRIEND
+        putBits(p, 31, 13, flag)
+        putBits(p, 44, 6, u[o + U_MAX_HP].toInt())
+        putBits(p, 50, 5, u[o + U_POW].toInt())
+        putBits(p, 55, 5, u[o + U_SKL].toInt())
+        putBits(p, 60, 5, u[o + U_SPD].toInt())
+        putBits(p, 65, 5, u[o + U_DEF].toInt())
+        putBits(p, 70, 5, u[o + U_RES].toInt())
+        putBits(p, 75, 5, u[o + U_LCK].toInt())
+        putBits(p, 80, 5, u[o + U_CON_BONUS].toInt())
+        putBits(p, 85, 5, u[o + U_MOV_BONUS].toInt())
+        for (i in 0 until 5) putBits(p, 90 + i * 14, 14, StructCodec.u16(u, o + U_ITEMS + i * 2))
+        p[0x14] = pid.toByte()
+        for (i in 0 until 8) p[0x15 + i] = u[o + U_RANKS + i]
+        for (i in 0 until UNIT_SUPPORT_MAX_COUNT) p[0x1D + i] = u[o + U_SUPPORTS + i]
+        writeAndVerifySramFast(p, 0, lib.sram, destOffset, PACKED_UNIT_SIZE)
+    }
+
+    /**
+     * Transcribed from src/bmsave.c: WriteGMMonsterRnState (not verified: the world map's RN
+     * state is a stand-in and the two trailing stack bytes are not derivable)
+     *
+     * Writes the `u32 buf[2]` that `sub_80A71E4` fills (the three halfwords of
+     * `gmMonsterRnState`; the other two bytes are uninitialised stack, zero here) to SRAM
+     * [destOffset].
+     */
+    public fun writeGmMonsterRnState(destOffset: Int, ram: GameSaveRam) {
+        scalar.fill(0)
+        for (i in 0 until 3) StructCodec.put16(scalar, i * 2, ram.gmMonsterRnState[i])
+        writeAndVerifySramFast(scalar, 0, lib.sram, destOffset, 8)
+    }
+
+    /**
+     * Ported from src/bmsave.c: WriteGameSave
+     *
+     * Writes the game save of [slot] from [ram] to the block `GetSaveWriteAddr(slot)` and
+     * publishes it: the suspend save is invalidated, `gameSaveSlot` and `time_saved` are set,
+     * the characters of the blue units are marked known in the global info, and the block info
+     * and last game save id are written. The world map stuff and dungeon records are written
+     * from the stand-ins of [GameSaveRam].
+     */
+    public fun writeGameSave(ram: GameSaveRam, slot: Int) {
+        val dest = lib.getSaveWriteAddr(slot)
+        lib.invalidateSuspendSave(L.SAVE_ID_SUSPEND)
+        ram.playSt.gameSaveSlot = slot
+        ram.playSt.timeSaved = ram.clock.get().toInt()
+        ram.playSt.encode(playStBytes, 0)
+        writeAndVerifySramFast(playStBytes, 0, lib.sram, dest, PlaySt.SIZE)
+
+        for (i in 0 until UNIT_SAVE_AMOUNT_BLUE) {
+            writeGameSavePackedUnit(
+                ram.units, i * UnitTable.UNIT_SIZE, dest + GAME_UNITS + i * PACKED_UNIT_SIZE,
+            )
+        }
+
+        lib.readGlobalSaveInfo(info)
+        for (i in 0 until UNIT_SAVE_AMOUNT_BLUE) {
+            // UNIT_CHAR_ID, then SGM_SetCharacterKnown(charId, &info).
+            val character = StructCodec.u32(ram.units.bytes, i * UnitTable.UNIT_SIZE + U_CHARACTER)
+            val charId = if (character == 0) 0 else rom.u8(character + 4)
+            if (charId <= 256) {
+                val at = L.HEADER_CHAR_KNOWN_FLAGS + (charId shr 3)
+                info[at] = (info[at].toInt() or (1 shl (charId and 7))).toByte()
+            }
+        }
+        lib.writeGlobalSaveInfo(info)
+        writeGmMonsterRnState(dest + GAME_GM_UNIT, ram)
+        for (i in supply.indices) supply[i] = StructCodec.u16(ram.convoy, i * 2)
+        lib.writeSupplyItems(dest + GAME_SUPPLY, supply)
+        lib.writePidStats(dest + GAME_PID_STATS)
+        lib.writeChapterStats(dest + GAME_CHAPTER_STATS)
+        lib.writeBonusContentClaimFlags(dest)
+        Fe8EventFlags.getPermanentFlagBits(ram.flags)
+            .copyInto(permanentOut, 0, 0, permanentOut.size)
+        lib.writePermanentFlags(dest + GAME_PERMANENT_FLAGS, permanentOut)
+        // WriteWorldMapStuff: not ported, the raw stand-in is written.
+        writeAndVerifySramFast(
+            ram.worldMapStuff, 0, lib.sram, dest + GAME_WM_STUFF,
+            Fe8SuspendLayout.GMAP_SAVE_INFO_SIZE,
+        )
+        // SaveDungeonRecords: memcpy from gDungeonState.dungeon.
+        ram.dungeons.copyInto(dungeon)
+        writeAndVerifySramFast(dungeon, 0, lib.sram, dest + GAME_DUNGEONS, DUNGEONS_SIZE)
+
+        chunk.fill(0)
+        StructCodec.put32(chunk, L.INFO_MAGIC32, L.SAVEMAGIC32)
+        chunk[L.INFO_KIND] = L.SAVEBLOCK_KIND_GAME.toByte()
+        lib.writeSaveBlockInfo(chunk, slot)
         lib.writeLastGameSaveId(slot)
     }
 

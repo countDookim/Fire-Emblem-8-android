@@ -7,7 +7,7 @@
   "summary": {
     "total": 8352,
     "verified": 412,
-    "implemented_unverified": 143
+    "implemented_unverified": 144
   },
   "functions": {
     "AddUnitSprite": {
@@ -2037,6 +2037,13 @@
       "tests": [
         "fe8.testing.EntityBmMapsDifferentialTest#fog maps match the game on chapter 6"
       ]
+    },
+    "MapMain_ResumeFromPhaseIdle": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt",
+      "status": "implemented",
+      "tests": []
     },
     "MidiKeyToCgbFreq": {
       "decomp_file": "src/m4a.c",

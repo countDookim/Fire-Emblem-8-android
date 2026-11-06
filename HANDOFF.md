@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M6-15: scheduled, until ~18:50Z (wip/M6-15 if unfinished)
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-06)
 - Issue #4 fixed 11-06 (cloud owner session), awaiting device retest: causes were BMapMain fade stand-ins (no-op;
@@ -16,7 +16,13 @@ _(nothing blocked)_
   ram_trace_newgame f1174..1193), GameControl fade stand-ins (GameControl.kt:206-212, 409-414), the opening event
   repeats fades because text/camera/unit commands are stubs. Map palette not yet compared to first_phase pal.bin.
 
-## Next task: M6-11, then M6-12 (M6-10 rest, M6-20 rest: Event15/volume change)
+## Next task: M6-17 (on `wip/M6-17`), then M6-12 (M6-10 rest, M6-20 rest: Event15/volume change)
+Scheduled 11-06 18:16Z: M6-11 done (`savemenu/PostSaveMenu.kt`, `PostSaveMenuDifferentialTest`; stand-in selection; not
+yet wired into `GameControl.hooks.startSaveMenu`: do it in M6-12). M6-13 blocked (no run reaches the four functions; TASKS).
+M6-15/16 done (`UnitSprites`, `UnitSpriteHandles`, `UnitSpritesDifferentialTest` vs f19430). `wip/M6-17`: Sync/ForceSync
+UnitSpriteSheet; ForceSync verified over f19430..19530 (>=68 branch unobserved; SyncUnitSpriteSheet untagged, testable at
+f19450/f19490 clock 32/0; `registerDataMove` copies at once instead of queueing FlushTiles); open: PutUnitSpritesOam,
+MapTask hook, Fe8Game.present OBJ. Full jvmTest + :game Dokka green 11-06 18:34Z (master ce4cf72).
 Scheduled 11-06 18:xx: M6-08 done (`SaveStorage`, `FileSaveStorage` temp+ATOMIC_MOVE in gba/core jvmMain,
 `CartSram.loadFrom/flushTo`; Android wiring = `File(filesDir, "fe8.sav")` in M6-12). M6-09 done
 (`BattleMapStart.startResumedGame`, wired in Fe8Boot; `StartResumedGameDifferentialTest` r01149 gBmSt; camera only

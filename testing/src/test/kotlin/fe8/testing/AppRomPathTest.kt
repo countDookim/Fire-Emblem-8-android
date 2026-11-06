@@ -61,6 +61,35 @@ class AppRomPathTest {
         }
     }
 
+    /** Issue #4: one START on the title reached a player phase that rendered all black. */
+    @Test
+    fun `whole ROM - one START on the title renders the Prologue map, not a black screen`() {
+        assumeTrue(romFile.isFile)
+        val full = RomView.ofRom(romFile.readBytes())
+        val game = Fe8Game(rom = full, sound = Fe8Sound.create(full))
+        val boot = game.boot!!
+        var frame = 0
+        var pressAt = Int.MAX_VALUE
+        game.actionSource = gba.input.ActionSource {
+            if (frame - pressAt in 0..3) 0x8L else 0L
+        }
+        var reached = -1
+        while (frame < 12000 && (reached < 0 || frame < reached + 300)) {
+            if (pressAt == Int.MAX_VALUE &&
+                boot.engine.procs.any { it.script?.name == "gProcScr_DrawTitleSprites" }
+            ) {
+                pressAt = frame + 30
+            }
+            game.tick()
+            game.present(0f)
+            frame++
+            if (reached < 0 && boot.engine.find(boot.playerPhaseScript) != null) reached = frame
+        }
+        assertTrue(reached >= 0, "no player phase by f$frame")
+        val colours = game.frame.pixels.toSet().size
+        assertTrue(colours > 8, "rendered frame has only $colours colours (blendY ${boot.ui.env.hardware.lcd.blendY})")
+    }
+
     private companion object {
         const val FRAMES = 6000
 

@@ -219,6 +219,8 @@ public class BattleMapStart(
 
         gfx.initBmBgLayers()
         map.initChapterMap(playSt.chapterIndex)
+        // `InitChapterMap` also unpacks the tileset graphics and palette (BmMap does not).
+        gfx.unpackChapterMapGraphics(playSt.chapterIndex)
         hooks.initMapObstacles()
 
         playSt.timeChapterStarted = clock.get().toInt()

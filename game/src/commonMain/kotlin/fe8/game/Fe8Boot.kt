@@ -18,6 +18,7 @@ import fe8.game.bm.UnitTable
 import fe8.game.event.EventConst
 import fe8.game.event.EventEngine
 import fe8.game.event.EventEngineHooks
+import fe8.game.event.EventFade
 import fe8.game.event.EventHandler
 import fe8.game.event.EventScrCore
 import fe8.game.event.EventState
@@ -52,6 +53,7 @@ import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.render.HardwareSceneLoader
+import gbafe.render.ScreenFade
 
 /**
  * The boot sequence wired for a device: `StartGame` -> game control -> health & safety screen ->
@@ -101,6 +103,9 @@ public class Fe8Boot(
     )
 
     private val hw = ui.env.hardware
+
+    /** The blend fades of `src/bmlib.c` (`StartMidFadeFromBlack`, the event fade command). */
+    public val screenFade: ScreenFade = ScreenFade(engine, hw.lcd)
     private val io = ByteArray(0x60)
 
     private lateinit var opAnimRef: OpAnim
@@ -147,6 +152,8 @@ public class Fe8Boot(
         // `gKeyStatusPtr->newKeys & START_BUTTON`: the game's single KeyStatus.
         val hooks = object : EventEngineHooks {
             override fun startPressed(): Boolean = keys.newKeys and KeyStatus.START_BUTTON != 0
+            override fun fadeExists(): Boolean = screenFade.fadeExists()
+            override fun blendY(): Int = hw.lcd.blendY
         }
         EventEngine(engine, state, memory, hooks).also {
             EventScrCore(
@@ -198,6 +205,7 @@ public class Fe8Boot(
                     r
                 })
             }
+            EventFade(memory, screenFade).registerOn(it)
             ReleaseEventStubs.registerMissing(it)
         }
     }
@@ -241,6 +249,8 @@ public class Fe8Boot(
             EntityBmMaps(map, units, control.playSt), render, keys,
             eventEngine::eventEngineExists,
         ).script
+        main.hooks.startMidFadeFromBlack = { screenFade.startMidFadeFromBlack() }
+        main.hooks.waitForFade = { !screenFade.fadeExists() }
         main.hooks.callEvent = { events, execType, _ ->
             eventEngine.callEvent(events, execType)
         }

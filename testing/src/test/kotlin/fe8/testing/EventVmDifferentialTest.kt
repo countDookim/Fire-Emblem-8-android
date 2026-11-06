@@ -147,6 +147,12 @@ class EventVmDifferentialTest {
     @Test
     fun `Event10 ModifyEvBit`() = assertCode(0x10)
 
+    // Not @VerifiesPort: the skipping branch and the SetDispEnable call survive breaks (the
+    // trace has no skipping pair and the display state is not compared); FADU/FADI/FAWx bits and
+    // the YIELD result do fail.
+    @Test
+    fun `Event17 Fade`() = assertCode(0x17)
+
     // Not @VerifiesPort: only sub 7 of the 11 subs runs on data.
     @Test
     fun `Event19 Checks`() = assertCode(0x19)
@@ -354,6 +360,9 @@ class EventVmDifferentialTest {
                 state, mem, object : fe8.game.event.EventInput {}, flags, rng, playSt, keys,
             )
             core.registerAll(engine)
+            val fade = fe8.game.event.EventFade(
+                mem, gbafe.render.ScreenFade(procs, gbafe.render.LcdControl()),
+            )
             val ported = mapOf(
                 0x00 to core.event00Null,
                 0x04 to core.event04CheckRandom,
@@ -373,6 +382,7 @@ class EventVmDifferentialTest {
                 0x0C to core.event0cBranch,
                 0x0E to core.event0eStal,
                 0x0F to core.event0fCounterOps,
+                0x17 to fade.event17Fade,
                 0x34 to unitState.event34MessWithUnitState,
             )
             for (code in 0..0xFF) {
@@ -766,7 +776,7 @@ class EventVmDifferentialTest {
         val MIN_CODE_PAIRS = mapOf(
             0x01 to 14, 0x02 to 3, 0x10 to 2, 0x19 to 1, 0x03 to 8, 0x05 to 7, 0x06 to 3, 0x07 to 3,
             0x08 to 7,
-            0x09 to 1, 0x0A to 9, 0x0C to 8, 0x0E to 2400,
+            0x09 to 1, 0x17 to 20, 0x0A to 9, 0x0C to 8, 0x0E to 2400,
         )
 
         /** Minimum pairs in which each stub completed its command. */
@@ -801,8 +811,6 @@ class EventVmDifferentialTest {
          *
          * - 0x12 Event12_StartBGM: CONTINUE when skipping, else YIELD (starts a song).
          * - 0x15 Event15_BgmVolume: same.
-         * - 0x17 Event17_Fade: skipping: CONTINUE; else YIELD, with FADEDIN cleared for
-         *   subcodes 0/2 (FADU, FAWU) and set for 1/3 (FADI, FAWI).
          * - 0x1A Event1A_TEXTSTART: subcodes 0/3/4/5 YIELD; 1/2 run Event23_DisaleMapDisp, which
          *   sets GFXLOCKED and yields. The text teardown the C does when the subcode changes
          *   (EndTalk, face fade) touches no compared state.
@@ -848,17 +856,6 @@ class EventVmDifferentialTest {
                 0xC4, 0xC5,
             )) {
                 stub(c) { _, _, _ -> CONT }
-            }
-            stub(0x17) { p, m, _ ->
-                if (skipping(p)) {
-                    CONT
-                } else {
-                    when (m.u16(p.pEventCurrent) and 0xF) {
-                        0, 2 -> p.evStateBits = p.evStateBits and EV_STATE_FADEDIN.inv()
-                        else -> p.evStateBits = p.evStateBits or EV_STATE_FADEDIN
-                    }
-                    YIELD
-                }
             }
             stub(0x1A) { p, m, _ ->
                 if ((m.u16(p.pEventCurrent) and 0xF) in 1..2) {

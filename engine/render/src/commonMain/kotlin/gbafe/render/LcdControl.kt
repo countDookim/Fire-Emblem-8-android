@@ -91,6 +91,24 @@ public class LcdControl {
         bldcnt = (bldcnt and 0x1F00.inv()) or (targets(bg0, bg1, bg2, bg3, obj) shl 8)
     }
 
+    /**
+     * `bldcnt.target1_bd_on` (BLDCNT bit 5): the backdrop as first target.
+     *
+     * Ported from src/hardware.c: SetBlendBackdropA
+     */
+    public fun setBlendBackdropA(a: Int) {
+        bldcnt = (bldcnt and 0x20.inv()) or ((a and 1) shl 5)
+    }
+
+    /**
+     * `bldcnt.target2_bd_on` (BLDCNT bit 13): the backdrop as second target.
+     *
+     * Ported from src/hardware.c: SetBlendBackdropB
+     */
+    public fun setBlendBackdropB(a: Int) {
+        bldcnt = (bldcnt and 0x2000.inv()) or ((a and 1) shl 13)
+    }
+
     /** The `SetDispEnable` macro (include/hardware.h): DISPCNT BG0..BG3 and OBJ enable bits (8..12). */
     public fun setDispEnable(bg0: Int, bg1: Int, bg2: Int, bg3: Int, obj: Int) {
         dispcnt = (dispcnt and 0x1F00.inv()) or (targets(bg0, bg1, bg2, bg3, obj) shl 8)

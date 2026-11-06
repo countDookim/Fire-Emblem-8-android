@@ -12,12 +12,13 @@ _(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
   1). Issue #4 can be closed. Owner-reported problem on the Prologue opening (owner 11-07: note it, don't
-  investigate yet): the opening plays but its cutscenes are skipped and no dialogue is shown; a few ally units are
-  placed on the map, then the cursor can be moved but nothing happens; there is no player phase and no enemies. Code
-  facts (read, not traced): `Fe8Boot.eventEngine` (Fe8Boot.kt:184-252) registers only EventScrCore, unit loads,
-  ChangeMap, Fade, Bgm; Talk (M6-33/34), Mu (M6-25..27) and `EventUnitState` (Event34) are ported but not registered
-  there, so their commands hit `ReleaseEventStubs` no-ops. Note the headless `AppRomPathTest`/ `PrologueMapTest` do
-  reach `playerPhaseScript` (15 red units), so the device path differs: find out why first.
+  investigate yet): the opening plays but its cutscenes are skipped and no dialogue is shown; the screen flashes a
+  few times; many cutscene units that should not be there end up on the battle map with the allies; then the cursor
+  can be moved but nothing happens; there is no player phase and no enemies. Code facts (read, not traced):
+  `Fe8Boot.eventEngine` (Fe8Boot.kt:184-252) registers only EventScrCore, unit loads, ChangeMap, Fade, Bgm; Talk
+  (M6-33/34), Mu (M6-25..27) and `EventUnitState` (Event34) are ported but not registered there, so their commands
+  hit `ReleaseEventStubs` no-ops. Note the headless `AppRomPathTest`/ `PrologueMapTest` do reach `playerPhaseScript`
+  (15 red units), so the device path differs: find out why first.
 - Open from issue #4: Event15 + `StartBgmVolumeChange` (save-menu BGM ramp, ram_trace_newgame f1174..1193),
   GameControl fade stand-ins (GameControl.kt:206-212, 409-414). Map palette not yet compared to first_phase pal.bin.
 

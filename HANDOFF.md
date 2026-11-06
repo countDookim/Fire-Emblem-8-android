@@ -8,7 +8,7 @@ _(nothing blocked)_
 
 ## In progress
 _(claim tasks here before starting them, CLAUDE.md rule 10)_
-- M6-36: scheduled, until ~23:25Z
+- M6-35: scheduled, until ~23:25Z (wip/M6-35 if unfinished)
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn

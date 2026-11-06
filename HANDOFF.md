@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
+- M5-60d: scheduled, until ~11:25Z
 
 ## Next task: M5-60d (event-layer unit loads + register load_unit in Fe8Boot), then finish M5-58/59 from `wip/M5-58`
 M5-60 core done (scheduled 11-06): `fe8.game.bm.UnitLoader(table, rom, unsealedCharacter, rng, isHardMode)`:

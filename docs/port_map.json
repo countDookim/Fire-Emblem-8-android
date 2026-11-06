@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 350,
-    "implemented_unverified": 86
+    "verified": 373,
+    "implemented_unverified": 108
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -205,6 +205,20 @@
         "fe8.testing.CamMoveDifferentialTest#ch6 phase start resets the cursor and scrolls the camera"
       ]
     },
+    "CanUnitUseStaff": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "CanUnitUseWeapon": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "CgbModVol": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -221,6 +235,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "CharStoreAI": {
+      "decomp_file": "src/cp_utility.c",
+      "system": "ai",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items",
+        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
       ]
     },
     "CheckCanKeyComboReset": {
@@ -356,6 +380,15 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "ClearUnit": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
     "ColorFadeSetupFromBlack": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -431,6 +464,13 @@
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
+    },
+    "CopyUnit": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
     },
     "CountProcs": {
       "decomp_file": "src/proc.c",
@@ -830,6 +870,15 @@
         "fe8.testing.M4aFadeTest#fade steps match the trace"
       ]
     },
+    "FixROMUnitStructPtr": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
     "FlipBgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
       "system": "battle_map",
@@ -979,6 +1028,22 @@
         "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
       ]
     },
+    "GenUnitDefinitionFinalPosition": {
+      "decomp_file": "src/muctrl.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetAutoleveledStatIncrease": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#autoleveled red units reproduce the dump for the RNG states of the window"
+      ]
+    },
     "GetBackgroundTileDataOffset": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -1083,12 +1148,57 @@
         "fe8.testing.ChapterDataRomTest#every chapter matches direct ROM reads"
       ]
     },
+    "GetCharacterData": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "GetClassData": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "GetCurrentPromotedLevelBonus": {
+      "decomp_file": "src/bmdifficulty.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#autoleveled red units reproduce the dump for the RNG states of the window"
+      ]
+    },
     "GetEventSlotCounter": {
       "decomp_file": "src/event.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
       "status": "implemented",
       "tests": []
+    },
+    "GetFreeBlueUnit": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "GetFreeUnit": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
     },
     "GetGameClock": {
       "decomp_file": "src/time.c",
@@ -1110,6 +1220,68 @@
       "decomp_file": "src/bmsave-bwl.c",
       "system": "save",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetItemAttributes": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetItemData": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items"
+      ]
+    },
+    "GetItemHpBonus": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetItemIndex": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items"
+      ]
+    },
+    "GetItemMaxUses": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items"
+      ]
+    },
+    "GetItemRequiredExp": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetItemStatBonuses": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetItemType": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
       "status": "implemented",
       "tests": []
     },
@@ -1193,6 +1365,15 @@
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
       ]
     },
+    "GetStatIncrease": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#autoleveled red units reproduce the dump for the RNG states of the window"
+      ]
+    },
     "GetTrueTerrainAt": {
       "decomp_file": "src/bmmap.c",
       "system": "battle_map",
@@ -1209,6 +1390,13 @@
       "status": "implemented",
       "tests": []
     },
+    "GetUnitEquippedWeapon": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "GetUnitFromCharId": {
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
@@ -1216,6 +1404,45 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitTableDifferentialTest#GetUnitFromCharId finds Eirika where the player phase puts the cursor"
+      ]
+    },
+    "GetUnitFromCharIdAndFaction": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetUnitItemCount": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetUnitMaxHp": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetUnitSupporterCount": {
+      "decomp_file": "src/bmreliance.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "GetUnitSupporterInitialExp": {
+      "decomp_file": "src/bmreliance.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
       ]
     },
     "GotoChapterWithoutSave": {
@@ -1376,6 +1603,13 @@
       "status": "implemented",
       "tests": []
     },
+    "IsItemUnsealedForUnit": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "IsSaveValid": {
       "decomp_file": "src/bmsave.c",
       "system": "save",
@@ -1463,6 +1697,25 @@
       "status": "implemented",
       "tests": []
     },
+    "LoadUnit": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#autoleveled red units reproduce the dump for the RNG states of the window",
+        "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items",
+        "fe8.testing.UnitLoaderDifferentialTest#loading the prologue messenger reproduces the unit",
+        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "LoadUnit_800F704": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "LockGame": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -1515,6 +1768,15 @@
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
       ]
     },
+    "MakeNewItem": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items"
+      ]
+    },
     "MapAddInRange": {
       "decomp_file": "src/bmidoten.c",
       "system": "battle_map",
@@ -1541,6 +1803,20 @@
       "tests": [
         "fe8.testing.M4aPitchTest#DirectSound channel frequencies match every reference RAM dump"
       ]
+    },
+    "MoveUnitExt": {
+      "decomp_file": "src/muctrl.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "MoveUnit_": {
+      "decomp_file": "src/muctrl.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
     },
     "NewProc08AA6D04": {
       "decomp_file": "src/opanim-main.c",
@@ -2747,6 +3023,94 @@
       "status": "implemented",
       "tests": []
     },
+    "UnitAddItem": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items"
+      ]
+    },
+    "UnitAutolevel": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#autoleveled red units reproduce the dump for the RNG states of the window"
+      ]
+    },
+    "UnitAutolevelCore": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#autoleveled red units reproduce the dump for the RNG states of the window"
+      ]
+    },
+    "UnitAutolevelWExp": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "UnitChangeFaction": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "UnitCheckStatCaps": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "UnitHideIfUnderRoof": {
+      "decomp_file": "src/bmtrick.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "UnitInitFromDefinition": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#autoleveled red units reproduce the dump for the RNG states of the window",
+        "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items",
+        "fe8.testing.UnitLoaderDifferentialTest#loading the prologue messenger reproduces the unit",
+        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "UnitLoadStatsFromChracter": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#autoleveled red units reproduce the dump for the RNG states of the window",
+        "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items",
+        "fe8.testing.UnitLoaderDifferentialTest#loading the prologue messenger reproduces the unit",
+        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "UnitLoadSupports": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
     "UnlockGame": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -3040,6 +3404,13 @@
       "decomp_file": "src/gamecontrol.c",
       "system": "core",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_800F8A8": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },

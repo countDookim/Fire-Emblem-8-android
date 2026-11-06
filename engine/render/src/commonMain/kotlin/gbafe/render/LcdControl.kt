@@ -94,7 +94,8 @@ public class LcdControl {
     /**
      * `bldcnt.target1_bd_on` (BLDCNT bit 5): the backdrop as first target.
      *
-     * Ported from src/hardware.c: SetBlendBackdropA
+     * Transcribed from src/hardware.c: SetBlendBackdropA (not verified:
+     *   only reached through the fade inits, no test checks the bit alone)
      */
     public fun setBlendBackdropA(a: Int) {
         bldcnt = (bldcnt and 0x20.inv()) or ((a and 1) shl 5)
@@ -103,7 +104,8 @@ public class LcdControl {
     /**
      * `bldcnt.target2_bd_on` (BLDCNT bit 13): the backdrop as second target.
      *
-     * Ported from src/hardware.c: SetBlendBackdropB
+     * Transcribed from src/hardware.c: SetBlendBackdropB (not verified:
+     *   never called by a traced path)
      */
     public fun setBlendBackdropB(a: Int) {
         bldcnt = (bldcnt and 0x2000.inv()) or ((a and 1) shl 13)

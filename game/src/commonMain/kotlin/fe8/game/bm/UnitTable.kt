@@ -57,7 +57,8 @@ public class UnitTable(
     }
 
     /**
-     * Ported from src/bmphase.c: CountUnitsInState
+     * Transcribed from src/bmphase.c: CountUnitsInState (not verified:
+     *   only reached by the victory-song check, which the Prologue trace never takes)
      *
      * Counts the valid units with ids `faction + 1` until `faction + 0x40` that have none of the
      * `state` bits.

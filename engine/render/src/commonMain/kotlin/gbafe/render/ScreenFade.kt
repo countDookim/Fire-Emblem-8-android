@@ -36,7 +36,8 @@ public class ScreenFade(
     }
 
     /**
-     * Ported from src/bmlib.c: FadeToBlack_OnInit
+     * Transcribed from src/bmlib.c: FadeToBlack_OnInit (not verified:
+     *   no reference run fades to black)
      */
     public fun fadeToBlackOnInit(proc: Proc) {
         enableBlendInWindows()
@@ -49,7 +50,8 @@ public class ScreenFade(
     }
 
     /**
-     * Ported from src/bmlib.c: FadeToCommon_OnLoop
+     * Transcribed from src/bmlib.c: FadeToCommon_OnLoop (not verified:
+     *   only the FromCommon loop is traced, no fade to black or white)
      */
     public fun fadeToCommonOnLoop(proc: Proc) {
         if (lcd.blendY == 0x10) {
@@ -92,7 +94,8 @@ public class ScreenFade(
     }
 
     /**
-     * Ported from src/bmlib.c: FadeToWhite_OnInit
+     * Transcribed from src/bmlib.c: FadeToWhite_OnInit (not verified:
+     *   no reference run fades to white)
      */
     public fun fadeToWhiteOnInit(proc: Proc) {
         fadeToBlackOnInit(proc)
@@ -100,7 +103,8 @@ public class ScreenFade(
     }
 
     /**
-     * Ported from src/bmlib.c: FadeFromWhite_OnInit
+     * Transcribed from src/bmlib.c: FadeFromWhite_OnInit (not verified:
+     *   no reference run fades from white)
      */
     public fun fadeFromWhiteOnInit(proc: Proc) {
         fadeFromBlackOnInit(proc)
@@ -151,13 +155,22 @@ public class ScreenFade(
         (proc.state as State).speed = speed.toShort().toInt()
     }
 
-    /** Ported from src/bmlib.c: StartFadeToBlack */
+    /**
+     * Transcribed from src/bmlib.c: StartFadeToBlack (not verified:
+     *   only the locking FromBlack start is traced)
+     */
     public fun startFadeToBlack(speed: Int): Unit = begin(toBlack, speed)
 
-    /** Ported from src/bmlib.c: StartFadeFromBlack */
+    /**
+     * Transcribed from src/bmlib.c: StartFadeFromBlack (not verified:
+     *   only the locking FromBlack start is traced)
+     */
     public fun startFadeFromBlack(speed: Int): Unit = begin(fromBlack, speed)
 
-    /** Ported from src/bmlib.c: StartLockingFadeToBlack */
+    /**
+     * Transcribed from src/bmlib.c: StartLockingFadeToBlack (not verified:
+     *   no reference run fades to black)
+     */
     public fun startLockingFadeToBlack(speed: Int, parent: Proc): Unit =
         beginBlocking(toBlack, speed, parent)
 
@@ -165,17 +178,29 @@ public class ScreenFade(
     public fun startLockingFadeFromBlack(speed: Int, parent: Proc): Unit =
         beginBlocking(fromBlack, speed, parent)
 
-    /** Ported from src/bmlib.c: StartLockingFadeToWhite */
+    /**
+     * Transcribed from src/bmlib.c: StartLockingFadeToWhite (not verified:
+     *   no reference run fades to white)
+     */
     public fun startLockingFadeToWhite(speed: Int, parent: Proc): Unit =
         beginBlocking(toWhite, speed, parent)
 
-    /** Ported from src/bmlib.c: StartLockingFadeFromWhite */
+    /**
+     * Transcribed from src/bmlib.c: StartLockingFadeFromWhite (not verified:
+     *   no reference run fades from white)
+     */
     public fun startLockingFadeFromWhite(speed: Int, parent: Proc): Unit =
         beginBlocking(fromWhite, speed, parent)
 
-    /** Ported from src/bmlib.c: StartMidFadeToBlack */
+    /**
+     * Transcribed from src/bmlib.c: StartMidFadeToBlack (not verified:
+     *   never called by a traced path)
+     */
     public fun startMidFadeToBlack(): Unit = startFadeToBlack(0x10)
 
-    /** Ported from src/bmlib.c: StartMidFadeFromBlack */
+    /**
+     * Transcribed from src/bmlib.c: StartMidFadeFromBlack (not verified:
+     *   never called by a traced path)
+     */
     public fun startMidFadeFromBlack(): Unit = startFadeFromBlack(0x10)
 }

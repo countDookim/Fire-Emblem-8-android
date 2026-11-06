@@ -17,7 +17,8 @@ public class EventBgm(
     }
 
     /**
-     * Ported from src/eventscr.c: Event12_StartBGM
+     * Transcribed from src/eventscr.c: Event12_StartBGM (not verified:
+     *   EventVmDifferentialTest compares only the result code, not the song start)
      *
      * Not while skipping: starts (or changes to) the song of the s16 argument (a negative one
      * reads slot 2) with `StartBgmExt(song, 3, NULL)` and yields.

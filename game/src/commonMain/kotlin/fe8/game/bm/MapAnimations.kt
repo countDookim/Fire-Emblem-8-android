@@ -29,7 +29,8 @@ public class MapAnimations(
     private var tilePalAnimClock = 0
 
     /**
-     * Ported from src/bmio.c: BMapVSync_InitMapAnimations
+     * Transcribed from src/bmio.c: BMapVSync_InitMapAnimations (not verified:
+     *   the test seeds the animation state, so the init is never run against a trace)
      *
      * Clears both clocks and points both animations at the first entry of the chapter's tables.
      */
@@ -77,7 +78,8 @@ public class MapAnimations(
     }
 
     /**
-     * Ported from src/bmio.c: BMapVSync_UpdateMapPalAnimations
+     * Transcribed from src/bmio.c: BMapVSync_UpdateMapPalAnimations (not verified:
+     *   only the tile animation is compared against a trace)
      *
      * Every `time` frames copies the current `TilePalAnim` entry (u32 data pointer, u8 time, u8
      * colorCount, u8 colorStart) into `gPaletteBuffer` at colour `colorStart + 0x10 * 6`, enables

@@ -148,13 +148,16 @@ public class BattleMapStart(
         /** `WfxUpdate`, second call of every `gProc_MapTask` frame. Stand-in. */
         public var wfxUpdate: () -> Unit = {}
 
-        /** `BMapVSync_InitMapAnimations` and `WfxInit` (run by `BMapVSync_Start`). Stand-in. */
+        /**
+         * `BMapVSync_InitMapAnimations` and `WfxInit` (run by `BMapVSync_Start`). `Fe8Boot`
+         * wires `MapAnimations.initMapAnimations` only.
+         */
         public var initMapAnimations: () -> Unit = {}
 
-        /** `BMapVSync_UpdateMapImgAnimations`. Stand-in. */
+        /** `BMapVSync_UpdateMapImgAnimations`; `Fe8Boot` wires `MapAnimations`. */
         public var updateMapImgAnimations: () -> Unit = {}
 
-        /** `BMapVSync_UpdateMapPalAnimations`. Stand-in. */
+        /** `BMapVSync_UpdateMapPalAnimations`; `Fe8Boot` wires `MapAnimations`. */
         public var updateMapPalAnimations: () -> Unit = {}
 
         /** `SyncUnitSpriteSheet`. Stand-in. */

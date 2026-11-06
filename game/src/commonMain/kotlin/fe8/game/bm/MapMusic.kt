@@ -16,7 +16,8 @@ public class MapMusic(
     private val battleMapKind: () -> Int,
 ) {
     /**
-     * Ported from src/bm.c: GetCurrentMapMusicIndex
+     * Transcribed from src/bm.c: GetCurrentMapMusicIndex (not verified:
+     *   only the Prologue's BGM is traced, red/green slots indistinguishable)
      *
      * The `mapBgmIds` entry of the current chapter for the phase's faction (the alternates after
      * `EVFLAG_BGM_CHANGE`); in the player phase the victory song once the red units alive are
@@ -51,7 +52,8 @@ public class MapMusic(
     }
 
     /**
-     * Ported from src/bm.c: StartMapSongBgm
+     * Transcribed from src/bm.c: StartMapSongBgm (not verified:
+     *   only the Prologue's BGM is traced, the sound state is not compared)
      */
     public fun startMapSongBgm() {
         sound.startBgm(getCurrentMapMusicIndex(), -1)

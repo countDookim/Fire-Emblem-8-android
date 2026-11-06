@@ -106,7 +106,8 @@ public class UnitSpritesOam(
     }
 
     /**
-     * Ported from src/bmudisp.c: PutChapterMarkedTileIconOam
+     * Transcribed from src/bmudisp.c: PutChapterMarkedTileIconOam (not verified:
+     *   the trace chapter has no goal tile (destPosX == 0xFF))
      *
      * Blinking marker on the chapter's goal tile. Not verified: the trace chapter has no goal
      * tile (`destPosX == 0xFF`).

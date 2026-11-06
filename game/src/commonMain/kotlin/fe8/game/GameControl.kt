@@ -384,7 +384,10 @@ public class GameControl(
         public var chapterSwitch: ProcFunc = ProcFunc { },
         /** `GameControl_CallPostChapterSaveMenu`. Stand-in until its port. */
         public var callPostChapterSaveMenu: ProcFunc = ProcFunc { },
-        /** `GameCtrl_StartResumedGame`. Stand-in until its port. */
+        /**
+         * `GameCtrl_StartResumedGame`; `Fe8Boot` wires `BattleMapStart.startResumedGame`
+         * (transcribed, not verified).
+         */
         public var startResumedGame: ProcFunc = ProcFunc { },
         /** `StartLinkArenaMainMenu`. Stand-in until its port. */
         public var startLinkArenaMainMenu: ProcFunc = ProcFunc { },

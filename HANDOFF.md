@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
+- M5-61: owner PC, until ~17:00Z
 
 ## Next task: M5-61 (app keeps the imported ROM; ADR 0011 amended 11-06), then M6 in TASKS order
 Owner 11-06: run ONE agent/task at a time from now on. M5-58/59 merged (11-06): Fe8Boot runs New Game → beginning

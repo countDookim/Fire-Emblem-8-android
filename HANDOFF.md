@@ -7,10 +7,8 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M5-58/59 on `wip/M5-58` (session 11-06, owner PC: agent finishing event stand-ins, then M5-59 tests)
-- Test audit: full jvmTest + break-check of the M5-60/60d tags (session 11-06, owner PC)
-- M6 planning draft (session 11-06, owner PC; fewer than 5 `todo` left)
-- Delete merged `wip/M5-53`, `wip/M5-56`, `wip/M5-60` (session 11-06)
+- M5-58 fixes on `wip/M5-58` (review findings), M6-01/02 (notes + runs), M6-03..05 (suspend save), M6-21/22 (unit
+  compare + Event34): owner PC, until ~15:00Z
 
 ## Next task: finish M5-58/59 on `wip/M5-58` (replace the skip-all stand-in), then merge
 M5-60d done (scheduled 11-06, master): `fe8.game.event.EventUnitLoads` (Event2B, Event2C skip/FADEDIN path,
@@ -47,7 +45,7 @@ ROM script → returns; 0 B/frame). `wip/M5-56`, `wip/M5-60` are merged and can 
   `CgbSound` verified; `PsgSynth` (GBATEK/mGBA behaviour, not a port) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad, GPU backend, audio, ROM import (~4 s) + boot
   from it. Pending: smoke test of the first APK built on the KMP android variants (MANUAL_TEST "Newly testable").
-- Verified ports: 350 / 8352 (`tools/progress.py`, 2026-11-05). Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
+- Verified ports: 370 / 8352 (`tools/progress.py`, 2026-11-06; audit withheld 6 M5-60 overclaims). Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
 - Layout: `:gba:*` game-neutral (ADR 0012), `gbafe.*` in `:engine:*`, `fe8.*` in `:game`/`:app`; KMP jvm+android
   (ADR 0013) except `:gba:testkit`, `:testing`, `:tools:extract`.
 

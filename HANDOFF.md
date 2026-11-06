@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
+- M5-60: scheduled, until ~05:25Z (work on `wip/M5-60`)
 
 ## Next task: M5-60 (unit loader), then finish M5-58/59 from `wip/M5-58`
 M5-53..55 done (owner PC): `EventVmDifferentialTest` runs the real `EventEngine` over the whole prologue trace (12618

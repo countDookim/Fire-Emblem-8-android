@@ -109,7 +109,17 @@ class ResumeBootTest {
         assumeTrue(ref.available, "mGBA reference data not present")
         val pre = ref.run("sram_chapter2_boot")
         assumeTrue(pre.hasSram, "sram_chapter2_boot has no SRAM dumps")
-        val r = ref.run("ram_trace_ch2_scroll")
+        checkResumeLabel(pre.sram("s00001"), ref.run("ram_trace_ch2_scroll"), "chapter2")
+        val sav = listOf(
+            File(assets, "prologue.sav"),
+            romRepoFixture("prologue.sav"),
+        ).firstOrNull { it.isFile && it.length() == CartSram.SIZE.toLong() }
+        if (sav != null) {
+            checkResumeLabel(sav.readBytes(), ref.run("ram_trace_prologue_resume"), "prologue")
+        }
+    }
+
+    private fun checkResumeLabel(image: ByteArray, r: ReferenceData.Run, what: String) {
         val want = ProcArrayDump.ofEwram(r.region("r01150", "ewram")).find(0x0859A1F0)!!.scrCur
         assertEquals(40, want)
         val iwram = r.region("r01150", "iwram")
@@ -118,14 +128,14 @@ class ResumeBootTest {
         var type = -1
         var got = -1
         var layers = -1
-        bootToPhase(CountingStorage(pre.sram("s00001"))) { boot, proc ->
+        bootToPhase(CountingStorage(image)) { boot, proc ->
             type = boot.battleMap.hooks.suspendPointType()
             got = proc.scrCur
             layers = boot.ui.env.hardware.lcd.dispcnt and 0x1F00
         }
-        assertEquals(0, type, "SUSPEND_POINT_PLAYERIDLE, the type chapter2.sav was suspended at")
-        assertEquals(want, got)
-        assertEquals(wantLayers, layers, "BG0..3 / OBJ enable bits of gLCDControlBuffer.dispcnt")
+        assertEquals(0, type, "$what: SUSPEND_POINT_PLAYERIDLE")
+        assertEquals(want, got, what)
+        assertEquals(wantLayers, layers, "$what: BG0..3 / OBJ enable bits of dispcnt")
     }
 
     @Test
@@ -133,7 +143,7 @@ class ResumeBootTest {
         needRom()
         val sav = listOf(
             File(assets, "prologue.sav"),
-            File("/home/claude/fire-emblem-8-rom/reference/fixtures/prologue.sav"),
+            romRepoFixture("prologue.sav"),
         ).firstOrNull { it.isFile && it.length() == CartSram.SIZE.toLong() }
         assumeTrue(sav != null, "prologue.sav fixture not present")
         val (boot, reached) = bootToPhase(CountingStorage(sav!!.readBytes()))
@@ -175,7 +185,7 @@ class ResumeBootTest {
     @Test
     fun `prologue units at the resumed idle phase equal the reference`() {
         needRom()
-        val sav = File("/home/claude/fire-emblem-8-rom/reference/fixtures/prologue.sav")
+        val sav = romRepoFixture("prologue.sav")
         assumeTrue(sav.isFile, "prologue.sav fixture not present")
         val (boot, reached) = bootToPhase(CountingStorage(sav.readBytes()))
         assertTrue(reached)
@@ -196,5 +206,14 @@ class ResumeBootTest {
         val fresh = InMemorySaveStorage()
         fresh.store(storage.image!!)
         assertTrue(fresh.load(ByteArray(CartSram.SIZE)))
+    }
+
+    /** A fixture of the ROM repo checkout next to this one (or `$FE8_ROM_REPO`). */
+    private fun romRepoFixture(name: String): File {
+        val roots = listOfNotNull(
+            System.getenv("FE8_ROM_REPO"), "../fire-emblem-8-rom", "../../fire-emblem-8-rom",
+        )
+        return roots.map { File(it, "reference/fixtures/$name") }.firstOrNull { it.isFile }
+            ?: File(roots.last(), "reference/fixtures/$name")
     }
 }

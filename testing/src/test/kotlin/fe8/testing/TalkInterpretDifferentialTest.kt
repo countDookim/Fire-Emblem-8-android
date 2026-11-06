@@ -62,7 +62,8 @@ import org.junit.jupiter.api.Test
  * fade-in procs are not ported), blink and mouth animation, face sprites.
  * Not ported here (M6-35): the blink/fade procs, temporary lock, skip listener and
  * `GetStrTalkLen`. The [Rig] hosts them with transcriptions of the decomp (durations, state
- * writes), not with trace values; their start frames and lifetimes are compared with the trace like the rest. Not
+ * writes), not with trace values; their start frames and lifetimes are compared with the trace
+ * like the rest. Not
  * modelled: sprites (the wait arrow's `PutSprite` is only counted), sound, palettes, windows,
  * the blend registers.
  */

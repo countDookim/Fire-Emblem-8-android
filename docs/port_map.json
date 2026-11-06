@@ -7,7 +7,7 @@
   "summary": {
     "total": 8352,
     "verified": 373,
-    "implemented_unverified": 108
+    "implemented_unverified": 117
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -788,6 +788,20 @@
       "status": "implemented",
       "tests": []
     },
+    "Event2B_ConfigLoadUnit": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event2C_LoadUnits": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "EventEngineExists": {
       "decomp_file": "src/event.c",
       "system": "events",
@@ -826,6 +840,13 @@
       "tests": [
         "fe8.testing.EventVmDifferentialTest#onUpdate drives the engine state to the trace"
       ]
+    },
+    "EventLoadUnitSliently": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
+      "status": "implemented",
+      "tests": []
     },
     "ExecBothHBlankHandlers": {
       "decomp_file": "src/hardware.c",
@@ -1296,6 +1317,13 @@
         "fe8.testing.SramOwnerSaveBootTest#chapter 6 save without a suspend boots unchanged and selects 0x7F"
       ]
     },
+    "GetLoadUnitsAmount": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "GetNextSuspendSaveId": {
       "decomp_file": "src/bmsave.c",
       "system": "save",
@@ -1387,6 +1415,13 @@
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetUnitDefinitionFromEventScr": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
       "status": "implemented",
       "tests": []
     },
@@ -1624,6 +1659,13 @@
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
       ]
     },
+    "IsSethLArachelMyrrhInnes": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "IsSramWorking": {
       "decomp_file": "src/bmsave-lib.c",
       "system": "save",
@@ -1632,6 +1674,13 @@
       "tests": [
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
+    },
+    "IsUnitSlotAvailable": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
+      "status": "implemented",
+      "tests": []
     },
     "IsValidSuspendSave": {
       "decomp_file": "src/bmsave.c",
@@ -1803,6 +1852,13 @@
       "tests": [
         "fe8.testing.M4aPitchTest#DirectSound channel frequencies match every reference RAM dump"
       ]
+    },
+    "ModifyMoveUnitFlag": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
+      "status": "implemented",
+      "tests": []
     },
     "MoveUnitExt": {
       "decomp_file": "src/muctrl.c",
@@ -2615,6 +2671,13 @@
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
+    },
+    "ShouldUNITBeLoaded": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
+      "status": "implemented",
+      "tests": []
     },
     "SkipTitleFx_Loop_KeyListener": {
       "decomp_file": "src/titlescreen.c",

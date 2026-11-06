@@ -3,12 +3,15 @@ package fe8.testing
 import fe8.game.scene.Talk
 import fe8.game.scene.TalkBubble
 import fe8.game.scene.TalkBubbleHost
+import fe8.game.scene.TalkFace
+import fe8.game.scene.TalkFaceHost
+import fe8.game.scene.FaceState
 import fe8.game.scene.TalkFlags
 import fe8.game.scene.TalkHost
 import fe8.game.scene.TalkState
 import fe8.game.text.Fe8Text
 import gba.core.VerifiesPort
-import gba.data.Lz77
+import gba.data.Decompress
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
@@ -54,9 +57,12 @@ import org.junit.jupiter.api.Test
  * beyond the stand-ins below.
  *
  * Bubble and shift-clear procs are the real ones ([TalkBubble]); the BG1 tilemap is compared too.
- * Not ported here (M6-35): face procs, temporary lock, skip listener and `GetStrTalkLen`. The
- * [Rig] hosts them with transcriptions of the decomp (durations, state writes), not with trace
- * values; their start frames and lifetimes are compared with the trace like the rest. Not
+ * Talk faces are the real ones ([TalkFace]): handles, the face procs' position, display bits,
+ * oam2, id and layer, and each face's tiles at its first f-dump. Not compared: face palettes (the
+ * fade-in procs are not ported), blink and mouth animation, face sprites.
+ * Not ported here (M6-35): the blink/fade procs, temporary lock, skip listener and
+ * `GetStrTalkLen`. The [Rig] hosts them with transcriptions of the decomp (durations, state
+ * writes), not with trace values; their start frames and lifetimes are compared with the trace like the rest. Not
  * modelled: sprites (the wait arrow's `PutSprite` is only counted), sound, palettes, windows,
  * the blend registers.
  */
@@ -73,7 +79,9 @@ class TalkInterpretDifferentialTest {
         "Talk_OnEnd", "ClearPutTalkText", "StartTalkOpen", "TalkOpen_PutTalkBubble",
         "TalkOpen_OnIdle", "PutTalkBubble", "PutTalkBubbleTm", "PutTalkBubbleTail",
         "StartOpenTalkBubble", "TalkBubbleOpen_OnIdle", "ClearTalkBubble",
-        "TalkShiftClear_OnInit", "TalkShiftClear_OnIdle",
+        "TalkShiftClear_OnInit", "TalkShiftClear_OnIdle", "TalkLoadFace", "SetTalkFaceLayer",
+        "MoveTalkFace", "IsTalkFaceMoving", "StartTalkFaceMove", "GetFaceIdByXPos",
+        "TalkFaceMove_OnInit", "TalkFaceMove_OnIdle", "SetTalkFaceDisp",
     )
     fun `the first talk runs frame by frame as traced`() {
         assumeTrue(romFile.isFile && runDir.isDirectory, "ROM or reference run not present")
@@ -87,6 +95,7 @@ class TalkInterpretDifferentialTest {
             rig.keys = u16(ewram(f), KEYS + 8)
             rig.clock = clock(f)
             rig.engine.run(rig.engine.root(3))
+            rig.engine.run(rig.engine.root(5))
             val err = compare(rig, f)
             assertEquals(null, err, "f$f")
         }
@@ -144,6 +153,21 @@ class TalkInterpretDifferentialTest {
             val have = rig.engine.procs.count { it.script === script }
             if (want != have) return "${script.name} count want $want got $have"
         }
+        for (wantFace in procs.findAll(0x08591154)) {
+            val slot = wantFace.u8(0x40)
+            val mine = rig.face.gFaces[slot]?.state as? FaceState ?: return "face slot $slot gone"
+            val pairs = listOf(
+                "displayBits" to (wantFace.u32(0x30) to mine.displayBits),
+                "xPos" to (wantFace.u16(0x34) to (mine.xPos and 0xFFFF)),
+                "yPos" to (wantFace.u16(0x36) to (mine.yPos and 0xFFFF)),
+                "oam2" to (wantFace.u16(0x3C) to mine.oam2),
+                "faceId" to (wantFace.u16(0x3E) to mine.faceId),
+                "spriteLayer" to (wantFace.u8(0x41) to mine.spriteLayer),
+            )
+            for ((n, wg) in pairs) {
+                if (wg.first != wg.second) return "face $slot $n want ${wg.first} got ${wg.second}"
+            }
+        }
         val talkProc = procs.find(ADDR_TALK)
         val mine = rig.engine.find(rig.talk.talkScript)
         if (talkProc != null && mine != null) {
@@ -164,6 +188,18 @@ class TalkInterpretDifferentialTest {
             val v = vramFile.readBytes()
             for (i in STRIPS until STRIPS + STRIP_BYTES) {
                 if (v[i] != rig.vram[i]) return "vram strip byte ${i - STRIPS}"
+            }
+            for (slot in 0 until 4) {
+                // Blink and mouth procs (not ported) rewrite eye and mouth tiles later, so each
+                // face's tiles are compared at its first f-dump only.
+                if (rig.face.gFaces[slot] == null || !rig.tilesChecked.add(slot)) continue
+                val base = 0x10000 + FACE_TILES[slot]
+                for (i in 0 until FACE_BYTES) {
+                    if (v[base + i] != rig.vram[base + i]) {
+                        return "face $slot tile byte $i want ${v[base + i]} " +
+                            "got ${rig.vram[base + i]}"
+                    }
+                }
             }
         }
         return null
@@ -189,7 +225,7 @@ class TalkInterpretDifferentialTest {
      * The talk plus everything around it that is not ported yet, as transcriptions of the decomp.
      */
     private inner class Rig(val rom: ByteArray, val runDir: File) :
-        TextHost, TalkHost, TalkBubbleHost {
+        TextHost, TalkHost, TalkBubbleHost, TalkFaceHost {
         val vram = ByteArray(0x18000) { SENT }
         val tm = ShortArray(0x400)
         val tm1 = ShortArray(0x400)
@@ -197,36 +233,32 @@ class TalkInterpretDifferentialTest {
         val ts = TextSystem(rom, this, Fe8Text.CONFIG)
         val talk = Talk(ts, engine, this)
         val bubble = TalkBubble(ts, engine, talk, this, this)
+        val face = TalkFace(engine, talk, this, this)
         var keys = 0
         var clock = 0
         var waitSprites = 0
+        val tilesChecked = mutableSetOf<Int>()
         private var io = ByteArray(0x400)
         private var msg = ByteArray(0)
         private var displaySpeed = 0
-        private val faceProcs = arrayOfNulls<Proc>(8)
 
         val skipScript = ProcScript(
             "gProcScr_TalkSkipListener",
             listOf(mark(Talk.PROC_MARK_TALK), repeat(skipIdle()), end()),
         )
-        val faceScript = ProcScript("gProcScr_E_FACE", listOf(block(), end())) { FakeFace() }
-        val moveScript = ProcScript(
-            "gProcScr_TalkFaceMove",
-            listOf(sleep(1), call(moveInit()), repeat(moveIdle()), end()),
-        ) { MoveState() }
         val lockScript = ProcScript(
             "ProcScr_TemporaryLock", listOf(yield(), repeat(lockIdle()), end()),
         ) { CounterState() }
         val watched: List<Pair<Int, ProcScript>> = listOf(
             ADDR_TALK to talk.talkScript,
             0x08591340 to skipScript,
-            0x085913B0 to moveScript,
+            0x085913B0 to face.moveScript,
             0x085913D0 to talk.pauseScript,
             ADDR_WAIT to talk.waitForInputScript,
             0x085914C8 to bubble.shiftClearScript,
             0x08591530 to bubble.bubbleOpenScript,
             0x08591540 to bubble.openScript,
-            0x08591154 to faceScript,
+            0x08591154 to face.faceScript,
             0x0859A0D4 to lockScript,
         )
 
@@ -265,7 +297,7 @@ class TalkInterpretDifferentialTest {
             ((u16(io, 8 + 2 * bg) shr 2) and 3) * 0x4000
 
         override fun decompressToVram(src: Int, dest: Int) {
-            Lz77.decode(rom, src - ROM_BASE).data.copyInto(vram, dest - VRAM_BASE)
+            Decompress.into(rom, src - ROM_BASE, vram, dest - VRAM_BASE)
         }
 
         override fun applyPalette(src: Int, palId: Int) {}
@@ -393,30 +425,35 @@ class TalkInterpretDifferentialTest {
 
         override fun spriteTextClear(text: Text) = error("no sprite talk")
 
-        override fun setTalkFaceLayer(faceSlot: Int, flag: Int) {}
+        override fun setTalkFaceLayer(faceSlot: Int, flag: Int) =
+            face.setTalkFaceLayer(faceSlot, flag)
 
         override fun startTalkShiftClear(parent: Proc) = bubble.startTalkShiftClear(parent)
 
         override fun talkBgSync(bg: Int) {}
 
-        override fun setTalkFaceMouthMove(faceSlot: Int) {}
+        override fun setTalkFaceMouthMove(faceSlot: Int) = face.setTalkFaceMouthMove(faceSlot)
 
-        override fun isTalkFaceMoving() = engine.find(moveScript) != null
+        override fun isTalkFaceMoving() = face.isTalkFaceMoving()
 
-        override fun setTalkFaceNoMouthMove(faceSlot: Int) {}
+        override fun setTalkFaceNoMouthMove(faceSlot: Int) = face.setTalkFaceNoMouthMove(faceSlot)
 
-        /** TalkLoadFace as far as the talk state goes: a handle, a face proc, the 8-frame lock. */
-        override fun talkLoadFace(proc: Proc) {
-            val s = talk.state
-            if (s.activeFaceSlot == 0xFF) talk.setActiveTalkFace(1)
-            val slot = s.activeFaceSlot
-            if (s.faces[slot] != 0) return
-            s.faces[slot] = FAKE_FACE + slot
-            val face = engine.start(faceScript, 3)
-            (face.state as FakeFace).x = GAME_HPOS[slot] * 8
-            faceProcs[slot] = face
-            startTemporaryLock(proc, 8)
+        override fun talkLoadFace(proc: Proc) = face.talkLoadFace(proc)
+
+        override fun portraitImage(fid: Int): Int = portraitWord(fid, 0)
+
+        override fun portraitPalette(fid: Int): Int = portraitWord(fid, 8)
+
+        private fun portraitWord(fid: Int, field: Int): Int {
+            val at = PORTRAIT_TABLE - ROM_BASE + (fid - 1) * 0x1C + field
+            return u32(rom, at)
         }
+
+        override fun activeUnitPortraitId(): Int = error("no gActiveUnit portrait in the trace")
+
+        override fun startFaceFadeIn(face: Proc) {}
+
+        override fun changeFacePortrait(face: Proc, faceId: Int) = error("no face swap in trace")
 
         override fun startFaceFadeOut(face: Int) {}
 
@@ -425,29 +462,7 @@ class TalkInterpretDifferentialTest {
             (p.state as CounterState).n = frames
         }
 
-        override fun moveTalkFace(from: Int, to: Int) {
-            val s = talk.state
-            var swap = false
-            if (s.faces[to] != 0) {
-                swap = true
-                startFaceMove(to, from)
-            }
-            startFaceMove(from, to)
-            val h = s.faces[from]
-            s.faces[from] = s.faces[to]
-            s.faces[to] = h
-            val p = faceProcs[from]
-            faceProcs[from] = faceProcs[to]
-            faceProcs[to] = p
-            check(swap || s.faces[from] == 0)
-        }
-
-        private fun startFaceMove(from: Int, to: Int) {
-            val face = faceProcs[from] ?: return
-            val m = engine.start(moveScript, face).state as MoveState
-            m.from = (face.state as FakeFace).x
-            m.to = GAME_HPOS[to] * 8
-        }
+        override fun moveTalkFace(from: Int, to: Int) = face.moveTalkFace(from, to)
 
         override fun setFaceBlinkControl(face: Int, mode: Int) {}
 
@@ -503,33 +518,11 @@ class TalkInterpretDifferentialTest {
             if (talk.checkTalkFlag(TalkFlags.NOFAST) == 0 && keys and 0xF3 != 0) s.instantScroll = 1
         }
 
-        private fun moveInit() = ProcFunc { p ->
-            val m = p.state as MoveState
-            m.t58 = 0
-            m.t5C = if (Math.abs(m.from - m.to) > 24) 32 else 16
-        }
-
-        private fun moveIdle() = ProcFunc { p ->
-            val m = p.state as MoveState
-            if (m.t58 >= m.t5C) engine.breakProc(p) else m.t58++
-        }
-
         private fun lockIdle() = ProcFunc { p ->
             val c = p.state as CounterState
             if (c.n == 0) engine.breakProc(p) else c.n--
         }
 
-    }
-
-    private class FakeFace {
-        var x = 0
-    }
-
-    private class MoveState {
-        var from = 0
-        var to = 0
-        var t58 = 0
-        var t5C = 0
     }
 
     private class CounterState {
@@ -551,10 +544,11 @@ class TalkInterpretDifferentialTest {
         const val BG1_TM = 0x234A8
         const val KEYS = 0x24CC0
         const val STRIPS = 0x1000
+        const val FACE_BYTES = 0x1000
+        val FACE_TILES = intArrayOf(0x20 * 0x300, 0x20 * 0x280, 0x20 * 0x200, 0x20 * 0x380)
         const val STRIP_BYTES = 2 * 30 * 2 * 0x20
         const val ADDR_TALK = 0x08591358
         const val ADDR_WAIT = 0x085913F0
-        const val FAKE_FACE = 0x02030000
-        val GAME_HPOS = intArrayOf(3, 6, 9, 21, 24, 27, -8, 38)
+        const val PORTRAIT_TABLE = 0x088ACBE0
     }
 }

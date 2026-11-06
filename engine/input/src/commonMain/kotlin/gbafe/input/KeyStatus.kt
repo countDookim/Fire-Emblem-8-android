@@ -172,6 +172,9 @@ public class KeyStatus {
         /** Size of `struct KeyStatusBuffer` in bytes. */
         public const val STRUCT_SIZE: Int = 0x14
 
+        /** `START_BUTTON`: the Start key bit (bit 3) of the key masks. */
+        public const val START_BUTTON: Int = 0x8
+
         /** `KEYS_MASK`: the ten GBA key bits. */
         public const val KEYS_MASK: Int = 0x3FF
 

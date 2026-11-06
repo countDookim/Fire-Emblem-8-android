@@ -16,8 +16,9 @@ import org.junit.jupiter.api.Test
  * Prologue map. BG3 is compared with `ram_trace_first_phase` (idle player phase of chapter 0, the
  * map fits the screen so the camera is the same without seeding: the test checks it equals the
  * dump's). Only the map tiles (the 32x32 `gBG3TilemapBuffer`) are compared, not BG3 scroll or
- * palettes. The prologue has no fog, so only palette bank 6 of `DisplayBmTile` is exercised (the
- * bank 11 branch is held by the fog tests).
+ * palettes: the BG3 tag covers the window draw only at camera (0,0). The prologue has no fog,
+ * so only palette bank 6 of `DisplayBmTile` is exercised (the bank 11 branch is held by the fog
+ * tests).
  */
 class PrologueMapTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -64,16 +65,24 @@ class PrologueMapTest {
         val none: Any = 0
         var n = 0
         val bm = game.boot.loop.bmSt
-        val startX = bm.playerCursorX
-        val startY = bm.playerCursorY
-        var moved = false
-        val bytes = AllocationMeter.measureMin(warmup = 3000, iterations = 600) {
+        val warmup = 3000
+        val iterations = 600
+        val rounds = 3
+        val movesPerRound = IntArray(rounds)
+        var lastX = bm.playerCursorX
+        var lastY = bm.playerCursorY
+        val bytes = AllocationMeter.measureMin(warmup, iterations, rounds) {
             game.keys = if (n / 15 % 2 == 0) dirs[n / 30 % 4] else none
             n++
             game.boot.frame()
-            if (bm.playerCursorX != startX || bm.playerCursorY != startY) moved = true
+            val moved = bm.playerCursorX != lastX || bm.playerCursorY != lastY
+            lastX = bm.playerCursorX
+            lastY = bm.playerCursorY
+            if (moved && n - 1 >= warmup) movesPerRound[(n - 1 - warmup) / iterations]++
         }
         assertEquals(0L, bytes)
-        assertTrue(moved, "the cursor never moved")
+        for (r in 0 until rounds) {
+            assertTrue(movesPerRound[r] > 0, "the cursor never moved in measured round $r")
+        }
     }
 }

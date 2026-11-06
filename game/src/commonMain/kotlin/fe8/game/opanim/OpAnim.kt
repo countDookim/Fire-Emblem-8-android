@@ -2569,7 +2569,7 @@ public class OpAnim(
      * Partially ported from src/opanimfx.c: OpAnimfxTerminatorMain
      */
     public fun terminatorMain(proc: Proc) {
-        if (keys.newKeys and (A_BUTTON or B_BUTTON or START_BUTTON) != 0) {
+        if (keys.newKeys and (A_BUTTON or B_BUTTON or KeyStatus.START_BUTTON) != 0) {
             gameControl.setNextGameActionId(GameControl.GAME_ACTION_USR_SKIPPED)
             pal = 0
             engine.goto(proc.parent!!, 99)
@@ -2608,7 +2608,6 @@ public class OpAnim(
         const val DISPCNT_OBJ_1D = 0x40
         const val A_BUTTON = 0x1
         const val B_BUTTON = 0x2
-        const val START_BUTTON = 0x8
     }
 }
 

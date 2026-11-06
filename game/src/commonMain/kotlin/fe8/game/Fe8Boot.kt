@@ -140,7 +140,7 @@ public class Fe8Boot(
         val memory = ScriptWords({ rom.u16(it) })
         // `gKeyStatusPtr->newKeys & START_BUTTON`: the game's single KeyStatus.
         val hooks = object : EventEngineHooks {
-            override fun startPressed(): Boolean = keys.newKeys and START_BUTTON != 0
+            override fun startPressed(): Boolean = keys.newKeys and KeyStatus.START_BUTTON != 0
         }
         EventEngine(engine, state, memory, hooks).also {
             EventScrCore(
@@ -170,12 +170,8 @@ public class Fe8Boot(
                         else -> -(levels ushr 8 and 0xF)
                     }
                 }
-                mapWidth = { battleBmMap.sizeX }
-                mapHeight = { battleBmMap.sizeY }
+                bmMap = battleBmMap
                 weatherId = { control.playSt.chapterWeatherId }
-                occupiedAt = { x, y ->
-                    battleBmMap.unit[y, x] or battleBmMap.other[y, x] or battleBmMap.hidden[y, x]
-                }
             }
             EventUnitLoads(
                 state, memory, rom, units, loader, rng,
@@ -345,6 +341,3 @@ private val NO_WORLD_MAP_NODES = object : BattleMapNodes {
 
     override fun placementFlag(node: Int): Int = 0
 }
-
-/** `START_BUTTON` of the GBA key register (bit 3). */
-private const val START_BUTTON = 0x0008

@@ -47,28 +47,23 @@ public class UnitLoader(
     }
 
     /**
-     * `gBmMapUnit[y][x] | gBmMapOther[y][x] | gBmMapHidden[y][x]`, for the free-tile shortcut of
-     * `AiGetUnitClosestValidPosition`; null treats every tile as occupied.
+     * The `gBmMap*` pools: `gBmMapUnit | gBmMapOther | gBmMapHidden` for the free-tile shortcut of
+     * `AiGetUnitClosestValidPosition`, the map size, and `gBmMapRange` / `gBmMapMovement` that its
+     * floods overwrite. Must be set before a load can reach the search (it throws otherwise).
      */
-    public var occupiedAt: ((x: Int, y: Int) -> Int)? = null
-
-    /** `gBmMapSize.x`; the default 0 makes the closest-position search find nothing. */
-    public var mapWidth: () -> Int = { 0 }
-
-    /** `gBmMapSize.y`; the default 0 makes the closest-position search find nothing. */
-    public var mapHeight: () -> Int = { 0 }
+    public var bmMap: BmMap? = null
 
     /** `gPlaySt.chapterWeatherId`, which picks the class movement cost table of the search. */
     public var weatherId: () -> Int = { 0 }
 
     /**
-     * Transcribed from src/cp_utility.c: AiGetUnitClosestValidPosition (not verified: no
-     * reference trace has a load onto an occupied tile; see the "Not @VerifiesPort" comment in
-     * the tests)
-     *
-     * The free-tile shortcut: true where (x, y) holds a unit, other or hidden marker.
+     * Part of AiGetUnitClosestValidPosition (src/cp_utility.c; free-tile shortcut): true where
+     * (x, y) holds a unit, other or hidden marker.
      */
-    private fun occupied(x: Int, y: Int): Boolean = (occupiedAt?.invoke(x, y) ?: 1) != 0
+    private fun occupied(x: Int, y: Int): Boolean {
+        val m = bmMap ?: return true
+        return (m.unit[y, x] or m.other[y, x] or m.hidden[y, x]) != 0
+    }
 
     /**
      * Ported from src/bmunit.c: LoadUnit
@@ -550,9 +545,13 @@ public class UnitLoader(
         }
         if ((flags and 1) != 0 && terrainAt(x, y) != 0 && occupied(x, y)) {
             val pos = closestValidPosition(o, x, y, terrainAt)
-            if (pos < 0) throw IllegalStateException("AdjustNewUnitPosition: no valid position")
-            x = pos and 0xFF
-            y = pos ushr 8
+            // As the C (muctrl.c): a failed search leaves out->x = -1 and out->y untouched.
+            if (pos >= 0) {
+                x = pos and 0xFF
+                y = pos ushr 8
+            } else {
+                x = -1
+            }
         }
         put8(b, o + OFF_X, x)
         put8(b, o + OFF_Y, y)
@@ -570,32 +569,47 @@ public class UnitLoader(
      * The search for the free tile closest to ([x], [y]) that the unit at unit-array offset [o]
      * can walk to from its current position. The two movement maps are flood fills of the unit's
      * class cost table (`GenerateExtendedMovementMapOnRange`, `GenerateUnitExtendedMovementMap`,
-     * both with movement 124 and no unit blocking, as the ARM `MapFloodCore`). Like the C pools,
-     * the maps hold two spare rows above and below the map (a unit may stand on one, e.g. at the
-     * start of a walk-in); columns outside the map are never entered. Returns `x or (y shl 8)`, or -1 where nothing was found.
+     * both with movement 124 and no unit blocking, as the ARM `MapFloodCore`). They are written
+     * into [BmMap.range] and [BmMap.movement] like the C (which leaves them overwritten), so the
+     * two spare rows above and below the map and the `width + 2` stride match the C pools; a unit
+     * may stand on a spare row (e.g. at the start of a walk-in). Columns outside the map are never
+     * entered. Returns `x or (y shl 8)`, or -1 where nothing was found (the C leaves `out->x`
+     * at -1 and returns 0; no exception). A null [bmMap] is a wiring error and throws
+     * [IllegalStateException].
+     *
+     * Deviation: the ARM `MapFloodCoreStep` has no bounds check (it relies on terrain-0 cost and
+     * the pool's row aliasing, which [BmMap.Pool] models). Here a flood whose start x lies
+     * outside 0 until width reaches nothing, where the C floods from the wrapped tile (this flow
+     * has units at x = 19 / 20 on the 15-wide Prologue map).
+     *
+     * Unmodelled: `GetUnitMovementCost` returns `Unk_TerrainTable_0880BC18` for a unit with
+     * `US_IN_BALLISTA`; here the class table is used (a loading unit in a ballista throws later in
+     * [moveLoadedUnit] anyway).
      */
-    private fun closestValidPosition(
+    internal fun closestValidPosition(
         o: Int,
         x: Int,
         y: Int,
         terrainAt: (x: Int, y: Int) -> Int,
     ): Int {
-        val w = mapWidth()
-        val h = mapHeight()
+        val map = checkNotNull(bmMap) { "UnitLoader.bmMap is not wired" }
+        val w = map.sizeX
+        val h = map.sizeY
         val cl = u32(table.bytes, o + OFF_CLASS)
         val costs = rom.u32(cl + 0x38 + 4 * movCostTableIndex())
-        val range = floodMovement(x, y, w, h, costs, terrainAt)
-        val reach = floodMovement(
-            s8(table.bytes, o + OFF_X), s8(table.bytes, o + OFF_Y), w, h, costs, terrainAt,
+        floodMovement(map, map.range, x, y, costs, terrainAt)
+        floodMovement(
+            map, map.movement, s8(table.bytes, o + OFF_X), s8(table.bytes, o + OFF_Y), costs,
+            terrainAt,
         )
         var best = 124
         var out = -1
         for (iy in h - 1 downTo 0) {
             for (ix in w - 1 downTo 0) {
-                if (reach[(iy + 2) * w + ix] > MAP_MOVEMENT_MAX) continue
-                if (occupiedAt?.invoke(ix, iy) != 0) continue
-                if (range[(iy + 2) * w + ix] > best) continue
-                best = range[(iy + 2) * w + ix]
+                if (map.movement[iy, ix] > MAP_MOVEMENT_MAX) continue
+                if (occupied(ix, iy)) continue
+                if (map.range[iy, ix] > best) continue
+                best = map.range[iy, ix]
                 out = ix or (iy shl 8)
             }
         }
@@ -610,38 +624,42 @@ public class UnitLoader(
 
     /**
      * `GenerateMovementMap` with movement 124 and no unit id (src/bmidoten.c, asm/arm.s
-     * MapFloodCoreStep): the cheapest cost to each tile (0xFF = not reached) as a w * (h + 4)
-     * array whose row index is y + 2.
+     * MapFloodCoreStep) into [pool]: the cheapest cost to each tile (0xFF = not reached), rows
+     * `-2 until height + 2`. Relaxes the whole grid until nothing improves, which gives the same
+     * minima as the C's frontier flood without a queue (no allocation).
      */
     private fun floodMovement(
+        map: BmMap,
+        pool: BmMap.Pool,
         x0: Int,
         y0: Int,
-        w: Int,
-        h: Int,
         costTable: Int,
         terrainAt: (x: Int, y: Int) -> Int,
-    ): IntArray {
-        val map = IntArray(w * (h + 4)) { 0xFF }
-        if (x0 !in 0 until w || y0 !in -2 until h + 2) return map
-        map[(y0 + 2) * w + x0] = 0
-        val queue = ArrayDeque<Int>()
-        queue.addLast(x0 or (y0 shl 8))
-        while (queue.isNotEmpty()) {
-            val cur = queue.removeFirst()
-            val cx = cur and 0xFF
-            val cy = cur ushr 8
-            val base = map[(cy + 2) * w + cx]
-            for (d in 0 until 4) {
-                val nx = cx + DX[d]
-                val ny = cy + DY[d]
-                if (nx !in 0 until w || ny !in -2 until h + 2) continue
-                val cost = base + rom.u8(costTable + terrainAt(nx, ny))
-                if (cost >= map[(ny + 2) * w + nx] || cost > 124) continue
-                map[(ny + 2) * w + nx] = cost
-                queue.addLast(nx or (ny shl 8))
+    ) {
+        val w = map.sizeX
+        val h = map.sizeY
+        map.bmMapFill(pool, 0xFF)
+        if (x0 !in 0 until w || y0 !in -2 until h + 2) return
+        pool[y0, x0] = 0
+        var changed = true
+        while (changed) {
+            changed = false
+            for (cy in -2 until h + 2) {
+                for (cx in 0 until w) {
+                    val base = pool[cy, cx]
+                    if (base > 124) continue
+                    for (d in 0 until 4) {
+                        val nx = cx + DX[d]
+                        val ny = cy + DY[d]
+                        if (nx !in 0 until w || ny !in -2 until h + 2) continue
+                        val cost = base + rom.u8(costTable + terrainAt(nx, ny))
+                        if (cost >= pool[ny, nx] || cost > 124) continue
+                        pool[ny, nx] = cost
+                        changed = true
+                    }
+                }
             }
         }
-        return map
     }
 
     /**

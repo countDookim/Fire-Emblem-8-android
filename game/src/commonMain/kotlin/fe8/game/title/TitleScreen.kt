@@ -427,7 +427,7 @@ public class TitleScreen(
      * Ported from src/titlescreen.c: SkipTitleFx_Loop_KeyListener
      */
     public fun skipListener(proc: Proc) {
-        if ((keys.newKeys and (A_BUTTON or B_BUTTON or START_BUTTON)) != 0) {
+        if ((keys.newKeys and (A_BUTTON or B_BUTTON or KeyStatus.START_BUTTON)) != 0) {
             engine.goto(proc.parent!!, 3)
         }
     }
@@ -514,7 +514,7 @@ public class TitleScreen(
         val st = proc.state as State
         st.timerIdle++
         st.timer = (st.timer + 1) and 0x3F
-        if ((keys.newKeys and (A_BUTTON or START_BUTTON)) != 0) {
+        if ((keys.newKeys and (A_BUTTON or KeyStatus.START_BUTTON)) != 0) {
             gameControl?.sound?.playSoundEffect(SoundWrapper.SONG_6D)
             gameControl?.setNextGameActionId(GameControl.GAME_ACTION_EVENT_RETURN)
             engine.breakProc(proc)
@@ -788,7 +788,6 @@ public class TitleScreen(
     private companion object {
         const val A_BUTTON = 0x1
         const val B_BUTTON = 0x2
-        const val START_BUTTON = 0x8
 
         /** `gUnknown_08AA682C`: (x, y) direction of each ray (s8 pairs). */
         val RAYS: IntArray = intArrayOf(

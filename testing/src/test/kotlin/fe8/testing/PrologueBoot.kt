@@ -30,7 +30,10 @@ internal class PrologueBoot(rom: File) {
         RngService(),
     )
 
-    /** Runs to the idle Prologue phase; false if it was not reached. */
+    /**
+     * Runs to the idle Prologue phase; false if it was not reached or the event engine has not
+     * ended.
+     */
     fun reachIdle(): Boolean {
         while (frame < 3000 && boot.engine.find(boot.playerPhaseScript) == null) {
             boot.frame()
@@ -39,7 +42,8 @@ internal class PrologueBoot(rom: File) {
         idle = true
         var guard = 0
         while (boot.eventEngine.eventEngineExists() && guard++ < 6000) boot.frame()
-        return boot.engine.find(boot.playerPhaseScript) != null
+        return !boot.eventEngine.eventEngineExists() &&
+            boot.engine.find(boot.playerPhaseScript) != null
     }
 
     private companion object {

@@ -7,9 +7,16 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M5-60: scheduled, until ~05:25Z (work on `wip/M5-60`)
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
-## Next task: M5-60 (unit loader), then finish M5-58/59 from `wip/M5-58`
+## Next task: M5-60d (event-layer unit loads + register load_unit in Fe8Boot), then finish M5-58/59 from `wip/M5-58`
+M5-60 core done (scheduled 11-06): `fe8.game.bm.UnitLoader(table, rom, unsealedCharacter, rng, isHardMode)`:
+`loadUnit` (LoadUnit: items, REDA end position, non-blue autolevel incl. promoted bonus, RNG) and `loadUnitForEvent`
+(LoadUnit_800F704, partial, untagged: `b` guessed 0). Throws Unsupported for blue/boss autolevel
+(UnitAutolevelRealistic), genMonster, gorgon eggs, sumFlag, MU walks when not quiet. `UnitLoaderDifferentialTest`:
+throne room (r09518→r09521), allies/messenger (ram_trace_prologue), red autolevel (RNG candidates from rng.watch;
+r dumps every 30 f). Masks: +0x3C sprite handle, US_HIDDEN, MU-moved x/y. Weak (untagged): UnitCheckStatCaps,
+UnitHideIfUnderRoof, GetItemHpBonus/GetUnitMaxHp, CanUnitUseWeapon/Staff, UnitAutolevelWExp.
 M5-53..55 done (owner PC): `EventVmDifferentialTest` runs the real `EventEngine` over the whole prologue trace (12618
 pairs, 0 mismatches; RNG, tutorial fields, call/active queues and flags compared). Unported commands are test-only
 stubs (STUBS table). 172 Event19 pairs are skipped: the game engine idles while a Popup/GotItem child proc lives (no

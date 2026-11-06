@@ -1,6 +1,7 @@
 package fe8.game.bm
 
 import fe8.game.RomView
+import gbafe.core.rng.RngService
 import fe8.game.bm.StructCodec.put16
 import fe8.game.bm.StructCodec.put32
 import fe8.game.bm.StructCodec.put8
@@ -12,8 +13,10 @@ import fe8.game.bm.StructCodec.u8
  * The unit loader of `src/bmunit.c` on the raw unit arrays of a [UnitTable]: [loadUnit] fills the
  * first free unit slot from a ROM `struct UnitDefinition`.
  *
- * Only the plain case is ported: no `genMonster`, no `autolevel`, no gorgon egg and no summon
- * (`sumFlag`) position; those throw [UnsupportedOperationException]. Event-layer side effects
+ * Only part of `LoadUnit` is ported: `genMonster`, gorgon eggs, summon (`sumFlag`) positions and
+ * autolevel of blue units or of bosses / characters below 0x40 (these need
+ * `UnitAutolevelRealistic`, the battle level-up code) throw
+ * [UnsupportedOperationException]. Event-layer side effects
  * (`LoadUnit_800F704`) are not part of this class.
  *
  * @param table the unit arrays that are filled.
@@ -21,19 +24,23 @@ import fe8.game.bm.StructCodec.u8
  *     the definitions.
  * @param unsealedCharacter `gPlaySt.unk1C[weaponType]`, the character the weapon type is unsealed
  *     for (only consulted for `IA_UNUSABLE` weapons).
+ * @param rng the game's random number service (`NextRN_N`, `Roll1RN`), used by autolevel.
+ * @param isHardMode `gPlaySt.chapterStateBits & PLAY_FLAG_HARD`, for the promoted level bonus.
  */
 public class UnitLoader(
     private val table: UnitTable,
     private val rom: RomView,
-    private val unsealedCharacter: (weaponType: Int) -> Int = { 0 },
+    private val unsealedCharacter: (weaponType: Int) -> Int,
+    private val rng: RngService,
+    private val isHardMode: () -> Boolean,
 ) {
     private val items = ItemInfo(rom)
 
     /**
      * Ported from src/bmunit.c: LoadUnit
      *
-     * partial: `genMonster`, `autolevel`, gorgon eggs and `sumFlag` positions throw
-     * [UnsupportedOperationException].
+     * partial: `genMonster`, gorgon eggs, `sumFlag` positions and autolevel of blue units,
+     * bosses and characters below 0x40 throw [UnsupportedOperationException].
      *
      * Loads the `struct UnitDefinition` at ROM address [defAddress] into a free slot of its
      * allegiance. [terrainAt] is `gBmMapTerrain[y][x]`. Returns the new unit's id, or 0 where the
@@ -43,9 +50,6 @@ public class UnitLoader(
         val def = UnitDef(rom, defAddress)
         if (def.genMonster) {
             throw UnsupportedOperationException("LoadUnit: genMonster is not ported")
-        }
-        if (def.autolevel) {
-            throw UnsupportedOperationException("LoadUnit: autolevel is not ported")
         }
         val id = when (def.allegiance) {
             0 -> getFreeBlueUnit()
@@ -62,6 +66,24 @@ public class UnitLoader(
         if (isGorgonEgg(o)) {
             throw UnsupportedOperationException("LoadUnit: gorgon eggs are not ported")
         }
+        if (def.autolevel) {
+            if ((s8(table.bytes, o + OFF_INDEX) and 0xC0) == FACTION_BLUE) {
+                throw UnsupportedOperationException(
+                    "LoadUnit: autolevel of blue units (UnitAutolevelRealistic) is not ported",
+                )
+            }
+            val number = rom.u8(u32(table.bytes, o + OFF_CHARACTER) + 4)
+            if ((cAttributes(o) and CA_BOSS) != 0 || number < 0x40) {
+                throw UnsupportedOperationException(
+                    "LoadUnit: autolevel of bosses/characters < 0x40 (UnitAutolevelRealistic) " +
+                        "is not ported",
+                )
+            }
+            unitAutolevel(o)
+            unitAutolevelWExp(o, def)
+            // SetUnitLeaderCharId
+            put8(table.bytes, o + OFF_SUPPORTS + 6, def.leaderCharIndex)
+        }
         fixROMUnitStructPtr(o)
         unitLoadSupports(o)
         if (def.itemDrop) {
@@ -70,6 +92,123 @@ public class UnitLoader(
         unitCheckStatCaps(o)
         put8(table.bytes, o + OFF_CUR_HP, getUnitMaxHp(o))
         return id
+    }
+
+    private fun cAttributes(o: Int): Int =
+        rom.u32(u32(table.bytes, o + OFF_CHARACTER) + 0x28) or
+            rom.u32(u32(table.bytes, o + OFF_CLASS) + 0x28)
+
+    /**
+     * Ported from src/bmunit.c: UnitAutolevel
+     * Ported from src/bmdifficulty.c: GetCurrentPromotedLevelBonus
+     *
+     * Raises the stats of the unit at [o] by its class growths for `level - 1` levels, after 9
+     * (19 in hard mode) levels first if its class is promoted.
+     */
+    internal fun unitAutolevel(o: Int) {
+        if ((cAttributes(o) and CA_PROMOTED) != 0) {
+            unitAutolevelCore(o, if (isHardMode()) 19 else 9)
+        }
+        unitAutolevelCore(o, s8(table.bytes, o + OFF_LEVEL) - 1)
+    }
+
+    /**
+     * Ported from src/bmunit.c: UnitAutolevelCore
+     *
+     * Adds [levelCount] levels of autoleveled growth to the stats of the unit at [o].
+     */
+    internal fun unitAutolevelCore(o: Int, levelCount: Int) {
+        if (levelCount == 0) return
+        val b = table.bytes
+        val cl = u32(b, o + OFF_CLASS)
+        // maxHP (0x12), pow..lck (0x14..0x19): class growths at 0x1B.. in the same order.
+        for (i in 0 until 7) {
+            val growth = rom.u8(cl + 0x1B + i).toByte().toInt()
+            val at = o + (if (i == 0) OFF_MAX_HP else 0x13 + i)
+            put8(b, at, s8(b, at) + getAutoleveledStatIncrease(growth, levelCount))
+        }
+    }
+
+    /**
+     * Ported from src/bmbattle.c: GetAutoleveledStatIncrease
+     *
+     * The stat gain of [levelCount] levels of [growth], with +-1/8 of random spread.
+     */
+    internal fun getAutoleveledStatIncrease(growth: Int, levelCount: Int): Int {
+        val total = growth * levelCount
+        return getStatIncrease(total + (rng.nextN(total / 4) - total / 8))
+    }
+
+    /**
+     * Ported from src/bmbattle.c: GetStatIncrease
+     *
+     * One point per full 100 of [growth], plus one more with the remainder as percent chance.
+     */
+    internal fun getStatIncrease(growth: Int): Int {
+        var result = 0
+        var g = growth
+        while (g > 100) {
+            result++
+            g -= 100
+        }
+        if (rng.roll1(g)) result++
+        return result
+    }
+
+    /**
+     * Ported from src/bmunit.c: UnitAutolevelWExp
+     * Ported from src/bmitem.c: CanUnitUseStaff
+     *
+     * For an autoleveled definition: raises the weapon ranks of the unit at [o] to what its
+     * usable-restricted weapons and staves need.
+     */
+    internal fun unitAutolevelWExp(o: Int, def: UnitDef) {
+        if (!def.autolevel) return
+        val b = table.bytes
+        var i = 0
+        while (i < getUnitItemCount(o)) {
+            var item = unitItem(o, i)
+            i++
+            val ia = items.getItemAttributes(item)
+            if ((ia and (ItemInfo.IA_WEAPON or ItemInfo.IA_STAFF)) == 0) continue
+            if ((ia and ItemInfo.IA_WEAPON) != 0 && canUnitUseWeapon(o, item)) continue
+            if ((ia and ItemInfo.IA_STAFF) != 0 && canUnitUseStaff(o, item)) continue
+            if ((ia and ItemInfo.IA_LOCK_ANY) != 0) continue
+            val wType = items.getItemType(item)
+            if (u8(b, o + OFF_RANKS + wType) == 0) item = 0
+            put8(b, o + OFF_RANKS + wType, items.getItemRequiredExp(item))
+        }
+    }
+
+    /**
+     * Ported from src/bmunit.c: GetUnitItemCount
+     *
+     * The number of item slots of the unit at [o] up to its last non-empty one.
+     */
+    internal fun getUnitItemCount(o: Int): Int {
+        for (i in UNIT_ITEM_COUNT - 1 downTo 0) {
+            if (unitItem(o, i) != 0) return i + 1
+        }
+        return 0
+    }
+
+    /**
+     * Ported from src/bmitem.c: CanUnitUseStaff
+     *
+     * Whether the unit at [o] can use [item] as a staff: not asleep, berserk or silenced, with
+     * enough staff rank.
+     */
+    internal fun canUnitUseStaff(o: Int, item: Int): Boolean {
+        if (item == 0) return false
+        if ((items.getItemAttributes(item) and ItemInfo.IA_STAFF) == 0) return false
+        val status = u8(table.bytes, o + OFF_STATUS) and 0xF
+        if (status == UNIT_STATUS_SLEEP || status == UNIT_STATUS_BERSERK ||
+            status == UNIT_STATUS_SILENCED
+        ) {
+            return false
+        }
+        val rank = u8(table.bytes, o + OFF_RANKS + items.getItemType(item))
+        return rank >= items.getItemRequiredExp(item)
     }
 
     /**
@@ -147,6 +286,146 @@ public class UnitLoader(
 
     private fun unitItem(o: Int, slot: Int): Int =
         StructCodec.u16(table.bytes, o + OFF_ITEMS + 2 * slot)
+
+    /**
+     * Ported from src/eventscr.c: LoadUnit_800F704
+     * Ported from src/eventscr.c: sub_800F8A8
+     * Ported from src/muctrl.c: MoveUnit_, MoveUnitExt
+     * Ported from src/bmunit.c: GetUnitFromCharIdAndFaction, UnitChangeFaction, CopyUnit
+     *
+     * partial: the event engine's unit load. Finds the definition's character among the blue
+     * units (moving it to the definition's faction if that is not blue), loads a new unit
+     * otherwise, and sets its state bits and position. [b] are the move flags, [quiet] the
+     * silent-load flag, [d] the `load_unit2` flag. Not ported (throw
+     * [UnsupportedOperationException]): red characters from 0x3C on (`UnitApplyBonusLevels`
+     * with chapter data), `sumFlag` definitions, a non-zero terrain under a [b] bit 0 target
+     * (`AiGetUnitClosestValidPosition`), units rescuing or in a ballista (`UnitFinalizeMovement`)
+     * and, for a definition with REDAs, the non-quiet walk (`MuCtr_StartDefinedMove`). The
+     * `gActiveUnit` update of `UnitChangeFaction`, and the `RefreshEntityBmMaps` /
+     * `RefreshUnitSprites` after the move, are left to the caller. Returns the unit's id.
+     */
+    public fun loadUnitForEvent(
+        defAddress: Int,
+        b: Int,
+        quiet: Boolean,
+        d: Boolean,
+        terrainAt: (x: Int, y: Int) -> Int,
+    ): Int {
+        val def = UnitDef(rom, defAddress)
+        var flags = b
+        var id = getUnitFromCharIdAndFaction(def.charIndex, FACTION_BLUE)
+        if (def.allegiance != 0 && id >= 0) {
+            val faction = if (def.allegiance == 1) FACTION_GREEN else FACTION_RED
+            unitChangeFaction(id, faction)
+            id = table.getUnitFromCharId(def.charIndex)
+        }
+        if (id < 0) {
+            id = loadUnit(defAddress, terrainAt)
+            if (id == 0) throw NullPointerException("LoadUnit_800F704: no free unit slot")
+            if (d && def.allegiance == 0) table.setState(id, table.state(id) or US_BIT22)
+        } else if (def.allegiance == 0) {
+            var state = table.state(id) and US_UNSELECTABLE.inv()
+            state = if (d) {
+                if ((state and US_DEAD) != 0) state or US_BIT22 else state
+            } else {
+                state and US_BIT22.inv()
+            }
+            table.setState(id, state)
+            val o = table.unitOffset(id)
+            val x = if (def.redaCount != 0) lastReda(def) and 0x3F else def.x
+            val y = if (def.redaCount != 0) (lastReda(def) shr 6) and 0x3F else def.y
+            if (s8(table.bytes, o + OFF_X) == x && s8(table.bytes, o + OFF_Y) == y) {
+                flags = flags and 1.inv()
+            }
+        }
+        val o = table.unitOffset(id)
+        put8(table.bytes, o + OFF_X, def.x)
+        put8(table.bytes, o + OFF_Y, def.y)
+        val number = rom.u8(u32(table.bytes, o + OFF_CHARACTER) + 4)
+        if (def.allegiance == 2 && number >= 0x3C) {
+            throw UnsupportedOperationException(
+                "LoadUnit_800F704: UnitApplyBonusLevels for red characters >= 0x3C not ported",
+            )
+        }
+        moveLoadedUnit(id, def, flags, quiet, terrainAt)
+        return id
+    }
+
+    private fun lastReda(def: UnitDef): Int = rom.u32(def.redas + 8 * (def.redaCount - 1))
+
+    /** sub_800F8A8, MoveUnit_ and MoveUnitExt without the map and sprite refresh. */
+    private fun moveLoadedUnit(
+        id: Int,
+        def: UnitDef,
+        flagsIn: Int,
+        quiet: Boolean,
+        terrainAt: (x: Int, y: Int) -> Int,
+    ) {
+        var flags = flagsIn
+        if (def.sumFlag) flags = flags or 2
+        val o = table.unitOffset(id)
+        val b = table.bytes
+        if (def.redaCount != 0 && !quiet && (u32(b, o + OFF_STATE) and US_UNDER_A_ROOF) == 0) {
+            throw UnsupportedOperationException(
+                "LoadUnit_800F704: MuCtr_StartDefinedMove (MU walk) not ported",
+            )
+        }
+        var x = def.x
+        var y = def.y
+        if (def.redaCount != 0) {
+            x = lastReda(def) and 0x3F
+            y = (lastReda(def) shr 6) and 0x3F
+        }
+        if ((flags and 2) != 0) {
+            throw UnsupportedOperationException("AdjustNewUnitPosition: flags & 2 not ported")
+        }
+        if ((flags and 1) != 0 && terrainAt(x, y) != 0) {
+            throw UnsupportedOperationException("AdjustNewUnitPosition: closest position")
+        }
+        put8(b, o + OFF_X, x)
+        put8(b, o + OFF_Y, y)
+        val state = u32(b, o + OFF_STATE)
+        if ((state and (US_RESCUING or US_IN_BALLISTA)) != 0) {
+            throw UnsupportedOperationException("UnitFinalizeMovement: rescue/ballista not ported")
+        }
+        if ((state and US_UNDER_A_ROOF) == 0) put32(b, o + OFF_STATE, state and US_HIDDEN.inv())
+    }
+
+    /**
+     * Ported from src/bmunit.c: GetUnitFromCharIdAndFaction
+     *
+     * The id of the first valid unit of [faction] whose character is [charId], or -1.
+     */
+    internal fun getUnitFromCharIdAndFaction(charId: Int, faction: Int): Int {
+        for (i in faction + 1 until faction + 0x40) {
+            if (table.unitOffset(i) >= 0 && table.isValid(i) && table.charId(i) == charId) return i
+        }
+        return -1
+    }
+
+    /**
+     * Ported from src/bmunit.c: UnitChangeFaction, CopyUnit
+     *
+     * partial: `gActiveUnit` is not updated. Moves unit [id] into a free slot of [faction].
+     */
+    internal fun unitChangeFaction(id: Int, faction: Int) {
+        val newId = getFreeUnit(faction)
+        if (newId == 0) throw NullPointerException("UnitChangeFaction: no free unit slot")
+        val from = table.unitOffset(id)
+        val to = table.unitOffset(newId)
+        val b = table.bytes
+        val index = b[to + OFF_INDEX]
+        b.copyInto(b, to, from, from + UnitTable.UNIT_SIZE)
+        b[to + OFF_INDEX] = index
+        clearUnit(from)
+        if (u8(b, to + OFF_EXP) == 0xFF) {
+            val blue = faction == FACTION_BLUE && s8(b, to + OFF_LEVEL) != UNIT_LEVEL_MAX
+            put8(b, to + OFF_EXP, if (blue) 0 else 0xFF)
+        }
+        put32(b, to + OFF_STATE, u32(b, to + OFF_STATE) and US_DROP_ITEM.inv())
+        val rescue = u8(b, to + OFF_RESCUE)
+        if (rescue != 0) b[table.unitOffset(rescue) + OFF_RESCUE] = b[to + OFF_INDEX]
+    }
 
     /**
      * Ported from src/bmunit.c: ClearUnit
@@ -376,6 +655,7 @@ public class UnitLoader(
     internal class UnitDef(rom: RomView, address: Int) {
         val charIndex = rom.u8(address)
         val classIndex = rom.u8(address + 1)
+        val leaderCharIndex = rom.u8(address + 2)
         val autolevel = (rom.u8(address + 3) and 1) != 0
         val allegiance = (rom.u8(address + 3) shr 1) and 3
         val level = rom.u8(address + 3) shr 3
@@ -403,6 +683,11 @@ public class UnitLoader(
         const val UNIT_LEVEL_MAX = 20
         const val TERRAIN_ROOF = 0x22
         const val US_HIDDEN = 1 shl 0
+        const val US_UNSELECTABLE = 1 shl 1
+        const val US_DEAD = 1 shl 2
+        const val US_RESCUING = 1 shl 4
+        const val US_IN_BALLISTA = 1 shl 11
+        const val US_BIT22 = 1 shl 22
         const val US_UNDER_A_ROOF = 1 shl 7
         const val US_DROP_ITEM = 1 shl 12
         const val CA_BIT_23 = 1 shl 23
@@ -413,7 +698,11 @@ public class UnitLoader(
         const val CA_LOCK_5 = 1 shl 29
         const val CA_LOCK_6 = 1 shl 30
         const val CA_LOCK_7 = 1 shl 31
+        const val UNIT_STATUS_SLEEP = 2
         const val UNIT_STATUS_SILENCED = 3
+        const val UNIT_STATUS_BERSERK = 4
+        const val CA_PROMOTED = 1 shl 8
+        const val CA_BOSS = 1 shl 15
         const val UNIT_ITEM_COUNT = 5
         const val CLASS_GORGONEGG = 0x62
         const val CLASS_GORGONEGG2 = 0x34
@@ -431,6 +720,7 @@ public class UnitLoader(
         const val OFF_CUR_HP = 0x13
         const val OFF_ITEMS = 0x1E
         const val OFF_STATUS = 0x30
+        const val OFF_RESCUE = 0x1B
         const val OFF_CON_BONUS = 0x1A
         const val OFF_MOV_BONUS = 0x1D
         const val OFF_RANKS = 0x28

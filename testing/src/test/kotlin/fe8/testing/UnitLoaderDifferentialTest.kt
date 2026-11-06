@@ -4,6 +4,7 @@ import fe8.game.RomView
 import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitTable
 import gba.core.VerifiesPort
+import gbafe.core.rng.RngService
 import gba.testkit.ReferenceData
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -38,6 +39,7 @@ class UnitLoaderDifferentialTest {
         // UnitCheckStatCaps, UnitHideIfUnderRoof: run, but no cap clamps and no roof tile here.
         "GetCharacterData",
         "GetClassData", "GetUnitSupporterCount", "GetUnitSupporterInitialExp",
+        // LoadUnit_800F704: b = 0 is a guess (ModifyMoveUnitFlag not ported), so untagged.
     )
     fun `loading the throne room units reproduces the dumped unit structs`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
@@ -51,16 +53,12 @@ class UnitLoaderDifferentialTest {
 
         val rows = after.u32(GBM_MAP_TERRAIN)
         val terrainAt = { x: Int, y: Int -> after.u8(after.u32(rows + 4 * y) + x) }
-        val loader = UnitLoader(table, rom)
+        val loader = UnitLoader(table, rom, { 0 }, RngService(), { false })
         for (n in 0 until 8) {
             val def = DEF_ADDRESS + 20 * n
-            val id = loader.loadUnit(def, terrainAt)
+            // LoadUnit_800F704 as load_unit2 (d), non-silent, b = 0: US_BIT22, x/y := def x/y.
+            val id = loader.loadUnitForEvent(def, 0, false, true, terrainAt)
             assertEquals(n + 1, id, "slot of def $n")
-            // eventscr.c LoadUnit_800F704 (d == 1): US_BIT22, then the definition's position.
-            table.setState(id, table.state(id) or (1 shl 22))
-            val pos = rom.u16(def + 4)
-            table.bytes[table.unitOffset(id) + 0x10] = (pos and 0x3F).toByte()
-            table.bytes[table.unitOffset(id) + 0x11] = ((pos shr 6) and 0x3F).toByte()
         }
 
         val expected = UnitTable(rom).also { it.loadFrom(after) }
@@ -111,7 +109,7 @@ class UnitLoaderDifferentialTest {
         }
         val rows = after.u32(GBM_MAP_TERRAIN)
         val terrainAt = { x: Int, y: Int -> after.u8(after.u32(rows + 4 * y) + x) }
-        val loader = UnitLoader(table, rom)
+        val loader = UnitLoader(table, rom, { 0 }, RngService(), { false })
         val out = ArrayList<Pair<ByteArray, ByteArray>>()
         for ((n, def) in defs.withIndex()) {
             val id = loader.loadUnit(def, terrainAt)
@@ -183,8 +181,76 @@ class UnitLoaderDifferentialTest {
         assertArrayEquals(want, got, "messenger")
     }
 
+    /**
+     * Red units with autolevel from `ram_trace_prologue`: the Grado shamans (`load_unit1`, four
+     * units, the last two promoted-class autolevel units) between `r12390` and `r12420`, and the
+     * Valter group (Valter plus two autolevel units, level 1, unpromoted: no
+     * RNG) between `r13920` and `r13950`. LoadUnit's autolevel draws from the RNG, so the
+     * whole list is loaded once per RNG state recorded in `rng.watch.bin` over the window
+     * (the state before each step), each time with a fresh
+     * [RngService]. The window holds more than one distinct state, so the stat growths have to
+     * match for the states in which the load really happened and fail for the later ones.
+     *
+     * Masked: +0x0C bit 0 (`US_HIDDEN`: the MU hides a unit it walks in) and +0x3C..0x3F
+     * (`pMapSpriteHandle`, `RefreshUnitSprites`). Every other byte is compared.
+     */
+    @Test
+    @VerifiesPort(
+        "LoadUnit", "UnitAutolevel", "UnitAutolevelCore", "GetAutoleveledStatIncrease",
+        "GetStatIncrease", "GetCurrentPromotedLevelBonus", "UnitInitFromDefinition",
+        "UnitLoadStatsFromChracter",
+    )
+    fun `autoleveled red units reproduce the dump for the RNG states of the window`() {
+        assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
+        val rom = RomView.ofRom(romFile.readBytes())
+        val r = ref.run("ram_trace_prologue")
+        val rng = r.watch("rng")
+        val cases = listOf(
+            Triple("r12390", "r12420", SHAMANS_DEF),
+            Triple("r13920", "r13950", 0x088B3FB8),
+        )
+        for ((beforeDump, afterDump, def) in cases) {
+            val before = r.region(beforeDump, "ewram")
+            val after = r.region(afterDump, "ewram")
+            val count = generateSequence(0) { it + 1 }.first { rom.u8(def + 20 * it) == 0 }
+            var matching = 0
+            var failing = 0
+            for (step in beforeDump.drop(1).toInt()..afterDump.drop(1).toInt()) {
+                val table = UnitTable(rom).also { it.loadFrom(before) }
+                val expected = UnitTable(rom).also { it.loadFrom(after) }
+                val service = RngService()
+                service.primary.load(rng.u16(step, 0), rng.u16(step, 2), rng.u16(step, 4))
+                val loader = UnitLoader(table, rom, { 0 }, service, { false })
+                var same = true
+                for (k in 0 until count) {
+                    val id = loader.loadUnit(def + 20 * k) { _, _ -> 0 }
+                    val pos = rom.u16(def + 20 * k + 4)
+                    table.bytes[table.unitOffset(id) + 0x10] = (pos and 0x3F).toByte()
+                    table.bytes[table.unitOffset(id) + 0x11] = ((pos shr 6) and 0x3F).toByte()
+                    val o = table.unitOffset(id)
+                    for (b in 0 until UnitTable.UNIT_SIZE) {
+                        val masked = b in 0x3C..0x3F
+                        if (b == 0x0C) {
+                            val got = table.bytes[o + b].toInt() or 1
+                            if (got != (expected.bytes[o + b].toInt() or 1)) same = false
+                        } else if (!masked && table.bytes[o + b] != expected.bytes[o + b]) {
+                            same = false
+                        }
+                    }
+                }
+                if (same) matching++ else failing++
+            }
+            assertTrue(matching > 0, "$beforeDump..$afterDump: no RNG state reproduces the dump")
+            // The Valter group's autolevel units are level 1 and not promoted: no RNG is drawn.
+            if (def == SHAMANS_DEF) {
+                assertTrue(failing > 0, "$beforeDump..$afterDump: RNG did not matter")
+            }
+        }
+    }
+
     private companion object {
         const val DEF_ADDRESS = 0x088B3D18
+        const val SHAMANS_DEF = 0x088B3E30
         const val ALLY_DEF = 0x088B3C14
         const val MESSENGER_DEF = 0x088B3DCC
         const val GBM_MAP_TERRAIN = 0x0202E4DC

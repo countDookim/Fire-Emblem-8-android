@@ -94,6 +94,7 @@ internal class ItemInfo(private val rom: RomView) {
 
         const val IA_WEAPON: Int = 1 shl 0
         const val IA_MAGIC: Int = 1 shl 1
+        const val IA_STAFF: Int = 1 shl 2
         const val IA_UNBREAKABLE: Int = 1 shl 3
         const val IA_LOCK_3: Int = 1 shl 10
         const val IA_LOCK_1: Int = 1 shl 11

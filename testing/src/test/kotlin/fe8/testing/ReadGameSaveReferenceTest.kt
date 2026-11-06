@@ -119,9 +119,11 @@ class ReadGameSaveReferenceTest {
     // SGM_SetCharacterKnown / WriteGlobalSaveInfo part (the fresh image keeps the known flags;
     // break-check passes), InvalidateSuspendSave (already invalid).
     @Test
+    // Not @VerifiesPort: WriteLastGameSaveId (the image already holds slot 1 as the last game
+    // save, so a no-op survives; audit 2026-11-06).
     @VerifiesPort(
-        "WriteGameSave", "WriteGameSavePackedUnit", "WriteLastGameSaveId", "WriteSupplyItems",
-        "WritePidStats", "WriteChapterStats", "WritePermanentFlags",
+        "WriteGameSave", "WriteGameSavePackedUnit", "WriteSupplyItems", "WritePidStats",
+        "WriteChapterStats", "WritePermanentFlags",
     )
     fun `write after read reproduces slot 1 of chapter6 sav`() {
         val f = fixture()

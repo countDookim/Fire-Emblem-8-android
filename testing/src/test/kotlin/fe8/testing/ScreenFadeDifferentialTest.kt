@@ -29,9 +29,9 @@ class ScreenFadeDifferentialTest {
     private fun name(f: Int) = (if ((f - 9319) % 30 == 0) "f" else "r") + "%05d".format(f)
 
     @Test
-    @VerifiesPort(
-        "StartLockingFadeFromBlack", "FadeFromBlack_OnInit", "FadeFromCommon_OnLoop", "FadeExists",
-    )
+    // Not @VerifiesPort: FadeFromCommon_OnLoop (speed 0x10 keeps the level a multiple of 16, so a
+    // rounding error in `level >> 4` survives; audit 2026-11-06).
+    @VerifiesPort("StartLockingFadeFromBlack", "FadeFromBlack_OnInit", "FadeExists")
     fun `fade from black follows the per-frame RAM trace`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         val run = ref.run("ram_trace_newgame_bm")

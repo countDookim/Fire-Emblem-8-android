@@ -88,7 +88,10 @@ public class EventState {
         return result
     }
 
-    /** Ported from src/event.c: SetEventSlotCounter. */
+    /**
+     * Transcribed from src/event.c: SetEventSlotCounter (not verified: the only reference value
+     * is 0, so a no-op survives)
+     */
     public fun setEventSlotCounter(value: Int) {
         slotCounter = value
     }

@@ -154,7 +154,8 @@ public class UnitSpriteHandles(
     }
 
     /**
-     * Ported from src/bmudisp.c: GetUnitSpriteHideFlag
+     * Transcribed from src/bmudisp.c: GetUnitSpriteHideFlag (not verified: no traced unit lacks
+     * a handle or has the hide bit set, so breaking either branch survives)
      *
      * 0x80 if unit [id] has no map sprite handle, else the `0x80` bit of the handle's `config`.
      */

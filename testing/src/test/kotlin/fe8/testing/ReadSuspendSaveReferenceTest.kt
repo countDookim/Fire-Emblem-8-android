@@ -52,9 +52,11 @@ class ReadSuspendSaveReferenceTest {
     // Coverage limits: gameSaveSlot 0 (LoadSavedBonusClaimFlags reads game block 0 here),
     // and the saved dungeon / menu override / world map stand-ins are not compared with RAM.
     @Test
+    // Not @VerifiesPort: SetEventSlotCounter (the 0x5A5A sentinel is set through the same
+    // function and the dumped counter is 0, so a no-op survives; audit 2026-11-06).
     @VerifiesPort(
         "ReadSuspendSave", "ReadSuspendSavePackedUnit", "InitUnits", "ReadPidStats",
-        "ReadPermanentFlags", "ReadChapterFlags", "SetEventSlotCounter",
+        "ReadPermanentFlags", "ReadChapterFlags",
     )
     fun `reading chapter2 sav reproduces the RAM of r01142`() {
         val f = fixture()

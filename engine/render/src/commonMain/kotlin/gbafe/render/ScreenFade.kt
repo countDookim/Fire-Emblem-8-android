@@ -77,7 +77,8 @@ public class ScreenFade(
     }
 
     /**
-     * Ported from src/bmlib.c: FadeFromCommon_OnLoop
+     * Transcribed from src/bmlib.c: FadeFromCommon_OnLoop (not verified: the only traced fade
+     * has speed 0x10, so the level is always a multiple of 16 and rounding is unchecked)
      */
     public fun fadeFromCommonOnLoop(proc: Proc) {
         if (lcd.blendY == 0) {

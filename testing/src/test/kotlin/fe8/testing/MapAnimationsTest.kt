@@ -4,7 +4,6 @@ import fe8.game.RomView
 import fe8.game.bm.ChapterData
 import fe8.game.bm.MapAnimations
 import fe8.game.bm.PlaySt
-import gba.core.VerifiesPort
 import gbafe.render.BgHardware
 import gba.testkit.ReferenceData
 import java.io.File
@@ -23,7 +22,8 @@ class MapAnimationsTest {
     )
 
     @Test
-    @VerifiesPort("BMapVSync_UpdateMapImgAnimations")
+    // Not @VerifiesPort: VRAM is compared only every 10th frame, so an off-by-one in the entry
+    // timer (`time + 1`) survives (audit 2026-11-06).
     fun `animated map tiles match the first phase reference`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / reference data not present")
         val run = ref.run("ram_trace_first_phase")

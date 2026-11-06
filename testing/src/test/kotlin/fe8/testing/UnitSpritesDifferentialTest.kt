@@ -175,7 +175,9 @@ class UnitSpritesDifferentialTest {
      * directly and the next object must be the cleared one (y = 160, x = 0).
      */
     @Test
-    @VerifiesPort("PutUnitSpritesOam", "PutUnitSpriteIconsOam", "GetUnitSpriteHideFlag")
+    // Not @VerifiesPort: GetUnitSpriteHideFlag (returning 0 for a missing handle, or testing
+    // `config & 0x40` instead of 0x80, both survive; audit 2026-11-06).
+    @VerifiesPort("PutUnitSpritesOam", "PutUnitSpriteIconsOam")
     fun `unit sprite objects match the dump OAM`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
         val run = ref.run("ram_trace_first_phase")

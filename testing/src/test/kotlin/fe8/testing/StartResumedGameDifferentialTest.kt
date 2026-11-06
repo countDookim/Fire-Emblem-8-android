@@ -9,7 +9,6 @@ import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterMapGfx
 import fe8.game.bm.PlaySt
 import fe8.game.flags.Fe8EventFlags
-import gba.core.VerifiesPort
 import gba.testkit.GbaMem
 import gba.testkit.ReferenceData
 import gbafe.core.rng.RngService
@@ -46,7 +45,8 @@ class StartResumedGameDifferentialTest {
     )
 
     @Test
-    @VerifiesPort("GameCtrl_StartResumedGame")
+    // Not @VerifiesPort: the prologue's camera is 0 (map smaller than the screen), so dropping the
+    // camera centring survives, and the blend setup is not compared (audit 2026-11-06).
     fun `gBmSt after the resumed game start matches the dump`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
         val view = RomView.ofRom(romFile.readBytes())

@@ -32,22 +32,6 @@ class ResumeBootTest {
     )
     private val romFile = File(assets, "baserom.gba")
 
-    private class CountingStorage(private val initial: ByteArray?) : SaveStorage {
-        var stores = 0
-        var image: ByteArray? = initial
-
-        override fun load(dest: ByteArray): Boolean {
-            val saved = image ?: return false
-            saved.copyInto(dest)
-            return true
-        }
-
-        override fun store(src: ByteArray) {
-            stores++
-            image = src.copyOf()
-        }
-    }
-
     /** Boots on [storage], presses A on the title and runs to the idle player phase. */
     private fun bootToPhase(
         storage: SaveStorage,
@@ -95,8 +79,8 @@ class ResumeBootTest {
     /**
      * Ported from src/bmio.c: MapMain_ResumeFromPhaseIdle
      *
-     * Ground truth: BMapMain (`gProc_BMapMain` at 0x0859A1F0) in the proc array of the dump r01149
-     * of `ram_trace_prologue_resume` (and r01150 of `ram_trace_ch2_scroll`) is at command 40, which
+     * Ground truth: BMapMain (`gProc_BMapMain` at 0x0859A1F0) in the proc array of the dump r01150
+     * of `ram_trace_prologue_resume` and of `ram_trace_ch2_scroll` is at command 40, which
      * is `PROC_LABEL(4)`; ours sits on label 4 right after `startResumedGame`. The BG0..3 / OBJ
      * enable bits of `gLCDControlBuffer.dispcnt` (IWRAM 0x03003080) of that dump equal ours. The
      * two refreshes (entity maps, unit sprites) are not compared.
@@ -205,5 +189,21 @@ class ResumeBootTest {
         val run = ref.run("ram_trace_prologue_resume")
         assumeTrue(run.hasSram, "ram_trace_prologue_resume has no SRAM dumps")
         return run.sram("s01001")
+    }
+
+    private class CountingStorage(private val initial: ByteArray?) : SaveStorage {
+        var stores = 0
+        var image: ByteArray? = initial
+
+        override fun load(dest: ByteArray): Boolean {
+            val saved = image ?: return false
+            saved.copyInto(dest)
+            return true
+        }
+
+        override fun store(src: ByteArray) {
+            stores++
+            image = src.copyOf()
+        }
     }
 }

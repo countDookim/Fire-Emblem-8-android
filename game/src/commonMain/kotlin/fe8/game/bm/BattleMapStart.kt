@@ -341,7 +341,8 @@ public class BattleMapStart(
     }
 
     /**
-     * Ported from src/bmio.c: GameCtrl_StartResumedGame
+     * Transcribed from src/bmio.c: GameCtrl_StartResumedGame (not verified: the only reference
+     * resume has camera 0, so the camera centring is unchecked; the blend setup is not compared)
      *
      * Brings the game state back after loading a suspended game: sets up the BG layers, clears
      * `gBmSt`, puts the cursor on `gPlaySt`'s cursor position, initialises the chapter map, sets

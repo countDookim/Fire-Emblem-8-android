@@ -54,7 +54,8 @@ public class MapAnimations(
     }
 
     /**
-     * Ported from src/bmio.c: BMapVSync_UpdateMapImgAnimations
+     * Transcribed from src/bmio.c: BMapVSync_UpdateMapImgAnimations (not verified: the reference
+     * VRAM is compared only every 10th frame, so an off-by-one entry timer survives)
      *
      * Every `time` frames copies the current `TileGfxAnim` entry (u16 time, u16 size, data
      * pointer) to BG tile 0x140 (VRAM 0xA000) and advances, wrapping at a zero `time`.

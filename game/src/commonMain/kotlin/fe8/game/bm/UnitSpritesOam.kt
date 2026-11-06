@@ -5,6 +5,7 @@ import fe8.game.bm.StructCodec.s16
 import fe8.game.bm.StructCodec.u32
 import fe8.game.bm.StructCodec.u8
 import gbafe.core.flags.FlagStore
+import gbafe.core.time.GameClock
 import gbafe.render.OamBuffer
 
 /**
@@ -35,6 +36,14 @@ public class UnitSpritesOam(
     /** `GetGameClock`. */
     public var gameClock: () -> Int = { 0 }
 
+    /**
+     * The game clock itself; when set it is read instead of [gameClock] (a lambda result boxes
+     * the clock every call, which the idle frame must not).
+     */
+    public var clockSource: GameClock? = null
+
+    private fun now(): Int = clockSource?.frames?.toInt() ?: gameClock()
+
     /** `GetBattleMapKind` for the current chapter. */
     public var battleMapKind: () -> Int = { BattleMapKind.STORY }
 
@@ -44,15 +53,15 @@ public class UnitSpritesOam(
     /** `gBmMapTerrain[y][x]`. */
     public var terrainAt: (x: Int, y: Int) -> Int = { _, _ -> 0 }
 
-    private val object8x8 = rom.objN(OBJECT_8X8).data
-    private val object16x16 = rom.objN(OBJECT_16X16).data
-    private val object16x32 = rom.objN(OBJECT_16X32).data
-    private val object32x32 = rom.objN(OBJECT_32X32).data
-    private val poisonIcons = iconTable(POISON_ICONS, 12)
-    private val sleepIcons = iconTable(SLEEP_ICONS, 7)
-    private val berserkIcons = iconTable(BERSERK_ICONS, 9)
-    private val silenceIcons = iconTable(SILENCE_ICONS, 18)
-    private val statBoosterIcon = rom.objN(STAT_BOOSTER_ICON).data
+    private val object8x8 by lazy { rom.objN(OBJECT_8X8).data }
+    private val object16x16 by lazy { rom.objN(OBJECT_16X16).data }
+    private val object16x32 by lazy { rom.objN(OBJECT_16X32).data }
+    private val object32x32 by lazy { rom.objN(OBJECT_32X32).data }
+    private val poisonIcons by lazy { iconTable(POISON_ICONS, 12) }
+    private val sleepIcons by lazy { iconTable(SLEEP_ICONS, 7) }
+    private val berserkIcons by lazy { iconTable(BERSERK_ICONS, 9) }
+    private val silenceIcons by lazy { iconTable(SILENCE_ICONS, 18) }
+    private val statBoosterIcon by lazy { rom.objN(STAT_BOOSTER_ICON).data }
 
     private fun iconTable(at: Int, count: Int): List<ShortArray> =
         List(count) { rom.objN(rom.u32(at + 4 * it)).data }
@@ -83,7 +92,7 @@ public class UnitSpritesOam(
             if (x < -16 || x > DISPLAY_WIDTH) continue
             if (y < -32 || y > DISPLAY_HEIGHT) continue
             if (config and 0x80 != 0) continue
-            val wiggle = if (config and 0x40 != 0) gameClock() and 2 else 0
+            val wiggle = if (config and 0x40 != 0) now() and 2 else 0
             val base = StructCodec.u16(array, o + 8)
             when (config and 0xF) {
                 0 -> push(x + wiggle, y, object16x16, base + (2 shl 10))
@@ -106,7 +115,7 @@ public class UnitSpritesOam(
         val chapter = chapters.getROMChapterStruct(playSt.chapterIndex)
         val xTile = rom.u8(chapter + OFF_DEST_POS_X)
         val yTile = rom.u8(chapter + OFF_DEST_POS_Y)
-        val shouldDisplay = (gameClock() and 0x1F) < 0x14
+        val shouldDisplay = (now() and 0x1F) < 0x14
         if (xTile == 0xFF) return
         if (!shouldDisplay) return
         if (fogAt(xTile, yTile) == 0) return
@@ -133,7 +142,7 @@ public class UnitSpritesOam(
             } else {
                 0
             }
-        val clock = gameClock()
+        val clock = now()
         val displayRescueIcon = clock % 32 < 20
         val poisonFrame = clock / 8 % poisonIcons.size
         val sleepFrame = clock / 16 % sleepIcons.size

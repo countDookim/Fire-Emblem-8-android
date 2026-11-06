@@ -1,6 +1,7 @@
 package fe8.game.bm
 
 import fe8.game.RomView
+import gbafe.core.time.GameClock
 import gbafe.render.BgHardware
 
 /**
@@ -32,6 +33,14 @@ public class UnitSprites(
 
     /** `GetGameClock()`. */
     public var gameClock: () -> Int = { 0 }
+
+    /**
+     * The game clock itself; when set it is read instead of [gameClock] (a lambda result boxes
+     * the clock every call, which the idle frame must not).
+     */
+    public var clockSource: GameClock? = null
+
+    private fun now(): Int = clockSource?.frames?.toInt() ?: gameClock()
 
     /**
      * Stand-in for `RegisterDataMove(src, dst, size)` of [forceSyncUnitSpriteSheet]: gets the
@@ -68,7 +77,7 @@ public class UnitSprites(
      * Copies the animation frame that starts at this game clock tick into OBJ VRAM `+0x1000`.
      */
     public fun syncUnitSpriteSheet() {
-        when (gameClock() % 72) {
+        when (now() % 72) {
             0 -> copyFrame(0, FRAME_SIZE)
             32 -> copyFrame(1, FRAME_SIZE)
             36 -> copyFrame(2, FRAME_SIZE)
@@ -83,7 +92,7 @@ public class UnitSprites(
      */
     public fun forceSyncUnitSpriteSheet() {
         syncFlag = 0
-        val frame = gameClock() % 72
+        val frame = now() % 72
         val which = when {
             frame >= 68 -> 1
             frame >= 36 -> 2

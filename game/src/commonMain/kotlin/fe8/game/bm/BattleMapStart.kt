@@ -195,7 +195,7 @@ public class BattleMapStart(
 
     /**
      * `gProc_MapTask` (bmio.c:139, ROM 0x0859D908, 10 commands): the map task, started on tree 4;
-     * every frame it runs `PutUnitSpritesOam` and `WfxUpdate` (stand-ins) and then the ported
+     * every frame it runs `PutUnitSpritesOam`, `WfxUpdate` (stand-in) and then the ported
      * [BmMapRender.updateBmMapDisplay].
      */
     public val mapTaskScript: ProcScript = ProcScript(

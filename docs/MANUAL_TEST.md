@@ -11,10 +11,18 @@ GPU renderer; gamepad/keyboard; on-screen touch buttons (cross D-pad, diagonals,
 layout); pause/resume; ROM import (~4 s) and Play from the imported data.
 
 ## Newly testable
+- **New Game reaches the Prologue map (M5-58/59/61, 2026-11-06):** the app now keeps your imported ROM and runs the
+  whole game from it. Steps: install the debug APK; tap **Import ROM** (or **Re-import ROM** if you imported before
+  today: the launcher then says "this install predates the kept ROM image") and pick `baserom.gba`; tap **Play**; on
+  the title press START, then New Game. Expect: the opening events run (no dialogue, sprites or fades yet, so the
+  screen may stay dark or still for a while), then the Prologue map appears; the D-pad moves the cursor and scrolls
+  where the map is larger than the screen (the Prologue mostly fits). Report crashes, a frozen black screen after
+  ~1 min, or a wrong-looking map. A wrong file is refused and leaves nothing stored.
 - **KMP rebuild (no new feature, 2026-11-04):** the game libraries are now Kotlin Multiplatform and the APK uses
   their Android builds. Check nothing regressed: launch, Play boots to the title with music and sound effects,
   touch buttons and gamepad work, and ROM import (if you use it) still completes and Play boots from it.
 
 ## Known not working (don't report)
-Everything after the title: no gameplay or saves. START on the title leads to a screen that stays put (the save menu
-is not ported yet; the battle-map code exists but is not reachable from the app until task M5-58).
+After the title: no save menu (New Game is chosen automatically), no dialogue, unit or cursor sprites, map music,
+fades or player actions yet; extra cutscene units may sit on the map (known gap). Without an imported ROM (debug
+assets only) the game stops after the title.

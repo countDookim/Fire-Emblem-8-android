@@ -7,15 +7,15 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M5-61: owner PC, until ~17:00Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
-## Next task: M5-61 (app keeps the imported ROM; ADR 0011 amended 11-06), then M6 in TASKS order
+## Next task: M6 in TASKS order (first todo with done deps: M6-05)
 Owner 11-06: run ONE agent/task at a time from now on. M5-58/59 merged (11-06): Fe8Boot runs New Game → beginning
 events (unskipped; START skip reads the real KeyStatus) → Prologue PlayerPhase idle; `PrologueMapTest` (BG3 tiles vs
 ram_trace_first_phase f19430, 0 B/frame idle with D-pad). Known gap: release no-op stubs leave cutscene units (9 blue/
 15 red vs the reference's 2/3), so `UnitLoader.closestValidPosition` (transcribed, `ClosestValidPositionTest`) runs
-for red units 139/142; closed by M6-22/28/44. The APK still stops at the title path: it only has boot/sound ROM
-windows (M5-61). M6-03/04: the suspend save is written at each phase start through `Fe8Boot.saveLib` (stand-ins:
+for red units 139/142; closed by M6-22/28/44. M5-61 (11-06): import keeps `base/rom/baserom.gba` and
+the app runs on `RomView.ofRom` (old installs: re-import); device test pending. M6-03/04: the suspend save is written at each phase start through `Fe8Boot.saveLib` (stand-ins:
 actionData, traps, convoy, WM info, dungeon; GMapSaveInfo is 0x24). M6-21/22: `EventVmDifferentialTest` compares
 unit arrays; `EventUnitState` (Event34) registered, untagged. New runs ram_trace_prologue_{talk,battle,resume}
 (ROM repo c80bcb8; excluded from m4a tests). Old `wip/` branches deleted 11-06.

@@ -98,7 +98,9 @@ ALL events (fix before merge). Blocker: no unit loader → playerPhaseHandleAuto
 - Allocation tests can flake (200 B once in 1000 frames): use `AllocationMeter.measureMin`.
 - `FrameCompareTest.applyHBlank` knows only `HBlank_BgVerticalScroll`; dumped RAM is one game step ahead of the
   dumped frame.
-- CI `startup_failure` → check the owner's GitHub billing first. Artifacts are kept 3-7 days (0.5 GB cap).
+- CI `startup_failure` → check the owner's GitHub billing first. Actions storage is small: master's APK goes only to
+  the `latest` release (branch APK artifacts 2 days, Dokka 1 day, results 7 days); if storage fills, delete old
+  artifacts (`gh api -X DELETE repos/OWNER/REPO/actions/artifacts/ID`).
 - `gh release view/download` (GraphQL) is refused; use `gh api repos/.../releases/...` (REST). Delete a `wip/`
   branch once merged.
 - Data: `cursor_hand.png` colours `paletteSource: caller`; `effectiveAgainst` holds class numbers; classes inline

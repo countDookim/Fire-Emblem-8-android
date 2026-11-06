@@ -41,11 +41,13 @@ import fe8.game.Fe8Game
 import fe8.game.Fe8Sound
 import fe8.game.RomView
 import gba.audio.PcmStream
+import gba.core.sram.FileSaveStorage
 import gba.core.time.FixedStepClock
 import gba.input.TouchButtons
 import gba.vfs.DirectoryLayer
 import gbafe.extract.RomImage
 import gbafe.extract.fe8.Fe8Import
+import java.io.File
 import io.github.countdookim.fe8.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -65,19 +67,26 @@ public class MainActivity : ComponentActivity() {
     private var sink: AudioTrackSink? = null
     private var audio: AudioThread? = null
 
+    /** The cartridge save of this install (M6-12): suspend and game saves survive restarts. */
+    private fun saveStorage(ctx: Context): FileSaveStorage =
+        FileSaveStorage(File(ctx.filesDir, "fe8.sav"))
+
     /**
      * Starts the game (boot sequence, GPU renderer) with its sound: the game loop mixes each frame
      * into a [PcmStream] that the audio thread plays (debug builds with the bundled sound window).
      */
     private fun createGame(ctx: Context, full: RomView?): Fe8Game {
         val bootRom = full ?: bundledBootRom(ctx)
-        val soundRom = full ?: bundledSoundRom(ctx) ?: return Fe8Game(rom = bootRom)
+        val soundRom = full ?: bundledSoundRom(ctx) ?: return Fe8Game(
+            rom = bootRom,
+            saveStorage = saveStorage(ctx),
+        )
         val sound = Fe8Sound.create(soundRom)
         val out = AudioTrackSink().also { sink = it }
         // ~150 ms of input: bounds the delay if the game clock runs slightly ahead of the device.
         val pcm = PcmStream(sound.info.pcmFreq, out.sampleRate, capacity = 2048)
         audio = AudioThread(pcm, out).also { it.start() }
-        return Fe8Game(rom = bootRom, sound = sound, pcm = pcm)
+        return Fe8Game(rom = bootRom, sound = sound, pcm = pcm, saveStorage = saveStorage(ctx))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -1,6 +1,7 @@
 package fe8.game
 
 import fe8.game.bm.BMapMain
+import fe8.game.bm.BMapMain.Companion.SAVE_ID_SUSPEND
 import fe8.game.bm.BattleMapNodes
 import fe8.game.bm.BattleMapStart
 import fe8.game.bm.BmMap
@@ -44,6 +45,9 @@ import gba.audio.M4aDriver
 import gba.audio.M4aSound
 import gba.audio.PcmStream
 import gba.core.sram.CartSram
+import gba.core.sram.SaveStorage
+import gba.core.sram.flushTo
+import gba.core.sram.loadFrom
 import gba.render.Camera
 import gba.render.ColorMath
 import gba.render.FrameBuffer
@@ -72,7 +76,7 @@ import gbafe.render.ScreenFade
  */
 public class Fe8Boot(
     /** ROM data of the boot screens (whole ROM, or the extracted [RomView.BOOT_WINDOWS]). */
-    rom: RomView,
+    private val rom: RomView,
     /** Raw pressed GBA keys (`REG_KEYINPUT`, active high) for the next step. */
     keyInput: () -> Int,
     /** The game's RNG ([Fe8Game.rng]); the battle map start path draws from it. */
@@ -85,6 +89,11 @@ public class Fe8Boot(
     public val m4a: M4aSound? = null,
     /** Receives each frame's mixed samples (null: mix only). */
     pcm: PcmStream? = null,
+    /**
+     * Where [sram] is loaded from at boot and flushed to after each save write; null: kept in
+     * memory only.
+     */
+    private val saveStorage: SaveStorage? = null,
 ) {
     /** `gKeyStatusPtr`. */
     public val keys: KeyStatus = KeyStatus()
@@ -123,20 +132,38 @@ public class Fe8Boot(
         GameControl(engine, keys, { ui.script }, { opAnimRef.script }, { titleRef }, m4a)
 
     /** The cartridge save RAM of this boot (empty until a save is written). */
-    public val sram: CartSram = CartSram()
+    public val sram: CartSram = CartSram().also { s -> saveStorage?.let { s.loadFrom(it) } }
 
     /** The save routines on [sram]. */
     public val saveLib: BmSaveLib by lazy { BmSaveLib(sram).also { it.sramInit() } }
 
+    /** The suspend save's RAM, shared by the write hook and the resume read (`actionData`). */
+    private val suspendRam: SuspendRam by lazy {
+        SuspendRam(control.playSt, loop.bmSt, rng, units, flags, clock, eventState)
+    }
+
+    private fun flushSram() {
+        saveStorage?.let { sram.flushTo(it) }
+    }
+
     /**
-     * Stand-in for `StartSaveMenu` (the save menu is not ported): the dev "New Game" choice. Writes
+     * Stand-in for `StartSaveMenu` (the save menu is not ported). With a valid suspend save in
+     * [sram] it takes the menu's "Resume" choice: reads the suspend save
+     * ([BmSuspendSave.readSuspendSave]) and sets `nextAction` to `GAME_ACTION_4`, so the game
+     * control proc continues at the resumed game. Otherwise it is the dev "New Game" choice: writes
      * a fresh game to slot 0 ([BmSaveLib.writeNewGameSave]) and leaves `nextAction` at event
      * return, so the game control proc continues to chapter 0.
      */
     private fun newGameSaveMenu() {
+        if (saveLib.isValidSuspendSave(SAVE_ID_SUSPEND)) {
+            BmSuspendSave(saveLib, rom).readSuspendSave(suspendRam, SAVE_ID_SUSPEND)
+            control.setNextGameActionId(GameControl.GAME_ACTION_4)
+            return
+        }
         saveLib.writeNewGameSave(
             NewGameRam(control.playSt, flags, ByteArray(200)), 0, false, 0, -1,
         )
+        flushSram()
         control.setNextGameActionId(GameControl.GAME_ACTION_EVENT_RETURN)
     }
 
@@ -255,9 +282,10 @@ public class Fe8Boot(
         val music = MapMusic(
             control.playSt, chapters, units, flags, control.sound,
         ) { battleMap.hooks.getBattleMapKind() }
+        val entityBmMaps = EntityBmMaps(map, units, control.playSt)
         val phase = PlayerPhase(
             engine, bm, control.playSt, map, units, camMove,
-            EntityBmMaps(map, units, control.playSt), render, keys,
+            entityBmMaps, render, keys,
             eventEngine::eventEngineExists,
         ).also { pp -> pp.hooks.startMapSongBgm = ProcFunc { music.startMapSongBgm() } }
         main.hooks.playerPhase = phase.script
@@ -272,9 +300,13 @@ public class Fe8Boot(
             ChapterMapGfx(rom, chapters, hw, control.playSt), render,
             flags, rng, clock, units,
         ).also {
-            main.hooks.writeSuspendSave = suspendSaveHook(main, bm, rom)
+            main.hooks.writeSuspendSave = suspendSaveHook(main, rom)
             main.hooks.getBattleMapKind = { it.hooks.getBattleMapKind() }
             it.hooks.bmapMainScript = main.script
+            it.hooks.refreshEntityBmMaps = { entityBmMaps.refreshEntityBmMaps() }
+            it.hooks.suspendPointType = {
+                suspendRam.actionData[ACTION_SUSPEND_POINT_TYPE].toInt() and 0xFF
+            }
         }
         wireUnitSprites(main, start, phase, map, rom)
         main to start
@@ -331,12 +363,13 @@ public class Fe8Boot(
      * map info and dungeon state are the zeroed buffers of [SuspendRam] (their owners are not
      * ported).
      */
-    private fun suspendSaveHook(main: BMapMain, bm: BmSt, rom: RomView): (Int) -> Unit {
+    private fun suspendSaveHook(main: BMapMain, rom: RomView): (Int) -> Unit {
         val save = BmSuspendSave(saveLib, rom)
-        val ram = SuspendRam(control.playSt, bm, rng, units, flags, clock, eventState)
         return { slot ->
+            val ram = suspendRam
             ram.actionData[ACTION_SUSPEND_POINT_TYPE] = main.suspendPointType.toByte()
             save.writeSuspendSave(ram, slot)
+            flushSram()
         }
     }
 

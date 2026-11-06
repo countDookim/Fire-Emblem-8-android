@@ -25,6 +25,8 @@ public class Fe8Game(
     sound: gba.audio.M4aSound? = null,
     /** Receives the mixed samples each frame (to the audio thread); null: mix only. */
     pcm: gba.audio.PcmStream? = null,
+    /** Where the cartridge SRAM is loaded from and saved to (see [Fe8Boot]); null: in memory. */
+    saveStorage: gba.core.sram.SaveStorage? = null,
 ) : Simulation {
     /** Central RNG. */
     public val rng: RngService = RngService().apply { seedLikeBoot() }
@@ -52,7 +54,7 @@ public class Fe8Game(
     public val boot: Fe8Boot? = rom?.let {
         Fe8Boot(
             it, keyInput = { VanillaButtonMap.toGbaKeys(input.held) }, rng = rng, screen = frame,
-            m4a = sound, pcm = pcm,
+            m4a = sound, pcm = pcm, saveStorage = saveStorage,
         )
     }
 

@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 420,
-    "implemented_unverified": 122
+    "verified": 435,
+    "implemented_unverified": 0
   },
   "functions": {
     "AddUnitSprite": {
@@ -109,13 +109,6 @@
         "fe8.testing.SaveDrawDifferentialTest#fog scroll turns the previous dump into the next one"
       ]
     },
-    "BattleEventEngineExists": {
-      "decomp_file": "src/event.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "BgAffineSetOpAnim": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
@@ -134,20 +127,6 @@
         "fe8.testing.BMapMainDifferentialTest#ch6 phase start scrolls the camera before the player phase",
         "fe8.testing.BMapMainDifferentialTest#first phase runs from the end of the beginning event to the player phase"
       ]
-    },
-    "BmMain_ResumePlayerPhase": {
-      "decomp_file": "src/bm.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "BmMain_StartIntroFx": {
-      "decomp_file": "src/bm.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
-      "status": "implemented",
-      "tests": []
     },
     "BmMain_StartPhase": {
       "decomp_file": "src/bm.c",
@@ -168,13 +147,6 @@
         "fe8.testing.BMapMainDifferentialTest#the phase change calls its hooks in the order of the C"
       ]
     },
-    "BmMain_UpdateTraps": {
-      "decomp_file": "src/bm.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "BmMapFill": {
       "decomp_file": "src/bmmap.c",
       "system": "battle_map",
@@ -183,13 +155,6 @@
       "tests": [
         "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
       ]
-    },
-    "BmMapFillEdges": {
-      "decomp_file": "src/bmmap.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt",
-      "status": "implemented",
-      "tests": []
     },
     "BmMapInit": {
       "decomp_file": "src/bmmap.c",
@@ -208,27 +173,6 @@
       "tests": [
         "fe8.testing.BgTilemapDifferentialTest#TSA tilemaps match the BG buffers in mGBA RAM"
       ]
-    },
-    "CallBeginningEvents": {
-      "decomp_file": "src/bm.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "CallEvent": {
-      "decomp_file": "src/event.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "CallNextQueuedEvent": {
-      "decomp_file": "src/event.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
-      "status": "implemented",
-      "tests": []
     },
     "CamMove_OnInit": {
       "decomp_file": "src/bm.c",
@@ -250,27 +194,6 @@
         "fe8.testing.CamMoveDifferentialTest#ch6 phase start resets the cursor and scrolls the camera"
       ]
     },
-    "CanBattleUnitGainLevels": {
-      "decomp_file": "src/bmbattle.c",
-      "system": "battle_logic",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "CanUnitUseStaff": {
-      "decomp_file": "src/bmitem.c",
-      "system": "battle_logic",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "CanUnitUseWeapon": {
-      "decomp_file": "src/bmitem.c",
-      "system": "battle_logic",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "CgbModVol": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -289,13 +212,6 @@
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
       ]
     },
-    "CheckBattleUnitLevelUp": {
-      "decomp_file": "src/bmbattle.c",
-      "system": "battle_logic",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "CheckCanKeyComboReset": {
       "decomp_file": "src/time.c",
       "system": "core",
@@ -304,34 +220,6 @@
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
-    },
-    "CheckChapterFlag": {
-      "decomp_file": "src/eventinfo.c",
-      "system": "events",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "CheckFlag": {
-      "decomp_file": "src/eventinfo.c",
-      "system": "events",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "CheckPermanentFlag": {
-      "decomp_file": "src/eventinfo.c",
-      "system": "events",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "CheckPermanentFlagFrom": {
-      "decomp_file": "src/eventinfo.c",
-      "system": "events",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
-      "status": "implemented",
-      "tests": []
     },
     "Checksum16": {
       "decomp_file": "src/bmsave-lib.c",
@@ -372,20 +260,6 @@
         "fe8.testing.BattleMapStartDifferentialTest#gBmSt is cleared"
       ]
     },
-    "ClearChapterFlag": {
-      "decomp_file": "src/eventinfo.c",
-      "system": "events",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "ClearCutsceneUnits": {
-      "decomp_file": "src/bmunit.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "ClearFirstPalDirectly": {
       "decomp_file": "src/opanimfx.c",
       "system": "presentation",
@@ -395,13 +269,6 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
-    "ClearFlag": {
-      "decomp_file": "src/eventinfo.c",
-      "system": "events",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "ClearOam": {
       "decomp_file": "asm/arm.s",
       "system": "core",
@@ -410,13 +277,6 @@
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
-    },
-    "ClearPermanentFlag": {
-      "decomp_file": "src/eventinfo.c",
-      "system": "events",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
-      "status": "implemented",
-      "tests": []
     },
     "ClearPidChStatsSaveData": {
       "decomp_file": "src/bmsave-bwl.c",
@@ -434,6 +294,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "ClearText": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextSystemRomTest#initText reproduces the sTalkText structs and clears their VRAM strips"
       ]
     },
     "ColorFadeSetupFromBlack": {
@@ -454,20 +323,6 @@
         "fe8.testing.TitleScreenDifferentialTest#A on the idle title starts the fade to dark like the per-frame RAM trace"
       ]
     },
-    "ColorFadeSetupFromColorToWhite": {
-      "decomp_file": "src/hardware.c",
-      "system": "core",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ColorFade.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "ColorFadeSetupFromWhite": {
-      "decomp_file": "src/hardware.c",
-      "system": "core",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ColorFade.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "ColorFadeTick": {
       "decomp_file": "asm/arm.s",
       "system": "core",
@@ -487,13 +342,6 @@
         "fe8.testing.SaveChecksumsReferenceTest#checksum32 matches the suspend block info in first phase"
       ]
     },
-    "Copy2dChr": {
-      "decomp_file": "src/bmlib.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "CopyFirstPalDirectly": {
       "decomp_file": "src/opanimfx.c",
       "system": "presentation",
@@ -511,13 +359,6 @@
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
-    },
-    "CopyUnit": {
-      "decomp_file": "src/bmunit.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
     },
     "CountProcs": {
       "decomp_file": "src/proc.c",
@@ -545,20 +386,6 @@
       "tests": [
         "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
       ]
-    },
-    "DeleteEventEngines": {
-      "decomp_file": "src/event.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "DisableKeyComboResetEN": {
-      "decomp_file": "src/time.c",
-      "system": "core",
-      "kotlin_file": "engine/input/src/commonMain/kotlin/gbafe/input/KeyComboReset.kt",
-      "status": "implemented",
-      "tests": []
     },
     "DisplayBmTile": {
       "decomp_file": "src/bmmap.c",
@@ -616,13 +443,6 @@
         "fe8.testing.SuspendSaveReferenceTest#packed unit records equal suspend entry 4 of the reference"
       ]
     },
-    "EndBMapMain": {
-      "decomp_file": "src/bmio.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "EndMu": {
       "decomp_file": "src/mu.c",
       "system": "battle_map",
@@ -632,20 +452,6 @@
         "fe8.testing.MuMoveDifferentialTest#MU walk of the prologue talk run matches f10580 to f10621 and f10624 to f10633",
         "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
       ]
-    },
-    "EnqueueEventCall": {
-      "decomp_file": "src/event.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "EnqueueTutEvent": {
-      "decomp_file": "src/eventinfo.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
     },
     "EnsureCameraOntoPosition": {
       "decomp_file": "src/bm.c",
@@ -711,13 +517,6 @@
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
     },
-    "Event00_NULL": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "Event01_End": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -736,20 +535,6 @@
         "fe8.testing.EventVmDifferentialTest#Event02 EvBitAndIdMod"
       ]
     },
-    "Event03_CheckEvBitOrId": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "Event04_CheckRandom": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "Event05_SetSlot": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -758,13 +543,6 @@
       "tests": [
         "fe8.testing.EventVmDifferentialTest#Event05 SetSlot"
       ]
-    },
-    "Event06_SlotOperation": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
     },
     "Event07_SlotQueueOperations": {
       "decomp_file": "src/eventscr.c",
@@ -802,13 +580,6 @@
         "fe8.testing.EventVmDifferentialTest#Event0A Call"
       ]
     },
-    "Event0B_EnqueueCall": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "Event0C_Branch": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -827,34 +598,6 @@
         "fe8.testing.EventVmDifferentialTest#Event0E STAL"
       ]
     },
-    "Event0F_CounterOps": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "Event10_ModifyEvBit": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "Event11_SetIgnoredKeys": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "Event19_Checks": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "Event25_ChangeMap": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -863,13 +606,6 @@
       "tests": [
         "fe8.testing.EventChangeMapDifferentialTest#load_map 16 from the prologue opening reproduces the dumped map"
       ]
-    },
-    "Event2B_ConfigLoadUnit": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
-      "status": "implemented",
-      "tests": []
     },
     "Event2C_LoadUnits": {
       "decomp_file": "src/eventscr.c",
@@ -880,20 +616,6 @@
         "fe8.testing.EventUnitLoadsTest#skipped load_unit2 of the throne room units reproduces the dumped unit structs"
       ]
     },
-    "Event34_MessWithUnitState": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "EventEngineExists": {
-      "decomp_file": "src/event.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "EventEngine_Create": {
       "decomp_file": "src/event.c",
       "system": "events",
@@ -902,20 +624,6 @@
       "tests": [
         "fe8.testing.EventVmDifferentialTest#created engine starts at the script with clean state"
       ]
-    },
-    "EventEngine_CreateBattle": {
-      "decomp_file": "src/event.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "EventEngine_OnEnd": {
-      "decomp_file": "src/event.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
-      "status": "implemented",
-      "tests": []
     },
     "EventEngine_OnUpdate": {
       "decomp_file": "src/event.c",
@@ -934,13 +642,6 @@
       "tests": [
         "fe8.testing.EventUnitLoadsTest#skipped load_unit2 of the throne room units reproduces the dumped unit structs"
       ]
-    },
-    "ExecBothHBlankHandlers": {
-      "decomp_file": "src/hardware.c",
-      "system": "core",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/HBlankHandlers.kt",
-      "status": "implemented",
-      "tests": []
     },
     "FadeCore_Init": {
       "decomp_file": "src/bmlib.c",
@@ -1032,13 +733,6 @@
         "fe8.testing.UnitSpritesDifferentialTest#forced sheet sync matches OBJ VRAM"
       ]
     },
-    "GameControlHandlePostNormalOrExtraChapter": {
-      "decomp_file": "src/gamecontrol.c",
-      "system": "core",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "GameControl_8009A58": {
       "decomp_file": "src/gamecontrol.c",
       "system": "core",
@@ -1065,13 +759,6 @@
       "tests": [
         "fe8.testing.GameControlDifferentialTest#save menu return reaches the intro monologue like the game"
       ]
-    },
-    "GameControl_RestoreChapterId": {
-      "decomp_file": "src/gamecontrol.c",
-      "system": "core",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
-      "status": "implemented",
-      "tests": []
     },
     "GameControl_SwitchPostSaveMenu": {
       "decomp_file": "src/gamecontrol.c",
@@ -1164,13 +851,6 @@
         "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
       ]
     },
-    "GenUnitDefinitionFinalPosition": {
-      "decomp_file": "src/muctrl.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "GetAutoleveledStatIncrease": {
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
@@ -1188,13 +868,6 @@
       "tests": [
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
-    },
-    "GetBattleMapKind": {
-      "decomp_file": "src/worldmap_path.c",
-      "system": "worldmap",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleMapKind.kt",
-      "status": "implemented",
-      "tests": []
     },
     "GetBgVerticalScrollBuffer": {
       "decomp_file": "src/bmlib-hblank.c",
@@ -1252,13 +925,6 @@
         "fe8.testing.ChapterDataRomTest#every chapter matches direct ROM reads"
       ]
     },
-    "GetChapterFlagBits": {
-      "decomp_file": "src/eventinfo.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/flags/Fe8EventFlags.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "GetChapterFlagBitsSize": {
       "decomp_file": "src/eventinfo.c",
       "system": "events",
@@ -1268,13 +934,6 @@
         "fe8.testing.EventFlagsRomTest#save sizes equal the movs immediates in the rom"
       ]
     },
-    "GetChapterMapChangesPointer": {
-      "decomp_file": "src/chapterdata.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterData.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "GetChapterMapPointer": {
       "decomp_file": "src/chapterdata.c",
       "system": "battle_map",
@@ -1282,6 +941,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterDataRomTest#every chapter matches direct ROM reads"
+      ]
+    },
+    "GetCharTextLen": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextSystemRomTest#widths of traced messages match the glyph widths and the traced pen positions"
+      ]
+    },
+    "GetCharTextLenASCII": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextSystemRomTest#widths of traced messages match the glyph widths and the traced pen positions"
       ]
     },
     "GetCharacterData": {
@@ -1311,12 +988,14 @@
         "fe8.testing.UnitLoaderDifferentialTest#autoleveled red units reproduce the dump for the RNG states of the window"
       ]
     },
-    "GetEventSlotCounter": {
-      "decomp_file": "src/event.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
-      "status": "implemented",
-      "tests": []
+    "GetDefaultMuConfig": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuStartDifferentialTest#StartMu from the unit as dumped at f9674 matches the f9674 MU proc and config"
+      ]
     },
     "GetFreeBlueUnit": {
       "decomp_file": "src/bmunit.c",
@@ -1345,27 +1024,6 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
-    "GetGameLock": {
-      "decomp_file": "src/bm.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameLoop.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "GetGlobalCompletionCntByInfo": {
-      "decomp_file": "src/bmsave-bwl.c",
-      "system": "save",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "GetItemAttributes": {
-      "decomp_file": "src/bmitem.c",
-      "system": "battle_logic",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "GetItemData": {
       "decomp_file": "src/bmitem.c",
       "system": "battle_logic",
@@ -1374,13 +1032,6 @@
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items"
       ]
-    },
-    "GetItemHpBonus": {
-      "decomp_file": "src/bmitem.c",
-      "system": "battle_logic",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
-      "status": "implemented",
-      "tests": []
     },
     "GetItemMaxUses": {
       "decomp_file": "src/bmitem.c",
@@ -1391,27 +1042,6 @@
         "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items"
       ]
     },
-    "GetItemRequiredExp": {
-      "decomp_file": "src/bmitem.c",
-      "system": "battle_logic",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "GetItemStatBonuses": {
-      "decomp_file": "src/bmitem.c",
-      "system": "battle_logic",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "GetItemType": {
-      "decomp_file": "src/bmitem.c",
-      "system": "battle_logic",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "GetLastSuspendSaveId": {
       "decomp_file": "src/bmsave.c",
       "system": "save",
@@ -1421,6 +1051,33 @@
         "fe8.testing.SramBootReferenceTest#suspend slot selection follows the dumps header and block infos",
         "fe8.testing.SramOwnerSaveBootTest#chapter 2 save with a valid suspend boots unchanged",
         "fe8.testing.SramOwnerSaveBootTest#chapter 6 save without a suspend boots unchanged and selects 0x7F"
+      ]
+    },
+    "GetMuAnimForJid": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuDisplayDifferentialTest#animation definition and sheet of the MU match the AP handle and sMu buffer at f10580"
+      ]
+    },
+    "GetMuDisplayPosition": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuDisplayDifferentialTest#PutMu position matches the MU object in OAM on every frame f10580 to f10633"
+      ]
+    },
+    "GetMuImg": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuDisplayDifferentialTest#animation definition and sheet of the MU match the AP handle and sMu buffer at f10580"
       ]
     },
     "GetMuQ4MovementSpeed": {
@@ -1441,13 +1098,6 @@
         "fe8.testing.SramBootReferenceTest#suspend slot selection follows the dumps header and block infos"
       ]
     },
-    "GetPermanentFlagBits": {
-      "decomp_file": "src/eventinfo.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/flags/Fe8EventFlags.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "GetPermanentFlagBitsSize": {
       "decomp_file": "src/eventinfo.c",
       "system": "events",
@@ -1456,13 +1106,6 @@
       "tests": [
         "fe8.testing.EventFlagsRomTest#save sizes equal the movs immediates in the rom"
       ]
-    },
-    "GetPlayerLeaderPid": {
-      "decomp_file": "src/prep_sallycursor.c",
-      "system": "prep_screen",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
-      "status": "implemented",
-      "tests": []
     },
     "GetPlayerStartCursorPosition": {
       "decomp_file": "src/bmcamadjust.c",
@@ -1510,6 +1153,24 @@
         "fe8.testing.MsgStringsRomTest#getStringFromIndex reproduces sMsgString and caches the active id"
       ]
     },
+    "GetStringTextLen": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextSystemRomTest#widths of traced messages match the glyph widths and the traced pen positions"
+      ]
+    },
+    "GetStringTextLenASCII": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextSystemRomTest#widths of traced messages match the glyph widths and the traced pen positions"
+      ]
+    },
     "GetTrueTerrainAt": {
       "decomp_file": "src/bmmap.c",
       "system": "battle_map",
@@ -1518,27 +1179,6 @@
       "tests": [
         "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
       ]
-    },
-    "GetUnit": {
-      "decomp_file": "src/bmunit.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "GetUnitDefinitionFromEventScr": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "GetUnitEquippedWeapon": {
-      "decomp_file": "src/bmitem.c",
-      "system": "battle_logic",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
     },
     "GetUnitFromCharId": {
       "decomp_file": "src/bmunit.c",
@@ -1549,27 +1189,6 @@
         "fe8.testing.UnitTableDifferentialTest#GetUnitFromCharId finds Eirika where the player phase puts the cursor"
       ]
     },
-    "GetUnitFromCharIdAndFaction": {
-      "decomp_file": "src/bmunit.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "GetUnitItemCount": {
-      "decomp_file": "src/bmunit.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "GetUnitMaxHp": {
-      "decomp_file": "src/bmunit.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "GetUnitSpritePalette": {
       "decomp_file": "src/bmudisp.c",
       "system": "battle_map",
@@ -1578,13 +1197,6 @@
       "tests": [
         "fe8.testing.UnitSpritesDifferentialTest#handle list matches the dump"
       ]
-    },
-    "GetUnitStructFromEventParameter": {
-      "decomp_file": "src/eventscr_utils.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt",
-      "status": "implemented",
-      "tests": []
     },
     "GetUnitSupporterCount": {
       "decomp_file": "src/bmreliance.c",
@@ -1603,13 +1215,6 @@
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
       ]
-    },
-    "GotoChapterWithoutSave": {
-      "decomp_file": "src/bm.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
-      "status": "implemented",
-      "tests": []
     },
     "HBlank_BgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
@@ -1737,6 +1342,33 @@
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
       ]
     },
+    "InitTalkTextFont": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextSystemRomTest#initTalkTextFont writes only the draw routine and glyphs of the active font"
+      ]
+    },
+    "InitText": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextSystemRomTest#initText reproduces the sTalkText structs and clears their VRAM strips"
+      ]
+    },
+    "InitTextFont": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextSystemRomTest#initTextFont reproduces gDefaultFont and sTalkFont and activates the font"
+      ]
+    },
     "InitUnits": {
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
@@ -1765,20 +1397,6 @@
         "fe8.testing.SramSaveBlockReferenceTest#invalidating the suspend save writes the entries the game wrote"
       ]
     },
-    "IsCameraNotWatchingPosition": {
-      "decomp_file": "src/bm.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Camera.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "IsItemUnsealedForUnit": {
-      "decomp_file": "src/bmitem.c",
-      "system": "battle_logic",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "IsSaveValid": {
       "decomp_file": "src/bmsave.c",
       "system": "save",
@@ -1793,13 +1411,6 @@
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
       ]
     },
-    "IsSethLArachelMyrrhInnes": {
-      "decomp_file": "src/eventinfo.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "IsSramWorking": {
       "decomp_file": "src/bmsave-lib.c",
       "system": "save",
@@ -1808,13 +1419,6 @@
       "tests": [
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
-    },
-    "IsUnitSlotAvailable": {
-      "decomp_file": "src/bmunit.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
-      "status": "implemented",
-      "tests": []
     },
     "IsValidSuspendSave": {
       "decomp_file": "src/bmsave.c",
@@ -1873,13 +1477,6 @@
         "fe8.testing.ChapterMapGraphicsDifferentialTest#OBJ UI graphics and palettes match the dump"
       ]
     },
-    "LoadRNState": {
-      "decomp_file": "src/rng.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "LoadSavedUnit": {
       "decomp_file": "src/bmsave.c",
       "system": "save",
@@ -1900,20 +1497,6 @@
         "fe8.testing.UnitLoaderDifferentialTest#loading the prologue messenger reproduces the unit",
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
       ]
-    },
-    "LoadUnit_800F704": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "LockGame": {
-      "decomp_file": "src/bm.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameLoop.kt",
-      "status": "implemented",
-      "tests": []
     },
     "MPlayExtender": {
       "decomp_file": "src/m4a.c",
@@ -2015,27 +1598,6 @@
         "fe8.testing.M4aPitchTest#DirectSound channel frequencies match every reference RAM dump"
       ]
     },
-    "ModifyMoveUnitFlag": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "MoveUnitExt": {
-      "decomp_file": "src/muctrl.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "MoveUnit_": {
-      "decomp_file": "src/muctrl.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "Mu_OnLoop": {
       "decomp_file": "src/mu.c",
       "system": "battle_map",
@@ -2082,20 +1644,6 @@
       "tests": [
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
       ]
-    },
-    "NextRN_100": {
-      "decomp_file": "src/rng.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "NextRN_N": {
-      "decomp_file": "src/rng.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt",
-      "status": "implemented",
-      "tests": []
     },
     "OpAnim1AdvanceSplitLine": {
       "decomp_file": "src/opanim-main.c",
@@ -2295,13 +1843,6 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
-    "PlayerPhase_HandleAutoEnd": {
-      "decomp_file": "src/playerphase.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "PopulateSaveBlockChecksum": {
       "decomp_file": "src/bmsave.c",
       "system": "save",
@@ -2340,13 +1881,6 @@
         "fe8.testing.CamMoveDifferentialTest#first phase resets the cursor without moving the camera"
       ]
     },
-    "Proc_BlockEachMarked": {
-      "decomp_file": "src/proc.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "Proc_Break": {
       "decomp_file": "src/proc.c",
       "system": "core",
@@ -2364,13 +1898,6 @@
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
-    },
-    "Proc_EndEachMarked": {
-      "decomp_file": "src/proc.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt",
-      "status": "implemented",
-      "tests": []
     },
     "Proc_Find": {
       "decomp_file": "src/proc.c",
@@ -2399,27 +1926,6 @@
         "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
       ]
     },
-    "Proc_ForAll": {
-      "decomp_file": "src/proc.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "Proc_ForEach": {
-      "decomp_file": "src/proc.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "Proc_ForEachMarked": {
-      "decomp_file": "src/proc.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "Proc_Goto": {
       "decomp_file": "src/proc.c",
       "system": "core",
@@ -2429,13 +1935,6 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
-    "Proc_Init": {
-      "decomp_file": "src/proc.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "Proc_Run": {
       "decomp_file": "src/proc.c",
       "system": "core",
@@ -2444,27 +1943,6 @@
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
-    },
-    "Proc_SetEndCb": {
-      "decomp_file": "src/proc.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "Proc_SetMark": {
-      "decomp_file": "src/proc.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "Proc_SetRepeatCb": {
-      "decomp_file": "src/proc.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt",
-      "status": "implemented",
-      "tests": []
     },
     "Proc_Start": {
       "decomp_file": "src/proc.c",
@@ -2484,13 +1962,6 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
-    "Proc_UnblockEachMarked": {
-      "decomp_file": "src/proc.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "PushSpriteLayerObjects": {
       "decomp_file": "src/ctc.c",
       "system": "presentation",
@@ -2509,6 +1980,15 @@
         "fe8.testing.MapCursorDifferentialTest#map cursor objects match the dump OAM"
       ]
     },
+    "PutMu": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuDisplayDifferentialTest#PutMu position matches the MU object in OAM on every frame f10580 to f10633"
+      ]
+    },
     "PutOamHi": {
       "decomp_file": "asm/arm.s",
       "system": "core",
@@ -2517,13 +1997,6 @@
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
-    },
-    "PutSprite": {
-      "decomp_file": "src/ctc.c",
-      "system": "presentation",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/SpriteLayers.kt",
-      "status": "implemented",
-      "tests": []
     },
     "PutSpriteExt": {
       "decomp_file": "src/ctc.c",
@@ -2578,13 +2051,6 @@
       "tests": [
         "fe8.testing.ReadGameSaveReferenceTest#reading chapter6 sav slot 1 reproduces the RAM of r01142"
       ]
-    },
-    "ReadGameSavePlaySt": {
-      "decomp_file": "src/bmsave.c",
-      "system": "save",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
-      "status": "implemented",
-      "tests": []
     },
     "ReadGlobalSaveInfo": {
       "decomp_file": "src/bmsave-lib.c",
@@ -2725,13 +2191,6 @@
         "fe8.testing.BmMapScrollDifferentialTest#ch6 fog scrolls in x and y"
       ]
     },
-    "ResetChapterFlags": {
-      "decomp_file": "src/eventinfo.c",
-      "system": "events",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "ResetKeyStatus": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -2740,13 +2199,6 @@
       "tests": [
         "fe8.testing.KeyStatusDifferentialTest#boot key status matches ResetKeyStatus plus idle updates"
       ]
-    },
-    "ResetPermanentFlags": {
-      "decomp_file": "src/eventinfo.c",
-      "system": "events",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
-      "status": "implemented",
-      "tests": []
     },
     "ResetUnitSprites": {
       "decomp_file": "src/bmudisp.c",
@@ -2765,20 +2217,6 @@
       "tests": [
         "fe8.testing.EventChangeMapDifferentialTest#load_map 16 from the prologue opening reproduces the dumped map"
       ]
-    },
-    "Roll1RN": {
-      "decomp_file": "src/rng.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "Roll2RN": {
-      "decomp_file": "src/rng.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt",
-      "status": "implemented",
-      "tests": []
     },
     "RunMuMoveScript": {
       "decomp_file": "src/mu.c",
@@ -2844,13 +2282,6 @@
         "fe8.testing.OpAnimHsDifferentialTest#health and safety brightness pulse matches the boot RAM trace"
       ]
     },
-    "SetChapterFlag": {
-      "decomp_file": "src/eventinfo.c",
-      "system": "events",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "SetCursorMapPosition": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -2859,20 +2290,6 @@
       "tests": [
         "fe8.testing.CameraDifferentialTest#cursor snap frames match SetCursorMapPosition"
       ]
-    },
-    "SetEventId_0x84": {
-      "decomp_file": "src/eventcall.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "SetEventSlotC": {
-      "decomp_file": "src/event.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
-      "status": "implemented",
-      "tests": []
     },
     "SetFirstPalDirectly": {
       "decomp_file": "src/opanimfx.c",
@@ -2891,13 +2308,6 @@
       "tests": [
         "fe8.testing.EventVmDifferentialTest#flag bits changed by Event02 match the trace"
       ]
-    },
-    "SetGameTime": {
-      "decomp_file": "src/time.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/time/GameClock.kt",
-      "status": "implemented",
-      "tests": []
     },
     "SetKeyStatus_IgnoreMask": {
       "decomp_file": "src/hardware.c",
@@ -2934,13 +2344,6 @@
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
-    },
-    "SetObjAffine": {
-      "decomp_file": "src/hardware.c",
-      "system": "core",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/OamBuffer.kt",
-      "status": "implemented",
-      "tests": []
     },
     "SetOpAnimHsStatus0": {
       "decomp_file": "src/opanim-healthsafetyscreen.c",
@@ -2987,6 +2390,24 @@
         "fe8.testing.HBlankHandlersDifferentialTest#HBlank handler state matches mGBA"
       ]
     },
+    "SetTextFont": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextSystemRomTest#initTextFont reproduces gDefaultFont and sTalkFont and activates the font"
+      ]
+    },
+    "SetTextFontGlyphs": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextSystemRomTest#initTextFont reproduces gDefaultFont and sTalkFont and activates the font"
+      ]
+    },
     "SetupBackgrounds": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -3005,13 +2426,6 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
-    "ShouldUNITBeLoaded": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "SkipTitleFx_Loop_KeyListener": {
       "decomp_file": "src/titlescreen.c",
       "system": "presentation",
@@ -3020,20 +2434,6 @@
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#A on the title intro fx restarts the title like the per-frame RAM trace"
       ]
-    },
-    "SlotQueuePop": {
-      "decomp_file": "src/event.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "SlotQueuePush": {
-      "decomp_file": "src/event.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
-      "status": "implemented",
-      "tests": []
     },
     "SoundInit": {
       "decomp_file": "src/m4a.c",
@@ -3201,20 +2601,6 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
     },
-    "StoreAdjustedCameraPositions": {
-      "decomp_file": "src/bm.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Camera.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "StoreRNState": {
-      "decomp_file": "src/rng.c",
-      "system": "core",
-      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "StringCompare": {
       "decomp_file": "src/bmlib.c",
       "system": "battle_map",
@@ -3242,13 +2628,6 @@
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
-    },
-    "SyncLoOam": {
-      "decomp_file": "src/hardware.c",
-      "system": "core",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/OamBuffer.kt",
-      "status": "implemented",
-      "tests": []
     },
     "TitleScreenTryJumpIntroAnim": {
       "decomp_file": "src/titlescreen.c",
@@ -3439,13 +2818,6 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
-    "UndeployEveryone": {
-      "decomp_file": "src/bm.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "UnitAddItem": {
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
@@ -3454,13 +2826,6 @@
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items"
       ]
-    },
-    "UnitApplyBonusLevels": {
-      "decomp_file": "src/bmunit.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
     },
     "UnitAutolevel": {
       "decomp_file": "src/bmunit.c",
@@ -3479,48 +2844,6 @@
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#autoleveled red units reproduce the dump for the RNG states of the window"
       ]
-    },
-    "UnitAutolevelPenalty": {
-      "decomp_file": "src/bmunit.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "UnitAutolevelRealistic": {
-      "decomp_file": "src/bmunit.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "UnitAutolevelWExp": {
-      "decomp_file": "src/bmunit.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "UnitChangeFaction": {
-      "decomp_file": "src/bmunit.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "UnitCheckStatCaps": {
-      "decomp_file": "src/bmunit.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "UnitHideIfUnderRoof": {
-      "decomp_file": "src/bmtrick.c",
-      "system": "battle_logic",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
     },
     "UnitInitFromDefinition": {
       "decomp_file": "src/bmunit.c",
@@ -3555,13 +2878,6 @@
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
       ]
     },
-    "UnlockGame": {
-      "decomp_file": "src/bm.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameLoop.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "UnpackChapterMap": {
       "decomp_file": "src/bmmap.c",
       "system": "battle_map",
@@ -3579,13 +2895,6 @@
       "tests": [
         "fe8.testing.ChapterMapGraphicsDifferentialTest#chapter palette alone matches the dump"
       ]
-    },
-    "UnsetEventId_0x84": {
-      "decomp_file": "src/eventcall.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
-      "status": "implemented",
-      "tests": []
     },
     "UpdateBmMapDisplay": {
       "decomp_file": "src/bmmap.c",
@@ -3615,13 +2924,6 @@
       "tests": [
         "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
       ]
-    },
-    "UpdateUnitFromBattle": {
-      "decomp_file": "src/bmbattle.c",
-      "system": "battle_logic",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
     },
     "UseUnitSprite": {
       "decomp_file": "src/bmudisp.c",
@@ -3934,20 +3236,6 @@
         "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
       ]
     },
-    "sub_8009B64": {
-      "decomp_file": "src/gamecontrol.c",
-      "system": "core",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "sub_800F8A8": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "sub_8013F40": {
       "decomp_file": "src/bmlib.c",
       "system": "battle_map",
@@ -3965,13 +3253,6 @@
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#START on the idle title fades to dark and ends the title like the per-frame RAM trace"
       ]
-    },
-    "sub_8015434": {
-      "decomp_file": "src/bm.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
-      "status": "implemented",
-      "tests": []
     },
     "sub_80156D4": {
       "decomp_file": "src/bm.c",

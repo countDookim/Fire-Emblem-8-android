@@ -9,6 +9,7 @@ import fe8.game.bm.BmMapRender
 import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterMapGfx
+import fe8.game.bm.MapCursor
 import fe8.game.bm.MapMusic
 import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.PLAY_FLAG_HARD
@@ -312,6 +313,8 @@ public class Fe8Boot(
         main.hooks.refreshUnitSprites = refresh
         val refreshProc = ProcFunc { refresh() }
         phase.hooks.refreshUnitSprites = refreshProc
+        val cursor = MapCursor(rom, bm, loop.sprites).also { it.clockSource = clock }
+        phase.hooks.putMapCursor = PlayerPhase.PutMapCursor { x, y, kind -> cursor.put(x, y, kind) }
     }
 
     /**

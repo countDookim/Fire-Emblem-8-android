@@ -1,15 +1,22 @@
 # HANDOFF
 
-_Updated 2026-11-06 (owner PC: M5-58/59, M6-01..04, M6-21/22, tag audit). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
+_Updated 2026-11-06 (owner PC: M5-58/59/61, M6-01..04, M6-21/22, tag audit, device-crash fix). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
 docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
 ## In progress
-- M6-05: owner PC, until ~18:00Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
-## Next task: M6 in TASKS order (first todo with done deps: M6-05)
+## Next task: finish M6-05 on `wip/M6-05`, then M6 in TASKS order
+`wip/M6-05` (owner PC 11-06, stopped mid-task): ReadSuspendSave, ReadSuspendSavePackedUnit and read helpers in
+BmSuspendSave/BmSaveLib (+ UnitTable/UnitLoader edits), `ReadSuspendSaveReferenceTest` vs ram_trace_ch2_scroll. It does
+NOT compile yet (private `Fixture`/`u16` clash in the test); nothing break-checked or tagged. Review the diff first.
+Device crash fixed 11-06 (bca8381): START on the title with only the boot/sound windows (debug APK, no import) read
+chapter data outside the view; the New Game stand-in now runs only on `RomView.isWholeRom`. `AppRomPathTest` drives
+`Fe8Game` (sound + present) on both ROM sources. Owner had installed the 887d744 APK (before M5-61); the next device
+test needs the APK from bca8381 or later + Re-import ROM.
 Owner 11-06: run ONE agent/task at a time from now on. M5-58/59 merged (11-06): Fe8Boot runs New Game → beginning
 events (unskipped; START skip reads the real KeyStatus) → Prologue PlayerPhase idle; `PrologueMapTest` (BG3 tiles vs
 ram_trace_first_phase f19430, 0 B/frame idle with D-pad). Known gap: release no-op stubs leave cutscene units (9 blue/

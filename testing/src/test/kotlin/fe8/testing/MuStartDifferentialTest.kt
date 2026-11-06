@@ -26,7 +26,7 @@ class MuStartDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
 
     @Test
-    @VerifiesPort("StartMu", "StartMuInternal")
+    @VerifiesPort("StartMu", "StartMuInternal", "GetDefaultMuConfig")
     fun `StartMu from the unit as dumped at f9674 matches the f9674 MU proc and config`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         val run = ref.run("ram_trace_newgame_bm")

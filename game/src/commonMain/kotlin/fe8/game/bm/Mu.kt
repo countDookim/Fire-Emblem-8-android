@@ -1,5 +1,6 @@
 package fe8.game.bm
 
+import fe8.game.RomView
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
@@ -26,7 +27,8 @@ public class MuUnit(
 )
 
 /**
- * Stand-ins for the parts of mu.c outside M6-25 (display M6-27, movement M6-26) and ROM lookups.
+ * Stand-ins for what mu.c calls outside itself: the sprite animation player (ap.c), the standing
+ * map sprite (bmudisp.c), unit and fog lookups, sound and ROM lookups.
  */
 public interface MuHooks {
     /**
@@ -64,11 +66,32 @@ public interface MuHooks {
     /** `MU_IsFogBumpFxActive()`. */
     public fun isFogBumpFxActive(): Boolean = false
 
-    /** `PutMuSMS(proc)` (facing standing). */
-    public fun putMuSms(proc: MuProc) {}
+    /**
+     * `AP_Update(anim, x, y)` ([x] is the OAM1 x, [y] the OAM0 y with the blend bit). The sprite
+     * animation player (ap.c) is a separate system, so it stays a hook.
+     */
+    public fun apUpdate(anim: Int, x: Int, y: Int) {}
 
-    /** `PutMu(proc)`. */
-    public fun putMu(proc: MuProc) {}
+    /** `ResetSpriteAnimClock(anim)`: `frameTimer = 0; frameInterval = 0x100`. */
+    public fun resetSpriteAnimClock(anim: Int) {}
+
+    /** `anim->objLayer` of an `APHandle`. */
+    public fun spriteAnimObjLayer(anim: Int): Int = 0
+
+    /** `sub_8026FF4(slot, gfxVram)` (bmudisp.c): copies the standing frame into the MU tiles. */
+    public fun smsFrameToMuGfx(slot: Int, gfxVram: Int) {}
+
+    /**
+     * `sub_8027DB4(layer, x, y, oam2, jid, slot)` (bmudisp.c): puts the standing map sprite of
+     * class [jid].
+     */
+    public fun putSmsObject(layer: Int, x: Int, y: Int, oam2: Int, jid: Int, slot: Int) {}
+
+    /** `UNIT_FACTION(unit)` (`unit->index & 0xC0`) of the unit at [address]. */
+    public fun unitFaction(address: Int): Int = 0
+
+    /** `gBmMapFog[y][x]`. */
+    public fun fogAt(x: Int, y: Int): Int = 0
 
     /** `AP_Delete(proc->sprite_anim)`. */
     public fun deleteMuAnim(proc: MuProc) {}
@@ -159,8 +182,8 @@ public class MuProc {
 }
 
 /**
- * mu.c start/query half: the MU slots and the `ProcScr_Mu` procs. Movement and display are
- * M6-26/27.
+ * mu.c: the MU slots, the `ProcScr_Mu` procs, their movement and display position. The
+ * sprite animation itself is [MuHooks].
  */
 public class Mu(
     private val procs: ProcEngine,
@@ -169,7 +192,17 @@ public class Mu(
     private val keys: KeyStatus,
     private val camMoveScript: ProcScript,
     private val hooks: MuHooks = object : MuHooks {},
+    /** The ROM (`gMuInfoTable`); only [getMuImg] and [getMuAnimForJid] read it. */
+    private val rom: RomView? = null,
 ) {
+    /** `out->x` of the last [getMuDisplayPosition] (the `struct Vec2` is reused). */
+    public var displayX: Int = 0
+        private set
+
+    /** `out->y` of the last [getMuDisplayPosition]. */
+    public var displayY: Int = 0
+        private set
+
     /** `sMuConfig`. */
     public val configs: List<MuConfig> = List(MU_MAX_COUNT) { MuConfig() }
 
@@ -240,11 +273,9 @@ public class Mu(
     public fun startMuInternal(x: Int, y: Int, jid: Int, objTileId: Int, palId: Int): Proc? {
         val default = objTileId == -1
         val tile = if (default) OBCHR_MU_380 else objTileId
-        val index = freeSlot()
-        if (index < 0) return null
-        val config = configs[index]
-        config.slot = index + 1
-        config.chr = (if (default) CHR_OFF_DEFAULT[index] else CHR_OFF[index]) + tile
+        val config = (if (default) getDefaultMuConfig(tile) else getNewMuConfig(tile))
+            ?: return null
+        val index = config.slot - 1
         val delay = if (procs.find(script) != null) 0xFE else 0
         val proc = procs.start(script, 5)
         val mu = proc.state as MuProc
@@ -272,10 +303,130 @@ public class Mu(
         return proc
     }
 
-    private fun freeSlot(): Int {
-        for (i in 0 until MU_MAX_COUNT) if (configs[i].slot == 0) return i
-        return -1
+    /**
+     * Claims the first free slot with the default chr offset (`sMuChrOffLut_Default`); null when
+     * all are taken. The slot index is `config.slot - 1`.
+     *
+     * Ported from src/mu.c: GetDefaultMuConfig
+     */
+    public fun getDefaultMuConfig(objTileId: Int): MuConfig? {
+        for (i in 0 until MU_MAX_COUNT) {
+            val c = configs[i]
+            if (c.slot != 0) continue
+            c.slot = i + 1
+            c.chr = CHR_OFF_DEFAULT[i] + objTileId
+            return c
+        }
+        return null
     }
+
+    /**
+     * Claims the first free slot with the chr offset `sMuChrOffLut`; null when all are taken.
+     *
+     * Transcribed from src/mu.c: GetNewMuConfig (not verified: the trace only uses the default
+     * config slot)
+     */
+    public fun getNewMuConfig(objTileId: Int): MuConfig? {
+        for (i in 0 until MU_MAX_COUNT) {
+            val c = configs[i]
+            if (c.slot != 0) continue
+            c.slot = i + 1
+            c.chr = CHR_OFF[i] + objTileId
+            return c
+        }
+        return null
+    }
+
+    /**
+     * Resets the sprite animation clock of every used MU slot.
+     *
+     * Transcribed from src/mu.c: ResetMuAnims (not verified: nothing in the trace calls it)
+     */
+    public fun resetMuAnims() {
+        for (c in configs) {
+            val mu = c.mu
+            if (c.slot != 0 && mu != null) hooks.resetSpriteAnimClock(mu.spriteAnim)
+        }
+    }
+
+    /**
+     * Computes the screen position of [proc] into [displayX]/[displayY]; false when it is off
+     * screen.
+     *
+     * Ported from src/mu.c: GetMuDisplayPosition
+     */
+    public fun getMuDisplayPosition(proc: MuProc): Boolean {
+        val sum = proc.xQ4 + proc.xOffsetQ4
+        val sumY = proc.yQ4 + proc.yOffsetQ4
+        if (proc.state == MU_STATE_DISPLAY_UI) {
+            displayX = (sum shr MU_SUBPIXEL_PRECISION).toShort().toInt()
+            displayY = (sumY shr MU_SUBPIXEL_PRECISION).toShort().toInt()
+            return true
+        }
+        val x = ((sum shr MU_SUBPIXEL_PRECISION) - bm.cameraX + 8).toShort().toInt()
+        val y = ((sumY shr MU_SUBPIXEL_PRECISION) - bm.cameraY + 8).toShort().toInt()
+        displayX = x
+        displayY = (y + 8).toShort().toInt()
+        return !(x < -0x10 || x > 0x100 || y < -0x10 || y > 0xB0)
+    }
+
+    /**
+     * Puts the standing map sprite of [proc].
+     *
+     * Transcribed from src/mu.c: PutMuSMS (not verified: the trace MU never stands, and
+     * sub_8026FF4/sub_8027DB4 are hooks)
+     */
+    public fun putMuSms(proc: MuProc) {
+        if (proc.hiddenB != 0) return
+        if (!getMuDisplayPosition(proc)) return
+        val x = displayX and 0x1FF
+        var y = displayY and 0xFF
+        if (proc.state == MU_STATE_DEATHFADE) y = y or OAM0_BLEND
+        hooks.smsFrameToMuGfx(proc.slot, proc.gfxVram)
+        val oam2 = ((((proc.gfxVram - OBJ_VRAM0) and 0x1FFFF) shr 5) or
+            ((proc.config!!.pal and 0xF) shl 12)) + proc.layer
+        hooks.putSmsObject(
+            hooks.spriteAnimObjLayer(proc.spriteAnim), x - 8, y - 16, oam2, proc.jid, proc.slot,
+        )
+    }
+
+    /**
+     * Updates the sprite animation of [proc] at its display position, unless it is hidden, off
+     * screen or an enemy in fog. The animation player (`AP_Update`) is [MuHooks.apUpdate].
+     *
+     * Ported from src/mu.c: PutMu
+     */
+    public fun putMu(proc: MuProc) {
+        if (proc.hiddenB != 0) return
+        if (!getMuDisplayPosition(proc)) return
+        val x = displayX and 0x1FF
+        var y = displayY and 0xFF
+        if (proc.state != MU_STATE_DISPLAY_UI && proc.unitAddress != 0 &&
+            hooks.unitFaction(proc.unitAddress) == FACTION_RED && playSt.chapterVisionRange != 0
+        ) {
+            val sum = (proc.xQ4 + proc.xOffsetQ4) shr MU_SUBPIXEL_PRECISION
+            val sumY = (proc.yQ4 + proc.yOffsetQ4) shr MU_SUBPIXEL_PRECISION
+            if (hooks.fogAt((sum + 8) shr 4, (sumY + 8) shr 4) == 0) return
+        }
+        if (proc.state == MU_STATE_DEATHFADE) y = y or OAM0_BLEND
+        hooks.apUpdate(proc.spriteAnim, x, y)
+    }
+
+    /**
+     * ROM address of the sprite sheet of [proc]'s class (`gMuInfoTable[jid - 1].img`).
+     *
+     * Ported from src/mu.c: GetMuImg
+     */
+    public fun getMuImg(proc: MuProc): Int =
+        checkNotNull(rom) { "Mu needs a RomView" }.u32(MU_INFO_TABLE + 8 * (proc.jid - 1))
+
+    /**
+     * ROM address of the animation of class [jid] (`gMuInfoTable[jid - 1].anim`).
+     *
+     * Ported from src/mu.c: GetMuAnimForJid
+     */
+    public fun getMuAnimForJid(jid: Int): Int =
+        checkNotNull(rom) { "Mu needs a RomView" }.u32(MU_INFO_TABLE + 8 * (jid - 1) + 4)
 
     /**
      * Sets [mu]'s facing and switches its animation.
@@ -504,7 +655,7 @@ public class Mu(
 
     /**
      * Runs one frame of [proc]: the move script when idle between tiles, then the state handler.
-     * The sprite is put through the hooks.
+     * The sprite is put by [putMu] or [putMuSms].
      *
      * Ported from src/mu.c: Mu_OnLoop
      */
@@ -528,7 +679,7 @@ public class Mu(
                 MU_STATE_BUMPING -> if (!hooks.isFogBumpFxActive()) proc.state = MU_STATE_SLEEPING
             }
         }
-        if (proc.facing == MU_FACING_STANDING) hooks.putMuSms(proc) else hooks.putMu(proc)
+        if (proc.facing == MU_FACING_STANDING) putMuSms(proc) else putMu(proc)
     }
 
     /**
@@ -636,6 +787,21 @@ public class Mu(
 
         /** `MU_STATE_UNK4`. */
         public const val MU_STATE_UNK4: Int = 4
+
+        /** `MU_STATE_DISPLAY_UI`. */
+        public const val MU_STATE_DISPLAY_UI: Int = 6
+
+        /** `MU_STATE_DEATHFADE`. */
+        public const val MU_STATE_DEATHFADE: Int = 7
+
+        /** `FACTION_RED`. */
+        public const val FACTION_RED: Int = 0x80
+
+        /** `OAM0_BLEND`. */
+        public const val OAM0_BLEND: Int = 0x400
+
+        /** `gMuInfoTable` (`unit_icon_move_table`) in the ROM. */
+        public const val MU_INFO_TABLE: Int = 0x089A2E00
 
         /** `MU_STATE_BUMPING`. */
         public const val MU_STATE_BUMPING: Int = 5

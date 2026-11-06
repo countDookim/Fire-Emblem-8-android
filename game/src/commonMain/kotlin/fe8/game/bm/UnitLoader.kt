@@ -37,6 +37,20 @@ public class UnitLoader(
     private val items = ItemInfo(rom)
 
     /**
+     * `gBmMapUnit[y][x] | gBmMapOther[y][x] | gBmMapHidden[y][x]`, for the free-tile shortcut of
+     * `AiGetUnitClosestValidPosition`; null treats every tile as occupied.
+     */
+    public var occupiedAt: ((x: Int, y: Int) -> Int)? = null
+
+    /**
+     * Ported from src/cp_utility.c: AiGetUnitClosestValidPosition
+     *
+     * partial: only the free-tile case (the position is kept); true where the search over the
+     * movement map would run, which is not ported.
+     */
+    private fun occupied(x: Int, y: Int): Boolean = (occupiedAt?.invoke(x, y) ?: 1) != 0
+
+    /**
      * Ported from src/bmunit.c: LoadUnit
      *
      * partial: `genMonster`, gorgon eggs, `sumFlag` positions and autolevel of blue units,
@@ -390,7 +404,7 @@ public class UnitLoader(
         if ((flags and 2) != 0) {
             throw UnsupportedOperationException("AdjustNewUnitPosition: flags & 2 not ported")
         }
-        if ((flags and 1) != 0 && terrainAt(x, y) != 0) {
+        if ((flags and 1) != 0 && terrainAt(x, y) != 0 && occupied(x, y)) {
             throw UnsupportedOperationException("AdjustNewUnitPosition: closest position")
         }
         put8(b, o + OFF_X, x)

@@ -36,10 +36,11 @@ class NewGameToPrologueTest {
         assertNotNull(boot.sram)
         assert(reached >= 0) { "PlayerPhase not reached; $trail" }
         frame = 1 // no keys from here: the lambda reads frame % 20 == 1
-        // The beginning events (stubbed, skip mode) must run to their end. The unit load commands
-        // are stubs, so no unit exists and the phase auto-ends (label 3) instead of idling; the
-        // playerPhaseMainIdle assertion returns with the unit load port.
+        // The beginning events (skip mode) must run to their end and load the player units, so
+        // the phase idles instead of auto-ending (label 3).
         repeat(120) { boot.frame() }
         assertEquals(false, boot.eventEngine.eventEngineExists(), "event engine still running")
+        assert(boot.units.getPhaseAbleUnitCount(0) > 0) { "no blue unit loaded" }
+        assertNotNull(boot.engine.find(boot.playerPhaseScript), "player phase auto-ended")
     }
 }

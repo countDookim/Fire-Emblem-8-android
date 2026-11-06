@@ -9,13 +9,18 @@ import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterMapGfx
 import fe8.game.bm.EntityBmMaps
+import fe8.game.bm.PLAY_FLAG_HARD
 import fe8.game.bm.PlayerPhase
 import fe8.game.bm.ResetCursorPosition
+import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitTable
+import fe8.game.event.EventConst
 import fe8.game.event.EventEngine
 import fe8.game.event.EventEngineHooks
+import fe8.game.event.EventHandler
 import fe8.game.event.EventScrCore
 import fe8.game.event.EventState
+import fe8.game.event.EventUnitLoads
 import fe8.game.event.ReleaseEventStubs
 import fe8.game.event.ScriptWords
 import fe8.game.flags.Fe8EventFlags
@@ -27,6 +32,7 @@ import fe8.game.title.TitleScreen
 import gba.audio.M4aDriver
 import gba.audio.M4aSound
 import gba.audio.PcmStream
+import gba.core.sram.CartSram
 import gba.render.Camera
 import gba.render.ColorMath
 import gba.render.FrameBuffer
@@ -43,7 +49,6 @@ import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.render.HardwareSceneLoader
-import gba.core.sram.CartSram
 
 /**
  * The boot sequence wired for a device: `StartGame` -> game control -> health & safety screen ->
@@ -142,6 +147,41 @@ public class Fe8Boot(
             EventScrCore(
                 state, memory, flags = flags, rng = rng, playSt = control.playSt, keys = keys,
             ).registerAll(it)
+            val loader = UnitLoader(
+                units, rom,
+                // Stand-in: only unk1C[0..1] are modelled in PlaySt.
+                { type ->
+                    when (type) {
+                        0 -> control.playSt.unk1C0
+                        1 -> control.playSt.unk1C1
+                        else -> 0
+                    }
+                },
+                rng, { control.playSt.chapterStateBits and PLAY_FLAG_HARD != 0 },
+            ).apply {
+                occupiedAt = { x, y ->
+                    battleBmMap.unit[y, x] or battleBmMap.other[y, x] or battleBmMap.hidden[y, x]
+                }
+            }
+            EventUnitLoads(
+                state, memory, rom, units, loader, rng,
+                { x, y -> battleBmMap.terrain[y, x] },
+                { x, y -> battleBmMap.unit[y, x] },
+                { battleBmMap.bmMapFill(battleBmMap.other, 0) },
+            ).also { loads ->
+                loads.registerOn(it)
+                // Stand-in: the walking load (EventLoadUnitWithMovement, MU) is not ported, so a
+                // load outside skip mode (e.g. the first update, before skipping can start) runs
+                // the silent path as if faded in.
+                it.register(0x2C, EventHandler { p ->
+                    val bits = p.evStateBits
+                    p.evStateBits = bits or EventConst.EV_STATE_FADEDIN
+                    val r = loads.event2cLoadUnits.run(p)
+                    p.evStateBits = (p.evStateBits and EventConst.EV_STATE_FADEDIN.inv()) or
+                        (bits and EventConst.EV_STATE_FADEDIN)
+                    r
+                })
+            }
             ReleaseEventStubs.registerMissing(it)
         }
     }
@@ -163,10 +203,15 @@ public class Fe8Boot(
     /** The player phase script wired into [bmapMain]. */
     public val playerPhaseScript: ProcScript get() = bmapMain.hooks.playerPhase
 
+    private val battleChapters: ChapterData by lazy { ChapterData(rom) }
+
+    /** The battle map's `gBmMap*` pools, shared by the battle map path and the unit loads. */
+    private val battleBmMap: BmMap by lazy { BmMap(rom, battleChapters, loop.bmSt) }
+
     private val bmapMainParts: Pair<BMapMain, BattleMapStart> by lazy {
-        val chapters = ChapterData(rom)
+        val chapters = battleChapters
         val bm = loop.bmSt
-        val map = BmMap(rom, chapters, bm)
+        val map = battleBmMap
         val camMove = CamMove(engine, bm)
         val reset = ResetCursorPosition(
             engine, bm, control.playSt, units, camMove, NO_WORLD_MAP_NODES,

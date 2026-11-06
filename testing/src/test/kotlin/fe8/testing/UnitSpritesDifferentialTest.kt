@@ -126,6 +126,27 @@ class UnitSpritesDifferentialTest {
         }
     }
 
+    @Test
+    @VerifiesPort("ForceSyncUnitSpriteSheet")
+    fun `forced sheet sync matches OBJ VRAM`() {
+        assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
+        val d = dump()
+        val run = ref.run("ram_trace_first_phase")
+        val iw = run.region("f19430", "iwram")
+        val clock = GbaMem.u32(iw, GbaMem.IWRAM, sym["gGameClock"].address)
+        val hw = BgHardware()
+        val sprites = UnitSprites(RomView.ofRom(romFile.readBytes()), hw, d.bmSt)
+        d.buf.copyInto(sprites.gfxBuffer)
+        sprites.gameClock = { clock }
+        sprites.syncFlag = 3
+        sprites.forceSyncUnitSpriteSheet()
+        assertEquals(0, sprites.syncFlag)
+        val vram = run.region("f19430", "vram")
+        for (i in 0 until 0x2000) {
+            assertEquals(vram[0x11000 + i], hw.vram[0x11000 + i], "OBJ VRAM +0x1000+$i")
+        }
+    }
+
     private fun slotIndex(value: Int): Int {
         val lut = value * 2
         val row = lut / 32

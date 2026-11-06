@@ -29,9 +29,6 @@ public class UnitSpriteHandles(
     /** `gSMSHandleIt` as an index into [handles]. */
     public var handleIt: Int = 0
 
-    /** Stand-in for `ForceSyncUnitSpriteSheet` (not ported), run when `gSMSSyncFlag != 0`. */
-    public var forceSyncUnitSpriteSheet: () -> Unit = {}
-
     private fun addr(index: Int): Int = ARRAY_ADDRESS + index * HANDLE_SIZE
 
     private fun index(address: Int): Int = (address - ARRAY_ADDRESS) / HANDLE_SIZE
@@ -153,7 +150,7 @@ public class UnitSpriteHandles(
             }
             t += TRAP_SIZE
         }
-        if (sprites.syncFlag != 0) forceSyncUnitSpriteSheet()
+        if (sprites.syncFlag != 0) sprites.forceSyncUnitSpriteSheet()
     }
 
     private fun put16(o: Int, v: Int) {

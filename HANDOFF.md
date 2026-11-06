@@ -21,7 +21,8 @@ Scheduled 11-06 19:50Z: M6-12 done (eb45763): `Fe8Boot(saveStorage)`, MainActivi
 resumes whenever a valid suspend exists (else New Game); `ResumeBootTest` Ch2/Prologue reach idle, units == ch2_scroll/
 prologue_resume r01299 (mask +0x3C). `wip/M6-29`: Event26/3B/3C transcribed, untagged: 0x3C runs in no event trace;
 3B needs the EventDisplayCursor child proc compared (procs watch +0x64..0x6A); talk/battle runs replay with a one-line
-`EventTrace.prologue` change (3B 21/32 pairs). M6-10: ResumeFromPhaseIdle verified (BMapMain = proc slot 2 of
+`EventTrace.prologue` change, but talk mismatches at step 9803: our 0x3B parks at 0x089EECF4 (unit lookup NULL ->
+EVC_ERROR?) where the game advances (stall 0x3C); check replay unit seeding vs getUnitStructFromEventParameter. M6-10: ResumeFromPhaseIdle verified (BMapMain = proc slot 2 of
 gProcArray 0x02024E68, cmd 40 = label 4 at r01150; dispcnt vs iwram 0x03003080); other variants unreached by traces.
 Full jvmTest green 19:58Z.
 Scheduled 11-06 19:06Z: M6-19 partial: `MapAnimations` tile anim verified + wired in Fe8Boot (see TASKS). Full jvmTest green 19:06Z.

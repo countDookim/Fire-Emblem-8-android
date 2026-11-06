@@ -47,9 +47,12 @@ class EventTrace private constructor(
         private const val ACTIVE_QUEUE_ENTRIES = 8
 
         /** The per-step trace of `ram_trace_prologue`, or null when the data is absent. */
-        fun prologue(ref: ReferenceData = ReferenceData.fromEnvironment()): EventTrace? {
+        fun prologue(
+            ref: ReferenceData = ReferenceData.fromEnvironment(),
+            runName: String = "ram_trace_prologue",
+        ): EventTrace? {
             if (!ref.available) return null
-            val run = ref.run("ram_trace_prologue")
+            val run = ref.run(runName)
             if (!run.hasWatch("procs") || !run.hasWatch("evglobals")) return null
             val procs = run.watch("procs")
             val globals = run.watch("evglobals")

@@ -200,6 +200,27 @@ class EventVmDifferentialTest {
         for (st in r.cursor.values) assertEquals(emptyList<String>(), st.mismatches.take(5))
     }
 
+    // The talk and battle variants of the prologue replay the same commands in other situations;
+    // the per-code floors above are for the base run only.
+    @Test
+    fun `talk and battle runs replay without mismatches`() {
+        val ref = ReferenceData.fromEnvironment()
+        assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
+        val rom = File(assets, "baserom.gba")
+        assumeTrue(rom.isFile, "ROM not present (run tools/setup.sh)")
+        val bytes = rom.readBytes()
+        for (name in listOf("ram_trace_prologue_talk", "ram_trace_prologue_battle")) {
+            val trace = EventTrace.prologue(ref, name) ?: continue
+            val r = Replayer(bytes, trace, ref.run(name)).run()
+            assertTrue(r.compared > 1000, "$name: only ${r.compared} compared pairs")
+            assertEquals(emptyList<String>(), r.onUpdate.mismatches.take(5), name)
+            assertEquals(emptyList<String>(), r.unitWindows.mismatches.take(5), name)
+            for (st in r.cursor.values) {
+                assertEquals(emptyList<String>(), st.mismatches.take(5), name)
+            }
+        }
+    }
+
     @Test
     fun `coverage of the replay does not silently drop`() {
         val r = replay() ?: return
@@ -359,7 +380,15 @@ class EventVmDifferentialTest {
             object : fe8.game.event.EventCursorCameraHooks {
                 override fun unitPosition(pid: Int): Int {
                     val id = unitState.getUnitStructFromEventParameter(pid)
-                    if (id < 0) return -1
+                    if (id < 0) {
+                        // Units that stubbed commands (loads) created earlier in the window are
+                        // not in our table: the game's result is accepted, the pair is skipped.
+                        if (windowStubbed) {
+                            ambiguous = true
+                            return 0
+                        }
+                        return -1
+                    }
                     return (table.xPos(id) shl 16) or (table.yPos(id) and 0xFFFF)
                 }
             },

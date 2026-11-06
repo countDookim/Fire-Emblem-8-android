@@ -19,10 +19,7 @@ _(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 ## Audit 11-06 20:10Z (owner PC) of scheduled work 3c26e9e..ab985a8
 Full jvmTest green (555). 6 tags withheld because breaks survived (UpdateMapImgAnimations: VRAM every 10th frame;
 GameCtrl_StartResumedGame: camera 0; FadeFromCommon_OnLoop: one fade speed; GetUnitSpriteHideFlag; SetEventSlotCounter;
-WriteLastGameSaveId): stronger tests can reinstate them. To fix (small): 20 functions say "Ported from" with no tag
-(ScreenFade.kt x11, LcdControl SetBlendBackdropA/B, MapAnimations Init/PalAnimations, MapMusic x3, Event12_StartBGM,
-Event17_Fade, PutChapterMarkedTileIconOam) → "Transcribed (not verified: why)"; stale "Stand-in" KDocs at
-BattleMapStart hooks (UpdateMapImgAnimations) and GameControl (GameCtrl_StartResumedGame). Unchecked groups: ReadGameSave/
+WriteLastGameSaveId): stronger tests can reinstate them. KDoc fixes done (M6-46). Unchecked groups: ReadGameSave/
 WriteGameSave, ReadSuspendSave, unit-sprite reset/use/refresh, StartLockingFadeFromBlack, SwitchPostSaveMenu.
 Same session: M6-23 (EventChangeMap), M6-25/26/27 (Mu.kt start, movement, display; AP_* animation player is a hook),
 M6-30 (gbafe.text.MsgStrings), M6-31/32 (gbafe.text Font/TextSystem fonts, widths, glyph drawing, PutText) done;

@@ -301,6 +301,46 @@ public class BattleMapStart(
     }
 
     /**
+     * Ported from src/bmio.c: RestartBattleMap
+     *
+     * Rebuilds the battle map for `gPlaySt.chapterIndex` without touching the units' state: sets up
+     * the BG layers, resets the UI graphics and unit sprites, takes the chapter's initial weather,
+     * re-initialises the BG layers and the chapter map (and its tileset graphics), restarts the
+     * VBlank proc and the map task, and ends with the backdrop and the BG0..BG2 layers on (BG3 and
+     * OBJ off). Stand-ins: the [Hooks] calls (sprite palettes and reset, traps, map obstacles).
+     */
+    public fun restartBattleMap() {
+        hardware.setupBackgrounds(null, playSt.chapterWeatherId == ChapterMapGfx.WEATHER_CLOUDS)
+
+        gfx.sub80156D4()
+        hooks.applyUnitSpritePalettes()
+        hooks.resetUnitSprites()
+        hooks.clearTraps()
+
+        playSt.chapterWeatherId = chapterData.initialWeather(playSt.chapterIndex)
+
+        gfx.initBmBgLayers()
+        map.initChapterMap(playSt.chapterIndex)
+        // `InitChapterMap` also unpacks the tileset graphics and palette (BmMap does not).
+        gfx.unpackChapterMapGraphics(playSt.chapterIndex)
+        hooks.initMapObstacles()
+        hooks.loadChapterTraps()
+
+        // BMapVSync_End, BMapVSync_Start
+        engine.find(vSyncScript)?.let { engine.end(it) }
+        engine.start(vSyncScript, PROC_TREE_VSYNC)
+        hooks.initMapAnimations()
+        bmSt.gameGfxSemaphore = 0
+
+        engine.start(mapTaskScript, PROC_TREE_4)
+
+        hardware.palette[0] = 0
+        hardware.enablePaletteSync()
+
+        hardware.lcd.setDispEnable(1, 1, 1, 0, 0)
+    }
+
+    /**
      * Ported from src/bmio.c: GameCtrl_StartResumedGame
      *
      * Brings the game state back after loading a suspended game: sets up the BG layers, clears

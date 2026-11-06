@@ -31,6 +31,7 @@ import fe8.game.event.EventHandler
 import fe8.game.event.EventScrCore
 import fe8.game.event.EventState
 import fe8.game.event.EventUnitLoads
+import fe8.game.event.EventChangeMap
 import fe8.game.event.ReleaseEventStubs
 import fe8.game.event.ScriptWords
 import fe8.game.flags.Fe8EventFlags
@@ -239,6 +240,12 @@ public class Fe8Boot(
                     r
                 })
             }
+            EventChangeMap(
+                state, memory, control.playSt, loop.bmSt, hw,
+                { battleMap.restartBattleMap() },
+                { battleEntityMaps.refreshEntityBmMaps() },
+                { bmapRender.renderBmMap() },
+            ).registerOn(it)
             EventFade(memory, screenFade).registerOn(it)
             EventBgm(state, memory, control.sound).registerOn(it)
             ReleaseEventStubs.registerMissing(it)
@@ -267,6 +274,12 @@ public class Fe8Boot(
     /** The battle map's `gBmMap*` pools, shared by the battle map path and the unit loads. */
     private val battleBmMap: BmMap by lazy { BmMap(rom, battleChapters, loop.bmSt) }
 
+    private val bmapRender: BmMapRender by lazy { BmMapRender(loop.bmSt, battleBmMap, hw) }
+
+    private val battleEntityMaps: EntityBmMaps by lazy {
+        EntityBmMaps(battleBmMap, units, control.playSt)
+    }
+
     private val bmapMainParts: Pair<BMapMain, BattleMapStart> by lazy {
         val chapters = battleChapters
         val bm = loop.bmSt
@@ -278,11 +291,11 @@ public class Fe8Boot(
         val main = BMapMain(
             engine, control.playSt, units, flags, chapters, rom, reset, camMove,
         )
-        val render = BmMapRender(bm, map, hw)
+        val render = bmapRender
         val music = MapMusic(
             control.playSt, chapters, units, flags, control.sound,
         ) { battleMap.hooks.getBattleMapKind() }
-        val entityBmMaps = EntityBmMaps(map, units, control.playSt)
+        val entityBmMaps = battleEntityMaps
         val phase = PlayerPhase(
             engine, bm, control.playSt, map, units, camMove,
             entityBmMaps, render, keys,

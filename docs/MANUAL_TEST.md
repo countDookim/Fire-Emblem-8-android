@@ -11,6 +11,10 @@ GPU renderer; gamepad/keyboard; on-screen touch buttons (cross D-pad, diagonals,
 layout); pause/resume; ROM import (~4 s) and Play from the imported data.
 
 ## Newly testable
+- **Close and reopen the app resumes turn 1 (M6-12, 2026-11-06):** APK from this commit+. Steps: Play, START on the
+  title, wait for the Prologue player phase (units, cursor), close the app (swipe away), reopen, Play, START.
+  Expect: it resumes on the Prologue map at turn 1 instead of replaying the opening. The save menu is not ported:
+  START always resumes while a suspend save exists (clear app data to start over).
 - **New Game shows the Prologue map (issue #4 fix, 2026-11-06):** APK from 1b207b8+ (fades, map palette) and the
   next commit (music). Steps: Play, START on the title. Expect: within ~1 s the screen fades in on the Prologue map,
   the title theme fades out and the opening event song plays. Known: the opening event keeps running with stubbed

@@ -2,6 +2,7 @@ package fe8.testing
 
 import fe8.game.Fe8Boot
 import fe8.game.RomView
+import fe8.game.bm.UnitTable
 import gba.core.sram.CartSram
 import gba.core.sram.InMemorySaveStorage
 import gba.core.sram.SaveStorage
@@ -16,6 +17,11 @@ import java.io.File
 /**
  * Booting with a suspend save in the save storage resumes the battle map (M6-12); booting with an
  * empty storage starts a new game and stores the image once the suspend save is written.
+ *
+ * The unit tests compare all [UnitTable.TOTAL_SIZE] bytes of our unit table at the resumed idle
+ * phase with the idle dump r01299 of `ram_trace_ch2_scroll` / `ram_trace_prologue_resume`.
+ * Masked: +0x3C..0x3F of every unit (`pMapSpriteHandle`), a runtime pointer into the map sprite
+ * handle pool, allocated by the unit sprite loader and not a property of the saved unit.
  */
 class ResumeBootTest {
     private val assets = File(
@@ -86,6 +92,51 @@ class ResumeBootTest {
         val (boot, reached) = bootToPhase(CountingStorage(sav!!.readBytes()))
         assertTrue(reached, "player phase of the resumed map not reached")
         assertEquals(0, boot.control.playSt.chapterIndex)
+    }
+
+    private fun unitDiff(run: String, dump: String, got: ByteArray): List<String> {
+        val ref = ReferenceData.fromEnvironment()
+        assumeTrue(ref.available, "mGBA reference data not present")
+        val want = ref.run(run).region(dump, "ewram").copyOfRange(
+            UnitTable.BLUE_ADDRESS - UnitTable.EWRAM_BASE,
+            UnitTable.BLUE_ADDRESS - UnitTable.EWRAM_BASE + UnitTable.TOTAL_SIZE,
+        )
+        val mine = got.copyOf()
+        for (u in 0 until UnitTable.TOTAL_SIZE / UnitTable.UNIT_SIZE) {
+            for (i in 0x3C until 0x40) {
+                want[u * UnitTable.UNIT_SIZE + i] = 0
+                mine[u * UnitTable.UNIT_SIZE + i] = 0
+            }
+        }
+        return (0 until UnitTable.TOTAL_SIZE).filter { want[it] != mine[it] }.take(20).map {
+            "slot ${it / UnitTable.UNIT_SIZE} +0x%X ours %02X dump %02X".format(
+                it % UnitTable.UNIT_SIZE, mine[it], want[it],
+            )
+        }
+    }
+
+    @Test
+    fun `chapter2 units at the resumed idle phase equal the reference`() {
+        needRom()
+        val ref = ReferenceData.fromEnvironment()
+        assumeTrue(ref.available, "mGBA reference data not present")
+        val (boot, reached) = bootToPhase(CountingStorage(ref.run("sram_chapter2_boot").sram("s00001")))
+        assertTrue(reached)
+        assertEquals(emptyList<String>(), unitDiff("ram_trace_ch2_scroll", "r01299", boot.units.bytes))
+    }
+
+    @Test
+    fun `prologue units at the resumed idle phase equal the reference`() {
+        needRom()
+        val sav = File("/home/claude/fire-emblem-8-rom/reference/fixtures/prologue.sav")
+        assumeTrue(sav.isFile, "prologue.sav fixture not present")
+        val (boot, reached) = bootToPhase(CountingStorage(sav.readBytes()))
+        assertTrue(reached)
+        assertEquals(emptyList<String>(), unitDiff("ram_trace_prologue_resume", PRO_DUMP, boot.units.bytes))
+    }
+
+    private companion object {
+        const val PRO_DUMP = "r01299"
     }
 
     @Test

@@ -25,7 +25,8 @@ prologue_resume r01299 (mask +0x3C). `wip/M6-29`: Event26/3B/3C transcribed, unt
 the window are not in the replay's seeded table; lookup itself matches C). wip/M6-29 now skips those lookups and replays
 talk/battle without mismatches (>1000 pairs each). Still untagged: 3B child proc, 0x3C, camera. M6-10: ResumeFromPhaseIdle verified (BMapMain = proc slot 2 of
 gProcArray 0x02024E68, cmd 40 = label 4 at r01150; dispcnt vs iwram 0x03003080); other variants unreached by traces.
-Full jvmTest green 19:58Z.
+Full jvmTest green 19:58Z. CI eb45763 failed only the summary skip guard (prologue.sav absent in CI); fixed in bc7c23b (SRAM
+dump s01001 of ram_trace_prologue_resume).
 Scheduled 11-06 19:06Z: M6-19 partial: `MapAnimations` tile anim verified + wired in Fe8Boot (see TASKS). Full jvmTest green 19:06Z.
 Scheduled 11-06 19:00Z: M6-18 done (`MapCursor`, wired; `MapCursorDifferentialTest` vs first_phase OAM objects 0..3; drawn
 position = dumped playerCursorDisplay minus the slide step, test searches 0..4 px: tighten if a per-frame gBmSt trace exists).

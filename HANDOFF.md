@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
+- M6-07: scheduled, until ~17:25Z (`wip/M6-07`)
 
 ## Check first (owner, 2026-11-06)
 - Issue #4 (START → black, audio continues): matches the windows-only hold (no kept ROM; save menu unported).

@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
+- M6-24, M6-20 (issue #4): owner session (cloud), until ~19:30Z
 
 ## Check first (owner, 2026-11-06)
 - Issue #4 (owner retested 11-06 after re-import: still black + title theme): reproduced on JVM (Fe8Game, whole ROM,

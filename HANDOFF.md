@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M6-08: scheduled, until ~18:25Z
+- M6-10: scheduled, until ~18:35Z (wip/M6-10)
 
 ## Check first (owner, 2026-11-06)
 - Issue #4 fixed 11-06 (cloud owner session), awaiting device retest: causes were BMapMain fade stand-ins (no-op;

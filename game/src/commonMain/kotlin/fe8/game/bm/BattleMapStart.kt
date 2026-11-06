@@ -82,11 +82,34 @@ public class BattleMapStart(
          */
         public var suspendPointType: () -> Int = { 0 }
 
+        /** `RefreshEntityBmMaps` (the resume variants). Stand-in. */
+        public var refreshEntityBmMaps: () -> Unit = {}
+
+        /** `RefreshUnitSprites` (the resume variants). Stand-in. */
+        public var refreshUnitSprites: () -> Unit = {}
+
         /**
-         * The `switch` of [startResumedGame] on `gActionData.suspendPointType`: calls the
-         * `MapMain_ResumeFrom*` variant for the suspend point on the BMapMain proc. Stand-in.
+         * The unit part of `MapMain_ResumeFromAction` after the goto: `gActiveUnit` =
+         * `GetUnit(gActionData.subjectIndex)`, clear its `gBmMapUnit` cell, `HideUnitSprite`,
+         * `StartMu` and `SetAutoMuDefaultFacing`. Stand-in (needs MU and the active unit).
          */
-        public var resumeMapMain: (mapMain: Proc, suspendPointType: Int) -> Unit = { _, _ -> }
+        public var resumeActionUnit: () -> Unit = {}
+
+        /**
+         * The arena calls of `MapMain_ResumeFromArenaFight` before the display bits (`gActiveUnit`,
+         * `ArenaResume`, `BattleGenerateArena`, `BeginBattleAnimations`). Stand-in.
+         */
+        public var resumeArenaBattle: () -> Unit = {}
+
+        /**
+         * The arena calls of `MapMain_ResumeFromArenaFight` after `RefreshEntityBmMaps`: clear the
+         * `gBmMapUnit` cell at (`xMove`, `yMove`), `RefreshUnitSprites` order is kept by the port.
+         * Stand-in.
+         */
+        public var clearArenaMoveCell: () -> Unit = {}
+
+        /** `StartArenaResultsScreen`. Stand-in. */
+        public var startArenaResultsScreen: () -> Unit = {}
 
         /** `ResetUnitSprites`. Stand-in. */
         public var resetUnitSprites: () -> Unit = {}
@@ -283,7 +306,7 @@ public class BattleMapStart(
      * Brings the game state back after loading a suspended game: sets up the BG layers, clears
      * `gBmSt`, puts the cursor on `gPlaySt`'s cursor position, initialises the chapter map, sets
      * `just_resumed`, starts the battle map procs ([startBMapMain]), centres the camera on the
-     * cursor, runs [Hooks.resumeMapMain] for the suspend point and ends with the blend setup.
+     * cursor, runs [resumeMapMain] for the suspend point and ends with the blend setup.
      */
     public fun startResumedGame(gameCtrl: Proc) {
         if (playSt.chapterIndex == 0x7F) hooks.readExtraMapInfo()
@@ -308,12 +331,96 @@ public class BattleMapStart(
         bmSt.cameraX = Camera.getCameraCenteredX(bmSt, 16 * bmSt.playerCursorX)
         bmSt.cameraY = Camera.getCameraCenteredY(bmSt, 16 * bmSt.playerCursorY)
 
-        hooks.resumeMapMain(mapMain, hooks.suspendPointType())
+        resumeMapMain(mapMain, hooks.suspendPointType())
 
         val lcd = hardware.lcd
         lcd.setBlendTargetA(1, 1, 1, 1, 1)
         lcd.bldcnt = lcd.bldcnt or 0x20 // SetBlendBackdropA(TRUE)
         lcd.setBlendConfig(3, 0, 0, 0x10)
+    }
+
+    /**
+     * The `switch` of `GameCtrl_StartResumedGame` on `gActionData.suspendPointType`: calls the
+     * `MapMain_ResumeFrom*` variant for [suspendPointType] on [mapMain]; other values do nothing.
+     */
+    public fun resumeMapMain(mapMain: Proc, suspendPointType: Int) {
+        when (suspendPointType) {
+            SUSPEND_POINT_DURINGACTION -> resumeFromAction(mapMain)
+            SUSPEND_POINT_PLAYERIDLE, SUSPEND_POINT_CPPHASE -> resumeFromPhaseIdle(mapMain)
+            SUSPEND_POINT_BSKPHASE -> resumeFromBskPhase(mapMain)
+            SUSPEND_POINT_DURINGARENA -> resumeFromArenaFight(mapMain)
+            SUSPEND_POINT_PHASECHANGE -> resumeFromPhaseChange(mapMain)
+        }
+    }
+
+    private fun refreshAndHideDisplay() {
+        hooks.refreshEntityBmMaps()
+        hooks.refreshUnitSprites()
+        hideDisplay()
+    }
+
+    /** Clears the `bg0_on` .. `bg3_on` and `obj_on` bits of `gLCDControlBuffer.dispcnt`. */
+    private fun hideDisplay() {
+        hardware.lcd.dispcnt = hardware.lcd.dispcnt and DISPCNT_LAYERS.inv()
+    }
+
+    /**
+     * Transcribed (not verified) from src/bmio.c: MapMain_ResumeFromPhaseIdle
+     *
+     * Refreshes the entity maps and unit sprites, hides every layer and jumps [mapMain] to label
+     * 4. `RefreshEntityBmMaps` / `RefreshUnitSprites` are [Hooks] stand-ins.
+     */
+    public fun resumeFromPhaseIdle(mapMain: Proc) {
+        refreshAndHideDisplay()
+        engine.goto(mapMain, 4)
+    }
+
+    /**
+     * Transcribed (not verified): src/bmio.c: MapMain_ResumeFromAction
+     *
+     * As [resumeFromPhaseIdle] with label 6, then [Hooks.resumeActionUnit] (active unit, MU).
+     */
+    public fun resumeFromAction(mapMain: Proc) {
+        refreshAndHideDisplay()
+        engine.goto(mapMain, 6)
+        hooks.resumeActionUnit()
+    }
+
+    /**
+     * Transcribed (not verified): src/bmio.c: MapMain_ResumeFromBskPhase
+     *
+     * As [resumeFromPhaseIdle] with label 7.
+     */
+    public fun resumeFromBskPhase(mapMain: Proc) {
+        refreshAndHideDisplay()
+        engine.goto(mapMain, 7)
+    }
+
+    /**
+     * Transcribed (not verified): src/bmio.c: MapMain_ResumeFromArenaFight
+     *
+     * Restarts the arena battle ([Hooks.resumeArenaBattle]), hides every layer, refreshes the
+     * entity maps, clears the move cell, refreshes the unit sprites, jumps [mapMain] to label 10
+     * and starts the arena results screen.
+     */
+    public fun resumeFromArenaFight(mapMain: Proc) {
+        hooks.resumeArenaBattle()
+        hideDisplay()
+        hooks.refreshEntityBmMaps()
+        hooks.clearArenaMoveCell()
+        hooks.refreshUnitSprites()
+        engine.goto(mapMain, 10)
+        hooks.startArenaResultsScreen()
+    }
+
+    /**
+     * Transcribed (not verified): src/bmio.c: MapMain_ResumeFromPhaseChange
+     *
+     * As [resumeFromPhaseIdle] with label 8.
+     */
+    public fun resumeFromPhaseChange(mapMain: Proc) {
+        refreshAndHideDisplay()
+        engine.goto(mapMain, 8)
     }
 
     /**
@@ -365,6 +472,27 @@ public class BattleMapStart(
 
         /** `PROC_TREE_4`. */
         public const val PROC_TREE_4: Int = 4
+
+        /** `SUSPEND_POINT_PLAYERIDLE`. */
+        public const val SUSPEND_POINT_PLAYERIDLE: Int = 0
+
+        /** `SUSPEND_POINT_DURINGACTION`. */
+        public const val SUSPEND_POINT_DURINGACTION: Int = 1
+
+        /** `SUSPEND_POINT_CPPHASE`. */
+        public const val SUSPEND_POINT_CPPHASE: Int = 2
+
+        /** `SUSPEND_POINT_BSKPHASE`. */
+        public const val SUSPEND_POINT_BSKPHASE: Int = 3
+
+        /** `SUSPEND_POINT_DURINGARENA`. */
+        public const val SUSPEND_POINT_DURINGARENA: Int = 4
+
+        /** `SUSPEND_POINT_PHASECHANGE`. */
+        public const val SUSPEND_POINT_PHASECHANGE: Int = 9
+
+        /** The `bg0_on` .. `bg3_on` and `obj_on` bits of `DISPCNT`. */
+        private const val DISPCNT_LAYERS: Int = 0x1F00
 
         /** `FACTION_GREEN` (`gPlaySt.faction` of the NPC phase). */
         public const val FACTION_GREEN: Int = 0x40

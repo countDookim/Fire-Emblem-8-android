@@ -7,8 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(claim tasks here before starting them, CLAUDE.md rule 10)_
-- M6-37: scheduled, until ~23:25Z (wip/M6-37 if unfinished)
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -37,7 +36,14 @@ M6-33/34 (fe8.game.scene Talk: init, interpreter, wait-for-A; the whole first ta
 M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
-## Next task: M6-20 rest, M6-19 rest, M6-29 (wip) (TASKS)
+## Next task: M6-37 (wip), M6-20 rest, M6-19 rest, M6-29 (wip) (TASKS)
+Scheduled 11-06 22:51Z (full jvmTest green 23:12Z): M6-36 done (0c3439a, `fe8.game.scene.TalkBubble`: open/bubble/shift-clear procs, BG1 tilemap matches per
+frame f9866..10565). M6-35 done (9ebd577, `TalkFace`: load/layer/move procs; face tiles diverge from f10040 in the eye area
+until blink/mouth procs exist; face palettes need StartFaceFadeIn). Neither is wired into a production TalkHost/Fe8Boot yet
+(owner's Prologue report). `wip/M6-37`: `fe8.game.event.EventText` transcribes Event1A/1B/1C/1D behind `EventTextHost`;
+EventVm replay runs 1A/1B/1C real (test `idleAware` wrapper keeps the old parked-before-command skip), 0x1D still stubbed
+(needs live talk state + choice result); untagged: replay checks only return codes/engine state. Next: wire EventText to
+Talk/TalkBubble/TalkFace with a real host, then a talk-effect check to tag it; merge wip/M6-37.
 Scheduled 11-06 19:50Z: M6-12 done (eb45763): `Fe8Boot(saveStorage)`, MainActivity `filesDir/fe8.sav`; save menu stand-in
 resumes whenever a valid suspend exists (else New Game); `ResumeBootTest` Ch2/Prologue reach idle, units == ch2_scroll/
 prologue_resume r01299 (mask +0x3C). `wip/M6-29`: Event26/3B/3C transcribed, untagged: 0x3C runs in no event trace;

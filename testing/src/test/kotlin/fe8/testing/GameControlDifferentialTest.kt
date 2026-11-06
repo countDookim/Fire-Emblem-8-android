@@ -33,9 +33,9 @@ import org.junit.jupiter.api.Test
  * Each segment seeds the proc fields and `gPlaySt` from the step before, runs one frame with
  * stand-in children, and compares script position, fields, `gPlaySt` bytes and children with the
  * step after. Only chapter 0, `nextAction` 0, `save_menu_type` 0 and no state bits occur, so the
- * other branches are not covered, so `GameControl_SwitchPostSaveMenu` (only the event-return
- * branch runs), `GameCtrl_CheckNewGameAndBranch` and `GameCtrl_CheckGameCompleteAndBranch`
- * (only their fall-through) are not tagged; `GameControl_PostChapterSwitch`,
+ * other branches are not covered here (`GameControl_SwitchPostSaveMenu` is verified by
+ * PostSaveMenuDifferentialTest), so `GameCtrl_CheckNewGameAndBranch` and
+ * `GameCtrl_CheckGameCompleteAndBranch` (only their fall-through) are not tagged; `GameControl_PostChapterSwitch`,
  * `GameControl_RestoreChapterId` and `GameControlHandlePostNormalOrExtraChapter` do not run
  * before the battle map and are not tagged. `sub_8009E28` only has its hook checked.
  */

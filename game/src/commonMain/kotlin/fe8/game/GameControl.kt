@@ -432,8 +432,11 @@ public class GameControl(
      * Branches after the save menu on `nextAction`; on event return it first runs `GmDataInit`
      * ([Hooks.gmDataInit]) and goes to the battle map label.
      *
-     * Transcribed from src/gamecontrol.c: GameControl_SwitchPostSaveMenu
-     * (not verified: only the event-return branch occurs in the reference traces)
+     * Ported from src/gamecontrol.c: GameControl_SwitchPostSaveMenu
+     *
+     * Verified branches: `nextAction` 2 (battle map label) and 4 (resumed game label). The
+     * others (0 with `GmDataInit`, 1, 3, 5, 6, 7, 0xC) are transcribed from the decomp; no
+     * reference run reaches them except 0 (without a check of the label).
      */
     public fun switchPostSaveMenu(proc: Proc) {
         when ((proc.state as State).nextAction) {

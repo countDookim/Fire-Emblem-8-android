@@ -61,7 +61,7 @@ unit arrays; `EventUnitState` (Event34) registered, untagged. New runs ram_trace
   Investigate before claiming m4a coverage there.
 - Test strength: ~40 ProcEngine tags share one Kotlin function with another tag (a break proves the group, not each
   name); OpAnimMergeBGProcInit, sub_80C8608 untagged. Untagged for lack of a trace: SaveBonusContentData,
-  SaveRankings, WriteLinkArenaStruct2, VerifySramFast_Core, GameControl_SwitchPostSaveMenu,
+  SaveRankings, WriteLinkArenaStruct2, VerifySramFast_Core,
   GameCtrl_Check{NewGame,GameComplete}AndBranch, GetPhaseAbleUnitCount exclusion branches, ply_keysh, ply_xcmd,
   GameControl_EnableSoundEffects, EndAllProcChildren, StartOrChangeBgm, Title_IDLE, Title_EndAllProcChildren,
   DrawTitleSprites_Init, SetSecondaryHBlankHandler, OpAnimHBlank1, ColorFadeSetupFrom{ColorToWhite,White},

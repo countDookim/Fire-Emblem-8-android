@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 412,
-    "implemented_unverified": 144
+    "verified": 411,
+    "implemented_unverified": 122
   },
   "functions": {
     "AddUnitSprite": {
@@ -99,29 +99,6 @@
       "tests": [
         "fe8.testing.SaveDrawDifferentialTest#fog scroll turns the previous dump into the next one"
       ]
-    },
-    "BMapVSync_InitMapAnimations": {
-      "decomp_file": "src/bmio.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "BMapVSync_UpdateMapImgAnimations": {
-      "decomp_file": "src/bmio.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.MapAnimationsTest#animated map tiles match the first phase reference"
-      ]
-    },
-    "BMapVSync_UpdateMapPalAnimations": {
-      "decomp_file": "src/bmio.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt",
-      "status": "implemented",
-      "tests": []
     },
     "BattleEventEngineExists": {
       "decomp_file": "src/event.c",
@@ -542,13 +519,6 @@
         "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
       ]
     },
-    "CountUnitsInState": {
-      "decomp_file": "src/bmphase.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "DecodeString": {
       "decomp_file": "asm/arm.s",
       "system": "core",
@@ -859,26 +829,21 @@
       "status": "implemented",
       "tests": []
     },
-    "Event12_StartBGM": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventBgm.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "Event17_Fade": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventFade.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "Event19_Checks": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
       "status": "implemented",
       "tests": []
+    },
+    "Event25_ChangeMap": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventChangeMap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventChangeMapDifferentialTest#load_map 16 from the prologue opening reproduces the dumped map"
+      ]
     },
     "Event2B_ConfigLoadUnit": {
       "decomp_file": "src/eventscr.c",
@@ -1003,22 +968,6 @@
         "fe8.testing.ScreenFadeDifferentialTest#fade from black follows the per-frame RAM trace"
       ]
     },
-    "FadeFromCommon_OnLoop": {
-      "decomp_file": "src/bmlib.c",
-      "system": "battle_map",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.ScreenFadeDifferentialTest#fade from black follows the per-frame RAM trace"
-      ]
-    },
-    "FadeFromWhite_OnInit": {
-      "decomp_file": "src/bmlib.c",
-      "system": "battle_map",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "FadeOutBody": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -1027,27 +976,6 @@
       "tests": [
         "fe8.testing.M4aFadeTest#fade steps match the trace"
       ]
-    },
-    "FadeToBlack_OnInit": {
-      "decomp_file": "src/bmlib.c",
-      "system": "battle_map",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "FadeToCommon_OnLoop": {
-      "decomp_file": "src/bmlib.c",
-      "system": "battle_map",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "FadeToWhite_OnInit": {
-      "decomp_file": "src/bmlib.c",
-      "system": "battle_map",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
-      "status": "implemented",
-      "tests": []
     },
     "FlipBgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
@@ -1143,15 +1071,6 @@
       "status": "verified",
       "tests": [
         "fe8.testing.GameControlDifferentialTest#save menu return reaches the intro monologue like the game"
-      ]
-    },
-    "GameCtrl_StartResumedGame": {
-      "decomp_file": "src/bmio.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.StartResumedGameDifferentialTest#gBmSt after the resumed game start matches the dump"
       ]
     },
     "GameEarlyStartDelay": {
@@ -1363,13 +1282,6 @@
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
       ]
-    },
-    "GetCurrentMapMusicIndex": {
-      "decomp_file": "src/bm.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapMusic.kt",
-      "status": "implemented",
-      "tests": []
     },
     "GetCurrentPromotedLevelBonus": {
       "decomp_file": "src/bmdifficulty.c",
@@ -1620,15 +1532,6 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
-    },
-    "GetUnitSpriteHideFlag": {
-      "decomp_file": "src/bmudisp.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpriteHandles.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.UnitSpritesDifferentialTest#unit sprite objects match the dump OAM"
-      ]
     },
     "GetUnitSpritePalette": {
       "decomp_file": "src/bmudisp.c",
@@ -2042,8 +1945,10 @@
       "decomp_file": "src/bmio.c",
       "system": "battle_map",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ResumeBootTest#resume from phase idle jumps BMapMain to label 4 like the dumps"
+      ]
     },
     "MidiKeyToCgbFreq": {
       "decomp_file": "src/m4a.c",
@@ -2528,13 +2433,6 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
     },
-    "PutChapterMarkedTileIconOam": {
-      "decomp_file": "src/bmudisp.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpritesOam.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "PutMapCursor": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -2792,6 +2690,15 @@
         "fe8.testing.UnitSpritesDifferentialTest#sprite buffer and slots match the dump"
       ]
     },
+    "RestartBattleMap": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventChangeMapDifferentialTest#load_map 16 from the prologue opening reproduces the dumped map"
+      ]
+    },
     "Roll1RN": {
       "decomp_file": "src/rng.c",
       "system": "core",
@@ -2851,20 +2758,6 @@
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
-    "SetBlendBackdropA": {
-      "decomp_file": "src/hardware.c",
-      "system": "core",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/LcdControl.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "SetBlendBackdropB": {
-      "decomp_file": "src/hardware.c",
-      "system": "core",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/LcdControl.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "SetBlendConfig": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -2903,15 +2796,6 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
       "status": "implemented",
       "tests": []
-    },
-    "SetEventSlotCounter": {
-      "decomp_file": "src/event.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.ReadSuspendSaveReferenceTest#reading chapter2 sav reproduces the RAM of r01142"
-      ]
     },
     "SetFirstPalDirectly": {
       "decomp_file": "src/opanimfx.c",
@@ -3177,20 +3061,6 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
       ]
     },
-    "StartFadeFromBlack": {
-      "decomp_file": "src/bmlib.c",
-      "system": "battle_map",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "StartFadeToBlack": {
-      "decomp_file": "src/bmlib.c",
-      "system": "battle_map",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "StartGame": {
       "decomp_file": "src/gamecontrol.c",
       "system": "core",
@@ -3209,47 +3079,23 @@
         "fe8.testing.ScreenFadeDifferentialTest#fade from black follows the per-frame RAM trace"
       ]
     },
-    "StartLockingFadeFromWhite": {
-      "decomp_file": "src/bmlib.c",
+    "StartMu": {
+      "decomp_file": "src/mu.c",
       "system": "battle_map",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
-      "status": "implemented",
-      "tests": []
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuStartDifferentialTest#StartMu from the unit as dumped at f9674 matches the f9674 MU proc and config"
+      ]
     },
-    "StartLockingFadeToBlack": {
-      "decomp_file": "src/bmlib.c",
+    "StartMuInternal": {
+      "decomp_file": "src/mu.c",
       "system": "battle_map",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "StartLockingFadeToWhite": {
-      "decomp_file": "src/bmlib.c",
-      "system": "battle_map",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "StartMapSongBgm": {
-      "decomp_file": "src/bm.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapMusic.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "StartMidFadeFromBlack": {
-      "decomp_file": "src/bmlib.c",
-      "system": "battle_map",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "StartMidFadeToBlack": {
-      "decomp_file": "src/bmlib.c",
-      "system": "battle_map",
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
-      "status": "implemented",
-      "tests": []
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuStartDifferentialTest#StartMu from the unit as dumped at f9674 matches the f9674 MU proc and config"
+      ]
     },
     "StartSongDelayed": {
       "decomp_file": "src/soundwrapper.c",
@@ -3773,15 +3619,6 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
-      ]
-    },
-    "WriteLastGameSaveId": {
-      "decomp_file": "src/bmsave.c",
-      "system": "save",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.ReadGameSaveReferenceTest#write after read reproduces slot 1 of chapter6 sav"
       ]
     },
     "WriteNewGameSave": {

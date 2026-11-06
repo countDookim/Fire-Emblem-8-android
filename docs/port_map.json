@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 373,
-    "implemented_unverified": 117
+    "verified": 370,
+    "implemented_unverified": 114
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -237,16 +237,6 @@
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
       ]
     },
-    "CharStoreAI": {
-      "decomp_file": "src/cp_utility.c",
-      "system": "ai",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items",
-        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
-      ]
-    },
     "CheckCanKeyComboReset": {
       "decomp_file": "src/time.c",
       "system": "core",
@@ -378,15 +368,6 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
-      ]
-    },
-    "ClearUnit": {
-      "decomp_file": "src/bmunit.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
       ]
     },
     "ColorFadeSetupFromBlack": {
@@ -799,8 +780,10 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventUnitLoadsTest#skipped load_unit2 of the throne room units reproduces the dumped unit structs"
+      ]
     },
     "EventEngineExists": {
       "decomp_file": "src/event.c",
@@ -845,8 +828,10 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventUnitLoadsTest#skipped load_unit2 of the throne room units reproduces the dumped unit structs"
+      ]
     },
     "ExecBothHBlankHandlers": {
       "decomp_file": "src/hardware.c",
@@ -889,15 +874,6 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aFadeTest#fade steps match the trace"
-      ]
-    },
-    "FixROMUnitStructPtr": {
-      "decomp_file": "src/bmunit.c",
-      "system": "battle_map",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
       ]
     },
     "FlipBgVerticalScroll": {
@@ -1267,15 +1243,6 @@
       "status": "implemented",
       "tests": []
     },
-    "GetItemIndex": {
-      "decomp_file": "src/bmitem.c",
-      "system": "battle_logic",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items"
-      ]
-    },
     "GetItemMaxUses": {
       "decomp_file": "src/bmitem.c",
       "system": "battle_logic",
@@ -1316,13 +1283,6 @@
         "fe8.testing.SramOwnerSaveBootTest#chapter 2 save with a valid suspend boots unchanged",
         "fe8.testing.SramOwnerSaveBootTest#chapter 6 save without a suspend boots unchanged and selects 0x7F"
       ]
-    },
-    "GetLoadUnitsAmount": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
-      "status": "implemented",
-      "tests": []
     },
     "GetNextSuspendSaveId": {
       "decomp_file": "src/bmsave.c",
@@ -1391,15 +1351,6 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
-      ]
-    },
-    "GetStatIncrease": {
-      "decomp_file": "src/bmbattle.c",
-      "system": "battle_logic",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
-      "status": "verified",
-      "tests": [
-        "fe8.testing.UnitLoaderDifferentialTest#autoleveled red units reproduce the dump for the RNG states of the window"
       ]
     },
     "GetTrueTerrainAt": {

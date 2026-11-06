@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 486,
+    "verified": 497,
     "implemented_unverified": 0
   },
   "functions": {
@@ -366,6 +366,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "ClearTalkBubble": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
       ]
     },
     "ClearTalkFaceRefs": {
@@ -2313,6 +2322,33 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "PutTalkBubble": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "PutTalkBubbleTail": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "PutTalkBubbleTm": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
     "PutText": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -2934,6 +2970,15 @@
         "fe8.testing.MuStartDifferentialTest#StartMu from the unit as dumped at f9674 matches the f9674 MU proc and config"
       ]
     },
+    "StartOpenTalkBubble": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
     "StartSongDelayed": {
       "decomp_file": "src/soundwrapper.c",
       "system": "audio",
@@ -2941,6 +2986,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
+      ]
+    },
+    "StartTalkOpen": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
       ]
     },
     "StartTalkWaitForInput": {
@@ -2989,6 +3043,15 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
     },
+    "TalkBubbleOpen_OnIdle": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
     "TalkHasCorrectBubble": {
       "decomp_file": "src/scene.c",
       "system": "presentation",
@@ -3007,6 +3070,24 @@
         "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
       ]
     },
+    "TalkOpen_OnIdle": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "TalkOpen_PutTalkBubble": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
     "TalkPrepNextChar": {
       "decomp_file": "src/scene.c",
       "system": "presentation",
@@ -3014,6 +3095,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TalkRomTest#talkPrepNextChar opens the bubble, starts the shift or puts the line as traced"
+      ]
+    },
+    "TalkShiftClear_OnIdle": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "TalkShiftClear_OnInit": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
       ]
     },
     "TalkWaitForInput_OnIdle": {

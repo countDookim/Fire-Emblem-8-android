@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M6-19: scheduled, until ~19:20Z (wip/M6-19)
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-06)
 - Issue #4 fixed 11-06 (cloud owner session), awaiting device retest: causes were BMapMain fade stand-ins (no-op;
@@ -16,7 +16,8 @@ _(nothing blocked)_
   ram_trace_newgame f1174..1193), GameControl fade stand-ins (GameControl.kt:206-212, 409-414), the opening event
   repeats fades because text/camera/unit commands are stubs. Map palette not yet compared to first_phase pal.bin.
 
-## Next task: M6-12 (M6-10 rest, M6-20 rest: Event15/volume change), then M6-19
+## Next task: M6-12 (M6-10 rest, M6-20 rest: Event15/volume change), M6-19 rest (TASKS)
+Scheduled 11-06 19:06Z: M6-19 partial: `MapAnimations` tile anim verified + wired in Fe8Boot (see TASKS). Full jvmTest green 19:06Z.
 Scheduled 11-06 19:00Z: M6-18 done (`MapCursor`, wired; `MapCursorDifferentialTest` vs first_phase OAM objects 0..3; drawn
 position = dumped playerCursorDisplay minus the slide step, test searches 0..4 px: tighten if a per-frame gBmSt trace exists).
 GetCurrentMapMusicIndex stays untagged: Prologue traces cannot tell red from green slots, no victory/flag-4/skirmish case (needs a later-chapter run).

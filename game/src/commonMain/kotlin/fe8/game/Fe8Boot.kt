@@ -9,6 +9,7 @@ import fe8.game.bm.BmMapRender
 import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterMapGfx
+import fe8.game.bm.MapAnimations
 import fe8.game.bm.MapCursor
 import fe8.game.bm.MapMusic
 import fe8.game.bm.EntityBmMaps
@@ -305,6 +306,10 @@ public class Fe8Boot(
         val traps = ByteArray(TRAP_POOL_SIZE)
         val mapUnitAt = { x: Int, y: Int -> map.unit[y, x] }
         val refresh = { handles.refreshUnitSprites(mapUnitAt, traps) }
+        val anims = MapAnimations(rom, battleChapters, hw, control.playSt)
+        start.hooks.initMapAnimations = { anims.initMapAnimations() }
+        start.hooks.updateMapImgAnimations = { anims.updateMapImgAnimations() }
+        start.hooks.updateMapPalAnimations = { anims.updateMapPalAnimations() }
         start.hooks.applyUnitSpritePalettes = { sprites.applyUnitSpritePalettes() }
         start.hooks.resetUnitSprites = { sprites.resetUnitSprites() }
         start.hooks.refreshUnitSprites = refresh

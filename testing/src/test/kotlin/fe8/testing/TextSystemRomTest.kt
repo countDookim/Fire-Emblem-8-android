@@ -268,11 +268,21 @@ class TextSystemRomTest {
             palettes.add(talk to palid)
         }
 
-        override fun getDrawDest(font: Font, text: Text) =
-            font.vramDest + (text.dbId * text.tileWidth + text.chrPosition) * 2 * 0x20
+        val vram = ByteArray(0x18000)
+
+        override fun readVram32(addr: Int): Int {
+            var v = 0
+            for (k in 0..3) v = v or ((vram[addr - 0x06000000 + k].toInt() and 0xFF) shl (8 * k))
+            return v
+        }
+
+        override fun writeVram32(addr: Int, value: Int) {
+            for (k in 0..3) vram[addr - 0x06000000 + k] = (value shr (8 * k)).toByte()
+        }
 
         override fun clearVram(dest: Int, byteCount: Int) {
             cleared.add(dest to byteCount)
+            vram.fill(0, dest - 0x06000000, dest - 0x06000000 + byteCount)
         }
     }
 

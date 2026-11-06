@@ -16,10 +16,15 @@ public object Fe8Text {
     /** `GetTextDrawDest` (Thumb), the value stored in `Font.get_draw_dest`. */
     public const val GET_TEXT_DRAW_DEST: Int = 0x080041E9
 
+    /** `s2bppTo4bppLutTable`. */
+    public const val COLOR_LUT_TABLE: Int = 0x08588240
+
     /** `gDefaultFont` (EWRAM). */
     public const val G_DEFAULT_FONT: Int = 0x02028E58
 
     /** The [TextSystem.Config] for FE8U. */
     public val CONFIG: TextSystem.Config =
-        TextSystem.Config(GLYPHS_SYSTEM, GLYPHS_TALK, DRAW_TEXT_GLYPH, GET_TEXT_DRAW_DEST)
+        TextSystem.Config(
+            GLYPHS_SYSTEM, GLYPHS_TALK, DRAW_TEXT_GLYPH, GET_TEXT_DRAW_DEST, COLOR_LUT_TABLE,
+        )
 }

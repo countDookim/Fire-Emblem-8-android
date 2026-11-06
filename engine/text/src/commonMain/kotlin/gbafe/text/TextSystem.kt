@@ -13,8 +13,11 @@ public interface TextHost {
      */
     public fun applyTextPalette(talk: Boolean, palid: Int)
 
-    /** `font->get_draw_dest(text)`: the VRAM address of [text]'s current tile strip. */
-    public fun getDrawDest(font: Font, text: Text): Int
+    /** Reads the little-endian 32-bit word at VRAM address [addr] (`0x06000000..`). */
+    public fun readVram32(addr: Int): Int
+
+    /** Writes the little-endian 32-bit word [value] at VRAM address [addr]. */
+    public fun writeVram32(addr: Int, value: Int)
 
     /** `CpuFastFill16(0, dest, byteCount)` on VRAM. */
     public fun clearVram(dest: Int, byteCount: Int)
@@ -43,6 +46,8 @@ public class TextSystem(
         public val drawGlyph: Int,
         /** Function-pointer value stored in [Font.getDrawDest] (`GetTextDrawDest`). */
         public val getDrawDest: Int,
+        /** `s2bppTo4bppLutTable`: ROM address of the table of 13 colour-LUT pointers. */
+        public val colorLutTable: Int,
     )
 
     /** `gDefaultFont`. */
@@ -112,7 +117,7 @@ public class TextSystem(
     public fun clearText(text: Text) {
         text.x = 0
         text.colorId = COLOR_SYSTEM_WHITE
-        host.clearVram(host.getDrawDest(activeFont, text), text.tileWidth * 2 * CHR_SIZE)
+        host.clearVram(getTextDrawDest(text), text.tileWidth * 2 * CHR_SIZE)
     }
 
     /**
@@ -181,6 +186,193 @@ public class TextSystem(
         return start + 1
     }
 
+    /**
+     * VRAM address of [text]'s current tile strip, at the pen's tile: the `get_draw_dest` of the
+     * active font.
+     *
+     * Ported from src/fontgrp.c: GetTextDrawDest
+     */
+    public fun getTextDrawDest(text: Text): Int {
+        val chrNumber = text.dbId * text.tileWidth + text.chrPosition + text.x / 8
+        return activeFont.vramDest + chrNumber * 2 * CHR_SIZE
+    }
+
+    /**
+     * ROM address of the 256-entry 2bpp-to-4bpp lookup table (16-bit entries) for [color].
+     *
+     * Ported from src/fontgrp.c: GetColorLut
+     */
+    public fun getColorLut(color: Int): Int =
+        readU32(config.colorLutTable - ROM_BASE + color * 4)
+
+    /**
+     * Draws [glyph] (ROM address) at the pen of [text] with its colour and advances the pen by the
+     * glyph width. The pixels are OR-ed into the tiles, which must have been cleared.
+     *
+     * Ported from src/fontgrp.c: DrawTextGlyph
+     */
+    public fun drawTextGlyph(text: Text, glyph: Int) {
+        val dest = getTextDrawDest(text)
+        val subx = text.x and 7
+        drawGlyphRam(getColorLut(text.colorId), dest, glyph + GLYPH_BITMAP, subx)
+        text.x = (text.x + glyphWidth(glyph)) and 0xFF
+    }
+
+    /**
+     * Calls the active font's `drawGlyph` function pointer; only `DrawTextGlyph` is ported.
+     */
+    private fun callDrawGlyph(text: Text, glyph: Int) {
+        check(activeFont.drawGlyph == config.drawGlyph) { "unsupported drawGlyph pointer" }
+        drawTextGlyph(text, glyph)
+    }
+
+    /**
+     * Draws the 16 rows of a 2bpp glyph [bitmap] (ROM address) shifted right by [subx] pixels into
+     * the 4bpp tiles at [dest], OR-ing in the pixels through the colour table [lut]: the ARM
+     * routine `DrawGlyph` of arm.s (reached through `DrawGlyphRam`).
+     *
+     * Transcribed from asm/arm.s: DrawGlyph (verified only through the Text_DrawCharacter test).
+     */
+    private fun drawGlyphRam(lut: Int, dest: Int, bitmap: Int, subx: Int) {
+        val lutBase = lut - ROM_BASE
+        for (row in 0 until 16) {
+            val wide = (readU32(bitmap - ROM_BASE + row * 4).toLong() and 0xFFFFFFFFL) shl
+                (subx * 2)
+            val d = dest + row * 4
+            orWord(d, lutWord(lutBase, wide.toInt()))
+            orWord(d + 0x40, lutWord(lutBase, (wide shr 16).toInt()))
+            orWord(d + 0x80, lutWord(lutBase, (wide shr 32).toInt()))
+        }
+    }
+
+    /** Two LUT entries for the low two bytes of [v]: byte 0 in bits 0-15, byte 1 in 16-31. */
+    private fun lutWord(lutBase: Int, v: Int): Int {
+        val lo = rom[lutBase + (v and 0xFF) * 2].toInt() and 0xFF or
+            ((rom[lutBase + (v and 0xFF) * 2 + 1].toInt() and 0xFF) shl 8)
+        val hi = (v shr 8) and 0xFF
+        val hv = rom[lutBase + hi * 2].toInt() and 0xFF or
+            ((rom[lutBase + hi * 2 + 1].toInt() and 0xFF) shl 8)
+        return lo or (hv shl 16)
+    }
+
+    private fun orWord(addr: Int, value: Int) {
+        host.writeVram32(addr, host.readVram32(addr) or value)
+    }
+
+    /**
+     * Draws the character at [str]`[start]` and returns the offset after it. ASCII fonts delegate
+     * to [drawCharacterAscii].
+     *
+     * Ported from src/fontgrp.c: Text_DrawCharacter
+     */
+    public fun drawCharacter(text: Text, str: ByteArray, start: Int): Int {
+        if (activeFont.lang != 0) return drawCharacterAscii(text, str, start)
+        return drawCharacterSjis(text, str, start)
+    }
+
+    /**
+     * ASCII character draw; a missing glyph falls back to `'?'`.
+     *
+     * Ported from src/fontgrp.c: Text_DrawCharacterAscii
+     */
+    public fun drawCharacterAscii(text: Text, str: ByteArray, start: Int): Int {
+        var glyph = glyphAt(activeFont.glyphs, str[start].toInt() and 0xFF)
+        if (glyph == 0) glyph = glyphAt(activeFont.glyphs, QUESTION_MARK)
+        callDrawGlyph(text, glyph)
+        return start + 1
+    }
+
+    // Transcribed from src/fontgrp.c: Text_DrawCharacter (Shift-JIS branch; not verified: the US
+    // ROM has no Shift-JIS glyph lists and the trace runs with lang = 1).
+    // Not @VerifiesPort: no ground truth for lang == 0.
+    private fun drawCharacterSjis(text: Text, str: ByteArray, start: Int): Int {
+        var byte1 = str[start].toInt() and 0xFF
+        var byte2 = str[start + 1].toInt() and 0xFF
+        while (true) {
+            var glyph = glyphAt(activeFont.glyphs, (byte2 - 0x40) and 0xFF)
+            while (glyph != 0) {
+                if ((rom[glyph - ROM_BASE + 4].toInt() and 0xFF) == byte1) {
+                    callDrawGlyph(text, glyph)
+                    break
+                }
+                glyph = readU32(glyph - ROM_BASE)
+            }
+            if (glyph != 0) break
+            byte1 = 0x81
+            byte2 = 0xA7
+        }
+        return start + 2
+    }
+
+    /**
+     * Draws the string at [start] up to its terminator or newline. ASCII fonts take the ASCII path.
+     *
+     * Ported from src/fontgrp.c: Text_DrawString
+     */
+    public fun drawString(text: Text, str: ByteArray, start: Int = 0) {
+        if (activeFont.lang != 0) {
+            drawStringAscii(text, str, start)
+            return
+        }
+        drawStringSjis(text, str, start)
+    }
+
+    /**
+     * ASCII string draw.
+     *
+     * Ported from src/fontgrp.c: Text_DrawStringASCII
+     */
+    public fun drawStringAscii(text: Text, str: ByteArray, start: Int = 0) {
+        var i = start
+        while (str[i].toInt() != 0 && str[i].toInt() != CHAR_NEWLINE) {
+            i = drawCharacterAscii(text, str, i)
+        }
+    }
+
+    // Transcribed from src/fontgrp.c: Text_DrawString (Shift-JIS branch; not verified, see above).
+    // Not @VerifiesPort: no ground truth for lang == 0.
+    private fun drawStringSjis(text: Text, str: ByteArray, start: Int) {
+        var i = start
+        while (str[i].toInt() != 0 && str[i].toInt() != CHAR_NEWLINE) {
+            var byte1 = str[i++].toInt() and 0xFF
+            if (byte1 >= 0x20) {
+                var byte2 = str[i++].toInt() and 0xFF
+                var retry = true
+                while (retry) {
+                    retry = false
+                    var glyph = glyphAt(activeFont.glyphs, (byte2 - 0x40) and 0xFF)
+                    while (glyph != 0) {
+                        if ((rom[glyph - ROM_BASE + 4].toInt() and 0xFF) == byte1) {
+                            callDrawGlyph(text, glyph)
+                            break
+                        }
+                        glyph = readU32(glyph - ROM_BASE)
+                        if (glyph == 0) {
+                            byte1 = 0x81
+                            byte2 = 0xA7
+                            retry = true
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Writes the tilemap entries of [text]'s two tile rows to [tm] at [offset] (row 2 is 0x20
+     * entries later) and toggles the double-buffer id when enabled.
+     *
+     * Ported from src/fontgrp.c: PutText
+     */
+    public fun putText(text: Text, tm: ShortArray, offset: Int) {
+        var tileref = activeFont.tileref + (text.dbId * text.tileWidth + text.chrPosition) * 2
+        for (i in 0 until text.tileWidth) {
+            tm[offset + i] = tileref++.toShort()
+            tm[offset + i + 0x20] = tileref++.toShort()
+        }
+        if (text.dbEnabled) text.dbId = text.dbId xor 1
+    }
+
     // Transcribed from src/fontgrp.c: GetStringTextLen (Shift-JIS branch; not verified: the US
     // ROM has no Shift-JIS glyph lists and the trace runs with lang = 1).
     // Not @VerifiesPort: no ground truth for lang == 0.
@@ -245,6 +437,7 @@ public class TextSystem(
         public const val CHAR_NEWLINE: Int = 0x01
 
         private const val CHR_SIZE = 0x20
+        private const val GLYPH_BITMAP = 8
         private const val ROM_BASE = 0x08000000
         private const val QUESTION_MARK = '?'.code
     }

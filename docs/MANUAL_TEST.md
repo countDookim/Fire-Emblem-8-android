@@ -11,9 +11,10 @@ GPU renderer; gamepad/keyboard; on-screen touch buttons (cross D-pad, diagonals,
 layout); pause/resume; ROM import (~4 s) and Play from the imported data.
 
 ## Newly testable
-- **New Game reaches the Prologue map (M5-58/59/61):** NOT visible yet (issue #4, 2026-11-06): after START the game
-  logic reaches the Prologue player phase in ~0.5 s, but the screen stays black (the events' fade to black is never
-  undone: Event17_Fade, M6-24) and the title theme keeps playing (map BGM, M6-20). Retest after those land.
+- **New Game shows the Prologue map (issue #4 fix, 2026-11-06):** APK from 1b207b8+ (fades, map palette) and the
+  next commit (music). Steps: Play, START on the title. Expect: within ~1 s the screen fades in on the Prologue map,
+  the title theme fades out and the opening event song plays. Known: the opening event keeps running with stubbed
+  text/camera/unit commands, so the screen may fade out and in again repeatedly; no dialogue or sprites yet.
 - **KMP rebuild (no new feature, 2026-11-04):** the game libraries are now Kotlin Multiplatform and the APK uses
   their Android builds. Check nothing regressed: launch, Play boots to the title with music and sound effects,
   touch buttons and gamepad work, and ROM import (if you use it) still completes and Play boots from it.

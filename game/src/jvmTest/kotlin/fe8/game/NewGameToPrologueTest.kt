@@ -7,6 +7,9 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
+// Not @VerifiesPort: UnitLoader.closestValidPosition (AiGetUnitClosestValidPosition) is only
+// exercised here; no RAM trace has a load onto an occupied tile, so it stays "transcribed".
+
 /** Headless boot, title (A presses) and the New Game stand-in up to the Prologue player phase. */
 class NewGameToPrologueTest {
     @Test
@@ -36,11 +39,24 @@ class NewGameToPrologueTest {
         assertNotNull(boot.sram)
         assert(reached >= 0) { "PlayerPhase not reached; $trail" }
         frame = 1 // no keys from here: the lambda reads frame % 20 == 1
-        // The beginning events (skip mode) must run to their end and load the player units, so
-        // the phase idles instead of auto-ending (label 3).
-        repeat(120) { boot.frame() }
+        // The beginning events run for real (no skip: START is never pressed) with the release
+        // stand-ins, load the player units (including the closest-free-tile search for a walk-in
+        // onto an occupied tile) and end; the phase then idles.
+        var guard = 0
+        while (boot.eventEngine.eventEngineExists() && guard++ < 6000) boot.frame()
         assertEquals(false, boot.eventEngine.eventEngineExists(), "event engine still running")
         assert(boot.units.getPhaseAbleUnitCount(0) > 0) { "no blue unit loaded" }
-        assertNotNull(boot.engine.find(boot.playerPhaseScript), "player phase auto-ended")
+        val proc = boot.engine.find(boot.playerPhaseScript)
+        assertNotNull(proc, "player phase auto-ended")
+        // Acceptance: the proc sits on its PlayerPhase_MainIdle `repeat` and stays there.
+        val cmds = boot.playerPhaseScript.cmds
+        val idleIndex = cmds.indexOfFirst { it.opcode == 0x0B && it.imm == 9 } + 3
+        repeat(30) {
+            boot.frame()
+            assertEquals(idleIndex + 1, proc!!.scrCur, "not on the PlayerPhase_MainIdle repeat")
+        }
+        // The repeat command has run (scrCur is past it) and installed its callback.
+        assertEquals(0x03, cmds[idleIndex].opcode)
+        assertNotNull(proc!!.idleCb)
     }
 }

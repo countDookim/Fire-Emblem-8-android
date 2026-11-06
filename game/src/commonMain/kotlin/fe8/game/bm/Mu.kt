@@ -585,8 +585,7 @@ public class Mu(
     /**
      * Applies the move script [movescr] to the tile coordinates in [xy] (`xy[0]` = x, `xy[1]` = y).
      *
-     * Transcribed from src/mu.c: ApplyMoveScriptToCoordinates (not verified: not reached by the
-     * trace)
+     * Ported from src/mu.c: ApplyMoveScriptToCoordinates
      */
     public fun applyMoveScriptToCoordinates(xy: IntArray, movescr: IntArray) {
         var i = 0

@@ -82,6 +82,7 @@ blocked Event19 pairs), weather/traps/side windows, other chapters' LOAD groups.
 | M6-43 | Port eventinfo.c `RunPhaseSwitchEvents` (:1310), wired into BmMain_ChangePhase. EvCheck03/05/0B: Transcribed, not verified (no trace reaches them) | `@VerifiesPort` vs ram_trace_first_phase (turn 1) and ram_trace_ch6_phase_start | M6-42 | todo |
 | M6-44 | Replace the remaining `ReleaseEventStubs` no-ops the Prologue opening hits with the ports above; the opening runs unskipped (A every 30 f as in NEWGAME) | headless NewGameToPrologueTest reaches PlayerPhase_MainIdle on ch 0 with no release stub called; unit arrays at idle equal ram_trace_first_phase r19400 (masked) | M6-22, M6-23, M6-24, M6-28, M6-29, M6-37, M6-41, M6-43 | todo |
 | M6-45 | Tests + manual test: AllocationTest 600 frames during talk + MU walk + idle; MANUAL_TEST "New Game plays the Prologue opening; turn 1 shows units, cursor, BGM; reopen resumes" | measureMin == 0 B/frame; MANUAL_TEST updated | M6-44, M6-12 | todo |
+| M6-46 | Docs: KDoc accuracy sweep. 122 main-code functions say "Ported from" but no `@VerifiesPort` names them (list: `python3 tools/progress.py`-based sweep, see HANDOFF 11-06 audit); change each to "Transcribed from <file>: <Func> (not verified: <concrete reason>)"; optionally make `tools/progress.py` print the count so runs see regressions | sweep prints 0 names; jvmTest + Dokka green | — | todo |
 
 ## Done (details in git log)
 

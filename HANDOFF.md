@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- Audit KDoc cleanup + M6-26: owner PC, until ~21:00Z
+- M6-26, M6-30: owner PC, until ~21:00Z
 
 ## Check first (owner, 2026-11-06)
 - Issue #4 fixed 11-06 (cloud owner session), awaiting device retest: causes were BMapMain fade stand-ins (no-op;

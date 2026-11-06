@@ -1,13 +1,13 @@
 # HANDOFF
 
-_Updated 2026-11-06 (owner PC: audit of scheduled work, M6-23, M6-25/26, M6-30). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
+_Updated 2026-11-06 (owner PC: audit of scheduled work, M6-23, M6-25..27, M6-30/31). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
 docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
 ## In progress
-- M6-27, M6-31: owner PC, until ~21:45Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-06)
 - Issue #4 fixed 11-06 (cloud owner session), awaiting device retest: causes were BMapMain fade stand-ins (no-op;
@@ -24,8 +24,8 @@ WriteLastGameSaveId): stronger tests can reinstate them. To fix (small): 20 func
 Event17_Fade, PutChapterMarkedTileIconOam) → "Transcribed (not verified: why)"; stale "Stand-in" KDocs at
 BattleMapStart hooks (UpdateMapImgAnimations) and GameControl (GameCtrl_StartResumedGame). Unchecked groups: ReadGameSave/
 WriteGameSave, ReadSuspendSave, unit-sprite reset/use/refresh, StartLockingFadeFromBlack, SwitchPostSaveMenu.
-Same session: M6-23 (EventChangeMap), M6-25/26 (Mu.kt start + movement; display hooks for M6-27 are no-ops), M6-30
-(gbafe.text.MsgStrings) done; 21 of the untagged "Ported from" KDocs fixed, 122 older ones left (M6-46). Merged `wip/M6-05`, `wip/M6-17` deleted.
+Same session: M6-23 (EventChangeMap), M6-25/26/27 (Mu.kt start, movement, display; AP_* animation player is a hook),
+M6-30 (gbafe.text.MsgStrings), M6-31 (gbafe.text Font/TextSystem + fe8.game.text.Fe8Text) done; 21 of the untagged "Ported from" KDocs fixed, 122 older ones left (M6-46). Merged `wip/M6-05`, `wip/M6-17` deleted.
 
 ## Next task: M6-20 rest, M6-19 rest, M6-29 (wip) (TASKS)
 Scheduled 11-06 19:50Z: M6-12 done (eb45763): `Fe8Boot(saveStorage)`, MainActivity `filesDir/fe8.sav`; save menu stand-in
@@ -87,7 +87,7 @@ unit arrays; `EventUnitState` (Event34) registered, untagged. New runs ram_trace
   `CgbSound` verified; `PsgSynth` (GBATEK/mGBA behaviour, not a port) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad, GPU backend, audio, ROM import (~4 s) + boot
   from it. Pending: smoke test of the first APK built on the KMP android variants (MANUAL_TEST "Newly testable").
-- Verified ports: 420 / 8352 (`tools/progress.py`, 2026-11-06; audit withheld 6 M5-60 overclaims). Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
+- Verified ports: 435 / 8352 (`tools/progress.py`, 2026-11-06; audit withheld 6 M5-60 overclaims). Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
 - Layout: `:gba:*` game-neutral (ADR 0012), `gbafe.*` in `:engine:*`, `fe8.*` in `:game`/`:app`; KMP jvm+android
   (ADR 0013) except `:gba:testkit`, `:testing`, `:tools:extract`.
 

@@ -336,6 +336,9 @@ class EventVmDifferentialTest {
         private val romView = RomView.ofRom(rom)
         private val table = UnitTable(romView)
         private val loader = UnitLoader(table, romView, { 0 }, rng, { false })
+        private val cursorCamera = fe8.game.event.EventCursorCamera(
+            state, mem, fe8.game.bm.BmSt(),
+        )
         private val unitState = EventUnitState(
             state, mem, table, loader, object : EventUnitStateHooks {},
         )
@@ -396,7 +399,10 @@ class EventVmDifferentialTest {
                 0x0F to core.event0fCounterOps,
                 0x12 to bgm.event12StartBgm,
                 0x17 to fade.event17Fade,
+                0x26 to cursorCamera.event26CameraControl,
                 0x34 to unitState.event34MessWithUnitState,
+                0x3B to cursorCamera.event3bDisplayCursor,
+                0x3C to cursorCamera.event3cMoveCursor,
             )
             for (code in 0..0xFF) {
                 val h = ported[code]
@@ -809,12 +815,12 @@ class EventVmDifferentialTest {
         val MIN_CODE_PAIRS = mapOf(
             0x01 to 14, 0x02 to 3, 0x10 to 2, 0x19 to 1, 0x03 to 8, 0x05 to 7, 0x06 to 3, 0x07 to 3,
             0x08 to 7,
-            0x09 to 1, 0x12 to 3, 0x17 to 20, 0x0A to 9, 0x0C to 8, 0x0E to 2400,
+            0x09 to 1, 0x12 to 3, 0x17 to 20, 0x0A to 9, 0x0C to 8, 0x0E to 2400, 0x3B to 24,
         )
 
         /** Minimum pairs in which each stub completed its command. */
         val MIN_STUB_PAIRS = mapOf(
-            0x15 to 2, 0x1D to 28, 0x30 to 20, 0x3B to 24, 0xAC to 3,
+            0x15 to 2, 0x1D to 28, 0x30 to 20, 0xAC to 3,
             0xBA to 7, 0x2C to 8, 0x2F to 15, 0x3F to 1,
         )
 
@@ -858,13 +864,10 @@ class EventVmDifferentialTest {
          *   and would clear GFXLOCKED is not modelled); else YIELD.
          * - 0x22 Event22_ClearScreen: runs Event24_EnableMapDisp: clears GFXLOCKED, YIELD.
          * - 0x25 Event25_ChangeMap, 0x2C Event2C_LoadUnits: YIELD in every branch.
-         * - 0x26 Event26_CameraControl: skipping or FADEDIN: CONTINUE, else YIELD.
          * - 0x2F Event2F_MoveUnit: CONTINUE (a move that cannot start returns STOP_YIELD, which
          *   is the parked case).
          * - 0x30 Event30_ENUN: YIELD (STOP_YIELD while a MU moves is the parked case).
          * - 0x3A Event3A_DisplayPopup: skipping: CONTINUE, else YIELD.
-         * - 0x3B Event3B_DisplayCursor: YIELD for subcode&3 == 2 (CURE) unless skipping, else
-         *   CONTINUE (the cursor proc is started).
          * - 0x3F Event3F_ScriptBattle: subcode 2 (FIGHT_SCRIPT) CONTINUE, else YIELD.
          * - World map codes 0x9E A0 A3 A7 A8 AF B4 B6 B8 B9 BC BD C1 C4 C5: CONTINUE. The waiting
          *   ones 0xA5 (UnitFadeWait), 0xAC (UnitMoveWait), 0xB1, 0xBA, 0xBE and 0xC6 C7 C9:
@@ -922,12 +925,6 @@ class EventVmDifferentialTest {
             stub(0x22) { p, _, _ ->
                 p.evStateBits = p.evStateBits and EV_STATE_GFXLOCKED.inv()
                 YIELD
-            }
-            stub(0x26) { p, _, _ ->
-                if (skipping(p) || p.evStateBits and EV_STATE_FADEDIN != 0) CONT else YIELD
-            }
-            stub(0x3B) { p, m, _ ->
-                if (!skipping(p) && (m.u16(p.pEventCurrent) and 3) == 2) YIELD else CONT
             }
             stub(0x3F) { p, m, _ -> if ((m.u16(p.pEventCurrent) and 0xF) == 2) CONT else YIELD }
         }

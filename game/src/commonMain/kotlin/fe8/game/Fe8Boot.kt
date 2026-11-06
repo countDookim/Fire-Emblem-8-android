@@ -36,6 +36,7 @@ import fe8.game.event.EventScriptBattleHost
 import fe8.game.event.EventUnitState
 import fe8.game.event.EventUnitStateHooks
 import fe8.game.event.EventState
+import fe8.game.event.EventCursorCamera
 import fe8.game.event.EventUnitLoads
 import fe8.game.event.EventChangeMap
 import fe8.game.event.EventInfoHooks
@@ -231,6 +232,9 @@ public class Fe8Boot(
                 bmMap = battleBmMap
                 weatherId = { control.playSt.chapterWeatherId }
             }
+            // Cursor / camera commands: the camera moves, the cursor proc and SetSomeRealCamPos
+            // keep the default no-op stand-ins.
+            EventCursorCamera(state, memory, loop.bmSt).registerOn(it)
             EventUnitLoads(
                 state, memory, rom, units, loader, rng,
                 { x, y -> battleBmMap.terrain[y, x] },

@@ -16,12 +16,14 @@ _(none; claim tasks here before starting them, CLAUDE.md rule 10)_
   ram_trace_newgame f1174..1193), GameControl fade stand-ins (GameControl.kt:206-212, 409-414), the opening event
   repeats fades because text/camera/unit commands are stubs. Map palette not yet compared to first_phase pal.bin.
 
-## Next task: M6-10 rest (label check now possible: resume is wired), M6-20 rest, M6-19 rest, M6-29 (wip) (TASKS)
+## Next task: M6-20 rest, M6-19 rest, M6-29 (wip) (TASKS)
 Scheduled 11-06 19:50Z: M6-12 done (eb45763): `Fe8Boot(saveStorage)`, MainActivity `filesDir/fe8.sav`; save menu stand-in
 resumes whenever a valid suspend exists (else New Game); `ResumeBootTest` Ch2/Prologue reach idle, units == ch2_scroll/
 prologue_resume r01299 (mask +0x3C). `wip/M6-29`: Event26/3B/3C transcribed, untagged: 0x3C runs in no event trace;
 3B needs the EventDisplayCursor child proc compared (procs watch +0x64..0x6A); talk/battle runs replay with a one-line
-`EventTrace.prologue` change (3B 21/32 pairs). Full jvmTest green 19:40Z (before wip).
+`EventTrace.prologue` change (3B 21/32 pairs). M6-10: ResumeFromPhaseIdle verified (BMapMain = proc slot 2 of
+gProcArray 0x02024E68, cmd 40 = label 4 at r01150; dispcnt vs iwram 0x03003080); other variants unreached by traces.
+Full jvmTest green 19:58Z.
 Scheduled 11-06 19:06Z: M6-19 partial: `MapAnimations` tile anim verified + wired in Fe8Boot (see TASKS). Full jvmTest green 19:06Z.
 Scheduled 11-06 19:00Z: M6-18 done (`MapCursor`, wired; `MapCursorDifferentialTest` vs first_phase OAM objects 0..3; drawn
 position = dumped playerCursorDisplay minus the slide step, test searches 0..4 px: tighten if a per-frame gBmSt trace exists).

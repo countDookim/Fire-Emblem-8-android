@@ -77,7 +77,7 @@ public class UnitSprites(
     }
 
     /**
-     * Ported from src/bmudisp.c: ForceSyncUnitSpriteSheet (only the frame 0 branch is observed)
+     * Ported from src/bmudisp.c: ForceSyncUnitSpriteSheet (the `>= 68` branch is not observed)
      *
      * Clears the sync flag and requests the copy of the frame shown at this game clock tick.
      */

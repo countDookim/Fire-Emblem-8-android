@@ -1,6 +1,8 @@
 package fe8.testing
 
 import fe8.game.scene.Talk
+import fe8.game.scene.TalkBubble
+import fe8.game.scene.TalkBubbleHost
 import fe8.game.scene.TalkFlags
 import fe8.game.scene.TalkHost
 import fe8.game.scene.TalkState
@@ -51,11 +53,12 @@ import org.junit.jupiter.api.Test
  * stops at f10565. There is no earlier divergence, so no face code needed the M6-35 procs
  * beyond the stand-ins below.
  *
- * Not ported here (M6-35): face procs, bubble, shift-clear, temporary lock, skip listener and
- * `GetStrTalkLen`. The [Rig] hosts them with transcriptions of the decomp (durations, state
- * writes), not with trace values; their start frames and lifetimes are compared with the trace
- * like the rest. Not modelled: sprites (the wait arrow's `PutSprite` is only counted), sound,
- * palettes, BG1, the blend registers.
+ * Bubble and shift-clear procs are the real ones ([TalkBubble]); the BG1 tilemap is compared too.
+ * Not ported here (M6-35): face procs, temporary lock, skip listener and `GetStrTalkLen`. The
+ * [Rig] hosts them with transcriptions of the decomp (durations, state writes), not with trace
+ * values; their start frames and lifetimes are compared with the trace like the rest. Not
+ * modelled: sprites (the wait arrow's `PutSprite` is only counted), sound, palettes, windows,
+ * the blend registers.
  */
 class TalkInterpretDifferentialTest {
     private val assets = File(
@@ -67,7 +70,10 @@ class TalkInterpretDifferentialTest {
     @Test
     @VerifiesPort(
         "TalkInterpret", "Talk_OnIdle", "TalkWaitForInput_OnIdle", "StartTalkWaitForInput",
-        "Talk_OnEnd", "ClearPutTalkText",
+        "Talk_OnEnd", "ClearPutTalkText", "StartTalkOpen", "TalkOpen_PutTalkBubble",
+        "TalkOpen_OnIdle", "PutTalkBubble", "PutTalkBubbleTm", "PutTalkBubbleTail",
+        "StartOpenTalkBubble", "TalkBubbleOpen_OnIdle", "ClearTalkBubble",
+        "TalkShiftClear_OnInit", "TalkShiftClear_OnIdle",
     )
     fun `the first talk runs frame by frame as traced`() {
         assumeTrue(romFile.isFile && runDir.isDirectory, "ROM or reference run not present")
@@ -127,6 +133,11 @@ class TalkInterpretDifferentialTest {
                 return "tilemap cell $i"
             }
         }
+        for (i in rig.tm1.indices) {
+            if (rig.tm1[i].toInt() and 0xFFFF != u16(ew, BG1_TM + 2 * i)) {
+                return "BG1 tilemap cell $i want ${u16(ew, BG1_TM + 2 * i)} got ${rig.tm1[i]}"
+            }
+        }
         val procs = ProcArrayDump.ofEwram(ew)
         for ((addr, script) in rig.watched) {
             val want = procs.findAll(addr).size
@@ -177,12 +188,15 @@ class TalkInterpretDifferentialTest {
     /**
      * The talk plus everything around it that is not ported yet, as transcriptions of the decomp.
      */
-    private inner class Rig(val rom: ByteArray, val runDir: File) : TextHost, TalkHost {
+    private inner class Rig(val rom: ByteArray, val runDir: File) :
+        TextHost, TalkHost, TalkBubbleHost {
         val vram = ByteArray(0x18000) { SENT }
         val tm = ShortArray(0x400)
+        val tm1 = ShortArray(0x400)
         val engine = ProcEngine()
         val ts = TextSystem(rom, this, Fe8Text.CONFIG)
         val talk = Talk(ts, engine, this)
+        val bubble = TalkBubble(ts, engine, talk, this, this)
         var keys = 0
         var clock = 0
         var waitSprites = 0
@@ -203,31 +217,15 @@ class TalkInterpretDifferentialTest {
         val lockScript = ProcScript(
             "ProcScr_TemporaryLock", listOf(yield(), repeat(lockIdle()), end()),
         ) { CounterState() }
-        val openScript = ProcScript(
-            "gProcScr_TalkOpen",
-            listOf(
-                mark(Talk.PROC_MARK_TALK), call(ProcFunc { }), repeat(putBubble()),
-                repeat(openIdle()), end(),
-            ),
-        ) { OpenState() }
-        val bubbleScript = ProcScript(
-            "gProcScr_TalkBubbleOpen", listOf(repeat(bubbleIdle()), end()),
-        ) { CounterState() }
-        val shiftScript = ProcScript(
-            "gProcScr_TalkShiftClear", listOf(
-                mark(Talk.PROC_MARK_TALK), call(shiftInit()), repeat(shiftIdle()), sleep(1), end(),
-            ),
-        ) { CounterState() }
-
         val watched: List<Pair<Int, ProcScript>> = listOf(
             ADDR_TALK to talk.talkScript,
             0x08591340 to skipScript,
             0x085913B0 to moveScript,
             0x085913D0 to talk.pauseScript,
             ADDR_WAIT to talk.waitForInputScript,
-            0x085914C8 to shiftScript,
-            0x08591530 to bubbleScript,
-            0x08591540 to openScript,
+            0x085914C8 to bubble.shiftClearScript,
+            0x08591530 to bubble.bubbleOpenScript,
+            0x08591540 to bubble.openScript,
             0x08591154 to faceScript,
             0x0859A0D4 to lockScript,
         )
@@ -238,6 +236,7 @@ class TalkInterpretDifferentialTest {
             val ew = ewram(frame)
             msg = ew.copyOfRange(BUF, BUF + 0x1000)
             for (i in tm.indices) tm[i] = u16(ew, BG0_TM + 2 * i).toShort()
+            for (i in tm1.indices) tm1[i] = u16(ew, BG1_TM + 2 * i).toShort()
             talk.initTalk(0x80, 2, false)
             talk.state.decode(iwram(frame), STATE)
             displaySpeed = talk.state.printDelay // GetTextDisplaySpeed() fed StartTalkExt
@@ -373,28 +372,30 @@ class TalkInterpretDifferentialTest {
             }
         }
 
-        override fun clearTalkBubble() {
-            talk.state.speakingFaceSlot = -1
-            talk.clearPutTalkText()
-        }
+        override fun clearTalkBubble() = bubble.clearTalkBubble()
 
-        override fun startTalkOpen(faceSlot: Int, parent: Proc) {
-            val s = talk.state
-            val p = engine.startBlocking(openScript, parent)!!
-            val o = p.state as OpenState
-            o.x = GAME_HPOS[faceSlot].coerceIn(0, 30)
-            o.y = 8
-            o.w = s.activeWidth
-            o.h = 6
-            s.speakingFaceSlot = faceSlot
-            s.speakingWidth = s.activeWidth
-        }
+        override fun startTalkOpen(faceSlot: Int, parent: Proc) =
+            bubble.startTalkOpen(faceSlot, parent)
+
+        override fun bg1Tilemap() = tm1
+
+        override fun isBattleDeamonActive() = false
+
+        override fun toggleInvertedPalette(flag: Int) {}
+
+        override fun initTalkTextWin(x: Int, y: Int, width: Int, height: Int) {}
+
+        override fun disableTalkWindows() {}
+
+        override fun initTalkBlend() {}
+
+        override fun setBlendAlpha(a: Int, b: Int) {}
+
+        override fun spriteTextClear(text: Text) = error("no sprite talk")
 
         override fun setTalkFaceLayer(faceSlot: Int, flag: Int) {}
 
-        override fun startTalkShiftClear(parent: Proc) {
-            engine.startBlocking(shiftScript, parent)
-        }
+        override fun startTalkShiftClear(parent: Proc) = bubble.startTalkShiftClear(parent)
 
         override fun talkBgSync(bg: Int) {}
 
@@ -462,17 +463,17 @@ class TalkInterpretDifferentialTest {
             parent: Proc,
         ) = error("no choice code in the trace")
 
-        override fun startTalkShiftClearAll(parent: Proc) = error("no [2NL] in the trace")
+        override fun startTalkShiftClearAll(parent: Proc) = bubble.startTalkShiftClearAll(parent)
 
         override fun startTalkSpriteShiftClear(parent: Proc) = error("no sprite talk")
 
-        override fun talkFlushAllLine() = error("no sprite talk")
+        override fun talkFlushAllLine() = bubble.talkFlushAllLine()
 
         override fun endTalkSkipListener() {
             engine.endEach(skipScript)
         }
 
-        override fun endTalkShiftClearAll() {}
+        override fun endTalkShiftClearAll() = bubble.endTalkShiftClearAll()
 
         override fun numberToStringAscii(number: Int, buf: ByteArray) = error("no [G]")
 
@@ -493,20 +494,10 @@ class TalkInterpretDifferentialTest {
             waitSprites++
         }
 
-        private fun byLine(line: Int): Text {
-            val s = talk.state
-            return talk.texts[(line + s.topTextNum) % s.lines]
-        }
-
-        private fun fillRect(x: Int, y: Int, w: Int, h: Int) {
-            // The ARM routine behind TileMap_FillRect counts both sizes inclusively.
-            for (r in 0..h) for (c in 0..w) tm[0x20 * (y + r) + x + c] = 0
-        }
-
         /** Transcribed from src/scene.c: TalkSkipListener_OnIdle (the fast-forward branch). */
         private fun skipIdle() = ProcFunc {
             val s = talk.state
-            if (engine.find(shiftScript) != null) return@ProcFunc
+            if (engine.find(bubble.shiftClearScript) != null) return@ProcFunc
             check(talk.checkTalkFlag(TalkFlags.NOSKIP) != 0 || keys and 0x0A == 0) { "skip" }
             if (engine.find(talk.waitForInputScript) != null) return@ProcFunc
             if (talk.checkTalkFlag(TalkFlags.NOFAST) == 0 && keys and 0xF3 != 0) s.instantScroll = 1
@@ -528,58 +519,6 @@ class TalkInterpretDifferentialTest {
             if (c.n == 0) engine.breakProc(p) else c.n--
         }
 
-        /** Transcribed from src/scene.c: TalkOpen_PutTalkBubble / PutTalkBubble (xText, yText). */
-        private fun putBubble() = ProcFunc { p ->
-            val o = p.state as OpenState
-            val y = o.y - o.h + 1
-            val x: Int
-            if (o.x < 16) {
-                val tail = o.x + 3
-                x = maxOf(tail - o.w / 2, 1)
-            } else {
-                val tail = o.x - 5
-                x = if ((o.w + 1) / 2 + tail >= 30) 0x1D - o.w else tail - o.w / 2
-            }
-            talk.state.xText = x + 1
-            talk.state.yText = y + 1
-            engine.start(bubbleScript, 3)
-            engine.breakProc(p)
-        }
-
-        private fun openIdle() = ProcFunc { p ->
-            val o = p.state as OpenState
-            if (++o.t58 == 12) engine.breakProc(p)
-        }
-
-        /** Transcribed from src/scene.c: TalkBubbleOpen_OnIdle (lifetime only). */
-        private fun bubbleIdle() = ProcFunc { p ->
-            val c = p.state as CounterState
-            if (c.n++ and 1 != 0) return@ProcFunc
-            if (c.n shr 1 == 5) engine.breakProc(p)
-        }
-
-        private fun shiftInit() = ProcFunc { p ->
-            val s = talk.state
-            fillRect(s.xText, s.yText + 4, s.activeWidth - 2, s.lines * 2)
-            (p.state as CounterState).n = 0
-        }
-
-        /** Transcribed from src/scene.c: TalkShiftClear_OnIdle. */
-        private fun shiftIdle() = ProcFunc { p ->
-            val s = talk.state
-            val c = p.state as CounterState
-            if (++c.n >= 16) {
-                s.lineActive--
-                s.topTextNum++
-                for (i in 0 until s.lines - 1) {
-                    ts.putText(byLine(i), tm, 0x20 * (s.yText + 2 * i) + s.xText)
-                }
-                fillRect(s.xText, s.yText + (s.lines - 1) * 2, s.activeWidth - 2, 2)
-                ts.clearText(byLine(s.lines - 1))
-                byLine(s.lines - 1).colorId = s.printColor
-                engine.breakProc(p)
-            }
-        }
     }
 
     private class FakeFace {
@@ -597,14 +536,6 @@ class TalkInterpretDifferentialTest {
         var n = 0
     }
 
-    private class OpenState {
-        var x = 0
-        var y = 0
-        var w = 0
-        var h = 0
-        var t58 = 0
-    }
-
     private companion object {
         const val SENT: Byte = 0xA5.toByte()
         const val ROM_BASE = 0x08000000
@@ -617,6 +548,7 @@ class TalkInterpretDifferentialTest {
         const val FONT = 0xF0
         const val BUF = 0x2A6AC
         const val BG0_TM = 0x22CA8
+        const val BG1_TM = 0x234A8
         const val KEYS = 0x24CC0
         const val STRIPS = 0x1000
         const val STRIP_BYTES = 2 * 30 * 2 * 0x20

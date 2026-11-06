@@ -720,7 +720,7 @@ public class BmSaveLib(public val sram: CartSram) {
      * Reads the 0x19 saved bytes of `gPermanentFlagBits` from SRAM [srcOffset] into [dest].
      */
     public fun readPermanentFlags(srcOffset: Int, dest: ByteArray) {
-        readSramFast(sram, srcOffset, dest, 0, PERMANENT_FLAGS_SIZE - 1)
+        readSramFast(sram, srcOffset, dest, 0, Fe8EventFlags.getPermanentFlagBitsSize())
     }
 
     /**

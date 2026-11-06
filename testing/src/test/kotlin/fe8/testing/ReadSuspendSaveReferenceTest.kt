@@ -54,8 +54,7 @@ class ReadSuspendSaveReferenceTest {
     @Test
     @VerifiesPort(
         "ReadSuspendSave", "ReadSuspendSavePackedUnit", "InitUnits", "ReadPidStats",
-        "ReadPermanentFlags", "ReadChapterFlags", "LoadRNStateFromActionStruct",
-        "SetGameTime", "LoadDungeonRecords", "SetEventSlotCounter",
+        "ReadPermanentFlags", "ReadChapterFlags", "SetEventSlotCounter",
     )
     fun `reading chapter2 sav reproduces the RAM of r01142`() {
         val f = fixture()

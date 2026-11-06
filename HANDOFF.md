@@ -25,7 +25,7 @@ partial (an unpushed alternative port is on owner-PC branch `backup/event-engine
 game's RngService/PlaySt/KeyStatus (no defaults). Wiring still open (M5-58): `BMapMain.hooks.playerPhase`,
 `hooks.callEvent` → EventEngine. M5-56 done (scheduled): `RoutedFlagStore`, `ModFlagSymbols`, `ModSaveSections`; M5-56b done: a mod flag name in a flag
 arg gets `set_slot 2, handle` before it (`ModFlagSlotExpander`; overwrites slot 2). M5-57 done: `ModScriptEndToEndTest` (mod .fe8s → synthetic range → calls a
-ROM script → returns; 0 B/frame). `wip/M5-56` is merged and can be deleted. `wip/M5-58` (scheduled 11-05, full jvmTest green, not merged):
+ROM script → returns; 0 B/frame). `wip/M5-56`, `wip/M5-60` are merged and can be deleted (scheduled runs get 403 on branch delete). `wip/M5-58` (scheduled 11-05, full jvmTest green, not merged):
 Fe8Boot wires `BMapMain.hooks.playerPhase`/`callEvent` → `Fe8Boot.eventEngine` (EventScrCore + `ReleaseEventStubs`
 no-ops for unregistered codes), dev New-Game `startSaveMenu` stand-in (WriteNewGameSave slot 0, EVENT_RETURN);
 `NewGameToPrologueTest` reaches chapter 0 PlayerPhase, beginning events end. Stand-in `startPressed() = true` skips

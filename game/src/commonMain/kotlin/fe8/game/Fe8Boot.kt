@@ -9,6 +9,7 @@ import fe8.game.bm.BmMapRender
 import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterMapGfx
+import fe8.game.bm.MapMusic
 import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.PLAY_FLAG_HARD
 import fe8.game.bm.PlayerPhase
@@ -18,6 +19,7 @@ import fe8.game.bm.UnitTable
 import fe8.game.event.EventConst
 import fe8.game.event.EventEngine
 import fe8.game.event.EventEngineHooks
+import fe8.game.event.EventBgm
 import fe8.game.event.EventFade
 import fe8.game.event.EventHandler
 import fe8.game.event.EventScrCore
@@ -206,6 +208,7 @@ public class Fe8Boot(
                 })
             }
             EventFade(memory, screenFade).registerOn(it)
+            EventBgm(state, memory, control.sound).registerOn(it)
             ReleaseEventStubs.registerMissing(it)
         }
     }
@@ -244,11 +247,15 @@ public class Fe8Boot(
             engine, control.playSt, units, flags, chapters, rom, reset, camMove,
         )
         val render = BmMapRender(bm, map, hw)
+        val music = MapMusic(
+            control.playSt, chapters, units, flags, control.sound,
+        ) { battleMap.hooks.getBattleMapKind() }
         main.hooks.playerPhase = PlayerPhase(
             engine, bm, control.playSt, map, units, camMove,
             EntityBmMaps(map, units, control.playSt), render, keys,
             eventEngine::eventEngineExists,
-        ).script
+        ).also { pp -> pp.hooks.startMapSongBgm = ProcFunc { music.startMapSongBgm() } }.script
+        main.hooks.startMapSongBgm = { music.startMapSongBgm() }
         main.hooks.startMidFadeFromBlack = { screenFade.startMidFadeFromBlack() }
         main.hooks.waitForFade = { !screenFade.fadeExists() }
         main.hooks.callEvent = { events, execType, _ ->

@@ -147,9 +147,14 @@ class EventVmDifferentialTest {
     @Test
     fun `Event10 ModifyEvBit`() = assertCode(0x10)
 
+    // Event12_StartBGM (below Event10): the result code is compared, the song start (sound state)
+    // is not, so it is not tagged.
     // Not @VerifiesPort: the skipping branch and the SetDispEnable call survive breaks (the
     // trace has no skipping pair and the display state is not compared); FADU/FADI/FAWx bits and
     // the YIELD result do fail.
+    @Test
+    fun `Event12 StartBGM`() = assertCode(0x12)
+
     @Test
     fun `Event17 Fade`() = assertCode(0x17)
 
@@ -363,6 +368,9 @@ class EventVmDifferentialTest {
             val fade = fe8.game.event.EventFade(
                 mem, gbafe.render.ScreenFade(procs, gbafe.render.LcdControl()),
             )
+            val bgm = fe8.game.event.EventBgm(
+                state, mem, fe8.game.SoundWrapper(procs, null) { 0 },
+            )
             val ported = mapOf(
                 0x00 to core.event00Null,
                 0x04 to core.event04CheckRandom,
@@ -382,6 +390,7 @@ class EventVmDifferentialTest {
                 0x0C to core.event0cBranch,
                 0x0E to core.event0eStal,
                 0x0F to core.event0fCounterOps,
+                0x12 to bgm.event12StartBgm,
                 0x17 to fade.event17Fade,
                 0x34 to unitState.event34MessWithUnitState,
             )
@@ -776,12 +785,12 @@ class EventVmDifferentialTest {
         val MIN_CODE_PAIRS = mapOf(
             0x01 to 14, 0x02 to 3, 0x10 to 2, 0x19 to 1, 0x03 to 8, 0x05 to 7, 0x06 to 3, 0x07 to 3,
             0x08 to 7,
-            0x09 to 1, 0x17 to 20, 0x0A to 9, 0x0C to 8, 0x0E to 2400,
+            0x09 to 1, 0x12 to 3, 0x17 to 20, 0x0A to 9, 0x0C to 8, 0x0E to 2400,
         )
 
         /** Minimum pairs in which each stub completed its command. */
         val MIN_STUB_PAIRS = mapOf(
-            0x12 to 3, 0x15 to 2, 0x1B to 20, 0x1D to 28, 0x30 to 20, 0x3B to 24, 0xAC to 3,
+            0x15 to 2, 0x1B to 20, 0x1D to 28, 0x30 to 20, 0x3B to 24, 0xAC to 3,
             0xBA to 7, 0x2C to 8, 0x2F to 15, 0x3F to 1,
         )
 
@@ -809,7 +818,6 @@ class EventVmDifferentialTest {
          * where the C handler has one. No stub writes slots, queues, flags, `evStallTimer`,
          * `execType` or `pEventIdk`; a pair where the C handler does is a mismatch.
          *
-         * - 0x12 Event12_StartBGM: CONTINUE when skipping, else YIELD (starts a song).
          * - 0x15 Event15_BgmVolume: same.
          * - 0x1A Event1A_TEXTSTART: subcodes 0/3/4/5 YIELD; 1/2 run Event23_DisaleMapDisp, which
          *   sets GFXLOCKED and yields. The text teardown the C does when the subcode changes
@@ -844,7 +852,7 @@ class EventVmDifferentialTest {
                 put(code, fn)
             }
             val skipOrYield =
-                intArrayOf(0x12, 0x15, 0x21, 0x3A, 0xA5, 0xAC, 0xB1, 0xBA, 0xBE, 0xC6, 0xC7, 0xC9)
+                intArrayOf(0x15, 0x21, 0x3A, 0xA5, 0xAC, 0xB1, 0xBA, 0xBE, 0xC6, 0xC7, 0xC9)
             for (c in skipOrYield) {
                 stub(c) { p, _, _ -> if (skipping(p)) CONT else YIELD }
             }

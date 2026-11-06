@@ -97,6 +97,10 @@ public class ChapterData(
         return rom.u16(getROMChapterStruct(chIndex) + OFF_MAP_BGM_IDS + 2 * slot)
     }
 
+    /** `victorySongEnemyThreshold` (s8) of chapter [chIndex]. */
+    public fun victorySongEnemyThreshold(chIndex: Int): Int =
+        u8(chIndex, OFF_VICTORY_SONG_ENEMY_THRESHOLD).toByte().toInt()
+
     private fun u8(chIndex: Int, offset: Int): Int = rom.u8(getROMChapterStruct(chIndex) + offset)
 
     private fun asset(id: Int): Int = rom.u32(CHAPTER_DATA_ASSET_TABLE + 4 * id)
@@ -159,6 +163,9 @@ public class ChapterData(
 
         /** Offset of `mapBgmIds`. */
         public const val OFF_MAP_BGM_IDS: Int = 0x16
+
+        /** Offset of `victorySongEnemyThreshold`. */
+        public const val OFF_VICTORY_SONG_ENEMY_THRESHOLD: Int = 0x86
 
         /** Offset of `mapEventDataId`. */
         public const val OFF_MAP_EVENT_DATA_ID: Int = 0x74

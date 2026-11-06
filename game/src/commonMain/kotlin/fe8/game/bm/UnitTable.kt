@@ -57,6 +57,20 @@ public class UnitTable(
     }
 
     /**
+     * Ported from src/bmphase.c: CountUnitsInState
+     *
+     * Counts the valid units with ids `faction + 1` until `faction + 0x40` that have none of the
+     * `state` bits.
+     */
+    public fun countUnitsInState(faction: Int, state: Int): Int {
+        var count = 0
+        for (id in faction + 1 until faction + 0x40) {
+            if (isValid(id) && (state(id) and state) == 0) count++
+        }
+        return count
+    }
+
+    /**
      * Ported from src/bmunit.c: InitUnits
      *
      * Clears every unit that `GetUnit` can return for ids 0..0xFF (`ClearUnit`: all 0x48 bytes
@@ -203,7 +217,8 @@ public class UnitTable(
         private const val US_RESCUED = 1 shl 5
         private const val US_UNDER_A_ROOF = 1 shl 7
         private const val US_BIT16 = 1 shl 16
-        private const val US_UNAVAILABLE = US_DEAD or US_NOT_DEPLOYED or US_BIT16
+        /** `US_UNAVAILABLE`. */
+        public const val US_UNAVAILABLE: Int = US_DEAD or US_NOT_DEPLOYED or US_BIT16
         private const val NOT_ABLE =
             US_UNSELECTABLE or US_DEAD or US_NOT_DEPLOYED or US_RESCUED or US_UNDER_A_ROOF or
                 US_BIT16

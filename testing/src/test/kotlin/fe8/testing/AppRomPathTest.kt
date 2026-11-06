@@ -2,8 +2,10 @@ package fe8.testing
 
 import fe8.game.Fe8Game
 import fe8.game.Fe8Sound
+import fe8.game.SoundWrapper
 import fe8.game.RomView
 import java.io.File
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -87,11 +89,23 @@ class AppRomPathTest {
         }
         assertTrue(reached >= 0, "no player phase by f$frame")
         val colours = game.frame.pixels.toSet().size
+        val m4a = boot.m4a!!
+        // The title theme is stopped (its header lingers in player 0, as in the original after
+        // the save menu fades it out) and the map's BGM plays: the Prologue event's song.
+        assertEquals(0, m4a.players[0].status.toInt() and 0xFFFF, "player 0 still has running tracks")
+        val songId = boot.control.sound.songId
+        assertTrue(boot.control.sound.isSongPlaying, "no BGM playing")
+        assertTrue(songId != SoundWrapper.SONG_MAIN_THEME, "wrapper still on the title theme")
+        assertTrue(
+            m4a.players.any { (it.status and 0xFFFF) != 0 && it.songHeader == m4a.songs.header(songId) },
+            "no player runs song $songId",
+        )
         assertTrue(colours > 8, "rendered frame has only $colours colours (blendY ${boot.ui.env.hardware.lcd.blendY})")
     }
 
     private companion object {
         const val FRAMES = 6000
+
 
         /** A for frames 5..8 of every 20, START for frames 15..16 of every 40. */
         fun pressFor(frame: Int): Long =

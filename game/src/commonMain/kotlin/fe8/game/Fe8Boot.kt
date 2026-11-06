@@ -15,6 +15,9 @@ import fe8.game.bm.PLAY_FLAG_HARD
 import fe8.game.bm.PlayerPhase
 import fe8.game.bm.ResetCursorPosition
 import fe8.game.bm.UnitLoader
+import fe8.game.bm.UnitSpriteHandles
+import fe8.game.bm.UnitSprites
+import fe8.game.bm.UnitSpritesOam
 import fe8.game.bm.UnitTable
 import fe8.game.event.EventConst
 import fe8.game.event.EventEngine
@@ -250,11 +253,12 @@ public class Fe8Boot(
         val music = MapMusic(
             control.playSt, chapters, units, flags, control.sound,
         ) { battleMap.hooks.getBattleMapKind() }
-        main.hooks.playerPhase = PlayerPhase(
+        val phase = PlayerPhase(
             engine, bm, control.playSt, map, units, camMove,
             EntityBmMaps(map, units, control.playSt), render, keys,
             eventEngine::eventEngineExists,
-        ).also { pp -> pp.hooks.startMapSongBgm = ProcFunc { music.startMapSongBgm() } }.script
+        ).also { pp -> pp.hooks.startMapSongBgm = ProcFunc { music.startMapSongBgm() } }
+        main.hooks.playerPhase = phase.script
         main.hooks.startMapSongBgm = { music.startMapSongBgm() }
         main.hooks.startMidFadeFromBlack = { screenFade.startMidFadeFromBlack() }
         main.hooks.waitForFade = { !screenFade.fadeExists() }
@@ -270,7 +274,44 @@ public class Fe8Boot(
             main.hooks.getBattleMapKind = { it.hooks.getBattleMapKind() }
             it.hooks.bmapMainScript = main.script
         }
+        wireUnitSprites(main, start, phase, map, rom)
         main to start
+    }
+
+    /**
+     * Replaces the unit sprite stand-ins of [main] and [start] with the ported `bmudisp.c`
+     * loaders and the `PutUnitSpritesOam` of the map task, on the shared state.
+     */
+    private fun wireUnitSprites(
+        main: BMapMain,
+        start: BattleMapStart,
+        phase: PlayerPhase,
+        map: BmMap,
+        rom: RomView,
+    ) {
+        val bm = loop.bmSt
+        val sprites = UnitSprites(rom, hw, bm).also { it.clockSource = clock }
+        val handles = UnitSpriteHandles(rom, sprites, units)
+        val oam = UnitSpritesOam(
+            rom, units, handles, bm, control.playSt, battleChapters, flags, loop.oam,
+        ).also {
+            it.clockSource = clock
+            it.battleMapKind = { start.hooks.getBattleMapKind() }
+            it.fogAt = { x, y -> map.fog[y, x] }
+            it.terrainAt = { x, y -> map.terrain[y, x] }
+        }
+        // Stand-in: the trap pool is not ported (no ballistae or light runes).
+        val traps = ByteArray(TRAP_POOL_SIZE)
+        val mapUnitAt = { x: Int, y: Int -> map.unit[y, x] }
+        val refresh = { handles.refreshUnitSprites(mapUnitAt, traps) }
+        start.hooks.applyUnitSpritePalettes = { sprites.applyUnitSpritePalettes() }
+        start.hooks.resetUnitSprites = { sprites.resetUnitSprites() }
+        start.hooks.refreshUnitSprites = refresh
+        start.hooks.syncUnitSpriteSheet = { sprites.syncUnitSpriteSheet() }
+        start.hooks.putUnitSpritesOam = { oam.putUnitSpritesOam() }
+        main.hooks.refreshUnitSprites = refresh
+        val refreshProc = ProcFunc { refresh() }
+        phase.hooks.refreshUnitSprites = refreshProc
     }
 
     /**
@@ -379,6 +420,9 @@ public class Fe8Boot(
 
 /** Offset of `suspendPointType` in `struct ActionData`. */
 private const val ACTION_SUSPEND_POINT_TYPE = 0x16
+
+/** `gTrapArray`: 0x40 entries of `struct Trap` (8 bytes). */
+private const val TRAP_POOL_SIZE = 0x40 * 8
 
 /** World map stand-in until the world map is ported: no node holds a chapter. */
 private val NO_WORLD_MAP_NODES = object : BattleMapNodes {

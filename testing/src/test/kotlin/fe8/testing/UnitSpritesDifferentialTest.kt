@@ -2,14 +2,19 @@ package fe8.testing
 
 import fe8.game.RomView
 import fe8.game.bm.BmSt
+import fe8.game.bm.ChapterData
+import fe8.game.bm.PlaySt
 import fe8.game.bm.UnitSpriteHandles
 import fe8.game.bm.UnitSprites
+import fe8.game.bm.UnitSpritesOam
 import fe8.game.bm.UnitTable
+import fe8.game.flags.Fe8EventFlags
 import gba.core.VerifiesPort
 import gba.testkit.GbaMem
 import gba.testkit.RamSymbols
 import gba.testkit.ReferenceData
 import gbafe.render.BgHardware
+import gbafe.render.OamBuffer
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -124,6 +129,106 @@ class UnitSpritesDifferentialTest {
                 "pMapSpriteHandle at $o",
             )
         }
+    }
+
+    @Test
+    @VerifiesPort("ForceSyncUnitSpriteSheet")
+    fun `forced sheet sync matches OBJ VRAM`() {
+        assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
+        val run = ref.run("ram_trace_first_phase")
+        val e = GbaMem.EWRAM
+        val bufAt = sym["gSMSGfxBuffer"].address - e
+        val rom = RomView.ofRom(romFile.readBytes())
+        for (frame in 19430..19530 step 10) {
+            val dump = "f$frame"
+            val ew = run.region(dump, "ewram")
+            val iw = run.region(dump, "iwram")
+            val clock = GbaMem.u32(iw, GbaMem.IWRAM, sym["gGameClock"].address)
+            val hw = BgHardware()
+            val sprites = UnitSprites(rom, hw, BmSt())
+            ew.copyInto(sprites.gfxBuffer, 0, bufAt, bufAt + 0x6000)
+            sprites.gameClock = { clock }
+            sprites.syncFlag = 3
+            sprites.forceSyncUnitSpriteSheet()
+            assertEquals(0, sprites.syncFlag)
+            val vram = run.region(dump, "vram")
+            for (i in 0 until 0x2000) {
+                assertEquals(
+                    vram[0x11000 + i], hw.vram[0x11000 + i],
+                    "$dump (clock $clock, ${clock % 72}) OBJ VRAM +0x1000+$i",
+                )
+            }
+        }
+    }
+
+    /**
+     * Timing: `PutUnitSpritesOam` runs in the main loop step of frame N, which reads
+     * `gGameClock` = c. `OnVBlank` then increments the clock and `SyncHiOam` copies the shadow
+     * buffer to hardware OAM. A dump taken after that VBlank therefore shows an OAM built with
+     * clock (dump clock - 1). Evidence: the boss icon (shown while clock % 32 < 20) is absent at
+     * dump clocks 18330, 18360, 18390 and 18400 and present at 18310, 18320, 18340, 18350,
+     * 18370, 18380. Offsets 0 and 3 fail (18400 and 18370); 1 and 2 both fit, so the VBlank
+     * order above (not the data) picks 1.
+     *
+     * Position: hardware OAM objects 0..3 are the layer-0 `PutSprite` objects of the map cursor
+     * (oam2 = 2), pushed before `MapTask` (tree 4) runs `PutUnitSpritesOam`; our objects follow
+     * directly and the next object must be the cleared one (y = 160, x = 0).
+     */
+    @Test
+    @VerifiesPort("PutUnitSpritesOam", "PutUnitSpriteIconsOam", "GetUnitSpriteHideFlag")
+    fun `unit sprite objects match the dump OAM`() {
+        assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
+        val run = ref.run("ram_trace_first_phase")
+        val rom = RomView.ofRom(romFile.readBytes())
+        val e = GbaMem.EWRAM
+        var bossOn = 0
+        var bossOff = 0
+        for (frame in 19430..19530 step 10) {
+            val dump = "f$frame"
+            val ew = run.region(dump, "ewram")
+            val iw = run.region(dump, "iwram")
+            val hw = run.region(dump, "oam")
+            val dumpClock = GbaMem.u32(iw, GbaMem.IWRAM, sym["gGameClock"].address)
+            val bmSt = BmSt().apply { decode(ew, sym["gBmSt"].address - e) }
+            val playSt = PlaySt().apply { decode(ew, sym["gPlaySt"].address - e) }
+            val units = UnitTable(rom).apply { loadFrom(ew) }
+            val sprites = UnitSprites(rom, BgHardware(), bmSt)
+            val list = UnitSpriteHandles(rom, sprites, units)
+            val at = sym["gSMSHandleArray"].address - e
+            ew.copyInto(list.handles, 0, at, at + list.handles.size)
+            val flags = Fe8EventFlags.create()
+            val flagsAt = sym["gPermanentFlagBits"].address - GbaMem.IWRAM
+            flags.copyIn(iw.copyOfRange(flagsAt, flagsAt + flags.size))
+            val oam = OamBuffer()
+            val port = UnitSpritesOam(
+                rom, units, list, bmSt, playSt, ChapterData(rom), flags, oam,
+            )
+            port.gameClock = { dumpClock - 1 }
+            port.putUnitSpritesOam()
+            val n = oam.hiPut / 4
+            assertTrue(n > 0, "$dump: no objects")
+            val start = 4
+            for (i in 0 until start) {
+                assertEquals(2, GbaMem.u16(hw, 0, i * 8 + 4) and 0x3FF, "$dump cursor oam2 $i")
+            }
+            val kinds = sortedSetOf<String>()
+            for (i in 0 until n) {
+                for (h in 0 until 3) {
+                    assertEquals(
+                        GbaMem.u16(hw, 0, (start + i) * 8 + 2 * h),
+                        oam.buffer[i * 4 + h].toInt() and 0xFFFF,
+                        "$dump (clock $dumpClock) object $i attr$h",
+                    )
+                }
+                val oam2 = oam.buffer[i * 4 + 2].toInt() and 0xFFFF
+                kinds += if (oam2 == 0x810) "boss" else if (oam2 == 0x811) "protect" else "unit"
+            }
+            assertEquals(160, GbaMem.u16(hw, 0, (start + n) * 8) and 0xFF, "$dump end of list")
+            assertEquals(0, GbaMem.u16(hw, 0, (start + n) * 8 + 2), "$dump end of list x")
+            if ("boss" in kinds) bossOn++ else bossOff++
+            println("$dump clock $dumpClock: $n objects $kinds")
+        }
+        assertTrue(bossOn > 0 && bossOff > 0, "blink on $bossOn / off $bossOff")
     }
 
     private fun slotIndex(value: Int): Int {

@@ -16,7 +16,12 @@ _(nothing blocked)_
   ram_trace_newgame f1174..1193), GameControl fade stand-ins (GameControl.kt:206-212, 409-414), the opening event
   repeats fades because text/camera/unit commands are stubs. Map palette not yet compared to first_phase pal.bin.
 
-## Next task: M6-17 (on `wip/M6-17`), then M6-12 (M6-10 rest, M6-20 rest: Event15/volume change)
+## Next task: M6-12 (M6-10 rest, M6-20 rest: Event15/volume change), M6-18 (cursor OAM)
+Scheduled 11-06 18:55Z: M6-17 done. `UnitSpritesOam` (PutUnitSpritesOam/IconsOam verified vs first_phase oam.bin
+f19430..19530: cursor = objects 0..3, ours from 4, clock = dump clock - 1). Fe8Boot `wireUnitSprites` replaces the
+BattleMapStart/BMapMain/PlayerPhase unit-sprite stand-ins (trap pool zeroed stand-in); `PrologueMapTest` sees 6 unit
+objects at idle (not compared to the dump: cutscene stubs). OBJ drawn by HardwareScene (code-read; not yet seen on
+device). Local `dokkaGenerate` not found without ANDROID_HOME; CI runs it. Force-push to wip is blocked: merge instead.
 Scheduled 11-06 18:16Z: M6-11 done (`savemenu/PostSaveMenu.kt`, `PostSaveMenuDifferentialTest`; stand-in selection; not
 yet wired into `GameControl.hooks.startSaveMenu`: do it in M6-12). M6-13 blocked (no run reaches the four functions; TASKS).
 M6-15/16 done (`UnitSprites`, `UnitSpriteHandles`, `UnitSpritesDifferentialTest` vs f19430). `wip/M6-17`: Sync/ForceSync

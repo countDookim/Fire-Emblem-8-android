@@ -57,6 +57,31 @@ class PrologueMapTest {
     }
 
     @Test
+    fun `idle Prologue map has unit sprite objects`() {
+        assumeTrue(romFile.isFile, "ROM not present")
+        val game = PrologueBoot(romFile)
+        assertTrue(game.reachIdle(), "Prologue player phase not reached")
+        repeat(10) { game.boot.frame() }
+        val oam = game.boot.loop.oam.oam
+        var visible = 0
+        var unitTiles = 0
+        for (i in 0 until oam.size / 4) {
+            val y = oam[i * 4].toInt() and 0xFF
+            if (y == 160) continue
+            visible++
+            val tile = oam[i * 4 + 2].toInt() and 0x3FF
+            if (tile >= 0x80) unitTiles++
+        }
+        val vram = game.boot.ui.env.hardware.vram
+        var nonZero = 0
+        for (i in 0x11000 until 0x12000) if (vram[i].toInt() != 0) nonZero++
+        println("Prologue idle OAM: $visible visible objects, $unitTiles with tile >= 0x80, " +
+            "$nonZero non-zero OBJ VRAM bytes at 0x11000")
+        assertTrue(unitTiles >= 5, "unit sprite objects: $unitTiles")
+        assertTrue(nonZero > 0, "OBJ VRAM 0x11000.. is empty")
+    }
+
+    @Test
     fun `600 idle frames with cursor input allocate nothing`() {
         assumeTrue(AllocationMeter.supported && romFile.isFile, "ROM / meter not available")
         val game = PrologueBoot(romFile)

@@ -7,7 +7,10 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
+- M5-58/59 on `wip/M5-58` (session 11-06, owner PC: agent finishing event stand-ins, then M5-59 tests)
+- Test audit: full jvmTest + break-check of the M5-60/60d tags (session 11-06, owner PC)
+- M6 planning draft (session 11-06, owner PC; fewer than 5 `todo` left)
+- Delete merged `wip/M5-53`, `wip/M5-56`, `wip/M5-60` (session 11-06)
 
 ## Next task: finish M5-58/59 on `wip/M5-58` (replace the skip-all stand-in), then merge
 M5-60d done (scheduled 11-06, master): `fe8.game.event.EventUnitLoads` (Event2B, Event2C skip/FADEDIN path,

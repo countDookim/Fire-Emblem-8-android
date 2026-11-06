@@ -7,16 +7,16 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M6-07: scheduled, until ~17:25Z (`wip/M6-07`)
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-06)
 - Issue #4 (START → black, audio continues): matches the windows-only hold (no kept ROM; save menu unported).
   Replied 11-06 asking for APK ≥ bca8381 + Re-import ROM. If the owner reports it persists after re-import, debug
   the whole-ROM path on device; maybe show an in-game hint when START hits the hold.
 
-## Next task: M6-07, then M6 in TASKS order
-M6-05/06 done (scheduled 11-06): ReadSuspendSave* and ReadGameSave/LoadSavedUnit verified (`ReadSuspendSaveReferenceTest`,
-`ReadGameSaveReferenceTest`, `BmGameSave.kt`). Fix: ReadPermanentFlags reads 0x19 bytes (was 0x18). Weak spots: ReadGameSave's
+## Next task: M6-08, then M6 in TASKS order
+M6-05/06/07 done (scheduled 11-06): ReadSuspendSave* and ReadGameSave/LoadSavedUnit verified (`ReadSuspendSaveReferenceTest`,
+`ReadGameSaveReferenceTest`, `BmGameSave.kt`); WriteGameSave round trip masks 3 uninitialised-stack bytes + checksum; WriteGlobalSaveInfo (character-known marking) unobserved, untagged. Fix: ReadPermanentFlags reads 0x19 bytes (was 0x18). Weak spots: ReadGameSave's
 `gameSaveSlot = slot` and `InvalidateSuspendSave` are unobserved by the ch6 run. Decomp C is not in setup's assets:
 `git clone --depth 1 --filter=blob:none --sparse https://github.com/FireEmblemUniverse/fireemblem8u` + `sparse-checkout set src include`.
 `wip/M6-05` (remote) is merged and can be deleted.

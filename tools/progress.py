@@ -47,8 +47,10 @@ SOURCE_SETS = {"main": ("main", "commonMain", "jvmMain"), "test": ("test", "jvmT
 
 
 def kotlin_files(kind: str, root: Path = ROOT) -> list[Path]:
+    # Skips build output and agent worktrees under .claude/ (other checkouts of the repo).
     return [p for k in SOURCE_SETS.get(kind, (kind,)) for p in root.glob(f"**/src/{k}/kotlin/**/*.kt")
-            if "/build/" not in p.relative_to(root).as_posix()]
+            if "/build/" not in p.relative_to(root).as_posix()
+            and not p.relative_to(root).as_posix().startswith(".claude/")]
 
 
 def find_ported(ref: dict[str, dict], root: Path = ROOT) -> tuple[dict[str, str], list[str]]:
@@ -87,6 +89,8 @@ def find_verifying_tests(root: Path = ROOT) -> dict[tuple[str, str], list[str]]:
 def passed_tests(root: Path = ROOT) -> set[tuple[str, str]]:
     ok = set()
     for x in root.glob("**/build/test-results/**/*.xml"):
+        if x.relative_to(root).as_posix().startswith(".claude/"):
+            continue  # agent worktrees hold other checkouts' results
         try:
             tree = ET.parse(x)
         except ET.ParseError:

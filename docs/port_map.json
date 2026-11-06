@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 411,
+    "verified": 420,
     "implemented_unverified": 122
   },
   "functions": {
@@ -26,6 +26,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
+      ]
+    },
+    "ApplyMoveScriptToCoordinates": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
       ]
     },
     "ApplySystemObjectsPalettes": {
@@ -613,6 +622,16 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt",
       "status": "implemented",
       "tests": []
+    },
+    "EndMu": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuMoveDifferentialTest#MU walk of the prologue talk run matches f10580 to f10621 and f10624 to f10633",
+        "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
+      ]
     },
     "EnqueueEventCall": {
       "decomp_file": "src/event.c",
@@ -1404,6 +1423,15 @@
         "fe8.testing.SramOwnerSaveBootTest#chapter 6 save without a suspend boots unchanged and selects 0x7F"
       ]
     },
+    "GetMuQ4MovementSpeed": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
+      ]
+    },
     "GetNextSuspendSaveId": {
       "decomp_file": "src/bmsave.c",
       "system": "save",
@@ -1471,6 +1499,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
+      ]
+    },
+    "GetStringFromIndex": {
+      "decomp_file": "src/msg.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/MsgStrings.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MsgStringsRomTest#getStringFromIndex reproduces sMsgString and caches the active id"
       ]
     },
     "GetTrueTerrainAt": {
@@ -1923,6 +1960,16 @@
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
       ]
     },
+    "MU_OnEnd": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuMoveDifferentialTest#MU walk of the prologue talk run matches f10580 to f10621 and f10624 to f10633",
+        "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
+      ]
+    },
     "MakeNewItem": {
       "decomp_file": "src/bmitem.c",
       "system": "battle_logic",
@@ -1988,6 +2035,26 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
+    },
+    "Mu_OnLoop": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuMoveDifferentialTest#MU walk of the prologue talk run matches f10580 to f10621 and f10624 to f10633",
+        "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
+      ]
+    },
+    "Mu_OnStateMovement": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuMoveDifferentialTest#MU walk of the prologue talk run matches f10580 to f10621 and f10624 to f10633",
+        "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
+      ]
     },
     "NewProc08AA6D04": {
       "decomp_file": "src/opanim-main.c",
@@ -2713,6 +2780,16 @@
       "status": "implemented",
       "tests": []
     },
+    "RunMuMoveScript": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuMoveDifferentialTest#MU walk of the prologue talk run matches f10580 to f10621 and f10624 to f10633",
+        "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
+      ]
+    },
     "SampleFreqSet": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -2838,6 +2915,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
+      ]
+    },
+    "SetMsgTerminator": {
+      "decomp_file": "src/msg.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/MsgStrings.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MsgStringsRomTest#setMsgTerminator turns the trailing dot into the terminator as in the trace"
       ]
     },
     "SetNextGameActionId": {

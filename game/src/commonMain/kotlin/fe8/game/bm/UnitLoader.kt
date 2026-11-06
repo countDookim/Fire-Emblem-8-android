@@ -37,6 +37,16 @@ public class UnitLoader(
     private val items = ItemInfo(rom)
 
     /**
+     * The signed level count `LoadUnit_800F704` passes to `UnitApplyBonusLevels` for red
+     * characters from 0x3C on: the chapter's `difficultModeLevelBonus`, or minus its
+     * `easyModeLevelMalus` / `normalModeLevelMalus`, by `config.controller` and `PLAY_FLAG_HARD`.
+     * The default throws [UnsupportedOperationException].
+     */
+    public var chapterLevelBonus: () -> Int = {
+        throw UnsupportedOperationException("LoadUnit_800F704: chapter level bonus not wired")
+    }
+
+    /**
      * `gBmMapUnit[y][x] | gBmMapOther[y][x] | gBmMapHidden[y][x]`, for the free-tile shortcut of
      * `AiGetUnitClosestValidPosition`; null treats every tile as occupied.
      */
@@ -127,6 +137,51 @@ public class UnitLoader(
             unitAutolevelCore(o, if (isHardMode()) 19 else 9)
         }
         unitAutolevelCore(o, s8(table.bytes, o + OFF_LEVEL) - 1)
+    }
+
+    /**
+     * Ported from src/bmunit.c: UnitApplyBonusLevels
+     *
+     * Raises ([levelCount] > 0) or lowers (< 0) the stats of the unit at [o] by that many levels
+     * unless it is a gorgon egg, caps them and heals the unit.
+     */
+    internal fun unitApplyBonusLevels(o: Int, levelCount: Int) {
+        if (levelCount == 0 || isGorgonEgg(o)) return
+        if (levelCount > 0) {
+            unitAutolevelCore(o, levelCount)
+        } else {
+            unitAutolevelPenalty(o, -levelCount)
+        }
+        unitCheckStatCaps(o)
+        put8(table.bytes, o + OFF_CUR_HP, getUnitMaxHp(o))
+    }
+
+    /**
+     * Ported from src/bmunit.c: UnitAutolevelPenalty
+     *
+     * Resets the stats of the unit at [o] to its bases and autolevels them again for its level
+     * minus [levelCount].
+     */
+    internal fun unitAutolevelPenalty(o: Int, levelCount: Int) {
+        val b = table.bytes
+        val level = s8(b, o + OFF_LEVEL)
+        val ch = u32(b, o + OFF_CHARACTER)
+        val baseLevel = rom.s8(ch + 0x0B)
+        if (levelCount == 0 || level <= baseLevel) return
+        val reduced = level - levelCount
+        val cl = u32(b, o + OFF_CLASS)
+        put8(b, o + OFF_MAX_HP, rom.s8(ch + 0x0C) + rom.s8(cl + 0x0B))
+        put8(b, o + 0x14, rom.s8(ch + 0x0D) + rom.s8(cl + 0x0C))
+        put8(b, o + 0x15, rom.s8(ch + 0x0E) + rom.s8(cl + 0x0D))
+        put8(b, o + 0x16, rom.s8(ch + 0x0F) + rom.s8(cl + 0x0E))
+        put8(b, o + 0x17, rom.s8(ch + 0x10) + rom.s8(cl + 0x0F))
+        put8(b, o + 0x18, rom.s8(ch + 0x11) + rom.s8(cl + 0x10))
+        put8(b, o + 0x19, rom.s8(ch + 0x12))
+        if (reduced > baseLevel) {
+            put8(b, o + OFF_LEVEL, reduced)
+            unitAutolevel(o)
+            put8(b, o + OFF_LEVEL, level)
+        }
     }
 
     /**
@@ -368,9 +423,7 @@ public class UnitLoader(
         put8(table.bytes, o + OFF_Y, def.y)
         val number = rom.u8(u32(table.bytes, o + OFF_CHARACTER) + 4)
         if (def.allegiance == 2 && number >= 0x3C) {
-            throw UnsupportedOperationException(
-                "LoadUnit_800F704: UnitApplyBonusLevels for red characters >= 0x3C not ported",
-            )
+            unitApplyBonusLevels(o, chapterLevelBonus())
         }
         moveLoadedUnit(id, def, flags, quiet, terrainAt)
         return id

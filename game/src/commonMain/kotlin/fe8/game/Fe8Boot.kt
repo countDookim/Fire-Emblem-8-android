@@ -159,6 +159,18 @@ public class Fe8Boot(
                 },
                 rng, { control.playSt.chapterStateBits and PLAY_FLAG_HARD != 0 },
             ).apply {
+                chapterLevelBonus = {
+                    val ps = control.playSt
+                    val levels = rom.u16(
+                        battleChapters.getROMChapterStruct(ps.chapterIndex) + 0x14,
+                    )
+                    val hard = ps.chapterStateBits and PLAY_FLAG_HARD != 0
+                    when {
+                        ps.controller == 0 && !hard -> -(levels and 0xF)
+                        hard -> levels ushr 4 and 0xF
+                        else -> -(levels ushr 8 and 0xF)
+                    }
+                }
                 occupiedAt = { x, y ->
                     battleBmMap.unit[y, x] or battleBmMap.other[y, x] or battleBmMap.hidden[y, x]
                 }

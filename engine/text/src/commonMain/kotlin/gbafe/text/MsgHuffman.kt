@@ -32,6 +32,29 @@ public class MsgHuffman(
      */
     public fun decode(offset: Int): ByteArray {
         val out = ByteSink()
+        decodeWith(offset) { out.write(it) }
+        return out.toByteArray()
+    }
+
+    /**
+     * Like [decode] but writes into [dst] starting at [dstOffset] without allocating, and returns
+     * the number of bytes written (terminator included). This is the shape of the original's
+     * `CallARM_DecompText(src, dst)`, which has no bounds check either.
+     *
+     * Transcribed from asm/arm.s: DecodeString (not verified: shares its loop with [decode], which
+     * carries the verified port tag)
+     *
+     * @throws IllegalArgumentException if the bit stream runs past the end of the ROM.
+     * @throws IndexOutOfBoundsException if the string does not fit in [dst].
+     */
+    // Not @VerifiesPort: same loop as decode(); exercised through MsgStrings' RAM-trace test.
+    public fun decodeInto(offset: Int, dst: ByteArray, dstOffset: Int): Int {
+        var n = dstOffset
+        decodeWith(offset) { dst[n++] = it.toByte() }
+        return n - dstOffset
+    }
+
+    private inline fun decodeWith(offset: Int, emit: (Int) -> Unit) {
         var src = offset
         var bits = 0
         var bitsLeft = 0
@@ -51,11 +74,11 @@ public class MsgHuffman(
                 value = u16(node) or (u16(node + 2) shl 16)
             } while (value >= 0)
             if (value and 0xFF00 != 0) {
-                out.write(value and 0xFF)
-                out.write((value ushr 8) and 0xFF)
+                emit(value and 0xFF)
+                emit((value ushr 8) and 0xFF)
             } else {
-                out.write(value and 0xFF)
-                if (value and 0xFF == 0) return out.toByteArray()
+                emit(value and 0xFF)
+                if (value and 0xFF == 0) return
             }
         }
     }

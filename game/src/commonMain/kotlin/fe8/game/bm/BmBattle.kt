@@ -861,6 +861,171 @@ public class BmBattle(
         return false
     }
 
+    /** `gUnknown_03003060`: the arena level (`UNIT_ARENA_LEVEL`) of the last unit updated. */
+    public var arenaLevelLatch: Int = 0
+
+    /**
+     * `PidStatsAddExpGained(pid, exp)` (bmsave-bwl.c, not ported to this class): called by
+     * [updateUnitFromBattle] for a non-zero `expGain`.
+     */
+    public var pidStatsAddExpGained: (pid: Int, exp: Int) -> Unit =
+        { _, _ -> error("PidStatsAddExpGained is not wired (M6-40)") }
+
+    /**
+     * `GetTrap(ballistaIndex)->data[TRAP_EXTDATA_BLST_ITEMUSES] = uses` (bmtrick.c, not ported):
+     * called by [battleApplyBallistaUpdates] in a ballista battle.
+     */
+    public var setBallistaItemUses: (ballistaIndex: Int, uses: Int) -> Unit =
+        { _, _ -> error("traps are not ported (M6-40)") }
+
+    /**
+     * Transcribed from src/bmbattle.c: BattleApplyGameStateUpdates (not verified: the Prologue
+     *   trace ends (f15059) before the update runs, so there is no dump to compare)
+     *
+     * [battleApplyUnitUpdates] and [battleApplyBallistaUpdates]. The two debug print calls are
+     * no-ops and omitted.
+     */
+    public fun battleApplyGameStateUpdates() {
+        battleApplyUnitUpdates()
+        battleApplyBallistaUpdates()
+    }
+
+    /**
+     * Transcribed from src/bmbattle.c: BattleApplyUnitUpdates (not verified: see
+     *   [battleApplyGameStateUpdates])
+     *
+     * Writes the used weapons back into the battle units' items, then the battle units into the
+     * unit table. A target without a unit (`UpdateObstacleFromBattle`) is not ported.
+     */
+    public fun battleApplyUnitUpdates() {
+        val actorOff = table.unitOffset(s8(actor.bytes, OFF_INDEX))
+        val targetOff = table.unitOffset(s8(target.bytes, OFF_INDEX))
+        if (actor.canCounter != 0) {
+            put16(actor.bytes, OFF_ITEMS + 2 * actor.weaponSlotIndex, actor.weapon)
+        }
+        if (target.canCounter != 0) {
+            put16(target.bytes, OFF_ITEMS + 2 * target.weaponSlotIndex, target.weapon)
+        }
+        updateUnitFromBattle(actorOff, actor)
+        if (targetOff >= 0) {
+            updateUnitFromBattle(targetOff, target)
+        } else {
+            error("UpdateObstacleFromBattle is not ported")
+        }
+    }
+
+    /**
+     * Transcribed from src/bmbattle.c: UpdateUnitFromBattle (not verified: see
+     *   [battleApplyGameStateUpdates])
+     *
+     * Copies level, exp, HP, state, stat changes, weapon exp and items of [bu] into the unit at
+     * [o] of the unit table, sets [arenaLevelLatch], the status, caps the stats and reports the
+     * exp gain through [pidStatsAddExpGained].
+     */
+    public fun updateUnitFromBattle(o: Int, bu: BattleUnit) {
+        val b = table.bytes
+        val bb = bu.bytes
+        put8(b, o + OFF_LEVEL, u8(bb, OFF_LEVEL))
+        put8(b, o + OFF_EXP, u8(bb, OFF_EXP))
+        put8(b, o + OFF_CUR_HP, u8(bb, OFF_CUR_HP))
+        StructCodec.put32(b, o + OFF_STATE, u32(bb, OFF_STATE))
+        arenaLevelLatch = (u32(b, o + OFF_STATE) ushr 17) and 0x7
+        if (bu.statusOut >= 0) {
+            // SetUnitStatus
+            val index = bu.statusOut
+            put8(b, o + OFF_STATUS, if (index == 0) 0 else (index and 0xF) or (5 shl 4))
+        }
+        put8(b, o + OFF_MAX_HP, s8(b, o + OFF_MAX_HP) + bu.changeHP)
+        put8(b, o + OFF_POW, s8(b, o + OFF_POW) + bu.changePow)
+        put8(b, o + OFF_SKL, s8(b, o + OFF_SKL) + bu.changeSkl)
+        put8(b, o + OFF_SPD, s8(b, o + OFF_SPD) + bu.changeSpd)
+        put8(b, o + OFF_DEF, s8(b, o + OFF_DEF) + bu.changeDef)
+        put8(b, o + OFF_RES, s8(b, o + OFF_RES) + bu.changeRes)
+        put8(b, o + OFF_LCK, s8(b, o + OFF_LCK) + bu.changeLck)
+        loader.unitCheckStatCaps(o)
+        val wexp = getBattleUnitUpdatedWeaponExp(bu)
+        if (wexp > 0) put8(b, o + OFF_RANKS + bu.weaponType, wexp)
+        for (i in 0 until UnitLoader.UNIT_ITEM_COUNT) {
+            put16(b, o + OFF_ITEMS + 2 * i, u16(bb, OFF_ITEMS + 2 * i))
+        }
+        unitRemoveInvalidItems(o)
+        if (bu.expGain != 0) {
+            pidStatsAddExpGained(rom.u8(u32(b, o + OFF_CHARACTER) + 4), bu.expGain)
+        }
+    }
+
+    /**
+     * Transcribed from src/bmunit.c: UnitRemoveInvalidItems (not verified: see
+     *   [battleApplyGameStateUpdates])
+     *
+     * Moves the items of the unit at [o] up so that no empty slot precedes an item.
+     */
+    internal fun unitRemoveInvalidItems(o: Int) {
+        val b = table.bytes
+        val kept = IntArray(UnitLoader.UNIT_ITEM_COUNT)
+        var n = 0
+        for (i in 0 until UnitLoader.UNIT_ITEM_COUNT) {
+            val item = u16(b, o + OFF_ITEMS + 2 * i)
+            if (item != 0) kept[n++] = item
+            put16(b, o + OFF_ITEMS + 2 * i, 0)
+        }
+        for (i in 0 until n) put16(b, o + OFF_ITEMS + 2 * i, kept[i])
+    }
+
+    /**
+     * Transcribed from src/bmbattle.c: GetBattleUnitUpdatedWeaponExp (not verified: see
+     *   [battleApplyGameStateUpdates])
+     *
+     * The weapon exp [bu] has after the battle, or -1 where it gains none.
+     */
+    public fun getBattleUnitUpdatedWeaponExp(bu: BattleUnit): Int {
+        val bb = bu.bytes
+        if ((s8(bb, OFF_INDEX) and 0xC0) != UnitLoader.FACTION_BLUE) return -1
+        if (u8(bb, OFF_CUR_HP) == 0) return -1
+        if ((playSt.chapterStateBits and PLAY_FLAG_EXTRA_MAP) != 0) return -1
+        if ((bmSt.gameStateBits and 0x40) != 0) return -1
+        if ((stats.config and BattleStats.CONFIG_ARENA) == 0) {
+            if (bu.canCounter == 0) return -1
+            val requiresWexp = ItemInfo.IA_WEAPON or ItemInfo.IA_STAFF
+            if ((bu.weaponAttributes and requiresWexp) == 0) return -1
+            if ((bu.weaponAttributes and (ItemInfo.IA_MAGICDAMAGE or ItemInfo.IA_LOCK_3)) != 0) {
+                return -1
+            }
+        }
+        var result = u8(bb, OFF_RANKS + bu.weaponType)
+        result += rom.u8(items.getItemData(items.getItemIndex(bu.weapon)) + 0x20) *
+            bu.wexpMultiplier
+        val cls = u32(bb, OFF_CLASS)
+        for (i in 0 until 8) {
+            if (i == bu.weaponType) continue
+            if (rom.u8(cls + 0x14 + i) == WPN_EXP_S) continue
+            if (u8(bb, OFF_RANKS + i) < WPN_EXP_S) continue
+            if (result >= WPN_EXP_S) result = WPN_EXP_S - 1
+            break
+        }
+        val attrs = unitCAttributes(bb, 0)
+        if ((attrs and UnitLoader.CA_PROMOTED) != 0) {
+            if (result > WPN_EXP_S) result = WPN_EXP_S
+        } else if ((attrs and UnitLoader.CA_MAXLEVEL10) != 0) {
+            if (result > WPN_EXP_C) result = WPN_EXP_C
+        } else if (result > WPN_EXP_A) {
+            result = WPN_EXP_A
+        }
+        return result
+    }
+
+    /**
+     * Transcribed from src/bmbattle.c: BattleApplyBallistaUpdates (not verified: see
+     *   [battleApplyGameStateUpdates])
+     *
+     * In a ballista battle stores the remaining uses of the actor's weapon in the ballista trap.
+     */
+    public fun battleApplyBallistaUpdates() {
+        if ((stats.config and BattleStats.CONFIG_BALLISTA) != 0) {
+            setBallistaItemUses(u8(actor.bytes, OFF_BALLISTA_INDEX), actor.weapon ushr 8)
+        }
+    }
+
     /** Constants. */
     public companion object {
         /** `BU_ISLOT_AUTO`. */
@@ -909,6 +1074,10 @@ public class BmBattle(
         private const val CA_NEGATE_LETHALITY = 1 shl 24
         private const val CA_ASSASSIN = 1 shl 25
         private const val WPN_EXP_S = 251
+        private const val WPN_EXP_C = 71
+        private const val WPN_EXP_A = 181
+        private const val PLAY_FLAG_EXTRA_MAP = 1 shl 7
+        private const val OFF_BALLISTA_INDEX = 0x1C
         private const val WPN_EFFECT_HPHALVE = 3
         private const val STATUS_SLEEP = 2
         private const val STATUS_BERSERK = 4

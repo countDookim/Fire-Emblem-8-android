@@ -130,20 +130,29 @@ class UnitSpritesDifferentialTest {
     @VerifiesPort("ForceSyncUnitSpriteSheet")
     fun `forced sheet sync matches OBJ VRAM`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
-        val d = dump()
         val run = ref.run("ram_trace_first_phase")
-        val iw = run.region("f19430", "iwram")
-        val clock = GbaMem.u32(iw, GbaMem.IWRAM, sym["gGameClock"].address)
-        val hw = BgHardware()
-        val sprites = UnitSprites(RomView.ofRom(romFile.readBytes()), hw, d.bmSt)
-        d.buf.copyInto(sprites.gfxBuffer)
-        sprites.gameClock = { clock }
-        sprites.syncFlag = 3
-        sprites.forceSyncUnitSpriteSheet()
-        assertEquals(0, sprites.syncFlag)
-        val vram = run.region("f19430", "vram")
-        for (i in 0 until 0x2000) {
-            assertEquals(vram[0x11000 + i], hw.vram[0x11000 + i], "OBJ VRAM +0x1000+$i")
+        val e = GbaMem.EWRAM
+        val bufAt = sym["gSMSGfxBuffer"].address - e
+        val rom = RomView.ofRom(romFile.readBytes())
+        for (frame in 19430..19530 step 10) {
+            val dump = "f$frame"
+            val ew = run.region(dump, "ewram")
+            val iw = run.region(dump, "iwram")
+            val clock = GbaMem.u32(iw, GbaMem.IWRAM, sym["gGameClock"].address)
+            val hw = BgHardware()
+            val sprites = UnitSprites(rom, hw, BmSt())
+            ew.copyInto(sprites.gfxBuffer, 0, bufAt, bufAt + 0x6000)
+            sprites.gameClock = { clock }
+            sprites.syncFlag = 3
+            sprites.forceSyncUnitSpriteSheet()
+            assertEquals(0, sprites.syncFlag)
+            val vram = run.region(dump, "vram")
+            for (i in 0 until 0x2000) {
+                assertEquals(
+                    vram[0x11000 + i], hw.vram[0x11000 + i],
+                    "$dump (clock $clock, ${clock % 72}) OBJ VRAM +0x1000+$i",
+                )
+            }
         }
     }
 

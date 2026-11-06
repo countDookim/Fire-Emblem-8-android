@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 376,
-    "implemented_unverified": 123
+    "verified": 395,
+    "implemented_unverified": 136
   },
   "functions": {
     "AdvanceGetLCGRNValue": {
@@ -793,6 +793,13 @@
       "status": "implemented",
       "tests": []
     },
+    "Event17_Fade": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventFade.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "Event19_Checks": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -905,6 +912,40 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
       ]
     },
+    "FadeExists": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ScreenFadeDifferentialTest#fade from black follows the per-frame RAM trace"
+      ]
+    },
+    "FadeFromBlack_OnInit": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ScreenFadeDifferentialTest#fade from black follows the per-frame RAM trace"
+      ]
+    },
+    "FadeFromCommon_OnLoop": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ScreenFadeDifferentialTest#fade from black follows the per-frame RAM trace"
+      ]
+    },
+    "FadeFromWhite_OnInit": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "FadeOutBody": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -913,6 +954,27 @@
       "tests": [
         "fe8.testing.M4aFadeTest#fade steps match the trace"
       ]
+    },
+    "FadeToBlack_OnInit": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "FadeToCommon_OnLoop": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "FadeToWhite_OnInit": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "implemented",
+      "tests": []
     },
     "FlipBgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
@@ -1609,6 +1671,16 @@
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
       ]
     },
+    "InitUnits": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ReadGameSaveReferenceTest#reading chapter6 sav slot 1 reproduces the RAM of r01142",
+        "fe8.testing.ReadSuspendSaveReferenceTest#reading chapter2 sav reproduces the RAM of r01142"
+      ]
+    },
     "Interpolate": {
       "decomp_file": "src/bmlib.c",
       "system": "battle_map",
@@ -1741,6 +1813,15 @@
       "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt",
       "status": "implemented",
       "tests": []
+    },
+    "LoadSavedUnit": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ReadGameSaveReferenceTest#reading chapter6 sav slot 1 reproduces the RAM of r01142"
+      ]
     },
     "LoadUnit": {
       "decomp_file": "src/bmunit.c",
@@ -2329,6 +2410,33 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "ReadChapterFlags": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ReadSuspendSaveReferenceTest#reading chapter2 sav reproduces the RAM of r01142"
+      ]
+    },
+    "ReadChapterStats": {
+      "decomp_file": "src/bmsave-bwl.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ReadGameSaveReferenceTest#reading chapter6 sav slot 1 reproduces the RAM of r01142"
+      ]
+    },
+    "ReadGameSave": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ReadGameSaveReferenceTest#reading chapter6 sav slot 1 reproduces the RAM of r01142"
+      ]
+    },
     "ReadGameSavePlaySt": {
       "decomp_file": "src/bmsave.c",
       "system": "save",
@@ -2343,6 +2451,26 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "ReadPermanentFlags": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ReadGameSaveReferenceTest#reading chapter6 sav slot 1 reproduces the RAM of r01142",
+        "fe8.testing.ReadSuspendSaveReferenceTest#reading chapter2 sav reproduces the RAM of r01142"
+      ]
+    },
+    "ReadPidStats": {
+      "decomp_file": "src/bmsave-bwl.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ReadGameSaveReferenceTest#reading chapter6 sav slot 1 reproduces the RAM of r01142",
+        "fe8.testing.ReadSuspendSaveReferenceTest#reading chapter2 sav reproduces the RAM of r01142"
       ]
     },
     "ReadSaveBlockInfo": {
@@ -2361,6 +2489,33 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramBootReferenceTest#sound room data of the dumps is written and verified byte for byte"
+      ]
+    },
+    "ReadSupplyItems": {
+      "decomp_file": "src/bmsave-lib.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ReadGameSaveReferenceTest#reading chapter6 sav slot 1 reproduces the RAM of r01142"
+      ]
+    },
+    "ReadSuspendSave": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ReadSuspendSaveReferenceTest#reading chapter2 sav reproduces the RAM of r01142"
+      ]
+    },
+    "ReadSuspendSavePackedUnit": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ReadSuspendSaveReferenceTest#reading chapter2 sav reproduces the RAM of r01142"
       ]
     },
     "RealClearChain": {
@@ -2501,6 +2656,20 @@
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
+    "SetBlendBackdropA": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/LcdControl.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "SetBlendBackdropB": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/LcdControl.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "SetBlendConfig": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -2544,8 +2713,10 @@
       "decomp_file": "src/event.c",
       "system": "events",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ReadSuspendSaveReferenceTest#reading chapter2 sav reproduces the RAM of r01142"
+      ]
     },
     "SetFirstPalDirectly": {
       "decomp_file": "src/opanimfx.c",
@@ -2811,6 +2982,20 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
       ]
     },
+    "StartFadeFromBlack": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "StartFadeToBlack": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "StartGame": {
       "decomp_file": "src/gamecontrol.c",
       "system": "core",
@@ -2819,6 +3004,50 @@
       "tests": [
         "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
       ]
+    },
+    "StartLockingFadeFromBlack": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ScreenFadeDifferentialTest#fade from black follows the per-frame RAM trace"
+      ]
+    },
+    "StartLockingFadeFromWhite": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "StartLockingFadeToBlack": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "StartLockingFadeToWhite": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "StartMidFadeFromBlack": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "StartMidFadeToBlack": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "implemented",
+      "tests": []
     },
     "StartSongDelayed": {
       "decomp_file": "src/soundwrapper.c",
@@ -3299,6 +3528,33 @@
         "fe8.testing.SuspendSaveReferenceTest#suspend save from r19315 reproduces the sram of s19316"
       ]
     },
+    "WriteChapterStats": {
+      "decomp_file": "src/bmsave-bwl.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ReadGameSaveReferenceTest#write after read reproduces slot 1 of chapter6 sav"
+      ]
+    },
+    "WriteGameSave": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ReadGameSaveReferenceTest#write after read reproduces slot 1 of chapter6 sav"
+      ]
+    },
+    "WriteGameSavePackedUnit": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ReadGameSaveReferenceTest#write after read reproduces slot 1 of chapter6 sav"
+      ]
+    },
     "WriteGlobalSaveInfo": {
       "decomp_file": "src/bmsave-lib.c",
       "system": "save",
@@ -3306,6 +3562,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "WriteLastGameSaveId": {
+      "decomp_file": "src/bmsave.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ReadGameSaveReferenceTest#write after read reproduces slot 1 of chapter6 sav"
       ]
     },
     "WriteNewGameSave": {
@@ -3323,6 +3588,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.ReadGameSaveReferenceTest#write after read reproduces slot 1 of chapter6 sav",
         "fe8.testing.SuspendSaveReferenceTest#suspend save from r19315 reproduces the sram of s19316"
       ]
     },
@@ -3332,6 +3598,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.ReadGameSaveReferenceTest#write after read reproduces slot 1 of chapter6 sav",
         "fe8.testing.SuspendSaveReferenceTest#suspend save from r19315 reproduces the sram of s19316"
       ]
     },

@@ -30,6 +30,23 @@ public class UnitSprites(
     /** `gSMSSyncFlag`. */
     public var syncFlag: Int = 0
 
+    /** `GetGameClock()`. */
+    public var gameClock: () -> Int = { 0 }
+
+    /**
+     * Stand-in for `RegisterDataMove(src, dst, size)` of [forceSyncUnitSpriteSheet]: gets the
+     * frame number (0 to 2) and the byte count; the default copies at once into OBJ VRAM instead
+     * of queueing the transfer for `FlushTiles`.
+     */
+    public var registerDataMove: (frame: Int, size: Int) -> Unit = { frame, size ->
+        copyFrame(frame, size)
+    }
+
+    private fun copyFrame(frame: Int, size: Int) {
+        val from = frame * FRAME_SIZE
+        gfxBuffer.copyInto(hardware.vram, OBJ_SHEET_VRAM, from, from + size)
+    }
+
     /** `UnitSpriteUnpackBuf` (`gGenericBuffer`). */
     private val unpackBuf = ByteArray(0x2000)
 
@@ -42,6 +59,38 @@ public class UnitSprites(
         applyPalettes(PAL_MAP_SPRITE, 0x1C, 4)
         val src = if (bmSt.gameStateBits and BM_FLAG_LINKARENA != 0) PAL_ARENA else PAL_LIGHT_RUNE
         applyPalettes(src, 0x10 + OBJPAL_UNITSPRITE_PURPLE, 1)
+    }
+
+    /**
+     * Transcribed from src/bmudisp.c: SyncUnitSpriteSheet (not verified: the trace has no dump at
+     * a tick that starts an animation frame)
+     *
+     * Copies the animation frame that starts at this game clock tick into OBJ VRAM `+0x1000`.
+     */
+    public fun syncUnitSpriteSheet() {
+        when (gameClock() % 72) {
+            0 -> copyFrame(0, FRAME_SIZE)
+            32 -> copyFrame(1, FRAME_SIZE)
+            36 -> copyFrame(2, FRAME_SIZE)
+            68 -> copyFrame(1, FRAME_SIZE)
+        }
+    }
+
+    /**
+     * Ported from src/bmudisp.c: ForceSyncUnitSpriteSheet (only the frame 0 branch is observed)
+     *
+     * Clears the sync flag and requests the copy of the frame shown at this game clock tick.
+     */
+    public fun forceSyncUnitSpriteSheet() {
+        syncFlag = 0
+        val frame = gameClock() % 72
+        val which = when {
+            frame >= 68 -> 1
+            frame >= 36 -> 2
+            frame >= 32 -> 1
+            else -> 0
+        }
+        registerDataMove(which, FRAME_SIZE)
     }
 
     private fun applyPalettes(src: Int, palId: Int, count: Int) {
@@ -150,6 +199,7 @@ public class UnitSprites(
         (slot / 32) * 4 * CHR_LINE + (slot and 1) * 2 * CHR_LINE + ((slot and 0x1F) shr 1) * 2
 
     private companion object {
+        const val OBJ_SHEET_VRAM = 0x11000
         const val UNITSPRITE_MAX = 0xD0
         const val UNITSPRITE_ID_BITS = 7
         const val OBJPAL_UNITSPRITE_PURPLE = 11

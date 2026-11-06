@@ -705,8 +705,7 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-bwl.c: ReadChapterStats (not verified: `gChapterStats` is all
-     * zero in the reference, which proves the target, not the data)
+     * Ported from src/bmsave-bwl.c: ReadChapterStats
      *
      * Reads `gChapterStats` from SRAM [srcOffset].
      */
@@ -733,8 +732,7 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-lib.c: ReadSupplyItems (not verified: the reference convoy is
-     * empty, which proves the target, not the unpacking)
+     * Ported from src/bmsave-lib.c: ReadSupplyItems
      *
      * Unpacks the 0xB0-byte supply block at SRAM [srcOffset] (see [writeSupplyItems]) into the
      * 100 raw little-endian u16 convoy items of [convoy].
@@ -926,7 +924,7 @@ public class BmSaveLib(public val sram: CartSram) {
         writeAndVerifySramFast(buf, 0, sram, offset, size)
     }
 
-    private companion object {
+    internal companion object {
         /** `gGenericBuffer` is 0x2000 bytes in C; the largest block used here is 0x144. */
         const val GENERIC_BUFFER_SIZE = L.SUSPEND_SIZE
 

@@ -70,6 +70,24 @@ public class BattleMapStart(
         /** `ApplyUnitSpritePalettes`. Stand-in. */
         public var applyUnitSpritePalettes: () -> Unit = {}
 
+        /** `ReadExtraMapInfo` (special chapter 0x7F of a resumed game). Stand-in. */
+        public var readExtraMapInfo: () -> Unit = {}
+
+        /** `ReadGameSaveCoreGfx` (bm.c). Stand-in. */
+        public var readGameSaveCoreGfx: () -> Unit = {}
+
+        /**
+         * `gActionData.suspendPointType` as the suspend save left it, read by [startResumedGame].
+         * Stand-in: 0 (no `SUSPEND_POINT_*` case).
+         */
+        public var suspendPointType: () -> Int = { 0 }
+
+        /**
+         * The `switch` of [startResumedGame] on `gActionData.suspendPointType`: calls the
+         * `MapMain_ResumeFrom*` variant for the suspend point on the BMapMain proc. Stand-in.
+         */
+        public var resumeMapMain: (mapMain: Proc, suspendPointType: Int) -> Unit = { _, _ -> }
+
         /** `ResetUnitSprites`. Stand-in. */
         public var resetUnitSprites: () -> Unit = {}
 
@@ -252,6 +270,45 @@ public class BattleMapStart(
 
         hardware.palette[0] = 0
         hardware.enablePaletteSync()
+
+        val lcd = hardware.lcd
+        lcd.setBlendTargetA(1, 1, 1, 1, 1)
+        lcd.bldcnt = lcd.bldcnt or 0x20 // SetBlendBackdropA(TRUE)
+        lcd.setBlendConfig(3, 0, 0, 0x10)
+    }
+
+    /**
+     * Ported from src/bmio.c: GameCtrl_StartResumedGame
+     *
+     * Brings the game state back after loading a suspended game: sets up the BG layers, clears
+     * `gBmSt`, puts the cursor on `gPlaySt`'s cursor position, initialises the chapter map, sets
+     * `just_resumed`, starts the battle map procs ([startBMapMain]), centres the camera on the
+     * cursor, runs [Hooks.resumeMapMain] for the suspend point and ends with the blend setup.
+     */
+    public fun startResumedGame(gameCtrl: Proc) {
+        if (playSt.chapterIndex == 0x7F) hooks.readExtraMapInfo()
+
+        hardware.setupBackgrounds(null, playSt.chapterWeatherId == ChapterMapGfx.WEATHER_CLOUDS)
+
+        clearBattleMapState()
+        Camera.setCursorMapPosition(bmSt, playSt.xCursor, playSt.yCursor)
+
+        hooks.readGameSaveCoreGfx()
+        hooks.applyUnitSpritePalettes()
+        hooks.resetUnitSprites()
+
+        map.initChapterMap(playSt.chapterIndex)
+        // `InitChapterMap` also unpacks the tileset graphics and palette (BmMap does not).
+        gfx.unpackChapterMapGraphics(playSt.chapterIndex)
+
+        bmSt.justResumed = 1
+
+        val mapMain = startBMapMain(gameCtrl)
+
+        bmSt.cameraX = Camera.getCameraCenteredX(bmSt, 16 * bmSt.playerCursorX)
+        bmSt.cameraY = Camera.getCameraCenteredY(bmSt, 16 * bmSt.playerCursorY)
+
+        hooks.resumeMapMain(mapMain, hooks.suspendPointType())
 
         val lcd = hardware.lcd
         lcd.setBlendTargetA(1, 1, 1, 1, 1)

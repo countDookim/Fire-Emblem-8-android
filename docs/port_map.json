@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 406,
-    "implemented_unverified": 140
+    "verified": 412,
+    "implemented_unverified": 143
   },
   "functions": {
     "AddUnitSprite": {
@@ -99,6 +99,29 @@
       "tests": [
         "fe8.testing.SaveDrawDifferentialTest#fog scroll turns the previous dump into the next one"
       ]
+    },
+    "BMapVSync_InitMapAnimations": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "BMapVSync_UpdateMapImgAnimations": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimationsTest#animated map tiles match the first phase reference"
+      ]
+    },
+    "BMapVSync_UpdateMapPalAnimations": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt",
+      "status": "implemented",
+      "tests": []
     },
     "BattleEventEngineExists": {
       "decomp_file": "src/event.c",
@@ -1053,6 +1076,15 @@
         "fe8.testing.LcdControlDifferentialTest#flushed registers match mGBA I-O for every full dump"
       ]
     },
+    "ForceSyncUnitSpriteSheet": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitSpritesDifferentialTest#forced sheet sync matches OBJ VRAM"
+      ]
+    },
     "GameControlHandlePostNormalOrExtraChapter": {
       "decomp_file": "src/gamecontrol.c",
       "system": "core",
@@ -1588,6 +1620,15 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
+    },
+    "GetUnitSpriteHideFlag": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpriteHandles.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitSpritesDifferentialTest#unit sprite objects match the dump OAM"
+      ]
     },
     "GetUnitSpritePalette": {
       "decomp_file": "src/bmudisp.c",
@@ -2480,6 +2521,22 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
     },
+    "PutChapterMarkedTileIconOam": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpritesOam.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "PutMapCursor": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapCursor.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapCursorDifferentialTest#map cursor objects match the dump OAM"
+      ]
+    },
     "PutOamHi": {
       "decomp_file": "asm/arm.s",
       "system": "core",
@@ -2503,6 +2560,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "PutUnitSpriteIconsOam": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpritesOam.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitSpritesDifferentialTest#unit sprite objects match the dump OAM"
+      ]
+    },
+    "PutUnitSpritesOam": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpritesOam.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitSpritesDifferentialTest#unit sprite objects match the dump OAM"
       ]
     },
     "ReadChapterFlags": {

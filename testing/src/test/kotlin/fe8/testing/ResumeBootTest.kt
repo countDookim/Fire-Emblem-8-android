@@ -110,13 +110,7 @@ class ResumeBootTest {
         val pre = ref.run("sram_chapter2_boot")
         assumeTrue(pre.hasSram, "sram_chapter2_boot has no SRAM dumps")
         checkResumeLabel(pre.sram("s00001"), ref.run("ram_trace_ch2_scroll"), "chapter2")
-        val sav = listOf(
-            File(assets, "prologue.sav"),
-            romRepoFixture("prologue.sav"),
-        ).firstOrNull { it.isFile && it.length() == CartSram.SIZE.toLong() }
-        if (sav != null) {
-            checkResumeLabel(sav.readBytes(), ref.run("ram_trace_prologue_resume"), "prologue")
-        }
+        checkResumeLabel(prologueImage(), ref.run("ram_trace_prologue_resume"), "prologue")
     }
 
     private fun checkResumeLabel(image: ByteArray, r: ReferenceData.Run, what: String) {
@@ -141,12 +135,7 @@ class ResumeBootTest {
     @Test
     fun `boot with the prologue suspend save resumes the prologue`() {
         needRom()
-        val sav = listOf(
-            File(assets, "prologue.sav"),
-            romRepoFixture("prologue.sav"),
-        ).firstOrNull { it.isFile && it.length() == CartSram.SIZE.toLong() }
-        assumeTrue(sav != null, "prologue.sav fixture not present")
-        val (boot, reached) = bootToPhase(CountingStorage(sav!!.readBytes()))
+        val (boot, reached) = bootToPhase(CountingStorage(prologueImage()))
         assertTrue(reached, "player phase of the resumed map not reached")
         assertEquals(0, boot.control.playSt.chapterIndex)
     }
@@ -185,9 +174,7 @@ class ResumeBootTest {
     @Test
     fun `prologue units at the resumed idle phase equal the reference`() {
         needRom()
-        val sav = romRepoFixture("prologue.sav")
-        assumeTrue(sav.isFile, "prologue.sav fixture not present")
-        val (boot, reached) = bootToPhase(CountingStorage(sav.readBytes()))
+        val (boot, reached) = bootToPhase(CountingStorage(prologueImage()))
         assertTrue(reached)
         assertEquals(emptyList<String>(), unitDiff("ram_trace_prologue_resume", PRO_DUMP, boot.units.bytes))
     }
@@ -208,12 +195,15 @@ class ResumeBootTest {
         assertTrue(fresh.load(ByteArray(CartSram.SIZE)))
     }
 
-    /** A fixture of the ROM repo checkout next to this one (or `$FE8_ROM_REPO`). */
-    private fun romRepoFixture(name: String): File {
-        val roots = listOfNotNull(
-            System.getenv("FE8_ROM_REPO"), "../fire-emblem-8-rom", "../../fire-emblem-8-rom",
-        )
-        return roots.map { File(it, "reference/fixtures/$name") }.firstOrNull { it.isFile }
-            ?: File(roots.last(), "reference/fixtures/$name")
+    /**
+     * The SRAM `ram_trace_prologue_resume` booted with (`prologue.sav`): its s01001 dump, taken before
+     * the resume reads it.
+     */
+    private fun prologueImage(): ByteArray {
+        val ref = ReferenceData.fromEnvironment()
+        assumeTrue(ref.available, "mGBA reference data not present")
+        val run = ref.run("ram_trace_prologue_resume")
+        assumeTrue(run.hasSram, "ram_trace_prologue_resume has no SRAM dumps")
+        return run.sram("s01001")
     }
 }

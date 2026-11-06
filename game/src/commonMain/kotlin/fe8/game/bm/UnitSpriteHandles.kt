@@ -153,6 +153,17 @@ public class UnitSpriteHandles(
         if (sprites.syncFlag != 0) sprites.forceSyncUnitSpriteSheet()
     }
 
+    /**
+     * Ported from src/bmudisp.c: GetUnitSpriteHideFlag
+     *
+     * 0x80 if unit [id] has no map sprite handle, else the `0x80` bit of the handle's `config`.
+     */
+    public fun getUnitSpriteHideFlag(id: Int): Int {
+        val handle = u32(units.bytes, units.unitOffset(id) + OFF_HANDLE)
+        if (handle == 0) return 0x80
+        return u8(handles, index(handle) * HANDLE_SIZE + 0xB) and 0x80
+    }
+
     private fun put16(o: Int, v: Int) {
         handles[o] = v.toByte()
         handles[o + 1] = (v shr 8).toByte()
@@ -175,7 +186,7 @@ public class UnitSpriteHandles(
         }
     }
 
-    private companion object {
+    internal companion object {
         const val ARRAY_ADDRESS = 0x0203A018
         const val HANDLE_SIZE = 12
         const val HANDLE_COUNT = 100

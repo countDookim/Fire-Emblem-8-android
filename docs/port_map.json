@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 435,
+    "verified": 486,
     "implemented_unverified": 0
   },
   "functions": {
@@ -107,6 +107,69 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SaveDrawDifferentialTest#fog scroll turns the previous dump into the next one"
+      ]
+    },
+    "BattleApplyWeaponTriangleEffect": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "BattleGenerate": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs"
+      ]
+    },
+    "BattleGenerateHitEffects": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "BattleGenerateHitScriptedDamage": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs"
+      ]
+    },
+    "BattleUnitTargetCheckCanCounter": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "BattleUnwindScripted": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs"
+      ]
+    },
+    "BattleUpdateBattleStats": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs"
       ]
     },
     "BgAffineSetOpAnim": {
@@ -287,6 +350,15 @@
         "fe8.testing.NewGameSaveReferenceTest#new game save in slot 0 reproduces the sram and gPlaySt of the reference"
       ]
     },
+    "ClearPutTalkText": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
     "ClearSprites": {
       "decomp_file": "src/ctc.c",
       "system": "presentation",
@@ -294,6 +366,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "ClearTalkFaceRefs": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkRomTest#initTalk reproduces sTalkFont, sTalkText, lines, face refs and the bubble gfx"
       ]
     },
     "ClearText": {
@@ -330,6 +411,123 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
+      ]
+    },
+    "ComputeBattleUnitAttack": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "ComputeBattleUnitAvoidRate": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "ComputeBattleUnitCritRate": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "ComputeBattleUnitDefense": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "ComputeBattleUnitDodgeRate": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "ComputeBattleUnitEffectiveCritRate": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "ComputeBattleUnitEffectiveHitRate": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "ComputeBattleUnitEffectiveStats": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "ComputeBattleUnitHitRate": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "ComputeBattleUnitSilencerRate": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "ComputeBattleUnitSpeed": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "ComputeBattleUnitStats": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "ComputeBattleUnitSupportBonuses": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
       ]
     },
     "ComputeChecksum32": {
@@ -395,6 +593,15 @@
       "tests": [
         "fe8.testing.BmMapRenderDifferentialTest#fogged BG3 tilemap matches the dump on chapter 6",
         "fe8.testing.PrologueMapTest#BG3 of the Prologue map matches the first phase reference"
+      ]
+    },
+    "DrawTextGlyph": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextDrawRomTest#replayed talk lines reproduce the traced glyph tiles"
       ]
     },
     "DrawTitleLightBubbleSprites": {
@@ -643,6 +850,24 @@
         "fe8.testing.EventUnitLoadsTest#skipped load_unit2 of the throne room units reproduces the dumped unit structs"
       ]
     },
+    "EvtBattleGenerateReal": {
+      "decomp_file": "src/eventscr3.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs"
+      ]
+    },
+    "EvtBattleGenerateRealInternal": {
+      "decomp_file": "src/eventscr3.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs"
+      ]
+    },
     "FadeCore_Init": {
       "decomp_file": "src/bmlib.c",
       "system": "battle_map",
@@ -851,6 +1076,15 @@
         "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
       ]
     },
+    "GenerateScriptBattleHitFormEventQueue": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs"
+      ]
+    },
     "GetAutoleveledStatIncrease": {
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
@@ -979,6 +1213,15 @@
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
       ]
     },
+    "GetColorLut": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextDrawRomTest#getColorLut returns the pointers of the built ROM's colour tables"
+      ]
+    },
     "GetCurrentPromotedLevelBonus": {
       "decomp_file": "src/bmdifficulty.c",
       "system": "battle_map",
@@ -1024,6 +1267,15 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "GetItemCrit": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
     "GetItemData": {
       "decomp_file": "src/bmitem.c",
       "system": "battle_logic",
@@ -1033,6 +1285,15 @@
         "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items"
       ]
     },
+    "GetItemHit": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
     "GetItemMaxUses": {
       "decomp_file": "src/bmitem.c",
       "system": "battle_logic",
@@ -1040,6 +1301,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items"
+      ]
+    },
+    "GetItemMight": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "GetItemMinRange": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
       ]
     },
     "GetLastSuspendSaveId": {
@@ -1171,6 +1450,15 @@
         "fe8.testing.TextSystemRomTest#widths of traced messages match the glyph widths and the traced pen positions"
       ]
     },
+    "GetTextDrawDest": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextDrawRomTest#replayed talk lines reproduce the traced glyph tiles"
+      ]
+    },
     "GetTrueTerrainAt": {
       "decomp_file": "src/bmmap.c",
       "system": "battle_map",
@@ -1287,6 +1575,15 @@
         "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
       ]
     },
+    "InitBattleUnit": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
     "InitBmBgLayers": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -1340,6 +1637,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
+      ]
+    },
+    "InitTalk": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkRomTest#initTalk reproduces sTalkFont, sTalkText, lines, face refs and the bubble gfx"
       ]
     },
     "InitTalkTextFont": {
@@ -2007,6 +2313,15 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "PutText": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextDrawRomTest#putText reproduces the talk lines in gBG0TilemapBuffer"
+      ]
+    },
     "PutUnitSpriteIconsOam": {
       "decomp_file": "src/bmudisp.c",
       "system": "battle_map",
@@ -2273,6 +2588,33 @@
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
+    "SetBattleUnitTerrainBonuses": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "SetBattleUnitTerrainBonusesAuto": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "SetBattleUnitWeapon": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
     "SetBlendConfig": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -2307,6 +2649,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EventVmDifferentialTest#flag bits changed by Event02 match the trace"
+      ]
+    },
+    "SetInitTalkTextFont": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkRomTest#initTalk reproduces sTalkFont, sTalkText, lines, face refs and the bubble gfx"
       ]
     },
     "SetKeyStatus_IgnoreMask": {
@@ -2592,6 +2943,15 @@
         "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
       ]
     },
+    "StartTalkWaitForInput": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
     "StartTitleScreen_FlagTrue": {
       "decomp_file": "src/titlescreen.c",
       "system": "presentation",
@@ -2627,6 +2987,105 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "TalkHasCorrectBubble": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkRomTest#talkPrepNextChar opens the bubble, starts the shift or puts the line as traced"
+      ]
+    },
+    "TalkInterpret": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "TalkPrepNextChar": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkRomTest#talkPrepNextChar opens the bubble, starts the shift or puts the line as traced"
+      ]
+    },
+    "TalkWaitForInput_OnIdle": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "Talk_OnEnd": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "Talk_OnIdle": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "Talk_OnInit": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkRomTest#talkOnInit homes the backgrounds and starts the skip listener once"
+      ]
+    },
+    "Text_DrawCharacter": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextDrawRomTest#replayed talk lines reproduce the traced glyph tiles"
+      ]
+    },
+    "Text_DrawCharacterAscii": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextDrawRomTest#replayed talk lines reproduce the traced glyph tiles"
+      ]
+    },
+    "Text_DrawString": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextDrawRomTest#replayed talk lines reproduce the traced glyph tiles"
+      ]
+    },
+    "Text_DrawStringASCII": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextDrawRomTest#replayed talk lines reproduce the traced glyph tiles"
       ]
     },
     "TitleScreenTryJumpIntroAnim": {

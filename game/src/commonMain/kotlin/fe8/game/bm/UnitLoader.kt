@@ -12,20 +12,28 @@ import fe8.game.bm.StructCodec.u8
  * The unit loader of `src/bmunit.c` on the raw unit arrays of a [UnitTable]: [loadUnit] fills the
  * first free unit slot from a ROM `struct UnitDefinition`.
  *
- * Only the plain case is ported: no `genMonster`, no `autolevel`, no gorgon egg, no starting items
- * and no REDA (`redaCount != 0`) path; those throw [UnsupportedOperationException]. Event-layer
- * side effects (`LoadUnit_800F704`) are not part of this class.
+ * Only the plain case is ported: no `genMonster`, no `autolevel`, no gorgon egg and no summon
+ * (`sumFlag`) position; those throw [UnsupportedOperationException]. Event-layer side effects
+ * (`LoadUnit_800F704`) are not part of this class.
  *
  * @param table the unit arrays that are filled.
- * @param rom the ROM holding `gCharacterData`, `gClassData`, the support data and the definitions.
+ * @param rom the ROM holding `gCharacterData`, `gClassData`, `gItemData`, the support data and
+ *     the definitions.
+ * @param unsealedCharacter `gPlaySt.unk1C[weaponType]`, the character the weapon type is unsealed
+ *     for (only consulted for `IA_UNUSABLE` weapons).
  */
-public class UnitLoader(private val table: UnitTable, private val rom: RomView) {
+public class UnitLoader(
+    private val table: UnitTable,
+    private val rom: RomView,
+    private val unsealedCharacter: (weaponType: Int) -> Int = { 0 },
+) {
+    private val items = ItemInfo(rom)
 
     /**
      * Ported from src/bmunit.c: LoadUnit
      *
-     * partial: `genMonster`, `autolevel`, gorgon eggs and non-empty `items` throw
-     * [UnsupportedOperationException]; `GetUnitMaxHp` is `maxHP` (no item bonus without items).
+     * partial: `genMonster`, `autolevel`, gorgon eggs and `sumFlag` positions throw
+     * [UnsupportedOperationException].
      *
      * Loads the `struct UnitDefinition` at ROM address [defAddress] into a free slot of its
      * allegiance. [terrainAt] is `gBmMapTerrain[y][x]`. Returns the new unit's id, or 0 where the
@@ -60,10 +68,85 @@ public class UnitLoader(private val table: UnitTable, private val rom: RomView) 
             put32(table.bytes, o + OFF_STATE, u32(table.bytes, o + OFF_STATE) or US_DROP_ITEM)
         }
         unitCheckStatCaps(o)
-        // GetUnitMaxHp: maxHP + the HP bonus of the equipped weapon, and there are no items.
-        table.bytes[o + OFF_CUR_HP] = table.bytes[o + OFF_MAX_HP]
+        put8(table.bytes, o + OFF_CUR_HP, getUnitMaxHp(o))
         return id
     }
+
+    /**
+     * Ported from src/bmunit.c: GetUnitMaxHp
+     *
+     * `maxHP` of the unit at [o] plus the HP bonus of its equipped weapon.
+     */
+    internal fun getUnitMaxHp(o: Int): Int =
+        s8(table.bytes, o + OFF_MAX_HP) + items.getItemHpBonus(getUnitEquippedWeapon(o))
+
+    /**
+     * Ported from src/bmitem.c: GetUnitEquippedWeapon
+     *
+     * The first item of the unit at [o] it can use as a weapon, or 0.
+     */
+    internal fun getUnitEquippedWeapon(o: Int): Int {
+        for (i in 0 until UNIT_ITEM_COUNT) {
+            val item = unitItem(o, i)
+            if (canUnitUseWeapon(o, item)) return item
+        }
+        return 0
+    }
+
+    /**
+     * Ported from src/bmitem.c: CanUnitUseWeapon
+     * Ported from src/bmitem.c: IsItemUnsealedForUnit
+     *
+     * Whether the unit at [o] can wield [item]: a weapon, with the unit meeting the item's lock
+     * attributes, not silenced for magic, and with enough weapon rank.
+     */
+    internal fun canUnitUseWeapon(o: Int, item: Int): Boolean {
+        if (item == 0) return false
+        val ia = items.getItemAttributes(item)
+        if ((ia and ItemInfo.IA_WEAPON) == 0) return false
+        val b = table.bytes
+        val ch = u32(b, o + OFF_CHARACTER)
+        val ca = rom.u32(ch + 0x28) or rom.u32(u32(b, o + OFF_CLASS) + 0x28)
+        if ((ia and ItemInfo.IA_LOCK_ANY) != 0) {
+            if ((ia and ItemInfo.IA_LOCK_1) != 0 && (ca and CA_LOCK_1) == 0) return false
+            if ((ia and ItemInfo.IA_LOCK_4) != 0 && (ca and CA_LOCK_4) == 0) return false
+            if ((ia and ItemInfo.IA_LOCK_5) != 0 && (ca and CA_LOCK_5) == 0) return false
+            if ((ia and ItemInfo.IA_LOCK_6) != 0 && (ca and CA_LOCK_6) == 0) return false
+            if ((ia and ItemInfo.IA_LOCK_7) != 0 && (ca and CA_LOCK_7) == 0) return false
+            if ((ia and ItemInfo.IA_LOCK_2) != 0 && (ca and CA_LOCK_2) == 0) return false
+            if ((ia and ItemInfo.IA_LOCK_3) != 0) return (ca and CA_LOCK_3) != 0
+            if ((ia and ItemInfo.IA_UNUSABLE) != 0 &&
+                unsealedCharacter(items.getItemType(item)) != rom.u8(ch + 4)
+            ) {
+                return false
+            }
+        }
+        if ((u8(b, o + OFF_STATUS) and 0xF) == UNIT_STATUS_SILENCED &&
+            (ia and ItemInfo.IA_MAGIC) != 0
+        ) {
+            return false
+        }
+        val rank = u8(b, o + OFF_RANKS + items.getItemType(item))
+        return rank >= items.getItemRequiredExp(item)
+    }
+
+    /**
+     * Ported from src/bmunit.c: UnitAddItem
+     *
+     * Puts [item] into the first empty slot of the unit at [o]; false if the inventory is full.
+     */
+    internal fun unitAddItem(o: Int, item: Int): Boolean {
+        for (i in 0 until UNIT_ITEM_COUNT) {
+            if (unitItem(o, i) == 0) {
+                put16(table.bytes, o + OFF_ITEMS + 2 * i, item)
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun unitItem(o: Int, slot: Int): Int =
+        StructCodec.u16(table.bytes, o + OFF_ITEMS + 2 * slot)
 
     /**
      * Ported from src/bmunit.c: ClearUnit
@@ -103,7 +186,7 @@ public class UnitLoader(private val table: UnitTable, private val rom: RomView) 
     /**
      * Ported from src/bmunit.c: UnitInitFromDefinition
      *
-     * partial: gorgon eggs and definitions with items throw [UnsupportedOperationException].
+     * partial: gorgon eggs throw [UnsupportedOperationException].
      */
     internal fun unitInitFromDefinition(o: Int, def: UnitDef) {
         val b = table.bytes
@@ -120,10 +203,10 @@ public class UnitLoader(private val table: UnitTable, private val rom: RomView) 
         if (isGorgonEgg(o)) {
             throw UnsupportedOperationException("UnitInitFromDefinition: gorgon eggs not ported")
         }
-        if (def.items[0] != 0) {
-            throw UnsupportedOperationException(
-                "UnitInitFromDefinition: UnitAddItem/MakeNewItem are not ported",
-            )
+        var i = 0
+        while (i < 4 && def.items[i] != 0) {
+            unitAddItem(o, items.makeNewItem(def.items[i]))
+            i++
         }
         charStoreAI(o, def)
     }
@@ -131,17 +214,26 @@ public class UnitLoader(private val table: UnitTable, private val rom: RomView) 
     /**
      * Ported from src/muctrl.c: GenUnitDefinitionFinalPosition
      *
-     * partial: only `redaCount == 0` (the definition's own x/y, written to the unit at [o]);
-     * otherwise throws [UnsupportedOperationException].
+     * partial: called with `findNearest == FALSE`. With `redaCount != 0` the position is the last
+     * REDA's x/y (`AdjustNewUnitPosition` with flags 0 does nothing); a `sumFlag` definition
+     * (flags & 2, a random free neighbouring tile) throws [UnsupportedOperationException].
+     * Otherwise the definition's own x/y; both are written to the unit at [o].
      */
     internal fun genUnitDefinitionFinalPosition(def: UnitDef, o: Int) {
+        var x = def.x
+        var y = def.y
         if (def.redaCount != 0) {
-            throw UnsupportedOperationException(
-                "GenUnitDefinitionFinalPosition: REDA positions (AdjustNewUnitPosition) not ported",
-            )
+            if (def.sumFlag) {
+                throw UnsupportedOperationException(
+                    "GenUnitDefinitionFinalPosition: sumFlag (AdjustNewUnitPosition) not ported",
+                )
+            }
+            val reda = rom.u32(def.redas + 8 * (def.redaCount - 1))
+            x = reda and 0x3F
+            y = (reda shr 6) and 0x3F
         }
-        put8(table.bytes, o + OFF_X, def.x)
-        put8(table.bytes, o + OFF_Y, def.y)
+        put8(table.bytes, o + OFF_X, x)
+        put8(table.bytes, o + OFF_Y, y)
     }
 
     /**
@@ -292,7 +384,9 @@ public class UnitLoader(private val table: UnitTable, private val rom: RomView) 
         val y = (pos shr 6) and 0x3F
         val genMonster = (pos and (1 shl 12)) != 0
         val itemDrop = (pos and (1 shl 13)) != 0
+        val sumFlag = (pos and (1 shl 14)) != 0
         val redaCount = rom.u8(address + 7)
+        val redas = rom.u32(address + 8)
         val items = IntArray(4) { rom.u8(address + 12 + it) }
         val ai = IntArray(4) { rom.u8(address + 16 + it) }
     }
@@ -312,6 +406,15 @@ public class UnitLoader(private val table: UnitTable, private val rom: RomView) 
         const val US_UNDER_A_ROOF = 1 shl 7
         const val US_DROP_ITEM = 1 shl 12
         const val CA_BIT_23 = 1 shl 23
+        const val CA_LOCK_1 = 1 shl 16
+        const val CA_LOCK_2 = 1 shl 17
+        const val CA_LOCK_3 = 1 shl 18
+        const val CA_LOCK_4 = 1 shl 28
+        const val CA_LOCK_5 = 1 shl 29
+        const val CA_LOCK_6 = 1 shl 30
+        const val CA_LOCK_7 = 1 shl 31
+        const val UNIT_STATUS_SILENCED = 3
+        const val UNIT_ITEM_COUNT = 5
         const val CLASS_GORGONEGG = 0x62
         const val CLASS_GORGONEGG2 = 0x34
         const val AI_HEAL_THRESHOLD_MASK = 0x7
@@ -326,6 +429,8 @@ public class UnitLoader(private val table: UnitTable, private val rom: RomView) 
         const val OFF_Y = 0x11
         const val OFF_MAX_HP = 0x12
         const val OFF_CUR_HP = 0x13
+        const val OFF_ITEMS = 0x1E
+        const val OFF_STATUS = 0x30
         const val OFF_CON_BONUS = 0x1A
         const val OFF_MOV_BONUS = 0x1D
         const val OFF_RANKS = 0x28

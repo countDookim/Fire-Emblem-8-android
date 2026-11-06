@@ -85,8 +85,108 @@ class UnitLoaderDifferentialTest {
         assertEquals(0, rom.u8(DEF_ADDRESS + 20 * 8))
     }
 
+    /**
+     * Loads [defs] with the event layer's extras (`LoadUnit_800F704` with d == 0: x/y := the
+     * definition's x/y) onto the units of the "before" dump of run [runName], and returns the
+     * resulting unit bytes by slot together with the "after" dump's.
+     */
+    private fun loadAndDiff(
+        runName: String,
+        beforeDump: String,
+        afterDump: String,
+        defs: List<Int>,
+        firstSlot: Int,
+    ): List<Pair<ByteArray, ByteArray>> {
+        assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        val rom = RomView.ofRom(romFile.readBytes())
+        val r = ref.run(runName)
+        val before = r.region(beforeDump, "ewram")
+        val after = r.region(afterDump, "ewram")
+        val table = UnitTable(rom).also { it.loadFrom(before) }
+        val expected = UnitTable(rom).also { it.loadFrom(after) }
+        for (slot in firstSlot until firstSlot + defs.size) {
+            assertTrue(!table.isValid(slot), "slot $slot free before")
+            assertTrue(expected.isValid(slot), "slot $slot loaded after")
+        }
+        val rows = after.u32(GBM_MAP_TERRAIN)
+        val terrainAt = { x: Int, y: Int -> after.u8(after.u32(rows + 4 * y) + x) }
+        val loader = UnitLoader(table, rom)
+        val out = ArrayList<Pair<ByteArray, ByteArray>>()
+        for ((n, def) in defs.withIndex()) {
+            val id = loader.loadUnit(def, terrainAt)
+            assertEquals(firstSlot + n, id, "slot of def $n")
+            val pos = rom.u16(def + 4)
+            table.bytes[table.unitOffset(id) + 0x10] = (pos and 0x3F).toByte()
+            table.bytes[table.unitOffset(id) + 0x11] = ((pos shr 6) and 0x3F).toByte()
+            val o = table.unitOffset(id)
+            out += expected.bytes.copyOfRange(o, o + UnitTable.UNIT_SIZE) to
+                table.bytes.copyOfRange(o, o + UnitTable.UNIT_SIZE)
+        }
+        return out
+    }
+
+    /**
+     * `ram_trace_prologue`: Seth (3 items) and Eirika (1 item) are loaded by `load_unit1` between
+     * `f15600` (no blue units) and `f15900`, 300 frames apart. Their `MU` walks them along the
+     * REDAs in between, so exactly these bytes are masked:
+     * - +0x0C bit 0 (`US_HIDDEN`): muctrl.c hides the unit while its `MU` walks it in.
+     * - Seth's +0x11 (yPos): his MU has walked on from the definition's (13, 9) to (13, 8)
+     *   (x and Eirika's position equal the definition's).
+     * - +0x3C..0x3F (`pMapSpriteHandle`): set by `RefreshUnitSprites`, not by `LoadUnit`.
+     * Items, `curHP` and every other byte are compared exactly.
+     */
+    @Test
+    @VerifiesPort(
+        "LoadUnit", "UnitInitFromDefinition", "MakeNewItem", "UnitAddItem", "GetItemMaxUses",
+        "GetItemIndex", "GetItemData", "UnitLoadStatsFromChracter", "CharStoreAI",
+        // GetItemAttributes, GetUnitMaxHp, GetItemHpBonus: no unbreakable item, HP bonus 0 here.
+    )
+    fun `loading the prologue allies reproduces units with items`() {
+        val pairs = loadAndDiff(
+            "ram_trace_prologue", "f15600", "f15900", listOf(ALLY_DEF, ALLY_DEF + 20), 1,
+        )
+        for ((n, p) in pairs.withIndex()) {
+            val want = p.first.copyOf()
+            val got = p.second.copyOf()
+            for (b in intArrayOf(0x3C, 0x3D, 0x3E, 0x3F)) want[b] = 0
+            want[0x0C] = (want[0x0C].toInt() and 1.inv()).toByte()
+            got[0x0C] = (got[0x0C].toInt() and 1.inv()).toByte()
+            if (n == 0) {
+                want[0x11] = 0
+                got[0x11] = 0
+            }
+            assertArrayEquals(want, got, "ally $n")
+            val items = (0 until 5).map { (p.first[0x1E + 2 * it].toInt() and 0xFF) or
+                ((p.first[0x1F + 2 * it].toInt() and 0xFF) shl 8) }
+            assertTrue(items[0] != 0, "ally $n has an item")
+        }
+    }
+
+    /**
+     * `ram_trace_prologue`: the messenger (`UnitDef_Event_PrologueMessager`, 3 REDAs) goes into
+     * slot 9 between `f09600` and `f09900`. Masked: +0x10/+0x11 (position: walked on by its MU from
+     * the definition's (9, 15) to (13, 6)) and +0x3C..0x3F (`pMapSpriteHandle`, set by
+     * `RefreshUnitSprites`).
+     */
+    @Test
+    @VerifiesPort("LoadUnit", "UnitInitFromDefinition", "UnitLoadStatsFromChracter")
+    fun `loading the prologue messenger reproduces the unit`() {
+        val p = loadAndDiff("ram_trace_prologue", "f09600", "f09900", listOf(MESSENGER_DEF), 9)
+            .single()
+        val want = p.first.copyOf()
+        val got = p.second.copyOf()
+        for (b in intArrayOf(0x10, 0x11, 0x3C, 0x3D, 0x3E, 0x3F)) {
+            want[b] = 0
+            got[b] = 0
+        }
+        assertArrayEquals(want, got, "messenger")
+    }
+
     private companion object {
         const val DEF_ADDRESS = 0x088B3D18
+        const val ALLY_DEF = 0x088B3C14
+        const val MESSENGER_DEF = 0x088B3DCC
         const val GBM_MAP_TERRAIN = 0x0202E4DC
     }
 }

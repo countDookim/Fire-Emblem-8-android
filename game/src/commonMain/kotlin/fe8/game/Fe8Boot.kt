@@ -10,9 +10,13 @@ import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterMapGfx
 import fe8.game.bm.ResetCursorPosition
 import fe8.game.bm.UnitTable
+import fe8.game.event.EventState
 import fe8.game.flags.Fe8EventFlags
 import fe8.game.opanim.EarlyStartUi
 import fe8.game.opanim.OpAnim
+import fe8.game.save.BmSaveLib
+import fe8.game.save.BmSuspendSave
+import fe8.game.save.SuspendRam
 import fe8.game.title.TitleScreen
 import gba.audio.M4aDriver
 import gba.audio.M4aSound
@@ -56,6 +60,11 @@ public class Fe8Boot(
     public val m4a: M4aSound? = null,
     /** Receives each frame's mixed samples (null: mix only). */
     pcm: PcmStream? = null,
+    /**
+     * The save RAM routines (the owner of the cartridge SRAM), or null while the game has no SRAM
+     * attached: the battle map's suspend save hook then does nothing.
+     */
+    public val saveLib: BmSaveLib? = null,
 ) {
     /** `gKeyStatusPtr`. */
     public val keys: KeyStatus = KeyStatus()
@@ -93,6 +102,9 @@ public class Fe8Boot(
     /** The units the battle map start path touches (raw-unit stand-in). */
     public val units: UnitTable by lazy { UnitTable(rom) }
 
+    /** The event engine's globals (`gEventSlotCounter` is read by the suspend save). */
+    public val eventState: EventState = EventState()
+
     /** `gChapterFlagBits` and friends. */
     public val flags: EventFlags = Fe8EventFlags.create()
 
@@ -116,8 +128,28 @@ public class Fe8Boot(
             ChapterMapGfx(rom, chapters, hw, control.playSt), BmMapRender(bm, map, hw),
             flags, rng, clock, units,
         ).also {
+            main.hooks.writeSuspendSave = suspendSaveHook(main, bm, rom)
             main.hooks.getBattleMapKind = { it.hooks.getBattleMapKind() }
             it.hooks.bmapMainScript = main.script
+        }
+    }
+
+    /**
+     * `WriteSuspendSave` for [BMapMain.Hooks.writeSuspendSave], or a no-op without a [saveLib].
+     *
+     * Stand-ins, until the state exists: `gActionData` is the [SuspendRam.actionData] buffer
+     * (zeros apart from the RN state the save stores and `suspendPointType`, which is merged in
+     * from [BMapMain.suspendPointType] at offset 0x16); the traps, convoy, menu override, world
+     * map info and dungeon state are the zeroed buffers of [SuspendRam] (their owners are not
+     * ported).
+     */
+    private fun suspendSaveHook(main: BMapMain, bm: fe8.game.bm.BmSt, rom: RomView): (Int) -> Unit {
+        val lib = saveLib ?: return {}
+        val save = BmSuspendSave(lib, rom)
+        val ram = SuspendRam(control.playSt, bm, rng, units, flags, clock, eventState)
+        return { slot ->
+            ram.actionData[ACTION_SUSPEND_POINT_TYPE] = main.suspendPointType.toByte()
+            save.writeSuspendSave(ram, slot)
         }
     }
 
@@ -201,6 +233,9 @@ public class Fe8Boot(
         }
     }
 }
+
+/** Offset of `suspendPointType` in `struct ActionData`. */
+private const val ACTION_SUSPEND_POINT_TYPE = 0x16
 
 /** World map stand-in until the world map is ported: no node holds a chapter. */
 private val NO_WORLD_MAP_NODES = object : BattleMapNodes {

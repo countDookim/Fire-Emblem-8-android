@@ -622,10 +622,10 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-gmap.c: ClearWorldMapStuff (not verified: the dump zeroes 2
-     * bytes past the 0x22 written here, struct size unresolved)
+     * Transcribed from src/bmsave-gmap.c: ClearWorldMapStuff (not verified: NewGameSaveReferenceTest
+     * covers its write but no break-check has been run on it yet).
      *
-     * Writes a zeroed `GMapSaveInfo` (0x22 bytes) with `unk_1c_2` = 1 and `unk_1c_3` = 3 (byte
+     * Writes a zeroed `GMapSaveInfo` (0x24 bytes) with `unk_1c_2` = 1 and `unk_1c_3` = 3 (byte
      * 0x1C = 0x0E) to SRAM [destOffset].
      */
     public fun clearWorldMapStuff(destOffset: Int) {
@@ -643,8 +643,7 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-lib.c: WritePermanentFlags (not verified: the New Game trace
-     * copies only zeros).
+     * Ported from src/bmsave-lib.c: WritePermanentFlags
      *
      * Writes the 0x19 bytes of [permanentFlags] (`gPermanentFlagBits`) to SRAM [destOffset].
      */
@@ -654,14 +653,46 @@ public class BmSaveLib(public val sram: CartSram) {
 
 
     /** `gPidStatsData` (0x46 entries of 16 bytes). */
-    private val pidStatsData = ByteArray(PID_STATS_SIZE)
+    public val pidStatsData: ByteArray = ByteArray(PID_STATS_SIZE)
 
     /** `gChapterStats` (0x30 entries of 4 bytes). */
-    private val chapterStatsData = ByteArray(CHAPTER_STATS_SIZE)
+    public val chapterStatsData: ByteArray = ByteArray(CHAPTER_STATS_SIZE)
 
     /** `gPidStatsSaveLoc` as an SRAM offset (-1 = NULL). */
     public var pidStatsSaveLoc: Int = -1
         private set
+
+    /**
+     * Ported from src/bmsave-bwl.c: WritePidStats
+     *
+     * Writes `gPidStatsData` to SRAM [destOffset] and remembers it as `gPidStatsSaveLoc`.
+     */
+    public fun writePidStats(destOffset: Int) {
+        writeAndVerifySramFast(pidStatsData, 0, sram, destOffset, PID_STATS_SIZE)
+        pidStatsSaveLoc = destOffset
+    }
+
+    /**
+     * Transcribed from src/bmsave-bwl.c: WriteChapterStats (not verified: `gChapterStats` is all
+     * zero in the reference, which proves the target, not the data)
+     *
+     * Writes `gChapterStats` to SRAM [destOffset].
+     */
+    public fun writeChapterStats(destOffset: Int) {
+        writeAndVerifySramFast(chapterStatsData, 0, sram, destOffset, CHAPTER_STATS_SIZE)
+    }
+
+    /**
+     * Ported from src/bmsave-lib.c: WriteChapterFlags
+     *
+     * Writes the [Fe8EventFlags.getChapterFlagBitsSize] (5) bytes of `gChapterFlagBits`
+     * ([chapterFlags]) to SRAM [destOffset].
+     */
+    public fun writeChapterFlags(destOffset: Int, chapterFlags: ByteArray) {
+        writeAndVerifySramFast(
+            chapterFlags, 0, sram, destOffset, Fe8EventFlags.getChapterFlagBitsSize(),
+        )
+    }
 
     /**
      * Transcribed from src/bmsave.c: WriteBonusContentClaimFlags (not verified: the New Game
@@ -834,8 +865,8 @@ public class BmSaveLib(public val sram: CartSram) {
         /** `GetPermanentFlagBitsSize()`. */
         const val PERMANENT_FLAGS_SIZE = 0x19
 
-        /** `sizeof(struct GMapSaveInfo)` (0x21 rounded up to its u16 alignment). */
-        const val GMAP_SAVE_INFO_SIZE = 0x22
+        /** `sizeof(struct GMapSaveInfo)`: [Fe8SuspendLayout.GMAP_SAVE_INFO_SIZE]. */
+        const val GMAP_SAVE_INFO_SIZE = Fe8SuspendLayout.GMAP_SAVE_INFO_SIZE
 
         /** Offset of the `unk_1c_*` bit field byte in `GMapSaveInfo`. */
         const val GMAP_BITS_1C = 0x1C
@@ -882,7 +913,7 @@ public class BmSaveLib(public val sram: CartSram) {
         const val GAME_PERMANENT_FLAGS = GAME_CHAPTER_STATS + CHAPTER_STATS_SIZE
         const val GAME_BONUS_CLAIM = GAME_PERMANENT_FLAGS + 0x1C
         const val GAME_WM_STUFF = GAME_BONUS_CLAIM + 4
-        const val GAME_DUNGEONS = GAME_WM_STUFF + GMAP_SAVE_INFO_SIZE + 2
+        const val GAME_DUNGEONS = GAME_WM_STUFF + GMAP_SAVE_INFO_SIZE
 
         /** `MAX_SAVED_GAME_CLEARS`. */
         const val CLEARED_PLAYTHROUGHS = 12

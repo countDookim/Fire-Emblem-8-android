@@ -62,11 +62,6 @@ class NewGameSaveReferenceTest {
         // 0x480F: last byte of the supply block, never written by WriteSupplyItems' packing and
         // so uninitialised stack in the C `buf` (0x0E in the dump).
         got[SUPPLY_LAST_BYTE] = want[SUPPLY_LAST_BYTE]
-        // 0x4D72..3: the dump has zeros between the world map info and the dungeons; which write
-        // covers them is unresolved (GMapSaveInfo is 0x22 bytes by its definition), so they are
-        // taken from the dump.
-        got[GAP] = want[GAP]
-        got[GAP + 1] = want[GAP + 1]
         // Slot 0's block info checksum32 covers the bytes above: recompute it with the library
         // from the patched image (so it is checked for consistency, not independently).
         val lib2 = BmSaveLib(CartSram().also { it.copyIn(got) })
@@ -111,6 +106,5 @@ class NewGameSaveReferenceTest {
         const val SOUND_ROOM_FIRST_BYTE = 0x7224
         const val RESERVED = 0x73A0
         const val SUPPLY_LAST_BYTE = 0x480F
-        const val GAP = 0x4D72
     }
 }

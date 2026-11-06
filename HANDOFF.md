@@ -9,66 +9,20 @@ _(nothing blocked)_
 ## In progress
 _(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
-## Check first (owner, 2026-11-06)
-- Issue #4 fixed 11-06 (cloud owner session), awaiting device retest: causes were BMapMain fade stand-ins (no-op;
-  now `ScreenFade`, bmlib.c), map palette never unpacked (`StartBattleMap` now calls `unpackChapterMapGraphics`),
-  and no map/event BGM (`MapMusic`, `EventBgm`). Open: Event15 + `StartBgmVolumeChange` (save-menu BGM ramp,
-  ram_trace_newgame f1174..1193), GameControl fade stand-ins (GameControl.kt:206-212, 409-414), the opening event
-  repeats fades because text/camera/unit commands are stubs. Map palette not yet compared to first_phase pal.bin.
+## Check first (owner, 2026-11-07)
+- Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume
+  turn 1). Issue #4 can be closed. Owner-reported problem on the Prologue opening (not investigated yet; owner said
+  note it, don't fix): no dialogue; the screen flashes a few times starting when the dialogue should start, then
+  all cutscene units appear on the map on wrong tiles; no enemies are shown; cursor moves but nothing is
+  interactable. Known so far: `Fe8Boot.eventEngine` (Fe8Boot.kt:184-252) registers only EventScrCore, unit loads,
+  ChangeMap, Fade, Bgm; Talk (M6-33/34), Mu (M6-25..27) and `EventUnitState` (Event34) are ported but not
+  registered there, so text/move/unit-removal commands hit `ReleaseEventStubs` no-ops. Missing enemies and the
+  wrong tiles are unexplained (headless `PrologueMapTest` has 15 red units at the player phase). No player actions
+  are ported (expected). Likely closed by M6-37 (Event1A/1B) + wiring Mu/Event34 + M6-22/28/44; confirm with a
+  stub-hit trace of the opening event before fixing.
+- Open from issue #4: Event15 + `StartBgmVolumeChange` (save-menu BGM ramp, ram_trace_newgame f1174..1193),
+  GameControl fade stand-ins (GameControl.kt:206-212, 409-414). Map palette not yet compared to first_phase pal.bin.
 
-## Audit 11-06 20:10Z (owner PC) of scheduled work 3c26e9e..ab985a8
-Full jvmTest green (555). 6 tags withheld because breaks survived (UpdateMapImgAnimations: VRAM every 10th frame;
-GameCtrl_StartResumedGame: camera 0; FadeFromCommon_OnLoop: one fade speed; GetUnitSpriteHideFlag; SetEventSlotCounter;
-WriteLastGameSaveId): stronger tests can reinstate them. KDoc fixes done (M6-46). Unchecked groups: ReadGameSave/
-WriteGameSave, ReadSuspendSave, unit-sprite reset/use/refresh, StartLockingFadeFromBlack, SwitchPostSaveMenu.
-Same session: M6-23 (EventChangeMap), M6-25/26/27 (Mu.kt start, movement, display; AP_* animation player is a hook),
-M6-30 (gbafe.text.MsgStrings), M6-31/32 (gbafe.text Font/TextSystem fonts, widths, glyph drawing, PutText) done;
-M6-46: no "Ported from" without a tag left (`progress.py` prints `ported-without-tag`; it now ignores .claude/ worktrees).
-M6-33/34 (fe8.game.scene Talk: init, interpreter, wait-for-A; the whole first talk matches per frame) and M6-38/39
-(BmBattle + BattleGenerate: unit init, stats, scripted hits; Prologue battle matches r14430) done. Next: M6-35/36
-(faces, bubble/shift procs: TalkInterpretDifferentialTest has transcribed stand-ins for them), M6-37 (Event1A/1B),
-M6-40/41 (battle result + Event3F).
- Merged `wip/M6-05`, `wip/M6-17` deleted.
-
-## Next task: M6-20 rest, M6-19 rest, M6-29 (wip) (TASKS)
-Scheduled 11-06 19:50Z: M6-12 done (eb45763): `Fe8Boot(saveStorage)`, MainActivity `filesDir/fe8.sav`; save menu stand-in
-resumes whenever a valid suspend exists (else New Game); `ResumeBootTest` Ch2/Prologue reach idle, units == ch2_scroll/
-prologue_resume r01299 (mask +0x3C). `wip/M6-29`: Event26/3B/3C transcribed, untagged: 0x3C runs in no event trace;
-3B needs the EventDisplayCursor child proc compared (procs watch +0x64..0x6A); talk/battle runs replay with a one-line
-`EventTrace.prologue` change, but talk mismatches at step 9803: our 0x3B parks at 0x089EECF4 (char 15 absent: units made by stubbed 0x2C inside
-the window are not in the replay's seeded table; lookup itself matches C). wip/M6-29 now skips those lookups and replays
-talk/battle without mismatches (>1000 pairs each). Still untagged: 3B child proc, 0x3C, camera. M6-10: ResumeFromPhaseIdle verified (BMapMain = proc slot 2 of
-gProcArray 0x02024E68, cmd 40 = label 4 at r01150; dispcnt vs iwram 0x03003080); other variants unreached by traces.
-Full jvmTest green 19:58Z. CI eb45763 failed only the summary skip guard (prologue.sav absent in CI); fixed in bc7c23b (SRAM
-dump s01001 of ram_trace_prologue_resume).
-Scheduled 11-06 19:06Z: M6-19 partial: `MapAnimations` tile anim verified + wired in Fe8Boot (see TASKS). Full jvmTest green 19:06Z.
-Scheduled 11-06 19:00Z: M6-18 done (`MapCursor`, wired; `MapCursorDifferentialTest` vs first_phase OAM objects 0..3; drawn
-position = dumped playerCursorDisplay minus the slide step, test searches 0..4 px: tighten if a per-frame gBmSt trace exists).
-GetCurrentMapMusicIndex stays untagged: Prologue traces cannot tell red from green slots, no victory/flag-4/skirmish case (needs a later-chapter run).
-Scheduled 11-06 18:55Z: M6-17 done. `UnitSpritesOam` (PutUnitSpritesOam/IconsOam verified vs first_phase oam.bin
-f19430..19530: cursor = objects 0..3, ours from 4, clock = dump clock - 1). Fe8Boot `wireUnitSprites` replaces the
-BattleMapStart/BMapMain/PlayerPhase unit-sprite stand-ins (trap pool zeroed stand-in); `PrologueMapTest` sees 6 unit
-objects at idle (not compared to the dump: cutscene stubs). OBJ drawn by HardwareScene (code-read; not yet seen on
-device). Local `dokkaGenerate` not found without ANDROID_HOME; CI runs it. Force-push and branch delete are blocked here: `wip/M6-17` is merged and can be deleted.
-Scheduled 11-06 18:16Z: M6-11 done (`savemenu/PostSaveMenu.kt`, `PostSaveMenuDifferentialTest`; stand-in selection; not
-yet wired into `GameControl.hooks.startSaveMenu`: do it in M6-12). M6-13 blocked (no run reaches the four functions; TASKS).
-M6-15/16 done (`UnitSprites`, `UnitSpriteHandles`, `UnitSpritesDifferentialTest` vs f19430). `wip/M6-17`: Sync/ForceSync
-UnitSpriteSheet; ForceSync verified over f19430..19530 (>=68 branch unobserved; SyncUnitSpriteSheet untagged, testable at
-f19450/f19490 clock 32/0; `registerDataMove` copies at once instead of queueing FlushTiles); open: PutUnitSpritesOam,
-MapTask hook, Fe8Game.present OBJ. Full jvmTest + :game Dokka green 11-06 18:34Z (master ce4cf72).
-Scheduled 11-06 18:xx: M6-08 done (`SaveStorage`, `FileSaveStorage` temp+ATOMIC_MOVE in gba/core jvmMain,
-`CartSram.loadFrom/flushTo`; Android wiring = `File(filesDir, "fe8.sav")` in M6-12). M6-09 done
-(`BattleMapStart.startResumedGame`, wired in Fe8Boot; `StartResumedGameDifferentialTest` r01149 gBmSt; camera only
-weakly covered, ch2_scroll untested). M6-10 partial: variants + dispatch transcribed, untagged; for M6-12 set
-`battleMap.hooks.suspendPointType` from a `SuspendRam.actionData[0x16]` filled by ReadSuspendSave, wire
-`hooks.refreshEntityBmMaps/refreshUnitSprites` (EntityBmMaps is ported but not injected), then tag PhaseIdle vs a
-dump that shows the BMapMain label (subagent could not find the proc in the r01149 proc array). M6-11: 
-`GameControl.switchPostSaveMenu` was already transcribed (checked vs gamecontrol.c:447); open: PostSaveMenuHandler
-(needs a SaveMenuProc) and the ch2_scroll/ch6_start tests. Full jvmTest green 11-06 18:12Z.
-M6-05/06/07 done (scheduled 11-06): ReadSuspendSave* and ReadGameSave/LoadSavedUnit verified (`ReadSuspendSaveReferenceTest`,
-`ReadGameSaveReferenceTest`, `BmGameSave.kt`); WriteGameSave round trip masks 3 uninitialised-stack bytes + checksum; WriteGlobalSaveInfo (character-known marking) unobserved, untagged. Fix: ReadPermanentFlags reads 0x19 bytes (was 0x18). Weak spots: ReadGameSave's
-`gameSaveSlot = slot` and `InvalidateSuspendSave` are unobserved by the ch6 run. Decomp C is not in setup's assets:
-`git clone --depth 1 --filter=blob:none --sparse https://github.com/FireEmblemUniverse/fireemblem8u` + `sparse-checkout set src include`.
 `wip/M6-05` (remote) is merged and can be deleted.
 Device crash fixed 11-06 (bca8381): START on the title with only the boot/sound windows (debug APK, no import) read
 chapter data outside the view; the New Game stand-in now runs only on `RomView.isWholeRom`. `AppRomPathTest` drives
@@ -81,7 +35,7 @@ ram_trace_first_phase f19430, 0 B/frame idle with D-pad). Known gap: release no-
 for red units 139/142; closed by M6-22/28/44. M5-61 (11-06): import keeps `base/rom/baserom.gba` and
 the app runs on `RomView.ofRom` (old installs: re-import); device test pending. M6-03/04: the suspend save is written at each phase start through `Fe8Boot.saveLib` (stand-ins:
 actionData, traps, convoy, WM info, dungeon; GMapSaveInfo is 0x24). M6-21/22: `EventVmDifferentialTest` compares
-unit arrays; `EventUnitState` (Event34) registered, untagged. New runs ram_trace_prologue_{talk,battle,resume}
+unit arrays; `EventUnitState` (Event34) registered in the test engine only (not Fe8Boot), untagged. New runs ram_trace_prologue_{talk,battle,resume}
 (ROM repo c80bcb8; excluded from m4a tests). Old `wip/` branches deleted 11-06.
 
 ## State

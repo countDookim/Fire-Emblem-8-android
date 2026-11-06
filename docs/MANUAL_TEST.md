@@ -9,19 +9,11 @@ on the launcher screen).
 Install and launch; boot to the title (H&S, logos, op anim, title) with original timing and sound incl. PSG;
 GPU renderer; gamepad/keyboard; on-screen touch buttons (cross D-pad, diagonals, multi-touch, safe-area
 layout); pause/resume; ROM import (~4 s) and Play from the imported data.
+2026-11-07, APK 5e213f1: KMP rebuild (no regressions), New Game fades in on the Prologue map with the event song
+(issue #4), close/reopen resumes turn 1 (M6-12).
 
 ## Newly testable
-- **Close and reopen the app resumes turn 1 (M6-12, 2026-11-06):** APK from this commit+. Steps: Play, START on the
-  title, wait for the Prologue player phase (units, cursor), close the app (swipe away), reopen, Play, START.
-  Expect: it resumes on the Prologue map at turn 1 instead of replaying the opening. The save menu is not ported:
-  START always resumes while a suspend save exists (clear app data to start over).
-- **New Game shows the Prologue map (issue #4 fix, 2026-11-06):** APK from 1b207b8+ (fades, map palette) and the
-  next commit (music). Steps: Play, START on the title. Expect: within ~1 s the screen fades in on the Prologue map,
-  the title theme fades out and the opening event song plays. Known: the opening event keeps running with stubbed
-  text/camera/unit commands, so the screen may fade out and in again repeatedly; no dialogue or sprites yet.
-- **KMP rebuild (no new feature, 2026-11-04):** the game libraries are now Kotlin Multiplatform and the APK uses
-  their Android builds. Check nothing regressed: launch, Play boots to the title with music and sound effects,
-  touch buttons and gamepad work, and ROM import (if you use it) still completes and Play boots from it.
+_(nothing new; next device test: after M6-37 wires dialogue into the app)_
 
 ## Known not working (don't report)
 After the title: no save menu (New Game is chosen automatically), no dialogue, unit or cursor sprites, map music,

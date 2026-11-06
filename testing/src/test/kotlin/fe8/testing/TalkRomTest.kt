@@ -345,7 +345,7 @@ class TalkRomTest {
             ((b[o + 2].toInt() and 0xFF) shl 16) or ((b[o + 3].toInt() and 0xFF) shl 24)
 
     /** Host recording the calls; VRAM, palette and tilemap are plain arrays (sentinels). */
-    private class Host(val rom: ByteArray, val runDir: File) : TextHost, TalkHost {
+    private class Host(val rom: ByteArray, val runDir: File) : TextHost, TalkHostDefaults {
         val vram = ByteArray(0x18000)
         val pal = ByteArray(0x400) { SENT }
         val tm = ShortArray(0x400) { 0x5555 }

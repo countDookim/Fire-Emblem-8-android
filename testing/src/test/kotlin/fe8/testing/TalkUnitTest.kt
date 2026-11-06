@@ -113,7 +113,7 @@ class TalkUnitTest {
         return Talk(ts, engine, host) to engine
     }
 
-    private class StubHost : TextHost, TalkHost {
+    private class StubHost : TextHost, TalkHostDefaults {
         var len = 0
         var lenArg = 0
         override fun language() = 1

@@ -1,6 +1,7 @@
 package fe8.game.scene
 
 import gbafe.proc.Proc
+import gbafe.text.Text
 
 /**
  * Services the talk window (`src/scene.c`) uses that live outside the functions [Talk] ports:
@@ -49,4 +50,88 @@ public interface TalkHost {
 
     /** `SetTalkFaceMouthMove(faceSlot)`. */
     public fun setTalkFaceMouthMove(faceSlot: Int)
+
+    /** The array behind GBA address [addr] of a message string (EWRAM buffer, ROM or IWRAM). */
+    public fun stringArray(addr: Int): ByteArray
+
+    /** Offset of GBA address [addr] inside [stringArray]. */
+    public fun stringOffset(addr: Int): Int
+
+    /** `IsTalkFaceMoving`: a `gProcScr_TalkFaceMove` proc exists. */
+    public fun isTalkFaceMoving(): Boolean
+
+    /** `SetTalkFaceNoMouthMove(faceSlot)`. */
+    public fun setTalkFaceNoMouthMove(faceSlot: Int)
+
+    /**
+     * `TalkLoadFace(proc)`: loads the face whose id is at the string cursor ([TalkState.str]) into
+     * the active slot and updates `faces` (face procs belong to the face port).
+     */
+    public fun talkLoadFace(proc: Proc)
+
+    /** `StartFaceFadeOut(face)`. */
+    public fun startFaceFadeOut(face: Int)
+
+    /** `StartTemporaryLock(proc, frames)`. */
+    public fun startTemporaryLock(proc: Proc, frames: Int)
+
+    /**
+     * `MoveTalkFace(from, to)`: slides the face of slot [from] to slot [to], swapping `faces`.
+     */
+    public fun moveTalkFace(from: Int, to: Int)
+
+    /** `SetFaceBlinkControl(face, mode)`. */
+    public fun setFaceBlinkControl(face: Int, mode: Int)
+
+    /** `sub_80064D4(face, mode)`: the eye state of a face. */
+    public fun setFaceEyes(face: Int, mode: Int)
+
+    /**
+     * `StartTalkChoice` with the yes/no ([buySell] false) or buy/sell choice at tilemap [offset].
+     */
+    public fun startTalkChoice(
+        buySell: Boolean,
+        text: Text,
+        tm: ShortArray,
+        offset: Int,
+        defaultChoice: Int,
+        color: Int,
+        parent: Proc,
+    )
+
+    /** `Proc_StartBlocking(gProcScr_TalkShiftClearAll, parent)`. */
+    public fun startTalkShiftClearAll(parent: Proc)
+
+    /** `Proc_StartBlocking(ProcScr_TalkSpriteShiftClear, parent)`. */
+    public fun startTalkSpriteShiftClear(parent: Proc)
+
+    /** `TalkFlushAllLine` (sprite text). */
+    public fun talkFlushAllLine()
+
+    /** `Proc_EndEach(gProcScr_TalkSkipListener)`. */
+    public fun endTalkSkipListener()
+
+    /** `Proc_EndEach(gProcScr_TalkShiftClearAll)`. */
+    public fun endTalkShiftClearAll()
+
+    /** `NumberToStringAscii(number, buf)`. */
+    public fun numberToStringAscii(number: Int, buf: ByteArray)
+
+    /** `GetTacticianName`: GBA address of the player name. */
+    public fun tacticianName(): Int
+
+    /** `GetTextDisplaySpeed`. */
+    public fun textDisplaySpeed(): Int
+
+    /** `GetGameClock`. */
+    public fun gameClock(): Int
+
+    /** `gKeyStatusPtr->newKeys`. */
+    public fun newKeys(): Int
+
+    /** `PlaySoundEffect(song)`. */
+    public fun playSoundEffect(song: Int)
+
+    /** `PutSprite(layer, x, y, gPressKeyArrowSpriteLut[lutIndex], oam2)`. */
+    public fun putSprite(layer: Int, x: Int, y: Int, lutIndex: Int, oam2: Int)
 }

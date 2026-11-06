@@ -151,6 +151,8 @@ unit arrays; `EventUnitState` (Event34) registered, untagged. New runs ram_trace
   on Groovy property access.
 - `tools/progress.py` credits a `@VerifiesPort` test to the LAST `class` declared before it: keep helper classes
   below the test class.
+- CI runs `progress.py --write` but never commits it: after a full `jvmTest test`, run
+  `python3 tools/progress.py --write` and commit README.md + docs/port_map.json yourself.
 - Allocation tests can flake (200 B once in 1000 frames): use `AllocationMeter.measureMin`.
 - `FrameCompareTest.applyHBlank` knows only `HBlank_BgVerticalScroll`; dumped RAM is one game step ahead of the
   dumped frame.

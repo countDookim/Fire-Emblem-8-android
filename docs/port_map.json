@@ -6,10 +6,19 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 395,
-    "implemented_unverified": 136
+    "verified": 406,
+    "implemented_unverified": 140
   },
   "functions": {
+    "AddUnitSprite": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpriteHandles.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitSpritesDifferentialTest#handle list matches the dump"
+      ]
+    },
     "AdvanceGetLCGRNValue": {
       "decomp_file": "src/rng.c",
       "system": "core",
@@ -26,6 +35,33 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterMapGraphicsDifferentialTest#system object palettes match the dump"
+      ]
+    },
+    "ApplyUnitSpriteImage16x16": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitSpritesDifferentialTest#sprite buffer and slots match the dump"
+      ]
+    },
+    "ApplyUnitSpriteImage16x32": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitSpritesDifferentialTest#sprite buffer and slots match the dump"
+      ]
+    },
+    "ApplyUnitSpritePalettes": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitSpritesDifferentialTest#unit sprite palettes match the dump"
       ]
     },
     "BG_EnableSyncByMask": {
@@ -483,6 +519,13 @@
         "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
       ]
     },
+    "CountUnitsInState": {
+      "decomp_file": "src/bmphase.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "DecodeString": {
       "decomp_file": "asm/arm.s",
       "system": "core",
@@ -793,6 +836,13 @@
       "status": "implemented",
       "tests": []
     },
+    "Event12_StartBGM": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventBgm.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "Event17_Fade": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -1044,6 +1094,16 @@
       "status": "implemented",
       "tests": []
     },
+    "GameControl_SwitchPostSaveMenu": {
+      "decomp_file": "src/gamecontrol.c",
+      "system": "core",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameControl.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PostSaveMenuDifferentialTest#last game slot restarts into the battle map like ch6_start",
+        "fe8.testing.PostSaveMenuDifferentialTest#suspend save resumes the game like ch2_scroll"
+      ]
+    },
     "GameCtrlStartIntroMonologue": {
       "decomp_file": "src/gamecontrol.c",
       "system": "core",
@@ -1051,6 +1111,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.GameControlDifferentialTest#save menu return reaches the intro monologue like the game"
+      ]
+    },
+    "GameCtrl_StartResumedGame": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.StartResumedGameDifferentialTest#gBmSt after the resumed game start matches the dump"
       ]
     },
     "GameEarlyStartDelay": {
@@ -1262,6 +1331,13 @@
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
       ]
+    },
+    "GetCurrentMapMusicIndex": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapMusic.kt",
+      "status": "implemented",
+      "tests": []
     },
     "GetCurrentPromotedLevelBonus": {
       "decomp_file": "src/bmdifficulty.c",
@@ -1512,6 +1588,15 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
+    },
+    "GetUnitSpritePalette": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpriteHandles.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitSpritesDifferentialTest#handle list matches the dump"
+      ]
     },
     "GetUnitStructFromEventParameter": {
       "decomp_file": "src/eventscr_utils.c",
@@ -2206,6 +2291,16 @@
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
       ]
     },
+    "PostSaveMenuHandler": {
+      "decomp_file": "src/savemenu.c",
+      "system": "save",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/savemenu/PostSaveMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PostSaveMenuDifferentialTest#last game slot restarts into the battle map like ch6_start",
+        "fe8.testing.PostSaveMenuDifferentialTest#suspend save resumes the game like ch2_scroll"
+      ]
+    },
     "Proc08AA6D04Main": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
@@ -2536,6 +2631,15 @@
         "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
       ]
     },
+    "RefreshUnitSprites": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpriteHandles.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitSpritesDifferentialTest#handle list matches the dump"
+      ]
+    },
     "RefreshUnitsOnBmMap": {
       "decomp_file": "src/bmmap.c",
       "system": "battle_map",
@@ -2596,6 +2700,15 @@
       "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt",
       "status": "implemented",
       "tests": []
+    },
+    "ResetUnitSprites": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitSpritesDifferentialTest#sprite buffer and slots match the dump"
+      ]
     },
     "Roll1RN": {
       "decomp_file": "src/rng.c",
@@ -3032,6 +3145,13 @@
       "decomp_file": "src/bmlib.c",
       "system": "battle_map",
       "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "StartMapSongBgm": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapMusic.kt",
       "status": "implemented",
       "tests": []
     },
@@ -3488,6 +3608,15 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
+    },
+    "UseUnitSprite": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitSpritesDifferentialTest#sprite buffer and slots match the dump"
+      ]
     },
     "VerifySaveBlockChecksum": {
       "decomp_file": "src/bmsave.c",

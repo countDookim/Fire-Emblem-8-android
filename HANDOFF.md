@@ -10,9 +10,11 @@ _(nothing blocked)_
 _(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-06)
-- Issue #4 (START → black, audio continues): matches the windows-only hold (no kept ROM; save menu unported).
-  Replied 11-06 asking for APK ≥ bca8381 + Re-import ROM. If the owner reports it persists after re-import, debug
-  the whole-ROM path on device; maybe show an in-game hint when START hits the hold.
+- Issue #4 (owner retested 11-06 after re-import: still black + title theme): reproduced on JVM (Fe8Game, whole ROM,
+  one START on the title): PlayerPhase is reached 33 frames later, but BLDCNT=0x3FF/BLDY=16 (full darken) forever,
+  only 32 non-zero BG palette colors, and BGM player 0 keeps the title song. Fix = M6-24 (Event17_Fade) + M6-20 (map
+  BGM) + check the map palette load; then a test asserting the rendered frame is not blank. Tests only checked
+  tilemaps, so MANUAL_TEST overclaimed (corrected).
 
 ## Next task: M6-08, then M6 in TASKS order
 M6-05/06/07 done (scheduled 11-06): ReadSuspendSave* and ReadGameSave/LoadSavedUnit verified (`ReadSuspendSaveReferenceTest`,

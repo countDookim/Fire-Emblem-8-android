@@ -253,6 +253,11 @@ class UnitLoaderDifferentialTest {
         }
     }
 
+    // Not @VerifiesPort: UnitAutolevelRealistic (no blue autolevel unit is loaded in the traced
+    // runs; breaking it leaves every test here green), UnitApplyBonusLevels and
+    // UnitAutolevelPenalty (the traced runs are chapter 0, whose easy / normal malus is 0 and
+    // whose red units are not loaded in hard mode, so the level count is 0 and both return at
+    // once; the other traces load no units), LoadUnit_800F704 (b is a guess, terrain stubbed).
     private companion object {
         const val DEF_ADDRESS = 0x088B3D18
         const val SHAMANS_DEF = 0x088B3E30

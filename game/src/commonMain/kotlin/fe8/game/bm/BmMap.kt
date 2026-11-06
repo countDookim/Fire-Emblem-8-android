@@ -211,7 +211,8 @@ public class BmMap(
     }
 
     /**
-     * Ported from src/bmmap.c: BmMapFillEdges
+     * Transcribed from src/bmmap.c: BmMapFillEdges (not verified: no test checks it against a trace
+     *   yet)
      *
      * Sets the outermost tiles of the map (first and last column and row) of [pool] to [value].
      */

@@ -24,7 +24,8 @@ internal class ItemInfo(private val rom: RomView) {
     fun getItemIndex(item: Int): Int = item and 0xFF
 
     /**
-     * Ported from src/bmitem.c: GetItemType
+     * Transcribed from src/bmitem.c: GetItemType (not verified: no test checks it against a trace
+     *   yet)
      *
      * The `weaponType` of [item], 0xFF for no item.
      */
@@ -32,7 +33,8 @@ internal class ItemInfo(private val rom: RomView) {
         if (item == 0) 0xFF else rom.u8(getItemData(getItemIndex(item)) + 0x07)
 
     /**
-     * Ported from src/bmitem.c: GetItemAttributes
+     * Transcribed from src/bmitem.c: GetItemAttributes (not verified: no test checks it against a
+     *   trace yet)
      *
      * The `attributes` word of [item].
      */
@@ -51,21 +53,24 @@ internal class ItemInfo(private val rom: RomView) {
         }
 
     /**
-     * Ported from src/bmitem.c: GetItemRequiredExp
+     * Transcribed from src/bmitem.c: GetItemRequiredExp (not verified: no test checks it against a
+     *   trace yet)
      *
      * The `weaponRank` of [item].
      */
     fun getItemRequiredExp(item: Int): Int = rom.u8(getItemData(getItemIndex(item)) + 0x1C)
 
     /**
-     * Ported from src/bmitem.c: GetItemStatBonuses
+     * Transcribed from src/bmitem.c: GetItemStatBonuses (not verified: no test checks it against a
+     *   trace yet)
      *
      * The `pStatBonuses` pointer of [item] (0 for none).
      */
     fun getItemStatBonuses(item: Int): Int = rom.u32(getItemData(getItemIndex(item)) + 0x0C)
 
     /**
-     * Ported from src/bmitem.c: GetItemHpBonus
+     * Transcribed from src/bmitem.c: GetItemHpBonus (not verified: no test checks it against a
+     *   trace yet)
      *
      * The (signed) `hpBonus` of [item], 0 for no item or no stat bonuses.
      */

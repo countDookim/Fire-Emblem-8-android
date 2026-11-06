@@ -156,6 +156,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"verified: {', '.join(done) or '-'}")
     if pending:
         print(f"implemented, unverified: {', '.join(pending)}")
+    # "Ported from" names no @VerifiesPort test names: their KDoc must say "Transcribed from ...
+    # (not verified: ...)" instead (CLAUDE.md rule 4, ADR 0006). Should stay 0.
+    tagged = {n for names in tests.values() for n in names}
+    print(f"ported-without-tag: {sum(1 for n in ported if n not in tagged)}")
     if not passed:
         print("note: no JUnit results found (run ./gradlew jvmTest first); nothing counts as verified", file=sys.stderr)
     if unknown:

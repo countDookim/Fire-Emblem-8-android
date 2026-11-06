@@ -23,7 +23,7 @@ public class ProcEngine(
     /**
      * Clears every proc and the root trees and refills the allocation stack in array order.
      *
-     * Ported from src/proc.c: Proc_Init
+     * Transcribed from src/proc.c: Proc_Init (not verified: no test checks it against a trace yet)
      */
     public fun init() {
         for (p in procs) {
@@ -203,7 +203,8 @@ public class ProcEngine(
     /**
      * Sets [proc]'s mark.
      *
-     * Ported from src/proc.c: Proc_SetMark
+     * Transcribed from src/proc.c: Proc_SetMark (not verified: no test checks it against a trace
+     *   yet)
      */
     public fun setMark(proc: Proc, mark: Int) {
         proc.mark = mark and 0xFF
@@ -212,7 +213,8 @@ public class ProcEngine(
     /**
      * Sets [proc]'s end callback.
      *
-     * Ported from src/proc.c: Proc_SetEndCb
+     * Transcribed from src/proc.c: Proc_SetEndCb (not verified: no test checks it against a trace
+     *   yet)
      */
     public fun setEndCb(proc: Proc, func: ProcFunc?) {
         proc.endCb = func
@@ -221,7 +223,8 @@ public class ProcEngine(
     /**
      * Sets [proc]'s repeat callback.
      *
-     * Ported from src/proc.c: Proc_SetRepeatCb
+     * Transcribed from src/proc.c: Proc_SetRepeatCb (not verified: no test checks it against a
+     *   trace yet)
      */
     public fun setRepeatCb(proc: Proc, func: ProcFunc?) {
         proc.idleCb = func
@@ -230,7 +233,8 @@ public class ProcEngine(
     /**
      * Calls [func] on every live proc in array order.
      *
-     * Ported from src/proc.c: Proc_ForAll
+     * Transcribed from src/proc.c: Proc_ForAll (not verified: no test checks it against a trace
+     *   yet)
      */
     public fun forAll(func: ProcFunc) {
         for (p in procs) if (p.script != null) func.invoke(p)
@@ -239,7 +243,8 @@ public class ProcEngine(
     /**
      * Calls [func] on every proc running [script] in array order.
      *
-     * Ported from src/proc.c: Proc_ForEach
+     * Transcribed from src/proc.c: Proc_ForEach (not verified: no test checks it against a trace
+     *   yet)
      */
     public fun forEach(script: ProcScript, func: ProcFunc) {
         for (p in procs) if (p.script === script) func.invoke(p)
@@ -248,7 +253,8 @@ public class ProcEngine(
     /**
      * Calls [func] on every proc (ended ones included, as in the original) with [mark].
      *
-     * Ported from src/proc.c: Proc_ForEachMarked
+     * Transcribed from src/proc.c: Proc_ForEachMarked (not verified: no test checks it against a
+     *   trace yet)
      */
     public fun forEachMarked(mark: Int, func: ProcFunc) {
         for (p in procs) if (p.mark == mark) func.invoke(p)
@@ -257,7 +263,8 @@ public class ProcEngine(
     /**
      * Increments the lock count of every proc with [mark].
      *
-     * Ported from src/proc.c: Proc_BlockEachMarked
+     * Transcribed from src/proc.c: Proc_BlockEachMarked (not verified: no test checks it against a
+     *   trace yet)
      */
     public fun blockEachMarked(mark: Int) {
         for (p in procs) if (p.mark == mark) p.lockCnt = (p.lockCnt + 1) and 0xFF
@@ -266,7 +273,8 @@ public class ProcEngine(
     /**
      * Decrements the lock count of every locked proc with [mark].
      *
-     * Ported from src/proc.c: Proc_UnblockEachMarked
+     * Transcribed from src/proc.c: Proc_UnblockEachMarked (not verified: no test checks it against
+     *   a trace yet)
      */
     public fun unblockEachMarked(mark: Int) {
         for (p in procs) if (p.mark == mark && p.lockCnt > 0) p.lockCnt--
@@ -275,7 +283,8 @@ public class ProcEngine(
     /**
      * Ends every proc with [mark].
      *
-     * Ported from src/proc.c: Proc_EndEachMarked
+     * Transcribed from src/proc.c: Proc_EndEachMarked (not verified: no test checks it against a
+     *   trace yet)
      */
     public fun endEachMarked(mark: Int) {
         for (p in procs) if (p.mark == mark) end(p)

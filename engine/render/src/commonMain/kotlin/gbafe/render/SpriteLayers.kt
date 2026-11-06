@@ -63,7 +63,7 @@ public class SpriteLayers {
     /**
      * Adds a sprite to [layer] at ([x], [y]) (masked to 9 / 8 bits).
      *
-     * Ported from src/ctc.c: PutSprite
+     * Transcribed from src/ctc.c: PutSprite (not verified: no test checks it against a trace yet)
      */
     public fun put(layer: Int, x: Int, y: Int, obj: SpriteObject, oam2: Int) {
         putExt(layer, x and 0x1FF, y and 0xFF, obj, oam2)

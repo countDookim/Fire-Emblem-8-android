@@ -100,7 +100,8 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
     }
 
     /**
-     * Ported from src/eventinfo.c: SetChapterFlag
+     * Transcribed from src/eventinfo.c: SetChapterFlag (not verified: no test checks it against a
+     *   trace yet)
      *
      * Sets chapter flag [flag]; flag 0 does nothing.
      */
@@ -112,7 +113,8 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
     }
 
     /**
-     * Ported from src/eventinfo.c: ClearChapterFlag
+     * Transcribed from src/eventinfo.c: ClearChapterFlag (not verified: no non-zero state is
+     *   cleared in any trace; needs a later chapter)
      *
      * Clears chapter flag [flag]; flag 0 does nothing.
      */
@@ -124,7 +126,8 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
     }
 
     /**
-     * Ported from src/eventinfo.c: ResetChapterFlags
+     * Transcribed from src/eventinfo.c: ResetChapterFlags (not verified: no non-zero state is
+     *   cleared in any trace; needs a later chapter)
      *
      * Clears the first `chapterSaveBytes` (5) chapter bytes; flags 41..99 live beyond them and
      * survive.
@@ -134,7 +137,8 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
     }
 
     /**
-     * Ported from src/eventinfo.c: CheckChapterFlag
+     * Transcribed from src/eventinfo.c: CheckChapterFlag (not verified: no non-zero state is
+     *   cleared in any trace; needs a later chapter)
      *
      * True if chapter flag [flag] is set; flag 0 is always false.
      */
@@ -158,7 +162,8 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
     }
 
     /**
-     * Ported from src/eventinfo.c: ClearPermanentFlag
+     * Transcribed from src/eventinfo.c: ClearPermanentFlag (not verified: no non-zero state is
+     *   cleared in any trace; needs a later chapter)
      *
      * Clears permanent flag [flag]; ids up to and including `permanentBaseId` (including negatives)
      * do nothing.
@@ -171,7 +176,8 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
     }
 
     /**
-     * Ported from src/eventinfo.c: ResetPermanentFlags
+     * Transcribed from src/eventinfo.c: ResetPermanentFlags (not verified: no non-zero state is
+     *   cleared in any trace; needs a later chapter)
      *
      * Clears the first `permanentSaveBytes` (0x19) permanent bytes.
      */
@@ -180,7 +186,8 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
     }
 
     /**
-     * Ported from src/eventinfo.c: CheckPermanentFlagFrom
+     * Transcribed from src/eventinfo.c: CheckPermanentFlagFrom (not verified: no non-zero state is
+     *   cleared in any trace; needs a later chapter)
      *
      * True if permanent flag [flag] is set in [list] starting at [offset] (used on save-file
      * buffers); ids up to and including `permanentBaseId` are always false. Throws if the bit lies
@@ -195,7 +202,8 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
     }
 
     /**
-     * Ported from src/eventinfo.c: CheckPermanentFlag
+     * Transcribed from src/eventinfo.c: CheckPermanentFlag (not verified: no non-zero state is
+     *   cleared in any trace; needs a later chapter)
      *
      * True if permanent flag [flag] is set in this instance.
      */
@@ -211,7 +219,8 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
     }
 
     /**
-     * Ported from src/eventinfo.c: ClearFlag
+     * Transcribed from src/eventinfo.c: ClearFlag (not verified: no non-zero state is cleared in
+     *   any trace; needs a later chapter)
      *
      * Clears [flag] as a chapter flag below `chapterFlagLimit`, else as a permanent flag.
      */
@@ -220,7 +229,8 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
     }
 
     /**
-     * Ported from src/eventinfo.c: CheckFlag
+     * Transcribed from src/eventinfo.c: CheckFlag (not verified: no non-zero state is cleared in
+     *   any trace; needs a later chapter)
      *
      * True if [flag] is set (chapter flag below `chapterFlagLimit`, else permanent).
      */

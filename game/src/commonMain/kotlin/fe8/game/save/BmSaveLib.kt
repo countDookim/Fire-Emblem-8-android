@@ -510,7 +510,8 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Ported from src/bmsave.c: ReadGameSavePlaySt
+     * Transcribed from src/bmsave.c: ReadGameSavePlaySt (not verified: no test checks it against a
+     *   trace yet)
      *
      * Decodes the `PlaySt` at the start of the block [slot] reads from into [buf].
      */
@@ -554,7 +555,8 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Ported from src/bmsave-bwl.c: GetGlobalCompletionCntByInfo
+     * Transcribed from src/bmsave-bwl.c: GetGlobalCompletionCntByInfo (not verified: no test checks
+     *   it against a trace yet)
      *
      * Number of non-zero `cleared_playthroughs` entries of the global info [info].
      */

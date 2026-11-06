@@ -65,7 +65,8 @@ public class OamBuffer {
     /**
      * Copies the lo part to [oam] and clears it in [buffer], if it is not empty.
      *
-     * Ported from src/hardware.c: SyncLoOam
+     * Transcribed from src/hardware.c: SyncLoOam (not verified: no test checks it against a trace
+     *   yet)
      */
     public fun syncLo() {
         if (loCount == 0) return
@@ -91,7 +92,8 @@ public class OamBuffer {
      * Sets OBJ affine matrix [index]: its four parameters go to the fourth halfword of objects
      * `4 * index` .. `4 * index + 3`.
      *
-     * Ported from src/hardware.c: SetObjAffine
+     * Transcribed from src/hardware.c: SetObjAffine (not verified: no test checks it against a
+     *   trace yet)
      */
     public fun setObjAffine(index: Int, pa: Int, pb: Int, pc: Int, pd: Int) {
         buffer[index * 16 + 3] = pa.toShort()

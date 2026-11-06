@@ -282,7 +282,8 @@ public class BMapMain(
     }
 
     /**
-     * Ported from src/bm.c: CallBeginningEvents
+     * Transcribed from src/bm.c: CallBeginningEvents (not verified: no test checks it against a
+     *   trace yet)
      *
      * Calls the beginning scene events of the chapter (the common skirmish beginning on a
      * skirmish map) through [Hooks.callEvent] with exec type 1. Returns false (`PROC_CALL_2`
@@ -319,7 +320,7 @@ public class BMapMain(
     }
 
     /**
-     * Ported from src/bm.c: sub_8015434
+     * Transcribed from src/bm.c: sub_8015434 (not verified: no test checks it against a trace yet)
      *
      * Always true: `sub_80832D4` returns 0 in the game.
      */
@@ -340,7 +341,8 @@ public class BMapMain(
     }
 
     /**
-     * Ported from src/bm.c: BmMain_ResumePlayerPhase
+     * Transcribed from src/bm.c: BmMain_ResumePlayerPhase (not verified: no test checks it against
+     *   a trace yet)
      *
      * Starts the player phase blocking [proc], jumps it to its label 7, breaks [proc].
      */
@@ -350,7 +352,8 @@ public class BMapMain(
     }
 
     /**
-     * Ported from src/bm.c: BmMain_UpdateTraps
+     * Transcribed from src/bm.c: BmMain_UpdateTraps (not verified: no test checks it against a
+     *   trace yet)
      *
      * Not the green phase: true. Otherwise starts [Hooks.updateTraps] blocking [proc], runs
      * [Hooks.decayTraps] and returns false.
@@ -374,7 +377,8 @@ public class BMapMain(
     }
 
     /**
-     * Ported from src/bm.c: BmMain_StartIntroFx
+     * Transcribed from src/bm.c: BmMain_StartIntroFx (not verified: no test checks it against a
+     *   trace yet)
      *
      * Starts [Hooks.chapterIntro] blocking [proc] except in chapter 0x38 and in Ch6 with flag
      * 0x88 set.
@@ -386,7 +390,8 @@ public class BMapMain(
     }
 
     /**
-     * Ported from src/bm.c: UndeployEveryone
+     * Transcribed from src/bm.c: UndeployEveryone (not verified: no trace separates it from a
+     *   no-op)
      *
      * Clears flag 0x84 and, unless `unk4A_1` is set, `US_NOT_DEPLOYED` of every valid blue unit.
      */
@@ -400,7 +405,8 @@ public class BMapMain(
     }
 
     /**
-     * Ported from src/bm.c: GotoChapterWithoutSave
+     * Transcribed from src/bm.c: GotoChapterWithoutSave (not verified: no test checks it against a
+     *   trace yet)
      *
      * Sets the chapter, sends the running BMapMain to label 2 and ends the phase procs.
      */
@@ -412,12 +418,18 @@ public class BMapMain(
         engine.endEach(hooks.berserkCpPhase)
     }
 
-    /** Ported from src/bm.c: SetEventId_0x84 (`SetFlag(0x84)`). */
+    /**
+     * Transcribed from src/bm.c: SetEventId_0x84 (not verified: no trace separates it from a
+     *   no-op); `SetFlag(0x84)`).
+     */
     public fun setEventId84() {
         flags.setFlag(0x84)
     }
 
-    /** Ported from src/bm.c: UnsetEventId_0x84 (`ClearFlag(0x84)`). */
+    /**
+     * Transcribed from src/bm.c: UnsetEventId_0x84 (not verified: no trace separates it from a
+     *   no-op); `ClearFlag(0x84)`).
+     */
     public fun unsetEventId84() {
         flags.clearFlag(0x84)
     }

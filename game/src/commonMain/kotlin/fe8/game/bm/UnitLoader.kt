@@ -132,10 +132,13 @@ public class UnitLoader(
             rom.u32(u32(table.bytes, o + OFF_CLASS) + 0x28)
 
     /**
-     * Ported from src/bmunit.c: UnitAutolevelRealistic
-     * Ported from src/bmbattle.c: CheckBattleUnitLevelUp, CanBattleUnitGainLevels,
+     * Transcribed from src/bmunit.c: UnitAutolevelRealistic (not verified: no blue autolevel unit
+     *   is loaded in the traced runs)
+     * Transcribed from src/bmbattle.c: CheckBattleUnitLevelUp, CanBattleUnitGainLevels (not
+     *   verified: no blue autolevel unit is loaded in the traced runs)
      * CheckBattleUnitStatCaps
-     * Ported from src/bmbattle.c: UpdateUnitFromBattle
+     * Transcribed from src/bmbattle.c: UpdateUnitFromBattle (not verified: no blue autolevel unit
+     *   is loaded in the traced runs)
      *
      * partial: works on the unit bytes without a `BattleUnit`; `gBmSt.gameStateBits & 0x40` is
      * taken as clear; of `UpdateUnitFromBattle` only level, exp, the stat changes and
@@ -226,7 +229,8 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/bmunit.c: UnitApplyBonusLevels
+     * Transcribed from src/bmunit.c: UnitApplyBonusLevels (not verified: the traced runs return at
+     *   once (level count 0))
      *
      * Raises ([levelCount] > 0) or lowers (< 0) the stats of the unit at [o] by that many levels
      * unless it is a gorgon egg, caps them and heals the unit.
@@ -243,7 +247,8 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/bmunit.c: UnitAutolevelPenalty
+     * Transcribed from src/bmunit.c: UnitAutolevelPenalty (not verified: the traced runs return at
+     *   once (level count 0))
      *
      * Resets the stats of the unit at [o] to its bases and autolevels them again for its level
      * minus [levelCount].
@@ -315,8 +320,10 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/bmunit.c: UnitAutolevelWExp
-     * Ported from src/bmitem.c: CanUnitUseStaff
+     * Transcribed from src/bmunit.c: UnitAutolevelWExp (not verified: no test checks it against a
+     *   trace yet)
+     * Transcribed from src/bmitem.c: CanUnitUseStaff (not verified: no test checks it against a
+     *   trace yet)
      *
      * For an autoleveled definition: raises the weapon ranks of the unit at [o] to what its
      * usable-restricted weapons and staves need.
@@ -340,7 +347,8 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/bmunit.c: GetUnitItemCount
+     * Transcribed from src/bmunit.c: GetUnitItemCount (not verified: no test checks it against a
+     *   trace yet)
      *
      * The number of item slots of the unit at [o] up to its last non-empty one.
      */
@@ -352,7 +360,8 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/bmitem.c: CanUnitUseStaff
+     * Transcribed from src/bmitem.c: CanUnitUseStaff (not verified: no test checks it against a
+     *   trace yet)
      *
      * Whether the unit at [o] can use [item] as a staff: not asleep, berserk or silenced, with
      * enough staff rank.
@@ -371,7 +380,8 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/bmunit.c: GetUnitMaxHp
+     * Transcribed from src/bmunit.c: GetUnitMaxHp (not verified: no test checks it against a trace
+     *   yet)
      *
      * `maxHP` of the unit at [o] plus the HP bonus of its equipped weapon.
      */
@@ -379,7 +389,8 @@ public class UnitLoader(
         s8(table.bytes, o + OFF_MAX_HP) + items.getItemHpBonus(getUnitEquippedWeapon(o))
 
     /**
-     * Ported from src/bmitem.c: GetUnitEquippedWeapon
+     * Transcribed from src/bmitem.c: GetUnitEquippedWeapon (not verified: no test checks it against
+     *   a trace yet)
      *
      * The first item of the unit at [o] it can use as a weapon, or 0.
      */
@@ -392,8 +403,10 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/bmitem.c: CanUnitUseWeapon
-     * Ported from src/bmitem.c: IsItemUnsealedForUnit
+     * Transcribed from src/bmitem.c: CanUnitUseWeapon (not verified: no test checks it against a
+     *   trace yet)
+     * Transcribed from src/bmitem.c: IsItemUnsealedForUnit (not verified: no test checks it against
+     *   a trace yet)
      *
      * Whether the unit at [o] can wield [item]: a weapon, with the unit meeting the item's lock
      * attributes, not silenced for magic, and with enough weapon rank.
@@ -447,10 +460,14 @@ public class UnitLoader(
         StructCodec.u16(table.bytes, o + OFF_ITEMS + 2 * slot)
 
     /**
-     * Ported from src/eventscr.c: LoadUnit_800F704
-     * Ported from src/eventscr.c: sub_800F8A8
-     * Ported from src/muctrl.c: MoveUnit_, MoveUnitExt
-     * Ported from src/bmunit.c: GetUnitFromCharIdAndFaction, UnitChangeFaction, CopyUnit
+     * Transcribed from src/eventscr.c: LoadUnit_800F704 (not verified: b is a guess and terrain is
+     *   stubbed)
+     * Transcribed from src/eventscr.c: sub_800F8A8 (not verified: no test checks it against a trace
+     *   yet)
+     * Transcribed from src/muctrl.c: MoveUnit_, MoveUnitExt (not verified: no test checks it
+     *   against a trace yet)
+     * Transcribed from src/bmunit.c: GetUnitFromCharIdAndFaction, UnitChangeFaction, CopyUnit (not
+     *   verified: no test checks it against a trace yet)
      *
      * partial: the event engine's unit load. Finds the definition's character among the blue
      * units (moving it to the definition's faction if that is not blue), loads a new unit
@@ -664,7 +681,8 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/bmunit.c: GetUnitFromCharIdAndFaction
+     * Transcribed from src/bmunit.c: GetUnitFromCharIdAndFaction (not verified: no test checks it
+     *   against a trace yet)
      *
      * The id of the first valid unit of [faction] whose character is [charId], or -1.
      */
@@ -676,7 +694,8 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/bmunit.c: UnitChangeFaction, CopyUnit
+     * Transcribed from src/bmunit.c: UnitChangeFaction, CopyUnit (not verified: no test checks it
+     *   against a trace yet)
      *
      * partial: `gActiveUnit` is not updated. Moves unit [id] into a free slot of [faction].
      */
@@ -764,7 +783,8 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/muctrl.c: GenUnitDefinitionFinalPosition
+     * Transcribed from src/muctrl.c: GenUnitDefinitionFinalPosition (not verified: no test checks
+     *   it against a trace yet)
      *
      * partial: called with `findNearest == FALSE`. With `redaCount != 0` the position is the last
      * REDA's x/y (`AdjustNewUnitPosition` with flags 0 does nothing); a `sumFlag` definition
@@ -833,7 +853,8 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/bmtrick.c: UnitHideIfUnderRoof
+     * Transcribed from src/bmtrick.c: UnitHideIfUnderRoof (not verified: no test checks it against
+     *   a trace yet)
      *
      * Marks the unit at [o] hidden and under a roof where [terrainAt] (`gBmMapTerrain[y][x]`) is
      * `TERRAIN_ROOF` at its position.
@@ -880,7 +901,8 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/bmunit.c: UnitCheckStatCaps
+     * Transcribed from src/bmunit.c: UnitCheckStatCaps (not verified: no test checks it against a
+     *   trace yet)
      *
      * Clamps the stats, con bonus and mov bonus of the unit at [o] to the class limits.
      */

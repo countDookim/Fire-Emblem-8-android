@@ -114,7 +114,7 @@ public class ChapterMapGfx(
     }
 
     /**
-     * Ported from src/bmlib.c: Copy2dChr
+     * Transcribed from src/bmlib.c: Copy2dChr (not verified: no test checks it against a trace yet)
      *
      * Copies [height] rows of [width] 4bpp tiles from [src] (packed rows) to VRAM offset [dst],
      * whose rows are 0x20 tiles (0x400 bytes) apart.

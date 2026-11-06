@@ -53,7 +53,9 @@ public class Fe8Rng : RandomSource {
         }
     }
 
-    /** Ported from src/rng.c: LoadRNState */
+    /**
+     * Transcribed from src/rng.c: LoadRNState (not verified: no test checks it against a trace yet)
+     */
     public fun load(w0: Int, w1: Int, w2: Int) {
         s0 = w0 and 0xFFFF
         s1 = w1 and 0xFFFF
@@ -63,7 +65,8 @@ public class Fe8Rng : RandomSource {
     /**
      * Copies the three state words into [out] starting at [offset] (used by saves and suspend data).
      *
-     * Ported from src/rng.c: StoreRNState
+     * Transcribed from src/rng.c: StoreRNState (not verified: no test checks it against a trace
+     *   yet)
      */
     public fun store(out: IntArray, offset: Int = 0) {
         out[offset] = s0
@@ -133,20 +136,26 @@ public class RngService(
     /**
      * Draw in `0..99`. Note FE8 multiplies before dividing, so 100 is impossible (FE6 differs).
      *
-     * Ported from src/rng.c: NextRN_100
+     * Transcribed from src/rng.c: NextRN_100 (not verified: no test checks it against a trace yet)
      */
     public fun next100(): Int = next() * 100 / 0x10000
 
-    /** Draw in `0 until max`. Ported from src/rng.c: NextRN_N */
+    /**
+     * Draw in `0 until max`.
+     * Transcribed from src/rng.c: NextRN_N (not verified: no test checks it against a trace yet)
+     */
     public fun nextN(max: Int): Int = next() * max / 0x10000
 
-    /** One-RN hit check: true when `threshold > draw`. Ported from src/rng.c: Roll1RN */
+    /**
+     * One-RN hit check: true when `threshold > draw`.
+     * Transcribed from src/rng.c: Roll1RN (not verified: no test checks it against a trace yet)
+     */
     public fun roll1(threshold: Int): Boolean = threshold > next100()
 
     /**
      * Two-RN ("true hit") check: averages two draws, which biases displayed hit rates.
      *
-     * Ported from src/rng.c: Roll2RN
+     * Transcribed from src/rng.c: Roll2RN (not verified: no test checks it against a trace yet)
      */
     public fun roll2(threshold: Int): Boolean {
         val average = (next100() + next100()) / 2

@@ -52,7 +52,7 @@ public object BattleMapKind {
     private const val CHAPTER_47 = 0x47
 
     /**
-     * Ported from src/worldmap_path.c: GetBattleMapKind
+     * Transcribed from src/worldmap_path.c: GetBattleMapKind (not verified: no ground truth for it)
      *
      * Classifies the chapter [chapterIndex] (`gPlaySt.chapterIndex`) as [STORY], [DUNGEON] or
      * [SKIRMISH], looking up the world map node of tower/ruins/other non-story chapters in [nodes].

@@ -83,7 +83,7 @@ public class GameLoop(
     /**
      * Increments [lock].
      *
-     * Ported from src/bm.c: LockGame
+     * Transcribed from src/bm.c: LockGame (not verified: no test checks it against a trace yet)
      */
     public fun lockGame() {
         lock = (lock + 1) and 0xFF
@@ -92,7 +92,7 @@ public class GameLoop(
     /**
      * Decrements [lock].
      *
-     * Ported from src/bm.c: UnlockGame
+     * Transcribed from src/bm.c: UnlockGame (not verified: no test checks it against a trace yet)
      */
     public fun unlockGame() {
         lock = (lock - 1) and 0xFF
@@ -101,7 +101,7 @@ public class GameLoop(
     /**
      * The current [lock] count.
      *
-     * Ported from src/bm.c: GetGameLock
+     * Transcribed from src/bm.c: GetGameLock (not verified: no test checks it against a trace yet)
      */
     public fun gameLock(): Int = lock
 

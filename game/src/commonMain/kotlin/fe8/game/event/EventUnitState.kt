@@ -64,7 +64,8 @@ public class EventUnitState(
     }
 
     /**
-     * Ported from src/eventscr.c: Event34_MessWithUnitState
+     * Transcribed from src/eventscr.c: Event34_MessWithUnitState (not verified: only subs 5, 10 and
+     *   15 are compared; breaks in other subs and the CLEA loop survive)
      *
      * The subcodes REMU, REVEAL, CUSA/CUSN/CUSE, SET_HP, SET_ENDTURN, 0x7 (has moved), SET_STATE,
      * 0x9 (EVSUBCMD_3529: no unit change, only the map and sprite refresh), CLEA, CLEN, CLEE,
@@ -118,7 +119,8 @@ public class EventUnitState(
     }
 
     /**
-     * Ported from src/eventscr_utils.c: GetUnitStructFromEventParameter
+     * Transcribed from src/eventscr_utils.c: GetUnitStructFromEventParameter (not verified: no test
+     *   checks it against a trace yet)
      *
      * The id of the unit that event character parameter [pid] names (the leader for 0, the
      * active unit for -1, the unit at the tile in slot 0xB for -2, the character of slot 2 for
@@ -185,7 +187,8 @@ public class EventUnitState(
     }
 
     /**
-     * Ported from src/bmunit.c: ClearCutsceneUnits
+     * Transcribed from src/bmunit.c: ClearCutsceneUnits (not verified: no test checks it against a
+     *   trace yet)
      *
      * Clears the blue units with `US_BIT22` that are alive; the dead ones lose the bit.
      * Verification: partial. A break of the `US_DEAD` branch (always clearing the unit) survives

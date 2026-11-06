@@ -11,7 +11,8 @@ public class GameClock {
     public fun get(): Long = frames
 
     /**
-     * Ported from src/time.c: SetGameTime
+     * Transcribed from src/time.c: SetGameTime (not verified: no test checks it against a trace
+     *   yet)
      */
     public fun set(newTime: Long) {
         frames = newTime and 0xFFFFFFFFL

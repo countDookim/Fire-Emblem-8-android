@@ -35,7 +35,8 @@ public class ChapterData(
         asset(u8(chIndex, OFF_MAP_MAIN_LAYER_ID))
 
     /**
-     * Ported from src/chapterdata.c: GetChapterMapChangesPointer
+     * Transcribed from src/chapterdata.c: GetChapterMapChangesPointer (not verified: no test checks
+     *   it against a trace yet)
      *
      * Returns the address of the map change data of chapter [chIndex]:
      * `gChapterDataAssetTable[changeLayerId]`. Not yet covered by a `@VerifiesPort` test.

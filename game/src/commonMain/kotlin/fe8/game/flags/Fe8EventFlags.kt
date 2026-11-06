@@ -44,7 +44,8 @@ public object Fe8EventFlags {
         Fe8ScriptConstants.valueOf(Fe8ScriptConstants.KIND_EVENT_FLAG, name)
 
     /**
-     * Ported from src/eventinfo.c: GetPermanentFlagBits
+     * Transcribed from src/eventinfo.c: GetPermanentFlagBits (not verified: no test checks it
+     *   against a trace yet)
      *
      * A copy of `gPermanentFlagBits` (the C function returns a pointer to the 32 byte array).
      */
@@ -55,7 +56,8 @@ public object Fe8EventFlags {
     public fun getPermanentFlagBitsSize(): Int = PERMANENT_SAVE_BYTES
 
     /**
-     * Ported from src/eventinfo.c: GetChapterFlagBits
+     * Transcribed from src/eventinfo.c: GetChapterFlagBits (not verified: no test checks it against
+     *   a trace yet)
      *
      * A copy of `gChapterFlagBits` (the C function returns a pointer to the 16 byte array).
      */

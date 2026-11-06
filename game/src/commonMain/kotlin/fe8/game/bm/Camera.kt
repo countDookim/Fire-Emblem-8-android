@@ -89,8 +89,9 @@ public object Camera {
     }
 
     /**
-     * Ported from src/bm.c: StoreAdjustedCameraPositions (the `*xOut` half; the C function
-     * returns both through pointers, split here to avoid allocating).
+     * Transcribed from src/bm.c: StoreAdjustedCameraPositions (not verified: needs a scripted
+     *   camera or unit menu after scrolling, which no trace has). This is the `*xOut` half; the C
+     *   function returns both through pointers, split here to avoid allocating.
      *
      * Not verified: needs a run with a scripted camera move (sub_8015D84 / SetSomeRealCamPos,
      * e.g. an event camera command); no reference run reaches it, so the CamMove start that
@@ -108,8 +109,9 @@ public object Camera {
     }
 
     /**
-     * Ported from src/bm.c: StoreAdjustedCameraPositions (the `*yOut` half, see
-     * [storeAdjustedCameraPositionX]). Not verified, same reason.
+     * Transcribed from src/bm.c: StoreAdjustedCameraPositions (not verified: needs a scripted
+     *   camera or unit menu after scrolling, which no trace has). This is the `*yOut` half, see
+     *   [storeAdjustedCameraPositionX]. Not verified, same reason.
      *
      * @param yIn watched map row (tiles).
      * @param mapSizeY `gBmMapSize.y` (s16, tiles).
@@ -138,7 +140,8 @@ public object Camera {
     }
 
     /**
-     * Ported from src/bm.c: IsCameraNotWatchingPosition
+     * Transcribed from src/bm.c: IsCameraNotWatchingPosition (not verified: needs a scripted camera
+     *   or unit menu after scrolling, which no trace has)
      *
      * True (C `1`) if the camera would have to move to show map position ([x], [y]).
      *

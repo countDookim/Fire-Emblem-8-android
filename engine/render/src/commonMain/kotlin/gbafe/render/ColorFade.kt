@@ -55,14 +55,15 @@ public class ColorFade(
     /**
      * Starts a fade from the current colours to white.
      *
-     * Ported from src/hardware.c: ColorFadeSetupFromColorToWhite
+     * Transcribed from src/hardware.c: ColorFadeSetupFromColorToWhite (not verified: no trace
+     *   reaches it)
      */
     public fun setupFromColorToWhite(a: Int): Unit = setup(a, 32)
 
     /**
      * Starts a fade in from white: components start at +0x40 (white) and fall to the colours.
      *
-     * Ported from src/hardware.c: ColorFadeSetupFromWhite
+     * Transcribed from src/hardware.c: ColorFadeSetupFromWhite (not verified: no trace reaches it)
      */
     public fun setupFromWhite(a: Int): Unit = setup(a, 64)
 

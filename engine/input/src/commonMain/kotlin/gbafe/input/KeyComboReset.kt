@@ -16,7 +16,8 @@ public class KeyComboReset {
     }
 
     /**
-     * Ported from src/time.c: DisableKeyComboResetEN
+     * Transcribed from src/time.c: DisableKeyComboResetEN (not verified: no test checks it against
+     *   a trace yet)
      */
     public fun disable() {
         enabled = false

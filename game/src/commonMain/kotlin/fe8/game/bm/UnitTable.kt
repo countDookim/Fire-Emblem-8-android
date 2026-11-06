@@ -33,7 +33,7 @@ public class UnitTable(
     }
 
     /**
-     * Ported from src/bmunit.c: GetUnit
+     * Transcribed from src/bmunit.c: GetUnit (not verified: no test checks it against a trace yet)
      *
      * Byte offset in [bytes] of the unit with id [id] (`gUnitLookup[id & 0xFF]`), or -1 where the
      * lookup table holds NULL.
@@ -154,7 +154,8 @@ public class UnitTable(
     }
 
     /**
-     * Ported from src/prep_sallycursor.c: GetPlayerLeaderPid
+     * Transcribed from src/prep_sallycursor.c: GetPlayerLeaderPid (not verified: no test checks it
+     *   against a trace yet)
      *
      * The character id of the player leader for the current route and chapter in [playSt]:
      * Eirika (Ephraim on his route or in chapter 5x), unless the battle map is not a story map

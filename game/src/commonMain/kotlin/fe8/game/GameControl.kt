@@ -309,7 +309,7 @@ public class GameControl(
     /**
      * After the class reel: title on event return, op anim on class reel.
      *
-     * Ported from src/gamecontrol.c: sub_8009B64
+     * Transcribed from src/gamecontrol.c: sub_8009B64 (not verified: no trace reaches it)
      */
     public fun postClassReel(proc: Proc) {
         when ((proc.state as State).nextAction) {
@@ -494,7 +494,8 @@ public class GameControl(
     /**
      * Copies `ch_index` back to `gPlaySt.chapterIndex` (an s8).
      *
-     * Ported from src/gamecontrol.c: GameControl_RestoreChapterId
+     * Transcribed from src/gamecontrol.c: GameControl_RestoreChapterId (not verified: no test
+     *   checks it against a trace yet)
      */
     public fun restoreChapterId(proc: Proc) {
         playSt.chapterIndex = (proc.state as State).chIndex.toByte().toInt()
@@ -542,7 +543,8 @@ public class GameControl(
      * Goes to the extra map label when `PLAY_FLAG_EXTRA_MAP` is set, else to the normal chapter
      * label.
      *
-     * Ported from src/gamecontrol.c: GameControlHandlePostNormalOrExtraChapter
+     * Transcribed from src/gamecontrol.c: GameControlHandlePostNormalOrExtraChapter (not verified:
+     *   no test checks it against a trace yet)
      */
     public fun handlePostNormalOrExtraChapter(proc: Proc) {
         engine.goto(

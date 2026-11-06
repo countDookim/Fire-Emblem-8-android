@@ -46,7 +46,8 @@ public class EventUnitLoads(
     private fun subCmd(cur: Int): Int = memory.u16(cur) and 0xF
 
     /**
-     * Ported from src/eventscr.c: Event2B_ConfigLoadUnit
+     * Transcribed from src/eventscr.c: Event2B_ConfigLoadUnit (not verified: no test checks it
+     *   against a trace yet)
      *
      * Sets the unit count (subcode 0), chance (1, clamped to 0..100) or REDA disabling (2).
      */
@@ -118,9 +119,12 @@ public class EventUnitLoads(
     }
 
     /**
-     * Ported from src/eventscr.c: ShouldUNITBeLoaded
-     * Ported from src/eventinfo.c: IsSethLArachelMyrrhInnes
-     * Ported from src/bmunit.c: IsUnitSlotAvailable
+     * Transcribed from src/eventscr.c: ShouldUNITBeLoaded (not verified: no test checks it against
+     *   a trace yet)
+     * Transcribed from src/eventinfo.c: IsSethLArachelMyrrhInnes (not verified: no test checks it
+     *   against a trace yet)
+     * Transcribed from src/bmunit.c: IsUnitSlotAvailable (not verified: no test checks it against a
+     *   trace yet)
      *
      * Whether [def] is to be loaded for load parameter [param]: a blue character that is dead
      * is skipped for 0 and, unless Seth, L'Arachel, Innes or Myrrh, for 2; a red one needs a
@@ -157,7 +161,8 @@ public class EventUnitLoads(
     }
 
     /**
-     * Ported from src/eventscr.c: GetUnitDefinitionFromEventScr
+     * Transcribed from src/eventscr.c: GetUnitDefinitionFromEventScr (not verified: no test checks
+     *   it against a trace yet)
      *
      * partial: [sub80125c0] (`arg3`, subcode 2) throws [UnsupportedOperationException].
      *
@@ -199,7 +204,8 @@ public class EventUnitLoads(
     }
 
     /**
-     * Ported from src/eventscr.c: ModifyMoveUnitFlag
+     * Transcribed from src/eventscr.c: ModifyMoveUnitFlag (not verified: no test checks it against
+     *   a trace yet)
      *
      * The move flags for a load: bit 0 if [unk], bit 2 with the unit camera, bit 3 with
      * `EV_STATE_0040`.

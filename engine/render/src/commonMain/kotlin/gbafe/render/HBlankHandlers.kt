@@ -34,7 +34,8 @@ public class HBlankHandlers(
     /**
      * `ExecBothHBlankHandlers`: [primary] then [secondary], each if set.
      *
-     * Ported from src/hardware.c: ExecBothHBlankHandlers
+     * Transcribed from src/hardware.c: ExecBothHBlankHandlers (not verified: no test checks it
+     *   against a trace yet)
      */
     public val both: HBlankHandler = HBlankHandler { vcount, io ->
         primary?.onHBlank(vcount, io)

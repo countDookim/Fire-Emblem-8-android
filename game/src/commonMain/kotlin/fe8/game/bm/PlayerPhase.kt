@@ -256,7 +256,8 @@ public class PlayerPhase(
     private fun s8(v: Int): Int = v.toByte().toInt()
 
     /**
-     * Ported from src/playerphase.c: PlayerPhase_HandleAutoEnd
+     * Transcribed from src/playerphase.c: PlayerPhase_HandleAutoEnd (not verified: no test checks
+     *   it against a trace yet)
      *
      * Jumps [proc] to label 3 (end of the phase) if auto end turns is on and no unit of the active
      * faction can act.

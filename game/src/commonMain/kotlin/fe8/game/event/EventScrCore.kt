@@ -112,7 +112,7 @@ public class EventScrCore(
 
     private fun subCmd(cur: Int): Int = memory.u16(cur) and 0xF
 
-    /** Ported from src/eventscr.c: Event00_NULL */
+    /** Transcribed from src/eventscr.c: Event00_NULL (not verified: not in the prologue) */
     public val event00Null: EventHandler = EventHandler { EVC_ADVANCE_CONTINUE }
 
     /**
@@ -189,7 +189,8 @@ public class EventScrCore(
     }
 
     /**
-     * Ported from src/eventscr.c: Event03_CheckEvBitOrId
+     * Transcribed from src/eventscr.c: Event03_CheckEvBitOrId (not verified: only sub 0 (EvBit
+     *   check) is traced; a broken sub 1 (flag check) survives)
      *
      * Sub command 0 stores whether an `evStateBits` bit is set in slot C, 1 whether an event
      * flag is set.
@@ -208,7 +209,7 @@ public class EventScrCore(
     }
 
     /**
-     * Ported from src/eventscr.c: Event04_CheckRandom
+     * Transcribed from src/eventscr.c: Event04_CheckRandom (not verified: not in the prologue)
      *
      * Slot C gets a draw in `0..max` (`NextRN_N(max + 1)`) from [rng], or 0 when `max` is 0
      * (no draw is consumed).
@@ -227,7 +228,8 @@ public class EventScrCore(
     }
 
     /**
-     * Ported from src/eventscr.c: Event06_SlotOperation
+     * Transcribed from src/eventscr.c: Event06_SlotOperation (not verified: the traced calls prove
+     *   the slot write only; broken operators survive)
      *
      * Division and modulo are unsigned (`gEventSlots` is `u32`). Assumption: a zero divisor
      * (libgcc's `__div0` returns) yields 0. Shifts use the low byte of the shift register as ARM
@@ -312,7 +314,7 @@ public class EventScrCore(
     }
 
     /**
-     * Ported from src/eventscr.c: Event0B_EnqueueCall
+     * Transcribed from src/eventscr.c: Event0B_EnqueueCall (not verified: not in the prologue)
      *
      * A negative target is replaced by slot 2; a null target does nothing. Sub command 0 calls
      * the event with this engine's `execType` (needs the engine given to [registerAll]), 1
@@ -332,7 +334,7 @@ public class EventScrCore(
     }
 
     /**
-     * Ported from src/eventinfo.c: EnqueueTutEvent
+     * Transcribed from src/eventinfo.c: EnqueueTutEvent (not verified: not in the prologue)
      *
      * Looks [ptr] up in the current chapter's tutorial event list ([EventScrHooks.tutorialEvent])
      * and, when found at index i, stores `tutorial_counter = i + 1` and
@@ -409,7 +411,8 @@ public class EventScrCore(
     }
 
     /**
-     * Ported from src/eventscr.c: Event10_ModifyEvBit
+     * Transcribed from src/eventscr.c: Event10_ModifyEvBit (not verified: only args 0 and 1 are
+     *   traced; the skipping branch and args 2-4 survive breaks)
      *
      * While skipping, a non-zero argument first clears `EV_STATE_SKIPPING` and sets
      * `EV_STATE_FADEDIN`. Arguments 0-4 then set the NOSKIP/0020/0040 bits (0: all clear,
@@ -434,7 +437,7 @@ public class EventScrCore(
     }
 
     /**
-     * Ported from src/eventscr.c: Event11_SetIgnoredKeys
+     * Transcribed from src/eventscr.c: Event11_SetIgnoredKeys (not verified: not in the prologue)
      *
      * Sub command 0 sets the key ignore mask ([KeyStatus.applyIgnoreMask]) to the argument.
      */
@@ -445,7 +448,8 @@ public class EventScrCore(
     }
 
     /**
-     * Ported from src/eventscr.c: Event19_Checks
+     * Transcribed from src/eventscr.c: Event19_Checks (not verified: only sub 7 of the 11 subs runs
+     *   on data)
      *
      * Stores a game-state query in slot C. The unit counts, battle map kind and event trigger id
      * come from [EventScrHooks]; the rest reads [PlaySt] and the proc. Unknown sub commands do
@@ -473,7 +477,7 @@ public class EventScrCore(
     }
 
     /**
-     * Ported from src/eventscr.c: Event0F_CounterOps
+     * Transcribed from src/eventscr.c: Event0F_CounterOps (not verified: not in the prologue)
      *
      * Nibble `(low byte of word 1) % 8` of `gEventSlotCounter`. An unknown sub command is
      * undefined in C (uninitialized `newValue`); here it leaves the counter untouched.

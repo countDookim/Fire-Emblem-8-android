@@ -493,7 +493,8 @@ public class BattleMapStart(
     }
 
     /**
-     * Ported from src/bmio.c: EndBMapMain
+     * Transcribed from src/bmio.c: EndBMapMain (not verified: no test checks it against a trace
+     *   yet)
      *
      * Ends every `PROC_MARK_DISP` proc, releases the game control lock and ends BMapMain.
      */

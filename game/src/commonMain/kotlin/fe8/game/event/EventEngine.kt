@@ -131,7 +131,8 @@ public class EventEngine(
     /**
      * Creates a battle engine proc on proc tree 3 running the script at [events].
      *
-     * Ported from src/event.c: EventEngine_CreateBattle. `chapterIndex` keeps its reset value.
+     * Transcribed from src/event.c: EventEngine_CreateBattle (not verified: no test checks it
+     *   against a trace yet). `chapterIndex` keeps its reset value.
      */
     public fun createBattle(events: Int): EventEngineProc {
         val proc = procs.start(battleScript, PROC_TREE_3)
@@ -155,20 +156,30 @@ public class EventEngine(
         return s
     }
 
-    /** Ported from src/event.c: EventEngineExists. */
+    /**
+     * Transcribed from src/event.c: EventEngineExists (not verified: no test checks it against a
+     *   trace yet).
+     */
     public fun eventEngineExists(): Boolean = findStd() != null
 
-    /** Ported from src/event.c: BattleEventEngineExists. */
+    /**
+     * Transcribed from src/event.c: BattleEventEngineExists (not verified: no test checks it
+     *   against a trace yet).
+     */
     public fun battleEventEngineExists(): Boolean = procs.find(battleScript) != null
 
-    /** Ported from src/event.c: DeleteEventEngines. */
+    /**
+     * Transcribed from src/event.c: DeleteEventEngines (not verified: no test checks it against a
+     *   trace yet).
+     */
     public fun deleteEventEngines() {
         procs.endEach(stdScript)
         procs.endEach(battleScript)
     }
 
     /**
-     * Ported from src/event.c: EnqueueEventCall. The first unused entry of
+     * Transcribed from src/event.c: EnqueueEventCall (not verified: the call queue is empty in the
+     *   prologue). The first unused entry of
      * [EventState.callQueue] receives the call; only its `execType` and `isUsed` bytes are
      * written, the padding bytes are kept.
      */
@@ -185,7 +196,8 @@ public class EventEngine(
     }
 
     /**
-     * Ported from src/event.c: CallNextQueuedEvent. Starts the first entry if used, then shifts
+     * Transcribed from src/event.c: CallNextQueuedEvent (not verified: the call queue is empty in
+     *   the prologue). Starts the first entry if used, then shifts
      * the queue down one entry and clears the last (its padding bytes are kept).
      */
     public fun callNextQueuedEvent() {
@@ -202,7 +214,8 @@ public class EventEngine(
     }
 
     /**
-     * Ported from src/event.c: CallEvent. Enqueues the call if a standard engine is running,
+     * Transcribed from src/event.c: CallEvent (not verified: the call queue is empty in the
+     *   prologue). Enqueues the call if a standard engine is running,
      * else starts it now.
      */
     public fun callEvent(events: Int, execType: Int) {
@@ -210,7 +223,8 @@ public class EventEngine(
     }
 
     /**
-     * Ported from src/event.c: EventEngine_OnEnd. Delegated to hooks:
+     * Transcribed from src/event.c: EventEngine_OnEnd (not verified: the call queue is empty in the
+     *   prologue). Delegated to hooks:
      * [EventEngineHooks.resetTextFont], [EventEngineHooks.restoreAfterEvent5],
      * [EventEngineHooks.endMapForChangeGm], [EventEngineHooks.resumeGameplay],
      * [EventEngineHooks.endEventTalk], [EventEngineHooks.changeUnitSpritePalette] and

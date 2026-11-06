@@ -289,7 +289,7 @@ public class PlayerPhase(
         }
         if (((bm.playerCursorDisplayX or bm.playerCursorDisplayY) and 0xF) != 0) {
             keys.newKeys = keys.newKeys and
-                (KEY_A or KEY_B or KEY_START or KEY_R or KEY_L).inv()
+                (KEY_A or KEY_B or KeyStatus.START_BUTTON or KEY_R or KEY_L).inv()
         }
     }
 
@@ -451,7 +451,6 @@ public class PlayerPhase(
 
         private const val KEY_A = 1 shl 0
         private const val KEY_B = 1 shl 1
-        private const val KEY_START = 1 shl 3
         private const val KEY_R = 1 shl 8
         private const val KEY_L = 1 shl 9
         private const val DPAD_ANY = 0xF0

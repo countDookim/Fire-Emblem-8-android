@@ -37,10 +37,39 @@ public class UnitLoader(
     private val items = ItemInfo(rom)
 
     /**
+     * The signed level count `LoadUnit_800F704` passes to `UnitApplyBonusLevels` for red
+     * characters from 0x3C on: the chapter's `difficultModeLevelBonus`, or minus its
+     * `easyModeLevelMalus` / `normalModeLevelMalus`, by `config.controller` and `PLAY_FLAG_HARD`.
+     * The default throws [UnsupportedOperationException].
+     */
+    public var chapterLevelBonus: () -> Int = {
+        throw UnsupportedOperationException("LoadUnit_800F704: chapter level bonus not wired")
+    }
+
+    /**
+     * The `gBmMap*` pools: `gBmMapUnit | gBmMapOther | gBmMapHidden` for the free-tile shortcut of
+     * `AiGetUnitClosestValidPosition`, the map size, and `gBmMapRange` / `gBmMapMovement` that its
+     * floods overwrite. Must be set before a load can reach the search (it throws otherwise).
+     */
+    public var bmMap: BmMap? = null
+
+    /** `gPlaySt.chapterWeatherId`, which picks the class movement cost table of the search. */
+    public var weatherId: () -> Int = { 0 }
+
+    /**
+     * Part of AiGetUnitClosestValidPosition (src/cp_utility.c; free-tile shortcut): true where
+     * (x, y) holds a unit, other or hidden marker.
+     */
+    private fun occupied(x: Int, y: Int): Boolean {
+        val m = bmMap ?: return true
+        return (m.unit[y, x] or m.other[y, x] or m.hidden[y, x]) != 0
+    }
+
+    /**
      * Ported from src/bmunit.c: LoadUnit
      *
-     * partial: `genMonster`, gorgon eggs, `sumFlag` positions and autolevel of blue units,
-     * bosses and characters below 0x40 throw [UnsupportedOperationException].
+     * partial: `genMonster`, gorgon eggs, `sumFlag` positions and autolevel of bosses and
+     * characters below 0x40 throws [UnsupportedOperationException].
      *
      * Loads the `struct UnitDefinition` at ROM address [defAddress] into a free slot of its
      * allegiance. [terrainAt] is `gBmMapTerrain[y][x]`. Returns the new unit's id, or 0 where the
@@ -71,10 +100,10 @@ public class UnitLoader(
         }
         if (def.autolevel) {
             if ((s8(table.bytes, o + OFF_INDEX) and 0xC0) == FACTION_BLUE) {
-                throw UnsupportedOperationException(
-                    "LoadUnit: autolevel of blue units (UnitAutolevelRealistic) is not ported",
-                )
-            }
+                unitAutolevelRealistic(o)
+                unitAutolevelWExp(o, def)
+                put8(table.bytes, o + OFF_SUPPORTS + 6, def.leaderCharIndex)
+            } else {
             val number = rom.u8(u32(table.bytes, o + OFF_CHARACTER) + 4)
             if ((cAttributes(o) and CA_BOSS) != 0 || number < 0x40) {
                 throw UnsupportedOperationException(
@@ -86,6 +115,7 @@ public class UnitLoader(
             unitAutolevelWExp(o, def)
             // SetUnitLeaderCharId
             put8(table.bytes, o + OFF_SUPPORTS + 6, def.leaderCharIndex)
+            }
         }
         fixROMUnitStructPtr(o)
         unitLoadSupports(o)
@@ -102,6 +132,86 @@ public class UnitLoader(
             rom.u32(u32(table.bytes, o + OFF_CLASS) + 0x28)
 
     /**
+     * Ported from src/bmunit.c: UnitAutolevelRealistic
+     * Ported from src/bmbattle.c: CheckBattleUnitLevelUp, CanBattleUnitGainLevels,
+     * CheckBattleUnitStatCaps
+     * Ported from src/bmbattle.c: UpdateUnitFromBattle
+     *
+     * partial: works on the unit bytes without a `BattleUnit`; `gBmSt.gameStateBits & 0x40` is
+     * taken as clear; of `UpdateUnitFromBattle` only level, exp, the stat changes and
+     * `UnitCheckStatCaps` apply (curHP, state, items are unchanged, there is no status, weapon
+     * exp or `expGain`).
+     *
+     * Levels the unit at [o] from its character's base level up to its level by its level difference.
+     */
+    internal fun unitAutolevelRealistic(o: Int) {
+        val b = table.bytes
+        val ch = u32(b, o + OFF_CHARACTER)
+        val cl = u32(b, o + OFF_CLASS)
+        var levelsLeft = s8(b, o + OFF_LEVEL) - rom.s8(ch + 0x0B)
+        if (levelsLeft == 0) return
+        put8(b, o + OFF_LEVEL, s8(b, o + OFF_LEVEL) - levelsLeft)
+        val change = IntArray(7)
+        while (levelsLeft > 0) {
+            levelsLeft--
+            // InitBattleUnit: the changes start at 0.
+            change.fill(0)
+            var exp = u8(b, o + OFF_EXP) + 100
+            var level = s8(b, o + OFF_LEVEL)
+            // CanBattleUnitGainLevels: exp is not disabled and the unit is blue.
+            val canGain = exp != UNIT_EXP_DISABLED &&
+                (s8(b, o + OFF_INDEX) and 0xC0) == FACTION_BLUE
+            if (canGain && exp >= 100) {
+                exp -= 100
+                level++
+                if ((cAttributes(o) and CA_MAXLEVEL10) != 0) {
+                    if (level == 10) exp = UNIT_EXP_DISABLED
+                } else if (level == 20) {
+                    exp = UNIT_EXP_DISABLED
+                }
+                val bonus = if ((u32(b, o + OFF_STATE) and US_GROWTH_BOOST) != 0) 5 else 0
+                var total = 0
+                for (i in 0 until 7) {
+                    change[i] = getStatIncrease(rom.u8(ch + 0x1C + i) + bonus)
+                    total += change[i]
+                }
+                if (total == 0) {
+                    for (pass in 0 until 2) {
+                        var gained = false
+                        for (i in 0 until 7) {
+                            change[i] = getStatIncrease(rom.u8(ch + 0x1C + i))
+                            if (change[i] != 0) {
+                                gained = true
+                                break
+                            }
+                        }
+                        if (gained) break
+                    }
+                }
+                // CheckBattleUnitStatCaps
+                val red = (s8(b, o + OFF_INDEX) and 0xC0) == FACTION_RED
+                for (i in 0 until 7) {
+                    val at = if (i == 0) OFF_MAX_HP else 0x13 + i
+                    val max = when (i) {
+                        0 -> if (red) 120 else 60
+                        6 -> 30
+                        else -> rom.s8(cl + 0x13 + i)
+                    }
+                    if (s8(b, o + at) + change[i] > max) change[i] = max - s8(b, o + at)
+                }
+            }
+            // UpdateUnitFromBattle
+            put8(b, o + OFF_LEVEL, level)
+            put8(b, o + OFF_EXP, exp)
+            for (i in 0 until 7) {
+                val at = if (i == 0) OFF_MAX_HP else 0x13 + i
+                put8(b, o + at, s8(b, o + at) + change[i])
+            }
+            unitCheckStatCaps(o)
+        }
+    }
+
+    /**
      * Ported from src/bmunit.c: UnitAutolevel
      * Ported from src/bmdifficulty.c: GetCurrentPromotedLevelBonus
      *
@@ -113,6 +223,51 @@ public class UnitLoader(
             unitAutolevelCore(o, if (isHardMode()) 19 else 9)
         }
         unitAutolevelCore(o, s8(table.bytes, o + OFF_LEVEL) - 1)
+    }
+
+    /**
+     * Ported from src/bmunit.c: UnitApplyBonusLevels
+     *
+     * Raises ([levelCount] > 0) or lowers (< 0) the stats of the unit at [o] by that many levels
+     * unless it is a gorgon egg, caps them and heals the unit.
+     */
+    internal fun unitApplyBonusLevels(o: Int, levelCount: Int) {
+        if (levelCount == 0 || isGorgonEgg(o)) return
+        if (levelCount > 0) {
+            unitAutolevelCore(o, levelCount)
+        } else {
+            unitAutolevelPenalty(o, -levelCount)
+        }
+        unitCheckStatCaps(o)
+        put8(table.bytes, o + OFF_CUR_HP, getUnitMaxHp(o))
+    }
+
+    /**
+     * Ported from src/bmunit.c: UnitAutolevelPenalty
+     *
+     * Resets the stats of the unit at [o] to its bases and autolevels them again for its level
+     * minus [levelCount].
+     */
+    internal fun unitAutolevelPenalty(o: Int, levelCount: Int) {
+        val b = table.bytes
+        val level = s8(b, o + OFF_LEVEL)
+        val ch = u32(b, o + OFF_CHARACTER)
+        val baseLevel = rom.s8(ch + 0x0B)
+        if (levelCount == 0 || level <= baseLevel) return
+        val reduced = level - levelCount
+        val cl = u32(b, o + OFF_CLASS)
+        put8(b, o + OFF_MAX_HP, rom.s8(ch + 0x0C) + rom.s8(cl + 0x0B))
+        put8(b, o + 0x14, rom.s8(ch + 0x0D) + rom.s8(cl + 0x0C))
+        put8(b, o + 0x15, rom.s8(ch + 0x0E) + rom.s8(cl + 0x0D))
+        put8(b, o + 0x16, rom.s8(ch + 0x0F) + rom.s8(cl + 0x0E))
+        put8(b, o + 0x17, rom.s8(ch + 0x10) + rom.s8(cl + 0x0F))
+        put8(b, o + 0x18, rom.s8(ch + 0x11) + rom.s8(cl + 0x10))
+        put8(b, o + 0x19, rom.s8(ch + 0x12))
+        if (reduced > baseLevel) {
+            put8(b, o + OFF_LEVEL, reduced)
+            unitAutolevel(o)
+            put8(b, o + OFF_LEVEL, level)
+        }
     }
 
     /**
@@ -355,9 +510,7 @@ public class UnitLoader(
         put8(table.bytes, o + OFF_Y, def.y)
         val number = rom.u8(u32(table.bytes, o + OFF_CHARACTER) + 4)
         if (def.allegiance == 2 && number >= 0x3C) {
-            throw UnsupportedOperationException(
-                "LoadUnit_800F704: UnitApplyBonusLevels for red characters >= 0x3C not ported",
-            )
+            unitApplyBonusLevels(o, chapterLevelBonus())
         }
         moveLoadedUnit(id, def, flags, quiet, terrainAt)
         return id
@@ -391,8 +544,15 @@ public class UnitLoader(
         if ((flags and 2) != 0) {
             throw UnsupportedOperationException("AdjustNewUnitPosition: flags & 2 not ported")
         }
-        if ((flags and 1) != 0 && terrainAt(x, y) != 0) {
-            throw UnsupportedOperationException("AdjustNewUnitPosition: closest position")
+        if ((flags and 1) != 0 && terrainAt(x, y) != 0 && occupied(x, y)) {
+            val pos = closestValidPosition(o, x, y, terrainAt)
+            // As the C (muctrl.c): a failed search leaves out->x = -1 and out->y untouched.
+            if (pos >= 0) {
+                x = pos and 0xFF
+                y = pos ushr 8
+            } else {
+                x = -1
+            }
         }
         put8(b, o + OFF_X, x)
         put8(b, o + OFF_Y, y)
@@ -401,6 +561,106 @@ public class UnitLoader(
             throw UnsupportedOperationException("UnitFinalizeMovement: rescue/ballista not ported")
         }
         if ((state and US_UNDER_A_ROOF) == 0) put32(b, o + OFF_STATE, state and US_HIDDEN.inv())
+    }
+
+    /**
+     * Transcribed from src/cp_utility.c: AiGetUnitClosestValidPosition (not verified: no reference
+     * trace exercises the occupied case)
+     *
+     * The search for the free tile closest to ([x], [y]) that the unit at unit-array offset [o]
+     * can walk to from its current position. The two movement maps are flood fills of the unit's
+     * class cost table (`GenerateExtendedMovementMapOnRange`, `GenerateUnitExtendedMovementMap`,
+     * both with movement 124 and no unit blocking, as the ARM `MapFloodCore`). They are written
+     * into [BmMap.range] and [BmMap.movement] like the C (which leaves them overwritten), so the
+     * two spare rows above and below the map and the `width + 2` stride match the C pools; a unit
+     * may stand on a spare row (e.g. at the start of a walk-in). Columns outside the map are never
+     * entered. Returns `x or (y shl 8)`, or -1 where nothing was found (the C leaves `out->x`
+     * at -1 and returns 0; no exception). A null [bmMap] is a wiring error and throws
+     * [IllegalStateException].
+     *
+     * Deviation: the ARM `MapFloodCoreStep` has no bounds check (it relies on terrain-0 cost and
+     * the pool's row aliasing, which [BmMap.Pool] models). Here a flood whose start x lies
+     * outside 0 until width reaches nothing, where the C floods from the wrapped tile (this flow
+     * has units at x = 19 / 20 on the 15-wide Prologue map).
+     *
+     * Unmodelled: `GetUnitMovementCost` returns `Unk_TerrainTable_0880BC18` for a unit with
+     * `US_IN_BALLISTA`; here the class table is used (a loading unit in a ballista throws later in
+     * [moveLoadedUnit] anyway).
+     */
+    internal fun closestValidPosition(
+        o: Int,
+        x: Int,
+        y: Int,
+        terrainAt: (x: Int, y: Int) -> Int,
+    ): Int {
+        val map = checkNotNull(bmMap) { "UnitLoader.bmMap is not wired" }
+        val w = map.sizeX
+        val h = map.sizeY
+        val cl = u32(table.bytes, o + OFF_CLASS)
+        val costs = rom.u32(cl + 0x38 + 4 * movCostTableIndex())
+        floodMovement(map, map.range, x, y, costs, terrainAt)
+        floodMovement(
+            map, map.movement, s8(table.bytes, o + OFF_X), s8(table.bytes, o + OFF_Y), costs,
+            terrainAt,
+        )
+        var best = 124
+        var out = -1
+        for (iy in h - 1 downTo 0) {
+            for (ix in w - 1 downTo 0) {
+                if (map.movement[iy, ix] > MAP_MOVEMENT_MAX) continue
+                if (occupied(ix, iy)) continue
+                if (map.range[iy, ix] > best) continue
+                best = map.range[iy, ix]
+                out = ix or (iy shl 8)
+            }
+        }
+        return out
+    }
+
+    private fun movCostTableIndex(): Int = when (weatherId()) {
+        WEATHER_RAIN -> 1
+        WEATHER_SNOW, WEATHER_SNOWSTORM -> 2
+        else -> 0
+    }
+
+    /**
+     * `GenerateMovementMap` with movement 124 and no unit id (src/bmidoten.c, asm/arm.s
+     * MapFloodCoreStep) into [pool]: the cheapest cost to each tile (0xFF = not reached), rows
+     * `-2 until height + 2`. Relaxes the whole grid until nothing improves, which gives the same
+     * minima as the C's frontier flood without a queue (no allocation).
+     */
+    private fun floodMovement(
+        map: BmMap,
+        pool: BmMap.Pool,
+        x0: Int,
+        y0: Int,
+        costTable: Int,
+        terrainAt: (x: Int, y: Int) -> Int,
+    ) {
+        val w = map.sizeX
+        val h = map.sizeY
+        map.bmMapFill(pool, 0xFF)
+        if (x0 !in 0 until w || y0 !in -2 until h + 2) return
+        pool[y0, x0] = 0
+        var changed = true
+        while (changed) {
+            changed = false
+            for (cy in -2 until h + 2) {
+                for (cx in 0 until w) {
+                    val base = pool[cy, cx]
+                    if (base > 124) continue
+                    for (d in 0 until 4) {
+                        val nx = cx + DX[d]
+                        val ny = cy + DY[d]
+                        if (nx !in 0 until w || ny !in -2 until h + 2) continue
+                        val cost = base + rom.u8(costTable + terrainAt(nx, ny))
+                        if (cost >= pool[ny, nx] || cost > 124) continue
+                        pool[ny, nx] = cost
+                        changed = true
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -723,6 +983,12 @@ public class UnitLoader(
     }
 
     private companion object {
+        const val MAP_MOVEMENT_MAX = 120
+        const val WEATHER_RAIN = 4
+        const val WEATHER_SNOW = 1
+        const val WEATHER_SNOWSTORM = 2
+        val DX = intArrayOf(0, 0, -1, 1)
+        val DY = intArrayOf(-1, 1, 0, 0)
         const val CHARACTER_DATA = 0x08803D64
         const val CHARACTER_DATA_SIZE = 0x34
         const val CLASS_DATA = 0x08807164
@@ -754,6 +1020,9 @@ public class UnitLoader(
         const val UNIT_STATUS_BERSERK = 4
         const val CA_PROMOTED = 1 shl 8
         const val CA_BOSS = 1 shl 15
+        const val CA_MAXLEVEL10 = 1 shl 19
+        const val US_GROWTH_BOOST = 1 shl 13
+        const val UNIT_EXP_DISABLED = 0xFF
         const val UNIT_ITEM_COUNT = 5
         const val CLASS_GORGONEGG = 0x62
         const val CLASS_GORGONEGG2 = 0x34

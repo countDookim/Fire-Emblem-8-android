@@ -1,43 +1,24 @@
 # HANDOFF
 
-_Updated 2026-11-05 (owner PC: M5-25, 39b, 41c, 42-47, 53-55). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
+_Updated 2026-11-06 (owner PC: M5-58/59, M6-01..04, M6-21/22, tag audit). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
 docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
 ## In progress
-- M5-58 fixes on `wip/M5-58` (review findings), M6-01/02 (notes + runs), M6-03..05 (suspend save), M6-21/22 (unit
-  compare + Event34): owner PC, until ~15:00Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
-## Next task: finish M5-58/59 on `wip/M5-58` (replace the skip-all stand-in), then merge
-M5-60d done (scheduled 11-06, master): `fe8.game.event.EventUnitLoads` (Event2B, Event2C skip/FADEDIN path,
-EventLoadUnitSliently, ShouldUNITBeLoaded, GetUnitDefinitionFromEventScr, GetLoadUnitsAmount, ModifyMoveUnitFlag;
-`registerOn(engine)`); `UnitLoader.UnitDef` is a data class (gLoadUnitBuffer overrides). `EventUnitLoadsTest`
-tags only Event2C/EventLoadUnitSliently/GetLoadUnitsAmount (throne room r09521; terrain stubbed 0).
-`wip/M5-58` (scheduled 11-06, full jvmTest green, master merged in): Fe8Boot registers the unit loads (0x2C wrapper
-= stand-in: walking loads run silently), shared `battleBmMap`; UnitLoader gained `occupiedAt` (free-tile case of
-AiGetUnitClosestValidPosition), `chapterLevelBonus` + UnitApplyBonusLevels/UnitAutolevelPenalty,
-UnitAutolevelRealistic (partial, untagged); NewGameToPrologueTest now asserts blue units and an idling phase.
-Still blocking merge: `startPressed() = true` skips ALL events. With `false` the opening runs (STAL at 0x89EED5C
-etc.) but a later load throws `AdjustNewUnitPosition: closest position` (stubbed MU moves leave units in place;
-needs the AiGetUnitClosestValidPosition search or Event2F MoveUnit).
-M5-60 core done (scheduled 11-06): `fe8.game.bm.UnitLoader(table, rom, unsealedCharacter, rng, isHardMode)`:
-`loadUnit` (LoadUnit: items, REDA end position, non-blue autolevel incl. promoted bonus, RNG) and `loadUnitForEvent`
-(LoadUnit_800F704, partial, untagged: `b` guessed 0). Throws Unsupported for blue/boss autolevel
-(UnitAutolevelRealistic), genMonster, gorgon eggs, sumFlag, MU walks when not quiet. `UnitLoaderDifferentialTest`:
-throne room (r09518→r09521), allies/messenger (ram_trace_prologue), red autolevel (RNG candidates from rng.watch;
-r dumps every 30 f). Masks: +0x3C sprite handle, US_HIDDEN, MU-moved x/y. Weak (untagged): UnitCheckStatCaps,
-UnitHideIfUnderRoof, GetItemHpBonus/GetUnitMaxHp, CanUnitUseWeapon/Staff, UnitAutolevelWExp.
-M5-53..55 done (owner PC): `EventVmDifferentialTest` runs the real `EventEngine` over the whole prologue trace (12618
-pairs, 0 mismatches; RNG, tutorial fields, call/active queues and flags compared). Unported commands are test-only
-stubs (STUBS table). 172 Event19 pairs are skipped: the game engine idles while a Popup/GotItem child proc lives (no
-blocked-by-child model yet). Withheld tags and why: docs/TASKS.md Done/M5. EventEngine_CanStartSkip/StartSkip are
-partial (an unpushed alternative port is on owner-PC branch `backup/event-engine-dup`). `EventScrCore` takes the
-game's RngService/PlaySt/KeyStatus (no defaults). Wiring still open (M5-58): `BMapMain.hooks.playerPhase`,
-`hooks.callEvent` → EventEngine. M5-56 done (scheduled): `RoutedFlagStore`, `ModFlagSymbols`, `ModSaveSections`; M5-56b done: a mod flag name in a flag
-arg gets `set_slot 2, handle` before it (`ModFlagSlotExpander`; overwrites slot 2). M5-57 done: `ModScriptEndToEndTest` (mod .fe8s → synthetic range → calls a
-ROM script → returns; 0 B/frame). `wip/M5-56`, `wip/M5-60` are merged and can be deleted (scheduled runs get 403 on branch delete).
+## Next task: M5-61 (app keeps the imported ROM; ADR 0011 amended 11-06), then M6 in TASKS order
+Owner 11-06: run ONE agent/task at a time from now on. M5-58/59 merged (11-06): Fe8Boot runs New Game → beginning
+events (unskipped; START skip reads the real KeyStatus) → Prologue PlayerPhase idle; `PrologueMapTest` (BG3 tiles vs
+ram_trace_first_phase f19430, 0 B/frame idle with D-pad). Known gap: release no-op stubs leave cutscene units (9 blue/
+15 red vs the reference's 2/3), so `UnitLoader.closestValidPosition` (transcribed, `ClosestValidPositionTest`) runs
+for red units 139/142; closed by M6-22/28/44. The APK still stops at the title path: it only has boot/sound ROM
+windows (M5-61). M6-03/04: the suspend save is written at each phase start through `Fe8Boot.saveLib` (stand-ins:
+actionData, traps, convoy, WM info, dungeon; GMapSaveInfo is 0x24). M6-21/22: `EventVmDifferentialTest` compares
+unit arrays; `EventUnitState` (Event34) registered, untagged. New runs ram_trace_prologue_{talk,battle,resume}
+(ROM repo c80bcb8; excluded from m4a tests). Old `wip/` branches deleted 11-06.
 
 ## State
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
@@ -45,7 +26,7 @@ ROM script → returns; 0 B/frame). `wip/M5-56`, `wip/M5-60` are merged and can 
   `CgbSound` verified; `PsgSynth` (GBATEK/mGBA behaviour, not a port) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad, GPU backend, audio, ROM import (~4 s) + boot
   from it. Pending: smoke test of the first APK built on the KMP android variants (MANUAL_TEST "Newly testable").
-- Verified ports: 370 / 8352 (`tools/progress.py`, 2026-11-06; audit withheld 6 M5-60 overclaims). Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
+- Verified ports: 376 / 8352 (`tools/progress.py`, 2026-11-06; audit withheld 6 M5-60 overclaims). Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
 - Layout: `:gba:*` game-neutral (ADR 0012), `gbafe.*` in `:engine:*`, `fe8.*` in `:game`/`:app`; KMP jvm+android
   (ADR 0013) except `:gba:testkit`, `:testing`, `:tools:extract`.
 

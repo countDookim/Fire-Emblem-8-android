@@ -4,23 +4,38 @@ import fe8.game.bm.BMapMain
 import fe8.game.bm.BattleMapNodes
 import fe8.game.bm.BattleMapStart
 import fe8.game.bm.BmMap
+import fe8.game.bm.BmSt
 import fe8.game.bm.BmMapRender
 import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterMapGfx
+import fe8.game.bm.EntityBmMaps
+import fe8.game.bm.PLAY_FLAG_HARD
+import fe8.game.bm.PlayerPhase
 import fe8.game.bm.ResetCursorPosition
+import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitTable
+import fe8.game.event.EventConst
+import fe8.game.event.EventEngine
+import fe8.game.event.EventEngineHooks
+import fe8.game.event.EventHandler
+import fe8.game.event.EventScrCore
 import fe8.game.event.EventState
+import fe8.game.event.EventUnitLoads
+import fe8.game.event.ReleaseEventStubs
+import fe8.game.event.ScriptWords
 import fe8.game.flags.Fe8EventFlags
 import fe8.game.opanim.EarlyStartUi
 import fe8.game.opanim.OpAnim
 import fe8.game.save.BmSaveLib
 import fe8.game.save.BmSuspendSave
+import fe8.game.save.NewGameRam
 import fe8.game.save.SuspendRam
 import fe8.game.title.TitleScreen
 import gba.audio.M4aDriver
 import gba.audio.M4aSound
 import gba.audio.PcmStream
+import gba.core.sram.CartSram
 import gba.render.Camera
 import gba.render.ColorMath
 import gba.render.FrameBuffer
@@ -35,6 +50,7 @@ import gbafe.core.time.GameClock
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
+import gbafe.proc.ProcScript
 import gbafe.render.HardwareSceneLoader
 
 /**
@@ -60,11 +76,6 @@ public class Fe8Boot(
     public val m4a: M4aSound? = null,
     /** Receives each frame's mixed samples (null: mix only). */
     pcm: PcmStream? = null,
-    /**
-     * The save RAM routines (the owner of the cartridge SRAM), or null while the game has no SRAM
-     * attached: the battle map's suspend save hook then does nothing.
-     */
-    public val saveLib: BmSaveLib? = null,
 ) {
     /** `gKeyStatusPtr`. */
     public val keys: KeyStatus = KeyStatus()
@@ -99,23 +110,124 @@ public class Fe8Boot(
     public val control: GameControl =
         GameControl(engine, keys, { ui.script }, { opAnimRef.script }, { titleRef }, m4a)
 
+    /** The cartridge save RAM of this boot (empty until a save is written). */
+    public val sram: CartSram = CartSram()
+
+    /** The save routines on [sram]. */
+    public val saveLib: BmSaveLib by lazy { BmSaveLib(sram).also { it.sramInit() } }
+
+    /**
+     * Stand-in for `StartSaveMenu` (the save menu is not ported): the dev "New Game" choice. Writes
+     * a fresh game to slot 0 ([BmSaveLib.writeNewGameSave]) and leaves `nextAction` at event
+     * return, so the game control proc continues to chapter 0.
+     */
+    private fun newGameSaveMenu() {
+        saveLib.writeNewGameSave(
+            NewGameRam(control.playSt, flags, ByteArray(200)), 0, false, 0, -1,
+        )
+        control.setNextGameActionId(GameControl.GAME_ACTION_EVENT_RETURN)
+    }
+
     /** The units the battle map start path touches (raw-unit stand-in). */
     public val units: UnitTable by lazy { UnitTable(rom) }
 
-    /** The event engine's globals (`gEventSlotCounter` is read by the suspend save). */
+    /** The event engine's globals, shared by [eventEngine] and the suspend save. */
     public val eventState: EventState = EventState()
 
     /** `gChapterFlagBits` and friends. */
     public val flags: EventFlags = Fe8EventFlags.create()
 
     /**
+     * The event engine (`EventEngine`) with the ported command handlers of [EventScrCore]
+     * registered; the other commands stay unknown. Hooks are the defaults (stand-ins).
+     */
+    public val eventEngine: EventEngine by lazy {
+        val state = eventState
+        val memory = ScriptWords({ rom.u16(it) })
+        // `gKeyStatusPtr->newKeys & START_BUTTON`: the game's single KeyStatus.
+        val hooks = object : EventEngineHooks {
+            override fun startPressed(): Boolean = keys.newKeys and KeyStatus.START_BUTTON != 0
+        }
+        EventEngine(engine, state, memory, hooks).also {
+            EventScrCore(
+                state, memory, flags = flags, rng = rng, playSt = control.playSt, keys = keys,
+            ).registerAll(it)
+            val loader = UnitLoader(
+                units, rom,
+                // Stand-in: only unk1C[0..1] are modelled in PlaySt.
+                { type ->
+                    when (type) {
+                        0 -> control.playSt.unk1C0
+                        1 -> control.playSt.unk1C1
+                        else -> 0
+                    }
+                },
+                rng, { control.playSt.chapterStateBits and PLAY_FLAG_HARD != 0 },
+            ).apply {
+                chapterLevelBonus = {
+                    val ps = control.playSt
+                    val levels = rom.u16(
+                        battleChapters.getROMChapterStruct(ps.chapterIndex) + 0x14,
+                    )
+                    val hard = ps.chapterStateBits and PLAY_FLAG_HARD != 0
+                    when {
+                        ps.controller == 0 && !hard -> -(levels and 0xF)
+                        hard -> levels ushr 4 and 0xF
+                        else -> -(levels ushr 8 and 0xF)
+                    }
+                }
+                bmMap = battleBmMap
+                weatherId = { control.playSt.chapterWeatherId }
+            }
+            EventUnitLoads(
+                state, memory, rom, units, loader, rng,
+                { x, y -> battleBmMap.terrain[y, x] },
+                { x, y -> battleBmMap.unit[y, x] },
+                { battleBmMap.bmMapFill(battleBmMap.other, 0) },
+            ).also { loads ->
+                loads.registerOn(it)
+                // Stand-in: the walking load (EventLoadUnitWithMovement, MU) is not ported, so a
+                // load outside skip mode (e.g. the first update, before skipping can start) runs
+                // the silent path as if faded in.
+                it.register(0x2C, EventHandler { p ->
+                    val bits = p.evStateBits
+                    p.evStateBits = bits or EventConst.EV_STATE_FADEDIN
+                    val r = loads.event2cLoadUnits.run(p)
+                    p.evStateBits = (p.evStateBits and EventConst.EV_STATE_FADEDIN.inv()) or
+                        (bits and EventConst.EV_STATE_FADEDIN)
+                    r
+                })
+            }
+            ReleaseEventStubs.registerMissing(it)
+        }
+    }
+
+    /**
      * The battle map start path (`StartBattleMap`, `StartBMapMain`), built when the game control
      * proc first reaches it (it reads chapter data from the ROM, which the boot windows may lack).
      */
     public val battleMap: BattleMapStart by lazy {
-        val chapters = ChapterData(rom)
+        bmapMainParts.second
+    }
+
+    /**
+     * The `BMapMain` of [battleMap] with its player phase and event hooks wired (player phase
+     * script, `EventEngine.callEvent`).
+     */
+    public val bmapMain: BMapMain by lazy { bmapMainParts.first }
+
+    /** The player phase script wired into [bmapMain]. */
+    public val playerPhaseScript: ProcScript get() = bmapMain.hooks.playerPhase
+
+    private val battleChapters: ChapterData by lazy { ChapterData(rom) }
+
+    /** The battle map's `gBmMap*` pools, shared by the battle map path and the unit loads. */
+    private val battleBmMap: BmMap by lazy { BmMap(rom, battleChapters, loop.bmSt) }
+
+    private val bmapMainParts: Pair<BMapMain, BattleMapStart> by lazy {
+        val chapters = battleChapters
         val bm = loop.bmSt
-        val map = BmMap(rom, chapters, bm)
+        val map = battleBmMap
         val camMove = CamMove(engine, bm)
         val reset = ResetCursorPosition(
             engine, bm, control.playSt, units, camMove, NO_WORLD_MAP_NODES,
@@ -123,19 +235,29 @@ public class Fe8Boot(
         val main = BMapMain(
             engine, control.playSt, units, flags, chapters, rom, reset, camMove,
         )
-        BattleMapStart(
+        val render = BmMapRender(bm, map, hw)
+        main.hooks.playerPhase = PlayerPhase(
+            engine, bm, control.playSt, map, units, camMove,
+            EntityBmMaps(map, units, control.playSt), render, keys,
+            eventEngine::eventEngineExists,
+        ).script
+        main.hooks.callEvent = { events, execType, _ ->
+            eventEngine.callEvent(events, execType)
+        }
+        val start = BattleMapStart(
             engine, control.playSt, bm, hw, chapters, map,
-            ChapterMapGfx(rom, chapters, hw, control.playSt), BmMapRender(bm, map, hw),
+            ChapterMapGfx(rom, chapters, hw, control.playSt), render,
             flags, rng, clock, units,
         ).also {
             main.hooks.writeSuspendSave = suspendSaveHook(main, bm, rom)
             main.hooks.getBattleMapKind = { it.hooks.getBattleMapKind() }
             it.hooks.bmapMainScript = main.script
         }
+        main to start
     }
 
     /**
-     * `WriteSuspendSave` for [BMapMain.Hooks.writeSuspendSave], or a no-op without a [saveLib].
+     * `WriteSuspendSave` for [BMapMain.Hooks.writeSuspendSave], on [saveLib].
      *
      * Stand-ins, until the state exists: `gActionData` is the [SuspendRam.actionData] buffer
      * (zeros apart from the RN state the save stores and `suspendPointType`, which is merged in
@@ -143,9 +265,8 @@ public class Fe8Boot(
      * map info and dungeon state are the zeroed buffers of [SuspendRam] (their owners are not
      * ported).
      */
-    private fun suspendSaveHook(main: BMapMain, bm: fe8.game.bm.BmSt, rom: RomView): (Int) -> Unit {
-        val lib = saveLib ?: return {}
-        val save = BmSuspendSave(lib, rom)
+    private fun suspendSaveHook(main: BMapMain, bm: BmSt, rom: RomView): (Int) -> Unit {
+        val save = BmSuspendSave(saveLib, rom)
         val ram = SuspendRam(control.playSt, bm, rng, units, flags, clock, eventState)
         return { slot ->
             ram.actionData[ACTION_SUSPEND_POINT_TYPE] = main.suspendPointType.toByte()
@@ -199,6 +320,7 @@ public class Fe8Boot(
     init {
         opAnim.afterStep = loop::afterStep
         control.hooks.startBattleMap = ProcFunc { battleMap.startBattleMap(it) }
+        control.hooks.startSaveMenu = ProcFunc { newGameSaveMenu() }
         control.sound.setDefaultMaxNumChannels() // AgbMain, after m4aSoundInit
         control.startGame()
     }

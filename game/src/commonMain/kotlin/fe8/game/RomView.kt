@@ -53,6 +53,13 @@ public class RomView(
         return Decompress.into(b, at - base, dst, dstOffset)
     }
 
+    /**
+     * True when this view is the whole ROM image ([ofRom]); a view over extracted windows lacks
+     * the chapter, map and unit data that New Game needs.
+     */
+    public val isWholeRom: Boolean
+        get() = segments.size == 1 && segments[0].first == ROM_BASE
+
     private fun segment(at: Int): Pair<Int, ByteArray> {
         for (i in segments.indices) {
             val s = segments[i]

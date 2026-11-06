@@ -9,6 +9,9 @@ _(nothing blocked)_
 ## In progress
 _(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
+## Check first (owner, 2026-11-06)
+- GitHub issue #4 "starting the game": read it at the start of the next run and act on it before the Next task.
+
 ## Next task: finish M6-05 on `wip/M6-05`, then M6 in TASKS order
 `wip/M6-05` (owner PC 11-06, stopped mid-task): ReadSuspendSave, ReadSuspendSavePackedUnit and read helpers in
 BmSuspendSave/BmSaveLib (+ UnitTable/UnitLoader edits), `ReadSuspendSaveReferenceTest` vs ram_trace_ch2_scroll. It does

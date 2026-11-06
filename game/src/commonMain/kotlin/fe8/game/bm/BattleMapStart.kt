@@ -365,10 +365,14 @@ public class BattleMapStart(
     }
 
     /**
-     * Transcribed (not verified) from src/bmio.c: MapMain_ResumeFromPhaseIdle
+     * Ported from src/bmio.c: MapMain_ResumeFromPhaseIdle
      *
      * Refreshes the entity maps and unit sprites, hides every layer and jumps [mapMain] to label
-     * 4. `RefreshEntityBmMaps` / `RefreshUnitSprites` are [Hooks] stand-ins.
+     * 4. `RefreshEntityBmMaps` / `RefreshUnitSprites` are [Hooks] (no-ops by default, the real
+     * ports in `Fe8Boot`).
+     *
+     * Verification: partial. `ResumeBootTest` compares the label jump and the hidden layers
+     * (`dispcnt` 0x1F00) with the dump of the resume; the two refreshes are not compared.
      */
     public fun resumeFromPhaseIdle(mapMain: Proc) {
         refreshAndHideDisplay()

@@ -3,10 +3,13 @@ package fe8.testing
 import fe8.game.Fe8Boot
 import fe8.game.RomView
 import fe8.game.bm.UnitTable
+import gba.core.VerifiesPort
 import gba.core.sram.CartSram
 import gba.core.sram.InMemorySaveStorage
 import gba.core.sram.SaveStorage
 import gba.testkit.ReferenceData
+import gbafe.proc.Proc
+import gbafe.proc.ProcFunc
 import gbafe.core.rng.RngService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -46,7 +49,10 @@ class ResumeBootTest {
     }
 
     /** Boots on [storage], presses A on the title and runs to the idle player phase. */
-    private fun bootToPhase(storage: SaveStorage): Pair<Fe8Boot, Boolean> {
+    private fun bootToPhase(
+        storage: SaveStorage,
+        afterResume: (Fe8Boot, Proc) -> Unit = { _, _ -> },
+    ): Pair<Fe8Boot, Boolean> {
         var frame = 0
         val keySource: () -> Any = { if (frame % 20 in 5..8) 1 else 0 }
         val boot = Fe8Boot(
@@ -56,6 +62,11 @@ class ResumeBootTest {
             RngService(),
             saveStorage = storage,
         )
+        val orig = boot.control.hooks.startResumedGame
+        boot.control.hooks.startResumedGame = ProcFunc {
+            orig.invoke(it)
+            afterResume(boot, boot.engine.find(boot.bmapMain.script)!!)
+        }
         while (frame < 3000 && boot.engine.find(boot.playerPhaseScript) == null) {
             boot.frame()
             frame++
@@ -79,6 +90,42 @@ class ResumeBootTest {
         val (boot, reached) = bootToPhase(CountingStorage(pre.sram("s00001")))
         assertTrue(reached, "player phase of the resumed map not reached")
         assertEquals(2, boot.control.playSt.chapterIndex)
+    }
+
+    /**
+     * Ported from src/bmio.c: MapMain_ResumeFromPhaseIdle
+     *
+     * Ground truth: BMapMain (`gProc_BMapMain` at 0x0859A1F0) in the proc array of the dump r01149
+     * of `ram_trace_prologue_resume` (and r01150 of `ram_trace_ch2_scroll`) is at command 40, which
+     * is `PROC_LABEL(4)`; ours sits on label 4 right after `startResumedGame`. The BG0..3 / OBJ
+     * enable bits of `gLCDControlBuffer.dispcnt` (IWRAM 0x03003080) of that dump equal ours. The
+     * two refreshes (entity maps, unit sprites) are not compared.
+     */
+    @Test
+    @VerifiesPort("MapMain_ResumeFromPhaseIdle")
+    fun `resume from phase idle jumps BMapMain to label 4 like the dumps`() {
+        needRom()
+        val ref = ReferenceData.fromEnvironment()
+        assumeTrue(ref.available, "mGBA reference data not present")
+        val pre = ref.run("sram_chapter2_boot")
+        assumeTrue(pre.hasSram, "sram_chapter2_boot has no SRAM dumps")
+        val r = ref.run("ram_trace_ch2_scroll")
+        val want = ProcArrayDump.ofEwram(r.region("r01150", "ewram")).find(0x0859A1F0)!!.scrCur
+        assertEquals(40, want)
+        val iwram = r.region("r01150", "iwram")
+        val wantLayers = (iwram[0x3080].toInt() and 0xFF or (iwram[0x3081].toInt() and 0xFF shl 8)) and
+            0x1F00
+        var type = -1
+        var got = -1
+        var layers = -1
+        bootToPhase(CountingStorage(pre.sram("s00001"))) { boot, proc ->
+            type = boot.battleMap.hooks.suspendPointType()
+            got = proc.scrCur
+            layers = boot.ui.env.hardware.lcd.dispcnt and 0x1F00
+        }
+        assertEquals(0, type, "SUSPEND_POINT_PLAYERIDLE, the type chapter2.sav was suspended at")
+        assertEquals(want, got)
+        assertEquals(wantLayers, layers, "BG0..3 / OBJ enable bits of gLCDControlBuffer.dispcnt")
     }
 
     @Test

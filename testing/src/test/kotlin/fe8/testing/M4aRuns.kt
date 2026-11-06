@@ -9,5 +9,6 @@ internal val M4A_UNCOVERED_RUNS: Set<String> = setOf(
     "sram_boot", "sram_preload", "ram_trace_newgame", "ram_trace_newgame_bm",
     "ram_trace_prologue", "ram_trace_first_phase", "ram_trace_ch2_scroll", "ram_trace_ch6_fog",
     "sram_chapter2_boot", "sram_chapter6_boot", "ram_trace_ch6_phase_start", "ram_trace_ch6_start",
-    "ram_trace_ch6_cursor_edges",
+    "ram_trace_ch6_cursor_edges", "ram_trace_prologue_talk", "ram_trace_prologue_battle",
+    "ram_trace_prologue_resume",
 )

@@ -35,14 +35,6 @@ class EventUnitLoadsTest {
     private fun ByteArray.u32(addr: Int) =
         u8(addr) or (u8(addr + 1) shl 8) or (u8(addr + 2) shl 16) or (u8(addr + 3) shl 24)
 
-    private class Setup(
-        val rom: RomView,
-        val table: UnitTable,
-        val state: EventState,
-        val words: ShortArray,
-        val loads: EventUnitLoads,
-    )
-
     private fun setup(before: ByteArray?, terrainAt: (Int, Int) -> Int = { _, _ -> 0 }): Setup {
         val rom = RomView.ofRom(romFile.readBytes())
         val table = UnitTable(rom)
@@ -62,11 +54,13 @@ class EventUnitLoadsTest {
         words[3] = (ptr ushr 16).toShort()
     }
 
+    // Not @VerifiesPort: GetLoadUnitsAmount (an over-count survives: the load stops at the
+    // terminator definition).
     @Test
     @VerifiesPort(
-        "Event2C_LoadUnits", "EventLoadUnitSliently", "GetLoadUnitsAmount",
+        "Event2C_LoadUnits", "EventLoadUnitSliently",
         // Untagged (one branch only): ShouldUNITBeLoaded (blue, no dead unit),
-        // GetUnitDefinitionFromEventScr (chance 0, REDAs kept), LoadUnit_800F704 (terrain
+        // GetUnitDefinitionFromEventScr (no sumFlag, no REDAs), LoadUnit_800F704 (terrain
         // stubbed to 0, so the b bit 0 AiGetUnitClosestValidPosition check never runs).
     )
     fun `skipped load_unit2 of the throne room units reproduces the dumped unit structs`() {
@@ -83,10 +77,13 @@ class EventUnitLoadsTest {
         val proc = EventEngineProc()
         proc.pEventCurrent = SCRIPT
         proc.evStateBits = EV_STATE_SKIPPING
-        proc.unitLoadCount = 0
-        proc.chance = 0
+        proc.unitLoadCount = 0 // 0: count the definitions (GetLoadUnitsAmount)
+        // No definition has sumFlag or REDAs, so a non-zero chance and disableReda load the same
+        // units and make the resets below observable.
+        proc.chance = 50
+        proc.disableReda = true
         assertEquals(EVC_ADVANCE_YIELD, s.loads.event2cLoadUnits.run(proc))
-        assertEquals(0, proc.unitLoadCount)
+        assertEquals(0, proc.chance)
         assertFalse(proc.disableReda)
 
         val expected = UnitTable(s.rom).also { it.loadFrom(after) }
@@ -173,6 +170,16 @@ class EventUnitLoadsTest {
         val kept = s.loads.getUnitDefinitionFromEventScr(src, 2, 0, false, false)
         assertEquals(2, kept[0].redaCount)
     }
+
+    // Below the tests: tools/progress.py credits a @VerifiesPort to the last class declared
+    // before it.
+    private class Setup(
+        val rom: RomView,
+        val table: UnitTable,
+        val state: EventState,
+        val words: ShortArray,
+        val loads: EventUnitLoads,
+    )
 
     private companion object {
         const val SCRIPT = 0x0A000000

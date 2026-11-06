@@ -143,7 +143,8 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/bmbattle.c: GetStatIncrease
+     * Transcribed from src/bmbattle.c: GetStatIncrease (not verified: `>= 100` for `> 100` and
+     * `roll1(g + 1)` survive the autolevel RNG-window test; only exact-boundary rolls differ)
      *
      * One point per full 100 of [growth], plus one more with the remainder as percent chance.
      */
@@ -439,7 +440,8 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/bmunit.c: ClearUnit
+     * Transcribed from src/bmunit.c: ClearUnit (not verified: the traced loads fill slots that are
+     * already zero, so a skipped clear survives)
      *
      * Zeroes the unit at byte offset [o] of the unit arrays but keeps its `index`.
      */
@@ -527,7 +529,8 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/cp_utility.c: CharStoreAI
+     * Transcribed from src/cp_utility.c: CharStoreAI (not verified: every traced definition has
+     * zero AI bytes, so a skipped or wrong store survives)
      *
      * Copies the definition's AI bytes into `ai1`, `ai2` and `ai_config` of the unit at [o].
      */
@@ -583,7 +586,8 @@ public class UnitLoader(
     }
 
     /**
-     * Ported from src/bmunit.c: FixROMUnitStructPtr
+     * Transcribed from src/bmunit.c: FixROMUnitStructPtr (not verified: no traced unit has
+     * `CA_BIT_23`, so a broken repoint survives)
      *
      * Where the combined character and class attributes have `CA_BIT_23`, repoints the unit at
      * [o] to the character data one entry before the one its `number` names.

@@ -32,10 +32,12 @@ class UnitLoaderDifferentialTest {
     private fun ByteArray.u32(addr: Int) =
         u8(addr) or (u8(addr + 1) shl 8) or (u8(addr + 2) shl 16) or (u8(addr + 3) shl 24)
 
+    // Not @VerifiesPort: ClearUnit (the slots are already zero, a skipped clear survives),
+    // FixROMUnitStructPtr (no unit has CA_BIT_23), CharStoreAI (all AI bytes are zero).
     @Test
     @VerifiesPort(
-        "LoadUnit", "ClearUnit", "GetFreeUnit", "GetFreeBlueUnit", "UnitInitFromDefinition",
-        "UnitLoadStatsFromChracter", "FixROMUnitStructPtr", "UnitLoadSupports", "CharStoreAI",
+        "LoadUnit", "GetFreeUnit", "GetFreeBlueUnit", "UnitInitFromDefinition",
+        "UnitLoadStatsFromChracter", "UnitLoadSupports",
         // UnitCheckStatCaps, UnitHideIfUnderRoof: run, but no cap clamps and no roof tile here.
         "GetCharacterData",
         "GetClassData", "GetUnitSupporterCount", "GetUnitSupporterInitialExp",
@@ -134,10 +136,12 @@ class UnitLoaderDifferentialTest {
      * - +0x3C..0x3F (`pMapSpriteHandle`): set by `RefreshUnitSprites`, not by `LoadUnit`.
      * Items, `curHP` and every other byte are compared exactly.
      */
+    // Not @VerifiesPort: GetItemIndex (all item ids < 0x80: a dropped mask survives),
+    // CharStoreAI (zero AI bytes).
     @Test
     @VerifiesPort(
         "LoadUnit", "UnitInitFromDefinition", "MakeNewItem", "UnitAddItem", "GetItemMaxUses",
-        "GetItemIndex", "GetItemData", "UnitLoadStatsFromChracter", "CharStoreAI",
+        "GetItemData", "UnitLoadStatsFromChracter",
         // GetItemAttributes, GetUnitMaxHp, GetItemHpBonus: no unbreakable item, HP bonus 0 here.
     )
     fun `loading the prologue allies reproduces units with items`() {
@@ -194,11 +198,12 @@ class UnitLoaderDifferentialTest {
      * Masked: +0x0C bit 0 (`US_HIDDEN`: the MU hides a unit it walks in) and +0x3C..0x3F
      * (`pMapSpriteHandle`, `RefreshUnitSprites`). Every other byte is compared.
      */
+    // Not @VerifiesPort: GetStatIncrease (`>= 100` and `roll1(g + 1)` breaks survive: any
+    // state of the window may match, and only exact-boundary rolls differ).
     @Test
     @VerifiesPort(
         "LoadUnit", "UnitAutolevel", "UnitAutolevelCore", "GetAutoleveledStatIncrease",
-        "GetStatIncrease", "GetCurrentPromotedLevelBonus", "UnitInitFromDefinition",
-        "UnitLoadStatsFromChracter",
+        "GetCurrentPromotedLevelBonus", "UnitInitFromDefinition", "UnitLoadStatsFromChracter",
     )
     fun `autoleveled red units reproduce the dump for the RNG states of the window`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")

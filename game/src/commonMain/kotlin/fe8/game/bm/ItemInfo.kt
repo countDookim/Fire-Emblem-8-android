@@ -16,7 +16,8 @@ internal class ItemInfo(private val rom: RomView) {
     fun getItemData(itemIndex: Int): Int = ITEM_DATA + itemIndex * ENTRY_SIZE
 
     /**
-     * Ported from src/bmitem.c: GetItemIndex
+     * Transcribed from src/bmitem.c: GetItemIndex (not verified: a dropped or narrowed mask
+     * survives the traced loads)
      *
      * `ITEM_INDEX(item)`: the low byte.
      */

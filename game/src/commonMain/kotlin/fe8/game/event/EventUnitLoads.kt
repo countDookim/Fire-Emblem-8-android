@@ -106,7 +106,8 @@ public class EventUnitLoads(
         List(count) { UnitDef(rom, address + 20 * it) }
 
     /**
-     * Ported from src/eventscr.c: GetLoadUnitsAmount
+     * Transcribed from src/eventscr.c: GetLoadUnitsAmount (not verified: an over-count survives,
+     * since the load stops at the terminator definition)
      *
      * The number of definitions at ROM [address] before the one with character 0.
      */

@@ -1,12 +1,15 @@
 package fe8.testing
 
+import fe8.game.RomView
+import fe8.game.bm.UnitLoader
+import fe8.game.bm.UnitTable
 import fe8.game.event.EventConst.EVC_ADVANCE_CONTINUE
 import fe8.game.event.EventConst.EVC_ADVANCE_YIELD
 import fe8.game.event.EventConst.EVC_END
 import fe8.game.event.EventConst.EVC_STOP_YIELD
+import fe8.game.event.EventConst.EV_STATE_0008
 import fe8.game.event.EventConst.EV_STATE_FADEDIN
 import fe8.game.event.EventConst.EV_STATE_GFXLOCKED
-import fe8.game.event.EventConst.EV_STATE_0008
 import fe8.game.event.EventConst.EV_STATE_SKIPPING
 import fe8.game.event.EventEngine
 import fe8.game.event.EventEngineHooks
@@ -14,9 +17,12 @@ import fe8.game.event.EventEngineProc
 import fe8.game.event.EventHandler
 import fe8.game.event.EventScrCore
 import fe8.game.event.EventState
+import fe8.game.event.EventUnitState
+import fe8.game.event.EventUnitStateHooks
 import fe8.game.event.ScriptMemory
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
+import gba.testkit.ReferenceData.Run
 import gbafe.proc.ProcEngine
 import java.io.File
 import java.util.TreeMap
@@ -34,8 +40,7 @@ import org.junit.jupiter.api.Test
  * is compared with B: pc, `pEventIdk`, `evStateBits`, `evStallTimer`, `execType`, slots 1-13,
  * the slot queue, the slot counter, the active queue, the call queue, the flag bitfields, the
  * tutorial fields of `gPlaySt` and, on pairs that ran `Event04_CheckRandom`, `gRNState`.
- * Slot 0 is not
- * compared (`OnUpdate` zeroes it and other code may write it).
+ * Slot 0 is not compared (`OnUpdate` zeroes it and other code may write it).
  *
  * Commands without a ported handler are test-only stubs ([STUBS]). A stub completes its command
  * only when B shows the pc moved past it, with the return code the C handler gives; when B is
@@ -44,6 +49,21 @@ import org.junit.jupiter.api.Test
  * B is still parked on it. Pairs where the engine is absent in A or where B is parked exactly
  * where A was although the commands moved the pc (the engine idled: fade or callback early
  * return) are skipped.
+ *
+ * Unit windows: the unit arrays are seeded from a memory dump and compared with the next dump
+ * after the pairs in between ran (655 windows, of which only 8 touch units: the floors are on
+ * touched windows, with subs 5, 10 and 15 each in at least one). Only units that `Event34`
+ * names (or, for CLEA/CLEN/CLEE, the faction range) are compared, plus any unit whose bytes
+ * changed in a window without stubbed unit commands. Masks: +0x3C..0x3F (`pMapSpriteHandle`,
+ * written by the sprite refresh) and `US_HIDDEN` (MU code and the sprite refresh toggle it),
+ * which hides CLEA's main effect. A window that contains a completed or parked unit stub
+ * (0x2C, 0x2F, 0x30, 0x3F: loads, moves, battles) is partial: position bytes (+0x10, +0x11)
+ * are not compared and other units are not compared. A window with an unported or ambiguous
+ * command is skipped. The `Event34` handler is not credited with `@VerifiesPort` (see the
+ * comments at the unit test).
+ *
+ * `midFrameParking` for 0x34 (B parked on the command means it has not run yet) is a test-side
+ * assumption; its reason (a lag frame, since the command refreshes sprites) is unconfirmed.
  *
  * Assumptions of the ported handlers (documented in `EventScrCore`): division and modulo by 0
  * give 0, shifts by 32 or more give 0, `Event09_Goto` scans at most 0x10000 words for its label,
@@ -66,6 +86,28 @@ class EventVmDifferentialTest {
         val r = replay() ?: return
         assertTrue(r.create.pairs >= MIN_CREATE_PAIRS, "only ${r.create.pairs} creations")
         assertTrue(r.create.mismatches.isEmpty(), "mismatches: ${r.create.mismatches.take(5)}")
+    }
+
+    // Not @VerifiesPort: Event34_MessWithUnitState: only subs 5 (SET_HP), 10 (CLEA) and 15 (DISA)
+    // are compared; subs 0-4, 6-8 and 11-14 never reach a compared window, and breaking the CLEA
+    // hide / clear-bits loop (US_HIDDEN is masked) survives. SET_HP hp+1, CLEA without
+    // clearCutsceneUnits and DISA without clearUnit do fail. GetUnitStructFromEventParameter: only
+    // pid > 0 is reached, the special ids are unverified. ClearCutsceneUnits: the US_DEAD branch
+    // survives breaks (always clearUnit).
+    @Test
+    fun `unit arrays match the dumps between replayed event commands`() {
+        val r = replay() ?: return
+        r.print()
+        // Only 8 of the 655 windows touch units; the floor is on those, not on all windows.
+        assertTrue(
+            r.unitWindowsTouched >= MIN_TOUCHED_UNIT_WINDOWS,
+            "only ${r.unitWindowsTouched} windows touched units",
+        )
+        for (sub in MIN_SUB_WINDOWS) {
+            val n = r.subWindows[sub] ?: 0
+            assertTrue(n >= 1, "Event34 sub $sub compared in only $n windows")
+        }
+        assertEquals(emptyList<String>(), r.unitWindows.mismatches.take(5))
     }
 
     @Test
@@ -165,7 +207,9 @@ class EventVmDifferentialTest {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         val trace = EventTrace.prologue(ref)
         assumeTrue(trace != null, "ram_trace_prologue watches not present")
-        return cached ?: Replayer(romFile.readBytes(), trace!!).run().also { cached = it }
+        return cached ?: Replayer(romFile.readBytes(), trace!!, ref.run("ram_trace_prologue"))
+            .run()
+            .also { cached = it }
     }
 
     private val assets =
@@ -197,6 +241,20 @@ class EventVmDifferentialTest {
         var skippedAmbiguous = 0
         var createSkipped = 0
 
+        /** Unit-array windows (dump to next dump) compared, skipped as unsafe, and mismatching. */
+        val unitWindows = Stats()
+        var unitWindowsSkipped = 0
+        var unitWindowsTouched = 0
+        var unitWindowsPartial = 0
+        val skippedWithSubs = ArrayList<String>()
+        var unitsCompared = 0
+
+        /** Event34 subcode -> calls in compared pairs, windows compared and windows mismatching. */
+        val subCalls = TreeMap<Int, Int>()
+        val subRan = TreeMap<Int, Int>()
+        val subWindows = TreeMap<Int, Int>()
+        val subMismatches = TreeMap<Int, Int>()
+
         fun print() {
             println(
                 "EventVm pairs=$pairs compared=$compared skippedNoEngine=$skippedNoEngine " +
@@ -218,6 +276,18 @@ class EventVmDifferentialTest {
                 )
             }
             val done = stubCompleted.map { "%02X=%d".format(it.key, it.value) }
+            println(
+                "EventVm unit windows compared=${unitWindows.pairs} " +
+                    "partial(stubs)=$unitWindowsPartial withTouchedUnits=$unitWindowsTouched " +
+                    "unitsCompared=$unitsCompared " +
+                    "skippedUnitStub=$unitWindowsSkipped mismatches=${unitWindows.mismatches.size}",
+            )
+            println(
+                "EventVm Event34 subcode ran(all pairs)=$subRan calls(compared)=$subCalls " +
+                    "windows=$subWindows mismatchWindows=$subMismatches",
+            )
+            println("EventVm unit windows skipped with Event34: $skippedWithSubs")
+            unitWindows.mismatches.take(10).forEach { println("EventVm unit mismatch $it") }
             println("EventVm stub completed: $done")
             println("EventVm stub parked: ${stubParked.map { "%02X=%d".format(it.key, it.value) }}")
             println(
@@ -231,7 +301,11 @@ class EventVmDifferentialTest {
     }
 
     /** Replays the trace pairs on a real [EventEngine] with ported handlers and stubs. */
-    private class Replayer(rom: ByteArray, private val trace: EventTrace) {
+    private class Replayer(
+        rom: ByteArray,
+        private val trace: EventTrace,
+        private val run: Run,
+    ) {
         private val mem = ScriptMemory { a ->
             val o = a - 0x08000000
             (rom[o].toInt() and 0xFF) or ((rom[o + 1].toInt() and 0xFF) shl 8)
@@ -248,10 +322,25 @@ class EventVmDifferentialTest {
         private val playSt = fe8.game.bm.PlaySt()
         private val keys = gbafe.input.KeyStatus()
         private val result = Result()
+        private val romView = RomView.ofRom(rom)
+        private val table = UnitTable(romView)
+        private val loader = UnitLoader(table, romView, { 0 }, rng, { false })
+        private val unitState = EventUnitState(
+            state, mem, table, loader, object : EventUnitStateHooks {},
+        )
+
+        // Unit-array window: seeded from a dump, compared against the next one.
+        private var windowStubbed = false
+        private var windowUnknown = false
+        private val windowSubs = HashSet<Int>()
+        private val windowTouched = HashSet<Int>()
+        private val windowSeed = ByteArray(UnitTable.TOTAL_SIZE)
+        private val pairSeed = ByteArray(UnitTable.TOTAL_SIZE)
 
         // Per-pair scratch, reset before each onUpdate.
         private var curB: EventSnapshot? = null
         private val ran = ArrayList<Int>()
+        private val ranSubs = ArrayList<Int>()
         private val completedStubs = ArrayList<Int>()
         private var parkedStub = -1
         private var unportedCode = -1
@@ -284,6 +373,7 @@ class EventVmDifferentialTest {
                 0x0C to core.event0cBranch,
                 0x0E to core.event0eStal,
                 0x0F to core.event0fCounterOps,
+                0x34 to unitState.event34MessWithUnitState,
             )
             for (code in 0..0xFF) {
                 val h = ported[code]
@@ -291,6 +381,7 @@ class EventVmDifferentialTest {
                 engine.register(
                     code,
                     when {
+                        h != null && code == 0x34 -> midFrameParking(code, h)
                         h != null -> recording(code, h)
                         stub != null -> stubbed(code, stub)
                         else -> EventHandler {
@@ -302,8 +393,38 @@ class EventVmDifferentialTest {
             }
         }
 
+        /**
+         * A ported command whose frame the trace sampled in the middle of the command loop (assumed
+         * a lag frame, as `Event34` refreshes the map and sprites; unconfirmed): when B
+         * is parked on the command, the command has not run yet, as with a stubbed command.
+         */
+        private fun midFrameParking(code: Int, h: EventHandler) = EventHandler { p ->
+            val eb = curB?.engine
+            if (eb != null && eb.pEventCurrent == p.pEventCurrent) {
+                parkedStub = code
+                EVC_STOP_YIELD
+            } else {
+                recording(code, h).run(p)
+            }
+        }
+
         private fun recording(code: Int, h: EventHandler) = EventHandler { p ->
             ran += code
+            if (code == 0x34) {
+                val sub = mem.u16(p.pEventCurrent) and 0xF
+                ranSubs += sub
+                result.subRan.merge(sub, 1, Int::plus)
+                windowSubs += sub
+                val arg = mem.u16(p.pEventCurrent + 2).toShort().toInt()
+                when (sub) {
+                    0xA -> windowTouched += 1 until 0x40
+                    0xB -> windowTouched += 0x41 until 0x80
+                    0xC -> windowTouched += 0x81 until 0xC0
+                    else -> unitState.getUnitStructFromEventParameter(arg).let {
+                        if (it >= 0) windowTouched += it
+                    }
+                }
+            }
             checkAssumptions(code, p)
             val r = h.run(p)
             if (r == EVC_END) ended = true
@@ -353,19 +474,45 @@ class EventVmDifferentialTest {
 
         fun run(): Result {
             var prev: EventSnapshot? = null
+            val dumpSteps = run.dumps.keys.filter { it.startsWith("r") || it.startsWith("f") }
+                .associateBy { it.drop(1).toInt() }
+            var windowStart = -1
             for (step in trace.steps) {
                 val b = trace.at(step)
                 val a = prev
                 prev = b
-                if (a == null) continue
-                result.pairs++
-                val ea = a.engine
-                if (ea == null || ea.pEventCurrent == 0) {
-                    if (ea == null && b.engine != null) replayCreate(b)
-                    result.skippedNoEngine++
-                    continue
+                if (a != null) {
+                    result.pairs++
+                    val ea = a.engine
+                    if (ea == null || ea.pEventCurrent == 0) {
+                        if (ea == null && b.engine != null) replayCreate(b)
+                        result.skippedNoEngine++
+                    } else {
+                        when (replayUpdate(a, ea, b)) {
+                            UNIT_UNKNOWN -> windowUnknown = true
+                            UNIT_STUBBED -> windowStubbed = true
+                        }
+                    }
                 }
-                replayUpdate(a, ea, b)
+                val dump = dumpSteps[step] ?: continue
+                val ewram = run.region(dump, "ewram")
+                if (windowStart >= 0) {
+                    if (windowUnknown) {
+                        result.unitWindowsSkipped++
+                        if (windowSubs.isNotEmpty()) {
+                            result.skippedWithSubs += "$windowStart..$step subs $windowSubs"
+                        }
+                    } else {
+                        compareUnits(windowStart, step, ewram, windowStubbed)
+                    }
+                }
+                table.loadFrom(ewram)
+                table.bytes.copyInto(windowSeed)
+                windowTouched.clear()
+                windowStart = step
+                windowStubbed = false
+                windowUnknown = false
+                windowSubs.clear()
             }
             return result
         }
@@ -395,7 +542,8 @@ class EventVmDifferentialTest {
             hooks.fakeBlendY = 0
         }
 
-        private fun replayUpdate(a: EventSnapshot, ea: EngineState, b: EventSnapshot) {
+        /** Replays one pair; [UNIT_OK], [UNIT_STUBBED] or [UNIT_UNKNOWN] for the units' state. */
+        private fun replayUpdate(a: EventSnapshot, ea: EngineState, b: EventSnapshot): Int {
             loadState(a)
             flags.copyIn(a.permanentFlags!! + a.chapterFlags!!)
             procs.init()
@@ -406,6 +554,7 @@ class EventVmDifferentialTest {
             proc.evStateBits = ea.evStateBits
             proc.evStallTimer = ea.evStallTimer
             ran.clear()
+            ranSubs.clear()
             completedStubs.clear()
             parkedStub = -1
             unportedCode = -1
@@ -413,20 +562,27 @@ class EventVmDifferentialTest {
             idleStub = false
             ended = false
             curB = b
+            table.bytes.copyInto(pairSeed)
+            val subsBefore = HashSet(windowSubs)
+            val touchedBefore = HashSet(windowTouched)
             engine.onUpdate(proc)
             val eb = b.engine
             if (ambiguous) {
                 result.skippedAmbiguous++
-                return
+                return UNIT_UNKNOWN
             }
             if (idleStub) {
                 result.skippedIdle++
-                return
+                // The commands ran here but not in the game: undo their unit effects.
+                pairSeed.copyInto(table.bytes)
+                windowSubs.retainAll(subsBefore)
+                windowTouched.retainAll(touchedBefore)
+                return UNIT_OK
             }
             if (unportedCode >= 0 && (eb == null || eb.pEventCurrent != proc.pEventCurrent)) {
                 result.skippedUnported++
                 result.unportedHist.merge(unportedCode, 1, Int::plus)
-                return
+                return UNIT_UNKNOWN
             }
             // B parked exactly where A was although the commands moved the pc: the engine did not
             // run that frame (fade/callback early return in OnUpdate, not modelled), so skip.
@@ -434,7 +590,11 @@ class EventVmDifferentialTest {
                 eb.pEventIdk == ea.pEventIdk && proc.pEventCurrent != ea.pEventCurrent
             ) {
                 result.skippedIdle++
-                return
+                // The commands ran here but not in the game: undo their unit effects.
+                pairSeed.copyInto(table.bytes)
+                windowSubs.retainAll(subsBefore)
+                windowTouched.retainAll(touchedBefore)
+                return UNIT_OK
             }
             result.compared++
             val diffs = compare(proc, b)
@@ -457,6 +617,57 @@ class EventVmDifferentialTest {
             }
             for (code in completedStubs.toSet()) result.stubCompleted.merge(code, 1, Int::plus)
             if (parkedStub >= 0) result.stubParked.merge(parkedStub, 1, Int::plus)
+            for (sub in ranSubs) result.subCalls.merge(sub, 1, Int::plus)
+            val stubbed = completedStubs.any { it in UNIT_STUBS } || parkedStub in UNIT_STUBS
+            return if (stubbed) UNIT_STUBBED else UNIT_OK
+        }
+
+        /**
+         * Compares the unit arrays after the window of pairs from dump [from] to dump [to] with
+         * the dump [ewram]. Masked: +0x3C..0x3F (`pMapSpriteHandle`, `RefreshUnitSprites`) and
+         * `US_HIDDEN` (+0x0C bit 0, which MU code and the map sprite refresh toggle).
+         */
+        private fun compareUnits(from: Int, to: Int, ewram: ByteArray, partial: Boolean) {
+            val want = UnitTable(romView).also { it.loadFrom(ewram) }
+            val d = ArrayList<String>()
+            val touched = HashSet<Int>()
+            for (id in windowTouched) {
+                // An id without a slot maps to slot 0 by accident: skip it.
+                val o = table.unitOffset(id)
+                if (o >= 0) touched += o / UnitTable.UNIT_SIZE
+            }
+            // A window with stubbed unit commands (loads, moves, battles) changes other units too:
+            // only the units the Event34 commands name are compared, without their position.
+            if (!partial) {
+                for (i in 0 until UnitTable.TOTAL_SIZE) {
+                    if (table.bytes[i] != windowSeed[i]) touched += i / UnitTable.UNIT_SIZE
+                }
+            }
+            for (i in 0 until UnitTable.TOTAL_SIZE) {
+                if (i / UnitTable.UNIT_SIZE !in touched) continue
+                val rel = i % UnitTable.UNIT_SIZE
+                if (rel in 0x3C..0x3F) continue
+                if (partial && (rel == 0x10 || rel == 0x11)) continue
+                val mask = if (rel == 0x0C) 1.inv() else -1
+                val got = table.bytes[i].toInt() and mask
+                val exp = want.bytes[i].toInt() and mask
+                if (got != exp) {
+                    d += "unit@%X+%X got %02X want %02X".format(
+                        i / UnitTable.UNIT_SIZE, rel, got and 0xFF, exp and 0xFF,
+                    )
+                }
+            }
+            result.unitWindows.pairs++
+            if (partial) result.unitWindowsPartial++
+            if (touched.isNotEmpty()) result.unitWindowsTouched++
+            result.unitsCompared += touched.size
+            for (sub in windowSubs) {
+                result.subWindows.merge(sub, 1, Int::plus)
+                if (d.isNotEmpty()) result.subMismatches.merge(sub, 1, Int::plus)
+            }
+            if (d.isNotEmpty()) {
+                result.unitWindows.mismatches += "steps $from..$to subs $windowSubs: ${d.take(6)}"
+            }
         }
 
         private fun loadState(a: EventSnapshot) {
@@ -544,6 +755,12 @@ class EventVmDifferentialTest {
         const val MIN_ON_UPDATE_PAIRS = 12000
         const val MIN_CREATE_PAIRS = 2
         const val MIN_COMPARED = 12000
+        
+        /** Windows (of 655) in which units were touched; only 8 are. */
+        const val MIN_TOUCHED_UNIT_WINDOWS = 8
+
+        /** Event34 subcodes SET_HP, CLEA and DISA must each be compared in a window. */
+        val MIN_SUB_WINDOWS = listOf(5, 10, 15)
 
         /** Minimum compared pairs per ported handler code. */
         val MIN_CODE_PAIRS = mapOf(
@@ -555,13 +772,20 @@ class EventVmDifferentialTest {
         /** Minimum pairs in which each stub completed its command. */
         val MIN_STUB_PAIRS = mapOf(
             0x12 to 3, 0x15 to 2, 0x1B to 20, 0x1D to 28, 0x30 to 20, 0x3B to 24, 0xAC to 3,
-            0xBA to 7,
+            0xBA to 7, 0x2C to 8, 0x2F to 15, 0x3F to 1,
         )
 
         private var cached: Result? = null
 
+        const val UNIT_OK = 0
+        const val UNIT_STUBBED = 1
+        const val UNIT_UNKNOWN = 2
+
+        /** Stubbed codes that change units (loads, moves, battles): the window is not compared. */
+        val UNIT_STUBS = setOf(0x2C, 0x2F, 0x30, 0x3F)
+
         /** Stub codes whose C handler can return `EVC_STOP_YIELD` (the command waits). */
-        val CAN_PARK = setOf(0x1D, 0x2F, 0x30, 0x34, 0xA5, 0xAC, 0xB1, 0xB3, 0xBA, 0xBE)
+        val CAN_PARK = setOf(0x1D, 0x2F, 0x30, 0xA5, 0xAC, 0xB1, 0xB3, 0xBA, 0xBE)
 
         private const val CONT = EVC_ADVANCE_CONTINUE
         private const val YIELD = EVC_ADVANCE_YIELD
@@ -598,8 +822,6 @@ class EventVmDifferentialTest {
          * - 0x2F Event2F_MoveUnit: CONTINUE (a move that cannot start returns STOP_YIELD, which
          *   is the parked case).
          * - 0x30 Event30_ENUN: YIELD (STOP_YIELD while a MU moves is the parked case).
-         * - 0x34 Event34_MessWithUnitState: subcode 0xD (KILL) YIELD unless skipping, else
-         *   CONTINUE.
          * - 0x3A Event3A_DisplayPopup: skipping: CONTINUE, else YIELD.
          * - 0x3B Event3B_DisplayCursor: YIELD for subcode&3 == 2 (CURE) unless skipping, else
          *   CONTINUE (the cursor proc is started).
@@ -660,9 +882,6 @@ class EventVmDifferentialTest {
             }
             stub(0x26) { p, _, _ ->
                 if (skipping(p) || p.evStateBits and EV_STATE_FADEDIN != 0) CONT else YIELD
-            }
-            stub(0x34) { p, m, _ ->
-                if (m.u16(p.pEventCurrent) and 0xF == 0xD && !skipping(p)) YIELD else CONT
             }
             stub(0x3B) { p, m, _ ->
                 if (!skipping(p) && (m.u16(p.pEventCurrent) and 3) == 2) YIELD else CONT

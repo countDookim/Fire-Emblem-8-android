@@ -385,8 +385,11 @@ public class UnitLoader(
      *
      * `maxHP` of the unit at [o] plus the HP bonus of its equipped weapon.
      */
-    internal fun getUnitMaxHp(o: Int): Int =
-        s8(table.bytes, o + OFF_MAX_HP) + items.getItemHpBonus(getUnitEquippedWeapon(o))
+    internal fun getUnitMaxHp(o: Int): Int = getUnitMaxHp(table.bytes, o)
+
+    /** [getUnitMaxHp] for the unit at byte offset [o] of [b] (a unit array or a `BattleUnit`). */
+    internal fun getUnitMaxHp(b: ByteArray, o: Int): Int =
+        s8(b, o + OFF_MAX_HP) + items.getItemHpBonus(getUnitEquippedWeapon(b, o))
 
     /**
      * Transcribed from src/bmitem.c: GetUnitEquippedWeapon (not verified: no test checks it against
@@ -394,10 +397,13 @@ public class UnitLoader(
      *
      * The first item of the unit at [o] it can use as a weapon, or 0.
      */
-    internal fun getUnitEquippedWeapon(o: Int): Int {
+    internal fun getUnitEquippedWeapon(o: Int): Int = getUnitEquippedWeapon(table.bytes, o)
+
+    /** [getUnitEquippedWeapon] for the unit at byte offset [o] of [b]. */
+    internal fun getUnitEquippedWeapon(b: ByteArray, o: Int): Int {
         for (i in 0 until UNIT_ITEM_COUNT) {
-            val item = unitItem(o, i)
-            if (canUnitUseWeapon(o, item)) return item
+            val item = StructCodec.u16(b, o + OFF_ITEMS + 2 * i)
+            if (canUnitUseWeapon(b, o, item)) return item
         }
         return 0
     }
@@ -411,11 +417,14 @@ public class UnitLoader(
      * Whether the unit at [o] can wield [item]: a weapon, with the unit meeting the item's lock
      * attributes, not silenced for magic, and with enough weapon rank.
      */
-    internal fun canUnitUseWeapon(o: Int, item: Int): Boolean {
+    internal fun canUnitUseWeapon(o: Int, item: Int): Boolean =
+        canUnitUseWeapon(table.bytes, o, item)
+
+    /** [canUnitUseWeapon] for the unit at byte offset [o] of [b]. */
+    internal fun canUnitUseWeapon(b: ByteArray, o: Int, item: Int): Boolean {
         if (item == 0) return false
         val ia = items.getItemAttributes(item)
         if ((ia and ItemInfo.IA_WEAPON) == 0) return false
-        val b = table.bytes
         val ch = u32(b, o + OFF_CHARACTER)
         val ca = rom.u32(ch + 0x28) or rom.u32(u32(b, o + OFF_CLASS) + 0x28)
         if ((ia and ItemInfo.IA_LOCK_ANY) != 0) {

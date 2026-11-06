@@ -81,6 +81,115 @@ internal class ItemInfo(private val rom: RomView) {
     }
 
     /**
+     * Ported from src/bmitem.c: GetItemMight
+     *
+     * The `might` of [item].
+     */
+    fun getItemMight(item: Int): Int = rom.u8(getItemData(getItemIndex(item)) + 0x15)
+
+    /**
+     * Ported from src/bmitem.c: GetItemHit
+     *
+     * The `hit` of [item].
+     */
+    fun getItemHit(item: Int): Int = rom.u8(getItemData(getItemIndex(item)) + 0x16)
+
+    /**
+     * Transcribed from src/bmitem.c: GetItemWeight (not verified: no trace output depends
+     *   on it)
+     *
+     * The `weight` of [item].
+     */
+    fun getItemWeight(item: Int): Int = rom.u8(getItemData(getItemIndex(item)) + 0x17)
+
+    /**
+     * Ported from src/bmitem.c: GetItemCrit
+     *
+     * The `crit` of [item].
+     */
+    fun getItemCrit(item: Int): Int = rom.u8(getItemData(getItemIndex(item)) + 0x18)
+
+    /**
+     * Ported from src/bmitem.c: GetItemMinRange
+     *
+     * The minimum range of [item] (the high nibble of `encodedRange`).
+     */
+    fun getItemMinRange(item: Int): Int = rom.u8(getItemData(getItemIndex(item)) + 0x19) shr 4
+
+    /**
+     * Transcribed from src/bmitem.c: GetItemMaxRange (not verified: a mask narrowed to
+     *   3 bits survives the traced weapons)
+     *
+     * The maximum range of [item] (the low nibble of `encodedRange`).
+     */
+    fun getItemMaxRange(item: Int): Int = rom.u8(getItemData(getItemIndex(item)) + 0x19) and 0xF
+
+    /**
+     * Transcribed from src/bmitem.c: GetItemWeaponEffect (not verified: no trace output depends
+     *   on it)
+     *
+     * The `weaponEffectId` of [item].
+     */
+    fun getItemWeaponEffect(item: Int): Int = rom.u8(getItemData(getItemIndex(item)) + 0x1F)
+
+    /**
+     * Transcribed from src/bmitem.c: GetItemEffectiveness (not verified: no trace output depends
+     *   on it)
+     *
+     * The `pEffectiveness` pointer of [item] (0 for none).
+     */
+    fun getItemEffectiveness(item: Int): Int = rom.u32(getItemData(getItemIndex(item)) + 0x10)
+
+    /**
+     * Transcribed from src/bmitem.c: GetItemPowBonus (not verified: the traced weapons have no
+     *   stat bonuses, so a wrong field offset survives)
+     *
+     * The (signed) `powBonus` of [item], 0 for no item or no stat bonuses.
+     */
+    fun getItemPowBonus(item: Int): Int = statBonus(item, 1)
+
+    /**
+     * Transcribed from src/bmitem.c: GetItemSklBonus (not verified: see [getItemPowBonus])
+     *
+     * The (signed) `sklBonus` of [item].
+     */
+    fun getItemSklBonus(item: Int): Int = statBonus(item, 2)
+
+    /**
+     * Transcribed from src/bmitem.c: GetItemSpdBonus (not verified: see [getItemPowBonus])
+     *
+     * The (signed) `spdBonus` of [item].
+     */
+    fun getItemSpdBonus(item: Int): Int = statBonus(item, 3)
+
+    /**
+     * Transcribed from src/bmitem.c: GetItemDefBonus (not verified: see [getItemPowBonus])
+     *
+     * The (signed) `defBonus` of [item].
+     */
+    fun getItemDefBonus(item: Int): Int = statBonus(item, 4)
+
+    /**
+     * Transcribed from src/bmitem.c: GetItemResBonus (not verified: see [getItemPowBonus])
+     *
+     * The (signed) `resBonus` of [item].
+     */
+    fun getItemResBonus(item: Int): Int = statBonus(item, 5)
+
+    /**
+     * Transcribed from src/bmitem.c: GetItemLckBonus (not verified: see [getItemPowBonus])
+     *
+     * The (signed) `lckBonus` of [item].
+     */
+    fun getItemLckBonus(item: Int): Int = statBonus(item, 6)
+
+    private fun statBonus(item: Int, field: Int): Int {
+        if (item == 0) return 0
+        val bonuses = getItemStatBonuses(item)
+        return if (bonuses != 0) rom.u8(bonuses + field).toByte().toInt() else 0
+    }
+
+    /**
      * Ported from src/bmitem.c: MakeNewItem
      *
      * A fresh item word for [item]: full uses (0 for unbreakable items) and its index.
@@ -100,6 +209,12 @@ internal class ItemInfo(private val rom: RomView) {
 
         const val IA_WEAPON: Int = 1 shl 0
         const val IA_MAGIC: Int = 1 shl 1
+        const val IA_MAGICDAMAGE: Int = 1 shl 6
+        const val IA_UNCOUNTERABLE: Int = 1 shl 7
+        const val IA_REVERTTRIANGLE: Int = 1 shl 8
+        const val IA_NEGATE_FLYING: Int = 1 shl 14
+        const val IA_NEGATE_CRIT: Int = 1 shl 15
+        const val IA_NEGATE_DEFENSE: Int = 1 shl 17
         const val IA_STAFF: Int = 1 shl 2
         const val IA_UNBREAKABLE: Int = 1 shl 3
         const val IA_LOCK_3: Int = 1 shl 10

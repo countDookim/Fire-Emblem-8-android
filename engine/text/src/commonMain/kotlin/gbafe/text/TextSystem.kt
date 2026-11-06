@@ -1,0 +1,251 @@
+package gbafe.text
+
+/**
+ * Hardware and game services [TextSystem] needs; everything outside `fontgrp.c`'s own state.
+ */
+public interface TextHost {
+    /** `GetLang`: the language mode (0 = Japanese / Shift-JIS, 1 = English / ASCII). */
+    public fun language(): Int
+
+    /**
+     * `ApplyPalette(Pal_Text [+ 0x10 for the talk variant], palid)` followed by
+     * `PAL_COLOR(palid, 0) = 0`.
+     */
+    public fun applyTextPalette(talk: Boolean, palid: Int)
+
+    /** `font->get_draw_dest(text)`: the VRAM address of [text]'s current tile strip. */
+    public fun getDrawDest(font: Font, text: Text): Int
+
+    /** `CpuFastFill16(0, dest, byteCount)` on VRAM. */
+    public fun clearVram(dest: Int, byteCount: Int)
+}
+
+/**
+ * The text-font part of `src/fontgrp.c`: `gDefaultFont`, `gActiveFont`, font and [Text] setup, and
+ * glyph-width measuring. Game-neutral; the game supplies the glyph-table addresses and the
+ * function-pointer values through [Config], and its ROM.
+ *
+ * No call allocates. A glyph pointer that is NULL where C would dereference it throws here
+ * (undefined behaviour in C).
+ */
+public class TextSystem(
+    private val rom: ByteArray,
+    private val host: TextHost,
+    private val config: Config,
+) {
+    /** Addresses of the game's glyph tables and font routines. */
+    public class Config(
+        /** `TextGlyphs_System`. */
+        public val glyphsSystem: Int,
+        /** `TextGlyphs_Talk`. */
+        public val glyphsTalk: Int,
+        /** Function-pointer value stored in [Font.drawGlyph] (`DrawTextGlyph`). */
+        public val drawGlyph: Int,
+        /** Function-pointer value stored in [Font.getDrawDest] (`GetTextDrawDest`). */
+        public val getDrawDest: Int,
+    )
+
+    /** `gDefaultFont`. */
+    public val defaultFont: Font = Font()
+
+    /** `gActiveFont`; null in C until the first `SetTextFont`, here it starts as the default. */
+    public var activeFont: Font = defaultFont
+        private set
+
+    /**
+     * Initialises [font] (null means [defaultFont]) to draw at [vramDest] from tile [chr] with
+     * palette [palid], makes it the active font and applies the system font setup.
+     *
+     * Ported from src/fontgrp.c: InitTextFont
+     */
+    public fun initTextFont(font: Font?, vramDest: Int, chr: Int, palid: Int) {
+        val f = font ?: defaultFont
+        f.vramDest = vramDest
+        f.getDrawDest = config.getDrawDest
+        f.palid = palid
+        f.tileref = (chr and 0x3FF) or (palid shl 12)
+        f.chrCounter = 0
+        f.lang = host.language()
+        setTextFont(f)
+        initSystemTextFont()
+    }
+
+    /**
+     * Makes [font] (null means [defaultFont]) the active font.
+     *
+     * Ported from src/fontgrp.c: SetTextFont
+     */
+    public fun setTextFont(font: Font?) {
+        activeFont = font ?: defaultFont
+    }
+
+    /**
+     * Selects the active font's glyph table: [GLYPHS_SYSTEM], or the talk table otherwise.
+     *
+     * Ported from src/fontgrp.c: SetTextFontGlyphs
+     */
+    public fun setTextFontGlyphs(glyphset: Int) {
+        activeFont.glyphs =
+            if (glyphset == GLYPHS_SYSTEM) config.glyphsSystem else config.glyphsTalk
+    }
+
+    /**
+     * Gives [text] the next [tileWidth] tiles of the active font and clears it.
+     *
+     * Ported from src/fontgrp.c: InitText
+     */
+    public fun initText(text: Text, tileWidth: Int) {
+        text.chrPosition = activeFont.chrCounter
+        text.tileWidth = tileWidth
+        text.dbId = 0
+        text.dbEnabled = false
+        text.isPrinting = false
+        activeFont.chrCounter += tileWidth
+        clearText(text)
+    }
+
+    /**
+     * Resets [text]'s pen and colour and zeroes its tile strip in VRAM.
+     *
+     * Ported from src/fontgrp.c: ClearText
+     */
+    public fun clearText(text: Text) {
+        text.x = 0
+        text.colorId = COLOR_SYSTEM_WHITE
+        host.clearVram(host.getDrawDest(activeFont, text), text.tileWidth * 2 * CHR_SIZE)
+    }
+
+    /**
+     * Sets the active font up for the talk window: talk palette, draw routine and talk glyphs.
+     *
+     * Ported from src/fontgrp.c: InitTalkTextFont
+     */
+    public fun initTalkTextFont() {
+        host.applyTextPalette(true, activeFont.palid)
+        activeFont.drawGlyph = config.drawGlyph
+        setTextFontGlyphs(GLYPHS_TALK)
+    }
+
+    private fun initSystemTextFont() {
+        host.applyTextPalette(false, activeFont.palid)
+        activeFont.drawGlyph = config.drawGlyph
+        setTextFontGlyphs(GLYPHS_SYSTEM)
+    }
+
+    /**
+     * Width in pixels of the string at [str]`[start]` up to its terminator or newline (0x01);
+     * ASCII fonts (`lang != 0`) delegate to [getStringTextLenAscii].
+     *
+     * Ported from src/fontgrp.c: GetStringTextLen
+     */
+    public fun getStringTextLen(str: ByteArray, start: Int = 0): Int {
+        if (activeFont.lang != 0) return getStringTextLenAscii(str, start)
+        return getStringTextLenSjis(str, start)
+    }
+
+    /**
+     * Measures the character at [str]`[start]`: stores its width in `pWidth[0]` (left unchanged if
+     * the glyph is not found, as in C) and returns the offset after the character; ASCII fonts
+     * delegate to [getCharTextLenAscii].
+     *
+     * Ported from src/fontgrp.c: GetCharTextLen
+     */
+    public fun getCharTextLen(str: ByteArray, start: Int, pWidth: IntArray): Int {
+        if (activeFont.lang != 0) return getCharTextLenAscii(str, start, pWidth)
+        return getCharTextLenSjis(str, start, pWidth)
+    }
+
+    /**
+     * ASCII width of the string at [start].
+     *
+     * Ported from src/fontgrp.c: GetStringTextLenASCII
+     */
+    public fun getStringTextLenAscii(str: ByteArray, start: Int = 0): Int {
+        var width = 0
+        var i = start
+        while (str[i].toInt() != 0 && str[i].toInt() != CHAR_NEWLINE) {
+            width += glyphWidth(glyphAt(activeFont.glyphs, str[i++].toInt() and 0xFF))
+        }
+        return width
+    }
+
+    /**
+     * ASCII width of one character; a missing glyph falls back to `'?'`.
+     *
+     * Ported from src/fontgrp.c: GetCharTextLenASCII
+     */
+    public fun getCharTextLenAscii(str: ByteArray, start: Int, width: IntArray): Int {
+        var glyph = glyphAt(activeFont.glyphs, str[start].toInt() and 0xFF)
+        if (glyph == 0) glyph = glyphAt(activeFont.glyphs, QUESTION_MARK)
+        width[0] = glyphWidth(glyph)
+        return start + 1
+    }
+
+    // Transcribed from src/fontgrp.c: GetStringTextLen (Shift-JIS branch; not verified: the US
+    // ROM has no Shift-JIS glyph lists and the trace runs with lang = 1).
+    // Not @VerifiesPort: no ground truth for lang == 0.
+    private fun getStringTextLenSjis(str: ByteArray, start: Int): Int {
+        var width = 0
+        var i = start
+        while (str[i].toInt() != 0 && str[i].toInt() != CHAR_NEWLINE) {
+            val byte1 = str[i++].toInt()
+            if (byte1 >= 0x20) {
+                val byte2 = str[i++].toInt()
+                var glyph = glyphAt(activeFont.glyphs, (byte2 - 0x40) and 0xFF)
+                while (glyph != 0) {
+                    if (rom[glyph - ROM_BASE + 4].toInt() == byte1) {
+                        width += glyphWidth(glyph)
+                        break
+                    }
+                    glyph = readU32(glyph - ROM_BASE)
+                }
+            }
+        }
+        return width
+    }
+
+    // Transcribed from src/fontgrp.c: GetCharTextLen (Shift-JIS branch; not verified, see above).
+    // Not @VerifiesPort: no ground truth for lang == 0.
+    private fun getCharTextLenSjis(str: ByteArray, start: Int, pWidth: IntArray): Int {
+        val byte1 = str[start]
+        val byte2 = str[start + 1].toInt()
+        var glyph = glyphAt(activeFont.glyphs, (byte2 - 0x40) and 0xFF)
+        while (glyph != 0) {
+            if (rom[glyph - ROM_BASE + 4] == byte1) {
+                pWidth[0] = glyphWidth(glyph)
+                break
+            }
+            glyph = readU32(glyph - ROM_BASE)
+        }
+        return start + 2
+    }
+
+    /** `glyphs[index]`: the glyph address, 0 for NULL. */
+    private fun glyphAt(table: Int, index: Int): Int = readU32(table - ROM_BASE + index * 4)
+
+    /** `glyph->width` (`struct Glyph` +5). */
+    private fun glyphWidth(glyph: Int): Int = rom[glyph - ROM_BASE + 5].toInt() and 0xFF
+
+    private fun readU32(o: Int): Int =
+        (rom[o].toInt() and 0xFF) or ((rom[o + 1].toInt() and 0xFF) shl 8) or
+            ((rom[o + 2].toInt() and 0xFF) shl 16) or ((rom[o + 3].toInt() and 0xFF) shl 24)
+
+    /** Constants of the text system. */
+    public companion object {
+        /** `TEXT_GLYPHS_SYSTEM`. */
+        public const val GLYPHS_SYSTEM: Int = 0
+
+        /** `TEXT_GLYPHS_TALK`. */
+        public const val GLYPHS_TALK: Int = 1
+
+        /** `TEXT_COLOR_SYSTEM_WHITE`. */
+        public const val COLOR_SYSTEM_WHITE: Int = 0
+
+        /** `CHAR_NEWLINE`. */
+        public const val CHAR_NEWLINE: Int = 0x01
+
+        private const val CHR_SIZE = 0x20
+        private const val ROM_BASE = 0x08000000
+        private const val QUESTION_MARK = '?'.code
+    }
+}

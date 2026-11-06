@@ -7,9 +7,20 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M5-60d: scheduled, until ~11:25Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
-## Next task: M5-60d (event-layer unit loads + register load_unit in Fe8Boot), then finish M5-58/59 from `wip/M5-58`
+## Next task: finish M5-58/59 on `wip/M5-58` (replace the skip-all stand-in), then merge
+M5-60d done (scheduled 11-06, master): `fe8.game.event.EventUnitLoads` (Event2B, Event2C skip/FADEDIN path,
+EventLoadUnitSliently, ShouldUNITBeLoaded, GetUnitDefinitionFromEventScr, GetLoadUnitsAmount, ModifyMoveUnitFlag;
+`registerOn(engine)`); `UnitLoader.UnitDef` is a data class (gLoadUnitBuffer overrides). `EventUnitLoadsTest`
+tags only Event2C/EventLoadUnitSliently/GetLoadUnitsAmount (throne room r09521; terrain stubbed 0).
+`wip/M5-58` (scheduled 11-06, full jvmTest green, master merged in): Fe8Boot registers the unit loads (0x2C wrapper
+= stand-in: walking loads run silently), shared `battleBmMap`; UnitLoader gained `occupiedAt` (free-tile case of
+AiGetUnitClosestValidPosition), `chapterLevelBonus` + UnitApplyBonusLevels/UnitAutolevelPenalty,
+UnitAutolevelRealistic (partial, untagged); NewGameToPrologueTest now asserts blue units and an idling phase.
+Still blocking merge: `startPressed() = true` skips ALL events. With `false` the opening runs (STAL at 0x89EED5C
+etc.) but a later load throws `AdjustNewUnitPosition: closest position` (stubbed MU moves leave units in place;
+needs the AiGetUnitClosestValidPosition search or Event2F MoveUnit).
 M5-60 core done (scheduled 11-06): `fe8.game.bm.UnitLoader(table, rom, unsealedCharacter, rng, isHardMode)`:
 `loadUnit` (LoadUnit: items, REDA end position, non-blue autolevel incl. promoted bonus, RNG) and `loadUnitForEvent`
 (LoadUnit_800F704, partial, untagged: `b` guessed 0). Throws Unsupported for blue/boss autolevel
@@ -25,11 +36,7 @@ partial (an unpushed alternative port is on owner-PC branch `backup/event-engine
 game's RngService/PlaySt/KeyStatus (no defaults). Wiring still open (M5-58): `BMapMain.hooks.playerPhase`,
 `hooks.callEvent` → EventEngine. M5-56 done (scheduled): `RoutedFlagStore`, `ModFlagSymbols`, `ModSaveSections`; M5-56b done: a mod flag name in a flag
 arg gets `set_slot 2, handle` before it (`ModFlagSlotExpander`; overwrites slot 2). M5-57 done: `ModScriptEndToEndTest` (mod .fe8s → synthetic range → calls a
-ROM script → returns; 0 B/frame). `wip/M5-56`, `wip/M5-60` are merged and can be deleted (scheduled runs get 403 on branch delete). `wip/M5-58` (scheduled 11-05, full jvmTest green, not merged):
-Fe8Boot wires `BMapMain.hooks.playerPhase`/`callEvent` → `Fe8Boot.eventEngine` (EventScrCore + `ReleaseEventStubs`
-no-ops for unregistered codes), dev New-Game `startSaveMenu` stand-in (WriteNewGameSave slot 0, EVENT_RETURN);
-`NewGameToPrologueTest` reaches chapter 0 PlayerPhase, beginning events end. Stand-in `startPressed() = true` skips
-ALL events (fix before merge). Blocker: no unit loader → playerPhaseHandleAutoEnd ends the phase (M5-60).
+ROM script → returns; 0 B/frame). `wip/M5-56`, `wip/M5-60` are merged and can be deleted (scheduled runs get 403 on branch delete).
 
 ## State
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.

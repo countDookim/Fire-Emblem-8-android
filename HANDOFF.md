@@ -1,13 +1,13 @@
 # HANDOFF
 
-_Updated 2026-11-06 (owner PC: audit of scheduled work, M6-23, M6-25..27, M6-30..33, M6-38, M6-46). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
+_Updated 2026-11-06 (owner PC: audit of scheduled work, M6-23, M6-25..27, M6-30..34, M6-38/39, M6-46). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
 docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
 ## In progress
-- M6-34, M6-39: owner PC, until ~00:15Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-06)
 - Issue #4 fixed 11-06 (cloud owner session), awaiting device retest: causes were BMapMain fade stand-ins (no-op;
@@ -27,10 +27,11 @@ WriteGameSave, ReadSuspendSave, unit-sprite reset/use/refresh, StartLockingFadeF
 Same session: M6-23 (EventChangeMap), M6-25/26/27 (Mu.kt start, movement, display; AP_* animation player is a hook),
 M6-30 (gbafe.text.MsgStrings), M6-31/32 (gbafe.text Font/TextSystem fonts, widths, glyph drawing, PutText) done;
 M6-46: no "Ported from" without a tag left (`progress.py` prints `ported-without-tag`; it now ignores .claude/ worktrees).
-M6-33 (fe8.game.scene Talk: InitTalk..TalkPrepNextChar) and M6-38 (BmBattle: InitBattleUnit + stat computes) done.
-First-line replay miss: messages start with control codes TalkInterpret consumes (M6-34 handles them; [NL] runs
-before TalkPrepNextChar in the same frame). M6-39 should port EvtBattleGenerateRealInternal/StartEventBattle
-(the M6-38 test sets gBattleStats range/config itself). Merged `wip/M6-05`, `wip/M6-17` deleted.
+M6-33/34 (fe8.game.scene Talk: init, interpreter, wait-for-A; the whole first talk matches per frame) and M6-38/39
+(BmBattle + BattleGenerate: unit init, stats, scripted hits; Prologue battle matches r14430) done. Next: M6-35/36
+(faces, bubble/shift procs: TalkInterpretDifferentialTest has transcribed stand-ins for them), M6-37 (Event1A/1B),
+M6-40/41 (battle result + Event3F).
+ Merged `wip/M6-05`, `wip/M6-17` deleted.
 
 ## Next task: M6-20 rest, M6-19 rest, M6-29 (wip) (TASKS)
 Scheduled 11-06 19:50Z: M6-12 done (eb45763): `Fe8Boot(saveStorage)`, MainActivity `filesDir/fe8.sav`; save menu stand-in
@@ -92,7 +93,7 @@ unit arrays; `EventUnitState` (Event34) registered, untagged. New runs ram_trace
   `CgbSound` verified; `PsgSynth` (GBATEK/mGBA behaviour, not a port) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad, GPU backend, audio, ROM import (~4 s) + boot
   from it. Pending: smoke test of the first APK built on the KMP android variants (MANUAL_TEST "Newly testable").
-- Verified ports: 472 / 8352 (`tools/progress.py`, 2026-11-06; audit withheld 6 M5-60 overclaims). Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
+- Verified ports: 486 / 8352 (`tools/progress.py`, 2026-11-06; audit withheld 6 M5-60 overclaims). Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
 - Layout: `:gba:*` game-neutral (ADR 0012), `gbafe.*` in `:engine:*`, `fe8.*` in `:game`/`:app`; KMP jvm+android
   (ADR 0013) except `:gba:testkit`, `:testing`, `:tools:extract`.
 

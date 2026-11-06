@@ -7,10 +7,16 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M5-58: scheduled, until ~23:25Z (wip/M5-58)
-_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
+- M5-60d: scheduled, until ~11:25Z
 
-## Next task: M5-58/59 (wire New Game → Prologue map)
+## Next task: M5-60d (event-layer unit loads + register load_unit in Fe8Boot), then finish M5-58/59 from `wip/M5-58`
+M5-60 core done (scheduled 11-06): `fe8.game.bm.UnitLoader(table, rom, unsealedCharacter, rng, isHardMode)`:
+`loadUnit` (LoadUnit: items, REDA end position, non-blue autolevel incl. promoted bonus, RNG) and `loadUnitForEvent`
+(LoadUnit_800F704, partial, untagged: `b` guessed 0). Throws Unsupported for blue/boss autolevel
+(UnitAutolevelRealistic), genMonster, gorgon eggs, sumFlag, MU walks when not quiet. `UnitLoaderDifferentialTest`:
+throne room (r09518→r09521), allies/messenger (ram_trace_prologue), red autolevel (RNG candidates from rng.watch;
+r dumps every 30 f). Masks: +0x3C sprite handle, US_HIDDEN, MU-moved x/y. Weak (untagged): UnitCheckStatCaps,
+UnitHideIfUnderRoof, GetItemHpBonus/GetUnitMaxHp, CanUnitUseWeapon/Staff, UnitAutolevelWExp.
 M5-53..55 done (owner PC): `EventVmDifferentialTest` runs the real `EventEngine` over the whole prologue trace (12618
 pairs, 0 mismatches; RNG, tutorial fields, call/active queues and flags compared). Unported commands are test-only
 stubs (STUBS table). 172 Event19 pairs are skipped: the game engine idles while a Popup/GotItem child proc lives (no
@@ -19,8 +25,11 @@ partial (an unpushed alternative port is on owner-PC branch `backup/event-engine
 game's RngService/PlaySt/KeyStatus (no defaults). Wiring still open (M5-58): `BMapMain.hooks.playerPhase`,
 `hooks.callEvent` → EventEngine. M5-56 done (scheduled): `RoutedFlagStore`, `ModFlagSymbols`, `ModSaveSections`; M5-56b done: a mod flag name in a flag
 arg gets `set_slot 2, handle` before it (`ModFlagSlotExpander`; overwrites slot 2). M5-57 done: `ModScriptEndToEndTest` (mod .fe8s → synthetic range → calls a
-ROM script → returns; 0 B/frame). `wip/M5-56` is merged and can be deleted. M5-58 was stopped before
-any change.
+ROM script → returns; 0 B/frame). `wip/M5-56`, `wip/M5-60` are merged and can be deleted (scheduled runs get 403 on branch delete). `wip/M5-58` (scheduled 11-05, full jvmTest green, not merged):
+Fe8Boot wires `BMapMain.hooks.playerPhase`/`callEvent` → `Fe8Boot.eventEngine` (EventScrCore + `ReleaseEventStubs`
+no-ops for unregistered codes), dev New-Game `startSaveMenu` stand-in (WriteNewGameSave slot 0, EVENT_RETURN);
+`NewGameToPrologueTest` reaches chapter 0 PlayerPhase, beginning events end. Stand-in `startPressed() = true` skips
+ALL events (fix before merge). Blocker: no unit loader → playerPhaseHandleAutoEnd ends the phase (M5-60).
 
 ## State
 - Boot (H&S, logos, op anim, title) matches mGBA: 27 lag frames, 249 frames pixel-exact, gap f1180 only.
@@ -89,7 +98,9 @@ any change.
 - Allocation tests can flake (200 B once in 1000 frames): use `AllocationMeter.measureMin`.
 - `FrameCompareTest.applyHBlank` knows only `HBlank_BgVerticalScroll`; dumped RAM is one game step ahead of the
   dumped frame.
-- CI `startup_failure` → check the owner's GitHub billing first. Artifacts are kept 3-7 days (0.5 GB cap).
+- CI `startup_failure` → check the owner's GitHub billing first. Actions storage is small: master's APK goes only to
+  the `latest` release (branch APK artifacts 2 days, Dokka 1 day, results 7 days); if storage fills, delete old
+  artifacts (`gh api -X DELETE repos/OWNER/REPO/actions/artifacts/ID`).
 - `gh release view/download` (GraphQL) is refused; use `gh api repos/.../releases/...` (REST). Delete a `wip/`
   branch once merged.
 - Data: `cursor_hand.png` colours `paletteSource: caller`; `effectiveAgainst` holds class numbers; classes inline

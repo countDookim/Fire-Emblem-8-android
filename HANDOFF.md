@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M6-10: scheduled, until ~18:35Z (wip/M6-10)
+- M6-11: scheduled, until ~18:40Z (wip/M6-11)
 
 ## Check first (owner, 2026-11-06)
 - Issue #4 fixed 11-06 (cloud owner session), awaiting device retest: causes were BMapMain fade stand-ins (no-op;
@@ -16,7 +16,14 @@ _(nothing blocked)_
   ram_trace_newgame f1174..1193), GameControl fade stand-ins (GameControl.kt:206-212, 409-414), the opening event
   repeats fades because text/camera/unit commands are stubs. Map palette not yet compared to first_phase pal.bin.
 
-## Next task: M6-08, then M6 in TASKS order (M6-20 rest: Event15/volume change)
+## Next task: M6-11, then M6-12 (M6-10 rest, M6-20 rest: Event15/volume change)
+Scheduled 11-06 18:xx: M6-08 done (`SaveStorage`, `FileSaveStorage` temp+ATOMIC_MOVE in gba/core jvmMain,
+`CartSram.loadFrom/flushTo`; Android wiring = `File(filesDir, "fe8.sav")` in M6-12). M6-09 done
+(`BattleMapStart.startResumedGame`, wired in Fe8Boot; `StartResumedGameDifferentialTest` r01149 gBmSt; camera only
+weakly covered, ch2_scroll untested). M6-10 partial: variants + dispatch transcribed, untagged; for M6-12 set
+`battleMap.hooks.suspendPointType` from a `SuspendRam.actionData[0x16]` filled by ReadSuspendSave, wire
+`hooks.refreshEntityBmMaps/refreshUnitSprites` (EntityBmMaps is ported but not injected), then tag PhaseIdle vs a
+dump that shows the BMapMain label (subagent could not find the proc in the r01149 proc array).
 M6-05/06/07 done (scheduled 11-06): ReadSuspendSave* and ReadGameSave/LoadSavedUnit verified (`ReadSuspendSaveReferenceTest`,
 `ReadGameSaveReferenceTest`, `BmGameSave.kt`); WriteGameSave round trip masks 3 uninitialised-stack bytes + checksum; WriteGlobalSaveInfo (character-known marking) unobserved, untagged. Fix: ReadPermanentFlags reads 0x19 bytes (was 0x18). Weak spots: ReadGameSave's
 `gameSaveSlot = slot` and `InvalidateSuspendSave` are unobserved by the ch6 run. Decomp C is not in setup's assets:

@@ -663,8 +663,23 @@ public class UnitLoader(
         if (classId < 1) 0 else CLASS_DATA + (classId - 1) * CLASS_DATA_SIZE
 
     /**
-     * A `struct UnitDefinition` (20 bytes), decoded from ROM or copied with changes. [redas] is
-     * the ROM address of the REDA list (0 for none).
+     * A `struct UnitDefinition` (20 bytes), decoded from ROM or copied with changes.
+     *
+     * @property charIndex `charIndex`.
+     * @property classIndex `classIndex`.
+     * @property leaderCharIndex `leaderCharIndex`.
+     * @property autolevel `autolevel`.
+     * @property allegiance `allegiance` (0 blue, 1 green, 2 red).
+     * @property level `level`.
+     * @property x `xPosition`.
+     * @property y `yPosition`.
+     * @property genMonster `genMonster`.
+     * @property itemDrop `itemDrop`.
+     * @property sumFlag `sumFlag`.
+     * @property redaCount `redaCount`.
+     * @property redas ROM address of the REDA list (0 for none).
+     * @property items `items[4]`.
+     * @property ai `ai[4]`.
      */
     public data class UnitDef(
         val charIndex: Int,

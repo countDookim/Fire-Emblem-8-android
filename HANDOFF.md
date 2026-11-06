@@ -1,13 +1,13 @@
 # HANDOFF
 
-_Updated 2026-11-06 (owner PC: M5-58/59/61, M6-01..04, M6-21/22, tag audit, device-crash fix). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
+_Updated 2026-11-06 20:20Z (owner PC: audit of scheduled work, M6-23, M6-25). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
 docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
 ## In progress
-- Audit of the scheduled 11-06 work (3c26e9e..ab985a8) + M6-25: owner PC, until ~20:30Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-06)
 - Issue #4 fixed 11-06 (cloud owner session), awaiting device retest: causes were BMapMain fade stand-ins (no-op;
@@ -15,6 +15,16 @@ _(nothing blocked)_
   and no map/event BGM (`MapMusic`, `EventBgm`). Open: Event15 + `StartBgmVolumeChange` (save-menu BGM ramp,
   ram_trace_newgame f1174..1193), GameControl fade stand-ins (GameControl.kt:206-212, 409-414), the opening event
   repeats fades because text/camera/unit commands are stubs. Map palette not yet compared to first_phase pal.bin.
+
+## Audit 11-06 20:10Z (owner PC) of scheduled work 3c26e9e..ab985a8
+Full jvmTest green (555). 6 tags withheld because breaks survived (UpdateMapImgAnimations: VRAM every 10th frame;
+GameCtrl_StartResumedGame: camera 0; FadeFromCommon_OnLoop: one fade speed; GetUnitSpriteHideFlag; SetEventSlotCounter;
+WriteLastGameSaveId): stronger tests can reinstate them. To fix (small): 20 functions say "Ported from" with no tag
+(ScreenFade.kt x11, LcdControl SetBlendBackdropA/B, MapAnimations Init/PalAnimations, MapMusic x3, Event12_StartBGM,
+Event17_Fade, PutChapterMarkedTileIconOam) → "Transcribed (not verified: why)"; stale "Stand-in" KDocs at
+BattleMapStart hooks (UpdateMapImgAnimations) and GameControl (GameCtrl_StartResumedGame). Unchecked groups: ReadGameSave/
+WriteGameSave, ReadSuspendSave, unit-sprite reset/use/refresh, StartLockingFadeFromBlack, SwitchPostSaveMenu.
+Same session: M6-23 (EventChangeMap) and M6-25 (Mu.kt StartMu) done. Merged `wip/M6-05`, `wip/M6-17` deleted.
 
 ## Next task: M6-20 rest, M6-19 rest, M6-29 (wip) (TASKS)
 Scheduled 11-06 19:50Z: M6-12 done (eb45763): `Fe8Boot(saveStorage)`, MainActivity `filesDir/fe8.sav`; save menu stand-in

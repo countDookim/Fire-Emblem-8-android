@@ -7,6 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
+- M6-40: scheduled, until ~00:15Z
 _(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-07)

@@ -7,15 +7,19 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M6-05: scheduled, until ~17:25Z (on `wip/M6-05`)
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-06)
-- GitHub issue #4 "starting the game": read it at the start of the next run and act on it before the Next task.
+- Issue #4 (START → black, audio continues): matches the windows-only hold (no kept ROM; save menu unported).
+  Replied 11-06 asking for APK ≥ bca8381 + Re-import ROM. If the owner reports it persists after re-import, debug
+  the whole-ROM path on device; maybe show an in-game hint when START hits the hold.
 
-## Next task: finish M6-05 on `wip/M6-05`, then M6 in TASKS order
-`wip/M6-05` (owner PC 11-06, stopped mid-task): ReadSuspendSave, ReadSuspendSavePackedUnit and read helpers in
-BmSuspendSave/BmSaveLib (+ UnitTable/UnitLoader edits), `ReadSuspendSaveReferenceTest` vs ram_trace_ch2_scroll. It does
-NOT compile yet (private `Fixture`/`u16` clash in the test); nothing break-checked or tagged. Review the diff first.
+## Next task: M6-07, then M6 in TASKS order
+M6-05/06 done (scheduled 11-06): ReadSuspendSave* and ReadGameSave/LoadSavedUnit verified (`ReadSuspendSaveReferenceTest`,
+`ReadGameSaveReferenceTest`, `BmGameSave.kt`). Fix: ReadPermanentFlags reads 0x19 bytes (was 0x18). Weak spots: ReadGameSave's
+`gameSaveSlot = slot` and `InvalidateSuspendSave` are unobserved by the ch6 run. Decomp C is not in setup's assets:
+`git clone --depth 1 --filter=blob:none --sparse https://github.com/FireEmblemUniverse/fireemblem8u` + `sparse-checkout set src include`.
+`wip/M6-05` (remote) is merged and can be deleted.
 Device crash fixed 11-06 (bca8381): START on the title with only the boot/sound windows (debug APK, no import) read
 chapter data outside the view; the New Game stand-in now runs only on `RomView.isWholeRom`. `AppRomPathTest` drives
 `Fe8Game` (sound + present) on both ROM sources. Owner had installed the 887d744 APK (before M5-61); the next device

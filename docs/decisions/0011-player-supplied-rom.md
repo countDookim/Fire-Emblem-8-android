@@ -1,6 +1,6 @@
 # 0011 — The player supplies the ROM; assets are extracted on the device
 
-**Status.** Accepted (owner, 2026-10-27); amended 2026-10-28.
+**Status.** Accepted (owner, 2026-10-27); amended 2026-10-28, 2026-11-06.
 
 **Context.** Bundled assets would make every APK distribute Nintendo / Intelligent Systems content. The product
 must need the player's own ROM.
@@ -9,7 +9,8 @@ must need the player's own ROM.
 1. **Public release builds** contain no ROM bytes or anything decoded from it, in APK, release or repo (CI guard
    M4-05). **Until public release**, debug/test APKs (private `latest` release) bundle the ROM repo's assets.
 2. **First launch imports the ROM** (document picker, no storage permission; SHA1 must be FE8 U
-   `c25b145e37456171ada4b0d440bf88a19f4d509f`, others refused clearly). Only extracted output is kept.
+   `c25b145e37456171ada4b0d440bf88a19f4d509f`, others refused clearly). The extracted output and the verified ROM image (`base/rom/baserom.gba`, on the
+   device only; owner 2026-11-06) are kept: ported code reads ROM addresses through `RomView.ofRom`.
 3. **Extraction on device** reuses the extractor (output = ROM repo `extracted/`, PNG pixel-exact), moved to a
    library `:app` can use (now `:engine:extract`; `:tools:extract` is the CLI) (no `java.awt`, `javax.imageio`, processes, decomp reads; CLI stays a wrapper).
 4. **No decomp at runtime:** `--symbols`/`--map`/`--decomp` inputs become a committed **extraction manifest**

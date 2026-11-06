@@ -37,6 +37,10 @@ import fe8.game.event.EventUnitState
 import fe8.game.event.EventUnitStateHooks
 import fe8.game.event.EventState
 import fe8.game.event.EventCursorCamera
+import fe8.game.event.EventCursorCameraHooks
+import fe8.game.event.EventEngineProc
+import fe8.game.event.EventUnitState
+import fe8.game.event.EventUnitStateHooks
 import fe8.game.event.EventUnitLoads
 import fe8.game.event.EventChangeMap
 import fe8.game.event.EventInfoHooks
@@ -234,7 +238,29 @@ public class Fe8Boot(
             }
             // Cursor / camera commands: the camera moves, the cursor proc and SetSomeRealCamPos
             // keep the default no-op stand-ins.
-            EventCursorCamera(state, memory, loop.bmSt).registerOn(it)
+            val unitLookup = EventUnitState(
+                state, memory, units, loader, object : EventUnitStateHooks {},
+            )
+            EventCursorCamera(
+                state, memory, loop.bmSt,
+                object : EventCursorCameraHooks {
+                    override fun unitPosition(pid: Int): Int {
+                        val id = unitLookup.getUnitStructFromEventParameter(pid)
+                        if (id < 0) return -1
+                        return (units.xPos(id) shl 16) or (units.yPos(id) and 0xFFFF)
+                    }
+
+                    override fun ensureCameraOntoPosition(proc: EventEngineProc, x: Int, y: Int) {
+                        camMove.ensureCameraOntoPosition(proc.proc, x, y)
+                    }
+
+                    override fun cameraOntoPositionCentred(proc: EventEngineProc, x: Int, y: Int) {
+                        camMove.startCameraOntoPositionCentred(
+                            proc.proc, x, y, battleBmMap.sizeX, battleBmMap.sizeY,
+                        )
+                    }
+                },
+            ).registerOn(it)
             EventUnitLoads(
                 state, memory, rom, units, loader, rng,
                 { x, y -> battleBmMap.terrain[y, x] },
@@ -308,6 +334,8 @@ public class Fe8Boot(
     /** The player phase script wired into [bmapMain]. */
     public val playerPhaseScript: ProcScript get() = bmapMain.hooks.playerPhase
 
+    private val camMove: CamMove by lazy { CamMove(engine, loop.bmSt) }
+
     private val battleChapters: ChapterData by lazy { ChapterData(rom) }
 
     /** The battle map's `gBmMap*` pools, shared by the battle map path and the unit loads. */
@@ -323,7 +351,7 @@ public class Fe8Boot(
         val chapters = battleChapters
         val bm = loop.bmSt
         val map = battleBmMap
-        val camMove = CamMove(engine, bm)
+        val camMove = this.camMove
         val reset = ResetCursorPosition(
             engine, bm, control.playSt, units, camMove, NO_WORLD_MAP_NODES,
         )

@@ -45,8 +45,9 @@ public interface EventCursorCameraHooks {
 /**
  * The cursor and camera event commands of `src/eventscr.c`: 0x26, 0x3B and 0x3C.
  *
- * Verification: none. The differential test does not compare `gBmSt` (the camera and cursor) yet;
- * the commands are transcribed.
+ * Verification: none claimed. The differential test compares the cursor fields of `gBmSt` after
+ * 0x26 (one pair) and 0x3B (no cursor write); 0x3C never runs in the trace and the camera is not
+ * compared. The commands are transcribed.
  *
  * @param state the event slots.
  * @param memory script words (the command arguments).

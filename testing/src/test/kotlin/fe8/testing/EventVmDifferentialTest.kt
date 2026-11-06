@@ -190,6 +190,16 @@ class EventVmDifferentialTest {
     // while an engine runs), and the engine ends (steps 9285, 9292, 19312) with an empty queue, so
     // breaking the queue shift in CallNextQueuedEvent, dropping its call from OnEnd, or turning
     // CallEvent into a no-op all survive.
+    // Not tagged: the trace runs 0x26 in one compared pair and 0x3C never; 0x3B does not write the
+    // cursor. Only the cursor fields are compared (not the camera, whose callees are stand-ins).
+    @Test
+    fun `cursor fields match gbmst after cursor and camera commands`() {
+        val r = replay() ?: return
+        println("EventVm cursor " + r.cursor.map { (c, v) -> "%02X=${v.pairs}".format(c) })
+        assertTrue((r.cursor[0x3B]?.pairs ?: 0) >= 20 && (r.cursor[0x26]?.pairs ?: 0) >= 1)
+        for (st in r.cursor.values) assertEquals(emptyList<String>(), st.mismatches.take(5))
+    }
+
     @Test
     fun `coverage of the replay does not silently drop`() {
         val r = replay() ?: return
@@ -237,6 +247,9 @@ class EventVmDifferentialTest {
     /** Outcome of one replay over the whole trace. */
     private class Result {
         val codes = TreeMap<Int, Stats>()
+
+        /** Cursor comparisons of `gbmst` per command code (0x26, 0x3B, 0x3C). */
+        val cursor = TreeMap<Int, Stats>()
         val onUpdate = Stats()
         val create = Stats()
         val flagChange = Stats()
@@ -336,11 +349,20 @@ class EventVmDifferentialTest {
         private val romView = RomView.ofRom(rom)
         private val table = UnitTable(romView)
         private val loader = UnitLoader(table, romView, { 0 }, rng, { false })
-        private val cursorCamera = fe8.game.event.EventCursorCamera(
-            state, mem, fe8.game.bm.BmSt(),
-        )
+        private val bm = fe8.game.bm.BmSt()
+        private val gbmst = run.watch("gbmst")
         private val unitState = EventUnitState(
             state, mem, table, loader, object : EventUnitStateHooks {},
+        )
+        private val cursorCamera = fe8.game.event.EventCursorCamera(
+            state, mem, bm,
+            object : fe8.game.event.EventCursorCameraHooks {
+                override fun unitPosition(pid: Int): Int {
+                    val id = unitState.getUnitStructFromEventParameter(pid)
+                    if (id < 0) return -1
+                    return (table.xPos(id) shl 16) or (table.yPos(id) and 0xFFFF)
+                }
+            },
         )
 
         // Unit-array window: seeded from a dump, compared against the next one.
@@ -614,6 +636,9 @@ class EventVmDifferentialTest {
             table.bytes.copyInto(pairSeed)
             val subsBefore = HashSet(windowSubs)
             val touchedBefore = HashSet(windowTouched)
+            val haveBm = a.step in gbmst.firstStep..gbmst.lastStep &&
+                b.step in gbmst.firstStep..gbmst.lastStep
+            if (haveBm) bm.decode(gbmst.step(a.step), 0)
             engine.onUpdate(proc)
             val eb = b.engine
             if (ambiguous) {
@@ -646,6 +671,7 @@ class EventVmDifferentialTest {
                 return UNIT_OK
             }
             result.compared++
+            if (haveBm) compareCursor(b)
             val diffs = compare(proc, b)
             val flagsChanged = !(a.permanentFlags!! + a.chapterFlags!!)
                 .contentEquals(b.permanentFlags!! + b.chapterFlags!!)
@@ -716,6 +742,30 @@ class EventVmDifferentialTest {
             }
             if (d.isNotEmpty()) {
                 result.unitWindows.mismatches += "steps $from..$to subs $windowSubs: ${d.take(6)}"
+            }
+        }
+
+        /**
+         * Compares the cursor fields of `gBmSt` (player cursor, target and display positions,
+         * 0x14..0x17 and 0x1C..0x23) after the pair [b] with the `gbmst` watch, for the pairs in
+         * which 0x26, 0x3B or 0x3C ran. The camera is not compared.
+         */
+        private fun compareCursor(b: EventSnapshot) {
+            val wantSt = fe8.game.bm.BmSt().also { it.decode(gbmst.step(b.step), 0) }
+            val got = listOf(
+                bm.playerCursorX, bm.playerCursorY, bm.cursorTargetX, bm.cursorTargetY,
+                bm.playerCursorDisplayX, bm.playerCursorDisplayY,
+            )
+            val exp = listOf(
+                wantSt.playerCursorX, wantSt.playerCursorY, wantSt.cursorTargetX,
+                wantSt.cursorTargetY, wantSt.playerCursorDisplayX, wantSt.playerCursorDisplayY,
+            )
+            for (code in ran.toSet().filter { it == 0x26 || it == 0x3B || it == 0x3C }) {
+                val st = result.cursor.getOrPut(code) { Stats() }
+                st.pairs++
+                if (got != exp) {
+                    st.mismatches += "step ${b.step} code %02X got $got want $exp".format(code)
+                }
             }
         }
 

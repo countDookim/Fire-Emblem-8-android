@@ -8,6 +8,7 @@ import gba.extract.RomCheck
 import gba.extract.RomImporter
 import gba.vfs.DirectoryLayer
 import gba.vfs.VfsLayer
+import gbafe.extract.RomImage
 import gbafe.extract.fe8.Fe8Import
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -47,6 +48,10 @@ internal fun baseIsCurrent(ctx: Context): Boolean {
     return Fe8Import.importer().isCurrent(text)
 }
 
+/** The kept ROM image `base/rom/baserom.gba`, or null (no import, stale format, or old install). */
+internal fun keptRom(ctx: Context): File? =
+    if (baseIsCurrent(ctx)) File(baseDir(ctx), RomImage.PATH).takeIf { it.isFile } else null
+
 /**
  * The VFS base layer: the imported [baseDir] when current, else the APK's bundled assets
  * (debug/test builds; empty in release builds).
@@ -57,7 +62,8 @@ internal fun baseLayer(ctx: Context): VfsLayer =
 /**
  * Reads the ROM at [uri], verifies it and extracts it into [baseDir], reporting progress in 0..1
  * through [onProgress] (called on the IO thread). Extraction goes to `base.tmp` and replaces
- * `base` only after the stamp is written. The ROM bytes are not stored anywhere.
+ * `base` only after the stamp is written. The verified ROM image is kept at
+ * `base/rom/baserom.gba` (see [RomImage]); an install imported before that has no image.
  */
 internal suspend fun importRom(
     ctx: Context,
@@ -76,6 +82,8 @@ internal suspend fun importRom(
         val files = importer.import(rom, DirOutput(tmp)) { _, count ->
             onProgress((count.toFloat() / EXPECTED_FILES).coerceIn(0f, 1f))
         }
+        // Keep the verified image beside the extracted files; it moves into place with them.
+        RomImage.keep(importer, rom) { FileRomSink(File(tmp, RomImage.PATH)) }
         val base = baseDir(ctx)
         base.deleteRecursively()
         if (!tmp.renameTo(base)) {

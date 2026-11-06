@@ -2,6 +2,7 @@ package fe8.app
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -43,6 +44,7 @@ import gba.audio.PcmStream
 import gba.core.time.FixedStepClock
 import gba.input.TouchButtons
 import gba.vfs.DirectoryLayer
+import gbafe.extract.RomImage
 import gbafe.extract.fe8.Fe8Import
 import io.github.countdookim.fe8.BuildConfig
 import kotlinx.coroutines.Dispatchers
@@ -55,7 +57,8 @@ import kotlinx.coroutines.withContext
  *
  * Debug/test APKs bundle the extracted assets (`assets/extracted/`): the game view then runs
  * the boot sequence ([Fe8Boot]). Without them (release builds until ROM import exists) it shows
- * the placeholder pattern of [Fe8Game.present].
+ * the placeholder pattern of [Fe8Game.present]. After an import the kept ROM image
+ * (`base/rom/baserom.gba`) backs the game; without it the boot/sound windows end at the title.
  */
 public class MainActivity : ComponentActivity() {
     private var surface: GameSurfaceView? = null
@@ -66,14 +69,15 @@ public class MainActivity : ComponentActivity() {
      * Starts the game (boot sequence, GPU renderer) with its sound: the game loop mixes each frame
      * into a [PcmStream] that the audio thread plays (debug builds with the bundled sound window).
      */
-    private fun createGame(ctx: Context): Fe8Game {
-        val soundRom = bundledSoundRom(ctx) ?: return Fe8Game(rom = bundledBootRom(ctx))
+    private fun createGame(ctx: Context, full: RomView?): Fe8Game {
+        val bootRom = full ?: bundledBootRom(ctx)
+        val soundRom = full ?: bundledSoundRom(ctx) ?: return Fe8Game(rom = bootRom)
         val sound = Fe8Sound.create(soundRom)
         val out = AudioTrackSink().also { sink = it }
         // ~150 ms of input: bounds the delay if the game clock runs slightly ahead of the device.
         val pcm = PcmStream(sound.info.pcmFreq, out.sampleRate, capacity = 2048)
         audio = AudioThread(pcm, out).also { it.start() }
-        return Fe8Game(rom = bundledBootRom(ctx), sound = sound, pcm = pcm)
+        return Fe8Game(rom = bootRom, sound = sound, pcm = pcm)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,10 +86,12 @@ public class MainActivity : ComponentActivity() {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 Surface(Modifier.fillMaxSize()) {
                     var playing by remember { mutableStateOf(false) }
+                    // The full ROM (one 16 MB read), loaded off the main thread before the game.
+                    var full by remember { mutableStateOf<RomView?>(null) }
                     if (playing) {
                         AndroidView(
                             factory = { ctx ->
-                                val game = createGame(ctx)
+                                val game = createGame(ctx, full)
                                 val touch = TouchButtons()
                                 FrameLayout(ctx).apply {
                                     addView(GameSurfaceView(ctx, game, touch, gpu = true).also { surface = it })
@@ -95,7 +101,10 @@ public class MainActivity : ComponentActivity() {
                             modifier = Modifier.fillMaxSize(),
                         )
                     } else {
-                        Launcher(onPlay = { playing = true })
+                        Launcher(onPlay = { rom ->
+                            full = rom
+                            playing = true
+                        })
                     }
                 }
             }
@@ -140,7 +149,7 @@ private fun bundledBootRom(ctx: Context): RomView? {
 }
 
 @Composable
-private fun Launcher(onPlay: () -> Unit) {
+private fun Launcher(onPlay: (RomView?) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var current by remember { mutableStateOf<Boolean?>(null) }
@@ -155,9 +164,16 @@ private fun Launcher(onPlay: () -> Unit) {
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             val ok = baseIsCurrent(context)
-            if (ok) fileCount = DirectoryLayer(baseDir(context), "base").list("").size
+            if (ok) {
+                val files = DirectoryLayer(baseDir(context), "base").list("")
+                fileCount = files.count { it != RomImage.PATH }
+            }
             current = ok
         }
+    }
+    var hasRom by remember { mutableStateOf(true) }
+    LaunchedEffect(current, importing) {
+        hasRom = withContext(Dispatchers.IO) { keptRom(context) != null }
     }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -200,6 +216,25 @@ private fun Launcher(onPlay: () -> Unit) {
         }
         // Debug builds bundle assets and can play without importing.
         val canPlay = current == true || (bundled ?: 0) > 0
-        Button(onClick = onPlay, enabled = canPlay && !importing) { Text("Play") }
+        if (current == true && !hasRom) {
+            Text(
+                "Import your ROM to play past the title " +
+                    "(this install predates the kept ROM image).",
+            )
+        } else if (current != true && canPlay) {
+            Text("Import your ROM to play past the title.")
+        }
+        Button(
+            onClick = {
+                scope.launch {
+                    val rom = withContext(Dispatchers.IO) {
+                        keptRom(context)?.let { RomView.ofRom(it.readBytes()) }
+                    }
+                    if (rom == null) Log.i("Fe8", "Import your ROM to play past the title")
+                    onPlay(rom)
+                }
+            },
+            enabled = canPlay && !importing,
+        ) { Text("Play") }
     }
 }

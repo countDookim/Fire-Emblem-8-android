@@ -92,6 +92,9 @@ unit arrays; `EventUnitState` (Event34) registered, untagged. New runs ram_trace
   DrawTitleSprites_Init, SetSecondaryHBlankHandler, OpAnimHBlank1, ColorFadeSetupFrom{ColorToWhite,White},
   sub_80C85FC, sub_80C8684, sub_8009B64, GameControl_PostIntro (partial), m4a fade-in/`TEMPORARY_FADE`.
   `m4aSongNumStartOrChange` is never called by FE8: leave it unclaimed.
+- Owner fixture `complete100.sav` (ROM repo reference/fixtures, 11-06): 100% game, 2 Creature Campaign slots, no
+  run yet. Could give ground truth for the untagged save/post-game paths above (SaveBonusContentData, SaveRankings,
+  GameCtrl_CheckGameCompleteAndBranch, link arena, sound room) and later world-map/Creature Campaign loads.
 - M5-32: slots 3/4 block-info checksum 1F1F1F1F in the dump vs ours for invalid kinds (stack garbage; test checks shape).
 - PSG: 6 of 857 quarter frames differ from mGBA (ch1 f953/f991/f1009, wave f980): note-specific envelope steps,
   not a phase error (`SEQ_OFFSET_CYCLES` 68198 is best).

@@ -3,9 +3,10 @@ package gbafe.data
 import gba.data.JsonReader
 
 /**
- * The games' sine table (`data/trig.json`, format `gbafe.trig`; FE8 `gSinLookup`): 256 + 64 s16 entries in
- * [fractionBits] fixed point, so `SIN(a) = table[a & 0xFF]` and `COS(a) = table[0x40 + (a & 0xFF)]`
- * (`include/hardware.h`).
+ * The games' sine table (`data/trig.json`, format `gbafe.trig`; FE8 `gSinLookup`): 256 + 64 s16
+ * entries in [fractionBits] fixed point, so `SIN(a) = table[a & 0xFF]` and
+ * `COS(a) = table[0x40 + (a & 0xFF)]` (`include/hardware.h`). The extra 64 entries are a quarter
+ * turn of sine, which is what makes cosine a plain offset lookup.
  */
 public class TrigTable(
     /** Fixed-point fraction bits (12 in FE8). */
@@ -29,8 +30,11 @@ public class TrigTable(
         public fun parse(json: String): TrigTable {
             val doc = JsonReader.parse(json) as Map<*, *>
             require(doc["format"] == "gbafe.trig") { "not a gbafe.trig document" }
-            val sin = doc["sin"] as List<*>
-            return TrigTable((doc["fractionBits"] as Long).toInt(), ShortArray(sin.size) { (sin[it] as Long).toShort() })
+            val sinEntries = doc["sin"] as List<*>
+            return TrigTable(
+                (doc["fractionBits"] as Long).toInt(),
+                ShortArray(sinEntries.size) { (sinEntries[it] as Long).toShort() },
+            )
         }
     }
 }

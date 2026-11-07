@@ -6,7 +6,10 @@ public class ProcCmd(
     public val opcode: Int,
     /** `dataImm`: label, sleep time, mark or argument. */
     public val imm: Int = 0,
-    /** `dataPtr`: a [ProcFunc], [ProcBoolFunc], [ProcArgFunc], [ProcScript] or name, depending on [opcode]. */
+    /**
+     * `dataPtr`: a [ProcFunc], [ProcBoolFunc], [ProcArgFunc], script factory or name, depending
+     * on [opcode].
+     */
     public val ptr: Any? = null,
 )
 
@@ -28,7 +31,10 @@ public fun interface ProcArgFunc {
     public fun invoke(arg: Int, proc: Proc): Boolean
 }
 
-/** A proc script: the command list plus a factory for the proc's own fields (the struct past `PROC_HEADER`). */
+/**
+ * A proc script: the command list plus a factory for the proc's own fields (the struct past
+ * `PROC_HEADER`).
+ */
 public class ProcScript(
     /** Debug name (the C symbol, e.g. `ProcScr_GameEarlyStartUI`). */
     public val name: String,
@@ -44,40 +50,43 @@ public object ProcScripts {
     public fun end(): ProcCmd = ProcCmd(0x00)
 
     /** `PROC_NAME`. */
-    public fun name(n: String): ProcCmd = ProcCmd(0x01, 0, n)
+    public fun name(procName: String): ProcCmd = ProcCmd(0x01, 0, procName)
 
     /** `PROC_CALL`. */
-    public fun call(f: ProcFunc): ProcCmd = ProcCmd(0x02, 0, f)
+    public fun call(callback: ProcFunc): ProcCmd = ProcCmd(0x02, 0, callback)
 
     /** `PROC_REPEAT`. */
-    public fun repeat(f: ProcFunc): ProcCmd = ProcCmd(0x03, 0, f)
+    public fun repeat(callback: ProcFunc): ProcCmd = ProcCmd(0x03, 0, callback)
 
     /** `PROC_SET_END_CB`. */
-    public fun setEndCb(f: ProcFunc): ProcCmd = ProcCmd(0x04, 0, f)
+    public fun setEndCb(callback: ProcFunc): ProcCmd = ProcCmd(0x04, 0, callback)
 
     /** `PROC_START_CHILD`. */
-    public fun startChild(s: () -> ProcScript): ProcCmd = ProcCmd(0x05, 0, s)
+    public fun startChild(script: () -> ProcScript): ProcCmd = ProcCmd(0x05, 0, script)
 
     /** `PROC_START_CHILD_BLOCKING`. */
-    public fun startChildBlocking(s: () -> ProcScript): ProcCmd = ProcCmd(0x06, 1, s)
+    public fun startChildBlocking(script: () -> ProcScript): ProcCmd =
+        ProcCmd(0x06, 1, script)
 
     /** `PROC_WHILE_EXISTS`. */
-    public fun whileExists(s: () -> ProcScript): ProcCmd = ProcCmd(0x08, 0, s)
+    public fun whileExists(script: () -> ProcScript): ProcCmd = ProcCmd(0x08, 0, script)
 
     /** `PROC_END_EACH`. */
-    public fun endEach(s: () -> ProcScript): ProcCmd = ProcCmd(0x09, 0, s)
+    public fun endEach(script: () -> ProcScript): ProcCmd = ProcCmd(0x09, 0, script)
 
     /** `PROC_BREAK_EACH`. */
-    public fun breakEach(s: () -> ProcScript): ProcCmd = ProcCmd(0x0A, 0, s)
+    public fun breakEach(script: () -> ProcScript): ProcCmd = ProcCmd(0x0A, 0, script)
 
-    /** `PROC_JUMP`: continue in another script (the proc keeps its own `proc_script` for labels). */
-    public fun jump(s: () -> ProcScript): ProcCmd = ProcCmd(0x0D, 0, s)
+    /**
+     * `PROC_JUMP`: continue in another script (the proc keeps its own `proc_script` for labels).
+     */
+    public fun jump(script: () -> ProcScript): ProcCmd = ProcCmd(0x0D, 0, script)
 
     /** `PROC_LABEL`. */
-    public fun label(id: Int): ProcCmd = ProcCmd(0x0B, id)
+    public fun label(labelId: Int): ProcCmd = ProcCmd(0x0B, labelId)
 
     /** `PROC_GOTO`. */
-    public fun goto(id: Int): ProcCmd = ProcCmd(0x0C, id)
+    public fun goto(labelId: Int): ProcCmd = ProcCmd(0x0C, labelId)
 
     /** `PROC_SLEEP`. */
     public fun sleep(frames: Int): ProcCmd = ProcCmd(0x0E, frames)
@@ -86,7 +95,7 @@ public object ProcScripts {
     public fun yield(): ProcCmd = sleep(0)
 
     /** `PROC_MARK`. */
-    public fun mark(m: Int): ProcCmd = ProcCmd(0x0F, m)
+    public fun mark(markValue: Int): ProcCmd = ProcCmd(0x0F, markValue)
 
     /** `PROC_BLOCK`. */
     public fun block(): ProcCmd = ProcCmd(0x10)
@@ -95,16 +104,16 @@ public object ProcScripts {
     public fun endIfDuplicate(): ProcCmd = ProcCmd(0x11)
 
     /** `PROC_WHILE`. */
-    public fun whileTrue(f: ProcBoolFunc): ProcCmd = ProcCmd(0x14, 0, f)
+    public fun whileTrue(condition: ProcBoolFunc): ProcCmd = ProcCmd(0x14, 0, condition)
 
     /** `PROC_CALL_2`. */
-    public fun call2(f: ProcBoolFunc): ProcCmd = ProcCmd(0x16, 0, f)
+    public fun call2(callback: ProcBoolFunc): ProcCmd = ProcCmd(0x16, 0, callback)
 
     /** `PROC_END_DUPLICATES`. */
     public fun endDuplicates(): ProcCmd = ProcCmd(0x17)
 
     /** `PROC_CALL_ARG`. */
-    public fun callArg(f: ProcArgFunc, arg: Int): ProcCmd = ProcCmd(0x18, arg, f)
+    public fun callArg(callback: ProcArgFunc, arg: Int): ProcCmd = ProcCmd(0x18, arg, callback)
 }
 
 /** One proc slot (`struct Proc` header); [state] holds the script-specific fields. */

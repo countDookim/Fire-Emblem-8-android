@@ -1,9 +1,9 @@
 package gbafe.proc
 
 /**
- * The GBA FE proc ("process") scheduler, decomp `src/proc.c`: a fixed array of [maxProcs] procs allocated from a
- * free-list stack, 8 root trees, scripts of [ProcCmd]s run until a command yields, and per-frame repeat callbacks.
- * Shared by FE6/FE7/FE8 (same design; FE8 has 64 procs).
+ * The GBA FE proc ("process") scheduler, decomp `src/proc.c`: a fixed array of [maxProcs] procs
+ * allocated from a free-list stack, 8 root trees, scripts of [ProcCmd]s run until a command
+ * yields, and per-frame repeat callbacks. Shared by FE6/FE7/FE8 (same design; FE8 has 64 procs).
  */
 public class ProcEngine(
     /** `MAX_PROC_COUNT`. */
@@ -12,8 +12,13 @@ public class ProcEngine(
     /** `sProcArray`. */
     public val procs: List<Proc> = List(maxProcs) { Proc(it) }
 
+    /** Free-proc stack (`sProcAllocList`): entries below [allocHead] are in use, the rest free. */
     private val allocList = arrayOfNulls<Proc>(maxProcs + 1)
+
+    /** Index of the next free entry in [allocList] (`sProcAllocListHead`). */
     private var allocHead = 0
+
+    /** Youngest root proc of each of the 8 root trees (`sProcTreeRootArray`). */
     private val roots = arrayOfNulls<Proc>(8)
 
     init {
@@ -26,11 +31,14 @@ public class ProcEngine(
      * Ported from src/proc.c: Proc_Init
      */
     public fun init() {
-        for (p in procs) {
-            p.script = null; p.scrScript = null; p.scrCur = 0; p.endCb = null; p.idleCb = null; p.name = null
-            p.parent = null; p.rootIndex = -1; p.child = null; p.next = null; p.prev = null
-            p.sleepTime = 0; p.mark = 0; p.flags = 0; p.lockCnt = 0; p.state = null
-            allocList[p.slot] = p
+        for (slotProc in procs) {
+            slotProc.script = null; slotProc.scrScript = null; slotProc.scrCur = 0
+            slotProc.endCb = null; slotProc.idleCb = null; slotProc.name = null
+            slotProc.parent = null; slotProc.rootIndex = -1; slotProc.child = null
+            slotProc.next = null; slotProc.prev = null
+            slotProc.sleepTime = 0; slotProc.mark = 0; slotProc.flags = 0; slotProc.lockCnt = 0
+            slotProc.state = null
+            allocList[slotProc.slot] = slotProc
         }
         allocList[maxProcs] = null
         allocHead = 0
@@ -47,17 +55,27 @@ public class ProcEngine(
      */
     public fun start(script: ProcScript, rootIndex: Int): Proc = start(script, null, rootIndex)
 
-    /** Starts [script] as a child of [parent] and runs it until it yields ([start] with a proc parent). */
+    /**
+     * Starts [script] as a child of [parent] and runs it until it yields ([start] with a proc
+     * parent).
+     */
     public fun start(script: ProcScript, parent: Proc): Proc = start(script, parent, -1)
 
+    /**
+     * Shared body of the public `start` overloads (`Proc_Start` / `Proc_StartBlocking`'s start):
+     * pops a free slot, resets it, links it under [parent] (or into root tree [rootIndex] when
+     * [parent] is null) and runs its script until it yields.
+     */
     private fun start(script: ProcScript, parent: Proc?, rootIndex: Int): Proc {
         val proc = allocList[allocHead++] ?: error("proc array full")
         proc.script = script
         proc.scrScript = script
         proc.scrCur = 0
         proc.endCb = null; proc.idleCb = null
-        proc.parent = null; proc.rootIndex = -1; proc.child = null; proc.next = null; proc.prev = null
+        proc.parent = null; proc.rootIndex = -1; proc.child = null
+        proc.next = null; proc.prev = null
         proc.sleepTime = 0; proc.mark = 0; proc.lockCnt = 0
+        // STARTING keeps the frame loop from re-running the script while it is still being started.
         proc.flags = FLAG_STARTING
         proc.state = script.newState()
         if (parent == null) insertRoot(proc, rootIndex) else insertChild(proc, parent)
@@ -67,8 +85,8 @@ public class ProcEngine(
     }
 
     /**
-     * [start] as a child of [parent] that blocks the parent (its `lockCnt`) until it ends; null if the child
-     * ended while starting.
+     * [start] as a child of [parent] that blocks the parent (its `lockCnt`) until it ends; null if
+     * the child ended while starting.
      *
      * Ported from src/proc.c: Proc_StartBlocking
      */
@@ -81,8 +99,8 @@ public class ProcEngine(
     }
 
     /**
-     * Unlinks [proc] and ends it and all its descendants (children first), running their end callbacks
-     * (`DeleteProcessRecursive`).
+     * Unlinks [proc] and ends it and all its descendants (children first), running their end
+     * callbacks (`DeleteProcessRecursive`).
      *
      * Ported from src/proc.c: Proc_End
      */
@@ -92,6 +110,10 @@ public class ProcEngine(
         deleteRecursive(proc)
     }
 
+    /**
+     * Ends [proc]'s older siblings, its children, then [proc] itself (`DeleteProcessRecursive`),
+     * returning each slot to the free stack. Skips procs that already ended.
+     */
     private fun deleteRecursive(proc: Proc) {
         proc.prev?.let { deleteRecursive(it) }
         proc.child?.let { deleteRecursive(it) }
@@ -104,22 +126,25 @@ public class ProcEngine(
         if (proc.flags and FLAG_BLOCKING != 0) proc.parent!!.lockCnt--
     }
 
+    /** Makes [proc] the youngest root of tree [rootIndex], chaining the old root as its elder. */
     private fun insertRoot(proc: Proc, rootIndex: Int) {
-        val root = roots[rootIndex]
-        if (root != null) {
-            root.next = proc
-            proc.prev = root
+        val previousRoot = roots[rootIndex]
+        if (previousRoot != null) {
+            previousRoot.next = proc
+            proc.prev = previousRoot
         }
         proc.rootIndex = rootIndex
         roots[rootIndex] = proc
     }
 
+    /** Makes [proc] [parent]'s youngest child, chaining the old youngest child as its elder. */
     private fun insertChild(proc: Proc, parent: Proc) {
         parent.child?.let { it.next = proc; proc.prev = it }
         parent.child = proc
         proc.parent = parent
     }
 
+    /** Removes [proc] from its sibling list and from its parent's (or root tree's) head slot. */
     private fun unlink(proc: Proc) {
         proc.next?.prev = proc.prev
         proc.prev?.next = proc.next
@@ -133,6 +158,10 @@ public class ProcEngine(
         proc.prev = null
     }
 
+    /**
+     * One frame for [proc]: older siblings first, then [proc] (script, then repeat callback)
+     * unless locked or still starting, then its children. Stops descending if [proc] ended.
+     */
     private fun runRecursive(proc: Proc) {
         proc.prev?.let { runRecursive(it) }
         if (proc.lockCnt == 0 && proc.flags and FLAG_STARTING == 0) {
@@ -144,8 +173,8 @@ public class ProcEngine(
     }
 
     /**
-     * Runs one frame of [proc], its older siblings and all their children (pre-order): scripts advance until a
-     * command yields, then repeat callbacks run.
+     * Runs one frame of [proc], its older siblings and all their children (pre-order): scripts
+     * advance until a command yields, then repeat callbacks run.
      *
      * Ported from src/proc.c: Proc_Run
      */
@@ -170,34 +199,34 @@ public class ProcEngine(
     public fun find(script: ProcScript): Proc? = procs.firstOrNull { it.script === script }
 
     /**
-     * Jumps [proc] to `PROC_LABEL(label)` in its script and clears its repeat callback; no-op if the label is
-     * missing.
+     * Jumps [proc] to `PROC_LABEL(label)` in its script and clears its repeat callback; no-op if
+     * the label is missing.
      *
      * Ported from src/proc.c: Proc_Goto
      */
     public fun goto(proc: Proc, label: Int) {
         val script = proc.script!!
         val cmds = script.cmds
-        var i = 0
-        while (cmds[i].opcode != 0) {
-            if (cmds[i].opcode == 0x0B && cmds[i].imm == label) {
+        var cmdIndex = 0
+        while (cmds[cmdIndex].opcode != 0) {
+            if (cmds[cmdIndex].opcode == 0x0B && cmds[cmdIndex].imm == label) {
                 proc.scrScript = script
-                proc.scrCur = i
+                proc.scrCur = cmdIndex
                 proc.idleCb = null
                 return
             }
-            i++
+            cmdIndex++
         }
     }
 
     /** Ends every proc running [script] (`Proc_EndEach`). */
     public fun endEach(script: ProcScript) {
-        for (p in procs) if (p.script === script) end(p)
+        for (candidate in procs) if (candidate.script === script) end(candidate)
     }
 
     /** Clears the repeat callback of every proc running [script] (`Proc_BreakEach`). */
     public fun breakEach(script: ProcScript) {
-        for (p in procs) if (p.script === script) p.idleCb = null
+        for (candidate in procs) if (candidate.script === script) candidate.idleCb = null
     }
 
     /**
@@ -237,7 +266,7 @@ public class ProcEngine(
      *   runs; the search was not exhaustive)
      */
     public fun forAll(func: ProcFunc) {
-        for (p in procs) if (p.script != null) func.invoke(p)
+        for (candidate in procs) if (candidate.script != null) func.invoke(candidate)
     }
 
     /**
@@ -246,7 +275,7 @@ public class ProcEngine(
      * Ported from src/proc.c: Proc_ForEach
      */
     public fun forEach(script: ProcScript, func: ProcFunc) {
-        for (p in procs) if (p.script === script) func.invoke(p)
+        for (candidate in procs) if (candidate.script === script) func.invoke(candidate)
     }
 
     /**
@@ -255,7 +284,7 @@ public class ProcEngine(
      * Transcribed from src/proc.c: Proc_ForEachMarked (not verified: the game never calls it)
      */
     public fun forEachMarked(mark: Int, func: ProcFunc) {
-        for (p in procs) if (p.mark == mark) func.invoke(p)
+        for (candidate in procs) if (candidate.mark == mark) func.invoke(candidate)
     }
 
     /**
@@ -264,7 +293,9 @@ public class ProcEngine(
      * Ported from src/proc.c: Proc_BlockEachMarked
      */
     public fun blockEachMarked(mark: Int) {
-        for (p in procs) if (p.mark == mark) p.lockCnt = (p.lockCnt + 1) and 0xFF
+        for (candidate in procs) {
+            if (candidate.mark == mark) candidate.lockCnt = (candidate.lockCnt + 1) and 0xFF
+        }
     }
 
     /**
@@ -273,7 +304,9 @@ public class ProcEngine(
      * Ported from src/proc.c: Proc_UnblockEachMarked
      */
     public fun unblockEachMarked(mark: Int) {
-        for (p in procs) if (p.mark == mark && p.lockCnt > 0) p.lockCnt--
+        for (candidate in procs) {
+            if (candidate.mark == mark && candidate.lockCnt > 0) candidate.lockCnt--
+        }
     }
 
     /**
@@ -282,27 +315,32 @@ public class ProcEngine(
      * Ported from src/proc.c: Proc_EndEachMarked
      */
     public fun endEachMarked(mark: Int) {
-        for (p in procs) if (p.mark == mark) end(p)
+        for (candidate in procs) if (candidate.mark == mark) end(candidate)
     }
 
     /**
-     * The first proc running [script] after [proc] in array order (from the start if [proc] is null), or null.
+     * The first proc running [script] after [proc] in array order (from the start if [proc] is
+     * null), or null.
      *
      * Ported from src/proc.c: Proc_FindAfter
      */
     public fun findAfter(script: ProcScript?, proc: Proc?): Proc? {
-        for (i in (proc?.slot?.plus(1) ?: 0) until maxProcs) if (procs[i].script === script) return procs[i]
+        for (i in (proc?.slot?.plus(1) ?: 0) until maxProcs) {
+            if (procs[i].script === script) return procs[i]
+        }
         return null
     }
 
     /**
-     * The first proc whose parent is [parent] after [proc] in array order (from the start if [proc] is null), or
-     * null.
+     * The first proc whose parent is [parent] after [proc] in array order (from the start if
+     * [proc] is null), or null.
      *
      * Ported from src/proc.c: Proc_FindAfterWithParent
      */
     public fun findAfterWithParent(proc: Proc?, parent: Proc?): Proc? {
-        for (i in (proc?.slot?.plus(1) ?: 0) until maxProcs) if (procs[i].parent === parent) return procs[i]
+        for (i in (proc?.slot?.plus(1) ?: 0) until maxProcs) {
+            if (procs[i].parent === parent) return procs[i]
+        }
         return null
     }
 
@@ -313,10 +351,10 @@ public class ProcEngine(
      * left to end when it runs)
      */
     public fun endAllChildren(parent: Proc) {
-        var proc: Proc? = null
+        var child: Proc? = null
         while (true) {
-            proc = findAfterWithParent(proc, parent) ?: break
-            end(proc)
+            child = findAfterWithParent(child, parent) ?: break
+            end(child)
         }
     }
 
@@ -326,14 +364,22 @@ public class ProcEngine(
      * Ported from src/proc.c: CountProcs
      */
     public fun count(script: ProcScript?): Int =
-        if (script == null) procs.count { it.script != null } else procs.count { it.script === script }
+        if (script == null) {
+            procs.count { it.script != null }
+        } else {
+            procs.count { it.script === script }
+        }
 
-    private val sleepCb = ProcFunc { p ->
-        p.sleepTime--
-        if (p.sleepTime == 0) breakProc(p)
+    /** Repeat callback of `PROC_SLEEP`: counts `sleepTime` down, then resumes the script. */
+    private val sleepCb = ProcFunc { sleeper ->
+        sleeper.sleepTime--
+        if (sleeper.sleepTime == 0) breakProc(sleeper)
     }
 
-    /** Executes the command at [proc]'s `scrCur`; true = continue with the next command this frame. */
+    /**
+     * Executes the command at [proc]'s `scrCur`; true = continue with the next command this
+     * frame, false = the script yields (or the proc ended).
+     */
     private fun exec(proc: Proc): Boolean {
         val script = proc.script!!
         val cmd = proc.scrScript!!.cmds[proc.scrCur]
@@ -345,13 +391,15 @@ public class ProcEngine(
             0x04 -> { proc.endCb = cmd.ptr as ProcFunc; proc.scrCur++ }
             0x05 -> { start(scriptOf(cmd), proc); proc.scrCur++ }
             0x06 -> { startBlocking(scriptOf(cmd), proc); proc.scrCur++; return false }
-            0x07 -> { start(scriptOf(cmd), null, proc.sleepTime); proc.scrCur++ } // root index from sleepTime (sic)
+            // The original reads the root tree index from sleepTime (sic).
+            0x07 -> { start(scriptOf(cmd), null, proc.sleepTime); proc.scrCur++ }
             0x08 -> { if (find(scriptOf(cmd)) != null) return false; proc.scrCur++ }
             0x09 -> { endEach(scriptOf(cmd)); proc.scrCur++ }
             0x0A -> { breakEach(scriptOf(cmd)); proc.scrCur++ }
             0x0B, 0x13, 0x15, 0x19 -> proc.scrCur++
             0x0C -> goto(proc, cmd.imm)
-            0x0D -> { proc.scrScript = scriptOf(cmd); proc.scrCur = 0; proc.idleCb = null } // Proc_GotoScript
+            // Proc_GotoScript
+            0x0D -> { proc.scrScript = scriptOf(cmd); proc.scrCur = 0; proc.idleCb = null }
             0x0E -> {
                 if (cmd.imm != 0) { proc.sleepTime = cmd.imm; proc.idleCb = sleepCb }
                 proc.scrCur++
@@ -373,15 +421,20 @@ public class ProcEngine(
                 procs.firstOrNull { it !== proc && it.script === script }?.let { end(it) }
                 proc.scrCur++
             }
-            0x18 -> { proc.scrCur++; return (cmd.ptr as ProcArgFunc).invoke(cmd.imm.toShort().toInt(), proc) }
+            0x18 -> {
+                proc.scrCur++
+                return (cmd.ptr as ProcArgFunc).invoke(cmd.imm.toShort().toInt(), proc)
+            }
             else -> error("bad proc opcode ${cmd.opcode}")
         }
         return true
     }
 
+    /** Resolves the lazily-built [ProcScript] held in [cmd]'s pointer (a `() -> ProcScript`). */
     @Suppress("UNCHECKED_CAST")
     private fun scriptOf(cmd: ProcCmd): ProcScript = (cmd.ptr as () -> ProcScript)()
 
+    /** Runs [proc]'s script commands until one yields; no-op while locked, idle or ended. */
     private fun runScript(proc: Proc) {
         if (proc.script == null || proc.lockCnt > 0 || proc.idleCb != null) return
         while (exec(proc)) {

@@ -34,6 +34,19 @@ _(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 - Open from issue #4: Event15 + `StartBgmVolumeChange` (save-menu BGM ramp, ram_trace_newgame f1174..1193),
   GameControl fade stand-ins (GameControl.kt:206-212, 409-414). Map palette not yet compared to first_phase pal.bin.
 
+## Device issues (owner-reported; close only when verified)
+Status stays `open` until the fix is verified: a test against a reference run shows the original behaviour AND the
+owner confirms it on a device/APK (owner 11-07: "only mark them as solved when they're actually verified solved").
+A merged fix without both is `fix merged, unverified`. Never mark `solved` from headless runs alone.
+
+| ID | Problem (owner's words, APK from master 3380240 vs emulator, 2026-11-07) | Known facts (headless, not diagnoses) | Status |
+|---|---|---|---|
+| D-01 | Opening "flashes": the screen fades in and out for each dialogue, but no dialogue (and no units) is shown, so it is skipped at once and looks like flashing. | Text commands 1A x17, 1B x22, 1D x13, 21/22 x4 hit `ReleaseEventStubs` no-ops; EventText/Talk*/TalkBubble/TalkFace exist but are not registered in `Fe8Boot.eventEngine` (M6-44). The fades are the real EventFade. | open |
+| D-02 | In the in-game cutscene before the Prologue map no cutscene unit is shown and every event is skipped one after the other until the map begins. | Headless master: the cutscene unit loads run (f1324 red 45 + 2x 80, cleared f1595) but 0 OBJ sprites are drawn during events (scratch harness `maxObjDuringEvents` = 0); 2F MOVEUNIT x17, 30 ENUN x23 stubbed. Why nothing is drawn: not investigated. | open |
+| D-03 | Map start: Seth and Eirika are placed at roughly the right tiles, but the original then has a short dialogue between them, after which Seth walks 4 tiles left and 1 up, then the map begins. Both are missing. | Headless: they end at (8,5)/(9,5), ref first_phase r19400 (4,4)/(4,5); MOVEUNIT/ENUN and the text commands are stubbed (D-01). | open |
+| D-04 | Enemy units are on the correct tiles but appear as allies. | Headless master: they are in the red unit array (ids 0x81..0x83, chars 0x68/0x82/0x80, tiles equal r19400), so the unit data is red; how they are drawn (sprite palette/allegiance in UnitSpritesOam) not investigated. | open |
+| D-05 | Earlier report (5e213f1): cursor moves but nothing is interactable. Not re-reported on 3380240. | Headless master: cursor moves (BmSt.playerCursorX 9..14); A on a unit and menus untested. | open (unchecked) |
+
 ## Audit 11-06 20:10Z (owner PC) of scheduled work 3c26e9e..ab985a8
 Full jvmTest green (555). 6 tags withheld because breaks survived (UpdateMapImgAnimations: VRAM every 10th frame;
 GameCtrl_StartResumedGame: camera 0; FadeFromCommon_OnLoop: one fade speed; GetUnitSpriteHideFlag; SetEventSlotCounter;

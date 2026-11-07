@@ -39,8 +39,6 @@ import fe8.game.event.EventState
 import fe8.game.event.EventCursorCamera
 import fe8.game.event.EventCursorCameraHooks
 import fe8.game.event.EventEngineProc
-import fe8.game.event.EventUnitState
-import fe8.game.event.EventUnitStateHooks
 import fe8.game.event.EventUnitLoads
 import fe8.game.event.EventChangeMap
 import fe8.game.event.EventInfoHooks

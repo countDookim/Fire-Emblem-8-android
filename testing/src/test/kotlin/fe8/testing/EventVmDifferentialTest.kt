@@ -57,7 +57,7 @@ import org.junit.jupiter.api.Test
  * changed in a window without stubbed unit commands. Masks: +0x3C..0x3F (`pMapSpriteHandle`,
  * written by the sprite refresh) and `US_HIDDEN` (MU code and the sprite refresh toggle it),
  * which hides CLEA's main effect. A window that contains a completed or parked unit stub
- * (0x2C, 0x2F, 0x30, 0x3F: loads, moves, battles) is partial: position bytes (+0x10, +0x11)
+ * (0x2C, 0x2F, 0x30: loads, moves) is partial: position bytes (+0x10, +0x11)
  * are not compared and other units are not compared. A window with an unported or ambiguous
  * command is skipped. The `Event34` handler is not credited with `@VerifiesPort` (see the
  * comments at the unit test).
@@ -218,6 +218,9 @@ class EventVmDifferentialTest {
             for (st in r.cursor.values) {
                 assertEquals(emptyList<String>(), st.mismatches.take(5), name)
             }
+            assertEquals(emptyList<String>(), r.deamon.mismatches.take(5), name)
+            println("EventVm $name 0x3F calls=${r.codes[0x3F]?.calls ?: 0} deamon started=" +
+                "${r.deamon.started} ended=${r.deamon.ended} neverMoved=${r.deamon.neverMoved}")
         }
     }
 
@@ -226,6 +229,9 @@ class EventVmDifferentialTest {
         val r = replay() ?: return
         r.print()
         assertTrue(r.compared >= MIN_COMPARED, "only ${r.compared} fully compared pairs")
+        assertTrue(r.deamon.ended >= 1, "ScriptBattleDeamon never ended at the traced lock")
+        assertTrue(r.deamon.unitCompared >= 1, "no unit compared after the deamon")
+        assertEquals(emptyList<String>(), r.deamon.mismatches.take(5))
         for ((code, min) in MIN_STUB_PAIRS) {
             val n = r.stubCompleted[code] ?: 0
             assertTrue(n >= min, "stub %02X completed in only %d pairs".format(code, n))
@@ -265,6 +271,16 @@ class EventVmDifferentialTest {
         val mismatches = ArrayList<String>()
     }
 
+    private class DeamonStats {
+        var started = 0
+        var ended = 0
+        var neverMoved = 0
+        var noDump = 0
+        var unitCompared = 0
+        var unitDumpStep = -1
+        val mismatches = ArrayList<String>()
+    }
+
     /** Outcome of one replay over the whole trace. */
     private class Result {
         val codes = TreeMap<Int, Stats>()
@@ -273,6 +289,9 @@ class EventVmDifferentialTest {
         val cursor = TreeMap<Int, Stats>()
         val onUpdate = Stats()
         val create = Stats()
+
+        /** `ScriptBattleDeamon` runs: started, ended at the traced lock, lock never moved. */
+        val deamon = DeamonStats()
         val flagChange = Stats()
         val stubCompleted = TreeMap<Int, Int>()
         val stubParked = TreeMap<Int, Int>()
@@ -333,6 +352,11 @@ class EventVmDifferentialTest {
             )
             println("EventVm unit windows skipped with Event34: $skippedWithSubs")
             unitWindows.mismatches.take(10).forEach { println("EventVm unit mismatch $it") }
+            println(
+                "EventVm 0x3F calls=${codes[0x3F]?.calls ?: 0} deamon started=${deamon.started} " +
+                    "ended=${deamon.ended} unitsCompared=${deamon.unitCompared} dumpStep=${deamon.unitDumpStep} noDump=${deamon.noDump} lockNeverMoved=${deamon.neverMoved} " +
+                    "mismatches=${deamon.mismatches.take(3)}",
+            )
             println("EventVm stub completed: $done")
             println("EventVm stub parked: ${stubParked.map { "%02X=%d".format(it.key, it.value) }}")
             println(
@@ -374,6 +398,25 @@ class EventVmDifferentialTest {
         private val gbmst = run.watch("gbmst")
         private val unitState = EventUnitState(
             state, mem, table, loader, object : EventUnitStateHooks {},
+        )
+        private var ewram = ByteArray(0)
+        private var dumpSteps: Map<Int, String> = emptyMap()
+        private val battleStructs = fe8.game.bm.BmBattle(romView, table, loader, playSt, bm) { y, x ->
+            // gBmMapTerrain is a u8** (row pointers into the map pool) of the window's dump.
+            val rows = u32le(ewram, GBMMAPTERRAIN - EWRAM) - EWRAM
+            ewram[u32le(ewram, rows + 4 * y) - EWRAM + x].toInt() and 0xFF
+        }
+        private val battleGen = fe8.game.bm.BattleGenerate(
+            battleStructs, romView, loader, playSt, rng, gbafe.core.mechanics.Mechanics(),
+        )
+        private val scriptBattle = fe8.game.event.EventScriptBattle(
+            procs, state, mem, table, battleGen,
+            object : fe8.game.event.EventScriptBattleHost {
+                override fun getUnitStructFromEventParameter(pid: Int): Int =
+                    unitState.getUnitStructFromEventParameter(pid)
+
+                override fun gameLock(): Int = bm.lock
+            },
         )
         private val cursorCamera = fe8.game.event.EventCursorCamera(
             state, mem, bm,
@@ -453,6 +496,7 @@ class EventVmDifferentialTest {
                 0x26 to cursorCamera.event26CameraControl,
                 0x34 to unitState.event34MessWithUnitState,
                 0x3B to cursorCamera.event3bDisplayCursor,
+                0x3F to scriptBattle.event3FScriptBattle,
                 0x3C to cursorCamera.event3cMoveCursor,
             )
             for (code in 0..0xFF) {
@@ -461,7 +505,7 @@ class EventVmDifferentialTest {
                 engine.register(
                     code,
                     when {
-                        h != null && code == 0x34 -> midFrameParking(code, h)
+                        h != null && (code == 0x34 || code == 0x3F) -> midFrameParking(code, h)
                         h != null && code in IDLE_AWARE -> idleAware(code, recording(code, h))
                         h != null -> recording(code, h)
                         stub != null -> stubbed(code, stub)
@@ -576,6 +620,7 @@ class EventVmDifferentialTest {
             var prev: EventSnapshot? = null
             val dumpSteps = run.dumps.keys.filter { it.startsWith("r") || it.startsWith("f") }
                 .associateBy { it.drop(1).toInt() }
+            this.dumpSteps = dumpSteps
             var windowStart = -1
             for (step in trace.steps) {
                 val b = trace.at(step)
@@ -607,6 +652,7 @@ class EventVmDifferentialTest {
                     }
                 }
                 table.loadFrom(ewram)
+                this.ewram = ewram
                 table.bytes.copyInto(windowSeed)
                 windowTouched.clear()
                 windowStart = step
@@ -615,6 +661,78 @@ class EventVmDifferentialTest {
                 windowSubs.clear()
             }
             return result
+        }
+
+        /**
+         * If the pair started a `ScriptBattleDeamon`: scans the later steps' `gBmSt.lock` (the
+         * game lock). The deamon must stay alive while the lock differs from the value saved at
+         * its start (after the lock first moved) and break at the first later step where it is
+         * back; the unit table is restored afterwards.
+         */
+        private fun checkDeamon(a: EventSnapshot, b: EventSnapshot) {
+            val d = procs.find(scriptBattle.deamonScript) ?: return
+            val r = result.deamon
+            r.started++
+            if (a.step !in gbmst.firstStep..gbmst.lastStep) return
+            val saved = bm.lock
+            val seed = table.bytes.copyOf()
+            var moved = false
+            for (step in trace.steps) {
+                if (step <= b.step || step !in gbmst.firstStep..gbmst.lastStep) continue
+                bm.decode(gbmst.step(step), 0)
+                if (bm.lock != saved) {
+                    moved = true
+                    procs.run(d)
+                    if (d.idleCb == null) {
+                        r.mismatches += "step ${b.step}: deamon ended with lock ${bm.lock} != $saved"
+                        break
+                    }
+                } else if (moved) {
+                    procs.run(d)
+                    // The break clears the repeat callback; the script's end runs next frame.
+                    val broke = d.idleCb == null
+                    procs.run(d)
+                    if (broke && procs.find(scriptBattle.deamonScript) == null) {
+                        r.ended++
+                        compareAfterDeamon(step, seed)
+                    } else {
+                        r.mismatches += "step ${b.step}: deamon alive at step $step, lock back"
+                    }
+                    break
+                }
+            }
+            if (!moved) r.neverMoved++
+            seed.copyInto(table.bytes)
+        }
+
+        /**
+         * The units the deamon's reload changed (against [seed], the table before it) must equal
+         * the first unit dump at or after the break [step]; masks: +0x3C..0x3F and US_HIDDEN.
+         */
+        private fun compareAfterDeamon(step: Int, seed: ByteArray) {
+            val r = result.deamon
+            val at = dumpSteps.keys.filter { it >= step }.minOrNull()
+            if (at == null) {
+                r.noDump++
+                return
+            }
+            val want = UnitTable(romView).also { it.loadFrom(run.region(dumpSteps.getValue(at), "ewram")) }
+            val units = (0 until UnitTable.TOTAL_SIZE).filter { table.bytes[it] != seed[it] }
+                .map { it / UnitTable.UNIT_SIZE }.toSet()
+            val d = ArrayList<String>()
+            for (u in units) for (rel in 0 until UnitTable.UNIT_SIZE) {
+                if (rel in 0x3C..0x3F) continue
+                val i = u * UnitTable.UNIT_SIZE + rel
+                val m = if (rel == 0x0C) 1.inv() else -1
+                if ((table.bytes[i].toInt() and m) != (want.bytes[i].toInt() and m)) {
+                    d += "unit@%X+%X got %02X want %02X".format(
+                        u, rel, table.bytes[i].toInt() and 0xFF, want.bytes[i].toInt() and 0xFF,
+                    )
+                }
+            }
+            r.unitCompared += units.size
+            r.unitDumpStep = at
+            if (d.isNotEmpty()) r.mismatches += "after deamon, dump $at: ${d.take(6)}"
         }
 
         /** The creation frame: B holds the fresh proc before its first update. */
@@ -669,6 +787,7 @@ class EventVmDifferentialTest {
                 b.step in gbmst.firstStep..gbmst.lastStep
             if (haveBm) bm.decode(gbmst.step(a.step), 0)
             engine.onUpdate(proc)
+            checkDeamon(a, b)
             val eb = b.engine
             if (ambiguous) {
                 result.skippedAmbiguous++
@@ -900,17 +1019,24 @@ class EventVmDifferentialTest {
         /** Minimum pairs in which each stub completed its command. */
         val MIN_STUB_PAIRS = mapOf(
             0x15 to 2, 0x1D to 28, 0x30 to 20, 0xAC to 3,
-            0xBA to 7, 0x2C to 8, 0x2F to 15, 0x3F to 1,
+            0xBA to 7, 0x2C to 8, 0x2F to 15,
         )
 
         private var cached: Result? = null
+
+        const val EWRAM = 0x02000000
+        const val GBMMAPTERRAIN = 0x0202E4DC
+
+        fun u32le(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or
+            ((b[o + 1].toInt() and 0xFF) shl 8) or ((b[o + 2].toInt() and 0xFF) shl 16) or
+            ((b[o + 3].toInt() and 0xFF) shl 24)
 
         const val UNIT_OK = 0
         const val UNIT_STUBBED = 1
         const val UNIT_UNKNOWN = 2
 
         /** Stubbed codes that change units (loads, moves, battles): the window is not compared. */
-        val UNIT_STUBS = setOf(0x2C, 0x2F, 0x30, 0x3F)
+        val UNIT_STUBS = setOf(0x2C, 0x2F, 0x30)
 
         /** Stub codes whose C handler can return `EVC_STOP_YIELD` (the command waits). */
         val CAN_PARK = setOf(0x1D, 0x2F, 0x30, 0xA5, 0xAC, 0xB1, 0xB3, 0xBA, 0xBE)
@@ -947,7 +1073,6 @@ class EventVmDifferentialTest {
          *   is the parked case).
          * - 0x30 Event30_ENUN: YIELD (STOP_YIELD while a MU moves is the parked case).
          * - 0x3A Event3A_DisplayPopup: skipping: CONTINUE, else YIELD.
-         * - 0x3F Event3F_ScriptBattle: subcode 2 (FIGHT_SCRIPT) CONTINUE, else YIELD.
          * - World map codes 0x9E A0 A3 A7 A8 AF B4 B6 B8 B9 BC BD C1 C4 C5: CONTINUE. The waiting
          *   ones 0xA5 (UnitFadeWait), 0xAC (UnitMoveWait), 0xB1, 0xBA, 0xBE and 0xC6 C7 C9:
          *   CONTINUE when skipping, else YIELD (their STOP_YIELD is the parked case). 0xB2, 0xB3:
@@ -1005,7 +1130,6 @@ class EventVmDifferentialTest {
                 p.evStateBits = p.evStateBits and EV_STATE_GFXLOCKED.inv()
                 YIELD
             }
-            stub(0x3F) { p, m, _ -> if ((m.u16(p.pEventCurrent) and 0xF) == 2) CONT else YIELD }
         }
     }
 }

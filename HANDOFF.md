@@ -7,8 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M6-29 (wip/M6-29-v3, enemy load after f1595): owner PC, until ~19:55Z
-- Readability gbafe.proc + gbafe.data: owner PC, until ~19:55Z
+- Readability gbafe.input + gba.core (not sram): owner PC, until ~19:55Z
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -37,7 +36,14 @@ M6-33/34 (fe8.game.scene Talk: init, interpreter, wait-for-A; the whole first ta
 M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
-## Next task: M6-29 (wip/M6-29-v2), M6-20 rest (wip/M6-20), M6-19 rest, then M6-44 (TASKS)
+## Next task: M6-20 rest (wip/M6-20), M6-19 rest, M6-44, M6-29 tags (TASKS)
+Owner PC 11-07 19:10-19:40Z: wip/M6-29-v3 merged (cdff3dc). Cause of the 2-unit idle map: the dev New Game stand-in
+wrote `(mode 0, isTutorial -1)`, so config.controller stayed 0 and Event19 CHECK_TUTORIAL (89EE0C0) took the tutorial
+branch (89EF27C) instead of the enemy load + ally move; SaveMenuWriteNewGame difficulty 1 passes mode 1, isTutorial 1
+(ram_trace_prologue: controller 1). Fe8Boot now also wires event lockGame/resumeGameplay to the loop. PrologueMapTest
+idle = blue (4,4),(4,5) + 3 red; NewGameToPrologueTest's START phase now starts with the beginning events. Full jvmTest
+green, 524 verified. Probably related to the owner's device report: re-test on device. Delete wip/M6-29-v2, wip/M6-29-v3
+(owner). Readability: gbafe.proc, gbafe.data done (c0f92eb).
 Scheduled 11-07 16:51Z: `wip/M6-29-v3` = wip/M6-29-v2 rebased onto master (conflicts in EventVmDifferentialTest
 STUBS/MIN_STUB_PAIRS resolved; delete wip/M6-29-v2). Not merged: PrologueMapTest "600 idle frames" fails there (cursor stuck
 at (19,27) on the 15x10 map). Root cause (subagent, not verified by me): `Fe8Boot.eventEngine` keeps the no-op

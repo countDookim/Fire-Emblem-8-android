@@ -3,29 +3,32 @@ package gbafe.core.mechanics
 import gbafe.core.rng.RngService
 
 /**
- * How battle decides random outcomes from a percentage: the swap point for "1-RN hit", "no crits" and
- * similar mods. Battle code never calls [RngService.roll1]/[RngService.roll2] directly; it asks the
- * active [BattleRolls] (see [Mechanics.battleRolls]).
+ * How battle decides random outcomes from a percentage: the swap point for "1-RN hit", "no crits"
+ * and similar mods. Battle code never calls [RngService.roll1]/[RngService.roll2] directly; it asks
+ * the active [BattleRolls] (see [Mechanics.battleRolls]).
  *
- * Vanilla is [VanillaBattleRolls]. The shipped game contains no other implementation: alternatives are
- * for mods (docs/decisions/0009-vanilla-product-mod-groundwork.md).
+ * Vanilla is [VanillaBattleRolls]. The shipped game contains no other implementation: alternatives
+ * are for mods (docs/decisions/0009-vanilla-product-mod-groundwork.md).
  *
  * The original's simulation mode (`BATTLE_CONFIG_SIMULATE` in `BattleRoll1RN`/`BattleRoll2RN`,
- * src/bmbattle.c), which returns a fixed result without drawing, stays in battle code: implementations
- * are only called for real rolls, so a swap cannot desync battle forecasts.
+ * src/bmbattle.c), which returns a fixed result without drawing, stays in battle code:
+ * implementations are only called for real rolls, so a swap cannot desync battle forecasts.
  *
  * Implementations must not allocate (called in the frame loop).
  */
 public interface BattleRolls {
-    /** Does an attack with displayed hit rate [hitRate] (0..100) connect? Vanilla: two RNs averaged. */
+    /**
+     * Does an attack with displayed hit rate [hitRate] (0..100) connect? Vanilla: two RNs
+     * averaged.
+     */
     public fun hit(rng: RngService, hitRate: Int): Boolean
 
     /** Does an attack with crit rate [critRate] (0..100) crit? Vanilla: one RN. */
     public fun crit(rng: RngService, critRate: Int): Boolean
 
     /**
-     * Does a percentage-based skill trigger (silencer, Great Shield, Pierce, Sure Strike level checks)?
-     * Vanilla: one RN.
+     * Does a percentage-based skill trigger (silencer, Great Shield, Pierce, Sure Strike level
+     * checks)? Vanilla: one RN.
      */
     public fun skill(rng: RngService, rate: Int): Boolean
 }
@@ -55,6 +58,9 @@ public class Mechanics {
     /** Random battle outcomes (hit, crit, skill procs). */
     public var battleRolls: BattleRolls = VanillaBattleRolls
 
-    /** True when every strategy is the vanilla one (what differential tests and vanilla mode require). */
+    /**
+     * True when every strategy is the vanilla one (what differential tests and vanilla mode
+     * require).
+     */
     public val isVanilla: Boolean get() = battleRolls === VanillaBattleRolls
 }

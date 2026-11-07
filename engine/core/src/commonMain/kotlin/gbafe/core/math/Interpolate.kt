@@ -1,6 +1,9 @@
 package gbafe.core.math
 
-/** `Interpolate` and its `enum interpolate_method` (src/bmlib.c). */
+/**
+ * Easing curves for animations and camera moves: `Interpolate` and its
+ * `enum interpolate_method` (src/bmlib.c).
+ */
 public object Interpolate {
     /** `INTERPOLATE_LINEAR`. */
     public const val LINEAR: Int = 0
@@ -28,19 +31,20 @@ public object Interpolate {
      */
     public fun interpolate(method: Int, lo: Int, hi: Int, x: Int, xMax: Int): Int {
         if (xMax == 0) return hi
-        val d = hi - lo
+        // Total change over the whole range; each curve scales it by a fraction of x / xMax.
+        val span = hi - lo
         return when (method) {
-            LINEAR -> lo + d * x / xMax
-            SQUARE -> lo + x * x * d / (xMax * xMax)
-            CUBIC -> lo + x * x * x * d / (xMax * xMax * xMax)
-            POW4 -> lo + x * x * x * x * d / (xMax * xMax * xMax * xMax)
+            LINEAR -> lo + span * x / xMax
+            SQUARE -> lo + x * x * span / (xMax * xMax)
+            CUBIC -> lo + x * x * x * span / (xMax * xMax * xMax)
+            POW4 -> lo + x * x * x * x * span / (xMax * xMax * xMax * xMax)
             RSQUARE -> {
-                val dx = xMax - x
-                lo + d - dx * dx * d / (xMax * xMax)
+                val remaining = xMax - x
+                lo + span - remaining * remaining * span / (xMax * xMax)
             }
             RCUBIC -> {
-                val dx = xMax - x
-                lo + d - dx * dx * dx * d / (xMax * xMax * xMax)
+                val remaining = xMax - x
+                lo + span - remaining * remaining * remaining * span / (xMax * xMax * xMax)
             }
             else -> 0
         }

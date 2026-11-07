@@ -13,15 +13,20 @@ public interface RandomSource {
  * The original FE8 primary RNG: a 48-bit state held as three 16-bit words.
  *
  * Vanilla behaviour is bit-exact, including how a negative seed is reduced (Kotlin's `%` truncates
- * toward zero exactly like C on the GBA). State is held in three `Int`s masked to 16 bits: no boxing,
- * no arrays, allocation-free.
+ * toward zero exactly like C on the GBA). State is held in three `Int`s masked to 16 bits: no
+ * boxing, no arrays, allocation-free.
  */
 public class Fe8Rng : RandomSource {
+    // The three 16-bit state words: s0 is the newest output, s2 the oldest.
     private var s0: Int = 0
     private var s1: Int = 0
     private var s2: Int = 0
 
-    /** Ported from src/rng.c: NextRN */
+    /**
+     * Advances the generator one step and returns the new 16-bit value.
+     *
+     * Ported from src/rng.c: NextRN
+     */
     override fun nextRaw(): Int {
         var rn = ((s1 shl 11) + (s0 ushr 5)) and 0xFFFF
         s2 = (s2 shl 1) and 0xFFFF
@@ -40,30 +45,33 @@ public class Fe8Rng : RandomSource {
      * Ported from src/rng.c: InitRN
      */
     public fun init(seed: Int) {
-        var mod = seed % 7
-        s0 = INIT_TABLE[mod++ and 7]
-        s1 = INIT_TABLE[mod++ and 7]
-        s2 = INIT_TABLE[mod and 7]
+        var tableIndex = seed % 7
+        s0 = INIT_TABLE[tableIndex++ and 7]
+        s1 = INIT_TABLE[tableIndex++ and 7]
+        s2 = INIT_TABLE[tableIndex and 7]
         if (seed % 23 > 0) {
-            var n = seed % 23
-            while (n != 0) {
+            var warmUpDraws = seed % 23
+            while (warmUpDraws != 0) {
                 nextRaw()
-                n--
+                warmUpDraws--
             }
         }
     }
 
     /**
+     * Restores the generator state from three saved words (each masked to 16 bits).
+     *
      * Transcribed from src/rng.c: LoadRNState (not verified: no test checks it against a trace yet)
      */
-    public fun load(w0: Int, w1: Int, w2: Int) {
-        s0 = w0 and 0xFFFF
-        s1 = w1 and 0xFFFF
-        s2 = w2 and 0xFFFF
+    public fun load(word0: Int, word1: Int, word2: Int) {
+        s0 = word0 and 0xFFFF
+        s1 = word1 and 0xFFFF
+        s2 = word2 and 0xFFFF
     }
 
     /**
-     * Copies the three state words into [out] starting at [offset] (used by saves and suspend data).
+     * Copies the three state words into [out] starting at [offset] (used by saves and suspend
+     * data).
      *
      * Transcribed from src/rng.c: StoreRNState (not verified: no test checks it against a trace
      *   yet)
@@ -74,29 +82,35 @@ public class Fe8Rng : RandomSource {
         out[offset + 2] = s2
     }
 
-    /** State word [i] (0..2), for tests and the debug inspector. */
-    public fun word(i: Int): Int = when (i) {
+    /** State word [index] (0..2), for tests and the debug inspector. */
+    public fun word(index: Int): Int = when (index) {
         0 -> s0
         1 -> s1
         2 -> s2
-        else -> throw IndexOutOfBoundsException("word $i")
+        else -> throw IndexOutOfBoundsException("word $index")
     }
 
     private companion object {
-        private val INIT_TABLE = intArrayOf(0xA36E, 0x924E, 0xB784, 0x4F67, 0x8092, 0x592D, 0x8E70, 0xA794)
+        private val INIT_TABLE =
+            intArrayOf(0xA36E, 0x924E, 0xB784, 0x4F67, 0x8092, 0x592D, 0x8E70, 0xA794)
     }
 }
 
 /**
- * The secondary FE8 generator: a tiny LCG used only to derive the boot seed for [Fe8Rng] (and by a few
- * presentation effects). Arithmetic is unsigned 32-bit, emulated with wrapping `Int` maths and `ushr`.
+ * The secondary FE8 generator: a tiny LCG used only to derive the boot seed for [Fe8Rng] (and by a
+ * few presentation effects). Arithmetic is unsigned 32-bit, emulated with wrapping `Int` maths and
+ * `ushr`.
  */
 public class LcgRng {
     /** Current LCG value (raw 32 bits). */
     public var value: Int = 0
         private set
 
-    /** Ported from src/rng.c: SetLCGRNValue */
+    /**
+     * Sets the LCG value to [seed] directly.
+     *
+     * Ported from src/rng.c: SetLCGRNValue
+     */
     public fun set(seed: Int) {
         value = seed
     }
@@ -107,19 +121,19 @@ public class LcgRng {
      * Ported from src/rng.c: AdvanceGetLCGRNValue
      */
     public fun advance(): Int {
-        val rn = (value * 4 + 2) * (value * 4 + 3)
-        value = rn ushr 2
+        val product = (value * 4 + 2) * (value * 4 + 3)
+        value = product ushr 2
         return value
     }
 }
 
 /**
- * Central, seedable RNG service. All gameplay randomness goes through here so that vanilla mode can be
- * reproduced exactly and mods can swap the [source] (e.g. a "fixed growths" or seeded-run mod) without
- * touching game code.
+ * Central, seedable RNG service. All gameplay randomness goes through here so that vanilla mode can
+ * be reproduced exactly and mods can swap the [source] (e.g. a "fixed growths" or seeded-run mod)
+ * without touching game code.
  *
- * The derived helpers keep the original integer maths, so swapping the source changes the numbers but
- * not the distribution logic (that belongs to the mechanics strategy interfaces instead).
+ * The derived helpers keep the original integer maths, so swapping the source changes the numbers
+ * but not the distribution logic (that belongs to the mechanics strategy interfaces instead).
  */
 public class RngService(
     /** The primary generator; vanilla uses [Fe8Rng]. */
@@ -130,7 +144,11 @@ public class RngService(
     /** Active source for draws; defaults to [primary]. Mods may replace it. */
     public var source: RandomSource = primary
 
-    /** Raw draw in `0..0xFFFF`. Ported from src/rng.c: NextRN (via [source]). */
+    /**
+     * Raw draw in `0..0xFFFF` from the active [source].
+     *
+     * Ported from src/rng.c: NextRN (via [source])
+     */
     public fun next(): Int = source.nextRaw()
 
     /**
@@ -142,12 +160,14 @@ public class RngService(
 
     /**
      * Draw in `0 until max`.
+     *
      * Transcribed from src/rng.c: NextRN_N (not verified: no test checks it against a trace yet)
      */
     public fun nextN(max: Int): Int = next() * max / 0x10000
 
     /**
      * One-RN hit check: true when `threshold > draw`.
+     *
      * Transcribed from src/rng.c: Roll1RN (not verified: no test checks it against a trace yet)
      */
     public fun roll1(threshold: Int): Boolean = threshold > next100()
@@ -163,8 +183,8 @@ public class RngService(
     }
 
     /**
-     * Reproduces the boot-time seeding done in `AgbMain`: LCG seeded with the constant `0x42D690E9`,
-     * advanced once, and the result passed to [Fe8Rng.init].
+     * Reproduces the boot-time seeding done in `AgbMain`: LCG seeded with the constant
+     * `0x42D690E9`, advanced once, and the result passed to [Fe8Rng.init].
      *
      * Partially ported from src/main.c: AgbMain (RNG initialisation only).
      */

@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- Readability: gbafe.core.{math,time,mechanics,rng}: owner PC, until ~16:45Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -40,12 +40,13 @@ M6-40/41 (battle result + Event3F).
 Owner PC 11-07 15:40-16:05Z: M4 finished as far as traceable: M4-12 (6 Proc_* tagged, 4 untraceable) and M4-02
 (soft-reset run + test; Huffman/RL unused). M4 open only: the reset path's one-frame offset in EarlyStartUi (TASKS M4-02),
 wiring SoftwareResetFlag/KeyComboReset into the boot. New CLAUDE.md rule 11: every owner-PC session reviews a section of
-docs/READABILITY.md (none reviewed yet; start with a small one). `.assets` on the owner PC has both new runs (published).
+docs/READABILITY.md (done: gbafe.core math/time/mechanics/rng; next: a small todo row). `.assets` on the owner PC has both new runs (published).
 Owner PC 11-07 15:10-16:05Z: M6-37 done (EventTextDifferentialTest; EventText not in Fe8Boot). CI on master failed since
 11-06 23:49 (Dokka: 2 undocumented; summary: battle_end run not packed): fixed (1d089a8; ROM repo c66e0fd packs
 ram_trace_prologue_battle_end, old runs byte-identical; `.assets` updated). Full jvmTest green, 518 verified. CI does
-commit README/port_map itself after a green master run (the How-to line saying it never does was wrong). Remote
-`wip/M6-41` (merged) and `wip/M6-29` (same changes as wip/M6-29-v2) can be deleted: auto mode refused the delete.
+commit README/port_map itself after a green master run (the How-to line saying it never does was wrong). Owner
+deleted `wip/M6-41` and `wip/M6-29` (11-07). `wip/M6-37` is merged into master and can be deleted (owner: auto mode
+refuses remote branch deletes here).
 Scheduled 11-07 13:05Z (full jvmTest green 13:27Z): Fe8Boot now registers Event34 (EventUnitState, hooks: unitAt only) and Event3F (EventScriptBattle,
 host: lock = loop.gameLock, entity-map refresh; anim/AiRefreshMap/RefreshUnitSprites default) (81c9e51; Fe8Boot/Prologue/
 NewGame/ResumeBoot tests green). `wip/M6-29-v2` = wip/M6-29 cherry-picked onto master (old wip/M6-29 has unrelated

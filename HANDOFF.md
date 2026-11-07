@@ -44,9 +44,12 @@ at (19,27) on the 15x10 map). Root cause (subagent, not verified by me): `Fe8Boo
 9507..19311); changePhase queues phase event 89f75a4 (never run in the trace) which ChangeMaps and runs Event26 CAM1 [19,27].
 Master passes only because Event26 was a stand-in. Wiring lockGame=loop.lockGame()/resumeGameplay=loop.unlockGame() fixes the
 cursor tests but `idle Prologue map has unit sprite objects` then gets 2 units: the 2nd beginning pass branches at 89ee0c0
-(Event19 CHECK sub 7: playSt.controller != 0 || hard -> tutorial path; ref run: blue (4,4),(4,5) + 3 red). Likely also the
-owner's device symptom (extra cutscene units, no enemies). Next: make PrologueBoot pick the reference run's mode/difficulty,
-wire the lock, then merge wip/M6-29-v3.
+(Event19 CHECK sub 7 claim, subagent; doubtful: 89EE0C0 runs twice, both times falling through to CALL). Ref run idle: blue
+(4,4),(4,5) + 3 red. Per-frame unit dump with the lock (follow-up 11-07): cutscene loads/clears as expected (f1324 red 45 +
+2x 80, cleared f1595), then the final load at f1613 brings only Eirika (9,5) + Seth (8,5); no enemy load and no move to
+(4,4)/(4,5) follows; the engine then ends (last script 89EF27C..2AC, then 8592114). Ally count right, enemy load and ally
+positions missing: compare the event address sequence after f1595 with the reference run. Likely also the owner's device
+symptom. Then wire the lock and merge wip/M6-29-v3.
 Owner PC 11-07 15:40-16:05Z: M4 finished as far as traceable: M4-12 (6 Proc_* tagged, 4 untraceable) and M4-02
 (soft-reset run + test; Huffman/RL unused). M4 open only: the reset path's one-frame offset in EarlyStartUi (TASKS M4-02),
 wiring SoftwareResetFlag/KeyComboReset into the boot. New CLAUDE.md rule 11: every owner-PC session reviews a section of

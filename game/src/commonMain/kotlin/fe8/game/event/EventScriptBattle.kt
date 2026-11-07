@@ -75,9 +75,8 @@ public class EventScriptBattle(
     }
 
     /**
-     * Transcribed from src/eventscr.c: GenerateScriptBattleHitFormEventQueue (not verified: not
-     *   yet replayed in EventVmDifferentialTest; the hit building itself is
-     *   [BattleGenerate.generateScriptBattleHitFormEventQueue])
+     * Ported from src/eventscr.c: GenerateScriptBattleHitFormEventQueue (the hit building itself
+     *   is [BattleGenerate.generateScriptBattleHitFormEventQueue])
      *
      * The hits of the first `gEventSlots[0xD]` entries of the slot queue.
      */
@@ -110,8 +109,7 @@ public class EventScriptBattle(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event3F_ScriptBattle (not verified: not yet replayed in
-     *   EventVmDifferentialTest)
+     * Ported from src/eventscr.c: Event3F_ScriptBattle
      *
      * Sub-command 0 / 1 (FIGHT / FIGHT_MAP) starts an event battle between the units of the two
      * character parameters (negative parameters are -2) with the hits of the slot queue, and

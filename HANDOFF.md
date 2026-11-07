@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M4-02: owner PC, until ~16:20Z (new soft-reset run in the ROM repo)
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -37,6 +37,10 @@ M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
 ## Next task: M6-29 (wip/M6-29-v2), M6-20 rest (wip/M6-20), M6-19 rest, then M6-44 (TASKS)
+Owner PC 11-07 15:40-16:05Z: M4 finished as far as traceable: M4-12 (6 Proc_* tagged, 4 untraceable) and M4-02
+(soft-reset run + test; Huffman/RL unused). M4 open only: the reset path's one-frame offset in EarlyStartUi (TASKS M4-02),
+wiring SoftwareResetFlag/KeyComboReset into the boot. New CLAUDE.md rule 11: every owner-PC session reviews a section of
+docs/READABILITY.md (none reviewed yet; start with a small one). `.assets` on the owner PC has both new runs (published).
 Owner PC 11-07 15:10-16:05Z: M6-37 done (EventTextDifferentialTest; EventText not in Fe8Boot). CI on master failed since
 11-06 23:49 (Dokka: 2 undocumented; summary: battle_end run not packed): fixed (1d089a8; ROM repo c66e0fd packs
 ram_trace_prologue_battle_end, old runs byte-identical; `.assets` updated). Full jvmTest green, 518 verified. CI does

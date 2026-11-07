@@ -39,7 +39,13 @@ class UnitFactionIndexTest {
         }
         repeat(30) { boot.frame() }
         val oam = boot.loop.oam.oam
-        val banks = (0 until 128).filter { (oam[it * 4].toInt() shr 8) and 3 != 2 }
+        // Drawn objects only: ClearOam parks unused ones at y = 160 (attr0 low byte) and leaves
+        // their attr2 stale, so after the events' sprites they keep old palette banks.
+        val banks = (0 until 128)
+            .filter {
+                val attr0 = oam[it * 4].toInt()
+                (attr0 shr 8) and 3 != 2 && (attr0 and 0xFF) < 160
+            }
             .map { (oam[it * 4 + 2].toInt() shr 12) and 0xF }
         assertEquals(2, banks.count { it == 0xC }, "ally sprites in bank 0xC: $banks")
         assertEquals(3, banks.count { it == 0xD }, "enemy sprites in bank 0xD: $banks")

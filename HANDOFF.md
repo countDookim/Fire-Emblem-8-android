@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M6-20 rest (Event15, StartBgmVolumeChange): scheduled, until ~13:40Z, wip/M6-20
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -36,7 +36,16 @@ M6-33/34 (fe8.game.scene Talk: init, interpreter, wait-for-A; the whole first ta
 M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
-## Next task: M6-37 (wip), M6-41 rest (register Event3F in EventVm replay + Fe8Boot), M6-20 rest, M6-19 rest, M6-29 (wip) (TASKS)
+## Next task: M6-37 (wip), M6-29 (wip/M6-29-v2), M6-20 rest (wip/M6-20), M6-19 rest, then M6-44 (TASKS)
+Scheduled 11-07 13:05Z (full jvmTest green 13:27Z): Fe8Boot now registers Event34 (EventUnitState, hooks: unitAt only) and Event3F (EventScriptBattle,
+host: lock = loop.gameLock, entity-map refresh; anim/AiRefreshMap/RefreshUnitSprites default) (81c9e51; Fe8Boot/Prologue/
+NewGame/ResumeBoot tests green). `wip/M6-29-v2` = wip/M6-29 cherry-picked onto master (old wip/M6-29 has unrelated
+history in the shallow clone; delete it and wip/M6-41, branch deletes are refused for scheduled runs) + EventVm replay runs
+real 0x3F (out of STUBS/UNIT_STUBS): ScriptBattleDeamon breaks at the gbmst lock and its unit result equals the r15090 dump
+(base run; battle run: lock never returns in range). ScriptBattleDeamon still untagged (thin: 1 unit HP; PROC_MARK_EVENT
+unchecked). `wip/M6-20`: StartBgmVolumeChange, MusicVc_OnLoop, Sound_SetSEVolume, m4aSongNumStop, Event15 transcribed and
+registered (EventVm replay green), untagged; `BgmVolumeChangeTest` (newgame f1174..1193) disabled: the trace ramps BGM to
+0 over ~19 f (not the PostSaveMenu (0xC0,0x100,0x10) guess) and track flags alternate 131/128 per dump (order vs MPlayMain).
 Scheduled 11-07 11:15Z (full jvmTest green 11:14Z): M6-41 Event3F_ScriptBattle + GenerateScriptBattleHitFormEventQueue
 verified (`EventScriptBattleDifferentialTest`, prologue_battle step 14430 = r14429 inputs, battle structs/hits unmasked);
 deamon untagged, not registered yet. M6-42 `fe8.game.event.EventInfos` (search + EvCheck00/02 tagged; others throw "not

@@ -45,7 +45,7 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | engine/extract | gbafe.extract.font | 1 | 77 | todo |
 | engine/extract | gbafe.extract.m4a | 1 | 311 | todo |
 | engine/extract | gbafe.extract.text | 1 | 55 | todo |
-| engine/input | gbafe.input | 2 | 238 | todo |
+| engine/input | gbafe.input | 2 | 238 | done 2026-11-07 697847c |
 | engine/render | gbafe.render | 10 | 1592 | todo |
 | engine/save | gbafe.save | 7 | 621 | todo |
 | engine/script | gbafe.script | 7 | 920 | todo |
@@ -61,10 +61,10 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | game | fe8.game.text | 1 | 30 | todo |
 | game | fe8.game.title | 1 | 824 | todo |
 | gba/audio | gba.audio | 17 | 2799 | todo |
-| gba/core | gba.core | 1 | 21 | todo |
-| gba/core | gba.core.event | 2 | 101 | todo |
+| gba/core | gba.core | 1 | 21 | done 2026-11-07 697847c |
+| gba/core | gba.core.event | 2 | 101 | done 2026-11-07 697847c |
 | gba/core | gba.core.sram | 5 | 380 | todo |
-| gba/core | gba.core.time | 2 | 111 | todo |
+| gba/core | gba.core.time | 2 | 111 | done 2026-11-07 697847c |
 | gba/data | gba.data | 7 | 585 | todo |
 | gba/extract | gba.extract | 9 | 572 | todo |
 | gba/input | gba.input | 3 | 362 | todo |

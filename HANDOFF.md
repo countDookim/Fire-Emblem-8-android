@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- Readability gbafe.input + gba.core (not sram): owner PC, until ~19:55Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -43,7 +43,7 @@ branch (89EF27C) instead of the enemy load + ally move; SaveMenuWriteNewGame dif
 (ram_trace_prologue: controller 1). Fe8Boot now also wires event lockGame/resumeGameplay to the loop. PrologueMapTest
 idle = blue (4,4),(4,5) + 3 red; NewGameToPrologueTest's START phase now starts with the beginning events. Full jvmTest
 green, 524 verified. Probably related to the owner's device report: re-test on device. Delete wip/M6-29-v2, wip/M6-29-v3
-(owner). Readability: gbafe.proc, gbafe.data done (c0f92eb).
+(owner). Readability: gbafe.proc, gbafe.data (c0f92eb), gbafe.input, gba.core/.event/.time (697847c) done.
 Scheduled 11-07 16:51Z: `wip/M6-29-v3` = wip/M6-29-v2 rebased onto master (conflicts in EventVmDifferentialTest
 STUBS/MIN_STUB_PAIRS resolved; delete wip/M6-29-v2). Not merged: PrologueMapTest "600 idle frames" fails there (cursor stuck
 at (19,27) on the 15x10 map). Root cause (subagent, not verified by me): `Fe8Boot.eventEngine` keeps the no-op

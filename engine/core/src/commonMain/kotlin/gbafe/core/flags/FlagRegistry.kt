@@ -37,6 +37,7 @@ public class FlagRegistry(
     vanillaNames: Map<String, Int>,
 ) {
     private val table = ModNameTable("flag", vanillaNames)
+    /** Mod flag bits, one bit per slot (slot `s` is bit `s and 7` of byte `s shr 3`); grows. */
     private var bits = ByteArray(16)
 
     /** Number of mod flags registered so far. */
@@ -161,6 +162,7 @@ public class FlagRegistry(
         return applied
     }
 
+    /** Slot of mod [handle]; throws if it was never registered. */
     private fun modSlot(handle: Int): Int {
         val slot = handle - MOD_BASE
         require(slot < table.count) { "unregistered mod flag handle" }

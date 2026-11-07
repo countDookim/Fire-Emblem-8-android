@@ -57,6 +57,7 @@ public class VarRegistry(
     vanillaNames: Map<String, Int>,
 ) {
     private val table = ModNameTable("variable", vanillaNames)
+    /** Mod variable values indexed by slot; grows as variables are registered. */
     private var values = IntArray(8)
 
     /** Number of mod variables registered so far. */
@@ -163,6 +164,7 @@ public class VarRegistry(
         return applied
     }
 
+    /** Slot of mod [handle]; throws if it was never registered. */
     private fun modSlot(handle: Int): Int {
         val slot = handle - MOD_BASE
         require(slot < values.size && slot < table.count) { "unregistered mod variable handle" }

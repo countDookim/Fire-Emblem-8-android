@@ -56,8 +56,11 @@ public class EventFlagLayout(
  * @property layout sizes and constants of the flag memory.
  */
 public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
+    /** The mirrored flag memory: permanent array, then chapter array. */
     private val bits = ByteArray(layout.totalBytes)
+    /** Byte offset of the chapter array inside [bits]. */
     private val chapterBase = layout.permanentStorageBytes
+    /** Single-bit masks; bit `n` of a byte uses `masks[n]` (`gFlagBitMaskLut`). */
     private val masks = layout.bitMask
 
     /** Number of mirrored bytes (permanent array then chapter array). */
@@ -237,6 +240,7 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
     override fun checkFlag(flag: Int): Boolean =
         if (flag < layout.chapterFlagLimit) checkChapterFlag(flag) else checkPermanentFlag(flag)
 
+    /** Bit number inside the chapter array for chapter flag [flag] (flag 1 is bit 0). */
     private fun chapterBit(flag: Int): Int {
         val bit = flag - 1
         require(bit >= 0 && (bit shr 3) < layout.chapterStorageBytes) {
@@ -245,6 +249,10 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
         return bit
     }
 
+    /**
+     * Bit number counted from the start of the whole mirror for permanent flag [flag]; a bit past
+     * the permanent array lands in the chapter array, as in memory.
+     */
     private fun permanentBit(flag: Int): Int {
         val bit = flag - layout.permanentBaseId - 1
         require((bit shr 3) < bits.size) { "permanent flag $flag outside the flag memory" }

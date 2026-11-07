@@ -1,11 +1,12 @@
 package gbafe.core.flags
 
 /**
- * A single switchable non-original behaviour added by a mod (QoL, widescreen, alternate formulas, ...).
- * The base game registers none (docs/decisions/0009-vanilla-product-mod-groundwork.md).
+ * A single switchable non-original behaviour added by a mod (QoL, widescreen, alternate
+ * formulas, ...). The base game registers none
+ * (docs/decisions/0009-vanilla-product-mod-groundwork.md).
  *
- * Instances are created only through [FeatureFlags.register], which assigns a dense [index] so checks
- * are a single `BooleanArray` read in hot code.
+ * Instances are created only through [FeatureFlags.register], which assigns a dense [index] so
+ * checks are a single `BooleanArray` read in hot code.
  *
  * @property id stable dotted identifier, e.g. `mod.example.double_exp`.
  * @property index dense registry index.
@@ -18,29 +19,40 @@ public class FeatureFlag internal constructor(
     public val description: String,
     public val defaultEnabled: Boolean,
 ) {
-    /** Short debug form, e.g. `FeatureFlag(mod.example.fast_text)`; the id alone identifies the flag. */
+    /**
+     * Short debug form, e.g. `FeatureFlag(mod.example.fast_text)`; the id alone identifies the
+     * flag.
+     */
     override fun toString(): String = "FeatureFlag($id)"
 }
 
 /**
  * Registry and current values of all [FeatureFlag]s.
  *
- * **Vanilla mode** ([vanilla] = true) forces every flag off regardless of stored values. This is the
- * single switch that keeps behaviour bit-exact for differential tests against mGBA: anything that is
- * not original behaviour must be behind a flag, and every flag is off in vanilla.
+ * **Vanilla mode** ([vanilla] = true) forces every flag off regardless of stored values. This is
+ * the single switch that keeps behaviour bit-exact for differential tests against mGBA: anything
+ * that is not original behaviour must be behind a flag, and every flag is off in vanilla.
  */
 public class FeatureFlags {
     private val byId = LinkedHashMap<String, FeatureFlag>()
+    /** Stored on/off values, indexed by [FeatureFlag.index]; doubled when full. */
     private var values = BooleanArray(16)
 
-    /** When true, [isEnabled] always returns false. Defaults to true: vanilla unless the user opts in. */
+    /**
+     * When true, [isEnabled] always returns false. Defaults to true: vanilla unless the user opts
+     * in.
+     */
     public var vanilla: Boolean = true
 
     /** All registered flags in registration order. */
     public val all: Collection<FeatureFlag> get() = byId.values
 
     /** Registers a flag (idempotent for the same [id]). Called at startup by systems and mods. */
-    public fun register(id: String, description: String, defaultEnabled: Boolean = false): FeatureFlag {
+    public fun register(
+        id: String,
+        description: String,
+        defaultEnabled: Boolean = false,
+    ): FeatureFlag {
         byId[id]?.let { return it }
         val flag = FeatureFlag(id, byId.size, description, defaultEnabled)
         if (flag.index >= values.size) values = values.copyOf(values.size * 2)

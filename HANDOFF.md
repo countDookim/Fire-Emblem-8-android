@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M6-29: scheduled, until ~17:25Z (rebase wip/M6-29-v2, tag 3B/26 if verified)
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -37,6 +37,16 @@ M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
 ## Next task: M6-29 (wip/M6-29-v2), M6-20 rest (wip/M6-20), M6-19 rest, then M6-44 (TASKS)
+Scheduled 11-07 16:51Z: `wip/M6-29-v3` = wip/M6-29-v2 rebased onto master (conflicts in EventVmDifferentialTest
+STUBS/MIN_STUB_PAIRS resolved; delete wip/M6-29-v2). Not merged: PrologueMapTest "600 idle frames" fails there (cursor stuck
+at (19,27) on the 15x10 map). Root cause (subagent, not verified by me): `Fe8Boot.eventEngine` keeps the no-op
+`EventEngineHooks.lockGame/resumeGameplay`, so BMapMain runs during the beginning events (trace: gbmst lock=1 steps
+9507..19311); changePhase queues phase event 89f75a4 (never run in the trace) which ChangeMaps and runs Event26 CAM1 [19,27].
+Master passes only because Event26 was a stand-in. Wiring lockGame=loop.lockGame()/resumeGameplay=loop.unlockGame() fixes the
+cursor tests but `idle Prologue map has unit sprite objects` then gets 2 units: the 2nd beginning pass branches at 89ee0c0
+(Event19 CHECK sub 7: playSt.controller != 0 || hard -> tutorial path; ref run: blue (4,4),(4,5) + 3 red). Likely also the
+owner's device symptom (extra cutscene units, no enemies). Next: make PrologueBoot pick the reference run's mode/difficulty,
+wire the lock, then merge wip/M6-29-v3.
 Owner PC 11-07 15:40-16:05Z: M4 finished as far as traceable: M4-12 (6 Proc_* tagged, 4 untraceable) and M4-02
 (soft-reset run + test; Huffman/RL unused). M4 open only: the reset path's one-frame offset in EarlyStartUi (TASKS M4-02),
 wiring SoftwareResetFlag/KeyComboReset into the boot. New CLAUDE.md rule 11: every owner-PC session reviews a section of

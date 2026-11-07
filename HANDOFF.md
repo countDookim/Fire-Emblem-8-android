@@ -7,9 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M6-20 rest (wip/M6-20: Event15 ramp): owner PC, until ~21:30Z
-- D-01 / M6-44 part (register EventText 1A/1B/1D in Fe8Boot): owner PC, until ~21:30Z
-- D-03 (Event2F MOVEUNIT / Event30 ENUN): owner PC, until ~21:30Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -43,10 +41,10 @@ A merged fix without both is `fix merged, unverified`. Never mark `solved` from 
 
 | ID | Problem (owner's words, APK from master 3380240 vs emulator, 2026-11-07) | Known facts (headless, not diagnoses) | Status |
 |---|---|---|---|
-| D-01 | Opening "flashes": the screen fades in and out for each dialogue, but no dialogue (and no units) is shown, so it is skipped at once and looks like flashing. | Text commands 1A x17, 1B x22, 1D x13, 21/22 x4 hit `ReleaseEventStubs` no-ops; EventText/Talk*/TalkBubble/TalkFace exist but are not registered in `Fe8Boot.eventEngine` (M6-44). The fades are the real EventFade. | open |
-| D-02 | In the in-game cutscene before the Prologue map no cutscene unit is shown and every event is skipped one after the other until the map begins. | Headless master: the cutscene unit loads run (f1324 red 45 + 2x 80, cleared f1595) but 0 OBJ sprites are drawn during events (scratch harness `maxObjDuringEvents` = 0); 2F MOVEUNIT x17, 30 ENUN x23 stubbed. Why nothing is drawn: not investigated. | open |
-| D-03 | Map start: Seth and Eirika are placed at roughly the right tiles, but the original then has a short dialogue between them, after which Seth walks 4 tiles left and 1 up, then the map begins. Both are missing. | Headless: they end at (8,5)/(9,5), ref first_phase r19400 (4,4)/(4,5); MOVEUNIT/ENUN and the text commands are stubbed (D-01). | open |
-| D-04 | Enemy units are on the correct tiles but appear as allies. | Headless master: they are in the red unit array (ids 0x81..0x83, chars 0x68/0x82/0x80, tiles equal r19400), so the unit data is red; how they are drawn (sprite palette/allegiance in UnitSpritesOam) not investigated. | open |
+| D-01 | Opening "flashes": the screen fades in and out for each dialogue, but no dialogue (and no units) is shown, so it is skipped at once and looks like flashing. | Text commands 1A x17, 1B x22, 1D x13, 21/22 x4 hit `ReleaseEventStubs` no-ops; EventText/Talk*/TalkBubble/TalkFace exist but are not registered in `Fe8Boot.eventEngine` (M6-44). The fades are the real EventFade. | fix merged, unverified (a01a8cb: EventText 1A/1B/1C/1D registered over a production TalkScene; PrologueOpeningTextTest: BG0/BG1 tilemaps equal ram_trace_prologue_talk f9865..10565 per frame; faces are loaded but not drawn (no face OBJ/blink/mouth), Event23 only GFXLOCKED; registered only when `rom.isWholeRom`: check the device passes the whole ROM, MainActivity falls back to `bundledBootRom` otherwise) |
+| D-02 | In the in-game cutscene before the Prologue map no cutscene unit is shown and every event is skipped one after the other until the map begins. | Headless master: the cutscene unit loads run (f1324 red 45 + 2x 80, cleared f1595) but 0 OBJ sprites are drawn during events (scratch harness `maxObjDuringEvents` = 0); 2F MOVEUNIT x17, 30 ENUN x23 stubbed. Why nothing is drawn: not investigated. | fix merged, unverified (01eb8c4: Event30_ENUN refreshes entity maps + unit sprites + map; NewGameToPrologueTest: a blue unit has a sprite handle in 1642 of 1861 event frames; no reference OAM compared; MU walk animation (ap.c) is a stand-in, so walking units are hidden until they arrive) |
+| D-03 | Map start: Seth and Eirika are placed at roughly the right tiles, but the original then has a short dialogue between them, after which Seth walks 4 tiles left and 1 up, then the map begins. Both are missing. | Headless: they end at (8,5)/(9,5), ref first_phase r19400 (4,4)/(4,5); MOVEUNIT/ENUN and the text commands are stubbed (D-01). | fix merged, unverified (01eb8c4: Event2F/Event30 ported, MoveUnitDifferentialTest: blue at (4,4)/(4,5) = r19400; walk is invisible (ap.c stand-in) and the talk before it needs D-01) |
+| D-04 | Enemy units are on the correct tiles but appear as allies. | Headless master: they are in the red unit array (ids 0x81..0x83, chars 0x68/0x82/0x80, tiles equal r19400), so the unit data is red; how they are drawn (sprite palette/allegiance in UnitSpritesOam) not investigated. | fix merged, unverified (34d5c05: New Game path ran no InitUnits, so unit index/faction 0 and palette 0xC; UnitFactionIndexTest: 2 OBJ bank 0xC, 3 bank 0xD; no reference OAM to compare) |
 | D-05 | Earlier report (5e213f1): cursor moves but nothing is interactable. Not re-reported on 3380240. | Headless master: cursor moves (BmSt.playerCursorX 9..14); A on a unit and menus untested. | open (unchecked) |
 
 ## Audit 11-06 20:10Z (owner PC) of scheduled work 3c26e9e..ab985a8
@@ -63,7 +61,13 @@ M6-33/34 (fe8.game.scene Talk: init, interpreter, wait-for-A; the whole first ta
 M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
-## Next task: M6-20 rest (wip/M6-20), M6-19 rest, M6-44, M6-29 tags (TASKS)
+## Next task: owner device re-test of D-01..D-04; MU walk animation (ap.c, D-03 walk invisible); talk faces (M6-35 rest); M6-44 rest; M6-19 rest; M6-29 tags
+Owner PC 11-07 20:30-21:25Z (3 agents): D-04 34d5c05 (New Game path skipped InitUnits: all unit index 0 -> faction blue), D-03 01eb8c4
+(Event2F_MoveUnit + Event30_ENUN tagged, MoveUnitDifferentialTest blue (4,4)/(4,5) = r19400; MuCtrl transcribed; ENUN refresh gives
+units sprite handles during events = D-02; walking units hidden until they arrive: ap.c not ported), D-01 a01a8cb (text
+commands real; tests now page the dialogue with A, opening ~5000 f), M6-20 1f70922 (BGM volume ramp tagged vs newgame
+f1174..1192; test skips the proc step on lag frames f1175/f1181; Event15 transcribed). Remote wip/M6-20 is merged: delete it (owner).
+Readability: gbafe.core.flags, gbafe.extract, .fe8, .fe8.chapters/.characters/.classes done. Full jvmTest green after each merge.
 Owner PC 11-07 19:10-19:40Z: wip/M6-29-v3 merged (cdff3dc). Cause of the 2-unit idle map: the dev New Game stand-in
 wrote `(mode 0, isTutorial -1)`, so config.controller stayed 0 and Event19 CHECK_TUTORIAL (89EE0C0) took the tutorial
 branch (89EF27C) instead of the enemy load + ally move; SaveMenuWriteNewGame difficulty 1 passes mode 1, isTutorial 1

@@ -29,11 +29,11 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | engine/core | gbafe.core.time | 1 | 30 | done 2026-11-07 7fab3cc |
 | engine/core | gbafe.proc | 2 | 573 | done 2026-11-07 c0f92eb |
 | engine/data | gbafe.data | 3 | 88 | done 2026-11-07 c0f92eb |
-| engine/extract | gbafe.extract | 5 | 197 | todo |
-| engine/extract | gbafe.extract.fe8 | 2 | 278 | todo |
-| engine/extract | gbafe.extract.fe8.chapters | 1 | 102 | todo |
-| engine/extract | gbafe.extract.fe8.characters | 1 | 102 | todo |
-| engine/extract | gbafe.extract.fe8.classes | 1 | 132 | todo |
+| engine/extract | gbafe.extract | 5 | 197 | done 2026-11-07 200eae1 |
+| engine/extract | gbafe.extract.fe8 | 2 | 278 | done 2026-11-07 200eae1 |
+| engine/extract | gbafe.extract.fe8.chapters | 1 | 102 | done 2026-11-07 50ec53d |
+| engine/extract | gbafe.extract.fe8.characters | 1 | 102 | done 2026-11-07 50ec53d |
+| engine/extract | gbafe.extract.fe8.classes | 1 | 132 | done 2026-11-07 50ec53d |
 | engine/extract | gbafe.extract.fe8.events | 4 | 2359 | todo |
 | engine/extract | gbafe.extract.fe8.items | 1 | 111 | todo |
 | engine/extract | gbafe.extract.fe8.maps | 1 | 177 | todo |

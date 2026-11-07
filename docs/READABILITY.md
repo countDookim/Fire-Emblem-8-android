@@ -63,14 +63,14 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | gba/audio | gba.audio | 17 | 2799 | todo |
 | gba/core | gba.core | 1 | 21 | done 2026-11-07 697847c |
 | gba/core | gba.core.event | 2 | 101 | done 2026-11-07 697847c |
-| gba/core | gba.core.sram | 5 | 380 | todo |
+| gba/core | gba.core.sram | 5 | 380 | done 2026-11-07 1b2b121 |
 | gba/core | gba.core.time | 2 | 111 | done 2026-11-07 697847c |
 | gba/data | gba.data | 7 | 585 | todo |
 | gba/extract | gba.extract | 9 | 572 | todo |
 | gba/input | gba.input | 3 | 362 | todo |
 | gba/render | gba.render | 10 | 1388 | todo |
 | gba/testkit | gba.testkit | 5 | 352 | todo |
-| gba/vfs | gba.vfs | 4 | 228 | todo |
+| gba/vfs | gba.vfs | 4 | 228 | done 2026-11-07 1b2b121 |
 | testing | fe8.testing | 3 | 295 | todo |
 | tools/extract | gbafe.extract | 3 | 182 | todo |
 | tools/extract | gbafe.extract.fe8 | 1 | 24 | todo |

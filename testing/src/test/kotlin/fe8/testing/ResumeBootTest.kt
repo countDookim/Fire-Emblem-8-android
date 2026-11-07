@@ -51,12 +51,16 @@ class ResumeBootTest {
             orig.invoke(it)
             afterResume(boot, boot.engine.find(boot.bmapMain.script)!!)
         }
-        while (frame < 3000 && boot.engine.find(boot.playerPhaseScript) == null) {
+        // A keeps paging the beginning events' dialogue (real since M6-44) until they end.
+        while (frame < 12000 && boot.engine.find(boot.playerPhaseScript) == null) {
             boot.frame()
             frame++
         }
         var guard = 0
-        while (boot.eventEngine.eventEngineExists() && guard++ < 6000) boot.frame()
+        while (boot.eventEngine.eventEngineExists() && guard++ < 12000) {
+            boot.frame()
+            frame++
+        }
         val reached = !boot.eventEngine.eventEngineExists() &&
             boot.engine.find(boot.playerPhaseScript) != null
         return boot to reached

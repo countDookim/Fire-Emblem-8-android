@@ -40,6 +40,8 @@ import fe8.game.event.EventScriptBattleHost
 import fe8.game.event.EventUnitState
 import fe8.game.event.EventUnitStateHooks
 import fe8.game.event.EventState
+import fe8.game.event.EventText
+import fe8.game.event.EventTextTalkHost
 import fe8.game.event.EventCursorCamera
 import fe8.game.event.EventCursorCameraHooks
 import fe8.game.event.EventEngineProc
@@ -59,6 +61,7 @@ import fe8.game.save.BmSaveLib
 import fe8.game.save.BmSuspendSave
 import fe8.game.save.NewGameRam
 import fe8.game.save.SuspendRam
+import fe8.game.scene.TalkScene
 import fe8.game.title.TitleScreen
 import gba.audio.M4aDriver
 import gba.audio.M4aSound
@@ -85,6 +88,8 @@ import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.render.HardwareSceneLoader
 import gbafe.render.ScreenFade
+import gbafe.text.MsgHuffman
+import gbafe.text.MsgStrings
 
 /**
  * The boot sequence wired for a device: `StartGame` -> game control -> health & safety screen ->
@@ -216,6 +221,12 @@ public class Fe8Boot(
             override fun blendY(): Int = hw.lcd.blendY
             override fun lockGame() { loop.lockGame() }
             override fun resumeGameplay() { loop.unlockGame() }
+            // The talk needs the whole ROM (messages, portraits); with boot windows only the
+            // chapter data of the events is missing as well, so the stand-in stays.
+            override fun endEventTalk() { if (rom.isWholeRom) eventTextHost.endTalk() }
+            override fun eventEndCleanup(proc: EventEngineProc) {
+                if (rom.isWholeRom) eventText.sub800E640(proc)
+            }
         }
         EventEngine(engine, state, memory, hooks).also {
             EventScrCore(
@@ -328,8 +339,46 @@ public class Fe8Boot(
             registerMoveUnit(it, state, memory, loader) { pid ->
                 unitState.getUnitStructFromEventParameter(pid)
             }
+            if (rom.isWholeRom) eventText.registerOn(it)
             ReleaseEventStubs.registerMissing(it)
         }
+    }
+
+    /**
+     * The talk window on the game's BG buffers, VRAM, fonts, procs, keys and the ROM messages
+     * (see [TalkScene] for its stand-ins). Built on first use; needs the whole ROM.
+     */
+    public val talkScene: TalkScene by lazy {
+        val bytes = rom.wholeRomBytes()
+        val root = rom.u32(MSG_HUFFMAN_ROOT) - RomView.ROM_BASE
+        val huffman = MsgHuffman(bytes, MSG_HUFFMAN_TABLE - RomView.ROM_BASE, root)
+        TalkScene(
+            rom, bytes, hw, engine, loop.sprites, keys, { clock.frames.toInt() },
+            MsgStrings(bytes, huffman, MSG_TABLE - RomView.ROM_BASE),
+            { song -> control.sound.playSoundEffect(song) },
+            { control.playSt.textSpeed },
+            // SetDialogueSkipEvBit: EV_STATE_0008 on the standard event engine.
+            {
+                (eventEngine.findStd()?.state as? EventEngineProc)?.let { p ->
+                    p.evStateBits = p.evStateBits or EventConst.EV_STATE_0008
+                }
+            },
+        )
+    }
+
+    private val eventTextHost: EventTextTalkHost by lazy {
+        val scene = talkScene
+        EventTextTalkHost(
+            engine, scene.talk, scene.bubble, scene.face, scene, scene,
+            readTextSpeed = { control.playSt.textSpeed },
+            writeTextSpeed = { control.playSt.textSpeed = it },
+            stringFromIndex = scene::stringFromIndex,
+        )
+    }
+
+    /** The talk event commands 0x1A to 0x1D (`Event1A_TEXTSTART` ...) over [eventTextHost]. */
+    private val eventText: EventText by lazy {
+        EventText(eventState, ScriptWords({ rom.u16(it) }), eventTextHost)
     }
 
     /**
@@ -657,3 +706,8 @@ private val NO_WORLD_MAP_NODES = object : BattleMapNodes {
 }
 
 private const val GOAL_WINDOW_DATA_TYPE_OFFSET = 0x8C
+
+/** `gMsgHuffmanTable`, `gMsgHuffmanTableRoot` and `gMsgTable` of FE8U. */
+private const val MSG_HUFFMAN_TABLE = 0x0815A72C
+private const val MSG_HUFFMAN_ROOT = 0x0815D488
+private const val MSG_TABLE = 0x0815D48C

@@ -27,8 +27,14 @@ public class EventTextTalkHost(
     private val face: TalkFace,
     private val talkHost: TalkHost,
     private val bubbleHost: TalkBubbleHost,
+    /** Reads `gPlaySt.config.textSpeed`; null: the plain [textSpeed] field below. */
+    private val readTextSpeed: (() -> Int)? = null,
+    /** Writes `gPlaySt.config.textSpeed`; null: the plain [textSpeed] field below. */
+    private val writeTextSpeed: ((Int) -> Unit)? = null,
     private val stringFromIndex: (Int) -> Int,
 ) : EventTextHost {
+    private var textSpeedField: Int = 0
+
     private val whileFaceFn = ProcFunc { p -> if (!faceExists()) procs.breakProc(p) }
 
     /** `gUnknown_08591DE8`: waits until no face proc is left. */
@@ -51,8 +57,14 @@ public class EventTextTalkHost(
     /** Stand-in: `ChangeUnitSpritePalette` (a palette load, no state) is not ported: no-op. */
     override fun changeUnitSpritePalette(id: Int) {}
 
+    /**
+     * Stand-in for `Event23_DisaleMapDisp`: only its event-state part (sets
+     * `EV_STATE_GFXLOCKED`, yields). `BMapDispSuspend` and `LockMus` are not ported, so the map
+     * stays displayed and the music is not locked.
+     */
     override fun disableMapDisp(proc: EventEngineProc): Int {
-        throw NotImplementedError("not ported: Event23_DisaleMapDisp")
+        proc.evStateBits = proc.evStateBits or EventConst.EV_STATE_GFXLOCKED
+        return EventConst.EVC_ADVANCE_YIELD
     }
 
     override fun clearTalkBubble() {
@@ -103,8 +115,15 @@ public class EventTextTalkHost(
         bubbleHost.setBlendAlpha(a, b)
     }
 
-    /** Stand-in: `gPlaySt.config.textSpeed`; the play state is not wired here. */
-    override var textSpeed: Int = 0
+    /**
+     * `gPlaySt.config.textSpeed` through [readTextSpeed] and [writeTextSpeed]; without them a
+     * stand-in field (the play state is not wired).
+     */
+    override var textSpeed: Int
+        get() = readTextSpeed?.invoke() ?: textSpeedField
+        set(value) {
+            if (writeTextSpeed != null) writeTextSpeed.invoke(value) else textSpeedField = value
+        }
 
     override fun initTalk(chr: Int, lines: Int, unpackBubble: Boolean) {
         talk.initTalk(chr, lines, unpackBubble)

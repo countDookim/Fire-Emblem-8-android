@@ -60,6 +60,15 @@ public class RomView(
     public val isWholeRom: Boolean
         get() = segments.size == 1 && segments[0].first == ROM_BASE
 
+    /**
+     * The whole ROM image, for code that indexes it by offset (the text system). Only valid when
+     * [isWholeRom].
+     */
+    public fun wholeRomBytes(): ByteArray {
+        check(isWholeRom) { "the ROM view is not the whole ROM" }
+        return segments[0].second
+    }
+
     private fun segment(at: Int): Pair<Int, ByteArray> {
         for (i in segments.indices) {
             val s = segments[i]

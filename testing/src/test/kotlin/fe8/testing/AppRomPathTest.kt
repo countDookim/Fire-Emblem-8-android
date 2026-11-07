@@ -73,10 +73,16 @@ class AppRomPathTest {
         var frame = 0
         var pressAt = Int.MAX_VALUE
         game.actionSource = gba.input.ActionSource {
-            if (frame - pressAt in 0..3) 0x8L else 0L
+            // One START on the title; afterwards A pages the Prologue dialogue (real since
+            // M6-44, it waits for a key like on a device).
+            when {
+                frame - pressAt in 0..3 -> 0x8L
+                frame - pressAt > 60 && frame % 20 in 5..8 -> 0x1L
+                else -> 0L
+            }
         }
         var reached = -1
-        while (frame < 12000 && (reached < 0 || frame < reached + 300)) {
+        while (frame < 20000 && (reached < 0 || frame < reached + 300)) {
             if (pressAt == Int.MAX_VALUE &&
                 boot.engine.procs.any { it.script?.name == "gProcScr_DrawTitleSprites" }
             ) {

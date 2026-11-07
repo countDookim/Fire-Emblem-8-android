@@ -37,7 +37,7 @@ class NewGameToPrologueTest {
         )
         var reached = -1
         val trail = StringBuilder()
-        while (frame < 3000) {
+        while (frame < 12000) {
             boot.frame()
             frame++
             if (frame % 100 == 0) {
@@ -50,13 +50,17 @@ class NewGameToPrologueTest {
         }
         assertNotNull(boot.sram)
         assertTrue(reached >= 0) { "PlayerPhase not reached; $trail" }
-        frame = 1 // no keys from here: the lambda reads frame % 20 == 1
         // The beginning events run for real (no skip: START is never pressed) with the release
-        // stand-ins, load the player units and end; the phase then idles. Known gap: the
-        // closest-free-tile search runs only for red units 139 (13,6)->(13,7) and 142
-        // (11,4)->(11,3), because stub-left cutscene units occupy those tiles.
+        // stand-ins, load the player units and end; the phase then idles. The dialogue is real
+        // now (M6-44, D-01), so A keeps being pressed (every 20 frames) to page through it.
+        // Known gap: the closest-free-tile search runs only for red units 139 (13,6)->(13,7) and
+        // 142 (11,4)->(11,3), because stub-left cutscene units occupy those tiles.
         var guard = 0
-        while (boot.eventEngine.eventEngineExists() && guard++ < 6000) boot.frame()
+        while (boot.eventEngine.eventEngineExists() && guard++ < 20000) {
+            boot.frame()
+            frame++
+        }
+        frame = 1 // no keys from here: the lambda reads frame % 20 == 1
         assertEquals(false, boot.eventEngine.eventEngineExists(), "event engine still running")
         assertTrue(boot.units.getPhaseAbleUnitCount(0) > 0, "no blue unit loaded")
         // A failed closest-tile search leaves x = -1 (0xFF): no valid unit may end that way.
@@ -151,6 +155,8 @@ class NewGameToPrologueTest {
                 when {
                     !phase2 -> if (frame % 20 in 5..8) 0x0001 else 0
                     pressStart && frame % 4 == 0 -> 0x0008
+                    // Without START the dialogue is paged with A, as on a device.
+                    !pressStart && frame % 20 in 5..8 -> 0x0001
                     else -> 0
                 }
             },
@@ -165,7 +171,7 @@ class NewGameToPrologueTest {
         phase2 = true
         var frames = 0
         var skipped = false
-        while (boot.eventEngine.eventEngineExists() && frames < 6000) {
+        while (boot.eventEngine.eventEngineExists() && frames < 20000) {
             frame++
             boot.frame()
             frames++

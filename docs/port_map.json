@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 524,
+    "verified": 530,
     "implemented_unverified": 1
   },
   "functions": {
@@ -875,6 +875,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EventUnitLoadsTest#skipped load_unit2 of the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "Event2F_MoveUnit": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventMoveUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MoveUnitDifferentialTest#blue units end on the tiles of the r19400 dump after the opening moves"
+      ]
+    },
+    "Event30_ENUN": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventMoveUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MoveUnitDifferentialTest#blue units end on the tiles of the r19400 dump after the opening moves"
       ]
     },
     "Event3F_ScriptBattle": {
@@ -2024,6 +2042,15 @@
         "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
       ]
     },
+    "MusicVc_OnLoop": {
+      "decomp_file": "src/soundwrapper.c",
+      "system": "audio",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/SoundWrapper.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BgmVolumeChangeTest#volume ramp matches the trace"
+      ]
+    },
     "NewProc08AA6D04": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
@@ -3046,6 +3073,15 @@
         "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
       ]
     },
+    "Sound_SetSEVolume": {
+      "decomp_file": "src/soundwrapper.c",
+      "system": "audio",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/SoundWrapper.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BgmVolumeChangeTest#volume ramp matches the trace"
+      ]
+    },
     "SramChecksum32": {
       "decomp_file": "src/bmsave.c",
       "system": "save",
@@ -3102,6 +3138,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
+      ]
+    },
+    "StartBgmVolumeChange": {
+      "decomp_file": "src/soundwrapper.c",
+      "system": "audio",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/SoundWrapper.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BgmVolumeChangeTest#volume ramp matches the trace"
       ]
     },
     "StartFadeCore": {
@@ -3917,6 +3962,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "m4aSongNumStop": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aSound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BgmVolumeChangeTest#volume ramp matches the trace"
       ]
     },
     "m4aSoundInit": {

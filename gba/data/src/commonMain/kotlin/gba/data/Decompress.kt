@@ -3,7 +3,8 @@ package gba.data
 /**
  * `Decompress` (src/bmlib.c): unpacks a ROM graphics blob by the type in its header's high nibble:
  * 0x00 raw (`UnpackRaw`: size in header bytes 1..3 includes the 4-byte header) or 0x10 LZ77.
- * Huffman (0x20) and RL (0x30) are not supported yet. The VRAM/WRAM variants of the BIOS calls only
+ * Huffman (0x20) and RL (0x30) are not implemented (not verified: no game data uses Huffman/RL
+ * compression; every blob the decomp passes to `Decompress` is raw or LZ77). The VRAM/WRAM variants of the BIOS calls only
  * differ in write width, so the result is the same for either destination.
  *
  * Partially ported from src/bmlib.c: Decompress

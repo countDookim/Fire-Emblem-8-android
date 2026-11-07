@@ -7,7 +7,9 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
+- D-04 + D-02 (unit sprites: enemy palette, none drawn during events): owner PC, until ~21:30Z
+- D-01 / M6-44 part (register EventText 1A/1B/1D in Fe8Boot): owner PC, until ~21:30Z
+- D-03 (Event2F MOVEUNIT / Event30 ENUN): owner PC, until ~21:30Z
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn

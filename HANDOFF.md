@@ -7,8 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(claim tasks here before starting them, CLAUDE.md rule 10)_
-- M6-40: scheduled, until ~05:25Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -37,7 +36,15 @@ M6-33/34 (fe8.game.scene Talk: init, interpreter, wait-for-A; the whole first ta
 M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
-## Next task: M6-40 rank mismatch, M6-37 (wip), M6-20 rest, M6-19 rest, M6-29 (wip) (TASKS)
+## Next task: M6-41 (Event3F), M6-37 (wip), M6-20 rest, M6-19 rest, M6-29 (wip) (TASKS)
+Scheduled 11-07 05:15Z: M6-40 rank mismatch solved: the f15075 unit update of `ram_trace_prologue_battle_end` is
+`EventBattleReloadBmStatus` (eventscr3.c, ScriptBattleDeamon end of Event3F), not BattleApplyGameStateUpdates (disasm +
+trace: wexp would be 182; the ROM never calls it). Ported `BattleGenerate.eventBattleReloadBmStatus` (hooks for AiRefreshMap/
+RefreshEntityBmMaps/RefreshUnitSprites), `EventBattleReloadDifferentialTest` (r15074->r15075; masks +0x3C..3F, unit 0x01
+US_HIDDEN, cleared by battle-anim end code) replaces BattleApplyDifferentialTest; UnitRemoveInvalidItems tag withdrawn;
+wexp class baseRanks offset fixed (+0x2C). BattleApply*/UpdateUnitFromBattle stay untagged (needs a player-phase battle run).
+battle_end added to M4A_UNCOVERED_RUNS (assumed same Prologue divergence, not confirmed): the run can now be packed; with it
+(run locally: harness takes 7 s) jvmTest is green. Full jvmTest green 05:12Z without it. Next: M6-41 Event3F using the reload.
 Scheduled 11-06 23:38Z: M6-40 partial (BmBattle `battleApplyGameStateUpdates` chain, `BattleApplyDifferentialTest`
 r15074->r15075). New ROM-repo script `ram_trace_prologue_battle_end` (old run ends f15059, the update runs at f15075);
 owner: run make_reference + repack dist (CI skips the test until then). WARNING: with this run present,

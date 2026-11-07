@@ -41,10 +41,10 @@ class EventBattleReloadDifferentialTest {
     @VerifiesPort("EventBattleReloadBmStatus")
     fun `event battle end reloads the unit table`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
-        val r = runCatching { ref.run(run) }.getOrNull()
-        assumeTrue(r != null, "run $run not present")
+        assumeTrue(File(ref.root, "$run/r15074.ewram.bin").isFile, "run $run not present")
+        val r = ref.run(run)
         val rom = RomView.ofRom(romFile.readBytes())
-        val d = r!!.region("r15074", "ewram")
+        val d = r.region("r15074", "ewram")
         val after = r.region("r15075", "ewram")
         val table = UnitTable(rom).also { it.loadFrom(d) }
         val playSt = PlaySt()

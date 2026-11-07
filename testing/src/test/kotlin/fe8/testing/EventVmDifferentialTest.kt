@@ -371,7 +371,11 @@ class EventVmDifferentialTest {
             val bgm = fe8.game.event.EventBgm(
                 state, mem, fe8.game.SoundWrapper(procs, null) { 0 },
             )
+            val text = fe8.game.event.EventText(state, mem, NoTextHost)
             val ported = mapOf(
+                0x1A to text.event1aTextStart,
+                0x1B to text.event1bTextShow,
+                0x1C to text.event1dTalkContinue,
                 0x00 to core.event00Null,
                 0x04 to core.event04CheckRandom,
                 0x0B to core.event0bEnqueueCall,
@@ -401,6 +405,7 @@ class EventVmDifferentialTest {
                     code,
                     when {
                         h != null && code == 0x34 -> midFrameParking(code, h)
+                        h != null && code in IDLE_AWARE -> idleAware(code, recording(code, h))
                         h != null -> recording(code, h)
                         stub != null -> stubbed(code, stub)
                         else -> EventHandler {
@@ -448,6 +453,25 @@ class EventVmDifferentialTest {
             val r = h.run(p)
             if (r == EVC_END) ended = true
             r
+        }
+
+        /**
+         * A ported command that the C handler never parks: when B is still on it, the engine did
+         * not run it this frame (idle frame, not modelled), so the pair is skipped like a stub's.
+         */
+        private fun idleAware(code: Int, h: EventHandler) = EventHandler { p ->
+            val eb = curB?.engine
+            when {
+                eb == null -> {
+                    ambiguous = true
+                    EVC_STOP_YIELD
+                }
+                eb.pEventCurrent == p.pEventCurrent -> {
+                    idleStub = true
+                    EVC_STOP_YIELD
+                }
+                else -> h.run(p)
+            }
         }
 
         private fun stubbed(code: Int, fn: (EventEngineProc, ScriptMemory, EventState) -> Int) =
@@ -790,7 +814,7 @@ class EventVmDifferentialTest {
 
         /** Minimum pairs in which each stub completed its command. */
         val MIN_STUB_PAIRS = mapOf(
-            0x15 to 2, 0x1B to 20, 0x1D to 28, 0x30 to 20, 0x3B to 24, 0xAC to 3,
+            0x15 to 2, 0x1D to 28, 0x30 to 20, 0x3B to 24, 0xAC to 3,
             0xBA to 7, 0x2C to 8, 0x2F to 15, 0x3F to 1,
         )
 
@@ -847,6 +871,36 @@ class EventVmDifferentialTest {
          *   CONTINUE when skipping, else YIELD (their STOP_YIELD is the parked case). 0xB2, 0xB3:
          *   YIELD.
          */
+        private object NoTextHost : fe8.game.event.EventTextHost {
+            override fun endTalk() {}
+            override fun endCgText() {}
+            override fun endBoxDialogue() {}
+            override fun changeUnitSpritePalette(id: Int) {}
+            override fun disableMapDisp(proc: EventEngineProc): Int {
+                proc.evStateBits = proc.evStateBits or EV_STATE_GFXLOCKED
+                return YIELD
+            }
+            override fun clearTalkBubble() {}
+            override fun resetAllFaces() {}
+            override fun faceExists() = false
+            override fun fadeOutFacesAndWait(proc: EventEngineProc) {}
+            override fun resumeTalk() {}
+            override fun isTalkRunning() = false
+            override fun cgTextExists() = false
+            override fun boxDialogueExists() = false
+            override fun talkChoiceResult() = 0
+            override fun setBlendAlpha(a: Int, b: Int) {}
+            override var textSpeed = 0
+            override fun initTalk(chr: Int, lines: Int, unpackBubble: Boolean) {}
+            override fun startTalkMsg(x: Int, y: Int, msg: Int) {}
+            override fun setTalkFlag(flag: Int) {}
+            override fun startCgText(msg: Int, flags: Int) {}
+            override fun boxDialogueSize(msg: Int) = 0 to 0
+            override fun startBoxDialogue(x: Int, y: Int, msg: Int, flags: Int) {}
+        }
+
+        val IDLE_AWARE = setOf(0x1A, 0x1B, 0x1C)
+
         val STUBS: Map<Int, (EventEngineProc, ScriptMemory, EventState) -> Int> = buildMap {
             fun stub(code: Int, fn: (EventEngineProc, ScriptMemory, EventState) -> Int) {
                 put(code, fn)
@@ -856,7 +910,7 @@ class EventVmDifferentialTest {
             for (c in skipOrYield) {
                 stub(c) { p, _, _ -> if (skipping(p)) CONT else YIELD }
             }
-            for (c in intArrayOf(0x1C, 0x1D, 0x25, 0x2C, 0x30, 0xB2, 0xB3)) {
+            for (c in intArrayOf(0x1D, 0x25, 0x2C, 0x30, 0xB2, 0xB3)) {
                 stub(c) { _, _, _ -> YIELD }
             }
             for (c in intArrayOf(
@@ -864,22 +918,6 @@ class EventVmDifferentialTest {
                 0xC4, 0xC5,
             )) {
                 stub(c) { _, _, _ -> CONT }
-            }
-            stub(0x1A) { p, m, _ ->
-                if ((m.u16(p.pEventCurrent) and 0xF) in 1..2) {
-                    p.evStateBits = p.evStateBits or EV_STATE_GFXLOCKED
-                }
-                YIELD
-            }
-            stub(0x1B) { p, m, s ->
-                val sub = m.u16(p.pEventCurrent) and 0xF
-                var a = m.u16(p.pEventCurrent + 2).toShort().toInt()
-                if (sub != 2) {
-                    if (a < 0) a = s.slots[2]
-                    if (a == 0) return@stub CONT
-                }
-                if (sub != 1) p.evStateBits = p.evStateBits and EV_STATE_0008.inv()
-                if (sub == 2) YIELD else CONT
             }
             stub(0x22) { p, _, _ ->
                 p.evStateBits = p.evStateBits and EV_STATE_GFXLOCKED.inv()

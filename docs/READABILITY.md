@@ -35,10 +35,10 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | engine/extract | gbafe.extract.fe8.characters | 1 | 102 | done 2026-11-07 50ec53d |
 | engine/extract | gbafe.extract.fe8.classes | 1 | 132 | done 2026-11-07 50ec53d |
 | engine/extract | gbafe.extract.fe8.events | 4 | 2359 | todo |
-| engine/extract | gbafe.extract.fe8.items | 1 | 111 | todo |
-| engine/extract | gbafe.extract.fe8.maps | 1 | 177 | todo |
-| engine/extract | gbafe.extract.fe8.mapsprites | 1 | 140 | todo |
-| engine/extract | gbafe.extract.fe8.portraits | 1 | 97 | todo |
+| engine/extract | gbafe.extract.fe8.items | 1 | 111 | done 2026-11-07 21ee533 (some long code lines left) |
+| engine/extract | gbafe.extract.fe8.maps | 1 | 177 | done 2026-11-07 21ee533 (some long code lines left) |
+| engine/extract | gbafe.extract.fe8.mapsprites | 1 | 140 | done 2026-11-07 21ee533 (some long code lines left) |
+| engine/extract | gbafe.extract.fe8.portraits | 1 | 97 | done 2026-11-07 21ee533 (some long code lines left) |
 | engine/extract | gbafe.extract.fe8.terrains | 1 | 65 | todo |
 | engine/extract | gbafe.extract.fe8.ui | 3 | 189 | todo |
 | engine/extract | gbafe.extract.fe8.units | 1 | 86 | todo |

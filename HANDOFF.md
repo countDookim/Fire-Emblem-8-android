@@ -67,7 +67,7 @@ Owner PC 11-07 20:30-21:25Z (3 agents): D-04 34d5c05 (New Game path skipped Init
 units sprite handles during events = D-02; walking units hidden until they arrive: ap.c not ported), D-01 a01a8cb (text
 commands real; tests now page the dialogue with A, opening ~5000 f), M6-20 1f70922 (BGM volume ramp tagged vs newgame
 f1174..1192; test skips the proc step on lag frames f1175/f1181; Event15 transcribed). Remote wip/M6-20 is merged: delete it (owner).
-Readability: gbafe.core.flags, gbafe.extract, .fe8, .fe8.chapters/.characters/.classes done. Full jvmTest green after each merge.
+Readability: gbafe.core.flags, gbafe.extract, .fe8, .fe8.chapters/.characters/.classes/.items/.maps/.mapsprites/.portraits done. Full jvmTest green after each merge.
 Owner PC 11-07 19:10-19:40Z: wip/M6-29-v3 merged (cdff3dc). Cause of the 2-unit idle map: the dev New Game stand-in
 wrote `(mode 0, isTutorial -1)`, so config.controller stayed 0 and Event19 CHECK_TUTORIAL (89EE0C0) took the tutorial
 branch (89EF27C) instead of the enemy load + ally move; SaveMenuWriteNewGame difficulty 1 passes mode 1, isTutorial 1

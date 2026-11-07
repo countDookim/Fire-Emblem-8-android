@@ -643,6 +643,19 @@ public class UnitLoader(
         return out
     }
 
+    /**
+     * `GetUnitMovementCost(unit)` for the unit at unit-array offset [o]: the ROM address of the
+     * class cost table for the chapter weather (the ballista table is not modelled).
+     */
+    internal fun unitMovementCost(o: Int): Int =
+        rom.u32(u32(table.bytes, o + OFF_CLASS) + 0x38 + 4 * movCostTableIndex())
+
+    /** `unit->pClassData->pMovCostTable[0]` for the unit at offset [o]. */
+    internal fun classMovementCost0(o: Int): Int = rom.u32(u32(table.bytes, o + OFF_CLASS) + 0x38)
+
+    /** True where (x, y) holds a unit, other or hidden marker (the shortcut of the search). */
+    internal fun isOccupied(x: Int, y: Int): Boolean = occupied(x, y)
+
     private fun movCostTableIndex(): Int = when (weatherId()) {
         WEATHER_RAIN -> 1
         WEATHER_SNOW, WEATHER_SNOWSTORM -> 2
@@ -655,7 +668,7 @@ public class UnitLoader(
      * `-2 until height + 2`. Relaxes the whole grid until nothing improves, which gives the same
      * minima as the C's frontier flood without a queue (no allocation).
      */
-    private fun floodMovement(
+    internal fun floodMovement(
         map: BmMap,
         pool: BmMap.Pool,
         x0: Int,

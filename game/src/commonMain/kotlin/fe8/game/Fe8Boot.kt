@@ -13,6 +13,10 @@ import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterMapGfx
 import fe8.game.bm.MapAnimations
+import fe8.game.bm.Mu
+import fe8.game.bm.MuCtrl
+import fe8.game.bm.MuCtrlHooks
+import fe8.game.bm.MuHooks
 import fe8.game.bm.MapCursor
 import fe8.game.bm.MapMusic
 import fe8.game.bm.EntityBmMaps
@@ -43,7 +47,10 @@ import fe8.game.event.EventUnitLoads
 import fe8.game.event.EventChangeMap
 import fe8.game.event.EventInfoHooks
 import fe8.game.event.EventInfos
+import fe8.game.event.EventMoveUnit
+import fe8.game.event.EventMoveUnitHost
 import fe8.game.event.ReleaseEventStubs
+import fe8.game.event.ScriptMemory
 import fe8.game.event.ScriptWords
 import fe8.game.flags.Fe8EventFlags
 import fe8.game.opanim.EarlyStartUi
@@ -318,6 +325,9 @@ public class Fe8Boot(
             ).registerOn(it)
             EventFade(memory, screenFade).registerOn(it)
             EventBgm(state, memory, control.sound).registerOn(it)
+            registerMoveUnit(it, state, memory, loader) { pid ->
+                unitState.getUnitStructFromEventParameter(pid)
+            }
             ReleaseEventStubs.registerMissing(it)
         }
     }
@@ -338,6 +348,74 @@ public class Fe8Boot(
 
     /** The player phase script wired into [bmapMain]. */
     public val playerPhaseScript: ProcScript get() = bmapMain.hooks.playerPhase
+
+    /** `gSMSHandleArray` of the battle map, set by [wireUnitSprites]. */
+    private var spriteHandles: UnitSpriteHandles? = null
+
+    /** `RefreshUnitSprites` of the battle map, set by [wireUnitSprites]. */
+    private var refreshSprites: () -> Unit = {}
+
+    /** The MU system (`mu.c`) with class lookups from the ROM (sprite animation: stand-in). */
+    internal val mu: Mu by lazy {
+        Mu(
+            engine, loop.bmSt, control.playSt, keys, camMove.script,
+            object : MuHooks {
+                private fun classU8(jid: Int, o: Int) =
+                    rom.u8(UnitLoader.CLASS_DATA + (jid - 1) * UnitLoader.CLASS_DATA_SIZE + o)
+
+                override fun classAttributes(jid: Int): Int =
+                    rom.u32(UnitLoader.CLASS_DATA + (jid - 1) * UnitLoader.CLASS_DATA_SIZE + 0x28)
+
+                override fun classSlowWalking(jid: Int): Int = classU8(jid, 0x07)
+            },
+            rom,
+        )
+    }
+
+    /**
+     * Registers the event commands 0x2F (MOVEUNIT) and 0x30 (ENUN) on [engine]: the units walk
+     * with [MuCtrl]. Stand-in: the MU sprite animation (ap.c) is not ported, so a walking unit
+     * is not drawn until it arrives.
+     */
+    private fun registerMoveUnit(
+        engine: EventEngine,
+        state: EventState,
+        memory: ScriptMemory,
+        loader: UnitLoader,
+        unitFromParameter: (Int) -> Int,
+    ) {
+        val muCtrl = MuCtrl(
+            this.engine, mu, units, battleBmMap, loader, rng, keys,
+            object : MuCtrlHooks {
+                override fun hideUnitSprite(id: Int) { spriteHandles?.hideUnitSprite(id) }
+
+                override fun showUnitSprite(id: Int) { spriteHandles?.showUnitSprite(id) }
+
+                override fun refreshEntityBmMaps() { battleEntityMaps.refreshEntityBmMaps() }
+
+                override fun refreshUnitSprites() { refreshSprites() }
+
+                override fun spritePalette(id: Int): Int =
+                    spriteHandles?.getUnitSpritePalette(id) ?: 0
+            },
+        )
+        EventMoveUnit(
+            state, memory, units, battleBmMap, mu, muCtrl, unitFromParameter,
+            object : EventMoveUnitHost {
+                override fun camMoveExists(): Boolean =
+                    this@Fe8Boot.engine.find(camMove.script) != null
+
+                override fun ensureCameraOntoPosition(proc: EventEngineProc, x: Int, y: Int) =
+                    camMove.ensureCameraOntoPosition(proc.proc, x, y)
+
+                override fun refreshEntityBmMaps() { battleEntityMaps.refreshEntityBmMaps() }
+
+                override fun refreshUnitSprites() { refreshSprites() }
+
+                override fun renderBmMap() { bmapRender.renderBmMap() }
+            },
+        ).registerOn(engine)
+    }
 
     private val camMove: CamMove by lazy { CamMove(engine, loop.bmSt) }
 
@@ -438,6 +516,8 @@ public class Fe8Boot(
         val traps = ByteArray(TRAP_POOL_SIZE)
         val mapUnitAt = { x: Int, y: Int -> map.unit[y, x] }
         val refresh = { handles.refreshUnitSprites(mapUnitAt, traps) }
+        spriteHandles = handles
+        refreshSprites = refresh
         val anims = MapAnimations(rom, battleChapters, hw, control.playSt)
         start.hooks.initMapAnimations = { anims.initMapAnimations() }
         start.hooks.updateMapImgAnimations = { anims.updateMapImgAnimations() }

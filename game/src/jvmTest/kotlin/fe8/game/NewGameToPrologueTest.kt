@@ -76,6 +76,54 @@ class NewGameToPrologueTest {
         // The repeat command has run (scrCur is past it) and installed its callback.
         assertEquals(0x03, cmds[idleIndex].opcode)
         assertNotNull(proc!!.idleCb)
+        // D-03: MOVEUNIT / ENUN walk the units (MuCtrl); ram_trace_first_phase r19400 has the
+        // blue units Seth (char 2) at (4,4) and Eirika (char 1) at (4,5).
+        val blue = (1..0x3E).filter { boot.units.isValid(it) }
+            .associate { boot.units.charId(it) to (boot.units.xPos(it) to boot.units.yPos(it)) }
+        assertEquals(4 to 4, blue[2], "Seth")
+        assertEquals(4 to 5, blue[1], "Eirika")
+        assertEquals(false, boot.engine.find(boot.mu.script) != null, "an event MU is left")
+    }
+
+    @Test
+    fun `unit sprites are drawn while the beginning events run`() {
+        val dir = System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets"
+        val file = File(dir, "baserom.gba")
+        assumeTrue(file.isFile, "ROM not present")
+        var frame = 0
+        var events = false
+        val boot = Fe8Boot(
+            RomView.ofRom(file.readBytes()),
+            { if (!events && frame % 20 in 5..8) 0x0001 else 0 },
+            RngService(),
+        )
+        while (frame < 3000 && !boot.eventEngine.eventEngineExists()) {
+            boot.frame()
+            frame++
+        }
+        events = true
+        var handleFrames = 0
+        var objFrames = 0
+        var guard = 0
+        while (boot.eventEngine.eventEngineExists() && guard++ < 6000) {
+            frame++
+            boot.frame()
+            val bytes = boot.units.bytes
+            // D-02: ENUN and the MU end rebuild the unit sprite handles (pMapSpriteHandle).
+            if ((1..0x3E).any {
+                    boot.units.isValid(it) && (0x3C..0x3F).any { d ->
+                        bytes[boot.units.unitOffset(it) + d].toInt() != 0
+                    }
+                }
+            ) {
+                handleFrames++
+            }
+            // An OBJ is on screen: attr0 display mode is not "hidden" (bits 8-9 = 0b10).
+            val oam = boot.loop.oam.oam
+            if ((0 until oam.size / 4).any { (oam[it * 4].toInt() ushr 8) and 3 != 2 }) objFrames++
+        }
+        assertTrue(handleFrames > 0, "no unit sprite handle while the beginning events ran")
+        assertTrue(objFrames > 0, "no OBJ drawn while the beginning events ran")
     }
 
     @Test

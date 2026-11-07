@@ -87,6 +87,30 @@ public class UnitSpriteHandles(
     }
 
     /**
+     * Transcribed from src/bmudisp.c: HideUnitSprite (not verified: no trace hides a sprite)
+     *
+     * Sets bit 0x80 of the handle config of unit [id]; does nothing without a handle.
+     */
+    public fun hideUnitSprite(id: Int) {
+        val h = u32(units.bytes, units.unitOffset(id) + OFF_HANDLE)
+        if (h == 0) return
+        val i = index(h) * HANDLE_SIZE + 0xB
+        handles[i] = (handles[i].toInt() or 0x80).toByte()
+    }
+
+    /**
+     * Transcribed from src/bmudisp.c: ShowUnitSprite (not verified: no trace shows a sprite)
+     *
+     * Clears bit 0x80 of the handle config of unit [id]; does nothing without a handle.
+     */
+    public fun showUnitSprite(id: Int) {
+        val h = u32(units.bytes, units.unitOffset(id) + OFF_HANDLE)
+        if (h == 0) return
+        val i = index(h) * HANDLE_SIZE + 0xB
+        handles[i] = (handles[i].toInt() and 0x80.inv()).toByte()
+    }
+
+    /**
      * Ported from src/bmudisp.c: RefreshUnitSprites (the ballista, trap, hidden-by-fog and
      * petrify branches are not exercised by the trace)
      *

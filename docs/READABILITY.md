@@ -67,7 +67,7 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | gba/core | gba.core.time | 2 | 111 | done 2026-11-07 697847c |
 | gba/data | gba.data | 7 | 585 | todo |
 | gba/extract | gba.extract | 9 | 572 | todo |
-| gba/input | gba.input | 3 | 362 | todo |
+| gba/input | gba.input | 3 | 362 | done 2026-11-07 52e07f0 |
 | gba/render | gba.render | 10 | 1388 | todo |
 | gba/testkit | gba.testkit | 5 | 352 | todo |
 | gba/vfs | gba.vfs | 4 | 228 | done 2026-11-07 1b2b121 |

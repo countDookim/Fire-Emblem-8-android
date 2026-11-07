@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- D-06 (ap.c sprite animation player, step 1): scheduled, until ~23:40Z, on wip/D-06
+- D-06 follow-up (f12900 OBJ diff check): scheduled, until ~23:25Z
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -46,7 +46,7 @@ A merged fix without both is `fix merged, unverified`. Never mark `solved` from 
 | D-03 | Map start: Seth and Eirika are placed at roughly the right tiles, but the original then has a short dialogue between them, after which Seth walks 4 tiles left and 1 up, then the map begins. Both are missing. | Headless: they end at (8,5)/(9,5), ref first_phase r19400 (4,4)/(4,5); MOVEUNIT/ENUN and the text commands are stubbed (D-01). | solved 11-08 (reference: MoveUnitDifferentialTest end tiles vs r19400; owner device check). Walk animation missing: D-06 Owner 11-08: on Easy the original runs a walking tutorial (player moves Eirika) instead of her automatic walk; Normal/Hard walk automatically, as the APK does. Our New Game stand-in always writes Normal (SaveMenuWriteNewGame difficulty 1, controller 1), so the Easy tutorial branch (Event19 CHECK_TUTORIAL -> 89EF27C) is not reachable until the save menu / difficulty select is ported; test it then. |
 | D-04 | Enemy units are on the correct tiles but appear as allies. | Headless master: they are in the red unit array (ids 0x81..0x83, chars 0x68/0x82/0x80, tiles equal r19400), so the unit data is red; how they are drawn (sprite palette/allegiance in UnitSpritesOam) not investigated. | solved 11-08 (reference: MoveUnitDifferentialTest `index byte` test, every unit's index (faction -> palette) equals r19400; owner device check) |
 | D-05 | Earlier report (5e213f1): cursor moves but nothing is interactable. Not re-reported on 3380240. | Headless master: cursor moves (BmSt.playerCursorX 9..14); A on a unit and menus untested. | closed 11-08 (owner: expected for now; after the units are placed the cursor moves but nothing is interactable because no player-phase actions are ported yet; re-check when they are) |
-| D-06 | Owner 11-08: in the cutscene outside the castle (before the battle map) Franz rides off the map but teleports to the map edge and waits a while before disappearing; Seth does the same on that map. Owner's guess: no walking animation. | Known: MU sprite animation (ap.c) is a stand-in (01eb8c4): a walking unit is hidden until it arrives, then shown at its end tile. Why it shows at the edge and waits: not investigated. | open |
+| D-06 | Owner 11-08: in the cutscene outside the castle (before the battle map) Franz rides off the map but teleports to the map edge and waits a while before disappearing; Seth does the same on that map. Owner's guess: no walking animation. | Cause (headless): `MuHooks.apUpdate` was a no-op, so a walking MU drew nothing (the map sprite is hidden while a MU is active, as in the original). ap.c transcribed as `gbafe.render.SpriteAnimPlayer` (untagged) and wired via `fe8.game.bm.MuSpriteAnim` (079c99d, d55a4dc); sanity: walking MU has an OBJ on 428/448 moving frames (rest not examined). Not compared to a reference run (MU OBJ/VRAM per frame vs ram_trace_prologue: next); standing-MU SMS hooks still no-ops. | fix merged, unverified (needs reference test + owner device check) |
 
 ## Audit 11-06 20:10Z (owner PC) of scheduled work 3c26e9e..ab985a8
 Full jvmTest green (555). 6 tags withheld because breaks survived (UpdateMapImgAnimations: VRAM every 10th frame;
@@ -62,7 +62,8 @@ M6-33/34 (fe8.game.scene Talk: init, interpreter, wait-for-A; the whole first ta
 M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
-## Next task: MU walk animation (ap.c; D-06); D-02 reference OAM test; talk faces (M6-35 rest); M6-44 rest; M6-19 rest; M6-29 tags
+## Next task: D-06 reference test (MU OBJ vs ram_trace_prologue, f12900 OBJ diff from D-02 row); talk faces (M6-35 rest); M6-44 rest; M6-19 rest; M6-29 tags
+Scheduled 11-07 22:51Z: D-02 reference test 9b88ae5; D-06 ap.c + MU walk wiring d55a4dc (wip/D-06 merged, delete it). Full jvmTest green; Dokka not run (no dokkaGenerate task without SDK).
 Owner PC 11-07 20:30-21:25Z (3 agents): D-04 34d5c05 (New Game path skipped InitUnits: all unit index 0 -> faction blue), D-03 01eb8c4
 (Event2F_MoveUnit + Event30_ENUN tagged, MoveUnitDifferentialTest blue (4,4)/(4,5) = r19400; MuCtrl transcribed; ENUN refresh gives
 units sprite handles during events = D-02; walking units hidden until they arrive: ap.c not ported), D-01 a01a8cb (text

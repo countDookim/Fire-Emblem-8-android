@@ -24,8 +24,8 @@ public object RomImage {
 
     /**
      * Verifies [rom] with [importer]; when it passes, streams it in 64 KiB chunks into the sink
-     * from [open] and commits. A wrong ROM returns its [RomCheck.WrongRom] and never opens a sink. If
-     * writing throws, the sink is aborted and the exception propagates.
+     * from [open] and commits. A wrong ROM returns its [RomCheck.WrongRom] and never opens a sink.
+     * If writing throws, the sink is aborted and the exception propagates.
      */
     public fun keep(importer: RomImporter, rom: ByteArray, open: () -> RomSink): RomCheck {
         val check = importer.check(rom)

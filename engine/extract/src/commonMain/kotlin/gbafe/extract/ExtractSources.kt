@@ -26,16 +26,18 @@ public class RecordingSources(private val inner: ExtractSources) :
 
     override fun faces(): Map<String, Int> = inner.faces().also { faceNames = it }
 
-    /** The recorded answers, with the face names last, as a JSON-ready tree (see [Json.write]). */
+    /**
+     * The recorded answers, with the face names last, as a JSON-ready tree (see [Json.write]).
+     */
     override fun manifest(): MutableMap<String, Any?> = super.manifest().also {
         it["faces"] = faceNames
     }
 }
 
 /**
- * [ExtractSources] answered from a manifest written by [RecordingSources] (no decomp needed): the
- * way extraction runs on device. Asking for something the manifest lacks throws, so a step that
- * changed its queries fails loudly until the manifest is regenerated.
+ * [ExtractSources] answered from a manifest written by [RecordingSources] (no decomp needed):
+ * the way extraction runs on device. Asking for something the manifest lacks throws, so a step
+ * that changed its queries fails loudly until the manifest is regenerated.
  */
 public class ManifestSources(json: String) : ManifestSymbolSources(json), ExtractSources {
     /** Bundled manifests. */
@@ -54,7 +56,7 @@ public class ManifestSources(json: String) : ManifestSymbolSources(json), Extrac
 }
 
 /**
- * The text of the bundled manifest resource `gbafe/extract/manifest/<game>.json` (UTF-8), or null
- * if there is none. Platform code: resources are read through the platform's class loader.
+ * The text of the bundled manifest resource `gbafe/extract/manifest/<game>.json` (UTF-8), or
+ * null if there is none. Platform code: resources are read through the platform's class loader.
  */
 internal expect fun readBundledManifest(game: String): String?

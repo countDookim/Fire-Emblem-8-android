@@ -96,11 +96,14 @@ public object MapSpritesExtractor {
 
     /** Decodes an AP definition at [base] into frames (objects) and anim scripts. */
     internal fun readAp(rom: ByteArray, base: Int): Pair<List<List<Map<String, Int>>>, List<Map<String, Any>>> {
+        // Header: two u16 offsets (from `base`) to the frame list and the anim list; the frame list
+        // comes first, so its length is the gap up to the anim list.
         val frameList = base + u16(rom, base)
         val animList = base + u16(rom, base + 2)
         require(animList > frameList) { "AP at 0x${hexUpper(base)}: anim list before frame list" }
         val frameCount = (animList - frameList) / 2
         val frameStarts = List(frameCount) { frameList + u16(rom, frameList + 2 * it) }
+        // The anim list has no explicit length: it ends where the first frame or anim body begins.
         var limit = frameStarts.minOrNull() ?: Int.MAX_VALUE
         val animStarts = ArrayList<Int>()
         while (animList + 2 * animStarts.size < limit) {
@@ -111,6 +114,7 @@ public object MapSpritesExtractor {
         val frames = frameStarts.map { f ->
             val n = u16(rom, f)
             List(n) { k ->
+                // Object k: 3 u16 attrs after the count, then its sheet tile index in the u16 tail.
                 linkedMapOf(
                     "attr0" to u16(rom, f + 2 + 6 * k), "attr1" to u16(rom, f + 4 + 6 * k), "attr2" to u16(rom, f + 6 + 6 * k),
                     "tile" to u16(rom, f + 2 + 6 * n + 2 * k),
@@ -126,6 +130,7 @@ public object MapSpritesExtractor {
                 steps += linkedMapOf("duration" to u16(rom, p), "frame" to frame)
                 p += 4
             }
+            // The terminating step (duration 0) carries the end code in its frame slot.
             val end = when (val code = u16(rom, p + 2)) { 0xFFFF -> "loop"; 0 -> "stop"; 1 -> "delete"; else -> throw IllegalArgumentException("AP at 0x${hexUpper(base)}: end code $code") }
             linkedMapOf("steps" to steps, "end" to end)
         }

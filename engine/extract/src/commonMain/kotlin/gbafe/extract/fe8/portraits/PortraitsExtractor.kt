@@ -44,11 +44,13 @@ public object PortraitsExtractor {
         val entries = ArrayList<Map<String, Any?>>()
         for (i in 0 until count) {
             val e = tableOffset + i * ENTRY_SIZE
+            // Pointers: +0 img, +4 chibi, +8 palette, +12 mouth, +16 card (+20..+24: positions, blink).
             val img = u32(rom, e); val chibi = u32(rom, e + 4); val pal = u32(rom, e + 8)
             val mouth = u32(rom, e + 12); val card = u32(rom, e + 16)
             val fid = i + 1
             fun sheet(kind: String, ptr: Int, tiles: (ByteArray) -> Pair<ByteArray, Int>, perRow: Int): String? {
                 if (ptr == 0) return null
+                // Dedup key: same image pointer + same palette => reuse the already written file.
                 val key = (ptr.toLong() shl 32) or (pal.toLong() and 0xFFFFFFFFL)
                 names[key]?.let { return it }
                 val (data, tileCount) = tiles(rom)

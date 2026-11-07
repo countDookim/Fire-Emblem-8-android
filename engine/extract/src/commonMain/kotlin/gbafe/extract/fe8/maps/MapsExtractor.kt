@@ -47,9 +47,10 @@ public object MapsExtractor {
         public fun tilesetPng(): ByteArray = IndexedPng.write(tileset, palette)
 
         /**
-         * Tiled JSON map with an embedded tileset referencing [tilesetImage]; each of [unitGroups] (array name →
-         * units from [gbafe.extract.fe8.units.UnitsExtractor.readGroup]) becomes a hidden object layer after the
-         * change layers.
+         * Tiled JSON map with an embedded tileset referencing [tilesetImage]; each of [unitGroups]
+         * (array name → units from [gbafe.extract.fe8.units.UnitsExtractor.readGroup]) becomes a
+         * hidden object layer after the change layers.
+         * Layer ids: 1 = main, 2.. = one per change, then one per unit group.
          */
         public fun tmj(name: String, tilesetImage: String, unitGroups: List<Pair<String, List<Map<String, Any>>>> = emptyList()): String {
             var nextObject = 1
@@ -73,6 +74,7 @@ public object MapsExtractor {
                     val data = IntArray(width * height)
                     for (y in 0 until c.h) for (x in 0 until c.w) {
                         val v = c.cells[y * c.w + x]
+                        // Raw cell = metatile * 4; shr 2 gives the metatile, +1 makes it a Tiled gid.
                         if (v != 0 && c.x + x < width && c.y + y < height) data[(c.y + y) * width + c.x + x] = (v shr 2) + 1
                     }
                     linkedMapOf(
@@ -116,7 +118,10 @@ public object MapsExtractor {
         public val cells: IntArray,
     )
 
-    /** Reads the `MapChange` list at ROM offset [offset] (terminated by a negative id). */
+    /**
+     * Reads the `MapChange` list at ROM offset [offset] (terminated by a negative id). Each 12-byte
+     * record: id, x, y, w, h (1 byte each), 3 bytes padding, then a pointer to `w*h` `u16` cells.
+     */
     public fun readChanges(rom: ByteArray, offset: Int): List<MapChange> {
         val out = ArrayList<MapChange>()
         var o = offset
@@ -137,6 +142,7 @@ public object MapsExtractor {
     public fun extract(
         rom: ByteArray, assetTable: Int, obj1Id: Int, obj2Id: Int, paletteId: Int, tileConfigId: Int, mainLayerId: Int, changeLayerId: Int = 0,
     ): Output {
+        // Asset id -> ROM offset; a null table entry (0) means "absent" and yields -1.
         fun asset(id: Int): Int = u32(rom, assetTable + 4 * id).let { if (it == 0) -1 else it - 0x08000000 }
         val tiles = ByteArray(METATILES * 32)
         Lz77.decode(rom, asset(obj1Id)).data.let { it.copyInto(tiles, 0, 0, minOf(it.size, tiles.size)) }
@@ -148,6 +154,7 @@ public object MapsExtractor {
         val cells = IntArray(w * h) { u16(map, 2 + 2 * it) shr 2 }
         val terrain = IntArray(METATILES) { cfg[METATILES * 8 + it].toInt() and 0xFF }
         val img = IndexedImage(512, 512)
+        // Each metatile is 4 BG tiles (TL, TR, BL, BR) of 8x8 px, 4bpp (32 bytes per tile).
         for (mt in 0 until METATILES) {
             for (k in 0 until 4) {
                 val e = u16(cfg, mt * 8 + k * 2)
@@ -161,6 +168,7 @@ public object MapsExtractor {
                     val sx = if (hf) 7 - x else x
                     val sy = if (vf) 7 - y else y
                     val b = tiles[t * 32 + sy * 4 + sx / 2].toInt() and 0xFF
+                    // 4bpp: low nibble = left pixel, high nibble = right pixel.
                     val px = if (sx and 1 == 1) b shr 4 else b and 15
                     img.pixels[(oy + y) * 512 + ox + x] = (pal * 16 + px).toByte()
                 }

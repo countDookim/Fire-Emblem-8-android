@@ -12,6 +12,12 @@ import gbafe.extract.hexUpper
  * The ROM is the ground truth: values are read from the ROM bytes, the decomp only supplies names. Rows
  * stay in ROM order, so a row's position is its vanilla item number (`number` is also written and checked).
  * Pointers (stat bonuses, effectiveness lists) are resolved and inlined so the JSON has no addresses.
+ *
+ * Row layout (byte offsets in one 0x24-byte row): 0x00 name text id, 0x02 description text id,
+ * 0x04 use-description text id (all `u16`), 0x06 item number, 0x07 weapon type, 0x08 attribute bits
+ * (`u32`), 0x0C stat-bonus pointer, 0x10 effectiveness-list pointer, 0x14 uses, 0x15 might, 0x16 hit,
+ * 0x17 weight, 0x18 crit, 0x19 range (min in the high nibble, max in the low), 0x1A cost per use
+ * (`u16`), 0x1C weapon rank exp, 0x1D icon, 0x1E use effect, 0x1F weapon effect, 0x20 weapon exp.
  */
 public object ItemsExtractor {
     /** `sizeof(struct ItemData)` (0x21 bytes of fields, padded to 4). */
@@ -25,7 +31,10 @@ public object ItemsExtractor {
 
     /** `ITYPE_*` in bmitem.h, in value order. */
     public val WEAPON_TYPES: List<String> =
-        listOf("SWORD", "LANCE", "AXE", "BOW", "STAFF", "ANIMA", "LIGHT", "DARK", "BALLISTA", "ITEM", "DRAGONSTONE", "MONSTER", "DANCE")
+        listOf(
+            "SWORD", "LANCE", "AXE", "BOW", "STAFF", "ANIMA", "LIGHT", "DARK", "BALLISTA", "ITEM",
+            "DRAGONSTONE", "MONSTER", "DANCE",
+        )
 
     /** `IA_*` attribute bits in bmitem.h, bit 0 first (names lower-cased, `IA_` dropped). */
     public val ATTRIBUTES: List<String> = listOf(
@@ -57,7 +66,9 @@ public object ItemsExtractor {
             require(number == i) { "gItemData[$i].number is $number" }
             val attrs = u32(rom, o + 0x08)
             val attrNames = ATTRIBUTES.filterIndexed { bit, _ -> attrs and (1 shl bit) != 0 }
+            // Fail loudly if the ROM sets an attribute bit we have no name for.
             require(attrs ushr ATTRIBUTES.size == 0) { "item $i has unknown attribute bits 0x${attrs.toString(16)}" }
+            // Range byte packs min range (high nibble) and max range (low nibble).
             val range = u8(rom, o + 0x19)
             entries += linkedMapOf(
                 "id" to (names[i]?.let { gba.extract.DecompEnums.id(it, "ITEM_") } ?: "ITEM_${hexUpper(i, 2)}"),
@@ -85,6 +96,7 @@ public object ItemsExtractor {
     public fun extractJson(rom: ByteArray, tableAddress: Int, count: Int, names: Map<Int, String>): String =
         Json.write(extract(rom, tableAddress, count, names))
 
+    /** Reads the 9 signed stat-bonus bytes at [ptr]; null when the item has none (null pointer). */
     private fun statBonuses(rom: ByteArray, ptr: Int): Map<String, Any?>? {
         if (ptr == 0) return null
         val o = romOffset(ptr)
@@ -100,6 +112,7 @@ public object ItemsExtractor {
         return out
     }
 
+    /** Converts a GBA ROM address (0x08xxxxxx) to an offset into the ROM image. */
     private fun romOffset(addr: Int): Int {
         require(addr ushr 25 == 0x08000000 ushr 25) { "not a ROM address: 0x${addr.toUInt().toString(16)}" }
         return addr - 0x08000000

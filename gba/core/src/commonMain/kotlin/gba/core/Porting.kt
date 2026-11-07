@@ -8,9 +8,9 @@ package gba.core
  * `Ported from <file>: <Function>` and (2) at least one test annotated with
  * `@VerifiesPort("<Function>")` **passed** (skipped tests do not count).
  *
- * Per `docs/decisions/0006-verification-policy.md`, a verifying test must compare against ground truth
- * that does not come from our own port: mGBA reference data (differential test) or values derived
- * from the ROM. A unit test that only re-states the Kotlin logic does not qualify.
+ * Per `docs/decisions/0006-verification-policy.md`, a verifying test must compare against ground
+ * truth that does not come from our own port: mGBA reference data (differential test) or values
+ * derived from the ROM. A unit test that only re-states the Kotlin logic does not qualify.
  *
  * SOURCE retention: this is read by tooling only and costs nothing at runtime.
  *

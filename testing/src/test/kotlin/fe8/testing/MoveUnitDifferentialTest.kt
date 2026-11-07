@@ -42,4 +42,22 @@ class MoveUnitDifferentialTest {
         for ((char, pos) in expected) assertEquals(pos, blue(got)[char], "char $char")
         assertEquals(false, pb.boot.eventEngine.eventEngineExists())
     }
+
+    /** D-04: `index` (0x0B) gives UNIT_FACTION and so the sprite palette; it must match r19400. */
+    @Test
+    fun `every unit at the idle map has the index byte of the r19400 dump`() {
+        assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
+        val rom = RomView.ofRom(romFile.readBytes())
+        val dump = ref.run("ram_trace_first_phase").region("r19400", "ewram")
+        val want = UnitTable(rom).also { it.loadFrom(dump) }
+        val pb = PrologueBoot(romFile)
+        assertTrue(pb.reachIdle(), "Prologue idle not reached")
+        val got = pb.boot.units
+        val ids = (1..0xFF).filter { want.isValid(it) }
+        assertTrue(ids.any { it < 0x40 } && ids.any { it >= 0x80 }, "dump lacks blue or red")
+        for (id in ids) {
+            assertTrue(got.isValid(id), "unit 0x${id.toString(16)}")
+            assertEquals(want.index(id), got.index(id), "index of 0x${id.toString(16)}")
+        }
+    }
 }

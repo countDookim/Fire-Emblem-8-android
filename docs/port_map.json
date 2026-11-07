@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 497,
-    "implemented_unverified": 0
+    "verified": 518,
+    "implemented_unverified": 1
   },
   "functions": {
     "AddUnitSprite": {
@@ -733,6 +733,24 @@
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
     },
+    "EvCheck00_Always": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventInfoRomTest#turn list search finds no event at the first player phase of the trace"
+      ]
+    },
+    "EvCheck02_TURN": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventInfoRomTest#turn list search finds no event at the first player phase of the trace"
+      ]
+    },
     "Event01_End": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -814,6 +832,33 @@
         "fe8.testing.EventVmDifferentialTest#Event0E STAL"
       ]
     },
+    "Event1A_TEXTSTART": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventText.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
+      ]
+    },
+    "Event1B_TEXTSHOW": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventText.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
+      ]
+    },
+    "Event1D_WaitForLockTalk": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventText.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
+      ]
+    },
     "Event25_ChangeMap": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -830,6 +875,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EventUnitLoadsTest#skipped load_unit2 of the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "Event3F_ScriptBattle": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventScriptBattleDifferentialTest#script battle command generates the traced battle"
+      ]
+    },
+    "EventBattleReloadBmStatus": {
+      "decomp_file": "src/eventscr3.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventBattleReloadDifferentialTest#event battle end reloads the unit table"
       ]
     },
     "EventEngine_Create": {
@@ -1091,7 +1154,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs"
+        "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
+        "fe8.testing.EventScriptBattleDifferentialTest#script battle command generates the traced battle"
       ]
     },
     "GetAutoleveledStatIncrease": {
@@ -1247,6 +1311,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.MuStartDifferentialTest#StartMu from the unit as dumped at f9674 matches the f9674 MU proc and config"
+      ]
+    },
+    "GetFaceIdByXPos": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
       ]
     },
     "GetFreeBlueUnit": {
@@ -1735,6 +1808,15 @@
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
     },
+    "IsTalkFaceMoving": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
     "IsValidSuspendSave": {
       "decomp_file": "src/bmsave.c",
       "system": "save",
@@ -1911,6 +1993,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aPitchTest#DirectSound channel frequencies match every reference RAM dump"
+      ]
+    },
+    "MoveTalkFace": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
       ]
     },
     "Mu_OnLoop": {
@@ -2579,6 +2670,13 @@
         "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
       ]
     },
+    "RunPhaseSwitchEvents": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "SampleFreqSet": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -2595,6 +2693,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SaveDrawDifferentialTest#fog scroll turns the previous dump into the next one"
+      ]
+    },
+    "SearchAvailableEvent": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventInfoRomTest#turn list search finds no event at the first player phase of the trace"
       ]
     },
     "SetBackgroundMapDataOffset": {
@@ -2775,6 +2882,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.HBlankHandlersDifferentialTest#HBlank handler state matches mGBA"
+      ]
+    },
+    "SetTalkFaceDisp": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "SetTalkFaceLayer": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
       ]
     },
     "SetTextFont": {
@@ -2988,6 +3113,33 @@
         "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
       ]
     },
+    "StartTalkExt": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
+      ]
+    },
+    "StartTalkFaceMove": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "StartTalkMsg": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
+      ]
+    },
     "StartTalkOpen": {
       "decomp_file": "src/scene.c",
       "system": "presentation",
@@ -3052,6 +3204,24 @@
         "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
       ]
     },
+    "TalkFaceMove_OnIdle": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "TalkFaceMove_OnInit": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
     "TalkHasCorrectBubble": {
       "decomp_file": "src/scene.c",
       "system": "presentation",
@@ -3065,6 +3235,15 @@
       "decomp_file": "src/scene.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "TalkLoadFace": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
@@ -3792,6 +3971,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
+      ]
+    },
+    "sub_800E210": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventText.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
+      ]
+    },
+    "sub_800E640": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventText.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
       ]
     },
     "sub_8013F40": {

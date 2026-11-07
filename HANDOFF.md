@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- D-06 follow-up (f12900 OBJ diff check): scheduled, until ~23:25Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -63,7 +63,7 @@ M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
 ## Next task: D-06 reference test (MU OBJ vs ram_trace_prologue, f12900 OBJ diff from D-02 row); talk faces (M6-35 rest); M6-44 rest; M6-19 rest; M6-29 tags
-Scheduled 11-07 22:51Z: D-02 reference test 9b88ae5; D-06 ap.c + MU walk wiring d55a4dc (wip/D-06 merged, delete it). Full jvmTest green; Dokka not run (no dokkaGenerate task without SDK).
+Scheduled 11-07 22:51Z: D-02 reference test 9b88ae5; D-06 ap.c + MU walk wiring d55a4dc (wip/D-06 merged, delete it). Full jvmTest green; Dokka not run (no dokkaGenerate task without SDK). f12900 after d55a4dc (table-equal frames, all OBJ): the 2 objects missing before are drawn now; still differs: map-sprite tiles 346/282 swapped (4 objs, pal 13) and 7 dump-only pal-6 objs tiles 768..848 (not MU tiles; UI/text?). f12600: our run never has its unit table.
 Owner PC 11-07 20:30-21:25Z (3 agents): D-04 34d5c05 (New Game path skipped InitUnits: all unit index 0 -> faction blue), D-03 01eb8c4
 (Event2F_MoveUnit + Event30_ENUN tagged, MoveUnitDifferentialTest blue (4,4)/(4,5) = r19400; MuCtrl transcribed; ENUN refresh gives
 units sprite handles during events = D-02; walking units hidden until they arrive: ap.c not ported), D-01 a01a8cb (text

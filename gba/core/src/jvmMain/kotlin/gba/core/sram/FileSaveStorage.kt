@@ -18,6 +18,7 @@ import java.nio.file.StandardCopyOption
  */
 public class FileSaveStorage internal constructor(
     public val file: File,
+    /** Test hook run after the temp file is synced and before it replaces [file]. */
     private val beforeRename: () -> Unit,
 ) : SaveStorage {
     /** Creates storage for [file]; parent directories are created on the first store. */
@@ -34,6 +35,7 @@ public class FileSaveStorage internal constructor(
 
     override fun store(src: ByteArray) {
         require(src.size == CartSram.SIZE) { "src must be ${CartSram.SIZE} bytes" }
+        // Temp file lives beside the target so the final move stays on one filesystem (atomic).
         val target = file.absoluteFile
         target.parentFile?.mkdirs()
         val tmp = File(target.parentFile, target.name + ".tmp")

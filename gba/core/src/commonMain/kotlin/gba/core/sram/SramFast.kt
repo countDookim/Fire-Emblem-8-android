@@ -52,8 +52,8 @@ public fun verifySramFast(
     destOffset: Int,
     size: Int,
 ): Int {
-    val i = sram.firstMismatch(destOffset, src, srcOffset, size)
-    return if (i < 0) 0 else CartSram.BASE_ADDRESS + destOffset + i
+    val mismatchIndex = sram.firstMismatch(destOffset, src, srcOffset, size)
+    return if (mismatchIndex < 0) 0 else CartSram.BASE_ADDRESS + destOffset + mismatchIndex
 }
 
 /**

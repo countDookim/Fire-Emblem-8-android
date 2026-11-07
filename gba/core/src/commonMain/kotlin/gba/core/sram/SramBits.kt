@@ -38,14 +38,16 @@ public object SramBits {
     public fun getBits(buf: ByteArray, base: Int, bitOffset: Int, width: Int): Int {
         require(width in 1..32 && bitOffset >= 0) { "bad bitfield" }
         var value = 0L
-        var got = 0
+        var bitsRead = 0
         var bit = bitOffset
-        while (got < width) {
+        // Consume the field one source byte at a time, LSB first, so fields that straddle
+        // bytes work.
+        while (bitsRead < width) {
             val byte = buf[base + (bit shr 3)].toInt() and 0xFF
             val shift = bit and 7
-            val take = minOf(8 - shift, width - got)
-            value = value or (((byte shr shift) and ((1 shl take) - 1)).toLong() shl got)
-            got += take
+            val take = minOf(8 - shift, width - bitsRead)
+            value = value or (((byte shr shift) and ((1 shl take) - 1)).toLong() shl bitsRead)
+            bitsRead += take
             bit += take
         }
         return value.toInt()
@@ -56,9 +58,10 @@ public object SramBits {
      * 4`).
      */
     public fun getBitsSigned(buf: ByteArray, base: Int, bitOffset: Int, width: Int): Int {
-        val v = getBits(buf, base, bitOffset, width)
-        val s = 32 - width
-        return (v shl s) shr s
+        val unsigned = getBits(buf, base, bitOffset, width)
+        val unusedHighBits = 32 - width
+        // Shift the field's top bit up to bit 31, then arithmetic-shift back to replicate it.
+        return (unsigned shl unusedHighBits) shr unusedHighBits
     }
 
     /**
@@ -67,18 +70,20 @@ public object SramBits {
      */
     public fun putBits(buf: ByteArray, base: Int, bitOffset: Int, width: Int, value: Int) {
         require(width in 1..32 && bitOffset >= 0) { "bad bitfield" }
-        var left = width
-        var v = value.toLong() and 0xFFFFFFFFL
+        var bitsLeft = width
+        var remaining = value.toLong() and 0xFFFFFFFFL
         var bit = bitOffset
-        while (left > 0) {
-            val i = base + (bit shr 3)
+        // Write the field one destination byte at a time, touching only the bits it covers.
+        while (bitsLeft > 0) {
+            val byteIndex = base + (bit shr 3)
             val shift = bit and 7
-            val take = minOf(8 - shift, left)
+            val take = minOf(8 - shift, bitsLeft)
             val mask = ((1 shl take) - 1) shl shift
-            val old = buf[i].toInt()
-            buf[i] = ((old and mask.inv()) or (((v.toInt() shl shift)) and mask)).toByte()
-            v = v shr take
-            left -= take
+            val old = buf[byteIndex].toInt()
+            buf[byteIndex] =
+                ((old and mask.inv()) or (((remaining.toInt() shl shift)) and mask)).toByte()
+            remaining = remaining shr take
+            bitsLeft -= take
             bit += take
         }
     }

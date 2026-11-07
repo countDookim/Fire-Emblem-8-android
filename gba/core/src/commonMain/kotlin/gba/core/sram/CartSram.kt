@@ -82,6 +82,7 @@ public class CartSram {
         dirty = false
     }
 
+    /** Rejects a [size]-byte range at [offset] that is negative or runs past the chip's end. */
     private fun checkRange(offset: Int, size: Int) {
         require(size >= 0 && offset >= 0 && offset <= SIZE - size) {
             "SRAM range $offset+$size out of bounds"

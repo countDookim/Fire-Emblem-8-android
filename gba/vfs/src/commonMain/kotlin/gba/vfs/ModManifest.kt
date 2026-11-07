@@ -1,8 +1,8 @@
 package gba.vfs
 
 /**
- * Parsed `mod.json` manifest of a mod folder or zip. The loader (milestone 7) validates dependencies,
- * sorts by [loadOrder] then dependency order, and mounts each mod as a [VfsLayer].
+ * Parsed `mod.json` manifest of a mod folder or zip. The loader (milestone 7) validates
+ * dependencies, sorts by [loadOrder] then dependency order, and mounts each mod as a [VfsLayer].
  *
  * @property id reverse-DNS identifier, unique, e.g. `com.example.hardmode`.
  * @property version semantic version string.

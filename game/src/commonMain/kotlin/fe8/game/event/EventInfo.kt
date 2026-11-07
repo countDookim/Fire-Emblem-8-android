@@ -80,6 +80,7 @@ public interface EventInfoHooks {
  * @param memory script/list words (ROM).
  * @param flags the event flags.
  * @param playSt supplies `chapterTurnNumber` and `faction`.
+ * @property hooks callees outside the event list search (defaults: no-ops).
  */
 public class EventInfos(
     private val memory: ScriptMemory,

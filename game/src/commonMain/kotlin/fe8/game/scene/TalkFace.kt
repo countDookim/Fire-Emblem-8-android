@@ -312,6 +312,7 @@ public class TalkFace(
     private fun byteAt(addr: Int): Int =
         host.stringArray(addr)[host.stringOffset(addr)].toInt() and 0xFF
 
+    /** Face handle constants. */
     public companion object {
         /** Value of a face handle for slot 0. */
         public const val FACE_HANDLE: Int = 0x02030000

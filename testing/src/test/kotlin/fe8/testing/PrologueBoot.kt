@@ -17,6 +17,8 @@ internal class PrologueBoot(rom: File) {
      * is the test's own cost (the game reads the value unboxed).
      */
     var keys: Any = 0
+    /** Called after every frame run by [reachIdle], with the frame number (from 1). */
+    var onFrame: ((Int) -> Unit)? = null
     private var idle = false
     private var frame = 0
 
@@ -39,11 +41,13 @@ internal class PrologueBoot(rom: File) {
         while (frame < 12000 && boot.engine.find(boot.playerPhaseScript) == null) {
             boot.frame()
             frame++
+            onFrame?.invoke(frame)
         }
         var guard = 0
         while (boot.eventEngine.eventEngineExists() && guard++ < 12000) {
             boot.frame()
             frame++
+            onFrame?.invoke(frame)
         }
         idle = true
         return !boot.eventEngine.eventEngineExists() &&

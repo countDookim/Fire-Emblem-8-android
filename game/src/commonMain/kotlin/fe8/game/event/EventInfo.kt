@@ -49,6 +49,28 @@ public interface EventInfoHooks {
 
     /** `RefreshAllies`. */
     public fun refreshAllies() {}
+
+    /** `GetBattleMapKind`: 0 story, 1 dungeon, 2 skirmish. */
+    public fun getBattleMapKind(): Int = 0
+
+    /** `GetChapterEventDataPointer(chapter)`: ROM address of the `ChapterEventGroup`. */
+    public fun chapterEventGroup(chapter: Int): Int =
+        error("chapterEventGroup is not wired")
+
+    /** `GetROMChapterStruct(chapter)->goalWindowDataType`. */
+    public fun goalWindowDataType(chapter: Int): Int = 0
+
+    /** `AreAnyEnemyUnitDead() == 0` is `!areAnyEnemyUnitDead()`; the default keeps the phase. */
+    public fun areAnyEnemyUnitDead(): Boolean = true
+
+    /** `CallEndEvent`. */
+    public fun callEndEvent() {}
+
+    /** `ClearActiveEventRegistry`. */
+    public fun clearActiveEventRegistry() {}
+
+    /** `RunTutorialEvent(type)`: true if it started an event. */
+    public fun runTutorialEvent(type: Int): Boolean = false
 }
 
 /**
@@ -63,7 +85,7 @@ public class EventInfos(
     private val memory: ScriptMemory,
     private val flags: FlagStore,
     private val playSt: PlaySt,
-    public val hooks: EventInfoHooks = object : EventInfoHooks {},
+    public var hooks: EventInfoHooks = object : EventInfoHooks {},
 ) {
     /** `struct EventListCmdInfo`: check function and entry length in words. */
     public class CmdInfo(
@@ -114,6 +136,40 @@ public class EventInfos(
                 flags.setFlag(EVFLAG_HIDE_BLINKING_ICON)
             }
         }
+    }
+
+    /**
+     * Ported from src/eventinfo.c: RunPhaseSwitchEvents
+     *
+     * Returns true if it started events or the end event. The traces compared (EventInfoRomTest)
+     * only reach the "nothing found" return; the end event and event start paths follow the C.
+     */
+    public fun runPhaseSwitchEvents(): Boolean {
+        if (hooks.getBattleMapKind() == KIND_SKIRMISH) return false
+        val chapter = playSt.chapterIndex
+        if (chapter != 0) {
+            val type = hooks.goalWindowDataType(chapter)
+            if ((type == GOAL_TYPE_DEFEAT_ALL || type == GOAL_TYPE_DEFEAT_BOSS) &&
+                !hooks.areAnyEnemyUnitDead()
+            ) {
+                if (hooks.getBattleMapKind() == KIND_STORY) flags.setFlag(EVFLAG_WIN)
+                hooks.callEndEvent()
+                return true
+            }
+        }
+        val ret = hooks.runTutorialEvent(TUTORIAL_EVT_TYPE_PHASECHANGE)
+        val info = EventInfo()
+        info.listScript = u32(hooks.chapterEventGroup(playSt.chapterIndex))
+        var found = searchAvailableEvent(info)
+        if (found != null) {
+            hooks.clearActiveEventRegistry()
+            while (found != null) {
+                startEventFromInfo(info, EV_EXEC_CUTSCENE)
+                found = searchNextAvailableEvent(info)
+            }
+            return true
+        }
+        return ret
     }
 
     /**
@@ -195,6 +251,12 @@ public class EventInfos(
     public fun evCheck0DNever(info: EventInfo): Int = 0
 
     private companion object {
+        const val KIND_STORY = 0
+        const val KIND_SKIRMISH = 2
+        const val GOAL_TYPE_DEFEAT_ALL = 1
+        const val GOAL_TYPE_DEFEAT_BOSS = 3
+        const val TUTORIAL_EVT_TYPE_PHASECHANGE = 0
+        const val EV_EXEC_CUTSCENE = 1
         const val EVFLAG_WIN = 3
         const val EVFLAG_HIDE_BLINKING_ICON = 132
     }

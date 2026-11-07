@@ -32,6 +32,8 @@ import fe8.game.event.EventScrCore
 import fe8.game.event.EventState
 import fe8.game.event.EventUnitLoads
 import fe8.game.event.EventChangeMap
+import fe8.game.event.EventInfoHooks
+import fe8.game.event.EventInfos
 import fe8.game.event.ReleaseEventStubs
 import fe8.game.event.ScriptWords
 import fe8.game.flags.Fe8EventFlags
@@ -308,6 +310,21 @@ public class Fe8Boot(
         main.hooks.callEvent = { events, execType, _ ->
             eventEngine.callEvent(events, execType)
         }
+        val eventInfos = EventInfos(eventEngine.memory, flags, control.playSt)
+        eventInfos.hooks = object : EventInfoHooks {
+            override fun callEvent(script: Int, execType: Int) {
+                eventEngine.callEvent(script, execType)
+            }
+
+            override fun getBattleMapKind(): Int = battleMap.hooks.getBattleMapKind()
+
+            override fun chapterEventGroup(chapter: Int): Int =
+                chapters.getChapterEventDataPointer(chapter)
+
+            override fun goalWindowDataType(chapter: Int): Int =
+                rom.u8(chapters.getROMChapterStruct(chapter) + GOAL_WINDOW_DATA_TYPE_OFFSET)
+        }
+        main.hooks.runPhaseSwitchEvents = { eventInfos.runPhaseSwitchEvents() }
         val start = BattleMapStart(
             engine, control.playSt, bm, hw, chapters, map,
             ChapterMapGfx(rom, chapters, hw, control.playSt), render,
@@ -488,3 +505,5 @@ private val NO_WORLD_MAP_NODES = object : BattleMapNodes {
 
     override fun placementFlag(node: Int): Int = 0
 }
+
+private const val GOAL_WINDOW_DATA_TYPE_OFFSET = 0x8C

@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
+- D-06 (ap.c sprite animation player, step 1): scheduled, until ~23:40Z, on wip/D-06
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn

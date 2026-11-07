@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M6-37: owner PC, until ~16:30Z (verify in EventVm replay only; not wired into Fe8Boot)
+- M4-12: owner PC, until ~16:05Z
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -36,7 +36,12 @@ M6-33/34 (fe8.game.scene Talk: init, interpreter, wait-for-A; the whole first ta
 M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
-## Next task: M6-37 (wip), M6-29 (wip/M6-29-v2), M6-20 rest (wip/M6-20), M6-19 rest, then M6-44 (TASKS)
+## Next task: M6-29 (wip/M6-29-v2), M6-20 rest (wip/M6-20), M6-19 rest, then M6-44 (TASKS)
+Owner PC 11-07 15:10-16:05Z: M6-37 done (EventTextDifferentialTest; EventText not in Fe8Boot). CI on master failed since
+11-06 23:49 (Dokka: 2 undocumented; summary: battle_end run not packed): fixed (1d089a8; ROM repo c66e0fd packs
+ram_trace_prologue_battle_end, old runs byte-identical; `.assets` updated). Full jvmTest green, 518 verified. CI does
+commit README/port_map itself after a green master run (the How-to line saying it never does was wrong). Remote
+`wip/M6-41` (merged) and `wip/M6-29` (same changes as wip/M6-29-v2) can be deleted: auto mode refused the delete.
 Scheduled 11-07 13:05Z (full jvmTest green 13:27Z): Fe8Boot now registers Event34 (EventUnitState, hooks: unitAt only) and Event3F (EventScriptBattle,
 host: lock = loop.gameLock, entity-map refresh; anim/AiRefreshMap/RefreshUnitSprites default) (81c9e51; Fe8Boot/Prologue/
 NewGame/ResumeBoot tests green). `wip/M6-29-v2` = wip/M6-29 cherry-picked onto master (old wip/M6-29 has unrelated
@@ -197,8 +202,8 @@ unit arrays; `EventUnitState` (Event34) registered in the test engine only (not 
   on Groovy property access.
 - `tools/progress.py` credits a `@VerifiesPort` test to the LAST `class` declared before it: keep helper classes
   below the test class.
-- CI runs `progress.py --write` but never commits it: after a full `jvmTest test`, run
-  `python3 tools/progress.py --write` and commit README.md + docs/port_map.json yourself.
+- CI's "Commit progress (master)" step commits README.md + docs/port_map.json after a green master run; when CI is
+  red they go stale (run `python3 tools/progress.py --write` after a full `jvmTest test` and commit them yourself).
 - Allocation tests can flake (200 B once in 1000 frames): use `AllocationMeter.measureMin`.
 - `FrameCompareTest.applyHBlank` knows only `HBlank_BgVerticalScroll`; dumped RAM is one game step ahead of the
   dumped frame.

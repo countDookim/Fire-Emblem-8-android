@@ -100,13 +100,16 @@ public class TalkScene(
 
     // --- TextHost
 
+    /** The text language: 1 (English, the US ROM). */
     override fun language(): Int = 1
 
+    /** Loads the text (or [talk] text) palette into BG bank [palid], colour 0 transparent. */
     override fun applyTextPalette(talk: Boolean, palid: Int) {
         applyPalette(PAL_TEXT + if (talk) 0x20 else 0, palid)
         hw.palette[palid * 16] = 0
     }
 
+    /** Reads the little-endian word at VRAM address [addr]. */
     override fun readVram32(addr: Int): Int {
         val o = addr - VRAM_BASE
         val v = hw.vram
@@ -114,11 +117,13 @@ public class TalkScene(
             ((v[o + 2].toInt() and 0xFF) shl 16) or ((v[o + 3].toInt() and 0xFF) shl 24)
     }
 
+    /** Writes [value] little-endian at VRAM address [addr]. */
     override fun writeVram32(addr: Int, value: Int) {
         val o = addr - VRAM_BASE
         for (k in 0..3) hw.vram[o + k] = (value shr (8 * k)).toByte()
     }
 
+    /** Zeroes [byteCount] bytes of VRAM from address [dest]. */
     override fun clearVram(dest: Int, byteCount: Int) {
         hw.vram.fill(0, dest - VRAM_BASE, dest - VRAM_BASE + byteCount)
     }

@@ -28,6 +28,7 @@ public class Reda(
     /** `delayFrames`. */
     public val delayFrames: Int,
 ) {
+    /** Decoding from the ROM's packed form. */
     public companion object {
         /** Reads a REDA from its two little-endian words ([lo] bits 0-23 x/y/flags, 24-31 a). */
         public fun fromWords(lo: Int, hi: Int): Reda = Reda(

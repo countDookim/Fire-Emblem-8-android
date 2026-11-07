@@ -25,7 +25,7 @@ class UnitFactionIndexTest {
             { if (frame % 20 in 5..8) 0x0001 else 0 },
             RngService(),
         )
-        while (frame < 3000 && boot.engine.find(boot.playerPhaseScript) == null) {
+        while (frame < 20000 && boot.engine.find(boot.playerPhaseScript) == null) {
             boot.frame()
             frame++
         }

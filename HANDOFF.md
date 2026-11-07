@@ -7,8 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(claim tasks here before starting them, CLAUDE.md rule 10)_
-- M6-41: scheduled, until ~05:30Z (wip/M6-41)
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -46,6 +45,11 @@ US_HIDDEN, cleared by battle-anim end code) replaces BattleApplyDifferentialTest
 wexp class baseRanks offset fixed (+0x2C). BattleApply*/UpdateUnitFromBattle stay untagged (needs a player-phase battle run).
 battle_end added to M4A_UNCOVERED_RUNS (assumed same Prologue divergence, not confirmed): the run can now be packed; with it
 (run locally: harness takes 7 s) jvmTest is green. Full jvmTest green 05:12Z without it. Next: M6-41 Event3F using the reload.
+`wip/M6-41` (493de0e): `fe8.game.event.EventScriptBattle` transcribes Event3F_ScriptBattle, ScriptBattleDeamon and the
+slot-queue hit builder behind `EventScriptBattleHost` (untagged, not registered). To verify: parametrize EventTrace.prologue/
+Replayer by run name and replay `ram_trace_prologue_battle`; host gameLock = gBmSt lock from the gbmst watch; seed
+BattleGenerate (actor/target/stats as in EventBattleReloadDifferentialTest) from the A-step ewram; give the deamon a parent
+proc; then drop 0x3F from STUBS/UNIT_STUBS for that run. Item-override 0x3F still throws.
 Scheduled 11-06 23:38Z: M6-40 partial (BmBattle `battleApplyGameStateUpdates` chain, `BattleApplyDifferentialTest`
 r15074->r15075). New ROM-repo script `ram_trace_prologue_battle_end` (old run ends f15059, the update runs at f15075);
 owner: run make_reference + repack dist (CI skips the test until then). WARNING: with this run present,

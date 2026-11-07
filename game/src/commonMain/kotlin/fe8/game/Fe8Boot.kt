@@ -16,7 +16,10 @@ import fe8.game.bm.MapAnimations
 import fe8.game.bm.Mu
 import fe8.game.bm.MuCtrl
 import fe8.game.bm.MuCtrlHooks
+import fe8.game.bm.MuConfig
 import fe8.game.bm.MuHooks
+import fe8.game.bm.MuProc
+import fe8.game.bm.MuSpriteAnim
 import fe8.game.bm.MapCursor
 import fe8.game.bm.MapMusic
 import fe8.game.bm.EntityBmMaps
@@ -404,9 +407,14 @@ public class Fe8Boot(
     /** `RefreshUnitSprites` of the battle map, set by [wireUnitSprites]. */
     private var refreshSprites: () -> Unit = {}
 
-    /** The MU system (`mu.c`) with class lookups from the ROM (sprite animation: stand-in). */
-    internal val mu: Mu by lazy {
-        Mu(
+    /**
+     * The MU system (`mu.c`) with class lookups from the ROM; walking MUs are drawn by the ap.c
+     * sprite animation player ([MuSpriteAnim]); the standing-MU SMS hooks are still no-ops.
+     */
+    public val mu: Mu by lazy {
+        val spriteAnim = MuSpriteAnim(rom, hw, loop.oam, loop.sprites)
+        lateinit var self: Mu
+        self = Mu(
             engine, loop.bmSt, control.playSt, keys, camMove.script,
             object : MuHooks {
                 private fun classU8(jid: Int, o: Int) =
@@ -416,9 +424,24 @@ public class Fe8Boot(
                     rom.u32(UnitLoader.CLASS_DATA + (jid - 1) * UnitLoader.CLASS_DATA_SIZE + 0x28)
 
                 override fun classSlowWalking(jid: Int): Int = classU8(jid, 0x07)
+
+                override fun createMuAnim(proc: MuProc, config: MuConfig): Int =
+                    spriteAnim.create(self, proc, config)
+
+                override fun switchMuAnim(proc: MuProc, facing: Int) =
+                    spriteAnim.switchAnimation(proc.spriteAnim, facing)
+
+                override fun apUpdate(anim: Int, x: Int, y: Int) = spriteAnim.update(anim, x, y)
+
+                override fun resetSpriteAnimClock(anim: Int) = spriteAnim.resetClock(anim)
+
+                override fun spriteAnimObjLayer(anim: Int): Int = spriteAnim.objLayer(anim)
+
+                override fun deleteMuAnim(proc: MuProc) = spriteAnim.delete(proc.spriteAnim)
             },
             rom,
         )
+        self
     }
 
     /**

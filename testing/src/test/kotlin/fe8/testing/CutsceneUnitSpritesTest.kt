@@ -1,6 +1,7 @@
 package fe8.testing
 
 import fe8.game.RomView
+import fe8.game.bm.Mu
 import fe8.game.bm.UnitTable
 import gba.testkit.GbaMem
 import gba.testkit.ReferenceData
@@ -80,7 +81,36 @@ class CutsceneUnitSpritesTest {
         assertEquals(dumps.map { it.first }.toSet(), matched, "dumps without a matching frame")
     }
 
+    /** D-06: a walking unit (MU in movement) is drawn: an OBJ with a MU tile is on screen. */
+    @Test
+    fun `a walking MU is drawn on every frame it moves`() {
+        assumeTrue(romFile.isFile, "ROM not present")
+        val pb = PrologueBoot(romFile)
+        var moving = 0
+        var drawn = 0
+        pb.onFrame = {
+            val walking = pb.boot.mu.configs.any {
+                it.slot != 0 && it.mu?.state == Mu.MU_STATE_MOVEMENT && it.mu?.hiddenB == 0
+            }
+            if (walking) {
+                moving++
+                val oam = pb.boot.loop.oam.oam
+                val visible = (0 until OBJ_COUNT).any {
+                    val a0 = oam[it * 4].toInt() and 0xFFFF
+                    val tile = oam[it * 4 + 2].toInt() and 0x3FF
+                    (a0 and 0x300) != 0x200 && (a0 and 0xFF) < SCREEN_HEIGHT && tile in MU_TILES
+                }
+                if (visible) drawn++
+            }
+        }
+        assertTrue(pb.reachIdle(), "Prologue idle not reached")
+        assertTrue(moving > 0, "no MU walked")
+        println("MU walking frames: $moving, with a MU object: $drawn")
+        assertTrue(drawn * 10 >= moving * 9, "walking MU not drawn: $drawn of $moving frames")
+    }
+
     private companion object {
+        val MU_TILES = 0x380..0x3FF
         const val FIRST_DUMP = 9600
         const val LAST_DUMP = 12300
         const val DUMP_STEP = 300

@@ -97,7 +97,10 @@ public class EventText(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event1A_TEXTSTART
+     * Ported from src/eventscr.c: Event1A_TEXTSTART
+     *
+     * Verified path: sub 0 with the type unchanged (`ram_trace_prologue_talk`, f9864). Not in
+     * any trace: a type change (the `endText` branch), subs 1 and 2 (`disableMapDisp`).
      */
     public val event1aTextStart: EventHandler = EventHandler { proc ->
         val sub = memory.u16(proc.pEventCurrent) and 0xF
@@ -111,7 +114,10 @@ public class EventText(
     }
 
     /**
-     * Transcribed from src/eventscr.c: sub_800E640 (the text teardown tail).
+     * Ported from src/eventscr.c: sub_800E640
+     *
+     * Verified path: no `EV_STATE_FADEDIN`, faces exist (f10566). The `EV_STATE_FADEDIN` branch
+     * is in no trace.
      */
     public fun sub800E640(proc: EventEngineProc) {
         if (proc.evStateBits and EV_STATE_FADEDIN != 0) {
@@ -134,7 +140,10 @@ public class EventText(
     }
 
     /**
-     * Transcribed from src/eventscr.c: sub_800E210
+     * Ported from src/eventscr.c: sub_800E210
+     *
+     * Verified path: `init` true, `EV_STATE_0020`/`EV_STATE_0040` clear (f9865). Not in any
+     * trace: `init` false (TEXTSHOW2) and the two flag bits.
      */
     private fun startTalk(proc: EventEngineProc, msg: Int, init: Boolean) {
         if (init) host.initTalk(0x80, 2, true)
@@ -146,7 +155,7 @@ public class EventText(
     }
 
     /**
-     * Transcribed from src/eventscr.c: sub_800E290
+     * Transcribed from src/eventscr.c: sub_800E290 (not verified: no CG text in any trace)
      */
     private fun startCg(proc: EventEngineProc, msg: Int, flagsIn: Int) {
         var flags = flagsIn or 0x0400
@@ -156,7 +165,7 @@ public class EventText(
     }
 
     /**
-     * Transcribed from src/eventscr.c: sub_800E31C
+     * Transcribed from src/eventscr.c: sub_800E31C (not verified: no box dialogue in any trace)
      */
     private fun startBox(proc: EventEngineProc, msg: Int, flagsIn: Int) {
         var flags = flagsIn
@@ -180,7 +189,11 @@ public class EventText(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event1B_TEXTSHOW
+     * Ported from src/eventscr.c: Event1B_TEXTSHOW
+     *
+     * Verified: sub 0 with a talk type (f9865) and sub 2 (f10566). Not in any trace: sub 1, the
+     * CG and box types, a negative argument and a zero argument. At f10566 the Talk proc has
+     * already ended, so the effect of `EndTalk` there is not observable.
      */
     public val event1bTextShow: EventHandler = EventHandler { proc ->
         val sub = memory.u16(proc.pEventCurrent) and 0xF
@@ -219,7 +232,8 @@ public class EventText(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event1D_TalkContinue
+     * Transcribed from src/eventscr.c: Event1D_TalkContinue (not verified: no 0x1C in the traced
+     * scripts)
      */
     public val event1dTalkContinue: EventHandler = EventHandler { proc ->
         if (proc.evStateBits and EV_STATE_SKIPPING != 0) endText(proc) else host.resumeTalk()
@@ -227,7 +241,10 @@ public class EventText(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event1D_WaitForLockTalk
+     * Ported from src/eventscr.c: Event1D_WaitForLockTalk
+     *
+     * Verified: the talk running (parked every frame, f9865..f10564) and finished (f10565). Not
+     * in any trace: skipping, the world map exec types, a talk choice result.
      */
     public val event1dWaitForLockTalk: EventHandler = EventHandler { proc ->
         if (proc.evStateBits and EV_STATE_SKIPPING != 0) {

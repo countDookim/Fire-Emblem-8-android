@@ -406,7 +406,7 @@ class EventVmDifferentialTest {
                     when {
                         h != null && code == 0x34 -> midFrameParking(code, h)
                         h != null && code in IDLE_AWARE -> idleAware(code, recording(code, h))
-                    h != null -> recording(code, h)
+                        h != null -> recording(code, h)
                         stub != null -> stubbed(code, stub)
                         else -> EventHandler {
                             unportedCode = code

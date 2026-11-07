@@ -176,7 +176,10 @@ public class Fe8Boot(
             return
         }
         saveLib.writeNewGameSave(
-            NewGameRam(control.playSt, flags, ByteArray(200)), 0, false, 1, 1,
+            NewGameRam(
+                control.playSt, flags, ByteArray(200), initUnits = { units.initUnits() },
+            ),
+            0, false, 1, 1,
         )
         flushSram()
         control.setNextGameActionId(GameControl.GAME_ACTION_EVENT_RETURN)

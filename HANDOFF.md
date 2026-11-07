@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- D-04 + D-02 (unit sprites: enemy palette, none drawn during events): owner PC, until ~21:30Z
+- M6-20 rest (wip/M6-20: Event15 ramp): owner PC, until ~21:30Z
 - D-01 / M6-44 part (register EventText 1A/1B/1D in Fe8Boot): owner PC, until ~21:30Z
 - D-03 (Event2F MOVEUNIT / Event30 ENUN): owner PC, until ~21:30Z
 

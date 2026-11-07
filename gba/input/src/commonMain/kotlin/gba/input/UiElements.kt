@@ -1,15 +1,15 @@
 package gba.input
 
 /**
- * UI element contract (mod groundwork, task M3-11, docs/decisions/0009): each frame, screens that show
- * selectable things (menu rows, map cells, buttons) publish their on-screen bounds together with the
- * [GameAction] that selecting them corresponds to. The base game only *publishes*; it never reads this
- * list, so game logic is unchanged. A touch-UI mod hit-tests a tap with [hitTest] and feeds the returned
- * action back through its [ActionSource].
+ * UI element contract (mod groundwork, task M3-11, docs/decisions/0009): each frame, screens
+ * that show selectable things (menu rows, map cells, buttons) publish their on-screen bounds
+ * together with the [GameAction] that selecting them corresponds to. The base game only
+ * *publishes*; it never reads this list, so game logic is unchanged. A touch-UI mod hit-tests a
+ * tap with [hitTest] and feeds the returned action back through its [ActionSource].
  *
- * Coordinates are GBA screen pixels (240×160 in vanilla; the front end maps touch points into this space).
- * Fixed capacity, primitive arrays, no allocation per frame. Later entries are drawn on top: [hitTest]
- * searches from the last added.
+ * Coordinates are GBA screen pixels (240×160 in vanilla; the front end maps touch points into
+ * this space). Fixed capacity, primitive arrays, no allocation per frame. Later entries are
+ * drawn on top: [hitTest] searches from the last added.
  */
 public class UiElements(
     /** Maximum elements per frame; [add] drops extras. */
@@ -31,7 +31,10 @@ public class UiElements(
     /** Height (px). */
     public val height: IntArray = IntArray(capacity)
 
-    /** Action that selecting the element means (e.g. `SelectItem.of(row)`, or `Confirm` for a button). */
+    /**
+     * Action that selecting the element means (e.g. `SelectItem.of(row)`, or `Confirm` for a
+     * button).
+     */
     public val action: Array<GameAction?> = arrayOfNulls(capacity)
 
     /** Caller-defined id (e.g. menu item id or map cell `y * width + x`); not interpreted here. */
@@ -46,10 +49,11 @@ public class UiElements(
     /** Publishes one element; returns its index, or -1 if full. */
     public fun add(x: Int, y: Int, width: Int, height: Int, action: GameAction, id: Int = 0): Int {
         if (count == capacity) return -1
-        val i = count++
-        this.x[i] = x; this.y[i] = y; this.width[i] = width; this.height[i] = height
-        this.action[i] = action; this.id[i] = id
-        return i
+        val index = count++
+        this.x[index] = x; this.y[index] = y; this.width[index] = width
+        this.height[index] = height
+        this.action[index] = action; this.id[index] = id
+        return index
     }
 
     /** Index of the top-most element containing point ([px], [py]), or -1. */

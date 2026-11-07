@@ -21,11 +21,13 @@ public enum class Direction(
 }
 
 /**
- * Abstract game actions. Game logic only ever sees these, never raw buttons, so buttons, touch and
- * controllers are interchangeable [ActionSource]s and touch UIs can be added without touching logic.
+ * Abstract game actions. Game logic only ever sees these, never raw buttons, so buttons, touch
+ * and controllers are interchangeable [ActionSource]s and touch UIs can be added without
+ * touching logic.
  *
  * Each action has a dense [bit] used in the per-frame [InputFrame] bitmask (allocation-free reads).
- * Parameterised actions ([Move], [SelectItem]) are pre-allocated singletons, never created per frame.
+ * Parameterised actions ([Move], [SelectItem]) are pre-allocated singletons, never created per
+ * frame.
  *
  * In vanilla mode each action maps 1:1 to the GBA button the original game reads (see
  * [VanillaButtonMap]), which is what keeps differential tests input-identical with mGBA.
@@ -69,8 +71,10 @@ public sealed class GameAction(
     /** L button: cycle to next unit. */
     public data object NextUnit : GameAction(9)
 
-    /** Direct selection of list item [index]: an extension point for touch/number-key mods. The base game
-     * never produces it (docs/decisions/0009-vanilla-product-mod-groundwork.md). */
+    /**
+     * Direct selection of list item [index]: an extension point for touch/number-key mods. The
+     * base game never produces it (docs/decisions/0009-vanilla-product-mod-groundwork.md).
+     */
     public class SelectItem private constructor(
         /** Zero-based list position. */
         public val index: Int,
@@ -91,6 +95,7 @@ public sealed class GameAction(
 
     /** Bit layout constants. */
     public companion object {
+        /** First action bit used by [SelectItem]; bits 0..9 belong to the GBA buttons. */
         internal const val FIRST_SELECT_BIT: Int = 16
     }
 }
@@ -98,8 +103,8 @@ public sealed class GameAction(
 /**
  * Per-tick input snapshot as bitmasks over [GameAction.bit]. One instance is reused every tick.
  *
- * `pressed` = went down this tick, `held` = currently down, `released` = went up this tick, mirroring
- * how the original game distinguishes new presses from repeats.
+ * `pressed` = went down this tick, `held` = currently down, `released` = went up this tick,
+ * mirroring how the original game distinguishes new presses from repeats.
  */
 public class InputFrame {
     /** Bits of actions currently held. */
@@ -116,6 +121,7 @@ public class InputFrame {
 
     /** Advances to a new tick with [nowHeld] as the held set. Allocation-free. */
     public fun update(nowHeld: Long) {
+        // Edge detection: newly set bits are presses, newly cleared bits are releases.
         pressed = nowHeld and held.inv()
         released = held and nowHeld.inv()
         held = nowHeld

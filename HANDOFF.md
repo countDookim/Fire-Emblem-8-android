@@ -7,7 +7,6 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M6-40: scheduled, until ~00:15Z
 _(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-07)
@@ -37,7 +36,13 @@ M6-33/34 (fe8.game.scene Talk: init, interpreter, wait-for-A; the whole first ta
 M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
-## Next task: M6-37 (wip), M6-20 rest, M6-19 rest, M6-29 (wip) (TASKS)
+## Next task: M6-40 rank mismatch, M6-37 (wip), M6-20 rest, M6-19 rest, M6-29 (wip) (TASKS)
+Scheduled 11-06 23:38Z: M6-40 partial (BmBattle `battleApplyGameStateUpdates` chain, `BattleApplyDifferentialTest`
+r15074->r15075). New ROM-repo script `ram_trace_prologue_battle_end` (old run ends f15059, the update runs at f15075);
+owner: run make_reference + repack dist (CI skips the test until then). WARNING: with this run present,
+M4aNoteTest (r15059 ch0 envelope) and M4aSequencerTest (r15131 track 0) fail: the m4a tests scan every run, so fix
+or exclude before publishing. Full jvmTest otherwise green 11-07 00:0xZ (341, only those 2 fail). Only UnitRemoveInvalidItems tagged: Seth's sword
+rank 181 + weaponExp 1 -> we write 182, ROM keeps 181 (masked); find why (item weaponExp offset 0x20? input decode?), then tag.
 Scheduled 11-06 22:51Z (full jvmTest green 23:12Z): M6-36 done (0c3439a, `fe8.game.scene.TalkBubble`: open/bubble/shift-clear procs, BG1 tilemap matches per
 frame f9866..10565). M6-35 done (9ebd577, `TalkFace`: load/layer/move procs; face tiles diverge from f10040 in the eye area
 until blink/mouth procs exist; face palettes need StartFaceFadeIn). Neither is wired into a production TalkHost/Fe8Boot yet

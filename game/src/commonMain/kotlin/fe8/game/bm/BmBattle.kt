@@ -879,11 +879,13 @@ public class BmBattle(
         { _, _ -> error("traps are not ported (M6-40)") }
 
     /**
-     * Transcribed from src/bmbattle.c: BattleApplyGameStateUpdates (not verified: the Prologue
-     *   trace ends (f15059) before the update runs, so there is no dump to compare)
+     * Transcribed from src/bmbattle.c: BattleApplyGameStateUpdates
+     *   (not verified: ram_trace_prologue_battle_end r15075 matches except the sword rank:
+     *   we write 182, the ROM keeps 181; see TASKS M6-40)
      *
      * [battleApplyUnitUpdates] and [battleApplyBallistaUpdates]. The two debug print calls are
-     * no-ops and omitted.
+     * no-ops and omitted. Verified against the Prologue battle (no status, level-up, rank gain,
+     * exp gain, ballista or obstacle: those branches are untested).
      */
     public fun battleApplyGameStateUpdates() {
         battleApplyUnitUpdates()
@@ -891,8 +893,9 @@ public class BmBattle(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: BattleApplyUnitUpdates (not verified: see
-     *   [battleApplyGameStateUpdates])
+     * Transcribed from src/bmbattle.c: BattleApplyUnitUpdates
+     *   (not verified: ram_trace_prologue_battle_end r15075 matches except the sword rank:
+     *   we write 182, the ROM keeps 181; see TASKS M6-40)
      *
      * Writes the used weapons back into the battle units' items, then the battle units into the
      * unit table. A target without a unit (`UpdateObstacleFromBattle`) is not ported.
@@ -915,8 +918,9 @@ public class BmBattle(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: UpdateUnitFromBattle (not verified: see
-     *   [battleApplyGameStateUpdates])
+     * Transcribed from src/bmbattle.c: UpdateUnitFromBattle
+     *   (not verified: ram_trace_prologue_battle_end r15075 matches except the sword rank:
+     *   we write 182, the ROM keeps 181; see TASKS M6-40)
      *
      * Copies level, exp, HP, state, stat changes, weapon exp and items of [bu] into the unit at
      * [o] of the unit table, sets [arenaLevelLatch], the status, caps the stats and reports the
@@ -955,8 +959,7 @@ public class BmBattle(
     }
 
     /**
-     * Transcribed from src/bmunit.c: UnitRemoveInvalidItems (not verified: see
-     *   [battleApplyGameStateUpdates])
+     * Ported from src/bmunit.c: UnitRemoveInvalidItems
      *
      * Moves the items of the unit at [o] up so that no empty slot precedes an item.
      */
@@ -973,8 +976,8 @@ public class BmBattle(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: GetBattleUnitUpdatedWeaponExp (not verified: see
-     *   [battleApplyGameStateUpdates])
+     * Transcribed from src/bmbattle.c: GetBattleUnitUpdatedWeaponExp (not verified: the Prologue
+     *   dump shows no rank gain where this gives +1; see BattleApplyDifferentialTest)
      *
      * The weapon exp [bu] has after the battle, or -1 where it gains none.
      */
@@ -1015,8 +1018,8 @@ public class BmBattle(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: BattleApplyBallistaUpdates (not verified: see
-     *   [battleApplyGameStateUpdates])
+     * Transcribed from src/bmbattle.c: BattleApplyBallistaUpdates (not verified: only the
+     *   no-op branch occurs in the Prologue trace)
      *
      * In a ballista battle stores the remaining uses of the actor's weapon in the ballista trap.
      */

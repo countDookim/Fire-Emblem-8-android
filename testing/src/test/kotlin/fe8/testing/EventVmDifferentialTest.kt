@@ -155,6 +155,10 @@ class EventVmDifferentialTest {
     @Test
     fun `Event12 StartBGM`() = assertCode(0x12)
 
+    // Event15_BgmVolume: result code only (the volume is not compared), so it is not tagged.
+    @Test
+    fun `Event15 BgmVolume`() = assertCode(0x15)
+
     @Test
     fun `Event17 Fade`() = assertCode(0x17)
 
@@ -492,6 +496,7 @@ class EventVmDifferentialTest {
                 0x0E to core.event0eStal,
                 0x0F to core.event0fCounterOps,
                 0x12 to bgm.event12StartBgm,
+                0x15 to bgm.event15BgmVolume,
                 0x17 to fade.event17Fade,
                 0x26 to cursorCamera.event26CameraControl,
                 0x34 to unitState.event34MessWithUnitState,
@@ -1013,12 +1018,13 @@ class EventVmDifferentialTest {
         val MIN_CODE_PAIRS = mapOf(
             0x01 to 14, 0x02 to 3, 0x10 to 2, 0x19 to 1, 0x03 to 8, 0x05 to 7, 0x06 to 3, 0x07 to 3,
             0x08 to 7,
-            0x09 to 1, 0x12 to 3, 0x17 to 20, 0x0A to 9, 0x0C to 8, 0x0E to 2400, 0x3B to 24,
+            0x09 to 1, 0x12 to 3, 0x15 to 2, 0x17 to 20, 0x0A to 9, 0x0C to 8, 0x0E to 2400,
+            0x3B to 24,
         )
 
         /** Minimum pairs in which each stub completed its command. */
         val MIN_STUB_PAIRS = mapOf(
-            0x15 to 2, 0x1D to 28, 0x30 to 20, 0xAC to 3,
+            0x1D to 28, 0x30 to 20, 0xAC to 3,
             0xBA to 7, 0x2C to 8, 0x2F to 15,
         )
 
@@ -1053,7 +1059,7 @@ class EventVmDifferentialTest {
          * where the C handler has one. No stub writes slots, queues, flags, `evStallTimer`,
          * `execType` or `pEventIdk`; a pair where the C handler does is a mismatch.
          *
-         * - 0x15 Event15_BgmVolume: same.
+         * - (0x15 Event15_BgmVolume is ported; its stub entry below is unused.)
          * - 0x1A Event1A_TEXTSTART: subcodes 0/3/4/5 YIELD; 1/2 run Event23_DisaleMapDisp, which
          *   sets GFXLOCKED and yields. The text teardown the C does when the subcode changes
          *   (EndTalk, face fade) touches no compared state.

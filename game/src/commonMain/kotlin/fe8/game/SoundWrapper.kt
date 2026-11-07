@@ -3,12 +3,14 @@ package fe8.game
 import gba.audio.M4aCommands
 import gba.audio.M4aPlayer
 import gba.audio.M4aSound
+import gbafe.core.math.Interpolate
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.end
 import gbafe.proc.ProcScripts.repeat
+import gbafe.proc.ProcScripts.yield
 
 /**
  * FE8's sound wrapper (decomp `src/soundwrapper.c`): the BGM state `gSoundSt` and the calls the
@@ -40,7 +42,7 @@ public class SoundWrapper(
     public var maxChannels: Int = 0
         private set
 
-    /** `sMusicProc1` (fade in) / `sMusicProc2` (volume change); not started by any ported caller. */
+    /** `sMusicProc1` (fade in) / `sMusicProc2` (volume change); not started by a ported caller. */
     private var musicProc1: Proc? = null
     private var musicProc2: Proc? = null
 
@@ -56,6 +58,21 @@ public class SoundWrapper(
         "gMusicProc3Script",
         listOf(repeat(ProcFunc { delaySongOnLoop(it) }), end()),
         newState = { DelayState() },
+    )
+
+    /** `struct MusicProc` fields of the volume change. */
+    private class VolumeState {
+        var initVolume = 0
+        var endVolume = 0
+        var clock = 0
+        var timeEnd = 0
+    }
+
+    /** `ProcScr_BgmVolumeChange` (`sMusicProc2Script`): [startBgmVolumeChange]'s proc. */
+    public val bgmVolumeChangeScript: ProcScript = ProcScript(
+        "sMusicProc2Script",
+        listOf(yield(), repeat(ProcFunc { musicVcOnLoop(it) }), end()),
+        newState = { VolumeState() },
     )
 
     private val bgm1: M4aPlayer? get() = sound?.players?.get(BGM1)
@@ -76,6 +93,63 @@ public class SoundWrapper(
         bgm1?.let { M4aCommands.fadeOut(it, s) }
         bgm2?.let { M4aCommands.fadeOut(it, s) }
         isSongPlaying = false
+    }
+
+    /**
+     * `Sound_SetSEVolume` (despite the name it sets BGM1's and BGM2's volume):
+     * `m4aMPlayVolumeControl` of all tracks to [volume].
+     *
+     * Transcribed from src/soundwrapper.c: Sound_SetSEVolume (not verified: the volume-ramp test
+     *   is disabled)
+     */
+    public fun setSeVolume(volume: Int) {
+        bgm1?.let { M4aCommands.volumeControl(it, 0xFFFF, volume) }
+        bgm2?.let { M4aCommands.volumeControl(it, 0xFFFF, volume) }
+    }
+
+    /**
+     * `StartBgmVolumeChange`: starts a proc (blocking [parent], else in tree 3) that ramps the BGM
+     * volume from [volume] to [end] over [time] frames, and sets [volume] (at least 1) now.
+     *
+     * Transcribed from src/soundwrapper.c: StartBgmVolumeChange (not verified: see
+     *   [musicVcOnLoop])
+     */
+    public fun startBgmVolumeChange(volume: Int, end: Int, time: Int, parent: Proc?) {
+        val proc = (if (parent != null) engine.startBlocking(bgmVolumeChangeScript, parent)
+        else engine.start(bgmVolumeChangeScript, 3)) ?: return
+        val st = proc.state as VolumeState
+        st.initVolume = volume
+        st.endVolume = end
+        st.clock = 0
+        st.timeEnd = time
+        setSeVolume(if (volume == 0) 1 else volume)
+        musicProc2 = proc
+    }
+
+    /**
+     * `MusicVc_OnLoop`: sets the interpolated volume; at the end stops the song (end volume 0) or
+     * marks it playing, and ends.
+     *
+     * Transcribed from src/soundwrapper.c: MusicVc_OnLoop (not verified: see the volume test)
+     */
+    public fun musicVcOnLoop(proc: Proc) {
+        val st = proc.state as VolumeState
+        setSeVolume(
+            Interpolate.interpolate(
+                Interpolate.RSQUARE, st.initVolume, st.endVolume, st.clock++, st.timeEnd,
+            ),
+        )
+        if (st.clock >= st.timeEnd) {
+            if (st.endVolume == 0) {
+                sound?.songNumStop(songId)
+                isSongPlaying = false
+                songId = 0
+            } else {
+                isSongPlaying = true
+            }
+            engine.end(proc)
+            musicProc2 = null
+        }
     }
 
     /**

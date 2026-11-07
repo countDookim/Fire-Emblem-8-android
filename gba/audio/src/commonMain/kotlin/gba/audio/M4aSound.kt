@@ -99,6 +99,16 @@ public class M4aSound(
     public fun songNumStart(n: Int): Boolean = sequencer.songNumStart(players, songs, n)
 
     /**
+     * `m4aSongNumStop(n)`: stops song [n]'s player if it plays that song's header.
+     *
+     * Transcribed from src/m4a.c: m4aSongNumStop (not verified: no trace stops a song this way)
+     */
+    public fun songNumStop(n: Int) {
+        val p = players[songs.player(n and 0xFFFF)]
+        if (p.songHeader == songs.header(n and 0xFFFF)) M4aCommands.mPlayStop(p, info)
+    }
+
+    /**
      * `m4aSongNumStartOrChange(n)`: starts song [n] unless its player already plays it (live
      * tracks, not paused). Not a verified port: FE8 never calls it (no caller in the decomp), so no
      * trace can check it.

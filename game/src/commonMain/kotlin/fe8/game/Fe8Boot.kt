@@ -164,7 +164,9 @@ public class Fe8Boot(
      * [sram] it takes the menu's "Resume" choice: reads the suspend save
      * ([BmSuspendSave.readSuspendSave]) and sets `nextAction` to `GAME_ACTION_4`, so the game
      * control proc continues at the resumed game. Otherwise it is the dev "New Game" choice: writes
-     * a fresh game to slot 0 ([BmSaveLib.writeNewGameSave]) and leaves `nextAction` at event
+     * a fresh game to slot 0 ([BmSaveLib.writeNewGameSave], the save menu's difficulty 1 "Normal":
+     * `SaveMenuWriteNewGame` passes mode 1, isTutorial 1, not hard; ram_trace_prologue has
+     * `config.controller` = 1, so Event19 CHECK_TUTORIAL is false) and leaves `nextAction` at event
      * return, so the game control proc continues to chapter 0.
      */
     private fun newGameSaveMenu() {
@@ -174,7 +176,7 @@ public class Fe8Boot(
             return
         }
         saveLib.writeNewGameSave(
-            NewGameRam(control.playSt, flags, ByteArray(200)), 0, false, 0, -1,
+            NewGameRam(control.playSt, flags, ByteArray(200)), 0, false, 1, 1,
         )
         flushSram()
         control.setNextGameActionId(GameControl.GAME_ACTION_EVENT_RETURN)
@@ -202,6 +204,8 @@ public class Fe8Boot(
             override fun startPressed(): Boolean = keys.newKeys and KeyStatus.START_BUTTON != 0
             override fun fadeExists(): Boolean = screenFade.fadeExists()
             override fun blendY(): Int = hw.lcd.blendY
+            override fun lockGame() { loop.lockGame() }
+            override fun resumeGameplay() { loop.unlockGame() }
         }
         EventEngine(engine, state, memory, hooks).also {
             EventScrCore(

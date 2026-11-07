@@ -1,6 +1,8 @@
 package fe8.game
 
 import fe8.game.bm.BMapMain
+import fe8.game.bm.BattleGenerate
+import fe8.game.bm.BmBattle
 import fe8.game.bm.BMapMain.Companion.SAVE_ID_SUSPEND
 import fe8.game.bm.BattleMapNodes
 import fe8.game.bm.BattleMapStart
@@ -29,6 +31,10 @@ import fe8.game.event.EventBgm
 import fe8.game.event.EventFade
 import fe8.game.event.EventHandler
 import fe8.game.event.EventScrCore
+import fe8.game.event.EventScriptBattle
+import fe8.game.event.EventScriptBattleHost
+import fe8.game.event.EventUnitState
+import fe8.game.event.EventUnitStateHooks
 import fe8.game.event.EventState
 import fe8.game.event.EventUnitLoads
 import fe8.game.event.EventChangeMap
@@ -60,6 +66,7 @@ import gba.render.RenderState
 import gba.render.SoftwareRenderer
 import gba.render.TileSheets
 import gbafe.core.flags.EventFlags
+import gbafe.core.mechanics.Mechanics
 import gbafe.core.rng.RngService
 import gbafe.core.time.GameClock
 import gbafe.input.KeyStatus
@@ -180,8 +187,9 @@ public class Fe8Boot(
     public val flags: EventFlags = Fe8EventFlags.create()
 
     /**
-     * The event engine (`EventEngine`) with the ported command handlers of [EventScrCore]
-     * registered; the other commands stay unknown. Hooks are the defaults (stand-ins).
+     * The event engine (`EventEngine`) with the ported command handlers of [EventScrCore],
+     * [EventUnitState] (0x34) and [EventScriptBattle] (0x3F) registered; the other commands stay
+     * unknown. Hooks are the defaults (stand-ins), except the map accessors and entity map refresh.
      */
     public val eventEngine: EventEngine by lazy {
         val state = eventState
@@ -247,6 +255,31 @@ public class Fe8Boot(
                 { battleMap.restartBattleMap() },
                 { battleEntityMaps.refreshEntityBmMaps() },
                 { bmapRender.renderBmMap() },
+            ).registerOn(it)
+            val unitState = EventUnitState(
+                state, memory, units, loader,
+                object : EventUnitStateHooks {
+                    override fun unitAt(x: Int, y: Int): Int = battleBmMap.unit[y, x]
+                },
+            ).also { us -> us.registerOn(it) }
+            EventScriptBattle(
+                engine, state, memory, units,
+                BattleGenerate(
+                    BmBattle(rom, units, loader, control.playSt, loop.bmSt) { y, x ->
+                        battleBmMap.terrain[y, x]
+                    },
+                    rom, loader, control.playSt, rng, Mechanics(),
+                ),
+                object : EventScriptBattleHost {
+                    override fun getUnitStructFromEventParameter(pid: Int): Int =
+                        unitState.getUnitStructFromEventParameter(pid)
+
+                    override fun gameLock(): Int = loop.gameLock()
+
+                    override fun refreshEntityBmMaps() {
+                        battleEntityMaps.refreshEntityBmMaps()
+                    }
+                },
             ).registerOn(it)
             EventFade(memory, screenFade).registerOn(it)
             EventBgm(state, memory, control.sound).registerOn(it)

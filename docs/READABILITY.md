@@ -27,8 +27,8 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | engine/core | gbafe.core.mechanics | 1 | 60 | done 2026-11-07 7fab3cc |
 | engine/core | gbafe.core.rng | 1 | 181 | done 2026-11-07 7fab3cc |
 | engine/core | gbafe.core.time | 1 | 30 | done 2026-11-07 7fab3cc |
-| engine/core | gbafe.proc | 2 | 573 | todo |
-| engine/data | gbafe.data | 3 | 88 | todo |
+| engine/core | gbafe.proc | 2 | 573 | done 2026-11-07 c0f92eb |
+| engine/data | gbafe.data | 3 | 88 | done 2026-11-07 c0f92eb |
 | engine/extract | gbafe.extract | 5 | 197 | todo |
 | engine/extract | gbafe.extract.fe8 | 2 | 278 | todo |
 | engine/extract | gbafe.extract.fe8.chapters | 1 | 102 | todo |

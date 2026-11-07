@@ -42,3 +42,6 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
     code for a task: `git pull --rebase`, add a line under HANDOFF `## In progress` (`M5-xx: owner PC|scheduled,
     until ~HH:MMZ`), commit with `[skip ci]` and push. Skip tasks with an unexpired claim; an expired claim is free.
     Remove your line when the task is done or you stop (unfinished work goes to `wip/<task-id>`; say so in the line).
+11. **Readability pass (owner, 2026-11-07; owner-PC Claude Code sessions only, not scheduled runs).** Every
+    owner-PC session reviews at least one `todo` section of `docs/READABILITY.md` (names, KDoc, comments; no
+    behaviour change), commits it and marks the row `done <date> <commit>`, until every row is done.

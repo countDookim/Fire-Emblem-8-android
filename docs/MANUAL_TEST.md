@@ -13,9 +13,13 @@ layout); pause/resume; ROM import (~4 s) and Play from the imported data.
 (issue #4), close/reopen resumes turn 1 (M6-12).
 
 ## Newly testable
-_(nothing new; next device test: after M6-37 wires dialogue into the app)_
+Prologue opening after M6-29 (APK from master after 2026-11-07 19:40Z; **clear the app's data first**, or delete
+`fe8.sav`, so an old suspend save is not resumed): New Game → the opening plays (still no dialogue, see below) → the
+Prologue map shows only Seth and Eirika plus 3 enemies (no extra cutscene units), player phase starts and the cursor
+moves. Known: Seth/Eirika stand at the wrong tiles (unit walks not ported yet); a fade-in at the start and end of the
+opening.
 
 ## Known not working (don't report)
 After the title: no save menu (New Game is chosen automatically), no dialogue, unit or cursor sprites, map music,
-fades or player actions yet; extra cutscene units may sit on the map (known gap). Without an imported ROM (debug
+fades or player actions yet; Seth/Eirika start on the wrong tiles (unit walks not ported). Without an imported ROM (debug
 assets only) the game stops after the title.

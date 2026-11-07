@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- Prologue device report re-check after M6-29 (owner 11-07): owner PC, until ~21:00Z
+_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -19,6 +19,18 @@ _(nothing blocked)_
   (M6-33/34), Mu (M6-25..27) and `EventUnitState` (Event34) are ported but not registered there, so their commands
   hit `ReleaseEventStubs` no-ops. Note the headless `AppRomPathTest`/ `PrologueMapTest` do reach `playerPhaseScript`
   (15 red units), so the device path differs: find out why first.
+  Re-check 11-07 20:00Z (owner PC; headless device path = `Fe8Game` + temp FileSaveStorage + actionSource input,
+  scripts watch / START-mash / A+START-mash, old 5e213f1 vs master bd863ea). 5e213f1 reproduces the report: player
+  phase proc starts at f652 while events run to f681 (skip) / f1834 (watch), so the map runs during the cutscene
+  (no game lock); the tutorial branch ran; 9 blue + 15 red cutscene units stay, some off the 15x10 map (x 19/20), none
+  of them the real enemies. Master (M6-29 fix): player phase starts after the events (f691 skip, f1937 watch), 2 blue
+  + 3 red, red equal r19400, cursor moves (BmSt.playerCursorX 9..14). Still wrong on master: (1) no dialogue: 1A x17,
+  1B x22, 1D x13, 21/22 x4 hit ReleaseEventStubs (EventText/Talk* exist but are not registered in Fe8Boot.eventEngine;
+  M6-44); (2) Seth/Eirika end at (8,5)/(9,5), ref (4,4)/(4,5): 2F MOVEUNIT x17 and 30 ENUN x23 are stubbed; also 15,
+  0D, 37, 3A stubbed; (3) flashes: real EventFade BLDY 16->0 ramps at event start/end, same old and new, not compared
+  to a trace; (4) A on a unit/menus not tested headless. Device re-test: clear app data first (a valid suspend in
+  filesDir/fe8.sav makes the stand-in save menu resume instead of New Game). Scratch harness (uncommitted):
+  owner PC $HOME/.cache/fe8-tmp/DevicePathPrologueScratchTest.kt; worth turning into a regression test.
 - Open from issue #4: Event15 + `StartBgmVolumeChange` (save-menu BGM ramp, ram_trace_newgame f1174..1193),
   GameControl fade stand-ins (GameControl.kt:206-212, 409-414). Map palette not yet compared to first_phase pal.bin.
 
@@ -40,8 +52,9 @@ M6-40/41 (battle result + Event3F).
 Owner PC 11-07 19:10-19:40Z: wip/M6-29-v3 merged (cdff3dc). Cause of the 2-unit idle map: the dev New Game stand-in
 wrote `(mode 0, isTutorial -1)`, so config.controller stayed 0 and Event19 CHECK_TUTORIAL (89EE0C0) took the tutorial
 branch (89EF27C) instead of the enemy load + ally move; SaveMenuWriteNewGame difficulty 1 passes mode 1, isTutorial 1
-(ram_trace_prologue: controller 1). Fe8Boot now also wires event lockGame/resumeGameplay to the loop. PrologueMapTest
-idle = blue (4,4),(4,5) + 3 red; NewGameToPrologueTest's START phase now starts with the beginning events. Full jvmTest
+(ram_trace_prologue: controller 1). Fe8Boot now also wires event lockGame/resumeGameplay to the loop. Idle map now
+2 blue + 3 red; red ids/chars/tiles equal first_phase r19400, blue are at (8,5),(9,5) vs ref (4,4),(4,5) because MOVEUNIT is
+still stubbed (the "(4,4),(4,5)" in commit 381be2f was wrong: PrologueMapTest checks no positions). NewGameToPrologueTest's START phase now starts with the beginning events. Full jvmTest
 green, 524 verified. Probably related to the owner's device report: re-test on device. Delete wip/M6-29-v2, wip/M6-29-v3
 (owner). Readability: gbafe.proc, gbafe.data (c0f92eb), gbafe.input, gba.core/.event/.time (697847c), gba.core.sram, gba.vfs (1b2b121), gba.input (52e07f0) done; 13 of 53 rows done.
 Scheduled 11-07 16:51Z: `wip/M6-29-v3` = wip/M6-29-v2 rebased onto master (conflicts in EventVmDifferentialTest

@@ -23,7 +23,7 @@ public class ProcEngine(
     /**
      * Clears every proc and the root trees and refills the allocation stack in array order.
      *
-     * Transcribed from src/proc.c: Proc_Init (not verified: no test checks it against a trace yet)
+     * Ported from src/proc.c: Proc_Init
      */
     public fun init() {
         for (p in procs) {
@@ -203,8 +203,7 @@ public class ProcEngine(
     /**
      * Sets [proc]'s mark.
      *
-     * Transcribed from src/proc.c: Proc_SetMark (not verified: no test checks it against a trace
-     *   yet)
+     * Ported from src/proc.c: Proc_SetMark
      */
     public fun setMark(proc: Proc, mark: Int) {
         proc.mark = mark and 0xFF
@@ -213,8 +212,7 @@ public class ProcEngine(
     /**
      * Sets [proc]'s end callback.
      *
-     * Transcribed from src/proc.c: Proc_SetEndCb (not verified: no test checks it against a trace
-     *   yet)
+     * Transcribed from src/proc.c: Proc_SetEndCb (not verified: the game never calls it)
      */
     public fun setEndCb(proc: Proc, func: ProcFunc?) {
         proc.endCb = func
@@ -223,8 +221,9 @@ public class ProcEngine(
     /**
      * Sets [proc]'s repeat callback.
      *
-     * Transcribed from src/proc.c: Proc_SetRepeatCb (not verified: no test checks it against a
-     *   trace yet)
+     * Transcribed from src/proc.c: Proc_SetRepeatCb (not verified: its only caller,
+     *   PlayPhaseForcePressAButtonInRangeDisp in playerphase.c, never runs in the 41 reference
+     *   runs)
      */
     public fun setRepeatCb(proc: Proc, func: ProcFunc?) {
         proc.idleCb = func
@@ -233,8 +232,9 @@ public class ProcEngine(
     /**
      * Calls [func] on every live proc in array order.
      *
-     * Transcribed from src/proc.c: Proc_ForAll (not verified: no test checks it against a trace
-     *   yet)
+     * Transcribed from src/proc.c: Proc_ForAll (not verified: its only callers, sub_8009A84 via
+     *   GameControl label 3 and ClassReel_OnEnd, were not found running in any of the 41 reference
+     *   runs; the search was not exhaustive)
      */
     public fun forAll(func: ProcFunc) {
         for (p in procs) if (p.script != null) func.invoke(p)
@@ -243,8 +243,7 @@ public class ProcEngine(
     /**
      * Calls [func] on every proc running [script] in array order.
      *
-     * Transcribed from src/proc.c: Proc_ForEach (not verified: no test checks it against a trace
-     *   yet)
+     * Ported from src/proc.c: Proc_ForEach
      */
     public fun forEach(script: ProcScript, func: ProcFunc) {
         for (p in procs) if (p.script === script) func.invoke(p)
@@ -253,8 +252,7 @@ public class ProcEngine(
     /**
      * Calls [func] on every proc (ended ones included, as in the original) with [mark].
      *
-     * Transcribed from src/proc.c: Proc_ForEachMarked (not verified: no test checks it against a
-     *   trace yet)
+     * Transcribed from src/proc.c: Proc_ForEachMarked (not verified: the game never calls it)
      */
     public fun forEachMarked(mark: Int, func: ProcFunc) {
         for (p in procs) if (p.mark == mark) func.invoke(p)
@@ -263,8 +261,7 @@ public class ProcEngine(
     /**
      * Increments the lock count of every proc with [mark].
      *
-     * Transcribed from src/proc.c: Proc_BlockEachMarked (not verified: no test checks it against a
-     *   trace yet)
+     * Ported from src/proc.c: Proc_BlockEachMarked
      */
     public fun blockEachMarked(mark: Int) {
         for (p in procs) if (p.mark == mark) p.lockCnt = (p.lockCnt + 1) and 0xFF
@@ -273,8 +270,7 @@ public class ProcEngine(
     /**
      * Decrements the lock count of every locked proc with [mark].
      *
-     * Transcribed from src/proc.c: Proc_UnblockEachMarked (not verified: no test checks it against
-     *   a trace yet)
+     * Ported from src/proc.c: Proc_UnblockEachMarked
      */
     public fun unblockEachMarked(mark: Int) {
         for (p in procs) if (p.mark == mark && p.lockCnt > 0) p.lockCnt--
@@ -283,8 +279,7 @@ public class ProcEngine(
     /**
      * Ends every proc with [mark].
      *
-     * Transcribed from src/proc.c: Proc_EndEachMarked (not verified: no test checks it against a
-     *   trace yet)
+     * Ported from src/proc.c: Proc_EndEachMarked
      */
     public fun endEachMarked(mark: Int) {
         for (p in procs) if (p.mark == mark) end(p)

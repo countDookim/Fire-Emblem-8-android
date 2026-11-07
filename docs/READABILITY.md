@@ -22,7 +22,7 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | Module | Package | Files | Lines | Status |
 |---|---|---:|---:|---|
 | app | fe8.app | 9 | 1270 | todo |
-| engine/core | gbafe.core.flags | 6 | 849 | todo |
+| engine/core | gbafe.core.flags | 6 | 849 | done 2026-11-07 c7b7651 |
 | engine/core | gbafe.core.math | 1 | 48 | done 2026-11-07 7fab3cc |
 | engine/core | gbafe.core.mechanics | 1 | 60 | done 2026-11-07 7fab3cc |
 | engine/core | gbafe.core.rng | 1 | 181 | done 2026-11-07 7fab3cc |

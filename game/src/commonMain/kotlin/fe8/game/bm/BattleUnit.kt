@@ -329,5 +329,8 @@ public class BattleStats {
 
         /** `BATTLE_CONFIG_ARENA`. */
         public const val CONFIG_ARENA: Int = 1 shl 5
+
+        /** `BATTLE_CONFIG_MAPANIMS`. */
+        public const val CONFIG_MAPANIMS: Int = 1 shl 7
     }
 }

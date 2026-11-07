@@ -48,6 +48,12 @@ public class BattleGenerate(
     /** `gActionData.script_hits`: the buffer the event queue is turned into. */
     public val scriptHits: IntArray = IntArray(BATTLE_HIT_MAX + 1)
 
+    /**
+     * `ItemBackupEvtBattle`: the actor's first item saved by an event battle with an item
+     * override, or [ITEM_BACKUP_NONE]. [startEventBattle] resets it; the override is not ported.
+     */
+    public var itemBackupEvtBattle: Int = ITEM_BACKUP_NONE
+
     /** `gActionData.scriptedBattleHits`: the hits to unwind, or `null`. */
     public var scriptedBattleHits: IntArray? = null
         private set
@@ -192,6 +198,47 @@ public class BattleGenerate(
         battle.target.weapon = t
         battle.actor.expGain = 0
         battle.target.expGain = 0
+        itemBackupEvtBattle = ITEM_BACKUP_NONE
+    }
+
+    /**
+     * Ported from src/eventscr3.c: EventBattleReloadBmStatus
+     *
+     * Ends an event battle: copies the battle units' HP into the units of [table], drops the
+     * scripted hits, restores the actor's first item from [itemBackupEvtBattle], clears
+     * `US_UNSELECTABLE` on both units and, for a map-animation battle, hides and kills the units
+     * left at 0 HP. [aiRefreshMap], [refreshEntityBmMaps] and [refreshUnitSprites] stand for
+     * `AiRefreshMap`, `RefreshEntityBmMaps` and `RefreshUnitSprites`, which are separate systems.
+     */
+    public fun eventBattleReloadBmStatus(
+        table: UnitTable,
+        aiRefreshMap: () -> Unit,
+        refreshEntityBmMaps: () -> Unit,
+        refreshUnitSprites: () -> Unit,
+    ) {
+        val b = table.bytes
+        val a = table.unitOffset(s8(battle.actor.bytes, OFF_INDEX))
+        val t = table.unitOffset(s8(battle.target.bytes, OFF_INDEX))
+        put8(b, a + OFF_CUR_HP, StructCodec.u8(battle.actor.bytes, OFF_CUR_HP))
+        put8(b, t + OFF_CUR_HP, StructCodec.u8(battle.target.bytes, OFF_CUR_HP))
+        scriptedBattleHits = null
+        aiRefreshMap()
+        if (itemBackupEvtBattle != ITEM_BACKUP_NONE) {
+            StructCodec.put16(b, a + OFF_ITEMS, itemBackupEvtBattle)
+        }
+        for (o in intArrayOf(a, t)) {
+            StructCodec.put32(b, o + OFF_STATE, u32(b, o + OFF_STATE) and US_UNSELECTABLE.inv())
+        }
+        if ((battle.stats.config and BattleStats.CONFIG_MAPANIMS) != 0) {
+            for (o in intArrayOf(a, t)) {
+                if (StructCodec.u8(b, o + OFF_CUR_HP) == 0) {
+                    val state = u32(b, o + OFF_STATE) or US_HIDDEN or US_DEAD
+                    StructCodec.put32(b, o + OFF_STATE, state)
+                }
+            }
+        }
+        refreshEntityBmMaps()
+        refreshUnitSprites()
     }
 
     /**
@@ -495,7 +542,10 @@ public class BattleGenerate(
         private const val STATUS_13 = 13
         private const val ITYPE_STAFF = 4
         private const val CLASS_DEMON_KING = 0x66
+        private const val US_HIDDEN = 1 shl 0
         private const val US_UNSELECTABLE = 1 shl 1
+        private const val US_DEAD = 1 shl 2
+        private const val ITEM_BACKUP_NONE = 0xFFFF
         private const val OFF_CLASS = 0x04
         private const val OFF_INDEX = 0x0B
         private const val OFF_STATE = 0x0C

@@ -880,12 +880,12 @@ public class BmBattle(
 
     /**
      * Transcribed from src/bmbattle.c: BattleApplyGameStateUpdates
-     *   (not verified: ram_trace_prologue_battle_end r15075 matches except the sword rank:
-     *   we write 182, the ROM keeps 181; see TASKS M6-40)
+     *   (not verified: the Prologue never runs it; the f15075 unit-table update of
+     *   ram_trace_prologue_battle_end is EventBattleReloadBmStatus)
      *
      * [battleApplyUnitUpdates] and [battleApplyBallistaUpdates]. The two debug print calls are
-     * no-ops and omitted. Verified against the Prologue battle (no status, level-up, rank gain,
-     * exp gain, ballista or obstacle: those branches are untested).
+     * no-ops and omitted. Untested: no trace runs the status, level-up, rank gain, exp gain,
+     * ballista or obstacle branches.
      */
     public fun battleApplyGameStateUpdates() {
         battleApplyUnitUpdates()
@@ -894,8 +894,8 @@ public class BmBattle(
 
     /**
      * Transcribed from src/bmbattle.c: BattleApplyUnitUpdates
-     *   (not verified: ram_trace_prologue_battle_end r15075 matches except the sword rank:
-     *   we write 182, the ROM keeps 181; see TASKS M6-40)
+     *   (not verified: the Prologue never runs it; the f15075 unit-table update of
+     *   ram_trace_prologue_battle_end is EventBattleReloadBmStatus)
      *
      * Writes the used weapons back into the battle units' items, then the battle units into the
      * unit table. A target without a unit (`UpdateObstacleFromBattle`) is not ported.
@@ -919,8 +919,8 @@ public class BmBattle(
 
     /**
      * Transcribed from src/bmbattle.c: UpdateUnitFromBattle
-     *   (not verified: ram_trace_prologue_battle_end r15075 matches except the sword rank:
-     *   we write 182, the ROM keeps 181; see TASKS M6-40)
+     *   (not verified: the Prologue never runs it; the f15075 unit-table update of
+     *   ram_trace_prologue_battle_end is EventBattleReloadBmStatus)
      *
      * Copies level, exp, HP, state, stat changes, weapon exp and items of [bu] into the unit at
      * [o] of the unit table, sets [arenaLevelLatch], the status, caps the stats and reports the
@@ -959,7 +959,7 @@ public class BmBattle(
     }
 
     /**
-     * Ported from src/bmunit.c: UnitRemoveInvalidItems
+     * Transcribed from src/bmunit.c: UnitRemoveInvalidItems (not verified: no trace runs it yet)
      *
      * Moves the items of the unit at [o] up so that no empty slot precedes an item.
      */
@@ -977,7 +977,7 @@ public class BmBattle(
 
     /**
      * Transcribed from src/bmbattle.c: GetBattleUnitUpdatedWeaponExp (not verified: the Prologue
-     *   dump shows no rank gain where this gives +1; see BattleApplyDifferentialTest)
+     *   never runs it; the f15075 update is EventBattleReloadBmStatus)
      *
      * The weapon exp [bu] has after the battle, or -1 where it gains none.
      */
@@ -1001,7 +1001,7 @@ public class BmBattle(
         val cls = u32(bb, OFF_CLASS)
         for (i in 0 until 8) {
             if (i == bu.weaponType) continue
-            if (rom.u8(cls + 0x14 + i) == WPN_EXP_S) continue
+            if (rom.u8(cls + 0x2C + i) == WPN_EXP_S) continue
             if (u8(bb, OFF_RANKS + i) < WPN_EXP_S) continue
             if (result >= WPN_EXP_S) result = WPN_EXP_S - 1
             break

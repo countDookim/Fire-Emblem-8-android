@@ -108,7 +108,9 @@ class NewGameToPrologueTest {
             },
             RngService(),
         )
-        while (frame < 3000 && boot.engine.find(boot.playerPhaseScript) == null) {
+        // Phase 1 (A presses) runs until the beginning events start: with the game locked
+        // during events, player phase only starts after they end.
+        while (frame < 3000 && !boot.eventEngine.eventEngineExists()) {
             boot.frame()
             frame++
         }

@@ -404,6 +404,10 @@ public class Fe8Boot(
     /** `gSMSHandleArray` of the battle map, set by [wireUnitSprites]. */
     private var spriteHandles: UnitSpriteHandles? = null
 
+    /** The unit sprite sheet state (`gUnitSpriteSlots`, index counters), set by [wireUnitSprites]. */
+    public var unitSprites: UnitSprites? = null
+        private set
+
     /** `RefreshUnitSprites` of the battle map, set by [wireUnitSprites]. */
     private var refreshSprites: () -> Unit = {}
 
@@ -575,6 +579,7 @@ public class Fe8Boot(
     ) {
         val bm = loop.bmSt
         val sprites = UnitSprites(rom, hw, bm).also { it.clockSource = clock }
+        unitSprites = sprites
         val handles = UnitSpriteHandles(rom, sprites, units)
         val oam = UnitSpritesOam(
             rom, units, handles, bm, control.playSt, battleChapters, flags, loop.oam,

@@ -99,8 +99,7 @@ public class SoundWrapper(
      * `Sound_SetSEVolume` (despite the name it sets BGM1's and BGM2's volume):
      * `m4aMPlayVolumeControl` of all tracks to [volume].
      *
-     * Transcribed from src/soundwrapper.c: Sound_SetSEVolume (not verified: the volume-ramp test
-     *   is disabled)
+     * Ported from src/soundwrapper.c: Sound_SetSEVolume
      */
     public fun setSeVolume(volume: Int) {
         bgm1?.let { M4aCommands.volumeControl(it, 0xFFFF, volume) }
@@ -111,8 +110,7 @@ public class SoundWrapper(
      * `StartBgmVolumeChange`: starts a proc (blocking [parent], else in tree 3) that ramps the BGM
      * volume from [volume] to [end] over [time] frames, and sets [volume] (at least 1) now.
      *
-     * Transcribed from src/soundwrapper.c: StartBgmVolumeChange (not verified: see
-     *   [musicVcOnLoop])
+     * Ported from src/soundwrapper.c: StartBgmVolumeChange
      */
     public fun startBgmVolumeChange(volume: Int, end: Int, time: Int, parent: Proc?) {
         val proc = (if (parent != null) engine.startBlocking(bgmVolumeChangeScript, parent)
@@ -130,7 +128,7 @@ public class SoundWrapper(
      * `MusicVc_OnLoop`: sets the interpolated volume; at the end stops the song (end volume 0) or
      * marks it playing, and ends.
      *
-     * Transcribed from src/soundwrapper.c: MusicVc_OnLoop (not verified: see the volume test)
+     * Ported from src/soundwrapper.c: MusicVc_OnLoop
      */
     public fun musicVcOnLoop(proc: Proc) {
         val st = proc.state as VolumeState

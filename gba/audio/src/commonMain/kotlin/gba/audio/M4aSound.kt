@@ -101,7 +101,7 @@ public class M4aSound(
     /**
      * `m4aSongNumStop(n)`: stops song [n]'s player if it plays that song's header.
      *
-     * Transcribed from src/m4a.c: m4aSongNumStop (not verified: no trace stops a song this way)
+     * Ported from src/m4a.c: m4aSongNumStop
      */
     public fun songNumStop(n: Int) {
         val p = players[songs.player(n and 0xFFFF)]

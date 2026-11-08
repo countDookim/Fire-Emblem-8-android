@@ -26,6 +26,23 @@ internal class MuSpriteAnim(
     /** `gMUGfxBuffer`: one decompressed sheet per slot. */
     private val gfxBuffer = ByteArray(MU_GFX_MAX_SIZE * Mu.MU_MAX_COUNT)
 
+    // MU-only subset of the original 32-entry transfer registry; other producers are not queued
+    // here. RegisterDataMove stores source pointers, so resolve sheet bytes only at VBlank.
+    private val moveSources = IntArray(32)
+    private val moveDestinations = IntArray(32)
+    private val moveSizes = IntArray(32)
+    private var moveCount = 0
+
+    /** Flushes the queued MU tile rows in registration order at VBlank. */
+    fun flushTileMoves() {
+        for (i in 0 until moveCount) {
+            gfxBuffer.copyInto(
+                hw.vram, moveDestinations[i], moveSources[i], moveSources[i] + moveSizes[i],
+            )
+        }
+        moveCount = 0
+    }
+
     init {
         player.clearAll()
     }
@@ -72,10 +89,16 @@ internal class MuSpriteAnim(
     /** `Register2dChrMove`: rows of [width] tiles from the sheet, 0x20 tiles apart in VRAM. */
     override fun register2dChrMove(src: Int, dstOffset: Int, width: Int, height: Int) {
         val line = width * CHR_SIZE
+        check(moveCount + height <= moveSources.size) { "MU tile transfer queue overflow" }
         for (row in 0 until height) {
             val to = OBJ_VRAM0 + dstOffset + row * CHR_SIZE * 0x20
-            if (to + line > hw.vram.size) return
-            gfxBuffer.copyInto(hw.vram, to, src - GFX_BASE + row * line, src - GFX_BASE + (row + 1) * line)
+            check(to >= OBJ_VRAM0 && to + line <= hw.vram.size) {
+                "MU tile destination out of VRAM"
+            }
+            moveSources[moveCount] = src - GFX_BASE + row * line
+            moveDestinations[moveCount] = to
+            moveSizes[moveCount] = line
+            moveCount++
         }
     }
 

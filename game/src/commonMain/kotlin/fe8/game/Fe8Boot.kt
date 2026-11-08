@@ -535,12 +535,16 @@ public class Fe8Boot(
     /** `RefreshUnitSprites` of the battle map, set by [wireUnitSprites]. */
     private var refreshSprites: () -> Unit = {}
 
+    /** MU animation owner retained to flush its registered tile moves during VBlank. */
+    private var muSpriteAnim: MuSpriteAnim? = null
+
     /**
      * The MU system (`mu.c`) with class lookups from the ROM; walking MUs are drawn by the ap.c
      * sprite animation player ([MuSpriteAnim]); the standing-MU SMS hooks are still no-ops.
      */
     public val mu: Mu by lazy {
         val spriteAnim = MuSpriteAnim(rom, hw, loop.oam, loop.sprites)
+        muSpriteAnim = spriteAnim
         lateinit var self: Mu
         self = Mu(
             engine, loop.bmSt, control.playSt, keys, camMove.script,
@@ -785,6 +789,7 @@ public class Fe8Boot(
         flush = {
             hw.lcd.flushTo(io)
             hw.flushBackgrounds()
+            muSpriteAnim?.flushTileMoves()
         },
         soundVSync = { driver?.vSync() },
         soundMain = { driver?.main() },

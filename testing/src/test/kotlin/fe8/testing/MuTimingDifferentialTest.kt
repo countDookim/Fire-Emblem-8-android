@@ -20,6 +20,7 @@ import gbafe.core.rng.RngService
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
 import java.io.File
+import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -34,8 +35,8 @@ import org.junit.jupiter.api.Test
  * through n12600, including both controllers and all four MU positions. This isolates REDA
  * delays and movement from the event engine's earlier timing and the boot harness's A pulses.
  * The full-boot test also aligns at the first pair's movement, replays the original A input
- * and compares the four MU objects at f12600. It does not verify earlier event scheduling or
- * animation beyond that one OAM capture.
+ * and compares the four MU objects and their referenced OBJ tiles at f12600. It does not verify
+ * earlier event scheduling or animation beyond that capture.
  */
 class MuTimingDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -161,6 +162,7 @@ class MuTimingDifferentialTest {
         var referenceFrame = 12527
         var checked = 0
         val referenceOam = run.region("f12600", "oam")
+        val referenceVram = run.region("f12600", "vram")
         // n12528 is still the preceding pass; n12561/n12562 are one split pass.
         // Its input is n12561, and its completed state is captured at n12562.
         val pb = PrologueBoot(romFile) { frame ->
@@ -211,6 +213,22 @@ class MuTimingDifferentialTest {
                     val want = muObjects { GbaMem.u16(referenceOam, 0, it * 2) }
                     assertEquals(4, want.size, "f12600 original MU objects")
                     assertEquals(want, muObjects { oam[it].toInt() and 0xFFFF }, "f12600 MU OAM")
+                    val hw = pb.boot.ui.env.hardware
+                    assertEquals(0, hw.lcd.dispcnt and 0x40, "2D OBJ mapping")
+                    val tiles = muObjectTiles(want)
+                    assertEquals(64, tiles.size, "f12600 referenced MU tiles")
+                    assertTrue(tiles.any { tile ->
+                        referenceVram.sliceArray(0x10000 + tile * 32 until 0x10020 + tile * 32)
+                            .any { it != 0.toByte() }
+                    }, "MU tiles contain graphics")
+                    for (tile in tiles) {
+                        val start = 0x10000 + tile * 32
+                        assertArrayEquals(
+                            referenceVram.copyOfRange(start, start + 32),
+                            hw.vram.copyOfRange(start, start + 32),
+                            "f12600 OBJ tile 0x${tile.toString(16)}",
+                        )
+                    }
                 }
                 checked++
             }
@@ -248,4 +266,21 @@ class MuTimingDifferentialTest {
         const val MAP_TERRAIN = 0x0202E4DC
         const val MAP_OTHER = 0x0202E4F0
     }
+}
+
+/** Returns the 4bpp tile indices covered by the OAM objects in 2D mapping mode. */
+private fun muObjectTiles(objects: List<List<Int>>): Set<Int> {
+    val dimensions = listOf(
+        listOf(1 to 1, 2 to 2, 4 to 4, 8 to 8),
+        listOf(2 to 1, 4 to 1, 4 to 2, 8 to 4),
+        listOf(1 to 2, 1 to 4, 2 to 4, 4 to 8),
+    )
+    return objects.flatMap { obj ->
+        val shape = obj[0] ushr 14
+        val size = obj[1] ushr 14
+        require(shape < dimensions.size && obj[0] and 0x2000 == 0)
+        val (width, height) = dimensions[shape][size]
+        val first = obj[2] and 0x3FF
+        (0 until height).flatMap { y -> (0 until width).map { x -> first + y * 32 + x } }
+    }.toSet()
 }

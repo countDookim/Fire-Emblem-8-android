@@ -35,9 +35,9 @@ public object IconsExtractor {
         val sheet = IndexedImage(PER_ROW * 16, rows * 16)
         for (i in 0 until count) {
             val icon = Tiles.decode4bpp(rom, tilesOffset + i * ICON_BYTES, 4, 2)
-            val ox = (i % PER_ROW) * 16
-            val oy = (i / PER_ROW) * 16
-            for (y in 0 until 16) for (x in 0 until 16) sheet[ox + x, oy + y] = icon[x, y]
+            val sheetX = (i % PER_ROW) * 16
+            val sheetY = (i / PER_ROW) * 16
+            for (y in 0 until 16) for (x in 0 until 16) sheet[sheetX + x, sheetY + y] = icon[x, y]
         }
         val palette = Bgr555.readPalette(rom, paletteOffset, 32)
         val json = Json.write(

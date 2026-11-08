@@ -43,21 +43,30 @@ public object CursorsExtractor {
      * `gImg_UiCursorHandTop`/`Bottom`, [handSprites] the hand's OAM lists (`gSprite_UiCursorHand_*`).
      */
     public fun extract(
-        rom: ByteArray, gfx: Int, pal: Int, cursorLut: Int, stretched: Int, handTop: Int, handBottom: Int,
+        rom: ByteArray, gfx: Int, pal: Int, cursorLut: Int, stretched: Int,
+        handTop: Int, handBottom: Int,
         handSprites: List<Int>,
     ): Output {
         val files = LinkedHashMap<String, ByteArray>()
         val palettes = List(2) { Bgr555.readPalette(rom, pal + 32 * it, 16) }
         val sheet = Lz77.decode(rom, gfx).data
         val sheetTiles = SHEET_TILES_WIDE * SHEET_TILE_ROWS
-        require(sheet.size >= sheetTiles * Tiles.BYTES_4BPP) { "misc UI gfx: ${sheet.size} bytes < $sheetTiles tiles" }
-        files["cursors.png"] = IndexedPng.write(Tiles.decode4bpp(sheet, 0, sheetTiles, SHEET_TILES_WIDE), palettes[0])
+        require(sheet.size >= sheetTiles * Tiles.BYTES_4BPP) {
+            "misc UI gfx: ${sheet.size} bytes < $sheetTiles tiles"
+        }
+        files["cursors.png"] = IndexedPng.write(
+            Tiles.decode4bpp(sheet, 0, sheetTiles, SHEET_TILES_WIDE), palettes[0],
+        )
 
         val top = Lz77.decode(rom, handTop).data
         val bottom = Lz77.decode(rom, handBottom).data
-        require(top.size == bottom.size && top.size % Tiles.BYTES_4BPP == 0) { "hand halves: ${top.size} / ${bottom.size} bytes" }
+        require(top.size == bottom.size && top.size % Tiles.BYTES_4BPP == 0) {
+            "hand halves: ${top.size} / ${bottom.size} bytes"
+        }
         val handWide = top.size / Tiles.BYTES_4BPP
-        files["cursor_hand.png"] = IndexedPng.write(Tiles.decode4bpp(top + bottom, 0, 2 * handWide, handWide), palettes[0])
+        files["cursor_hand.png"] = IndexedPng.write(
+            Tiles.decode4bpp(top + bottom, 0, 2 * handWide, handWide), palettes[0],
+        )
 
         val lut = List(16) { u32(rom, cursorLut + 4 * it) - ROM }
         val distinct = (lut + stretched).distinct()
@@ -66,29 +75,46 @@ public object CursorsExtractor {
             linkedMapOf(
                 "format" to "gbafe.cursors", "game" to "fe8", "version" to 1,
                 "palettes" to palettes.map { p -> p.map { Bgr555.fromArgb(it) } },
-                "sheet" to linkedMapOf("image" to "cursors.png", "tilesWide" to SHEET_TILES_WIDE, "tileRows" to SHEET_TILE_ROWS,
-                    "objVram" to 0x06010000, "objPalette" to 0),
+                "sheet" to linkedMapOf(
+                    "image" to "cursors.png", "tilesWide" to SHEET_TILES_WIDE,
+                    "tileRows" to SHEET_TILE_ROWS, "objVram" to 0x06010000, "objPalette" to 0,
+                ),
                 "mapCursor" to linkedMapOf(
                     "sprites" to sprites,
                     "frames" to lut.map { distinct.indexOf(it) },
                     "stretched" to distinct.indexOf(stretched),
                     "oam2" to linkedMapOf("normal" to 2, "alt" to 0x24),
                 ),
-                "hand" to linkedMapOf("image" to "cursor_hand.png", "tilesWide" to handWide, "tileRows" to 2,
-                    "objVram" to listOf(0x060100C0, 0x060104C0), "objPalette" to 0, "paletteSource" to "caller",
-                    "sprites" to handSprites.map { readSprite(rom, it) }),
+                "hand" to linkedMapOf(
+                    "image" to "cursor_hand.png", "tilesWide" to handWide, "tileRows" to 2,
+                    "objVram" to listOf(0x060100C0, 0x060104C0), "objPalette" to 0,
+                    "paletteSource" to "caller", "sprites" to handSprites.map { readSprite(rom, it) },
+                ),
             ),
         )
         return Output(files, json)
     }
 
-    private fun readSprite(rom: ByteArray, o: Int): List<Map<String, Int>> {
-        val n = u16(rom, o)
-        require(n in 1..32) { "sprite at 0x${hexUpper(o)}: $n objects" }
-        return List(n) { k -> linkedMapOf("attr0" to u16(rom, o + 2 + 6 * k), "attr1" to u16(rom, o + 4 + 6 * k), "attr2" to u16(rom, o + 6 + 6 * k)) }
+    /** Reads an OAM list for one map or hand cursor sprite. */
+    private fun readSprite(rom: ByteArray, offset: Int): List<Map<String, Int>> {
+        val objectCount = u16(rom, offset)
+        require(objectCount in 1..32) { "sprite at 0x${hexUpper(offset)}: $objectCount objects" }
+        return List(objectCount) { index ->
+            linkedMapOf(
+                "attr0" to u16(rom, offset + 2 + 6 * index),
+                "attr1" to u16(rom, offset + 4 + 6 * index),
+                "attr2" to u16(rom, offset + 6 + 6 * index),
+            )
+        }
     }
 
     private const val ROM = 0x08000000
-    private fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
-    private fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)
+
+    /** Reads a little-endian 16-bit value from the ROM. */
+    private fun u16(bytes: ByteArray, offset: Int) =
+        (bytes[offset].toInt() and 0xFF) or ((bytes[offset + 1].toInt() and 0xFF) shl 8)
+
+    /** Reads a little-endian cursor sprite pointer from the ROM. */
+    private fun u32(bytes: ByteArray, offset: Int) =
+        u16(bytes, offset) or (u16(bytes, offset + 2) shl 16)
 }

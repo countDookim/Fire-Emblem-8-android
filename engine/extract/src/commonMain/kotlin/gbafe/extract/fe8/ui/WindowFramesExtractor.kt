@@ -22,23 +22,42 @@ public object WindowFramesExtractor {
     )
 
     /** Extracts from the three lookup tables (ROM offsets). */
-    public fun extract(rom: ByteArray, imageLookup: Int, paletteLookup: Int, modelLookup: Int): Output {
+    public fun extract(
+        rom: ByteArray, imageLookup: Int, paletteLookup: Int, modelLookup: Int,
+    ): Output {
         val files = LinkedHashMap<String, ByteArray>()
-        val colors = List(4) { c ->
-            val img = Lz77.decode(rom, u32(rom, imageLookup + 4 * c) - ROM).data
-            val pal = Bgr555.readPalette(rom, u32(rom, paletteLookup + 4 * c) - ROM, 16)
-            val tiles = img.size / Tiles.BYTES_4BPP
-            val padded = img.copyOf((tiles + 15) / 16 * 16 * Tiles.BYTES_4BPP)
-            val name = "window_frame_$c.png"
-            files[name] = IndexedPng.write(Tiles.decode4bpp(padded, 0, padded.size / Tiles.BYTES_4BPP, 16), pal)
-            linkedMapOf("windowColor" to c, "image" to name, "tiles" to tiles)
+        val colors = List(4) { color ->
+            val image = Lz77.decode(rom, u32(rom, imageLookup + 4 * color) - ROM).data
+            val palette = Bgr555.readPalette(rom, u32(rom, paletteLookup + 4 * color) - ROM, 16)
+            val tiles = image.size / Tiles.BYTES_4BPP
+            // Complete the final row so the 16-tile-wide PNG has a rectangular tile sheet.
+            val padded = image.copyOf((tiles + 15) / 16 * 16 * Tiles.BYTES_4BPP)
+            val name = "window_frame_$color.png"
+            files[name] = IndexedPng.write(
+                Tiles.decode4bpp(padded, 0, padded.size / Tiles.BYTES_4BPP, 16),
+                palette,
+            )
+            linkedMapOf("windowColor" to color, "image" to name, "tiles" to tiles)
         }
-        val models = List(4) { s -> val o = u32(rom, modelLookup + 4 * s) - ROM; List(16) { u16(rom, o + 2 * it) } }
-        val json = Json.write(linkedMapOf("format" to "gbafe.windowframes", "game" to "fe8", "version" to 1, "colors" to colors, "modelTilemaps" to models))
+        val models = List(4) { style ->
+            val offset = u32(rom, modelLookup + 4 * style) - ROM
+            List(16) { u16(rom, offset + 2 * it) }
+        }
+        val json = Json.write(
+            linkedMapOf(
+                "format" to "gbafe.windowframes", "game" to "fe8", "version" to 1,
+                "colors" to colors, "modelTilemaps" to models,
+            ),
+        )
         return Output(files, json)
     }
 
     private const val ROM = 0x08000000
-    private fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
-    private fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)
+    /** Reads a little-endian 16-bit value from the ROM. */
+    private fun u16(bytes: ByteArray, offset: Int) =
+        (bytes[offset].toInt() and 0xFF) or ((bytes[offset + 1].toInt() and 0xFF) shl 8)
+
+    /** Reads a little-endian lookup-table pointer from the ROM. */
+    private fun u32(bytes: ByteArray, offset: Int) =
+        u16(bytes, offset) or (u16(bytes, offset + 2) shl 16)
 }

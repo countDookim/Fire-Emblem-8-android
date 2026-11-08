@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test
 
 /**
  * D-02: unit sprites (OBJ) are drawn while the Prologue opening events run, before the battle
- * map. The original's `ram_trace_prologue` dumps f09600..f12300 (every 300 frames) are taken
+ * map. The original's `ram_trace_prologue` dumps (every 300 frames) are taken
  * during those events; each has a unit table (valid units and their tiles) and hardware OAM.
  * Our headless New Game flow ([PrologueBoot]) must, for each of these dumps, have a frame with
  * the same unit table (character id and tile of every valid unit) and, on that frame with the
@@ -23,10 +23,10 @@ import org.junit.jupiter.api.Test
  * Frame numbers differ between the runs (different input timing), so frames are matched by
  * the unit table and the objects, never by number (the first frame with a dump's table can still
  * show a moving unit, e.g. f12900's two last units appear one frame before their sprites).
- * Scope: the ten dumps f09600..f12300 (several share a table) and f12900; f12600's table never
- * occurs in our run and later cutscene dumps have moving units or other animation phases, so
- * they are not compared; the objects' draw order and the affine parameters are
- * not compared.
+ * Scope: the dumps in [DUMP_FRAMES]: f09600..f12900 every 300 frames (several share a table)
+ * and f18000..f19200. The other later dumps have no map-sprite objects, or have moving units
+ * or other animation phases, so they are not compared; neither are the objects' draw order,
+ * the affine parameters and the MU objects (tiles 0x380..0x3FF).
  */
 class CutsceneUnitSpritesTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -113,8 +113,8 @@ class CutsceneUnitSpritesTest {
 
     private companion object {
         val MU_TILES = 0x380..0x3FF
-        /** f09600..f12300 every 300 frames, then f12900 (f12600's table never occurs). */
-        val DUMP_FRAMES = (9600..12300 step 300).toList() + 12900
+        /** Dumps with map-sprite objects whose table and objects occur in our run. */
+        val DUMP_FRAMES = (9600..12900 step 300).toList() + (18000..19200 step 300).toList()
         const val OBJ_COUNT = 128
         const val SCREEN_HEIGHT = 160
         val SPRITE_TILES = 128..511

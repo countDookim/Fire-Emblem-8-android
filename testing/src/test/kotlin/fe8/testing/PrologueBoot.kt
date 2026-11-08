@@ -10,7 +10,11 @@ import java.io.File
  * until the Prologue player phase idles (the beginning events have ended). Keys come from [keys]
  * once the idle phase is reached; before that A is pressed a few frames out of 20.
  */
-internal class PrologueBoot(rom: File) {
+internal class PrologueBoot(
+    rom: File,
+    /** Whether A is pressed on [frame] (from 0) before the idle phase. */
+    private val pulse: (frame: Int) -> Boolean = { it % 20 in 5..8 },
+) {
     /**
      * Raw pressed keys during the idle phase, as a boxed Int created once by the caller: a
      * `() -> Int` lambda returning an `Int` above 127 would allocate an Integer per call, which
@@ -22,7 +26,7 @@ internal class PrologueBoot(rom: File) {
     private var idle = false
     private var frame = 0
 
-    private val keySource: () -> Any = { if (idle) keys else if (frame % 20 in 5..8) A else 0 }
+    private val keySource: () -> Any = { if (idle) keys else if (pulse(frame)) A else 0 }
 
     /** The booted game. */
     val boot = Fe8Boot(

@@ -47,6 +47,6 @@ class OpeningStubCommandsTest {
 
     private companion object {
         // 0x0D (x1), 0x37 (x1), 0x3A (x1)
-        val EXPECTED = listOf(13, 55, 58)
+        val EXPECTED = listOf(55, 58)
     }
 }

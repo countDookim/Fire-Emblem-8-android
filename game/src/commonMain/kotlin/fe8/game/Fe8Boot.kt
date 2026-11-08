@@ -36,6 +36,8 @@ import fe8.game.event.EventConst
 import fe8.game.event.EventEngine
 import fe8.game.event.EventEngineHooks
 import fe8.game.event.EventBgm
+import fe8.game.event.EventAsmCall
+import fe8.game.event.bmGuideTextSetAllGreen
 import fe8.game.event.EventFade
 import fe8.game.event.EventHandler
 import fe8.game.event.EventScrCore
@@ -353,6 +355,10 @@ public class Fe8Boot(
             }
             if (rom.isWholeRom) {
                 eventText.registerOn(it)
+                EventAsmCall(
+                    memory,
+                    mapOf(0x080CF460 to { _ -> bmGuideTextSetAllGreen(memory, flags) }),
+                ).registerOn(it)
                 eventTextBg.registerOn(it)
             }
             ReleaseEventStubs.registerMissing(it) { code -> onEventStub?.invoke(code) }

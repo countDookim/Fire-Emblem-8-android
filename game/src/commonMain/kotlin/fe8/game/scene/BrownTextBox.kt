@@ -103,8 +103,9 @@ internal class BrownTextBox(
     }
 
     /**
-     * Transcribed from src/popup.c: StartBrownTextBoxCore
-     * (not verified: no reference test; the text drawing is a host stand-in, see the class)
+     * Ported from src/popup.c: StartBrownTextBoxCore
+     * (verified at the hold frame against ram_trace_newgame_bm f09559: OAM width, palettes, box
+     * and text tiles in OBJ VRAM; not covered: other chr/pal/x/y values, other message lengths)
      */
     fun startBrownTextBoxCore(x: Int, y: Int, textId: Int, chr: Int, pal: Int, parent: Proc) {
         val proc = engine.start(boxScript, parent)
@@ -131,8 +132,9 @@ internal class BrownTextBox(
     }
 
     /**
-     * Transcribed from src/popup.c: BrownTextBox_Loop
-     * (not verified: no reference test)
+     * Ported from src/popup.c: BrownTextBox_Loop
+     * (verified at the hold frame against ram_trace_newgame_bm f09559 for one width (12 tiles);
+     * not covered: the OAM0_BLEND frames, other widths, odd/even loop remainders)
      */
     fun brownTextBoxLoop(proc: Proc) {
         val s = proc.state as BrownTextBoxState

@@ -98,7 +98,7 @@ def passed_tests(root: Path = ROOT) -> set[tuple[str, str]]:
         for tc in tree.iter("testcase"):
             if any(child.tag in ("failure", "error", "skipped") for child in tc):
                 continue
-            ok.add((tc.get("classname", ""), re.sub(r"\(.*\)$", "", tc.get("name", ""))))
+            ok.add((tc.get("classname", ""), re.sub(r"\(.*\)(\[\w+\])?$", "", tc.get("name", ""))))
     return ok
 
 

@@ -254,8 +254,9 @@ public class TextSystem(
     /**
      * VRAM address of the sprite text tile at the pen.
      *
-     * Transcribed from src/fontgrp.c: GetSpriteTextDrawDest
-     * (not verified: compared only through the Prologue brown text box tiles)
+     * Ported from src/fontgrp.c: GetSpriteTextDrawDest
+     * (verified through the Prologue brown text box tiles in ram_trace_newgame_bm f09559; not
+     * covered: dbId != 0, chrPosition != 0)
      */
     public fun getSpriteTextDrawDest(text: Text): Int =
         activeFont.vramDest + (text.dbId * text.tileWidth + text.chrPosition + text.x / 8) * CHR_SIZE
@@ -264,8 +265,9 @@ public class TextSystem(
      * Draws [glyph] (ROM address) as OBJ tiles (two 8-row halves, the second `0x400` bytes on)
      * and advances the pen.
      *
-     * Transcribed from src/fontgrp.c: DrawSpriteTextGlyph
-     * (not verified: compared only through the Prologue brown text box tiles)
+     * Ported from src/fontgrp.c: DrawSpriteTextGlyph
+     * (verified through the Prologue brown text box tiles in ram_trace_newgame_bm f09559; not
+     * covered: colour ids other than 0)
      */
     public fun drawSpriteTextGlyph(text: Text, glyph: Int) {
         val lut = getColorLut(text.colorId) - ROM_BASE

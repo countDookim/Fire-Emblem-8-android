@@ -1,5 +1,6 @@
 package fe8.game
 
+import gba.core.VerifiesPort
 import gbafe.core.rng.RngService
 import java.io.File
 import java.nio.ByteBuffer
@@ -34,6 +35,9 @@ class BrownTextBoxReferenceTest {
         assertEquals(7, px / 8, "text width $px px")
     }
 
+    @VerifiesPort(
+        "StartBrownTextBoxCore", "BrownTextBox_Loop", "GetSpriteTextDrawDest", "DrawSpriteTextGlyph",
+    )
     @Test
     fun `the Prologue box hold frame equals the reference OAM entries`() {
         val rom = File(assets, "baserom.gba")

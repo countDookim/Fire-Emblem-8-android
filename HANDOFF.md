@@ -7,6 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
+- M6-44 Event3A brown box: scheduled, until ~23:25Z 2026-11-08 (wip/M6-44-3A).
 - D-06 MU timing: owner PC (GPT), until ~19:15Z 2026-11-08; reference comparison and focused correction.
 - M6-35 face palette fades: owner PC (GPT), until ~19:15Z 2026-11-08; reference-test the palette fade-in.
 - M6-44 ASMC/guide verification: owner PC (GPT), until ~19:15Z 2026-11-08.

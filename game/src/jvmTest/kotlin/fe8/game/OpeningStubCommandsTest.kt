@@ -43,10 +43,16 @@ class OpeningStubCommandsTest {
         println("stub codes (code=count): " +
             counts.entries.joinToString { "0x%02X=%d".format(it.key, it.value) })
         assertEquals(EXPECTED, counts.keys.toList())
+        val eirika = boot.units.getUnitFromCharId(1)
+        val o = boot.units.unitOffset(eirika)
+        val items = (0 until 5).map {
+            (boot.units.bytes[o + 0x1E + 2 * it].toInt() and 0xFF)
+        }
+        assertTrue(0x09 in items, "Rapier not in Eirika's inventory: $items")
     }
 
     private companion object {
-        // 0x0D (x1), 0x37 (x1), 0x3A (x1)
-        val EXPECTED = listOf(55, 58)
+        // 0x3A (x1)
+        val EXPECTED = listOf(58)
     }
 }

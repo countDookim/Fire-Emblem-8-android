@@ -3,6 +3,7 @@ package fe8.game
 import fe8.game.bm.BMapMain
 import fe8.game.bm.BattleGenerate
 import fe8.game.bm.BmBattle
+import fe8.game.bm.ItemInfo
 import fe8.game.bm.BMapMain.Companion.SAVE_ID_SUSPEND
 import fe8.game.bm.BattleMapNodes
 import fe8.game.bm.BattleMapStart
@@ -37,6 +38,7 @@ import fe8.game.event.EventEngine
 import fe8.game.event.EventEngineHooks
 import fe8.game.event.EventBgm
 import fe8.game.event.EventAsmCall
+import fe8.game.event.EventGiveItem
 import fe8.game.event.bmGuideTextSetAllGreen
 import fe8.game.event.EventFade
 import fe8.game.event.EventHandler
@@ -353,6 +355,13 @@ public class Fe8Boot(
             registerMoveUnit(it, state, memory, loader) { pid ->
                 unitState.getUnitStructFromEventParameter(pid)
             }
+            val itemInfo = ItemInfo(rom)
+            EventGiveItem(
+                state, memory, { pid -> unitState.getUnitStructFromEventParameter(pid) },
+                { u, item -> loader.unitAddItem(units.unitOffset(u), item) },
+                itemInfo::makeNewItem,
+                { control.playSt.partyGoldAmount }, { control.playSt.partyGoldAmount = it },
+            ).registerOn(it)
             if (rom.isWholeRom) {
                 eventText.registerOn(it)
                 EventAsmCall(

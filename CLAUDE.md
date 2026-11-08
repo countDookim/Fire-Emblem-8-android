@@ -13,9 +13,9 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
    sessions: `git fetch` + rebase the existing checkout instead of cloning; no time box; ask the owner directly
    instead of NEEDS USER; the SDK is in `~/android-sdk` (export `ANDROID_HOME` in non-interactive shells), so `:app`
    and the android targets build there too.
-3. Never commit the ROM or anything extracted from it. ROM-derived data goes to the ROM repo only. Until the public
-   release, **debug/test APKs may bundle the ROM repo's extracted assets** (private `latest` release, owner 2026-10-28);
-   public release builds ship none (players supply their ROM, extracted on device: docs/decisions/0011).
+3. Never commit the ROM or anything extracted from it. ROM-derived data goes to the ROM repo only. **No APK bundles
+   game data, debug/test builds included** (owner 2026-11-08, replaces the 2026-10-28 amendment): every build needs a
+   ROM imported on the device (docs/decisions/0011); CI's `check_no_game_content.py` guards debug and release APKs.
 4. A function is "ported" only with a `Ported from <file>: <Func>` KDoc AND a passing `@VerifiesPort` test
    against ground truth (docs/decisions/0006-verification-policy.md). Never inflate progress.
 5. Default branch is `master`. Commit + push after every completed step; unfinished work on `wip/<task-id>`.

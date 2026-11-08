@@ -27,7 +27,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -57,9 +56,8 @@ import kotlinx.coroutines.withContext
  * Single activity. Compose is used for the launcher/settings shell only; once the game starts the
  * content is a [GameSurfaceView] (OpenGL ES 3.0) and Compose does no per-frame work.
  *
- * Debug/test APKs bundle the extracted assets (`assets/extracted/`): the game view then runs
- * the boot sequence ([Fe8Boot]). Without them (release builds until ROM import exists) it shows
- * the placeholder pattern of [Fe8Game.present]. After an import the kept ROM image
+ * No APK bundles game data: Play is enabled once a ROM is imported, and the game view then runs
+ * the boot sequence ([Fe8Boot]). After an import the kept ROM image
  * (`base/rom/baserom.gba`) backs the game; without it the boot/sound windows end at the title.
  */
 public class MainActivity : ComponentActivity() {
@@ -73,7 +71,7 @@ public class MainActivity : ComponentActivity() {
 
     /**
      * Starts the game (boot sequence, GPU renderer) with its sound: the game loop mixes each frame
-     * into a [PcmStream] that the audio thread plays (debug builds with the bundled sound window).
+     * into a [PcmStream] that the audio thread plays (needs the imported sound window).
      */
     private fun createGame(ctx: Context, full: RomView?): Fe8Game {
         val bootRom = full ?: bundledBootRom(ctx)
@@ -139,7 +137,7 @@ public class MainActivity : ComponentActivity() {
     }
 }
 
-/** The sound ROM window from the base layer's `sound/` (imported ROM, else bundled assets), or null. */
+/** The sound ROM window from the base layer's `sound/` (imported ROM), or null. */
 private fun bundledSoundRom(ctx: Context): RomView? {
     val base = baseLayer(ctx)
     if (base.list("sound").isEmpty()) return null
@@ -148,7 +146,7 @@ private fun bundledSoundRom(ctx: Context): RomView? {
     }
 }
 
-/** Boot ROM windows from the base layer's `boot/` (imported ROM, else bundled assets), or null. */
+/** Boot ROM windows from the base layer's `boot/` (imported ROM), or null. */
 private fun bundledBootRom(ctx: Context): RomView? {
     val base = baseLayer(ctx)
     if (base.list("boot").isEmpty()) return null
@@ -166,10 +164,6 @@ private fun Launcher(onPlay: (RomView?) -> Unit) {
     var progress by remember { mutableFloatStateOf(0f) }
     var message by remember { mutableStateOf<String?>(null) }
     var fileCount by remember { mutableStateOf<Int?>(null) }
-    // Counting walks thousands of APK asset entries: off the main thread, so launch isn't blocked.
-    val bundled by produceState<Int?>(null) {
-        value = withContext(Dispatchers.IO) { AssetLayer(context.assets).list("").size }
-    }
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             val ok = baseIsCurrent(context)
@@ -209,7 +203,6 @@ private fun Launcher(onPlay: (RomView?) -> Unit) {
     ) {
         Text("Fire Emblem: The Sacred Stones — Kotlin port", style = MaterialTheme.typography.titleLarge)
         Text("Build ${BuildConfig.VERSION_NAME} (${BuildConfig.GIT_SHA}) · vanilla mode · %.4f Hz logic".format(FixedStepClock.TICK_HZ))
-        Text("Bundled test assets (debug builds only): ${bundled ?: "counting…"} files")
         if (importing) {
             LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
             Text("Importing ROM… ${(progress * 100).toInt()}%")
@@ -223,15 +216,13 @@ private fun Launcher(onPlay: (RomView?) -> Unit) {
         if (current == true && !importing) {
             OutlinedButton(onClick = { picker.launch(arrayOf("*/*")) }) { Text("Re-import ROM") }
         }
-        // Debug builds bundle assets and can play without importing.
-        val canPlay = current == true || (bundled ?: 0) > 0
+        // Every build needs an imported ROM: no APK bundles game data.
+        val canPlay = current == true
         if (current == true && !hasRom) {
             Text(
                 "Import your ROM to play past the title " +
                     "(this install predates the kept ROM image).",
             )
-        } else if (current != true && canPlay) {
-            Text("Import your ROM to play past the title.")
         }
         Button(
             onClick = {

@@ -6,8 +6,8 @@
 must need the player's own ROM.
 
 **Decision.**
-1. **Public release builds** contain no ROM bytes or anything decoded from it, in APK, release or repo (CI guard
-   M4-05). **Until public release**, debug/test APKs (private `latest` release) bundle the ROM repo's assets.
+1. **All builds, debug/test included** (owner 2026-11-08), contain no ROM bytes or anything decoded from it, in APK,
+   release or repo (CI guard M4-05).
 2. **First launch imports the ROM** (document picker, no storage permission; SHA1 must be FE8 U
    `c25b145e37456171ada4b0d440bf88a19f4d509f`, others refused clearly). The extracted output and the verified ROM image (`base/rom/baserom.gba`, on the
    device only; owner 2026-11-06) are kept: ported code reads ROM addresses through `RomView.ofRom`.

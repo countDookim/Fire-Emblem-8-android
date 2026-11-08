@@ -61,8 +61,8 @@ Select) sending exactly GBA keys.
 - **Public release builds ship no game content:** the player imports their `.gba` (SHA1-checked) on first launch,
   extracted on device into the VFS `base` layer from a committed offsets manifest; ROM not kept; CI checks the APK
   (0011, M4-03..05).
-- **Until the public release, debug/test APKs may bundle the ROM repo's extracted assets** (private `latest` release)
-  so the owner can test without a ROM (2026-10-28); ROM import work comes after the first manual-test APK.
+- **No APK bundles game data, debug/test builds included** (owner 2026-11-08, replaces the 2026-10-28 amendment):
+  every build needs a ROM imported on the device.
 
 ## Environment
 Scheduled runs (a Claude Cowork task) and owner-PC sessions (Claude Code in the owner's WSL2 Ubuntu) + GitHub

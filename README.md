@@ -46,6 +46,6 @@ tools/setup.sh && source .assets.env   # session setup: kotlinc, ROM-repo assets
 python3 tools/progress.py               # progress from latest test results
 ```
 
-Legal: you must own the game; this repo has no ROM data. Debug/test APKs bundle extracted assets until public
-release; release builds ship none and extract the player's ROM on device
+Legal: you must own the game; this repo has no ROM data. No APK, debug or release, bundles game data: every
+build extracts the player's ROM on device
 ([0011](docs/decisions/0011-player-supplied-rom.md)).

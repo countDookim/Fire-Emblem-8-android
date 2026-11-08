@@ -40,12 +40,8 @@ jobs:
         run: tools/ci_fetch_assets.sh
       - name: JVM tests + debug and release APKs
         run: ./gradlew jvmTest :app:assembleDebug :app:assembleRelease --continue --console=plain
-      - name: Debug APK bundles the test assets (M4-09)
-        run: |
-          unzip -l app/build/outputs/apk/debug/app-debug.apk > /tmp/apk-list.txt
-          grep -q 'assets/extracted/' /tmp/apk-list.txt
-      - name: No game content in the APK (M4-05, decision 0011)
-        run: python3 tools/check_no_game_content.py --extracted "${FE8_ASSETS:-.assets}/extracted" app/build/outputs/apk/release
+      - name: No game content in the debug or release APK (M4-05, decision 0011)
+        run: python3 tools/check_no_game_content.py --extracted "${FE8_ASSETS:-.assets}/extracted" app/build/outputs/apk/debug app/build/outputs/apk/release
       - name: Extraction reproduces ROM-repo extracted/ (M2-21)
         if: steps.assets.outputs.available == 'true'
         run: tools/ci_check_extraction.sh
@@ -116,8 +112,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk fe8-debug.apk
-          # The debug APK bundles test assets (amendment 2026-10-28; private release); only the summary is guarded.
-          python3 tools/check_no_game_content.py ci-summary.md
+          python3 tools/check_no_game_content.py fe8-debug.apk ci-summary.md
           gh release delete latest --cleanup-tag -y 2>/dev/null || true
           gh release create latest fe8-debug.apk ci-summary.md --target "$GITHUB_SHA" --prerelease \
             --title "latest (${GITHUB_SHA::7}, run ${GITHUB_RUN_NUMBER})" \

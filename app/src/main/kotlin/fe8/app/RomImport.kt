@@ -53,8 +53,8 @@ internal fun keptRom(ctx: Context): File? =
     if (baseIsCurrent(ctx)) File(baseDir(ctx), RomImage.PATH).takeIf { it.isFile } else null
 
 /**
- * The VFS base layer: the imported [baseDir] when current, else the APK's bundled assets
- * (debug/test builds; empty in release builds).
+ * The VFS base layer: the imported [baseDir] when current, else the APK's assets (no game data
+ * in any build, so nothing to play until a ROM is imported).
  */
 internal fun baseLayer(ctx: Context): VfsLayer =
     if (baseIsCurrent(ctx)) DirectoryLayer(baseDir(ctx), "base") else AssetLayer(ctx.assets)

@@ -30,6 +30,15 @@ public interface EventTextHost {
     /** `Event23_DisaleMapDisp(proc)`: returns its result code. */
     public fun disableMapDisp(proc: EventEngineProc): Int
 
+    /** `RefreshBMapGraphics`. */
+    public fun refreshBMapGraphics()
+
+    /** `BG_Fill` of gBG0/gBG1TilemapBuffer with 0 and `BG_EnableSyncByMask` of BG0 and BG1. */
+    public fun clearTalkTilemaps()
+
+    /** `Event24_EnableMapDisp(proc)`: returns its result code. */
+    public fun enableMapDisp(proc: EventEngineProc): Int
+
     /** `ClearTalkBubble`. */
     public fun clearTalkBubble()
 
@@ -82,18 +91,36 @@ public interface EventTextHost {
     public fun startBoxDialogue(x: Int, y: Int, msg: Int, flags: Int)
 }
 
-/** The talk start/show/continue/wait commands (0x1A, 0x1B, 0x1C, 0x1D) of `src/eventscr.c`. */
+/**
+ * The talk start/show/continue/wait commands (0x1A, 0x1B, 0x1C, 0x1D) and the clear screen
+ * command (0x22) of `src/eventscr.c`.
+ */
 public class EventText(
     private val state: EventState,
     private val memory: ScriptMemory,
     private val host: EventTextHost,
 ) {
-    /** Registers 0x1A, 0x1B, 0x1C and 0x1D on [engine]. */
+    /** Registers 0x1A, 0x1B, 0x1C, 0x1D and 0x22 on [engine]. */
     public fun registerOn(engine: EventEngine) {
         engine.register(0x1A, event1aTextStart)
         engine.register(0x1B, event1bTextShow)
         engine.register(0x1C, event1dTalkContinue)
         engine.register(0x1D, event1dWaitForLockTalk)
+        engine.register(0x22, event22ClearScreen)
+    }
+
+    /**
+     * Ported from src/eventscr.c: Event22_ClearScreen
+     *
+     * Transcribed; not compared to a trace (no @VerifiesPort yet).
+     */
+    public val event22ClearScreen: EventHandler = EventHandler { proc ->
+        host.refreshBMapGraphics()
+        host.changeUnitSpritePalette(proc.mapSpritePalIdOverride)
+        host.clearTalkTilemaps()
+        host.clearTalkBubble()
+        host.resetAllFaces()
+        host.enableMapDisp(proc)
     }
 
     /**

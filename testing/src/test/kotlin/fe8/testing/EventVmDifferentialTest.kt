@@ -1093,6 +1093,12 @@ class EventVmDifferentialTest {
                 proc.evStateBits = proc.evStateBits or EV_STATE_GFXLOCKED
                 return YIELD
             }
+            override fun refreshBMapGraphics() {}
+            override fun clearTalkTilemaps() {}
+            override fun enableMapDisp(proc: EventEngineProc): Int {
+                proc.evStateBits = proc.evStateBits and EV_STATE_GFXLOCKED.inv()
+                return YIELD
+            }
             override fun clearTalkBubble() {}
             override fun resetAllFaces() {}
             override fun faceExists() = false

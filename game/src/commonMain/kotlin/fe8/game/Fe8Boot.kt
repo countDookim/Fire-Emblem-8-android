@@ -125,6 +125,9 @@ public class Fe8Boot(
      */
     private val saveStorage: SaveStorage? = null,
 ) {
+    /** Test hook: told the command code of every event command that runs a no-op release stub. */
+    public var onEventStub: ((code: Int) -> Unit)? = null
+
     /** `gKeyStatusPtr`. */
     public val keys: KeyStatus = KeyStatus()
 
@@ -346,7 +349,7 @@ public class Fe8Boot(
                 unitState.getUnitStructFromEventParameter(pid)
             }
             if (rom.isWholeRom) eventText.registerOn(it)
-            ReleaseEventStubs.registerMissing(it)
+            ReleaseEventStubs.registerMissing(it) { code -> onEventStub?.invoke(code) }
         }
     }
 

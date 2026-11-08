@@ -11,13 +11,19 @@ import fe8.game.event.EventConst.EVC_ADVANCE_CONTINUE
 public object ReleaseEventStubs {
     /**
      * Registers a no-op handler on [engine] for every command code that has no handler yet, so
-     * handlers registered before (for example by [EventScrCore.registerAll]) win.
+     * handlers registered before (for example by [EventScrCore.registerAll]) win. With [onStub],
+     * each stub first reports its command code (the registered index) when it runs, so tests
+     * can measure which commands still hit a stub; null: no reporting.
      */
-    public fun registerMissing(engine: EventEngine) {
-        val noop = EventHandler { EVC_ADVANCE_CONTINUE }
+    public fun registerMissing(engine: EventEngine, onStub: ((code: Int) -> Unit)? = null) {
         for (i in engine.lo.indices) {
-            if (engine.isUnregistered(i)) engine.register(i, noop)
-            if (engine.isUnregistered(i + 0x80)) engine.register(i + 0x80, noop)
+            if (engine.isUnregistered(i)) engine.register(i, stub(i, onStub))
+            if (engine.isUnregistered(i + 0x80)) engine.register(i + 0x80, stub(i + 0x80, onStub))
         }
+    }
+
+    private fun stub(code: Int, onStub: ((code: Int) -> Unit)?): EventHandler = EventHandler {
+        onStub?.invoke(code)
+        EVC_ADVANCE_CONTINUE
     }
 }

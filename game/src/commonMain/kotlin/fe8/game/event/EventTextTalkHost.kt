@@ -67,6 +67,31 @@ public class EventTextTalkHost(
         return EventConst.EVC_ADVANCE_YIELD
     }
 
+    /** Stand-in: `RefreshBMapGraphics` (map tile and palette reload) is not ported: no-op. */
+    override fun refreshBMapGraphics() {}
+
+    /**
+     * `BG_Fill(gBG0TilemapBuffer, 0)`, `BG_Fill(gBG1TilemapBuffer, 0)` and the two
+     * `BG_EnableSyncByMask` calls. The sync goes through `TalkBgSync`, which skips it while the
+     * `TALK_FLAG_SPRITE` flag is set (the original syncs unconditionally).
+     */
+    override fun clearTalkTilemaps() {
+        talkHost.bg0Tilemap().fill(0)
+        bubbleHost.bg1Tilemap().fill(0)
+        talkHost.talkBgSync(1)
+        talkHost.talkBgSync(2)
+    }
+
+    /**
+     * `Event24_EnableMapDisp`: clears `EV_STATE_GFXLOCKED`. Stand-in: `BMapDispResume` and
+     * `ReleaseMus` are not ported (the map was never suspended, the music never locked), so
+     * they are skipped.
+     */
+    override fun enableMapDisp(proc: EventEngineProc): Int {
+        proc.evStateBits = proc.evStateBits and EventConst.EV_STATE_GFXLOCKED.inv()
+        return EventConst.EVC_ADVANCE_YIELD
+    }
+
     override fun clearTalkBubble() {
         bubble.clearTalkBubble()
     }

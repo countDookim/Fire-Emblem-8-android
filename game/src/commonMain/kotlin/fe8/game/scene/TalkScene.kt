@@ -14,6 +14,7 @@ import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.sleep
 import gbafe.proc.ProcScripts.yield
 import gbafe.render.BgHardware
+import gbafe.render.PaletteFade
 import gbafe.render.SpriteLayers
 import gbafe.render.SpriteObject
 import gbafe.text.MsgStrings
@@ -32,7 +33,6 @@ import gbafe.text.TextSystem
  *
  * Stand-ins (no behaviour is invented; each is a no-op or the smallest working substitute):
  *  - face blink and mouth animation procs are not modelled by [TalkFace];
- *  - face fade in is not modelled ([startFaceFadeIn] does nothing, the palette is applied at once);
  *  - [startFaceFadeOut] ends the face after the 8 frames of `EndFaceIn8Frames` without the
  *    palette fade;
  *  - sprite text, talk choices, `[G]` numbers and the tactician name are not ported and fail;
@@ -62,6 +62,8 @@ public class TalkScene(
 
     /** The faces. */
     public val face: TalkFace = TalkFace(procs, talk, this, this)
+
+    private val paletteFade = PaletteFade(hw, procs)
 
     private val skipScript = ProcScript(
         "gProcScr_TalkSkipListener",
@@ -494,8 +496,13 @@ public class TalkScene(
         throw NotImplementedError("not ported: GetUnitPortraitId(gActiveUnit)")
     }
 
-    /** Stand-in: the face palette fade in is not modelled; the palette was applied at once. */
-    override fun startFaceFadeIn(face: Proc) {}
+    /** Ported from src/face.c: StartFaceFadeIn. */
+    override fun startFaceFadeIn(face: Proc) {
+        val state = face.state as FaceState
+        val bank = 0x16 + state.faceSlot
+        hw.palette.fill(0, bank * 16, bank * 16 + 16)
+        paletteFade.start(rom.pal(portraitPalette(state.faceId), 16), bank, 12, face)
+    }
 
     override fun changeFacePortrait(face: Proc, faceId: Int) {
         throw NotImplementedError("not ported: sub_80066E0")

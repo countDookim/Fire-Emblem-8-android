@@ -7,7 +7,7 @@
   "summary": {
     "total": 8352,
     "verified": 530,
-    "implemented_unverified": 1
+    "implemented_unverified": 4
   },
   "functions": {
     "AddUnitSprite": {
@@ -859,6 +859,20 @@
         "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
       ]
     },
+    "Event21_TextBg": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Event22_ClearScreen": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventText.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "Event25_ChangeMap": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -939,6 +953,13 @@
       "tests": [
         "fe8.testing.EventUnitLoadsTest#skipped load_unit2 of the throne room units reproduces the dumped unit structs"
       ]
+    },
+    "EventShowTextBgDirect": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt",
+      "status": "implemented",
+      "tests": []
     },
     "EvtBattleGenerateReal": {
       "decomp_file": "src/eventscr3.c",

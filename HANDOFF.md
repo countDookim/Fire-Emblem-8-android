@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
+- D-02-f12900 (SMS slots 38/39 order): scheduled, until ~05:25Z
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn

@@ -8,6 +8,10 @@ _(nothing blocked)_
 
 ## In progress
 - M6-44 Event3A brown box: scheduled, until ~23:25Z 2026-11-08 (wip/M6-44-3A).
+- D-06 MU timing verification/input alignment: owner PC (GPT), until ~00:15Z 2026-11-09.
+- M6-44 ASMC/guide verification: owner PC (GPT), until ~00:15Z 2026-11-09.
+- M6-35 face palette fade-in: owner PC (GPT), until ~00:15Z 2026-11-09.
+  Owner resumed interrupted work with up to three Terra 6.1 Medium agents; Sol 6.1 High plans/reviews.
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn

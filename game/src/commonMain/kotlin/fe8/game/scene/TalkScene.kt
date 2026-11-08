@@ -46,7 +46,7 @@ public class TalkScene(
     private val sprites: SpriteLayers,
     private val keys: KeyStatus,
     private val clockFrames: () -> Int,
-    private val messages: MsgStrings,
+    public val messages: MsgStrings,
     private val playSound: (Int) -> Unit,
     private val textSpeed: () -> Int,
     private val setDialogueSkipEvBit: () -> Unit,

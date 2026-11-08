@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- Agent instruction sync + GEMINI.md: owner PC (GPT), until ~00:30Z 2026-11-09.
+_(none)_
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -63,6 +63,11 @@ M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
 ## Next task: D-06 other animation frames + device verification; M6-35 blink/mouth; M6-44 BG3/fades + item popup; M6-45 allocations; M6-29 tags
+Owner PC 11-09: CLAUDE.md, GPT.md and new GEMINI.md now share docs/AGENT_INSTRUCTIONS.template.md; profiles in
+tools/sync_agent_instructions.py preserve each assistant's model/tool choices. Edit the template/profile, run
+`python3 tools/sync_agent_instructions.py --write` then `--check`; CI rejects generated-file drift. Idempotence,
+deliberate GEMINI drift/recovery, Python syntax and CI YAML checks passed. All three now require proactively
+announcing new manual tests with steps, expected results, limits and actual APK build/publication status.
 Owner PC 11-09 extra 15-minute run (23:24..23:39Z; three Terra Medium agents): D-06 graphics timing corrected.
 MuSpriteAnim now queues live source row descriptors (32-entry bound, MU-only subset of the global registry), then
 Fe8Boot flushes them at VBlank after backgrounds and before high OAM. Immediate copies had made graphics one

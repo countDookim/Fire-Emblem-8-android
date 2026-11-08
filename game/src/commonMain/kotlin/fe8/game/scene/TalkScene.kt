@@ -33,8 +33,6 @@ import gbafe.text.TextSystem
  *
  * Stand-ins (no behaviour is invented; each is a no-op or the smallest working substitute):
  *  - face blink and mouth animation procs are not modelled by [TalkFace];
- *  - [startFaceFadeOut] ends the face after the 8 frames of `EndFaceIn8Frames` without the
- *    palette fade;
  *  - sprite text, talk choices, `[G]` numbers and the tactician name are not ported and fail;
  *  - the portrait of the active unit and the portrait swap are not ported and fail.
  */
@@ -302,16 +300,17 @@ public class TalkScene(
     }
 
     /**
-     * Stand-in for `StartFaceFadeOut(face)` ([face] is a [TalkFace.FACE_HANDLE] handle): the
-     * palette fade to black is not modelled; the face is ended after 8 frames like
-     * `EndFaceIn8Frames`.
+     * Ported from src/face.c: StartFaceFadeOut. The delayed face removal can end the child fade
+     * before the palette reaches black.
      */
     override fun startFaceFadeOut(face: Int) {
         val slot = face - TalkFace.FACE_HANDLE
-        if (this.face.gFaces[slot] == null) return
+        val target = this.face.gFaces[slot] ?: return
+        paletteFade.start(BLACK_PALETTE, 0x16 + slot, 12, target)
         (procs.start(faceEndScript, TREE_3).state as FaceEndState).slot = slot
     }
 
+    /** Ends the target face and its children after the scheduled delay. */
     private fun endFace(p: Proc) {
         val slot = (p.state as FaceEndState).slot
         val f = face.gFaces[slot] ?: return
@@ -519,6 +518,7 @@ public class TalkScene(
             0x0859100C, 0x08591026, 0x08591040, 0x08591066,
             0x0859108C, 0x085910BE, 0x085910F0, 0x08591122,
         )
+        private val BLACK_PALETTE = ShortArray(16)
         private const val ROM_BASE = 0x08000000
         private const val VRAM_BASE = 0x06000000
         private const val OBJ_VRAM = 0x10000

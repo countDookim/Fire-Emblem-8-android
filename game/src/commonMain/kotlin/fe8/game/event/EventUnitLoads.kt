@@ -12,6 +12,18 @@ import fe8.game.event.EventConst.EV_STATE_SKIPPING
 import fe8.game.event.EventConst.EV_STATE_UNITCAM
 import gbafe.core.rng.RngService
 
+/** What the walking load reaches outside the unit system. Defaults: nothing blocks. */
+public interface EventUnitLoadsHost {
+    /** `Proc_Find(ProcScr_CamMove) != NULL`. */
+    public fun camMoveExists(): Boolean = false
+
+    /** `EnsureCameraOntoPosition(proc, x, y)`: true if a camera move was started. */
+    public fun ensureCameraOntoPosition(proc: EventEngineProc, x: Int, y: Int): Boolean = false
+
+    /** `CanStartMu`: a free MU slot exists. */
+    public fun canStartMu(): Boolean = true
+}
+
 /**
  * The unit load commands of `src/eventscr.c` (`Event2B_ConfigLoadUnit`, `Event2C_LoadUnits`) and
  * their helpers. Definitions are held as [UnitDef] values; `gLoadUnitBuffer` is a list of them.
@@ -25,6 +37,7 @@ import gbafe.core.rng.RngService
  * @param terrainAt `gBmMapTerrain[y][x]`.
  * @param unitAt `gBmMapUnit[y][x]`.
  * @param clearOtherMap `BmMapFill(gBmMapOther, 0)`.
+ * @param host camera and MU queries of the walking load.
  */
 public class EventUnitLoads(
     private val state: EventState,
@@ -36,7 +49,11 @@ public class EventUnitLoads(
     private val terrainAt: (x: Int, y: Int) -> Int,
     private val unitAt: (x: Int, y: Int) -> Int = { _, _ -> 0 },
     private val clearOtherMap: () -> Unit = {},
+    private val host: EventUnitLoadsHost = object : EventUnitLoadsHost {},
 ) {
+    private var pendingDefs: List<UnitDef> = emptyList()
+    private var pendingIndex: Int = 0
+
     /** Registers 0x2B and 0x2C on [engine]. */
     public fun registerOn(engine: EventEngine) {
         engine.register(0x2B, event2bConfigLoadUnit)
@@ -66,9 +83,8 @@ public class EventUnitLoads(
     /**
      * Ported from src/eventscr.c: Event2C_LoadUnits
      *
-     * partial: only the skipping / faded-in path (`EventLoadUnitSliently`). The walking path
-     * (`EventLoadUnitWithMovement`: camera, MU) and subcode 3 (`GetChapterEnemyUnitDefinitions`)
-     * throw [UnsupportedOperationException]; definitions must be in the ROM.
+     * partial: subcode 3 (`GetChapterEnemyUnitDefinitions`) throws
+     * [UnsupportedOperationException]; definitions must be in the ROM.
      */
     public val event2cLoadUnits: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent
@@ -95,12 +111,68 @@ public class EventUnitLoads(
             proc.unitLoadCount = 0
             proc.chance = 0
         } else {
-            throw UnsupportedOperationException(
-                "EventLoadUnitWithMovement (TryPrepareEventUnitMovement, MU) not ported",
-            )
+            proc.pUnitLoadData = address
+            pendingDefs = defs
+            pendingIndex = 0
+            proc.unitLoadCount = count
+            proc.unitLoadParameter = argument
+            proc.callback = EventEngineCallback { eventLoadUnitWithMovement(it) }
+            eventLoadUnitWithMovement(proc)
         }
         proc.disableReda = false
         EVC_ADVANCE_YIELD
+    }
+
+    /**
+     * Transcribed from src/eventscr.c: EventLoadUnitWithMovement (not verified: no
+     *   `@VerifiesPort` test yet)
+     *
+     * The walking load, run as the proc's callback each frame until every definition is loaded;
+     * a definition whose [tryPrepareEventUnitMovement] fails is retried the next frame. The
+     * definitions are the ones kept by [event2cLoadUnits] (the C's `pUnitLoadData` pointer).
+     */
+    private fun eventLoadUnitWithMovement(proc: EventEngineProc) {
+        var count = proc.unitLoadCount.toShort().toInt()
+        val param = proc.unitLoadParameter
+        val something = modifyMoveUnitFlag(proc, true)
+        val summon = param == 2
+        if ((proc.evStateBits shr 2) and 1 != 0) {
+            eventLoadUnitSliently(pendingDefs.drop(pendingIndex), count, param)
+        } else {
+            while (pendingIndex < pendingDefs.size) {
+                val def = pendingDefs[pendingIndex]
+                if (def.charIndex == 0 || count <= 0) break
+                if (!shouldUnitBeLoaded(def, param)) {
+                    pendingIndex++
+                    continue
+                }
+                if (!tryPrepareEventUnitMovement(proc, def.x, def.y)) {
+                    proc.unitLoadCount = count
+                    return
+                }
+                loader.loadUnitForEvent(def, something, false, summon, terrainAt)
+                count--
+                pendingIndex++
+            }
+        }
+        proc.unitLoadCount = 0
+        proc.chance = 0
+        proc.callback = null
+    }
+
+    /**
+     * Transcribed from src/eventscr.c: TryPrepareEventUnitMovement (not verified: no
+     *   `@VerifiesPort` test yet)
+     *
+     * Whether a unit may start walking: with the unit camera on, no camera move may exist or be
+     * started, and an MU slot must be free.
+     */
+    private fun tryPrepareEventUnitMovement(proc: EventEngineProc, x: Int, y: Int): Boolean {
+        if (proc.evStateBits and EV_STATE_UNITCAM != 0) {
+            if (host.camMoveExists()) return false
+            if (host.ensureCameraOntoPosition(proc, x, y)) return false
+        }
+        return host.canStartMu()
     }
 
     private fun readDefs(address: Int, count: Int): List<UnitDef> =

@@ -37,6 +37,15 @@ public class UnitLoader(
     private val items = ItemInfo(rom)
 
     /**
+     * `MuCtr_StartDefinedMove(unit, redas, count, flags)` for unit-array index `id` and the REDA
+     * words at ROM address `redas`. Must be wired before a walking load (the default throws).
+     */
+    public var startDefinedMove: (id: Int, redas: Int, count: Int, flags: Int) -> Unit =
+        { _, _, _, _ ->
+            throw UnsupportedOperationException("LoadUnit_800F704: StartDefinedMove not wired")
+        }
+
+    /**
      * The signed level count `LoadUnit_800F704` passes to `UnitApplyBonusLevels` for red
      * characters from 0x3C on: the chapter's `difficultModeLevelBonus`, or minus its
      * `easyModeLevelMalus` / `normalModeLevelMalus`, by `config.controller` and `PLAY_FLAG_HARD`.
@@ -557,9 +566,8 @@ public class UnitLoader(
         val o = table.unitOffset(id)
         val b = table.bytes
         if (def.redaCount != 0 && !quiet && (u32(b, o + OFF_STATE) and US_UNDER_A_ROOF) == 0) {
-            throw UnsupportedOperationException(
-                "LoadUnit_800F704: MuCtr_StartDefinedMove (MU walk) not ported",
-            )
+            startDefinedMove(id, def.redas, def.redaCount, flags)
+            return
         }
         var x = def.x
         var y = def.y

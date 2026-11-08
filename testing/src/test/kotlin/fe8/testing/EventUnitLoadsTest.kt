@@ -101,14 +101,14 @@ class EventUnitLoadsTest {
     }
 
     @Test
-    fun `walking load is unsupported`() {
+    fun `walking load finishes in one pass without REDAs`() {
         assumeTrue(romFile.isFile, "ROM not present")
         val s = setup(null)
         s.command(0x2C40, 1, DEF_ADDRESS)
         val proc = EventEngineProc().also { it.pEventCurrent = SCRIPT }
-        assertThrows(UnsupportedOperationException::class.java) {
-            s.loads.event2cLoadUnits.run(proc)
-        }
+        s.loads.event2cLoadUnits.run(proc)
+        assertEquals(null, proc.callback)
+        assertEquals(0, proc.unitLoadCount)
     }
 
     @Test

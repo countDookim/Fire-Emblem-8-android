@@ -16,6 +16,7 @@ import fe8.game.bm.MapAnimations
 import fe8.game.bm.Mu
 import fe8.game.bm.MuCtrl
 import fe8.game.bm.MuCtrlHooks
+import fe8.game.bm.Reda
 import fe8.game.bm.MuConfig
 import fe8.game.bm.MuHooks
 import fe8.game.bm.MuProc
@@ -54,6 +55,7 @@ import fe8.game.event.EventInfoHooks
 import fe8.game.event.EventInfos
 import fe8.game.event.EventMoveUnit
 import fe8.game.event.EventMoveUnitHost
+import fe8.game.event.EventUnitLoadsHost
 import fe8.game.event.ReleaseEventStubs
 import fe8.game.event.ScriptMemory
 import fe8.game.event.ScriptWords
@@ -292,19 +294,20 @@ public class Fe8Boot(
                 { x, y -> battleBmMap.terrain[y, x] },
                 { x, y -> battleBmMap.unit[y, x] },
                 { battleBmMap.bmMapFill(battleBmMap.other, 0) },
+                object : EventUnitLoadsHost {
+                    override fun camMoveExists(): Boolean =
+                        this@Fe8Boot.engine.find(camMove.script) != null
+
+                    override fun ensureCameraOntoPosition(
+                        proc: EventEngineProc,
+                        x: Int,
+                        y: Int,
+                    ) = camMove.ensureCameraOntoPosition(proc.proc, x, y)
+
+                    override fun canStartMu(): Boolean = mu.configs.any { c -> c.slot == 0 }
+                },
             ).also { loads ->
                 loads.registerOn(it)
-                // Stand-in: the walking load (EventLoadUnitWithMovement, MU) is not ported, so a
-                // load outside skip mode (e.g. the first update, before skipping can start) runs
-                // the silent path as if faded in.
-                it.register(0x2C, EventHandler { p ->
-                    val bits = p.evStateBits
-                    p.evStateBits = bits or EventConst.EV_STATE_FADEDIN
-                    val r = loads.event2cLoadUnits.run(p)
-                    p.evStateBits = (p.evStateBits and EventConst.EV_STATE_FADEDIN.inv()) or
-                        (bits and EventConst.EV_STATE_FADEDIN)
-                    r
-                })
             }
             EventChangeMap(
                 state, memory, control.playSt, loop.bmSt, hw,
@@ -475,6 +478,12 @@ public class Fe8Boot(
                     spriteHandles?.getUnitSpritePalette(id) ?: 0
             },
         )
+        loader.startDefinedMove = { id, redas, count, flags ->
+            val list = List(count) {
+                Reda.fromWords(rom.u32(redas + 8 * it), rom.u32(redas + 8 * it + 4))
+            }
+            muCtrl.startDefinedMove(id, list, count, flags)
+        }
         EventMoveUnit(
             state, memory, units, battleBmMap, mu, muCtrl, unitFromParameter,
             object : EventMoveUnitHost {

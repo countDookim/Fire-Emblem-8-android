@@ -50,11 +50,10 @@ internal class BrownTextBoxFadeState {
  * sprites around one line of sprite text that fades in, stays 100 frames and fades out, blocking
  * its parent proc.
  *
- * Host stand-ins: sprite-text drawing is not ported in `gbafe.text` (`InitSpriteTextFont`,
- * `SpriteText_DrawBackgroundExt`, `Text_InsertDrawString`, `GetStringTextCenteredPos`), so it is
- * a hook. [textWidth] stands for `GetStringTextLen(GetStringFromIndex(textId))` (pixels) and
- * [drawText] for the sprite-text calls that follow `Decompress`; the defaults measure 0 and draw
- * nothing, so the box is the minimum width of 5 tiles with no text.
+ * The sprite-text calls of `StartBrownTextBoxCore` are the hooks [textWidth] (the
+ * `GetStringTextLen(GetStringFromIndex(textId))` pixel width) and [drawText] (the sprite text
+ * drawing after `Decompress`); the defaults measure 0 and draw nothing. The game wires both to
+ * `gbafe.text`.
  *
  * @param textWidth pixel width of the message with the active (system) font.
  * @param drawText draws the message into the box tiles: arguments are the text id, the byte

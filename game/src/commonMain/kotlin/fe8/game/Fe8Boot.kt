@@ -365,12 +365,14 @@ public class Fe8Boot(
                 itemInfo::makeNewItem,
                 { control.playSt.partyGoldAmount }, { control.playSt.partyGoldAmount = it },
             ).registerOn(it)
-            // Sprite text drawing is a host stand-in (BrownTextBox KDoc): the box has no text.
             EventPopup(
                 state, memory,
                 BrownTextBox(
                     engine, hw, loop.sprites, rom,
                     textWidth = { id -> if (rom.isWholeRom) brownTextBoxWidth(id) else 0 },
+                    drawText = { id, chr, pal, centerWidth ->
+                        if (rom.isWholeRom) brownTextBoxDraw(id, chr, pal, centerWidth)
+                    },
                 ),
             ).registerOn(it)
             if (rom.isWholeRom) {
@@ -402,6 +404,21 @@ public class Fe8Boot(
         } finally {
             text.setTextFont(saved)
         }
+    }
+
+    /** The sprite text calls of `StartBrownTextBoxCore` after the `Decompress`. */
+    internal fun brownTextBoxDraw(msg: Int, chr: Int, pal: Int, centerWidth: Int) {
+        val scene = talkScene
+        val text = scene.text
+        val font = Font()
+        val t = gbafe.text.Text()
+        val str = scene.messages.getStringFromIndex(msg)
+        text.initSpriteTextFont(font, 0x06010400 + chr, pal + 0x12)
+        text.initSpriteText(t)
+        text.spriteTextDrawBackgroundExt(t, 0)
+        text.setTextFontGlyphs(0)
+        text.textInsertDrawString(t, text.getStringTextCenteredPos(centerWidth, str), 0, str)
+        text.setTextFont(null)
     }
 
     /**

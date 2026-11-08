@@ -48,6 +48,10 @@ public class TextSystem(
         public val getDrawDest: Int,
         /** `s2bppTo4bppLutTable`: ROM address of the table of 13 colour-LUT pointers. */
         public val colorLutTable: Int,
+        /** Function-pointer value stored in [Font.drawGlyph] (`DrawSpriteTextGlyph`). */
+        public val drawSpriteGlyph: Int = 0,
+        /** Function-pointer value stored in [Font.getDrawDest] (`GetSpriteTextDrawDest`). */
+        public val getSpriteDrawDest: Int = 0,
     )
 
     /** `gDefaultFont`. */
@@ -193,8 +197,111 @@ public class TextSystem(
      * Ported from src/fontgrp.c: GetTextDrawDest
      */
     public fun getTextDrawDest(text: Text): Int {
+        if (config.getSpriteDrawDest != 0 && activeFont.getDrawDest == config.getSpriteDrawDest) {
+            return getSpriteTextDrawDest(text)
+        }
         val chrNumber = text.dbId * text.tileWidth + text.chrPosition + text.x / 8
         return activeFont.vramDest + chrNumber * 2 * CHR_SIZE
+    }
+
+    /**
+     * Initialises [font] for sprite text drawn to OBJ tiles at [vramDest] with palette [c] and
+     * makes it the active font.
+     *
+     * Transcribed from src/fontgrp.c: InitSpriteTextFont
+     * (not verified: compared only through the Prologue brown text box tiles)
+     */
+    public fun initSpriteTextFont(font: Font, vramDest: Int, c: Int) {
+        font.vramDest = vramDest
+        font.getDrawDest = config.getSpriteDrawDest
+        font.palid = (c and 0xF) + 16
+        font.tileref = (vramDest and 0x1FFFF) shr 5
+        font.chrCounter = 0
+        font.lang = host.language()
+        setTextFont(font)
+        font.drawGlyph = config.drawSpriteGlyph
+    }
+
+    /**
+     * Gives [text] a 32-tile strip of the active font (64 tiles of its tile counter).
+     *
+     * Transcribed from src/fontgrp.c: InitSpriteText
+     * (not verified: compared only through the Prologue brown text box tiles)
+     */
+    public fun initSpriteText(text: Text) {
+        text.chrPosition = activeFont.chrCounter
+        text.tileWidth = 32
+        text.dbId = 0
+        text.dbEnabled = false
+        text.isPrinting = false
+        activeFont.chrCounter += 64
+        text.x = 0
+        text.colorId = 0
+    }
+
+    /**
+     * Resets the pen and fills 0x800 bytes at the draw destination with the word [b].
+     *
+     * Transcribed from src/fontgrp.c: SpriteText_DrawBackgroundExt
+     * (not verified: compared only through the Prologue brown text box tiles)
+     */
+    public fun spriteTextDrawBackgroundExt(text: Text, b: Int) {
+        text.x = 0
+        val dest = getTextDrawDest(text)
+        for (i in 0 until 0x800 step 4) host.writeVram32(dest + i, b)
+    }
+
+    /**
+     * VRAM address of the sprite text tile at the pen.
+     *
+     * Transcribed from src/fontgrp.c: GetSpriteTextDrawDest
+     * (not verified: compared only through the Prologue brown text box tiles)
+     */
+    public fun getSpriteTextDrawDest(text: Text): Int =
+        activeFont.vramDest + (text.dbId * text.tileWidth + text.chrPosition + text.x / 8) * CHR_SIZE
+
+    /**
+     * Draws [glyph] (ROM address) as OBJ tiles (two 8-row halves, the second `0x400` bytes on)
+     * and advances the pen.
+     *
+     * Transcribed from src/fontgrp.c: DrawSpriteTextGlyph
+     * (not verified: compared only through the Prologue brown text box tiles)
+     */
+    public fun drawSpriteTextGlyph(text: Text, glyph: Int) {
+        val lut = getColorLut(text.colorId) - ROM_BASE
+        val shift = (text.x and 7) * 2
+        val bitmap = glyph - ROM_BASE + GLYPH_BITMAP
+        for (half in 0..1) {
+            val dest = getTextDrawDest(text) + half * 0x400
+            for (i in 0 until 8) {
+                val row = (readU32(bitmap + (half * 8 + i) * 4).toLong() and 0xFFFFFFFFL) shl shift
+                orWord(dest + i * 4, lutWord(lut, row.toInt()))
+                orWord(dest + i * 4 + 32, lutWord(lut, (row shr 16).toInt()))
+                orWord(dest + i * 4 + 64, lutWord(lut, (row shr 32).toInt()))
+            }
+        }
+        text.x += glyphWidth(glyph)
+    }
+
+    /**
+     * Pen x that centres [str] in [x] pixels.
+     *
+     * Transcribed from src/fontgrp.c: GetStringTextCenteredPos
+     * (not verified: compared only through the Prologue brown text box tiles)
+     */
+    public fun getStringTextCenteredPos(x: Int, str: ByteArray, start: Int = 0): Int =
+        (x - getStringTextLen(str, start)) / 2
+
+    /**
+     * Sets the pen x and colour of [text], then draws [str].
+     *
+     * Transcribed from src/fontgrp.c: Text_InsertDrawString
+     * (not verified: compared only through the Prologue brown text box tiles)
+     */
+    public fun textInsertDrawString(text: Text, x: Int, colorId: Int, str: ByteArray) {
+        text.x = x
+        text.colorId = colorId
+        drawString(text, str)
     }
 
     /**
@@ -222,6 +329,10 @@ public class TextSystem(
      * Calls the active font's `drawGlyph` function pointer; only `DrawTextGlyph` is ported.
      */
     private fun callDrawGlyph(text: Text, glyph: Int) {
+        if (config.drawSpriteGlyph != 0 && activeFont.drawGlyph == config.drawSpriteGlyph) {
+            drawSpriteTextGlyph(text, glyph)
+            return
+        }
         check(activeFont.drawGlyph == config.drawGlyph) { "unsupported drawGlyph pointer" }
         drawTextGlyph(text, glyph)
     }

@@ -61,9 +61,17 @@ class BrownTextBoxReferenceTest {
                     o[it * 4 + 2].toInt() and 0xFFFF)
             })
             val lcd = boot.screenFade.lcd
-            if (e.size == 30 && lcd.bldcnt and 0xC0 == 1 shl 6) sawRamp = true
-            // The frame that ends the fade-in still has OAM0_BLEND set; take one well inside the 100-frame hold.
-            if (e.size == 30 && sawRamp && lcd.bldcnt and 0xC0 == 0 && ++holdFrames == 5) got = e
+            if (e.size == 30 && lcd.lcdEffect() == 1) sawRamp = true
+            // The OAM read here is the previous step's (SyncHiOam runs in the VBlank before the
+            // step). In C the box loop runs before the fade proc (older sibling first), so the
+            // step that reaches blend 16 still draws OAM0_BLEND: OAM view 1 and 2 after the effect
+            // is none have the bit, view 3 (the first clear one) is the steady box.
+            if (e.size == 30 && sawRamp && lcd.lcdEffect() == 0) {
+                holdFrames++
+                val blended = e.any { it.first and 0x400 != 0 }
+                if (holdFrames <= 2) assertTrue(blended, "hold view $holdFrames lost OAM0_BLEND")
+                if (holdFrames == 3) got = e
+            }
         }
         assertTrue(sawRamp, "no alpha-blended fade-in seen")
         val lcd = boot.screenFade.lcd
@@ -71,5 +79,17 @@ class BrownTextBoxReferenceTest {
         assertEquals(0x10, lcd.blendCoeffA)
         assertEquals(0, lcd.blendCoeffB)
         assertEquals(expected, got)
+        // OBJ VRAM: the 22 box tiles in use (chr 0x5000; later tiles hold older leftovers in the dump) and the sprite text strip (0x5400,
+        // 0x800 bytes) at 0x06010000 + chr.
+        val refVram = File(assets, "reference/out/ram_trace_newgame_bm/f09559.vram.bin").readBytes()
+        val ours = boot.ui.env.hardware.vram
+        for ((name, off, len) in listOf(Triple("box tiles", 0x15000, 0x2C0),
+            Triple("text tiles", 0x15400, 0x800))) {
+            val diff = (off until off + len).filter { refVram[it] != ours[it] }
+            assertTrue(diff.isEmpty(), "$name: ${diff.size} bytes differ, first at " +
+                diff.take(8).joinToString { "0x%X(ref %02X ours %02X)".format(it, refVram[it], ours[it]) })
+        }
     }
+
+    private fun gbafe.render.LcdControl.lcdEffect(): Int = (bldcnt shr 6) and 3
 }

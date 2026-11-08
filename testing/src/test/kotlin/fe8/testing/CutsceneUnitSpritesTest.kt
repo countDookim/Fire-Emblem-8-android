@@ -21,9 +21,11 @@ import org.junit.jupiter.api.Test
  * values (y, x, tile, palette, shape and size) of every object whose tile is in the sprite sheet
  * range 128..511 (map sprites; the cursor uses tile 2, text and faces use tiles >= 512).
  * Frame numbers differ between the runs (different input timing), so frames are matched by
- * the unit table, never by number. Scope: the ten dumps f09600..f12300 (several share a table);
- * later cutscene dumps (f12600 on) have moving units or other
- * animation phases and are not compared; the objects' draw order and the affine parameters are
+ * the unit table and the objects, never by number (the first frame with a dump's table can still
+ * show a moving unit, e.g. f12900's two last units appear one frame before their sprites).
+ * Scope: the ten dumps f09600..f12300 (several share a table) and f12900; f12600's table never
+ * occurs in our run and later cutscene dumps have moving units or other animation phases, so
+ * they are not compared; the objects' draw order and the affine parameters are
  * not compared.
  */
 class CutsceneUnitSpritesTest {
@@ -53,7 +55,7 @@ class CutsceneUnitSpritesTest {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
         val rom = RomView.ofRom(romFile.readBytes())
         val run = ref.run("ram_trace_prologue")
-        val dumps = (FIRST_DUMP..LAST_DUMP step DUMP_STEP).map { f ->
+        val dumps = DUMP_FRAMES.map { f ->
             val name = "f%05d".format(f)
             val units = UnitTable(rom).also { it.loadFrom(run.region(name, "ewram")) }
             val hw = run.region(name, "oam")
@@ -111,9 +113,8 @@ class CutsceneUnitSpritesTest {
 
     private companion object {
         val MU_TILES = 0x380..0x3FF
-        const val FIRST_DUMP = 9600
-        const val LAST_DUMP = 12300
-        const val DUMP_STEP = 300
+        /** f09600..f12300 every 300 frames, then f12900 (f12600's table never occurs). */
+        val DUMP_FRAMES = (9600..12300 step 300).toList() + 12900
         const val OBJ_COUNT = 128
         const val SCREEN_HEIGHT = 160
         val SPRITE_TILES = 128..511

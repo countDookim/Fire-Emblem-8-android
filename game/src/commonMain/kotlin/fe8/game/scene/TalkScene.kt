@@ -46,6 +46,7 @@ public class TalkScene(
     private val sprites: SpriteLayers,
     private val keys: KeyStatus,
     private val clockFrames: () -> Int,
+    /** Shared decoded message buffers used by dialogue and opening popups. */
     public val messages: MsgStrings,
     private val playSound: (Int) -> Unit,
     private val textSpeed: () -> Int,

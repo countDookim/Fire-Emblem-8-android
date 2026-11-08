@@ -7,7 +7,10 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none)_
+- D-06 castle MU VRAM comparison: owner PC (GPT), until ~00:15Z 2026-11-09.
+- M6-35 portrait fade-out: owner PC (GPT), until ~00:15Z 2026-11-09.
+- Readability gbafe.extract.fe8.ui: owner PC (GPT), until ~00:15Z 2026-11-09.
+  Owner authorized 15 more minutes, up to three Terra Medium agents; no new tasks after 23:39:03Z 2026-11-08.
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn

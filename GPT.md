@@ -29,8 +29,9 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
 8. Kotlin follows Google's Android Kotlin style guide (4-space indent, 100 columns, no wildcard imports, its naming,
    brace and KDoc rules) for code you write or change; don't mass-reformat existing code.
 9. **Delegate coding (owner, 2026-11-03; GPT workflow, 2026-11-08).** One capable GPT overseer breaks down the
-   job, plans small tasks and reviews the results; a smaller GPT coding agent implements each task. Recommended
-   models: GPT-6 Astra at high effort for the overseer; GPT-6.1 Sol at medium effort for coding agents. Per task:
+   job, plans small tasks and reviews the results; a smaller GPT coding agent implements each task. Required
+   models (owner, 2026-11-08): GPT-6 Astra at high effort for the overseer; GPT-6.1 Sol at medium effort for
+   coding agents (`model: "gpt-6.1-sol"`, `reasoning_effort: "medium"`). Per task:
    (a) read HANDOFF/TASKS and only the excerpts needed to plan; (b) split the job into small, self-contained
    coding briefs (one per `spawn_agent` call, explicit coding model/effort and `fork_turns: "none"`), stating:
    goal, files and symbols to touch, exact behaviour/API (signatures, KDoc wording if public), source to port (decomp file +
@@ -40,6 +41,8 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
    (`followup_task`) rather than coding it yourself; (d) commit/push/HANDOFF yourself. Code yourself only for a
    trivial (< ~10 line) fix, when a brief failed twice, or when no subagent tool is available. Run only ONE
    coding task/agent at a time (owner, 2026-11-06), unless the owner explicitly permits parallel work for a run.
+   For an owner-timed run, stop starting new tasks at the deadline, finish the active tasks, update HANDOFF,
+   commit and push. The owner permits up to three coding agents for the 30-minute run on 2026-11-08.
 10. **Claim tasks before starting (owner, 2026-11-05).** Both run types pick tasks from HANDOFF, so before writing
     code for a task: `git pull --rebase`, add a line under HANDOFF `## In progress` (`M5-xx: owner PC|scheduled,
     until ~HH:MMZ`), commit with `[skip ci]` and push. Skip tasks with an unexpired claim; an expired claim is free.

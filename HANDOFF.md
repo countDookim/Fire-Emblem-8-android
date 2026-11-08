@@ -7,7 +7,11 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; claim tasks here before starting them, CLAUDE.md rule 10)_
+- D-06 MU timing: owner PC (GPT), until ~19:15Z 2026-11-08; reference comparison and focused correction.
+- M6-35 face OBJ output: owner PC (GPT), until ~19:15Z 2026-11-08; render the existing loaded talk faces.
+- M6-46 accuracy + readability (gbafe.extract.fe8.terrains): owner PC (GPT), until ~19:15Z 2026-11-08.
+  Owner permits three Sol 6.1 Medium coding agents; Astra High oversees. No new tasks after 18:56:24Z;
+  finish active tasks, update HANDOFF, commit and push afterward.
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn

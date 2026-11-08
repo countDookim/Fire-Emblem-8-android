@@ -9,9 +9,22 @@ import gbafe.proc.ProcScripts.call
 import gbafe.proc.ProcScripts.end
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.sleep
+import gbafe.render.SpriteObject
 
 /** Services the talk faces use that are outside the ported functions. */
 public interface TalkFaceHost {
+    /** Resolves a face composition from its ROM address; absent in hosts that do not draw. */
+    public fun faceSprite(address: Int): SpriteObject? = null
+
+    /** `PutSpriteExt`, preserving the OAM flags in [yOam0]. */
+    public fun putFaceSprite(
+        layer: Int,
+        xOam1: Int,
+        yOam0: Int,
+        sprite: SpriteObject,
+        oam2: Int,
+    ) {}
+
     /** `IsBattleDeamonActive`. */
     public fun isBattleDeamonActive(): Boolean
 
@@ -33,6 +46,9 @@ public interface TalkFaceHost {
 
 /** State of a `gProcScr_E_FACE` proc (`struct FaceProc`). */
 public class FaceState {
+    /** `sprite` (0x38), resolved from ROM composition data. */
+    public var sprite: SpriteObject? = null
+
     /** `displayBits` (0x30). */
     public var displayBits: Int = 0
 
@@ -79,7 +95,7 @@ public class TalkFaceMoveState {
 /**
  * The talk face side of `src/scene.c` (load, layer, move, mouth) over a minimal `src/face.c`:
  * `gFaces`, `StartFace` (palette, tiles, fields) and the `gProcScr_E_FACE` proc. Blink and
- * mouth animation procs and the face sprite output are not modelled. A face handle in
+ * mouth animation procs are not modelled. A face handle in
  * [TalkState.faces] is [FACE_HANDLE] plus the face slot.
  */
 public class TalkFace(
@@ -92,11 +108,11 @@ public class TalkFace(
     public val gFaces: Array<Proc?> = arrayOfNulls(FACE_SLOTS)
 
     private val faceInitFn = ProcFunc { faceOnInit(it) }
-    private val faceIdleFn = ProcFunc { }
+    private val faceIdleFn = ProcFunc { faceOnIdle(it) }
     private val moveInitFn = ProcFunc { talkFaceMoveOnInit(it) }
     private val moveIdleFn = ProcFunc { talkFaceMoveOnIdle(it) }
 
-    /** `gProcScr_E_FACE` (without the camera-move wait; the idle draws nothing yet). */
+    /** `gProcScr_E_FACE` (without the camera-move wait). */
     public val faceScript: ProcScript = ProcScript(
         "gProcScr_E_FACE",
         listOf(sleep(0), call(faceInitFn), call(faceIdleFn), repeat(faceIdleFn), end()),
@@ -122,6 +138,25 @@ public class TalkFace(
     public fun faceOnInit(proc: Proc) {
         val f = proc.state as FaceState
         host.decompressToVram(faceHost.portraitImage(f.faceId), TILE_OFFSET[f.faceSlot] + OBJ_VRAM)
+    }
+
+    /**
+     * Submits the face composition with wrapped coordinates and its blend flag.
+     *
+     * Reference verified for the talk's base 96x96 faces in both orientations. Hidden,
+     * blend and coordinate wrapping have behavioral checks only; animation overlays and
+     * palette fades are not verified.
+     *
+     * Ported from src/face.c: Face_OnIdle
+     */
+    public fun faceOnIdle(proc: Proc) {
+        val f = proc.state as FaceState
+        if (f.displayBits and (1 shl 14) != 0) return
+        val sprite = f.sprite ?: return
+        val blend = if (f.displayBits and (1 shl 10) != 0) 0x400 else 0
+        faceHost.putFaceSprite(
+            f.spriteLayer, f.xPos and 0x1FF, (f.yPos and 0xFF) + blend, sprite, f.oam2,
+        )
     }
 
     /**
@@ -154,12 +189,37 @@ public class TalkFace(
     }
 
     /**
-     * Transcribed from src/face.c: SetFaceDisplayBits and FaceRefreshSprite (the sprite pointer
-     * is not modelled, only `oam2`).
+     * Transcribed from src/face.c: SetFaceDisplayBits (not verified independently of refresh).
      */
     public fun setFaceDisplayBits(proc: Proc, disp: Int) {
         val f = proc.state as FaceState
         f.displayBits = disp
+        faceRefreshSprite(proc)
+    }
+
+    /**
+     * Selects the ROM composition and the configured tile, palette and hardware priority.
+     *
+     * Reference verified for the talk's 96x96 and flipped 96x96 compositions and priority.
+     * Other layouts have ROM-loading checks only, without reference execution coverage.
+     *
+     * Ported from src/face.c: FaceRefreshSprite
+     */
+    public fun faceRefreshSprite(proc: Proc) {
+        val f = proc.state as FaceState
+        val disp = f.displayBits
+        val address = when (disp and 0x807) {
+            0 -> 0x0859100C
+            1 -> 0x08591026
+            2 -> 0x08591040
+            3 -> 0x08591066
+            4 -> 0x0859108C
+            5 -> 0x085910BE
+            0x800 -> 0x085910F0
+            0x801 -> 0x08591122
+            else -> 0
+        }
+        if (address != 0) f.sprite = faceHost.faceSprite(address)
         val layer = when (disp and (0xF shl 6)) {
             1 shl 6 -> 0
             2 shl 6 -> 1

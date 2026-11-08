@@ -31,8 +31,7 @@ import gbafe.text.TextSystem
  * which is seen at the fake GBA address [MSG_ADDR]; every other address reads the ROM.
  *
  * Stand-ins (no behaviour is invented; each is a no-op or the smallest working substitute):
- *  - face blink and mouth animation procs and the face OBJ output are not modelled by
- *    [TalkFace] (the face is loaded into OBJ VRAM and its palette, but not drawn);
+ *  - face blink and mouth animation procs are not modelled by [TalkFace];
  *  - face fade in is not modelled ([startFaceFadeIn] does nothing, the palette is applied at once);
  *  - [startFaceFadeOut] ends the face after the 8 frames of `EndFaceIn8Frames` without the
  *    palette fade;
@@ -469,6 +468,24 @@ public class TalkScene(
 
     // --- TalkFaceHost
 
+    private val faceSprites: Array<SpriteObject> by lazy {
+        Array(FACE_SPRITE_ADDRESSES.size) { rom.objN(FACE_SPRITE_ADDRESSES[it]) }
+    }
+
+    override fun faceSprite(address: Int): SpriteObject =
+        faceSprites[FACE_SPRITE_ADDRESSES.indexOf(address)]
+
+    override fun putFaceSprite(
+        layer: Int,
+        xOam1: Int,
+        yOam0: Int,
+        sprite: SpriteObject,
+        oam2: Int,
+    ) {
+        sprites.putExt(layer, xOam1, yOam0, sprite, oam2)
+    }
+
+
     override fun portraitImage(fid: Int): Int = rom.u32(PORTRAIT_TABLE + (fid - 1) * 0x1C)
 
     override fun portraitPalette(fid: Int): Int = rom.u32(PORTRAIT_TABLE + (fid - 1) * 0x1C + 8)
@@ -489,6 +506,11 @@ public class TalkScene(
         /** The GBA address the shared message buffer is seen at (`sMsgString.buffer1`). */
         public const val MSG_ADDR: Int = 0x0202A6AC
 
+        // gSprite_Face* symbols in the US ROM manifest; compositions remain ROM data.
+        private val FACE_SPRITE_ADDRESSES = intArrayOf(
+            0x0859100C, 0x08591026, 0x08591040, 0x08591066,
+            0x0859108C, 0x085910BE, 0x085910F0, 0x08591122,
+        )
         private const val ROM_BASE = 0x08000000
         private const val VRAM_BASE = 0x06000000
         private const val OBJ_VRAM = 0x10000

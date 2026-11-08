@@ -45,6 +45,8 @@ import fe8.game.event.EventUnitState
 import fe8.game.event.EventUnitStateHooks
 import fe8.game.event.EventState
 import fe8.game.event.EventText
+import fe8.game.event.EventTextBg
+import fe8.game.event.EventTextBgHost
 import fe8.game.event.EventTextTalkHost
 import fe8.game.event.EventCursorCamera
 import fe8.game.event.EventCursorCameraHooks
@@ -91,6 +93,7 @@ import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
+import gbafe.render.BgTilemap
 import gbafe.render.HardwareSceneLoader
 import gbafe.render.ScreenFade
 import gbafe.text.MsgHuffman
@@ -348,7 +351,10 @@ public class Fe8Boot(
             registerMoveUnit(it, state, memory, loader) { pid ->
                 unitState.getUnitStructFromEventParameter(pid)
             }
-            if (rom.isWholeRom) eventText.registerOn(it)
+            if (rom.isWholeRom) {
+                eventText.registerOn(it)
+                eventTextBg.registerOn(it)
+            }
             ReleaseEventStubs.registerMissing(it) { code -> onEventStub?.invoke(code) }
         }
     }
@@ -388,6 +394,56 @@ public class Fe8Boot(
     /** The talk event commands 0x1A to 0x1D (`Event1A_TEXTSTART` ...) over [eventTextHost]. */
     private val eventText: EventText by lazy {
         EventText(eventState, ScriptWords({ rom.u16(it) }), eventTextHost)
+    }
+
+    /**
+     * The text background command 0x21 (`Event21_TextBg`). Real: BG positions, the random
+     * background, the BG3 load of subcode 0; the fade procs and `DisplayCGfx` are no-op
+     * stand-ins.
+     */
+    private val eventTextBg: EventTextBg by lazy {
+        EventTextBg(
+            eventState, ScriptWords({ rom.u16(it) }),
+            object : EventTextBgHost {
+                override fun resetBgPositions() {
+                    for (bg in 0..3) hw.lcd.setBgPosition(bg, 0, 0)
+                }
+
+                override fun randomBackground(): Int = rng.nextN(BG_BLANK)
+
+                override fun loadConvoBackground(bgIndex: Int) {
+                    val entry = CONVO_BACKGROUND_DATA + 12 * bgIndex
+                    rom.decompressInto(rom.u32(entry), hw.vram, hw.tileDataOffset(3))
+                    // The tsa is stored raw (header: width - 1, height - 1) and read in place.
+                    val tsaAt = rom.u32(entry + 4)
+                    val tsaSize = 2 + 2 * (rom.u8(tsaAt) + 1) * (rom.u8(tsaAt + 1) + 1)
+                    val tsa = ByteArray(tsaSize) { rom.u8(tsaAt + it).toByte() }
+                    BgTilemap.applyTsa(hw.mapBuffer(3), 0, tsa, 0, 0x8000)
+                    rom.pal(rom.u32(entry + 8), 16 * 8)
+                        .copyInto(hw.palette, 8 * 16)
+                    hw.enableBgSyncByMask(1 shl 3)
+                    hw.enablePaletteSync()
+                    hw.palette[0] = 0
+                }
+
+                override fun displayCg(bgIndex: Int) {}
+
+                override fun startBackgroundFade(
+                    fadeType: Int,
+                    unkType: Int,
+                    bgIndex: Int,
+                    fadeSpeed: Int,
+                    proc: EventEngineProc,
+                ) {}
+
+                override fun clearScreen(proc: EventEngineProc): Int =
+                    eventText.event22ClearScreen.run(proc)
+
+                override fun colorFadeIn(speed: Int, color: Int, proc: EventEngineProc) {}
+
+                override fun colorFadeOut(speed: Int, color: Int, proc: EventEngineProc) {}
+            },
+        )
     }
 
     /**
@@ -748,6 +804,9 @@ private val NO_WORLD_MAP_NODES = object : BattleMapNodes {
 private const val GOAL_WINDOW_DATA_TYPE_OFFSET = 0x8C
 
 /** `gMsgHuffmanTable`, `gMsgHuffmanTableRoot` and `gMsgTable` of FE8U. */
+/** `gConvoBackgroundData`: gfx, tsa, pal pointers per background. */
+private const val CONVO_BACKGROUND_DATA = 0x0895DD1C
+private const val BG_BLANK = 0x35
 private const val MSG_HUFFMAN_TABLE = 0x0815A72C
 private const val MSG_HUFFMAN_ROOT = 0x0815D488
 private const val MSG_TABLE = 0x0815D48C

@@ -90,6 +90,63 @@ class TalkFaceDisplayDifferentialTest {
     }
 
     @Test
+    fun `entrance movement draws the positions before the child move proc runs`() {
+        val rig = rig()
+        val observedModes = mutableSetOf<Int>()
+        var moved = false
+        // OnVBlank syncs the shadow OAM from the preceding OnMain pass. In that pass,
+        // Face_OnIdle draws the parent before its TalkFaceMove child changes x/y, so the
+        // draw position is from two RAM dumps earlier. These captures are within the
+        // entrance after both faces exist and before the move ends.
+        for (frame in listOf(9890, 9900, 9910)) {
+            val before = ProcArrayDump.ofEwram(trace.ewram(frame - 2)).findAll(0x08591154)
+            val after = ProcArrayDump.ofEwram(trace.ewram(frame)).findAll(0x08591154)
+            assertEquals(2, before.size, "faces at draw state f$frame")
+            assertEquals(2, after.size, "faces after f$frame")
+            val reference = trace.dump(frame, "oam")
+            for (source in before) {
+                val slot = source.u8(0x40)
+                val end = after.single { it.u8(0x40) == slot }
+                assertEquals(source.u16(0x3E), end.u16(0x3E), "face identity f$frame slot$slot")
+                assertEquals(source.u32(0x30), end.u32(0x30), "display bits f$frame slot$slot")
+                assertEquals(source.u8(0x41), end.u8(0x41), "layer f$frame slot$slot")
+                moved = moved || source.u16(0x34) != end.u16(0x34) ||
+                    source.u16(0x36) != end.u16(0x36)
+                observedModes += source.u32(0x30) and 0x807
+                val proc = rig.scene.face.gFaces[slot] ?: rig.scene.face.startFace(
+                    slot, source.u16(0x3E), 0, 0, source.u32(0x30),
+                )!!
+                val state = proc.state as FaceState
+                state.xPos = source.u16(0x34).toShort().toInt()
+                state.yPos = source.u16(0x36).toShort().toInt()
+                state.spriteLayer = source.u8(0x41)
+                rig.scene.face.setFaceDisplayBits(proc, source.u32(0x30))
+                assertEquals(source.u32(0x38), state.sprite?.id, "sprite f$frame slot$slot")
+                assertEquals(source.u16(0x3C), state.oam2, "oam2 f$frame slot$slot")
+                rig.sprites.clear()
+                rig.scene.face.faceOnIdle(proc)
+                assertEquals(1, rig.sprites.allocIt, "face submission f$frame slot$slot")
+                val oam = OamBuffer()
+                rig.sprites.pushLayerObjects(0) {
+                    oam.putHi(it.oam1, it.oam0, it.obj!!.data, it.oam2)
+                }
+                val count = oam.hiPut / 4
+                assertTrue(count > 0, "base composition must contain objects")
+                assertTrue((0..128 - count).any { start ->
+                    (0 until count).all { i ->
+                        (0..2).all { attr ->
+                            trace.u16(reference, (start + i) * 8 + attr * 2) ==
+                                (oam.buffer[i * 4 + attr].toInt() and 0xFFFF)
+                        }
+                    }
+                }, "base face OBJ differs at f$frame slot$slot")
+            }
+        }
+        assertEquals(setOf(2, 3), observedModes, "both reference orientations must be covered")
+        assertTrue(moved, "draw position must differ from end-of-frame RAM during movement")
+    }
+
+    @Test
     fun `face proc draws cached ROM compositions and preserves blend and coordinate flags`() {
         val rig = rig()
         val proc = rig.scene.face.startFace(0, 1, -513, -257, 0x400)!!

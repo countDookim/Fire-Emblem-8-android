@@ -32,9 +32,9 @@ public class PaletteFade(private val hardware: BgHardware, private val engine: P
     /**
      * Starts a fade to [colors] for [bank], as a child of [parent].
      *
-     * Transcribed from src/bmlib.c: StartPalFade. Nonblack starting palettes and other
-     * durations have not been verified against the reference; proc mark and early stop are
-     * also not independently reference-verified.
+     * Transcribed from src/bmlib.c: StartPalFade. Portrait fades to and from black at duration 12
+     * are exercised; arbitrary nonblack targets from nonblack sources, other durations, custom
+     * early stops and generic proc behavior remain independently unverified.
      */
     public fun start(colors: ShortArray, bank: Int, duration: Int, parent: Proc) {
         val state = states[bank]
@@ -49,8 +49,9 @@ public class PaletteFade(private val hardware: BgHardware, private val engine: P
     }
 
     /**
-     * Transcribed from src/bmlib.c: PalFade_OnLoop. Nonblack fades, early stop and proc
-     * removal have not been independently reference-verified.
+     * Transcribed from src/bmlib.c: PalFade_OnLoop. Portrait fades to and from black at duration
+     * 12 are exercised; arbitrary nonblack targets from nonblack sources, other durations, custom
+     * early stops and generic proc behavior remain independently unverified.
      */
     private fun onLoop(proc: Proc) {
         val state = (proc.state as ProcState).fade

@@ -8,7 +8,7 @@ _(nothing blocked)_
 
 ## In progress
 - D-06 MU timing: owner PC (GPT), until ~19:15Z 2026-11-08; reference comparison and focused correction.
-- M6-35 face OBJ output: owner PC (GPT), until ~19:15Z 2026-11-08; render the existing loaded talk faces.
+- M6-35 face palette fades: owner PC (GPT), until ~19:15Z 2026-11-08; reference-test the palette fade-in.
 - M6-44 ASMC/guide verification: owner PC (GPT), until ~19:15Z 2026-11-08.
   Owner permits three Sol 6.1 Medium coding agents; Astra High oversees. No new tasks after 18:56:24Z;
   finish active tasks, update HANDOFF, commit and push afterward.
@@ -67,6 +67,10 @@ M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
 ## Next task: D-06 MU OBJ timing (f12600 pair gap, see 11-08 10:50Z); talk faces (M6-35 rest); M6-44 rest; M6-19 rest; M6-29 tags
+Owner PC 11-08 18:34Z: talk face OBJ output implemented via cached ROM compositions; Face_OnIdle/FaceRefreshSprite
+break-checked against 124 base-face OAM comparisons (talk f9950..10560, both orientations). Hidden/blend/wrap only
+behavior-checked; entrance movement, blink/mouth overlays and palette fades not verified. Focused tests 3/3 passed;
+device check pending. Next for that agent: palette fade-in vs the reference.
 Owner PC 11-08 18:31Z: corrected six unsupported event `Ported from` labels to `Transcribed from` with effect-specific
 verification gaps; source audit now `ported-without-tag: 0`. Terrain extractor readability reviewed; TerrainsRomTest 3/3
 passed, full suite/Dokka pending before marking the readability row complete. Next for that agent: verify ASMC/guide flags.

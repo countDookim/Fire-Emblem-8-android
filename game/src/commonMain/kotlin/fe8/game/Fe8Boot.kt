@@ -62,7 +62,9 @@ import fe8.game.event.EventInfos
 import fe8.game.event.EventMoveUnit
 import fe8.game.event.EventMoveUnitHost
 import fe8.game.event.EventUnitLoadsHost
+import fe8.game.event.EventPopup
 import fe8.game.event.ReleaseEventStubs
+import fe8.game.scene.BrownTextBox
 import fe8.game.event.ScriptMemory
 import fe8.game.event.ScriptWords
 import fe8.game.flags.Fe8EventFlags
@@ -362,6 +364,8 @@ public class Fe8Boot(
                 itemInfo::makeNewItem,
                 { control.playSt.partyGoldAmount }, { control.playSt.partyGoldAmount = it },
             ).registerOn(it)
+            // Sprite text is a host stand-in (BrownTextBox KDoc): the box has no text.
+            EventPopup(state, memory, BrownTextBox(engine, hw, loop.sprites, rom)).registerOn(it)
             if (rom.isWholeRom) {
                 eventText.registerOn(it)
                 EventAsmCall(

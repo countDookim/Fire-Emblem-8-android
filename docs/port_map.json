@@ -7,7 +7,7 @@
   "summary": {
     "total": 8352,
     "verified": 530,
-    "implemented_unverified": 4
+    "implemented_unverified": 7
   },
   "functions": {
     "AddUnitSprite": {
@@ -180,6 +180,13 @@
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
+    },
+    "BmGuideTextSetAllGreen": {
+      "decomp_file": "src/bmguide.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventAsmCall.kt",
+      "status": "implemented",
+      "tests": []
     },
     "BmMain_ChangePhase": {
       "decomp_file": "src/bm.c",
@@ -823,6 +830,13 @@
         "fe8.testing.EventVmDifferentialTest#Event0C Branch"
       ]
     },
+    "Event0D_AsmCall": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventAsmCall.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "Event0E_STAL": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -908,6 +922,13 @@
       "tests": [
         "fe8.testing.MoveUnitDifferentialTest#blue units end on the tiles of the r19400 dump after the opening moves"
       ]
+    },
+    "Event37_GiveItem": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt",
+      "status": "implemented",
+      "tests": []
     },
     "Event3F_ScriptBattle": {
       "decomp_file": "src/eventscr.c",

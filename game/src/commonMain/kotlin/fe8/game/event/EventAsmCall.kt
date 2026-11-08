@@ -46,8 +46,7 @@ public class EventAsmCall(
 private const val GUIDE_TABLE = 0x08B19E0C
 
 /**
- * Transcribed from src/bmguide.c: BmGuideTextSetAllGreen
- * (not verified: guide display-flag bytes not trace-compared)
+ * Ported from src/bmguide.c: BmGuideTextSetAllGreen
  *
  * Sets the display flag of every guide entry, up to the entry whose title is 12.
  */

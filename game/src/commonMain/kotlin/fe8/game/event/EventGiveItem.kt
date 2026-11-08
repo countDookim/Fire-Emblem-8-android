@@ -27,9 +27,10 @@ internal class EventGiveItem(
     }
 
     /**
-     * Ported from src/eventscr.c: Event37_GiveItem
+     * Transcribed from src/eventscr.c: Event37_GiveItem
+     * (not verified: inventory/gold effects and popups not trace-compared)
      *
-     * Transcribed; not compared to a trace. Host stand-ins: the "item got" and "gold got"
+     * Host stand-ins: the "item got" and "gold got"
      * popups (`NewPopup_ItemGot`, `NewPopup_GoldGot`, `ItemGot_DisplayLePopup`) are not shown;
      * their effects (`HandleNewItemGetFromDrop` with a free slot, the gold add) happen at once
      * and the proc yields one frame. A full inventory (the item-drop menu) throws

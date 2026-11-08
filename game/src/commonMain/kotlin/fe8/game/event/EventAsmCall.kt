@@ -23,9 +23,8 @@ public class EventAsmCall(
     }
 
     /**
-     * Ported from src/eventscr.c: Event0D_AsmCall
-     *
-     * Transcribed; not compared to a trace.
+     * Transcribed from src/eventscr.c: Event0D_AsmCall
+     * (not verified: callback dispatch and skip behavior not trace-compared)
      */
     public val event0DAsmCall: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent
@@ -47,10 +46,10 @@ public class EventAsmCall(
 private const val GUIDE_TABLE = 0x08B19E0C
 
 /**
- * Ported from src/bmguide.c: BmGuideTextSetAllGreen
+ * Transcribed from src/bmguide.c: BmGuideTextSetAllGreen
+ * (not verified: guide display-flag bytes not trace-compared)
  *
- * Transcribed; not compared to a trace. Sets the display flag of every guide entry, up to the
- * entry whose title is 12.
+ * Sets the display flag of every guide entry, up to the entry whose title is 12.
  */
 public fun bmGuideTextSetAllGreen(memory: ScriptMemory, flags: FlagStore) {
     var it = GUIDE_TABLE

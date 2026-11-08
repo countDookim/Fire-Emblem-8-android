@@ -61,9 +61,10 @@ public class EventTextBg(
     }
 
     /**
-     * Ported from src/eventscr.c: EventShowTextBgDirect
+     * Transcribed from src/eventscr.c: EventShowTextBgDirect
+     * (not verified: BG3 graphics, tilemap and palette loads not trace-compared)
      *
-     * Transcribed; not compared to a trace. The tutorial, solo and 0x1A25 modes return an error.
+     * The tutorial, solo and 0x1A25 modes return an error.
      */
     public fun eventShowTextBgDirect(mode: Int, bgIndexIn: Int): Int {
         host.resetBgPositions()
@@ -84,9 +85,10 @@ public class EventTextBg(
     }
 
     /**
-     * Ported from src/eventscr.c: Event21_TextBg
+     * Transcribed from src/eventscr.c: Event21_TextBg
+     * (not verified: background loads and fade state not trace-compared)
      *
-     * Transcribed; not compared to a trace. The background fade procs are host stand-ins.
+     * The background fade procs are host stand-ins.
      */
     public val event21TextBg: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent

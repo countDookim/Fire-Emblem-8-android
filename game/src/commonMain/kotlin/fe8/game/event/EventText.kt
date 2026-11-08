@@ -110,9 +110,8 @@ public class EventText(
     }
 
     /**
-     * Ported from src/eventscr.c: Event22_ClearScreen
-     *
-     * Transcribed; not compared to a trace (no @VerifiesPort yet).
+     * Transcribed from src/eventscr.c: Event22_ClearScreen
+     * (not verified: tilemap clearing and map-display effects not trace-compared)
      */
     public val event22ClearScreen: EventHandler = EventHandler { proc ->
         host.refreshBMapGraphics()

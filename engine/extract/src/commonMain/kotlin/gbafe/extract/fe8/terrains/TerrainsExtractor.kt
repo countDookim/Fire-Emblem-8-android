@@ -28,7 +28,12 @@ public object TerrainsExtractor {
     public const val HEALS_STATUS: String = "TerrainTable_HealsStatus"
 
     /** Symbol-name prefixes of the 65-byte terrain tables in data_terrains.c. */
-    public val TABLE_PREFIXES: List<String> = listOf("TerrainTable_", "Unk_TerrainTable_", "BanimTerrainGround", "gBanimBGLut")
+    public val TABLE_PREFIXES: List<String> = listOf(
+        "TerrainTable_",
+        "Unk_TerrainTable_",
+        "BanimTerrainGround",
+        "gBanimBGLut",
+    )
 
     /**
      * Builds the `terrains.json` document.
@@ -37,29 +42,46 @@ public object TerrainsExtractor {
      *   and [HEALS_STATUS]. Written in ascending address order (= source order).
      * @param names terrain id → `TERRAIN_*` constant; id = name without `TERRAIN_` (fallback `TERRAIN_XX`).
      */
-    public fun extract(rom: ByteArray, tables: Map<String, Int>, names: Map<Int, String>): Map<String, Any?> {
-        fun table(addr: Int) = List(ClassesExtractor.TERRAIN_COUNT) { rom[off(addr) + it].toInt() }
-        val heal = table(tables[HEAL_AMOUNT] ?: error("missing $HEAL_AMOUNT"))
-        val status = table(tables[HEALS_STATUS] ?: error("missing $HEALS_STATUS"))
-        val entries = List(ClassesExtractor.TERRAIN_COUNT) { t ->
+    public fun extract(
+        rom: ByteArray,
+        tables: Map<String, Int>,
+        names: Map<Int, String>,
+    ): Map<String, Any?> {
+        /** Reads one signed-byte terrain table from the ROM in terrain-id order. */
+        fun readTerrainTable(address: Int) = List(ClassesExtractor.TERRAIN_COUNT) {
+            rom[romOffset(address) + it].toInt()
+        }
+
+        val healAmounts = readTerrainTable(tables[HEAL_AMOUNT] ?: error("missing $HEAL_AMOUNT"))
+        val healsStatus = readTerrainTable(tables[HEALS_STATUS] ?: error("missing $HEALS_STATUS"))
+        val entries = List(ClassesExtractor.TERRAIN_COUNT) { terrainId ->
+            val terrainName = names[terrainId]?.let { gba.extract.DecompEnums.id(it, "TERRAIN_") }
+                ?: "TERRAIN_${hexUpper(terrainId, 2)}"
             linkedMapOf<String, Any?>(
-                "id" to (names[t]?.let { gba.extract.DecompEnums.id(it, "TERRAIN_") } ?: "TERRAIN_${hexUpper(t, 2)}"),
-                "healAmount" to heal[t],
-                "healsStatus" to (status[t] != 0),
+                "id" to terrainName,
+                "healAmount" to healAmounts[terrainId],
+                "healsStatus" to (healsStatus[terrainId] != 0),
             )
         }
-        val rest = tables.filterKeys { it != HEAL_AMOUNT && it != HEALS_STATUS }.entries
+        val remainingTables = tables.filterKeys { it != HEAL_AMOUNT && it != HEALS_STATUS }.entries
             .sortedBy { it.value.toUInt() }
-            .associateTo(LinkedHashMap()) { (name, addr) -> name to table(addr) }
-        return linkedMapOf("format" to FORMAT, "game" to "fe8", "version" to VERSION, "entries" to entries, "tables" to rest)
+            .associateTo(LinkedHashMap()) { (name, address) -> name to readTerrainTable(address) }
+        return linkedMapOf(
+            "format" to FORMAT,
+            "game" to "fe8",
+            "version" to VERSION,
+            "entries" to entries,
+            "tables" to remainingTables,
+        )
     }
 
     /** [extract] serialised with [Json]. */
     public fun extractJson(rom: ByteArray, tables: Map<String, Int>, names: Map<Int, String>): String =
         Json.write(extract(rom, tables, names))
 
-    private fun off(addr: Int): Int {
-        require(addr ushr 25 == 4) { "not a ROM address: 0x${addr.toUInt().toString(16)}" }
-        return addr - 0x08000000
+    /** Converts a GBA ROM address to its byte offset, rejecting addresses outside ROM space. */
+    private fun romOffset(address: Int): Int {
+        require(address ushr 25 == 4) { "not a ROM address: 0x${address.toUInt().toString(16)}" }
+        return address - 0x08000000
     }
 }

@@ -62,7 +62,9 @@ import fe8.game.event.EventInfos
 import fe8.game.event.EventMoveUnit
 import fe8.game.event.EventMoveUnitHost
 import fe8.game.event.EventUnitLoadsHost
+import fe8.game.event.EventPopup
 import fe8.game.event.ReleaseEventStubs
+import fe8.game.scene.BrownTextBox
 import fe8.game.event.ScriptMemory
 import fe8.game.event.ScriptWords
 import fe8.game.flags.Fe8EventFlags
@@ -100,6 +102,7 @@ import gbafe.proc.ProcScript
 import gbafe.render.BgTilemap
 import gbafe.render.HardwareSceneLoader
 import gbafe.render.ScreenFade
+import gbafe.text.Font
 import gbafe.text.MsgHuffman
 import gbafe.text.MsgStrings
 
@@ -362,6 +365,14 @@ public class Fe8Boot(
                 itemInfo::makeNewItem,
                 { control.playSt.partyGoldAmount }, { control.playSt.partyGoldAmount = it },
             ).registerOn(it)
+            // Sprite text drawing is a host stand-in (BrownTextBox KDoc): the box has no text.
+            EventPopup(
+                state, memory,
+                BrownTextBox(
+                    engine, hw, loop.sprites, rom,
+                    textWidth = { id -> if (rom.isWholeRom) brownTextBoxWidth(id) else 0 },
+                ),
+            ).registerOn(it)
             if (rom.isWholeRom) {
                 eventText.registerOn(it)
                 EventAsmCall(
@@ -371,6 +382,25 @@ public class Fe8Boot(
                 eventTextBg.registerOn(it)
             }
             ReleaseEventStubs.registerMissing(it) { code -> onEventStub?.invoke(code) }
+        }
+    }
+
+    /**
+     * `GetStringTextLen(GetStringFromIndex(msg))` for the brown text box: the width in pixels
+     * with the system glyphs (`TextGlyphs_System`, English ASCII font), measured on a scratch
+     * font so the talk font stays untouched.
+     */
+    internal fun brownTextBoxWidth(msg: Int): Int {
+        val scene = talkScene
+        val text = scene.text
+        val saved = text.activeFont
+        val font = Font().also { it.lang = 1 }
+        text.setTextFont(font)
+        text.setTextFontGlyphs(0)
+        try {
+            return text.getStringTextLen(scene.messages.getStringFromIndex(msg))
+        } finally {
+            text.setTextFont(saved)
         }
     }
 

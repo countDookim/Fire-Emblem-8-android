@@ -30,8 +30,8 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
    brace and KDoc rules) for code you write or change; don't mass-reformat existing code.
 9. **Delegate coding (owner, 2026-11-03; GPT workflow, 2026-11-08).** One capable GPT overseer breaks down the
    job, plans small tasks and reviews the results; a smaller GPT coding agent implements each task. Required
-   models (owner, 2026-11-08): GPT-6 Astra at high effort for the overseer; GPT-6.1 Sol at medium effort for
-   coding agents (`model: "gpt-6.1-sol"`, `reasoning_effort: "medium"`). Per task:
+   models (owner, 2026-11-09): GPT-6.1 Sol at high effort for planning and review; GPT-6.1 Terra at medium
+   effort for coding agents (`model: "gpt-6.1-terra"`, `reasoning_effort: "medium"`). Per task:
    (a) read HANDOFF/TASKS and only the excerpts needed to plan; (b) split the job into small, self-contained
    coding briefs (one per `spawn_agent` call, explicit coding model/effort and `fork_turns: "none"`), stating:
    goal, files and symbols to touch, exact behaviour/API (signatures, KDoc wording if public), source to port (decomp file +

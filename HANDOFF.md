@@ -8,11 +8,6 @@ _(nothing blocked)_
 
 ## In progress
 - M6-44 Event3A brown box: scheduled, until ~23:25Z 2026-11-08 (wip/M6-44-3A).
-- D-06 MU timing: owner PC (GPT), until ~19:15Z 2026-11-08; reference comparison and focused correction.
-- M6-35 face palette fades: owner PC (GPT), until ~19:15Z 2026-11-08; reference-test the palette fade-in.
-- M6-44 ASMC/guide verification: owner PC (GPT), until ~19:15Z 2026-11-08.
-  Owner permits three Sol 6.1 Medium coding agents; Astra High oversees. No new tasks after 18:56:24Z;
-  finish active tasks, update HANDOFF, commit and push afterward.
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -68,6 +63,14 @@ M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
 ## Next task: D-06 MU OBJ timing (f12600 pair gap, see 11-08 10:50Z); talk faces (M6-35 rest); M6-44 rest; M6-19 rest; M6-29 tags
+Owner PC 11-09: GPT workflow now Sol 6.1 High planning/review + Terra 6.1 Medium coding agents (GPT.md).
+The 11-08 timed owner run was interrupted by model usage limits before wrap-up; its expired claims are cleared.
+Preserved remote WIP: `wip/gpt-d06` d246ae9 (MuTimingDifferentialTest: four MUs/controllers match 72 completed
+reference passes; countdown mutation failed, restored focused test passed; no runtime fix or new tags), and
+`wip/gpt-audit` 49f1fb9 (ASMC/guide reference test draft: not run/break-checked, do not count its tag).
+Next D-06 step: align full-boot inputs to the first castle-pair movement; do not add sleeps to mimic partial-frame
+captures. Face palette fade task produced no code. Full suite + per-module Dokka still needed to finish the terrain
+readability review and validate the merged face work; do not mark the readability row done yet.
 Owner PC 11-08 18:34Z: talk face OBJ output implemented via cached ROM compositions; Face_OnIdle/FaceRefreshSprite
 break-checked against 124 base-face OAM comparisons (talk f9950..10560, both orientations). Hidden/blend/wrap only
 behavior-checked; entrance movement, blink/mouth overlays and palette fades not verified. Focused tests 3/3 passed;

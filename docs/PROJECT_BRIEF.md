@@ -120,3 +120,4 @@ script interpreter. 6. Remaining systems, each with strategy interfaces and even
 |---|---|---|
 | 2026-11-03 | Runs are orchestrated: the session model breaks work into small, well-explained coding briefs and delegates the coding to a Sonnet subagent, then reviews diffs/tests and commits (CLAUDE.md rule 9) | Owner: save tokens |
 | 2026-11-08 | GPT sessions use GPT-6 Astra High as overseer and GPT-6.1 Sol Medium coding agents (GPT.md rule 9). The overseer scopes tasks, reviews diffs and verification, and integrates. Up to three coding agents are authorized for this 30-minute owner run; at the deadline stop starting tasks, finish active tasks, update HANDOFF, commit and push. | Owner: reduce cost while preserving quality |
+| 2026-11-09 | Replaces the GPT model choices above: GPT-6.1 Sol High handles planning and review; GPT-6.1 Terra Medium implements the small coding tasks (GPT.md rule 9). | Owner request |

@@ -20,7 +20,13 @@ Re-test by the owner 2026-11-08 (APK after d01eb4c): D-01 dialogue, D-02 cutscen
 Seth's move, D-04 enemy colours all fixed as described. New: D-06, in the cutscene outside the castle Franz (and later
 Seth) ride off the map but teleport to the map edge and wait a while before disappearing (walk animation not ported).
 
+2026-11-09, next APK: clear app data, import the ROM, choose Play and start New Game. The first dialogue should
+show both portrait sprites fading in. Portrait OAM and the fade-in palette have reference tests; a device check is
+still needed. The opening's brown text box should also appear with its text. For D-06, re-check Franz and Seth
+riding off the castle map; the input-aligned headless run now matches the original movement and one MU OAM dump,
+but this does not establish that the reported device behavior is fixed.
+
 ## Known not working (don't report)
-After the title: no save menu (New Game is chosen automatically); dialogue has no faces; units jump to their end
-tile instead of walking (D-06); player actions untested. Without an imported ROM (debug
-assets only) the game stops after the title.
+After the title: no save menu (New Game is chosen automatically); portrait blink/mouth animation and fade-out
+are incomplete; player-phase actions are not ported yet. D-06 still needs device confirmation. Every build
+requires an imported ROM.

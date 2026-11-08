@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 530,
-    "implemented_unverified": 7
+    "verified": 538,
+    "implemented_unverified": 1
   },
   "functions": {
     "AddUnitSprite": {
@@ -185,8 +185,10 @@
       "decomp_file": "src/bmguide.c",
       "system": "battle_map",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventAsmCall.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventAsmCallDifferentialTest#guide display flags match original and stop at the ROM title sentinel"
+      ]
     },
     "BmMain_ChangePhase": {
       "decomp_file": "src/bm.c",
@@ -233,6 +235,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
+      ]
+    },
+    "BrownTextBox_Loop": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/BrownTextBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.BrownTextBoxReferenceTest#the Prologue box hold frame equals the reference OAM entries"
       ]
     },
     "CallARM_FillTileRect": {
@@ -611,6 +622,15 @@
         "fe8.testing.PrologueMapTest#BG3 of the Prologue map matches the first phase reference"
       ]
     },
+    "DrawSpriteTextGlyph": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.BrownTextBoxReferenceTest#the Prologue box hold frame equals the reference OAM entries"
+      ]
+    },
     "DrawTextGlyph": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -830,13 +850,6 @@
         "fe8.testing.EventVmDifferentialTest#Event0C Branch"
       ]
     },
-    "Event0D_AsmCall": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventAsmCall.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "Event0E_STAL": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -873,20 +886,6 @@
         "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
       ]
     },
-    "Event21_TextBg": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt",
-      "status": "implemented",
-      "tests": []
-    },
-    "Event22_ClearScreen": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventText.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "Event25_ChangeMap": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -922,13 +921,6 @@
       "tests": [
         "fe8.testing.MoveUnitDifferentialTest#blue units end on the tiles of the r19400 dump after the opening moves"
       ]
-    },
-    "Event37_GiveItem": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt",
-      "status": "implemented",
-      "tests": []
     },
     "Event3F_ScriptBattle": {
       "decomp_file": "src/eventscr.c",
@@ -975,13 +967,6 @@
         "fe8.testing.EventUnitLoadsTest#skipped load_unit2 of the throne room units reproduces the dumped unit structs"
       ]
     },
-    "EventShowTextBgDirect": {
-      "decomp_file": "src/eventscr.c",
-      "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt",
-      "status": "implemented",
-      "tests": []
-    },
     "EvtBattleGenerateReal": {
       "decomp_file": "src/eventscr3.c",
       "system": "events",
@@ -998,6 +983,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs"
+      ]
+    },
+    "FaceRefreshSprite": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkFaceDisplayDifferentialTest#production host submits both flipped base faces as the OAM trace"
+      ]
+    },
+    "Face_OnIdle": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkFaceDisplayDifferentialTest#production host submits both flipped base faces as the OAM trace"
       ]
     },
     "FadeCore_Init": {
@@ -1211,7 +1214,7 @@
     "GenerateScriptBattleHitFormEventQueue": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -1563,6 +1566,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
+      ]
+    },
+    "GetSpriteTextDrawDest": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.BrownTextBoxReferenceTest#the Prologue box hold frame equals the reference OAM entries"
       ]
     },
     "GetStringFromIndex": {
@@ -3189,6 +3201,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BgmVolumeChangeTest#volume ramp matches the trace"
+      ]
+    },
+    "StartBrownTextBoxCore": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/BrownTextBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.BrownTextBoxReferenceTest#the Prologue box hold frame equals the reference OAM entries"
+      ]
+    },
+    "StartFaceFadeIn": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkFacePaletteDifferentialTest#face fades match both reference palette banks on every frame"
       ]
     },
     "StartFadeCore": {

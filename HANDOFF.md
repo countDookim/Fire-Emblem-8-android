@@ -7,7 +7,6 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M6-44 Event3A brown box: scheduled, until ~23:25Z 2026-11-08 (wip/M6-44-3A).
 - D-06 MU timing verification/input alignment: owner PC (GPT), until ~00:15Z 2026-11-09.
 - M6-44 ASMC/guide verification: owner PC (GPT), until ~00:15Z 2026-11-09.
 - M6-35 face palette fade-in: owner PC (GPT), until ~00:15Z 2026-11-09.
@@ -67,6 +66,7 @@ M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
 ## Next task: D-06 MU OBJ timing (f12600 pair gap, see 11-08 10:50Z); talk faces (M6-35 rest); M6-44 rest; M6-19 rest; M6-29 tags
+Scheduled 11-08 23:15Z (full jvmTest green; Dokka not run, gbafe.text public API grew): M6-44 Event3A done as transcription, untagged: `fe8.game.event.EventPopup` (sub 1 brown box; sub 0 NewPopup_VerySimple throws), `fe8.game.scene.BrownTextBox` (popup.c box + fade procs), gbafe.text sprite text (initSpriteTextFont, initSpriteText, getSpriteTextDrawDest, drawSpriteTextGlyph, spriteTextDrawBackgroundExt, textInsertDrawString, getStringTextCenteredPos; Config dispatch on sprite glyph/dest pointers). Registered in Fe8Boot: opening stubs left = none (OpeningStubCommandsTest). BrownTextBoxReferenceTest: hold-phase OAM (30 objs), BLDCNT/BLDALPHA and OBJ VRAM 0x15400..+0x800 (text) + 0x15000..+0x2C0 equal ram_trace_newgame_bm f09559 (box x=8,y=0, width 12; also in prologue f09600). Not verified: alpha ramp frames (dumps every 30 f), box tiles after 0x152C0 (dump has leftovers). Facts: hardware OAM lags one step, so the 0x400 blend bit shows 2 views after SetBlendNone (C: 1 step). Next: tag BrownTextBox_Loop/StartBrownTextBoxCore/sprite-text functions with a break-check, or find a per-frame run for the ramp; delete wip/M6-44-3A, wip/M6-44-3A-blend.
 Owner PC 11-09: GPT workflow now Sol 6.1 High planning/review + Terra 6.1 Medium coding agents (GPT.md).
 The 11-08 timed owner run was interrupted by model usage limits before wrap-up; its expired claims are cleared.
 Preserved remote WIP: `wip/gpt-d06` d246ae9 (MuTimingDifferentialTest: four MUs/controllers match 72 completed

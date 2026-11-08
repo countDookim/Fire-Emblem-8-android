@@ -7,10 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- D-06 castle MU VRAM comparison: owner PC (GPT), until ~00:15Z 2026-11-09.
-- M6-35 portrait fade-out: owner PC (GPT), until ~00:15Z 2026-11-09.
-- M6-35 moving portrait OAM coverage: owner PC (GPT), until ~00:15Z 2026-11-09.
-  Owner authorized 15 more minutes, up to three Terra Medium agents; no new tasks after 23:39:03Z 2026-11-08.
+_(none)_
 
 ## Check first (owner, 2026-11-07)
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
@@ -44,12 +41,12 @@ A merged fix without both is `fix merged, unverified`. Never mark `solved` from 
 
 | ID | Problem (owner's words, APK from master 3380240 vs emulator, 2026-11-07) | Known facts (headless, not diagnoses) | Status |
 |---|---|---|---|
-| D-01 | Opening "flashes": the screen fades in and out for each dialogue, but no dialogue (and no units) is shown, so it is skipped at once and looks like flashing. | Text commands 1A x17, 1B x22, 1D x13, 21/22 x4 hit `ReleaseEventStubs` no-ops; EventText/Talk*/TalkBubble/TalkFace exist but are not registered in `Fe8Boot.eventEngine` (M6-44). The fades are the real EventFade. | solved 11-08 (reference: PrologueOpeningTextTest BG0/BG1 vs ram_trace_prologue_talk; owner device check of APK after a01a8cb). Base portraits and palette fade-in now reference-verified (11-09; device check pending); blink/mouth/fade-out remain M6-35 follow-ups, outside D-01 |
+| D-01 | Opening "flashes": the screen fades in and out for each dialogue, but no dialogue (and no units) is shown, so it is skipped at once and looks like flashing. | Text commands 1A x17, 1B x22, 1D x13, 21/22 x4 hit `ReleaseEventStubs` no-ops; EventText/Talk*/TalkBubble/TalkFace exist but are not registered in `Fe8Boot.eventEngine` (M6-44). The fades are the real EventFade. | solved 11-08 (reference: PrologueOpeningTextTest BG0/BG1 vs ram_trace_prologue_talk; owner device check of APK after a01a8cb). Base portraits and palette fade-in now reference-verified (11-09; device check pending); blink/mouth remain M6-35 follow-ups, outside D-01 |
 | D-02 | In the in-game cutscene before the Prologue map no cutscene unit is shown and every event is skipped one after the other until the map begins. | Headless master: the cutscene unit loads run (f1324 red 45 + 2x 80, cleared f1595) but 0 OBJ sprites are drawn during events (scratch harness `maxObjDuringEvents` = 0); 2F MOVEUNIT x17, 30 ENUN x23 stubbed. Why nothing is drawn: not investigated. | solved 11-08 (reference: CutsceneUnitSpritesTest, unit OBJ of ram_trace_prologue f09600..f12300 equal ours on the frame with the same unit table; owner device check). f12600/f12900/f18000..f19200 unit OBJ now in the test too (11-08) |
 | D-03 | Map start: Seth and Eirika are placed at roughly the right tiles, but the original then has a short dialogue between them, after which Seth walks 4 tiles left and 1 up, then the map begins. Both are missing. | Headless: they end at (8,5)/(9,5), ref first_phase r19400 (4,4)/(4,5); MOVEUNIT/ENUN and the text commands are stubbed (D-01). | solved 11-08 (reference: MoveUnitDifferentialTest end tiles vs r19400; owner device check). Walk animation missing: D-06 Owner 11-08: on Easy the original runs a walking tutorial (player moves Eirika) instead of her automatic walk; Normal/Hard walk automatically, as the APK does. Our New Game stand-in always writes Normal (SaveMenuWriteNewGame difficulty 1, controller 1), so the Easy tutorial branch (Event19 CHECK_TUTORIAL -> 89EF27C) is not reachable until the save menu / difficulty select is ported; test it then. |
 | D-04 | Enemy units are on the correct tiles but appear as allies. | Headless master: they are in the red unit array (ids 0x81..0x83, chars 0x68/0x82/0x80, tiles equal r19400), so the unit data is red; how they are drawn (sprite palette/allegiance in UnitSpritesOam) not investigated. | solved 11-08 (reference: MoveUnitDifferentialTest `index byte` test, every unit's index (faction -> palette) equals r19400; owner device check) |
 | D-05 | Earlier report (5e213f1): cursor moves but nothing is interactable. Not re-reported on 3380240. | Headless master: cursor moves (BmSt.playerCursorX 9..14); A on a unit and menus untested. | closed 11-08 (owner: expected for now; after the units are placed the cursor moves but nothing is interactable because no player-phase actions are ported yet; re-check when they are) |
-| D-06 | Owner 11-08: in the cutscene outside the castle (before the battle map) Franz rides off the map but teleports to the map edge and waits a while before disappearing; Seth does the same on that map. Owner's guess: no walking animation. | Cause (headless): `MuHooks.apUpdate` was a no-op, so a walking MU drew nothing (the map sprite is hidden while a MU is active, as in the original). ap.c transcribed as `gbafe.render.SpriteAnimPlayer` (untagged) and wired via `fe8.game.bm.MuSpriteAnim` (079c99d, d55a4dc); sanity: walking MU has an OBJ on 428/448 moving frames (rest not examined). 11-09: input-aligned full boot matches four MU/controller states over 72 completed original passes and all four MU OAM entries at f12600 (MuTimingDifferentialTest); the earlier pair-gap mismatch came from input timing, so no runtime delay was added. Other animation frames/VRAM and device behavior remain unverified; standing-MU SMS hooks still no-ops. | fix merged, unverified (needs reference test + owner device check) |
+| D-06 | Owner 11-08: in the cutscene outside the castle (before the battle map) Franz rides off the map but teleports to the map edge and waits a while before disappearing; Seth does the same on that map. Owner's guess: no walking animation. | Cause (headless): `MuHooks.apUpdate` was a no-op, so a walking MU drew nothing (the map sprite is hidden while a MU is active, as in the original). ap.c transcribed as `gbafe.render.SpriteAnimPlayer` (untagged) and wired via `fe8.game.bm.MuSpriteAnim` (079c99d, d55a4dc); sanity: walking MU has an OBJ on 428/448 moving frames (rest not examined). 11-09: input-aligned full boot matches four MU/controller states over 72 completed original passes and all four MU OAM entries at f12600 (MuTimingDifferentialTest); the earlier pair-gap mismatch came from input timing, so no runtime delay was added. The f12600 referenced VRAM tiles now also match after a VBlank transfer-queue fix; other captures and device behavior remain unverified. Standing-MU SMS hooks still no-ops. | fix merged, unverified (needs reference test + owner device check) |
 
 ## Audit 11-06 20:10Z (owner PC) of scheduled work 3c26e9e..ab985a8
 Full jvmTest green (555). 6 tags withheld because breaks survived (UpdateMapImgAnimations: VRAM every 10th frame;
@@ -65,7 +62,19 @@ M6-33/34 (fe8.game.scene Talk: init, interpreter, wait-for-A; the whole first ta
 M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
-## Next task: D-06 animation/VRAM + device verification; M6-35 blink/mouth/fade-out; M6-44 BG3/fades + item popup; M6-45 allocations; M6-29 tags
+## Next task: D-06 other animation frames + device verification; M6-35 blink/mouth; M6-44 BG3/fades + item popup; M6-45 allocations; M6-29 tags
+Owner PC 11-09 extra 15-minute run (23:24..23:39Z; three Terra Medium agents): D-06 graphics timing corrected.
+MuSpriteAnim now queues live source row descriptors (32-entry bound, MU-only subset of the global registry), then
+Fe8Boot flushes them at VBlank after backgrounds and before high OAM. Immediate copies had made graphics one
+pass ahead of synchronized OAM. MuTimingDifferentialTest now byte-compares all 64 referenced OBJ tiles plus all
+four MU OAM entries at f12600; early-flush mutation fails, restored tests pass. Other frames/device remain unverified.
+StartFaceFadeOut verified: palette banks 22/23 and face lifetime match the original fade-out window; duration
+12->11 mutation fails. Delayed removal ends the fade before full black, as in the original. Generic PaletteFade
+stays transcribed: portrait paths exercised, arbitrary color transitions/durations/custom stops not independently verified.
+Entrance portrait base OAM matches f9890/9900/9910 in both orientations using fixed draw state r(frame-2): parent
+face draws before its move child; hardware OAM syncs the preceding pass. No new tag for this test.
+Full `jvmTest test` passed; 539/8352 verified, `ported-without-tag: 0`. Game/extract/render Dokka passed (per module). UI extractor readability done (94e08df); JSON/PNG behavior preserved. Device checklist updated.
+
 Owner PC 11-09 resumed (Sol High + three Terra Medium agents): saved WIP tests integrated. Guide flags verified:
  all 48 flag bytes vs prologue n15877->15878; flag-write and sentinel mutations fail. ASMC dispatch/yield
 also compared, but Event0D_AsmCall remains untagged (subtype-1 skip unobserved).
@@ -226,7 +235,7 @@ unit arrays; `EventUnitState` (Event34) registered in the test engine only (not 
   `CgbSound` verified; `PsgSynth` (GBATEK/mGBA behaviour, not a port) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad, GPU backend, audio, ROM import (~4 s) + boot
   from it. Pending: smoke test of the first APK built on the KMP android variants (MANUAL_TEST "Newly testable").
-- Verified ports: 538 / 8352 (`tools/progress.py`, full `jvmTest test`, 2026-11-09); `ported-without-tag: 0`. Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
+- Verified ports: 539 / 8352 (`tools/progress.py`, full `jvmTest test`, 2026-11-09); `ported-without-tag: 0`. Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
 - Layout: `:gba:*` game-neutral (ADR 0012), `gbafe.*` in `:engine:*`, `fe8.*` in `:game`/`:app`; KMP jvm+android
   (ADR 0013) except `:gba:testkit`, `:testing`, `:tools:extract`.
 

@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 538,
+    "verified": 539,
     "implemented_unverified": 1
   },
   "functions": {
@@ -1214,7 +1214,7 @@
     "GenerateScriptBattleHitFormEventQueue": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -3219,6 +3219,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TalkFacePaletteDifferentialTest#face fades match both reference palette banks on every frame"
+      ]
+    },
+    "StartFaceFadeOut": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkFaceFadeOutDifferentialTest#fade out follows reference palettes and face lifetimes"
       ]
     },
     "StartFadeCore": {

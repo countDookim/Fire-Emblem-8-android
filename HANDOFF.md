@@ -9,7 +9,7 @@ _(nothing blocked)_
 ## In progress
 - D-06 castle MU VRAM comparison: owner PC (GPT), until ~00:15Z 2026-11-09.
 - M6-35 portrait fade-out: owner PC (GPT), until ~00:15Z 2026-11-09.
-- Readability gbafe.extract.fe8.ui: owner PC (GPT), until ~00:15Z 2026-11-09.
+- M6-35 moving portrait OAM coverage: owner PC (GPT), until ~00:15Z 2026-11-09.
   Owner authorized 15 more minutes, up to three Terra Medium agents; no new tasks after 23:39:03Z 2026-11-08.
 
 ## Check first (owner, 2026-11-07)

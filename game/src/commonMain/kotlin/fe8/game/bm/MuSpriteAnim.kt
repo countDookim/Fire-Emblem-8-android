@@ -21,7 +21,10 @@ internal class MuSpriteAnim(
     layers: SpriteLayers,
 ) : ApHost {
     private val player = SpriteAnimPlayer({ rom.u16(it) }, layers, this)
-    private val objects = HashMap<Int, SpriteObject>()
+    // Primitive keys avoid boxing on each lookup; the arrays grow only for new compositions.
+    private var objectAddresses = IntArray(16)
+    private var objects = arrayOfNulls<SpriteObject>(16)
+    private var objectCount = 0
 
     /** `gMUGfxBuffer`: one decompressed sheet per slot. */
     private val gfxBuffer = ByteArray(MU_GFX_MAX_SIZE * Mu.MU_MAX_COUNT)
@@ -76,7 +79,19 @@ internal class MuSpriteAnim(
 
     fun delete(anim: Int) = player.delete(handle(anim))
 
-    override fun objectAt(addr: Int): SpriteObject = objects.getOrPut(addr) { rom.objN(addr) }
+    override fun objectAt(addr: Int): SpriteObject {
+        for (i in 0 until objectCount) {
+            if (objectAddresses[i] == addr) return objects[i]!!
+        }
+        if (objectCount == objects.size) {
+            objectAddresses = objectAddresses.copyOf(objectCount * 2)
+            objects = objects.copyOf(objectCount * 2)
+        }
+        val obj = rom.objN(addr)
+        objectAddresses[objectCount] = addr
+        objects[objectCount++] = obj
+        return obj
+    }
 
     override fun sin(a: Int): Int = rom.u16(SIN_LOOKUP + 2 * (a and 0xFF)).toShort().toInt()
 

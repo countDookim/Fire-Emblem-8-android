@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-_(none)_
+- D11-proc: scheduled, until ~21:00Z (sub_80C50A0, sub_80C5218, sub_80C51A8, sub_80C5400/540C)
 
 ## Current state
 

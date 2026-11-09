@@ -10,10 +10,11 @@ _(nothing blocked)_
 D07-audio: owner PC, until ~15:55Z; investigate castle transition stalls / PCM underruns; no timing changes without evidence.
 Readability-events: owner PC, until ~15:55Z; gbafe.extract.fe8.events comments/names only.
 D11-slides: owner PC, until ~15:55Z; standalone subtitle slide graphics against original captures; not wired into New Game yet.
+D12-boundary: owner PC, until ~15:55Z; correct VCount-to-HBlank scanline translation and test rendered blend boundaries.
 
 ## Owner-PC work 2026-11-09 15:20Z
-- D-07 `d97c7c0`: optional startup PCM prefill; Android requests two VBlank chunks. The old ring capacity provided no guaranteed reserve. Seven focused PCM tests and audio Dokka pass; disabling prefill fails startup/interpolation/cadence regressions. Simulated 60 Hz display + 5 ms consumer + one 15 ms late callback retains queued sound; this is not a phone trace. Long stalls still exhaust the reserve; D-07 stays open. CI publication pending.
-- Event extractor readability `8ec2580`: all four files reviewed; converter/grouping locals and private KDoc clarified. Focused tests and extract Dokka pass; full integrated suite pending before marking the row done.
+- D-07 `63e638e`: optional startup PCM prefill; Android requests two VBlank chunks. The old ring capacity provided no guaranteed reserve. Seven focused PCM tests and audio Dokka pass; disabling prefill fails startup/interpolation/cadence regressions. Simulated 60 Hz display + 5 ms consumer + one 15 ms late callback retains queued sound; this is not a phone trace. Long stalls still exhaust the reserve; D-07 stays open. CI publication pending.
+- Event extractor readability `a0981c8`: all four files reviewed; converter/grouping locals and private KDoc clarified. Focused tests and extract Dokka pass; full integrated suite pending before marking the row done.
 - D-11 source scope: `StartIntroMonologue` is an unwired blocking subtitle child (original steps 1213–4897); the separate unwired world-map wrapper follows at 4898–9313. Slide loaders are being verified separately; no cinematic is wired yet.
 
 ## Latest device test (owner, 2026-11-09 16:17, side-by-side vs original)

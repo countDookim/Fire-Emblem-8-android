@@ -5,24 +5,31 @@ import fe8.game.event.EventConst.EVC_ADVANCE_CONTINUE
 import fe8.game.event.EventConst.EVC_ADVANCE_YIELD
 import fe8.game.event.EventConst.EV_STATE_SKIPPING
 
-/** The BGM start command of `src/eventscr.c` (0x12 STARTBGM) on [sound]. */
+/**
+ * Event sound and music commands from `src/eventscr.c` (0x12 STARTBGM and 0x15 MUSCFAST) on
+ * [sound].
+ */
 public class EventBgm(
+    /** Event global variables and parameter slots (`gEventSlots`). */
     private val state: EventState,
+    /** Script word accessor resolving ROM and memory words. */
     private val memory: ScriptMemory,
+    /** Game sound wrapper driving audio player and volume transitions. */
     private val sound: SoundWrapper,
 ) {
-    /** Registers 0x12 and 0x15 on [engine]. */
+    /** Registers event command handlers 0x12 and 0x15 on [engine]. */
     public fun registerOn(engine: EventEngine) {
         engine.register(0x12, event12StartBgm)
         engine.register(0x15, event15BgmVolume)
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event12_StartBGM (not verified:
-     *   EventVmDifferentialTest compares only the result code, not the song start)
+     * Ported from src/eventscr.c: Event12_StartBGM
      *
-     * Not while skipping: starts (or changes to) the song of the s16 argument (a negative one
-     * reads slot 2) with `StartBgmExt(song, 3, NULL)` and yields.
+     * Starts or changes the background music track to the song specified by the 16-bit argument
+     * at `pEventCurrent + 2` with speed 3 (`StartBgmExt(song, 3, NULL)`), and yields execution.
+     * If the song argument is negative (e.g. -1), reads the song ID from `gEventSlots[2]`.
+     * When event skipping is active (`EV_STATE_SKIPPING`), does not change music and continues.
      */
     public val event12StartBgm: EventHandler = EventHandler { proc ->
         if (proc.evStateBits and EV_STATE_SKIPPING != 0) return@EventHandler EVC_ADVANCE_CONTINUE

@@ -84,7 +84,8 @@ Green r19280 0x13 = its slot but also the red slot, origin unchecked: green/red 
 StartMapSongBgm tagged: gSoundSt songId/playing/unk7/maxChannels vs r19387 and ch6 r01754 (seeded r19386/r01753;
 songId+1 mutation fails); m4a player state not compared. Event12_StartBGM next step: ram_trace_newgame_bm r09539->r09540 is a clean
 stopped->started pair (songId 4 stopped -> 0x26 playing, unk7 0, maxChannels -1): seed the event proc as
-EventVmDifferentialTest does, run event12StartBgm, compare gSoundSt. Then M6-45 (owner claim expired 10:57Z) or D09-*.
+EventVmDifferentialTest does, run event12StartBgm, compare gSoundSt. Caution (scheduled follow-up): no EWRAM/IWRAM word in r09530..r09540 points at a ROM
+`12 00 26 00` command, so 0x26 may not come from Event12; find the event proc's pEventCurrent first. Then M6-45 (owner claim expired 10:57Z) or D09-*.
 
 ## Owner-PC audit 2026-11-09
 Validation: full `jvmTest test` and debug/release APK builds passed (639 tests, zero failures/skips);

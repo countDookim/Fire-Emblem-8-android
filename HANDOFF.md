@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; D-07 walking allocation fix completed and validated; no worktrees open)_
+- M6-45, readability (gbafe.extract.text, fe8.game.text, fe8.game.flags), Issue #5 (D-06/D-07) trace: owner PC (Gemini), until ~10:57Z; two Flash coding agents.
 
 ## Latest device test (owner, 2026-11-09)
 Build **0.1.467 (`060478a`)**: walking animation and dialogue portrait display look correct. Owner clarification:

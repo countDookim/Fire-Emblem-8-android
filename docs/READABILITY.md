@@ -57,7 +57,7 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | game | fe8.game.opanim | 3 | 3128 | todo |
 | game | fe8.game.save | 8 | 2541 | done 2026-11-09 1941586 |
 | game | fe8.game.savemenu | 2 | 156 | done 2026-11-09 81db35b |
-| game | fe8.game.scene | 5 | 1921 | todo |
+| game | fe8.game.scene | 5 | 1921 | done 2026-11-09 c3bb2ed |
 | game | fe8.game.text | 1 | 30 | done 2026-11-09 0194222 |
 | game | fe8.game.title | 1 | 824 | done 2026-11-09 83f2cb6 |
 | gba/audio | gba.audio | 17 | 2799 | done 2026-11-09 1db6a62 |

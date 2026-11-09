@@ -1,13 +1,13 @@
 # HANDOFF
 
-_Updated 2026-11-09 (owner test 0.1.467/060478a: walking/portrait display confirmed; stutter, background, Rapier-popup and blink reports recorded). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
+_Updated 2026-11-09 (owner-PC audit and fixes: exit sprite refresh, map restoration, portrait mouth animation; latest owner test remains 0.1.467/060478a). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
 docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
 ## In progress
-- D-08 restoration audit, M6-35 portrait mouth animation, font extractor readability: owner PC (GPT), until ~09:15Z; owner-authorized 45-minute run, up to three Terra agents; new-task cutoff 09:04Z.
+- M6-35 portrait mouth animation and combined validation: owner PC (GPT), until ~09:15Z; owner-authorized 45-minute run, up to three Terra agents; new-task cutoff 09:04Z.
 
 ## Latest device test (owner, 2026-11-09)
 Build **0.1.467 (`060478a`)**: walking animation and dialogue portrait display look correct. Owner clarification:
@@ -56,9 +56,9 @@ A merged fix without both is `fix merged, unverified`. Never mark `solved` from 
 | D-05 | Earlier report (5e213f1): cursor moves but nothing is interactable. Not re-reported on 3380240. | Headless master: cursor moves (BmSt.playerCursorX 9..14); A on a unit and menus untested. | closed 11-08 (owner: expected for now; after the units are placed the cursor moves but nothing is interactable because no player-phase actions are ported yet; re-check when they are) |
 | D-06 | Owner 11-09, 0.1.467 (060478a): Franz and Seth remain at the screen edge instead of exiting. | Event34 cleared the unit but Fe8Boot left its refreshMapAndSprites hook unwired, retaining a standing sprite. 7ac8384 wires the original RefreshEntityBmMaps/RefreshUnitSprites/RenderBmMap sequence. CutsceneExitTest checks original f13800/f15600 unit/OAM snapshots and sustained absence after each removal; removing the hook fails on Franz. CutsceneUnitSpritesTest and MuTimingDifferentialTest also pass. Earlier walking animation/tile fixes did not establish exit behavior. | fix merged, unverified (7ac8384); owner device confirmation required; D-07 is separate |
 | D-07 | Owner 11-09, 0.1.467 (060478a): rare momentary stutter while units walk during the Prologue opening; the game then continues normally. | Report recorded; no profiling or reference/device trace for the pause yet. Walking animation itself is owner-confirmed. Cause not investigated. | open |
-| D-08 | Owner 11-09, 0.1.467 (060478a): background corrupts at the outdoor Seth/Franz dialogue and worsens afterward. | Map tile animation overwrote conversation BG3 VRAM. Scheduled 6d3406c adds BMapDispSuspend/Resume; ConvoBackgroundVramTest checks original f13200..14100 and 330 live scene frames. Owner-PC audit adds Event23/24 moving-unit locks (a4ff217), reference semaphore transitions and source-derived nested/resume checks. Weather/HBlank and RefreshBMapGraphics remain stand-ins. | fix merged, unverified; owner re-test required; further restoration audit in progress |
+| D-08 | Owner 11-09, 0.1.467 (060478a): background corrupts at the outdoor Seth/Franz dialogue and worsens afterward. | Map tile animation overwrote conversation BG3 VRAM. Scheduled 6d3406c adds BMapDispSuspend/Resume; ConvoBackgroundVramTest checks original f13200..14100 and 330 live scene frames. Owner-PC audit adds Event23/24 moving-unit locks (a4ff217), reference semaphore transitions and source-derived nested/resume checks. 910fcfa additionally restores the available map graphics, palettes and sprite data after dialogue; full scene BG3 and nonanimated restored map tiles/palettes match original captures. Animated-range phase, weather/HBlank and UI/font/icon resets remain outside this check. | fix merged, unverified (910fcfa); owner device re-test required |
 | D-09 | Owner 11-09, 0.1.467 (060478a): no popup announcing Eirika received the Rapier before the first battle; inventory cannot be checked because player-phase interactions are unavailable. | Event37_GiveItem's NewPopup_ItemGot path is a stand-in. OpeningStubCommandsTest asserts the Rapier in Eirika's inventory headlessly; this is not device inventory confirmation or a trace verification of Event37. | open; low priority (owner) |
-| D-10 | Owner 11-09, 0.1.467 (060478a): portraits do not blink; original FE8 behavior confirmed. | Scheduled 350f19a starts gProcScr_FaceBlink and wires SetFaceBlinkControl. Owner-PC audit 191449c verifies normal eye OAM and selected portrait tiles in both orientations, plus individual mutation checks of all four tagged functions. Small/held eye variants and blink-control API remain transcribed. Mouth proc remains incomplete, so existing interval test resynchronizes shared LCG per frame. | fix merged, unverified; owner device confirmation required |
+| D-10 | Owner 11-09, 0.1.467 (060478a): portraits do not blink; original FE8 behavior confirmed. | Scheduled 350f19a starts gProcScr_FaceBlink and wires SetFaceBlinkControl. Owner-PC audit 191449c verifies normal eye OAM and selected portrait tiles in both orientations, plus individual mutation checks of all four tagged functions. Small/held eye variants and blink-control API remain transcribed. 28bef11 additionally implements the mouth proc; a separate test follows both children and the shared LCG for 300 frames from one seed, replaying display bits. Initial mouth phase is seeded from original reused proc memory; fresh Kotlin states start at zero. | fix merged, unverified; owner device confirmation required |
 
 ## Audit 11-06 20:10Z (owner PC) of scheduled work 3c26e9e..ab985a8
 Full jvmTest green (555). 6 tags withheld because breaks survived (UpdateMapImgAnimations: VRAM every 10th frame;
@@ -75,18 +75,27 @@ M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
 ## Owner-PC audit 2026-11-09
-- Reviewed scheduled D-08 (`6d3406c`) and D-10 (`350f19a`). Blink counters/intervals and visible normal-eye OAM/tiles match original captures in both orientations; five individual mutations failed and were restored. Held/small eye modes and mouth animation remain unverified/incomplete.
+Validation: full `jvmTest test` and debug/release APK builds passed (638 tests, zero failures/skips);
+engine:extract and game Dokka passed per module. Both APKs passed the no-game-content guard against
+1,535 extracted assets. Python checks: 27 passed. Assistant instructions synchronized. Progress regenerated
+from the full suite: **545/8352**, `ported-without-tag: 0`. Units/font extractor readability completed.
+APK publication: CI will build this run; confirm the release hash before announcing it as available.
+
+- Reviewed scheduled D-08 (`6d3406c`) and D-10 (`350f19a`). Blink counters/intervals and visible normal-eye OAM/tiles match original captures in both orientations; five individual mutations failed and were restored. Held/small eye modes remain unverified; normal mouth animation was subsequently implemented (28bef11).
 - D-08 retained the background overwrite guard. Added omitted Event23/24 moving-unit block/unblock (PROC_MARK_MU, not music), reference semaphore transitions, source-derived nested suspension, and animation-resume coverage. Focused classes green; removing MU block failed. Neither device issue is marked solved without owner confirmation.
 
-## Next task: D-08 device re-test; D-06 off-screen exits; D-07 walking stutter; D-10 portrait blink; D-09 Rapier popup remains low priority
+- D-08 follow-up 910fcfa: Event22 had no map-graphics restoration. New regression compares scene BG3 VRAM/tilemap/palettes at f13500, restored nonanimated map tiles and palette banks 6–15 against first_phase f19430, transition tilemap against f14100, and idle tilemap against f19430. Removing restoration fails; focused event/map/background tests green. Animated VRAM 0xA000..0xAFFF excluded from the map-return comparison because capture phases differ.
+
+## Next task: device re-test D-08/D-06/D-10 and mouths; D-07 scope answer pending; D-09 Rapier popup remains low priority
 Scheduled 11-09 00:17Z (full jvmTest+test green): D-08 fixed 6d3406c, see table (other BG palette ~123 B diffs and f13500 BG0 text-tile diffs not explained; alignment by unit table only). Ref f14100/f14400 are black, f14700 is the Valter battle anim (unported), so later BG3 diffs are battle prep, not D-08. wip/D-08: ConvoBackgroundFade (Event21 subcode-1 fade procs, transcribed; Prologue never calls it) + Bg08ScratchTest diff harness; merge the fade only with a test. Gradle here needs `python3 tools/maven_mirror.py --port 8765 --cache /root/.cache/fe8-maven &` + FE8_MAVEN_MIRROR (Central 429).
-Owner device test 11-09, build 0.1.467 (060478a): walking animations and dialogue portrait display look correct;
-D-06 remains open after the owner clarified that both riders still stay at the edge. New issues D-07..D-10 above:
-prioritize worsening background corruption, then off-screen exits and the intermittent walking pause; missing
-Rapier popup explicitly low priority. Device inventory
-contents remain unknown. FE8 blinking is confirmed by original source plus active Prologue blink proc states;
-recorded as D-10. Manual checklist consolidated around this result; obsolete pending walking/portrait checks
-and old build-specific instructions removed. This step records reports/checks blinking; no application fix attempted.
+Owner-PC 11-09: 28bef11 starts the original mouth child before the blink child and queues ROM mouth tiles until VBlank. Five tests cover parent/timer initialization, speaking/silent state, 300-frame shared LCG sequencing, OAM/VRAM in both orientations, and production flush timing. Six deliberate mutations failed then were restored. Smile/blend paths and exact initial phase from reused original proc memory are outside this verification. No new StartFace tag.
+
+Latest device evidence remains 0.1.467 (060478a). D-06/D-08/D-10 and normal mouths now have merged
+reference-checked changes and await owner confirmation on a new APK; none is marked solved. D-07 profiling
+was not attempted: automatic approval review rejected the proposed allocation diagnostic because it cited the
+earlier deferred-opening instruction; a scope question is pending with the owner. Continue independent work
+without treating silence as approval. D-09 Rapier popup remains explicitly low priority and device inventory is
+unknown. The unexercised fade procs on wip/D-08 must not be merged without reference verification.
 
 Owner PC 11-09: CLAUDE.md, GPT.md and new GEMINI.md now share docs/AGENT_INSTRUCTIONS.template.md; profiles in
 tools/sync_agent_instructions.py preserve each assistant's model/tool choices. Edit the template/profile, run

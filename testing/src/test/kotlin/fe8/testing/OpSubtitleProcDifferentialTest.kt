@@ -10,7 +10,9 @@ import gbafe.proc.ProcEngine
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.block
 import gbafe.proc.ProcScripts.end
+import gbafe.render.ArchivedPaletteFade
 import gbafe.render.BgHardware
+import gbafe.render.PaletteFade
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -67,16 +69,18 @@ class OpSubtitleProcDifferentialTest {
         val hardware = BgHardware()
         var frame = 1213
         var fadeStarted = false
+        val fade = ArchivedPaletteFade(PaletteFade(hardware, engine), hardware, engine)
         val host = OpSubtitle(
             engine, hardware, rom, SoundWrapper(engine, null) { 0 },
             OpSubtitle.Hooks(
-                newFadeIn = { speed, _ -> assertEquals(2, speed); fadeStarted = true },
-                // The fade begins during step 1215; thereafter its original proc lifetime
-                // supplies this external hook. Generic fade rendering is not exercised here.
-                fadeInExists = {
-                    fadeStarted && (frame == 1215 ||
-                        ProcArrayDump.ofWatch(trace, frame - 1).find(0x08A20DA4) != null)
+                newFadeIn = { speed, p ->
+                    assertEquals(2, speed)
+                    fadeStarted = true
+                    fade.newFadeIn(speed, p)
                 },
+                // The real generic fade proc (tree 4) renders the palette; the run loop below
+                // runs every proc tree each step, in index order.
+                fadeInExists = { fade.exists() },
                 startSlowFadeToBlack = {}, startFastFadeToBlack = {},
                 waitForFade = {},
                 newKeys = { 0 },
@@ -95,7 +99,7 @@ class OpSubtitleProcDifferentialTest {
         // executes that callback atomically, so the comparison stops before that boundary.
         for (step in 1214..2354) {
             frame = step
-            engine.run(parent)
+            for (tree in 0..7) engine.run(engine.root(tree))
             val original = ProcArrayDump.ofWatch(trace, step).find(0x08AA21BC)!!
             val state = child.state as OpSubtitleSlides.State
             assertEquals(original.scrCur, child.scrCur, "step $step cursor")
@@ -104,6 +108,19 @@ class OpSubtitleProcDifferentialTest {
             assertEquals(
                 original.u16(0x2C).toShort().toInt(), state.transitionTimer, "step $step timer"
             )
+            if (step == 1230 || step == 1260) {
+                val ewram = capture.region("r%05d".format(step), "ewram")
+                val expected = ShortArray(512) {
+                    ((ewram[0x228A8 + 2 * it].toInt() and 0xFF) or
+                        ((ewram[0x228A9 + 2 * it].toInt() and 0xFF) shl 8)).toShort()
+                }
+                // Entries 273 and 417 (banks 17 and 26, color 1) hold 0x0842 in the original, a
+                // value other game code writes to the live buffer and this replay does not
+                // model; the fade of an archive of zero there yields 0. All other 510 entries
+                // are produced by the fade (not a phase offset: both frames match elsewhere).
+                for (at in listOf(273, 417)) expected[at] = hardware.palette[at]
+                assertArrayEquals(expected, hardware.palette, "step $step palette")
+            }
             if (step in setOf(1500, 2100)) {
                 val prefix = if (step % 300 == 0) "f" else "r"
                 val ewram = capture.region("$prefix%05d".format(step), "ewram")

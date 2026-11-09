@@ -37,11 +37,11 @@ internal class EventGiveItem(
      * [NotImplementedError].
      */
     val event37GiveItem: EventHandler = EventHandler { proc ->
-        val cur = proc.pEventCurrent
-        val subcmd = memory.u16(cur) and 0xF
-        val unit = getUnitStructFromEventParameter(memory.u16(cur + 2).toShort().toInt())
+        val currentCmd = proc.pEventCurrent
+        val subcommand = memory.u16(currentCmd) and 0xF
+        val unit = getUnitStructFromEventParameter(memory.u16(currentCmd + 2).toShort().toInt())
         if (unit < 0) return@EventHandler EVC_ERROR
-        when (subcmd) {
+        when (subcommand) {
             0 -> if (!addItem(unit, makeNewItem(state.slots[3]))) {
                 throw NotImplementedError(
                     "GIVEITEMTO with a full inventory (item-drop menu) is not ported",

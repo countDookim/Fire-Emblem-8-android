@@ -225,8 +225,12 @@ public fun createProcScrEventDisplayCursor(
 ): ProcScript = ProcScript(
     name = "ProcScr_EventDisplayCursor",
     cmds = listOf(
-        ProcScripts.repeat(ProcFunc { p ->
-            eventDisplayCursorLoop(p.state as MapCursorProc, putMapCursor, eventShinningCursorAdvance)
+        ProcScripts.repeat(ProcFunc { proc ->
+            eventDisplayCursorLoop(
+                proc.state as MapCursorProc,
+                putMapCursor,
+                eventShinningCursorAdvance,
+            )
         }),
         ProcScripts.end(),
     ),

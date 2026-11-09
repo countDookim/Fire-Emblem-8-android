@@ -30,26 +30,26 @@ public class EventFade(
      */
     public val event17Fade: EventHandler = EventHandler { proc ->
         if (proc.evStateBits and EV_STATE_SKIPPING != 0) return@EventHandler EVC_ADVANCE_CONTINUE
-        val cur = proc.pEventCurrent
-        val speed = memory.u16(cur + 2)
+        val currentCmd = proc.pEventCurrent
+        val fadeSpeed = memory.u16(currentCmd + 2)
         val parent = proc.proc
-        when (memory.u16(cur) and 0xF) {
+        when (memory.u16(currentCmd) and 0xF) {
             0 -> {
-                if (parent != null) fade.startLockingFadeFromBlack(speed, parent)
+                if (parent != null) fade.startLockingFadeFromBlack(fadeSpeed, parent)
                 proc.evStateBits = proc.evStateBits and EV_STATE_FADEDIN.inv()
                 fade.lcd.setDispEnable(1, 1, 1, 1, 1)
             }
             1 -> {
-                if (parent != null) fade.startLockingFadeToBlack(speed, parent)
+                if (parent != null) fade.startLockingFadeToBlack(fadeSpeed, parent)
                 proc.evStateBits = proc.evStateBits or EV_STATE_FADEDIN
             }
             2 -> {
-                if (parent != null) fade.startLockingFadeFromWhite(speed, parent)
+                if (parent != null) fade.startLockingFadeFromWhite(fadeSpeed, parent)
                 proc.evStateBits = proc.evStateBits and EV_STATE_FADEDIN.inv()
                 fade.lcd.setDispEnable(1, 1, 1, 1, 1)
             }
             3 -> {
-                if (parent != null) fade.startLockingFadeToWhite(speed, parent)
+                if (parent != null) fade.startLockingFadeToWhite(fadeSpeed, parent)
                 proc.evStateBits = proc.evStateBits or EV_STATE_FADEDIN
             }
             else -> return@EventHandler EVC_ERROR

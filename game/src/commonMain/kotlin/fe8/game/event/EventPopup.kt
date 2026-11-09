@@ -31,14 +31,14 @@ internal class EventPopup(
      */
     val event3ADisplayPopup: EventHandler = EventHandler { proc ->
         if (proc.evStateBits and EV_STATE_SKIPPING != 0) return@EventHandler EVC_ADVANCE_CONTINUE
-        val cur = proc.pEventCurrent
-        val subcmd = memory.u16(cur) and 0xF
-        var textId = memory.u16(cur + 2).toShort().toInt()
+        val currentCmd = proc.pEventCurrent
+        val subcommand = memory.u16(currentCmd) and 0xF
+        var textId = memory.u16(currentCmd + 2).toShort().toInt()
         if (textId < 0) textId = state.slots[2]
-        when (subcmd) {
+        when (subcommand) {
             0 -> throw NotImplementedError("NewPopup_VerySimple (event 0x3A sub 0) is not ported")
             1 -> {
-                val arg = memory.u16(cur + 6)
+                val arg = memory.u16(currentCmd + 6)
                 val x = arg.toByte().toInt()
                 val y = (arg shr 8).toByte().toInt()
                 brownTextBox.startBrownTextBox(textId, x, y, proc.proc!!)

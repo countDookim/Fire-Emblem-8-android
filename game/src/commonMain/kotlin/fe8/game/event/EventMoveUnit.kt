@@ -80,62 +80,62 @@ public class EventMoveUnit(
      * a negative speed moves the unit at once, else a [MuCtrl] walk starts.
      */
     public val event2fMoveUnit: EventHandler = EventHandler { proc ->
-        val cur = proc.pEventCurrent
-        val head = memory.u16(cur)
-        val subcmd = head and 0x7
-        val subHi = (head and 0xF) shr 3
-        val speed = memory.u16(cur + 2).toShort().toInt()
-        val unit = unitFromParameter(memory.u16(cur + 4).toShort().toInt())
+        val currentCmd = proc.pEventCurrent
+        val header = memory.u16(currentCmd)
+        val subcommand = header and 0x7
+        val subFlag = (header and 0xF) shr 3
+        val speed = memory.u16(currentCmd + 2).toShort().toInt()
+        val unit = unitFromParameter(memory.u16(currentCmd + 4).toShort().toInt())
         if (unit < 0) return@EventHandler EVC_ADVANCE_CONTINUE
-        val xIn = table.xPos(unit)
-        val yIn = table.yPos(unit)
+        val sourceX = table.xPos(unit)
+        val sourceY = table.yPos(unit)
         if (table.state(unit) and US_BIT22 == 0 && table.state(unit) and US_DEAD != 0) {
             return@EventHandler EVC_ADVANCE_CONTINUE
         }
-        var xOut = 0
-        var yOut = 0
-        var queue = false
-        val arg2 = memory.u16(cur + 6)
-        when (subcmd) {
+        var targetX = 0
+        var targetY = 0
+        var useQueue = false
+        val positionArg = memory.u16(currentCmd + 6)
+        when (subcommand) {
             0 -> {
-                xOut = arg2.toByte().toInt()
-                yOut = (arg2 shr 8).toByte().toInt()
+                targetX = positionArg.toByte().toInt()
+                targetY = (positionArg shr 8).toByte().toInt()
             }
             1 -> {
-                var pid = arg2.toShort().toInt()
-                if (pid < 0) pid = 0
-                val target = unitFromParameter(pid)
+                var targetCharId = positionArg.toShort().toInt()
+                if (targetCharId < 0) targetCharId = 0
+                val target = unitFromParameter(targetCharId)
                 if (target < 0) return@EventHandler EVC_ERROR
-                xOut = table.xPos(target)
-                yOut = table.yPos(target)
+                targetX = table.xPos(target)
+                targetY = table.yPos(target)
             }
             2 -> {
-                xOut = xIn
-                yOut = yIn
-                when (arg2) {
-                    3 -> yOut--
-                    2 -> yOut++
-                    0 -> xOut--
-                    1 -> xOut++
+                targetX = sourceX
+                targetY = sourceY
+                when (positionArg) {
+                    3 -> targetY--
+                    2 -> targetY++
+                    0 -> targetX--
+                    1 -> targetX++
                 }
             }
-            3 -> queue = true
+            3 -> useQueue = true
             else -> return@EventHandler EVC_ADVANCE_CONTINUE
         }
-        val flags = moveFlags(proc, subHi != 0)
+        val flags = moveFlags(proc, subFlag != 0)
         map.bmMapFill(map.other, 0)
         if (proc.evStateBits and EV_STATE_SKIPPING != 0 || speed < 0) {
-            if (queue) {
-                val last = queueRedas().last()
-                muCtrl.moveUnit(unit, last.x, last.y, flags)
+            if (useQueue) {
+                val lastReda = queueRedas().last()
+                muCtrl.moveUnit(unit, lastReda.x, lastReda.y, flags)
             } else {
-                muCtrl.moveUnit(unit, xOut, yOut, flags)
+                muCtrl.moveUnit(unit, targetX, targetY, flags)
             }
             return@EventHandler EVC_ADVANCE_CONTINUE
         }
-        if (!tryPrepare(proc, xIn, yIn)) return@EventHandler EVC_STOP_YIELD
-        if (!queue) {
-            muCtrl.startMoveTowards(unit, xOut, yOut, speed, flags)
+        if (!tryPrepare(proc, sourceX, sourceY)) return@EventHandler EVC_STOP_YIELD
+        if (!useQueue) {
+            muCtrl.startMoveTowards(unit, targetX, targetY, speed, flags)
         } else {
             val redas = queueRedas()
             muCtrl.startDefinedMove(unit, redas, redas.size, flags)

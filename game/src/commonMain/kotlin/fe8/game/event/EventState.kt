@@ -83,9 +83,9 @@ public class EventState {
     public fun slotQueuePop(): Int {
         val result = slotQueue[0]
         slots[QUEUE_SLOT]--
-        val n = slots[QUEUE_SLOT] xor Int.MIN_VALUE
+        val queueLenUnsigned = slots[QUEUE_SLOT] xor Int.MIN_VALUE
         var i = 0
-        while (i < OVERFLOW_LIMIT && (i xor Int.MIN_VALUE) < n) {
+        while (i < OVERFLOW_LIMIT && (i xor Int.MIN_VALUE) < queueLenUnsigned) {
             setWordAt(i, wordAt(i + 1))
             i++
         }
@@ -135,23 +135,25 @@ public class EventState {
         writeWords(mem, offset + ACTIVE_QUEUE_OFFSET, activeQueue)
     }
 
-    private fun readWord(m: ByteArray, o: Int): Int =
-        (m[o].toInt() and 0xFF) or ((m[o + 1].toInt() and 0xFF) shl 8) or
-            ((m[o + 2].toInt() and 0xFF) shl 16) or ((m[o + 3].toInt() and 0xFF) shl 24)
+    private fun readWord(bytes: ByteArray, offset: Int): Int =
+        (bytes[offset].toInt() and 0xFF) or
+            ((bytes[offset + 1].toInt() and 0xFF) shl 8) or
+            ((bytes[offset + 2].toInt() and 0xFF) shl 16) or
+            ((bytes[offset + 3].toInt() and 0xFF) shl 24)
 
-    private fun writeWord(m: ByteArray, o: Int, v: Int) {
-        m[o] = v.toByte()
-        m[o + 1] = (v shr 8).toByte()
-        m[o + 2] = (v shr 16).toByte()
-        m[o + 3] = (v shr 24).toByte()
+    private fun writeWord(bytes: ByteArray, offset: Int, value: Int) {
+        bytes[offset] = value.toByte()
+        bytes[offset + 1] = (value shr 8).toByte()
+        bytes[offset + 2] = (value shr 16).toByte()
+        bytes[offset + 3] = (value shr 24).toByte()
     }
 
-    private fun readWords(m: ByteArray, o: Int, dst: IntArray) {
-        for (i in dst.indices) dst[i] = readWord(m, o + i * 4)
+    private fun readWords(bytes: ByteArray, offset: Int, destination: IntArray) {
+        for (i in destination.indices) destination[i] = readWord(bytes, offset + i * 4)
     }
 
-    private fun writeWords(m: ByteArray, o: Int, src: IntArray) {
-        for (i in src.indices) writeWord(m, o + i * 4, src[i])
+    private fun writeWords(bytes: ByteArray, offset: Int, source: IntArray) {
+        for (i in source.indices) writeWord(bytes, offset + i * 4, source[i])
     }
 
     /** Block layout: addresses, sizes and byte offsets. */

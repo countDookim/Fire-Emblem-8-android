@@ -53,9 +53,9 @@ private const val GUIDE_TABLE = 0x08B19E0C
  * Sets the display flag of every guide entry, up to the entry whose title is 12.
  */
 public fun bmGuideTextSetAllGreen(memory: ScriptMemory, flags: FlagStore) {
-    var it = GUIDE_TABLE
-    while (memory.u16(it) and 0xFF != 12) {
-        flags.setFlag(memory.u16(it + 6))
-        it += 12
+    var guideEntryAddress = GUIDE_TABLE
+    while (memory.u16(guideEntryAddress) and 0xFF != 12) {
+        flags.setFlag(memory.u16(guideEntryAddress + 6))
+        guideEntryAddress += 12
     }
 }

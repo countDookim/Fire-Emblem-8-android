@@ -49,14 +49,14 @@ public class EventChangeMap(
     public val event25ChangeMap: EventHandler = EventHandler { proc ->
         val x = state.slots[0xB] and 0xFF
         val y = (state.slots[0xB] ushr 16) and 0xFF
-        var chIndex = memory.u16(proc.pEventCurrent + 2).toShort().toInt()
-        if (chIndex < 0) chIndex = state.slots[2].toShort().toInt()
+        var chapterIndex = memory.u16(proc.pEventCurrent + 2).toShort().toInt()
+        if (chapterIndex < 0) chapterIndex = state.slots[2].toShort().toInt()
 
         // Event24_EnableMapDisp
         if (proc.evStateBits and EV_STATE_GFXLOCKED != 0) resumeMapDisplay()
         proc.evStateBits = proc.evStateBits and EV_STATE_GFXLOCKED.inv()
 
-        playSt.chapterIndex = chIndex
+        playSt.chapterIndex = chapterIndex
 
         restartBattleMap()
 

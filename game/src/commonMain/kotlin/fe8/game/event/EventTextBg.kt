@@ -89,26 +89,26 @@ public class EventTextBg(
      * The background fade procs are host stand-ins.
      */
     public val event21TextBg: EventHandler = EventHandler { proc ->
-        val cur = proc.pEventCurrent
-        val subcode = memory.u16(cur) and 0xF
-        var arg = memory.u16(cur + 2).toShort().toInt()
-        if (arg < 0) arg = state.slots[2]
+        val currentCmd = proc.pEventCurrent
+        val subcode = memory.u16(currentCmd) and 0xF
+        var bgIndex = memory.u16(currentCmd + 2).toShort().toInt()
+        if (bgIndex < 0) bgIndex = state.slots[2]
         val skipping = proc.evStateBits and EV_STATE_SKIPPING != 0
         when (subcode) {
-            0 -> return@EventHandler eventShowTextBgDirect(proc.activeTextType, arg)
+            0 -> return@EventHandler eventShowTextBgDirect(proc.activeTextType, bgIndex)
             1 -> {
-                val a = memory.u16(cur + 4)
-                val speed = memory.u16(cur + 6)
+                val transitionKind = memory.u16(currentCmd + 4)
+                val fadeSpeed = memory.u16(currentCmd + 6)
                 val fadeType: Int
                 when (proc.activeTextType) {
-                    0, 3, 4, 5 -> when (a) {
+                    0, 3, 4, 5 -> when (transitionKind) {
                         1, 2 -> {
                             if (skipping) return@EventHandler EVC_ADVANCE_CONTINUE
                             fadeType = 1
                         }
                         else -> return@EventHandler EVC_ERROR
                     }
-                    1, 2 -> when (a) {
+                    1, 2 -> when (transitionKind) {
                         0, 3, 4, 5 -> {
                             if (skipping) return@EventHandler host.clearScreen(proc)
                             fadeType = 2
@@ -121,22 +121,22 @@ public class EventTextBg(
                     }
                     else -> return@EventHandler EVC_ERROR
                 }
-                host.startBackgroundFade(fadeType, a, arg, speed, proc)
+                host.startBackgroundFade(fadeType, transitionKind, bgIndex, fadeSpeed, proc)
             }
             2 -> {
-                val color = memory.u16(cur + 4)
-                val speed = memory.u16(cur + 6)
+                val color = memory.u16(currentCmd + 4)
+                val fadeSpeed = memory.u16(currentCmd + 6)
                 if (skipping) return@EventHandler EVC_ADVANCE_CONTINUE
-                if (eventShowTextBgDirect(proc.activeTextType, arg) == EVC_ERROR) {
+                if (eventShowTextBgDirect(proc.activeTextType, bgIndex) == EVC_ERROR) {
                     return@EventHandler EVC_ERROR
                 }
-                host.colorFadeIn(speed, color, proc)
+                host.colorFadeIn(fadeSpeed, color, proc)
             }
             3 -> {
-                val color = memory.u16(cur + 4)
-                val speed = memory.u16(cur + 6)
+                val color = memory.u16(currentCmd + 4)
+                val fadeSpeed = memory.u16(currentCmd + 6)
                 if (skipping) return@EventHandler EVC_ADVANCE_CONTINUE
-                host.colorFadeOut(speed, color, proc)
+                host.colorFadeOut(fadeSpeed, color, proc)
             }
         }
         EVC_ADVANCE_YIELD

@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 576,
-    "implemented_unverified": 1
+    "verified": 592,
+    "implemented_unverified": 4
   },
   "functions": {
     "AddUnitSprite": {
@@ -2564,6 +2564,150 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "PhaseIntroBlendBox_InLoop": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PhaseIntroBlendBox_Init": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PhaseIntroBlendBox_OutLoop": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PhaseIntroClearText": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PhaseIntroSquares_InLoop": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PhaseIntroSquares_Init": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PhaseIntroSquares_OutLoop": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PhaseIntroText_InLoop": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PhaseIntroText_OutLoop": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PhaseIntroText_PutText": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PhaseIntroUnk_Init": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PhaseIntroUnk_Loop": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PhaseIntro_EndIfNoUnits": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PhaseIntro_InitDisp": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PhaseIntro_InitGraphics": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PhaseIntro_WaitForEnd": {
+      "decomp_file": "src/phasechangefx.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
     "PopulateSaveBlockChecksum": {
       "decomp_file": "src/bmsave.c",
       "system": "save",
@@ -4543,6 +4687,27 @@
       "tests": [
         "fe8.testing.ChapterMapGraphicsDifferentialTest#OBJ UI graphics and palettes match the dump"
       ]
+    },
+    "sub_80C4C60": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleSlides.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_80C4CD0": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleSlides.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_80C4D54": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleSlides.kt",
+      "status": "implemented",
+      "tests": []
     },
     "sub_80C5548": {
       "decomp_file": "src/titlescreen.c",

@@ -11,9 +11,13 @@ package fe8.app
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.os.Build
 import android.os.Process
+import android.os.Trace
 import gba.audio.AudioSink
 import gba.audio.AudioSource
+import gba.audio.PcmStream
+import io.github.countdookim.fe8.BuildConfig
 
 /**
  * Low-latency [AudioSink] (M3-12): a streaming 16-bit stereo [AudioTrack] with
@@ -67,6 +71,9 @@ internal class AudioTrackSink(override val sampleRate: Int = DEFAULT_RATE) : Aud
     override fun write(buffer: ShortArray, frames: Int) {
         track.write(buffer, 0, frames * CHANNELS_STEREO, AudioTrack.WRITE_BLOCKING)
     }
+
+    /** Native AudioTrack underrun count. */
+    val underrunCount: Int get() = track.underrunCount
 
     /** Starts audio track playback. */
     fun play() = track.play()
@@ -122,8 +129,28 @@ internal class AudioThread(private val source: AudioSource, private val sink: Au
             Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
             val buffer = ShortArray(sink.chunkFrames * 2)
             while (running) {
-                source.render(buffer, sink.chunkFrames)
-                sink.write(buffer, sink.chunkFrames)
+                if (BuildConfig.DEBUG) Trace.beginSection("FE8 audio render")
+                try {
+                    source.render(buffer, sink.chunkFrames)
+                } finally {
+                    if (BuildConfig.DEBUG) Trace.endSection()
+                }
+                if (BuildConfig.DEBUG && Build.VERSION.SDK_INT >= 29) {
+                    val pcm = source as? PcmStream
+                    if (pcm != null) {
+                        Trace.setCounter("FE8 PCM queued input frames", pcm.queued.toLong())
+                        Trace.setCounter("FE8 PCM output frames", pcm.outputFrames)
+                        Trace.setCounter("FE8 PCM prefill silence frames", pcm.prefillSilenceFrames)
+                        Trace.setCounter("FE8 PCM underrun frames", pcm.underrunFrames)
+                    }
+                    Trace.setCounter("FE8 AudioTrack underruns", sink.underrunCount.toLong())
+                }
+                if (BuildConfig.DEBUG) Trace.beginSection("FE8 audio write")
+                try {
+                    sink.write(buffer, sink.chunkFrames)
+                } finally {
+                    if (BuildConfig.DEBUG) Trace.endSection()
+                }
             }
         }, "fe8-audio").also { it.start() }
     }

@@ -11,11 +11,15 @@ package fe8.app
 import android.content.Context
 import android.opengl.GLES30
 import android.opengl.GLSurfaceView
+import android.os.Build
+import android.os.Trace
 import android.view.KeyEvent
 import android.view.MotionEvent
 import fe8.game.Fe8Game
 import gba.core.time.GameLoop
+import gba.core.time.Simulation
 import gba.input.ActionSource
+import io.github.countdookim.fe8.BuildConfig
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.IntBuffer
@@ -84,7 +88,26 @@ public class GameSurfaceView(
  * @property gpu Flag indicating whether hardware GPU shader rasterization is requested.
  */
 private class GameRenderer(private val game: Fe8Game, gpu: Boolean) : GLSurfaceView.Renderer {
-    private val loop = GameLoop(game)
+    private val loop = GameLoop(object : Simulation {
+        override fun tick() {
+            if (BuildConfig.DEBUG) Trace.beginSection("FE8 tick")
+            try {
+                game.tick()
+            } finally {
+                if (BuildConfig.DEBUG) Trace.endSection()
+            }
+        }
+
+        override fun present(alpha: Float) {
+            if (BuildConfig.DEBUG) Trace.beginSection("FE8 present")
+            try {
+                game.present(alpha)
+            } finally {
+                if (BuildConfig.DEBUG) Trace.endSection()
+            }
+        }
+    })
+    private var callbacks = 0L
     private val gpuBackend = game.boot?.takeIf { gpu }?.let { GpuBackend(it.gpuFrame, it.tileSheets) }
     private val frame = game.frame
     private val upload: IntBuffer = ByteBuffer.allocateDirect(frame.pixels.size * BYTES_PER_PIXEL)
@@ -125,7 +148,28 @@ private class GameRenderer(private val game: Fe8Game, gpu: Boolean) : GLSurfaceV
 
     /** Advances game simulation, performs render passes, and draws the scaled output quad. */
     override fun onDrawFrame(gl: GL10?) {
-        loop.frame(System.nanoTime())
+        if (BuildConfig.DEBUG) Trace.beginSection("FE8 draw frame")
+        try {
+            val previousTicks = loop.ticks
+            if (BuildConfig.DEBUG) Trace.beginSection("FE8 game loop")
+            try {
+                loop.frame(System.nanoTime())
+            } finally {
+                if (BuildConfig.DEBUG) Trace.endSection()
+            }
+            if (BuildConfig.DEBUG && Build.VERSION.SDK_INT >= 29) {
+                Trace.setCounter("FE8 ticks per callback", loop.ticks - previousTicks)
+                Trace.setCounter("FE8 game ticks", loop.ticks)
+                Trace.setCounter("FE8 draw callbacks", ++callbacks)
+            }
+            drawFrame()
+        } finally {
+            if (BuildConfig.DEBUG) Trace.endSection()
+        }
+    }
+
+    /** Draws the current game frame, scaled to the surface. */
+    private fun drawFrame() {
         // Aspect-correct fit: scale the [-1,1] quad so the 3:2 image fits the view.
         val gameAspect = frame.width.toFloat() / frame.height
         val viewAspect = viewW.toFloat() / viewH

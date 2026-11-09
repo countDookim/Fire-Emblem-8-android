@@ -81,6 +81,30 @@ class PcmStreamTest {
     }
 
     @Test
+    fun `counters distinguish prefill silence from repeated underrun samples`() {
+        val stream = PcmStream(1000, 1000, capacity = 8, prefillFrames = 2)
+        val out = ShortArray(8)
+        stream.push(info(1) { 5 })
+        stream.render(out, 2)
+        assertEquals(listOf(0, 0, 0, 0), out.take(4).map { it.toInt() })
+        assertEquals(2L, stream.outputFrames)
+        assertEquals(2L, stream.prefillSilenceFrames)
+        assertEquals(0L, stream.underrunFrames)
+        stream.push(info(1) { 6 })
+        stream.render(out, 4)
+        assertEquals(listOf(5, 6, 6, 6).map { it * 256 },
+            (0 until 4).map { out[2 * it + 1].toInt() })
+        assertEquals(6L, stream.outputFrames)
+        assertEquals(2L, stream.prefillSilenceFrames)
+        assertEquals(2L, stream.underrunFrames)
+        stream.push(info(1) { 7 })
+        stream.render(out, 1)
+        assertEquals(7 * 256, out[1].toInt())
+        assertEquals(7L, stream.outputFrames)
+        assertEquals(2L, stream.underrunFrames)
+    }
+
+    @Test
     fun `startup reserve must fit in ring`() {
         org.junit.jupiter.api.assertThrows<IllegalArgumentException> {
             PcmStream(1000, 1000, capacity = 4, prefillFrames = 5)

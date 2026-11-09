@@ -38,6 +38,21 @@ public class PcmStream(
     /** Input frames queued and not yet consumed. */
     public val queued: Int get() = (written - read).toInt()
 
+    /**
+     * Output frames rendered, including startup silence and repeated underrun samples. Read on the
+     * consumer thread after [render].
+     */
+    public var outputFrames: Long = 0
+        private set
+
+    /** Output frames silenced while waiting for startup prefill; consumer thread only. */
+    public var prefillSilenceFrames: Long = 0
+        private set
+
+    /** Output frames repeating the last sample because the ring was empty; consumer thread only. */
+    public var underrunFrames: Long = 0
+        private set
+
     /** PSG channels mixed into each pushed frame (at `pcmFreq`); null: DirectSound only. */
     public var psg: PsgSynth? = null
 
@@ -66,19 +81,23 @@ public class PcmStream(
     }
 
     override fun render(buffer: ShortArray, frames: Int) {
+        outputFrames += frames.toLong()
         if (pendingPrefillFrames > 0) {
             if (written - read < pendingPrefillFrames) {
+                prefillSilenceFrames += frames.toLong()
                 buffer.fill(0, 0, frames * 2)
                 return
             }
             pendingPrefillFrames = 0
         }
         var r = read
+        var underruns = 0L
         for (i in 0 until frames) {
             val avail = written - r
             val a = 2 * (r and mask.toLong()).toInt()
             val b = if (avail >= 2) 2 * ((r + 1) and mask.toLong()).toInt() else a
             if (avail <= 0) {
+                underruns++
                 val last = 2 * ((r - 1) and mask.toLong()).toInt()
                 buffer[2 * i] = ring[last]
                 buffer[2 * i + 1] = ring[last + 1]
@@ -92,6 +111,7 @@ public class PcmStream(
             r += minOf(adv.toLong(), avail)
         }
         read = r
+        underrunFrames += underruns
     }
 
     private fun lerp(x: Short, y: Short): Short = (x + (((y - x) * frac) shr 16)).toShort()

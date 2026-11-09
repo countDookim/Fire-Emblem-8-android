@@ -80,4 +80,13 @@ public class OpSubtitleScenes(
     private companion object {
         const val PALETTE = 0x08AA239C
     }
+
+    /**
+     * Resets the BG1 scroll offset to (0, 0) once the final scene has finished.
+     *
+     * Ported from src/opsubtitle.c: sub_80C540C
+     */
+    public fun resetCardOffset() {
+        hardware.lcd.setBgPosition(1, 0, 0)
+    }
 }

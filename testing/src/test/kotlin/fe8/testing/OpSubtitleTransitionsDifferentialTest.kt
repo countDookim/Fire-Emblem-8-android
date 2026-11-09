@@ -516,8 +516,8 @@ class OpSubtitleTransitionsDifferentialTest {
         val rom = RomView.ofRom(romFile.readBytes())
         // Runs at step 2425 (after the card palette fade ends); f02400 precedes it and r02430
         // follows it with only the hold timer ticking in between. VRAM is dumped at f02700,
-        // after the later slide load at 0x1000, so only 0x5000..0x6000 and BG3 tiles from 0x8000 are compared (the maps at
-        // 0x6000.. are flushed by the BG sync, not by the ported code).
+        // after the later slide load at 0x1000, so only 0x5000..0x6000 and BG3 tiles from 0x8000
+        // are compared (the maps at 0x6000.. are flushed by the BG sync, not by the ported code).
         val hardware = seededHardware(capture, "f02400", "f02400")
         val state = OpSubtitleSlides.State(2, 0, 0)
         scenesOf(rom, hardware).setupFinalScene(state)
@@ -540,6 +540,33 @@ class OpSubtitleTransitionsDifferentialTest {
         val after = ProcArrayDump.ofWatch(capture.watch("procs"), 2428).find(SCRIPT)!!
         assertEquals(after.u8(0x29), state.index)
         assertEquals(after.u16(0x2A) + 1, state.holdTimer)
+    }
+
+    @Test
+    @VerifiesPort("sub_80C540C")
+    fun `card offset reset matches captured BG offsets`() {
+        assumeTrue(ref.available && romFile.isFile, "reference capture or ROM unavailable")
+        val capture = ref.run("ram_trace_prologue")
+        val rom = RomView.ofRom(romFile.readBytes())
+        // Runs at the end of the monologue (step ~4897): r04890 still has BG1 at (-3, -3) and
+        // r04920 has (0, 0).
+        val hardware = seededHardware(capture, "r04890", "f04800")
+        assertEquals(0xFFFD, hardware.lcd.bgHofs[1].toInt(), "BG1 hofs before")
+        assertEquals(0xFFFD, hardware.lcd.bgVofs[1].toInt(), "BG1 vofs before")
+        val hofsBefore = hardware.lcd.bgHofs.copyOf()
+        val vofsBefore = hardware.lcd.bgVofs.copyOf()
+        scenesOf(rom, hardware).resetCardOffset()
+        val expected = LcdControl()
+        expected.readFrom(capture.region("r04920", "iwram"), 0x3080)
+        // Only BG1 is compared with the capture: other procs scroll BG2 between the snapshots, so
+        // the other BGs are checked to be left untouched.
+        assertEquals(expected.bgHofs[1], hardware.lcd.bgHofs[1], "BG1 hofs")
+        assertEquals(expected.bgVofs[1], hardware.lcd.bgVofs[1], "BG1 vofs")
+        assertEquals(0, hardware.lcd.bgHofs[1].toInt() or hardware.lcd.bgVofs[1].toInt())
+        for (bg in intArrayOf(0, 2, 3)) {
+            assertEquals(hofsBefore[bg], hardware.lcd.bgHofs[bg], "BG$bg hofs untouched")
+            assertEquals(vofsBefore[bg], hardware.lcd.bgVofs[bg], "BG$bg vofs untouched")
+        }
     }
 
     private fun fullPalette(ewram: ByteArray) = ShortArray(0x200) { i ->

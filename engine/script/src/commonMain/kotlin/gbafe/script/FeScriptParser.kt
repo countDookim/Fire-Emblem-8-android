@@ -109,6 +109,7 @@ public class FeScriptParser(
         return r.lines
     }
 
+    /** Parses a command line [t] at source line [line], reporting syntax errors to [err]. */
     private fun parseCommand(
         t: List<String>,
         line: Int,
@@ -161,6 +162,7 @@ public class FeScriptParser(
         return ScriptLine.Command(spec, args.toList(), line)
     }
 
+    /** Strips comments and splits row into whitespace-delimited tokens. */
     private fun tokenize(row: String): List<String> {
         val hash = row.indexOf('#')
         val code = if (hash >= 0) row.substring(0, hash) else row
@@ -179,16 +181,20 @@ public class FeScriptParser(
         return out
     }
 
+    /** Returns true if string [s] begins with a digit or sign character. */
     private fun looksNumeric(s: String): Boolean = isDigit(s[0]) || s[0] == '-' || s[0] == '+'
 
+    /** Returns true if char [c] is an ASCII decimal digit. */
     private fun isDigit(c: Char): Boolean = c in '0'..'9'
 
     /** An identifier, or identifiers joined by `|` (a bit mask such as `A|B`). */
     private fun isIdentifierMask(s: String): Boolean = s.split('|').all { isIdentifier(it) }
 
+    /** Returns true if all components of identifier mask [s] are declared events or known constants. */
     private fun isKnownMask(s: String, events: Set<String>): Boolean =
         s.split('|').all { it in events || identifiers.isKnown(it) }
 
+    /** Returns true if [s] is a valid C identifier (`[A-Za-z_][A-Za-z0-9_]*`). */
     private fun isIdentifier(s: String): Boolean {
         if (s.isEmpty() || isDigit(s[0])) return false
         return s.all { it == '_' || it in 'a'..'z' || it in 'A'..'Z' || isDigit(it) }

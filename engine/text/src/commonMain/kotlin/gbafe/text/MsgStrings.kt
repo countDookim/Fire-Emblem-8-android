@@ -27,59 +27,51 @@ public class MsgStrings(
 
     /**
      * Returns the shared [buffer] holding message [index], decoding it only if it is not already
-     * the active message.
+     * cached.
      *
      * Ported from src/msg.c: GetStringFromIndex
      */
     public fun getStringFromIndex(index: Int): ByteArray {
-        if (index == activeMsg) return buffer
-        decodeInto(index, buffer, 0)
-        activeMsg = index
+        if (activeMsg != index) {
+            val msgPtr = readU32(tableOffset + index * 4)
+            require(msgPtr ushr 25 == 4) { "message $index pointer 0x${msgPtr.toUInt().toString(16)} is not in ROM" }
+            huffman.decodeInto(msgPtr - ROM_BASE, buffer, 0)
+            activeMsg = index
+        }
         return buffer
     }
 
     /**
-     * Decodes message [index] into [dst] at [dstOffset] (no caching) and returns [dst].
+     * Decodes message [index] directly into [out] without modifying the shared cache [buffer].
      *
      * Transcribed from src/msg.c: GetStringFromIndexInBuffer (not verified: the reference trace
-     * never shows a caller-supplied buffer filled by it)
+     * never calls this variant, only [getStringFromIndex])
      */
-    // Not @VerifiesPort: no traced call of the InBuffer variant; it shares the verified decode
-    // path.
-    public fun getStringFromIndexInBuffer(
-        index: Int,
-        dst: ByteArray,
-        dstOffset: Int = 0,
-    ): ByteArray {
-        decodeInto(index, dst, dstOffset)
-        return dst
+    public fun getStringFromIndexInBuffer(index: Int, out: ByteArray) {
+        val msgPtr = readU32(tableOffset + index * 4)
+        require(msgPtr ushr 25 == 4) { "message $index pointer 0x${msgPtr.toUInt().toString(16)} is not in ROM" }
+        huffman.decodeInto(msgPtr - ROM_BASE, out, 0)
     }
 
-    private fun decodeInto(index: Int, dst: ByteArray, dstOffset: Int) {
-        val p = tableOffset + index * 4
-        val ptr = (rom[p].toInt() and 0xFF) or ((rom[p + 1].toInt() and 0xFF) shl 8) or
-            ((rom[p + 2].toInt() and 0xFF) shl 16) or ((rom[p + 3].toInt() and 0xFF) shl 24)
-        huffman.decodeInto(ptr - ROM_BASE, dst, dstOffset)
-        setMsgTerminator(dst, dstOffset)
-    }
+    private fun readU32(o: Int): Int =
+        (rom[o].toInt() and 0xFF) or ((rom[o + 1].toInt() and 0xFF) shl 8) or
+            ((rom[o + 2].toInt() and 0xFF) shl 16) or ((rom[o + 3].toInt() and 0xFF) shl 24)
 
-    /** Buffer size constant and the static terminator fix-up. */
+    /** Buffer size and terminator helpers. */
     public companion object {
-        /** `sizeof(sMsgString.buffer1)`. */
+        /** Size of the shared decode buffer in bytes (`sizeof(sMsgString.buffer1)` = 0x1000 = 4096). */
         public const val BUFFER_SIZE: Int = 0x1000
 
         private const val ROM_BASE = 0x08000000
-        private const val CHFE_L_LOAD_FACE = 0x10
-        private const val HALF_CLOSE_EYES = 0x80
-        private const val DOT = 0x1F
+        private const val CHFE_L_LOAD_FACE = 0x80
+        private const val HALF_CLOSE_EYES = 0x1E
+        private const val DOT = '.'.code
 
         /**
-         * Turns trailing `[.]` (0x1F) codes of the 0-terminated string at [str]`[start]` into
-         * terminators, except one that follows `[HalfCloseEyes]` (0x80).
+         * Replaces trailing periods with string terminators (`0`) unless preceded by
+         * [HALF_CLOSE_EYES].
          *
          * Ported from src/msg.c: SetMsgTerminator
-         *
-         * The C reads `str[-1]` when the string is a lone `[.]`; here that byte is taken as 0.
          */
         public fun setMsgTerminator(str: ByteArray, start: Int = 0) {
             var off = 0

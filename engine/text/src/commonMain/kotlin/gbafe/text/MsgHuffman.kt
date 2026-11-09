@@ -54,6 +54,7 @@ public class MsgHuffman(
         return n - dstOffset
     }
 
+    /** Internal bit-stream Huffman tree traversal. */
     private inline fun decodeWith(offset: Int, emit: (Int) -> Unit) {
         var src = offset
         var bits = 0
@@ -78,10 +79,10 @@ public class MsgHuffman(
                 emit((value ushr 8) and 0xFF)
             } else {
                 emit(value and 0xFF)
-                if (value and 0xFF == 0) return
+                if ((value and 0xFF) == 0) return
             }
         }
     }
 
-    private fun u16(o: Int) = (rom[o].toInt() and 0xFF) or ((rom[o + 1].toInt() and 0xFF) shl 8)
+    private fun u16(o: Int): Int = (rom[o].toInt() and 0xFF) or ((rom[o + 1].toInt() and 0xFF) shl 8)
 }

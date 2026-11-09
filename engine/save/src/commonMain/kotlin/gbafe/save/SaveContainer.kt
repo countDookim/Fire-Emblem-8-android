@@ -1,9 +1,11 @@
 package gbafe.save
 
 /**
- * One section of a [SaveContainer].
+ * One section within a [SaveContainer].
  *
- * The [id] is 1 to 255 printable ASCII characters and the [version] fits an unsigned 16-bit value.
+ * @property id section identifier: [SaveFormat.CORE_SECTION] or `mod:<id>`. Must be 1..255 printable ASCII chars.
+ * @property version format version of this section's payload (1..0xFFFF).
+ * @property data raw payload bytes; treated as immutable by the container.
  */
 public class SaveSection(
     /** Section id: `core`, or `mod:<id>` for mod data. */
@@ -14,22 +16,25 @@ public class SaveSection(
     public val data: ByteArray,
 ) {
     init {
-        require(id.length in 1..MAX_ID && id.all { it.code in 0x20..0x7E }) {
+        require(id.length in 1..MAX_ID && id.all { it.code in ASCII_PRINTABLE_MIN..ASCII_PRINTABLE_MAX }) {
             "bad section id: $id"
         }
-        require(version in 1..0xFFFF) { "bad section version: $version" }
+        require(version in 1..MAX_VERSION) { "bad section version: $version" }
     }
 
     internal companion object {
         const val MAX_ID: Int = 255
+        const val MAX_VERSION: Int = 0xFFFF
+        const val ASCII_PRINTABLE_MIN: Int = 0x20
+        const val ASCII_PRINTABLE_MAX: Int = 0x7E
     }
 }
 
 /**
- * A save file in memory: a game id and an ordered list of [SaveSection]s (layout in [SaveFormat]).
+ * An in-memory save file: a target game identifier and an ordered list of [SaveSection]s.
  *
- * Section order and unknown sections are preserved by [read] followed by [writeTo], so a mod's data
- * survives being rewritten by a build that does not know the mod.
+ * Unknown sections and original section order are preserved when reading and writing, ensuring that
+ * mod data is retained even when a save is rewritten by a build that does not implement the mod.
  */
 public class SaveContainer(
     /** Id of the game the save belongs to (1 to 255 printable ASCII characters), e.g. `fe8`. */
@@ -41,11 +46,11 @@ public class SaveContainer(
         require(gameId.length in 1..SaveSection.MAX_ID && gameId.all { it.code in 0x20..0x7E }) {
             "bad game id: $gameId"
         }
-        require(sections.size <= 0xFFFF) { "too many sections" }
+        require(sections.size <= MAX_SECTIONS) { "too many sections" }
         require(sections.map { it.id }.toSet().size == sections.size) { "duplicate section ids" }
     }
 
-    /** The section with the given [id], or null. */
+    /** The section with the given [id], or null if not present. */
     public fun section(id: String): SaveSection? {
         for (i in sections.indices) if (sections[i].id == id) return sections[i]
         return null
@@ -54,7 +59,7 @@ public class SaveContainer(
     /** The raw SRAM image of the `core` section, or null if absent. */
     public val core: ByteArray? get() = section(SaveFormat.CORE_SECTION)?.data
 
-    /** A copy of this container with [section] replacing the one with the same id, or appended. */
+    /** A copy of this container with [section] replacing any existing section with the same id, or appended. */
     public fun withSection(section: SaveSection): SaveContainer {
         val list = ArrayList<SaveSection>(sections.size + 1)
         var replaced = false
@@ -70,15 +75,16 @@ public class SaveContainer(
         return SaveContainer(gameId, list)
     }
 
-    /** Number of bytes [writeTo] produces. */
+    /** Total number of bytes produced by [writeTo]. */
     public fun encodedSize(): Int {
         var size = headerSize()
         for (i in sections.indices) size += sections[i].data.size
         return size
     }
 
+    /** Computes the byte size of the container header and section table including checksum. */
     private fun headerSize(): Int {
-        var size = FIXED_HEADER + 1 + gameId.length + CRC
+        var size = FIXED_HEADER + 1 + gameId.length + CRC_SIZE
         for (i in sections.indices) size += 1 + sections[i].id.length + ENTRY_FIXED
         return size
     }
@@ -87,7 +93,7 @@ public class SaveContainer(
      * Writes the container into [dst] at [offset] and returns the number of bytes written
      * ([encodedSize]). Allocates nothing.
      *
-     * @throws IllegalArgumentException if [dst] is too small
+     * @throws IllegalArgumentException if [dst] is too small.
      */
     public fun writeTo(dst: ByteArray, offset: Int = 0): Int {
         val total = encodedSize()
@@ -116,18 +122,18 @@ public class SaveContainer(
         return p - offset
     }
 
-    /** Returns the encoded container as a new array. */
+    /** Returns the encoded container as a newly allocated byte array. */
     public fun toByteArray(): ByteArray = ByteArray(encodedSize()).also { writeTo(it) }
 
-    /** Container format constants and readers. */
+    /** Container format constants, factory methods, and decoders. */
     public companion object {
+        private const val MAX_SECTIONS = 0xFFFF
         private const val FIXED_HEADER = 8
         private const val ENTRY_FIXED = 10
-        private const val CRC = 4
+        private const val CRC_SIZE = 4
 
         /**
-         * Builds a container holding [sram] (the 32 KiB cartridge image) plus the given mod
-         * sections.
+         * Builds a container holding [sram] (the 32 KiB cartridge image) plus the given mod sections.
          */
         public fun fromSram(
             gameId: String,
@@ -147,10 +153,9 @@ public class SaveContainer(
          * Parses `src[offset, offset + length)` and upgrades every section known to [registry] to
          * its current version. Sections unknown to the registry are kept verbatim.
          *
-         * @throws SaveException.Corrupt on bad magic, truncation, bad checksums or duplicate ids
-         * @throws SaveException.NewerVersion if the container or a known section is newer than
-         *     supported
-         * @throws SaveException.MissingMigration if an upgrade step is not registered
+         * @throws SaveException.Corrupt on bad magic, truncation, bad checksums or duplicate ids.
+         * @throws SaveException.NewerVersion if the container or a known section is newer than supported.
+         * @throws SaveException.MissingMigration if an upgrade step is not registered.
          */
         public fun read(
             src: ByteArray,
@@ -176,13 +181,13 @@ public class SaveContainer(
         }
 
         /**
-         * Copies the payload of section [id] from the encoded container
-         * `src[offset, offset + length)` into [dst] at [dstOffset] without allocating a payload
-         * array, and returns its length, or -1 if the section is absent. Checksums of the header
-         * and the section are verified; no migration is applied.
+         * Copies the payload of section [id] from the encoded container `src[offset, offset + length)`
+         * into [dst] at [dstOffset] without allocating a payload array, and returns its length,
+         * or -1 if the section is absent. Checksums of the header and the section are verified;
+         * no migration is applied.
          *
-         * @throws SaveException.Corrupt on invalid or truncated data
-         * @throws IllegalArgumentException if [dst] is too small
+         * @throws SaveException.Corrupt on invalid or truncated data.
+         * @throws IllegalArgumentException if [dst] is too small.
          */
         public fun readSectionInto(
             src: ByteArray,
@@ -211,8 +216,10 @@ public class SaveContainer(
             return -1
         }
 
+        /** Table of contents entry parsed from the container header. */
         private class Entry(val id: String, val version: Int, val length: Int, val crc: Int)
 
+        /** Parsed container header table. */
         private class Table(
             val gameId: String,
             val count: Int,
@@ -222,6 +229,7 @@ public class SaveContainer(
             fun entry(i: Int): Entry = entries[i]
         }
 
+        /** Parses and validates the container header and section table. */
         private fun parseTable(src: ByteArray, offset: Int, length: Int): Table {
             if (offset < 0 || length < 0 || offset + length > src.size) {
                 throw SaveException.Corrupt("bad range")
@@ -266,11 +274,11 @@ public class SaveContainer(
                 total += len
                 entries.add(Entry(id, v, len, crc))
             }
-            need(CRC)
+            need(CRC_SIZE)
             if (Crc32.compute(src, offset, p - offset) != getU32(src, p)) {
                 throw SaveException.Corrupt("header checksum")
             }
-            p += CRC
+            p += CRC_SIZE
             if (end - p < total) throw SaveException.Corrupt("truncated payload")
             return Table(gameId, count, p, entries)
         }

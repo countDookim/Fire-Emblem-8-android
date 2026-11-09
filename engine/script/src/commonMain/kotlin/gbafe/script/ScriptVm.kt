@@ -1,16 +1,14 @@
 package gbafe.script
 
 /**
- * Interpreter for the human-readable event script format (`.fe8s`) that the original event scripts are
- * converted into. Scripts are parsed and compiled at load time into an `IntArray` of opcodes and
- * operands; executing them never allocates. See `docs/decisions/0001-script-format.md`.
+ * Virtual machine interpreter interface for executing compiled event script bytecode ([ScriptImage]).
  *
- * This interface is the milestone-1 contract; the implementation lands in milestone 5.
+ * Scripts are parsed from `.fe8s` text files and assembled at load time. Execution steps are non-allocating.
  */
 public interface ScriptVm {
-    /** Runs the active script threads until each yields (waits on text, movement, a timer...). */
+    /** Advances active script execution threads until each yields (e.g. waiting on timers, animations, dialog). */
     public fun step()
 
-    /** True when no script thread is active. */
+    /** True when no script execution threads are currently running or suspended. */
     public val idle: Boolean
 }

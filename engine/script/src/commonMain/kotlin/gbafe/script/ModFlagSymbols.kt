@@ -4,48 +4,39 @@ import gbafe.core.flags.FlagRegistry
 import gbafe.core.flags.MOD_BASE
 
 /**
- * Mod-registered flag names as script identifiers: a [SymbolResolver] (value = the flag handle,
- * `>= MOD_BASE`) for fields whose constant kind is [flagKind], and the matching
- * [IdentifierResolver] for the parser. Put it after the game's own constants in the resolver
- * chain; vanilla flag names stay with the game's constants (this resolver only answers for mod
- * names), and an unknown name stays unresolved so the caller's `file:line:` error is unchanged.
+ * Adapts mod-registered flag names into script symbol identifiers.
  *
- * Variables are not resolved here: no script command takes a [gbafe.core.flags.VarRegistry]
- * handle yet (the event slots are a separate mechanism).
+ * Resolves flag names into runtime handles (`>= MOD_BASE`) when queried for category [flagKind],
+ * and acts as an [IdentifierResolver] for the script parser.
  *
- * @property flags the registry mods register their flag names in (before scripts are assembled).
- * @property flagKind the constant kind of event-flag fields (`"event_flag"` for FE8).
+ * @property flags registry containing mod flag declarations.
+ * @property flagKind constant category name representing event flags (`"event_flag"` in FE8).
  */
 public class ModFlagSymbols(
     private val flags: FlagRegistry,
     public val flagKind: String = DEFAULT_FLAG_KIND,
 ) : SymbolResolver, IdentifierResolver {
-    /** Defaults. */
+    /** Default constant kinds. */
     public companion object {
-        /** Constant kind of event-flag fields. */
+        /** Default category kind for event flags. */
         public const val DEFAULT_FLAG_KIND: String = "event_flag"
     }
 
     override fun resolve(name: String, kind: String?): Long {
         if (kind != flagKind) return SymbolResolver.UNRESOLVED
-        val h = flags.resolve(name)
-        return if (h >= MOD_BASE) h.toLong() else SymbolResolver.UNRESOLVED
+        val handle = flags.resolve(name)
+        return if (handle >= MOD_BASE) handle.toLong() else SymbolResolver.UNRESOLVED
     }
 
     override fun isKnown(name: String): Boolean = flags.resolve(name) >= MOD_BASE
 }
 
 /**
- * A [CommandExpander] for scripts that name mod flags. A mod flag handle is negative as u16, which
- * the event VM reads as "flag id in event slot [slot]"; so before a command with a mod flag name in
- * a flag argument this inserts `set_slot <slot>, <handle>` ([setSlot]), copying the command's line.
- * Side effect visible to the script: the expansion overwrites event slot [slot]. Commands without
- * a mod flag are unchanged, so vanilla scripts assemble byte-exact.
+ * Command expander for script commands referencing mod-defined flags.
  *
- * @property mods resolves mod flag names.
- * @property setSlot the game's `set_slot` spec (arguments: slot, value).
- * @property slot the slot the VM reads flag ids from.
- * @property flagArgs indices of the flag arguments of a command spec.
+ * Mod flag handles are negative when represented as 16-bit signed integers, which the event virtual
+ * machine interprets as referencing event slot [slot]. This expander automatically prepends a
+ * `set_slot <slot>, <handle>` command ([setSlot]) before any command using a mod flag.
  */
 public class ModFlagSlotExpander(
     private val mods: ModFlagSymbols,
@@ -68,9 +59,11 @@ public class ModFlagSlotExpander(
             handle = h
         }
         if (handle == SymbolResolver.UNRESOLVED) return null
-        val set = ScriptLine.Command(
-            setSlot, listOf(Arg.IntArg(slot), Arg.IntArg(handle.toInt())), cmd.line,
+        val setCommand = ScriptLine.Command(
+            setSlot,
+            listOf(Arg.IntArg(slot), Arg.IntArg(handle.toInt())),
+            cmd.line,
         )
-        return listOf(set, cmd)
+        return listOf(setCommand, cmd)
     }
 }

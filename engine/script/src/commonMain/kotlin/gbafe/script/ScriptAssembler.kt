@@ -1,75 +1,63 @@
 package gbafe.script
 
-/** Thrown by [ScriptAssembler.assemble]; [line] is the 1-based source line (0 if unknown). */
+/** Exception thrown by [ScriptAssembler.assemble] when script compilation fails. */
 public class ScriptAssemblyException(
-    /** 1-based source line of the offending record, or 0. */
+    /** 1-based source line of the offending record, or 0 if unknown. */
     public val line: Int,
-    /** What is wrong. */
+    /** Error message describing the assembly failure. */
     public override val message: String,
 ) : RuntimeException("line $line: $message")
 
-/**
- * Resolves an identifier to a number: a constant, or a script or symbol address. Several are
- * combined with [chain].
- */
+/** Functional interface for resolving identifier names to numeric constants or memory addresses. */
 public fun interface SymbolResolver {
     /**
-     * The value of [name], or [UNRESOLVED]. [kind] is the constant kind the argument's field takes
-     * values from (`"character"`...), or null for plain fields and addresses.
+     * Resolves [name] in category [kind] to an integer address or constant value, or returns [UNRESOLVED].
      */
     public fun resolve(name: String, kind: String?): Long
 
-    /** Shared resolvers and the not-found marker. */
+    /** Standard resolvers and sentinel values. */
     public companion object {
-        /** Returned for an unknown name; no 32-bit value (signed or unsigned) equals it. */
+        /** Sentinel value indicating that an identifier could not be resolved. */
         public const val UNRESOLVED: Long = Long.MIN_VALUE
 
-        /** Knows nothing. */
+        /** Resolver that recognizes zero names. */
         public val NONE: SymbolResolver = SymbolResolver { _, _ -> UNRESOLVED }
 
-        /** The first of [resolvers] that knows a name wins. */
+        /** Chains multiple resolvers together in priority order. */
         public fun chain(vararg resolvers: SymbolResolver): SymbolResolver =
             SymbolResolver { name, kind ->
-                var v = UNRESOLVED
-                for (r in resolvers) {
-                    v = r.resolve(name, kind)
-                    if (v != UNRESOLVED) break
+                var value = UNRESOLVED
+                for (resolver in resolvers) {
+                    value = resolver.resolve(name, kind)
+                    if (value != UNRESOLVED) break
                 }
-                v
+                value
             }
     }
 }
 
-/**
- * Resolves [name], which may be several names joined by `|` (a bit mask), to the OR of their
- * values; [SymbolResolver.UNRESOLVED] if any part is unknown.
- */
+/** Resolves an identifier which may be composed of multiple names bitwise OR-ed with `|`. */
 public fun SymbolResolver.resolveMask(name: String, kind: String?): Long {
     if (name.indexOf('|') < 0) return resolve(name, kind)
-    var acc = 0L
+    var accumulator = 0L
     for (part in name.split('|')) {
         val v = resolve(part, kind)
         if (v == SymbolResolver.UNRESOLVED) return v
-        acc = acc or v
+        accumulator = accumulator or v
     }
-    return acc
+    return accumulator
 }
 
-/**
- * The game-specific half of the assembler: the word layout of each command. Implemented per game
- * (for FE8 from the decomp's `include/eventscript.h` macros).
- */
+/** Game-specific encoding rules mapping command specifications to compiled 16-bit bytecode words. */
 public interface CommandEncoder {
-    /** Number of u16 words of `label N`. */
+    /** Number of 16-bit words emitted for a `label N` statement. */
     public val labelWordCount: Int
 
-    /** Number of u16 words (header included) of a command of [spec]. */
+    /** Number of 16-bit words emitted for command [spec]. */
     public fun wordCount(spec: CommandSpec): Int
 
     /**
-     * Writes the [wordCount] words of the command to [out] from index [pos]. Identifiers in [args]
-     * are resolved through [symbols]; throws [IllegalArgumentException] on an unknown name or an
-     * argument that does not fit its field. [out] is zero-filled beforehand.
+     * Encodes command [spec] with [args] into [out] beginning at word offset [pos].
      */
     public fun encode(
         spec: CommandSpec,
@@ -79,57 +67,50 @@ public interface CommandEncoder {
         pos: Int,
     )
 
-    /** Writes the [labelWordCount] words of `label` [number] to [out] from index [pos]. */
+    /** Encodes a jump label with number [number] into [out] beginning at word offset [pos]. */
     public fun encodeLabel(number: Int, out: IntArray, pos: Int)
 }
 
-/** Chooses the virtual base address of a script (see [ScriptAssembler.assemble]). */
+/** Supplies or chooses the virtual base address for an event script. */
 public fun interface ScriptBases {
-    /** The base address of script [name], or [NONE] to let the assembler pick a synthetic one. */
+    /** Returns the base address of script [name], or [NONE] for an automatic synthetic address. */
     public fun baseOf(name: String): Int
 
-    /** Ready-made choices. */
+    /** Predefined base address strategies. */
     public companion object {
-        /** [baseOf] value for "no fixed address". */
+        /** Sentinel indicating no fixed address; the assembler assigns a synthetic address. */
         public const val NONE: Int = -1
 
-        /** Every script gets a synthetic address. */
+        /** Strategy assigning synthetic addresses to all scripts. */
         public val SYNTHETIC: ScriptBases = ScriptBases { NONE }
     }
 }
 
-/** Rewrites a command into one or more commands before the assembler sizes and encodes it. */
+/** Interceptor allowing command transformation or expansion prior to bytecode assembly. */
 public fun interface CommandExpander {
-    /** The commands replacing [cmd] (all with its line), or null to keep it unchanged. */
+    /** Expands [cmd] into one or more replacement commands, or null to leave unchanged. */
     public fun expand(cmd: ScriptLine.Command): List<ScriptLine.Command>?
 }
 
 /**
- * Compiles parsed `.fe8s` records ([FeScriptParser]) to a [ScriptImage]: the original game's event
- * words, laid out per [encoder]. It runs at load time (allocation is fine).
- *
- * Identifiers resolve through a chain: scripts of the image (to their base address), then
- * [constants], then [external] names (such as decomp symbols, via an address index).
+ * Assembles parsed script lines into a compiled bytecode [ScriptImage].
  */
 public class ScriptAssembler(
-    /** Word layouts of the commands. */
     private val encoder: CommandEncoder,
-    /** Constant names; receives the field's constant kind. */
     private val constants: SymbolResolver = SymbolResolver.NONE,
-    /** Names outside the image, for example ROM symbols. */
     private val external: SymbolResolver = SymbolResolver.NONE,
-    /** Rewrites commands before sizing and encoding; null leaves every command as written. */
     private val expander: CommandExpander? = null,
 ) {
-    /** Address constants of the assembler. */
+    /** Synthetic address and alignment constants. */
     public companion object {
-        /** First synthetic script address, above the 32 MiB ROM window. */
+        /** First synthetic virtual address assigned to scripts lacking fixed ROM addresses. */
         public const val SYNTHETIC_BASE: Int = 0x0A000000
 
-        /** Synthetic addresses are multiples of this many bytes. */
+        /** Byte alignment boundary for synthetic script allocations. */
         public const val ALIGNMENT: Int = 4
     }
 
+    /** In-flight assembly block representing one event script. */
     private class Block(val name: String, val line: Int) {
         val lines = ArrayList<ScriptLine>()
         var wordCount = 0
@@ -138,39 +119,43 @@ public class ScriptAssembler(
     }
 
     /**
-     * Assembles [lines] (the records of one or more parsed files, in order). A script gets
-     * [bases]'s address, else a synthetic one from [SYNTHETIC_BASE] up; every script starts at an
-     * even word index of the image. Throws [ScriptAssemblyException].
+     * Compiles [lines] into a [ScriptImage]. Scripts receive addresses from [bases] or [SYNTHETIC_BASE].
      */
     public fun assemble(
         lines: List<ScriptLine>,
         bases: ScriptBases = ScriptBases.SYNTHETIC,
     ): ScriptImage {
         val blocks = split(lines)
-        var total = 0
-        var synthetic = SYNTHETIC_BASE
+        var totalWords = 0
+        var syntheticAddr = SYNTHETIC_BASE
         val byName = HashMap<String, Block>()
-        for (b in blocks) {
-            if (byName.put(b.name, b) != null) fail(b.line, "duplicate event '${b.name}'")
-            b.wordCount = sizeOf(b)
-            total = (total + 1) and 1.inv()
-            b.wordOffset = total
-            total += b.wordCount
-            val fixed = bases.baseOf(b.name)
+
+        for (block in blocks) {
+            if (byName.put(block.name, block) != null) fail(block.line, "duplicate event '${block.name}'")
+            block.wordCount = sizeOf(block)
+            totalWords = (totalWords + 1) and 1.inv()
+            block.wordOffset = totalWords
+            totalWords += block.wordCount
+            val fixed = bases.baseOf(block.name)
             if (fixed != ScriptBases.NONE) {
-                if (fixed < 0 || fixed and 1 != 0) fail(b.line, "bad address for '${b.name}'")
-                b.base = fixed
+                if (fixed < 0 || fixed and 1 != 0) fail(block.line, "bad address for '${block.name}'")
+                block.base = fixed
             } else {
-                b.base = synthetic
-                synthetic += (b.wordCount * 2 + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT
+                block.base = syntheticAddr
+                syntheticAddr += (block.wordCount * 2 + ALIGNMENT - 1) / ALIGNMENT * ALIGNMENT
             }
         }
-        val own = SymbolResolver { name, _ ->
+
+        val ownResolver = SymbolResolver { name, _ ->
             byName[name]?.base?.toLong() ?: SymbolResolver.UNRESOLVED
         }
-        val symbols = SymbolResolver.chain(own, constants, external)
-        val words = IntArray(total)
-        for (b in blocks) encodeBlock(b, symbols, words)
+        val symbols = SymbolResolver.chain(ownResolver, constants, external)
+        val words = IntArray(totalWords)
+
+        for (block in blocks) {
+            encodeBlock(block, symbols, words)
+        }
+
         val entries = blocks.map {
             ScriptImage.Entry(it.name, it.base, it.wordOffset, it.wordCount)
         }
@@ -181,56 +166,60 @@ public class ScriptAssembler(
         }
     }
 
+    /** Groups input lines into blocks demarcated by [ScriptLine.EventStart]. */
     private fun split(lines: List<ScriptLine>): List<Block> {
         val blocks = ArrayList<Block>()
-        for (l in lines) {
-            if (l is ScriptLine.EventStart) {
-                blocks += Block(l.name, l.line)
+        for (line in lines) {
+            if (line is ScriptLine.EventStart) {
+                blocks += Block(line.name, line.line)
             } else {
-                val b = blocks.lastOrNull() ?: fail(l.line, "record outside an event block")
-                if (l is ScriptLine.Command && expander != null) {
-                    b.lines += expander.expand(l) ?: listOf(l)
+                val currentBlock = blocks.lastOrNull() ?: fail(line.line, "record outside an event block")
+                if (line is ScriptLine.Command && expander != null) {
+                    currentBlock.lines += expander.expand(line) ?: listOf(line)
                 } else {
-                    b.lines += l
+                    currentBlock.lines += line
                 }
             }
         }
         return blocks
     }
 
-    private fun sizeOf(b: Block): Int {
-        var n = 0
-        for (l in b.lines) {
-            n += when (l) {
+    /** Computes the total 16-bit word length of [block]. */
+    private fun sizeOf(block: Block): Int {
+        var wordSum = 0
+        for (line in block.lines) {
+            wordSum += when (line) {
                 is ScriptLine.Label -> encoder.labelWordCount
-                is ScriptLine.Command -> encoder.wordCount(l.spec)
+                is ScriptLine.Command -> encoder.wordCount(line.spec)
                 is ScriptLine.EventStart -> 0
             }
         }
-        return n
+        return wordSum
     }
 
-    private fun encodeBlock(b: Block, symbols: SymbolResolver, words: IntArray) {
-        var pos = b.wordOffset
-        for (l in b.lines) {
+    /** Encodes all statements within [block] into the shared bytecode array [words]. */
+    private fun encodeBlock(block: Block, symbols: SymbolResolver, words: IntArray) {
+        var pos = block.wordOffset
+        for (line in block.lines) {
             try {
-                when (l) {
+                when (line) {
                     is ScriptLine.Label -> {
-                        encoder.encodeLabel(l.number, words, pos)
+                        encoder.encodeLabel(line.number, words, pos)
                         pos += encoder.labelWordCount
                     }
                     is ScriptLine.Command -> {
-                        encoder.encode(l.spec, l.args, symbols, words, pos)
-                        pos += encoder.wordCount(l.spec)
+                        encoder.encode(line.spec, line.args, symbols, words, pos)
+                        pos += encoder.wordCount(line.spec)
                     }
                     is ScriptLine.EventStart -> Unit
                 }
-            } catch (e: IllegalArgumentException) {
-                fail(l.line, e.message ?: "cannot encode")
+            } catch (e: Exception) {
+                fail(line.line, e.message ?: "encode failed")
             }
         }
     }
 
+    /** Throws a [ScriptAssemblyException] formatted with source line [line]. */
     private fun fail(line: Int, message: String): Nothing =
         throw ScriptAssemblyException(line, message)
 }

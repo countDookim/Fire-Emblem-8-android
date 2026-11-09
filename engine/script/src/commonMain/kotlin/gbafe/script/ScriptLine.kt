@@ -1,39 +1,41 @@
 package gbafe.script
 
-/** One argument of a command line: an integer or an identifier. */
+/**
+ * One argument of a script command: an integer value or an identifier.
+ */
 public sealed class Arg {
-    /** An integer written in decimal, `0x` hex or with a leading `-`. */
+    /** An integer argument written in decimal, hexadecimal (`0x...`), or with a leading negation `-`. */
     public data class IntArg(
-        /** The value; hex above `0x7FFFFFFF` (up to `0xFFFFFFFF`) wraps to a negative [Int]. */
+        /** The resolved integer value (hex values in `0x80000000..0xFFFFFFFF` wrap to negative [Int]). */
         public val value: Int,
     ) : Arg()
 
-    /** A name (constant, or an `event` defined in the same file) as written in the source. */
+    /** An identifier argument representing a named constant, flag, or local event label. */
     public data class IdentArg(
-        /** The identifier text. */
+        /** The literal identifier text as written in source code. */
         public val name: String,
     ) : Arg()
 }
 
-/** Expected kind of one command argument. */
+/** Expected argument type for a command parameter in [CommandSpec]. */
 public enum class ArgKind {
-    /** Integer or identifier. */
+    /** Argument may be either an integer literal or a named identifier. */
     ANY,
 
-    /** Integer literal only. */
+    /** Argument must be an integer literal. */
     INT,
 
-    /** Identifier only. */
+    /** Argument must be an identifier name. */
     IDENT,
 }
 
-/** A command known to a [CommandSet]. */
+/** Specification and signature for a script command recognized by a [CommandSet]. */
 public data class CommandSpec(
-    /** Canonical name (aliases are resolved by the [CommandSet] before this is returned). */
+    /** Canonical command mnemonic name (aliases are resolved prior to constructing this spec). */
     public val name: String,
-    /** Exact number of arguments. */
+    /** Number of required arguments for this command. */
     public val argCount: Int,
-    /** Expected kind per argument; must have [argCount] entries. Defaults to [ArgKind.ANY]. */
+    /** Expected argument kind for each parameter position; must have length [argCount]. Defaults to [ArgKind.ANY]. */
     public val argKinds: List<ArgKind> = List(argCount) { ArgKind.ANY },
 ) {
     init {
@@ -44,50 +46,50 @@ public data class CommandSpec(
     }
 }
 
-/** The injected set of commands a script may use. */
+/** Injected set of supported commands for a script dialect. */
 public fun interface CommandSet {
-    /** Returns the spec for [name] (canonical name or an alias), or null if it is not a command. */
+    /** Returns the [CommandSpec] for [name] (canonical name or alias), or null if unrecognized. */
     public fun lookup(name: String): CommandSpec?
 }
 
-/** Decides whether an identifier is a known constant; script names of the file are the parser's. */
+/** Resolves whether an identifier string is a known constant or defined label. */
 public fun interface IdentifierResolver {
-    /** True if [name] is a known constant. */
+    /** Returns true if [name] is a recognized identifier. */
     public fun isKnown(name: String): Boolean
 
-    /** Ready-made resolvers. */
+    /** Predefined identifier resolvers. */
     public companion object {
-        /** Knows no constants: only script names defined in the file are accepted. */
+        /** Resolver recognizing zero constants; only event labels declared in the file are accepted. */
         public val NONE: IdentifierResolver = IdentifierResolver { false }
     }
 }
 
-/** One record of a parsed script; [line] is the 1-based source line. */
+/** One record in a parsed event script file; [line] indicates the 1-based source line. */
 public sealed class ScriptLine {
-    /** 1-based source line. */
+    /** 1-based line number in the source file. */
     public abstract val line: Int
 
-    /** Start of an `event <name>` block; it runs to the next [EventStart] or the end of file. */
+    /** Header declaring the start of a named event block (`event <Name>`). */
     public data class EventStart(
-        /** Event (script) name. */
+        /** Name of the event script. */
         public val name: String,
         /** 1-based source line. */
         override val line: Int,
     ) : ScriptLine()
 
-    /** A `label N` line inside an event block. */
+    /** Jump destination declaration (`label N`) within an event block. */
     public data class Label(
-        /** Label number, unique within its event. */
+        /** Label number, unique within the enclosing event script. */
         public val number: Int,
         /** 1-based source line. */
         override val line: Int,
     ) : ScriptLine()
 
-    /** A command line. */
+    /** An executable script command invocation with its arguments. */
     public data class Command(
-        /** The resolved command (canonical name). */
+        /** The command specification. */
         public val spec: CommandSpec,
-        /** The arguments, [CommandSpec.argCount] of them. */
+        /** Arguments supplied to the command. */
         public val args: List<Arg>,
         /** 1-based source line. */
         override val line: Int,

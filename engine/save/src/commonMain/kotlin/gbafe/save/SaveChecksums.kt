@@ -1,10 +1,21 @@
 package gbafe.save
 
 /**
- * The two checksums FE8 stores in save RAM. Both read little-endian halfwords, mix a running sum
- * with a running xor, and allocate nothing.
+ * Checksum algorithms stored in FE8 save RAM (SRAM).
+ *
+ * FE8 uses two distinct checksum functions:
+ * 1. [checksum16]: A 16-bit `(sum + xor)` checksum used in global save metadata and bonus claim records.
+ * 2. [checksum32]: A 32-bit checksum (16-bit sum in low halfword, 16-bit xor in high halfword) used for save blocks.
+ *
+ * Both routines read little-endian halfwords sequentially and allocate zero heap memory.
  */
 public object SaveChecksums {
+    /** 16-bit truncation mask. */
+    private const val MASK_16BIT = 0xFFFF
+
+    /** Number of bytes per GBA 16-bit halfword. */
+    private const val BYTES_PER_HALFWORD = 2
+
     /**
      * Checksum of the [size] bytes of [data] starting at [offset], as stored in the global save
      * info, the bonus-claim data and similar small blocks: `(sum + xor)` of the `size / 2`
@@ -15,18 +26,19 @@ public object SaveChecksums {
      * @return the checksum in `0..0xFFFF`.
      */
     public fun checksum16(data: ByteArray, offset: Int, size: Int): Int {
-        var add = 0
-        var xor = 0
-        var p = offset
-        var i = 0
-        while (i < size / 2) {
-            val v = (data[p].toInt() and 0xFF) or ((data[p + 1].toInt() and 0xFF) shl 8)
-            add += v
-            xor = xor xor v
-            p += 2
-            i++
+        var sum = 0
+        var xorSum = 0
+        var cursor = offset
+        var halfwordIndex = 0
+        val halfwordCount = size / BYTES_PER_HALFWORD
+        while (halfwordIndex < halfwordCount) {
+            val halfword = (data[cursor].toInt() and 0xFF) or ((data[cursor + 1].toInt() and 0xFF) shl 8)
+            sum += halfword
+            xorSum = xorSum xor halfword
+            cursor += BYTES_PER_HALFWORD
+            halfwordIndex++
         }
-        return (add + xor) and 0xFFFF
+        return (sum + xorSum) and MASK_16BIT
     }
 
     /**
@@ -41,18 +53,18 @@ public object SaveChecksums {
      * @return the 32-bit checksum pattern (the high bit may be set, so the value can be negative).
      */
     public fun checksum32(data: ByteArray, offset: Int, size: Int): Int {
-        var add = 0
-        var xor = 0
-        var p = offset
-        var left = size - 2
+        var sum = 0
+        var xorSum = 0
+        var cursor = offset
+        var bytesRemaining = size - BYTES_PER_HALFWORD
         do {
-            val v = (data[p].toInt() and 0xFF) or ((data[p + 1].toInt() and 0xFF) shl 8)
-            add += v
-            xor = xor xor v
-            p += 2
-            left -= 2
-        } while (left >= 0)
-        return (add and 0xFFFF) + (xor shl 16)
+            val halfword = (data[cursor].toInt() and 0xFF) or ((data[cursor + 1].toInt() and 0xFF) shl 8)
+            sum += halfword
+            xorSum = xorSum xor halfword
+            cursor += BYTES_PER_HALFWORD
+            bytesRemaining -= BYTES_PER_HALFWORD
+        } while (bytesRemaining >= 0)
+        return (sum and MASK_16BIT) + (xorSum shl 16)
     }
 
     /**

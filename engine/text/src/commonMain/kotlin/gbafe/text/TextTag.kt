@@ -1,24 +1,25 @@
 package gbafe.text
 
 /**
- * The readable control-code tags used in localisation files, e.g. `{PLAYER}`, `{PAUSE 30}`. The
- * extractor (milestone 2) converts the ROM's binary control codes into these; the text system parses
- * them once at load into a compact `IntArray` stream.
+ * Readable control-code tags used in localization text files (e.g. `{NL}`, `{WAIT}`, `{PAUSE 30}`).
  *
- * @property tag name as written between braces.
- * @property argCount number of integer arguments.
+ * The extractor converts binary ROM text control codes into these tags; the text system parses
+ * them into compact token streams at runtime.
+ *
+ * @property tag tag name as written between braces.
+ * @property argCount number of integer parameters accepted by this tag.
  */
 public enum class TextTag(public val tag: String, public val argCount: Int) {
-    /** Line break inside a text box. */
+    /** Line break inside a dialog or description text box (`{NL}`). */
     NEWLINE("NL", 0),
 
-    /** Wait for a button press, then clear. */
+    /** Wait for button press (A button), then clear the text window (`{A}`). */
     WAIT("A", 0),
 
-    /** Pause for N frames. */
+    /** Pause text printing for specified number of frames (`{PAUSE frames}`). */
     PAUSE("PAUSE", 1),
 
-    /** Insert the tactician's name. */
+    /** Dynamically substitute the player tactician's name (`{PLAYER}`). */
     PLAYER("PLAYER", 0),
     ;
 

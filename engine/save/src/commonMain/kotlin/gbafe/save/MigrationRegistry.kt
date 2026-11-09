@@ -38,8 +38,8 @@ public class MigrationRegistry {
      * Returns [section] upgraded to its current version by applying each registered step once, in
      * order; returns [section] itself when nothing is to be done.
      *
-     * @throws SaveException.NewerVersion if the section is newer than the declared current version
-     * @throws SaveException.MissingMigration if a step in the chain is not registered
+     * @throws SaveException.NewerVersion if the section is newer than the declared current version.
+     * @throws SaveException.MissingMigration if a step in the chain is not registered.
      */
     public fun upgrade(section: SaveSection): SaveSection {
         val target = current[section.id] ?: return section
@@ -59,7 +59,9 @@ public class MigrationRegistry {
 
     private fun key(sectionId: String, fromVersion: Int): String = "$sectionId@$fromVersion"
 
-    private companion object {
-        const val MAX_VERSION: Int = 0xFFFF
+    /** Version boundary constants. */
+    public companion object {
+        /** Maximum allowable section version number. */
+        public const val MAX_VERSION: Int = 0xFFFF
     }
 }

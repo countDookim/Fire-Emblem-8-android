@@ -1,7 +1,7 @@
 package gbafe.script
 
 /**
- * Named constants of the event script language, grouped by kind (`"character"`, `"song"`,
+ * Named constants of the event script language, grouped by category kind (`"character"`, `"song"`,
  * `"event_flag"`...): the `.fe8s` parser resolves a name to its value, the converter and tools
  * print a value back as its name. Kinds are open strings so mods can add their own. A base game
  * supplies one implementation (for FE8, `gbafe.extract.fe8.events.Fe8ScriptConstants`);
@@ -15,11 +15,11 @@ public interface ScriptConstants {
 
     /**
      * The primary name of [value] in [kind] (the first one declared when several share it), or
-     * null.
+     * null if unmapped.
      */
     public fun nameOf(kind: String, value: Int): String?
 
-    /** Shared constants. */
+    /** Shared sentinel constants. */
     public companion object {
         /** Returned by [valueOf] for an unknown name; no real constant has this value. */
         public const val NONE: Int = Int.MIN_VALUE
@@ -33,9 +33,9 @@ public interface ScriptConstants {
 public fun ScriptConstants.findValue(kind: String, name: String): Int? =
     valueOf(kind, name).let { if (it == ScriptConstants.NONE) null else it }
 
-/** Where a constant comes from. */
+/** Origin classification for a script constant identifier. */
 public enum class ConstantOrigin {
-    /** Named by the original game's headers. */
+    /** Named directly by the original game's C headers. */
     DECOMP,
 
     /** Expanded from a parameterised macro in the headers (such as `EVFLAG_EXTRA_UNIT(i)`). */
@@ -46,8 +46,8 @@ public enum class ConstantOrigin {
 }
 
 /**
- * Immutable name/value table of one kind. [names] and [values] are parallel; when several names
- * share a value the first listed is the primary name returned by [nameOf]. [origins] lists the
+ * Immutable name/value table for one constant kind. [names] and [values] are parallel; when several
+ * names share a value the first listed is the primary name returned by [nameOf]. [origins] lists
  * entries that are not [ConstantOrigin.DECOMP].
  */
 public class ConstantTable(
@@ -57,8 +57,8 @@ public class ConstantTable(
     public val values: IntArray,
     private val origins: Map<String, ConstantOrigin> = emptyMap(),
 ) {
-    private val byName: HashMap<String, Int> = HashMap<String, Int>(names.size * 2).also { m ->
-        for (i in names.indices) if (!m.containsKey(names[i])) m[names[i]] = values[i]
+    private val byName: HashMap<String, Int> = HashMap<String, Int>(names.size * 2).also { map ->
+        for (i in names.indices) if (!map.containsKey(names[i])) map[names[i]] = values[i]
     }
     private val sortedValues: IntArray
     private val sortedNames: Array<String>
@@ -71,7 +71,7 @@ public class ConstantTable(
         sortedNames = Array(order.size) { names[order[it]] }
     }
 
-    /** Number of entries. */
+    /** Number of entries in this table. */
     public val size: Int get() = names.size
 
     /** The value of [name], or [ScriptConstants.NONE]. */
@@ -113,33 +113,38 @@ public open class TableScriptConstants(
  * entries while loading; lookups afterwards do not allocate.
  */
 public class MutableScriptConstants(private val base: ScriptConstants? = null) : ScriptConstants {
+    /** Dynamic storage for one constant category kind. */
     private class Kind {
         val byName = HashMap<String, Int>()
-        var values = IntArray(4)
-        var names = arrayOfNulls<String>(4)
+        var values = IntArray(INITIAL_CAPACITY)
+        var names = arrayOfNulls<String>(INITIAL_CAPACITY)
         var count = 0
+
+        companion object {
+            const val INITIAL_CAPACITY = 4
+        }
     }
 
     private val kinds = HashMap<String, Kind>()
 
     /** Defines [name] = [value] in [kind]; redefining a name replaces its value. */
     public fun define(kind: String, name: String, value: Int) {
-        val k = kinds.getOrPut(kind) { Kind() }
-        val old = k.byName.put(name, value)
-        if (old != null) {
-            for (i in 0 until k.count) {
-                if (k.names[i] == name) {
-                    k.values[i] = value
+        val kindData = kinds.getOrPut(kind) { Kind() }
+        val oldValue = kindData.byName.put(name, value)
+        if (oldValue != null) {
+            for (i in 0 until kindData.count) {
+                if (kindData.names[i] == name) {
+                    kindData.values[i] = value
                     return
                 }
             }
         }
-        if (k.count == k.values.size) {
-            k.values = k.values.copyOf(k.count * 2)
-            k.names = k.names.copyOf(k.count * 2)
+        if (kindData.count == kindData.values.size) {
+            kindData.values = kindData.values.copyOf(kindData.count * 2)
+            kindData.names = kindData.names.copyOf(kindData.count * 2)
         }
-        k.values[k.count] = value
-        k.names[k.count++] = name
+        kindData.values[kindData.count] = value
+        kindData.names[kindData.count++] = name
     }
 
     override fun valueOf(kind: String, name: String): Int {
@@ -148,10 +153,10 @@ public class MutableScriptConstants(private val base: ScriptConstants? = null) :
     }
 
     override fun nameOf(kind: String, value: Int): String? {
-        val k = kinds[kind]
-        if (k != null) {
+        val kindData = kinds[kind]
+        if (kindData != null) {
             // Newest definition first, so a mod's name for a value beats an older one.
-            for (i in k.count - 1 downTo 0) if (k.values[i] == value) return k.names[i]
+            for (i in kindData.count - 1 downTo 0) if (kindData.values[i] == value) return kindData.names[i]
         }
         return base?.nameOf(kind, value)
     }

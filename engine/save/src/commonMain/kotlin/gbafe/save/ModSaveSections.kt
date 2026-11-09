@@ -4,21 +4,26 @@ import gbafe.core.flags.FlagRegistry
 import gbafe.core.flags.VarRegistry
 
 /**
- * Saves and restores one mod's [FlagRegistry] and [VarRegistry] state in its container section
- * `mod:<id>` ([SaveFormat.modSectionId]). Entries are keyed by name (the registries' own
- * serialization), never by handle, so the order mods register in does not matter. The core
- * section is not touched.
+ * Serializes and deserializes a mod's persistent state into a mod save section (`mod:<id>`).
  *
- * Payload (version [VERSION]): i32 length + flag blob, i32 length + variable blob, little-endian;
- * a length of 0 means the registry was absent when saving.
+ * ## Payload Format (Version 1)
+ * ```
+ * +0  4  flags length fl (i32 little-endian)
+ * +4  fl flags binary blob (empty when fl == 0)
+ * ... 4  variables length vl (i32 little-endian)
+ * ... vl variables binary blob (empty when vl == 0)
+ * ```
  */
 public object ModSaveSections {
-    /** Version of the section payload. */
+    /** Current mod section format version. */
     public const val VERSION: Int = 1
 
+    /** Size in bytes of a 32-bit length prefix. */
+    private const val LENGTH_PREFIX_BYTES: Int = 4
+
     /**
-     * Returns [container] with [modId]'s section replaced (or appended) by the current state of
-     * [flags] and [vars] (either may be null).
+     * Serializes [modId]'s registered flags and variables from [flags] and [vars], updates or appends
+     * the section in [container], and returns the new container. Null registries produce empty blobs.
      */
     public fun write(
         container: SaveContainer,
@@ -26,14 +31,15 @@ public object ModSaveSections {
         flags: FlagRegistry?,
         vars: VarRegistry?,
     ): SaveContainer {
-        val f = flags?.serializeMod(modId) ?: ByteArray(0)
-        val v = vars?.serializeMod(modId) ?: ByteArray(0)
-        val out = ByteArray(8 + f.size + v.size)
-        putI32(out, 0, f.size)
-        f.copyInto(out, 4)
-        putI32(out, 4 + f.size, v.size)
-        v.copyInto(out, 8 + f.size)
-        return container.withSection(SaveSection(SaveFormat.modSectionId(modId), VERSION, out))
+        val flagBlob = flags?.serializeMod(modId) ?: EMPTY
+        val varBlob = vars?.serializeMod(modId) ?: EMPTY
+        val payload = ByteArray(LENGTH_PREFIX_BYTES * 2 + flagBlob.size + varBlob.size)
+        putI32(payload, 0, flagBlob.size)
+        flagBlob.copyInto(payload, LENGTH_PREFIX_BYTES)
+        val varOffset = LENGTH_PREFIX_BYTES + flagBlob.size
+        putI32(payload, varOffset, varBlob.size)
+        varBlob.copyInto(payload, varOffset + LENGTH_PREFIX_BYTES)
+        return container.withSection(SaveSection(SaveFormat.modSectionId(modId), VERSION, payload))
     }
 
     /**
@@ -57,31 +63,39 @@ public object ModSaveSections {
         if (section.version > VERSION) {
             throw SaveException.NewerVersion(section.id, section.version, VERSION)
         }
-        val d = section.data
+        val payload = section.data
         try {
-            val fl = getI32(d, 0)
-            require(fl >= 0 && 4 + fl <= d.size - 4) { "bad flag blob length" }
-            val vl = getI32(d, 4 + fl)
-            require(vl >= 0 && 8 + fl + vl == d.size) { "bad variable blob length" }
-            val fb = d.copyOfRange(4, 4 + fl)
-            val vb = d.copyOfRange(8 + fl, 8 + fl + vl)
-            if (flags != null) flags.deserializeMod(modId, if (fl == 0) EMPTY else fb)
-            if (vars != null) vars.deserializeMod(modId, if (vl == 0) EMPTY else vb)
+            val flagLen = getI32(payload, 0)
+            require(flagLen >= 0 && LENGTH_PREFIX_BYTES + flagLen <= payload.size - LENGTH_PREFIX_BYTES) {
+                "bad flag blob length"
+            }
+            val varLenOffset = LENGTH_PREFIX_BYTES + flagLen
+            val varLen = getI32(payload, varLenOffset)
+            require(varLen >= 0 && varLenOffset + LENGTH_PREFIX_BYTES + varLen == payload.size) {
+                "bad variable blob length"
+            }
+            val flagBlob = payload.copyOfRange(LENGTH_PREFIX_BYTES, LENGTH_PREFIX_BYTES + flagLen)
+            val varBlob = payload.copyOfRange(varLenOffset + LENGTH_PREFIX_BYTES, payload.size)
+            if (flags != null) flags.deserializeMod(modId, if (flagLen == 0) EMPTY else flagBlob)
+            if (vars != null) vars.deserializeMod(modId, if (varLen == 0) EMPTY else varBlob)
         } catch (e: IllegalArgumentException) {
             throw SaveException.Corrupt("${section.id}: ${e.message}")
         }
     }
 
+    /** An empty 4-byte buffer representing zero registered entries. */
     private val EMPTY = ByteArray(4)
 
-    private fun putI32(b: ByteArray, at: Int, v: Int) {
-        for (i in 0..3) b[at + i] = (v shr (8 * i)).toByte()
+    /** Writes a 32-bit little-endian integer into [bytes] at [offset]. */
+    private fun putI32(bytes: ByteArray, offset: Int, value: Int) {
+        for (i in 0..3) bytes[offset + i] = (value shr (8 * i)).toByte()
     }
 
-    private fun getI32(b: ByteArray, at: Int): Int {
-        require(at + 4 <= b.size) { "truncated" }
-        var v = 0
-        for (i in 0..3) v = v or ((b[at + i].toInt() and 0xFF) shl (8 * i))
-        return v
+    /** Reads a 32-bit little-endian integer from [bytes] at [offset]. */
+    private fun getI32(bytes: ByteArray, offset: Int): Int {
+        require(offset + LENGTH_PREFIX_BYTES <= bytes.size) { "truncated" }
+        var value = 0
+        for (i in 0..3) value = value or ((bytes[offset + i].toInt() and 0xFF) shl (8 * i))
+        return value
     }
 }

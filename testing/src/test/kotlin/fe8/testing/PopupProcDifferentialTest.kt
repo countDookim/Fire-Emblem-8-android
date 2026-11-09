@@ -128,6 +128,67 @@ class PopupProcDifferentialTest {
         assertEquals(listOf(0 to original.u8(0x42)), palettes)
     }
 
+    @Test
+    // Partial: PopupProc_GfxDraw stays untagged until its frame/text/icon drawing is ported.
+    fun `gfxDrawLayout reproduces the traced frame layout and icon child`() {
+        assumeTrue(ref.available, "reference capture unavailable")
+        val romFile = File(
+            System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets",
+            "baserom.gba",
+        )
+        assumeTrue(romFile.isFile, "ROM not present")
+        val run = ref.run("ram_trace_item_popup")
+        var dump: ProcArrayDump? = null
+        var original: ProcArrayDump.Proc? = null
+        var step = 0
+        for (s in 18598..18750) {
+            val d = ProcArrayDump.ofEwram(dump(run, s))
+            val p = d.find(Popup.PROC_SCRIPT)
+            // Script index 9 is the wait loop, i.e. PopupProc_GfxDraw has run; earlier the
+            // layout fields still hold stale bytes.
+            if (p != null && p.scrCur >= 9 && p.u8(0x39) != 0) {
+                dump = d
+                original = p
+                step = s
+                break
+            }
+        }
+        assertTrue(original != null, "no snapshot after GfxDraw")
+        val iwram = try {
+            run.region("r$step", "iwram")
+        } catch (e: java.io.IOException) {
+            run.region("f$step", "iwram")
+        }
+        val popupItem = (iwram[GPOPUPITEM].toInt() and 0xFF) or
+            ((iwram[GPOPUPITEM + 1].toInt() and 0xFF) shl 8)
+        val romBytes = romFile.readBytes()
+        val root = u32(romBytes, 0x0815D488 - ROM_BASE) - ROM_BASE
+        val messages = MsgStrings(
+            romBytes, MsgHuffman(romBytes, 0x0815A72C - ROM_BASE, root), 0x0815D48C - ROM_BASE,
+        )
+        val text = TextSystem(romBytes, EnglishHost(), Fe8Text.CONFIG)
+        text.initTextFont(null, 0x06001000, 0x100, 0)
+        val mine = Popup.PopupProc()
+        Popup.setupSimple(mine, GOT_ITEM, 0x60, 0)
+        Popup.init(mine)
+        val len = Popup.parsePopupInstAndGetLen(
+            mine, RomView.ofRom(romBytes), messages, text, popupItem, 0, 0,
+        ) { _, _ -> }
+        Popup.gfxDrawLayout(mine, len)
+        assertEquals(original!!.u16(0x46), mine.xGfxSize, "xGfxSize")
+        assertEquals(original.u8(0x37), mine.xTileReal, "xTileReal")
+        assertEquals(original.u8(0x38), mine.yTileReal, "yTileReal")
+        assertEquals(original.u8(0x39), mine.xTileSize, "xTileSize")
+        assertEquals(original.u8(0x3A), mine.yTileSize, "yTileSize")
+        assertEquals(original.u8(0x44), mine.iconX, "iconX")
+        val child = dump!!.find(Popup.UPDATE_ICON_PROC_SCRIPT)
+        assertTrue(child != null, "no icon update child")
+        val fields = Popup.iconChildFields(mine)
+        assertEquals(child!!.u32(0x2C), fields[0], "unk_2C")
+        assertEquals(child.u32(0x30), fields[1], "unk_30")
+        assertEquals(child.u16(0x4A), fields[2], "unk_4A")
+    }
+
     private fun dump(run: ReferenceData.Run, step: Int): ByteArray =
         try {
             run.region("r$step", "ewram")

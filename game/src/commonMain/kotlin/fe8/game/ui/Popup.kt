@@ -10,6 +10,9 @@ public object Popup {
     /** ROM address of `ProcScr_Popup`. */
     public const val PROC_SCRIPT: Int = 0x085921C8
 
+    /** ROM address of `ProcScr_PopupUpdateIcon`. */
+    public const val UPDATE_ICON_PROC_SCRIPT: Int = 0x08592228
+
     /** `TEXT_COLOR_SYSTEM_WHITE`. */
     public const val TEXT_COLOR_SYSTEM_WHITE: Int = 0
 
@@ -154,6 +157,41 @@ public object Popup {
         }
         return len
     }
+
+    /**
+     * Sets the layout fields from the text width [len] (as [parsePopupInstAndGetLen] returns it)
+     * and returns the text width in tiles; the frame, text and icon drawing is not modelled.
+     *
+     * Partial port of src/popup.c PopupProc_GfxDraw (layout fields only), checked by
+     * PopupProcDifferentialTest; not tagged as ported until the drawing is.
+     */
+    public fun gfxDrawLayout(proc: PopupProc, len: Int): Int {
+        proc.xGfxSize = len and 0xFFFF
+        var tileLen = (len shl 16) shr 19
+        if (len and 7 != 0) tileLen++
+        val iconPos = (tileLen * 8 - proc.xGfxSize) shr 1
+        val xPos = if (proc.xTileParam == -1) ((0x1E - tileLen) shr 1) - 1 else proc.xTileParam
+        val yPos = if (proc.yTileParam != -1) proc.yTileParam else 8
+        proc.xTileReal = xPos and 0xFF
+        proc.yTileReal = yPos and 0xFF
+        proc.xTileSize = (tileLen + 2) and 0xFF
+        proc.yTileSize = 3
+        proc.iconX = (proc.iconX + iconPos) and 0xFF
+        return tileLen
+    }
+
+    /**
+     * Returns `unk_2C`, `unk_30` and `unk_4A` of the `PopupIconUpdateProc` child that
+     * `PopupProc_GfxDraw` starts when [PopupProc.iconId] is not 0xFFFF.
+     *
+     * Partial port of src/popup.c PopupProc_GfxDraw (icon child fields only), checked by
+     * PopupProcDifferentialTest.
+     */
+    public fun iconChildFields(proc: PopupProc): IntArray = intArrayOf(
+        (proc.xTileReal + 1) * 8 + proc.iconX,
+        (proc.yTileReal + 1) * 8,
+        (proc.iconObjTileId or ((proc.iconPalId and 0xF) shl 12)) and 0xFFFF,
+    )
 
     // Digit count NumberToStringAscii (src/bmlib.c) returns: no dash, at most six digits.
     private fun numberToStringAsciiLength(number: Int): Int {

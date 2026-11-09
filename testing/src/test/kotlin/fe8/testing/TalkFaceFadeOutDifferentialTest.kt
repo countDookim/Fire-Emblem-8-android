@@ -59,6 +59,7 @@ class TalkFaceFadeOutDifferentialTest {
             // The original starts these procs after tree 3 has run in the start frame.
             if (frame != start) engine.run(engine.root(3))
             engine.run(engine.root(5))
+            scene.flushTileMoves()
             val ew = trace.ewram(frame)
             val refs = ProcArrayDump.ofEwram(ew).findAll(FACE_SCRIPT)
             for (source in sources) {

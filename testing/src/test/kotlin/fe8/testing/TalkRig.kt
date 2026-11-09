@@ -303,6 +303,16 @@ internal class TalkRig(val rom: ByteArray, val runDir: File) :
 
     val lcg = gbafe.core.rng.LcgRng()
 
+    override fun copyMouthTiles(fid: Int, srcTile: Int, dstTile: Int) {
+        val src = portraitWord(fid, 0x0C) - 0x08000000 + srcTile * 32
+        for (row in 0..1) {
+            rom.copyInto(
+                vram, 0x10000 + (dstTile + row * 32) * 32,
+                src + row * 128, src + (row + 1) * 128,
+            )
+        }
+    }
+
     override fun advanceLcg(): Int = lcg.advance()
 
     override fun activeUnitPortraitId(): Int = error("no gActiveUnit portrait in the trace")

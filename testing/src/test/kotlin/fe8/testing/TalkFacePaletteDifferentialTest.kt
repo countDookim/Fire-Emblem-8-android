@@ -52,6 +52,7 @@ class TalkFacePaletteDifferentialTest {
         }
         for (frame in 9871..9884) {
             engine.run(engine.root(5))
+            scene.flushTileMoves()
             val ew = trace.ewram(frame)
             for (face in started) {
                 if (frame < 9884) {

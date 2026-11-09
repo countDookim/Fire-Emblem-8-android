@@ -39,10 +39,16 @@ public interface TalkFaceHost {
     public fun portraitPalette(fid: Int): Int
 
     /**
-     * Byte [offset] of `GetPortraitData(fid)` (a `struct FaceData`): `xEyes` 0x16, `yEyes` 0x17,
-     * `blinkKind` 0x18.
+     * Byte [offset] of `GetPortraitData(fid)` (a `struct FaceData`): mouth coordinates at
+     * 0x14..0x15, eye coordinates at 0x16..0x17, and `blinkKind` at 0x18.
      */
     public fun portraitByte(fid: Int, offset: Int): Int
+
+    /**
+     * Registers a 4x2 mouth frame for transfer from portrait [fid] at [srcTile] to OBJ VRAM
+     * tile [dstTile]. The production host applies the transfer at VBlank.
+     */
+    public fun copyMouthTiles(fid: Int, srcTile: Int, dstTile: Int)
 
     /** `AdvanceGetLCGRNValue()`. */
     public fun advanceLcg(): Int
@@ -80,8 +86,23 @@ public class FaceState {
     /** `spriteLayer` (0x41). */
     public var spriteLayer: Int = 0
 
+    /** Mouth child `unk_44`; null with display bit 12. */
+    public var mouthProc: Proc? = null
+
     /** `pBlinkProc` (0x48); null with display bit 12. */
     public var pBlinkProc: Proc? = null
+}
+
+/** State of a `gProcScr_0859124C` mouth child. */
+public class FaceMouthState {
+    /** Parent face (`pFaceProc`, offset 0x2C). */
+    public var face: Proc? = null
+
+    /** Mouth animation phase (`blinkControl`, offset 0x30); new Kotlin states start at zero. */
+    public var phase: Int = 0
+
+    /** Frames until the next mouth change (`unk_32`, offset 0x32). */
+    public var timer: Int = 0
 }
 
 /** State of a `gProcScr_FaceBlink` proc (`struct FaceBlinkProc`). */
@@ -125,8 +146,7 @@ public class TalkFaceMoveState {
 
 /**
  * The talk face side of `src/scene.c` (load, layer, move, mouth) over a minimal `src/face.c`:
- * `gFaces`, `StartFace` (palette, tiles, fields) and the `gProcScr_E_FACE` proc. The blink proc is
- * started; the mouth proc is not modelled. A face handle in
+ * `gFaces`, `StartFace` (palette, tiles, fields), and face animation procs. A face handle in
  * [TalkState.faces] is [FACE_HANDLE] plus the face slot.
  */
 public class TalkFace(
@@ -148,6 +168,14 @@ public class TalkFace(
         "gProcScr_E_FACE",
         listOf(sleep(0), call(faceInitFn), call(faceIdleFn), repeat(faceIdleFn), end()),
     ) { FaceState() }
+
+    private val mouthInitFn = ProcFunc { sub8005FD4(it) }
+    private val mouthIdleFn = ProcFunc { sub8005FE0(it) }
+
+    /** `gProcScr_0859124C`: mouth animation child. */
+    public val mouthScript: ProcScript = ProcScript(
+        "gProcScr_0859124C", listOf(call(mouthInitFn), repeat(mouthIdleFn), end()),
+    ) { FaceMouthState() }
 
     private val blinkInitFn = ProcFunc { sub800623C(it) }
     private val blinkWaitFn = ProcFunc { sub8006280(it) }
@@ -216,8 +244,8 @@ public class TalkFace(
     }
 
     /**
-     * Transcribed from src/face.c: StartFace. Unless display bit 12 is set it starts the blink
-     * proc; the mouth proc (`gProcScr_0859124C`, started first by the original) is not started.
+     * Transcribed from src/face.c: StartFace. Unless display bit 12 is set it starts the mouth
+     * and blink children in that order.
      */
     public fun startFace(slot: Int, fid: Int, x: Int, y: Int, disp: Int): Proc? {
         if (gFaces[slot] != null) return null
@@ -232,9 +260,64 @@ public class TalkFace(
         f.spriteLayer = 5
         f.xPos = x
         f.yPos = y
-        if (disp and (1 shl 12) == 0) f.pBlinkProc = engine.start(blinkScript, proc)
+        if (disp and (1 shl 12) == 0) {
+            f.mouthProc = engine.start(mouthScript, proc)
+            f.pBlinkProc = engine.start(blinkScript, proc)
+        }
         setFaceDisplayBits(proc, disp)
         return proc
+    }
+
+    /**
+     * Initializes the mouth child with its parent and a zero timer.
+     *
+     * Ported from src/face.c: sub_8005FD4
+     */
+    public fun sub8005FD4(proc: Proc) {
+        val mouth = proc.state as FaceMouthState
+        mouth.face = proc.parent!!
+        mouth.timer = 0
+    }
+
+    /**
+     * Updates mouth tiles and submits the 32x16 mouth sprite.
+     *
+     * Normal and talking mouths are checked against the Prologue trace. Smile and blend paths
+     * are not reference-checked. The original retains the phase from reused proc memory; newly
+     * allocated Kotlin states start at zero.
+     *
+     * Ported from src/face.c: sub_8005FE0
+     */
+    public fun sub8005FE0(proc: Proc) {
+        val mouth = proc.state as FaceMouthState
+        val f = mouth.face!!.state as FaceState
+        val bits = f.displayBits
+        val source = if (bits and SMILE != 0) 0 else 24
+        if (bits and (TALK_1 or TALK_2) == 0) {
+            faceHost.copyMouthTiles(f.faceId, source + 16, (f.oam2 + 28) and 0x3FF)
+        } else {
+            mouth.timer--
+            if (mouth.timer < 0) {
+                mouth.timer = ((faceHost.advanceLcg() ushr 16) and 7) + 1
+                mouth.phase = (mouth.phase + 1) and 3
+                val frame = when (mouth.phase) {
+                    1, 3 -> 8
+                    2 -> 16
+                    else -> 0
+                }
+                faceHost.copyMouthTiles(f.faceId, source + frame, (f.oam2 + 28) and 0x3FF)
+            }
+        }
+        val flipped = bits and 1 != 0
+        var x = 4 - faceHost.portraitByte(f.faceId, 0x14)
+        x = if (flipped) x else -x
+        x = (x * 8 + f.xPos - 16) and 0x1FF
+        if (flipped) x += 0x1000
+        val y = ((f.yPos + faceHost.portraitByte(f.faceId, 0x15) * 8) and 0xFF) +
+            if (bits and (1 shl 10) != 0) 0x400 else 0
+        faceHost.faceSprite(OBJECT_32X16)?.let {
+            faceHost.putFaceSprite(f.spriteLayer, x, y, it, f.oam2 + 28)
+        }
     }
 
     private fun blinkOf(proc: Proc): FaceBlinkState = proc.state as FaceBlinkState

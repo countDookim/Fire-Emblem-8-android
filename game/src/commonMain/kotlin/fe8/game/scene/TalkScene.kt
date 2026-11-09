@@ -33,7 +33,6 @@ import gbafe.text.TextSystem
  * which is seen at the fake GBA address [MSG_ADDR]; every other address reads the ROM.
  *
  * Stand-ins (no behaviour is invented; each is a no-op or the smallest working substitute):
- *  - face mouth animation procs are not modelled by [TalkFace];
  *  - sprite text, talk choices, `[G]` numbers and the tactician name are not ported and fail;
  *  - the portrait of the active unit and the portrait swap are not ported and fail.
  */
@@ -498,6 +497,31 @@ public class TalkScene(
 
     override fun portraitByte(fid: Int, offset: Int): Int =
         rom.u8(PORTRAIT_TABLE + (fid - 1) * 0x1C + offset)
+
+    // Mouth sheets live in ROM. Keep source addresses until VBlank, in registration order.
+    private val mouthMoveSources = IntArray(32)
+    private val mouthMoveDestinations = IntArray(32)
+    private var mouthMoveCount = 0
+
+    override fun copyMouthTiles(fid: Int, srcTile: Int, dstTile: Int) {
+        check(mouthMoveCount + 2 <= mouthMoveSources.size) { "mouth tile transfer queue overflow" }
+        val src = rom.u32(PORTRAIT_TABLE + (fid - 1) * 0x1C + 0x0C) + srcTile * 32
+        for (row in 0..1) {
+            mouthMoveSources[mouthMoveCount] = src + row * 128
+            mouthMoveDestinations[mouthMoveCount] = 0x10000 + (dstTile + row * 32) * 32
+            mouthMoveCount++
+        }
+    }
+
+    /** Applies queued mouth tile rows at VBlank, in registration order. */
+    public fun flushTileMoves() {
+        for (i in 0 until mouthMoveCount) {
+            val src = mouthMoveSources[i]
+            val dst = mouthMoveDestinations[i]
+            for (byte in 0 until 128) hw.vram[dst + byte] = rom.u8(src + byte).toByte()
+        }
+        mouthMoveCount = 0
+    }
 
     override fun advanceLcg(): Int = lcg.advance()
 

@@ -431,7 +431,7 @@ public class Fe8Boot(
      * The talk window on the game's BG buffers, VRAM, fonts, procs, keys and the ROM messages
      * (see [TalkScene] for its stand-ins). Built on first use; needs the whole ROM.
      */
-    public val talkScene: TalkScene by lazy {
+    private val talkSceneDelegate = lazy {
         val bytes = rom.wholeRomBytes()
         val root = rom.u32(MSG_HUFFMAN_ROOT) - RomView.ROM_BASE
         val huffman = MsgHuffman(bytes, MSG_HUFFMAN_TABLE - RomView.ROM_BASE, root)
@@ -449,6 +449,9 @@ public class Fe8Boot(
             rng.lcg,
         )
     }
+
+    /** The talk scene, created on first use. */
+    public val talkScene: TalkScene by talkSceneDelegate
 
     private val eventTextHost: EventTextTalkHost by lazy {
         val scene = talkScene
@@ -816,6 +819,7 @@ public class Fe8Boot(
             hw.lcd.flushTo(io)
             hw.flushBackgrounds()
             muSpriteAnim?.flushTileMoves()
+            if (talkSceneDelegate.isInitialized()) talkScene.flushTileMoves()
         },
         soundVSync = { driver?.vSync() },
         soundMain = { driver?.main() },

@@ -62,6 +62,7 @@ class TalkFaceBlinkDifferentialTest {
         for (frame in seed + 1..10200) {
             layers.clear()
             engine.run(engine.root(5))
+            scene.flushTileMoves()
             val now = ProcArrayDump.ofEwram(trace.ewram(frame))
             for (face in now.findAll(FACE_SCRIPT)) {
                 val slot = face.u8(0x40)
@@ -78,8 +79,8 @@ class TalkFaceBlinkDifferentialTest {
                 }
                 if (reference.scrCur == 6) blinksSeen++
             }
-            // The unported mouth proc (display bit 4) also advances the shared LCG, so the
-            // generator is resynchronised from the reference after each frame.
+            // This test does not replay dialogue display-bit changes or other RNG users, so
+            // resynchronise the shared generator from the reference after each frame.
             scene.lcg.set(trace.u32(trace.iwram(frame), LCG_IWRAM_OFFSET))
         }
         assertTrue(blinksSeen > 0, "no blink frame covered")

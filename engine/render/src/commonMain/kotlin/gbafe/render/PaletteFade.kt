@@ -72,6 +72,71 @@ public class PaletteFade(private val hardware: BgHardware, private val engine: P
         state.elapsedFrames++
     }
 
+    /**
+     * Copies every palette bank (0..31) of the hardware palette into the fade archive and sets
+     * the clock end of banks 0..2 to 0x100 (identity scale).
+     *
+     * Ported from src/bmlib.c: ArchiveCurrentPalettes
+     */
+    public fun archiveCurrentPalettes() {
+        for (i in 0 until 32) {
+            hardware.palette.copyInto(states[i].sourceColors, 0, i * 16, i * 16 + 16)
+        }
+        for (i in 0 until 3) states[i].durationFrames = 0x100
+    }
+
+    /**
+     * Writes the archived palette, scaled per channel by [red], [green] and [blue] (0x100 is
+     * identity), into the hardware palette for banks selected by [mask] (bit i = bank i).
+     * The three arguments are also stored as the clock end of archive banks 0..2. Like the
+     * original, it ends with a palette-sync request.
+     *
+     * Ported from src/bmlib.c: WriteFadedPaletteFromArchive. The white (argument above 0x100)
+     * branches and partial masks are transcribed but unverified; only the darkening branch with
+     * mask 0xFFFFFFFF is checked against the prologue capture.
+     */
+    public fun writeFadedPaletteFromArchive(red: Int, green: Int, blue: Int, mask: Int) {
+        states[0].durationFrames = red and 0xFFFF
+        states[1].durationFrames = green and 0xFFFF
+        states[2].durationFrames = blue and 0xFFFF
+        val buffer = hardware.palette
+        for (i in 0 until 32) {
+            if ((1 shl i) and mask == 0) continue
+            val src = states[i].sourceColors
+            for (j in 0 until 16) {
+                val c = src[j].toInt() and 0xFFFF
+                val r = c and 0x1F
+                val rr = if (red > 0x100) {
+                    r + (((0x1F - r) * (red - 0x100)) shr 8)
+                } else {
+                    (r * red) shr 8
+                }
+                val g = c and 0x3E0
+                val gg = if (green > 0x100) {
+                    g + (((0x3E0 - g) * (green - 0x100)) shr 8)
+                } else {
+                    (g * green) shr 8
+                }
+                val b = c and 0x7C00
+                val bb = if (blue > 0x100) {
+                    b + (((0x7C00 - b) * (blue - 0x100)) shr 8)
+                } else {
+                    (b * blue) shr 8
+                }
+                buffer[16 * i + j] =
+                    ((rr and 0x1F) or (gg and 0x3E0) or (bb and 0x7C00)).toShort()
+            }
+        }
+        hardware.enablePaletteSync()
+    }
+
+    /** Returns the archived color [index] (0..15) of palette [bank] (0..31) as an unsigned u16. */
+    public fun archivedColor(bank: Int, index: Int): Int =
+        states[bank].sourceColors[index].toInt() and 0xFFFF
+
+    /** Returns the stored clock end of archive [bank] (0..31) as an unsigned u16. */
+    public fun clockEnd(bank: Int): Int = states[bank].durationFrames and 0xFFFF
+
     /** Interpolates one masked color component using the source routine. */
     private fun interpolate(from: Int, to: Int, mask: Int, state: State): Int =
         Interpolate.interpolate(

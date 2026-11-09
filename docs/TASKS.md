@@ -15,7 +15,8 @@ verified: why)". Seed from dump k, step, compare with dump k+1; use sentinels in
 ## Open
 
 Owner device report 2026-11-09, build 0.1.467 (`060478a`): current priorities are D-08 worsening background
-corruption, D-07 intermittent walking stutter, then D-10 missing portrait blink (confirmed original FE8 behavior).
+corruption, D-06 riders remaining at the screen edge (still open despite correct animation), D-07 intermittent
+walking stutter, then D-10 missing portrait blink (confirmed original FE8 behavior).
 D-09 Rapier-received popup is explicitly low priority; inventory is unverified on device. Details: HANDOFF.md.
 
 | ID | Task | Acceptance | Deps | Status |

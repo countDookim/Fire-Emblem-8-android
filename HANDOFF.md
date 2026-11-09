@@ -7,7 +7,9 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; owner 45-minute run completed; no worktrees open)_
+- EventUnitLoads trace verification: owner PC, until ~14:30Z
+- Event26/3B/3C/0D/3A trace verification: owner PC, until ~14:30Z
+- Readability fe8.testing + fe8.game: owner PC, until ~14:30Z
 
 ## Latest device test (owner, 2026-11-09, Issue #5)
 Build **0.1.474 (`d91ed28`)** (GitHub Issue #5): everything except the 5 items in Issue #5 is confirmed solved on device:

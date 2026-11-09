@@ -1,3 +1,10 @@
+/**
+ * Low-level cartridge SRAM management and block validation routines.
+ *
+ * Implements hardware probing, header management, block descriptors, checksum calculations,
+ * and aux block persistence ported from `src/bmsave-lib.c`, `src/bmsave-bwl.c`, and `src/bmsave.c`.
+ */
+
 package fe8.game.save
 
 import fe8.game.bm.PlaySt
@@ -902,7 +909,16 @@ public class BmSaveLib(public val sram: CartSram) {
     /** Stand-in for the `struct GameSavePackedUnit unitp` / `Dungeon dungeon[2]` locals. */
     private val unitBuffer = ByteArray(PACKED_UNIT_SIZE.coerceAtLeast(DUNGEONS_SIZE))
 
-    /** Shared body of the `LoadAndVerfy*`/`LoadBonusContentData` readers: read, then checksum. */
+    /**
+     * Shared helper for loading and verifying checksummed auxiliary save records.
+     *
+     * @param offset SRAM byte offset of the record.
+     * @param size Total record size in bytes.
+     * @param checksumAt Offset within the record where the stored 16-bit checksum is located.
+     * @param sumSize Number of bytes at the start of the record covered by the checksum.
+     * @param buf Optional destination buffer (uses [genericBuffer] if null).
+     * @return `true` if SRAM is functional and the checksum matches, `false` otherwise.
+     */
     private fun loadChecked(
         offset: Int,
         size: Int,
@@ -916,7 +932,15 @@ public class BmSaveLib(public val sram: CartSram) {
         return u16(b, checksumAt) == SaveChecksums.checksum16(b, 0, sumSize)
     }
 
-    /** Shared body of the `Save*`/`Write*` writers: store the checksum, then write the block. */
+    /**
+     * Shared helper for populating the 16-bit additive checksum and committing an auxiliary record to SRAM.
+     *
+     * @param buf Source buffer containing record data.
+     * @param offset SRAM destination byte offset.
+     * @param size Total record size in bytes.
+     * @param checksumAt Offset within the record where the 16-bit checksum is written.
+     * @param sumSize Number of bytes covered by the checksum calculation.
+     */
     private fun writeChecked(
         buf: ByteArray,
         offset: Int,
@@ -928,6 +952,7 @@ public class BmSaveLib(public val sram: CartSram) {
         writeAndVerifySramFast(buf, 0, sram, offset, size)
     }
 
+    /** Layout constants, bit masks, and buffer size definitions for SRAM blocks. */
     internal companion object {
         /** `gGenericBuffer` is 0x2000 bytes in C; the largest block used here is 0x144. */
         const val GENERIC_BUFFER_SIZE = L.SUSPEND_SIZE

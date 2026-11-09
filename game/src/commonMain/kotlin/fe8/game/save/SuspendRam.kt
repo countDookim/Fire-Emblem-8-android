@@ -1,3 +1,11 @@
+/**
+ * Mid-chapter suspend save in-memory state snapshot.
+ *
+ * Encapsulates all volatile combat and engine state that `WriteSuspendSave` serializes into
+ * the cartridge suspend save block, including player/battle status, active unit arrays (blue/red/green),
+ * map traps, RNG state, game clock, event flags, menu overrides, world map data, and dungeon progress.
+ */
+
 package fe8.game.save
 
 import fe8.game.bm.BmSt
@@ -19,14 +27,14 @@ import gbafe.core.time.GameClock
  *
  * @property playSt `gPlaySt` (`time_saved` is set by the save).
  * @property bmSt `gBmSt` (`just_resumed` is cleared by the save).
- * @property rng the game's one [RngService] (`gRNSeeds`).
- * @property units the raw unit arrays (`gUnitArrayBlue/Red/Green`).
- * @property flags the event flag memory (`gPermanentFlagBits`, `gChapterFlagBits`).
- * @property clock the game's one [GameClock] (`gGameClock`, read by `GetGameClock`).
- * @property eventState the event engine's globals (`gEventSlotCounter`).
- * @property actionData `gActionData`, 0x38 bytes (its first 6 bytes receive the RN state).
- * @property traps `sTrapPool`, 64 traps of 8 bytes (`GetTrap(0)`).
- * @property convoy `gConvoyItemArray` as 100 raw little-endian u16 values.
+ * @property rng The game's primary [RngService] (`gRNSeeds`).
+ * @property units The active unit tables (`gUnitArrayBlue/Red/Green`).
+ * @property flags The event flag memory (`gPermanentFlagBits`, `gChapterFlagBits`).
+ * @property clock The game's primary [GameClock] (`gGameClock`, read by `GetGameClock`).
+ * @property eventState The event engine's global state (`gEventSlotCounter`).
+ * @property actionData Raw `gActionData` buffer, 0x38 bytes (its first 6 bytes receive the RN state).
+ * @property traps Raw `sTrapPool` buffer, 64 traps of 8 bytes each (`GetTrap(0)`).
+ * @property convoy Raw `gConvoyItemArray` buffer, 100 little-endian u16 items (200 bytes).
  */
 public class SuspendRam(
     public val playSt: PlaySt,
@@ -60,9 +68,9 @@ public class SuspendRam(
      */
     public val dungeonState: ByteArray = ByteArray(Fe8SuspendLayout.DUNGEON_STATE_SIZE)
 
-    /** Constants. */
+    /** Constants associated with suspend save RAM state. */
     public companion object {
-        /** Bytes of `gConvoyItemArray`. */
+        /** Total size in bytes of `gConvoyItemArray` (100 item entries × 2 bytes). */
         public const val CONVOY_BYTES: Int = 200
     }
 }

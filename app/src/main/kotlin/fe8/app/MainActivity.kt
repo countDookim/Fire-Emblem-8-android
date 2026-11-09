@@ -1,3 +1,11 @@
+/**
+ * Main Android application activity and entry point.
+ *
+ * Coordinates the application lifecycle, Jetpack Compose launcher UI for ROM selection and asset
+ * extraction, and initialisation of the runtime game container ([Fe8Game]), audio pipeline ([AudioTrackSink]),
+ * and OpenGL ES presentation view ([GameSurfaceView]).
+ */
+
 package fe8.app
 
 import android.content.Context
@@ -53,25 +61,30 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Single activity. Compose is used for the launcher/settings shell only; once the game starts the
- * content is a [GameSurfaceView] (OpenGL ES 3.0) and Compose does no per-frame work.
+ * Single activity hosting the game.
  *
- * No APK bundles game data: Play is enabled once a ROM is imported, and the game view then runs
- * the boot sequence ([Fe8Boot]). After an import the kept ROM image
- * (`base/rom/baserom.gba`) backs the game; without it the boot/sound windows end at the title.
+ * Jetpack Compose is used exclusively for the launcher, status display, and ROM selection UI.
+ * Once the game starts, the activity content switches to a hardware-accelerated [GameSurfaceView]
+ * backed by OpenGL ES 3.0, ensuring zero Compose overhead per rendered frame.
+ *
+ * No retail game data is distributed with the APK. Play becomes available once a retail FE8 (U) ROM
+ * is imported into internal storage, backed by the verified ROM image at `base/rom/baserom.gba`.
  */
 public class MainActivity : ComponentActivity() {
     private var surface: GameSurfaceView? = null
     private var sink: AudioTrackSink? = null
     private var audio: AudioThread? = null
 
-    /** The cartridge save of this install (M6-12): suspend and game saves survive restarts. */
+    /** Cartridge SRAM file storage (`fe8.sav`) preserving battery saves and suspend state across app restarts. */
     private fun saveStorage(ctx: Context): FileSaveStorage =
-        FileSaveStorage(File(ctx.filesDir, "fe8.sav"))
+        FileSaveStorage(File(ctx.filesDir, SAVE_FILE_NAME))
 
     /**
-     * Starts the game (boot sequence, GPU renderer) with its sound: the game loop mixes each frame
-     * into a [PcmStream] that the audio thread plays (needs the imported sound window).
+     * Initializes the [Fe8Game] instance, connecting audio mixing pipelines and hardware renderers.
+     *
+     * @param ctx Android application context.
+     * @param full The full cartridge ROM view loaded into memory, or `null` to use bundled windows.
+     * @return Fully configured [Fe8Game] runtime.
      */
     private fun createGame(ctx: Context, full: RomView?): Fe8Game {
         val bootRom = full ?: bundledBootRom(ctx)
@@ -82,7 +95,7 @@ public class MainActivity : ComponentActivity() {
         val sound = Fe8Sound.create(soundRom)
         val out = AudioTrackSink().also { sink = it }
         // ~150 ms of input: bounds the delay if the game clock runs slightly ahead of the device.
-        val pcm = PcmStream(sound.info.pcmFreq, out.sampleRate, capacity = 2048)
+        val pcm = PcmStream(sound.info.pcmFreq, out.sampleRate, capacity = PCM_STREAM_CAPACITY)
         audio = AudioThread(pcm, out).also { it.start() }
         return Fe8Game(rom = bootRom, sound = sound, pcm = pcm, saveStorage = saveStorage(ctx))
     }
@@ -135,9 +148,17 @@ public class MainActivity : ComponentActivity() {
         surface?.onResume()
         audio?.start()
     }
+
+    private companion object {
+        /** Name of the persistent cartridge SRAM image file in internal storage. */
+        private const val SAVE_FILE_NAME = "fe8.sav"
+
+        /** Ring buffer capacity in frames (~150 ms of buffered audio). */
+        private const val PCM_STREAM_CAPACITY = 2048
+    }
 }
 
-/** The sound ROM window from the base layer's `sound/` (imported ROM), or null. */
+/** Resolves the sound ROM window from the base layer's `sound/` directory, or null if absent. */
 private fun bundledSoundRom(ctx: Context): RomView? {
     val base = baseLayer(ctx)
     if (base.list("sound").isEmpty()) return null
@@ -146,7 +167,7 @@ private fun bundledSoundRom(ctx: Context): RomView? {
     }
 }
 
-/** Boot ROM windows from the base layer's `boot/` (imported ROM), or null. */
+/** Resolves boot ROM windows from the base layer's `boot/` directory, or null if absent. */
 private fun bundledBootRom(ctx: Context): RomView? {
     val base = baseLayer(ctx)
     if (base.list("boot").isEmpty()) return null
@@ -155,6 +176,11 @@ private fun bundledBootRom(ctx: Context): RomView? {
     }
 }
 
+/**
+ * Jetpack Compose launcher and settings screen shown before launching the game.
+ *
+ * @param onPlay Callback invoked when the user starts the game, passing the loaded ROM view.
+ */
 @Composable
 private fun Launcher(onPlay: (RomView?) -> Unit) {
     val context = LocalContext.current

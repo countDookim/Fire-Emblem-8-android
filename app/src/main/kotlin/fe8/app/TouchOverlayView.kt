@@ -1,3 +1,11 @@
+/**
+ * Transparent touch overlay view for on-screen GBA game controls.
+ *
+ * Renders virtual game buttons (D-pad with direction arrows, A, B, L, R, Start, Select) over
+ * the game view, translating multi-touch pointer events into button presses via [gba.input.TouchButtons].
+ * Automatically adjusts control positions to accommodate Android 15 edge-to-edge system bars and display cutouts.
+ */
+
 package fe8.app
 
 import android.annotation.SuppressLint
@@ -12,29 +20,32 @@ import androidx.core.view.WindowInsetsCompat
 import gba.input.TouchButtons
 
 /**
- * Transparent view over the game that draws the on-screen GBA buttons and feeds touches to
- * [buttons] (task M3-15). All layout and hit-testing lives in the JVM-tested [TouchButtons];
- * this class only forwards pointer events and paints the buttons. The D-pad is drawn as a cross
- * with arrows (its hit area stays the 3x3 grid of [TouchButtons.keysAt], so diagonals work).
- * Buttons are laid out inside the system bar / display cutout insets (issue #3: the app is
- * edge-to-edge on targetSdk 35+). Nothing allocates per event or draw.
+ * Transparent view overlaid over the game rendering surface that draws on-screen GBA controls
+ * and routes multi-touch events to [buttons] (task M3-15).
+ *
+ * Hit testing and dynamic bounding-box calculation are managed by [TouchButtons].
+ * The D-pad is drawn as a cross with direction indicators while maintaining a 3x3 touch grid
+ * to support diagonal inputs cleanly. Layout bounds adjust dynamically for window insets.
+ * Operates without per-event or per-frame allocations during gameplay.
+ *
+ * @property buttons The underlying touch input state polled by the game loop.
  */
 public class TouchOverlayView(
     context: Context,
     /** The button state the game polls (combined with hardware keys in [GameSurfaceView]). */
     public val buttons: TouchButtons,
 ) : View(context) {
-    private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x40FFFFFF }
+    private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = COLOR_BUTTON_FILL }
     private val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x99FFFFFF.toInt()
+        color = COLOR_BUTTON_LABEL
         textAlign = Paint.Align.CENTER
     }
     private val names = TouchButtons.Button.entries.map { it.name }
     private val arrows = Path()
-    private var insetL = 0
-    private var insetT = 0
-    private var insetR = 0
-    private var insetB = 0
+    private var insetLeft = 0
+    private var insetTop = 0
+    private var insetRight = 0
+    private var insetBottom = 0
 
     init {
         // Inset changes (rotation, cutout mode); AndroidView in Compose may not forward them,
@@ -46,46 +57,48 @@ public class TouchOverlayView(
         }
     }
 
+    /** Extracts system bar and display cutout insets to prevent button clipping. */
     private fun readInsets(insets: WindowInsetsCompat) {
         val i = insets.getInsets(
             WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
         )
-        insetL = i.left
-        insetT = i.top
-        insetR = i.right
-        insetB = i.bottom
+        insetLeft = i.left
+        insetTop = i.top
+        insetRight = i.right
+        insetBottom = i.bottom
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         relayout()
-        label.textSize = minOf(w, h) / 20f
+        label.textSize = minOf(w, h) / LABEL_TEXT_SIZE_DIVISOR
     }
 
+    /** Recomputes button layout regions and D-pad arrows when dimensions or insets change. */
     private fun relayout() {
         if (width == 0 || height == 0) return
         ViewCompat.getRootWindowInsets(this)?.let(::readInsets)
-        buttons.resize(width, height, insetL, insetT, insetR, insetB)
+        buttons.resize(width, height, insetLeft, insetTop, insetRight, insetBottom)
         buildArrows()
         invalidate()
     }
 
-    /** Arrow triangles in the four D-pad arms (built on layout, not per draw). */
+    /** Pre-computes arrow triangles in the four D-pad arms during layout to avoid per-draw geometry generation. */
     private fun buildArrows() {
         val i = TouchButtons.Button.DPAD.ordinal * 4
         val l = buttons.layout
-        val c = (l[i + 2] - l[i]) / 3f
-        val cx = l[i] + c * 1.5f
-        val cy = l[i + 1] + c * 1.5f
-        val a = c * 0.25f
+        val c = (l[i + 2] - l[i]) / DPAD_ARM_DIVISIONS
+        val cx = l[i] + c * DPAD_CENTER_OFFSET
+        val cy = l[i + 1] + c * DPAD_CENTER_OFFSET
+        val a = c * ARROW_HALF_WIDTH_FACTOR
         arrows.reset()
         for (d in 0 until 4) {
             // Tip offset (dx, dy) from centre towards the arm; base is perpendicular.
             val dx = ARROW_DX[d]
             val dy = ARROW_DY[d]
-            val tipX = cx + dx * c * 1.25f
-            val tipY = cy + dy * c * 1.25f
-            val baseX = cx + dx * c * 0.75f
-            val baseY = cy + dy * c * 0.75f
+            val tipX = cx + dx * c * ARROW_TIP_FACTOR
+            val tipY = cy + dy * c * ARROW_TIP_FACTOR
+            val baseX = cx + dx * c * ARROW_BASE_FACTOR
+            val baseY = cy + dy * c * ARROW_BASE_FACTOR
             arrows.moveTo(tipX, tipY)
             arrows.lineTo(baseX + dy * a, baseY + dx * a)
             arrows.lineTo(baseX - dy * a, baseY - dx * a)
@@ -115,24 +128,54 @@ public class TouchOverlayView(
                 drawDpad(canvas, l[i], l[i + 1], l[i + 2], l[i + 3])
                 continue
             }
-            canvas.drawRoundRect(l[i], l[i + 1], l[i + 2], l[i + 3], RADIUS, RADIUS, fill)
+            canvas.drawRoundRect(l[i], l[i + 1], l[i + 2], l[i + 3], BUTTON_RADIUS, BUTTON_RADIUS, fill)
             val y = (l[i + 1] + l[i + 3]) / 2 - (label.ascent() + label.descent()) / 2
             canvas.drawText(names[b.ordinal], (l[i] + l[i + 2]) / 2, y, label)
         }
     }
 
+    /** Draws the composite D-pad cross without overlapping rounded rects to maintain uniform alpha blending. */
     private fun drawDpad(canvas: Canvas, left: Float, top: Float, right: Float, bottom: Float) {
-        val c = (right - left) / 3f
+        val c = (right - left) / DPAD_ARM_DIVISIONS
         // Vertical bar, then the two horizontal arms (no overlap so the alpha stays uniform).
-        canvas.drawRoundRect(left + c, top, right - c, bottom, RADIUS, RADIUS, fill)
-        canvas.drawRoundRect(left, top + c, left + c, bottom - c, RADIUS, RADIUS, fill)
-        canvas.drawRoundRect(right - c, top + c, right, bottom - c, RADIUS, RADIUS, fill)
+        canvas.drawRoundRect(left + c, top, right - c, bottom, BUTTON_RADIUS, BUTTON_RADIUS, fill)
+        canvas.drawRoundRect(left, top + c, left + c, bottom - c, BUTTON_RADIUS, BUTTON_RADIUS, fill)
+        canvas.drawRoundRect(right - c, top + c, right, bottom - c, BUTTON_RADIUS, BUTTON_RADIUS, fill)
         canvas.drawPath(arrows, label)
     }
 
     private companion object {
-        private const val RADIUS = 24f
+        /** Button shape corner radius in pixels. */
+        private const val BUTTON_RADIUS = 24f
+
+        /** Fill color: 25% semi-transparent white (`0x40FFFFFF`). */
+        private const val COLOR_BUTTON_FILL = 0x40FFFFFF
+
+        /** Label and arrow color: 60% semi-transparent white (`0x99FFFFFF`). */
+        private const val COLOR_BUTTON_LABEL = 0x99FFFFFF.toInt()
+
+        /** Ratio divisor used to size button text labels relative to view dimensions. */
+        private const val LABEL_TEXT_SIZE_DIVISOR = 20f
+
+        /** D-pad arm grid division count (3x3 grid). */
+        private const val DPAD_ARM_DIVISIONS = 3f
+
+        /** Offset factor to locate the center of the D-pad cross. */
+        private const val DPAD_CENTER_OFFSET = 1.5f
+
+        /** Half-width scaling factor for D-pad direction arrow bases. */
+        private const val ARROW_HALF_WIDTH_FACTOR = 0.25f
+
+        /** Length factor for arrow tip positions. */
+        private const val ARROW_TIP_FACTOR = 1.25f
+
+        /** Length factor for arrow base positions. */
+        private const val ARROW_BASE_FACTOR = 0.75f
+
+        /** Arrow direction X-offsets: Up, Down, Left, Right. */
         private val ARROW_DX = intArrayOf(0, 0, -1, 1)
+
+        /** Arrow direction Y-offsets: Up, Down, Left, Right. */
         private val ARROW_DY = intArrayOf(-1, 1, 0, 0)
     }
 }

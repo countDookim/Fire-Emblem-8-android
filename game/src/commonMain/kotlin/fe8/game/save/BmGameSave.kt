@@ -1,3 +1,11 @@
+/**
+ * Chapter-start game save serializer and deserializer.
+ *
+ * Implements the standard game save reading and writing logic from `src/bmsave.c`, persisting
+ * chapter progression, the 51 player unit slots (using the 0x24-byte bitpacked `struct GameSavePackedUnit`),
+ * convoy items, permanent event flags, battle history (BWL stats), and world map/dungeon records.
+ */
+
 package fe8.game.save
 
 import fe8.game.RomView
@@ -104,7 +112,14 @@ public class BmGameSave(
     /** The unit written when the slot has no character (`ClearUnit(&tmp_unit)`). */
     private val clearUnit = ByteArray(UnitTable.UNIT_SIZE)
 
-    /** `n` bits of the little-endian bit stream [b] starting at bit [start] (n <= 16). */
+    /**
+     * Extracts [n] bits from the little-endian bit stream [b] starting at bit offset [start].
+     *
+     * @param b Byte array treated as a contiguous bit stream.
+     * @param start Bit index to begin reading from.
+     * @param n Number of bits to read (n <= 16).
+     * @return Extracted integer value.
+     */
     private fun bitsAt(b: ByteArray, start: Int, n: Int): Int {
         var v = 0
         for (i in 0 until n) {
@@ -271,7 +286,14 @@ public class BmGameSave(
         lib.writeLastGameSaveId(slot)
     }
 
-    /** Stores the low [n] bits of [v] at bit [start] of the bit stream [b]. */
+    /**
+     * Stores the lowest [n] bits of integer value [v] into bit stream [b] starting at bit offset [start].
+     *
+     * @param b Target byte array treated as a contiguous bit stream.
+     * @param start Bit index to begin writing to.
+     * @param n Number of bits to write (n <= 16).
+     * @param v Source value whose lowest [n] bits are written.
+     */
     private fun putBits(b: ByteArray, start: Int, n: Int, v: Int) {
         for (i in 0 until n) {
             val bit = start + i
@@ -413,7 +435,9 @@ public class BmGameSave(
         lib.writeLastGameSaveId(slot)
     }
 
+    /** Bit masks, unit offsets, and packed format flags. */
     private companion object {
+        /** `PLAY_FLAG_HARD` in `gBmSt.gameStateBits`. */
         const val PLAY_FLAG_HARD = 1 shl 6
         const val PACKED_US_DEAD = 1 shl 0
         const val PACKED_US_UNDEPLOYED = 1 shl 1

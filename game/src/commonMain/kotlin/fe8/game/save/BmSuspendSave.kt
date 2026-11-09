@@ -1,3 +1,12 @@
+/**
+ * Mid-chapter suspend save serializer and deserializer.
+ *
+ * Implements the battlefield suspend save reading and writing routines from `src/bmsave.c`,
+ * serializing volatile in-combat state for player, enemy, and allied factions (using the 0x34-byte
+ * `struct SuspendSavePackedUnit`), active map traps, current turn actions, RNG seeds, event flags,
+ * and alternating suspend slot selection.
+ */
+
 package fe8.game.save
 
 import fe8.game.RomView
@@ -451,6 +460,7 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
         writeSwappedSuspendSaveId()
     }
 
+    /** Bit masks, struct offsets, and packed field locations for suspend save encoding. */
     private companion object {
         /** `PLAY_FLAG_TUTORIAL` of `PlaySt.chapterStateBits`. */
         const val PLAY_FLAG_TUTORIAL = 1 shl 3

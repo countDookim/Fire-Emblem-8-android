@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-_(none)_
+- D11-init: scheduled, until ~17:25Z
 
 ## Current state
 

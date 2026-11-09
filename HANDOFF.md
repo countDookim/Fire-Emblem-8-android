@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- D-10 (face blink/mouth procs): scheduled, until ~05:25Z
+_(none)_
 
 ## Latest device test (owner, 2026-11-09)
 Build **0.1.467 (`060478a`)**: walking animation and dialogue portrait display look correct. Owner clarification:
@@ -58,7 +58,7 @@ A merged fix without both is `fix merged, unverified`. Never mark `solved` from 
 | D-07 | Owner 11-09, 0.1.467 (060478a): rare momentary stutter while units walk during the Prologue opening; the game then continues normally. | Report recorded; no profiling or reference/device trace for the pause yet. Walking animation itself is owner-confirmed. Cause not investigated. | open |
 | D-08 | Owner 11-09, 0.1.467 (060478a): after Seth, Eirika and Franz leave the castle, the background becomes corrupted when Seth and Franz start talking, then gets progressively worse. | Onset/location recorded. No comparison or diagnosis yet; do not conflate this with the older missing-dialogue report D-01. | open; highest current debugging priority |
 | D-09 | Owner 11-09, 0.1.467 (060478a): no popup announcing Eirika received the Rapier before the first battle; inventory cannot be checked because player-phase interactions are unavailable. | Event37_GiveItem's NewPopup_ItemGot path is a stand-in. OpeningStubCommandsTest asserts the Rapier in Eirika's inventory headlessly; this is not device inventory confirmation or a trace verification of Event37. | open; low priority (owner) |
-| D-10 | Owner 11-09, 0.1.467 (060478a): dialogue portraits do not blink; verify whether FE8 expects blinking. | Confirmed expected: src/face.c StartFace starts gProcScr_FaceBlink unless FACE_DISP_BIT_12; sub_800623C/6280/62B8 drive eye frames. Original ram_trace_prologue_talk shows two blink children entering the eye animation (e.g. f9930/f10000/f10070). TalkFace omits blink procs and TalkScene.setFaceBlinkControl is a no-op. Per-portrait controls can suppress/change blinking; the regular Prologue portraits do blink. | open; original behavior confirmed, implementation missing (M6-35) |
+| D-10 | Owner 11-09, 0.1.467 (060478a): dialogue portraits do not blink; verify whether FE8 expects blinking. | Confirmed expected: src/face.c StartFace starts gProcScr_FaceBlink unless FACE_DISP_BIT_12; sub_800623C/6280/62B8 drive eye frames. Original ram_trace_prologue_talk shows two blink children entering the eye animation (e.g. f9930/f10000/f10070). TalkFace omits blink procs and TalkScene.setFaceBlinkControl is a no-op. Per-portrait controls can suppress/change blinking; the regular Prologue portraits do blink. | fix merged, unverified (350f19a, scheduled 11-09): gProcScr_FaceBlink ported in TalkFace, started by StartFace, SetFaceBlinkControl wired; TalkFaceBlinkDifferentialTest compares blink proc fields/script pos per frame f9900..10200 (sub_800623C/6280/62B8, GenBlinkInterval tagged; eye OBJ draw sub_8006134 + hold paths transcribed, OAM not compared). Caveat: mouth proc (sub_8005FD4/FE0) not ported, it also advances gLCGRNValue, so the test re-seeds the LCG from each dump; TalkScene now takes the game's `rng.lcg`. Device check pending |
 
 ## Audit 11-06 20:10Z (owner PC) of scheduled work 3c26e9e..ab985a8
 Full jvmTest green (555). 6 tags withheld because breaks survived (UpdateMapImgAnimations: VRAM every 10th frame;

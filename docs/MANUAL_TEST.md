@@ -21,7 +21,7 @@ gamepad/keyboard, pause/resume, ROM import and close/reopen resuming turn 1.
 | D-08 | High | After Seth, Eirika and Franz leave the castle, the background becomes corrupted when Seth and Franz start talking. It worsens afterward and persists for the rest of the run. **Fix merged 6d3406c (map tile animation now frozen during talk scenes), unverified: re-test on the first APK built from 6d3406c or later.** Expected: the outdoor talk background stays clean for the whole Seth/Franz/Eirika dialogue. Limit: the Valter battle scene that follows is not ported (battle animation). |
 | D-06 | Normal | Franz and Seth should ride off-screen but still stop/remain at the screen edge. Implementing walking animation did not fix this behavior. |
 | D-07 | Normal | Units occasionally pause/stutter briefly while walking during the opening, then continue normally. |
-| D-10 | Normal | Portraits do not blink. Blinking is expected in FE8: the original Prologue reference contains active blink processes. |
+| D-10 | Normal | Portraits do not blink. **Fix merged 350f19a (blink proc ported), unverified: re-test on the first APK built from 350f19a or later.** Expected: during the Prologue opening dialogue each portrait's eyes close briefly every ~1-4 s (half-closed, closed, half-closed over ~10 frames). Limit: the mouth animation proc is still not ported, so mouths do not move while talking. |
 | D-09 | Low (owner) | The Rapier-received popup never appears before the first battle. Eirika's inventory has **not** been checked on device because player-phase interactions are unavailable; do not infer that the item is missing. |
 
 See [HANDOFF.md](../HANDOFF.md) for findings and verification status. Re-test an affected row when a fix

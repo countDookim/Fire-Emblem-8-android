@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- D09-1 visible-popup reference capture (private ROM repo) and final CI validation: owner PC (GPT), until ~09:15Z; owner-authorized 45-minute run, up to three Terra agents; new-task cutoff 09:04Z.
+_(none; owner 45-minute run completed; no worktrees open)_
 
 ## Latest device test (owner, 2026-11-09)
 Build **0.1.467 (`060478a`)**: walking animation and dialogue portrait display look correct. Owner clarification:
@@ -79,7 +79,9 @@ Validation: full `jvmTest test` and debug/release APK builds passed (638 tests, 
 engine:extract and game Dokka passed per module. Both APKs passed the no-game-content guard against
 1,535 extracted assets. Python checks: 27 passed. Assistant instructions synchronized. Progress regenerated
 from the full suite: **545/8352**, `ported-without-tag: 0`. Units/font extractor readability completed.
-APK publication: CI will build this run; confirm the release hash before announcing it as available.
+APK publication confirmed: **Build 0.1.474 (d91ed28)** is on the rolling latest release; CI run
+42588475188 passed all steps (638 tests, zero failures/skips). Latest owner device result is still
+0.1.467/060478a; D-06/D-08/D-10 and mouths remain pending device confirmation.
 
 - Reviewed scheduled D-08 (`6d3406c`) and D-10 (`350f19a`). Blink counters/intervals and visible normal-eye OAM/tiles match original captures in both orientations; five individual mutations failed and were restored. Held/small eye modes remain unverified; normal mouth animation was subsequently implemented (28bef11).
 - D-08 retained the background overwrite guard. Added omitted Event23/24 moving-unit block/unblock (PROC_MARK_MU, not music), reference semaphore transitions, source-derived nested suspension, and animation-resume coverage. Focused classes green; removing MU block failed. Neither device issue is marked solved without owner confirmation.
@@ -96,9 +98,13 @@ was not attempted: automatic approval review rejected the proposed allocation di
 earlier deferred-opening instruction; a scope question is pending with the owner. Continue independent work
 without treating silence as approval. D-09 Rapier popup remains explicitly low priority and device inventory is
 unknown. The unexercised fade procs on wip/D-08 must not be merged without reference verification.
-D-09 is split into D09-1..3 in TASKS: first capture visible-popup graphics in the private ROM repo, then
-UI frame/icon primitives, then popup lifecycle and Event37 wiring. Original item-got proc/definition is present
-in f18600 and r18630..r18720; the latter records have RAM only, so they cannot verify rendered popup output.
+D-09 follow-up: private ROM repo f7a442a adds reproducible ram_trace_item_popup generation (old scripts
+unchanged). Local private reference/out/ram_trace_item_popup has 181 RAM snapshots and 10 full graphics
+captures. Inputs match the original Prologue prefix; EWRAM/IWRAM match at six overlapping captures;
+popup/item/icon procs are active in the four visible captures and absent at both endpoints. Output preserved in the private checkout; no ROM-derived files entered this repo.
+Not packed/published or installed into FE8_ASSETS yet: D09-1b must handle the known Prologue sound-test alias
+from that exact provenance before publishing. Then D09-2 UI frame/icon primitives and D09-3 popup/event wiring.
+D-09 remains open/low priority; this capture does not implement the visible popup or confirm device inventory.
 
 Owner PC 11-09: CLAUDE.md, GPT.md and new GEMINI.md now share docs/AGENT_INSTRUCTIONS.template.md; profiles in
 tools/sync_agent_instructions.py preserve each assistant's model/tool choices. Edit the template/profile, run

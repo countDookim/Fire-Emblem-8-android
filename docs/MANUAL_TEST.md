@@ -4,6 +4,13 @@ Install `fe8-debug.apk` from the [`latest` release](../../../releases/tag/latest
 string when reporting results; an older APK may not contain the latest changes. Every build requires ROM import.
 For a fresh New Game test, clear app data and re-import the ROM so an existing suspend does not auto-resume.
 
+## Ready for re-test — 2026-11-09
+
+**Build 0.1.474 (`d91ed28`) is published.** CI passed 638 tests with no failures or skips. It includes the
+D-08 dialogue/map restoration fixes, D-06 rider-removal fix, D-10 blinking and normal mouth animation.
+Use a fresh New Game (clear app data and re-import the ROM), then check the affected rows below.
+These changes still await owner device confirmation.
+
 ## Latest owner test — 2026-11-09
 
 Build **0.1.467 (`060478a`)**:

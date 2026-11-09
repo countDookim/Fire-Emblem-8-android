@@ -1,15 +1,13 @@
 # HANDOFF
 
-_Updated 2026-11-09 (owner-PC 15-min run: Issue #5 device results recorded, D-08/D-10/mouths solved on 0.1.474/d91ed28, D-06/D-07 Issue #5 trace findings, M6-45 done (0 B/frame Prologue talk, MU walk, and 600f map idle), 20 more functions verified & break-checked (569/8352), 12 more readability rows done; code repo now public). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
+_Updated 2026-11-09 (owner-PC 30-min run: 7 more functions verified & break-checked (576/8352: Event0D/26/3A/3B, GetLoadUnitsAmount, IsSethLArachelMyrrhInnes, GetUnitDefinitionFromEventScr; Event2B, ModifyMoveUnitFlag, IsUnitSlotAvailable, ShouldUNITBeLoaded, TryPrepareEventUnitMovement, EventLoadUnitWithMovement have regression tests but stay Transcribed: tests restate C semantics/mock hosts; Event3C only runs in tutorial scripts, no trace), readability fe8.testing + fe8.game done, owner side-by-side device test recorded (D-06 solved; D-07 open; new D-11, D-12). Earlier: owner-PC 15-min run: Issue #5 device results recorded, D-08/D-10/mouths solved on 0.1.474/d91ed28, D-06/D-07 Issue #5 trace findings, M6-45 done (0 B/frame Prologue talk, MU walk, and 600f map idle), 20 more functions verified & break-checked (569/8352), 12 more readability rows done; code repo now public). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
 docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
 ## In progress
-- EventUnitLoads trace verification: owner PC, until ~14:30Z
-- Event26/3B/3C/0D/3A trace verification: owner PC, until ~14:30Z
-- Readability fe8.testing + fe8.game: owner PC, until ~14:30Z
+_(none; owner 30-minute run 11-09 15:57-16:45 completed; no worktrees open)_
 
 ## Latest device test (owner, 2026-11-09 16:17, side-by-side vs original)
 Build: latest APK (assumed 0.1.482 / `617b1e9`; owner to confirm build string). Owner confirms equal to the original: music, sound effects, portraits + portrait animation, walking

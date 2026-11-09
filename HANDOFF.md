@@ -1,7 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-09 (scheduled 15:04Z: D12-1 phase intro ported + wired (fix for D-12, unverified on device), 592/8352. Earlier: owner-PC 30-min run: 7 more functions verified & break-checked (576/8352: Event0D/26/3A/3B, GetLoadUnitsAmount, IsSethLArachelMyrrhInnes, GetUnitDefinitionFromEventScr; Event2B, ModifyMoveUnitFlag, IsUnitSlotAvailable, ShouldUNITBeLoaded, TryPrepareEventUnitMovement, EventLoadUnitWithMovement have regression tests but stay Transcribed: tests restate C semantics/mock hosts; Event3C only runs in tutorial scripts, no trace), readability fe8.testing + fe8.game done, owner side-by-side device test recorded (D-06 solved; D-07 open; new D-11, D-12). Earlier: owner-PC 15-min run: Issue #5 device results recorded, D-08/D-10/mouths solved on 0.1.474/d91ed28, D-06/D-07 Issue #5 trace findings, M6-45 done (0 B/frame Prologue talk, MU walk, and 600f map idle), 20 more functions verified & break-checked (569/8352), 12 more readability rows done; code repo now public). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
-docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git log._
+_Updated 2026-11-09 (owner-PC run from 15:20Z). Decisions: docs/PROJECT_BRIEF.md; backlog: docs/TASKS.md. Latest published APK: **0.1.487 (`c998d7c`)**. Latest owner-tested APK remains **0.1.482 (`617b1e9`)**. Earlier work: git log and historical notes below._
 
 ## NEEDS USER
 _(nothing blocked)_
@@ -13,7 +12,7 @@ D11-fades: owner PC, until ~15:55Z; subtitle timer/palette-fade foundation again
 D12-oam: owner PC, until ~15:55Z; strengthen phase sprite OAM reference checks beyond affine matrix values.
 
 ## Owner-PC work 2026-11-09 15:20Z
-- D-07 `63e638e`: optional startup PCM prefill; Android requests two VBlank chunks. The old ring capacity provided no guaranteed reserve. Seven focused PCM tests and audio Dokka pass; disabling prefill fails startup/interpolation/cadence regressions. Simulated 60 Hz display + 5 ms consumer + one 15 ms late callback retains queued sound; this is not a phone trace. Long stalls still exhaust the reserve; D-07 stays open. CI publication pending.
+- D-07 `63e638e`: optional startup PCM prefill; Android requests two VBlank chunks. The old ring capacity provided no guaranteed reserve. Seven focused PCM tests and audio Dokka pass; disabling prefill fails startup/interpolation/cadence regressions. Simulated 60 Hz display + 5 ms consumer + one 15 ms late callback retains queued sound; this is not a phone trace. Long stalls still exhaust the reserve; D-07 stays open. Published in 0.1.487 (`c998d7c`); owner re-test pending.
 - Event extractor readability `a0981c8`: all four files reviewed; converter/grouping locals and private KDoc clarified. Focused tests and extract Dokka pass; full integrated suite pending before marking the row done.
 - D-11 source scope: `StartIntroMonologue` is an unwired blocking subtitle child (original steps 1213–4897); the separate unwired world-map wrapper follows at 4898–9313. Slide loaders are being verified separately; no cinematic is wired yet.
 - D-11 slide loaders `014f3ed`: all seven original subtitle cards compared against captured tile bytes/tilemaps; three independent mutations detected, restored focused tests and game Dokka pass. Standalone only; New Game cinematic remains missing.

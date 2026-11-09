@@ -1,6 +1,11 @@
 package fe8.game.opanim
 
 import fe8.game.RomView
+import gbafe.proc.ProcFunc
+import gbafe.proc.ProcScript
+import gbafe.proc.ProcScripts.call
+import gbafe.proc.ProcScripts.end
+import gbafe.proc.ProcScripts.sleep
 import gbafe.render.BgHardware
 
 /**
@@ -42,6 +47,16 @@ public class OpSubtitleScenes(
         rom.pal(PALETTE, 16).copyInto(hardware.palette, 3 * 16)
         hardware.enablePaletteSync()
     }
+
+    /**
+     * The flare's child proc: yields once, sleeps 36 frames, then runs [loadFinalCard].
+     *
+     * Transcribed from src/opsubtitle.c: gProcScr_08AA2184
+     */
+    public val finalCardScript: ProcScript = ProcScript(
+        "gProcScr_08AA2184",
+        listOf(sleep(0), sleep(36), call(ProcFunc { loadFinalCard() }), end()),
+    )
 
     /**
      * Sets up the final scene: backgrounds, mode 0 with BG priorities 1, 2, 3, 0, blending, BG1

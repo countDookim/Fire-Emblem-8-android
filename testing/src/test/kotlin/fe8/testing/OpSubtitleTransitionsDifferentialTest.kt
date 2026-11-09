@@ -574,6 +574,34 @@ class OpSubtitleTransitionsDifferentialTest {
         ((ewram[at].toInt() and 0xFF) or ((ewram[at + 1].toInt() and 0xFF) shl 8)).toShort()
     }
 
+    @Test
+    fun `final card script loads palette 3 on the frame the original timing implies`() {
+        assumeTrue(ref.available && romFile.isFile, "reference capture or ROM unavailable")
+        val capture = ref.run("ram_trace_prologue")
+        val rom = RomView.ofRom(romFile.readBytes())
+        val hardware = seededHardware(capture, "r02340", "f02100")
+        val sentinel = 0x5A5A.toShort()
+        hardware.palette.fill(sentinel, 48, 64)
+        val engine = ProcEngine()
+        val proc = engine.start(scenesOf(rom, hardware).finalCardScript, 3)
+        // start() runs sleep(0) (yield, no idle callback). Frame 1 runs sleep(36): sleepTime=36
+        // and the callback decrements it to 35 in the same frame; it reaches 0 on frame 36 and
+        // breaks, so the call command runs on frame 37.
+        var loadFrame = 0
+        for (frame in 1..60) {
+            engine.run(proc)
+            if (loadFrame == 0 && hardware.palette[48] != sentinel) loadFrame = frame
+        }
+        assertEquals(37, loadFrame)
+        // The parent starts the child at step 2355, so the load lands at step 2392: after the
+        // r02370 snapshot (palette 3 not yet loaded) and by f02400 (loaded).
+        assertEquals(2355 + 37, 2392)
+        val before = fullPalette(capture.region("r02370", "ewram"))
+        val after = fullPalette(capture.region("f02400", "ewram"))
+        assertTrue(!before.copyOfRange(48, 64).contentEquals(after.copyOfRange(48, 64)))
+        assertArrayEquals(after.copyOfRange(48, 64), hardware.palette.copyOfRange(48, 64))
+    }
+
     private class Rig(rom: RomView, fade: Boolean, state: OpSubtitleSlides.State) {
         val engine = ProcEngine()
         val hardware = BgHardware()

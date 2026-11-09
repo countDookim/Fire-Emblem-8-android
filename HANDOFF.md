@@ -1,13 +1,12 @@
 # HANDOFF
 
-_Updated 2026-11-09 (owner-PC 30-min run: 7 more functions verified & break-checked (576/8352: Event0D/26/3A/3B, GetLoadUnitsAmount, IsSethLArachelMyrrhInnes, GetUnitDefinitionFromEventScr; Event2B, ModifyMoveUnitFlag, IsUnitSlotAvailable, ShouldUNITBeLoaded, TryPrepareEventUnitMovement, EventLoadUnitWithMovement have regression tests but stay Transcribed: tests restate C semantics/mock hosts; Event3C only runs in tutorial scripts, no trace), readability fe8.testing + fe8.game done, owner side-by-side device test recorded (D-06 solved; D-07 open; new D-11, D-12). Earlier: owner-PC 15-min run: Issue #5 device results recorded, D-08/D-10/mouths solved on 0.1.474/d91ed28, D-06/D-07 Issue #5 trace findings, M6-45 done (0 B/frame Prologue talk, MU walk, and 600f map idle), 20 more functions verified & break-checked (569/8352), 12 more readability rows done; code repo now public). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
+_Updated 2026-11-09 (scheduled 15:04Z: D12-1 phase intro ported + wired (fix for D-12, unverified on device), 592/8352. Earlier: owner-PC 30-min run: 7 more functions verified & break-checked (576/8352: Event0D/26/3A/3B, GetLoadUnitsAmount, IsSethLArachelMyrrhInnes, GetUnitDefinitionFromEventScr; Event2B, ModifyMoveUnitFlag, IsUnitSlotAvailable, ShouldUNITBeLoaded, TryPrepareEventUnitMovement, EventLoadUnitWithMovement have regression tests but stay Transcribed: tests restate C semantics/mock hosts; Event3C only runs in tutorial scripts, no trace), readability fe8.testing + fe8.game done, owner side-by-side device test recorded (D-06 solved; D-07 open; new D-11, D-12). Earlier: owner-PC 15-min run: Issue #5 device results recorded, D-08/D-10/mouths solved on 0.1.474/d91ed28, D-06/D-07 Issue #5 trace findings, M6-45 done (0 B/frame Prologue talk, MU walk, and 600f map idle), 20 more functions verified & break-checked (569/8352), 12 more readability rows done; code repo now public). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
 docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
 ## In progress
-D12-1: scheduled, until ~15:40Z
 D07-audio: owner PC, until ~15:55Z; investigate castle transition stalls / PCM underruns; no timing changes without evidence.
 Readability-events: owner PC, until ~15:55Z; gbafe.extract.fe8.events comments/names only.
 D11-slides: owner PC, until ~15:55Z; standalone subtitle slide graphics against original captures; not wired into New Game yet.
@@ -71,7 +70,7 @@ A merged fix without both is `fix merged, unverified`. Never mark `solved` from 
 | D-09 | Owner 11-09, 0.1.467 (060478a): no popup announcing Eirika received the Rapier before the first battle; inventory cannot be checked because player-phase interactions are unavailable. | Event37_GiveItem's NewPopup_ItemGot path is a stand-in. OpeningStubCommandsTest asserts the Rapier in Eirika's inventory headlessly; this is not device inventory confirmation or a trace verification of Event37. | open; low priority (owner) |
 | D-10 | Owner 11-09, 0.1.467 (060478a): portraits do not blink; original FE8 behavior confirmed. | Scheduled 350f19a starts gProcScr_FaceBlink and wires SetFaceBlinkControl. Owner-PC audit 191449c verifies normal eye OAM and selected portrait tiles in both orientations, plus individual mutation checks of all four tagged functions. 28bef11 additionally implements the mouth proc; a separate test follows both children and the shared LCG for 300 frames from one seed, replaying display bits. | solved 11-09 (reference: 191449c/28bef11; owner device check of 0.1.474/d91ed28, Issue #5) |
 | D-11 | Owner 11-09, 0.1.482 (617b1e9): after New Game the original plays an opening cinematic before the in-game castle cutscene; ours goes straight to the castle cutscene. | Not investigated (likely the chapter-start world-map/opening event sequence that runs before the Prologue event script). | open |
-| D-12 | Owner 11-09, 0.1.482 (617b1e9): no "Player Phase" popup after the final Eirika/Seth/enemy dialogue; control goes straight to the cursor. | Not investigated (phase-change intro proc, src/bmphase*.c / phasechangefx). | open |
+| D-12 | Owner 11-09, 0.1.482 (617b1e9): no "Player Phase" popup after the final Eirika/Seth/enemy dialogue; control goes straight to the cursor. | `BMapMain.hooks.phaseIntro` was a stand-in. D12-1 ports phasechangefx.c (`fe8.game.bm.PhaseIntro`, wired in Fe8Boot); PhaseIntroDifferentialTest matches ram_trace_ch6_phase_start f1684..1753 (BG0/BG1 buffers, altBlend, WIN0, BG0 x, child timers) + VRAM/pal/affine at full dumps. VCount blend split (HBlank handler) not reference-checked. | fix merged, unverified (device) |
 
 ## Audit 11-06 20:10Z (owner PC) of scheduled work 3c26e9e..ab985a8
 Full jvmTest green (555). 6 tags withheld because breaks survived (UpdateMapImgAnimations: VRAM every 10th frame;
@@ -308,7 +307,7 @@ unit arrays; `EventUnitState` (Event34) registered in the test engine only (not 
   `CgbSound` verified; `PsgSynth` (GBATEK/mGBA behaviour, not a port) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad, GPU backend, audio, ROM import (~4 s) + boot
   from it. Pending: smoke test of the first APK built on the KMP android variants (MANUAL_TEST "Newly testable").
-- Verified ports: 547 / 8352 (`tools/progress.py`, full `jvmTest test`, 2026-11-09); `ported-without-tag: 0`. Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
+- Verified ports: 592 / 8352 (`tools/progress.py`, full `jvmTest test`, 2026-11-09 15:24Z); `ported-without-tag: 0`. Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
 - Layout: `:gba:*` game-neutral (ADR 0012), `gbafe.*` in `:engine:*`, `fe8.*` in `:game`/`:app`; KMP jvm+android
   (ADR 0013) except `:gba:testkit`, `:testing`, `:tools:extract`.
 

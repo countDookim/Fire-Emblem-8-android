@@ -26,6 +26,7 @@ import fe8.game.bm.MapCursor
 import fe8.game.bm.MapMusic
 import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.PLAY_FLAG_HARD
+import fe8.game.bm.PhaseIntro
 import fe8.game.bm.PlayerPhase
 import fe8.game.bm.ResetCursorPosition
 import fe8.game.bm.UnitLoader
@@ -721,6 +722,15 @@ public class Fe8Boot(
             eventEngine::eventEngineExists,
         ).also { pp -> pp.hooks.startMapSongBgm = ProcFunc { music.startMapSongBgm() } }
         main.hooks.playerPhase = phase.script
+        main.hooks.phaseIntro = PhaseIntro(
+            engine, bm, control.playSt, units, rom, hw, loop.oam, loop.sprites,
+        ).also {
+            it.hooks.currentBgmSong = { control.sound.songId }
+            it.hooks.currentMapMusicIndex = { music.getCurrentMapMusicIndex() }
+            it.hooks.fadeOutBgm = { speed -> control.sound.fadeOutBgm(speed) }
+            it.hooks.playSoundEffect = { song -> control.sound.playSoundEffect(song) }
+            it.hooks.startMapSongBgm = { music.startMapSongBgm() }
+        }.script
         main.hooks.startMapSongBgm = { music.startMapSongBgm() }
         main.hooks.startMidFadeFromBlack = { screenFade.startMidFadeFromBlack() }
         main.hooks.waitForFade = { !screenFade.fadeExists() }

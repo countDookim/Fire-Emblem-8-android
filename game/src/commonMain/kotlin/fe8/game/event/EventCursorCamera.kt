@@ -76,7 +76,7 @@ public class EventCursorCamera(
     private fun argY(cur: Int): Int = (memory.u16(cur + 2) shr 8).toByte().toInt()
 
     /**
-     * Transcribed from src/eventscr.c: Event26_CameraControl (not verified)
+     * Ported from src/eventscr.c: Event26_CameraControl
      *
      * Subcode 0 takes the position (slot 0xB when an argument byte is negative), 1 a unit's
      * position. Skipping or faded in: set the camera and cursor, render, continue; otherwise
@@ -124,7 +124,7 @@ public class EventCursorCamera(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event3B_DisplayCursor (not verified)
+     * Ported from src/eventscr.c: Event3B_DisplayCursor
      *
      * Subcommand `& 3`: 0 shows the cursor at a position, 1 at a unit, 2 ends the cursor procs
      * and yields. The cursor proc is [EventCursorCameraHooks.startDisplayCursor].
@@ -163,7 +163,8 @@ public class EventCursorCamera(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event3C_MoveCursor (not verified)
+     * Transcribed from src/eventscr.c: Event3C_MoveCursor (not verified: opcode 0x3C is only
+     * in tutorial scripts and never runs in available mGBA reference traces)
      *
      * Subcommand 0 stores the player cursor position in slot 0xC; 1 sets the cursor (slot 0xB
      * when an argument byte is negative).

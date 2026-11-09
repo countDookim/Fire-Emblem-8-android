@@ -23,10 +23,11 @@ internal class EventPopup(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event3A_DisplayPopup
-     * (not verified: no reference test)
+     * Ported from src/eventscr.c: Event3A_DisplayPopup
      *
      * Subcommand 0 (`NewPopup_VerySimple`) is not ported and throws [NotImplementedError].
+     * Subcommand 1 displays a brown text box with message [textId] (slot 2 when negative)
+     * at (x, y).
      */
     val event3ADisplayPopup: EventHandler = EventHandler { proc ->
         if (proc.evStateBits and EV_STATE_SKIPPING != 0) return@EventHandler EVC_ADVANCE_CONTINUE

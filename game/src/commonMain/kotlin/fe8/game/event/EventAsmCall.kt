@@ -23,8 +23,10 @@ public class EventAsmCall(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event0D_AsmCall
-     * (not verified: callback dispatch and skip behavior not trace-compared)
+     * Ported from src/eventscr.c: Event0D_AsmCall
+     *
+     * Calls a native function with the event proc. Subcommand 1 skips execution when the event
+     * engine is skipping.
      */
     public val event0DAsmCall: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent

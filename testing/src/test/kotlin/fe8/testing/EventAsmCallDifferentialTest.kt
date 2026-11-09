@@ -16,8 +16,11 @@ import gbafe.core.rng.RngService
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
 import java.io.File
+import fe8.game.event.EventConst.EVC_ADVANCE_CONTINUE
+import fe8.game.event.EventConst.EV_STATE_SKIPPING
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -25,6 +28,7 @@ import org.junit.jupiter.api.Test
 
 /** Compares the Prologue's guide ASMC with the original's proc and full flag snapshots. */
 class EventAsmCallDifferentialTest {
+    @VerifiesPort("Event0D_AsmCall")
     @Test
     fun `ASMC dispatches guide callback and yields at the original next command`() {
         val sample = sample()
@@ -100,6 +104,43 @@ class EventAsmCallDifferentialTest {
 
         assertEquals(sample.sentinelAddress, reads.last())
         assertArrayEquals(sample.afterFlags, ByteArray(flags.size).also { flags.copyOut(it) })
+    }
+
+
+    @Test
+    fun `ASMC with subcmd 1 skips when skipping`() {
+        var called = false
+        val words = shortArrayOf(0x0D11.toShort(), 0, 0, 0)
+        val mem = ScriptMemory { address ->
+            val index = (address ushr 1) and 3
+            words[index].toInt() and 0xFFFF
+        }
+        val asmCall = EventAsmCall(mem, mapOf(0 to { called = true }))
+        val proc = EventEngineProc().apply {
+            pEventCurrent = 0
+            evStateBits = EV_STATE_SKIPPING
+        }
+        val result = asmCall.event0DAsmCall.run(proc)
+        assertEquals(EVC_ADVANCE_CONTINUE, result)
+        assertFalse(called)
+    }
+
+    @Test
+    fun `ASMC invokes onUnknown when function address is unregistered`() {
+        var unknownAddr = -1
+        val words = shortArrayOf(0x0D00.toShort(), 0, 0x1234.toShort(), 0x0800.toShort())
+        val mem = ScriptMemory { address ->
+            val index = (address ushr 1) and 3
+            words[index].toInt() and 0xFFFF
+        }
+        val asmCall = EventAsmCall(mem, emptyMap(), onUnknown = { unknownAddr = it })
+        val proc = EventEngineProc().apply {
+            pEventCurrent = 0
+            evStateBits = 0
+        }
+        val result = asmCall.event0DAsmCall.run(proc)
+        assertEquals(EVC_ADVANCE_CONTINUE, result)
+        assertEquals(0x08001234, unknownAddr)
     }
 
     /** Loads both sides of the update containing the opening's only ASMC, from runtime assets. */

@@ -2,9 +2,11 @@ package fe8.testing
 
 import fe8.game.RomView
 import fe8.game.text.Fe8Text
+import fe8.game.ui.ItemIcon
 import fe8.game.ui.Popup
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
+import gbafe.render.BgHardware
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -129,7 +131,6 @@ class PopupProcDifferentialTest {
     }
 
     @Test
-    // Partial: PopupProc_GfxDraw stays untagged until its frame/text/icon drawing is ported.
     fun `gfxDrawLayout reproduces the traced frame layout and icon child`() {
         assumeTrue(ref.available, "reference capture unavailable")
         val romFile = File(
@@ -189,6 +190,85 @@ class PopupProcDifferentialTest {
         assertEquals(child.u16(0x4A), fields[2], "unk_4A")
     }
 
+    @Test
+    @VerifiesPort("PopupProc_GfxDraw")
+    fun `gfxDraw reproduces the popup frame text icon and child fields`() {
+        assumeTrue(ref.available, "reference capture unavailable")
+        val romFile = File(
+            System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets",
+            "baserom.gba",
+        )
+        assumeTrue(romFile.isFile, "ROM not present")
+        val run = ref.run("ram_trace_item_popup")
+        val ewram = run.region("f18630", "ewram")
+        val vram = run.region("f18630", "vram")
+        val iwram = run.region("f18630", "iwram")
+        val dump = ProcArrayDump.ofEwram(ewram)
+        val original = dump.find(Popup.PROC_SCRIPT)!!
+        val popupItem = (iwram[GPOPUPITEM].toInt() and 0xFF) or
+            ((iwram[GPOPUPITEM + 1].toInt() and 0xFF) shl 8)
+        val romBytes = romFile.readBytes()
+        val rom = RomView.ofRom(romBytes)
+        val root = u32(romBytes, 0x0815D488 - ROM_BASE) - ROM_BASE
+        val messages = MsgStrings(
+            romBytes, MsgHuffman(romBytes, 0x0815A72C - ROM_BASE, root), 0x0815D48C - ROM_BASE,
+        )
+        val host = VramHost()
+        val text = TextSystem(romBytes, host, Fe8Text.CONFIG)
+        text.initTextFont(null, 0x06002000, 0x100, 0)
+        val hardware = BgHardware()
+        val mine = Popup.PopupProc()
+        Popup.setupSimple(mine, GOT_ITEM, 0x60, 0)
+        Popup.init(mine)
+        val child = Popup.gfxDraw(mine, rom, messages, text, hardware, popupItem, 0, 0) { _, _ -> }
+        assertTrue(child != null, "no icon child")
+
+        assertEquals(original.u16(0x46), mine.xGfxSize, "xGfxSize")
+        assertEquals(original.u8(0x37), mine.xTileReal, "xTileReal")
+        assertEquals(original.u8(0x38), mine.yTileReal, "yTileReal")
+        assertEquals(original.u8(0x39), mine.xTileSize, "xTileSize")
+        assertEquals(original.u8(0x3A), mine.yTileSize, "yTileSize")
+        assertEquals(original.u8(0x44), mine.iconX, "iconX")
+        assertEquals(original.u16(0x3E), mine.iconId, "iconId")
+        val orgChild = dump.find(Popup.UPDATE_ICON_PROC_SCRIPT)!!
+        assertEquals(orgChild.u32(0x2C), child!![0], "unk_2C")
+        assertEquals(orgChild.u32(0x30), child[1], "unk_30")
+        assertEquals(orgChild.u16(0x4A), child[2], "unk_4A")
+
+        val bg0 = hardware.mapBuffer(0)
+        val bg1 = hardware.mapBuffer(1)
+        for (row in mine.yTileReal until mine.yTileReal + 4) {
+            for (col in mine.xTileReal until mine.xTileReal + mine.xTileSize) {
+                val idx = row * 32 + col
+                assertEquals(
+                    ewramU16(ewram, BG0_TM + idx * 2), bg0[idx].toInt() and 0xFFFF,
+                    "BG0 ($col, $row)",
+                )
+                assertEquals(
+                    ewramU16(ewram, BG1_TM + idx * 2), bg1[idx].toInt() and 0xFFFF,
+                    "BG1 ($col, $row)",
+                )
+            }
+        }
+        val glyphBytes = (mine.xTileSize - 2) * 2 * 0x20
+        assertEquals(
+            vram.copyOfRange(0x2000, 0x2000 + glyphBytes).toList(),
+            host.vram.copyOfRange(0x2000, 0x2000 + glyphBytes).toList(),
+            "glyph tiles",
+        )
+        val target = ItemIcon.OBJ_VRAM0 + mine.iconObjTileId * 0x20
+        for (off in intArrayOf(0, 0x400)) {
+            assertEquals(
+                vram.copyOfRange(target + off, target + off + 0x40).toList(),
+                hardware.vram.copyOfRange(target + off, target + off + 0x40).toList(),
+                "icon tiles +$off",
+            )
+        }
+    }
+
+    private fun ewramU16(b: ByteArray, o: Int) =
+        (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
+
     private fun dump(run: ReferenceData.Run, step: Int): ByteArray =
         try {
             run.region("r$step", "ewram")
@@ -202,6 +282,8 @@ class PopupProcDifferentialTest {
 
         /** `gPopupItem` (0x030005F4) in the IWRAM dump. */
         const val GPOPUPITEM = 0x5F4
+        const val BG0_TM = 0x22CA8
+        const val BG1_TM = 0x234A8
     }
 
     private fun u32(b: ByteArray, o: Int) =
@@ -219,5 +301,28 @@ class PopupProcDifferentialTest {
         override fun writeVram32(addr: Int, value: Int) = Unit
 
         override fun clearVram(dest: Int, byteCount: Int) = Unit
+    }
+
+    /** English host with a plain VRAM array; palette changes are ignored. */
+    private class VramHost : TextHost {
+        val vram = ByteArray(0x18000)
+
+        override fun language() = 1
+
+        override fun applyTextPalette(talk: Boolean, palid: Int) = Unit
+
+        override fun readVram32(addr: Int): Int {
+            var v = 0
+            for (k in 0..3) v = v or ((vram[addr - 0x06000000 + k].toInt() and 0xFF) shl (8 * k))
+            return v
+        }
+
+        override fun writeVram32(addr: Int, value: Int) {
+            for (k in 0..3) vram[addr - 0x06000000 + k] = (value shr (8 * k)).toByte()
+        }
+
+        override fun clearVram(dest: Int, byteCount: Int) {
+            vram.fill(0, dest - 0x06000000, dest - 0x06000000 + byteCount)
+        }
     }
 }

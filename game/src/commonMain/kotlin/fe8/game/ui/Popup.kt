@@ -2,6 +2,7 @@ package fe8.game.ui
 
 import fe8.game.RomView
 import fe8.game.bm.ItemInfo
+import gbafe.render.BgHardware
 import gbafe.text.MsgStrings
 import gbafe.text.Text
 import gbafe.text.TextSystem
@@ -161,11 +162,56 @@ public object Popup {
     }
 
     /**
-     * Sets the layout fields from the text width [len] (as [parsePopupInstAndGetLen] returns it)
-     * and returns the text width in tiles; the frame, text and icon drawing is not modelled.
+     * Lays the popup out and draws it: parses the instruction list, draws the frame into
+     * [hardware]'s BG0/BG1, draws the text strip into [text]'s font and BG0, and loads the icon
+     * graphics into [hardware] when [PopupProc.iconId] is not 0xFFFF. [loadIconPalette],
+     * [popupItem], [popupNumber] and [unitNameTextId] are as for [parsePopupInstAndGetLen].
+     * `ResetText` is `InitTextFont(&gDefaultFont, VRAM + 0x1000, 0x80, 0)` on [text].
      *
-     * Partial port of src/popup.c PopupProc_GfxDraw (layout fields only), checked by
-     * PopupProcDifferentialTest; not tagged as ported until the drawing is.
+     * Returns the fields `unk_2C`, `unk_30` and `unk_4A` of the `PopupIconUpdateProc` child the
+     * original starts (see [iconChildFields]), or null when there is no icon.
+     *
+     * Ported from src/popup.c: PopupProc_GfxDraw
+     */
+    public fun gfxDraw(
+        proc: PopupProc,
+        rom: RomView,
+        messages: MsgStrings,
+        text: TextSystem,
+        hardware: BgHardware,
+        popupItem: Int,
+        popupNumber: Int,
+        unitNameTextId: Int,
+        loadIconPalette: (slot: Int, palId: Int) -> Unit,
+    ): IntArray? {
+        val len = parsePopupInstAndGetLen(
+            proc, rom, messages, text, popupItem, popupNumber, unitNameTextId, loadIconPalette,
+        )
+        val tileLen = gfxDrawLayout(proc, len)
+        val iconPos = (tileLen * 8 - proc.xGfxSize) shr 1
+        UiFrame.drawUiFrame2(
+            hardware, rom, proc.xTileReal, proc.yTileReal, tileLen + 2, 4, proc.winStyle,
+        )
+        val th = Text()
+        text.initText(th, tileLen)
+        th.colorId = proc.textColorId
+        th.x = iconPos
+        generatePopupText(
+            proc.pDefinition, th, rom, messages, text, popupItem, popupNumber, unitNameTextId,
+        )
+        if (proc.iconId != 0xFFFF) {
+            ItemIcon.loadIconObjectGraphics(hardware, rom, proc.iconId, proc.iconObjTileId)
+        }
+        text.putText(
+            th, hardware.mapBuffer(0), (proc.yTileReal + 1) * 32 + proc.xTileReal + 1,
+        )
+        text.initTextFont(null, 0x06001000, 0x80, 0)
+        return if (proc.iconId != 0xFFFF) iconChildFields(proc) else null
+    }
+
+    /**
+     * Sets the layout fields from the text width [len] (as [parsePopupInstAndGetLen] returns it)
+     * and returns the text width in tiles. Helper of [gfxDraw].
      */
     public fun gfxDrawLayout(proc: PopupProc, len: Int): Int {
         proc.xGfxSize = len and 0xFFFF
@@ -183,11 +229,8 @@ public object Popup {
     }
 
     /**
-     * Returns `unk_2C`, `unk_30` and `unk_4A` of the `PopupIconUpdateProc` child that
-     * `PopupProc_GfxDraw` starts when [PopupProc.iconId] is not 0xFFFF.
-     *
-     * Partial port of src/popup.c PopupProc_GfxDraw (icon child fields only), checked by
-     * PopupProcDifferentialTest.
+     * Returns `unk_2C`, `unk_30` and `unk_4A` of the `PopupIconUpdateProc` child that [gfxDraw]
+     * starts when [PopupProc.iconId] is not 0xFFFF.
      */
     public fun iconChildFields(proc: PopupProc): IntArray = intArrayOf(
         (proc.xTileReal + 1) * 8 + proc.iconX,

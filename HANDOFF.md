@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D11-init: scheduled, until ~17:25Z
+_(none)_
 
 ## Current state
 
@@ -43,10 +43,9 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
 1. **D-07:** obtain an Android trace correlating the two castle hitches with game-thread stalls,
    PCM starvation and native AudioTrack underruns. Investigation is owner-authorized. Root cause remains unknown;
    do not present the existing reserve (`63e638e`) as a successful device fix or repeat unchanged-build tests.
-2. **D-11:** next coding slice is `D11-init` in TASKS (`src/opsubtitle.c: OpSubtitle_Init`).
-   `OpSubtitleSlides` and `OpSubtitleTransitions` verify six functions (`014f3ed`, `d3c4112`);
-   no production cinematic wiring. Complete initialization, remaining fades/proc, flare, audio and verified Start skip
-   before wiring. Original monologue runs at steps 1213–4897; the separate world-map wrapper follows at 4898–9313.
+2. **D-11:** next coding slice is `D11-proc` in TASKS. Done standalone (not wired): slides/fades
+   (`014f3ed`, `d3c4112`), `OpSubtitleSetup` init + BG helpers (`a5aec60`), `OpSubtitleFlare` + `gbafe.render.BgAffin`
+   (`c2f0be5`). Remaining: proc script, audio, verified Start skip, then wiring. Original monologue runs at steps 1213–4897; the separate world-map wrapper follows at 4898–9313.
 3. **D-12:** owner compares the banner with an emulator; D12-2 adds enemy-phase and original scanline captures.
 4. **D-09:** private ROM commit `f7a442a` has the popup capture generator; local `reference/out/ram_trace_item_popup`
    contains 181 RAM and 10 graphics captures, not packed/published into FE8_ASSETS. D09-1b must justify its sound-test

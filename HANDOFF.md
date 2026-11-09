@@ -10,7 +10,9 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-_(none)_
+- D07-trace: owner PC, until ~21:25Z; Android game/audio timing + starvation/underrun diagnostics; no speculative stutter-fix claim.
+- D11-proc: owner PC, until ~21:25Z; subtitle end-BGM callback, then standalone parent lifecycle if time.
+- READ-audio: owner PC, until ~21:25Z; gba.audio readability review alongside D07.
 
 ## Current state
 

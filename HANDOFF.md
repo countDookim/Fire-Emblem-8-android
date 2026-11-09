@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; owner 30-minute run 11-09 15:57-16:45 completed; no worktrees open)_
+D12-1: scheduled, until ~15:40Z
 
 ## Latest device test (owner, 2026-11-09 16:17, side-by-side vs original)
 Build: latest APK (assumed 0.1.482 / `617b1e9`; owner to confirm build string). Owner confirms equal to the original: music, sound effects, portraits + portrait animation, walking

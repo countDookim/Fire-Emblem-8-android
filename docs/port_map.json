@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 569,
+    "verified": 576,
     "implemented_unverified": 1
   },
   "functions": {
@@ -886,6 +886,15 @@
         "fe8.testing.EventVmDifferentialTest#Event0C Branch"
       ]
     },
+    "Event0D_AsmCall": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventAsmCall.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventAsmCallDifferentialTest#ASMC dispatches guide callback and yields at the original next command"
+      ]
+    },
     "Event0E_STAL": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -976,6 +985,15 @@
         "fe8.testing.EventChangeMapDifferentialTest#load_map 16 from the prologue opening reproduces the dumped map"
       ]
     },
+    "Event26_CameraControl": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventCursorCamera.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventCursorCameraTest#event26CameraControl updates cursor position to match newgame_bm trace r09784"
+      ]
+    },
     "Event2C_LoadUnits": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -1001,6 +1019,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.MoveUnitDifferentialTest#blue units end on the tiles of the r19400 dump after the opening moves"
+      ]
+    },
+    "Event3A_DisplayPopup": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventPopup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.event.EventPopupTest#event3aDisplayPopup matches reference popup state at r09540"
+      ]
+    },
+    "Event3B_DisplayCursor": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventCursorCamera.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventCursorCameraTest#event3bDisplayCursor spawns cursor matching prologue procs watch"
       ]
     },
     "Event3F_ScriptBattle": {
@@ -1612,6 +1648,15 @@
         "fe8.testing.SramOwnerSaveBootTest#chapter 6 save without a suspend boots unchanged and selects 0x7F"
       ]
     },
+    "GetLoadUnitsAmount": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventUnitLoadsTest#GetLoadUnitsAmount matches definition block counts across the ROM"
+      ]
+    },
     "GetMuAnimForJid": {
       "decomp_file": "src/mu.c",
       "system": "battle_map",
@@ -1773,6 +1818,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitTableDifferentialTest#unitOffset matches gUnitLookup table in ROM for all 256 unit ids"
+      ]
+    },
+    "GetUnitDefinitionFromEventScr": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventUnitLoadsTest#GetUnitDefinitionFromEventScr matches dumped gLoadUnitBuffer in trace"
       ]
     },
     "GetUnitFromCharId": {
@@ -2031,6 +2085,15 @@
         "fe8.testing.SramSaveBlockReferenceTest#erasing a valid game slot leaves the 0xFF entry the dump has for unused slots",
         "fe8.testing.SramSaveBlockReferenceTest#invalidating the suspend save writes the entries the game wrote",
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
+      ]
+    },
+    "IsSethLArachelMyrrhInnes": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventUnitLoadsTest#IsSethLArachelMyrrhInnes matches the ROM character list table"
       ]
     },
     "IsSramWorking": {

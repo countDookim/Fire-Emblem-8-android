@@ -30,4 +30,28 @@ public object BgTilemap {
             }
         }
     }
+
+    /**
+     * Writes a byte-entry TSA (byte 0 = width - 1, byte 1 = height - 1, entries from offset +2, bottom
+     * row first) into [tilemap]'s bytes (little-endian halfwords) with row stride `1 shl linebits` bytes,
+     * adding [base] to every entry (8-bit wrap). Used for affine (8-bit) maps.
+     *
+     * Ported from src/hardware.c: sub_800154C
+     */
+    public fun applyByteTsa(tilemap: ShortArray, tsa: ByteArray, tsaOffset: Int, base: Int, linebits: Int) {
+        var it = tsaOffset + 2
+        val xSize = tsa[tsaOffset].toInt() and 0xFF
+        val ySize = tsa[tsaOffset + 1].toInt() and 0xFF
+        for (iy in ySize downTo 0) {
+            var out = iy shl linebits
+            for (ix in xSize downTo 0) {
+                val value = (tsa[it++].toInt() + base) and 0xFF
+                val word = out shr 1
+                val old = tilemap[word].toInt()
+                tilemap[word] = (if (out and 1 == 0) (old and 0xFF00) or value
+                    else (old and 0xFF) or (value shl 8)).toShort()
+                out++
+            }
+        }
+    }
 }

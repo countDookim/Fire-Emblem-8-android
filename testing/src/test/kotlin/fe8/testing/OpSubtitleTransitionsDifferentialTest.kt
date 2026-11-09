@@ -132,38 +132,6 @@ class OpSubtitleTransitionsDifferentialTest {
         assertTrue(paletteSnapshots >= 5)
     }
 
-    /** What a stage test checks at snapshot frames besides the proc fields. */
-    private enum class Kind { PALETTE_3, PALETTE_15, BLEND }
-
-    private class StageRig(
-        rom: RomView, state: OpSubtitleSlides.State, run: (OpSubtitleTransitions, Proc) -> Unit
-    ) {
-        val engine = ProcEngine()
-        val hardware = BgHardware()
-        var calls = 0
-        val transitions = OpSubtitleTransitions(engine, hardware, rom) { calls++ }
-        val script = ProcScript(
-            "subtitle stage test",
-            listOf(
-                repeat(ProcFunc { run(transitions, it) }),
-                block(),
-                label(1),
-                block(),
-                label(4),
-                block()
-            ),
-        ) { state }
-        val proc = engine.start(script, 3)
-
-        init {
-            hardware.palette.fill(0x5A5A.toShort())
-            hardware.lcd.dispcnt = 0x1F00
-            hardware.lcd.setBlendConfig(0, 0x77, 0x66, 0x55)
-        }
-
-        fun step() = engine.run(proc)
-    }
-
     private fun romLabelIndex(rom: ByteArray, id: Int): Int {
         val base = SCRIPT - 0x08000000
         var i = 0
@@ -600,6 +568,38 @@ class OpSubtitleTransitionsDifferentialTest {
         val after = fullPalette(capture.region("f02400", "ewram"))
         assertTrue(!before.copyOfRange(48, 64).contentEquals(after.copyOfRange(48, 64)))
         assertArrayEquals(after.copyOfRange(48, 64), hardware.palette.copyOfRange(48, 64))
+    }
+
+    /** What a stage test checks at snapshot frames besides the proc fields. */
+    private enum class Kind { PALETTE_3, PALETTE_15, BLEND }
+
+    private class StageRig(
+        rom: RomView, state: OpSubtitleSlides.State, run: (OpSubtitleTransitions, Proc) -> Unit
+    ) {
+        val engine = ProcEngine()
+        val hardware = BgHardware()
+        var calls = 0
+        val transitions = OpSubtitleTransitions(engine, hardware, rom) { calls++ }
+        val script = ProcScript(
+            "subtitle stage test",
+            listOf(
+                repeat(ProcFunc { run(transitions, it) }),
+                block(),
+                label(1),
+                block(),
+                label(4),
+                block()
+            ),
+        ) { state }
+        val proc = engine.start(script, 3)
+
+        init {
+            hardware.palette.fill(0x5A5A.toShort())
+            hardware.lcd.dispcnt = 0x1F00
+            hardware.lcd.setBlendConfig(0, 0x77, 0x66, 0x55)
+        }
+
+        fun step() = engine.run(proc)
     }
 
     private class Rig(rom: RomView, fade: Boolean, state: OpSubtitleSlides.State) {

@@ -37,20 +37,6 @@ class OpSubtitleFlareDifferentialTest {
     private fun stateOf(p: ProcArrayDump.Proc) =
         OpSubtitleFlare.State(p.u16(0x4C).toShort().toInt(), p.u16(0x4E).toShort().toInt())
 
-    private class Rig(rom: RomView, val state: OpSubtitleFlare.State) {
-        val engine = ProcEngine()
-        val hardware = BgHardware()
-        val flare = OpSubtitleFlare(engine, hardware, rom)
-        val proc = engine.start(
-            ProcScript(
-                "flare test", listOf(repeat(ProcFunc { flare.loop(it, state) }), block()),
-            ) { state },
-            3,
-        )
-
-        fun step() = engine.run(proc)
-    }
-
     @Test
     @VerifiesPort("Subtitle_LightFlareFx_Loop", "BgAffinRotScaling", "BgAffinScaling", "BgAffinAnchoring")
     fun `loop follows original counters, affine registers and blend`() {
@@ -129,6 +115,20 @@ class OpSubtitleFlareDifferentialTest {
         assertEquals(0x0400, before and 0x0400, "BG2 on during the flare")
         val after = u16(run.region("r02460", "iwram"), LCD)
         assertEquals(0, after and 0x0400, "BG2 off after the flare")
+    }
+
+    private class Rig(rom: RomView, val state: OpSubtitleFlare.State) {
+        val engine = ProcEngine()
+        val hardware = BgHardware()
+        val flare = OpSubtitleFlare(engine, hardware, rom)
+        val proc = engine.start(
+            ProcScript(
+                "flare test", listOf(repeat(ProcFunc { flare.loop(it, state) }), block()),
+            ) { state },
+            3,
+        )
+
+        fun step() = engine.run(proc)
     }
 
     private companion object {

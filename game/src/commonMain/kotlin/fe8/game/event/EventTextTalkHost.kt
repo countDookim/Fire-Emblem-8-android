@@ -65,8 +65,7 @@ public class EventTextTalkHost(
     override fun changeUnitSpritePalette(id: Int) {}
 
     /**
-     * Transcribed from src/eventscr.c: Event23_DisaleMapDisp
-     * (not verified against a complete event trace)
+     * Ported from src/eventscr.c: Event23_DisaleMapDisp
      */
     override fun disableMapDisp(proc: EventEngineProc): Int {
         if (proc.evStateBits and EventConst.EV_STATE_GFXLOCKED == 0) {
@@ -95,8 +94,7 @@ public class EventTextTalkHost(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event24_EnableMapDisp
-     * (not verified against a complete event trace)
+     * Ported from src/eventscr.c: Event24_EnableMapDisp
      */
     override fun enableMapDisp(proc: EventEngineProc): Int {
         if (proc.evStateBits and EventConst.EV_STATE_GFXLOCKED != 0) {

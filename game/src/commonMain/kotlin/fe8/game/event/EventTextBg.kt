@@ -61,8 +61,7 @@ public class EventTextBg(
     }
 
     /**
-     * Transcribed from src/eventscr.c: EventShowTextBgDirect
-     * (not verified: BG3 graphics, tilemap and palette loads not trace-compared)
+     * Ported from src/eventscr.c: EventShowTextBgDirect
      *
      * The tutorial, solo and 0x1A25 modes return an error.
      */
@@ -85,8 +84,7 @@ public class EventTextBg(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event21_TextBg
-     * (not verified: background loads and fade state not trace-compared)
+     * Ported from src/eventscr.c: Event21_TextBg
      *
      * The background fade procs are host stand-ins.
      */

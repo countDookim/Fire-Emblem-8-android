@@ -132,7 +132,7 @@ class EventVmDifferentialTest {
     fun `Event06 SlotOperation`() = assertCode(0x06)
 
     @Test
-    @VerifiesPort("Event07_SlotQueueOperations")
+    @VerifiesPort("Event07_SlotQueueOperations", "SlotQueuePush")
     fun `Event07 SlotQueueOperations`() = assertCode(0x07)
 
     @Test

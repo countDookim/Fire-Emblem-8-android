@@ -119,8 +119,7 @@ public class EventUnitState(
     }
 
     /**
-     * Transcribed from src/eventscr_utils.c: GetUnitStructFromEventParameter (not verified: no test
-     *   checks it against a trace yet)
+     * Ported from src/eventscr_utils.c: GetUnitStructFromEventParameter
      *
      * The id of the unit that event character parameter [pid] names (the leader for 0, the
      * active unit for -1, the unit at the tile in slot 0xB for -2, the character of slot 2 for
@@ -187,8 +186,7 @@ public class EventUnitState(
     }
 
     /**
-     * Transcribed from src/bmunit.c: ClearCutsceneUnits (not verified: no test checks it against a
-     *   trace yet)
+     * Ported from src/bmunit.c: ClearCutsceneUnits
      *
      * Clears the blue units with `US_BIT22` that are alive; the dead ones lose the bit.
      * Verification: partial. A break of the `US_DEAD` branch (always clearing the unit) survives

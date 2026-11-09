@@ -428,11 +428,10 @@ public class BattleGenerate(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: BattleUnitTargetSetEquippedWeapon
-     *   (not verified: the traced target already has a weaponBefore; the staff fallback for
-     *   magic users needs `CanUnitUseStaff` and is not ported)
+     * Ported from src/bmbattle.c: BattleUnitTargetSetEquippedWeapon
      *
-     * Gives a target without a pre-battle weapon its equipped weapon.
+     * Gives a target without a pre-battle weapon its equipped weapon. The staff fallback for magic
+     * users needs `CanUnitUseStaff` and is not ported.
      */
     public fun battleUnitTargetSetEquippedWeapon(bu: BattleUnit) {
         if (bu.weaponBefore != 0) return

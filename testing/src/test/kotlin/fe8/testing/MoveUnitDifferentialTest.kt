@@ -26,7 +26,7 @@ class MoveUnitDifferentialTest {
     )
 
     @Test
-    @VerifiesPort("Event2F_MoveUnit", "Event30_ENUN")
+    @VerifiesPort("Event2F_MoveUnit", "Event30_ENUN", "GetUnitStructFromEventParameter")
     fun `blue units end on the tiles of the r19400 dump after the opening moves`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
         val rom = RomView.ofRom(romFile.readBytes())

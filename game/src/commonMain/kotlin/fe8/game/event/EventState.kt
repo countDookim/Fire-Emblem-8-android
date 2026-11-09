@@ -62,10 +62,11 @@ public class EventState {
     }
 
     /**
-     * Transcribed from src/event.c: SlotQueuePush (not verified: no test checks it against a trace
-     *   yet). Writes [value] at `gEventSlotQueue[slots[0xD]]` and
-     * increments slot 0xD. There is no bounds check in C; an index past 29 overwrites the
-     * following globals (see [wordAt]) and an index outside the block is dropped.
+     * Ported from src/event.c: SlotQueuePush
+     *
+     * Writes [value] at `gEventSlotQueue[slots[0xD]]` and increments slot 0xD. There is no bounds
+     * check in C; an index past 29 overwrites the following globals (see [wordAt]) and an index
+     * outside the block is dropped.
      */
     public fun slotQueuePush(value: Int) {
         setWordAt(slots[QUEUE_SLOT], value)
@@ -73,10 +74,11 @@ public class EventState {
     }
 
     /**
-     * Transcribed from src/event.c: SlotQueuePop (not verified: no test checks it against a trace
-     *   yet). Returns `gEventSlotQueue[0]`, decrements slot 0xD and
-     * shifts the remaining entries down. In C a pop with slot 0xD == 0 wraps it to 0xFFFFFFFF and
-     * then loops (compared unsigned) effectively forever; here the shift is bounded to the block.
+     * Ported from src/event.c: SlotQueuePop
+     *
+     * Returns `gEventSlotQueue[0]`, decrements slot 0xD and shifts the remaining entries down. In C
+     * a pop with slot 0xD == 0 wraps it to 0xFFFFFFFF and then loops (compared unsigned)
+     * effectively forever; here the shift is bounded to the block.
      */
     public fun slotQueuePop(): Int {
         val result = slotQueue[0]
@@ -105,8 +107,9 @@ public class EventState {
     public fun getEventSlotCounter(): Int = slotCounter
 
     /**
-     * Transcribed from src/event.c: SetEventSlotC (not verified: no test checks it against a trace
-     *   yet). Stores [value] in slot 0xC.
+     * Ported from src/event.c: SetEventSlotC
+     *
+     * Stores [value] in slot 0xC.
      */
     public fun setEventSlotC(value: Int) {
         slots[0xC] = value

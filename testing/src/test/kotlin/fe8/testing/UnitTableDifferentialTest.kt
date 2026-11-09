@@ -67,6 +67,20 @@ class UnitTableDifferentialTest {
     }
 
     @Test
+    @VerifiesPort("GetUnit")
+    fun `unitOffset matches gUnitLookup table in ROM for all 256 unit ids`() {
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        val romView = RomView.ofRom(romBytes())
+        val t = UnitTable(romView)
+        for (id in 0..255) {
+            val ptr = romView.u32(0x0859A5D0 + 4 * id)
+            val expectedOffset = if (ptr == 0) -1 else (ptr - UnitTable.BLUE_ADDRESS)
+            assertEquals(expectedOffset, t.unitOffset(id), "id $id")
+        }
+        assertEquals(t.unitOffset(1), t.unitOffset(0x101))
+    }
+
+    @Test
     fun `units decode as the chapter 0 roster`() {
         val f = frames().last()
         val t = f.table

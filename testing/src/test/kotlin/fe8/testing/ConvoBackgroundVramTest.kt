@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
+import gba.core.VerifiesPort
 import org.junit.jupiter.api.Test
 
 /**
@@ -40,6 +41,7 @@ class ConvoBackgroundVramTest {
     }
 
     @Test
+    @VerifiesPort("Event23_DisaleMapDisp")
     fun `map tile animation does not overwrite the background while the talk scene runs`() {
         assumeTrue(romFile.isFile, "ROM not present")
         val want = expected(RomView.ofRom(romFile.readBytes()))
@@ -64,6 +66,7 @@ class ConvoBackgroundVramTest {
     }
 
     @Test
+    @VerifiesPort("EventShowTextBgDirect", "Event21_TextBg", "Event22_ClearScreen", "Event24_EnableMapDisp")
     fun `conversation background and restored map match reference graphics`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
         val scene = ref.run("ram_trace_prologue")
@@ -134,6 +137,7 @@ class ConvoBackgroundVramTest {
     }
 
     @Test
+    @VerifiesPort("BMapDispSuspend", "BMapDispResume")
     fun `nested display suspension restores map procs only on the final resume`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
         val trace = ref.run("ram_trace_prologue_talk").watch("gbmst")
@@ -183,6 +187,32 @@ class ConvoBackgroundVramTest {
         assertTrue(updates > 0, "map animation did not resume")
         map.bMapDispResume()
         assertEquals(1, initializations)
+    }
+
+    @Test
+    @VerifiesPort("LockGame", "UnlockGame", "GetGameLock")
+    fun `game lock matches gbmst lock byte across trace steps`() {
+        assumeTrue(ref.available, "mGBA reference data not present")
+        val trace = ref.run("ram_trace_prologue").watch("gbmst")
+        // Byte 1 of gbmst watch is gBmSt.lock (s8/u8).
+        val initialLock = trace.step(9507)[1].toInt() and 0xFF
+        val lockedStep = trace.step(9508)[1].toInt() and 0xFF
+        val nestedStep = trace.step(14431)[1].toInt() and 0xFF
+        val unlockedStep = trace.step(19312)[1].toInt() and 0xFF
+        assertEquals(0, initialLock)
+        assertEquals(1, lockedStep)
+        assertEquals(0, unlockedStep)
+
+        val loop = fe8.game.GameLoop(gbafe.proc.ProcEngine(), gbafe.input.KeyStatus(), gbafe.core.time.GameClock(), { 0 })
+        assertEquals(initialLock, loop.gameLock())
+        loop.lockGame()
+        assertEquals(lockedStep, loop.gameLock())
+        loop.lockGame()
+        assertEquals(nestedStep, loop.gameLock())
+        loop.unlockGame()
+        assertEquals(lockedStep, loop.gameLock())
+        loop.unlockGame()
+        assertEquals(unlockedStep, loop.gameLock())
     }
 
     private companion object {

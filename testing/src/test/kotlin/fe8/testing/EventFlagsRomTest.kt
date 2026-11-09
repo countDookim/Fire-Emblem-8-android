@@ -2,6 +2,8 @@ package fe8.testing
 
 import fe8.game.flags.Fe8EventFlags
 import gba.core.VerifiesPort
+import gba.testkit.ReferenceData
+import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -44,6 +46,25 @@ class EventFlagsRomTest {
             return p[0].toLong(16) to (if (p.size == 4) p[1].toLong(16) else null)
         }
         return null
+    }
+
+    @Test
+    @VerifiesPort("GetPermanentFlagBits", "GetChapterFlagBits")
+    fun `flag accessors return snapshots matching iwram reference dumps`() {
+        val ref = ReferenceData.fromEnvironment()
+        assumeTrue(ref.available, "reference data not present")
+        val iwram = ref.run("ram_trace_first_phase").region("f19430", "iwram")
+        val permOffset = 0x03005250 - 0x03000000
+        val chapOffset = 0x03005270 - 0x03000000
+        val wantPerm = iwram.copyOfRange(permOffset, permOffset + Fe8EventFlags.PERMANENT_STORAGE_BYTES)
+        val wantChap = iwram.copyOfRange(chapOffset, chapOffset + Fe8EventFlags.CHAPTER_STORAGE_BYTES)
+
+        val allFlags = iwram.copyOfRange(permOffset, permOffset + 48)
+        val flags = Fe8EventFlags.create().also { it.copyIn(allFlags) }
+        val gotPerm = Fe8EventFlags.getPermanentFlagBits(flags)
+        val gotChap = Fe8EventFlags.getChapterFlagBits(flags)
+        assertArrayEquals(wantPerm, gotPerm, "permanent flag bytes match IWRAM")
+        assertArrayEquals(wantChap, gotChap, "chapter flag bytes match IWRAM")
     }
 
     @Test

@@ -218,8 +218,7 @@ public class BattleMapStart(
     )
 
     /**
-     * Transcribed from src/bmio.c: BMapDispSuspend
-     * (not verified: no reference test of the semaphore)
+     * Ported from src/bmio.c: BMapDispSuspend
      *
      * Blocks every proc marked `PROC_MARK_DISP` (the VBlank and map task procs) on the first call.
      * `SetSecondaryHBlankHandler(NULL)` is not done: no weather HBlank handler runs here.
@@ -232,8 +231,7 @@ public class BattleMapStart(
     }
 
     /**
-     * Transcribed from src/bmio.c: BMapDispResume
-     * (not verified: no reference test of the semaphore)
+     * Ported from src/bmio.c: BMapDispResume
      *
      * Unblocks the marked procs when the last suspend ends and restarts the VBlank proc
      * (`BMapVSync_Start` without `WfxInit`, which has no state here).

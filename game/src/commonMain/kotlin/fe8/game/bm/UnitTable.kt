@@ -33,7 +33,7 @@ public class UnitTable(
     }
 
     /**
-     * Transcribed from src/bmunit.c: GetUnit (not verified: no test checks it against a trace yet)
+     * Ported from src/bmunit.c: GetUnit
      *
      * Byte offset in [bytes] of the unit with id [id] (`gUnitLookup[id & 0xFF]`), or -1 where the
      * lookup table holds NULL.

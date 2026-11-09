@@ -101,12 +101,44 @@ class BattleScriptedDifferentialTest {
         assertEquals(null, gen.scriptedBattleHits, "scriptedBattleHits cleared")
     }
 
+    @Test
+    @VerifiesPort("BattleUnitTargetSetEquippedWeapon")
+    fun `BattleUnitTargetSetEquippedWeapon fills target weaponBefore from equipped weapon when empty`() {
+        assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
+        val rom = RomView.ofRom(romFile.readBytes())
+        val r = ref.run(run)
+        val before = r.region("r14429", "ewram")
+        val after = r.region("r14430", "ewram")
+
+        val table = UnitTable(rom).also { it.loadFrom(before) }
+        val playSt = PlaySt().also { it.decode(before, GPLAYST - EWRAM) }
+        val bmSt = BmSt().also { it.decode(before, GBMST - EWRAM) }
+        val rows = before.u32(GBM_MAP_TERRAIN)
+        val terrainAt = { y: Int, x: Int -> before.u8(before.u32(rows + 4 * y) + x) }
+        val rng = RngService()
+        val loader = UnitLoader(table, rom, { 0 }, rng, { false })
+        val battle = BmBattle(rom, table, loader, playSt, bmSt, terrainAt)
+        val gen = BattleGenerate(battle, rom, loader, playSt, rng, Mechanics())
+
+        battle.initBattleUnit(battle.target, table.bytes, table.unitOffset(TARGET_ID))
+        battle.target.weaponBefore = 0
+        gen.battleUnitTargetSetEquippedWeapon(battle.target)
+
+        val wantWeaponBefore = after.u16(GBATTLETARGET + 0x4A)
+        assertEquals(wantWeaponBefore, battle.target.weaponBefore, "target weaponBefore matches r14430 dump")
+
+        battle.target.weaponBefore = 0x1234
+        gen.battleUnitTargetSetEquippedWeapon(battle.target)
+        assertEquals(0x1234, battle.target.weaponBefore, "target weaponBefore unchanged when non-zero")
+    }
+
     private fun ByteArray.toHex() = joinToString("") { "%02X".format(it) }
     private fun ByteArray.u32i(o: Int) =
         (this[o].toInt() and 0xFF) or ((this[o + 1].toInt() and 0xFF) shl 8) or
             ((this[o + 2].toInt() and 0xFF) shl 16) or ((this[o + 3].toInt() and 0xFF) shl 24)
 
     private fun ByteArray.u8(addr: Int) = this[addr - EWRAM].toInt() and 0xFF
+    private fun ByteArray.u16(addr: Int) = u8(addr) or (u8(addr + 1) shl 8)
     private fun ByteArray.u32(addr: Int) =
         u8(addr) or (u8(addr + 1) shl 8) or (u8(addr + 2) shl 16) or (u8(addr + 3) shl 24)
 
@@ -116,6 +148,7 @@ class BattleScriptedDifferentialTest {
         const val GPLAYST = 0x0202BCF0
         const val GBM_MAP_TERRAIN = 0x0202E4DC
         const val GBATTLESTATS = 0x0203A4D4
+        const val GBATTLETARGET = 0x0203A56C
         const val GHITARRAY = 0x0203A5EC
         const val IWRAM = 0x03000000
         const val GEVENTSLOTS = 0x030004B8 - 0x03000000

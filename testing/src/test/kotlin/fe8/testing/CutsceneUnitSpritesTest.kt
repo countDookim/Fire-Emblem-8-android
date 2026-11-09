@@ -3,6 +3,7 @@ package fe8.testing
 import fe8.game.RomView
 import fe8.game.bm.Mu
 import fe8.game.bm.UnitTable
+import gba.core.VerifiesPort
 import gba.testkit.GbaMem
 import gba.testkit.ReferenceData
 import java.io.File
@@ -51,6 +52,7 @@ class CutsceneUnitSpritesTest {
     }.sorted()
 
     @Test
+    @VerifiesPort("ClearCutsceneUnits")
     fun `unit objects of the opening events match the dumps taken during them`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
         val rom = RomView.ofRom(romFile.readBytes())

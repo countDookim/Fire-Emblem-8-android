@@ -35,6 +35,9 @@ public class UnitLoader(
     private val isHardMode: () -> Boolean,
 ) {
     private val items = ItemInfo(rom)
+    // A tile can be queued only once at a time, so the map pool bounds the queue size.
+    private val floodQueue = IntArray(BmMap.MAP_POOL_SIZE)
+    private val floodQueued = BooleanArray(BmMap.MAP_POOL_SIZE)
 
     /**
      * `MuCtr_StartDefinedMove(unit, redas, count, flags)` for unit-array index `id` and the REDA
@@ -673,8 +676,8 @@ public class UnitLoader(
     /**
      * `GenerateMovementMap` with movement 124 and no unit id (src/bmidoten.c, asm/arm.s
      * MapFloodCoreStep) into [pool]: the cheapest cost to each tile (0xFF = not reached), rows
-     * `-2 until height + 2`. Relaxes the whole grid until nothing improves, which gives the same
-     * minima as the C's frontier flood without a queue (no allocation).
+     * `-2 until height + 2`. A reusable frontier revisits tiles when a cheaper path is found;
+     * the resulting minima match the repeated relaxation of every tile without per-call allocation.
      */
     internal fun floodMovement(
         map: BmMap,
@@ -688,23 +691,37 @@ public class UnitLoader(
         val h = map.sizeY
         map.bmMapFill(pool, 0xFF)
         if (x0 !in 0 until w || y0 !in -2 until h + 2) return
+        val tileCount = w * (h + 4)
+        floodQueued.fill(false, 0, tileCount)
+        var head = 0
+        var tail = 0
+        var queued = 0
+        val start = (y0 + 2) * w + x0
         pool[y0, x0] = 0
-        var changed = true
-        while (changed) {
-            changed = false
-            for (cy in -2 until h + 2) {
-                for (cx in 0 until w) {
-                    val base = pool[cy, cx]
-                    if (base > 124) continue
-                    for (d in 0 until 4) {
-                        val nx = cx + DX[d]
-                        val ny = cy + DY[d]
-                        if (nx !in 0 until w || ny !in -2 until h + 2) continue
-                        val cost = base + rom.u8(costTable + terrainAt(nx, ny))
-                        if (cost >= pool[ny, nx] || cost > 124) continue
-                        pool[ny, nx] = cost
-                        changed = true
-                    }
+        floodQueue[tail++] = start
+        floodQueued[start] = true
+        queued++
+        while (queued > 0) {
+            val tile = floodQueue[head]
+            head = (head + 1) % floodQueue.size
+            queued--
+            floodQueued[tile] = false
+            val cx = tile % w
+            val cy = tile / w - 2
+            val base = pool[cy, cx]
+            for (d in 0 until 4) {
+                val nx = cx + DX[d]
+                val ny = cy + DY[d]
+                if (nx !in 0 until w || ny !in -2 until h + 2) continue
+                val cost = base + rom.u8(costTable + terrainAt(nx, ny))
+                if (cost >= pool[ny, nx] || cost > 124) continue
+                pool[ny, nx] = cost
+                val next = (ny + 2) * w + nx
+                if (!floodQueued[next]) {
+                    floodQueue[tail] = next
+                    tail = (tail + 1) % floodQueue.size
+                    queued++
+                    floodQueued[next] = true
                 }
             }
         }

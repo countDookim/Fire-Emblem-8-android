@@ -4,9 +4,9 @@ Use a debug APK containing these diagnostics on the affected device. Import the 
 castle sequence, and capture both hitches with a system trace. For example, on a host with adb:
 
 ```sh
-adb shell perfetto -o /data/local/tmp/fe8-d07.perfetto-trace -t 60s -b 64mb \
+adb shell perfetto -o /data/misc/perfetto-traces/fe8-d07.perfetto-trace -t 60s -b 64mb \
   sched freq idle am wm gfx view audio dalvik -a io.github.countdookim.fe8
-adb pull /data/local/tmp/fe8-d07.perfetto-trace ~/.cache/fe8-tmp/fe8-d07.perfetto-trace
+adb pull /data/misc/perfetto-traces/fe8-d07.perfetto-trace ~/.cache/fe8-tmp/fe8-d07.perfetto-trace
 ```
 
 Check `adb shell atrace --list_categories` and omit categories unsupported by the device. See

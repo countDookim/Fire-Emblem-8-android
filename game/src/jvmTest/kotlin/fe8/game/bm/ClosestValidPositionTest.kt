@@ -5,6 +5,8 @@ import gbafe.core.rng.RngService
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
+import kotlin.random.Random
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
@@ -35,6 +37,11 @@ class ClosestValidPositionTest {
         put32(0x100 + 0x38, 0x08000200) // class cost table (clear weather)
         for (t in 0 until 0x100) fake[0x200 + t] = if (t == 2) 200.toByte() else 1
         fake[0x200] = 0
+        fake[0x203] = 255.toByte()
+        fake[0x204] = 124
+        fake[0x205] = 3
+        fake[0x206] = 9
+        fake[0x207] = 17
         val table = UnitTable(RomView.ofRom(fake))
         repeat(4) { table.bytes[0x04 + it] = (0x08000100 shr (8 * it)).toByte() } // class
         table.bytes[0x10] = ux.toByte()
@@ -52,6 +59,66 @@ class ClosestValidPositionTest {
 
     private fun search(s: Setup, x: Int, y: Int, terrain: Int = 1): Int =
         s.loader.closestValidPosition(0, x, y) { _, _ -> terrain }
+
+    @Test
+    fun `frontier matches full relaxation on weighted padded maps`() {
+        assumeTrue(romFile.isFile, "ROM not present")
+        val s = setup(1, 1)
+        val random = Random(397)
+        val width = s.map.sizeX
+        val height = s.map.sizeY
+        val costs = intArrayOf(0, 1, 200, 255, 124, 3, 9, 17)
+        val terrainChoices = intArrayOf(0, 1, 1, 1, 1, 2, 3, 4, 5, 5, 6, 7)
+        repeat(80) { case ->
+            val terrain = IntArray(width * (height + 4)) {
+                if (case % 5 == 0) 1 else terrainChoices[random.nextInt(terrainChoices.size)]
+            }
+            val x = if (case == 0) -1 else random.nextInt(width)
+            val y = random.nextInt(-2, height + 2)
+            val terrainAt: (Int, Int) -> Int = { tx, ty -> terrain[(ty + 2) * width + tx] }
+            s.loader.floodMovement(s.map, s.map.movement, x, y, 0x08000200, terrainAt)
+            val expected = s.map.range
+            s.map.bmMapFill(expected, 255)
+            if (x in 0 until width) {
+                expected[y, x] = 0
+                var changed: Boolean
+                do {
+                    changed = false
+                    for (cy in -2 until height + 2) for (cx in 0 until width) {
+                        val base = expected[cy, cx]
+                        if (base > 124) continue
+                        for ((dx, dy) in listOf(0 to -1, 1 to 0, 0 to 1, -1 to 0)) {
+                            val nx = cx + dx
+                            val ny = cy + dy
+                            if (nx !in 0 until width || ny !in -2 until height + 2) continue
+                            val cost = base + costs[terrainAt(nx, ny)]
+                            if (cost < expected[ny, nx] && cost <= 124) {
+                                expected[ny, nx] = cost
+                                changed = true
+                            }
+                        }
+                    }
+                } while (changed)
+            }
+            assertTrue(expected.bytes.contentEquals(s.map.movement.bytes), "case $case")
+        }
+    }
+
+    @Test
+    fun `frontier visits only reachable neighbours on an open map`() {
+        assumeTrue(romFile.isFile, "ROM not present")
+        val s = setup(1, 1)
+        var lookups = 0
+        s.loader.floodMovement(
+            s.map, s.map.movement, s.map.sizeX - 1, s.map.sizeY + 1, 0x08000200,
+        ) { _, _ ->
+            lookups++
+            1
+        }
+        // On this 15 by 14 padded grid every directed neighbour edge is visited once.
+        assertEquals(782, lookups)
+        assertEquals(27, s.map.movement[-2, 0])
+    }
 
     @Test
     fun `an occupied target picks the first free tile at range 1 in the C scan order`() {

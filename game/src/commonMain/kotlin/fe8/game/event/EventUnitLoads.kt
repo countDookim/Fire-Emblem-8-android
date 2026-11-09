@@ -63,8 +63,8 @@ public class EventUnitLoads(
     private fun subCmd(cur: Int): Int = memory.u16(cur) and 0xF
 
     /**
-     * Transcribed from src/eventscr.c: Event2B_ConfigLoadUnit (not verified: no test checks it
-     *   against a trace yet)
+     * Transcribed from src/eventscr.c: Event2B_ConfigLoadUnit (not verified: test restates C
+     *   semantics; no trace comparison yet)
      *
      * Sets the unit count (subcode 0), chance (1, clamped to 0..100) or REDA disabling (2).
      */
@@ -124,14 +124,14 @@ public class EventUnitLoads(
     }
 
     /**
-     * Transcribed from src/eventscr.c: EventLoadUnitWithMovement (not verified: no
-     *   `@VerifiesPort` test yet)
+     * Transcribed from src/eventscr.c: EventLoadUnitWithMovement (not verified: mocked MU capacity;
+     *   no trace comparison yet)
      *
      * The walking load, run as the proc's callback each frame until every definition is loaded;
      * a definition whose [tryPrepareEventUnitMovement] fails is retried the next frame. The
      * definitions are the ones kept by [event2cLoadUnits] (the C's `pUnitLoadData` pointer).
      */
-    private fun eventLoadUnitWithMovement(proc: EventEngineProc) {
+    public fun eventLoadUnitWithMovement(proc: EventEngineProc) {
         var count = proc.unitLoadCount.toShort().toInt()
         val param = proc.unitLoadParameter
         val something = modifyMoveUnitFlag(proc, true)
@@ -161,13 +161,13 @@ public class EventUnitLoads(
     }
 
     /**
-     * Transcribed from src/eventscr.c: TryPrepareEventUnitMovement (not verified: no
-     *   `@VerifiesPort` test yet)
+     * Transcribed from src/eventscr.c: TryPrepareEventUnitMovement (not verified: mocked host; no
+     *   trace comparison yet)
      *
      * Whether a unit may start walking: with the unit camera on, no camera move may exist or be
      * started, and an MU slot must be free.
      */
-    private fun tryPrepareEventUnitMovement(proc: EventEngineProc, x: Int, y: Int): Boolean {
+    public fun tryPrepareEventUnitMovement(proc: EventEngineProc, x: Int, y: Int): Boolean {
         if (proc.evStateBits and EV_STATE_UNITCAM != 0) {
             if (host.camMoveExists()) return false
             if (host.ensureCameraOntoPosition(proc, x, y)) return false
@@ -179,8 +179,7 @@ public class EventUnitLoads(
         List(count) { UnitDef(rom, address + 20 * it) }
 
     /**
-     * Transcribed from src/eventscr.c: GetLoadUnitsAmount (not verified: an over-count survives,
-     * since the load stops at the terminator definition)
+     * Ported from src/eventscr.c: GetLoadUnitsAmount
      *
      * The number of definitions at ROM [address] before the one with character 0.
      */
@@ -191,12 +190,29 @@ public class EventUnitLoads(
     }
 
     /**
-     * Transcribed from src/eventscr.c: ShouldUNITBeLoaded (not verified: no test checks it against
-     *   a trace yet)
-     * Transcribed from src/eventinfo.c: IsSethLArachelMyrrhInnes (not verified: no test checks it
-     *   against a trace yet)
-     * Transcribed from src/bmunit.c: IsUnitSlotAvailable (not verified: no test checks it against a
-     *   trace yet)
+     * Ported from src/eventinfo.c: IsSethLArachelMyrrhInnes
+     *
+     * Whether [pid] is Seth, L'Arachel, Innes or Myrrh.
+     */
+    public fun isSethLArachelMyrrhInnes(pid: Int): Boolean =
+        pid in SETH_LARACHEL_MYRRH_INNES
+
+    /**
+     * Transcribed from src/bmunit.c: IsUnitSlotAvailable (not verified: synthetic slot fill; no
+     *   trace comparison yet)
+     *
+     * Whether there is an available unit slot in [faction] (faction + 1 until faction + 0x40).
+     */
+    public fun isUnitSlotAvailable(faction: Int): Boolean {
+        for (i in (faction + 1) until (faction + 0x40)) {
+            if (table.unitOffset(i) >= 0 && !table.isValid(i)) return true
+        }
+        return false
+    }
+
+    /**
+     * Transcribed from src/eventscr.c: ShouldUNITBeLoaded (not verified: synthetic dead unit and
+     *   tile cases; no trace comparison yet)
      *
      * Whether [def] is to be loaded for load parameter [param]: a blue character that is dead
      * is skipped for 0 and, unless Seth, L'Arachel, Innes or Myrrh, for 2; a red one needs a
@@ -208,13 +224,13 @@ public class EventUnitLoads(
             if (id >= 0 && (table.state(id) and US_DEAD) != 0) {
                 when (param) {
                     0 -> return false
-                    2 -> if (def.charIndex !in SETH_LARACHEL_MYRRH_INNES) return false
+                    2 -> if (!isSethLArachelMyrrhInnes(def.charIndex)) return false
                 }
             }
         }
         if (def.allegiance != 2) return true
         if (!def.sumFlag && def.redaCount == 0 && unitAt(def.x, def.y) != 0) return false
-        return (0x81 until 0xC0).any { table.unitOffset(it) >= 0 && !table.isValid(it) }
+        return isUnitSlotAvailable(0x80)
     }
 
     /**
@@ -233,8 +249,7 @@ public class EventUnitLoads(
     }
 
     /**
-     * Transcribed from src/eventscr.c: GetUnitDefinitionFromEventScr (not verified: no test checks
-     *   it against a trace yet)
+     * Ported from src/eventscr.c: GetUnitDefinitionFromEventScr
      *
      * partial: [sub80125c0] (`arg3`, subcode 2) throws [UnsupportedOperationException].
      *
@@ -276,8 +291,8 @@ public class EventUnitLoads(
     }
 
     /**
-     * Transcribed from src/eventscr.c: ModifyMoveUnitFlag (not verified: no test checks it against
-     *   a trace yet)
+     * Transcribed from src/eventscr.c: ModifyMoveUnitFlag (not verified: test restates bit
+     *   combinations; no trace comparison yet)
      *
      * The move flags for a load: bit 0 if [unk], bit 2 with the unit camera, bit 3 with
      * `EV_STATE_0040`.

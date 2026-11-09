@@ -15,9 +15,9 @@ import org.junit.jupiter.api.Test
  * the game started (`gSoundSt.songId`) must equal what the port picks from the dump's `gPlaySt`,
  * unit arrays and chapter flags. Phases in the traces: Prologue (blue, green), chapter index 7
  * (blue, green). Not covered: the enemy phase (no dump), the victory song and the BGM_CHANGE
- * alternates. The Prologue green song equals its red slot, so it does not tell the two apart. Later
- * blue/green dumps (Prologue r19313, chapter 6 f01620) play event-started songs, which the
- * function does not choose, and are left out.
+ * alternates. The Prologue green song equals its red slot, and which call started it is unchecked,
+ * so only blue counts as verified. Prologue r19313 and chapter 6 f01620 are left out: they are
+ * pre-switch states still playing the previous song (the blue songs start at r19387 / r01754).
  */
 class MapMusicReferenceTest {
     private val assets =

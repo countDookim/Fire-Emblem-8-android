@@ -77,9 +77,10 @@ M6-40/41 (battle result + Event3F).
 ## Scheduled 2026-11-09 10:51Z
 M6-14 blocked: headless Prologue makes 51 `flags & 1` unit loads, none onto an occupied tile, so
 AiGetUnitClosestValidPosition is never reached (stale NewGameToPrologueTest note fixed); needs a colliding-load trace.
-M6-28 marked done via D-03 (01eb8c4). M6-20: GetCurrentMapMusicIndex tagged (MapMusicReferenceTest, blue/green slots
-vs gSoundSt.songId; MAP_BGM_BLUE mutation fails). Open fact: first_phase r19313 (blue) and ch6_phase_start
-f01560/f01620 (green, song 0x34 in no slot) play event-started songs, assumed not StartMapSongBgm (unconfirmed).
+M6-28 marked done via D-03 (01eb8c4). M6-20: GetCurrentMapMusicIndex tagged (MapMusicReferenceTest; blue slot vs
+gSoundSt.songId; MAP_BGM_BLUE mutation fails). Blue songs start r19387 / ch6 r01754 after the phase switch (old song
+stops r19316 / r01684); r19313 and ch6 f01620 (song 0x34, in no ch6 slot, likely event-started) are pre-switch states.
+Green r19280 0x13 = its slot but also the red slot, origin unchecked: green/red stay unverified.
 
 ## Owner-PC audit 2026-11-09
 Validation: full `jvmTest test` and debug/release APK builds passed (639 tests, zero failures/skips);

@@ -9,7 +9,7 @@ _(nothing blocked)_
 ## In progress
 D07-audio: owner PC, until ~15:55Z; investigate castle transition stalls / PCM underruns; no timing changes without evidence.
 Readability-events: owner PC, until ~15:55Z; gbafe.extract.fe8.events comments/names only.
-D11-slides: owner PC, until ~15:55Z; standalone subtitle slide graphics against original captures; not wired into New Game yet.
+D11-fades: owner PC, until ~15:55Z; subtitle timer/palette-fade foundation against original state/palette captures; not wired into New Game yet.
 D12-boundary: owner PC, until ~15:55Z; correct VCount-to-HBlank scanline translation and test rendered blend boundaries.
 
 ## Owner-PC work 2026-11-09 15:20Z

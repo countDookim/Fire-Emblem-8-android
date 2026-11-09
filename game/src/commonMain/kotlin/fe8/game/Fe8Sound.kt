@@ -7,16 +7,16 @@ import gba.audio.M4aSoundInfo
 
 /** FE8's m4a configuration (addresses from the decomp's symbol map, mode from `m4aSoundInit`). */
 public object Fe8Sound {
-    /** `gMPlayTable`. */
+    /** ROM address of `gMPlayTable`. */
     public const val M_PLAY_TABLE: Int = 0x08224404
 
-    /** `gSongTable`. */
+    /** ROM address of `gSongTable`. */
     public const val SONG_TABLE: Int = 0x08224470
 
-    /** `NUM_MUSIC_PLAYERS`. */
+    /** Number of music players (`NUM_MUSIC_PLAYERS`). */
     public const val PLAYERS: Int = 9
 
-    /** Entries of `gSongTable`. */
+    /** Entries in `gSongTable`. */
     public const val SONGS: Int = 1000
 
     /** `m4aSoundInit` mode: DA_BIT_8 | FREQ_13379 | 13 << MASVOL | 7 << MAXCHN. */
@@ -24,7 +24,7 @@ public object Fe8Sound {
 
     /** The game's sound state over [rom] (whole ROM or [RomView.SOUND_WINDOWS]), initialised. */
     public fun create(rom: RomView): M4aSound {
-        val bus = M4aBus { rom.u8(it) }
+        val bus = M4aBus { address -> rom.u8(address) }
         return M4aSound(bus, M_PLAY_TABLE, PLAYERS, M4aSongTable(bus, SONG_TABLE, SONGS))
             .also { it.init(MODE) }
     }

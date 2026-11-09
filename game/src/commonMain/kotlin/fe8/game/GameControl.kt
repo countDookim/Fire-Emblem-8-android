@@ -251,13 +251,15 @@ public class GameControl(
      * Stand-in for the title screen (task M4-10): a blocking child that holds the game control
      * proc where the title screen would.
      */
-    public val titleStandInScript: ProcScript = ProcScript("gProcScr_TitleScreen (stand-in)", listOf(block()))
+    public val titleStandInScript: ProcScript =
+        ProcScript("gProcScr_TitleScreen (stand-in)", listOf(block()))
 
     /** Holds [proc] with a blocking stand-in child (the stand-in for screens not ported yet). */
     private fun hold(proc: Proc, what: String) {
         engine.startBlocking(ProcScript("$what (stand-in)", listOf(block())), proc)
     }
 
+    /** Starts the class reel demo via [hooks] or holds with a stand-in child. */
     private fun startClassReel(proc: Proc): Boolean {
         val hook = hooks.startClassReel
         if (hook != null) return hook.invoke(proc)
@@ -265,11 +267,13 @@ public class GameControl(
         return false
     }
 
+    /** Starts the save menu screen via [hooks] or holds with a stand-in child. */
     private fun startSaveMenu(proc: Proc) {
         val hook = hooks.startSaveMenu
         if (hook != null) hook.invoke(proc) else hold(proc, "StartSaveMenu")
     }
 
+    /** Waits for the screen fade to finish via [hooks] or breaks [proc] immediately. */
     private fun waitForFade(proc: Proc) {
         val hook = hooks.waitForFade
         if (hook != null) hook.invoke(proc) else engine.breakProc(proc)
@@ -281,9 +285,14 @@ public class GameControl(
         sound.startBgmExt(SoundWrapper.SONG_MAIN_THEME, 0, -1)
     }
 
+    /** Starts the title screen child proc in the given [mode]. */
     private fun startTitleScreen(proc: Proc, mode: Int) {
         val title = titleScreen
-        if (title != null) title().start(proc, mode) else engine.startBlocking(titleStandInScript, proc)
+        if (title != null) {
+            title().start(proc, mode)
+        } else {
+            engine.startBlocking(titleStandInScript, proc)
+        }
     }
 
     /**
@@ -294,13 +303,18 @@ public class GameControl(
      * Partially ported from src/gamecontrol.c: GameControl_PostIntro
      */
     public fun postIntro(proc: Proc) {
-        val st = proc.state as State
-        when (st.nextAction) {
+        val state = proc.state as State
+        when (state.nextAction) {
             GAME_ACTION_USR_SKIPPED -> engine.goto(proc, LGAMECTRL_TITLE_DIRECT)
             GAME_ACTION_EVENT_RETURN -> engine.goto(proc, LGAMECTRL_EXEC_SAVEMENU)
             GAME_ACTION_CLASS_REEL -> {
-                engine.goto(proc, if (st.idleStatus and 1 == 0) LGAMECTRL_CLASS_REEL else LGAMECTRL_OP_ANIM)
-                st.idleStatus++
+                val targetLabel = if (state.idleStatus and 1 == 0) {
+                    LGAMECTRL_CLASS_REEL
+                } else {
+                    LGAMECTRL_OP_ANIM
+                }
+                engine.goto(proc, targetLabel)
+                state.idleStatus++
             }
             GAME_ACTION_PLAYED_THROUGH -> engine.goto(proc, 24)
         }
@@ -344,10 +358,10 @@ public class GameControl(
      */
     public fun startGame(): Proc {
         val proc = engine.start(script, 3)
-        val st = proc.state as State
-        st.nextAction = GAME_ACTION_EVENT_RETURN
-        st.nextChapter = 0
-        st.idleStatus = 0
+        val state = proc.state as State
+        state.nextAction = GAME_ACTION_EVENT_RETURN
+        state.nextChapter = 0
+        state.idleStatus = 0
         return proc
     }
 

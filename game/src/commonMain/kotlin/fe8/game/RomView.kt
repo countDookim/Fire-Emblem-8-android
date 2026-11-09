@@ -15,28 +15,29 @@ public class RomView(
 ) {
     /** The compressed blob (or raw data) starting at [at]. */
     public fun blob(at: Int): OpAnimHs.Blob {
-        val (base, b) = segment(at)
-        return OpAnimHs.Blob(b, at - base)
+        val (baseAddress, bytes) = segment(at)
+        return OpAnimHs.Blob(bytes, at - baseAddress)
     }
 
     /** The unsigned byte at [at]. */
     public fun u8(at: Int): Int {
-        val (base, b) = segment(at)
-        return b[at - base].toInt() and 0xFF
+        val (baseAddress, bytes) = segment(at)
+        return bytes[at - baseAddress].toInt() and 0xFF
     }
 
     /** The unsigned halfword at [at]. */
     public fun u16(at: Int): Int {
-        val (base, b) = segment(at)
-        val o = at - base
-        return (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
+        val (baseAddress, bytes) = segment(at)
+        val offset = at - baseAddress
+        return (bytes[offset].toInt() and 0xFF) or ((bytes[offset + 1].toInt() and 0xFF) shl 8)
     }
 
     /** The word at [at]. */
     public fun u32(at: Int): Int = u16(at) or (u16(at + 2) shl 16)
 
-    /** [n] BGR555 colours (or halfwords) from [at]. */
-    public fun pal(at: Int, n: Int): ShortArray = ShortArray(n) { u16(at + 2 * it).toShort() }
+    /** [count] BGR555 colours (or halfwords) from [at]. */
+    public fun pal(at: Int, count: Int): ShortArray =
+        ShortArray(count) { u16(at + 2 * it).toShort() }
 
     /** The sprite object at [at] holding [halfwords] halfwords. */
     public fun obj(at: Int, halfwords: Int): SpriteObject = SpriteObject(at, pal(at, halfwords))
@@ -49,8 +50,8 @@ public class RomView(
      * returns the bytes written. Does not allocate.
      */
     public fun decompressInto(at: Int, dst: ByteArray, dstOffset: Int): Int {
-        val (base, b) = segment(at)
-        return Decompress.into(b, at - base, dst, dstOffset)
+        val (baseAddress, bytes) = segment(at)
+        return Decompress.into(bytes, at - baseAddress, dst, dstOffset)
     }
 
     /**
@@ -69,12 +70,13 @@ public class RomView(
         return segments[0].second
     }
 
+    /** Locates the segment containing GBA address [at]. */
     private fun segment(at: Int): Pair<Int, ByteArray> {
         for (i in segments.indices) {
-            val s = segments[i]
-            val inside = at.toUInt() >= s.first.toUInt() &&
-                (at - s.first).toUInt() < s.second.size.toUInt()
-            if (inside) return s
+            val segment = segments[i]
+            val inside = at.toUInt() >= segment.first.toUInt() &&
+                (at - segment.first).toUInt() < segment.second.size.toUInt()
+            if (inside) return segment
         }
         throw IllegalArgumentException("ROM address 0x${hex8(at)} not in this view")
     }
@@ -118,5 +120,5 @@ public class RomView(
     }
 }
 
-/** 8 uppercase hex digits of the 32-bit value [v], as an unsigned number. */
-private fun hex8(v: Int): String = v.toUInt().toString(16).uppercase().padStart(8, '0')
+/** 8 uppercase hex digits of the 32-bit value [value], as an unsigned number. */
+private fun hex8(value: Int): String = value.toUInt().toString(16).uppercase().padStart(8, '0')

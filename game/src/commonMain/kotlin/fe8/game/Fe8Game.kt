@@ -11,15 +11,17 @@ import gbafe.core.rng.RngService
 /**
  * Root of the game: owns the shared services and runs the game systems once per tick.
  *
- * Services (RNG seeded exactly like the original boot, input, events, flags, an offscreen frame) and,
- * given ROM data, the boot sequence ([Fe8Boot]: logos, op anim, title, with sound). Map, battle...
- * plug in later.
+ * Services (RNG seeded exactly like the original boot, input, events, flags, an offscreen frame)
+ * and, given ROM data, the boot sequence ([Fe8Boot]: logos, op anim, title, with sound). Map,
+ * battle... plug in later.
  * Everything here is Android-free so it runs headless on the JVM for tests and benchmarks.
  */
 public class Fe8Game(
     /** Feature flags; vanilla by default. */
     public val flags: FeatureFlags = FeatureFlags(),
-    /** ROM data for the boot screens; null: no game systems run and [present] draws a test pattern. */
+    /**
+     * ROM data for the boot screens; null: no game systems run and [present] draws a test pattern.
+     */
     rom: RomView? = null,
     /** The game's m4a state ([Fe8Sound.create]); null: silent. Used only with [rom]. */
     sound: gba.audio.M4aSound? = null,
@@ -53,19 +55,24 @@ public class Fe8Game(
     /** The boot sequence (one GBA frame per [tick]), when [rom] was given. */
     public val boot: Fe8Boot? = rom?.let {
         Fe8Boot(
-            it, keyInput = { VanillaButtonMap.toGbaKeys(input.held) }, rng = rng, screen = frame,
-            m4a = sound, pcm = pcm, saveStorage = saveStorage,
+            it,
+            keyInput = { VanillaButtonMap.toGbaKeys(input.held) },
+            rng = rng,
+            screen = frame,
+            m4a = sound,
+            pcm = pcm,
+            saveStorage = saveStorage,
         )
     }
 
-    /** Runs one fixed logic step: polls input, fires tick-start/end events, advances [tickCount]. */
+    /** Runs one fixed logic step: polls input, fires tick-start/end events, advances tickCount. */
     override fun tick() {
         input.update(actionSource.poll())
-        val t = tickCount
-        events.onTickStart.dispatch { it.onTick(t) }
+        val currentTick = tickCount
+        events.onTickStart.dispatch { it.onTick(currentTick) }
         boot?.frame()
-        events.onTickEnd.dispatch { it.onTick(t) }
-        tickCount = t + 1
+        events.onTickEnd.dispatch { it.onTick(currentTick) }
+        tickCount = currentTick + 1L
     }
 
     /**
@@ -76,18 +83,20 @@ public class Fe8Game(
 
     /** Draws the current state into [frame]; [alpha] is ignored until interpolation is needed. */
     override fun present(alpha: Float) {
-        val b = boot
-        if (b != null) {
-            if (gpuPresent) b.pack() else b.render()
+        val currentBoot = boot
+        if (currentBoot != null) {
+            if (gpuPresent) currentBoot.pack() else currentBoot.render()
             return
         }
         // Placeholder test pattern until the renderer exists: a slow vertical gradient.
-        val px = frame.pixels
+        val pixels = frame.pixels
         val shade = (tickCount and 0xFF).toInt()
         for (y in 0 until frame.height) {
-            val c = (0xFF shl 24) or ((y + shade) and 0xFF shl 8) or 0x40
+            val color = (0xFF shl 24) or ((y + shade) and 0xFF shl 8) or 0x40
             val row = y * frame.width
-            for (x in 0 until frame.width) px[row + x] = c
+            for (x in 0 until frame.width) {
+                pixels[row + x] = color
+            }
         }
     }
 }

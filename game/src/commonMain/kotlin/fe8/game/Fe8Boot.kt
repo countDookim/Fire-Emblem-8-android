@@ -147,7 +147,9 @@ public class Fe8Boot(
     public val clock: GameClock = GameClock()
 
     /** `gMapCursor` sprite renderer (`PutMapCursor`). */
-    public val mapCursor: MapCursor by lazy { MapCursor(rom, loop.bmSt, loop.sprites).also { it.clockSource = clock } }
+    public val mapCursor: MapCursor by lazy {
+        MapCursor(rom, loop.bmSt, loop.sprites).also { it.clockSource = clock }
+    }
 
     /** Proc trees. */
     public val engine: ProcEngine = ProcEngine()
@@ -159,7 +161,10 @@ public class Fe8Boot(
             ShortArray(512), ShortArray(512), gbafe.render.LcdControl(), keys,
             rom.pal(0x08B125F4, 16), rom.pal(0x08B10ABC, 16), rom.pal(0x08B11864, 48),
             gfx = EarlyStartUi.Gfx(
-                rom.blob(0x08B11D0C), rom.blob(0x08B118C4), rom.blob(0x08B11C0C), rom.blob(0x08B10630),
+                rom.blob(0x08B11D0C),
+                rom.blob(0x08B118C4),
+                rom.blob(0x08B11C0C),
+                rom.blob(0x08B10630),
                 rom.blob(0x08B104D8), rom.blob(0x08B10CA4), rom.blob(0x08B10ADC),
             ),
             fadeOutBgm = { control.sound.fadeOutBgm(it) },
@@ -190,6 +195,7 @@ public class Fe8Boot(
         SuspendRam(control.playSt, loop.bmSt, rng, units, flags, clock, eventState)
     }
 
+    /** Flushes the cartridge SRAM contents to [saveStorage] if configured. */
     private fun flushSram() {
         saveStorage?.let { sram.flushTo(it) }
     }
@@ -579,7 +585,10 @@ public class Fe8Boot(
     /** `gSMSHandleArray` of the battle map, set by [wireUnitSprites]. */
     private var spriteHandles: UnitSpriteHandles? = null
 
-    /** The unit sprite sheet state (`gUnitSpriteSlots`, index counters), set by [wireUnitSprites]. */
+    /**
+     * The unit sprite sheet state (`gUnitSpriteSlots`, index counters), set by
+     * [wireUnitSprites].
+     */
     public var unitSprites: UnitSprites? = null
         private set
 
@@ -791,7 +800,9 @@ public class Fe8Boot(
         main.hooks.refreshUnitSprites = refresh
         val refreshProc = ProcFunc { refresh() }
         phase.hooks.refreshUnitSprites = refreshProc
-        phase.hooks.putMapCursor = PlayerPhase.PutMapCursor { x, y, kind -> mapCursor.put(x, y, kind) }
+        phase.hooks.putMapCursor = PlayerPhase.PutMapCursor {
+            x, y, kind -> mapCursor.put(x, y, kind)
+        }
     }
 
     /**
@@ -816,7 +827,8 @@ public class Fe8Boot(
     private val driver: M4aDriver? = m4a?.driver(pcm)
 
     /** The op anim. */
-    public val opAnim: OpAnim = BootRom.opAnim(rom, engine, hw, keys, control).also { opAnimRef = it }
+    public val opAnim: OpAnim =
+        BootRom.opAnim(rom, engine, hw, keys, control).also { opAnimRef = it }
 
     /** The title screen. */
     public val title: TitleScreen =
@@ -830,10 +842,14 @@ public class Fe8Boot(
         engine, keys, clock, keyInput,
         sprites = opAnim.sprites,
         overran = {
-            val n = opAnim.missedVBlanks + title.missedVBlanks
+            val missedVBlanks = opAnim.missedVBlanks + title.missedVBlanks
             opAnim.missedVBlanks = 0
             title.missedVBlanks = 0
-            if (n == 0 && hw.modifiedBgs != 0 && engine.find(ui.script) != null) 1 else n
+            if (missedVBlanks == 0 && hw.modifiedBgs != 0 && engine.find(ui.script) != null) {
+                1
+            } else {
+                missedVBlanks
+            }
         },
         flush = {
             hw.lcd.flushTo(io)
@@ -876,7 +892,9 @@ public class Fe8Boot(
     }
 
     private val hblankIo = ByteArray(io.size)
-    private val hblankLine: (Int, ByteArray) -> Unit = { v, regs -> hw.hblank.active?.onHBlank(v, regs) }
+    private val hblankLine: (Int, ByteArray) -> Unit = {
+        lineIndex, regs -> hw.hblank.active?.onHBlank(lineIndex, regs)
+    }
 
     /**
      * Draws the display state synced by the last VBlank into [screen], with the active HBlank
@@ -893,6 +911,7 @@ public class Fe8Boot(
         gpuFrame.pack()
     }
 
+    /** Prepares the hardware state and captures HBlank line effects before rendering. */
     private fun prepare() {
         loader.load(state, sheets, hw, loop.oam, io)
         if (hw.hblank.irqEnabled && hw.hblank.active != null) {

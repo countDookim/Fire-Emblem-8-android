@@ -71,9 +71,10 @@ public class GameLoop(
         stepEnd += action
     }
 
+    /** Dispatches and clears all callbacks queued via [afterStep]. */
     private fun finishStep() {
         if (stepEnd.isEmpty()) return
-        for (a in stepEnd) a()
+        for (action in stepEnd) action()
         stepEnd.clear()
     }
 
@@ -125,7 +126,9 @@ public class GameLoop(
     }
 
     /** `CallARM_PushToSecondaryOAM` for one sprite (`PutOamHi`). */
-    private val pushSprite: (SpriteLayers.Entry) -> Unit = { e -> oam.putHi(e.oam1, e.oam0, e.obj!!.data, e.oam2) }
+    private val pushSprite: (SpriteLayers.Entry) -> Unit = { entry ->
+        oam.putHi(entry.oam1, entry.oam0, entry.obj!!.data, entry.oam2)
+    }
 
     /**
      * The VBlank interrupt (`OnVBlank`, partial): clock, `m4aSoundVSync`, proc tree 0,

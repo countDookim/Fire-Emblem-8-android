@@ -85,13 +85,13 @@ public class SoundWrapper(
      * Ported from src/soundwrapper.c: Sound_FadeOutBGM
      */
     public fun fadeOutBgm(speed: Int) {
-        val s = if (speed < 0) 6 else speed
+        val fadeSpeed = if (speed < 0) 6 else speed
         musicProc1?.let { engine.breakProc(it) }
         musicProc1 = null
         musicProc2?.let { engine.breakProc(it) }
         musicProc2 = null
-        bgm1?.let { M4aCommands.fadeOut(it, s) }
-        bgm2?.let { M4aCommands.fadeOut(it, s) }
+        bgm1?.let { M4aCommands.fadeOut(it, fadeSpeed) }
+        bgm2?.let { M4aCommands.fadeOut(it, fadeSpeed) }
         isSongPlaying = false
     }
 
@@ -115,11 +115,11 @@ public class SoundWrapper(
     public fun startBgmVolumeChange(volume: Int, end: Int, time: Int, parent: Proc?) {
         val proc = (if (parent != null) engine.startBlocking(bgmVolumeChangeScript, parent)
         else engine.start(bgmVolumeChangeScript, 3)) ?: return
-        val st = proc.state as VolumeState
-        st.initVolume = volume
-        st.endVolume = end
-        st.clock = 0
-        st.timeEnd = time
+        val volumeState = proc.state as VolumeState
+        volumeState.initVolume = volume
+        volumeState.endVolume = end
+        volumeState.clock = 0
+        volumeState.timeEnd = time
         setSeVolume(if (volume == 0) 1 else volume)
         musicProc2 = proc
     }
@@ -131,14 +131,15 @@ public class SoundWrapper(
      * Ported from src/soundwrapper.c: MusicVc_OnLoop
      */
     public fun musicVcOnLoop(proc: Proc) {
-        val st = proc.state as VolumeState
+        val volumeState = proc.state as VolumeState
         setSeVolume(
             Interpolate.interpolate(
-                Interpolate.RSQUARE, st.initVolume, st.endVolume, st.clock++, st.timeEnd,
+                Interpolate.RSQUARE, volumeState.initVolume, volumeState.endVolume,
+                volumeState.clock++, volumeState.timeEnd,
             ),
         )
-        if (st.clock >= st.timeEnd) {
-            if (st.endVolume == 0) {
+        if (volumeState.clock >= volumeState.timeEnd) {
+            if (volumeState.endVolume == 0) {
                 sound?.songNumStop(songId)
                 isSongPlaying = false
                 songId = 0
@@ -161,9 +162,9 @@ public class SoundWrapper(
         unk7 = 0
         songId = song and 0xFFFF
         playSong(song, player)
-        val s = sound ?: return
-        s.sequencer.immInit(s.players[BGM1])
-        s.sequencer.immInit(s.players[BGM2])
+        val soundState = sound ?: return
+        soundState.sequencer.immInit(soundState.players[BGM1])
+        soundState.sequencer.immInit(soundState.players[BGM2])
     }
 
     /**
@@ -207,10 +208,10 @@ public class SoundWrapper(
      */
     public fun startSongDelayed(song: Int, delay: Int, player: Int) {
         if (config() and GameControl.CONFIG_DISABLE_BGM != 0) return
-        val st = engine.start(delayedSongScript, 3).state as DelayState
-        st.delayCounter = delay.toShort().toInt()
-        st.songId = song.toShort().toInt()
-        st.player = player
+        val delayState = engine.start(delayedSongScript, 3).state as DelayState
+        delayState.delayCounter = delay.toShort().toInt()
+        delayState.songId = song.toShort().toInt()
+        delayState.player = player
     }
 
     /**
@@ -219,12 +220,12 @@ public class SoundWrapper(
      * Ported from src/soundwrapper.c: DelaySong_OnLoop
      */
     public fun delaySongOnLoop(proc: Proc) {
-        val st = proc.state as DelayState
-        st.delayCounter = (st.delayCounter - 1).toShort().toInt()
-        if (st.delayCounter < 0) {
+        val delayState = proc.state as DelayState
+        delayState.delayCounter = (delayState.delayCounter - 1).toShort().toInt()
+        if (delayState.delayCounter < 0) {
             isSongPlaying = true
-            songId = st.songId and 0xFFFF
-            playSong(st.songId, st.player)
+            songId = delayState.songId and 0xFFFF
+            playSong(delayState.songId, delayState.player)
             engine.end(proc)
         }
     }
@@ -238,11 +239,12 @@ public class SoundWrapper(
      */
     public fun playSong(song: Int, player: Int) {
         if (song < 128) setChannelsForSong(song)
-        val s = sound ?: return
+        val soundState = sound ?: return
         if (player >= 0) {
-            s.sequencer.start(s.players[player], s.songs.header(song and 0xFFFF))
+            val header = soundState.songs.header(song and 0xFFFF)
+            soundState.sequencer.start(soundState.players[player], header)
         } else {
-            s.songNumStart(song)
+            soundState.songNumStart(song)
         }
     }
 

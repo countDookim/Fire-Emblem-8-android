@@ -20,8 +20,6 @@ class OpSubtitleSlidesDifferentialTest {
         "baserom.gba",
     )
 
-    private enum class Loader { SINGLE, DOUBLE, ALTERNATE }
-
     private fun checkSnapshot(frame: Int, expectedProcIndex: Int, slideIndex: Int, loader: Loader) {
         assumeTrue(ref.available && romFile.isFile, "reference capture or ROM unavailable")
         val run = ref.run("ram_trace_prologue")
@@ -96,7 +94,7 @@ class OpSubtitleSlidesDifferentialTest {
     fun `paired layer slides match original captures`() {
         checkSnapshot(3000, 3, 3, Loader.DOUBLE)
         checkSnapshot(3600, 4, 4, Loader.DOUBLE)
-        // The fifth slide remains loaded after the proc advances its index to six.
+        // Slide index five remains loaded after the proc advances its index to six.
         checkSnapshot(3900, 6, 5, Loader.DOUBLE)
     }
 
@@ -105,4 +103,6 @@ class OpSubtitleSlidesDifferentialTest {
     fun `alternate offset slide matches original capture`() {
         checkSnapshot(2400, 2, 2, Loader.ALTERNATE)
     }
+    private enum class Loader { SINGLE, DOUBLE, ALTERNATE }
+
 }

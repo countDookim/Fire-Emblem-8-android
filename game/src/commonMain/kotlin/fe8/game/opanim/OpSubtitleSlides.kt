@@ -13,12 +13,14 @@ public class OpSubtitleSlides(
     private val hardware: BgHardware,
     private val scratch: ByteArray = ByteArray(0x10000),
 ) {
-    /** Fields used by the two proc-based slide loaders. */
+    /** Fields shared by the slide loaders and subtitle transition callbacks. */
     public class State(
         /** `OpSubtitleProc.index`. */
         public var index: Int = 0,
         /** `OpSubtitleProc.timer_2c`. */
         public var transitionTimer: Int = 0,
+        /** `OpSubtitleProc.timer_2a`. */
+        public var holdTimer: Int = 0,
     )
 
     /**

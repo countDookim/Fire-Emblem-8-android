@@ -1,6 +1,8 @@
 package fe8.testing
 
 import fe8.game.RomView
+import fe8.game.opanim.OpSubtitleScenes
+import fe8.game.opanim.OpSubtitleSetup
 import fe8.game.opanim.OpSubtitleSlides
 import fe8.game.opanim.OpSubtitleTransitions
 import gba.core.VerifiesPort
@@ -407,6 +409,137 @@ class OpSubtitleTransitionsDifferentialTest {
         assertArrayEquals(vram.copyOfRange(0, 0x20), rig.hardware.vram.copyOfRange(0, 0x20))
         assertEquals(0x7F, rig.hardware.vram[0x20].toInt())
         assertEquals(2, rig.hardware.modifiedBgs and 2)
+    }
+
+    /**
+     * Hardware seeded from a capture snapshot: LCD registers, palette and BG maps from [name]
+     * and VRAM from [vramName] (only every 300th step has a VRAM dump).
+     */
+    private fun seededHardware(
+        capture: ReferenceData.Run, name: String, vramName: String
+    ): BgHardware {
+        val hardware = BgHardware()
+        hardware.lcd.readFrom(capture.region(name, "iwram"), 0x3080)
+        capture.region(vramName, "vram").copyInto(hardware.vram, 0, 0, hardware.vram.size)
+        val ewram = capture.region(name, "ewram")
+        fullPalette(ewram).copyInto(hardware.palette)
+        for (bg in 0..3) {
+            val at = 0x22CA8 + 0x800 * bg
+            for (i in 0 until BgHardware.TILEMAP_ENTRIES) {
+                hardware.tilemaps[bg][i] = u16(ewram, at + 2 * i).toShort()
+            }
+        }
+        return hardware
+    }
+
+    private fun scenesOf(rom: RomView, hardware: BgHardware) = OpSubtitleScenes(
+        hardware, rom, OpSubtitleSetup(rom, hardware), OpSubtitleSlides(rom, hardware)
+    )
+
+    private fun assertMaps(
+        capture: ReferenceData.Run, name: String, hardware: BgHardware, bgs: IntRange
+    ) {
+        val ewram = capture.region(name, "ewram")
+        for (bg in bgs) {
+            val at = 0x22CA8 + 0x800 * bg
+            val expected =
+                ShortArray(BgHardware.TILEMAP_ENTRIES) { u16(ewram, at + 2 * it).toShort() }
+            assertArrayEquals(expected, hardware.tilemaps[bg], "BG$bg map vs $name")
+        }
+    }
+
+    private fun assertVram(
+        capture: ReferenceData.Run, name: String, hardware: BgHardware, range: IntRange
+    ) {
+        val expected = capture.region(name, "vram")
+        assertArrayEquals(
+            expected.copyOfRange(range.first, range.last + 1),
+            hardware.vram.copyOfRange(range.first, range.last + 1),
+            "vram $range vs $name",
+        )
+    }
+
+    @Test
+    @VerifiesPort("sub_80C50A0")
+    fun `flare clear matches captured vram maps palette and timers`() {
+        assumeTrue(ref.available && romFile.isFile, "reference capture or ROM unavailable")
+        val capture = ref.run("ram_trace_prologue")
+        val rom = RomView.ofRom(romFile.readBytes())
+        // Runs at step 2355; r02340 is the nearest snapshot before it, r02370 the first after.
+        // The flare child only touches BG2 registers and its map in between. VRAM is checked
+        // together with sub_80C51A8 below (only f02100 and f02400 dump VRAM, and the latter
+        // already holds the later slide load over the cleared range).
+        val hardware = seededHardware(capture, "r02340", "f02100")
+        val state = OpSubtitleSlides.State(2, 0, 0)
+        scenesOf(rom, hardware).clearForFlare(state)
+        assertMaps(capture, "r02370", hardware, 0..1)
+        val palette = fullPalette(capture.region("r02370", "ewram"))
+        assertArrayEquals(
+            palette.copyOfRange(0xE * 16, 0x10 * 16),
+            hardware.palette.copyOfRange(0xE * 16, 0x10 * 16),
+        )
+        assertEquals(0x03, hardware.modifiedBgs and 3)
+        assertTrue(hardware.modifiedPalette)
+        // Step 2357 is the first hold-wait frame after the call: the timer is one below its start.
+        val after = ProcArrayDump.ofWatch(capture.watch("procs"), 2357).find(SCRIPT)!!
+        assertEquals(after.u16(0x2A) + 1, state.holdTimer)
+        assertEquals(after.u16(0x2C), state.transitionTimer)
+    }
+
+    @Test
+    @VerifiesPort("sub_80C51A8", "sub_80C50A0")
+    fun `final card load matches captured vram map and palette 3`() {
+        assumeTrue(ref.available && romFile.isFile, "reference capture or ROM unavailable")
+        val capture = ref.run("ram_trace_prologue")
+        val rom = RomView.ofRom(romFile.readBytes())
+        // sub_80C50A0 runs at step 2355 and the flare's child proc runs sub_80C51A8 36 frames
+        // later; f02400 is the only VRAM dump after both, f02100 the last before them. The
+        // cleared 0x5000 range is overwritten by the slide load, so only the pair is comparable.
+        val hardware = seededHardware(capture, "r02340", "f02100")
+        val scenes = scenesOf(rom, hardware)
+        scenes.clearForFlare(OpSubtitleSlides.State(2, 0, 0))
+        scenes.loadFinalCard()
+        // Tile data only: the screen-block maps at 0x6000.. are flushed by the BG sync.
+        assertVram(capture, "f02400", hardware, 0 until 0x6000)
+        assertMaps(capture, "f02400", hardware, 0..0)
+        val palette = fullPalette(capture.region("f02400", "ewram"))
+        assertArrayEquals(palette.copyOfRange(48, 64), hardware.palette.copyOfRange(48, 64))
+        assertEquals(1, hardware.modifiedBgs and 1)
+        assertTrue(hardware.modifiedPalette)
+    }
+
+    @Test
+    @VerifiesPort("sub_80C5218")
+    fun `final scene setup matches captured registers vram maps and timers`() {
+        assumeTrue(ref.available && romFile.isFile, "reference capture or ROM unavailable")
+        val capture = ref.run("ram_trace_prologue")
+        val rom = RomView.ofRom(romFile.readBytes())
+        // Runs at step 2425 (after the card palette fade ends); f02400 precedes it and r02430
+        // follows it with only the hold timer ticking in between. VRAM is dumped at f02700,
+        // after the later slide load at 0x1000, so only 0x5000..0x6000 and BG3 tiles from 0x8000 are compared (the maps at
+        // 0x6000.. are flushed by the BG sync, not by the ported code).
+        val hardware = seededHardware(capture, "f02400", "f02400")
+        val state = OpSubtitleSlides.State(2, 0, 0)
+        scenesOf(rom, hardware).setupFinalScene(state)
+        val expected = LcdControl()
+        expected.readFrom(capture.region("r02430", "iwram"), 0x3080)
+        val lcd = hardware.lcd
+        assertEquals(expected.dispcnt and 0x1F07, lcd.dispcnt and 0x1F07, "dispcnt")
+        assertArrayEquals(expected.bgCnt, lcd.bgCnt, "bgcnt")
+        assertArrayEquals(expected.bgHofs, lcd.bgHofs, "hofs")
+        assertArrayEquals(expected.bgVofs, lcd.bgVofs, "vofs")
+        assertEquals(expected.bldcnt, lcd.bldcnt, "bldcnt")
+        assertEquals(expected.blendCoeffA, lcd.blendCoeffA, "coeff A")
+        assertEquals(expected.blendCoeffB, lcd.blendCoeffB, "coeff B")
+        assertEquals(expected.blendY, lcd.blendY, "blend Y")
+        assertVram(capture, "f02700", hardware, 0x5000 until 0x6000)
+        assertVram(capture, "f02700", hardware, 0x8000 until 0x18000)
+        assertMaps(capture, "r02430", hardware, 0..3)
+        assertEquals(0x0F, hardware.modifiedBgs and 0x0F)
+        // Step 2428 is the first hold-wait frame after the call.
+        val after = ProcArrayDump.ofWatch(capture.watch("procs"), 2428).find(SCRIPT)!!
+        assertEquals(after.u8(0x29), state.index)
+        assertEquals(after.u16(0x2A) + 1, state.holdTimer)
     }
 
     private fun fullPalette(ewram: ByteArray) = ShortArray(0x200) { i ->

@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 598,
+    "verified": 602,
     "implemented_unverified": 1
   },
   "functions": {
@@ -2573,6 +2573,24 @@
         "fe8.testing.OpSubtitleTransitionsDifferentialTest#hold timer follows original callback including break frame"
       ]
     },
+    "OpSubtitle_Init": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleSetup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleInitDifferentialTest#init matches LCD buffer, BG2 map, palette and tiles"
+      ]
+    },
+    "OpSubtitle_SetupBackgrounds": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleSetup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleInitDifferentialTest#scene setup matches BG3 data after sub_80C5218"
+      ]
+    },
     "PhaseIntroBlendBox_InLoop": {
       "decomp_file": "src/phasechangefx.c",
       "system": "presentation",
@@ -4695,6 +4713,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterMapGraphicsDifferentialTest#OBJ UI graphics and palettes match the dump"
+      ]
+    },
+    "sub_80C488C": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleSetup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleInitDifferentialTest#scene setup matches BG3 data after sub_80C5218"
+      ]
+    },
+    "sub_80C48F0": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleSetup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleInitDifferentialTest#scene setup matches BG3 data after sub_80C5218"
       ]
     },
     "sub_80C4BB4": {

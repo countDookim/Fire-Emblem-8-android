@@ -17,8 +17,8 @@ verified: why)". Seed from dump k, step, compare with dump k+1; use sentinels in
 Owner device report 2026-11-09, build 0.1.467 (`060478a`): current priorities are D-08 worsening background
 corruption, D-06 riders remaining at the screen edge (still open despite correct animation), D-07 intermittent
 walking stutter, then D-10 missing portrait blink (confirmed original FE8 behavior).
-Owner-PC follow-up: D-06 sprite refresh, D-08 map restoration, D-10 blink and normal portrait mouth animation
-are merged and await device confirmation; see MANUAL_TEST.md. The owner explicitly authorized D-07 walking-stutter profiling on 2026-11-09.
+Owner-PC follow-up: D-06 sprite refresh, D-07 unboxed walking sprite-cache lookup (`c339db5`), D-08 map restoration,
+D-10 blink and normal portrait mouth animation are merged and await device confirmation; see MANUAL_TEST.md.
 D-09 Rapier-received popup is explicitly low priority; inventory is unverified on device. Details: HANDOFF.md.
 
 | ID | Task | Acceptance | Deps | Status |

@@ -23,6 +23,18 @@ import gbafe.text.Text
 import gbafe.text.TextHost
 import gbafe.text.TextSystem
 
+/** Functional interface providing an unboxed integer value without heap allocation. */
+public fun interface IntSupplier {
+    /** Returns an integer. */
+    public operator fun invoke(): Int
+}
+
+/** Functional interface consuming an unboxed integer value without heap allocation. */
+public fun interface IntConsumer {
+    /** Consumes an integer [value]. */
+    public operator fun invoke(value: Int)
+}
+
 /**
  * The talk window of a running game: [Talk], [TalkBubble] and [TalkFace] on the game's own
  * [BgHardware] (BG0 text tilemap, BG1 bubble tilemap, VRAM, palette, LCD registers), proc engine,
@@ -43,11 +55,11 @@ public class TalkScene(
     private val procs: ProcEngine,
     private val sprites: SpriteLayers,
     private val keys: KeyStatus,
-    private val clockFrames: () -> Int,
+    private val clockFrames: IntSupplier,
     /** Shared decoded message buffers used by dialogue and opening popups. */
     public val messages: MsgStrings,
-    private val playSound: (Int) -> Unit,
-    private val textSpeed: () -> Int,
+    private val playSound: IntConsumer,
+    private val textSpeed: IntSupplier,
     private val setDialogueSkipEvBit: () -> Unit,
     /** The game's single `gLCGRNValue` (shared with the other LCG users). */
     public val lcg: LcgRng,

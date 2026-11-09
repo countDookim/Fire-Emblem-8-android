@@ -10,7 +10,10 @@ public class ProcEngine(
     public val maxProcs: Int = 64,
 ) {
     /** `sProcArray`. */
-    public val procs: List<Proc> = List(maxProcs) { Proc(it) }
+    private val procArray: Array<Proc> = Array(maxProcs) { Proc(it) }
+
+    /** `sProcArray`. */
+    public val procs: List<Proc> = procArray.asList()
 
     /** Free-proc stack (`sProcAllocList`): entries below [allocHead] are in use, the rest free. */
     private val allocList = arrayOfNulls<Proc>(maxProcs + 1)
@@ -31,7 +34,8 @@ public class ProcEngine(
      * Ported from src/proc.c: Proc_Init
      */
     public fun init() {
-        for (slotProc in procs) {
+        for (i in 0 until maxProcs) {
+            val slotProc = procArray[i]
             slotProc.script = null; slotProc.scrScript = null; slotProc.scrCur = 0
             slotProc.endCb = null; slotProc.idleCb = null; slotProc.name = null
             slotProc.parent = null; slotProc.rootIndex = -1; slotProc.child = null
@@ -196,7 +200,13 @@ public class ProcEngine(
      *
      * Ported from src/proc.c: Proc_Find
      */
-    public fun find(script: ProcScript): Proc? = procs.firstOrNull { it.script === script }
+    public fun find(script: ProcScript): Proc? {
+        for (i in 0 until maxProcs) {
+            val candidate = procArray[i]
+            if (candidate.script === script) return candidate
+        }
+        return null
+    }
 
     /**
      * Jumps [proc] to `PROC_LABEL(label)` in its script and clears its repeat callback; no-op if
@@ -221,12 +231,18 @@ public class ProcEngine(
 
     /** Ends every proc running [script] (`Proc_EndEach`). */
     public fun endEach(script: ProcScript) {
-        for (candidate in procs) if (candidate.script === script) end(candidate)
+        for (i in 0 until maxProcs) {
+            val candidate = procArray[i]
+            if (candidate.script === script) end(candidate)
+        }
     }
 
     /** Clears the repeat callback of every proc running [script] (`Proc_BreakEach`). */
     public fun breakEach(script: ProcScript) {
-        for (candidate in procs) if (candidate.script === script) candidate.idleCb = null
+        for (i in 0 until maxProcs) {
+            val candidate = procArray[i]
+            if (candidate.script === script) candidate.idleCb = null
+        }
     }
 
     /**
@@ -266,7 +282,10 @@ public class ProcEngine(
      *   runs; the search was not exhaustive)
      */
     public fun forAll(func: ProcFunc) {
-        for (candidate in procs) if (candidate.script != null) func.invoke(candidate)
+        for (i in 0 until maxProcs) {
+            val candidate = procArray[i]
+            if (candidate.script != null) func.invoke(candidate)
+        }
     }
 
     /**
@@ -275,7 +294,10 @@ public class ProcEngine(
      * Ported from src/proc.c: Proc_ForEach
      */
     public fun forEach(script: ProcScript, func: ProcFunc) {
-        for (candidate in procs) if (candidate.script === script) func.invoke(candidate)
+        for (i in 0 until maxProcs) {
+            val candidate = procArray[i]
+            if (candidate.script === script) func.invoke(candidate)
+        }
     }
 
     /**
@@ -284,7 +306,10 @@ public class ProcEngine(
      * Transcribed from src/proc.c: Proc_ForEachMarked (not verified: the game never calls it)
      */
     public fun forEachMarked(mark: Int, func: ProcFunc) {
-        for (candidate in procs) if (candidate.mark == mark) func.invoke(candidate)
+        for (i in 0 until maxProcs) {
+            val candidate = procArray[i]
+            if (candidate.mark == mark) func.invoke(candidate)
+        }
     }
 
     /**
@@ -293,7 +318,8 @@ public class ProcEngine(
      * Ported from src/proc.c: Proc_BlockEachMarked
      */
     public fun blockEachMarked(mark: Int) {
-        for (candidate in procs) {
+        for (i in 0 until maxProcs) {
+            val candidate = procArray[i]
             if (candidate.mark == mark) candidate.lockCnt = (candidate.lockCnt + 1) and 0xFF
         }
     }
@@ -304,7 +330,8 @@ public class ProcEngine(
      * Ported from src/proc.c: Proc_UnblockEachMarked
      */
     public fun unblockEachMarked(mark: Int) {
-        for (candidate in procs) {
+        for (i in 0 until maxProcs) {
+            val candidate = procArray[i]
             if (candidate.mark == mark && candidate.lockCnt > 0) candidate.lockCnt--
         }
     }
@@ -315,7 +342,10 @@ public class ProcEngine(
      * Ported from src/proc.c: Proc_EndEachMarked
      */
     public fun endEachMarked(mark: Int) {
-        for (candidate in procs) if (candidate.mark == mark) end(candidate)
+        for (i in 0 until maxProcs) {
+            val candidate = procArray[i]
+            if (candidate.mark == mark) end(candidate)
+        }
     }
 
     /**
@@ -325,8 +355,9 @@ public class ProcEngine(
      * Ported from src/proc.c: Proc_FindAfter
      */
     public fun findAfter(script: ProcScript?, proc: Proc?): Proc? {
-        for (i in (proc?.slot?.plus(1) ?: 0) until maxProcs) {
-            if (procs[i].script === script) return procs[i]
+        val start = if (proc != null) proc.slot + 1 else 0
+        for (i in start until maxProcs) {
+            if (procArray[i].script === script) return procArray[i]
         }
         return null
     }
@@ -338,8 +369,9 @@ public class ProcEngine(
      * Ported from src/proc.c: Proc_FindAfterWithParent
      */
     public fun findAfterWithParent(proc: Proc?, parent: Proc?): Proc? {
-        for (i in (proc?.slot?.plus(1) ?: 0) until maxProcs) {
-            if (procs[i].parent === parent) return procs[i]
+        val start = if (proc != null) proc.slot + 1 else 0
+        for (i in start until maxProcs) {
+            if (procArray[i].parent === parent) return procArray[i]
         }
         return null
     }
@@ -363,12 +395,18 @@ public class ProcEngine(
      *
      * Ported from src/proc.c: CountProcs
      */
-    public fun count(script: ProcScript?): Int =
-        if (script == null) {
-            procs.count { it.script != null }
-        } else {
-            procs.count { it.script === script }
+    public fun count(script: ProcScript?): Int {
+        var n = 0
+        for (i in 0 until maxProcs) {
+            val p = procArray[i]
+            if (script == null) {
+                if (p.script != null) n++
+            } else {
+                if (p.script === script) n++
+            }
         }
+        return n
+    }
 
     /** Repeat callback of `PROC_SLEEP`: counts `sleepTime` down, then resumes the script. */
     private val sleepCb = ProcFunc { sleeper ->
@@ -408,7 +446,7 @@ public class ProcEngine(
             0x0F -> { proc.mark = cmd.imm and 0xFF; proc.scrCur++ }
             0x10 -> return false
             0x11 -> {
-                if (procs.count { it.script === script } > 1) { end(proc); return false }
+                if (count(script) > 1) { end(proc); return false }
                 proc.scrCur++
             }
             0x12 -> { proc.flags = proc.flags or FLAG_UNK2; proc.scrCur++ }
@@ -418,7 +456,13 @@ public class ProcEngine(
             }
             0x16 -> { proc.scrCur++; return (cmd.ptr as ProcBoolFunc).invoke(proc) }
             0x17 -> {
-                procs.firstOrNull { it !== proc && it.script === script }?.let { end(it) }
+                for (i in 0 until maxProcs) {
+                    val candidate = procArray[i]
+                    if (candidate !== proc && candidate.script === script) {
+                        end(candidate)
+                        break
+                    }
+                }
                 proc.scrCur++
             }
             0x18 -> {

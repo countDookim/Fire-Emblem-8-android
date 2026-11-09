@@ -11,7 +11,9 @@ import gba.testkit.AllocationMeter
 import gbafe.render.BgHardware
 import gbafe.render.HardwareSceneLoader
 import gbafe.render.OamBuffer
+import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
@@ -45,7 +47,7 @@ class AllocationTest {
 
     @Test
     fun `booting game tick and present allocate nothing between screen loads`() {
-        val rom = java.io.File(System.getenv("FE8_ASSETS") ?: ".assets", "baserom.gba")
+        val rom = File(System.getenv("FE8_ASSETS") ?: ".assets", "baserom.gba")
         assumeTrue(AllocationMeter.supported && rom.isFile)
         val game = Fe8Game(rom = RomView.ofRom(rom.readBytes()))
         repeat(40) { game.tick() } // past the health & safety screen load
@@ -82,5 +84,43 @@ class AllocationTest {
         }
         assertEquals(0L, bytes)
         assert(acc != Int.MIN_VALUE)
+    }
+
+    @Test
+    fun `prologue steady-state MU walk allocates nothing`() {
+        val rom = File(System.getenv("FE8_ASSETS") ?: ".assets", "baserom.gba")
+        assumeTrue(AllocationMeter.supported && rom.isFile)
+        val game = PrologueBoot(rom)
+        // Advance into the castle cutscene where the blue soldier walks up to Eirika and Seth
+        while (game.frame < 790) game.advance()
+        val bytes = AllocationMeter.measureMin(warmup = 2, iterations = 10, rounds = 8) {
+            game.boot.frame()
+        }
+        assertEquals(0L, bytes, "prologue MU walk allocated heap bytes")
+    }
+
+    @Test
+    fun `prologue steady-state talk allocates nothing over 600 frames`() {
+        val rom = File(System.getenv("FE8_ASSETS") ?: ".assets", "baserom.gba")
+        assumeTrue(AllocationMeter.supported && rom.isFile)
+        val game = PrologueBoot(rom)
+        // Advance into the castle dialogue where Talk_OnIdle is active
+        while (game.frame < 1000) game.advance()
+        val bytes = AllocationMeter.measureMin(warmup = 50, iterations = 600, rounds = 3) {
+            game.boot.frame()
+        }
+        assertEquals(0L, bytes, "prologue talk allocated heap bytes")
+    }
+
+    @Test
+    fun `prologue idle map allocates nothing over 600 frames`() {
+        val rom = File(System.getenv("FE8_ASSETS") ?: ".assets", "baserom.gba")
+        assumeTrue(AllocationMeter.supported && rom.isFile)
+        val game = PrologueBoot(rom)
+        assertTrue(game.reachIdle(), "Prologue player phase not reached")
+        val bytes = AllocationMeter.measureMin(warmup = 50, iterations = 600, rounds = 3) {
+            game.boot.frame()
+        }
+        assertEquals(0L, bytes, "prologue idle map allocated heap bytes")
     }
 }

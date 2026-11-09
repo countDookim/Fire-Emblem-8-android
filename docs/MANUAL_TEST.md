@@ -42,3 +42,22 @@ and its APK build are announced; include the launcher build string with the resu
 The save menu/difficulty selector, battle animations (such as Seth vs Valter), `FlashCursor` highlight sprite,
 and player-phase actions (including unit selection, menus, and inventory access) are not ported yet;
 New Game is chosen automatically when there is no valid suspend.
+
+## Milestone 6 Prologue verification (M6-45)
+
+**Acceptance target:** "New Game plays the Prologue opening; turn 1 shows units, cursor, BGM; reopen resumes"
+
+1. **Prologue Opening Flow**:
+   - Clear app data and launch `fe8-debug.apk`. Import `baserom.gba`.
+   - Title screen loads and starts New Game automatically (or press A).
+   - Prologue opening sequence plays: Renais castle dialogue between King Fado, Eirika, and Seth; blue soldier unit walks up; dialogue with portraits (blinking eyes, talking mouth animations); Valter cutscene.
+   - Zero audio stutter during unit walk (D-07 fix) and zero frame stalls during steady-state dialogue and MU walking (M6-45 zero-allocation hot paths).
+2. **Turn 1 Player Phase**:
+   - Following the cutscenes, the game transitions to Prologue map (player phase, Turn 1).
+   - Units (Eirika, Seth, Breguet and enemy units) are visible on map with correct faction palettes and standing map sprites.
+   - Map cursor is visible and responsive to D-pad / touch / keyboard directional controls.
+   - Chapter map BGM plays cleanly.
+3. **Suspend & Reopen Resumption**:
+   - Close the app (or press Home and kill process).
+   - Reopen the app: the game loads the suspend state and immediately resumes at Turn 1 on the Prologue map with units, cursor, and BGM active.
+

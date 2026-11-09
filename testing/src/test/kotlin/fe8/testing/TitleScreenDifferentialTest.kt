@@ -315,9 +315,10 @@ class TitleScreenDifferentialTest {
         val parent = engine.start(ProcScript("parent", listOf(block())), 3)
         val titleProc = title.start(parent, 1)!!
         val child = engine.start(ProcScript("child", listOf(block())), titleProc)
-        assertEquals(child, engine.findAfterWithParent(null, titleProc))
+        assertEquals(child, titleProc.child)
         title.endAllProcChildren(titleProc)
-        assertEquals(null, engine.findAfterWithParent(null, titleProc))
+        assertEquals(null, titleProc.child)
+        assertEquals(null, child.script)
     }
 
     @Test

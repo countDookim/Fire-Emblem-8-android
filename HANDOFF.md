@@ -1,13 +1,13 @@
 # HANDOFF
 
-_Updated 2026-11-09 (owner-PC 15-min run: Issue #5 device results recorded, D-08/D-10/mouths solved on 0.1.474/d91ed28, D-06/D-07 Issue #5 trace findings, 6 readability rows done, Event12_StartBGM + EventDisplayCursor_Loop verified and wired in Fe8Boot (549/8352); latest published APK 0.1.476/fbf71c5). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
+_Updated 2026-11-09 (owner-PC 15-min run: Issue #5 device results recorded, D-08/D-10/mouths solved on 0.1.474/d91ed28, D-06/D-07 Issue #5 trace findings, M6-45 done (0 B/frame Prologue talk, MU walk, and 600f map idle), 20 more functions verified & break-checked (569/8352), 12 more readability rows done; code repo now public). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
 docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
 ## In progress
-- **M6-45 / Event & BM Trace Verification / Readability** — Gemini (owner-PC, 2026-11-09, 45-min session until ~13:22Z, up to 3 Flash subagents): (1) M6-45 Prologue zero-allocation test & hot-path iterator/boxing fixes (`ProcEngine`, `M4aBus`, `SpriteAnimPlayer`, `TalkScene`, `Talk`, `PrologueBoot`, `AllocationTest`); (2) Trace verification & break-checking for `ConvoBackgroundVramTest` (`BMapDispSuspend`/`Resume`, `Event21`/`22`/`23`/`24`, `EventShowTextBgDirect`) + `EventUnitLoads` / `EventUnitState` / `EventState` / `GameLoop` / `Fe8EventFlags`; (3) `docs/READABILITY.md` review rows (`gba.testkit`, `gbafe.extract.m4a`, `gba.data`, `gba.extract`).
+_(none; owner 45-minute run completed; no worktrees open)_
 
 ## Latest device test (owner, 2026-11-09, Issue #5)
 Build **0.1.474 (`d91ed28`)** (GitHub Issue #5): everything except the 5 items in Issue #5 is confirmed solved on device:

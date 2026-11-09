@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 549,
+    "verified": 569,
     "implemented_unverified": 1
   },
   "functions": {
@@ -109,6 +109,24 @@
         "fe8.testing.SaveDrawDifferentialTest#fog scroll turns the previous dump into the next one"
       ]
     },
+    "BMapDispResume": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ConvoBackgroundVramTest#nested display suspension restores map procs only on the final resume"
+      ]
+    },
+    "BMapDispSuspend": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ConvoBackgroundVramTest#nested display suspension restores map procs only on the final resume"
+      ]
+    },
     "BattleApplyWeaponTriangleEffect": {
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
@@ -152,6 +170,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "BattleUnitTargetSetEquippedWeapon": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleScriptedDifferentialTest#BattleUnitTargetSetEquippedWeapon fills target weaponBefore from equipped weapon when empty"
       ]
     },
     "BattleUnwindScripted": {
@@ -339,6 +366,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BattleMapStartDifferentialTest#gBmSt is cleared"
+      ]
+    },
+    "ClearCutsceneUnits": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CutsceneUnitSpritesTest#unit objects of the opening events match the dumps taken during them"
       ]
     },
     "ClearFirstPalDirectly": {
@@ -895,6 +931,42 @@
         "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
       ]
     },
+    "Event21_TextBg": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ConvoBackgroundVramTest#conversation background and restored map match reference graphics"
+      ]
+    },
+    "Event22_ClearScreen": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventText.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ConvoBackgroundVramTest#conversation background and restored map match reference graphics"
+      ]
+    },
+    "Event23_DisaleMapDisp": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ConvoBackgroundVramTest#map tile animation does not overwrite the background while the talk scene runs"
+      ]
+    },
+    "Event24_EnableMapDisp": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ConvoBackgroundVramTest#conversation background and restored map match reference graphics"
+      ]
+    },
     "Event25_ChangeMap": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -983,6 +1055,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EventUnitLoadsTest#skipped load_unit2 of the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "EventShowTextBgDirect": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ConvoBackgroundVramTest#conversation background and restored map match reference graphics"
       ]
     },
     "EvtBattleGenerateReal": {
@@ -1322,6 +1403,15 @@
         "fe8.testing.ChapterDataRomTest#every chapter matches direct ROM reads"
       ]
     },
+    "GetChapterFlagBits": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/flags/Fe8EventFlags.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventFlagsRomTest#flag accessors return snapshots matching iwram reference dumps"
+      ]
+    },
     "GetChapterFlagBitsSize": {
       "decomp_file": "src/eventinfo.c",
       "system": "events",
@@ -1448,6 +1538,15 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "GetGameLock": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameLoop.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ConvoBackgroundVramTest#game lock matches gbmst lock byte across trace steps"
+      ]
+    },
     "GetItemCrit": {
       "decomp_file": "src/bmitem.c",
       "system": "battle_logic",
@@ -1558,6 +1657,15 @@
         "fe8.testing.SramBootReferenceTest#suspend slot selection follows the dumps header and block infos"
       ]
     },
+    "GetPermanentFlagBits": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/flags/Fe8EventFlags.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventFlagsRomTest#flag accessors return snapshots matching iwram reference dumps"
+      ]
+    },
     "GetPermanentFlagBitsSize": {
       "decomp_file": "src/eventinfo.c",
       "system": "events",
@@ -1658,6 +1766,15 @@
         "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
       ]
     },
+    "GetUnit": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitTableDifferentialTest#unitOffset matches gUnitLookup table in ROM for all 256 unit ids"
+      ]
+    },
     "GetUnitFromCharId": {
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
@@ -1674,6 +1791,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitSpritesDifferentialTest#handle list matches the dump"
+      ]
+    },
+    "GetUnitStructFromEventParameter": {
+      "decomp_file": "src/eventscr_utils.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MoveUnitDifferentialTest#blue units end on the tiles of the r19400 dump after the opening moves"
       ]
     },
     "GetUnitSupporterCount": {
@@ -2001,6 +2127,15 @@
         "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items",
         "fe8.testing.UnitLoaderDifferentialTest#loading the prologue messenger reproduces the unit",
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "LockGame": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameLoop.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ConvoBackgroundVramTest#game lock matches gbmst lock byte across trace steps"
       ]
     },
     "MPlayExtender": {
@@ -2947,6 +3082,15 @@
         "fe8.testing.CameraDifferentialTest#cursor snap frames match SetCursorMapPosition"
       ]
     },
+    "SetEventSlotC": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventStateTraceTest#setEventSlotC stores value in slot 0xC matching trace layout"
+      ]
+    },
     "SetFirstPalDirectly": {
       "decomp_file": "src/opanimfx.c",
       "system": "presentation",
@@ -3116,6 +3260,25 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#A on the title intro fx restarts the title like the per-frame RAM trace"
+      ]
+    },
+    "SlotQueuePop": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventStateTraceTest#slotQueue operations on trace dump state maintain queue and slot D"
+      ]
+    },
+    "SlotQueuePush": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventState.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventStateTraceTest#slotQueue operations on trace dump state maintain queue and slot D",
+        "fe8.testing.EventVmDifferentialTest#Event07 SlotQueueOperations"
       ]
     },
     "SoundInit": {
@@ -3600,6 +3763,16 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
       ]
     },
+    "Title_EndAllProcChildren": {
+      "decomp_file": "src/titlescreen.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/title/TitleScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TitleScreenDifferentialTest#START on the idle title fades to dark and ends the title like the per-frame RAM trace",
+        "fe8.testing.TitleScreenDifferentialTest#Title_EndAllProcChildren ends child procs"
+      ]
+    },
     "Title_EndSkipFxListener": {
       "decomp_file": "src/titlescreen.c",
       "system": "presentation",
@@ -3838,6 +4011,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "UnlockGame": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/GameLoop.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ConvoBackgroundVramTest#game lock matches gbmst lock byte across trace steps"
       ]
     },
     "UnpackChapterMap": {

@@ -2,6 +2,7 @@ package fe8.game.scene
 
 import fe8.game.RomView
 import fe8.game.text.Fe8Text
+import gbafe.core.rng.LcgRng
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
@@ -49,6 +50,8 @@ public class TalkScene(
     private val playSound: (Int) -> Unit,
     private val textSpeed: () -> Int,
     private val setDialogueSkipEvBit: () -> Unit,
+    /** The game's single `gLCGRNValue` (shared with the other LCG users). */
+    public val lcg: LcgRng,
 ) : TextHost, TalkHost, TalkBubbleHost, TalkFaceHost {
     /** The text system of the talk font (`sTalkFont`'s glyph tables). */
     public val text: TextSystem = TextSystem(romBytes, this, Fe8Text.CONFIG)
@@ -332,8 +335,9 @@ public class TalkScene(
         face.moveTalkFace(from, to)
     }
 
-    /** Stand-in: the face blink procs are not ported. */
-    override fun setFaceBlinkControl(face: Int, mode: Int) {}
+    override fun setFaceBlinkControl(face: Int, mode: Int) {
+        this.face.faceOf(face)?.let { this.face.setFaceBlinkControl(it, mode) }
+    }
 
     /** Stand-in: the face eye state is not ported. */
     override fun setFaceEyes(face: Int, mode: Int) {}
@@ -492,6 +496,11 @@ public class TalkScene(
 
     override fun portraitPalette(fid: Int): Int = rom.u32(PORTRAIT_TABLE + (fid - 1) * 0x1C + 8)
 
+    override fun portraitByte(fid: Int, offset: Int): Int =
+        rom.u8(PORTRAIT_TABLE + (fid - 1) * 0x1C + offset)
+
+    override fun advanceLcg(): Int = lcg.advance()
+
     override fun activeUnitPortraitId(): Int {
         throw NotImplementedError("not ported: GetUnitPortraitId(gActiveUnit)")
     }
@@ -516,7 +525,7 @@ public class TalkScene(
         // gSprite_Face* symbols in the US ROM manifest; compositions remain ROM data.
         private val FACE_SPRITE_ADDRESSES = intArrayOf(
             0x0859100C, 0x08591026, 0x08591040, 0x08591066,
-            0x0859108C, 0x085910BE, 0x085910F0, 0x08591122,
+            0x0859108C, 0x085910BE, 0x085910F0, 0x08591122, 0x08590F4C, 0x08590F8C,
         )
         private val BLACK_PALETTE = ShortArray(16)
         private const val ROM_BASE = 0x08000000

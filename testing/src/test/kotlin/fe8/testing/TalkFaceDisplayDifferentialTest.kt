@@ -4,6 +4,7 @@ import fe8.game.RomView
 import fe8.game.scene.FaceState
 import fe8.game.scene.TalkScene
 import gba.core.VerifiesPort
+import gbafe.core.rng.LcgRng
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
 import gbafe.render.BgHardware
@@ -186,6 +187,6 @@ private class TalkFaceRig(bytes: ByteArray) {
     val sprites = SpriteLayers()
     val scene = TalkScene(
         rom, bytes, BgHardware(), engine, sprites, KeyStatus(), { 0 },
-        MsgStrings(bytes, MsgHuffman(bytes, 0, 0), 0), {}, { 0 }, {},
+        MsgStrings(bytes, MsgHuffman(bytes, 0, 0), 0), {}, { 0 }, {}, LcgRng(),
     )
 }

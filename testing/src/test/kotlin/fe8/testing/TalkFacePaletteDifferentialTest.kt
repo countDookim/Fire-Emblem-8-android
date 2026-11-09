@@ -4,6 +4,7 @@ import fe8.game.RomView
 import fe8.game.scene.TalkScene
 import gba.core.VerifiesPort
 import gba.testkit.RamSymbols
+import gbafe.core.rng.LcgRng
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
 import gbafe.render.BgHardware
@@ -13,7 +14,6 @@ import gbafe.text.MsgStrings
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
@@ -32,7 +32,7 @@ class TalkFacePaletteDifferentialTest {
         val hw = BgHardware()
         val scene = TalkScene(
             RomView.ofRom(bytes), bytes, hw, engine, SpriteLayers(), KeyStatus(), { 0 },
-            MsgStrings(bytes, MsgHuffman(bytes, 0, 0), 0), {}, { 0 }, {},
+            MsgStrings(bytes, MsgHuffman(bytes, 0, 0), 0), {}, { 0 }, {}, LcgRng(),
         )
         val faces = ProcArrayDump.ofEwram(trace.ewram(9871)).findAll(0x08591154)
         assertEquals(2, faces.size)
@@ -54,7 +54,12 @@ class TalkFacePaletteDifferentialTest {
             engine.run(engine.root(5))
             val ew = trace.ewram(frame)
             for (face in started) {
-                if (frame < 9884) assertNotNull(face.child) else assertNull(face.child)
+                if (frame < 9884) {
+                    assertNotNull(face.child)
+                } else {
+                    // Only the blink proc (started before the fade) remains under the face.
+                    assertEquals(scene.face.blinkScript, face.child!!.script)
+                }
             }
             for (source in faces) {
                 val bank = 22 + source.u8(0x40)

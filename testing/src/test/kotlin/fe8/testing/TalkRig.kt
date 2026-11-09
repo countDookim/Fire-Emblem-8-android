@@ -298,6 +298,13 @@ internal class TalkRig(val rom: ByteArray, val runDir: File) :
         return u32(rom, at)
     }
 
+    override fun portraitByte(fid: Int, offset: Int): Int =
+        rom[PORTRAIT_TABLE - ROM_BASE + (fid - 1) * 0x1C + offset].toInt() and 0xFF
+
+    val lcg = gbafe.core.rng.LcgRng()
+
+    override fun advanceLcg(): Int = lcg.advance()
+
     override fun activeUnitPortraitId(): Int = error("no gActiveUnit portrait in the trace")
 
     override fun startFaceFadeIn(face: Proc) {}

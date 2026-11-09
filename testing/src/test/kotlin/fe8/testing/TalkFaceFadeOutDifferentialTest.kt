@@ -5,6 +5,7 @@ import fe8.game.scene.TalkFace
 import fe8.game.scene.TalkScene
 import gba.core.VerifiesPort
 import gba.testkit.RamSymbols
+import gbafe.core.rng.LcgRng
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
 import gbafe.render.BgHardware
@@ -30,7 +31,7 @@ class TalkFaceFadeOutDifferentialTest {
         val hw = BgHardware()
         val scene = TalkScene(
             RomView.ofRom(bytes), bytes, hw, engine, SpriteLayers(), KeyStatus(), { 0 },
-            MsgStrings(bytes, MsgHuffman(bytes, 0, 0), 0), {}, { 0 }, {},
+            MsgStrings(bytes, MsgHuffman(bytes, 0, 0), 0), {}, { 0 }, {}, LcgRng(),
         )
         // Find the first completed snapshot in which the two face-end procs appear.
         val start = (10500..10600).first { frame ->

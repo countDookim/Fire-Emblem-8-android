@@ -440,6 +440,7 @@ public class Fe8Boot(
                     p.evStateBits = p.evStateBits or EventConst.EV_STATE_0008
                 }
             },
+            rng.lcg,
         )
     }
 

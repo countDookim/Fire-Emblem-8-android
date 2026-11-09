@@ -7,6 +7,7 @@ import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.call
 import gbafe.proc.ProcScripts.end
+import gbafe.proc.ProcScripts.label
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.sleep
 import gbafe.render.SpriteObject
@@ -36,6 +37,15 @@ public interface TalkFaceHost {
 
     /** `GetPortraitData(fid)->pal`: GBA address of the 16 face colours. */
     public fun portraitPalette(fid: Int): Int
+
+    /**
+     * Byte [offset] of `GetPortraitData(fid)` (a `struct FaceData`): `xEyes` 0x16, `yEyes` 0x17,
+     * `blinkKind` 0x18.
+     */
+    public fun portraitByte(fid: Int, offset: Int): Int
+
+    /** `AdvanceGetLCGRNValue()`. */
+    public fun advanceLcg(): Int
 
     /** `StartFaceFadeIn(face)` (palette fade procs). */
     public fun startFaceFadeIn(face: Proc)
@@ -69,6 +79,27 @@ public class FaceState {
 
     /** `spriteLayer` (0x41). */
     public var spriteLayer: Int = 0
+
+    /** `pBlinkProc` (0x48); null with display bit 12. */
+    public var pBlinkProc: Proc? = null
+}
+
+/** State of a `gProcScr_FaceBlink` proc (`struct FaceBlinkProc`). */
+public class FaceBlinkState {
+    /** `pFaceProc` (0x2C): the parent face proc. */
+    public var pFaceProc: Proc? = null
+
+    /** `blinkControl` (0x30, s16): blink kind, 1..5; selects the interval in the generator. */
+    public var blinkControl: Int = 0
+
+    /** `unk_32` (s16): requested eye state (0 blinking, 2 or 3 held closed/half, see script). */
+    public var unk32: Int = 0
+
+    /** `unk_34` (s16): frame counter inside the current blink or held state. */
+    public var unk34: Int = 0
+
+    /** `unk_38`: frames until the next blink; counts down. */
+    public var unk38: Int = 0
 }
 
 /** State of a `gProcScr_TalkFaceMove` proc. */
@@ -94,8 +125,8 @@ public class TalkFaceMoveState {
 
 /**
  * The talk face side of `src/scene.c` (load, layer, move, mouth) over a minimal `src/face.c`:
- * `gFaces`, `StartFace` (palette, tiles, fields) and the `gProcScr_E_FACE` proc. Blink and
- * mouth animation procs are not modelled. A face handle in
+ * `gFaces`, `StartFace` (palette, tiles, fields) and the `gProcScr_E_FACE` proc. The blink proc is
+ * started; the mouth proc is not modelled. A face handle in
  * [TalkState.faces] is [FACE_HANDLE] plus the face slot.
  */
 public class TalkFace(
@@ -117,6 +148,31 @@ public class TalkFace(
         "gProcScr_E_FACE",
         listOf(sleep(0), call(faceInitFn), call(faceIdleFn), repeat(faceIdleFn), end()),
     ) { FaceState() }
+
+    private val blinkInitFn = ProcFunc { sub800623C(it) }
+    private val blinkWaitFn = ProcFunc { sub8006280(it) }
+    private val blinkBlinkFn = ProcFunc { sub80062B8(it) }
+    private val blinkHold2InitFn = ProcFunc { sub8006324(it) }
+    private val blinkHold2Fn = ProcFunc { sub800632C(it) }
+    private val blinkHold3InitFn = ProcFunc { sub8006370(it) }
+    private val blinkHold3Fn = ProcFunc { sub8006378(it) }
+    private val blinkHold4InitFn = ProcFunc { sub80063BC(it) }
+    private val blinkHold4Fn = ProcFunc { sub80063C4(it) }
+
+    /** `gProcScr_FaceBlink`; the duplicate label 0 is as in the original. */
+    public val blinkScript: ProcScript = ProcScript(
+        "gProcScr_FaceBlink",
+        listOf(
+            label(0), call(blinkInitFn),
+            label(0), repeat(blinkWaitFn),
+            label(1), repeat(blinkBlinkFn),
+            label(2), call(blinkHold2InitFn), repeat(blinkHold2Fn), repeat(blinkWaitFn),
+            label(3), call(blinkHold3InitFn), repeat(blinkHold3Fn), repeat(blinkWaitFn),
+            label(4), call(blinkHold4InitFn), repeat(blinkHold4Fn),
+            label(97), repeat(blinkHold2Fn),
+            end(),
+        ),
+    ) { FaceBlinkState() }
 
     /** `gProcScr_TalkFaceMove`. */
     public val moveScript: ProcScript = ProcScript(
@@ -160,8 +216,8 @@ public class TalkFace(
     }
 
     /**
-     * Transcribed from src/face.c: StartFace (the part up to the display bits; the blink procs
-     * are not started).
+     * Transcribed from src/face.c: StartFace. Unless display bit 12 is set it starts the blink
+     * proc; the mouth proc (`gProcScr_0859124C`, started first by the original) is not started.
      */
     public fun startFace(slot: Int, fid: Int, x: Int, y: Int, disp: Int): Proc? {
         if (gFaces[slot] != null) return null
@@ -176,8 +232,208 @@ public class TalkFace(
         f.spriteLayer = 5
         f.xPos = x
         f.yPos = y
+        if (disp and (1 shl 12) == 0) f.pBlinkProc = engine.start(blinkScript, proc)
         setFaceDisplayBits(proc, disp)
         return proc
+    }
+
+    private fun blinkOf(proc: Proc): FaceBlinkState = proc.state as FaceBlinkState
+
+    private fun faceOfBlink(proc: Proc): Proc = blinkOf(proc).pFaceProc!!
+
+    /**
+     * Draws the eye object over the face for eye frame [unk] (0 or 1: 32x16 open or half;
+     * 0x80 or 0x81: the 16x16 variant); any other value draws nothing.
+     *
+     * Transcribed from src/face.c: sub_8006134 (the oam values are checked only to the extent
+     * the eye object exists in the host; the proc state is verified by the blink test).
+     */
+    public fun sub8006134(proc: Proc, unk: Int) {
+        val base: Int
+        var small = false
+        when (unk) {
+            0 -> base = 88
+            1 -> base = 24
+            0x80 -> { base = 88; small = true }
+            0x81 -> { base = 24; small = true }
+            else -> return
+        }
+        val face = faceOfBlink(proc)
+        val f = face.state as FaceState
+        val fid = f.faceId
+        var oam1 = 4 - faceHost.portraitByte(fid, 0x16)
+        val flipped = f.displayBits and 1 != 0
+        oam1 = if (flipped) oam1 else -oam1
+        oam1 = (oam1 * 8 + f.xPos - 16) and 0x1FF
+        if (flipped) oam1 += 0x1000
+        var oam0 = if (f.displayBits and (1 shl 10) != 0) 0x400 else 0
+        oam0 += (f.yPos + faceHost.portraitByte(fid, 0x17) * 8) and 0xFF
+        if (small) {
+            if (!flipped) oam1 += 16
+            faceHost.faceSprite(OBJECT_16X16)?.let {
+                faceHost.putFaceSprite(f.spriteLayer, oam1, oam0, it, f.oam2 + base + 2)
+            }
+        } else {
+            faceHost.faceSprite(OBJECT_32X16)?.let {
+                faceHost.putFaceSprite(f.spriteLayer, oam1, oam0, it, f.oam2 + base)
+            }
+        }
+    }
+
+    /**
+     * Blink proc start: reads the portrait's blink kind and rolls the first interval.
+     *
+     * Ported from src/face.c: sub_800623C
+     */
+    public fun sub800623C(proc: Proc) {
+        val b = blinkOf(proc)
+        val face = proc.parent!!
+        b.pFaceProc = face
+        b.blinkControl = faceHost.portraitByte((face.state as FaceState).faceId, 0x18)
+        b.unk38 = faceBlinkProcGenBlinkInterval(proc)
+        b.unk32 = 0
+        if (b.blinkControl == 6) {
+            b.blinkControl = 5
+            b.unk38 = Int.MAX_VALUE
+            b.unk32 = 2
+            b.unk34 = 6
+            engine.goto(proc, 97)
+        }
+    }
+
+    /**
+     * Counts the blink interval down; jumps to the held-eye label in `unk_32` or starts a blink.
+     *
+     * Ported from src/face.c: sub_8006280
+     */
+    public fun sub8006280(proc: Proc) {
+        val b = blinkOf(proc)
+        b.unk38--
+        val unk = b.unk32
+        if (unk != 0) {
+            engine.goto(proc, unk)
+            return
+        }
+        if (b.unk38 < 0) {
+            b.unk38 = faceBlinkProcGenBlinkInterval(proc)
+            b.unk34 = unk
+            engine.goto(proc, 1)
+        }
+    }
+
+    /**
+     * One frame of the blink animation (closed for frames 3..5, half for 0..2 and 6..8).
+     *
+     * Ported from src/face.c: sub_80062B8
+     */
+    public fun sub80062B8(proc: Proc) {
+        val b = blinkOf(proc)
+        var r5 = 2
+        when (b.unk34) {
+            3, 4, 5 -> r5 = 0
+            0, 1, 2, 6, 7, 8 -> r5 = 1
+            10 -> engine.goto(proc, 0)
+        }
+        sub8006134(proc, r5)
+        b.unk34++
+    }
+
+    /**
+     * Transcribed from src/face.c: sub_8006324 (unverified: held-eye path).
+     */
+    public fun sub8006324(proc: Proc) {
+        blinkOf(proc).unk34 = 0
+    }
+
+    /**
+     * Transcribed from src/face.c: sub_800632C (unverified: held-eye path).
+     */
+    public fun sub800632C(proc: Proc) {
+        val b = blinkOf(proc)
+        if (b.unk34 < 6) {
+            sub80062B8(proc)
+            return
+        }
+        sub8006134(proc, 0)
+        if (b.unk32 == 0) engine.goto(proc, 1)
+        if (b.unk32 == 3) engine.goto(proc, 3)
+    }
+
+    /**
+     * Transcribed from src/face.c: sub_8006370 (unverified: held-eye path).
+     */
+    public fun sub8006370(proc: Proc) {
+        blinkOf(proc).unk34 = 0
+    }
+
+    /**
+     * Transcribed from src/face.c: sub_8006378 (unverified: held-eye path).
+     */
+    public fun sub8006378(proc: Proc) {
+        val b = blinkOf(proc)
+        if (b.unk34 < 3) {
+            sub80062B8(proc)
+            return
+        }
+        sub8006134(proc, 1)
+        if (b.unk32 == 0) engine.goto(proc, 1)
+        if (b.unk32 == 2) engine.goto(proc, 2)
+    }
+
+    /**
+     * Transcribed from src/face.c: sub_80063BC (unverified: held-eye path).
+     */
+    public fun sub80063BC(proc: Proc) {
+        blinkOf(proc).unk34 = 0
+    }
+
+    /**
+     * Transcribed from src/face.c: sub_80063C4 (unverified: held-eye path).
+     */
+    public fun sub80063C4(proc: Proc) {
+        val b = blinkOf(proc)
+        var r5 = 2
+        when (b.unk34) {
+            3, 4, 5 -> r5 = 0
+            0, 1, 2, 6, 7, 8 -> r5 = 1
+            10 -> {
+                engine.goto(proc, 0)
+                b.unk32 = 0
+            }
+        }
+        sub8006134(proc, 0x80 + r5)
+        b.unk34++
+    }
+
+    /**
+     * Sets the blink kind of [face] (0 restores the portrait's own) and rerolls the interval.
+     *
+     * Transcribed from src/face.c: SetFaceBlinkControl (unverified: no reference run sets it)
+     */
+    public fun setFaceBlinkControl(face: Proc, blinkControl: Int) {
+        val f = face.state as FaceState
+        val blinkProc = f.pBlinkProc ?: return
+        blinkOf(blinkProc).blinkControl =
+            if (blinkControl == 0) faceHost.portraitByte(f.faceId, 0x18) else blinkControl
+        blinkOf(blinkProc).unk38 = faceBlinkProcGenBlinkInterval(blinkProc)
+    }
+
+    /**
+     * Rolls the frames until the next blink from one LCG step (the original falls off the end
+     * for other kinds; 0 is returned there).
+     *
+     * Ported from src/face.c: FaceBlinkProc_GenBlinkInterval
+     */
+    public fun faceBlinkProcGenBlinkInterval(proc: Proc): Int {
+        val v = faceHost.advanceLcg() ushr 16
+        return when (blinkOf(proc).blinkControl) {
+            3 -> (v shr 7) + 300
+            1 -> (v shr 7) + 30
+            2 -> (v shr 9) + 30
+            4 -> 1
+            5 -> Int.MAX_VALUE
+            else -> 0
+        }
     }
 
     /**
@@ -377,6 +633,8 @@ public class TalkFace(
         /** Value of a face handle for slot 0. */
         public const val FACE_HANDLE: Int = 0x02030000
         private const val FACE_SLOTS = 4
+        private const val OBJECT_16X16 = 0x08590F4C
+        private const val OBJECT_32X16 = 0x08590F8C
         private const val OBJ_VRAM = 0x06010000
         private const val SMILE = 1 shl 3
         private const val TALK_1 = 1 shl 4

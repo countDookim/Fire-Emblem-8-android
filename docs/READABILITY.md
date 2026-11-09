@@ -21,7 +21,7 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 
 | Module | Package | Files | Lines | Status |
 |---|---|---:|---:|---|
-| app | fe8.app | 9 | 1270 | todo |
+| app | fe8.app | 9 | 1270 | done 2026-11-09 1941586 |
 | engine/core | gbafe.core.flags | 6 | 849 | done 2026-11-07 c7b7651 |
 | engine/core | gbafe.core.math | 1 | 48 | done 2026-11-07 7fab3cc |
 | engine/core | gbafe.core.mechanics | 1 | 60 | done 2026-11-07 7fab3cc |
@@ -55,7 +55,7 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | game | fe8.game.event | 16 | 3197 | todo |
 | game | fe8.game.flags | 1 | 69 | done 2026-11-09 0194222 |
 | game | fe8.game.opanim | 3 | 3128 | todo |
-| game | fe8.game.save | 8 | 2541 | todo |
+| game | fe8.game.save | 8 | 2541 | done 2026-11-09 1941586 |
 | game | fe8.game.savemenu | 2 | 156 | done 2026-11-09 81db35b |
 | game | fe8.game.scene | 5 | 1921 | todo |
 | game | fe8.game.text | 1 | 30 | done 2026-11-09 0194222 |

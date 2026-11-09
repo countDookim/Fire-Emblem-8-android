@@ -14,15 +14,13 @@ verified: why)". Seed from dump k, step, compare with dump k+1; use sentinels in
 
 ## Open
 
-Owner device report 2026-11-09, build 0.1.467 (`060478a`): current priorities are D-08 worsening background
-corruption, D-06 riders remaining at the screen edge (still open despite correct animation), D-07 intermittent
-walking stutter, then D-10 missing portrait blink (confirmed original FE8 behavior).
-Owner-PC follow-up: D-06 sprite refresh, D-07 unboxed walking sprite-cache lookup (`c339db5`), D-08 map restoration,
-D-10 blink and normal portrait mouth animation are merged and await device confirmation; see MANUAL_TEST.md.
-D-09 Rapier-received popup is explicitly low priority; inventory is unverified on device. Details: HANDOFF.md.
+Owner side-by-side test 2026-11-09: build 0.1.482 (`617b1e9`). D-06/D-08/D-10 and normal mouths are owner-confirmed solved. D-07 castle audio hitches persist; D-11 opening monologue/world-map sequence and D-12 phase banner are missing. D12-1 is now merged, pending device confirmation. D-09 Rapier popup remains low priority; device inventory is unknown. Current evidence: HANDOFF and MANUAL_TEST.
 
 | ID | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|
+| D07-audio | Add a bounded startup PCM reserve for short producer delays | Deterministic real-cadence consumer test fails without reserve and passes with it; existing resampling/underrun behavior preserved; owner re-test before calling D-07 solved | — | merged d97c7c0; focused tests + audio Dokka pass; device check pending |
+| D11-slides | Standalone opening-monologue slide graphics loaders from opsubtitle.c | Runtime original capture comparisons of loaded tile bytes/tilemaps and timer reset; individual mutation checks; no production wiring yet | — | started |
+| D11-flow | Port subtitle proc, palette transitions, affine flare and audio; wire blocking monologue only after full sequence verification | Original per-frame child state and all seven slides match; new original Start-skip captures verify cleanup/handoff; world-map wrapper is separate | D11-slides | todo |
 | D09-1 | Reference only (ROM repo): add full graphics captures inside the active item-got popup window; existing ram_trace_prologue r18630..r18720 contain RAM only | Retain the original input sequence; popup state matches the existing records, with BG0/BG1, VRAM, palette and OAM available at a visible-popup frame. ROM-derived output stays in the private repo | — | captured locally in private repo f7a442a; publication is D09-1b |
 | D12-1 | Port phasechangefx.c `ProcScr_PhaseIntro` + children (Text/Unk/Squares/BlendBox, VCount blend split) and wire `BMapMain.hooks.phaseIntro` in Fe8Boot (D-12 "Player Phase" popup) | Per-frame differential test vs ram_trace_ch6_phase_start (BG0/BG1 tilemap buffers, gBmSt altBlend, BG offsets/WIN0) and graphics/palette at a full dump; tags break-checked | — | done (17 tags, 70 frames f1684..1753 + 7 full dumps; VMatch split and PhaseIntroInitText sound transcribed) |
 | D12-2 | Reference (ROM repo) capture of an enemy-phase intro (no current r-dump has gPlaySt.faction 0x80, checked 11-09) (per-frame EWRAM + full dumps, plus per-scanline BLDCNT/BLDALPHA on one frame), then extend PhaseIntroDifferentialTest to the Enemy branch of PhaseIntro_InitGraphics and tag the VMatch split | Enemy name graphics/palette and per-line blend equal the capture; break-checked | D12-1 | todo; after device re-test of D-12 |

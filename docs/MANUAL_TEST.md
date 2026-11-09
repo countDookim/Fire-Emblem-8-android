@@ -26,7 +26,7 @@ gamepad/keyboard, pause/resume, ROM import and close/reopen resuming turn 1.
 
 | ID | Priority | Observed behavior / re-test target |
 |---|---|---|
-| D-07 | Normal | Owner 11-09 (`0.1.482` / `617b1e9`): stutters at >= 2 points in the castle cutscene still (persists after `c339db5` and M6-45). Earlier: in `0.1.474` (`d91ed28`, before `c339db5`), there is a brief audio stutter in the castle when the blue soldier unit walks up, then the game continues normally. **Fix merged `c339db5` (remove per-frame `Int` boxing in `MuSpriteAnim.objectAt` during unit walking) and published in APK `0.1.476` (`fbf71c5`).** Steps: start a fresh New Game and listen/watch as the blue soldier walks up to Eirika and Seth in the castle. Expected: the walk starts and plays without an audio hitch. Limit: `StartMuInternal` still decompresses the soldier MU sprite sheet (~11 KB) on the walk-start frame; if the stutter persists on `0.1.476+`, report it so MU sheet decompression can be pre-cached/pooled. |
+| D-07 | Normal | Persists on owner-tested 0.1.482 (`617b1e9`). New change `d97c7c0` waits for two VBlank PCM chunks before playback, keeping a reserve for short producer delays. Re-test on an APK containing that commit: fresh New Game, listen throughout the castle scene, especially the blue soldier walking up; report whether both reported hitches remain. Expected: continuous audio across short delays. Limits: deterministic simulated cadence passes, but the phone cause is unconfirmed; long stalls can still exhaust the reserve and do not trigger re-prefill. Older APKs do not contain this change. |
 | D-09 | Low (owner) | The Rapier-received popup never appears before the first battle. Eirika's inventory has **not** been checked on device because player-phase interactions are unavailable; do not infer that the item is missing. |
 | D-11 | Normal | Opening cinematic after New Game (before the castle cutscene) is missing. |
 | D-12 | Normal | "Player Phase" popup missing after the final Prologue dialogue; control goes straight to the cursor. Fix merged 11-09 (D12-1, scheduled): re-test on the first APK built after it. Steps: clear app data, import ROM, New Game, play the opening to the end. Expected: "Player Phase" banner slides in over squares and a blended band (~70 frames), then map BGM and cursor control, as in the original. Limits: the VCount blend split (band translucency per line) is not reference-checked; enemy/green phase banners untested. |
@@ -48,7 +48,7 @@ New Game is chosen automatically when there is no valid suspend.
    - Clear app data and launch `fe8-debug.apk`. Import `baserom.gba`.
    - Title screen loads and starts New Game automatically (or press A).
    - Prologue opening sequence plays: Renais castle dialogue between King Fado, Eirika, and Seth; blue soldier unit walks up; dialogue with portraits (blinking eyes, talking mouth animations); Valter cutscene.
-   - Zero audio stutter during unit walk (D-07 fix) and zero frame stalls during steady-state dialogue and MU walking (M6-45 zero-allocation hot paths).
+   - Listen for and report audio hitches during the castle scene (D-07 remains open). Steady-state dialogue and MU walking have zero-allocation tests; those tests do not establish smooth playback on the phone.
 2. **Turn 1 Player Phase**:
    - Following the cutscenes, the game transitions to Prologue map (player phase, Turn 1).
    - Units (Eirika, Seth, Breguet and enemy units) are visible on map with correct faction palettes and standing map sprites.

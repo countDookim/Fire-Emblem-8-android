@@ -11,6 +11,11 @@ D07-audio: owner PC, until ~15:55Z; investigate castle transition stalls / PCM u
 Readability-events: owner PC, until ~15:55Z; gbafe.extract.fe8.events comments/names only.
 D11-slides: owner PC, until ~15:55Z; standalone subtitle slide graphics against original captures; not wired into New Game yet.
 
+## Owner-PC work 2026-11-09 15:20Z
+- D-07 `d97c7c0`: optional startup PCM prefill; Android requests two VBlank chunks. The old ring capacity provided no guaranteed reserve. Seven focused PCM tests and audio Dokka pass; disabling prefill fails startup/interpolation/cadence regressions. Simulated 60 Hz display + 5 ms consumer + one 15 ms late callback retains queued sound; this is not a phone trace. Long stalls still exhaust the reserve; D-07 stays open. CI publication pending.
+- Event extractor readability `8ec2580`: all four files reviewed; converter/grouping locals and private KDoc clarified. Focused tests and extract Dokka pass; full integrated suite pending before marking the row done.
+- D-11 source scope: `StartIntroMonologue` is an unwired blocking subtitle child (original steps 1213–4897); the separate unwired world-map wrapper follows at 4898–9313. Slide loaders are being verified separately; no cinematic is wired yet.
+
 ## Latest device test (owner, 2026-11-09 16:17, side-by-side vs original)
 Build: **0.1.482 (`617b1e9`)** (owner confirmed). Owner confirms equal to the original: music, sound effects, portraits + portrait animation, walking
 animations, Seth/Franz riding off-screen (**D-06 solved 11-09**). Differences still open:
@@ -114,7 +119,10 @@ and mouths remain pending device confirmation.
 
 - D-08 follow-up 910fcfa: Event22 had no map-graphics restoration. New regression compares scene BG3 VRAM/tilemap/palettes at f13500, restored nonanimated map tiles and palette banks 6–15 against first_phase f19430, transition tilemap against f14100, and idle tilemap against f19430. Removing restoration fails; focused event/map/background tests green. Animated VRAM 0xA000..0xAFFF excluded from the map-return comparison because capture phases differ.
 
-## Next task: device re-test D-08/D-06/D-07/D-10 and mouths; D-09 Rapier popup remains low priority
+## Next tasks (current)
+D-07: re-test the startup PCM reserve after publication; if hitches remain, correlate Android producer stalls with source/native underruns. D-11: finish subtitle slides, proc/fade/flare/audio/skip verification, then wire the blocking monologue; world-map opening remains separate. D-12: device-check the scheduled phase banner; D12-2 covers enemy graphics and scanline blend verification. D-09 remains low priority.
+
+## Historical implementation notes (superseded device status; see latest test above)
 Scheduled 11-09 00:17Z (full jvmTest+test green): D-08 fixed 6d3406c, see table (other BG palette ~123 B diffs and f13500 BG0 text-tile diffs not explained; alignment by unit table only). Ref f14100/f14400 are black, f14700 is the Valter battle anim (unported), so later BG3 diffs are battle prep, not D-08. wip/D-08: ConvoBackgroundFade (Event21 subcode-1 fade procs, transcribed; Prologue never calls it) + Bg08ScratchTest diff harness; merge the fade only with a test. Gradle here needs `python3 tools/maven_mirror.py --port 8765 --cache /root/.cache/fe8-maven &` + FE8_MAVEN_MIRROR (Central 429).
 Owner-PC 11-09: 28bef11 starts the original mouth child before the blink child and queues ROM mouth tiles until VBlank. Five tests cover parent/timer initialization, speaking/silent state, 300-frame shared LCG sequencing, OAM/VRAM in both orientations, and production flush timing. Six deliberate mutations failed then were restored. Smile/blend paths and exact initial phase from reused original proc memory are outside this verification. No new StartFace tag.
 

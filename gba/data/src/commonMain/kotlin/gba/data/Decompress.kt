@@ -10,19 +10,31 @@ package gba.data
  * Partially ported from src/bmlib.c: Decompress
  */
 public object Decompress {
+    /** Type tag in the high nibble of raw (uncompressed) blobs. */
+    public const val TYPE_RAW: Int = 0x00
+
+    /** Type tag in the high nibble of LZ77-compressed blobs. */
+    public const val TYPE_LZ77: Int = Lz77.TYPE
+
+    /** High-nibble mask for extracting the compression format type from the first header byte. */
+    private const val HEADER_TYPE_MASK: Int = 0xF0
+
+    /** Header size in bytes prepended to raw blobs. */
+    private const val RAW_HEADER_SIZE: Int = 4
+
     /**
      * Decodes the blob at [offset] of [src] into [dst] at [dstOffset]; returns the bytes written.
      * Does not allocate.
      */
     public fun into(src: ByteArray, offset: Int, dst: ByteArray, dstOffset: Int): Int {
-        val type = src[offset].toInt() and 0xF0
+        val type = src[offset].toInt() and HEADER_TYPE_MASK
         return when (type) {
-            0x00 -> {
+            TYPE_RAW -> {
                 val size = rawSize(src, offset)
-                src.copyInto(dst, dstOffset, offset + 4, offset + 4 + size)
+                src.copyInto(dst, dstOffset, offset + RAW_HEADER_SIZE, offset + RAW_HEADER_SIZE + size)
                 size
             }
-            Lz77.TYPE -> {
+            TYPE_LZ77 -> {
                 Lz77.decodeInto(src, offset, dst, dstOffset)
                 Lz77.headerSize(src, offset)
             }
@@ -34,17 +46,21 @@ public object Decompress {
 
     /** Decodes the blob at [offset] of [src] into a new array. */
     public fun decode(src: ByteArray, offset: Int): ByteArray {
-        val type = src[offset].toInt() and 0xF0
-        if (type == Lz77.TYPE) return Lz77.decode(src, offset).data
+        val type = src[offset].toInt() and HEADER_TYPE_MASK
+        if (type == TYPE_LZ77) return Lz77.decode(src, offset).data
         val out = ByteArray(maxOf(rawSize(src, offset), 0))
         into(src, offset, out, 0)
         return out
     }
 
+    /**
+     * Decodes the payload size of a raw blob from header bytes 1..3 (24-bit little-endian),
+     * subtracting the 4-byte header size.
+     */
     private fun rawSize(src: ByteArray, offset: Int): Int {
         val b1 = src[offset + 1].toInt() and 0xFF
         val b2 = src[offset + 2].toInt() and 0xFF
         val b3 = src[offset + 3].toInt() and 0xFF
-        return (b1 or (b2 shl 8) or (b3 shl 16)) - 4
+        return (b1 or (b2 shl 8) or (b3 shl 16)) - RAW_HEADER_SIZE
     }
 }

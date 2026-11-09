@@ -22,10 +22,19 @@ public class RamSymbols(file: File) {
         val binding: String,
     )
 
-    private val byName: Map<String, List<Symbol>> = file.readLines().drop(1).filter { it.isNotBlank() }.map { line ->
-        val c = line.split('\t')
-        Symbol(c[0], c[1].removePrefix("0x").toLong(16).toInt(), c[2].toInt(), c[3])
-    }.groupBy { it.name }
+    /** Look-up table of decomp symbols indexed by their C identifier name. */
+    private val byName: Map<String, List<Symbol>> = file.readLines()
+        .drop(1)
+        .filter { it.isNotBlank() }
+        .map { line ->
+            val columns = line.split('	')
+            require(columns.size >= 4) { "malformed ram_symbols.tsv row: $line" }
+            val name = columns[0]
+            val address = columns[1].removePrefix("0x").toLong(16).toInt()
+            val size = columns[2].toInt()
+            val binding = columns[3]
+            Symbol(name, address, size, binding)
+        }.groupBy { it.name }
 
     /** The unique symbol called [name]; fails if missing or ambiguous (same static name in several files). */
     public operator fun get(name: String): Symbol {
@@ -36,11 +45,20 @@ public class RamSymbols(file: File) {
 
     /** Factory for the committed reference table. */
     public companion object {
+        /** System property key for overriding the reference data directory path. */
+        public const val REFERENCE_PROPERTY: String = "fe8.reference"
+
+        /** Default relative directory name holding reference files. */
+        public const val DEFAULT_REFERENCE_DIR: String = "reference"
+
+        /** File name containing RAM symbol addresses and sizes. */
+        public const val RAM_SYMBOLS_FILE_NAME: String = "ram_symbols.tsv"
+
         /**
          * Loads from the `fe8.reference` system property (set by Gradle to `<repo>/reference`);
          * the name is the host build's convention.
          */
         public fun fromEnvironment(): RamSymbols =
-            RamSymbols(File(System.getProperty("fe8.reference") ?: "reference", "ram_symbols.tsv"))
+            RamSymbols(File(System.getProperty(REFERENCE_PROPERTY) ?: DEFAULT_REFERENCE_DIR, RAM_SYMBOLS_FILE_NAME))
     }
 }

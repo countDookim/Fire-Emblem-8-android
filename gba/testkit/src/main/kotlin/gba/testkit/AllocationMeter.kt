@@ -12,6 +12,10 @@ import java.lang.management.ManagementFactory
  * catches regressions such as boxing, iterators, lambdas capturing state or string building.
  */
 public object AllocationMeter {
+    /** Default repetition rounds for [measureMin] to filter out transient JIT/OSR allocations. */
+    public const val DEFAULT_MEASURE_ROUNDS: Int = 3
+
+    /** Per-thread allocation accounting MXBean provided by HotSpot. */
     private val bean = ManagementFactory.getThreadMXBean() as com.sun.management.ThreadMXBean
 
     /** True if the JVM supports per-thread allocation accounting. */
@@ -36,7 +40,12 @@ public object AllocationMeter {
      * per-iteration allocation shows up in every round; a one-off runtime allocation (JIT/OSR transition while
      * the code is being compiled) only in one, so this keeps the zero-allocation check without flaking.
      */
-    public inline fun measureMin(warmup: Int, iterations: Int, rounds: Int = 3, block: () -> Unit): Long {
+    public inline fun measureMin(
+        warmup: Int,
+        iterations: Int,
+        rounds: Int = DEFAULT_MEASURE_ROUNDS,
+        block: () -> Unit,
+    ): Long {
         repeat(warmup) { block() }
         var best = Long.MAX_VALUE
         repeat(rounds) {

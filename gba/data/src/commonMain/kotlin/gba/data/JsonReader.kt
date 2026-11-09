@@ -1,109 +1,139 @@
 package gba.data
 
 /**
- * Minimal JSON reader for the engine's data files (no reflection, no dependencies): objects become
- * `Map<String, Any?>` (insertion order), arrays `List<Any?>`, integers `Long`, other numbers `Double`, plus
- * `String`, `Boolean` and null.
+ * Minimal JSON reader for the engine's data files (no reflection, no external dependencies):
+ * objects become `Map<String, Any?>` (preserving insertion order), arrays `List<Any?>`,
+ * integers `Long`, floating-point numbers `Double`, strings `String`, booleans `Boolean`,
+ * and `null`.
  */
 public object JsonReader {
     /** Parses one JSON document; throws [IllegalArgumentException] on malformed input or trailing text. */
     public fun parse(text: String): Any? {
-        val p = Parser(text)
-        val v = p.value()
-        p.ws()
-        require(p.i == text.length) { "trailing data at ${p.i}" }
-        return v
+        val parser = Parser(text)
+        val result = parser.parseValue()
+        parser.skipWhitespace()
+        require(parser.cursor == text.length) { "trailing data at ${parser.cursor}" }
+        return result
     }
 
-    private class Parser(val s: String) {
-        var i = 0
+    /** Recursive descent JSON parser tracking a character cursor over [source]. */
+    private class Parser(val source: String) {
+        var cursor: Int = 0
 
-        fun ws() {
-            while (i < s.length && s[i].isWhitespace()) i++
+        /** Advances [cursor] past any whitespace characters. */
+        fun skipWhitespace() {
+            while (cursor < source.length && source[cursor].isWhitespace()) cursor++
         }
 
-        fun value(): Any? {
-            ws()
-            require(i < s.length) { "unexpected end" }
-            return when (val c = s[i]) {
-                '{' -> obj()
-                '[' -> arr()
-                '"' -> str()
-                't' -> lit("true", true)
-                'f' -> lit("false", false)
-                'n' -> lit("null", null)
-                else -> if (c == '-' || c.isDigit()) num() else throw IllegalArgumentException("bad char '$c' at $i")
-            }
-        }
-
-        fun lit(w: String, v: Any?): Any? {
-            require(s.startsWith(w, i)) { "bad literal at $i" }
-            i += w.length
-            return v
-        }
-
-        fun obj(): Map<String, Any?> {
-            val m = LinkedHashMap<String, Any?>()
-            i++
-            ws()
-            if (s[i] == '}') { i++; return m }
-            while (true) {
-                ws()
-                val k = str()
-                ws()
-                require(s[i] == ':') { "':' expected at $i" }
-                i++
-                m[k] = value()
-                ws()
-                when (s[i++]) {
-                    ',' -> continue
-                    '}' -> return m
-                    else -> throw IllegalArgumentException("',' or '}' expected at ${i - 1}")
+        /** Parses and returns the next JSON value (object, array, string, number, boolean, or null). */
+        fun parseValue(): Any? {
+            skipWhitespace()
+            require(cursor < source.length) { "unexpected end of JSON input" }
+            return when (val ch = source[cursor]) {
+                '{' -> parseObject()
+                '[' -> parseArray()
+                '"' -> parseString()
+                't' -> parseLiteral("true", true)
+                'f' -> parseLiteral("false", false)
+                'n' -> parseLiteral("null", null)
+                else -> if (ch == '-' || ch.isDigit()) parseNumber() else {
+                    throw IllegalArgumentException("unexpected character '$ch' at $cursor")
                 }
             }
         }
 
-        fun arr(): List<Any?> {
-            val l = ArrayList<Any?>()
-            i++
-            ws()
-            if (s[i] == ']') { i++; return l }
+        /** Matches exact literal string [expected] and returns [value]. */
+        fun parseLiteral(expected: String, value: Any?): Any? {
+            require(source.startsWith(expected, cursor)) { "bad literal at $cursor" }
+            cursor += expected.length
+            return value
+        }
+
+        /** Parses a JSON object `{ ... }` as an insertion-ordered `LinkedHashMap`. */
+        fun parseObject(): Map<String, Any?> {
+            val map = LinkedHashMap<String, Any?>()
+            cursor++ // skip '{'
+            skipWhitespace()
+            if (source[cursor] == '}') {
+                cursor++
+                return map
+            }
             while (true) {
-                l += value()
-                ws()
-                when (s[i++]) {
+                skipWhitespace()
+                val key = parseString()
+                skipWhitespace()
+                require(source[cursor] == ':') { "':' expected at $cursor" }
+                cursor++
+                map[key] = parseValue()
+                skipWhitespace()
+                when (source[cursor++]) {
                     ',' -> continue
-                    ']' -> return l
-                    else -> throw IllegalArgumentException("',' or ']' expected at ${i - 1}")
+                    '}' -> return map
+                    else -> throw IllegalArgumentException("',' or '}' expected at ${cursor - 1}")
                 }
             }
         }
 
-        fun str(): String {
-            require(s[i] == '"') { "string expected at $i" }
-            i++
-            val b = StringBuilder()
+        /** Parses a JSON array `[ ... ]` as an `ArrayList`. */
+        fun parseArray(): List<Any?> {
+            val list = ArrayList<Any?>()
+            cursor++ // skip '['
+            skipWhitespace()
+            if (source[cursor] == ']') {
+                cursor++
+                return list
+            }
             while (true) {
-                val c = s[i++]
-                when (c) {
-                    '"' -> return b.toString()
-                    '\\' -> when (val e = s[i++]) {
-                        'n' -> b.append('\n'); 't' -> b.append('\t'); 'r' -> b.append('\r')
-                        'b' -> b.append('\b'); 'f' -> b.append('\u000C')
-                        'u' -> { b.append(s.substring(i, i + 4).toInt(16).toChar()); i += 4 }
-                        else -> b.append(e)
+                list += parseValue()
+                skipWhitespace()
+                when (source[cursor++]) {
+                    ',' -> continue
+                    ']' -> return list
+                    else -> throw IllegalArgumentException("',' or ']' expected at ${cursor - 1}")
+                }
+            }
+        }
+
+        /** Parses a quoted JSON string with standard escape sequences and unicode escapes `\uXXXX`. */
+        fun parseString(): String {
+            require(source[cursor] == '"') { "string expected at $cursor" }
+            cursor++ // skip opening quote
+            val sb = StringBuilder()
+            while (true) {
+                require(cursor < source.length) { "unterminated string starting before $cursor" }
+                val ch = source[cursor++]
+                when (ch) {
+                    '"' -> return sb.toString()
+                    '\\' -> {
+                        require(cursor < source.length) { "unterminated escape at $cursor" }
+                        when (val esc = source[cursor++]) {
+                            'n' -> sb.append('\n')
+                            't' -> sb.append('\t')
+                            'r' -> sb.append('\r')
+                            'b' -> sb.append('\b')
+                            'f' -> sb.append('\u000C')
+                            'u' -> {
+                                require(cursor + 4 <= source.length) { "incomplete unicode escape at $cursor" }
+                                sb.append(source.substring(cursor, cursor + 4).toInt(16).toChar())
+                                cursor += 4
+                            }
+                            else -> sb.append(esc)
+                        }
                     }
-                    else -> b.append(c)
+                    else -> sb.append(ch)
                 }
             }
         }
 
-        fun num(): Any {
-            val start = i
-            if (s[i] == '-') i++
-            while (i < s.length && (s[i].isDigit() || s[i] in ".eE+-")) i++
-            val t = s.substring(start, i)
-            return t.toLongOrNull() ?: t.toDouble()
+        /** Parses a JSON number token into a [Long] if integral, or a [Double] if fractional/exponential. */
+        fun parseNumber(): Any {
+            val start = cursor
+            if (source[cursor] == '-') cursor++
+            while (cursor < source.length && (source[cursor].isDigit() || source[cursor] in ".eE+-")) {
+                cursor++
+            }
+            val text = source.substring(start, cursor)
+            return text.toLongOrNull() ?: text.toDouble()
         }
     }
 }

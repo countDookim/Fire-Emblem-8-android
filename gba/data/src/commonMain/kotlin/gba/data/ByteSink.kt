@@ -1,24 +1,30 @@
 package gba.data
 
 /**
- * A growable byte buffer (common-code replacement for `ByteArrayOutputStream` +
- * `DataOutputStream`).
+ * A growable byte buffer and streaming byte sink (multiplatform common replacement for
+ * `ByteArrayOutputStream` and `DataOutputStream`).
  *
- * @param initialCapacity initial backing-array size in bytes (at least 16 is used).
+ * @param initialCapacity initial backing-array size in bytes (at least [MIN_CAPACITY] is used).
  */
-public class ByteSink(initialCapacity: Int = 256) {
-    private var buf = ByteArray(maxOf(initialCapacity, 16))
+public class ByteSink(initialCapacity: Int = DEFAULT_INITIAL_CAPACITY) {
+    /** Backing byte array buffer that dynamically doubles when capacity is exhausted. */
+    private var buf = ByteArray(maxOf(initialCapacity, MIN_CAPACITY))
+
+    /** Number of bytes written to the sink so far. */
     private var count = 0
 
     /** Number of bytes written so far. */
     public val size: Int get() = count
 
+    /** Ensures that [buf] has sufficient room for [extra] additional bytes, doubling size if needed. */
     private fun ensure(extra: Int) {
         val need = count + extra
-        if (need > buf.size) buf = buf.copyOf(maxOf(need, buf.size * 2))
+        if (need > buf.size) {
+            buf = buf.copyOf(maxOf(need, buf.size * 2))
+        }
     }
 
-    /** Appends the low 8 bits of [b]. */
+    /** Appends the low 8 bits of integer [b] as a byte. */
     public fun write(b: Int) {
         ensure(1)
         buf[count++] = b.toByte()
@@ -31,7 +37,7 @@ public class ByteSink(initialCapacity: Int = 256) {
         count += length
     }
 
-    /** Writes [v] as 4 big-endian bytes. */
+    /** Writes 32-bit integer [v] as 4 big-endian bytes (most significant byte first). */
     public fun writeInt(v: Int) {
         write(v ushr 24)
         write(v ushr 16)
@@ -39,6 +45,15 @@ public class ByteSink(initialCapacity: Int = 256) {
         write(v)
     }
 
-    /** A copy of the bytes written so far. */
+    /** Returns a newly-allocated copy of the bytes written to the sink so far. */
     public fun toByteArray(): ByteArray = buf.copyOf(count)
+
+    /** Constants for [ByteSink] buffer sizing. */
+    public companion object {
+        /** Default initial capacity for newly allocated sinks. */
+        public const val DEFAULT_INITIAL_CAPACITY: Int = 256
+
+        /** Minimum initial buffer size. */
+        public const val MIN_CAPACITY: Int = 16
+    }
 }

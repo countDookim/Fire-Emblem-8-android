@@ -1,59 +1,94 @@
 package gba.extract
 
 /**
- * Decomp ELF symbols from `nm`-style output (`fireemblem8.nm.txt` in the ROM repo):
- * `ADDR [SIZE] TYPE NAME` per line, hex fields. Used to locate ROM data tables by name, so the extractor
- * has no hard-coded addresses.
+ * Decomp ELF symbols parser for GNU `nm`-style symbol table dumps (`fireemblem8.nm.txt` in the ROM repo):
+ * `ADDR [SIZE] TYPE NAME` per line with hexadecimal fields.
  *
- * Many asm data labels carry no size; [sizeOrSpan] then falls back to the distance to the next symbol at
- * a higher address (the convention documented in HANDOFF's caveats).
+ * Used during extraction to locate data tables in ROM by their decomp identifier, avoiding hard-coded
+ * memory addresses. When assembly data labels lack an explicit size, [sizeOrSpan] determines size as
+ * the distance to the next symbol at a higher address.
  */
 public class Symbols(lines: List<String>) {
-    /** One symbol; [size] is -1 when `nm` printed none. */
+    /** One parsed symbol entry; [size] is -1 when `nm` emitted no size. */
     public data class Symbol(
-        /** Symbol name as in the decomp. */
+        /** Symbol name as written in the decomp. */
         val name: String,
-        /** GBA address (ROM symbols are 0x08xxxxxx). */
+        /** GBA bus address (ROM symbols reside in `0x08000000..0x09FFFFFF`). */
         val address: Int,
-        /** Size in bytes, or -1 if unknown. */
+        /** Size in bytes from the ELF symbol table, or -1 if unknown. */
         val size: Int,
     )
 
+    /** All symbols parsed from the input lines. */
     private val all: List<Symbol> = lines.mapNotNull { line ->
-        val c = line.trim().split(Regex("\\s+"))
-        when (c.size) {
-            4 -> Symbol(c[3], c[0].toLong(16).toInt(), c[1].toLong(16).toInt())
-            3 -> Symbol(c[2], c[0].toLong(16).toInt(), -1)
+        val columns = line.trim().split(Regex("""\s+"""))
+        when (columns.size) {
+            NM_COLUMNS_WITH_SIZE -> Symbol(
+                columns[3],
+                columns[0].toLong(16).toInt(),
+                columns[1].toLong(16).toInt(),
+            )
+            NM_COLUMNS_WITHOUT_SIZE -> Symbol(
+                columns[2],
+                columns[0].toLong(16).toInt(),
+                -1,
+            )
             else -> null
         }
     }
+
+    /** Map of symbol names to all symbol definitions sharing that name. */
     private val byName: Map<String, List<Symbol>> = all.groupBy { it.name }
+
+    /** Sorted unique symbol addresses used for span calculation. */
     private val sortedAddresses: IntArray = all.map { it.address }.distinct().sortedBy { it.toUInt() }.toIntArray()
 
     /**
-     * The unique symbol [name].
+     * Returns the unique symbol named [name].
      *
-     * @throws IllegalArgumentException if it is missing or defined at more than one address.
+     * @throws IllegalArgumentException if the symbol is missing or defined at multiple distinct addresses.
      */
     public operator fun get(name: String): Symbol {
-        val s = byName[name]?.distinctBy { it.address } ?: throw IllegalArgumentException("symbol $name not found")
-        require(s.size == 1) { "symbol $name is ambiguous (${s.size} addresses)" }
+        val matches = byName[name]?.distinctBy { it.address }
+            ?: throw IllegalArgumentException("symbol $name not found")
+        require(matches.size == 1) { "symbol $name is ambiguous (${matches.size} addresses)" }
         return byName.getValue(name).maxBy { it.size }
     }
 
-    /** Names of all symbols starting with [prefix], each once. */
-    public fun namesWithPrefix(prefix: String): List<String> = byName.keys.filter { it.startsWith(prefix) }.sorted()
+    /** Returns all unique symbol names starting with [prefix], sorted alphabetically. */
+    public fun namesWithPrefix(prefix: String): List<String> =
+        byName.keys.filter { it.startsWith(prefix) }.sorted()
 
-    /** Address → name for ROM symbols (0x08xxxxxx-0x09xxxxxx); the alphabetically first name wins on aliases. */
+    /**
+     * Maps ROM addresses (`0x08000000..0x09FFFFFF`) to their symbol names.
+     * When multiple symbols share the same address (aliases), the alphabetically first name is selected.
+     */
     public fun romNamesByAddress(): Map<Int, String> =
-        all.filter { it.address ushr 25 == 4 }.groupBy { it.address }.mapValues { (_, v) -> v.minOf { it.name } }
+        all.filter { it.address ushr 25 == GBA_ROM_PREFIX }
+            .groupBy { it.address }
+            .mapValues { (_, symbols) -> symbols.minOf { it.name } }
 
-    /** Size of [name], or the gap to the next higher symbol address if it has none. */
+    /**
+     * Returns the size of [name] in bytes. If the symbol had no size in the ELF table, computes
+     * the span as the distance to the next symbol address.
+     */
     public fun sizeOrSpan(name: String): Int {
-        val s = get(name)
-        if (s.size >= 0) return s.size
-        val next = sortedAddresses.firstOrNull { it.toUInt() > s.address.toUInt() }
+        val symbol = get(name)
+        if (symbol.size >= 0) return symbol.size
+        val nextAddress = sortedAddresses.firstOrNull { it.toUInt() > symbol.address.toUInt() }
             ?: throw IllegalArgumentException("no symbol after $name")
-        return next - s.address
+        return nextAddress - symbol.address
+    }
+
+    /** Symbol address and formatting constants. */
+    public companion object {
+        /** Top 7 bits of GBA ROM bus addresses: `0x08000000 ushr 25 == 4`. */
+        public const val GBA_ROM_PREFIX: Int = 4
+
+        /** Number of whitespace-separated columns in `nm` output when size is present. */
+        private const val NM_COLUMNS_WITH_SIZE: Int = 4
+
+        /** Number of whitespace-separated columns in `nm` output when size is omitted. */
+        private const val NM_COLUMNS_WITHOUT_SIZE: Int = 3
     }
 }

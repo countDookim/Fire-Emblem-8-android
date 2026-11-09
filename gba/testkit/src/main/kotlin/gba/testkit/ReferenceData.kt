@@ -8,10 +8,12 @@ import java.nio.ByteOrder
  * Read access to the mGBA reference data produced by `mgba-harness` in the ROM repo and unpacked by
  * `tools/setup.sh` (sessions) or the CI workflow into `$FE8_ASSETS/reference/out/<script>/`.
  *
- * Each script directory holds `manifest.txt` (`<dump> <frame>` lines), `inputs.bin` (one little-endian
- * uint16 GBA key mask per frame) and per-dump files `<dump>.{ewram,iwram,frame.rgb,vram,pal,oam,io}.bin`.
- * Runs may also hold `states.txt` (savestate/loadstate timeline; dump frames are monotonic emulated steps)
- * and `frames.rgb` + `frames.txt` (screen every N steps); see the ROM repo's harness/harness.c.
+ * Each script directory holds:
+ * - `manifest.txt`: `<dump_name> <frame_number>` lines
+ * - `inputs.bin`: one little-endian uint16 GBA key mask per frame
+ * - Per-dump binary snapshots: `<dump>.{ewram,iwram,frame.rgb,vram,pal,oam,io}.bin`
+ * - Runs may also hold `states.txt` (savestate/loadstate timeline; dump frames are monotonic emulated steps)
+ *   and `frames.rgb` + `frames.txt` (screen every N steps); see the ROM repo's `harness/harness.c`.
  *
  * This is test-only infrastructure: GBA addresses appear here (to locate the original game's state in
  * the dumps) and must never leak into the port itself.
@@ -23,33 +25,33 @@ public class ReferenceData(
     /** True if the reference data is present (tests skip — not pass — when it is not). */
     public val available: Boolean get() = File(root, "boot_to_title/manifest.txt").isFile
 
-    /** One reference run. */
+    /** One reference run recorded by `mgba-harness`. */
     public inner class Run(
         /** Run directory name, e.g. `boot_to_title`. */
         public val name: String,
     ) {
         private val dir = File(root, name)
 
-        /** Dump name → frame number, in file order. */
+        /** Dump name → frame number, in file order from `manifest.txt`. */
         public val dumps: LinkedHashMap<String, Int> by lazy {
-            val m = LinkedHashMap<String, Int>()
+            val manifestMap = LinkedHashMap<String, Int>()
             File(dir, "manifest.txt").forEachLine { line ->
-                val (n, f) = line.trim().split(' ')
-                m[n] = f.toInt()
+                val (dumpName, frameNumber) = line.trim().split(' ')
+                manifestMap[dumpName] = frameNumber.toInt()
             }
-            m
+            manifestMap
         }
 
         /** Per-frame GBA key masks fed to mGBA (index = frame - 1). */
         public val inputs: IntArray by lazy {
-            val b = ByteBuffer.wrap(File(dir, "inputs.bin").readBytes()).order(ByteOrder.LITTLE_ENDIAN)
-            IntArray(b.remaining() / 2) { b.short.toInt() and 0xFFFF }
+            val buffer = ByteBuffer.wrap(File(dir, "inputs.bin").readBytes()).order(ByteOrder.LITTLE_ENDIAN)
+            IntArray(buffer.remaining() / GBA_KEY_INPUT_BYTES) { buffer.short.toInt() and 0xFFFF }
         }
 
         /** Raw bytes of a dump region, e.g. `region = "iwram"`. */
         public fun region(dump: String, region: String): ByteArray = File(dir, "$dump.$region.bin").readBytes()
 
-        /** RGB888 frame of a full dump (240×160×3). */
+        /** RGB888 frame of a full dump (240×160×3 bytes). */
         public fun frameRgb(dump: String): ByteArray = File(dir, "$dump.frame.rgb").readBytes()
 
         /** True if the run holds any `*.sram.bin` dump (harness `dumpsram NAME`). */
@@ -59,13 +61,16 @@ public class ReferenceData(
         /** The 32768-byte save RAM dumped as [dump] (`<dump>.sram.bin`). */
         public fun sram(dump: String): ByteArray = File(dir, "$dump.sram.bin").readBytes()
 
+        /** Watch specifications parsed from `watches.txt`: `<name> <hex_address> <length> <first_step>`. */
         private val watchSpecs: Map<String, List<String>> by lazy {
-            val f = File(dir, "watches.txt")
-            if (!f.isFile) {
+            val specFile = File(dir, "watches.txt")
+            if (!specFile.isFile) {
                 emptyMap()
             } else {
-                f.readLines().filter { it.isNotBlank() }
-                    .map { it.trim().split(Regex("\\s+")) }.associateBy { it[0] }
+                specFile.readLines()
+                    .filter { it.isNotBlank() }
+                    .map { it.trim().split(Regex("\\s+")) }
+                    .associateBy { it[0] }
             }
         }
 
@@ -74,20 +79,21 @@ public class ReferenceData(
 
         /** Loads the per-step trace of watch [name] (`watches.txt` + `<name>.watch.bin`). */
         public fun watch(name: String): WatchTrace {
-            val f = requireNotNull(watchSpecs[name]) { "no watch $name in run ${this.name}" }
-            return WatchTrace(
-                name, f[1].toLong(16).toInt(), f[2].toInt(), f[3].toInt(),
-                File(dir, "$name.watch.bin").readBytes(),
-            )
+            val spec = requireNotNull(watchSpecs[name]) { "no watch $name in run ${this.name}" }
+            val address = spec[1].toLong(16).toInt()
+            val length = spec[2].toInt()
+            val firstStep = spec[3].toInt()
+            val watchBytes = File(dir, "$name.watch.bin").readBytes()
+            return WatchTrace(name, address, length, firstStep, watchBytes)
         }
 
         /** True when the run was made with `--audio`. */
         public val hasAudio: Boolean get() = File(dir, "audio.s16").isFile
 
-        /** mGBA's mixed output (`--audio`): interleaved L/R at [AUDIO_RATE] Hz. */
+        /** mGBA's mixed output (`--audio`): interleaved L/R signed 16-bit PCM at [AUDIO_RATE] Hz. */
         public val audio: ShortArray by lazy {
-            val b = ByteBuffer.wrap(File(dir, "audio.s16").readBytes()).order(ByteOrder.LITTLE_ENDIAN)
-            ShortArray(b.remaining() / 2) { b.short }
+            val buffer = ByteBuffer.wrap(File(dir, "audio.s16").readBytes()).order(ByteOrder.LITTLE_ENDIAN)
+            ShortArray(buffer.remaining() / 2) { buffer.short }
         }
 
         /** Stereo samples written by the end of each step: `audioEnd[step]` (`audioEnd[0]` = 0). */
@@ -95,8 +101,8 @@ public class ReferenceData(
             val lines = File(dir, "audio.txt").readLines().filter { it.isNotBlank() }
             val end = IntArray(lines.size + 1)
             for (line in lines) {
-                val (step, n) = line.trim().split(' ')
-                end[step.toInt()] = n.toInt()
+                val (step, sampleCount) = line.trim().split(' ')
+                end[step.toInt()] = sampleCount.toInt()
             }
             end
         }
@@ -104,11 +110,20 @@ public class ReferenceData(
         /** True when the run was made with `--psg-writes`. */
         public val hasPsgWrites: Boolean get() = File(dir, "psg_writes.txt").isFile
 
-        /** Sound register writes (`--psg-writes`) in emulation order. */
+        /**
+         * Sound register writes (`--psg-writes`) in emulation order:
+         * columns are `step`, `cycleInStep`, unused, `ioOffsetHex`, `valueHex`, `widthBytes`.
+         */
         public val psgWrites: List<PsgWrite> by lazy {
             File(dir, "psg_writes.txt").readLines().filter { it.isNotBlank() }.map { line ->
-                val f = line.trim().split(' ')
-                PsgWrite(f[0].toInt(), f[1].toLong(), f[3].toInt(16), f[4].toLong(16), f[5].toInt())
+                val fields = line.trim().split(' ')
+                val step = fields[0].toInt()
+                val cycleInStep = fields[1].toLong()
+                // fields[2] is unused log metadata
+                val ioOffset = fields[3].toInt(16)
+                val value = fields[4].toLong(16)
+                val width = fields[5].toInt()
+                PsgWrite(step, cycleInStep, ioOffset, value, width)
             }
         }
     }
@@ -136,15 +151,39 @@ public class ReferenceData(
 
     /** Factory for the reference data configured by Gradle. */
     public companion object {
+        /** GBA horizontal screen resolution in pixels. */
+        public const val GBA_SCREEN_WIDTH: Int = 240
+
+        /** GBA vertical screen resolution in scanlines. */
+        public const val GBA_SCREEN_HEIGHT: Int = 160
+
+        /** Bytes per RGB24 pixel. */
+        public const val BYTES_PER_RGB24: Int = 3
+
+        /** Bytes per little-endian 16-bit key input mask. */
+        public const val GBA_KEY_INPUT_BYTES: Int = 2
+
+        /** Size of battery-backed GBA static RAM in bytes. */
+        public const val GBA_SRAM_SIZE: Int = 32768
+
         /** Sample rate of `audio.s16` (harness `AUDIO_RATE`). */
         public const val AUDIO_RATE: Int = 32768
+
+        /** System property key for assets directory. */
+        public const val ASSETS_PROPERTY: String = "fe8.assets"
+
+        /** Environment variable key for assets directory. */
+        public const val ASSETS_ENV: String = "FE8_ASSETS"
+
+        /** Default relative path to assets directory if neither property nor env is set. */
+        public const val DEFAULT_ASSETS_DIR: String = ".assets"
 
         /**
          * Reference data from the `fe8.assets` system property / `FE8_ASSETS` env (set by Gradle);
          * those names are the host build's convention.
          */
         public fun fromEnvironment(): ReferenceData {
-            val base = System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets"
+            val base = System.getProperty(ASSETS_PROPERTY) ?: System.getenv(ASSETS_ENV) ?: DEFAULT_ASSETS_DIR
             return ReferenceData(File(base, "reference/out"))
         }
     }
@@ -152,18 +191,19 @@ public class ReferenceData(
 
 /** Little-endian readers over dump bytes, addressed by GBA bus address. */
 public object GbaMem {
-    /** Base address of IWRAM dumps. */
+    /** Base address of IWRAM dumps (Internal Working RAM, 32KB on-chip fast memory). */
     public const val IWRAM: Int = 0x03000000
 
-    /** Base address of EWRAM dumps. */
+    /** Base address of EWRAM dumps (External Working RAM, 256KB on-board memory). */
     public const val EWRAM: Int = 0x02000000
 
-    /** Reads an unsigned 16-bit value at bus [address] from a dump starting at [base]. */
+    /** Reads an unsigned 16-bit little-endian value at bus [address] from a dump starting at [base]. */
     public fun u16(dump: ByteArray, base: Int, address: Int): Int {
-        val o = address - base
-        return (dump[o].toInt() and 0xFF) or ((dump[o + 1].toInt() and 0xFF) shl 8)
+        val offset = address - base
+        return (dump[offset].toInt() and 0xFF) or ((dump[offset + 1].toInt() and 0xFF) shl 8)
     }
 
-    /** Reads a 32-bit value at bus [address] from a dump starting at [base]. */
-    public fun u32(dump: ByteArray, base: Int, address: Int): Int = u16(dump, base, address) or (u16(dump, base, address + 2) shl 16)
+    /** Reads a 32-bit little-endian value at bus [address] from a dump starting at [base]. */
+    public fun u32(dump: ByteArray, base: Int, address: Int): Int =
+        u16(dump, base, address) or (u16(dump, base, address + 2) shl 16)
 }

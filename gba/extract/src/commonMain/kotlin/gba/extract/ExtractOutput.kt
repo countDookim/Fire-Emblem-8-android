@@ -1,13 +1,17 @@
 package gba.extract
 
 /**
- * Where extraction steps put their files (paths relative to the output root, `/`-separated):
- * a directory for the CLI ([FileOutput]), the VFS `base` layer on device (M4-04).
+ * File output abstraction interface for extraction pipelines.
+ *
+ * Extraction steps write their generated assets through this interface using relative `/`-separated paths.
+ * Implementations include:
+ * - Desktop CLI: writes files directly to the filesystem.
+ * - Android on-device import: writes directly into the app's Virtual File System (VFS) base storage layer.
  */
 public interface ExtractOutput {
-    /** Writes [bytes] as [path], creating parent directories. */
+    /** Writes binary [bytes] to [path], creating parent directories as necessary. */
     public fun write(path: String, bytes: ByteArray)
 
-    /** Writes [text] as UTF-8 to [path]. */
+    /** Writes [text] as UTF-8 encoded bytes to [path]. */
     public fun writeText(path: String, text: String): Unit = write(path, text.encodeToByteArray())
 }

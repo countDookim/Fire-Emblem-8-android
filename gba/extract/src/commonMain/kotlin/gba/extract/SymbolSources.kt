@@ -1,31 +1,34 @@
 package gba.extract
 
 /**
- * The game-neutral answers extraction needs besides the ROM: symbol addresses and sizes, ROM
- * address names and decomp enum names. Behind an interface so extraction can run either from a
- * decomp or, on device, from a committed manifest of the answers (docs/decisions/0011);
- * [RecordingSymbolSources] produces that manifest and [ManifestSymbolSources] reads it.
+ * Interface providing symbol addresses, table sizes, and decomp enum names needed during extraction.
+ *
+ * Decouples extraction logic from the underlying source:
+ * - Desktop development: [RecordingSymbolSources] queries the decomp ELF directly and records
+ *   every query into a compact manifest JSON.
+ * - Device / runtime: [ManifestSymbolSources] answers queries from the pre-generated manifest JSON,
+ *   enabling on-device extraction without shipping decomp headers or symbol tables.
  */
 public interface SymbolSources {
-    /** The unique symbol [name] (see [Symbols.get]). */
+    /** Looks up the unique symbol [name]. */
     public operator fun get(name: String): Symbols.Symbol
 
-    /** Size of [name], or the gap to the next symbol (see [Symbols.sizeOrSpan]). */
+    /** Returns the size in bytes of [name], or the span to the next higher symbol. */
     public fun sizeOrSpan(name: String): Int
 
-    /** Names of all symbols starting with [prefix], sorted. */
+    /** Returns names of all symbols starting with [prefix], sorted alphabetically. */
     public fun namesWithPrefix(prefix: String): List<String>
 
-    /** Address to name for ROM symbols; extraction only looks names up (`get`). */
+    /** Returns address-to-name lookup map for ROM symbols. */
     public fun romNamesByAddress(): Map<Int, String>
 
-    /** Decomp enum values to names from header [relPath] (empty without a decomp). */
+    /** Returns decomp enum value-to-name mapping from header [relPath] for enum constants matching [prefix]. */
     public fun enumNames(relPath: String, prefix: String): Map<Int, String>
 }
 
 /**
- * Wraps [inner] and records every answer it gives, so [manifest] holds exactly what one
- * extraction run used (ROM names: only the addresses looked up, found or not).
+ * Wraps [inner] and records every query and result into internal maps, allowing [manifest]
+ * to produce a minimal JSON manifest of everything used during an extraction run.
  */
 public open class RecordingSymbolSources(private val inner: SymbolSources) : SymbolSources {
     private val symbols = sortedMapOf<String, Symbols.Symbol>()
@@ -34,7 +37,7 @@ public open class RecordingSymbolSources(private val inner: SymbolSources) : Sym
     private val romNames = sortedMapOf<Long, String?>()
     private val enums = sortedMapOf<String, Map<Int, String>>()
 
-    override fun get(name: String): Symbols.Symbol = inner[name].also { symbols[name] = it }
+    override fun get(name: String): Symbols.Symbol = inner[name].also { s -> symbols[name] = s }
 
     override fun sizeOrSpan(name: String): Int = inner.sizeOrSpan(name).also { spans[name] = it }
 
@@ -42,10 +45,15 @@ public open class RecordingSymbolSources(private val inner: SymbolSources) : Sym
         inner.namesWithPrefix(prefix).also { prefixes[prefix] = it }
 
     override fun romNamesByAddress(): Map<Int, String> {
-        val all = inner.romNamesByAddress()
-        return object : Map<Int, String> by all {
-            override fun get(key: Int): String? =
-                all[key].also { romNames[key.toLong() and 0xFFFFFFFFL] = it }
+        val underlying = inner.romNamesByAddress()
+        return object : AbstractMap<Int, String>() {
+            override val entries: Set<Map.Entry<Int, String>> get() = underlying.entries
+            override fun get(key: Int): String? {
+                val addr = key.toLong() and 0xFFFFFFFFL
+                val name = underlying[key]
+                romNames[addr] = name
+                return name
+            }
         }
     }
 
@@ -53,37 +61,44 @@ public open class RecordingSymbolSources(private val inner: SymbolSources) : Sym
         inner.enumNames(relPath, prefix).also { enums["$relPath $prefix"] = it }
 
     /**
-     * The recorded answers as a JSON-ready tree (see [Json.write]); subclasses may append
-     * their own sections.
+     * Serializes the recorded symbol and enum lookups as a deterministic JSON structure.
+     * Subclasses can extend this map with game-specific sections.
      */
     public open fun manifest(): MutableMap<String, Any?> = linkedMapOf(
-        "format" to 1,
+        "format" to MANIFEST_FORMAT_VERSION,
         "symbols" to symbols.mapValues { (_, s) ->
             linkedMapOf("address" to (s.address.toLong() and 0xFFFFFFFFL), "size" to s.size)
         },
         "spans" to spans,
         "prefixes" to prefixes,
-        "romNames" to romNames.mapKeys { hex32(it.key.toLong() and 0xFFFFFFFFL) },
+        "romNames" to romNames.mapKeys { hex32(it.key) },
         "enums" to enums.mapValues { (_, m) -> m.mapKeys { it.key.toString() } },
     )
+
+    /** Manifest version constants. */
+    public companion object {
+        /** Schema version of the generated manifest. */
+        public const val MANIFEST_FORMAT_VERSION: Int = 1
+    }
 }
 
 /**
- * [SymbolSources] answered from a manifest written by [RecordingSymbolSources] (no decomp
- * needed): the way extraction runs on device. Asking for something the manifest lacks throws,
- * so a step that changed its queries fails loudly until the manifest is regenerated.
+ * [SymbolSources] implementation backed by a pre-computed JSON manifest created by [RecordingSymbolSources].
+ * Throws an explicit [IllegalArgumentException] if an extractor queries a symbol or enum not present
+ * in the manifest, signaling that the manifest needs regeneration.
  */
 public open class ManifestSymbolSources(json: String) : SymbolSources {
-    /** The parsed manifest root, for subclasses with extra sections. */
+    /** Parsed JSON manifest root object. */
     protected val root: Map<*, *> = gba.data.JsonReader.parse(json) as Map<*, *>
 
     init {
         require(root["format"] == 1L) { "unsupported manifest format ${root["format"]}" }
     }
 
+    /** Extracts a subsection map by [key] from the manifest root. */
     private fun section(key: String): Map<*, *> = root[key] as Map<*, *>
 
-    /** Throws: [what] is not in the manifest. */
+    /** Throws an error indicating that [what] was missing from the manifest. */
     protected fun missing(what: String): Nothing =
         throw IllegalArgumentException("$what not in the extraction manifest (regenerate it)")
 
@@ -105,9 +120,9 @@ public open class ManifestSymbolSources(json: String) : SymbolSources {
                 get() = throw UnsupportedOperationException("manifest ROM names are lookup-only")
 
             override fun get(key: Int): String? {
-                val k = hex32(key.toLong() and 0xFFFFFFFFL)
-                if (!names.containsKey(k)) missing("ROM name of $k")
-                return names[k] as String?
+                val formattedAddress = hex32(key.toLong() and 0xFFFFFFFFL)
+                if (!names.containsKey(formattedAddress)) missing("ROM name of $formattedAddress")
+                return names[formattedAddress] as String?
             }
         }
     }
@@ -118,6 +133,6 @@ public open class ManifestSymbolSources(json: String) : SymbolSources {
     }
 }
 
-/** `0x` + 8 uppercase hex digits of [v] (a 32-bit value held in a Long). */
+/** Formats 32-bit unsigned [v] as an 8-character uppercase hex address prefixed with `0x`. */
 private fun hex32(v: Long): String =
     "0x" + v.toString(16).uppercase().padStart(8, '0')

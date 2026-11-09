@@ -38,14 +38,20 @@ public class IndexedImage(
  * just a viewing layout (the game addresses tiles by number), so any width round-trips.
  */
 public object Tiles {
-    /** Tile edge in pixels. */
+    /** Tile edge in pixels (GBA hardware tiles are 8×8 pixels). */
     public const val SIZE: Int = 8
 
-    /** Bytes per tile at 4 bits per pixel. */
+    /** Bytes per tile at 4 bits per pixel (64 pixels / 2 pixels per byte = 32 bytes). */
     public const val BYTES_4BPP: Int = 32
 
-    /** Bytes per tile at 8 bits per pixel. */
+    /** Bytes per tile at 8 bits per pixel (64 pixels * 1 byte per pixel = 64 bytes). */
     public const val BYTES_8BPP: Int = 64
+
+    /** Maximum palette index that fits in a 4bpp nibble (0..15). */
+    private const val MAX_4BPP_PALETTE_INDEX: Int = 15
+
+    /** Mask for extracting a 4-bit nibble. */
+    private const val NIBBLE_MASK: Int = 0x0F
 
     /**
      * Decodes [tileCount] 4bpp tiles from [src] at [offset] into an image [tilesPerRow] tiles wide.
@@ -73,49 +79,60 @@ public object Tiles {
     /** Number of whole tiles [image] holds. */
     public fun tileCapacity(image: IndexedImage): Int = (image.width / SIZE) * (image.height / SIZE)
 
+    /** Decodes [tileCount] tiles from [src] starting at [offset] into an [IndexedImage] arranged in rows. */
     private fun decode(src: ByteArray, offset: Int, tileCount: Int, tilesPerRow: Int, bpp: Int): IndexedImage {
         require(tileCount >= 0 && tilesPerRow > 0) { "tileCount=$tileCount tilesPerRow=$tilesPerRow" }
         val tileBytes = if (bpp == 4) BYTES_4BPP else BYTES_8BPP
         require(offset >= 0 && offset + tileCount * tileBytes <= src.size) { "tile data out of range" }
         val rows = (tileCount + tilesPerRow - 1) / tilesPerRow
         val img = IndexedImage(tilesPerRow * SIZE, rows * SIZE)
-        for (t in 0 until tileCount) {
-            val ox = (t % tilesPerRow) * SIZE
-            val oy = (t / tilesPerRow) * SIZE
-            val base = offset + t * tileBytes
-            for (py in 0 until SIZE) for (px in 0 until SIZE) {
-                val i = py * SIZE + px
-                val v = if (bpp == 4) {
-                    val b = src[base + (i shr 1)].toInt()
-                    if (i and 1 == 0) b and 0xF else (b shr 4) and 0xF
-                } else {
-                    src[base + i].toInt() and 0xFF
+        for (tileIndex in 0 until tileCount) {
+            val originX = (tileIndex % tilesPerRow) * SIZE
+            val originY = (tileIndex / tilesPerRow) * SIZE
+            val tileBaseOffset = offset + tileIndex * tileBytes
+            for (pixelY in 0 until SIZE) {
+                for (pixelX in 0 until SIZE) {
+                    val pixelIndexInTile = pixelY * SIZE + pixelX
+                    val colorIndex = if (bpp == 4) {
+                        val byteVal = src[tileBaseOffset + (pixelIndexInTile shr 1)].toInt()
+                        // Low nibble is left pixel (even index), high nibble is right pixel (odd index)
+                        if (pixelIndexInTile and 1 == 0) byteVal and NIBBLE_MASK else (byteVal shr 4) and NIBBLE_MASK
+                    } else {
+                        src[tileBaseOffset + pixelIndexInTile].toInt() and 0xFF
+                    }
+                    img[originX + pixelX, originY + pixelY] = colorIndex
                 }
-                img[ox + px, oy + py] = v
             }
         }
         return img
     }
 
+    /** Encodes [tileCount] tiles of [image] into a raw byte array formatted for GBA VRAM tile memory. */
     private fun encode(image: IndexedImage, tileCount: Int, bpp: Int): ByteArray {
         require(image.width % SIZE == 0 && image.height % SIZE == 0) { "image is not tile-aligned" }
         require(tileCount in 0..tileCapacity(image)) { "tileCount $tileCount exceeds image" }
         val tilesPerRow = image.width / SIZE
         val tileBytes = if (bpp == 4) BYTES_4BPP else BYTES_8BPP
         val out = ByteArray(tileCount * tileBytes)
-        for (t in 0 until tileCount) {
-            val ox = (t % tilesPerRow) * SIZE
-            val oy = (t / tilesPerRow) * SIZE
-            val base = t * tileBytes
-            for (py in 0 until SIZE) for (px in 0 until SIZE) {
-                val v = image[ox + px, oy + py]
-                val i = py * SIZE + px
-                if (bpp == 4) {
-                    require(v < 16) { "index $v at (${ox + px}, ${oy + py}) does not fit 4bpp" }
-                    val j = base + (i shr 1)
-                    out[j] = (out[j].toInt() or if (i and 1 == 0) v else v shl 4).toByte()
-                } else {
-                    out[base + i] = v.toByte()
+        for (tileIndex in 0 until tileCount) {
+            val originX = (tileIndex % tilesPerRow) * SIZE
+            val originY = (tileIndex / tilesPerRow) * SIZE
+            val tileBaseOffset = tileIndex * tileBytes
+            for (pixelY in 0 until SIZE) {
+                for (pixelX in 0 until SIZE) {
+                    val colorIndex = image[originX + pixelX, originY + pixelY]
+                    val pixelIndexInTile = pixelY * SIZE + pixelX
+                    if (bpp == 4) {
+                        require(colorIndex <= MAX_4BPP_PALETTE_INDEX) {
+                            "index $colorIndex at (${originX + pixelX}, ${originY + pixelY}) does not fit 4bpp"
+                        }
+                        val byteOffsetInOutput = tileBaseOffset + (pixelIndexInTile shr 1)
+                        val packed = out[byteOffsetInOutput].toInt() or
+                            if (pixelIndexInTile and 1 == 0) colorIndex else (colorIndex shl 4)
+                        out[byteOffsetInOutput] = packed.toByte()
+                    } else {
+                        out[tileBaseOffset + pixelIndexInTile] = colorIndex.toByte()
+                    }
                 }
             }
         }
@@ -131,20 +148,35 @@ public object Tiles {
  * rendering). Because the low bits are zero, [argbToBgr555] is an exact inverse on expanded colours.
  */
 public object Bgr555 {
+    /** Mask for a 5-bit colour channel. */
+    private const val CHANNEL_5BIT_MASK: Int = 0x1F
+
+    /** Shift to align red channel in BGR555 (bits 0..4). */
+    private const val RED_SHIFT: Int = 0
+
+    /** Shift to align green channel in BGR555 (bits 5..9). */
+    private const val GREEN_SHIFT: Int = 5
+
+    /** Shift to align blue channel in BGR555 (bits 10..14). */
+    private const val BLUE_SHIFT: Int = 10
+
+    /** Fully opaque alpha channel mask in ARGB8888. */
+    private const val ALPHA_OPAQUE: Int = 0xFF shl 24
+
     /** Converts one BGR555 colour to opaque ARGB8888. Bit 15 is ignored. */
     public fun toArgb(c: Int): Int {
-        val r = (c and 0x1F) shl 3
-        val g = ((c shr 5) and 0x1F) shl 3
-        val b = ((c shr 10) and 0x1F) shl 3
-        return (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+        val r = ((c shr RED_SHIFT) and CHANNEL_5BIT_MASK) shl 3
+        val g = ((c shr GREEN_SHIFT) and CHANNEL_5BIT_MASK) shl 3
+        val b = ((c shr BLUE_SHIFT) and CHANNEL_5BIT_MASK) shl 3
+        return ALPHA_OPAQUE or (r shl 16) or (g shl 8) or b
     }
 
     /** Converts ARGB8888 to BGR555 by truncating each channel to its top 5 bits (alpha ignored). */
     public fun fromArgb(argb: Int): Int {
-        val r = (argb shr 19) and 0x1F
-        val g = (argb shr 11) and 0x1F
-        val b = (argb shr 3) and 0x1F
-        return r or (g shl 5) or (b shl 10)
+        val r = (argb shr 19) and CHANNEL_5BIT_MASK
+        val g = (argb shr 11) and CHANNEL_5BIT_MASK
+        val b = (argb shr 3) and CHANNEL_5BIT_MASK
+        return (r shl RED_SHIFT) or (g shl GREEN_SHIFT) or (b shl BLUE_SHIFT)
     }
 
     /** Reads [count] little-endian BGR555 colours from [src] at [offset] as ARGB8888. */

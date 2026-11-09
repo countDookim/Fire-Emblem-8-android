@@ -67,32 +67,36 @@ public object EventScriptConverter {
         constants: ScriptConstants = Fe8ScriptConstants,
     ): Result {
         require(byteLength >= 0 && byteLength % 2 == 0) { "odd script length $byteLength" }
-        val out = Printer(symbols, constants)
-        var p = offset
+        val printer = Printer(symbols, constants)
+        var commandOffset = offset
         val end = offset + byteLength
-        while (p < end) {
-            val h = u16(rom, p)
-            val len = (h shr 4) and 0xF
-            require(len > 0) { "event at 0x${hexUpper(p)}: header 0x${hexUpper(h, 4)} length 0" }
-            require(p + 2 * len <= end) {
-                "event at 0x${hexUpper(p)}: command of $len words overruns the script"
+        while (commandOffset < end) {
+            val header = u16(rom, commandOffset)
+            val wordCount = (header shr 4) and 0xF
+            require(wordCount > 0) {
+                "event at 0x${hexUpper(commandOffset)}: header 0x${hexUpper(header, 4)} length 0"
             }
-            out.lines += out.command(rom, p, h, len)
-            p += 2 * len
+            require(commandOffset + 2 * wordCount <= end) {
+                "event at 0x${hexUpper(commandOffset)}: " +
+                    "command of $wordCount words overruns the script"
+            }
+            printer.lines += printer.command(rom, commandOffset, header, wordCount)
+            commandOffset += 2 * wordCount
         }
-        return Result(out.lines, out.referenced, p - offset)
+        return Result(printer.lines, printer.referenced, commandOffset - offset)
     }
 
     /** `.fe8s` text for named scripts: `event <name>` blocks with 4-space-indented commands. */
     public fun render(scripts: List<Pair<String, Result>>): String = buildString {
         append("# Converted from the FE8 ROM by gbafe.extract.fe8.events.EventScriptConverter ")
         append("(v1).\n")
-        for ((name, r) in scripts) {
+        for ((name, result) in scripts) {
             append("\nevent ").append(name).append('\n')
-            for (l in r.lines) append("    ").append(l).append('\n')
+            for (line in result.lines) append("    ").append(line).append('\n')
         }
     }
 
+    /** Formats commands and records the ROM symbols used by their arguments. */
     private class Printer(
         private val symbols: Map<Int, String>,
         private val constants: ScriptConstants,
@@ -100,30 +104,34 @@ public object EventScriptConverter {
         val lines = ArrayList<String>()
         val referenced = ArrayList<Int>()
 
-        fun command(rom: ByteArray, p: Int, h: Int, len: Int): String {
-            val c = Fe8EventCommands.find(h)
-            if (c == null || !representable(rom, p, len, c)) return raw(rom, p, h, len)
+        /** Formats one command, falling back to raw words when its fields cannot preserve it. */
+        fun command(rom: ByteArray, offset: Int, header: Int, wordCount: Int): String {
+            val command = Fe8EventCommands.find(header)
+            if (command == null || !representable(rom, offset, wordCount, command)) {
+                return raw(rom, offset, wordCount)
+            }
             val args = ArrayList<String>()
-            var name = c.name
-            if (c.subParam != null) args += number(h and 0xF)
-            for (f in c.layout) {
-                if (f.name == null) continue
-                val v = f.read(rom, p)
-                if (f.valueKind == Fe8ScriptConstants.KIND_EVENT_FLAG && v == SLOT2_FLAG) {
-                    if (c.macro == CLEAR_FLAG_MACRO) {
+            var name = command.name
+            if (command.subParam != null) args += number(header and 0xF)
+            for (field in command.layout) {
+                if (field.name == null) continue
+                val value = field.read(rom, offset)
+                if (field.valueKind == Fe8ScriptConstants.KIND_EVENT_FLAG && value == SLOT2_FLAG) {
+                    if (command.macro == CLEAR_FLAG_MACRO) {
                         name = CLEAR_FLAG_AT_SLOT2
                     } else {
                         args += FLAG_AT_SLOT2
                     }
                 } else {
-                    args += field(f, v)
+                    args += field(field, value)
                 }
             }
             return (listOf(name) + args).joinToString(" ")
         }
 
-        private fun raw(rom: ByteArray, p: Int, h: Int, len: Int): String {
-            val words = List(len) { "0x${hexUpper(u16(rom, p + 2 * it), 4)}" }
+        /** Preserves every word when a command has no lossless named representation. */
+        private fun raw(rom: ByteArray, offset: Int, wordCount: Int): String {
+            val words = List(wordCount) { "0x${hexUpper(u16(rom, offset + 2 * it), 4)}" }
             return (listOf("raw") + words).joinToString(" ")
         }
 
@@ -134,41 +142,48 @@ public object EventScriptConverter {
          */
         private fun representable(
             rom: ByteArray,
-            p: Int,
-            len: Int,
-            c: Fe8EventCommands.Command,
+            offset: Int,
+            wordCount: Int,
+            command: Fe8EventCommands.Command,
         ): Boolean {
-            val covered = IntArray(len)
-            for (f in c.layout) {
-                if (f.name == null) continue
-                val words = if (f.kind.bits == 32) 2 else 1
-                if (f.word + words > len) return false
-                val mask = when (f.kind) {
-                    Fe8EventCommands.FieldKind.U4 -> 0xF shl f.shift
-                    Fe8EventCommands.FieldKind.U8 -> 0xFF shl f.shift
+            val covered = IntArray(wordCount)
+            for (field in command.layout) {
+                if (field.name == null) continue
+                val words = if (field.kind.bits == 32) 2 else 1
+                if (field.word + words > wordCount) return false
+                val mask = when (field.kind) {
+                    Fe8EventCommands.FieldKind.U4 -> 0xF shl field.shift
+                    Fe8EventCommands.FieldKind.U8 -> 0xFF shl field.shift
                     else -> 0xFFFF
                 }
-                covered[f.word] = covered[f.word] or mask
-                if (words == 2) covered[f.word + 1] = 0xFFFF
+                covered[field.word] = covered[field.word] or mask
+                if (words == 2) covered[field.word + 1] = 0xFFFF
             }
-            for (w in 1 until len) if (u16(rom, p + 2 * w) and covered[w].inv() != 0) return false
+            for (word in 1 until wordCount) {
+                if (u16(rom, offset + 2 * word) and covered[word].inv() != 0) return false
+            }
             return true
         }
 
-        private fun field(f: Fe8EventCommands.Field, v: Int): String {
-            if (f.kind == Fe8EventCommands.FieldKind.POINTER) return pointer(v)
-            val k = f.valueKind
-            if (k == Fe8ScriptConstants.KIND_MENU_OVERRIDE) return menuBits(v)
-            if (k != null) {
-                val wide = f.kind == Fe8EventCommands.FieldKind.U16 && v >= 0x8000
-                val named = constants.nameOf(k, v)
-                    ?: if (wide) constants.nameOf(k, v - 0x10000) else null
+        /** Formats a field as a symbolic constant, pointer, or number according to its kind. */
+        private fun field(field: Fe8EventCommands.Field, value: Int): String {
+            if (field.kind == Fe8EventCommands.FieldKind.POINTER) return pointer(value)
+            val kind = field.valueKind
+            if (kind == Fe8ScriptConstants.KIND_MENU_OVERRIDE) return menuBits(value)
+            if (kind != null) {
+                val signExtend = field.kind == Fe8EventCommands.FieldKind.U16 && value >= 0x8000
+                val named = constants.nameOf(kind, value)
+                    ?: if (signExtend) constants.nameOf(kind, value - 0x10000) else null
                 if (named != null) return named
             }
-            return if (f.kind == Fe8EventCommands.FieldKind.U32) pointer(v) else number(v)
+            return if (field.kind == Fe8EventCommands.FieldKind.U32) {
+                pointer(value)
+            } else {
+                number(value)
+            }
         }
 
-        /** The names of the set bits of an unit-menu override mask joined by `|`, or the number. */
+        /** The names of the set bits of a unit-menu override mask joined by `|`, or the number. */
         private fun menuBits(v: Int): String {
             if (v == 0) return "0"
             val parts = ArrayList<String>()

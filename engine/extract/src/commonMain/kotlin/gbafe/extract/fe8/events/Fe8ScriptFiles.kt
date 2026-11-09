@@ -82,17 +82,19 @@ public object Fe8ScriptFiles {
                 "first script of '${starts[i].first}' is not after '${starts[i - 1].first}'"
             }
         }
-        val out = LinkedHashMap<String, MutableList<String>>()
-        for ((stem, _) in starts) out.getOrPut(stem) { ArrayList() }
+        val groups = LinkedHashMap<String, MutableList<String>>()
+        for ((stem, _) in starts) groups.getOrPut(stem) { ArrayList() }
         val sorted = addresses.entries.sortedBy { it.value.toUInt() }
         for ((name, address) in sorted) {
             val inData = address.toUInt() >= DATA_START.toUInt() && address.toUInt() < DATA_END.toUInt()
             var stem = "common"
             if (inData) {
-                for ((s, a) in starts) if (a.toUInt() <= address.toUInt()) stem = s else break
+                for ((candidateStem, startAddress) in starts) {
+                    if (startAddress.toUInt() <= address.toUInt()) stem = candidateStem else break
+                }
             }
-            out.getValue(stem) += name
+            groups.getValue(stem) += name
         }
-        return out
+        return groups
     }
 }

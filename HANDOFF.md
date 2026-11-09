@@ -13,6 +13,9 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 - D07-trace: owner PC, until ~21:25Z; Android game/audio timing + starvation/underrun diagnostics; no speculative stutter-fix claim.
 - D11-proc: owner PC, until ~21:25Z; subtitle end-BGM callback, then standalone parent lifecycle if time.
 - READ-audio: owner PC, until ~21:25Z; gba.audio readability review alongside D07.
+- D09-1b/D09-2: owner PC, until ~21:30Z; publish ram_trace_item_popup and port DrawUiFrame2/LoadUiFrameGraphics/LoadIconObjectGraphics.
+- M6-41/EventScriptBattle: owner PC, until ~21:30Z; verify ScriptBattleDeamon and EventVm 0x3F replay.
+- READ-scene-events: owner PC, until ~21:30Z; fe8.game.scene and gbafe.extract.fe8.events readability review.
 
 ## Current state
 

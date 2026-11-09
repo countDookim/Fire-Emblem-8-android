@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D11-fade2 (sysutil.c NewFadeIn proc): scheduled, until ~22:30Z
+- D09-3a (popup proc core/init): scheduled, until ~22:30Z (wip/D09-3a if unfinished)
 
 ## Current state
 

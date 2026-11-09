@@ -1,11 +1,18 @@
 package fe8.testing
 
+import fe8.game.RomView
+import fe8.game.text.Fe8Text
 import fe8.game.ui.Popup
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
+import gbafe.text.MsgHuffman
+import gbafe.text.MsgStrings
+import gbafe.text.TextHost
+import gbafe.text.TextSystem
+import java.io.File
 import org.junit.jupiter.api.Test
 
 /** Popup proc state compared with the item popup capture (NewPopup_Simple(PopupScr_GotItem)). */
@@ -71,6 +78,56 @@ class PopupProcDifferentialTest {
         assertTrue(firstZero == breakStep + 1, "break $breakStep, left at $firstZero")
     }
 
+    @Test
+    @VerifiesPort("ParsePopupInstAndGetLen", "GetItemNameWithArticle", "GetItemIconId", "GetItemName")
+    fun `parsePopupInstAndGetLen reproduces the traced width icon and sound`() {
+        assumeTrue(ref.available, "reference capture unavailable")
+        val romFile = File(
+            System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets",
+            "baserom.gba",
+        )
+        assumeTrue(romFile.isFile, "ROM not present")
+        val run = ref.run("ram_trace_item_popup")
+        // The first snapshot after PopupProc_PrepareGfx ran (script index past 3).
+        var original: ProcArrayDump.Proc? = null
+        var step = 0
+        for (s in 18598..18750) {
+            val p = ProcArrayDump.ofEwram(dump(run, s)).find(Popup.PROC_SCRIPT)
+            if (p != null && p.scrCur > 3 && p.u16(0x46) != 0) {
+                original = p
+                step = s
+                break
+            }
+        }
+        assertTrue(original != null, "no snapshot after PrepareGfx")
+        val iwram = try {
+            run.region("r$step", "iwram")
+        } catch (e: java.io.IOException) {
+            run.region("f$step", "iwram")
+        }
+        val popupItem = (iwram[GPOPUPITEM].toInt() and 0xFF) or
+            ((iwram[GPOPUPITEM + 1].toInt() and 0xFF) shl 8)
+        val romBytes = romFile.readBytes()
+        val root = u32(romBytes, 0x0815D488 - ROM_BASE) - ROM_BASE
+        val messages = MsgStrings(
+            romBytes, MsgHuffman(romBytes, 0x0815A72C - ROM_BASE, root), 0x0815D48C - ROM_BASE,
+        )
+        val text = TextSystem(romBytes, EnglishHost(), Fe8Text.CONFIG)
+        text.initTextFont(null, 0x06001000, 0x100, 0)
+        val mine = Popup.PopupProc()
+        Popup.setupSimple(mine, GOT_ITEM, 0x60, 0)
+        Popup.init(mine)
+        val palettes = ArrayList<Pair<Int, Int>>()
+        mine.xGfxSize = Popup.parsePopupInstAndGetLen(
+            mine, RomView.ofRom(romBytes), messages, text, popupItem, 0, 0,
+        ) { slot, pal -> palettes.add(slot to pal) }
+        assertEquals(original!!.u16(0x46), mine.xGfxSize, "xGfxSize")
+        assertEquals(original.u8(0x44), mine.iconX, "iconX")
+        assertEquals(original.u16(0x3E), mine.iconId, "iconId")
+        assertEquals(original.u16(0x48), mine.soundId, "soundId")
+        assertEquals(listOf(0 to original.u8(0x42)), palettes)
+    }
+
     private fun dump(run: ReferenceData.Run, step: Int): ByteArray =
         try {
             run.region("r$step", "ewram")
@@ -80,5 +137,26 @@ class PopupProcDifferentialTest {
 
     private companion object {
         const val GOT_ITEM = 0x08592230
+        const val ROM_BASE = 0x08000000
+
+        /** `gPopupItem` (0x030005F4) in the IWRAM dump. */
+        const val GPOPUPITEM = 0x5F4
+    }
+
+    private fun u32(b: ByteArray, o: Int) =
+        (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8) or
+            ((b[o + 2].toInt() and 0xFF) shl 16) or ((b[o + 3].toInt() and 0xFF) shl 24)
+
+    /** English host; only the language matters for string widths. */
+    private class EnglishHost : TextHost {
+        override fun language() = 1
+
+        override fun applyTextPalette(talk: Boolean, palid: Int) = Unit
+
+        override fun readVram32(addr: Int) = 0
+
+        override fun writeVram32(addr: Int, value: Int) = Unit
+
+        override fun clearVram(dest: Int, byteCount: Int) = Unit
     }
 }

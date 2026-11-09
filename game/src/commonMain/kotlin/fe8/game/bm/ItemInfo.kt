@@ -1,6 +1,7 @@
 package fe8.game.bm
 
 import fe8.game.RomView
+import gbafe.text.MsgStrings
 
 /**
  * Read-only access to `gItemData` (ROM 0x08809B10, `struct ItemData`, [ENTRY_SIZE] bytes each)
@@ -190,6 +191,67 @@ internal class ItemInfo(private val rom: RomView) {
     }
 
     /**
+     * Ported from src/bmitem.c: GetItemIconId
+     *
+     * The `iconId` of [item], -1 for no item.
+     */
+    fun getItemIconId(item: Int): Int =
+        if (item == 0) -1 else rom.u8(getItemData(getItemIndex(item)) + 0x1D)
+
+    /**
+     * Ported from src/bmitem.c: GetItemName
+     *
+     * A fresh 0-terminated copy of the name of [item] after `StrInsertTact`; the `[Tact]` code
+     * (0x20 0x80) is replaced by [tactician] (the original reads the save's name; item names
+     * have no such code).
+     */
+    fun getItemName(
+        item: Int,
+        messages: MsgStrings,
+        tactician: ByteArray = ByteArray(0),
+    ): ByteArray {
+        val src = messages.getStringFromIndex(rom.u16(getItemData(getItemIndex(item))))
+        val out = ArrayList<Byte>()
+        var i = 0
+        while (src[i].toInt() != 0) {
+            if ((src[i].toInt() and 0xFF) != 0x80) {
+                out.add(src[i])
+                i++
+            } else {
+                i++
+                if (src[i].toInt() != 0x20) {
+                    out.add(0x80.toByte())
+                    out.add(src[i])
+                } else {
+                    tactician.forEach { out.add(it) }
+                }
+                i++
+            }
+        }
+        out.add(0)
+        return out.toByteArray()
+    }
+
+    /**
+     * Ported from src/bmitem.c: GetItemNameWithArticle
+     *
+     * The name of [item] with "a "/"an " in front (a fresh 0-terminated array; the original
+     * inserts into its shared buffer); "Some " for the Junafruit and no article for the unique
+     * weapons and gold items. [capitalize] selects the capitalized forms.
+     */
+    fun getItemNameWithArticle(item: Int, capitalize: Boolean, messages: MsgStrings): ByteArray {
+        val name = getItemName(item, messages)
+        val index = getItemIndex(item)
+        if (index in NO_ARTICLE) return name
+        val article = when {
+            index == ITEM_JUNAFRUIT -> if (capitalize) "Some " else "some "
+            name[0].toInt().toChar() in "AEIOUaeiou" -> if (capitalize) "An " else "an "
+            else -> if (capitalize) "A " else "a "
+        }
+        return article.toByteArray(Charsets.US_ASCII) + name
+    }
+
+    /**
      * Ported from src/bmitem.c: MakeNewItem
      *
      * A fresh item word for [item]: full uses (0 for unbreakable items) and its index.
@@ -206,6 +268,15 @@ internal class ItemInfo(private val rom: RomView) {
 
         /** `sizeof(struct ItemData)`. */
         const val ENTRY_SIZE: Int = 0x24
+
+        /** `ITEM_JUNAFRUIT`. */
+        const val ITEM_JUNAFRUIT: Int = 0xB7
+
+        /** Items for which `GetItemNameWithArticle` adds no article. */
+        private val NO_ARTICLE: Set<Int> = setOf(
+            0x78, 0x3C, 0xB6, 0x49, 0x85, 0x92, 0x8F, 0x91, 0x8E, 0x93, 0x94, 0x3E, 0x87, 0x4A,
+            0x8C, 0x77, 0x89, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0xB8, 0xB9, 0x9F, 0xA0,
+        )
 
         const val IA_WEAPON: Int = 1 shl 0
         const val IA_MAGIC: Int = 1 shl 1

@@ -1,5 +1,10 @@
 package fe8.game.ui
 
+import fe8.game.RomView
+import fe8.game.bm.ItemInfo
+import gbafe.text.MsgStrings
+import gbafe.text.TextSystem
+
 /** Popup procs (decomp `src/popup.c`): state of `struct PopupProc` and its small callbacks. */
 public object Popup {
     /** ROM address of `ProcScr_Popup`. */
@@ -7,6 +12,20 @@ public object Popup {
 
     /** `TEXT_COLOR_SYSTEM_WHITE`. */
     public const val TEXT_COLOR_SYSTEM_WHITE: Int = 0
+
+    private const val INSTRUCTION_SIZE = 8
+    private const val OP_END = 0x00
+    private const val OP_SPACE = 0x01
+    private const val OP_ITEM_NAME = 0x02
+    private const val OP_ITEM_STR_CAP = 0x03
+    private const val OP_ITEM_STR = 0x04
+    private const val OP_UNIT_NAME = 0x05
+    private const val OP_MSG = 0x06
+    private const val OP_STR = 0x07
+    private const val OP_ITEM_ICON = 0x09
+    private const val OP_WTYPE_ICON = 0x0A
+    private const val OP_NUM = 0x0B
+    private const val OP_SOUND = 0x0C
 
     /** The `struct PopupProc` fields from offset 0x2C on; integer types as in the struct. */
     public class PopupProc {
@@ -74,6 +93,84 @@ public object Popup {
         proc.iconId = 0xFFFF
         proc.iconX = 0
         proc.soundId = 0
+    }
+
+    /**
+     * Walks the instruction list at [PopupProc.pDefinition] (`struct PopupInstruction`, 8 bytes:
+     * u8 opcode, u32 data at +4), sets [PopupProc.soundId], [PopupProc.iconX] and
+     * [PopupProc.iconId] and returns the popup text width in pixels. [loadIconPalette] stands for
+     * `LoadIconPalette(slot, proc->iconPalId)`; [popupItem], [popupNumber] and [unitNameTextId]
+     * (`gpPopupUnit->pCharacterData->nameTextId`) are the popup globals. The active font of
+     * [text] measures the strings.
+     *
+     * Ported from src/popup.c: ParsePopupInstAndGetLen
+     */
+    public fun parsePopupInstAndGetLen(
+        proc: PopupProc,
+        rom: RomView,
+        messages: MsgStrings,
+        text: TextSystem,
+        popupItem: Int,
+        popupNumber: Int,
+        unitNameTextId: Int,
+        loadIconPalette: (slot: Int, palId: Int) -> Unit,
+    ): Int {
+        val items = ItemInfo(rom)
+        var len = 0
+        var inst = proc.pDefinition
+        while (rom.u8(inst) != OP_END) {
+            val data = rom.u32(inst + 4)
+            when (rom.u8(inst)) {
+                OP_SOUND -> proc.soundId = data
+                OP_NUM -> len += numberToStringAsciiLength(popupNumber) * 8
+                OP_ITEM_ICON -> {
+                    proc.iconX = len
+                    proc.iconId = items.getItemIconId(popupItem)
+                    loadIconPalette(0, proc.iconPalId)
+                    len += 0x10
+                }
+                OP_WTYPE_ICON -> {
+                    proc.iconX = len
+                    proc.iconId = popupItem + 0x70
+                    loadIconPalette(1, proc.iconPalId)
+                    len += 0x10
+                }
+                OP_MSG -> len += text.getStringTextLen(messages.getStringFromIndex(data))
+                OP_STR -> len += text.getStringTextLen(rom.bytesAt(data))
+                OP_UNIT_NAME ->
+                    len += text.getStringTextLen(messages.getStringFromIndex(unitNameTextId))
+                OP_ITEM_NAME ->
+                    len += text.getStringTextLen(items.getItemName(popupItem, messages))
+                OP_ITEM_STR_CAP -> len += text.getStringTextLen(
+                    items.getItemNameWithArticle(popupItem, true, messages),
+                )
+                OP_ITEM_STR -> len += text.getStringTextLen(
+                    items.getItemNameWithArticle(popupItem, false, messages),
+                )
+                OP_SPACE -> len += data
+                else -> Unit
+            }
+            inst += INSTRUCTION_SIZE
+        }
+        return len
+    }
+
+    // Digit count NumberToStringAscii (src/bmlib.c) returns: no dash, at most six digits.
+    private fun numberToStringAsciiLength(number: Int): Int {
+        var n = if (number < 0) -number else number
+        var digits = 1
+        while (n > 9) {
+            n /= 10
+            digits++
+        }
+        return minOf(digits, 6)
+    }
+
+    // A 0-terminated string in ROM at [at] (the POPUP_OP_STR operand).
+    private fun RomView.bytesAt(at: Int): ByteArray {
+        var end = at
+        while (u8(end) != 0) end++
+        return ByteArray(end - at + 1) { u8(at + it).toByte() }
     }
 
     /**

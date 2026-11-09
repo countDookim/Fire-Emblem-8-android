@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 636,
+    "verified": 643,
     "implemented_unverified": 1
   },
   "functions": {
@@ -1436,6 +1436,15 @@
         "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
       ]
     },
+    "GeneratePopupText": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Popup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupTextDrawTest#generatePopupText reproduces the popup glyph tiles and BG0 text cells"
+      ]
+    },
     "GenerateScriptBattleHitFormEventQueue": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -1691,6 +1700,15 @@
         "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
       ]
     },
+    "GetItemIconId": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupProcDifferentialTest#parsePopupInstAndGetLen reproduces the traced width icon and sound"
+      ]
+    },
     "GetItemMaxUses": {
       "decomp_file": "src/bmitem.c",
       "system": "battle_logic",
@@ -1716,6 +1734,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "GetItemName": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupProcDifferentialTest#parsePopupInstAndGetLen reproduces the traced width icon and sound"
+      ]
+    },
+    "GetItemNameWithArticle": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupProcDifferentialTest#parsePopupInstAndGetLen reproduces the traced width icon and sound"
       ]
     },
     "GetLastSuspendSaveId": {
@@ -2708,6 +2744,15 @@
         "fe8.testing.OpSubtitleInitDifferentialTest#scene setup matches BG3 data after sub_80C5218"
       ]
     },
+    "ParsePopupInstAndGetLen": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Popup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupProcDifferentialTest#parsePopupInstAndGetLen reproduces the traced width icon and sound"
+      ]
+    },
     "PhaseIntroBlendBox_InLoop": {
       "decomp_file": "src/phasechangefx.c",
       "system": "presentation",
@@ -2859,6 +2904,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
+      ]
+    },
+    "PopupProc_GfxClear": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Popup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupProcDifferentialTest#gfxClear zeroes the popup rectangle like the end callback"
+      ]
+    },
+    "PopupProc_GfxDraw": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Popup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupProcDifferentialTest#gfxDraw reproduces the popup frame text icon and child fields"
       ]
     },
     "PopupProc_Init": {

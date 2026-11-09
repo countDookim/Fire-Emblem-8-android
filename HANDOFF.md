@@ -10,6 +10,7 @@ _(nothing blocked)_
 D12-1: scheduled, until ~15:40Z
 D07-audio: owner PC, until ~15:55Z; investigate castle transition stalls / PCM underruns; no timing changes without evidence.
 Readability-events: owner PC, until ~15:55Z; gbafe.extract.fe8.events comments/names only.
+D11-slides: owner PC, until ~15:55Z; standalone subtitle slide graphics against original captures; not wired into New Game yet.
 
 ## Latest device test (owner, 2026-11-09 16:17, side-by-side vs original)
 Build: **0.1.482 (`617b1e9`)** (owner confirmed). Owner confirms equal to the original: music, sound effects, portraits + portrait animation, walking

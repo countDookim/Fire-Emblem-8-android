@@ -3,6 +3,7 @@ package fe8.game.ui
 import fe8.game.RomView
 import fe8.game.bm.ItemInfo
 import gbafe.text.MsgStrings
+import gbafe.text.Text
 import gbafe.text.TextSystem
 
 /** Popup procs (decomp `src/popup.c`): state of `struct PopupProc` and its small callbacks. */
@@ -25,6 +26,7 @@ public object Popup {
     private const val OP_UNIT_NAME = 0x05
     private const val OP_MSG = 0x06
     private const val OP_STR = 0x07
+    private const val OP_COLOR = 0x08
     private const val OP_ITEM_ICON = 0x09
     private const val OP_WTYPE_ICON = 0x0A
     private const val OP_NUM = 0x0B
@@ -192,6 +194,82 @@ public object Popup {
         (proc.yTileReal + 1) * 8,
         (proc.iconObjTileId or ((proc.iconPalId and 0xF) shl 12)) and 0xFFFF,
     )
+
+    /**
+     * Draws the popup text described by the instruction list at [definition] into a copy of
+     * [th] (C passes `struct Text` by value, so the caller's pen is untouched). [text] and
+     * [messages] supply the drawing and the message strings; [popupItem], [popupNumber] and
+     * [unitNameTextId] are the popup globals. The `BG_EnableSyncByMask` at the end is a no-op
+     * here.
+     *
+     * Ported from src/popup.c: GeneratePopupText
+     */
+    public fun generatePopupText(
+        definition: Int,
+        th: Text,
+        rom: RomView,
+        messages: MsgStrings,
+        text: TextSystem,
+        popupItem: Int,
+        popupNumber: Int,
+        unitNameTextId: Int,
+    ) {
+        val items = ItemInfo(rom)
+        val t = Text()
+        t.chrPosition = th.chrPosition
+        t.x = th.x
+        t.colorId = th.colorId
+        t.tileWidth = th.tileWidth
+        t.dbEnabled = th.dbEnabled
+        t.dbId = th.dbId
+        t.isPrinting = th.isPrinting
+        var inst = definition
+        while (rom.u8(inst) != OP_END) {
+            val data = rom.u32(inst + 4)
+            when (rom.u8(inst)) {
+                OP_NUM -> text.drawString(t, numberToStringAscii(popupNumber))
+                OP_WTYPE_ICON, OP_ITEM_ICON -> t.x += 0x10
+                OP_COLOR -> t.colorId = data
+                OP_MSG -> text.drawString(t, messages.getStringFromIndex(data))
+                OP_STR -> text.drawString(t, rom.bytesAt(data))
+                OP_UNIT_NAME ->
+                    text.drawString(t, messages.getStringFromIndex(unitNameTextId))
+                OP_ITEM_NAME -> text.drawString(t, items.getItemName(popupItem, messages))
+                OP_ITEM_STR_CAP -> text.drawString(
+                    t, items.getItemNameWithArticle(popupItem, true, messages),
+                )
+                OP_ITEM_STR -> text.drawString(
+                    t, items.getItemNameWithArticle(popupItem, false, messages),
+                )
+                OP_SPACE -> t.x += data
+                else -> Unit
+            }
+            inst += INSTRUCTION_SIZE
+        }
+    }
+
+    // NumberToStringAscii (src/bmlib.c) as a 0-terminated byte string.
+    private fun numberToStringAscii(value: Int): ByteArray {
+        var number = value
+        val out = ArrayList<Byte>()
+        if (number == 0) {
+            out.add('0'.code.toByte())
+        } else {
+            if (number < 0) {
+                out.add('-'.code.toByte())
+                number = -number
+            }
+            val digits = minOf(number.toString().length, 6)
+            val buf = ByteArray(digits)
+            for (i in digits - 1 downTo 0) {
+                buf[i] = ('0'.code + number % 10).toByte()
+                number /= 10
+            }
+            buf.forEach { out.add(it) }
+        }
+        out.add(0)
+        return out.toByteArray()
+    }
 
     // Digit count NumberToStringAscii (src/bmlib.c) returns: no dash, at most six digits.
     private fun numberToStringAsciiLength(number: Int): Int {

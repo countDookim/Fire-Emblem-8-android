@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 622,
+    "verified": 628,
     "implemented_unverified": 1
   },
   "functions": {
@@ -125,6 +125,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ConvoBackgroundVramTest#nested display suspension restores map procs only on the final resume"
+      ]
+    },
+    "BMapVSync_UpdateMapImgAnimations": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimationsTest#animated map tiles match the first phase reference"
       ]
     },
     "BattleApplyWeaponTriangleEffect": {
@@ -719,6 +728,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "DrawUiFrame2": {
+      "decomp_file": "src/uiutils.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/UiFrame.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UiFrameIconTest#drawUiFrame2 matches reference BG0 and BG1 tilemaps in item popup"
       ]
     },
     "EnableKeyComboResetEN": {
@@ -1385,7 +1403,7 @@
     "GenerateScriptBattleHitFormEventQueue": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -2189,6 +2207,24 @@
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
     },
+    "LoadIconObjectGraphics": {
+      "decomp_file": "src/icon.c",
+      "system": "text_face",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/ItemIcon.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UiFrameIconTest#loadIconObjectGraphics matches reference Rapier icon tiles in OBJ VRAM"
+      ]
+    },
+    "LoadIconPalette": {
+      "decomp_file": "src/icon.c",
+      "system": "text_face",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/ItemIcon.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UiFrameIconTest#loadIconPalette matches reference OBJ palette 4 in item popup"
+      ]
+    },
     "LoadObjUIGfx": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -2205,6 +2241,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ReadGameSaveReferenceTest#reading chapter6 sav slot 1 reproduces the RAM of r01142"
+      ]
+    },
+    "LoadUiFrameGraphics": {
+      "decomp_file": "src/uiutils.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/UiFrame.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UiFrameIconTest#loadUiFrameGraphics matches reference VRAM image and palette in item popup"
       ]
     },
     "LoadUnit": {
@@ -3260,6 +3305,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SaveDrawDifferentialTest#fog scroll turns the previous dump into the next one"
+      ]
+    },
+    "ScriptBattleDeamon": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventVmDifferentialTest#ScriptBattleDeamon waits for game lock then reloads units"
       ]
     },
     "SearchAvailableEvent": {

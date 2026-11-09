@@ -229,6 +229,19 @@ class EventVmDifferentialTest {
     }
 
     @Test
+    @VerifiesPort("ScriptBattleDeamon")
+    fun `ScriptBattleDeamon waits for game lock then reloads units`() {
+        val r = replay() ?: return
+        assertTrue(r.deamon.started >= 1, "ScriptBattleDeamon never started")
+        assertTrue(r.deamon.ended >= 1, "ScriptBattleDeamon never ended at the traced lock")
+        assertTrue(r.deamon.unitCompared >= 1, "no unit compared after the deamon")
+        assertEquals(emptyList<String>(), r.deamon.mismatches.take(5))
+    }
+
+    @Test
+    fun `Event3F ScriptBattle`() = assertCode(0x3F)
+
+    @Test
     fun `coverage of the replay does not silently drop`() {
         val r = replay() ?: return
         r.print()
@@ -693,12 +706,16 @@ class EventVmDifferentialTest {
                         break
                     }
                 } else if (moved) {
+                    val parent = d.parent
                     procs.run(d)
                     // The break clears the repeat callback; the script's end runs next frame.
                     val broke = d.idleCb == null
                     procs.run(d)
                     if (broke && procs.find(scriptBattle.deamonScript) == null) {
                         r.ended++
+                        if (parent != null && parent.mark != EventEngine.PROC_MARK_EVENT) {
+                            r.mismatches += "step ${b.step}: event proc mark ${parent.mark} != ${EventEngine.PROC_MARK_EVENT}"
+                        }
                         compareAfterDeamon(step, seed)
                     } else {
                         r.mismatches += "step ${b.step}: deamon alive at step $step, lock back"
@@ -1019,7 +1036,7 @@ class EventVmDifferentialTest {
             0x01 to 14, 0x02 to 3, 0x10 to 2, 0x19 to 1, 0x03 to 8, 0x05 to 7, 0x06 to 3, 0x07 to 3,
             0x08 to 7,
             0x09 to 1, 0x12 to 3, 0x15 to 2, 0x17 to 20, 0x0A to 9, 0x0C to 8, 0x0E to 2400,
-            0x3B to 24,
+            0x3B to 24, 0x3F to 1,
         )
 
         /** Minimum pairs in which each stub completed its command. */

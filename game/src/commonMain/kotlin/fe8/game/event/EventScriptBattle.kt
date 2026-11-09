@@ -90,14 +90,13 @@ public class EventScriptBattle(
     }
 
     /**
-     * Transcribed from src/eventscr.c: ScriptBattleDeamon (not verified: not yet replayed in
-     *   EventVmDifferentialTest)
+     * Ported from src/eventscr.c: ScriptBattleDeamon
      *
      * Once the game lock is back at the value saved when the battle started: ends the event
      * battle ([BattleGenerate.eventBattleReloadBmStatus]), marks the event proc as
      * `PROC_MARK_EVENT` and breaks the deamon.
      */
-    private fun scriptBattleDeamon(proc: Proc) {
+    internal fun scriptBattleDeamon(proc: Proc) {
         val s = proc.state as DeamonState
         if (s.lock == host.gameLock()) {
             battle.eventBattleReloadBmStatus(

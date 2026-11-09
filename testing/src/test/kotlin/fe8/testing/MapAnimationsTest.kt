@@ -4,8 +4,9 @@ import fe8.game.RomView
 import fe8.game.bm.ChapterData
 import fe8.game.bm.MapAnimations
 import fe8.game.bm.PlaySt
-import gbafe.render.BgHardware
+import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
+import gbafe.render.BgHardware
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -22,23 +23,27 @@ class MapAnimationsTest {
     )
 
     @Test
-    // Not @VerifiesPort: VRAM is compared only every 10th frame, so an off-by-one in the entry
-    // timer (`time + 1`) survives (audit 2026-11-06).
+    @VerifiesPort("BMapVSync_UpdateMapImgAnimations")
     fun `animated map tiles match the first phase reference`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / reference data not present")
         val run = ref.run("ram_trace_first_phase")
-        val proc = ProcArrayDump.ofEwram(run.region("f19430", "ewram")).find(BM_VSYNC)
-        assertNotNull(proc, "BMVSync proc in the f19430 dump")
+        val startProc = ProcArrayDump.ofEwram(run.region("f19430", "ewram")).find(BM_VSYNC)
+        assertNotNull(startProc, "BMVSync proc in the f19430 dump")
         val hw = BgHardware()
         val rom = RomView.ofRom(romFile.readBytes())
         val anims = MapAnimations(rom, ChapterData(rom), hw, PlaySt())
-        anims.seedTileAnimation(proc!!.u32(0x2C), proc.u32(0x30), proc.u16(0x34).toShort().toInt())
+        anims.seedTileAnimation(startProc!!.u32(0x2C), startProc.u32(0x30), startProc.u16(0x34).toShort().toInt())
         run.region("f19430", "vram").copyInto(hw.vram)
         var changed = false
         var prev = run.region("f19430", "vram")
         for (f in 19431..19520) {
             anims.updateMapImgAnimations()
-            if ((f - 19430) % 10 != 0) continue
+            val prefix = if (f % 10 == 0) "f" else "r"
+            val proc = ProcArrayDump.ofEwram(run.region("$prefix$f", "ewram")).find(BM_VSYNC)
+            assertNotNull(proc, "BMVSync proc in $prefix$f dump")
+            assertEquals(proc!!.u16(0x34).toShort().toInt(), anims.gfxAnimClock, "frame $f clock")
+            assertEquals(proc.u32(0x30), anims.gfxAnimCurrent, "frame $f current")
+            if (f % 10 != 0) continue
             val want = run.region("f$f", "vram")
             for (i in TILE_ANIM until TILE_ANIM + COMPARED) {
                 assertEquals(want[i], hw.vram[i], "f$f vram byte $i")

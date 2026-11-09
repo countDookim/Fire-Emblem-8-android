@@ -28,6 +28,24 @@ public class MapAnimations(
     private var tilePalAnimCurrent = 0
     private var tilePalAnimClock = 0
 
+    /** The tile animation clock (`BMVSyncProc.tileGfxAnimClock`), for differential testing. */
+    public val gfxAnimClock: Int get() = tileGfxAnimClock
+
+    /** The current tile animation entry pointer (`BMVSyncProc.tileGfxAnimCurrent`), for differential testing. */
+    public val gfxAnimCurrent: Int get() = tileGfxAnimCurrent
+
+    /** The start tile animation entry pointer (`BMVSyncProc.tileGfxAnimStart`), for differential testing. */
+    public val gfxAnimStart: Int get() = tileGfxAnimStart
+
+    /** The palette animation clock (`BMVSyncProc.tilePalAnimClock`), for differential testing. */
+    public val palAnimClock: Int get() = tilePalAnimClock
+
+    /** The current palette animation entry pointer (`BMVSyncProc.tilePalAnimCurrent`), for differential testing. */
+    public val palAnimCurrent: Int get() = tilePalAnimCurrent
+
+    /** The start palette animation entry pointer (`BMVSyncProc.tilePalAnimStart`), for differential testing. */
+    public val palAnimStart: Int get() = tilePalAnimStart
+
     /**
      * Transcribed from src/bmio.c: BMapVSync_InitMapAnimations (not verified:
      *   the test seeds the animation state, so the init is never run against a trace)
@@ -55,8 +73,7 @@ public class MapAnimations(
     }
 
     /**
-     * Transcribed from src/bmio.c: BMapVSync_UpdateMapImgAnimations (not verified: the reference
-     * VRAM is compared only every 10th frame, so an off-by-one entry timer survives)
+     * Ported from src/bmio.c: BMapVSync_UpdateMapImgAnimations
      *
      * Every `time` frames copies the current `TileGfxAnim` entry (u16 time, u16 size, data
      * pointer) to BG tile 0x140 (VRAM 0xA000) and advances, wrapping at a zero `time`.

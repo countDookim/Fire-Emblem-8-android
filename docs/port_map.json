@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 628,
+    "verified": 634,
     "implemented_unverified": 1
   },
   "functions": {
@@ -71,6 +71,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitSpritesDifferentialTest#unit sprite palettes match the dump"
+      ]
+    },
+    "ArchiveCurrentPalettes": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/PaletteFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ArchivedPaletteFadeDifferentialTest#archive copies all banks and resets clock ends"
       ]
     },
     "BG_EnableSyncByMask": {
@@ -1235,6 +1244,33 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ScreenFadeDifferentialTest#fade from black follows the per-frame RAM trace"
+      ]
+    },
+    "FadeInExists": {
+      "decomp_file": "src/sysutil.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ArchivedPaletteFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ArchivedPaletteFadeProcDifferentialTest#fade in timer lifetime and palette match the original"
+      ]
+    },
+    "FadeInOut_Init": {
+      "decomp_file": "src/sysutil.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ArchivedPaletteFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ArchivedPaletteFadeProcDifferentialTest#fade in timer lifetime and palette match the original"
+      ]
+    },
+    "FadeIn_Loop": {
+      "decomp_file": "src/sysutil.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ArchivedPaletteFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ArchivedPaletteFadeProcDifferentialTest#fade in timer lifetime and palette match the original"
       ]
     },
     "FadeOutBody": {
@@ -2409,6 +2445,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BgmVolumeChangeTest#volume ramp matches the trace"
+      ]
+    },
+    "NewFadeIn": {
+      "decomp_file": "src/sysutil.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ArchivedPaletteFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ArchivedPaletteFadeProcDifferentialTest#fade in timer lifetime and palette match the original"
       ]
     },
     "NewProc08AA6D04": {
@@ -4466,6 +4511,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ReadGameSaveReferenceTest#write after read reproduces slot 1 of chapter6 sav"
+      ]
+    },
+    "WriteFadedPaletteFromArchive": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/PaletteFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ArchivedPaletteFadeDifferentialTest#darkening write matches gPaletteBuffer mid fade"
       ]
     },
     "WriteGameSave": {

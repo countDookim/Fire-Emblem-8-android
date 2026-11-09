@@ -7,7 +7,7 @@
   "summary": {
     "total": 8352,
     "verified": 602,
-    "implemented_unverified": 1
+    "implemented_unverified": 16
   },
   "functions": {
     "AddUnitSprite": {
@@ -198,6 +198,27 @@
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs"
       ]
+    },
+    "BgAffinAnchoring": {
+      "decomp_file": "src/sysutil.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/BgAffin.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "BgAffinRotScaling": {
+      "decomp_file": "src/sysutil.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/BgAffin.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "BgAffinScaling": {
+      "decomp_file": "src/sysutil.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/BgAffin.kt",
+      "status": "implemented",
+      "tests": []
     },
     "BgAffineSetOpAnim": {
       "decomp_file": "src/opanim-main.c",
@@ -3798,6 +3819,27 @@
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
     },
+    "Subtitle_LightFlareFx_End": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleFlare.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Subtitle_LightFlareFx_Init": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleFlare.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Subtitle_LightFlareFx_Loop": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleFlare.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "SwitchPhases": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -4614,6 +4656,13 @@
         "fe8.testing.M4aSequencerTest#track state steps like the per-frame RAM traces"
       ]
     },
+    "sub_800154C": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/BgTilemap.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "sub_80028FC": {
       "decomp_file": "src/soundwrapper.c",
       "system": "audio",
@@ -4777,6 +4826,62 @@
       "tests": [
         "fe8.testing.OpSubtitleTransitionsDifferentialTest#fade and palette follow original callback and snapshots"
       ]
+    },
+    "sub_80C4E18": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_80C4EC4": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_80C4F60": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_80C501C": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_80C5104": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_80C5328": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_80C5370": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_80C538C": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
+      "status": "implemented",
+      "tests": []
     },
     "sub_80C5548": {
       "decomp_file": "src/titlescreen.c",

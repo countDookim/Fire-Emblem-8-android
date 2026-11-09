@@ -155,7 +155,9 @@ public class PhaseIntro(
      * `altBlendACa/Cb`.
      */
     public val vMatchHandler: HBlankHandler = HBlankHandler { vcount, io ->
-        val middle = vcount in VMATCH_MID until VMATCH_LO
+        // HBlank writes take effect on the next line; VCount interrupts switch at the line start.
+        val nextLine = (vcount + 1) % 228
+        val middle = nextLine in VMATCH_MID until VMATCH_LO
         val bldcnt = if (middle) BLDCNT_MID else BLDCNT_OUTER
         val ca = if (middle) bm.altBlendACa else bm.altBlendBCa
         val cb = if (middle) bm.altBlendACb else bm.altBlendBCb

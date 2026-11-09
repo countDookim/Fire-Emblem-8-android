@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; owner 45-minute run completed; no worktrees open)_
+- D-07: owner PC (GPT), until ~10:15Z; owner explicitly authorized walking-stutter profiling on 2026-11-09. One Terra coding agent.
 
 ## Latest device test (owner, 2026-11-09)
 Build **0.1.467 (`060478a`)**: walking animation and dialogue portrait display look correct. Owner clarification:
@@ -88,15 +88,13 @@ APK publication confirmed: **Build 0.1.474 (d91ed28)** is on the rolling latest 
 
 - D-08 follow-up 910fcfa: Event22 had no map-graphics restoration. New regression compares scene BG3 VRAM/tilemap/palettes at f13500, restored nonanimated map tiles and palette banks 6–15 against first_phase f19430, transition tilemap against f14100, and idle tilemap against f19430. Removing restoration fails; focused event/map/background tests green. Animated VRAM 0xA000..0xAFFF excluded from the map-return comparison because capture phases differ.
 
-## Next task: device re-test D-08/D-06/D-10 and mouths; D-07 scope answer pending; D-09 Rapier popup remains low priority
+## Next task: device re-test D-08/D-06/D-10 and mouths; D-07 profiling authorized; D-09 Rapier popup remains low priority
 Scheduled 11-09 00:17Z (full jvmTest+test green): D-08 fixed 6d3406c, see table (other BG palette ~123 B diffs and f13500 BG0 text-tile diffs not explained; alignment by unit table only). Ref f14100/f14400 are black, f14700 is the Valter battle anim (unported), so later BG3 diffs are battle prep, not D-08. wip/D-08: ConvoBackgroundFade (Event21 subcode-1 fade procs, transcribed; Prologue never calls it) + Bg08ScratchTest diff harness; merge the fade only with a test. Gradle here needs `python3 tools/maven_mirror.py --port 8765 --cache /root/.cache/fe8-maven &` + FE8_MAVEN_MIRROR (Central 429).
 Owner-PC 11-09: 28bef11 starts the original mouth child before the blink child and queues ROM mouth tiles until VBlank. Five tests cover parent/timer initialization, speaking/silent state, 300-frame shared LCG sequencing, OAM/VRAM in both orientations, and production flush timing. Six deliberate mutations failed then were restored. Smile/blend paths and exact initial phase from reused original proc memory are outside this verification. No new StartFace tag.
 
 Latest device evidence remains 0.1.467 (060478a). D-06/D-08/D-10 and normal mouths now have merged
-reference-checked changes and await owner confirmation on a new APK; none is marked solved. D-07 profiling
-was not attempted: automatic approval review rejected the proposed allocation diagnostic because it cited the
-earlier deferred-opening instruction; a scope question is pending with the owner. Continue independent work
-without treating silence as approval. D-09 Rapier popup remains explicitly low priority and device inventory is
+reference-checked changes and await owner confirmation on a new APK; none is marked solved. D-07 profiling was initially deferred after automatic approval review cited the old opening-investigation
+instruction. The owner explicitly approved investigating D-07 on 2026-11-09; that question is resolved. D-09 Rapier popup remains explicitly low priority and device inventory is
 unknown. The unexercised fade procs on wip/D-08 must not be merged without reference verification.
 D-09 follow-up: private ROM repo f7a442a adds reproducible ram_trace_item_popup generation (old scripts
 unchanged). Local private reference/out/ram_trace_item_popup has 181 RAM snapshots and 10 full graphics

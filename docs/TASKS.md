@@ -18,8 +18,7 @@ Owner device report 2026-11-09, build 0.1.467 (`060478a`): current priorities ar
 corruption, D-06 riders remaining at the screen edge (still open despite correct animation), D-07 intermittent
 walking stutter, then D-10 missing portrait blink (confirmed original FE8 behavior).
 Owner-PC follow-up: D-06 sprite refresh, D-08 map restoration, D-10 blink and normal portrait mouth animation
-are merged and await device confirmation; see MANUAL_TEST.md. D-07 profiling awaits the scope answer after
-automatic approval review cited the earlier deferred-opening instruction.
+are merged and await device confirmation; see MANUAL_TEST.md. The owner explicitly authorized D-07 walking-stutter profiling on 2026-11-09.
 D-09 Rapier-received popup is explicitly low priority; inventory is unverified on device. Details: HANDOFF.md.
 
 | ID | Task | Acceptance | Deps | Status |

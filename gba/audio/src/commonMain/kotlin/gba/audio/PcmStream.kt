@@ -6,7 +6,9 @@ import kotlin.concurrent.Volatile
  * Hands the m4a mixer's per-frame PCM to an audio thread: the game thread [push]es each frame's
  * `pcmSamplesPerVBlank` stereo samples (signed 8-bit, at [inputRate] Hz); the audio thread
  * [render]s them at [outputRate] Hz with linear interpolation. Single producer, single consumer;
- * an underrun repeats the last sample. Not a port (app plumbing); allocates only in the constructor.
+ * an underrun repeats the last sample. Optional startup prefill emits silence without consuming
+ * queued samples; after playback starts, underruns do not trigger another prefill.
+ * Not a port (app plumbing); allocates only in the constructor.
  */
 public class PcmStream(
     /** Mixer rate in Hz (`SoundInfo.pcmFreq`). */
@@ -15,6 +17,8 @@ public class PcmStream(
     public val outputRate: Int,
     /** Ring size in input frames (power of two). */
     capacity: Int = 8192,
+    /** Input frames required before playback starts; zero starts immediately. */
+    prefillFrames: Int = 0,
 ) : AudioSource {
     private val mask = capacity - 1
     private val ring = ShortArray(2 * capacity)
@@ -24,9 +28,11 @@ public class PcmStream(
 
     @Volatile private var read = 0L
     private var frac = 0
+    private var pendingPrefillFrames = prefillFrames
 
     init {
         require(capacity > 0 && capacity and mask == 0) { "capacity must be a power of two" }
+        require(prefillFrames in 0..capacity) { "prefillFrames must fit in the ring" }
     }
 
     /** Input frames queued and not yet consumed. */
@@ -60,6 +66,13 @@ public class PcmStream(
     }
 
     override fun render(buffer: ShortArray, frames: Int) {
+        if (pendingPrefillFrames > 0) {
+            if (written - read < pendingPrefillFrames) {
+                buffer.fill(0, 0, frames * 2)
+                return
+            }
+            pendingPrefillFrames = 0
+        }
         var r = read
         for (i in 0 until frames) {
             val avail = written - r

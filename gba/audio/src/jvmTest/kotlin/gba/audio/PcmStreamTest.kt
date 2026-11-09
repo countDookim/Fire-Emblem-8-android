@@ -1,6 +1,7 @@
 package gba.audio
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class PcmStreamTest {
@@ -42,5 +43,85 @@ class PcmStreamTest {
         val out = ShortArray(8)
         s.render(out, 4)
         assertEquals(listOf(5, 6, 6, 6).map { it * 256 }, (0 until 4).map { out[2 * it + 1].toInt() })
+    }
+
+    @Test
+    fun `startup reserve covers one delayed producer frame`() {
+        val s = PcmStream(1000, 1000, capacity = 32, prefillFrames = 20)
+        val out = ShortArray(20)
+        s.push(info(10) { it + 1 })
+        s.render(out, 10)
+        assertEquals(List(10) { 0 }, (0 until 10).map { out[2 * it + 1].toInt() })
+        assertEquals(10, s.queued)
+        s.push(info(10) { it + 11 })
+        s.render(out, 10)
+        assertEquals((1..10).map { it * 256 }, (0 until 10).map { out[2 * it + 1].toInt() })
+        // The next producer frame is delayed: the queued frame must still play normally.
+        s.render(out, 10)
+        assertEquals((11..20).map { it * 256 }, (0 until 10).map { out[2 * it + 1].toInt() })
+        s.render(out, 1)
+        assertEquals(20 * 256, out[1].toInt())
+        s.push(info(10) { it + 21 })
+        s.render(out, 10)
+        assertEquals((21..30).map { it * 256 }, (0 until 10).map { out[2 * it + 1].toInt() })
+    }
+
+    @Test
+    fun `startup reserve accepts full ring and preserves interpolation phase`() {
+        val s = PcmStream(1000, 2000, capacity = 4, prefillFrames = 4)
+        val out = ShortArray(4)
+        s.push(info(2) { (it + 1) * 2 })
+        s.render(out, 2)
+        assertEquals(listOf(0, 0), listOf(out[1].toInt(), out[3].toInt()))
+        s.push(info(2) { (it + 3) * 2 })
+        s.render(out, 1)
+        assertEquals(512, out[1].toInt())
+        s.render(out, 2)
+        assertEquals(listOf(768, 1024), listOf(out[1].toInt(), out[3].toInt()))
+    }
+
+    @Test
+    fun `startup reserve must fit in ring`() {
+        org.junit.jupiter.api.assertThrows<IllegalArgumentException> {
+            PcmStream(1000, 1000, capacity = 4, prefillFrames = 5)
+        }
+        org.junit.jupiter.api.assertThrows<IllegalArgumentException> {
+            PcmStream(1000, 1000, capacity = 4, prefillFrames = -1)
+        }
+    }
+
+    @Test
+    fun `two frame startup reserve survives delayed display callback`() {
+        val stream = PcmStream(13379, 48000, capacity = 2048, prefillFrames = 448)
+        val input = info(224) { 1 }
+        val output = ShortArray(480)
+        var display = 0L
+        var audio = 0L
+        var lastDisplay = 0L
+        var accumulator = 0L
+        var minQueued = Int.MAX_VALUE
+        // FixedStepClock's exact GBA frame ratio; model 240-frame (5 ms) sink writes.
+        // Other AudioTrack chunk sizes and device scheduling may exhaust this reserve.
+        while (audio * 5_000_000L <= 32_000_000_000L) {
+            val displayTime = display * 1_000_000_000L / 60 +
+                if (display == 1800L) 15_000_000L else 0L
+            val audioTime = audio * 5_000_000L
+            if (displayTime <= audioTime) {
+                accumulator += (displayTime - lastDisplay) * 16_777_216L
+                lastDisplay = displayTime
+                while (accumulator >= 280_896L * 1_000_000_000L) {
+                    accumulator -= 280_896L * 1_000_000_000L
+                    stream.push(input)
+                }
+                display++
+            } else {
+                stream.render(output, 240)
+                if (audioTime in 29_000_000_000L..31_000_000_000L) {
+                    minQueued = minOf(minQueued, stream.queued)
+                }
+                audio++
+            }
+        }
+        assertTrue(minQueued > 0, "queued input around delayed callback: $minQueued")
     }
 }

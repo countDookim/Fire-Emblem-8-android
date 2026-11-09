@@ -94,8 +94,14 @@ public class MainActivity : ComponentActivity() {
         )
         val sound = Fe8Sound.create(soundRom)
         val out = AudioTrackSink().also { sink = it }
-        // ~150 ms of input: bounds the delay if the game clock runs slightly ahead of the device.
-        val pcm = PcmStream(sound.info.pcmFreq, out.sampleRate, capacity = PCM_STREAM_CAPACITY)
+        // Two VBlank chunks provide reserve for a short late producer update. Ring capacity
+        // only limits queued audio; capacity alone does not create a startup reserve.
+        val pcm = PcmStream(
+            sound.info.pcmFreq,
+            out.sampleRate,
+            capacity = PCM_STREAM_CAPACITY,
+            prefillFrames = 2 * sound.info.pcmSamplesPerVBlank,
+        )
         audio = AudioThread(pcm, out).also { it.start() }
         return Fe8Game(rom = bootRom, sound = sound, pcm = pcm, saveStorage = saveStorage(ctx))
     }

@@ -10,9 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D09-1b/D09-2: owner PC, until ~21:30Z; publish ram_trace_item_popup and port DrawUiFrame2/LoadUiFrameGraphics/LoadIconObjectGraphics.
-- M6-41/EventScriptBattle: owner PC, until ~21:30Z; verify ScriptBattleDeamon and EventVm 0x3F replay.
-- READ-scene-events: owner PC, until ~21:30Z; fe8.game.scene and gbafe.extract.fe8.events readability review.
+_(none; owner 30-minute run completed; no worktrees open)_
 
 ## Current state
 
@@ -20,7 +18,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
   Original save restored afterward; ROM import preserved. Published 0.1.488 (`8c5b7c9`) banner comparison remains partial.
 - Published replacement: **0.1.497 (`42dc059`)**, CI **706 tests, zero failures/skips**. Local full
   `jvmTest test` also passed 706; both APK content guards, game/audio Dokka, 27 Python tests and instruction sync passed.
-- **622/8352 functions verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
+- **628/8352 functions verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
   Most of the count recovery credits existing scheduled ports after their test helpers were moved below tagged methods.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
@@ -52,8 +50,9 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
    normal termination and original Start-skip captures remain before wiring. Monologue steps 1213–4897;
    the world-map wrapper at 4898–9313 is separate work.
 2. **D-12:** owner compares the banner with an emulator; D12-2 adds enemy-phase and original scanline captures.
-3. **D-09:** popup capture published by the other owner-PC run (private `b25217b`); matching input/RAM
-   provenance and sound-test alias integrated as `e09709d`. UI/icon work is still claimed above; popup remains low priority.
+3. **D-09:** `D09-1b` (`b25217b` / `e09709d`) and `D09-2` (`075fabb`: `DrawUiFrame2`, `LoadUiFrameGraphics`, `LoadIconPalette`,
+   `LoadIconObjectGraphics` verified vs `ram_trace_item_popup` `f18630`; `GetIconGfxTileIndex` transcribed) are done.
+   Next for D-09 (low priority): `D09-3` (`popup.c` item-got lifecycle and replacing `EventGiveItem` stand-in).
 
 ## Verification limits worth retaining
 

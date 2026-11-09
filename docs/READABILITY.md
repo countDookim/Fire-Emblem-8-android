@@ -56,7 +56,7 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | game | fe8.game.flags | 1 | 69 | done 2026-11-09 0194222 |
 | game | fe8.game.opanim | 3 | 3128 | todo |
 | game | fe8.game.save | 8 | 2541 | todo |
-| game | fe8.game.savemenu | 2 | 156 | todo |
+| game | fe8.game.savemenu | 2 | 156 | done 2026-11-09 81db35b |
 | game | fe8.game.scene | 5 | 1921 | todo |
 | game | fe8.game.text | 1 | 30 | done 2026-11-09 0194222 |
 | game | fe8.game.title | 1 | 824 | todo |
@@ -72,5 +72,5 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | gba/testkit | gba.testkit | 5 | 352 | todo |
 | gba/vfs | gba.vfs | 4 | 228 | done 2026-11-07 1b2b121 |
 | testing | fe8.testing | 3 | 295 | todo |
-| tools/extract | gbafe.extract | 3 | 182 | todo |
-| tools/extract | gbafe.extract.fe8 | 1 | 24 | todo |
+| tools/extract | gbafe.extract | 3 | 182 | done 2026-11-09 81db35b |
+| tools/extract | gbafe.extract.fe8 | 1 | 24 | done 2026-11-09 81db35b |

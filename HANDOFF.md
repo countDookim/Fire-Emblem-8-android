@@ -1,13 +1,13 @@
 # HANDOFF
 
-_Updated 2026-11-09 (owner-PC 15-min run: Issue #5 device results recorded, D-08/D-10/mouths solved on 0.1.474/d91ed28, D-06/D-07 Issue #5 trace findings, 3 readability rows done; latest published APK 0.1.476/fbf71c5). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
+_Updated 2026-11-09 (owner-PC 15-min run: Issue #5 device results recorded, D-08/D-10/mouths solved on 0.1.474/d91ed28, D-06/D-07 Issue #5 trace findings, 6 readability rows done, Event12_StartBGM + EventDisplayCursor_Loop verified and wired in Fe8Boot (549/8352); latest published APK 0.1.476/fbf71c5). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
 docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git log._
 
 ## NEEDS USER
 _(nothing blocked)_
 
 ## In progress
-- **M6-45 / D-06 & M6-29 / Readability & M6-20** — Gemini (owner-PC, 2026-11-09, 30-min session until ~12:32Z, up to 3 Flash subagents): (1) M6-45 Prologue zero-allocation test & hot-path boxing fixes (`M4aBus`, `ScriptWords`, `SpriteAnimPlayer`); (2) D-06 rider exit & `Event3B_DisplayCursor` / `EventDisplayCursor_Loop` port + trace verification; (3) `docs/READABILITY.md` review rows (`fe8.game.savemenu`, `gbafe.extract*`) & `Event12_StartBGM` trace check.
+_(none; owner 30-minute run completed; no worktrees open)_
 
 ## Latest device test (owner, 2026-11-09, Issue #5)
 Build **0.1.474 (`d91ed28`)** (GitHub Issue #5): everything except the 5 items in Issue #5 is confirmed solved on device:

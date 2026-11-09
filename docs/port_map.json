@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 547,
+    "verified": 549,
     "implemented_unverified": 1
   },
   "functions": {
@@ -859,6 +859,15 @@
         "fe8.testing.EventVmDifferentialTest#Event0E STAL"
       ]
     },
+    "Event12_StartBGM": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventBgm.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.event.EventBgmTest#event12StartBgm starts song and matches reference sound state at r09540"
+      ]
+    },
     "Event1A_TEXTSTART": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -938,6 +947,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EventBattleReloadDifferentialTest#event battle end reloads the unit table"
+      ]
+    },
+    "EventDisplayCursor_Loop": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventCursorCamera.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventCursorCameraTest#event display cursor loop matches prologue procs watch"
       ]
     },
     "EventEngine_Create": {
@@ -1223,7 +1241,7 @@
     "GenerateScriptBattleHitFormEventQueue": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",

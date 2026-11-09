@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M6-35 portrait mouth animation and combined validation: owner PC (GPT), until ~09:15Z; owner-authorized 45-minute run, up to three Terra agents; new-task cutoff 09:04Z.
+- D09-1 visible-popup reference capture (private ROM repo) and final CI validation: owner PC (GPT), until ~09:15Z; owner-authorized 45-minute run, up to three Terra agents; new-task cutoff 09:04Z.
 
 ## Latest device test (owner, 2026-11-09)
 Build **0.1.467 (`060478a`)**: walking animation and dialogue portrait display look correct. Owner clarification:
@@ -96,6 +96,9 @@ was not attempted: automatic approval review rejected the proposed allocation di
 earlier deferred-opening instruction; a scope question is pending with the owner. Continue independent work
 without treating silence as approval. D-09 Rapier popup remains explicitly low priority and device inventory is
 unknown. The unexercised fade procs on wip/D-08 must not be merged without reference verification.
+D-09 is split into D09-1..3 in TASKS: first capture visible-popup graphics in the private ROM repo, then
+UI frame/icon primitives, then popup lifecycle and Event37 wiring. Original item-got proc/definition is present
+in f18600 and r18630..r18720; the latter records have RAM only, so they cannot verify rendered popup output.
 
 Owner PC 11-09: CLAUDE.md, GPT.md and new GEMINI.md now share docs/AGENT_INSTRUCTIONS.template.md; profiles in
 tools/sync_agent_instructions.py preserve each assistant's model/tool choices. Edit the template/profile, run

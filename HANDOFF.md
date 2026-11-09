@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-_(none; scheduled run completed; no worktrees open)_
+- D09-3b (ParsePopupInstAndGetLen + item name/icon helpers): scheduled, until ~23:25Z
 
 ## Current state
 

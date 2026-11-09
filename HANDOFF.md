@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D09-3f (PopupProc_GfxClear): scheduled, until ~23:25Z
+_(none; scheduled run completed; no worktrees open)_
 
 ## Current state
 
@@ -18,8 +18,8 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
   Original save restored afterward; ROM import preserved. Published 0.1.488 (`8c5b7c9`) banner comparison remains partial.
 - Published replacement: **0.1.497 (`42dc059`)**, CI **706 tests, zero failures/skips**. Local full
   `jvmTest test` also passed 706; both APK content guards, game/audio Dokka, 27 Python tests and instruction sync passed.
-- **636/8352 functions verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
-  Most of the count recovery credits existing scheduled ports after their test helpers were moved below tagged methods.
+- **643/8352 functions verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
+  Local full `jvmTest test` 723 tests green (11-09 late, popup ports). Most of the count recovery credits existing scheduled ports after their test helpers were moved below tagged methods.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
 - Layout: game-neutral `:gba:*`, `gbafe.*` in `:engine:*`, FE8 `fe8.*` in `:game`/`:app` (ADRs 0010–0013).
@@ -56,7 +56,11 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
    `LoadIconObjectGraphics` verified vs `ram_trace_item_popup` `f18630`; `GetIconGfxTileIndex` transcribed) are done.
    `D09-3a` (`cdf44d3`): `fe8.game.ui.Popup` with verified `PopupProc_Init`/`PopupProc_WaitForPress`
    (item_popup per-step ewram; positive clock only); `NewPopupCore`/`NewPopup_Simple` transcribed.
-   Next for D-09 (low priority): rest of `D09-3` (ParsePopupInstAndGetLen needs text widths, GfxDraw, script, EventGiveItem).
+   11-09 late: `ParsePopupInstAndGetLen`, `GetItemName`/`GetItemNameWithArticle`/`GetItemIconId` (`f748e13`),
+   `GeneratePopupText` (`d7ce616`), `PopupProc_GfxDraw` (`5c738f2`, ResetText's special-char reset not modelled) and
+   `PopupProc_GfxClear` (`3638c8f`; width+1 column from TmFillRect asm, not distinguished by the capture) verified vs
+   item_popup. OP_NUM/unit-name/wtype paths unexercised. Next (low priority): PrepareGfx, volume/sound callbacks,
+   proc script host, then replace the EventGiveItem stand-in.
 
 ## Verification limits worth retaining
 

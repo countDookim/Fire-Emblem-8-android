@@ -56,8 +56,10 @@ public class MapMusic(
     }
 
     /**
-     * Transcribed from src/bm.c: StartMapSongBgm (not verified:
-     *   only the Prologue's BGM is traced, the sound state is not compared)
+     * Ported from src/bm.c: StartMapSongBgm
+     *
+     * Verified against traces: from the stopped state, `gSoundSt` (songId, is_song_playing, unk7,
+     * maxChannels) after the call (Prologue, chapter 6). The m4a player state is not compared.
      */
     public fun startMapSongBgm() {
         sound.startBgm(getCurrentMapMusicIndex(), -1)

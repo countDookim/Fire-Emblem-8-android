@@ -23,6 +23,39 @@ class MapMusicReferenceTest {
     private val assets =
         System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets"
 
+    @VerifiesPort("StartMapSongBgm")
+    @Test
+    fun `starting the map song leaves the sound state of the reference`() {
+        val rom = File(assets, "baserom.gba")
+        assumeTrue(rom.isFile, "ROM not present")
+        val view = RomView.ofRom(rom.readBytes())
+        val cases = listOf(
+            Triple("ram_trace_first_phase", "r19386", "r19387"),
+            Triple("ram_trace_ch6_phase_start", "r01753", "r01754"),
+        )
+        for ((run, before, after) in cases) {
+            val dir = File(assets, "reference/out/$run")
+            assumeTrue(File(dir, "$after.ewram.bin").isFile, "$run missing")
+            val pre = File(dir, "$before.ewram.bin").readBytes()
+            assertEquals(0, pre[GSOUNDST - EWRAM_BASE + 6].toInt(), "$before song stopped")
+            val sound = SoundWrapper(ProcEngine(), null) { 0 }
+            val playSt = PlaySt().also { it.decode(pre, GPLAYST - EWRAM_BASE) }
+            val iw = File(dir, "$before.iwram.bin").readBytes()
+            val flags = Fe8EventFlags.create()
+                .also { it.copyInChapter(iw, CHAPTER_FLAGS - IWRAM_BASE) }
+            val units = UnitTable(view).also { it.loadFrom(pre) }
+            MapMusic(playSt, ChapterData(view), units, flags, sound) { BattleMapKind.STORY }
+                .startMapSongBgm()
+            val post = File(dir, "$after.ewram.bin").readBytes()
+            val o = GSOUNDST - EWRAM_BASE
+            val song = (post[o + 4].toInt() and 0xFF) or ((post[o + 5].toInt() and 0xFF) shl 8)
+            assertEquals(song, sound.songId, "songId $after")
+            assertEquals(post[o + 6].toInt() != 0, sound.isSongPlaying, "is_song_playing $after")
+            assertEquals(post[o + 7].toInt(), sound.unk7, "unk7 $after")
+            assertEquals(post[o + 8].toInt(), sound.maxChannels, "maxChannels $after")
+        }
+    }
+
     private fun songFor(rom: RomView, run: String, stem: String): Pair<Int, Int> {
         val dir = File(assets, "reference/out/$run")
         val ewram = File(dir, "$stem.ewram.bin").readBytes()

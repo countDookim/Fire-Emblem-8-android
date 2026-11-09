@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 602,
-    "implemented_unverified": 16
+    "verified": 622,
+    "implemented_unverified": 1
   },
   "functions": {
     "AddUnitSprite": {
@@ -203,22 +203,28 @@
       "decomp_file": "src/sysutil.c",
       "system": "core",
       "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/BgAffin.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleFlareDifferentialTest#loop follows original counters, affine registers and blend"
+      ]
     },
     "BgAffinRotScaling": {
       "decomp_file": "src/sysutil.c",
       "system": "core",
       "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/BgAffin.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleFlareDifferentialTest#loop follows original counters, affine registers and blend"
+      ]
     },
     "BgAffinScaling": {
       "decomp_file": "src/sysutil.c",
       "system": "core",
       "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/BgAffin.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleFlareDifferentialTest#loop follows original counters, affine registers and blend"
+      ]
     },
     "BgAffineSetOpAnim": {
       "decomp_file": "src/opanim-main.c",
@@ -3823,22 +3829,28 @@
       "decomp_file": "src/opsubtitle.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleFlare.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleFlareDifferentialTest#end hides BG2 as in the capture after the flare"
+      ]
     },
     "Subtitle_LightFlareFx_Init": {
       "decomp_file": "src/opsubtitle.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleFlare.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleFlareDifferentialTest#init draws the BG2 byte map and enables BG0 and BG2"
+      ]
     },
     "Subtitle_LightFlareFx_Loop": {
       "decomp_file": "src/opsubtitle.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleFlare.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleFlareDifferentialTest#loop follows original counters, affine registers and blend"
+      ]
     },
     "SwitchPhases": {
       "decomp_file": "src/bm.c",
@@ -4660,8 +4672,10 @@
       "decomp_file": "src/hardware.c",
       "system": "core",
       "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/BgTilemap.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleFlareDifferentialTest#init draws the BG2 byte map and enables BG0 and BG2"
+      ]
     },
     "sub_80028FC": {
       "decomp_file": "src/soundwrapper.c",
@@ -4831,57 +4845,119 @@
       "decomp_file": "src/opsubtitle.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#first card fade out follows original callback"
+      ]
     },
     "sub_80C4EC4": {
       "decomp_file": "src/opsubtitle.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#card fade out follows original callback"
+      ]
     },
     "sub_80C4F60": {
       "decomp_file": "src/opsubtitle.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#blend in follows original callback"
+      ]
     },
     "sub_80C501C": {
       "decomp_file": "src/opsubtitle.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#blend out follows original callback"
+      ]
+    },
+    "sub_80C50A0": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleScenes.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#final card load matches captured vram map and palette 3",
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#flare clear matches captured vram maps palette and timers"
+      ]
     },
     "sub_80C5104": {
       "decomp_file": "src/opsubtitle.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#card palette fade in follows original callback"
+      ]
+    },
+    "sub_80C51A8": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleScenes.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#final card load matches captured vram map and palette 3"
+      ]
+    },
+    "sub_80C5218": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleScenes.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#final scene setup matches captured registers vram maps and timers"
+      ]
     },
     "sub_80C5328": {
       "decomp_file": "src/opsubtitle.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#final layers match captured dispcnt and vram"
+      ]
     },
     "sub_80C5370": {
       "decomp_file": "src/opsubtitle.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#final whole palette fade follows original callback"
+      ]
     },
     "sub_80C538C": {
       "decomp_file": "src/opsubtitle.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#final whole palette fade follows original callback"
+      ]
+    },
+    "sub_80C5400": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleSound.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleSoundDifferentialTest#subtitle end fades the original players at the traced step"
+      ]
+    },
+    "sub_80C540C": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleScenes.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#card offset reset matches captured BG offsets"
+      ]
     },
     "sub_80C5548": {
       "decomp_file": "src/titlescreen.c",

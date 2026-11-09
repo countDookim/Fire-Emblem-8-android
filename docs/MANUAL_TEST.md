@@ -6,7 +6,7 @@ For a fresh New Game test, clear app data and re-import the ROM so an existing s
 
 ## Latest owner test — 2026-11-09 16:17 (side-by-side vs original)
 
-Build: latest APK (assumed 0.1.482 / `617b1e9`; owner to confirm build string).
+Build: **0.1.482 (`617b1e9`)**.
 
 - **Equal to the original**: music, sound effects, portraits and portrait animation, walking animations,
   Seth/Franz riding off-screen (**D-06 solved**), plus the earlier D-08/D-10/mouth fixes.
@@ -26,7 +26,7 @@ gamepad/keyboard, pause/resume, ROM import and close/reopen resuming turn 1.
 
 | ID | Priority | Observed behavior / re-test target |
 |---|---|---|
-| D-07 | Normal | Owner 11-09 (latest APK): stutters at >= 2 points in the castle cutscene still. Earlier: in `0.1.474` (`d91ed28`, before `c339db5`), there is a brief audio stutter in the castle when the blue soldier unit walks up, then the game continues normally. **Fix merged `c339db5` (remove per-frame `Int` boxing in `MuSpriteAnim.objectAt` during unit walking) and published in APK `0.1.476` (`fbf71c5`).** Steps: start a fresh New Game and listen/watch as the blue soldier walks up to Eirika and Seth in the castle. Expected: the walk starts and plays without an audio hitch. Limit: `StartMuInternal` still decompresses the soldier MU sprite sheet (~11 KB) on the walk-start frame; if the stutter persists on `0.1.476+`, report it so MU sheet decompression can be pre-cached/pooled. |
+| D-07 | Normal | Owner 11-09 (`0.1.482` / `617b1e9`): stutters at >= 2 points in the castle cutscene still (persists after `c339db5` and M6-45). Earlier: in `0.1.474` (`d91ed28`, before `c339db5`), there is a brief audio stutter in the castle when the blue soldier unit walks up, then the game continues normally. **Fix merged `c339db5` (remove per-frame `Int` boxing in `MuSpriteAnim.objectAt` during unit walking) and published in APK `0.1.476` (`fbf71c5`).** Steps: start a fresh New Game and listen/watch as the blue soldier walks up to Eirika and Seth in the castle. Expected: the walk starts and plays without an audio hitch. Limit: `StartMuInternal` still decompresses the soldier MU sprite sheet (~11 KB) on the walk-start frame; if the stutter persists on `0.1.476+`, report it so MU sheet decompression can be pre-cached/pooled. |
 | D-09 | Low (owner) | The Rapier-received popup never appears before the first battle. Eirika's inventory has **not** been checked on device because player-phase interactions are unavailable; do not infer that the item is missing. |
 | D-11 | Normal | Opening cinematic after New Game (before the castle cutscene) is missing. |
 | D-12 | Normal | "Player Phase" popup missing after the final Prologue dialogue; control goes straight to the cursor. |

@@ -48,7 +48,7 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
    available.
 10. **Claim tasks before starting (owner, 2026-11-05).** Both run types pick tasks from HANDOFF, so before writing
     code for a task: `git fetch` and `git rebase --rebase-merges origin/master`, add a line under HANDOFF
-    `## In progress` (`M5-xx: owner PC|scheduled, until ~HH:MMZ`), commit with `[skip ci]` and push. Skip tasks with
+    `## In progress` (`M5-xx: owner PC|scheduled, until ~HH:MMZ`), commit and push. Skip tasks with
     an unexpired claim; an expired claim is free. Remove your line when the task is done or you stop (unfinished work
     goes to `wip/<task-id>`; say so in the line).
 11. **Readability pass (owner, 2026-11-07; owner-PC sessions only, not scheduled runs).** Every owner-PC session

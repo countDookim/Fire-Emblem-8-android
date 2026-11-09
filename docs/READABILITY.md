@@ -43,7 +43,7 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | engine/extract | gbafe.extract.fe8.ui | 3 | 189 | done 2026-11-09 94e08df |
 | engine/extract | gbafe.extract.fe8.units | 1 | 86 | done 2026-11-09 0dfc62b |
 | engine/extract | gbafe.extract.font | 1 | 77 | done 2026-11-09 92119c9 |
-| engine/extract | gbafe.extract.m4a | 1 | 311 | todo |
+| engine/extract | gbafe.extract.m4a | 1 | 311 | done 2026-11-09 19d121b |
 | engine/extract | gbafe.extract.text | 1 | 55 | done 2026-11-09 0194222 |
 | engine/input | gbafe.input | 2 | 238 | done 2026-11-07 697847c |
 | engine/render | gbafe.render | 10 | 1592 | todo |
@@ -65,11 +65,11 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | gba/core | gba.core.event | 2 | 101 | done 2026-11-07 697847c |
 | gba/core | gba.core.sram | 5 | 380 | done 2026-11-07 1b2b121 |
 | gba/core | gba.core.time | 2 | 111 | done 2026-11-07 697847c |
-| gba/data | gba.data | 7 | 585 | todo |
-| gba/extract | gba.extract | 9 | 572 | todo |
+| gba/data | gba.data | 7 | 585 | done 2026-11-09 19d121b |
+| gba/extract | gba.extract | 9 | 572 | done 2026-11-09 19d121b |
 | gba/input | gba.input | 3 | 362 | done 2026-11-07 52e07f0 |
 | gba/render | gba.render | 10 | 1388 | todo |
-| gba/testkit | gba.testkit | 5 | 352 | todo |
+| gba/testkit | gba.testkit | 5 | 352 | done 2026-11-09 19d121b |
 | gba/vfs | gba.vfs | 4 | 228 | done 2026-11-07 1b2b121 |
 | testing | fe8.testing | 3 | 295 | todo |
 | tools/extract | gbafe.extract | 3 | 182 | done 2026-11-09 81db35b |

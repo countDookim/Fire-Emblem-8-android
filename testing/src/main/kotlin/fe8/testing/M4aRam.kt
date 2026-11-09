@@ -24,91 +24,95 @@ public object M4aRam {
 
     /** The player at [address] with its [slots] tracks, read from [iwram]. */
     public fun player(iwram: ByteArray, address: Int, slots: Int): M4aPlayer {
-        val o = address - IWRAM
-        val tracksAt = u32(iwram, o + 0x2C)
-        val p = M4aPlayer(Array(slots) { track(iwram, tracksAt + it * TRACK_SIZE) })
-        p.songHeader = u32(iwram, o)
-        p.status = u32(iwram, o + 4)
-        p.trackCount = u8(iwram, o + 8)
-        p.priority = u8(iwram, o + 9)
-        p.unkB = u8(iwram, o + 0x0B)
-        p.clock = u32(iwram, o + 0x0C)
-        p.tempoD = u16(iwram, o + 0x1C)
-        p.tempoU = u16(iwram, o + 0x1E)
-        p.tempoI = u16(iwram, o + 0x20)
-        p.tempoC = u16(iwram, o + 0x22)
-        p.fadeOI = u16(iwram, o + 0x24)
-        p.fadeOC = u16(iwram, o + 0x26)
-        p.fadeOV = u16(iwram, o + 0x28)
-        p.tone = u32(iwram, o + 0x30)
-        p.ident = u32(iwram, o + 0x34)
-        return p
+        val offset = address - IWRAM
+        val tracksAddress = u32(iwram, offset + 0x2C)
+        val player = M4aPlayer(Array(slots) { track(iwram, tracksAddress + it * TRACK_SIZE) })
+        player.songHeader = u32(iwram, offset)
+        player.status = u32(iwram, offset + 4)
+        player.trackCount = u8(iwram, offset + 8)
+        player.priority = u8(iwram, offset + 9)
+        player.unkB = u8(iwram, offset + 0x0B)
+        player.clock = u32(iwram, offset + 0x0C)
+        player.tempoD = u16(iwram, offset + 0x1C)
+        player.tempoU = u16(iwram, offset + 0x1E)
+        player.tempoI = u16(iwram, offset + 0x20)
+        player.tempoC = u16(iwram, offset + 0x22)
+        player.fadeOI = u16(iwram, offset + 0x24)
+        player.fadeOC = u16(iwram, offset + 0x26)
+        player.fadeOV = u16(iwram, offset + 0x28)
+        player.tone = u32(iwram, offset + 0x30)
+        player.ident = u32(iwram, offset + 0x34)
+        return player
     }
 
     /** The track at [address], read from [iwram]. */
     public fun track(iwram: ByteArray, address: Int): M4aTrack {
-        val o = address - IWRAM
-        fun u(i: Int) = u8(iwram, o + i)
-        fun s(i: Int) = iwram[o + i].toInt()
+        val offset = address - IWRAM
+        fun readU8(offsetDelta: Int) = u8(iwram, offset + offsetDelta)
+        fun readS8(offsetDelta: Int) = iwram[offset + offsetDelta].toInt()
         return M4aTrack().apply {
-            flags = u(0)
-            wait = u(1)
-            patternLevel = u(2)
-            repN = u(3)
-            gateTime = u(4)
-            key = u(5)
-            velocity = u(6)
-            runningStatus = u(7)
-            keyM = u(8)
-            pitM = u(9)
-            keyShift = s(0x0A)
-            keyShiftX = s(0x0B)
-            tune = s(0x0C)
-            pitX = u(0x0D)
-            bend = s(0x0E)
-            bendRange = u(0x0F)
-            volMR = u(0x10)
-            volML = u(0x11)
-            vol = u(0x12)
-            volX = u(0x13)
-            pan = s(0x14)
-            panX = s(0x15)
-            modM = s(0x16)
-            mod = u(0x17)
-            modT = u(0x18)
-            lfoSpeed = u(0x19)
-            lfoSpeedC = u(0x1A)
-            lfoDelay = u(0x1B)
-            lfoDelayC = u(0x1C)
-            priority = u(0x1D)
-            echoVolume = u(0x1E)
-            echoLength = u(0x1F)
+            flags = readU8(0)
+            wait = readU8(1)
+            patternLevel = readU8(2)
+            repN = readU8(3)
+            gateTime = readU8(4)
+            key = readU8(5)
+            velocity = readU8(6)
+            runningStatus = readU8(7)
+            keyM = readU8(8)
+            pitM = readU8(9)
+            keyShift = readS8(0x0A)
+            keyShiftX = readS8(0x0B)
+            tune = readS8(0x0C)
+            pitX = readU8(0x0D)
+            bend = readS8(0x0E)
+            bendRange = readU8(0x0F)
+            volMR = readU8(0x10)
+            volML = readU8(0x11)
+            vol = readU8(0x12)
+            volX = readU8(0x13)
+            pan = readS8(0x14)
+            panX = readS8(0x15)
+            modM = readS8(0x16)
+            mod = readU8(0x17)
+            modT = readU8(0x18)
+            lfoSpeed = readU8(0x19)
+            lfoSpeedC = readU8(0x1A)
+            lfoDelay = readU8(0x1B)
+            lfoDelayC = readU8(0x1C)
+            priority = readU8(0x1D)
+            echoVolume = readU8(0x1E)
+            echoLength = readU8(0x1F)
             this.address = address
-            for (i in 0 until 3) tone[i] = u32(iwram, o + 0x24 + 4 * i)
-            cmdPtr = u32(iwram, o + 0x40)
-            for (i in 0 until 3) patternStack[i] = u32(iwram, o + 0x44 + 4 * i)
+            for (i in 0 until 3) tone[i] = u32(iwram, offset + 0x24 + 4 * i)
+            cmdPtr = u32(iwram, offset + 0x40)
+            for (i in 0 until 3) patternStack[i] = u32(iwram, offset + 0x44 + 4 * i)
         }
     }
 
     /** All [PLAYERS] (same order) and the shared channels, linked as in [iwram]. */
     public fun sound(iwram: ByteArray): Pair<List<M4aPlayer>, M4aSoundInfo> {
-        val players = PLAYERS.values.map { (a, n) -> player(iwram, a, n) }
+        val players = PLAYERS.values.map { (address, slots) -> player(iwram, address, slots) }
         val tracks = players.flatMap { it.tracks.toList() }.associateBy { it.address }
-        val direct = Array(12) { channel(iwram, DIRECT_CHANS + it * CHANNEL_SIZE) }
-        val cgb = Array(4) { channel(iwram, CGB_CHANS + it * CHANNEL_SIZE) }
-        val chans = (direct + cgb).associateBy { it.address }
-        for (c in direct + cgb) {
-            val o = c.address - IWRAM
-            c.track = tracks[u32(iwram, o + 0x2C)]
-            c.prev = chans[u32(iwram, o + 0x30)]
-            c.next = chans[u32(iwram, o + 0x34)]
+        val directChannels = Array(12) { channel(iwram, DIRECT_CHANS + it * CHANNEL_SIZE) }
+        val cgbChannels = Array(4) { channel(iwram, CGB_CHANS + it * CHANNEL_SIZE) }
+        val allChannels = (directChannels + cgbChannels).associateBy { it.address }
+        for (channel in directChannels + cgbChannels) {
+            val offset = channel.address - IWRAM
+            channel.track = tracks[u32(iwram, offset + 0x2C)]
+            channel.prev = allChannels[u32(iwram, offset + 0x30)]
+            channel.next = allChannels[u32(iwram, offset + 0x34)]
         }
-        for (t in tracks.values) t.chan = chans[u32(iwram, t.address - IWRAM + 0x20)]
-        val info = M4aSoundInfo(direct, cgb)
+        for (track in tracks.values) {
+            track.chan = allChannels[u32(iwram, track.address - IWRAM + 0x20)]
+        }
+        val info = M4aSoundInfo(directChannels, cgbChannels)
         info.ident = u32(iwram, SOUND_INFO - IWRAM)
         val byAddress = PLAYERS.values.map { it.first }.zip(players).toMap()
         info.intp = byAddress[u32(iwram, SOUND_INFO - IWRAM + 0x24)]
-        for ((a, p) in byAddress) p.intp = byAddress[u32(iwram, a - IWRAM + 0x3C)]
+        for ((address, player) in byAddress) {
+            player.intp = byAddress[u32(iwram, address - IWRAM + 0x3C)]
+        }
         info.maxChans = u8(iwram, SOUND_INFO - IWRAM + 6)
         info.masterVolume = u8(iwram, SOUND_INFO - IWRAM + 7)
         info.pcmDmaCounter = u8(iwram, SOUND_INFO - IWRAM + 4)
@@ -118,43 +122,43 @@ public object M4aRam {
         info.pcmSamplesPerVBlank = u32(iwram, SOUND_INFO - IWRAM + 0x10)
         info.pcmFreq = u32(iwram, SOUND_INFO - IWRAM + 0x14)
         info.divFreq = u32(iwram, SOUND_INFO - IWRAM + 0x18)
-        val pcm = PCM_BUFFER - IWRAM
-        iwram.copyInto(info.pcmBuffer, 0, pcm, pcm + info.pcmBuffer.size)
+        val pcmOffset = PCM_BUFFER - IWRAM
+        iwram.copyInto(info.pcmBuffer, 0, pcmOffset, pcmOffset + info.pcmBuffer.size)
         return players to info
     }
 
     /** The channel at [address] (DirectSound or CGB; shared offsets), unlinked. */
     public fun channel(iwram: ByteArray, address: Int): M4aChannel {
-        val o = address - IWRAM
+        val offset = address - IWRAM
         return M4aChannel(address).apply {
-            status = u8(iwram, o)
-            type = u8(iwram, o + 1)
-            rightVolume = u8(iwram, o + 2)
-            leftVolume = u8(iwram, o + 3)
-            adsr = u32(iwram, o + 4)
-            key = u8(iwram, o + 8)
-            envelopeVolume = u8(iwram, o + 9)
-            envelopeRight = u8(iwram, o + 0x0A)
-            envelopeLeft = u8(iwram, o + 0x0B)
-            count = u32(iwram, o + 0x18)
-            fw = u32(iwram, o + 0x1C)
-            currentPointer = u32(iwram, o + 0x28)
-            echoVolume = u8(iwram, o + 0x0C)
-            echoLength = u8(iwram, o + 0x0D)
-            gateTime = u8(iwram, o + 0x10)
-            midiKey = u8(iwram, o + 0x11)
-            velocity = u8(iwram, o + 0x12)
-            priority = u8(iwram, o + 0x13)
-            rhythmPan = iwram[o + 0x14].toInt()
-            sustainGoal = u8(iwram, o + 0x19)
-            n4 = u8(iwram, o + 0x1A)
-            pan = u8(iwram, o + 0x1B)
-            panMask = u8(iwram, o + 0x1C)
-            modify = u8(iwram, o + 0x1D)
-            length = u8(iwram, o + 0x1E)
-            sweep = u8(iwram, o + 0x1F)
-            frequency = u32(iwram, o + 0x20)
-            wav = u32(iwram, o + 0x24)
+            status = u8(iwram, offset)
+            type = u8(iwram, offset + 1)
+            rightVolume = u8(iwram, offset + 2)
+            leftVolume = u8(iwram, offset + 3)
+            adsr = u32(iwram, offset + 4)
+            key = u8(iwram, offset + 8)
+            envelopeVolume = u8(iwram, offset + 9)
+            envelopeRight = u8(iwram, offset + 0x0A)
+            envelopeLeft = u8(iwram, offset + 0x0B)
+            count = u32(iwram, offset + 0x18)
+            fw = u32(iwram, offset + 0x1C)
+            currentPointer = u32(iwram, offset + 0x28)
+            echoVolume = u8(iwram, offset + 0x0C)
+            echoLength = u8(iwram, offset + 0x0D)
+            gateTime = u8(iwram, offset + 0x10)
+            midiKey = u8(iwram, offset + 0x11)
+            velocity = u8(iwram, offset + 0x12)
+            priority = u8(iwram, offset + 0x13)
+            rhythmPan = iwram[offset + 0x14].toInt()
+            sustainGoal = u8(iwram, offset + 0x19)
+            n4 = u8(iwram, offset + 0x1A)
+            pan = u8(iwram, offset + 0x1B)
+            panMask = u8(iwram, offset + 0x1C)
+            modify = u8(iwram, offset + 0x1D)
+            length = u8(iwram, offset + 0x1E)
+            sweep = u8(iwram, offset + 0x1F)
+            frequency = u32(iwram, offset + 0x20)
+            wav = u32(iwram, offset + 0x24)
         }
     }
 
@@ -164,9 +168,14 @@ public object M4aRam {
     private const val CGB_CHANS = 0x03006510
     private const val CHANNEL_SIZE = 0x40
 
-    private fun u8(b: ByteArray, o: Int) = b[o].toInt() and 0xFF
+    /** Reads an unsigned 8-bit integer from [bytes] at [offset]. */
+    private fun u8(bytes: ByteArray, offset: Int): Int = bytes[offset].toInt() and 0xFF
 
-    private fun u16(b: ByteArray, o: Int) = u8(b, o) or (u8(b, o + 1) shl 8)
+    /** Reads a little-endian unsigned 16-bit integer from [bytes] at [offset]. */
+    private fun u16(bytes: ByteArray, offset: Int): Int =
+        u8(bytes, offset) or (u8(bytes, offset + 1) shl 8)
 
-    private fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)
+    /** Reads a little-endian unsigned 32-bit integer from [bytes] at [offset]. */
+    private fun u32(bytes: ByteArray, offset: Int): Int =
+        u16(bytes, offset) or (u16(bytes, offset + 2) shl 16)
 }

@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-_(none)_
+- D11-proc (slice: fade stages sub_80C4E18..sub_80C5104): scheduled, until ~19:15Z
 
 ## Current state
 

@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none)_
+- D-10 (face blink/mouth procs): scheduled, until ~05:25Z
 
 ## Latest device test (owner, 2026-11-09)
 Build **0.1.467 (`060478a`)**: walking animation and dialogue portrait display look correct. Owner clarification:

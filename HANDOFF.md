@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-_(none; owner 30-minute run completed; no worktrees open)_
+- D11-fade1 (ArchiveCurrentPalettes/WriteFadedPaletteFromArchive): scheduled, until ~22:30Z
 
 ## Current state
 

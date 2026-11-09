@@ -35,6 +35,8 @@ import java.io.File
  * DISPCNT, WINCNT, BLDCNT and blend coefficients of `gLCDControlBuffer`; each full dump (every
  * 10th frame) also BG VRAM, the two palette banks and (from f1700) the OAM affine parameters of
  * the banner sprite, which are synced in VBlank so the dump holds the previous pass's values.
+ * Banner OBJ attributes are compared as a consecutive composition; map objects are excluded
+ * because this isolated simulation does not run the battle map rendering procs.
  */
 class PhaseIntroDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -59,12 +61,16 @@ class PhaseIntroDifferentialTest {
         sim.start()
         for (f in FIRST + 1..LAST) {
             sim.prevOam = sim.oam.buffer.copyOf()
+            sim.prevObjectCount = sim.oam.hiPut / 4
+            sim.oam.syncHi()
             sim.runRoots()
             sim.compare(f)
         }
         assertEquals(LAST - FIRST, sim.compared, "frames compared")
         assertEquals(7, sim.fullDumps, "full dumps compared")
         assertTrue(sim.sawSprite, "sprite affine compared")
+        assertEquals(listOf(1700, 1710, 1720, 1730, 1740, 1750), sim.bannerFrames,
+            "reference frames with banner attributes compared")
     }
 
     private inner class Sim(val run: String) {
@@ -87,6 +93,8 @@ class PhaseIntroDifferentialTest {
         var fullDumps = 0
         var sawSprite = false
         var prevOam = ShortArray(0)
+        var prevObjectCount = 0
+        val bannerFrames = mutableListOf<Int>()
 
         fun ewram(frame: Int): ByteArray = data.region(names.getValue(frame), "ewram")
 
@@ -106,7 +114,13 @@ class PhaseIntroDifferentialTest {
         }
 
         fun runRoots() {
+            sprites.clear()
             for (t in 0 until 8) engine.run(engine.root(t))
+            for (head in listOf(0, 13)) {
+                sprites.pushLayerObjects(head) {
+                    oam.putHi(it.oam1, it.oam0, it.obj!!.data, it.oam2)
+                }
+            }
         }
 
         fun compare(f: Int) {
@@ -184,6 +198,24 @@ class PhaseIntroDifferentialTest {
                     assertEquals(u16(pal, 2 * i), ours, "$at pal $bank/$c")
                 }
             }
+            // The reference proc in the preceding pass determines whether a banner was drawn.
+            val referenceBannerLive = ProcArrayDump.ofEwram(ewram(f - 1)).find(UNK) != null
+            if (referenceBannerLive) {
+                val oamDump = data.region(key, "oam")
+                val count = rom.u16(BANNER_OBJECT)
+                assertEquals(count, prevObjectCount, "$at banner object count")
+                // The original also draws map objects; locate the entire ordered banner, with
+                // all three attribute halfwords compared, among those unrelated objects.
+                assertTrue((0..128 - count).any { start ->
+                    (0 until count).all { obj ->
+                        (0..2).all { attr ->
+                            u16(oamDump, 2 * (4 * (start + obj) + attr)) ==
+                                (prevOam[4 * obj + attr].toInt() and 0xFFFF)
+                        }
+                    }
+                }, "$at banner OBJ composition")
+                bannerFrames += f
+            }
             if (f >= 1700) { // OAM is synced in VBlank: the dump holds the previous pass's buffer
                 val oamDump = data.region(key, "oam")
                 for (k in intArrayOf(3, 7, 11, 15)) {
@@ -212,6 +244,7 @@ class PhaseIntroDifferentialTest {
         const val SQUARES = 0x0859AF40
         const val BLEND_BOX = 0x0859AF60
 
+        const val BANNER_OBJECT = 0x0859AEC8
         const val IMG_UNK = 0x0859F020
         const val IMG_PLAYER = 0x0859F3F8
 

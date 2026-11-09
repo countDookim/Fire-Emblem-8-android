@@ -10,18 +10,17 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
-// Not @VerifiesPort: UnitLoader.closestValidPosition (AiGetUnitClosestValidPosition) may run here
-// but no RAM trace has a load onto an occupied tile, so it stays "transcribed".
+// Not @VerifiesPort: UnitLoader.closestValidPosition (AiGetUnitClosestValidPosition) is never
+// reached here (measured 2026-11-09), so it stays "transcribed".
 
 /**
  * Headless boot, title (A presses) and the New Game stand-in up to the Prologue player phase,
  * plus the START skip of the beginning events driven by the game's real `KeyStatus`.
  *
- * Known gap: the closest-position search (`AiGetUnitClosestValidPosition`) is reached in this
- * flow only because the release no-op stubs leave the cutscene units on the map. The reference
- * `ram_trace_first_phase` (f19430) has 2 blue units (Seth 4,4, Eirika 4,5) and 3 red ones; this
- * flow ends with 9 blue and 15 red, some off the 15x10 map. To be closed by M6-22, M6-28 and
- * M6-44.
+ * Measured 2026-11-09 (temporary counters, since removed): this flow makes 51 `flags & 1` loads
+ * in `AdjustNewUnitPosition` (4 test runs share most of them), none onto an occupied tile, so
+ * `AiGetUnitClosestValidPosition` is never reached. The old note that stub-left cutscene units
+ * force it is stale: cutscene units are cleared by the real Event34/ENUN/MOVEUNIT.
  */
 class NewGameToPrologueTest {
     @Test
@@ -53,8 +52,6 @@ class NewGameToPrologueTest {
         // The beginning events run for real (no skip: START is never pressed) with the release
         // stand-ins, load the player units and end; the phase then idles. The dialogue is real
         // now (M6-44, D-01), so A keeps being pressed (every 20 frames) to page through it.
-        // Known gap: the closest-free-tile search runs only for red units 139 (13,6)->(13,7) and
-        // 142 (11,4)->(11,3), because stub-left cutscene units occupy those tiles.
         var guard = 0
         while (boot.eventEngine.eventEngineExists() && guard++ < 20000) {
             boot.frame()

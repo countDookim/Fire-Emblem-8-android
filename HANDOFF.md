@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-09 (owner PC: resumed MU/guide verification and portrait fade-in; scheduled brown box work integrated). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
+_Updated 2026-11-09 (owner test 0.1.467/060478a: walking/portrait display confirmed; stutter, background, Rapier-popup and blink reports recorded). Owner decisions: docs/PROJECT_BRIEF.md. Backlog:
 docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git log._
 
 ## NEEDS USER
@@ -9,7 +9,14 @@ _(nothing blocked)_
 ## In progress
 _(none)_
 
-## Check first (owner, 2026-11-07)
+## Latest device test (owner, 2026-11-09)
+Build **0.1.467 (`060478a`)**: walking animations and dialogue portrait display look correct. D-06 is owner-confirmed
+resolved; occasional walking stutter is a separate D-07 issue. D-08 background corruption starts with the Seth/Franz
+dialogue outside the castle and worsens afterward. D-09 missing Rapier-received popup is low priority; device inventory
+is unknown. D-10 missing blink is confirmed against original FE8 source and Prologue reference activity.
+
+## Earlier device checks (historical, 2026-11-07)
+These are older build observations, not the current device status. See the device-issue table and latest report below.
 - Device test of APK 5e213f1 passed all 3 MANUAL_TEST items (KMP rebuild, issue #4 Prologue map + song, resume turn
   1). Issue #4 can be closed. Owner-reported problem on the Prologue opening (owner 11-07: note it, don't
   investigate yet): the opening plays but its cutscenes are skipped and no dialogue is shown; the screen flashes a
@@ -39,14 +46,18 @@ Status stays `open` until the fix is verified: a test against a reference run sh
 owner confirms it on a device/APK (owner 11-07: "only mark them as solved when they're actually verified solved").
 A merged fix without both is `fix merged, unverified`. Never mark `solved` from headless runs alone.
 
-| ID | Problem (owner's words, APK from master 3380240 vs emulator, 2026-11-07) | Known facts (headless, not diagnoses) | Status |
+| ID | Owner-reported problem (build/date noted where relevant) | Initial findings / reference and code facts | Current status |
 |---|---|---|---|
-| D-01 | Opening "flashes": the screen fades in and out for each dialogue, but no dialogue (and no units) is shown, so it is skipped at once and looks like flashing. | Text commands 1A x17, 1B x22, 1D x13, 21/22 x4 hit `ReleaseEventStubs` no-ops; EventText/Talk*/TalkBubble/TalkFace exist but are not registered in `Fe8Boot.eventEngine` (M6-44). The fades are the real EventFade. | solved 11-08 (reference: PrologueOpeningTextTest BG0/BG1 vs ram_trace_prologue_talk; owner device check of APK after a01a8cb). Base portraits and palette fade-in now reference-verified (11-09; device check pending); blink/mouth remain M6-35 follow-ups, outside D-01 |
+| D-01 | Opening "flashes": the screen fades in and out for each dialogue, but no dialogue (and no units) is shown, so it is skipped at once and looks like flashing. | Text commands 1A x17, 1B x22, 1D x13, 21/22 x4 hit `ReleaseEventStubs` no-ops; EventText/Talk*/TalkBubble/TalkFace exist but are not registered in `Fe8Boot.eventEngine` (M6-44). The fades are the real EventFade. | solved 11-08 (reference: PrologueOpeningTextTest BG0/BG1 vs ram_trace_prologue_talk; owner device check of APK after a01a8cb). Portrait display owner-confirmed in 0.1.467 (060478a), 11-09; palette fades reference-verified. Missing blink is D-10; mouth animation remains incomplete |
 | D-02 | In the in-game cutscene before the Prologue map no cutscene unit is shown and every event is skipped one after the other until the map begins. | Headless master: the cutscene unit loads run (f1324 red 45 + 2x 80, cleared f1595) but 0 OBJ sprites are drawn during events (scratch harness `maxObjDuringEvents` = 0); 2F MOVEUNIT x17, 30 ENUN x23 stubbed. Why nothing is drawn: not investigated. | solved 11-08 (reference: CutsceneUnitSpritesTest, unit OBJ of ram_trace_prologue f09600..f12300 equal ours on the frame with the same unit table; owner device check). f12600/f12900/f18000..f19200 unit OBJ now in the test too (11-08) |
-| D-03 | Map start: Seth and Eirika are placed at roughly the right tiles, but the original then has a short dialogue between them, after which Seth walks 4 tiles left and 1 up, then the map begins. Both are missing. | Headless: they end at (8,5)/(9,5), ref first_phase r19400 (4,4)/(4,5); MOVEUNIT/ENUN and the text commands are stubbed (D-01). | solved 11-08 (reference: MoveUnitDifferentialTest end tiles vs r19400; owner device check). Walk animation missing: D-06 Owner 11-08: on Easy the original runs a walking tutorial (player moves Eirika) instead of her automatic walk; Normal/Hard walk automatically, as the APK does. Our New Game stand-in always writes Normal (SaveMenuWriteNewGame difficulty 1, controller 1), so the Easy tutorial branch (Event19 CHECK_TUTORIAL -> 89EF27C) is not reachable until the save menu / difficulty select is ported; test it then. |
+| D-03 | Map start: Seth and Eirika are placed at roughly the right tiles, but the original then has a short dialogue between them, after which Seth walks 4 tiles left and 1 up, then the map begins. Both are missing. | Headless: they end at (8,5)/(9,5), ref first_phase r19400 (4,4)/(4,5); MOVEUNIT/ENUN and the text commands are stubbed (D-01). | solved 11-08 (reference: MoveUnitDifferentialTest end tiles vs r19400; owner device check). Walking animation owner-confirmed 11-09 (D-06); occasional stutter is D-07. Owner 11-08: on Easy the original runs a walking tutorial (player moves Eirika) instead of her automatic walk; Normal/Hard walk automatically, as the APK does. Our New Game stand-in always writes Normal (SaveMenuWriteNewGame difficulty 1, controller 1), so the Easy tutorial branch (Event19 CHECK_TUTORIAL -> 89EF27C) is not reachable until the save menu / difficulty select is ported; test it then. |
 | D-04 | Enemy units are on the correct tiles but appear as allies. | Headless master: they are in the red unit array (ids 0x81..0x83, chars 0x68/0x82/0x80, tiles equal r19400), so the unit data is red; how they are drawn (sprite palette/allegiance in UnitSpritesOam) not investigated. | solved 11-08 (reference: MoveUnitDifferentialTest `index byte` test, every unit's index (faction -> palette) equals r19400; owner device check) |
 | D-05 | Earlier report (5e213f1): cursor moves but nothing is interactable. Not re-reported on 3380240. | Headless master: cursor moves (BmSt.playerCursorX 9..14); A on a unit and menus untested. | closed 11-08 (owner: expected for now; after the units are placed the cursor moves but nothing is interactable because no player-phase actions are ported yet; re-check when they are) |
-| D-06 | Owner 11-08: in the cutscene outside the castle (before the battle map) Franz rides off the map but teleports to the map edge and waits a while before disappearing; Seth does the same on that map. Owner's guess: no walking animation. | Cause (headless): `MuHooks.apUpdate` was a no-op, so a walking MU drew nothing (the map sprite is hidden while a MU is active, as in the original). ap.c transcribed as `gbafe.render.SpriteAnimPlayer` (untagged) and wired via `fe8.game.bm.MuSpriteAnim` (079c99d, d55a4dc); sanity: walking MU has an OBJ on 428/448 moving frames (rest not examined). 11-09: input-aligned full boot matches four MU/controller states over 72 completed original passes and all four MU OAM entries at f12600 (MuTimingDifferentialTest); the earlier pair-gap mismatch came from input timing, so no runtime delay was added. The f12600 referenced VRAM tiles now also match after a VBlank transfer-queue fix; other captures and device behavior remain unverified. Standing-MU SMS hooks still no-ops. | fix merged, unverified (needs reference test + owner device check) |
+| D-06 | Owner 11-08: in the cutscene outside the castle (before the battle map) Franz rides off the map but teleports to the map edge and waits a while before disappearing; Seth does the same on that map. Owner's guess: no walking animation. | Cause (headless): `MuHooks.apUpdate` was a no-op, so a walking MU drew nothing (the map sprite is hidden while a MU is active, as in the original). ap.c transcribed as `gbafe.render.SpriteAnimPlayer` (untagged) and wired via `fe8.game.bm.MuSpriteAnim` (079c99d, d55a4dc); sanity: walking MU has an OBJ on 428/448 moving frames (rest not examined). 11-09: input-aligned full boot matches four MU/controller states over 72 completed original passes and all four MU OAM entries at f12600 (MuTimingDifferentialTest); the earlier pair-gap mismatch came from input timing, so no runtime delay was added. The f12600 referenced VRAM tiles now also match after a VBlank transfer-queue fix; other captures remain unverified. Owner 11-09: walking animation looks correct in 0.1.467 (060478a); rare stutter is D-07. Standing-MU SMS hooks still no-ops. | solved 11-09 (MuTimingDifferentialTest reference states/OAM/VRAM + owner confirmation on 0.1.467/060478a); D-07 tracked separately |
+| D-07 | Owner 11-09, 0.1.467 (060478a): rare momentary stutter while units walk during the Prologue opening; the game then continues normally. | Report recorded; no profiling or reference/device trace for the pause yet. Walking animation itself is owner-confirmed. Cause not investigated. | open |
+| D-08 | Owner 11-09, 0.1.467 (060478a): after Seth, Eirika and Franz leave the castle, the background becomes corrupted when Seth and Franz start talking, then gets progressively worse. | Onset/location recorded. No comparison or diagnosis yet; do not conflate this with the older missing-dialogue report D-01. | open; highest current debugging priority |
+| D-09 | Owner 11-09, 0.1.467 (060478a): no popup announcing Eirika received the Rapier before the first battle; inventory cannot be checked because player-phase interactions are unavailable. | Event37_GiveItem's NewPopup_ItemGot path is a stand-in. OpeningStubCommandsTest asserts the Rapier in Eirika's inventory headlessly; this is not device inventory confirmation or a trace verification of Event37. | open; low priority (owner) |
+| D-10 | Owner 11-09, 0.1.467 (060478a): dialogue portraits do not blink; verify whether FE8 expects blinking. | Confirmed expected: src/face.c StartFace starts gProcScr_FaceBlink unless FACE_DISP_BIT_12; sub_800623C/6280/62B8 drive eye frames. Original ram_trace_prologue_talk shows two blink children entering the eye animation (e.g. f9930/f10000/f10070). TalkFace omits blink procs and TalkScene.setFaceBlinkControl is a no-op. Per-portrait controls can suppress/change blinking; the regular Prologue portraits do blink. | open; original behavior confirmed, implementation missing (M6-35) |
 
 ## Audit 11-06 20:10Z (owner PC) of scheduled work 3c26e9e..ab985a8
 Full jvmTest green (555). 6 tags withheld because breaks survived (UpdateMapImgAnimations: VRAM every 10th frame;
@@ -62,7 +73,14 @@ M6-33/34 (fe8.game.scene Talk: init, interpreter, wait-for-A; the whole first ta
 M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
-## Next task: D-06 other animation frames + device verification; M6-35 blink/mouth; M6-44 BG3/fades + item popup; M6-45 allocations; M6-29 tags
+## Next task: D-08 background corruption; D-07 walking stutter; D-10 portrait blink; D-09 Rapier popup remains low priority
+Owner device test 11-09, build 0.1.467 (060478a): walking animations and dialogue portrait display look correct;
+D-06 owner-confirmed resolved. New issues D-07..D-10 above: prioritize the worsening background corruption,
+then investigate the intermittent walking pause; missing Rapier popup explicitly low priority. Device inventory
+contents remain unknown. FE8 blinking is confirmed by original source plus active Prologue blink proc states;
+recorded as D-10. Manual checklist consolidated around this result; obsolete pending walking/portrait checks
+and old build-specific instructions removed. This step records reports/checks blinking; no application fix attempted.
+
 Owner PC 11-09: CLAUDE.md, GPT.md and new GEMINI.md now share docs/AGENT_INSTRUCTIONS.template.md; profiles in
 tools/sync_agent_instructions.py preserve each assistant's model/tool choices. Edit the template/profile, run
 `python3 tools/sync_agent_instructions.py --write` then `--check`; CI rejects generated-file drift. Idempotence,

@@ -14,6 +14,10 @@ verified: why)". Seed from dump k, step, compare with dump k+1; use sentinels in
 
 ## Open
 
+Owner device report 2026-11-09, build 0.1.467 (`060478a`): current priorities are D-08 worsening background
+corruption, D-07 intermittent walking stutter, then D-10 missing portrait blink (confirmed original FE8 behavior).
+D-09 Rapier-received popup is explicitly low priority; inventory is unverified on device. Details: HANDOFF.md.
+
 | ID | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|
 | M5-56 | Infra: wire FlagRegistry/VarRegistry (EventScrCore's flag handlers, ScriptAssembler, gbafe.save container): flag handlers route ids ≥ MOD_BASE to the registry; assembler resolves mod flag/var names; registry state saved in a container `mod:<id>` section | test: a mod flag set by a script survives a container save/load; vanilla flag bytes unchanged | M5-20, M5-22, M5-55 | done |

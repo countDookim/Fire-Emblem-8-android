@@ -1,34 +1,34 @@
 # Manual test checklist
 
-Install `fe8-debug.apk` from the [`latest` release](../../../releases/tag/latest) (allow "install unknown
-apps" for your browser once). Each new APK installs over the previous one (same signing key).
-Report anything wrong as a GitHub Issue with label **`user-report`** (include the build string shown
-on the launcher screen).
+Install `fe8-debug.apk` from the [`latest` release](../../../releases/tag/latest). Check the launcher build
+string when reporting results; an older APK may not contain the latest changes. Every build requires ROM import.
+For a fresh New Game test, clear app data and re-import the ROM so an existing suspend does not auto-resume.
 
-## Confirmed on device (owner)
-Install and launch; boot to the title (H&S, logos, op anim, title) with original timing and sound incl. PSG;
-GPU renderer; gamepad/keyboard; on-screen touch buttons (cross D-pad, diagonals, multi-touch, safe-area
-layout); pause/resume; ROM import (~4 s) and Play from the imported data.
-2026-11-07, APK 5e213f1: KMP rebuild (no regressions), New Game fades in on the Prologue map with the event song
-(issue #4), close/reopen resumes turn 1 (M6-12).
+## Latest owner test — 2026-11-09
 
-## Newly testable
-Prologue opening after M6-29: tested by the owner 2026-11-07 (APK 3380240 vs an emulator). No extra cutscene
-units on the map any more; four problems found, tracked as D-01..D-04 in HANDOFF "Device issues" (re-test each when
-it is marked `fix merged, unverified`). Clear the app's data before a re-test so an old suspend save is not resumed.
-Re-test by the owner 2026-11-08 (APK after d01eb4c): D-01 dialogue, D-02 cutscene units, D-03 Seth/Eirika talk +
-Seth's move, D-04 enemy colours all fixed as described. New: D-06, in the cutscene outside the castle Franz (and later
-Seth) ride off the map but teleport to the map edge and wait a while before disappearing (walk animation not ported).
+Build **0.1.467 (`060478a`)**:
 
-2026-11-09, next APK: clear app data, import the ROM, choose Play and start New Game. The first dialogue should
-show both portrait sprites fading in and fading out when the dialogue ends. Portrait OAM and both fades have
-reference tests; a device check is
-still needed. The opening's brown text box should also appear with its text. For D-06, re-check Franz and Seth
-riding off the castle map; the input-aligned headless run now matches the original movement and one MU OAM dump,
-and MU graphics now transfer at VBlank with the corresponding sprites. A device check is still required to
-confirm whether the reported behavior is fixed.
+- Walking animations in the Prologue opening look correct overall. A rare brief stutter remains (D-07).
+- Character portraits display correctly during dialogue. Blinking is missing (D-10).
 
-## Known not working (don't report)
-After the title: no save menu (New Game is chosen automatically); portrait blink/mouth animation
-is incomplete; player-phase actions are not ported yet. D-06 still needs device confirmation. Every build
-requires an imported ROM.
+Earlier device checks also confirmed boot to title, original sound, GPU rendering, touch buttons,
+gamepad/keyboard, pause/resume, ROM import and close/reopen resuming turn 1.
+
+## Open device issues
+
+| ID | Priority | Observed behavior / re-test target |
+|---|---|---|
+| D-08 | High | After Seth, Eirika and Franz leave the castle, the background becomes corrupted when Seth and Franz start talking. It worsens afterward and persists for the rest of the run. |
+| D-07 | Normal | Units occasionally pause/stutter briefly while walking during the opening, then continue normally. |
+| D-10 | Normal | Portraits do not blink. Blinking is expected in FE8: the original Prologue reference contains active blink processes. |
+| D-09 | Low (owner) | The Rapier-received popup never appears before the first battle. Eirika's inventory has **not** been checked on device because player-phase interactions are unavailable; do not infer that the item is missing. |
+
+See [HANDOFF.md](../HANDOFF.md) for findings and verification status. Re-test an affected row when a fix
+and its APK build are announced; include the launcher build string with the result.
+
+## Known incomplete gameplay
+
+The save menu/difficulty selector and player-phase actions (including inventory access) are not ported yet;
+New Game is chosen automatically when there is no valid suspend. Portrait mouth animation is also incomplete.
+The original teleporting/missing-walk-animation report (D-06) is owner-confirmed resolved in the build above;
+the remaining intermittent stutter is tracked separately as D-07.

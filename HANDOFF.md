@@ -10,7 +10,7 @@ _(nothing blocked)_
 D07-audio: owner PC, until ~15:55Z; investigate castle transition stalls / PCM underruns; no timing changes without evidence.
 Readability-events: owner PC, until ~15:55Z; gbafe.extract.fe8.events comments/names only.
 D11-fades: owner PC, until ~15:55Z; subtitle timer/palette-fade foundation against original state/palette captures; not wired into New Game yet.
-D12-boundary: owner PC, until ~15:55Z; correct VCount-to-HBlank scanline translation and test rendered blend boundaries.
+D12-oam: owner PC, until ~15:55Z; strengthen phase sprite OAM reference checks beyond affine matrix values.
 
 ## Owner-PC work 2026-11-09 15:20Z
 - D-07 `63e638e`: optional startup PCM prefill; Android requests two VBlank chunks. The old ring capacity provided no guaranteed reserve. Seven focused PCM tests and audio Dokka pass; disabling prefill fails startup/interpolation/cadence regressions. Simulated 60 Hz display + 5 ms consumer + one 15 ms late callback retains queued sound; this is not a phone trace. Long stalls still exhaust the reserve; D-07 stays open. CI publication pending.

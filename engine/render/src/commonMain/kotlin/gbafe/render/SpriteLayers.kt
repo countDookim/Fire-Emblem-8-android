@@ -75,13 +75,13 @@ public class SpriteLayers {
      * Ported from src/ctc.c: PutSpriteExt
      */
     public fun putExt(layer: Int, xOam1: Int, yOam0: Int, obj: SpriteObject, oam2: Int) {
-        val e = pool[allocIt++]
-        e.next = layers[layer].next
-        e.oam1 = xOam1.toShort().toInt()
-        e.oam0 = yOam0.toShort().toInt()
-        e.oam2 = oam2 and 0xFFFF
-        e.obj = obj
-        layers[layer].next = e
+        val entry = pool[allocIt++]
+        entry.next = layers[layer].next
+        entry.oam1 = xOam1.toShort().toInt()
+        entry.oam0 = yOam0.toShort().toInt()
+        entry.oam2 = oam2 and 0xFFFF
+        entry.obj = obj
+        layers[layer].next = entry
     }
 
     /**

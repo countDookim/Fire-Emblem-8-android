@@ -149,12 +149,12 @@ public class BgHardware(
      * Ported from src/hardware.c: SetupBackgrounds
      */
     public fun setupBackgrounds(config: IntArray? = null, cloudsWeather: Boolean = false) {
-        val c = config ?: DEFAULT_BG_CONFIG
+        val bgConfig = config ?: DEFAULT_BG_CONFIG
         for (bg in 0..3) lcd.bgCnt[bg] = 0
         for (bg in 0..3) {
-            setTileDataOffset(bg, c[bg * 3])
-            setMapDataOffset(bg, c[bg * 3 + 1])
-            setScreenSize(bg, c[bg * 3 + 2])
+            setTileDataOffset(bg, bgConfig[bg * 3])
+            setMapDataOffset(bg, bgConfig[bg * 3 + 1])
+            setScreenSize(bg, bgConfig[bg * 3 + 2])
             lcd.setBgPosition(bg, 0, 0)
             fill(mapBuffer(bg), 0)
             vramFill16(0, tileDataOffset(bg), 64)
@@ -179,28 +179,28 @@ public class BgHardware(
     public fun flushBackgrounds() {
         for (bg in 0..3) {
             if (modifiedBgs and (1 shl bg) == 0) continue
-            val t = tilemaps[bg]
-            var o = vramTilemapOffsets[bg]
+            val tilemap = tilemaps[bg]
+            var dstOffset = vramTilemapOffsets[bg]
             for (i in 0 until TILEMAP_ENTRIES) {
-                val v = t[i].toInt()
-                vram[o] = v.toByte()
-                vram[o + 1] = (v shr 8).toByte()
-                o += 2
+                val entry = tilemap[i].toInt()
+                vram[dstOffset] = entry.toByte()
+                vram[dstOffset + 1] = (entry shr 8).toByte()
+                dstOffset += 2
             }
         }
         modifiedBgs = 0
         if (modifiedPalette) {
             modifiedPalette = false
-            val a = lcd.colorAddition
-            if (a == 0) {
+            val addition = lcd.colorAddition
+            if (addition == 0) {
                 palette.copyInto(paletteRam)
             } else {
                 for (i in 0 until PALETTE_COLORS) {
-                    val c = palette[i].toInt()
-                    val r = ((c and 0x1F) + a).coerceIn(0, 31)
-                    val g = (((c shr 5) and 0x1F) + a).coerceIn(0, 31)
-                    val b = (((c shr 10) and 0x1F) + a).coerceIn(0, 31)
-                    paletteRam[i] = ((b shl 10) + (g shl 5) + r).toShort()
+                    val color = palette[i].toInt()
+                    val red = ((color and 0x1F) + addition).coerceIn(0, 31)
+                    val green = (((color shr 5) and 0x1F) + addition).coerceIn(0, 31)
+                    val blue = (((color shr 10) and 0x1F) + addition).coerceIn(0, 31)
+                    paletteRam[i] = ((blue shl 10) or (green shl 5) or red).toShort()
                 }
             }
         }

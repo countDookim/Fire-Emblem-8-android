@@ -29,28 +29,28 @@ public class ColorFade(
         for (i in 31 downTo 0) {
             step[i] = stepValue.toByte()
             for (j in 0 until 16) {
-                val c = palette[i * 16 + j].toInt()
-                val o = (i * 16 + j) * 3
-                components[o] = ((c and 0x1F) + bias).toByte()
-                components[o + 1] = (((c shr 5) and 0x1F) + bias).toByte()
-                components[o + 2] = (((c shr 10) and 0x1F) + bias).toByte()
+                val color = palette[i * 16 + j].toInt()
+                val offset = (i * 16 + j) * 3
+                components[offset] = ((color and 0x1F) + bias).toByte()
+                components[offset + 1] = (((color shr 5) and 0x1F) + bias).toByte()
+                components[offset + 2] = (((color shr 10) and 0x1F) + bias).toByte()
             }
         }
     }
 
     /**
-     * Starts a fade from the current colours to black ([a] negative).
+     * Starts a fade from the current colours to black ([step] negative).
      *
      * Ported from src/hardware.c: ColorFadeSetupFromColorToBlack
      */
-    public fun setupFromColorToBlack(a: Int): Unit = setup(a, 32)
+    public fun setupFromColorToBlack(step: Int): Unit = setup(step, 32)
 
     /**
      * Starts a fade in from black: components start unbiased (black) and rise to the colours.
      *
      * Ported from src/hardware.c: ColorFadeSetupFromBlack
      */
-    public fun setupFromBlack(a: Int): Unit = setup(a, 0)
+    public fun setupFromBlack(step: Int): Unit = setup(step, 0)
 
     /**
      * Starts a fade from the current colours to white.
@@ -58,14 +58,14 @@ public class ColorFade(
      * Transcribed from src/hardware.c: ColorFadeSetupFromColorToWhite (not verified: no trace
      *   reaches it)
      */
-    public fun setupFromColorToWhite(a: Int): Unit = setup(a, 32)
+    public fun setupFromColorToWhite(step: Int): Unit = setup(step, 32)
 
     /**
      * Starts a fade in from white: components start at +0x40 (white) and fall to the colours.
      *
      * Transcribed from src/hardware.c: ColorFadeSetupFromWhite (not verified: no trace reaches it)
      */
-    public fun setupFromWhite(a: Int): Unit = setup(a, 64)
+    public fun setupFromWhite(step: Int): Unit = setup(step, 64)
 
     /**
      * Adds each palette's step to its components (u8 wrap) and writes the colours, each
@@ -75,15 +75,15 @@ public class ColorFade(
      */
     public fun tick() {
         for (pal in 31 downTo 0) {
-            val s = step[pal].toInt()
-            if (s == 0) continue
+            val stepVal = step[pal].toInt()
+            if (stepVal == 0) continue
             for (j in 15 downTo 0) {
-                val o = (pal * 16 + j) * 3
+                val offset = (pal * 16 + j) * 3
                 var rgb = 0
                 for (k in 0..2) {
-                    val v = ((components[o + k].toInt() and 0xFF) + s) and 0xFF
-                    components[o + k] = v.toByte()
-                    rgb = rgb or ((v - 0x20).coerceIn(0, 0x1F) shl (5 * k))
+                    val comp = ((components[offset + k].toInt() and 0xFF) + stepVal) and 0xFF
+                    components[offset + k] = comp.toByte()
+                    rgb = rgb or ((comp - 0x20).coerceIn(0, 0x1F) shl (5 * k))
                 }
                 palette[pal * 16 + j] = rgb.toShort()
             }

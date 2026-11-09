@@ -39,10 +39,10 @@ public class GpuFrame(
 
     /** Packs the current [state]. */
     public fun pack() {
-        val lt = state.lines
+        val lineTable = state.lines
         state.palettes.bg.copyInto(work)
         state.palettes.obj.copyInto(work, PaletteBank.COLORS)
-        paletteRows = if (lt.active && lt.paletteWrites > 0) RenderState.LINES else 1
+        paletteRows = if (lineTable.active && lineTable.paletteWrites > 0) RenderState.LINES else 1
         var nextWrite = 0
         val fx = state.effects
         for (bg in 0 until RenderState.LAYERS) {
@@ -51,15 +51,15 @@ public class GpuFrame(
         }
         val mvMod = maxOf(1, fx.mosaic[1])
         for (y in 0 until RenderState.LINES) {
-            val mask = if (lt.active) lt.mask[y] else 0
-            if (lt.active) {
-                while (nextWrite < lt.paletteWrites && lt.pwLine[nextWrite] <= y) {
-                    work[lt.pwIndex[nextWrite].toInt() and 0x1FF] = lt.pwColor[nextWrite]
+            val mask = if (lineTable.active) lineTable.mask[y] else 0
+            if (lineTable.active) {
+                while (nextWrite < lineTable.paletteWrites && lineTable.pwLine[nextWrite] <= y) {
+                    work[lineTable.pwIndex[nextWrite].toInt() and 0x1FF] = lineTable.pwColor[nextWrite]
                     nextWrite++
                 }
             }
             if (y < paletteRows) work.copyInto(palette, y * PALETTE_WIDTH)
-            val o = y * LINE_INTS
+            val lineOffset = y * LINE_INTS
             for (bg in 0 until RenderState.LAYERS) {
                 val layer = state.layers[bg]
                 val scroll = mask and (LineTable.BG_SCROLL shl bg) != 0
@@ -67,64 +67,64 @@ public class GpuFrame(
                 var sy: Int
                 if (layer.affine) {
                     if (scroll) {
-                        ref[bg] = lt.scrollX[bg * RenderState.LINES + y]
-                        ref[bg + RenderState.LAYERS] = lt.scrollY[bg * RenderState.LINES + y]
+                        ref[bg] = lineTable.scrollX[bg * RenderState.LINES + y]
+                        ref[bg + RenderState.LAYERS] = lineTable.scrollY[bg * RenderState.LINES + y]
                     }
                     sx = ref[bg]
                     sy = ref[bg + RenderState.LAYERS]
                     ref[bg] += layer.pb
                     ref[bg + RenderState.LAYERS] += layer.pd
                 } else {
-                    sx = if (scroll) lt.scrollX[bg * RenderState.LINES + y] else layer.scrollX
-                    sy = if (scroll) lt.scrollY[bg * RenderState.LINES + y] else layer.scrollY
+                    sx = if (scroll) lineTable.scrollX[bg * RenderState.LINES + y] else layer.scrollX
+                    sy = if (scroll) lineTable.scrollY[bg * RenderState.LINES + y] else layer.scrollY
                     sy += if (layer.mosaic) y - y % mvMod else y
                 }
-                lines[o + 2 * bg] = sx
-                lines[o + 2 * bg + 1] = sy
+                lines[lineOffset + 2 * bg] = sx
+                lines[lineOffset + 2 * bg + 1] = sy
             }
-            var w0l = fx.winLeft[0]
-            var w0r = fx.winRight[0]
-            var w1l = fx.winLeft[1]
-            var w1r = fx.winRight[1]
+            var win0Left = fx.winLeft[0]
+            var win0Right = fx.winRight[0]
+            var win1Left = fx.winLeft[1]
+            var win1Right = fx.winRight[1]
             if (mask and LineTable.WIN0_X != 0) {
-                w0l = lt.winLeft[y]
-                w0r = lt.winRight[y]
+                win0Left = lineTable.winLeft[y]
+                win0Right = lineTable.winRight[y]
             }
             if (mask and LineTable.WIN1_X != 0) {
-                w1l = lt.winLeft[RenderState.LINES + y]
-                w1r = lt.winRight[RenderState.LINES + y]
+                win1Left = lineTable.winLeft[RenderState.LINES + y]
+                win1Right = lineTable.winRight[RenderState.LINES + y]
             }
-            lines[o + L_WIN_X] = (w0l and 0xFF) or ((w0r and 0xFF) shl 8) or
-                ((w1l and 0xFF) shl 16) or ((w1r and 0xFF) shl 24)
+            lines[lineOffset + L_WIN_X] = (win0Left and 0xFF) or ((win0Right and 0xFF) shl 8) or
+                ((win1Left and 0xFF) shl 16) or ((win1Right and 0xFF) shl 24)
             var flags = 0
             if (fx.win0 && inside(y, fx.winTop[0], fx.winBottom[0])) flags = flags or F_IN0Y
             if (fx.win1 && inside(y, fx.winTop[1], fx.winBottom[1])) flags = flags or F_IN1Y
-            lines[o + L_FLAGS] = flags
+            lines[lineOffset + L_FLAGS] = flags
             var eva = fx.eva
             var evb = fx.evb
             var evy = fx.evy
             if (mask and LineTable.BLEND != 0) {
-                val b = lt.blend[y]
-                eva = b and 0xFF
-                evb = (b shr 8) and 0xFF
-                evy = (b shr 16) and 0xFF
+                val blendVal = lineTable.blend[y]
+                eva = blendVal and 0xFF
+                evb = (blendVal shr 8) and 0xFF
+                evy = (blendVal shr 16) and 0xFF
             }
-            lines[o + L_COEFF] = minOf(eva, 16) or (minOf(evb, 16) shl 8) or (minOf(evy, 16) shl 16)
-            lines[o + L_BLEND] = if (mask and LineTable.BLEND_CONTROL != 0) {
-                lt.blendControl[y] and 0x3FFF
+            lines[lineOffset + L_COEFF] = minOf(eva, 16) or (minOf(evb, 16) shl 8) or (minOf(evy, 16) shl 16)
+            lines[lineOffset + L_BLEND] = if (mask and LineTable.BLEND_CONTROL != 0) {
+                lineTable.blendControl[y] and 0x3FFF
             } else {
                 (fx.blendTop and 0x3F) or ((fx.blendMode and 3) shl 6) or ((fx.blendBottom and 0x3F) shl 8)
             }
             objs.line(y, work)
             val row = y * FrameBuffer.GBA_WIDTH
             for (x in 0 until FrameBuffer.GBA_WIDTH) {
-                var v = if (objs.window[x]) OBJ_WINDOW else 0
-                val c = objs.color[x]
-                if (c >= 0) {
-                    v = v or c or OBJ_OPAQUE or (objs.priority[x] shl OBJ_PRIO_SHIFT)
-                    if (objs.semi[x]) v = v or OBJ_SEMI
+                var pixelValue = if (objs.window[x]) OBJ_WINDOW else 0
+                val pixelColor = objs.color[x]
+                if (pixelColor >= 0) {
+                    pixelValue = pixelValue or pixelColor or OBJ_OPAQUE or (objs.priority[x] shl OBJ_PRIO_SHIFT)
+                    if (objs.semi[x]) pixelValue = pixelValue or OBJ_SEMI
                 }
-                obj[row + x] = v
+                obj[row + x] = pixelValue
             }
         }
     }
@@ -167,8 +167,8 @@ public class GpuFrame(
         /** OBJ plane: an OBJ window sprite covers the pixel. */
         public const val OBJ_WINDOW: Int = 1 shl 19
 
-        /** Hardware window bound test: [lo] until [hi], wrapping around when lo > hi. */
-        public fun inside(v: Int, lo: Int, hi: Int): Boolean =
-            if (lo <= hi) v in lo until hi else v >= lo || v < hi
+        /** Hardware window bound test: [coord] in range [start] until [end], wrapping around when start > end. */
+        public fun inside(coord: Int, start: Int, end: Int): Boolean =
+            if (start <= end) coord in start until end else coord >= start || coord < end
     }
 }

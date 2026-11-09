@@ -24,8 +24,8 @@ public object BgTilemap {
         for (row in hMinus1 downTo 0) {
             var dst = offset + row * ROW
             for (x in 0..wMinus1) {
-                val v = (tsa[src].toInt() and 0xFF) or ((tsa[src + 1].toInt() and 0xFF) shl 8)
-                tilemap[dst++] = (v + tileBase).toShort()
+                val tileEntry = (tsa[src].toInt() and 0xFF) or ((tsa[src + 1].toInt() and 0xFF) shl 8)
+                tilemap[dst++] = (tileEntry + tileBase).toShort()
                 src += 2
             }
         }

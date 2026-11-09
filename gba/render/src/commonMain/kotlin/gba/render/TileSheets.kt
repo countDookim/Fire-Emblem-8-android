@@ -46,11 +46,11 @@ public class TileSheets(
          */
         public fun pixel(sheet: ByteArray, tile: Int, px: Int, py: Int, bpp8: Boolean): Int {
             return if (bpp8) {
-                val o = tile * TILE_BYTES_8BPP + py * 8 + px
-                if (o >= sheet.size) 0 else sheet[o].toInt() and 0xFF
+                val byteOffset = tile * TILE_BYTES_8BPP + py * 8 + px
+                if (byteOffset >= sheet.size) 0 else sheet[byteOffset].toInt() and 0xFF
             } else {
-                val o = tile * TILE_BYTES_4BPP + py * 4 + (px shr 1)
-                if (o >= sheet.size) 0 else (sheet[o].toInt() shr ((px and 1) shl 2)) and 0xF
+                val byteOffset = tile * TILE_BYTES_4BPP + py * 4 + (px shr 1)
+                if (byteOffset >= sheet.size) 0 else (sheet[byteOffset].toInt() shr ((px and 1) shl 2)) and 0xF
             }
         }
     }

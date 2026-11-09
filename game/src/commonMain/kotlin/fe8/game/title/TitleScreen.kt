@@ -109,7 +109,7 @@ public class TitleScreen(
         /** `timer_idle`. */
         public var timerIdle: Int = 0
 
-        /** `unk_30`: the last light explosion progress (0..63). */
+        /** `unk_30` in the decomp: the last light explosion progress (0..63). */
         public var unk30: Int = 0
     }
 
@@ -391,14 +391,14 @@ public class TitleScreen(
     public fun drawLightBubbles(step: Int) {
         val obj = object8x8 ?: error("object8x8 not supplied")
         for (i in 0 until BUBBLES.size / 4) {
-            val a = BUBBLES[4 * i]
-            val b = BUBBLES[4 * i + 1]
-            val c = BUBBLES[4 * i + 2]
-            val m = RAYS[2 * c]
-            val n = RAYS[2 * c + 1]
+            val startDist = BUBBLES[4 * i]
+            val endDist = BUBBLES[4 * i + 1]
+            val rayIndex = BUBBLES[4 * i + 2]
+            val rayX = RAYS[2 * rayIndex]
+            val rayY = RAYS[2 * rayIndex + 1]
             val lin = Interpolate.LINEAR
-            val x = Interpolate.interpolate(lin, (m * a) shr 8, (b * m) shr 8, step, 24) + 116
-            val y = Interpolate.interpolate(lin, (n * a) shr 8, (b * n) shr 8, step, 24) + 56
+            val x = Interpolate.interpolate(lin, (rayX * startDist) shr 8, (endDist * rayX) shr 8, step, 24) + 116
+            val y = Interpolate.interpolate(lin, (rayY * startDist) shr 8, (endDist * rayY) shr 8, step, 24) + 56
             val tile = (BUBBLES[4 * i + 3] + 0x2A0) or 0x7400
             sprites.putExt(4, x and 0x1FF, (y and 0xFF) or 0x400, obj, tile)
         }
@@ -443,10 +443,10 @@ public class TitleScreen(
 
     /** `gProcScr_DrawTitleSprites` state (`unk_4c`, `unk_52` of its proc). */
     public class SpritesState {
-        /** `unk_4c`: step counter (s16). */
+        /** `unk_4c` in the decomp: step counter (s16). */
         public var unk4c: Int = 0
 
-        /** `unk_52`: glow phase (0..31). */
+        /** `unk_52` in the decomp: glow phase (0..31). */
         public var unk52: Int = 0
     }
 
@@ -454,14 +454,14 @@ public class TitleScreen(
     public val drawSpritesScript: ProcScript = ProcScript(
         "gProcScr_DrawTitleSprites",
         listOf(
-            call(ProcFunc { st(it).apply { unk4c = 0; unk52 = 0 } }), // DrawTitleSprites_Init
+            call(ProcFunc { spritesState(it).apply { unk4c = 0; unk52 = 0 } }), // DrawTitleSprites_Init
             repeat(ProcFunc { drawSprites(it) }),
             end(),
         ),
         newState = { SpritesState() },
     )
 
-    private fun st(proc: Proc) = proc.state as SpritesState
+    private fun spritesState(proc: Proc): SpritesState = proc.state as SpritesState
 
     /**
      * Puts the title sprites and cycles the "Press Start" glow colour (OBJ palette 0 entry 8)
@@ -470,7 +470,7 @@ public class TitleScreen(
      * Ported from src/titlescreen.c: DrawTitleSprites_Loop
      */
     public fun drawSprites(proc: Proc) {
-        val st = st(proc)
+        val st = spritesState(proc)
         val (tm, logo, pressStart, copyright) = menuSprites
         sprites.putExt(0, 4, 48, logo, 0x2000)
         sprites.putExt(0, 220, 41, tm, 0x201E)
@@ -479,8 +479,8 @@ public class TitleScreen(
         sprites.putExt(1, 72, 124, pressStart, 0x1BA)
         sprites.putExt(1, 4, 148, copyright, 0x1180)
         if (st.unk4c % 3 == 0) st.unk52 = (st.unk52 + 1) and 0x1F
-        val i = if ((st.unk52 and 0x10) != 0) st.unk52 and 0xF else (0x1F - st.unk52) and 0xF
-        hardware.palette[0x108] = glowPal[i]
+        val glowColorIndex = if ((st.unk52 and 0x10) != 0) st.unk52 and 0xF else (0x1F - st.unk52) and 0xF
+        hardware.palette[0x108] = glowPal[glowColorIndex]
         hardware.enablePaletteSync()
         st.unk4c = (st.unk4c + 1).toShort().toInt()
     }
@@ -527,8 +527,7 @@ public class TitleScreen(
     /**
      * Ends the title's children (the sprites proc) after the fade out.
      *
-     * Transcribed from src/titlescreen.c: Title_EndAllProcChildren (not verified: the title proc ends in the
-     * same step, so its children die either way)
+     * Ported from src/titlescreen.c: Title_EndAllProcChildren
      */
     public fun endAllProcChildren(proc: Proc) {
         engine.endAllChildren(proc)
@@ -559,34 +558,34 @@ public class TitleScreen(
     public fun setupSpecialEffectGraphics(proc: Proc) {
         val st = proc.state as State
         val hw = hardware
-        val f = gfx.fx
-        val p = gfx.fxPals
+        val fxBlobs = gfx.fx
+        val fxPalettes = gfx.fxPals
         if (st.timer == 2) missedVBlanks = 1
         when (st.timer) {
             0 -> {
                 hw.setTileDataOffset(0, 0xC000)
                 hw.setMapDataOffset(0, 0x7800)
-                Decompress.into(f[0].data, f[0].offset, hw.vram, 0x8000)
-                Decompress.into(f[1].data, f[1].offset, hw.vram, 0xB000)
-                applyPalette(p[0], 0, 1)
+                Decompress.into(fxBlobs[0].data, fxBlobs[0].offset, hw.vram, 0x8000)
+                Decompress.into(fxBlobs[1].data, fxBlobs[1].offset, hw.vram, 0xB000)
+                applyPalette(fxPalettes[0], 0, 1)
                 hw.palette[0] = 0x7FFF
             }
             1 -> {
-                Decompress.into(f[2].data, f[2].offset, hw.vram, 0xC000)
-                loadMap(f[3], 0, 0x1000)
-                applyPalette(p[1], 1, 1)
+                Decompress.into(fxBlobs[2].data, fxBlobs[2].offset, hw.vram, 0xC000)
+                loadMap(fxBlobs[3], 0, 0x1000)
+                applyPalette(fxPalettes[1], 1, 1)
                 hw.enableBgSyncByMask(1)
             }
             2 -> {
-                Decompress.into(f[4].data, f[4].offset, hw.vram, 0xD000)
-                loadMap(f[5], 0, 0x2080)
-                applyPalette(p[2], 2, 1)
+                Decompress.into(fxBlobs[4].data, fxBlobs[4].offset, hw.vram, 0xD000)
+                loadMap(fxBlobs[5], 0, 0x2080)
+                applyPalette(fxPalettes[2], 2, 1)
             }
             3 -> {
-                Decompress.into(f[6].data, f[6].offset, hw.vram, 0x14400)
-                applyPalette(p[3], 0x14, 3)
-                Decompress.into(f[7].data, f[7].offset, hw.vram, 0x15400)
-                applyPalette(p[4], 0x17, 1)
+                Decompress.into(fxBlobs[6].data, fxBlobs[6].offset, hw.vram, 0x14400)
+                applyPalette(fxPalettes[3], 0x14, 3)
+                Decompress.into(fxBlobs[7].data, fxBlobs[7].offset, hw.vram, 0x15400)
+                applyPalette(fxPalettes[4], 0x17, 1)
             }
             4 -> {
                 st.timer = 0
@@ -714,26 +713,26 @@ public class TitleScreen(
     public fun setupMainGraphics(proc: Proc) {
         val st = proc.state as State
         val hw = hardware
-        val g = gfx
+        val gfxData = gfx
         if (st.timer <= 2) missedVBlanks = 1
         when (st.timer) {
-            0 -> Decompress.into(g.background[0].data, g.background[0].offset, hw.vram, 0)
+            0 -> Decompress.into(gfxData.background[0].data, gfxData.background[0].offset, hw.vram, 0)
             1 -> {
-                Decompress.into(g.background[1].data, g.background[1].offset, hw.vram, 0x3000)
-                loadMap(g.background[2], 1, 0xE000)
-                applyPalette(g.backgroundPal, 0xE, 1)
+                Decompress.into(gfxData.background[1].data, gfxData.background[1].offset, hw.vram, 0x3000)
+                loadMap(gfxData.background[2], 1, 0xE000)
+                applyPalette(gfxData.backgroundPal, 0xE, 1)
                 hw.palette[0] = if (st.mode != 0) 0x7FFF else 0
             }
             2 -> {
-                Decompress.into(g.dragon.first.data, g.dragon.first.offset, hw.vram, 0x5000)
-                loadMap(g.dragon.second, 0, 0xF280)
-                applyPalette(g.dragonPal, 0xF, 1)
+                Decompress.into(gfxData.dragon.first.data, gfxData.dragon.first.offset, hw.vram, 0x5000)
+                loadMap(gfxData.dragon.second, 0, 0xF280)
+                applyPalette(gfxData.dragonPal, 0xF, 1)
                 hw.enableBgSyncByMask(1)
             }
-            3 -> Decompress.into(g.logo.data, g.logo.offset, hw.vram, 0x10000)
+            3 -> Decompress.into(gfxData.logo.data, gfxData.logo.offset, hw.vram, 0x10000)
             4 -> {
-                Decompress.into(g.pressStart.data, g.pressStart.offset, hw.vram, 0x13000)
-                applyPalette(g.pressStartPal, 0x10, 4)
+                Decompress.into(gfxData.pressStart.data, gfxData.pressStart.offset, hw.vram, 0x13000)
+                applyPalette(gfxData.pressStartPal, 0x10, 4)
                 st.timer = 0
                 engine.breakProc(proc)
                 return
@@ -771,9 +770,9 @@ public class TitleScreen(
 
     /** Decompresses a 0x280-entry map into BG [bg]'s buffer and adds [add] to every entry. */
     private fun loadMap(blob: OpAnimHs.Blob, bg: Int, add: Int) {
-        val n = Decompress.into(blob.data, blob.offset, mapBytes, 0)
+        val decompressedBytes = Decompress.into(blob.data, blob.offset, mapBytes, 0)
         val map = hardware.mapBuffer(bg)
-        for (i in 0 until minOf(n / 2, map.size)) {
+        for (i in 0 until minOf(decompressedBytes / 2, map.size)) {
             map[i] = ((mapBytes[2 * i].toInt() and 0xFF) or ((mapBytes[2 * i + 1].toInt() and 0xFF) shl 8)).toShort()
         }
         if (add != 0) for (i in 0 until 0x280) map[i] = (map[i] + add).toShort()

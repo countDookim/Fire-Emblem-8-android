@@ -40,11 +40,11 @@ public class FrameBuffer(
          * Converts a GBA BGR555 colour to ARGB8888 the same way mGBA's reference dumps do (`c << 3`,
          * zero low bits), so vanilla frames compare exactly.
          */
-        public fun bgr555ToArgb(c: Int): Int {
-            val r = (c and 0x1F) shl 3
-            val g = ((c shr 5) and 0x1F) shl 3
-            val b = ((c shr 10) and 0x1F) shl 3
-            return (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+        public fun bgr555ToArgb(color: Int): Int {
+            val red = (color and 0x1F) shl 3
+            val green = ((color shr 5) and 0x1F) shl 3
+            val blue = ((color shr 10) and 0x1F) shl 3
+            return (0xFF shl 24) or (red shl 16) or (green shl 8) or blue
         }
     }
 }

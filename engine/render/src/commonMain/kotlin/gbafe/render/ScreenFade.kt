@@ -29,10 +29,10 @@ public class ScreenFade(
     }
 
     private fun enableBlendInWindows() {
-        lcd.setWincntBit(5, true)
-        lcd.setWincntBit(13, true)
-        lcd.setWincntBit(29, true)
-        lcd.setWincntBit(21, true)
+        lcd.setWincntBit(LcdControl.WIN0_ENABLE_BLEND, true)
+        lcd.setWincntBit(LcdControl.WIN1_ENABLE_BLEND, true)
+        lcd.setWincntBit(LcdControl.WOBJ_ENABLE_BLEND, true)
+        lcd.setWincntBit(LcdControl.WOUT_ENABLE_BLEND, true)
     }
 
     /**
@@ -44,9 +44,9 @@ public class ScreenFade(
         lcd.setBlendConfig(3, 0, 0, 0)
         lcd.setBlendTargetA(1, 1, 1, 1, 1)
         lcd.setBlendBackdropA(1)
-        val st = proc.state as State
-        st.speed = 0x10
-        st.level = 0
+        val state = proc.state as State
+        state.speed = 0x10
+        state.level = 0
     }
 
     /**
@@ -58,10 +58,10 @@ public class ScreenFade(
             engine.end(proc)
             return
         }
-        val st = proc.state as State
-        st.level += st.speed
-        if (st.level >= 0x100) st.level = 0x100
-        lcd.blendY = st.level shr 4
+        val state = proc.state as State
+        state.level += state.speed
+        if (state.level >= 0x100) state.level = 0x100
+        lcd.blendY = state.level shr 4
     }
 
     /**
@@ -73,9 +73,9 @@ public class ScreenFade(
         lcd.setBlendTargetA(1, 1, 1, 1, 1)
         lcd.setBlendTargetB(1, 1, 1, 1, 1)
         lcd.setBlendBackdropA(1)
-        val st = proc.state as State
-        st.speed = 0x10
-        st.level = 0x100
+        val state = proc.state as State
+        state.speed = 0x10
+        state.level = 0x100
     }
 
     /**
@@ -87,10 +87,10 @@ public class ScreenFade(
             engine.end(proc)
             return
         }
-        val st = proc.state as State
-        st.level -= st.speed
-        if (st.level <= 0) st.level = 0
-        lcd.blendY = st.level shr 4
+        val state = proc.state as State
+        state.level -= state.speed
+        if (state.level <= 0) state.level = 0
+        lcd.blendY = state.level shr 4
     }
 
     /**

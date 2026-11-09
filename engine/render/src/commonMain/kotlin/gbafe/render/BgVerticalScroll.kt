@@ -67,9 +67,9 @@ public class BgVerticalScroll {
                 for (i in 0 until 3) {
                     val reg = dst[i]
                     if (reg < 0) continue
-                    val v = buf[base + LINES * i + line].toInt()
-                    io[reg] = v.toByte()
-                    io[reg + 1] = (v shr 8).toByte()
+                    val value = buf[base + LINES * i + line].toInt()
+                    io[reg] = value.toByte()
+                    io[reg + 1] = (value shr 8).toByte()
                 }
             }
             return
@@ -86,12 +86,12 @@ public class BgVerticalScroll {
     }
 
     /**
-     * Offset in [buf] of register [i]'s 160-line table in the half `frameFlip + flip` (`flip` 1 = the half the
+     * Offset in [buf] of register [registerIndex]'s 160-line table in the half `frameFlip + flip` (`flip` 1 = the half the
      * game fills for the next frame).
      *
      * Ported from src/bmlib-hblank.c: GetBgVerticalScrollBuffer
      */
-    public fun bufferOffset(i: Int, flip: Int): Int = ((frameFlip + flip) and 1) * 480 + i * LINES
+    public fun bufferOffset(registerIndex: Int, flip: Int): Int = ((frameFlip + flip) and 1) * 480 + registerIndex * LINES
 
     /**
      * Makes the half just filled the one the handler latches at the next VBlank.

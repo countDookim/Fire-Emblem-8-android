@@ -307,7 +307,21 @@ class TitleScreenDifferentialTest {
     }
 
     @Test
-    @VerifiesPort("sub_80141B0")
+    @VerifiesPort("Title_EndAllProcChildren")
+    fun `Title_EndAllProcChildren ends child procs`() {
+        assumeTrue(romFile.isFile, "ROM not present")
+        val engine = ProcEngine()
+        val title = titleScreenFor(romFile.readBytes(), engine, BgHardware())
+        val parent = engine.start(ProcScript("parent", listOf(block())), 3)
+        val titleProc = title.start(parent, 1)!!
+        val child = engine.start(ProcScript("child", listOf(block())), titleProc)
+        assertEquals(child, engine.findAfterWithParent(null, titleProc))
+        title.endAllProcChildren(titleProc)
+        assertEquals(null, engine.findAfterWithParent(null, titleProc))
+    }
+
+    @Test
+    @VerifiesPort("sub_80141B0", "Title_EndAllProcChildren")
     fun `START on the idle title fades to dark and ends the title like the per-frame RAM trace`() {
         val c = titleKeyPath("ram_trace_title_start", "t", 900)
         assertTrue(c.fade >= 14 && c.ended == 1, "checked $c")

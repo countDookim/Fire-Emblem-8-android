@@ -37,13 +37,13 @@ public class OamBuffer {
         val py = y and 0xFFFF
         var src = 1
         repeat(count) {
-            val s0 = data[src].toInt() and 0xFFFF
-            val s1 = data[src + 1].toInt() and 0xFFFF
-            val s2 = data[src + 2].toInt() and 0xFFFF
+            val attr0 = data[src].toInt() and 0xFFFF
+            val attr1 = data[src + 1].toInt() and 0xFFFF
+            val attr2 = data[src + 2].toInt() and 0xFFFF
             if (dst + 2 < buffer.size) {
-                buffer[dst] = (((s0 or py) and 0xFF00) or ((s0 + py) and 0xFF)).toShort()
-                buffer[dst + 1] = (((s1 or px) and 0xFE00) or ((s1 + px) and 0x1FF)).toShort()
-                buffer[dst + 2] = (s2 + oam2).toShort()
+                buffer[dst] = (((attr0 or py) and 0xFF00) or ((attr0 + py) and 0xFF)).toShort()
+                buffer[dst + 1] = (((attr1 or px) and 0xFE00) or ((attr1 + px) and 0x1FF)).toShort()
+                buffer[dst + 2] = (attr2 + oam2).toShort()
             }
             src += 3
             dst += 4

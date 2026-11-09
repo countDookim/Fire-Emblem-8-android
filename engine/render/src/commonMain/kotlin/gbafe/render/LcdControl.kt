@@ -159,8 +159,9 @@ public class LcdControl {
     }
 
     /**
-     * Sets or clears a `wincnt` bit: 5 `win0_enableBlend`, 13 `win1_enableBlend`, 21
-     * `wout_enableBlend`, 29 `wobj_enableBlend` (or any other `wincnt` bit).
+     * Sets or clears a `wincnt` bit: [WIN0_ENABLE_BLEND] (bit 5 `win0_enableBlend`),
+     * [WIN1_ENABLE_BLEND] (bit 13 `win1_enableBlend`), [WOUT_ENABLE_BLEND] (bit 21
+     * `wout_enableBlend`), [WOBJ_ENABLE_BLEND] (bit 29 `wobj_enableBlend`), or any other `wincnt` bit.
      */
     public fun setWincntBit(bit: Int, on: Boolean) {
         wincnt = if (on) wincnt or (1 shl bit) else wincnt and (1 shl bit).inv()
@@ -273,38 +274,41 @@ public class LcdControl {
     public fun applyTo(state: RenderState): Boolean {
         val mode = dispcnt and 7
         for (bg in 0 until RenderState.LAYERS) {
-            val l = state.layers[bg]
+            val layer = state.layers[bg]
             val cnt = bgCnt[bg]
-            l.enabled = dispcnt and (0x100 shl bg) != 0 &&
+            layer.enabled = dispcnt and (0x100 shl bg) != 0 &&
                 when (mode) { 0 -> true; 1 -> bg < 3; 2 -> bg >= 2; else -> false }
-            l.affine = mode == 2 || (mode == 1 && bg == 2)
-            l.priority = cnt and 3
-            l.sheet = (cnt shr 2) and 3
-            l.mosaic = cnt and 0x40 != 0
-            l.bpp8 = cnt and 0x80 != 0 || l.affine
-            l.wrap = cnt and 0x2000 != 0
+            layer.affine = mode == 2 || (mode == 1 && bg == 2)
+            layer.priority = cnt and 3
+            layer.sheet = (cnt shr 2) and 3
+            layer.mosaic = cnt and 0x40 != 0
+            layer.bpp8 = cnt and 0x80 != 0 || layer.affine
+            layer.wrap = cnt and 0x2000 != 0
             val size = (cnt shr 14) and 3
-            if (l.affine) {
-                l.widthTiles = 16 shl size
-                l.heightTiles = 16 shl size
-                val o = 6 * (bg - 2)
-                l.pa = affine[o]; l.pb = affine[o + 1]; l.pc = affine[o + 2]; l.pd = affine[o + 3]
-                l.refX = (affine[o + 4] shl 4) shr 4 // 28-bit signed 20.8
-                l.refY = (affine[o + 5] shl 4) shr 4
+            if (layer.affine) {
+                layer.widthTiles = 16 shl size
+                layer.heightTiles = 16 shl size
+                val affineOffset = 6 * (bg - 2)
+                layer.pa = affine[affineOffset]
+                layer.pb = affine[affineOffset + 1]
+                layer.pc = affine[affineOffset + 2]
+                layer.pd = affine[affineOffset + 3]
+                layer.refX = (affine[affineOffset + 4] shl 4) shr 4 // 28-bit signed 20.8
+                layer.refY = (affine[affineOffset + 5] shl 4) shr 4
             } else {
-                l.widthTiles = if (size and 1 != 0) 64 else 32
-                l.heightTiles = if (size and 2 != 0) 64 else 32
+                layer.widthTiles = if (size and 1 != 0) 64 else 32
+                layer.heightTiles = if (size and 2 != 0) 64 else 32
             }
-            l.scrollX = bgHofs[bg] and 0x1FF
-            l.scrollY = bgVofs[bg] and 0x1FF
+            layer.scrollX = bgHofs[bg] and 0x1FF
+            layer.scrollY = bgVofs[bg] and 0x1FF
         }
         val fx = state.effects
         fx.win0 = dispcnt and 0x2000 != 0
         fx.win1 = dispcnt and 0x4000 != 0
         fx.objWindow = dispcnt and 0x8000 != 0
-        for (w in 0..1) {
-            fx.winRight[w] = winH[2 * w]; fx.winLeft[w] = winH[2 * w + 1]
-            fx.winBottom[w] = winV[2 * w]; fx.winTop[w] = winV[2 * w + 1]
+        for (win in 0..1) {
+            fx.winRight[win] = winH[2 * win]; fx.winLeft[win] = winH[2 * win + 1]
+            fx.winBottom[win] = winV[2 * win]; fx.winTop[win] = winV[2 * win + 1]
         }
         fx.winInside[0] = wincnt and 0x3F
         fx.winInside[1] = (wincnt shr 8) and 0x3F
@@ -333,5 +337,17 @@ public class LcdControl {
     public companion object {
         /** Size of `struct LCDControlBuffer` in bytes. */
         public const val STRUCT_SIZE: Int = 0x6C
+
+        /** WININ bit 5: color effects enable for window 0 (`win0_enableBlend`). */
+        public const val WIN0_ENABLE_BLEND: Int = 5
+
+        /** WININ bit 13: color effects enable for window 1 (`win1_enableBlend`). */
+        public const val WIN1_ENABLE_BLEND: Int = 13
+
+        /** WINOUT bit 21: color effects enable outside windows (`wout_enableBlend`). */
+        public const val WOUT_ENABLE_BLEND: Int = 21
+
+        /** WINOUT bit 29: color effects enable for OBJ window (`wobj_enableBlend`). */
+        public const val WOBJ_ENABLE_BLEND: Int = 29
     }
 }

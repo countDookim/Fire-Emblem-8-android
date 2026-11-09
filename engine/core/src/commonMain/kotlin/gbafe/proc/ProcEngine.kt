@@ -126,8 +126,9 @@ public class ProcEngine(
         allocList[--allocHead] = proc
         proc.script = null
         proc.idleCb = null
-        proc.flags = proc.flags or FLAG_ENDED
         if (proc.flags and FLAG_BLOCKING != 0) proc.parent!!.lockCnt--
+        proc.parent = null
+        proc.flags = proc.flags or FLAG_ENDED
     }
 
     /** Makes [proc] the youngest root of tree [rootIndex], chaining the old root as its elder. */
@@ -371,7 +372,8 @@ public class ProcEngine(
     public fun findAfterWithParent(proc: Proc?, parent: Proc?): Proc? {
         val start = if (proc != null) proc.slot + 1 else 0
         for (i in start until maxProcs) {
-            if (procArray[i].parent === parent) return procArray[i]
+            val candidate = procArray[i]
+            if (candidate.script != null && candidate.parent === parent) return candidate
         }
         return null
     }

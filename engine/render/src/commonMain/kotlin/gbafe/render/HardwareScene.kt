@@ -70,57 +70,57 @@ public class HardwareSceneLoader {
         lcd.readRegisters(io)
         lcd.applyTo(state)
         for (bg in 0 until 4) {
-            val l = state.layers[bg]
+            val layer = state.layers[bg]
             val screenBase = ((lcd.bgCnt[bg] shr 8) and 0x1F) * 0x800
-            if (l.affine) { // one byte per entry, row-major
-                for (ty in 0 until l.heightTiles) for (tx in 0 until l.widthTiles) {
-                    val o = screenBase + ty * l.widthTiles + tx
-                    l.setEntry(tx, ty, if (o < 0x10000) vram[o].toInt() and 0xFF else 0)
+            if (layer.affine) { // one byte per entry, row-major
+                for (ty in 0 until layer.heightTiles) for (tx in 0 until layer.widthTiles) {
+                    val entryOffset = screenBase + ty * layer.widthTiles + tx
+                    layer.setEntry(tx, ty, if (entryOffset < 0x10000) vram[entryOffset].toInt() and 0xFF else 0)
                 }
                 continue
             }
-            for (ty in 0 until l.heightTiles) for (tx in 0 until l.widthTiles) {
+            for (ty in 0 until layer.heightTiles) for (tx in 0 until layer.widthTiles) {
                 var block = 0
                 if (tx >= 32) block += 1
-                if (ty >= 32) block += if (l.widthTiles == 64) 2 else 1
-                val o = screenBase + block * 0x800 + ((ty and 31) * 32 + (tx and 31)) * 2
-                l.setEntry(tx, ty, if (o + 1 < 0x10000) u16(vram, o) else 0)
+                if (ty >= 32) block += if (layer.widthTiles == 64) 2 else 1
+                val entryOffset = screenBase + block * 0x800 + ((ty and 31) * 32 + (tx and 31)) * 2
+                layer.setEntry(tx, ty, if (entryOffset + 1 < 0x10000) u16(vram, entryOffset) else 0)
             }
         }
-        val sp = state.sprites
+        val sprites = state.sprites
         for (m in 0 until SpriteBatch.AFFINE_MATRICES) {
-            sp.setAffine(m, s16(oam, m * 32 + 6), s16(oam, m * 32 + 14), s16(oam, m * 32 + 22), s16(oam, m * 32 + 30))
+            sprites.setAffine(m, s16(oam, m * 32 + 6), s16(oam, m * 32 + 14), s16(oam, m * 32 + 22), s16(oam, m * 32 + 30))
         }
         if (dispcnt and 0x1000 == 0) return
         for (i in 0 until 128) {
-            val a0 = u16(oam, i * 8)
-            val a1 = u16(oam, i * 8 + 2)
-            val a2 = u16(oam, i * 8 + 4)
-            val affine = a0 and 0x100 != 0
-            if (!affine && a0 and 0x200 != 0) continue // disabled
-            val shape = (a0 shr 14) and 3
+            val attr0 = u16(oam, i * 8)
+            val attr1 = u16(oam, i * 8 + 2)
+            val attr2 = u16(oam, i * 8 + 4)
+            val affine = attr0 and 0x100 != 0
+            if (!affine && attr0 and 0x200 != 0) continue // disabled
+            val shape = (attr0 shr 14) and 3
             if (shape == 3) continue
-            val size = (a1 shr 14) and 3
-            val w = objSizes[shape][size * 2]
-            val h = objSizes[shape][size * 2 + 1]
-            val dbl = affine && a0 and 0x200 != 0
-            var y = a0 and 0xFF
-            if (y + (if (dbl) 2 * h else h) > 256) y -= 256
-            var x = a1 and 0x1FF
+            val size = (attr1 shr 14) and 3
+            val width = objSizes[shape][size * 2]
+            val height = objSizes[shape][size * 2 + 1]
+            val doubleSize = affine && attr0 and 0x200 != 0
+            var y = attr0 and 0xFF
+            if (y + (if (doubleSize) 2 * height else height) > 256) y -= 256
+            var x = attr1 and 0x1FF
             if (x >= 256) x -= 512
             var flags = 0
             if (affine) flags = flags or SpriteBatch.AFFINE
-            if (dbl) flags = flags or SpriteBatch.DOUBLE_SIZE
-            if (!affine && a1 and 0x1000 != 0) flags = flags or SpriteBatch.HFLIP
-            if (!affine && a1 and 0x2000 != 0) flags = flags or SpriteBatch.VFLIP
-            if (a0 and 0x1000 != 0) flags = flags or SpriteBatch.MOSAIC
-            if (a0 and 0x2000 != 0) flags = flags or SpriteBatch.BPP8
-            when ((a0 shr 10) and 3) {
+            if (doubleSize) flags = flags or SpriteBatch.DOUBLE_SIZE
+            if (!affine && attr1 and 0x1000 != 0) flags = flags or SpriteBatch.HFLIP
+            if (!affine && attr1 and 0x2000 != 0) flags = flags or SpriteBatch.VFLIP
+            if (attr0 and 0x1000 != 0) flags = flags or SpriteBatch.MOSAIC
+            if (attr0 and 0x2000 != 0) flags = flags or SpriteBatch.BPP8
+            when ((attr0 shr 10) and 3) {
                 1 -> flags = flags or SpriteBatch.MODE_SEMI
                 2 -> flags = flags or SpriteBatch.MODE_WINDOW
                 3 -> continue // prohibited mode
             }
-            sp.add(x, y, w, h, HardwareScene.OBJ_SHEET, a2 and 0x3FF, (a2 shr 12) and 0xF, (a2 shr 10) and 3, flags, (a1 shr 9) and 0x1F)
+            sprites.add(x, y, width, height, HardwareScene.OBJ_SHEET, attr2 and 0x3FF, (attr2 shr 12) and 0xF, (attr2 shr 10) and 3, flags, (attr1 shr 9) and 0x1F)
         }
     }
 
@@ -134,15 +134,15 @@ public class HardwareSceneLoader {
         load(state, sheets, hw.vram, bytes(hw.paletteRam, palBytes), bytes(oam.oam, oamBytes), regs)
     }
 
-    private fun bytes(h: ShortArray, b: ByteArray): ByteArray {
-        for (i in h.indices) {
-            b[2 * i] = h[i].toByte()
-            b[2 * i + 1] = (h[i].toInt() shr 8).toByte()
+    private fun bytes(shorts: ShortArray, dstBytes: ByteArray): ByteArray {
+        for (i in shorts.indices) {
+            dstBytes[2 * i] = shorts[i].toByte()
+            dstBytes[2 * i + 1] = (shorts[i].toInt() shr 8).toByte()
         }
-        return b
+        return dstBytes
     }
 
-    private fun u16(b: ByteArray, o: Int): Int = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
+    private fun u16(bytes: ByteArray, offset: Int): Int = (bytes[offset].toInt() and 0xFF) or ((bytes[offset + 1].toInt() and 0xFF) shl 8)
 
-    private fun s16(b: ByteArray, o: Int): Int = u16(b, o).toShort().toInt()
+    private fun s16(bytes: ByteArray, offset: Int): Int = u16(bytes, offset).toShort().toInt()
 }

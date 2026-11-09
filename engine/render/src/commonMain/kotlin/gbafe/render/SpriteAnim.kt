@@ -95,7 +95,7 @@ public class SpriteAnimPlayer(
 
     private fun u16(addr: Int): Int = rom.u16(addr)
 
-    private fun usable(h: ApHandle?): Boolean = h != null && h.pDefinition != 0
+    private fun usable(handle: ApHandle?): Boolean = handle != null && handle.pDefinition != 0
 
     /**
      * Frees every handle.
@@ -103,7 +103,7 @@ public class SpriteAnimPlayer(
      * Transcribed from src/ap.c: AP_ClearAll
      */
     public fun clearAll() {
-        for (h in handles) h.pDefinition = 0
+        for (handle in handles) handle.pDefinition = 0
     }
 
     /**
@@ -167,54 +167,54 @@ public class SpriteAnimPlayer(
      * Transcribed from src/ap.c: AP_ExecFrame
      */
     public fun execFrame(handle: ApHandle?): Boolean {
-        var h = handle
+        if (handle == null) return false
         while (true) {
-            if (h == null || h.pDefinition == 0) return false
-            if (h.frameInterval == 0) return true
+            if (handle.pDefinition == 0) return false
+            if (handle.frameInterval == 0) return true
 
-            if (h.frameTimer != 0) {
-                h.frameTimer = (h.frameTimer - 1).toShort().toInt()
-                if (h.frameTimer > 0) return true
-                h.frameTimer = 0
-                h.pAnimDataCurrent += 4
+            if (handle.frameTimer != 0) {
+                handle.frameTimer = (handle.frameTimer - 1).toShort().toInt()
+                if (handle.frameTimer > 0) return true
+                handle.frameTimer = 0
+                handle.pAnimDataCurrent += 4
             }
 
-            if (u16(h.pAnimDataCurrent) == 0) {
-                when (u16(h.pAnimDataCurrent + 2)) {
+            if (u16(handle.pAnimDataCurrent) == 0) {
+                when (u16(handle.pAnimDataCurrent + 2)) {
                     0xFFFF -> {
-                        h.pAnimDataCurrent = h.pAnimDataStart
+                        handle.pAnimDataCurrent = handle.pAnimDataStart
                         continue
                     }
                     1 -> {
-                        delete(h)
+                        delete(handle)
                         return false
                     }
                     0 -> return false
                 }
             }
 
-            val tmp = u16(h.pAnimDataCurrent) * h.frameInterval
-            h.subframeTimer = (h.subframeTimer + tmp) and 0xFFFF
+            val tmp = u16(handle.pAnimDataCurrent) * handle.frameInterval
+            handle.subframeTimer = (handle.subframeTimer + tmp) and 0xFFFF
 
-            if (h.subframeTimer < 0x100) {
-                h.frameTimer = 1
+            if (handle.subframeTimer < 0x100) {
+                handle.frameTimer = 1
                 continue
             }
 
-            h.frameTimer = h.subframeTimer shr 8
-            h.subframeTimer = h.subframeTimer and 0xFF
+            handle.frameTimer = handle.subframeTimer shr 8
+            handle.subframeTimer = handle.subframeTimer and 0xFF
 
-            h.pCurrentObjData =
-                h.pFrameData + 2 * (u16(h.pFrameData + 2 * u16(h.pAnimDataCurrent + 2)) / 2)
+            handle.pCurrentObjData =
+                handle.pFrameData + 2 * (u16(handle.pFrameData + 2 * u16(handle.pAnimDataCurrent + 2)) / 2)
 
-            if (u16(h.pCurrentObjData) and 0x8000 != 0) {
-                h.pCurrentRotScale = h.pCurrentObjData
-                h.pCurrentObjData += 2 * ((u16(h.pCurrentObjData) and 0x7FFF) * 3 + 1)
+            if (u16(handle.pCurrentObjData) and 0x8000 != 0) {
+                handle.pCurrentRotScale = handle.pCurrentObjData
+                handle.pCurrentObjData += 2 * ((u16(handle.pCurrentObjData) and 0x7FFF) * 3 + 1)
             } else {
-                h.pCurrentRotScale = 0
+                handle.pCurrentRotScale = 0
             }
 
-            h.gfxNeedsUpdate = true
+            handle.gfxNeedsUpdate = true
             return true
         }
     }
@@ -232,15 +232,15 @@ public class SpriteAnimPlayer(
         val count = u16(handle.pCurrentRotScale) and 0x7FFF
         var it = handle.pCurrentRotScale + 2
         for (i in 0 until count) {
-            val a = u16(it)
-            val sx = u16(it + 2).toShort().toInt()
-            val sy = u16(it + 4).toShort().toInt()
+            val angle = u16(it)
+            val scaleX = u16(it + 2).toShort().toInt()
+            val scaleY = u16(it + 4).toShort().toInt()
             host.setObjAffine(
                 handle.rotScaleIndex + i,
-                div(host.cos(a) * 16, sx),
-                div(-host.sin(a) * 16, sy),
-                div(host.sin(a) * 16, sx),
-                div(host.cos(a) * 16, sy),
+                div(host.cos(angle) * 16, scaleX),
+                div(-host.sin(angle) * 16, scaleY),
+                div(host.sin(angle) * 16, scaleX),
+                div(host.cos(angle) * 16, scaleY),
             )
             it += 6
         }
@@ -280,21 +280,21 @@ public class SpriteAnimPlayer(
     public fun queueObjGraphics(handle: ApHandle?) {
         if (!usable(handle)) return
         handle!!
-        var i = u16(handle.pCurrentObjData)
+        var remaining = u16(handle.pCurrentObjData)
         var itObjData = handle.pCurrentObjData + 2
-        var itGfxData = handle.pCurrentObjData + 2 + i * 6
+        var itGfxData = handle.pCurrentObjData + 2 + remaining * 6
         var tileOffset = 0
-        while (i-- > 0) {
+        while (remaining-- > 0) {
             val idx = objSizeIndex(itObjData)
-            val w = SIZE_LUT[idx]
-            val hgt = SIZE_LUT[idx + 1]
+            val widthInTiles = SIZE_LUT[idx]
+            val heightInTiles = SIZE_LUT[idx + 1]
             host.register2dChrMove(
                 handle.pGraphics + (u16(itGfxData) and 0x3FF) * 0x20,
                 (handle.tileBase and 0x3FF) * 0x20 + tileOffset,
-                w,
-                hgt,
+                widthInTiles,
+                heightInTiles,
             )
-            tileOffset += if (!host.obj1dMap()) w * 0x20 else ((w * w) and 0x3FF) * 0x20
+            tileOffset += if (!host.obj1dMap()) widthInTiles * 0x20 else ((widthInTiles * widthInTiles) and 0x3FF) * 0x20
             itObjData += 6
             itGfxData += 2
         }
@@ -355,7 +355,7 @@ public class SpriteAnimPlayer(
      * Transcribed from src/ap.c: AP_Find
      */
     public fun find(definition: Int): ApHandle? {
-        for (h in handles) if (h.pDefinition == definition) return h
+        for (handle in handles) if (handle.pDefinition == definition) return handle
         return null
     }
 

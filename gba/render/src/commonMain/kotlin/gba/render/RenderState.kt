@@ -23,7 +23,7 @@ public class RenderState {
 
     /** Resets every part to its power-on default (layers off, no sprites, effects off, table inactive). */
     public fun reset() {
-        for (l in layers) l.reset()
+        for (layer in layers) layer.reset()
         sprites.clear()
         palettes.clear()
         effects.reset()
@@ -199,19 +199,22 @@ public class SpriteBatch(
     /** Appends a sprite; returns its index, or -1 if the batch is full (the hardware drops it too). */
     public fun add(x: Int, y: Int, width: Int, height: Int, sheet: Int, tile: Int, palette: Int, priority: Int, flags: Int = 0, affineIndex: Int = 0): Int {
         if (count == capacity) return -1
-        val i = count++
-        this.x[i] = x; this.y[i] = y
-        this.width[i] = width.toByte(); this.height[i] = height.toByte()
-        this.sheet[i] = sheet; this.tile[i] = tile.toShort()
-        this.palette[i] = palette.toByte(); this.priority[i] = priority.toByte()
-        this.flags[i] = flags.toShort(); this.affineIndex[i] = affineIndex.toByte()
-        return i
+        val spriteIndex = count++
+        this.x[spriteIndex] = x; this.y[spriteIndex] = y
+        this.width[spriteIndex] = width.toByte(); this.height[spriteIndex] = height.toByte()
+        this.sheet[spriteIndex] = sheet; this.tile[spriteIndex] = tile.toShort()
+        this.palette[spriteIndex] = palette.toByte(); this.priority[spriteIndex] = priority.toByte()
+        this.flags[spriteIndex] = flags.toShort(); this.affineIndex[spriteIndex] = affineIndex.toByte()
+        return spriteIndex
     }
 
     /** Sets affine matrix [index]. */
     public fun setAffine(index: Int, pa: Int, pb: Int, pc: Int, pd: Int) {
-        val o = index * 4
-        affine[o] = pa.toShort(); affine[o + 1] = pb.toShort(); affine[o + 2] = pc.toShort(); affine[o + 3] = pd.toShort()
+        val offset = index * 4
+        affine[offset] = pa.toShort()
+        affine[offset + 1] = pb.toShort()
+        affine[offset + 2] = pc.toShort()
+        affine[offset + 3] = pd.toShort()
     }
 
     /** Flag bits. */
@@ -429,8 +432,10 @@ public class LineTable(
         if (paletteWrites == paletteWriteCapacity) return false
         require(paletteWrites == 0 || pwLine[paletteWrites - 1] <= line) { "palette writes out of line order" }
         active = true
-        val i = paletteWrites++
-        pwLine[i] = line.toShort(); pwIndex[i] = index.toShort(); pwColor[i] = color.toShort()
+        val writeIndex = paletteWrites++
+        pwLine[writeIndex] = line.toShort()
+        pwIndex[writeIndex] = index.toShort()
+        pwColor[writeIndex] = color.toShort()
         return true
     }
 

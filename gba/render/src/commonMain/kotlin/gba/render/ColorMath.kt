@@ -18,25 +18,29 @@ public interface ColorMath {
     public object Hardware : ColorMath {
         /** Per channel min(31, (a*eva + b*evb) / 16). */
         override fun alpha(a: Int, b: Int, eva: Int, evb: Int): Int =
-            alphaCh(a, b, 0, eva, evb) or alphaCh(a, b, 5, eva, evb) or alphaCh(a, b, 10, eva, evb)
+            alphaCh(a, b, 0, eva, evb) or
+                alphaCh(a, b, 5, eva, evb) or
+                alphaCh(a, b, 10, eva, evb)
 
         /** Per channel c + (31 - c) * evy / 16. */
-        override fun brighten(c: Int, evy: Int): Int = brightCh(c, 0, evy) or brightCh(c, 5, evy) or brightCh(c, 10, evy)
+        override fun brighten(c: Int, evy: Int): Int =
+            brightCh(c, 0, evy) or brightCh(c, 5, evy) or brightCh(c, 10, evy)
 
         /** Per channel c - c * evy / 16. */
-        override fun darken(c: Int, evy: Int): Int = darkCh(c, 0, evy) or darkCh(c, 5, evy) or darkCh(c, 10, evy)
+        override fun darken(c: Int, evy: Int): Int =
+            darkCh(c, 0, evy) or darkCh(c, 5, evy) or darkCh(c, 10, evy)
 
-        private fun alphaCh(a: Int, b: Int, s: Int, eva: Int, evb: Int): Int =
-            minOf(31, (((a shr s) and 0x1F) * eva + ((b shr s) and 0x1F) * evb) shr 4) shl s
+        private fun alphaCh(colorA: Int, colorB: Int, shift: Int, coeffA: Int, coeffB: Int): Int =
+            minOf(31, (((colorA shr shift) and 0x1F) * coeffA + ((colorB shr shift) and 0x1F) * coeffB) shr 4) shl shift
 
-        private fun brightCh(c: Int, s: Int, evy: Int): Int {
-            val v = (c shr s) and 0x1F
-            return (v + (((31 - v) * evy) shr 4)) shl s
+        private fun brightCh(color: Int, shift: Int, coeffY: Int): Int {
+            val channel = (color shr shift) and 0x1F
+            return (channel + (((31 - channel) * coeffY) shr 4)) shl shift
         }
 
-        private fun darkCh(c: Int, s: Int, evy: Int): Int {
-            val v = (c shr s) and 0x1F
-            return (v - ((v * evy) shr 4)) shl s
+        private fun darkCh(color: Int, shift: Int, coeffY: Int): Int {
+            val channel = (color shr shift) and 0x1F
+            return (channel - ((channel * coeffY) shr 4)) shl shift
         }
     }
 }

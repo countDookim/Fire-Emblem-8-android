@@ -70,15 +70,15 @@ public class HBlankHandlers(
      * Ported from src/hardware.c: UpdateHBlankHandlerState
      */
     public fun update() {
-        val p = primary
-        val s = secondary
-        if (p == null && s == null) {
+        val prim = primary
+        val sec = secondary
+        if (prim == null && sec == null) {
             lcd.dispstat = lcd.dispstat and DISPSTAT_HBLANK_IRQ.inv()
             irqEnabled = false
             return
         }
         lcd.dispstat = lcd.dispstat or DISPSTAT_HBLANK_IRQ
-        active = if (s == null) p else if (p == null) s else both
+        active = if (sec == null) prim else if (prim == null) sec else both
         irqEnabled = true
     }
 

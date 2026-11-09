@@ -49,11 +49,11 @@ public class SoftwareRenderer(
     private val objWin = objs.window
 
     // Top two visible pixels of the current composite: colour and layer bit (Effects mask bits).
-    private var c1 = 0
-    private var l1 = 0
-    private var semi1 = false
-    private var c2 = 0
-    private var l2 = 0
+    private var color1 = 0
+    private var layerBit1 = 0
+    private var semiTransparent1 = false
+    private var color2 = 0
+    private var layerBit2 = 0
     private var filled = 0
 
     override fun render(camera: Camera) {
@@ -65,10 +65,10 @@ public class SoftwareRenderer(
         val width = minOf(fb.width, FrameBuffer.GBA_WIDTH)
         val height = minOf(fb.height, FrameBuffer.GBA_HEIGHT)
         for (i in 0 until layerCount) {
-            val l = state.layers[order[i]]
-            lineSheet[i] = sheets[l.sheet]
-            affX[i] = l.refX
-            affY[i] = l.refY
+            val layer = state.layers[order[i]]
+            lineSheet[i] = sheets[layer.sheet]
+            affX[i] = layer.refX
+            affY[i] = layer.refY
         }
         for (y in 0 until height) {
             val lineMask = if (lines.active) lines.mask[y] else 0
@@ -101,21 +101,30 @@ public class SoftwareRenderer(
             objs.line(y, palette)
             val fx = state.effects
             val windows = fx.win0 || fx.win1 || fx.objWindow
-            var w0l = fx.winLeft[0]; var w0r = fx.winRight[0]; var w1l = fx.winLeft[1]; var w1r = fx.winRight[1]
-            if (lineMask and LineTable.WIN0_X != 0) { w0l = lines.winLeft[y]; w0r = lines.winRight[y] }
-            if (lineMask and LineTable.WIN1_X != 0) { w1l = lines.winLeft[RenderState.LINES + y]; w1r = lines.winRight[RenderState.LINES + y] }
-            val in0y = fx.win0 && inside(y, fx.winTop[0], fx.winBottom[0])
-            val in1y = fx.win1 && inside(y, fx.winTop[1], fx.winBottom[1])
+            var win0Left = fx.winLeft[0]; var win0Right = fx.winRight[0]
+            var win1Left = fx.winLeft[1]; var win1Right = fx.winRight[1]
+            if (lineMask and LineTable.WIN0_X != 0) {
+                win0Left = lines.winLeft[y]
+                win0Right = lines.winRight[y]
+            }
+            if (lineMask and LineTable.WIN1_X != 0) {
+                win1Left = lines.winLeft[RenderState.LINES + y]
+                win1Right = lines.winRight[RenderState.LINES + y]
+            }
+            val inWin0Y = fx.win0 && inside(y, fx.winTop[0], fx.winBottom[0])
+            val inWin1Y = fx.win1 && inside(y, fx.winTop[1], fx.winBottom[1])
             var eva = fx.eva; var evb = fx.evb; var evy = fx.evy
             if (lineMask and LineTable.BLEND != 0) {
-                val b = lines.blend[y]
-                eva = b and 0xFF; evb = (b shr 8) and 0xFF; evy = (b shr 16) and 0xFF
+                val blendVal = lines.blend[y]
+                eva = blendVal and 0xFF; evb = (blendVal shr 8) and 0xFF; evy = (blendVal shr 16) and 0xFF
             }
             eva = minOf(eva, 16); evb = minOf(evb, 16); evy = minOf(evy, 16)
             var blendMode = fx.blendMode; var blendTop = fx.blendTop; var blendBottom = fx.blendBottom
             if (lineMask and LineTable.BLEND_CONTROL != 0) {
-                val c = lines.blendControl[y]
-                blendTop = c and 0x3F; blendMode = (c shr 6) and 3; blendBottom = (c shr 8) and 0x3F
+                val blendControlVal = lines.blendControl[y]
+                blendTop = blendControlVal and 0x3F
+                blendMode = (blendControlVal shr 6) and 3
+                blendBottom = (blendControlVal shr 8) and 0x3F
             }
             val mh = maxOf(1, fx.mosaic[0])
             val mvY = y - y % maxOf(1, fx.mosaic[1])
@@ -124,8 +133,8 @@ public class SoftwareRenderer(
             for (x in 0 until width) {
                 val wmask = when {
                     !windows -> ALL
-                    in0y && inside(x, w0l, w0r) -> fx.winInside[0]
-                    in1y && inside(x, w1l, w1r) -> fx.winInside[1]
+                    inWin0Y && inside(x, win0Left, win0Right) -> fx.winInside[0]
+                    inWin1Y && inside(x, win1Left, win1Right) -> fx.winInside[1]
                     fx.objWindow && objWin[x] -> fx.winInside[2]
                     else -> fx.winOutside
                 }
@@ -141,30 +150,30 @@ public class SoftwareRenderer(
                     }
                     if (wmask and (1 shl bg) == 0) continue
                     val sheet = lineSheet[i] ?: continue
-                    val c = if (layer.affine) {
+                    val pixelColor = if (layer.affine) {
                         affinePixel(layer, sheet, lineScrollX[i] + layer.pa * x, lineScrollY[i] + layer.pc * x)
                     } else if (layer.mosaic) {
                         textPixel(layer, sheet, x - x % mh + lineScrollX[i], mvY + lineScrollY[i])
                     } else {
                         textPixel(layer, sheet, x + lineScrollX[i], y + lineScrollY[i])
                     }
-                    if (c >= 0) {
-                        push(c, 1 shl bg, false)
+                    if (pixelColor >= 0) {
+                        push(pixelColor, 1 shl bg, false)
                         if (filled == 2) break
                     }
                 }
                 if (filled < 2 && objPending) push(objColor[x], Effects.OBJ, objSemi[x])
                 if (filled < 2) push(backdrop, Effects.BACKDROP, false)
-                var color = c1
+                var color = color1
                 if (wmask and Effects.BACKDROP != 0) {
-                    if (semi1 && blendBottom and l2 != 0) {
-                        color = colorMath.alpha(c1, c2, eva, evb)
-                    } else if (blendTop and l1 != 0) {
+                    if (semiTransparent1 && blendBottom and layerBit2 != 0) {
+                        color = colorMath.alpha(color1, color2, eva, evb)
+                    } else if (blendTop and layerBit1 != 0) {
                         color = when (blendMode) {
-                            Effects.BLEND_ALPHA -> if (blendBottom and l2 != 0) colorMath.alpha(c1, c2, eva, evb) else c1
-                            Effects.BLEND_BRIGHTEN -> colorMath.brighten(c1, evy)
-                            Effects.BLEND_DARKEN -> colorMath.darken(c1, evy)
-                            else -> c1
+                            Effects.BLEND_ALPHA -> if (blendBottom and layerBit2 != 0) colorMath.alpha(color1, color2, eva, evb) else color1
+                            Effects.BLEND_BRIGHTEN -> colorMath.brighten(color1, evy)
+                            Effects.BLEND_DARKEN -> colorMath.darken(color1, evy)
+                            else -> color1
                         }
                     }
                 }
@@ -173,11 +182,11 @@ public class SoftwareRenderer(
         }
     }
 
-    private fun push(c: Int, layerBit: Int, semi: Boolean) {
+    private fun push(color: Int, layerBit: Int, semi: Boolean) {
         if (filled == 0) {
-            c1 = c; l1 = layerBit; semi1 = semi
+            color1 = color; layerBit1 = layerBit; semiTransparent1 = semi
         } else {
-            c2 = c; l2 = layerBit
+            color2 = color; layerBit2 = layerBit
         }
         filled++
     }
@@ -214,15 +223,15 @@ public class SoftwareRenderer(
     private fun textPixel(layer: TileLayer, sheet: ByteArray, wx: Int, wy: Int): Int {
         val mx = wx and (layer.widthTiles * 8 - 1)
         val my = wy and (layer.heightTiles * 8 - 1)
-        val e = layer.entry(mx shr 3, my shr 3)
+        val tileEntry = layer.entry(mx shr 3, my shr 3)
         var px = mx and 7
         var py = my and 7
-        if (e and TileLayer.HFLIP != 0) px = 7 - px
-        if (e and TileLayer.VFLIP != 0) py = 7 - py
-        val idx = TileSheets.pixel(sheet, e and TileLayer.TILE_MASK, px, py, layer.bpp8)
+        if (tileEntry and TileLayer.HFLIP != 0) px = 7 - px
+        if (tileEntry and TileLayer.VFLIP != 0) py = 7 - py
+        val idx = TileSheets.pixel(sheet, tileEntry and TileLayer.TILE_MASK, px, py, layer.bpp8)
         if (idx == 0) return -1
-        val ci = if (layer.bpp8) idx else ((e ushr TileLayer.PALETTE_SHIFT) shl 4) or idx
-        return palette[ci].toInt() and 0x7FFF
+        val colorIndex = if (layer.bpp8) idx else ((tileEntry ushr TileLayer.PALETTE_SHIFT) shl 4) or idx
+        return palette[colorIndex].toInt() and 0x7FFF
     }
 
     private companion object {
@@ -230,6 +239,6 @@ public class SoftwareRenderer(
         const val ALL = 0x3F
 
         /** Hardware window bound test: [lo] until [hi], wrapping around when lo > hi. */
-        fun inside(v: Int, lo: Int, hi: Int): Boolean = if (lo <= hi) v in lo until hi else v >= lo || v < hi
+        fun inside(coord: Int, start: Int, end: Int): Boolean = if (start <= end) coord in start until end else coord >= start || coord < end
     }
 }

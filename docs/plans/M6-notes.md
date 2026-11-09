@@ -56,3 +56,21 @@ gProcScr_PlayerPhase 0x0859AAD8.
 ## Gaps
 
 - No per-frame run of a menu/unit menu on the resumed map; no battle forecast. Add a run when a task needs it.
+
+
+## D-11 remaining subtitle verification (2026-11-09)
+
+`OpSubtitle` is standalone and transcribed. Its continuous proc replay covers steps 1214–2354,
+seeding the original reused transition timer once and supplying generic fade lifetime from the
+original watch. At 2355–2356 the original cursor remains at scene setup while the Kotlin callback
+has advanced. The watch does not establish whether this reflects callback duration or sampling
+phase. Obtain phase-aware proc/RAM/IO captures with callback entry/exit or cycle provenance before
+choosing an alignment strategy; do not add arbitrary delays to satisfy the current snapshots.
+
+Next runtime dependency: `src/sysutil.c` NewFadeIn/FadeInExists, FadeInOut_Init/DisableGfx and
+FadeIn_Loop, backed by `src/bmlib.c` ArchiveCurrentPalettes/WriteFadedPaletteFromArchive. This is
+distinct from ColorFade/FadeCore. It starts on tree 4 and uses a 32-bank archived palette with
+independent RGB coefficients and a bank mask. Existing prologue proc watches and r01230/r01260
+palette/archive snapshots support a seeded mid-fade replay. Capture steps 1212–1281 with per-step
+RAM/IO and palette data to verify initialization and early timing. Unseen white/mask branches,
+normal slow-fade termination and D11-skip inputs still need independent reference checks before wiring.

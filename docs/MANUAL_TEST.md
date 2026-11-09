@@ -1,9 +1,12 @@
 # Manual testing
 
-Latest owner test: **0.1.488 (`8c5b7c9`), 2026-11-09**.
+Latest owner test: **local 0.1.488 (`0a73f11`), 2026-11-09**.
+This diagnostic APK is installed on the phone; the published release may be newer.
 
-- **D-07 remains open:** both castle audio stutters are unchanged. The PCM startup reserve did not fix them.
-- **D-12 partially confirmed:** the Player Phase banner appears and looks correct; emulator comparison is pending.
+- **D-07 resolved on this build:** the owner heard neither castle stutter; the retest trace had zero
+  repeated PCM frames. The movement-map frontier replaced repeated full-map scans.
+- **D-12 partially confirmed on published 0.1.488 (`8c5b7c9`):** the Player Phase banner appears
+  and looks correct; emulator comparison is pending.
 
 ## Test now
 
@@ -20,13 +23,12 @@ D-12 stays pending until this comparison; enemy/green banners are not ready for 
 
 These are known gaps; re-test them only when a relevant change is announced:
 
-- D-07's two audio stutters: already reproduced on 0.1.488; no repeat test needed on this build.
 - D-11: missing cinematic between New Game and the castle scene; subtitle code is not wired yet.
 - D-09: missing Rapier-received popup (low priority). Device inventory remains unverified.
 - Missing Seth/Valter battle animation, unit selection/actions/menus/inventory, and main/save/difficulty menus.
   Cursor movement works; New Game currently uses Normal difficulty.
 
-Previously confirmed: dialogue/portraits/blinking/mouths, backgrounds, walking and rider exits;
+Previously confirmed: castle audio, dialogue/portraits/blinking/mouths, backgrounds, walking and rider exits;
 boot, ROM import, controls, GPU rendering and suspend/resume. Report regressions if noticed.
 
 Install `fe8-debug.apk` from the [latest release](../../../releases/tag/latest); every build requires your ROM.

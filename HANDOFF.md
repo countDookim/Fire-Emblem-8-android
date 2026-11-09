@@ -10,19 +10,20 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D07-trace: owner PC, until ~21:25Z; Android game/audio timing + starvation/underrun diagnostics; no speculative stutter-fix claim.
-- D11-proc: owner PC, until ~21:25Z; subtitle end-BGM callback, then standalone parent lifecycle if time.
-- READ-audio: owner PC, until ~21:25Z; gba.audio readability review alongside D07.
+- D07-trace: owner PC, until ~21:35Z; frontier fix owner-confirmed, finishing full verification/docs.
+- D11-proc: owner PC, until ~21:35Z; sound callback + standalone parent host merged, finishing verification.
+- READ-audio: owner PC, until ~21:35Z; review done, awaiting full suite.
 - D09-1b/D09-2: owner PC, until ~21:30Z; publish ram_trace_item_popup and port DrawUiFrame2/LoadUiFrameGraphics/LoadIconObjectGraphics.
 - M6-41/EventScriptBattle: owner PC, until ~21:30Z; verify ScriptBattleDeamon and EventVm 0x3F replay.
 - READ-scene-events: owner PC, until ~21:30Z; fe8.game.scene and gbafe.extract.fe8.events readability review.
 
 ## Current state
 
-- Published and owner-tested: **0.1.488 (`8c5b7c9`)**. Its CI passed: **679 tests, zero failures/skips**;
-  both APKs passed the no-game-content guard. Local full `jvmTest test`, per-module Dokka and 27 Python tests passed.
-- **598/8352 functions verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
-  README/port map are generated; do not infer verified progress from implementation alone.
+- Latest owner test: **local 0.1.488 (`0a73f11`)**: neither reported castle audio stutter reproduced.
+  Original save restored afterward; ROM import preserved. Published 0.1.488 (`8c5b7c9`) banner comparison remains partial.
+- **622/8352 verified** in the preceding full CI; current full local checks are being repeated after
+  integrating the matching popup-reference sound-test provenance update (`e09709d`).
+  Keep `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
 - Layout: game-neutral `:gba:*`, `gbafe.*` in `:engine:*`, FE8 `fe8.*` in `:game`/`:app` (ADRs 0010–0013).
@@ -34,7 +35,7 @@ Close an issue only after reference verification and owner confirmation; preserv
 
 | Issue | Latest evidence / status |
 |---|---|
-| D-07 audio | **Open, unchanged on 0.1.488:** two castle stutters remain. Primitive sprite-cache lookup, zero-allocation steady state and startup PCM reserve did not resolve the reported issue. |
+| D-07 audio | **Resolved for both reported castle events:** owner heard neither hitch on local 0.1.488 (`0a73f11`); normal trace PCM repetitions fell 4495→0 after the movement frontier change. Earlier cache/reserve changes alone failed. |
 | D-12 phase banner | **Appears correct on 0.1.488; emulator comparison pending.** Presence is confirmed, exact fidelity is not. |
 | D-11 cinematic | Open: the subtitle monologue and following world-map opening are unwired. |
 | D-09 Rapier popup | Open, owner low priority. Headless inventory grant is checked; device inventory is unknown. |
@@ -45,27 +46,22 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
 
 ## Next work
 
-1. **D-07:** obtain an Android trace correlating the two castle hitches with game-thread stalls,
-   PCM starvation and native AudioTrack underruns. Investigation is owner-authorized. Root cause remains unknown;
-   do not present the existing reserve (`63e638e`) as a successful device fix or repeat unchanged-build tests.
-2. **D-11:** next coding slice is `D11-proc` in TASKS. Done standalone (not wired): slides/fades
-   (`014f3ed`, `d3c4112`), `OpSubtitleSetup` init + BG helpers (`a5aec60`), `OpSubtitleFlare` + `gbafe.render.BgAffin`
-   (`c2f0be5`), fade/blend stages `sub_80C4E18`–`sub_80C5104` (`bd81634`), final fade/layer reset
-   `sub_80C5328/5370/538C` (`112c395`; OBJ half of the final fade unverified), `OpSubtitleScenes` `sub_80C50A0/51A8/5218`
-   (`8566829`), `sub_80C540C` (`ba8389a`), child script `gProcScr_08AA2184` (`f10f6e3`; absolute step unchecked).
-   Remaining D11-proc: `sub_80C5400` (verify via traced m4a players, as `Fe8BootSoundTest`), Start handler,
-   parent proc script. Then: proc script, audio, verified Start skip, then wiring. Original monologue runs at steps 1213–4897; the separate world-map wrapper follows at 4898–9313.
-3. **D-12:** owner compares the banner with an emulator; D12-2 adds enemy-phase and original scanline captures.
-4. **D-09:** private ROM commit `f7a442a` has the popup capture generator; local `reference/out/ram_trace_item_popup`
-   contains 181 RAM and 10 graphics captures, not packed/published into FE8_ASSETS. D09-1b must justify its sound-test
-   alias from matching provenance, preserve old runs and publish assets before UI/icon/popup implementation.
+1. **D-11:** standalone `OpSubtitle` parent/flare scripts are transcribed (`c9b49b9`), not wired.
+   End-BGM callback `sub_80C5400` is verified (`cca73ee`); earlier slide/setup/transition/scene callbacks remain.
+   Continuous replay covers steps 1214–2354 using reference-supplied generic fade timing and one reused initial timer.
+   Next: generic `NewFadeIn`/archived-palette runtime and phase-aware captures at the 2355–2356 scene-setup boundary;
+   see [M6 notes](docs/plans/M6-notes.md#d-11-remaining-subtitle-verification-2026-11-09). Full later lifecycle,
+   normal termination and original Start-skip captures remain before wiring. Monologue steps 1213–4897;
+   the world-map wrapper at 4898–9313 is separate work.
+2. **D-12:** owner compares the banner with an emulator; D12-2 adds enemy-phase and original scanline captures.
+3. **D-09:** popup capture published by the other owner-PC run (private `b25217b`); matching input/RAM
+   provenance and sound-test alias integrated as `e09709d`. UI/icon work is still claimed above; popup remains low priority.
 
 ## Verification limits worth retaining
 
-- D-07: sheet decompression measured **0 B** on HotSpot; the earlier ~11 KB attribution to it was unsupported.
-  A cold JVM walk-start frame (zero-based 784) allocated 54,280 B in tick, none in GPU present; exact cause unknown.
-  These are not Android timings. Logs: `$HOME/.cache/fe8-tmp/d07-spikes-{baseline,attribution,split,trees}.log`.
-  The reserve passes a simulated delayed-callback test but failed the owner's actual stutter re-test.
+- D-07: before/after Android traces, profiling limits and ADB setup are in [D07-tracing](docs/plans/D07-tracing.md).
+  The frontier preserves weighted movement-pool results and passes existing original movement tests.
+  Other long ticks remain; neither trace isolates per-function CPU cost or precisely timestamps the two reported events.
 - D-12: `PhaseIntroDifferentialTest` checks chapter-6 player-banner state/buffers/graphics plus complete OBJ
   attributes at six captures f1700..1750 (`a95588a`). `aefe6d8` corrects VCount-to-HBlank line translation with a
   source-derived render-line test; original per-line blending, sound hooks and enemy/green branches remain unverified.

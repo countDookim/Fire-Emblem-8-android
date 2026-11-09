@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; owner 30-minute run completed; no worktrees open)_
+- **M6-45 / Event & BM Trace Verification / Readability** — Gemini (owner-PC, 2026-11-09, 45-min session until ~13:22Z, up to 3 Flash subagents): (1) M6-45 Prologue zero-allocation test & hot-path iterator/boxing fixes (`ProcEngine`, `M4aBus`, `SpriteAnimPlayer`, `TalkScene`, `Talk`, `PrologueBoot`, `AllocationTest`); (2) Trace verification & break-checking for `ConvoBackgroundVramTest` (`BMapDispSuspend`/`Resume`, `Event21`/`22`/`23`/`24`, `EventShowTextBgDirect`) + `EventUnitLoads` / `EventUnitState` / `EventState` / `GameLoop` / `Fe8EventFlags`; (3) `docs/READABILITY.md` review rows (`gba.testkit`, `gbafe.extract.m4a`, `gba.data`, `gba.extract`).
 
 ## Latest device test (owner, 2026-11-09, Issue #5)
 Build **0.1.474 (`d91ed28`)** (GitHub Issue #5): everything except the 5 items in Issue #5 is confirmed solved on device:

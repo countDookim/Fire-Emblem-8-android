@@ -31,6 +31,10 @@ public class EventTextTalkHost(
     private val readTextSpeed: (() -> Int)? = null,
     /** Writes `gPlaySt.config.textSpeed`; null: the plain [textSpeed] field below. */
     private val writeTextSpeed: ((Int) -> Unit)? = null,
+    /** `BMapDispSuspend`; the default does nothing. */
+    private val suspendMapDisp: () -> Unit = {},
+    /** `BMapDispResume`; the default does nothing. */
+    private val resumeMapDisp: () -> Unit = {},
     private val stringFromIndex: (Int) -> Int,
 ) : EventTextHost {
     private var textSpeedField: Int = 0
@@ -58,11 +62,11 @@ public class EventTextTalkHost(
     override fun changeUnitSpritePalette(id: Int) {}
 
     /**
-     * Stand-in for `Event23_DisaleMapDisp`: only its event-state part (sets
-     * `EV_STATE_GFXLOCKED`, yields). `BMapDispSuspend` and `LockMus` are not ported, so the map
-     * stays displayed and the music is not locked.
+     * Transcribed from src/eventscr.c: Event23_DisaleMapDisp
+     * (not verified: `LockMus` is not ported, so the music is not locked)
      */
     override fun disableMapDisp(proc: EventEngineProc): Int {
+        if (proc.evStateBits and EventConst.EV_STATE_GFXLOCKED == 0) suspendMapDisp()
         proc.evStateBits = proc.evStateBits or EventConst.EV_STATE_GFXLOCKED
         return EventConst.EVC_ADVANCE_YIELD
     }
@@ -83,11 +87,11 @@ public class EventTextTalkHost(
     }
 
     /**
-     * `Event24_EnableMapDisp`: clears `EV_STATE_GFXLOCKED`. Stand-in: `BMapDispResume` and
-     * `ReleaseMus` are not ported (the map was never suspended, the music never locked), so
-     * they are skipped.
+     * Transcribed from src/eventscr.c: Event24_EnableMapDisp
+     * (not verified: `ReleaseMus` is not ported)
      */
     override fun enableMapDisp(proc: EventEngineProc): Int {
+        if (proc.evStateBits and EventConst.EV_STATE_GFXLOCKED != 0) resumeMapDisp()
         proc.evStateBits = proc.evStateBits and EventConst.EV_STATE_GFXLOCKED.inv()
         return EventConst.EVC_ADVANCE_YIELD
     }

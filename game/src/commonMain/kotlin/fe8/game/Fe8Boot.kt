@@ -450,6 +450,8 @@ public class Fe8Boot(
             readTextSpeed = { control.playSt.textSpeed },
             writeTextSpeed = { control.playSt.textSpeed = it },
             stringFromIndex = scene::stringFromIndex,
+            suspendMapDisp = { if (rom.isWholeRom) battleMap.bMapDispSuspend() },
+            resumeMapDisp = { if (rom.isWholeRom) battleMap.bMapDispResume() },
         )
     }
 

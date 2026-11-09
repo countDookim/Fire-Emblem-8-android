@@ -218,6 +218,38 @@ public class BattleMapStart(
     )
 
     /**
+     * Transcribed from src/bmio.c: BMapDispSuspend
+     * (not verified: no reference test of the semaphore)
+     *
+     * Blocks every proc marked `PROC_MARK_DISP` (the VBlank and map task procs) on the first call.
+     * `SetSecondaryHBlankHandler(NULL)` is not done: no weather HBlank handler runs here.
+     */
+    public fun bMapDispSuspend() {
+        if (++bmSt.gameGfxSemaphore > 1) return
+        hardware.palette[0] = 0
+        hardware.enablePaletteSync()
+        engine.blockEachMarked(PROC_MARK_DISP)
+    }
+
+    /**
+     * Transcribed from src/bmio.c: BMapDispResume
+     * (not verified: no reference test of the semaphore)
+     *
+     * Unblocks the marked procs when the last suspend ends and restarts the VBlank proc
+     * (`BMapVSync_Start` without `WfxInit`, which has no state here).
+     */
+    public fun bMapDispResume() {
+        if (bmSt.gameGfxSemaphore == 0) return
+        if (--bmSt.gameGfxSemaphore != 0) return
+        engine.unblockEachMarked(PROC_MARK_DISP)
+        val proc = engine.find(vSyncScript) ?: return
+        engine.end(proc)
+        engine.start(vSyncScript, PROC_TREE_VSYNC)
+        hooks.initMapAnimations()
+        bmSt.gameGfxSemaphore = 0
+    }
+
+    /**
      * Ported from src/bmio.c: ClearBattleMapState
      *
      * Zeroes `gBmSt` except `lock`.

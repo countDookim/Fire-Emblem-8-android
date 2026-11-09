@@ -60,7 +60,9 @@ class OpSubtitleTransitionsDifferentialTest {
             assertEquals(broke, rig.proc.idleCb == null, "frame $frame repeat")
             assertEquals(1, rig.calls, "frame $frame Start check")
             assertEquals(broke, rig.callbackSawBreak, "frame $frame Start check order")
-            assertEquals(state.holdTimer, rig.callbackHoldTimer, "frame $frame timer before Start check")
+            assertEquals(
+                state.holdTimer, rig.callbackHoldTimer, "frame $frame timer before Start check"
+            )
             compared++
             if (broke) breaks++
         }
@@ -93,8 +95,12 @@ class OpSubtitleTransitionsDifferentialTest {
             assertEquals(broke, rig.proc.idleCb == null, "frame $frame repeat")
             assertEquals(1, rig.calls, "frame $frame Start check")
             assertEquals(broke, rig.callbackSawBreak, "frame $frame Start check order")
-            assertEquals(state.holdTimer, rig.callbackHoldTimer, "frame $frame hold before Start check")
-            assertEquals(state.transitionTimer, rig.callbackTransitionTimer, "frame $frame fade before Start check")
+            assertEquals(
+                state.holdTimer, rig.callbackHoldTimer, "frame $frame hold before Start check"
+            )
+            assertEquals(
+                state.transitionTimer, rig.callbackTransitionTimer, "frame $frame fade before Start check"
+            )
             assertTrue(rig.callbackSawPaletteSync, "frame $frame palette sync before Start check")
             assertTrue(rig.hardware.modifiedPalette)
             assertTrue(rig.hardware.palette.take(48).all { it == 0x5A5A.toShort() })
@@ -104,9 +110,12 @@ class OpSubtitleTransitionsDifferentialTest {
                 val ewram = run.region(prefix + frame.toString().padStart(5, '0'), "ewram")
                 val expected = ShortArray(16) { i ->
                     val at = 0x228A8 + 2 * (48 + i)
-                    ((ewram[at].toInt() and 0xFF) or ((ewram[at + 1].toInt() and 0xFF) shl 8)).toShort()
+                    ((ewram[at].toInt() and 0xFF) or
+                        ((ewram[at + 1].toInt() and 0xFF) shl 8)).toShort()
                 }
-                assertArrayEquals(expected, rig.hardware.palette.copyOfRange(48, 64), "frame $frame palette")
+                assertArrayEquals(
+                    expected, rig.hardware.palette.copyOfRange(48, 64), "frame $frame palette"
+                )
                 paletteSnapshots++
             }
             compared++
@@ -135,7 +144,12 @@ class OpSubtitleTransitionsDifferentialTest {
         }
         val script = ProcScript(
             "subtitle callback test",
-            listOf(repeat(ProcFunc { if (fade) transitions.fadeIn(it) else transitions.awaitHoldTimer(it) }), block()),
+            listOf(
+                repeat(ProcFunc {
+                    if (fade) transitions.fadeIn(it) else transitions.awaitHoldTimer(it)
+                }),
+                block()
+            ),
         ) { state }
         val proc = engine.start(script, 3)
         fun step() = engine.run(proc)

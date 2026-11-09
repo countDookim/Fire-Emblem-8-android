@@ -54,7 +54,9 @@ public class OpSubtitleTransitions(
      *
      * Ported from src/opsubtitle.c: sub_80C4BB4
      */
-    private fun scalePalette(src: ShortArray, dst: ShortArray, offset: Int, count: Int, coeff: Int) {
+    private fun scalePalette(
+        src: ShortArray, dst: ShortArray, offset: Int, count: Int, coeff: Int
+    ) {
         for (i in 0 until count) {
             val color = src[i].toInt() and 0xFFFF
             val r = ((color and 31) * coeff / 0x1000).toShort().toInt()

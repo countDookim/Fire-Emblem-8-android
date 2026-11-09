@@ -11,7 +11,7 @@ This APK includes the startup PCM reserve and corrected phase-banner scanline bo
 1. Clear app data, import your ROM, and start New Game. Listen throughout the castle scene, including the blue soldier walking up. Expected: continuous audio across short delivery delays. Report whether both reported hitches remain; D-07 is still open. Long stalls can still exhaust the reserve.
 2. Continue past the final dialogue before the map begins. Expected: the "Player Phase" banner, squares and blended band appear for about 70 frames, then clear for the map music and cursor. D-12 awaits owner confirmation; exact original scanline blending and enemy/green banners remain unverified.
 
-The new subtitle slide/timer/fade primitives are standalone; the missing opening cinematic (D-11) is not wired yet. Player-phase interactions and the Rapier popup are still missing.
+The subtitle loaders in this APK are standalone. Later timer/fade code is not published yet; the missing opening cinematic (D-11) is not wired. Player-phase interactions and the Rapier popup are still missing.
 
 ## Latest owner test — 2026-11-09 16:17 (side-by-side vs original)
 

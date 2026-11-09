@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 592,
-    "implemented_unverified": 4
+    "verified": 598,
+    "implemented_unverified": 1
   },
   "functions": {
     "AddUnitSprite": {
@@ -1358,7 +1358,7 @@
     "GenerateScriptBattleHitFormEventQueue": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -2562,6 +2562,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "OpSubtitle_AwaitTimer2a": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#hold timer follows original callback including break frame"
       ]
     },
     "PhaseIntroBlendBox_InLoop": {
@@ -4688,26 +4697,50 @@
         "fe8.testing.ChapterMapGraphicsDifferentialTest#OBJ UI graphics and palettes match the dump"
       ]
     },
+    "sub_80C4BB4": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#fade and palette follow original callback and snapshots"
+      ]
+    },
     "sub_80C4C60": {
       "decomp_file": "src/opsubtitle.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleSlides.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleSlidesDifferentialTest#single layer slides match original captures"
+      ]
     },
     "sub_80C4CD0": {
       "decomp_file": "src/opsubtitle.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleSlides.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleSlidesDifferentialTest#paired layer slides match original captures"
+      ]
     },
     "sub_80C4D54": {
       "decomp_file": "src/opsubtitle.c",
       "system": "presentation",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleSlides.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleSlidesDifferentialTest#alternate offset slide matches original capture"
+      ]
+    },
+    "sub_80C4DA0": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleTransitions.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleTransitionsDifferentialTest#fade and palette follow original callback and snapshots"
+      ]
     },
     "sub_80C5548": {
       "decomp_file": "src/titlescreen.c",

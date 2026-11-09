@@ -6,18 +6,22 @@ _Updated 2026-11-09 (owner-PC run from 15:20Z). Decisions: docs/PROJECT_BRIEF.md
 _(nothing blocked)_
 
 ## In progress
-D07-audio: owner PC, until ~15:55Z; investigate castle transition stalls / PCM underruns; no timing changes without evidence.
-Readability-events: owner PC, until ~15:55Z; gbafe.extract.fe8.events comments/names only.
-D11-fades: owner PC, until ~15:55Z; subtitle timer/palette-fade foundation against original state/palette captures; not wired into New Game yet.
-D12-oam: owner PC, until ~15:55Z; strengthen phase sprite OAM reference checks beyond affine matrix values.
+_(none; owner-PC tasks completed)_
 
 ## Owner-PC work 2026-11-09 15:20Z
 - D-07 `63e638e`: optional startup PCM prefill; Android requests two VBlank chunks. The old ring capacity provided no guaranteed reserve. Seven focused PCM tests and audio Dokka pass; disabling prefill fails startup/interpolation/cadence regressions. Simulated 60 Hz display + 5 ms consumer + one 15 ms late callback retains queued sound; this is not a phone trace. Long stalls still exhaust the reserve; D-07 stays open. Published in 0.1.487 (`c998d7c`); owner re-test pending.
-- Event extractor readability `a0981c8`: all four files reviewed; converter/grouping locals and private KDoc clarified. Focused tests and extract Dokka pass; full integrated suite pending before marking the row done.
-- D-11 source scope: `StartIntroMonologue` is an unwired blocking subtitle child (original steps 1213–4897); the separate unwired world-map wrapper follows at 4898–9313. Slide loaders are being verified separately; no cinematic is wired yet.
+- Event extractor readability `a0981c8`: all four files reviewed; converter/grouping locals and private KDoc clarified. Focused tests, extract Dokka and the full integrated suite pass; readability row marked done.
+- D-11 source scope: `StartIntroMonologue` is an unwired blocking subtitle child (original steps 1213–4897); the separate unwired world-map wrapper follows at 4898–9313. Slide loaders and initial hold/fade callbacks are verified separately; no cinematic is wired yet.
 - D-11 slide loaders `014f3ed`: all seven original subtitle cards compared against captured tile bytes/tilemaps; three independent mutations detected, restored focused tests and game Dokka pass. Standalone only; New Game cinematic remains missing.
+- D-11 hold/fade `d3c4112`: timer, palette scaling and initial fade match original proc/palette snapshots; three individual mutations detected, restored tests and game Dokka pass. Start handling is delegated; script/flare/remaining fades/audio/skip and production wiring are still unimplemented. Progress-parser helpers moved below tagged tests; no count based on filtered XML.
 - Scheduled `d9f943b` audit: player banner buffers/state are reference-tested, but scanline blending, sound hooks, enemy/green branches and Prologue GPU handoff are not established by that test. Corrected VCount-to-HBlank one-line translation in `aefe6d8`; render-line test fails before and passes after. VMatch remains Transcribed; independent HBlank/VCount coexistence is a future limitation.
+- Phase banner verification `a95588a`: complete ordered OBJ attributes now match all six original full captures f1700..1750, with visibility taken from the reference proc rather than the port; position and tile mutations fail. Other map objects excluded from the isolated test.
 - D-07 diagnostic logs: owner-PC `$HOME/.cache/fe8-tmp/d07-spikes-{baseline,attribution,split,trees}.log`; diagnostic worktree clean. Amount differs from the earlier ~11 KB probe, so do not use those figures as a timing benchmark or claim the stutter is fixed.
+
+## Validation / publication for this run
+- Full `jvmTest test` + debug/release APKs passed: **679 tests, zero failures/errors/skips**. Both APKs pass the no-game-content guard (1,535 extracted assets). Python: 27 passed; assistant instructions synchronized. Per-module audio/extract/game Dokka passed.
+- Progress regenerated from the full results: **598/8352**, `ported-without-tag: 0` (six additional standalone subtitle functions this run, on top of scheduled phase-intro ports).
+- Published **0.1.487 (`c998d7c`)** contains all newly device-testable behavior from this run: PCM startup reserve and corrected phase-banner lines. Follow MANUAL_TEST. Later subtitle fade code and stronger OAM tests will go through CI after the final push; subtitle code remains unwired. D-07 and D-12 stay unverified on device.
 
 ## Latest device test (owner, 2026-11-09 16:17, side-by-side vs original)
 Build: **0.1.482 (`617b1e9`)** (owner confirmed). Owner confirms equal to the original: music, sound effects, portraits + portrait animation, walking
@@ -122,7 +126,7 @@ and mouths remain pending device confirmation.
 - D-08 follow-up 910fcfa: Event22 had no map-graphics restoration. New regression compares scene BG3 VRAM/tilemap/palettes at f13500, restored nonanimated map tiles and palette banks 6–15 against first_phase f19430, transition tilemap against f14100, and idle tilemap against f19430. Removing restoration fails; focused event/map/background tests green. Animated VRAM 0xA000..0xAFFF excluded from the map-return comparison because capture phases differ.
 
 ## Next tasks (current)
-D-07: re-test the startup PCM reserve after publication; if hitches remain, correlate Android producer stalls with source/native underruns. D-11: finish subtitle slides, proc/fade/flare/audio/skip verification, then wire the blocking monologue; world-map opening remains separate. D-12: device-check the scheduled phase banner; D12-2 covers enemy graphics and scanline blend verification. D-09 remains low priority.
+D-07: re-test the published startup PCM reserve; if hitches remain, correlate Android producer stalls with source/native underruns. D-11: finish subtitle slides, proc/fade/flare/audio/skip verification, then wire the blocking monologue; world-map opening remains separate. D-12: device-check the scheduled phase banner; D12-2 covers enemy graphics and scanline blend verification. D-09 remains low priority.
 
 ## Historical implementation notes (superseded device status; see latest test above)
 Scheduled 11-09 00:17Z (full jvmTest+test green): D-08 fixed 6d3406c, see table (other BG palette ~123 B diffs and f13500 BG0 text-tile diffs not explained; alignment by unit table only). Ref f14100/f14400 are black, f14700 is the Valter battle anim (unported), so later BG3 diffs are battle prep, not D-08. wip/D-08: ConvoBackgroundFade (Event21 subcode-1 fade procs, transcribed; Prologue never calls it) + Bg08ScratchTest diff harness; merge the fade only with a test. Gradle here needs `python3 tools/maven_mirror.py --port 8765 --cache /root/.cache/fe8-maven &` + FE8_MAVEN_MIRROR (Central 429).
@@ -317,7 +321,7 @@ unit arrays; `EventUnitState` (Event34) registered in the test engine only (not 
   `CgbSound` verified; `PsgSynth` (GBATEK/mGBA behaviour, not a port) RMS 1249 vs mGBA 1200.
 - Owner device tests passed: boot to title, touch buttons, gamepad, GPU backend, audio, ROM import (~4 s) + boot
   from it. Pending: smoke test of the first APK built on the KMP android variants (MANUAL_TEST "Newly testable").
-- Verified ports: 592 / 8352 (`tools/progress.py`, full `jvmTest test`, 2026-11-09 15:24Z); `ported-without-tag: 0`. Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
+- Verified ports: 598 / 8352 (`tools/progress.py`, full `jvmTest test`, 2026-11-09 owner-PC run); `ported-without-tag: 0`. Scripts: 897/897 EventScr* byte-exact in 46 `.fe8s`.
 - Layout: `:gba:*` game-neutral (ADR 0012), `gbafe.*` in `:engine:*`, `fe8.*` in `:game`/`:app`; KMP jvm+android
   (ADR 0013) except `:gba:testkit`, `:testing`, `:tools:extract`.
 

@@ -1,6 +1,6 @@
 # Readability review
 
-Owner, 2026-11-07: every **owner-PC Claude Code session** (not the scheduled Cowork runs) reviews at least one
+Owner, 2026-11-07: every **owner-PC assistant session** (not the scheduled Cowork runs) reviews at least one
 section below for human readability, until every section is done. CLAUDE.md rule 11.
 
 ## What "reviewed" means
@@ -41,7 +41,7 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | engine/extract | gbafe.extract.fe8.portraits | 1 | 97 | done 2026-11-07 21ee533 (some long code lines left) |
 | engine/extract | gbafe.extract.fe8.terrains | 1 | 65 | done 2026-11-09 7c6df24 |
 | engine/extract | gbafe.extract.fe8.ui | 3 | 189 | done 2026-11-09 94e08df |
-| engine/extract | gbafe.extract.fe8.units | 1 | 86 | todo |
+| engine/extract | gbafe.extract.fe8.units | 1 | 86 | done 2026-11-09 cd374d1 |
 | engine/extract | gbafe.extract.font | 1 | 77 | todo |
 | engine/extract | gbafe.extract.m4a | 1 | 311 | todo |
 | engine/extract | gbafe.extract.text | 1 | 55 | todo |

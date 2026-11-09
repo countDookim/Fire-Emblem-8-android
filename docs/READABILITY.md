@@ -71,6 +71,6 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | gba/render | gba.render | 10 | 1388 | done 2026-11-09 83f2cb6 |
 | gba/testkit | gba.testkit | 5 | 352 | done 2026-11-09 19d121b |
 | gba/vfs | gba.vfs | 4 | 228 | done 2026-11-07 1b2b121 |
-| testing | fe8.testing | 3 | 295 | todo |
+| testing | fe8.testing | 3 | 295 | done 2026-11-09 db51e13 |
 | tools/extract | gbafe.extract | 3 | 182 | done 2026-11-09 81db35b |
 | tools/extract | gbafe.extract.fe8 | 1 | 24 | done 2026-11-09 81db35b |

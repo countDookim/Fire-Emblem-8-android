@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D09-3b (ParsePopupInstAndGetLen + item name/icon helpers): scheduled, until ~23:25Z
+- D09-3c (PopupProc_GfxDraw layout): scheduled, until ~23:25Z
 
 ## Current state
 

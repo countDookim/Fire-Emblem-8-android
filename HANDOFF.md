@@ -82,7 +82,9 @@ gSoundSt.songId; MAP_BGM_BLUE mutation fails). Blue songs start r19387 / ch6 r01
 stops r19316 / r01684); r19313 and ch6 f01620 (song 0x34, in no ch6 slot, likely event-started) are pre-switch states.
 Green r19280 0x13 = its slot but also the red slot, origin unchecked: green/red stay unverified.
 StartMapSongBgm tagged: gSoundSt songId/playing/unk7/maxChannels vs r19387 and ch6 r01754 (seeded r19386/r01753;
-songId+1 mutation fails); m4a player state not compared. Next: M6-45 (owner claim expired 10:57Z) or D09-*.
+songId+1 mutation fails); m4a player state not compared. Event12_StartBGM next step: ram_trace_newgame_bm r09539->r09540 is a clean
+stopped->started pair (songId 4 stopped -> 0x26 playing, unk7 0, maxChannels -1): seed the event proc as
+EventVmDifferentialTest does, run event12StartBgm, compare gSoundSt. Then M6-45 (owner claim expired 10:57Z) or D09-*.
 
 ## Owner-PC audit 2026-11-09
 Validation: full `jvmTest test` and debug/release APK builds passed (639 tests, zero failures/skips);

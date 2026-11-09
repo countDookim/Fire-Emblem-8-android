@@ -33,7 +33,7 @@ import gbafe.text.TextSystem
  * which is seen at the fake GBA address [MSG_ADDR]; every other address reads the ROM.
  *
  * Stand-ins (no behaviour is invented; each is a no-op or the smallest working substitute):
- *  - face blink and mouth animation procs are not modelled by [TalkFace];
+ *  - face mouth animation procs are not modelled by [TalkFace];
  *  - sprite text, talk choices, `[G]` numbers and the tactician name are not ported and fail;
  *  - the portrait of the active unit and the portrait swap are not ported and fail.
  */

@@ -242,11 +242,11 @@ public class TalkFace(
     private fun faceOfBlink(proc: Proc): Proc = blinkOf(proc).pFaceProc!!
 
     /**
-     * Draws the eye object over the face for eye frame [unk] (0 or 1: 32x16 open or half;
+     * Draws the eye object over the face for eye frame [unk] (0 or 1: 32x16 closed or half;
      * 0x80 or 0x81: the 16x16 variant); any other value draws nothing.
      *
-     * Transcribed from src/face.c: sub_8006134 (the oam values are checked only to the extent
-     * the eye object exists in the host; the proc state is verified by the blink test).
+     * Transcribed from src/face.c: sub_8006134. Normal blink OAM and tiles are checked against
+     * the Prologue trace in both orientations; the smaller eye object is unverified.
      */
     public fun sub8006134(proc: Proc, unk: Int) {
         val base: Int

@@ -1,5 +1,6 @@
 package fe8.testing
 
+import fe8.game.bm.Mu
 import fe8.game.event.EventConst.EV_STATE_0002
 import fe8.game.event.EventEngine
 import fe8.game.event.EventEngineProc
@@ -9,6 +10,8 @@ import fe8.game.event.EventText
 import fe8.game.event.EventTextTalkHost
 import fe8.game.event.ScriptMemory
 import gba.core.VerifiesPort
+import gbafe.proc.ProcScript
+import gbafe.proc.ProcScripts
 import gbafe.text.MsgHuffman
 import gbafe.text.MsgStrings
 import java.io.File
@@ -52,6 +55,30 @@ class EventTextDifferentialTest {
     )
     private val romFile = File(assets, "baserom.gba")
     private val runDir = File(assets, "reference/out/ram_trace_prologue_talk")
+
+    @Test
+    fun `map display commands lock moving units once and release them once`() {
+        assumeTrue(romFile.isFile && runDir.isDirectory, "ROM or reference run not present")
+        val rig = TalkRig(romFile.readBytes(), runDir)
+        var suspends = 0
+        var resumes = 0
+        val host = EventTextTalkHost(
+            rig.engine, rig.talk, rig.bubble, rig.face, rig, rig,
+            suspendMapDisp = { suspends++ },
+            resumeMapDisp = { resumes++ },
+        ) { 0 }
+        val movingUnit = rig.engine.start(ProcScript("MU", listOf(ProcScripts.yield())), 3)
+        movingUnit.mark = Mu.PROC_MARK_MU
+        val event = EventEngineProc()
+        host.disableMapDisp(event)
+        host.disableMapDisp(event)
+        assertEquals(1, movingUnit.lockCnt)
+        assertEquals(1, suspends)
+        host.enableMapDisp(event)
+        host.enableMapDisp(event)
+        assertEquals(0, movingUnit.lockCnt)
+        assertEquals(1, resumes)
+    }
 
     @Test
     @VerifiesPort(

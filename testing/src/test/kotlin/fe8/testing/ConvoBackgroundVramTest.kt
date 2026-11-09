@@ -4,6 +4,7 @@ import fe8.game.RomView
 import gba.testkit.ReferenceData
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
@@ -58,6 +59,58 @@ class ConvoBackgroundVramTest {
         assertTrue(loaded > 0, "background characters were never loaded")
         assertTrue(checked >= 300, "frames checked: $checked")
         assertEquals(0, bad, "overwritten frames (of $checked, from frame $loaded)")
+    }
+
+    @Test
+    fun `nested display suspension restores map procs only on the final resume`() {
+        assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
+        val trace = ref.run("ram_trace_prologue_talk").watch("gbmst")
+        // Fixed record offsets in this trace; byte 2 is gBmSt.gameGfxSemaphore. The trace
+        // covers a single suspend/resume; the nested case below follows the source control flow.
+        val block = trace.firstStep + 9321
+        val unblock = trace.firstStep + 9496
+        assertEquals(0, trace.step(block - 1)[2].toInt())
+        assertEquals(1, trace.step(block)[2].toInt())
+        assertEquals(1, trace.step(unblock - 1)[2].toInt())
+        assertEquals(0, trace.step(unblock)[2].toInt())
+        val pb = PrologueBoot(romFile)
+        assertTrue(pb.reachIdle())
+        val boot = pb.boot
+        val map = boot.battleMap
+        val engine = boot.engine
+        val vsync = engine.find(map.vSyncScript)!!
+        val task = engine.find(map.mapTaskScript)!!
+        val initialVsyncLock = vsync.lockCnt
+        val initialTaskLock = task.lockCnt
+        var updates = 0
+        val updateAnimations = map.hooks.updateMapImgAnimations
+        map.hooks.updateMapImgAnimations = { updates++; updateAnimations() }
+        var initializations = 0
+        val initAnimations = map.hooks.initMapAnimations
+        map.hooks.initMapAnimations = { initializations++; initAnimations() }
+
+        map.bMapDispSuspend()
+        assertEquals(trace.step(block)[2].toInt(), boot.loop.bmSt.gameGfxSemaphore)
+        map.bMapDispSuspend()
+        assertEquals(2, boot.loop.bmSt.gameGfxSemaphore)
+        assertEquals(initialVsyncLock + 1, vsync.lockCnt)
+        assertEquals(initialTaskLock + 1, task.lockCnt)
+        repeat(3) { boot.frame() }
+        assertEquals(0, updates)
+        map.bMapDispResume()
+        assertEquals(1, boot.loop.bmSt.gameGfxSemaphore)
+        assertSame(vsync, engine.find(map.vSyncScript))
+        assertEquals(initialTaskLock + 1, task.lockCnt)
+        assertEquals(0, initializations)
+        map.bMapDispResume()
+        assertEquals(trace.step(unblock)[2].toInt(), boot.loop.bmSt.gameGfxSemaphore)
+        assertEquals(initialTaskLock, task.lockCnt)
+        assertTrue(engine.find(map.vSyncScript) != null)
+        assertEquals(1, initializations)
+        repeat(5) { boot.frame() }
+        assertTrue(updates > 0, "map animation did not resume")
+        map.bMapDispResume()
+        assertEquals(1, initializations)
     }
 
     private companion object {

@@ -1,5 +1,6 @@
 package fe8.game.event
 
+import fe8.game.bm.Mu
 import fe8.game.scene.Talk
 import fe8.game.scene.TalkBubble
 import fe8.game.scene.TalkBubbleHost
@@ -63,10 +64,13 @@ public class EventTextTalkHost(
 
     /**
      * Transcribed from src/eventscr.c: Event23_DisaleMapDisp
-     * (not verified: `LockMus` is not ported, so the music is not locked)
+     * (not verified against a complete event trace)
      */
     override fun disableMapDisp(proc: EventEngineProc): Int {
-        if (proc.evStateBits and EventConst.EV_STATE_GFXLOCKED == 0) suspendMapDisp()
+        if (proc.evStateBits and EventConst.EV_STATE_GFXLOCKED == 0) {
+            suspendMapDisp()
+            procs.blockEachMarked(Mu.PROC_MARK_MU)
+        }
         proc.evStateBits = proc.evStateBits or EventConst.EV_STATE_GFXLOCKED
         return EventConst.EVC_ADVANCE_YIELD
     }
@@ -88,10 +92,13 @@ public class EventTextTalkHost(
 
     /**
      * Transcribed from src/eventscr.c: Event24_EnableMapDisp
-     * (not verified: `ReleaseMus` is not ported)
+     * (not verified against a complete event trace)
      */
     override fun enableMapDisp(proc: EventEngineProc): Int {
-        if (proc.evStateBits and EventConst.EV_STATE_GFXLOCKED != 0) resumeMapDisp()
+        if (proc.evStateBits and EventConst.EV_STATE_GFXLOCKED != 0) {
+            resumeMapDisp()
+            procs.unblockEachMarked(Mu.PROC_MARK_MU)
+        }
         proc.evStateBits = proc.evStateBits and EventConst.EV_STATE_GFXLOCKED.inv()
         return EventConst.EVC_ADVANCE_YIELD
     }

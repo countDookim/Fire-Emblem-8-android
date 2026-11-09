@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-D-08: scheduled, until ~00:50Z
+_(none)_
 
 ## Latest device test (owner, 2026-11-09)
 Build **0.1.467 (`060478a`)**: walking animation and dialogue portrait display look correct. Owner clarification:
@@ -74,7 +74,8 @@ M6-33/34 (fe8.game.scene Talk: init, interpreter, wait-for-A; the whole first ta
 M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
 
-## Next task: D-08 background corruption; D-06 off-screen exits; D-07 walking stutter; D-10 portrait blink; D-09 Rapier popup remains low priority
+## Next task: D-08 device re-test; D-06 off-screen exits; D-07 walking stutter; D-10 portrait blink; D-09 Rapier popup remains low priority
+Scheduled 11-09 00:17Z (full jvmTest+test green): D-08 fixed 6d3406c, see table (other BG palette ~123 B diffs and f13500 BG0 text-tile diffs not explained; alignment by unit table only). Ref f14100/f14400 are black, f14700 is the Valter battle anim (unported), so later BG3 diffs are battle prep, not D-08. wip/D-08: ConvoBackgroundFade (Event21 subcode-1 fade procs, transcribed; Prologue never calls it) + Bg08ScratchTest diff harness; merge the fade only with a test. Gradle here needs `python3 tools/maven_mirror.py --port 8765 --cache /root/.cache/fe8-maven &` + FE8_MAVEN_MIRROR (Central 429).
 Owner device test 11-09, build 0.1.467 (060478a): walking animations and dialogue portrait display look correct;
 D-06 remains open after the owner clarified that both riders still stay at the edge. New issues D-07..D-10 above:
 prioritize worsening background corruption, then off-screen exits and the intermittent walking pause; missing

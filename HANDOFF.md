@@ -7,7 +7,6 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-- M6-14: scheduled, until ~11:20Z
 - M6-45, readability (gbafe.extract.text, fe8.game.text, fe8.game.flags), Issue #5 (D-06/D-07) trace: owner PC (Gemini), until ~10:57Z; two Flash coding agents.
 
 ## Latest device test (owner, 2026-11-09)
@@ -74,6 +73,13 @@ M6-33/34 (fe8.game.scene Talk: init, interpreter, wait-for-A; the whole first ta
 (faces, bubble/shift procs: TalkInterpretDifferentialTest has transcribed stand-ins for them), M6-37 (Event1A/1B),
 M6-40/41 (battle result + Event3F).
  Merged `wip/M6-05`, `wip/M6-17` deleted.
+
+## Scheduled 2026-11-09 10:51Z
+M6-14 blocked: headless Prologue makes 51 `flags & 1` unit loads, none onto an occupied tile, so
+AiGetUnitClosestValidPosition is never reached (stale NewGameToPrologueTest note fixed); needs a colliding-load trace.
+M6-28 marked done via D-03 (01eb8c4). M6-20: GetCurrentMapMusicIndex tagged (MapMusicReferenceTest, blue/green slots
+vs gSoundSt.songId; MAP_BGM_BLUE mutation fails). Open fact: first_phase r19313 (blue) and ch6_phase_start
+f01560/f01620 (green, song 0x34 in no slot) play event-started songs, assumed not StartMapSongBgm (unconfirmed).
 
 ## Owner-PC audit 2026-11-09
 Validation: full `jvmTest test` and debug/release APK builds passed (639 tests, zero failures/skips);

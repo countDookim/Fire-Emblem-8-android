@@ -44,7 +44,7 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | engine/extract | gbafe.extract.fe8.units | 1 | 86 | done 2026-11-09 0dfc62b |
 | engine/extract | gbafe.extract.font | 1 | 77 | done 2026-11-09 92119c9 |
 | engine/extract | gbafe.extract.m4a | 1 | 311 | todo |
-| engine/extract | gbafe.extract.text | 1 | 55 | todo |
+| engine/extract | gbafe.extract.text | 1 | 55 | done 2026-11-09 0194222 |
 | engine/input | gbafe.input | 2 | 238 | done 2026-11-07 697847c |
 | engine/render | gbafe.render | 10 | 1592 | todo |
 | engine/save | gbafe.save | 7 | 621 | todo |
@@ -53,12 +53,12 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | game | fe8.game | 8 | 1999 | todo |
 | game | fe8.game.bm | 29 | 9298 | todo |
 | game | fe8.game.event | 16 | 3197 | todo |
-| game | fe8.game.flags | 1 | 69 | todo |
+| game | fe8.game.flags | 1 | 69 | done 2026-11-09 0194222 |
 | game | fe8.game.opanim | 3 | 3128 | todo |
 | game | fe8.game.save | 8 | 2541 | todo |
 | game | fe8.game.savemenu | 2 | 156 | todo |
 | game | fe8.game.scene | 5 | 1921 | todo |
-| game | fe8.game.text | 1 | 30 | todo |
+| game | fe8.game.text | 1 | 30 | done 2026-11-09 0194222 |
 | game | fe8.game.title | 1 | 824 | todo |
 | gba/audio | gba.audio | 17 | 2799 | todo |
 | gba/core | gba.core | 1 | 21 | done 2026-11-07 697847c |

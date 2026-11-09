@@ -6,18 +6,22 @@ For a fresh New Game test, clear app data and re-import the ROM so an existing s
 
 ## Ready for re-test — 2026-11-09
 
-**Build 0.1.474 (`d91ed28`) is published; a newer build from `c339db5`+ adds the D-07 walking allocation fix.**
-CI passed 639 tests locally with no failures or skips. It includes the D-08 dialogue/map restoration fixes,
-D-06 rider-removal fix, D-07 unboxed walking sprite-cache lookup (`c339db5`), D-10 blinking and normal mouth
-animation. Use a fresh New Game (clear app data and re-import the ROM), then check the affected rows below.
-These changes still await owner device confirmation.
+**Build 0.1.476 (`fbf71c5`) is published on `latest` (includes `c339db5` D-07 walking allocation fix).**
+CI passed 639 tests with 0 failures and 0 skips. Use a fresh New Game (clear app data and re-import the ROM),
+then check **D-07** below on **0.1.476 (`fbf71c5`)** or later (your Issue #5 test was on `0.1.474 / d91ed28`,
+which pre-dated `c339db5`).
 
-## Latest owner test — 2026-11-09
+## Latest owner test — 2026-11-09 (Issue #5)
 
-Build **0.1.467 (`060478a`)**:
+Build **0.1.474 (`d91ed28`)**:
 
-- Walking animation itself looks correct. Off-screen exits still fail (D-06), and a rare brief stutter remains (D-07).
-- Character portraits display correctly during dialogue. Blinking is missing (D-10).
+- **Solved on device**: walking animations, portrait display, **D-08** dialogue background & post-dialogue map restoration (`6d3406c`/`910fcfa`), **D-10** portrait eye blinking (`350f19a`/`191449c`), and normal portrait mouth animation (`28bef11`).
+- **Remaining open in Issue #5**:
+  - **D-07**: brief audio stutter in the castle when the blue soldier walks up (`0.1.474` pre-dated `c339db5`; re-test on **0.1.476 / `fbf71c5`**).
+  - **D-06**: Franz and Seth no longer stay stuck permanently on the edge (`7ac8384`), but pause briefly at the map edge before fading out instead of riding cleanly off-screen.
+  - **Seth vs Valter battle animation**: missing (unported battle animation system; expected until M6 part 2).
+  - **D-09**: missing Rapier-received popup (low priority).
+  - **D-05**: player phase only moves the cursor (expected until M6 part 2 player-phase actions/menus are ported).
 
 Earlier device checks also confirmed boot to title, original sound, GPU rendering, touch buttons,
 gamepad/keyboard, pause/resume, ROM import and close/reopen resuming turn 1.
@@ -26,24 +30,15 @@ gamepad/keyboard, pause/resume, ROM import and close/reopen resuming turn 1.
 
 | ID | Priority | Observed behavior / re-test target |
 |---|---|---|
-| D-08 | High | After Seth, Eirika and Franz leave the castle, the background becomes corrupted when Seth and Franz start talking. It worsens afterward and persists for the rest of the run. **Fixes merged 6d3406c/910fcfa (freeze map animation during dialogue, then reload map graphics/palette), unverified: re-test an APK built from 910fcfa or later.** Expected: the outdoor talk background stays clean for the whole Seth/Franz/Eirika dialogue and the map looks correct afterward. Limit: the Valter battle scene that follows is not ported (battle animation). |
-| D-06 | Normal | Franz and Seth should ride off-screen but still stop/remain at the screen edge. Implementing walking animation did not fix this behavior. **Fix merged 7ac8384 (refresh sprite lists after unit removal), unverified.** Re-test both riders: they should disappear completely after leaving, with no standing sprite left at the edge; continue through the next dialogue to check they stay gone. |
-| D-07 | Normal | Units occasionally pause/stutter briefly while walking during the opening, then continue normally. **Fix merged c339db5 (remove per-frame `Int` boxing in `MuSpriteAnim.objectAt` during unit walking), unverified: re-test an APK built from c339db5 or later.** Expected: opening unit walks play smoothly without brief GC/allocation pauses. Limit: JVM allocation checks do not cover Android OS thread-scheduling or audio-buffer underruns. |
-| D-10 | Normal | Portraits do not blink. **Fix merged 350f19a (blink proc ported), unverified: re-test on the first APK built from 350f19a or later.** Expected: during the Prologue opening dialogue each portrait's eyes close briefly every ~1-4 s (half-closed, closed, half-closed over ~10 frames). Normal mouth animation is now implemented in 28bef11; see the additional check below. |
+| D-07 | Normal | In `0.1.474` (`d91ed28`, before `c339db5`), there is a brief audio stutter in the castle when the blue soldier unit walks up, then the game continues normally. **Fix merged `c339db5` (remove per-frame `Int` boxing in `MuSpriteAnim.objectAt` during unit walking) and published in APK `0.1.476` (`fbf71c5`).** Steps: start a fresh New Game and listen/watch as the blue soldier walks up to Eirika and Seth in the castle. Expected: the walk starts and plays without an audio hitch. Limit: `StartMuInternal` still decompresses the soldier MU sprite sheet (~11 KB) on the walk-start frame; if the stutter persists on `0.1.476+`, report it so MU sheet decompression can be pre-cached/pooled. |
+| D-06 | Normal | In `0.1.474` (`d91ed28`), Franz and Seth no longer remain permanently on the edge (`7ac8384`), but stop right on the edge for a moment before fading out instead of cleanly riding out. **Open (under investigation):** in the castle, Franz reaches `(12,11)` ~32 frames before Seth reaches `(13,11)` (`ENUN` waits for both), `MuCtr_OnEnd` un-hides the standing sprite for 1 frame before `DISA`, and outside the castle `FlashCursor(..., 60)` waits 60 frames with an unported cursor-flash hook before the dialogue/fade. No new D-06 code change beyond `7ac8384` yet. |
 | D-09 | Low (owner) | The Rapier-received popup never appears before the first battle. Eirika's inventory has **not** been checked on device because player-phase interactions are unavailable; do not infer that the item is missing. |
 
 See [HANDOFF.md](../HANDOFF.md) for findings and verification status. Re-test an affected row when a fix
 and its APK build are announced; include the launcher build string with the result.
 
-## Additional check: portrait mouths (28bef11 or later)
-
-Start a fresh New Game and watch both portrait orientations during dialogue. Mouths should move while text
-prints and return to a resting shape while waiting for A; eye blinking should continue. This covers normal
-speaking/resting mouths. Smiling/blended mouth paths are not reference-verified, and the exact initial animation
-phase can differ from the original because reused proc memory is not reproduced. Device check pending.
-
 ## Known incomplete gameplay
 
-The save menu/difficulty selector and player-phase actions (including inventory access) are not ported yet;
-New Game is chosen automatically when there is no valid suspend. Battle animations are also incomplete;
-special portrait animation modes remain unverified.
+The save menu/difficulty selector, battle animations (such as Seth vs Valter), `FlashCursor` highlight sprite,
+and player-phase actions (including unit selection, menus, and inventory access) are not ported yet;
+New Game is chosen automatically when there is no valid suspend.

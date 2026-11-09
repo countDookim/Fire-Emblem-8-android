@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 545,
+    "verified": 547,
     "implemented_unverified": 1
   },
   "functions": {
@@ -1223,7 +1223,7 @@
     "GenerateScriptBattleHitFormEventQueue": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -1365,6 +1365,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TextDrawRomTest#getColorLut returns the pointers of the built ROM's colour tables"
+      ]
+    },
+    "GetCurrentMapMusicIndex": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapMusic.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.bm.MapMusicReferenceTest#blue and green phase songs equal the song playing in the reference"
       ]
     },
     "GetCurrentPromotedLevelBonus": {
@@ -3264,6 +3273,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ScreenFadeDifferentialTest#fade from black follows the per-frame RAM trace"
+      ]
+    },
+    "StartMapSongBgm": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapMusic.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.bm.MapMusicReferenceTest#starting the map song leaves the sound state of the reference"
       ]
     },
     "StartMu": {

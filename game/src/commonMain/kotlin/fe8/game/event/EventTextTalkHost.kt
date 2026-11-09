@@ -32,6 +32,8 @@ public class EventTextTalkHost(
     private val readTextSpeed: (() -> Int)? = null,
     /** Writes `gPlaySt.config.textSpeed`; null: the plain [textSpeed] field below. */
     private val writeTextSpeed: ((Int) -> Unit)? = null,
+    /** `RefreshBMapGraphics`; the default does nothing. */
+    private val refreshMapGraphics: () -> Unit = {},
     /** `BMapDispSuspend`; the default does nothing. */
     private val suspendMapDisp: () -> Unit = {},
     /** `BMapDispResume`; the default does nothing. */
@@ -75,8 +77,10 @@ public class EventTextTalkHost(
         return EventConst.EVC_ADVANCE_YIELD
     }
 
-    /** Stand-in: `RefreshBMapGraphics` (map tile and palette reload) is not ported: no-op. */
-    override fun refreshBMapGraphics() {}
+    /** Calls the configured map graphics restoration. */
+    override fun refreshBMapGraphics() {
+        refreshMapGraphics()
+    }
 
     /**
      * `BG_Fill(gBG0TilemapBuffer, 0)`, `BG_Fill(gBG1TilemapBuffer, 0)` and the two

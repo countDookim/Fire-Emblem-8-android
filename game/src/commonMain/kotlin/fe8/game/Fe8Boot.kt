@@ -457,9 +457,27 @@ public class Fe8Boot(
             readTextSpeed = { control.playSt.textSpeed },
             writeTextSpeed = { control.playSt.textSpeed = it },
             stringFromIndex = scene::stringFromIndex,
+            refreshMapGraphics = { if (rom.isWholeRom) refreshMapGraphics() },
             suspendMapDisp = { if (rom.isWholeRom) battleMap.bMapDispSuspend() },
             resumeMapDisp = { if (rom.isWholeRom) battleMap.bMapDispResume() },
         )
+    }
+
+    /**
+     * Restores the available parts of `RefreshBMapGraphics` after a conversation background.
+     * Text, UI frame, face and icon resets, weather particles and system font setup are stand-ins.
+     */
+    private fun refreshMapGraphics() {
+        val gfx = ChapterMapGfx(rom, battleChapters, hw, control.playSt)
+        hw.setupBackgrounds(
+            cloudsWeather = control.playSt.chapterWeatherId == ChapterMapGfx.WEATHER_CLOUDS,
+        )
+        gfx.loadObjUiGfx()
+        gfx.unpackChapterMapGraphics(control.playSt.chapterIndex)
+        bmapRender.renderBmMap()
+        refreshSprites()
+        unitSprites?.applyUnitSpritePalettes()
+        unitSprites?.forceSyncUnitSpriteSheet()
     }
 
     /** The talk event commands 0x1A to 0x1D (`Event1A_TEXTSTART` ...) over [eventTextHost]. */

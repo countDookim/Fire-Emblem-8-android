@@ -1,6 +1,8 @@
 package fe8.testing
 
 import fe8.game.RomView
+import gba.testkit.GbaMem
+import gba.testkit.RamSymbols
 import gba.testkit.ReferenceData
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -59,6 +61,76 @@ class ConvoBackgroundVramTest {
         assertTrue(loaded > 0, "background characters were never loaded")
         assertTrue(checked >= 300, "frames checked: $checked")
         assertEquals(0, bad, "overwritten frames (of $checked, from frame $loaded)")
+    }
+
+    @Test
+    fun `conversation background and restored map match reference graphics`() {
+        assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
+        val scene = ref.run("ram_trace_prologue")
+        val sceneVram = scene.region("f13500", "vram")
+        val scenePalette = scene.region("f13500", "pal")
+        val sceneEwram = scene.region("f13500", "ewram")
+        val map = ref.run("ram_trace_first_phase")
+        val mapVram = map.region("f19430", "vram")
+        val mapPalette = map.region("f19430", "pal")
+        val resumedEwram = scene.region("f14100", "ewram")
+        val mapEwram = map.region("f19430", "ewram")
+        val bg3Offset = RamSymbols.fromEnvironment()["gBG3TilemapBuffer"].address - GbaMem.EWRAM
+        val marker = expected(RomView.ofRom(romFile.readBytes()))
+        val pb = PrologueBoot(romFile)
+        var loaded = 0
+        var sceneChecked = false
+        var restored = false
+        fun word(bytes: ByteArray, offset: Int): Int =
+            (bytes[offset].toInt() and 0xFF) or ((bytes[offset + 1].toInt() and 0xFF) shl 8)
+        pb.onFrame = { frame ->
+            val hw = pb.boot.ui.env.hardware
+            if (loaded == 0 && marker.contentEquals(hw.vram.copyOfRange(0xA000, 0xB000))) {
+                loaded = frame
+            }
+            if (loaded > 0 && frame == loaded + 10) {
+                for (i in 0x8000 until 0xC000) {
+                    assertEquals(sceneVram[i], hw.vram[i], "scene VRAM 0x${i.toString(16)}")
+                }
+                for (i in 128 until 256) {
+                    assertEquals(word(scenePalette, 2 * i), hw.palette[i].toInt() and 0xFFFF)
+                }
+                for (i in 0 until 1024) {
+                    assertEquals(
+                        word(sceneEwram, bg3Offset + 2 * i),
+                        hw.tilemaps[3][i].toInt() and 0xFFFF,
+                    )
+                }
+                sceneChecked = true
+            }
+            if (loaded > 0 && !restored && pb.boot.loop.bmSt.gameGfxSemaphore == 0) {
+                // The animation at 0xA000..0xAFFF depends on the capture's animation phase.
+                for (i in (0x8000 until 0xA000) + (0xB000 until 0xC000)) {
+                    assertEquals(mapVram[i], hw.vram[i], "restored VRAM 0x${i.toString(16)}")
+                }
+                for (i in 96 until 256) {
+                    assertEquals(word(mapPalette, 2 * i), hw.palette[i].toInt() and 0xFFFF)
+                }
+                for (i in 0 until 1024) {
+                    assertEquals(
+                        word(resumedEwram, bg3Offset + 2 * i),
+                        hw.tilemaps[3][i].toInt() and 0xFFFF,
+                        "resumed tile $i",
+                    )
+                }
+                restored = true
+            }
+        }
+        assertTrue(pb.reachIdle(), "Prologue idle not reached")
+        assertTrue(sceneChecked, "conversation background was not checked")
+        assertTrue(restored, "map display was not restored")
+        for (i in 0 until 1024) {
+            assertEquals(
+                word(mapEwram, bg3Offset + 2 * i),
+                pb.boot.ui.env.hardware.tilemaps[3][i].toInt() and 0xFFFF,
+                "idle map tile $i",
+            )
+        }
     }
 
     @Test

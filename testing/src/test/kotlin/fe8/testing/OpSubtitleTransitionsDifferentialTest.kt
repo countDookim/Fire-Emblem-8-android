@@ -343,6 +343,77 @@ class OpSubtitleTransitionsDifferentialTest {
         assertEquals(1, frames.count { it.second })
     }
 
+    @Test
+    @VerifiesPort("sub_80C538C", "sub_80C5370")
+    fun `final whole palette fade follows original callback`() {
+        assumeTrue(ref.available && romFile.isFile, "reference capture or ROM unavailable")
+        val capture = ref.run("ram_trace_prologue")
+        val trace = capture.watch("procs")
+        val rom = RomView.ofRom(romFile.readBytes())
+        // The saved palette is the buffer when sub_80C5370 runs (step 4178); the 4170 snapshot
+        // is the nearest capture and no palette write happens in between.
+        val saved = fullPalette(capture.region("r04170", "ewram"))
+        var compared = 0
+        var snapshots = 0
+        for (frame in 4179..4238) {
+            val before = ProcArrayDump.ofWatch(trace, frame - 1).find(SCRIPT)!!
+            val after = ProcArrayDump.ofWatch(trace, frame).find(SCRIPT)!!
+            val first = frame == 4179
+            if (!first) assertEquals(FINAL_FADE_CALLBACK, before.u32(0x0C))
+            val state = stateOf(before)
+            val rig = StageRig(rom, state) { t, p -> t.fadeOutAll(p) }
+            saved.copyInto(rig.hardware.palette)
+            rig.transitions.snapshotPalette(rig.proc)
+            assertEquals(0, state.transitionTimer)
+            if (!first) state.transitionTimer = before.u16(0x2C).toShort().toInt()
+            rig.hardware.palette.fill(0x5A5A.toShort())
+            rig.step()
+            compareState(after, state)
+            val broke = after.u32(0x0C) == 0
+            assertEquals(broke, rig.proc.idleCb == null, "frame $frame repeat")
+            assertEquals(1, rig.calls, "frame $frame Start check")
+            assertTrue(rig.hardware.modifiedPalette)
+            val snapshot = if (frame % 30 == 0) frame else if (broke) 4260 else null
+            if (snapshot != null) {
+                val prefix = if (snapshot % 300 == 0) "f" else "r"
+                val ewram = capture.region(prefix + snapshot.toString().padStart(5, '0'), "ewram")
+                // Only the BG half is compared: the original fades the OBJ half from EWRAM past
+                // its 256-colour copy and leaves it set on completion; that half is unverified.
+                val size = 0x100
+                assertArrayEquals(
+                    fullPalette(ewram).copyOf(size), rig.hardware.palette.copyOf(size),
+                    "frame $frame vs snapshot $snapshot"
+                )
+                snapshots++
+            }
+            compared++
+        }
+        assertEquals(60, compared)
+        assertEquals(3, snapshots)
+    }
+
+    @Test
+    @VerifiesPort("sub_80C5328")
+    fun `final layers match captured dispcnt and vram`() {
+        assumeTrue(ref.available && romFile.isFile, "reference capture or ROM unavailable")
+        val capture = ref.run("ram_trace_prologue")
+        val rig = StageRig(RomView.ofRom(romFile.readBytes()), OpSubtitleSlides.State()) { _, _ -> }
+        rig.hardware.vram.fill(0x7F, 0, 0x40)
+        rig.transitions.showFinalLayers()
+        val lcd = LcdControl()
+        lcd.readFrom(capture.region("r02730", "iwram"), 0x3080)
+        assertEquals(lcd.dispcnt and 0x1F00, rig.hardware.lcd.dispcnt and 0x1F00)
+        val vram = capture.region("f03000", "vram")
+        assertArrayEquals(vram.copyOfRange(0, 0x20), rig.hardware.vram.copyOfRange(0, 0x20))
+        assertEquals(0x7F, rig.hardware.vram[0x20].toInt())
+        assertEquals(2, rig.hardware.modifiedBgs and 2)
+    }
+
+    private fun fullPalette(ewram: ByteArray) = ShortArray(0x200) { i ->
+        val at = 0x228A8 + 2 * i
+        ((ewram[at].toInt() and 0xFF) or ((ewram[at + 1].toInt() and 0xFF) shl 8)).toShort()
+    }
+
     private class Rig(rom: RomView, fade: Boolean, state: OpSubtitleSlides.State) {
         val engine = ProcEngine()
         val hardware = BgHardware()
@@ -380,6 +451,7 @@ class OpSubtitleTransitionsDifferentialTest {
         const val FADE_OUT_CARD_CALLBACK = 0x080C4EC5
         const val BLEND_IN_CALLBACK = 0x080C4F61
         const val BLEND_OUT_CALLBACK = 0x080C501D
+        const val FINAL_FADE_CALLBACK = 0x080C538D
         const val CARD_FADE_IN_CALLBACK = 0x080C5105
     }
 }

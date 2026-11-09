@@ -14,6 +14,7 @@ public class OpSubtitleTransitions(
 ) {
     private val subtitlePalette: ShortArray = rom.pal(PALETTE, 16)
     private val cardPalette: ShortArray = rom.pal(CARD_PALETTE, 16)
+    private val paletteSnapshot = ShortArray(PALETTE_COLORS)
 
     /**
      * Decrements the hold timer, breaks its repeat when it reaches zero, and checks Start even
@@ -185,6 +186,53 @@ public class OpSubtitleTransitions(
     }
 
     /**
+     * Clears the first 0x20 bytes of VRAM, marks BG1 for sync and shows BG0, BG1 and BG3.
+     *
+     * Ported from src/opsubtitle.c: sub_80C5328
+     */
+    public fun showFinalLayers() {
+        hardware.vram.fill(0, 0, 0x20)
+        hardware.enableBgSyncByMask(1 shl 1)
+        hardware.lcd.setDispEnable(1, 1, 0, 1, 0)
+    }
+
+    /**
+     * Resets the proc's transition timer and saves the BG half of the palette (0x200 bytes) for
+     * the final fade. The proc's state must be [OpSubtitleSlides.State].
+     *
+     * Ported from src/opsubtitle.c: sub_80C5370
+     */
+    public fun snapshotPalette(proc: Proc) {
+        val state = proc.state as OpSubtitleSlides.State
+        state.transitionTimer = 0
+        hardware.palette.copyInto(paletteSnapshot, 0, 0, BG_PALETTE_COLORS)
+    }
+
+    /**
+     * Fades all 512 colours from the saved buffer over 60 frames; at completion clears the BG
+     * half (0x200 bytes), starts a 60-frame hold and breaks. The original reads the OBJ half from
+     * EWRAM past its 256-colour copy; here that half of the buffer stays zero (unverified, OBJ is
+     * off in this stage). The proc's state must be [OpSubtitleSlides.State].
+     *
+     * Ported from src/opsubtitle.c: sub_80C538C
+     */
+    public fun fadeOutAll(proc: Proc) {
+        val state = proc.state as OpSubtitleSlides.State
+        state.transitionTimer = (state.transitionTimer + 1).toShort().toInt()
+        if (state.transitionTimer < 60) {
+            val coeff = 0x1000 - ((state.transitionTimer shl 12) / 60)
+            scalePalette(paletteSnapshot, hardware.palette, 0, PALETTE_COLORS, coeff)
+        } else {
+            hardware.palette.fill(0, 0, BG_PALETTE_COLORS)
+            state.transitionTimer = 0
+            state.holdTimer = 60
+            engine.breakProc(proc)
+        }
+        hardware.enablePaletteSync()
+        handleStartPress(proc)
+    }
+
+    /**
      * Scales BGR555 channels by a 12-bit fixed-point coefficient into the destination palette.
      *
      * Ported from src/opsubtitle.c: sub_80C4BB4
@@ -204,6 +252,8 @@ public class OpSubtitleTransitions(
     private companion object {
         const val LUT = 0x08206FE4
         const val PALETTE = 0x08AA239C
+        const val PALETTE_COLORS = 0x200
+        const val BG_PALETTE_COLORS = 0x100
         const val CARD_PALETTE = 0x08B1756C
     }
 }

@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 634,
+    "verified": 636,
     "implemented_unverified": 1
   },
   "functions": {
@@ -2859,6 +2859,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
+      ]
+    },
+    "PopupProc_Init": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Popup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupProcDifferentialTest#init fields match the popup proc before its graphics are drawn"
+      ]
+    },
+    "PopupProc_WaitForPress": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Popup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupProcDifferentialTest#positive clock counts down and breaks like the original"
       ]
     },
     "PostSaveMenuHandler": {

@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D11-proc: scheduled, until ~21:00Z (sub_80C50A0, sub_80C5218, sub_80C51A8, sub_80C5400/540C)
+_(none)_
 
 ## Current state
 
@@ -46,8 +46,9 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
 2. **D-11:** next coding slice is `D11-proc` in TASKS. Done standalone (not wired): slides/fades
    (`014f3ed`, `d3c4112`), `OpSubtitleSetup` init + BG helpers (`a5aec60`), `OpSubtitleFlare` + `gbafe.render.BgAffin`
    (`c2f0be5`), fade/blend stages `sub_80C4E18`–`sub_80C5104` (`bd81634`), final fade/layer reset
-   `sub_80C5328/5370/538C` (`112c395`; OBJ half of the final fade unverified). Remaining D11-proc: `sub_80C50A0`,
-   `sub_80C5218`, `sub_80C51A8` child, `sub_80C5400/540C`, Start handler, proc script. Then: proc script, audio, verified Start skip, then wiring. Original monologue runs at steps 1213–4897; the separate world-map wrapper follows at 4898–9313.
+   `sub_80C5328/5370/538C` (`112c395`; OBJ half of the final fade unverified), `OpSubtitleScenes` `sub_80C50A0/51A8/5218`
+   (`8566829`), `sub_80C540C` (`ba8389a`), child script `gProcScr_08AA2184` (`f10f6e3`; absolute step unchecked).
+   Remaining D11-proc: `sub_80C5400`, Start handler, parent proc script. Then: proc script, audio, verified Start skip, then wiring. Original monologue runs at steps 1213–4897; the separate world-map wrapper follows at 4898–9313.
 3. **D-12:** owner compares the banner with an emulator; D12-2 adds enemy-phase and original scanline captures.
 4. **D-09:** private ROM commit `f7a442a` has the popup capture generator; local `reference/out/ram_trace_item_popup`
    contains 181 RAM and 10 graphics captures, not packed/published into FE8_ASSETS. D09-1b must justify its sound-test

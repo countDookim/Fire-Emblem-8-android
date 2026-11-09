@@ -6,7 +6,7 @@ _Updated 2026-11-09 (owner-PC run from 15:20Z). Decisions: docs/PROJECT_BRIEF.md
 _(nothing blocked)_
 
 ## In progress
-_(none; owner-PC tasks completed)_
+Docs-refresh: owner PC, until ~16:35Z; record build 0.1.488 results and condense HANDOFF/MANUAL_TEST.
 
 ## Owner-PC work 2026-11-09 15:20Z
 - D-07 `63e638e`: optional startup PCM prefill; Android requests two VBlank chunks. The old ring capacity provided no guaranteed reserve. Seven focused PCM tests and audio Dokka pass; disabling prefill fails startup/interpolation/cadence regressions. Simulated 60 Hz display + 5 ms consumer + one 15 ms late callback retains queued sound; this is not a phone trace. Long stalls still exhaust the reserve; D-07 stays open. Published in 0.1.487 (`c998d7c`); owner re-test pending.

@@ -19,82 +19,82 @@ import gbafe.proc.ProcFunc
  * buffer, [faces] hold `FaceProc` pointers. [unk38] is a callback; it is encoded as 1 when set.
  */
 public class TalkState {
-    /** `str` (0x00): address of the next message byte. */
+    /** GBA address of the next message byte (`str`, 0x00). */
     public var str: Int = 0
 
-    /** `strBackup` (0x04): address to resume at after a nested string, or 0. */
+    /** GBA address to resume at after a nested string, or 0 when not nested (`strBackup`, 0x04). */
     public var strBackup: Int = 0
 
-    /** `printColor` (u8, 0x08). */
+    /** Active text color ID (1..4) for character rendering (`printColor`, u8, 0x08). */
     public var printColor: Int = 0
 
-    /** `lineActive` (u8, 0x09). */
+    /** Zero-based index of the currently active text line (0..lines-1, `lineActive`, u8, 0x09). */
     public var lineActive: Int = 0
 
-    /** `lines` (u8, 0x0A). */
+    /** Total line capacity of the dialogue window (`lines`, u8, 0x0A). */
     public var lines: Int = 0
 
-    /** `topTextNum` (u8, 0x0B). */
+    /** Offset of the topmost visible line in the cyclic text buffer (`topTextNum`, u8, 0x0B). */
     public var topTextNum: Int = 0
 
-    /** `xText` (u8, 0x0C). */
+    /** Horizontal tile offset on BG0 where dialogue text starts (`xText`, u8, 0x0C). */
     public var xText: Int = 0
 
-    /** `yText` (u8, 0x0D). */
+    /** Vertical tile offset on BG0 where dialogue text starts (`yText`, u8, 0x0D). */
     public var yText: Int = 0
 
-    /** `activeWidth` (u8, 0x0E). */
+    /** Speech bubble width in 8-pixel tiles (`activeWidth`, u8, 0x0E). */
     public var activeWidth: Int = 0
 
-    /** `speakingFaceSlot` (s8, 0x0F). */
+    /** Slot of the face currently speaking, or -1 if none (`speakingFaceSlot`, s8, 0x0F). */
     public var speakingFaceSlot: Int = 0
 
-    /** `speakingWidth` (u8, 0x10). */
+    /** Width of the speech bubble when last opened (`speakingWidth`, u8, 0x10). */
     public var speakingWidth: Int = 0
 
-    /** `activeFaceSlot` (u8, 0x11). */
+    /** Slot of the currently active face, or 0xFF if none (`activeFaceSlot`, u8, 0x11). */
     public var activeFaceSlot: Int = 0
 
-    /** `instantScroll` (s8, 0x12). */
+    /** Whether instant text scroll / fast-forward is active (`instantScroll`, s8, 0x12). */
     public var instantScroll: Int = 0
 
-    /** `printDelay` (s8, 0x13). */
+    /** Delay in frames between rendering successive characters (`printDelay`, s8, 0x13). */
     public var printDelay: Int = 0
 
-    /** `printClock` (s8, 0x14). */
+    /** Frame countdown timer toward the next character draw (`printClock`, s8, 0x14). */
     public var printClock: Int = 0
 
-    /** `putLines` (u8, 0x15). */
+    /** Whether the current line's text has been flushed to the tilemap (`putLines`, u8, 0x15). */
     public var putLines: Int = 0
 
-    /** `mouthMoveEnabled` (u8, 0x16). */
+    /** Whether mouth flap animation is enabled during text printing (`mouthMoveEnabled`, 0x16). */
     public var mouthMoveEnabled: Int = 0
 
-    /** `faceSmileEnabled` (u8, 0x17). */
+    /** Whether smile expression is enabled for the speaking face (`faceSmileEnabled`, u8, 0x17). */
     public var faceSmileEnabled: Int = 0
 
-    /** `faces[8]` (0x18): `FaceProc` addresses, 0 for NULL. */
+    /** Face proc handles or addresses for the 8 face slots (`faces[8]`, 0x18). */
     public val faces: IntArray = IntArray(FACE_COUNT)
 
-    /** `unk38` (0x38): per-print callback, null for NULL. */
+    /** Per-character callback invoked by control code `0x80 0x24` (`unk38`, 0x38). */
     public var unk38: ProcFunc? = null
 
-    /** `userNumber` (u32, 0x3C). */
+    /** Numeric value formatted as ASCII decimal for the `[G]` code (`userNumber`, u32, 0x3C). */
     public var userNumber: Int = 0
 
-    /** `userNumberString[0x20]` (0x40). */
+    /** ASCII decimal string buffer for [userNumber] (`userNumberString[0x20]`, 0x40). */
     public val userNumberString: ByteArray = ByteArray(STRING_SIZE)
 
-    /** `userString[0x20]` (0x60). */
+    /** Custom user string substituted into dialogue (`userString[0x20]`, 0x60). */
     public val userString: ByteArray = ByteArray(STRING_SIZE)
 
-    /** `config` (u16, 0x80): `TALK_FLAG_*` bits. */
+    /** Bitfield of `TALK_FLAG_*` configuration flags (`config`, u16, 0x80). */
     public var config: Int = 0
 
-    /** `unk82` (u8, 0x82). */
+    /** Flag set after typing sound is played during fast scroll (`unk82`, u8, 0x82). */
     public var unk82: Int = 0
 
-    /** `invertedFlags` (u8, 0x83). */
+    /** Controls inverted palette toggling for the bubble and text (`invertedFlags`, u8, 0x83). */
     public var invertedFlags: Int = 0
 
     /** Writes the [SIZE] bytes the GBA keeps in RAM to [out] at [offset]. */

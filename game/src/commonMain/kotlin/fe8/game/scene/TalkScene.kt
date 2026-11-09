@@ -91,11 +91,15 @@ public class TalkScene(
         listOf(sleep(8), call(ProcFunc { endFace(it) }), end()),
     ) { FaceEndState() }
 
+    /** State of the temporary lock proc. */
     private class LockState {
+        /** Remaining frames to keep the parent proc locked. */
         var frames = 0
     }
 
+    /** State of the delayed face end proc. */
     private class FaceEndState {
+        /** Face slot index to terminate after the fade delay. */
         var slot = 0
     }
 
@@ -125,16 +129,18 @@ public class TalkScene(
 
     /** Reads the little-endian word at VRAM address [addr]. */
     override fun readVram32(addr: Int): Int {
-        val o = addr - VRAM_BASE
-        val v = hw.vram
-        return (v[o].toInt() and 0xFF) or ((v[o + 1].toInt() and 0xFF) shl 8) or
-            ((v[o + 2].toInt() and 0xFF) shl 16) or ((v[o + 3].toInt() and 0xFF) shl 24)
+        val offset = addr - VRAM_BASE
+        val vramBytes = hw.vram
+        return (vramBytes[offset].toInt() and 0xFF) or
+            ((vramBytes[offset + 1].toInt() and 0xFF) shl 8) or
+            ((vramBytes[offset + 2].toInt() and 0xFF) shl 16) or
+            ((vramBytes[offset + 3].toInt() and 0xFF) shl 24)
     }
 
     /** Writes [value] little-endian at VRAM address [addr]. */
     override fun writeVram32(addr: Int, value: Int) {
-        val o = addr - VRAM_BASE
-        for (k in 0..3) hw.vram[o + k] = (value shr (8 * k)).toByte()
+        val offset = addr - VRAM_BASE
+        for (k in 0..3) hw.vram[offset + k] = (value shr (8 * k)).toByte()
     }
 
     /** Zeroes [byteCount] bytes of VRAM from address [dest]. */
@@ -192,86 +198,88 @@ public class TalkScene(
      * the traced talk through the test rig.
      */
     override fun getStrTalkLen(str: Int, isBubbleOpen: Boolean): Int {
-        val s = talk.state
-        val a = stringArray(str)
-        var i = stringOffset(str)
-        var open = isBubbleOpen
-        val speak = s.speakingFaceSlot
-        var active = s.activeFaceSlot
-        var cur = 0
-        var max = 24
-        var speaker = speak
-        val w = IntArray(1)
+        val talkState = talk.state
+        val messageBytes = stringArray(str)
+        var cursor = stringOffset(str)
+        var bubbleOpen = isBubbleOpen
+        val initialSpeaker = talkState.speakingFaceSlot
+        var activeFace = talkState.activeFaceSlot
+        var currentLineWidth = 0
+        var maxLineWidth = 24
+        var currentSpeaker = initialSpeaker
+        val charWidth = IntArray(1)
         while (true) {
-            val c = a[i].toInt() and 0xFF
-            when (c) {
-                0x00, 0x15 -> return maxOf(max, cur)
+            val charByte = messageBytes[cursor].toInt() and 0xFF
+            when (charByte) {
+                0x00, 0x15 -> return maxOf(maxLineWidth, currentLineWidth)
                 0x01, 0x02 -> {
-                    max = maxOf(max, cur)
-                    cur = 0
-                    i++
+                    maxLineWidth = maxOf(maxLineWidth, currentLineWidth)
+                    currentLineWidth = 0
+                    cursor++
                 }
-                0x04, 0x05, 0x06, 0x07, 0x16, 0x17, 0x1C, 0x1D -> i++
+                0x04, 0x05, 0x06, 0x07, 0x16, 0x17, 0x1C, 0x1D -> cursor++
                 0x03 -> {
-                    cur += 12
-                    i++
+                    currentLineWidth += 12
+                    cursor++
                 }
                 in 0x08..0x0F -> {
-                    active = c - 8
-                    i++
+                    activeFace = charByte - 8
+                    cursor++
                 }
                 0x10 -> {
                     while (true) {
-                        val d = a[i].toInt() and 0xFF
-                        if (d in 0x08..0x0F) {
-                            active = d - 8
-                            i++
-                        } else if (d == 0x10) {
-                            i += 3
+                        val subCode = messageBytes[cursor].toInt() and 0xFF
+                        if (subCode in 0x08..0x0F) {
+                            activeFace = subCode - 8
+                            cursor++
+                        } else if (subCode == 0x10) {
+                            cursor += 3
                         } else {
                             break
                         }
                     }
                 }
                 0x11 -> {
-                    if (active == speaker) return maxOf(max, cur)
-                    i++
+                    if (activeFace == currentSpeaker) {
+                        return maxOf(maxLineWidth, currentLineWidth)
+                    }
+                    cursor++
                 }
                 0x12, 0x13, 0x14 -> {
-                    if (!open) return maxOf(max, cur)
-                    i++
+                    if (!bubbleOpen) return maxOf(maxLineWidth, currentLineWidth)
+                    cursor++
                 }
                 0x18, 0x19, 0x1A, 0x1B -> {
-                    cur += 0x80
-                    i++
+                    currentLineWidth += 0x80
+                    cursor++
                 }
                 0x80 -> {
-                    i++
-                    val d = a[i].toInt() and 0xFF
-                    if (d in 0x0A..0x11) {
-                        active = d - 0x0A
-                        i++
-                    } else if (d == 0x05 || d == 0x06 || d == 0x20) {
+                    cursor++
+                    val subCode = messageBytes[cursor].toInt() and 0xFF
+                    if (subCode in 0x0A..0x11) {
+                        activeFace = subCode - 0x0A
+                        cursor++
+                    } else if (subCode == 0x05 || subCode == 0x06 || subCode == 0x20) {
                         throw NotImplementedError("not ported: nested string in GetStrTalkLen")
                     } else {
-                        i++
+                        cursor++
                     }
                 }
                 else -> {
-                    if (c == 0x81 && (a[i + 1].toInt() and 0xFF) == 0x40) {
-                        i += 2
-                        cur += 6
+                    if (charByte == 0x81 && (messageBytes[cursor + 1].toInt() and 0xFF) == 0x40) {
+                        cursor += 2
+                        currentLineWidth += 6
                     } else {
-                        if (active != speaker && active != 0xFF) {
-                            if (!open) {
-                                open = true
-                                speaker = active
+                        if (activeFace != currentSpeaker && activeFace != 0xFF) {
+                            if (!bubbleOpen) {
+                                bubbleOpen = true
+                                currentSpeaker = activeFace
                             } else {
-                                return maxOf(max, cur)
+                                return maxOf(maxLineWidth, currentLineWidth)
                             }
                         }
-                        i = text.getCharTextLen(a, i, w)
-                        cur += w[0]
+                        cursor = text.getCharTextLen(messageBytes, cursor, charWidth)
+                        currentLineWidth += charWidth[0]
                     }
                 }
             }
@@ -325,21 +333,21 @@ public class TalkScene(
     }
 
     /** Ends the target face and its children after the scheduled delay. */
-    private fun endFace(p: Proc) {
-        val slot = (p.state as FaceEndState).slot
-        val f = face.gFaces[slot] ?: return
+    private fun endFace(proc: Proc) {
+        val slot = (proc.state as FaceEndState).slot
+        val faceProc = face.gFaces[slot] ?: return
         face.gFaces[slot] = null
-        procs.end(f)
+        procs.end(faceProc)
     }
 
     override fun startTemporaryLock(proc: Proc, frames: Int) {
-        val p = procs.startBlocking(lockScript, proc) ?: return
-        (p.state as LockState).frames = frames
+        val lockProc = procs.startBlocking(lockScript, proc) ?: return
+        (lockProc.state as LockState).frames = frames
     }
 
-    private fun lockOnLoop(p: Proc) {
-        val s = p.state as LockState
-        if (s.frames == 0) procs.breakProc(p) else s.frames--
+    private fun lockOnLoop(proc: Proc) {
+        val lockState = proc.state as LockState
+        if (lockState.frames == 0) procs.breakProc(proc) else lockState.frames--
     }
 
     override fun moveTalkFace(from: Int, to: Int) {
@@ -415,10 +423,12 @@ public class TalkScene(
     private fun skipListenerOnIdle(proc: Proc) {
         if (procs.find(bubble.shiftClearAllScript) != null) return
         if (procs.find(bubble.shiftClearScript) != null) return
-        val s = talk.state
-        if (talk.checkTalkFlag(TalkFlags.NOSKIP) == 0 && keys.newKeys and (B_BUTTON or START) != 0) {
+        val talkState = talk.state
+        if (talk.checkTalkFlag(TalkFlags.NOSKIP) == 0 &&
+            keys.newKeys and (B_BUTTON or START) != 0
+        ) {
             setDialogueSkipEvBit()
-            face.setTalkFaceNoMouthMove(s.activeFaceSlot)
+            face.setTalkFaceNoMouthMove(talkState.activeFaceSlot)
             procs.end(proc)
             procs.endEach(talk.talkScript)
             hw.fill(hw.mapBuffer(0), 0)
@@ -428,7 +438,7 @@ public class TalkScene(
         }
         if (procs.find(talk.waitForInputScript) != null) return
         if (talk.checkTalkFlag(TalkFlags.NOFAST) == 0 && keys.newKeys and ANY_KEY != 0) {
-            s.instantScroll = 1
+            talkState.instantScroll = 1
         }
     }
 

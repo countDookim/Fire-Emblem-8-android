@@ -172,31 +172,31 @@ public class Talk(
      * Ported from src/scene.c: TalkPrepNextChar
      */
     public fun talkPrepNextChar(proc: Proc): Boolean {
-        val s = state
-        if (!talkHasCorrectBubble() && s.activeFaceSlot != NO_FACE &&
+        val talkState = state
+        if (!talkHasCorrectBubble() && talkState.activeFaceSlot != NO_FACE &&
             checkTalkFlag(TalkFlags.NOBUBBLE) == 0
         ) {
-            s.activeWidth = bubbleWidth()
+            talkState.activeWidth = bubbleWidth()
             host.clearTalkBubble()
-            host.startTalkOpen(s.activeFaceSlot, proc)
-            host.setTalkFaceLayer(s.activeFaceSlot, checkTalkFlag(TalkFlags.FLAG_4))
+            host.startTalkOpen(talkState.activeFaceSlot, proc)
+            host.setTalkFaceLayer(talkState.activeFaceSlot, checkTalkFlag(TalkFlags.FLAG_4))
             return true
         }
-        if (s.lineActive >= s.lines) {
-            s.instantScroll = 0
+        if (talkState.lineActive >= talkState.lines) {
+            talkState.instantScroll = 0
             host.startTalkShiftClear(proc)
             return true
         }
-        if (s.putLines == 0) {
+        if (talkState.putLines == 0) {
             text.putText(
-                talkTextByLine(s.lineActive),
+                talkTextByLine(talkState.lineActive),
                 host.bg0Tilemap(),
-                0x20 * (s.yText + s.lineActive * 2) + s.xText,
+                0x20 * (talkState.yText + talkState.lineActive * 2) + talkState.xText,
             )
             host.talkBgSync(1)
-            s.putLines = 1
+            talkState.putLines = 1
         }
-        if (s.mouthMoveEnabled != 0) host.setTalkFaceMouthMove(s.activeFaceSlot)
+        if (talkState.mouthMoveEnabled != 0) host.setTalkFaceMouthMove(talkState.activeFaceSlot)
         return false
     }
 
@@ -206,9 +206,9 @@ public class Talk(
      */
     // Not @VerifiesPort: no oracle for GetStrTalkLen other than the traced width itself.
     private fun bubbleWidth(): Int {
-        val s = state
+        val talkState = state
         // The width comes from the pending string, or from the backup while one is nested.
-        val measured = if (s.strBackup == 0) s.str else s.strBackup
+        val measured = if (talkState.strBackup == 0) talkState.str else talkState.strBackup
         return 2 + (host.getStrTalkLen(measured, false) + 7) / 8
     }
 
@@ -349,24 +349,24 @@ public class Talk(
      * Ported from src/scene.c: Talk_OnIdle
      */
     public fun talkOnIdle(proc: Proc) {
-        val s = state
+        val talkState = state
         if (host.isTalkFaceMoving()) return
-        if (s.instantScroll == 0) {
-            s.printClock = (s.printClock + 1).toByte().toInt()
-            if (s.printClock < s.printDelay) return
+        if (talkState.instantScroll == 0) {
+            talkState.printClock = (talkState.printClock + 1).toByte().toInt()
+            if (talkState.printClock < talkState.printDelay) return
         }
-        s.printClock = 0
+        talkState.printClock = 0
         while (true) {
-            host.setTalkFaceNoMouthMove(s.activeFaceSlot)
+            host.setTalkFaceNoMouthMove(talkState.activeFaceSlot)
             when (talkInterpret(proc)) {
                 0 -> {
                     engine.breakProc(proc)
                     return
                 }
-                2 -> if (s.instantScroll == 0 && s.printDelay > 0) return
+                2 -> if (talkState.instantScroll == 0 && talkState.printDelay > 0) return
                 3 -> {
-                    s.printClock = s.printDelay
-                    s.instantScroll = 0
+                    talkState.printClock = talkState.printDelay
+                    talkState.instantScroll = 0
                     return
                 }
                 else -> {
@@ -376,9 +376,9 @@ public class Talk(
                         talkSpritePrepNextChar(proc)
                     }
                     if (prep) return
-                    s.str = drawCharacter()
+                    talkState.str = drawCharacter()
                     if (checkTalkFlag(TalkFlags.SILENT) == 0) playTypeSound()
-                    if (s.instantScroll == 0 && s.printDelay > 0) return
+                    if (talkState.instantScroll == 0 && talkState.printDelay > 0) return
                 }
             }
         }
@@ -386,24 +386,25 @@ public class Talk(
 
     /** The sound branch after a drawn character of [talkOnIdle] (its C `break`s skip the sound). */
     private fun playTypeSound() {
-        val s = state
+        val talkState = state
         if (checkTalkFlag(TalkFlags.FLAG_7) != 0) {
             host.playSoundEffect(SONG_7A)
             return
         }
         if (host.textDisplaySpeed() == 1 && host.gameClock() and 1 == 0) return
-        if (s.instantScroll != 0 && s.unk82 != 0) return
-        s.unk82 = 1
+        if (talkState.instantScroll != 0 && talkState.unk82 != 0) return
+        talkState.unk82 = 1
         host.playSoundEffect(SONG_6E)
     }
 
     /** `sTalkState->str = Text_DrawCharacter(TALK_TEXT_BY_LINE(lineActive), str)`. */
     private fun drawCharacter(): Int {
-        val s = state
-        val buf = strArray(s.str)
-        val at = strOffset(s.str)
-        val next = text.drawCharacter(talkTextByLine(s.lineActive), buf, at)
-        return s.str + (next - at)
+        val talkState = state
+        val stringBytes = strArray(talkState.str)
+        val offset = strOffset(talkState.str)
+        val nextOffset =
+            text.drawCharacter(talkTextByLine(talkState.lineActive), stringBytes, offset)
+        return talkState.str + (nextOffset - offset)
     }
 
     /**
@@ -415,13 +416,13 @@ public class Talk(
      */
     // Not @VerifiesPort: TALK_FLAG_SPRITE is never set in the traced talk.
     public fun talkSpritePrepNextChar(proc: Proc): Boolean {
-        val s = state
-        if (s.lineActive >= s.lines) {
-            s.instantScroll = 0
+        val talkState = state
+        if (talkState.lineActive >= talkState.lines) {
+            talkState.instantScroll = 0
             host.startTalkSpriteShiftClear(proc)
             return true
         }
-        if (s.putLines == 0) s.putLines = 1
+        if (talkState.putLines == 0) talkState.putLines = 1
         return false
     }
 
@@ -433,110 +434,115 @@ public class Talk(
      * Ported from src/scene.c: TalkInterpret
      */
     public fun talkInterpret(proc: Proc): Int {
-        val s = state
+        val talkState = state
         while (true) {
-            val c = byteAt(s.str)
-            if (c != CH_NORMAL_PRINT && c != CH_FAST_PRINT && c != CH_CLOSE_SPEECH_FAST) break
-            s.str++
-            val len = host.getStrTalkLen(s.str, talkHasCorrectBubble())
-            s.activeWidth = (2 + (len + 7) / 8) and 0xFF
+            val command = byteAt(talkState.str)
+            if (command != CH_NORMAL_PRINT &&
+                command != CH_FAST_PRINT &&
+                command != CH_CLOSE_SPEECH_FAST
+            ) break
+            talkState.str++
+            val len = host.getStrTalkLen(talkState.str, talkHasCorrectBubble())
+            talkState.activeWidth = (2 + (len + 7) / 8) and 0xFF
         }
-        val c = byteAt(s.str)
-        when (c) {
+        val command = byteAt(talkState.str)
+        when (command) {
             0x81 -> return interpretPauseCode(proc)
             CH_X -> {
-                if (s.strBackup == 0) return 0
-                s.str = s.strBackup + 2
-                s.strBackup = 0
+                if (talkState.strBackup == 0) return 0
+                talkState.str = talkState.strBackup + 2
+                talkState.strBackup = 0
                 return talkInterpret(proc)
             }
             CH_NL -> {
-                if (s.putLines == 1 || s.lineActive == 1) s.lineActive = (s.lineActive + 1) and 0xFF
-                s.putLines = 0
-                s.str++
+                if (talkState.putLines == 1 || talkState.lineActive == 1) {
+                    talkState.lineActive = (talkState.lineActive + 1) and 0xFF
+                }
+                talkState.putLines = 0
+                talkState.str++
                 return 2
             }
             CH_2NL -> {
                 if (checkTalkFlag(TalkFlags.FLAG_7) != 0) {
                     host.talkFlushAllLine()
-                    s.str++
+                    talkState.str++
                 } else if (checkTalkFlag(TalkFlags.INSTANTSHIFT) == 0) {
                     host.startTalkShiftClearAll(proc)
                 } else {
                     clearTalkText()
                 }
-                s.str++
+                talkState.str++
                 return 3
             }
             CH_A -> {
                 startTalkWaitForInput(
                     proc,
-                    s.xText * 8 + talkTextByLine(s.lineActive).x + 4,
-                    s.yText * 8 + s.lineActive * 16 + 8,
+                    talkState.xText * 8 + talkTextByLine(talkState.lineActive).x + 4,
+                    talkState.yText * 8 + talkState.lineActive * 16 + 8,
                 )
-                s.str++
+                talkState.str++
                 return 3
             }
             in CH_PAUSE8..CH_PAUSE64 -> {
-                if (s.instantScroll != 0) {
-                    s.str++
+                if (talkState.instantScroll != 0) {
+                    talkState.str++
                     return 2
                 }
-                startPause(proc, PAUSE_DURATIONS[c - CH_PAUSE8])
-                s.str++
+                startPause(proc, PAUSE_DURATIONS[command - CH_PAUSE8])
+                talkState.str++
                 return 3
             }
             CH_CLOSE_SPEECH_SLOW -> {
                 host.clearTalkBubble()
-                s.str++
+                talkState.str++
                 return 3
             }
             CH_TOGGLE_MOUTH -> {
-                s.mouthMoveEnabled = 1 - s.mouthMoveEnabled
-                s.str++
+                talkState.mouthMoveEnabled = 1 - talkState.mouthMoveEnabled
+                talkState.str++
                 return 3
             }
             CH_TOGGLE_SMILE -> {
-                s.faceSmileEnabled = 1 - s.faceSmileEnabled
-                s.str++
+                talkState.faceSmileEnabled = 1 - talkState.faceSmileEnabled
+                talkState.str++
                 return 3
             }
             CH_LOAD_FACE -> return interpretLoadFace(proc)
             CH_CLEAR_FACE -> {
                 if (talkHasCorrectBubble()) host.clearTalkBubble()
-                host.startFaceFadeOut(s.faces[s.activeFaceSlot])
-                s.faces[s.activeFaceSlot] = 0
-                s.str++
+                host.startFaceFadeOut(talkState.faces[talkState.activeFaceSlot])
+                talkState.faces[talkState.activeFaceSlot] = 0
+                talkState.str++
                 host.startTemporaryLock(proc, 16)
                 return 3
             }
             CH_SEND_TO_BACK -> {
                 setTalkFlag(TalkFlags.FLAG_4)
-                s.str++
+                talkState.str++
                 return 3
             }
             CH_FAST_PRINT2 -> {
                 clearTalkFlag(TalkFlags.FLAG_4)
-                s.str++
+                talkState.str++
                 return 3
             }
             in CH_OPEN_FIRST..CH_OPEN_LAST -> {
-                host.setTalkFaceNoMouthMove(s.activeFaceSlot)
-                setActiveTalkFace(c - CH_OPEN_FIRST)
-                s.str++
+                host.setTalkFaceNoMouthMove(talkState.activeFaceSlot)
+                setActiveTalkFace(command - CH_OPEN_FIRST)
+                talkState.str++
                 return 3
             }
             CH_YES, CH_NO, CH_BUY_SELL, CH_SHOP_CONTINUE -> {
                 host.startTalkChoice(
-                    c >= CH_BUY_SELL,
-                    talkTextByLine(s.lineActive),
+                    command >= CH_BUY_SELL,
+                    talkTextByLine(talkState.lineActive),
                     host.bg0Tilemap(),
-                    0x20 * (s.yText + s.lineActive * 2) + s.xText,
-                    if (c == CH_YES || c == CH_BUY_SELL) 1 else 2,
-                    s.printColor,
+                    0x20 * (talkState.yText + talkState.lineActive * 2) + talkState.xText,
+                    if (command == CH_YES || command == CH_BUY_SELL) 1 else 2,
+                    talkState.printColor,
                     proc,
                 )
-                s.str++
+                talkState.str++
                 return 3
             }
             0x80 -> return interpretExtendedCode(proc)
@@ -546,27 +552,27 @@ public class Talk(
 
     /** `case 0x81` of `TalkInterpret`: the `0x81 0x40` short pause. */
     private fun interpretPauseCode(proc: Proc): Int {
-        val s = state
-        if (byteAt(s.str + 1) != 0x40) return 1
-        s.str += 2
-        talkTextByLine(s.lineActive).x += 6
-        if (s.instantScroll != 0 || s.printDelay <= 0) return 2
+        val talkState = state
+        if (byteAt(talkState.str + 1) != 0x40) return 1
+        talkState.str += 2
+        talkTextByLine(talkState.lineActive).x += 6
+        if (talkState.instantScroll != 0 || talkState.printDelay <= 0) return 2
         startPause(proc, PAUSE_DURATIONS[0])
         return 3
     }
 
     /** `case CHFE_L_LoadFace` of `TalkInterpret`: the run of face open/load codes. */
     private fun interpretLoadFace(proc: Proc): Int {
-        val s = state
+        val talkState = state
         while (true) {
-            val c = byteAt(s.str)
-            if (c in CH_OPEN_FIRST..CH_OPEN_LAST) {
-                setActiveTalkFace(c - CH_OPEN_FIRST)
-                s.str++
-            } else if (c == CH_LOAD_FACE) {
-                s.str++
+            val code = byteAt(talkState.str)
+            if (code in CH_OPEN_FIRST..CH_OPEN_LAST) {
+                setActiveTalkFace(code - CH_OPEN_FIRST)
+                talkState.str++
+            } else if (code == CH_LOAD_FACE) {
+                talkState.str++
                 host.talkLoadFace(proc)
-                s.str += 2
+                talkState.str += 2
             } else {
                 break
             }
@@ -576,73 +582,76 @@ public class Talk(
 
     /** `case 0x80` of `TalkInterpret`: the two-byte codes. */
     private fun interpretExtendedCode(proc: Proc): Int {
-        val s = state
-        s.str++
-        val c = byteAt(s.str)
-        when (c) {
+        val talkState = state
+        talkState.str++
+        val code = byteAt(talkState.str)
+        when (code) {
             0x24 -> {
-                s.unk38?.invoke(proc)
-                s.str++
+                talkState.unk38?.invoke(proc)
+                talkState.str++
                 return 3
             }
             0x21 -> {
                 toggleTalkPrintColor()
-                s.str++
+                talkState.str++
                 return talkInterpret(proc)
             }
             in 0x00..0x03 -> {
-                s.str++
-                s.printColor = byteAt(s.str)
-                for (i in 0 until s.lines) texts[i].colorId = s.printColor
-                s.str++
+                talkState.str++
+                talkState.printColor = byteAt(talkState.str)
+                for (i in 0 until talkState.lines) texts[i].colorId = talkState.printColor
+                talkState.str++
                 return 3
             }
             0x25 -> {
-                s.invertedFlags = 3 - (s.invertedFlags and 1)
-                s.str++
+                talkState.invertedFlags = 3 - (talkState.invertedFlags and 1)
+                talkState.str++
                 return 3
             }
             0x04 -> {
                 lockTalk(proc)
-                s.str++
+                talkState.str++
                 return 3
             }
             0x05 -> {
-                host.numberToStringAscii(s.userNumber, s.userNumberString)
-                s.str--
-                s.strBackup = s.str
-                s.str = STATE_ADDRESS + USER_NUMBER_STRING
+                host.numberToStringAscii(talkState.userNumber, talkState.userNumberString)
+                talkState.str--
+                talkState.strBackup = talkState.str
+                talkState.str = STATE_ADDRESS + USER_NUMBER_STRING
                 return talkInterpret(proc)
             }
             0x20 -> {
-                s.strBackup = s.str - 1
-                s.str = host.tacticianName()
+                talkState.strBackup = talkState.str - 1
+                talkState.str = host.tacticianName()
                 return talkInterpret(proc)
             }
             0x06 -> {
-                s.str--
-                s.strBackup = s.str
-                s.str = STATE_ADDRESS + USER_STRING
+                talkState.str--
+                talkState.strBackup = talkState.str
+                talkState.str = STATE_ADDRESS + USER_STRING
                 return talkInterpret(proc)
             }
             in 0x0A..0x11 -> {
-                host.moveTalkFace(s.activeFaceSlot, c - 10)
-                setActiveTalkFace(c - 10)
-                s.str++
+                host.moveTalkFace(talkState.activeFaceSlot, code - 10)
+                setActiveTalkFace(code - 10)
+                talkState.str++
                 return 3
             }
             0x07, 0x08 -> {
-                s.str++
+                talkState.str++
                 return 3
             }
             in 0x16..0x1B -> {
-                s.str++
-                host.setFaceBlinkControl(s.faces[s.activeFaceSlot], BLINK_MODES[c - 0x16])
+                talkState.str++
+                host.setFaceBlinkControl(
+                    talkState.faces[talkState.activeFaceSlot],
+                    BLINK_MODES[code - 0x16],
+                )
                 return 3
             }
             in 0x1C..0x1F -> {
-                s.str++
-                host.setFaceEyes(s.faces[s.activeFaceSlot], EYE_MODES[c - 0x1C])
+                talkState.str++
+                host.setFaceEyes(talkState.faces[talkState.activeFaceSlot], EYE_MODES[code - 0x1C])
                 return 3
             }
         }
@@ -662,12 +671,12 @@ public class Talk(
      */
     // Not @VerifiesPort: no TalkPause proc exists in the traced talk.
     public fun talkPauseOnIdle(proc: Proc) {
-        val p = proc.state as TalkPauseState
-        if (p.frames == 0) {
+        val pauseState = proc.state as TalkPauseState
+        if (pauseState.frames == 0) {
             engine.breakProc(proc)
             return
         }
-        p.frames--
+        pauseState.frames--
     }
 
     /**
@@ -677,10 +686,10 @@ public class Talk(
      */
     public fun startTalkWaitForInput(parent: Proc, x: Int, y: Int) {
         val child = engine.startBlocking(waitForInputScript, parent) ?: return
-        val w = child.state as TalkWaitState
-        w.x = x
-        w.y = y
-        w.unk68 = 0
+        val waitState = child.state as TalkWaitState
+        waitState.x = x
+        waitState.y = y
+        waitState.unk68 = 0
     }
 
     /**
@@ -690,12 +699,12 @@ public class Talk(
      * Ported from src/scene.c: TalkWaitForInput_OnIdle
      */
     public fun talkWaitForInputOnIdle(proc: Proc) {
-        val w = proc.state as TalkWaitState
+        val waitState = proc.state as TalkWaitState
         val frame = (host.gameClock() ushr 1) and 0xF
         if (checkTalkFlag(TalkFlags.FLAG_7) == 0) {
-            host.putSprite(2, w.x, w.y, frame, 4)
+            host.putSprite(2, waitState.x, waitState.y, frame, 4)
         } else {
-            host.putSprite(0, w.x, w.y, frame, 0xB2BF)
+            host.putSprite(0, waitState.x, waitState.y, frame, 0xB2BF)
         }
         if (host.newKeys() and (DPAD_ANY or A_BUTTON or B_BUTTON) != 0) engine.breakProc(proc)
     }
@@ -708,14 +717,14 @@ public class Talk(
      */
     // Not @VerifiesPort: no [2NL] code in the traced message.
     public fun clearTalkText() {
-        val s = state
-        s.lineActive = 0
-        s.unk82 = 0
-        s.putLines = 0
-        s.topTextNum = 0
-        for (i in 0 until s.lines) {
+        val talkState = state
+        talkState.lineActive = 0
+        talkState.unk82 = 0
+        talkState.putLines = 0
+        talkState.topTextNum = 0
+        for (i in 0 until talkState.lines) {
             text.clearText(texts[i])
-            texts[i].colorId = s.printColor
+            texts[i].colorId = talkState.printColor
         }
     }
 
@@ -726,17 +735,17 @@ public class Talk(
      * Ported from src/scene.c: ClearPutTalkText
      */
     public fun clearPutTalkText() {
-        val s = state
+        val talkState = state
         host.bg0Tilemap().fill(0)
         host.talkBgSync(1)
-        s.lineActive = 0
-        s.unk82 = 0
-        s.putLines = 0
-        s.topTextNum = 0
-        for (i in 0 until s.lines) {
+        talkState.lineActive = 0
+        talkState.unk82 = 0
+        talkState.putLines = 0
+        talkState.topTextNum = 0
+        for (i in 0 until talkState.lines) {
             text.clearText(texts[i])
             text.clearText(texts[i])
-            texts[i].colorId = s.printColor
+            texts[i].colorId = talkState.printColor
         }
     }
 
@@ -824,18 +833,18 @@ public class Talk(
 
 /** Proc fields of `gProcScr_TalkPause`. */
 public class TalkPauseState {
-    /** `unk64`: frames left to wait. */
+    /** Frames left to wait before resuming dialogue (`unk64`). */
     public var frames: Int = 0
 }
 
 /** Proc fields of `gProcScr_TalkWaitForInput`. */
 public class TalkWaitState {
-    /** `unk64`: arrow x in pixels. */
+    /** Arrow prompt X coordinate in pixels (`unk64`). */
     public var x: Int = 0
 
-    /** `unk66`: arrow y in pixels. */
+    /** Arrow prompt Y coordinate in pixels (`unk66`). */
     public var y: Int = 0
 
-    /** `unk68`. */
+    /** Arrow state field (`unk68`). */
     public var unk68: Int = 0
 }

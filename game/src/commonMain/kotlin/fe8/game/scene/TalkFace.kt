@@ -62,34 +62,34 @@ public interface TalkFaceHost {
 
 /** State of a `gProcScr_E_FACE` proc (`struct FaceProc`). */
 public class FaceState {
-    /** `sprite` (0x38), resolved from ROM composition data. */
+    /** Sprite composition (`sprite`, 0x38), resolved from ROM composition data. */
     public var sprite: SpriteObject? = null
 
-    /** `displayBits` (0x30). */
+    /** Display configuration bitmask (`displayBits`, 0x30). */
     public var displayBits: Int = 0
 
-    /** `xPos` (0x34). */
+    /** Horizontal screen position in pixels (`xPos`, 0x34). */
     public var xPos: Int = 0
 
-    /** `yPos` (0x36). */
+    /** Vertical screen position in pixels (`yPos`, 0x36). */
     public var yPos: Int = 0
 
-    /** `oam2` (0x3C). */
+    /** Base OAM2 attribute: palette bank, tile index, priority (`oam2`, 0x3C). */
     public var oam2: Int = 0
 
-    /** `faceId` (0x3E). */
+    /** Portrait definition ID (`faceId`, 0x3E). */
     public var faceId: Int = 0
 
-    /** `faceSlot` (0x40). */
+    /** Allocated face slot index (0..3) (`faceSlot`, 0x40). */
     public var faceSlot: Int = 0
 
-    /** `spriteLayer` (0x41). */
+    /** Sprite rendering layer priority (5 or 6) (`spriteLayer`, 0x41). */
     public var spriteLayer: Int = 0
 
-    /** Mouth child `unk_44`; null with display bit 12. */
+    /** Mouth animation child proc (`unk_44`); null when mouth animation is disabled (bit 12). */
     public var mouthProc: Proc? = null
 
-    /** `pBlinkProc` (0x48); null with display bit 12. */
+    /** Blink animation child proc (`pBlinkProc`, 0x48); null when blinking is disabled (bit 12). */
     public var pBlinkProc: Proc? = null
 }
 
@@ -125,22 +125,22 @@ public class FaceBlinkState {
 
 /** State of a `gProcScr_TalkFaceMove` proc. */
 public class TalkFaceMoveState {
-    /** `unk58`. */
-    public var t: Int = 0
+    /** Elapsed movement frame counter (`unk58`). */
+    public var timer: Int = 0
 
-    /** `unk5C`. */
+    /** Total duration of movement in frames (`unk5C`). */
     public var duration: Int = 0
 
-    /** `unk64`: face slot. */
+    /** Face slot index being moved (`unk64`). */
     public var slot: Int = 0
 
-    /** `unk66`: target talk face. */
+    /** Target talk face slot destination (`unk66`). */
     public var to: Int = 0
 
-    /** `unk68`: start x. */
+    /** Starting X position in pixels (`unk68`). */
     public var fromX: Int = 0
 
-    /** `unk6A`. */
+    /** Whether this face is swapping places with another face (`unk6A`). */
     public var isSwap: Boolean = false
 }
 
@@ -220,8 +220,11 @@ public class TalkFace(
      * Transcribed from src/face.c: Face_OnInit
      */
     public fun faceOnInit(proc: Proc) {
-        val f = proc.state as FaceState
-        host.decompressToVram(faceHost.portraitImage(f.faceId), TILE_OFFSET[f.faceSlot] + OBJ_VRAM)
+        val faceState = proc.state as FaceState
+        host.decompressToVram(
+            faceHost.portraitImage(faceState.faceId),
+            TILE_OFFSET[faceState.faceSlot] + OBJ_VRAM,
+        )
     }
 
     /**
@@ -234,12 +237,16 @@ public class TalkFace(
      * Ported from src/face.c: Face_OnIdle
      */
     public fun faceOnIdle(proc: Proc) {
-        val f = proc.state as FaceState
-        if (f.displayBits and (1 shl 14) != 0) return
-        val sprite = f.sprite ?: return
-        val blend = if (f.displayBits and (1 shl 10) != 0) 0x400 else 0
+        val faceState = proc.state as FaceState
+        if (faceState.displayBits and (1 shl 14) != 0) return
+        val sprite = faceState.sprite ?: return
+        val blend = if (faceState.displayBits and (1 shl 10) != 0) 0x400 else 0
         faceHost.putFaceSprite(
-            f.spriteLayer, f.xPos and 0x1FF, (f.yPos and 0xFF) + blend, sprite, f.oam2,
+            faceState.spriteLayer,
+            faceState.xPos and 0x1FF,
+            (faceState.yPos and 0xFF) + blend,
+            sprite,
+            faceState.oam2,
         )
     }
 
@@ -251,18 +258,18 @@ public class TalkFace(
         if (gFaces[slot] != null) return null
         val proc = engine.start(faceScript, 5)
         gFaces[slot] = proc
-        val f = proc.state as FaceState
+        val faceState = proc.state as FaceState
         if (disp and (1 shl 13) == 0) {
             host.applyPalette(faceHost.portraitPalette(fid), PAL_ID[slot] + 0x10)
         }
-        f.faceSlot = slot
-        f.faceId = fid
-        f.spriteLayer = 5
-        f.xPos = x
-        f.yPos = y
+        faceState.faceSlot = slot
+        faceState.faceId = fid
+        faceState.spriteLayer = 5
+        faceState.xPos = x
+        faceState.yPos = y
         if (disp and (1 shl 12) == 0) {
-            f.mouthProc = engine.start(mouthScript, proc)
-            f.pBlinkProc = engine.start(blinkScript, proc)
+            faceState.mouthProc = engine.start(mouthScript, proc)
+            faceState.pBlinkProc = engine.start(blinkScript, proc)
         }
         setFaceDisplayBits(proc, disp)
         return proc
@@ -290,11 +297,11 @@ public class TalkFace(
      */
     public fun sub8005FE0(proc: Proc) {
         val mouth = proc.state as FaceMouthState
-        val f = mouth.face!!.state as FaceState
-        val bits = f.displayBits
+        val faceState = mouth.face!!.state as FaceState
+        val bits = faceState.displayBits
         val source = if (bits and SMILE != 0) 0 else 24
         if (bits and (TALK_1 or TALK_2) == 0) {
-            faceHost.copyMouthTiles(f.faceId, source + 16, (f.oam2 + 28) and 0x3FF)
+            faceHost.copyMouthTiles(faceState.faceId, source + 16, (faceState.oam2 + 28) and 0x3FF)
         } else {
             mouth.timer--
             if (mouth.timer < 0) {
@@ -305,18 +312,20 @@ public class TalkFace(
                     2 -> 16
                     else -> 0
                 }
-                faceHost.copyMouthTiles(f.faceId, source + frame, (f.oam2 + 28) and 0x3FF)
+                faceHost.copyMouthTiles(
+                    faceState.faceId, source + frame, (faceState.oam2 + 28) and 0x3FF,
+                )
             }
         }
         val flipped = bits and 1 != 0
-        var x = 4 - faceHost.portraitByte(f.faceId, 0x14)
+        var x = 4 - faceHost.portraitByte(faceState.faceId, 0x14)
         x = if (flipped) x else -x
-        x = (x * 8 + f.xPos - 16) and 0x1FF
+        x = (x * 8 + faceState.xPos - 16) and 0x1FF
         if (flipped) x += 0x1000
-        val y = ((f.yPos + faceHost.portraitByte(f.faceId, 0x15) * 8) and 0xFF) +
+        val y = ((faceState.yPos + faceHost.portraitByte(faceState.faceId, 0x15) * 8) and 0xFF) +
             if (bits and (1 shl 10) != 0) 0x400 else 0
         faceHost.faceSprite(OBJECT_32X16)?.let {
-            faceHost.putFaceSprite(f.spriteLayer, x, y, it, f.oam2 + 28)
+            faceHost.putFaceSprite(faceState.spriteLayer, x, y, it, faceState.oam2 + 28)
         }
     }
 
@@ -342,23 +351,25 @@ public class TalkFace(
             else -> return
         }
         val face = faceOfBlink(proc)
-        val f = face.state as FaceState
-        val fid = f.faceId
-        var oam1 = 4 - faceHost.portraitByte(fid, 0x16)
-        val flipped = f.displayBits and 1 != 0
+        val faceState = face.state as FaceState
+        val faceId = faceState.faceId
+        var oam1 = 4 - faceHost.portraitByte(faceId, 0x16)
+        val flipped = faceState.displayBits and 1 != 0
         oam1 = if (flipped) oam1 else -oam1
-        oam1 = (oam1 * 8 + f.xPos - 16) and 0x1FF
+        oam1 = (oam1 * 8 + faceState.xPos - 16) and 0x1FF
         if (flipped) oam1 += 0x1000
-        var oam0 = if (f.displayBits and (1 shl 10) != 0) 0x400 else 0
-        oam0 += (f.yPos + faceHost.portraitByte(fid, 0x17) * 8) and 0xFF
+        var oam0 = if (faceState.displayBits and (1 shl 10) != 0) 0x400 else 0
+        oam0 += (faceState.yPos + faceHost.portraitByte(faceId, 0x17) * 8) and 0xFF
         if (small) {
             if (!flipped) oam1 += 16
             faceHost.faceSprite(OBJECT_16X16)?.let {
-                faceHost.putFaceSprite(f.spriteLayer, oam1, oam0, it, f.oam2 + base + 2)
+                faceHost.putFaceSprite(
+                    faceState.spriteLayer, oam1, oam0, it, faceState.oam2 + base + 2,
+                )
             }
         } else {
             faceHost.faceSprite(OBJECT_32X16)?.let {
-                faceHost.putFaceSprite(f.spriteLayer, oam1, oam0, it, f.oam2 + base)
+                faceHost.putFaceSprite(faceState.spriteLayer, oam1, oam0, it, faceState.oam2 + base)
             }
         }
     }
@@ -369,17 +380,17 @@ public class TalkFace(
      * Ported from src/face.c: sub_800623C
      */
     public fun sub800623C(proc: Proc) {
-        val b = blinkOf(proc)
+        val blinkState = blinkOf(proc)
         val face = proc.parent!!
-        b.pFaceProc = face
-        b.blinkControl = faceHost.portraitByte((face.state as FaceState).faceId, 0x18)
-        b.unk38 = faceBlinkProcGenBlinkInterval(proc)
-        b.unk32 = 0
-        if (b.blinkControl == 6) {
-            b.blinkControl = 5
-            b.unk38 = Int.MAX_VALUE
-            b.unk32 = 2
-            b.unk34 = 6
+        blinkState.pFaceProc = face
+        blinkState.blinkControl = faceHost.portraitByte((face.state as FaceState).faceId, 0x18)
+        blinkState.unk38 = faceBlinkProcGenBlinkInterval(proc)
+        blinkState.unk32 = 0
+        if (blinkState.blinkControl == 6) {
+            blinkState.blinkControl = 5
+            blinkState.unk38 = Int.MAX_VALUE
+            blinkState.unk32 = 2
+            blinkState.unk34 = 6
             engine.goto(proc, 97)
         }
     }
@@ -390,16 +401,16 @@ public class TalkFace(
      * Ported from src/face.c: sub_8006280
      */
     public fun sub8006280(proc: Proc) {
-        val b = blinkOf(proc)
-        b.unk38--
-        val unk = b.unk32
-        if (unk != 0) {
-            engine.goto(proc, unk)
+        val blinkState = blinkOf(proc)
+        blinkState.unk38--
+        val requestedEyeState = blinkState.unk32
+        if (requestedEyeState != 0) {
+            engine.goto(proc, requestedEyeState)
             return
         }
-        if (b.unk38 < 0) {
-            b.unk38 = faceBlinkProcGenBlinkInterval(proc)
-            b.unk34 = unk
+        if (blinkState.unk38 < 0) {
+            blinkState.unk38 = faceBlinkProcGenBlinkInterval(proc)
+            blinkState.unk34 = requestedEyeState
             engine.goto(proc, 1)
         }
     }
@@ -410,15 +421,15 @@ public class TalkFace(
      * Ported from src/face.c: sub_80062B8
      */
     public fun sub80062B8(proc: Proc) {
-        val b = blinkOf(proc)
-        var r5 = 2
-        when (b.unk34) {
-            3, 4, 5 -> r5 = 0
-            0, 1, 2, 6, 7, 8 -> r5 = 1
+        val blinkState = blinkOf(proc)
+        var eyeFrame = 2
+        when (blinkState.unk34) {
+            3, 4, 5 -> eyeFrame = 0
+            0, 1, 2, 6, 7, 8 -> eyeFrame = 1
             10 -> engine.goto(proc, 0)
         }
-        sub8006134(proc, r5)
-        b.unk34++
+        sub8006134(proc, eyeFrame)
+        blinkState.unk34++
     }
 
     /**
@@ -432,14 +443,14 @@ public class TalkFace(
      * Transcribed from src/face.c: sub_800632C (unverified: held-eye path).
      */
     public fun sub800632C(proc: Proc) {
-        val b = blinkOf(proc)
-        if (b.unk34 < 6) {
+        val blinkState = blinkOf(proc)
+        if (blinkState.unk34 < 6) {
             sub80062B8(proc)
             return
         }
         sub8006134(proc, 0)
-        if (b.unk32 == 0) engine.goto(proc, 1)
-        if (b.unk32 == 3) engine.goto(proc, 3)
+        if (blinkState.unk32 == 0) engine.goto(proc, 1)
+        if (blinkState.unk32 == 3) engine.goto(proc, 3)
     }
 
     /**
@@ -453,14 +464,14 @@ public class TalkFace(
      * Transcribed from src/face.c: sub_8006378 (unverified: held-eye path).
      */
     public fun sub8006378(proc: Proc) {
-        val b = blinkOf(proc)
-        if (b.unk34 < 3) {
+        val blinkState = blinkOf(proc)
+        if (blinkState.unk34 < 3) {
             sub80062B8(proc)
             return
         }
         sub8006134(proc, 1)
-        if (b.unk32 == 0) engine.goto(proc, 1)
-        if (b.unk32 == 2) engine.goto(proc, 2)
+        if (blinkState.unk32 == 0) engine.goto(proc, 1)
+        if (blinkState.unk32 == 2) engine.goto(proc, 2)
     }
 
     /**
@@ -474,18 +485,18 @@ public class TalkFace(
      * Transcribed from src/face.c: sub_80063C4 (unverified: held-eye path).
      */
     public fun sub80063C4(proc: Proc) {
-        val b = blinkOf(proc)
-        var r5 = 2
-        when (b.unk34) {
-            3, 4, 5 -> r5 = 0
-            0, 1, 2, 6, 7, 8 -> r5 = 1
+        val blinkState = blinkOf(proc)
+        var eyeFrame = 2
+        when (blinkState.unk34) {
+            3, 4, 5 -> eyeFrame = 0
+            0, 1, 2, 6, 7, 8 -> eyeFrame = 1
             10 -> {
                 engine.goto(proc, 0)
-                b.unk32 = 0
+                blinkState.unk32 = 0
             }
         }
-        sub8006134(proc, 0x80 + r5)
-        b.unk34++
+        sub8006134(proc, 0x80 + eyeFrame)
+        blinkState.unk34++
     }
 
     /**
@@ -494,10 +505,10 @@ public class TalkFace(
      * Transcribed from src/face.c: SetFaceBlinkControl (unverified: no reference run sets it)
      */
     public fun setFaceBlinkControl(face: Proc, blinkControl: Int) {
-        val f = face.state as FaceState
-        val blinkProc = f.pBlinkProc ?: return
+        val faceState = face.state as FaceState
+        val blinkProc = faceState.pBlinkProc ?: return
         blinkOf(blinkProc).blinkControl =
-            if (blinkControl == 0) faceHost.portraitByte(f.faceId, 0x18) else blinkControl
+            if (blinkControl == 0) faceHost.portraitByte(faceState.faceId, 0x18) else blinkControl
         blinkOf(blinkProc).unk38 = faceBlinkProcGenBlinkInterval(blinkProc)
     }
 
@@ -508,11 +519,11 @@ public class TalkFace(
      * Ported from src/face.c: FaceBlinkProc_GenBlinkInterval
      */
     public fun faceBlinkProcGenBlinkInterval(proc: Proc): Int {
-        val v = faceHost.advanceLcg() ushr 16
+        val randomValue = faceHost.advanceLcg() ushr 16
         return when (blinkOf(proc).blinkControl) {
-            3 -> (v shr 7) + 300
-            1 -> (v shr 7) + 30
-            2 -> (v shr 9) + 30
+            3 -> (randomValue shr 7) + 300
+            1 -> (randomValue shr 7) + 30
+            2 -> (randomValue shr 9) + 30
             4 -> 1
             5 -> Int.MAX_VALUE
             else -> 0
@@ -531,8 +542,8 @@ public class TalkFace(
      * Transcribed from src/face.c: SetFaceDisplayBits (not verified independently of refresh).
      */
     public fun setFaceDisplayBits(proc: Proc, disp: Int) {
-        val f = proc.state as FaceState
-        f.displayBits = disp
+        val faceState = proc.state as FaceState
+        faceState.displayBits = disp
         faceRefreshSprite(proc)
     }
 
@@ -545,8 +556,8 @@ public class TalkFace(
      * Ported from src/face.c: FaceRefreshSprite
      */
     public fun faceRefreshSprite(proc: Proc) {
-        val f = proc.state as FaceState
-        val disp = f.displayBits
+        val faceState = proc.state as FaceState
+        val disp = faceState.displayBits
         val address = when (disp and 0x807) {
             0 -> 0x0859100C
             1 -> 0x08591026
@@ -558,39 +569,39 @@ public class TalkFace(
             0x801 -> 0x08591122
             else -> 0
         }
-        if (address != 0) f.sprite = faceHost.faceSprite(address)
+        if (address != 0) faceState.sprite = faceHost.faceSprite(address)
         val layer = when (disp and (0xF shl 6)) {
             1 shl 6 -> 0
             2 shl 6 -> 1
             8 shl 6 -> 3
             else -> 2
         }
-        f.oam2 = TILE_OFFSET[f.faceSlot] / 0x20 + (PAL_ID[f.faceSlot] and 0xF) * 0x1000 +
-            (layer shl 10)
+        faceState.oam2 = TILE_OFFSET[faceState.faceSlot] / 0x20 +
+            (PAL_ID[faceState.faceSlot] and 0xF) * 0x1000 + (layer shl 10)
     }
 
     /**
      * Ported from src/scene.c: TalkLoadFace
      */
     public fun talkLoadFace(proc: Proc) {
-        val s = talk.state
+        val talkState = talk.state
         var faceDisp = 0
-        if (s.activeFaceSlot == 0xFF) talk.setActiveTalkFace(1)
+        if (talkState.activeFaceSlot == 0xFF) talk.setActiveTalkFace(1)
         check(!faceHost.isBattleDeamonActive()) { "SetupFaceGfxDataInBanim not ported" }
         faceDisp = faceDisp or 2
-        if (hpos(s.activeFaceSlot) <= 14) faceDisp = faceDisp or 1
-        var faceId = byteAt(s.str) or (byteAt(s.str + 1) shl 8)
+        if (hpos(talkState.activeFaceSlot) <= 14) faceDisp = faceDisp or 1
+        var faceId = byteAt(talkState.str) or (byteAt(talkState.str + 1) shl 8)
         faceId = if (faceId == 0xFFFF) faceHost.activeUnitPortraitId() else faceId - 0x100
-        val existing = faceOf(s.faces[s.activeFaceSlot])
+        val existing = faceOf(talkState.faces[talkState.activeFaceSlot])
         if (existing != null) {
             faceHost.changeFacePortrait(existing, faceId)
             return
         }
-        val face = startFaceAuto(faceId, hpos(s.activeFaceSlot) * 8, 80, faceDisp)
-        s.faces[s.activeFaceSlot] =
+        val face = startFaceAuto(faceId, hpos(talkState.activeFaceSlot) * 8, 80, faceDisp)
+        talkState.faces[talkState.activeFaceSlot] =
             if (face == null) 0 else handleOf((face.state as FaceState).faceSlot)
         if (face != null) faceHost.startFaceFadeIn(face)
-        setTalkFaceLayer(s.activeFaceSlot, talk.checkTalkFlag(TalkFlags.FLAG_4))
+        setTalkFaceLayer(talkState.activeFaceSlot, talk.checkTalkFlag(TalkFlags.FLAG_4))
         host.startTemporaryLock(proc, 8)
     }
 
@@ -618,9 +629,9 @@ public class TalkFace(
             startTalkFaceMove(to, from, true)
         }
         startTalkFaceMove(from, to, isSwap)
-        val h = faces[from]
+        val savedHandle = faces[from]
         faces[from] = faces[to]
-        faces[to] = h
+        faces[to] = savedHandle
     }
 
     /**
@@ -636,11 +647,11 @@ public class TalkFace(
         if (slot == -1) return
         val face = gFaces[slot]!!
         val proc = engine.start(moveScript, face)
-        val m = proc.state as TalkFaceMoveState
-        m.slot = slot
-        m.to = to
-        m.fromX = (face.state as FaceState).xPos
-        m.isSwap = isSwap
+        val moveState = proc.state as TalkFaceMoveState
+        moveState.slot = slot
+        moveState.to = to
+        moveState.fromX = (face.state as FaceState).xPos
+        moveState.isSwap = isSwap
     }
 
     /**
@@ -658,30 +669,34 @@ public class TalkFace(
      * Ported from src/scene.c: TalkFaceMove_OnInit
      */
     public fun talkFaceMoveOnInit(proc: Proc) {
-        val m = proc.state as TalkFaceMoveState
-        m.t = 0
-        m.duration = if (Math.abs(m.fromX - hpos(m.to) * 8) > 24) 32 else 16
+        val moveState = proc.state as TalkFaceMoveState
+        moveState.timer = 0
+        moveState.duration = if (Math.abs(moveState.fromX - hpos(moveState.to) * 8) > 24) 32 else 16
     }
 
     /**
      * Ported from src/scene.c: TalkFaceMove_OnIdle
      */
     public fun talkFaceMoveOnIdle(proc: Proc) {
-        val m = proc.state as TalkFaceMoveState
-        val f = gFaces[m.slot]!!.state as FaceState
-        if (m.duration > 16) {
-            if (m.t == m.duration / 8) f.yPos++
-            if (m.t == m.duration / 2) f.yPos--
-            if (m.t == m.duration * 5 / 8) f.yPos++
+        val moveState = proc.state as TalkFaceMoveState
+        val faceState = gFaces[moveState.slot]!!.state as FaceState
+        if (moveState.duration > 16) {
+            if (moveState.timer == moveState.duration / 8) faceState.yPos++
+            if (moveState.timer == moveState.duration / 2) faceState.yPos--
+            if (moveState.timer == moveState.duration * 5 / 8) faceState.yPos++
         } else {
-            if (m.t == m.duration / 2) f.yPos++
+            if (moveState.timer == moveState.duration / 2) faceState.yPos++
         }
-        if (m.t >= m.duration) {
-            f.yPos--
+        if (moveState.timer >= moveState.duration) {
+            faceState.yPos--
             engine.breakProc(proc)
         } else {
-            f.xPos = Interpolate.interpolate(
-                Interpolate.RSQUARE, m.fromX, hpos(m.to) * 8, m.t++, m.duration,
+            faceState.xPos = Interpolate.interpolate(
+                Interpolate.RSQUARE,
+                moveState.fromX,
+                hpos(moveState.to) * 8,
+                moveState.timer++,
+                moveState.duration,
             )
         }
     }
@@ -692,8 +707,8 @@ public class TalkFace(
     public fun setTalkFaceDisp(talkFace: Int, faceDisp: Int) {
         if (talkFace == 0xFF) return
         val face = faceOf(talk.state.faces[talkFace]) ?: return
-        val f = face.state as FaceState
-        val disp = f.displayBits and (SMILE or TALK_1 or TALK_2).inv()
+        val faceState = face.state as FaceState
+        val disp = faceState.displayBits and (SMILE or TALK_1 or TALK_2).inv()
         val smile = if (talk.state.faceSmileEnabled != 0) SMILE else 0
         setFaceDisplayBits(face, disp or faceDisp or smile)
     }

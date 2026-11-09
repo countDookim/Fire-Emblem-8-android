@@ -41,30 +41,30 @@ public interface TalkBubbleHost {
     public fun spriteTextClear(text: Text)
 }
 
-/** State of a `gProcScr_TalkOpen` proc: `unk58` is [t], `unk64..unk6A` the bubble anchor. */
+/** State of a `gProcScr_TalkOpen` proc: [frameTimer] is `unk58`, coordinates `unk64..unk6A`. */
 public class TalkOpenState {
-    /** `unk64`: anchor column. */
+    /** Anchor column in 8-pixel tiles (`unk64`). */
     public var x: Int = 0
 
-    /** `unk66`: anchor row. */
+    /** Anchor row in 8-pixel tiles (`unk66`). */
     public var y: Int = 0
 
-    /** `unk68`: width. */
-    public var w: Int = 0
+    /** Bubble width in tiles (`unk68`). */
+    public var width: Int = 0
 
-    /** `unk6A`: height. */
-    public var h: Int = 0
+    /** Bubble height in tiles (`unk6A`). */
+    public var height: Int = 0
 
-    /** `unk58`: frame counter. */
-    public var t: Int = 0
+    /** Animation frame counter (`unk58`). */
+    public var frameTimer: Int = 0
 }
 
-/** State of the bubble-open, shift-clear and shift-clear-all procs: `unk64` and `unk66`. */
+/** State of the bubble-open, shift-clear and shift-clear-all procs (`unk64` and `unk66`). */
 public class TalkCounterState {
-    /** `unk64`. */
-    public var n: Int = 0
+    /** Step counter or elapsed frame count (`unk64`). */
+    public var counter: Int = 0
 
-    /** `unk66` (only the shift-clear-all proc). */
+    /** Target step count limit (used by `gProcScr_TalkShiftClearAll`, `unk66`). */
     public var limit: Int = 0
 }
 
@@ -135,13 +135,13 @@ public class TalkBubble(
      */
     public fun startTalkOpen(talkFace: Int, parent: Proc) {
         val proc = engine.startBlocking(openScript, parent)!!
-        val o = proc.state as TalkOpenState
-        o.x = FACE_HPOS[talkFace]
-        o.y = 8
-        o.w = talk.state.activeWidth
-        o.h = 6
-        if (o.x < 0) o.x = 0
-        if (o.x >= 30) o.x = 30
+        val openState = proc.state as TalkOpenState
+        openState.x = FACE_HPOS[talkFace]
+        openState.y = 8
+        openState.width = talk.state.activeWidth
+        openState.height = 6
+        if (openState.x < 0) openState.x = 0
+        if (openState.x >= 30) openState.x = 30
         talk.state.speakingFaceSlot = talkFace
         talk.state.speakingWidth = talk.state.activeWidth
     }
@@ -150,7 +150,7 @@ public class TalkBubble(
      * Transcribed from src/scene.c: TalkOpen_InitBlend
      */
     public fun talkOpenInitBlend(proc: Proc) {
-        (proc.state as TalkOpenState).t = 0
+        (proc.state as TalkOpenState).frameTimer = 0
         if (talk.checkTalkFlag(TalkFlags.FLAG_8) == 0) bubbleHost.initTalkBlend()
     }
 
@@ -158,8 +158,8 @@ public class TalkBubble(
      * Ported from src/scene.c: TalkOpen_PutTalkBubble
      */
     public fun talkOpenPutTalkBubble(proc: Proc) {
-        val o = proc.state as TalkOpenState
-        putTalkBubble(o.x, o.y, o.w, o.h)
+        val openState = proc.state as TalkOpenState
+        putTalkBubble(openState.x, openState.y, openState.width, openState.height)
         engine.breakProc(proc)
     }
 
@@ -167,30 +167,31 @@ public class TalkBubble(
      * Ported from src/scene.c: TalkOpen_OnIdle
      */
     public fun talkOpenOnIdle(proc: Proc) {
-        val o = proc.state as TalkOpenState
-        o.t++
-        val v = Interpolate.interpolate(Interpolate.RSQUARE, -30, 0, o.t, 12)
-        host.setBgPosition(1, 0, v / 2)
+        val openState = proc.state as TalkOpenState
+        openState.frameTimer++
+        val bgOffset =
+            Interpolate.interpolate(Interpolate.RSQUARE, -30, 0, openState.frameTimer, 12)
+        host.setBgPosition(1, 0, bgOffset / 2)
         if (talk.checkTalkFlag(TalkFlags.FLAG_8) == 0) {
-            bubbleHost.setBlendAlpha(v / 2 + 16, 1 - v / 2)
+            bubbleHost.setBlendAlpha(bgOffset / 2 + 16, 1 - bgOffset / 2)
         }
-        if (o.t == 12) engine.breakProc(proc)
+        if (openState.frameTimer == 12) engine.breakProc(proc)
     }
 
     /**
      * Ported from src/scene.c: PutTalkBubble
      */
     public fun putTalkBubble(xAnchor: Int, yAnchorIn: Int, widthIn: Int, height: Int) {
-        val s = talk.state
+        val talkState = talk.state
         var yAnchor = yAnchorIn
         var width = widthIn
         var xTail = 0
         var x = 0
         bubbleHost.bg1Tilemap().fill(0)
-        var kind = if (xAnchor < 16) 0 else 1
-        if (bubbleHost.isBattleDeamonActive()) kind += 2
+        var tailKind = if (xAnchor < 16) 0 else 1
+        if (bubbleHost.isBattleDeamonActive()) tailKind += 2
         var y = yAnchor - height + 1
-        when (kind) {
+        when (tailKind) {
             0 -> {
                 xTail = xAnchor + 3
                 x = xTail - width / 2
@@ -215,15 +216,15 @@ public class TalkBubble(
                 yAnchor = 16
             }
         }
-        s.xText = x + 1
-        s.yText = y + 1
+        talkState.xText = x + 1
+        talkState.yText = y + 1
         putTalkBubbleTm(bubbleHost.bg1Tilemap(), x, y, width, height)
-        if (s.invertedFlags and 2 != 0) {
-            bubbleHost.toggleInvertedPalette(s.invertedFlags and 1)
-            s.invertedFlags = s.invertedFlags xor 2
+        if (talkState.invertedFlags and 2 != 0) {
+            bubbleHost.toggleInvertedPalette(talkState.invertedFlags and 1)
+            talkState.invertedFlags = talkState.invertedFlags xor 2
         }
-        if (s.invertedFlags and 1 == 0) {
-            putTalkBubbleTail(bubbleHost.bg1Tilemap(), xTail, yAnchor, kind)
+        if (talkState.invertedFlags and 1 == 0) {
+            putTalkBubbleTail(bubbleHost.bg1Tilemap(), xTail, yAnchor, tailKind)
         }
         bubbleHost.initTalkTextWin(x, y, width, height)
         startOpenTalkBubble()
@@ -235,20 +236,20 @@ public class TalkBubble(
      */
     public fun startOpenTalkBubble() {
         val proc = engine.start(bubbleOpenScript, 3)
-        (proc.state as TalkCounterState).n = 0
+        (proc.state as TalkCounterState).counter = 0
     }
 
     /**
      * Ported from src/scene.c: TalkBubbleOpen_OnIdle
      */
     public fun talkBubbleOpenOnIdle(proc: Proc) {
-        val c = proc.state as TalkCounterState
-        if (c.n++ and 1 != 0) return
+        val counterState = proc.state as TalkCounterState
+        if (counterState.counter++ and 1 != 0) return
         host.decompressToVram(
-            BUBBLE_IMAGES[c.n shr 1],
+            BUBBLE_IMAGES[counterState.counter shr 1],
             host.backgroundTileDataOffset(1) + BUBBLE_DEST,
         )
-        if (c.n shr 1 == BUBBLE_IMAGES.size - 1) engine.breakProc(proc)
+        if (counterState.counter shr 1 == BUBBLE_IMAGES.size - 1) engine.breakProc(proc)
     }
 
     /**
@@ -261,39 +262,39 @@ public class TalkBubble(
         when (kind) {
             0 -> {
                 set(0, 0, 4, 0)
-                set(1, 0, 4, H)
-                set(0, 1, 6, H)
-                set(1, 1, 5, H)
+                set(1, 0, 4, TILE_HFLIP)
+                set(0, 1, 6, TILE_HFLIP)
+                set(1, 1, 5, TILE_HFLIP)
             }
             1 -> {
                 set(0, 0, 4, 0)
-                set(1, 0, 4, H)
+                set(1, 0, 4, TILE_HFLIP)
                 set(0, 1, 5, 0)
                 set(1, 1, 6, 0)
             }
             2 -> {
-                set(0, 0, 8, H)
-                set(0, 1, 9, H)
-                set(1, 0, 7, H)
-                set(1, 1, 7, H + V)
+                set(0, 0, 8, TILE_HFLIP)
+                set(0, 1, 9, TILE_HFLIP)
+                set(1, 0, 7, TILE_HFLIP)
+                set(1, 1, 7, TILE_HFLIP + TILE_VFLIP)
             }
             3 -> {
                 set(0, 0, 7, 0)
-                set(0, 1, 7, V)
+                set(0, 1, 7, TILE_VFLIP)
                 set(1, 0, 8, 0)
                 set(1, 1, 9, 0)
             }
             4 -> {
-                set(0, 0, 9, H + V)
-                set(0, 1, 8, H + V)
-                set(1, 0, 7, H)
-                set(1, 1, 7, H + V)
+                set(0, 0, 9, TILE_HFLIP + TILE_VFLIP)
+                set(0, 1, 8, TILE_HFLIP + TILE_VFLIP)
+                set(1, 0, 7, TILE_HFLIP)
+                set(1, 1, 7, TILE_HFLIP + TILE_VFLIP)
             }
             5 -> {
                 set(0, 0, 7, 0)
-                set(0, 1, 7, V)
-                set(1, 0, 9, V)
-                set(1, 1, 8, V)
+                set(0, 1, 7, TILE_VFLIP)
+                set(1, 0, 9, TILE_VFLIP)
+                set(1, 1, 8, TILE_VFLIP)
             }
         }
     }
@@ -309,50 +310,62 @@ public class TalkBubble(
         val height = heightIn - 1
         for (i in x until x + width) {
             set(i, y, 1, 0)
-            set(i, y + height, 1, V)
+            set(i, y + height, 1, TILE_VFLIP)
         }
         for (i in y until y + height) {
             set(x, i, 2, 0)
-            set(x + width, i, 2, H)
+            set(x + width, i, 2, TILE_HFLIP)
         }
         for (i in x + 1 until x + width) {
             for (j in y + 1 until y + height) set(i, j, 3, 0)
         }
         set(x, y, 0, 0)
-        set(x + width, y, 0, H)
-        set(x, y + height, 0, V)
-        set(x + width, y + height, 0, H + V)
+        set(x + width, y, 0, TILE_HFLIP)
+        set(x, y + height, 0, TILE_VFLIP)
+        set(x + width, y + height, 0, TILE_HFLIP + TILE_VFLIP)
     }
 
     /**
      * Ported from src/scene.c: TalkShiftClear_OnInit
      */
     public fun talkShiftClearOnInit(proc: Proc) {
-        val s = talk.state
-        fillRect(host.bg0Tilemap(), s.xText, s.yText + 4, s.activeWidth - 2, s.lines * 2)
+        val talkState = talk.state
+        fillRect(
+            host.bg0Tilemap(),
+            talkState.xText,
+            talkState.yText + 4,
+            talkState.activeWidth - 2,
+            talkState.lines * 2,
+        )
         host.talkBgSync(1)
-        (proc.state as TalkCounterState).n = 0
+        (proc.state as TalkCounterState).counter = 0
     }
 
     /**
      * Ported from src/scene.c: TalkShiftClear_OnIdle
      */
     public fun talkShiftClearOnIdle(proc: Proc) {
-        val s = talk.state
-        val c = proc.state as TalkCounterState
-        c.n++
-        host.setBgPosition(0, 0, c.n)
-        if (c.n < 16) return
-        s.lineActive--
-        s.topTextNum++
+        val talkState = talk.state
+        val counterState = proc.state as TalkCounterState
+        counterState.counter++
+        host.setBgPosition(0, 0, counterState.counter)
+        if (counterState.counter < 16) return
+        talkState.lineActive--
+        talkState.topTextNum++
         host.setBgPosition(0, 0, 0)
         val tm = host.bg0Tilemap()
-        for (i in 0 until s.lines - 1) {
-            text.putText(byLine(i), tm, 0x20 * (s.yText + 2 * i) + s.xText)
+        for (i in 0 until talkState.lines - 1) {
+            text.putText(byLine(i), tm, 0x20 * (talkState.yText + 2 * i) + talkState.xText)
         }
-        fillRect(tm, s.xText, s.yText + (s.lines - 1) * 2, s.activeWidth - 2, 2)
-        text.clearText(byLine(s.lines - 1))
-        byLine(s.lines - 1).colorId = s.printColor
+        fillRect(
+            tm,
+            talkState.xText,
+            talkState.yText + (talkState.lines - 1) * 2,
+            talkState.activeWidth - 2,
+            2,
+        )
+        text.clearText(byLine(talkState.lines - 1))
+        byLine(talkState.lines - 1).colorId = talkState.printColor
         host.talkBgSync(1)
         engine.breakProc(proc)
     }
@@ -361,15 +374,21 @@ public class TalkBubble(
      * Transcribed from src/scene.c: TalkShiftClearAll_OnInit
      */
     public fun talkShiftClearAllOnInit(proc: Proc) {
-        val s = talk.state
-        val c = proc.state as TalkCounterState
-        fillRect(host.bg0Tilemap(), s.xText, s.yText + 4, s.activeWidth - 2, s.lines * 2)
+        val talkState = talk.state
+        val counterState = proc.state as TalkCounterState
+        fillRect(
+            host.bg0Tilemap(),
+            talkState.xText,
+            talkState.yText + 4,
+            talkState.activeWidth - 2,
+            talkState.lines * 2,
+        )
         host.talkBgSync(1)
-        c.n = 0
-        c.limit = when {
-            s.lineActive == 0 -> 16
-            s.lineActive + 1 >= s.lines -> s.lines * 16
-            else -> (s.lineActive + 1) * 16
+        counterState.counter = 0
+        counterState.limit = when {
+            talkState.lineActive == 0 -> 16
+            talkState.lineActive + 1 >= talkState.lines -> talkState.lines * 16
+            else -> (talkState.lineActive + 1) * 16
         }
     }
 
@@ -377,10 +396,10 @@ public class TalkBubble(
      * Transcribed from src/scene.c: TalkShiftClearAll_OnIdle
      */
     public fun talkShiftClearAllOnIdle(proc: Proc) {
-        val c = proc.state as TalkCounterState
-        c.n++
-        host.setBgPosition(0, 0, c.n)
-        if (c.n >= c.limit) {
+        val counterState = proc.state as TalkCounterState
+        counterState.counter++
+        host.setBgPosition(0, 0, counterState.counter)
+        if (counterState.counter >= counterState.limit) {
             host.setBgPosition(0, 0, 0)
             talk.clearPutTalkText()
             engine.breakProc(proc)
@@ -425,8 +444,8 @@ public class TalkBubble(
     }
 
     private companion object {
-        const val H = 0x400
-        const val V = 0x800
+        const val TILE_HFLIP = 0x400
+        const val TILE_VFLIP = 0x800
         const val BUBBLE_DEST = 0x06000200
 
         /** `gTalkFaceHPosLut`. */

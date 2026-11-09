@@ -67,7 +67,7 @@ has advanced. The watch does not establish whether this reflects callback durati
 phase. Obtain phase-aware proc/RAM/IO captures with callback entry/exit or cycle provenance before
 choosing an alignment strategy; do not add arbitrary delays to satisfy the current snapshots.
 
-Next runtime dependency: `src/sysutil.c` NewFadeIn/FadeInExists, FadeInOut_Init/DisableGfx and
+Done 2026-11-09 (`8b8c5b0`, `2e0e4ff`, `36bfd2c`): the runtime dependency `src/sysutil.c` NewFadeIn/FadeInExists, FadeInOut_Init/DisableGfx and
 FadeIn_Loop, backed by `src/bmlib.c` ArchiveCurrentPalettes/WriteFadedPaletteFromArchive. This is
 distinct from ColorFade/FadeCore. It starts on tree 4 and uses a 32-bank archived palette with
 independent RGB coefficients and a bank mask. Existing prologue proc watches and r01230/r01260

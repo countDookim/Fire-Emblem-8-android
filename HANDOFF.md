@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D09-3a (popup proc core/init): scheduled, until ~22:30Z (wip/D09-3a if unfinished)
+_(none; scheduled run completed; no worktrees open)_
 
 ## Current state
 
@@ -18,7 +18,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
   Original save restored afterward; ROM import preserved. Published 0.1.488 (`8c5b7c9`) banner comparison remains partial.
 - Published replacement: **0.1.497 (`42dc059`)**, CI **706 tests, zero failures/skips**. Local full
   `jvmTest test` also passed 706; both APK content guards, game/audio Dokka, 27 Python tests and instruction sync passed.
-- **628/8352 functions verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
+- **636/8352 functions verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
   Most of the count recovery credits existing scheduled ports after their test helpers were moved below tagged methods.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
@@ -43,16 +43,20 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
 ## Next work
 
 1. **D-11:** standalone `OpSubtitle` parent/flare scripts are transcribed (`c9b49b9`), not wired.
-   End-BGM callback `sub_80C5400` is verified (`cca73ee`); earlier slide/setup/transition/scene callbacks remain.
-   Continuous replay covers steps 1214–2354 using reference-supplied generic fade timing and one reused initial timer.
-   Next: generic `NewFadeIn`/archived-palette runtime and phase-aware captures at the 2355–2356 scene-setup boundary;
-   see [M6 notes](docs/plans/M6-notes.md#d-11-remaining-subtitle-verification-2026-11-09). Full later lifecycle,
+   Generic fade-in is now real: `gbafe.render.PaletteFade.archiveCurrentPalettes`/`writeFadedPaletteFromArchive`
+   (`8b8c5b0`, r01230/r01260 full palettes) and `ArchivedPaletteFade` (`NewFadeIn` proc, `2e0e4ff`, 64-frame timer
+   sequence). The 1214–2354 replay uses it (`36bfd2c`) and matches 510/512 palette entries at r01230/r01260; entries
+   273/417 (0x0842) come from unmodelled code. White/partial-mask branches and `FadeInOut_DisableGfx` unverified.
+   Next: phase-aware captures at the 2355–2356 scene-setup boundary; see
+   [M6 notes](docs/plans/M6-notes.md#d-11-remaining-subtitle-verification-2026-11-09). Full later lifecycle,
    normal termination and original Start-skip captures remain before wiring. Monologue steps 1213–4897;
    the world-map wrapper at 4898–9313 is separate work.
 2. **D-12:** owner compares the banner with an emulator; D12-2 adds enemy-phase and original scanline captures.
 3. **D-09:** `D09-1b` (`b25217b` / `e09709d`) and `D09-2` (`075fabb`: `DrawUiFrame2`, `LoadUiFrameGraphics`, `LoadIconPalette`,
    `LoadIconObjectGraphics` verified vs `ram_trace_item_popup` `f18630`; `GetIconGfxTileIndex` transcribed) are done.
-   Next for D-09 (low priority): `D09-3` (`popup.c` item-got lifecycle and replacing `EventGiveItem` stand-in).
+   `D09-3a` (`cdf44d3`): `fe8.game.ui.Popup` with verified `PopupProc_Init`/`PopupProc_WaitForPress`
+   (item_popup per-step ewram; positive clock only); `NewPopupCore`/`NewPopup_Simple` transcribed.
+   Next for D-09 (low priority): rest of `D09-3` (ParsePopupInstAndGetLen needs text widths, GfxDraw, script, EventGiveItem).
 
 ## Verification limits worth retaining
 

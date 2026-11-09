@@ -7,6 +7,10 @@ import fe8.game.event.EventConst.EVC_ADVANCE_YIELD
 import fe8.game.event.EventConst.EVC_ERROR
 import fe8.game.event.EventConst.EV_STATE_FADEDIN
 import fe8.game.event.EventConst.EV_STATE_SKIPPING
+import gbafe.proc.ProcEngine
+import gbafe.proc.ProcFunc
+import gbafe.proc.ProcScript
+import gbafe.proc.ProcScripts
 
 /**
  * What the cursor and camera commands reach outside [BmSt]. The defaults are no-op stand-ins.
@@ -182,3 +186,48 @@ public class EventCursorCamera(
         EVC_ADVANCE_CONTINUE
     }
 }
+
+/**
+ * State for [createProcScrEventDisplayCursor] (`struct MapCursorProc`).
+ */
+public class MapCursorProc(
+    /** Tile X coordinate (`proc->x`, offset `+0x64`). */
+    public var x: Int = 0,
+    /** Tile Y coordinate (`proc->y`, offset `+0x66`). */
+    public var y: Int = 0,
+    /** Cursor sub-command (`proc->subcmd`, offset `+0x68`). */
+    public var subcmd: Int = 0,
+    /** Shining cursor frame counter (`proc->timer`, offset `+0x6A`). */
+    public var timer: Int = 0,
+)
+
+/**
+ * Ported from src/eventscr.c: EventDisplayCursor_Loop
+ */
+public fun eventDisplayCursorLoop(
+    proc: MapCursorProc,
+    putMapCursor: (x: Int, y: Int, kind: Int) -> Unit = { _, _, _ -> },
+    eventShinningCursorAdvance: (x: Int, y: Int, counter: Int) -> Int = { _, _, c -> c },
+) {
+    when (proc.subcmd and 0xc) {
+        0 -> putMapCursor(proc.x * 16, proc.y * 16, 0)
+        4 -> proc.timer = eventShinningCursorAdvance(proc.x, proc.y, proc.timer)
+    }
+}
+
+/**
+ * `ProcScr_EventDisplayCursor` (`src/eventscr.c:3400`).
+ */
+public fun createProcScrEventDisplayCursor(
+    putMapCursor: (x: Int, y: Int, kind: Int) -> Unit = { _, _, _ -> },
+    eventShinningCursorAdvance: (x: Int, y: Int, counter: Int) -> Int = { _, _, c -> c },
+): ProcScript = ProcScript(
+    name = "ProcScr_EventDisplayCursor",
+    cmds = listOf(
+        ProcScripts.repeat(ProcFunc { p ->
+            eventDisplayCursorLoop(p.state as MapCursorProc, putMapCursor, eventShinningCursorAdvance)
+        }),
+        ProcScripts.end(),
+    ),
+    newState = { MapCursorProc() },
+)

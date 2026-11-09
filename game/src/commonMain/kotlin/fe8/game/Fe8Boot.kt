@@ -54,6 +54,8 @@ import fe8.game.event.EventTextBgHost
 import fe8.game.event.EventTextTalkHost
 import fe8.game.event.EventCursorCamera
 import fe8.game.event.EventCursorCameraHooks
+import fe8.game.event.MapCursorProc
+import fe8.game.event.createProcScrEventDisplayCursor
 import fe8.game.event.EventEngineProc
 import fe8.game.event.EventUnitLoads
 import fe8.game.event.EventChangeMap
@@ -143,6 +145,9 @@ public class Fe8Boot(
 
     /** `gGameClock`. */
     public val clock: GameClock = GameClock()
+
+    /** `gMapCursor` sprite renderer (`PutMapCursor`). */
+    public val mapCursor: MapCursor by lazy { MapCursor(rom, loop.bmSt, loop.sprites).also { it.clockSource = clock } }
 
     /** Proc trees. */
     public val engine: ProcEngine = ProcEngine()
@@ -282,6 +287,9 @@ public class Fe8Boot(
             val unitLookup = EventUnitState(
                 state, memory, units, loader, object : EventUnitStateHooks {},
             )
+            val cursorScript = createProcScrEventDisplayCursor(
+                putMapCursor = { x, y, kind -> mapCursor.put(x, y, kind) },
+            )
             EventCursorCamera(
                 state, memory, loop.bmSt,
                 object : EventCursorCameraHooks {
@@ -289,6 +297,19 @@ public class Fe8Boot(
                         val id = unitLookup.getUnitStructFromEventParameter(pid)
                         if (id < 0) return -1
                         return (units.xPos(id) shl 16) or (units.yPos(id) and 0xFFFF)
+                    }
+
+                    override fun startDisplayCursor(x: Int, y: Int, subcmd: Int) {
+                        val proc = engine.start(cursorScript, 3)
+                        val s = proc.state as MapCursorProc
+                        s.x = x
+                        s.y = y
+                        s.subcmd = subcmd
+                        s.timer = 0
+                    }
+
+                    override fun endDisplayCursor() {
+                        engine.endEach(cursorScript)
                     }
 
                     override fun ensureCameraOntoPosition(proc: EventEngineProc, x: Int, y: Int) {
@@ -770,8 +791,7 @@ public class Fe8Boot(
         main.hooks.refreshUnitSprites = refresh
         val refreshProc = ProcFunc { refresh() }
         phase.hooks.refreshUnitSprites = refreshProc
-        val cursor = MapCursor(rom, bm, loop.sprites).also { it.clockSource = clock }
-        phase.hooks.putMapCursor = PlayerPhase.PutMapCursor { x, y, kind -> cursor.put(x, y, kind) }
+        phase.hooks.putMapCursor = PlayerPhase.PutMapCursor { x, y, kind -> mapCursor.put(x, y, kind) }
     }
 
     /**

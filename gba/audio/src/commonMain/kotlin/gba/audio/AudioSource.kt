@@ -1,6 +1,6 @@
 package gba.audio
 
-/** Producer of mixed PCM pulled by an audio thread (the m4a mixer later; [ToneSource] for tests). */
+/** Producer of stereo PCM pulled by an audio thread; [ToneSource] supplies a test tone. */
 public fun interface AudioSource {
     /** Fills [frames] interleaved stereo 16-bit frames into [buffer]. Must not allocate. */
     public fun render(buffer: ShortArray, frames: Int)

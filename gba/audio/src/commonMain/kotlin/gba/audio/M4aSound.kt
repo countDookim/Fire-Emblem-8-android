@@ -15,7 +15,7 @@ public class M4aSound(
     /** DirectSound channel slots (`MAX_DIRECTSOUND_CHANNELS`). */
     channelCount: Int = 12,
 ) {
-    /** `gSoundInfo` with `gCgbChans` (set up by [init]; `CgbSound` is not modelled yet). */
+    /** `gSoundInfo` with `gCgbChans`, set up by [init] and stepped by [M4aCgb.sound]. */
     public val info: M4aSoundInfo =
         M4aSoundInfo(Array(channelCount) { M4aChannel() }, Array(4) { M4aChannel() })
 

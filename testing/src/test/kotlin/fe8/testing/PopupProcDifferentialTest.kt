@@ -266,6 +266,34 @@ class PopupProcDifferentialTest {
         }
     }
 
+    @Test
+    @VerifiesPort("PopupProc_GfxClear")
+    fun `gfxClear zeroes the popup rectangle like the end callback`() {
+        assumeTrue(ref.available, "reference capture unavailable")
+        val run = ref.run("ram_trace_item_popup")
+        val steps = (18570..18750).map { it to dump(run, it) }
+        val last = steps.indexOfLast {
+            ProcArrayDump.ofEwram(it.second).find(Popup.PROC_SCRIPT) != null
+        }
+        assertTrue(last in 0 until steps.size - 1, "no before/after pair")
+        val before = steps[last].second
+        val after = steps[last + 1].second
+        val original = ProcArrayDump.ofEwram(before).find(Popup.PROC_SCRIPT)!!
+        val mine = Popup.PopupProc()
+        mine.xTileReal = original.u8(0x37)
+        mine.yTileReal = original.u8(0x38)
+        mine.xTileSize = original.u8(0x39)
+        mine.yTileSize = original.u8(0x3A)
+        val bg0 = ShortArray(0x400) { ewramU16(before, BG0_TM + it * 2).toShort() }
+        val bg1 = ShortArray(0x400) { ewramU16(before, BG1_TM + it * 2).toShort() }
+        assertTrue(bg0.any { it.toInt() != 0 }, "BG0 already empty before the clear")
+        Popup.gfxClear(mine, bg0, bg1)
+        for (idx in 0 until 0x400) {
+            assertEquals(ewramU16(after, BG0_TM + idx * 2), bg0[idx].toInt() and 0xFFFF, "BG0 $idx")
+            assertEquals(ewramU16(after, BG1_TM + idx * 2), bg1[idx].toInt() and 0xFFFF, "BG1 $idx")
+        }
+    }
+
     private fun ewramU16(b: ByteArray, o: Int) =
         (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
 

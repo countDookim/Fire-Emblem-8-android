@@ -210,6 +210,25 @@ public object Popup {
     }
 
     /**
+     * End callback of the popup proc: zeroes the popup's rectangle in the BG0 and BG1 tilemap
+     * buffers [bg0] and [bg1]. The original's ARM `TmFillRect` counts both sizes inclusively, so
+     * it clears `xTileSize + 1` by `yTileSize + 1` cells starting at (`xTileReal`, `yTileReal`),
+     * with a row stride of 32 cells. The BG sync is a no-op here.
+     *
+     * Ported from src/popup.c: PopupProc_GfxClear
+     */
+    public fun gfxClear(proc: PopupProc, bg0: ShortArray, bg1: ShortArray) {
+        for (buffer in arrayOf(bg0, bg1)) {
+            for (row in 0..proc.yTileSize) {
+                for (col in 0..proc.xTileSize) {
+                    val idx = (proc.yTileReal + row) * 32 + proc.xTileReal + col
+                    if (idx in buffer.indices) buffer[idx] = 0
+                }
+            }
+        }
+    }
+
+    /**
      * Sets the layout fields from the text width [len] (as [parsePopupInstAndGetLen] returns it)
      * and returns the text width in tiles. Helper of [gfxDraw].
      */

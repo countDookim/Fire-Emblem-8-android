@@ -7,7 +7,7 @@ docs/TASKS.md. M5 facts and reference runs: docs/plans/M5-notes.md. History: git
 _(nothing blocked)_
 
 ## In progress
-_(none; owner 15-minute run completed; no worktrees open)_
+- **M6-45 / D-06 & M6-29 / Readability & M6-20** — Gemini (owner-PC, 2026-11-09, 30-min session until ~12:32Z, up to 3 Flash subagents): (1) M6-45 Prologue zero-allocation test & hot-path boxing fixes (`M4aBus`, `ScriptWords`, `SpriteAnimPlayer`); (2) D-06 rider exit & `Event3B_DisplayCursor` / `EventDisplayCursor_Loop` port + trace verification; (3) `docs/READABILITY.md` review rows (`fe8.game.savemenu`, `gbafe.extract*`) & `Event12_StartBGM` trace check.
 
 ## Latest device test (owner, 2026-11-09, Issue #5)
 Build **0.1.474 (`d91ed28`)** (GitHub Issue #5): everything except the 5 items in Issue #5 is confirmed solved on device:

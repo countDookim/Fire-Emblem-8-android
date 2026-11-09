@@ -1,7 +1,7 @@
 # Manual testing
 
 Latest owner test: **local 0.1.488 (`0a73f11`), 2026-11-09**.
-This diagnostic APK is installed on the phone; the published release may be newer.
+The fix is now published in **0.1.497 (`42dc059`)**; no additional castle re-test is needed.
 
 - **D-07 resolved on this build:** the owner heard neither castle stutter; the retest trace had zero
   repeated PCM frames. The movement-map frontier replaced repeated full-map scans.

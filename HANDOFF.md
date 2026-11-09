@@ -10,9 +10,6 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D07-trace: owner PC, until ~21:35Z; frontier fix owner-confirmed, finishing full verification/docs.
-- D11-proc: owner PC, until ~21:35Z; sound callback + standalone parent host merged, finishing verification.
-- READ-audio: owner PC, until ~21:35Z; review done, awaiting full suite.
 - D09-1b/D09-2: owner PC, until ~21:30Z; publish ram_trace_item_popup and port DrawUiFrame2/LoadUiFrameGraphics/LoadIconObjectGraphics.
 - M6-41/EventScriptBattle: owner PC, until ~21:30Z; verify ScriptBattleDeamon and EventVm 0x3F replay.
 - READ-scene-events: owner PC, until ~21:30Z; fe8.game.scene and gbafe.extract.fe8.events readability review.
@@ -21,9 +18,10 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 - Latest owner test: **local 0.1.488 (`0a73f11`)**: neither reported castle audio stutter reproduced.
   Original save restored afterward; ROM import preserved. Published 0.1.488 (`8c5b7c9`) banner comparison remains partial.
-- **622/8352 verified** in the preceding full CI; current full local checks are being repeated after
-  integrating the matching popup-reference sound-test provenance update (`e09709d`).
-  Keep `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
+- Published replacement: **0.1.497 (`42dc059`)**, CI **706 tests, zero failures/skips**. Local full
+  `jvmTest test` also passed 706; both APK content guards, game/audio Dokka, 27 Python tests and instruction sync passed.
+- **622/8352 functions verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
+  Most of the count recovery credits existing scheduled ports after their test helpers were moved below tagged methods.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
 - Layout: game-neutral `:gba:*`, `gbafe.*` in `:engine:*`, FE8 `fe8.*` in `:game`/`:app` (ADRs 0010–0013).

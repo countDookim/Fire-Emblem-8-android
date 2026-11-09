@@ -60,7 +60,7 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | game | fe8.game.scene | 5 | 1921 | todo |
 | game | fe8.game.text | 1 | 30 | done 2026-11-09 0194222 |
 | game | fe8.game.title | 1 | 824 | done 2026-11-09 83f2cb6 |
-| gba/audio | gba.audio | 17 | 2799 | todo |
+| gba/audio | gba.audio | 17 | 2799 | done 2026-11-09 1db6a62 |
 | gba/core | gba.core | 1 | 21 | done 2026-11-07 697847c |
 | gba/core | gba.core.event | 2 | 101 | done 2026-11-07 697847c |
 | gba/core | gba.core.sram | 5 | 380 | done 2026-11-07 1b2b121 |

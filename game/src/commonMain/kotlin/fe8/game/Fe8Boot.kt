@@ -332,6 +332,12 @@ public class Fe8Boot(
                 state, memory, units, loader,
                 object : EventUnitStateHooks {
                     override fun unitAt(x: Int, y: Int): Int = battleBmMap.unit[y, x]
+
+                    override fun refreshMapAndSprites() {
+                        battleEntityMaps.refreshEntityBmMaps()
+                        refreshSprites()
+                        bmapRender.renderBmMap()
+                    }
                 },
             ).also { us -> us.registerOn(it) }
             EventScriptBattle(
@@ -581,8 +587,7 @@ public class Fe8Boot(
 
     /**
      * Registers the event commands 0x2F (MOVEUNIT) and 0x30 (ENUN) on [engine]: the units walk
-     * with [MuCtrl]. Stand-in: the MU sprite animation (ap.c) is not ported, so a walking unit
-     * is not drawn until it arrives.
+     * with [MuCtrl] and the MU sprite animation player.
      */
     private fun registerMoveUnit(
         engine: EventEngine,

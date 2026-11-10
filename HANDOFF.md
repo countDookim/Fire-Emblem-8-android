@@ -10,8 +10,8 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- M6-20 Event15_BgmVolume verify: scheduled, until ~17:25Z
-- D11-worldmap scoping: scheduled, until ~17:25Z
+- D11-wm1: scheduled, until ~17:25Z
+- D11-wm2: scheduled, until ~17:25Z
 
 ## Current state
 

@@ -11,6 +11,8 @@ ROOT = Path(__file__).resolve().parent.parent
 tests = fails = skips = 0
 failed, skipped = [], []
 for x in sorted(ROOT.glob("**/build/test-results/**/*.xml")):
+    if x.relative_to(ROOT).as_posix().startswith(".claude/"):
+        continue  # agent worktrees hold other checkouts' results
     for tc in ET.parse(x).iter("testcase"):
         tests += 1
         name = f"{tc.get('classname')}.{tc.get('name')}"

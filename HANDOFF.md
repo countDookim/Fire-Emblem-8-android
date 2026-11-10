@@ -10,7 +10,11 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-None. Stopped mid-task (owner wrap-up 11-10): `wip/D11-wm7` (faces) and `wip/D11-wm6` (units) hold
+- CI-decomp: owner PC (GPT), until ~20:11Z — make node reference tests runnable locally and in CI.
+- D11-wm7-review: owner PC (GPT), until ~20:11Z — review, fix and mutation-check unfinished world-map faces.
+- READ-opsubtitle: owner PC (GPT), until ~20:11Z — subtitle package readability review.
+
+Stopped mid-task (owner wrap-up 11-10): `wip/D11-wm7` (faces) and `wip/D11-wm6` (units) hold
 unreviewed agent work; any tags there are not break-checked. Review, mutation-check and finish before merging.
 
 ## Current state

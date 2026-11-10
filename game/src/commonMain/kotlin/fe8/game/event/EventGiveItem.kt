@@ -2,6 +2,7 @@ package fe8.game.event
 
 import fe8.game.event.EventConst.EVC_ADVANCE_YIELD
 import fe8.game.event.EventConst.EVC_ERROR
+import gbafe.proc.Proc
 
 /**
  * The give-item command of `src/eventscr.c` (0x37).
@@ -11,6 +12,8 @@ import fe8.game.event.EventConst.EVC_ERROR
  * @param makeNewItem `MakeNewItem`: the item word for an item id.
  * @param getGold `GetPartyGoldAmount`.
  * @param setGold `SetPartyGoldAmount`.
+ * @param newPopupItemGot `NewPopup_ItemGot(proc, unit, item)` with the event engine's proc as
+ *   parent (it blocks that proc); when null, the item is added at once instead.
  */
 internal class EventGiveItem(
     private val state: EventState,
@@ -20,6 +23,7 @@ internal class EventGiveItem(
     private val makeNewItem: (Int) -> Int,
     private val getGold: () -> Int,
     private val setGold: (Int) -> Unit,
+    private val newPopupItemGot: ((parent: Proc, unit: Int, item: Int) -> Unit)? = null,
 ) {
     /** Registers 0x37 on [engine]. */
     fun registerOn(engine: EventEngine) {
@@ -30,11 +34,10 @@ internal class EventGiveItem(
      * Transcribed from src/eventscr.c: Event37_GiveItem
      * (not verified: inventory/gold effects and popups not trace-compared)
      *
-     * Host stand-ins: the "item got" and "gold got"
-     * popups (`NewPopup_ItemGot`, `NewPopup_GoldGot`, `ItemGot_DisplayLePopup`) are not shown;
-     * their effects (`HandleNewItemGetFromDrop` with a free slot, the gold add) happen at once
-     * and the proc yields one frame. A full inventory (the item-drop menu) throws
-     * [NotImplementedError].
+     * Host stand-ins: the "gold got" popup (`NewPopup_GoldGot`) is not shown and the gold add
+     * happens at once. For items, [newPopupItemGot] (when given) runs `NewPopup_ItemGot` on the
+     * event proc; otherwise the "item got" popup is skipped and the item added at once (a full
+     * inventory, the item-drop menu, throws [NotImplementedError]). The proc yields one frame.
      */
     val event37GiveItem: EventHandler = EventHandler { proc ->
         val currentCmd = proc.pEventCurrent
@@ -42,7 +45,9 @@ internal class EventGiveItem(
         val unit = getUnitStructFromEventParameter(memory.u16(currentCmd + 2).toShort().toInt())
         if (unit < 0) return@EventHandler EVC_ERROR
         when (subcommand) {
-            0 -> if (!addItem(unit, makeNewItem(state.slots[3]))) {
+            0 -> if (newPopupItemGot != null) {
+                newPopupItemGot(proc.proc!!, unit, state.slots[3])
+            } else if (!addItem(unit, makeNewItem(state.slots[3]))) {
                 throw NotImplementedError(
                     "GIVEITEMTO with a full inventory (item-drop menu) is not ported",
                 )

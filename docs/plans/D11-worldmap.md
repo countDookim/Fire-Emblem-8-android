@@ -1,0 +1,81 @@
+# D11-worldmap: scoping the New Game world-map opening (steps 4898-9313)
+
+Scoped 2026-11-10 (docs only). Monologue (1213-4897) is D11-proc; this note covers only what runs after it.
+Proc/function names below are from the pinned decomp and `fireemblem8.nm.txt`; items marked *unverified* were
+not confirmed against a capture.
+
+## 1. Source inventory and call order
+
+Entry (`src/gamecontrol.c`, `gProcScr_GameControl` label EXEC_BM): `GameCtrlStartIntroMonologue` (chapter 0 only)
+-> `PROC_START_CHILD_BLOCKING(ProcScr_WorldMapWrapper)` -> `EndWM` -> `sub_8009E28` (blend setup) ->
+`StartBattleMap`. In Kotlin `GameControl.kt` already has this skeleton; `hooks.worldMapWrapperScript`
+and `hooks.endWorldMap` are empty stand-ins (end at once) and `GmDataInit` is a stand-in.
+
+`src/worldmap_main.c`:
+- `ProcScr_WorldMapWrapper`: sleep 1, `NewWorldMap` (starts `ProcScr_WorldMapMain` on tree 3, `timer` 16/12/4),
+  waits while it exists, ends `ProcScr_BmFadeIN`.
+- `ProcScr_WorldMapMain`: `sub_80B8FD4`, `WorldMap_Init` (screen/gfx via `SetupGraphicSystemsForWorldMap`,
+  `SetupGmapNodeGfx`, `DeployEveryUnit`, camera), `_FadeBgmOut`, sleep 4, **`WorldMap_CallBeginningEvent`**
+  (`CallEvent(Events_WM_Beginning[gmapEventId], 0)` = `EventScrWM_Prologue_Beginning`, then `StartWMFaceCtrl`,
+  `StartGmapMuEntry`), then `WorldMap_PostBeginningEvent` (repeat), `WorldMap_GenerateRandomMonsters`,
+  `WorldMap_SetMonsterMergedState`, label 3 (`WorldMap_UpdateBgm`, `FadeInExists`, minimap, `WorldMap_Loop`).
+  Interactive menus/status/shops/config are NOT in the opening range. How the chapter-0 flow leaves the loop
+  (likely `WorldMap_CallIntroEvent` -> `CallChapterWMIntroEvents` = `EventScrWM_Prologue_ChapterIntro`, then
+  exit) is *unverified*; the 4898-9313 procs below suggest the intro event dominates.
+- Script data: `src/events/prologue-wm.h` (233 lines): ~54 STAL, text (`TEXTSTART/TEXTCONT/TEXTEND` x18,
+  `WM_TEXT*`), `WM_SHOWPORTRAIT/CLEARPORTRAIT` x9, `WM_MOVECAM2` x9, `WM_HIGHLIGHT*` x24, `WM_PUTSPRITE/
+  PUTMOVINGSPRITE/REMSPRITE/WAITFORSPRITES`, `WM_PLACEDOT`, `WM_SPAWNLORD`, `WM_SHOWDRAWNMAP`, `WM_FADEOUT`,
+  `WM_FXCLEAR*`, `MUSC/MUSCFAST`, `FADI`, `EVBIT_MODIFY`. The Beginning script is the first part; the
+  ChapterIntro script a later one (exact split *unverified*).
+- `src/eventscr_gmap.c` opcodes 0x80-0xB8 (`Event80..B8_Wm*`). Kotlin `EventEngine.kt` has the hi-table but these
+  handlers are unregistered (stubs/skip).
+
+Subsystems the opcodes drive (all unported; grep of `Ported from src/worldmap*` / `eventscr_gmap` / `events_wm`
+in Kotlin finds nothing but `GetBattleMapKind` in `BattleMapKind.kt`, transcribed, unverified):
+- `worldmap_scrollmanage.c` (camera scroll/centre), `worldmap_rm.c` (`GmapRm*`: map BG, borders, palette anims),
+  `worldmap_gmapunit.c` / `worldmap_mapmu.c` / `worldmap_automu.c` (map sprites, moves, fades),
+  `worldmap_face.c` (portrait ctrl, `E_FACE`), `worldmap_text.c` / `worldmap_screen*.c` (text box, big map),
+  `worldmap_palette_fade.c`, `worldmap_line_fade.c`, `worldmap_effect.c`, `worldmap_node_data.c` /
+  `worldmap_path.c` (node/path tables, dots; `WmDotPalAnim`), `worldmap_entry.c` (`GmDataInit`).
+
+## 2. Captures and gaps
+
+Everything below is in `$FE8_ASSETS/reference/out`:
+- `ram_trace_newgame` covers only f955-f1230; `ram_trace_newgame_bm` only f9314-f9900. **Neither covers
+  4898-9313.** `ram_trace_subtitle_boundary` / `fade_start` end near 2380 / 1281.
+- `ram_trace_prologue` (steps 30-19800): per-step watches (`procs` 0x02024E68 x6912, `evglobals`, `gbmst`, `gplayst`,
+  `flags`, `rng`, `actiondata`) for every step; `rNNNNN` (ewram+iwram) every 30 steps; `fNNNNN` (full:
+  vram/pal/oam/io/frame.rgb) at 5100, 5400, ..., 9300 (every 300). Step axis agrees with newgame_bm (its own
+  proc timeline shows the monologue parent ending at 4898 and ChapterIntro_KeyListen_Loop appearing at 9384;
+  same input timeline is *unverified*).
+- Live proc scripts (field 0 of each slot; value is the current script pointer, so names are symbol+offset):
+  gProcScr_GameControl (whole range); step 4899 on: ProcScr_GmapRm* parent region at 0x08205F70, 4900 on:
+  `ProcScr_GMapMuPrim` (+0x30), `GmMuPrim_OnEnd_Null`, 4941 `UpdateSleep`, 4947-9286 `GmapRm_Blocking`
+  (BG map), 5191-7872 `ProcScr_0859160C/08591624` (+ `GmapRmUpdateExt`), 5527-8110 `ProcScr_GmapRmBorder1`,
+  5764-7780 `gProcScr_E_FACE_ExtraFrame` (portraits), 6964-7058 `ProcScr_GmapRmBaPalAnim1`, 8111-9278
+  `ProcScr_WmDotPalAnim`, 8171-9281 `ProcScr_GmapUnit`, 8173-8429 `GfxSet_WmNationMap`, 8217-9128 GMapMuPrim
+  later states, 8371-8399 `GmapUnitFade_Loop`, 8885-8916 `GmapAutoMu_WaitForFadeEnd`, 8918-9127
+  `GmapAutoMu_80C3350`, 9157-9172 `sub_8008FB4`, 9288 on `gUnknown_08206868+108` (script after the
+  worldmap ends). The `ProcScr_WorldMapMain` / `ProcScr_WorldMapWrapper` roots are not named in this list because
+  the pointer shows the current command; resolve exact roots from the decomp script data before the first test
+  (*unverified*).
+- Gaps: no full dumps between 5100 steps (VRAM/OAM at 300-step spacing only; transitions need r + watches); no
+  capture of `gGMData` over time (is in ewram, so r dumps give it); no audio PCM for the world-map stretch
+  (BGM only via `evglobals`/`gSoundSt` in r dumps). A new capture with callback/entry snapshots at specific events
+  (like `ram_trace_fade_start`) is needed for per-frame camera/scroll and each fade. Add only when a task needs it.
+
+## 3. Proposed tasks (each <= 20 min unless noted; split further if a diff exceeds that)
+
+| id | scope | deps | acceptance |
+|---|---|---|---|
+| D11-wm1 | Resolve the actual proc tree from `ram_trace_prologue` procs.watch over 4898-9313: root scripts, children, start/end steps, in a test helper (`ProcArrayDump`) | - | `@VerifiesPort`-free inventory test: expected root/child script ROM symbols and live step ranges vs `procs.watch` |
+| D11-wm2 | `GmData`/`gGMData` layout + `GmDataInit` (worldmap_entry.c) and `WMLoc_*` lookups used by Beginning event (`WMLoc_GetNextLocId/GetChapterId`, node tables) | D11-wm1 | `@VerifiesPort`: gGMData fields vs `ram_trace_prologue` r04890/r04920 (before/after) |
+| D11-wm3 | `ProcScr_WorldMapWrapper`/`ProcScr_WorldMapMain` start, `NewWorldMap`, `WorldMap_Init` prefix, `EndWM` sleep timing; wire into `hooks.worldMapWrapperScript` | D11-wm1, D11-wm2 | `@VerifiesPort`: procs array + gGMData vs `ram_trace_prologue` steps 4898-4960 (watch) |
+| D11-wm4 | `worldmap_rm.c` map BG (`StartGmapRm`, `GmapRm_Blocking`, scroll manage) incl. camera opcodes 0x83-0x89 | D11-wm3 | `@VerifiesPort`: BG regs/tilemap vs `f05100`/`f05400`; camera position vs `r` dumps every 30 |
+| D11-wm5 | Event opcodes 0x80-0x82, 0xAF-0xB3 (`Event80..82`, text box, fancy fade) + `worldmap_text.c`, `worldmap_palette_fade.c` | D11-wm3 | `@VerifiesPort`: text/pal vs `f` dumps 5100..9300 and gSoundSt/BGM via `Event12`/`MUSC` |
+| D11-wm6 | Sprites/units: `worldmap_gmapunit.c`, `worldmap_mapmu.c`, `worldmap_automu.c`, opcodes 0x9E-0xAC | D11-wm4 | `@VerifiesPort`: OAM in f8100..f9000, GmapUnit/GMapMuPrim proc fields per step |
+| D11-wm7 | Faces: `worldmap_face.c` (`StartWMFaceCtrl`) + opcodes (portrait show/clear) | D11-wm5 | `@VerifiesPort`: E_FACE procs 5764-7780 and VRAM `f06000..f07500` |
+| D11-wm8 | End-to-end: run Prologue WM Beginning/ChapterIntro event script through the VM from 4898 to 9313; handoff to `StartBattleMap` | D11-wm3..7 | differential vs `ram_trace_prologue` r dumps 9300/9330 and `ram_trace_newgame_bm` f9314; no per-frame video claim |
+
+Notes: wm4-wm7 may each need to be split once `ProcScr_*` rows are inspected; keep each at one source file.
+Per CLAUDE rule 4 nothing is "ported" until break-checked. Do not mark D-11 solved on subtitle wiring alone.

@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-None.
+- D11-wm3 (CallBeginningEvent): scheduled, until ~18:20Z, on `wip/D11-wm3b`
 
 ## Current state
 

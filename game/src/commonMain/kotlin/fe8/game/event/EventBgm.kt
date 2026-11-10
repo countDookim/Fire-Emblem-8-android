@@ -40,8 +40,11 @@ public class EventBgm(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event15_BgmVolume (not verified:
-     *   EventVmDifferentialTest compares only the result code, not the volume)
+     * Ported from src/eventscr.c: Event15_BgmVolume
+     *
+     * Verified (EventBgmTest) for subcode 0 against `ram_trace_prologue` (the one command in the
+     * trace): the blocking volume-change proc's parent, flags, volumes and time, and the parent's
+     * lock count. Subcode 1 and the skipping branches never run in a trace and are unverified.
      *
      * Subcode 0 ducks the BGM (`StartBgmVolumeChange(0x100, 0x90, 10, proc)`), subcode 1 restores
      * it (`0x90` to `0x100`); while skipping, 0 does nothing and 1 sets volume 0x100. Yields

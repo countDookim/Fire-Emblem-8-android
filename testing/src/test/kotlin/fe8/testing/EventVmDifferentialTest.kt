@@ -155,7 +155,8 @@ class EventVmDifferentialTest {
     @Test
     fun `Event12 StartBGM`() = assertCode(0x12)
 
-    // Event15_BgmVolume: result code only (the volume is not compared), so it is not tagged.
+    // Event15_BgmVolume: result code only here; the volume-change proc is verified (@VerifiesPort)
+    // in game EventBgmTest against the same trace, so it is not tagged here.
     @Test
     fun `Event15 BgmVolume`() = assertCode(0x15)
 

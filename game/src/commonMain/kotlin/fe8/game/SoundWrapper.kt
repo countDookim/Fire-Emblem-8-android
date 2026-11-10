@@ -75,6 +75,28 @@ public class SoundWrapper(
         newState = { VolumeState() },
     )
 
+    /**
+     * The `struct MusicProc` fields of the running volume-change proc ([startBgmVolumeChange]'s), or
+     * null when none runs (observation point for tests).
+     */
+    public val bgmVolumeChange: BgmVolumeChange?
+        get() = engine.find(bgmVolumeChangeScript)?.let { p ->
+            val v = p.state as VolumeState
+            BgmVolumeChange(v.initVolume, v.endVolume, v.clock, v.timeEnd)
+        }
+
+    /** A snapshot of the volume-change proc: `vc_init_volume`, `vc_end_volume`, clock, time. */
+    public data class BgmVolumeChange(
+        /** `vc_init_volume`. */
+        val initVolume: Int,
+        /** `vc_end_volume`. */
+        val endVolume: Int,
+        /** `vc_clock`: frames run. */
+        val clock: Int,
+        /** `vc_time_end`: frames of the ramp. */
+        val timeEnd: Int,
+    )
+
     private val bgm1: M4aPlayer? get() = sound?.players?.get(BGM1)
     private val bgm2: M4aPlayer? get() = sound?.players?.get(BGM2)
 

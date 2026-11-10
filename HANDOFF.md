@@ -10,7 +10,9 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-None. Unfinished: `wip/D11-wm6` (units) remains unreviewed; its tags are not break-checked and its
+- D11-wm4a (GmapRmBaPalAnim1), D11-wm4b (GmapRmBorder1): scheduled, until ~22:45Z
+
+Unfinished: `wip/D11-wm6` (units) remains unreviewed; its tags are not break-checked and its
 scratch diagnostic fails CI. Review, remove diagnostics and verify before merging.
 
 ## Current state

@@ -109,6 +109,54 @@ class WorldMapWrapperTest {
         assertEquals(expected and 0x09, gm.stateRaw and 0x09, "state_0/state_3")
     }
 
+    /**
+     * The sleeps of `ProcScr_WorldMapMain`: the original enters `sleep(4)` (position 5) at step
+     * 4902, leaves it into `sleep(1)` (position 7) 5 steps later and reaches the repeat (position
+     * 10) 1 step after. Not tagged: no script is tagged `@VerifiesPort` in this project, and the
+     * unported `WorldMap_Init` delays the original's start, so only the gaps are compared.
+     */
+    @Test
+    fun `main script prefix sleeps for the same number of steps as the original`() {
+        val romFile = File(
+            System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets",
+            "baserom.gba",
+        )
+        assumeTrue(ref.available && romFile.isFile, "reference data / ROM not present")
+        val names = ProcArrayDump.romNames()
+        assumeTrue(names.isNotEmpty(), "decomp nm file not present")
+        val trace = ref.run("ram_trace_prologue").watch("procs")
+        val expected = firstSteps(4898..4930) { step ->
+            ProcArrayDump.ofWatch(trace, step, names).find("ProcScr_WorldMapMain")?.scrCur
+        }
+
+        val engine = ProcEngine()
+        val nodes = WmNodeData(RomView.ofRom(romFile.readBytes()))
+        val fadeIn = ProcScript("ProcScr_BmFadeIN", listOf(end()))
+        val gm = GmData(ByteArray(0x8000), RngService())
+        val builder = WorldMapMain(engine, PlaySt(), gm, ProcScript("m", listOf(end())), fadeIn)
+        val main = ProcScript(
+            "ProcScr_WorldMapMain", builder.mainScriptPrefix(nodes, { false }) + block(),
+        ) { WorldMapMainProc() }
+        val real = WorldMapMain(engine, PlaySt(), gm, main, fadeIn)
+        engine.start(real.wrapperScript, 3)
+        val ours = firstSteps(4898..4930) { step ->
+            engine.run(engine.root(3))
+            engine.find(main)?.scrCur
+        }
+        assertEquals(
+            listOf(expected[5]!! to expected[7]!!, expected[7]!! to expected[10]!!)
+                .map { it.second - it.first },
+            listOf(ours[5]!! to ours[7]!!, ours[7]!! to ours[10]!!).map { it.second - it.first },
+        )
+    }
+
+    /** First step in [steps] at which [position] returns each distinct non-null value. */
+    private fun firstSteps(steps: IntRange, position: (Int) -> Int?): Map<Int, Int> {
+        val first = mutableMapOf<Int, Int>()
+        for (step in steps) position(step)?.let { first.putIfAbsent(it, step) }
+        return first
+    }
+
     private companion object {
 
         /** First step at which the original's `NewWorldMap` has set the timer (128 before). */

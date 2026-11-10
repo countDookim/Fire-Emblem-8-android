@@ -7,12 +7,18 @@ import fe8.game.bm.BattleMapStart
 import fe8.game.bm.PlaySt
 import fe8.game.bm.UnitTable
 import gbafe.proc.Proc
+import gbafe.proc.ProcArgFunc
+import gbafe.proc.ProcCmd
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.call
+import gbafe.proc.ProcScripts.callArg
 import gbafe.proc.ProcScripts.end
 import gbafe.proc.ProcScripts.endEach
+import gbafe.proc.ProcScripts.label
+import gbafe.proc.ProcScripts.repeat
+import gbafe.proc.ProcScripts.setEndCb
 import gbafe.proc.ProcScripts.sleep
 import gbafe.proc.ProcScripts.whileExists
 import gbafe.proc.ProcScripts.yield
@@ -141,6 +147,53 @@ public class WorldMapMain(
         hooks.startWmFaceCtrl()
         hooks.startGmapMuEntry()
     }
+
+    /**
+     * Transcribed from src/worldmap_main.c: ProcScr_WorldMapMain (prefix, up to and including
+     * `PROC_REPEAT(WorldMap_PostBeginningEvent)`; the rest is not transcribed yet).
+     *
+     * @param nodes `gWMNodeData`
+     * @param checkFlag `CheckFlag`
+     * @param hooks the unported callees of `WorldMap_CallBeginningEvent`
+     * @param mainHooks the unported commands of the script
+     */
+    public fun mainScriptPrefix(
+        nodes: WmNodeData,
+        checkFlag: (Int) -> Boolean,
+        hooks: BeginningHooks = BeginningHooks(),
+        mainHooks: MainHooks = MainHooks(),
+    ): List<ProcCmd> = listOf(
+        setEndCb(ProcFunc { mainHooks.destruct(it) }),
+        call(ProcFunc { sub80B8FD4() }),
+        call(ProcFunc { mainHooks.init(it) }),
+        callArg(
+            ProcArgFunc { arg, _ ->
+                mainHooks.fadeBgmOut(arg)
+                true
+            },
+            1,
+        ),
+        sleep(4),
+        call(
+            ProcFunc { callBeginningEvent(it.state as WorldMapMainProc, nodes, checkFlag, hooks) },
+        ),
+        sleep(1),
+        label(0),
+        label(1),
+        repeat(ProcFunc { mainHooks.postBeginningEvent(it) }),
+    )
+
+    /** Script commands of `ProcScr_WorldMapMain` whose callees are not ported yet. */
+    public class MainHooks(
+        /** `WorldMap_Destruct` (`PROC_SET_END_CB`). */
+        public val destruct: (Proc) -> Unit = {},
+        /** `WorldMap_Init`. */
+        public val init: (Proc) -> Unit = {},
+        /** `_FadeBgmOut(speed)`. */
+        public val fadeBgmOut: (Int) -> Unit = {},
+        /** `WorldMap_PostBeginningEvent` (`PROC_REPEAT`; the engine ends the repeat itself). */
+        public val postBeginningEvent: (Proc) -> Unit = {},
+    )
 
     /** Callees of `WorldMap_CallBeginningEvent` that are not ported yet. */
     public class BeginningHooks(

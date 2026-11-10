@@ -13,6 +13,9 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 - D09-wired-check: owner PC, until ~12:06Z — full popup integration/reference regression and fixes.
 - D11-boundary: owner PC, until ~12:06Z — original callback-phase captures at scene setup (2355–2356).
 - READ-event: owner PC, until ~12:06Z — event package readability review.
+- READ-bm-map: owner PC, until ~12:10Z — fe8.game.bm map/camera/state readability review (16 files).
+- M6-19-bmvsync: owner PC, until ~12:10Z — BMapVSync_InitMapAnimations, BMapVSync_Start/OnLoop/End, and weather init in MapAnimations.kt.
+- PORT-brownbox-item: owner PC, until ~12:10Z — BrownTextBox fade/lifecycle verification (src/popup.c) and ItemInfo ROM/battle verification (src/bmitem.c).
 
 ## Current state
 

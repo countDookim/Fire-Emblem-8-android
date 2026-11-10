@@ -16,7 +16,8 @@ public class WmNodeData(private val rom: RomView) {
      * @param chapterModeIndex `gPlaySt.chapterModeIndex`
      */
     public fun chapterId(idx: Int, chapterModeIndex: Int): Int {
-        val field = if (chapterModeIndex == CHAPTER_MODE_EPHRAIM) CHAPTER_EPHRAIM else CHAPTER_EIRIKA
+        val field =
+            if (chapterModeIndex == CHAPTER_MODE_EPHRAIM) CHAPTER_EPHRAIM else CHAPTER_EIRIKA
         return rom.u8(entry(idx) + field)
     }
 

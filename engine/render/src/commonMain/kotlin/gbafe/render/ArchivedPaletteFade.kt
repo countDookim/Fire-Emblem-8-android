@@ -30,7 +30,8 @@ public class ArchivedPaletteFade(
         public var mask: Int = 0
     }
 
-    private val script = ProcScript(
+    /** The fade-in proc script, `ProcScr_BmFadeIN` (read-only handle for `PROC_END_EACH`). */
+    public val script: ProcScript = ProcScript(
         "ProcScr_BmFadeIN",
         listOf(
             call(ProcFunc { disableGfx(it) }),

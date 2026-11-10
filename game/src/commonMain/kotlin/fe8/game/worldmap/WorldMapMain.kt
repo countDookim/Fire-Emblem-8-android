@@ -75,4 +75,55 @@ public class WorldMapMain(
         }
         return proc
     }
+
+    /**
+     * Ported from src/worldmap_main.c: WorldMap_CallBeginningEvent
+     *
+     * Not ported yet and injected: `Sound_FadeOutBGM`, `sub_80BA008`, the chapter's `gmapEventId`
+     * lookup, `Events_WM_Beginning`, `ResetGmStoryNode`, `gm_icon->merge_next_node`, `CallEvent`,
+     * `StartWMFaceCtrl` and `StartGmapMuEntry`.
+     *
+     * @param nodes `gWMNodeData`
+     * @param checkFlag `CheckFlag`
+     * @param hooks the unported callees
+     */
+    public fun callBeginningEvent(
+        proc: WorldMapMainProc,
+        nodes: WmNodeData,
+        checkFlag: (Int) -> Boolean,
+        hooks: BeginningHooks,
+    ) {
+        hooks.fadeOutBgm(4)
+        val postgame = playSt.chapterStateBits and GameControl.PLAY_FLAG_POSTGAME != 0
+        if (gmData.monsterMerged() || postgame) {
+            hooks.sub80BA008(proc.timer)
+        } else {
+            val loc = gmData.unitLocation(0)
+            gmData.currentNode = loc
+            val nodeNext = nodes.nextLocId(loc, playSt.chapterModeIndex, checkFlag)
+            if (nodeNext > -1) {
+                val chIndex = nodes.chapterId(nodeNext, playSt.chapterModeIndex)
+                playSt.chapterIndex = chIndex
+                val event = hooks.beginningEvent(chIndex) ?: return
+                hooks.resetGmStoryNode()
+                hooks.clearMergeNextNode()
+                hooks.callEvent(event)
+            }
+        }
+        hooks.startWmFaceCtrl()
+        hooks.startGmapMuEntry()
+    }
+
+    /** Callees of `WorldMap_CallBeginningEvent` that are not ported yet. */
+    public class BeginningHooks(
+        public val fadeOutBgm: (Int) -> Unit = {},
+        public val sub80BA008: (Int) -> Unit = {},
+        /** `Events_WM_Beginning[GetROMChapterStruct(chIndex)->gmapEventId]`, null if NULL. */
+        public val beginningEvent: (Int) -> Int? = { null },
+        public val resetGmStoryNode: () -> Unit = {},
+        public val clearMergeNextNode: () -> Unit = {},
+        public val callEvent: (Int) -> Unit = {},
+        public val startWmFaceCtrl: () -> Unit = {},
+        public val startGmapMuEntry: () -> Unit = {},
+    )
 }

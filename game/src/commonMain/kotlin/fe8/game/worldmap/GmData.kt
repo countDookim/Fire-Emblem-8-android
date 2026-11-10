@@ -51,7 +51,19 @@ public class GmData(private val iwram: ByteArray, private val rng: RngService) {
      */
     public fun monsterMerged(): Boolean = (iwram[BASE].toInt() and 0x02) != 0
 
+    /** `gGMData.units[unit].location` (`u8`, offset 1 of the unit slot). */
+    public fun unitLocation(unit: Int): Int =
+        iwram[BASE + UNITS + unit * UNIT_SIZE + 1].toInt() and 0xFF
+
+    /** `gGMData.current_node` (`u8`, offset 0xC8). */
+    public var currentNode: Int
+        get() = iwram[BASE + CURRENT_NODE].toInt() and 0xFF
+        set(value) {
+            iwram[BASE + CURRENT_NODE] = value.toByte()
+        }
+
     public companion object {
+        private const val CURRENT_NODE = 0xC8
         private const val NODE_STATE_CLEARED = 2
         /** IWRAM offset of `gGMData` (0x03005280). */
         public const val BASE: Int = 0x5280

@@ -84,7 +84,9 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
   CI may add a progress commit, so fetch/rebase again if a push races it. Commit completed steps; unfinished work uses `wip/`.
 - Owner PC: `source .assets.env`, export `ANDROID_HOME=$HOME/android-sdk`; use `$HOME/.cache/fe8-tmp` for logs/temp.
   Maven mirror: `tools/maven_mirror.py` on port 8765 (`/google` before `/central`).
-  Serialize Gradle with `.gradle/agent-checks.lock`; use two workers / 2 GiB heap and run Dokka per module.
+  Serialize Gradle with `.gradle/agent-checks.lock`; use two workers / 2 GiB heap and run Dokka per module
+  (`:game:dokkaGenerate -Pfe8.docs=true`; fails on undocumented public members, incl. companions). CI runs 530/531
+  failed on Dokka only; fixed in `2151d50` (CI pending at handoff).
 - Full checks: `./gradlew jvmTest test`. Focused verification uses `:testing:test --tests <class>` (no `:testing:jvmTest`).
   Filtered runs replace result XML: regenerate progress only after the full suite. Put helper classes/enums below
   tagged tests: the progress parser uses the last preceding class declaration. CI normally commits README/port map;

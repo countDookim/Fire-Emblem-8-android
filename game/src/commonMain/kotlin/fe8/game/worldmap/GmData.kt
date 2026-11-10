@@ -51,6 +51,13 @@ public class GmData(private val iwram: ByteArray, private val rng: RngService) {
      */
     public fun monsterMerged(): Boolean = (iwram[BASE].toInt() and 0x02) != 0
 
+    /** `gGMData.state.raw` (`u8` at offset 0). */
+    public var stateRaw: Int
+        get() = iwram[BASE].toInt() and 0xFF
+        set(value) {
+            iwram[BASE] = value.toByte()
+        }
+
     /** `gGMData.units[unit].location` (`u8`, offset 1 of the unit slot). */
     public fun unitLocation(unit: Int): Int =
         iwram[BASE + UNITS + unit * UNIT_SIZE + 1].toInt() and 0xFF

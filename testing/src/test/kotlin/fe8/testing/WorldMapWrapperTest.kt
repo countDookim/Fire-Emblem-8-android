@@ -91,7 +91,26 @@ class WorldMapWrapperTest {
         assertEquals(1, event, "CallEvent reached")
     }
 
+    @Test
+    @VerifiesPort("sub_80B8FD4")
+    fun `sub_80B8FD4 sets state_0 and clears state_3 like the original`() {
+        assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
+        val run = ref.run("ram_trace_prologue")
+        val before = run.region("r%05d".format(4890), "iwram").copyOf(0x8000)
+        // Step 4920 is after sub_80B8FD4 but before the later code sets state_3 again.
+        val expected =
+            run.region("r%05d".format(4920), "iwram")[GmData.BASE].toInt() and 0xFF
+        val gm = GmData(before, RngService())
+        val wm = WorldMapMain(
+            ProcEngine(), PlaySt(), gm,
+            ProcScript("m", listOf(end())), ProcScript("f", listOf(end())),
+        )
+        wm.sub80B8FD4()
+        assertEquals(expected and 0x09, gm.stateRaw and 0x09, "state_0/state_3")
+    }
+
     private companion object {
+
         /** First step at which the original's `NewWorldMap` has set the timer (128 before). */
         const val FIRST_STEP_AFTER_INIT = 4902
     }

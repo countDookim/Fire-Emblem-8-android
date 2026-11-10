@@ -1,7 +1,11 @@
 package fe8.game.worldmap
 
 import fe8.game.GameControl
+import fe8.game.bm.BMapMain.Companion.FACTION_BLUE
+import fe8.game.bm.BMapMain.Companion.FACTION_GREEN
+import fe8.game.bm.BattleMapStart
 import fe8.game.bm.PlaySt
+import fe8.game.bm.UnitTable
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
@@ -74,6 +78,30 @@ public class WorldMapMain(
             else -> 16
         }
         return proc
+    }
+
+    /**
+     * Transcribed from src/worldmap_main.c: DeployEveryUnit (not verified: no unit has
+     * `US_NOT_DEPLOYED` set in the prologue trace, so it cannot tell this from a no-op)
+     *
+     * Clears `US_NOT_DEPLOYED` of every valid unit with id in `FACTION_BLUE + 1 until
+     * FACTION_GREEN`.
+     */
+    public fun deployEveryUnit(units: UnitTable) {
+        for (id in FACTION_BLUE + 1 until FACTION_GREEN) {
+            if (!units.isValid(id)) continue
+            units.setState(id, units.state(id) and BattleMapStart.US_NOT_DEPLOYED.inv())
+        }
+    }
+
+    /**
+     * Ported from src/worldmap_main.c: sub_80B8FD4
+     *
+     * Sets `gGMData.state.bits.state_0` (bit 0) and clears `state_3` (bit 3). The trace has
+     * `state_3` already 0 before, so only the `state_0` write is verified.
+     */
+    public fun sub80B8FD4() {
+        gmData.stateRaw = (gmData.stateRaw or 0x01) and 0x08.inv()
     }
 
     /**

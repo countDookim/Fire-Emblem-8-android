@@ -29,7 +29,8 @@ D-12 stays pending until this comparison; enemy/green banners are not ready for 
 
 These are known gaps; re-test them only when a relevant change is announced:
 
-- D-11: missing cinematic between New Game and the castle scene; subtitle code is not wired yet.
+- D-11: missing cinematic between New Game and the castle scene; subtitle, Start-skip and
+  world-map portrait ports remain standalone and unwired. No new device check for these yet.
 - Missing Seth/Valter battle animation, unit selection/actions/menus/inventory, and main/save/difficulty menus.
   Cursor movement works; New Game currently uses Normal difficulty.
 

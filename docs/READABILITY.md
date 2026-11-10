@@ -56,12 +56,14 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | game | fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs) | 4 | 845 | done 2026-11-10 ff286fe / 0bfe1ab |
 | game | fe8.game.event (remaining command handlers and script formats) | 18 | 3299 | done 2026-11-10 077a47d |
 | game | fe8.game.flags | 1 | 69 | done 2026-11-09 0194222 |
-| game | fe8.game.opanim | 3 | 3128 | todo |
+| game | fe8.game.opanim (OpAnim, OpAnimHs, EarlyStartUi) | 3 | 3128 | todo |
+| game | fe8.game.opanim (OpSubtitle*.kt) | 7 | 796 | done 2026-11-10 f3ad834 / d05e87f |
 | game | fe8.game.save | 8 | 2541 | done 2026-11-09 1941586 |
 | game | fe8.game.savemenu | 2 | 156 | done 2026-11-09 81db35b |
 | game | fe8.game.scene | 5 | 1921 | done 2026-11-09 c3bb2ed |
 | game | fe8.game.text | 1 | 30 | done 2026-11-09 0194222 |
 | game | fe8.game.title | 1 | 824 | done 2026-11-09 83f2cb6 |
+| game | fe8.game.worldmap | 13 | 2929 | todo |
 | gba/audio | gba.audio | 17 | 2799 | done 2026-11-09 1db6a62 |
 | gba/core | gba.core | 1 | 21 | done 2026-11-07 697847c |
 | gba/core | gba.core.event | 2 | 101 | done 2026-11-07 697847c |

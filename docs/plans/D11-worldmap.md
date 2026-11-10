@@ -133,3 +133,18 @@ the chapter struct, `Events_WM_Beginning` 0x088B39EC), `resetGmStoryNode`, `clea
 (EventEngine). Stand-ins left: `sub80BA008`, `startWmFaceCtrl`, `startGmapMuEntry`. Not wired into Fe8Boot yet.
 Untagged test: the event engine it starts matches `ProcScr_StdEventEngine` pEventStart/pEventIdk/execType and
 `chapterIndex` at step 4907.
+
+## 7. Portrait review (2026-11-10)
+
+`90811ce` verifies 11 world-map portrait functions using isolated capture-driven calls on the
+observed state-3 path. Each retained function passed an individual failing mutation and restored
+green run. The two init claims were removed: fresh-state zero defaults did not prove their writes.
+The reference replay checks proc/wrapper fields, face metadata, BG2 maps/9-bit scroll, palette,
+portrait VRAM and OAM; 86 eligible map dumps include three nonempty maps. Tests cache the immutable
+proc watch rather than reparsing 131 MiB on every step. Production caches the tile table and scroll
+scratch, and null-parent starts correctly use tree 0.
+
+Event C4/C5, delayed merge, unseen state branches and complete event VM timing remain unverified.
+The host is not wired into Fe8Boot. Before the world-map/battle-map handoff, implement/reference-check
+the original `ResetFaces` default VRAM/palette configuration restore; per-slot configuration is now
+mutable so the world map can use its own portrait layout.

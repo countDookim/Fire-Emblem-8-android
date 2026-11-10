@@ -7,7 +7,7 @@
   "summary": {
     "total": 8352,
     "verified": 711,
-    "implemented_unverified": 1
+    "implemented_unverified": 5
   },
   "functions": {
     "AddUnitSprite": {
@@ -2134,6 +2134,34 @@
       "tests": [
         "fe8.game.worldmap.GmDataTest#gmDataInit from garbage matches gGMData in the first trace dump"
       ]
+    },
+    "GmapRmBorder1_80C28C4": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GmapRmBorder1_80C2964": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GmapRmBorder1_80C29F8": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GmapRmBorder1_80C2A1C": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
+      "status": "implemented",
+      "tests": []
     },
     "GmapRmUpdateDirect_Loop": {
       "decomp_file": "src/worldmap_rm.c",

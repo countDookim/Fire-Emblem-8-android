@@ -3,6 +3,7 @@ package fe8.game.worldmap
 import fe8.game.RomView
 import fe8.game.bm.ChapterData
 import fe8.game.event.EventEngine
+import gbafe.proc.Proc
 
 /**
  * Real callees for [WorldMapMain.BeginningHooks] (the Prologue path of
@@ -33,16 +34,25 @@ public class WorldMapBeginning(
     }
 
     /**
-     * The hooks for [proc]. `sub80BA008`, `startWmFaceCtrl` and `startGmapMuEntry` stay
-     * stand-ins.
+     * The hooks for [proc]. `sub80BA008` and `startGmapMuEntry` stay stand-ins; so does
+     * `startWmFaceCtrl` unless [faces] is given.
+     *
+     * @param faces the portrait controller `StartWMFaceCtrl` starts
+     * @param mainProc the `ProcScr_WorldMapMain` proc, the controller's parent (a root proc when
+     *   null)
      */
-    public fun hooks(proc: WorldMapMainProc): WorldMapMain.BeginningHooks =
+    public fun hooks(
+        proc: WorldMapMainProc,
+        faces: WorldMapFace? = null,
+        mainProc: () -> Proc? = { null },
+    ): WorldMapMain.BeginningHooks =
         WorldMapMain.BeginningHooks(
             fadeOutBgm = fadeOutBgm,
             beginningEvent = ::beginningEvent,
             resetGmStoryNode = path::resetGmStoryNode,
             clearMergeNextNode = { proc.gmIcon.mergeNextNode = false },
             callEvent = { events.callEvent(it, 0) },
+            startWmFaceCtrl = { faces?.startWmFaceCtrl(mainProc()) },
         )
 
     private companion object {

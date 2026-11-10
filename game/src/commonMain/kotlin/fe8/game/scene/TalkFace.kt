@@ -158,6 +158,29 @@ public class TalkFace(
     /** `gFaces`. */
     public val gFaces: Array<Proc?> = arrayOfNulls(FACE_SLOTS)
 
+    /** `sFaceConfig[].tileOffset`: byte offset of each slot's tiles in OBJ VRAM. */
+    private val tileOffsets = intArrayOf(0x20 * 0x300, 0x20 * 0x280, 0x20 * 0x200, 0x20 * 0x380)
+
+    /** `sFaceConfig[].paletteId`: OBJ palette bank of each slot. */
+    private val paletteIds = intArrayOf(6, 7, 8, 9)
+
+    /**
+     * Replaces the per-slot VRAM tile offsets and OBJ palette banks, as `SetupFaceGfxData(config)`
+     * does (the defaults are `gDefaultFaceConfig`).
+     *
+     * Transcribed from src/face.c: SetupFaceGfxData (not verified independently of the faces that
+     * use it: the world map's `gUnknown_08A3D728` is checked through the `oam2` of its faces)
+     */
+    public fun setupFaceGfxData(tileOffset: IntArray, paletteId: IntArray) {
+        for (i in 0 until FACE_SLOTS) {
+            tileOffsets[i] = tileOffset[i]
+            paletteIds[i] = paletteId[i]
+        }
+    }
+
+    /** `sFaceConfig[slot].paletteId`. */
+    public fun paletteIdOf(slot: Int): Int = paletteIds[slot]
+
     private val faceInitFn = ProcFunc { faceOnInit(it) }
     private val faceIdleFn = ProcFunc { faceOnIdle(it) }
     private val moveInitFn = ProcFunc { talkFaceMoveOnInit(it) }
@@ -223,7 +246,7 @@ public class TalkFace(
         val faceState = proc.state as FaceState
         host.decompressToVram(
             faceHost.portraitImage(faceState.faceId),
-            TILE_OFFSET[faceState.faceSlot] + OBJ_VRAM,
+            tileOffsets[faceState.faceSlot] + OBJ_VRAM,
         )
     }
 
@@ -260,7 +283,7 @@ public class TalkFace(
         gFaces[slot] = proc
         val faceState = proc.state as FaceState
         if (disp and (1 shl 13) == 0) {
-            host.applyPalette(faceHost.portraitPalette(fid), PAL_ID[slot] + 0x10)
+            host.applyPalette(faceHost.portraitPalette(fid), paletteIds[slot] + 0x10)
         }
         faceState.faceSlot = slot
         faceState.faceId = fid
@@ -576,8 +599,8 @@ public class TalkFace(
             8 shl 6 -> 3
             else -> 2
         }
-        faceState.oam2 = TILE_OFFSET[faceState.faceSlot] / 0x20 +
-            (PAL_ID[faceState.faceSlot] and 0xF) * 0x1000 + (layer shl 10)
+        faceState.oam2 = tileOffsets[faceState.faceSlot] / 0x20 +
+            (paletteIds[faceState.faceSlot] and 0xF) * 0x1000 + (layer shl 10)
     }
 
     /**
@@ -737,8 +760,6 @@ public class TalkFace(
         private const val SMILE = 1 shl 3
         private const val TALK_1 = 1 shl 4
         private const val TALK_2 = 1 shl 5
-        private val TILE_OFFSET = intArrayOf(0x20 * 0x300, 0x20 * 0x280, 0x20 * 0x200, 0x20 * 0x380)
-        private val PAL_ID = intArrayOf(6, 7, 8, 9)
 
         /** `gTalkFaceHPosLut`. */
         private val FACE_HPOS = intArrayOf(3, 6, 9, 21, 24, 27, -8, 38)

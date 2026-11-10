@@ -61,16 +61,39 @@ gProcScr_PlayerPhase 0x0859AAD8.
 ## D-11 remaining subtitle verification (2026-11-09)
 
 `OpSubtitle` is standalone and transcribed. Its continuous proc replay covers steps 1214–2354,
-seeding the original reused transition timer once and supplying generic fade lifetime from the
-original watch. At 2355–2356 the original cursor remains at scene setup while the Kotlin callback
-has advanced. The watch does not establish whether this reflects callback duration or sampling
-phase. Obtain phase-aware proc/RAM/IO captures with callback entry/exit or cycle provenance before
-choosing an alignment strategy; do not add arbitrary delays to satisfy the current snapshots.
+seeding the original reused transition timer once and running the real generic archived-palette
+fade. Original callback snapshots now establish that scene setup (`sub_80C50A0`) starts at step
+2355 and returns at 2357: the intervening frame snapshots are inside that call.
+`OpSubtitleBoundaryDifferentialTest` compares an atomic Kotlin call with the original return
+state (BG0/BG1 maps, palette E/F and timers), not full parent lifecycle timing. `OnVBlank` advances
+gGameClock and runs tree 0 during the long callback, so clock increments alone do not count
+completed normal proc updates. Extend replay using callback phases/completed updates; do not
+insert arbitrary delays to fit video-frame snapshots.
 
-Done 2026-11-09 (`8b8c5b0`, `2e0e4ff`, `36bfd2c`): the runtime dependency `src/sysutil.c` NewFadeIn/FadeInExists, FadeInOut_Init/DisableGfx and
+Done 2026-11-09 (`8b8c5b0`, `2e0e4ff`, `36bfd2c`): the runtime dependency `src/sysutil.c` NewFadeIn/FadeInExists, FadeInOut_Init and
 FadeIn_Loop, backed by `src/bmlib.c` ArchiveCurrentPalettes/WriteFadedPaletteFromArchive. This is
 distinct from ColorFade/FadeCore. It starts on tree 4 and uses a 32-bank archived palette with
 independent RGB coefficients and a bank mask. Existing prologue proc watches and r01230/r01260
-palette/archive snapshots support a seeded mid-fade replay. Capture steps 1212–1281 with per-step
-RAM/IO and palette data to verify initialization and early timing. Unseen white/mask branches,
+palette/archive snapshots support a seeded mid-fade replay. The new `ram_trace_fade_start`
+callback capture verifies initialization/display disabling on the observed branch (see below). Unseen white/mask branches,
 normal slow-fade termination and D11-skip inputs still need independent reference checks before wiring.
+
+## Owner-PC verification, 2026-11-10
+
+D-09 wired-path regression (`WiredItemPopupTest`) runs the real Prologue event through Fe8Boot,
+GotItemPopup, PopupScript, BGM volume children and shared text/hardware. It compares the visible
+icon OAM, palette RAM, glyph/icon VRAM and text tilemap with the item-popup capture, then checks
+the final ten inventory bytes against the original after closure. This exposed the omitted icon
+OAM callback and missing BG sync on cleanup; both failed before their respective fixes. The icon
+sprite is cached at popup construction, and a primitive OAM writer avoids per-frame boxing.
+The test checks the warmed icon callback for allocations, both BGM blocking periods and cleanup
+in actual VRAM/OAM. It uses silent audio and corresponding visible/end states: audible jingle
+fidelity and full-scene frame timing still require independent verification/device confirmation.
+
+D-11 early fade capture (`ram_trace_fade_start`, private `ea2aafd`) records real Thumb callback
+entry/return snapshots in step 1215, preserving original input and overlapping RAM. The startup
+test now checks display disabling, assigned proc fields, resetting a nonzero reused timer, all
+512 archived colors and the first faded palette. `FadeInOut_DisableGfx` is mutation checked for
+the observed mask-not-0xFFFF branch; only BG0/OBJ were initially enabled. The 0xFFFF branch,
+initially enabled BG1–BG3, white fades and other reused-slot masks remain unverified. The
+read-only harness hook leaves emulated cycles unchanged; legacy capture files were preserved.

@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 652,
+    "verified": 653,
     "implemented_unverified": 1
   },
   "functions": {
@@ -1255,6 +1255,15 @@
         "fe8.testing.ArchivedPaletteFadeProcDifferentialTest#fade in timer lifetime and palette match the original"
       ]
     },
+    "FadeInOut_DisableGfx": {
+      "decomp_file": "src/sysutil.c",
+      "system": "core",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ArchivedPaletteFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ArchivedPaletteFadeProcDifferentialTest#startup disables display and initializes the original palette archive"
+      ]
+    },
     "FadeInOut_Init": {
       "decomp_file": "src/sysutil.c",
       "system": "core",
@@ -1448,7 +1457,7 @@
     "GenerateScriptBattleHitFormEventQueue": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",

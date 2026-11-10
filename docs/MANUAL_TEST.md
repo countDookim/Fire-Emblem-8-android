@@ -1,7 +1,9 @@
 # Manual testing
 
 Latest owner test: **local 0.1.488 (`0a73f11`), 2026-11-09**.
-The fix is now published in **0.1.497 (`42dc059`)**; no additional castle re-test is needed.
+Castle stutter fix published in **0.1.497 (`42dc059`)**; no additional castle re-test is needed.
+Popup candidate: **0.1.528 (`e0187ea`), CI pending**. Wait for this build; published 0.1.526
+does not include its icon/cleanup fixes.
 
 - **D-07 resolved on this build:** the owner heard neither castle stutter; the retest trace had zero
   repeated PCM frames. The movement-map frontier replaced repeated full-map scans.
@@ -17,9 +19,10 @@ Compare the **Player Phase banner** with original FE8 on an emulator, using Norm
 3. Compare its position, entrance/exit timing, squares and translucency, then check that it clears
    cleanly for map music and cursor control. Report differences with the launcher build string.
 
-D-09 (low priority): in the castle scene, when Seth gives Eirika the Rapier, a "Got Rapier." popup
-should now appear with the item icon, play the jingle and close after ~1.6 s or on a key press; report
-layout/colour/timing differences. Not trace-verified on the full wired path.
+D-09 (low priority; candidate above): when Seth gives Eirika the Rapier before the first battle,
+check that the popup shows its text and item icon, plays the jingle, then closes automatically
+without leaving the frame or icon behind. Report layout/colour/timing differences and the launcher
+build string. The wired path now has reference checks; device confirmation is still pending.
 
 D-12 stays pending until this comparison; enemy/green banners are not ready for verification.
 

@@ -10,10 +10,6 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D09-wired-check: owner PC, until ~12:06Z — full popup integration/reference regression and fixes.
-- D11-boundary: owner PC, until ~12:06Z — original callback-phase captures at scene setup (2355–2356).
-- READ-event: owner PC, until ~12:06Z — event package readability review.
-- CI-summary-worktrees: owner PC, until ~12:06Z — exclude agent worktree test XML from local totals.
 - READ-bm-map: owner PC, until ~12:10Z — fe8.game.bm map/camera/state readability review (16 files).
 - M6-19-bmvsync: owner PC, until ~12:10Z — BMapVSync_InitMapAnimations, BMapVSync_Start/OnLoop/End, and weather init in MapAnimations.kt.
 - PORT-brownbox-item: owner PC, until ~12:10Z — BrownTextBox fade/lifecycle verification (src/popup.c) and ItemInfo ROM/battle verification (src/bmitem.c).
@@ -22,10 +18,10 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 - Latest owner test: **local 0.1.488 (`0a73f11`)**: neither reported castle audio stutter reproduced.
   Original save restored afterward; ROM import preserved. Published 0.1.488 (`8c5b7c9`) banner comparison remains partial.
-- Published replacement: **0.1.497 (`42dc059`)**, CI **706 tests, zero failures/skips**. Local full
-  `jvmTest test` also passed 706; both APK content guards, game/audio Dokka, 27 Python tests and instruction sync passed.
-- **~650/8352 functions verified** (643 + 7 popup ports 11-10 + 2 GotItem; CI updates the count), `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
-  Local full `jvmTest test` 723 tests green (11-09 late, popup ports). Most of the count recovery credits existing scheduled ports after their test helpers were moved below tagged methods.
+- Candidate **0.1.528 (`e0187ea`)**: CI pending; fixes the Rapier popup icon and stale frame on close.
+  Local full `jvmTest test` **737 passed, zero failures/skips**; debug/release builds and content guards,
+  game Dokka, 27 Python tests and instruction sync passed. Previously published: 0.1.526 (`cfa62da`).
+- **653/8352 functions verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
 - Layout: game-neutral `:gba:*`, `gbafe.*` in `:engine:*`, FE8 `fe8.*` in `:game`/`:app` (ADRs 0010–0013).
@@ -48,33 +44,21 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
 
 ## Next work
 
-1. **D-11:** standalone `OpSubtitle` parent/flare scripts are transcribed (`c9b49b9`), not wired.
-   Generic fade-in is now real: `gbafe.render.PaletteFade.archiveCurrentPalettes`/`writeFadedPaletteFromArchive`
-   (`8b8c5b0`, r01230/r01260 full palettes) and `ArchivedPaletteFade` (`NewFadeIn` proc, `2e0e4ff`, 64-frame timer
-   sequence). The 1214–2354 replay uses it (`36bfd2c`) and matches 510/512 palette entries at r01230/r01260; entries
-   273/417 (0x0842) come from unmodelled code. White/partial-mask branches and `FadeInOut_DisableGfx` unverified.
-   Next: phase-aware captures at the 2355–2356 scene-setup boundary; see
-   [M6 notes](docs/plans/M6-notes.md#d-11-remaining-subtitle-verification-2026-11-09). Full later lifecycle,
-   normal termination and original Start-skip captures remain before wiring. Monologue steps 1213–4897;
-   the world-map wrapper at 4898–9313 is separate work.
+1. **D-11:** standalone subtitle parent/flare scripts remain unwired. Replay covers steps 1214–2354
+   with the real archived-palette fade (510/512 live entries match; entries 273/417 are unmodelled).
+   `1fee6d4` verifies original fade startup/display disabling on the observed branch. New private
+   `38dc714` captures scene setup entering at 2355 and returning at 2357; `82dfb5d` compares the atomic
+   Kotlin callback with its original return state. VBlank advances the clock/runs tree 0 inside
+   that callback, so clock ticks are not completed normal updates. Next: extend replay using
+   callback phases, then verify later lifecycle, normal ending and original Start skips before
+   wiring. Monologue 1213–4897; world-map wrapper 4898–9313 is separate. See [M6 notes](docs/plans/M6-notes.md).
 2. **D-12:** owner compares the banner with an emulator; D12-2 adds enemy-phase and original scanline captures.
-3. **D-09:** `D09-1b` (`b25217b` / `e09709d`) and `D09-2` (`075fabb`: `DrawUiFrame2`, `LoadUiFrameGraphics`, `LoadIconPalette`,
-   `LoadIconObjectGraphics` verified vs `ram_trace_item_popup` `f18630`; `GetIconGfxTileIndex` transcribed) are done.
-   `D09-3a` (`cdf44d3`): `fe8.game.ui.Popup` with verified `PopupProc_Init`/`PopupProc_WaitForPress`
-   (item_popup per-step ewram; positive clock only); `NewPopupCore`/`NewPopup_Simple` transcribed.
-   11-09 late: `ParsePopupInstAndGetLen`, `GetItemName`/`GetItemNameWithArticle`/`GetItemIconId` (`f748e13`),
-   `GeneratePopupText` (`d7ce616`), `PopupProc_GfxDraw` (`5c738f2`, ResetText's special-char reset not modelled) and
-   `PopupProc_GfxClear` (`3638c8f`; width+1 column from TmFillRect asm, not distinguished by the capture) verified vs
-   item_popup. OP_NUM/unit-name/wtype paths unexercised. 11-10: `PopupProc_PrepareGfx`, `ResetIconGraphics`, `PopupProc_Maybe{Set,Reset}Volume` (`f8ca29f`; window bits/icon
-   tables seeded, blend real), `fe8.game.ui.PopupScript` hosting `ProcScr_Popup` on `ProcEngine` with verified
-   `NewPopupCore`/`NewPopup_Simple` (`7a2c7e9`, per-step scrCur/lifetime) and `PopupIconUpdateProc_Loop` (`6acd49c`,
-   OAM every 10th frame). `PlaySound` transcribed; BGM-volume child is a test stand-in; negative-clock key path
-   untested. 11-10: D09-4 done: `GotItemPopup` (`ProcScr_GotItem`/`NewPopup_ItemGot`, transcribed, fake-driven test) and
-   Event37 GIVEITEMTO now starts it blocking from Fe8Boot (lazy `PopupScript`). Stand-ins: `unitNameTextId`=0 (gpPopupUnit
-   untracked), `loadIconPalette` slot→`ItemIcon` mapping not trace-checked, full inventory still throws, gold popup not wired.
-   D09-5: `ItemGot_DisplayLePopup`/`ItemGot_GotLeItem` verified vs item_popup (`GotItemPopupDifferentialTest`, steps
-   18589–18731, break-checked); `NewPopup_ItemGot` stays transcribed (birth frame outside capture, red/root paths unexercised).
-   Next: owner device check of the Rapier popup (MANUAL_TEST).
+3. **D-09:** item popup is wired through Event37, GotItemPopup and PopupScript. `539016e` fixes the
+   omitted icon OAM callback and missing BG sync on close. The real boot-path test checks visible
+   icon/palette/glyph/text state, blocking volume children, cleanup and final inventory against
+   `ram_trace_item_popup`; silent audio and state alignment do not establish full-scene/audio timing.
+   Next: owner checks the popup (low priority). Red/root/full-inventory and negative-clock paths,
+   unit-name/number/wtype instructions and gold popups remain unverified or unwired.
 
 ## Verification limits worth retaining
 

@@ -21,12 +21,11 @@ import gbafe.proc.ProcScripts.whileTrue
 import gbafe.render.BgHardware
 
 /**
- * Standalone opening monologue. Generic fade effects and key input are supplied by [hooks]; their
- * timing and the Start skip have not yet been compared with original captures. The continuous
- * parent replay covers steps 1214–4896 (to the end of the monologue), with the original fade-in
- * lifetime supplied to the hook and the initial reused transition timer seeded from step 1213;
- * the closing slow fade-to-black is the real generic fade proc. Scene-setup callbacks span several
- * captured steps in the original and run atomically here. Start-skip behavior is unverified.
+ * Standalone opening monologue with fade effects and key input supplied by [hooks]. The
+ * continuous parent replay covers steps 1214–4897 with the real archived-palette fade-in and
+ * slow fade to black, seeding the original reused transition timer from step 1213. Long scene
+ * setup callbacks are compared at completion because they run atomically here. Original
+ * Start-skip timing and cleanup still need input captures before this host is wired into boot.
  */
 public class OpSubtitle(
     private val engine: ProcEngine,

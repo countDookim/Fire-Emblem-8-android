@@ -59,9 +59,8 @@ public class GmapRmUpdateProc {
 
 /**
  * The big map BG of the world map (`src/worldmap_rm.c`: `ProcScr_GmapRM`, its BG scroll updaters
- * `ProcScr_GmapRmUpdateDirect` / `ProcScr_GmapRmUpdateExt`). The nation border highlight and its
- * palette
- * animation procs (`GmapRmBorder1`, `GmapRmBaPalAnim1`) are not ported yet.
+ * `ProcScr_GmapRmUpdateDirect` / `ProcScr_GmapRmUpdateExt`). The nation border highlight proc
+ * `GmapRmBorder1` is not ported yet (`GmapRmBaPalAnim1` is in [WorldMapRmBaPalAnim]).
  *
  * @param engine the proc scheduler
  * @param hardware BG registers, tilemap buffers, VRAM and palette

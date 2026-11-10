@@ -1,6 +1,17 @@
 package fe8.game.bm
 
 import fe8.game.RomView
+import gbafe.proc.Proc
+import gbafe.proc.ProcCmd
+import gbafe.proc.ProcEngine
+import gbafe.proc.ProcFunc
+import gbafe.proc.ProcScript
+import gbafe.proc.ProcScripts.call
+import gbafe.proc.ProcScripts.label
+import gbafe.proc.ProcScripts.mark
+import gbafe.proc.ProcScripts
+import gbafe.proc.ProcScripts.setEndCb
+import gbafe.proc.ProcScripts.sleep
 import gbafe.render.BgHardware
 
 /**
@@ -20,7 +31,33 @@ public class MapAnimations(
     private val hardware: BgHardware,
     /** `gPlaySt` (`chapterIndex`). */
     private val playSt: PlaySt,
+    /** The proc engine scheduling [procScrBmVSync]. */
+    private val engine: ProcEngine? = null,
+    /** `gBmSt` (`gameGfxSemaphore`). */
+    private val bmSt: BmSt? = null,
+    /** External callbacks invoked during VSync proc lifecycle. */
+    public val hooks: Hooks = Hooks(),
 ) {
+    /** Callbacks invoked by [procScrBmVSync] and [start]. */
+    public class Hooks {
+        /** `WfxInit`, called by [start]. */
+        public var wfxInit: () -> Unit = {}
+
+        /** `SyncUnitSpriteSheet`, called by [procScrBmVSync]. */
+        public var syncUnitSpriteSheet: () -> Unit = {}
+
+        /** `WfxVSync`, called by [procScrBmVSync]. */
+        public var wfxVSync: () -> Unit = {}
+
+        /** `BMapVSync_OnEnd`, called when [procScrBmVSync] ends. */
+        public var onEnd: () -> Unit = {}
+
+        /** Alias for [onEnd]. */
+        public var bmapVSyncOnEnd: () -> Unit
+            get() = onEnd
+            set(value) { onEnd = value }
+    }
+
     private var tileGfxAnimStart = 0
     private var tileGfxAnimCurrent = 0
     private var tileGfxAnimClock = 0
@@ -31,28 +68,65 @@ public class MapAnimations(
     /** The tile animation clock (`BMVSyncProc.tileGfxAnimClock`), for differential testing. */
     public val gfxAnimClock: Int get() = tileGfxAnimClock
 
-    /** The current tile animation entry pointer (`BMVSyncProc.tileGfxAnimCurrent`), for differential testing. */
+    /**
+     * The current tile animation entry pointer (`BMVSyncProc.tileGfxAnimCurrent`), for
+     * differential testing.
+     */
     public val gfxAnimCurrent: Int get() = tileGfxAnimCurrent
 
-    /** The start tile animation entry pointer (`BMVSyncProc.tileGfxAnimStart`), for differential testing. */
+    /**
+     * The start tile animation entry pointer (`BMVSyncProc.tileGfxAnimStart`), for differential
+     * testing.
+     */
     public val gfxAnimStart: Int get() = tileGfxAnimStart
 
     /** The palette animation clock (`BMVSyncProc.tilePalAnimClock`), for differential testing. */
     public val palAnimClock: Int get() = tilePalAnimClock
 
-    /** The current palette animation entry pointer (`BMVSyncProc.tilePalAnimCurrent`), for differential testing. */
+    /**
+     * The current palette animation entry pointer (`BMVSyncProc.tilePalAnimCurrent`), for
+     * differential testing.
+     */
     public val palAnimCurrent: Int get() = tilePalAnimCurrent
 
-    /** The start palette animation entry pointer (`BMVSyncProc.tilePalAnimStart`), for differential testing. */
+    /**
+     * The start palette animation entry pointer (`BMVSyncProc.tilePalAnimStart`), for differential
+     * testing.
+     */
     public val palAnimStart: Int get() = tilePalAnimStart
 
     /**
-     * Transcribed from src/bmio.c: BMapVSync_InitMapAnimations (not verified:
-     *   the test seeds the animation state, so the init is never run against a trace)
+     * `sProc_BMVSync` (src/bmio.c:121, ROM 0x0859D8B8, 10 commands): the VBlank proc, started on
+     * tree 0.
+     *
+     * Transcribed from src/bmio.c: sProc_BMVSync (data symbol; script execution verified via
+     *   BMapVSync_Start and BMapVSync_OnLoop)
+     */
+    public val procScrBmVSync: ProcScript = ProcScript(
+        "sProc_BMVSync",
+        listOf<ProcCmd>(
+            mark(PROC_MARK_DISP),
+            setEndCb(ProcFunc { onEnd(it) }),
+            sleep(0),
+            label(0),
+            call(ProcFunc { updateMapImgAnimations() }),
+            call(ProcFunc { updateMapPalAnimations() }),
+            call(ProcFunc { hooks.syncUnitSpriteSheet() }),
+            call(ProcFunc { hooks.wfxVSync() }),
+            ProcScripts.repeat(ProcFunc { onLoop(it) }),
+            ProcScripts.end(),
+        ),
+    )
+
+    /** Alias matching the C symbol name `sProc_BMVSync`. */
+    public val sProc_BMVSync: ProcScript get() = procScrBmVSync
+
+    /**
+     * Ported from src/bmio.c: BMapVSync_InitMapAnimations
      *
      * Clears both clocks and points both animations at the first entry of the chapter's tables.
      */
-    public fun initMapAnimations() {
+    public fun initMapAnimations(proc: Proc? = null) {
         tileGfxAnimClock = 0
         tilePalAnimClock = 0
         val chapter = playSt.chapterIndex
@@ -70,6 +144,16 @@ public class MapAnimations(
         tileGfxAnimStart = start
         tileGfxAnimCurrent = current
         tileGfxAnimClock = clock
+    }
+
+    /**
+     * Sets the palette animation state (`tilePalAnimStart`, `tilePalAnimCurrent`,
+     * `tilePalAnimClock`) directly, as read from a proc dump; for resuming and tests.
+     */
+    public fun seedPaletteAnimation(start: Int, current: Int, clock: Int) {
+        tilePalAnimStart = start
+        tilePalAnimCurrent = current
+        tilePalAnimClock = clock
     }
 
     /**
@@ -119,19 +203,98 @@ public class MapAnimations(
         if (rom.u8(tilePalAnimCurrent + 4) == 0) tilePalAnimCurrent = tilePalAnimStart
     }
 
+    /**
+     * Ported from src/bmio.c: BMapVSync_OnLoop
+     *
+     * Jumps the proc back to label 0 to loop every frame.
+     */
+    public fun onLoop(proc: Proc) {
+        val eng = engine ?: return
+        eng.goto(proc, 0)
+    }
+
+    /**
+     * Ported from src/bmio.c: BMapVSync_Start
+     *
+     * Starts the `sProc_BMVSync` proc on root tree 0 (PROC_TREE_VSYNC), initializes weather
+     * effects, and clears `bmSt.gameGfxSemaphore`.
+     */
+    public fun start(): Proc? {
+        val proc = engine?.start(procScrBmVSync, PROC_TREE_VSYNC)
+        initMapAnimations(proc)
+        hooks.wfxInit()
+        bmSt?.gameGfxSemaphore = 0
+        return proc
+    }
+
+    /**
+     * Transcribed from src/bmio.c: BMapVSync_End (not verified:
+     *   no battle map teardown trace exercises ending the VSync proc)
+     *
+     * Ends each instance of `sProc_BMVSync`.
+     */
+    public fun end() {
+        val eng = engine ?: return
+        eng.endEach(procScrBmVSync)
+    }
+
+    /**
+     * Transcribed from src/bmio.c: BMapVSync_OnEnd (not verified:
+     *   secondary HBlank handler is a stub / weather effect teardown not traced)
+     *
+     * Clears secondary HBlank handler when the VSync proc ends.
+     */
+    public fun onEnd(proc: Proc? = null) {
+        hooks.onEnd()
+    }
+
+    /**
+     * Transcribed from src/bmio.c: DisableMapPaletteAnimations (not verified:
+     *   no trace exercises disabling map palette animations)
+     *
+     * Clears `tilePalAnimStart` if the VSync proc is active.
+     */
+    public fun disableMapPaletteAnimations() {
+        if (engine == null || engine.find(procScrBmVSync) != null) {
+            tilePalAnimStart = 0
+        }
+    }
+
+    /**
+     * Transcribed from src/bmio.c: ResetMapPaletteAnimations (not verified:
+     *   no trace exercises resetting map palette animations)
+     *
+     * Re-points `tilePalAnimStart` and `tilePalAnimCurrent` at the chapter's palette animation
+     * table.
+     */
+    public fun resetMapPaletteAnimations() {
+        if (engine == null || engine.find(procScrBmVSync) != null) {
+            val chapter = playSt.chapterIndex
+            tilePalAnimStart = asset(chapterData.paletteAnimId(chapter))
+            tilePalAnimCurrent = tilePalAnimStart
+        }
+    }
+
     private fun asset(id: Int): Int = rom.u32(ChapterData.CHAPTER_DATA_ASSET_TABLE + 4 * id)
 
-    private companion object {
+    /** Constants. */
+    public companion object {
         /** `BG_TILE_ADDR(0x140)` as a VRAM offset. */
-        const val TILE_ANIM_VRAM = 0x80 * 0x140
+        public const val TILE_ANIM_VRAM: Int = 0x80 * 0x140
 
         /** `sizeof(struct TileGfxAnim)`. */
-        const val GFX_ENTRY_SIZE = 8
+        public const val GFX_ENTRY_SIZE: Int = 8
 
         /** `sizeof(struct TilePalAnim)` (data pointer plus three bytes, padded). */
-        const val PAL_ENTRY_SIZE = 8
+        public const val PAL_ENTRY_SIZE: Int = 8
 
         /** `BM_BGPAL_6`. */
-        const val BM_BGPAL_6 = 6
+        public const val BM_BGPAL_6: Int = 6
+
+        /** Root tree 0 (`PROC_TREE_VSYNC`). */
+        public const val PROC_TREE_VSYNC: Int = 0
+
+        /** Display proc mark (`PROC_MARK_DISP`). */
+        public const val PROC_MARK_DISP: Int = 1
     }
 }

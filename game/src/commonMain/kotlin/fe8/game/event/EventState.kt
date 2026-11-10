@@ -50,6 +50,7 @@ public class EventState {
         else -> 0
     }
 
+    /** Writes a queue word, including the adjacent globals reached by overflow. */
     private fun setWordAt(i: Int, value: Int) {
         when {
             i < 0 -> Unit
@@ -135,12 +136,14 @@ public class EventState {
         writeWords(mem, offset + ACTIVE_QUEUE_OFFSET, activeQueue)
     }
 
+    /** Decodes one little-endian word from a saved event-global block. */
     private fun readWord(bytes: ByteArray, offset: Int): Int =
         (bytes[offset].toInt() and 0xFF) or
             ((bytes[offset + 1].toInt() and 0xFF) shl 8) or
             ((bytes[offset + 2].toInt() and 0xFF) shl 16) or
             ((bytes[offset + 3].toInt() and 0xFF) shl 24)
 
+    /** Encodes one little-endian word into a saved event-global block. */
     private fun writeWord(bytes: ByteArray, offset: Int, value: Int) {
         bytes[offset] = value.toByte()
         bytes[offset + 1] = (value shr 8).toByte()
@@ -148,10 +151,12 @@ public class EventState {
         bytes[offset + 3] = (value shr 24).toByte()
     }
 
+    /** Loads an array of words from the event-global block. */
     private fun readWords(bytes: ByteArray, offset: Int, destination: IntArray) {
         for (i in destination.indices) destination[i] = readWord(bytes, offset + i * 4)
     }
 
+    /** Stores an array of words in the event-global block. */
     private fun writeWords(bytes: ByteArray, offset: Int, source: IntArray) {
         for (i in source.indices) writeWord(bytes, offset + i * 4, source[i])
     }

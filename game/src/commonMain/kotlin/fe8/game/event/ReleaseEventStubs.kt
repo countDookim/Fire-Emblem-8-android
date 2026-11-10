@@ -22,6 +22,7 @@ public object ReleaseEventStubs {
         }
     }
 
+    /** Builds a handler that reports the missing command and advances without effects. */
     private fun stub(code: Int, onStub: ((code: Int) -> Unit)?): EventHandler = EventHandler {
         onStub?.invoke(code)
         EVC_ADVANCE_CONTINUE

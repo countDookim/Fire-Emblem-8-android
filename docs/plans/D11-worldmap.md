@@ -79,3 +79,38 @@ Everything below is in `$FE8_ASSETS/reference/out`:
 
 Notes: wm4-wm7 may each need to be split once `ProcScr_*` rows are inspected; keep each at one source file.
 Per CLAUDE rule 4 nothing is "ported" until break-checked. Do not mark D-11 solved on subtitle wiring alone.
+
+## 4. Proc tree (resolved by D11-wm1)
+
+Test: `testing/.../WorldMapProcInventoryTest` (`ram_trace_prologue` `procs` watch, steps 4898-9313; not a port
+claim). `proc_script` (+0) is the script start, so the section-2 "symbol+offset" names were only mid-script reads
+via `ProcScr_*`/`gUnknown` labels; the real script symbols are below. Parent (+0x14) is a slot address, or a
+small integer = root tree index (`tree N`).
+
+- `gProcScr_GameControl` (root, whole range) -> child `ProcScr_WorldMapWrapper` 4898-9311 (blocking child, as in
+  `gamecontrol.c`). `ProcScr_WorldMapMain` is a root (`tree 3`), 4899-9309 (started by `NewWorldMap`, not a child
+  of the wrapper); so both section-1 roots exist and are named exactly.
+- Under `ProcScr_WorldMapMain` (all 4901-9309 unless noted): `ProcScr_GMapMuPrim` x6, `ProcScr_GMapMu`,
+  `ProcScr_WorldMapTextHandler`, `ProcScr_WorldMapFaceCtrl` (4907-9285) with child `ProcScr_WorldMapFaceHolder`.
+- Roots started by `WorldMap_Init`/`WorldMapMain`, 4900-4901 to 9309: `ProcScr_GMapScreen` (tree 5; children
+  `ProcScr_GmapUnit` x1, `ProcScr_GmapUnitContainer`, `ProcScr_GMapRoute`), `ProcScr_GMapScreenVSync` (tree 0),
+  `gProcScr_GmapCursor`, `ProcScr_GmNodeIconDisplay`.
+- 4907 on (event started): `ProcScr_StdEventEngine` (-9284) and `gProcScr_GmapMuEntry2` (-9285).
+- `GmapRm_Blocking` is a function inside `ProcScr_GmapRM` (root, 4942-9287); child `ProcScr_GmapRmUpdateDirect`
+  4948-9285. `ProcScr_BmFadeIN` 4944-5011 and `ProcScr_GmapLineFade` 4944-4998 are the opening fades.
+- Text: `gProcScr_Talk` 5106-9284 and `gProcScr_TalkSkipListener` 5108-9284 (roots, whole text phase); per text
+  box short-lived `gProcScr_TalkWaitForInput` (e.g. 5131-5161), `gProcScr_TalkLock`,
+  `ProcScr_TalkSpriteShiftClear` with `ProcScr_0859160C`/`ProcScr_08591624` (sprite shift children).
+- Per text/map-pan cycle (about every 268 steps from 5436): `ProcScr_GmapRmUpdateExt` (e.g. 5436-5497),
+  `gProcScr_E_FACE_ExtraFrame` (5496-5688, then repeats; last 8496-8846), `ProcScr_GmapRmBorder1` (5528-5670),
+  `ProcScr_GmapRmBaPalAnim1` (5554-5648; also 6965-7059).
+- Map-overview/units phase: `ProcScr_WmPlaceDot` x2 + `ProcScr_WmDotPalAnim` 8112-9280, `ProcScr_GmapUnit` x3-5
+  8172-9282, `ProcScr_GmapAutoMu` 8174-9129 (several runs), `ProcScr_GmapUnitFade` 8185-9220 (several runs).
+- Exit: `ProcScr_FadeToBlack` (child of `ProcScr_StdEventEngine`) 9253-9268; second `ProcScr_WorldMapFaceCtrl`/
+  `FaceHolder`/`GmapMuEntry2`/`StdEventEngine` run 9289-9292 (second event, likely the ChapterIntro event) before
+  everything vanishes (step 9311-9313; GameControl alone remains).
+
+Corrections to section 1/2: the `gUnknown_08206868+108` and `GmapRm_Blocking`/`GmapRmUpdateExt` "script" names
+were current-position labels of other procs, not roots; `ProcScr_GmapUnit`/`GMapMuPrim` are children as listed
+above. The chapter-0 loop exit is still not read from a capture, but the second event run at 9289-9292 supports the
+"ChapterIntro after Beginning" order (two StdEventEngine runs: 4907-9284 and 9289-9291).

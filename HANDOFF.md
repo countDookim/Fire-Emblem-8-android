@@ -10,8 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D11-wm1: scheduled, until ~17:25Z
-- D11-wm2: scheduled, until ~17:25Z
+None.
 
 ## Current state
 
@@ -20,7 +19,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 - Published **0.1.528 (`e0187ea`)**: CI **737 passed, zero failures/skips**; fixes the Rapier popup
   icon and stale frame on close. Local full `jvmTest test` also passed 737; both APK builds/content
   guards, game Dokka, 27 Python tests and instruction sync passed.
-- **665/8352 functions verified** (+12 on 11-10: `BMapVSync_InitMapAnimations`, `BMapVSync_Start`, `BMapVSync_OnLoop` in `1cd6709`; `StartBrownTextBox`, `sub_8011A1C`, `sub_8011A48`, `sub_8011AA0`, `sub_8011AF4`, `sub_8011B4C`, `sub_8011B90`, `GetItemType`, `GetItemAttributes` in `de5b055`), `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
+- **667/8352 functions verified** (+2 scheduled 11-10 pm: `Event15_BgmVolume` subcode 0, `GmDataInit`; +12 earlier 11-10: `BMapVSync_InitMapAnimations`, `BMapVSync_Start`, `BMapVSync_OnLoop` in `1cd6709`; `StartBrownTextBox`, `sub_8011A1C`, `sub_8011A48`, `sub_8011AA0`, `sub_8011AF4`, `sub_8011B4C`, `sub_8011B90`, `GetItemType`, `GetItemAttributes` in `de5b055`), `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
 - Layout: game-neutral `:gba:*`, `gbafe.*` in `:engine:*`, FE8 `fe8.*` in `:game`/`:app` (ADRs 0010–0013).
@@ -51,8 +50,10 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
    that callback, so clock ticks are not completed normal updates. Next: extend replay using
    callback phases, then verify later lifecycle, normal ending and original Start skips before
    wiring. Monologue 1213–4897; world-map wrapper 4898–9313 is separate. See [M6 notes](docs/plans/M6-notes.md).
-2. **D-12:** owner compares the banner with an emulator; D12-2 adds enemy-phase and original scanline captures.
-3. **D-09:** item popup is wired through Event37, GotItemPopup and PopupScript. `539016e` fixes the
+2. **D11 world map** (steps 4898–9313, [plan](docs/plans/D11-worldmap.md)): wm1 proc tree resolved; `GmData` port
+   (fe8.game.worldmap) verified but not wired into GameControl `hooks.gmDataInit`. Next: D11-wm2 WMLoc lookups, wm3.
+3. **D-12:** owner compares the banner with an emulator; D12-2 adds enemy-phase and original scanline captures.
+4. **D-09:** item popup is wired through Event37, GotItemPopup and PopupScript. `539016e` fixes the
    omitted icon OAM callback and missing BG sync on close. The real boot-path test checks visible
    icon/palette/glyph/text state, blocking volume children, cleanup and final inventory against
    `ram_trace_item_popup`; silent audio and state alignment do not establish full-scene/audio timing.

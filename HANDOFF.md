@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-09. Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-10. Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D09-3h (ProcScr_Popup script host on ProcEngine): scheduled, until ~05:25Z
+_(none; scheduled run completed; no worktrees open)_
 
 ## Current state
 
@@ -18,7 +18,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
   Original save restored afterward; ROM import preserved. Published 0.1.488 (`8c5b7c9`) banner comparison remains partial.
 - Published replacement: **0.1.497 (`42dc059`)**, CI **706 tests, zero failures/skips**. Local full
   `jvmTest test` also passed 706; both APK content guards, game/audio Dokka, 27 Python tests and instruction sync passed.
-- **643/8352 functions verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
+- **~650/8352 functions verified** (643 + 7 popup ports 11-10; CI updates the count), `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
   Local full `jvmTest test` 723 tests green (11-09 late, popup ports). Most of the count recovery credits existing scheduled ports after their test helpers were moved below tagged methods.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
@@ -59,8 +59,11 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
    11-09 late: `ParsePopupInstAndGetLen`, `GetItemName`/`GetItemNameWithArticle`/`GetItemIconId` (`f748e13`),
    `GeneratePopupText` (`d7ce616`), `PopupProc_GfxDraw` (`5c738f2`, ResetText's special-char reset not modelled) and
    `PopupProc_GfxClear` (`3638c8f`; width+1 column from TmFillRect asm, not distinguished by the capture) verified vs
-   item_popup. OP_NUM/unit-name/wtype paths unexercised. Next (low priority): PrepareGfx, volume/sound callbacks,
-   proc script host, then replace the EventGiveItem stand-in.
+   item_popup. OP_NUM/unit-name/wtype paths unexercised. 11-10: `PopupProc_PrepareGfx`, `ResetIconGraphics`, `PopupProc_Maybe{Set,Reset}Volume` (`f8ca29f`; window bits/icon
+   tables seeded, blend real), `fe8.game.ui.PopupScript` hosting `ProcScr_Popup` on `ProcEngine` with verified
+   `NewPopupCore`/`NewPopup_Simple` (`7a2c7e9`, per-step scrCur/lifetime) and `PopupIconUpdateProc_Loop` (`6acd49c`,
+   OAM every 10th frame). `PlaySound` transcribed; BGM-volume child is a test stand-in; negative-clock key path
+   untested. Next (low priority): wire `PopupScript` in place of the EventGiveItem stand-in.
 
 ## Verification limits worth retaining
 

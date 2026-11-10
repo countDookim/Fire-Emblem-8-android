@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 665,
-    "implemented_unverified": 1
+    "verified": 678,
+    "implemented_unverified": 3
   },
   "functions": {
     "AddUnitSprite": {
@@ -994,6 +994,15 @@
         "fe8.game.event.EventBgmTest#event12StartBgm starts song and matches reference sound state at r09540"
       ]
     },
+    "Event15_BgmVolume": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventBgm.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.event.EventBgmTest#event15BgmVolume duck matches the prologue proc array"
+      ]
+    },
     "Event1A_TEXTSTART": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -1318,6 +1327,24 @@
         "fe8.testing.M4aFadeTest#fade steps match the trace"
       ]
     },
+    "FadeToBlack_OnInit": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleProcDifferentialTest#continuous playback follows the original parent through the first cards"
+      ]
+    },
+    "FadeToCommon_OnLoop": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleProcDifferentialTest#continuous playback follows the original parent through the first cards"
+      ]
+    },
     "FlipBgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
       "system": "battle_map",
@@ -1484,7 +1511,7 @@
     "GenerateScriptBattleHitFormEventQueue": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -2045,6 +2072,15 @@
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
       ]
     },
+    "GmDataInit": {
+      "decomp_file": "src/worldmap_path.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/GmData.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.worldmap.GmDataTest#gmDataInit from garbage matches gGMData in the first trace dump"
+      ]
+    },
     "HBlank_BgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
       "system": "battle_map",
@@ -2598,6 +2634,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "NewWorldMap": {
+      "decomp_file": "src/worldmap_main.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapWrapperTest#wrapper starts the world map main proc with the original timer"
       ]
     },
     "NextRN": {
@@ -3441,6 +3486,24 @@
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
       ]
     },
+    "RefreshGmNodeLinks": {
+      "decomp_file": "src/worldmap_path.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapPath.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapPathTest#node links rebuilt from open paths match the traced table"
+      ]
+    },
+    "RefreshGmNodeLinksExt": {
+      "decomp_file": "src/worldmap_path.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapPath.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapPathTest#node links rebuilt from open paths match the traced table"
+      ]
+    },
     "RefreshTerrainBmMap": {
       "decomp_file": "src/bmmap.c",
       "system": "battle_map",
@@ -4023,6 +4086,15 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
       ]
     },
+    "StartFadeToBlack": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleProcDifferentialTest#continuous playback follows the original parent through the first cards"
+      ]
+    },
     "StartGame": {
       "decomp_file": "src/gamecontrol.c",
       "system": "core",
@@ -4075,6 +4147,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "StartSlowFadeToBlack": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleProcDifferentialTest#continuous playback follows the original parent through the first cards"
       ]
     },
     "StartSongDelayed": {
@@ -4702,6 +4783,29 @@
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
       ]
     },
+    "WMLoc_GetChapterId": {
+      "decomp_file": "src/worldmap_screen2.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WmNodeData.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "WMLoc_GetNextLocId": {
+      "decomp_file": "src/worldmap_screen2.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WmNodeData.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "WaitForFade": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleProcDifferentialTest#continuous playback follows the original parent through the first cards"
+      ]
+    },
     "WipeSram": {
       "decomp_file": "src/bmsave-lib.c",
       "system": "save",
@@ -4709,6 +4813,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "WorldMap_CallBeginningEvent": {
+      "decomp_file": "src/worldmap_main.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapWrapperTest#beginning event sets the current node and chapter like the original"
       ]
     },
     "WriteAndVerifySramFast": {
@@ -5163,6 +5276,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterMapGraphicsDifferentialTest#OBJ UI graphics and palettes match the dump"
+      ]
+    },
+    "sub_80B8FD4": {
+      "decomp_file": "src/worldmap_main.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapWrapperTest#sub_80B8FD4 sets state_0 and clears state_3 like the original"
+      ]
+    },
+    "sub_80B8FEC": {
+      "decomp_file": "src/worldmap_main.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapWrapperTest#sub_80B8FEC clears merge_next_node when no node is next like the original"
       ]
     },
     "sub_80C488C": {

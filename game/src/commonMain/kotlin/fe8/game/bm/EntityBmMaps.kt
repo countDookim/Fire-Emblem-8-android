@@ -52,43 +52,43 @@ public class EntityBmMaps(
      * the fog map (the last [BmMap.bmMapFill] of [refreshEntityBmMaps]).
      */
     public fun refreshUnitsOnBmMap() {
-        val fog = playSt.chapterVisionRange != 0
-        for (i in 1 until FACTION_RED) {
-            val o = units.unitOffset(i)
-            if (!isValid(o)) continue
-            if ((state(o) and US_HIDDEN) != 0) continue
+        val hasFog = playSt.chapterVisionRange != 0
+        for (unitId in 1 until FACTION_RED) {
+            val unitOffset = units.unitOffset(unitId)
+            if (!isValid(unitOffset)) continue
+            if ((state(unitOffset) and US_HIDDEN) != 0) continue
 
-            map.unit[ySpot(o), xSpot(o)] = i
-            if (fog) mapAddInRange(xSpot(o), ySpot(o), fogViewRange(i, o), 1)
+            map.unit[ySpot(unitOffset), xSpot(unitOffset)] = unitId
+            if (hasFog) mapAddInRange(xSpot(unitOffset), ySpot(unitOffset), fogViewRange(unitId, unitOffset), 1)
         }
 
-        val redPhase = playSt.faction == FACTION_RED
-        for (i in FACTION_RED + 1 until FACTION_PURPLE + 6) {
-            val o = units.unitOffset(i)
-            if (!isValid(o)) continue
-            if ((state(o) and US_HIDDEN) != 0) continue
+        val isRedPhase = playSt.faction == FACTION_RED
+        for (unitId in FACTION_RED + 1 until FACTION_PURPLE + 6) {
+            val unitOffset = units.unitOffset(unitId)
+            if (!isValid(unitOffset)) continue
+            if ((state(unitOffset) and US_HIDDEN) != 0) continue
 
-            val x = xSpot(o)
-            val y = ySpot(o)
-            if ((units.cAttributes(i) and CA_MAGICSEAL) != 0) mapAddInRange(x, y, 10, -1)
+            val x = xSpot(unitOffset)
+            val y = ySpot(unitOffset)
+            if ((units.cAttributes(unitId) and CA_MAGICSEAL) != 0) mapAddInRange(x, y, 10, -1)
 
-            if (!redPhase) {
-                if (fog && map.fog[y, x] == 0) {
+            if (!isRedPhase) {
+                if (hasFog && map.fog[y, x] == 0) {
                     map.hidden[y, x] = map.hidden[y, x] or HIDDEN_BIT_UNIT
-                    put32(units.bytes, o + OFF_STATE, state(o) or US_BIT9)
+                    put32(units.bytes, unitOffset + OFF_STATE, state(unitOffset) or US_BIT9)
                 } else {
-                    map.unit[y, x] = i
-                    if ((state(o) and US_BIT9) != 0) {
-                        put32(units.bytes, o + OFF_STATE, (state(o) and US_BIT9.inv()) or US_BIT8)
+                    map.unit[y, x] = unitId
+                    if ((state(unitOffset) and US_BIT9) != 0) {
+                        put32(units.bytes, unitOffset + OFF_STATE, (state(unitOffset) and US_BIT9.inv()) or US_BIT8)
                     }
                 }
             } else {
-                if (fog) {
-                    val hidden = map.fog[y, x] == 0
-                    val s = if (hidden) state(o) or US_BIT9 else state(o) and US_BIT9.inv()
-                    put32(units.bytes, o + OFF_STATE, s)
+                if (hasFog) {
+                    val isHiddenByFog = map.fog[y, x] == 0
+                    val updatedState = if (isHiddenByFog) state(unitOffset) or US_BIT9 else state(unitOffset) and US_BIT9.inv()
+                    put32(units.bytes, unitOffset + OFF_STATE, updatedState)
                 }
-                map.unit[y, x] = i
+                map.unit[y, x] = unitId
             }
         }
     }
@@ -101,61 +101,92 @@ public class EntityBmMaps(
      */
     public fun mapAddInRange(x: Int, y: Int, range: Int, value: Int) {
         val pool = checkNotNull(map.workingMap) { "no working map" }
-        var iRange = range
-        var iy = y
-        while (iy <= y + range && iy < map.sizeY) {
-            addRow(pool, iy, x, iRange, value)
-            iRange--
-            iy++
+        var rowDistance = range
+        var rowY = y
+        while (rowY <= y + range && rowY < map.sizeY) {
+            addRow(pool, rowY, x, rowDistance, value)
+            rowDistance--
+            rowY++
         }
-        iRange = range - 1
-        iy = y - 1
-        while (iy >= y - range && iy >= 0) {
-            addRow(pool, iy, x, iRange, value)
-            iRange--
-            iy--
+        rowDistance = range - 1
+        rowY = y - 1
+        while (rowY >= y - range && rowY >= 0) {
+            addRow(pool, rowY, x, rowDistance, value)
+            rowDistance--
+            rowY--
         }
     }
 
-    private fun addRow(pool: BmMap.Pool, iy: Int, x: Int, iRange: Int, value: Int) {
-        var xMin = x - iRange
-        var xRange = 2 * iRange + 1
+    /** Adds [value] across a horizontal span centered at [centerX] with half-width [rowRadius]. */
+    private fun addRow(pool: BmMap.Pool, rowY: Int, centerX: Int, rowRadius: Int, value: Int) {
+        var xMin = centerX - rowRadius
+        var spanWidth = 2 * rowRadius + 1
         if (xMin < 0) {
-            xRange += xMin
+            spanWidth += xMin
             xMin = 0
         }
-        var xMax = xMin + xRange
+        var xMax = xMin + spanWidth
         if (xMax > map.sizeX) xMax = map.sizeX
-        for (ix in xMin until xMax) pool[iy, ix] = pool[iy, ix] + value
+        for (colX in xMin until xMax) pool[rowY, colX] = pool[rowY, colX] + value
     }
 
-    /** `GetUnitFogViewRange` (src/bmunit.c): vision, +5 for thieves, plus the torch duration. */
-    private fun fogViewRange(id: Int, o: Int): Int {
+    /**
+     * Computes the effective vision range for unit [unitId] at [unitOffset] (`GetUnitFogViewRange`, src/bmunit.c).
+     * Includes chapter base vision, +5 vision bonus for thieves ([CA_THIEF]), and remaining torch item duration.
+     */
+    private fun fogViewRange(unitId: Int, unitOffset: Int): Int {
         var result = playSt.chapterVisionRange
-        if ((units.cAttributes(id) and CA_THIEF) != 0) result += 5
-        return result + (u8(units.bytes, o + OFF_TORCH) and 0xF)
+        if ((units.cAttributes(unitId) and CA_THIEF) != 0) result += 5
+        return result + (u8(units.bytes, unitOffset + OFF_TORCH) and 0xF)
     }
 
-    private fun isValid(o: Int): Boolean = o >= 0 && u32(units.bytes, o) != 0
+    /** True if the unit struct at byte offset [unitOffset] is valid and has a non-null character pointer. */
+    private fun isValid(unitOffset: Int): Boolean = unitOffset >= 0 && u32(units.bytes, unitOffset) != 0
 
-    private fun state(o: Int): Int = u32(units.bytes, o + OFF_STATE)
+    /** Reads the 32-bit unit state word (`struct Unit.state`) at [unitOffset]. */
+    private fun state(unitOffset: Int): Int = u32(units.bytes, unitOffset + OFF_STATE)
 
-    private fun xSpot(o: Int): Int = units.bytes[o + OFF_X].toInt()
+    /** Reads the map tile X coordinate (`struct Unit.xPos`) at [unitOffset]. */
+    private fun xSpot(unitOffset: Int): Int = units.bytes[unitOffset + OFF_X].toInt()
 
-    private fun ySpot(o: Int): Int = units.bytes[o + OFF_Y].toInt()
+    /** Reads the map tile Y coordinate (`struct Unit.yPos`) at [unitOffset]. */
+    private fun ySpot(unitOffset: Int): Int = units.bytes[unitOffset + OFF_Y].toInt()
 
     private companion object {
+        /** Red / enemy faction unit index start (0x80). */
         const val FACTION_RED = 0x80
+
+        /** Purple / link arena faction unit index start (0xC0). */
         const val FACTION_PURPLE = 0xC0
+
+        /** Byte offset of `state` field in `struct Unit` (0x0C). */
         const val OFF_STATE = 0x0C
+
+        /** Byte offset of `xPos` field in `struct Unit` (0x10). */
         const val OFF_X = 0x10
+
+        /** Byte offset of `yPos` field in `struct Unit` (0x11). */
         const val OFF_Y = 0x11
+
+        /** Byte offset of `torch` item countdown field in `struct Unit` (0x31). */
         const val OFF_TORCH = 0x31
+
+        /** Unit state flag: unit is hidden / absent from map (bit 0). */
         const val US_HIDDEN = 1 shl 0
+
+        /** Unit state flag: unit has been revealed / seen this turn (bit 8). */
         const val US_BIT8 = 1 shl 8
+
+        /** Unit state flag: unit is concealed by fog of war (bit 9). */
         const val US_BIT9 = 1 shl 9
+
+        /** Character attribute flag: thief class vision range bonus (+5 tiles, bit 3). */
         const val CA_THIEF = 1 shl 3
+
+        /** Character attribute flag: magic seal dampening field (bit 26). */
         const val CA_MAGICSEAL = 1 shl 26
+
+        /** Bitmask in `gBmMapHidden` indicating a hidden unit on that tile (bit 0). */
         const val HIDDEN_BIT_UNIT = 1 shl 0
     }
 }

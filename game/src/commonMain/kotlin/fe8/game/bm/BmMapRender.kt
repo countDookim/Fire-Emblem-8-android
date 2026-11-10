@@ -35,15 +35,15 @@ public class BmMapRender(
         xBmMap: Int,
         yBmMap: Int,
     ) {
-        val out = yTileMap * 0x40 + xTileMap * 2
+        val destBufferIndex = yTileMap * 0x40 + xTileMap * 2
         // `sTilesetConfig + tile` is a u16 pointer: the base tile is a halfword index.
         val config = map.tilesetConfig
         val tile = map.baseTile(xBmMap, yBmMap) * 2
-        val base = if (map.fog[yBmMap, xBmMap] != 0) 6 shl 12 else 11 shl 12
-        bg[out] = (base + half(config, tile)).toShort()
-        bg[out + 1] = (base + half(config, tile + 2)).toShort()
-        bg[out + 0x20] = (base + half(config, tile + 4)).toShort()
-        bg[out + 0x21] = (base + half(config, tile + 6)).toShort()
+        val paletteBase = if (map.fog[yBmMap, xBmMap] != 0) 6 shl 12 else 11 shl 12
+        bg[destBufferIndex] = (paletteBase + half(config, tile)).toShort()
+        bg[destBufferIndex + 1] = (paletteBase + half(config, tile + 2)).toShort()
+        bg[destBufferIndex + 0x20] = (paletteBase + half(config, tile + 4)).toShort()
+        bg[destBufferIndex + 0x21] = (paletteBase + half(config, tile + 6)).toShort()
     }
 
     /**
@@ -61,17 +61,19 @@ public class BmMapRender(
     /** The `DisplayMovementViewTile` stand-in, or null to draw nothing on BG2. */
     public var movementView: MovementViewTile? = null
 
-    private fun half(bytes: ByteArray, at: Int): Int =
-        (bytes[at].toInt() and 0xFF) or ((bytes[at + 1].toInt() and 0xFF) shl 8)
+    /** Reads an unsigned little-endian 16-bit halfword from [bytes] at [offset]. */
+    private fun half(bytes: ByteArray, offset: Int): Int =
+        (bytes[offset].toInt() and 0xFF) or ((bytes[offset + 1].toInt() and 0xFF) shl 8)
 
-    private fun renderWindow(bg: ShortArray) {
+    /** Renders the full visible 15x10 metatile window into [tilemapBuffer]. */
+    private fun renderWindow(tilemapBuffer: ShortArray) {
         bmSt.mapRenderOriginX = (bmSt.cameraX shr 4) and 0xFFFF
         bmSt.mapRenderOriginY = (bmSt.cameraY shr 4) and 0xFFFF
         val originX = bmSt.mapRenderOriginX.toShort().toInt()
         val originY = bmSt.mapRenderOriginY.toShort().toInt()
-        for (iy in VISIBLE_ROWS - 1 downTo 0) {
-            for (ix in VISIBLE_COLUMNS - 1 downTo 0) {
-                displayBmTile(bg, ix, iy, originX + ix, originY + iy)
+        for (tileY in VISIBLE_ROWS - 1 downTo 0) {
+            for (tileX in VISIBLE_COLUMNS - 1 downTo 0) {
+                displayBmTile(tilemapBuffer, tileX, tileY, originX + tileX, originY + tileY)
             }
         }
     }
@@ -110,35 +112,35 @@ public class BmMapRender(
      * (and the BG2 scroll while `gameStateBits & 1`) relative to `mapRenderOrigin`.
      */
     public fun updateBmMapDisplay() {
-        val st = bmSt
-        if (st.cameraX != st.cameraPreviousX) {
-            if (st.cameraX > st.cameraPreviousX) {
-                if (((st.cameraX - 1) xor (st.cameraPreviousX - 1)) and 0x10 != 0) {
+        val bm = bmSt
+        if (bm.cameraX != bm.cameraPreviousX) {
+            if (bm.cameraX > bm.cameraPreviousX) {
+                if (((bm.cameraX - 1) xor (bm.cameraPreviousX - 1)) and 0x10 != 0) {
                     renderBmMapColumn(VISIBLE_COLUMNS)
                 }
-            } else if ((st.cameraX xor st.cameraPreviousX) and 0x10 != 0) {
+            } else if ((bm.cameraX xor bm.cameraPreviousX) and 0x10 != 0) {
                 renderBmMapColumn(0)
             }
         }
 
-        if (st.cameraY != st.cameraPreviousY) {
-            if (st.cameraY > st.cameraPreviousY) {
-                if (((st.cameraY - 1) xor (st.cameraPreviousY - 1)) and 0x10 != 0) {
+        if (bm.cameraY != bm.cameraPreviousY) {
+            if (bm.cameraY > bm.cameraPreviousY) {
+                if (((bm.cameraY - 1) xor (bm.cameraPreviousY - 1)) and 0x10 != 0) {
                     renderBmMapLine(VISIBLE_ROWS)
                 }
-            } else if ((st.cameraY xor st.cameraPreviousY) and 0x10 != 0) {
+            } else if ((bm.cameraY xor bm.cameraPreviousY) and 0x10 != 0) {
                 renderBmMapLine(0)
             }
         }
 
-        st.cameraPreviousX = st.cameraX
-        st.cameraPreviousY = st.cameraY
+        bm.cameraPreviousX = bm.cameraX
+        bm.cameraPreviousY = bm.cameraY
 
-        val x = st.cameraX - st.mapRenderOriginX * 16
-        val y = st.cameraY - st.mapRenderOriginY * 16
-        hardware.lcd.setBgPosition(BG3, x, y)
-        if (st.gameStateBits and 1 != 0) {
-            hardware.lcd.setBgPosition(BG2, x, y)
+        val scrollX = bm.cameraX - bm.mapRenderOriginX * 16
+        val scrollY = bm.cameraY - bm.mapRenderOriginY * 16
+        hardware.lcd.setBgPosition(BG3, scrollX, scrollY)
+        if (bm.gameStateBits and 1 != 0) {
+            hardware.lcd.setBgPosition(BG2, scrollX, scrollY)
         }
     }
 
@@ -150,20 +152,20 @@ public class BmMapRender(
      * sync (BG2 as well while `gameStateBits & 1`).
      */
     public fun renderBmMapColumn(xOffset: Int) {
-        val st = bmSt
-        val bg3 = hardware.mapBuffer(BG3)
-        val xBmMap = ((st.cameraX shr 4) + xOffset) and 0xFFFF
-        val yBmMap = (st.cameraY shr 4) and 0xFFFF
-        val xTileMap = ((st.cameraX shr 4) - st.mapRenderOriginX + xOffset) and 0xF
-        val yTileMap = ((st.cameraY shr 4) - st.mapRenderOriginY) and 0xFFFF
-        val view = if (st.gameStateBits and 1 != 0) movementView else null
-        for (iy in 10 downTo 0) {
-            val ty = (yTileMap + iy) and 0xF
-            displayBmTile(bg3, xTileMap, ty, xBmMap, (yBmMap + iy) and 0xFFFF)
-            view?.display(hardware.mapBuffer(BG2), xBmMap, (yBmMap + iy) and 0xFFFF, xTileMap, ty)
+        val bm = bmSt
+        val bg3Buffer = hardware.mapBuffer(BG3)
+        val xBmMap = ((bm.cameraX shr 4) + xOffset) and 0xFFFF
+        val yBmMap = (bm.cameraY shr 4) and 0xFFFF
+        val xTileMap = ((bm.cameraX shr 4) - bm.mapRenderOriginX + xOffset) and 0xF
+        val yTileMap = ((bm.cameraY shr 4) - bm.mapRenderOriginY) and 0xFFFF
+        val movementOverlay = if (bm.gameStateBits and 1 != 0) movementView else null
+        for (rowOffset in 10 downTo 0) {
+            val wrappedTileY = (yTileMap + rowOffset) and 0xF
+            displayBmTile(bg3Buffer, xTileMap, wrappedTileY, xBmMap, (yBmMap + rowOffset) and 0xFFFF)
+            movementOverlay?.display(hardware.mapBuffer(BG2), xBmMap, (yBmMap + rowOffset) and 0xFFFF, xTileMap, wrappedTileY)
         }
         hardware.enableBgSyncByMask(
-            if (st.gameStateBits and 1 != 0) BG2_SYNC_BIT or BG3_SYNC_BIT else BG3_SYNC_BIT,
+            if (bm.gameStateBits and 1 != 0) BG2_SYNC_BIT or BG3_SYNC_BIT else BG3_SYNC_BIT,
         )
     }
 
@@ -175,44 +177,44 @@ public class BmMapRender(
      * sync (BG2 as well while `gameStateBits & 1`).
      */
     public fun renderBmMapLine(yOffset: Int) {
-        val st = bmSt
-        val bg3 = hardware.mapBuffer(BG3)
-        val xBmMap = (st.cameraX shr 4) and 0xFFFF
-        val yBmMap = ((st.cameraY shr 4) + yOffset) and 0xFFFF
-        val xTileMap = ((st.cameraX shr 4) - st.mapRenderOriginX) and 0xFFFF
-        val yTileMap = ((st.cameraY shr 4) - st.mapRenderOriginY + yOffset) and 0xF
-        val view = if (st.gameStateBits and 1 != 0) movementView else null
-        for (ix in 15 downTo 0) {
-            val tx = (xTileMap + ix) and 0xF
-            displayBmTile(bg3, tx, yTileMap, (xBmMap + ix) and 0xFFFF, yBmMap)
-            view?.display(hardware.mapBuffer(BG2), (xBmMap + ix) and 0xFFFF, yBmMap, tx, yTileMap)
+        val bm = bmSt
+        val bg3Buffer = hardware.mapBuffer(BG3)
+        val xBmMap = (bm.cameraX shr 4) and 0xFFFF
+        val yBmMap = ((bm.cameraY shr 4) + yOffset) and 0xFFFF
+        val xTileMap = ((bm.cameraX shr 4) - bm.mapRenderOriginX) and 0xFFFF
+        val yTileMap = ((bm.cameraY shr 4) - bm.mapRenderOriginY + yOffset) and 0xF
+        val movementOverlay = if (bm.gameStateBits and 1 != 0) movementView else null
+        for (colOffset in 15 downTo 0) {
+            val wrappedTileX = (xTileMap + colOffset) and 0xF
+            displayBmTile(bg3Buffer, wrappedTileX, yTileMap, (xBmMap + colOffset) and 0xFFFF, yBmMap)
+            movementOverlay?.display(hardware.mapBuffer(BG2), (xBmMap + colOffset) and 0xFFFF, yBmMap, wrappedTileX, yTileMap)
         }
         hardware.enableBgSyncByMask(
-            if (st.gameStateBits and 1 != 0) BG2_SYNC_BIT or BG3_SYNC_BIT else BG3_SYNC_BIT,
+            if (bm.gameStateBits and 1 != 0) BG2_SYNC_BIT or BG3_SYNC_BIT else BG3_SYNC_BIT,
         )
     }
 
     /** Constants of the visible window. */
     public companion object {
-        /** `BG_2`. */
+        /** `BG_2`: background layer index 2 (used for range display overlay). */
         public const val BG2: Int = 2
 
-        /** `BG_3`. */
+        /** `BG_3`: background layer index 3 (used for map tiles). */
         public const val BG3: Int = 3
 
-        /** `BG2_SYNC_BIT`. */
+        /** `BG2_SYNC_BIT`: VBlank sync bitmask for BG2 (1 shl 2). */
         public const val BG2_SYNC_BIT: Int = 1 shl 2
 
-        /** `BG3_SYNC_BIT`. */
+        /** `BG3_SYNC_BIT`: VBlank sync bitmask for BG3 (1 shl 3). */
         public const val BG3_SYNC_BIT: Int = 1 shl 3
 
-        /** Metatile columns drawn by [BmMapRender.renderBmMap]. */
+        /** Metatile columns drawn by [BmMapRender.renderBmMap] (15 metatiles = 240 pixels). */
         public const val VISIBLE_COLUMNS: Int = 15
 
-        /** Metatile rows drawn by [BmMapRender.renderBmMap]. */
+        /** Metatile rows drawn by [BmMapRender.renderBmMap] (10 metatiles = 160 pixels). */
         public const val VISIBLE_ROWS: Int = 10
 
-        /** BG tile data offset of the chapter tileset. */
+        /** BG tile data offset of the chapter tileset (0x8000). */
         public const val TILESET_OFFSET: Int = 0x8000
     }
 }

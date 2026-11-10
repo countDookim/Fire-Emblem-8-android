@@ -62,6 +62,10 @@ public class BmMap(
             bytes[rowTableBytes + (y + 2) * stride + x] = value.toByte()
         }
 
+        /**
+         * Computes the row table offset and stride for a map of [width] x [height] tiles,
+         * reserving padding rows for out-of-bounds safety.
+         */
         internal fun layout(width: Int, height: Int) {
             val rows = height + 4
             val table = rows * 4
@@ -80,25 +84,25 @@ public class BmMap(
     public var sizeY: Int = 0
         private set
 
-    /** `gBmMapUnit`. */
+    /** `gBmMapUnit`: unit slot index map (0 = empty, 1..62 = player, 65.. = NPC, 129.. = enemy). */
     public val unit: Pool = Pool()
 
-    /** `gBmMapTerrain`. */
+    /** `gBmMapTerrain`: terrain ID map. */
     public val terrain: Pool = Pool()
 
-    /** `gBmMapMovement`. */
+    /** `gBmMapMovement`: movement cost / reachable area map. */
     public val movement: Pool = Pool()
 
-    /** `gBmMapRange`. */
+    /** `gBmMapRange`: attack / staff range overlay map. */
     public val range: Pool = Pool()
 
-    /** `gBmMapFog`. */
+    /** `gBmMapFog`: fog of war visibility map (0 = hidden by fog, >0 = visible). */
     public val fog: Pool = Pool()
 
-    /** `gBmMapHidden`. */
+    /** `gBmMapHidden`: hidden traps and hidden units map. */
     public val hidden: Pool = Pool()
 
-    /** `gBmMapOther`. */
+    /** `gBmMapOther`: secondary working / calculation map. */
     public val other: Pool = Pool()
 
     /** The pool last passed to [bmMapFill] (`SetWorkingBmMap`'s `gWorkingBmMap`), if any. */
@@ -154,11 +158,11 @@ public class BmMap(
     public fun loadBaseTiles(src: ByteArray, offset: Int) {
         val rows = sizeY + 1
         baseTilesOrigin = rows * 2
-        var at = offset + rows * 4
-        for (i in 0 until rows * sizeX) {
-            baseTiles[baseTilesOrigin + i] =
-                ((src[at].toInt() and 0xFF) or (src[at + 1].toInt() shl 8)).toShort()
-            at += 2
+        var sourceOffset = offset + rows * 4
+        for (tileIndex in 0 until rows * sizeX) {
+            baseTiles[baseTilesOrigin + tileIndex] =
+                ((src[sourceOffset].toInt() and 0xFF) or (src[sourceOffset + 1].toInt() shl 8)).toShort()
+            sourceOffset += 2
         }
     }
 
@@ -203,10 +207,10 @@ public class BmMap(
      * bytes at a time (an odd count loses its last byte) and makes it the working map.
      */
     public fun bmMapFill(pool: Pool, value: Int) {
-        var size = (sizeY + 4) * (sizeX + 2)
-        if (size % 2 != 0) size -= 1
-        val start = pool.rowTableBytes
-        pool.bytes.fill(value.toByte(), start, start + size)
+        var fillByteCount = (sizeY + 4) * (sizeX + 2)
+        if (fillByteCount % 2 != 0) fillByteCount -= 1
+        val startOffset = pool.rowTableBytes
+        pool.bytes.fill(value.toByte(), startOffset, startOffset + fillByteCount)
         workingMap = pool
     }
 
@@ -217,13 +221,13 @@ public class BmMap(
      * Sets the outermost tiles of the map (first and last column and row) of [pool] to [value].
      */
     public fun bmMapFillEdges(pool: Pool, value: Int) {
-        for (iy in 0 until sizeY) {
-            pool[iy, 0] = value
-            pool[iy, sizeX - 1] = value
+        for (tileY in 0 until sizeY) {
+            pool[tileY, 0] = value
+            pool[tileY, sizeX - 1] = value
         }
-        for (ix in 0 until sizeX) {
-            pool[0, ix] = value
-            pool[sizeY - 1, ix] = value
+        for (tileX in 0 until sizeX) {
+            pool[0, tileX] = value
+            pool[sizeY - 1, tileX] = value
         }
     }
 
@@ -239,16 +243,16 @@ public class BmMap(
         baseTilesOrigin = rows * 2
         val used = baseTilesOrigin + rows * sizeX
         require(used <= MAP_POOL_SIZE) { "map exceeds the base tile pool" }
-        var src = 2
-        for (iy in 0 until sizeY) {
-            for (ix in 0 until sizeX) {
-                val lo = mapBuffer[src].toInt() and 0xFF
-                val hi = mapBuffer[src + 1].toInt() and 0xFF
-                baseTiles[baseTilesOrigin + iy * sizeX + ix] = (lo or (hi shl 8)).toShort()
-                src += 2
+        var bufferOffset = 2
+        for (tileY in 0 until sizeY) {
+            for (tileX in 0 until sizeX) {
+                val lowByte = mapBuffer[bufferOffset].toInt() and 0xFF
+                val highByte = mapBuffer[bufferOffset + 1].toInt() and 0xFF
+                baseTiles[baseTilesOrigin + tileY * sizeX + tileX] = (lowByte or (highByte shl 8)).toShort()
+                bufferOffset += 2
             }
         }
-        for (ix in 0 until sizeX) baseTiles[baseTilesOrigin + sizeY * sizeX + ix] = 0
+        for (tileX in 0 until sizeX) baseTiles[baseTilesOrigin + sizeY * sizeX + tileX] = 0
     }
 
     /** Reads `gBmMapBaseTiles[y][x]`, the tileset tile id of map tile ([x], [y]). */
@@ -262,8 +266,8 @@ public class BmMap(
      * [refreshAllLightRunes].
      */
     public fun refreshTerrainBmMap() {
-        for (iy in 0 until sizeY) {
-            for (ix in 0 until sizeX) terrain[iy, ix] = terrainLookup(baseTile(ix, iy))
+        for (tileY in 0 until sizeY) {
+            for (tileX in 0 until sizeX) terrain[tileY, tileX] = terrainLookup(baseTile(tileX, tileY))
         }
         refreshAllLightRunes()
     }
@@ -276,7 +280,7 @@ public class BmMap(
      */
     public fun getTrueTerrainAt(x: Int, y: Int): Int = terrainLookup(baseTile(x, y))
 
-    /** `gTilesetTerrainLookup[tile >> 2]`. */
+    /** Looks up terrain ID from `sTilesetConfig` terrain table (`gTilesetTerrainLookup`) for [tile]. */
     private fun terrainLookup(tile: Int): Int =
         tilesetConfig[TERRAIN_LOOKUP + (tile shr 2)].toInt() and 0xFF
 
@@ -294,7 +298,10 @@ public class BmMap(
         /** Byte offset of `gTilesetTerrainLookup` (`sTilesetConfig + 0x1000` halfwords). */
         public const val TERRAIN_LOOKUP: Int = 0x2000
 
+        /** Screen display width in pixels (240). */
         private const val DISPLAY_WIDTH = 240
+
+        /** Screen display height in pixels (160). */
         private const val DISPLAY_HEIGHT = 160
     }
 }

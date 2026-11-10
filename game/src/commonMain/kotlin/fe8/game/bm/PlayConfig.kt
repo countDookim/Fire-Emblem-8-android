@@ -1,19 +1,28 @@
 package fe8.game.bm
 
-/** `PLAY_FLAG_HARD` of `PlaySt.chapterStateBits` (include/types.h). */
+/**
+ * `PLAY_FLAG_HARD` flag in `PlaySt.chapterStateBits` (include/types.h).
+ *
+ * Indicates that the playthrough is running in Difficult / Hard mode.
+ */
 public const val PLAY_FLAG_HARD: Int = 1 shl 6
 
 /**
  * Ported from src/bmio.c: InitPlayConfig
  *
- * Zeroes [playSt], clears `chapterIndex`, sets the hard flag when [isDifficult] and sets the
- * default option bits, with `config.controller` = [unk] and `config.textSpeed` = 1.
+ * Initializes gameplay options and state configuration for a new game or chapter restart.
+ * Zeroes [playSt], resets `chapterIndex` to 0, sets the [PLAY_FLAG_HARD] flag when [isDifficult] is true,
+ * and sets default option settings (`controller` = [controllerMode], `textSpeed` = 1, all others 0).
+ *
+ * @param playSt the battle map player state struct to initialize.
+ * @param isDifficult true if playing on Difficult (Hard) mode.
+ * @param controllerMode initial controller configuration mode (`unk` in decomp).
  */
-public fun initPlayConfig(playSt: PlaySt, isDifficult: Boolean, unk: Int) {
+public fun initPlayConfig(playSt: PlaySt, isDifficult: Boolean, controllerMode: Int) {
     playSt.decode(ByteArray(PlaySt.SIZE), 0)
     playSt.chapterIndex = 0
     if (isDifficult) playSt.chapterStateBits = playSt.chapterStateBits or PLAY_FLAG_HARD
-    playSt.controller = unk
+    playSt.controller = controllerMode
     playSt.animationType = 0
     playSt.disableTerrainDisplay = 0
     playSt.unitDisplayType = 0

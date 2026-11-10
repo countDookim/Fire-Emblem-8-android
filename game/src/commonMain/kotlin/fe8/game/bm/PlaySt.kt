@@ -21,362 +21,358 @@ import fe8.game.bm.StructCodec.u8
  * on [encode]); a `unk_XX_YY` name keeps the decomp's suffix.
  */
 public class PlaySt {
-    /** `time_saved` (u32, 0x00). */
+    /** `time_saved` (u32, 0x00): elapsed game play time in frames saved into the file. */
     public var timeSaved: Int = 0
 
-    /** `time_chapter_started` (u32, 0x04). */
+    /** `time_chapter_started` (u32, 0x04): total frame count when the current chapter started. */
     public var timeChapterStarted: Int = 0
 
-    /** `partyGoldAmount` (u32, 0x08). */
+    /** `partyGoldAmount` (u32, 0x08): gold currently in the player's party convoy/funds. */
     public var partyGoldAmount: Int = 0
 
-    /** `gameSaveSlot` (u8, 0x0C). */
+    /** `gameSaveSlot` (u8, 0x0C): active save game slot index (0, 1, or 2). */
     public var gameSaveSlot: Int = 0
 
-    /** `chapterVisionRange` (u8, 0x0D): 0 means no fog. */
+    /** `chapterVisionRange` (u8, 0x0D): vision range in tiles for fog of war; 0 means no fog. */
     public var chapterVisionRange: Int = 0
 
-    /** `chapterIndex` (s8, 0x0E). */
+    /** `chapterIndex` (s8, 0x0E): chapter ID in `gChapterDataTable`. */
     public var chapterIndex: Int = 0
 
-    /** `faction` (u8, 0x0F): 0x00 player phase, 0x40 NPC phase, 0x80 enemy phase. */
+    /** `faction` (u8, 0x0F): active phase faction: 0x00 player, 0x40 NPC/green, 0x80 enemy/red. */
     public var faction: Int = 0
 
-    /** `chapterTurnNumber` (u16, 0x10). */
+    /** `chapterTurnNumber` (u16, 0x10): current turn number in the chapter (1-indexed). */
     public var chapterTurnNumber: Int = 0
 
-    /** `xCursor` (u8, 0x12). */
+    /** `xCursor` (u8, 0x12): saved cursor tile X coordinate. */
     public var xCursor: Int = 0
 
-    /** `yCursor` (u8, 0x13). */
+    /** `yCursor` (u8, 0x13): saved cursor tile Y coordinate. */
     public var yCursor: Int = 0
 
-    /** `chapterStateBits` (u8, 0x14), the `PLAY_FLAG_*` bits. */
+    /** `chapterStateBits` (u8, 0x14): chapter state flags (`PLAY_FLAG_*` such as hard mode, postgame, prep screen). */
     public var chapterStateBits: Int = 0
 
-    /** `chapterWeatherId` (u8, 0x15). */
+    /** `chapterWeatherId` (u8, 0x15): active weather condition ID (e.g. rain, snow, clouds). */
     public var chapterWeatherId: Int = 0
 
-    /** `chapterTotalSupportGain` (u16, 0x16). */
+    /** `chapterTotalSupportGain` (u16, 0x16): cumulative support points gained in this chapter. */
     public var chapterTotalSupportGain: Int = 0
 
-    /** `playthroughIdentifier` (u8, 0x18). */
+    /** `playthroughIdentifier` (u8, 0x18): unique identifier for this playthrough. */
     public var playthroughIdentifier: Int = 0
 
-    /** `unk19` (u8, 0x19). */
+    /** `unk19` (u8, 0x19): unknown byte field (`unk19` in decomp `PlaySt`). */
     public var unk19: Int = 0
 
-    /** `lastUnitSortType` (u8, 0x1A). */
+    /** `lastUnitSortType` (u8, 0x1A): last unit sort criterion selected in menus. */
     public var lastUnitSortType: Int = 0
 
-    /** `chapterModeIndex` (u8, 0x1B): 1 common, 2 Eirika route, 3 Ephraim route. */
+    /** `chapterModeIndex` (u8, 0x1B): route/mode (1 = common/tutorial ch0-8, 2 = Eirika, 3 = Ephraim). */
     public var chapterModeIndex: Int = 0
 
-    /** `unk1C[0]` (u8, 0x1C). */
+    /** `unk1C[0]` (u8, 0x1C): character identifier by weapon type (`unk1C[0]` in decomp `PlaySt`). */
     public var unk1C0: Int = 0
 
-    /** `unk1C[1]` (u8, 0x1D). */
+    /** `unk1C[1]` (u8, 0x1D): character identifier by weapon type (`unk1C[1]` in decomp `PlaySt`). */
     public var unk1C1: Int = 0
 
-    /** `unk1E` (u8, 0x1E). */
+    /** `unk1E` (u8, 0x1E): unknown byte field (`unk1E` in decomp `PlaySt`). */
     public var unk1E: Int = 0
 
-    /** `unk1F` (u8, 0x1F). */
+    /** `unk1F` (u8, 0x1F): unknown byte field (`unk1F` in decomp `PlaySt`). */
     public var unk1F: Int = 0
 
-    /** `playerName` (char[11], 0x20..0x2A), raw bytes, copied by [decode] and [encode]. */
+    /** `playerName` (char[11], 0x20..0x2A): raw bytes of player name, copied by [decode] and [encode]. */
     public val playerName: ByteArray = ByteArray(PLAYER_NAME_SIZE)
 
-    /** `unk_2B_00` (u8 bit 0 at 0x2B). */
+    /** `unk_2B_00` (u8 bit 0 at 0x2B): unknown bit flag (`unk_2B_00` in decomp `PlaySt`). */
     public var unk2B00: Int = 0
 
-    /** `unk_2B_01` (u8 bits 1..7 at 0x2B). */
+    /** `unk_2B_01` (u8 bits 1..7 at 0x2B): unknown bitfield (`unk_2B_01` in decomp `PlaySt`). */
     public var unk2B01: Int = 0
 
-    /** `unk_2C_1` (u32 bit 0 at 0x2C). */
+    /** `unk_2C_1` (u32 bit 0 at 0x2C): unknown bit flag (`unk_2C_1` in decomp `PlaySt`). */
     public var unk2C1: Int = 0
 
-    /** `unk_2C_01` (u32 bits 1..3 at 0x2C). */
+    /** `unk_2C_01` (u32 bits 1..3 at 0x2C): unknown bitfield (`unk_2C_01` in decomp `PlaySt`). */
     public var unk2C01: Int = 0
 
-    /** `unk_2C_04` (u32 bits 4..12 at 0x2C). */
+    /** `unk_2C_04` (u32 bits 4..12 at 0x2C): unknown bitfield (`unk_2C_04` in decomp `PlaySt`). */
     public var unk2C04: Int = 0
 
-    /** `unk_2C_0D` (u32 bits 13..22 at 0x2C). */
+    /** `unk_2C_0D` (u32 bits 13..22 at 0x2C): unknown bitfield (`unk_2C_0D` in decomp `PlaySt`). */
     public var unk2C0D: Int = 0
 
-    /** `unk_2C_2` (u32 bits 23..27 at 0x2C). */
+    /** `unk_2C_2` (u32 bits 23..27 at 0x2C): unknown bitfield (`unk_2C_2` in decomp `PlaySt`). */
     public var unk2C2: Int = 0
 
-    /** `unk_2C_3` (u32 bits 28..31 at 0x2C). */
+    /** `unk_2C_3` (u32 bits 28..31 at 0x2C): unknown bitfield (`unk_2C_3` in decomp `PlaySt`). */
     public var unk2C3: Int = 0
 
-    /** `unk_30.total_gold` (s32, 0x30). */
+    /** `unk_30.total_gold` (s32, 0x30): cumulative lifetime gold earned across the playthrough. */
     public var totalGold: Int = 0
 
-    /** `unk_30.unk_4_00` (u32 bits 0..19 at 0x34). */
+    /** `unk_30.unk_4_00` (u32 bits 0..19 at 0x34): unknown bitfield in `struct PlaySt_30`. */
     public var unk30Unk400: Int = 0
 
-    /** `unk_30.unk_4_14` (u32 bits 20..31 at 0x34). */
+    /** `unk_30.unk_4_14` (u32 bits 20..31 at 0x34): unknown bitfield in `struct PlaySt_30`. */
     public var unk30Unk414: Int = 0
 
-    /** `unk_30.unk_8_1` (u32 bits 0..7 at 0x38). */
+    /** `unk_30.unk_8_1` (u32 bits 0..7 at 0x38): unknown bitfield in `struct PlaySt_30`. */
     public var unk30Unk81: Int = 0
 
-    /** `unk_30.unk_8_2` (u32 bits 8..27 at 0x38). */
+    /** `unk_30.unk_8_2` (u32 bits 8..27 at 0x38): Valni/Lagdou dungeon difficulty state bitfield. */
     public var unk30Unk82: Int = 0
 
-    /** `unk_30.unk_8_3` (u32 bits 28..31 at 0x38). */
+    /** `unk_30.unk_8_3` (u32 bits 28..31 at 0x38): unknown bitfield in `struct PlaySt_30`. */
     public var unk30Unk83: Int = 0
 
-    /** `unk_30.unk_C_00` (u32 bits 0..5 at 0x3C). */
+    /** `unk_30.unk_C_00` (u32 bits 0..5 at 0x3C): unknown ranking bitfield in `struct PlaySt_30`. */
     public var unk30UnkC00: Int = 0
 
-    /** `unk_30.combatRank` (u32 bits 6..8 at 0x3C). */
+    /** `unk_30.combatRank` (u32 bits 6..8 at 0x3C): combat rank rating (0..7). */
     public var combatRank: Int = 0
 
-    /** `unk_30.expRank` (u32 bits 9..11 at 0x3C). */
+    /** `unk_30.expRank` (u32 bits 9..11 at 0x3C): experience rank rating (0..7). */
     public var expRank: Int = 0
 
-    /** `unk_30.unk_3D_04` (u32 bits 12..14 at 0x3C). */
+    /** `unk_30.unk_3D_04` (u32 bits 12..14 at 0x3C): unknown ranking bitfield in `struct PlaySt_30`. */
     public var unk30Unk3D04: Int = 0
 
-    /** `unk_30.fundsRank` (u32 bits 15..17 at 0x3C). */
+    /** `unk_30.fundsRank` (u32 bits 15..17 at 0x3C): funds rank rating (0..7). */
     public var fundsRank: Int = 0
 
-    /** `unk_30.tacticsRank` (u32 bits 18..20 at 0x3C). */
+    /** `unk_30.tacticsRank` (u32 bits 18..20 at 0x3C): tactics rank rating (0..7). */
     public var tacticsRank: Int = 0
 
-    /** `unk_30.survivalRank` (u32 bits 21..23 at 0x3C). */
+    /** `unk_30.survivalRank` (u32 bits 21..23 at 0x3C): survival rank rating (0..7). */
     public var survivalRank: Int = 0
 
-    /** `unk_30.unk_F_00` (u32 bits 24..31 at 0x3C). */
+    /** `unk_30.unk_F_00` (u32 bits 24..31 at 0x3C): unknown ranking bitfield in `struct PlaySt_30`. */
     public var unk30UnkF00: Int = 0
 
-    /** `config.unitColor` (1 bit, word 0x40 bit 0). */
+    /** `config.unitColor` (1 bit, word 0x40 bit 0): unit color style option (0 = faction colors, 1 = alt). */
     public var unitColor: Int = 0
 
-    /** `config.disableTerrainDisplay` (1 bit, bit 1). */
+    /** `config.disableTerrainDisplay` (1 bit, bit 1): disable terrain info window overlay. */
     public var disableTerrainDisplay: Int = 0
 
-    /** `config.unitDisplayType` (2 bits, bits 2..3). */
+    /** `config.unitDisplayType` (2 bits, bits 2..3): unit panel display format (0..3). */
     public var unitDisplayType: Int = 0
 
-    /** `config.autoCursor` (1 bit, bit 4). */
+    /** `config.autoCursor` (1 bit, bit 4): auto-cursor mode (0 = starts on leader, 1 = remembers position). */
     public var autoCursor: Int = 0
 
-    /** `config.textSpeed` (2 bits, bits 5..6). */
+    /** `config.textSpeed` (2 bits, bits 5..6): text display speed (0 = slow, 1 = normal, 2 = fast, 3 = max). */
     public var textSpeed: Int = 0
 
-    /** `config.gameSpeed` (1 bit, bit 7). */
+    /** `config.gameSpeed` (1 bit, bit 7): game animation/movement speed (0 = normal, 1 = fast). */
     public var gameSpeed: Int = 0
 
-    /** `config.disableBgm` (1 bit, bit 8). */
+    /** `config.disableBgm` (1 bit, bit 8): background music disable toggle (1 = mute, 0 = play). */
     public var disableBgm: Int = 0
 
-    /** `config.disableSoundEffects` (1 bit, bit 9). */
+    /** `config.disableSoundEffects` (1 bit, bit 9): sound effect disable toggle (1 = mute, 0 = play). */
     public var disableSoundEffects: Int = 0
 
-    /** `config.windowColor` (2 bits, bits 10..11). */
+    /** `config.windowColor` (2 bits, bits 10..11): window theme/color style (0..3). */
     public var windowColor: Int = 0
 
-    /** `config.unk41_5` (1 bit, bit 12). */
+    /** `config.unk41_5` (1 bit, bit 12): unknown config option flag (`unk41_5` in decomp `PlaySt`). */
     public var unk41x5: Int = 0
 
-    /** `config.unk41_6` (1 bit, bit 13). */
+    /** `config.unk41_6` (1 bit, bit 13): unknown config option flag (`unk41_6` in decomp `PlaySt`). */
     public var unk41x6: Int = 0
 
-    /** `config.disableAutoEndTurns` (1 bit, bit 14). */
+    /** `config.disableAutoEndTurns` (1 bit, bit 14): disable auto-ending turn when all units act. */
     public var disableAutoEndTurns: Int = 0
 
-    /** `config.noSubtitleHelp` (1 bit, bit 15). */
+    /** `config.noSubtitleHelp` (1 bit, bit 15): disable bottom subtitle help bar. */
     public var noSubtitleHelp: Int = 0
 
-    /** `config.disableGoalDisplay` (1 bit, bit 16). */
+    /** `config.disableGoalDisplay` (1 bit, bit 16): disable chapter goal banner display. */
     public var disableGoalDisplay: Int = 0
 
-    /** `config.animationType` (2 bits, bits 17..18). */
+    /** `config.animationType` (2 bits, bits 17..18): battle animation mode (0 = on, 1 = off, 2 = solo, 3 = unique bg). */
     public var animationType: Int = 0
 
-    /** `config.battleForecastType` (2 bits, bits 19..20). */
+    /** `config.battleForecastType` (2 bits, bits 19..20): battle forecast layout format (0..3). */
     public var battleForecastType: Int = 0
 
-    /** `config.controller` (1 bit, bit 21). */
+    /** `config.controller` (1 bit, bit 21): controller configuration setting. */
     public var controller: Int = 0
 
-    /** `config.rankDisplay` (1 bit, bit 22). */
+    /** `config.rankDisplay` (1 bit, bit 22): rank display toggle option. */
     public var rankDisplay: Int = 0
 
-    /** `config.debugControlRed` (2 bits, bits 23..24). */
+    /** `config.debugControlRed` (2 bits, bits 23..24): debug option for controlling enemy units. */
     public var debugControlRed: Int = 0
 
-    /** `config.debugControlGreen` (2 bits, bits 25..26). */
+    /** `config.debugControlGreen` (2 bits, bits 25..26): debug option for controlling NPC units. */
     public var debugControlGreen: Int = 0
 
-    /** `config.unk43_4` (5 bits, bits 27..31). */
+    /** `config.unk43_4` (5 bits, bits 27..31): unknown config bitfield (`unk43_4` in decomp `PlaySt`). */
     public var unk43x4: Int = 0
 
-    /** `config.unk44[0]` (u8, 0x44). */
+    /** `config.unk44[0]` (u8, 0x44): unknown config byte 0 (`unk44[0]` in decomp `PlaySt`). */
     public var configUnk440: Int = 0
 
-    /** `config.unk44[1]` (u8, 0x45). */
+    /** `config.unk44[1]` (u8, 0x45): unknown config byte 1 (`unk44[1]` in decomp `PlaySt`). */
     public var configUnk441: Int = 0
 
-    /** `config.unk44[2]` (u8, 0x46). */
+    /** `config.unk44[2]` (u8, 0x46): unknown config byte 2 (`unk44[2]` in decomp `PlaySt`). */
     public var configUnk442: Int = 0
 
-    /** `config.unk44[3]` (u8, 0x47). */
+    /** `config.unk44[3]` (u8, 0x47): unknown config byte 3 (`unk44[3]` in decomp `PlaySt`). */
     public var configUnk443: Int = 0
 
-    /** `unk48` (u16, 0x48). */
+    /** `unk48` (u16, 0x48): unknown halfword field (`unk48` in decomp `PlaySt`). */
     public var unk48: Int = 0
 
-    /** `unk4A_1` (u8 bit 0 at 0x4A). */
+    /** `unk4A_1` (u8 bit 0 at 0x4A): unknown tutorial/save flag (`unk4A_1` in decomp `PlaySt`). */
     public var unk4A1: Int = 0
 
-    /** `save_menu_type` (u8 bits 1..3 at 0x4A). */
+    /** `save_menu_type` (u8 bits 1..3 at 0x4A): save menu type configuration. */
     public var saveMenuType: Int = 0
 
-    /** `tutorial_exec_type` (u8 bits 4..7 at 0x4A). */
+    /** `tutorial_exec_type` (u8 bits 4..7 at 0x4A): tutorial script execution state. */
     public var tutorialExecType: Int = 0
 
-    /** `tutorial_counter` (u8, 0x4B). */
+    /** `tutorial_counter` (u8, 0x4B): tutorial progress step counter. */
     public var tutorialCounter: Int = 0
 
     /** Reads the 0x4C bytes at [offset] of [bytes] into this state. Does not allocate. */
     public fun decode(bytes: ByteArray, offset: Int) {
-        val b = bytes
-        val o = offset
-        timeSaved = u32(b, o)
-        timeChapterStarted = u32(b, o + 0x04)
-        partyGoldAmount = u32(b, o + 0x08)
-        gameSaveSlot = u8(b, o + 0x0C)
-        chapterVisionRange = u8(b, o + 0x0D)
-        chapterIndex = s8(b, o + 0x0E)
-        faction = u8(b, o + 0x0F)
-        chapterTurnNumber = u16(b, o + 0x10)
-        xCursor = u8(b, o + 0x12)
-        yCursor = u8(b, o + 0x13)
-        chapterStateBits = u8(b, o + 0x14)
-        chapterWeatherId = u8(b, o + 0x15)
-        chapterTotalSupportGain = u16(b, o + 0x16)
-        playthroughIdentifier = u8(b, o + 0x18)
-        unk19 = u8(b, o + 0x19)
-        lastUnitSortType = u8(b, o + 0x1A)
-        chapterModeIndex = u8(b, o + 0x1B)
-        unk1C0 = u8(b, o + 0x1C)
-        unk1C1 = u8(b, o + 0x1D)
-        unk1E = u8(b, o + 0x1E)
-        unk1F = u8(b, o + 0x1F)
-        for (i in 0 until PLAYER_NAME_SIZE) playerName[i] = b[o + 0x20 + i]
-        val b2b = u8(b, o + 0x2B)
-        unk2B00 = bits(b2b, 0, 1)
-        unk2B01 = bits(b2b, 1, 7)
-        val w2c = u32(b, o + 0x2C)
-        unk2C1 = bits(w2c, 0, 1)
-        unk2C01 = bits(w2c, 1, 3)
-        unk2C04 = bits(w2c, 4, 9)
-        unk2C0D = bits(w2c, 13, 10)
-        unk2C2 = bits(w2c, 23, 5)
-        unk2C3 = bits(w2c, 28, 4)
-        totalGold = u32(b, o + 0x30)
-        val w34 = u32(b, o + 0x34)
-        unk30Unk400 = bits(w34, 0, 20)
-        unk30Unk414 = bits(w34, 20, 12)
-        val w38 = u32(b, o + 0x38)
-        unk30Unk81 = bits(w38, 0, 8)
-        unk30Unk82 = bits(w38, 8, 20)
-        unk30Unk83 = bits(w38, 28, 4)
-        val w3c = u32(b, o + 0x3C)
-        unk30UnkC00 = bits(w3c, 0, 6)
-        combatRank = bits(w3c, 6, 3)
-        expRank = bits(w3c, 9, 3)
-        unk30Unk3D04 = bits(w3c, 12, 3)
-        fundsRank = bits(w3c, 15, 3)
-        tacticsRank = bits(w3c, 18, 3)
-        survivalRank = bits(w3c, 21, 3)
-        unk30UnkF00 = bits(w3c, 24, 8)
-        val c = u32(b, o + 0x40)
-        unitColor = bits(c, 0, 1)
-        disableTerrainDisplay = bits(c, 1, 1)
-        unitDisplayType = bits(c, 2, 2)
-        autoCursor = bits(c, 4, 1)
-        textSpeed = bits(c, 5, 2)
-        gameSpeed = bits(c, 7, 1)
-        disableBgm = bits(c, 8, 1)
-        disableSoundEffects = bits(c, 9, 1)
-        windowColor = bits(c, 10, 2)
-        unk41x5 = bits(c, 12, 1)
-        unk41x6 = bits(c, 13, 1)
-        disableAutoEndTurns = bits(c, 14, 1)
-        noSubtitleHelp = bits(c, 15, 1)
-        disableGoalDisplay = bits(c, 16, 1)
-        animationType = bits(c, 17, 2)
-        battleForecastType = bits(c, 19, 2)
-        controller = bits(c, 21, 1)
-        rankDisplay = bits(c, 22, 1)
-        debugControlRed = bits(c, 23, 2)
-        debugControlGreen = bits(c, 25, 2)
-        unk43x4 = bits(c, 27, 5)
-        configUnk440 = u8(b, o + 0x44)
-        configUnk441 = u8(b, o + 0x45)
-        configUnk442 = u8(b, o + 0x46)
-        configUnk443 = u8(b, o + 0x47)
-        unk48 = u16(b, o + 0x48)
-        val b4a = u8(b, o + 0x4A)
-        unk4A1 = bits(b4a, 0, 1)
-        saveMenuType = bits(b4a, 1, 3)
-        tutorialExecType = bits(b4a, 4, 4)
-        tutorialCounter = u8(b, o + 0x4B)
+        timeSaved = u32(bytes, offset)
+        timeChapterStarted = u32(bytes, offset + 0x04)
+        partyGoldAmount = u32(bytes, offset + 0x08)
+        gameSaveSlot = u8(bytes, offset + 0x0C)
+        chapterVisionRange = u8(bytes, offset + 0x0D)
+        chapterIndex = s8(bytes, offset + 0x0E)
+        faction = u8(bytes, offset + 0x0F)
+        chapterTurnNumber = u16(bytes, offset + 0x10)
+        xCursor = u8(bytes, offset + 0x12)
+        yCursor = u8(bytes, offset + 0x13)
+        chapterStateBits = u8(bytes, offset + 0x14)
+        chapterWeatherId = u8(bytes, offset + 0x15)
+        chapterTotalSupportGain = u16(bytes, offset + 0x16)
+        playthroughIdentifier = u8(bytes, offset + 0x18)
+        unk19 = u8(bytes, offset + 0x19)
+        lastUnitSortType = u8(bytes, offset + 0x1A)
+        chapterModeIndex = u8(bytes, offset + 0x1B)
+        unk1C0 = u8(bytes, offset + 0x1C)
+        unk1C1 = u8(bytes, offset + 0x1D)
+        unk1E = u8(bytes, offset + 0x1E)
+        unk1F = u8(bytes, offset + 0x1F)
+        for (i in 0 until PLAYER_NAME_SIZE) playerName[i] = bytes[offset + 0x20 + i]
+        val byte2B = u8(bytes, offset + 0x2B)
+        unk2B00 = bits(byte2B, 0, 1)
+        unk2B01 = bits(byte2B, 1, 7)
+        val word2C = u32(bytes, offset + 0x2C)
+        unk2C1 = bits(word2C, 0, 1)
+        unk2C01 = bits(word2C, 1, 3)
+        unk2C04 = bits(word2C, 4, 9)
+        unk2C0D = bits(word2C, 13, 10)
+        unk2C2 = bits(word2C, 23, 5)
+        unk2C3 = bits(word2C, 28, 4)
+        totalGold = u32(bytes, offset + 0x30)
+        val word34 = u32(bytes, offset + 0x34)
+        unk30Unk400 = bits(word34, 0, 20)
+        unk30Unk414 = bits(word34, 20, 12)
+        val word38 = u32(bytes, offset + 0x38)
+        unk30Unk81 = bits(word38, 0, 8)
+        unk30Unk82 = bits(word38, 8, 20)
+        unk30Unk83 = bits(word38, 28, 4)
+        val rankingWord = u32(bytes, offset + 0x3C)
+        unk30UnkC00 = bits(rankingWord, 0, 6)
+        combatRank = bits(rankingWord, 6, 3)
+        expRank = bits(rankingWord, 9, 3)
+        unk30Unk3D04 = bits(rankingWord, 12, 3)
+        fundsRank = bits(rankingWord, 15, 3)
+        tacticsRank = bits(rankingWord, 18, 3)
+        survivalRank = bits(rankingWord, 21, 3)
+        unk30UnkF00 = bits(rankingWord, 24, 8)
+        val configWord = u32(bytes, offset + 0x40)
+        unitColor = bits(configWord, 0, 1)
+        disableTerrainDisplay = bits(configWord, 1, 1)
+        unitDisplayType = bits(configWord, 2, 2)
+        autoCursor = bits(configWord, 4, 1)
+        textSpeed = bits(configWord, 5, 2)
+        gameSpeed = bits(configWord, 7, 1)
+        disableBgm = bits(configWord, 8, 1)
+        disableSoundEffects = bits(configWord, 9, 1)
+        windowColor = bits(configWord, 10, 2)
+        unk41x5 = bits(configWord, 12, 1)
+        unk41x6 = bits(configWord, 13, 1)
+        disableAutoEndTurns = bits(configWord, 14, 1)
+        noSubtitleHelp = bits(configWord, 15, 1)
+        disableGoalDisplay = bits(configWord, 16, 1)
+        animationType = bits(configWord, 17, 2)
+        battleForecastType = bits(configWord, 19, 2)
+        controller = bits(configWord, 21, 1)
+        rankDisplay = bits(configWord, 22, 1)
+        debugControlRed = bits(configWord, 23, 2)
+        debugControlGreen = bits(configWord, 25, 2)
+        unk43x4 = bits(configWord, 27, 5)
+        configUnk440 = u8(bytes, offset + 0x44)
+        configUnk441 = u8(bytes, offset + 0x45)
+        configUnk442 = u8(bytes, offset + 0x46)
+        configUnk443 = u8(bytes, offset + 0x47)
+        unk48 = u16(bytes, offset + 0x48)
+        val tutorialConfigByte = u8(bytes, offset + 0x4A)
+        unk4A1 = bits(tutorialConfigByte, 0, 1)
+        saveMenuType = bits(tutorialConfigByte, 1, 3)
+        tutorialExecType = bits(tutorialConfigByte, 4, 4)
+        tutorialCounter = u8(bytes, offset + 0x4B)
     }
 
     /** Writes the 0x4C bytes of this state at [offset] of [bytes]. Does not allocate. */
     public fun encode(bytes: ByteArray, offset: Int) {
-        val b = bytes
-        val o = offset
-        put32(b, o, timeSaved)
-        put32(b, o + 0x04, timeChapterStarted)
-        put32(b, o + 0x08, partyGoldAmount)
-        put8(b, o + 0x0C, gameSaveSlot)
-        put8(b, o + 0x0D, chapterVisionRange)
-        put8(b, o + 0x0E, chapterIndex)
-        put8(b, o + 0x0F, faction)
-        put16(b, o + 0x10, chapterTurnNumber)
-        put8(b, o + 0x12, xCursor)
-        put8(b, o + 0x13, yCursor)
-        put8(b, o + 0x14, chapterStateBits)
-        put8(b, o + 0x15, chapterWeatherId)
-        put16(b, o + 0x16, chapterTotalSupportGain)
-        put8(b, o + 0x18, playthroughIdentifier)
-        put8(b, o + 0x19, unk19)
-        put8(b, o + 0x1A, lastUnitSortType)
-        put8(b, o + 0x1B, chapterModeIndex)
-        put8(b, o + 0x1C, unk1C0)
-        put8(b, o + 0x1D, unk1C1)
-        put8(b, o + 0x1E, unk1E)
-        put8(b, o + 0x1F, unk1F)
-        for (i in 0 until PLAYER_NAME_SIZE) b[o + 0x20 + i] = playerName[i]
-        put8(b, o + 0x2B, field(unk2B00, 0, 1) or field(unk2B01, 1, 7))
+        put32(bytes, offset, timeSaved)
+        put32(bytes, offset + 0x04, timeChapterStarted)
+        put32(bytes, offset + 0x08, partyGoldAmount)
+        put8(bytes, offset + 0x0C, gameSaveSlot)
+        put8(bytes, offset + 0x0D, chapterVisionRange)
+        put8(bytes, offset + 0x0E, chapterIndex)
+        put8(bytes, offset + 0x0F, faction)
+        put16(bytes, offset + 0x10, chapterTurnNumber)
+        put8(bytes, offset + 0x12, xCursor)
+        put8(bytes, offset + 0x13, yCursor)
+        put8(bytes, offset + 0x14, chapterStateBits)
+        put8(bytes, offset + 0x15, chapterWeatherId)
+        put16(bytes, offset + 0x16, chapterTotalSupportGain)
+        put8(bytes, offset + 0x18, playthroughIdentifier)
+        put8(bytes, offset + 0x19, unk19)
+        put8(bytes, offset + 0x1A, lastUnitSortType)
+        put8(bytes, offset + 0x1B, chapterModeIndex)
+        put8(bytes, offset + 0x1C, unk1C0)
+        put8(bytes, offset + 0x1D, unk1C1)
+        put8(bytes, offset + 0x1E, unk1E)
+        put8(bytes, offset + 0x1F, unk1F)
+        for (i in 0 until PLAYER_NAME_SIZE) bytes[offset + 0x20 + i] = playerName[i]
+        put8(bytes, offset + 0x2B, field(unk2B00, 0, 1) or field(unk2B01, 1, 7))
         put32(
-            b, o + 0x2C,
+            bytes, offset + 0x2C,
             field(unk2C1, 0, 1) or field(unk2C01, 1, 3) or field(unk2C04, 4, 9) or
                 field(unk2C0D, 13, 10) or field(unk2C2, 23, 5) or field(unk2C3, 28, 4),
         )
-        put32(b, o + 0x30, totalGold)
-        put32(b, o + 0x34, field(unk30Unk400, 0, 20) or field(unk30Unk414, 20, 12))
+        put32(bytes, offset + 0x30, totalGold)
+        put32(bytes, offset + 0x34, field(unk30Unk400, 0, 20) or field(unk30Unk414, 20, 12))
         put32(
-            b, o + 0x38,
+            bytes, offset + 0x38,
             field(unk30Unk81, 0, 8) or field(unk30Unk82, 8, 20) or field(unk30Unk83, 28, 4),
         )
         put32(
-            b, o + 0x3C,
+            bytes, offset + 0x3C,
             field(unk30UnkC00, 0, 6) or field(combatRank, 6, 3) or field(expRank, 9, 3) or
                 field(unk30Unk3D04, 12, 3) or field(fundsRank, 15, 3) or
                 field(tacticsRank, 18, 3) or field(survivalRank, 21, 3) or
                 field(unk30UnkF00, 24, 8),
         )
         put32(
-            b, o + 0x40,
+            bytes, offset + 0x40,
             field(unitColor, 0, 1) or field(disableTerrainDisplay, 1, 1) or
                 field(unitDisplayType, 2, 2) or field(autoCursor, 4, 1) or
                 field(textSpeed, 5, 2) or field(gameSpeed, 7, 1) or field(disableBgm, 8, 1) or
@@ -388,23 +384,24 @@ public class PlaySt {
                 field(rankDisplay, 22, 1) or field(debugControlRed, 23, 2) or
                 field(debugControlGreen, 25, 2) or field(unk43x4, 27, 5),
         )
-        put8(b, o + 0x44, configUnk440)
-        put8(b, o + 0x45, configUnk441)
-        put8(b, o + 0x46, configUnk442)
-        put8(b, o + 0x47, configUnk443)
-        put16(b, o + 0x48, unk48)
+        put8(bytes, offset + 0x44, configUnk440)
+        put8(bytes, offset + 0x45, configUnk441)
+        put8(bytes, offset + 0x46, configUnk442)
+        put8(bytes, offset + 0x47, configUnk443)
+        put16(bytes, offset + 0x48, unk48)
         put8(
-            b, o + 0x4A,
+            bytes, offset + 0x4A,
             field(unk4A1, 0, 1) or field(saveMenuType, 1, 3) or field(tutorialExecType, 4, 4),
         )
-        put8(b, o + 0x4B, tutorialCounter)
+        put8(bytes, offset + 0x4B, tutorialCounter)
     }
 
     /** Struct size and layout constants. */
     public companion object {
-        /** `sizeof(struct PlaySt)`. */
+        /** `sizeof(struct PlaySt)` in bytes. */
         public const val SIZE: Int = 0x4C
 
+        /** Length in bytes of the player name character buffer (0x2B - 0x20 = 11 bytes). */
         private const val PLAYER_NAME_SIZE = 0x2B - 0x20
     }
 }

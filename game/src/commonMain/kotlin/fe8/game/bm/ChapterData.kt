@@ -18,93 +18,95 @@ public class ChapterData(
     /**
      * Ported from src/chapterdata.c: GetROMChapterStruct
      *
-     * Returns the address of the `struct ROMChapterData` of chapter [chIndex].
+     * Returns the address of the `struct ROMChapterData` of chapter [chapterIndex].
      */
-    public fun getROMChapterStruct(chIndex: Int): Int {
-        require(chIndex in 0 until CHAPTER_COUNT) { "not a ROM chapter: $chIndex" }
-        return CHAPTER_DATA_TABLE + chIndex * ENTRY_SIZE
+    public fun getROMChapterStruct(chapterIndex: Int): Int {
+        require(chapterIndex in 0 until CHAPTER_COUNT) { "not a ROM chapter: $chapterIndex" }
+        return CHAPTER_DATA_TABLE + chapterIndex * ENTRY_SIZE
     }
 
     /**
      * Ported from src/chapterdata.c: GetChapterMapPointer
      *
-     * Returns the address of the (compressed) map layout of chapter [chIndex]:
+     * Returns the address of the (compressed) map layout of chapter [chapterIndex]:
      * `gChapterDataAssetTable[mainLayerId]`.
      */
-    public fun getChapterMapPointer(chIndex: Int): Int =
-        asset(u8(chIndex, OFF_MAP_MAIN_LAYER_ID))
+    public fun getChapterMapPointer(chapterIndex: Int): Int =
+        asset(u8(chapterIndex, OFF_MAP_MAIN_LAYER_ID))
 
     /**
      * Transcribed from src/chapterdata.c: GetChapterMapChangesPointer (not verified: no test checks
      *   it against a trace yet)
      *
-     * Returns the address of the map change data of chapter [chIndex]:
+     * Returns the address of the map change data of chapter [chapterIndex]:
      * `gChapterDataAssetTable[changeLayerId]`. Not yet covered by a `@VerifiesPort` test.
      */
-    public fun getChapterMapChangesPointer(chIndex: Int): Int =
-        asset(u8(chIndex, OFF_MAP_CHANGE_LAYER_ID))
+    public fun getChapterMapChangesPointer(chapterIndex: Int): Int =
+        asset(u8(chapterIndex, OFF_MAP_CHANGE_LAYER_ID))
 
     /**
      * Ported from src/chapterdata.c: GetChapterEventDataPointer
      *
-     * Returns the address of the `ChapterEventGroup` of chapter [chIndex]:
+     * Returns the address of the `ChapterEventGroup` of chapter [chapterIndex]:
      * `gChapterDataAssetTable[mapEventDataId]`.
      */
-    public fun getChapterEventDataPointer(chIndex: Int): Int =
-        asset(u8(chIndex, OFF_MAP_EVENT_DATA_ID))
+    public fun getChapterEventDataPointer(chapterIndex: Int): Int =
+        asset(u8(chapterIndex, OFF_MAP_EVENT_DATA_ID))
 
-    /** `map.obj1Id` of chapter [chIndex]: id of the first tileset object graphics. */
-    public fun obj1Id(chIndex: Int): Int = u8(chIndex, OFF_MAP_OBJ1_ID)
+    /** `map.obj1Id` of chapter [chapterIndex]: id of the first tileset object graphics. */
+    public fun obj1Id(chapterIndex: Int): Int = u8(chapterIndex, OFF_MAP_OBJ1_ID)
 
-    /** `map.obj2Id` of chapter [chIndex]: id of the second tileset object graphics. */
-    public fun obj2Id(chIndex: Int): Int = u8(chIndex, OFF_MAP_OBJ2_ID)
+    /** `map.obj2Id` of chapter [chapterIndex]: id of the second tileset object graphics. */
+    public fun obj2Id(chapterIndex: Int): Int = u8(chapterIndex, OFF_MAP_OBJ2_ID)
 
-    /** `map.paletteId` of chapter [chIndex]. */
-    public fun paletteId(chIndex: Int): Int = u8(chIndex, OFF_MAP_PALETTE_ID)
+    /** `map.paletteId` of chapter [chapterIndex]: id of the tileset palette. */
+    public fun paletteId(chapterIndex: Int): Int = u8(chapterIndex, OFF_MAP_PALETTE_ID)
 
-    /** `map.tileConfigId` of chapter [chIndex]. */
-    public fun tileConfigId(chIndex: Int): Int = u8(chIndex, OFF_MAP_TILE_CONFIG_ID)
+    /** `map.tileConfigId` of chapter [chapterIndex]: id of the tileset configuration / terrain lookup. */
+    public fun tileConfigId(chapterIndex: Int): Int = u8(chapterIndex, OFF_MAP_TILE_CONFIG_ID)
 
-    /** `map.mainLayerId` of chapter [chIndex]: asset table index of the map layout. */
-    public fun mainLayerId(chIndex: Int): Int = u8(chIndex, OFF_MAP_MAIN_LAYER_ID)
+    /** `map.mainLayerId` of chapter [chapterIndex]: asset table index of the map layout. */
+    public fun mainLayerId(chapterIndex: Int): Int = u8(chapterIndex, OFF_MAP_MAIN_LAYER_ID)
 
-    /** `map.objAnimId` of chapter [chIndex]. */
-    public fun objAnimId(chIndex: Int): Int = u8(chIndex, OFF_MAP_OBJ_ANIM_ID)
+    /** `map.objAnimId` of chapter [chapterIndex]: tileset object animation ID. */
+    public fun objAnimId(chapterIndex: Int): Int = u8(chapterIndex, OFF_MAP_OBJ_ANIM_ID)
 
-    /** `map.paletteAnimId` of chapter [chIndex]. */
-    public fun paletteAnimId(chIndex: Int): Int = u8(chIndex, OFF_MAP_PALETTE_ANIM_ID)
+    /** `map.paletteAnimId` of chapter [chapterIndex]: tileset palette animation ID. */
+    public fun paletteAnimId(chapterIndex: Int): Int = u8(chapterIndex, OFF_MAP_PALETTE_ANIM_ID)
 
-    /** `map.changeLayerId` of chapter [chIndex]: asset table index of the map change data. */
-    public fun changeLayerId(chIndex: Int): Int = u8(chIndex, OFF_MAP_CHANGE_LAYER_ID)
+    /** `map.changeLayerId` of chapter [chapterIndex]: asset table index of the map change data. */
+    public fun changeLayerId(chapterIndex: Int): Int = u8(chapterIndex, OFF_MAP_CHANGE_LAYER_ID)
 
-    /** `mapEventDataId` of chapter [chIndex]: asset table index of the event data. */
-    public fun mapEventDataId(chIndex: Int): Int = u8(chIndex, OFF_MAP_EVENT_DATA_ID)
+    /** `mapEventDataId` of chapter [chapterIndex]: asset table index of the event data. */
+    public fun mapEventDataId(chapterIndex: Int): Int = u8(chapterIndex, OFF_MAP_EVENT_DATA_ID)
 
-    /** `initialPosX` of chapter [chIndex]: initial camera tile X. */
-    public fun initialPosX(chIndex: Int): Int = u8(chIndex, OFF_INITIAL_POS_X)
+    /** `initialPosX` of chapter [chapterIndex]: initial camera tile X coordinate. */
+    public fun initialPosX(chapterIndex: Int): Int = u8(chapterIndex, OFF_INITIAL_POS_X)
 
-    /** `initialPosY` of chapter [chIndex]: initial camera tile Y. */
-    public fun initialPosY(chIndex: Int): Int = u8(chIndex, OFF_INITIAL_POS_Y)
+    /** `initialPosY` of chapter [chapterIndex]: initial camera tile Y coordinate. */
+    public fun initialPosY(chapterIndex: Int): Int = u8(chapterIndex, OFF_INITIAL_POS_Y)
 
-    /** `initialFogLevel` of chapter [chIndex]: the starting vision range (0 = no fog). */
-    public fun initialFogLevel(chIndex: Int): Int = u8(chIndex, OFF_INITIAL_FOG_LEVEL)
+    /** `initialFogLevel` of chapter [chapterIndex]: starting vision range (0 = no fog). */
+    public fun initialFogLevel(chapterIndex: Int): Int = u8(chapterIndex, OFF_INITIAL_FOG_LEVEL)
 
-    /** `initialWeather` of chapter [chIndex]. */
-    public fun initialWeather(chIndex: Int): Int = u8(chIndex, OFF_INITIAL_WEATHER)
+    /** `initialWeather` of chapter [chapterIndex]: starting weather condition ID. */
+    public fun initialWeather(chapterIndex: Int): Int = u8(chapterIndex, OFF_INITIAL_WEATHER)
 
-    /** `mapBgmIds[slot]` of chapter [chIndex] (`slot` 0 until [BGM_SLOTS]); 0xFFFF means none. */
-    public fun mapBgmId(chIndex: Int, slot: Int): Int {
+    /** `mapBgmIds[slot]` of chapter [chapterIndex] (`slot` 0 until [BGM_SLOTS]); 0xFFFF means none. */
+    public fun mapBgmId(chapterIndex: Int, slot: Int): Int {
         require(slot in 0 until BGM_SLOTS) { "bgm slot: $slot" }
-        return rom.u16(getROMChapterStruct(chIndex) + OFF_MAP_BGM_IDS + 2 * slot)
+        return rom.u16(getROMChapterStruct(chapterIndex) + OFF_MAP_BGM_IDS + 2 * slot)
     }
 
-    /** `victorySongEnemyThreshold` (s8) of chapter [chIndex]. */
-    public fun victorySongEnemyThreshold(chIndex: Int): Int =
-        u8(chIndex, OFF_VICTORY_SONG_ENEMY_THRESHOLD).toByte().toInt()
+    /** `victorySongEnemyThreshold` (s8) of chapter [chapterIndex]: enemy count threshold to trigger victory theme. */
+    public fun victorySongEnemyThreshold(chapterIndex: Int): Int =
+        u8(chapterIndex, OFF_VICTORY_SONG_ENEMY_THRESHOLD).toByte().toInt()
 
-    private fun u8(chIndex: Int, offset: Int): Int = rom.u8(getROMChapterStruct(chIndex) + offset)
+    /** Reads the unsigned byte at [offset] within the chapter struct of [chapterIndex]. */
+    private fun u8(chapterIndex: Int, offset: Int): Int = rom.u8(getROMChapterStruct(chapterIndex) + offset)
 
-    private fun asset(id: Int): Int = rom.u32(CHAPTER_DATA_ASSET_TABLE + 4 * id)
+    /** Looks up the 32-bit ROM pointer for asset [assetId] from `gChapterDataAssetTable`. */
+    private fun asset(assetId: Int): Int = rom.u32(CHAPTER_DATA_ASSET_TABLE + 4 * assetId)
 
     /** Table addresses and struct layout (`struct ROMChapterData`, include/chapterdata.h). */
     public companion object {
@@ -114,61 +116,61 @@ public class ChapterData(
         /** GBA address of `gChapterDataAssetTable`. */
         public const val CHAPTER_DATA_ASSET_TABLE: Int = 0x088B363C
 
-        /** `sizeof(struct ROMChapterData)`. */
+        /** `sizeof(struct ROMChapterData)` in bytes (0x94 = 148 bytes). */
         public const val ENTRY_SIZE: Int = 0x94
 
-        /** Number of chapters in `gChapterDataTable` (symbol size 0x2DAC / [ENTRY_SIZE]). */
+        /** Number of chapters in `gChapterDataTable` (symbol size 0x2DAC / [ENTRY_SIZE] = 79 chapters). */
         public const val CHAPTER_COUNT: Int = 79
 
-        /** Chapter index of the SRAM-backed extra map, which is not in the ROM tables. */
+        /** Chapter index of the SRAM-backed extra map, which is not in the ROM tables (0x7F). */
         public const val EXTRA_MAP_CHAPTER: Int = 0x7F
 
-        /** Number of `mapBgmIds` entries per chapter. */
+        /** Number of `mapBgmIds` entries per chapter (11 slots). */
         public const val BGM_SLOTS: Int = 11
 
-        /** Offset of `map.obj1Id`. */
+        /** Offset of `map.obj1Id` in `struct ROMChapterData`. */
         public const val OFF_MAP_OBJ1_ID: Int = 0x04
 
-        /** Offset of `map.obj2Id`. */
+        /** Offset of `map.obj2Id` in `struct ROMChapterData`. */
         public const val OFF_MAP_OBJ2_ID: Int = 0x05
 
-        /** Offset of `map.paletteId`. */
+        /** Offset of `map.paletteId` in `struct ROMChapterData`. */
         public const val OFF_MAP_PALETTE_ID: Int = 0x06
 
-        /** Offset of `map.tileConfigId`. */
+        /** Offset of `map.tileConfigId` in `struct ROMChapterData`. */
         public const val OFF_MAP_TILE_CONFIG_ID: Int = 0x07
 
-        /** Offset of `map.mainLayerId`. */
+        /** Offset of `map.mainLayerId` in `struct ROMChapterData`. */
         public const val OFF_MAP_MAIN_LAYER_ID: Int = 0x08
 
-        /** Offset of `map.objAnimId`. */
+        /** Offset of `map.objAnimId` in `struct ROMChapterData`. */
         public const val OFF_MAP_OBJ_ANIM_ID: Int = 0x09
 
-        /** Offset of `map.paletteAnimId`. */
+        /** Offset of `map.paletteAnimId` in `struct ROMChapterData`. */
         public const val OFF_MAP_PALETTE_ANIM_ID: Int = 0x0A
 
-        /** Offset of `map.changeLayerId`. */
+        /** Offset of `map.changeLayerId` in `struct ROMChapterData`. */
         public const val OFF_MAP_CHANGE_LAYER_ID: Int = 0x0B
 
-        /** Offset of `initialPosX`. */
+        /** Offset of `initialPosX` in `struct ROMChapterData`. */
         public const val OFF_INITIAL_POS_X: Int = 0x10
 
-        /** Offset of `initialPosY`. */
+        /** Offset of `initialPosY` in `struct ROMChapterData`. */
         public const val OFF_INITIAL_POS_Y: Int = 0x11
 
-        /** Offset of `initialFogLevel`. */
+        /** Offset of `initialFogLevel` in `struct ROMChapterData`. */
         public const val OFF_INITIAL_FOG_LEVEL: Int = 0x0C
 
-        /** Offset of `initialWeather`. */
+        /** Offset of `initialWeather` in `struct ROMChapterData`. */
         public const val OFF_INITIAL_WEATHER: Int = 0x12
 
-        /** Offset of `mapBgmIds`. */
+        /** Offset of `mapBgmIds` in `struct ROMChapterData`. */
         public const val OFF_MAP_BGM_IDS: Int = 0x16
 
-        /** Offset of `victorySongEnemyThreshold`. */
+        /** Offset of `victorySongEnemyThreshold` in `struct ROMChapterData`. */
         public const val OFF_VICTORY_SONG_ENEMY_THRESHOLD: Int = 0x86
 
-        /** Offset of `mapEventDataId`. */
+        /** Offset of `mapEventDataId` in `struct ROMChapterData`. */
         public const val OFF_MAP_EVENT_DATA_ID: Int = 0x74
     }
 }

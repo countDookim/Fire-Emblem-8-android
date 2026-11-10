@@ -49,15 +49,15 @@ public class ResetCursorPosition(
      * (C dereferences NULL) [x] and [y] are left as they were.
      */
     public fun getPlayerStartCursorPosition() {
-        val leader = units.getUnitFromCharId(units.getPlayerLeaderPid(playSt, nodes))
-        if (playSt.chapterTurnNumber == 1 && leader >= 0) {
-            playSt.xCursor = units.xPos(leader)
-            playSt.yCursor = units.yPos(leader)
+        val leaderUnitId = units.getUnitFromCharId(units.getPlayerLeaderPid(playSt, nodes))
+        if (playSt.chapterTurnNumber == 1 && leaderUnitId >= 0) {
+            playSt.xCursor = units.xPos(leaderUnitId)
+            playSt.yCursor = units.yPos(leaderUnitId)
         }
         if (playSt.autoCursor != 1) {
-            if (leader >= 0) {
-                x = units.xPos(leader)
-                y = units.yPos(leader)
+            if (leaderUnitId >= 0) {
+                x = units.xPos(leaderUnitId)
+                y = units.yPos(leaderUnitId)
             }
         } else {
             x = playSt.xCursor
@@ -74,12 +74,12 @@ public class ResetCursorPosition(
      */
     public fun getEnemyStartCursorPosition() {
         val faction = playSt.faction
-        for (id in faction + 1 until faction + 0x40) {
-            if (!units.isValid(id)) continue
-            if ((units.state(id) and (US_HIDDEN or US_BIT9)) != 0) continue
-            x = units.xPos(id)
-            y = units.yPos(id)
-            if ((units.cAttributes(id) and CA_BOSS) != 0) break
+        for (unitId in faction + 1 until faction + 0x40) {
+            if (!units.isValid(unitId)) continue
+            if ((units.state(unitId) and (US_HIDDEN or US_BIT9)) != 0) continue
+            x = units.xPos(unitId)
+            y = units.yPos(unitId)
+            if ((units.cAttributes(unitId) and CA_BOSS) != 0) break
         }
     }
 
@@ -109,11 +109,22 @@ public class ResetCursorPosition(
     }
 
     private companion object {
+        /** `FACTION_BLUE`: player faction unit index start (0x00). */
         const val FACTION_BLUE = 0x00
+
+        /** `FACTION_GREEN`: ally/NPC faction unit index start (0x40). */
         const val FACTION_GREEN = 0x40
+
+        /** `FACTION_RED`: enemy faction unit index start (0x80). */
         const val FACTION_RED = 0x80
+
+        /** `US_HIDDEN`: unit state flag indicating the unit is absent or hidden from the map (bit 0). */
         const val US_HIDDEN = 1 shl 0
+
+        /** `US_BIT9`: unit state flag indicating the unit is hidden by fog of war (bit 9). */
         const val US_BIT9 = 1 shl 9
+
+        /** `CA_BOSS`: character/class attribute flag for boss units (bit 15). */
         const val CA_BOSS = 1 shl 15
     }
 }

@@ -34,12 +34,16 @@ public class ChapterMapGfx(
     /** `gGenericBuffer` (0x2000 bytes): scratch space [loadObjUiGfx] decompresses into. */
     private val genericBuffer = ByteArray(GENERIC_BUFFER_SIZE)
 
-    private fun asset(id: Int): Int = rom.u32(ChapterData.CHAPTER_DATA_ASSET_TABLE + 4 * id)
+    /** Looks up the 32-bit ROM pointer for asset [assetId] from `gChapterDataAssetTable`. */
+    private fun asset(assetId: Int): Int = rom.u32(ChapterData.CHAPTER_DATA_ASSET_TABLE + 4 * assetId)
 
-    /** `ApplyPalettes(src, palId, count)` with a ROM [src]: [count] banks into `gPaletteBuffer`. */
-    private fun applyPalettes(src: Int, palId: Int, count: Int) {
-        val colors = rom.pal(src, 16 * count)
-        colors.copyInto(hardware.palette, palId * 16)
+    /**
+     * Loads palette data from ROM address [paletteAddress] into `gPaletteBuffer` starting at bank
+     * [paletteBankId] for [bankCount] banks (16 colors each), then enables palette synchronization.
+     */
+    private fun applyPalettes(paletteAddress: Int, paletteBankId: Int, bankCount: Int) {
+        val colors = rom.pal(paletteAddress, 16 * bankCount)
+        colors.copyInto(hardware.palette, paletteBankId * 16)
         hardware.enablePaletteSync()
     }
 
@@ -102,7 +106,8 @@ public class ChapterMapGfx(
     /**
      * Ported from src/bm.c: sub_80156D4
      *
-     * Text, UI frame, face and icon resets (stand-in hooks), then [loadObjUiGfx].
+     * Resets graphics, text, UI frames, faces, and item icon palettes, then loads misc OBJ UI graphics.
+     * Named `sub_80156D4` in the decomp.
      */
     public fun sub80156D4() {
         resetText()
@@ -116,62 +121,62 @@ public class ChapterMapGfx(
     /**
      * Transcribed from src/bmlib.c: Copy2dChr (not verified: no test checks it against a trace yet)
      *
-     * Copies [height] rows of [width] 4bpp tiles from [src] (packed rows) to VRAM offset [dst],
-     * whose rows are 0x20 tiles (0x400 bytes) apart.
+     * Copies [heightInTiles] rows of [widthInTiles] 4bpp tiles from [source] (packed rows) to VRAM offset
+     * [destVramOffset], whose rows are 0x20 tiles (0x400 bytes) apart.
      */
-    private fun copy2dChr(src: ByteArray, dst: Int, width: Int, height: Int) {
-        val lineSize = width * CHR_SIZE
-        for (row in 0 until height) {
-            val to = dst + row * CHR_SIZE * 0x20
-            src.copyInto(hardware.vram, to, row * lineSize, (row + 1) * lineSize)
+    private fun copy2dChr(source: ByteArray, destVramOffset: Int, widthInTiles: Int, heightInTiles: Int) {
+        val lineSize = widthInTiles * CHR_SIZE
+        for (row in 0 until heightInTiles) {
+            val destOffset = destVramOffset + row * CHR_SIZE * 0x20
+            source.copyInto(hardware.vram, destOffset, row * lineSize, (row + 1) * lineSize)
         }
     }
 
-    /** Layout constants. */
+    /** Layout and asset constants. */
     public companion object {
-        /** `WEATHER_CLOUDS` (types.h). */
+        /** `WEATHER_CLOUDS` (types.h): cloudy/overcast weather ID (7). */
         public const val WEATHER_CLOUDS: Int = 7
 
-        /** VRAM offset of BG tile 0x400, where tileset part 1 goes. */
+        /** VRAM offset of BG tile 0x400 (0x8000), where primary tileset graphics are loaded. */
         public const val TILESET_PART1: Int = 0x8000
 
-        /** VRAM offset of BG tile 0x600, where tileset part 2 goes. */
+        /** VRAM offset of BG tile 0x600 (0xC000), where secondary tileset graphics are loaded. */
         public const val TILESET_PART2: Int = 0xC000
 
-        /** First palette bank of the tileset palette. */
+        /** First palette bank of the tileset palette (bank 6). */
         public const val TILESET_PAL: Int = 6
 
-        /** Number of tileset palette banks. */
+        /** Number of tileset palette banks (banks 6..15 = 10 banks). */
         public const val TILESET_PAL_COUNT: Int = 10
 
         /** VRAM offset of OBJ VRAM bank 0 (`0x06010000`). */
         public const val OBJ_VRAM0: Int = 0x10000
 
-        /** First palette bank of the OBJ UI palettes. */
+        /** First palette bank of the OBJ UI palettes (bank 16 / 0x10). */
         public const val OBJ_PAL: Int = 0x10
 
-        /** Number of OBJ UI palette banks. */
+        /** Number of OBJ UI palette banks (2 banks). */
         public const val OBJ_PAL_COUNT: Int = 2
 
-        /** `gGfx_MiscUiGraphics` ROM address. */
+        /** ROM address of `gGfx_MiscUiGraphics` compressed image. */
         public const val GFX_MISC_UI: Int = 0x0859E8E0
 
-        /** `gPal_MiscUiGraphics` ROM address. */
+        /** ROM address of `gPal_MiscUiGraphics` palette. */
         public const val PAL_MISC_UI: Int = 0x0859ED70
 
-        /** Width in tiles of the OBJ UI graphics copy. */
+        /** Width in 8x8 tiles of the miscellaneous OBJ UI graphics block (18 tiles). */
         public const val MISC_UI_WIDTH: Int = 0x12
 
-        /** Height in tiles of the OBJ UI graphics copy. */
+        /** Height in 8x8 tiles of the miscellaneous OBJ UI graphics block (4 tiles). */
         public const val MISC_UI_HEIGHT: Int = 4
 
-        /** `CHR_SIZE`: bytes per 4bpp tile. */
+        /** `CHR_SIZE`: bytes per 4bpp 8x8 tile (32 bytes). */
         public const val CHR_SIZE: Int = 0x20
 
-        /** `gGenericBuffer` size. */
+        /** Byte size of `gGenericBuffer` scratch memory (8192 bytes). */
         public const val GENERIC_BUFFER_SIZE: Int = 0x2000
 
-        /** Argument of `LoadIconPalettes` in `sub_80156D4`. */
+        /** Palette slot argument for `LoadIconPalettes` (palette 4). */
         public const val ICON_PAL_ID: Int = 4
     }
 }

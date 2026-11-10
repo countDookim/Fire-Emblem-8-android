@@ -50,7 +50,7 @@ public class BMapMain(
 ) {
     /** The calls and procs that are not ported yet; every one does nothing by default. */
     public class Hooks {
-        /** `WriteSuspendSave(slot)`. Stand-in. */
+        /** `WriteSuspendSave(slot)`: writes a suspend save file for the given slot. Stand-in. */
         public var writeSuspendSave: (slot: Int) -> Unit = {}
 
         /**
@@ -65,67 +65,67 @@ public class BMapMain(
          */
         public var runPhaseSwitchEvents: () -> Boolean = { false }
 
-        /** `ClearActiveFactionGrayedStates`. Stand-in. */
+        /** `ClearActiveFactionGrayedStates`: resets greyed-out acted state for active faction units. Stand-in. */
         public var clearActiveFactionGrayedStates: () -> Unit = {}
 
-        /** `RefreshUnitSprites`. Stand-in. */
+        /** `RefreshUnitSprites`: updates and synchronizes map sprites for all active units. Stand-in. */
         public var refreshUnitSprites: () -> Unit = {}
 
-        /** `ProcessTurnSupportExp`. Stand-in. */
+        /** `ProcessTurnSupportExp`: advances support points between adjacent allied units. Stand-in. */
         public var processTurnSupportExp: () -> Unit = {}
 
-        /** `UpdatePrevDeployStates`. Stand-in. */
+        /** `UpdatePrevDeployStates`: updates previous turn deployment tracking. Stand-in. */
         public var updatePrevDeployStates: () -> Unit = {}
 
-        /** `TickActiveFactionTurn`. Stand-in. */
+        /** `TickActiveFactionTurn`: decrements status condition turns and item durations. Stand-in. */
         public var tickActiveFactionTurn: () -> Unit = {}
 
-        /** `DecayTraps` (second half of `BmMain_UpdateTraps`). Stand-in. */
+        /** `DecayTraps`: decrements trap countdowns and handles expiring field traps. Stand-in. */
         public var decayTraps: () -> Unit = {}
 
         /** `sub_80155C4` (chapter change cleanup and `StartBattleMap(0)`). Stand-in. */
         public var sub80155C4: () -> Unit = {}
 
-        /** `RenderBmMap`. Stand-in. */
+        /** `RenderBmMap`: full background tilemap redraw. Stand-in. */
         public var renderBmMap: () -> Unit = {}
 
-        /** `StartMapSongBgm`. Stand-in. */
+        /** `StartMapSongBgm`: starts chapter background music for active phase. Stand-in. */
         public var startMapSongBgm: () -> Unit = {}
 
-        /** `StartMidFadeFromBlack`. Stand-in. */
+        /** `StartMidFadeFromBlack`: initiates screen fade-in transition from black. Stand-in. */
         public var startMidFadeFromBlack: () -> Unit = {}
 
-        /** `WaitForFade` as "the fade is over" (the repeat breaks then). Stand-in. */
+        /** `WaitForFade`: returns true when active screen fade has finished. Stand-in. */
         public var waitForFade: () -> Boolean = { true }
 
         /** `GetBattleMapKind` ([BattleMapKind]). Stand-in: always a story map. */
         public var getBattleMapKind: () -> Int = { BattleMapKind.STORY }
 
-        /** `gProcScr_ChapterIntro` (0x0859B1B0). Stand-in: ends at once. */
+        /** `gProcScr_ChapterIntro` (0x0859B1B0): chapter introduction title/banner sequence. Stand-in: ends at once. */
         public var chapterIntro: ProcScript = standIn("gProcScr_ChapterIntro")
 
-        /** `gProcScr_ChapterIntroTitleOnly`. Stand-in: ends at once. */
+        /** `gProcScr_ChapterIntroTitleOnly`: title-only chapter transition intro. Stand-in: ends at once. */
         public var chapterIntroTitleOnly: ProcScript = standIn("gProcScr_ChapterIntroTitleOnly")
 
-        /** `ProcScr_PhaseIntro` (0x0859AF80). Stand-in: ends at once. */
+        /** `ProcScr_PhaseIntro` (0x0859AF80): phase change banner animation ("Player Phase", etc.). Stand-in: ends at once. */
         public var phaseIntro: ProcScript = standIn("ProcScr_PhaseIntro")
 
-        /** `gProcScr_StatusDecayDisplay`. Stand-in: ends at once. */
+        /** `gProcScr_StatusDecayDisplay`: status condition recovery visual display. Stand-in: ends at once. */
         public var statusDecayDisplay: ProcScript = standIn("gProcScr_StatusDecayDisplay")
 
-        /** `gProcScr_TerrainHealDisplay`. Stand-in: ends at once. */
+        /** `gProcScr_TerrainHealDisplay`: terrain recovery (forts/thrones) animation display. Stand-in: ends at once. */
         public var terrainHealDisplay: ProcScript = standIn("gProcScr_TerrainHealDisplay")
 
-        /** `gProcScr_PoisonDamageDisplay`. Stand-in: ends at once. */
+        /** `gProcScr_PoisonDamageDisplay`: poison damage animation display. Stand-in: ends at once. */
         public var poisonDamageDisplay: ProcScript = standIn("gProcScr_PoisonDamageDisplay")
 
-        /** `gProcScr_GorgonEggHatchDisplay`. Stand-in: ends at once. */
+        /** `gProcScr_GorgonEggHatchDisplay`: Gorgon egg hatch animation display. Stand-in: ends at once. */
         public var gorgonEggHatchDisplay: ProcScript = standIn("gProcScr_GorgonEggHatchDisplay")
 
-        /** `gProcScr_UpdateTraps`. Stand-in: ends at once. */
+        /** `gProcScr_UpdateTraps`: trap activation / damage phase process. Stand-in: ends at once. */
         public var updateTraps: ProcScript = standIn("gProcScr_UpdateTraps")
 
-        /** `gProcScr_BerserkCpPhase`. Stand-in: ends at once. */
+        /** `gProcScr_BerserkCpPhase`: computer phase execution for berserked units. Stand-in: ends at once. */
         public var berserkCpPhase: ProcScript = standIn("gProcScr_BerserkCpPhase")
 
         /**
@@ -134,7 +134,7 @@ public class BMapMain(
          */
         public var playerPhase: ProcScript = idle("gProcScr_PlayerPhase")
 
-        /** `gProcScr_CpPhase`. Stand-in: never ends. */
+        /** `gProcScr_CpPhase`: computer AI phase execution process. Stand-in: never ends. */
         public var cpPhase: ProcScript = idle("gProcScr_CpPhase")
 
         private fun standIn(name: String) = ProcScript(name, listOf(end()))
@@ -322,7 +322,7 @@ public class BMapMain(
     /**
      * Transcribed from src/bm.c: sub_8015434 (not verified: no test checks it against a trace yet)
      *
-     * Always true: `sub_80832D4` returns 0 in the game.
+     * Always returns true: calls `sub_80832D4` in the decomp, which returns 0 in the base game.
      */
     public fun sub8015434(): Boolean = true
 
@@ -398,9 +398,9 @@ public class BMapMain(
     public fun undeployEveryone() {
         flags.clearFlag(0x84)
         if (playSt.unk4A1 != 0) return
-        for (id in 1 until FACTION_GREEN) {
-            if (!units.isValid(id)) continue
-            units.setState(id, units.state(id) and BattleMapStart.US_NOT_DEPLOYED.inv())
+        for (unitId in 1 until FACTION_GREEN) {
+            if (!units.isValid(unitId)) continue
+            units.setState(unitId, units.state(unitId) and BattleMapStart.US_NOT_DEPLOYED.inv())
         }
     }
 
@@ -420,7 +420,7 @@ public class BMapMain(
 
     /**
      * Transcribed from src/bm.c: SetEventId_0x84 (not verified: no trace separates it from a
-     *   no-op); `SetFlag(0x84)`).
+     *   no-op); `SetFlag(0x84)`). Sets temporary chapter start event flag 0x84.
      */
     public fun setEventId84() {
         flags.setFlag(0x84)
@@ -428,30 +428,30 @@ public class BMapMain(
 
     /**
      * Transcribed from src/bm.c: UnsetEventId_0x84 (not verified: no trace separates it from a
-     *   no-op); `ClearFlag(0x84)`).
+     *   no-op); `ClearFlag(0x84)`). Clears temporary chapter start event flag 0x84.
      */
     public fun unsetEventId84() {
         flags.clearFlag(0x84)
     }
 
-    /** Constants. */
+    /** Faction, save, and event script constants. */
     public companion object {
-        /** `FACTION_BLUE`. */
+        /** Player faction unit ID start (0x00). */
         public const val FACTION_BLUE: Int = 0x00
 
-        /** `FACTION_GREEN`. */
+        /** Ally/NPC faction unit ID start (0x40). */
         public const val FACTION_GREEN: Int = 0x40
 
-        /** `FACTION_RED`. */
+        /** Enemy faction unit ID start (0x80). */
         public const val FACTION_RED: Int = 0x80
 
-        /** `SUSPEND_POINT_PHASECHANGE`. */
+        /** `SUSPEND_POINT_PHASECHANGE`: suspend save point type at phase switch (9). */
         public const val SUSPEND_POINT_PHASECHANGE: Int = 9
 
-        /** `SAVE_ID_SUSPEND`. */
+        /** `SAVE_ID_SUSPEND`: suspend save slot index (3). */
         public const val SAVE_ID_SUSPEND: Int = 3
 
-        /** `EventScr_SkirmishCommonBeginning` (ROM 0x089FFC30). */
+        /** `EventScr_SkirmishCommonBeginning` (ROM 0x089FFC30): common skirmish start event script. */
         public const val EVENT_SKIRMISH_COMMON_BEGINNING: Int = 0x089FFC30
     }
 }

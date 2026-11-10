@@ -116,14 +116,21 @@ public class WorldMapMain(
 
     /** Callees of `WorldMap_CallBeginningEvent` that are not ported yet. */
     public class BeginningHooks(
+        /** `Sound_FadeOutBGM(speed)`. */
         public val fadeOutBgm: (Int) -> Unit = {},
+        /** `sub_80BA008(timer)`: the monster-merged/postgame branch. */
         public val sub80BA008: (Int) -> Unit = {},
         /** `Events_WM_Beginning[GetROMChapterStruct(chIndex)->gmapEventId]`, null if NULL. */
         public val beginningEvent: (Int) -> Int? = { null },
+        /** `ResetGmStoryNode()`. */
         public val resetGmStoryNode: () -> Unit = {},
+        /** `proc->gm_icon->merge_next_node = false`. */
         public val clearMergeNextNode: () -> Unit = {},
+        /** `CallEvent(Events_WM_Beginning[...], 0)` with the event id from [beginningEvent]. */
         public val callEvent: (Int) -> Unit = {},
+        /** `StartWMFaceCtrl(proc)`. */
         public val startWmFaceCtrl: () -> Unit = {},
+        /** `StartGmapMuEntry(NULL)`. */
         public val startGmapMuEntry: () -> Unit = {},
     )
 }

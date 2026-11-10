@@ -62,6 +62,7 @@ public class GmData(private val iwram: ByteArray, private val rng: RngService) {
             iwram[BASE + CURRENT_NODE] = value.toByte()
         }
 
+    /** `gGMData` layout constants. */
     public companion object {
         private const val CURRENT_NODE = 0xC8
         private const val NODE_STATE_CLEARED = 2

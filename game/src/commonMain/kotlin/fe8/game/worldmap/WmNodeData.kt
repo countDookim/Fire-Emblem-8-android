@@ -46,6 +46,7 @@ public class WmNodeData(private val rom: RomView) {
 
     private fun entry(idx: Int): Int = NODE_DATA + idx * ENTRY_SIZE
 
+    /** `gWMNodeData` layout constants. */
     public companion object {
         /** ROM address of `gWMNodeData`. */
         public const val NODE_DATA: Int = 0x082060B0

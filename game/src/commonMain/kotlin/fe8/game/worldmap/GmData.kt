@@ -55,6 +55,21 @@ public class GmData(private val iwram: ByteArray, private val rng: RngService) {
     public fun unitLocation(unit: Int): Int =
         iwram[BASE + UNITS + unit * UNIT_SIZE + 1].toInt() and 0xFF
 
+    /** `gGMData.nodes[node].state` (`u8`). */
+    public fun nodeState(node: Int): Int = iwram[BASE + NODES + node].toInt() and 0xFF
+
+    /** Sets `gGMData.nodes[node].state` to [value] (low 8 bits). */
+    public fun setNodeState(node: Int, value: Int) {
+        iwram[BASE + NODES + node] = value.toByte()
+    }
+
+    /** `gGMData.openPaths.openPathsLength` (`s8`). */
+    public val openPathsLength: Int
+        get() = iwram[BASE + OPEN_PATHS_LENGTH].toInt()
+
+    /** `gGMData.openPaths.openPaths[index]` (`s8`). */
+    public fun openPath(index: Int): Int = iwram[BASE + OPEN_PATHS + index].toInt()
+
     /** `gGMData.current_node` (`u8`, offset 0xC8). */
     public var currentNode: Int
         get() = iwram[BASE + CURRENT_NODE].toInt() and 0xFF

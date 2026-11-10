@@ -83,6 +83,8 @@ import fe8.game.save.SuspendRam
 import fe8.game.scene.TalkScene
 import fe8.game.title.TitleScreen
 import fe8.game.worldmap.GmData
+import fe8.game.worldmap.WmNodeData
+import fe8.game.worldmap.WorldMapNodes
 import gba.audio.M4aDriver
 import gba.audio.M4aSound
 import gba.audio.PcmStream
@@ -799,7 +801,12 @@ public class Fe8Boot(
         val map = battleBmMap
         val camMove = this.camMove
         val reset = ResetCursorPosition(
-            engine, bm, control.playSt, units, camMove, NO_WORLD_MAP_NODES,
+            engine, bm, control.playSt, units, camMove,
+            if (rom.isWholeRom) {
+                WorldMapNodes(WmNodeData(rom), gmData, control.playSt)
+            } else {
+                NO_WORLD_MAP_NODES
+            },
         )
         val main = BMapMain(
             engine, control.playSt, units, flags, chapters, rom, reset, camMove,

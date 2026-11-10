@@ -37,6 +37,12 @@ public class WmNodeData(private val rom: RomView) {
         return rom.u8(base + mode).toByte().toInt()
     }
 
+    /** `gWMNodeData[idx].placementFlag` (`u8`, offset 0x00). */
+    public fun placementFlag(idx: Int): Int = rom.u8(entry(idx))
+
+    /** `(u8)gWMNodeData[idx].encounters` (`s8`, offset 0x01). */
+    public fun encounters(idx: Int): Int = rom.u8(entry(idx) + 1)
+
     private fun entry(idx: Int): Int = NODE_DATA + idx * ENTRY_SIZE
 
     public companion object {

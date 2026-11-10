@@ -84,6 +84,26 @@ class WmNodeDataReferenceTest {
         assertEquals(0, data.nextLocId(0, 2) { false })
     }
 
+    @Test
+    fun `placement flag and encounters match decomp node table for all nodes`() {
+        val source = File(decomp, "src/worldmap_node_data.c")
+        val header = File(decomp, "include/worldmap.h")
+        assumeTrue(romFile.isFile && source.isFile && header.isFile, "ROM / decomp not present")
+        val consts = Regex("""(GMAP_\w+)\s*=\s*(\d+)""").findAll(header.readText())
+            .associate { it.groupValues[1] to it.groupValues[2].toInt() }
+        val body = source.readText().let { it.substring(it.indexOf("gWMNodeData[] =")) }
+        val blocks = body.split(Regex("""\[NODE_\w+\]\s*=""")).drop(1)
+        assertEquals(WmNodeData.NODE_COUNT, blocks.size)
+        val data = WmNodeData(RomView.ofRom(romFile.readBytes()))
+        blocks.forEachIndexed { idx, block ->
+            fun field(name: String) = consts.getValue(
+                Regex("""\.$name\s*=\s*(\w+)""").find(block)!!.groupValues[1],
+            )
+            assertEquals(field("placementFlag"), data.placementFlag(idx), "placement $idx")
+            assertEquals(field("encounters"), data.encounters(idx), "encounters $idx")
+        }
+    }
+
     private fun parse(text: String, ids: Map<String, Int>): List<Node> {
         val start = text.indexOf("gWMNodeData[] =")
         val body = text.substring(start)

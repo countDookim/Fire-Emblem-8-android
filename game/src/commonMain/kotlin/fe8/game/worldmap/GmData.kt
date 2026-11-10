@@ -42,7 +42,17 @@ public class GmData(private val iwram: ByteArray, private val rng: RngService) {
         for (i in 0 until 3) StructCodec.put16(iwram, BASE + UNK_CE + i * 2, words[i])
     }
 
+    /** True if `gGMData.nodes[node].state` has `GM_NODE_STATE_CLEARED` (bit 1). */
+    public fun isNodeCleared(node: Int): Boolean =
+        iwram[BASE + NODES + node].toInt() and NODE_STATE_CLEARED != 0
+
+    /**
+     * Reads `gGMData.state.bits.monster_merged` (bit 1 of the first byte of `gGMData`).
+     */
+    public fun monsterMerged(): Boolean = (iwram[BASE].toInt() and 0x02) != 0
+
     public companion object {
+        private const val NODE_STATE_CLEARED = 2
         /** IWRAM offset of `gGMData` (0x03005280). */
         public const val BASE: Int = 0x5280
 

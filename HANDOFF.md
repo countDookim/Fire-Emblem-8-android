@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D09-3g (PopupProc_PrepareGfx + volume/sound callbacks): scheduled, until ~05:25Z
+- D09-3h (ProcScr_Popup script host on ProcEngine): scheduled, until ~05:25Z
 
 ## Current state
 

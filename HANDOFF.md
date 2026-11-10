@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-None.
+- D11-wm3 (WorldMapPath helpers + ProcScr_WorldMapMain prefix): scheduled, until ~19:05Z
 
 ## Current state
 

@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 643,
+    "verified": 647,
     "implemented_unverified": 1
   },
   "functions": {
@@ -2933,6 +2933,33 @@
         "fe8.testing.PopupProcDifferentialTest#init fields match the popup proc before its graphics are drawn"
       ]
     },
+    "PopupProc_MaybeResetVolume": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Popup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupProcDifferentialTest#volume callbacks start the traced BGM volume change children"
+      ]
+    },
+    "PopupProc_MaybeSetVolume": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Popup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupProcDifferentialTest#volume callbacks start the traced BGM volume change children"
+      ]
+    },
+    "PopupProc_PrepareGfx": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Popup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupProcDifferentialTest#prepareGfx reproduces the font frame graphics blend and icon tables"
+      ]
+    },
     "PopupProc_WaitForPress": {
       "decomp_file": "src/popup.c",
       "system": "menus",
@@ -3369,6 +3396,15 @@
       "tests": [
         "fe8.testing.BmMapScrollDifferentialTest#ch2 vertical scroll redraws lines into the wrapped BG3 buffer",
         "fe8.testing.BmMapScrollDifferentialTest#ch6 fog scrolls in x and y"
+      ]
+    },
+    "ResetIconGraphics": {
+      "decomp_file": "src/icon.c",
+      "system": "text_face",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/ItemIcon.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupProcDifferentialTest#prepareGfx reproduces the font frame graphics blend and icon tables"
       ]
     },
     "ResetKeyStatus": {

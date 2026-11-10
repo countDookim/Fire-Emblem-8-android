@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-None.
+- D11-wm2 (WMLoc lookups) + GmData wiring: scheduled, until ~18:15Z
 
 ## Current state
 

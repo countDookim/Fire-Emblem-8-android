@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- CI-decomp: owner PC (GPT), until ~20:11Z — make node reference tests runnable locally and in CI.
+- D11-skip-capture: owner PC (GPT), until ~20:11Z — original Start-skip captures and standalone verification.
 - D11-wm7-review: owner PC (GPT), until ~20:11Z — review, fix and mutation-check unfinished world-map faces.
 - READ-opsubtitle: owner PC (GPT), until ~20:11Z — subtitle package readability review.
 

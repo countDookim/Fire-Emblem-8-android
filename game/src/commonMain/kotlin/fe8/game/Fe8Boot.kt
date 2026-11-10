@@ -507,8 +507,7 @@ public class Fe8Boot(
      * unit-name text id is 0 (the got-item and pilfered scripts do not use the unit name), and
      * [addItem] with a full inventory (the item-drop menu) throws [NotImplementedError].
      * `LoadIconPalette(slot, palId)` maps to [ItemIcon.loadIconPalette] (icon palette `slot` into
-     * palette bank `palId`); that mapping is not covered by the item_popup trace test, whose
-     * `loadIconPalette` is a no-op.
+     * palette bank `palId`).
      */
     private fun gotItemPopup(
         addItem: (unit: Int, item: Int) -> Boolean,
@@ -516,6 +515,7 @@ public class Fe8Boot(
     ): GotItemPopup {
         gotItemPopupInstance?.let { return it }
         val scene = talkScene
+        val popupIconObject = rom.objN(0x08590F4C) // gObject_16x16
         val popupScript = PopupScript(
             engine,
             PopupScript.Dependencies(
@@ -534,6 +534,9 @@ public class Fe8Boot(
                 },
                 playSoundEffect = { song -> control.sound.playSoundEffect(song) },
                 newKeys = { keys.newKeys },
+                pushToSecondaryOam = { x, y, _, oam2 ->
+                    loop.oam.putHi(x, y, popupIconObject.data, oam2)
+                },
             ),
         )
         val popup = GotItemPopup(

@@ -26,6 +26,12 @@ public class PopupScript(
     /** What the popup steps read and write outside the proc. */
     public val deps: Dependencies,
 ) {
+    /** Writes a popup icon sprite to the secondary OAM buffer. */
+    public fun interface SecondaryOamWriter {
+        /** Pushes a ROM sprite [objectAddress] at ([x], [y]) with [oam2] attributes. */
+        public fun push(x: Int, y: Int, objectAddress: Int, oam2: Int)
+    }
+
     /** The external state and services the popup steps use; see [Popup.prepareGfx]. */
     public class Dependencies(
         /** ROM view. */
@@ -58,11 +64,10 @@ public class PopupScript(
         /** `gKeyStatusPtr->newKeys`. */
         public val newKeys: () -> Int,
         /**
-         * `CallARM_PushToSecondaryOAM(x, y, object, oam2)`: [object] is the ROM address of a
-         * sprite definition (`gObject_16x16` for the popup icon).
+         * `CallARM_PushToSecondaryOAM`: the object address is `gObject_16x16` for the popup icon.
          */
-        public val pushToSecondaryOam: (x: Int, y: Int, `object`: Int, oam2: Int) -> Unit =
-            { _, _, _, _ -> },
+        public val pushToSecondaryOam: SecondaryOamWriter =
+            SecondaryOamWriter { _, _, _, _ -> },
     )
 
     private fun popupOf(proc: Proc): Popup.PopupProc = proc.state as Popup.PopupProc
@@ -85,7 +90,7 @@ public class PopupScript(
      * [fields] are `unk_2C`, `unk_30` and `unk_4A` of the child.
      */
     private fun iconLoop(fields: IntArray) {
-        deps.pushToSecondaryOam(fields[0], fields[1], OBJECT_16X16, fields[2])
+        deps.pushToSecondaryOam.push(fields[0], fields[1], OBJECT_16X16, fields[2])
     }
 
     private fun startIconChild(parent: Proc, fields: IntArray) {
@@ -112,6 +117,7 @@ public class PopupScript(
         listOf(
             setEndCb {
                 Popup.gfxClear(popupOf(it), deps.hardware.mapBuffer(0), deps.hardware.mapBuffer(1))
+                deps.hardware.enableBgSyncByMask(3)
             },
             call { Popup.init(popupOf(it)) },
             sleep(0xA),

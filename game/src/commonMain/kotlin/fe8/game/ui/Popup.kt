@@ -285,7 +285,7 @@ public object Popup {
      * End callback of the popup proc: zeroes the popup's rectangle in the BG0 and BG1 tilemap
      * buffers [bg0] and [bg1]. The original's ARM `TmFillRect` counts both sizes inclusively, so
      * it clears `xTileSize + 1` by `yTileSize + 1` cells starting at (`xTileReal`, `yTileReal`),
-     * with a row stride of 32 cells. The BG sync is a no-op here.
+     * with a row stride of 32 cells. The host requests the BG sync after this helper returns.
      *
      * Ported from src/popup.c: PopupProc_GfxClear
      */

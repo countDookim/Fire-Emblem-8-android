@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-_(none; scheduled run completed; no worktrees open)_
+- D09-4 (wire PopupScript for EventGiveItem): scheduled, until ~05:25Z, work on `wip/D09-4`
 
 ## Current state
 

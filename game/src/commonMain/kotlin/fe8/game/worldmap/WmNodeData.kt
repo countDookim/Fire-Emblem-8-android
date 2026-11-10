@@ -50,6 +50,9 @@ public class WmNodeData(private val rom: RomView) {
     /** `gWMNodeData[idx].y` (`s16`, offset 0x1A). */
     public fun y(idx: Int): Int = rom.u16(entry(idx) + Y).toShort().toInt()
 
+    /** `gWMNodeData[idx].shipTravelFlag` (`u8`, offset 0x1E). */
+    public fun shipTravelFlag(idx: Int): Int = rom.u8(entry(idx) + SHIP_TRAVEL_FLAG)
+
     private fun entry(idx: Int): Int = NODE_DATA + idx * ENTRY_SIZE
 
     /** `gWMNodeData` layout constants. */
@@ -70,5 +73,6 @@ public class WmNodeData(private val rom: RomView) {
         private const val NEXT = 0x08
         private const val X = 0x18
         private const val Y = 0x1A
+        private const val SHIP_TRAVEL_FLAG = 0x1E
     }
 }

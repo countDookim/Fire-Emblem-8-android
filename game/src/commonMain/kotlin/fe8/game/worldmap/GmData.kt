@@ -68,6 +68,21 @@ public class GmData(private val iwram: ByteArray, private val rng: RngService) {
     /** `gGMData.units[unit].id` (`u16`, offset 2 of the unit slot). */
     public fun unitId(unit: Int): Int = u16(UNITS + unit * UNIT_SIZE + 2)
 
+    /** Sets `gGMData.units[unit].location` (`u8`). */
+    public fun setUnitLocation(unit: Int, value: Int) {
+        iwram[BASE + UNITS + unit * UNIT_SIZE + 1] = value.toByte()
+    }
+
+    /** Sets `gGMData.units[unit].state` (`u8`). */
+    public fun setUnitState(unit: Int, value: Int) {
+        iwram[BASE + UNITS + unit * UNIT_SIZE] = value.toByte()
+    }
+
+    /** Sets `gGMData.units[unit].id` (`u16`). */
+    public fun setUnitId(unit: Int, value: Int) {
+        StructCodec.put16(iwram, BASE + UNITS + unit * UNIT_SIZE + 2, value)
+    }
+
     /** `gGMData.state.bits.state_3` (bit 3 of the first byte). */
     public var state3: Boolean
         get() = stateRaw and 0x08 != 0

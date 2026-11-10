@@ -10,7 +10,6 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- READABILITY fe8.game.event (remaining 18 files): owner PC, until ~22:30Z
 - D-11 subtitle fade-to-black (real ScreenFade at 4799-4866; replay to 4897 done 9e20898): owner PC, until ~22:30Z
 
 ## Current state

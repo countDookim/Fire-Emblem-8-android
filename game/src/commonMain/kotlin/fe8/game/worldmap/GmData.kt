@@ -84,8 +84,44 @@ public class GmData(private val iwram: ByteArray, private val rng: RngService) {
             iwram[BASE + CURRENT_NODE] = value.toByte()
         }
 
+    /** `gGMData.xCamera` (`s16`, offset 2). */
+    public var xCamera: Int
+        get() = s16(CAMERA_X)
+        set(value) = StructCodec.put16(iwram, BASE + CAMERA_X, value)
+
+    /** `gGMData.yCamera` (`s16`, offset 4). */
+    public var yCamera: Int
+        get() = s16(CAMERA_Y)
+        set(value) = StructCodec.put16(iwram, BASE + CAMERA_Y, value)
+
+    /** `gGMData.ix` (`int`, 24.8 fixed point world x, offset 8). */
+    public var ix: Int
+        get() = u16(IX) or (s16(IX + 2) shl 16)
+        set(value) {
+            StructCodec.put16(iwram, BASE + IX, value)
+            StructCodec.put16(iwram, BASE + IX + 2, value shr 16)
+        }
+
+    /** `gGMData.iy` (`int`, 24.8 fixed point world y, offset 0xC). */
+    public var iy: Int
+        get() = u16(IY) or (s16(IY + 2) shl 16)
+        set(value) {
+            StructCodec.put16(iwram, BASE + IY, value)
+            StructCodec.put16(iwram, BASE + IY + 2, value shr 16)
+        }
+
+    private fun u16(offset: Int): Int =
+        (iwram[BASE + offset].toInt() and 0xFF) or
+            ((iwram[BASE + offset + 1].toInt() and 0xFF) shl 8)
+
+    private fun s16(offset: Int): Int = u16(offset).toShort().toInt()
+
     /** `gGMData` layout constants. */
     public companion object {
+        private const val CAMERA_X = 2
+        private const val CAMERA_Y = 4
+        private const val IX = 8
+        private const val IY = 0xC
         private const val CURRENT_NODE = 0xC8
         private const val NODE_STATE_CLEARED = 2
         /** IWRAM offset of `gGMData` (0x03005280). */

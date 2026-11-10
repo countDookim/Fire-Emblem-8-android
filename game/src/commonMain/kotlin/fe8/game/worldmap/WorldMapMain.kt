@@ -28,11 +28,23 @@ import gbafe.proc.ProcScripts.yield
  * `ProcScr_WorldMapMain` script are not ported yet.
  */
 public class WorldMapMainProc {
+    /** `gm_icon` (+0x48): the `ProcScr_GmNodeIconDisplay` proc. */
+    public var gmIcon: GmNodeIconDisplayProc = GmNodeIconDisplayProc()
+
     /** `flags_1` (bit 1 of the byte at +0x29). */
     public var flags1: Int = 0
 
     /** `timer` (+0x2C). */
     public var timer: Int = 0
+}
+
+/** The fields of `struct GmNodeIconDisplayProc` that `src/worldmap_main.c` writes. */
+public class GmNodeIconDisplayProc {
+    /** `merge_next_node` (bit 1 of the byte at +0x32). */
+    public var mergeNextNode: Boolean = false
+
+    /** `nodeId` (+0x33). */
+    public var nodeId: Int = 0
 }
 
 /**
@@ -108,6 +120,53 @@ public class WorldMapMain(
      */
     public fun sub80B8FD4() {
         gmData.stateRaw = (gmData.stateRaw or 0x01) and 0x08.inv()
+    }
+
+    /**
+     * Ported from src/worldmap_main.c: sub_80B8FEC
+     *
+     * Points the node icon at the next uncleared node and enables merging, or disables merging
+     * if there is none. The prologue trace only covers the no-node branch (node 0 is cleared but
+     * not valid there), so `nodeId` assignment is not verified.
+     *
+     * @param getNextUnclearedNode `GetNextUnclearedNode(&gGMData)`
+     */
+    public fun sub80B8FEC(proc: WorldMapMainProc, getNextUnclearedNode: () -> Int) {
+        val id = getNextUnclearedNode()
+        if (id >= 0) {
+            proc.gmIcon.nodeId = id
+            proc.gmIcon.mergeNextNode = true
+        } else {
+            proc.gmIcon.mergeNextNode = false
+        }
+    }
+
+    /**
+     * Transcribed from src/worldmap_main.c: WmMain_MoveCamera (not verified: `gGMData.ix/iy` stay
+     * 0 and the camera constant in every prologue dump, so no trace covers any branch)
+     *
+     * Scrolls `gGMData.xCamera/yCamera` so the cursor `ix/iy >> 8` stays inside the
+     * 0x20..0xD0 (x) and 0x20..0x80 (y) margins, clamped to 0..0xF0 and 0..0xA0.
+     */
+    public fun wmMainMoveCamera() {
+        val a = (gmData.ix shr 8).toShort().toInt()
+        val b = (gmData.iy shr 8).toShort().toInt()
+        var c = gmData.xCamera
+        var d = gmData.yCamera
+        var delta = (a - c).toShort().toInt()
+        if (delta < 0x20) {
+            c = if (a >= 0x20) a - 0x20 else 0
+        } else if (delta > 0xD0) {
+            c = if (a < 0x1C0) a - 0xD0 else 0xF0
+        }
+        delta = (b - d).toShort().toInt()
+        if (delta < 0x20) {
+            d = if (b >= 0x20) b - 0x20 else 0
+        } else if (delta > 0x80) {
+            d = if (b < 0x120) b - 0x80 else 0xA0
+        }
+        gmData.xCamera = c
+        gmData.yCamera = d
     }
 
     /**

@@ -114,3 +114,14 @@ Corrections to section 1/2: the `gUnknown_08206868+108` and `GmapRm_Blocking`/`G
 were current-position labels of other procs, not roots; `ProcScr_GmapUnit`/`GMapMuPrim` are children as listed
 above. The chapter-0 loop exit is still not read from a capture, but the second event run at 9289-9292 supports the
 "ChapterIntro after Beginning" order (two StdEventEngine runs: 4907-9284 and 9289-9291).
+
+## 5. Steps 4899-4901 are one multi-frame callback (D11-wm3)
+
+`ProcScr_WorldMapMain` holds script position 3 (inside `call WorldMap_Init`) for trace steps 4899-4901,
+while `ProcScr_GMapScreen` appears at 4900 and 15 more procs (VSync, route, icon, unit container, cursor, MU,
+text handler, GmapUnit) at 4901, in the creation order of one `WorldMap_Init` call; the wrapper and
+GameControl do not move. `gGameClock` still advances 30 over steps 4890-4920 (r dumps; per-step clock is not
+watched). So these are lag frames inside one long callback (`SetupGraphicSystemsForWorldMap` gfx loads, as with
+`sub_80C50A0`), not a yield; `sleep(4)` is entered at 4902 (sleepTime 4, then 3..0). Tests align on completed
+main-proc updates (dwell per position), no artificial delay in the port. Not observable in the trace:
+`WmMain_MoveCamera` (ix/iy and camera constant), `sub_80B90CC`/`sub_80B9114` (units 4-6 already 0, not merged).

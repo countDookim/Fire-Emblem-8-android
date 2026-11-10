@@ -70,6 +70,14 @@ gGameClock and runs tree 0 during the long callback, so clock increments alone d
 completed normal proc updates. Extend replay using callback phases/completed updates; do not
 insert arbitrary delays to fit video-frame snapshots.
 
+D-11 replay extended 2026-11-10: `OpSubtitleProcDifferentialTest` now follows the parent over steps
+1214-4896 (cursor/index/hold/timer each completed update; palette RAM and BG0/BG1 maps every 30 steps
+from 2370) and the proc's end at 4897. Long callbacks are detected from the trace: a call command
+(opcode 0x02) as the cursor target. Found 2355-2356 (sub_80C50A0), 2425-2427 (sub_80C5218) and 3228
+(sub_80C4CD0); one engine update runs at the span start and is compared at the step after the span.
+No port divergence found. Gaps: fade-to-black (WaitForFade, steps 4799-4865) is seeded, not modelled;
+Start skip, palette entries 273/417, and the following world-map opening remain unverified.
+
 Done 2026-11-09 (`8b8c5b0`, `2e0e4ff`, `36bfd2c`): the runtime dependency `src/sysutil.c` NewFadeIn/FadeInExists, FadeInOut_Init and
 FadeIn_Loop, backed by `src/bmlib.c` ArchiveCurrentPalettes/WriteFadedPaletteFromArchive. This is
 distinct from ColorFade/FadeCore. It starts on tree 4 and uses a 32-bank archived palette with

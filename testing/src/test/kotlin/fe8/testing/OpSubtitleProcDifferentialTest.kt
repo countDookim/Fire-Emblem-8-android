@@ -82,7 +82,9 @@ class OpSubtitleProcDifferentialTest {
                 // runs every proc tree each step, in index order.
                 fadeInExists = { fade.exists() },
                 startSlowFadeToBlack = {}, startFastFadeToBlack = {},
-                waitForFade = {},
+                // The generic fade-to-black is not modelled: its break is seeded one step before
+                // the original cursor leaves WaitForFade at step 4866.
+                waitForFade = { if (frame >= 4865) engine.breakProc(it) },
                 newKeys = { 0 },
             ),
         )
@@ -95,11 +97,29 @@ class OpSubtitleProcDifferentialTest {
             initial.u16(0x2C).toShort().toInt()
         // At creation step 1213 the original has not initialized the proc fields yet.
         // Begin after the next frame; its creation-frame cursor differs from this engine.
-        // The original capture crosses the long flare setup at 2355–2356; this engine
-        // executes that callback atomically, so the comparison stops before that boundary.
-        for (step in 1214..2354) {
+        // Long callbacks. A call command (opcode 0x02) that is the parent's cursor target at a
+        // captured step is a scene-setup callback spanning video frames: VBlank keeps ticking
+        // (and runs tree 0) inside it, so steps in the span are not completed updates. This
+        // engine runs the callback atomically in one update: it runs at the span's first step
+        // and is compared at the step after the span, where the original's update has completed
+        // (cursor, timers and RAM then match). No engine runs happen in between.
+        fun cursorAt(step: Int): Int? =
+            ProcArrayDump.ofWatch(trace, step).find(0x08AA21BC)?.scrCur
+        var spanEnd = 0
+        val spans = mutableListOf<IntRange>()
+        for (step in 1214..4896) {
             frame = step
-            for (tree in 0..7) engine.run(engine.root(tree))
+            val at = cursorAt(step)!!
+            if (step > spanEnd) {
+                if (host.script.cmds[at - 1].opcode == 0x02) {
+                    var last = step
+                    while (cursorAt(last + 1) == at) last++
+                    spans += step..last
+                    spanEnd = last + 1
+                }
+                for (tree in 0..7) engine.run(engine.root(tree))
+            }
+            if (step <= spanEnd - 1) continue
             val original = ProcArrayDump.ofWatch(trace, step).find(0x08AA21BC)!!
             val state = child.state as OpSubtitleSlides.State
             assertEquals(original.scrCur, child.scrCur, "step $step cursor")
@@ -108,18 +128,26 @@ class OpSubtitleProcDifferentialTest {
             assertEquals(
                 original.u16(0x2C).toShort().toInt(), state.transitionTimer, "step $step timer"
             )
-            if (step == 1230 || step == 1260) {
-                val ewram = capture.region("r%05d".format(step), "ewram")
-                val expected = ShortArray(512) {
-                    ((ewram[0x228A8 + 2 * it].toInt() and 0xFF) or
-                        ((ewram[0x228A9 + 2 * it].toInt() and 0xFF) shl 8)).toShort()
-                }
+            if (step == 1230 || step == 1260 || (step >= 2370 && step % 30 == 0)) {
+                val prefix = if (step % 300 == 0) "f" else "r"
+                val ewram = capture.region("$prefix%05d".format(step), "ewram")
+                fun half(at: Int): Int = (ewram[at].toInt() and 0xFF) or
+                    ((ewram[at + 1].toInt() and 0xFF) shl 8)
+                val expected = ShortArray(512) { half(0x228A8 + 2 * it).toShort() }
                 // Entries 273 and 417 (banks 17 and 26, color 1) hold 0x0842 in the original, a
                 // value other game code writes to the live buffer and this replay does not
                 // model; the fade of an archive of zero there yields 0. All other 510 entries
                 // are produced by the fade (not a phase offset: both frames match elsewhere).
                 for (at in listOf(273, 417)) expected[at] = hardware.palette[at]
                 assertArrayEquals(expected, hardware.palette, "step $step palette")
+                if (step >= 2370) {
+                    for (bank in 0..1) {
+                        val map = ShortArray(1024) {
+                            half(0x22CA8 + bank * 0x800 + 2 * it).toShort()
+                        }
+                        assertArrayEquals(map, hardware.tilemaps[bank], "step $step BG$bank map")
+                    }
+                }
             }
             if (step in setOf(1500, 2100)) {
                 val prefix = if (step % 300 == 0) "f" else "r"
@@ -132,8 +160,14 @@ class OpSubtitleProcDifferentialTest {
                 )
             }
         }
+        assertEquals(listOf(2355..2356, 2425..2427, 3228..3228), spans)
+        // The original proc is gone at step 4897; this engine's final update ends it too.
+        assertEquals(null, cursorAt(4897))
+        frame = 4897
+        for (tree in 0..7) engine.run(engine.root(tree))
+        assertEquals(null, child.script)
+        assertEquals(0, parent.lockCnt)
         assertTrue(fadeStarted)
-        assertEquals(1, parent.lockCnt)
     }
 
     @Test

@@ -23,9 +23,10 @@ import gbafe.render.BgHardware
 /**
  * Standalone opening monologue. Generic fade effects and key input are supplied by [hooks]; their
  * timing and the Start skip have not yet been compared with original captures. The continuous
- * parent replay covers steps 1214–2354, with the original fade-in lifetime supplied to the hook
- * and the initial reused transition timer seeded from step 1213. Flare setup crosses capture
- * boundaries in the original; the remaining full parent lifecycle is not verified.
+ * parent replay covers steps 1214–4896 (to the end of the monologue), with the original fade-in
+ * lifetime supplied to the hook, the initial reused transition timer seeded from step 1213 and
+ * the slow fade-to-black break seeded from the original. Scene-setup callbacks span several
+ * captured steps in the original and run atomically here. Start-skip behavior is unverified.
  */
 public class OpSubtitle(
     private val engine: ProcEngine,

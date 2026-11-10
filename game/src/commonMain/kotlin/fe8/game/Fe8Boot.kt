@@ -82,6 +82,7 @@ import fe8.game.save.NewGameRam
 import fe8.game.save.SuspendRam
 import fe8.game.scene.TalkScene
 import fe8.game.title.TitleScreen
+import fe8.game.worldmap.GmData
 import gba.audio.M4aDriver
 import gba.audio.M4aSound
 import gba.audio.PcmStream
@@ -238,6 +239,12 @@ public class Fe8Boot(
 
     /** `gChapterFlagBits` and friends. */
     public val flags: EventFlags = Fe8EventFlags.create()
+
+    /**
+     * `gGMData` and its [GmData.init] (`GmDataInit`). Fe8Boot has no whole-IWRAM image yet, so
+     * the block lives in a private 32 KiB IWRAM-sized array indexed like the real one.
+     */
+    private val gmData = GmData(ByteArray(GM_DATA_IWRAM_SIZE), rng)
 
     /**
      * The event engine (`EventEngine`) with the ported command handlers of [EventScrCore],
@@ -979,6 +986,8 @@ public class Fe8Boot(
         // before M5-58, instead of crashing on the first chapter read.
         if (rom.isWholeRom) control.hooks.startSaveMenu = ProcFunc { newGameSaveMenu() }
         control.sound.setDefaultMaxNumChannels() // AgbMain, after m4aSoundInit
+        control.hooks.gmDataInit = ProcFunc { gmData.init() }
+        gmData.init() // AgbMain: GmDataInit() after SetInterrupt_LCDVBlank, before StartGame
         control.startGame()
     }
 
@@ -1021,6 +1030,9 @@ private const val ACTION_SUSPEND_POINT_TYPE = 0x16
 
 /** `gTrapArray`: 0x40 entries of `struct Trap` (8 bytes). */
 private const val TRAP_POOL_SIZE = 0x40 * 8
+
+/** Size of the IWRAM image that holds `gGMData`. */
+private const val GM_DATA_IWRAM_SIZE = 0x8000
 
 /** World map stand-in until the world map is ported: no node holds a chapter. */
 private val NO_WORLD_MAP_NODES = object : BattleMapNodes {

@@ -238,14 +238,14 @@ public class OpSubtitleTransitions(
      * Ported from src/opsubtitle.c: sub_80C4BB4
      */
     private fun scalePalette(
-        src: ShortArray, dst: ShortArray, offset: Int, count: Int, coeff: Int
+        source: ShortArray, destination: ShortArray, offset: Int, count: Int, coefficient: Int
     ) {
         for (i in 0 until count) {
-            val color = src[i].toInt() and 0xFFFF
-            val r = ((color and 31) * coeff / 0x1000).toShort().toInt()
-            val g = (((color shr 5) and 31) * coeff / 0x1000).toShort().toInt()
-            val b = (((color shr 10) and 31) * coeff / 0x1000).toShort().toInt()
-            dst[offset + i] = (r + (g shl 5) + (b shl 10)).toShort()
+            val color = source[i].toInt() and 0xFFFF
+            val red = ((color and 31) * coefficient / 0x1000).toShort().toInt()
+            val green = (((color shr 5) and 31) * coefficient / 0x1000).toShort().toInt()
+            val blue = (((color shr 10) and 31) * coefficient / 0x1000).toShort().toInt()
+            destination[offset + i] = (red + (green shl 5) + (blue shl 10)).toShort()
         }
     }
 

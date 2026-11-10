@@ -44,25 +44,25 @@ public class OpSubtitleFlare(
      * Ported from src/opsubtitle.c: Subtitle_LightFlareFx_Loop
      */
     public fun loop(proc: Proc, state: State) {
-        val t = state.frame
-        var a: Int
-        val b: Int
-        if (t < 30) {
-            a = Interpolate.interpolate(5, 4, 50, t, 30)
-            b = Interpolate.interpolate(4, 0, 16, t, 30)
+        val frame = state.frame
+        var scalePulse: Int
+        val alphaCoefficient: Int
+        if (frame < 30) {
+            scalePulse = Interpolate.interpolate(5, 4, 50, frame, 30)
+            alphaCoefficient = Interpolate.interpolate(4, 0, 16, frame, 30)
         } else {
-            a = Interpolate.interpolate(0, 50, 100, t - 30, 30)
-            b = Interpolate.interpolate(0, 16, 0, t - 30, 30)
+            scalePulse = Interpolate.interpolate(0, 50, 100, frame - 30, 30)
+            alphaCoefficient = Interpolate.interpolate(0, 16, 0, frame - 30, 30)
         }
-        if (a > 49) a = 100 - a
-        val c = Interpolate.interpolate(0, 0, 214, t, 60)
-        val d = Interpolate.interpolate(0, 16, 128, t, 60)
+        if (scalePulse > 49) scalePulse = 100 - scalePulse
+        val anchorX = Interpolate.interpolate(0, 0, 214, frame, 60)
+        val anchorY = Interpolate.interpolate(0, 16, 128, frame, 60)
         val lcd = hardware.lcd
-        BgAffin.rotScaling(lcd, 2, state.angle, 0, 0, a * 5 + 0x80, a * 5 + 0x80)
+        BgAffin.rotScaling(lcd, 2, state.angle, 0, 0, scalePulse * 5 + 0x80, scalePulse * 5 + 0x80)
         BgAffin.scaling(lcd, 2, 0x100, 0x100)
-        BgAffin.anchoring(lcd, 2, c, d, 80, 72)
+        BgAffin.anchoring(lcd, 2, anchorX, anchorY, 80, 72)
         state.angle = (state.angle - 64).toShort().toInt()
-        lcd.setBlendConfig(1, b, 0x10, 0)
+        lcd.setBlendConfig(1, alphaCoefficient, 0x10, 0)
         state.frame = (state.frame + 1).toShort().toInt()
         if (state.frame > 59) engine.breakProc(proc)
     }

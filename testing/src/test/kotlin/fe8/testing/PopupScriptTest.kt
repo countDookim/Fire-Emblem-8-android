@@ -10,6 +10,7 @@ import gbafe.proc.ProcEngine
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts
 import gbafe.render.BgHardware
+import gbafe.render.OamBuffer
 import gbafe.text.MsgHuffman
 import gbafe.text.MsgStrings
 import gbafe.text.TextHost
@@ -27,7 +28,7 @@ class PopupScriptTest {
     private val ref = ReferenceData.fromEnvironment()
 
     @Test
-    @VerifiesPort("NewPopupCore", "NewPopup_Simple")
+    @VerifiesPort("NewPopupCore", "NewPopup_Simple", "PopupIconUpdateProc_Loop")
     fun `hosted popup proc follows the traced script position and ends with it`() {
         assumeTrue(ref.available, "reference capture unavailable")
         val romFile = File(
@@ -60,6 +61,7 @@ class PopupScriptTest {
                 ProcScripts.end(),
             ),
         )
+        val oam = OamBuffer()
         val volumes = ArrayList<List<Int>>()
         val deps = PopupScript.Dependencies(
             rom = RomView.ofRom(romBytes),
@@ -79,6 +81,9 @@ class PopupScriptTest {
             },
             playSoundEffect = { },
             newKeys = { 0 }, // the capture has no key wait: the clock runs out
+            pushToSecondaryOam = { x, y, obj, oam2 ->
+                oam.putHi(x, y, RomView.ofRom(romBytes).objN(obj).data, oam2)
+            },
         )
         val popup = PopupScript(engine, deps)
         val original0 = dumps[first].second.find(Popup.PROC_SCRIPT)!!
@@ -91,13 +96,28 @@ class PopupScriptTest {
         assertEquals(original0.u16(0x40), state.iconObjTileId, "iconObjTileId")
         assertEquals(original0.u8(0x42), state.iconPalId, "iconPalId")
         var endStep = -1
+        var oamChecked = 0
         for (i in first..last + 1) {
             val (step, d) = dumps[i]
             val original = d.find(Popup.PROC_SCRIPT)
             musicAlive = d.find(MUSIC_SCRIPT) != null
             // The first snapshot is taken after the frame that started the proc, whose own
             // Proc_Run already ticked its sleep once, so every snapshot is one run.
+            oam.hiPut = 0
             engine.run(engine.root(3))
+            val originalChild = d.find(Popup.UPDATE_ICON_PROC_SCRIPT)
+            assertEquals(
+                originalChild != null, engine.find(popup.iconScript) != null, "step $step child",
+            )
+            if (originalChild != null && oamAt(run, step) != null) {
+                val ref = oamAt(run, step)!!
+                val index = (0 until 128).first { u16(ref, it * 8 + 4) == 0x4240 }
+                for (k in 0..2) {
+                    assertEquals(u16(ref, index * 8 + 2 * k), oam.buffer[k].toInt() and 0xFFFF,
+                        "step $step icon OAM attr$k")
+                }
+                oamChecked++
+            }
             if (original == null) {
                 assertNull(mine.script, "step $step: mine still alive")
                 endStep = step
@@ -107,6 +127,7 @@ class PopupScriptTest {
             assertEquals(original.scrCur, mine.scrCur, "step $step scrCur")
         }
         assertEquals(dumps[last + 1].first, endStep, "end step")
+        assertTrue(oamChecked > 0, "no OAM snapshot compared")
         assertEquals(listOf(listOf(0x100, 0x80, 0x10), listOf(0x80, 0x100, 0x10)), volumes)
     }
 
@@ -118,6 +139,16 @@ class PopupScriptTest {
         }
 
     private fun dump(run: ReferenceData.Run, step: Int): ByteArray = region(run, step, "ewram")
+
+    private fun oamAt(run: ReferenceData.Run, step: Int): ByteArray? =
+        try {
+            run.region("f$step", "oam")
+        } catch (e: java.io.IOException) {
+            null
+        }
+
+    private fun u16(b: ByteArray, o: Int) =
+        (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
 
     private fun u32(b: ByteArray, o: Int) =
         (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8) or

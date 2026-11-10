@@ -58,13 +58,39 @@ public class PopupScript(
         /** `gKeyStatusPtr->newKeys`. */
         public val newKeys: () -> Int,
         /**
-         * Receives the [Popup.iconChildFields] of the `PopupIconUpdateProc` child `GfxDraw`
-         * starts; the child proc itself is not modelled by this host.
+         * `CallARM_PushToSecondaryOAM(x, y, object, oam2)`: [object] is the ROM address of a
+         * sprite definition (`gObject_16x16` for the popup icon).
          */
-        public val onIconChild: (fields: IntArray) -> Unit = {},
+        public val pushToSecondaryOam: (x: Int, y: Int, `object`: Int, oam2: Int) -> Unit =
+            { _, _, _, _ -> },
     )
 
     private fun popupOf(proc: Proc): Popup.PopupProc = proc.state as Popup.PopupProc
+
+    /**
+     * `ProcScr_PopupUpdateIcon`: the child's state is [Popup.iconChildFields] (`unk_2C`, `unk_30`,
+     * `unk_4A`), and its loop pushes the 16x16 object every frame. The original has no
+     * `PROC_END`; the trailing one is never reached because the loop never breaks.
+     *
+     * Transcribed from src/popup.c: ProcScr_PopupUpdateIcon
+     */
+    public val iconScript: ProcScript = ProcScript(
+        "ProcScr_PopupUpdateIcon",
+        listOf(repeat(ProcFunc { proc -> iconLoop(proc.state as IntArray) }), end()),
+    )
+
+    /**
+     * Ported from src/popup.c: PopupIconUpdateProc_Loop
+     *
+     * [fields] are `unk_2C`, `unk_30` and `unk_4A` of the child.
+     */
+    private fun iconLoop(fields: IntArray) {
+        deps.pushToSecondaryOam(fields[0], fields[1], OBJECT_16X16, fields[2])
+    }
+
+    private fun startIconChild(parent: Proc, fields: IntArray) {
+        engine.start(iconScript, parent).state = fields
+    }
 
     private val waitForPress = ProcFunc { proc ->
         val popup = popupOf(proc)
@@ -108,7 +134,7 @@ public class PopupScript(
                     popupOf(it), deps.rom, deps.messages, deps.text, deps.hardware,
                     deps.popupItem(), deps.popupNumber(), deps.unitNameTextId(),
                     deps.loadIconPalette,
-                )?.let(deps.onIconChild)
+                )?.let { fields -> startIconChild(it, fields) }
             },
             repeat(waitForPress),
             call { proc ->
@@ -136,5 +162,10 @@ public class PopupScript(
             if (parent != null) engine.startBlocking(script, parent) else engine.start(script, 3)
         if (proc != null) Popup.setupSimple(popupOf(proc), definition, clock, winStyle)
         return proc
+    }
+
+    private companion object {
+        /** ROM address of `gObject_16x16`. */
+        const val OBJECT_16X16 = 0x08590F4C
     }
 }

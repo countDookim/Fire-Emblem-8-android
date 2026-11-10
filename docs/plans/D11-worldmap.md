@@ -125,3 +125,11 @@ watched). So these are lag frames inside one long callback (`SetupGraphicSystems
 `sub_80C50A0`), not a yield; `sleep(4)` is entered at 4902 (sleepTime 4, then 3..0). Tests align on completed
 main-proc updates (dwell per position), no artificial delay in the port. Not observable in the trace:
 `WmMain_MoveCamera` (ix/iy and camera constant), `sub_80B90CC`/`sub_80B9114` (units 4-6 already 0, not merged).
+
+## 6. Beginning hooks status (D11-wm3)
+
+`WorldMapBeginning` (fe8.game.worldmap) supplies real `fadeOutBgm`, `beginningEvent` (`gmapEventId` at +0x75 of
+the chapter struct, `Events_WM_Beginning` 0x088B39EC), `resetGmStoryNode`, `clearMergeNextNode`, `callEvent`
+(EventEngine). Stand-ins left: `sub80BA008`, `startWmFaceCtrl`, `startGmapMuEntry`. Not wired into Fe8Boot yet.
+Untagged test: the event engine it starts matches `ProcScr_StdEventEngine` pEventStart/pEventIdk/execType and
+`chapterIndex` at step 4907.

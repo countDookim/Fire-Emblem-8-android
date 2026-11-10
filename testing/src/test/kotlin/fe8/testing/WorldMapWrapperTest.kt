@@ -1,7 +1,13 @@
 package fe8.testing
 
 import fe8.game.bm.PlaySt
+import fe8.game.bm.ChapterData
+import fe8.game.event.EventEngine
+import fe8.game.event.EventEngineProc
+import fe8.game.event.EventState
+import fe8.game.event.ScriptMemory
 import fe8.game.worldmap.GmData
+import fe8.game.worldmap.WorldMapBeginning
 import fe8.game.worldmap.WorldMapMain
 import fe8.game.worldmap.WorldMapMainProc
 import fe8.game.RomView
@@ -91,6 +97,57 @@ class WorldMapWrapperTest {
         assertEquals(playStTrace.u8(after, 0x0E), playSt.chapterIndex and 0xFF, "chapterIndex")
         assertEquals(playSt.chapterIndex, chapterSeen)
         assertEquals(1, event, "CallEvent reached")
+    }
+
+    /**
+     * The real [WorldMapBeginning] hooks on the r04860 state: the event engine proc that
+     * `CallEvent` starts must have the script pointers and exec type of the
+     * `ProcScr_StdEventEngine` the original has at step 4907, and `gPlaySt.chapterIndex` the
+     * trace value. Untagged: the `gmapEventId` lookup is inline in the tagged function.
+     */
+    @Test
+    fun `beginning event hooks start the same event engine as the original`() {
+        val romFile = File(
+            System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets",
+            "baserom.gba",
+        )
+        assumeTrue(ref.available && romFile.isFile, "reference data / ROM not present")
+        val names = ProcArrayDump.romNames()
+        assumeTrue(names.isNotEmpty(), "decomp nm file not present")
+        val run = ref.run("ram_trace_prologue")
+        val playStTrace = run.watch("gplayst")
+        val before = 4860
+        val expected = checkNotNull(
+            ProcArrayDump.ofWatch(run.watch("procs"), 4907, names).find("ProcScr_StdEventEngine"),
+        )
+        val iwram = run.region("r%05d".format(before), "iwram").copyOf(0x8000)
+        val rom = RomView.ofRom(romFile.readBytes())
+        val flags = Fe8EventFlags.create().also { it.copyIn(run.watch("flags").step(before)) }
+        val playSt = PlaySt()
+        playSt.chapterIndex = 0x55
+        playSt.chapterModeIndex = playStTrace.u8(before, 0x1B)
+        val gm = GmData(iwram, RngService())
+        val engine = ProcEngine()
+        val events = EventEngine(
+            engine, EventState(),
+            ScriptMemory { a -> rom.u16(a) },
+        )
+        val wm = WorldMapMain(
+            engine, playSt, gm, ProcScript("m", listOf(end())), ProcScript("f", listOf(end())),
+        )
+        val beginning = WorldMapBeginning(
+            rom, ChapterData(rom), WorldMapPath(gm, WmPathData(rom)), events, {},
+        )
+        val proc = WorldMapMainProc()
+        proc.gmIcon.mergeNextNode = true
+        wm.callBeginningEvent(proc, WmNodeData(rom), { flags.checkFlag(it) }, beginning.hooks(proc))
+
+        val ours = checkNotNull(engine.find(events.stdScript)).state as EventEngineProc
+        assertEquals(expected.u32(0x30), ours.pEventStart, "pEventStart")
+        assertEquals(expected.u32(0x34), ours.pEventIdk, "pEventIdk")
+        assertEquals(expected.u8(0x41), ours.execType, "execType")
+        assertEquals(playStTrace.u8(4907, 0x0E), playSt.chapterIndex and 0xFF, "chapterIndex")
+        assertEquals(false, proc.gmIcon.mergeNextNode, "merge_next_node")
     }
 
     @Test

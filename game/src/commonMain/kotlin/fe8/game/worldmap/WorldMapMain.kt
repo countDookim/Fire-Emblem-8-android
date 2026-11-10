@@ -172,9 +172,9 @@ public class WorldMapMain(
     /**
      * Ported from src/worldmap_main.c: WorldMap_CallBeginningEvent
      *
-     * Not ported yet and injected: `Sound_FadeOutBGM`, `sub_80BA008`, the chapter's `gmapEventId`
-     * lookup, `Events_WM_Beginning`, `ResetGmStoryNode`, `gm_icon->merge_next_node`, `CallEvent`,
-     * `StartWMFaceCtrl` and `StartGmapMuEntry`.
+     * Real callees come from [WorldMapBeginning] (`Sound_FadeOutBGM`, `Events_WM_Beginning`
+     * lookup, `ResetGmStoryNode`, `merge_next_node`, `CallEvent`). Still stand-ins: `sub_80BA008`
+     * (monster-merged/postgame branch), `StartWMFaceCtrl` and `StartGmapMuEntry`.
      *
      * @param nodes `gWMNodeData`
      * @param checkFlag `CheckFlag`

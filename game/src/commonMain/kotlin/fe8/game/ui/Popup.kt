@@ -19,6 +19,7 @@ public object Popup {
     public const val TEXT_COLOR_SYSTEM_WHITE: Int = 0
 
     private const val INSTRUCTION_SIZE = 8
+    private const val DISPCNT_WINDOWS = 0xE000 // win0_on, win1_on, objWin_on
     private const val OP_END = 0x00
     private const val OP_SPACE = 0x01
     private const val OP_ITEM_NAME = 0x02
@@ -99,6 +100,77 @@ public object Popup {
         proc.iconId = 0xFFFF
         proc.iconX = 0
         proc.soundId = 0
+    }
+
+    /**
+     * Prepares the popup's graphics: initialises the default font at the BG0 character base plus
+     * 0x2000 (tile 0x100, palette 0), clears the icon tables ([drawnIconLookupTable],
+     * [iconGfxIdLookupTable]), loads the UI frame graphics into [hardware], removes the colour
+     * effect, switches the three windows off in `hardware.lcd.dispcnt` and stores the text width
+     * from [parsePopupInstAndGetLen] in [PopupProc.xGfxSize]. The other parameters are as for
+     * [parsePopupInstAndGetLen].
+     *
+     * Ported from src/popup.c: PopupProc_PrepareGfx
+     */
+    public fun prepareGfx(
+        proc: PopupProc,
+        rom: RomView,
+        messages: MsgStrings,
+        text: TextSystem,
+        hardware: BgHardware,
+        drawnIconLookupTable: ByteArray,
+        iconGfxIdLookupTable: ByteArray,
+        popupItem: Int,
+        popupNumber: Int,
+        unitNameTextId: Int,
+        loadIconPalette: (slot: Int, palId: Int) -> Unit,
+    ) {
+        val lcd = hardware.lcd
+        val charBase = ((lcd.bgCnt[0] shr 2) and 3) shl 14
+        text.initTextFont(null, 0x06000000 + charBase + 0x2000, 0x100, 0)
+        ItemIcon.resetIconGraphics(drawnIconLookupTable, iconGfxIdLookupTable)
+        UiFrame.loadUiFrameGraphics(hardware, rom)
+        lcd.setBlendConfig(0, 0x10, 0, 0) // SetDefaultColorEffects: SetBlendNone
+        lcd.dispcnt = lcd.dispcnt and DISPCNT_WINDOWS.inv()
+        proc.xGfxSize = parsePopupInstAndGetLen(
+            proc, rom, messages, text, popupItem, popupNumber, unitNameTextId, loadIconPalette,
+        )
+    }
+
+    /**
+     * Dims the BGM when the popup has a sound: [startBgmVolumeChange] stands for
+     * `StartBgmVolumeChange(volume, end, time, proc)`, called with 0x100, 0x80, 0x10.
+     *
+     * Ported from src/popup.c: PopupProc_MaybeSetVolume
+     */
+    public fun maybeSetVolume(
+        proc: PopupProc,
+        startBgmVolumeChange: (volume: Int, end: Int, time: Int) -> Unit,
+    ) {
+        if (proc.soundId != 0) startBgmVolumeChange(0x100, 0x80, 0x10)
+    }
+
+    /**
+     * Plays the popup's sound effect; [playSoundEffect] stands for `PlaySoundEffect`.
+     *
+     * Transcribed from src/popup.c: PopupProc_PlaySound (not verified: the trace has no record
+     * of the sound effect call)
+     */
+    public fun playSound(proc: PopupProc, playSoundEffect: (songId: Int) -> Unit) {
+        if (proc.soundId != 0) playSoundEffect(proc.soundId)
+    }
+
+    /**
+     * Restores the BGM volume when the popup has a sound: [startBgmVolumeChange] is as for
+     * [maybeSetVolume], called with 0x80, 0x100, 0x10.
+     *
+     * Ported from src/popup.c: PopupProc_MaybeResetVolume
+     */
+    public fun maybeResetVolume(
+        proc: PopupProc,
+        startBgmVolumeChange: (volume: Int, end: Int, time: Int) -> Unit,
+    ) {
+        if (proc.soundId != 0) startBgmVolumeChange(0x80, 0x100, 0x10)
     }
 
     /**

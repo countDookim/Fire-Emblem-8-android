@@ -19,6 +19,24 @@ public object ItemIcon {
     /** Base offset of OBJ character VRAM in GBA VRAM (32 KiB into VRAM). */
     public const val OBJ_VRAM0: Int = 0x10000
 
+    /** `MAX_ICON_COUNT`: entries of `DrawnIconLookupTable` (a 2-byte `struct IconStruct` each). */
+    public const val MAX_ICON_COUNT: Int = 224
+
+    /** `MAX_ICON_GFX_COUNT`: entries of `IconGFXIDLookupTable` (1 byte each). */
+    public const val MAX_ICON_GFX_COUNT: Int = 32
+
+    /**
+     * Clears the icon bookkeeping: all of [drawnIconLookupTable] (`DrawnIconLookupTable`, the
+     * `MAX_ICON_COUNT` 2-byte `References`/`Index` entries) and the first 0x20 bytes of
+     * [iconGfxIdLookupTable] (`IconGFXIDLookupTable`).
+     *
+     * Ported from src/icon.c: ResetIconGraphics
+     */
+    public fun resetIconGraphics(drawnIconLookupTable: ByteArray, iconGfxIdLookupTable: ByteArray) {
+        drawnIconLookupTable.fill(0, 0, MAX_ICON_COUNT * 2)
+        iconGfxIdLookupTable.fill(0, 0, 0x20)
+    }
+
     /**
      * Returns the base OBJ tile index allocated for dynamic icon slot [index].
      *

@@ -5,8 +5,11 @@ import fe8.game.text.Fe8Text
 import fe8.game.ui.ItemIcon
 import fe8.game.ui.Popup
 import gba.core.VerifiesPort
+import gba.testkit.GbaMem
 import gba.testkit.ReferenceData
+import gba.testkit.RamSymbols
 import gbafe.render.BgHardware
+import gbafe.text.Font
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -294,8 +297,122 @@ class PopupProcDifferentialTest {
         }
     }
 
+    @Test
+    @VerifiesPort("PopupProc_PrepareGfx", "ResetIconGraphics")
+    fun `prepareGfx reproduces the font frame graphics blend and icon tables`() {
+        assumeTrue(ref.available, "reference capture unavailable")
+        val romFile = File(
+            System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets",
+            "baserom.gba",
+        )
+        assumeTrue(romFile.isFile, "ROM not present")
+        val sym = RamSymbols.fromEnvironment()
+        val run = ref.run("ram_trace_item_popup")
+        // f18598: the popup proc is at script index 3 (PrepareGfx is the next call); f18599: it
+        // has run PrepareGfx and MaybeSetVolume and yielded (index 6).
+        val beforeIw = region(run, 18598, "iwram")
+        val afterEw = dump(run, 18599)
+        val afterIw = region(run, 18599, "iwram")
+        // VRAM is dumped from f18630 on; GfxDraw leaves the frame tiles at 0.. untouched.
+        val afterVram = run.region("f18630", "vram")
+        val original = ProcArrayDump.ofEwram(afterEw).find(Popup.PROC_SCRIPT)!!
+        assertEquals(6, original.scrCur)
+        val popupItem = (beforeIw[GPOPUPITEM].toInt() and 0xFF) or
+            ((beforeIw[GPOPUPITEM + 1].toInt() and 0xFF) shl 8)
+        val romBytes = romFile.readBytes()
+        val root = u32(romBytes, 0x0815D488 - ROM_BASE) - ROM_BASE
+        val messages = MsgStrings(
+            romBytes, MsgHuffman(romBytes, 0x0815A72C - ROM_BASE, root), 0x0815D48C - ROM_BASE,
+        )
+        val text = TextSystem(romBytes, EnglishHost(), Fe8Text.CONFIG)
+        text.initTextFont(null, 0x06001000, 0x80, 0) // ResetText, the font before PrepareGfx
+        val hardware = BgHardware()
+        hardware.lcd.readFrom(beforeIw, LCD_BUFFER)
+        // The trace has no stale window bits or icon entries before PrepareGfx, so seed some:
+        // the original's result must still be the traced, cleared state.
+        hardware.lcd.dispcnt = hardware.lcd.dispcnt or 0xE000
+        val drawn = ByteArray(ItemIcon.MAX_ICON_COUNT * 2) { 0x5A }
+        val gfxIds = ByteArray(ItemIcon.MAX_ICON_GFX_COUNT) { 0x5A }
+        val mine = Popup.PopupProc()
+        Popup.setupSimple(mine, GOT_ITEM, 0x60, 0)
+        Popup.init(mine)
+        Popup.prepareGfx(
+            mine, RomView.ofRom(romBytes), messages, text, hardware, drawn, gfxIds, popupItem, 0, 0,
+        ) { _, _ -> }
+
+        val lcd = gbafe.render.LcdControl().apply { readFrom(afterIw, LCD_BUFFER) }
+        assertEquals(lcd.dispcnt, hardware.lcd.dispcnt, "dispcnt")
+        assertEquals(lcd.bldcnt, hardware.lcd.bldcnt, "bldcnt")
+        assertEquals(lcd.blendCoeffA, hardware.lcd.blendCoeffA, "blendCoeffA")
+        assertEquals(lcd.blendCoeffB, hardware.lcd.blendCoeffB, "blendCoeffB")
+        assertEquals(lcd.blendY, hardware.lcd.blendY, "blendY")
+        assertEquals(
+            afterEw.copyOfRange(ICON_TABLE, ICON_TABLE + drawn.size).toList(), drawn.toList(),
+            "DrawnIconLookupTable",
+        )
+        assertEquals(
+            afterEw.copyOfRange(ICON_GFX_TABLE, ICON_GFX_TABLE + gfxIds.size).toList(),
+            gfxIds.toList(), "IconGFXIDLookupTable",
+        )
+        assertEquals(original.u16(0x46), mine.xGfxSize, "xGfxSize")
+        val font = ByteArray(Font.SIZE)
+        text.defaultFont.serialize(font)
+        val fontAt = sym["gDefaultFont"].address - GbaMem.EWRAM
+        assertEquals(afterEw.copyOfRange(fontAt, fontAt + Font.SIZE).toList(), font.toList(), "font")
+        // The decompressed frame image is the non-zero prefix of the (initially empty) VRAM.
+        val frameBytes = (hardware.vram.indexOfLast { it.toInt() != 0 } + 0x20) and 0x1F.inv()
+        assertTrue(frameBytes > 0x100, "frame image not loaded")
+        assertEquals(
+            afterVram.copyOfRange(0, frameBytes).toList(),
+            hardware.vram.copyOfRange(0, frameBytes).toList(), "frame tiles",
+        )
+        val pal = sym["gPaletteBuffer"].address - GbaMem.EWRAM + 32
+        for (i in 0 until 16) {
+            assertEquals(
+                ewramU16(afterEw, pal + i * 2), hardware.palette[16 + i].toInt() and 0xFFFF,
+                "frame palette $i",
+            )
+        }
+    }
+
+    @Test
+    @VerifiesPort("PopupProc_MaybeSetVolume", "PopupProc_MaybeResetVolume")
+    fun `volume callbacks start the traced BGM volume change children`() {
+        assumeTrue(ref.available, "reference capture unavailable")
+        val run = ref.run("ram_trace_item_popup")
+        // sMusicProc2Script (0x08587970): vc_init_volume +0x64, vc_end_volume +0x66,
+        // vc_time_end +0x6A; the parent (+0x14) is the popup proc (Proc_StartBlocking).
+        fun child(step: Int): Pair<ProcArrayDump.Proc, ProcArrayDump.Proc>? {
+            val d = ProcArrayDump.ofEwram(dump(run, step))
+            val c = d.find(0x08587970) ?: return null
+            return d.find(Popup.PROC_SCRIPT)!! to c
+        }
+        val set = child(18599)!!
+        val reset = (18600..18750).firstNotNullOf { s ->
+            child(s)?.takeIf { it.second.u16(0x64) == 0x80 }
+        }
+        for ((popup, vc, call) in listOf(
+            Triple(set.first, set.second, Popup::maybeSetVolume),
+            Triple(reset.first, reset.second, Popup::maybeResetVolume),
+        )) {
+            assertEquals(popup.address, vc.u32(0x14), "child parent")
+            val mine = Popup.PopupProc()
+            mine.soundId = popup.u16(0x48)
+            val calls = ArrayList<List<Int>>()
+            call(mine) { v, e, t -> calls.add(listOf(v, e, t)) }
+            assertEquals(listOf(listOf(vc.u16(0x64), vc.u16(0x66), vc.u16(0x6A))), calls)
+        }
+    }
+
     private fun ewramU16(b: ByteArray, o: Int) =
         (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
+
+    private fun region(run: ReferenceData.Run, step: Int, name: String): ByteArray =
+        try {
+            run.region("r$step", name)
+        } catch (e: java.io.IOException) {
+            run.region("f$step", name)
+        }
 
     private fun dump(run: ReferenceData.Run, step: Int): ByteArray =
         try {
@@ -310,6 +427,11 @@ class PopupProcDifferentialTest {
 
         /** `gPopupItem` (0x030005F4) in the IWRAM dump. */
         const val GPOPUPITEM = 0x5F4
+        const val LCD_BUFFER = 0x3080
+
+        /** `DrawnIconLookupTable` (0x02026A90) and `IconGFXIDLookupTable` in EWRAM. */
+        const val ICON_TABLE = 0x26A90
+        const val ICON_GFX_TABLE = 0x26C50
         const val BG0_TM = 0x22CA8
         const val BG1_TM = 0x234A8
     }

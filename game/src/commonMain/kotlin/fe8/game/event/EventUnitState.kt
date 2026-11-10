@@ -146,8 +146,10 @@ public class EventUnitState(
         return table.getUnitFromCharId(charId)
     }
 
+    /** Sets [bits] in the state word of unit [id]. */
     private fun setBits(id: Int, bits: Int) = table.setState(id, table.state(id) or bits)
 
+    /** Clears [bits] in the state word of unit [id]. */
     private fun clearBits(id: Int, bits: Int) = table.setState(id, table.state(id) and bits.inv())
 
     /** `SetUnitHp` plus the dead flag of subcode SET_HP. */
@@ -160,6 +162,7 @@ public class EventUnitState(
         if (value == 0) setBits(id, US_DEAD)
     }
 
+    /** SET_STATE: 1 deploys the unit, 0 undeploys it, -1 restores it from `US_BIT21`. */
     private fun setDeployed(id: Int, value: Int) {
         when (value) {
             1 -> clearBits(id, US_NOT_DEPLOYED)
@@ -172,6 +175,7 @@ public class EventUnitState(
         }
     }
 
+    /** Whether [id] names a unit that exists and is in use. */
     private fun valid(id: Int): Boolean = table.unitOffset(id) >= 0 && table.isValid(id)
 
     /** The CLEA loop plus `ClearCutsceneUnits`. */
@@ -214,6 +218,7 @@ public class EventUnitState(
     }
 
     private companion object {
+        // Sub-command nibbles of the command word (`EVSUBCMD_*`).
         const val SUB_REMU = 0x0
         const val SUB_REVEAL = 0x1
         const val SUB_CUSA = 0x2
@@ -232,7 +237,11 @@ public class EventUnitState(
 
         /** `allegianceLookup`: blue, green, red. */
         val FACTIONS = intArrayOf(0x00, 0x40, 0x80)
+
+        /** Offset of the current HP byte in a unit record. */
         const val OFF_CUR_HP = 0x13
+
+        // Unit state bits (`UNIT_STATE_*`); the numbered ones are named by bit only.
         const val US_HIDDEN = 1 shl 0
         const val US_UNSELECTABLE = 1 shl 1
         const val US_DEAD = 1 shl 2

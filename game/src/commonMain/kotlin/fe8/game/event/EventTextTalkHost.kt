@@ -40,8 +40,10 @@ public class EventTextTalkHost(
     private val resumeMapDisp: () -> Unit = {},
     private val stringFromIndex: (Int) -> Int,
 ) : EventTextHost {
+    /** The stand-in text speed used when [readTextSpeed] and [writeTextSpeed] are not given. */
     private var textSpeedField: Int = 0
 
+    /** Per-frame function of [waitForFacesScript]: ends the wait once no face proc is left. */
     private val whileFaceFn = ProcFunc { p -> if (!faceExists()) procs.breakProc(p) }
 
     /** `gUnknown_08591DE8`: waits until no face proc is left. */
@@ -105,6 +107,7 @@ public class EventTextTalkHost(
         return EventConst.EVC_ADVANCE_YIELD
     }
 
+    /** `ClearTalkBubble`: removes the speech bubble. */
     override fun clearTalkBubble() {
         bubble.clearTalkBubble()
     }
@@ -132,6 +135,7 @@ public class EventTextTalkHost(
         procs.startBlocking(waitForFacesScript, proc.proc!!)
     }
 
+    /** `ResumeTalk`: lets a paused talk continue. */
     override fun resumeTalk() {
         talk.resumeTalk()
     }
@@ -149,6 +153,7 @@ public class EventTextTalkHost(
     /** Stand-in: `sTalkChoiceResult` is only written by the (not ported) choice proc: 0. */
     override fun talkChoiceResult(): Int = 0
 
+    /** `SetBlendAlpha(a, b)` through the bubble host. */
     override fun setBlendAlpha(a: Int, b: Int) {
         bubbleHost.setBlendAlpha(a, b)
     }
@@ -163,6 +168,7 @@ public class EventTextTalkHost(
             if (writeTextSpeed != null) writeTextSpeed.invoke(value) else textSpeedField = value
         }
 
+    /** `InitTalk`: prepares the talk text layer. */
     override fun initTalk(chr: Int, lines: Int, unpackBubble: Boolean) {
         talk.initTalk(chr, lines, unpackBubble)
     }
@@ -175,30 +181,32 @@ public class EventTextTalkHost(
      * Verified without a parent proc (f9865); the `Proc_StartBlocking` branch is in no trace.
      */
     override fun startTalkMsg(x: Int, y: Int, msg: Int) {
-        val s = talk.state
-        s.xText = x
-        s.yText = y
-        s.str = stringFromIndex(msg)
-        s.strBackup = 0
-        s.printColor = 1
-        s.lineActive = 0
-        s.unk82 = 0
-        s.topTextNum = 0
-        s.printDelay = talkHost.textDisplaySpeed()
-        s.printClock = 0
+        val talkState = talk.state
+        talkState.xText = x
+        talkState.yText = y
+        talkState.str = stringFromIndex(msg)
+        talkState.strBackup = 0
+        talkState.printColor = 1
+        talkState.lineActive = 0
+        talkState.unk82 = 0
+        talkState.topTextNum = 0
+        talkState.printDelay = talkHost.textDisplaySpeed()
+        talkState.printClock = 0
         talk.setActiveTalkFace(0xFF)
-        s.speakingFaceSlot = -1
-        s.putLines = 0
-        s.instantScroll = 0
-        s.mouthMoveEnabled = 1
-        s.faceSmileEnabled = 0
-        s.config = 0
-        s.unk38 = null
-        s.invertedFlags = 0
-        s.activeWidth = (talkHost.getStrTalkLen(s.str, false) + 7) / 8 + 2
+        talkState.speakingFaceSlot = -1
+        talkState.putLines = 0
+        talkState.instantScroll = 0
+        talkState.mouthMoveEnabled = 1
+        talkState.faceSmileEnabled = 0
+        talkState.config = 0
+        talkState.unk38 = null
+        talkState.invertedFlags = 0
+        // Width in 8-pixel tiles, rounded up, plus two tiles of margin.
+        talkState.activeWidth = (talkHost.getStrTalkLen(talkState.str, false) + 7) / 8 + 2
         procs.start(talk.talkScript, TALK_TREE)
     }
 
+    /** `SetTalkFlag(flag)`. */
     override fun setTalkFlag(flag: Int) {
         talk.setTalkFlag(flag)
     }
@@ -216,6 +224,7 @@ public class EventTextTalkHost(
     }
 
     private companion object {
+        /** Proc tree the talk proc is started in (`StartTalkExt` uses tree 3). */
         const val TALK_TREE = 3
     }
 }

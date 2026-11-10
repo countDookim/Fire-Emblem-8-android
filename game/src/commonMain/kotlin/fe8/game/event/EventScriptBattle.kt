@@ -27,7 +27,7 @@ public interface EventScriptBattleHost {
 
     /**
      * The animation part of `StartEventBattle` (`StartScriptBattleAnim` and friends), run after
-     * the battle is generated. [scripted] is 1 when the command waits for the battle to end,
+     * the battle is generated. [scripted] is true when the command waits for the battle to end,
      * [useMapAnims] is the `useMapAnims` argument.
      */
     public fun startScriptBattleAnim(scripted: Boolean, useMapAnims: Boolean) {}
@@ -48,6 +48,13 @@ public interface EventScriptBattleHost {
  *
  * Not registered anywhere yet. Left out: the item override (`weaponId != 0`, an error here) and
  * everything [EventScriptBattleHost] stands in for.
+ *
+ * @param procs the proc engine the deamon runs on.
+ * @param state the event slots (`gEventSlots[0xD]` and the slot queue hold the scripted hits).
+ * @param memory script words (the command arguments).
+ * @param table the unit arrays (units are looked up by id).
+ * @param battle the battle generation (`StartEventBattle` and the hit queue).
+ * @param host the game-side effects the command stands in for.
  */
 public class EventScriptBattle(
     private val procs: ProcEngine,
@@ -60,6 +67,7 @@ public class EventScriptBattle(
     /** The fields of `struct ScriptedBattleProc` past the header. */
     private class DeamonState(var evtProc: Proc? = null, var lock: Int = 0)
 
+    /** The deamon's per-frame function: [scriptBattleDeamon]. */
     private val deamonFn = ProcFunc { scriptBattleDeamon(it) }
 
     /** `ProcScr_ScriptBattleDeamon`. */
@@ -159,6 +167,7 @@ public class EventScriptBattle(
         const val SUBCMD_FIGHT = 0
         const val SUBCMD_FIGHT_MAP = 1
         const val SUBCMD_FIGHT_SCRIPT = 2
+        /** `PROC_MARK_EVENT_ANIM`: the mark of an event proc waiting for a battle animation. */
         const val PROC_MARK_EVENT_ANIM = 7
     }
 }

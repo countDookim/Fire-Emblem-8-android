@@ -118,8 +118,10 @@ public class EventInfos(
     )
 
     // TODO(M6): port the remaining EvCheck functions; until then reaching one fails loudly.
+    /** A check function for the entry kind [name] that is not ported: fails when it is reached. */
     private fun todo(name: String): (EventInfo) -> Int = { error("$name is not ported yet") }
 
+    /** The little-endian 32-bit word at [address] (list entries are read as words). */
     private fun u32(address: Int): Int = memory.u16(address) or (memory.u16(address + 2) shl 16)
 
     /**
@@ -158,7 +160,7 @@ public class EventInfos(
                 return true
             }
         }
-        val ret = hooks.runTutorialEvent(TUTORIAL_EVT_TYPE_PHASECHANGE)
+        val tutorialStarted = hooks.runTutorialEvent(TUTORIAL_EVT_TYPE_PHASECHANGE)
         val info = EventInfo()
         info.listScript = u32(hooks.chapterEventGroup(playSt.chapterIndex))
         var found = searchAvailableEvent(info)
@@ -170,7 +172,7 @@ public class EventInfos(
             }
             return true
         }
-        return ret
+        return tutorialStarted
     }
 
     /**
@@ -213,11 +215,11 @@ public class EventInfos(
      * Transcribed from src/eventinfo.c: EvCheck01_AFEV (not verified: no type-1 entry is reached)
      */
     public fun evCheck01Afev(info: EventInfo): Int {
-        val ls = info.listScript
-        val flag = u32(ls + 8)
-        if (flag == 0 || flag == 100 || flags.checkFlag(flag)) {
-            info.script = u32(ls + 4)
-            info.flag = u32(ls) ushr 16
+        val entry = info.listScript
+        val requiredFlag = u32(entry + 8)
+        if (requiredFlag == 0 || requiredFlag == 100 || flags.checkFlag(requiredFlag)) {
+            info.script = u32(entry + 4)
+            info.flag = u32(entry) ushr 16
             return 1
         }
         return 0
@@ -225,11 +227,13 @@ public class EventInfos(
 
     /** Ported from src/eventinfo.c: EvCheck02_TURN */
     public fun evCheck02Turn(info: EventInfo): Int {
-        val ls = info.listScript
-        val w = u32(ls + 8)
-        val turn = w and 0xFF
-        var maxTurn = (w ushr 8) and 0xFF
-        val faction = (w ushr 16) and 0xFFFF
+        val entry = info.listScript
+        // Third word of the entry: first turn, last turn and faction.
+        val turnWord = u32(entry + 8)
+        val turn = turnWord and 0xFF
+        var maxTurn = (turnWord ushr 8) and 0xFF
+        val faction = (turnWord ushr 16) and 0xFFFF
+        // A last turn of 0 means "only [turn]", 0xFF means "no end".
         if (maxTurn == 0) {
             maxTurn = turn
         } else if (maxTurn == 0xFF) {
@@ -238,8 +242,8 @@ public class EventInfos(
         if (turn <= playSt.chapterTurnNumber && playSt.chapterTurnNumber <= maxTurn &&
             playSt.faction == faction
         ) {
-            info.script = u32(ls + 4)
-            info.flag = u32(ls) ushr 16
+            info.script = u32(entry + 4)
+            info.flag = u32(entry) ushr 16
             return 1
         }
         return 0
@@ -252,13 +256,24 @@ public class EventInfos(
     public fun evCheck0DNever(info: EventInfo): Int = 0
 
     private companion object {
+        /** `GetBattleMapKind` results: story chapter and skirmish. */
         const val KIND_STORY = 0
         const val KIND_SKIRMISH = 2
+
+        /** `goalWindowDataType` values that end the chapter when no enemy is left. */
         const val GOAL_TYPE_DEFEAT_ALL = 1
         const val GOAL_TYPE_DEFEAT_BOSS = 3
+
+        /** `RunTutorialEvent` type for a phase change. */
         const val TUTORIAL_EVT_TYPE_PHASECHANGE = 0
+
+        /** `EV_EXEC_CUTSCENE`: the exec type listed events run with. */
         const val EV_EXEC_CUTSCENE = 1
+
+        /** `EVFLAG_WIN`: set when the chapter is won. */
         const val EVFLAG_WIN = 3
+
+        /** `EVFLAG_HIDE_BLINKING_ICON`. */
         const val EVFLAG_HIDE_BLINKING_ICON = 132
     }
 }

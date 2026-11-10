@@ -10,6 +10,9 @@ import gbafe.render.ScreenFade
 /**
  * The fade command of `src/eventscr.c` (0x17 FADU, FADI, FAWU, FAWI) on the blend fades of
  * [fade].
+ *
+ * @param memory script words (the command arguments).
+ * @param fade the screen fade service (blend fades and the display layer switches).
  */
 public class EventFade(
     private val memory: ScriptMemory,

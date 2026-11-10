@@ -29,7 +29,9 @@ public interface EventTextBgHost {
 
     /**
      * Stand-in for `Proc_StartBlocking(gUnknown_08591E00/E58/EB0, proc)` with the fields set as
-     * `Event21_TextBg` does (`sub_800EA84` ... `sub_800EF48`). [fadeType] is 0, 1 or 2.
+     * `Event21_TextBg` does (`sub_800EA84` ... `sub_800EF48`).
+     * [fadeType] is 0, 1 or 2 and
+     * [unkType] is the transition kind of the command.
      */
     public fun startBackgroundFade(
         fadeType: Int,
@@ -49,7 +51,13 @@ public interface EventTextBgHost {
     public fun colorFadeOut(speed: Int, color: Int, proc: EventEngineProc)
 }
 
-/** The text background command (0x21) of `src/eventscr.c`. */
+/**
+ * The text background command (0x21) of `src/eventscr.c`.
+ *
+ * @param state the event slots (slot 2 is the default background index).
+ * @param memory script words (the command arguments).
+ * @param host the background loads and fades.
+ */
 public class EventTextBg(
     private val state: EventState,
     private val memory: ScriptMemory,
@@ -62,6 +70,9 @@ public class EventTextBg(
 
     /**
      * Ported from src/eventscr.c: EventShowTextBgDirect
+     *
+     * Shows background [bgIndexIn] (the random one for `BG_RANDOM`) straight away for the text
+     * [mode] (the `activeTextType`): mode 1 loads a conversation background, 2 a CG.
      *
      * The tutorial, solo and 0x1A25 modes return an error.
      */

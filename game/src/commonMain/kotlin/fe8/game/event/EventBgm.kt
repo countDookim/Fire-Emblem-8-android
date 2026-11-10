@@ -35,6 +35,7 @@ public class EventBgm(
         if (proc.evStateBits and EV_STATE_SKIPPING != 0) return@EventHandler EVC_ADVANCE_CONTINUE
         var song = memory.u16(proc.pEventCurrent + 2).toShort().toInt()
         if (song < 0) song = state.slots[2]
+        // -1 stands for the C call's NULL third argument.
         sound.startBgmExt(song, 3, -1)
         EVC_ADVANCE_YIELD
     }

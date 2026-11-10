@@ -60,6 +60,7 @@ public class EventChangeMap(
 
         restartBattleMap()
 
+        // Tile coordinates to pixels (16 per tile).
         bmSt.cameraX = Camera.getCameraCenteredX(bmSt, x * 16)
         bmSt.cameraY = Camera.getCameraCenteredY(bmSt, y * 16)
 
@@ -68,6 +69,8 @@ public class EventChangeMap(
         hardware.palette[0] = 0
         hardware.enablePaletteSync()
 
+        // Blend set-up of the C: first target on every layer plus the backdrop, blend config
+        // `(3, 0, 0, 0x10)`.
         val lcd = hardware.lcd
         lcd.setBlendTargetA(1, 1, 1, 1, 1)
         lcd.bldcnt = lcd.bldcnt or 0x20 // SetBlendBackdropA(TRUE)

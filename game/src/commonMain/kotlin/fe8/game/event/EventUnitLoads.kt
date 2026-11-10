@@ -51,7 +51,10 @@ public class EventUnitLoads(
     private val clearOtherMap: () -> Unit = {},
     private val host: EventUnitLoadsHost = object : EventUnitLoadsHost {},
 ) {
+    /** The definitions of the walking load in progress (the C's `pUnitLoadData` list). */
     private var pendingDefs: List<UnitDef> = emptyList()
+
+    /** Index in [pendingDefs] of the next definition to load. */
     private var pendingIndex: Int = 0
 
     /** Registers 0x2B and 0x2C on [engine]. */
@@ -60,6 +63,7 @@ public class EventUnitLoads(
         engine.register(0x2C, event2cLoadUnits)
     }
 
+    /** The sub-command nibble of the command at [cur]. */
     private fun subCmd(cur: Int): Int = memory.u16(cur) and 0xF
 
     /**
@@ -89,16 +93,19 @@ public class EventUnitLoads(
     public val event2cLoadUnits: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent
         val subcode = subCmd(cur)
+        // The load parameter: 0 normal, 1 and 2 as `shouldUnitBeLoaded` reads them (2: summon).
         var argument = memory.u16(cur + 2) and 0xFF
         var address = memory.u16(cur + 4) or (memory.u16(cur + 6) shl 16)
         var count = proc.unitLoadCount and 0xFFFF
         when (subcode) {
             1, 0, 2 -> {
                 if (subcode == 1) argument = 2
+                // A negative definition address is taken from slot 2.
                 if (address < 0) address = state.slots[2]
             }
             3 -> throw UnsupportedOperationException("GetChapterEnemyUnitDefinitions not ported")
         }
+        // No count set by LOAD config: load every definition up to the terminating one.
         if (count == 0) count = getLoadUnitsAmount(address)
         val defs = getUnitDefinitionFromEventScr(
             readDefs(address, count), count, proc.chance, subcode == 2, proc.disableReda,
@@ -134,9 +141,9 @@ public class EventUnitLoads(
     public fun eventLoadUnitWithMovement(proc: EventEngineProc) {
         var count = proc.unitLoadCount.toShort().toInt()
         val param = proc.unitLoadParameter
-        val something = modifyMoveUnitFlag(proc, true)
+        val moveFlags = modifyMoveUnitFlag(proc, true)
         val summon = param == 2
-        if ((proc.evStateBits shr 2) and 1 != 0) {
+        if (proc.evStateBits and EV_STATE_SKIPPING != 0) {
             eventLoadUnitSliently(pendingDefs.drop(pendingIndex), count, param)
         } else {
             while (pendingIndex < pendingDefs.size) {
@@ -150,7 +157,7 @@ public class EventUnitLoads(
                     proc.unitLoadCount = count
                     return
                 }
-                loader.loadUnitForEvent(def, something, false, summon, terrainAt)
+                loader.loadUnitForEvent(def, moveFlags, false, summon, terrainAt)
                 count--
                 pendingIndex++
             }
@@ -175,6 +182,7 @@ public class EventUnitLoads(
         return host.canStartMu()
     }
 
+    /** Reads [count] unit definitions (20 bytes each) from ROM [address]. */
     private fun readDefs(address: Int, count: Int): List<UnitDef> =
         List(count) { UnitDef(rom, address + 20 * it) }
 
@@ -305,7 +313,10 @@ public class EventUnitLoads(
     }
 
     private companion object {
+        /** `UNIT_STATE_DEAD`. */
         const val US_DEAD = 1 shl 2
+
+        /** Character ids of Seth, L'Arachel, Innes and Myrrh. */
         val SETH_LARACHEL_MYRRH_INNES = intArrayOf(0x02, 0x19, 0x0B, 0x1E)
     }
 }

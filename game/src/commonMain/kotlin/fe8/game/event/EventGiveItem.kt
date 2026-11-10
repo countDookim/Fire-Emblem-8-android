@@ -7,6 +7,8 @@ import gbafe.proc.Proc
 /**
  * The give-item command of `src/eventscr.c` (0x37).
  *
+ * @param state the event slots (`gEventSlots[3]` is the item id or gold amount).
+ * @param memory script words (the command arguments).
  * @param getUnitStructFromEventParameter unit id of an event character parameter, or -1.
  * @param addItem `UnitAddItem` on unit id with an item word; false if the inventory is full.
  * @param makeNewItem `MakeNewItem`: the item word for an item id.

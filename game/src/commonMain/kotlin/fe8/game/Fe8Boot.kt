@@ -267,7 +267,7 @@ public class Fe8Boot(
             // chapter data of the events is missing as well, so the stand-in stays.
             override fun endEventTalk() { if (rom.isWholeRom) eventTextHost.endTalk() }
             override fun eventEndCleanup(proc: EventEngineProc) {
-                if (rom.isWholeRom) eventText.sub800E640(proc)
+                if (rom.isWholeRom) eventText.endTextFaces(proc)
             }
         }
         EventEngine(engine, state, memory, hooks).also {

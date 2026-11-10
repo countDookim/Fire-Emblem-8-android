@@ -33,7 +33,10 @@ public interface EventCursorCameraHooks {
     /** `Proc_EndEach(ProcScr_EventDisplayCursor)`. */
     public fun endDisplayCursor() {}
 
-    /** `SetSomeRealCamPos` (not ported). */
+    /**
+     * `SetSomeRealCamPos` (not ported): puts the camera on the position at once. [sc2] is bit 3
+     * of the command's sub-command nibble (the camera move style of the command).
+     */
     public fun setSomeRealCamPos(x: Int, y: Int, sc2: Int) {}
 
     /** `EnsureCameraOntoPosition(proc, x, y)`. */
@@ -71,8 +74,10 @@ public class EventCursorCamera(
         engine.register(0x3C, event3cMoveCursor)
     }
 
+    /** The signed X byte of the position argument of the command at [cur]. */
     private fun argX(cur: Int): Int = memory.u16(cur + 2).toByte().toInt()
 
+    /** The signed Y byte of the position argument of the command at [cur]. */
     private fun argY(cur: Int): Int = (memory.u16(cur + 2) shr 8).toByte().toInt()
 
     /**
@@ -87,7 +92,8 @@ public class EventCursorCamera(
         val cur = proc.pEventCurrent
         val head = memory.u16(cur)
         val subcode = head and 7
-        val sc2 = (head and 0xF) shr 3
+        // Bit 3 of the sub-command nibble: 0 scrolls just onto the position, 1 centres on it.
+        val moveStyle = (head and 0xF) shr 3
         var x = 0
         var y = 0
         when (subcode) {
@@ -109,12 +115,12 @@ public class EventCursorCamera(
         if ((proc.evStateBits and EV_STATE_SKIPPING) != 0 ||
             (proc.evStateBits and EV_STATE_FADEDIN) != 0
         ) {
-            hooks.setSomeRealCamPos(x, y, sc2)
+            hooks.setSomeRealCamPos(x, y, moveStyle)
             Camera.setCursorMapPosition(bm, x, y)
             hooks.renderBmMap()
             return@EventHandler EVC_ADVANCE_CONTINUE
         }
-        if (sc2 == 0) {
+        if (moveStyle == 0) {
             hooks.ensureCameraOntoPosition(proc, x, y)
         } else {
             hooks.cameraOntoPositionCentred(proc, x, y)
@@ -204,6 +210,13 @@ public class MapCursorProc(
 
 /**
  * Ported from src/eventscr.c: EventDisplayCursor_Loop
+ *
+ * One frame of the event cursor: draws a plain map cursor (sub-command bits `0xC` = 0) or advances
+ * the shining cursor animation (= 4) at the tile of [proc].
+ *
+ * @param putMapCursor draws a map cursor at a pixel position; [kind] 0 is the plain cursor.
+ * @param eventShinningCursorAdvance draws the shining cursor at a tile and returns the next
+ *   frame counter.
  */
 public fun eventDisplayCursorLoop(
     proc: MapCursorProc,
@@ -217,7 +230,8 @@ public fun eventDisplayCursorLoop(
 }
 
 /**
- * `ProcScr_EventDisplayCursor` (`src/eventscr.c:3400`).
+ * `ProcScr_EventDisplayCursor` (`src/eventscr.c:3400`): the proc that keeps the event cursor
+ * drawn every frame with [eventDisplayCursorLoop] until it is ended (`endDisplayCursor`).
  */
 public fun createProcScrEventDisplayCursor(
     putMapCursor: (x: Int, y: Int, kind: Int) -> Unit = { _, _, _ -> },

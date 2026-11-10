@@ -8,6 +8,7 @@ import gbafe.core.flags.FlagStore
 /**
  * The ASMC command of `src/eventscr.c` (0x0D): calls a native function with the event proc.
  *
+ * @param memory script words (the command arguments).
  * @param functions Kotlin implementations by ROM function address (thumb bit ignored).
  * @param onUnknown called with the address when no implementation is known; the command is
  *   then a no-op that continues.
@@ -29,14 +30,15 @@ public class EventAsmCall(
      * engine is skipping.
      */
     public val event0DAsmCall: EventHandler = EventHandler { proc ->
-        val cur = proc.pEventCurrent
-        val func = memory.u16(cur + 4) or (memory.u16(cur + 6) shl 16)
-        if (memory.u16(cur) and 0xF == 1 && proc.evStateBits and EV_STATE_SKIPPING != 0) {
+        val currentCmd = proc.pEventCurrent
+        val functionAddress = memory.u16(currentCmd + 4) or (memory.u16(currentCmd + 6) shl 16)
+        if (memory.u16(currentCmd) and 0xF == 1 && proc.evStateBits and EV_STATE_SKIPPING != 0) {
             return@EventHandler EVC_ADVANCE_CONTINUE
         }
-        val impl = functions[func and 1.inv()]
+        // The script stores a Thumb address (bit 0 set); the map is keyed by the plain address.
+        val impl = functions[functionAddress and 1.inv()]
         if (impl == null) {
-            onUnknown(func)
+            onUnknown(functionAddress)
             return@EventHandler EVC_ADVANCE_CONTINUE
         }
         impl(proc)
@@ -50,7 +52,8 @@ private const val GUIDE_TABLE = 0x08B19E0C
 /**
  * Ported from src/bmguide.c: BmGuideTextSetAllGreen
  *
- * Sets the display flag of every guide entry, up to the entry whose title is 12.
+ * Sets the display flag (the u16 at offset 6) of every guide entry, up to the entry whose title
+ * is 12; the title is the low byte of the entry's first word.
  */
 public fun bmGuideTextSetAllGreen(memory: ScriptMemory, flags: FlagStore) {
     var guideEntryAddress = GUIDE_TABLE

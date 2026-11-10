@@ -19,7 +19,11 @@ private class Form(
     /** True for `clear_flag_at_slot2`: the flag field is implied to be 0xFFFF. */
     val flagAtSlot2: Boolean,
 ) {
+
+    /** Length of the command in u16 words (the header's length nibble). */
     val words: Int get() = (header shr 4) and 0xF
+
+    /** The named layout fields, which take the arguments in order. */
     val fields = command.layout.filter { it.name != null }
 }
 
@@ -29,24 +33,27 @@ private object Fe8Forms {
     val byName = HashMap<String, Form>()
     private val byMacro = HashMap<String, Form>()
 
+    // Registers every command by name, decomp macro name and alias.
     init {
         val rows = ArrayList<Pair<Int, Fe8EventCommands.Command>>()
         for ((h, c) in Fe8EventCommands.byHeader) rows += h to c
         for ((h, c) in Fe8EventCommands.bySubParam) rows += h to c
         for ((h, c) in rows) {
             val header = if (c.subParam != null) h and 0xFFF0 else h
-            val n = c.layout.count { it.name != null } + (if (c.subParam != null) 1 else 0)
-            val form = Form(c, header, CommandSpec(c.name, n), false)
+            val argCount = c.layout.count { it.name != null } + (if (c.subParam != null) 1 else 0)
+            val form = Form(c, header, CommandSpec(c.name, argCount), false)
             byName[c.name] = form
             byMacro[c.macro] = form
             for (a in c.aliases) byMacro[a] = form
             if (c.macro == CLEAR_FLAG_MACRO) {
                 val name = FLAG_AT_SLOT2_COMMAND
-                byName[name] = Form(c, header, CommandSpec(name, n - 1), true)
+                // The flag argument is implied, so one argument fewer.
+                byName[name] = Form(c, header, CommandSpec(name, argCount - 1), true)
             }
         }
     }
 
+    /** The form for a canonical command name, decomp macro name or alias, or null. */
     fun lookup(name: String): Form? =
         byName[name] ?: byMacro[name]?.let { byName[it.command.name] }
 }
@@ -78,7 +85,11 @@ public object Fe8CommandSet : CommandSet {
 public object Fe8CommandEncoder : CommandEncoder {
     /** Commands whose pointer names stand for a Thumb function (address with bit 0 set). */
     private val THUMB_MACROS = setOf("EvtAsmCall", "EvtAsmCallEnableSkip")
+
+    /** The flag value `0xFFFF` of `clear_flag_at_slot2`: take the flag from slot 2. */
     private const val FLAG_ALL_BITS = 0xFFFF
+
+    /** Header word of `label`: command 0x08, two words long. */
     private const val LABEL_HEADER = 0x0820
 
     /** Number of u16 words a `label` command takes. */
@@ -120,10 +131,15 @@ public object Fe8CommandEncoder : CommandEncoder {
         }
     }
 
+    /** The form behind [spec]; fails for a spec that did not come from [Fe8CommandSet]. */
     private fun form(spec: CommandSpec): Form =
         Fe8Forms.byName[spec.name]
             ?: throw IllegalArgumentException("unknown command '${spec.name}'")
 
+    /**
+     * The numeric value of [arg] for a field of constant kind [kind] and width [bits]: integers
+     * as written, identifiers through [symbols] (with bit 0 set for a Thumb function pointer).
+     */
     private fun number(
         arg: Arg,
         kind: String?,
@@ -146,6 +162,7 @@ public object Fe8CommandEncoder : CommandEncoder {
         return v
     }
 
+    /** Writes value [v] of field [f] into the words of [out] from index [w]. */
     private fun put(out: IntArray, w: Int, f: Fe8EventCommands.Field, v: Long) {
         when (f.kind) {
             FieldKind.U4 -> out[w] = out[w] or ((v.toInt() and 0xF) shl f.shift)

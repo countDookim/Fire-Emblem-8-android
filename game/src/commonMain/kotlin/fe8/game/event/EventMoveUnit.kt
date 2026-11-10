@@ -38,6 +38,16 @@ public interface EventMoveUnitHost {
  * Verification: `MoveUnitDifferentialTest` compares the blue units' end tiles after the opening
  * moves with `ram_trace_first_phase` r19400 (not the per-frame walk). The helpers and [MuCtrl]
  * are untagged.
+ *
+ * @param state the event slots (`gEventSlots[0xD]` and the slot queue hold the defined moves).
+ * @param memory script words (the command arguments).
+ * @param table the unit arrays (positions and state bits).
+ * @param map the map layers (`gBmMapOther` is cleared before and after moves).
+ * @param mu the movement units (map sprites that walk).
+ * @param muCtrl starts and queries the walks.
+ * @param unitFromParameter `GetUnitStructFromEventParameter`: unit id of an event character
+ *   parameter, or -1.
+ * @param host the callees outside the MU and unit systems.
  */
 public class EventMoveUnit(
     private val state: EventState,
@@ -55,7 +65,12 @@ public class EventMoveUnit(
         engine.register(0x30, event30Enun)
     }
 
-    /** Transcribed from src/eventscr.c: TryPrepareEventUnitMovement. */
+    /**
+     * Transcribed from src/eventscr.c: TryPrepareEventUnitMovement.
+     *
+     * Whether the walk may start now: with the unit camera on, no camera move may exist or be
+     * started for the unit's tile, and an MU slot must be free (a config with slot 0 is unused).
+     */
     private fun tryPrepare(proc: EventEngineProc, x: Int, y: Int): Boolean {
         if (proc.evStateBits and EV_STATE_UNITCAM != 0) {
             if (host.camMoveExists()) return false
@@ -64,7 +79,12 @@ public class EventMoveUnit(
         return mu.configs.any { it.slot == 0 }
     }
 
-    /** Transcribed from src/eventscr.c: ModifyMoveUnitFlag. */
+    /**
+     * Transcribed from src/eventscr.c: ModifyMoveUnitFlag.
+     *
+     * The move flags: bit 0 if [unk] (meaning unknown), bit 2 with the unit camera, bit 3 with
+     * `EV_STATE_0040`.
+     */
     private fun moveFlags(proc: EventEngineProc, unk: Boolean): Int {
         var result = if (unk) 1 else 0
         if (proc.evStateBits and EV_STATE_UNITCAM != 0) result = result or 4
@@ -89,6 +109,7 @@ public class EventMoveUnit(
         if (unit < 0) return@EventHandler EVC_ADVANCE_CONTINUE
         val sourceX = table.xPos(unit)
         val sourceY = table.yPos(unit)
+        // A dead unit does not move, unless it is a cutscene unit (`US_BIT22`).
         if (table.state(unit) and US_BIT22 == 0 && table.state(unit) and US_DEAD != 0) {
             return@EventHandler EVC_ADVANCE_CONTINUE
         }
@@ -167,7 +188,10 @@ public class EventMoveUnit(
     }
 
     private companion object {
+        /** `UNIT_STATE_DEAD`. */
         const val US_DEAD = 1 shl 2
+
+        /** `UNIT_STATE_BIT_22`: set on cutscene units (`ClearCutsceneUnits` clears them). */
         const val US_BIT22 = 1 shl 22
     }
 }

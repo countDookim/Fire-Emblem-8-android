@@ -26,8 +26,8 @@ internal class EventPopup(
      * Ported from src/eventscr.c: Event3A_DisplayPopup
      *
      * Subcommand 0 (`NewPopup_VerySimple`) is not ported and throws [NotImplementedError].
-     * Subcommand 1 displays a brown text box with message [textId] (slot 2 when negative)
-     * at (x, y).
+     * Subcommand 1 displays a brown text box with the message of the command argument (slot 2
+     * when negative) at the tile position packed in the last argument word (two signed bytes).
      */
     val event3ADisplayPopup: EventHandler = EventHandler { proc ->
         if (proc.evStateBits and EV_STATE_SKIPPING != 0) return@EventHandler EVC_ADVANCE_CONTINUE
@@ -38,9 +38,9 @@ internal class EventPopup(
         when (subcommand) {
             0 -> throw NotImplementedError("NewPopup_VerySimple (event 0x3A sub 0) is not ported")
             1 -> {
-                val arg = memory.u16(currentCmd + 6)
-                val x = arg.toByte().toInt()
-                val y = (arg shr 8).toByte().toInt()
+                val position = memory.u16(currentCmd + 6)
+                val x = position.toByte().toInt()
+                val y = (position shr 8).toByte().toInt()
                 brownTextBox.startBrownTextBox(textId, x, y, proc.proc!!)
             }
         }

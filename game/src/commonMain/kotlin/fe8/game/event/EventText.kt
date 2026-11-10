@@ -94,6 +94,10 @@ public interface EventTextHost {
 /**
  * The talk start/show/continue/wait commands (0x1A, 0x1B, 0x1C, 0x1D) and the clear screen
  * command (0x22) of `src/eventscr.c`.
+ *
+ * @param state the event slots (slot 2 is the default message, slot 0xC receives results).
+ * @param memory script words (the command arguments).
+ * @param host the talk, CG text, box dialogue and face services.
  */
 public class EventText(
     private val state: EventState,
@@ -111,6 +115,9 @@ public class EventText(
 
     /**
      * Ported from src/eventscr.c: Event22_ClearScreen
+     *
+     * Clears the screen between scenes: map graphics refreshed, talk tilemaps, bubble and faces
+     * cleared, and the map display unlocked.
      */
     public val event22ClearScreen: EventHandler = EventHandler { proc ->
         host.refreshBMapGraphics()
@@ -141,10 +148,15 @@ public class EventText(
     /**
      * Ported from src/eventscr.c: sub_800E640
      *
+     * Named `sub800E640` in the decomp.
+     *
+     * Removes the portraits when a text scene ends: at once when the screen is faded in, else
+     * fading them out first (the proc waits until they are gone).
+     *
      * Verified path: no `EV_STATE_FADEDIN`, faces exist (f10566). The `EV_STATE_FADEDIN` branch
      * is in no trace.
      */
-    public fun sub800E640(proc: EventEngineProc) {
+    public fun endTextFaces(proc: EventEngineProc) {
         if (proc.evStateBits and EV_STATE_FADEDIN != 0) {
             host.clearTalkBubble()
             host.resetAllFaces()
@@ -154,6 +166,10 @@ public class EventText(
         }
     }
 
+    /**
+     * Ends every kind of text on screen (talk, CG text, box dialogue) and its faces; the map
+     * sprite palette is restored for cutscenes.
+     */
     private fun endText(proc: EventEngineProc) {
         host.endTalk()
         host.endCgText()
@@ -161,11 +177,14 @@ public class EventText(
         if (proc.execType == EV_EXEC_CUTSCENE) {
             host.changeUnitSpritePalette(proc.mapSpritePalIdOverride)
         }
-        sub800E640(proc)
+        endTextFaces(proc)
     }
 
     /**
      * Ported from src/eventscr.c: sub_800E210
+     *
+     * Starts a talk bubble for message [msg] at the fixed talk text position; [init] first
+     * (re)initialises the talk. The "no skip" and "no fast" event state bits become talk flags.
      *
      * Verified path: `init` true, `EV_STATE_0020`/`EV_STATE_0040` clear (f9865). Not in any
      * trace: `init` false (TEXTSHOW2) and the two flag bits.
@@ -230,10 +249,10 @@ public class EventText(
         when (sub) {
             0 -> {
                 proc.evStateBits = proc.evStateBits and EV_STATE_0008.inv()
-                if (proc.evStateBits ushr 2 and 1 == 0) showByType(proc, arg, true)
+                if (proc.evStateBits and EV_STATE_SKIPPING == 0) showByType(proc, arg, true)
             }
             1 -> {
-                if (proc.evStateBits ushr 2 and 1 == 0 && proc.evStateBits ushr 3 and 1 == 0) {
+                if (proc.evStateBits and (EV_STATE_SKIPPING or EV_STATE_0008) == 0) {
                     showByType(proc, arg, false)
                 }
             }
@@ -246,6 +265,7 @@ public class EventText(
         EVC_ADVANCE_CONTINUE
     }
 
+    /** Shows message [arg] with the text type chosen by the last TEXTSTART (`activeTextType`). */
     private fun showByType(proc: EventEngineProc, arg: Int, init: Boolean) {
         when (proc.activeTextType) {
             0, 1 -> startTalk(proc, arg, init)
@@ -291,7 +311,10 @@ public class EventText(
     }
 
     private companion object {
+        /** `TALK_FLAG_NOSKIP`: the player cannot skip the talk. */
         const val TALK_NOSKIP = 1 shl 2
+
+        /** `TALK_FLAG_NOFAST`: the player cannot speed the talk up. */
         const val TALK_NOFAST = 1 shl 3
     }
 }

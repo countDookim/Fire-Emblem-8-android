@@ -83,8 +83,10 @@ public class EventScrCore(
     private val keys: KeyStatus,
     private val hooks: EventScrHooks = object : EventScrHooks {},
 ) {
+    /** The engine given to [registerAll]; EnqueueCall needs it to start events. */
     private var engine: EventEngine? = null
 
+    /** `gEventSlots[i]`, continuing into `gEventSlotQueue` past the 14 slots; 0 beyond that. */
     private fun slot(i: Int): Int = when {
         i < EventState.SLOT_COUNT -> state.slots[i]
         i < EventState.SLOT_COUNT + EventState.SLOT_QUEUE_WORDS ->
@@ -92,6 +94,7 @@ public class EventScrCore(
         else -> 0
     }
 
+    /** Writes [value] to slot [i] as [slot] reads it; writes beyond the queue are dropped. */
     private fun setSlot(i: Int, value: Int) {
         when {
             i < EventState.SLOT_COUNT -> state.slots[i] = value
@@ -110,6 +113,7 @@ public class EventScrCore(
     /** `EVT_CMD_ARG32_LE` / `EVT_CMD_ARG32_BE`: the words at `cur + 4` and `cur + 6`. */
     private fun arg32(cur: Int): Int = argU16(cur, 1) or (argU16(cur, 2) shl 16)
 
+    /** The sub-command nibble of the command at [cur]. */
     private fun subCmd(cur: Int): Int = memory.u16(cur) and 0xF
 
     /** Transcribed from src/eventscr.c: Event00_NULL (not verified: not in the prologue) */
@@ -123,14 +127,15 @@ public class EventScrCore(
      */
     public val event01End: EventHandler = EventHandler { proc ->
         if (proc.evStateBits and EV_STATE_ABORT != 0) return@EventHandler EVC_END
-        val q = state.activeQueue
-        if (subCmd(proc.pEventCurrent) == EVSUBCMD_ENDB) q.fill(0)
-        if (q[0] != 0) {
-            proc.pEventIdk = q[0]
-            proc.pEventCurrent = q[1]
-            for (i in 0 until 14) q[i] = q[i + 2]
-            q[14] = 0
-            q[15] = 0
+        // The call stack: 8 pairs of (script start, return position), newest first.
+        val callStack = state.activeQueue
+        if (subCmd(proc.pEventCurrent) == EVSUBCMD_ENDB) callStack.fill(0)
+        if (callStack[0] != 0) {
+            proc.pEventIdk = callStack[0]
+            proc.pEventCurrent = callStack[1]
+            for (i in 0 until 14) callStack[i] = callStack[i + 2]
+            callStack[14] = 0
+            callStack[15] = 0
             return@EventHandler EVC_ADVANCE_CONTINUE
         }
         when (proc.execType) {
@@ -170,19 +175,19 @@ public class EventScrCore(
     public val event02EvBitAndIdMod: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent
         val word = memory.u16(cur)
-        val lo = word and 0x7
-        val hi = (word and 0xF) shr 3
+        val target = word and 0x7
+        val operation = (word and 0xF) shr 3
         val arg = evArg(cur)
-        when (lo) {
+        when (target) {
             0 ->
-                proc.evStateBits = if (hi == 0) {
+                proc.evStateBits = if (operation == 0) {
                     proc.evStateBits and bit(arg).inv() and 0xFFFF
                 } else {
                     (proc.evStateBits or bit(arg)) and 0xFFFF
                 }
             1 -> {
                 val id = arg.toShort().toInt()
-                if (hi == 0) flags.clearFlag(id) else flags.setFlag(id)
+                if (operation == 0) flags.clearFlag(id) else flags.setFlag(id)
             }
         }
         EVC_ADVANCE_CONTINUE
@@ -304,10 +309,10 @@ public class EventScrCore(
     public val event0aCall: EventHandler = EventHandler { proc ->
         var dst = arg32(proc.pEventCurrent)
         if (dst < 0) dst = state.slots[2]
-        val q = state.activeQueue
-        for (i in 15 downTo 2) q[i] = q[i - 2]
-        q[0] = proc.pEventIdk
-        q[1] = proc.pEventCurrent
+        val callStack = state.activeQueue
+        for (i in 15 downTo 2) callStack[i] = callStack[i - 2]
+        callStack[0] = proc.pEventIdk
+        callStack[1] = proc.pEventCurrent
         proc.pEventIdk = dst
         proc.pEventCurrent = dst
         EVC_UNK4
@@ -456,22 +461,23 @@ public class EventScrCore(
      * nothing.
      */
     public val event19Checks: EventHandler = EventHandler { proc ->
-        val c = state.slots
+        val slots = state.slots
         when (subCmd(proc.pEventCurrent)) {
-            0 -> c[0xC] = playSt.chapterModeIndex
-            1 -> c[0xC] = proc.chapterIndex
-            2 -> c[0xC] = if (playSt.chapterStateBits and PLAY_FLAG_HARD != 0) 1 else 0
-            3 -> c[0xC] = playSt.chapterTurnNumber
-            4 -> c[0xC] = hooks.countRedUnits() and 0xFFFF
-            5 -> c[0xC] = hooks.countGreenUnits() and 0xFFFF
-            6 -> c[0xC] = hooks.battleMapKind()
+            0 -> slots[0xC] = playSt.chapterModeIndex
+            1 -> slots[0xC] = proc.chapterIndex
+            2 -> slots[0xC] = if (playSt.chapterStateBits and PLAY_FLAG_HARD != 0) 1 else 0
+            3 -> slots[0xC] = playSt.chapterTurnNumber
+            4 -> slots[0xC] = hooks.countRedUnits() and 0xFFFF
+            5 -> slots[0xC] = hooks.countGreenUnits() and 0xFFFF
+            6 -> slots[0xC] = hooks.battleMapKind()
             7 -> {
                 val hard = playSt.chapterStateBits and PLAY_FLAG_HARD != 0
-                c[0xC] = if (playSt.controller != 0 || hard) 0 else 1
+                slots[0xC] = if (playSt.controller != 0 || hard) 0 else 1
             }
-            8 -> c[0xC] = if (playSt.chapterIndex == CHAPTER_NO_GOLD) 0 else playSt.partyGoldAmount
-            9 -> c[0xC] = hooks.eventTriggerId(proc.pEventStart) and 0xFFFF
-            0xA -> c[0xC] = if (playSt.chapterStateBits and PLAY_FLAG_COMPLETE != 0) 1 else 0
+            8 -> slots[0xC] =
+                if (playSt.chapterIndex == CHAPTER_NO_GOLD) 0 else playSt.partyGoldAmount
+            9 -> slots[0xC] = hooks.eventTriggerId(proc.pEventStart) and 0xFFFF
+            0xA -> slots[0xC] = if (playSt.chapterStateBits and PLAY_FLAG_COMPLETE != 0) 1 else 0
         }
         EVC_ADVANCE_CONTINUE
     }

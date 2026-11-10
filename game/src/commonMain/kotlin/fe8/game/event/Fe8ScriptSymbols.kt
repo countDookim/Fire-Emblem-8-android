@@ -23,10 +23,10 @@ public class NmSymbolIndex(nmText: String) : SymbolResolver, IdentifierResolver 
 
     init {
         var start = 0
-        val n = nmText.length
-        while (start < n) {
+        val textLength = nmText.length
+        while (start < textLength) {
             var end = nmText.indexOf('\n', start)
-            if (end < 0) end = n
+            if (end < 0) end = textLength
             parse(nmText.substring(start, end))
             start = end + 1
         }
@@ -35,6 +35,7 @@ public class NmSymbolIndex(nmText: String) : SymbolResolver, IdentifierResolver 
         namesByAddress = Array(order.size) { order[it].key }
     }
 
+    /** Adds the symbol of one `nm` line, ignoring lines that are not code or data symbols. */
     private fun parse(row: String) {
         val parts = row.trimEnd().split(' ')
         if (parts.size < 3 || parts[0].length != 8) return
@@ -116,6 +117,11 @@ public class Fe8ConstantSymbols(
  * the [external] symbols (names of ROM data and functions from the decomp symbol list). [mods]
  * adds mod-registered flag names after the FE8 constants; a command using one gets a `set_slot 2`
  * before it ([ModFlagSlotExpander]).
+ *
+ * @param external ROM data and function names.
+ * @param constants the FE8 constants (characters, items, flags and so on).
+ * @param encoder how commands are encoded to event words.
+ * @param mods mod-registered flag names, or null.
  */
 public class Fe8ScriptTools(
     external: NmSymbolIndex,

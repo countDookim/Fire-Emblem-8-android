@@ -11,7 +11,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 ## In progress
 
 - D11-wm4 (worldmap_rm BG, scroll, camera opcodes 83-89): owner PC, until ~23:30Z
-- D11-wm5 (worldmap_text, palette fade, opcodes 80-82/AF-B3): owner PC, until ~23:30Z
+- D11-wm7 (worldmap_face StartWMFaceCtrl + portrait opcodes; wm5 partial done 807369a): owner PC, until ~23:59Z
 
 ## Current state
 

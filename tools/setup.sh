@@ -98,6 +98,11 @@ if [ ! -f "$FE8_ASSETS/fireemblem8.nm.txt" ]; then
   fi
 fi
 
+# 3d. Public decomp source used as runtime test reference.
+FE8U_DECOMP="${FE8U_DECOMP:-$FE8_ASSETS/decomp}"
+FE8U_DECOMP="$FE8U_DECOMP" "$ROOT/tools/setup_decomp.sh"
+log "decomp reference ready ($FE8U_DECOMP)"
+
 # 4. Local retrying Maven mirror (Maven Central answers spurious 404/429 through the session proxy).
 MIRROR_PORT="${FE8_MIRROR_PORT:-8765}"
 MCACHE="$HOME/.cache/fe8-maven"
@@ -133,6 +138,7 @@ fi
 
 cat > "$ROOT/.assets.env" <<EOF
 export FE8_ASSETS="$FE8_ASSETS"
+export FE8U_DECOMP="$FE8U_DECOMP"
 export FE8_MAVEN_MIRROR="$FE8_MAVEN_MIRROR"
 export PATH="\$HOME/.local/bin:\$PATH"
 EOF

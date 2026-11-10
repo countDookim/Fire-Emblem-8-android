@@ -40,6 +40,11 @@ jobs:
           ROM_REPO_TOKEN: ${{ secrets.ROM_REPO_TOKEN }}
           ROM_REPO_DEPLOY_KEY: ${{ secrets.ROM_REPO_DEPLOY_KEY }}
         run: tools/ci_fetch_assets.sh
+      - name: Fetch pinned decomp test references
+        if: steps.assets.outputs.available == 'true'
+        run: |
+          tools/setup_decomp.sh
+          echo "FE8U_DECOMP=$FE8_ASSETS/decomp" >> "$GITHUB_ENV"
       - name: JVM tests + debug and release APKs
         run: ./gradlew jvmTest :app:assembleDebug :app:assembleRelease --continue --console=plain
       - name: No game content in the debug or release APK (M4-05, decision 0011)

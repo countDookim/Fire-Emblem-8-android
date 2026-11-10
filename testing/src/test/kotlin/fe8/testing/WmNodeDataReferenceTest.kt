@@ -21,12 +21,23 @@ class WmNodeDataReferenceTest {
         "baserom.gba",
     )
     private val ref = ReferenceData.fromEnvironment()
-    private val decomp = File(System.getenv("FE8U_DECOMP") ?: "/home/claude/fe8u")
+    private val decomp: File? = (System.getProperty("fe8.decomp") ?: System.getenv("FE8U_DECOMP"))
+        ?.let(::File)
+        ?: generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
+            .flatMap { sequenceOf(File(it, ".assets/decomp"), File(it, "fireemblem8u")) }
+            .firstOrNull { File(it, "src/worldmap_node_data.c").isFile }
 
-    private class Node(val eirika: Int, val ephraim: Int, val flag: Int, val next: List<Int>)
+    /** Requires the runtime decomp reference when ROM-backed tests can run. */
+    private fun decompFile(path: String): File {
+        val file = decomp?.let { File(it, path) }
+        check(file?.isFile == true) {
+            "Missing decomp reference $path in ${decomp ?: "discovered paths"}; " +
+                "set FE8U_DECOMP or run tools/setup_decomp.sh"
+        }
+        return file
+    }
 
     @Test
-    @VerifiesPort("WMLoc_GetChapterId", "WMLoc_GetNextLocId")
     fun `prologue world map next node and chapter match the trace`() {
         assumeTrue(ref.available && romFile.isFile, "ROM / reference data not present")
         val run = ref.run("ram_trace_prologue")
@@ -52,10 +63,11 @@ class WmNodeDataReferenceTest {
     }
 
     @Test
+    @VerifiesPort("WMLoc_GetChapterId", "WMLoc_GetNextLocId")
     fun `chapter ids and next locations match decomp node table for all nodes`() {
-        val source = File(decomp, "src/worldmap_node_data.c")
-        val chapters = File(decomp, "include/constants/chapters.h")
-        assumeTrue(romFile.isFile && source.isFile && chapters.isFile, "ROM / decomp not present")
+        assumeTrue(romFile.isFile, "ROM not present")
+        val source = decompFile("src/worldmap_node_data.c")
+        val chapters = decompFile("include/constants/chapters.h")
         val ids = Regex("""(CHAPTER_\w+)\s*=\s*(0x[0-9A-Fa-f]+|\d+)""")
             .findAll(chapters.readText())
             .associate { it.groupValues[1] to java.lang.Integer.decode(it.groupValues[2]) }
@@ -86,9 +98,9 @@ class WmNodeDataReferenceTest {
 
     @Test
     fun `placement flag and encounters match decomp node table for all nodes`() {
-        val source = File(decomp, "src/worldmap_node_data.c")
-        val header = File(decomp, "include/worldmap.h")
-        assumeTrue(romFile.isFile && source.isFile && header.isFile, "ROM / decomp not present")
+        assumeTrue(romFile.isFile, "ROM not present")
+        val source = decompFile("src/worldmap_node_data.c")
+        val header = decompFile("include/worldmap.h")
         val consts = Regex("""(GMAP_\w+)\s*=\s*(\d+)""").findAll(header.readText())
             .associate { it.groupValues[1] to it.groupValues[2].toInt() }
         val body = source.readText().let { it.substring(it.indexOf("gWMNodeData[] =")) }
@@ -103,6 +115,8 @@ class WmNodeDataReferenceTest {
             assertEquals(field("encounters"), data.encounters(idx), "encounters $idx")
         }
     }
+
+    private class Node(val eirika: Int, val ephraim: Int, val flag: Int, val next: List<Int>)
 
     private fun parse(text: String, ids: Map<String, Int>): List<Node> {
         val start = text.indexOf("gWMNodeData[] =")

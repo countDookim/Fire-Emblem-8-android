@@ -22,6 +22,18 @@ tasks.register<JavaExec>("benchmark") {
 
 // ROM-extracted test output (build dir only) that tools/tests/test_schemas.py validates.
 tasks.named<Test>("test") {
+    // These runtime C references affect results, including whether tests can run at all.
+    val decomp = System.getenv("FE8U_DECOMP")?.let(::File)
+        ?: generateSequence(rootProject.projectDir.absoluteFile) { it.parentFile }
+            .flatMap { sequenceOf(File(it, ".assets/decomp"), File(it, "fireemblem8u")) }
+            .firstOrNull { File(it, "src/worldmap_node_data.c").isFile }
+        ?: File(System.getenv("FE8_ASSETS") ?: rootProject.file(".assets").path, "decomp")
+    systemProperty("fe8.decomp", decomp.absolutePath)
+    inputs.files(listOf(
+        File(decomp, "src/worldmap_node_data.c"),
+        File(decomp, "include/constants/chapters.h"),
+        File(decomp, "include/worldmap.h"),
+    )).withPathSensitivity(PathSensitivity.RELATIVE)
     val extracted = layout.buildDirectory.dir("extracted")
     systemProperty("fe8.extractedOut", extracted.get().asFile.absolutePath)
     outputs.dir(extracted)

@@ -18,9 +18,9 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 - Latest owner test: **local 0.1.488 (`0a73f11`)**: neither reported castle audio stutter reproduced.
   Original save restored afterward; ROM import preserved. Published 0.1.488 (`8c5b7c9`) banner comparison remains partial.
-- Candidate **0.1.528 (`e0187ea`)**: CI pending; fixes the Rapier popup icon and stale frame on close.
-  Local full `jvmTest test` **737 passed, zero failures/skips**; debug/release builds and content guards,
-  game Dokka, 27 Python tests and instruction sync passed. Previously published: 0.1.526 (`cfa62da`).
+- Published **0.1.528 (`e0187ea`)**: CI **737 passed, zero failures/skips**; fixes the Rapier popup
+  icon and stale frame on close. Local full `jvmTest test` also passed 737; both APK builds/content
+  guards, game Dokka, 27 Python tests and instruction sync passed.
 - **653/8352 functions verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.

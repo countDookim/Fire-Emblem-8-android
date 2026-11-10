@@ -13,6 +13,8 @@ package fe8.testing
  * `ArchivedPaletteFadeProcDifferentialTest`; it therefore shares the same known divergence.
  * `ram_trace_subtitle_boundary` has the same input prefix and equal full RAM at f960, f990,
  * f1230, f2340 and f2370, checked by `OpSubtitleBoundaryDifferentialTest`.
+ * The subtitle skip runs and their control share the original input prefix and RAM around f975;
+ * `OpSubtitleSkipDifferentialTest` checks the input change and RAM before each skip.
  */
 internal val M4A_UNCOVERED_RUNS: Set<String> = setOf(
     "sram_boot", "sram_preload", "ram_trace_newgame", "ram_trace_newgame_bm",
@@ -21,4 +23,6 @@ internal val M4A_UNCOVERED_RUNS: Set<String> = setOf(
     "ram_trace_ch6_cursor_edges", "ram_trace_prologue_talk", "ram_trace_prologue_battle",
     "ram_trace_prologue_resume", "ram_trace_prologue_battle_end", "ram_trace_soft_reset",
     "ram_trace_item_popup", "ram_trace_fade_start", "ram_trace_subtitle_boundary",
+    "ram_trace_subtitle_skip_control", "ram_trace_subtitle_skip_1505",
+    "ram_trace_subtitle_skip_2375", "ram_trace_subtitle_skip_4405",
 )

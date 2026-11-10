@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 647,
+    "verified": 650,
     "implemented_unverified": 1
   },
   "functions": {
@@ -2492,6 +2492,24 @@
         "fe8.testing.ArchivedPaletteFadeProcDifferentialTest#fade in timer lifetime and palette match the original"
       ]
     },
+    "NewPopupCore": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/PopupScript.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupScriptTest#hosted popup proc follows the traced script position and ends with it"
+      ]
+    },
+    "NewPopup_Simple": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/PopupScript.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupScriptTest#hosted popup proc follows the traced script position and ends with it"
+      ]
+    },
     "NewProc08AA6D04": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
@@ -2904,6 +2922,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
+      ]
+    },
+    "PopupIconUpdateProc_Loop": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/PopupScript.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PopupScriptTest#hosted popup proc follows the traced script position and ends with it"
       ]
     },
     "PopupProc_GfxClear": {

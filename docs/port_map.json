@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 698,
-    "implemented_unverified": 3
+    "verified": 700,
+    "implemented_unverified": 1
   },
   "functions": {
     "AddUnitSprite": {
@@ -1529,7 +1529,7 @@
     "GenerateScriptBattleHitFormEventQueue": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -4931,15 +4931,19 @@
       "decomp_file": "src/worldmap_screen2.c",
       "system": "worldmap",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WmNodeData.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WmNodeDataReferenceTest#chapter ids and next locations match decomp node table for all nodes"
+      ]
     },
     "WMLoc_GetNextLocId": {
       "decomp_file": "src/worldmap_screen2.c",
       "system": "worldmap",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WmNodeData.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WmNodeDataReferenceTest#chapter ids and next locations match decomp node table for all nodes"
+      ]
     },
     "WaitForFade": {
       "decomp_file": "src/bmlib.c",

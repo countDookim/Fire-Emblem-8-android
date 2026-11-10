@@ -44,21 +44,21 @@ class WorldMapUnitTest {
     private val romFile = File(assets, "baserom.gba")
 
     @VerifiesPort(
-        "src/worldmap_gmapunit.c: NewGmapUnitContainer",
-        "src/worldmap_gmapunit.c: GmapUnitContainer_Init",
-        "src/worldmap_gmapunit.c: NewMapUnit",
-        "src/worldmap_gmapunit.c: GmapUnit_Init",
-        "src/worldmap_gmapunit.c: GetPaletteIdForAllegience",
-        "src/worldmap_gmapunit.c: MapUnitC_DeleteGmapUnit",
-        "src/worldmap_gmapunit.c: MapUnitC_SetPosition",
-        "src/worldmap_gmapunit.c: MapUnitC_GetPosition",
-        "src/worldmap_gmapunit.c: MapUnitC_SetAnimId",
-        "src/worldmap_gmapunit.c: MapUnitC_GetAnimId",
-        "src/worldmap_gmapunit.c: MapUnitC_SetDisplayEnabled",
-        "src/worldmap_gmapunit.c: MapUnitC_SetLayer",
-        "src/worldmap_gmapunit.c: MapUnitC_SetFaction",
-        "src/worldmap_gmapunit.c: MapUnitC_SetPalette",
-        "src/worldmap_gmapunit.c: sub_80BB194",
+        "NewGmapUnitContainer",
+        "GmapUnitContainer_Init",
+        "NewMapUnit",
+        "GmapUnit_Init",
+        "GetPaletteIdForAllegience",
+        "MapUnitC_DeleteGmapUnit",
+        "MapUnitC_SetPosition",
+        "MapUnitC_GetPosition",
+        "MapUnitC_SetAnimId",
+        "MapUnitC_GetAnimId",
+        "MapUnitC_SetDisplayEnabled",
+        "MapUnitC_SetLayer",
+        "MapUnitC_SetFaction",
+        "MapUnitC_SetPalette",
+        "sub_80BB194",
     )
     @Test
     fun `container and sprites follow the traced fields every step`() {

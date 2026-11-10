@@ -33,10 +33,10 @@ class WorldMapRmBorderTest {
     private val romFile = File(assets, "baserom.gba")
 
     @VerifiesPort(
-        "src/worldmap_rm.c: GmapRmBorder1_80C28C4",
-        "src/worldmap_rm.c: GmapRmBorder1_80C2964",
-        "src/worldmap_rm.c: GmapRmBorder1_80C29F8",
-        "src/worldmap_rm.c: GmapRmBorder1_80C2A1C",
+        "GmapRmBorder1_80C28C4",
+        "GmapRmBorder1_80C2964",
+        "GmapRmBorder1_80C29F8",
+        "GmapRmBorder1_80C2A1C",
     )
     @Test
     fun `border procs follow the original script position and fields every step`() {

@@ -10,11 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D11-wm6 (review/verify `wip/D11-wm6`): scheduled, until ~23:30Z
-- D11-wm4c (events B4–BA): scheduled, until ~23:30Z
-
-Unfinished: `wip/D11-wm6` (units) remains unreviewed; its tags are not break-checked and its
-scratch diagnostic fails CI. Review, remove diagnostics and verify before merging.
+None. `wip/D11-wm6` is merged into master (`b027750`); the remote branch can be deleted.
 
 ## Current state
 
@@ -23,8 +19,8 @@ scratch diagnostic fails CI. Review, remove diagnostics and verify before mergin
 - Published **0.1.551 (`1c30d0b`)**: CI **769 passed, zero failures/skips**. The pinned decomp
   source is now provisioned for node-table tests; missing source fails clearly and invalidates
   stale test-cache results. Rapier popup icon/cleanup fixes remain included (first in 0.1.528).
-- Current source: **711/8352 verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce
-  ROM bytes at runtime. Full local `jvmTest test` (scheduled, after wm4a/b): **778 passed, zero failures/skips**; earlier both APK
+- Current source: **728/8352 verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce
+  ROM bytes at runtime. Full local `jvmTest test` (scheduled, after wm6/wm4c): **784 passed, zero failures/skips**; earlier both APK
   builds/content guards, game Dokka, 27 Python tests and instruction sync passed. New source CI pending.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
@@ -69,8 +65,13 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
    - wm7 (`90811ce`): 11 portrait functions verified/mutation-checked against original proc, BG,
      palette, VRAM and OAM state. Init writes remain transcribed; observed state-3 path only.
      Event C4/C5 and full VM timing remain unverified/unregistered.
-   - wm6 remains unfinished; wm8 (end-to-end + registration) follows. Restore default face
+   - wm6 (scheduled 2026-11-10, `b027750`): `WorldMapUnitTest` verifies 13 GmapUnit/container functions
+     (fields per step, 4890–9310); u16/s8/u8 narrowings untested. Loop/OAM, fades, palette ids, scripts and
+     opcodes 9E–AC remain transcribed/unregistered.
+   - wm4c (`c2025c8`): events B4–BA (big map, nation highlight) transcribed with unit tests; unverified, unregistered.
+   - wm8 (end-to-end + registration) follows. Restore default face
      VRAM/palette configuration at the world-map exit before sharing TalkFace with battle dialogue.
+   `@VerifiesPort` takes bare function names; `"src/x.c: F"` silently counts nothing (fixed in wm4b/wm6 tests).
    Node table checks use pinned runtime source: `tools/setup_decomp.sh` or `FE8U_DECOMP` (read-only).
 3. **D-12:** owner compares the banner with an emulator; D12-2 adds enemy-phase and original scanline captures.
 4. **D-09:** item popup is wired through Event37, GotItemPopup and PopupScript. `539016e` fixes the

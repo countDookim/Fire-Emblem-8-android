@@ -10,9 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D11-wm4a (GmapRmBaPalAnim1), D11-wm4b (GmapRmBorder1): scheduled, until ~22:45Z
-
-Unfinished: `wip/D11-wm6` (units) remains unreviewed; its tags are not break-checked and its
+None. Unfinished: `wip/D11-wm6` (units) remains unreviewed; its tags are not break-checked and its
 scratch diagnostic fails CI. Review, remove diagnostics and verify before merging.
 
 ## Current state
@@ -23,7 +21,7 @@ scratch diagnostic fails CI. Review, remove diagnostics and verify before mergin
   source is now provisioned for node-table tests; missing source fails clearly and invalidates
   stale test-cache results. Rapier popup icon/cleanup fixes remain included (first in 0.1.528).
 - Current source: **711/8352 verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce
-  ROM bytes at runtime. Full local `jvmTest test`: **776 passed, zero failures/skips**; both APK
+  ROM bytes at runtime. Full local `jvmTest test` (scheduled, after wm4a/b): **778 passed, zero failures/skips**; earlier both APK
   builds/content guards, game Dokka, 27 Python tests and instruction sync passed. New source CI pending.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
@@ -59,7 +57,11 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
      CallEvent) and matches the `StdEventEngine` at 4907 (`c7ed068`). Stand-ins: `sub_80BA008`,
      `StartGmapMuEntry`; the optional portrait controller bridge is available. Boot wiring remains.
    - wm4 (`a3214a6`): GmapRM BG procs, BG1 scroll/tilemaps and Event85 camera verified; Prologue uses no
-     other camera opcode. Remaining: opcodes B4–B7, `GmapRmBorder1`/`BaPalAnim1`, blend paths, proc end.
+     other camera opcode. Remaining: opcodes B4–B7, blend paths, proc end.
+   - wm4a/b (`5e9722e`, `7a6f911`): `GmapRmBaPalAnim1` transcribed; `GmapRmBorder1` proc logic (80C28C4/2964/29F8/2A1C)
+     verified per step on the procs watch (nation 7, 5528–5670; 18 capped 1-frame resyncs asserted). Blend, OAM,
+     palette 0x19 and VRAM effects, MergeIn/Out and Start/Show are unverified: no dump falls inside the runs
+     (needs a per-step lcd/OAM watch capture). Unwired; nation-highlight event opcode not registered.
    - wm5 (`807369a`): text handler verified; GmPalFade and opcodes 80–82/AF–B3 transcribed, unregistered.
    - wm7 (`90811ce`): 11 portrait functions verified/mutation-checked against original proc, BG,
      palette, VRAM and OAM state. Init writes remain transcribed; observed state-3 path only.

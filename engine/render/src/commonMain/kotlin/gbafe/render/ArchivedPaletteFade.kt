@@ -92,8 +92,9 @@ public class ArchivedPaletteFade(
     /**
      * Disables the display layers; a mask of exactly 0xFFFF keeps objects enabled.
      *
-     * Transcribed from src/sysutil.c: FadeInOut_DisableGfx; unverified (the capture first shows
-     * the proc after its first loop step).
+     * Ported from src/sysutil.c: FadeInOut_DisableGfx. The prologue capture covers the branch
+     * where the reused proc mask is not 0xFFFF and only BG0 and OBJ are initially enabled. The
+     * 0xFFFF branch and disabling initially enabled BG1..BG3 remain unverified.
      */
     private fun disableGfx(proc: Proc) {
         val obj = if ((proc.state as State).mask == 0xFFFF) 1 else 0

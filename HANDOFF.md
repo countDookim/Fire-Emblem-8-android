@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D09-4 (wire PopupScript for EventGiveItem): scheduled, until ~05:25Z, work on `wip/D09-4`
+_(none; scheduled run completed; no worktrees open)_
 
 ## Current state
 
@@ -63,7 +63,10 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
    tables seeded, blend real), `fe8.game.ui.PopupScript` hosting `ProcScr_Popup` on `ProcEngine` with verified
    `NewPopupCore`/`NewPopup_Simple` (`7a2c7e9`, per-step scrCur/lifetime) and `PopupIconUpdateProc_Loop` (`6acd49c`,
    OAM every 10th frame). `PlaySound` transcribed; BGM-volume child is a test stand-in; negative-clock key path
-   untested. Next (low priority): wire `PopupScript` in place of the EventGiveItem stand-in.
+   untested. Next (low priority) D09-4, wire `PopupScript` for Event37 GIVEITEMTO (planned, no code):
+   hoist MsgStrings/TextSystem out of `talkSceneDelegate`; provide icon tables, `loadIconPalette`, `startBgmVolumeChange`
+   in Fe8Boot; add `PopupScr_GotItem`/`ItemWasPilfered`/`GotGold` addresses; `ProcScr_GotItem` (yield, popup, yield,
+   give, yield, end) started blocking from the event proc; popupItem state + faction branch; full inventory stays TODO.
 
 ## Verification limits worth retaining
 

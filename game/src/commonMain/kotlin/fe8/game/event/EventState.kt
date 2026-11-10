@@ -37,27 +37,27 @@ public class EventState {
     public val activeQueue: IntArray = IntArray(ACTIVE_QUEUE_WORDS)
 
     /**
-     * Word [i] of the memory following `gEventSlotQueue[0]`, so queue overflow lands where it
+     * Word [wordIndex] of the memory following `gEventSlotQueue[0]`, so queue overflow lands where it
      * does in C: 30 is the counter, 31 the padding, 32..47 the active queue. Beyond that the
      * access is outside the block and reads 0.
      */
-    private fun wordAt(i: Int): Int = when {
-        i < 0 -> 0
-        i < SLOT_QUEUE_WORDS -> slotQueue[i]
-        i == SLOT_QUEUE_WORDS -> slotCounter
-        i == SLOT_QUEUE_WORDS + 1 -> padding
-        i < OVERFLOW_LIMIT -> activeQueue[i - SLOT_QUEUE_WORDS - 2]
+    private fun wordAt(wordIndex: Int): Int = when {
+        wordIndex < 0 -> 0
+        wordIndex < SLOT_QUEUE_WORDS -> slotQueue[wordIndex]
+        wordIndex == SLOT_QUEUE_WORDS -> slotCounter
+        wordIndex == SLOT_QUEUE_WORDS + 1 -> padding
+        wordIndex < OVERFLOW_LIMIT -> activeQueue[wordIndex - SLOT_QUEUE_WORDS - 2]
         else -> 0
     }
 
     /** Writes a queue word, including the adjacent globals reached by overflow. */
-    private fun setWordAt(i: Int, value: Int) {
+    private fun setWordAt(wordIndex: Int, value: Int) {
         when {
-            i < 0 -> Unit
-            i < SLOT_QUEUE_WORDS -> slotQueue[i] = value
-            i == SLOT_QUEUE_WORDS -> slotCounter = value
-            i == SLOT_QUEUE_WORDS + 1 -> padding = value
-            i < OVERFLOW_LIMIT -> activeQueue[i - SLOT_QUEUE_WORDS - 2] = value
+            wordIndex < 0 -> Unit
+            wordIndex < SLOT_QUEUE_WORDS -> slotQueue[wordIndex] = value
+            wordIndex == SLOT_QUEUE_WORDS -> slotCounter = value
+            wordIndex == SLOT_QUEUE_WORDS + 1 -> padding = value
+            wordIndex < OVERFLOW_LIMIT -> activeQueue[wordIndex - SLOT_QUEUE_WORDS - 2] = value
             else -> Unit
         }
     }

@@ -101,31 +101,31 @@ public class EventEngine(
      */
     public fun create(events: Int, execType: Int): EventEngineProc {
         val proc = procs.start(stdScript, PROC_TREE_3)
-        val s = proc.state as EventEngineProc
-        s.reset()
-        s.proc = proc
-        s.callback = null
-        s.pEventStart = events
-        s.pEventIdk = events
-        s.pEventCurrent = events
-        s.evStateBits = 0
-        s.evStallTimer = 0
-        s.overwrittenTextSpeed = -1
-        s.execType = execType
-        s.activeTextType = 0
-        s.chapterIndex = 0xFF
-        s.mapSpritePalIdOverride = 0
-        s.pUnitLoadData = 0
-        s.unitLoadCount = 0
-        s.chance = 0
+        val eventState = proc.state as EventEngineProc
+        eventState.reset()
+        eventState.proc = proc
+        eventState.callback = null
+        eventState.pEventStart = events
+        eventState.pEventIdk = events
+        eventState.pEventCurrent = events
+        eventState.evStateBits = 0
+        eventState.evStallTimer = 0
+        eventState.overwrittenTextSpeed = -1
+        eventState.execType = execType
+        eventState.activeTextType = 0
+        eventState.chapterIndex = 0xFF
+        eventState.mapSpritePalIdOverride = 0
+        eventState.pUnitLoadData = 0
+        eventState.unitLoadCount = 0
+        eventState.chance = 0
 
-        if (hooks.blendY() == 0x10) s.evStateBits = s.evStateBits or EV_STATE_FADEDIN
+        if (hooks.blendY() == 0x10) eventState.evStateBits = eventState.evStateBits or EV_STATE_FADEDIN
 
         if (execType == EV_EXEC_CUTSCENE || execType == EV_EXEC_GAMEPLAY) {
-            s.chapterIndex = hooks.chapterIndex() and 0xFF
+            eventState.chapterIndex = hooks.chapterIndex() and 0xFF
             hooks.lockGame()
         }
-        return s
+        return eventState
     }
 
     /**
@@ -136,24 +136,24 @@ public class EventEngine(
      */
     public fun createBattle(events: Int): EventEngineProc {
         val proc = procs.start(battleScript, PROC_TREE_3)
-        val s = proc.state as EventEngineProc
-        s.reset()
-        s.proc = proc
-        s.callback = null
-        s.pEventStart = events
-        s.pEventIdk = events
-        s.pEventCurrent = events
-        s.evStateBits = 0
-        s.evStallTimer = 0
-        s.overwrittenTextSpeed = -1
-        s.execType = EV_EXEC_QUIET
-        s.activeTextType = 0
-        s.mapSpritePalIdOverride = 0
-        s.pUnitLoadData = 0
-        s.unitLoadCount = 0
-        s.chance = 0
-        s.evStateBits = s.evStateBits or EV_STATE_ABORT
-        return s
+        val eventState = proc.state as EventEngineProc
+        eventState.reset()
+        eventState.proc = proc
+        eventState.callback = null
+        eventState.pEventStart = events
+        eventState.pEventIdk = events
+        eventState.pEventCurrent = events
+        eventState.evStateBits = 0
+        eventState.evStallTimer = 0
+        eventState.overwrittenTextSpeed = -1
+        eventState.execType = EV_EXEC_QUIET
+        eventState.activeTextType = 0
+        eventState.mapSpritePalIdOverride = 0
+        eventState.pUnitLoadData = 0
+        eventState.unitLoadCount = 0
+        eventState.chance = 0
+        eventState.evStateBits = eventState.evStateBits or EV_STATE_ABORT
+        return eventState
     }
 
     /**
@@ -184,12 +184,12 @@ public class EventEngine(
      * written, the padding bytes are kept.
      */
     public fun enqueueEventCall(events: Int, execType: Int) {
-        val q = state.callQueue
+        val callQueue = state.callQueue
         for (i in 0 until QUEUE_ENTRIES) {
-            val meta = q[2 * i + 1]
+            val meta = callQueue[2 * i + 1]
             if ((meta ushr 8) and 0xFF == 0) {
-                q[2 * i] = events
-                q[2 * i + 1] = (meta and 0xFFFF0000.toInt()) or 0x100 or (execType and 0xFF)
+                callQueue[2 * i] = events
+                callQueue[2 * i + 1] = (meta and 0xFFFF0000.toInt()) or 0x100 or (execType and 0xFF)
                 break
             }
         }
@@ -201,16 +201,16 @@ public class EventEngine(
      * the queue down one entry and clears the last (its padding bytes are kept).
      */
     public fun callNextQueuedEvent() {
-        val q = state.callQueue
-        if ((q[1] ushr 8) and 0xFF == 1) create(q[0], q[1] and 0xFF)
+        val callQueue = state.callQueue
+        if ((callQueue[1] ushr 8) and 0xFF == 1) create(callQueue[0], callQueue[1] and 0xFF)
 
         for (i in 0 until QUEUE_ENTRIES - 1) {
-            q[2 * i] = q[2 * i + 2]
-            q[2 * i + 1] = q[2 * i + 3]
+            callQueue[2 * i] = callQueue[2 * i + 2]
+            callQueue[2 * i + 1] = callQueue[2 * i + 3]
         }
         val last = 2 * (QUEUE_ENTRIES - 1)
-        q[last] = 0
-        q[last + 1] = q[last + 1] and 0xFFFF0000.toInt()
+        callQueue[last] = 0
+        callQueue[last + 1] = callQueue[last + 1] and 0xFFFF0000.toInt()
     }
 
     /**

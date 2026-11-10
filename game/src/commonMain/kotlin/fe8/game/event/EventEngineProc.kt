@@ -84,7 +84,7 @@ public object EventConst {
 }
 
 /**
- * Event engine proc state: the fields of `struct EventEngineProc` (src/event.h) after the proc
+ * Event engine proc state: the fields of `struct EventEngineProc` (include/event.h) after the proc
  * header. Script pointers are GBA addresses of `u16` words (see [ScriptMemory]); 0 is NULL.
  */
 public class EventEngineProc {
@@ -193,8 +193,8 @@ public class ScriptWords(
 ) : ScriptMemory {
     override fun u16(address: Int): Int =
         if (address.toUInt() >= MOD_BASE.toUInt()) {
-            val i = (address - MOD_BASE) ushr 1
-            if (i < mod.size) mod[i].toInt() and 0xFFFF else 0
+            val wordIndex = (address - MOD_BASE) ushr 1
+            if (wordIndex < mod.size) mod[wordIndex].toInt() and 0xFFFF else 0
         } else {
             rom.u16(address)
         }

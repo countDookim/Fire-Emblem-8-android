@@ -11,7 +11,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 ## In progress
 
 - D09-wired-check: owner PC, until ~12:06Z — full popup integration/reference regression and fixes.
-- D11-fade-start: owner PC, until ~12:06Z — original early fade capture and runtime verification.
+- D11-boundary: owner PC, until ~12:06Z — original callback-phase captures at scene setup (2355–2356).
 - READ-event: owner PC, until ~12:06Z — event package readability review.
 
 ## Current state

@@ -94,8 +94,7 @@ internal class BrownTextBox(
     ) { BrownTextBoxFadeState() }
 
     /**
-     * Transcribed from src/popup.c: StartBrownTextBox
-     * (not verified: no reference test)
+     * Ported from src/popup.c: StartBrownTextBox
      */
     fun startBrownTextBox(textId: Int, x: Int, y: Int, parent: Proc) {
         startBrownTextBoxCore(x, y, textId, 0x5000, 9, parent)
@@ -191,8 +190,7 @@ internal class BrownTextBox(
     /**
      * Sets whether the brown text box sprite enables alpha blending (`OAM0_BLEND`).
      *
-     * Transcribed from src/popup.c: sub_8011A1C
-     * (not verified: no reference test)
+     * Ported from src/popup.c: sub_8011A1C
      */
     fun sub8011A1C(proc: Proc?, doBlend: Boolean) {
         val boxState = proc?.state as? BrownTextBoxState ?: return
@@ -202,8 +200,7 @@ internal class BrownTextBox(
     /**
      * Initializes LCD blend registers for the brown text box fade-in.
      *
-     * Transcribed from src/popup.c: sub_8011A48
-     * (not verified: no reference test)
+     * Ported from src/popup.c: sub_8011A48
      */
     fun sub8011A48(proc: Proc) {
         (proc.state as BrownTextBoxFadeState).blendVal = 0
@@ -219,8 +216,7 @@ internal class BrownTextBox(
     /**
      * Increments the fade-in alpha weight each frame until fully opaque.
      *
-     * Transcribed from src/popup.c: sub_8011AA0
-     * (not verified: no reference test)
+     * Ported from src/popup.c: sub_8011AA0
      */
     fun sub8011AA0(proc: Proc) {
         val fadeState = proc.state as BrownTextBoxFadeState
@@ -237,8 +233,7 @@ internal class BrownTextBox(
     /**
      * Initializes LCD blend registers for the brown text box fade-out.
      *
-     * Transcribed from src/popup.c: sub_8011AF4
-     * (not verified: no reference test)
+     * Ported from src/popup.c: sub_8011AF4
      */
     fun sub8011AF4(proc: Proc) {
         (proc.state as BrownTextBoxFadeState).blendVal = 0
@@ -255,8 +250,7 @@ internal class BrownTextBox(
      * Decrements opacity each frame during fade-out until fully transparent, then ends the
      * box proc.
      *
-     * Transcribed from src/popup.c: sub_8011B4C
-     * (not verified: no reference test)
+     * Ported from src/popup.c: sub_8011B4C
      */
     fun sub8011B4C(proc: Proc) {
         val fadeState = proc.state as BrownTextBoxFadeState
@@ -272,8 +266,7 @@ internal class BrownTextBox(
     /**
      * Restores normal LCD blending after the fade completes.
      *
-     * Transcribed from src/popup.c: sub_8011B90
-     * (not verified: no reference test)
+     * Ported from src/popup.c: sub_8011B90
      */
     fun sub8011B90() {
         setBlendNone()

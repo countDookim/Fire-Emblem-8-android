@@ -9,6 +9,16 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
+import fe8.game.scene.BrownTextBox
+import fe8.game.scene.BrownTextBoxFadeState
+import fe8.game.scene.BrownTextBoxState
+import gbafe.proc.ProcEngine
+import gbafe.proc.ProcScript
+import gbafe.proc.ProcScripts.end
+import gbafe.proc.ProcScripts.repeat
+import gbafe.render.BgHardware
+import gbafe.render.SpriteLayers
+import org.junit.jupiter.api.Assertions.assertNull
 
 /**
  * The Prologue's brown text box (BROWNBOXTEXT 0x664, 8, 0 at 0x089EECBC) against
@@ -92,6 +102,148 @@ class BrownTextBoxReferenceTest {
             val diff = (off until off + len).filter { refVram[it] != ours[it] }
             assertTrue(diff.isEmpty(), "$name: ${diff.size} bytes differ, first at " +
                 diff.take(8).joinToString { "0x%X(ref %02X ours %02X)".format(it, refVram[it], ours[it]) })
+        }
+    }
+
+    @VerifiesPort(
+        "StartBrownTextBox",
+        "sub_8011A1C",
+        "sub_8011A48",
+        "sub_8011AA0",
+        "sub_8011AF4",
+        "sub_8011B4C",
+        "sub_8011B90",
+    )
+    @Test
+    fun `the Prologue box lifecycle and blend match reference trace r09541 to r09675`() {
+        val dir = File(assets, "reference/out/ram_trace_newgame_bm")
+        val romFile = File(assets, "baserom.gba")
+        assumeTrue(romFile.isFile && dir.isDirectory, "ROM or reference directory missing")
+        assumeTrue(File(dir, "r09541.ewram.bin").isFile, "trace files missing")
+
+        val romBytes = romFile.readBytes()
+        val engine = ProcEngine()
+        val hw = BgHardware()
+        val sprites = SpriteLayers()
+        val romView = RomView.ofRom(romBytes)
+        // Reference message 0x664 has text width 7 tiles (56 px) -> box width 12 tiles
+        val brownTextBox = BrownTextBox(
+            engine, hw, sprites, romView,
+            textWidth = { 7 * 8 },
+        )
+
+        val parentScript = ProcScript("parent", listOf(repeat { }, end()))
+        val parent = engine.start(parentScript, 0)
+
+        assertNull(engine.find(brownTextBox.boxScript), "box proc not started before call")
+        assertNull(engine.find(brownTextBox.fadeScript), "fade proc not started before call")
+
+        brownTextBox.startBrownTextBox(0x0664, 8, 0, parent)
+        assertEquals(1, parent.lockCnt, "parent blocked by startBrownTextBox")
+
+        val ewramProcBase = 0x024E68
+        val iwramLcdBase = 0x3080
+        val procSize = 0x6C
+        val procBrownTextBox = 0x085924D8.toInt()
+        val procFade = 0x08592530.toInt()
+
+        for (frame in 9541..9675) {
+            sprites.clear()
+            engine.run(parent)
+
+            val ewramFile = File(dir, "r%05d.ewram.bin".format(frame)).takeIf { it.isFile }
+                ?: File(dir, "f%05d.ewram.bin".format(frame))
+            val iwramFile = File(dir, "r%05d.iwram.bin".format(frame)).takeIf { it.isFile }
+                ?: File(dir, "f%05d.iwram.bin".format(frame))
+            val ewram = ewramFile.readBytes()
+            val iwram = iwramFile.readBytes()
+
+            var refBrownFound = false
+            var refFadeFound = false
+            var refX = 0
+            var refY = 0
+            var refChr = 0
+            var refPal = 0
+            var refTextId = 0
+            var refWidth = 0
+            var refOam0Attr = 0
+            var refBlendVal = 0
+
+            for (slot in 0 until 64) {
+                val off = ewramProcBase + slot * procSize
+                val script = (ewram[off].toInt() and 0xFF) or
+                    ((ewram[off + 1].toInt() and 0xFF) shl 8) or
+                    ((ewram[off + 2].toInt() and 0xFF) shl 16) or
+                    ((ewram[off + 3].toInt() and 0xFF) shl 24)
+                if (script == procBrownTextBox) {
+                    refBrownFound = true
+                    refX = (ewram[off + 0x30].toInt() and 0xFF) or (ewram[off + 0x31].toInt() shl 8)
+                    refY = (ewram[off + 0x34].toInt() and 0xFF) or (ewram[off + 0x35].toInt() shl 8)
+                    refChr = (ewram[off + 0x38].toInt() and 0xFF) or
+                        ((ewram[off + 0x39].toInt() and 0xFF) shl 8) or
+                        ((ewram[off + 0x3A].toInt() and 0xFF) shl 16) or
+                        ((ewram[off + 0x3B].toInt() and 0xFF) shl 24)
+                    refPal = (ewram[off + 0x3C].toInt() and 0xFF) or (ewram[off + 0x3D].toInt() shl 8)
+                    refTextId = (ewram[off + 0x40].toInt() and 0xFF) or
+                        ((ewram[off + 0x41].toInt() and 0xFF) shl 8)
+                    refWidth = (ewram[off + 0x44].toInt() and 0xFF) or (ewram[off + 0x45].toInt() shl 8)
+                    refOam0Attr = (ewram[off + 0x48].toInt() and 0xFF) or
+                        ((ewram[off + 0x49].toInt() and 0xFF) shl 8)
+                } else if (script == procFade) {
+                    refFadeFound = true
+                    refBlendVal = (ewram[off + 0x4C].toInt() and 0xFF) or
+                        (ewram[off + 0x4D].toInt() shl 8)
+                }
+            }
+
+            val refBldcnt = (iwram[iwramLcdBase + 0x3C].toInt() and 0xFF) or
+                ((iwram[iwramLcdBase + 0x3D].toInt() and 0xFF) shl 8)
+            val refCoeffA = iwram[iwramLcdBase + 0x44].toInt() and 0xFF
+            val refCoeffB = iwram[iwramLcdBase + 0x45].toInt() and 0xFF
+            val refBlendY = iwram[iwramLcdBase + 0x46].toInt() and 0xFF
+
+            val boxProc = engine.find(brownTextBox.boxScript)
+            val fadeProc = engine.find(brownTextBox.fadeScript)
+
+            assertEquals(refBrownFound, boxProc != null, "frame $frame box proc presence")
+            assertEquals(refFadeFound, fadeProc != null, "frame $frame fade proc presence")
+            assertEquals(if (refFadeFound) 1 else 0, parent.lockCnt, "frame $frame parent lockCnt")
+
+            if (boxProc != null) {
+                val boxState = boxProc.state as BrownTextBoxState
+                assertEquals(refX, boxState.x, "frame $frame boxState.x")
+                assertEquals(refY, boxState.y, "frame $frame boxState.y")
+                assertEquals(refChr, boxState.chr, "frame $frame boxState.chr")
+                assertEquals(refPal, boxState.pal, "frame $frame boxState.pal")
+                assertEquals(refTextId, boxState.textId, "frame $frame boxState.textId")
+                assertEquals(refWidth, boxState.width, "frame $frame boxState.width")
+                assertEquals(refOam0Attr, boxState.oam0Attr, "frame $frame boxState.oam0Attr")
+
+                // Check OAM output of brownTextBoxLoop
+                sprites.clear()
+                brownTextBox.brownTextBoxLoop(boxProc)
+                val pushed = ArrayList<Int>()
+                for (layer in 0 until 13) {
+                    sprites.pushLayerObjects(layer) { pushed.add(it.oam0) }
+                }
+                assertTrue(pushed.isNotEmpty(), "frame $frame sprites pushed")
+                if (refOam0Attr != 0) {
+                    assertTrue(pushed.all { (it and 0x0400) != 0 }, "frame $frame OAM0_BLEND set in all sprites")
+                } else {
+                    assertTrue(pushed.all { (it and 0x0400) == 0 }, "frame $frame OAM0_BLEND clear in all sprites")
+                }
+            }
+
+            if (fadeProc != null) {
+                val fadeState = fadeProc.state as BrownTextBoxFadeState
+                assertEquals(refBlendVal, fadeState.blendVal, "frame $frame fadeState.blendVal")
+            }
+
+            val lcd = hw.lcd
+            assertEquals(refBldcnt, lcd.bldcnt, "frame $frame lcd.bldcnt")
+            assertEquals(refCoeffA, lcd.blendCoeffA, "frame $frame lcd.blendCoeffA")
+            assertEquals(refCoeffB, lcd.blendCoeffB, "frame $frame lcd.blendCoeffB")
+            assertEquals(refBlendY, lcd.blendY, "frame $frame lcd.blendY")
         }
     }
 

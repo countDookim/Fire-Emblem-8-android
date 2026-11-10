@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D09-5: scheduled, until ~11:25Z (GotItem differential)
+_(none; scheduled run completed; no worktrees open)_
 
 ## Current state
 
@@ -18,7 +18,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
   Original save restored afterward; ROM import preserved. Published 0.1.488 (`8c5b7c9`) banner comparison remains partial.
 - Published replacement: **0.1.497 (`42dc059`)**, CI **706 tests, zero failures/skips**. Local full
   `jvmTest test` also passed 706; both APK content guards, game/audio Dokka, 27 Python tests and instruction sync passed.
-- **~650/8352 functions verified** (643 + 7 popup ports 11-10; CI updates the count), `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
+- **~650/8352 functions verified** (643 + 7 popup ports 11-10 + 2 GotItem; CI updates the count), `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
   Local full `jvmTest test` 723 tests green (11-09 late, popup ports). Most of the count recovery credits existing scheduled ports after their test helpers were moved below tagged methods.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
@@ -66,7 +66,9 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
    untested. 11-10: D09-4 done: `GotItemPopup` (`ProcScr_GotItem`/`NewPopup_ItemGot`, transcribed, fake-driven test) and
    Event37 GIVEITEMTO now starts it blocking from Fe8Boot (lazy `PopupScript`). Stand-ins: `unitNameTextId`=0 (gpPopupUnit
    untracked), `loadIconPalette` slot→`ItemIcon` mapping not trace-checked, full inventory still throws, gold popup not wired.
-   Next: owner device check of the Rapier popup; item_popup differential for the wired path.
+   D09-5: `ItemGot_DisplayLePopup`/`ItemGot_GotLeItem` verified vs item_popup (`GotItemPopupDifferentialTest`, steps
+   18589–18731, break-checked); `NewPopup_ItemGot` stays transcribed (birth frame outside capture, red/root paths unexercised).
+   Next: owner device check of the Rapier popup (MANUAL_TEST).
 
 ## Verification limits worth retaining
 

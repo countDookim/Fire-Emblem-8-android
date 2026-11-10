@@ -80,13 +80,13 @@ public class GotItemPopup(
         deps.newPopupSimple(parent, definition, 0x60, 0x0)
     }
 
-    /** Transcribed from src/popup.c: ItemGot_DisplayLePopup */
+    /** Ported from src/popup.c: ItemGot_DisplayLePopup */
     public fun displayLePopup(proc: Proc) {
         val state = stateOf(proc)
         newPopupItemGotUnused(state.unit, state.item, proc)
     }
 
-    /** Transcribed from src/popup.c: ItemGot_GotLeItem */
+    /** Ported from src/popup.c: ItemGot_GotLeItem */
     public fun gotLeItem(proc: Proc) {
         val state = stateOf(proc)
         deps.handleNewItemGetFromDrop(state.unit, deps.makeNewItem(state.item), proc)
@@ -99,6 +99,7 @@ public class GotItemPopup(
      * or null if a blocking proc ended while starting.
      *
      * Transcribed from src/popup.c: NewPopup_ItemGot
+     * (blocking start and fields match item_popup; red-faction drop flag and root path unexercised)
      */
     public fun start(parent: Proc?, unit: Int, item: Int, rootIndex: Int = 3): Proc? {
         val proc =

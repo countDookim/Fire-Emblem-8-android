@@ -36,6 +36,9 @@ public class WorldMapMainProc {
 
     /** `timer` (+0x2C). */
     public var timer: Int = 0
+
+    /** `scrolling` (+0x30): bit 0 is set while no [WorldMapScroll] scroll runs. */
+    public val scrolling: GmScrollFlags = GmScrollFlags()
 }
 
 /** The fields of `struct GmNodeIconDisplayProc` that `src/worldmap_main.c` writes. */

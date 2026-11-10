@@ -62,6 +62,19 @@ public class GmData(private val iwram: ByteArray, private val rng: RngService) {
     public fun unitLocation(unit: Int): Int =
         iwram[BASE + UNITS + unit * UNIT_SIZE + 1].toInt() and 0xFF
 
+    /** `gGMData.units[unit].state` (`u8`, offset 0 of the unit slot). */
+    public fun unitState(unit: Int): Int = iwram[BASE + UNITS + unit * UNIT_SIZE].toInt() and 0xFF
+
+    /** `gGMData.units[unit].id` (`u16`, offset 2 of the unit slot). */
+    public fun unitId(unit: Int): Int = u16(UNITS + unit * UNIT_SIZE + 2)
+
+    /** `gGMData.state.bits.state_3` (bit 3 of the first byte). */
+    public var state3: Boolean
+        get() = stateRaw and 0x08 != 0
+        set(value) {
+            stateRaw = if (value) stateRaw or 0x08 else stateRaw and 0x08.inv()
+        }
+
     /** `gGMData.nodes[node].state` (`u8`). */
     public fun nodeState(node: Int): Int = iwram[BASE + NODES + node].toInt() and 0xFF
 

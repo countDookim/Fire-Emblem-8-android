@@ -44,6 +44,12 @@ public class WmNodeData(private val rom: RomView) {
     /** `(u8)gWMNodeData[idx].encounters` (`s8`, offset 0x01). */
     public fun encounters(idx: Int): Int = rom.u8(entry(idx) + 1)
 
+    /** `gWMNodeData[idx].x` (`s16`, offset 0x18). */
+    public fun x(idx: Int): Int = rom.u16(entry(idx) + X).toShort().toInt()
+
+    /** `gWMNodeData[idx].y` (`s16`, offset 0x1A). */
+    public fun y(idx: Int): Int = rom.u16(entry(idx) + Y).toShort().toInt()
+
     private fun entry(idx: Int): Int = NODE_DATA + idx * ENTRY_SIZE
 
     /** `gWMNodeData` layout constants. */
@@ -62,5 +68,7 @@ public class WmNodeData(private val rom: RomView) {
         private const val CHAPTER_EPHRAIM = 0x05
         private const val FLAG = 0x06
         private const val NEXT = 0x08
+        private const val X = 0x18
+        private const val Y = 0x1A
     }
 }

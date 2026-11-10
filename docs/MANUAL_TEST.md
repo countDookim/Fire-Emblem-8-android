@@ -17,6 +17,10 @@ Compare the **Player Phase banner** with original FE8 on an emulator, using Norm
 3. Compare its position, entrance/exit timing, squares and translucency, then check that it clears
    cleanly for map music and cursor control. Report differences with the launcher build string.
 
+D-09 (low priority): in the castle scene, when Seth gives Eirika the Rapier, a "Got Rapier." popup
+should now appear with the item icon, play the jingle and close after ~1.6 s or on a key press; report
+layout/colour/timing differences. Not trace-verified on the full wired path.
+
 D-12 stays pending until this comparison; enemy/green banners are not ready for verification.
 
 ## Currently ignore
@@ -24,7 +28,6 @@ D-12 stays pending until this comparison; enemy/green banners are not ready for 
 These are known gaps; re-test them only when a relevant change is announced:
 
 - D-11: missing cinematic between New Game and the castle scene; subtitle code is not wired yet.
-- D-09: missing Rapier-received popup (low priority). Device inventory remains unverified.
 - Missing Seth/Valter battle animation, unit selection/actions/menus/inventory, and main/save/difficulty menus.
   Cursor movement works; New Game currently uses Normal difficulty.
 

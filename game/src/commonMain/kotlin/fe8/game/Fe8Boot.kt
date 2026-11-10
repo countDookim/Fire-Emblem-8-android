@@ -30,6 +30,9 @@ import fe8.game.bm.PhaseIntro
 import fe8.game.bm.PlayerPhase
 import fe8.game.bm.ResetCursorPosition
 import fe8.game.bm.UnitLoader
+import fe8.game.ui.GotItemPopup
+import fe8.game.ui.ItemIcon
+import fe8.game.ui.PopupScript
 import fe8.game.bm.UnitSpriteHandles
 import fe8.game.bm.UnitSprites
 import fe8.game.bm.UnitSpritesOam
@@ -393,11 +396,17 @@ public class Fe8Boot(
                 unitState.getUnitStructFromEventParameter(pid)
             }
             val itemInfo = ItemInfo(rom)
+            val giveItemAdd: (Int, Int) -> Boolean =
+                { u, item -> loader.unitAddItem(units.unitOffset(u), item) }
             EventGiveItem(
                 state, memory, { pid -> unitState.getUnitStructFromEventParameter(pid) },
-                { u, item -> loader.unitAddItem(units.unitOffset(u), item) },
+                giveItemAdd,
                 itemInfo::makeNewItem,
                 { control.playSt.partyGoldAmount }, { control.playSt.partyGoldAmount = it },
+                // The popup machinery is built on the first GIVEITEMTO of an item.
+                { p, u, item ->
+                    gotItemPopup(giveItemAdd, itemInfo::makeNewItem).start(p, u, item)
+                },
             ).registerOn(it)
             EventPopup(
                 state, memory,
@@ -476,6 +485,80 @@ public class Fe8Boot(
             },
             rng.lcg,
         )
+    }
+
+    /** `gPopupItem`. */
+    private var popupItem = 0
+
+    /** `gPopupNumber`. */
+    private var popupNumber = 0
+
+    /** `DrawnIconLookupTable` (`MAX_ICON_COUNT` 2-byte entries). */
+    private val drawnIconLookupTable = ByteArray(0x200)
+
+    /** `IconGFXIDLookupTable`. */
+    private val iconGfxIdLookupTable = ByteArray(0x100)
+
+    private var gotItemPopupInstance: GotItemPopup? = null
+
+    /**
+     * The "got item" popup (`NewPopup_ItemGot`) on the game's proc engine, built on first use
+     * (needs the whole ROM through [talkScene]). Stand-ins: `gpPopupUnit` is not tracked, so the
+     * unit-name text id is 0 (the got-item and pilfered scripts do not use the unit name), and
+     * [addItem] with a full inventory (the item-drop menu) throws [NotImplementedError].
+     * `LoadIconPalette(slot, palId)` maps to [ItemIcon.loadIconPalette] (icon palette `slot` into
+     * palette bank `palId`); that mapping is not covered by the item_popup trace test, whose
+     * `loadIconPalette` is a no-op.
+     */
+    private fun gotItemPopup(
+        addItem: (unit: Int, item: Int) -> Boolean,
+        makeNewItem: (Int) -> Int,
+    ): GotItemPopup {
+        gotItemPopupInstance?.let { return it }
+        val scene = talkScene
+        val popupScript = PopupScript(
+            engine,
+            PopupScript.Dependencies(
+                rom = rom,
+                messages = scene.messages,
+                text = scene.text,
+                hardware = hw,
+                drawnIconLookupTable = drawnIconLookupTable,
+                iconGfxIdLookupTable = iconGfxIdLookupTable,
+                popupItem = { popupItem },
+                popupNumber = { popupNumber },
+                unitNameTextId = { 0 },
+                loadIconPalette = { slot, palId -> ItemIcon.loadIconPalette(hw, rom, slot, palId) },
+                startBgmVolumeChange = { proc, v, e, t ->
+                    control.sound.startBgmVolumeChange(v, e, t, proc)
+                },
+                playSoundEffect = { song -> control.sound.playSoundEffect(song) },
+                newKeys = { keys.newKeys },
+            ),
+        )
+        val popup = GotItemPopup(
+            engine,
+            GotItemPopup.Dependencies(
+                newPopupSimple = { parent, def, clock, style ->
+                    popupScript.start(parent, def, clock, style)
+                },
+                setPopupItem = { popupItem = it },
+                unitFaction = { u -> units.index(u) and 0xC0 },
+                setUnitDropItem = { u ->
+                    units.setState(u, units.state(u) or UnitLoader.US_DROP_ITEM)
+                },
+                makeNewItem = makeNewItem,
+                handleNewItemGetFromDrop = { u, item, _ ->
+                    if (!addItem(u, item)) {
+                        throw NotImplementedError(
+                            "GIVEITEMTO with a full inventory (item-drop menu) is not ported",
+                        )
+                    }
+                },
+            ),
+        )
+        gotItemPopupInstance = popup
+        return popup
     }
 
     /** The talk scene, created on first use. */

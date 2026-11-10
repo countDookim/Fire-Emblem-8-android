@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D09-4: scheduled, until ~11:30Z
+_(none; scheduled run completed; no worktrees open)_
 
 ## Current state
 
@@ -63,11 +63,10 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
    tables seeded, blend real), `fe8.game.ui.PopupScript` hosting `ProcScr_Popup` on `ProcEngine` with verified
    `NewPopupCore`/`NewPopup_Simple` (`7a2c7e9`, per-step scrCur/lifetime) and `PopupIconUpdateProc_Loop` (`6acd49c`,
    OAM every 10th frame). `PlaySound` transcribed; BGM-volume child is a test stand-in; negative-clock key path
-   untested. Next (low priority) D09-4, wire `PopupScript` for Event37 GIVEITEMTO (planned, no code):
-   hoist MsgStrings/TextSystem out of `talkSceneDelegate`; provide icon tables, `loadIconPalette`, `startBgmVolumeChange`
-   in Fe8Boot; add addresses `PopupScr_GotItem` 0x08592230, `PopupScr_ItemWasPilfered` 0x08592288, `PopupScr_GotGold`
-   0x08592300, `ProcScr_GotItem` 0x085922D0; `ProcScr_GotItem` (yield, popup, yield,
-   give, yield, end) started blocking from the event proc; popupItem state + faction branch; full inventory stays TODO.
+   untested. 11-10: D09-4 done: `GotItemPopup` (`ProcScr_GotItem`/`NewPopup_ItemGot`, transcribed, fake-driven test) and
+   Event37 GIVEITEMTO now starts it blocking from Fe8Boot (lazy `PopupScript`). Stand-ins: `unitNameTextId`=0 (gpPopupUnit
+   untracked), `loadIconPalette` slot→`ItemIcon` mapping not trace-checked, full inventory still throws, gold popup not wired.
+   Next: owner device check of the Rapier popup; item_popup differential for the wired path.
 
 ## Verification limits worth retaining
 

@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-10. Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-10 (owner-PC wrap-up). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -10,8 +10,8 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D11-wm6 (gmapunit, mapmu, automu, unit opcodes 9E-AC; wm4 done a3214a6): owner PC, until ~01:00Z
-- D11-wm7 (worldmap_face StartWMFaceCtrl + portrait opcodes; wm5 partial done 807369a): owner PC, until ~23:59Z
+None. Stopped mid-task (owner wrap-up 11-10): `wip/D11-wm7` (faces) and `wip/D11-wm6` (units) hold
+unreviewed agent work; any tags there are not break-checked. Review, mutation-check and finish before merging.
 
 ## Current state
 
@@ -20,7 +20,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 - Published **0.1.528 (`e0187ea`)**: CI **737 passed, zero failures/skips**; fixes the Rapier popup
   icon and stale frame on close. Local full `jvmTest test` also passed 737; both APK builds/content
   guards, game Dokka, 27 Python tests and instruction sync passed.
-- **678/8352 functions verified** (owner PC 11-10 night: `sub_80B8FEC`; `StartSlowFadeToBlack`, `StartFadeToBlack`, `FadeToBlack_OnInit`, `FadeToCommon_OnLoop` (speed 4), `WaitForFade`). Local full `jvmTest test` 760 tests, 0 failures, 2 skips (`WmNodeDataReferenceTest` needs `FE8U_DECOMP`; so `WMLoc_GetChapterId`/`WMLoc_GetNextLocId` count as unverified locally), `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
+- **698/8352 functions verified** (owner PC 11-10: +20 — `sub_80B8FEC`; slow fade-to-black ×5 (`c40863d`); WmText ×5 (`807369a`); GmapRM/Spline/Event85 ×15 minus overlaps (`a3214a6`)). Local full `jvmTest test` 769 tests, 0 failures, 2 skips (`WmNodeDataReferenceTest` needs `FE8U_DECOMP`, so `WMLoc_*` count as unverified locally), `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
 - Layout: game-neutral `:gba:*`, `gbafe.*` in `:engine:*`, FE8 `fe8.*` in `:game`/`:app` (ADRs 0010–0013).
@@ -43,26 +43,21 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
 
 ## Next work
 
-1. **D-11:** standalone subtitle parent/flare scripts remain unwired. Replay covers steps 1214–2354
-   with the real archived-palette fade (510/512 live entries match; entries 273/417 are unmodelled).
-   `1fee6d4` verifies original fade startup/display disabling on the observed branch. New private
-   `38dc714` captures scene setup entering at 2355 and returning at 2357; `82dfb5d` compares the atomic
-   Kotlin callback with its original return state. VBlank advances the clock/runs tree 0 inside
-   that callback, so clock ticks are not completed normal updates. Next: extend replay using
-   callback phases, then verify later lifecycle, normal ending and original Start skips before
-   wiring. Monologue 1213–4897; world-map wrapper 4898–9313 is separate. See [M6 notes](docs/plans/M6-notes.md).
-2. **D11 world map** (steps 4898–9313, [plan](docs/plans/D11-worldmap.md)): wm1/wm2 done; GmData wired at boot and
-   post-save; `WorldMapNodes` (fe8.game.worldmap) replaces the no-node stand-in on whole ROMs. wm3 partial:
-   `WorldMapMain.newWorldMap` (timer 16 path) and `callBeginningEvent` (Prologue branch; callees are
-   `BeginningHooks` lambdas, unwired) verified; wrapper script transcribed, unverified/unwired
-   (`ArchivedPaletteFade.script` = `ProcScr_BmFadeIN` now public). Next: ProcScr_WorldMapMain/WorldMap_Init
-   prefix, real BeginningHooks (`Events_WM_Beginning`, gmapEventId), wiring.
-   11-10 night: `WorldMapPath.kt` (gWMPathData, GmNodeLinks; RefreshGmNodeLinks verified on ch6/ch2 runs — prologue
-   table stays zero); ResetGmStoryNode/GetNextUnclearedNode/DeployEveryUnit transcribed (no trace distinguishes them);
-   `mainScriptPrefix` + `MainHooks` transcribed; untagged test matches sleep(4)/(1) gaps, but original main sits at
-   script pos 3 (WorldMap_Init) for steps 4899–4901 vs ours one step — investigate Init yielding before tagging.
-   WMLoc trace check covers node 0/default mode only; `WmNodeDataReferenceTest` full-table checks need
-   `FE8U_DECOMP` (decomp checkout) and skip in CI.
+1. **D-11 monologue:** standalone replay now follows the original parent 1214–4897 (`9e20898`):
+   long scene-setup callbacks at 2355–2356, 2425–2427, 3228 are compared at completion; palette and
+   BG0/BG1 maps every 30 steps match (entries 273/417 unmodelled). Closing slow fade-to-black is the real
+   `ScreenFade` and verified (`c40863d`). Next: D11-skip captures (Start skips, ROM repo), then wiring
+   (D11-wire). See [M6 notes](docs/plans/M6-notes.md).
+2. **D11 world map** (steps 4898–9313, [plan](docs/plans/D11-worldmap.md)), all standalone/unwired:
+   - wm3: `WorldMap_Init` spans 4899–4901 as one multi-frame callback (no yield; `b9ba3b6`); `sub_80B8FEC`
+     verified; `WorldMapBeginning` gives the real Prologue hooks (event lookup, ResetGmStoryNode,
+     CallEvent) and matches the `StdEventEngine` at 4907 (`c7ed068`). Stand-ins: `sub_80BA008`,
+     `StartWMFaceCtrl`, `StartGmapMuEntry`. Wiring into `hooks.worldMapWrapperScript` remains.
+   - wm4 (`a3214a6`): GmapRM BG procs, BG1 scroll/tilemaps and Event85 camera verified; Prologue uses no
+     other camera opcode. Remaining: opcodes B4–B7, `GmapRmBorder1`/`BaPalAnim1`, blend paths, proc end.
+   - wm5 (`807369a`): text handler verified; GmPalFade and opcodes 80–82/AF–B3 transcribed, unregistered.
+   - wm6/wm7: unfinished on `wip/` branches (see In progress). wm8 (end-to-end + event registration) after.
+   `WmNodeDataReferenceTest` needs `FE8U_DECOMP`; without it `WMLoc_*` count as unverified locally.
 3. **D-12:** owner compares the banner with an emulator; D12-2 adds enemy-phase and original scanline captures.
 4. **D-09:** item popup is wired through Event37, GotItemPopup and PopupScript. `539016e` fixes the
    omitted icon OAM callback and missing BG sync on close. The real boot-path test checks visible

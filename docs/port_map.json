@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 678,
+    "verified": 698,
     "implemented_unverified": 3
   },
   "functions": {
@@ -519,6 +519,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TextSystemRomTest#initText reproduces the sTalkText structs and clears their VRAM strips"
+      ]
+    },
+    "ClearWmTextVram": {
+      "decomp_file": "src/worldmap_text.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapText.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapTextTest#clear text vram matches the OBJ tile rows of the f05100 dump"
       ]
     },
     "ColorFadeSetupFromBlack": {
@@ -1136,6 +1145,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EventScriptBattleDifferentialTest#script battle command generates the traced battle"
+      ]
+    },
+    "Event85_WmSetCameraOntoUnit": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapScrollTest#centring the camera on the leader gives the camera of the original every 30 steps"
       ]
     },
     "EventBattleReloadBmStatus": {
@@ -2072,6 +2090,15 @@
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
       ]
     },
+    "GetWMCenteredCameraPosition": {
+      "decomp_file": "src/worldmap_80C0834.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapScrollTest#centring the camera on the leader gives the camera of the original every 30 steps"
+      ]
+    },
     "GmDataInit": {
       "decomp_file": "src/worldmap_path.c",
       "system": "worldmap",
@@ -2079,6 +2106,87 @@
       "status": "verified",
       "tests": [
         "fe8.game.worldmap.GmDataTest#gmDataInit from garbage matches gGMData in the first trace dump"
+      ]
+    },
+    "GmapRmUpdateDirect_Loop": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmTest#map scroll procs follow the original proc fields and BG1 offsets every step"
+      ]
+    },
+    "GmapRmUpdateExt_InitPosition": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmTest#map scroll procs follow the original proc fields and BG1 offsets every step"
+      ]
+    },
+    "GmapRmUpdateExt_ScrollPosition": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmTest#map scroll procs follow the original proc fields and BG1 offsets every step"
+      ]
+    },
+    "GmapRm_80C2320": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmTest#starting the map loads its graphics, tilemap and BG registers like the original"
+      ]
+    },
+    "GmapRm_Blocking": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmTest#map scroll procs follow the original proc fields and BG1 offsets every step"
+      ]
+    },
+    "GmapRm_Goto0IfFlag0": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmTest#starting the map loads its graphics, tilemap and BG registers like the original"
+      ]
+    },
+    "GmapRm_RemoveUnits": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmTest#starting the map loads its graphics, tilemap and BG registers like the original"
+      ]
+    },
+    "GmapRm_SetPosition": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmTest#map scroll procs follow the original proc fields and BG1 offsets every step"
+      ]
+    },
+    "GmapRm_StartUpdateDirect": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmTest#starting the map loads its graphics, tilemap and BG registers like the original"
       ]
     },
     "HBlank_BgVerticalScroll": {
@@ -2132,6 +2240,15 @@
         "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 2 cursor holds scroll the camera like the game",
         "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 6 cursor edge cases match the game",
         "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 6 fog cursor holds scroll both axes like the game"
+      ]
+    },
+    "HideWmText": {
+      "decomp_file": "src/worldmap_text.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapText.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapTextTest#hide text clears visible like step 9250"
       ]
     },
     "IncrementGameClock": {
@@ -3892,6 +4009,15 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "ShowWmText": {
+      "decomp_file": "src/worldmap_text.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapText.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapTextTest#show text sets visible and draw position like step 5102"
+      ]
+    },
     "SkipTitleFx_Loop_KeyListener": {
       "decomp_file": "src/titlescreen.c",
       "system": "presentation",
@@ -4102,6 +4228,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
+      ]
+    },
+    "StartGmapRm": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmTest#starting the map loads its graphics, tilemap and BG registers like the original"
+      ]
+    },
+    "StartGmapRmUpdateExt": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmTest#map scroll procs follow the original proc fields and BG1 offsets every step"
       ]
     },
     "StartLockingFadeFromBlack": {
@@ -4815,6 +4959,24 @@
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
     },
+    "WmText_Init": {
+      "decomp_file": "src/worldmap_text.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapText.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapTextTest#text handler init matches the proc fields and hblank bit"
+      ]
+    },
+    "WmText_Loop_DrawText": {
+      "decomp_file": "src/worldmap_text.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapText.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapTextTest#text window sprites match the OAM of the dumps while shown"
+      ]
+    },
     "WorldMap_CallBeginningEvent": {
       "decomp_file": "src/worldmap_main.c",
       "system": "worldmap",
@@ -5179,6 +5341,15 @@
         "fe8.testing.TalkFaceBlinkDifferentialTest#eye objects match reference OAM and portrait tiles"
       ]
     },
+    "sub_800A42C": {
+      "decomp_file": "src/spline.c",
+      "system": "presentation",
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/math/Spline.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmTest#map scroll procs follow the original proc fields and BG1 offsets every step"
+      ]
+    },
     "sub_800E210": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -5267,6 +5438,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#START on the idle title fades to dark and ends the title like the per-frame RAM trace"
+      ]
+    },
+    "sub_8014CA4": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/core/math/Spline.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmTest#map scroll procs follow the original proc fields and BG1 offsets every step"
       ]
     },
     "sub_80156D4": {

@@ -63,7 +63,8 @@ public class WmFaceCtrlState {
 /**
  * The world map portraits of `src/worldmap_face.c`: `ProcScr_WorldMapFaceCtrl` and its child
  * `ProcScr_WorldMapFaceHolder`. Portraits slide in over BG1 (BG2 when `state_3`) as tile maps and
- * become `E_FACE` sprites afterwards.
+ * become `E_FACE` sprites afterwards. Reference comparisons cover only the observed state-3
+ * branch; other states and continuous event timing remain unverified.
  *
  * @param engine the proc scheduler
  * @param hw BG hardware (map buffers, VRAM, palette, LCD registers)
@@ -82,6 +83,9 @@ public class WorldMapFace(
     private val talkHost: TalkHost,
     private val faceHost: TalkFaceHost,
 ) {
+    private val scrollScratch = IntArray(1)
+    private val tileTable = IntArray(120) { rom.u16(TILE_TABLE + 2 * it) }
+
     /** `ProcScr_WorldMapFaceHolder`. */
     public val holderScript: ProcScript = ProcScript(
         "ProcScr_WorldMapFaceHolder",
@@ -106,8 +110,8 @@ public class WorldMapFace(
     ) { WmFaceCtrlState() }
 
     /**
-     * `gProcScr_E_FACE_ExtraFrame` without the camera-move wait (no camera move runs on the world
-     * map); the original's proc name is `E_FACE`.
+     * `gProcScr_E_FACE_ExtraFrame` without the camera-move wait; that wait is unverified.
+     * The original's proc name is `E_FACE`.
      */
     public val extraFrameScript: ProcScript = ProcScript(
         "gProcScr_E_FACE_ExtraFrame",
@@ -131,7 +135,7 @@ public class WorldMapFace(
     }
 
     /**
-     * Ported from src/worldmap_face.c: WorldMapFaceHolder_Init
+     * Transcribed from src/worldmap_face.c: WorldMapFaceHolder_Init (fresh-state trace only)
      *
      * Both wrappers: no face, zero position, `faceId` 0xFFFF.
      */
@@ -146,7 +150,7 @@ public class WorldMapFace(
     }
 
     /**
-     * Ported from src/worldmap_face.c: WMFaceCtrl_Init
+     * Transcribed from src/worldmap_face.c: WMFaceCtrl_Init (fresh-state trace only)
      *
      * Starts the holder child and zeroes the fade state.
      */
@@ -188,7 +192,7 @@ public class WorldMapFace(
     public fun putFaceOnBackGround(map: ShortArray, at: Int, base: Int, flip: Boolean) {
         for (i in 0 until 10) {
             for (j in 0 until 12) {
-                val src = rom.u16(TILE_TABLE + 2 * (i * 12 + if (flip) 11 - j else j))
+                val src = tileTable[i * 12 + if (flip) 11 - j else j]
                 val value = when {
                     src == 0xFFFF -> 0
                     flip -> src + base + 0x400
@@ -206,13 +210,12 @@ public class WorldMapFace(
      * Puts the portrait on BG [bg] at pixel position ([xIn], [yIn]) and scrolls the sub-tile part.
      */
     public fun sub80B82C8(bg: Int, offset: Int, xIn: Int, yIn: Int, flip: Int) {
-        val bgX = IntArray(1)
-        val x = sub80B826C(xIn, bgX)
+        val x = sub80B826C(xIn, scrollScratch)
         val y = yIn / 8
         val yRest = y * 8 - yIn
         putFaceOnBackGround(hw.mapBuffer(bg), y * 0x20 + x, (offset shr 5) + 0x4000, flip != 0)
         hw.enableBgSyncByMask(1 shl bg)
-        hw.lcd.setBgPosition(bg, bgX[0], yRest)
+        hw.lcd.setBgPosition(bg, scrollScratch[0], yRest)
     }
 
     /**
@@ -336,10 +339,10 @@ public class WorldMapFace(
      * Transcribed from src/worldmap_face.c: StartWMFaceCtrl (the proc fields of its init are
      * compared with the trace, the parent link is not)
      *
-     * @param parent the world map main proc; a root of tree 3 when null
+     * @param parent the world map main proc; a root of tree 0 when null
      */
     public fun startWmFaceCtrl(parent: Proc?): Proc =
-        if (parent != null) engine.start(ctrlScript, parent) else engine.start(ctrlScript, 3)
+        if (parent != null) engine.start(ctrlScript, parent) else engine.start(ctrlScript, 0)
 
     /** Transcribed from src/worldmap_face.c: EndWMFaceCtrl (not verified: no traced call). */
     public fun endWmFaceCtrl() {
@@ -452,7 +455,7 @@ public class WorldMapFace(
      *
      * Starts the slide out of the portrait in [faceSlot] (if shown and not already leaving).
      *
-     * @param config 0x100 / 0x200: slide direction (kept from the slide in when 0)
+     * @param config 0x100 / 0x200: slide direction (cleared when 0)
      */
     public fun wmClearFace(faceSlot: Int, config: Int) {
         val proc = engine.find(ctrlScript)!!

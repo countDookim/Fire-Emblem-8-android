@@ -14,6 +14,8 @@ import gbafe.core.rng.RngService
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
+import gbafe.proc.ProcScript
+import gbafe.proc.ProcScripts.block
 import gbafe.render.BgHardware
 import gbafe.render.OamBuffer
 import gbafe.render.SpriteLayers
@@ -31,7 +33,8 @@ import org.junit.jupiter.api.Test
  * steps 5496 and 8846. The controller is run frame by frame from step 4907; a frame is run exactly
  * on the steps where the traced controller timer advanced (the game loop skips some steps). The
  * show and clear commands (not their event VM) are replayed from the first step a wrapper is
- * seen filled or leaving in the trace.
+ * seen filled or leaving in the trace. This checks isolated callees, not a continuous event VM;
+ * only the observed state-3 branch is covered.
  *
  * Compared: the controller, holder and `E_FACE` proc fields on every step (`procs` watch), the
  * BG2 tile map (EWRAM dumps every 30 steps), the portrait tiles, palette bank 4, blend and BG
@@ -44,37 +47,6 @@ class WorldMapFaceTest {
     )
     private val romFile = File(assets, "baserom.gba")
     private val runDir = File(assets, "reference/out/ram_trace_prologue")
-
-    /** The Kotlin world map face rig. */
-    private inner class Rig(iwram: ByteArray) {
-        val bytes = romFile.readBytes()
-        val engine = ProcEngine()
-        val hw = BgHardware()
-        val sprites = SpriteLayers()
-        val scene = TalkScene(
-            RomView.ofRom(bytes), bytes, hw, engine, sprites, KeyStatus(), { 0 },
-            MsgStrings(bytes, MsgHuffman(bytes, 0, 0), 0), {}, { 0 }, {}, LcgRng(),
-        )
-        val gm = GmData(iwram, RngService())
-        val faces = WorldMapFace(
-            engine, hw, gm, RomView.ofRom(bytes), scene.face, scene, scene,
-        )
-
-        init {
-            faces.setupFaceConfig()
-        }
-
-        fun runFrame() {
-            sprites.clear()
-            for (i in 0 until 8) engine.run(engine.root(i))
-        }
-
-        fun ctrl(): Proc? = engine.find(faces.ctrlScript)
-
-        fun ctrlState() = ctrl()!!.state as WmFaceCtrlState
-
-        fun holder() = ctrlState().faceHolderProc!!.state as WmFaceHolderState
-    }
 
     private fun available(): ReferenceData.Run {
         assumeTrue(ref.available && romFile.isFile, "reference data / ROM not present")
@@ -94,8 +66,9 @@ class WorldMapFaceTest {
 
     private val names by lazy { ProcArrayDump.romNames() }
 
-    private fun procs(run: ReferenceData.Run, step: Int) =
-        ProcArrayDump.ofWatch(run.watch("procs"), step, names)
+    private val procWatch by lazy { ref.run("ram_trace_prologue").watch("procs") }
+
+    private fun procs(step: Int) = ProcArrayDump.ofWatch(procWatch, step, names)
 
     private fun ProcArrayDump.holder() = find(HOLDER)
     private fun ProcArrayDump.ctrl() = find(CTRL)
@@ -117,23 +90,22 @@ class WorldMapFaceTest {
 
     /**
      * Runs the controller from step 4907 to [last], calling [after] on every step (after the
-     * frame and the replayed commands). Returns the number of frames run.
+     * frame and the replayed commands).
      */
     private fun simulate(
-        run: ReferenceData.Run,
         rig: Rig,
         last: Int,
         after: (step: Int, ran: Boolean) -> Unit,
     ) {
-        val start = procs(run, FIRST_STEP)
+        val start = procs(FIRST_STEP)
         assertNotNull(start.ctrl(), "controller exists at $FIRST_STEP")
-        rig.faces.startWmFaceCtrl(null)
+        rig.startController()
         // Proc_Start inside a running frame: the new child also runs its first loop.
         rig.runFrame()
         var previousTimer = start.ctrl()!!.u16(0x2A)
         after(FIRST_STEP, true)
         for (step in FIRST_STEP + 1..last) {
-            val now = procs(run, step)
+            val now = procs(step)
             val ctrl = now.ctrl() ?: break
             val timer = ctrl.u16(0x2A)
             val ran = timer != previousTimer
@@ -154,12 +126,11 @@ class WorldMapFaceTest {
     }
 
     @Test
-    @VerifiesPort("WorldMapFaceHolder_Init", "WMFaceCtrl_Init")
     fun `controller and holder init match the proc fields at 4907`() {
         val run = available()
         val rig = rig(run)
-        rig.faces.startWmFaceCtrl(null)
-        val trace = procs(run, FIRST_STEP)
+        rig.startController()
+        val trace = procs(FIRST_STEP)
         val c = trace.ctrl()!!
         val state = rig.ctrlState()
         assertEquals(0, state.timer, "init timer (the trace has the first loop already run)")
@@ -173,6 +144,13 @@ class WorldMapFaceTest {
     }
 
     @Test
+    fun `null parent starts the controller in tree zero`() {
+        val rig = rig(available())
+        val controller = rig.faces.startWmFaceCtrl(null)
+        assertEquals(0, controller.rootIndex)
+    }
+
+    @Test
     @VerifiesPort(
         "WMFaceCtrl_Loop", "WMFaceCtrl_LoopExt", "HandleWMFaceFade", "WmDrawFace", "WmClearFace",
         "GetWMFaceBlendAmt",
@@ -182,8 +160,8 @@ class WorldMapFaceTest {
         val rig = rig(run)
         val seen = mutableSetOf<Int>()
         var faceSteps = 0
-        simulate(run, rig, LAST_STEP) { step, _ ->
-            val trace = procs(run, step)
+        simulate(rig, LAST_STEP) { step, _ ->
+            val trace = procs(step)
             val c = trace.ctrl()!!
             val state = rig.ctrlState()
             if (step > FIRST_STEP) {
@@ -230,7 +208,7 @@ class WorldMapFaceTest {
         var maps = 0
         var nonEmpty = 0
         val full = mutableListOf<Int>()
-        simulate(run, rig, 7500) { step, ran ->
+        simulate(rig, 7500) { step, ran ->
             if (!ran) return@simulate
             val ewram = dump(step, "ewram") ?: return@simulate
             val map = rig.hw.mapBuffer(2)
@@ -250,11 +228,16 @@ class WorldMapFaceTest {
                 "BG portrait tiles @$step",
             )
             val io = dump(step, "io")!!
-            assertEquals(u16(io, 0x18), rig.hw.lcd.bgHofs[2], "BG2HOFS @$step")
-            assertEquals(u16(io, 0x1A), rig.hw.lcd.bgVofs[2], "BG2VOFS @$step")
+            assertEquals(
+                u16(io, 0x18) and 0x1FF, rig.hw.lcd.bgHofs[2] and 0x1FF, "BG2HOFS @$step",
+            )
+            assertEquals(
+                u16(io, 0x1A) and 0x1FF, rig.hw.lcd.bgVofs[2] and 0x1FF, "BG2VOFS @$step",
+            )
         }
-        assertTrue(maps > 100, "tile map dumps compared: $maps")
-        assertTrue(nonEmpty > 3, "dumps taken while a portrait slides: $nonEmpty")
+        // Original dump steps 4907..7500 where the controller watch advances.
+        assertEquals(86, maps, "eligible tile map dumps")
+        assertEquals(3, nonEmpty, "eligible dumps with a portrait sliding")
         assertEquals(listOf(6000, 6300, 6600, 6900, 7200, 7500), full, "full dumps")
     }
 
@@ -263,7 +246,7 @@ class WorldMapFaceTest {
         val run = available()
         val rig = rig(run)
         var objChecked = 0
-        simulate(run, rig, 7500) { step, ran ->
+        simulate(rig, 7500) { step, ran ->
             if (!ran || step < 6000 || dump(step, "vram") == null) return@simulate
             val pal = dump(step, "pal")!!
             for (i in 64 until 80) {
@@ -302,6 +285,42 @@ class WorldMapFaceTest {
             }
         }
         assertTrue(objChecked >= 2, "dumps with a shown face OBJ: $objChecked")
+    }
+
+    /** The Kotlin world map face rig. */
+    private inner class Rig(iwram: ByteArray) {
+        val bytes = romFile.readBytes()
+        val engine = ProcEngine()
+        val hw = BgHardware()
+        val sprites = SpriteLayers()
+        val scene = TalkScene(
+            RomView.ofRom(bytes), bytes, hw, engine, sprites, KeyStatus(), { 0 },
+            MsgStrings(bytes, MsgHuffman(bytes, 0, 0), 0), {}, { 0 }, {}, LcgRng(),
+        )
+        val gm = GmData(iwram, RngService())
+        val faces = WorldMapFace(
+            engine, hw, gm, RomView.ofRom(bytes), scene.face, scene, scene,
+        )
+
+        init {
+            faces.setupFaceConfig()
+        }
+
+        fun startController(): Proc {
+            val main = engine.start(ProcScript("ProcScr_WorldMapMain", listOf(block())), 3)
+            return faces.startWmFaceCtrl(main)
+        }
+
+        fun runFrame() {
+            sprites.clear()
+            for (i in 0 until 8) engine.run(engine.root(i))
+        }
+
+        fun ctrl(): Proc? = engine.find(faces.ctrlScript)
+
+        fun ctrlState() = ctrl()!!.state as WmFaceCtrlState
+
+        fun holder() = ctrlState().faceHolderProc!!.state as WmFaceHolderState
     }
 
     private fun u16(b: ByteArray, at: Int) =

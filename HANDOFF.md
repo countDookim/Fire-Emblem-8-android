@@ -10,6 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
+- D11-wm3 real BeginningHooks (Prologue event lookup/call, check vs step 4907): owner PC, until ~22:30Z
 - D-11 subtitle fade-to-black (real ScreenFade at 4799-4866; replay to 4897 done 9e20898): owner PC, until ~22:30Z
 
 ## Current state

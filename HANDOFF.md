@@ -10,9 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- READ-bm-map: owner PC, until ~12:10Z — fe8.game.bm map/camera/state readability review (16 files).
-- M6-19-bmvsync: owner PC, until ~12:10Z — BMapVSync_InitMapAnimations, BMapVSync_Start/OnLoop/End, and weather init in MapAnimations.kt.
-- PORT-brownbox-item: owner PC, until ~12:10Z — BrownTextBox fade/lifecycle verification (src/popup.c) and ItemInfo ROM/battle verification (src/bmitem.c).
+None.
 
 ## Current state
 
@@ -21,7 +19,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 - Published **0.1.528 (`e0187ea`)**: CI **737 passed, zero failures/skips**; fixes the Rapier popup
   icon and stale frame on close. Local full `jvmTest test` also passed 737; both APK builds/content
   guards, game Dokka, 27 Python tests and instruction sync passed.
-- **653/8352 functions verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
+- **665/8352 functions verified** (+12 on 11-10: `BMapVSync_InitMapAnimations`, `BMapVSync_Start`, `BMapVSync_OnLoop` in `1cd6709`; `StartBrownTextBox`, `sub_8011A1C`, `sub_8011A48`, `sub_8011AA0`, `sub_8011AF4`, `sub_8011B4C`, `sub_8011B90`, `GetItemType`, `GetItemAttributes` in `de5b055`), `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
 - Layout: game-neutral `:gba:*`, `gbafe.*` in `:engine:*`, FE8 `fe8.*` in `:game`/`:app` (ADRs 0010–0013).

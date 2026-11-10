@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 653,
+    "verified": 665,
     "implemented_unverified": 1
   },
   "functions": {
@@ -134,6 +134,33 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ConvoBackgroundVramTest#nested display suspension restores map procs only on the final resume"
+      ]
+    },
+    "BMapVSync_InitMapAnimations": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimationsTest#initMapAnimations initializes animation fields matching reference traces"
+      ]
+    },
+    "BMapVSync_OnLoop": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimationsTest#VSync proc lifecycle and loop match prologue resume reference trace"
+      ]
+    },
+    "BMapVSync_Start": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimationsTest#VSync proc lifecycle and loop match prologue resume reference trace"
       ]
     },
     "BMapVSync_UpdateMapImgAnimations": {
@@ -1682,6 +1709,15 @@
         "fe8.testing.ConvoBackgroundVramTest#game lock matches gbmst lock byte across trace steps"
       ]
     },
+    "GetItemAttributes": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ItemInfoReferenceTest#actor and target weaponType and weaponAttributes match prologue battle r14430"
+      ]
+    },
     "GetItemCrit": {
       "decomp_file": "src/bmitem.c",
       "system": "battle_logic",
@@ -1761,6 +1797,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.PopupProcDifferentialTest#parsePopupInstAndGetLen reproduces the traced width icon and sound"
+      ]
+    },
+    "GetItemType": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ItemInfoReferenceTest#actor and target weaponType and weaponAttributes match prologue battle r14430"
       ]
     },
     "GetLastSuspendSaveId": {
@@ -3933,6 +3978,15 @@
         "fe8.testing.BgmVolumeChangeTest#volume ramp matches the trace"
       ]
     },
+    "StartBrownTextBox": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/BrownTextBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.BrownTextBoxReferenceTest#the Prologue box lifecycle and blend match reference trace r09541 to r09675"
+      ]
+    },
     "StartBrownTextBoxCore": {
       "decomp_file": "src/popup.c",
       "system": "menus",
@@ -5028,6 +5082,60 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
+      ]
+    },
+    "sub_8011A1C": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/BrownTextBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.BrownTextBoxReferenceTest#the Prologue box lifecycle and blend match reference trace r09541 to r09675"
+      ]
+    },
+    "sub_8011A48": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/BrownTextBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.BrownTextBoxReferenceTest#the Prologue box lifecycle and blend match reference trace r09541 to r09675"
+      ]
+    },
+    "sub_8011AA0": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/BrownTextBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.BrownTextBoxReferenceTest#the Prologue box lifecycle and blend match reference trace r09541 to r09675"
+      ]
+    },
+    "sub_8011AF4": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/BrownTextBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.BrownTextBoxReferenceTest#the Prologue box lifecycle and blend match reference trace r09541 to r09675"
+      ]
+    },
+    "sub_8011B4C": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/BrownTextBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.BrownTextBoxReferenceTest#the Prologue box lifecycle and blend match reference trace r09541 to r09675"
+      ]
+    },
+    "sub_8011B90": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/BrownTextBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.game.BrownTextBoxReferenceTest#the Prologue box lifecycle and blend match reference trace r09541 to r09675"
       ]
     },
     "sub_8013F40": {

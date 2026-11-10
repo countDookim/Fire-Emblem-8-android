@@ -51,7 +51,8 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | engine/script | gbafe.script | 7 | 920 | done 2026-11-09 d3b21d6 |
 | engine/text | gbafe.text | 6 | 926 | done 2026-11-09 d3b21d6 |
 | game | fe8.game | 8 | 1999 | done 2026-11-09 ee10196 |
-| game | fe8.game.bm | 29 | 9298 | todo |
+| game | fe8.game.bm (map, camera, state, cursor, music, chapter data: 16 files) | 16 | 2964 | done 2026-11-10 bac8ed1 |
+| game | fe8.game.bm (battle, units, MU, sprites, animations, phase intro: 16 files) | 16 | 7719 | todo |
 | game | fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs) | 4 | 845 | done 2026-11-10 ff286fe / 0bfe1ab |
 | game | fe8.game.event (remaining command handlers and script formats) | 18 | 3299 | todo |
 | game | fe8.game.flags | 1 | 69 | done 2026-11-09 0194222 |

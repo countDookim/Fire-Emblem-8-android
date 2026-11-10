@@ -65,7 +65,8 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
    OAM every 10th frame). `PlaySound` transcribed; BGM-volume child is a test stand-in; negative-clock key path
    untested. Next (low priority) D09-4, wire `PopupScript` for Event37 GIVEITEMTO (planned, no code):
    hoist MsgStrings/TextSystem out of `talkSceneDelegate`; provide icon tables, `loadIconPalette`, `startBgmVolumeChange`
-   in Fe8Boot; add `PopupScr_GotItem`/`ItemWasPilfered`/`GotGold` addresses; `ProcScr_GotItem` (yield, popup, yield,
+   in Fe8Boot; add addresses `PopupScr_GotItem` 0x08592230, `PopupScr_ItemWasPilfered` 0x08592288, `PopupScr_GotGold`
+   0x08592300, `ProcScr_GotItem` 0x085922D0; `ProcScr_GotItem` (yield, popup, yield,
    give, yield, end) started blocking from the event proc; popupItem state + faction branch; full inventory stays TODO.
 
 ## Verification limits worth retaining

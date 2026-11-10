@@ -10,7 +10,8 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-None.
+- D11-wm3 (WorldMap_Init step timing, tag prefix): owner PC, until ~22:30Z
+- D-11 subtitle (extend replay past 2357 by callback phases): owner PC, until ~22:30Z
 
 ## Current state
 

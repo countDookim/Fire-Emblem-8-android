@@ -442,7 +442,7 @@ public object Popup {
      * Sets the fields `NewPopupCore` assigns after starting the proc (the proc start itself is
      * not modelled).
      *
-     * Transcribed from src/popup.c: NewPopupCore
+     * Field setup of `NewPopupCore`; the port including the proc start is [PopupScript.start].
      */
     public fun setupCore(
         proc: PopupProc, definition: Int, clock: Int, winStyle: Int, iconObjTileId: Int,
@@ -458,7 +458,7 @@ public object Popup {
     /**
      * `NewPopupCore` fields for `NewPopup_Simple` (icon tile 0x240, palette base 4).
      *
-     * Transcribed from src/popup.c: NewPopup_Simple
+     * Field setup of `NewPopup_Simple`; see [PopupScript.start].
      */
     public fun setupSimple(proc: PopupProc, definition: Int, clock: Int, winStyle: Int) {
         setupCore(proc, definition, clock, winStyle, 0x240, 4)

@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D11-wm3 (CallBeginningEvent): scheduled, until ~18:20Z, on `wip/D11-wm3b`
+None.
 
 ## Current state
 
@@ -19,7 +19,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 - Published **0.1.528 (`e0187ea`)**: CI **737 passed, zero failures/skips**; fixes the Rapier popup
   icon and stale frame on close. Local full `jvmTest test` also passed 737; both APK builds/content
   guards, game Dokka, 27 Python tests and instruction sync passed.
-- **670/8352 functions verified** (+3 scheduled 11-10 eve: `WMLoc_GetChapterId`, `WMLoc_GetNextLocId`, `NewWorldMap`; +2 scheduled 11-10 pm: `Event15_BgmVolume` subcode 0, `GmDataInit`; +12 earlier 11-10: `BMapVSync_InitMapAnimations`, `BMapVSync_Start`, `BMapVSync_OnLoop` in `1cd6709`; `StartBrownTextBox`, `sub_8011A1C`, `sub_8011A48`, `sub_8011AA0`, `sub_8011AF4`, `sub_8011B4C`, `sub_8011B90`, `GetItemType`, `GetItemAttributes` in `de5b055`), `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
+- **671/8352 functions verified** (+4 scheduled 11-10 eve: `WMLoc_GetChapterId`, `WMLoc_GetNextLocId`, `NewWorldMap`, `WorldMap_CallBeginningEvent`; +2 scheduled 11-10 pm: `Event15_BgmVolume` subcode 0, `GmDataInit`; +12 earlier 11-10: `BMapVSync_InitMapAnimations`, `BMapVSync_Start`, `BMapVSync_OnLoop` in `1cd6709`; `StartBrownTextBox`, `sub_8011A1C`, `sub_8011A48`, `sub_8011AA0`, `sub_8011AF4`, `sub_8011B4C`, `sub_8011B90`, `GetItemType`, `GetItemAttributes` in `de5b055`), `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
 - Layout: game-neutral `:gba:*`, `gbafe.*` in `:engine:*`, FE8 `fe8.*` in `:game`/`:app` (ADRs 0010–0013).
@@ -52,8 +52,10 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
    wiring. Monologue 1213–4897; world-map wrapper 4898–9313 is separate. See [M6 notes](docs/plans/M6-notes.md).
 2. **D11 world map** (steps 4898–9313, [plan](docs/plans/D11-worldmap.md)): wm1/wm2 done; GmData wired at boot and
    post-save; `WorldMapNodes` (fe8.game.worldmap) replaces the no-node stand-in on whole ROMs. wm3 partial:
-   `WorldMapMain.newWorldMap` verified (Prologue timer 16 only); wrapper script transcribed but unverified, unwired
-   (needs `ProcScr_BmFadeIN` exposed). Next: ProcScr_WorldMapMain/WorldMap_Init prefix, CallBeginningEvent, wiring.
+   `WorldMapMain.newWorldMap` (timer 16 path) and `callBeginningEvent` (Prologue branch; callees are
+   `BeginningHooks` lambdas, unwired) verified; wrapper script transcribed, unverified/unwired
+   (`ArchivedPaletteFade.script` = `ProcScr_BmFadeIN` now public). Next: ProcScr_WorldMapMain/WorldMap_Init
+   prefix, real BeginningHooks (`Events_WM_Beginning`, gmapEventId, ResetGmStoryNode), wiring.
    WMLoc trace check covers node 0/default mode only; `WmNodeDataReferenceTest` full-table checks need
    `FE8U_DECOMP` (decomp checkout) and skip in CI.
 3. **D-12:** owner compares the banner with an emulator; D12-2 adds enemy-phase and original scanline captures.

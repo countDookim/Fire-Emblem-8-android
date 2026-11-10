@@ -43,8 +43,8 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
    or edit HANDOFF; (c) review `git diff --stat`, key diff hunks and test output, not whole files; send fixes to
    the same agent (`followup_task`) rather than coding them yourself; (d) the parent reviews, commits, cherry-picks as
    needed, removes worktrees, and handles push/HANDOFF. Put coding agents in `.claude/worktrees` and stagger launches
-   by ~20 seconds. Run one coding task/agent at a time unless the owner explicitly authorizes parallel work for that
-   run. Code yourself only for a trivial (< ~10 line) fix, when a brief failed twice, or when no subagent tool is
+   by ~20 seconds. Run at most two coding tasks/agents at a time (owner, 2026-11-10), each on its own task and
+   worktree, unless the owner sets a different limit for that run. Code yourself only for a trivial (< ~10 line) fix, when a brief failed twice, or when no subagent tool is
    available.
 10. **Claim tasks before starting (owner, 2026-11-05).** Both run types pick tasks from HANDOFF, so before writing
     code for a task: `git fetch` and `git rebase --rebase-merges origin/master`, add a line under HANDOFF

@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 650,
+    "verified": 652,
     "implemented_unverified": 1
   },
   "functions": {
@@ -2240,6 +2240,24 @@
         "fe8.testing.SramBootReferenceTest#suspend slot selection follows the dumps header and block infos",
         "fe8.testing.SramOwnerSaveBootTest#chapter 2 save with a valid suspend boots unchanged",
         "fe8.testing.SramOwnerSaveBootTest#chapter 6 save without a suspend boots unchanged and selects 0x7F"
+      ]
+    },
+    "ItemGot_DisplayLePopup": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/GotItemPopup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.GotItemPopupDifferentialTest#got item proc lifetime tree and fields match the traced run"
+      ]
+    },
+    "ItemGot_GotLeItem": {
+      "decomp_file": "src/popup.c",
+      "system": "menus",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/GotItemPopup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.GotItemPopupDifferentialTest#got item proc lifetime tree and fields match the traced run"
       ]
     },
     "LoadAndVerfyLinkArenaStruct2": {

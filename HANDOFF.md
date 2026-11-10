@@ -20,7 +20,7 @@ unreviewed agent work; any tags there are not break-checked. Review, mutation-ch
 - Published **0.1.528 (`e0187ea`)**: CI **737 passed, zero failures/skips**; fixes the Rapier popup
   icon and stale frame on close. Local full `jvmTest test` also passed 737; both APK builds/content
   guards, game Dokka, 27 Python tests and instruction sync passed.
-- **698/8352 functions verified** (owner PC 11-10: +20 — `sub_80B8FEC`; slow fade-to-black ×5 (`c40863d`); WmText ×5 (`807369a`); GmapRM/Spline/Event85 ×15 minus overlaps (`a3214a6`)). Local full `jvmTest test` 769 tests, 0 failures, 2 skips (`WmNodeDataReferenceTest` needs `FE8U_DECOMP`, so `WMLoc_*` count as unverified locally), `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
+- **698/8352 functions verified** (owner PC 11-10: +20 — `sub_80B8FEC`; slow fade-to-black ×5 (`c40863d`); WmText ×5 (`807369a`); GmapRM/Spline/Event85 ×15 (`a3214a6`)). Local full `jvmTest test` 769 tests, 0 failures, 2 skips (`WmNodeDataReferenceTest` needs `FE8U_DECOMP`, so `WMLoc_*` count as unverified locally), `ported-without-tag: 0`; 897 EventScr scripts reproduce ROM bytes at runtime.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
 - Layout: game-neutral `:gba:*`, `gbafe.*` in `:engine:*`, FE8 `fe8.*` in `:game`/`:app` (ADRs 0010–0013).

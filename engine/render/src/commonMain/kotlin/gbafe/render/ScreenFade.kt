@@ -36,8 +36,7 @@ public class ScreenFade(
     }
 
     /**
-     * Transcribed from src/bmlib.c: FadeToBlack_OnInit (not verified:
-     *   no reference run fades to black)
+     * Ported from src/bmlib.c: FadeToBlack_OnInit
      */
     public fun fadeToBlackOnInit(proc: Proc) {
         enableBlendInWindows()
@@ -50,8 +49,10 @@ public class ScreenFade(
     }
 
     /**
-     * Transcribed from src/bmlib.c: FadeToCommon_OnLoop (not verified:
-     *   only the FromCommon loop is traced, no fade to black or white)
+     * Ported from src/bmlib.c: FadeToCommon_OnLoop
+     *
+     * Verified for the fade to black at speed 4 (levels 0..0x100 and the `blendY == 0x10` end);
+     * the fade-to-white proc shares this loop but is not traced.
      */
     public fun fadeToCommonOnLoop(proc: Proc) {
         if (lcd.blendY == 0x10) {
@@ -156,8 +157,7 @@ public class ScreenFade(
     }
 
     /**
-     * Transcribed from src/bmlib.c: StartFadeToBlack (not verified:
-     *   only the locking FromBlack start is traced)
+     * Ported from src/bmlib.c: StartFadeToBlack
      */
     public fun startFadeToBlack(speed: Int): Unit = begin(toBlack, speed)
 
@@ -191,6 +191,24 @@ public class ScreenFade(
      */
     public fun startLockingFadeFromWhite(speed: Int, parent: Proc): Unit =
         beginBlocking(fromWhite, speed, parent)
+
+    /** Ported from src/bmlib.c: StartSlowFadeToBlack */
+    public fun startSlowFadeToBlack(): Unit = startFadeToBlack(0x04)
+
+    /**
+     * Transcribed from src/bmlib.c: StartFastFadeToBlack (not verified:
+     *   only the slow variant is traced)
+     */
+    public fun startFastFadeToBlack(): Unit = startFadeToBlack(0x40)
+
+    /**
+     * Breaks [proc] once no fade exists.
+     *
+     * Ported from src/bmlib.c: WaitForFade
+     */
+    public fun waitForFade(proc: Proc) {
+        if (!fadeExists()) engine.breakProc(proc)
+    }
 
     /**
      * Transcribed from src/bmlib.c: StartMidFadeToBlack (not verified:

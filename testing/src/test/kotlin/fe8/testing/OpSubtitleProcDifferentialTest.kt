@@ -4,7 +4,10 @@ import fe8.game.RomView
 import fe8.game.SoundWrapper
 import fe8.game.opanim.OpSubtitle
 import fe8.game.opanim.OpSubtitleSlides
+import gba.core.VerifiesPort
 import gba.extract.Symbols
+import gba.testkit.GbaMem
+import gba.testkit.RamSymbols
 import gba.testkit.ReferenceData
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcScript
@@ -12,7 +15,9 @@ import gbafe.proc.ProcScripts.block
 import gbafe.proc.ProcScripts.end
 import gbafe.render.ArchivedPaletteFade
 import gbafe.render.BgHardware
+import gbafe.render.LcdControl
 import gbafe.render.PaletteFade
+import gbafe.render.ScreenFade
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -20,7 +25,13 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
-/** Parent script structure and uninterrupted monologue state against the original run. */
+/**
+ * Parent script structure and uninterrupted monologue state against the original run. The replay
+ * ends with the real [ScreenFade] slow fade to black (speed 4, `StartSlowFadeToBlack` then
+ * `WaitForFade`): steps 4799..4863 compare the fade proc's existence, cursor, `unk64`/`unk66`, and
+ * (steps 4800, 4830, 4860) BLDCNT, blend coefficients, BLDY and the four blend-enable WINCNT bits
+ * (other WINCNT bits are game code this replay omits). Not covered: the fast fade, fade to white.
+ */
 class OpSubtitleProcDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
     private val assets =
@@ -60,6 +71,10 @@ class OpSubtitleProcDifferentialTest {
     }
 
     @Test
+    @VerifiesPort(
+        "StartSlowFadeToBlack", "StartFadeToBlack", "FadeToBlack_OnInit", "FadeToCommon_OnLoop",
+        "WaitForFade",
+    )
     fun `continuous playback follows the original parent through the first cards`() {
         assumeTrue(ref.available && romFile.isFile, "reference capture or ROM unavailable")
         val capture = ref.run("ram_trace_prologue")
@@ -69,6 +84,10 @@ class OpSubtitleProcDifferentialTest {
         val hardware = BgHardware()
         var frame = 1213
         var fadeStarted = false
+        var fadeSteps = 0
+        val names = ProcArrayDump.romNames()
+        val sym = RamSymbols.fromEnvironment()
+        val screenFade = ScreenFade(engine, hardware.lcd)
         val fade = ArchivedPaletteFade(PaletteFade(hardware, engine), hardware, engine)
         val host = OpSubtitle(
             engine, hardware, rom, SoundWrapper(engine, null) { 0 },
@@ -81,10 +100,9 @@ class OpSubtitleProcDifferentialTest {
                 // The real generic fade proc (tree 4) renders the palette; the run loop below
                 // runs every proc tree each step, in index order.
                 fadeInExists = { fade.exists() },
-                startSlowFadeToBlack = {}, startFastFadeToBlack = {},
-                // The generic fade-to-black is not modelled: its break is seeded one step before
-                // the original cursor leaves WaitForFade at step 4866.
-                waitForFade = { if (frame >= 4865) engine.breakProc(it) },
+                startSlowFadeToBlack = { screenFade.startSlowFadeToBlack() },
+                startFastFadeToBlack = { screenFade.startFastFadeToBlack() },
+                waitForFade = { screenFade.waitForFade(it) },
                 newKeys = { 0 },
             ),
         )
@@ -120,6 +138,39 @@ class OpSubtitleProcDifferentialTest {
                 for (tree in 0..7) engine.run(engine.root(tree))
             }
             if (step <= spanEnd - 1) continue
+            if (step in 4795..4870) {
+                val orig = ProcArrayDump.ofWatch(trace, step, names).find("ProcScr_FadeToBlack")
+                val ours = engine.find(screenFade.toBlack)
+                assertEquals(orig != null, ours != null, "step $step fade proc exists")
+                assertEquals(orig != null, screenFade.fadeExists(), "step $step FadeExists")
+                if (orig != null && ours != null) {
+                    val st = ours.state as ScreenFade.State
+                    assertEquals(orig.scrCur, ours.scrCur, "step $step fade cursor")
+                    assertEquals(orig.u16(0x64).toShort().toInt(), st.speed, "step $step unk64")
+                    assertEquals(orig.u16(0x66).toShort().toInt(), st.level, "step $step unk66")
+                    fadeSteps++
+                }
+                if (step % 30 == 0) {
+                    val prefix = if (step % 300 == 0) "f" else "r"
+                    val iwram = capture.region("$prefix%05d".format(step), "iwram")
+                    val want = LcdControl().apply {
+                        readFrom(iwram, sym["gLCDControlBuffer"].address - GbaMem.IWRAM)
+                    }
+                    val lcd = hardware.lcd
+                    assertEquals(want.bldcnt, lcd.bldcnt, "step $step bldcnt")
+                    assertEquals(want.blendCoeffA, lcd.blendCoeffA, "step $step blendCoeffA")
+                    assertEquals(want.blendCoeffB, lcd.blendCoeffB, "step $step blendCoeffB")
+                    assertEquals(want.blendY, lcd.blendY, "step $step blendY")
+                    // Only the four blend-enable bits: other WININ/WOUT bits are set by game code
+                    // this replay does not model.
+                    val blendBits = (1 shl LcdControl.WIN0_ENABLE_BLEND) or
+                        (1 shl LcdControl.WIN1_ENABLE_BLEND) or
+                        (1 shl LcdControl.WOUT_ENABLE_BLEND) or (1 shl LcdControl.WOBJ_ENABLE_BLEND)
+                    assertEquals(
+                        want.wincnt and blendBits, lcd.wincnt and blendBits, "step $step wincnt",
+                    )
+                }
+            }
             val original = ProcArrayDump.ofWatch(trace, step).find(0x08AA21BC)!!
             val state = child.state as OpSubtitleSlides.State
             assertEquals(original.scrCur, child.scrCur, "step $step cursor")
@@ -168,6 +219,7 @@ class OpSubtitleProcDifferentialTest {
         assertEquals(null, child.script)
         assertEquals(0, parent.lockCnt)
         assertTrue(fadeStarted)
+        assertEquals(65, fadeSteps)
     }
 
     @Test

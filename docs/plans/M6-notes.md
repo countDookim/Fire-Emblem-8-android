@@ -70,6 +70,10 @@ gGameClock and runs tree 0 during the long callback, so clock increments alone d
 completed normal proc updates. Extend replay using callback phases/completed updates; do not
 insert arbitrary delays to fit video-frame snapshots.
 
+D-11 fade-to-black 2026-11-10: the replay's closing slow fade-to-black is now the real `ScreenFade`
+(no seeded break); fade proc cursor/unk64/unk66 over 4799-4863 and BLDCNT/BLDY/coeffs/blend-enable
+WINCNT bits at 4800/4830/4860 match, and the cursor leaves WaitForFade at 4866 unaided. Slow variant only.
+
 D-11 replay extended 2026-11-10: `OpSubtitleProcDifferentialTest` now follows the parent over steps
 1214-4896 (cursor/index/hold/timer each completed update; palette RAM and BG0/BG1 maps every 30 steps
 from 2370) and the proc's end at 4897. Long callbacks are detected from the trace: a call command

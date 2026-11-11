@@ -15,6 +15,7 @@ public class PathArrow(
     private val movementMap: MovementMap,
     private val active: ActiveUnit,
     private val bm: BmSt,
+    /** Stand-ins this path arrow calls; see [Hooks]. */
     public val hooks: Hooks = Hooks(),
 ) {
     /** Stand-ins for what the path arrow calls in other files. */

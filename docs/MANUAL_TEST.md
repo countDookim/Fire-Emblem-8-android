@@ -9,20 +9,18 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
 - **D-12 player banner confirmed (owner, 2026-11-11, 0.1.488):** the Player Phase banner is correct.
   Enemy/green banners are not ready (D12-2, with M6-D).
 - **D-09 resolved (owner, 2026-11-11, 0.1.571):** the Rapier popup is correct.
+- **APP-1 confirmed (owner, 2026-11-11, 0.1.590):** Delete save works.
 
 ## Test now
 
-Delete save (APP-1): on the launcher, tap **Delete save** (enabled only when a save exists), then
-**Delete** in the "Delete save data?" dialog. The button should disable. Tap **Play**: the game
-should start from the title with no resume and no filled save slots. The imported ROM must still be
-there (no re-import needed; the launcher still shows the game data file count). **Cancel** must keep
-the save. Limits: this deletes all saves and the suspend at once, with no per-slot delete.
-
+Nothing new; next items will be announced.
 
 ## Known differences (owner reports)
 
 - Map cursor over a player unit: original FE8 widens the cursor to frame the unit; the APK keeps the normal
   cursor (owner, 2026-11-11, mGBA comparison). Fix planned as PP-0a.
+- Start during the Prologue in-game cutscene fast-forwards visibly instead of fading out and skipping
+  (owner, 2026-11-11, 0.1.590). Fix planned as D13-cap1/D13-1.
 
 ## Currently ignore
 

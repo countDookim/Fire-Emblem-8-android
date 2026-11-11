@@ -17,6 +17,8 @@ Notes: [D11-worldmap](plans/D11-worldmap.md) (§8 status), [M6-notes](plans/M6-n
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
+| D13-cap1 | CAP | Owner report D-13: press Start during the Prologue in-game cutscene (castle, after the subtitle) in mGBA; trace from the press to the map | Run published with sProcArray/LCD/fade state per frame from the press until control returns | — | todo; high (owner report) |
+| D13-1 | PORT | `EventEngine_StartSkip` effects: `StartLockingFadeToBlack`, `sub_800D488` (`sub_80141B0`, end TalkOpen), `Proc_BlockEachMarked(5)`; wire into the `startSkipEffects` hook | Fade/LCD state and proc tree per frame equal D13-cap1; headless Start replay reaches the map; MANUAL_TEST | D13-cap1 | todo; high |
 | D11-wire-a | PORT | Start-skip audio (opsubtitle skip path, sound calls) | `gSoundSt`/player state at skip end equals the captures at 1505/2375/4405, else stays marked unverified | — | todo |
 | D11-wire-b | WIRE | Monologue hooks in `Fe8Boot`: real `ScreenFade`, `ArchivedPaletteFade`, keys | Headless New Game: parent blocked at 1213, released at 4898 (callback spans allowed); 0 B/frame; MANUAL_TEST | D11-wire-a | todo |
 | D11-wm3f | PORT | `StartGMapRoute` / `ProcScr_GMapRoute` (`worldmap_path.c`), started by `NewMapScreen` | Proc fields per step from 4901; route BG at f-dumps | — | todo |
@@ -39,7 +41,7 @@ Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames, proc
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| PP-0a | PORT | Hover cursor (owner device report 11-11: cursor must expand over a player unit): `IsUnitSpriteHoverEnabledAt`, `UnitSpriteHoverUpdate`, `ResetUnitSpriteHover`; wire into the idle loop (`PutMapCursor` kind 3) | Cursor OAM at cancel_end f1430/f1440 (hover on Eirika) and select_move f1250–1259; hover state per frame; MANUAL_TEST | — | todo; high: visible every turn, do first in Lane B |
+| PP-0a | PORT | Hover cursor (owner device report 11-11: cursor must expand over a player unit): `IsUnitSpriteHoverEnabledAt`, `UnitSpriteHoverUpdate`, `ResetUnitSpriteHover`; wire into the idle loop (`PutMapCursor` kind 3) | Cursor OAM at cancel_end f1430/f1440 (hover on Eirika) and select_move f1250–1259; hover state per frame; MANUAL_TEST | — | claimed 11-11 (agent pp0a) |
 | PP-2 | PORT | Attack range: `GenerateUnitCompleteAttackRange`, `MapSetInRange`, `MapAddInBoundedRange` | `gBmMapRange` equals the dump | PP-1 | todo |
 | PP-3 | PORT | Select: `PlayerPhase_MainIdle` A branch, `GetPlayerSelectKind`, `PlayerPhase_InitUnitMovementSelect`, `DisplayUnitEffectRange` | PlayerPhase proc position per step; active unit | PP-1 | todo |
 | PP-4 | PORT | Range squares: `MoveLimitView_*`, `DisplayMoveRangeGraphics`, `HideMoveRangeGraphics` | BG2 tilemap and palette at dumps | PP-3 | todo |
@@ -58,7 +60,7 @@ Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames, proc
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| TEST-1 | WIRE | Faster full test (owner 11-11): branch `wip/test-speedup` (`d3bdbd6`, unrun): `:testing` in 3 forks + `serialTest` for the 11 AllocationMeter classes, targeted `--tests` runs unchanged; memoized identical cases in TextDrawRomTest and M4aChannel/Pitch/Track tests. Log and revert notes: `docs/plans/TEST-SPEEDUP.md` on the branch | (1) compile + `jvmTest test --dry-run` and `:testing:test --tests fe8.testing.WalkingAllocationTest --dry-run` (no serialTest); (2) one full `jvmTest test`: same test count as master (806 on 11-11) and same `progress.py` verified list, 0 failures/skips, note the wall time (was 4.5 min); (3) merge as 3 separate commits (forks / TextDraw / M4a), fill hashes into TEST-SPEEDUP.md | — | todo; owner: next full-test run |
+| TEST-1 | WIRE | Faster full test (owner 11-11): branch `wip/test-speedup` (`d3bdbd6`, unrun): `:testing` in 3 forks + `serialTest` for the 11 AllocationMeter classes, targeted `--tests` runs unchanged; memoized identical cases in TextDrawRomTest and M4aChannel/Pitch/Track tests. Log and revert notes: `docs/plans/TEST-SPEEDUP.md` on the branch | (1) compile + `jvmTest test --dry-run` and `:testing:test --tests fe8.testing.WalkingAllocationTest --dry-run` (no serialTest); (2) one full `jvmTest test`: same test count as master (806 on 11-11) and same `progress.py` verified list, 0 failures/skips, note the wall time (was 4.5 min); (3) merge as 3 separate commits (forks / TextDraw / M4a), fill hashes into TEST-SPEEDUP.md | — | claimed 11-11 (agent test-speedup) |
 | CAP-hard1 | CAP | Hard-mode New Game run reaching autolevelled loads (unblocks old M6-13) | Run published; then tag `UnitAutolevelRealistic`, `UnitApplyBonusLevels`, `UnitAutolevelPenalty` | — | todo |
 | CAP-collide1 | CAP | Run where a unit load lands on an occupied tile (unblocks old M6-14) | Run published; then verify `AiGetUnitClosestValidPosition`, `AdjustNewUnitPosition` | — | todo |
 | D12-2 | CAP+PORT | Enemy-phase intro capture with per-scanline blend; extend `PhaseIntroDifferentialTest` | Enemy name graphics/palette and per-line blend equal the capture | — | todo; do with M6-D |
@@ -77,5 +79,5 @@ Row details, including what each task left transcribed: [archive](plans/TASKS-ar
   ports verified as far as the Prologue runs them; the rest is in lane A.
 - M4-02, M4-12, M5-56, 56b, 57..61.
 - **Lane B:** PP-9 (`ff84b6f`; `DisplayFrozenUiHand` still a hook), PP-1 (`8da6b33`; `GenerateUnitMovementMap` itself not run in the window), PP-0 (`PlayerPhaseProcInventoryTest`, `8036f44`), PP-cap1 (`ram_trace_prologue_select_move`, ROM `c3ad5d4`), PP-cap2 (`ram_trace_prologue_cancel_end`, ROM `45f35cf`), PP-cap3 (`ram_trace_prologue_attack`, ROM `07a6ca9`, animations on).
-- **App:** APP-1 (launcher Delete save, `e39c730`; device check pending).
+- **App:** APP-1 (launcher Delete save, `e39c730`; owner-confirmed on 0.1.590).
 - **Alignment:** PROG-1 (`b459cf3`), UNV-1, ALN-1 (`3f85702`), ALN-2, STAND-1, STAND-2, M7-0 ([M7-modding](plans/M7-modding.md): 23 proposed rows; D1 decided = option A, ADR 0015; D2–D9 open).

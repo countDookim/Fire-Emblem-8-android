@@ -6,12 +6,13 @@ Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
 ## NEEDS USER
 
-Nothing blocks development. Owner device check pending: APP-1 (Delete save) on the next build; see [MANUAL_TEST](docs/MANUAL_TEST.md).
+Nothing blocks development. APP-1 (Delete save) owner-confirmed on 0.1.590 (11-11). New owner report D-13 below.
 Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1 decided: option A, ADR 0015; M6 is not blocked).
 
 ## In progress
 
-None.
+- TEST-1 (Gemini Flash agent `test-speedup`, worktree `.claude/worktrees/test-speedup`, 11-11 10:45Z).
+- PP-0a (Gemini Flash agent `pp0a`, worktree `.claude/worktrees/pp0a`, 11-11 10:45Z).
 
 ## Current state
 
@@ -39,6 +40,7 @@ Close an issue only after reference verification and owner confirmation; preserv
 | D-12 phase banner | **Player banner confirmed correct by the owner on 0.1.488 (11-11)**; reference: `PhaseIntroDifferentialTest`. Enemy/green banners open (D12-2, with M6-D). |
 | D-11 cinematic | Open: the subtitle monologue and following world-map opening are unwired. |
 | D-09 Rapier popup | **Resolved:** owner confirmed the popup correct on 0.1.571 (11-11); reference: `WiredItemPopupTest`/`GotItemPopupDifferentialTest`. Other popup branches stay D09-3 (low priority). |
+| D-13 Start in cutscene | **Open (owner, 0.1.590, 11-11):** Start during the Prologue in-game cutscene fast-forwards visibly instead of skipping. Triage: `EventEngine_StartSkip` sets the skip bit but its effects (`StartLockingFadeToBlack(0x40)`, `sub_800D488`, `Proc_BlockEachMarked(5)`) sit behind the no-op `startSkipEffects` hook. Rows D13-cap1, D13-1. |
 | D-05 interactions | Expected missing gameplay; re-test when player actions are ported. |
 
 D-01–04, D-06, D-08, D-10 and normal portrait mouths are owner-confirmed solved.
@@ -66,8 +68,7 @@ window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose de
    another's `edit1.py`). `WalkingAllocationTest` failed intermittently under heavy load once (PP-1 run); it passed
    3/3 afterwards. Re-run it if it fails.
 6. **Next full test run: do `TEST-1` first** (faster full test, branch `wip/test-speedup`, unrun; steps in TASKS).
-7. **Owner:** check Delete save (APP-1) on the next build; decide
-   modding questions D2–D9 when M7 nears.
+7. **Owner:** decide modding questions D2–D9 when M7 nears.
 
 `@VerifiesPort` takes bare function names; `"src/x.c: F"` silently counts nothing.
 Node table checks use pinned runtime source: `tools/setup_decomp.sh` or `FE8U_DECOMP` (read-only).

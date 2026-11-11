@@ -32,11 +32,9 @@ Notes: [D11-worldmap](plans/D11-worldmap.md) (§8 status), [M6-notes](plans/M6-n
 | D11-wm4d | PORT | Border1 blend/OAM/palette and unit-fade palettes | Per-step LCD/OAM equal D11-cap1 | D11-cap1 | todo |
 | D11-wm9 | WIRE | `hooks.worldMapWrapperScript`/`endWorldMap` in `Fe8Boot` | Headless New Game reaches `StartBattleMap`; 0 B/frame; MANUAL_TEST | D11-wm8f | todo |
 | D11-cap2 | CAP | New Game with no key press during the chapter intro (main path to the map) | Per-frame RAM, full dumps every 10f; old runs byte-identical; published | — | todo |
-| D11-ci1 | PORT | `ChapterIntro_Init`, KeyListen, Bg1And3Scroll (newgame_bm 9322–9419; see D11-worldmap §9) | Proc fields per frame | — | todo |
 | D11-ci2 | PORT | Chapter title graphics (`chapter_title.c`, `ChapterIntro_DrawChapterTitle`) | VRAM/tilemap at full dumps of D11-cap2 | D11-ci1, D11-cap2 | todo |
 | D11-ci3 | PORT | Light effects (TwinLights, LightBurst, LightExplosion), main path | OAM/blend per frame in D11-cap2 | D11-ci1, D11-cap2 | todo |
-| D11-ci4 | PORT | Skip path: fade out, `InitMapDisplay`, fast fade to map, `ChapterIntro_End` (9419–9506) | Proc fields per frame; existing map-start checks | D11-ci1 | todo |
-| D11-ci5 | WIRE | Replace the chapter-intro stand-in (main path: fog, fade to map, from D11-cap2 inventory) | Headless full opening; MANUAL_TEST "New Game plays the whole opening" | D11-ci2–4, D11-wm9 | todo |
+| D11-ci4 | PORT | Skip path: fade out, `InitMapDisplay`, fast fade to map, `ChapterIntro_End` (9419–9506) | Proc fields per frame; existing map-start checks | D11-ci5 | WIRE | Replace the chapter-intro stand-in (main path: fog, fade to map, from D11-cap2 inventory) | Headless full opening; MANUAL_TEST "New Game plays the whole opening" | D11-ci2–4, D11-wm9 | todo |
 
 ## Lane B: player phase (M6-B)
 
@@ -81,7 +79,7 @@ Row details, including what each task left transcribed: [archive](plans/TASKS-ar
 
 - **M1–M5** complete. **M6 part 1** (Prologue opening to turn 1, suspend/resume): M6-01..12, 15..19, 21..28,
   30..39, 41..43, 45, 46 done; M6-20, 29, 40, 44 done as far as captures allow.
-- **D-series:** D11-wm3b (`f6b08f2`), D11-ci0 (`ChapterIntroProcInventoryTest`), D07-audio, D07-trace, D09-1, D09-1b, D09-2, D11-slides, D11-fades, D11-init, D11-flare,
+- **D-series:** D11-ci1 (`89d837d`), D11-wm3b (`f6b08f2`), D11-ci0 (`ChapterIntroProcInventoryTest`), D07-audio, D07-trace, D09-1, D09-1b, D09-2, D11-slides, D11-fades, D11-init, D11-flare,
   D11-skip, D11-proc, D11-worldmap, D11-wm1, D11-wm2, D12-1. D11-wm3..wm7 (+ wm4a–c, wm6b–d): standalone
   ports verified as far as the Prologue runs them; the rest is in lane A.
 - M4-02, M4-12, M5-56, 56b, 57..61.

@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 195 across 30 Kotlin files.
+Total entries: 198 across 30 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -31,13 +31,13 @@ Total entries: 195 across 30 Kotlin files.
 | D11-wm9 | 9 |
 | PP-10 | 1 |
 | PP-12 | 6 |
-| PP-15 | 3 |
 | PP-16 | 3 |
-| PP-17 | 3 |
+| PP-17 | 5 |
 | PP-4 | 1 |
 | PP-5 | 1 |
 | PP-7 | 1 |
 | PP-9 | 1 |
+| unassigned | 4 |
 
 ## M6-B (52)
 
@@ -306,14 +306,6 @@ Total entries: 195 across 30 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startButton` | Stand-in until PP-12 for the START button branch of `PlayerPhase_MainIdle` (the minimap, `Proc_Goto(proc, 9)`); runs when START is new and SELECT is not held and the A branch did not run; returns t... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startMapMenu` | Stand-in until PP-12 for `StartOrphanMenuAdjusted(&gMapMenuDef, ...)` and `sub_80832CC` (the map menu); gets `gBmSt.cursorTarget.x - gBmSt.camera.x`. |
 
-## PP-15 (3)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `endUnitDisplay` | Stand-in until PP-15 for `Proc_EndEach` of `gProcScr_UnitDisplay_MinimugBox` and `gProcScr_UnitDisplay_Burst`. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `startUnitDisplay` | Stand-in until PP-15 for the `unitDisplayType` branches of `InitPlayerPhaseInterface`: starts `gProcScr_UnitDisplay_MinimugBox` or `gProcScr_UnitDisplay_Burst` in tree 3. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `unitDisplayWindowQuadrant` | Stand-in until PP-15 for `Proc_Find(gProcScr_UnitDisplay_MinimugBox)`: its `windowQuadrant`, or [NO_WINDOW] where the proc does not exist. |
-
 ## PP-16 (3)
 
 | Kotlin file | Declaration | Stand-in |
@@ -322,11 +314,13 @@ Total entries: 195 across 30 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `goalDisplayWindowQuadrant` | Stand-in until PP-16 for `Proc_Find(gProcScr_GoalDisplay)`: its `windowQuadrant`, or [NO_WINDOW] where the proc does not exist. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `startGoalDisplay` | Stand-in until PP-16 for the goal branch of `InitPlayerPhaseInterface`: starts `gProcScr_GoalDisplay` in tree 3 if the config and `EVFLAG_OBJWINDOW_DISABLE` allow it. |
 
-## PP-17 (3)
+## PP-17 (5)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `terrainAt` | Stand-in for `gBmMapTerrain[y][x]` until PP-17 wires the map. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `unitIdAt` | Stand-in for `gBmMapUnit[y][x]` until PP-17 wires the map. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `unitMaxHp` | Stand-in for `GetUnitMaxHp` (bmunit.c) until PP-17 wires `UnitLoader`: the default is the unit's `maxHP` byte (without the equipped weapon's bonus). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayUnitEffectRange` | Partially ported from src/playerphase.c: DisplayUnitEffectRange Floods `gBmMapMovement` from the active unit with `UNIT_MOV - moveCount` ([MovementMap.generateUnitMovementMapExt]; the C ignores its... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `generateAttackRange` | Stand-in until PP-17 for the part of `DisplayUnitEffectRange` that runs while the unit has not moved (`AttackRange.generateUnitCompleteAttackRange` is ported, but `GetUnitWeaponUsabilityBits` and `... |
 
@@ -353,3 +347,12 @@ Total entries: 195 across 30 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | `DisplayFrozenUiHand`: stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
+
+## unassigned (4)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `endBurstDisplay` | Stand-in until a capture shows the Burst unit display for its `Proc_EndEach`. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `putUnitMapUiStatus` | Stand-in until a capture shows a unit with a status for `PutUnitMapUiStatus` (bmunit status icon text into the window's status cells). |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `startBurstDisplay` | Stand-in until a capture shows the Burst unit display (`unitDisplayType` 1) for `Proc_Start(gProcScr_UnitDisplay_Burst)`. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `unitMapUiUpdate` | Ported from src/player_interface.c: UnitMapUiUpdate (the status branch is not verified: no reference run hovers a unit for 64 frames; it calls the [Hooks.putUnitMapUiStatus] stand-in. |

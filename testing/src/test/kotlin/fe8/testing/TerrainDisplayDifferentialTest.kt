@@ -6,11 +6,13 @@ import fe8.game.bm.CamMove
 import fe8.game.bm.PlaySt
 import fe8.game.bm.PlayerInterface
 import fe8.game.bm.PlayerInterfaceState
+import fe8.game.bm.UnitTable
 import fe8.game.text.Fe8Text
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
 import gbafe.proc.ProcEngine
 import gbafe.render.BgHardware
+import gbafe.render.OamBuffer
 import gbafe.text.MsgHuffman
 import gbafe.text.MsgStrings
 import gbafe.text.TextHost
@@ -132,6 +134,8 @@ class TerrainDisplayDifferentialTest {
         val hw = BgHardware()
         val text = TextSystem(romBytes, HwVramHost(hw.vram), Fe8Text.CONFIG)
         val bm = BmSt()
+        val units = UnitTable(rom)
+        val oam = OamBuffer()
         val playSt = PlaySt()
         val camMove = CamMove(engine, bm)
         val pi: PlayerInterface
@@ -149,12 +153,14 @@ class TerrainDisplayDifferentialTest {
             val messages = MsgStrings(
                 romBytes, MsgHuffman(romBytes, 0x0815A72C - ROM_BASE, root), 0x0815D48C - ROM_BASE,
             )
-            pi = PlayerInterface(engine, bm, playSt, rom, hw, text, messages, camMove.script)
+            pi = PlayerInterface(engine, bm, playSt, units, rom, hw, oam, text, messages, camMove.script)
             val e = ewram(seedFrame)
             playSt.decode(e, PLAY_ST - EWRAM)
             seedRam = e
             pi.hooks.terrainAt = { x, y -> terrainAt(x, y) }
-            pi.hooks.unitDisplayWindowQuadrant = { otherQuadrant(MINIMUG_SCRIPT) }
+            units.loadFrom(e)
+            pi.hooks.unitIdAt = { x, y -> unitIdAt(x, y) }
+            pi.newUnitWindowResidue = 3
             pi.hooks.goalDisplayWindowQuadrant = { otherQuadrant(GOAL_SCRIPT) }
             for (bg in 0..1) {
                 val at = (if (bg == 0) BG0_BUFFER else BG1_BUFFER) - EWRAM
@@ -190,6 +196,14 @@ class TerrainDisplayDifferentialTest {
             return ewram(previous)[PROC_ARRAY - EWRAM + slot * PROC_SIZE + 0x57].toInt()
         }
 
+        /** `gBmMapUnit[y][x]` in this pass's dump. */
+        private fun unitIdAt(x: Int, y: Int): Int {
+            val e = ewram(current)
+            val table = u32(e, GBM_MAP_UNIT - EWRAM) - EWRAM
+            val row = u32(e, table + 4 * y) - EWRAM
+            return e[row + x].toInt() and 0xFF
+        }
+
         private fun slotOf(e: ByteArray, script: Int): Int {
             for (slot in 0 until 64) {
                 if (u32(e, PROC_ARRAY - EWRAM + slot * PROC_SIZE) == script) return slot
@@ -202,6 +216,8 @@ class TerrainDisplayDifferentialTest {
             previous = if (first) seedFrame else f - 1
             first = false
             bm.decode(ewram(f), BM_ST - EWRAM)
+            units.loadFrom(ewram(f))
+            oam.syncHi()
             for (t in 0 until 8) engine.run(engine.root(t))
             compare(f)
         }
@@ -339,6 +355,7 @@ class TerrainDisplayDifferentialTest {
         const val BM_ST = 0x0202BCB0
         const val PLAY_ST = 0x0202BCF0
         const val GBM_MAP_TERRAIN = 0x0202E4DC
+        const val GBM_MAP_UNIT = 0x0202E4D8
         const val LCD_BUFFER = 0x03003080
         const val PROC_ARRAY = 0x02024E68
         const val PROC_SIZE = 0x6C

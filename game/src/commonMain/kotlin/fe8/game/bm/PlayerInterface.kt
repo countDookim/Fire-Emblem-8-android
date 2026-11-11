@@ -19,6 +19,7 @@ import gbafe.proc.ProcScripts.whileTrue
 import gbafe.proc.ProcScripts.yield
 import gbafe.render.BgHardware
 import gbafe.render.LcdControl
+import gbafe.render.OamBuffer
 import gbafe.text.MsgStrings
 import gbafe.text.Text
 import gbafe.text.TextSystem
@@ -82,6 +83,30 @@ public class PlayerInterfaceState {
 
     /** `showHideClock` (0x58): frame counter of the slide in or out. */
     public var showHideClock: Int = 0
+
+    /** `statusTm` (0x40): entry index in the BG0 scratch of the unit window's status cells. */
+    public var statusTm: Int = 0
+
+    /** `unitClock` (s16, 0x44): frames since the unit window drew its unit. */
+    public var unitClock: Int = 0
+
+    /** `xHp` (s16, 0x46): tile column of the unit window's HP digits. */
+    public var xHp: Int = 0
+
+    /** `yHp` (s16, 0x48): tile row of the unit window's HP digits. */
+    public var yHp: Int = 0
+
+    /** `hpCurHi` (u8, 0x51): tens digit of the current HP (0xF0 for a blank). */
+    public var hpCurHi: Int = 0
+
+    /** `hpCurLo` (u8, 0x52): units digit of the current HP. */
+    public var hpCurLo: Int = 0
+
+    /** `hpMaxHi` (u8, 0x53): tens digit of the maximum HP (0xF0 for a blank). */
+    public var hpMaxHi: Int = 0
+
+    /** `hpMaxLo` (u8, 0x54): units digit of the maximum HP. */
+    public var hpMaxLo: Int = 0
 }
 
 /**
@@ -98,8 +123,10 @@ public class PlayerInterface(
     private val engine: ProcEngine,
     private val bm: BmSt,
     private val playSt: PlaySt,
+    private val units: UnitTable,
     private val rom: RomView,
     private val hw: BgHardware,
+    private val oam: OamBuffer,
     private val text: TextSystem,
     private val messages: MsgStrings,
     /** `ProcScr_CamMove`: the side windows wait while it exists. */
@@ -118,23 +145,31 @@ public class PlayerInterface(
         /** Stand-in for `GetObstacleHpAt` (bmtrick.c) until M6-H. */
         public var obstacleHpAt: (x: Int, y: Int) -> Int = { _, _ -> 0 }
 
-        /**
-         * Stand-in until PP-15 for the `unitDisplayType` branches of `InitPlayerPhaseInterface`:
-         * starts `gProcScr_UnitDisplay_MinimugBox` or `gProcScr_UnitDisplay_Burst` in tree 3.
-         */
-        public var startUnitDisplay: () -> Unit = {}
+        /** Stand-in for `gBmMapUnit[y][x]` until PP-17 wires the map. */
+        public var unitIdAt: (x: Int, y: Int) -> Int = { _, _ -> 0 }
 
         /**
-         * Stand-in until PP-15 for `Proc_EndEach` of `gProcScr_UnitDisplay_MinimugBox` and
-         * `gProcScr_UnitDisplay_Burst`.
+         * Stand-in for `GetUnitMaxHp` (bmunit.c) until PP-17 wires `UnitLoader`: the default is
+         * the unit's `maxHP` byte (without the equipped weapon's bonus). The argument is the
+         * unit's byte offset in [UnitTable.bytes].
          */
-        public var endUnitDisplay: () -> Unit = {}
+        public var unitMaxHp: (unitOffset: Int) -> Int = { 0 }
 
         /**
-         * Stand-in until PP-15 for `Proc_Find(gProcScr_UnitDisplay_MinimugBox)`: its
-         * `windowQuadrant`, or [NO_WINDOW] where the proc does not exist.
+         * Stand-in until a capture shows the Burst unit display (`unitDisplayType` 1) for
+         * `Proc_Start(gProcScr_UnitDisplay_Burst)`.
          */
-        public var unitDisplayWindowQuadrant: () -> Int = { NO_WINDOW }
+        public var startBurstDisplay: () -> Unit = {}
+
+        /** Stand-in until a capture shows the Burst unit display for its `Proc_EndEach`. */
+        public var endBurstDisplay: () -> Unit = {}
+
+        /**
+         * Stand-in until a capture shows a unit with a status for `PutUnitMapUiStatus`
+         * (bmunit status icon text into the window's status cells).
+         */
+        public var putUnitMapUiStatus: (state: PlayerInterfaceState, unitOffset: Int) -> Unit =
+            { _, _ -> }
 
         /**
          * Stand-in until PP-16 for the goal branch of `InitPlayerPhaseInterface`: starts
@@ -163,6 +198,18 @@ public class PlayerInterface(
 
     /** Host services. */
     public val hooks: Hooks = Hooks()
+
+    /**
+     * The `windowQuadrant` a new unit window proc holds before its `MMB_Init` has run. The
+     * original's `Proc_Start` leaves the old contents of the proc slot there, and the terrain
+     * window's first pass reads it. In the reference runs the slot had held a terrain window
+     * (quadrant 3); the default is [NO_WINDOW].
+     */
+    public var newUnitWindowResidue: Int = NO_WINDOW
+
+    init {
+        hooks.unitMaxHp = { StructCodec.s8(units.bytes, it + UNIT_MAX_HP) }
+    }
 
     /** `gNumberStr`: the digits of the number being drawn, space padded on the left. */
     private val numberStr = ByteArray(NUMBER_STR_SIZE)
@@ -193,6 +240,37 @@ public class PlayerInterface(
         ),
         ::PlayerInterfaceState,
     )
+
+    private val mmbInitFn = ProcFunc { mmbInit(it) }
+    private val mmbSideChangeFn = ProcFunc { mmbOnSideChange(it) }
+    private val mmbSlideInFn = ProcFunc { mmbSlideIn(it) }
+    private val mmbDisplayFn = ProcFunc { mmbDisplay(it) }
+    private val mmbSlideOutFn = ProcFunc { mmbSlideOut(it) }
+    private val mmbCheckFn = ProcFunc { mmbCheckForUnit(it) }
+
+    /** `gProcScr_UnitDisplay_MinimugBox` (0x08A0190C). */
+    public val minimugScript: ProcScript = ProcScript(
+        "gProcScr_UnitDisplay_MinimugBox",
+        listOf(
+            name("UI1"),
+            proc15,
+            yield(),
+            call(mmbInitFn),
+            label(0),
+            whileExists { camMoveScript },
+            repeat(mmbSideChangeFn),
+            repeat(mmbSlideInFn),
+            label(2),
+            repeat(mmbDisplayFn),
+            label(3),
+            repeat(mmbSlideOutFn),
+            goto(0),
+            label(1),
+            call(mmbCheckFn),
+            goto(2),
+            end(),
+        ),
+    ) { PlayerInterfaceState().also { it.windowQuadrant = newUnitWindowResidue } }
 
     /** `gProcScr_SideWindowMaker` (0x08A019C4). */
     public val sideWindowMakerScript: ProcScript = ProcScript(
@@ -329,7 +407,8 @@ public class PlayerInterface(
             CONFIG[state.cursorQuadrant * CONFIG_STRIDE + CONFIG_Y_TERRAIN],
         )
 
-        val unitQuadrant = hooks.unitDisplayWindowQuadrant()
+        val unitProc = engine.find(minimugScript)
+        val unitQuadrant = if (unitProc == null) NO_WINDOW else stateOf(unitProc).windowQuadrant
         if (unitQuadrant > NO_WINDOW && unitQuadrant == quadrant) return
         val goalQuadrant = hooks.goalDisplayWindowQuadrant()
         if (goalQuadrant > NO_WINDOW && goalQuadrant == quadrant) return
@@ -508,7 +587,8 @@ public class PlayerInterface(
         } else {
             hooks.startGoalDisplay()
         }
-        hooks.startUnitDisplay()
+        if (playSt.unitDisplayType == 0) engine.start(minimugScript, PROC_TREE_3)
+        if (playSt.unitDisplayType == 1) hooks.startBurstDisplay()
     }
 
     /**
@@ -527,7 +607,8 @@ public class PlayerInterface(
      * BG1.
      */
     public fun endPlayerPhaseSideWindows() {
-        hooks.endUnitDisplay()
+        engine.endEach(minimugScript)
+        hooks.endBurstDisplay()
         engine.endEach(terrainScript)
         hooks.endGoalDisplay()
         hooks.endPrepMenuButtonDisplay()
@@ -537,6 +618,461 @@ public class PlayerInterface(
         hw.mapBuffer(0).fill(0)
         hw.mapBuffer(1).fill(0)
         hw.enableBgSyncByMask(BG0_SYNC_BIT or BG1_SYNC_BIT)
+    }
+
+    /** `GetUnit(gBmMapUnit[cursor.y][cursor.x])` as a byte offset in [UnitTable.bytes], or -1. */
+    private fun unitAtCursor(): Int =
+        units.unitOffset(hooks.unitIdAt(bm.playerCursorX, bm.playerCursorY))
+
+    private fun unitCurrentHp(o: Int): Int = StructCodec.s8(units.bytes, o + UNIT_CUR_HP)
+
+    private fun unitStatusIndex(o: Int): Int =
+        if (o < 0) 0 else StructCodec.u8(units.bytes, o + UNIT_STATUS) and 0xF
+
+    private fun mmbConfig(state: PlayerInterfaceState, field: Int): Int =
+        CONFIG[state.cursorQuadrant * CONFIG_STRIDE + field]
+
+    /**
+     * Ported from src/player_interface.c: GetHpBarLeftTile
+     *
+     * Writes the left end tile of the HP bar to [tm] at [at]: [tileBase] plus [hp] (at most 5).
+     */
+    public fun getHpBarLeftTile(tm: ShortArray, at: Int, hp: Int, tileBase: Int) {
+        tm[at] = (minOf(hp, 5) + tileBase).toShort()
+    }
+
+    /**
+     * Ported from src/player_interface.c: GetHpBarMidTiles
+     *
+     * Writes the five middle tiles of the HP bar at [at]. Each tile holds 8 of the bar's 50
+     * steps: a full tile for each whole 8 of [hp], then a partial tile showing the remaining
+     * `hp & 7` steps, then empty tiles.
+     */
+    public fun getHpBarMidTiles(tm: ShortArray, at: Int, hp: Int, tileBase: Int) {
+        val hpEighth = hp shr 3
+        val eighthTileIdx = hp and 7
+        for (i in 0 until 5) {
+            val fullTileIdx = tileBase + 14
+            val emptyTileIdx = tileBase + 6
+            tm[at + i] = when {
+                i < hpEighth -> fullTileIdx
+                i == hpEighth -> emptyTileIdx + eighthTileIdx
+                else -> emptyTileIdx
+            }.toShort()
+        }
+    }
+
+    /**
+     * Ported from src/player_interface.c: GetHpBarRightTile
+     *
+     * Writes the right end tile of the HP bar at [at]: `tileBase + 15` plus [hp] clamped to 0..5.
+     */
+    public fun getHpBarRightTile(tm: ShortArray, at: Int, hp: Int, tileBase: Int) {
+        tm[at] = (tileBase + 15 + hp.coerceIn(0, 5)).toShort()
+    }
+
+    /**
+     * Ported from src/player_interface.c: DrawHpBar
+     *
+     * Draws the seven tiles of the HP bar of the unit at byte offset [unitOffset] at [at] of
+     * [tm]: the current HP scaled to 0..50 steps of the maximum (`50 * hp / maxHp`), split over
+     * the left end (first 5 steps), the middle (the next 40) and the right end (the last 5).
+     */
+    public fun drawHpBar(tm: ShortArray, at: Int, unitOffset: Int, tileBase: Int) {
+        val hpCurrent = (50 * unitCurrentHp(unitOffset)).toShort().toInt()
+        val hpPercent = (hpCurrent / hooks.unitMaxHp(unitOffset)).toShort().toInt()
+        getHpBarLeftTile(tm, at, hpPercent, tileBase)
+        getHpBarMidTiles(tm, at + 1, hpPercent - 5, tileBase)
+        getHpBarRightTile(tm, at + 6, hpPercent - 45, tileBase)
+    }
+
+    /**
+     * Ported from src/player_interface.c: ApplyUnitMapUiFramePal
+     * (the unknown-faction branch is not verified: a unit's faction is blue, green or red)
+     *
+     * Loads the window frame palette of [faction] (0 blue, 0x40 green, 0x80 red) into BG
+     * palette bank [palId].
+     */
+    public fun applyUnitMapUiFramePal(faction: Int, palId: Int) {
+        val pal = when (faction) {
+            FACTION_BLUE -> PAL_INTERFACE_BLUE
+            FACTION_RED -> PAL_INTERFACE_RED
+            FACTION_GREEN -> PAL_INTERFACE_GREEN
+            else -> return
+        }
+        rom.pal(pal, 16).copyInto(hw.palette, palId * 16)
+        hw.enablePaletteSync()
+    }
+
+    /**
+     * Ported from src/player_interface.c: ClearUnitMapUiStatus
+     *
+     * Writes the seven status cells at [at] of [tm] for a unit without a status shown: the HP
+     * label tiles, blanks, and the "/" tile.
+     */
+    public fun clearUnitMapUiStatus(tm: ShortArray, at: Int) {
+        tm[at] = 0x2120
+        tm[at + 1] = 0x2121
+        tm[at + 2] = 0
+        tm[at + 3] = 0
+        tm[at + 4] = 0x213E
+        tm[at + 5] = 0
+        tm[at + 6] = 0
+    }
+
+    /**
+     * Ported from src/player_interface.c: UnitMapUiUpdate
+     * (the status branch is not verified: no reference run hovers a unit for 64 frames; it calls
+     * the [Hooks.putUnitMapUiStatus] stand-in. A [unitOffset] of -1 stands for the NULL unit the
+     * original passes when the cursor is on an empty tile: its status byte is read as 0)
+     *
+     * Every 64 frames of [PlayerInterfaceState.unitClock] it refreshes the window's status cells
+     * (the HP digits at clock 0 mod 128, the status at 64 mod 128); then, unless the window's
+     * contents are hidden, pushes the four HP digit sprites (current and maximum HP, a tens
+     * digit left blank when 0).
+     */
+    public fun unitMapUiUpdate(state: PlayerInterfaceState, unitOffset: Int) {
+        var frameCount = state.unitClock
+        if (unitStatusIndex(unitOffset) == UNIT_STATUS_RECOVER) frameCount = 0
+
+        if (frameCount and 63 == 0) {
+            if (frameCount and 64 != 0) {
+                hooks.putUnitMapUiStatus(state, unitOffset)
+                hw.enableBgSyncByMask(BG0_SYNC_BIT)
+            } else {
+                val cur = unitCurrentHp(unitOffset)
+                storeNumberStringOrDashes(if (cur >= 100) 0xFF else cur)
+                state.hpCurHi = (numberStr[6] - ZERO_CHAR) and 0xFF
+                state.hpCurLo = (numberStr[7] - ZERO_CHAR) and 0xFF
+                val max = hooks.unitMaxHp(unitOffset)
+                storeNumberStringOrDashes(if (max >= 100) 0xFF else max)
+                state.hpMaxHi = (numberStr[6] - ZERO_CHAR) and 0xFF
+                state.hpMaxLo = (numberStr[7] - ZERO_CHAR) and 0xFF
+                clearUnitMapUiStatus(scratch.a, state.statusTm)
+                hw.enableBgSyncByMask(BG0_SYNC_BIT)
+            }
+        }
+
+        if (!state.hideContents &&
+            (frameCount and 64 == 0 || unitStatusIndex(unitOffset) == UNIT_STATUS_NONE)
+        ) {
+            val xDigits = state.xHp * 8
+            val yDigits = state.yHp * 8
+            val digits = object8x8
+            if (state.hpCurHi != BLANK_DIGIT) {
+                oam.putHi(xDigits + 17, yDigits, digits, state.hpCurHi + DIGIT_OAM2)
+            }
+            oam.putHi(xDigits + 24, yDigits, digits, state.hpCurLo + DIGIT_OAM2)
+            if (state.hpMaxHi != BLANK_DIGIT) {
+                oam.putHi(xDigits + 41, yDigits, digits, state.hpMaxHi + DIGIT_OAM2)
+            }
+            oam.putHi(xDigits + 48, yDigits, digits, state.hpMaxLo + DIGIT_OAM2)
+        }
+    }
+
+    /**
+     * Ported from src/face.c: PutFaceTm
+     * (the flipped branch is not verified: the window never flips the face)
+     *
+     * Writes a face tilemap of [dataAddr] (width, height, then one tile number per cell; 0xFF
+     * leaves the cell alone) to [tm] at [at], adding [tileRef] to each tile.
+     */
+    public fun putFaceTm(tm: ShortArray, at: Int, dataAddr: Int, tileRef: Int, isFlipped: Boolean) {
+        val width = rom.u8(dataAddr)
+        val height = rom.u8(dataAddr + 1)
+        var it = dataAddr + 2
+        for (iy in 0 until height) {
+            val cols = if (isFlipped) width - 1 downTo 0 else 0 until width
+            for (ix in cols) {
+                val v = rom.u8(it++)
+                if (v == 0xFF) continue
+                tm[at + iy * TM_STRIDE + ix] = (v + tileRef).toShort()
+            }
+        }
+    }
+
+    /**
+     * Ported from src/face.c: UnpackFaceChibiGraphics
+     * (the faction chibi branch, a portrait id from 0x7F00, is not verified)
+     *
+     * Loads the 4x4-tile mini portrait [fid] to BG tile [chr] and its palette to bank [pal].
+     */
+    public fun unpackFaceChibiGraphics(fid: Int, chr: Int, pal: Int) {
+        if (fid >= FID_FACTION_CHIBI) {
+            val kind = fid - FID_FACTION_CHIBI
+            val src = FACTION_CHIBI_IMAGES[kind]
+            val dst = (chr * CHR_SIZE) and 0x1FFFF
+            for (i in 0 until 0x200) hw.vram[dst + i] = rom.u8(src + i).toByte()
+            rom.pal(FACTION_CHIBI_PALETTES[kind], 16).copyInto(hw.palette, pal * 16)
+        } else {
+            val info = PORTRAIT_DATA + (fid - 1) * PORTRAIT_SIZE
+            rom.decompressInto(rom.u32(info + 4), hw.vram, chr * CHR_SIZE)
+            rom.pal(rom.u32(info + 8), 16).copyInto(hw.palette, pal * 16)
+        }
+        hw.enablePaletteSync()
+    }
+
+    /**
+     * Ported from src/face.c: PutFaceChibi
+     *
+     * Loads the mini portrait [fid] (tiles from [chr], palette bank [pal]) and writes its 4x4
+     * tilemap to [tm] at [at].
+     */
+    public fun putFaceChibi(tm: ShortArray, at: Int, fid: Int, chr: Int, pal: Int) {
+        unpackFaceChibiGraphics(fid, chr, pal)
+        putFaceTm(tm, at, FACE_CHIBI_TM, (chr and 0x3FF) + (pal shl 12), false)
+    }
+
+    /**
+     * Ported from src/player_interface.c: DrawUnitMapUi
+     *
+     * Draws the unit window for the unit at [unitOffset] into [scratch]: the name centred in
+     * black, the mini portrait (tile 0xF0, palette bank 4), the status cells and HP digits
+     * (through [unitMapUiUpdate]), the HP bar, the frame (BG1) with the faction palette in
+     * bank 3. Resets the unit clock and places the HP digits by the window's corner.
+     */
+    public fun drawUnitMapUi(state: PlayerInterfaceState, unitOffset: Int) {
+        val a = scratch.a
+        a.fill(0, 0, 6 * CHR_SIZE)
+
+        val character = StructCodec.u32(units.bytes, unitOffset + UNIT_CHARACTER)
+        val str = messages.getStringFromIndex(rom.u16(character))
+        val name = state.text
+        text.clearText(name)
+        name.x = text.getStringTextCenteredPos(56, str)
+        name.colorId = TEXT_COLOR_SYSTEM_BLACK
+        text.drawString(name, str)
+        text.putText(name, a, tmIndex(5, 1))
+
+        var faceId = unitMiniPortraitId(unitOffset, character)
+        if (StructCodec.u32(units.bytes, unitOffset + UNIT_STATE) and US_BIT23 != 0) faceId++
+        putFaceChibi(a, tmIndex(1, 1), faceId, 0xF0, 4)
+
+        state.statusTm = tmIndex(5, 3)
+        state.unitClock = 0
+        state.xHp = if (mmbConfig(state, CONFIG_X_MINIMUG) < 0) 5 else 23
+        state.yHp = if (mmbConfig(state, CONFIG_Y_MINIMUG) < 0) 3 else 17
+
+        unitMapUiUpdate(state, unitOffset)
+        drawHpBar(a, tmIndex(5, 4), unitOffset, 0x1140)
+
+        fillTsa(scratch.b, 0, TSA_MINIMUG_BOX, 0x3000)
+        applyUnitMapUiFramePal(StructCodec.s8(units.bytes, unitOffset + UNIT_INDEX) and 0xC0, 3)
+    }
+
+    /** `GetUnitMiniPortraitId` (bmunit.c, inline) for the unit at [o] of data [character]. */
+    private fun unitMiniPortraitId(o: Int, character: Int): Int {
+        if (rom.u8(character + 8) != 0) return FID_FACTION_CHIBI + rom.u8(character + 8)
+        val portrait = rom.u16(character + 6)
+        if (portrait != 0) {
+            return if (playSt.chapterIndex == 0x22 && portrait == 0x4A) 0x46 else portrait
+        }
+        val classData = StructCodec.u32(units.bytes, o + UNIT_CLASS)
+        return rom.u16(classData + 8)
+    }
+
+    /**
+     * Ported from src/player_interface.c: MMB_Init
+     *
+     * Starts the unit window without a position and reserves its double-buffered text strip of
+     * 7 tiles in the active font.
+     */
+    public fun mmbInit(proc: Proc) {
+        val state = stateOf(proc)
+        state.windowQuadrant = NO_WINDOW
+        val font = text.activeFont
+        val name = state.text
+        name.chrPosition = font.chrCounter
+        name.tileWidth = MMB_TEXT_TILES
+        name.dbId = 0
+        name.dbEnabled = true
+        name.isPrinting = false
+        font.chrCounter += MMB_TEXT_TILES * 2
+        state.showHideClock = 0
+        state.isRetracting = false
+    }
+
+    /**
+     * Ported from src/player_interface.c: MMB_Loop_OnSideChange
+     *
+     * Waits while the cursor is on an empty tile. Otherwise picks the window's corner from the
+     * cursor's quadrant; if the terrain window holds it, waits; else draws the unit window, notes
+     * the cursor and moves on to the slide in.
+     */
+    public fun mmbOnSideChange(proc: Proc) {
+        val state = stateOf(proc)
+        val unit = unitAtCursor()
+        if (unit < 0) return
+
+        state.hideContents = true
+        state.cursorQuadrant = getCursorQuadrant()
+        val quadrant = getWindowQuadrant(
+            mmbConfig(state, CONFIG_X_MINIMUG),
+            mmbConfig(state, CONFIG_Y_MINIMUG),
+        )
+
+        val terrainProc = engine.find(terrainScript)
+        if (terrainProc != null) {
+            val terrainQuadrant = stateOf(terrainProc).windowQuadrant
+            if (terrainQuadrant > NO_WINDOW && terrainQuadrant == quadrant) return
+        }
+
+        state.windowQuadrant = quadrant
+        state.xCursor = bm.playerCursorX
+        state.yCursor = bm.playerCursorY
+        drawUnitMapUi(state, unit)
+        engine.breakProc(proc)
+    }
+
+    private fun mmbClearStrip(state: PlayerInterfaceState, y: Int) {
+        val left = mmbConfig(state, CONFIG_X_MINIMUG) < 0
+        val at = if (left) tmIndex(0, y) else tmIndex(17, 0) + tmIndex(0, y)
+        fillRect(hw.mapBuffer(0), at, MMB_WIDTH, MMB_HEIGHT, 0)
+        fillRect(hw.mapBuffer(1), at, MMB_WIDTH, MMB_HEIGHT, 0)
+        hw.enableBgSyncByMask(BG0_SYNC_BIT or BG1_SYNC_BIT)
+    }
+
+    private fun mmbCopyStrip(state: PlayerInterfaceState, y: Int, width: Int) {
+        val bg0 = hw.mapBuffer(0)
+        val bg1 = hw.mapBuffer(1)
+        if (mmbConfig(state, CONFIG_X_MINIMUG) < 0) {
+            copyRect(scratch.a, MMB_WIDTH - width, bg0, tmIndex(0, y), width, MMB_HEIGHT)
+            copyRect(scratch.b, MMB_WIDTH - width, bg1, tmIndex(0, y), width, MMB_HEIGHT)
+        } else {
+            copyRect(scratch.a, 0, bg0, tmIndex(30 - width, y), width, MMB_HEIGHT)
+            copyRect(scratch.b, 0, bg1, tmIndex(30 - width, y), width, MMB_HEIGHT)
+        }
+    }
+
+    /**
+     * Ported from src/player_interface.c: MMB_Loop_SlideIn
+     *
+     * One frame of the slide in: clears the window's 13x6 strip of BG0 and BG1 (top or bottom,
+     * left or right as the quadrant says) and copies the last 5, 9, 11 and 13 columns of the
+     * window from [scratch]; after the fourth frame it shows the contents, ends the step and
+     * refreshes the HP digits.
+     */
+    public fun mmbSlideIn(proc: Proc) {
+        val state = stateOf(proc)
+        val y = if (mmbConfig(state, CONFIG_Y_MINIMUG) < 0) 0 else MMB_BOTTOM_Y
+        mmbClearStrip(state, y)
+        mmbCopyStrip(state, y, MMB_SLIDE_IN_WIDTH[state.showHideClock])
+
+        state.showHideClock++
+        if (state.showHideClock == 4) {
+            state.hideContents = false
+            state.showHideClock = 0
+            engine.breakProc(proc)
+            unitMapUiUpdate(state, unitAtCursor())
+        }
+    }
+
+    /**
+     * Ported from src/player_interface.c: MMB_Loop_SlideOut
+     *
+     * One frame of the slide out: the same strip clear, then the window narrowed to 11, 7 and 0
+     * columns. After the third frame the window has no position (`windowQuadrant` -1) and the
+     * step ends.
+     */
+    public fun mmbSlideOut(proc: Proc) {
+        val state = stateOf(proc)
+        val y = if (mmbConfig(state, CONFIG_Y_MINIMUG) < 0) 0 else MMB_BOTTOM_Y
+        state.hideContents = true
+        mmbClearStrip(state, y)
+        mmbCopyStrip(state, y, MMB_SLIDE_OUT_WIDTH[state.showHideClock])
+
+        state.showHideClock++
+        if (state.showHideClock == 3) {
+            state.isRetracting = false
+            state.showHideClock = 0
+            state.windowQuadrant = NO_WINDOW
+            engine.breakProc(proc)
+        }
+    }
+
+    /**
+     * Transcribed from src/player_interface.c: sub_808C234
+     * (not verified: only `MMB_CheckForUnit` and every 64th unit-clock frame call it)
+     *
+     * Copies the 13x6 window from the BG0 scratch to its corner of BG0 and flags BG0 and BG1 for
+     * sync.
+     */
+    public fun copyUnitWindowToBg0(state: PlayerInterfaceState) {
+        val x = if (mmbConfig(state, CONFIG_X_MINIMUG) < 0) 0 else MMB_RIGHT_X
+        val y = if (mmbConfig(state, CONFIG_Y_MINIMUG) < 0) 0 else MMB_BOTTOM_Y
+        copyRect(scratch.a, 0, hw.mapBuffer(0), tmIndex(x, y), MMB_WIDTH, MMB_HEIGHT)
+        hw.enableBgSyncByMask(BG0_SYNC_BIT or BG1_SYNC_BIT)
+    }
+
+    /**
+     * Ported from src/player_interface.c: MMB_Loop_Display
+     * (the same-quadrant branch, `Proc_Goto` to the redraw, is not verified: the cursor leaves
+     * the unit for an empty tile in every reference run)
+     *
+     * Steady state: counts the unit clock and refreshes the HP digits (every 64th frame also
+     * recopies the window). When the cursor has moved: onto a unit within the same corner it
+     * redraws (label 1); any other move starts the slide out.
+     */
+    public fun mmbDisplay(proc: Proc) {
+        val state = stateOf(proc)
+        val unit = unitAtCursor()
+
+        state.unitClock++
+        unitMapUiUpdate(state, unit)
+        if (state.unitClock and 63 == 0) copyUnitWindowToBg0(state)
+
+        state.xCursorPrev = state.xCursor
+        state.yCursorPrev = state.yCursor
+        state.xCursor = bm.playerCursorX
+        state.yCursor = bm.playerCursorY
+
+        if (state.xCursor == state.xCursorPrev && state.yCursor == state.yCursorPrev) return
+
+        if (unit >= 0 && engine.find(camMoveScript) == null) {
+            val cursorQuadrant = getCursorQuadrant()
+            val own = state.cursorQuadrant * CONFIG_STRIDE
+            val now = cursorQuadrant * CONFIG_STRIDE
+            if (cursorQuadrant == state.cursorQuadrant ||
+                (CONFIG[now + CONFIG_X_MINIMUG] == CONFIG[own + CONFIG_X_MINIMUG] &&
+                    CONFIG[now + CONFIG_Y_MINIMUG] == CONFIG[own + CONFIG_Y_MINIMUG])
+            ) {
+                engine.goto(proc, 1)
+                return
+            }
+        }
+
+        state.isRetracting = true
+        engine.breakProc(proc)
+    }
+
+    /**
+     * Transcribed from src/player_interface.c: MMB_CheckForUnit
+     * (not verified: reached only through the unverified branch of [mmbDisplay])
+     *
+     * Redraws the window for the unit under the cursor and recopies it, or, with none, goes to
+     * label 3 (the slide out).
+     */
+    public fun mmbCheckForUnit(proc: Proc) {
+        val state = stateOf(proc)
+        val unit = unitAtCursor()
+        if (unit < 0) {
+            engine.goto(proc, 3)
+        } else {
+            drawUnitMapUi(state, unit)
+            copyUnitWindowToBg0(state)
+        }
+    }
+
+    /** `StoreNumberStringOrDashesToSmallBuffer`: 255 or -1 become `::`. */
+    private fun storeNumberStringOrDashes(n: Int) {
+        numberStr.fill(SPACE, 0, 8)
+        numberStr[8] = 0
+        if (n == 255 || n == -1) {
+            numberStr[7] = ':'.code.toByte()
+            numberStr[6] = ':'.code.toByte()
+        } else {
+            storeDigits(n)
+        }
     }
 
     private fun tmIndex(x: Int, y: Int): Int = y * TM_STRIDE + x
@@ -581,12 +1117,7 @@ public class PlayerInterface(
     private fun putNumber(tm: ShortArray, at: Int, n: Int) {
         numberStr.fill(SPACE, 0, 8)
         numberStr[8] = 0
-        var rest = n
-        for (i in 7 downTo 0) {
-            numberStr[i] = (ZERO_CHAR + rest % 10).toByte()
-            rest /= 10
-            if (rest == 0) break
-        }
+        storeDigits(n)
         tm[at] = 0
         tm[at - 1] = 0
         var out = at
@@ -596,6 +1127,18 @@ public class PlayerInterface(
             src--
         }
     }
+
+    /** The digit loop of `StoreNumberStringToSmallBuffer` (C `%` and `/`), from the right. */
+    private fun storeDigits(n: Int) {
+        var rest = n
+        for (i in 7 downTo 0) {
+            numberStr[i] = (ZERO_CHAR + rest % 10).toByte()
+            rest /= 10
+            if (rest == 0) break
+        }
+    }
+
+    private val object8x8: ShortArray by lazy { rom.objN(OBJECT_8X8).data }
 
     /** Constants. */
     public companion object {
@@ -652,6 +1195,51 @@ public class PlayerInterface(
         private const val CONFIG_STRIDE = 6
         private const val CONFIG_X_TERRAIN = 0
         private const val CONFIG_Y_TERRAIN = 1
+        private const val CONFIG_X_MINIMUG = 2
+        private const val CONFIG_Y_MINIMUG = 3
+
+        private const val MMB_TEXT_TILES = 7
+        private const val MMB_WIDTH = 13
+        private const val MMB_HEIGHT = 6
+        private const val MMB_BOTTOM_Y = 14
+        private const val MMB_RIGHT_X = 18
+        private val MMB_SLIDE_IN_WIDTH = intArrayOf(5, 9, 11, 13)
+        private val MMB_SLIDE_OUT_WIDTH = intArrayOf(11, 7, 0)
+
+        private const val UNIT_CHARACTER = 0x00
+        private const val UNIT_CLASS = 0x04
+        private const val UNIT_INDEX = 0x0B
+        private const val UNIT_STATE = 0x0C
+        private const val UNIT_MAX_HP = 0x12
+        private const val UNIT_CUR_HP = 0x13
+        private const val UNIT_STATUS = 0x30
+        private const val UNIT_STATUS_NONE = 0
+        private const val UNIT_STATUS_RECOVER = 0xC
+        private const val US_BIT23 = 1 shl 23
+        private const val FACTION_BLUE = 0x00
+        private const val FACTION_GREEN = 0x40
+        private const val FACTION_RED = 0x80
+        private const val FID_FACTION_CHIBI = 0x7F00
+        private const val TEXT_COLOR_SYSTEM_BLACK = 5
+        private const val BLANK_DIGIT = 0xF0
+        private const val DIGIT_OAM2 = 0x2E0 + (8 shl 12)
+
+        private const val OBJECT_8X8 = 0x08590F44
+        private const val PORTRAIT_DATA = 0x088ACBE0
+        private const val PORTRAIT_SIZE = 28
+        private const val FACE_CHIBI_TM = 0x085911C4
+        private const val PAL_INTERFACE_BLUE = 0x08A1738C
+        private const val PAL_INTERFACE_RED = 0x08A173AC
+        private const val PAL_INTERFACE_GREEN = 0x08A173CC
+        private const val TSA_MINIMUG_BOX = 0x08A17484
+        private val FACTION_CHIBI_IMAGES = intArrayOf(
+            0x08599D34, 0x08599B34, 0x08599734, 0x08599734,
+            0x08599D34, 0x08599934, 0x08599934, 0x08599D34,
+        )
+        private val FACTION_CHIBI_PALETTES = intArrayOf(
+            0x08599F34, 0x08599F54, 0x08599F74, 0x08599F54,
+            0x08599F54, 0x08599F74, 0x08599F54, 0x08599F34,
+        )
 
         /** `sTerrainSlideInWidthLut`. */
         private val SLIDE_IN_WIDTH = intArrayOf(4, 5, 6)

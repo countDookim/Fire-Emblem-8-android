@@ -109,3 +109,10 @@ test now checks display disabling, assigned proc fields, resetting a nonzero reu
 the observed mask-not-0xFFFF branch; only BG0/OBJ were initially enabled. The 0xFFFF branch,
 initially enabled BG1–BG3, white fades and other reused-slot masks remain unverified. The
 read-only harness hook leaves emulated cycles unchanged; legacy capture files were preserved.
+
+**D-11 monologue status (moved from HANDOFF, 2026-11-11):** standalone replay now follows the original parent 1214–4897 (`9e20898`):
+long scene-setup callbacks at 2355–2356, 2425–2427, 3228 are compared at completion; palette and
+BG0/BG1 maps every 30 steps match (entries 273/417 unmodelled). Closing slow fade-to-black is the real
+`ScreenFade` and verified (`c40863d`). Start skips at 1505/2375/4405 now match original parent/child cleanup and real fast-fade
+state through termination (`797ee45`, private `48f35a1`); skip audio and the GameControl
+bridge still need checks before wiring (TASKS rows D11-wire-a/b).

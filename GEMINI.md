@@ -63,3 +63,7 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
     `tools/sync_agent_instructions.py`, then run `python3 tools/sync_agent_instructions.py --write` and
     `python3 tools/sync_agent_instructions.py --check`. Include all three generated files in the same commit when they
     change; CI rejects drift.
+14. **Capture-first tasks (owner, 2026-11-11).** Follow `docs/plans/ROADMAP.md` "Task rules": task kinds CAP / INV /
+    PORT / WIRE; a PORT covers one behaviour in one capture window (≤ ~8 functions) and writes only functions that
+    window runs; no capture for it means add a CAP row, not code. Keep `docs/TASKS.md` to open rows (status ≤ 15
+    words); delete finished rows into its Done list.

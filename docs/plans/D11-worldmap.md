@@ -148,3 +148,43 @@ Event C4/C5, delayed merge, unseen state branches and complete event VM timing r
 The host is not wired into Fe8Boot. Before the world-map/battle-map handoff, implement/reference-check
 the original `ResetFaces` default VRAM/palette configuration restore; per-slot configuration is now
 mutable so the world map can use its own portrait layout.
+
+## 8. Status by sub-task (moved from HANDOFF, 2026-11-11)
+
+Open rows: [TASKS](../TASKS.md) lane A. All of this is standalone and unwired.
+
+- wm3: `WorldMap_Init` spans 4899–4901 as one multi-frame callback (no yield; `b9ba3b6`); `sub_80B8FEC`
+  verified; `WorldMapBeginning` gives the real Prologue hooks (event lookup, ResetGmStoryNode,
+  CallEvent) and matches the `StdEventEngine` at 4907 (`c7ed068`). Stand-ins: `sub_80BA008`,
+  `StartGmapMuEntry`; the optional portrait controller bridge is available. Boot wiring remains.
+- wm4 (`a3214a6`): GmapRM BG procs, BG1 scroll/tilemaps and Event85 camera verified; Prologue uses no
+  other camera opcode. Remaining: opcodes B4–B7, blend paths, proc end.
+- wm4a/b (`5e9722e`, `7a6f911`): `GmapRmBaPalAnim1` transcribed; `GmapRmBorder1` proc logic (80C28C4/2964/29F8/2A1C)
+  verified per step on the procs watch (nation 7, 5528–5670; 18 capped 1-frame resyncs asserted). Blend, OAM,
+  palette 0x19 and VRAM effects, MergeIn/Out and Start/Show are unverified: no dump falls inside the runs
+  (needs a per-step lcd/OAM watch capture). Unwired; nation-highlight event opcode not registered.
+- wm5 (`807369a`): text handler verified; GmPalFade and opcodes 80–82/AF–B3 transcribed, unregistered.
+- wm7 (`90811ce`): 11 portrait functions verified/mutation-checked against original proc, BG,
+  palette, VRAM and OAM state. Init writes remain transcribed; observed state-3 path only.
+  Event C4/C5 and full VM timing remain unverified/unregistered.
+- wm6 (scheduled 2026-11-10, `b027750`): `WorldMapUnitTest` verifies 13 GmapUnit/container functions
+  (fields per step, 4890–9310); u16/s8/u8 narrowings untested. Loop/OAM, fades, palette ids, scripts and
+  opcodes 9E–AC remain transcribed/unregistered.
+- wm6b (scheduled 2026-11-11): GmapUnit_Loop (UPDATEGFX clear only), SetGfxNeedsUpdate and unit fades
+  (StartGmapUnitFade, GmapUnitFade_Init/Loop/Destruct, GetGmapUnitFade, sub_80BB49C/4C0/538) verified per
+  step; fade palettes are not in the per-step trace (sub_80BB26C transcribed); sub_80BB538's final
+  SetDisplayEnabled is undetectable in the trace. OAM still unchecked.
+- wm6c (scheduled 2026-11-11): new `WorldMapMu.kt` (worldmap_mapmu.c); StartGmMu/GmMu_OnInit/GmMuPrim_OnInit
+  verified (7 prims at 4901); all GmMu_* accessors transcribed. Movement routines (GmMuPrim_80BD444/
+  80BD830/80BD9D8/80BDA78), sub_80BE45C step SE, `sub_80BD20C` (hook, not in decomp src) and the
+  centered-camera hook (WorldMapScroll port exists) remain. automu.c not started.
+- wm6c movement (owner PC 11-11, `daa1d2b`): linear GmMuPrim_80BD9D8/80BDA78 verified on three prims' first
+  moves from 8218; spline movers 80BD444/80BD830 transcribed (Prologue runs type-2 moves only).
+- wm6d automu (owner PC 11-11, `818c1b3`): 7 GmapAutoMu callbacks verified per step on all 7 Prologue runs
+  (8174-9129), started from captured args; MU-moving/fade waits driven by the capture. Type0/node path,
+  StartFadeIn, Type1 start, OnEnd, End/IsActive transcribed. Unwired.
+- wm4c (`c2025c8`): events B4–BA (big map, nation highlight) transcribed with unit tests; unverified, unregistered.
+- wm8 (end-to-end + registration) follows. Restore default face
+  VRAM/palette configuration at the world-map exit before sharing TalkFace with battle dialogue.
+`@VerifiesPort` takes bare function names; `"src/x.c: F"` silently counts nothing (fixed in wm4b/wm6 tests).
+Node table checks use pinned runtime source: `tools/setup_decomp.sh` or `FE8U_DECOMP` (read-only).

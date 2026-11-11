@@ -73,9 +73,7 @@ Owner request 2026-11-11: one coherent plan across code and docs; formatting and
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| PROG-1 | tool | `tools/progress.py`: out-of-scope category (`sio_*`, the four debug files), README shows it separately; unknown `@VerifiesPort` names are reported | No excluded function has a retail caller (checked against the decomp); percentage uses the in-scope total; Python tests pass | — | todo |
-| UNV-1 | tool+doc | `tools/unverified.py` generates `docs/plans/UNVERIFIED.md` from `Transcribed from` KDoc; every such KDoc carries a `(not verified: reason)` | `--check` passes in CI; 0 entries without a reason; no code change beyond comments | — | todo |
-| ALN-1 | comments | Kotlin comments/KDoc: drop IDs of finished tasks, point open work at current rows or milestones; fix stale statements (e.g. `AssetLayer` bundling) | No retired task ID left in Kotlin; `jvmTest` + Dokka green; diff is comments only | UNV-1 | todo |
+| ALN-1 | comments | Kotlin comments/KDoc: drop IDs of finished tasks, point open work at current rows or milestones; fix stale statements (e.g. `AssetLayer` bundling) | No retired task ID left in Kotlin; `jvmTest` + Dokka green; diff is comments only | — | started |
 | ALN-2 | doc | ARCHITECTURE, module READMEs, ADR 0014 (roadmap, scope, capture-first), brief body merged with its amendments, plan notes point at lanes, READABILITY sizes, MANUAL_TEST milestone refs | No doc names a retired task as open work or contradicts ROADMAP; links resolve | — | todo |
 
 ## Other open rows
@@ -100,3 +98,4 @@ Row details, including what each task left transcribed: [archive](plans/TASKS-ar
   D11-skip, D11-proc, D11-worldmap, D11-wm1, D11-wm2, D12-1. D11-wm3..wm7 (+ wm4a–c, wm6b–d): standalone
   ports verified as far as the Prologue runs them; the rest is in lane A.
 - M4-02, M4-12, M5-56, 56b, 57..61.
+- **Alignment:** PROG-1 (`b459cf3`), UNV-1.

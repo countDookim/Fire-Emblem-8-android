@@ -2,6 +2,7 @@ package fe8.testing
 
 import fe8.game.RomView
 import fe8.game.worldmap.GmData
+import fe8.game.worldmap.GmapUnitFadeProc
 import fe8.game.worldmap.GmapUnitProc
 import fe8.game.worldmap.WorldMapUnit
 import gba.core.VerifiesPort
@@ -59,6 +60,16 @@ class WorldMapUnitTest {
         "MapUnitC_SetFaction",
         "MapUnitC_SetPalette",
         "sub_80BB194",
+        "GmapUnit_Loop",
+        "MapUnitC_SetGfxNeedsUpdate",
+        "GmapUnitFade_Init",
+        "GmapUnitFade_Loop",
+        "GmapUnitFade_Destruct",
+        "StartGmapUnitFade",
+        "GetGmapUnitFade",
+        "sub_80BB49C",
+        "sub_80BB4C0",
+        "sub_80BB538",
     )
     @Test
     fun `container and sprites follow the traced fields every step`() {
@@ -68,6 +79,7 @@ class WorldMapUnitTest {
         fun dump(step: Int) = ProcArrayDump.ofWatch(trace, step, names)
         val containerAddr = names.entries.first { it.value == "ProcScr_GmapUnitContainer" }.key
         val unitAddr = names.entries.first { it.value == "ProcScr_GmapUnit" }.key
+        val fadeAddr = names.entries.first { it.value == "ProcScr_GmapUnitFade" }.key
 
         val rom = RomView.ofRom(romFile.readBytes())
         val engine = ProcEngine()
@@ -81,17 +93,26 @@ class WorldMapUnitTest {
             override fun register2dChrMove(src: Int, dstOffset: Int, width: Int, height: Int) {}
             override fun obj1dMap() = false
         }
-        val player = SpriteAnimPlayer({ rom.u16(it) }, SpriteLayers(), host)
+        val layers = SpriteLayers()
+        val player = SpriteAnimPlayer({ rom.u16(it) }, layers, host)
         engine.init()
         player.clearAll()
         val gmData = GmData(ByteArray(0x8000), RngService())
-        val unit = WorldMapUnit(engine, rom, hardware, player, gmData)
+        var camX = 0
+        var camY = 0
+        val unit = WorldMapUnit(
+            engine, rom, hardware, player, gmData,
+            WorldMapUnit.Hooks(screenPosition = { camX to camY }),
+        )
         val parent = engine.start(ProcScript("Parent", listOf(block(), end())) { }, 3)
 
         var container: Proc? = null
         val sim = HashMap<Int, Proc>()
         val previous = HashMap<Int, List<Int>>()
         var seen = 0
+        var fadeAge = 0
+        var lastTimer = -1
+        var lastFadeUnits: Set<Int> = emptySet()
         for (step in 4890..9320) {
             val now = dump(step)
             val traceContainer = now.findAll(containerAddr).firstOrNull()
@@ -119,23 +140,33 @@ class WorldMapUnitTest {
                 }
             }
             var created = false
+            val fresh = HashSet<Int>()
             for ((index, p) in traced.toSortedMap()) {
-                if (index !in sim) {
-                    val slot = unit.newMapUnit(container, p.u16(0x38), p.u8(0x35))
-                    assertEquals(index, slot, "slot of the new sprite at $step")
-                    sim[index] = state.units[slot]!!
-                    val s = sim[index]!!.state as GmapUnitProc
-                    // The first trace of a new sprite can be taken before NewMapUnit finished.
-                    assertEquals(
-                        listOf(0x800, p.u8(0x35), p.u8(0x36), p.u8(0x37), p.u16(0x38), p.u16(0x3A)),
-                        listOf(s.oam2Base, s.faction, s.pal, s.animId, s.classId, s.currentClassId),
-                        "NewMapUnit fields at $step",
-                    )
-                    previous[index] = simFields(s)
-                    created = true
-                    seen++
-                    if (p.u32(0x40) == 0) continue
-                }
+                if (index in sim) continue
+                val slot = unit.newMapUnit(container, p.u16(0x38), p.u8(0x35))
+                assertEquals(index, slot, "slot of the new sprite at $step")
+                sim[index] = state.units[slot]!!
+                val s = sim[index]!!.state as GmapUnitProc
+                // The first trace of a new sprite can be taken before NewMapUnit finished.
+                assertEquals(
+                    listOf(0x800, p.u8(0x35), p.u8(0x36), p.u8(0x37), p.u16(0x38), p.u16(0x3A)),
+                    listOf(s.oam2Base, s.faction, s.pal, s.animId, s.classId, s.currentClassId),
+                    "NewMapUnit fields at $step",
+                )
+                previous[index] = simFields(s)
+                created = true
+                seen++
+                if (p.u32(0x40) == 0) fresh.add(index)
+            }
+            // The fade: started by sub_80BB4C0 (from black) or sub_80BB538 (to black); later
+            // sprites join it through sub_80BB49C, which those two call while a fade runs.
+            val traceFade = now.findAll(fadeAddr).firstOrNull()
+            val fadeUnits = HashSet<Int>()
+            if (traceFade != null) {
+                for (i in 0 until traceFade.u8(0x37)) fadeUnits.add(traceFade.u8(0x30 + i))
+            }
+            for ((index, p) in traced.toSortedMap()) {
+                if (index in fresh) continue
                 val old = previous.getValue(index)
                 val new = fields(p)
                 if (new[X] != old[X] || new[Y] != old[Y]) {
@@ -143,12 +174,19 @@ class WorldMapUnitTest {
                 }
                 if (new[ANIM] != old[ANIM]) unit.mapUnitCSetAnimId(index, new[ANIM])
                 if (new[LAYER] != old[LAYER]) unit.mapUnitCSetLayer(index, new[LAYER])
-                if (new[FLAGS] and 1 != old[FLAGS] and 1) {
+                if (new[FLAGS] and 1 != old[FLAGS] and 1 && index !in fadeUnits &&
+                    index !in lastFadeUnits
+                ) {
                     unit.mapUnitCSetDisplayEnabled(index, new[FLAGS] and 1 != 0)
+                }
+                if (new[FLAGS] and 4 != 0 && old[FLAGS] and 4 == 0) {
+                    unit.mapUnitCSetGfxNeedsUpdate(index)
                 }
                 if (new[FACTION] != old[FACTION]) {
                     unit.mapUnitCSetFaction(index, new[FACTION])
-                } else if (new[PAL] != old[PAL]) {
+                } else if (new[PAL] != old[PAL] && index !in fadeUnits &&
+                    index !in lastFadeUnits
+                ) {
                     if (new[PAL] == unit.getPaletteIdForAllegience(new[FACTION])) {
                         unit.mapUnitCSetFaction(index, -1)
                     } else {
@@ -156,14 +194,56 @@ class WorldMapUnitTest {
                     }
                 }
                 previous[index] = new
+            }
+            lastFadeUnits = fadeUnits
+            val live = sim.values.map { it.state as GmapUnitProc }.filter { it.flags and 1 != 0 }
+            camX = live.minOfOrNull { it.x } ?: 0
+            camY = live.minOfOrNull { it.y } ?: 0
+            layers.clear()
+            // A trace step can repeat a frame (the fade timer does not move): run no frame then.
+            val repeated = traceFade != null && fadeAge > 0 && traceFade.u16(0x2E) == lastTimer
+            lastTimer = traceFade?.u16(0x2E) ?: -1
+            if (!repeated) engine.run(engine.root(3))
+            if (traceFade != null) {
+                val count = traceFade.u8(0x37)
+                val from = traceFade.u8(0x29).toByte().toInt()
+                val first = unit.getGmapUnitFade() == null
+                val running = unit.getGmapUnitFade()
+                val have = if (first) 0 else (running!!.state as GmapUnitFadeProc).count
+                for (i in have until count) {
+                    val index = traceFade.u8(0x30 + i)
+                    val duration = traceFade.u16(0x2C)
+                    if (from < 0) unit.sub80BB4C0(index, duration, null)
+                    else unit.sub80BB538(index, duration, null)
+                }
+            }
+            for ((index, p) in traced.toSortedMap()) {
+                if (index in fresh) continue
+                val new = fields(p)
                 val s = sim.getValue(index).state as GmapUnitProc
-                assertEquals(
-                    new, simFields(s),
-                    "sprite $index at step $step",
-                )
+                assertEquals(new, simFields(s), "sprite $index at step $step")
                 assertEquals(listOf(s.x, s.y), unit.mapUnitCGetPosition(index).toList())
                 assertEquals(new[ANIM].toByte().toInt(), unit.mapUnitCGetAnimId(index))
                 assertEquals(new[CLASS2], unit.sub80BB194(index))
+            }
+            val simFade = unit.getGmapUnitFade()
+            assertEquals(traceFade != null, simFade != null, "fade exists at $step")
+            if (traceFade != null && simFade != null) {
+                val f = simFade.state as GmapUnitFadeProc
+                val count = traceFade.u8(0x37)
+                assertEquals(
+                    listOf(
+                        traceFade.u8(0x29).toByte().toInt(), traceFade.u8(0x2A).toByte().toInt(),
+                        traceFade.u16(0x2C), count,
+                        List(count) { traceFade.u8(0x30 + it) },
+                    ),
+                    listOf(f.palFrom, f.palTo, f.duration, f.count, List(count) { f.units[it] }),
+                    "fade fields at $step",
+                )
+                fadeAge++
+                if (fadeAge > 1) assertEquals(traceFade.u16(0x2E), f.timer, "fade timer at $step")
+            } else {
+                fadeAge = 0
             }
             if (!created) {
                 for (i in 0 until 7) {
@@ -182,12 +262,12 @@ class WorldMapUnitTest {
     }
 
     private fun simFields(s: GmapUnitProc): List<Int> = listOf(
-        s.flags and 4.inv(), s.layer, s.oam2Base, s.chr, s.index, s.faction, s.pal,
+        s.flags, s.layer, s.oam2Base, s.chr, s.index, s.faction, s.pal,
         s.animId and 0xFF, s.classId, s.currentClassId, s.x, s.y, if (s.ap != null) 1 else 0,
     )
 
     private fun fields(p: ProcArrayDump.Proc): List<Int> = listOf(
-        p.u16(0x2A) and 4.inv(), p.u16(0x2C), p.u16(0x2E), p.u16(0x30), p.u8(0x34).toByte().toInt(),
+        p.u16(0x2A), p.u16(0x2C), p.u16(0x2E), p.u16(0x30), p.u8(0x34).toByte().toInt(),
         p.u8(0x35), p.u8(0x36), p.u8(0x37), p.u16(0x38), p.u16(0x3A), p.u16(0x3C), p.u16(0x3E),
         if (p.u32(0x40) != 0) 1 else 0,
     )
@@ -195,7 +275,6 @@ class WorldMapUnitTest {
     private companion object {
         const val FLAGS = 0
         const val LAYER = 1
-        const val INDEX = 4
         const val FACTION = 5
         const val PAL = 6
         const val ANIM = 7

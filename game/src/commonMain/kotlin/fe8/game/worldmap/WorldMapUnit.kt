@@ -221,7 +221,8 @@ public class WorldMapUnit(
     }
 
     /**
-     * Transcribed from src/worldmap_gmapunit.c: GmapUnit_Loop (not verified)
+     * Ported from src/worldmap_gmapunit.c: GmapUnit_Loop (checked: the `UPDATEGFX` clear and the
+     * flags; not checked: the screen bounds, which the test makes always true, and the OAM output)
      *
      * Draws the sprite (standing sprite for animation 4, else the [ap] animation) when it is
      * displayed and inside the screen. The standing-sprite branch calls
@@ -432,7 +433,10 @@ public class WorldMapUnit(
         s.ap!!.tileBase = cont().layer + index * 4 + (pal and 0xF) * 0x1000 + s.oam2Base
     }
 
-    /** Transcribed from src/worldmap_gmapunit.c: MapUnitC_SetGfxNeedsUpdate (not verified) */
+    /**
+     * Ported from src/worldmap_gmapunit.c: MapUnitC_SetGfxNeedsUpdate (the `index < 0` branch is
+     * not exercised by the capture)
+     */
     public fun mapUnitCSetGfxNeedsUpdate(index: Int) {
         if (index >= 0) {
             val s = unitProc(index)
@@ -518,8 +522,8 @@ public class WorldMapUnit(
     }
 
     /**
-     * Transcribed from src/worldmap_gmapunit.c: GmapUnitFade_Destruct (not verified: the
-     * capture does not show its effect, restoring each faded sprite's faction palette)
+     * Ported from src/worldmap_gmapunit.c: GmapUnitFade_Destruct (checked through the sprite
+     * fields: faction palette restored, display cleared when fading out)
      */
     public fun gmapUnitFadeDestruct(proc: Proc) {
         val s = proc.state as GmapUnitFadeProc
@@ -529,13 +533,14 @@ public class WorldMapUnit(
         }
     }
 
-    /** Transcribed from src/worldmap_gmapunit.c: GmapUnitFade_Init (not verified) */
+    /** Ported from src/worldmap_gmapunit.c: GmapUnitFade_Init */
     public fun gmapUnitFadeInit(proc: Proc) {
         (proc.state as GmapUnitFadeProc).timer = 0
     }
 
     /**
-     * Transcribed from src/worldmap_gmapunit.c: sub_80BB26C (not verified)
+     * Transcribed from src/worldmap_gmapunit.c: sub_80BB26C (not verified: the palette
+     * buffer is only in the 300-frame snapshots, not the per-step trace)
      *
      * One 15-bit colour of a fade: entry [i1] of OBJ palette [pal1] blended towards entry [i2] of
      * [pal2] by [t] (0x1000 = all the way); a negative palette is black.
@@ -566,7 +571,8 @@ public class WorldMapUnit(
     }
 
     /**
-     * Transcribed from src/worldmap_gmapunit.c: GmapUnitFade_Loop (not verified)
+     * Ported from src/worldmap_gmapunit.c: GmapUnitFade_Loop (checked: timer and the end of the
+     * fade; the palette written to OBJ palette 0xA is not in the capture)
      *
      * Blends OBJ palette 0xA from the start palette to the end palette over `duration` frames.
      */
@@ -597,7 +603,8 @@ public class WorldMapUnit(
     }
 
     /**
-     * Transcribed from src/worldmap_gmapunit.c: StartGmapUnitFade (not verified)
+     * Ported from src/worldmap_gmapunit.c: StartGmapUnitFade (checked: the proc fields; the palette
+     * copy and the blocking parent are not in the capture)
      *
      * Starts a fade of [index] from palette [palA] to [palB] over [duration] frames, blocking
      * [parent] or in tree 3 when it is null, and copies the start palette to OBJ palette 0xA.
@@ -633,11 +640,11 @@ public class WorldMapUnit(
         engine.endEach(fadeScript)
     }
 
-    /** Transcribed from src/worldmap_gmapunit.c: GetGmapUnitFade (not verified) */
+    /** Ported from src/worldmap_gmapunit.c: GetGmapUnitFade */
     public fun getGmapUnitFade(): Proc? = engine.find(fadeScript)
 
     /**
-     * Transcribed from src/worldmap_gmapunit.c: sub_80BB49C (not verified): adds [index] to the
+     * Ported from src/worldmap_gmapunit.c: sub_80BB49C: adds [index] to the
      * running fade.
      */
     public fun sub80BB49C(index: Int) {
@@ -648,7 +655,7 @@ public class WorldMapUnit(
     }
 
     /**
-     * Transcribed from src/worldmap_gmapunit.c: sub_80BB4C0 (not verified)
+     * Ported from src/worldmap_gmapunit.c: sub_80BB4C0
      *
      * Fades [index] in: from black to its faction palette, or joins the running fade.
      */
@@ -664,7 +671,8 @@ public class WorldMapUnit(
     }
 
     /**
-     * Transcribed from src/worldmap_gmapunit.c: sub_80BB538 (not verified)
+     * Ported from src/worldmap_gmapunit.c: sub_80BB538 (the final `SetDisplayEnabled(true)` is not
+     * checked: every faded-out sprite in the capture is displayed already)
      *
      * Fades [index] out: from its faction palette to black, or joins the running fade.
      */

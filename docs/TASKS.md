@@ -40,6 +40,7 @@ Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames, proc
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
+| PP-0a | PORT | Hover cursor (owner device report 11-11: cursor must expand over a player unit): `IsUnitSpriteHoverEnabledAt`, `UnitSpriteHoverUpdate`, `ResetUnitSpriteHover`; wire into the idle loop (`PutMapCursor` kind 3) | Cursor OAM at cancel_end f1430/f1440 (hover on Eirika) and select_move f1250–1259; hover state per frame; MANUAL_TEST | — | todo; high: visible every turn, do first in Lane B |
 | PP-1 | PORT | Movement map: `GenerateUnitMovementMap`, `GenerateMovementMap`, `SetWorkingMoveCosts`, `SetWorkingBmMap` | `gBmMapMovement` equals the dump after select | — | todo |
 | PP-2 | PORT | Attack range: `GenerateUnitCompleteAttackRange`, `MapSetInRange`, `MapAddInBoundedRange` | `gBmMapRange` equals the dump | PP-1 | todo |
 | PP-3 | PORT | Select: `PlayerPhase_MainIdle` A branch, `GetPlayerSelectKind`, `PlayerPhase_InitUnitMovementSelect`, `DisplayUnitEffectRange` | PlayerPhase proc position per step; active unit | PP-1 | todo |

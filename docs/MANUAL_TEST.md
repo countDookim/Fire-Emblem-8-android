@@ -19,6 +19,11 @@ there (no re-import needed; the launcher still shows the game data file count). 
 the save. Limits: this deletes all saves and the suspend at once, with no per-slot delete.
 
 
+## Known differences (owner reports)
+
+- Map cursor over a player unit: original FE8 widens the cursor to frame the unit; the APK keeps the normal
+  cursor (owner, 2026-11-11, mGBA comparison). Fix planned as PP-0a.
+
 ## Currently ignore
 
 These are known gaps; re-test them only when a relevant change is announced:

@@ -8,10 +8,22 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 895,
+    "verified": 912,
     "implemented_unverified": 2
   },
   "functions": {
+    "AddPointToPathArrowProc": {
+      "decomp_file": "src/bmpatharrowdisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PathArrowDifferentialTest#cancel_end path arrow matches the game after the first select",
+        "fe8.testing.PathArrowDifferentialTest#cancel_end path arrow matches the game after the move is cancelled",
+        "fe8.testing.PathArrowDifferentialTest#select_move path arrow matches the game"
+      ]
+    },
     "AddUnitSprite": {
       "decomp_file": "src/bmudisp.c",
       "system": "battle_map",
@@ -110,6 +122,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ArchivedPaletteFadeDifferentialTest#archive copies all banks and resets clock ends"
+      ]
+    },
+    "AttackCommandUsability": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitActionMenuDifferentialTest#unit menu with an enemy in range lists Attack Item and Wait",
+        "fe8.testing.UnitActionMenuDifferentialTest#unit menu without a target lists Item and Wait and Wait sets the action"
       ]
     },
     "BG_EnableSyncByMask": {
@@ -439,6 +462,27 @@
         "fe8.testing.CamMoveDifferentialTest#ch6 phase start resets the cursor and scrolls the camera"
       ]
     },
+    "CanMoveActiveUnitTo": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseMoveSelectDifferentialTest#move to the right in select_move matches the game f1259 to f1296"
+      ]
+    },
+    "CanUnitUseWeaponNow": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitActionMenuDifferentialTest#unit menu with an enemy in range lists Attack Item and Wait",
+        "fe8.testing.UnitActionMenuDifferentialTest#unit menu without a target lists Item and Wait and Wait sets the action"
+      ]
+    },
     "CgbModVol": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -467,6 +511,36 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
+      ]
+    },
+    "ChapterIntro_8020A40": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
+    "ChapterIntro_8020A8C": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
+    "ChapterIntro_BeginFadeToMap": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
       ]
     },
     "ChapterIntro_Bg1And3Scroll_Init": {
@@ -566,7 +640,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.ChapterIntroDifferentialTest#skip path fade out map display and fast fade match every frame"
+        "fe8.testing.ChapterIntroDifferentialTest#skip path fade out map display and fast fade match every frame",
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
       ]
     },
     "ChapterIntro_KeyListen_Init": {
@@ -637,6 +712,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterIntroDifferentialTest#skip path fade out map display and fast fade match every frame"
+      ]
+    },
+    "ChapterIntro_LoopFadeToMap": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
       ]
     },
     "ChapterIntro_LoopFastFadeToMap": {
@@ -1126,6 +1211,18 @@
         "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
       ]
     },
+    "CutOffPathLength": {
+      "decomp_file": "src/bmpatharrowdisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PathArrowDifferentialTest#cancel_end path arrow matches the game after the first select",
+        "fe8.testing.PathArrowDifferentialTest#cancel_end path arrow matches the game after the move is cancelled",
+        "fe8.testing.PathArrowDifferentialTest#select_move path arrow matches the game"
+      ]
+    },
     "DecodeString": {
       "decomp_file": "asm/arm.s",
       "system": "core",
@@ -1307,6 +1404,16 @@
         "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window restarts after cancelling the selection",
         "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window slides out when the cursor leaves the unit",
         "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
+    "EffectWait": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitActionMenuDifferentialTest#unit menu without a target lists Item and Wait and Wait sets the action"
       ]
     },
     "EnableKeyComboResetEN": {
@@ -1791,6 +1898,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EventVmDifferentialTest#onUpdate drives the engine state to the trace"
+      ]
+    },
+    "EventEngine_StartSkip": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CutsceneStartSkipDifferentialTest#Start during the castle cutscene fades to black and blocks the talk procs"
       ]
     },
     "EventLoadUnitSliently": {
@@ -2776,6 +2893,18 @@
         "fe8.testing.CamMoveDifferentialTest#first phase resets the cursor without moving the camera"
       ]
     },
+    "GetPointAlongPath": {
+      "decomp_file": "src/bmpatharrowdisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PathArrowDifferentialTest#cancel_end path arrow matches the game after the first select",
+        "fe8.testing.PathArrowDifferentialTest#cancel_end path arrow matches the game after the move is cancelled",
+        "fe8.testing.PathArrowDifferentialTest#select_move path arrow matches the game"
+      ]
+    },
     "GetROMChapterStruct": {
       "decomp_file": "src/chapterdata.c",
       "system": "battle_map",
@@ -3739,6 +3868,17 @@
         "fe8.testing.SramBootReferenceTest#suspend slot selection follows the dumps header and block infos",
         "fe8.testing.SramOwnerSaveBootTest#chapter 2 save with a valid suspend boots unchanged",
         "fe8.testing.SramOwnerSaveBootTest#chapter 6 save without a suspend boots unchanged and selects 0x7F"
+      ]
+    },
+    "ItemCommandUsability": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitActionMenuDifferentialTest#unit menu with an enemy in range lists Attack Item and Wait",
+        "fe8.testing.UnitActionMenuDifferentialTest#unit menu without a target lists Item and Wait and Wait sets the action"
       ]
     },
     "ItemGot_DisplayLePopup": {
@@ -4872,6 +5012,16 @@
         "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
       ]
     },
+    "PlayerPhase_BackToMove": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseMoveSelectDifferentialTest#back to move from the unit menu in cancel_end matches the game f1399 to f1426"
+      ]
+    },
     "PlayerPhase_InitUnitMovementSelect": {
       "decomp_file": "src/playerphase.c",
       "system": "battle_map",
@@ -4883,6 +5033,18 @@
         "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika matches the game in cancel_end at f1260",
         "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika matches the game in select_move at f1260",
         "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika with enemies in reach matches the game in attack at f1260"
+      ]
+    },
+    "PlayerPhase_RangeDisplayIdle": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseMoveSelectDifferentialTest#back to move from the unit menu in cancel_end matches the game f1399 to f1426",
+        "fe8.testing.PlayerPhaseMoveSelectDifferentialTest#cancel the select in cancel_end matches the game f1259 to f1292",
+        "fe8.testing.PlayerPhaseMoveSelectDifferentialTest#move to the right in select_move matches the game f1259 to f1296"
       ]
     },
     "PopulateSaveBlockChecksum": {
@@ -5014,6 +5176,7 @@
       "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.CutsceneStartSkipDifferentialTest#Start during the castle cutscene fades to black and blocks the talk procs",
         "fe8.testing.ProcMarkedDifferentialTest#BMapDispSuspend and BMapDispResume block and unblock the marked procs"
       ]
     },
@@ -5803,6 +5966,18 @@
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
       ]
     },
+    "SetLastCoords": {
+      "decomp_file": "src/bmpatharrowdisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PathArrowDifferentialTest#cancel_end path arrow matches the game after the first select",
+        "fe8.testing.PathArrowDifferentialTest#cancel_end path arrow matches the game after the move is cancelled",
+        "fe8.testing.PathArrowDifferentialTest#select_move path arrow matches the game"
+      ]
+    },
     "SetMsgTerminator": {
       "decomp_file": "src/msg.c",
       "system": "text_face",
@@ -6306,6 +6481,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ScreenFadeDifferentialTest#fade from black follows the per-frame RAM trace"
+      ]
+    },
+    "StartLockingFadeToBlack": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CutsceneStartSkipDifferentialTest#Start during the castle cutscene fades to black and blocks the talk procs"
       ]
     },
     "StartMapSongBgm": {

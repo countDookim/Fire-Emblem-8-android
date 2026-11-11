@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 549 across 70 decomp files (missing reason: 0).
+Total entries: 550 across 70 decomp files (missing reason: 0).
 
 ## src/worldmap_rm.c (42)
 
@@ -130,7 +130,7 @@ Total entries: 549 across 70 decomp files (missing reason: 0).
 | `InitTalkTextWin` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no @VerifiesPort test names it |
 | `TalkOpen_InitBlend` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no |
 
-## src/bmunit.c (26)
+## src/bmunit.c (27)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
@@ -142,6 +142,7 @@ Total entries: 549 across 70 decomp files (missing reason: 0).
 | `GetUnitLuck` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item in the trace |
 | `UnitRemoveInvalidItems` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no trace runs it yet |
 | `UnitFinalizeMovement` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | rescuee only; no ballistae |
+| `UnitFinalizeMovement` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | rescuer and ballista, no capture has either |
 | `IsUnitMagicSealed` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | no magic weapon |
 | `UnitAutolevelRealistic` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 | `UnitApplyBonusLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced runs return at once (level count 0) |

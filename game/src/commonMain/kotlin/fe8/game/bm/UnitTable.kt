@@ -110,6 +110,12 @@ public class UnitTable(
     /** `yPos` (s8, 0x11) of unit [id]. */
     public fun yPos(id: Int): Int = s8(bytes, unitOffset(id) + 0x11)
 
+    /** Sets `xPos` and `yPos` of unit [id] (the unit must exist). */
+    public fun setPosition(id: Int, x: Int, y: Int) {
+        bytes[unitOffset(id) + 0x10] = x.toByte()
+        bytes[unitOffset(id) + 0x11] = y.toByte()
+    }
+
     /** `statusIndex` (low nibble of byte 0x30) of unit [id]. */
     public fun statusIndex(id: Int): Int = u8(bytes, unitOffset(id) + 0x30) and 0xF
 

@@ -70,6 +70,11 @@ public class PlayerPhase(
      * `Fe8Boot` until PP-17) skips that call.
      */
     private val movementMap: MovementMap? = null,
+    /**
+     * The path arrow data ([PathArrow], PP-5); null (as in `Fe8Boot` until PP-17) skips it.
+     * Drawing it is [Hooks.drawPathArrow] (PP-6).
+     */
+    private val pathArrow: PathArrow? = null,
 ) {
     /** The unit sprite hover controller ([UnitSpriteHover]). */
     public val hover: UnitSpriteHover = UnitSpriteHover(bm, map, units)
@@ -78,6 +83,8 @@ public class PlayerPhase(
         hooks.resetUnitSpriteHover = ProcFunc { hover.resetUnitSpriteHover() }
         hooks.unitSpriteHoverUpdate = ProcFunc { hover.unitSpriteHoverUpdate() }
         hooks.isUnitSpriteHoverEnabledAt = { x, y -> hover.isUnitSpriteHoverEnabledAt(x, y) }
+        hooks.rangeDisplayIdle = ProcFunc { playerPhaseRangeDisplayIdle(it) }
+        if (pathArrow != null) hooks.pathArrowDispInit = { pathArrow.init(it) }
     }
 
     /** `PlaySoundEffect` for the cursor sound (a stand-in until M6-B wires the sound wrapper). */
@@ -240,13 +247,50 @@ public class PlayerPhase(
         public var displayMoveRangeGraphics: (flags: Int) -> Unit = {}
 
         /**
-         * Stand-in until PP-5 for `PathArrowDisp_Init(mode)`: 0 when the cursor is on the active
-         * unit, 1 otherwise.
+         * `PathArrowDisp_Init(mode)`: 0 when the cursor is on the active unit, 1 otherwise. With a
+         * [PathArrow] given to [PlayerPhase] it calls [PathArrow.init] (data only, the graphics
+         * are PP-6); a stand-in until PP-17 wires that into `Fe8Boot`.
          */
         public var pathArrowDispInit: (mode: Int) -> Unit = {}
 
-        /** Stand-in for `PlayerPhase_RangeDisplayIdle` (a `PROC_REPEAT`) until PP-7. */
+        /**
+         * `PlayerPhase_RangeDisplayIdle` (a `PROC_REPEAT`). Replaced by [PlayerPhase] to call
+         * [playerPhaseRangeDisplayIdle].
+         */
         public var rangeDisplayIdle: ProcFunc = ProcFunc {}
+
+        /** `StartDestSelectedEvent` (events); stand-in, false (no event) until M6-B. */
+        public var startDestSelectedEvent: () -> Boolean = { false }
+
+        /**
+         * `GetUnitWeaponUsabilityBits(unit)` for unit id [unit]; stand-in until PP-17, default 0
+         * (only asked for a unit that cannot be controlled or has moved, not in a capture).
+         */
+        public var getUnitWeaponUsabilityBits: (unit: Int) -> Int = { 0 }
+
+        /** `GetCombinedEnemyWeaponUsabilityBits`; stand-in until PP-17, default 0. */
+        public var getCombinedEnemyWeaponUsabilityBits: () -> Int = { 0 }
+
+        /**
+         * `HideMoveRangeGraphics`: stand-in until PP-17 wires [MoveLimitView.hideMoveRangeGraphics]
+         * (ported and verified, PP-4) into `Fe8Boot`.
+         */
+        public var hideMoveRangeGraphics: ProcFunc = ProcFunc {}
+
+        /** `DrawPathArrow` (PP-6); stand-in, draws nothing. */
+        public var drawPathArrow: ProcFunc = ProcFunc {}
+
+        /** `CanShowUnitStatScreen(unit)` for unit id [unit]; stand-in until PP-12. */
+        public var canShowUnitStatScreen: (unit: Int) -> Boolean = { false }
+
+        /**
+         * Stand-in until PP-12 for `SetStatScreenConfig` and `StartStatScreen(unit, proc)` (unit
+         * id [unit]).
+         */
+        public var startStatScreen: (unit: Int, proc: Proc) -> Unit = { _, _ -> }
+
+        /** `GetTrapAt(x, y)->type` of src/bmtrick.c; stand-in, -1 for no trap. */
+        public var trapTypeAt: (x: Int, y: Int) -> Int = { _, _ -> -1 }
 
         /** Stand-in for `PlayerPhase_DisplayUnitMovement` until M6-B. */
         public var displayUnitMovement: ProcFunc = ProcFunc {}
@@ -613,6 +657,207 @@ public class PlayerPhase(
     }
 
     /**
+     * Ported from src/playerphase.c: PlayerPhase_RangeDisplayIdle
+     *
+     * The idle loop while the movement range shows: moves the cursor, then picks one action from
+     * the keys. A with an active unit: not moved and not controllable (`GetPlayerSelectKind`
+     * is not 2) swaps the ranges or cancels, else [canMoveActiveUnitTo] the cursor tile moves
+     * (keeps the camera on the origin, hides the range squares, breaks the proc) or fails (sound
+     * 0x6C). B cancels ([cancelSelect]) unless the unit has moved (fail). R and L are
+     * transcribed (not verified: no capture presses them in the range display), as are A without
+     * an active unit, the destination event and the range swap (SONG 0x6C on a failed A is
+     * not verified either: no capture presses A off the range). Unless the proc left, the path
+     * arrow follows the cursor for a controllable unit ([pathArrow], [Hooks.drawPathArrow]) and
+     * the cursor sprite is drawn.
+     */
+    public fun playerPhaseRangeDisplayIdle(proc: Proc) {
+        var action = ACT_NONE
+        handlePlayerCursorMovement()
+
+        var checkB = true
+        if ((keys.newKeys and KEY_A) != 0) {
+            checkB = false
+            val unit = active.unit
+            if (unit == 0) {
+                action = if (hooks.getCombinedEnemyWeaponUsabilityBits() == 3) {
+                    ACT_SWAP_RANGES
+                } else {
+                    ACT_CANCEL
+                }
+            } else if (hooks.startDestSelectedEvent()) {
+                action = ACT_EVENT
+            } else if (getPlayerSelectKind(unit) != SELECT_CONTROL &&
+                (units.state(unit) and US_HAS_MOVED) == 0
+            ) {
+                action = if (hooks.getUnitWeaponUsabilityBits(unit) == 3) {
+                    ACT_SWAP_RANGES
+                } else {
+                    ACT_CANCEL
+                }
+            } else if (!canMoveActiveUnitTo(bm.playerCursorX, bm.playerCursorY)) {
+                action = ACT_FAIL
+            } else {
+                action = ACT_MOVE
+                checkB = true
+            }
+        }
+        if (checkB) {
+            if ((keys.newKeys and KEY_B) != 0) {
+                val moved = (units.state(active.unit) and US_HAS_MOVED) != 0
+                action = if (moved) ACT_FAIL else ACT_CANCEL
+            } else if ((keys.newKeys and KEY_R) != 0) {
+                action = ACT_INFOSCREEN
+            } else if ((keys.newKeys and KEY_L) != 0) {
+                action = ACT_RESET_CURSOR
+            }
+        }
+        // Note: the C jumps into the B check from ACT_MOVE (`goto else_stmt`), where B or R or L
+        // can overwrite the action; A and B in one frame is not a capture case.
+
+        when (action) {
+            ACT_FAIL -> hooks.playSoundEffect.play(SONG_6C)
+            ACT_MOVE -> {
+                camMove.ensureCameraOntoPosition(proc, active.moveOriginX, active.moveOriginY)
+                hooks.hideMoveRangeGraphics.invoke(proc)
+                engine.breakProc(proc)
+                return
+            }
+            ACT_CANCEL -> {
+                cancelSelect(proc)
+                return
+            }
+            ACT_INFOSCREEN -> {
+                if (eventEngineExists()) {
+                    // break out of the switch: the proc stays
+                } else {
+                    var uid = map.unit[bm.playerCursorY, bm.playerCursorX]
+                    if (active.moveOriginX == bm.playerCursorX &&
+                        active.moveOriginY == bm.playerCursorY
+                    ) {
+                        uid = units.index(active.unit)
+                    }
+                    if (uid != 0 && hooks.canShowUnitStatScreen(uid)) {
+                        hooks.endAllMus.invoke(proc)
+                        hooks.startStatScreen(uid, proc)
+                        engine.goto(proc, 6)
+                        return
+                    }
+                }
+            }
+            ACT_RESET_CURSOR -> if (active.unit != 0) {
+                camMove.ensureCameraOntoPosition(proc, active.moveOriginX, active.moveOriginY)
+                Camera.setCursorMapPosition(bm, active.moveOriginX, active.moveOriginY)
+                hooks.playSoundEffect.play(SONG_CANCEL)
+            }
+            ACT_EVENT -> {}
+            ACT_SWAP_RANGES -> {
+                bm.swapActionRangeCount = (bm.swapActionRangeCount + 1) and 0xFF
+                hooks.hideMoveRangeGraphics.invoke(proc)
+                engine.goto(proc, if ((bm.gameStateBits and BM_FLAG_3) != 0) 12 else 11)
+            }
+        }
+
+        if (getPlayerSelectKind(active.unit) == SELECT_CONTROL) {
+            pathArrow?.updatePathArrowWithCursor()
+            hooks.drawPathArrow.invoke(proc)
+        }
+        hooks.putMapCursor.put(bm.playerCursorDisplayX, bm.playerCursorDisplayY, 1)
+    }
+
+    /**
+     * The `ACT_CANCEL` case of `PlayerPhase_RangeDisplayIdle` (src/playerphase.c), B on the
+     * range: ends the MUs, shows the unit again, puts the cursor back on the origin (player
+     * units), clears `BM_FLAG_3`, hides the range squares, refreshes the maps and sprites,
+     * plays the cancel sound and jumps to label 9.
+     */
+    private fun cancelSelect(proc: Proc) {
+        if (active.unit != 0) {
+            hooks.endAllMus.invoke(proc)
+            units.setState(active.unit, units.state(active.unit) and US_HIDDEN.inv())
+            if ((units.index(active.unit) and 0xC0) == 0) {
+                camMove.ensureCameraOntoPosition(proc, active.moveOriginX, active.moveOriginY)
+                Camera.setCursorMapPosition(bm, active.moveOriginX, active.moveOriginY)
+            }
+        }
+        bm.gameStateBits = bm.gameStateBits and BM_FLAG_3.inv()
+        hooks.hideMoveRangeGraphics.invoke(proc)
+        entityBmMaps.refreshEntityBmMaps()
+        hooks.refreshUnitSprites.invoke(proc)
+        hooks.playSoundEffect.play(SONG_CANCEL)
+        engine.goto(proc, 9)
+    }
+
+    /**
+     * Ported from src/playerphase.c: CanMoveActiveUnitTo
+     *
+     * Whether the active unit can end its move on ([x], [y]): the tile is free of units and in
+     * the movement range, and, for a unit in a ballista, is its origin or has no ballista trap
+     * (the ballista part is transcribed, not verified: no capture has one).
+     */
+    public fun canMoveActiveUnitTo(x: Int, y: Int): Boolean {
+        if (map.unit[y, x] != 0) return false
+        if (map.movement[y, x] >= MAP_MOVEMENT_MAX) return false
+        if ((units.state(active.unit) and UnitLoader.US_IN_BALLISTA) == 0) return true
+        val trap = hooks.trapTypeAt(x, y)
+        if (x == active.moveOriginX && y == active.moveOriginY) return true
+        if (trap < 0) return true
+        return trap != TRAP_BALLISTA
+    }
+
+    /**
+     * Ported from src/playerphase.c: PlayerPhase_BackToMove
+     *
+     * B on the unit menu: puts the active unit back on its move origin, finalizes the movement
+     * (a rescuer's rescuee follows; the ballista case is not ported), shows it, refreshes the
+     * maps, redraws, begins the action again ([unitBeginAction], or the canto action when the
+     * unit has moved: transcribed, not verified, no capture cancels after a canto), swaps the MU
+     * for a fresh one ([Hooks.hideUnitSprite], [Hooks.endAllMus], [Hooks.startMu]) and jumps to
+     * label 1.
+     */
+    public fun playerPhaseBackToMove(proc: Proc) {
+        val unit = active.unit
+        units.setPosition(unit, active.moveOriginX, active.moveOriginY)
+        unitFinalizeMovement(unit)
+        units.setState(unit, units.state(unit) and US_HIDDEN.inv())
+        entityBmMaps.refreshEntityBmMaps()
+        render.renderBmMap()
+        hooks.refreshUnitSprites.invoke(proc)
+        if ((units.state(unit) and US_HAS_MOVED) == 0) {
+            unitBeginAction(unit)
+        } else {
+            // UnitBeginCantoAction: as UnitBeginAction without the subject and move count.
+            active.unit = unit
+            active.unitId = units.index(unit) and 0xFF
+            active.moveOriginX = units.xPos(unit)
+            active.moveOriginY = units.yPos(unit)
+            active.action.unitActionType = 0
+            bm.takenAction = 0
+            hooks.resetBattleScratch()
+            units.setState(unit, units.state(unit) or US_HIDDEN)
+            map.unit[units.yPos(unit), units.xPos(unit)] = 0
+        }
+        hooks.hideUnitSprite(unit)
+        hooks.endAllMus.invoke(proc)
+        hooks.startMu(unit)
+        engine.goto(proc, 1)
+    }
+
+    /**
+     * Transcribed from src/bmunit.c: UnitFinalizeMovement (not verified: rescuer and ballista,
+     * no capture has either)
+     */
+    private fun unitFinalizeMovement(unit: Int) {
+        val state = units.state(unit)
+        if ((state and US_RESCUING) != 0) {
+            val rescuee = units.bytes[units.unitOffset(unit) + 0x1B].toInt() and 0xFF
+            units.setPosition(rescuee, units.xPos(unit), units.yPos(unit))
+        }
+        if ((state and UnitLoader.US_IN_BALLISTA) != 0) {
+            throw UnsupportedOperationException("UnitFinalizeMovement: ballista not ported")
+        }
+    }
+
+    /**
      * Ported from src/bm.c: HandleMapCursorInput
      *
      * Moves the cursor one tile by the D-pad bits of [dirKeys] (opposite directions cancel):
@@ -789,8 +1034,27 @@ public class PlayerPhase(
         /** `BM_FLAG_PREPSCREEN`. */
         public const val BM_FLAG_PREPSCREEN: Int = 1 shl 4
 
+        /** `SONG_6C`, the sound of a refused action. */
+        public const val SONG_6C: Int = 0x6C
+
+        /** `SONG_SE_SYS_WINDOW_CANSEL1`. */
+        public const val SONG_CANCEL: Int = 0x6B
+
+        /** `BM_FLAG_3`. */
+        public const val BM_FLAG_3: Int = 1 shl 3
+
+        private const val TRAP_BALLISTA = 1
+        private const val ACT_NONE = -1
+        private const val ACT_FAIL = 0
+        private const val ACT_MOVE = 1
+        private const val ACT_CANCEL = 2
+        private const val ACT_INFOSCREEN = 3
+        private const val ACT_RESET_CURSOR = 4
+        private const val ACT_EVENT = 5
+        private const val ACT_SWAP_RANGES = 6
         private const val US_HIDDEN = 1 shl 0
         private const val US_HAS_MOVED = 1 shl 6
+        private const val US_RESCUING = 1 shl 4
         private const val KEY_SELECT = 1 shl 2
         private const val KEY_START = KeyStatus.START_BUTTON
         private const val KEY_A = 1 shl 0

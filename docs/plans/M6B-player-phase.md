@@ -305,3 +305,20 @@ will need a variant with animations off.
 | ekrBattle (animation) | f1496..1989 |
 | MU back; exp 0→10 (no level-up), Eirika HP 16→7, Soldier HP 22→8 | f2010; f2028 |
 | Eirika state 0x2 (acted); idle UI procs back | f2034; f2038 |
+
+## PP-11 findings (owner PC 11-11; WIP on branch `wip/PP-11`, nothing verified)
+
+- Seed f1354 (unit menu open, `bm.lock` 1 keeps tree 2 frozen); the menu ends f1355 (lock 0, `unitActionType`
+  1). From f1356 PlayerPhase runs `PrepareAction`, `ApplyUnitAction` (state 0x01 → 0x41) and
+  `RunPotentialWaitEvents` (starts the event engine; proc at script position 35); `goto(0)` at f1360.
+  `r%05d` dumps exist for every frame except f1360 (`f01360`).
+- The StdEventEngine f1356..1358 comes from the chapter's misc events via `SearchAvailableEvent`: the first AFEV
+  fails on its flag, the second (`TMP(7)`, one-enemy-left script at 0x089EF0D8) matches; the script takes BNE,
+  `CHECK_EVENTID_`/`ENUF_SLOT2`, NoFade, end, under the `EventScr_08592114` wrapper (NOFADE skips fades).
+  `EvCheck00/01` exist; the test needs `countRedUnits` and the `EventInfos` hooks `callEvent`,
+  `chapterEventGroup`, `areAnyEnemyUnitDead`.
+- Missing: `checkForWaitEvents`/`runWaitEvents`/`checkTutorialEvent`/`runTutorialEvent`/`shouldCallEndEvent`
+  (need a `countAvailableBlueUnits` hook), `MoveActiveUnit`, `TryMakeCantoUnit` (bails at CA_CANTO),
+  `PlayerPhase_PrepareAction`/`FinishAction`, `HandlePostActionTraps`; `HandleAutoEnd` (transcribed) runs
+  f1360..1364. Branches taken: Wait skips the suspend check; FinishAction takes `chapterVisionRange == 0`; its
+  `EndAllMus` removes the MU at f1360.

@@ -36,7 +36,7 @@ Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames, proc
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| PP-11 | PORT | `PlayerPhase_PrepareAction`/`FinishAction`, Wait action, `HandleAutoEnd`; post-action event check (StdEventEngine f1356–1358) | Unit state bits after the action | — | in progress (owner PC) |
+| PP-11 | PORT | `PlayerPhase_PrepareAction`/`FinishAction`, Wait action, `HandleAutoEnd`; post-action event check (StdEventEngine f1356–1358) | Unit state bits after the action | — | todo; WIP `wip/PP-11`, findings in notes |
 | CAP-status1 | CAP | Run where the cursor rests ≥ 64 frames on a unit with a status, crosses unit→unit in one corner, and (option) `unitDisplayType` 1 | Then verify `PutUnitMapUiStatus`, `MMB_CheckForUnit`, `sub_808C234`, Burst display | — | todo |
 | PP-17 | WIRE | Player-phase hooks in `Fe8Boot`; replay cap1 inputs headless | Same unit position/state as cap1; 0 B/frame; MANUAL_TEST | PP-11, PP-13 | todo |
 
@@ -47,6 +47,7 @@ Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames, proc
 | CAP-hard1 | CAP | Hard-mode New Game run reaching autolevelled loads (unblocks old M6-13) | Run published; then tag `UnitAutolevelRealistic`, `UnitApplyBonusLevels`, `UnitAutolevelPenalty` | — | todo |
 | CAP-collide1 | CAP | Run where a unit load lands on an occupied tile (unblocks old M6-14) | Run published; then verify `AiGetUnitClosestValidPosition`, `AdjustNewUnitPosition` | — | todo |
 | D12-2 | CAP+PORT | Enemy-phase intro capture with per-scanline blend; extend `PhaseIntroDifferentialTest` | Enemy name graphics/palette and per-line blend equal the capture | — | todo; do with M6-D |
+| TEST-2 | INV | `WalkingAllocationTest` borderline on the owner PC: 1–2 of 26 allocation-free windows (needs 3), 4 of 6 local runs on 11-11 failed; CI passes | Find the allocating call (allocation profiler on the walking window) or show it is GC/JIT noise; fix or adjust with the reason | — | todo |
 | D09-3 | PORT | Remaining item-popup branches (gold, full inventory, red/root, unit-name/number) | Each branch against a capture that reaches it, else not written | — | low priority; Rapier popup confirmed on device 11-11 |
 
 Owner-PC sessions also continue [READABILITY](READABILITY.md) (rule 11).

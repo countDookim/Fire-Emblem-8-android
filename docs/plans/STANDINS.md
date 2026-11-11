@@ -10,21 +10,22 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 165 across 27 Kotlin files.
+Total entries: 172 across 28 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 53 |
 | M6-D | 2 |
-| M6-E | 43 |
+| M6-E | 44 |
 | M6-G | 1 |
-| M6-H | 20 |
-| M6-I | 15 |
+| M6-H | 21 |
+| M6-I | 18 |
 | M6-J | 8 |
 | D09-3 | 2 |
-| D11-ci2 | 2 |
+| D11-ci2 | 3 |
 | D11-ci3 | 2 |
 | D11-ci5 | 3 |
+| D11-wire-a | 1 |
 | D11-wire-b | 1 |
 | D11-wm3f | 2 |
 | D11-wm9 | 9 |
@@ -96,7 +97,7 @@ Total entries: 165 across 27 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `berserkCpPhase` | Stand-in until M6-D: ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `cpPhase` | Stand-in until M6-D: never ends. |
 
-## M6-E (43)
+## M6-E (44)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -126,6 +127,7 @@ Total entries: 165 across 27 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `sub80155C4` | Stand-in until M6-E. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `readExtraMapInfo` | Stand-in until M6-E. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `readGameSaveCoreGfx` | Stand-in until M6-E. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `refreshBMapGraphics` | Stand-in until M6-E (`Fe8Boot` holds a partial version of it). |
 | `game/src/commonMain/kotlin/fe8/game/event/EventChangeMap.kt` | `EventChangeMap` | Stand-in until M6-E: nothing by default. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `colorFadeIn` | Stand-in (M6-E) for `NewColFadeIn(speed, 0, color, proc)`. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `colorFadeOut` | Stand-in (M6-E) for `NewColFadeOut(speed, 0, color, proc)`. |
@@ -150,7 +152,7 @@ Total entries: 165 across 27 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: the battle animation (deamon) is not ported, never active. |
 
-## M6-H (20)
+## M6-H (21)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -170,18 +172,20 @@ Total entries: 165 across 27 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `applyEnabledMapChanges` | Stand-in for `ApplyEnabledMapChanges` (until M6-H), called by [initChapterMap] after the base tiles are built; does nothing until the map change system is ported. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `initChapterMap` | The base tile adjustments after the unpack (`ApplyEnabledMapChanges`, shadow and tile changes) are stand-ins until M6-H ([applyEnabledMapChanges] is a hook), so a chapter that has them (e.g. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `refreshAllLightRunes` | Stand-in for `RefreshAllLightRunes` (bmtrick.c; until M6-H), called at the end of [refreshTerrainBmMap]; does nothing until traps are ported. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `wfxFlamesInitGradientPublic` | Stand-in until M6-H (weather effects). |
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `EntityBmMaps` | Stand-ins until M6-H: the trap-dependent parts of src/bmmap.c, `RefreshTorchlightsOnBmMap` and `RefreshMinesOnBmMap` (they read the bmtrick.c trap pool, not ported yet), are the hooks [refreshTorch... |
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `refreshMinesOnBmMap` | Stand-in (M6-H) for `RefreshMinesOnBmMap`, called after the unit pass. |
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `refreshTorchlightsOnBmMap` | Stand-in (M6-H) for `RefreshTorchlightsOnBmMap`, called between clears and unit pass. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `handlePostActionTraps` | Stand-in for `HandlePostActionTraps` (a `PROC_CALL_2`) until M6-H. |
 
-## M6-I (15)
+## M6-I (18)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `gorgonEggHatchDisplay` | Stand-in until M6-I: ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `updatePrevDeployStates` | Stand-in (M6-I). |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `getBattleMapKind` | Stand-in until M6-I. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `getBattleMapKind` | Stand-in until M6-I (needs the world map node state); the default answers [BattleMapKind.STORY]. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | `getUnitStructFromEventParameter` | Pid 0 uses the stand-in (M6-I) [EventUnitStateHooks.playerLeaderPid]. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | `playerLeaderPid` | The default 1 is a stand-in until M6-I (the leader of the save is not modelled here); a caller that needs the real leader overrides it. |
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `GameSaveRam` | The RAM `ReadGameSave` fills, as the objects that own it elsewhere, plus stand-ins for what has no owner yet (the world map and dungeon data, M6-I). @property playSt `gPlaySt`. @property bmSt `gBmS... |
@@ -194,6 +198,8 @@ Total entries: 165 across 27 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `writeGmMonsterRnState` | Transcribed from src/bmsave.c: WriteGMMonsterRnState (not verified: the world map's RN state is a stand-in and the two trailing stack bytes are not derivable) The world map RN state is a stand-in u... |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBeginning.kt` | `hooks` | `sub80BA008` (M6-I) and `startGmapMuEntry` (D11-wm3e) stay stand-ins; so does `startWmFaceCtrl` (D11-wm8d) unless [faces] is given. @param faces the portrait controller `StartWMFaceCtrl` starts @pa... |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `callBeginningEvent` | Still stand-ins: `sub_80BA008` (monster-merged/postgame branch, M6-I), `StartWMFaceCtrl` (D11-wm8d) and `StartGmapMuEntry` (D11-wm3e). @param nodes `gWMNodeData` @param checkFlag `CheckFlag` @param... |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt` | `drawMergeFlag` | Stand-in until M6-I: the flag is never set in the prologue. |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt` | `drawNodeIcon` | Stand-in until M6-I: no node is valid in the prologue. |
 
 ## M6-J (8)
 
@@ -215,12 +221,13 @@ Total entries: 165 across 27 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `gotItemPopup` | Stand-ins (D09-3): `gpPopupUnit` is not tracked, so the unit-name text id is 0 (the got-item and pilfered scripts do not use the unit name), and [addItem] with a full inventory (the item-drop menu)... |
 | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | `event37GiveItem` | Transcribed from src/eventscr.c: Event37_GiveItem (not verified: inventory/gold effects and popups not trace-compared) Host stand-ins (D09-3): the "gold got" popup (`NewPopup_GoldGot`) is not shown... |
 
-## D11-ci2 (2)
+## D11-ci2 (3)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `lightBurstScript` | `ProcScr_ChapterIntro_LightBurst`: stand-in until D11-ci2. |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `script` | Commands after the twin lights are stand-ins: D11-ci2 (`InitBLDCNT`, light burst, title, light explosion, `SetBG_802009C`), D11-ci3 (Bg2Scroll, decals, fog, timer, `8020A40`/`8020A8C`, `BeginFadeTo... |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `script` | Transcribed from src/chapterintrofx.c: gProcScr_ChapterIntro (not verified: the capture runs commands 0-6, the jump to label 1 and the label 1 / 99 commands only; the main path between them is stan... |
 
 ## D11-ci3 (2)
 
@@ -235,7 +242,13 @@ Total entries: 165 across 27 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `chapterIntro` | Stand-in until D11-ci5: ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `ChapterIntro` | Not wired: `BMapMain.Hooks.chapterIntro` still holds its own stand-in (D11-ci5). |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `ChapterIntro` | The rest of the script (light burst, title, light explosion, fog, both fades to the map) is named stand-ins in [script], each tagged with the task that fills it. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `ChapterIntro` | The rest of the script (light burst, title, light explosion, fog, the slow fade to the map) is named stand-ins in [script], each tagged with the task that fills it. |
+
+## D11-wire-a (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet). |
 
 ## D11-wire-b (1)
 

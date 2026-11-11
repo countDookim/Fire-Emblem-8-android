@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 528 across 63 decomp files (missing reason: 0).
+Total entries: 533 across 66 decomp files (missing reason: 0).
 
 ## src/worldmap_rm.c (42)
 
@@ -130,36 +130,6 @@ Total entries: 528 across 63 decomp files (missing reason: 0).
 | `InitTalkTextWin` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no @VerifiesPort test names it |
 | `TalkOpen_InitBlend` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no |
 
-## src/bmunit.c (25)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `GetUnitSupportBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | the traced units have no supporter on the map, srcOffset only the empty sum is compared |
-| `GetUnitPower` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has a power bonus item, srcOffset the bonus term is not exercised |
-| `GetUnitSkill` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |
-| `GetUnitSpeed` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |
-| `GetUnitDefense` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item in the trace |
-| `GetUnitResistance` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no barrier in the trace |
-| `GetUnitLuck` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item in the trace |
-| `UnitRemoveInvalidItems` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no trace runs it yet |
-| `UnitFinalizeMovement` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | rescuee only; no ballistae |
-| `UnitAutolevelRealistic` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
-| `UnitApplyBonusLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced runs return at once (level count 0) |
-| `UnitAutolevelPenalty` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced runs return at once (level count 0) |
-| `UnitAutolevelWExp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `GetUnitItemCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `GetUnitMaxHp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `CopyUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `GetUnitFromCharIdAndFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `UnitChangeFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `GetUnitFromCharIdAndFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `CopyUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `UnitChangeFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `ClearUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced loads fill slots that are already zero, so a skipped clear survives |
-| `FixROMUnitStructPtr` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no traced unit has `CA_BIT_23`, so a broken repoint survives |
-| `UnitCheckStatCaps` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `IsUnitSlotAvailable` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic slot fill; no trace comparison yet |
-
 ## src/eventscr.c (25)
 
 | Function | Kotlin file | Reason |
@@ -189,6 +159,35 @@ Total entries: 528 across 63 decomp files (missing reason: 0).
 | `ShouldUNITBeLoaded` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic dead unit and tile cases; no trace comparison yet |
 | `ModifyMoveUnitFlag` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | test restates bit combinations; no trace comparison yet |
 | `Event34_MessWithUnitState` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | only subs 5, 10 and 15 are compared; breaks in other subs and the CLEA loop survive |
+
+## src/bmunit.c (24)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetUnitPower` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has a power bonus item, so the bonus term is not exercised |
+| `GetUnitSkill` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |
+| `GetUnitSpeed` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |
+| `GetUnitDefense` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item in the trace |
+| `GetUnitResistance` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no barrier in the trace |
+| `GetUnitLuck` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item in the trace |
+| `UnitRemoveInvalidItems` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no trace runs it yet |
+| `UnitFinalizeMovement` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | rescuee only; no ballistae |
+| `UnitAutolevelRealistic` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
+| `UnitApplyBonusLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced runs return at once (level count 0) |
+| `UnitAutolevelPenalty` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced runs return at once (level count 0) |
+| `UnitAutolevelWExp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitItemCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitMaxHp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `CopyUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitFromCharIdAndFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `UnitChangeFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitFromCharIdAndFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `CopyUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `UnitChangeFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `ClearUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced loads fill slots that are already zero, so a skipped clear survives |
+| `FixROMUnitStructPtr` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no traced unit has `CA_BIT_23`, so a broken repoint survives |
+| `UnitCheckStatCaps` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `IsUnitSlotAvailable` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic slot fill; no trace comparison yet |
 
 ## src/eventscr_gmap.c (23)
 
@@ -556,6 +555,18 @@ Total entries: 528 across 63 decomp files (missing reason: 0).
 | `ApplyUnitSpriteImage32x32` | `game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt` | no 32x32 sprite is loaded in the traced frames |
 | `PutChapterMarkedTileIconOam` | `game/src/commonMain/kotlin/fe8/game/bm/UnitSpritesOam.kt` | the trace chapter has no goal tile (destPosX == 0xFF) |
 
+## src/chapterintrofx.c (7)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ProcScr_ChapterIntro_Bg1And3Scroll` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the script layout is only exercised through the differential test of its two callbacks |
+| `ProcScr_ChapterIntro_KeyListen` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the script layout is only exercised through the differential test of its two callbacks |
+| `gProcScr_ChapterIntro` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the capture runs commands 0-6, the jump to label 1 and the label 1 / 99 commands only; the main path between them is stand-ins |
+| `ChapterIntro_TwinLights_InitAndPlaySe` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the fields are compared, the sound effect call is not |
+| `ChapterIntro_BeginFadeOut` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the sound calls `Sound_FadeOutBGM` and `Sound_FadeOutSE` are not compared |
+| `ChapterIntro_BeginFastFadeToMap` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the `StartBgm` call is not compared |
+| `ChapterIntro_End` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the capture's chapter fades to black, so `RefreshBMapGraphics` (through [Hooks.refreshBMapGraphics]) and [sub80141B0] overwrite the priorities, window enable and BG0 clear before the next dump; the story-map branch is not run |
+
 ## src/gamecontrol.c (6)
 
 | Function | Kotlin file | Reason |
@@ -636,15 +647,6 @@ Total entries: 528 across 63 decomp files (missing reason: 0).
 | `SaveRankings` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero ranking block, so no run shows its checksum or data |
 | `WriteLinkArenaStruct2` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero link arena block, so no run shows its checksum or data |
 | `WriteSupplyItems` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
-
-## src/chapterintrofx.c (4)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `ProcScr_ChapterIntro_Bg1And3Scroll` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the script layout is only exercised through the differential test of its two callbacks |
-| `ProcScr_ChapterIntro_KeyListen` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the script layout is only exercised through the differential test of its two callbacks |
-| `gProcScr_ChapterIntro` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the window runs commands 0-6 and the jump to label 1 only |
-| `ChapterIntro_TwinLights_InitAndPlaySe` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the fields are compared, the sound effect call is not |
 
 ## src/proc.c (4)
 
@@ -786,6 +788,12 @@ Total entries: 528 across 63 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `GenerateBestMovementScript` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | the tie-break draws from the RNG; the walk's end position does not depend on it |
 
+## src/bmreliance.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetUnitSupportBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | the traced units have no supporter on the map, so only the empty sum is compared |
+
 ## src/bmtrick.c (1)
 
 | Function | Kotlin file | Reason |
@@ -851,3 +859,15 @@ Total entries: 528 across 63 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `Title_IDLE` | `game/src/commonMain/kotlin/fe8/game/title/TitleScreen.kt` | the 815-step class reel branch never runs in the traces and the next-action id and sound effect are not compared |
+
+## src/worldmap_cursor.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `gProcScr_GmapCursor` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapCursor.kt` | script order checked against the `procs` capture in WorldMapNodeIconCursorTest, which cannot tag a script; the end callback `nullsub_59` does nothing |
+
+## src/worldmap_screen2.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ProcScr_GmNodeIconDisplay` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt` | script order checked against the `procs` capture in WorldMapNodeIconCursorTest, which cannot tag a script |

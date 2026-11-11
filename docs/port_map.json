@@ -6,8 +6,8 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 711,
-    "implemented_unverified": 5
+    "verified": 741,
+    "implemented_unverified": 1
   },
   "functions": {
     "AddUnitSprite": {
@@ -1754,6 +1754,15 @@
         "fe8.testing.ConvoBackgroundVramTest#game lock matches gbmst lock byte across trace steps"
       ]
     },
+    "GetGmapUnitFade": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
     "GetItemAttributes": {
       "decomp_file": "src/bmitem.c",
       "system": "battle_logic",
@@ -2135,33 +2144,59 @@
         "fe8.game.worldmap.GmDataTest#gmDataInit from garbage matches gGMData in the first trace dump"
       ]
     },
+    "GmMuPrim_OnInit": {
+      "decomp_file": "src/worldmap_mapmu.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuTest#GMapMu starts seven prim procs with no linked map unit"
+      ]
+    },
+    "GmMu_OnInit": {
+      "decomp_file": "src/worldmap_mapmu.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuTest#GMapMu starts seven prim procs with no linked map unit"
+      ]
+    },
     "GmapRmBorder1_80C28C4": {
       "decomp_file": "src/worldmap_rm.c",
       "system": "worldmap",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmBorderTest#border procs follow the original script position and fields every step"
+      ]
     },
     "GmapRmBorder1_80C2964": {
       "decomp_file": "src/worldmap_rm.c",
       "system": "worldmap",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmBorderTest#border procs follow the original script position and fields every step"
+      ]
     },
     "GmapRmBorder1_80C29F8": {
       "decomp_file": "src/worldmap_rm.c",
       "system": "worldmap",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmBorderTest#border procs follow the original script position and fields every step"
+      ]
     },
     "GmapRmBorder1_80C2A1C": {
       "decomp_file": "src/worldmap_rm.c",
       "system": "worldmap",
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRmBorderTest#border procs follow the original script position and fields every step"
+      ]
     },
     "GmapRmUpdateDirect_Loop": {
       "decomp_file": "src/worldmap_rm.c",
@@ -2242,6 +2277,51 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapRmTest#starting the map loads its graphics, tilemap and BG registers like the original"
+      ]
+    },
+    "GmapUnitFade_Destruct": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "GmapUnitFade_Init": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "GmapUnitFade_Loop": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "GmapUnit_Init": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "GmapUnit_Loop": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
       ]
     },
     "HBlank_BgVerticalScroll": {
@@ -2716,6 +2796,96 @@
         "fe8.testing.ResumeBootTest#resume from phase idle jumps BMapMain to label 4 like the dumps"
       ]
     },
+    "MapUnitC_DeleteGmapUnit": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "MapUnitC_GetAnimId": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "MapUnitC_GetPosition": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "MapUnitC_SetAnimId": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "MapUnitC_SetDisplayEnabled": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "MapUnitC_SetFaction": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "MapUnitC_SetGfxNeedsUpdate": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "MapUnitC_SetLayer": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "MapUnitC_SetPalette": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "MapUnitC_SetPosition": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
     "MidiKeyToCgbFreq": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -2779,6 +2949,24 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ArchivedPaletteFadeProcDifferentialTest#fade in timer lifetime and palette match the original"
+      ]
+    },
+    "NewGmapUnitContainer": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "NewMapUnit": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
       ]
     },
     "NewPopupCore": {
@@ -4303,6 +4491,15 @@
         "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
       ]
     },
+    "StartGmMu": {
+      "decomp_file": "src/worldmap_mapmu.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuTest#GMapMu starts seven prim procs with no linked map unit"
+      ]
+    },
     "StartGmapRm": {
       "decomp_file": "src/worldmap_rm.c",
       "system": "worldmap",
@@ -4319,6 +4516,15 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapRmTest#map scroll procs follow the original proc fields and BG1 offsets every step"
+      ]
+    },
+    "StartGmapUnitFade": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
       ]
     },
     "StartLockingFadeFromBlack": {
@@ -5605,6 +5811,42 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapWrapperTest#sub_80B8FEC clears merge_next_node when no node is next like the original"
+      ]
+    },
+    "sub_80BB194": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "sub_80BB49C": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "sub_80BB4C0": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "sub_80BB538": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
       ]
     },
     "sub_80C488C": {

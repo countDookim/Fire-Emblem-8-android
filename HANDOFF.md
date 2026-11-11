@@ -13,7 +13,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 - READ-ui (READABILITY fe8.game.ui): owner PC, until ~11:15Z
 - D11-wm3b: owner PC, until ~11:30Z
-- D11-ci0: owner PC, until ~11:15Z
+- D11-ci1: owner PC, until ~11:45Z
 - PP-cap1: owner PC, until ~11:15Z
 
 ## Current state

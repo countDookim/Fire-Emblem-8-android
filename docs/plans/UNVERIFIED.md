@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 523 across 62 decomp files (missing reason: 0).
+Total entries: 525 across 64 decomp files (missing reason: 0).
 
 ## src/worldmap_rm.c (42)
 
@@ -841,3 +841,15 @@ Total entries: 523 across 62 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `Title_IDLE` | `game/src/commonMain/kotlin/fe8/game/title/TitleScreen.kt` | the 815-step class reel branch never runs in the traces and the next-action id and sound effect are not compared |
+
+## src/worldmap_cursor.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `gProcScr_GmapCursor` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapCursor.kt` | script order checked against the `procs` capture in WorldMapNodeIconCursorTest, which cannot tag a script; the end callback `nullsub_59` does nothing |
+
+## src/worldmap_screen2.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ProcScr_GmNodeIconDisplay` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt` | script order checked against the `procs` capture in WorldMapNodeIconCursorTest, which cannot tag a script |

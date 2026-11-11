@@ -9,6 +9,7 @@ import fe8.game.bm.BmSt
 import fe8.game.bm.PlaySt
 import fe8.game.bm.UnitTable
 import fe8.game.ui.UiFrame
+import gbafe.render.ApHandle
 import gbafe.render.BgHardware
 import gbafe.proc.Proc
 import gbafe.proc.ProcArgFunc
@@ -48,8 +49,32 @@ public class WorldMapMainProc {
     public val scrolling: GmScrollFlags = GmScrollFlags()
 }
 
-/** The fields of `struct GmNodeIconDisplayProc` that `src/worldmap_main.c` writes. */
+/**
+ * The fields of `struct GmNodeIconDisplayProc` (`ProcScr_GmNodeIconDisplay`, see
+ * [WorldMapNodeIcons]).
+ */
 public class GmNodeIconDisplayProc {
+    /** `chr` (+0x2C): VRAM offset of the node icon tiles. */
+    public var chr: Int = 0
+
+    /** `pal` (+0x30): the OBJ palette bank. */
+    public var pal: Int = 0
+
+    /** `unk_31` (+0x31). */
+    public var unk31: Int = 0
+
+    /** `skip` (bit 0 of the byte at +0x32): the loop draws only while this is set. */
+    public var skip: Boolean = false
+
+    /** `unk_34` (+0x34): one bit per node, drawn blended. */
+    public var unk34: Int = 0
+
+    /** `ap` (+0x38): the animation handle of the merge-next-node flag. */
+    public var ap: ApHandle? = null
+
+    /** `pScreenProc` (+0x3C). */
+    public var screen: GmScreenProc? = null
+
     /** `merge_next_node` (bit 1 of the byte at +0x32). */
     public var mergeNextNode: Boolean = false
 

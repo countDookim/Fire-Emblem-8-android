@@ -58,6 +58,13 @@ public class GmData(private val iwram: ByteArray, private val rng: RngService) {
             iwram[BASE] = value.toByte()
         }
 
+    /** `gGMData.sprite_disp` (`u8`, offset 1): the cursor is drawn while it is above 0. */
+    public var spriteDisp: Int
+        get() = iwram[BASE + 1].toInt() and 0xFF
+        set(value) {
+            iwram[BASE + 1] = value.toByte()
+        }
+
     /** `gGMData.units[unit].location` (`u8`, offset 1 of the unit slot). */
     public fun unitLocation(unit: Int): Int =
         iwram[BASE + UNITS + unit * UNIT_SIZE + 1].toInt() and 0xFF

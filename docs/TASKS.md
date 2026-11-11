@@ -40,7 +40,7 @@ Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames, proc
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| PP-4 | PORT | Range squares: `MoveLimitView_*`, `DisplayMoveRangeGraphics`, `HideMoveRangeGraphics` | BG2 tilemap and palette at dumps | PP-3 | todo |
+| PP-4 | PORT | Range squares: `MoveLimitView_*`, `DisplayMoveRangeGraphics`, `HideMoveRangeGraphics` | BG2 tilemap and palette at dumps | PP-3 | in progress |
 | PP-5 | PORT | Path arrow data: `ResetPathArrow`, `UpdatePathArrowWithCursor`, `AddPointToPathArrowProc`, `CutOffPathLength` | Path buffers per step | PP-3 | todo |
 | PP-6 | PORT | Path arrow drawing: `DrawPathArrow`, `DrawUpdatedPathArrow` | OAM at dumps | PP-5 | todo |
 | PP-7 | PORT | `PlayerPhase_RangeDisplayIdle` confirm/cancel, `CanMoveActiveUnitTo`, `PlayerPhase_BackToMove`, `CancelAction` | Proc position per step in cap1/cap2 | PP-3 | todo |

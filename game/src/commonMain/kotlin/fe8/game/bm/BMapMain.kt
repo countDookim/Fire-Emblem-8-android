@@ -413,11 +413,11 @@ public class BMapMain(
     }
 
     /**
-     * Transcribed from src/bm.c: BmMain_UpdateTraps (not verified: no test checks it against a
-     *   trace yet)
+     * Ported from src/bm.c: BmMain_UpdateTraps
      *
      * Not the green phase: true. Otherwise starts [Hooks.updateTraps] blocking [proc], runs
-     * [Hooks.decayTraps] and returns false.
+     * [Hooks.decayTraps] and returns false (the green branch is not verified: the captures end
+     * the berserk phase after the player and enemy phases only).
      */
     public fun updateTraps(proc: Proc): Boolean {
         if (playSt.faction != FACTION_GREEN) return true

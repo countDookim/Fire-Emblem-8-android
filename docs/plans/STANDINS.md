@@ -10,13 +10,13 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 209 across 32 Kotlin files.
+Total entries: 210 across 33 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 51 |
 | M6-C | 1 |
-| M6-D | 2 |
+| M6-D | 3 |
 | M6-E | 45 |
 | M6-G | 1 |
 | M6-H | 22 |
@@ -98,12 +98,13 @@ Total entries: 209 across 32 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `resetBattleScratch` | Stand-in until M6-C for `sub_802C334` (zeroes `sUnknown_0203A60C`, a scratch struct of the battle code), called by `UnitBeginAction`. |
 
-## M6-D (2)
+## M6-D (3)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `berserkCpPhase` | Stand-in until M6-D: ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `cpPhase` | Stand-in until M6-D: never ends. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `CpPhase` | The AI decision (`gProcScr_CpDecide`) and the enemy phase proper are M6-D: [Hooks] stand in for them. |
 
 ## M6-E (45)
 

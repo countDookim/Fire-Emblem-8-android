@@ -125,8 +125,10 @@ public class EventInfos(
     private fun u32(address: Int): Int = memory.u16(address) or (memory.u16(address + 2) shl 16)
 
     /**
-     * Transcribed from src/eventinfo.c: StartEventFromInfo (not verified: the trace has no frame
-     *   that starts an event through it that the test compares; see EventInfoRomTest)
+     * Ported from src/eventinfo.c: StartEventFromInfo
+     *
+     * The `EVENT_NOSCRIPT` and `EVFLAG_WIN` branches are (not verified: the captured turn event
+     * has a script and does not set the win flag).
      */
     public fun startEventFromInfo(info: EventInfo, execType: Int) {
         if (info.script == 0) return
@@ -144,8 +146,10 @@ public class EventInfos(
     /**
      * Ported from src/eventinfo.c: RunPhaseSwitchEvents
      *
-     * Returns true if it started events or the end event. The traces compared (EventInfoRomTest)
-     * only reach the "nothing found" return; the end event and event start paths follow the C.
+     * Returns true if it started events or the end event. Verified on the "nothing found" return
+     * (EventInfoRomTest) and the event start (the enemy phase turn event of the Prologue,
+     * PhaseChangeDifferentialTest); the end event and the tutorial event branches are (not
+     * verified: no capture reaches them).
      */
     public fun runPhaseSwitchEvents(): Boolean {
         if (hooks.getBattleMapKind() == KIND_SKIRMISH) return false

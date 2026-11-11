@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 550 across 70 decomp files (missing reason: 0).
+Total entries: 548 across 70 decomp files (missing reason: 0).
 
 ## src/worldmap_rm.c (42)
 
@@ -316,7 +316,7 @@ Total entries: 550 across 70 decomp files (missing reason: 0).
 | `MoveUnit_` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `GenUnitDefinitionFinalPosition` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 
-## src/eventinfo.c (16)
+## src/eventinfo.c (15)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
@@ -330,32 +330,11 @@ Total entries: 550 across 70 decomp files (missing reason: 0).
 | `CheckPermanentFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
 | `ClearFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
 | `CheckFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `StartEventFromInfo` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | the trace has no frame that starts an event through it that the test compares; see EventInfoRomTest |
 | `SearchNextAvailableEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | only hand-decoded ROM values check it; no trace reaches a second match |
 | `EvCheck01_AFEV` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | no type-1 entry is reached |
 | `EvCheck0C_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
 | `EvCheck0D_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
 | `EnqueueTutEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-
-## src/bm.c (15)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `CallBeginningEvents` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
-| `sub_8015434` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
-| `BmMain_ResumePlayerPhase` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
-| `BmMain_UpdateTraps` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
-| `BmMain_StartIntroFx` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
-| `UndeployEveryone` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
-| `GotoChapterWithoutSave` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
-| `SetEventId_0x84` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
-| `UnsetEventId_0x84` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
-| `sub_8015D84` | `game/src/commonMain/kotlin/fe8/game/bm/CamMove.kt` | no reference run starts it |
-| `CameraMove_8015EDC` | `game/src/commonMain/kotlin/fe8/game/bm/CamMove.kt` | no reference run starts it |
-| `StoreAdjustedCameraPositions` | `game/src/commonMain/kotlin/fe8/game/bm/Camera.kt` | needs a scripted camera or unit menu after scrolling, which no trace has |
-| `StoreAdjustedCameraPositions` | `game/src/commonMain/kotlin/fe8/game/bm/Camera.kt` | needs a scripted camera or unit menu after scrolling, which no trace has |
-| `IsCameraNotWatchingPosition` | `game/src/commonMain/kotlin/fe8/game/bm/Camera.kt` | needs a scripted camera or unit menu after scrolling, which no trace has |
-| `LoadObjUIGfx` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no trace dump holds the OBJ UI tiles of a talk |
 
 ## src/worldmap_scrollmanage.c (15)
 
@@ -395,6 +374,25 @@ Total entries: 550 across 70 decomp files (missing reason: 0).
 | `AP_ExecDummyFrame` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
 | `AP_Init` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
 | `AP_Find` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
+
+## src/bm.c (14)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `CallBeginningEvents` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
+| `sub_8015434` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
+| `BmMain_ResumePlayerPhase` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
+| `BmMain_StartIntroFx` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
+| `UndeployEveryone` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
+| `GotoChapterWithoutSave` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
+| `SetEventId_0x84` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
+| `UnsetEventId_0x84` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
+| `sub_8015D84` | `game/src/commonMain/kotlin/fe8/game/bm/CamMove.kt` | no reference run starts it |
+| `CameraMove_8015EDC` | `game/src/commonMain/kotlin/fe8/game/bm/CamMove.kt` | no reference run starts it |
+| `StoreAdjustedCameraPositions` | `game/src/commonMain/kotlin/fe8/game/bm/Camera.kt` | needs a scripted camera or unit menu after scrolling, which no trace has |
+| `StoreAdjustedCameraPositions` | `game/src/commonMain/kotlin/fe8/game/bm/Camera.kt` | needs a scripted camera or unit menu after scrolling, which no trace has |
+| `IsCameraNotWatchingPosition` | `game/src/commonMain/kotlin/fe8/game/bm/Camera.kt` | needs a scripted camera or unit menu after scrolling, which no trace has |
+| `LoadObjUIGfx` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no trace dump holds the OBJ UI tiles of a talk |
 
 ## src/bmsave.c (14)
 

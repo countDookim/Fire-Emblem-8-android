@@ -38,7 +38,7 @@ Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames, proc
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
 | PP-6 | PORT | Path arrow drawing: `DrawPathArrow`, `DrawUpdatedPathArrow` | OAM at dumps | — | in progress (owner PC) |
-| PP-11 | PORT | `PlayerPhase_PrepareAction`/`FinishAction`, Wait action, `HandleAutoEnd`; post-action event check (StdEventEngine f1356–1358) | Unit state bits after the action | PP-8 | todo |
+| PP-11 | PORT | `PlayerPhase_PrepareAction`/`FinishAction`, Wait action, `HandleAutoEnd`; post-action event check (StdEventEngine f1356–1358) | Unit state bits after the action | — | todo |
 | PP-13 | PORT | End turn → phase change: BerserkCpPhase/CpOrder (f1511), faction 0→0x80 (f1514), PhaseIntro start | Faction change and procs equal cap2 (AI stand-in) | — | in progress (owner PC) |
 | CAP-status1 | CAP | Run where the cursor rests ≥ 64 frames on a unit with a status, crosses unit→unit in one corner, and (option) `unitDisplayType` 1 | Then verify `PutUnitMapUiStatus`, `MMB_CheckForUnit`, `sub_808C234`, Burst display | — | todo |
 | PP-17 | WIRE | Player-phase hooks in `Fe8Boot`; replay cap1 inputs headless | Same unit position/state as cap1; 0 B/frame; MANUAL_TEST | PP-11, PP-13 | todo |

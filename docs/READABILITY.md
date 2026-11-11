@@ -56,7 +56,7 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | game | fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs) | 4 | 845 | done 2026-11-10 ff286fe / 0bfe1ab |
 | game | fe8.game.event (remaining command handlers and script formats) | 18 | 3299 | done 2026-11-10 077a47d |
 | game | fe8.game.flags | 1 | 69 | done 2026-11-09 0194222 |
-| game | fe8.game.opanim (OpAnim, OpAnimHs, EarlyStartUi) | 3 | 3128 | todo |
+| game | fe8.game.opanim (OpAnim, OpAnimHs, EarlyStartUi) | 3 | 3128 | partial 2026-11-11 8cf022f: OpAnim.kt ~1040-1300 bodies unread |
 | game | fe8.game.opanim (OpSubtitle*.kt) | 7 | 796 | done 2026-11-10 f3ad834 / d05e87f |
 | game | fe8.game.save | 8 | 2541 | done 2026-11-09 1941586 |
 | game | fe8.game.savemenu | 2 | 156 | done 2026-11-09 81db35b |

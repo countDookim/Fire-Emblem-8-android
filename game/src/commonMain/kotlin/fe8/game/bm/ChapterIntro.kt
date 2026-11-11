@@ -17,6 +17,7 @@ import gbafe.proc.ProcScripts.label
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.sleep
 import gbafe.proc.ProcScripts.startChild
+import gbafe.render.BgAffin
 import gbafe.render.BgHardware
 import gbafe.render.BgTilemap
 import gbafe.render.ColorFade
@@ -26,9 +27,9 @@ import gbafe.render.OamBuffer
 /**
  * The chapter intro (`src/chapterintrofx.c`): the start of `gProcScr_ChapterIntro` up to the
  * skip to label 1 (`ram_trace_newgame_bm` frames 9322-9420) and the skip path itself, label 1 to
- * `ChapterIntro_End` (frames 9421-9506). The rest of the script (light burst, title, light
- * explosion, fog, the slow fade to the map) is named stand-ins in [script], each tagged with the
- * task that fills it.
+ * `ChapterIntro_End` (frames 9421-9506), plus the main path from the twin lights through the
+ * title and the light effects to the fog (`ram_trace_newgame_intro` frames 9322-9535). The rest
+ * (Bg2Scroll, decals, fog, the slow fade to the map) is named stand-ins in [script].
  *
  * Not wired: `BMapMain.Hooks.chapterIntro` still holds its own stand-in (D11-ci5).
  */
@@ -124,11 +125,15 @@ public class ChapterIntro(
     }
 
     /**
-     * `REG_BG3HOFS`, written directly by [bg1And3ScrollLoop] (it is not part of
-     * `gLCDControlBuffer`).
+     * The display registers the intro writes: `FlushLCDControl` ([flushLcdControl]) copies
+     * `gLCDControlBuffer` here, and [bg1And3ScrollLoop] writes `REG_BG3HOFS` directly (it is not
+     * part of the buffer). Layout of the I/O registers (offset 0 = 0x04000000).
      */
-    public var regBg3Hofs: Int = 0
-        private set
+    public val io: ByteArray = ByteArray(IO_SIZE)
+
+    /** `REG_BG3HOFS` (I/O offset 0x1C). */
+    public val regBg3Hofs: Int
+        get() = (io[0x1C].toInt() and 0xFF) or ((io[0x1D].toInt() and 0xFF) shl 8)
 
     /** The title card graphics `ChapterIntro_DrawChapterTitle` uses. */
     public val chapterTitle: ChapterTitle = ChapterTitle(
@@ -175,21 +180,35 @@ public class ChapterIntro(
         newState = { State() },
     )
 
-    /** `ProcScr_ChapterIntro_LightBurst`: stand-in until D11-ci3. */
-    private val lightBurstScript = standInScript("ProcScr_ChapterIntro_LightBurst")
+    /**
+     * `ProcScr_ChapterIntro_LightBurst`.
+     *
+     * Transcribed from src/chapterintrofx.c: ProcScr_ChapterIntro_LightBurst (not verified: the
+     *   script layout is only exercised through the differential test of its two callbacks)
+     */
+    public val lightBurstScript: ProcScript = ProcScript(
+        "ProcScr_ChapterIntro_LightBurst",
+        listOf(
+            call(ProcFunc { lightBurstInit(it.state as State) }),
+            repeat(ProcFunc { lightBurstLoop(it) }),
+            end(),
+        ),
+        newState = { State() },
+    )
 
-    /** `ProcScr_ChapterIntro_Bg2Scroll`: stand-in until D11-ci3. */
+    /** `ProcScr_ChapterIntro_Bg2Scroll`: stand-in until the row after D11-ci3. */
     private val bg2ScrollScript = standInScript("ProcScr_ChapterIntro_Bg2Scroll")
 
-    /** `ProcScr_ChapterIntro_PutDecalSprite`: stand-in until D11-ci3. */
+    /** `ProcScr_ChapterIntro_PutDecalSprite`: stand-in until the row after D11-ci3. */
     private val putDecalScript = standInScript("ProcScr_ChapterIntro_PutDecalSprite")
 
     /**
      * `gProcScr_ChapterIntro`, command for command. Real: the start up to the twin lights
-     * (D11-ci1), `InitBLDCNT`, `DrawChapterTitle` and `SetBG_802009C` (D11-ci2), label 1 (the skip
-     * path) and `End` (D11-ci4), `InitCameraYPos` and `InitMapDisplay` (both paths). Stand-ins for
-     * D11-ci3: light burst, light explosion, Bg2Scroll, decals, fog, timer, `8020A40`/`8020A8C`
-     * and `BeginFadeToMap`/`LoopFadeToMap`.
+     * (D11-ci1), `InitBLDCNT`, `DrawChapterTitle` and `SetBG_802009C` (D11-ci2), the light burst
+     * and light explosion (D11-ci3), label 1 (the skip path) and `End` (D11-ci4),
+     * `InitCameraYPos` and `InitMapDisplay` (both paths). Stand-ins for the next chapter-intro
+     * row: Bg2Scroll, decals, fog, timer, `8020A40`/`8020A8C` and `BeginFadeToMap`/
+     * `LoopFadeToMap`.
      *
      * Transcribed from src/chapterintrofx.c: gProcScr_ChapterIntro (not verified: the captures
      *   run commands 0-14 (`ram_trace_newgame_intro` to the fog start), the jump to label 1 and
@@ -209,8 +228,8 @@ public class ChapterIntro(
             startChild { lightBurstScript },
             call(ProcFunc { drawChapterTitle() }),
             sleep(1),
-            call(ProcFunc { (it.state as State).timer = 0 }),
-            repeat(ProcFunc { lightExplosionLoopStandIn(it) }),
+            call(ProcFunc { lightExplosionInit(it.state as State) }),
+            repeat(ProcFunc { lightExplosionLoop(it) }),
             call(ProcFunc { setBg802009C() }),
             startChild { bg2ScrollScript },
             startChild { putDecalScript },
@@ -248,13 +267,146 @@ public class ChapterIntro(
     )
 
     /**
-     * Stand-in for `ChapterIntro_LightExplosion_Loop` (D11-ci3): only its control flow, `timer++`
-     * and the break at 70. The sprites, affine matrices and `SetDispEnable` of
-     * `ChapterIntro_LightExplosion_Init` are not done.
+     * Ported from src/chapterintrofx.c: ChapterIntro_LightBurst_Init
      */
-    private fun lightExplosionLoopStandIn(proc: Proc) {
+    private fun lightBurstInit(state: State) {
+        state.timer = 0
+        state.unk4E = 0
+        state.unk66 = 0
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_LightBurst_Loop
+     *
+     * The burst of white over the lens flare: `unk_66` is the phase (0 fading in, 1 fading out),
+     * `unk_4E` the blend weight (`SetBlendAlpha`) and `timer` the BG2 zoom. While `timer < 256`
+     * BG2's affine matrix is rebuilt every frame (zoom `timer + 240`) and flushed; at the end of
+     * the fade-out every light burst proc ends.
+     */
+    private fun lightBurstLoop(proc: Proc) {
         val state = proc.state as State
-        state.timer++
+        if (state.unk66 == 0) {
+            setBlendAlpha(16, state.unk4E)
+            state.unk4E = (state.unk4E + 1).toShort().toInt()
+        } else {
+            setBlendAlpha(state.unk4E shr 1, 16)
+            state.unk4E = (state.unk4E - 1).toShort().toInt()
+        }
+        if (state.timer < 256) {
+            val lcd = hardware.lcd
+            BgAffin.rotScaling(lcd, 2, 0, 0, 0, 384, 384)
+            val zoom = (state.timer and 0xFFFF) + 240
+            BgAffin.scaling(lcd, 2, zoom, zoom)
+            BgAffin.anchoring(lcd, 2, 112, 88, 76, 76)
+            flushLcdControl()
+            if (state.unk66 != 0) state.timer = (state.timer + 4).toShort().toInt()
+        }
+        if (state.unk66 == 0) {
+            if (state.unk4E < 16) return
+            state.unk4E = 32
+            setBlendAlpha(16, 16)
+            state.unk66 = (state.unk66 + 1).toShort().toInt()
+            return
+        }
+        if (state.unk4E > 0) return
+        setBlendAlpha(0, 16)
+        engine.endEach(lightBurstScript)
+        engine.breakProc(proc)
+    }
+
+    /**
+     * `SetBlendAlpha(ca, cb)` (a macro in src/hardware.h):
+     * `SetBlendConfig(BLEND_EFFECT_ALPHA, ca, cb, 0)`.
+     */
+    private fun setBlendAlpha(ca: Int, cb: Int) {
+        hardware.lcd.setBlendConfig(1, ca, cb, 0)
+    }
+
+    /**
+     * `FlushLCDControl`: copies `gLCDControlBuffer` to the display registers [io]
+     * ([LcdControl.flushTo], ported from src/hardware.c).
+     */
+    private fun flushLcdControl() {
+        hardware.lcd.flushTo(io)
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_LightExplosion_Init
+     */
+    private fun lightExplosionInit(state: State) {
+        hardware.lcd.setDispEnable(1, 1, 1, 0, 1)
+        state.timer = 0
+        state.unk64 = 0
+        state.unk66 = 0
+        state.unk68 = 0
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: PutOppositeLightExplosionSprites
+     *
+     * Puts two 16x16 light sprites, one moving from the screen centre toward ([xTarget],
+     * [yTarget]) and one at its point reflection through the centre, with OBJ affine matrix
+     * [affineId].
+     */
+    private fun putOppositeLightExplosionSprites(
+        state: State,
+        affineId: Int,
+        xTarget: Int,
+        yTarget: Int,
+    ) {
+        val x = Interpolate.interpolate(Interpolate.RCUBIC, 240 / 2, xTarget, state.timer, 70)
+        val y = Interpolate.interpolate(Interpolate.RCUBIC, 160 / 2, yTarget, state.timer, 70)
+        val object16 = rom.pal(OBJECT_16X16, 4)
+        oam.putHi(
+            ((x - 8) and 0x1FF) or (affineId shl 9),
+            ((y - 8) and 0x1FF) or OAM0_AFFINE_ENABLE,
+            object16,
+            OAM2_CHR_218_PAL_2,
+        )
+        oam.putHi(
+            ((232 - x) and 0x1FF) or (affineId shl 9),
+            ((152 - y) and 0x1FF) or OAM0_AFFINE_ENABLE,
+            object16,
+            OAM2_CHR_218_PAL_2,
+        )
+    }
+
+    /**
+     * The scale parameter (`Div(COS(0) * 16, scale)`, `COS(0)` = 0x1000) of one light explosion
+     * matrix at [counter]: the scale shrinks from 320 to 16 over 70 frames.
+     */
+    private fun lightExplosionMatrix(counter: Int): Int {
+        val scale = Interpolate.interpolate(Interpolate.RSQUARE, 320, 16, counter, 70)
+        return 0x1000 * 16 / scale
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_LightExplosion_Loop
+     *
+     * Three light pairs (OBJ affine matrices 1-3, targets (215, 17), (192, 32), (169, 47)) fly
+     * out of the screen centre for 70 frames, then the proc breaks.
+     */
+    private fun lightExplosionLoop(proc: Proc) {
+        val state = proc.state as State
+        if (state.unk64 <= 70) {
+            val m = lightExplosionMatrix(state.unk64)
+            oam.setObjAffine(1, m, 0, 0, m)
+            state.unk64 = (state.unk64 + 1).toShort().toInt()
+        }
+        putOppositeLightExplosionSprites(state, 1, 215, 17)
+        if (state.unk66 <= 70) {
+            val m = lightExplosionMatrix(state.unk66)
+            oam.setObjAffine(2, m, 0, 0, m)
+            state.unk66 = (state.unk66 + 1).toShort().toInt()
+        }
+        putOppositeLightExplosionSprites(state, 2, 192, 32)
+        if (state.unk68 <= 70) {
+            val m = lightExplosionMatrix(state.unk68)
+            oam.setObjAffine(3, m, 0, 0, m)
+            state.unk68 = (state.unk68 + 1).toShort().toInt()
+        }
+        putOppositeLightExplosionSprites(state, 3, 169, 47)
+        state.timer = (state.timer + 1).toShort().toInt()
         if (state.timer >= 70) engine.breakProc(proc)
     }
 
@@ -345,7 +497,9 @@ public class ChapterIntro(
     private fun bg1And3ScrollLoop(state: State) {
         state.timer = (state.timer + 1).toShort().toInt()
         hardware.lcd.setBgPosition(1, state.timer / 2, 0)
-        regBg3Hofs = state.timer / 2
+        val hofs = state.timer / 2
+        io[0x1C] = hofs.toByte()
+        io[0x1D] = (hofs shr 8).toByte()
     }
 
     /**
@@ -697,6 +851,8 @@ public class ChapterIntro(
         const val OAM0_AFFINE_ENABLE = 0x100
         const val OAM2_CHR_210_PAL_2 = 0x210 or (2 shl 12)
         const val OAM2_CHR_214_PAL_2 = 0x214 or (2 shl 12)
+        const val OAM2_CHR_218_PAL_2 = 0x218 or (2 shl 12)
+        const val IO_SIZE = 0x60
         const val OBJ_VRAM = 0x10000
         const val IMG_COMM_GAME_BG = 0x08B12DB4
         const val PAL_COMM_GAME_BG = 0x08B1754C
@@ -705,6 +861,7 @@ public class ChapterIntro(
         const val PAL_LENS_FLARE = 0x08B18ED4
         const val IMG_SPRITES = 0x08B19874
         const val PAL_SPRITES = 0x08B19DEC
+        const val OBJECT_16X16 = 0x08590F4C
         const val OBJECT_32X32 = 0x08590F54
         const val LIGHT_X_LUT = 0x0859B120
         const val LIGHT_Y_LUT = 0x0859B132

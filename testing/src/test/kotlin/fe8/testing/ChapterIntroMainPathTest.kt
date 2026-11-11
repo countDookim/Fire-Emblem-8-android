@@ -38,33 +38,36 @@ import org.junit.jupiter.api.Test
 
 /**
  * The chapter intro's main path from the twin lights to the end of the light explosion
- * (src/chapterintrofx.c, src/chapter_title.c) against `ram_trace_newgame_intro` (no key presses),
- * frames 9322-9535: `ChapterIntro_InitBLDCNT` and the light burst start (9455), the chapter title
- * draw `ChapterIntro_DrawChapterTitle` (9455), the light explosion (9456-9525) and
- * `ChapterIntro_SetBG_802009C` with the start of Bg2Scroll, the decal and the fog (9526).
+ * (src/chapterintrofx.c, src/chapter_title.c, src/sysutil.c) against `ram_trace_newgame_intro`
+ * (no key presses), frames 9322-9535: `ChapterIntro_InitBLDCNT`, the light burst (9455-9502) and
+ * the chapter title draw (9455), the light explosion (9456-9525) and `ChapterIntro_SetBG_802009C`
+ * with the start of Bg2Scroll, the decal and the fog (9526).
  *
  * Alignment is that of [ChapterIntroDifferentialTest] (seeded from the dump of 9321, step 9322 is
  * compared with the dump of 9325, then one step per frame, keys from the captured `inputs.bin`).
- * Compared every frame: the intro, KeyListen and Bg1And3Scroll procs (script position, sleep,
- * mark, lock count, repeat callback; `ChapterIntroFxProc` fields `isSkipping` and `skipTarget`,
- * the twin light fields to 9455, `timer` through the explosion to 9525), the key status, the BG0,
- * BG1 and BG3 tilemap buffers (BG2 to 9525), the palette buffer (bank 4, the fog palette, not
- * from 9526), `gFadeComponentStep`, `gFadeComponents`, from 9455 `gChapterTitleFxSt.chr_str`, and the LCD
- * buffer: all of it to 9454; at 9455 DISPCNT (the light explosion sets the display enables from
- * 9456) and the BLDCNT target bits; to 9525 BGCNT, BG scroll and window registers; from 9526 DISPCNT
- * mode and BGCNT. At the full dumps (every 10 frames) the BG and OBJ tile data that
- * `ChapterIntro_Init` decompresses are compared with VRAM, BG2's lens flare to 9520, and from
- * 9460 the 0x800 bytes of title image at tile 0x280; the BG3 scroll register comes from the I/O
- * dump (to 9454: the light burst's `FlushLCDControl` rewrites it after that).
  *
- * Limits (stand-ins, D11-ci3): the light burst proc is not run, so the blend effect bits and
- * coefficients, BG2's affine registers and `SetBlendAlpha` state are not compared from 9455; the
- * light explosion is reduced to the `timer` count and the break at 70 (no sprites, affine
- * matrices or `SetDispEnable`), so the OAM is not compared after the twin lights; Bg2Scroll,
- * the decal procs and the fog init do not run, so the intro's `timer`, BG2, the fog's palette
- * bank 4, the lens flare tile data and BG scroll registers are not compared from 9526.
- * `GetPlayChapterId` and `GetNextUnclearedNode` come from the existing world map ports
- * (`WmNodeData`, `WorldMapPath` on the captured `gGMData`).
+ * Compared every frame: the intro, KeyListen, Bg1And3Scroll and (while it lives) LightBurst procs
+ * (script position, sleep, mark, lock count, repeat callback), the `ChapterIntroFxProc` fields
+ * (`isSkipping` and `skipTarget`; the twin light fields to 9455; `timer`, `unk_64`, `unk_66` and
+ * `unk_68` through the explosion to 9525; the light burst's `timer`, `unk_4E` and `unk_66`), the
+ * key status, the BG0, BG1 and BG3 tilemap buffers (BG2 to 9525), the palette buffer (bank 4,
+ * the fog palette, not from 9526), `gFadeComponentStep`, `gFadeComponents`, from 9455
+ * `gChapterTitleFxSt.chr_str`, and `gLCDControlBuffer`: to 9525 all of it (DISPCNT, BGCNT, BG
+ * scroll, windows, WINCNT, BLDCNT, BLDALPHA, BLDY and the BG2/BG3 affine matrices); from 9526
+ * DISPCNT mode and BGCNT.
+ *
+ * At the full dumps (every 10 frames): the BG and OBJ tile data `ChapterIntro_Init` decompresses
+ * (BG2's lens flare to 9520), from 9460 the 0x800 bytes of title image at tile 0x280, REG_BG3HOFS
+ * from the I/O dump, from 9455 to 9520 the registers `FlushLCDControl` writes (BG2 affine,
+ * BLDCNT, BLDALPHA, BLDY) and the OAM: the four OBJ affine matrices and the six light
+ * explosion objects (attr0-2) of the previous pass's buffer, which is what VBlank synced.
+ *
+ * Limits (stand-ins, D11-ci3 follow-up rows): Bg2Scroll, the decal procs and the fog init do not
+ * run, so from 9526 the intro's `timer`, BG2, the fog's palette bank 4, the lens flare tile
+ * data, the BG scroll, blend and affine registers and the OAM (the decal sprites) are not
+ * compared, and the I/O registers only to 9520. `GetPlayChapterId` and `GetNextUnclearedNode`
+ * come from the existing world map ports (`WmNodeData`, `WorldMapPath` on the captured
+ * `gGMData`).
  */
 class ChapterIntroMainPathTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -77,7 +80,10 @@ class ChapterIntroMainPathTest {
     @VerifiesPort(
         "ChapterIntro_InitBLDCNT", "ChapterIntro_DrawChapterTitle", "sub_80895B4",
         "_PutChapterTitleGfx", "PutChapterTitleGfx", "sub_80896FC", "GetChapterTitleWM",
-        "ChapterIntro_SetBG_802009C",
+        "ChapterIntro_SetBG_802009C", "ChapterIntro_LightBurst_Init",
+        "ChapterIntro_LightBurst_Loop", "ChapterIntro_LightExplosion_Init",
+        "ChapterIntro_LightExplosion_Loop", "PutOppositeLightExplosionSprites",
+        "BgAffinRotScaling", "BgAffinScaling", "BgAffinAnchoring",
     )
     fun `twin lights to title draw and light explosion match every frame`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
@@ -98,6 +104,8 @@ class ChapterIntroMainPathTest {
         assertEquals(listOf(9460, 9470, 9480, 9490, 9500, 9510, 9520, 9530), sim.titleDumps)
         assertTrue(sim.titleBytesNonZero, "title image compared")
         assertEquals(1, sim.titleDrawnAt.size, "title drawn once")
+        assertEquals(listOf(9460, 9470, 9480, 9490, 9500, 9510, 9520), sim.oamDumps)
+        assertEquals(listOf(9460, 9470, 9480, 9490, 9500, 9510, 9520), sim.ioDumps)
     }
 
     private inner class Sim {
@@ -114,6 +122,10 @@ class ChapterIntroMainPathTest {
         val titleDumps = mutableListOf<Int>()
         val titleDrawnAt = mutableListOf<Int>()
         var titleBytesNonZero = false
+        var prevOam = ShortArray(0)
+        var prevObjectCount = 0
+        val oamDumps = mutableListOf<Int>()
+        val ioDumps = mutableListOf<Int>()
         val playSt = PlaySt()
         val bmSt = BmSt()
         val units = UnitTable(rom)
@@ -172,6 +184,8 @@ class ChapterIntroMainPathTest {
 
         fun step(f: Int) {
             keys.update(data.inputs[f - 1])
+            prevOam = oam.buffer.copyOf()
+            prevObjectCount = oam.hiPut / 4
             oam.syncHi()
             if (f == FIRST) engine.startBlocking(host.script, root)
             for (tree in 0 until 8) engine.run(engine.root(tree))
@@ -195,6 +209,15 @@ class ChapterIntroMainPathTest {
                     s16(scrollOrig, 0x4C), (scroll!!.state as ChapterIntro.State).timer,
                     "f$f scroll timer",
                 )
+            }
+            val burstOrig = procs.find("ProcScr_ChapterIntro_LightBurst")
+            val burst = engine.find(host.lightBurstScript)
+            compareProc(burstOrig, burst, f, "lightBurst")
+            if (burstOrig != null) {
+                val b = burst!!.state as ChapterIntro.State
+                assertEquals(s16(burstOrig, 0x4C), b.timer, "f$f burst timer")
+                assertEquals(s16(burstOrig, 0x4E), b.unk4E, "f$f burst unk_4E")
+                assertEquals(s16(burstOrig, 0x66), b.unk66, "f$f burst unk_66")
             }
             compareIntroFields(f, orig, engine.find(host.script)!!.state as ChapterIntro.State)
             compareKeys(f, e)
@@ -235,6 +258,9 @@ class ChapterIntroMainPathTest {
                 assertEquals(s16(orig, 0x68), state.unk68, "f$f unk_68")
             } else if (f <= EXPLOSION_LAST) {
                 assertEquals(s16(orig, 0x4C), state.timer, "f$f explosion timer")
+                assertEquals(s16(orig, 0x64), state.unk64, "f$f explosion unk_64")
+                assertEquals(s16(orig, 0x66), state.unk66, "f$f explosion unk_66")
+                assertEquals(s16(orig, 0x68), state.unk68, "f$f explosion unk_68")
             }
         }
 
@@ -281,21 +307,16 @@ class ChapterIntroMainPathTest {
             val want = LcdControl().also { it.readFrom(iwram(f), LCD_BUFFER - IWRAM) }
             val lcd = hardware.lcd
             val at = "f$f"
-            if (f < TITLE_FRAME) {
+            if (f <= EXPLOSION_LAST) {
                 assertEquals(want.dispcnt, lcd.dispcnt, "$at dispcnt")
                 assertEquals(want.bldcnt, lcd.bldcnt, "$at bldcnt")
                 assertEquals(want.blendCoeffA, lcd.blendCoeffA, "$at blendCoeffA")
                 assertEquals(want.blendCoeffB, lcd.blendCoeffB, "$at blendCoeffB")
                 assertEquals(want.blendY, lcd.blendY, "$at blendY")
+                for (i in 0 until 12) {
+                    assertEquals(want.affine[i], lcd.affine[i], "$at affine[$i]")
+                }
             } else {
-                // The light burst (SetBlendAlpha) owns the effect bits and the coefficients.
-                assertEquals(
-                    want.bldcnt and BLD_EFFECT.inv(), lcd.bldcnt and BLD_EFFECT.inv(),
-                    "$at bldcnt targets",
-                )
-            }
-            if (f == TITLE_FRAME) assertEquals(want.dispcnt, lcd.dispcnt, "$at dispcnt")
-            if (f > EXPLOSION_LAST) {
                 assertEquals(want.dispcnt and 7, lcd.dispcnt and 7, "$at dispcnt mode")
             }
             for (bg in 0..3) {
@@ -309,12 +330,51 @@ class ChapterIntroMainPathTest {
             if (f <= EXPLOSION_LAST) assertEquals(want.wincnt, lcd.wincnt, "$at wincnt")
         }
 
+        /** What the light burst's `FlushLCDControl` wrote: BG2 affine, BLDCNT, BLDALPHA, BLDY. */
+        fun compareFlushedRegisters(f: Int, io: ByteArray) {
+            for (i in 0x20 until 0x30) {
+                assertEquals(io[i], host.io[i], "f$f I/O +${Integer.toHexString(i)}")
+            }
+            for (i in 0x50 until 0x55) {
+                assertEquals(io[i], host.io[i], "f$f I/O +${Integer.toHexString(i)}")
+            }
+            ioDumps += f
+        }
+
+        /**
+         * The dump holds the OAM synced in VBlank: the previous pass's buffer. Four OBJ affine
+         * matrices and the six light explosion objects (attr0-2).
+         */
+        fun compareOam(f: Int, key: String) {
+            val oamDump = data.region(key, "oam")
+            for (m in 0 until 4) {
+                for (k in intArrayOf(3, 7, 11, 15)) {
+                    val at = m * 16 + k
+                    assertEquals(
+                        u16(oamDump, 2 * at), prevOam[at].toInt() and 0xFFFF, "f$f affine[$m][$k]",
+                    )
+                }
+            }
+            assertEquals(6, prevObjectCount, "f$f light explosion object count")
+            for (obj in 0 until prevObjectCount) {
+                for (attr in 0..2) {
+                    assertEquals(
+                        u16(oamDump, 2 * (4 * obj + attr)),
+                        prevOam[4 * obj + attr].toInt() and 0xFFFF,
+                        "f$f obj$obj attr$attr",
+                    )
+                }
+            }
+            oamDumps += f
+        }
+
         fun compareFull(f: Int) {
             val key = names.getValue(f)
             val at = "f$f"
             val io = data.region(key, "io")
-            // From the light burst on, its FlushLCDControl writes BG3HOFS (not ported).
-            if (f < TITLE_FRAME) assertEquals(u16(io, 0x1C), host.regBg3Hofs, "$at REG_BG3HOFS")
+            assertEquals(u16(io, 0x1C), host.regBg3Hofs, "$at REG_BG3HOFS")
+            if (f in TITLE_FRAME..EXPLOSION_LAST) compareFlushedRegisters(f, io)
+            if (f in TITLE_FRAME..EXPLOSION_LAST) compareOam(f, key)
             val vram = data.region(key, "vram")
             val scratch = ByteArray(0x8000)
             val spans = mutableListOf(

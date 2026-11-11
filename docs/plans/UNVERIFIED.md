@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 536 across 67 decomp files (missing reason: 0).
+Total entries: 537 across 67 decomp files (missing reason: 0).
 
 ## src/worldmap_rm.c (42)
 
@@ -556,12 +556,13 @@ Total entries: 536 across 67 decomp files (missing reason: 0).
 | `ApplyUnitSpriteImage32x32` | `game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt` | no 32x32 sprite is loaded in the traced frames |
 | `PutChapterMarkedTileIconOam` | `game/src/commonMain/kotlin/fe8/game/bm/UnitSpritesOam.kt` | the trace chapter has no goal tile (destPosX == 0xFF) |
 
-## src/chapterintrofx.c (7)
+## src/chapterintrofx.c (8)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `ProcScr_ChapterIntro_Bg1And3Scroll` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the script layout is only exercised through the differential test of its two callbacks |
 | `ProcScr_ChapterIntro_KeyListen` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the script layout is only exercised through the differential test of its two callbacks |
+| `ProcScr_ChapterIntro_LightBurst` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the script layout is only exercised through the differential test of its two callbacks |
 | `gProcScr_ChapterIntro` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the captures run commands 0-14 (`ram_trace_newgame_intro` to the fog start), the jump to label 1 and the label 1 / 99 commands; the rest of the main path is stand-ins |
 | `ChapterIntro_TwinLights_InitAndPlaySe` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the fields are compared, the sound effect call is not |
 | `ChapterIntro_BeginFadeOut` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the sound calls `Sound_FadeOutBGM` and `Sound_FadeOutSE` are not compared |

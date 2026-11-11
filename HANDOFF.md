@@ -6,7 +6,7 @@ Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
 ## NEEDS USER
 
-Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_TEST](docs/MANUAL_TEST.md).
+Nothing blocks development. Owner device checks pending: D-09 popup and APP-1 on the next build; see [MANUAL_TEST](docs/MANUAL_TEST.md).
 Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1 decided: option A, ADR 0015; M6 is not blocked).
 
 ## In progress
@@ -39,9 +39,9 @@ Close an issue only after reference verification and owner confirmation; preserv
 | Issue | Latest evidence / status |
 |---|---|
 | D-07 audio | **Resolved for both reported castle events:** owner heard neither hitch on local 0.1.488 (`0a73f11`); normal trace PCM repetitions fell 4495→0 after the movement frontier change. Earlier cache/reserve changes alone failed. |
-| D-12 phase banner | **Appears correct on 0.1.488; emulator comparison pending.** Presence is confirmed, exact fidelity is not. |
+| D-12 phase banner | **Player banner confirmed correct by the owner on 0.1.488 (11-11)**; reference: `PhaseIntroDifferentialTest`. Enemy/green banners open (D12-2, with M6-D). |
 | D-11 cinematic | Open: the subtitle monologue and following world-map opening are unwired. |
-| D-09 Rapier popup | Open, owner low priority. Headless inventory grant is checked; device inventory is unknown. |
+| D-09 Rapier popup | Open. Owner 11-11: no popup on 0.1.488, expected (popup port first in 0.1.528). Re-test on the next published build. |
 | D-05 interactions | Expected missing gameplay; re-test when player actions are ported. |
 
 D-01–04, D-06, D-08, D-10 and normal portrait mouths are owner-confirmed solved.
@@ -63,7 +63,7 @@ window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose de
 4. **Alignment done 2026-11-11:** the progress bar counts in-scope functions only; generated lists
    [UNVERIFIED](docs/plans/UNVERIFIED.md) (written but unverified code) and [STANDINS](docs/plans/STANDINS.md)
    (placeholders by milestone) are checked in CI: regenerate both with `--write` after changing such comments.
-5. **Owner:** compare the D-12 banner with an emulator; check the Rapier popup (D-09, low priority); decide
+5. **Owner:** check the Rapier popup (D-09, low priority) and Delete save (APP-1) on the next build; decide
    modding questions D2–D9 when M7 nears.
 
 `@VerifiesPort` takes bare function names; `"src/x.c: F"` silently counts nothing.

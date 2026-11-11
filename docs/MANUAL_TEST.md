@@ -6,19 +6,14 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
 
 - **D-07 resolved on this build:** the owner heard neither castle stutter; the retest trace had zero
   repeated PCM frames. The movement-map frontier replaced repeated full-map scans.
-- **D-12 partially confirmed on published 0.1.488 (`8c5b7c9`):** the Player Phase banner appears
-  and looks correct; emulator comparison is pending.
+- **D-12 player banner confirmed (owner, 2026-11-11, 0.1.488):** the Player Phase banner is correct.
+  Enemy/green banners are not ready (D12-2, with M6-D).
+- **D-09 not yet testable on 0.1.488:** the owner saw no Rapier popup there, as expected; the popup port is
+  first in 0.1.528. Re-test on the next published build.
 
 ## Test now
 
-Compare the **Player Phase banner** with original FE8 on an emulator, using Normal difficulty:
-
-1. Start a fresh New Game. If a suspend auto-resumes, clear app data and re-import your ROM.
-2. Play through the opening to the banner after the final dialogue.
-3. Compare its position, entrance/exit timing, squares and translucency, then check that it clears
-   cleanly for map music and cursor control. Report differences with the launcher build string.
-
-D-09 (low priority; build above): when Seth gives Eirika the Rapier before the first battle,
+D-09 (low priority; needs 0.1.528 or newer, best the next published build): when Seth gives Eirika the Rapier before the first battle,
 check that the popup shows its text and item icon, plays the jingle, then closes automatically
 without leaving the frame or icon behind. Report layout/colour/timing differences and the launcher
 build string. The wired path now has reference checks; device confirmation is still pending.
@@ -29,7 +24,6 @@ should start from the title with no resume and no filled save slots. The importe
 there (no re-import needed; the launcher still shows the game data file count). **Cancel** must keep
 the save. Limits: this deletes all saves and the suspend at once, with no per-slot delete.
 
-D-12 stays pending until this comparison; enemy/green banners are not ready for verification.
 
 ## Currently ignore
 

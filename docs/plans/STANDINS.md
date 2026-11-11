@@ -10,11 +10,11 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 172 across 28 Kotlin files.
+Total entries: 170 across 28 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
-| M6-B | 53 |
+| M6-B | 51 |
 | M6-D | 2 |
 | M6-E | 44 |
 | M6-G | 1 |
@@ -32,7 +32,7 @@ Total entries: 172 across 28 Kotlin files.
 | PP-10 | 1 |
 | PP-9 | 1 |
 
-## M6-B (53)
+## M6-B (51)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -73,11 +73,10 @@ Total entries: 172 across 28 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `initUnitMovementSelect` | Stand-in for `PlayerPhase_InitUnitMovementSelect` until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `interface` | `PlaySoundEffect` for the cursor sound (a stand-in until M6-B wires the sound wrapper). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `mainIdleButtons` | Stand-in until M6-B for the part of `PlayerPhase_MainIdle` after the cursor movement: the L, R, A, B, START and SELECT actions (it may `Proc_Goto` or `Proc_Break` the proc), run before [putMapCursor]. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `playerPhaseMainIdle` | Stand-ins until M6-B: the button actions ([Hooks.mainIdleButtons]) and the unit sprite hover; the cursor sprite is [Hooks.putMapCursor]. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `playerPhaseMainIdle` | Stand-ins until M6-B: the button actions ([Hooks.mainIdleButtons]); the cursor sprite is [Hooks.putMapCursor]. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `prepareAction` | Stand-in for `PlayerPhase_PrepareAction` (a `PROC_CALL_2`) until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `rangeDisplayIdle` | Stand-in for `PlayerPhase_RangeDisplayIdle` (a `PROC_REPEAT`) until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `reReadGameSaveGfx` | Stand-in for `PlayerPhase_ReReadGameSaveGfx` until M6-B. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `resetUnitSpriteHover` | Stand-in for `ResetUnitSpriteHover` until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `resumeRangeDisplay` | Stand-in for `PlayerPhase_ResumeRangeDisplay` until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `runPotentialWaitEvents` | Stand-in for `RunPotentialWaitEvents` (a `PROC_CALL_2`) until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `selectEventsScript` | Stand-in for `gProcScr_0859ACE8` (the select events), a script that ends at once, until M6-B. |
@@ -85,7 +84,6 @@ Total entries: 172 across 28 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startSideWindows` | Stand-in for `StartPlayerPhaseSideWindows` until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startTutorialEvent` | Stand-in for `StartPlayerPhaseStartTutorialEvent` until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `suspend` | Stand-in for `PlayerPhase_Suspend` (writes the suspend save) until M6-B. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `unitSpriteHoverUpdate` | Stand-in for `UnitSpriteHoverUpdate`, run at the end of the idle loop until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `waitForUnitMovement` | Stand-in for `PlayerPhase_WaitForUnitMovement` (a `PROC_REPEAT`) until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | `readSuspendSave` | Ported from src/bmsave.c: ReadSuspendSave Loads the suspend block of [slot] (`SAVE_ID_SUSPEND`) + `gSuspendSaveIdOffset` (set by [BmSaveLib.isValidSuspendSave]) into [ram]: `gPlaySt` and the game c... |
 | `game/src/commonMain/kotlin/fe8/game/save/SuspendRam.kt` | `SuspendRam` | The only things held here are buffers that have no owner yet (the stand-ins [actionData] and [menuOverride] until M6-B, [traps] and [convoy] until M6-H, [worldMapStuff] and [dungeonState] until M6-... |

@@ -21,6 +21,7 @@ import fe8.game.bm.Reda
 import fe8.game.bm.MuConfig
 import fe8.game.bm.MuHooks
 import fe8.game.bm.MuProc
+import fe8.game.bm.MuUnit
 import fe8.game.bm.MuSpriteAnim
 import fe8.game.bm.MapCursor
 import fe8.game.bm.MapMusic
@@ -916,6 +917,21 @@ public class Fe8Boot(
         phase.hooks.refreshUnitSprites = refreshProc
         phase.hooks.putMapCursor = PlayerPhase.PutMapCursor {
             x, y, kind -> mapCursor.put(x, y, kind)
+        }
+        phase.hover.hooks.hideUnitSprite = { id -> handles.hideUnitSprite(id) }
+        phase.hover.hooks.showUnitSprite = { id -> handles.showUnitSprite(id) }
+        phase.hover.hooks.endAllMus = { mu.endAllMus() }
+        phase.hover.hooks.startMu = { id ->
+            val o = units.unitOffset(id)
+            val muUnit = MuUnit(
+                address = UnitTable.BLUE_ADDRESS + o,
+                xPos = units.xPos(id),
+                yPos = units.yPos(id),
+                classId = units.classId(id),
+                state = units.state(id),
+                spritePalette = handles.getUnitSpritePalette(id),
+            )
+            mu.startMu(muUnit)
         }
     }
 

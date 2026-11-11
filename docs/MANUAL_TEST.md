@@ -13,12 +13,19 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
 
 ## Test now
 
-Nothing new; next items will be announced.
+- **PP-0a hover cursor (owner device report 11-11):**
+  1. Boot into New Game or resume a Prologue save (turn 1 map).
+  2. Move the map cursor over a player unit (Eirika at (4,5) or Seth at (4,4)).
+     - Expected: the cursor immediately expands/widens (uses stretched frame kind 3) to frame the unit sprite rather than staying at the compact corner size.
+     - After hovering for 5 frames (~0.08 s), the unit begins its active standing idle animation (MU).
+  3. Move the cursor away to an empty tile (e.g. (5,5)):
+     - Expected: the cursor immediately returns to the normal compact animated frame (kind 0); the player unit returns to its resting standing sprite.
+  4. Limits: unit selection/movement/action menus remain stand-ins (M6-B/M6-C).
 
 ## Known differences (owner reports)
 
-- Map cursor over a player unit: original FE8 widens the cursor to frame the unit; the APK keeps the normal
-  cursor (owner, 2026-11-11, mGBA comparison). Fix planned as PP-0a.
+- Map cursor over a player unit: resolved by PP-0a (cursor expands to stretched frame kind 3 when hovering
+  a player unit; active MU starts after 5 frames).
 - Start during the Prologue in-game cutscene fast-forwards visibly instead of fading out and skipping
   (owner, 2026-11-11, 0.1.590). Fix planned as D13-cap1/D13-1.
 

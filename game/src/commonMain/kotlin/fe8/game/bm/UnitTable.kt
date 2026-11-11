@@ -90,6 +90,9 @@ public class UnitTable(
     /** `pCharacterData->number` of unit [id], read from the ROM (the unit must be valid). */
     public fun charId(id: Int): Int = rom.u8(u32(bytes, unitOffset(id) + OFF_CHARACTER) + 4)
 
+    /** `pClassData->number` of unit [id], read from the ROM (the unit must be valid). */
+    public fun classId(id: Int): Int = rom.u8(u32(bytes, unitOffset(id) + OFF_CLASS) + 4)
+
     /** `index` (s8, 0x0B) of unit [id]. */
     public fun index(id: Int): Int = s8(bytes, unitOffset(id) + 0x0B)
 

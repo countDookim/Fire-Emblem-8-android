@@ -57,6 +57,15 @@ public class PlayerPhase(
     /** The hooks for the parts that are not ported; `Fe8Boot` replaces some. */
     public val hooks: Hooks = Hooks(),
 ) {
+    /** The unit sprite hover controller ([UnitSpriteHover]). */
+    public val hover: UnitSpriteHover = UnitSpriteHover(bm, map, units)
+
+    init {
+        hooks.resetUnitSpriteHover = ProcFunc { hover.resetUnitSpriteHover() }
+        hooks.unitSpriteHoverUpdate = ProcFunc { hover.unitSpriteHoverUpdate() }
+        hooks.isUnitSpriteHoverEnabledAt = { x, y -> hover.isUnitSpriteHoverEnabledAt(x, y) }
+    }
+
     /** `PlaySoundEffect` for the cursor sound (a stand-in until M6-B wires the sound wrapper). */
     public fun interface SoundEffect {
         /** Plays song [song]. */
@@ -93,7 +102,7 @@ public class PlayerPhase(
         /** Stand-in for `EndPlayerPhaseSideWindows` until M6-B. */
         public var endSideWindows: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `ResetUnitSpriteHover` until M6-B. */
+        /** `ResetUnitSpriteHover` (src/bmudisp.c). Replaced by [PlayerPhase] to call [UnitSpriteHover.resetUnitSpriteHover]. */
         public var resetUnitSpriteHover: ProcFunc = ProcFunc {}
 
         /**
@@ -103,12 +112,14 @@ public class PlayerPhase(
          */
         public var mainIdleButtons: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `UnitSpriteHoverUpdate`, run at the end of the idle loop until M6-B. */
+        /** `UnitSpriteHoverUpdate` (src/bmudisp.c). Replaced by [PlayerPhase] to call [UnitSpriteHover.unitSpriteHoverUpdate]. */
         public var unitSpriteHoverUpdate: ProcFunc = ProcFunc {}
 
+        /** `IsUnitSpriteHoverEnabledAt` (src/bmudisp.c). Replaced by [PlayerPhase] to call [UnitSpriteHover.isUnitSpriteHoverEnabledAt]. */
+        public var isUnitSpriteHoverEnabledAt: (x: Int, y: Int) -> Boolean = { _, _ -> false }
+
         /**
-         * `PutMapCursor` (the cursor sprite); `IsUnitSpriteHoverEnabledAt` is false. Default
-         * no-op; `Fe8Boot` sets `mapCursor.put`.
+         * `PutMapCursor` (the cursor sprite). Default no-op; `Fe8Boot` sets `mapCursor.put`.
          */
         public var putMapCursor: PutMapCursor = PutMapCursor { _, _, _ -> }
 
@@ -300,15 +311,17 @@ public class PlayerPhase(
     }
 
     /**
-     * Partially ported from src/playerphase.c: PlayerPhase_MainIdle. Ported: the cursor movement.
-     * Stand-ins until M6-B: the button actions ([Hooks.mainIdleButtons]) and the unit sprite
-     * hover; the cursor sprite is [Hooks.putMapCursor].
+     * Partially ported from src/playerphase.c: PlayerPhase_MainIdle. Ported: the cursor movement
+     * and unit sprite hover ([hooks.unitSpriteHoverUpdate], [hooks.isUnitSpriteHoverEnabledAt]).
+     * Stand-ins until M6-B: the button actions ([Hooks.mainIdleButtons]); the cursor sprite is
+     * [Hooks.putMapCursor].
      */
     public fun playerPhaseMainIdle(proc: Proc) {
         handlePlayerCursorMovement()
         hooks.mainIdleButtons.invoke(proc)
         hooks.unitSpriteHoverUpdate.invoke(proc)
-        hooks.putMapCursor.put(bm.playerCursorDisplayX, bm.playerCursorDisplayY, 0)
+        val kind = if (hooks.isUnitSpriteHoverEnabledAt(bm.playerCursorX, bm.playerCursorY)) 3 else 0
+        hooks.putMapCursor.put(bm.playerCursorDisplayX, bm.playerCursorDisplayY, kind)
     }
 
     /**

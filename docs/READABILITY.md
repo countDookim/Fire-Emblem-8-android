@@ -64,7 +64,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.scene | 5 | 1921 | done 2026-11-09 c3bb2ed |
 | game | fe8.game.text | 1 | 30 | done 2026-11-09 0194222 |
 | game | fe8.game.title | 1 | 824 | done 2026-11-09 83f2cb6 |
-| game | fe8.game.ui | 5 | 1069 | todo |
+| game | fe8.game.ui | 5 | 1069 | done 2026-11-11 262e4fc |
 | game | fe8.game.worldmap | 19 | 5607 | todo |
 | gba/audio | gba.audio | 17 | 2799 | done 2026-11-09 1db6a62 |
 | gba/core | gba.core | 1 | 21 | done 2026-11-07 697847c |

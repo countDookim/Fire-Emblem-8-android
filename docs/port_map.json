@@ -8,8 +8,8 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 937,
-    "implemented_unverified": 2
+    "verified": 944,
+    "implemented_unverified": 1
   },
   "functions": {
     "AddPointToPathArrowProc": {
@@ -42,6 +42,26 @@
       "status": "verified",
       "tests": [
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
+      ]
+    },
+    "AiPhaseBerserkInit": {
+      "decomp_file": "src/cp_phase.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseChangeDifferentialTest#berserk phase and order run and end at once after the player phase"
+      ]
+    },
+    "AiPhaseCleanup": {
+      "decomp_file": "src/cp_phase.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseChangeDifferentialTest#berserk phase and order run and end at once after the player phase"
       ]
     },
     "ApplyMenuCursorVScroll": {
@@ -398,6 +418,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BMapMainDifferentialTest#the phase change calls its hooks in the order of the C"
+      ]
+    },
+    "BmMain_UpdateTraps": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseChangeDifferentialTest#the phase switches to the enemy and the turn event runs"
       ]
     },
     "BmMapFill": {
@@ -1220,6 +1250,26 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
+      ]
+    },
+    "CpOrderBerserkInit": {
+      "decomp_file": "src/cp_order.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseChangeDifferentialTest#berserk phase and order run and end at once after the player phase"
+      ]
+    },
+    "CpOrderFunc_End": {
+      "decomp_file": "src/cp_order.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseChangeDifferentialTest#berserk phase and order run and end at once after the player phase"
       ]
     },
     "CutOffPathLength": {
@@ -6021,8 +6071,10 @@
       "system": "events",
       "in_scope": true,
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
-      "status": "implemented",
-      "tests": []
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseChangeDifferentialTest#the phase switches to the enemy and the turn event runs"
+      ]
     },
     "SampleFreqSet": {
       "decomp_file": "src/m4a.c",
@@ -6611,6 +6663,16 @@
       "status": "verified",
       "tests": [
         "fe8.game.BrownTextBoxReferenceTest#the Prologue box hold frame equals the reference OAM entries"
+      ]
+    },
+    "StartEventFromInfo": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PhaseChangeDifferentialTest#the phase switches to the enemy and the turn event runs"
       ]
     },
     "StartFaceFadeIn": {

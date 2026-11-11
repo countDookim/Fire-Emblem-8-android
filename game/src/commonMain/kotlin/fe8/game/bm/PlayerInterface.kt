@@ -156,16 +156,16 @@ public class PlayerInterface(
         public var unitMaxHp: (unitOffset: Int) -> Int = { 0 }
 
         /**
-         * Stand-in until a capture shows the Burst unit display (`unitDisplayType` 1) for
+         * Stand-in until CAP-status1 shows the Burst unit display (`unitDisplayType` 1) for
          * `Proc_Start(gProcScr_UnitDisplay_Burst)`.
          */
         public var startBurstDisplay: () -> Unit = {}
 
-        /** Stand-in until a capture shows the Burst unit display for its `Proc_EndEach`. */
+        /** Stand-in until CAP-status1 shows the Burst unit display for its `Proc_EndEach`. */
         public var endBurstDisplay: () -> Unit = {}
 
         /**
-         * Stand-in until a capture shows a unit with a status for `PutUnitMapUiStatus`
+         * Stand-in until CAP-status1 shows a unit with a status for `PutUnitMapUiStatus`
          * (bmunit status icon text into the window's status cells).
          */
         public var putUnitMapUiStatus: (state: PlayerInterfaceState, unitOffset: Int) -> Unit =
@@ -723,8 +723,9 @@ public class PlayerInterface(
     /**
      * Ported from src/player_interface.c: UnitMapUiUpdate
      * (the status branch is not verified: no reference run hovers a unit for 64 frames; it calls
-     * the [Hooks.putUnitMapUiStatus] stand-in. A [unitOffset] of -1 stands for the NULL unit the
-     * original passes when the cursor is on an empty tile: its status byte is read as 0)
+     * the [Hooks.putUnitMapUiStatus] stand-in (CAP-status1). A [unitOffset] of -1 stands for the
+     * NULL unit the original passes when the cursor is on an empty tile: its status byte is read
+     * as 0)
      *
      * Every 64 frames of [PlayerInterfaceState.unitClock] it refreshes the window's status cells
      * (the HP digits at clock 0 mod 128, the status at 64 mod 128); then, unless the window's

@@ -22,6 +22,7 @@ Total entries: 198 across 30 Kotlin files.
 | M6-H | 22 |
 | M6-I | 24 |
 | M6-J | 8 |
+| CAP-status1 | 4 |
 | D09-3 | 2 |
 | D11-ci1 | 2 |
 | D11-ci5 | 3 |
@@ -37,7 +38,6 @@ Total entries: 198 across 30 Kotlin files.
 | PP-5 | 1 |
 | PP-7 | 1 |
 | PP-9 | 1 |
-| unassigned | 4 |
 
 ## M6-B (52)
 
@@ -234,6 +234,15 @@ Total entries: 198 across 30 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `resumeArenaBattle` | Stand-in until M6-J. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `startArenaResultsScreen` | Stand-in until M6-J. |
 
+## CAP-status1 (4)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `endBurstDisplay` | Stand-in until CAP-status1 shows the Burst unit display for its `Proc_EndEach`. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `putUnitMapUiStatus` | Stand-in until CAP-status1 shows a unit with a status for `PutUnitMapUiStatus` (bmunit status icon text into the window's status cells). |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `startBurstDisplay` | Stand-in until CAP-status1 shows the Burst unit display (`unitDisplayType` 1) for `Proc_Start(gProcScr_UnitDisplay_Burst)`. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `unitMapUiUpdate` | Ported from src/player_interface.c: UnitMapUiUpdate (the status branch is not verified: no reference run hovers a unit for 64 frames; it calls the [Hooks.putUnitMapUiStatus] stand-in (CAP-status1). |
+
 ## D09-3 (2)
 
 | Kotlin file | Declaration | Stand-in |
@@ -347,12 +356,3 @@ Total entries: 198 across 30 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | `DisplayFrozenUiHand`: stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
-
-## unassigned (4)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `endBurstDisplay` | Stand-in until a capture shows the Burst unit display for its `Proc_EndEach`. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `putUnitMapUiStatus` | Stand-in until a capture shows a unit with a status for `PutUnitMapUiStatus` (bmunit status icon text into the window's status cells). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `startBurstDisplay` | Stand-in until a capture shows the Burst unit display (`unitDisplayType` 1) for `Proc_Start(gProcScr_UnitDisplay_Burst)`. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `unitMapUiUpdate` | Ported from src/player_interface.c: UnitMapUiUpdate (the status branch is not verified: no reference run hovers a unit for 64 frames; it calls the [Hooks.putUnitMapUiStatus] stand-in. |

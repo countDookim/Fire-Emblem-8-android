@@ -41,7 +41,7 @@ Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames, proc
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| PP-0a | PORT | Hover cursor (owner device report 11-11: cursor must expand over a player unit): `IsUnitSpriteHoverEnabledAt`, `UnitSpriteHoverUpdate`, `ResetUnitSpriteHover`; wire into the idle loop (`PutMapCursor` kind 3) | Cursor OAM at cancel_end f1430/f1440 (hover on Eirika) and select_move f1250–1259; hover state per frame; MANUAL_TEST | — | claimed 11-11 (agent pp0a) |
+| PP-0a | PORT | Hover cursor (owner device report 11-11): ported + wired on branch `wip/pp0a` (`7528507`, by a Gemini agent) | Fix before merge: hover MU makes `NewGameToPrologueTest` "an event MU is left" fail (original also starts an MU on hover, f1255); `PrologueMapTest` 640 B over 600 idle frames (MuUnit allocated per hover) | — | in progress: fix |
 | PP-2 | PORT | Attack range: `GenerateUnitCompleteAttackRange`, `MapSetInRange`, `MapAddInBoundedRange` | `gBmMapRange` equals the dump | PP-1 | todo |
 | PP-3 | PORT | Select: `PlayerPhase_MainIdle` A branch, `GetPlayerSelectKind`, `PlayerPhase_InitUnitMovementSelect`, `DisplayUnitEffectRange` | PlayerPhase proc position per step; active unit | PP-1 | todo |
 | PP-4 | PORT | Range squares: `MoveLimitView_*`, `DisplayMoveRangeGraphics`, `HideMoveRangeGraphics` | BG2 tilemap and palette at dumps | PP-3 | todo |
@@ -49,7 +49,8 @@ Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames, proc
 | PP-6 | PORT | Path arrow drawing: `DrawPathArrow`, `DrawUpdatedPathArrow` | OAM at dumps | PP-5 | todo |
 | PP-7 | PORT | `PlayerPhase_RangeDisplayIdle` confirm/cancel, `CanMoveActiveUnitTo`, `PlayerPhase_BackToMove`, `CancelAction` | Proc position per step in cap1/cap2 | PP-3 | todo |
 | PP-8 | PORT | Move: `GenerateBestMovementScript`, `PlayerPhase_DisplayUnitMovement`, `WaitForUnitMovement`, `ApplyUnitMovement`; `ProcScr_MuStepSe` | MU fields per step (f1296–1314); unit x/y after | PP-7 | todo |
-| PP-10 | PORT | Unit menu items the Prologue shows; Wait effect | `gActionData` after select | PP-11 | PORT | `PlayerPhase_PrepareAction`/`FinishAction`, Wait action, `HandleAutoEnd`; post-action event check (StdEventEngine f1356–1358) | Unit state bits after the action | PP-8, PP-10 | todo |
+| PP-10 | PORT | Unit menu items the Prologue shows (Item, Wait; Attack in PP-cap3); Wait effect | `gActionData` after select | PP-9 | todo |
+| PP-11 | PORT | `PlayerPhase_PrepareAction`/`FinishAction`, Wait action, `HandleAutoEnd`; post-action event check (StdEventEngine f1356–1358) | Unit state bits after the action | PP-8, PP-10 | todo |
 | PP-12 | PORT | Map menu draw and End | Menu fields; other items are explicit stand-ins | PP-13 | PORT | End turn → phase change: BerserkCpPhase/CpOrder (f1511), faction 0→0x80 (f1514), PhaseIntro start | Faction change and procs equal cap2 (AI stand-in) | PP-12 | todo |
 | PP-14 | PORT | Terrain window (`gProcScr_TerrainDisplay`) and `gProcScr_SideWindowMaker` | BG tilemap per step | — | todo |
 | PP-15 | PORT | Unit mini-box and HP bar (`gProcScr_UnitDisplay_MinimugBox`, `DrawHpBar`) | BG tilemap per step | — | todo |

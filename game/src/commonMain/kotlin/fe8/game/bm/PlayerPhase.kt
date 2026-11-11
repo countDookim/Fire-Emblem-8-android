@@ -224,8 +224,8 @@ public class PlayerPhase(
         public var generateAttackRange: (unit: Int) -> Int = { LIMITVIEW_BLUE }
 
         /**
-         * Stand-in until PP-4 for `DisplayMoveRangeGraphics(flags)` (the `sProcScr_MoveLimitView`
-         * proc with its flags, which sets `BM_FLAG_0`).
+         * `DisplayMoveRangeGraphics(flags)`: stand-in until PP-17 wires
+         * [MoveLimitView.displayMoveRangeGraphics] (ported and verified, PP-4) into `Fe8Boot`.
          */
         public var displayMoveRangeGraphics: (flags: Int) -> Unit = {}
 

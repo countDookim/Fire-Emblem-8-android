@@ -33,8 +33,7 @@ Total entries: 198 across 30 Kotlin files.
 | PP-10 | 1 |
 | PP-12 | 6 |
 | PP-16 | 3 |
-| PP-17 | 5 |
-| PP-4 | 1 |
+| PP-17 | 6 |
 | PP-5 | 1 |
 | PP-7 | 1 |
 | PP-9 | 1 |
@@ -323,21 +322,16 @@ Total entries: 198 across 30 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `goalDisplayWindowQuadrant` | Stand-in until PP-16 for `Proc_Find(gProcScr_GoalDisplay)`: its `windowQuadrant`, or [NO_WINDOW] where the proc does not exist. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `startGoalDisplay` | Stand-in until PP-16 for the goal branch of `InitPlayerPhaseInterface`: starts `gProcScr_GoalDisplay` in tree 3 if the config and `EVFLAG_OBJWINDOW_DISABLE` allow it. |
 
-## PP-17 (5)
+## PP-17 (6)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `terrainAt` | Stand-in for `gBmMapTerrain[y][x]` until PP-17 wires the map. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `unitIdAt` | Stand-in for `gBmMapUnit[y][x]` until PP-17 wires the map. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `unitMaxHp` | Stand-in for `GetUnitMaxHp` (bmunit.c) until PP-17 wires `UnitLoader`: the default is the unit's `maxHP` byte (without the equipped weapon's bonus). |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayMoveRangeGraphics` | `DisplayMoveRangeGraphics(flags)`: stand-in until PP-17 wires [MoveLimitView.displayMoveRangeGraphics] (ported and verified, PP-4) into `Fe8Boot`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayUnitEffectRange` | Partially ported from src/playerphase.c: DisplayUnitEffectRange Floods `gBmMapMovement` from the active unit with `UNIT_MOV - moveCount` ([MovementMap.generateUnitMovementMapExt]; the C ignores its... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `generateAttackRange` | Stand-in until PP-17 for the part of `DisplayUnitEffectRange` that runs while the unit has not moved (`AttackRange.generateUnitCompleteAttackRange` is ported, but `GetUnitWeaponUsabilityBits` and `... |
-
-## PP-4 (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayMoveRangeGraphics` | Stand-in until PP-4 for `DisplayMoveRangeGraphics(flags)` (the `sProcScr_MoveLimitView` proc with its flags, which sets `BM_FLAG_0`). |
 
 ## PP-5 (1)
 

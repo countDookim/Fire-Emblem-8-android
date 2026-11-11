@@ -7,6 +7,7 @@ import fe8.game.bm.BmSt
 import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.EntityBmMaps
+import fe8.game.bm.MoveLimitView
 import fe8.game.bm.PlayerPhase
 import fe8.game.bm.PlaySt
 import fe8.game.bm.UnitTable
@@ -39,6 +40,34 @@ class PlayerPhaseScriptRomTest {
     @Test
     fun `gProcScr_0859ACE8 matches the ROM command for command`() {
         compare(0x0859ACE8, 0x20) { it.selectEventsScript }
+    }
+
+    @Test
+    fun `sProcScr_MoveLimitView and its change proc match the ROM command for command`() {
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        val rom = romFile.readBytes()
+        val view = RomView.ofRom(rom)
+        val bm = BmSt()
+        val map = BmMap(view, ChapterData(view), bm)
+        val hardware = BgHardware()
+        val limit = MoveLimitView(
+            ProcEngine(), bm, map, hardware, view, BmMapRender(bm, map, hardware),
+        )
+        fun u16(off: Int) = (rom[off].toInt() and 0xFF) or ((rom[off + 1].toInt() and 0xFF) shl 8)
+        for ((address, script) in listOf(
+            0x0859AD50 to limit.viewScript, 0x0859AD28 to limit.changeScript,
+        )) {
+            val base = address - 0x08000000
+            val last = script.cmds.size - 1
+            for (i in 0..last) {
+                val opcode = u16(base + i * 8)
+                assertEquals(opcode, script.cmds[i].opcode, "${script.name} opcode at $i")
+                if (opcode == 0x0F) {
+                    assertEquals(u16(base + i * 8 + 2), script.cmds[i].imm, "${script.name} mark")
+                }
+            }
+            assertEquals(0, u16(base + (last + 1) * 8 - 8), "${script.name} ends with PROC_END")
+        }
     }
 
     private fun compare(address: Int, size: Int, script: (PlayerPhase) -> ProcScript) {

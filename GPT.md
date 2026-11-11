@@ -35,7 +35,7 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
    time). Rule 4 is never relaxed. If an owner decision is needed, ask and wait before dependent edits.
 8. Kotlin follows Google's Android Kotlin style guide (4-space indent, 100 columns, no wildcard imports, its naming,
    brace and KDoc rules) for code you write or change; don't mass-reformat existing code.
-9. **Delegate coding (owner, 2026-11-03).** Required models: GPT-6.1 Sol at high effort plans and reviews; GPT-6.1 Terra at medium effort writes code.
+9. **Delegate coding (owner, 2026-11-03).** Required models: GPT-6.1 Sol at high effort plans and reviews; GPT-6.1 Terra at medium effort writes code, always, for every kind of task (owner, 2026-11-11: the Haiku/Sonnet choice in CLAUDE.md is Claude-only).
    Per task: (a) read HANDOFF/TASKS and only the excerpts needed to plan; (b) split the job into small,
    self-contained coding briefs (one per `spawn_agent` call, `model: "gpt-6.1-terra"`, `reasoning_effort: "medium"`, and `fork_turns: "none"`), each stating: goal, files and symbols to touch, exact behaviour/API
    (signatures, KDoc wording if public), source to port (decomp file + function, `Ported from` line), the test to

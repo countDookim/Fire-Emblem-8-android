@@ -35,7 +35,7 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
    time). Rule 4 is never relaxed. If an owner decision is needed, ask and wait before dependent edits.
 8. Kotlin follows Google's Android Kotlin style guide (4-space indent, 100 columns, no wildcard imports, its naming,
    brace and KDoc rules) for code you write or change; don't mass-reformat existing code.
-9. **Delegate coding (owner, 2026-11-03).** The owner's configured Gemini overseer model plans and reviews; the configured smaller Gemini coder model writes code using the available native delegation tool.
+9. **Delegate coding (owner, 2026-11-03).** The Gemini session model plans and reviews; subagents always use Gemini Flash, for every kind of task, through the available native delegation tool (owner, 2026-11-11: the Haiku/Sonnet choice in CLAUDE.md is Claude-only).
    Per task: (a) read HANDOFF/TASKS and only the excerpts needed to plan; (b) split the job into small,
    self-contained coding briefs (one per delegation call), each stating: goal, files and symbols to touch, exact behaviour/API
    (signatures, KDoc wording if public), source to port (decomp file + function, `Ported from` line), the test to

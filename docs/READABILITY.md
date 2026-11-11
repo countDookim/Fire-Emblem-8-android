@@ -15,8 +15,9 @@ section below for human readability, until every section is done. CLAUDE.md rule
   means in the game (which menu, which unit state, which rank), why it is done, or where it comes from. Every
   claim is checked against the decomp (function body, headers, `include/constants/*.h` names); magic numbers get
   their decomp constant name and meaning (`0x2B` → `CLASS_BISHOP`). No restating the code ("returns the value"),
-  no guessed meanings: if the meaning is unknown, say so. Done by a reasoning model (Sonnet), not Haiku; the parent
-  spot-checks at least three new KDocs per file against the decomp before committing.
+  no guessed meanings: if the meaning is unknown, say so. Claude delegates this to Sonnet, not Haiku (GPT
+  uses Terra and Gemini uses Flash, as always); the parent spot-checks at least three new KDocs per file
+  against the decomp before committing.
 - **Untouched:** `Ported from` / `Transcribed from` lines and `@VerifiesPort` tags (only reworded, never
   upgraded), behaviour (renames and comments only), public API names that other modules use unless all callers
   are updated in the same commit.

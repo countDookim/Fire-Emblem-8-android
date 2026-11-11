@@ -67,14 +67,6 @@ Notes: create `docs/plans/M6B-player-phase.md` with PP-0. Start state: `prologue
 | PP-16 | PORT | Goal window and menu button (`GoalDisplay_*`, `MenuButtonDisp_*`) | BG tilemap/OAM per step | PP-0 | todo |
 | PP-17 | WIRE | Player-phase hooks in `Fe8Boot`; replay cap1 inputs headless | Same unit position/state as cap1; 0 B/frame; MANUAL_TEST | PP-11, PP-13 | todo |
 
-## Alignment: existing code and docs follow the roadmap (no behaviour change)
-
-Owner request 2026-11-11: one coherent plan across code and docs; formatting and comments only, reuse what exists.
-
-| ID | Kind | Task | Acceptance | Deps | Status |
-|---|---|---|---|---|---|
-| STAND-2 | comments | Every stand-in comment in main Kotlin names the ROADMAP milestone or TASKS row that replaces it; comments that are not placeholders stop saying "stand-in" | `tools/standins.py`: 0 unassigned; comment-only diff; compile + Dokka green | — | started |
-
 ## Other open rows
 
 | ID | Kind | Task | Acceptance | Deps | Status |
@@ -97,4 +89,4 @@ Row details, including what each task left transcribed: [archive](plans/TASKS-ar
   D11-skip, D11-proc, D11-worldmap, D11-wm1, D11-wm2, D12-1. D11-wm3..wm7 (+ wm4a–c, wm6b–d): standalone
   ports verified as far as the Prologue runs them; the rest is in lane A.
 - M4-02, M4-12, M5-56, 56b, 57..61.
-- **Alignment:** PROG-1 (`b459cf3`), UNV-1, ALN-1 (`3f85702`), ALN-2, STAND-1, M7-0 ([M7-modding](plans/M7-modding.md): 23 proposed rows; D1 decided = option A, ADR 0015; D2–D9 open).
+- **Alignment:** PROG-1 (`b459cf3`), UNV-1, ALN-1 (`3f85702`), ALN-2, STAND-1, STAND-2, M7-0 ([M7-modding](plans/M7-modding.md): 23 proposed rows; D1 decided = option A, ADR 0015; D2–D9 open).

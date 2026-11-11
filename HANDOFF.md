@@ -11,7 +11,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- STAND-2: owner PC (4 agents authorized for this run), until ~10:30Z
+None.
 
 ## Current state
 
@@ -20,8 +20,10 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 - Published **0.1.551 (`1c30d0b`)**: CI **769 passed, zero failures/skips**. The pinned decomp
   source is now provisioned for node-table tests; missing source fails clearly and invalidates
   stale test-cache results. Rapier popup icon/cleanup fixes remain included (first in 0.1.528).
-- Current source: **750/8352 verified** (owner PC 11-11 adds wm6c ×2, wm6d ×7), `ported-without-tag: 0`; 897 EventScr scripts reproduce
-  ROM bytes at runtime. Full local `jvmTest test` (owner PC 11-11 07:58Z): **787 passed, zero failures/skips**; game Dokka passed.
+- Current source: **750 verified of 7,732 in scope (9.6%)**; 620 link/debug functions are out of scope
+  (8,352 total). `ported-without-tag: 0`, `unknown-verifies-names: 0`; 897 EventScr scripts reproduce ROM bytes at
+  runtime. Full local `jvmTest test` (owner PC 11-11 08:55Z, after the alignment commits): **787 passed, zero
+  failures/skips**; Dokka (game, engine:render, engine:core, engine:extract) and the app compile passed.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
 - Layout: game-neutral `:gba:*`, `gbafe.*` in `:engine:*`, FE8 `fe8.*` in `:game`/`:app` (ADRs 0010–0013).

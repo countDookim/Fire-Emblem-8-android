@@ -116,3 +116,21 @@ BG0/BG1 maps every 30 steps match (entries 273/417 unmodelled). Closing slow fad
 `ScreenFade` and verified (`c40863d`). Start skips at 1505/2375/4405 now match original parent/child cleanup and real fast-fade
 state through termination (`797ee45`, private `48f35a1`); skip audio and the GameControl
 bridge still need checks before wiring (TASKS rows D11-wire-a/b).
+
+## D-13: Start in the Prologue castle cutscene (`ram_trace_prologue_cutscene_skip`, ROM `bd66e15`)
+
+NEWGAME inputs to f10004, START (1 frame) f10005 while the first castle-scene text box is open, then no input.
+Per-frame RAM f9995..10700; full dumps every 5f to f10070, then every 10f. Frame N = state after step N.
+
+| Event | Frame |
+|---|---|
+| `evStateBits` 0x2 → 0x106 (SKIPPING + FADEDIN); FadeToBlack proc; engine lockCnt 1 | f10005 |
+| BLDY 4/8/12/16 (BLDCNT 0x3c62 → 0x3cff); lock released, screen black | f10006..10009 |
+| Talk, TalkSkipListener, TalkWaitForInput, FaceBlink ×2, E_FACE gone; DISPCNT 0x3f00 → 0x1f00 | f10010; f10011 |
+| Skip bit cleared (0x102); chapter 16 → 64 | f10038; f10039 |
+| FadeFromBlack BLDY 16 → 0; FADEDIN cleared (0x2) | f10053..10069 |
+| Next scene plays normally (Mu walk, new Talk; waits for input at f10336) | f10070.. |
+
+`Proc_BlockEachMarked(5)` (PROC_MARK_TALK) raises lockCnt of Talk (1 → 2), TalkSkipListener and
+TalkWaitForInput (0 → 1) at f10005. FADEDIN was clear at the press, so `sub_800D488` (`sub_80141B0`, TalkOpen
+end) is not run here; a press with the screen already faded would need another run.

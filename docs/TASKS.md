@@ -17,8 +17,7 @@ Notes: [D11-worldmap](plans/D11-worldmap.md) (§8 status), [M6-notes](plans/M6-n
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| D13-cap1 | CAP | Owner report D-13: press Start during the Prologue in-game cutscene (castle, after the subtitle) in mGBA; trace from the press to the map | Run published with sProcArray/LCD/fade state per frame from the press until control returns | — | todo; high (owner report) |
-| D13-1 | PORT | `EventEngine_StartSkip` effects: `StartLockingFadeToBlack`, `sub_800D488` (`sub_80141B0`, end TalkOpen), `Proc_BlockEachMarked(5)`; wire into the `startSkipEffects` hook | Fade/LCD state and proc tree per frame equal D13-cap1; headless Start replay reaches the map; MANUAL_TEST | D13-cap1 | todo; high |
+| D13-1 | PORT | `EventEngine_StartSkip` effects: `StartLockingFadeToBlack(0x40)`, `Proc_BlockEachMarked(5)` (`sub_800D488` branch not run: transcribe); wire into `startSkipEffects`; skip ends at the scene change | Per frame f10005..10070 of `ram_trace_prologue_cutscene_skip` (M6-notes D-13): evStateBits, BLDCNT/BLDY, lockCnts, procs; MANUAL_TEST | — | todo; high (owner report) |
 | D11-wire-a | PORT | Start-skip audio (opsubtitle skip path, sound calls) | `gSoundSt`/player state at skip end equals the captures at 1505/2375/4405, else stays marked unverified | — | todo |
 | D11-wire-b | WIRE | Monologue hooks in `Fe8Boot`: real `ScreenFade`, `ArchivedPaletteFade`, keys | Headless New Game: parent blocked at 1213, released at 4898 (callback spans allowed); 0 B/frame; MANUAL_TEST | D11-wire-a | todo |
 | D11-wm3f | PORT | `StartGMapRoute` / `ProcScr_GMapRoute` (`worldmap_path.c`), started by `NewMapScreen` | Proc fields per step from 4901; route BG at f-dumps | — | todo |
@@ -67,7 +66,7 @@ Row details, including what each task left transcribed: [archive](plans/TASKS-ar
 
 - **M1–M5** complete. **M6 part 1** (Prologue opening to turn 1, suspend/resume): M6-01..12, 15..19, 21..28,
   30..39, 41..43, 45, 46 done; M6-20, 29, 40, 44 done as far as captures allow.
-- **D-series:** D11-ci3b (fog, decal, Bg2Scroll, timer; to f9708), D11-wm3e (`ec9883b`; show transition only, hide not captured; wiring in D11-wm9), D11-ci3 (`2c121c6`; light effects), D11-ci2 (`7f92921`; title hooks `getPlayChapterId`/`getNextUnclearedNode` stand-ins until M6-I), D11-ci4 (`e3ef72b`), D11-wm3d (`1f883a6`), D11-cap2 (`ram_trace_newgame_intro`, ROM `eb263d1`), D11-wm3c, D11-ci1 (`89d837d`), D11-wm3b (`f6b08f2`), D11-ci0 (`ChapterIntroProcInventoryTest`), D07-audio, D07-trace, D09-1, D09-1b, D09-2, D11-slides, D11-fades, D11-init, D11-flare,
+- **D-series:** D13-cap1 (`ram_trace_prologue_cutscene_skip`, ROM `bd66e15`), D11-ci3b (fog, decal, Bg2Scroll, timer; to f9708), D11-wm3e (`ec9883b`; show transition only, hide not captured; wiring in D11-wm9), D11-ci3 (`2c121c6`; light effects), D11-ci2 (`7f92921`; title hooks `getPlayChapterId`/`getNextUnclearedNode` stand-ins until M6-I), D11-ci4 (`e3ef72b`), D11-wm3d (`1f883a6`), D11-cap2 (`ram_trace_newgame_intro`, ROM `eb263d1`), D11-wm3c, D11-ci1 (`89d837d`), D11-wm3b (`f6b08f2`), D11-ci0 (`ChapterIntroProcInventoryTest`), D07-audio, D07-trace, D09-1, D09-1b, D09-2, D11-slides, D11-fades, D11-init, D11-flare,
   D11-skip, D11-proc, D11-worldmap, D11-wm1, D11-wm2, D12-1. D11-wm3..wm7 (+ wm4a–c, wm6b–d): standalone
   ports verified as far as the Prologue runs them; the rest is in lane A.
 - M4-02, M4-12, M5-56, 56b, 57..61.

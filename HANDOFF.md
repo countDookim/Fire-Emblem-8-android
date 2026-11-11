@@ -15,6 +15,8 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## Current state
 
+- ROM repo has no Actions minutes until ~2026-12-01 (owner, 11-11): publish new captures locally with
+  `gh release create assets-<sha> --target <full sha> --latest` and publish.yml's file list (done for `assets-bd66e15`).
 - Latest owner test: **local 0.1.488 (`0a73f11`)**: neither reported castle audio stutter reproduced.
   Original save restored afterward; ROM import preserved. Published 0.1.488 (`8c5b7c9`) banner comparison remains partial.
 - Published **0.1.598 (`8605040`)**: CI **830 passed, zero failures/skips**; debug/release APK content

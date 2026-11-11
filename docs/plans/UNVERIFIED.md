@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 537 across 67 decomp files (missing reason: 0).
+Total entries: 539 across 69 decomp files (missing reason: 0).
 
 ## src/worldmap_rm.c (42)
 
@@ -874,6 +874,18 @@ Total entries: 537 across 67 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `gProcScr_GmapCursor` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapCursor.kt` | script order checked against the `procs` capture in WorldMapNodeIconCursorTest, which cannot tag a script; the end callback `nullsub_59` does nothing |
+
+## src/worldmap_entry.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `gProcScr_GmapMuEntry2` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMuEntry.kt` | the commands of the second, hide transition fail loudly because their callbacks are not written; the decomp's second `PROC_LABEL(1)` is kept as printed, so `Proc_Goto(proc, 1)` and `Proc_Goto(proc, 2)` both reach the first one. The script position is checked per step in WorldMapMuEntryTest, which cannot tag a script. |
+
+## src/worldmap_hb.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `sub_80C1DE8` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapHblank.kt` | [flags] is 0 in every dump of the capture, so the masking cannot be told from a no-op |
 
 ## src/worldmap_screen2.c (1)
 

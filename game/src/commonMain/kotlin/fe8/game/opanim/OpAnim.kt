@@ -1031,22 +1031,25 @@ public class OpAnim(
     }
 
     /**
-     * Resets BG0..2 and the blend for the Eirika scene, then loads it over 6 more steps (by
-     * `timer`), sets `gOpAnimSt` and breaks.
+     * Prepares the Eirika opening scene while the screen is dark. Step 0 hides BG0..2 and resets
+     * the blend; steps 1..6 decompress the close-up, the blurred images and the blur palette into
+     * VRAM and the generic buffer. On step 6 it turns the display back on, sets the split point
+     * and breaks.
      *
      * Ported from src/opanim-main.c: OpAnimPreparefxEirika
      */
     public fun prepareEirika(proc: Proc) {
-        val g = eirika ?: error("OpAnim.eirika graphics not supplied")
+        val gfx = eirika ?: error("OpAnim.eirika graphics not supplied")
         val hw = hardware
         val lcd = hw.lcd
         val vram = hw.vram
-        val buf = genericBuffer
-        val st = proc.state as State
-        fun dec(b: OpAnimHs.Blob, dst: ByteArray, at: Int) =
-            Decompress.into(b.data, b.offset, dst, at)
-        if (st.timer == 1 || st.timer == 2) missedVBlanks = 1
-        when (st.timer) {
+        val buffer = genericBuffer
+        val state = proc.state as State
+        fun decompressInto(blob: OpAnimHs.Blob, dst: ByteArray, dstOffset: Int) =
+            Decompress.into(blob.data, blob.offset, dst, dstOffset)
+        // These two steps overrun the frame on hardware, so they miss VBlanks
+        if (state.timer == 1 || state.timer == 2) missedVBlanks = 1
+        when (state.timer) {
             0 -> {
                 lcd.setDispEnable(0, 0, 0, 1, 1)
                 lcd.setWinEnable(0, 0, 0)
@@ -1060,41 +1063,43 @@ public class OpAnim(
                 lcd.setBlendTargetB(0, 0, 1, 1, 0)
             }
             1 -> {
-                dec(g.close1.first, vram, hw.tileDataOffset(0))
-                dec(g.close1.second, buf, 0)
+                decompressInto(gfx.close1.first, vram, hw.tileDataOffset(0))
+                decompressInto(gfx.close1.second, buffer, 0)
             }
             2 -> {
-                dec(g.close2.first, vram, 0x2000 + hw.tileDataOffset(0))
-                dec(g.close2.second, buf, 0x800)
+                decompressInto(gfx.close2.first, vram, 0x2000 + hw.tileDataOffset(0))
+                decompressInto(gfx.close2.second, buffer, 0x800)
             }
             3 -> {
-                dec(g.eirika.first, vram, hw.tileDataOffset(2))
-                dec(g.eirika.second, buf, 0x1000)
-                copyToPal(g.blurPal, 0, 0x160)
+                decompressInto(gfx.eirika.first, vram, hw.tileDataOffset(2))
+                decompressInto(gfx.eirika.second, buffer, 0x1000)
+                copyToPal(gfx.blurPal, 0, 0x160)
             }
             4 -> {
-                dec(g.blur3.first, vram, 0x8000)
-                dec(g.blur3.second, vram, 0xC000)
+                decompressInto(gfx.blur3.first, vram, 0x8000)
+                decompressInto(gfx.blur3.second, vram, 0xC000)
             }
             5 -> {
-                dec(g.blur2.first, vram, 0xA000)
-                dec(g.blur2.second, vram, 0xC800)
+                decompressInto(gfx.blur2.first, vram, 0xA000)
+                decompressInto(gfx.blur2.second, vram, 0xC800)
                 for (i in 0 until 0x280) add16(vram, 0xC800 + 2 * i, 0x100)
             }
             6 -> {
-                buf.copyInto(buf, 0x1800, 0x1000, 0x1800)
+                buffer.copyInto(buffer, 0x1800, 0x1000, 0x1800)
+                // Palette bank 15 on every entry of the BG2 map, which is copied to VRAM 0xF000
                 for (i in 0 until 0x280) {
-                    val o = 0x1800 + 2 * i
-                    val n = (u16(buf, o) and 0xFFF) or 0xF000
-                    buf[o] = n.toByte()
-                    buf[o + 1] = (n shr 8).toByte()
+                    val offset = 0x1800 + 2 * i
+                    val entry = (u16(buffer, offset) and 0xFFF) or 0xF000
+                    buffer[offset] = entry.toByte()
+                    buffer[offset + 1] = (entry shr 8).toByte()
                 }
-                buf.copyInto(vram, 0xF000, 0x1800, 0x1D00)
+                buffer.copyInto(vram, 0xF000, 0x1800, 0x1D00)
                 hw.enablePaletteSync()
                 lcd.setDispEnable(0, 1, 1, 1, 1)
-                st.timer = 0
-                st.frontScrollPos = 0
-                st.backScrollPos = 0
+                state.timer = 0
+                state.frontScrollPos = 0
+                state.backScrollPos = 0
+                // Split point (240, 0) and shadow split at 160, as [eirikaAdvanceSplitLine] expects
                 opAnimSt[0] = 240
                 opAnimSt[1] = 0
                 opAnimSt[2] = 0
@@ -1104,56 +1109,61 @@ public class OpAnim(
                 return
             }
         }
-        st.timer = (st.timer + 1) and 0xFFFF
+        state.timer = (state.timer + 1) and 0xFFFF
     }
 
     /**
-     * Slides Eirika's close-up in on BG2 from the right (swapping in the blurred images) and
-     * BG0/BG1 from the left, then breaks: the mirror of [ephraimFlyIn].
+     * Slides Eirika's close-up in over steps 0..16 on the front layer (BG0/BG2), swapping in the
+     * blurred images on steps 13 and 14, then slides the back layer (BG1, the shadow) in from the
+     * left over steps 5..21 and breaks: the mirror of [ephraimFlyIn].
      *
      * Ported from src/opanim-main.c: sub_80C7F90
      */
     public fun eirikaFlyIn(proc: Proc) {
-        val g = eirika ?: error("OpAnim.eirika graphics not supplied")
+        val gfx = eirika ?: error("OpAnim.eirika graphics not supplied")
         val hw = hardware
         val vram = hw.vram
-        val st = proc.state as State
+        val state = proc.state as State
         hw.enableBgSyncByMask(7)
-        if (st.timer <= 0x10) {
-            val ret = Interpolate.interpolate(Interpolate.RSQUARE, 0, 0x68, st.timer, 0x10)
-            fun slide(start: Int, src: ByteArray, at: Int) =
-                scrollInFirstPal(ret, start, 0x98, 2, src, at, null, setPal = false)
-            when (st.timer) {
-                12 -> slide(0, vram, 0xC800)
+        if (state.timer <= 0x10) {
+            val interpolated =
+                Interpolate.interpolate(Interpolate.RSQUARE, 0, 0x68, state.timer, 0x10)
+            fun slideIn(start: Int, src: ByteArray, dstOffset: Int) =
+                scrollInFirstPal(interpolated, start, 0x98, 2, src, dstOffset, null, setPal = false)
+            when (state.timer) {
+                12 -> slideIn(0, vram, 0xC800)
                 13 -> {
-                    Decompress.into(g.blur1.first.data, g.blur1.first.offset, vram, 0x8000)
-                    slide(st.frontScrollPos, vram, 0xC800)
+                    Decompress.into(gfx.blur1.first.data, gfx.blur1.first.offset, vram, 0x8000)
+                    slideIn(state.frontScrollPos, vram, 0xC800)
                 }
                 14 -> {
-                    Decompress.into(g.blur1.second.data, g.blur1.second.offset, vram, 0xC000)
-                    slide(0, vram, 0xC000)
+                    Decompress.into(gfx.blur1.second.data, gfx.blur1.second.offset, vram, 0xC000)
+                    slideIn(0, vram, 0xC000)
                 }
                 16 -> {
-                    slide(0, genericBuffer, 0x1000)
+                    slideIn(0, genericBuffer, 0x1000)
                     hw.setTileDataOffset(2, 0x4000)
                 }
-                else -> slide(st.frontScrollPos, vram, 0xC000)
+                else -> slideIn(state.frontScrollPos, vram, 0xC000)
             }
-            st.frontScrollPos = ret.toShort().toInt()
+            state.frontScrollPos = interpolated.toShort().toInt()
         }
-        val time = st.timer - 5
-        if (time >= 0) {
-            val ret = Interpolate.interpolate(Interpolate.RSQUARE, 0, 0xCC, time, 0x10)
-            tsaModifyFirstPal(ret, st.backScrollPos, 1, genericBuffer, 0, 0x800, setPal = true)
-            st.backScrollPos = ret.toShort().toInt()
-            if (time == 0x10) {
-                tsaModifyFirstPal(st.backScrollPos, 0, 0, genericBuffer, 0, 0x800, setPal = false)
-                st.timer = 0
+        val backScrollStep = state.timer - 5
+        if (backScrollStep >= 0) {
+            val interpolated =
+                Interpolate.interpolate(Interpolate.RSQUARE, 0, 0xCC, backScrollStep, 0x10)
+            tsaModifyFirstPal(interpolated, state.backScrollPos, 1, genericBuffer, 0, 0x800,
+                setPal = true)
+            state.backScrollPos = interpolated.toShort().toInt()
+            if (backScrollStep == 0x10) {
+                tsaModifyFirstPal(state.backScrollPos, 0, 0, genericBuffer, 0, 0x800,
+                    setPal = false)
+                state.timer = 0
                 engine.breakProc(proc)
                 return
             }
         }
-        st.timer = (st.timer + 1) and 0xFFFF
+        state.timer = (state.timer + 1) and 0xFFFF
     }
 
     /**
@@ -1175,25 +1185,26 @@ public class OpAnim(
     }
 
     /**
-     * Moves the split point (`gOpAnimSt.x`, `y`) from (240, 0) to (0, 160) over 0x10 steps with
-     * window 0 and the split line; then switches to [hBlank2] and breaks.
+     * Moves the split point (`gOpAnimSt.x`, `y`) from (240, 0) to (0, 160) over 0x10 steps, so
+     * the window 0 edge and the split line sweep diagonally across the screen; then switches to
+     * [hBlank2] and breaks.
      *
      * Ported from src/opanim-main.c: sub_80C8184
      */
     public fun eirikaAdvanceSplitLine(proc: Proc) {
-        val st = proc.state as State
-        opAnimSt[0] = Interpolate.interpolate(Interpolate.RSQUARE, 240, 0, st.timer, 0x10)
+        val state = proc.state as State
+        opAnimSt[0] = Interpolate.interpolate(Interpolate.RSQUARE, 240, 0, state.timer, 0x10)
             .toShort().toInt()
-        opAnimSt[1] = Interpolate.interpolate(Interpolate.RSQUARE, 0, 160, st.timer, 0x10)
+        opAnimSt[1] = Interpolate.interpolate(Interpolate.RSQUARE, 0, 160, state.timer, 0x10)
             .toShort().toInt()
         hardware.lcd.setWin0Box(opAnimSt[0], 0, 240, 160)
         drawSplitLine(maxOf(opAnimSt[0], 8), minOf(opAnimSt[1], 0x88))
-        if (st.timer == 0x10) {
+        if (state.timer == 0x10) {
             hardware.hblank.setPrimary(hBlank2)
-            st.timer = 0
+            state.timer = 0
             engine.breakProc(proc)
         } else {
-            st.timer = (st.timer + 1) and 0xFFFF
+            state.timer = (state.timer + 1) and 0xFFFF
         }
     }
 
@@ -1204,130 +1215,139 @@ public class OpAnim(
      * Ported from src/opanim-main.c: sub_80C8214
      */
     public fun eirikaMergeShadow(proc: Proc) {
-        val st = proc.state as State
-        val g = eirika ?: error("OpAnim.eirika graphics not supplied")
-        opAnimSt[3] = Interpolate.interpolate(Interpolate.RSQUARE, 160, 120, st.timer, 0x10)
+        val state = proc.state as State
+        val gfx = eirika ?: error("OpAnim.eirika graphics not supplied")
+        opAnimSt[3] = Interpolate.interpolate(Interpolate.RSQUARE, 160, 120, state.timer, 0x10)
             .toShort().toInt()
         drawSplitLine(8, 0x88)
-        if (st.timer > 0xE) sprites.putExt(1, 8, 0x88, g.nameObj, 0x206E)
-        if (st.timer == 0x10) {
-            st.timer = 0
+        if (state.timer > 0xE) sprites.putExt(1, 8, 0x88, gfx.nameObj, 0x206E)
+        if (state.timer == 0x10) {
+            state.timer = 0
             engine.breakProc(proc)
         } else {
-            st.timer = (st.timer + 1) and 0xFFFF
+            state.timer = (state.timer + 1) and 0xFFFF
         }
     }
 
     /**
-     * Decompresses scroll line [index] (0..99, else nothing) into VRAM 0x8000 + 0x400 * slot and
-     * writes its 30-entry row into the BG map at VRAM 0xE800, row `~index & 0x1F`.
+     * Draws one line of the scrolling Eirika background for scroll line [index] (0..99, else
+     * nothing). It decompresses image `99 - index` into VRAM 0x8000 in one of 22 slots of 0x400
+     * bytes, then writes that image's 30-entry tilemap row into BG2's map at VRAM 0xE800, row
+     * `~index & 0x1F`.
      *
      * Ported from src/opanim-main.c: OpAnim1_UpdateScrollOneLine
      */
     public fun updateScrollOneLine(index: Int) {
-        val g = eirika ?: error("OpAnim.eirika graphics not supplied")
-        val idx = index.toShort().toInt()
-        if (idx < 0 || idx > 99) return
+        val gfx = eirika ?: error("OpAnim.eirika graphics not supplied")
+        // Truncate to 16 bits like the decomp's s16 index, so negative values fail the check
+        val signedIndex = index.toShort().toInt()
+        if (signedIndex < 0 || signedIndex > 99) return
         val vram = hardware.vram
-        var at = 0xE800 + ((idx.inv() and 0x1F) shl 6)
-        val n = 99 - idx
-        val slot = n % 0x16
-        val img = g.scrollImgs[n]
-        Decompress.into(img.data, img.offset, vram, 0x8000 + 0x400 * slot)
-        val tsa = g.scrollTsas[n]
+        var vramOffset = 0xE800 + ((signedIndex.inv() and 0x1F) shl 6)
+        val imageIndex = 99 - signedIndex
+        val slot = imageIndex % 0x16
+        val image = gfx.scrollImgs[imageIndex]
+        Decompress.into(image.data, image.offset, vram, 0x8000 + 0x400 * slot)
+        val tilemap = gfx.scrollTsas[imageIndex]
         for (i in 0 until 0x1E) {
-            val v = (u16(tsa.data, tsa.offset + 2 * i) and 0xFC00) or (32 * slot + i)
-            vram[at] = v.toByte()
-            vram[at + 1] = (v shr 8).toByte()
-            at += 2
+            val tileEntry =
+                (u16(tilemap.data, tilemap.offset + 2 * i) and 0xFC00) or (32 * slot + i)
+            vram[vramOffset] = tileEntry.toByte()
+            vram[vramOffset + 1] = (tileEntry shr 8).toByte()
+            vramOffset += 2
         }
     }
 
     /**
-     * Shows the split line and Eirika's name for 0x38 steps, loading scroll lines 0..21 over the
-     * first three; then saves the front/back scroll positions
-     * (`unk30/32`) into `unk34/36`, hides BG1, forces palette 15 on BG2's
-     * map and breaks.
+     * Shows the split line and Eirika's name for 0x38 steps. Steps 0, 1 and 2 load scroll lines
+     * 0..7, 8..15 and 16..21. Then it saves the front/back scroll positions (`unk30/32`) into
+     * [State.frontScrollStart] / [State.backScrollStart] (`unk34/36`), hides BG1, forces
+     * palette 15 on BG2's map and breaks.
      *
      * Ported from src/opanim-main.c: sub_80C8278
      */
     public fun eirikaDisplayName(proc: Proc) {
-        val st = proc.state as State
-        val g = eirika ?: error("OpAnim.eirika graphics not supplied")
+        val state = proc.state as State
+        val gfx = eirika ?: error("OpAnim.eirika graphics not supplied")
         drawSplitLine(8, 0x88)
-        sprites.putExt(1, 8, 0x88, g.nameObj, 0x7C + (2 shl 12))
-        if (st.timer <= 2) missedVBlanks = 1
-        when (st.timer) {
+        sprites.putExt(1, 8, 0x88, gfx.nameObj, 0x7C + (2 shl 12))
+        // The first three steps decompress scroll lines and overrun the frame
+        if (state.timer <= 2) missedVBlanks = 1
+        when (state.timer) {
             0 -> for (i in 0 until 8) updateScrollOneLine(i)
             1 -> for (i in 8 until 0x10) updateScrollOneLine(i)
             2 -> for (i in 0x10 until 0x16) updateScrollOneLine(i)
         }
-        if (st.timer == 0x38) {
-            st.timer = 0
-            st.frontScrollStart = st.frontScrollPos
-            st.backScrollStart = st.backScrollPos
+        if (state.timer == 0x38) {
+            state.timer = 0
+            state.frontScrollStart = state.frontScrollPos
+            state.backScrollStart = state.backScrollPos
             hardware.lcd.setDispEnable(1, 0, 1, 1, 1)
-            val map = hardware.mapBuffer(2)
-            for (i in 0 until 0x280) map[i] = ((map[i].toInt() and 0x7FFF) or 0xF000).toShort()
+            val bgMap = hardware.mapBuffer(2)
+            for (i in 0 until 0x280) bgMap[i] = ((bgMap[i].toInt() and 0x7FFF) or 0xF000).toShort()
             engine.breakProc(proc)
         } else {
-            st.timer = (st.timer + 1) and 0xFFFF
+            state.timer = (state.timer + 1) and 0xFFFF
         }
     }
 
     /**
-     * Eirika's exit, mirroring [ephraimExit] from the left: hides her name, closes the split line,
-     * scrolls BG2 (her) out to the left and BG0 out, then fades BG0 over BG3 and breaks.
+     * Eirika's exit, mirroring [ephraimExit] from the left. Steps 0..1 hide her name, steps 0..16
+     * move the split line down off the bottom of the screen, steps 4..28 scroll the front layer
+     * (BG0/BG2) out to the left from its saved position, and steps 11..35 scroll the back layer
+     * (BG1). Steps 28..35 fade BG0 into BG3, then it breaks.
      *
      * Ported from src/opanim-main.c: sub_80C835C
      */
     public fun eirikaExit(proc: Proc) {
         val hw = hardware
         val lcd = hw.lcd
-        val st = proc.state as State
+        val state = proc.state as State
         hw.enableBgSyncByMask(5)
-        val g = eirika ?: error("OpAnim.eirika graphics not supplied")
-        if (st.timer < 2) sprites.putExt(1, 8, 0x88, g.nameObj, 0x6E + (2 shl 12))
-        if (st.timer < 0x11) {
-            opAnimSt[3] = Interpolate.interpolate(Interpolate.SQUARE, 0x78, 0xA0, st.timer, 0x10)
+        val gfx = eirika ?: error("OpAnim.eirika graphics not supplied")
+        if (state.timer < 2) sprites.putExt(1, 8, 0x88, gfx.nameObj, 0x6E + (2 shl 12))
+        if (state.timer < 0x11) {
+            opAnimSt[3] = Interpolate.interpolate(Interpolate.SQUARE, 0x78, 0xA0, state.timer, 0x10)
                 .toShort().toInt()
-            val x = Interpolate.interpolate(Interpolate.SQUARE, 8, 0, st.timer, 0x10)
+            val x = Interpolate.interpolate(Interpolate.SQUARE, 8, 0, state.timer, 0x10)
             drawSplitLine(x, 0x10 + opAnimSt[3])
-            if (st.timer == 0x10) hw.hblank.setPrimary(null)
+            if (state.timer == 0x10) hw.hblank.setPrimary(null)
         }
-        val time = st.timer
-        val time1 = time - 4
-        if (time1 >= 0) {
-            if (time1 <= 0x18) {
-                val ret = Interpolate.interpolate(Interpolate.SQUARE, st.frontScrollStart, 0x158,
-                        time1, 0x18)
-                scrollInFirstPal(ret, st.frontScrollPos, 0x98, 2, genericBuffer, 0x1000, null,
-                        setPal = true)
-                st.frontScrollPos = ret.toShort().toInt()
+        val step = state.timer
+        val frontScrollStep = step - 4
+        if (frontScrollStep >= 0) {
+            if (frontScrollStep <= 0x18) {
+                val interpolated = Interpolate.interpolate(Interpolate.SQUARE,
+                        state.frontScrollStart, 0x158, frontScrollStep, 0x18)
+                scrollInFirstPal(interpolated, state.frontScrollPos, 0x98, 2, genericBuffer, 0x1000,
+                        null, setPal = true)
+                state.frontScrollPos = interpolated.toShort().toInt()
             }
-            val time2 = time - 0xB
-            if (time2 >= 0) {
-                if (time1 == 0x18) {
+            val backScrollStep = step - 0xB
+            if (backScrollStep >= 0) {
+                if (frontScrollStep == 0x18) {
                     lcd.setBlendTargetA(1, 0, 0, 0, 0)
                     lcd.setBlendTargetB(0, 0, 0, 1, 0)
                 }
-                if (time1 > 0x17) {
-                    val a = Interpolate.interpolate(Interpolate.LINEAR, 0x10, 0, time - 0x1B, 8)
-                    lcd.setBlendConfig(1, a, 0x10 - a, 8)
+                if (frontScrollStep > 0x17) {
+                    val blendAlpha =
+                        Interpolate.interpolate(Interpolate.LINEAR, 0x10, 0, step - 0x1B, 8)
+                    lcd.setBlendConfig(1, blendAlpha, 0x10 - blendAlpha, 8)
                 }
-                val ret = Interpolate.interpolate(Interpolate.SQUARE, st.backScrollStart, 0x1BC,
-                        time2, 0x18)
-                tsaModifyFirstPal(ret, st.backScrollPos, 0, genericBuffer, 0, 0x800, setPal = false)
-                st.backScrollPos = ret.toShort().toInt()
-                if (time2 == 0x18) {
+                val interpolated = Interpolate.interpolate(Interpolate.SQUARE,
+                        state.backScrollStart, 0x1BC, backScrollStep, 0x18)
+                tsaModifyFirstPal(interpolated, state.backScrollPos, 0, genericBuffer, 0, 0x800,
+                    setPal = false)
+                state.backScrollPos = interpolated.toShort().toInt()
+                if (backScrollStep == 0x18) {
                     hw.hblank.setPrimary(null)
-                    st.timer = 0
+                    state.timer = 0
                     engine.breakProc(proc)
                     return
                 }
             }
         }
-        st.timer = (st.timer + 1) and 0xFFFF
+        state.timer = (state.timer + 1) and 0xFFFF
     }
 
     /**

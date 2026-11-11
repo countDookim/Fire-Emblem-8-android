@@ -13,14 +13,15 @@ import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts
 
 /**
- * What the cursor and camera commands reach outside [BmSt]. The defaults are no-op stand-ins.
+ * What the cursor and camera commands reach outside [BmSt]. The defaults are no-ops.
  */
 public interface EventCursorCameraHooks {
     /**
-     * Stand-in for the unit parameter resolution
+     * The unit parameter resolution
      * (`GetUnitStructFromEventParameter`): the map position of the unit that event character
      * parameter [pid] names, as `(x shl 16) or y`, or -1 for NULL. The default is the position
-     * (0, 0) for every unit (never NULL), so that the commands advance.
+     * (0, 0) for every unit (never NULL), so that the commands advance; `Fe8Boot` overrides it
+     * with the position of the resolved unit.
      */
     public fun unitPosition(pid: Int): Int = 0
 

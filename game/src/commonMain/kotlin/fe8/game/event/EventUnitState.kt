@@ -20,8 +20,8 @@ public interface EventUnitStateHooks {
     public fun unitAt(x: Int, y: Int): Int = 0
 
     /**
-     * `GetPlayerLeaderPid`. The default 1 is a stand-in (the leader of the save is not modelled
-     * here); a caller that needs the real leader overrides it.
+     * `GetPlayerLeaderPid`. The default 1 is a stand-in until M6-I (the leader of the save is not
+     * modelled here); a caller that needs the real leader overrides it.
      */
     public fun playerLeaderPid(): Int = 1
 
@@ -126,7 +126,7 @@ public class EventUnitState(
      * -3), or -1 for NULL.
      *
      * Differences from C: for -2 the result is -1 when `table.unitOffset(id) < 0`, whereas C
-     * `GetUnit` accepts any non-zero map id. Pid 0 uses the stand-in
+     * `GetUnit` accepts any non-zero map id. Pid 0 uses the stand-in (M6-I)
      * [EventUnitStateHooks.playerLeaderPid]. Verification: only the `pid > 0` path is reached by
      * the trace; the special parameters are unverified.
      */

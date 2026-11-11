@@ -177,7 +177,8 @@ public class WorldMapMain(
      *
      * Real callees come from [WorldMapBeginning] (`Sound_FadeOutBGM`, `Events_WM_Beginning`
      * lookup, `ResetGmStoryNode`, `merge_next_node`, `CallEvent`). Still stand-ins: `sub_80BA008`
-     * (monster-merged/postgame branch), `StartWMFaceCtrl` and `StartGmapMuEntry`.
+     * (monster-merged/postgame branch, M6-I), `StartWMFaceCtrl` (D11-wm8d) and
+     * `StartGmapMuEntry` (D11-wm3e).
      *
      * @param nodes `gWMNodeData`
      * @param checkFlag `CheckFlag`

@@ -18,8 +18,8 @@ import gbafe.proc.ProcScripts.yield
  *
  * [stringFromIndex] is `GetStringFromIndex` reduced to what `StartTalkExt` needs: it makes the
  * message current and returns the GBA address of its string (the address [TalkHost] resolves
- * through `stringArray`). Members whose callee is not ported are stand-ins (no-ops where the
- * thing cannot exist yet) or throw `not ported`.
+ * through `stringArray`). Members whose callee is not ported are no-ops (where the thing
+ * cannot exist yet) or throw `not ported`.
  */
 public class EventTextTalkHost(
     private val procs: ProcEngine,
@@ -40,7 +40,7 @@ public class EventTextTalkHost(
     private val resumeMapDisp: () -> Unit = {},
     private val stringFromIndex: (Int) -> Int,
 ) : EventTextHost {
-    /** The stand-in text speed used when [readTextSpeed] and [writeTextSpeed] are not given. */
+    /** The text speed used when [readTextSpeed] and [writeTextSpeed] are not given. */
     private var textSpeedField: Int = 0
 
     /** Per-frame function of [waitForFacesScript]: ends the wait once no face proc is left. */
@@ -57,13 +57,13 @@ public class EventTextTalkHost(
         procs.endEach(talk.talkScript)
     }
 
-    /** Stand-in: CG text is not ported, so none can exist and there is nothing to end. */
+    /** Stand-in until M6-E: CG text is not ported, so none can exist and none is ended. */
     override fun endCgText() {}
 
-    /** Stand-in: the box dialogue is not ported, so none can exist and there is nothing to end. */
+    /** Stand-in until M6-E: the box dialogue is not ported, so none can exist, nothing to end. */
     override fun endBoxDialogue() {}
 
-    /** Stand-in: `ChangeUnitSpritePalette` (a palette load, no state) is not ported: no-op. */
+    /** Stand-in (M6-E): `ChangeUnitSpritePalette` (a palette load, no state) is not ported. */
     override fun changeUnitSpritePalette(id: Int) {}
 
     /**
@@ -115,8 +115,8 @@ public class EventTextTalkHost(
     /**
      * `Proc_EndEach(gProcScr_E_FACE)`, `ResetFaces`, `ClearTalkFaceRefs`.
      *
-     * Stand-in: `ResetFaces` (face gfx bookkeeping of `src/face.c`) is not ported; the face slots
-     * are only emptied.
+     * Stand-in until M6-E: `ResetFaces` (face gfx bookkeeping of `src/face.c`) is not ported; the
+     * face slots are only emptied.
      */
     override fun resetAllFaces() {
         procs.endEach(face.faceScript)
@@ -144,13 +144,13 @@ public class EventTextTalkHost(
     override fun isTalkRunning(): Boolean =
         procs.find(talk.talkScript) != null && !talk.isTalkLocked()
 
-    /** Stand-in: CG text is not ported, so none exists. */
+    /** Stand-in (M6-E): CG text is not ported, so none exists. */
     override fun cgTextExists(): Boolean = false
 
-    /** Stand-in: the box dialogue is not ported, so none exists. */
+    /** Stand-in (M6-E): the box dialogue is not ported, so none exists. */
     override fun boxDialogueExists(): Boolean = false
 
-    /** Stand-in: `sTalkChoiceResult` is only written by the (not ported) choice proc: 0. */
+    /** Stand-in (M6-E): `sTalkChoiceResult` is only written by the (not ported) choice proc: 0. */
     override fun talkChoiceResult(): Int = 0
 
     /** `SetBlendAlpha(a, b)` through the bubble host. */
@@ -159,8 +159,8 @@ public class EventTextTalkHost(
     }
 
     /**
-     * `gPlaySt.config.textSpeed` through [readTextSpeed] and [writeTextSpeed]; without them a
-     * stand-in field (the play state is not wired).
+     * `gPlaySt.config.textSpeed` through [readTextSpeed] and [writeTextSpeed] (`Fe8Boot` passes
+     * both); without them a plain field (the play state is not wired).
      */
     override var textSpeed: Int
         get() = readTextSpeed?.invoke() ?: textSpeedField

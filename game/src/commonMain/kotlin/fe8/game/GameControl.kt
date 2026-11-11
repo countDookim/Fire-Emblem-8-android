@@ -28,7 +28,7 @@ import gbafe.proc.ProcScripts.yield
  * flow: intro, title, save menu, chapters. The whole script is transcribed 1:1 (122 commands,
  * checked against the ROM by `GameControlScriptRomTest`); the intro and op anim scripts are given
  * as [introScript] and [opAnimScript], the title as [titleScreen], and every call past the title
- * is a stand-in in [hooks] until it is ported.
+ * is a default hook in [hooks] (a no-op unless noted) until it is ported.
  */
 public class GameControl(
     /** The proc engine the game control proc runs on. */
@@ -42,11 +42,11 @@ public class GameControl(
      * intro.
      */
     private val opAnimScript: () -> ProcScript,
-    /** The title screen (null: a stand-in proc holds the game control proc there). */
+    /** The title screen (null: [titleStandInScript] holds the game control proc there). */
     private val titleScreen: (() -> TitleScreen)? = null,
     /** The m4a state the [sound] wrapper drives (null: no sound data). */
     m4a: gba.audio.M4aSound? = null,
-    /** The stand-ins for the calls past the title that are not ported yet. */
+    /** The hooks for the calls past the title; the defaults do nothing, see [Hooks]. */
     public val hooks: Hooks = Hooks(),
 ) {
     /** `gPlaySt`, the play state the game control functions read and write. */
@@ -248,18 +248,18 @@ public class GameControl(
     }
 
     /**
-     * Stand-in for the title screen: a blocking child that holds the game control
-     * proc where the title screen would.
+     * The script used when no title screen is given: a blocking child that holds the game
+     * control proc where the title screen would.
      */
     public val titleStandInScript: ProcScript =
         ProcScript("gProcScr_TitleScreen (stand-in)", listOf(block()))
 
-    /** Holds [proc] with a blocking stand-in child (the stand-in for screens not ported yet). */
+    /** Holds [proc] with a blocking stand-in child (M6-E: save menu and class reel). */
     private fun hold(proc: Proc, what: String) {
         engine.startBlocking(ProcScript("$what (stand-in)", listOf(block())), proc)
     }
 
-    /** Starts the class reel demo via [hooks] or holds with a stand-in child. */
+    /** Starts the class reel demo via [hooks] or holds with a stand-in child (M6-E). */
     private fun startClassReel(proc: Proc): Boolean {
         val hook = hooks.startClassReel
         if (hook != null) return hook.invoke(proc)
@@ -267,7 +267,7 @@ public class GameControl(
         return false
     }
 
-    /** Starts the save menu screen via [hooks] or holds with a stand-in child. */
+    /** Starts the save menu screen via [hooks] or holds with a stand-in child (M6-E). */
     private fun startSaveMenu(proc: Proc) {
         val hook = hooks.startSaveMenu
         if (hook != null) hook.invoke(proc) else hold(proc, "StartSaveMenu")
@@ -366,14 +366,13 @@ public class GameControl(
     }
 
     /**
-     * Stand-ins for the calls of [script] past the title whose functions are not ported yet
-     * (each is replaced by its port in the task that ports it); the defaults do nothing, except
-     * where noted.
+     * Hooks for the calls of [script] past the title. Where a hook names a task, that task
+     * replaces the default with its port; the defaults do nothing, except where noted.
      */
     public class Hooks(
         /**
          * `StartSaveMenu` (save menu, M6-E): the default holds the game control proc with a
-         * blocking child, like the title stand-in.
+         * blocking child, like [titleStandInScript].
          */
         public var startSaveMenu: ProcFunc? = null,
         /** `ProcScr_WorldMapWrapper` (the world map), started as a blocking child. */
@@ -385,62 +384,62 @@ public class GameControl(
         public var waitForFade: ProcFunc? = null,
         /**
          * `GamceControl_StartClassReel` (`PROC_CALL_2`, class reel, not ported): the default holds
-         * the game control proc with a blocking child, like the title stand-in.
+         * the game control proc with a blocking child, like [titleStandInScript].
          */
         public var startClassReel: ProcBoolFunc? = null,
-        /** `sub_8009A84`. Stand-in until its port. */
+        /** `sub_8009A84`. Stand-in until M6-E (class reel, extras). */
         public var sub8009A84: ProcFunc = ProcFunc { },
-        /** `StartBattleMap`. Stand-in until its port. */
+        /** `StartBattleMap`; `Fe8Boot` sets the port of `StartBattleMap`. */
         public var startBattleMap: ProcFunc = ProcFunc { },
-        /** `EndWM`. Stand-in until its port. */
+        /** `EndWM`. Stand-in until D11-wm9. */
         public var endWorldMap: ProcFunc = ProcFunc { },
-        /** `GameControl_ChapterSwitch`. Stand-in until its port. */
+        /** `GameControl_ChapterSwitch`. Stand-in until M6-E. */
         public var chapterSwitch: ProcFunc = ProcFunc { },
-        /** `GameControl_CallPostChapterSaveMenu`. Stand-in until its port. */
+        /** `GameControl_CallPostChapterSaveMenu`. Stand-in until M6-E. */
         public var callPostChapterSaveMenu: ProcFunc = ProcFunc { },
         /**
          * `GameCtrl_StartResumedGame`; `Fe8Boot` wires `BattleMapStart.startResumedGame`
          * (transcribed, not verified).
          */
         public var startResumedGame: ProcFunc = ProcFunc { },
-        /** `StartLinkArenaMainMenu`. Stand-in until its port. */
+        /** `StartLinkArenaMainMenu`. Stand-in until M6-J. */
         public var startLinkArenaMainMenu: ProcFunc = ProcFunc { },
-        /** `sub_8009ABC`. Stand-in until its port. */
+        /** `sub_8009ABC`. Stand-in until M6-J (link arena). */
         public var sub8009ABC: ProcFunc = ProcFunc { },
-        /** `ClearTemporaryUnits`. Stand-in until its port. */
+        /** `ClearTemporaryUnits`. Stand-in until M6-E. */
         public var clearTemporaryUnits: ProcFunc = ProcFunc { },
-        /** `GameCtrl_DeclareCompletedChapter`. Stand-in until its port. */
+        /** `GameCtrl_DeclareCompletedChapter`. Stand-in until M6-E. */
         public var declareCompletedChapter: ProcFunc = ProcFunc { },
-        /** `Make6C_SaveMenuPostChapter` (the post-chapter save menu). Stand-in until its port. */
+        /** `Make6C_SaveMenuPostChapter` (the post-chapter save menu). Stand-in until M6-E. */
         public var makeSaveMenuPostChapter: ProcFunc = ProcFunc { },
-        /** `GameCtrl_SavePlayThroughData`. Stand-in until its port. */
+        /** `GameCtrl_SavePlayThroughData`. Stand-in until M6-E. */
         public var savePlayThroughData: ProcFunc = ProcFunc { },
-        /** `CallGameEndingEvent` (the ending / credits). Stand-in until its port. */
+        /** `CallGameEndingEvent` (the ending / credits). Stand-in until M6-J. */
         public var callGameEndingEvent: ProcFunc = ProcFunc { },
-        /** `StartFinScreen`. Stand-in until its port. */
+        /** `StartFinScreen`. Stand-in until M6-J. */
         public var startFinScreen: ProcFunc = ProcFunc { },
-        /** `_SetGameEndFlag`. Stand-in until its port. */
+        /** `_SetGameEndFlag`. Stand-in until M6-J. */
         public var setGameEndFlag: ProcFunc = ProcFunc { },
-        /** `GameControl_CallEraseMural` (erase-save). Stand-in until its port. */
+        /** `GameControl_CallEraseMural` (erase-save). Stand-in until M6-E. */
         public var callEraseMural: ProcFunc = ProcFunc { },
-        /** `StartMidFadeFromBlack`. Stand-in until its port. */
+        /** `StartMidFadeFromBlack`. Stand-in until M6-E (erase-save). */
         public var startMidFadeFromBlack: ProcFunc = ProcFunc { },
-        /** `CallEraseSaveEvent`. Stand-in until its port. */
+        /** `CallEraseSaveEvent`. Stand-in until M6-E. */
         public var callEraseSaveEvent: ProcFunc = ProcFunc { },
-        /** `StartMidFadeToBlack`. Stand-in until its port. */
+        /** `StartMidFadeToBlack`. Stand-in until M6-E (erase-save). */
         public var startMidFadeToBlack: ProcFunc = ProcFunc { },
-        /** `EndMuralBackground`. Stand-in until its port. */
+        /** `EndMuralBackground`. Stand-in until M6-E (erase-save). */
         public var endMuralBackground: ProcFunc = ProcFunc { },
-        /** `GmDataInit` (world map data). Stand-in until its port. */
+        /** `GmDataInit` (world map data); `Fe8Boot` sets the port of `GmDataInit`. */
         public var gmDataInit: ProcFunc = ProcFunc { },
-        /** `StartIntroMonologue`. Stand-in until its port. */
+        /** `StartIntroMonologue`. Stand-in until D11-wire-b. */
         public var startIntroMonologue: ProcFunc = ProcFunc { },
-        /** `EndAllMus`. Stand-in until its port. */
+        /** `EndAllMus`. Stand-in until M6-E. */
         public var endAllMus: ProcFunc = ProcFunc { },
         /**
          * The three blend calls of `sub_8009E28` (`SetBlendConfig(3, 0, 0, 16)`,
          * `SetBlendTargetA(1, 1, 1, 1, 1)`, `SetBlendBackdropA(1)`) on the LCD control buffer.
-         * Stand-in until the buffer is shared with [GameControl].
+         * Stand-in until D11-wm9 (the buffer is then shared with [GameControl]).
          */
         public var blendSetup: ProcFunc = ProcFunc { },
     )

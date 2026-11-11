@@ -36,8 +36,9 @@ internal class EventGiveItem(
      * Transcribed from src/eventscr.c: Event37_GiveItem
      * (not verified: inventory/gold effects and popups not trace-compared)
      *
-     * Host stand-ins: the "gold got" popup (`NewPopup_GoldGot`) is not shown and the gold add
-     * happens at once. For items, [newPopupItemGot] (when given) runs `NewPopup_ItemGot` on the
+     * Host stand-ins (D09-3): the "gold got" popup (`NewPopup_GoldGot`) is not shown and the
+     * gold add happens at once. For items, [newPopupItemGot] (when given) runs
+     * `NewPopup_ItemGot` on the
      * event proc; otherwise the "item got" popup is skipped and the item added at once (a full
      * inventory, the item-drop menu, throws [NotImplementedError]). The proc yields one frame.
      */

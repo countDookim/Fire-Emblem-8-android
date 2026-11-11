@@ -34,8 +34,8 @@ public class WorldMapBeginning(
     }
 
     /**
-     * The hooks for [proc]. `sub80BA008` and `startGmapMuEntry` stay stand-ins; so does
-     * `startWmFaceCtrl` unless [faces] is given.
+     * The hooks for [proc]. `sub80BA008` (M6-I) and `startGmapMuEntry` (D11-wm3e) stay
+     * stand-ins; so does `startWmFaceCtrl` (D11-wm8d) unless [faces] is given.
      *
      * @param faces the portrait controller `StartWMFaceCtrl` starts
      * @param mainProc the `ProcScr_WorldMapMain` proc, the controller's parent (a root proc when

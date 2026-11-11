@@ -20,7 +20,7 @@ import gbafe.extract.hexUpper
  *   decompressed to OBJ VRAM 0x060100C0 / 0x060104C0 (tile 6 of rows 0 and 1), written as `cursor_hand.png`
  *   with the top half above the bottom half. `UiCursorHand_Loop` draws it with `oam2` 0 (OBJ palette 0, chr 0 or
  *   6), so its colors come from whatever the calling screen loaded into OBJ palette 0; the PNG uses
- *   `gPal_MiscUiGraphics` palette 0 only as a stand-in (colors are not authoritative).
+ *   `gPal_MiscUiGraphics` palette 0 only as a preview (colors are not authoritative).
  */
 public object CursorsExtractor {
     /** Result: PNG files by name and the `gbafe.cursors` document. */

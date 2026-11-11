@@ -95,7 +95,8 @@ public class PostSaveMenu(
     }
 
     /**
-     * Stand-in save menu selection logic simulating pressing 'A' on the default menu item.
+     * Stand-in until M6-E: save menu selection logic simulating pressing 'A' on the default
+     * menu item.
      *
      * Follows vanilla precedence:
      * 1. If a valid suspend save exists in slot 3 ([Fe8SramLayout.SAVE_ID_SUSPEND]), selects Resume.

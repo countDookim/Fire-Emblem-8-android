@@ -35,7 +35,7 @@ import gbafe.core.time.GameClock
 
 /**
  * The RAM `ReadGameSave` fills, as the objects that own it elsewhere, plus stand-ins for what has
- * no owner yet.
+ * no owner yet (the world map and dungeon data, M6-I).
  *
  * @property playSt `gPlaySt`.
  * @property bmSt `gBmSt` (`gameStateBits` is read).
@@ -53,19 +53,20 @@ public class GameSaveRam(
     public val convoy: ByteArray = ByteArray(SuspendRam.CONVOY_BYTES),
 ) {
     /**
-     * Stand-in for `gGMData`'s monster RN state (`unk_ce`, three halfwords), the target of
-     * `sub_80A71F8`.
+     * Stand-in until M6-I for `gGMData`'s monster RN state (`unk_ce`, three halfwords), the
+     * target of `sub_80A71F8`.
      */
     public val gmMonsterRnState: IntArray = IntArray(3)
 
     /**
-     * Stand-in for what `ReadWorldMapStuff(&src->wmStuff, &gGMData)` decodes (the world map state
-     * is not ported): the raw 0x24 bytes of `struct GMapSaveInfo`.
+     * Stand-in until M6-I for what `ReadWorldMapStuff(&src->wmStuff, &gGMData)` decodes (the
+     * world map state is not ported): the raw 0x24 bytes of `struct GMapSaveInfo`.
      */
     public val worldMapStuff: ByteArray = ByteArray(Fe8SuspendLayout.GMAP_SAVE_INFO_SIZE)
 
     /**
-     * Stand-in for `gDungeonState.dungeon` (`LoadDungeonRecords`): the raw `struct Dungeon[2]`.
+     * Stand-in until M6-I for `gDungeonState.dungeon` (`LoadDungeonRecords`): the raw
+     * `struct Dungeon[2]`.
      */
     public val dungeons: ByteArray = ByteArray(DUNGEONS_SIZE)
 }
@@ -82,10 +83,10 @@ public class BmGameSave(
     private val loader: UnitLoader,
     private val rom: RomView,
 ) {
-    /** Stand-in for the `struct GameSavePackedUnit unitp` local. */
+    /** Buffer for the `struct GameSavePackedUnit unitp` local. */
     private val packed = ByteArray(PACKED_UNIT_SIZE)
 
-    /** Stand-in for the `u32 buf[2]` / `u32 buf` locals. */
+    /** Buffer for the `u32 buf[2]` / `u32 buf` locals. */
     private val scalar = ByteArray(8)
 
     /** The `gPlaySt` bytes read. */
@@ -94,13 +95,13 @@ public class BmGameSave(
     /** `gPermanentFlagBits` as read. */
     private val permanentBuf = ByteArray(Fe8EventFlags.PERMANENT_SAVE_BYTES)
 
-    /** Stand-in for the `struct Dungeon dungeon[2]` local. */
+    /** Buffer for the `struct Dungeon dungeon[2]` local. */
     private val dungeon = ByteArray(DUNGEONS_SIZE)
 
-    /** Stand-in for the `struct SaveBlockInfo chunk` local. */
+    /** Buffer for the `struct SaveBlockInfo chunk` local. */
     private val chunk = ByteArray(L.BLOCK_INFO_SIZE)
 
-    /** Stand-in for the `struct GlobalSaveInfo info` local. */
+    /** Buffer for the `struct GlobalSaveInfo info` local. */
     private val info = ByteArray(L.HEADER_SIZE)
 
     /** `gPermanentFlagBits` as written. */
@@ -248,7 +249,7 @@ public class BmGameSave(
      * Loads the game save block of [slot] into [ram]: `gPlaySt` (with `gameSaveSlot` = [slot])
      * and the game clock, the 51 blue units (after `InitUnits`), the monster RN state, the
      * convoy, the permanent flags, pid / chapter stats, the bonus claim flags, the world map
-     * stuff and dungeon records (stand-ins of [GameSaveRam]); then the last game save id.
+     * stuff and dungeon records (stand-ins of [GameSaveRam], M6-I); then the last game save id.
      * Without `PLAY_FLAG_HARD` in `gBmSt.gameStateBits` (as the C code tests it) the suspend
      * save is invalidated.
      */
@@ -366,8 +367,9 @@ public class BmGameSave(
      * Transcribed from src/bmsave.c: WriteGMMonsterRnState (not verified: the world map's RN
      * state is a stand-in and the two trailing stack bytes are not derivable)
      *
-     * Writes the `u32 buf[2]` that `sub_80A71E4` fills (the three halfwords of
-     * `gmMonsterRnState`; the other two bytes are uninitialised stack, zero here) to SRAM
+     * The world map RN state is a stand-in until M6-I. Writes the `u32 buf[2]` that
+     * `sub_80A71E4` fills (the three halfwords of `gmMonsterRnState`; the other two bytes are
+     * uninitialised stack, zero here) to SRAM
      * [destOffset].
      */
     public fun writeGmMonsterRnState(destOffset: Int, ram: GameSaveRam) {
@@ -383,7 +385,7 @@ public class BmGameSave(
      * publishes it: the suspend save is invalidated, `gameSaveSlot` and `time_saved` are set,
      * the characters of the blue units are marked known in the global info, and the block info
      * and last game save id are written. The world map stuff and dungeon records are written
-     * from the stand-ins of [GameSaveRam].
+     * from the stand-ins of [GameSaveRam] (M6-I).
      */
     public fun writeGameSave(ram: GameSaveRam, slot: Int) {
         val dest = lib.getSaveWriteAddr(slot)
@@ -419,7 +421,7 @@ public class BmGameSave(
         Fe8EventFlags.getPermanentFlagBits(ram.flags)
             .copyInto(permanentOut, 0, 0, permanentOut.size)
         lib.writePermanentFlags(dest + GAME_PERMANENT_FLAGS, permanentOut)
-        // WriteWorldMapStuff: not ported, the raw stand-in is written.
+        // WriteWorldMapStuff: not ported (M6-I), the raw stand-in is written.
         writeAndVerifySramFast(
             ram.worldMapStuff, 0, lib.sram, dest + GAME_WM_STUFF,
             Fe8SuspendLayout.GMAP_SAVE_INFO_SIZE,

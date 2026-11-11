@@ -39,47 +39,47 @@ public class BmSaveLib(public val sram: CartSram) {
     public var suspendSaveIdOffset: Int = 0
         private set
 
-    /** Stand-in for `gGenericBuffer` (aux block loaders/erasers); big enough for every block. */
+    /** Buffer for `gGenericBuffer` (aux block loaders/erasers); big enough for every block. */
     private val genericBuffer = ByteArray(GENERIC_BUFFER_SIZE)
 
-    /** Stand-in for the `struct GlobalSaveInfo local_info` / `info` locals. */
+    /** Buffer for the `struct GlobalSaveInfo local_info` / `info` locals. */
     private val infoBuffer = ByteArray(L.HEADER_SIZE)
 
-    /** Stand-in for the `struct SaveBlockInfo tmp` local of `ReadSaveBlockInfo`. */
+    /** Buffer for the `struct SaveBlockInfo tmp` local of `ReadSaveBlockInfo`. */
     private val blockInfoBuffer = ByteArray(L.BLOCK_INFO_SIZE)
 
-    /** Stand-in for the `struct SaveBlockInfo chunk` locals of the callers of the above. */
+    /** Buffer for the `struct SaveBlockInfo chunk` locals of the callers of the above. */
     private val scratchInfo = ByteArray(L.BLOCK_INFO_SIZE)
 
-    /** Stand-in for the `struct PlaySt playSt` local of `LoadAndVerfySuspendSave` (head only). */
+    /** Buffer for the `struct PlaySt playSt` local of `LoadAndVerfySuspendSave` (head only). */
     private val playStBuffer = ByteArray(PLAY_ST_READ_SIZE)
 
-    /** Stand-in for `gExtraMapSaveHead` (the part read: up to `unk0F`). */
+    /** Buffer for `gExtraMapSaveHead` (the part read: up to `unk0F`). */
     private val xmapHeadBuffer = ByteArray(XMAP_HEAD_READ_SIZE)
 
-    /** Stand-in for the `struct PlaySt` bytes read from SRAM. */
+    /** Buffer for the `struct PlaySt` bytes read from SRAM. */
     private val playStFull = ByteArray(PlaySt.SIZE)
 
-    /** Stand-in for the `struct PlaySt ram_ch` local of `IsPlaythroughIdUnique`. */
+    /** Buffer for the `struct PlaySt ram_ch` local of `IsPlaythroughIdUnique`. */
     private val scratchPlaySt = PlaySt()
 
     /** `gBonusContentClaimFlags`. */
     public var bonusContentClaimFlags: Int = 0
         private set
 
-    /** Stand-in for the `unsigned char buf[176]` of `WriteSupplyItems`. */
+    /** Buffer for the `unsigned char buf[176]` of `WriteSupplyItems`. */
     private val supplyBuffer = ByteArray(SUPPLY_SIZE)
 
-    /** Stand-in for the `struct GMapSaveInfo info` of `ClearWorldMapStuff`. */
+    /** Buffer for the `struct GMapSaveInfo info` of `ClearWorldMapStuff`. */
     private val gmapBuffer = ByteArray(GMAP_SAVE_INFO_SIZE)
 
     /** The 0x40 bytes of 0xFF that `WipeSram` writes 0x200 times (`u32 buf[0x10]`). */
     private val wipeBuffer = ByteArray(WIPE_CHUNK)
 
-    /** Stand-in for the `u32 buf[2]` of `SramInit`. */
+    /** Buffer for the `u32 buf[2]` of `SramInit`. */
     private val probeBuffer = ByteArray(8)
 
-    /** Stand-in for the EWRAM buffer `EraseInvalidSaveData` reads the whole SRAM into. */
+    /** The EWRAM buffer `EraseInvalidSaveData` reads the whole SRAM into. */
     private val ewramCopy = ByteArray(L.SRAM_SIZE)
 
     /**
@@ -618,16 +618,17 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Stand-in for src/bmcontainer.c: ClearSupplyItems (zeroes the 100 convoy items) over a raw
-     * little-endian u16 array [convoy] (no @VerifiesPort test names it).
+     * Raw-array form of src/bmcontainer.c: ClearSupplyItems (zeroes the 100 convoy items) over a
+     * raw little-endian u16 array [convoy] (no @VerifiesPort test names it).
      */
     public fun clearSupplyItems(convoy: ByteArray) {
         convoy.fill(0, 0, CONVOY_ITEM_COUNT * 2)
     }
 
     /**
-     * Stand-in for src/bmunit.c: InitUnits over the raw unit array [units]: zeroes all of it. The
-     * C code also stores each unit's `index`, which needs the `Unit` layout and is not done here.
+     * Raw-array form of src/bmunit.c: InitUnits over the raw unit array [units]: zeroes all of it.
+     * The C code also stores each unit's `index`, which needs the `Unit` layout and is not done
+     * here; the saves use `UnitTable.initUnits`.
      */
     public fun initUnits(units: ByteArray) {
         units.fill(0)
@@ -906,7 +907,7 @@ public class BmSaveLib(public val sram: CartSram) {
         writeLastGameSaveId(index)
     }
 
-    /** Stand-in for the `struct GameSavePackedUnit unitp` / `Dungeon dungeon[2]` locals. */
+    /** Buffer for the `struct GameSavePackedUnit unitp` / `Dungeon dungeon[2]` locals. */
     private val unitBuffer = ByteArray(PACKED_UNIT_SIZE.coerceAtLeast(DUNGEONS_SIZE))
 
     /**

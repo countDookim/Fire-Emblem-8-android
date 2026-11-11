@@ -19,8 +19,8 @@ import gbafe.core.time.GameClock
 /**
  * The RAM state `WriteSuspendSave` reads (and the few things it changes), as the objects that
  * own it elsewhere. The only things held here are buffers that have no owner yet (the stand-ins
- * [actionData], [traps], [convoy], [menuOverride], [worldMapStuff] and [dungeonState], each
- * documented below); no global exists twice.
+ * [actionData] and [menuOverride] until M6-B, [traps] and [convoy] until M6-H, [worldMapStuff]
+ * and [dungeonState] until M6-I, each documented below); no global exists twice.
  *
  * `gPidStatsData` and `gChapterStats` are owned by [BmSaveLib] (`pidStatsData`,
  * `chapterStatsData`) and are not repeated here.

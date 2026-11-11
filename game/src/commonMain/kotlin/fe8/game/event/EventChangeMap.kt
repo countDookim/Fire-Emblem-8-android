@@ -19,7 +19,7 @@ import gbafe.render.BgHardware
  * @param refreshEntityBmMaps `RefreshEntityBmMaps`.
  * @param renderBmMap `RenderBmMap`.
  * @param resumeMapDisplay `BMapDispResume` and `ReleaseMus`, the unlock `Event24_EnableMapDisp`
- *   runs while the graphics are locked. Stand-in: nothing by default.
+ *   runs while the graphics are locked. Stand-in until M6-E: nothing by default.
  */
 public class EventChangeMap(
     private val state: EventState,

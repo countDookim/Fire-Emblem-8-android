@@ -44,7 +44,8 @@ public fun interface IntConsumer {
  * Message strings: [stringFromIndex] decodes a message into the shared [MsgStrings] buffer,
  * which is seen at the fake GBA address [MSG_ADDR]; every other address reads the ROM.
  *
- * Stand-ins (no behaviour is invented; each is a no-op or the smallest working substitute):
+ * Stand-ins until M6-E (no behaviour is invented; each is a no-op or the smallest working
+ * substitute):
  *  - sprite text, talk choices, `[G]` numbers and the tactician name are not ported and fail;
  *  - the portrait of the active unit and the portrait swap are not ported and fail.
  */
@@ -358,7 +359,7 @@ public class TalkScene(
         this.face.faceOf(face)?.let { this.face.setFaceBlinkControl(it, mode) }
     }
 
-    /** Stand-in: the face eye state is not ported. */
+    /** Stand-in (M6-E): the face eye state is not ported. */
     override fun setFaceEyes(face: Int, mode: Int) {}
 
     override fun startTalkChoice(
@@ -446,7 +447,7 @@ public class TalkScene(
 
     override fun bg1Tilemap(): ShortArray = hw.mapBuffer(1)
 
-    /** Stand-in: the battle animation (deamon) is not ported, so it is never active. */
+    /** Stand-in until M6-G: the battle animation (deamon) is not ported, never active. */
     override fun isBattleDeamonActive(): Boolean = false
 
     /**

@@ -30,23 +30,23 @@ import gba.core.sram.writeSramFast
  */
 public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView) {
     /**
-     * Stand-in for `gGenericBuffer`: the unit records are encoded here. Like the C buffer it is
+     * Buffer for `gGenericBuffer`: the unit records are encoded here. Like the C buffer it is
      * not cleared between uses, so the bytes of the record of a unit without a character, which
      * `EncodeSuspendSavePackedUnit` leaves alone, are stale (a caller can pre-fill them).
      */
     public val genericBuffer: ByteArray =
         ByteArray((S.UNIT_SAVE_AMOUNT_RED + S.UNIT_SAVE_AMOUNT_GREEN) * S.PACKED_UNIT_SIZE)
 
-    /** Stand-in for the `struct Dungeon dungeon[2]` local. */
+    /** Buffer for the `struct Dungeon dungeon[2]` local. */
     private val dungeon = ByteArray(2 * S.DUNGEON_SIZE)
 
-    /** Stand-in for the `int val` / `u32 buf[2]` locals. */
+    /** Buffer for the `int val` / `u32 buf[2]` locals. */
     private val scalar = ByteArray(8)
 
-    /** Stand-in for the `struct SaveBlockInfo chunk` local. */
+    /** Buffer for the `struct SaveBlockInfo chunk` local. */
     private val chunk = ByteArray(L.BLOCK_INFO_SIZE)
 
-    /** Stand-in for the `struct GlobalSaveInfo header` local. */
+    /** Buffer for the `struct GlobalSaveInfo header` local. */
     private val header = ByteArray(L.HEADER_SIZE)
 
     /** The `gPlaySt` bytes written. */
@@ -61,7 +61,7 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
     /** `gChapterFlagBits` as written. */
     private val chapterBuf = ByteArray(Fe8EventFlags.CHAPTER_SAVE_BYTES)
 
-    /** Stand-in for the `struct SuspendSavePackedUnit unit_su` local of the reader. */
+    /** Buffer for the `struct SuspendSavePackedUnit unit_su` local of the reader. */
     private val packed = ByteArray(S.PACKED_UNIT_SIZE)
 
     /** The RN state words `StoreRNState` copies. */
@@ -262,8 +262,9 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
      * [BmSaveLib.isValidSuspendSave]) into [ram]: `gPlaySt` and the game clock, `gActionData`
      * with the RN state in its first 6 bytes (`LoadRNStateFromActionStruct`), the units (after
      * `InitUnits`), pid / chapter stats, the convoy, both flag sets, the traps, and the
-     * stand-ins of [SuspendRam] (menu override, world map stuff, dungeon records and state);
-     * then the event slot counter and the bonus claim flags of the game slot in `gPlaySt`.
+     * stand-ins of [SuspendRam] (menu override, M6-B; world map stuff, dungeon records and
+     * state, M6-I); then the event slot counter and the bonus claim flags of the game slot in
+     * `gPlaySt`.
      */
     public fun readSuspendSave(ram: SuspendRam, slot: Int) {
         val src = lib.getSaveReadAddr(slot + lib.suspendSaveIdOffset)

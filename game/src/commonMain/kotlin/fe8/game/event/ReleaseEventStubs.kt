@@ -3,9 +3,10 @@ package fe8.game.event
 import fe8.game.event.EventConst.EVC_ADVANCE_CONTINUE
 
 /**
- * Stand-in: not ports; no-op event commands that let a script run past commands whose handlers
- * are not ported yet (text, fades, unit loads, ASMC and so on), as the skip mode of the
- * beginning events does in the release build. Each stub advances past its command (the engine
+ * Stand-in until M6-E: not ports; no-op event commands that let a script run past commands
+ * whose handlers are not ported yet (text, fades, unit loads, ASMC and so on), as the skip mode
+ * of the beginning events does in the release build. Each stub advances past its command (the
+ * engine
  * reads the length from the header word) without any effect.
  */
 public object ReleaseEventStubs {

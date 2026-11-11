@@ -208,7 +208,8 @@ public class Fe8Boot(
     }
 
     /**
-     * Stand-in for `StartSaveMenu` (the save menu is not ported). With a valid suspend save in
+     * Stand-in until M6-E for `StartSaveMenu` (the save menu is not ported). With a valid suspend
+     * save in
      * [sram] it takes the menu's "Resume" choice: reads the suspend save
      * ([BmSuspendSave.readSuspendSave]) and sets `nextAction` to `GAME_ACTION_4`, so the game
      * control proc continues at the resumed game. Otherwise it is the dev "New Game" choice: writes
@@ -233,7 +234,7 @@ public class Fe8Boot(
         control.setNextGameActionId(GameControl.GAME_ACTION_EVENT_RETURN)
     }
 
-    /** The units the battle map start path touches (raw-unit stand-in). */
+    /** The units the battle map start path touches (raw unit bytes). */
     public val units: UnitTable by lazy { UnitTable(rom) }
 
     /** The event engine's globals, shared by [eventEngine] and the suspend save. */
@@ -251,7 +252,7 @@ public class Fe8Boot(
     /**
      * The event engine (`EventEngine`) with the ported command handlers of [EventScrCore],
      * [EventUnitState] (0x34) and [EventScriptBattle] (0x3F) registered; the other commands stay
-     * unknown. Hooks are the defaults (stand-ins), except the map accessors and entity map refresh.
+     * unknown. Hooks are the defaults (no-ops), except the map accessors and entity map refresh.
      */
     public val eventEngine: EventEngine by lazy {
         val state = eventState
@@ -264,7 +265,7 @@ public class Fe8Boot(
             override fun lockGame() { loop.lockGame() }
             override fun resumeGameplay() { loop.unlockGame() }
             // The talk needs the whole ROM (messages, portraits); with boot windows only the
-            // chapter data of the events is missing as well, so the stand-in stays.
+            // chapter data of the events is missing as well, so the default no-op stays.
             override fun endEventTalk() { if (rom.isWholeRom) eventTextHost.endTalk() }
             override fun eventEndCleanup(proc: EventEngineProc) {
                 if (rom.isWholeRom) eventText.endTextFaces(proc)
@@ -276,7 +277,8 @@ public class Fe8Boot(
             ).registerAll(it)
             val loader = UnitLoader(
                 units, rom,
-                // Stand-in: only unk1C[0..1] are modelled in PlaySt.
+                // Only unk1C[0..1] exist in PlaySt (`u8 unk1C[2]` in the C struct); other types
+                // read 0.
                 { type ->
                     when (type) {
                         0 -> control.playSt.unk1C0
@@ -301,8 +303,8 @@ public class Fe8Boot(
                 bmMap = battleBmMap
                 weatherId = { control.playSt.chapterWeatherId }
             }
-            // Cursor / camera commands: the camera moves, the cursor proc and SetSomeRealCamPos
-            // keep the default no-op stand-ins.
+            // Cursor / camera commands: the camera moves and the cursor proc runs;
+            // SetSomeRealCamPos and RenderBmMap keep the default no-op stand-ins (M6-B).
             val unitLookup = EventUnitState(
                 state, memory, units, loader, object : EventUnitStateHooks {},
             )
@@ -475,7 +477,7 @@ public class Fe8Boot(
 
     /**
      * The talk window on the game's BG buffers, VRAM, fonts, procs, keys and the ROM messages
-     * (see [TalkScene] for its stand-ins). Built on first use; needs the whole ROM.
+     * (see [TalkScene] for its stand-ins, M6-E). Built on first use; needs the whole ROM.
      */
     private val talkSceneDelegate = lazy {
         val bytes = rom.wholeRomBytes()
@@ -512,9 +514,10 @@ public class Fe8Boot(
 
     /**
      * The "got item" popup (`NewPopup_ItemGot`) on the game's proc engine, built on first use
-     * (needs the whole ROM through [talkScene]). Stand-ins: `gpPopupUnit` is not tracked, so the
-     * unit-name text id is 0 (the got-item and pilfered scripts do not use the unit name), and
-     * [addItem] with a full inventory (the item-drop menu) throws [NotImplementedError].
+     * (needs the whole ROM through [talkScene]). Stand-ins (D09-3): `gpPopupUnit` is not
+     * tracked, so the unit-name text id is 0 (the got-item and pilfered scripts do not use the
+     * unit name), and [addItem] with a full inventory (the item-drop menu) throws
+     * [NotImplementedError].
      * `LoadIconPalette(slot, palId)` maps to [ItemIcon.loadIconPalette] (icon palette `slot` into
      * palette bank `palId`).
      */
@@ -591,7 +594,8 @@ public class Fe8Boot(
 
     /**
      * Restores the available parts of `RefreshBMapGraphics` after a conversation background.
-     * Text, UI frame, face and icon resets, weather particles and system font setup are stand-ins.
+     * Text, UI frame, face and icon resets, weather particles and system font setup are
+     * stand-ins (M6-E).
      */
     private fun refreshMapGraphics() {
         val gfx = ChapterMapGfx(rom, battleChapters, hw, control.playSt)
@@ -614,7 +618,7 @@ public class Fe8Boot(
     /**
      * The text background command 0x21 (`Event21_TextBg`). Real: BG positions, the random
      * background, the BG3 load of subcode 0; the fade procs and `DisplayCGfx` are no-op
-     * stand-ins.
+     * stand-ins (M6-E).
      */
     private val eventTextBg: EventTextBg by lazy {
         EventTextBg(
@@ -870,7 +874,7 @@ public class Fe8Boot(
     }
 
     /**
-     * Replaces the unit sprite stand-ins of [main] and [start] with the ported `bmudisp.c`
+     * Replaces the default unit sprite hooks of [main] and [start] with the ported `bmudisp.c`
      * loaders and the `PutUnitSpritesOam` of the map task, on the shared state.
      */
     private fun wireUnitSprites(
@@ -892,7 +896,7 @@ public class Fe8Boot(
             it.fogAt = { x, y -> map.fog[y, x] }
             it.terrainAt = { x, y -> map.terrain[y, x] }
         }
-        // Stand-in: the trap pool is not ported (no ballistae or light runes).
+        // Stand-in until M6-H: the trap pool is not ported (no ballistae or light runes).
         val traps = ByteArray(TRAP_POOL_SIZE)
         val mapUnitAt = { x: Int, y: Int -> map.unit[y, x] }
         val refresh = { handles.refreshUnitSprites(mapUnitAt, traps) }
@@ -918,11 +922,12 @@ public class Fe8Boot(
     /**
      * `WriteSuspendSave` for [BMapMain.Hooks.writeSuspendSave], on [saveLib].
      *
-     * Stand-ins, until the state exists: `gActionData` is the [SuspendRam.actionData] buffer
-     * (zeros apart from the RN state the save stores and `suspendPointType`, which is merged in
-     * from [BMapMain.suspendPointType] at offset 0x16); the traps, convoy, menu override, world
-     * map info and dungeon state are the zeroed buffers of [SuspendRam] (their owners are not
-     * ported).
+     * Stand-ins, until the state exists (M6-B: `gActionData`, menu override; M6-H: traps,
+     * convoy; M6-I: world map info, dungeon state): `gActionData` is the [SuspendRam.actionData]
+     * buffer (zeros apart from the RN state the save stores and `suspendPointType`, which is
+     * merged in from [BMapMain.suspendPointType] at offset 0x16); the traps, convoy, menu
+     * override, world map info and dungeon state are the zeroed buffers of [SuspendRam] (their
+     * owners are not ported).
      */
     private fun suspendSaveHook(main: BMapMain, rom: RomView): (Int) -> Unit {
         val save = BmSuspendSave(saveLib, rom)
@@ -988,9 +993,9 @@ public class Fe8Boot(
         opAnim.afterStep = loop::afterStep
         control.hooks.startBattleMap = ProcFunc { battleMap.startBattleMap(it) }
         control.hooks.startResumedGame = ProcFunc { battleMap.startResumedGame(it) }
-        // The New Game stand-in leads into the battle map, which reads ROM data outside the boot
-        // windows: with windows only (debug APK without an imported ROM) the save menu holds,
-        // instead of crashing on the first chapter read.
+        // The New Game stand-in (M6-E) leads into the battle map, which reads ROM data outside
+        // the boot windows: with windows only (debug APK without an imported ROM) the save menu
+        // holds, instead of crashing on the first chapter read.
         if (rom.isWholeRom) control.hooks.startSaveMenu = ProcFunc { newGameSaveMenu() }
         control.sound.setDefaultMaxNumChannels() // AgbMain, after m4aSoundInit
         control.hooks.gmDataInit = ProcFunc { gmData.init() }
@@ -1041,7 +1046,7 @@ private const val TRAP_POOL_SIZE = 0x40 * 8
 /** Size of the IWRAM image that holds `gGMData`. */
 private const val GM_DATA_IWRAM_SIZE = 0x8000
 
-/** World map stand-in until the world map is ported: no node holds a chapter. */
+/** World map stand-in until the world map is ported (D11-wm9): no node holds a chapter. */
 private val NO_WORLD_MAP_NODES = object : BattleMapNodes {
     override fun chapterId(node: Int): Int = -1
 

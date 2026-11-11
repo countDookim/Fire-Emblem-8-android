@@ -22,13 +22,14 @@ public interface EventTextBgHost {
     public fun loadConvoBackground(bgIndex: Int)
 
     /**
-     * Stand-in for the `EVSUBCMD_0x1A22` case: `DisplayCGfx(gBG3TilemapBuffer, ...)`, BG3 and
-     * palette sync.
+     * Stand-in until M6-E for the `EVSUBCMD_0x1A22` case: `DisplayCGfx(gBG3TilemapBuffer, ...)`,
+     * BG3 and palette sync.
      */
     public fun displayCg(bgIndex: Int)
 
     /**
-     * Stand-in for `Proc_StartBlocking(gUnknown_08591E00/E58/EB0, proc)` with the fields set as
+     * Stand-in until M6-E for
+     * `Proc_StartBlocking(gUnknown_08591E00/E58/EB0, proc)` with the fields set as
      * `Event21_TextBg` does (`sub_800EA84` ... `sub_800EF48`).
      * [fadeType] is 0, 1 or 2 and
      * [unkType] is the transition kind of the command.
@@ -44,10 +45,10 @@ public interface EventTextBgHost {
     /** `Event22_ClearScreen(proc)`: returns its result code. */
     public fun clearScreen(proc: EventEngineProc): Int
 
-    /** Stand-in for `NewColFadeIn(speed, 0, color, proc)`. */
+    /** Stand-in (M6-E) for `NewColFadeIn(speed, 0, color, proc)`. */
     public fun colorFadeIn(speed: Int, color: Int, proc: EventEngineProc)
 
-    /** Stand-in for `NewColFadeOut(speed, 0, color, proc)`. */
+    /** Stand-in (M6-E) for `NewColFadeOut(speed, 0, color, proc)`. */
     public fun colorFadeOut(speed: Int, color: Int, proc: EventEngineProc)
 }
 
@@ -97,7 +98,7 @@ public class EventTextBg(
     /**
      * Ported from src/eventscr.c: Event21_TextBg
      *
-     * The background fade procs are host stand-ins.
+     * The background fade procs are host stand-ins (M6-E).
      */
     public val event21TextBg: EventHandler = EventHandler { proc ->
         val currentCmd = proc.pEventCurrent

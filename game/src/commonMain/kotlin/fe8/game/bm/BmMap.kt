@@ -107,7 +107,7 @@ public class BmMap(
 
     /** The pool last passed to [bmMapFill] (`SetWorkingBmMap`'s `gWorkingBmMap`), if any. */
     public var workingMap: Pool? = null
-        private set
+        internal set
 
     /** `gBmMapBuffer`: the decompressed map (`x`, `y` bytes, then `x * y` u16 tiles). */
     public val mapBuffer: ByteArray = ByteArray(MAP_BUFFER_SIZE)

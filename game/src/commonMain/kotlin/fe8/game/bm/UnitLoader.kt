@@ -35,9 +35,7 @@ public class UnitLoader(
     private val isHardMode: () -> Boolean,
 ) {
     private val items = ItemInfo(rom)
-    // A tile can be queued only once at a time, so the map pool bounds the queue size.
-    private val floodQueue = IntArray(BmMap.MAP_POOL_SIZE)
-    private val floodQueued = BooleanArray(BmMap.MAP_POOL_SIZE)
+    private val flood = MovementFlood(rom)
 
     /**
      * `MuCtr_StartDefinedMove(unit, redas, count, flags)` for unit-array index `id` and the REDA
@@ -686,46 +684,7 @@ public class UnitLoader(
         y0: Int,
         costTable: Int,
         terrainAt: (x: Int, y: Int) -> Int,
-    ) {
-        val w = map.sizeX
-        val h = map.sizeY
-        map.bmMapFill(pool, 0xFF)
-        if (x0 !in 0 until w || y0 !in -2 until h + 2) return
-        val tileCount = w * (h + 4)
-        floodQueued.fill(false, 0, tileCount)
-        var head = 0
-        var tail = 0
-        var queued = 0
-        val start = (y0 + 2) * w + x0
-        pool[y0, x0] = 0
-        floodQueue[tail++] = start
-        floodQueued[start] = true
-        queued++
-        while (queued > 0) {
-            val tile = floodQueue[head]
-            head = (head + 1) % floodQueue.size
-            queued--
-            floodQueued[tile] = false
-            val cx = tile % w
-            val cy = tile / w - 2
-            val base = pool[cy, cx]
-            for (d in 0 until 4) {
-                val nx = cx + DX[d]
-                val ny = cy + DY[d]
-                if (nx !in 0 until w || ny !in -2 until h + 2) continue
-                val cost = base + rom.u8(costTable + terrainAt(nx, ny))
-                if (cost >= pool[ny, nx] || cost > 124) continue
-                pool[ny, nx] = cost
-                val next = (ny + 2) * w + nx
-                if (!floodQueued[next]) {
-                    floodQueue[tail] = next
-                    tail = (tail + 1) % floodQueue.size
-                    queued++
-                    floodQueued[next] = true
-                }
-            }
-        }
-    }
+    ) = flood.flood(map, pool, x0, y0, MAP_MOVEMENT_EXTENDED, 0, costTable, terrainAt)
 
     /**
      * Transcribed from src/bmunit.c: GetUnitFromCharIdAndFaction (not verified: no test checks it
@@ -1062,8 +1021,7 @@ public class UnitLoader(
         const val WEATHER_RAIN = 4
         const val WEATHER_SNOW = 1
         const val WEATHER_SNOWSTORM = 2
-        val DX = intArrayOf(0, 0, -1, 1)
-        val DY = intArrayOf(-1, 1, 0, 0)
+        const val MAP_MOVEMENT_EXTENDED = 124
         const val CHARACTER_DATA = 0x08803D64
         const val CHARACTER_DATA_SIZE = 0x34
         const val CLASS_DATA = 0x08807164

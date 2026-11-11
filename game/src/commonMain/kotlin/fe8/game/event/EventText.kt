@@ -153,8 +153,8 @@ public class EventText(
      * Removes the portraits when a text scene ends: at once when the screen is faded in, else
      * fading them out first (the proc waits until they are gone).
      *
-     * Verified path: no `EV_STATE_FADEDIN`, faces exist (f10566). The `EV_STATE_FADEDIN` branch
-     * is in no trace.
+     * Verified paths: no `EV_STATE_FADEDIN`, faces exist (f10566); `EV_STATE_FADEDIN` set while
+     * skipping (f10010 of `ram_trace_prologue_cutscene_skip`, the face procs end).
      */
     public fun endTextFaces(proc: EventEngineProc) {
         if (proc.evStateBits and EV_STATE_FADEDIN != 0) {
@@ -288,8 +288,9 @@ public class EventText(
     /**
      * Ported from src/eventscr.c: Event1D_WaitForLockTalk
      *
-     * Verified: the talk running (parked every frame, f9865..f10564) and finished (f10565). Not
-     * in any trace: skipping, the world map exec types, a talk choice result.
+     * Verified: the talk running (parked every frame, f9865..f10564), finished (f10565), and
+     * skipping (f10010 of `ram_trace_prologue_cutscene_skip`: the talk tree ends). Not in any
+     * trace: the world map exec types, a talk choice result.
      */
     public val event1dWaitForLockTalk: EventHandler = EventHandler { proc ->
         if (proc.evStateBits and EV_STATE_SKIPPING != 0) {

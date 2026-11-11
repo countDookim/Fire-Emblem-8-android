@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 155 across 24 Kotlin files.
+Total entries: 161 across 25 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -22,7 +22,9 @@ Total entries: 155 across 24 Kotlin files.
 | M6-I | 15 |
 | M6-J | 8 |
 | D09-3 | 2 |
-| D11-ci5 | 1 |
+| D11-ci2 | 2 |
+| D11-ci3 | 2 |
+| D11-ci5 | 3 |
 | D11-wire-b | 1 |
 | D11-wm9 | 9 |
 
@@ -210,11 +212,27 @@ Total entries: 155 across 24 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `gotItemPopup` | Stand-ins (D09-3): `gpPopupUnit` is not tracked, so the unit-name text id is 0 (the got-item and pilfered scripts do not use the unit name), and [addItem] with a full inventory (the item-drop menu)... |
 | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | `event37GiveItem` | Transcribed from src/eventscr.c: Event37_GiveItem (not verified: inventory/gold effects and popups not trace-compared) Host stand-ins (D09-3): the "gold got" popup (`NewPopup_GoldGot`) is not shown... |
 
-## D11-ci5 (1)
+## D11-ci2 (2)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `lightBurstScript` | `ProcScr_ChapterIntro_LightBurst`: stand-in until D11-ci2. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `script` | Commands after the twin lights are stand-ins: D11-ci2 (`InitBLDCNT`, light burst, title, light explosion, `SetBG_802009C`), D11-ci3 (Bg2Scroll, decals, fog, timer, `8020A40`/`8020A8C`, `BeginFadeTo... |
+
+## D11-ci3 (2)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `bg2ScrollScript` | `ProcScr_ChapterIntro_Bg2Scroll`: stand-in until D11-ci3. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `putDecalScript` | `ProcScr_ChapterIntro_PutDecalSprite`: stand-in until D11-ci3. |
+
+## D11-ci5 (3)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `chapterIntro` | Stand-in until D11-ci5: ends at once. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `ChapterIntro` | Not wired: `BMapMain.Hooks.chapterIntro` still holds its own stand-in (D11-ci5). |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `ChapterIntro` | The rest of the script (light burst, title, light explosion, fog, both fades to the map) is named stand-ins in [script], each tagged with the task that fills it. |
 
 ## D11-wire-b (1)
 

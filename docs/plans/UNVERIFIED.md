@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 516 across 60 decomp files (missing reason: 0).
+Total entries: 520 across 61 decomp files (missing reason: 0).
 
 ## src/worldmap_rm.c (42)
 
@@ -635,6 +635,15 @@ Total entries: 516 across 60 decomp files (missing reason: 0).
 | `SaveRankings` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero ranking block, so no run shows its checksum or data |
 | `WriteLinkArenaStruct2` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero link arena block, so no run shows its checksum or data |
 | `WriteSupplyItems` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
+
+## src/chapterintrofx.c (4)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ProcScr_ChapterIntro_Bg1And3Scroll` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the script layout is only exercised through the differential test of its two callbacks |
+| `ProcScr_ChapterIntro_KeyListen` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the script layout is only exercised through the differential test of its two callbacks |
+| `gProcScr_ChapterIntro` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the window runs commands 0-6 and the jump to label 1 only |
+| `ChapterIntro_TwinLights_InitAndPlaySe` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the fields are compared, the sound effect call is not |
 
 ## src/proc.c (4)
 

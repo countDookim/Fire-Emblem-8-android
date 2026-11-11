@@ -22,7 +22,6 @@ Notes: [D11-worldmap](plans/D11-worldmap.md) (§8 status), [M6-notes](plans/M6-n
 | D11-wire-a | PORT | Start-skip audio (opsubtitle skip path, sound calls) | `gSoundSt`/player state at skip end equals the captures at 1505/2375/4405, else stays marked unverified | — | todo |
 | D11-wire-b | WIRE | Monologue hooks in `Fe8Boot`: real `ScreenFade`, `ArchivedPaletteFade`, keys | Headless New Game: parent blocked at 1213, released at 4898 (callback spans allowed); 0 B/frame; MANUAL_TEST | D11-wire-a | todo |
 | D11-wm3f | PORT | `StartGMapRoute` / `ProcScr_GMapRoute` (`worldmap_path.c`), started by `NewMapScreen` | Proc fields per step from 4901; route BG at f-dumps | — | todo |
-| D11-wm3e | PORT | `StartGmapMuEntry`/`GmapMuEntry2` (4907–9285); replaces the last BeginningHooks stand-in | Proc fields per step | — | todo |
 | D11-wm8a | PORT | Standalone WM event host; register B4–B7; VM-driven replay 4907–5100 | GmapRM procs and BG1 at f05100, started by the script (not by the test) | D11-wm3b–e | todo |
 | D11-wm8b | PORT | Text opcodes through the host, 5100–5500 | WmText and Talk proc fields per step | D11-wm8a | todo |
 | D11-wm8c | PORT | `WM_MOVECAM2` scrolls and nation highlights through the VM, 5436–8110 | UpdateExt/Border1 fields per step | D11-wm8a | todo |
@@ -69,7 +68,7 @@ Row details, including what each task left transcribed: [archive](plans/TASKS-ar
 
 - **M1–M5** complete. **M6 part 1** (Prologue opening to turn 1, suspend/resume): M6-01..12, 15..19, 21..28,
   30..39, 41..43, 45, 46 done; M6-20, 29, 40, 44 done as far as captures allow.
-- **D-series:** D11-ci3 (`2c121c6`; light effects), D11-ci2 (`7f92921`; title hooks `getPlayChapterId`/`getNextUnclearedNode` stand-ins until M6-I), D11-ci4 (`e3ef72b`), D11-wm3d (`1f883a6`), D11-cap2 (`ram_trace_newgame_intro`, ROM `eb263d1`), D11-wm3c, D11-ci1 (`89d837d`), D11-wm3b (`f6b08f2`), D11-ci0 (`ChapterIntroProcInventoryTest`), D07-audio, D07-trace, D09-1, D09-1b, D09-2, D11-slides, D11-fades, D11-init, D11-flare,
+- **D-series:** D11-wm3e (`ec9883b`; show transition only, hide not captured; wiring in D11-wm9), D11-ci3 (`2c121c6`; light effects), D11-ci2 (`7f92921`; title hooks `getPlayChapterId`/`getNextUnclearedNode` stand-ins until M6-I), D11-ci4 (`e3ef72b`), D11-wm3d (`1f883a6`), D11-cap2 (`ram_trace_newgame_intro`, ROM `eb263d1`), D11-wm3c, D11-ci1 (`89d837d`), D11-wm3b (`f6b08f2`), D11-ci0 (`ChapterIntroProcInventoryTest`), D07-audio, D07-trace, D09-1, D09-1b, D09-2, D11-slides, D11-fades, D11-init, D11-flare,
   D11-skip, D11-proc, D11-worldmap, D11-wm1, D11-wm2, D12-1. D11-wm3..wm7 (+ wm4a–c, wm6b–d): standalone
   ports verified as far as the Prologue runs them; the rest is in lane A.
 - M4-02, M4-12, M5-56, 56b, 57..61.

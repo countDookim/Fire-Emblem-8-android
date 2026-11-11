@@ -182,6 +182,10 @@ public class ItemInfo(private val rom: RomView) {
      */
     public fun getItemLckBonus(item: Int): Int = statBonus(item, 6)
 
+    /**
+     * The signed stat bonus at byte [field] (1 pow, 2 skl, 3 spd, 4 def, 5 res, 6 lck) of the
+     * item's `pStatBonuses` record, 0 for no item or no record.
+     */
     private fun statBonus(item: Int, field: Int): Int {
         if (item == 0) return 0
         val bonuses = getItemStatBonuses(item)
@@ -200,7 +204,7 @@ public class ItemInfo(private val rom: RomView) {
      * Ported from src/bmitem.c: GetItemName
      *
      * A fresh 0-terminated copy of the name of [item] after `StrInsertTact`; the `[Tact]` code
-     * (0x20 0x80) is replaced by [tactician] (the original reads the save's name; item names
+     * (0x80 0x20) is replaced by [tactician] (the original reads the save's name; item names
      * have no such code).
      */
     public fun getItemName(
@@ -208,26 +212,28 @@ public class ItemInfo(private val rom: RomView) {
         messages: MsgStrings,
         tactician: ByteArray = ByteArray(0),
     ): ByteArray {
-        val src = messages.getStringFromIndex(rom.u16(getItemData(getItemIndex(item))))
-        val out = ArrayList<Byte>()
+        val rawName = messages.getStringFromIndex(rom.u16(getItemData(getItemIndex(item))))
+        val resultBytes = ArrayList<Byte>()
         var i = 0
-        while (src[i].toInt() != 0) {
-            if ((src[i].toInt() and 0xFF) != 0x80) {
-                out.add(src[i])
+        while (rawName[i].toInt() != 0) {
+            // 0x80 starts a text control code; the byte after it is either the tactician-name
+            // code (0x20) or a code that is copied through unchanged.
+            if ((rawName[i].toInt() and 0xFF) != 0x80) {
+                resultBytes.add(rawName[i])
                 i++
             } else {
                 i++
-                if (src[i].toInt() != 0x20) {
-                    out.add(0x80.toByte())
-                    out.add(src[i])
+                if (rawName[i].toInt() != 0x20) {
+                    resultBytes.add(0x80.toByte())
+                    resultBytes.add(rawName[i])
                 } else {
-                    tactician.forEach { out.add(it) }
+                    tactician.forEach { resultBytes.add(it) }
                 }
                 i++
             }
         }
-        out.add(0)
-        return out.toByteArray()
+        resultBytes.add(0)
+        return resultBytes.toByteArray()
     }
 
     /**

@@ -67,48 +67,48 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: InitBattleUnit
      *
-     * Copies the unit at [so] of [src] into [bu] and sets its battle bonus stats, previous
-     * level / exp, initial HP and clears its change fields; `-1` for [so] is the C `NULL` and does
-     * nothing. As in the C, the `wexpMultiplier`, `weaponBroke` and `expGain` resets hit
-     * [actor] and [target], not [bu].
+     * Copies the unit at [srcOffset] of [src] into [unit] and sets its battle bonus stats,
+     * previous level / exp, initial HP and clears its change fields; `-1` for [srcOffset] is the
+     * C `NULL` and does nothing. As in the C, the `wexpMultiplier`, `weaponBroke` and `expGain`
+     * resets hit [actor] and [target], not [unit].
      */
-    public fun initBattleUnit(bu: BattleUnit, src: ByteArray, so: Int) {
-        if (so < 0) return
-        val b = bu.bytes
-        src.copyInto(b, 0, so, so + UnitTable.UNIT_SIZE)
+    public fun initBattleUnit(unit: BattleUnit, src: ByteArray, srcOffset: Int) {
+        if (srcOffset < 0) return
+        val bytes = unit.bytes
+        src.copyInto(bytes, 0, srcOffset, srcOffset + UnitTable.UNIT_SIZE)
 
-        put8(b, OFF_MAX_HP, loader.getUnitMaxHp(src, so))
-        put8(b, OFF_POW, getUnitPower(src, so))
-        put8(b, OFF_SKL, getUnitSkill(src, so))
-        put8(b, OFF_SPD, getUnitSpeed(src, so))
-        put8(b, OFF_DEF, getUnitDefense(src, so))
-        put8(b, OFF_LCK, getUnitLuck(src, so))
-        put8(b, OFF_RES, getUnitResistance(src, so))
-        put8(b, OFF_CON_BONUS, unitCon(src, so))
-        put8(b, OFF_MOV_BONUS, unitMov(src, so))
+        put8(bytes, OFF_MAX_HP, loader.getUnitMaxHp(src, srcOffset))
+        put8(bytes, OFF_POW, getUnitPower(src, srcOffset))
+        put8(bytes, OFF_SKL, getUnitSkill(src, srcOffset))
+        put8(bytes, OFF_SPD, getUnitSpeed(src, srcOffset))
+        put8(bytes, OFF_DEF, getUnitDefense(src, srcOffset))
+        put8(bytes, OFF_LCK, getUnitLuck(src, srcOffset))
+        put8(bytes, OFF_RES, getUnitResistance(src, srcOffset))
+        put8(bytes, OFF_CON_BONUS, unitCon(src, srcOffset))
+        put8(bytes, OFF_MOV_BONUS, unitMov(src, srcOffset))
 
-        bu.levelPrevious = s8(b, OFF_LEVEL)
-        bu.expPrevious = u8(b, OFF_EXP)
+        unit.levelPrevious = s8(bytes, OFF_LEVEL)
+        unit.expPrevious = u8(bytes, OFF_EXP)
 
-        bu.hpInitial = s8(b, OFF_CUR_HP)
-        bu.statusOut = -1
+        unit.hpInitial = s8(bytes, OFF_CUR_HP)
+        unit.statusOut = -1
 
-        bu.changeHP = 0
-        bu.changePow = 0
-        bu.changeSkl = 0
-        bu.changeSpd = 0
-        bu.changeDef = 0
-        bu.changeRes = 0
-        bu.changeLck = 0
-        bu.changeCon = 0
+        unit.changeHP = 0
+        unit.changePow = 0
+        unit.changeSkl = 0
+        unit.changeSpd = 0
+        unit.changeDef = 0
+        unit.changeRes = 0
+        unit.changeLck = 0
+        unit.changeCon = 0
 
         actor.wexpMultiplier = 0
         target.wexpMultiplier = 0
 
-        bu.wTriangleHitBonus = 0
-        bu.wTriangleDmgBonus = 0
+        unit.wTriangleHitBonus = 0
+        unit.wTriangleDmgBonus = 0
 
-        bu.nonZeroDamage = 0
+        unit.nonZeroDamage = 0
 
         actor.weaponBroke = 0
         target.weaponBroke = 0
@@ -123,17 +123,17 @@ public class BmBattle(
      *
      * [initBattleUnit], then the unit's own stats (no item bonuses) and base constitution.
      */
-    public fun initBattleUnitWithoutBonuses(bu: BattleUnit, src: ByteArray, so: Int) {
-        initBattleUnit(bu, src, so)
-        val b = bu.bytes
-        put8(b, OFF_MAX_HP, s8(src, so + OFF_MAX_HP))
-        put8(b, OFF_POW, s8(src, so + OFF_POW))
-        put8(b, OFF_SKL, s8(src, so + OFF_SKL))
-        put8(b, OFF_SPD, s8(src, so + OFF_SPD))
-        put8(b, OFF_DEF, s8(src, so + OFF_DEF))
-        put8(b, OFF_LCK, s8(src, so + OFF_LCK))
-        put8(b, OFF_RES, s8(src, so + OFF_RES))
-        put8(b, OFF_CON_BONUS, unitConBase(src, so))
+    public fun initBattleUnitWithoutBonuses(unit: BattleUnit, src: ByteArray, srcOffset: Int) {
+        initBattleUnit(unit, src, srcOffset)
+        val bytes = unit.bytes
+        put8(bytes, OFF_MAX_HP, s8(src, srcOffset + OFF_MAX_HP))
+        put8(bytes, OFF_POW, s8(src, srcOffset + OFF_POW))
+        put8(bytes, OFF_SKL, s8(src, srcOffset + OFF_SKL))
+        put8(bytes, OFF_SPD, s8(src, srcOffset + OFF_SPD))
+        put8(bytes, OFF_DEF, s8(src, srcOffset + OFF_DEF))
+        put8(bytes, OFF_LCK, s8(src, srcOffset + OFF_LCK))
+        put8(bytes, OFF_RES, s8(src, srcOffset + OFF_RES))
+        put8(bytes, OFF_CON_BONUS, unitConBase(src, srcOffset))
     }
 
     /**
@@ -142,12 +142,12 @@ public class BmBattle(
      * Sets [BattleUnit.terrainId] to [terrain] and the avoid, defense and resistance bonuses from
      * the unit's class lookup tables.
      */
-    public fun setBattleUnitTerrainBonuses(bu: BattleUnit, terrain: Int) {
-        bu.terrainId = terrain
-        val cls = u32(bu.bytes, OFF_CLASS)
-        bu.terrainAvoid = rom.u8(rom.u32(cls + 0x44) + bu.terrainId)
-        bu.terrainDefense = rom.u8(rom.u32(cls + 0x48) + bu.terrainId)
-        bu.terrainResistance = rom.u8(rom.u32(cls + 0x4C) + bu.terrainId)
+    public fun setBattleUnitTerrainBonuses(unit: BattleUnit, terrain: Int) {
+        unit.terrainId = terrain
+        val cls = u32(unit.bytes, OFF_CLASS)
+        unit.terrainAvoid = rom.u8(rom.u32(cls + 0x44) + unit.terrainId)
+        unit.terrainDefense = rom.u8(rom.u32(cls + 0x48) + unit.terrainId)
+        unit.terrainResistance = rom.u8(rom.u32(cls + 0x4C) + unit.terrainId)
     }
 
     /**
@@ -155,91 +155,91 @@ public class BmBattle(
      *
      * [setBattleUnitTerrainBonuses] with the terrain under the unit.
      */
-    public fun setBattleUnitTerrainBonusesAuto(bu: BattleUnit) {
-        setBattleUnitTerrainBonuses(bu, terrainAt(bu.unitY, bu.unitX))
+    public fun setBattleUnitTerrainBonusesAuto(unit: BattleUnit) {
+        setBattleUnitTerrainBonuses(unit, terrainAt(unit.unitY, unit.unitX))
     }
 
     /**
      * Ported from src/bmbattle.c: SetBattleUnitWeapon
      *
-     * Picks the weapon of [bu] from [itemSlot] ([BU_ISLOT_AUTO] for the equipped one), then
+     * Picks the weapon of [unit] from [itemSlot] ([BU_ISLOT_AUTO] for the equipped one), then
      * applies the range, magic-sword and status restrictions unless `BATTLE_CONFIG_BIT2` is set in
      * [stats].
      */
-    public fun setBattleUnitWeapon(bu: BattleUnit, itemSlot: Int) {
-        val b = bu.bytes
+    public fun setBattleUnitWeapon(unit: BattleUnit, itemSlot: Int) {
+        val bytes = unit.bytes
         var slot = itemSlot
-        if (slot == BU_ISLOT_AUTO) slot = getUnitEquippedWeaponSlot(b, 0)
+        if (slot == BU_ISLOT_AUTO) slot = getUnitEquippedWeaponSlot(bytes, 0)
 
-        if ((StructCodec.u32(b, OFF_STATE) and US_IN_BALLISTA) != 0) slot = BU_ISLOT_BALLISTA
+        if ((StructCodec.u32(bytes, OFF_STATE) and US_IN_BALLISTA) != 0) slot = BU_ISLOT_BALLISTA
 
-        bu.canCounter = 1
+        unit.canCounter = 1
 
         when (slot) {
             in 0..4 -> {
-                bu.weaponSlotIndex = slot
-                bu.weapon = u16(b, OFF_ITEMS + 2 * slot)
+                unit.weaponSlotIndex = slot
+                unit.weapon = u16(bytes, OFF_ITEMS + 2 * slot)
             }
             BU_ISLOT_5 -> {
-                bu.weaponSlotIndex = 0xFF
-                bu.weapon = bmSt.umTmpItem
+                unit.weaponSlotIndex = 0xFF
+                unit.weapon = bmSt.umTmpItem
             }
             BU_ISLOT_ARENA_PLAYER -> {
-                bu.weaponSlotIndex = 0
-                bu.weapon = arenaPlayerWeapon
-                bu.canCounter = 0
+                unit.weaponSlotIndex = 0
+                unit.weapon = arenaPlayerWeapon
+                unit.canCounter = 0
             }
             BU_ISLOT_ARENA_OPPONENT -> {
-                bu.weaponSlotIndex = 0
-                bu.weapon = arenaOpponentWeapon
-                bu.canCounter = 0
+                unit.weaponSlotIndex = 0
+                unit.weapon = arenaOpponentWeapon
+                unit.canCounter = 0
             }
             BU_ISLOT_BALLISTA -> {
-                bu.weaponSlotIndex = 0xFF
-                bu.weapon = ballistaItemAt(bu.unitX, bu.unitY)
-                bu.canCounter = 0
+                unit.weaponSlotIndex = 0xFF
+                unit.weapon = ballistaItemAt(unit.unitX, unit.unitY)
+                unit.canCounter = 0
             }
             else -> {
-                bu.weaponSlotIndex = 0xFF
-                bu.weapon = 0
-                bu.canCounter = 0
+                unit.weaponSlotIndex = 0xFF
+                unit.weapon = 0
+                unit.canCounter = 0
             }
         }
 
-        bu.weaponBefore = bu.weapon
-        bu.weaponAttributes = items.getItemAttributes(bu.weapon)
-        bu.weaponType = items.getItemType(bu.weapon)
+        unit.weaponBefore = unit.weapon
+        unit.weaponAttributes = items.getItemAttributes(unit.weapon)
+        unit.weaponType = items.getItemType(unit.weapon)
 
         if ((stats.config and BattleStats.CONFIG_BIT2) == 0) {
-            if ((bu.weaponAttributes and ItemInfo.IA_MAGICDAMAGE) != 0) {
-                when (items.getItemIndex(bu.weapon)) {
+            if ((unit.weaponAttributes and ItemInfo.IA_MAGICDAMAGE) != 0) {
+                when (items.getItemIndex(unit.weapon)) {
                     ITEM_SWORD_WINDSWORD ->
                         if (stats.range == 2) {
-                            bu.weaponType = ITYPE_ANIMA
+                            unit.weaponType = ITYPE_ANIMA
                         } else {
-                            bu.weaponAttributes = bu.weaponAttributes and
+                            unit.weaponAttributes = unit.weaponAttributes and
                                 ItemInfo.IA_MAGICDAMAGE.inv()
                         }
                     ITEM_SWORD_LIGHTBRAND ->
                         if (stats.range == 2) {
-                            bu.weaponType = ITYPE_LIGHT
+                            unit.weaponType = ITYPE_LIGHT
                         } else {
-                            bu.weaponAttributes = bu.weaponAttributes and
+                            unit.weaponAttributes = unit.weaponAttributes and
                                 ItemInfo.IA_MAGICDAMAGE.inv()
                         }
-                    ITEM_SWORD_RUNESWORD -> bu.weaponType = ITYPE_DARK
+                    ITEM_SWORD_RUNESWORD -> unit.weaponType = ITYPE_DARK
                 }
             }
 
-            if (!isItemCoveringRange(bu.weapon, stats.range) || bu.weaponSlotIndex == 0xFF) {
-                bu.weapon = 0
-                bu.canCounter = 0
+            if (!isItemCoveringRange(unit.weapon, stats.range) || unit.weaponSlotIndex == 0xFF) {
+                unit.weapon = 0
+                unit.canCounter = 0
             }
 
-            when (bu.unitStatusIndex) {
+            when (unit.unitStatusIndex) {
                 STATUS_SLEEP, STATUS_PETRIFY, STATUS_13 -> {
-                    bu.weapon = 0
-                    bu.canCounter = 0
+                    unit.weapon = 0
+                    unit.canCounter = 0
                 }
             }
         }
@@ -249,14 +249,14 @@ public class BmBattle(
      * Transcribed from src/bmbattle.c: SetBattleUnitWeaponBallista
      *   (not verified: not called by the traced battle)
      *
-     * Gives [bu] the ballista item of its tile and no counter.
+     * Gives [unit] the ballista item of its tile and no counter.
      */
-    public fun setBattleUnitWeaponBallista(bu: BattleUnit) {
-        bu.weapon = ballistaItemAt(bu.unitX, bu.unitY)
-        bu.weaponBefore = bu.weapon
-        bu.weaponAttributes = items.getItemAttributes(bu.weapon)
-        bu.weaponType = items.getItemType(bu.weapon)
-        bu.canCounter = 0
+    public fun setBattleUnitWeaponBallista(unit: BattleUnit) {
+        unit.weapon = ballistaItemAt(unit.unitX, unit.unitY)
+        unit.weaponBefore = unit.weapon
+        unit.weaponAttributes = items.getItemAttributes(unit.weapon)
+        unit.weaponType = items.getItemType(unit.weapon)
+        unit.canCounter = 0
     }
 
     /**
@@ -296,14 +296,14 @@ public class BmBattle(
      */
     public fun computeBattleUnitSupportBonuses(attacker: BattleUnit, defender: BattleUnit) {
         if ((stats.config and BattleStats.CONFIG_ARENA) == 0 || playSt.chapterWeatherId != 0) {
-            val t = supportBonuses
-            getUnitSupportBonuses(attacker.bytes, 0, t)
-            attacker.battleAttack += t[0]
-            attacker.battleDefense += t[1]
-            attacker.battleHitRate += t[2]
-            attacker.battleAvoidRate += t[3]
-            attacker.battleCritRate += t[4]
-            attacker.battleDodgeRate += t[5]
+            val bonuses = supportBonuses
+            getUnitSupportBonuses(attacker.bytes, 0, bonuses)
+            attacker.battleAttack += bonuses[0]
+            attacker.battleDefense += bonuses[1]
+            attacker.battleHitRate += bonuses[2]
+            attacker.battleAvoidRate += bonuses[3]
+            attacker.battleCritRate += bonuses[4]
+            attacker.battleDodgeRate += bonuses[5]
         }
     }
 
@@ -330,8 +330,8 @@ public class BmBattle(
      *
      * Terrain defense plus defense, ignoring the opposing weapon.
      */
-    public fun computeBattleUnitBaseDefense(bu: BattleUnit) {
-        bu.battleDefense = bu.terrainDefense + s8(bu.bytes, OFF_DEF)
+    public fun computeBattleUnitBaseDefense(unit: BattleUnit) {
+        unit.battleDefense = unit.terrainDefense + s8(unit.bytes, OFF_DEF)
     }
 
     /**
@@ -369,12 +369,12 @@ public class BmBattle(
      *
      * Speed minus the weight of the weapon beyond the unit's constitution, at least 0.
      */
-    public fun computeBattleUnitSpeed(bu: BattleUnit) {
-        var effWt = items.getItemWeight(bu.weaponBefore)
-        effWt -= s8(bu.bytes, OFF_CON_BONUS)
-        if (effWt < 0) effWt = 0
-        bu.battleSpeed = s8(bu.bytes, OFF_SPD) - effWt
-        if (bu.battleSpeed < 0) bu.battleSpeed = 0
+    public fun computeBattleUnitSpeed(unit: BattleUnit) {
+        var effectiveWeight = items.getItemWeight(unit.weaponBefore)
+        effectiveWeight -= s8(unit.bytes, OFF_CON_BONUS)
+        if (effectiveWeight < 0) effectiveWeight = 0
+        unit.battleSpeed = s8(unit.bytes, OFF_SPD) - effectiveWeight
+        if (unit.battleSpeed < 0) unit.battleSpeed = 0
     }
 
     /**
@@ -382,9 +382,9 @@ public class BmBattle(
      *
      * `skill * 2 + weapon hit + luck / 2 + triangle bonus`.
      */
-    public fun computeBattleUnitHitRate(bu: BattleUnit) {
-        bu.battleHitRate = s8(bu.bytes, OFF_SKL) * 2 + items.getItemHit(bu.weapon) +
-            s8(bu.bytes, OFF_LCK) / 2 + bu.wTriangleHitBonus
+    public fun computeBattleUnitHitRate(unit: BattleUnit) {
+        unit.battleHitRate = s8(unit.bytes, OFF_SKL) * 2 + items.getItemHit(unit.weapon) +
+            s8(unit.bytes, OFF_LCK) / 2 + unit.wTriangleHitBonus
     }
 
     /**
@@ -392,9 +392,9 @@ public class BmBattle(
      *
      * `speed * 2 + terrain avoid + luck`, at least 0.
      */
-    public fun computeBattleUnitAvoidRate(bu: BattleUnit) {
-        bu.battleAvoidRate = bu.battleSpeed * 2 + bu.terrainAvoid + s8(bu.bytes, OFF_LCK)
-        if (bu.battleAvoidRate < 0) bu.battleAvoidRate = 0
+    public fun computeBattleUnitAvoidRate(unit: BattleUnit) {
+        unit.battleAvoidRate = unit.battleSpeed * 2 + unit.terrainAvoid + s8(unit.bytes, OFF_LCK)
+        if (unit.battleAvoidRate < 0) unit.battleAvoidRate = 0
     }
 
     /**
@@ -402,9 +402,9 @@ public class BmBattle(
      *
      * Weapon crit plus skill / 2, plus 15 for crit-bonus classes.
      */
-    public fun computeBattleUnitCritRate(bu: BattleUnit) {
-        bu.battleCritRate = items.getItemCrit(bu.weapon) + s8(bu.bytes, OFF_SKL) / 2
-        if ((unitCAttributes(bu.bytes, 0) and CA_CRITBONUS) != 0) bu.battleCritRate += 15
+    public fun computeBattleUnitCritRate(unit: BattleUnit) {
+        unit.battleCritRate = items.getItemCrit(unit.weapon) + s8(unit.bytes, OFF_SKL) / 2
+        if ((unitCAttributes(unit.bytes, 0) and CA_CRITBONUS) != 0) unit.battleCritRate += 15
     }
 
     /**
@@ -412,8 +412,8 @@ public class BmBattle(
      *
      * The unit's luck.
      */
-    public fun computeBattleUnitDodgeRate(bu: BattleUnit) {
-        bu.battleDodgeRate = s8(bu.bytes, OFF_LCK)
+    public fun computeBattleUnitDodgeRate(unit: BattleUnit) {
+        unit.battleDodgeRate = s8(unit.bytes, OFF_LCK)
     }
 
     /**
@@ -430,7 +430,8 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: ComputeBattleUnitEffectiveCritRate
      *
-     * Crit rate minus the defender's dodge rate, 0 against crit-negating items.
+     * Crit rate minus the defender's dodge rate, 0 for a Monster Stone attacker and 0 against
+     * a defender carrying a crit-negating item.
      */
     public fun computeBattleUnitEffectiveCritRate(attacker: BattleUnit, defender: BattleUnit) {
         attacker.battleEffectiveCritRate = attacker.battleCritRate - defender.battleDodgeRate
@@ -459,9 +460,9 @@ public class BmBattle(
             attacker.battleSilencerRate = 0
         } else {
             attacker.battleSilencerRate = 50
-            val d = unitCAttributes(defender.bytes, 0)
-            if ((d and CA_BOSS) != 0) attacker.battleSilencerRate = 25
-            if ((d and CA_NEGATE_LETHALITY) != 0) attacker.battleSilencerRate = 0
+            val defenderAttrs = unitCAttributes(defender.bytes, 0)
+            if ((defenderAttrs and CA_BOSS) != 0) attacker.battleSilencerRate = 25
+            if ((defenderAttrs and CA_NEGATE_LETHALITY) != 0) attacker.battleSilencerRate = 0
         }
     }
 
@@ -471,12 +472,12 @@ public class BmBattle(
      *
      * +5 hit and crit for an S rank in the weapon's type.
      */
-    public fun computeBattleUnitWeaponRankBonuses(bu: BattleUnit) {
-        if (bu.weapon != 0) {
-            val wType = items.getItemType(bu.weapon)
-            if (wType < 8 && u8(bu.bytes, OFF_RANKS + wType) >= WPN_EXP_S) {
-                bu.battleHitRate += 5
-                bu.battleCritRate += 5
+    public fun computeBattleUnitWeaponRankBonuses(unit: BattleUnit) {
+        if (unit.weapon != 0) {
+            val wType = items.getItemType(unit.weapon)
+            if (wType < 8 && u8(unit.bytes, OFF_RANKS + wType) >= WPN_EXP_S) {
+                unit.battleHitRate += 5
+                unit.battleCritRate += 5
             }
         }
     }
@@ -487,12 +488,12 @@ public class BmBattle(
      *
      * The +10 of the attack, defense, crit and avoid status effects.
      */
-    public fun computeBattleUnitStatusBonuses(bu: BattleUnit) {
-        when (bu.unitStatusIndex) {
-            STATUS_ATTACK -> bu.battleAttack += 10
-            STATUS_DEFENSE -> bu.battleDefense += 10
-            STATUS_CRIT -> bu.battleCritRate += 10
-            STATUS_AVOID -> bu.battleAvoidRate += 10
+    public fun computeBattleUnitStatusBonuses(unit: BattleUnit) {
+        when (unit.unitStatusIndex) {
+            STATUS_ATTACK -> unit.battleAttack += 10
+            STATUS_DEFENSE -> unit.battleDefense += 10
+            STATUS_CRIT -> unit.battleCritRate += 10
+            STATUS_AVOID -> unit.battleAvoidRate += 10
         }
     }
 
@@ -542,18 +543,20 @@ public class BmBattle(
      * the reaver inversion.
      */
     public fun battleApplyWeaponTriangleEffect(attacker: BattleUnit, defender: BattleUnit) {
-        var it = WEAPON_TRIANGLE_RULES
-        while (rom.u8(it).toByte() >= 0) {
-            if (attacker.weaponType == rom.u8(it) && defender.weaponType == rom.u8(it + 1)) {
-                val hit = rom.u8(it + 2).toByte().toInt()
-                val atk = rom.u8(it + 3).toByte().toInt()
-                attacker.wTriangleHitBonus = hit
-                attacker.wTriangleDmgBonus = atk
-                defender.wTriangleHitBonus = -hit
-                defender.wTriangleDmgBonus = -atk
+        var rule = WEAPON_TRIANGLE_RULES
+        while (rom.u8(rule).toByte() >= 0) {
+            if (attacker.weaponType == rom.u8(rule) &&
+                defender.weaponType == rom.u8(rule + 1)
+            ) {
+                val hitBonus = rom.u8(rule + 2).toByte().toInt()
+                val damageBonus = rom.u8(rule + 3).toByte().toInt()
+                attacker.wTriangleHitBonus = hitBonus
+                attacker.wTriangleDmgBonus = damageBonus
+                defender.wTriangleHitBonus = -hitBonus
+                defender.wTriangleDmgBonus = -damageBonus
                 break
             }
-            it += 4
+            rule += 4
         }
 
         if ((attacker.weaponAttributes and ItemInfo.IA_REVERTTRIANGLE) != 0) {
@@ -617,77 +620,84 @@ public class BmBattle(
      *
      * A target that cannot counter gets 0xFF attack and rates.
      */
-    public fun battleUnitTargetCheckCanCounter(bu: BattleUnit) {
-        if (bu.canCounter == 0) {
-            bu.battleAttack = 0xFF
-            bu.battleHitRate = 0xFF
-            bu.battleEffectiveHitRate = 0xFF
-            bu.battleCritRate = 0xFF
-            bu.battleEffectiveCritRate = 0xFF
+    public fun battleUnitTargetCheckCanCounter(unit: BattleUnit) {
+        if (unit.canCounter == 0) {
+            unit.battleAttack = 0xFF
+            unit.battleHitRate = 0xFF
+            unit.battleEffectiveHitRate = 0xFF
+            unit.battleCritRate = 0xFF
+            unit.battleEffectiveCritRate = 0xFF
         }
     }
 
     /**
      * Transcribed from src/bmunit.c: GetUnitSupportBonuses via src/bmreliance.c (not verified:
-     *   the traced units have no supporter on the map, so only the empty sum is compared)
+     *   the traced units have no supporter on the map, srcOffset only the empty sum is compared)
      *
      * Writes the halved support bonuses (attack, defense, hit, avoid, crit, dodge) of the unit at
-     * [o] of [b] into [out] (6 ints); returns the support bit mask of the C. Unlike the C, an
+     * [offset] of [bytes] into [bonusOut] (6 ints); returns the support bit mask of the C. Unlike
+     * the C, an
      * affinity missing from `gAffinityBonuses` adds nothing (the C reads past the table).
      */
-    internal fun getUnitSupportBonuses(b: ByteArray, o: Int, out: IntArray): Int {
-        out.fill(0)
+    internal fun getUnitSupportBonuses(bytes: ByteArray, offset: Int, bonusOut: IntArray): Int {
+        bonusOut.fill(0)
         var result = 0
-        val count = supporterCount(b, o)
-        val faction = s8(b, o + OFF_INDEX) and 0xC0
-        val myAffinity = rom.u8(u32(b, o + OFF_CHARACTER) + 9)
-        val myChar = rom.u8(u32(b, o + OFF_CHARACTER) + 4)
+        val count = supporterCount(bytes, offset)
+        val faction = s8(bytes, offset + OFF_INDEX) and 0xC0
+        val myAffinity = rom.u8(u32(bytes, offset + OFF_CHARACTER) + 9)
+        val myChar = rom.u8(u32(bytes, offset + OFF_CHARACTER) + 4)
 
         for (i in 0 until count) {
             result = result shr 1
-            val other = supporterUnit(b, o, i, faction)
+            val other = supporterUnit(bytes, offset, i, faction)
             if (other < 0) continue
-            val tb = table.bytes
+            val tableBytes = table.bytes
 
+            // The 3-tile support range is not enforced while game-state bit 0x40 is set.
             if ((bmSt.gameStateBits and 0x40) == 0) {
-                val d = abs(s8(b, o + OFF_X) - s8(tb, other + OFF_X)) +
-                    abs(s8(b, o + OFF_Y) - s8(tb, other + OFF_Y))
-                if (d > SUPPORT_BONUSES_MAX_DISTANCE) continue
+                val distance = abs(s8(bytes, offset + OFF_X) - s8(tableBytes, other + OFF_X)) +
+                    abs(s8(bytes, offset + OFF_Y) - s8(tableBytes, other + OFF_Y))
+                if (distance > SUPPORT_BONUSES_MAX_DISTANCE) continue
             }
 
             val unavailable = UnitTable.US_UNAVAILABLE or US_RESCUED
-            if ((StructCodec.u32(tb, other + OFF_STATE) and unavailable) != 0) continue
+            if ((StructCodec.u32(tableBytes, other + OFF_STATE) and unavailable) != 0) continue
 
-            val level1 = supportLevel(tb, other, supporterNum(tb, other, myChar))
+            val otherSupportLevel =
+                supportLevel(tableBytes, other, supporterNum(tableBytes, other, myChar))
             applyAffinitySupportBonuses(
-                out, rom.u8(u32(tb, other + OFF_CHARACTER) + 9), level1,
+                bonusOut, rom.u8(u32(tableBytes, other + OFF_CHARACTER) + 9), otherSupportLevel,
             )
 
-            val level2 = supportLevel(b, o, i)
-            applyAffinitySupportBonuses(out, myAffinity, level2)
+            val mySupportLevel = supportLevel(bytes, offset, i)
+            applyAffinitySupportBonuses(bonusOut, myAffinity, mySupportLevel)
 
-            if (level1 != 0 && level2 != 0) result += 1 shl (count - 1)
+            if (otherSupportLevel != 0 && mySupportLevel != 0) result += 1 shl (count - 1)
         }
 
-        for (i in 0 until 6) out[i] = (out[i] and 0xFF) / 2
+        for (i in 0 until 6) bonusOut[i] = (bonusOut[i] and 0xFF) / 2
         return result
     }
 
-    private fun supportData(b: ByteArray, o: Int): Int = rom.u32(u32(b, o + OFF_CHARACTER) + 0x2C)
+    /** The support data table pointer of the unit's character, 0 for none. */
+    private fun supportData(bytes: ByteArray, offset: Int): Int =
+        rom.u32(u32(bytes, offset + OFF_CHARACTER) + 0x2C)
 
-    private fun supporterCount(b: ByteArray, o: Int): Int {
-        val d = supportData(b, o)
+    /** The number of supporters the unit's character has in its support data. */
+    private fun supporterCount(bytes: ByteArray, offset: Int): Int {
+        val d = supportData(bytes, offset)
         return if (d == 0) 0 else rom.u8(d + 0x15)
     }
 
-    private fun supporterCharacter(b: ByteArray, o: Int, num: Int): Int {
-        val d = supportData(b, o)
+    /** The character id of supporter [num] of the unit, 0 when there is no support data. */
+    private fun supporterCharacter(bytes: ByteArray, offset: Int, num: Int): Int {
+        val d = supportData(bytes, offset)
         return if (d == 0) 0 else rom.u8(d + num)
     }
 
     /** `GetUnitSupporterUnit`: the table offset of the supporter, or -1. */
-    private fun supporterUnit(b: ByteArray, o: Int, num: Int, faction: Int): Int {
-        val charId = supporterCharacter(b, o, num)
+    private fun supporterUnit(bytes: ByteArray, offset: Int, num: Int, faction: Int): Int {
+        val charId = supporterCharacter(bytes, offset, num)
         for (id in faction + 1 until faction + 0x40) {
             if (!table.isValid(id)) continue
             if (table.charId(id) == charId) return table.unitOffset(id)
@@ -695,55 +705,67 @@ public class BmBattle(
         return -1
     }
 
-    private fun supporterNum(b: ByteArray, o: Int, charId: Int): Int {
-        val count = supporterCount(b, o)
+    /** The support slot of the unit that holds character [charId], or -1 when none does. */
+    private fun supporterNum(bytes: ByteArray, offset: Int, charId: Int): Int {
+        val count = supporterCount(bytes, offset)
         for (i in 0 until count) {
-            if (supporterCharacter(b, o, i) == charId) return i
+            if (supporterCharacter(bytes, offset, i) == charId) return i
         }
         return -1
     }
 
-    private fun supportLevel(b: ByteArray, o: Int, num: Int): Int {
-        val exp = u8(b, o + OFF_SUPPORTS + num)
+    /**
+     * The support level of the unit's support slot [num] from its support points: 0 below C,
+     * 1 for B (above 80), 2 for A (above 160), 3 for S (above 240).
+     */
+    private fun supportLevel(bytes: ByteArray, offset: Int, num: Int): Int {
+        val supportExp = u8(bytes, offset + OFF_SUPPORTS + num)
         return when {
-            exp > 240 -> 3
-            exp > 160 -> 2
-            exp > 80 -> 1
+            supportExp > 240 -> 3
+            supportExp > 160 -> 2
+            supportExp > 80 -> 1
             else -> 0
         }
     }
 
-    private fun applyAffinitySupportBonuses(out: IntArray, affinity: Int, level: Int) {
-        var it = AFFINITY_BONUSES
-        while (rom.u8(it) != 0) {
-            if (rom.u8(it) == affinity) {
-                for (i in 0 until 6) out[i] = (out[i] + level * rom.u8(it + 1 + i)) and 0xFF
+    /**
+     * Adds the affinity table row of [affinity] (`gAffinityBonuses`, six bonus bytes per row) at
+     * [level] to [bonusOut]; nothing for an affinity without a row.
+     */
+    private fun applyAffinitySupportBonuses(bonusOut: IntArray, affinity: Int, level: Int) {
+        var row = AFFINITY_BONUSES
+        while (rom.u8(row) != 0) {
+            if (rom.u8(row) == affinity) {
+                for (i in 0 until 6) {
+                    bonusOut[i] = (bonusOut[i] + level * rom.u8(row + 1 + i)) and 0xFF
+                }
                 return
             }
-            it += 7
+            row += 7
         }
     }
 
     /**
      * Transcribed from src/bmunit.c: GetUnitPower (not verified: no traced unit has a power
-     *   bonus item, so the bonus term is not exercised)
+     *   bonus item, srcOffset the bonus term is not exercised)
      *
-     * `pow` plus the power bonus of the equipped weapon of the unit at [o] of [b].
+     * `pow` plus the power bonus of the equipped weapon of the unit at [offset] of [bytes].
      */
-    internal fun getUnitPower(b: ByteArray, o: Int): Int =
-        s8(b, o + OFF_POW) + items.getItemPowBonus(loader.getUnitEquippedWeapon(b, o))
+    internal fun getUnitPower(bytes: ByteArray, offset: Int): Int =
+        s8(bytes, offset + OFF_POW) +
+            items.getItemPowBonus(loader.getUnitEquippedWeapon(bytes, offset))
 
     /**
      * Transcribed from src/bmunit.c: GetUnitSkill (not verified: no bonus item and no rescuing
      *   unit in the trace)
      */
-    internal fun getUnitSkill(b: ByteArray, o: Int): Int {
-        val item = loader.getUnitEquippedWeapon(b, o)
-        val skl = s8(b, o + OFF_SKL)
-        return if ((StructCodec.u32(b, o + OFF_STATE) and UnitLoader.US_RESCUING) != 0) {
-            skl / 2 + items.getItemSklBonus(item)
+    internal fun getUnitSkill(bytes: ByteArray, offset: Int): Int {
+        val item = loader.getUnitEquippedWeapon(bytes, offset)
+        val skill = s8(bytes, offset + OFF_SKL)
+        return if ((StructCodec.u32(bytes, offset + OFF_STATE) and UnitLoader.US_RESCUING) != 0) {
+            skill / 2 + items.getItemSklBonus(item)
         } else {
-            skl + items.getItemSklBonus(item)
+            skill + items.getItemSklBonus(item)
         }
     }
 
@@ -751,112 +773,140 @@ public class BmBattle(
      * Transcribed from src/bmunit.c: GetUnitSpeed (not verified: no bonus item and no rescuing
      *   unit in the trace)
      */
-    internal fun getUnitSpeed(b: ByteArray, o: Int): Int {
-        val item = loader.getUnitEquippedWeapon(b, o)
-        val spd = s8(b, o + OFF_SPD)
-        return if ((StructCodec.u32(b, o + OFF_STATE) and UnitLoader.US_RESCUING) != 0) {
-            spd / 2 + items.getItemSpdBonus(item)
+    internal fun getUnitSpeed(bytes: ByteArray, offset: Int): Int {
+        val item = loader.getUnitEquippedWeapon(bytes, offset)
+        val speed = s8(bytes, offset + OFF_SPD)
+        return if ((StructCodec.u32(bytes, offset + OFF_STATE) and UnitLoader.US_RESCUING) != 0) {
+            speed / 2 + items.getItemSpdBonus(item)
         } else {
-            spd + items.getItemSpdBonus(item)
+            speed + items.getItemSpdBonus(item)
         }
     }
 
     /**
      * Transcribed from src/bmunit.c: GetUnitDefense (not verified: no bonus item in the trace)
      */
-    internal fun getUnitDefense(b: ByteArray, o: Int): Int =
-        s8(b, o + OFF_DEF) + items.getItemDefBonus(loader.getUnitEquippedWeapon(b, o))
+    internal fun getUnitDefense(bytes: ByteArray, offset: Int): Int =
+        s8(bytes, offset + OFF_DEF) +
+            items.getItemDefBonus(loader.getUnitEquippedWeapon(bytes, offset))
 
     /**
      * Transcribed from src/bmunit.c: GetUnitResistance (not verified: no bonus item and no
      *   barrier in the trace)
      */
-    internal fun getUnitResistance(b: ByteArray, o: Int): Int =
-        s8(b, o + OFF_RES) + items.getItemResBonus(loader.getUnitEquippedWeapon(b, o)) +
-            (u8(b, o + OFF_TORCH_BARRIER) shr 4)
+    internal fun getUnitResistance(bytes: ByteArray, offset: Int): Int =
+        s8(bytes, offset + OFF_RES) +
+            items.getItemResBonus(loader.getUnitEquippedWeapon(bytes, offset)) +
+            (u8(bytes, offset + OFF_TORCH_BARRIER) shr 4)
 
     /**
      * Transcribed from src/bmunit.c: GetUnitLuck (not verified: no bonus item in the trace)
      */
-    internal fun getUnitLuck(b: ByteArray, o: Int): Int =
-        s8(b, o + OFF_LCK) + items.getItemLckBonus(loader.getUnitEquippedWeapon(b, o))
+    internal fun getUnitLuck(bytes: ByteArray, offset: Int): Int =
+        s8(bytes, offset + OFF_LCK) +
+            items.getItemLckBonus(loader.getUnitEquippedWeapon(bytes, offset))
 
     /** `UNIT_CON_BASE`: class base con plus character base con. */
-    private fun unitConBase(b: ByteArray, o: Int): Int =
-        rom.u8(u32(b, o + OFF_CLASS) + 0x11).toByte() +
-            rom.u8(u32(b, o + OFF_CHARACTER) + 0x13).toByte()
+    private fun unitConBase(bytes: ByteArray, offset: Int): Int =
+        rom.u8(u32(bytes, offset + OFF_CLASS) + 0x11).toByte() +
+            rom.u8(u32(bytes, offset + OFF_CHARACTER) + 0x13).toByte()
 
     /** `UNIT_CON`. */
-    private fun unitCon(b: ByteArray, o: Int): Int = unitConBase(b, o) + s8(b, o + OFF_CON_BONUS)
+    private fun unitCon(bytes: ByteArray, offset: Int): Int =
+        unitConBase(bytes, offset) + s8(bytes, offset + OFF_CON_BONUS)
 
     /** `UNIT_MOV`. */
-    private fun unitMov(b: ByteArray, o: Int): Int =
-        s8(b, o + OFF_MOV_BONUS) + rom.u8(u32(b, o + OFF_CLASS) + 0x12).toByte()
+    private fun unitMov(bytes: ByteArray, offset: Int): Int =
+        s8(bytes, offset + OFF_MOV_BONUS) + rom.u8(u32(bytes, offset + OFF_CLASS) + 0x12).toByte()
 
     /** `UNIT_CATTRIBUTES`. */
-    private fun unitCAttributes(b: ByteArray, o: Int): Int =
-        rom.u32(u32(b, o + OFF_CHARACTER) + 0x28) or rom.u32(u32(b, o + OFF_CLASS) + 0x28)
+    private fun unitCAttributes(bytes: ByteArray, offset: Int): Int =
+        rom.u32(u32(bytes, offset + OFF_CHARACTER) + 0x28) or
+            rom.u32(u32(bytes, offset + OFF_CLASS) + 0x28)
 
     /**
      * Transcribed from src/bmitem.c: GetUnitEquippedWeaponSlot (not verified: see
      *   [setBattleUnitWeapon])
      *
-     * The first item slot of the unit at [o] of [b] that passes `CanUnitUseWeaponNow`, or -1.
+     * The first item slot of the unit at [offset] of [bytes] that passes
+     * `CanUnitUseWeaponNow`, or -1.
      */
-    internal fun getUnitEquippedWeaponSlot(b: ByteArray, o: Int): Int {
+    internal fun getUnitEquippedWeaponSlot(bytes: ByteArray, offset: Int): Int {
         for (i in 0 until UnitLoader.UNIT_ITEM_COUNT) {
-            if (canUnitUseWeaponNow(b, o, u16(b, o + OFF_ITEMS + 2 * i))) return i
+            if (canUnitUseWeaponNow(bytes, offset, u16(bytes, offset + OFF_ITEMS + 2 * i))) return i
         }
         return -1
     }
 
-    private fun canUnitUseWeaponNow(b: ByteArray, o: Int, item: Int): Boolean {
+    /**
+     * Whether the unit may wield [item] right now: it must be a weapon, and a magic weapon is
+     * refused while the unit is silenced or on a magic-sealed tile.
+     */
+    private fun canUnitUseWeaponNow(bytes: ByteArray, offset: Int, item: Int): Boolean {
         if (item == 0) return false
-        val ia = items.getItemAttributes(item)
-        if ((ia and ItemInfo.IA_WEAPON) == 0) return false
-        if ((ia and ItemInfo.IA_MAGIC) != 0 && isUnitMagicSealed(b, o)) return false
-        return loader.canUnitUseWeapon(b, o, item)
+        val itemAttributes = items.getItemAttributes(item)
+        if ((itemAttributes and ItemInfo.IA_WEAPON) == 0) return false
+        if ((itemAttributes and ItemInfo.IA_MAGIC) != 0 && isUnitMagicSealed(bytes, offset)) {
+            return false
+        }
+        return loader.canUnitUseWeapon(bytes, offset, item)
     }
 
-    private fun isUnitMagicSealed(b: ByteArray, o: Int): Boolean =
-        (u8(b, o + OFF_STATUS) and 0xF) == UnitLoader.UNIT_STATUS_SILENCED ||
-            isPositionMagicSealed(s8(b, o + OFF_X), s8(b, o + OFF_Y))
+    /** Whether the unit is silenced or stands on a magic-sealed tile. */
+    private fun isUnitMagicSealed(bytes: ByteArray, offset: Int): Boolean =
+        (u8(bytes, offset + OFF_STATUS) and 0xF) == UnitLoader.UNIT_STATUS_SILENCED ||
+            isPositionMagicSealed(s8(bytes, offset + OFF_X), s8(bytes, offset + OFF_Y))
 
+    /** Whether [range] is within the item's minimum and maximum range. */
     private fun isItemCoveringRange(item: Int, range: Int): Boolean =
         items.getItemMinRange(item) <= range && range <= items.getItemMaxRange(item)
 
-    private fun isItemEffectiveAgainst(item: Int, b: ByteArray, o: Int): Boolean {
-        val cls = u32(b, o + OFF_CLASS)
+    /**
+     * Whether [item] is effective against the unit at [offset] of [bytes]: its class is in the
+     * item's effectiveness list. For the flier lists the match only counts when no item the unit
+     * carries negates flying.
+     */
+    private fun isItemEffectiveAgainst(item: Int, bytes: ByteArray, offset: Int): Boolean {
+        val cls = u32(bytes, offset + OFF_CLASS)
         if (cls == 0) return false
         val classId = rom.u8(cls + 4)
         val eff = items.getItemEffectiveness(item)
         if (eff == 0) return false
-        var p = eff
-        while (rom.u8(p) != 0) {
-            if (rom.u8(p) == classId) {
+        var entry = eff
+        while (rom.u8(entry) != 0) {
+            if (rom.u8(entry) == classId) {
                 if (eff != EFFECTIVENESS_FLIER && eff != EFFECTIVENESS_FLIER_AND_MONSTERS) {
                     return true
                 }
                 var attributes = 0
                 for (i in 0 until UnitLoader.UNIT_ITEM_COUNT) {
                     attributes = attributes or
-                        items.getItemAttributes(u16(b, o + OFF_ITEMS + 2 * i))
+                        items.getItemAttributes(u16(bytes, offset + OFF_ITEMS + 2 * i))
                 }
                 return (attributes and ItemInfo.IA_NEGATE_FLYING) == 0
             }
-            p++
+            entry++
         }
         return false
     }
 
-    private fun isUnitEffectiveAgainst(a: ByteArray, ao: Int, t: ByteArray, to: Int): Boolean {
-        val actorClass = rom.u8(u32(a, ao + OFF_CLASS) + 4)
-        val targetClass = rom.u8(u32(t, to + OFF_CLASS) + 4)
+    /**
+     * Whether the actor's class is 0x2B or 0x2C and the target's class is in the monster
+     * effectiveness list (`ItemEffectiveness_Monsters`).
+     */
+    private fun isUnitEffectiveAgainst(
+        actorBytes: ByteArray,
+        actorOffset: Int,
+        targetBytes: ByteArray,
+        targetOffset: Int,
+    ): Boolean {
+        val actorClass = rom.u8(u32(actorBytes, actorOffset + OFF_CLASS) + 4)
+        val targetClass = rom.u8(u32(targetBytes, targetOffset + OFF_CLASS) + 4)
         if (actorClass != 0x2B && actorClass != 0x2C) return false
-        var p = EFFECTIVENESS_MONSTERS
-        while (rom.u8(p) != 0) {
-            if (rom.u8(p) == targetClass) return true
-            p++
+        var entry = EFFECTIVENESS_MONSTERS
+        while (rom.u8(entry) != 0) {
+            if (rom.u8(entry) == targetClass) return true
+            entry++
         }
         return false
     }
@@ -922,91 +972,92 @@ public class BmBattle(
      *   (not verified: the Prologue never runs it; the f15075 unit-table update of
      *   ram_trace_prologue_battle_end is EventBattleReloadBmStatus)
      *
-     * Copies level, exp, HP, state, stat changes, weapon exp and items of [bu] into the unit at
-     * [o] of the unit table, sets [arenaLevelLatch], the status, caps the stats and reports the
-     * exp gain through [pidStatsAddExpGained].
+     * Copies level, exp, HP, state, stat changes, weapon exp and items of [unit] into the unit at
+     * [offset] of the unit table, sets [arenaLevelLatch], the status, caps the stats and reports
+     * the exp gain through [pidStatsAddExpGained].
      */
-    public fun updateUnitFromBattle(o: Int, bu: BattleUnit) {
-        val b = table.bytes
-        val bb = bu.bytes
-        put8(b, o + OFF_LEVEL, u8(bb, OFF_LEVEL))
-        put8(b, o + OFF_EXP, u8(bb, OFF_EXP))
-        put8(b, o + OFF_CUR_HP, u8(bb, OFF_CUR_HP))
-        StructCodec.put32(b, o + OFF_STATE, u32(bb, OFF_STATE))
-        arenaLevelLatch = (u32(b, o + OFF_STATE) ushr 17) and 0x7
-        if (bu.statusOut >= 0) {
+    public fun updateUnitFromBattle(offset: Int, unit: BattleUnit) {
+        val tableBytes = table.bytes
+        val unitBytes = unit.bytes
+        put8(tableBytes, offset + OFF_LEVEL, u8(unitBytes, OFF_LEVEL))
+        put8(tableBytes, offset + OFF_EXP, u8(unitBytes, OFF_EXP))
+        put8(tableBytes, offset + OFF_CUR_HP, u8(unitBytes, OFF_CUR_HP))
+        StructCodec.put32(tableBytes, offset + OFF_STATE, u32(unitBytes, OFF_STATE))
+        arenaLevelLatch = (u32(tableBytes, offset + OFF_STATE) ushr 17) and 0x7
+        if (unit.statusOut >= 0) {
             // SetUnitStatus
-            val index = bu.statusOut
-            put8(b, o + OFF_STATUS, if (index == 0) 0 else (index and 0xF) or (5 shl 4))
+            val index = unit.statusOut
+            val statusByte = if (index == 0) 0 else (index and 0xF) or (5 shl 4)
+            put8(tableBytes, offset + OFF_STATUS, statusByte)
         }
-        put8(b, o + OFF_MAX_HP, s8(b, o + OFF_MAX_HP) + bu.changeHP)
-        put8(b, o + OFF_POW, s8(b, o + OFF_POW) + bu.changePow)
-        put8(b, o + OFF_SKL, s8(b, o + OFF_SKL) + bu.changeSkl)
-        put8(b, o + OFF_SPD, s8(b, o + OFF_SPD) + bu.changeSpd)
-        put8(b, o + OFF_DEF, s8(b, o + OFF_DEF) + bu.changeDef)
-        put8(b, o + OFF_RES, s8(b, o + OFF_RES) + bu.changeRes)
-        put8(b, o + OFF_LCK, s8(b, o + OFF_LCK) + bu.changeLck)
-        loader.unitCheckStatCaps(o)
-        val wexp = getBattleUnitUpdatedWeaponExp(bu)
-        if (wexp > 0) put8(b, o + OFF_RANKS + bu.weaponType, wexp)
+        put8(tableBytes, offset + OFF_MAX_HP, s8(tableBytes, offset + OFF_MAX_HP) + unit.changeHP)
+        put8(tableBytes, offset + OFF_POW, s8(tableBytes, offset + OFF_POW) + unit.changePow)
+        put8(tableBytes, offset + OFF_SKL, s8(tableBytes, offset + OFF_SKL) + unit.changeSkl)
+        put8(tableBytes, offset + OFF_SPD, s8(tableBytes, offset + OFF_SPD) + unit.changeSpd)
+        put8(tableBytes, offset + OFF_DEF, s8(tableBytes, offset + OFF_DEF) + unit.changeDef)
+        put8(tableBytes, offset + OFF_RES, s8(tableBytes, offset + OFF_RES) + unit.changeRes)
+        put8(tableBytes, offset + OFF_LCK, s8(tableBytes, offset + OFF_LCK) + unit.changeLck)
+        loader.unitCheckStatCaps(offset)
+        val wexp = getBattleUnitUpdatedWeaponExp(unit)
+        if (wexp > 0) put8(tableBytes, offset + OFF_RANKS + unit.weaponType, wexp)
         for (i in 0 until UnitLoader.UNIT_ITEM_COUNT) {
-            put16(b, o + OFF_ITEMS + 2 * i, u16(bb, OFF_ITEMS + 2 * i))
+            put16(tableBytes, offset + OFF_ITEMS + 2 * i, u16(unitBytes, OFF_ITEMS + 2 * i))
         }
-        unitRemoveInvalidItems(o)
-        if (bu.expGain != 0) {
-            pidStatsAddExpGained(rom.u8(u32(b, o + OFF_CHARACTER) + 4), bu.expGain)
+        unitRemoveInvalidItems(offset)
+        if (unit.expGain != 0) {
+            pidStatsAddExpGained(rom.u8(u32(tableBytes, offset + OFF_CHARACTER) + 4), unit.expGain)
         }
     }
 
     /**
      * Transcribed from src/bmunit.c: UnitRemoveInvalidItems (not verified: no trace runs it yet)
      *
-     * Moves the items of the unit at [o] up so that no empty slot precedes an item.
+     * Moves the items of the unit at [offset] up so that no empty slot precedes an item.
      */
-    internal fun unitRemoveInvalidItems(o: Int) {
-        val b = table.bytes
+    internal fun unitRemoveInvalidItems(offset: Int) {
+        val tableBytes = table.bytes
         val kept = IntArray(UnitLoader.UNIT_ITEM_COUNT)
         var n = 0
         for (i in 0 until UnitLoader.UNIT_ITEM_COUNT) {
-            val item = u16(b, o + OFF_ITEMS + 2 * i)
+            val item = u16(tableBytes, offset + OFF_ITEMS + 2 * i)
             if (item != 0) kept[n++] = item
-            put16(b, o + OFF_ITEMS + 2 * i, 0)
+            put16(tableBytes, offset + OFF_ITEMS + 2 * i, 0)
         }
-        for (i in 0 until n) put16(b, o + OFF_ITEMS + 2 * i, kept[i])
+        for (i in 0 until n) put16(tableBytes, offset + OFF_ITEMS + 2 * i, kept[i])
     }
 
     /**
      * Transcribed from src/bmbattle.c: GetBattleUnitUpdatedWeaponExp (not verified: the Prologue
      *   never runs it; the f15075 update is EventBattleReloadBmStatus)
      *
-     * The weapon exp [bu] has after the battle, or -1 where it gains none.
+     * The weapon exp [unit] has after the battle, or -1 where it gains none.
      */
-    public fun getBattleUnitUpdatedWeaponExp(bu: BattleUnit): Int {
-        val bb = bu.bytes
-        if ((s8(bb, OFF_INDEX) and 0xC0) != UnitLoader.FACTION_BLUE) return -1
-        if (u8(bb, OFF_CUR_HP) == 0) return -1
+    public fun getBattleUnitUpdatedWeaponExp(unit: BattleUnit): Int {
+        val unitBytes = unit.bytes
+        if ((s8(unitBytes, OFF_INDEX) and 0xC0) != UnitLoader.FACTION_BLUE) return -1
+        if (u8(unitBytes, OFF_CUR_HP) == 0) return -1
         if ((playSt.chapterStateBits and PLAY_FLAG_EXTRA_MAP) != 0) return -1
         if ((bmSt.gameStateBits and 0x40) != 0) return -1
         if ((stats.config and BattleStats.CONFIG_ARENA) == 0) {
-            if (bu.canCounter == 0) return -1
+            if (unit.canCounter == 0) return -1
             val requiresWexp = ItemInfo.IA_WEAPON or ItemInfo.IA_STAFF
-            if ((bu.weaponAttributes and requiresWexp) == 0) return -1
-            if ((bu.weaponAttributes and (ItemInfo.IA_MAGICDAMAGE or ItemInfo.IA_LOCK_3)) != 0) {
+            if ((unit.weaponAttributes and requiresWexp) == 0) return -1
+            if ((unit.weaponAttributes and (ItemInfo.IA_MAGICDAMAGE or ItemInfo.IA_LOCK_3)) != 0) {
                 return -1
             }
         }
-        var result = u8(bb, OFF_RANKS + bu.weaponType)
-        result += rom.u8(items.getItemData(items.getItemIndex(bu.weapon)) + 0x20) *
-            bu.wexpMultiplier
-        val cls = u32(bb, OFF_CLASS)
+        var result = u8(unitBytes, OFF_RANKS + unit.weaponType)
+        result += rom.u8(items.getItemData(items.getItemIndex(unit.weapon)) + 0x20) *
+            unit.wexpMultiplier
+        val cls = u32(unitBytes, OFF_CLASS)
         for (i in 0 until 8) {
-            if (i == bu.weaponType) continue
+            if (i == unit.weaponType) continue
             if (rom.u8(cls + 0x2C + i) == WPN_EXP_S) continue
-            if (u8(bb, OFF_RANKS + i) < WPN_EXP_S) continue
+            if (u8(unitBytes, OFF_RANKS + i) < WPN_EXP_S) continue
             if (result >= WPN_EXP_S) result = WPN_EXP_S - 1
             break
         }
-        val attrs = unitCAttributes(bb, 0)
+        val attrs = unitCAttributes(unitBytes, 0)
         if ((attrs and UnitLoader.CA_PROMOTED) != 0) {
             if (result > WPN_EXP_S) result = WPN_EXP_S
         } else if ((attrs and UnitLoader.CA_MAXLEVEL10) != 0) {
@@ -1029,7 +1080,7 @@ public class BmBattle(
         }
     }
 
-    /** Constants. */
+    /** Battle slot ids, unit struct offsets, status and item ids, and ROM addresses. */
     public companion object {
         /** `BU_ISLOT_AUTO`. */
         public const val BU_ISLOT_AUTO: Int = -1

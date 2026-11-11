@@ -190,12 +190,12 @@ public class BattleGenerate(
         } else {
             evtBattleGenerateReal(src, actorOff, targetOff)
         }
-        val a = loader.getUnitEquippedWeapon(src, actorOff)
-        battle.actor.weaponBefore = a
-        battle.actor.weapon = a
-        val t = loader.getUnitEquippedWeapon(src, targetOff)
-        battle.target.weaponBefore = t
-        battle.target.weapon = t
+        val actorWeapon = loader.getUnitEquippedWeapon(src, actorOff)
+        battle.actor.weaponBefore = actorWeapon
+        battle.actor.weapon = actorWeapon
+        val targetWeapon = loader.getUnitEquippedWeapon(src, targetOff)
+        battle.target.weaponBefore = targetWeapon
+        battle.target.weapon = targetWeapon
         battle.actor.expGain = 0
         battle.target.expGain = 0
         itemBackupEvtBattle = ITEM_BACKUP_NONE
@@ -216,24 +216,33 @@ public class BattleGenerate(
         refreshEntityBmMaps: () -> Unit,
         refreshUnitSprites: () -> Unit,
     ) {
-        val b = table.bytes
-        val a = table.unitOffset(s8(battle.actor.bytes, OFF_INDEX))
-        val t = table.unitOffset(s8(battle.target.bytes, OFF_INDEX))
-        put8(b, a + OFF_CUR_HP, StructCodec.u8(battle.actor.bytes, OFF_CUR_HP))
-        put8(b, t + OFF_CUR_HP, StructCodec.u8(battle.target.bytes, OFF_CUR_HP))
+        val tableBytes = table.bytes
+        val actorOffset = table.unitOffset(s8(battle.actor.bytes, OFF_INDEX))
+        val targetOffset = table.unitOffset(s8(battle.target.bytes, OFF_INDEX))
+        put8(
+            tableBytes,
+            actorOffset + OFF_CUR_HP,
+            StructCodec.u8(battle.actor.bytes, OFF_CUR_HP),
+        )
+        put8(
+            tableBytes,
+            targetOffset + OFF_CUR_HP,
+            StructCodec.u8(battle.target.bytes, OFF_CUR_HP),
+        )
         scriptedBattleHits = null
         aiRefreshMap()
         if (itemBackupEvtBattle != ITEM_BACKUP_NONE) {
-            StructCodec.put16(b, a + OFF_ITEMS, itemBackupEvtBattle)
+            StructCodec.put16(tableBytes, actorOffset + OFF_ITEMS, itemBackupEvtBattle)
         }
-        for (o in intArrayOf(a, t)) {
-            StructCodec.put32(b, o + OFF_STATE, u32(b, o + OFF_STATE) and US_UNSELECTABLE.inv())
+        for (offset in intArrayOf(actorOffset, targetOffset)) {
+            val state = u32(tableBytes, offset + OFF_STATE) and US_UNSELECTABLE.inv()
+            StructCodec.put32(tableBytes, offset + OFF_STATE, state)
         }
         if ((battle.stats.config and BattleStats.CONFIG_MAPANIMS) != 0) {
-            for (o in intArrayOf(a, t)) {
-                if (StructCodec.u8(b, o + OFF_CUR_HP) == 0) {
-                    val state = u32(b, o + OFF_STATE) or US_HIDDEN or US_DEAD
-                    StructCodec.put32(b, o + OFF_STATE, state)
+            for (offset in intArrayOf(actorOffset, targetOffset)) {
+                if (StructCodec.u8(tableBytes, offset + OFF_CUR_HP) == 0) {
+                    val state = u32(tableBytes, offset + OFF_STATE) or US_HIDDEN or US_DEAD
+                    StructCodec.put32(tableBytes, offset + OFF_STATE, state)
                 }
             }
         }
@@ -264,22 +273,22 @@ public class BattleGenerate(
      *
      * Sets `stats.damage` for the scripted hit under the iterator: 0 for a miss, the scripted
      * `hpChange`, or attack minus defense (tripled for a crit) when that is 0; capped to 0..127.
-     * Marks [bu] as having dealt damage.
+     * Marks [unit] as having dealt damage.
      */
-    public fun battleGenerateHitScriptedDamage(bu: BattleUnit) {
-        val st = battle.stats
-        st.damage = 0
-        val hit = hitArray[hitIterator]
-        if ((attributes(hit) and ATTR_MISS) == 0) {
-            if (hpChange(hit) == 0) {
-                st.damage = st.attack - st.defense
-                if ((attributes(hit) and ATTR_CRIT) != 0) st.damage = 3 * st.damage
+    public fun battleGenerateHitScriptedDamage(unit: BattleUnit) {
+        val stats = battle.stats
+        stats.damage = 0
+        val currentHit = hitArray[hitIterator]
+        if ((attributes(currentHit) and ATTR_MISS) == 0) {
+            if (hpChange(currentHit) == 0) {
+                stats.damage = stats.attack - stats.defense
+                if ((attributes(currentHit) and ATTR_CRIT) != 0) stats.damage = 3 * stats.damage
             } else {
-                st.damage = hpChange(hit)
+                stats.damage = hpChange(currentHit)
             }
-            if (st.damage > BATTLE_MAX_DAMAGE) st.damage = BATTLE_MAX_DAMAGE
-            if (st.damage < 0) st.damage = 0
-            if (st.damage != 0) bu.nonZeroDamage = 1
+            if (stats.damage > BATTLE_MAX_DAMAGE) stats.damage = BATTLE_MAX_DAMAGE
+            if (stats.damage < 0) stats.damage = 0
+            if (stats.damage != 0) unit.nonZeroDamage = 1
         }
     }
 
@@ -291,13 +300,13 @@ public class BattleGenerate(
      * that finishes the battle. Clears [scriptedBattleHits] afterwards.
      */
     public fun battleUnwindScripted() {
-        val src = checkNotNull(scriptedBattleHits)
+        val sourceHits = checkNotNull(scriptedBattleHits)
         var i = 0
-        while ((info(src[i]) and INFO_END) == 0) {
-            hitArray[i] = src[i]
+        while ((info(sourceHits[i]) and INFO_END) == 0) {
+            hitArray[i] = sourceHits[i]
             i++
         }
-        hitArray[i] = src[i]
+        hitArray[i] = sourceHits[i]
 
         val actor = battle.actor
         val target = battle.target
@@ -347,12 +356,12 @@ public class BattleGenerate(
      * `stats`.
      */
     public fun battleUpdateBattleStats(attacker: BattleUnit, defender: BattleUnit) {
-        val st = battle.stats
-        st.attack = attacker.battleAttack
-        st.defense = defender.battleDefense
-        st.hitRate = attacker.battleEffectiveHitRate
-        st.critRate = attacker.battleEffectiveCritRate
-        st.silencerRate = attacker.battleSilencerRate
+        val stats = battle.stats
+        stats.attack = attacker.battleAttack
+        stats.defense = defender.battleDefense
+        stats.hitRate = attacker.battleEffectiveHitRate
+        stats.critRate = attacker.battleEffectiveCritRate
+        stats.silencerRate = attacker.battleSilencerRate
     }
 
     /**
@@ -362,18 +371,18 @@ public class BattleGenerate(
      * HP changes, `hpChange` of the hit and the weapon's use.
      */
     public fun battleGenerateHitEffects(attacker: BattleUnit, defender: BattleUnit) {
-        val st = battle.stats
-        val it = hitIterator
+        val stats = battle.stats
+        val hitIndex = hitIterator
         attacker.wexpMultiplier++
         val effect = items.getItemWeaponEffect(attacker.weapon)
         val isDemonKing = rom.u8(u32(defender.bytes, OFF_CLASS) + 4) == CLASS_DEMON_KING
 
-        if ((attributes(hitArray[it]) and ATTR_MISS) == 0) {
+        if ((attributes(hitArray[hitIndex]) and ATTR_MISS) == 0) {
             if (!isDemonKing) {
                 when (effect) {
                     WPN_EFFECT_POISON -> {
                         defender.statusOut = STATUS_POISON
-                        addAttributes(it, ATTR_POISON)
+                        addAttributes(hitIndex, ATTR_POISON)
                         if (defender.unitStatusIndex == STATUS_PETRIFY ||
                             defender.unitStatusIndex == STATUS_13
                         ) {
@@ -381,27 +390,28 @@ public class BattleGenerate(
                             StructCodec.put32(defender.bytes, OFF_STATE, state)
                         }
                     }
-                    WPN_EFFECT_HPHALVE -> addAttributes(it, ATTR_HPHALVE)
+                    WPN_EFFECT_HPHALVE -> addAttributes(hitIndex, ATTR_HPHALVE)
                 }
             }
 
+            // A devil weapon rolls against 31 - luck; on success it hurts the attacker instead.
             if (effect == WPN_EFFECT_DEVIL &&
                 battleRoll1Rn(31 - s8(attacker.bytes, OFF_LCK))
             ) {
-                addAttributes(it, ATTR_DEVIL)
-                setCurHp(attacker, maxOf(curHp(attacker) - st.damage, 0))
+                addAttributes(hitIndex, ATTR_DEVIL)
+                setCurHp(attacker, maxOf(curHp(attacker) - stats.damage, 0))
             } else {
-                if (st.damage > curHp(defender)) st.damage = curHp(defender)
-                setCurHp(defender, maxOf(curHp(defender) - st.damage, 0))
+                if (stats.damage > curHp(defender)) stats.damage = curHp(defender)
+                setCurHp(defender, maxOf(curHp(defender) - stats.damage, 0))
             }
 
             if (effect == WPN_EFFECT_HPDRAIN) {
-                if (s8(attacker.bytes, OFF_MAX_HP) < curHp(attacker) + st.damage) {
+                if (s8(attacker.bytes, OFF_MAX_HP) < curHp(attacker) + stats.damage) {
                     setCurHp(attacker, s8(attacker.bytes, OFF_MAX_HP))
                 } else {
-                    setCurHp(attacker, curHp(attacker) + st.damage)
+                    setCurHp(attacker, curHp(attacker) + stats.damage)
                 }
-                addAttributes(it, ATTR_HPSTEAL)
+                addAttributes(hitIndex, ATTR_HPSTEAL)
             }
 
             if (!isDemonKing && effect == WPN_EFFECT_PETRIFY) {
@@ -412,13 +422,13 @@ public class BattleGenerate(
                     val sameSide = (s8(defender.bytes, OFF_INDEX) and 0xC0) == faction
                     defender.statusOut = if (sameSide) STATUS_13 else STATUS_PETRIFY
                 }
-                addAttributes(it, ATTR_PETRIFY)
+                addAttributes(hitIndex, ATTR_PETRIFY)
             }
         }
 
-        hitArray[it] = (hitArray[it] and 0x00FFFFFF) or (st.damage shl 24)
+        hitArray[hitIndex] = (hitArray[hitIndex] and 0x00FFFFFF) or (stats.damage shl 24)
 
-        if ((attributes(hitArray[it]) and ATTR_MISS) == 0 ||
+        if ((attributes(hitArray[hitIndex]) and ATTR_MISS) == 0 ||
             (attacker.weaponAttributes and
                 (ItemInfo.IA_UNCOUNTERABLE or ItemInfo.IA_MAGIC)) != 0
         ) {
@@ -433,11 +443,16 @@ public class BattleGenerate(
      * Gives a target without a pre-battle weapon its equipped weapon. The staff fallback for magic
      * users needs `CanUnitUseStaff` and is not ported.
      */
-    public fun battleUnitTargetSetEquippedWeapon(bu: BattleUnit) {
-        if (bu.weaponBefore != 0) return
-        bu.weaponBefore = loader.getUnitEquippedWeapon(bu.bytes, 0)
+    public fun battleUnitTargetSetEquippedWeapon(unit: BattleUnit) {
+        if (unit.weaponBefore != 0) return
+        unit.weaponBefore = loader.getUnitEquippedWeapon(unit.bytes, 0)
     }
 
+    /**
+     * The shared part of the real battle generators: copies both units in, sets the range, the
+     * weapons (ballista or auto slot), counter, weapon triangle and terrain bonuses, then
+     * [battleGenerate] for the hits.
+     */
     private fun generateCommon(src: ByteArray, actorOff: Int, targetOff: Int) {
         val actor = battle.actor
         val target = battle.target
@@ -462,24 +477,33 @@ public class BattleGenerate(
         (battle.stats.config and BattleStats.CONFIG_SIMULATE) == 0 &&
             mechanics.battleRolls.skill(rng, threshold)
 
+    /**
+     * The item word after one use: the uses byte drops by one, and the item is gone (0) when it
+     * runs out. Unbreakable items are returned unchanged.
+     */
     private fun getItemAfterUse(item: Int): Int {
         if ((items.getItemAttributes(item) and ItemInfo.IA_UNBREAKABLE) != 0) return item
         val used = item - (1 shl 8)
         return if (used < (1 shl 8)) 0 else used
     }
 
-    private fun curHp(bu: BattleUnit): Int = s8(bu.bytes, OFF_CUR_HP)
+    /** The current HP of [unit] (signed byte). */
+    private fun curHp(unit: BattleUnit): Int = s8(unit.bytes, OFF_CUR_HP)
 
-    private fun setCurHp(bu: BattleUnit, v: Int) = put8(bu.bytes, OFF_CUR_HP, v)
+    /** Stores [hp] as the current HP of [unit]. */
+    private fun setCurHp(unit: BattleUnit, hp: Int) = put8(unit.bytes, OFF_CUR_HP, hp)
 
+    /** ORs [bits] (`ATTR_*`) into the attribute bits of the hit at [index]. */
     private fun addAttributes(index: Int, bits: Int) {
         hitArray[index] = hitArray[index] or bits
     }
 
+    /** ORs [bits] (`INFO_*`) into the info field of the hit at [index]. */
     private fun addInfo(index: Int, bits: Int) {
         hitArray[index] = hitArray[index] or (bits shl 19)
     }
 
+    /** Replaces the info field of the hit at [index] with [bits] (`INFO_*`). */
     private fun setInfo(index: Int, bits: Int) {
         hitArray[index] = (hitArray[index] and (0x1F shl 19).inv()) or (bits shl 19)
     }

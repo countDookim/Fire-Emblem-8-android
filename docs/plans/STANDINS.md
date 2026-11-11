@@ -14,15 +14,22 @@ Total entries: 228 across 30 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
-| unassigned | 228 |
+| M6-E | 1 |
+| unassigned | 227 |
 
-## unassigned (228)
+## M6-E (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startSaveMenu` | `StartSaveMenu` (save menu, M6-E): the default holds the game control proc with a blocking child, like the title stand-in. |
+
+## unassigned (227)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `engine/extract/src/commonMain/kotlin/gbafe/extract/fe8/ui/CursorsExtractor.kt` | `CursorsExtractor` | `UiCursorHand_Loop` draws it with `oam2` 0 (OBJ palette 0, chr 0 or 6), so its colors come from whatever the calling screen loaded into OBJ palette 0; the PNG uses `gPal_MiscUiGraphics` palette 0 o... |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `NO_WORLD_MAP_NODES` | World map stand-in until the world map is ported: no node holds a chapter. |
-| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `camera` | The New Game stand-in leads into the battle map, which reads ROM data outside the boot windows: with windows only (debug APK without an imported ROM) the save menu holds, as before M5-58, instead o... |
+| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `camera` | The New Game stand-in leads into the battle map, which reads ROM data outside the boot windows: with windows only (debug APK without an imported ROM) the save menu holds, instead of crashing on the... |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `endEventTalk` | The talk needs the whole ROM (messages, portraits); with boot windows only the chapter data of the events is missing as well, so the stand-in stays. |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `eventEngine` | Hooks are the defaults (stand-ins), except the map accessors and entity map refresh. |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `eventTextBg` | Real: BG positions, the random background, the BG3 load of subcode 0; the fade procs and `DisplayCGfx` are no-op stand-ins. |
@@ -57,18 +64,17 @@ Total entries: 228 across 30 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `setGameEndFlag` | Stand-in until its port. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startBattleMap` | Stand-in until its port. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startClassReel` | Starts the class reel demo via [hooks] or holds with a stand-in child. |
-| `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startClassReel` | `GamceControl_StartClassReel` (`PROC_CALL_2`, class reel, task M5-35): the default holds the game control proc with a blocking child, like the title stand-in. |
+| `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startClassReel` | `GamceControl_StartClassReel` (`PROC_CALL_2`, class reel, not ported): the default holds the game control proc with a blocking child, like the title stand-in. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startFinScreen` | Stand-in until its port. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startIntroMonologue` | Stand-in until its port. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startLinkArenaMainMenu` | Stand-in until its port. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startMidFadeFromBlack` | Stand-in until its port. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startMidFadeToBlack` | Stand-in until its port. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startSaveMenu` | Starts the save menu screen via [hooks] or holds with a stand-in child. |
-| `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startSaveMenu` | `StartSaveMenu` (save menu, task M5-35): the default holds the game control proc with a blocking child, like the title stand-in. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `sub8009A84` | Stand-in until its port. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `sub8009ABC` | Stand-in until its port. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `titleScreen` | The title screen (null: a stand-in proc holds the game control proc there). |
-| `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `titleStandInScript` | Stand-in for the title screen (task M4-10): a blocking child that holds the game control proc where the title screen would. |
+| `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `titleStandInScript` | Stand-in for the title screen: a blocking child that holds the game control proc where the title screen would. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `BMapMain` | Everything else it starts or calls is a [Hooks] stand-in: with the defaults, the phase procs of the player and the computer idle forever and every other child proc ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `berserkCpPhase` | Stand-in: ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `callEvent` | Stand-in. |
@@ -81,7 +87,7 @@ Total entries: 228 across 30 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `gorgonEggHatchDisplay` | Stand-in: ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `hooks` | The stand-ins. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `phaseIntro` | Stand-in: ends at once. |
-| `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `playerPhase` | Stand-in: never ends. |
+| `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `playerPhase` | Default stand-in: never ends; Fe8Boot sets the transcribed [PlayerPhase.script]. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `poisonDamageDisplay` | Stand-in: ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `processTurnSupportExp` | Stand-in. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `refreshUnitSprites` | Stand-in. |
@@ -220,7 +226,7 @@ Total entries: 228 across 30 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `writeGameSave` | WriteWorldMapStuff: not ported, the raw stand-in is written. |
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `writeGmMonsterRnState` | Transcribed from src/bmsave.c: WriteGMMonsterRnState (not verified: the world map's RN state is a stand-in and the two trailing stack bytes are not derivable) Writes the `u32 buf[2]` that `sub_80A7... |
 | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | `blockInfoBuffer` | Stand-in for the `struct SaveBlockInfo tmp` local of `ReadSaveBlockInfo`. |
-| `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | `clearSupplyItems` | Stand-in for src/bmcontainer.c: ClearSupplyItems (zeroes the 100 convoy items) over a raw little-endian u16 array [convoy] (verified by M5-32's full-image check; not yet). |
+| `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | `clearSupplyItems` | Stand-in for src/bmcontainer.c: ClearSupplyItems (zeroes the 100 convoy items) over a raw little-endian u16 array [convoy] (no @VerifiesPort test names it). |
 | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | `ewramCopy` | Stand-in for the EWRAM buffer `EraseInvalidSaveData` reads the whole SRAM into. |
 | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | `genericBuffer` | Stand-in for `gGenericBuffer` (aux block loaders/erasers); big enough for every block. |
 | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | `gmapBuffer` | Stand-in for the `struct GMapSaveInfo info` of `ClearWorldMapStuff`. |

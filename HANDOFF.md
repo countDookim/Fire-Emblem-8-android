@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- ALN-1, ALN-2, STAND-1, M7-0: owner PC (4 agents authorized for this run), until ~10:30Z
+- STAND-2, M7-0: owner PC (4 agents authorized for this run), until ~10:30Z
 
 ## Current state
 

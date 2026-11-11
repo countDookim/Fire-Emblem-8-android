@@ -11,7 +11,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- PP-6, PP-11, PP-13: owner PC, until ~17:30Z
+- PP-11, PP-13, D11-wm8a: owner PC, until ~17:30Z
 
 ## Current state
 

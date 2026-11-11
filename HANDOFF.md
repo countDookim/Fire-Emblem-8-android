@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-11 10:40Z (owner PC: 4–6 agent run; test speed-up left on wip/test-speedup). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-11 15:20Z (owner PC: latest-only CI artifacts; CI 598 green). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -11,19 +11,17 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- CI-latest-only: owner PC, until ~15:40Z; keep only the latest successful master build outputs.
+None.
 
 ## Current state
 
 - Latest owner test: **local 0.1.488 (`0a73f11`)**: neither reported castle audio stutter reproduced.
   Original save restored afterward; ROM import preserved. Published 0.1.488 (`8c5b7c9`) banner comparison remains partial.
-- Published **0.1.551 (`1c30d0b`)**: CI **769 passed, zero failures/skips**. The pinned decomp
-  source is now provisioned for node-table tests; missing source fails clearly and invalidates
-  stale test-cache results. Rapier popup icon/cleanup fixes remain included (first in 0.1.528).
-- Current source: **817 verified of 7,732 in scope (10.5%)**; 620 link/debug functions are out of scope
-  (8,352 total). `ported-without-tag: 0`, `unknown-verifies-names: 0`. Full local `jvmTest test` (owner PC 11-11
-  10:15Z): **806 passed, zero failures/skips**. CI 587–589 failed only on tests that scan every capture (fixed:
-  `M4A_UNCOVERED_RUNS`, `M4aTrackTest` skips FLG_START tracks).
+- Published **0.1.598 (`8605040`)**: CI **830 passed, zero failures/skips**; debug/release APK content
+  guards and benchmark passed. CI retains only this build's results/Dokka artifacts and rolling APK release.
+  Rapier popup icon/cleanup fixes remain included (first in 0.1.528).
+- Current source: CI 598 reports **895 verified of 7,732 in scope (11.5%)**; 620 link/debug functions
+  are out of scope (8,352 total). `ported-without-tag: 0`, `unknown-verifies-names: 0`.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
 - Layout: game-neutral `:gba:*`, `gbafe.*` in `:engine:*`, FE8 `fe8.*` in `:game`/`:app` (ADRs 0010–0013).
@@ -86,6 +84,9 @@ Node table checks use pinned runtime source: `tools/setup_decomp.sh` or `FE8U_DE
 
 ## Working notes
 
+- CI storage: keep only the latest successful master build (rule 15); `ci.yml` replaces older Actions
+  artifacts after results, Dokka and the rolling APK release are available. Branch builds upload no artifacts.
+  Initial cleanup: 727→14.9 MiB, two artifacts for CI 598; local Python checks: 53 passed.
 - Claim before coding; skip live claims. Use `git fetch` + `git rebase --rebase-merges origin/master`.
   CI may add a progress commit, so fetch/rebase again if a push races it. Commit completed steps; unfinished work uses `wip/`.
 - Owner PC: `source .assets.env`, export `ANDROID_HOME=$HOME/android-sdk`; use `$HOME/.cache/fe8-tmp` for logs/temp.

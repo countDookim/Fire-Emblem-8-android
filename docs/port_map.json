@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 825,
+    "verified": 847,
     "implemented_unverified": 2
   },
   "functions": {
@@ -476,6 +476,16 @@
         "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
       ]
     },
+    "ChapterIntro_DrawChapterTitle": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
     "ChapterIntro_Init": {
       "decomp_file": "src/chapterintrofx.c",
       "system": "presentation",
@@ -484,6 +494,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
+      ]
+    },
+    "ChapterIntro_InitBLDCNT": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
       ]
     },
     "ChapterIntro_InitCameraYPos": {
@@ -544,6 +564,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterIntroDifferentialTest#skip path fade out map display and fast fade match every frame"
+      ]
+    },
+    "ChapterIntro_SetBG_802009C": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
       ]
     },
     "ChapterIntro_SetSkipTarget": {
@@ -1016,6 +1046,18 @@
         "fe8.game.BrownTextBoxReferenceTest#the Prologue box hold frame equals the reference OAM entries"
       ]
     },
+    "DrawTerrainDisplayWindow": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window follows the cursor inside its quadrant",
+        "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window restarts after cancelling the selection",
+        "fe8.testing.TerrainDisplayDifferentialTest#select_move windows start after the unit waits"
+      ]
+    },
     "DrawTextGlyph": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -1129,6 +1171,16 @@
       "tests": [
         "fe8.testing.MuMoveDifferentialTest#MU walk of the prologue talk run matches f10580 to f10621 and f10624 to f10633",
         "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
+      ]
+    },
+    "EndPlayerPhaseSideWindows": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TerrainDisplayDifferentialTest#select_move ending the windows clears the BGs and the blend"
       ]
     },
     "EnsureCameraOntoPosition": {
@@ -1937,7 +1989,7 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -2076,6 +2128,16 @@
         "fe8.testing.ChapterDataRomTest#every chapter matches direct ROM reads"
       ]
     },
+    "GetChapterTitleWM": {
+      "decomp_file": "src/chapter_title.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterTitle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
     "GetCharTextLen": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -2144,6 +2206,18 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#autoleveled red units reproduce the dump for the RNG states of the window"
+      ]
+    },
+    "GetCursorQuadrant": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window follows the cursor inside its quadrant",
+        "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window restarts after cancelling the selection",
+        "fe8.testing.TerrainDisplayDifferentialTest#select_move windows start after the unit waits"
       ]
     },
     "GetDefaultMuConfig": {
@@ -2449,6 +2523,19 @@
         "fe8.testing.EventFlagsRomTest#save sizes equal the movs immediates in the rom"
       ]
     },
+    "GetPlayerSelectKind": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika again after the cancel matches the game in cancel_end at f1310",
+        "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika matches the game in cancel_end at f1260",
+        "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika matches the game in select_move at f1260",
+        "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika with enemies in reach matches the game in attack at f1260"
+      ]
+    },
     "GetPlayerStartCursorPosition": {
       "decomp_file": "src/bmcamadjust.c",
       "system": "battle_map",
@@ -2678,6 +2765,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapFaceTest#BG2 tile map matches the EWRAM dumps and portrait data the full dumps"
+      ]
+    },
+    "GetWindowQuadrant": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TerrainDisplayDifferentialTest#select_move windows start after the unit waits"
       ]
     },
     "GmDataInit": {
@@ -3198,6 +3295,18 @@
       "status": "verified",
       "tests": [
         "fe8.testing.NewGameSaveReferenceTest#new game save in slot 0 reproduces the sram and gPlaySt of the reference"
+      ]
+    },
+    "InitPlayerPhaseInterface": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window follows the cursor inside its quadrant",
+        "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window restarts after cancelling the selection",
+        "fe8.testing.TerrainDisplayDifferentialTest#select_move windows start after the unit waits"
       ]
     },
     "InitRN": {
@@ -4364,6 +4473,19 @@
         "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
       ]
     },
+    "PlayerPhase_InitUnitMovementSelect": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika again after the cancel matches the game in cancel_end at f1310",
+        "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika matches the game in cancel_end at f1260",
+        "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika matches the game in select_move at f1260",
+        "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika with enemies in reach matches the game in attack at f1260"
+      ]
+    },
     "PopulateSaveBlockChecksum": {
       "decomp_file": "src/bmsave.c",
       "system": "save",
@@ -4666,6 +4788,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "PutChapterTitleGfx": {
+      "decomp_file": "src/chapter_title.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterTitle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
       ]
     },
     "PutFaceOnBackGround": {
@@ -5810,6 +5942,16 @@
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
+    "StartPlayerPhaseSideWindows": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TerrainDisplayDifferentialTest#select_move windows start after the unit waits"
+      ]
+    },
     "StartSemiCenteredOrphanMenu": {
       "decomp_file": "src/uimenu.c",
       "system": "menus",
@@ -6111,6 +6253,51 @@
         "fe8.testing.TalkRomTest#talkOnInit homes the backgrounds and starts the skip listener once"
       ]
     },
+    "TerrainDisplay_Init": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window restarts after cancelling the selection",
+        "fe8.testing.TerrainDisplayDifferentialTest#select_move windows start after the unit waits"
+      ]
+    },
+    "TerrainDisplay_Loop_Display": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window follows the cursor inside its quadrant",
+        "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window restarts after cancelling the selection",
+        "fe8.testing.TerrainDisplayDifferentialTest#select_move windows start after the unit waits"
+      ]
+    },
+    "TerrainDisplay_Loop_OnSideChange": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window restarts after cancelling the selection",
+        "fe8.testing.TerrainDisplayDifferentialTest#select_move windows start after the unit waits"
+      ]
+    },
+    "TerrainDisplay_Loop_SlideIn": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window restarts after cancelling the selection",
+        "fe8.testing.TerrainDisplayDifferentialTest#select_move windows start after the unit waits"
+      ]
+    },
     "Text_DrawCharacter": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -6400,6 +6587,19 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#autoleveled red units reproduce the dump for the RNG states of the window"
+      ]
+    },
+    "UnitBeginAction": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika again after the cancel matches the game in cancel_end at f1310",
+        "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika matches the game in cancel_end at f1260",
+        "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika matches the game in select_move at f1260",
+        "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika with enemies in reach matches the game in attack at f1260"
       ]
     },
     "UnitInitFromDefinition": {
@@ -6805,6 +7005,16 @@
         "fe8.testing.SuspendSaveReferenceTest#suspend save from r19315 reproduces the sram of s19316"
       ]
     },
+    "_PutChapterTitleGfx": {
+      "decomp_file": "src/chapter_title.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterTitle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
     "_UpdateKeyStatus": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -7186,6 +7396,36 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterMapGraphicsDifferentialTest#OBJ UI graphics and palettes match the dump"
+      ]
+    },
+    "sub_80895B4": {
+      "decomp_file": "src/chapter_title.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterTitle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
+    "sub_80896FC": {
+      "decomp_file": "src/chapter_title.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterTitle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
+    "sub_808C288": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window follows the cursor inside its quadrant"
       ]
     },
     "sub_80B826C": {

@@ -243,3 +243,19 @@ Finding (cause found in review): the capture presses A every 30 frames (script `
 twin lights (LightBurst, title, LightExplosion, Bg2Scroll, PutDecalSprite/RevealDecalSprite, fog, fade to map)
 never runs in this run. D11-ci1 (Init, key listener, skip path) can use this run; the full path needs the new
 capture D11-cap2 (New Game with no key press during the intro).
+
+### 9a. Main-path capture `ram_trace_newgame_intro` (D11-cap2, ROM repo `eb263d1`)
+
+NEWGAME inputs to f9321, then no key presses. Per-frame RAM f9320..9905, full dumps every 10f, per-step watches
+as `ram_trace_prologue`. Up to f9322 identical to `ram_trace_newgame_bm`.
+
+| Event | Frame |
+|---|---|
+| gProcScr_ChapterIntro; Bg1And3Scroll; KeyListen (never fires) | f9322; f9325..9831; f9385..9872 |
+| LightBurst | f9455..9502 |
+| Bg2Scroll + PutDecalSprite; RevealDecalSprite | f9526..9831; f9556..9597 |
+| Intro proc ends; beginning-scene StdEventEngine | f9872; f9873 |
+| FadeFromBlack (fade to map) | f9888..9904 |
+
+Twin lights, title draw, light explosion and fog have no proc of their own; they run inside the intro proc's
+callbacks and show only in the dumps. Screenshots (title card f9530, fog f9700) checked by the parent.

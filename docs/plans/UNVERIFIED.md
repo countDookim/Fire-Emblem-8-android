@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 533 across 66 decomp files (missing reason: 0).
+Total entries: 534 across 66 decomp files (missing reason: 0).
 
 ## src/worldmap_rm.c (42)
 
@@ -714,6 +714,13 @@ Total entries: 533 across 66 decomp files (missing reason: 0).
 | `DecodeString` | `engine/text/src/commonMain/kotlin/gbafe/text/MsgHuffman.kt` | shares its loop with [decode], which carries the verified port tag |
 | `DrawGlyph` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | exercised only through the Text_DrawCharacter test |
 
+## src/bmidoten.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `MapSetInRange` | `game/src/commonMain/kotlin/fe8/game/bm/AttackRange.kt` | the select window never calls it |
+| `GenerateBestMovementScript` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | the tie-break draws from the RNG; the walk's end position does not depend on it |
+
 ## src/bmphase.c (2)
 
 | Function | Kotlin file | Reason |
@@ -781,12 +788,6 @@ Total entries: 533 across 66 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetEnemyStartCursorPosition` | `game/src/commonMain/kotlin/fe8/game/bm/ResetCursorPosition.kt` | the reference runs only reset the cursor in the player phase |
-
-## src/bmidoten.c (1)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `GenerateBestMovementScript` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | the tie-break draws from the RNG; the walk's end position does not depend on it |
 
 ## src/bmreliance.c (1)
 

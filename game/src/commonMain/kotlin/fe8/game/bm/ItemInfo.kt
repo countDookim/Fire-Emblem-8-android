@@ -114,6 +114,15 @@ public class ItemInfo(private val rom: RomView) {
     public fun getItemCrit(item: Int): Int = rom.u8(getItemData(getItemIndex(item)) + 0x18)
 
     /**
+     * Ported from src/bmitem.c: GetItemEncodedRange (inline)
+     *
+     * The `encodedRange` byte of [item]: the minimum range in the high nibble and the maximum in
+     * the low nibble.
+     */
+    public fun getItemEncodedRange(item: Int): Int =
+        rom.u8(getItemData(getItemIndex(item)) + 0x19)
+
+    /**
      * Ported from src/bmitem.c: GetItemMinRange
      *
      * The minimum range of [item] (the high nibble of `encodedRange`).

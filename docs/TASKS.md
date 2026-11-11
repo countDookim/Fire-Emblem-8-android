@@ -45,7 +45,8 @@ Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames, proc
 | PP-8 | PORT | Move: `GenerateBestMovementScript`, `PlayerPhase_DisplayUnitMovement`, `WaitForUnitMovement`, `ApplyUnitMovement`; `ProcScr_MuStepSe` | MU fields per step (f1296–1314); unit x/y after | PP-7 | todo |
 | PP-10 | PORT | Unit menu items the Prologue shows (Item, Wait; Attack in PP-cap3); Wait effect | `gActionData` after select | PP-9 | todo |
 | PP-11 | PORT | `PlayerPhase_PrepareAction`/`FinishAction`, Wait action, `HandleAutoEnd`; post-action event check (StdEventEngine f1356–1358) | Unit state bits after the action | PP-8, PP-10 | todo |
-| PP-12 | PORT | Map menu draw and End | Menu fields; other items are explicit stand-ins | PP-13 | PORT | End turn → phase change: BerserkCpPhase/CpOrder (f1511), faction 0→0x80 (f1514), PhaseIntro start | Faction change and procs equal cap2 (AI stand-in) | PP-12 | todo |
+| PP-12 | PORT | Map menu draw and End | Menu fields; other items are explicit stand-ins | PP-9 | todo |
+| PP-13 | PORT | End turn → phase change: BerserkCpPhase/CpOrder (f1511), faction 0→0x80 (f1514), PhaseIntro start | Faction change and procs equal cap2 (AI stand-in) | PP-12 | todo |
 | CAP-status1 | CAP | Run where the cursor rests ≥ 64 frames on a unit with a status, crosses unit→unit in one corner, and (option) `unitDisplayType` 1 | Then verify `PutUnitMapUiStatus`, `MMB_CheckForUnit`, `sub_808C234`, Burst display | — | todo |
 | PP-16 | PORT | Goal window (`gProcScr_GoalDisplay`, `ProcScr_GreenTextColor` child); no menu-button proc runs | BG tilemap/OAM per step | — | todo |
 | PP-17 | WIRE | Player-phase hooks in `Fe8Boot`; replay cap1 inputs headless | Same unit position/state as cap1; 0 B/frame; MANUAL_TEST | PP-11, PP-13 | todo |

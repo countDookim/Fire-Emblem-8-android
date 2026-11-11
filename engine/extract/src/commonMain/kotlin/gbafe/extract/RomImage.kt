@@ -20,6 +20,7 @@ public object RomImage {
     /** Path of the kept image below the base layer root. */
     public const val PATH: String = "rom/baserom.gba"
 
+    /** Size of each [RomSink.write] call, in bytes, so a 16 MiB ROM is never copied whole. */
     private const val CHUNK = 64 * 1024
 
     /**

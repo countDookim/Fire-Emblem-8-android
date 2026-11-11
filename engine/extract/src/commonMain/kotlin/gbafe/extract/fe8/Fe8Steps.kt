@@ -26,7 +26,7 @@ public fun runFe8Steps(rom: ByteArray, symbols: ExtractSources, out: ExtractOutp
     written += "data/items.json"
     val classNames = symbols.enumNames("include/constants/classes.h", "CLASS_")
     val classes = symbols["gClassData"]
-    out.writeText("data/classes.json", 
+    out.writeText("data/classes.json",
         gbafe.extract.fe8.classes.ClassesExtractor.extractJson(
             rom, classes.address,
             symbols.sizeOrSpan("gClassData") /
@@ -37,7 +37,7 @@ public fun runFe8Steps(rom: ByteArray, symbols: ExtractSources, out: ExtractOutp
     written += "data/classes.json"
     val charNames = symbols.enumNames("include/constants/characters.h", "CHARACTER_")
     val chars = symbols["gCharacterData"]
-    out.writeText("data/characters.json", 
+    out.writeText("data/characters.json",
         gbafe.extract.fe8.characters.CharactersExtractor.extractJson(
             rom, chars.address,
             symbols.sizeOrSpan("gCharacterData") /
@@ -54,11 +54,11 @@ public fun runFe8Steps(rom: ByteArray, symbols: ExtractSources, out: ExtractOutp
         }
         .associateWith { symbols[it].address }
     val terrainNames = symbols.enumNames("include/constants/terrains.h", "TERRAIN_")
-    out.writeText("data/terrains.json", 
+    out.writeText("data/terrains.json",
         gbafe.extract.fe8.terrains.TerrainsExtractor.extractJson(rom, terrainTables, terrainNames),
     )
     written += "data/terrains.json"
-    out.writeText("data/chapters.json", 
+    out.writeText("data/chapters.json",
         gbafe.extract.fe8.chapters.ChaptersExtractor.extractJson(
             rom, symbols["gChapterDataTable"].address - ROM_BASE,
             symbols.sizeOrSpan("gChapterDataTable") /
@@ -386,7 +386,12 @@ private val SOUND_WINDOWS = listOf(0x08207200 to 0x08587700)
 /** GBA address of the first ROM byte; subtract it from a symbol address for a ROM offset. */
 private const val ROM_BASE = 0x08000000
 
-/** One intro logo screen: output name, ROM symbols, palette banks, BG and TSA tile base. */
+/**
+ * One screen of the intro logos (see `GameIntroPrepareNintendofx`): [name] is the output file
+ * stem; [image], [palette] and [tsa] are ROM symbols; [banks] is how many 16-colour palette
+ * banks to read; [bg] is the BG layer the TSA is drawn on; [tileBase] is the tile reference the
+ * game adds to each TSA entry (tile number in the low 10 bits, palette bank from bit 12).
+ */
 private data class IntroLogo(
     val name: String,
     val image: String,

@@ -27,23 +27,36 @@ public object ClassesExtractor {
     /** `TERRAIN_COUNT` in `include/constants/terrains.h`: length of every terrain lookup table. */
     public const val TERRAIN_COUNT: Int = 0x41
 
-    /** `CA_*` attribute bits in bmunit.h, bit 0 first (lower-cased, `CA_` dropped). */
+    /**
+     * `CA_*` attribute bits in bmunit.h, bit 0 first: the constant name lower-cased with `CA_`
+     * dropped and words separated by `_` (`CA_MOUNTEDAID` is `mounted_aid`). The `lock_N` bits mark
+     * classes that class-restricted items (`IA_LOCK_N`) may be used by; the decomp notes `lock_3`
+     * is dragons or monsters depending on the game. Characters use the same bit set.
+     */
     public val ATTRIBUTES: List<String> = listOf(
-        "mounted_aid", "canto", "steal", "thief", "dance", "play", "crit_bonus", "ballistae", "promoted",
-        "supply", "mounted", "wyvern", "pegasus", "lord", "female", "boss", "lock_1", "lock_2", "lock_3",
-        "max_level_10", "unselectable", "triangle_attack_pegasi", "triangle_attack_armors", "bit_23",
-        "negate_lethality", "assassin", "magic_seal", "summon", "lock_4", "lock_5", "lock_6", "lock_7",
+        "mounted_aid", "canto", "steal", "thief", "dance", "play", "crit_bonus", "ballistae",
+        "promoted", "supply", "mounted", "wyvern", "pegasus", "lord", "female", "boss", "lock_1",
+        "lock_2", "lock_3", "max_level_10", "unselectable", "triangle_attack_pegasi",
+        "triangle_attack_armors", "bit_23", "negate_lethality", "assassin", "magic_seal", "summon",
+        "lock_4", "lock_5", "lock_6", "lock_7",
     )
 
-    /** Stat field order shared by bases, caps, growths and promotion gains. */
+    /**
+     * Stat order of `struct ClassData`'s base block (`baseHP`..`baseMov`); caps, growths and
+     * promotion gains use a prefix of it (growths replace `con`/`mov` with `lck`).
+     */
     public val STATS: List<String> = listOf("hp", "pow", "skl", "spd", "def", "res", "con", "mov")
 
     /**
      * Builds the `classes.json` document.
      *
-     * @param names class number → decomp constant (`CLASS_EPHRAIM_LORD`); id = name without `CLASS_`.
-     *   Missing names fall back to `CLASS_XX`.
-     * @param itemNames item number → item id, used for battle animations keyed by a specific item.
+     * Reads [count] rows of the table at GBA address [tableAddress] (a symbol address, not a ROM
+     * offset).
+     *
+     * @param names class number → decomp `CLASS_*` constant; id = name without `CLASS_`.
+     *   Missing names fall back to `CLASS_XX` (hex number).
+     * @param itemNames item number → `ITEM_*` constant, for battle animation entries keyed by a
+     *   specific item.
      */
     public fun extract(
         rom: ByteArray, tableAddress: Int, count: Int, names: Map<Int, String>,
@@ -62,16 +75,16 @@ public object ClassesExtractor {
                 "id" to classId(number),
                 "nameText" to u16(rom, o), "descText" to u16(rom, o + 2),
                 "promotion" to if (promotion == 0) null else classId(promotion),
-                "mapSprite" to u8(rom, o + 6),
-                "slowWalking" to (u8(rom, o + 7) != 0),
+                "mapSprite" to u8(rom, o + 6), // `SMSId`: standard map sprite of the class
+                "slowWalking" to (u8(rom, o + 7) != 0), // UNIT_WALKSPEED_SLOW
                 "defaultPortrait" to u16(rom, o + 8),
                 "sortOrder" to u8(rom, o + 0x0A),
-                // Stat blocks are signed bytes; caps/growths/gains use a prefix of STATS
-                // (growths have lck in place of con/mov).
+                // Stat blocks are signed bytes (see STATS for which stats each block has).
                 "bases" to stats(rom, o + 0x0B, STATS),
                 "caps" to stats(rom, o + 0x13, STATS.take(7)),
-                "relativePower" to s8(rom, o + 0x1A),
-                "growths" to stats(rom, o + 0x1B, listOf("hp", "pow", "skl", "spd", "def", "res", "lck")),
+                "relativePower" to s8(rom, o + 0x1A), // `classRelativePower`
+                "growths" to
+                    stats(rom, o + 0x1B, listOf("hp", "pow", "skl", "spd", "def", "res", "lck")),
                 "promotionGains" to stats(rom, o + 0x22, STATS.take(6)),
                 "attributes" to ATTRIBUTES.filterIndexed { bit, _ -> attrs and (1 shl bit) != 0 },
                 "baseRanks" to ItemsExtractor.WEAPON_TYPES.take(8).withIndex()
@@ -85,10 +98,13 @@ public object ClassesExtractor {
                 "terrainAvoid" to terrain(rom, u32(rom, o + 0x44)),
                 "terrainDefense" to terrain(rom, u32(rom, o + 0x48)),
                 "terrainResistance" to terrain(rom, u32(rom, o + 0x4C)),
+                // `_pU50` in the decomp: a terrain-sized table of unknown meaning.
                 "terrainUnknown50" to terrain(rom, u32(rom, o + 0x50)),
             )
         }
-        return linkedMapOf("format" to FORMAT, "game" to "fe8", "version" to VERSION, "entries" to entries)
+        return linkedMapOf(
+            "format" to FORMAT, "game" to "fe8", "version" to VERSION, "entries" to entries,
+        )
     }
 
     /** [extract] serialised with [Json]. */
@@ -110,10 +126,14 @@ public object ClassesExtractor {
     }
 
     /**
-     * `struct BattleAnimDef` list, terminated by `wtype == 0`: `wtype >= 0x100` matches a weapon type
-     * (`wtype - 0x100`), otherwise a specific item number (see `src/banim-ekrcmd.c`).
+     * The `struct BattleAnimDef` list (`wtype`, `index`) behind ROM pointer [ptr] (null if 0),
+     * terminated by `wtype == 0`: `wtype >= 0x100` matches a weapon type (`wtype - 0x100`, an
+     * `ITYPE_*`), otherwise a specific item number; `anim` is the entry's `index`
+     * (see `GetBattleAnimationId` in `src/banim-ekrcmd.c`).
      */
-    private fun battleAnims(rom: ByteArray, ptr: Int, itemNames: Map<Int, String>): List<Map<String, Any?>>? {
+    private fun battleAnims(
+        rom: ByteArray, ptr: Int, itemNames: Map<Int, String>,
+    ): List<Map<String, Any?>>? {
         if (ptr == 0) return null
         var o = off(ptr)
         val out = ArrayList<Map<String, Any?>>()
@@ -145,8 +165,12 @@ public object ClassesExtractor {
         return addr - 0x08000000
     }
 
+    /** Signed byte at offset [o] of [b]. */
     private fun s8(b: ByteArray, o: Int) = b[o].toInt()
+    /** Unsigned byte at offset [o]. */
     private fun u8(b: ByteArray, o: Int) = b[o].toInt() and 0xFF
+    /** Little-endian unsigned halfword at offset [o]. */
     private fun u16(b: ByteArray, o: Int) = u8(b, o) or (u8(b, o + 1) shl 8)
+    /** Little-endian word at offset [o] (Int, so values >= 2^31 are negative). */
     private fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)
 }

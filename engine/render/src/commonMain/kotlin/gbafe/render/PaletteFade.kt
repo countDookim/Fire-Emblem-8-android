@@ -32,7 +32,9 @@ public class PaletteFade(private val hardware: BgHardware, private val engine: P
     /**
      * Starts a fade to [colors] for [bank], as a child of [parent].
      *
-     * Transcribed from src/bmlib.c: StartPalFade. Portrait fades to and from black at duration 12
+     * Transcribed from src/bmlib.c: StartPalFade (not verified: arbitrary nonblack targets from
+     * nonblack sources, other durations, custom early stops and generic proc behavior).
+     * Portrait fades to and from black at duration 12
      * are exercised; arbitrary nonblack targets from nonblack sources, other durations, custom
      * early stops and generic proc behavior remain independently unverified.
      */
@@ -49,7 +51,9 @@ public class PaletteFade(private val hardware: BgHardware, private val engine: P
     }
 
     /**
-     * Transcribed from src/bmlib.c: PalFade_OnLoop. Portrait fades to and from black at duration
+     * Transcribed from src/bmlib.c: PalFade_OnLoop (not verified: arbitrary nonblack targets from
+     * nonblack sources, other durations, custom early stops and generic proc behavior).
+     * Portrait fades to and from black at duration
      * 12 are exercised; arbitrary nonblack targets from nonblack sources, other durations, custom
      * early stops and generic proc behavior remain independently unverified.
      */

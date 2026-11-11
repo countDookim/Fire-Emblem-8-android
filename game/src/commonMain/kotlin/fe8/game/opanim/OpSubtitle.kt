@@ -59,7 +59,8 @@ public class OpSubtitle(
 
     /**
      * Flare child, including its normal end call; forced proc termination skips that call.
-     * Transcribed from src/opsubtitle.c: gProcScr_OpSubtitle_LightFlareFx.
+     * Transcribed from src/opsubtitle.c: gProcScr_OpSubtitle_LightFlareFx (not verified: no
+     * @VerifiesPort test names it).
      */
     public val flareScript: ProcScript = ProcScript(
         "gProcScr_OpSubtitle_LightFlareFx",
@@ -77,7 +78,7 @@ public class OpSubtitle(
     /**
      * Parent proc command sequence.
      *
-     * Transcribed from src/opsubtitle.c: gProcScr_OpSubtitle (lifecycle and skip unverified).
+     * Transcribed from src/opsubtitle.c: gProcScr_OpSubtitle (not verified: lifecycle and skip).
      */
     public val script: ProcScript = ProcScript(
         "gProcScr_OpSubtitle",
@@ -148,13 +149,13 @@ public class OpSubtitle(
 
     /**
      * Starts the monologue as a blocking child.
-     * Transcribed from src/opsubtitle.c: StartIntroMonologue (lifecycle not yet verified).
+     * Transcribed from src/opsubtitle.c: StartIntroMonologue (not verified: lifecycle).
      */
     public fun startBlocking(parent: Proc): Proc? = engine.startBlocking(script, parent)
 
     /**
-     * Transcribed from src/opsubtitle.c: OpSubtitle_HandleStartPress; skip timing and cleanup
-     * await original input captures.
+     * Transcribed from src/opsubtitle.c: OpSubtitle_HandleStartPress (not verified: skip timing and
+     * cleanup await original input captures).
      */
     private fun handleStartPress(proc: Proc) {
         if (hooks.newKeys() and 8 != 0) {

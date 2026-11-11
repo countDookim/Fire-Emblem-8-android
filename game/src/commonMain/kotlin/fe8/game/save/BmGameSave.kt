@@ -222,7 +222,7 @@ public class BmGameSave(
     }
 
     /**
-     * Transcribed from src/bmsave-gmap.c: ReadWorldMapStuff (not verified, partial: the world
+     * Transcribed from src/bmsave-gmap.c: ReadWorldMapStuff (not verified: partial, the world
      * map state is not ported, so the raw `struct GMapSaveInfo` is kept)
      *
      * Reads the 0x24 bytes at SRAM [srcOffset] into [ram]'s `worldMapStuff`.

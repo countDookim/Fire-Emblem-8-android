@@ -104,9 +104,8 @@ public class WorldMapRm(
     /**
      * `ProcScr_GmapRmUpdateDirect`: keeps the BG1 scroll at the `ProcScr_GmapRM` position.
      *
-     * Transcribed from src/worldmap_rm.c: ProcScr_GmapRmUpdateDirect (script order checked against
-     * the
-     * `procs` capture in WorldMapRmTest)
+     * Transcribed from src/worldmap_rm.c: ProcScr_GmapRmUpdateDirect (not verified: script order
+     * checked against the `procs` capture in WorldMapRmTest)
      */
     public val updateDirectScript: ProcScript = ProcScript(
         "ProcScr_GmapRmUpdateDirect",
@@ -122,8 +121,8 @@ public class WorldMapRm(
      * `ProcScr_GmapRmUpdateExt`: scrolls the `ProcScr_GmapRM` position from `(x0, y0)` to `(x1,
      * y1)`.
      *
-     * Transcribed from src/worldmap_rm.c: ProcScr_GmapRmUpdateExt (script order checked against the
-     * `procs` capture in WorldMapRmTest)
+     * Transcribed from src/worldmap_rm.c: ProcScr_GmapRmUpdateExt (not verified: script order
+     * checked against the `procs` capture in WorldMapRmTest)
      */
     public val updateExtScript: ProcScript = ProcScript(
         "ProcScr_GmapRmUpdateExt",
@@ -142,9 +141,8 @@ public class WorldMapRm(
     /**
      * `ProcScr_GmapRM`: shows the big map BG until `GMAPRM_FLAG_UNBLOCK` is set.
      *
-     * Transcribed from src/worldmap_rm.c: ProcScr_GmapRM (script order checked against the `procs`
-     * capture
-     * in WorldMapRmTest)
+     * Transcribed from src/worldmap_rm.c: ProcScr_GmapRM (not verified: script order checked
+     * against the `procs` capture in WorldMapRmTest)
      */
     public val rmScript: ProcScript = ProcScript(
         "ProcScr_GmapRM",
@@ -291,7 +289,7 @@ public class WorldMapRm(
         gmData.state3 = false
     }
 
-    /** Transcribed from src/worldmap_rm.c: GmapRm_InitNop (a no-op). */
+    /** Transcribed from src/worldmap_rm.c: GmapRm_InitNop (not verified: a no-op). */
     public fun gmapRmInitNop() {
     }
 

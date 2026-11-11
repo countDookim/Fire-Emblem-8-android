@@ -84,7 +84,10 @@ public class WorldMapBigMapEvents(
     private fun arg32(proc: EventEngineProc, index: Int) =
         arg16(proc, index) or (arg16(proc, index + 1) shl 16)
 
-    /** Transcribed from src/eventscr_gmap.c: EventB4_WmDisplayBigMap (not verified). */
+    /**
+     * Transcribed from src/eventscr_gmap.c: EventB4_WmDisplayBigMap (not verified: no @VerifiesPort
+     * test names it).
+     */
     public val eventB4WmDisplayBigMap: EventHandler = EventHandler { proc ->
         if (!skipping(proc)) {
             hooks.startGmapRm(argS16(proc, 2), argS16(proc, 3), arg32(proc, 4))
@@ -92,13 +95,19 @@ public class WorldMapBigMapEvents(
         EVC_ADVANCE_CONTINUE
     }
 
-    /** Transcribed from src/eventscr_gmap.c: EventB5_WmHideBigMap (not verified). */
+    /**
+     * Transcribed from src/eventscr_gmap.c: EventB5_WmHideBigMap (not verified: no @VerifiesPort
+     * test names it).
+     */
     public val eventB5WmHideBigMap: EventHandler = EventHandler { proc ->
         if (skipping(proc)) hooks.gmapRmEndAll() else hooks.gmapRmSetUnblocked()
         EVC_ADVANCE_CONTINUE
     }
 
-    /** Transcribed from src/eventscr_gmap.c: EventB6_WmMoveBigMap (not verified). */
+    /**
+     * Transcribed from src/eventscr_gmap.c: EventB6_WmMoveBigMap (not verified: no @VerifiesPort
+     * test names it).
+     */
     public val eventB6WmMoveBigMap: EventHandler = EventHandler { proc ->
         if (!skipping(proc)) {
             hooks.startGmapRmUpdateExt(
@@ -109,7 +118,10 @@ public class WorldMapBigMapEvents(
         EVC_ADVANCE_CONTINUE
     }
 
-    /** Transcribed from src/eventscr_gmap.c: EventB7_WmBigMapWait (not verified). */
+    /**
+     * Transcribed from src/eventscr_gmap.c: EventB7_WmBigMapWait (not verified: no @VerifiesPort
+     * test names it).
+     */
     public val eventB7WmBigMapWait: EventHandler = EventHandler { proc ->
         if (skipping(proc)) {
             hooks.gmapRmEndAll()
@@ -121,14 +133,18 @@ public class WorldMapBigMapEvents(
         }
     }
 
-    /** Transcribed from src/eventscr_gmap.c: EventB8_WmShowBigMapHighlight (not verified). */
+    /**
+     * Transcribed from src/eventscr_gmap.c: EventB8_WmShowBigMapHighlight (not verified: no
+     * @VerifiesPort test names it).
+     */
     public val eventB8WmShowBigMapHighlight: EventHandler = EventHandler { proc ->
         if (!skipping(proc)) hooks.showNationHighlightedMap(arg32(proc, 2))
         EVC_ADVANCE_CONTINUE
     }
 
     /**
-     * Transcribed from src/eventscr_gmap.c: EventB9_WmRemoveHighlightNationPart1 (not verified).
+     * Transcribed from src/eventscr_gmap.c: EventB9_WmRemoveHighlightNationPart1 (not verified: no
+     * @VerifiesPort test names it).
      */
     public val eventB9WmRemoveHighlightNationPart1: EventHandler = EventHandler { proc ->
         if (skipping(proc)) hooks.endGmapRmBorder1(-1) else hooks.sub80C2C10(arg32(proc, 2))
@@ -136,7 +152,8 @@ public class WorldMapBigMapEvents(
     }
 
     /**
-     * Transcribed from src/eventscr_gmap.c: EventBA_WmRemoveHighlightNationPart2 (not verified).
+     * Transcribed from src/eventscr_gmap.c: EventBA_WmRemoveHighlightNationPart2 (not verified: no
+     * @VerifiesPort test names it).
      */
     public val eventBAWmRemoveHighlightNationPart2: EventHandler = EventHandler { proc ->
         val nation = arg32(proc, 2)

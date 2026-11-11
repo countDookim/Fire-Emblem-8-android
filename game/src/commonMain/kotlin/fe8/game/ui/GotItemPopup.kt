@@ -52,7 +52,7 @@ public class GotItemPopup(
     /**
      * `ProcScr_GotItem`: yield, show the popup, yield, hand over the item, yield, end.
      *
-     * Transcribed from src/popup.c: ProcScr_GotItem
+     * Transcribed from src/popup.c: ProcScr_GotItem (not verified: no @VerifiesPort test names it)
      */
     public val script: ProcScript = ProcScript(
         "ProcScr_GotItem",
@@ -70,7 +70,8 @@ public class GotItemPopup(
     /**
      * Shows the "got item" popup, or the "item was pilfered" one for a non-player unit.
      *
-     * Transcribed from src/popup.c: NewPopup_ItemGot_unused
+     * Transcribed from src/popup.c: NewPopup_ItemGot_unused (not verified: no @VerifiesPort test
+     * names it)
      */
     public fun newPopupItemGotUnused(unit: Int, item: Int, parent: Proc) {
         deps.setPopupItem(item)
@@ -98,7 +99,7 @@ public class GotItemPopup(
      * proc of tree [rootIndex]. A red-faction unit is marked to drop the item. Returns the proc,
      * or null if a blocking proc ended while starting.
      *
-     * Transcribed from src/popup.c: NewPopup_ItemGot
+     * Transcribed from src/popup.c: NewPopup_ItemGot (not verified: no @VerifiesPort test names it)
      * (blocking start and fields match item_popup; red-faction drop flag and root path unexercised)
      */
     public fun start(parent: Proc?, unit: Int, item: Int, rootIndex: Int = 3): Proc? {

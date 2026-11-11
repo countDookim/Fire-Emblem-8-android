@@ -100,7 +100,7 @@ public class SpriteAnimPlayer(
     /**
      * Frees every handle.
      *
-     * Transcribed from src/ap.c: AP_ClearAll
+     * Transcribed from src/ap.c: AP_ClearAll (not verified: no @VerifiesPort test names it)
      */
     public fun clearAll() {
         for (handle in handles) handle.pDefinition = 0
@@ -109,7 +109,7 @@ public class SpriteAnimPlayer(
     /**
      * Allocates a handle for [definition] on OBJ layer [objLayer] (null when the pool is full).
      *
-     * Transcribed from src/ap.c: AP_Create
+     * Transcribed from src/ap.c: AP_Create (not verified: no @VerifiesPort test names it)
      */
     public fun create(definition: Int, objLayer: Int): ApHandle? {
         val result = find(0) ?: return null
@@ -120,7 +120,7 @@ public class SpriteAnimPlayer(
     /**
      * Frees [handle].
      *
-     * Transcribed from src/ap.c: AP_Delete
+     * Transcribed from src/ap.c: AP_Delete (not verified: no @VerifiesPort test names it)
      */
     public fun delete(handle: ApHandle?) {
         if (handle != null && handle.pDefinition != 0) handle.pDefinition = 0
@@ -130,7 +130,7 @@ public class SpriteAnimPlayer(
      * Draws [handle] at ([x], [y]) then advances it one step; false when the animation ended or
      * the handle is free.
      *
-     * Transcribed from src/ap.c: AP_Update
+     * Transcribed from src/ap.c: AP_Update (not verified: no @VerifiesPort test names it)
      */
     public fun update(handle: ApHandle?, x: Int, y: Int): Boolean {
         if (!usable(handle)) return false
@@ -142,7 +142,7 @@ public class SpriteAnimPlayer(
      * Puts the current frame of [handle] into the sprite layers (and queues its rotscale and
      * graphics).
      *
-     * Transcribed from src/ap.c: AP_Display
+     * Transcribed from src/ap.c: AP_Display (not verified: no @VerifiesPort test names it)
      */
     public fun display(handle: ApHandle?, x: Int, y: Int) {
         if (handle == null || handle.pDefinition == 0) return
@@ -164,7 +164,7 @@ public class SpriteAnimPlayer(
     /**
      * Advances [handle] by one game frame; false when the animation ended (or the handle is free).
      *
-     * Transcribed from src/ap.c: AP_ExecFrame
+     * Transcribed from src/ap.c: AP_ExecFrame (not verified: no @VerifiesPort test names it)
      */
     public fun execFrame(handle: ApHandle?): Boolean {
         if (handle == null) return false
@@ -222,8 +222,8 @@ public class SpriteAnimPlayer(
     /**
      * Sends the rotscale entries of the current frame to the OBJ affine matrices.
      *
-     * Transcribed from src/ap.c: AP_QueueObjRotScale (Div of 0 gives 0 here; the BIOS call is not
-     * modelled)
+     * Transcribed from src/ap.c: AP_QueueObjRotScale (not verified: Div of 0 gives 0 here; the BIOS
+     * call is not modelled)
      */
     public fun queueObjRotScale(handle: ApHandle?) {
         if (!usable(handle)) return
@@ -251,7 +251,7 @@ public class SpriteAnimPlayer(
     /**
      * Selects animation [index] of the definition and shows its first frame.
      *
-     * Transcribed from src/ap.c: AP_SwitchAnimation
+     * Transcribed from src/ap.c: AP_SwitchAnimation (not verified: no @VerifiesPort test names it)
      */
     public fun switchAnimation(handle: ApHandle?, index: Int) {
         if (handle == null || handle.pDefinition == 0) return
@@ -264,7 +264,7 @@ public class SpriteAnimPlayer(
     /**
      * Loads [definition] into a live handle and shows its first frame.
      *
-     * Transcribed from src/ap.c: AP_SetDefinition
+     * Transcribed from src/ap.c: AP_SetDefinition (not verified: no @VerifiesPort test names it)
      */
     public fun setDefinition(handle: ApHandle?, definition: Int) {
         if (handle == null || handle.pDefinition == 0) return
@@ -275,7 +275,7 @@ public class SpriteAnimPlayer(
     /**
      * Copies the tiles of the current frame's objects to OBJ VRAM at `tileBase`.
      *
-     * Transcribed from src/ap.c: AP_QueueObjGraphics
+     * Transcribed from src/ap.c: AP_QueueObjGraphics (not verified: no @VerifiesPort test names it)
      */
     public fun queueObjGraphics(handle: ApHandle?) {
         if (!usable(handle)) return
@@ -308,7 +308,7 @@ public class SpriteAnimPlayer(
     /**
      * Points [handle] at [definition] and its default animation.
      *
-     * Transcribed from src/ap.c: AP_LoadDefinition
+     * Transcribed from src/ap.c: AP_LoadDefinition (not verified: no @VerifiesPort test names it)
      */
     public fun loadDefinition(handle: ApHandle, definition: Int) {
         handle.pDefinition = definition
@@ -321,7 +321,7 @@ public class SpriteAnimPlayer(
     /**
      * Runs one frame at full speed, keeping the frame interval.
      *
-     * Transcribed from src/ap.c: AP_ExecDummyFrame
+     * Transcribed from src/ap.c: AP_ExecDummyFrame (not verified: no @VerifiesPort test names it)
      */
     public fun execDummyFrame(handle: ApHandle) {
         handle.frameTimer = 0
@@ -334,7 +334,7 @@ public class SpriteAnimPlayer(
     /**
      * Sets up [handle] for [definition] on layer [objLayer] and runs its first frame.
      *
-     * Transcribed from src/ap.c: AP_Init
+     * Transcribed from src/ap.c: AP_Init (not verified: no @VerifiesPort test names it)
      */
     public fun init(handle: ApHandle, definition: Int, objLayer: Int) {
         loadDefinition(handle, definition)
@@ -352,7 +352,7 @@ public class SpriteAnimPlayer(
     /**
      * The first handle whose definition is [definition] (0 finds a free one); null if none.
      *
-     * Transcribed from src/ap.c: AP_Find
+     * Transcribed from src/ap.c: AP_Find (not verified: no @VerifiesPort test names it)
      */
     public fun find(definition: Int): ApHandle? {
         for (handle in handles) if (handle.pDefinition == definition) return handle

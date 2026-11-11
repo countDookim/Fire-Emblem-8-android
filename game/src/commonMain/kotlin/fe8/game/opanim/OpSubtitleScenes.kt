@@ -51,7 +51,8 @@ public class OpSubtitleScenes(
     /**
      * The flare's child proc: yields once, sleeps 36 frames, then runs [loadFinalCard].
      *
-     * Transcribed from src/opsubtitle.c: gProcScr_08AA2184
+     * Transcribed from src/opsubtitle.c: gProcScr_08AA2184 (not verified: no @VerifiesPort test
+     * names it)
      */
     public val finalCardScript: ProcScript = ProcScript(
         "gProcScr_08AA2184",

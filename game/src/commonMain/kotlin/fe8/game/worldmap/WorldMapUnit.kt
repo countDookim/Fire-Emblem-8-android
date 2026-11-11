@@ -157,7 +157,8 @@ public class WorldMapUnit(
     /**
      * `ProcScr_GmapUnit`: one map sprite.
      *
-     * Transcribed from src/worldmap_gmapunit.c: ProcScr_GmapUnit (not verified)
+     * Transcribed from src/worldmap_gmapunit.c: ProcScr_GmapUnit (not verified: no @VerifiesPort
+     * test names it)
      */
     public val unitScript: ProcScript = ProcScript(
         "ProcScr_GmapUnit",
@@ -174,7 +175,8 @@ public class WorldMapUnit(
     /**
      * `ProcScr_GmapUnitContainer`.
      *
-     * Transcribed from src/worldmap_gmapunit.c: ProcScr_GmapUnitContainer (not verified)
+     * Transcribed from src/worldmap_gmapunit.c: ProcScr_GmapUnitContainer (not verified: no
+     * @VerifiesPort test names it)
      */
     public val containerScript: ProcScript = ProcScript(
         "ProcScr_GmapUnitContainer",
@@ -191,7 +193,8 @@ public class WorldMapUnit(
     /**
      * `ProcScr_GmapUnitFade`.
      *
-     * Transcribed from src/worldmap_gmapunit.c: ProcScr_GmapUnitFade (not verified)
+     * Transcribed from src/worldmap_gmapunit.c: ProcScr_GmapUnitFade (not verified: no
+     * @VerifiesPort test names it)
      */
     public val fadeScript: ProcScript = ProcScript(
         "ProcScr_GmapUnitFade",
@@ -206,7 +209,10 @@ public class WorldMapUnit(
         ),
     ) { GmapUnitFadeProc() }
 
-    /** Transcribed from src/worldmap_gmapunit.c: GmapUnit_Destruct (not verified) */
+    /**
+     * Transcribed from src/worldmap_gmapunit.c: GmapUnit_Destruct (not verified: no @VerifiesPort
+     * test names it)
+     */
     public fun gmapUnitDestruct(proc: Proc) {
         ap.delete((proc.state as GmapUnitProc).ap)
     }
@@ -311,12 +317,15 @@ public class WorldMapUnit(
         return i
     }
 
-    /** Transcribed from src/worldmap_gmapunit.c: MMS_GetGfx (not verified): `.img` of the entry */
+    /**
+     * Transcribed from src/worldmap_gmapunit.c: MMS_GetGfx (not verified: no @VerifiesPort test
+     * names it): `.img` of the entry
+     */
     public fun mmsGfx(idx: Int): Int = rom.u32(Mu.MU_INFO_TABLE + 8 * (idx - 1))
 
     /**
-     * Transcribed from src/worldmap_gmapunit.c: MMS_GetROMTCS2 (not verified): `.anim` of the
-     * entry
+     * Transcribed from src/worldmap_gmapunit.c: MMS_GetROMTCS2 (not verified: no @VerifiesPort test
+     * names it): `.anim` of the entry
      */
     public fun mmsRomTcs2(idx: Int): Int = rom.u32(Mu.MU_INFO_TABLE + 8 * (idx - 1) + 4)
 

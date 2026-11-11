@@ -244,7 +244,10 @@ public class MuCtrl(
         put8(table.bytes, o + OFF_Y, y)
     }
 
-    /** Transcribed from src/bmunit.c: UnitFinalizeMovement (rescuee only; no ballistae). */
+    /**
+     * Transcribed from src/bmunit.c: UnitFinalizeMovement (not verified: rescuee only; no
+     * ballistae).
+     */
     private fun unitFinalizeMovement(unit: Int) {
         val o = table.unitOffset(unit)
         val state = table.state(unit)

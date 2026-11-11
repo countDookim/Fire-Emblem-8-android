@@ -61,15 +61,19 @@ public class WorldMapTextFadeEvents(
     private fun arg16(proc: EventEngineProc, index: Int) =
         memory.u16(proc.pEventCurrent + 2 * index)
 
-    /** Transcribed from src/eventscr_gmap.c: Event80_WmSkip_Unsure (not verified). */
+    /**
+     * Transcribed from src/eventscr_gmap.c: Event80_WmSkip_Unsure (not verified: no @VerifiesPort
+     * test names it).
+     */
     public val event80WmSkipUnsure: EventHandler = EventHandler { proc ->
         hooks.sub80BA008(arg16(proc, 2) or (arg16(proc, 3) shl 16))
         EVC_ADVANCE_YIELD
     }
 
     /**
-     * Transcribed from src/eventscr_gmap.c: Event81_WmFadeOut (not verified): while skipping all
-     * layers go off at once, else a slow (speed 4) locking fade to black.
+     * Transcribed from src/eventscr_gmap.c: Event81_WmFadeOut (not verified: no @VerifiesPort test
+     * names it): while skipping all layers go off at once, else a slow (speed 4) locking fade to
+     * black.
      */
     public val event81WmFadeOut: EventHandler = EventHandler { proc ->
         if (skipping(proc)) {
@@ -80,25 +84,37 @@ public class WorldMapTextFadeEvents(
         EVC_ADVANCE_YIELD
     }
 
-    /** Transcribed from src/eventscr_gmap.c: Event82_WmEnd (not verified). */
+    /**
+     * Transcribed from src/eventscr_gmap.c: Event82_WmEnd (not verified: no @VerifiesPort test
+     * names it).
+     */
     public val event82WmEnd: EventHandler = EventHandler { proc ->
         hooks.endWm(proc)
         EVC_ADVANCE_CONTINUE
     }
 
-    /** Transcribed from src/eventscr_gmap.c: EventAF_WmShowTextBox (not verified). */
+    /**
+     * Transcribed from src/eventscr_gmap.c: EventAF_WmShowTextBox (not verified: no @VerifiesPort
+     * test names it).
+     */
     public val eventAFWmShowTextBox: EventHandler = EventHandler { proc ->
         if (!skipping(proc)) hooks.gmMuEntryStartShow(arg16(proc, 1), arg16(proc, 2))
         EVC_ADVANCE_CONTINUE
     }
 
-    /** Transcribed from src/eventscr_gmap.c: EventB0_WmHideTextBox_Bugged (not verified). */
+    /**
+     * Transcribed from src/eventscr_gmap.c: EventB0_WmHideTextBox_Bugged (not verified: no
+     * @VerifiesPort test names it).
+     */
     public val eventB0WmHideTextBoxBugged: EventHandler = EventHandler { proc ->
         if (!skipping(proc)) hooks.gmMuEntryStartHide(arg16(proc, 1), arg16(proc, 2))
         EVC_ADVANCE_CONTINUE
     }
 
-    /** Transcribed from src/eventscr_gmap.c: EventB1_WmTextBoxWait (not verified). */
+    /**
+     * Transcribed from src/eventscr_gmap.c: EventB1_WmTextBoxWait (not verified: no @VerifiesPort
+     * test names it).
+     */
     public val eventB1WmTextBoxWait: EventHandler = EventHandler { proc ->
         if (skipping(proc)) {
             hooks.endGmMuEntry()
@@ -110,13 +126,19 @@ public class WorldMapTextFadeEvents(
         }
     }
 
-    /** Transcribed from src/eventscr_gmap.c: EventB2_WmFancyFade (not verified). */
+    /**
+     * Transcribed from src/eventscr_gmap.c: EventB2_WmFancyFade (not verified: no @VerifiesPort
+     * test names it).
+     */
     public val eventB2WmFancyFade: EventHandler = EventHandler { proc ->
         hooks.startGmapLineFade(arg16(proc, 2) or (arg16(proc, 3) shl 16))
         EVC_ADVANCE_YIELD
     }
 
-    /** Transcribed from src/eventscr_gmap.c: EventB3_WmFancyFadeWait (not verified). */
+    /**
+     * Transcribed from src/eventscr_gmap.c: EventB3_WmFancyFadeWait (not verified: no @VerifiesPort
+     * test names it).
+     */
     public val eventB3WmFancyFadeWait: EventHandler = EventHandler { _ ->
         if (!hooks.isGmapLineFadeActive()) EVC_ADVANCE_YIELD else EVC_STOP_YIELD
     }

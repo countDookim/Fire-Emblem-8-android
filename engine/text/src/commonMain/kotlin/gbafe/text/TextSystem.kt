@@ -344,7 +344,8 @@ public class TextSystem(
      * the 4bpp tiles at [dest], OR-ing in the pixels through the colour table [lut]: the ARM
      * routine `DrawGlyph` of arm.s (reached through `DrawGlyphRam`).
      *
-     * Transcribed from asm/arm.s: DrawGlyph (verified only through the Text_DrawCharacter test).
+     * Transcribed from asm/arm.s: DrawGlyph (not verified: exercised only through the
+     * Text_DrawCharacter test).
      */
     private fun drawGlyphRam(lut: Int, dest: Int, bitmap: Int, subx: Int) {
         val lutBase = lut - ROM_BASE
@@ -442,7 +443,7 @@ public class TextSystem(
         }
     }
 
-    // Transcribed from src/fontgrp.c: Text_DrawString (Shift-JIS branch; not verified, see above).
+    // Transcribed from src/fontgrp.c: Text_DrawString (Shift-JIS branch; not verified: see above).
     // Not @VerifiesPort: no ground truth for lang == 0.
     private fun drawStringSjis(text: Text, str: ByteArray, start: Int) {
         var i = start
@@ -509,7 +510,7 @@ public class TextSystem(
         return width
     }
 
-    // Transcribed from src/fontgrp.c: GetCharTextLen (Shift-JIS branch; not verified, see above).
+    // Transcribed from src/fontgrp.c: GetCharTextLen (Shift-JIS branch; not verified: see above).
     // Not @VerifiesPort: no ground truth for lang == 0.
     private fun getCharTextLenSjis(str: ByteArray, start: Int, pWidth: IntArray): Int {
         val byte1 = str[start]

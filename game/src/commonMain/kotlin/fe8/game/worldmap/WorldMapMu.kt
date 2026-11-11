@@ -161,7 +161,8 @@ public class WorldMapMu(
     /**
      * `ProcScr_GMapMuPrim`.
      *
-     * Transcribed from src/worldmap_mapmu.c: ProcScr_GMapMuPrim (not verified)
+     * Transcribed from src/worldmap_mapmu.c: ProcScr_GMapMuPrim (not verified: no @VerifiesPort
+     * test names it)
      */
     public val primScript: ProcScript = ProcScript(
         "ProcScr_GMapMuPrim",
@@ -187,7 +188,8 @@ public class WorldMapMu(
     /**
      * `ProcScr_GMapMu`.
      *
-     * Transcribed from src/worldmap_mapmu.c: ProcScr_GMapMu (not verified)
+     * Transcribed from src/worldmap_mapmu.c: ProcScr_GMapMu (not verified: no @VerifiesPort test
+     * names it)
      */
     public val script: ProcScript = ProcScript(
         "ProcScr_GMapMu",
@@ -217,7 +219,10 @@ public class WorldMapMu(
     /** Ported from src/worldmap_mapmu.c: StartGmMu */
     public fun startGmMu(parent: Proc?): Proc = engine.start(script, checkNotNull(parent))
 
-    /** Transcribed from src/worldmap_mapmu.c: GetCharacterClassId (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: GetCharacterClassId (not verified: no @VerifiesPort
+     * test names it)
+     */
     public fun getCharacterClassId(pid: Int): Int {
         for (i in FACTION_BLUE + 1 until FACTION_PURPLE) {
             val u = hooks.unitAt(i) ?: continue
@@ -238,17 +243,26 @@ public class WorldMapMu(
         unit.mapUnitCSetGfxNeedsUpdate(p.mapUnit)
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: MapMUPrim_MakeUnitForChar (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: MapMUPrim_MakeUnitForChar (not verified: no
+     * @VerifiesPort test names it)
+     */
     public fun mapMuPrimMakeUnitForChar(proc: Proc, pid: Int, nodeId: Int) {
         makeUnit(prim(proc), getCharacterClassId(pid), nodeId)
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: MapMUPrim_MakeUnitForClass (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: MapMUPrim_MakeUnitForClass (not verified: no
+     * @VerifiesPort test names it)
+     */
     public fun mapMuPrimMakeUnitForClass(proc: Proc, jid: Int, nodeId: Int) {
         makeUnit(prim(proc), jid, nodeId)
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: MapMUPrim_RemoveLinkedMapUnit (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: MapMUPrim_RemoveLinkedMapUnit (not verified: no
+     * @VerifiesPort test names it)
+     */
     public fun mapMuPrimRemoveLinkedMapUnit(proc: Proc) {
         val p = prim(proc)
         if (p.mapUnit >= 0) {
@@ -257,7 +271,10 @@ public class WorldMapMu(
         }
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: GmMu_SetUnit (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: GmMu_SetUnit (not verified: no @VerifiesPort test
+     * names it)
+     */
     public fun gmMuSetUnit(
         mu: Proc,
         index: Int,
@@ -290,7 +307,10 @@ public class WorldMapMu(
         gmMuSetSpriteLayer(mu, index, SPRITE_LAYER[index])
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: GmMu_RemoveUnit (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: GmMu_RemoveUnit (not verified: no @VerifiesPort test
+     * names it)
+     */
     public fun gmMuRemoveUnit(mu: Proc, index: Int) {
         val prim = (mu.state as GmapMuProc).prims[index]!!
         val p = prim(prim)
@@ -303,10 +323,16 @@ public class WorldMapMu(
         }
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: GmShowMuUnit (not verified); [index] < 0 = all. */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: GmShowMuUnit (not verified: no @VerifiesPort test
+     * names it); [index] < 0 = all.
+     */
     public fun gmShowMuUnit(mu: Proc, index: Int): Unit = setShown(mu, index, true)
 
-    /** Transcribed from src/worldmap_mapmu.c: GmHideMuUnit (not verified); [index] < 0 = all. */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: GmHideMuUnit (not verified: no @VerifiesPort test
+     * names it); [index] < 0 = all.
+     */
     public fun gmHideMuUnit(mu: Proc, index: Int): Unit = setShown(mu, index, false)
 
     private fun setShown(mu: Proc, index: Int, shown: Boolean) {
@@ -323,12 +349,18 @@ public class WorldMapMu(
         }
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: GmMu_SetSpriteLayer (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: GmMu_SetSpriteLayer (not verified: no @VerifiesPort
+     * test names it)
+     */
     public fun gmMuSetSpriteLayer(mu: Proc, index: Int, layer: Int) {
         unit.mapUnitCSetLayer(primAt(mu, index).mapUnit, layer)
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: GmMu_SetPosition (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: GmMu_SetPosition (not verified: no @VerifiesPort test
+     * names it)
+     */
     public fun gmMuSetPosition(mu: Proc, index: Int, xBase: Int, yBase: Int) {
         val p = primAt(mu, index)
         val x = xBase.toShort().toInt()
@@ -339,21 +371,33 @@ public class WorldMapMu(
         p.trailCount = 0
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: GmMu_GetPosition (not verified); returns (x, y). */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: GmMu_GetPosition (not verified: no @VerifiesPort test
+     * names it); returns (x, y).
+     */
     public fun gmMuGetPosition(mu: Proc, index: Int): Pair<Int, Int> {
         val (x, y) = unit.mapUnitCGetPosition(primAt(mu, index).mapUnit)
         return x to (y - 6)
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: GmMu_SetNode (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: GmMu_SetNode (not verified: no @VerifiesPort test
+     * names it)
+     */
     public fun gmMuSetNode(mu: Proc, index: Int, nodeId: Int) {
         gmMuSetPosition(mu, index, nodes.x(nodeId), nodes.y(nodeId))
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: sub_80BD41C (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: sub_80BD41C (not verified: no @VerifiesPort test names
+     * it)
+     */
     public fun sub80BD41C(a: Int, b: Int): Int = BiosMath.sqrt((a * a + b * b) * 16) / 5
 
-    /** Transcribed from src/worldmap_mapmu.c: sub_80BDD94 (not verified); [index] < 0 = all. */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: sub_80BDD94 (not verified: no @VerifiesPort test names
+     * it); [index] < 0 = all.
+     */
     public fun sub80BDD94(mu: Proc, index: Int) {
         val s = mu.state as GmapMuProc
         if (index >= 0) {
@@ -573,7 +617,10 @@ public class WorldMapMu(
         public val unk10: Int,
     )
 
-    /** Transcribed from src/worldmap_mapmu.c: sub_80BDEB4 (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: sub_80BDEB4 (not verified: no @VerifiesPort test names
+     * it)
+     */
     public fun sub80BDEB4(mu: Proc, input: MoveInput) {
         val proc = (mu.state as GmapMuProc).prims[input.unk00]!!
         val p = prim(proc)
@@ -601,7 +648,10 @@ public class WorldMapMu(
         engine.goto(proc, 1)
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: sub_80BDFA4 (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: sub_80BDFA4 (not verified: no @VerifiesPort test names
+     * it)
+     */
     public fun sub80BDFA4(mu: Proc, input: MoveInput2) {
         val proc = (mu.state as GmapMuProc).prims[input.unk00]!!
         val p = prim(proc)
@@ -624,35 +674,56 @@ public class WorldMapMu(
         engine.goto(proc, 2)
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: GmMu_PauseMovement (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: GmMu_PauseMovement (not verified: no @VerifiesPort
+     * test names it)
+     */
     public fun gmMuPauseMovement(mu: Proc, index: Int) {
         primAt(mu, index).flag1 = true
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: GmMu_ResumeMovement (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: GmMu_ResumeMovement (not verified: no @VerifiesPort
+     * test names it)
+     */
     public fun gmMuResumeMovement(mu: Proc, index: Int) {
         primAt(mu, index).flag1 = false
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: sub_80BE080 (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: sub_80BE080 (not verified: no @VerifiesPort test names
+     * it)
+     */
     public fun sub80BE080(mu: Proc, index: Int, blendEnabled: Boolean) {
         unit.mapUnitCSetBlendEnabled(primAt(mu, index).mapUnit, blendEnabled)
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: sub_80BE0A4 (not verified); returns (x, y). */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: sub_80BE0A4 (not verified: no @VerifiesPort test names
+     * it); returns (x, y).
+     */
     public fun sub80BE0A4(mu: Proc, index: Int): Pair<Int, Int> =
         unit.mapUnitCGetPosition(primAt(mu, index).mapUnit)
 
-    /** Transcribed from src/worldmap_mapmu.c: sub_80BE0C8 (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: sub_80BE0C8 (not verified: no @VerifiesPort test names
+     * it)
+     */
     public fun sub80BE0C8(mu: Proc, index: Int): Int =
         unit.mapUnitCGetLayer(primAt(mu, index).mapUnit)
 
-    /** Transcribed from src/worldmap_mapmu.c: GmMu_80BE108 (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: GmMu_80BE108 (not verified: no @VerifiesPort test
+     * names it)
+     */
     public fun gmMu80BE108(mu: Proc, index: Int, flag: Boolean) {
         primAt(mu, index).flag3 = flag
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: sub_80BE12C (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: sub_80BE12C (not verified: no @VerifiesPort test names
+     * it)
+     */
     public fun sub80BE12C(mu: Proc, index: Int): Boolean {
         if (index < 0) {
             for (i in 0 until GmapMuProc.SLOTS) {
@@ -666,7 +737,10 @@ public class WorldMapMu(
         return false
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: sub_80BE194 (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: sub_80BE194 (not verified: no @VerifiesPort test names
+     * it)
+     */
     public fun sub80BE194(proc: Proc) {
         val p = prim(proc)
         if (!p.flag0) return
@@ -700,7 +774,10 @@ public class WorldMapMu(
         gmData.yCamera = cy
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: sub_80BE330 (not verified); [index] < 0 = all. */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: sub_80BE330 (not verified: no @VerifiesPort test names
+     * it); [index] < 0 = all.
+     */
     public fun sub80BE330(mu: Proc, index: Int) {
         val s = mu.state as GmapMuProc
         if (index < 0) {
@@ -710,30 +787,48 @@ public class WorldMapMu(
         }
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: sub_80BE3E8 (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: sub_80BE3E8 (not verified: no @VerifiesPort test names
+     * it)
+     */
     public fun sub80BE3E8(mu: Proc, index: Int, flag: Boolean) {
         primAt(mu, index).flag2 = flag
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: GmMu_StartFadeIn (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: GmMu_StartFadeIn (not verified: no @VerifiesPort test
+     * names it)
+     */
     public fun gmMuStartFadeIn(mu: Proc, index: Int, arg: Int) {
         unit.sub80BB4C0(primAt(mu, index).mapUnit, arg, null)
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: GmMu_StartFadeOut (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: GmMu_StartFadeOut (not verified: no @VerifiesPort test
+     * names it)
+     */
     public fun gmMuStartFadeOut(mu: Proc, index: Int, arg: Int) {
         unit.sub80BB538(primAt(mu, index).mapUnit, arg, null)
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: GmUnitFadeExists (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: GmUnitFadeExists (not verified: no @VerifiesPort test
+     * names it)
+     */
     public fun gmUnitFadeExists(): Boolean = unit.getGmapUnitFade() != null
 
-    /** Transcribed from src/worldmap_mapmu.c: MapMU_SetUnitClass (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: MapMU_SetUnitClass (not verified: no @VerifiesPort
+     * test names it)
+     */
     public fun mapMuSetUnitClass(mu: Proc, index: Int, jid: Int, faction: Int, nodeId: Int) {
         gmMuSetUnit(mu, index, true, jid, faction, nodeId)
     }
 
-    /** Transcribed from src/worldmap_mapmu.c: MapMU_SetUnitChar (not verified) */
+    /**
+     * Transcribed from src/worldmap_mapmu.c: MapMU_SetUnitChar (not verified: no @VerifiesPort test
+     * names it)
+     */
     public fun mapMuSetUnitChar(mu: Proc, index: Int, pid: Int, faction: Int, nodeId: Int) {
         gmMuSetUnit(mu, index, false, pid, faction, nodeId)
     }

@@ -147,7 +147,8 @@ public class TalkBubble(
     }
 
     /**
-     * Transcribed from src/scene.c: TalkOpen_InitBlend
+     * Transcribed from src/scene.c: TalkOpen_InitBlend (not verified: no @VerifiesPort test names
+     * it)
      */
     public fun talkOpenInitBlend(proc: Proc) {
         (proc.state as TalkOpenState).frameTimer = 0
@@ -371,7 +372,8 @@ public class TalkBubble(
     }
 
     /**
-     * Transcribed from src/scene.c: TalkShiftClearAll_OnInit
+     * Transcribed from src/scene.c: TalkShiftClearAll_OnInit (not verified: no @VerifiesPort test
+     * names it)
      */
     public fun talkShiftClearAllOnInit(proc: Proc) {
         val talkState = talk.state
@@ -393,7 +395,8 @@ public class TalkBubble(
     }
 
     /**
-     * Transcribed from src/scene.c: TalkShiftClearAll_OnIdle
+     * Transcribed from src/scene.c: TalkShiftClearAll_OnIdle (not verified: no @VerifiesPort test
+     * names it)
      */
     public fun talkShiftClearAllOnIdle(proc: Proc) {
         val counterState = proc.state as TalkCounterState
@@ -422,7 +425,7 @@ public class TalkBubble(
     }
 
     /**
-     * Transcribed from src/scene.c: TalkFlushAllLine
+     * Transcribed from src/scene.c: TalkFlushAllLine (not verified: no @VerifiesPort test names it)
      */
     public fun talkFlushAllLine() {
         talk.state.lineActive = 0

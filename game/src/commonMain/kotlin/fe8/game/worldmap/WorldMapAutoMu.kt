@@ -130,7 +130,8 @@ public class WorldMapAutoMu(
     /**
      * `ProcScr_GmapAutoMu`.
      *
-     * Transcribed from src/worldmap_automu.c: ProcScr_GmapAutoMu (not verified)
+     * Transcribed from src/worldmap_automu.c: ProcScr_GmapAutoMu (not verified: no @VerifiesPort
+     * test names it)
      */
     public val script: ProcScript = ProcScript(
         "ProcScr_GmapAutoMu",
@@ -165,7 +166,10 @@ public class WorldMapAutoMu(
 
     private fun state(proc: Proc): GmapAutoMuProc = proc.state as GmapAutoMuProc
 
-    /** Transcribed from src/worldmap_automu.c: GmapAutoMu_OnEnd (not verified) */
+    /**
+     * Transcribed from src/worldmap_automu.c: GmapAutoMu_OnEnd (not verified: no @VerifiesPort test
+     * names it)
+     */
     public fun gmapAutoMuOnEnd(proc: Proc) {
         val s = state(proc)
         if (hooks.muMoving(s.unitId)) {
@@ -250,7 +254,10 @@ public class WorldMapAutoMu(
         )
     }
 
-    /** Transcribed from src/worldmap_automu.c: GmapAutoMu_80C32E4 (not verified) */
+    /**
+     * Transcribed from src/worldmap_automu.c: GmapAutoMu_80C32E4 (not verified: no @VerifiesPort
+     * test names it)
+     */
     public fun gmapAutoMu80C32E4(proc: Proc) {
         val s = state(proc)
         hooks.muMovePositions(
@@ -328,7 +335,8 @@ public class WorldMapAutoMu(
     }
 
     /**
-     * Transcribed from src/worldmap_automu.c: EndGmAutoMuFor (not verified); [index] < 0 ends all.
+     * Transcribed from src/worldmap_automu.c: EndGmAutoMuFor (not verified: no @VerifiesPort test
+     * names it); [index] < 0 ends all.
      */
     public fun endFor(index: Int) {
         if (index < 0) {
@@ -346,8 +354,8 @@ public class WorldMapAutoMu(
     }
 
     /**
-     * Transcribed from src/worldmap_automu.c: IsGmAutoMuActiveFor (not verified); [index] < 0
-     * asks for any.
+     * Transcribed from src/worldmap_automu.c: IsGmAutoMuActiveFor (not verified: no @VerifiesPort
+     * test names it); [index] < 0 asks for any.
      */
     public fun isActiveFor(index: Int): Boolean {
         if (index < 0) return engine.find(script) != null

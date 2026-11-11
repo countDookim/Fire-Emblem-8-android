@@ -99,7 +99,8 @@ public class MapAnimations(
      * `sProc_BMVSync` (src/bmio.c:121, ROM 0x0859D8B8, 10 commands): the VBlank proc, started on
      * tree 0.
      *
-     * Transcribed from src/bmio.c: sProc_BMVSync (data symbol; script execution verified via
+     * Transcribed from src/bmio.c: sProc_BMVSync (not verified: data symbol; script execution
+     * verified via
      *   BMapVSync_Start and BMapVSync_OnLoop)
      */
     public val procScrBmVSync: ProcScript = ProcScript(

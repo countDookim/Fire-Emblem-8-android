@@ -128,12 +128,15 @@ public class WorldMapPaletteFade(
         return null
     }
 
-    /** Transcribed from src/worldmap_palette_fade.c: IsGmPalFadeActive (not verified). */
+    /**
+     * Transcribed from src/worldmap_palette_fade.c: IsGmPalFadeActive (not verified: no
+     * @VerifiesPort test names it).
+     */
     public fun isGmPalFadeActive(): Boolean = engine.find(script) != null
 
     /**
-     * Transcribed from src/worldmap_palette_fade.c: EndGmPalFade (not verified): snaps the running
-     * fade to its target and ends it.
+     * Transcribed from src/worldmap_palette_fade.c: EndGmPalFade (not verified: no @VerifiesPort
+     * test names it): snaps the running fade to its target and ends it.
      */
     public fun endGmPalFade() {
         val proc = engine.find(script) ?: return
@@ -144,8 +147,9 @@ public class WorldMapPaletteFade(
     }
 
     /**
-     * Transcribed from src/worldmap_palette_fade.c: StartGmPalFade_ (not verified): fades 64
-     * colors at palette index 144 from [from] to [to] (the two ROM palettes the original names).
+     * Transcribed from src/worldmap_palette_fade.c: StartGmPalFade_ (not verified: no @VerifiesPort
+     * test names it): fades 64 colors at palette index 144 from [from] to [to] (the two ROM
+     * palettes the original names).
      */
     public fun startGmPalFadeDefault(
         parent: Proc?,

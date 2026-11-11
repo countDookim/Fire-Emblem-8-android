@@ -135,7 +135,8 @@ public class WorldMapFace(
     }
 
     /**
-     * Transcribed from src/worldmap_face.c: WorldMapFaceHolder_Init (fresh-state trace only)
+     * Transcribed from src/worldmap_face.c: WorldMapFaceHolder_Init (not verified: fresh-state
+     * trace only)
      *
      * Both wrappers: no face, zero position, `faceId` 0xFFFF.
      */
@@ -150,7 +151,7 @@ public class WorldMapFace(
     }
 
     /**
-     * Transcribed from src/worldmap_face.c: WMFaceCtrl_Init (fresh-state trace only)
+     * Transcribed from src/worldmap_face.c: WMFaceCtrl_Init (not verified: fresh-state trace only)
      *
      * Starts the holder child and zeroes the fade state.
      */
@@ -336,8 +337,8 @@ public class WorldMapFace(
     }
 
     /**
-     * Transcribed from src/worldmap_face.c: StartWMFaceCtrl (the proc fields of its init are
-     * compared with the trace, the parent link is not)
+     * Transcribed from src/worldmap_face.c: StartWMFaceCtrl (not verified: the proc fields of its
+     * init are compared with the trace, the parent link is not)
      *
      * @param parent the world map main proc; a root of tree 0 when null
      */
@@ -370,8 +371,8 @@ public class WorldMapFace(
     }
 
     /**
-     * Transcribed from src/face.c: EndFaceById (checked through the faded-out faces of
-     * [handleWmFaceFade]): frees the slot and ends the face proc.
+     * Transcribed from src/face.c: EndFaceById (not verified: checked through the faded-out faces
+     * of [handleWmFaceFade]): frees the slot and ends the face proc.
      */
     public fun endFaceById(slot: Int) {
         val proc = face.gFaces[slot] ?: return

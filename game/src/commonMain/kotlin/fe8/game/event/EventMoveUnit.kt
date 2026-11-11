@@ -66,7 +66,8 @@ public class EventMoveUnit(
     }
 
     /**
-     * Transcribed from src/eventscr.c: TryPrepareEventUnitMovement.
+     * Transcribed from src/eventscr.c: TryPrepareEventUnitMovement (not verified: no @VerifiesPort
+     * test names it).
      *
      * Whether the walk may start now: with the unit camera on, no camera move may exist or be
      * started for the unit's tile, and an MU slot must be free (a config with slot 0 is unused).
@@ -80,7 +81,8 @@ public class EventMoveUnit(
     }
 
     /**
-     * Transcribed from src/eventscr.c: ModifyMoveUnitFlag.
+     * Transcribed from src/eventscr.c: ModifyMoveUnitFlag (not verified: no @VerifiesPort test
+     * names it).
      *
      * The move flags: bit 0 if [unk] (meaning unknown), bit 2 with the unit camera, bit 3 with
      * `EV_STATE_0040`.

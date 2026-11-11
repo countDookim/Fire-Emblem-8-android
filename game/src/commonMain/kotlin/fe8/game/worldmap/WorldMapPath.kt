@@ -52,7 +52,7 @@ public class GmNodeLinks(public val bytes: ByteArray = ByteArray(SIZE)) {
 /** The pure `gGMData` node and path helpers of `src/worldmap_path.c`. */
 public class WorldMapPath(private val gmData: GmData, private val pathData: WmPathData) {
     /**
-     * Transcribed from src/worldmap_path.c: ResetGmStoryNode (no reference run yet).
+     * Transcribed from src/worldmap_path.c: ResetGmStoryNode (not verified: no reference run yet).
      *
      * Clears `GM_NODE_STATE_CLEARED` on all [GmNodeLinks.NODE_COUNT] nodes.
      */
@@ -63,7 +63,8 @@ public class WorldMapPath(private val gmData: GmData, private val pathData: WmPa
     }
 
     /**
-     * Transcribed from src/worldmap_path.c: GetNextUnclearedNode (no reference run yet).
+     * Transcribed from src/worldmap_path.c: GetNextUnclearedNode (not verified: no reference run
+     * yet).
      *
      * The first node that has both `GM_NODE_STATE_VALID` and `GM_NODE_STATE_CLEARED` set (as the
      * original is written, despite its name), or -1.

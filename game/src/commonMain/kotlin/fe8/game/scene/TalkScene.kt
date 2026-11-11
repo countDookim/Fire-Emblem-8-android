@@ -193,9 +193,9 @@ public class TalkScene(
         if (addr - MSG_ADDR in 0 until messages.buffer.size) addr - MSG_ADDR else addr - ROM_BASE
 
     /**
-     * Transcribed from src/scene.c: GetStrTalkLen (without the nested-string codes, which
-     * [stringArray] cannot resolve; they fail). Not verified in production; the same code drives
-     * the traced talk through the test rig.
+     * Transcribed from src/scene.c: GetStrTalkLen (not verified: in production; the same code
+     * drives the traced talk through the test rig). Without the nested-string codes, which
+     * [stringArray] cannot resolve; they fail.
      */
     override fun getStrTalkLen(str: Int, isBubbleOpen: Boolean): Int {
         val talkState = talk.state
@@ -302,7 +302,7 @@ public class TalkScene(
         bubble.startTalkShiftClear(parent)
     }
 
-    /** Transcribed from src/scene.c: TalkBgSync (not verified). */
+    /** Transcribed from src/scene.c: TalkBgSync (not verified: no @VerifiesPort test names it). */
     override fun talkBgSync(bg: Int) {
         if (talk.checkTalkFlag(TalkFlags.SPRITE) == 0) hw.enableBgSyncByMask(bg)
     }
@@ -449,7 +449,10 @@ public class TalkScene(
     /** Stand-in: the battle animation (deamon) is not ported, so it is never active. */
     override fun isBattleDeamonActive(): Boolean = false
 
-    /** Transcribed from src/scene.c: TalkToggleInvertedPalette (not verified). */
+    /**
+     * Transcribed from src/scene.c: TalkToggleInvertedPalette (not verified: no @VerifiesPort test
+     * names it).
+     */
     override fun toggleInvertedPalette(flag: Int) {
         if (flag != 0) {
             applyPalette(PAL_TALK_BUBBLE_INVERTED, 3)
@@ -460,7 +463,9 @@ public class TalkScene(
         }
     }
 
-    /** Transcribed from src/scene.c: InitTalkTextWin (not verified). */
+    /**
+     * Transcribed from src/scene.c: InitTalkTextWin (not verified: no @VerifiesPort test names it).
+     */
     override fun initTalkTextWin(x: Int, y: Int, width: Int, height: Int) {
         val lcd = hw.lcd
         lcd.setWinEnable(1, 0, 0)
@@ -474,7 +479,10 @@ public class TalkScene(
         hw.lcd.setWinEnable(0, 0, 0)
     }
 
-    /** Transcribed from src/scene.c: TalkOpen_InitBlend, without TALK_FLAG_8 (not verified). */
+    /**
+     * Transcribed from src/scene.c: TalkOpen_InitBlend, without TALK_FLAG_8 (not verified: no
+     * @VerifiesPort test names it).
+     */
     override fun initTalkBlend() {
         val lcd = hw.lcd
         lcd.setBlendTargetA(0, 1, 0, 0, 0)

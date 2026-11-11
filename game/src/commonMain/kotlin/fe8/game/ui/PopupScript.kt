@@ -77,7 +77,8 @@ public class PopupScript(
      * `unk_4A`), and its loop pushes the 16x16 object every frame. The original has no
      * `PROC_END`; the trailing one is never reached because the loop never breaks.
      *
-     * Transcribed from src/popup.c: ProcScr_PopupUpdateIcon
+     * Transcribed from src/popup.c: ProcScr_PopupUpdateIcon (not verified: no @VerifiesPort test
+     * names it)
      */
     public val iconScript: ProcScript = ProcScript(
         "ProcScr_PopupUpdateIcon",
@@ -110,7 +111,7 @@ public class PopupScript(
      * `ProcScr_Popup`: set end callback, init, sleep 10, prepare graphics, dim the BGM, yield,
      * play the sound, draw, wait for the clock or a key, restore the BGM, yield, end.
      *
-     * Transcribed from src/popup.c: ProcScr_Popup
+     * Transcribed from src/popup.c: ProcScr_Popup (not verified: no @VerifiesPort test names it)
      */
     public val script: ProcScript = ProcScript(
         "ProcScr_Popup",

@@ -26,6 +26,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check assistant instruction sync
         run: python3 tools/sync_agent_instructions.py --check
+      - name: Check unverified transcriptions list
+        run: python3 tools/unverified.py --check
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

@@ -168,8 +168,9 @@ public class TalkFace(
      * Replaces the per-slot VRAM tile offsets and OBJ palette banks, as `SetupFaceGfxData(config)`
      * does (the defaults are `gDefaultFaceConfig`).
      *
-     * Transcribed from src/face.c: SetupFaceGfxData (not verified independently of the faces that
-     * use it: the world map's `gUnknown_08A3D728` is checked through the `oam2` of its faces)
+     * Transcribed from src/face.c: SetupFaceGfxData (not verified: only checked together with the
+     * faces that use it; the world map's `gUnknown_08A3D728` is checked through the `oam2` of its
+     * faces)
      */
     public fun setupFaceGfxData(tileOffset: IntArray, paletteId: IntArray) {
         for (i in 0 until FACE_SLOTS) {
@@ -240,7 +241,7 @@ public class TalkFace(
     private fun hpos(talkFace: Int): Int = FACE_HPOS[talkFace]
 
     /**
-     * Transcribed from src/face.c: Face_OnInit
+     * Transcribed from src/face.c: Face_OnInit (not verified: no @VerifiesPort test names it)
      */
     public fun faceOnInit(proc: Proc) {
         val faceState = proc.state as FaceState
@@ -274,8 +275,8 @@ public class TalkFace(
     }
 
     /**
-     * Transcribed from src/face.c: StartFace. Unless display bit 12 is set it starts the mouth
-     * and blink children in that order.
+     * Transcribed from src/face.c: StartFace (not verified: no @VerifiesPort test names it). Unless
+     * display bit 12 is set it starts the mouth and blink children in that order.
      */
     public fun startFace(slot: Int, fid: Int, x: Int, y: Int, disp: Int): Proc? {
         if (gFaces[slot] != null) return null
@@ -360,8 +361,8 @@ public class TalkFace(
      * Draws the eye object over the face for eye frame [unk] (0 or 1: 32x16 closed or half;
      * 0x80 or 0x81: the 16x16 variant); any other value draws nothing.
      *
-     * Transcribed from src/face.c: sub_8006134. Normal blink OAM and tiles are checked against
-     * the Prologue trace in both orientations; the smaller eye object is unverified.
+     * Transcribed from src/face.c: sub_8006134 (not verified: the smaller eye object). Normal blink
+     * OAM and tiles are checked against the Prologue trace in both orientations.
      */
     public fun sub8006134(proc: Proc, unk: Int) {
         val base: Int
@@ -456,14 +457,14 @@ public class TalkFace(
     }
 
     /**
-     * Transcribed from src/face.c: sub_8006324 (unverified: held-eye path).
+     * Transcribed from src/face.c: sub_8006324 (not verified: held-eye path).
      */
     public fun sub8006324(proc: Proc) {
         blinkOf(proc).unk34 = 0
     }
 
     /**
-     * Transcribed from src/face.c: sub_800632C (unverified: held-eye path).
+     * Transcribed from src/face.c: sub_800632C (not verified: held-eye path).
      */
     public fun sub800632C(proc: Proc) {
         val blinkState = blinkOf(proc)
@@ -477,14 +478,14 @@ public class TalkFace(
     }
 
     /**
-     * Transcribed from src/face.c: sub_8006370 (unverified: held-eye path).
+     * Transcribed from src/face.c: sub_8006370 (not verified: held-eye path).
      */
     public fun sub8006370(proc: Proc) {
         blinkOf(proc).unk34 = 0
     }
 
     /**
-     * Transcribed from src/face.c: sub_8006378 (unverified: held-eye path).
+     * Transcribed from src/face.c: sub_8006378 (not verified: held-eye path).
      */
     public fun sub8006378(proc: Proc) {
         val blinkState = blinkOf(proc)
@@ -498,14 +499,14 @@ public class TalkFace(
     }
 
     /**
-     * Transcribed from src/face.c: sub_80063BC (unverified: held-eye path).
+     * Transcribed from src/face.c: sub_80063BC (not verified: held-eye path).
      */
     public fun sub80063BC(proc: Proc) {
         blinkOf(proc).unk34 = 0
     }
 
     /**
-     * Transcribed from src/face.c: sub_80063C4 (unverified: held-eye path).
+     * Transcribed from src/face.c: sub_80063C4 (not verified: held-eye path).
      */
     public fun sub80063C4(proc: Proc) {
         val blinkState = blinkOf(proc)
@@ -525,7 +526,7 @@ public class TalkFace(
     /**
      * Sets the blink kind of [face] (0 restores the portrait's own) and rerolls the interval.
      *
-     * Transcribed from src/face.c: SetFaceBlinkControl (unverified: no reference run sets it)
+     * Transcribed from src/face.c: SetFaceBlinkControl (not verified: no reference run sets it)
      */
     public fun setFaceBlinkControl(face: Proc, blinkControl: Int) {
         val faceState = face.state as FaceState
@@ -554,7 +555,7 @@ public class TalkFace(
     }
 
     /**
-     * Transcribed from src/face.c: StartFaceAuto
+     * Transcribed from src/face.c: StartFaceAuto (not verified: no @VerifiesPort test names it)
      */
     public fun startFaceAuto(fid: Int, x: Int, y: Int, disp: Int): Proc? {
         val slot = gFaces.indexOfFirst { it == null }
@@ -562,7 +563,7 @@ public class TalkFace(
     }
 
     /**
-     * Transcribed from src/face.c: SetFaceDisplayBits (not verified independently of refresh).
+     * Transcribed from src/face.c: SetFaceDisplayBits (not verified: independently of refresh).
      */
     public fun setFaceDisplayBits(proc: Proc, disp: Int) {
         val faceState = proc.state as FaceState
@@ -737,12 +738,14 @@ public class TalkFace(
     }
 
     /**
-     * Transcribed from src/scene.c: SetTalkFaceMouthMove
+     * Transcribed from src/scene.c: SetTalkFaceMouthMove (not verified: no @VerifiesPort test names
+     * it)
      */
     public fun setTalkFaceMouthMove(talkFace: Int): Unit = setTalkFaceDisp(talkFace, TALK_1)
 
     /**
-     * Transcribed from src/scene.c: SetTalkFaceNoMouthMove
+     * Transcribed from src/scene.c: SetTalkFaceNoMouthMove (not verified: no @VerifiesPort test
+     * names it)
      */
     public fun setTalkFaceNoMouthMove(talkFace: Int): Unit = setTalkFaceDisp(talkFace, 0)
 

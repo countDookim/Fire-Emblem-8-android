@@ -67,8 +67,8 @@ public class WorldMapMain(
     private val fadeInScript: ProcScript,
 ) {
     /**
-     * Transcribed from src/worldmap_main.c: ProcScr_WorldMapWrapper (script order not yet
-     * verified against a reference run).
+     * Transcribed from src/worldmap_main.c: ProcScr_WorldMapWrapper (not verified: script order not
+     * yet checked against a reference run).
      */
     public val wrapperScript: ProcScript = ProcScript(
         "ProcScr_WorldMapWrapper",
@@ -211,8 +211,8 @@ public class WorldMapMain(
     }
 
     /**
-     * Transcribed from src/worldmap_main.c: ProcScr_WorldMapMain (prefix, up to and including
-     * `PROC_REPEAT(WorldMap_PostBeginningEvent)`; the rest is not transcribed yet).
+     * Transcribed from src/worldmap_main.c: ProcScr_WorldMapMain (not verified: prefix, up to and
+     * including `PROC_REPEAT(WorldMap_PostBeginningEvent)`; the rest is not transcribed yet).
      *
      * @param nodes `gWMNodeData`
      * @param checkFlag `CheckFlag`

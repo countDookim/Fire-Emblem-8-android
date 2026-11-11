@@ -528,8 +528,8 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-bwl.c: IsPlaythroughIdUnique (verified by M5-32's full-image
-     * check; not yet)
+     * Transcribed from src/bmsave-bwl.c: IsPlaythroughIdUnique (not verified: to be verified by
+     * M5-32's full-image check, not yet done)
      *
      * False when [index] is among the global info's cleared playthroughs or the playthrough id
      * of a valid game save slot.
@@ -550,8 +550,8 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-bwl.c: GetNewPlaythroughId (verified by M5-32's full-image
-     * check; not yet)
+     * Transcribed from src/bmsave-bwl.c: GetNewPlaythroughId (not verified: to be verified by
+     * M5-32's full-image check, not yet done)
      *
      * The smallest id in 1..0xFF that [isPlaythroughIdUnique] (the C code falls off the end
      * without a value when none is; 0 here).
@@ -576,8 +576,8 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-bwl.c: GetGlobalCompletionCount (verified by M5-32's full-image
-     * check; not yet)
+     * Transcribed from src/bmsave-bwl.c: GetGlobalCompletionCount (not verified: to be verified by
+     * M5-32's full-image check, not yet done)
      *
      * 0 when the global save info is invalid, else [getGlobalCompletionCntByInfo] of it.
      */
@@ -587,8 +587,8 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-lib.c: WriteSupplyItems (verified by M5-32's full-image check;
-     * not yet)
+     * Transcribed from src/bmsave-lib.c: WriteSupplyItems (not verified: to be verified by M5-32's
+     * full-image check, not yet done)
      *
      * Packs the 100 convoy [items] (u16 each: item id in the low byte, uses in the high byte)
      * into the 0xB0-byte supply block at SRAM [destOffset]: the ids in bytes 0..99, then the
@@ -634,8 +634,8 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-gmap.c: ClearWorldMapStuff (not verified: NewGameSaveReferenceTest
-     * covers its write but no break-check has been run on it yet).
+     * Transcribed from src/bmsave-gmap.c: ClearWorldMapStuff (not verified:
+     * NewGameSaveReferenceTest covers its write but no break-check has been run on it yet).
      *
      * Writes a zeroed `GMapSaveInfo` (0x24 bytes) with `unk_1c_2` = 1 and `unk_1c_3` = 3 (byte
      * 0x1C = 0x0E) to SRAM [destOffset].

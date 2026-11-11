@@ -92,6 +92,9 @@ public class ChapterData(
     /** `initialWeather` of chapter [chapterIndex]: starting weather condition ID. */
     public fun initialWeather(chapterIndex: Int): Int = u8(chapterIndex, OFF_INITIAL_WEATHER)
 
+    /** `fadeToBlack` (u8, 0x87) of chapter [chapterIndex]: nonzero when the map start fades from black. */
+    public fun fadeToBlack(chapterIndex: Int): Int = u8(chapterIndex, OFF_FADE_TO_BLACK)
+
     /** `mapBgmIds[slot]` of chapter [chapterIndex] (`slot` 0 until [BGM_SLOTS]); 0xFFFF means none. */
     public fun mapBgmId(chapterIndex: Int, slot: Int): Int {
         require(slot in 0 until BGM_SLOTS) { "bgm slot: $slot" }
@@ -166,6 +169,9 @@ public class ChapterData(
 
         /** Offset of `mapBgmIds` in `struct ROMChapterData`. */
         public const val OFF_MAP_BGM_IDS: Int = 0x16
+
+        /** Offset of `fadeToBlack` in `struct ROMChapterData`. */
+        public const val OFF_FADE_TO_BLACK: Int = 0x87
 
         /** Offset of `victorySongEnemyThreshold` in `struct ROMChapterData`. */
         public const val OFF_VICTORY_SONG_ENEMY_THRESHOLD: Int = 0x86

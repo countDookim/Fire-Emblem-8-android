@@ -2,7 +2,17 @@ package fe8.testing
 
 import fe8.game.RomView
 import fe8.game.SoundWrapper
+import fe8.game.bm.BmMap
+import fe8.game.bm.BmMapRender
+import fe8.game.bm.BmSt
+import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterIntro
+import fe8.game.bm.ChapterMapGfx
+import fe8.game.bm.EntityBmMaps
+import fe8.game.bm.MapAnimations
+import fe8.game.bm.PlaySt
+import fe8.game.bm.UnitSprites
+import fe8.game.bm.UnitTable
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
 import gbafe.input.KeyStatus
@@ -49,6 +59,14 @@ import org.junit.jupiter.api.Test
  * BG tile data and sprite tiles `ChapterIntro_Init` decompresses, and (9409) the OAM
  * affine matrix and, at 9409, the two twin-light objects. Not compared: the sound effect of
  * `ChapterIntro_TwinLights_InitAndPlaySe` and `BMapDispSuspend`/`Resume` (hooks).
+ *
+ * The second test runs the same frames on to 9510: the skip path (label 1: `BeginFadeOut`,
+ * `LoopFadeOut`, the 60-frame sleep, `InitCameraYPos`, `InitMapDisplay`, `BeginFastFadeToMap`,
+ * `LoopFastFadeToMap`, `ChapterIntro_End`; the intro proc ends at 9506) and the first frames after
+ * it. The per-frame comparison adds the camera fields of `gBmSt` (`camera`, `cameraMax`,
+ * `mapRenderOrigin`); the full dumps (9429, 9459, 9489, ...) compare the BG and OBJ tile
+ * data in VRAM that `InitMapDisplay` writes and BG3HOFS/BG3VOFS of the I/O dump. The sound calls
+ * (`Sound_FadeOutBGM`, `Sound_FadeOutSE`, `StartBgm`) are not compared.
  */
 class ChapterIntroDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -84,6 +102,33 @@ class ChapterIntroDifferentialTest {
         assertEquals(LAST, sim.skipSeenAt[0])
     }
 
+    @Test
+    @VerifiesPort(
+        "ChapterIntro_LoopFadeOut", "ChapterIntro_InitCameraYPos", "ChapterIntro_InitMapDisplay",
+        "ChapterIntro_LoopFastFadeToMap", "sub_80141B0",
+        "MaybeResetSomePal", "MaybeSmoothChangeSomePal",
+    )
+    fun `skip path fade out map display and fast fade match every frame`() {
+        assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        val sim = Sim()
+        sim.seed()
+        sim.step(FIRST)
+        sim.compare(FIRST + 3)
+        for (f in FIRST + 4..SKIP_LAST) {
+            sim.step(f)
+            sim.compare(f)
+        }
+        assertEquals(SKIP_LAST - FIRST - 2, sim.compared, "frames compared")
+        sim.compareMapTileData()
+        // InitCameraYPos is overwritten by InitMapDisplay before the pass ends: its value is
+        // visible in the original only in the half-done dumps of the pass (9498-9500).
+        val midPass = BmSt().also { it.decode(sim.ewram(9498), BM_ST - EWRAM) }
+        assertEquals(listOf(midPass.cameraY), sim.resumeCameraY, "camera.y after InitCameraYPos")
+        assertEquals(640, midPass.cameraY)
+        assertEquals(9507, sim.introEndedAt, "the intro proc ends (dump frame)")
+    }
+
     private inner class Sim {
         val data = ref.run("ram_trace_newgame_bm")
         val names = data.dumps.entries.associate { it.value to it.key }
@@ -100,18 +145,49 @@ class ChapterIntroDifferentialTest {
         val fullDumps = mutableListOf<Int>()
         var sawTwinObjects = false
         val skipSeenAt = mutableListOf<Int>()
+        var introEndedAt = 0
+        val resumeCameraY = mutableListOf<Int>()
         var prevOam = ShortArray(0)
         var prevObjectCount = 0
+        val playSt = PlaySt()
+        val bmSt = BmSt()
+        val units = UnitTable(rom)
+        val chapterData = ChapterData(rom)
+        val map = BmMap(rom, chapterData, bmSt)
+        val mapGfx = ChapterMapGfx(rom, chapterData, hardware, playSt)
+        val unitSprites = UnitSprites(rom, hardware, bmSt)
+        val mapRender = BmMapRender(bmSt, map, hardware)
+        val hooks = ChapterIntro.Hooks(
+            newKeys = { keys.newKeys },
+            bMapDispSuspend = { suspends++ },
+            bMapDispResume = {
+                resumes++
+                resumeCameraY += bmSt.cameraY
+            },
+        ).also { it.refreshBMapGraphics = { refreshBMapGraphics() } }
         val host = ChapterIntro(
             engine, hardware, colorFade, oam, rom, SoundWrapper(engine, null) { 0 },
-            ChapterIntro.Hooks(
-                newKeys = { keys.newKeys },
-                bMapDispSuspend = { suspends++ },
-                bMapDispResume = { resumes++ },
-            ),
+            bmSt, playSt, chapterData, mapGfx,
+            MapAnimations(rom, chapterData, hardware, playSt, engine, bmSt),
+            unitSprites, EntityBmMaps(map, units, playSt), mapRender, hooks,
         )
         val root: Proc = engine.start(ProcScript("test BMapMain", listOf(block(), end())), 2)
         lateinit var intro: Proc
+
+        /**
+         * `RefreshBMapGraphics` (bmio.c) from the existing ports, for the hook of
+         * `ChapterIntro_End`: `SetupBackgrounds`, `ReadGameSaveCoreGfx` and `InitMoreBMapGraphics`.
+         * The text, UI frame, face and icon resets, `AllocWeatherParticles`, `RefreshUnitSprites`
+         * and `InitSystemTextFont` are not ported (M6-E), so they do nothing here.
+         */
+        fun refreshBMapGraphics() {
+            hardware.setupBackgrounds(null, playSt.chapterWeatherId == ChapterMapGfx.WEATHER_CLOUDS)
+            mapGfx.sub80156D4()
+            mapGfx.unpackChapterMapGraphics(playSt.chapterIndex)
+            mapRender.renderBmMap()
+            unitSprites.applyUnitSpritePalettes()
+            unitSprites.forceSyncUnitSpriteSheet()
+        }
 
         fun ewram(frame: Int): ByteArray = data.region(names.getValue(frame), "ewram")
 
@@ -130,6 +206,10 @@ class ChapterIntroDifferentialTest {
                 FADE_COMPONENTS - EWRAM + 0x600)
             data.region("f09319", "vram").copyInto(hardware.vram)
             keys.readFrom(e, KEY_STATUS - EWRAM)
+            playSt.decode(e, PLAY_ST - EWRAM)
+            bmSt.decode(e, BM_ST - EWRAM)
+            units.loadFrom(e)
+            map.initChapterMap(playSt.chapterIndex)
         }
 
         fun step(f: Int) {
@@ -143,7 +223,23 @@ class ChapterIntroDifferentialTest {
             for (tree in 0 until 8) engine.run(engine.root(tree))
         }
 
-        fun compare(f: Int) {
+        /**
+         * The dump that holds the state after our step [f]. The original runs frames 9497-9506
+         * as two long passes (`InitMapDisplay`/`BeginFastFadeToMap`/the first fast fade tick end
+         * by 9502, `ChapterIntro_End` with its `RefreshBMapGraphics` by 9507; VBlank keeps running
+         * inside them and the dumps in between show half-done passes), which the port runs
+         * atomically: step 9497 is compared with the dump of 9502, step 9498 with 9507, and the
+         * steps after them with the dumps from 9508 on.
+         */
+        fun dumpFrame(f: Int): Int = when {
+            f < SKIP_PASS_A -> f
+            f == SKIP_PASS_A -> 9502
+            f == SKIP_PASS_A + 1 -> 9507
+            else -> f + 9
+        }
+
+        fun compare(step: Int) {
+            val f = dumpFrame(step)
             val e = ewram(f)
             val procs = ProcArrayDump.ofEwram(e, procNames)
             compareProc(procs.find("gProcScr_ChapterIntro"), engine.find(host.script), f, "intro")
@@ -153,8 +249,45 @@ class ChapterIntroDifferentialTest {
             val scroll = engine.find(host.bg1And3ScrollScript)
             val scrollOrig = procs.find("ProcScr_ChapterIntro_Bg1And3Scroll")
             compareProc(scrollOrig, scroll, f, "bg1And3Scroll")
-            val orig = procs.find("gProcScr_ChapterIntro")!!
-            val state = engine.find(host.script)!!.state as ChapterIntro.State
+            val orig = procs.find("gProcScr_ChapterIntro")
+            val state = engine.find(host.script)?.state as ChapterIntro.State?
+            assertEquals(orig == null, state == null, "f$f intro state")
+            if (orig != null && state != null) compareIntroFields(f, orig, state)
+            if (scrollOrig != null) {
+                assertEquals(s16(scrollOrig, 0x4C), (scroll!!.state as ChapterIntro.State).timer,
+                    "f$f scroll timer")
+            }
+            if (keyOrig == null && f == LAST) skipSeenAt += f
+            if (step < SKIP_PASS_A) compareKeys(f, e)
+            compareCamera(f, e, step <= SKIP_PASS_A + 1)
+            if (step > SKIP_PASS_A + 1) {
+                // From 9508 the event engine (not ported here) rewrites the display (BG3, DISPCNT)
+                // and from 9509 the map limits.
+                compared++
+                return
+            }
+            compareLcd(f)
+            if (step > LAST && introEndedAt == 0 && engine.find(host.script) == null) {
+                introEndedAt = f
+            }
+            compareBuffers(f, e)
+            compared++
+            if (step <= LAST && names.getValue(f).startsWith("f")) {
+                compareFull(f, names.getValue(f))
+            }
+        }
+
+        fun compareKeys(f: Int, e: ByteArray) {
+            val keyBytes = ByteArray(KeyStatus.STRUCT_SIZE)
+            keys.writeTo(keyBytes)
+            assertEquals(
+                e.copyOfRange(KEY_STATUS - EWRAM, KEY_STATUS - EWRAM + KeyStatus.STRUCT_SIZE)
+                    .toList(),
+                keyBytes.toList(), "f$f key status",
+            )
+        }
+
+        fun compareIntroFields(f: Int, orig: ProcArrayDump.Proc, state: ChapterIntro.State) {
             assertEquals(orig.u16(0x52), state.isSkipping, "f$f isSkipping")
             if (f >= 9385) {
                 assertEquals(s16(orig, 0x50), state.skipTarget, "f$f skipTarget")
@@ -166,19 +299,9 @@ class ChapterIntroDifferentialTest {
                 assertEquals(s16(orig, 0x66), state.unk66, "f$f unk_66")
                 assertEquals(s16(orig, 0x68), state.unk68, "f$f unk_68")
             }
-            if (scrollOrig != null) {
-                assertEquals(s16(scrollOrig, 0x4C), (scroll!!.state as ChapterIntro.State).timer,
-                    "f$f scroll timer")
-            }
-            if (keyOrig == null && f == LAST) skipSeenAt += f
-            val keyBytes = ByteArray(KeyStatus.STRUCT_SIZE)
-            keys.writeTo(keyBytes)
-            assertEquals(
-                e.copyOfRange(KEY_STATUS - EWRAM, KEY_STATUS - EWRAM + KeyStatus.STRUCT_SIZE)
-                    .toList(),
-                keyBytes.toList(), "f$f key status",
-            )
-            compareLcd(f)
+        }
+
+        fun compareBuffers(f: Int, e: ByteArray) {
             for (bg in 0..3) {
                 val at = BG_BUFFERS[bg] - EWRAM
                 for (i in 0 until 0x400) {
@@ -187,6 +310,9 @@ class ChapterIntroDifferentialTest {
                 }
             }
             for (i in 0 until 512) {
+                // After ChapterIntro_End the text, UI frame and icon palettes (banks 0, 1 and 4;
+                // ReadGameSaveCoreGfx and InitSystemTextFont, stand-ins until M6-E) are not ported.
+                if (f >= END_DUMP && (i in 1 until 32 || i in 64 until 96)) continue
                 assertEquals(u16(e, PALETTE - EWRAM + 2 * i),
                     hardware.palette[i].toInt() and 0xFFFF, "f$f palette[$i]")
             }
@@ -197,9 +323,52 @@ class ChapterIntroDifferentialTest {
                 assertEquals(e[FADE_COMPONENTS - EWRAM + i], colorFade.components[i],
                     "f$f fade component $i")
             }
-            compared++
-            if (names.getValue(f).startsWith("f")) compareFull(f, names.getValue(f))
         }
+
+        fun compareCamera(f: Int, e: ByteArray, limits: Boolean) {
+            val want = BmSt().also { it.decode(e, BM_ST - EWRAM) }
+            assertEquals(want.cameraX, bmSt.cameraX, "f$f camera.x")
+            assertEquals(want.cameraY, bmSt.cameraY, "f$f camera.y")
+            if (!limits) return
+            assertEquals(want.cameraMaxX, bmSt.cameraMaxX, "f$f cameraMax.x")
+            assertEquals(want.cameraMaxY, bmSt.cameraMaxY, "f$f cameraMax.y")
+            assertEquals(want.mapRenderOriginX, bmSt.mapRenderOriginX, "f$f mapRenderOrigin.x")
+            assertEquals(want.mapRenderOriginY, bmSt.mapRenderOriginY, "f$f mapRenderOrigin.y")
+        }
+
+        /**
+         * The tile data `InitMapDisplay` loads (the tileset in BG VRAM at 0x8000, the OBJ UI
+         * graphics) against the first full dump after the window (`f09529`): nothing writes them
+         * between the pass and that dump, while the full dumps inside the pass (`f09499`) are half
+         * way through it.
+         */
+        fun compareMapTileData() {
+            val vram = data.region(AFTER_FULL, "vram")
+            val chapter = playSt.chapterIndex
+            val scratch = ByteArray(0x8000)
+            val spans = listOf(
+                0x8000 to rom.decompressInto(chapterGfx(chapterData.obj1Id(chapter)), scratch, 0),
+            )
+            // The animated tiles (from TILE_ANIM_VRAM) belong to the VBlank proc (not ported).
+            for ((start, size) in spans) {
+                for (i in start until minOf(start + size, MapAnimations.TILE_ANIM_VRAM)) {
+                    assertEquals(vram[i], hardware.vram[i], "tileset VRAM +${hex(i)}")
+                }
+            }
+            for (i in 0 until 0x20) {
+                assertEquals(vram[i], hardware.vram[i], "BG tile 0 VRAM +$i")
+            }
+            // LoadObjUIGfx: 0x12 x 4 tiles at OBJ tile 0 (rows 0x400 bytes apart).
+            for (row in 0 until 4) {
+                for (i in 0 until 0x12 * 0x20) {
+                    val at = 0x10000 + row * 0x400 + i
+                    assertEquals(vram[at], hardware.vram[at], "OBJ UI VRAM +${hex(at)}")
+                }
+            }
+        }
+
+        fun chapterGfx(assetId: Int): Int =
+            rom.u32(ChapterData.CHAPTER_DATA_ASSET_TABLE + 4 * assetId)
 
         fun compareProc(orig: ProcArrayDump.Proc?, ours: Proc?, f: Int, what: String) {
             assertEquals(orig == null, ours == null, "f$f $what live")
@@ -271,6 +440,12 @@ class ChapterIntroDifferentialTest {
     private companion object {
         const val FIRST = 9322
         const val LAST = 9420
+        const val SKIP_PASS_A = 9497
+        const val END_DUMP = 9507
+        const val SKIP_LAST = 9501
+        const val AFTER_FULL = "f09499"
+        const val PLAY_ST = 0x0202BCF0
+        const val BM_ST = 0x0202BCB0
         const val EWRAM = 0x02000000
         const val IWRAM = 0x03000000
         const val LCD_BUFFER = 0x03003080
@@ -282,6 +457,8 @@ class ChapterIntroDifferentialTest {
         const val IMG_COMM_GAME_BG = 0x08B12DB4
         const val IMG_LENS_FLARE = 0x08B17B64
         const val IMG_SPRITES = 0x08B19874
+
+        fun hex(i: Int): String = Integer.toHexString(i)
 
         fun u16(b: ByteArray, at: Int): Int =
             (b[at].toInt() and 0xFF) or ((b[at + 1].toInt() and 0xFF) shl 8)

@@ -1,6 +1,7 @@
 package fe8.game.worldmap
 
 import gbafe.core.math.BiosMath
+import gbafe.core.math.Spline
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
@@ -113,8 +114,8 @@ public class GmapMuProc {
 }
 
 /**
- * The world map unit mover (`src/worldmap_mapmu.c`), on top of [WorldMapUnit]. Movement routines
- * (`GmMuPrim_80BD444` and later) are not ported yet.
+ * The world map unit mover (`src/worldmap_mapmu.c`), on top of [WorldMapUnit]. The spline path
+ * (`sub_80BCE34`, `sub_800A950`) and the footstep sound are [Hooks].
  *
  * @param engine the proc scheduler
  * @param unit the map sprites (`GM_UNITC`)
@@ -139,6 +140,17 @@ public class WorldMapMu(
         public val slotFaction: (index: Int) -> Int = { 0 },
         /** `GetWMCenteredCameraPosition(x, y, &xCam, &yCam)`: returns `(xCam, yCam)`. */
         public val centeredCamera: (x: Int, y: Int) -> Pair<Int, Int> = { _, _ -> 0 to 0 },
+        /** `gKeyStatusPtr->heldKeys`. */
+        public val heldKeys: () -> Int = { 0 },
+        /** `sub_80BE45C(proc)`: the footstep sound of the unit (not ported). */
+        public val stepSound: (GmapMuPrimProc) -> Unit = { },
+        /**
+         * Spline setup of `GmMuPrim_80BD444`: `sub_80BCE34` and the `Struct02003BE8` for slot
+         * `p.slot` (not ported).
+         */
+        public val splineStart: (GmapMuPrimProc) -> Unit = { },
+        /** `sub_800A950(&gUnknown_0201B3A4[slot], t * 0x1000, coord)`: returns `(x, y)` in 1/16. */
+        public val splineAt: (slot: Int, t: Int) -> Pair<Int, Int> = { _, _ -> 0 to 0 },
     )
 
     private fun prim(proc: Proc): GmapMuPrimProc = proc.state as GmapMuPrimProc
@@ -147,7 +159,7 @@ public class WorldMapMu(
         prim((mu.state as GmapMuProc).prims[index]!!)
 
     /**
-     * `ProcScr_GMapMuPrim`: the movement routines of labels 1 and 2 are empty placeholders.
+     * `ProcScr_GMapMuPrim`.
      *
      * Transcribed from src/worldmap_mapmu.c: ProcScr_GMapMuPrim (not verified)
      */
@@ -161,12 +173,12 @@ public class WorldMapMu(
             label(0),
             repeat(ProcFunc { }),
             label(1),
-            call(ProcFunc { }), // GmMuPrim_80BD444: not ported yet
-            repeat(ProcFunc { }), // GmMuPrim_80BD830: not ported yet
+            call(ProcFunc { gmMuPrim80BD444(it) }),
+            repeat(ProcFunc { gmMuPrim80BD830(it) }),
             goto(0),
             label(2),
-            call(ProcFunc { }), // GmMuPrim_80BD9D8: not ported yet
-            repeat(ProcFunc { }), // GmMuPrim_80BDA78: not ported yet
+            call(ProcFunc { gmMuPrim80BD9D8(it) }),
+            repeat(ProcFunc { gmMuPrim80BDA78(it) }),
             goto(0),
             end(),
         ),
@@ -348,6 +360,166 @@ public class WorldMapMu(
             mapMuPrimRemoveLinkedMapUnit(s.prims[index]!!)
         } else {
             for (i in 0 until GmapMuProc.SLOTS) mapMuPrimRemoveLinkedMapUnit(s.prims[i]!!)
+        }
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: GmMuPrim_80BD444 (not verified: no traced caller) */
+    public fun gmMuPrim80BD444(proc: Proc) {
+        val p = prim(proc)
+        if (p.unk50 < 0) {
+            p.unk50 = sub80BD41C(
+                nodes.x(p.toNode) - nodes.x(p.fromNode),
+                nodes.y(p.toNode) - nodes.y(p.fromNode),
+            )
+        }
+        if (nodes.shipTravelFlag(p.fromNode) and 1 != 0 &&
+            nodes.shipTravelFlag(p.toNode) and 1 != 0
+        ) {
+            unit.sub80BB0E0(p.mapUnit, 0x50)
+        }
+        hooks.splineStart(p)
+        unit.mapUnitCSetPosition(p.mapUnit, nodes.x(p.fromNode), nodes.y(p.fromNode) + 6)
+        if (p.anim1 >= 0) unit.mapUnitCSetAnimId(p.mapUnit, p.anim1)
+        p.unk54 = 0
+        val (x, y) = unit.mapUnitCGetPosition(p.mapUnit)
+        p.lastX = x and 0xFFFF
+        p.lastY = y and 0xFFFF
+        p.trailCount = 0
+    }
+
+    /** `sub_80BD5B8`: records the last step in the trail; true if the unit moved. */
+    private fun recordStep(p: GmapMuPrimProc): Boolean {
+        val (x1, y1) = unit.mapUnitCGetPosition(p.mapUnit)
+        val x2 = (x1 - p.lastX) and 0xFFFF
+        val y2 = (y1 - p.lastY) and 0xFFFF
+        if (x2 == 0 && y2 == 0) return false
+        if (p.trailCount >= 3) {
+            for (i in 0 until 2) {
+                p.trailA[i] = p.trailA[i + 1]
+                p.trailB[i] = p.trailB[i + 1]
+            }
+            p.trailA[2] = x2.toByte().toInt()
+            p.trailB[2] = y2.toByte().toInt()
+        } else {
+            p.trailA[p.trailCount] = x2.toByte().toInt()
+            p.trailB[p.trailCount] = y2.toByte().toInt()
+            p.trailCount++
+        }
+        return true
+    }
+
+    /** `sub_80BD660`: the facing animation for an angle. */
+    private fun facingAnim(a: Int): Int {
+        if (((a + 0x4D00) and 0xFFFF) < 0x1A00) return 3
+        if (a < 0x3300 || a >= 0x4D00) return ((a - 0x4000) and 0xFFFF) shr 15
+        return 2
+    }
+
+    /** `sub_80BD6A8`: the animation for the trail so far, or -1. */
+    private fun trailAnim(p: GmapMuPrimProc): Int {
+        var a = 0
+        var b = 0
+        for (i in 0 until p.trailCount) {
+            a = (a + p.trailA[i]).toShort().toInt()
+            b = (b + p.trailB[i]).toShort().toInt()
+            if (BiosMath.sqrt((a * a + b * b) shl 8) > 35) {
+                return facingAnim(BiosMath.arcTan2(a, b) and 0xFFFF)
+            }
+        }
+        return -1
+    }
+
+    /** `sub_80BD740`: per-step animation, camera and last position. */
+    private fun afterStep(p: GmapMuPrimProc) {
+        if (!recordStep(p)) return
+        if (p.flag5) {
+            hooks.stepSound(p)
+            if (p.flag2 && hooks.heldKeys() and A_BUTTON != 0) hooks.stepSound(p)
+        }
+        val anim = trailAnim(p)
+        if (anim >= 0 && unit.mapUnitCGetAnimId(p.mapUnit) != anim && p.flag4) {
+            unit.mapUnitCSetAnimId(p.mapUnit, anim)
+            unit.mapUnitCSetGfxNeedsUpdate(p.mapUnit)
+        }
+        followCamera(p)
+        val (x, y) = unit.mapUnitCGetPosition(p.mapUnit)
+        p.lastX = x and 0xFFFF
+        p.lastY = y and 0xFFFF
+    }
+
+    /** `unk_42` delay and the `unk_54` timer increment shared by both repeat routines. */
+    private fun advanceTimer(p: GmapMuPrimProc): Boolean {
+        if (p.flag1) return false
+        if (p.delay > 0) {
+            p.delay--
+            return false
+        }
+        if (p.flag2 && hooks.heldKeys() and A_BUTTON != 0) p.unk54 += 2
+        p.unk54++
+        return true
+    }
+
+    private fun finishMove(proc: Proc, p: GmapMuPrimProc) {
+        followCamera(p)
+        engine.breakProc(proc)
+        p.flag0 = false
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: GmMuPrim_80BD830 (not verified: no traced caller) */
+    public fun gmMuPrim80BD830(proc: Proc) {
+        val p = prim(proc)
+        if (!advanceTimer(p)) return
+        if (p.unk54 < p.unk50) {
+            val (cx, cy) = hooks.splineAt(p.slot, p.unk54)
+            unit.mapUnitCSetPosition(p.mapUnit, cx shr 4, (cy shr 4) + 6)
+            afterStep(p)
+        } else {
+            if (nodes.shipTravelFlag(p.fromNode) and 1 != 0 &&
+                nodes.shipTravelFlag(p.toNode) and 1 != 0
+            ) {
+                unit.sub80BB0E0(p.mapUnit, 0)
+            }
+            unit.mapUnitCSetPosition(p.mapUnit, nodes.x(p.toNode), nodes.y(p.toNode) + 6)
+            if (p.flag4 && p.anim2 >= 0) unit.mapUnitCSetAnimId(p.mapUnit, p.anim2)
+            gmData.setUnitLocation(p.slot, p.toNode)
+            finishMove(proc, p)
+        }
+    }
+
+    /** Ported from src/worldmap_mapmu.c: GmMuPrim_80BD9D8 */
+    public fun gmMuPrim80BD9D8(proc: Proc) {
+        val p = prim(proc)
+        if (p.unk50 < 0) {
+            // The original indexes the node table with the coordinates (unk_4c, unk_48, ...).
+            p.unk50 = sub80BD41C(
+                nodes.x(p.unk4c) - nodes.x(p.unk48),
+                nodes.y(p.unk4e) - nodes.y(p.unk4a),
+            )
+        }
+        p.unk54 = 0
+        val (x, y) = unit.mapUnitCGetPosition(p.mapUnit)
+        p.lastX = x and 0xFFFF
+        p.lastY = y and 0xFFFF
+        if (p.anim1 >= 0) unit.mapUnitCSetAnimId(p.mapUnit, p.anim1)
+        p.trailCount = 0
+    }
+
+    /** Ported from src/worldmap_mapmu.c: GmMuPrim_80BDA78 */
+    public fun gmMuPrim80BDA78(proc: Proc) {
+        val p = prim(proc)
+        if (!advanceTimer(p)) return
+        if (p.unk54 < p.unk50) {
+            val coeff = Spline.divArm2(p.unk54, p.unk50, p.unk2f)
+            val x = (p.unk48 + Spline.divArm(0x1000, (p.unk4c - p.unk48) * coeff))
+                .toShort().toInt()
+            val y = (p.unk4a + Spline.divArm(0x1000, (p.unk4e - p.unk4a) * coeff))
+                .toShort().toInt()
+            unit.mapUnitCSetPosition(p.mapUnit, x, y + 6)
+            afterStep(p)
+        } else {
+            unit.mapUnitCSetPosition(p.mapUnit, p.unk4c, p.unk4e + 6)
+            if (p.flag4 && p.anim2 >= 0) unit.mapUnitCSetAnimId(p.mapUnit, p.anim2)
+            finishMove(proc, p)
         }
     }
 
@@ -568,6 +740,9 @@ public class WorldMapMu(
 
     private companion object {
         const val PROC_MARK_WMSTUFF = 8
+
+        /** `A_BUTTON`. */
+        const val A_BUTTON = 0x0001
 
         /** `FACTION_BLUE` and `FACTION_PURPLE`. */
         const val FACTION_BLUE = 0x00

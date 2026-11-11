@@ -32,7 +32,10 @@ class M4aTrackTest {
                     fun u8(i: Int) = iw[o + i].toInt() and 0xFF
                     fun s8(i: Int) = iw[o + i].toInt()
                     val flags = u8(0)
+                    // A track MPlayStart just (re)started (FLG_START) has not been through
+                    // MPlayMain yet, so its volume/pitch outputs were never computed.
                     if (flags and M4aTrack.FLG_EXIST == 0 || flags and 0x0F != 0) continue
+                    if (flags and M4aTrack.FLG_START != 0) continue
                     val track = M4aTrack().apply {
                         this.flags = flags or M4aTrack.FLG_VOLSET or M4aTrack.FLG_PITSET
                         keyShift = s8(0x0A)

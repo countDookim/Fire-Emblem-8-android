@@ -88,4 +88,11 @@ remain in scope. The pace depends on captures.
 finding: the extracted JSON/Tiled/PNG/MIDI files exist, but no production code reads them; the game reads the
 imported ROM by address (about 76 files in `game/`). Fourteen bullets are partial, the debug menu is missing, and
 "all data in JSON, none hardcoded" is contradicted. Nine owner decisions (D1–D9) and 23 proposed M7 rows are in
-that file; D1 (how mods override ROM-read data) sets the size of M7. None of this blocks M6.
+that file. **D1 is decided (owner, 2026-11-11): option A** — the ROM stays the vanilla source and mods override
+per table in M7 ([ADR 0015](../decisions/0015-rom-base-mod-overrides.md)); M6 ports are unaffected. D2–D9 are open.
+
+## Soon (owner request, 2026-11-11)
+
+`APP-1`: a **Delete save** button in the launcher, so a fresh New Game no longer needs "clear app data" in
+Android settings. It deletes the save file and keeps the imported ROM. Do it before further lane work that
+needs device re-tests.

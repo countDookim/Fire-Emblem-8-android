@@ -7,7 +7,7 @@ Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 ## NEEDS USER
 
 Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_TEST](docs/MANUAL_TEST.md).
-Modding decisions D1–D9 in [M7-modding](docs/plans/M7-modding.md) are open (they set M7's size; M6 is not blocked).
+Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1 decided: option A, ADR 0015; M6 is not blocked).
 
 ## In progress
 
@@ -54,9 +54,12 @@ window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose de
    Restore the default face VRAM/palette configuration at the world-map exit (`D11-wm8f`).
 2. **Lane B, player phase (M6-B, issue #5 item 5).** Start: `PP-cap1..3` (ROM repo captures from `prologue.sav`),
    then `PP-0` (inventory), which fixes the function lists of `PP-1..16`.
-3. **Housekeeping:** `PROG-1` (progress bar excludes link/debug code, owner decision), `UNV-1`, `M7-0`.
-4. **Owner:** compare the D-12 banner with an emulator; check the Rapier popup (D-09, low priority); confirm
-   issue #4 can be closed.
+3. **Soon (owner request):** `APP-1`, a Delete save button in the launcher (keeps the imported ROM).
+4. **Alignment done 2026-11-11:** the progress bar counts in-scope functions only; generated lists
+   [UNVERIFIED](docs/plans/UNVERIFIED.md) (written but unverified code) and [STANDINS](docs/plans/STANDINS.md)
+   (placeholders by milestone) are checked in CI: regenerate both with `--write` after changing such comments.
+5. **Owner:** compare the D-12 banner with an emulator; check the Rapier popup (D-09, low priority); decide
+   modding questions D2–D9 when M7 nears.
 
 `@VerifiesPort` takes bare function names; `"src/x.c: F"` silently counts nothing.
 Node table checks use pinned runtime source: `tools/setup_decomp.sh` or `FE8U_DECOMP` (read-only).

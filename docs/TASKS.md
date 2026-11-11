@@ -79,6 +79,7 @@ Owner request 2026-11-11: one coherent plan across code and docs; formatting and
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
+| APP-1 | WIRE | Launcher **Delete save** button (`MainActivity`): confirm dialog, deletes the save file (`fe8.sav` behind `FileSaveStorage`), keeps the imported ROM | Unit test: after delete the storage is empty and the ROM import is still current; next Play starts without a resume; MANUAL_TEST entry; APK announced | — | todo; owner: do soon |
 | CAP-hard1 | CAP | Hard-mode New Game run reaching autolevelled loads (unblocks old M6-13) | Run published; then tag `UnitAutolevelRealistic`, `UnitApplyBonusLevels`, `UnitAutolevelPenalty` | — | todo |
 | CAP-collide1 | CAP | Run where a unit load lands on an occupied tile (unblocks old M6-14) | Run published; then verify `AiGetUnitClosestValidPosition`, `AdjustNewUnitPosition` | — | todo |
 | D12-2 | CAP+PORT | Enemy-phase intro capture with per-scanline blend; extend `PhaseIntroDifferentialTest` | Enemy name graphics/palette and per-line blend equal the capture | — | todo; do with M6-D |
@@ -96,4 +97,4 @@ Row details, including what each task left transcribed: [archive](plans/TASKS-ar
   D11-skip, D11-proc, D11-worldmap, D11-wm1, D11-wm2, D12-1. D11-wm3..wm7 (+ wm4a–c, wm6b–d): standalone
   ports verified as far as the Prologue runs them; the rest is in lane A.
 - M4-02, M4-12, M5-56, 56b, 57..61.
-- **Alignment:** PROG-1 (`b459cf3`), UNV-1, ALN-1 (`3f85702`), ALN-2, STAND-1, M7-0 ([M7-modding](plans/M7-modding.md): 23 proposed rows wait for owner decisions D1–D9).
+- **Alignment:** PROG-1 (`b459cf3`), UNV-1, ALN-1 (`3f85702`), ALN-2, STAND-1, M7-0 ([M7-modding](plans/M7-modding.md): 23 proposed rows; D1 decided = option A, ADR 0015; D2–D9 open).

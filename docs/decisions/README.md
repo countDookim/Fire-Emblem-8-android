@@ -17,3 +17,4 @@ new record; owner amendments are folded in with their date.
 - [0012](0012-gba-library.md) Game-neutral GBA library: `gba.*` modules
 - [0013](0013-kmp-targets.md) Kotlin Multiplatform: jvm + android targets, commonMain rules
 - [0014](0014-roadmap-scope-capture-first.md) Roadmap: scope exclusion, milestones, capture-first tasks
+- [0015](0015-rom-base-mod-overrides.md) Game data: ROM is the vanilla source; mods override per table

@@ -10,7 +10,9 @@
 4. **Zero allocations per frame** (`AllocationTest`, CI benchmark). All but `:app` is Android-free.
 5. **`gba.*` knows no Fire Emblem, `gbafe.*` is game-neutral FE code, `fe8.*` is FE8-only**
    ([0010](docs/decisions/0010-multi-game-reuse.md), [0012](docs/decisions/0012-gba-library.md)), CI-enforced.
-6. **All content through the layered VFS** (JSON, Tiled, `.fe8s`, PNG/MIDI/WAV).
+6. **The imported ROM is the vanilla data source; mods override per table through the layered VFS**
+   (JSON, Tiled, `.fe8s`, PNG/MIDI/WAV; [0015](docs/decisions/0015-rom-base-mod-overrides.md)). No override
+   loader exists yet (M7).
 
 ## Modules
 

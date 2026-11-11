@@ -67,7 +67,9 @@ data, tests and the ROM-repo CI check (`ci_check_extraction.sh`).
 
 ## 3. Decisions needed from the owner
 
-1. **ROM reads vs "all data through the VFS"** (section 2): A, B, C or D. It fixes the size of M7.
+1. **ROM reads vs "all data through the VFS"** (section 2): **decided 2026-11-11: option A** (ROM stays the
+   vanilla source; per-table VFS overrides; [ADR 0015](../decisions/0015-rom-base-mod-overrides.md)). Rows below
+   with "D1" in Deps are no longer blocked by it.
 2. **Which groups must be moddable at 1.0 of M7?** Candidates: unit/class/item/character stats, chapter data and
    maps, event scripts, text, textures, audio. Anything not named stays ROM-only.
 3. **Vanilla checks with mods on:** differential tests compare against the ROM. Mods change the data under test.

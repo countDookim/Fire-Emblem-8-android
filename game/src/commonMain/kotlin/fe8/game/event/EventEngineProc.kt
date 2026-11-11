@@ -217,8 +217,17 @@ public interface EventEngineHooks {
     /** The rest of `EventEngine_CanStartSkip` (`IsBattleDeamonActive`, `ProcScr_MuDeathFade`). */
     public fun skipBlockedByOthers(): Boolean = false
 
-    /** The graphics part of `EventEngine_StartSkip` (fades, world map skip). */
-    public fun startSkipEffects(proc: EventEngineProc) {}
+    /** `WM_Exists`. */
+    public fun worldMapExists(): Boolean = false
+
+    /** `StartLockingFadeToBlack(speed, parent)`. */
+    public fun startLockingFadeToBlack(speed: Int, parent: Proc) {}
+
+    /** `sub_800D488` (`sub_80141B0` layers off, `Proc_EndEach(gProcScr_TalkOpen)`). */
+    public fun skipFadedIn(proc: EventEngineProc) {}
+
+    /** `sub_80BA424`, the world map part of `EventEngine_StartSkip`. */
+    public fun worldMapSkip(proc: EventEngineProc) {}
 
     /** Turns on BG0-3 and OBJ in the LCD control buffer (non-worldmap update). */
     public fun showAllLayers() {}

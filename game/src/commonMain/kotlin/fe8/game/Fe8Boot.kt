@@ -106,6 +106,7 @@ import gbafe.core.mechanics.Mechanics
 import gbafe.core.rng.RngService
 import gbafe.core.time.GameClock
 import gbafe.input.KeyStatus
+import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
@@ -262,6 +263,9 @@ public class Fe8Boot(
         val hooks = object : EventEngineHooks {
             override fun startPressed(): Boolean = keys.newKeys and KeyStatus.START_BUTTON != 0
             override fun fadeExists(): Boolean = screenFade.fadeExists()
+            override fun startLockingFadeToBlack(speed: Int, parent: Proc) {
+                screenFade.startLockingFadeToBlack(speed, parent)
+            }
             override fun blendY(): Int = hw.lcd.blendY
             override fun lockGame() { loop.lockGame() }
             override fun resumeGameplay() { loop.unlockGame() }

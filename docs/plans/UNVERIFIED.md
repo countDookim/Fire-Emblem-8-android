@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 550 across 70 decomp files (missing reason: 0).
+Total entries: 549 across 70 decomp files (missing reason: 0).
 
 ## src/worldmap_rm.c (42)
 
@@ -454,7 +454,7 @@ Total entries: 550 across 70 decomp files (missing reason: 0).
 | `SetFaceDisplayBits` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | independently of refresh |
 | `EndFaceById` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFace.kt` | checked through the faded-out faces of [handleWmFaceFade] |
 
-## src/bmlib.c (13)
+## src/bmlib.c (12)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
@@ -464,7 +464,6 @@ Total entries: 550 across 70 decomp files (missing reason: 0).
 | `FadeToWhite_OnInit` | `engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt` | no reference run fades to white |
 | `FadeFromWhite_OnInit` | `engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt` | no reference run fades from white |
 | `StartFadeFromBlack` | `engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt` | only the locking FromBlack start is traced |
-| `StartLockingFadeToBlack` | `engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt` | no reference run fades to black |
 | `StartLockingFadeToWhite` | `engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt` | no reference run fades to white |
 | `StartLockingFadeFromWhite` | `engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt` | no reference run fades from white |
 | `StartFastFadeToBlack` | `engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt` | only the slow variant is traced |

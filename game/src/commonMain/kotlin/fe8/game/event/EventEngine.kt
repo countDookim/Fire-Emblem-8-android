@@ -15,6 +15,7 @@ import fe8.game.event.EventConst.EV_STATE_0002
 import fe8.game.event.EventConst.EV_STATE_ABORT
 import fe8.game.event.EventConst.EV_STATE_CHANGEGM
 import fe8.game.event.EventConst.EV_STATE_FADEDIN
+import fe8.game.event.EventConst.EV_STATE_NOFADE
 import fe8.game.event.EventConst.EV_STATE_NOSKIP
 import fe8.game.event.EventConst.EV_STATE_SKIPPING
 import gbafe.proc.Proc
@@ -325,13 +326,29 @@ public class EventEngine(
             !hooks.skipBlockedByOthers()
 
     /**
-     * Partially ported from src/event.c: EventEngine_StartSkip. Missing: the fade and world map
-     * effects (`sub_800D488` etc.); only the skipping bit is set, the rest is behind
-     * [EventEngineHooks.startSkipEffects].
+     * Ported from src/event.c: EventEngine_StartSkip. `GetZero` is always 0, so its guard is
+     * dropped. The fade to black (0x40, locking the engine proc) and `Proc_BlockEachMarked(5)`
+     * are verified for the Prologue castle cutscene. The `sub_800D488` branch
+     * ([EventEngineHooks.skipFadedIn]), the world map branch ([EventEngineHooks.worldMapExists])
+     * and `sub_80BA424` ([EventEngineHooks.worldMapSkip]) are hooks, not run by the capture.
      */
     public fun startSkip(proc: EventEngineProc) {
         proc.evStateBits = proc.evStateBits or EV_STATE_SKIPPING
-        hooks.startSkipEffects(proc)
+
+        if (hooks.worldMapExists()) {
+            hooks.skipFadedIn(proc)
+        } else if ((proc.evStateBits and EV_STATE_NOFADE) == 0) {
+            if ((proc.evStateBits and EV_STATE_FADEDIN) != 0) {
+                hooks.skipFadedIn(proc)
+            } else {
+                proc.proc?.let { hooks.startLockingFadeToBlack(SKIP_FADE_SPEED, it) }
+            }
+            proc.evStateBits = proc.evStateBits or EV_STATE_FADEDIN
+        }
+
+        if (proc.execType == EV_EXEC_WORLDMAP) hooks.worldMapSkip(proc)
+
+        procs.blockEachMarked(PROC_MARK_TALK)
     }
 
     /** The first running standard engine proc, or null. */
@@ -345,6 +362,10 @@ public class EventEngine(
         /** `PROC_TREE_3`. */
         public const val PROC_TREE_3: Int = 3
 
+        /** `PROC_MARK_TALK`. */
+        private const val PROC_MARK_TALK = 5
+
+        private const val SKIP_FADE_SPEED = 0x40
         private const val CODES = 0x80
         private const val QUEUE_ENTRIES = 16
 

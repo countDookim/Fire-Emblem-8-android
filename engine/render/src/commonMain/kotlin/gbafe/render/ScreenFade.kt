@@ -167,10 +167,7 @@ public class ScreenFade(
      */
     public fun startFadeFromBlack(speed: Int): Unit = begin(fromBlack, speed)
 
-    /**
-     * Transcribed from src/bmlib.c: StartLockingFadeToBlack (not verified:
-     *   no reference run fades to black)
-     */
+    /** Ported from src/bmlib.c: StartLockingFadeToBlack */
     public fun startLockingFadeToBlack(speed: Int, parent: Proc): Unit =
         beginBlocking(toBlack, speed, parent)
 

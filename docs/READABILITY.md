@@ -40,11 +40,11 @@ their old counts); new packages get a row when they appear.
 | engine/core | gbafe.core.time | 1 | 30 | done 2026-11-07 7fab3cc; audit done 2026-11-11 fce7054 |
 | engine/core | gbafe.proc | 2 | 573 | done 2026-11-07 c0f92eb; audit done 2026-11-11 44d2337 |
 | engine/data | gbafe.data | 3 | 88 | done 2026-11-07 c0f92eb; audit done 2026-11-11 44d2337 |
-| engine/extract | gbafe.extract | 5 | 197 | done 2026-11-07 200eae1; audit done 2026-11-11 (pending commit) |
-| engine/extract | gbafe.extract.fe8 | 2 | 278 | done 2026-11-07 200eae1; audit done 2026-11-11 (pending commit) |
-| engine/extract | gbafe.extract.fe8.chapters | 1 | 102 | done 2026-11-07 50ec53d; audit done 2026-11-11 (pending commit) |
-| engine/extract | gbafe.extract.fe8.characters | 1 | 102 | done 2026-11-07 50ec53d; audit done 2026-11-11 (pending commit) |
-| engine/extract | gbafe.extract.fe8.classes | 1 | 132 | done 2026-11-07 50ec53d; audit done 2026-11-11 (pending commit) |
+| engine/extract | gbafe.extract | 5 | 197 | done 2026-11-07 200eae1; audit done 2026-11-11 f0b91dd |
+| engine/extract | gbafe.extract.fe8 | 2 | 278 | done 2026-11-07 200eae1; audit done 2026-11-11 f0b91dd |
+| engine/extract | gbafe.extract.fe8.chapters | 1 | 102 | done 2026-11-07 50ec53d; audit done 2026-11-11 f0b91dd |
+| engine/extract | gbafe.extract.fe8.characters | 1 | 102 | done 2026-11-07 50ec53d; audit done 2026-11-11 f0b91dd |
+| engine/extract | gbafe.extract.fe8.classes | 1 | 132 | done 2026-11-07 50ec53d; audit done 2026-11-11 f0b91dd |
 | engine/extract | gbafe.extract.fe8.events | 4 | 2359 | done 2026-11-09 a0981c8; audit todo |
 | engine/extract | gbafe.extract.fe8.items | 1 | 111 | done 2026-11-07 21ee533 (some long code lines left); audit todo |
 | engine/extract | gbafe.extract.fe8.maps | 1 | 177 | done 2026-11-07 21ee533 (some long code lines left); audit todo |

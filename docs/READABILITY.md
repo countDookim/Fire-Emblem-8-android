@@ -54,7 +54,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game | 8 | 1999 | done 2026-11-09 ee10196 |
 | game | fe8.game.bm (map, camera, state, cursor, music, chapter data: 16 files) | 16 | 2964 | done 2026-11-10 bac8ed1 |
 | game | fe8.game.bm (battle: BattleGenerate, BattleUnit, BmBattle, ItemInfo) | 4 | 2316 | done 2026-11-11 49679cb |
-| game | fe8.game.bm (PhaseIntro, UnitTable, MapAnimations, UnitSprites, UnitSpriteHandles, UnitSpritesOam) | 6 | 1732 | todo |
+| game | fe8.game.bm (PhaseIntro, UnitTable, MapAnimations, UnitSprites, UnitSpriteHandles, UnitSpritesOam) | 6 | 1732 | done 2026-11-11 d9263c3 |
 | game | fe8.game.bm (UnitLoader, Mu, MuCtrl, MuSpriteAnim, PlayerPhase, BattleMapStart) | 6 | 3863 | todo |
 | game | fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs) | 4 | 845 | done 2026-11-10 ff286fe / 0bfe1ab |
 | game | fe8.game.event (remaining command handlers and script formats) | 18 | 3299 | done 2026-11-10 077a47d |
@@ -67,7 +67,8 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.text | 1 | 30 | done 2026-11-09 0194222 |
 | game | fe8.game.title | 1 | 824 | done 2026-11-09 83f2cb6 |
 | game | fe8.game.ui | 5 | 1069 | done 2026-11-11 262e4fc |
-| game | fe8.game.worldmap | 19 | 5607 | todo |
+| game | fe8.game.worldmap (WorldMapRm, WorldMapRmBaPalAnim, WorldMapPaletteFade, WorldMapText, WorldMapTextFadeEvents) | 5 | 1254 | todo |
+| game | fe8.game.worldmap (other files) | 15 | 5092 | todo |
 | gba/audio | gba.audio | 17 | 2799 | done 2026-11-09 1db6a62 |
 | gba/core | gba.core | 1 | 21 | done 2026-11-07 697847c |
 | gba/core | gba.core.event | 2 | 101 | done 2026-11-07 697847c |

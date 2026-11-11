@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 741,
+    "verified": 743,
     "implemented_unverified": 1
   },
   "functions": {
@@ -2142,6 +2142,24 @@
       "status": "verified",
       "tests": [
         "fe8.game.worldmap.GmDataTest#gmDataInit from garbage matches gGMData in the first trace dump"
+      ]
+    },
+    "GmMuPrim_80BD9D8": {
+      "decomp_file": "src/worldmap_mapmu.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuTest#linear prim movement matches the traced procs"
+      ]
+    },
+    "GmMuPrim_80BDA78": {
+      "decomp_file": "src/worldmap_mapmu.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuTest#linear prim movement matches the traced procs"
       ]
     },
     "GmMuPrim_OnInit": {

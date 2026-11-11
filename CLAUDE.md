@@ -35,9 +35,9 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
    time). Rule 4 is never relaxed. If an owner decision is needed, ask and wait before dependent edits.
 8. Kotlin follows Google's Android Kotlin style guide (4-space indent, 100 columns, no wildcard imports, its naming,
    brace and KDoc rules) for code you write or change; don't mass-reformat existing code.
-9. **Delegate coding (owner, 2026-11-03).** The session model plans and reviews; a Sonnet subagent writes the code.
+9. **Delegate coding (owner, 2026-11-03).** The session model plans and reviews; a subagent does the work. Choose the model per task: Haiku when the brief states exactly what to change and a mechanical check proves it (comments, docs, generators with tests, inventories); Sonnet for anything that needs reasoning (PORT, WIRE, trace analysis, capture scripts, audits) and whenever unsure. A Haiku task that fails its check or review is redone on Sonnet.
    Per task: (a) read HANDOFF/TASKS and only the excerpts needed to plan; (b) split the job into small,
-   self-contained coding briefs (one per `Agent` call, `model: "sonnet"`), each stating: goal, files and symbols to touch, exact behaviour/API
+   self-contained coding briefs (one per `Agent` call, `model: "haiku"` or `model: "sonnet"`; say which and why when launching), each stating: goal, files and symbols to touch, exact behaviour/API
    (signatures, KDoc wording if public), source to port (decomp file + function, `Ported from` line), the test to
    add/run and its command, the acceptance check, and rules 3/4/6/8 that apply; tell the agent not to commit, push
    or edit HANDOFF; (c) review `git diff --stat`, key diff hunks and test output, not whole files; send fixes to

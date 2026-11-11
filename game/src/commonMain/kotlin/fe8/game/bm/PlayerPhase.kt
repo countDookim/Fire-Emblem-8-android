@@ -116,7 +116,10 @@ public class PlayerPhase(
         /** Stand-in for `EndPlayerPhaseSideWindows` until M6-B. */
         public var endSideWindows: ProcFunc = ProcFunc {}
 
-        /** `ResetUnitSpriteHover` (src/bmudisp.c). Replaced by [PlayerPhase] to call [UnitSpriteHover.resetUnitSpriteHover]. */
+        /**
+         * `ResetUnitSpriteHover` (src/bmudisp.c). Replaced by [PlayerPhase] to call
+         * [UnitSpriteHover.resetUnitSpriteHover].
+         */
         public var resetUnitSpriteHover: ProcFunc = ProcFunc {}
 
         /**
@@ -146,10 +149,16 @@ public class PlayerPhase(
          */
         public var startButton: ProcBoolFunc = ProcBoolFunc { false }
 
-        /** `UnitSpriteHoverUpdate` (src/bmudisp.c). Replaced by [PlayerPhase] to call [UnitSpriteHover.unitSpriteHoverUpdate]. */
+        /**
+         * `UnitSpriteHoverUpdate` (src/bmudisp.c). Replaced by [PlayerPhase] to call
+         * [UnitSpriteHover.unitSpriteHoverUpdate].
+         */
         public var unitSpriteHoverUpdate: ProcFunc = ProcFunc {}
 
-        /** `IsUnitSpriteHoverEnabledAt` (src/bmudisp.c). Replaced by [PlayerPhase] to call [UnitSpriteHover.isUnitSpriteHoverEnabledAt]. */
+        /**
+         * `IsUnitSpriteHoverEnabledAt` (src/bmudisp.c). Replaced by [PlayerPhase] to call
+         * [UnitSpriteHover.isUnitSpriteHoverEnabledAt].
+         */
         public var isUnitSpriteHoverEnabledAt: (x: Int, y: Int) -> Boolean = { _, _ -> false }
 
         /**
@@ -215,10 +224,11 @@ public class PlayerPhase(
          * Stand-in until PP-17 for the part of `DisplayUnitEffectRange` that runs while the unit
          * has not moved (`AttackRange.generateUnitCompleteAttackRange` is ported, but
          * `GetUnitWeaponUsabilityBits` and `GenerateMagicSealMap` are not, so `Fe8Boot` cannot
-         * wire it yet; the select test backs the weapon-only case with it): `BmMapFill(gBmMapOther, 0)`, `GenerateMagicSealMap` for a unit with
-         * magic ranks, `BmMapFill(gBmMapRange, 0)` and the attack or staff range generation for
-         * the weapon usability of unit id [unit] (`gBmSt.swapActionRangeCount` selects between
-         * both for a unit with both). Returns the `LIMITVIEW_*` flags to display; the default
+         * wire it yet; the select test backs the weapon-only case with it):
+         * `BmMapFill(gBmMapOther, 0)`, `GenerateMagicSealMap` for a unit with magic ranks,
+         * `BmMapFill(gBmMapRange, 0)` and the attack or staff range generation for the weapon
+         * usability of unit id [unit] (`gBmSt.swapActionRangeCount` selects between both for a
+         * unit with both). Returns the `LIMITVIEW_*` flags to display; the default
          * does nothing and keeps `LIMITVIEW_BLUE`.
          */
         public var generateAttackRange: (unit: Int) -> Int = { LIMITVIEW_BLUE }
@@ -481,7 +491,8 @@ public class PlayerPhase(
         }
 
         hooks.unitSpriteHoverUpdate.invoke(proc)
-        val kind = if (hooks.isUnitSpriteHoverEnabledAt(bm.playerCursorX, bm.playerCursorY)) 3 else 0
+        val hover = hooks.isUnitSpriteHoverEnabledAt(bm.playerCursorX, bm.playerCursorY)
+        val kind = if (hover) 3 else 0
         hooks.putMapCursor.put(bm.playerCursorDisplayX, bm.playerCursorDisplayY, kind)
     }
 

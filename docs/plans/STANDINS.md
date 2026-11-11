@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 197 across 30 Kotlin files.
+Total entries: 195 across 30 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -24,7 +24,6 @@ Total entries: 197 across 30 Kotlin files.
 | M6-J | 8 |
 | D09-3 | 2 |
 | D11-ci1 | 2 |
-| D11-ci3 | 2 |
 | D11-ci5 | 3 |
 | D11-wire-a | 1 |
 | D11-wire-b | 1 |
@@ -246,15 +245,8 @@ Total entries: 197 across 30 Kotlin files.
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `script` | Stand-ins for the next chapter-intro row: Bg2Scroll, decals, fog, timer, `8020A40`/`8020A8C` and `BeginFadeToMap`/ `LoopFadeToMap`. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `script` | Stand-ins for the next row: `8020A40`, `8020A8C` and `BeginFadeToMap`/ `LoopFadeToMap`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `script` | Transcribed from src/chapterintrofx.c: gProcScr_ChapterIntro (not verified: the captures run commands 0-14 (`ram_trace_newgame_intro` to the fog start), the jump to label 1 and the label 1 / 99 com... |
-
-## D11-ci3 (2)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `bg2ScrollScript` | `ProcScr_ChapterIntro_Bg2Scroll`: stand-in until the row after D11-ci3. |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `putDecalScript` | `ProcScr_ChapterIntro_PutDecalSprite`: stand-in until the row after D11-ci3. |
 
 ## D11-ci5 (3)
 

@@ -92,6 +92,9 @@ public class ChapterIntro(
          * Stand-in until M6-I; the default answers -1.
          */
         public var getNextUnclearedNode: () -> Int = { -1 }
+
+        /** `GetGameClock()` (`gGameClock`, frames since boot). */
+        public var gameClock: () -> Int = { 0 }
     }
 
     /** `struct ChapterIntroFxProc` fields (0x2C..0x68) shared by the intro and its children. */
@@ -196,18 +199,62 @@ public class ChapterIntro(
         newState = { State() },
     )
 
-    /** `ProcScr_ChapterIntro_Bg2Scroll`: stand-in until the row after D11-ci3. */
-    private val bg2ScrollScript = standInScript("ProcScr_ChapterIntro_Bg2Scroll")
+    /**
+     * `ProcScr_ChapterIntro_Bg2Scroll`.
+     *
+     * Transcribed from src/chapterintrofx.c: ProcScr_ChapterIntro_Bg2Scroll (not verified: the
+     *   script layout is only exercised through its callback)
+     */
+    public val bg2ScrollScript: ProcScript = ProcScript(
+        "ProcScr_ChapterIntro_Bg2Scroll",
+        listOf(repeat(ProcFunc { bg2ScrollLoop() }), end()),
+        newState = { State() },
+    )
 
-    /** `ProcScr_ChapterIntro_PutDecalSprite`: stand-in until the row after D11-ci3. */
-    private val putDecalScript = standInScript("ProcScr_ChapterIntro_PutDecalSprite")
+    /**
+     * `ProcScr_ChapterIntro_RevealDecalSprite`.
+     *
+     * Transcribed from src/chapterintrofx.c: ProcScr_ChapterIntro_RevealDecalSprite (not
+     *   verified: the script layout is only exercised through its callbacks)
+     */
+    public val revealDecalScript: ProcScript = ProcScript(
+        "ProcScr_ChapterIntro_RevealDecalSprite",
+        listOf(
+            call(ProcFunc { revealDecalSpriteInit(it.state as State) }),
+            repeat(ProcFunc { revealDecalSpriteLoop(it) }),
+            end(),
+        ),
+        newState = { State() },
+    )
+
+    /**
+     * `ProcScr_ChapterIntro_PutDecalSprite`.
+     *
+     * Transcribed from src/chapterintrofx.c: ProcScr_ChapterIntro_PutDecalSprite (not verified:
+     *   the script layout is only exercised through its callback)
+     */
+    public val putDecalScript: ProcScript = ProcScript(
+        "ProcScr_ChapterIntro_PutDecalSprite",
+        listOf(
+            sleep(30),
+            startChild { revealDecalScript },
+            repeat(ProcFunc { putDecalSpriteLoop() }),
+            end(),
+        ),
+        newState = { State() },
+    )
+
+    private val decalBanner: ShortArray by lazy { rom.pal(SPRITE_DECAL_BANNER, 13) }
+    private val object16: ShortArray by lazy { rom.pal(OBJECT_16X16, 4) }
+    private val object32: ShortArray by lazy { rom.pal(OBJECT_32X32, 4) }
+    private val genericBuffer = ByteArray(GENERIC_BUFFER_SIZE)
 
     /**
      * `gProcScr_ChapterIntro`, command for command. Real: the start up to the twin lights
      * (D11-ci1), `InitBLDCNT`, `DrawChapterTitle` and `SetBG_802009C` (D11-ci2), the light burst
      * and light explosion (D11-ci3), label 1 (the skip path) and `End` (D11-ci4),
-     * `InitCameraYPos` and `InitMapDisplay` (both paths). Stand-ins for the next chapter-intro
-     * row: Bg2Scroll, decals, fog, timer, `8020A40`/`8020A8C` and `BeginFadeToMap`/
+     * `InitCameraYPos` and `InitMapDisplay` (both paths), Bg2Scroll, decals, fog and the timer
+     * (D11-ci3b). Stand-ins for the next row: `8020A40`, `8020A8C` and `BeginFadeToMap`/
      * `LoopFadeToMap`.
      *
      * Transcribed from src/chapterintrofx.c: gProcScr_ChapterIntro (not verified: the captures
@@ -233,10 +280,10 @@ public class ChapterIntro(
             call(ProcFunc { setBg802009C() }),
             startChild { bg2ScrollScript },
             startChild { putDecalScript },
-            call(standInFunc("ChapterIntro_InitFogGfx")),
-            repeat(standInFunc("ChapterIntro_BlendFogAlpha_Loop")),
-            callArg(ProcArgFunc { _, _ -> true }, 160),
-            repeat(standInFunc("ChapterIntro_TickTimerMaybe")),
+            call(ProcFunc { initFogGfx(it.state as State) }),
+            repeat(ProcFunc { blendFogAlphaLoop(it) }),
+            callArg(ProcArgFunc { arg, proc -> setTimer(arg, proc); true }, 160),
+            repeat(ProcFunc { tickTimerMaybe(it) }),
             call(standInFunc("ChapterIntro_8020A40")),
             repeat(standInFunc("ChapterIntro_8020A8C")),
             endEach { bg2ScrollScript },
@@ -356,7 +403,6 @@ public class ChapterIntro(
     ) {
         val x = Interpolate.interpolate(Interpolate.RCUBIC, 240 / 2, xTarget, state.timer, 70)
         val y = Interpolate.interpolate(Interpolate.RCUBIC, 160 / 2, yTarget, state.timer, 70)
-        val object16 = rom.pal(OBJECT_16X16, 4)
         oam.putHi(
             ((x - 8) and 0x1FF) or (affineId shl 9),
             ((y - 8) and 0x1FF) or OAM0_AFFINE_ENABLE,
@@ -408,6 +454,115 @@ public class ChapterIntro(
         putOppositeLightExplosionSprites(state, 3, 169, 47)
         state.timer = (state.timer + 1).toShort().toInt()
         if (state.timer >= 70) engine.breakProc(proc)
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_Bg2Scroll_Loop
+     *
+     * Scrolls BG2 diagonally by half the game clock, wrapping at 256.
+     */
+    private fun bg2ScrollLoop() {
+        val offset = (hooks.gameClock() / 2) and 0xFF
+        hardware.lcd.setBgPosition(2, offset, offset)
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_PutDecalSprite_Loop
+     *
+     * Puts the decal banner (OBJ chr 0x200, palette 2) at (0, 64) twice, as the original does.
+     */
+    private fun putDecalSpriteLoop() {
+        oam.putHi(0, 64, decalBanner, OAM2_CHR_200_PAL_2)
+        oam.putHi(0, 64, decalBanner, OAM2_CHR_200_PAL_2)
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_RevealDecalSprite_Init
+     *
+     * Makes the outside of the window show every layer but the objects, so the decal is only seen
+     * inside the window box [revealDecalSpriteLoop] opens.
+     */
+    private fun revealDecalSpriteInit(state: State) {
+        state.timer = 0
+        hardware.lcd.setWOutLayers(1, 1, 1, 1, 0)
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_RevealDecalSprite_Loop
+     *
+     * Opens window 0 from the screen's horizontal centre to the full width over 40 frames.
+     */
+    private fun revealDecalSpriteLoop(proc: Proc) {
+        val state = proc.state as State
+        val hWinOffs = Interpolate.interpolate(Interpolate.RCUBIC, 0, 240 / 2, state.timer, 40)
+        hardware.lcd.setWin0Box(240 / 2 - hWinOffs, 0, hWinOffs + 240 / 2, 160)
+        state.timer = (state.timer + 1).toShort().toInt()
+        if (state.timer > 40) engine.breakProc(proc)
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_InitFogGfx
+     *
+     * Loads the fog image to BG tile 0x400, its palette to bank 4 and its tilemap (palette 4)
+     * to BG2, and sets BG1 as the second and BG2 as the first blend target.
+     */
+    private fun initFogGfx(state: State) {
+        val lcd = hardware.lcd
+        lcd.setDispEnable(1, 1, 1, 0, 1)
+        state.timer = 0
+        lcd.setBlendTargetA(0, 0, 1, 0, 0)
+        lcd.setBlendTargetB(0, 1, 0, 0, 0)
+        rom.decompressInto(IMG_FOG, hardware.vram, 0x400 * 0x20)
+        rom.pal(PAL_FOG, 16).copyInto(hardware.palette, 4 * 16)
+        hardware.enablePaletteSync()
+        rom.decompressInto(TSA_FOG, genericBuffer, 0)
+        BgTilemap.applyTsa(hardware.mapBuffer(2), 0, genericBuffer, 0, 4 shl 12)
+        hardware.enableBgSyncByMask(4)
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_BlendFogAlpha_Loop
+     *
+     * Fades the fog in: BG2's blend weight `timer` rises by one every fourth frame (by four
+     * when the intro is being skipped, or when `skipTarget` is 3) until it passes 5, then
+     * stays at 6 and the proc breaks.
+     *
+     * Not run by the capture (not verified: the `isSkipping` and `skipTarget == 3` branches).
+     */
+    private fun blendFogAlphaLoop(proc: Proc) {
+        val state = proc.state as State
+        setBlendAlpha(state.timer, 16)
+        if (state.skipTarget == 3 || (hooks.gameClock() and 3) == 0) {
+            state.timer = (state.timer + if (state.isSkipping != 0) 4 else 1).toShort().toInt()
+            if (state.timer > 5) {
+                setBlendAlpha(6, 16)
+                engine.breakProc(proc)
+            }
+        }
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_SetTimer
+     */
+    private fun setTimer(timer: Int, proc: Proc) {
+        (proc.state as State).timer = timer.toShort().toInt()
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_TickTimerMaybe
+     *
+     * Counts the timer down and breaks when it was already negative, or at once when the intro
+     * is being skipped (not verified: the `isSkipping` branch is not run by the capture).
+     */
+    private fun tickTimerMaybe(proc: Proc) {
+        val state = proc.state as State
+        if (state.isSkipping != 0) {
+            engine.breakProc(proc)
+            return
+        }
+        val before = state.timer
+        state.timer = (before - 1).toShort().toInt()
+        if (before < 0) engine.breakProc(proc)
     }
 
     /**
@@ -632,7 +787,6 @@ public class ChapterIntro(
             oam.setObjAffine(0, 0x1000 * 16 / scale, 0, 0, 0x1000 * 16 / scale)
             state.unk64 = (state.unk64 + 1).toShort().toInt()
         }
-        val object32 = rom.pal(OBJECT_32X32, 4)
         oam.putHi(
             (state.xLight - 16) and 0x1FF,
             ((state.yLight - 16) and 0x1FF) or OAM0_AFFINE_ENABLE,
@@ -862,6 +1016,12 @@ public class ChapterIntro(
         const val IMG_SPRITES = 0x08B19874
         const val PAL_SPRITES = 0x08B19DEC
         const val OBJECT_16X16 = 0x08590F4C
+        const val SPRITE_DECAL_BANNER = 0x0859B144
+        const val IMG_FOG = 0x08B18F34
+        const val TSA_FOG = 0x08B196D8
+        const val PAL_FOG = 0x08B19854
+        const val GENERIC_BUFFER_SIZE = 0x2000
+        const val OAM2_CHR_200_PAL_2 = 0x200 or (2 shl 12)
         const val OBJECT_32X32 = 0x08590F54
         const val LIGHT_X_LUT = 0x0859B120
         const val LIGHT_Y_LUT = 0x0859B132

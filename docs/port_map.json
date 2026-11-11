@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 817,
+    "verified": 825,
     "implemented_unverified": 2
   },
   "functions": {
@@ -1937,11 +1937,21 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
         "fe8.testing.EventScriptBattleDifferentialTest#script battle command generates the traced battle"
+      ]
+    },
+    "GenerateUnitCompleteAttackRange": {
+      "decomp_file": "src/bmidoten.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/AttackRange.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackRangeDifferentialTest#select attack range matches the game"
       ]
     },
     "GenerateUnitMovementMapExt": {
@@ -2236,6 +2246,16 @@
         "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items"
       ]
     },
+    "GetItemEncodedRange": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackRangeDifferentialTest#select attack range matches the game"
+      ]
+    },
     "GetItemHit": {
       "decomp_file": "src/bmitem.c",
       "system": "battle_logic",
@@ -2304,6 +2324,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.PopupProcDifferentialTest#parsePopupInstAndGetLen reproduces the traced width icon and sound"
+      ]
+    },
+    "GetItemReachBits": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/AttackRange.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackRangeDifferentialTest#select attack range matches the game"
       ]
     },
     "GetItemType": {
@@ -2598,6 +2628,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "GetUnitWeaponReachBits": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/AttackRange.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackRangeDifferentialTest#select attack range matches the game"
       ]
     },
     "GetWMCenteredCameraPosition": {
@@ -3286,6 +3326,16 @@
         "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
       ]
     },
+    "IsUnitSpriteHoverEnabledAt": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpriteHover.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitSpriteHoverDifferentialTest#isUnitSpriteHoverEnabledAt matches the reference dumps and rules"
+      ]
+    },
     "IsValidSuspendSave": {
       "decomp_file": "src/bmsave.c",
       "system": "save",
@@ -3501,6 +3551,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items"
+      ]
+    },
+    "MapAddInBoundedRange": {
+      "decomp_file": "src/bmidoten.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/AttackRange.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackRangeDifferentialTest#select attack range matches the game"
       ]
     },
     "MapAddInRange": {
@@ -4953,6 +5013,16 @@
         "fe8.testing.KeyStatusDifferentialTest#boot key status matches ResetKeyStatus plus idle updates"
       ]
     },
+    "ResetUnitSpriteHover": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpriteHover.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitSpriteHoverDifferentialTest#resetUnitSpriteHover resets timer to 0 matching idle entry"
+      ]
+    },
     "ResetUnitSprites": {
       "decomp_file": "src/bmudisp.c",
       "system": "battle_map",
@@ -6366,6 +6436,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "UnitSpriteHoverUpdate": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSpriteHover.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitSpriteHoverDifferentialTest#unitSpriteHoverUpdate matches reference dump timers and transitions"
       ]
     },
     "UnlockGame": {

@@ -15,7 +15,6 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 - D11-ci2: owner PC, until ~15:30Z
 - PP-3: owner PC, until ~15:30Z
 - PP-14: owner PC, until ~15:30Z
-- PP-0a fix (branch wip/pp0a): owner PC, until ~15:30Z
 
 ## Current state
 
@@ -58,7 +57,7 @@ window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose de
 1. **Lane A, opening wired (M6-A, D-11).** Done 11-11: wm3b–d, ci0, ci1, ci4, cap2 (`ram_trace_newgame_intro`,
    intro main path). Next: `D11-wm3e`, `D11-wm3f`, `D11-ci2`/`ci3` (use the new capture), `D11-wire-a`, `D11-cap1`.
    Status: [D11-worldmap §8–9a](docs/plans/D11-worldmap.md). Ports stay standalone until `D11-wire-b`/`D11-wm9`/`ci5`.
-2. **Lane B, player phase (M6-B).** Done 11-11: PP-cap1..3, PP-0, PP-1, PP-2, PP-9. PP-0a on `wip/pp0a`: 2 full-suite failures to fix before merge (TASKS). Next: PP-3, PP-10, PP-14..16. Notes: [M6B-player-phase](docs/plans/M6B-player-phase.md).
+2. **Lane B, player phase (M6-B).** Done 11-11: PP-cap1..3, PP-0, PP-0a (hover cursor; device check pending), PP-1, PP-2, PP-9. Next: PP-3, PP-10, PP-14..16. Notes: [M6B-player-phase](docs/plans/M6B-player-phase.md).
    PP-cap3 has battle animations on; M6-C needs an animations-off variant.
 3. **Readability (rule 11, changed 11-11):** comments must be meaningful and checked against the decomp
    ([READABILITY](docs/READABILITY.md)); every older `done` row carries `audit todo`. Use Sonnet, not Haiku.

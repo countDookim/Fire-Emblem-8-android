@@ -356,42 +356,9 @@ public class MuCtrl(
         return workingScript
     }
 
-    /**
-     * Transcribed from src/bmidoten.c: GenerateBestMovementScript (not verified: the tie-break
-     * draws from the RNG; the walk's end position does not depend on it)
-     *
-     * Walks back from ([x0], [y0]) along the lowest costs of [BmMap.range] (random among equal
-     * neighbours) and writes the reversed directions and a HALT into [workingScript]. Deviation:
-     * stops after 0x3F steps (the C buffer size) instead of looping on an unreachable target.
-     */
+    /** `GenerateBestMovementScript` ([fe8.game.bm.generateBestMovementScript]) on the range map. */
     private fun generateBestMovementScript(x0: Int, y0: Int) {
-        var x = x0
-        var y = y0
-        val dirs = IntArray(0x40)
-        var count = 0
-        val range = map.range
-        val cost = IntArray(4)
-        val best = IntArray(4)
-        while (range[y, x].toByte().toInt() != 0 && count < 0x3F) {
-            cost[Mu.MOVE_CMD_MOVE_LEFT] = if (x == map.sizeX - 1) 0xFF else range[y, x + 1]
-            cost[Mu.MOVE_CMD_MOVE_RIGHT] = if (x == 0) 0xFF else range[y, x - 1]
-            cost[Mu.MOVE_CMD_MOVE_UP] = if (y == map.sizeY - 1) 0xFF else range[y + 1, x]
-            cost[Mu.MOVE_CMD_MOVE_DOWN] = if (y == 0) 0xFF else range[y - 1, x]
-            var bestCost = 0x100
-            for (i in 0 until 4) if (bestCost > cost[i]) bestCost = cost[i]
-            var n = 0
-            for (i in 0 until 4) if (bestCost == cost[i]) best[n++] = i
-            val next = if (n == 1) best[0] else best[rng.nextN(n)]
-            dirs[count++] = next
-            when (next) {
-                Mu.MOVE_CMD_MOVE_LEFT -> x++
-                Mu.MOVE_CMD_MOVE_RIGHT -> x--
-                Mu.MOVE_CMD_MOVE_UP -> y++
-                Mu.MOVE_CMD_MOVE_DOWN -> y--
-            }
-        }
-        for (i in 0 until count) workingScript[i] = dirs[count - 1 - i]
-        workingScript[count] = Mu.MOVE_CMD_HALT
+        generateBestMovementScript(map.range, map.sizeX, map.sizeY, rng, x0, y0, workingScript)
     }
 
     /**

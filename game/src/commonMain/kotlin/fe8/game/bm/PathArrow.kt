@@ -1,5 +1,7 @@
 package fe8.game.bm
 
+import gbafe.core.rng.RngService
+
 /**
  * The path arrow's data of src/bmpatharrowdisp.c: `gPathArrowProc` (`struct PathArrowProc`,
  * 0x0203A990) without its 0x29-byte proc header and the drawing (`DrawPathArrow`, PP-6). The
@@ -7,7 +9,8 @@ package fe8.game.bm
  * `pathCosts[-1]` write of `CutOffPathLength(0)` lands in `pathY[19]`) is kept.
  *
  * Reads the terrain and the working map of [map], the active unit [active] and the cost table
- * [movementMap] last set. [Hooks.generateBestMovementScript] is a stand-in until PP-8.
+ * [movementMap] last set. [Hooks.generateBestMovementScript] is
+ * [fe8.game.bm.generateBestMovementScript] on the working map when an [rng] is given.
  */
 public class PathArrow(
     private val map: BmMap,
@@ -17,16 +20,29 @@ public class PathArrow(
     private val bm: BmSt,
     /** Stand-ins this path arrow calls; see [Hooks]. */
     public val hooks: Hooks = Hooks(),
+    /** `NextRN_N` for the tie break of `GenerateBestMovementScript`; null keeps the stand-in. */
+    rng: RngService? = null,
 ) {
     /** Stand-ins for what the path arrow calls in other files. */
     public class Hooks {
         /**
-         * Stand-in until PP-8 for `GenerateBestMovementScript(x, y, script)` (bmidoten.c): writes
-         * the movement script to ([x], [y]) over the working map into the array. Not run in the
-         * capture window (the cursor stays in the range, so the path only grows or shrinks).
+         * `GenerateBestMovementScript(x, y, script)` (bmidoten.c): writes the movement script to
+         * ([x], [y]) over the working map into the array. Replaced by the port when the
+         * [PathArrow] has an rng; the default (HALT) is a stand-in. Not run in the capture window
+         * (the cursor stays in the range, so the path only grows or shrinks).
          */
         public var generateBestMovementScript: (x: Int, y: Int, script: IntArray) -> Unit =
             { _, _, script -> script[0] = Mu.MOVE_CMD_HALT }
+    }
+
+    init {
+        if (rng != null) {
+            hooks.generateBestMovementScript = { x, y, script ->
+                generateBestMovementScript(
+                    checkNotNull(map.workingMap), map.sizeX, map.sizeY, rng, x, y, script,
+                )
+            }
+        }
     }
 
     /** `gPathArrowProc` from 0x29: lastX, lastY, maxMov, pathLen, pathX, pathY, pathCosts. */
@@ -138,6 +154,26 @@ public class PathArrow(
             if (pathX(i) == x && pathY(i) == y) return i
         }
         return -1
+    }
+
+    /**
+     * Ported from src/bmpatharrowdisp.c: GetMovementScriptFromPath
+     *
+     * Writes the direction of each step of the path into [workingMovementScript] and a HALT.
+     */
+    public fun getMovementScriptFromPath() {
+        var i = 1
+        while (i <= pathLen) {
+            val x = pathX(i - 1)
+            workingMovementScript[i - 1] = when {
+                pathX(i) < x -> Mu.MOVE_CMD_MOVE_LEFT
+                pathX(i) > x -> Mu.MOVE_CMD_MOVE_RIGHT
+                pathY(i) < pathY(i - 1) -> Mu.MOVE_CMD_MOVE_UP
+                else -> Mu.MOVE_CMD_MOVE_DOWN
+            }
+            i++
+        }
+        workingMovementScript[i - 1] = Mu.MOVE_CMD_HALT
     }
 
     /**

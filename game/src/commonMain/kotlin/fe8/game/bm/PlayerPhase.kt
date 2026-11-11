@@ -84,7 +84,12 @@ public class PlayerPhase(
         hooks.unitSpriteHoverUpdate = ProcFunc { hover.unitSpriteHoverUpdate() }
         hooks.isUnitSpriteHoverEnabledAt = { x, y -> hover.isUnitSpriteHoverEnabledAt(x, y) }
         hooks.rangeDisplayIdle = ProcFunc { playerPhaseRangeDisplayIdle(it) }
-        if (pathArrow != null) hooks.pathArrowDispInit = { pathArrow.init(it) }
+        if (pathArrow != null) {
+            hooks.pathArrowDispInit = { pathArrow.init(it) }
+            hooks.displayUnitMovement = ProcFunc { playerPhaseDisplayUnitMovement() }
+        }
+        hooks.waitForUnitMovement = ProcFunc { playerPhaseWaitForUnitMovement(it) }
+        hooks.applyUnitMovement = ProcFunc { playerPhaseApplyUnitMovement(it) }
     }
 
     /** `PlaySoundEffect` for the cursor sound (a stand-in until M6-B wires the sound wrapper). */
@@ -292,14 +297,41 @@ public class PlayerPhase(
         /** `GetTrapAt(x, y)->type` of src/bmtrick.c; stand-in, -1 for no trap. */
         public var trapTypeAt: (x: Int, y: Int) -> Int = { _, _ -> -1 }
 
-        /** Stand-in for `PlayerPhase_DisplayUnitMovement` until M6-B. */
+        /**
+         * `PlayerPhase_DisplayUnitMovement`; [PlayerPhase] replaces it with the port when it has
+         * a [PathArrow], else it stays a stand-in.
+         */
         public var displayUnitMovement: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `PlayerPhase_WaitForUnitMovement` (a `PROC_REPEAT`) until M6-B. */
+        /** `PlayerPhase_WaitForUnitMovement` (a `PROC_REPEAT`); replaced by the port. */
         public var waitForUnitMovement: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `PlayerPhase_ApplyUnitMovement` (a `PROC_REPEAT`) until M6-B. */
+        /** `PlayerPhase_ApplyUnitMovement` (a `PROC_REPEAT`); replaced by the port. */
         public var applyUnitMovement: ProcFunc = ProcFunc {}
+
+        /**
+         * `SetAutoMuMoveScript(gWorkingMovementScript)` ([Mu.setAutoMuMoveScript]); gets the
+         * script. Default no-op until `Fe8Boot` wires the select (PP-17).
+         */
+        public var setAutoMuMoveScript: (script: IntArray) -> Unit = {}
+
+        /**
+         * `MuExistsActive` ([Mu.muExistsActive]). The default (true) never ends the wait of
+         * [playerPhaseWaitForUnitMovement], as the stand-in it replaces.
+         */
+        public var muExistsActive: () -> Boolean = { true }
+
+        /**
+         * Stand-in for `StartAfterUnitMovedEvent` (src/eventinfo.c; the tutorial and the chapter's
+         * after-move events, M6-B): true when an event started.
+         */
+        public var startAfterUnitMovedEvent: () -> Boolean = { false }
+
+        /**
+         * Stand-in until PP-12 for `StartSemiCenteredOrphanMenu(&gUnitActionMenuDef, x, 1, 0x16)`
+         * (the unit action menu); gets `gBmSt.cursorTarget.x - gBmSt.camera.x`.
+         */
+        public var startUnitActionMenu: (xOffset: Int) -> Unit = {}
 
         /** Stand-in for `PlayerPhase_PrepareAction` (a `PROC_CALL_2`) until M6-B. */
         public var prepareAction: ProcBoolFunc = ProcBoolFunc { true }
@@ -805,6 +837,100 @@ public class PlayerPhase(
     }
 
     /**
+     * Ported from src/playerphase.c: PlayerPhase_DisplayUnitMovement
+     *
+     * Turns the path into the movement script ([PathArrow.getMovementScriptFromPath]), applies it
+     * to the active unit's data ([unitApplyWorkingMovementScript]: sets the destination in the
+     * action data) and gives it to the MU ([Hooks.setAutoMuMoveScript]).
+     */
+    public fun playerPhaseDisplayUnitMovement() {
+        val arrow = checkNotNull(pathArrow) { "PlayerPhase_DisplayUnitMovement needs a PathArrow" }
+        val unit = active.unit
+        arrow.getMovementScriptFromPath()
+        unitApplyWorkingMovementScript(
+            unit, units.xPos(unit), units.yPos(unit), arrow.workingMovementScript,
+        )
+        hooks.setAutoMuMoveScript(arrow.workingMovementScript)
+    }
+
+    /**
+     * Ported from src/playerphase.c: PlayerPhase_WaitForUnitMovement
+     *
+     * Goes on once no MU moves any more ([Hooks.muExistsActive]).
+     */
+    public fun playerPhaseWaitForUnitMovement(proc: Proc) {
+        if (!hooks.muExistsActive()) engine.breakProc(proc)
+    }
+
+    /**
+     * Ported from src/playerphase.c: PlayerPhase_ApplyUnitMovement
+     *
+     * Puts the active unit on the destination of the action data, finalizes the movement and, for
+     * a unit that has not moved and not acted (`taken_action`), stores the cost of the move in
+     * `moveCount`. Then `StartAfterUnitMovedEvent` ([Hooks.startAfterUnitMovedEvent], a
+     * stand-in) and the unit action menu ([Hooks.startUnitActionMenu]) unless the move was
+     * trapped; breaks (both paths of the C end that way). `ResetTextFont` has no state kept here.
+     */
+    public fun playerPhaseApplyUnitMovement(proc: Proc) {
+        val unit = active.unit
+        val a = active.action
+        units.setPosition(unit, a.xMove, a.yMove)
+        unitFinalizeMovement(unit)
+        if ((units.state(unit) and US_HAS_MOVED) == 0 && a.unitActionType == 0 &&
+            bm.takenAction == 0
+        ) {
+            a.moveCount = map.movement[a.yMove, a.xMove]
+        }
+        hooks.startAfterUnitMovedEvent()
+        if (a.unitActionType != UNIT_ACTION_TRAPPED) {
+            hooks.startUnitActionMenu(bm.cursorTargetX - bm.cameraX)
+        }
+        engine.breakProc(proc)
+    }
+
+    /**
+     * Transcribed from src/bmidoten.c: UnitApplyWorkingMovementScript (not verified: the trap
+     * and hidden-unit branches, no capture walks onto one)
+     *
+     * Follows [script] from ([x0], [y0]), leaving the last tile in the action's xMove and yMove. A
+     * walker that is no thief, flyer or assassin stops at a hidden trap (script cut, action
+     * `UNIT_ACTION_TRAPPED`); a hidden unit on the way turns the step into a bump.
+     */
+    private fun unitApplyWorkingMovementScript(unit: Int, x0: Int, y0: Int, script: IntArray) {
+        var x = x0
+        var y = y0
+        var it = 0
+        val a = active.action
+        while (true) {
+            a.xMove = x
+            a.yMove = y
+            when (script[it]) {
+                Mu.MOVE_CMD_MOVE_UP -> y--
+                Mu.MOVE_CMD_MOVE_DOWN -> y++
+                Mu.MOVE_CMD_MOVE_LEFT -> x--
+                Mu.MOVE_CMD_MOVE_RIGHT -> x++
+            }
+            if ((units.cAttributes(unit) and (CA_THIEF or CA_FLYER or CA_ASSASSIN)) == 0) {
+                if ((map.hidden[y, x] and HIDDEN_BIT_TRAP) != 0) {
+                    script[++it] = Mu.MOVE_CMD_HALT
+                    a.unitActionType = UNIT_ACTION_TRAPPED
+                    a.xMove = x
+                    a.yMove = y
+                    return
+                }
+            }
+            if ((map.hidden[y, x] and HIDDEN_BIT_UNIT) != 0) {
+                script[it++] = Mu.MOVE_CMD_BUMP
+                script[it] = Mu.MOVE_CMD_HALT
+                a.unitActionType = UNIT_ACTION_TRAPPED
+                return
+            }
+            if (script[it] == Mu.MOVE_CMD_HALT) break
+            it++
+        }
+    }
+
+    /**
      * Ported from src/playerphase.c: PlayerPhase_BackToMove
      *
      * B on the unit menu: puts the active unit back on its move origin, finalizes the movement
@@ -1053,6 +1179,12 @@ public class PlayerPhase(
         private const val ACT_EVENT = 5
         private const val ACT_SWAP_RANGES = 6
         private const val US_HIDDEN = 1 shl 0
+        private const val UNIT_ACTION_TRAPPED = 0x1E
+        private const val HIDDEN_BIT_UNIT = 1 shl 0
+        private const val HIDDEN_BIT_TRAP = 1 shl 1
+        private const val CA_THIEF = 1 shl 3
+        private const val CA_FLYER = (1 shl 11) or (1 shl 12)
+        private const val CA_ASSASSIN = 1 shl 25
         private const val US_HAS_MOVED = 1 shl 6
         private const val US_RESCUING = 1 shl 4
         private const val KEY_SELECT = 1 shl 2

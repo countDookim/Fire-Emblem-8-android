@@ -482,7 +482,7 @@ public class Mu(
     /**
      * Copies [commands] (0x40 bytes) into the MU's config script, rewinds it and enters movement.
      *
-     * Transcribed from src/mu.c: SetMuMoveScript (not verified: movement starts after f9674)
+     * Ported from src/mu.c: SetMuMoveScript
      */
     public fun setMuMoveScript(mu: MuProc, commands: IntArray) {
         val config = mu.config!!
@@ -490,6 +490,16 @@ public class Mu(
         config.pc = 0
         mu.state = MU_STATE_MOVEMENT
         updateMuStepSounds(mu)
+    }
+
+    /**
+     * `SetMuMoveScript` for the first MU, if one exists.
+     *
+     * Ported from src/mu.c: SetAutoMuMoveScript
+     */
+    public fun setAutoMuMoveScript(commands: IntArray) {
+        val proc = procs.find(script) ?: return
+        setMuMoveScript(proc.state as MuProc, commands)
     }
 
     /**
@@ -513,7 +523,7 @@ public class Mu(
     /**
      * True if any allocated MU is past `MU_STATE_INACTIVE`.
      *
-     * Transcribed from src/mu.c: MuExistsActive (not verified: not exercised by the trace)
+     * Ported from src/mu.c: MuExistsActive
      */
     public fun muExistsActive(): Boolean {
         for (c in configs) {

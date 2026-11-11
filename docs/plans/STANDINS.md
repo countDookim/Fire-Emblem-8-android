@@ -10,11 +10,11 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 208 across 32 Kotlin files.
+Total entries: 210 across 32 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
-| M6-B | 53 |
+| M6-B | 51 |
 | M6-C | 1 |
 | M6-D | 2 |
 | M6-E | 45 |
@@ -30,14 +30,13 @@ Total entries: 208 across 32 Kotlin files.
 | D11-wm3f | 2 |
 | D11-wm9 | 9 |
 | PP-10 | 1 |
-| PP-12 | 8 |
+| PP-12 | 9 |
 | PP-17 | 9 |
-| PP-6 | 3 |
-| PP-8 | 1 |
+| PP-6 | 2 |
 | PP-9 | 1 |
-| unassigned | 7 |
+| unassigned | 12 |
 
-## M6-B (53)
+## M6-B (51)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -66,11 +65,9 @@ Total entries: 208 across 32 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `PlayerPhase` | Default hooks ([Hooks], no-ops by default; `Fe8Boot` sets `RefreshUnitSprites`, `PutMapCursor` and `StartMapSongBgm`): the L/R/START actions of the idle loop, the side windows, `PlayerPhase_Suspend... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `adjustsFromXiScript` | Stand-in for `gProcScr_ADJUSTSFROMXI`, a script that ends at once until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `applyUnitAction` | Stand-in for `ApplyUnitAction` (a `PROC_CALL_2`) until M6-B. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `applyUnitMovement` | Stand-in for `PlayerPhase_ApplyUnitMovement` (a `PROC_REPEAT`) until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `cursorSound` | Stand-in for `PlaySoundEffect(SONG_65)`, the cursor move sound, until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayActiveUnitEffectRange` | Stand-in for `DisplayActiveUnitEffectRange` (label 11) until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayDangerZone` | Stand-in for `PlayerPhase_DisplayDangerZone` until M6-B. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayUnitMovement` | Stand-in for `PlayerPhase_DisplayUnitMovement` until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `doesBmxFadeExist` | `DoesBMXFADEExist` (bmxfade.c, `Proc_Find(sProcScr_BMXFADE)`): stand-in until M6-B, default false. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `endAllMus` | Stand-in for `EndAllMus` until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `endSideWindows` | Stand-in for `EndPlayerPhaseSideWindows` until M6-B. |
@@ -85,13 +82,13 @@ Total entries: 208 across 32 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `resumeRangeDisplay` | Stand-in for `PlayerPhase_ResumeRangeDisplay` until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `runPotentialWaitEvents` | Stand-in for `RunPotentialWaitEvents` (a `PROC_CALL_2`) until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `setAutoMuDefaultFacing` | Stand-in until M6-B for `SetAutoMuDefaultFacing`. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startAfterUnitMovedEvent` | Stand-in for `StartAfterUnitMovedEvent` (src/eventinfo.c; the tutorial and the chapter's after-move events, M6-B): true when an event started. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startDestSelectedEvent` | `StartDestSelectedEvent` (events); stand-in, false (no event) until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startMu` | Stand-in until M6-B for `StartMu(unit)` (unit id [unit]). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startSideWindows` | Stand-in for `StartPlayerPhaseSideWindows` until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startTutorialEvent` | Stand-in for `StartPlayerPhaseStartTutorialEvent` until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `suspend` | Stand-in for `PlayerPhase_Suspend` (writes the suspend save) until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `tryCallSelectEvents` | Stand-in until M6-B for `TryCallSelectEvents` (select events of the active unit). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `waitForUnitMovement` | Stand-in for `PlayerPhase_WaitForUnitMovement` (a `PROC_REPEAT`) until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | `readSuspendSave` | Ported from src/bmsave.c: ReadSuspendSave Loads the suspend block of [slot] (`SAVE_ID_SUSPEND`) + `gSuspendSaveIdOffset` (set by [BmSaveLib.isValidSuspendSave]) into [ram]: `gPlaySt` and the game c... |
 | `game/src/commonMain/kotlin/fe8/game/save/SuspendRam.kt` | `SuspendRam` | The only things held here are buffers that have no owner yet (the stand-ins [actionData] and [menuOverride] until M6-B, [traps] and [convoy] until M6-H, [worldMapStuff] and [dungeonState] until M6-... |
 
@@ -296,7 +293,7 @@ Total entries: 208 across 32 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `Menu` | The others are stand-ins until their port: the unit menu's are registered by `fe8.game.bm.UnitActionMenu.install` (PP-10) and the map menu's wait for PP-12 (an unregistered address fails loudly ins... |
 
-## PP-12 (8)
+## PP-12 (9)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -308,6 +305,7 @@ Total entries: 208 across 32 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startButton` | Stand-in until PP-12 for the START button branch of `PlayerPhase_MainIdle` (the minimap, `Proc_Goto(proc, 9)`); runs when START is new and SELECT is not held and the A branch did not run; returns t... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startMapMenu` | Stand-in until PP-12 for `StartOrphanMenuAdjusted(&gMapMenuDef, ...)` and `sub_80832CC` (the map menu); gets `gBmSt.cursorTarget.x - gBmSt.camera.x`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startStatScreen` | Stand-in until PP-12 for `SetStatScreenConfig` and `StartStatScreen(unit, proc)` (unit id [unit]). |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startUnitActionMenu` | Stand-in until PP-12 for `StartSemiCenteredOrphanMenu(&gUnitActionMenuDef, x, 1, 0x16)` (the unit action menu); gets `gBmSt.cursorTarget.x - gBmSt.camera.x`. |
 
 ## PP-17 (9)
 
@@ -323,19 +321,12 @@ Total entries: 208 across 32 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `getUnitWeaponUsabilityBits` | `GetUnitWeaponUsabilityBits(unit)` for unit id [unit]; stand-in until PP-17, default 0 (only asked for a unit that cannot be controlled or has moved, not in a capture). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `hideMoveRangeGraphics` | `HideMoveRangeGraphics`: stand-in until PP-17 wires [MoveLimitView.hideMoveRangeGraphics] (ported and verified, PP-4) into `Fe8Boot`. |
 
-## PP-6 (3)
+## PP-6 (2)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | `PathArrow` | [Hooks.generateBestMovementScript] is a stand-in until PP-8. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `drawPathArrow` | `DrawPathArrow` (PP-6); stand-in, draws nothing. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `pathArrowDispInit` | With a [PathArrow] given to [PlayerPhase] it calls [PathArrow.init] (data only, the graphics are PP-6); a stand-in until PP-17 wires that into `Fe8Boot`. |
-
-## PP-8 (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | `generateBestMovementScript` | Stand-in until PP-8 for `GenerateBestMovementScript(x, y, script)` (bmidoten.c): writes the movement script to ([x], [y]) over the working map into the array. |
 
 ## PP-9 (1)
 
@@ -343,14 +334,19 @@ Total entries: 208 across 32 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | `DisplayFrozenUiHand`: stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (7)
+## unassigned (12)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | `Hooks` | Stand-ins for what the path arrow calls in other files. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | `PathArrow` | `NextRN_N` for the tie break of `GenerateBestMovementScript`; null keeps the stand-in. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | `generateBestMovementScript` | Replaced by the port when the [PathArrow] has an rng; the default (HALT) is a stand-in. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | `hooks` | Stand-ins this path arrow calls; see [Hooks]. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `drawGoalSecondLine` | Stand-in until a capture shows a "defeat all" or "defend" goal for the second text line of `GoalDisplay_Init` (enemy count or turn counter, drawn with `Text_InsertDrawNumberOrBlank`); [goalType] is... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `isSkirmish` | Stand-in for `GetBattleMapKind() == BATTLEMAP_KIND_SKIRMISH` until the world map state is wired (the Prologue is a story chapter). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `objWindowDisabled` | Stand-in for `CheckFlag(EVFLAG_OBJWINDOW_DISABLE)` (events) until the flag store is wired: the goal window is not started while it is set. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayUnitMovement` | `PlayerPhase_DisplayUnitMovement`; [PlayerPhase] replaces it with the port when it has a [PathArrow], else it stays a stand-in. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `muExistsActive` | The default (true) never ends the wait of [playerPhaseWaitForUnitMovement], as the stand-in it replaces. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `playerPhaseApplyUnitMovement` | Then `StartAfterUnitMovedEvent` ([Hooks.startAfterUnitMovedEvent], a stand-in) and the unit action menu ([Hooks.startUnitActionMenu]) unless the move was trapped; breaks (both paths of the C end th... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `trapTypeAt` | `GetTrapAt(x, y)->type` of src/bmtrick.c; stand-in, -1 for no trap. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them, and a stand-in for every other availability callback, in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold. |

@@ -208,4 +208,145 @@ public object UiFrame {
             hardware,
         )
     }
+
+    /** ROM address of `gUnknown_080DA374`, the resting metatiles of the item hover bar. */
+    public const val HOVER_CLEAR_TILES: Int = 0x080DA374
+
+    /** `TILEREF(0x7A..0x7C, BGPAL_WINDOW_FRAME)`: left, middle and right tile of the hover bar. */
+    private const val HOVER_LEFT: Int = 0x107A
+    private const val HOVER_MIDDLE: Int = 0x107B
+    private const val HOVER_RIGHT: Int = 0x107C
+
+    /**
+     * Draws a window frame into the 32 by 32 [tilemap] with its top-left tile at ([x], [y]),
+     * [width] by [height] tiles, border included. [style] (0..3) picks the metatile set and
+     * [tilebase] is added to every tile entry.
+     *
+     * Ported from src/uiutils.c: DrawUiFrame
+     */
+    public fun drawUiFrame(
+        tilemap: ShortArray,
+        rom: RomView,
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        tilebase: Int,
+        style: Int,
+    ) {
+        val model = rom.u32(UI_FRAME_MODEL_LOOKUP + 4 * style)
+        val xMax = x + width - 1
+        val yMax = y + height - 1
+
+        var iy = y + 1
+        while (iy < yMax) {
+            var ix = x + 1
+            while (ix < xMax) {
+                val offset = iy * 32 + ix
+                tilemap[offset] = (rom.u16(model + 2 * 6) + tilebase).toShort()
+                tilemap[offset + 1] = (rom.u16(model + 2 * 6) + tilebase).toShort()
+                tilemap[offset + 32] = (rom.u16(model + 2 * 9) + tilebase).toShort()
+                tilemap[offset + 33] = (rom.u16(model + 2 * 10) + tilebase).toShort()
+                ix += 2
+            }
+
+            tilemap[iy * 32 + x] = (rom.u16(model + 2 * 8) + tilebase).toShort()
+            tilemap[iy * 32 + xMax] = (rom.u16(model + 2 * 7) + tilebase).toShort()
+            tilemap[(iy + 1) * 32 + x] = (rom.u16(model + 2 * 8) + tilebase).toShort()
+            tilemap[(iy + 1) * 32 + xMax] = (rom.u16(model + 2 * 11) + tilebase).toShort()
+            iy += 2
+        }
+
+        var ix = x + 1
+        while (ix < xMax) {
+            tilemap[y * 32 + ix] = (rom.u16(model + 2 * 2) + tilebase).toShort()
+            tilemap[y * 32 + ix + 1] = (rom.u16(model + 2 * 2) + tilebase).toShort()
+            tilemap[yMax * 32 + ix] = (rom.u16(model + 2 * 13) + tilebase).toShort()
+            tilemap[yMax * 32 + ix + 1] = (rom.u16(model + 2 * 14) + tilebase).toShort()
+            ix += 2
+        }
+
+        tilemap[y * 32 + x] = (rom.u16(model) + tilebase).toShort()
+        tilemap[y * 32 + x + 1] = (rom.u16(model + 2 * 1) + tilebase).toShort()
+        tilemap[(y + 1) * 32 + x] = (rom.u16(model + 2 * 4) + tilebase).toShort()
+        tilemap[(y + 1) * 32 + x + 1] = (rom.u16(model + 2 * 5) + tilebase).toShort()
+
+        tilemap[y * 32 + xMax] = (rom.u16(model + 2 * 3) + tilebase).toShort()
+        tilemap[yMax * 32 + x] = (rom.u16(model + 2 * 12) + tilebase).toShort()
+        tilemap[yMax * 32 + xMax] = (rom.u16(model + 2 * 15) + tilebase).toShort()
+    }
+
+    /**
+     * Zeroes the [width] by [height] tile rectangle of [tilemap] whose top-left tile is
+     * ([x], [y]).
+     *
+     * Ported from src/uiutils.c: ClearUiFrame
+     */
+    public fun clearUiFrame(tilemap: ShortArray, x: Int, y: Int, width: Int, height: Int) {
+        for (row in 0 until height) {
+            val start = (y + row) * 32 + x
+            for (col in 0 until width) tilemap[start + col] = 0
+        }
+    }
+
+    /**
+     * Draws the item hover bar, [width] tiles wide, on the tile row below [y] of BG [bg], starting
+     * at column [x]; [base] is added to each tile entry. Enables the BG's sync.
+     *
+     * Ported from src/uiutils.c: DrawUiItemHoverExt
+     */
+    public fun drawUiItemHoverExt(
+        hardware: BgHardware,
+        bg: Int,
+        base: Int,
+        x: Int,
+        y: Int,
+        width: Int,
+    ) {
+        val xMax = x + width - 1
+        val row = (y + 1) * 32
+        val tilemap = hardware.mapBuffer(bg)
+
+        tilemap[row + x] = (HOVER_LEFT + base).toShort()
+        var ix = x + 1
+        while (ix < xMax) {
+            tilemap[row + ix] = (HOVER_MIDDLE + base).toShort()
+            ix++
+        }
+        tilemap[row + ix] = (HOVER_RIGHT + base).toShort()
+
+        hardware.enableBgSyncByMask(1 shl bg)
+    }
+
+    /**
+     * Restores the plain window tiles under the item hover bar drawn by [drawUiItemHoverExt] (the
+     * arguments are the same). Enables the BG's sync.
+     *
+     * Ported from src/uiutils.c: ClearUiItemHoverExt
+     */
+    public fun clearUiItemHoverExt(
+        hardware: BgHardware,
+        rom: RomView,
+        bg: Int,
+        base: Int,
+        x: Int,
+        y: Int,
+        width: Int,
+    ) {
+        val xMax = x + width - 1
+        val row = (y + 1) * 32
+        val tilemap = hardware.mapBuffer(bg)
+        val even = rom.u16(HOVER_CLEAR_TILES + 2 * 6) + base
+        val odd = rom.u16(HOVER_CLEAR_TILES + 2 * 7) + base
+
+        var ix = x
+        while (ix < xMax) {
+            tilemap[row + ix] = even.toShort()
+            tilemap[row + ix + 1] = odd.toShort()
+            ix += 2
+        }
+        tilemap[row + xMax] = (if (width % 2 != 0) even else odd).toShort()
+
+        hardware.enableBgSyncByMask(1 shl bg)
+    }
 }

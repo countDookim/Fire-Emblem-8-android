@@ -19,7 +19,6 @@ Notes: [D11-worldmap](plans/D11-worldmap.md) (§8 status), [M6-notes](plans/M6-n
 |---|---|---|---|---|---|
 | D11-wire-a | PORT | Start-skip audio (opsubtitle skip path, sound calls) | `gSoundSt`/player state at skip end equals the captures at 1505/2375/4405, else stays marked unverified | — | todo |
 | D11-wire-b | WIRE | Monologue hooks in `Fe8Boot`: real `ScreenFade`, `ArchivedPaletteFade`, keys | Headless New Game: parent blocked at 1213, released at 4898 (callback spans allowed); 0 B/frame; MANUAL_TEST | D11-wire-a | todo |
-| D11-wm3b | PORT | `SetupGraphicSystemsForWorldMap`, `sub_80B8E60` | LCD/BG registers and surviving VRAM vs f05100 | — | todo |
 | D11-wm3c | PORT | `worldmap_screen*.c` procs started by `WorldMap_Init` (`NewMapScreen`, GMapScreenVSync) | Proc fields per step from 4900 | — | todo |
 | D11-wm3d | PORT | Node icon display and world-map cursor procs | Proc fields per step from 4901 | — | todo |
 | D11-wm3e | PORT | `StartGmapMuEntry`/`GmapMuEntry2` (4907–9285); replaces the last BeginningHooks stand-in | Proc fields per step | — | todo |
@@ -83,7 +82,7 @@ Row details, including what each task left transcribed: [archive](plans/TASKS-ar
 
 - **M1–M5** complete. **M6 part 1** (Prologue opening to turn 1, suspend/resume): M6-01..12, 15..19, 21..28,
   30..39, 41..43, 45, 46 done; M6-20, 29, 40, 44 done as far as captures allow.
-- **D-series:** D11-ci0 (`ChapterIntroProcInventoryTest`), D07-audio, D07-trace, D09-1, D09-1b, D09-2, D11-slides, D11-fades, D11-init, D11-flare,
+- **D-series:** D11-wm3b (`f6b08f2`), D11-ci0 (`ChapterIntroProcInventoryTest`), D07-audio, D07-trace, D09-1, D09-1b, D09-2, D11-slides, D11-fades, D11-init, D11-flare,
   D11-skip, D11-proc, D11-worldmap, D11-wm1, D11-wm2, D12-1. D11-wm3..wm7 (+ wm4a–c, wm6b–d): standalone
   ports verified as far as the Prologue runs them; the rest is in lane A.
 - M4-02, M4-12, M5-56, 56b, 57..61.

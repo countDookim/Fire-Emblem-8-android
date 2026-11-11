@@ -53,11 +53,12 @@ their old counts); new packages get a row when they appear.
 | engine/text | gbafe.text | 6 | 926 | done 2026-11-09 d3b21d6 |
 | game | fe8.game | 8 | 1999 | done 2026-11-09 ee10196 |
 | game | fe8.game.bm (map, camera, state, cursor, music, chapter data: 16 files) | 16 | 2964 | done 2026-11-10 bac8ed1 |
-| game | fe8.game.bm (battle, units, MU, sprites, animations, phase intro: 16 files) | 16 | 8025 | todo |
+| game | fe8.game.bm (battle: BattleGenerate, BattleUnit, BmBattle, ItemInfo) | 4 | 2316 | todo |
+| game | fe8.game.bm (units, MU, sprites, animations, phase intro: 12 files) | 12 | 5709 | todo |
 | game | fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs) | 4 | 845 | done 2026-11-10 ff286fe / 0bfe1ab |
 | game | fe8.game.event (remaining command handlers and script formats) | 18 | 3299 | done 2026-11-10 077a47d |
 | game | fe8.game.flags | 1 | 69 | done 2026-11-09 0194222 |
-| game | fe8.game.opanim (OpAnim, OpAnimHs, EarlyStartUi) | 3 | 3225 | partial 2026-11-11 8cf022f: OpAnim.kt ~1040-1300 bodies unread |
+| game | fe8.game.opanim (OpAnim, OpAnimHs, EarlyStartUi) | 3 | 3225 | done 2026-11-11 8cf022f / 4735f55 |
 | game | fe8.game.opanim (OpSubtitle*.kt) | 7 | 796 | done 2026-11-10 f3ad834 / d05e87f |
 | game | fe8.game.save | 8 | 2541 | done 2026-11-09 1941586 |
 | game | fe8.game.savemenu | 2 | 156 | done 2026-11-09 81db35b |

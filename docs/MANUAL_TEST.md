@@ -1,6 +1,6 @@
 # Manual testing
 
-Latest owner test: **local 0.1.488 (`0a73f11`), 2026-11-09**.
+Latest owner test: **published 0.1.571 (`a1978d9`), 2026-11-11** (Rapier popup).
 Castle stutter fix published in **0.1.497 (`42dc059`)**; no additional castle re-test is needed.
 Popup fixes are published in **0.1.528 (`e0187ea`)**.
 
@@ -8,15 +8,9 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
   repeated PCM frames. The movement-map frontier replaced repeated full-map scans.
 - **D-12 player banner confirmed (owner, 2026-11-11, 0.1.488):** the Player Phase banner is correct.
   Enemy/green banners are not ready (D12-2, with M6-D).
-- **D-09 not yet testable on 0.1.488:** the owner saw no Rapier popup there, as expected; the popup port is
-  first in 0.1.528. Re-test on the next published build.
+- **D-09 resolved (owner, 2026-11-11, 0.1.571):** the Rapier popup is correct.
 
 ## Test now
-
-D-09 (low priority; needs 0.1.528 or newer, best the next published build): when Seth gives Eirika the Rapier before the first battle,
-check that the popup shows its text and item icon, plays the jingle, then closes automatically
-without leaving the frame or icon behind. Report layout/colour/timing differences and the launcher
-build string. The wired path now has reference checks; device confirmation is still pending.
 
 Delete save (APP-1): on the launcher, tap **Delete save** (enabled only when a save exists), then
 **Delete** in the "Delete save data?" dialog. The button should disable. Tap **Play**: the game

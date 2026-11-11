@@ -11,7 +11,6 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 - PP-4: owner PC, until ~15:10Z
-- D11-ci3b: owner PC, until ~15:10Z
 
 - PP-15: owner PC, until ~15:00Z
 
@@ -54,7 +53,7 @@ Plan re-done 2026-11-11 (owner-approved): [ROADMAP](docs/plans/ROADMAP.md) has t
 window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose deps are done in either.
 
 1. **Lane A, opening wired (M6-A, D-11).** Done 11-11: wm3b–d, ci0, ci1, ci4, cap2 (`ram_trace_newgame_intro`,
-   intro main path). Next: `D11-wm3f`, `D11-ci3b` (ci2, ci3 done), `D11-wire-a`, `D11-cap1`.
+   intro main path). Next: `D11-wm3f`, `D11-ci3c` (intro tail; ci2..ci3b done), `D11-wire-a`, `D11-cap1`.
    Status: [D11-worldmap §8–9a](docs/plans/D11-worldmap.md). Ports stay standalone until `D11-wire-b`/`D11-wm9`/`ci5`.
 2. **Lane B, player phase (M6-B).** Done 11-11: PP-cap1..3, PP-0, PP-0a (hover cursor; device check pending), PP-1, PP-2, PP-3, PP-9, PP-14. Next: PP-4, PP-5, PP-7, PP-10, PP-15, PP-16. Notes: [M6B-player-phase](docs/plans/M6B-player-phase.md).
    PP-cap3 has battle animations on; M6-C needs an animations-off variant.

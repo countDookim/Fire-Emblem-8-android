@@ -33,6 +33,19 @@ public class FileSaveStorage internal constructor(
         return true
     }
 
+    /**
+     * Deletes the save file and any stale `<name>.tmp`, so the next [load] reports no save.
+     * Does nothing if neither exists. Only call it while no running game holds this save in memory,
+     * since a live [CartSram] would write its copy back on the next flush.
+     *
+     * @return true if the save file existed and was removed.
+     */
+    public fun delete(): Boolean {
+        val target = file.absoluteFile
+        File(target.parentFile, target.name + ".tmp").delete()
+        return target.delete()
+    }
+
     override fun store(src: ByteArray) {
         require(src.size == CartSram.SIZE) { "src must be ${CartSram.SIZE} bytes" }
         // Temp file lives beside the target so the final move stays on one filesystem (atomic).

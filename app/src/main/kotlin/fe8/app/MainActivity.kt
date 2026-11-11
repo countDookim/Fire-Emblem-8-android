@@ -23,12 +23,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -77,7 +79,7 @@ public class MainActivity : ComponentActivity() {
 
     /** Cartridge SRAM file storage (`fe8.sav`) preserving battery saves and suspend state across app restarts. */
     private fun saveStorage(ctx: Context): FileSaveStorage =
-        FileSaveStorage(File(ctx.filesDir, SAVE_FILE_NAME))
+        saveStorageIn(ctx.filesDir)
 
     /**
      * Initializes the [Fe8Game] instance, connecting audio mixing pipelines and hardware renderers.
@@ -156,13 +158,17 @@ public class MainActivity : ComponentActivity() {
     }
 
     private companion object {
-        /** Name of the persistent cartridge SRAM image file in internal storage. */
-        private const val SAVE_FILE_NAME = "fe8.sav"
-
         /** Ring buffer capacity in frames (~150 ms of buffered audio). */
         private const val PCM_STREAM_CAPACITY = 2048
     }
 }
+
+/** Name of the persistent cartridge SRAM image file in internal storage. */
+private const val SAVE_FILE_NAME = "fe8.sav"
+
+/** Save storage for the cartridge SRAM (all saves and the suspend) under [filesDir]. */
+internal fun saveStorageIn(filesDir: File): FileSaveStorage =
+    FileSaveStorage(File(filesDir, SAVE_FILE_NAME))
 
 /** Resolves the sound ROM window from the base layer's `sound/` directory, or null if absent. */
 private fun bundledSoundRom(ctx: Context): RomView? {
@@ -206,6 +212,11 @@ private fun Launcher(onPlay: (RomView?) -> Unit) {
             current = ok
         }
     }
+    var hasSave by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        hasSave = withContext(Dispatchers.IO) { saveStorageIn(context.filesDir).file.isFile }
+    }
     var hasRom by remember { mutableStateOf(true) }
     LaunchedEffect(current, importing) {
         hasRom = withContext(Dispatchers.IO) { keptRom(context) != null }
@@ -248,6 +259,9 @@ private fun Launcher(onPlay: (RomView?) -> Unit) {
         if (current == true && !importing) {
             OutlinedButton(onClick = { picker.launch(arrayOf("*/*")) }) { Text("Re-import ROM") }
         }
+        OutlinedButton(onClick = { confirmDelete = true }, enabled = hasSave && !importing) {
+            Text("Delete save")
+        }
         // Every build needs an imported ROM: no APK bundles game data.
         val canPlay = current == true
         if (current == true && !hasRom) {
@@ -268,5 +282,29 @@ private fun Launcher(onPlay: (RomView?) -> Unit) {
             },
             enabled = canPlay && !importing,
         ) { Text("Play") }
+    }
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Delete save data?") },
+            text = {
+                Text(
+                    "All saves and the suspend are deleted. The imported ROM is kept. " +
+                        "This cannot be undone.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDelete = false
+                        scope.launch {
+                            withContext(Dispatchers.IO) { saveStorageIn(context.filesDir).delete() }
+                            hasSave = false
+                        }
+                    },
+                ) { Text("Delete") }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+        )
     }
 }

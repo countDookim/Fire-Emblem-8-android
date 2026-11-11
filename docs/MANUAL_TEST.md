@@ -23,6 +23,12 @@ check that the popup shows its text and item icon, plays the jingle, then closes
 without leaving the frame or icon behind. Report layout/colour/timing differences and the launcher
 build string. The wired path now has reference checks; device confirmation is still pending.
 
+Delete save (APP-1): on the launcher, tap **Delete save** (enabled only when a save exists), then
+**Delete** in the "Delete save data?" dialog. The button should disable. Tap **Play**: the game
+should start from the title with no resume and no filled save slots. The imported ROM must still be
+there (no re-import needed; the launcher still shows the game data file count). **Cancel** must keep
+the save. Limits: this deletes all saves and the suspend at once, with no per-slot delete.
+
 D-12 stays pending until this comparison; enemy/green banners are not ready for verification.
 
 ## Currently ignore

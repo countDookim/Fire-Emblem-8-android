@@ -17,7 +17,7 @@ Notes: [D11-worldmap](plans/D11-worldmap.md) (§8 status), [M6-notes](plans/M6-n
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| D13-2 | PORT | After the skip fade: talk procs end (f10010), SKIPPING cleared and chapter change (f10038/10039), FadeFromBlack (f10053..10069) | Per frame of `ram_trace_prologue_cutscene_skip` with the real talk tree; headless Start replay; owner device check of D-13 | — | todo; high |
+| D13-2 | PORT | After the skip fade: talk procs end (f10010), SKIPPING cleared and chapter change (f10038/10039), FadeFromBlack (f10053..10069) | Per frame of `ram_trace_prologue_cutscene_skip` with the real talk tree; headless Start replay; owner device check of D-13 | — | part 1 done (`16aadf6`, to f10011); part 2 in progress |
 | D11-wire-a | PORT | Start-skip audio (opsubtitle skip path, sound calls) | `gSoundSt`/player state at skip end equals the captures at 1505/2375/4405, else stays marked unverified | — | todo |
 | D11-wire-b | WIRE | Monologue hooks in `Fe8Boot`: real `ScreenFade`, `ArchivedPaletteFade`, keys | Headless New Game: parent blocked at 1213, released at 4898 (callback spans allowed); 0 B/frame; MANUAL_TEST | D11-wire-a | todo |
 | D11-wm3f | PORT | `StartGMapRoute` / `ProcScr_GMapRoute` (`worldmap_path.c`), started by `NewMapScreen` | Proc fields per step from 4901; route BG at f-dumps | — | todo |

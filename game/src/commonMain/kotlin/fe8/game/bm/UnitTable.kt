@@ -124,6 +124,27 @@ public class UnitTable(
     }
 
     /**
+     * `UNIT_MOV`: `movBonus` (s8, 0x1D) of unit [id] plus the `baseMov` (s8, 0x12) of its class,
+     * read from the ROM.
+     */
+    public fun movement(id: Int): Int {
+        val offset = unitOffset(id)
+        return s8(bytes, offset + 0x1D) + rom.u8(u32(bytes, offset + OFF_CLASS) + 0x12).toByte().toInt()
+    }
+
+    /**
+     * Transcribed from src/bmunit.c: SetAllUnitNotBackSprite (not verified: it runs in the select
+     * window, but no unit has `US_BIT8` set there, so the clearing is unobserved)
+     *
+     * Clears `US_BIT8` in the state of every valid unit with id 1 to 0xBF.
+     */
+    public fun setAllUnitNotBackSprite() {
+        for (id in 1 until 0xC0) {
+            if (isValid(id)) setState(id, state(id) and US_BIT8.inv())
+        }
+    }
+
+    /**
      * Transcribed from src/bmphase.c: GetPhaseAbleUnitCount (not verified: no trace has a unit
      * that the asleep/berserk/unselectable/NOT_ABLE exclusions would skip)
      *
@@ -217,20 +238,27 @@ public class UnitTable(
         private const val OFF_CLASS = 0x04
         private const val OFF_ATTRIBUTES = 0x28
 
-        private const val US_UNSELECTABLE = 1 shl 1
+        /** `US_UNSELECTABLE`. */
+        public const val US_UNSELECTABLE: Int = 1 shl 1
         private const val US_DEAD = 1 shl 2
         private const val US_NOT_DEPLOYED = 1 shl 3
         private const val US_RESCUED = 1 shl 5
         private const val US_UNDER_A_ROOF = 1 shl 7
+        private const val US_BIT8 = 1 shl 8
         private const val US_BIT16 = 1 shl 16
         /** `US_UNAVAILABLE`. */
         public const val US_UNAVAILABLE: Int = US_DEAD or US_NOT_DEPLOYED or US_BIT16
         private const val NOT_ABLE =
             US_UNSELECTABLE or US_DEAD or US_NOT_DEPLOYED or US_RESCUED or US_UNDER_A_ROOF or
                 US_BIT16
-        private const val STATUS_SLEEP = 2
-        private const val STATUS_BERSERK = 4
-        private const val CA_UNSELECTABLE = 1 shl 20
+        /** `UNIT_STATUS_SLEEP`. */
+        public const val STATUS_SLEEP: Int = 2
+
+        /** `UNIT_STATUS_BERSERK`. */
+        public const val STATUS_BERSERK: Int = 4
+
+        /** `CA_UNSELECTABLE`. */
+        public const val CA_UNSELECTABLE: Int = 1 shl 20
         private const val CHARACTER_EIRIKA = 0x01
         private const val CHARACTER_EPHRAIM = 0x0F
         private const val CHAPTER_L_5X = 0x05

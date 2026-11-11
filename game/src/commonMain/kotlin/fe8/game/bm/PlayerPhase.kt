@@ -27,11 +27,18 @@ import gbafe.proc.ProcScripts.yield
  * cursor part of [playerPhaseMainIdle], with the cursor handling of src/bm.c
  * ([handleMapCursorInput], [handleMoveMapCursor], [handleMoveCameraWithMapCursor]).
  *
+ * The unit select of the A button ([playerPhaseMainIdle], [getPlayerSelectKind]), the script
+ * commands after label 1 up to the range display idle ([playerPhaseInitUnitMovementSelect],
+ * [displayUnitEffectRange], [makeMoveunitForActiveUnit] in the child [selectEventsScript]) and the
+ * active unit they set ([active], `UnitBeginAction`) are ported too.
+ *
  * Default hooks ([Hooks], no-ops by default; `Fe8Boot` sets `RefreshUnitSprites`,
- * `PutMapCursor` and `StartMapSongBgm`): the L/R/A/B/START/SELECT actions of the idle loop, the
- * side windows, `PlayerPhase_Suspend`, the tutorial event, the cursor sound effect and every
- * call of the script after the idle loop (unit selection, movement, action) are stand-ins until
- * M6-B. A `PROC_REPEAT` with a default hook never leaves it. Nothing allocates per frame.
+ * `PutMapCursor` and `StartMapSongBgm`): the L/R/START actions of the idle loop, the side
+ * windows, `PlayerPhase_Suspend`, the tutorial event, the cursor sound effect, the attack range,
+ * the range squares, the path arrow and every call of the script after the range display idle
+ * (movement, action) are stand-ins until M6-B. [Hooks.unitSelectEnabled] is false by default, so
+ * the A button does nothing in the app until PP-17 wires the rest of the select flow. A
+ * `PROC_REPEAT` with a default hook never leaves it. Nothing allocates per frame.
  */
 public class PlayerPhase(
     /** The proc engine the player phase proc runs on. */
@@ -56,6 +63,13 @@ public class PlayerPhase(
     private val eventEngineExists: () -> Boolean,
     /** The hooks for the parts that are not ported; `Fe8Boot` replaces some. */
     public val hooks: Hooks = Hooks(),
+    /** `gActiveUnit`, `gActiveUnitId`, `gActiveUnitMoveOrigin` and `gActionData`. */
+    public val active: ActiveUnit = ActiveUnit(),
+    /**
+     * The unit movement map of the select ([MovementMap.generateUnitMovementMapExt]); null (as in
+     * `Fe8Boot` until PP-17) skips that call.
+     */
+    private val movementMap: MovementMap? = null,
 ) {
     /** The unit sprite hover controller ([UnitSpriteHover]). */
     public val hover: UnitSpriteHover = UnitSpriteHover(bm, map, units)
@@ -106,11 +120,31 @@ public class PlayerPhase(
         public var resetUnitSpriteHover: ProcFunc = ProcFunc {}
 
         /**
-         * Stand-in until M6-B for the part of `PlayerPhase_MainIdle` after the cursor movement:
-         * the L, R, A, B, START and SELECT actions (it may `Proc_Goto` or `Proc_Break` the proc),
-         * run before [putMapCursor].
+         * Whether the A button of `PlayerPhase_MainIdle` selects (false: the whole A branch is
+         * skipped). Default false so the app is unchanged until PP-17 wires the select flow;
+         * `PlayerPhaseSelectDifferentialTest` sets it.
          */
-        public var mainIdleButtons: ProcFunc = ProcFunc {}
+        public var unitSelectEnabled: Boolean = false
+
+        /**
+         * Stand-in until PP-12 for the L button branch of `PlayerPhase_MainIdle`
+         * (`TrySwitchViewedUnit` and the sound).
+         */
+        public var lButton: ProcFunc = ProcFunc {}
+
+        /**
+         * Stand-in until PP-12 for the whole R button branch of `PlayerPhase_MainIdle` (the stat
+         * screen, `Proc_Goto(proc, 5)`); runs when R is new and the cursor tile holds a unit;
+         * returns true if it left `PlayerPhase_MainIdle`.
+         */
+        public var rButton: ProcBoolFunc = ProcBoolFunc { false }
+
+        /**
+         * Stand-in until PP-12 for the START button branch of `PlayerPhase_MainIdle` (the
+         * minimap, `Proc_Goto(proc, 9)`); runs when START is new and SELECT is not held and the A
+         * branch did not run; returns true if it left `PlayerPhase_MainIdle`.
+         */
+        public var startButton: ProcBoolFunc = ProcBoolFunc { false }
 
         /** `UnitSpriteHoverUpdate` (src/bmudisp.c). Replaced by [PlayerPhase] to call [UnitSpriteHover.unitSpriteHoverUpdate]. */
         public var unitSpriteHoverUpdate: ProcFunc = ProcFunc {}
@@ -126,22 +160,82 @@ public class PlayerPhase(
         /** Stand-in for `PlaySoundEffect(SONG_65)`, the cursor move sound, until M6-B. */
         public var cursorSound: SoundEffect = SoundEffect {}
 
-        /** Stand-in for `DoesBMXFADEExist` (false) until M6-B. */
+        /**
+         * `DoesBMXFADEExist` (bmxfade.c, `Proc_Find(sProcScr_BMXFADE)`): stand-in until M6-B,
+         * default false. No capture of the select window has the fade.
+         */
         public var doesBmxFadeExist: ProcBoolFunc = ProcBoolFunc { false }
 
-        /** Stand-in for `SetAllUnitNotBackSprite` until M6-B. */
-        public var setAllUnitNotBackSprite: ProcFunc = ProcFunc {}
+        /** `ShowUnitSprite(unit)` for unit id [unit]; stand-in until PP-12. */
+        public var showUnitSprite: (unit: Int) -> Unit = {}
 
         /**
-         * Stand-in for `gProcScr_0859ACE8` (the select events), a script that ends at once, until
-         * M6-B.
+         * Stand-in until PP-12 for `StartOrphanMenuAdjusted(&gMapMenuDef, ...)` and
+         * `sub_80832CC` (the map menu); gets `gBmSt.cursorTarget.x - gBmSt.camera.x`.
          */
-        public var selectEventsScript: ProcScript = ProcScript("gProcScr_0859ACE8", listOf(end()))
+        public var startMapMenu: (xOffset: Int) -> Unit = {}
 
-        /** Stand-in for `PlayerPhase_InitUnitMovementSelect` until M6-B. */
-        public var initUnitMovementSelect: ProcFunc = ProcFunc {}
+        /**
+         * Stand-in until M6-E for `PidStatsAddActAmt(pid, 1)` (the per-character action count of
+         * the save statistics); gets the character id.
+         */
+        public var pidStatsAddActAmt: (pid: Int) -> Unit = {}
 
-        /** Stand-in for `PlayerPhase_RangeDisplayIdle` (a `PROC_REPEAT`) until M6-B. */
+        /**
+         * Stand-in until M6-I for `CanCharacterBePrepMoved(pid)` (only asked on the preparation
+         * screen); default false.
+         */
+        public var canCharacterBePrepMoved: (pid: Int) -> Boolean = { false }
+
+        /**
+         * Stand-in until M6-C for `sub_802C334` (zeroes `sUnknown_0203A60C`, a scratch struct of
+         * the battle code), called by `UnitBeginAction`.
+         */
+        public var resetBattleScratch: () -> Unit = {}
+
+        /** `PlaySoundEffect`; a stand-in until M6-B wires the sound wrapper. */
+        public var playSoundEffect: SoundEffect = SoundEffect {}
+
+        /** Stand-in until M6-B for `MuExists` (`Proc_Find(ProcScr_Mu) != 0`); default false. */
+        public var muExists: ProcBoolFunc = ProcBoolFunc { false }
+
+        /** Stand-in until M6-B for `StartMu(unit)` (unit id [unit]). */
+        public var startMu: (unit: Int) -> Unit = {}
+
+        /** Stand-in until M6-B for `HideUnitSprite(unit)` (unit id [unit]). */
+        public var hideUnitSprite: (unit: Int) -> Unit = {}
+
+        /** Stand-in until M6-B for `SetAutoMuDefaultFacing`. */
+        public var setAutoMuDefaultFacing: ProcFunc = ProcFunc {}
+
+        /** Stand-in until M6-B for `TryCallSelectEvents` (select events of the active unit). */
+        public var tryCallSelectEvents: ProcFunc = ProcFunc {}
+
+        /**
+         * Stand-in until PP-17 for the part of `DisplayUnitEffectRange` that runs while the unit
+         * has not moved (`AttackRange.generateUnitCompleteAttackRange` is ported, but
+         * `GetUnitWeaponUsabilityBits` and `GenerateMagicSealMap` are not, so `Fe8Boot` cannot
+         * wire it yet; the select test backs the weapon-only case with it): `BmMapFill(gBmMapOther, 0)`, `GenerateMagicSealMap` for a unit with
+         * magic ranks, `BmMapFill(gBmMapRange, 0)` and the attack or staff range generation for
+         * the weapon usability of unit id [unit] (`gBmSt.swapActionRangeCount` selects between
+         * both for a unit with both). Returns the `LIMITVIEW_*` flags to display; the default
+         * does nothing and keeps `LIMITVIEW_BLUE`.
+         */
+        public var generateAttackRange: (unit: Int) -> Int = { LIMITVIEW_BLUE }
+
+        /**
+         * Stand-in until PP-4 for `DisplayMoveRangeGraphics(flags)` (the `sProcScr_MoveLimitView`
+         * proc with its flags, which sets `BM_FLAG_0`).
+         */
+        public var displayMoveRangeGraphics: (flags: Int) -> Unit = {}
+
+        /**
+         * Stand-in until PP-5 for `PathArrowDisp_Init(mode)`: 0 when the cursor is on the active
+         * unit, 1 otherwise.
+         */
+        public var pathArrowDispInit: (mode: Int) -> Unit = {}
+
+        /** Stand-in for `PlayerPhase_RangeDisplayIdle` (a `PROC_REPEAT`) until PP-7. */
         public var rangeDisplayIdle: ProcFunc = ProcFunc {}
 
         /** Stand-in for `PlayerPhase_DisplayUnitMovement` until M6-B. */
@@ -177,7 +271,7 @@ public class PlayerPhase(
         /** Stand-in for `EndAllMus` until M6-B. */
         public var endAllMus: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `DisplayActiveUnitEffectRange` until M6-B. */
+        /** Stand-in for `DisplayActiveUnitEffectRange` (label 11) until M6-B. */
         public var displayActiveUnitEffectRange: ProcFunc = ProcFunc {}
 
         /** Stand-in for `PlayerPhase_DisplayDangerZone` until M6-B. */
@@ -217,10 +311,10 @@ public class PlayerPhase(
             label(1),
             call(ProcFunc { hooks.endSideWindows.invoke(it) }),
             whileTrue(ProcBoolFunc { hooks.doesBmxFadeExist.invoke(it) }),
-            call(ProcFunc { hooks.setAllUnitNotBackSprite.invoke(it) }),
+            call(ProcFunc { units.setAllUnitNotBackSprite() }),
             call(ProcFunc { hooks.refreshUnitSprites.invoke(it) }),
-            startChildBlocking { hooks.selectEventsScript },
-            call(ProcFunc { hooks.initUnitMovementSelect.invoke(it) }),
+            startChildBlocking { selectEventsScript },
+            call(ProcFunc { playerPhaseInitUnitMovementSelect() }),
             sleep(1),
             repeat(ProcFunc { hooks.rangeDisplayIdle.invoke(it) }),
             call(ProcFunc { hooks.displayUnitMovement.invoke(it) }),
@@ -263,6 +357,21 @@ public class PlayerPhase(
             goto(9),
             label(3),
             whileTrue(ProcBoolFunc { hooks.doesBmxFadeExist.invoke(it) }),
+            end(),
+        ),
+    )
+
+    /**
+     * `gProcScr_0859ACE8` (0x0859ACE8, transcribed 1:1, checked against the ROM by
+     * `PlayerPhaseScriptRomTest`): the select events child of label 1. Makes the MU of the
+     * active unit, runs the select events and waits for them.
+     */
+    public val selectEventsScript: ProcScript = ProcScript(
+        "gProcScr_0859ACE8",
+        listOf(
+            call(ProcFunc { makeMoveunitForActiveUnit(it) }),
+            call(ProcFunc { hooks.tryCallSelectEvents.invoke(it) }),
+            whileTrue(ProcBoolFunc { eventEngineExists() }),
             end(),
         ),
     )
@@ -311,17 +420,185 @@ public class PlayerPhase(
     }
 
     /**
-     * Partially ported from src/playerphase.c: PlayerPhase_MainIdle. Ported: the cursor movement
-     * and unit sprite hover ([hooks.unitSpriteHoverUpdate], [hooks.isUnitSpriteHoverEnabledAt]).
-     * Stand-ins until M6-B: the button actions ([Hooks.mainIdleButtons]); the cursor sprite is
+     * Partially ported from src/playerphase.c: PlayerPhase_MainIdle. Ported: the cursor
+     * movement and the A button (see [Hooks.unitSelectEnabled]) with [getPlayerSelectKind].
+     * The unit sprite hover ([hover], through the hooks PlayerPhase sets) runs at the end.
+     * Stand-ins until PP-12: the L, R and START branches ([Hooks.lButton], [Hooks.rButton],
+     * [Hooks.startButton]); `DoesBMXFADEExist` is a hook too, and the cursor sprite is
      * [Hooks.putMapCursor].
+     *
+     * With A new on the cursor tile: no unit or a unit that cannot act opens the map menu
+     * (transcribed, not verified: no select run has it) and jumps to label 9; a unit to control
+     * begins its action ([unitBeginAction]) and breaks to label 1; a unit that cannot be
+     * controlled (enemy, asleep, berserk) begins its action and jumps to label 11 (not
+     * verified); kind 4 (preparation screen) falls through to the START branch.
      */
     public fun playerPhaseMainIdle(proc: Proc) {
         handlePlayerCursorMovement()
-        hooks.mainIdleButtons.invoke(proc)
+
+        if ((keys.newKeys and KEY_L) != 0) {
+            hooks.lButton.invoke(proc)
+        } else if (!hooks.doesBmxFadeExist.invoke(proc)) {
+            val cursorUnit = map.unit[bm.playerCursorY, bm.playerCursorX]
+            if ((keys.newKeys and KEY_R) != 0 && cursorUnit != 0) {
+                if (hooks.rButton.invoke(proc)) return
+            }
+            var handled = false
+            if ((keys.newKeys and KEY_A) != 0 && hooks.unitSelectEnabled) {
+                val unit = if (units.unitOffset(cursorUnit) >= 0) cursorUnit else 0
+                when (getPlayerSelectKind(unit)) {
+                    SELECT_NOUNIT, SELECT_TURNENDED -> {
+                        hooks.endSideWindows.invoke(proc)
+                        playSt.xCursor = bm.playerCursorX
+                        playSt.yCursor = bm.playerCursorY
+                        if (unit != 0) {
+                            hooks.endAllMus.invoke(proc)
+                            hooks.showUnitSprite(unit)
+                        }
+                        hooks.startMapMenu(bm.cursorTargetX - bm.cameraX)
+                        engine.goto(proc, 9)
+                        return
+                    }
+                    SELECT_CONTROL -> {
+                        unitBeginAction(unit)
+                        hooks.pidStatsAddActAmt(units.charId(active.unit))
+                        engine.breakProc(proc)
+                        handled = true
+                    }
+                    SELECT_NOCONTROL -> {
+                        unitBeginAction(unit)
+                        bm.swapActionRangeCount = 0
+                        engine.goto(proc, 11)
+                        handled = true
+                    }
+                }
+            }
+            if (!handled && (keys.newKeys and KEY_START) != 0 &&
+                (keys.heldKeys and KEY_SELECT) == 0
+            ) {
+                if (hooks.startButton.invoke(proc)) return
+            }
+        }
+
         hooks.unitSpriteHoverUpdate.invoke(proc)
         val kind = if (hooks.isUnitSpriteHoverEnabledAt(bm.playerCursorX, bm.playerCursorY)) 3 else 0
         hooks.putMapCursor.put(bm.playerCursorDisplayX, bm.playerCursorDisplayY, kind)
+    }
+
+    /**
+     * Ported from src/playerphase.c: GetPlayerSelectKind
+     *
+     * What A on [unit] (a unit id, 0 for none) selects: `PLAYER_SELECT_NOUNIT` (0) for none,
+     * `PLAYER_SELECT_TURNENDED` (1) for a unit of the phase's faction that cannot be selected
+     * (it has acted), `PLAYER_SELECT_CONTROL` (2) for one the player can move,
+     * `PLAYER_SELECT_NOCONTROL` (3) for another faction's unit or an asleep or berserk one, and 4
+     * on the preparation screen for a character that cannot be moved there. The preparation
+     * screen branch (`BM_FLAG_PREPSCREEN`, [Hooks.canCharacterBePrepMoved]) is transcribed (not
+     * verified: no run is in preparations).
+     */
+    public fun getPlayerSelectKind(unit: Int): Int {
+        var faction = playSt.faction
+        if (unit == 0) return SELECT_NOUNIT
+        if ((bm.gameStateBits and BM_FLAG_PREPSCREEN) != 0) {
+            if (!hooks.canCharacterBePrepMoved(units.charId(unit))) return SELECT_4
+            faction = 0
+        }
+        if ((units.index(unit) and 0xC0) != faction) return SELECT_NOCONTROL
+        if ((units.state(unit) and UnitTable.US_UNSELECTABLE) != 0) return SELECT_TURNENDED
+        if ((units.cAttributes(unit) and UnitTable.CA_UNSELECTABLE) != 0) return SELECT_TURNENDED
+        val status = units.statusIndex(unit)
+        if (status != UnitTable.STATUS_SLEEP && status != UnitTable.STATUS_BERSERK) {
+            return SELECT_CONTROL
+        }
+        return SELECT_NOCONTROL
+    }
+
+    /**
+     * Ported from src/bmunit.c: UnitBeginAction
+     *
+     * Makes [unit] (a unit id) the active unit: remembers where it stands, clears the action
+     * data (subject = its `index`, no action, no movement), clears `taken_action`, sets `unk3F`
+     * to 0xFF, resets the battle scratch struct ([Hooks.resetBattleScratch]), hides the unit
+     * (`US_HIDDEN`) and clears its `gBmMapUnit` cell.
+     */
+    public fun unitBeginAction(unit: Int) {
+        active.unit = unit
+        active.unitId = units.index(unit) and 0xFF
+        active.moveOriginX = units.xPos(unit)
+        active.moveOriginY = units.yPos(unit)
+        active.action.subjectIndex = units.index(unit) and 0xFF
+        active.action.unitActionType = 0
+        active.action.moveCount = 0
+        bm.takenAction = 0
+        bm.unk3F = s8(0xFF)
+        hooks.resetBattleScratch()
+        units.setState(unit, units.state(unit) or US_HIDDEN)
+        map.unit[units.yPos(unit), units.xPos(unit)] = 0
+    }
+
+    /**
+     * Ported from src/playerphase.c: PlayerPhase_InitUnitMovementSelect
+     *
+     * Sets `BM_FLAG_1` (the movement range shows), displays the active unit's range and starts
+     * the path arrow: mode 0 with the select sound (SONG_69) when the cursor is on the unit,
+     * mode 1 otherwise (not verified: the cursor is on the unit after the A press).
+     */
+    public fun playerPhaseInitUnitMovementSelect() {
+        bm.gameStateBits = bm.gameStateBits or BM_FLAG_1
+        displayUnitEffectRange(active.unit)
+        if (units.xPos(active.unit) == bm.playerCursorX &&
+            units.yPos(active.unit) == bm.playerCursorY
+        ) {
+            hooks.pathArrowDispInit(0)
+            hooks.playSoundEffect.play(SONG_69)
+            return
+        }
+        hooks.pathArrowDispInit(1)
+    }
+
+    /**
+     * Partially ported from src/playerphase.c: DisplayUnitEffectRange
+     *
+     * Floods `gBmMapMovement` from the active unit with `UNIT_MOV - moveCount`
+     * ([MovementMap.generateUnitMovementMapExt]; the C ignores its parameter [unit] and uses
+     * `gActiveUnit`), and, while the unit has not moved (`US_HAS_MOVED`), generates the attack
+     * or staff range ([Hooks.generateAttackRange], a stand-in until PP-17); then displays the range
+     * squares ([Hooks.displayMoveRangeGraphics], a stand-in until PP-4) with the flags
+     * (`LIMITVIEW_BLUE`, or the range's). A unit with `US_HAS_MOVED` set displays
+     * `LIMITVIEW_BLUE` only (transcribed, not verified: the window has the unit unmoved).
+     */
+    @Suppress("UNUSED_PARAMETER")
+    public fun displayUnitEffectRange(unit: Int) {
+        var flags = LIMITVIEW_BLUE
+        movementMap?.generateUnitMovementMapExt(
+            active.unit, units.movement(active.unit) - active.action.moveCount,
+        )
+        if ((units.state(active.unit) and US_HAS_MOVED) == 0) {
+            flags = hooks.generateAttackRange(active.unit)
+        }
+        hooks.displayMoveRangeGraphics(flags)
+    }
+
+    /**
+     * Partially ported from src/playerphase.c: MakeMoveunitForActiveUnit
+     *
+     * The first command of [selectEventsScript]: when no MU exists and the active unit is of the
+     * phase's faction and neither asleep nor berserk, starts its MU and hides its sprite
+     * ([Hooks.startMu], [Hooks.hideUnitSprite]; not verified: the window has the hover's MU
+     * already); then `SetAutoMuDefaultFacing` ([Hooks.setAutoMuDefaultFacing]).
+     */
+    public fun makeMoveunitForActiveUnit(proc: Proc) {
+        val unit = active.unit
+        if (!hooks.muExists.invoke(proc)) {
+            if ((units.index(unit) and 0xC0) == playSt.faction) {
+                val status = units.statusIndex(unit)
+                if (status != UnitTable.STATUS_SLEEP && status != UnitTable.STATUS_BERSERK) {
+                    hooks.startMu(unit)
+                    hooks.hideUnitSprite(unit)
+                }
+            }
+        }
+        hooks.setAutoMuDefaultFacing.invoke(proc)
     }
 
     /**
@@ -468,6 +745,43 @@ public class PlayerPhase(
         /** `SONG_65`, the cursor move sound. */
         public const val SONG_65: Int = 0x65
 
+        /** `PLAYER_SELECT_NOUNIT`. */
+        public const val SELECT_NOUNIT: Int = 0
+
+        /** `PLAYER_SELECT_TURNENDED`. */
+        public const val SELECT_TURNENDED: Int = 1
+
+        /** `PLAYER_SELECT_CONTROL`. */
+        public const val SELECT_CONTROL: Int = 2
+
+        /** `PLAYER_SELECT_NOCONTROL`. */
+        public const val SELECT_NOCONTROL: Int = 3
+
+        /** `PLAYER_SELECT_4` (a character that cannot be moved on the preparation screen). */
+        public const val SELECT_4: Int = 4
+
+        /** `LIMITVIEW_BLUE`. */
+        public const val LIMITVIEW_BLUE: Int = 1 shl 0
+
+        /** `LIMITVIEW_RED`. */
+        public const val LIMITVIEW_RED: Int = 1 shl 1
+
+        /** `LIMITVIEW_GREEN`. */
+        public const val LIMITVIEW_GREEN: Int = 1 shl 2
+
+        /** `SONG_69`, the sound of selecting a unit. */
+        public const val SONG_69: Int = 0x69
+
+        /** `BM_FLAG_1`: the movement range shows. */
+        public const val BM_FLAG_1: Int = 1 shl 1
+
+        /** `BM_FLAG_PREPSCREEN`. */
+        public const val BM_FLAG_PREPSCREEN: Int = 1 shl 4
+
+        private const val US_HIDDEN = 1 shl 0
+        private const val US_HAS_MOVED = 1 shl 6
+        private const val KEY_SELECT = 1 shl 2
+        private const val KEY_START = KeyStatus.START_BUTTON
         private const val KEY_A = 1 shl 0
         private const val KEY_B = 1 shl 1
         private const val KEY_R = 1 shl 8

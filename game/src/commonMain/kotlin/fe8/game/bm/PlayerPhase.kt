@@ -477,6 +477,32 @@ public class PlayerPhase(
     }
 
     /**
+     * Transcribed from src/playerphase.c: EnsureCameraOntoActiveUnitPosition (not verified: no
+     *   differential test runs it yet, PP-11 stopped before the action test)
+     *
+     * The `PROC_CALL_2` after the action: true (go on) when no camera move had to start for the
+     * active unit's tile.
+     */
+    public fun ensureCameraOntoActiveUnitPosition(proc: Proc): Boolean =
+        !camMove.ensureCameraOntoPosition(proc, units.xPos(active.unit), units.yPos(active.unit))
+
+    /**
+     * Transcribed from src/bmmind.c: ApplyUnitAction, the Wait branch only (not verified: no
+     *   differential test runs it yet). Every other action type is not written and fails loudly.
+     *
+     * Makes the subject the active unit; Wait and Trapped set `US_HAS_MOVED` and go on (true).
+     */
+    public fun applyUnitActionWait(): Boolean {
+        active.unit = active.action.subjectIndex
+        check(active.action.unitActionType == UNIT_ACTION_WAIT_TYPE ||
+            active.action.unitActionType == UNIT_ACTION_TRAPPED) {
+            "ApplyUnitAction: action ${active.action.unitActionType} is not written"
+        }
+        units.setState(active.unit, units.state(active.unit) or US_HAS_MOVED)
+        return true
+    }
+
+    /**
      * Ported from src/playerphase.c: HandlePlayerCursorMovement
      *
      * Moves the cursor from the key state: with B held and the display cursor on an 8 pixel
@@ -1175,6 +1201,7 @@ public class PlayerPhase(
         private const val ACT_EVENT = 5
         private const val ACT_SWAP_RANGES = 6
         private const val US_HIDDEN = 1 shl 0
+        private const val UNIT_ACTION_WAIT_TYPE = 1
         private const val UNIT_ACTION_TRAPPED = 0x1E
         private const val HIDDEN_BIT_UNIT = 1 shl 0
         private const val HIDDEN_BIT_TRAP = 1 shl 1

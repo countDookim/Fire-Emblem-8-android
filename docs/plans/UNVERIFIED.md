@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 539 across 73 decomp files (missing reason: 0).
+Total entries: 541 across 74 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -765,6 +765,13 @@ Total entries: 539 across 73 decomp files (missing reason: 0).
 | `PhaseIntroVMatchHi` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt` | the reference dumps hold the registers only after the frame |
 | `PhaseIntroInitText` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt` | sound only |
 
+## src/playerphase.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `PlayerPhase_HandleAutoEnd` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | no test checks it against a trace yet |
+| `EnsureCameraOntoActiveUnitPosition` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | no differential test runs it yet, PP-11 stopped before the action test |
+
 ## src/spline.c (2)
 
 | Function | Kotlin file | Reason |
@@ -804,6 +811,12 @@ Total entries: 539 across 73 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetEnemyStartCursorPosition` | `game/src/commonMain/kotlin/fe8/game/bm/ResetCursorPosition.kt` | the reference runs only reset the cursor in the player phase |
+
+## src/bmmind.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ApplyUnitAction` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | no differential test runs it yet |
 
 ## src/bmreliance.c (1)
 
@@ -852,12 +865,6 @@ Total entries: 539 across 73 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetStringFromIndexInBuffer` | `engine/text/src/commonMain/kotlin/gbafe/text/MsgStrings.kt` | the reference trace never shows a caller-supplied buffer filled by it |
-
-## src/playerphase.c (1)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `PlayerPhase_HandleAutoEnd` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | no test checks it against a trace yet |
 
 ## src/prep_sallycursor.c (1)
 

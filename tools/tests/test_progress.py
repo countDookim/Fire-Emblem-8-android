@@ -14,6 +14,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -29,6 +30,9 @@ FuncNoTest\tsrc/b.c\t2\tc\tbeta\t0x08000040
 FuncPartial\tsrc/b.c\t3\tc\tbeta\t0x08000050
 FuncTestOnly\tsrc/b.c\t4\tc\tbeta\t0x08000060
 FuncPass2\tsrc/a.c\t4\tc\talpha\t0x08000070
+LinkFn\tsrc/sio_x.c\t1\tc\tlink\t0x08000080
+LinkKept\tsrc/sio_x.c\t2\tc\tlink\t0x08000090
+DbgFn\tsrc/uidebug.c\t1\tc\tmenus\t0x080000a0
 """
 
 MAIN_KT = """\
@@ -46,6 +50,10 @@ fun d() {}
 fun e() {}
 /** Partially ported from src/b.c: FuncPartial */
 fun f() {}
+/** Ported from src/sio_x.c: LinkFn */
+fun h() {}
+/** Ported from src/sio_x.c: LinkKept */
+fun i() {}
 /** Ported from src/zz.c: NotInReference */
 fun g() {}
 """
@@ -66,18 +74,27 @@ class FxTest {
     @Test fun partialPasses() {}
     @VerifiesPort("FuncTestOnly")
     @Test fun testOnlyPasses() {}
+    @VerifiesPort("LinkFn")
+    @Test fun linkPasses() {}
+    @VerifiesPort("LinkKept")
+    @Test fun linkKeptPasses() {}
+    @VerifiesPort("src/x.c: Bogus", "NoSuchFunc")
+    @Test fun bogusNames() {}
 }
 """
 
 JUNIT_XML = """\
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="fx.FxTest" tests="6" skipped="1" failures="1" errors="1">
+<testsuite name="fx.FxTest" tests="9" skipped="1" failures="1" errors="1">
   <testcase name="passes()" classname="fx.FxTest" time="0.0"/>
   <testcase name="skipped()" classname="fx.FxTest" time="0.0"><skipped/></testcase>
   <testcase name="fails()" classname="fx.FxTest" time="0.0"><failure message="x"/></testcase>
   <testcase name="errors()" classname="fx.FxTest" time="0.0"><error message="x"/></testcase>
   <testcase name="partialPasses()" classname="fx.FxTest" time="0.0"/>
   <testcase name="testOnlyPasses()" classname="fx.FxTest" time="0.0"/>
+  <testcase name="linkPasses()" classname="fx.FxTest" time="0.0"/>
+  <testcase name="linkKeptPasses()" classname="fx.FxTest" time="0.0"/>
+  <testcase name="bogusNames()" classname="fx.FxTest" time="0.0"/>
 </testsuite>
 """
 
@@ -114,9 +131,10 @@ class ProgressFixtureTest(unittest.TestCase):
 
     def test_only_passed_and_marked_functions_count(self) -> None:
         pm = self.port_map()
-        verified = sorted(n for n, f in pm["functions"].items() if f["status"] == "verified")
+        verified = sorted(n for n, f in pm["functions"].items() if f["status"] == "verified" and f["in_scope"])
         self.assertEqual(verified, ["FuncPass", "FuncPass2"])
-        self.assertEqual(pm["summary"], {"total": 8, "verified": 2, "implemented_unverified": 4})
+        self.assertEqual(pm["summary"], {"total": 11, "in_scope_total": 8, "out_of_scope": 3, "verified": 2,
+                                      "implemented_unverified": 4})
 
     def test_skipped_failed_errored_are_implemented_not_verified(self) -> None:
         funcs = self.port_map()["functions"]
@@ -132,7 +150,7 @@ class ProgressFixtureTest(unittest.TestCase):
     def test_unknown_names_warn_and_do_not_count(self) -> None:
         out = self.run_progress()
         self.assertIn("NotInReference", out)
-        self.assertIn("(2 / 8 functions)", out)
+        self.assertIn("(2 / 8 functions in scope)", out)
 
     def test_no_results_means_nothing_verified(self) -> None:
         (self.root / "mod/build/test-results/test/TEST-fx.FxTest.xml").unlink()
@@ -143,9 +161,46 @@ class ProgressFixtureTest(unittest.TestCase):
         text = (self.root / "README.md").read_text()
         self.assertNotIn("old", text)
         self.assertTrue(text.rstrip().endswith("tail"))
-        self.assertIn("`█████░░░░░░░░░░░░░░░ 25% (2 / 8 functions)`", text)
+        self.assertIn("`█████░░░░░░░░░░░░░░░ 25% (2 / 8 functions in scope)`", text)
         self.assertIn("| alpha | 2 | 4 | 4 | 50.0 |", text)
         self.assertIn("| beta | 0 | 2 | 4 | 0.0 |", text)
+
+    def test_out_of_scope_not_in_denominator_or_percentage(self) -> None:
+        out = self.run_progress()
+        self.assertIn("(2 / 8 functions in scope)", out)  # LinkFn verified+ported but not counted
+        self.assertIn("out-of-scope verified (not counted): LinkFn", out)
+        pm = self.port_map()
+        self.assertEqual(pm["functions"]["LinkFn"]["in_scope"], False)
+        self.assertEqual(pm["functions"]["FuncPass"]["in_scope"], True)
+
+    def test_out_of_scope_row_and_systems(self) -> None:
+        self.run_progress("--write")
+        text = (self.root / "README.md").read_text()
+        self.assertIn("3 functions (link-cable play, debug menus) are out of scope and not counted", text)
+        self.assertIn("| out of scope (link, debug menus) | 2 | 2 | 3 | |", text)
+        self.assertNotIn("| link |", text)  # whole system out of scope: no per-system row
+
+    def test_keep_in_scope_overrides(self) -> None:
+        with mock.patch.object(progress, "KEEP_IN_SCOPE", frozenset({"LinkKept"})):
+            pm = self.port_map()
+            out = self.run_progress()
+        self.assertEqual(pm["summary"]["in_scope_total"], 9)
+        self.assertEqual(pm["summary"]["out_of_scope"], 2)
+        self.assertEqual(pm["summary"]["verified"], 3)  # LinkKept counts again
+        self.assertIn("(3 / 9 functions in scope)", out)
+
+    def test_unknown_verifies_names_listed(self) -> None:
+        out = self.run_progress()
+        self.assertIn("unknown-verifies-names: 2", out)
+        self.assertIn("fx.FxTest#bogusNames: src/x.c: Bogus", out)
+        self.assertIn("fx.FxTest#bogusNames: NoSuchFunc", out)
+
+    def test_percentage_text_is_floored(self) -> None:
+        self.assertEqual(progress.pct_text(750, 7732), "9.6")  # 9.6999…, never "9.7" or "10"
+        self.assertEqual(progress.pct_text(2, 8), "25")
+        self.assertEqual(progress.pct_text(1, 8352), "0.01")
+        self.assertEqual(progress.pct_text(0, 8352), "0")
+        self.assertEqual(progress.pct_text(0, 0), "0")
 
     def test_bar_never_rounds_up(self) -> None:
         self.assertEqual(progress.bar(0, 10), "░" * 20)

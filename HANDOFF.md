@@ -10,6 +10,7 @@ Nothing blocks development. APP-1 (Delete save) owner-confirmed on 0.1.590 (11-1
 Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1 decided: option A, ADR 0015; M6 is not blocked).
 
 ## In progress
+- D11-ci3: owner PC, until ~15:00Z
 
 - D11-wm3e: owner PC, until ~15:30Z
 - PP-3: owner PC, until ~15:30Z

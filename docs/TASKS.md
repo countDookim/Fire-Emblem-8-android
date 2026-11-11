@@ -32,7 +32,7 @@ Notes: [D11-worldmap](plans/D11-worldmap.md) (§8 status), [M6-notes](plans/M6-n
 | D11-cap1 | CAP | Per-step LCD + OAM watch for 5500–5700 and 8100–8450 | Old runs byte-identical; published; available through FE8_ASSETS | — | todo |
 | D11-wm4d | PORT | Border1 blend/OAM/palette and unit-fade palettes | Per-step LCD/OAM equal D11-cap1 | D11-cap1 | todo |
 | D11-wm9 | WIRE | `hooks.worldMapWrapperScript`/`endWorldMap` in `Fe8Boot` | Headless New Game reaches `StartBattleMap`; 0 B/frame; MANUAL_TEST | D11-wm8f | todo |
-| D11-ci3 | PORT | Light effects (TwinLights, LightBurst, LightExplosion; replace ci2's minimal LightExplosion stand-in), main path | OAM/blend per frame in D11-cap2 | D11-ci1, D11-cap2 | todo |
+| D11-ci3 | PORT | Light effects (TwinLights, LightBurst, LightExplosion; replace ci2's minimal LightExplosion stand-in), main path | OAM/blend per frame in D11-cap2 | D11-ci1, D11-cap2 | in progress |
 
 ## Lane B: player phase (M6-B)
 

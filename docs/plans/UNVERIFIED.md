@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 534 across 66 decomp files (missing reason: 0).
+Total entries: 535 across 67 decomp files (missing reason: 0).
 
 ## src/worldmap_rm.c (42)
 
@@ -830,6 +830,12 @@ Total entries: 534 across 66 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetStringFromIndexInBuffer` | `engine/text/src/commonMain/kotlin/gbafe/text/MsgStrings.kt` | the reference trace never shows a caller-supplied buffer filled by it |
+
+## src/player_interface.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `TerrainDisplay_Loop_SlideOut` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | no reference run moves the cursor across the screen half, so the window never slides out; `EndPlayerPhaseSideWindows` ends it instead |
 
 ## src/playerphase.c (1)
 

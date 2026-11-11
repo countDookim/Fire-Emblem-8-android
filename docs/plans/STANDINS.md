@@ -10,16 +10,16 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 174 across 29 Kotlin files.
+Total entries: 185 across 30 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
-| M6-B | 51 |
+| M6-B | 52 |
 | M6-D | 2 |
 | M6-E | 44 |
 | M6-G | 1 |
-| M6-H | 21 |
-| M6-I | 21 |
+| M6-H | 22 |
+| M6-I | 23 |
 | M6-J | 8 |
 | D09-3 | 2 |
 | D11-ci1 | 2 |
@@ -30,9 +30,12 @@ Total entries: 174 across 29 Kotlin files.
 | D11-wm3f | 2 |
 | D11-wm9 | 9 |
 | PP-10 | 1 |
+| PP-15 | 3 |
+| PP-16 | 3 |
+| PP-17 | 1 |
 | PP-9 | 1 |
 
-## M6-B (51)
+## M6-B (52)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -57,6 +60,7 @@ Total entries: 174 across 29 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | `MuHooks` | `Fe8Boot` (Fe8Boot.kt:707) overrides the sprite animation player calls and the class lookups; the rest are stand-ins until M6-B (the fog bump: M6-H). |
 | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | `MuCtrl` | Stand-ins until M6-B: `SortMus` (only sets the sprite animation's `objLayer`; the sprite animation player is not ported). |
 | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | `MuCtrl` | Stand-ins until M6-H: `DisableAllLightRunes` / `EnableAllLightRunes` (traps are not ported). |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `doesBmxFadeExist` | Stand-in for `DoesBMXFADEExist` (false) until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `PlayerPhase` | Default hooks ([Hooks], no-ops by default; `Fe8Boot` sets `RefreshUnitSprites`, `PutMapCursor` and `StartMapSongBgm`): the L/R/A/B/START/SELECT actions of the idle loop, the side windows, `PlayerPh... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `adjustsFromXiScript` | Stand-in for `gProcScr_ADJUSTSFROMXI`, a script that ends at once until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `applyUnitAction` | Stand-in for `ApplyUnitAction` (a `PROC_CALL_2`) until M6-B. |
@@ -150,7 +154,7 @@ Total entries: 174 across 29 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: the battle animation (deamon) is not ported, never active. |
 
-## M6-H (21)
+## M6-H (22)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -174,9 +178,10 @@ Total entries: 174 across 29 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `EntityBmMaps` | Stand-ins until M6-H: the trap-dependent parts of src/bmmap.c, `RefreshTorchlightsOnBmMap` and `RefreshMinesOnBmMap` (they read the bmtrick.c trap pool, not ported yet), are the hooks [refreshTorch... |
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `refreshMinesOnBmMap` | Stand-in (M6-H) for `RefreshMinesOnBmMap`, called after the unit pass. |
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `refreshTorchlightsOnBmMap` | Stand-in (M6-H) for `RefreshTorchlightsOnBmMap`, called between clears and unit pass. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `obstacleHpAt` | Stand-in for `GetObstacleHpAt` (bmtrick.c) until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `handlePostActionTraps` | Stand-in for `HandlePostActionTraps` (a `PROC_CALL_2`) until M6-H. |
 
-## M6-I (21)
+## M6-I (23)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -187,6 +192,8 @@ Total entries: 174 across 29 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `getNextUnclearedNode` | Stand-in until M6-I; the default answers -1. |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `getPlayChapterId` | Stand-in until M6-I; the default answers -1. |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterTitle.kt` | `ChapterTitle` | Stand-in supplied by the caller until M6-I. @param getNextUnclearedNode `GetNextUnclearedNode(&gGMData)` (worldmap_path.c). |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `endPrepMenuButtonDisplay` | Stand-in until M6-I for `Proc_EndEach(gProcScr_PrepMap_MenuButtonDisplay)`. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `startPrepMenuButtonDisplay` | Stand-in until M6-I for `Proc_Start(gProcScr_PrepMap_MenuButtonDisplay)`, run instead of the goal window while the preparations screen is up. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | `getUnitStructFromEventParameter` | Pid 0 uses the stand-in (M6-I) [EventUnitStateHooks.playerLeaderPid]. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | `playerLeaderPid` | The default 1 is a stand-in until M6-I (the leader of the save is not modelled here); a caller that needs the real leader overrides it. |
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `GameSaveRam` | The RAM `ReadGameSave` fills, as the objects that own it elsewhere, plus stand-ins for what has no owner yet (the world map and dungeon data, M6-I). @property playSt `gPlaySt`. @property bmSt `gBmS... |
@@ -284,6 +291,28 @@ Total entries: 174 across 29 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `Menu` | The others are stand-ins until their port: the unit menu's item callbacks until PP-10 and the map menu's until PP-12 (an unregistered address fails loudly instead of guessing). |
+
+## PP-15 (3)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `endUnitDisplay` | Stand-in until PP-15 for `Proc_EndEach` of `gProcScr_UnitDisplay_MinimugBox` and `gProcScr_UnitDisplay_Burst`. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `startUnitDisplay` | Stand-in until PP-15 for the `unitDisplayType` branches of `InitPlayerPhaseInterface`: starts `gProcScr_UnitDisplay_MinimugBox` or `gProcScr_UnitDisplay_Burst` in tree 3. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `unitDisplayWindowQuadrant` | Stand-in until PP-15 for `Proc_Find(gProcScr_UnitDisplay_MinimugBox)`: its `windowQuadrant`, or [NO_WINDOW] where the proc does not exist. |
+
+## PP-16 (3)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `endGoalDisplay` | Stand-in until PP-16 for `Proc_EndEach(gProcScr_GoalDisplay)`. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `goalDisplayWindowQuadrant` | Stand-in until PP-16 for `Proc_Find(gProcScr_GoalDisplay)`: its `windowQuadrant`, or [NO_WINDOW] where the proc does not exist. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `startGoalDisplay` | Stand-in until PP-16 for the goal branch of `InitPlayerPhaseInterface`: starts `gProcScr_GoalDisplay` in tree 3 if the config and `EVFLAG_OBJWINDOW_DISABLE` allow it. |
+
+## PP-17 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `terrainAt` | Stand-in for `gBmMapTerrain[y][x]` until PP-17 wires the map. |
 
 ## PP-9 (1)
 

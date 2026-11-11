@@ -45,6 +45,12 @@ class TextDrawRomTest {
         val (rom, ts, host) = setup()
         var matched = 0
         var checked = 0
+        // Search.run() is fully determined by (strip i, pen x, traced strip bytes, ROM): it refills
+        // VRAM with the sentinel, builds a fresh Font and Text, and re-runs initTextFont /
+        // initTalkTextFont / initText, so nothing left in ts or host by an earlier search reaches
+        // it (the host language and the config are constant). Identical keys therefore repeat the
+        // same outcome, and each occurrence is still counted below; only the repeat DFS is skipped.
+        val outcomes = HashMap<String, Boolean>()
         for (f in dumpFrames()) {
             val iw = File(runDir, "f$f.iwram.bin").readBytes()
             val vram = File(runDir, "f$f.vram.bin").readBytes()
@@ -53,8 +59,10 @@ class TextDrawRomTest {
                 if (x == 0) continue
                 checked++
                 val o = VRAM_TEXT + STRIP_BYTES * i
-                val search = Search(ts, host, rom, i, x, vram.copyOfRange(o, o + STRIP_BYTES))
-                if (search.run()) matched++ else println("MISS f$f i=$i x=$x")
+                val strip = vram.copyOfRange(o, o + STRIP_BYTES)
+                val key = "$i:$x:" + String(strip, Charsets.ISO_8859_1) // exact content key
+                val ok = outcomes.getOrPut(key) { Search(ts, host, rom, i, x, strip).run() }
+                if (ok) matched++ else println("MISS f$f i=$i x=$x")
             }
         }
         assertEquals(checked, matched, "every traced pen position replays to the traced tiles")

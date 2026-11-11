@@ -259,3 +259,25 @@ as `ram_trace_prologue`. Up to f9322 identical to `ram_trace_newgame_bm`.
 
 Twin lights, title draw, light explosion and fog have no proc of their own; they run inside the intro proc's
 callbacks and show only in the dumps. Screenshots (title card f9530, fog f9700) checked by the parent.
+
+### 8a. D11-wm8a analysis (owner PC 11-11; no code yet)
+
+Opcodes run in 4907..5100 (`EventScrWM_Prologue_Beginning`, checked against StdEventEngine `pEventCurrent`
++0x38 in the procs watch):
+
+| Step | Opcode | State |
+|---|---|---|
+| 4908 | 10 EVBIT_MODIFY(1), C2 WmNoFade, C3 SpawnLord, 85 camera, 13 MUSCFAST(0x7fff → `Sound_FadeOutBGM(2)`) | 10/85 ported; C2, C3 (`SetGmCharUnit` → `mapMuSetUnitChar`), `Event13_BgmFadeIn` unported |
+| 4909..4940 | 0E STAL(32) | ported |
+| 4941 | 12 MUSC | verified |
+| 4942 | B4 SHOWDRAWNMAP (starts GmapRM), 0E STAL(2) | B4 transcribed, unregistered |
+| 4944 | B2 FADEOUT(0): `StartGmapLineFade(0)` (4944..4998) + `NewFadeIn(2,0)` (BmFadeIN 4944..5011) | worldmap_line_fade.c (~6 functions) unwritten; NewFadeIn verified |
+| ..4999 | B3 WaitFade | transcribed |
+| 5000; 5001..5060 | 10 EVBIT_MODIFY(0) (bits 0x72 → 0x02 at 5001); 0E STAL(60) | ported |
+| 5061..5100 | AF SHOWTEXTWINDOW (`gmMuEntryStartShow`, verified); B1 TextBoxWait | `GetGmMuEntryFlag` unported (trivial) |
+
+Steps 4945..4947 are lag frames inside `GmapRm_StartUpdateDirect` (as in `WorldMapRmTest`); port frame n = step
+4907+n up to 4944. Register opcodes one by one (not `registerOn`, which adds opcodes outside the window). Only B4
+of B4–B7 runs here (B5–B7 from 5436). Seed: iwram/ewram r04860/r04920, GmapMu proc + 7 prims + container as in
+`WorldMapMuTest`; C3 is provable against r04920 with `units[0]`, camera and no_fade zeroed in the seed. The
+`StartGmapMuEntry` hook in `WorldMapBeginning.hooks` is still a stand-in (`WorldMapMuEntry.startGmapMuEntry` exists).

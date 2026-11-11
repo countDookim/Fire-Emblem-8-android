@@ -20,7 +20,7 @@ Notes: [D11-worldmap](plans/D11-worldmap.md) (§8 status), [M6-notes](plans/M6-n
 | D11-wire-a | PORT | Start-skip audio (opsubtitle skip path, sound calls) | `gSoundSt`/player state at skip end equals the captures at 1505/2375/4405, else stays marked unverified | — | todo |
 | D11-wire-b | WIRE | Monologue hooks in `Fe8Boot`: real `ScreenFade`, `ArchivedPaletteFade`, keys | Headless New Game: parent blocked at 1213, released at 4898 (callback spans allowed); 0 B/frame; MANUAL_TEST | D11-wire-a | todo |
 | D11-wm3f | PORT | `StartGMapRoute` / `ProcScr_GMapRoute` (`worldmap_path.c`), started by `NewMapScreen` | Proc fields per step from 4901; route BG at f-dumps | — | todo |
-| D11-wm8a | PORT | Standalone WM event host; register B4–B7; VM-driven replay 4907–5100 | GmapRM procs and BG1 at f05100, started by the script (not by the test) | D11-wm3b–e | in progress (owner PC) |
+| D11-wm8a | PORT | Standalone WM event host; register B4–B7; VM-driven replay 4907–5100 | GmapRM procs and BG1 at f05100, started by the script (not by the test) | D11-wm3b–e | todo; analysis in D11-worldmap §8a |
 | D11-wm8b | PORT | Text opcodes through the host, 5100–5500 | WmText and Talk proc fields per step | D11-wm8a | todo |
 | D11-wm8c | PORT | `WM_MOVECAM2` scrolls and nation highlights through the VM, 5436–8110 | UpdateExt/Border1 fields per step | D11-wm8a | todo |
 | D11-wm8d | PORT | Portrait opcodes C4/C5 through the VM, 5764–7780 | Face procs per step; BG2 and palette at dumps | D11-wm8a | todo |

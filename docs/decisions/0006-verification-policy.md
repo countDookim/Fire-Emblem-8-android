@@ -14,3 +14,5 @@ symbol and/or frames on 5-bit channels; preferred) or **ROM golden values**. Tes
 carry `@VerifiesPort`. `Partially ported from ...` is ignored by `tools/progress.py`.
 
 **Consequences.** Progress is conservative and lags implementation.
+
+See also [0014](0014-roadmap-scope-capture-first.md): capture-first task kinds and the UNVERIFIED list.

@@ -1,6 +1,6 @@
 # M5 notes: core loop, saves, flag registry, script interpreter
 
-Facts for the open M5 tasks (docs/TASKS.md); checked against decomp 04d1edb and the nm file. Ground truth is only mGBA
+Reference notes for a finished milestone; open work is in [TASKS](../TASKS.md). Facts checked against decomp 04d1edb and the nm file. Ground truth is only mGBA
 dumps or ROM golden values (ADR 0006); ROM golden values are read at nm addresses in baserom.gba, never from our
 extractor output.
 
@@ -153,7 +153,7 @@ settles ~f9513; BattleEventEngine f14479..14631; PhaseIntro f19316 (= suspend en
 - Test patterns: seed from dump k, step, compare with k+1 (ProcEngineDifferentialTest); compare SRAM on the frame
   after a write, whole 32 KiB or named blocks; sentinels in buffers the port must overwrite.
 
-## Deferred to M6
+## Deferred from M5 (history; open work is in TASKS and ROADMAP)
 
 - Units (bmunit.c LoadUnits, autolevel RNG), Unit struct, map sprites; M5 uses UnitTable.
 - Suspend/Continue: WriteSuspendSave/ReadSuspendSave, packed units, ReadGameSave, convoy read, slot rotation; runs

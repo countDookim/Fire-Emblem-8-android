@@ -1,7 +1,9 @@
 # Modding guide
 
 The game ships only original behaviour ([0009](docs/decisions/0009-vanilla-product-mod-groundwork.md)); all
-below are extension points for mods. *(planned)* = designed in an ADR, not implemented.
+below are extension points for mods. *(planned)* = designed in an ADR, not implemented. The loader, debug menu
+and this guide's final form are milestone M7 ([ROADMAP](docs/plans/ROADMAP.md)); TASKS row `M7-0` audits the
+groundwork against the code.
 
 ## Mods
 A folder or `.zip` with `mod.json` plus files at **virtual paths**; a file at a base path overrides it, highest
@@ -16,7 +18,7 @@ layer wins ([0003](docs/decisions/0003-mod-vfs.md)).
 |---|---|---|
 | `data/` | JSON tables ([schemas](schemas/)); `*.merge.json` patches *(planned)* | extracted, not loaded yet |
 | `maps/` | Tiled `.tmj` + tileset PNGs | extracted, not loaded yet |
-| `scripts/` | `.fe8s` ([0001](docs/decisions/0001-script-format.md)) | prologue converted; compiled form and VM: [0001 amendment](docs/decisions/0001-script-format.md#amendment-m5-2026-11-04) *(M5)* |
+| `scripts/` | `.fe8s` ([0001](docs/decisions/0001-script-format.md)) | prologue converted; compiled form and VM: [0001 amendment](docs/decisions/0001-script-format.md#amendment-m5-2026-11-04) |
 | `gfx/` | PNG + JSON metadata | texture overrides resolved; not yet drawn (boot screens read ROM data) |
 | `audio/` | MIDI + voicegroup JSON, WAV | *(planned; the game plays the ROM's m4a data)* |
 | `text/<lang>/` | strings with tags (`{PLAYER}`, `{PAUSE 30}`) | `text/en/messages.json` extracted |
@@ -66,10 +68,10 @@ Now: `core.onTickStart`, `core.onTickEnd` (`TickListener(tick: Long)`). Planned 
 `RngService` is the only randomness source; vanilla `Fe8Rng` matches the original (verified vs mGBA). Mods may
 replace `RngService.source` with any `RandomSource`.
 
-## Flags, variables, saves (M5)
+## Flags, variables, saves
 `FlagRegistry`/`VarRegistry`: vanilla entries named after decomp constants (`EVFLAG_...`; unnamed `EVFLAG_<n>`);
-mods register their own by name and get handles ≥ `MOD_BASE`, never touching vanilla bytes. Wiring into scripts
-and saves is M5-56 (not usable from mods yet). Saves (`gbafe.save`): versioned container with a `core` SRAM section
+mods register their own by name and get handles ≥ `MOD_BASE`, never touching vanilla bytes. Event-script flag handlers route mod
+handles to the registry (`EventEngineProc`, `ModFlagSaveTest`); no mod loader exists before M7. Saves (`gbafe.save`): versioned container with a `core` SRAM section
 and opaque `mod:<id>` sections that survive rewrites; register `MigrationRegistry` steps per `(sectionId,
 fromVersion)`. Original `.sav` import: `Fe8SavImporter`.
 

@@ -64,21 +64,11 @@ Everything below is in `$FE8_ASSETS/reference/out`:
   (BGM only via `evglobals`/`gSoundSt` in r dumps). A new capture with callback/entry snapshots at specific events
   (like `ram_trace_fade_start`) is needed for per-frame camera/scroll and each fade. Add only when a task needs it.
 
-## 3. Proposed tasks (each <= 20 min unless noted; split further if a diff exceeds that)
+## 3. Tasks (superseded 2026-11-11)
 
-| id | scope | deps | acceptance |
-|---|---|---|---|
-| D11-wm1 | Resolve the actual proc tree from `ram_trace_prologue` procs.watch over 4898-9313: root scripts, children, start/end steps, in a test helper (`ProcArrayDump`) | - | `@VerifiesPort`-free inventory test: expected root/child script ROM symbols and live step ranges vs `procs.watch` |
-| D11-wm2 | `GmData`/`gGMData` layout + `GmDataInit` (worldmap_entry.c) and `WMLoc_*` lookups used by Beginning event (`WMLoc_GetNextLocId/GetChapterId`, node tables) | D11-wm1 | `@VerifiesPort`: gGMData fields vs `ram_trace_prologue` r04890/r04920 (before/after) |
-| D11-wm3 | `ProcScr_WorldMapWrapper`/`ProcScr_WorldMapMain` start, `NewWorldMap`, `WorldMap_Init` prefix, `EndWM` sleep timing; wire into `hooks.worldMapWrapperScript` | D11-wm1, D11-wm2 | `@VerifiesPort`: procs array + gGMData vs `ram_trace_prologue` steps 4898-4960 (watch) |
-| D11-wm4 | `worldmap_rm.c` map BG (`StartGmapRm`, `GmapRm_Blocking`, scroll manage) incl. camera opcodes 0x83-0x89 | D11-wm3 | `@VerifiesPort`: BG regs/tilemap vs `f05100`/`f05400`; camera position vs `r` dumps every 30 |
-| D11-wm5 | Event opcodes 0x80-0x82, 0xAF-0xB3 (`Event80..82`, text box, fancy fade) + `worldmap_text.c`, `worldmap_palette_fade.c` | D11-wm3 | `@VerifiesPort`: text/pal vs `f` dumps 5100..9300 and gSoundSt/BGM via `Event12`/`MUSC` |
-| D11-wm6 | Sprites/units: `worldmap_gmapunit.c`, `worldmap_mapmu.c`, `worldmap_automu.c`, opcodes 0x9E-0xAC | D11-wm4 | `@VerifiesPort`: OAM in f8100..f9000, GmapUnit/GMapMuPrim proc fields per step |
-| D11-wm7 | Faces: `worldmap_face.c` (`StartWMFaceCtrl`) + opcodes (portrait show/clear) | D11-wm5 | `@VerifiesPort`: E_FACE procs 5764-7780 and VRAM `f06000..f07500` |
-| D11-wm8 | End-to-end: run Prologue WM Beginning/ChapterIntro event script through the VM from 4898 to 9313; handoff to `StartBattleMap` | D11-wm3..7 | differential vs `ram_trace_prologue` r dumps 9300/9330 and `ram_trace_newgame_bm` f9314; no per-frame video claim |
-
-Notes: wm4-wm7 may each need to be split once `ProcScr_*` rows are inspected; keep each at one source file.
-Per CLAUDE rule 4 nothing is "ported" until break-checked. Do not mark D-11 solved on subtitle wiring alone.
+The old wm1–wm8 table is retired. Open rows are in [TASKS](../TASKS.md) lane A; status per finished sub-task is
+in section 8. Mapping: wm3 rest → D11-wm3b…e; wm8 → D11-wm8a…f and D11-wm9 (wiring); border/fade effects → D11-cap1, D11-wm4d. Rule kept: nothing is "ported"
+until break-checked (CLAUDE.md rule 4); do not mark D-11 solved on subtitle wiring alone.
 
 ## 4. Proc tree (resolved by D11-wm1)
 
@@ -184,7 +174,7 @@ Open rows: [TASKS](../TASKS.md) lane A. All of this is standalone and unwired.
   (8174-9129), started from captured args; MU-moving/fade waits driven by the capture. Type0/node path,
   StartFadeIn, Type1 start, OnEnd, End/IsActive transcribed. Unwired.
 - wm4c (`c2025c8`): events B4–BA (big map, nation highlight) transcribed with unit tests; unverified, unregistered.
-- wm8 (end-to-end + registration) follows. Restore default face
+- wm8 (end-to-end + registration): rows D11-wm8a…f, D11-wm9. Restore default face
   VRAM/palette configuration at the world-map exit before sharing TalkFace with battle dialogue.
 `@VerifiesPort` takes bare function names; `"src/x.c: F"` silently counts nothing (fixed in wm4b/wm6 tests).
 Node table checks use pinned runtime source: `tools/setup_decomp.sh` or `FE8U_DECOMP` (read-only).

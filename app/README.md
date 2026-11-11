@@ -8,5 +8,5 @@ Android shell (minSdk 26, target/compile 36); built only where an Android SDK is
 - `RomImport`: document-picker ROM → SHA-1 check → `:engine:extract` into `filesDir/base/` (ADR 0011).
 - Sound: `Fe8Sound` (m4a, ROM sound windows) mixed in the game's VBlank → `PcmStream` → `AudioThread` →
   `AudioTrackSink` (low-latency `AudioTrack`, 48 kHz).
-- `HardwareKeySource`: keys/gamepad. `AssetLayer`: VFS `base` over APK assets (debug/test builds bundle the
-  ROM-repo extracts; empty in release); the imported `base/` takes precedence when current.
+- `HardwareKeySource`: keys/gamepad. `AssetLayer`: VFS `base` over APK assets. No build bundles game data (ADR 0011;
+  `tools/check_no_game_content.py` in CI), so it is empty; the imported `filesDir/base/` is used when current.

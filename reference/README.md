@@ -9,7 +9,7 @@ Decomp-derived, committed, from `tools/gen_reference.py`; **no ROM data**. Regen
 | `ram_symbols.tsv` | name, address, size, binding (global/local=`static`), region (ewram/iwram) |
 | `iwram_symbols.tsv` | name, address (legacy, from `sym_iwram.txt`; prefer `ram_symbols.tsv`) |
 
-`decomp_functions.tsv` is the progress denominator (8352); 15 have no address (`static inline`) but count.
+`decomp_functions.tsv` lists all 8352 decomp functions; the progress denominator is this list minus the out-of-scope link-cable and debug-menu functions (`tools/progress.py`). 15 have no address (`static inline`) but count.
 
 ## Regenerate
 1. Bump `decomp/PIN` in the ROM repo; its `decomp-map` workflow builds the decomp (byte-identical to the ROM)

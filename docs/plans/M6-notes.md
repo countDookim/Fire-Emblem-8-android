@@ -1,6 +1,6 @@
 # M6 notes: text/Talk, MU, battle, suspend/resume
 
-Facts for the open M6 tasks (docs/TASKS.md); checked against decomp 04d1edb, the nm file (every address below) and the
+Reference notes for finished work (M6 part 1); open work is in [TASKS](../TASKS.md). Facts checked against decomp 04d1edb, the nm file (every address below) and the
 `procs`/`gplayst`/`gbmst` per-step watches (`scan_trace.py --watch-changes procs --watch-max 100000`). Ground truth is
 only mGBA dumps or ROM golden values (ADR 0006). Conventions as in M5-notes.md. Frames are absolute (1 watch step =
 1 frame in the split-hold runs).

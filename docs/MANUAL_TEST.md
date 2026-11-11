@@ -29,9 +29,10 @@ D-12 stays pending until this comparison; enemy/green banners are not ready for 
 
 These are known gaps; re-test them only when a relevant change is announced:
 
-- D-11: missing cinematic between New Game and the castle scene; subtitle, Start-skip and
-  world-map portrait ports remain standalone and unwired. No new device check for these yet.
-- Missing Seth/Valter battle animation, unit selection/actions/menus/inventory, and main/save/difficulty menus.
+- D-11: missing cinematic between New Game and the castle scene (testable after M6-A); subtitle, Start-skip
+  and world-map portrait ports remain standalone and unwired. No new device check for these yet.
+- Missing unit selection, actions, menus and inventory (M6-B, M6-H), combat (M6-C), enemy turns (M6-D), save/difficulty
+  menus (M6-E) and the Seth/Valter battle animation (M6-G). Combat will resolve instantly until M6-G.
   Cursor movement works; New Game currently uses Normal difficulty.
 
 Previously confirmed: castle audio, dialogue/portraits/blinking/mouths, backgrounds, walking and rider exits;

@@ -3,7 +3,8 @@
 ## Principles
 1. **Decomp = spec, ROM = oracle;** ported only with ground-truth tests
    ([0006](docs/decisions/0006-verification-policy.md)).
-2. **Original behaviour, modern design:** idiomatic Kotlin per game system; GBA addresses only in tests.
+2. **Original behaviour, modern design:** idiomatic Kotlin per game system. Tests use GBA addresses freely; main sources still read ROM tables by
+   `0x08…` address and keep some GBA RAM layouts (`BootRom`, `worldmap`, `bm`); TASKS row `M7-0` audits this.
 3. **1:1 product; modding = extension points** ([0009](docs/decisions/0009-vanilla-product-mod-groundwork.md),
    [MODDING.md](MODDING.md)).
 4. **Zero allocations per frame** (`AllocationTest`, CI benchmark). All but `:app` is Android-free.
@@ -40,12 +41,13 @@ targets, ADR 0013); `gba:testkit`, `testing` and `tools:extract` are plain JVM; 
 | `engine:save` | save container v1, FE checksums | working |
 | `engine:text` | text tags, Huffman messages | partial |
 | `engine:extract` | ROM → assets extraction core (JSON/PNG/Tiled/MIDI/WAV/`.fe8s`): file-free, runs from ROM + bundled manifest (ADR 0011); used by `tools:extract` and `:app` | working |
-| `game` | `fe8.game` systems; shared FE systems become `gbafe.<system>` (0010) | boot → title, sound; M5 (bm, event, save, flags) in progress |
+| `game` | `fe8.game` packages: `bm`, `event`, `flags`, `opanim`, `save`, `savemenu`, `scene`, `text`, `title`, `ui`, `worldmap`; shared FE systems become `gbafe.<system>` (0010) | boot → title with sound; New Game plays the Prologue opening to the turn-1 map (cursor, suspend/resume); open work in TASKS lanes A and B |
 | `testing` | differential tests vs mGBA, ROM golden tests, benchmark | working |
 | `tools:extract` | extraction CLI: decomp reads, files (`DecompSources`, `FileOutput`); never shipped | working |
-| `app` | launcher (ROM import, Play), GLES 3.0 `GpuBackend`, `AudioTrackSink` + `AudioThread`, keys/gamepad + safe-area touch overlay, APK asset layer | boot playable |
+| `app` | launcher (ROM import, Play), GLES 3.0 `GpuBackend`, `AudioTrackSink` + `AudioThread`, keys/gamepad + safe-area touch overlay, APK asset layer | playable to the Prologue turn-1 map |
 
-Systems follow the `system` column of `reference/decomp_functions.tsv` (= README progress table).
+`fe8.game` packages group ported code by role (above); the 15 systems of the README progress table come from the
+`system` column of `reference/decomp_functions.tsv` (e.g. `battle_map`, `worldmap`, `events`) and do not map 1:1.
 
 ## Frame loop
 `GameLoop.frame(now)` runs per display refresh on the GL thread. `FixedStepClock` converts wall time to whole
@@ -69,3 +71,12 @@ ROM repo: rom/baserom.gba ─► mgba-harness (headless mGBA 0.10.5) + reference
 code repo: :testing differential tests replay inputs.bin into the port and compare state/frames
           ─► JUnit XML ─► tools/progress.py ─► README bar + docs/port_map.json
 ```
+
+## Planning and verification
+- Work is planned capture-first: **CAP** (new capture in the ROM repo), **INV** (inventory test of one capture
+  window), **PORT** (one behaviour, ≤ ~8 functions), **WIRE** (into `Fe8Boot`/`GameControl`, device-testable).
+- Captures live in the ROM repo (`reference/scripts`, `reference/out`); the code repo reads them via `$FE8_ASSETS`.
+- `tools/progress.py` counts in-scope functions only: link-cable `sio_*` and the debug menus are shown separately
+  (`OUT_OF_SCOPE_*`; a function with a retail caller stays in scope, `tools/check_scope_callers.py`).
+- `tools/unverified.py` generates [UNVERIFIED](docs/plans/UNVERIFIED.md), the written-but-unverified code.
+- [ROADMAP](docs/plans/ROADMAP.md) (milestones, rules) · [TASKS](docs/TASKS.md) (open rows).

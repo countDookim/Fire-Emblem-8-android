@@ -16,3 +16,4 @@ new record; owner amendments are folded in with their date.
 - [0011](0011-player-supplied-rom.md) Player supplies the ROM; release ships no assets
 - [0012](0012-gba-library.md) Game-neutral GBA library: `gba.*` modules
 - [0013](0013-kmp-targets.md) Kotlin Multiplatform: jvm + android targets, commonMain rules
+- [0014](0014-roadmap-scope-capture-first.md) Roadmap: scope exclusion, milestones, capture-first tasks

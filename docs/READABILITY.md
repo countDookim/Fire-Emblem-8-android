@@ -17,7 +17,8 @@ section below for human readability, until every section is done. CLAUDE.md rule
 - **Done when:** the section's files are read in full, fixes are committed, `./gradlew jvmTest test` and the
   module's Dokka are green, and the row below says `done <date> <commit>`.
 
-Sizes are main-source files/lines on 2026-11-07; new packages get a row when they appear.
+Sizes are main-source files/lines on 2026-11-07; counts for open rows were refreshed 2026-11-11 (done rows keep
+their old counts); new packages get a row when they appear.
 
 | Module | Package | Files | Lines | Status |
 |---|---|---:|---:|---|
@@ -52,18 +53,19 @@ Sizes are main-source files/lines on 2026-11-07; new packages get a row when the
 | engine/text | gbafe.text | 6 | 926 | done 2026-11-09 d3b21d6 |
 | game | fe8.game | 8 | 1999 | done 2026-11-09 ee10196 |
 | game | fe8.game.bm (map, camera, state, cursor, music, chapter data: 16 files) | 16 | 2964 | done 2026-11-10 bac8ed1 |
-| game | fe8.game.bm (battle, units, MU, sprites, animations, phase intro: 16 files) | 16 | 7719 | todo |
+| game | fe8.game.bm (battle, units, MU, sprites, animations, phase intro: 16 files) | 16 | 8025 | todo |
 | game | fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs) | 4 | 845 | done 2026-11-10 ff286fe / 0bfe1ab |
 | game | fe8.game.event (remaining command handlers and script formats) | 18 | 3299 | done 2026-11-10 077a47d |
 | game | fe8.game.flags | 1 | 69 | done 2026-11-09 0194222 |
-| game | fe8.game.opanim (OpAnim, OpAnimHs, EarlyStartUi) | 3 | 3128 | partial 2026-11-11 8cf022f: OpAnim.kt ~1040-1300 bodies unread |
+| game | fe8.game.opanim (OpAnim, OpAnimHs, EarlyStartUi) | 3 | 3225 | partial 2026-11-11 8cf022f: OpAnim.kt ~1040-1300 bodies unread |
 | game | fe8.game.opanim (OpSubtitle*.kt) | 7 | 796 | done 2026-11-10 f3ad834 / d05e87f |
 | game | fe8.game.save | 8 | 2541 | done 2026-11-09 1941586 |
 | game | fe8.game.savemenu | 2 | 156 | done 2026-11-09 81db35b |
 | game | fe8.game.scene | 5 | 1921 | done 2026-11-09 c3bb2ed |
 | game | fe8.game.text | 1 | 30 | done 2026-11-09 0194222 |
 | game | fe8.game.title | 1 | 824 | done 2026-11-09 83f2cb6 |
-| game | fe8.game.worldmap | 13 | 2929 | todo |
+| game | fe8.game.ui | 5 | 1069 | todo |
+| game | fe8.game.worldmap | 19 | 5607 | todo |
 | gba/audio | gba.audio | 17 | 2799 | done 2026-11-09 1db6a62 |
 | gba/core | gba.core | 1 | 21 | done 2026-11-07 697847c |
 | gba/core | gba.core.event | 2 | 101 | done 2026-11-07 697847c |

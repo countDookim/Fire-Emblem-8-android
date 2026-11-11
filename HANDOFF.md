@@ -10,7 +10,8 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-None. `wip/D11-wm6` is merged into master (`b027750`); the remote branch can be deleted.
+- D11-wm6b (GmapUnit fade/loop verification): scheduled, until ~05:35Z
+- D11-wm6c (worldmap_mapmu.c GMapMuPrim port): scheduled, until ~05:35Z
 
 ## Current state
 

@@ -715,8 +715,9 @@ public class BmBattle(
     }
 
     /**
-     * The support level of the unit's support slot [num] from its support points: 0 below C,
-     * 1 for B (above 80), 2 for A (above 160), 3 for S (above 240).
+     * The support level of the unit's support slot [num] from its support points
+     * (`GetUnitSupportLevel`, bmreliance.c): 0 none (80 or less), 1 C (above 80), 2 B (above
+     * 160), 3 A (above 240). FE8 has no S rank.
      */
     private fun supportLevel(bytes: ByteArray, offset: Int, num: Int): Int {
         val supportExp = u8(bytes, offset + OFF_SUPPORTS + num)
@@ -891,8 +892,9 @@ public class BmBattle(
     }
 
     /**
-     * Whether the actor's class is 0x2B or 0x2C and the target's class is in the monster
-     * effectiveness list (`ItemEffectiveness_Monsters`).
+     * Bishop "Slayer": whether the actor is a Bishop (`CLASS_BISHOP` 0x2B, `CLASS_BISHOP_F` 0x2C)
+     * and the target's class is a monster class (`ItemEffectiveness_Monsters`), so the Bishop's
+     * attacks are effective against it.
      */
     private fun isUnitEffectiveAgainst(
         actorBytes: ByteArray,

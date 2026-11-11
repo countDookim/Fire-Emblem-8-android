@@ -16,7 +16,7 @@ PROFILES = {
         "assistant": "Claude",
         "scheduled": "Claude Cowork task every 6 h",
         "owner_session": "Claude Code",
-        "delegation": "The session model plans and reviews; a subagent does the work. Choose the model per task: Haiku when the brief states exactly what to change and a mechanical check proves it (comments, docs, generators with tests, inventories); Sonnet for anything that needs reasoning (PORT, WIRE, trace analysis, capture scripts, audits) and whenever unsure. A Haiku task that fails its check or review is redone on Sonnet.",
+        "delegation": "The session model plans and reviews; a subagent does the work. Choose the model per task: Haiku when the brief states exactly what to change and a mechanical check proves it (mechanical comment/doc edits, generators with tests, inventories); Sonnet for anything that needs reasoning (PORT, WIRE, trace analysis, capture scripts, audits, readability/comment meaning, owner 2026-11-11) and whenever unsure. A Haiku task that fails its check or review is redone on Sonnet.",
         "brief_tool": '(one per `Agent` call, `model: "haiku"` or `model: "sonnet"`; say which and why when launching)',
         "fix_tool": "(`SendMessage`)",
     },

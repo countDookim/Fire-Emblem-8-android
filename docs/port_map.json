@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 887,
+    "verified": 895,
     "implemented_unverified": 2
   },
   "functions": {
@@ -1157,6 +1157,30 @@
         "fe8.testing.PrologueMapTest#BG3 of the Prologue map matches the first phase reference"
       ]
     },
+    "DisplayMoveRangeGraphics": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MoveLimitView.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MoveLimitViewDifferentialTest#attack range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#cancel_end range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#select_move range squares match the game"
+      ]
+    },
+    "DisplayMovementViewTile": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MoveLimitView.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MoveLimitViewDifferentialTest#attack range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#cancel_end range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#select_move range squares match the game"
+      ]
+    },
     "DisplayUiHand": {
       "decomp_file": "src/uiutils.c",
       "system": "menus",
@@ -2164,7 +2188,7 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -3451,6 +3475,18 @@
         "fe8.testing.WorldMapFaceTest#controller holder and face procs match every step from 4907 to 8846"
       ]
     },
+    "HideMoveRangeGraphics": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MoveLimitView.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MoveLimitViewDifferentialTest#attack range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#cancel_end range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#select_move range squares match the game"
+      ]
+    },
     "HideWmText": {
       "decomp_file": "src/worldmap_text.c",
       "system": "worldmap",
@@ -4192,6 +4228,66 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aPitchTest#DirectSound channel frequencies match every reference RAM dump"
+      ]
+    },
+    "MoveLimitViewChange_OnInit": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MoveLimitView.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MoveLimitViewDifferentialTest#attack range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#cancel_end range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#select_move range squares match the game"
+      ]
+    },
+    "MoveLimitViewChange_OnLoop": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MoveLimitView.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MoveLimitViewDifferentialTest#attack range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#cancel_end range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#select_move range squares match the game"
+      ]
+    },
+    "MoveLimitView_OnEnd": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MoveLimitView.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MoveLimitViewDifferentialTest#attack range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#cancel_end range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#select_move range squares match the game"
+      ]
+    },
+    "MoveLimitView_OnInit": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MoveLimitView.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MoveLimitViewDifferentialTest#attack range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#cancel_end range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#select_move range squares match the game"
+      ]
+    },
+    "MoveLimitView_OnLoop": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MoveLimitView.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MoveLimitViewDifferentialTest#attack range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#cancel_end range squares match the game",
+        "fe8.testing.MoveLimitViewDifferentialTest#select_move range squares match the game"
       ]
     },
     "MoveTalkFace": {

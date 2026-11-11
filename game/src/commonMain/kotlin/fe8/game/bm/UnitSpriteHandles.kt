@@ -29,15 +29,21 @@ public class UnitSpriteHandles(
     /** `gSMSHandleIt` as an index into [handles]. */
     public var handleIt: Int = 0
 
-    private fun addr(index: Int): Int = ARRAY_ADDRESS + index * HANDLE_SIZE
+    /** The real address of the handle at [handleIndex] (the value a `pNext` field holds). */
+    private fun handleAddress(handleIndex: Int): Int = ARRAY_ADDRESS + handleIndex * HANDLE_SIZE
 
-    private fun index(address: Int): Int = (address - ARRAY_ADDRESS) / HANDLE_SIZE
+    /** The index of the handle at the real address [address]. */
+    private fun handleIndexOf(address: Int): Int = (address - ARRAY_ADDRESS) / HANDLE_SIZE
 
-    private fun pNext(h: Int): Int = u32(handles, h * HANDLE_SIZE)
+    /** The `pNext` field of the handle at [handleIndex]: the address of the next handle. */
+    private fun nextAddressOf(handleIndex: Int): Int = u32(handles, handleIndex * HANDLE_SIZE)
 
-    private fun yDisplay(h: Int): Int = s16(handles, h * HANDLE_SIZE + 6)
+    /** The `yDisplay` (s16 at +6) of the handle at [handleIndex]. */
+    private fun yDisplayOf(handleIndex: Int): Int =
+        readS16(handles, handleIndex * HANDLE_SIZE + 6)
 
-    private fun s16(b: ByteArray, o: Int): Int = u16(b, o).toShort().toInt()
+    /** Signed 16-bit read at [offset] of [bytes]. */
+    private fun readS16(bytes: ByteArray, offset: Int): Int = u16(bytes, offset).toShort().toInt()
 
     /**
      * Ported from src/bmudisp.c: GetUnitSpritePalette
@@ -72,17 +78,17 @@ public class UnitSpriteHandles(
      * `yDisplay` below [y] (or at the end), and returns its index.
      */
     public fun addUnitSprite(y: Int): Int {
-        var it = 0
+        var cursor = 0
         while (true) {
-            val next = pNext(it)
-            if (next == 0 || yDisplay(index(next)) < y) {
-                put32(handles, handleIt * HANDLE_SIZE, next)
-                put32(handles, it * HANDLE_SIZE, addr(handleIt))
+            val nextAddress = nextAddressOf(cursor)
+            if (nextAddress == 0 || yDisplayOf(handleIndexOf(nextAddress)) < y) {
+                put32(handles, handleIt * HANDLE_SIZE, nextAddress)
+                put32(handles, cursor * HANDLE_SIZE, handleAddress(handleIt))
                 val result = handleIt
                 handleIt += 1
                 return result
             }
-            it = index(next)
+            cursor = handleIndexOf(nextAddress)
         }
     }
 
@@ -92,10 +98,10 @@ public class UnitSpriteHandles(
      * Sets bit 0x80 of the handle config of unit [id]; does nothing without a handle.
      */
     public fun hideUnitSprite(id: Int) {
-        val h = u32(units.bytes, units.unitOffset(id) + OFF_HANDLE)
-        if (h == 0) return
-        val i = index(h) * HANDLE_SIZE + 0xB
-        handles[i] = (handles[i].toInt() or 0x80).toByte()
+        val handleAddr = u32(units.bytes, units.unitOffset(id) + OFF_HANDLE)
+        if (handleAddr == 0) return
+        val configOffset = handleIndexOf(handleAddr) * HANDLE_SIZE + 0xB
+        handles[configOffset] = (handles[configOffset].toInt() or 0x80).toByte()
     }
 
     /**
@@ -104,10 +110,10 @@ public class UnitSpriteHandles(
      * Clears bit 0x80 of the handle config of unit [id]; does nothing without a handle.
      */
     public fun showUnitSprite(id: Int) {
-        val h = u32(units.bytes, units.unitOffset(id) + OFF_HANDLE)
-        if (h == 0) return
-        val i = index(h) * HANDLE_SIZE + 0xB
-        handles[i] = (handles[i].toInt() and 0x80.inv()).toByte()
+        val handleAddr = u32(units.bytes, units.unitOffset(id) + OFF_HANDLE)
+        if (handleAddr == 0) return
+        val configOffset = handleIndexOf(handleAddr) * HANDLE_SIZE + 0xB
+        handles[configOffset] = (handles[configOffset].toInt() and 0x80.inv()).toByte()
     }
 
     /**
@@ -122,11 +128,11 @@ public class UnitSpriteHandles(
         put32(handles, 0, 0)
         put16(0 * HANDLE_SIZE + 6, 0x400)
         handleIt = 1
-        var oam2 = 0
+        var trapOam2 = 0
         for (i in 1 until 0xC0 + 6) {
             if (!units.isValid(i)) continue
-            val o = units.unitOffset(i)
-            put32(units.bytes, o + OFF_HANDLE, 0)
+            val offset = units.unitOffset(i)
+            put32(units.bytes, offset + OFF_HANDLE, 0)
             val state = units.state(i)
             if (state and ((1 shl 0) or (1 shl 9)) != 0) continue
             val x = units.xPos(i)
@@ -136,43 +142,46 @@ public class UnitSpriteHandles(
             if (status == STATUS_PETRIFY || status == STATUS_13) {
                 units.setState(i, units.state(i) or (1 shl 1))
             }
-            val h = addUnitSprite(y * 16)
-            put16(h * HANDLE_SIZE + 6, y * 16)
-            put16(h * HANDLE_SIZE + 4, x * 16)
+            val handleIndex = addUnitSprite(y * 16)
+            put16(handleIndex * HANDLE_SIZE + 6, y * 16)
+            put16(handleIndex * HANDLE_SIZE + 4, x * 16)
             val smsId = unitSmsId(i, traps)
-            val pal = getUnitDisplayedSpritePalette(i) and 0xF
-            put16(h * HANDLE_SIZE + 8, sprites.useUnitSprite(smsId) + 0x80 + pal * 0x1000)
+            val paletteBank = getUnitDisplayedSpritePalette(i) and 0xF
+            put16(
+                handleIndex * HANDLE_SIZE + 8,
+                sprites.useUnitSprite(smsId) + 0x80 + paletteBank * 0x1000,
+            )
             var config = iconSize(smsId)
             if (units.state(i) and 0x100 != 0) config += 3
             if (units.state(i) and 0x1000000 != 0) config += 0x40
-            handles[h * HANDLE_SIZE + 0xB] = config.toByte()
-            put32(units.bytes, o + OFF_HANDLE, addr(h))
+            handles[handleIndex * HANDLE_SIZE + 0xB] = config.toByte()
+            put32(units.bytes, offset + OFF_HANDLE, handleAddress(handleIndex))
         }
-        var t = 0
-        while (t < traps.size && u8(traps, t + 2) != 0) {
-            val type = u8(traps, t + 2)
-            val tx = u8(traps, t)
-            val ty = u8(traps, t + 1)
-            if (type == 1 && s8(traps, t + 5) == 0) {
-                when (u8(traps, t + 3)) {
-                    0x35 -> oam2 = sprites.useUnitSprite(0x5B) - 0x4000 + 0x80
-                    0x36 -> oam2 = sprites.useUnitSprite(0x5C) - 0x4000 + 0x80
-                    0x37 -> oam2 = sprites.useUnitSprite(0x5D) - 0x4000 + 0x80
+        var trapOffset = 0
+        while (trapOffset < traps.size && u8(traps, trapOffset + 2) != 0) {
+            val trapType = u8(traps, trapOffset + 2)
+            val tx = u8(traps, trapOffset)
+            val ty = u8(traps, trapOffset + 1)
+            if (trapType == 1 && s8(traps, trapOffset + 5) == 0) {
+                when (u8(traps, trapOffset + 3)) {
+                    0x35 -> trapOam2 = sprites.useUnitSprite(0x5B) - 0x4000 + 0x80
+                    0x36 -> trapOam2 = sprites.useUnitSprite(0x5C) - 0x4000 + 0x80
+                    0x37 -> trapOam2 = sprites.useUnitSprite(0x5D) - 0x4000 + 0x80
                 }
-                val h = addUnitSprite(ty * 16)
-                put16(h * HANDLE_SIZE + 6, ty * 16)
-                put16(h * HANDLE_SIZE + 4, tx * 16)
-                put16(h * HANDLE_SIZE + 8, oam2)
-                handles[h * HANDLE_SIZE + 0xB] = iconSize(0x5B).toByte()
+                val handleIndex = addUnitSprite(ty * 16)
+                put16(handleIndex * HANDLE_SIZE + 6, ty * 16)
+                put16(handleIndex * HANDLE_SIZE + 4, tx * 16)
+                put16(handleIndex * HANDLE_SIZE + 8, trapOam2)
+                handles[handleIndex * HANDLE_SIZE + 0xB] = iconSize(0x5B).toByte()
             }
-            if (type == 0xD) {
-                val h = addUnitSprite(ty * 16)
-                put16(h * HANDLE_SIZE + 6, ty * 16)
-                put16(h * HANDLE_SIZE + 4, tx * 16)
-                put16(h * HANDLE_SIZE + 8, sprites.useUnitSprite(0x66) - 0x5000 + 0x80)
-                handles[h * HANDLE_SIZE + 0xB] = iconSize(0x66).toByte()
+            if (trapType == 0xD) {
+                val handleIndex = addUnitSprite(ty * 16)
+                put16(handleIndex * HANDLE_SIZE + 6, ty * 16)
+                put16(handleIndex * HANDLE_SIZE + 4, tx * 16)
+                put16(handleIndex * HANDLE_SIZE + 8, sprites.useUnitSprite(0x66) - 0x5000 + 0x80)
+                handles[handleIndex * HANDLE_SIZE + 0xB] = iconSize(0x66).toByte()
             }
-            t += TRAP_SIZE
+            trapOffset += TRAP_SIZE
         }
         if (sprites.syncFlag != 0) sprites.forceSyncUnitSpriteSheet()
     }
@@ -186,24 +195,26 @@ public class UnitSpriteHandles(
     public fun getUnitSpriteHideFlag(id: Int): Int {
         val handle = u32(units.bytes, units.unitOffset(id) + OFF_HANDLE)
         if (handle == 0) return 0x80
-        return u8(handles, index(handle) * HANDLE_SIZE + 0xB) and 0x80
+        return u8(handles, handleIndexOf(handle) * HANDLE_SIZE + 0xB) and 0x80
     }
 
-    private fun put16(o: Int, v: Int) {
-        handles[o] = v.toByte()
-        handles[o + 1] = (v shr 8).toByte()
+    /** Writes [value] as a little-endian u16 at [offset] of [handles]. */
+    private fun put16(offset: Int, value: Int) {
+        handles[offset] = value.toByte()
+        handles[offset + 1] = (value shr 8).toByte()
     }
 
+    /** The size/config bits (u16 at +2) of the unit icon table entry for [smsId]. */
     private fun iconSize(smsId: Int): Int = rom.u16(ICON_TABLE + 8 * (smsId and 0x7F) + 2)
 
     /** `GetUnitSMSId` (src/bmunit.c): the class sprite, or a ballista sprite by its trap item. */
     private fun unitSmsId(id: Int, traps: ByteArray): Int {
-        val o = units.unitOffset(id)
+        val offset = units.unitOffset(id)
         if (units.state(id) and (1 shl 11) == 0) {
-            return rom.u8(u32(units.bytes, o + 4) + 6)
+            return rom.u8(u32(units.bytes, offset + 4) + 6)
         }
-        val trap = u8(units.bytes, o + 0x1C) * TRAP_SIZE
-        return when (u8(traps, trap + 3)) {
+        val trapOffset = u8(units.bytes, offset + 0x1C) * TRAP_SIZE
+        return when (u8(traps, trapOffset + 3)) {
             BALLISTA_REGULAR -> 0x58
             BALLISTA_LONG -> 0x59
             BALLISTA_KILLER -> 0x5A

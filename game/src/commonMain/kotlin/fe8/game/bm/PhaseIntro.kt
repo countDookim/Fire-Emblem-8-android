@@ -71,9 +71,11 @@ public class PhaseIntro(
         public var statIndex: Int = 0
     }
 
-    private fun sub(proc: Proc): SubState = proc.state as SubState
+    /** The [SubState] of the banner sub-proc [proc] (its `state`). */
+    private fun stateOf(proc: Proc): SubState = proc.state as SubState
 
-    private fun s16(v: Int): Int = v.toShort().toInt()
+    /** Truncates [value] to a signed 16-bit number, as the C `s16` fields do. */
+    private fun wrapS16(value: Int): Int = value.toShort().toInt()
 
     /** `gProcScr_PhaseIntroUnk` (0x0859AEE8). */
     public val unkScript: ProcScript = ProcScript(
@@ -159,12 +161,12 @@ public class PhaseIntro(
         val nextLine = (vcount + 1) % 228
         val middle = nextLine in VMATCH_MID until VMATCH_LO
         val bldcnt = if (middle) BLDCNT_MID else BLDCNT_OUTER
-        val ca = if (middle) bm.altBlendACa else bm.altBlendBCa
-        val cb = if (middle) bm.altBlendACb else bm.altBlendBCb
+        val coeffA = if (middle) bm.altBlendACa else bm.altBlendBCa
+        val coeffB = if (middle) bm.altBlendACb else bm.altBlendBCb
         io[REG_BLDCNT] = bldcnt.toByte()
         io[REG_BLDCNT + 1] = (bldcnt shr 8).toByte()
-        io[REG_BLDALPHA] = ca.toByte()
-        io[REG_BLDALPHA + 1] = cb.toByte()
+        io[REG_BLDALPHA] = coeffA.toByte()
+        io[REG_BLDALPHA + 1] = coeffB.toByte()
     }
 
     /**
@@ -173,9 +175,9 @@ public class PhaseIntro(
      * Puts the 0x60 banner name tiles on BG0 from row 9.
      */
     public fun textPutText(@Suppress("UNUSED_PARAMETER") proc: Proc) {
-        val tm = hw.mapBuffer(0)
+        val tileMap = hw.mapBuffer(0)
         for (i in 0 until 0x60) {
-            tm[9 * 32 + i] = tileRef(BGCHR_PHASE_CHANGE_NAME + i, 0).toShort()
+            tileMap[9 * 32 + i] = tileRef(BGCHR_PHASE_CHANGE_NAME + i, 0).toShort()
         }
         hw.enableBgSyncByMask(BG0_SYNC_BIT)
     }
@@ -184,7 +186,7 @@ public class PhaseIntro(
     public fun initText(proc: Proc) {
         if (hooks.currentBgmSong() != hooks.currentMapMusicIndex()) hooks.fadeOutBgm(4)
         hooks.playSoundEffect(SONG_73)
-        sub(proc).timer = 15
+        stateOf(proc).timer = 15
     }
 
     /**
@@ -193,17 +195,17 @@ public class PhaseIntro(
      * Slides BG0 in and fades the text layer in; breaks when the timer runs out.
      */
     public fun textInLoop(proc: Proc) {
-        val link = hooks.checkInLinkArena()
-        val hi = if (link) 0 else -8
-        val lo = if (link) -0x14 else -0x1C
-        val s = sub(proc)
-        val x = Interpolate.interpolate(Interpolate.RCUBIC, lo, hi, s.timer, 0x10)
+        val inLinkArena = hooks.checkInLinkArena()
+        val endX = if (inLinkArena) 0 else -8
+        val startX = if (inLinkArena) -0x14 else -0x1C
+        val state = stateOf(proc)
+        val x = Interpolate.interpolate(Interpolate.RCUBIC, startX, endX, state.timer, 0x10)
         hw.lcd.setBgPosition(0, x, 0)
         bm.altBlendACa = (bm.altBlendACa + 1) and 0xFF
         bm.altBlendACb = (bm.altBlendACb - 1) and 0xFF
-        s.timer = s16(s.timer - 1)
-        if (s.timer < 0) {
-            s.timer = 15
+        state.timer = wrapS16(state.timer - 1)
+        if (state.timer < 0) {
+            state.timer = 15
             engine.breakProc(proc)
         }
     }
@@ -214,17 +216,17 @@ public class PhaseIntro(
      * Slides BG0 out and fades the text layer out; breaks when the timer runs out.
      */
     public fun textOutLoop(proc: Proc) {
-        val link = hooks.checkInLinkArena()
-        val hi = if (link) -0x14 else -0x1C
-        val lo = if (link) -0x30 else -0x38
-        val s = sub(proc)
-        val x = Interpolate.interpolate(Interpolate.CUBIC, lo, hi, s.timer, 0x10)
+        val inLinkArena = hooks.checkInLinkArena()
+        val endX = if (inLinkArena) -0x14 else -0x1C
+        val startX = if (inLinkArena) -0x30 else -0x38
+        val state = stateOf(proc)
+        val x = Interpolate.interpolate(Interpolate.CUBIC, startX, endX, state.timer, 0x10)
         hw.lcd.setBgPosition(0, x, 0)
         bm.altBlendACa = (bm.altBlendACa - 1) and 0xFF
         bm.altBlendACb = (bm.altBlendACb + 1) and 0xFF
-        s.timer = s16(s.timer - 1)
-        if (s.timer < 0) {
-            s.timer = 15
+        state.timer = wrapS16(state.timer - 1)
+        if (state.timer < 0) {
+            state.timer = 15
             engine.breakProc(proc)
         }
     }
@@ -237,9 +239,9 @@ public class PhaseIntro(
 
     /** Ported from src/phasechangefx.c: PhaseIntroUnk_Init */
     public fun unkInit(proc: Proc) {
-        val s = sub(proc)
-        s.timer = 0
-        s.statIndex = 0
+        val state = stateOf(proc)
+        state.timer = 0
+        state.statIndex = 0
     }
 
     /**
@@ -249,30 +251,30 @@ public class PhaseIntro(
      * affine matrix 0.
      */
     public fun unkLoop(proc: Proc) {
-        val s = sub(proc)
+        val state = stateOf(proc)
         var value = 0
-        when (s.statIndex) {
+        when (state.statIndex) {
             0 -> {
-                value = Interpolate.interpolate(Interpolate.RSQUARE, 0x10, 0x100, s.timer, 0xF)
-                if (s.timer > 0xE) {
-                    s.timer = 0
-                    s.statIndex++
+                value = Interpolate.interpolate(Interpolate.RSQUARE, 0x10, 0x100, state.timer, 0xF)
+                if (state.timer > 0xE) {
+                    state.timer = 0
+                    state.statIndex++
                 } else {
-                    s.timer++
+                    state.timer++
                 }
             }
             1 -> {
                 value = 0x100
-                if (s.timer <= 0x1D) {
-                    s.timer++
+                if (state.timer <= 0x1D) {
+                    state.timer++
                 } else {
-                    s.timer = 0
-                    s.statIndex++
+                    state.timer = 0
+                    state.statIndex++
                 }
             }
             2 -> {
-                value = Interpolate.interpolate(Interpolate.CUBIC, 0x100, 0x10, s.timer, 0xF)
-                if (s.timer <= 0xE) s.timer++ else engine.breakProc(proc)
+                value = Interpolate.interpolate(Interpolate.CUBIC, 0x100, 0x10, state.timer, 0xF)
+                if (state.timer <= 0xE) state.timer++ else engine.breakProc(proc)
             }
             else -> {}
         }
@@ -283,7 +285,7 @@ public class PhaseIntro(
 
     /** Ported from src/phasechangefx.c: PhaseIntroSquares_Init */
     public fun squaresInit(proc: Proc) {
-        sub(proc).timer = 4
+        stateOf(proc).timer = 4
     }
 
     /**
@@ -292,21 +294,21 @@ public class PhaseIntro(
      * Fills BG1 with the growing squares wave; breaks after 0x22 frames.
      */
     public fun squaresInLoop(proc: Proc) {
-        val s = sub(proc)
-        val tm = hw.mapBuffer(1)
+        val state = stateOf(proc)
+        val tileMap = hw.mapBuffer(1)
         for (y in 10 - 1 downTo 0) {
             for (x in 15 - 1 downTo 0) {
-                var v = (x - s.timer) + (0x15 - y)
-                if (v > 0x10) v = 0x10
-                if (v < 0) v = 0
-                v = (0x10 - v) and 0xFE
-                putSquare(tm, x * 2, y * 2, v, 0x00, 0x01, 0x20, 0x21, 0)
+                var squareOffset = (x - state.timer) + (0x15 - y)
+                if (squareOffset > 0x10) squareOffset = 0x10
+                if (squareOffset < 0) squareOffset = 0
+                squareOffset = (0x10 - squareOffset) and 0xFE
+                putSquare(tileMap, x * 2, y * 2, squareOffset, 0x00, 0x01, 0x20, 0x21, 0)
             }
         }
-        s.timer = s16(s.timer + 1)
+        state.timer = wrapS16(state.timer + 1)
         hw.enableBgSyncByMask(BG1_SYNC_BIT)
-        if (s.timer == 0x22) {
-            s.timer = 0
+        if (state.timer == 0x22) {
+            state.timer = 0
             engine.breakProc(proc)
         }
     }
@@ -317,46 +319,50 @@ public class PhaseIntro(
      * Fills BG1 with the shrinking, flipped squares wave; breaks after 0x24 frames.
      */
     public fun squaresOutLoop(proc: Proc) {
-        val s = sub(proc)
-        val tm = hw.mapBuffer(1)
-        for (iy in 10 - 1 downTo 0) {
-            for (ix in 15 - 1 downTo 0) {
-                var v = (1 - s.timer) + (10 + ix) + (10 - iy)
-                if (v > 0x10) v = 0x10
-                if (v < 0) v = 0
-                v = v and 0xFE
-                putSquare(tm, ix * 2, iy * 2, v, 0x01, 0x00, 0x21, 0x20, TILE_HFLIP)
+        val state = stateOf(proc)
+        val tileMap = hw.mapBuffer(1)
+        for (y in 10 - 1 downTo 0) {
+            for (x in 15 - 1 downTo 0) {
+                var squareOffset = (1 - state.timer) + (10 + x) + (10 - y)
+                if (squareOffset > 0x10) squareOffset = 0x10
+                if (squareOffset < 0) squareOffset = 0
+                squareOffset = squareOffset and 0xFE
+                putSquare(tileMap, x * 2, y * 2, squareOffset, 0x01, 0x00, 0x21, 0x20, TILE_HFLIP)
             }
         }
-        s.timer = s16(s.timer + 1)
+        state.timer = wrapS16(state.timer + 1)
         hw.enableBgSyncByMask(0x2)
-        if (s.timer == 0x24) {
-            s.timer = 0
+        if (state.timer == 0x24) {
+            state.timer = 0
             engine.breakProc(proc)
         }
     }
 
+    /**
+     * Writes one 2x2 block of map entries at ([x], [y]) on [tileMap]: the four characters of the
+     * square at [squareOffset], each entry with [flipBits] added.
+     */
     private fun putSquare(
-        tm: ShortArray,
+        tileMap: ShortArray,
         x: Int,
         y: Int,
-        v: Int,
-        tl: Int,
-        tr: Int,
-        bl: Int,
-        br: Int,
-        flip: Int,
+        squareOffset: Int,
+        topLeft: Int,
+        topRight: Int,
+        bottomLeft: Int,
+        bottomRight: Int,
+        flipBits: Int,
     ) {
-        val base = BGCHR_PHASE_CHANGE_SQUARES + v
-        tm[x + y * 32] = (tileRef(base + tl, 0) + flip).toShort()
-        tm[x + 1 + y * 32] = (tileRef(base + tr, 0) + flip).toShort()
-        tm[x + (y + 1) * 32] = (tileRef(base + bl, 0) + flip).toShort()
-        tm[x + 1 + (y + 1) * 32] = (tileRef(base + br, 0) + flip).toShort()
+        val base = BGCHR_PHASE_CHANGE_SQUARES + squareOffset
+        tileMap[x + y * 32] = (tileRef(base + topLeft, 0) + flipBits).toShort()
+        tileMap[x + 1 + y * 32] = (tileRef(base + topRight, 0) + flipBits).toShort()
+        tileMap[x + (y + 1) * 32] = (tileRef(base + bottomLeft, 0) + flipBits).toShort()
+        tileMap[x + 1 + (y + 1) * 32] = (tileRef(base + bottomRight, 0) + flipBits).toShort()
     }
 
     /** Ported from src/phasechangefx.c: PhaseIntroBlendBox_Init */
     public fun blendBoxInit(proc: Proc) {
-        sub(proc).timer = 4
+        stateOf(proc).timer = 4
     }
 
     /**
@@ -365,14 +371,14 @@ public class PhaseIntro(
      * Opens the WIN0 box and raises the lower blend; breaks at timer 0x20.
      */
     public fun blendBoxInLoop(proc: Proc) {
-        val s = sub(proc)
-        val yoff = Interpolate.interpolate(Interpolate.RCUBIC, 16, 60, s.timer, 0x20)
-        hw.lcd.setWin0Box(0, 8 + yoff, DISPLAY_WIDTH, -0x60 - yoff)
-        val blend = Interpolate.interpolate(Interpolate.LINEAR, 0, 7, s.timer, 0x20)
-        bm.altBlendBCa = blend and 0xFF
-        bm.altBlendBCb = (0x10 - blend) and 0xFF
-        s.timer = s16(s.timer + 1)
-        if (s.timer == 0x20) engine.breakProc(proc)
+        val state = stateOf(proc)
+        val boxYOffset = Interpolate.interpolate(Interpolate.RCUBIC, 16, 60, state.timer, 0x20)
+        hw.lcd.setWin0Box(0, 8 + boxYOffset, DISPLAY_WIDTH, -0x60 - boxYOffset)
+        val blendAmount = Interpolate.interpolate(Interpolate.LINEAR, 0, 7, state.timer, 0x20)
+        bm.altBlendBCa = blendAmount and 0xFF
+        bm.altBlendBCb = (0x10 - blendAmount) and 0xFF
+        state.timer = wrapS16(state.timer + 1)
+        if (state.timer == 0x20) engine.breakProc(proc)
     }
 
     /**
@@ -381,14 +387,14 @@ public class PhaseIntro(
      * Closes the WIN0 box and lowers the lower blend; breaks when the timer goes below 0.
      */
     public fun blendBoxOutLoop(proc: Proc) {
-        val s = sub(proc)
-        val yoff = Interpolate.interpolate(Interpolate.RCUBIC, 0, 60, s.timer, 0x20)
-        hw.lcd.setWin0Box(0, 8 + yoff, DISPLAY_WIDTH, -0x60 - yoff)
-        val blend = Interpolate.interpolate(Interpolate.LINEAR, 0, 7, s.timer, 0x20)
-        bm.altBlendBCa = blend and 0xFF
-        bm.altBlendBCb = (0x10 - blend) and 0xFF
-        s.timer = s16(s.timer - 1)
-        if (s.timer < 0) engine.breakProc(proc)
+        val state = stateOf(proc)
+        val boxYOffset = Interpolate.interpolate(Interpolate.RCUBIC, 0, 60, state.timer, 0x20)
+        hw.lcd.setWin0Box(0, 8 + boxYOffset, DISPLAY_WIDTH, -0x60 - boxYOffset)
+        val blendAmount = Interpolate.interpolate(Interpolate.LINEAR, 0, 7, state.timer, 0x20)
+        bm.altBlendBCa = blendAmount and 0xFF
+        bm.altBlendBCb = (0x10 - blendAmount) and 0xFF
+        state.timer = wrapS16(state.timer - 1)
+        if (state.timer < 0) engine.breakProc(proc)
     }
 
     /** Ported from src/phasechangefx.c: PhaseIntro_EndIfNoUnits */
@@ -408,14 +414,14 @@ public class PhaseIntro(
         hw.lcd.setBgPosition(0, 0, 0)
         hw.lcd.setBgPosition(1, 0, 0)
         hw.lcd.setBgPosition(2, 0, 0)
-        val (img, pal) = when (playSt.faction) {
+        val (imageAddr, paletteAddr) = when (playSt.faction) {
             FACTION_BLUE -> IMG_PLAYER to PAL_PLAYER
             FACTION_RED -> IMG_ENEMY to PAL_ENEMY
             FACTION_GREEN -> IMG_OTHER to PAL_OTHER
             else -> return
         }
-        rom.decompressInto(img, hw.vram, chrOffset(BGCHR_PHASE_CHANGE_NAME))
-        val colors = rom.pal(pal, 16)
+        rom.decompressInto(imageAddr, hw.vram, chrOffset(BGCHR_PHASE_CHANGE_NAME))
+        val colors = rom.pal(paletteAddr, 16)
         colors.copyInto(hw.palette, BGPAL_PHASE_CHANGE * 16)
         colors.copyInto(hw.palette, 18 * 16)
         hw.enablePaletteSync()
@@ -468,9 +474,15 @@ public class PhaseIntro(
         }
     }
 
-    private fun tileRef(chr: Int, pal: Int): Int = chr + ((pal + BGPAL_PHASE_CHANGE) shl 12)
+    /**
+     * The map-entry value for character [chrIndex] in palette bank [paletteBank], counted from
+     * the banner's palette bank [BGPAL_PHASE_CHANGE].
+     */
+    private fun tileRef(chrIndex: Int, paletteBank: Int): Int =
+        chrIndex + ((paletteBank + BGPAL_PHASE_CHANGE) shl 12)
 
-    private fun chrOffset(chr: Int): Int = chr * 0x20
+    /** Byte offset in VRAM of the 4bpp character [chrIndex] (0x20 bytes each). */
+    private fun chrOffset(chrIndex: Int): Int = chrIndex * 0x20
 
     private companion object {
         const val FACTION_BLUE = 0x00

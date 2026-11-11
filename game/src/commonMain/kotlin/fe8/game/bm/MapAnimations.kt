@@ -58,6 +58,10 @@ public class MapAnimations(
             set(value) { onEnd = value }
     }
 
+    /**
+     * Animation cursors. `*Start` is the first entry of the chapter table (0 means no
+     * animation), `*Current` the entry to play next and `*Clock` the frames left before it.
+     */
     private var tileGfxAnimStart = 0
     private var tileGfxAnimCurrent = 0
     private var tileGfxAnimClock = 0
@@ -131,9 +135,9 @@ public class MapAnimations(
         tileGfxAnimClock = 0
         tilePalAnimClock = 0
         val chapter = playSt.chapterIndex
-        tileGfxAnimStart = asset(chapterData.objAnimId(chapter))
+        tileGfxAnimStart = assetPointer(chapterData.objAnimId(chapter))
         tileGfxAnimCurrent = tileGfxAnimStart
-        tilePalAnimStart = asset(chapterData.paletteAnimId(chapter))
+        tilePalAnimStart = assetPointer(chapterData.paletteAnimId(chapter))
         tilePalAnimCurrent = tilePalAnimStart
     }
 
@@ -169,10 +173,10 @@ public class MapAnimations(
             tileGfxAnimClock--
             return
         }
-        val cur = tileGfxAnimCurrent
-        tileGfxAnimClock = rom.u16(cur)
-        val size = rom.u16(cur + 2)
-        val data = rom.u32(cur + 4)
+        val entryAddr = tileGfxAnimCurrent
+        tileGfxAnimClock = rom.u16(entryAddr)
+        val size = rom.u16(entryAddr + 2)
+        val data = rom.u32(entryAddr + 4)
         val vram = hardware.vram
         for (i in 0 until size) vram[TILE_ANIM_VRAM + i] = rom.u8(data + i).toByte()
         tileGfxAnimCurrent += GFX_ENTRY_SIZE
@@ -193,12 +197,12 @@ public class MapAnimations(
             tilePalAnimClock--
             return
         }
-        val cur = tilePalAnimCurrent
-        tilePalAnimClock = rom.u8(cur + 4)
-        val count = rom.u8(cur + 5)
-        val dst = rom.u8(cur + 6) + 0x10 * BM_BGPAL_6
-        val data = rom.u32(cur)
-        for (i in 0 until count) hardware.palette[dst + i] = rom.u16(data + 2 * i).toShort()
+        val entryAddr = tilePalAnimCurrent
+        tilePalAnimClock = rom.u8(entryAddr + 4)
+        val count = rom.u8(entryAddr + 5)
+        val dstColor = rom.u8(entryAddr + 6) + 0x10 * BM_BGPAL_6
+        val data = rom.u32(entryAddr)
+        for (i in 0 until count) hardware.palette[dstColor + i] = rom.u16(data + 2 * i).toShort()
         hardware.enablePaletteSync()
         tilePalAnimCurrent += PAL_ENTRY_SIZE
         if (rom.u8(tilePalAnimCurrent + 4) == 0) tilePalAnimCurrent = tilePalAnimStart
@@ -210,8 +214,8 @@ public class MapAnimations(
      * Jumps the proc back to label 0 to loop every frame.
      */
     public fun onLoop(proc: Proc) {
-        val eng = engine ?: return
-        eng.goto(proc, 0)
+        val procEngine = engine ?: return
+        procEngine.goto(proc, 0)
     }
 
     /**
@@ -235,15 +239,15 @@ public class MapAnimations(
      * Ends each instance of `sProc_BMVSync`.
      */
     public fun end() {
-        val eng = engine ?: return
-        eng.endEach(procScrBmVSync)
+        val procEngine = engine ?: return
+        procEngine.endEach(procScrBmVSync)
     }
 
     /**
      * Transcribed from src/bmio.c: BMapVSync_OnEnd (not verified:
      *   secondary HBlank handler is a stub / weather effect teardown not traced)
      *
-     * Clears secondary HBlank handler when the VSync proc ends.
+     * Runs [Hooks.onEnd] when the VSync proc ends; the teardown itself lives in that hook.
      */
     public fun onEnd(proc: Proc? = null) {
         hooks.onEnd()
@@ -271,12 +275,14 @@ public class MapAnimations(
     public fun resetMapPaletteAnimations() {
         if (engine == null || engine.find(procScrBmVSync) != null) {
             val chapter = playSt.chapterIndex
-            tilePalAnimStart = asset(chapterData.paletteAnimId(chapter))
+            tilePalAnimStart = assetPointer(chapterData.paletteAnimId(chapter))
             tilePalAnimCurrent = tilePalAnimStart
         }
     }
 
-    private fun asset(id: Int): Int = rom.u32(ChapterData.CHAPTER_DATA_ASSET_TABLE + 4 * id)
+    /** The asset pointer stored in the chapter asset table at entry [id]. */
+    private fun assetPointer(id: Int): Int =
+        rom.u32(ChapterData.CHAPTER_DATA_ASSET_TABLE + 4 * id)
 
     /** Constants. */
     public companion object {

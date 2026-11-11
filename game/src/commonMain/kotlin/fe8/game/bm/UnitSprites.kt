@@ -40,6 +40,7 @@ public class UnitSprites(
      */
     public var clockSource: GameClock? = null
 
+    /** The current game clock tick: [clockSource] when set, otherwise [gameClock]. */
     private fun now(): Int = clockSource?.frames?.toInt() ?: gameClock()
 
     /**
@@ -51,6 +52,7 @@ public class UnitSprites(
         copyFrame(frame, size)
     }
 
+    /** Copies the first [size] bytes of animation frame [frame] (0 to 2) into OBJ VRAM. */
     private fun copyFrame(frame: Int, size: Int) {
         val from = frame * FRAME_SIZE
         gfxBuffer.copyInto(hardware.vram, OBJ_SHEET_VRAM, from, from + size)
@@ -66,8 +68,9 @@ public class UnitSprites(
      */
     public fun applyUnitSpritePalettes() {
         applyPalettes(PAL_MAP_SPRITE, 0x1C, 4)
-        val src = if (bmSt.gameStateBits and BM_FLAG_LINKARENA != 0) PAL_ARENA else PAL_LIGHT_RUNE
-        applyPalettes(src, 0x10 + OBJPAL_UNITSPRITE_PURPLE, 1)
+        val purplePalette =
+            if (bmSt.gameStateBits and BM_FLAG_LINKARENA != 0) PAL_ARENA else PAL_LIGHT_RUNE
+        applyPalettes(purplePalette, 0x10 + OBJPAL_UNITSPRITE_PURPLE, 1)
     }
 
     /**
@@ -92,18 +95,24 @@ public class UnitSprites(
      */
     public fun forceSyncUnitSpriteSheet() {
         syncFlag = 0
-        val frame = now() % 72
-        val which = when {
-            frame >= 68 -> 1
-            frame >= 36 -> 2
-            frame >= 32 -> 1
+        // The sprite cycle is 72 ticks: frame 0 at tick 0, frame 1 at 32, frame 2 at 36 and
+        // frame 1 again at 68, as in syncUnitSpriteSheet.
+        val clockPhase = now() % 72
+        val frameIndex = when {
+            clockPhase >= 68 -> 1
+            clockPhase >= 36 -> 2
+            clockPhase >= 32 -> 1
             else -> 0
         }
-        registerDataMove(which, FRAME_SIZE)
+        registerDataMove(frameIndex, FRAME_SIZE)
     }
 
-    private fun applyPalettes(src: Int, palId: Int, count: Int) {
-        rom.pal(src, 16 * count).copyInto(hardware.palette, palId * 16)
+    /**
+     * Copies [count] palettes of 16 colours from the ROM at [romPaletteAddr] into the palette
+     * buffer from palette index [firstPaletteIndex] on, then requests the palette sync.
+     */
+    private fun applyPalettes(romPaletteAddr: Int, firstPaletteIndex: Int, count: Int) {
+        rom.pal(romPaletteAddr, 16 * count).copyInto(hardware.palette, firstPaletteIndex * 16)
         hardware.enablePaletteSync()
     }
 
@@ -137,9 +146,9 @@ public class UnitSprites(
      */
     public fun useUnitSprite(id: Int): Int {
         if ((slots[id].toInt() and 0xFF) == 0xFF) {
-            val info = INFO_TABLE + 8 * (id and 0x7F)
-            rom.decompressInto(rom.u32(info + 4), unpackBuf, 0)
-            when (rom.u16(info + 2)) {
+            val infoEntry = INFO_TABLE + 8 * (id and 0x7F)
+            rom.decompressInto(rom.u32(infoEntry + 4), unpackBuf, 0)
+            when (rom.u16(infoEntry + 2)) {
                 SIZE_16X16 -> {
                     slots[id] = (applyUnitSpriteImage16x16(gfx16Counter, id) / 2).toByte()
                     gfx16Counter -= 1
@@ -184,23 +193,29 @@ public class UnitSprites(
     public fun applyUnitSpriteImage32x32(slot: Int, id: Int): Int =
         applyImage(slot, id, 16, 4, 4)
 
-    /** The shared body: [rows] rows of [tiles] tiles per frame, frames [frameTiles] apart. */
-    private fun applyImage(slot: Int, id: Int, frameTiles: Int, rows: Int, tiles: Int): Int {
-        val lut = slotToChr(slot)
-        val outOff = lut * CHR_SIZE
-        val second = ((id shr UNITSPRITE_ID_BITS) xor 1) and 1
+    /**
+     * The shared body of the three `ApplyUnitSpriteImage*` functions: copies [rows] rows of
+     * [tilesPerRow] tiles from each of the three frames in the unpack buffer into the character
+     * block of [slot], and returns that block's tile offset. [frameTiles] is the tile step between
+     * frames; it applies only while id bit 7 is clear, otherwise all frames read the same image.
+     */
+    private fun applyImage(slot: Int, id: Int, frameTiles: Int, rows: Int, tilesPerRow: Int): Int {
+        val chrTile = slotToChr(slot)
+        val outByteOffset = chrTile * CHR_SIZE
+        // 1 while id bit 7 is clear (the frames step through the image), 0 when it is set.
+        val frameStep = ((id shr UNITSPRITE_ID_BITS) xor 1) and 1
         for (i in 0 until 3) {
-            val imgOff = i * second * frameTiles * CHR_SIZE
+            val frameByteOffset = i * frameStep * frameTiles * CHR_SIZE
             for (r in 0 until rows) {
                 unpackBuf.copyInto(
                     gfxBuffer,
-                    i * FRAME_SIZE + r * CHR_SIZE * CHR_LINE + outOff,
-                    r * tiles * CHR_SIZE + imgOff,
-                    r * tiles * CHR_SIZE + imgOff + tiles * CHR_SIZE,
+                    i * FRAME_SIZE + r * CHR_SIZE * CHR_LINE + outByteOffset,
+                    r * tilesPerRow * CHR_SIZE + frameByteOffset,
+                    r * tilesPerRow * CHR_SIZE + frameByteOffset + tilesPerRow * CHR_SIZE,
                 )
             }
         }
-        return lut
+        return chrTile
     }
 
     /** `sSlotToChrLut[slot]`: even slots in rows 0/4/8, odd slots two rows below. */

@@ -7,10 +7,10 @@ import fe8.game.bm.StructCodec.u8
 
 /**
  * Raw-unit table (the real Unit model of M6 is not written yet): the bytes of the four
- * contiguous EWRAM unit
- * arrays `gUnitArrayBlue` (0x0202BE4C, 62 units), `gUnitArrayRed` (0x0202CFBC, 50),
- * `gUnitArrayGreen` (0x0202DDCC, 20) and `gUnitArrayPurple` (0x0202E36C, 5), each `struct Unit`
- * being [UNIT_SIZE] bytes, plus typed accessors for the few fields the ported functions read.
+ * contiguous EWRAM unit arrays `gUnitArrayBlue` (0x0202BE4C, 62 units), `gUnitArrayRed`
+ * (0x0202CFBC, 50), `gUnitArrayGreen` (0x0202DDCC, 20) and `gUnitArrayPurple` (0x0202E36C, 5),
+ * each `struct Unit` being [UNIT_SIZE] bytes, plus typed accessors for the few fields the
+ * ported functions read.
  *
  * Units are addressed by the id `GetUnit` takes (`faction + 1 + slot`, the value of the `index`
  * field), not by pointer: [unitOffset] is the `gUnitLookup` replacement. The character and class
@@ -40,12 +40,12 @@ public class UnitTable(
      * lookup table holds NULL.
      */
     public fun unitOffset(id: Int): Int {
-        val i = id and 0xFF
-        val slot = when (i) {
-            in 0x01..0x3E -> i - 0x01
-            in 0x81..0xB2 -> BLUE_COUNT + i - 0x81
-            in 0x41..0x54 -> BLUE_COUNT + RED_COUNT + i - 0x41
-            in 0xC1..0xC5 -> BLUE_COUNT + RED_COUNT + GREEN_COUNT + i - 0xC1
+        val lookupId = id and 0xFF
+        val slot = when (lookupId) {
+            in 0x01..0x3E -> lookupId - 0x01
+            in 0x81..0xB2 -> BLUE_COUNT + lookupId - 0x81
+            in 0x41..0x54 -> BLUE_COUNT + RED_COUNT + lookupId - 0x41
+            in 0xC1..0xC5 -> BLUE_COUNT + RED_COUNT + GREEN_COUNT + lookupId - 0xC1
             else -> return -1
         }
         return slot * UNIT_SIZE
@@ -53,8 +53,8 @@ public class UnitTable(
 
     /** `UNIT_IS_VALID(GetUnit(id))`: the unit exists and has a character (`pCharacterData`). */
     public fun isValid(id: Int): Boolean {
-        val o = unitOffset(id)
-        return o >= 0 && u32(bytes, o + OFF_CHARACTER) != 0
+        val offset = unitOffset(id)
+        return offset >= 0 && u32(bytes, offset + OFF_CHARACTER) != 0
     }
 
     /**
@@ -62,12 +62,12 @@ public class UnitTable(
      *   only reached by the victory-song check, which the Prologue trace never takes)
      *
      * Counts the valid units with ids `faction + 1` until `faction + 0x40` that have none of the
-     * `state` bits.
+     * `stateMask` bits.
      */
-    public fun countUnitsInState(faction: Int, state: Int): Int {
+    public fun countUnitsInState(faction: Int, stateMask: Int): Int {
         var count = 0
         for (id in faction + 1 until faction + 0x40) {
-            if (isValid(id) && (state(id) and state) == 0) count++
+            if (isValid(id) && (state(id) and stateMask) == 0) count++
         }
         return count
     }
@@ -80,10 +80,10 @@ public class UnitTable(
      */
     public fun initUnits() {
         for (id in 0 until 0x100) {
-            val o = unitOffset(id)
-            if (o < 0) continue
-            bytes.fill(0, o, o + UNIT_SIZE)
-            bytes[o + 0x0B] = id.toByte()
+            val offset = unitOffset(id)
+            if (offset < 0) continue
+            bytes.fill(0, offset, offset + UNIT_SIZE)
+            bytes[offset + 0x0B] = id.toByte()
         }
     }
 
@@ -115,9 +115,9 @@ public class UnitTable(
      * both read from the ROM.
      */
     public fun cAttributes(id: Int): Int {
-        val o = unitOffset(id)
-        return rom.u32(u32(bytes, o + OFF_CHARACTER) + OFF_ATTRIBUTES) or
-            rom.u32(u32(bytes, o + OFF_CLASS) + OFF_ATTRIBUTES)
+        val offset = unitOffset(id)
+        return rom.u32(u32(bytes, offset + OFF_CHARACTER) + OFF_ATTRIBUTES) or
+            rom.u32(u32(bytes, offset + OFF_CLASS) + OFF_ATTRIBUTES)
     }
 
     /**
@@ -145,11 +145,11 @@ public class UnitTable(
      * Ported from src/bmunit.c: GetUnitFromCharId
      *
      * The id (as taken by [unitOffset]) of the first valid unit, in id order from 1 to 0xFF,
-     * whose character is [charId]; -1 where the C returns NULL.
+     * whose character is [targetCharId]; -1 where the C returns NULL.
      */
-    public fun getUnitFromCharId(charId: Int): Int {
+    public fun getUnitFromCharId(targetCharId: Int): Int {
         for (id in 1 until 0x100) {
-            if (isValid(id) && charId(id) == charId) return id
+            if (isValid(id) && charId(id) == targetCharId) return id
         }
         return -1
     }
@@ -167,20 +167,20 @@ public class UnitTable(
      * no `@VerifiesPort` test and does not count as ported.
      */
     public fun getPlayerLeaderPid(playSt: PlaySt, nodes: BattleMapNodes): Int {
-        val ephraim = playSt.chapterModeIndex == CHAPTER_MODE_EPHRAIM
-        val pid = if (ephraim) CHARACTER_EPHRAIM else CHARACTER_EIRIKA
+        val ephraimRoute = playSt.chapterModeIndex == CHAPTER_MODE_EPHRAIM
+        val characterId = if (ephraimRoute) CHARACTER_EPHRAIM else CHARACTER_EIRIKA
         if ((playSt.chapterIndex and 0xFF) == CHAPTER_L_5X) return CHARACTER_EPHRAIM
         if (BattleMapKind.getBattleMapKind(playSt.chapterIndex, nodes) == BattleMapKind.STORY) {
-            return pid
+            return characterId
         }
-        val leader = getUnitFromCharId(pid)
-        if (leader >= 0 && (state(leader) and US_NOT_DEPLOYED) == 0) return pid
+        val leaderId = getUnitFromCharId(characterId)
+        if (leaderId >= 0 && (state(leaderId) and US_NOT_DEPLOYED) == 0) return characterId
         for (id in 1 until 0x40) {
             if (!isValid(id)) continue
             if ((state(id) and US_UNAVAILABLE) != 0) continue
             return charId(id)
         }
-        return pid
+        return characterId
     }
 
     /** Layout and flag constants. */

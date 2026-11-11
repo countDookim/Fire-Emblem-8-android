@@ -42,6 +42,7 @@ public class UnitSpritesOam(
      */
     public var clockSource: GameClock? = null
 
+    /** The current game clock tick: [clockSource] when set, otherwise [gameClock]. */
     private fun now(): Int = clockSource?.frames?.toInt() ?: gameClock()
 
     /** `GetBattleMapKind` for the current chapter. */
@@ -63,8 +64,9 @@ public class UnitSpritesOam(
     private val silenceIcons by lazy { iconTable(SILENCE_ICONS, 18) }
     private val statBoosterIcon by lazy { rom.objN(STAT_BOOSTER_ICON).data }
 
-    private fun iconTable(at: Int, count: Int): List<ShortArray> =
-        List(count) { rom.objN(rom.u32(at + 4 * it)).data }
+    /** The object data of the first [count] icon pointers in the ROM table at [tableAddr]. */
+    private fun iconTable(tableAddr: Int, count: Int): List<ShortArray> =
+        List(count) { rom.objN(rom.u32(tableAddr + 4 * it)).data }
 
     /** `CallARM_PushToSecondaryOAM(OAM1_X(0x200 + x), OAM0_Y(0x100 + y), data, oam2)`. */
     private fun push(x: Int, y: Int, data: ShortArray, oam2: Int) {
@@ -79,28 +81,29 @@ public class UnitSpritesOam(
      * configurations 2 and 5 are not exercised by the trace.
      */
     public fun putUnitSpritesOam() {
-        val array = handles.handles
+        val handleBytes = handles.handles
         putUnitSpriteIconsOam()
-        var next = u32(array, 0)
-        while (next != 0) {
-            val o = (next - UnitSpriteHandles.ARRAY_ADDRESS) / UnitSpriteHandles.HANDLE_SIZE *
-                UnitSpriteHandles.HANDLE_SIZE
-            next = u32(array, o)
-            val config = u8(array, o + 0xB)
-            val x = s16(array, o + 4) - bmSt.cameraX
-            val y = s16(array, o + 6) - bmSt.cameraY
+        var nextAddress = u32(handleBytes, 0)
+        while (nextAddress != 0) {
+            val handleOffset =
+                (nextAddress - UnitSpriteHandles.ARRAY_ADDRESS) / UnitSpriteHandles.HANDLE_SIZE *
+                    UnitSpriteHandles.HANDLE_SIZE
+            nextAddress = u32(handleBytes, handleOffset)
+            val config = u8(handleBytes, handleOffset + 0xB)
+            val x = s16(handleBytes, handleOffset + 4) - bmSt.cameraX
+            val y = s16(handleBytes, handleOffset + 6) - bmSt.cameraY
             if (x < -16 || x > DISPLAY_WIDTH) continue
             if (y < -32 || y > DISPLAY_HEIGHT) continue
             if (config and 0x80 != 0) continue
             val wiggle = if (config and 0x40 != 0) now() and 2 else 0
-            val base = StructCodec.u16(array, o + 8)
+            val baseTile = StructCodec.u16(handleBytes, handleOffset + 8)
             when (config and 0xF) {
-                0 -> push(x + wiggle, y, object16x16, base + (2 shl 10))
-                1 -> push(x + wiggle, y - 16, object16x32, base + (2 shl 10))
-                2 -> push(x - 8 + wiggle, y - 16, object32x32, base + (2 shl 10))
-                3 -> push(x + wiggle, y, object16x16, base + (3 shl 10))
-                4 -> push(x + wiggle, y - 16, object16x32, base + (3 shl 10))
-                5 -> push(x - 8 + wiggle, y - 16, object32x32, base + (3 shl 10))
+                0 -> push(x + wiggle, y, object16x16, baseTile + (2 shl 10))
+                1 -> push(x + wiggle, y - 16, object16x32, baseTile + (2 shl 10))
+                2 -> push(x - 8 + wiggle, y - 16, object32x32, baseTile + (2 shl 10))
+                3 -> push(x + wiggle, y, object16x16, baseTile + (3 shl 10))
+                4 -> push(x + wiggle, y - 16, object16x32, baseTile + (3 shl 10))
+                5 -> push(x - 8 + wiggle, y - 16, object32x32, baseTile + (3 shl 10))
             }
         }
     }
@@ -113,9 +116,9 @@ public class UnitSpritesOam(
      * tile (`destPosX == 0xFF`).
      */
     public fun putChapterMarkedTileIconOam() {
-        val chapter = chapters.getROMChapterStruct(playSt.chapterIndex)
-        val xTile = rom.u8(chapter + OFF_DEST_POS_X)
-        val yTile = rom.u8(chapter + OFF_DEST_POS_Y)
+        val chapterAddr = chapters.getROMChapterStruct(playSt.chapterIndex)
+        val xTile = rom.u8(chapterAddr + OFF_DEST_POS_X)
+        val yTile = rom.u8(chapterAddr + OFF_DEST_POS_Y)
         val shouldDisplay = (now() and 0x1F) < 0x14
         if (xTile == 0xFF) return
         if (!shouldDisplay) return
@@ -176,8 +179,8 @@ public class UnitSpritesOam(
             if (!visible16) continue
             if (units.state(i) and US_RESCUING != 0) {
                 val rescue = u8(units.bytes, units.unitOffset(i) + OFF_RESCUE)
-                val pal = RESCUE_PAL_LUT[rescue shr 6] and 0xF
-                push(ux + 9, uy + 7, object8x8, pal * 0x1000 + 0x803)
+                val paletteBank = RESCUE_PAL_LUT[rescue shr 6] and 0xF
+                push(ux + 9, uy + 7, object8x8, paletteBank * 0x1000 + 0x803)
             } else if (units.index(i) and 0xC0 != 0 && units.cAttributes(i) and CA_BOSS != 0) {
                 push(ux + 9, uy + 7, object8x8, 0x810)
             } else if (protectCharacterId == units.charId(i)) {

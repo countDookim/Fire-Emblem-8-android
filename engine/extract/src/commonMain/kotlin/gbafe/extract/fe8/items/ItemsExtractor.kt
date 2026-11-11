@@ -5,19 +5,23 @@ import gbafe.extract.hexUpper
 
 
 /**
- * Extracts the item table (`gItemData`, `struct ItemData` in the decomp's `include/bmitem.h`, values in
- * `src/data_items.c`) from the ROM into `data/items.json` (format `gbafe.items`, schema
+ * Extracts the item table (`gItemData`, `struct ItemData` in the decomp's `include/bmitem.h`,
+ * values in `src/data_items.c`) from the ROM into `data/items.json` (format `gbafe.items`, schema
  * `schemas/items.schema.json`).
  *
- * The ROM is the ground truth: values are read from the ROM bytes, the decomp only supplies names. Rows
- * stay in ROM order, so a row's position is its vanilla item number (`number` is also written and checked).
- * Pointers (stat bonuses, effectiveness lists) are resolved and inlined so the JSON has no addresses.
+ * The ROM is the ground truth: values are read from the ROM bytes, the decomp only supplies names.
+ * Rows stay in ROM order, so a row's position is its vanilla item number (`number` is also written
+ * and checked). Pointers (stat bonuses, effectiveness lists) are resolved and inlined so the JSON
+ * has no addresses.
  *
- * Row layout (byte offsets in one 0x24-byte row): 0x00 name text id, 0x02 description text id,
- * 0x04 use-description text id (all `u16`), 0x06 item number, 0x07 weapon type, 0x08 attribute bits
- * (`u32`), 0x0C stat-bonus pointer, 0x10 effectiveness-list pointer, 0x14 uses, 0x15 might, 0x16 hit,
- * 0x17 weight, 0x18 crit, 0x19 range (min in the high nibble, max in the low), 0x1A cost per use
- * (`u16`), 0x1C weapon rank exp, 0x1D icon, 0x1E use effect, 0x1F weapon effect, 0x20 weapon exp.
+ * Row layout (byte offsets in one 0x24-byte row, decomp field in parentheses): 0x00 name text id
+ * (`nameTextId`), 0x02 description text id, 0x04 use-description text id (all `u16`), 0x06 item
+ * number, 0x07 weapon type, 0x08 attribute bits (`u32`), 0x0C stat-bonus pointer, 0x10
+ * effectiveness-list pointer, 0x14 max uses (`maxUses`), 0x15 might, 0x16 hit, 0x17 weight, 0x18
+ * crit, 0x19 range (`encodedRange`: min in the high nibble, max in the low), 0x1A cost per use
+ * (`u16`), 0x1C weapon rank (`weaponRank`, the weapon level a unit needs to use it; written as
+ * `rankExp`), 0x1D icon id, 0x1E use effect id, 0x1F weapon effect id, 0x20 weapon exp (the
+ * weapon experience a unit gains per use).
  */
 public object ItemsExtractor {
     /** `sizeof(struct ItemData)` (0x21 bytes of fields, padded to 4). */
@@ -29,25 +33,36 @@ public object ItemsExtractor {
     /** Format version (bump with a loader migration, see docs/decisions/0002-data-schemas.md). */
     public const val VERSION: Int = 1
 
-    /** `ITYPE_*` in bmitem.h, in value order. */
+    /**
+     * `ITYPE_*` in bmitem.h, in value order (`BALLISTA` is `ITYPE_BLLST`, `DRAGONSTONE` is
+     * `ITYPE_DRAGN`).
+     */
     public val WEAPON_TYPES: List<String> =
         listOf(
-            "SWORD", "LANCE", "AXE", "BOW", "STAFF", "ANIMA", "LIGHT", "DARK", "BALLISTA", "ITEM",
-            "DRAGONSTONE", "MONSTER", "DANCE",
+            "SWORD", "LANCE", "AXE", "BOW", "STAFF", "ANIMA", "LIGHT", "DARK", "BALLISTA",
+            "ITEM", "DRAGONSTONE", "MONSTER", "DANCE",
         )
 
-    /** `IA_*` attribute bits in bmitem.h, bit 0 first (names lower-cased, `IA_` dropped). */
+    /**
+     * `IA_*` attribute bits in bmitem.h, bit 0 first (names lower-cased, `IA_` dropped,
+     * underscores added: `magic_damage` is `IA_MAGICDAMAGE`, `reverse_triangle` is
+     * `IA_REVERTTRIANGLE`). Each `lock_N` bit restricts the item to units whose
+     * character or class has the matching `CA_LOCK_N` attribute (`CanUnitUseWeapon`).
+     */
     public val ATTRIBUTES: List<String> = listOf(
-        "weapon", "magic", "staff", "unbreakable", "unsellable", "brave", "magic_damage", "uncounterable",
-        "reverse_triangle", "hammerne", "lock_3", "lock_1", "lock_2", "lock_0", "negate_flying", "negate_crit",
-        "unusable", "negate_defense", "lock_4", "lock_5", "lock_6", "lock_7",
+        "weapon", "magic", "staff", "unbreakable", "unsellable", "brave", "magic_damage",
+        "uncounterable", "reverse_triangle", "hammerne", "lock_3", "lock_1", "lock_2", "lock_0",
+        "negate_flying", "negate_crit", "unusable", "negate_defense", "lock_4", "lock_5", "lock_6",
+        "lock_7",
     )
 
-    /** `WPN_EFFECT_*` in bmitem.h. */
-    public val WEAPON_EFFECTS: List<String> = listOf("NONE", "POISON", "HP_DRAIN", "HP_HALVE", "DEVIL", "PETRIFY")
+    /** `WPN_EFFECT_*` in bmitem.h, in value order (`HP_DRAIN` is `WPN_EFFECT_HPDRAIN`). */
+    public val WEAPON_EFFECTS: List<String> =
+        listOf("NONE", "POISON", "HP_DRAIN", "HP_HALVE", "DEVIL", "PETRIFY")
 
-    /** `struct ItemStatBonuses` fields, in byte order. */
-    public val STAT_BONUS_FIELDS: List<String> = listOf("hp", "pow", "skl", "spd", "def", "res", "lck", "mov", "con")
+    /** `struct ItemStatBonuses` fields (`hpBonus` ... `conBonus`), in byte order. */
+    public val STAT_BONUS_FIELDS: List<String> =
+        listOf("hp", "pow", "skl", "spd", "def", "res", "lck", "mov", "con")
 
     /**
      * Builds the `items.json` document.
@@ -55,10 +70,15 @@ public object ItemsExtractor {
      * @param rom whole ROM image.
      * @param tableAddress GBA address of `gItemData` (from the decomp symbol table).
      * @param count number of rows (`ITEM_*` count; the symbol size divided by [ENTRY_SIZE]).
-     * @param names item number → decomp constant (e.g. `ITEM_SWORD_IRON`); the id is the name without
-     *   `ITEM_`. Missing names fall back to `ITEM_XX` hex ids.
+     * @param names item number → decomp constant (e.g. `ITEM_SWORD_IRON`); the id is the name
+     *   without `ITEM_`. Missing names fall back to `ITEM_XX` hex ids.
      */
-    public fun extract(rom: ByteArray, tableAddress: Int, count: Int, names: Map<Int, String>): Map<String, Any?> {
+    public fun extract(
+        rom: ByteArray,
+        tableAddress: Int,
+        count: Int,
+        names: Map<Int, String>,
+    ): Map<String, Any?> {
         val entries = ArrayList<Map<String, Any?>>(count)
         for (i in 0 until count) {
             val o = romOffset(tableAddress) + i * ENTRY_SIZE
@@ -67,13 +87,21 @@ public object ItemsExtractor {
             val attrs = u32(rom, o + 0x08)
             val attrNames = ATTRIBUTES.filterIndexed { bit, _ -> attrs and (1 shl bit) != 0 }
             // Fail loudly if the ROM sets an attribute bit we have no name for.
-            require(attrs ushr ATTRIBUTES.size == 0) { "item $i has unknown attribute bits 0x${attrs.toString(16)}" }
+            require(attrs ushr ATTRIBUTES.size == 0) {
+                "item $i has unknown attribute bits 0x${attrs.toString(16)}"
+            }
             // Range byte packs min range (high nibble) and max range (low nibble).
             val range = u8(rom, o + 0x19)
             entries += linkedMapOf(
-                "id" to (names[i]?.let { gba.extract.DecompEnums.id(it, "ITEM_") } ?: "ITEM_${hexUpper(i, 2)}"),
-                "nameText" to u16(rom, o), "descText" to u16(rom, o + 2), "useDescText" to u16(rom, o + 4),
-                "weaponType" to WEAPON_TYPES.getOrElse(u8(rom, o + 0x07)) { error("item $i: weapon type $it") },
+                "id" to (
+                    names[i]?.let { gba.extract.DecompEnums.id(it, "ITEM_") }
+                        ?: "ITEM_${hexUpper(i, 2)}"
+                    ),
+                "nameText" to u16(rom, o), "descText" to u16(rom, o + 2),
+                "useDescText" to u16(rom, o + 4),
+                "weaponType" to WEAPON_TYPES.getOrElse(u8(rom, o + 0x07)) {
+                    error("item $i: weapon type $it")
+                },
                 "attributes" to attrNames,
                 "statBonuses" to statBonuses(rom, u32(rom, o + 0x0C)),
                 "effectiveAgainst" to effectiveness(rom, u32(rom, o + 0x10)),
@@ -85,25 +113,38 @@ public object ItemsExtractor {
                 "rankExp" to u8(rom, o + 0x1C),
                 "icon" to u8(rom, o + 0x1D),
                 "useEffect" to u8(rom, o + 0x1E),
-                "weaponEffect" to WEAPON_EFFECTS.getOrElse(u8(rom, o + 0x1F)) { error("item $i: weapon effect $it") },
+                "weaponEffect" to WEAPON_EFFECTS.getOrElse(u8(rom, o + 0x1F)) {
+                    error("item $i: weapon effect $it")
+                },
                 "weaponExp" to u8(rom, o + 0x20),
             )
         }
-        return linkedMapOf("format" to FORMAT, "game" to "fe8", "version" to VERSION, "entries" to entries)
+        return linkedMapOf(
+            "format" to FORMAT, "game" to "fe8", "version" to VERSION, "entries" to entries,
+        )
     }
 
     /** [extract] serialised with [Json]. */
-    public fun extractJson(rom: ByteArray, tableAddress: Int, count: Int, names: Map<Int, String>): String =
-        Json.write(extract(rom, tableAddress, count, names))
+    public fun extractJson(
+        rom: ByteArray,
+        tableAddress: Int,
+        count: Int,
+        names: Map<Int, String>,
+    ): String = Json.write(extract(rom, tableAddress, count, names))
 
     /** Reads the 9 signed stat-bonus bytes at [ptr]; null when the item has none (null pointer). */
     private fun statBonuses(rom: ByteArray, ptr: Int): Map<String, Any?>? {
         if (ptr == 0) return null
         val o = romOffset(ptr)
-        return STAT_BONUS_FIELDS.withIndex().associateTo(LinkedHashMap()) { (k, name) -> name to rom[o + k].toInt() }
+        return STAT_BONUS_FIELDS.withIndex().associateTo(LinkedHashMap()) { (k, name) ->
+            name to rom[o + k].toInt()
+        }
     }
 
-    /** Effectiveness lists are 0-terminated `u8` class numbers (names are not resolved here). */
+    /**
+     * Reads the `pEffectiveness` list at [ptr]: 0-terminated `u8` class numbers the item is
+     * effective against (names are not resolved here); null when the item has none (null pointer).
+     */
     private fun effectiveness(rom: ByteArray, ptr: Int): List<Int>? {
         if (ptr == 0) return null
         var o = romOffset(ptr)
@@ -114,10 +155,13 @@ public object ItemsExtractor {
 
     /** Converts a GBA ROM address (0x08xxxxxx) to an offset into the ROM image. */
     private fun romOffset(addr: Int): Int {
-        require(addr ushr 25 == 0x08000000 ushr 25) { "not a ROM address: 0x${addr.toUInt().toString(16)}" }
+        require(addr ushr 25 == 0x08000000 ushr 25) {
+            "not a ROM address: 0x${addr.toUInt().toString(16)}"
+        }
         return addr - 0x08000000
     }
 
+    // Little-endian readers over the ROM image.
     private fun u8(b: ByteArray, o: Int) = b[o].toInt() and 0xFF
     private fun u16(b: ByteArray, o: Int) = u8(b, o) or (u8(b, o + 1) shl 8)
     private fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)

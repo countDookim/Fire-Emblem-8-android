@@ -7,20 +7,21 @@ import gba.extract.IndexedPng
 import gba.extract.Json
 
 /**
- * Converts a chapter's map (decomp `src/bmmap.c: UnpackChapterMap/UnpackChapterMapGraphics`) into a
- * Tiled map (`.tmj`) plus a tileset PNG.
+ * Converts a chapter's map (decomp `src/bmmap.c: UnpackChapterMap/UnpackChapterMapGraphics`) into
+ * a Tiled map (`.tmj`) plus a tileset PNG.
  *
- * Assets come from `gChapterDataAssetTable` by the chapter's `map.*Id` fields (all LZ77 except the raw
- * palette): `mainLayerId` = width, height bytes then `u16` cells (metatile index × 4); `tileConfigId` =
- * 1024 metatiles × 4 BG tilemap entries (TL, TR, BL, BR; tile | hflip << 10 | vflip << 11 | palette << 12)
- * followed by 1024 terrain bytes; `obj1Id` tiles load at BG tile 0 and `obj2Id` (optional) at tile 0x200;
- * `paletteId` = 10 palettes, of which the game uses 0..4 for lit tiles (BG palette 6 + n) and 5..9 under
- * fog (`DisplayBmTile`).
+ * Assets come from `gChapterDataAssetTable` by the chapter's `map.*Id` fields (all LZ77
+ * except the raw palette): `mainLayerId` = width, height bytes then `u16` cells (metatile
+ * index × 4); `tileConfigId` = 1024 metatiles × 4 BG tilemap entries (TL, TR, BL, BR; tile |
+ * hflip << 10 | vflip << 11 | palette << 12) followed by 1024 terrain bytes; `obj1Id` tiles load
+ * at the BG's tile 0 (`BG_VRAM + 0x20 * 0x400`) and `obj2Id` (optional) 0x200 tiles after it;
+ * `paletteId` = 10 palettes loaded at BG palettes 6..15, of which the game uses asset palettes
+ * 0..4 (base 6) for visible tiles and 5..9 (base 11) for tiles under fog (`DisplayBmTile`).
  *
- * The tileset PNG renders all 1024 metatiles (32 per row, 16×16 px) as indices `palette * 16 + color`
- * (the tilemap entry's palette field, i.e. as lit) into a 256-color PNG palette holding the 10 asset
- * palettes (fields 10..15 never occur and are black). The Tiled tileset carries each metatile's
- * terrain as an int property `terrain`.
+ * The tileset PNG renders all 1024 metatiles (32 per row, 16×16 px) as indices
+ * `palette * 16 + color` (the tilemap entry's palette field, i.e. as visible) into a 256-color PNG
+ * palette holding the 10 asset palettes (fields 10..15 never occur and are black). The Tiled
+ * tileset carries each metatile's terrain as an int property `terrain`.
  */
 public object MapsExtractor {
     /** Metatiles per tile config. */
@@ -52,44 +53,71 @@ public object MapsExtractor {
          * hidden object layer after the change layers.
          * Layer ids: 1 = main, 2.. = one per change, then one per unit group.
          */
-        public fun tmj(name: String, tilesetImage: String, unitGroups: List<Pair<String, List<Map<String, Any>>>> = emptyList()): String {
+        public fun tmj(
+            name: String,
+            tilesetImage: String,
+            unitGroups: List<Pair<String, List<Map<String, Any>>>> = emptyList(),
+        ): String {
             var nextObject = 1
             val unitLayers = unitGroups.mapIndexed { i, (group, units) ->
-                gbafe.extract.fe8.units.UnitsExtractor.objectLayer(2 + changes.size + i, group, units, nextObject).also { nextObject += units.size }
+                gbafe.extract.fe8.units.UnitsExtractor
+                    .objectLayer(2 + changes.size + i, group, units, nextObject)
+                    .also { nextObject += units.size }
             }
             return tmjJson(name, tilesetImage, unitLayers, nextObject)
         }
 
-        private fun tmjJson(name: String, tilesetImage: String, unitLayers: List<Map<String, Any>>, nextObject: Int): String = Json.write(
+        private fun tmjJson(
+            name: String,
+            tilesetImage: String,
+            unitLayers: List<Map<String, Any>>,
+            nextObject: Int,
+        ): String = Json.write(
             linkedMapOf(
-                "type" to "map", "version" to "1.10", "tiledversion" to "1.10.2", "orientation" to "orthogonal",
-                "renderorder" to "right-down", "width" to width, "height" to height, "tilewidth" to 16, "tileheight" to 16,
-                "infinite" to false, "nextlayerid" to 2 + changes.size + unitLayers.size, "nextobjectid" to nextObject,
+                "type" to "map", "version" to "1.10", "tiledversion" to "1.10.2",
+                "orientation" to "orthogonal", "renderorder" to "right-down", "width" to width,
+                "height" to height, "tilewidth" to 16, "tileheight" to 16, "infinite" to false,
+                "nextlayerid" to 2 + changes.size + unitLayers.size, "nextobjectid" to nextObject,
                 "layers" to listOf(
                     linkedMapOf(
-                        "id" to 1, "name" to "main", "type" to "tilelayer", "x" to 0, "y" to 0, "width" to width,
-                        "height" to height, "opacity" to 1, "visible" to true, "data" to cells.map { it + 1 },
+                        "id" to 1, "name" to "main", "type" to "tilelayer", "x" to 0, "y" to 0,
+                        "width" to width, "height" to height, "opacity" to 1, "visible" to true,
+                        "data" to cells.map { it + 1 },
                     ),
                 ) + changes.mapIndexed { i, c ->
                     val data = IntArray(width * height)
                     for (y in 0 until c.h) for (x in 0 until c.w) {
                         val v = c.cells[y * c.w + x]
-                        // Raw cell = metatile * 4; shr 2 gives the metatile, +1 makes it a Tiled gid.
-                        if (v != 0 && c.x + x < width && c.y + y < height) data[(c.y + y) * width + c.x + x] = (v shr 2) + 1
+                        // Raw cell = metatile * 4; shr 2 gives the metatile, +1 makes it a Tiled
+                        // gid.
+                        if (v != 0 && c.x + x < width && c.y + y < height) {
+                            data[(c.y + y) * width + c.x + x] = (v shr 2) + 1
+                        }
                     }
                     linkedMapOf(
-                        "id" to 2 + i, "name" to "change_${c.id}", "type" to "tilelayer", "x" to 0, "y" to 0, "width" to width,
-                        "height" to height, "opacity" to 1, "visible" to false, "data" to data.toList(),
-                        "properties" to listOf("id" to c.id, "x" to c.x, "y" to c.y, "w" to c.w, "h" to c.h)
-                            .map { (k, v) -> linkedMapOf("name" to k, "type" to "int", "value" to v) },
+                        "id" to 2 + i, "name" to "change_${c.id}", "type" to "tilelayer",
+                        "x" to 0, "y" to 0, "width" to width, "height" to height, "opacity" to 1,
+                        "visible" to false, "data" to data.toList(),
+                        "properties" to
+                            listOf("id" to c.id, "x" to c.x, "y" to c.y, "w" to c.w, "h" to c.h)
+                                .map { (k, v) ->
+                                    linkedMapOf("name" to k, "type" to "int", "value" to v)
+                                },
                     )
                 } + unitLayers,
                 "tilesets" to listOf(
                     linkedMapOf(
-                        "firstgid" to 1, "name" to name, "image" to tilesetImage, "imagewidth" to 512, "imageheight" to 512,
-                        "tilewidth" to 16, "tileheight" to 16, "columns" to 32, "tilecount" to METATILES, "margin" to 0, "spacing" to 0,
+                        "firstgid" to 1, "name" to name, "image" to tilesetImage,
+                        "imagewidth" to 512, "imageheight" to 512, "tilewidth" to 16,
+                        "tileheight" to 16, "columns" to 32, "tilecount" to METATILES,
+                        "margin" to 0, "spacing" to 0,
                         "tiles" to terrain.mapIndexed { i, t ->
-                            linkedMapOf("id" to i, "properties" to listOf(linkedMapOf("name" to "terrain", "type" to "int", "value" to t)))
+                            linkedMapOf(
+                                "id" to i,
+                                "properties" to listOf(
+                                    linkedMapOf("name" to "terrain", "type" to "int", "value" to t),
+                                ),
+                            )
                         },
                     ),
                 ),
@@ -98,13 +126,13 @@ public object MapsExtractor {
     }
 
     /**
-     * One `struct MapChange` (decomp `include/types.h`; applied by `src/bmtrick.c: ApplyMapChangesById`):
-     * a [w]×[h] block of raw map cells at ([x], [y]); cell value 0 leaves the map unchanged. In the
-     * `.tmj` each change is a hidden tile layer `change_<id>` (gid 0 = unchanged) with its rectangle as
-     * properties.
+     * One `struct MapChange` (decomp `include/types.h`; applied by
+     * `src/bmtrick.c: ApplyMapChangesById`): a [w]×[h] block of raw map cells at ([x], [y]); cell
+     * value 0 leaves the map unchanged. In the `.tmj` each change is a hidden tile layer
+     * `change_<id>` (gid 0 = unchanged) with its rectangle as properties.
      */
     public class MapChange(
-        /** Change id (`TILE_CHANGE` event argument). */
+        /** Change id (`id`; the argument of the `TILE_CHANGE` event command). */
         public val id: Int,
         /** Left column. */
         public val x: Int,
@@ -121,6 +149,7 @@ public object MapsExtractor {
     /**
      * Reads the `MapChange` list at ROM offset [offset] (terminated by a negative id). Each 12-byte
      * record: id, x, y, w, h (1 byte each), 3 bytes padding, then a pointer to `w*h` `u16` cells.
+     * [x], [y], [w] and [h] are `xOrigin`, `yOrigin`, `xSize` and `ySize` in the decomp.
      */
     public fun readChanges(rom: ByteArray, offset: Int): List<MapChange> {
         val out = ArrayList<MapChange>()
@@ -129,24 +158,42 @@ public object MapsExtractor {
             val w = rom[o + 3].toInt() and 0xFF
             val h = rom[o + 4].toInt() and 0xFF
             val data = u32(rom, o + 8) - 0x08000000
-            out += MapChange(rom[o].toInt(), rom[o + 1].toInt() and 0xFF, rom[o + 2].toInt() and 0xFF, w, h, IntArray(w * h) { u16(rom, data + 2 * it) })
+            out += MapChange(
+                rom[o].toInt(), rom[o + 1].toInt() and 0xFF, rom[o + 2].toInt() and 0xFF, w, h,
+                IntArray(w * h) { u16(rom, data + 2 * it) },
+            )
             o += 12
         }
         return out
     }
 
     /**
-     * Extracts the map of the chapter whose `struct ChapterMap` ids are [obj1Id], [obj2Id], [paletteId],
-     * [tileConfigId], [mainLayerId] and [changeLayerId] (0 = none), from the asset pointer table at ROM offset [assetTable].
+     * Extracts the map of the chapter whose `struct ChapterMap` ids are [obj1Id], [obj2Id],
+     * [paletteId], [tileConfigId], [mainLayerId] and [changeLayerId] (0 = none), from the asset
+     * pointer table (`gChapterDataAssetTable`) at ROM offset [assetTable].
      */
     public fun extract(
-        rom: ByteArray, assetTable: Int, obj1Id: Int, obj2Id: Int, paletteId: Int, tileConfigId: Int, mainLayerId: Int, changeLayerId: Int = 0,
+        rom: ByteArray,
+        assetTable: Int,
+        obj1Id: Int,
+        obj2Id: Int,
+        paletteId: Int,
+        tileConfigId: Int,
+        mainLayerId: Int,
+        changeLayerId: Int = 0,
     ): Output {
         // Asset id -> ROM offset; a null table entry (0) means "absent" and yields -1.
-        fun asset(id: Int): Int = u32(rom, assetTable + 4 * id).let { if (it == 0) -1 else it - 0x08000000 }
+        fun asset(id: Int): Int =
+            u32(rom, assetTable + 4 * id).let { if (it == 0) -1 else it - 0x08000000 }
         val tiles = ByteArray(METATILES * 32)
-        Lz77.decode(rom, asset(obj1Id)).data.let { it.copyInto(tiles, 0, 0, minOf(it.size, tiles.size)) }
-        if (obj2Id != 0 && asset(obj2Id) >= 0) Lz77.decode(rom, asset(obj2Id)).data.let { it.copyInto(tiles, 0x200 * 32, 0, minOf(it.size, tiles.size - 0x200 * 32)) }
+        Lz77.decode(rom, asset(obj1Id)).data.let {
+            it.copyInto(tiles, 0, 0, minOf(it.size, tiles.size))
+        }
+        if (obj2Id != 0 && asset(obj2Id) >= 0) {
+            Lz77.decode(rom, asset(obj2Id)).data.let {
+                it.copyInto(tiles, 0x200 * 32, 0, minOf(it.size, tiles.size - 0x200 * 32))
+            }
+        }
         val cfg = Lz77.decode(rom, asset(tileConfigId)).data
         val map = Lz77.decode(rom, asset(mainLayerId)).data
         val w = map[0].toInt() and 0xFF
@@ -174,12 +221,22 @@ public object MapsExtractor {
                 }
             }
         }
-        val changes = if (changeLayerId != 0 && asset(changeLayerId) >= 0) readChanges(rom, asset(changeLayerId)) else emptyList()
-        // All 10 palettes: a few metatiles reference palette fields >= 5. Fields 10..15 (none seen) map to black.
-        val palette = Bgr555.readPalette(rom, asset(paletteId), 10 * 16).copyOf(256).also { it.fill(0xFF000000.toInt(), 160, 256) }
+        val changes =
+            if (changeLayerId != 0 && asset(changeLayerId) >= 0) {
+                readChanges(rom, asset(changeLayerId))
+            } else {
+                emptyList()
+            }
+        // All 10 palettes: a few metatiles reference palette fields >= 5. Fields 10..15 (none seen)
+        // map to black.
+        val palette = Bgr555.readPalette(rom, asset(paletteId), 10 * 16)
+            .copyOf(256)
+            .also { it.fill(0xFF000000.toInt(), 160, 256) }
         return Output(w, h, cells, terrain, img, palette, changes)
     }
 
-    private fun u16(b: ByteArray, o: Int) = (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
+    // Little-endian readers over a byte array (ROM image or decompressed asset).
+    private fun u16(b: ByteArray, o: Int) =
+        (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
     private fun u32(b: ByteArray, o: Int) = u16(b, o) or (u16(b, o + 2) shl 16)
 }

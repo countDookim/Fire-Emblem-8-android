@@ -46,10 +46,10 @@ their old counts); new packages get a row when they appear.
 | engine/extract | gbafe.extract.fe8.characters | 1 | 102 | done 2026-11-07 50ec53d; audit done 2026-11-11 f0b91dd |
 | engine/extract | gbafe.extract.fe8.classes | 1 | 132 | done 2026-11-07 50ec53d; audit done 2026-11-11 f0b91dd |
 | engine/extract | gbafe.extract.fe8.events | 4 | 2359 | done 2026-11-09 a0981c8; audit todo |
-| engine/extract | gbafe.extract.fe8.items | 1 | 111 | done 2026-11-07 21ee533 (some long code lines left); audit todo |
-| engine/extract | gbafe.extract.fe8.maps | 1 | 177 | done 2026-11-07 21ee533 (some long code lines left); audit todo |
-| engine/extract | gbafe.extract.fe8.mapsprites | 1 | 140 | done 2026-11-07 21ee533 (some long code lines left); audit todo |
-| engine/extract | gbafe.extract.fe8.portraits | 1 | 97 | done 2026-11-07 21ee533 (some long code lines left); audit todo |
+| engine/extract | gbafe.extract.fe8.items | 1 | 111 | done 2026-11-07 21ee533; audit done 2026-11-11 (pending commit) |
+| engine/extract | gbafe.extract.fe8.maps | 1 | 177 | done 2026-11-07 21ee533; audit done 2026-11-11 (pending commit) |
+| engine/extract | gbafe.extract.fe8.mapsprites | 1 | 140 | done 2026-11-07 21ee533; audit done 2026-11-11 (pending commit) |
+| engine/extract | gbafe.extract.fe8.portraits | 1 | 97 | done 2026-11-07 21ee533; audit done 2026-11-11 (pending commit) |
 | engine/extract | gbafe.extract.fe8.terrains | 1 | 65 | done 2026-11-09 7c6df24; audit todo |
 | engine/extract | gbafe.extract.fe8.ui | 3 | 189 | done 2026-11-09 94e08df; audit todo |
 | engine/extract | gbafe.extract.fe8.units | 1 | 86 | done 2026-11-09 0dfc62b; audit todo |

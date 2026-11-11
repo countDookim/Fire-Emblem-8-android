@@ -28,8 +28,8 @@ import gbafe.text.TextSystem
  * item defs' callbacks (availability, draw, select, idle, switch in and out) are called through
  * [callbacks], keyed by the ROM address of the original function. Registered by default are the
  * `uimenu.c` ones: `MenuAlwaysEnabled` and `MenuCancelSelect`. The others are stand-ins until
- * their port: the unit menu's item callbacks until PP-10 and the map menu's until PP-12 (an
- * unregistered address fails loudly instead of guessing).
+ * their port: the unit menu's are registered by `fe8.game.bm.UnitActionMenu.install` (PP-10) and
+ * the map menu's wait for PP-12 (an unregistered address fails loudly instead of guessing).
  */
 public class Menu(
     private val engine: ProcEngine,

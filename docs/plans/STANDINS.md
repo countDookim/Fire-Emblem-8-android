@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 198 across 30 Kotlin files.
+Total entries: 199 across 31 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -37,6 +37,7 @@ Total entries: 198 across 30 Kotlin files.
 | PP-5 | 1 |
 | PP-7 | 1 |
 | PP-9 | 1 |
+| unassigned | 1 |
 
 ## M6-B (52)
 
@@ -301,7 +302,7 @@ Total entries: 198 across 30 Kotlin files.
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `Menu` | The others are stand-ins until their port: the unit menu's item callbacks until PP-10 and the map menu's until PP-12 (an unregistered address fails loudly instead of guessing). |
+| `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `Menu` | The others are stand-ins until their port: the unit menu's are registered by `fe8.game.bm.UnitActionMenu.install` (PP-10) and the map menu's wait for PP-12 (an unregistered address fails loudly ins... |
 
 ## PP-12 (6)
 
@@ -350,3 +351,9 @@ Total entries: 198 across 30 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | `DisplayFrozenUiHand`: stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
+
+## unassigned (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them, and a stand-in for every other availability callback, in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold. |

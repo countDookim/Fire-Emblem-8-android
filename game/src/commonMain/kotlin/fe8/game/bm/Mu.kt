@@ -27,8 +27,10 @@ public class MuUnit(
 )
 
 /**
- * Stand-ins for what mu.c calls outside itself: the sprite animation player (ap.c), the standing
- * map sprite (bmudisp.c), unit and fog lookups, sound and ROM lookups.
+ * Hooks for what mu.c calls outside itself: the sprite animation player (ap.c), the standing
+ * map sprite (bmudisp.c), unit and fog lookups, sound and ROM lookups. `Fe8Boot` (Fe8Boot.kt:707)
+ * overrides the sprite animation player calls and the class lookups; the rest are stand-ins
+ * until M6-B (the fog bump: M6-H).
  */
 public interface MuHooks {
     /**

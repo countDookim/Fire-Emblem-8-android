@@ -43,7 +43,7 @@ public class UnitSprites(
     private fun now(): Int = clockSource?.frames?.toInt() ?: gameClock()
 
     /**
-     * Stand-in for `RegisterDataMove(src, dst, size)` of [forceSyncUnitSpriteSheet]: gets the
+     * Hook for `RegisterDataMove(src, dst, size)` of [forceSyncUnitSpriteSheet]: gets the
      * frame number (0 to 2) and the byte count; the default copies at once into OBJ VRAM instead
      * of queueing the transfer for `FlushTiles`.
      */

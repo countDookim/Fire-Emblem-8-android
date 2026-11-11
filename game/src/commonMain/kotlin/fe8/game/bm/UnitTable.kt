@@ -6,7 +6,8 @@ import fe8.game.bm.StructCodec.u32
 import fe8.game.bm.StructCodec.u8
 
 /**
- * Raw-unit stand-in until the real Unit model (M6): the bytes of the four contiguous EWRAM unit
+ * Raw-unit table (the real Unit model of M6 is not written yet): the bytes of the four
+ * contiguous EWRAM unit
  * arrays `gUnitArrayBlue` (0x0202BE4C, 62 units), `gUnitArrayRed` (0x0202CFBC, 50),
  * `gUnitArrayGreen` (0x0202DDCC, 20) and `gUnitArrayPurple` (0x0202E36C, 5), each `struct Unit`
  * being [UNIT_SIZE] bytes, plus typed accessors for the few fields the ported functions read.

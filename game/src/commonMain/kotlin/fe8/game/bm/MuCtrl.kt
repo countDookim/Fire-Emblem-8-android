@@ -61,9 +61,10 @@ public interface MuCtrlHooks {
  * helpers it calls (`MoveUnit_`, `AdjustNewUnitPosition`, the movement script generation of
  * bmidoten.c).
  *
- * Stand-ins: `SortMus` (only sets the sprite animation's `objLayer`; the sprite animation player
- * is not ported), `DisableAllLightRunes` / `EnableAllLightRunes` (traps are not ported), and
- * `CopyEventMoveREDAs` (the four fixed buffers are replaced by a list copy).
+ * Stand-ins until M6-B: `SortMus` (only sets the sprite animation's `objLayer`; the sprite
+ * animation player is not ported). Stand-ins until M6-H: `DisableAllLightRunes` /
+ * `EnableAllLightRunes` (traps are not ported). `CopyEventMoveREDAs` is a Kotlin counterpart
+ * (the four fixed buffers are replaced by a list copy).
  */
 public class MuCtrl(
     private val procs: ProcEngine,

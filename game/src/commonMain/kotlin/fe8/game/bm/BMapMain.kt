@@ -32,7 +32,7 @@ import gbafe.proc.ProcScripts.whileExists
  *
  * The script is [script]; [BattleMapStart.Hooks.bmapMainScript] must be set to it (its
  * `newState` is [BattleMapStart.BMapMainState]). [ResetCursorPosition] and [CamMove] are the
- * ported procs it starts. Everything else it starts or calls is a [Hooks] stand-in: with the
+ * ported procs it starts. Everything else it starts or calls is a [Hooks] default: with the
  * defaults, the phase procs of the player and the computer idle forever and every other child
  * proc ends at once. Nothing allocates per frame.
  */
@@ -45,96 +45,157 @@ public class BMapMain(
     private val rom: RomView,
     private val resetCursor: ResetCursorPosition,
     private val camMove: CamMove,
-    /** The stand-ins. */
+    /** The hooks; `Fe8Boot` replaces the ported ones, the rest keep the defaults. */
     public val hooks: Hooks = Hooks(),
 ) {
     /** The calls and procs that are not ported yet; every one does nothing by default. */
     public class Hooks {
-        /** `WriteSuspendSave(slot)`: writes a suspend save file for the given slot. Stand-in. */
+        /**
+         * `WriteSuspendSave(slot)`: writes a suspend save file for the given slot. Default no-op;
+         * `Fe8Boot` sets `suspendSaveHook` (`BmSuspendSave`).
+         */
         public var writeSuspendSave: (slot: Int) -> Unit = {}
 
         /**
          * `CallEvent(events, execType)` with the BMapMain [Proc] that asked; may be wired to
-         * `EventEngine.callEvent`. Stand-in.
+         * `EventEngine.callEvent`. Default no-op; `Fe8Boot` sets it to `EventEngine.callEvent`.
          */
         public var callEvent: (events: Int, execType: Int, proc: Proc) -> Unit = { _, _, _ -> }
 
         /**
          * `RunPhaseSwitchEvents`: true if it started events (then `BmMain_ChangePhase` yields one
-         * frame instead of continuing). Stand-in.
+         * frame instead of continuing). Default false; `Fe8Boot` sets
+         * `EventInfos.runPhaseSwitchEvents`.
          */
         public var runPhaseSwitchEvents: () -> Boolean = { false }
 
-        /** `ClearActiveFactionGrayedStates`: resets greyed-out acted state for active faction units. Stand-in. */
+        /**
+         * `ClearActiveFactionGrayedStates`: resets greyed-out acted state for active faction
+         * units. Stand-in until M6-B.
+         */
         public var clearActiveFactionGrayedStates: () -> Unit = {}
 
-        /** `RefreshUnitSprites`: updates and synchronizes map sprites for all active units. Stand-in. */
+        /**
+         * `RefreshUnitSprites`: updates and synchronizes map sprites for all active units.
+         * Default no-op; `Fe8Boot` sets the `UnitSpriteHandles.refreshUnitSprites` port.
+         */
         public var refreshUnitSprites: () -> Unit = {}
 
-        /** `ProcessTurnSupportExp`: advances support points between adjacent allied units. Stand-in. */
+        /**
+         * `ProcessTurnSupportExp`: advances support points between adjacent allied units.
+         * Stand-in until M6-H.
+         */
         public var processTurnSupportExp: () -> Unit = {}
 
-        /** `UpdatePrevDeployStates`: updates previous turn deployment tracking. Stand-in. */
+        /** `UpdatePrevDeployStates`: updates previous turn deployment tracking. Stand-in (M6-I). */
         public var updatePrevDeployStates: () -> Unit = {}
 
-        /** `TickActiveFactionTurn`: decrements status condition turns and item durations. Stand-in. */
+        /**
+         * `TickActiveFactionTurn`: decrements status condition turns and item durations.
+         * Stand-in until M6-B.
+         */
         public var tickActiveFactionTurn: () -> Unit = {}
 
-        /** `DecayTraps`: decrements trap countdowns and handles expiring field traps. Stand-in. */
+        /**
+         * `DecayTraps`: decrements trap countdowns and handles expiring field traps.
+         * Stand-in until M6-H.
+         */
         public var decayTraps: () -> Unit = {}
 
-        /** `sub_80155C4` (chapter change cleanup and `StartBattleMap(0)`). Stand-in. */
+        /** `sub_80155C4` (chapter change cleanup and `StartBattleMap(0)`). Stand-in until M6-E. */
         public var sub80155C4: () -> Unit = {}
 
-        /** `RenderBmMap`: full background tilemap redraw. Stand-in. */
+        /** `RenderBmMap`: full background tilemap redraw. Stand-in until M6-E (resume paths). */
         public var renderBmMap: () -> Unit = {}
 
-        /** `StartMapSongBgm`: starts chapter background music for active phase. Stand-in. */
+        /**
+         * `StartMapSongBgm`: starts chapter background music for active phase. Default no-op;
+         * `Fe8Boot` sets `MapMusic.startMapSongBgm`.
+         */
         public var startMapSongBgm: () -> Unit = {}
 
-        /** `StartMidFadeFromBlack`: initiates screen fade-in transition from black. Stand-in. */
+        /**
+         * `StartMidFadeFromBlack`: initiates screen fade-in transition from black. Default
+         * no-op; `Fe8Boot` sets `screenFade.startMidFadeFromBlack`.
+         */
         public var startMidFadeFromBlack: () -> Unit = {}
 
-        /** `WaitForFade`: returns true when active screen fade has finished. Stand-in. */
+        /**
+         * `WaitForFade`: returns true when active screen fade has finished. Default true;
+         * `Fe8Boot` sets `!screenFade.fadeExists()`.
+         */
         public var waitForFade: () -> Boolean = { true }
 
-        /** `GetBattleMapKind` ([BattleMapKind]). Stand-in: always a story map. */
+        /**
+         * `GetBattleMapKind` ([BattleMapKind]). Default: always a story map; `Fe8Boot` sets
+         * `BattleMapStart.hooks.getBattleMapKind`.
+         */
         public var getBattleMapKind: () -> Int = { BattleMapKind.STORY }
 
-        /** `gProcScr_ChapterIntro` (0x0859B1B0): chapter introduction title/banner sequence. Stand-in: ends at once. */
+        /**
+         * `gProcScr_ChapterIntro` (0x0859B1B0): chapter introduction title/banner sequence.
+         * Stand-in until D11-ci5: ends at once.
+         */
         public var chapterIntro: ProcScript = standIn("gProcScr_ChapterIntro")
 
-        /** `gProcScr_ChapterIntroTitleOnly`: title-only chapter transition intro. Stand-in: ends at once. */
+        /**
+         * `gProcScr_ChapterIntroTitleOnly`: title-only chapter transition intro. Stand-in until
+         * M6-E: ends at once.
+         */
         public var chapterIntroTitleOnly: ProcScript = standIn("gProcScr_ChapterIntroTitleOnly")
 
-        /** `ProcScr_PhaseIntro` (0x0859AF80): phase change banner animation ("Player Phase", etc.). Stand-in: ends at once. */
+        /**
+         * `ProcScr_PhaseIntro` (0x0859AF80): phase change banner animation ("Player Phase",
+         * etc.). Default: ends at once; `Fe8Boot` sets the `PhaseIntro` script.
+         */
         public var phaseIntro: ProcScript = standIn("ProcScr_PhaseIntro")
 
-        /** `gProcScr_StatusDecayDisplay`: status condition recovery visual display. Stand-in: ends at once. */
+        /**
+         * `gProcScr_StatusDecayDisplay`: status condition recovery visual display. Stand-in
+         * until M6-B: ends at once.
+         */
         public var statusDecayDisplay: ProcScript = standIn("gProcScr_StatusDecayDisplay")
 
-        /** `gProcScr_TerrainHealDisplay`: terrain recovery (forts/thrones) animation display. Stand-in: ends at once. */
+        /**
+         * `gProcScr_TerrainHealDisplay`: terrain recovery (forts/thrones) animation display.
+         * Stand-in until M6-B: ends at once.
+         */
         public var terrainHealDisplay: ProcScript = standIn("gProcScr_TerrainHealDisplay")
 
-        /** `gProcScr_PoisonDamageDisplay`: poison damage animation display. Stand-in: ends at once. */
+        /**
+         * `gProcScr_PoisonDamageDisplay`: poison damage animation display. Stand-in until M6-B:
+         * ends at once.
+         */
         public var poisonDamageDisplay: ProcScript = standIn("gProcScr_PoisonDamageDisplay")
 
-        /** `gProcScr_GorgonEggHatchDisplay`: Gorgon egg hatch animation display. Stand-in: ends at once. */
+        /**
+         * `gProcScr_GorgonEggHatchDisplay`: Gorgon egg hatch animation display. Stand-in until
+         * M6-I: ends at once.
+         */
         public var gorgonEggHatchDisplay: ProcScript = standIn("gProcScr_GorgonEggHatchDisplay")
 
-        /** `gProcScr_UpdateTraps`: trap activation / damage phase process. Stand-in: ends at once. */
+        /**
+         * `gProcScr_UpdateTraps`: trap activation / damage phase process. Stand-in until M6-H:
+         * ends at once.
+         */
         public var updateTraps: ProcScript = standIn("gProcScr_UpdateTraps")
 
-        /** `gProcScr_BerserkCpPhase`: computer phase execution for berserked units. Stand-in: ends at once. */
+        /**
+         * `gProcScr_BerserkCpPhase`: computer phase execution for berserked units. Stand-in
+         * until M6-D: ends at once.
+         */
         public var berserkCpPhase: ProcScript = standIn("gProcScr_BerserkCpPhase")
 
         /**
-         * `gProcScr_PlayerPhase` (0x0859AAD8). Default stand-in: never ends; Fe8Boot sets the
+         * `gProcScr_PlayerPhase` (0x0859AAD8). Default: never ends; Fe8Boot sets the
          * transcribed [PlayerPhase.script].
          */
         public var playerPhase: ProcScript = idle("gProcScr_PlayerPhase")
 
-        /** `gProcScr_CpPhase`: computer AI phase execution process. Stand-in: never ends. */
+        /**
+         * `gProcScr_CpPhase`: computer AI phase execution process. Stand-in until M6-D: never
+         * ends.
+         */
         public var cpPhase: ProcScript = idle("gProcScr_CpPhase")
 
         private fun standIn(name: String) = ProcScript(name, listOf(end()))
@@ -144,7 +205,7 @@ public class BMapMain(
 
     /**
      * `gActionData.suspendPointType` as `BmMain_SuspendBeforePhase` leaves it (the action data is
-     * not ported yet); `SUSPEND_POINT_PHASECHANGE` after that call. Stand-in.
+     * not ported yet); `SUSPEND_POINT_PHASECHANGE` after that call. Stand-in until M6-B.
      */
     public var suspendPointType: Int = 0
 

@@ -12,7 +12,7 @@ import gbafe.proc.ProcScripts.yield
  * functions it calls. It puts the cursor on the active faction's start position and starts a
  * [CamMove] (blocking the reset proc) if the camera has to follow.
  *
- * Unit access goes through the raw-unit stand-in [units]. Nothing allocates per frame.
+ * Unit access goes through the raw unit table [units]. Nothing allocates per frame.
  */
 public class ResetCursorPosition(
     private val engine: ProcEngine,

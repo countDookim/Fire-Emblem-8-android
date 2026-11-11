@@ -8,7 +8,7 @@ import fe8.game.bm.StructCodec.u8
  * Refreshes the entity-dependent battle map pools of [map] (`gBmMapUnit`, `gBmMapFog`,
  * `gBmMapHidden`) from the units in [units] and the fog setting of [playSt].
  *
- * Stand-ins: the trap-dependent parts of src/bmmap.c, `RefreshTorchlightsOnBmMap` and
+ * Stand-ins until M6-H: the trap-dependent parts of src/bmmap.c, `RefreshTorchlightsOnBmMap` and
  * `RefreshMinesOnBmMap` (they read the bmtrick.c trap pool, not ported yet), are the hooks
  * [refreshTorchlightsOnBmMap] and [refreshMinesOnBmMap]; they do nothing until traps are ported,
  * so torchlights never light the fog map and mines never mark the hidden map.
@@ -20,9 +20,9 @@ public class EntityBmMaps(
     private val units: UnitTable,
     /** Source of `chapterVisionRange` (fog) and `faction`. */
     private val playSt: PlaySt,
-    /** Stand-in for `RefreshTorchlightsOnBmMap`, called between the clears and the unit pass. */
+    /** Stand-in (M6-H) for `RefreshTorchlightsOnBmMap`, called between clears and unit pass. */
     public var refreshTorchlightsOnBmMap: () -> Unit = {},
-    /** Stand-in for `RefreshMinesOnBmMap`, called after the unit pass. */
+    /** Stand-in (M6-H) for `RefreshMinesOnBmMap`, called after the unit pass. */
     public var refreshMinesOnBmMap: () -> Unit = {},
 ) {
     /**

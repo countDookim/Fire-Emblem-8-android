@@ -47,8 +47,8 @@ public class BmMapRender(
     }
 
     /**
-     * Stand-in for `DisplayMovementViewTile` (bmmap.c:342), called by the scroll renderers while
-     * `gBmSt.gameStateBits & 1` is set. Not ported; no trace reaches it.
+     * Stand-in until M6-B for `DisplayMovementViewTile` (bmmap.c:342), called by the scroll
+     * renderers while `gBmSt.gameStateBits & 1` is set. Not ported; no trace reaches it.
      */
     public fun interface MovementViewTile {
         /**
@@ -58,7 +58,7 @@ public class BmMapRender(
         public fun display(bg: ShortArray, xBmMap: Int, yBmMap: Int, xTileMap: Int, yTileMap: Int)
     }
 
-    /** The `DisplayMovementViewTile` stand-in, or null to draw nothing on BG2. */
+    /** The `DisplayMovementViewTile` stand-in (until M6-B), or null to draw nothing on BG2. */
     public var movementView: MovementViewTile? = null
 
     /** Reads an unsigned little-endian 16-bit halfword from [bytes] at [offset]. */

@@ -11,7 +11,7 @@ import fe8.game.RomView
  * [MAP_POOL_SIZE]); loading a chapter never allocates. The row-pointer tables the C keeps in EWRAM
  * are implicit (see [Pool]).
  *
- * Stand-ins: [applyEnabledMapChanges] (bmtrick.c-era map change application) and
+ * Stand-ins until M6-H: [applyEnabledMapChanges] (bmtrick.c-era map change application) and
  * [refreshAllLightRunes] (bmtrick.c) are later tasks, and the tileset graphics/palette unpack
  * (`UnpackChapterMapGraphics`) is in [ChapterMapGfx], not here; the chapter 0x75 water shadow pass
  * (`sub_8019624`) is not ported yet.
@@ -24,12 +24,12 @@ public class BmMap(
     /** Battle map state whose `cameraMax` [unpackChapterMap] sets. */
     private val bmSt: BmSt,
     /**
-     * Stand-in for `ApplyEnabledMapChanges`, called by [initChapterMap] after the base tiles are
-     * built; does nothing until the map change system is ported.
+     * Stand-in for `ApplyEnabledMapChanges` (until M6-H), called by [initChapterMap] after the
+     * base tiles are built; does nothing until the map change system is ported.
      */
     public var applyEnabledMapChanges: () -> Unit = {},
     /**
-     * Stand-in for `RefreshAllLightRunes` (bmtrick.c), called at the end of
+     * Stand-in for `RefreshAllLightRunes` (bmtrick.c; until M6-H), called at the end of
      * [refreshTerrainBmMap]; does nothing until traps are ported.
      */
     public var refreshAllLightRunes: () -> Unit = {},
@@ -126,7 +126,8 @@ public class BmMap(
      * pools, builds the base tiles and refreshes the terrain map. Graphics and palette unpack
      * (`UnpackChapterMapGraphics`) is a separate task and is not done here. The base tile
      * adjustments after the unpack (`ApplyEnabledMapChanges`, shadow and tile changes) are
-     * stand-ins ([applyEnabledMapChanges] is a hook), so a chapter that has them (e.g. Ch2)
+     * stand-ins until M6-H ([applyEnabledMapChanges] is a hook), so a chapter that has them
+     * (e.g. Ch2)
      * differs from the game's pool; see [loadBaseTiles].
      */
     public fun initChapterMap(chapterId: Int) {
@@ -152,8 +153,8 @@ public class BmMap(
      * Copies a raw `sBmBaseTilesPool` image (`gBmMapBaseTiles`: `sizeY + 1` row pointers of 4
      * bytes, then `sizeY + 1` rows of `sizeX` little-endian u16 tiles) from [src] at [offset] into
      * the base tiles, for the current [sizeX] x [sizeY]. It exists because the base tile
-     * adjustments of [initChapterMap] are still stand-ins: tests seed the pool from RAM dumps with
-     * it, and the suspend load will need it. Does not allocate.
+     * adjustments of [initChapterMap] are not ported yet (M6-H): tests seed the pool from RAM
+     * dumps with it, and the suspend load will need it. Does not allocate.
      */
     public fun loadBaseTiles(src: ByteArray, offset: Int) {
         val rows = sizeY + 1

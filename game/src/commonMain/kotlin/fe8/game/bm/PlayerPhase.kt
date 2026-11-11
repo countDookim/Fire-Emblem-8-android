@@ -27,11 +27,11 @@ import gbafe.proc.ProcScripts.yield
  * cursor part of [playerPhaseMainIdle], with the cursor handling of src/bm.c
  * ([handleMapCursorInput], [handleMoveMapCursor], [handleMoveCameraWithMapCursor]).
  *
- * Stand-ins ([Hooks], no-ops by default): the L/R/A/B/START/SELECT actions of the idle loop,
- * the side windows, `PlayerPhase_Suspend`, the tutorial event, `RefreshUnitSprites`, the cursor
- * sprite (`PutMapCursor`), `StartMapSongBgm`, the cursor sound effect and every call of the
- * script after the idle loop (unit selection, movement, action). A `PROC_REPEAT` with a
- * stand-in never leaves it. Nothing allocates per frame.
+ * Default hooks ([Hooks], no-ops by default; `Fe8Boot` sets `RefreshUnitSprites`,
+ * `PutMapCursor` and `StartMapSongBgm`): the L/R/A/B/START/SELECT actions of the idle loop, the
+ * side windows, `PlayerPhase_Suspend`, the tutorial event, the cursor sound effect and every
+ * call of the script after the idle loop (unit selection, movement, action) are stand-ins until
+ * M6-B. A `PROC_REPEAT` with a default hook never leaves it. Nothing allocates per frame.
  */
 public class PlayerPhase(
     /** The proc engine the player phase proc runs on. */
@@ -54,10 +54,10 @@ public class PlayerPhase(
     private val keys: KeyStatus,
     /** `EventEngineExists` (`EventEngine.eventEngineExists`). */
     private val eventEngineExists: () -> Boolean,
-    /** The stand-ins for the parts that are not ported. */
+    /** The hooks for the parts that are not ported; `Fe8Boot` replaces some. */
     public val hooks: Hooks = Hooks(),
 ) {
-    /** `PlaySoundEffect` for the cursor sound (a stand-in until the sound wrapper is wired). */
+    /** `PlaySoundEffect` for the cursor sound (a stand-in until M6-B wires the sound wrapper). */
     public fun interface SoundEffect {
         /** Plays song [song]. */
         public fun play(song: Int)
@@ -70,107 +70,112 @@ public class PlayerPhase(
     }
 
     /**
-     * The stand-ins. Every one defaults to doing nothing (the `PROC_CALL_2` ones to true, go on;
-     * `doesBmxFadeExist` to false); a stand-in for a `PROC_REPEAT` must end the wait itself.
+     * The default hooks. Every one defaults to doing nothing (the `PROC_CALL_2` ones to true, go
+     * on; `doesBmxFadeExist` to false); a replacement for a `PROC_REPEAT` must end the wait
+     * itself.
      */
     public class Hooks {
-        /** Stand-in for `PlayerPhase_Suspend` (writes the suspend save). */
+        /** Stand-in for `PlayerPhase_Suspend` (writes the suspend save) until M6-B. */
         public var suspend: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `RefreshUnitSprites`. */
+        /** `RefreshUnitSprites`. Default no-op; `Fe8Boot` sets the `UnitSpriteHandles` port. */
         public var refreshUnitSprites: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `StartPlayerPhaseStartTutorialEvent`. */
+        /** Stand-in for `StartPlayerPhaseStartTutorialEvent` until M6-B. */
         public var startTutorialEvent: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `StartMapSongBgm`. */
+        /** `StartMapSongBgm`. Default no-op; `Fe8Boot` sets `MapMusic.startMapSongBgm`. */
         public var startMapSongBgm: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `StartPlayerPhaseSideWindows`. */
+        /** Stand-in for `StartPlayerPhaseSideWindows` until M6-B. */
         public var startSideWindows: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `EndPlayerPhaseSideWindows`. */
+        /** Stand-in for `EndPlayerPhaseSideWindows` until M6-B. */
         public var endSideWindows: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `ResetUnitSpriteHover`. */
+        /** Stand-in for `ResetUnitSpriteHover` until M6-B. */
         public var resetUnitSpriteHover: ProcFunc = ProcFunc {}
 
         /**
-         * Stand-in for the part of `PlayerPhase_MainIdle` after the cursor movement: the L, R, A,
-         * B, START and SELECT actions (it may `Proc_Goto` or `Proc_Break` the proc), run before
-         * [putMapCursor].
+         * Stand-in until M6-B for the part of `PlayerPhase_MainIdle` after the cursor movement:
+         * the L, R, A, B, START and SELECT actions (it may `Proc_Goto` or `Proc_Break` the proc),
+         * run before [putMapCursor].
          */
         public var mainIdleButtons: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `UnitSpriteHoverUpdate`, run at the end of the idle loop. */
+        /** Stand-in for `UnitSpriteHoverUpdate`, run at the end of the idle loop until M6-B. */
         public var unitSpriteHoverUpdate: ProcFunc = ProcFunc {}
 
         /**
-         * Stand-in for `PutMapCursor` (the cursor sprite); `IsUnitSpriteHoverEnabledAt` is false.
+         * `PutMapCursor` (the cursor sprite); `IsUnitSpriteHoverEnabledAt` is false. Default
+         * no-op; `Fe8Boot` sets `mapCursor.put`.
          */
         public var putMapCursor: PutMapCursor = PutMapCursor { _, _, _ -> }
 
-        /** Stand-in for `PlaySoundEffect(SONG_65)`, the cursor move sound. */
+        /** Stand-in for `PlaySoundEffect(SONG_65)`, the cursor move sound, until M6-B. */
         public var cursorSound: SoundEffect = SoundEffect {}
 
-        /** Stand-in for `DoesBMXFADEExist` (false). */
+        /** Stand-in for `DoesBMXFADEExist` (false) until M6-B. */
         public var doesBmxFadeExist: ProcBoolFunc = ProcBoolFunc { false }
 
-        /** Stand-in for `SetAllUnitNotBackSprite`. */
+        /** Stand-in for `SetAllUnitNotBackSprite` until M6-B. */
         public var setAllUnitNotBackSprite: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `gProcScr_0859ACE8` (the select events), a script that ends at once. */
+        /**
+         * Stand-in for `gProcScr_0859ACE8` (the select events), a script that ends at once, until
+         * M6-B.
+         */
         public var selectEventsScript: ProcScript = ProcScript("gProcScr_0859ACE8", listOf(end()))
 
-        /** Stand-in for `PlayerPhase_InitUnitMovementSelect`. */
+        /** Stand-in for `PlayerPhase_InitUnitMovementSelect` until M6-B. */
         public var initUnitMovementSelect: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `PlayerPhase_RangeDisplayIdle` (a `PROC_REPEAT`). */
+        /** Stand-in for `PlayerPhase_RangeDisplayIdle` (a `PROC_REPEAT`) until M6-B. */
         public var rangeDisplayIdle: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `PlayerPhase_DisplayUnitMovement`. */
+        /** Stand-in for `PlayerPhase_DisplayUnitMovement` until M6-B. */
         public var displayUnitMovement: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `PlayerPhase_WaitForUnitMovement` (a `PROC_REPEAT`). */
+        /** Stand-in for `PlayerPhase_WaitForUnitMovement` (a `PROC_REPEAT`) until M6-B. */
         public var waitForUnitMovement: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `PlayerPhase_ApplyUnitMovement` (a `PROC_REPEAT`). */
+        /** Stand-in for `PlayerPhase_ApplyUnitMovement` (a `PROC_REPEAT`) until M6-B. */
         public var applyUnitMovement: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `PlayerPhase_PrepareAction` (a `PROC_CALL_2`). */
+        /** Stand-in for `PlayerPhase_PrepareAction` (a `PROC_CALL_2`) until M6-B. */
         public var prepareAction: ProcBoolFunc = ProcBoolFunc { true }
 
-        /** Stand-in for `ApplyUnitAction` (a `PROC_CALL_2`). */
+        /** Stand-in for `ApplyUnitAction` (a `PROC_CALL_2`) until M6-B. */
         public var applyUnitAction: ProcBoolFunc = ProcBoolFunc { true }
 
-        /** Stand-in for `HandlePostActionTraps` (a `PROC_CALL_2`). */
+        /** Stand-in for `HandlePostActionTraps` (a `PROC_CALL_2`) until M6-H. */
         public var handlePostActionTraps: ProcBoolFunc = ProcBoolFunc { true }
 
-        /** Stand-in for `RunPotentialWaitEvents` (a `PROC_CALL_2`). */
+        /** Stand-in for `RunPotentialWaitEvents` (a `PROC_CALL_2`) until M6-B. */
         public var runPotentialWaitEvents: ProcBoolFunc = ProcBoolFunc { true }
 
-        /** Stand-in for `EnsureCameraOntoActiveUnitPosition` (a `PROC_CALL_2`). */
+        /** Stand-in for `EnsureCameraOntoActiveUnitPosition` (a `PROC_CALL_2`) until M6-B. */
         public var ensureCameraOntoActiveUnitPosition: ProcBoolFunc = ProcBoolFunc { true }
 
-        /** Stand-in for `PlayerPhase_FinishAction`. */
+        /** Stand-in for `PlayerPhase_FinishAction` until M6-B. */
         public var finishAction: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `PlayerPhase_ResumeRangeDisplay`. */
+        /** Stand-in for `PlayerPhase_ResumeRangeDisplay` until M6-B. */
         public var resumeRangeDisplay: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `EndAllMus`. */
+        /** Stand-in for `EndAllMus` until M6-B. */
         public var endAllMus: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `DisplayActiveUnitEffectRange`. */
+        /** Stand-in for `DisplayActiveUnitEffectRange` until M6-B. */
         public var displayActiveUnitEffectRange: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `PlayerPhase_DisplayDangerZone`. */
+        /** Stand-in for `PlayerPhase_DisplayDangerZone` until M6-B. */
         public var displayDangerZone: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `PlayerPhase_ReReadGameSaveGfx`. */
+        /** Stand-in for `PlayerPhase_ReReadGameSaveGfx` until M6-B. */
         public var reReadGameSaveGfx: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `gProcScr_ADJUSTSFROMXI`, a script that ends at once. */
+        /** Stand-in for `gProcScr_ADJUSTSFROMXI`, a script that ends at once until M6-B. */
         public var adjustsFromXiScript: ProcScript =
             ProcScript("gProcScr_ADJUSTSFROMXI", listOf(end()))
     }
@@ -296,8 +301,8 @@ public class PlayerPhase(
 
     /**
      * Partially ported from src/playerphase.c: PlayerPhase_MainIdle. Ported: the cursor movement.
-     * Stand-ins: the button actions ([Hooks.mainIdleButtons]), the unit sprite hover and the
-     * cursor sprite ([Hooks.putMapCursor]).
+     * Stand-ins until M6-B: the button actions ([Hooks.mainIdleButtons]) and the unit sprite
+     * hover; the cursor sprite is [Hooks.putMapCursor].
      */
     public fun playerPhaseMainIdle(proc: Proc) {
         handlePlayerCursorMovement()

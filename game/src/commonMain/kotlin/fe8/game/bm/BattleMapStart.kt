@@ -31,9 +31,10 @@ import gbafe.render.BgHardware
  * ([BmMap.initChapterMap]) and the BG/OBJ graphics ([ChapterMapGfx]), the proc starts of
  * [startBMapMain], and the `gProc_MapTask` script 1:1. `SetMainUpdateRoutine(OnMain)` and
  * `SetInterrupt_LCDVBlank(OnVBlank)` are what `GameLoop` always runs, so there is nothing to
- * switch. Stand-ins ([Hooks], all no-ops by default): the unit sprite and menu override resets,
- * the trap lists, temporary units, map obstacles, the sprite OAM / weather effect calls and
- * the map animation calls of the procs, and `GetBattleMapKind` (needs world map state). The
+ * switch. Default hooks ([Hooks], all no-ops by default; `Fe8Boot` sets the ported unit sprite
+ * and map animation calls): the menu override resets (M6-B), the trap lists, temporary units,
+ * map obstacles and weather effect calls (M6-H), and `GetBattleMapKind` (M6-I, needs world map
+ * state). The
  * `gProc_BMapMain` script is [Hooks.bmapMainScript]: a placeholder here, [BMapMain.script] in
  * the boot.
  */
@@ -62,76 +63,86 @@ public class BattleMapStart(
     private val clock: GameClock,
     /** The raw unit arrays the deploy loop of [startBattleMap] updates (null: no units). */
     private val units: UnitTable? = null,
-    /** The stand-ins. */
+    /** The hooks; `Fe8Boot` replaces the ported ones, the rest keep the defaults. */
     public val hooks: Hooks = Hooks(),
 ) {
     /** The calls that are not ported yet; every one does nothing by default. */
     public class Hooks {
-        /** `ApplyUnitSpritePalettes`. Stand-in. */
+        /** `ApplyUnitSpritePalettes`. Default no-op; `Fe8Boot` sets `UnitSprites`. */
         public var applyUnitSpritePalettes: () -> Unit = {}
 
-        /** `ReadExtraMapInfo` (special chapter 0x7F of a resumed game). Stand-in. */
+        /**
+         * `ReadExtraMapInfo` (special chapter 0x7F of a resumed game). Stand-in until M6-E.
+         */
         public var readExtraMapInfo: () -> Unit = {}
 
-        /** `ReadGameSaveCoreGfx` (bm.c). Stand-in. */
+        /** `ReadGameSaveCoreGfx` (bm.c). Stand-in until M6-E. */
         public var readGameSaveCoreGfx: () -> Unit = {}
 
         /**
          * `gActionData.suspendPointType` as the suspend save left it, read by [startResumedGame].
-         * Stand-in: 0 (no `SUSPEND_POINT_*` case).
+         * Default: 0 (no `SUSPEND_POINT_*` case); `Fe8Boot` sets a read of `SuspendRam.actionData`.
          */
         public var suspendPointType: () -> Int = { 0 }
 
-        /** `RefreshEntityBmMaps` (the resume variants). Stand-in. */
+        /**
+         * `RefreshEntityBmMaps` (the resume variants). Default no-op; `Fe8Boot` sets
+         * `EntityBmMaps.refreshEntityBmMaps`.
+         */
         public var refreshEntityBmMaps: () -> Unit = {}
 
-        /** `RefreshUnitSprites` (the resume variants). Stand-in. */
+        /**
+         * `RefreshUnitSprites` (the resume variants). Default no-op; `Fe8Boot` sets
+         * `UnitSpriteHandles.refreshUnitSprites`.
+         */
         public var refreshUnitSprites: () -> Unit = {}
 
         /**
          * The unit part of `MapMain_ResumeFromAction` after the goto: `gActiveUnit` =
          * `GetUnit(gActionData.subjectIndex)`, clear its `gBmMapUnit` cell, `HideUnitSprite`,
-         * `StartMu` and `SetAutoMuDefaultFacing`. Stand-in (needs MU and the active unit).
+         * `StartMu` and `SetAutoMuDefaultFacing`. Stand-in until M6-B (needs MU and the active
+         * unit).
          */
         public var resumeActionUnit: () -> Unit = {}
 
         /**
          * The arena calls of `MapMain_ResumeFromArenaFight` before the display bits (`gActiveUnit`,
-         * `ArenaResume`, `BattleGenerateArena`, `BeginBattleAnimations`). Stand-in.
+         * `ArenaResume`, `BattleGenerateArena`, `BeginBattleAnimations`). Stand-in until M6-J.
          */
         public var resumeArenaBattle: () -> Unit = {}
 
         /**
          * The arena calls of `MapMain_ResumeFromArenaFight` after `RefreshEntityBmMaps`: clear the
          * `gBmMapUnit` cell at (`xMove`, `yMove`), `RefreshUnitSprites` order is kept by the port.
-         * Stand-in.
+         * Stand-in until M6-J.
          */
         public var clearArenaMoveCell: () -> Unit = {}
 
-        /** `StartArenaResultsScreen`. Stand-in. */
+        /** `StartArenaResultsScreen`. Stand-in until M6-J. */
         public var startArenaResultsScreen: () -> Unit = {}
 
-        /** `ResetUnitSprites`. Stand-in. */
+        /** `ResetUnitSprites`. Default no-op; `Fe8Boot` sets `UnitSprites.resetUnitSprites`. */
         public var resetUnitSprites: () -> Unit = {}
 
-        /** `ResetMenuOverrides`. Stand-in. */
+        /** `ResetMenuOverrides`. Stand-in until M6-B. */
         public var resetMenuOverrides: () -> Unit = {}
 
-        /** `ClearTraps`. Stand-in. */
+        /** `ClearTraps`. Stand-in until M6-H. */
         public var clearTraps: () -> Unit = {}
 
-        /** `InitMapObstacles`. Stand-in. */
+        /** `InitMapObstacles`. Stand-in until M6-H. */
         public var initMapObstacles: () -> Unit = {}
 
-        /** `ClearTemporaryUnits`. Stand-in. */
+        /** `ClearTemporaryUnits`. Stand-in until M6-H. */
         public var clearTemporaryUnits: () -> Unit = {}
 
-        /** `LoadChapterTraps`. Stand-in. */
+        /** `LoadChapterTraps`. Stand-in until M6-H. */
         public var loadChapterTraps: () -> Unit = {}
 
         /**
          * `GetBattleMapKind` ([BattleMapKind]): needs the world map state, so the default answers
-         * [BattleMapKind.STORY] for every chapter (no skirmish vision roll). Stand-in.
+         * [BattleMapKind.STORY] for every chapter (no skirmish vision roll). Stand-in until
+         * M6-I.
          */
         public var getBattleMapKind: () -> Int = { BattleMapKind.STORY }
 
@@ -142,10 +153,13 @@ public class BattleMapStart(
          */
         public var bmapMainScript: ProcScript = BMAPMAIN_PLACEHOLDER
 
-        /** `PutUnitSpritesOam`, first call of every `gProc_MapTask` frame. Stand-in. */
+        /**
+         * `PutUnitSpritesOam`, first call of every `gProc_MapTask` frame. Default no-op;
+         * `Fe8Boot` sets `UnitSpritesOam.putUnitSpritesOam`.
+         */
         public var putUnitSpritesOam: () -> Unit = {}
 
-        /** `WfxUpdate`, second call of every `gProc_MapTask` frame. Stand-in. */
+        /** `WfxUpdate`, second call of every `gProc_MapTask` frame. Stand-in until M6-H. */
         public var wfxUpdate: () -> Unit = {}
 
         /**
@@ -160,13 +174,16 @@ public class BattleMapStart(
         /** `BMapVSync_UpdateMapPalAnimations`; `Fe8Boot` wires `MapAnimations`. */
         public var updateMapPalAnimations: () -> Unit = {}
 
-        /** `SyncUnitSpriteSheet`. Stand-in. */
+        /** `SyncUnitSpriteSheet`. Default no-op; `Fe8Boot` sets `UnitSprites`. */
         public var syncUnitSpriteSheet: () -> Unit = {}
 
-        /** `WfxVSync`. Stand-in. */
+        /** `WfxVSync`. Stand-in until M6-H (weather). */
         public var wfxVSync: () -> Unit = {}
 
-        /** `BMapVSync_OnEnd` (clears the secondary HBlank handler). Stand-in. */
+        /**
+         * `BMapVSync_OnEnd` (clears the secondary HBlank handler). Stand-in until M6-H
+         * (weather).
+         */
         public var bmapVSyncOnEnd: () -> Unit = {}
     }
 
@@ -178,7 +195,7 @@ public class BattleMapStart(
 
     /**
      * `sProc_BMVSync` (ROM 0x0859D8B8, 10 commands): the VBlank proc, started on tree 0. The calls
-     * are [Hooks] stand-ins.
+     * are [Hooks].
      */
     public val vSyncScript: ProcScript = ProcScript(
         "sProc_BMVSync",
@@ -198,8 +215,8 @@ public class BattleMapStart(
 
     /**
      * `gProc_MapTask` (bmio.c:139, ROM 0x0859D908, 10 commands): the map task, started on tree 4;
-     * every frame it runs `PutUnitSpritesOam`, `WfxUpdate` (stand-in) and then the ported
-     * [BmMapRender.updateBmMapDisplay].
+     * every frame it runs `PutUnitSpritesOam`, `WfxUpdate` (stand-in until M6-H) and then the
+     * ported [BmMapRender.updateBmMapDisplay].
      */
     public val mapTaskScript: ProcScript = ProcScript(
         "gProc_MapTask",
@@ -340,7 +357,8 @@ public class BattleMapStart(
      * the BG layers, resets the UI graphics and unit sprites, takes the chapter's initial weather,
      * re-initialises the BG layers and the chapter map (and its tileset graphics), restarts the
      * VBlank proc and the map task, and ends with the backdrop and the BG0..BG2 layers on (BG3 and
-     * OBJ off). Stand-ins: the [Hooks] calls (sprite palettes and reset, traps, map obstacles).
+     * OBJ off). The [Hooks] calls are the sprite palettes and reset (ported, set by `Fe8Boot`),
+     * traps and map obstacles (M6-H).
      */
     public fun restartBattleMap() {
         hardware.setupBackgrounds(null, playSt.chapterWeatherId == ChapterMapGfx.WEATHER_CLOUDS)

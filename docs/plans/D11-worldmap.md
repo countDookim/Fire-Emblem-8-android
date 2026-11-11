@@ -178,3 +178,68 @@ Open rows: [TASKS](../TASKS.md) lane A. All of this is standalone and unwired.
   VRAM/palette configuration at the world-map exit before sharing TalkFace with battle dialogue.
 `@VerifiesPort` takes bare function names; `"src/x.c: F"` silently counts nothing (fixed in wm4b/wm6 tests).
 Node table checks use pinned runtime source: `tools/setup_decomp.sh` or `FE8U_DECOMP` (read-only).
+
+## 9. Chapter-intro inventory (D11-ci0, ram_trace_newgame_bm)
+
+Inventory only, no port claim. Test: `testing/src/test/kotlin/fe8/testing/ChapterIntroProcInventoryTest.kt`
+(full EWRAM dumps, `ProcArrayDump.ofEwram`). Window: frames 9314-9540.
+
+Why 9540: `gProcScr_ChapterIntro` is last alive at 9506. The fade to the map is `ProcScr_FadeFromBlack`
+(9523-9538), started under `ProcScr_StdEventEngine` (a root from 9508), not under the intro, so a name-only rule
+would end the window near 9510. The window keeps the fade and stops two frames before the next proc
+(`ProcScr_BrownTextBox`, 9541). To exclude the fade, set `LAST = 9510` and drop the FadeFromBlack and
+StdEventEngine rows.
+
+Rows (`script <- parent`, frames):
+
+| script | parent | frames |
+|---|---|---|
+| gProcScr_GameControl | tree 3 | 9314-9540 |
+| gProc_BMapMain | tree 2 | 9319-9540 |
+| sProc_BMVSync | tree 0 | 9319-9540 |
+| gProc_MapTask | tree 4 | 9319-9512 |
+| gProcScr_ChapterIntro | gProc_BMapMain | 9322-9506 |
+| ProcScr_ChapterIntro_Bg1And3Scroll | gProcScr_ChapterIntro | 9325-9500 |
+| ProcScr_ChapterIntro_KeyListen | gProcScr_ChapterIntro | 9385-9419 |
+| ProcScr_StdEventEngine | tree 3 | 9508-9540 |
+| gProc_MapTask | tree 4 | 9513-9540 |
+| ProcScr_FadeFromBlack | ProcScr_StdEventEngine | 9523-9538 |
+
+Decomp file per script symbol (`fireemblem8u/`):
+
+| script | file |
+|---|---|
+| gProcScr_GameControl | src/gamecontrol.c |
+| gProc_BMapMain | src/bm.c |
+| sProc_BMVSync | src/bmio.c (static) |
+| gProc_MapTask | src/bmio.c:139 |
+| ProcScr_StdEventEngine | src/event.c:23 |
+| gProcScr_ChapterIntro | src/chapterintrofx.c:106 |
+| ProcScr_ChapterIntro_Bg1And3Scroll | src/chapterintrofx.c:38 |
+| ProcScr_ChapterIntro_KeyListen | src/chapterintrofx.c:30 |
+| ProcScr_FadeFromBlack | src/bmlib.c:986 |
+
+Functions named by each chapter-intro script's `struct ProcCmd` array:
+
+- gProcScr_ChapterIntro (main path): BMapDispSuspend; ChapterIntro_Init; SLEEP 60; START_CHILD KeyListen;
+  ChapterIntro_SetSkipTarget(1); ChapterIntro_TwinLights_InitAndPlaySe; REPEAT ChapterIntro_TwinLights_Loop;
+  ChapterIntro_InitBLDCNT; START_CHILD LightBurst; ChapterIntro_DrawChapterTitle; SLEEP 1;
+  ChapterIntro_LightExplosion_Init; REPEAT ChapterIntro_LightExplosion_Loop; ChapterIntro_SetBG_802009C;
+  START_CHILD Bg2Scroll; START_CHILD PutDecalSprite; ChapterIntro_InitFogGfx; REPEAT
+  ChapterIntro_BlendFogAlpha_Loop; ChapterIntro_SetTimer(160); REPEAT ChapterIntro_TickTimerMaybe;
+  ChapterIntro_8020A40; REPEAT ChapterIntro_8020A8C; END_EACH Bg2Scroll, Bg1And3Scroll, PutDecalSprite;
+  ChapterIntro_SetSkipTarget(0); ChapterIntro_InitCameraYPos; BMapDispResume; ChapterIntro_InitMapDisplay;
+  ChapterIntro_BeginFadeToMap; REPEAT ChapterIntro_LoopFadeToMap; SLEEP 30; GOTO 99.
+  Label 1 (skip path; this is what the capture runs from 9419): ChapterIntro_BeginFadeOut; REPEAT ChapterIntro_LoopFadeOut; SLEEP 60;
+  ChapterIntro_InitCameraYPos; BMapDispResume; ChapterIntro_InitMapDisplay; ChapterIntro_BeginFastFadeToMap;
+  REPEAT ChapterIntro_LoopFastFadeToMap. Label 99: ChapterIntro_End.
+- ProcScr_ChapterIntro_KeyListen: ChapterIntro_KeyListen_Init; REPEAT ChapterIntro_KeyListen_Loop.
+- ProcScr_ChapterIntro_Bg1And3Scroll: ChapterIntro_Bg1And3Scroll_Init; REPEAT ChapterIntro_Bg1And3Scroll_Loop.
+  Started by C code (`Proc_Start`, chapterintrofx.c:363), not by START_CHILD in the intro script.
+- ProcScr_FadeFromBlack: FadeFromBlack_OnInit; SLEEP 0; REPEAT FadeFromCommon_OnLoop; BLOCK.
+
+Finding (cause found in review): the capture presses A every 30 frames (script `ram_trace_newgame_bm`), so
+`ChapterIntro_KeyListen_Loop` sees A at 9419 and jumps the intro to label 1 (skip path). The main path after the
+twin lights (LightBurst, title, LightExplosion, Bg2Scroll, PutDecalSprite/RevealDecalSprite, fog, fade to map)
+never runs in this run. D11-ci1 (Init, key listener, skip path) can use this run; the full path needs the new
+capture D11-cap2 (New Game with no key press during the intro).

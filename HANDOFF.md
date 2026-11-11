@@ -10,7 +10,6 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D11-wm6c movement (GmMuPrim movement routines, WorldMapMu.kt): owner PC, until ~08:10Z
 - D11-wm6d automu (worldmap_automu.c, new WorldMapAutoMu.kt): owner PC, until ~08:10Z
 - READABILITY fe8.game.opanim: owner PC, until ~08:10Z
 

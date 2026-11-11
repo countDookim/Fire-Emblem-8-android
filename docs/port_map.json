@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 912,
+    "verified": 924,
     "implemented_unverified": 2
   },
   "functions": {
@@ -1040,6 +1040,16 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen in mode 0 fades in like the per-frame RAM trace"
       ]
     },
+    "CommandEffectEndPlayerPhase": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapMenuDifferentialTest#UP wraps to End and A on End ends the player phase like the game"
+      ]
+    },
     "ComputeBattleUnitAttack": {
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
@@ -1486,6 +1496,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.GoalDisplayDifferentialTest#ending the windows ends the goal proc and its colour proc",
         "fe8.testing.TerrainDisplayDifferentialTest#select_move ending the windows clears the BGs and the blend"
       ]
     },
@@ -1717,6 +1728,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventText.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.CutsceneStartSkipDifferentialTest#skipping ends the talk tree and the faces when the engine reaches the text wait",
         "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
       ]
     },
@@ -1727,6 +1739,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventText.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.CutsceneStartSkipDifferentialTest#skipping ends the talk tree and the faces when the engine reaches the text wait",
         "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
       ]
     },
@@ -3525,6 +3538,51 @@
         "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
       ]
     },
+    "GoalDisplay_Init": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.GoalDisplayDifferentialTest#cancel_end goal window restarts after cancelling the selection",
+        "fe8.testing.GoalDisplayDifferentialTest#select_move goal window starts after the unit waits"
+      ]
+    },
+    "GoalDisplay_Loop_Display": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.GoalDisplayDifferentialTest#cancel_end goal window restarts after cancelling the selection",
+        "fe8.testing.GoalDisplayDifferentialTest#cancel_end goal window stays while the cursor moves inside its quadrant",
+        "fe8.testing.GoalDisplayDifferentialTest#select_move goal window starts after the unit waits"
+      ]
+    },
+    "GoalDisplay_Loop_OnSideChange": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.GoalDisplayDifferentialTest#cancel_end goal window restarts after cancelling the selection",
+        "fe8.testing.GoalDisplayDifferentialTest#select_move goal window starts after the unit waits"
+      ]
+    },
+    "GoalDisplay_Loop_SlideIn": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.GoalDisplayDifferentialTest#cancel_end goal window restarts after cancelling the selection",
+        "fe8.testing.GoalDisplayDifferentialTest#select_move goal window starts after the unit waits"
+      ]
+    },
     "GreenText_OnLoop": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -3532,6 +3590,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/GreenText.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.GoalDisplayDifferentialTest#cancel_end goal window restarts after cancelling the selection",
+        "fe8.testing.GoalDisplayDifferentialTest#select_move goal window starts after the unit waits",
         "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
@@ -3714,6 +3774,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.GoalDisplayDifferentialTest#cancel_end goal window restarts after cancelling the selection",
+        "fe8.testing.GoalDisplayDifferentialTest#cancel_end goal window stays while the cursor moves inside its quadrant",
         "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window follows the cursor inside its quadrant",
         "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window restarts after cancelling the selection",
         "fe8.testing.TerrainDisplayDifferentialTest#select_move windows start after the unit waits",
@@ -4169,6 +4231,56 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ResumeBootTest#resume from phase idle jumps BMapMain to label 4 like the dumps"
+      ]
+    },
+    "MapMenu_GuideCommandDraw": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapMenuDifferentialTest#map menu tilemaps match the game at every frame and full dump"
+      ]
+    },
+    "MapMenu_IsGuideCommandAvailable": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapMenuDifferentialTest#map menu lists Unit Status Guide Options Suspend End like the game"
+      ]
+    },
+    "MapMenu_IsRecordsCommandAvailable": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapMenuDifferentialTest#map menu lists Unit Status Guide Options Suspend End like the game"
+      ]
+    },
+    "MapMenu_IsRetreatCommandAvailable": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapMenuDifferentialTest#map menu lists Unit Status Guide Options Suspend End like the game"
+      ]
+    },
+    "MapMenu_IsSuspendCommandAvailable": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapMenuDifferentialTest#map menu lists Unit Status Guide Options Suspend End like the game"
       ]
     },
     "MapScreen_Init": {
@@ -6470,6 +6582,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/GreenText.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.GoalDisplayDifferentialTest#cancel_end goal window restarts after cancelling the selection",
+        "fe8.testing.GoalDisplayDifferentialTest#select_move goal window starts after the unit waits",
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
@@ -7939,6 +8053,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventText.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.CutsceneStartSkipDifferentialTest#skipping ends the talk tree and the faces when the engine reaches the text wait",
         "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
       ]
     },
@@ -8071,6 +8186,28 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window follows the cursor inside its quadrant"
+      ]
+    },
+    "sub_808D200": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.GoalDisplayDifferentialTest#cancel_end goal window restarts after cancelling the selection",
+        "fe8.testing.GoalDisplayDifferentialTest#select_move goal window starts after the unit waits"
+      ]
+    },
+    "sub_808D514": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.GoalDisplayDifferentialTest#cancel_end goal window restarts after cancelling the selection",
+        "fe8.testing.GoalDisplayDifferentialTest#select_move goal window starts after the unit waits"
       ]
     },
     "sub_80B826C": {

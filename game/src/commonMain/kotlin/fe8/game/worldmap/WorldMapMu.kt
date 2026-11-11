@@ -1,5 +1,6 @@
 package fe8.game.worldmap
 
+import gbafe.core.math.BiosMath
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
@@ -7,10 +8,13 @@ import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.block
 import gbafe.proc.ProcScripts.call
 import gbafe.proc.ProcScripts.end
+import gbafe.proc.ProcScripts.goto
+import gbafe.proc.ProcScripts.label
 import gbafe.proc.ProcScripts.mark
 import gbafe.proc.ProcScripts.name
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.setEndCb
+import kotlin.math.abs
 
 /** `struct GMapMuPrimProc` past `PROC_HEADER` (one world map unit mover); movement fields only. */
 public class GmapMuPrimProc {
@@ -77,6 +81,18 @@ public class GmapMuPrimProc {
     /** `unk_46` (+0x46, `u16`): last y. */
     public var lastY: Int = 0
 
+    /** `unk_48` (+0x48, `s16`). */
+    public var unk48: Int = 0
+
+    /** `unk_4a` (+0x4A, `s16`). */
+    public var unk4a: Int = 0
+
+    /** `unk_4c` (+0x4C, `s16`). */
+    public var unk4c: Int = 0
+
+    /** `unk_4e` (+0x4E, `s16`). */
+    public var unk4e: Int = 0
+
     /** `unk_50` (+0x50). */
     public var unk50: Int = 0
 
@@ -121,6 +137,8 @@ public class WorldMapMu(
         public val defaultClass: (pid: Int) -> Int = { 0 },
         /** `sub_80BD20C(index)`: the faction of slot [index]. */
         public val slotFaction: (index: Int) -> Int = { 0 },
+        /** `GetWMCenteredCameraPosition(x, y, &xCam, &yCam)`: returns `(xCam, yCam)`. */
+        public val centeredCamera: (x: Int, y: Int) -> Pair<Int, Int> = { _, _ -> 0 to 0 },
     )
 
     private fun prim(proc: Proc): GmapMuPrimProc = proc.state as GmapMuPrimProc
@@ -129,7 +147,7 @@ public class WorldMapMu(
         prim((mu.state as GmapMuProc).prims[index]!!)
 
     /**
-     * `ProcScr_GMapMuPrim`: the labelled movement branches (labels 1 and 2) are not ported yet.
+     * `ProcScr_GMapMuPrim`: the movement routines of labels 1 and 2 are empty placeholders.
      *
      * Transcribed from src/worldmap_mapmu.c: ProcScr_GMapMuPrim (not verified)
      */
@@ -140,7 +158,16 @@ public class WorldMapMu(
             mark(PROC_MARK_WMSTUFF),
             setEndCb(ProcFunc { }),
             call(ProcFunc { gmMuPrimOnInit(it) }),
+            label(0),
             repeat(ProcFunc { }),
+            label(1),
+            call(ProcFunc { }), // GmMuPrim_80BD444: not ported yet
+            repeat(ProcFunc { }), // GmMuPrim_80BD830: not ported yet
+            goto(0),
+            label(2),
+            call(ProcFunc { }), // GmMuPrim_80BD9D8: not ported yet
+            repeat(ProcFunc { }), // GmMuPrim_80BDA78: not ported yet
+            goto(0),
             end(),
         ),
     ) { GmapMuPrimProc() }
@@ -309,6 +336,213 @@ public class WorldMapMu(
     /** Transcribed from src/worldmap_mapmu.c: GmMu_SetNode (not verified) */
     public fun gmMuSetNode(mu: Proc, index: Int, nodeId: Int) {
         gmMuSetPosition(mu, index, nodes.x(nodeId), nodes.y(nodeId))
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: sub_80BD41C (not verified) */
+    public fun sub80BD41C(a: Int, b: Int): Int = BiosMath.sqrt((a * a + b * b) * 16) / 5
+
+    /** Transcribed from src/worldmap_mapmu.c: sub_80BDD94 (not verified); [index] < 0 = all. */
+    public fun sub80BDD94(mu: Proc, index: Int) {
+        val s = mu.state as GmapMuProc
+        if (index >= 0) {
+            mapMuPrimRemoveLinkedMapUnit(s.prims[index]!!)
+        } else {
+            for (i in 0 until GmapMuProc.SLOTS) mapMuPrimRemoveLinkedMapUnit(s.prims[i]!!)
+        }
+    }
+
+    /** `struct UnknownSub80BDEB4` (field names as in `include/worldmap.h`). */
+    public class MoveInput(
+        public val unk00: Int,
+        public val unk01: Int,
+        public val unk02: Int,
+        public val unk03: Int,
+        public val unk04: Int,
+        public val unk06: Int,
+        public val unk08: Int,
+        public val unk0a: Int,
+        public val unk0c: Int,
+    )
+
+    /** `struct UnknownSub80BDFA4` (field names as in `include/worldmap.h`). */
+    public class MoveInput2(
+        public val unk00: Int,
+        public val unk01: Int,
+        public val unk02: Int,
+        public val unk03: Int,
+        public val unk04: Int,
+        public val unk05: Int,
+        public val unk06: Int,
+        public val unk08: Int,
+        public val unk0a: Int,
+        public val unk0c: Int,
+        public val unk0e: Int,
+        public val unk10: Int,
+    )
+
+    /** Transcribed from src/worldmap_mapmu.c: sub_80BDEB4 (not verified) */
+    public fun sub80BDEB4(mu: Proc, input: MoveInput) {
+        val proc = (mu.state as GmapMuProc).prims[input.unk00]!!
+        val p = prim(proc)
+        p.fromNode = input.unk06.toByte().toInt()
+        p.toNode = input.unk08.toByte().toInt()
+        var a = input.unk0c
+        if (a < 0) {
+            val tmp = sub80BD41C(
+                abs(nodes.x(p.toNode) - nodes.x(p.fromNode)),
+                abs(nodes.y(p.toNode) - nodes.y(p.fromNode)),
+            )
+            a = tmp * abs(input.unk0c)
+        }
+        p.unk50 = a
+        p.flag2 = input.unk01 != 0
+        p.delay = input.unk0a.toShort().toInt()
+        p.flag0 = true
+        p.flag1 = false
+        p.unk2c = 1
+        p.flag4 = true
+        p.flag5 = input.unk02 != 0
+        p.unk30 = 0
+        p.anim1 = input.unk03.toByte().toInt()
+        p.anim2 = input.unk04.toByte().toInt()
+        engine.goto(proc, 1)
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: sub_80BDFA4 (not verified) */
+    public fun sub80BDFA4(mu: Proc, input: MoveInput2) {
+        val proc = (mu.state as GmapMuProc).prims[input.unk00]!!
+        val p = prim(proc)
+        p.unk48 = input.unk06.toShort().toInt()
+        p.unk4a = input.unk08.toShort().toInt()
+        p.unk4c = input.unk0a.toShort().toInt()
+        p.unk4e = input.unk0c.toShort().toInt()
+        p.unk50 = input.unk10
+        p.flag2 = input.unk02 != 0
+        p.unk2f = input.unk01.toByte().toInt()
+        p.delay = input.unk0e.toShort().toInt()
+        p.flag0 = true
+        p.flag1 = false
+        p.unk2c = 2
+        p.flag4 = true
+        p.flag5 = input.unk03 != 0
+        p.unk30 = 0
+        p.anim1 = input.unk04.toByte().toInt()
+        p.anim2 = input.unk05.toByte().toInt()
+        engine.goto(proc, 2)
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: GmMu_PauseMovement (not verified) */
+    public fun gmMuPauseMovement(mu: Proc, index: Int) {
+        primAt(mu, index).flag1 = true
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: GmMu_ResumeMovement (not verified) */
+    public fun gmMuResumeMovement(mu: Proc, index: Int) {
+        primAt(mu, index).flag1 = false
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: sub_80BE080 (not verified) */
+    public fun sub80BE080(mu: Proc, index: Int, blendEnabled: Boolean) {
+        unit.mapUnitCSetBlendEnabled(primAt(mu, index).mapUnit, blendEnabled)
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: sub_80BE0A4 (not verified); returns (x, y). */
+    public fun sub80BE0A4(mu: Proc, index: Int): Pair<Int, Int> =
+        unit.mapUnitCGetPosition(primAt(mu, index).mapUnit)
+
+    /** Transcribed from src/worldmap_mapmu.c: sub_80BE0C8 (not verified) */
+    public fun sub80BE0C8(mu: Proc, index: Int): Int =
+        unit.mapUnitCGetLayer(primAt(mu, index).mapUnit)
+
+    /** Transcribed from src/worldmap_mapmu.c: GmMu_80BE108 (not verified) */
+    public fun gmMu80BE108(mu: Proc, index: Int, flag: Boolean) {
+        primAt(mu, index).flag3 = flag
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: sub_80BE12C (not verified) */
+    public fun sub80BE12C(mu: Proc, index: Int): Boolean {
+        if (index < 0) {
+            for (i in 0 until GmapMuProc.SLOTS) {
+                val p = primAt(mu, i)
+                if (p.mapUnit >= 0 && p.flag0) return true
+            }
+        } else {
+            val p = primAt(mu, index)
+            if (p.mapUnit >= 0) return p.flag0
+        }
+        return false
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: sub_80BE194 (not verified) */
+    public fun sub80BE194(proc: Proc) {
+        val p = prim(proc)
+        if (!p.flag0) return
+        when (p.unk2c) {
+            1 -> {
+                if (nodes.shipTravelFlag(p.fromNode) and 1 != 0 &&
+                    nodes.shipTravelFlag(p.toNode) and 1 != 0
+                ) {
+                    unit.sub80BB0E0(p.mapUnit, 0)
+                }
+                unit.mapUnitCSetPosition(p.mapUnit, nodes.x(p.toNode), nodes.y(p.toNode) + 6)
+                unit.mapUnitCSetAnimId(p.mapUnit, 4)
+                gmData.setUnitLocation(p.slot, p.toNode)
+                followCamera(p)
+            }
+            2 -> {
+                unit.mapUnitCSetPosition(p.mapUnit, p.unk4c, p.unk4e + 6)
+                unit.mapUnitCSetAnimId(p.mapUnit, 4)
+                followCamera(p)
+            }
+        }
+        p.flag0 = false
+        engine.goto(proc, 0)
+    }
+
+    private fun followCamera(p: GmapMuPrimProc) {
+        if (!p.flag3) return
+        val (x, y) = unit.mapUnitCGetPosition(p.mapUnit)
+        val (cx, cy) = hooks.centeredCamera(x, y - 14)
+        gmData.xCamera = cx
+        gmData.yCamera = cy
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: sub_80BE330 (not verified); [index] < 0 = all. */
+    public fun sub80BE330(mu: Proc, index: Int) {
+        val s = mu.state as GmapMuProc
+        if (index < 0) {
+            for (i in 0 until GmapMuProc.SLOTS) sub80BE194(s.prims[i]!!)
+        } else {
+            sub80BE194(s.prims[index]!!)
+        }
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: sub_80BE3E8 (not verified) */
+    public fun sub80BE3E8(mu: Proc, index: Int, flag: Boolean) {
+        primAt(mu, index).flag2 = flag
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: GmMu_StartFadeIn (not verified) */
+    public fun gmMuStartFadeIn(mu: Proc, index: Int, arg: Int) {
+        unit.sub80BB4C0(primAt(mu, index).mapUnit, arg, null)
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: GmMu_StartFadeOut (not verified) */
+    public fun gmMuStartFadeOut(mu: Proc, index: Int, arg: Int) {
+        unit.sub80BB538(primAt(mu, index).mapUnit, arg, null)
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: GmUnitFadeExists (not verified) */
+    public fun gmUnitFadeExists(): Boolean = unit.getGmapUnitFade() != null
+
+    /** Transcribed from src/worldmap_mapmu.c: MapMU_SetUnitClass (not verified) */
+    public fun mapMuSetUnitClass(mu: Proc, index: Int, jid: Int, faction: Int, nodeId: Int) {
+        gmMuSetUnit(mu, index, true, jid, faction, nodeId)
+    }
+
+    /** Transcribed from src/worldmap_mapmu.c: MapMU_SetUnitChar (not verified) */
+    public fun mapMuSetUnitChar(mu: Proc, index: Int, pid: Int, faction: Int, nodeId: Int) {
+        gmMuSetUnit(mu, index, false, pid, faction, nodeId)
     }
 
     private companion object {

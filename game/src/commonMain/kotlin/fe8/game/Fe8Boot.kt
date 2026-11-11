@@ -921,17 +921,16 @@ public class Fe8Boot(
         phase.hover.hooks.hideUnitSprite = { id -> handles.hideUnitSprite(id) }
         phase.hover.hooks.showUnitSprite = { id -> handles.showUnitSprite(id) }
         phase.hover.hooks.endAllMus = { mu.endAllMus() }
+        // One snapshot refilled per hover start: the idle loop must not allocate.
+        val hoverMuUnit = MuUnit(address = 0, xPos = 0, yPos = 0, classId = 0, state = 0)
         phase.hover.hooks.startMu = { id ->
-            val o = units.unitOffset(id)
-            val muUnit = MuUnit(
-                address = UnitTable.BLUE_ADDRESS + o,
-                xPos = units.xPos(id),
-                yPos = units.yPos(id),
-                classId = units.classId(id),
-                state = units.state(id),
-                spritePalette = handles.getUnitSpritePalette(id),
-            )
-            mu.startMu(muUnit)
+            hoverMuUnit.address = UnitTable.BLUE_ADDRESS + units.unitOffset(id)
+            hoverMuUnit.xPos = units.xPos(id)
+            hoverMuUnit.yPos = units.yPos(id)
+            hoverMuUnit.classId = units.classId(id)
+            hoverMuUnit.state = units.state(id)
+            hoverMuUnit.spritePalette = handles.getUnitSpritePalette(id)
+            mu.startMu(hoverMuUnit)
         }
     }
 

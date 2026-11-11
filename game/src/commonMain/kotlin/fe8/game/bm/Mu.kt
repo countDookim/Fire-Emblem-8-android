@@ -8,22 +8,26 @@ import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts
 
-/** The unit fields `StartMu` reads (`struct Unit`), as the caller's snapshot. */
+/**
+ * The unit fields `StartMu` reads (`struct Unit`), as the caller's snapshot. The fields are
+ * mutable so a caller can refill one instance per start instead of allocating (the hover start
+ * runs from the idle loop); [Mu.startMu] copies what it needs and keeps no reference.
+ */
 public class MuUnit(
     /** GBA address of the unit (`proc->unit`). */
-    public val address: Int,
+    public var address: Int,
     /** `unit->xPos`. */
-    public val xPos: Int,
+    public var xPos: Int,
     /** `unit->yPos`. */
-    public val yPos: Int,
+    public var yPos: Int,
     /** `UNIT_CLASS_ID(unit)`. */
-    public val classId: Int,
+    public var classId: Int,
     /** `unit->state`. */
-    public val state: Int,
+    public var state: Int,
     /** `GetTrap(unit->ballistaIndex)->extra`, only read when [state] has `US_IN_BALLISTA`. */
-    public val ballistaItem: Int = 0,
+    public var ballistaItem: Int = 0,
     /** `GetUnitSpritePalette(unit)`. */
-    public val spritePalette: Int = 0,
+    public var spritePalette: Int = 0,
 )
 
 /**
@@ -181,6 +185,9 @@ public class MuProc {
 
     /** `y_offset_q4`. */
     public var yOffsetQ4: Int = 0
+
+    /** True from [Mu]'s proc start until [Mu.onEnd]; marks the pooled instance as taken. */
+    internal var inUse: Boolean = false
 }
 
 /**
@@ -218,8 +225,26 @@ public class Mu(
             ProcScripts.repeat(ProcFunc { onLoop(it.state as MuProc) }),
             ProcScripts.end(),
         ),
-        ::MuProc,
+        ::newMuProc,
     )
+
+    /** One `MuProc` per slot, reused so starting a MU in the idle loop allocates nothing. */
+    private val muProcPool: List<MuProc> = List(MU_MAX_COUNT) { MuProc() }
+
+    /** The next free pooled `MuProc` (a fresh one if all are taken), reset for a new MU. */
+    private fun newMuProc(): MuProc {
+        var mu: MuProc? = null
+        for (i in 0 until MU_MAX_COUNT) {
+            if (!muProcPool[i].inUse) {
+                mu = muProcPool[i]
+                break
+            }
+        }
+        if (mu == null) mu = MuProc()
+        mu.inUse = true
+        mu.camB = false
+        return mu
+    }
 
     /**
      * Frees every MU slot.
@@ -692,6 +717,7 @@ public class Mu(
     public fun onEnd(proc: MuProc) {
         proc.config!!.slot = 0
         hooks.deleteMuAnim(proc)
+        proc.inUse = false
     }
 
     /**

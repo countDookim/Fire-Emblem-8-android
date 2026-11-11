@@ -1,5 +1,7 @@
 package fe8.game
 
+import fe8.game.bm.MuProc
+import fe8.game.bm.UnitTable
 import fe8.game.event.EventConst
 import fe8.game.event.EventEngineProc
 import gbafe.core.rng.RngService
@@ -83,7 +85,24 @@ class NewGameToPrologueTest {
             .associate { boot.units.charId(it) to (boot.units.xPos(it) to boot.units.yPos(it)) }
         assertEquals(4 to 4, blue[2], "Seth")
         assertEquals(4 to 5, blue[1], "Eirika")
-        assertEquals(false, boot.engine.find(boot.mu.script) != null, "an event MU is left")
+        // No MU of the opening events may be left. The one MU the idle loop may own is the hover MU
+        // (UnitSpriteHoverUpdate starts it 5 frames after the cursor rests on a player unit): it
+        // belongs to the unit under the cursor, and it is the only MU.
+        val first = boot.engine.find(boot.mu.script)
+        if (first != null) {
+            assertEquals(null, boot.engine.findAfter(boot.mu.script, first), "more than one MU left")
+            val bm = boot.loop.bmSt
+            val hovered = (1..0x3E).firstOrNull {
+                boot.units.isValid(it) && boot.units.xPos(it) == bm.playerCursorX &&
+                    boot.units.yPos(it) == bm.playerCursorY
+            }
+            assertNotNull(hovered, "an event MU is left: no unit under the cursor")
+            assertEquals(
+                UnitTable.BLUE_ADDRESS + boot.units.unitOffset(hovered!!),
+                (first.state as MuProc).unitAddress,
+                "an event MU is left: the MU is not the hover MU of the unit under the cursor",
+            )
+        }
     }
 
     @Test

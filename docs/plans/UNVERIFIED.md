@@ -561,7 +561,7 @@ Total entries: 534 across 66 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `ProcScr_ChapterIntro_Bg1And3Scroll` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the script layout is only exercised through the differential test of its two callbacks |
 | `ProcScr_ChapterIntro_KeyListen` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the script layout is only exercised through the differential test of its two callbacks |
-| `gProcScr_ChapterIntro` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the capture runs commands 0-6, the jump to label 1 and the label 1 / 99 commands only; the main path between them is stand-ins |
+| `gProcScr_ChapterIntro` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the captures run commands 0-14 (`ram_trace_newgame_intro` to the fog start), the jump to label 1 and the label 1 / 99 commands; the rest of the main path is stand-ins |
 | `ChapterIntro_TwinLights_InitAndPlaySe` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the fields are compared, the sound effect call is not |
 | `ChapterIntro_BeginFadeOut` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the sound calls `Sound_FadeOutBGM` and `Sound_FadeOutSE` are not compared |
 | `ChapterIntro_BeginFastFadeToMap` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the `StartBgm` call is not compared |

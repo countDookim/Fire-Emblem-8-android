@@ -79,6 +79,18 @@ public class ChapterIntro(
          * M6-E (`Fe8Boot` holds a partial version of it).
          */
         public var refreshBMapGraphics: () -> Unit = {}
+
+        /**
+         * `GetPlayChapterId(chapterIndex)` (worldmap_path.c), used by `GetChapterTitleWM`: the
+         * world map node of the chapter. Stand-in until M6-I; the default answers -1.
+         */
+        public var getPlayChapterId: (Int) -> Int = { -1 }
+
+        /**
+         * `GetNextUnclearedNode(&gGMData)` (worldmap_path.c), used by `GetChapterTitleWM`.
+         * Stand-in until M6-I; the default answers -1.
+         */
+        public var getNextUnclearedNode: () -> Int = { -1 }
     }
 
     /** `struct ChapterIntroFxProc` fields (0x2C..0x68) shared by the intro and its children. */
@@ -118,6 +130,13 @@ public class ChapterIntro(
     public var regBg3Hofs: Int = 0
         private set
 
+    /** The title card graphics `ChapterIntro_DrawChapterTitle` uses. */
+    public val chapterTitle: ChapterTitle = ChapterTitle(
+        rom, hardware, chapterData,
+        getPlayChapterId = { hooks.getPlayChapterId(it) },
+        getNextUnclearedNode = { hooks.getNextUnclearedNode() },
+    )
+
     /** A named no-op for a script command filled by a later task; [name] documents the target. */
     @Suppress("UNUSED_PARAMETER")
     private fun standInFunc(name: String) = ProcFunc { }
@@ -156,7 +175,7 @@ public class ChapterIntro(
         newState = { State() },
     )
 
-    /** `ProcScr_ChapterIntro_LightBurst`: stand-in until D11-ci2. */
+    /** `ProcScr_ChapterIntro_LightBurst`: stand-in until D11-ci3. */
     private val lightBurstScript = standInScript("ProcScr_ChapterIntro_LightBurst")
 
     /** `ProcScr_ChapterIntro_Bg2Scroll`: stand-in until D11-ci3. */
@@ -166,15 +185,15 @@ public class ChapterIntro(
     private val putDecalScript = standInScript("ProcScr_ChapterIntro_PutDecalSprite")
 
     /**
-     * `gProcScr_ChapterIntro`, command for command. Commands after the twin lights are stand-ins:
-     * D11-ci2 (`InitBLDCNT`, light burst, title, light explosion, `SetBG_802009C`), D11-ci3
-     * (Bg2Scroll, decals, fog, timer, `8020A40`/`8020A8C`, `BeginFadeToMap`, `LoopFadeToMap`),
-     * D11-ci4 made label 1 (the skip path) and `End` real; `InitCameraYPos` and `InitMapDisplay`
-     * are real in both paths.
+     * `gProcScr_ChapterIntro`, command for command. Real: the start up to the twin lights
+     * (D11-ci1), `InitBLDCNT`, `DrawChapterTitle` and `SetBG_802009C` (D11-ci2), label 1 (the skip
+     * path) and `End` (D11-ci4), `InitCameraYPos` and `InitMapDisplay` (both paths). Stand-ins for
+     * D11-ci3: light burst, light explosion, Bg2Scroll, decals, fog, timer, `8020A40`/`8020A8C`
+     * and `BeginFadeToMap`/`LoopFadeToMap`.
      *
-     * Transcribed from src/chapterintrofx.c: gProcScr_ChapterIntro (not verified: the capture
-     *   runs commands 0-6, the jump to label 1 and the label 1 / 99 commands only; the main path
-     *   between them is stand-ins)
+     * Transcribed from src/chapterintrofx.c: gProcScr_ChapterIntro (not verified: the captures
+     *   run commands 0-14 (`ram_trace_newgame_intro` to the fog start), the jump to label 1 and
+     *   the label 1 / 99 commands; the rest of the main path is stand-ins)
      */
     public val script: ProcScript = ProcScript(
         "gProcScr_ChapterIntro",
@@ -186,13 +205,13 @@ public class ChapterIntro(
             callArg(ProcArgFunc { arg, proc -> setSkipTarget(arg, proc); true }, 1),
             call(ProcFunc { twinLightsInitAndPlaySe(it) }),
             repeat(ProcFunc { twinLightsLoop(it) }),
-            call(standInFunc("ChapterIntro_InitBLDCNT")),
+            call(ProcFunc { initBldcnt() }),
             startChild { lightBurstScript },
-            call(standInFunc("ChapterIntro_DrawChapterTitle")),
+            call(ProcFunc { drawChapterTitle() }),
             sleep(1),
-            call(standInFunc("ChapterIntro_LightExplosion_Init")),
-            repeat(standInFunc("ChapterIntro_LightExplosion_Loop")),
-            call(standInFunc("ChapterIntro_SetBG_802009C")),
+            call(ProcFunc { (it.state as State).timer = 0 }),
+            repeat(ProcFunc { lightExplosionLoopStandIn(it) }),
+            call(ProcFunc { setBg802009C() }),
             startChild { bg2ScrollScript },
             startChild { putDecalScript },
             call(standInFunc("ChapterIntro_InitFogGfx")),
@@ -227,6 +246,60 @@ public class ChapterIntro(
         ),
         newState = { State() },
     )
+
+    /**
+     * Stand-in for `ChapterIntro_LightExplosion_Loop` (D11-ci3): only its control flow, `timer++`
+     * and the break at 70. The sprites, affine matrices and `SetDispEnable` of
+     * `ChapterIntro_LightExplosion_Init` are not done.
+     */
+    private fun lightExplosionLoopStandIn(proc: Proc) {
+        val state = proc.state as State
+        state.timer++
+        if (state.timer >= 70) engine.breakProc(proc)
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_InitBLDCNT
+     *
+     * Enables BG1, BG2 and the objects, with BG2 as first and BG1 as second blend target.
+     */
+    private fun initBldcnt() {
+        val lcd = hardware.lcd
+        lcd.setDispEnable(0, 1, 1, 0, 1)
+        lcd.setBlendTargetA(0, 0, 1, 0, 0)
+        lcd.setBlendTargetB(0, 1, 0, 0, 0)
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_DrawChapterTitle
+     *
+     * Fills BG0 with tile 0x280 (palette 1), loads the title palette into bank 5 and the title
+     * image of the current chapter to tile 0x280, and lays its 64 tiles out at tile (3, 9) of BG0.
+     * The text is drawn from the ROM at run time. The `ChapterTitle` functions it calls are
+     * `sub_80895B4`, `GetChapterTitleWM`, `_PutChapterTitleGfx` and `sub_80896FC`.
+     */
+    private fun drawChapterTitle() {
+        val bg0 = hardware.mapBuffer(0)
+        hardware.fill(bg0, 0x280 + (1 shl 12))
+        chapterTitle.sub80895B4(8, 5)
+        val titleId = chapterTitle.getChapterTitleWM(playSt)
+        chapterTitle.putChapterTitleGfxWrapper(0x280, titleId)
+        chapterTitle.sub80896FC(bg0, 9 * 32 + 3, 5)
+        hardware.enableBgSyncByMask(1)
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_SetBG_802009C
+     *
+     * Back to mode 0 with BG2's tile data at 0x8000 and BG priorities 0, 2, 1, 3 and BG2 size 0.
+     */
+    private fun setBg802009C() {
+        val lcd = hardware.lcd
+        lcd.dispcnt = lcd.dispcnt and 7.inv()
+        hardware.setTileDataOffset(2, 0x8000)
+        setPriorities(0, 2, 1, 3)
+        lcd.bgCnt[2] = lcd.bgCnt[2] and 0xC000.inv()
+    }
 
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_KeyListen_Init

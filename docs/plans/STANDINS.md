@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 170 across 28 Kotlin files.
+Total entries: 174 across 29 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -19,11 +19,11 @@ Total entries: 170 across 28 Kotlin files.
 | M6-E | 44 |
 | M6-G | 1 |
 | M6-H | 21 |
-| M6-I | 18 |
+| M6-I | 21 |
 | M6-J | 8 |
 | D09-3 | 2 |
-| D11-ci2 | 3 |
-| D11-ci3 | 2 |
+| D11-ci1 | 2 |
+| D11-ci3 | 4 |
 | D11-ci5 | 3 |
 | D11-wire-a | 1 |
 | D11-wire-b | 1 |
@@ -176,7 +176,7 @@ Total entries: 170 across 28 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `refreshTorchlightsOnBmMap` | Stand-in (M6-H) for `RefreshTorchlightsOnBmMap`, called between clears and unit pass. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `handlePostActionTraps` | Stand-in for `HandlePostActionTraps` (a `PROC_CALL_2`) until M6-H. |
 
-## M6-I (18)
+## M6-I (21)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -184,6 +184,9 @@ Total entries: 170 across 28 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `updatePrevDeployStates` | Stand-in (M6-I). |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `getBattleMapKind` | Stand-in until M6-I. |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `getBattleMapKind` | Stand-in until M6-I (needs the world map node state); the default answers [BattleMapKind.STORY]. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `getNextUnclearedNode` | Stand-in until M6-I; the default answers -1. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `getPlayChapterId` | Stand-in until M6-I; the default answers -1. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterTitle.kt` | `ChapterTitle` | Stand-in supplied by the caller until M6-I. @param getNextUnclearedNode `GetNextUnclearedNode(&gGMData)` (worldmap_path.c). |
 | `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | `getUnitStructFromEventParameter` | Pid 0 uses the stand-in (M6-I) [EventUnitStateHooks.playerLeaderPid]. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | `playerLeaderPid` | The default 1 is a stand-in until M6-I (the leader of the save is not modelled here); a caller that needs the real leader overrides it. |
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `GameSaveRam` | The RAM `ReadGameSave` fills, as the objects that own it elsewhere, plus stand-ins for what has no owner yet (the world map and dungeon data, M6-I). @property playSt `gPlaySt`. @property bmSt `gBmS... |
@@ -219,19 +222,20 @@ Total entries: 170 across 28 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `gotItemPopup` | Stand-ins (D09-3): `gpPopupUnit` is not tracked, so the unit-name text id is 0 (the got-item and pilfered scripts do not use the unit name), and [addItem] with a full inventory (the item-drop menu)... |
 | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | `event37GiveItem` | Transcribed from src/eventscr.c: Event37_GiveItem (not verified: inventory/gold effects and popups not trace-compared) Host stand-ins (D09-3): the "gold got" popup (`NewPopup_GoldGot`) is not shown... |
 
-## D11-ci2 (3)
+## D11-ci1 (2)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `lightBurstScript` | `ProcScr_ChapterIntro_LightBurst`: stand-in until D11-ci2. |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `script` | Commands after the twin lights are stand-ins: D11-ci2 (`InitBLDCNT`, light burst, title, light explosion, `SetBG_802009C`), D11-ci3 (Bg2Scroll, decals, fog, timer, `8020A40`/`8020A8C`, `BeginFadeTo... |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `script` | Transcribed from src/chapterintrofx.c: gProcScr_ChapterIntro (not verified: the capture runs commands 0-6, the jump to label 1 and the label 1 / 99 commands only; the main path between them is stan... |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `script` | Stand-ins for D11-ci3: light burst, light explosion, Bg2Scroll, decals, fog, timer, `8020A40`/`8020A8C` and `BeginFadeToMap`/`LoopFadeToMap`. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `script` | Transcribed from src/chapterintrofx.c: gProcScr_ChapterIntro (not verified: the captures run commands 0-14 (`ram_trace_newgame_intro` to the fog start), the jump to label 1 and the label 1 / 99 com... |
 
-## D11-ci3 (2)
+## D11-ci3 (4)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `bg2ScrollScript` | `ProcScr_ChapterIntro_Bg2Scroll`: stand-in until D11-ci3. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `lightBurstScript` | `ProcScr_ChapterIntro_LightBurst`: stand-in until D11-ci3. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `lightExplosionLoopStandIn` | Stand-in for `ChapterIntro_LightExplosion_Loop` (D11-ci3): only its control flow, `timer++` and the break at 70. |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `putDecalScript` | `ProcScr_ChapterIntro_PutDecalSprite`: stand-in until D11-ci3. |
 
 ## D11-ci5 (3)

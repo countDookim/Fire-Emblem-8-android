@@ -53,6 +53,9 @@ public class ChapterData(
     public fun getChapterEventDataPointer(chapterIndex: Int): Int =
         asset(u8(chapterIndex, OFF_MAP_EVENT_DATA_ID))
 
+    /** `chapTitleId` (u8) of chapter [chapterIndex]: its title image id. */
+    public fun chapTitleId(chapterIndex: Int): Int = u8(chapterIndex, OFF_CHAP_TITLE_ID)
+
     /** `map.obj1Id` of chapter [chapterIndex]: id of the first tileset object graphics. */
     public fun obj1Id(chapterIndex: Int): Int = u8(chapterIndex, OFF_MAP_OBJ1_ID)
 
@@ -130,6 +133,9 @@ public class ChapterData(
 
         /** Number of `mapBgmIds` entries per chapter (11 slots). */
         public const val BGM_SLOTS: Int = 11
+
+        /** Offset of `chapTitleId` in `struct ROMChapterData`. */
+        public const val OFF_CHAP_TITLE_ID: Int = 0x0E
 
         /** Offset of `map.obj1Id` in `struct ROMChapterData`. */
         public const val OFF_MAP_OBJ1_ID: Int = 0x04

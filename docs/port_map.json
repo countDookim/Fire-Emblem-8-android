@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 847,
+    "verified": 887,
     "implemented_unverified": 2
   },
   "functions": {
@@ -60,6 +60,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterMapGraphicsDifferentialTest#system object palettes match the dump"
+      ]
+    },
+    "ApplyUnitMapUiFramePal": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
       ]
     },
     "ApplyUnitSpriteImage16x16": {
@@ -289,6 +299,7 @@
       "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/BgAffin.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame",
         "fe8.testing.OpSubtitleFlareDifferentialTest#loop follows original counters, affine registers and blend"
       ]
     },
@@ -299,6 +310,7 @@
       "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/BgAffin.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame",
         "fe8.testing.OpSubtitleFlareDifferentialTest#loop follows original counters, affine registers and blend"
       ]
     },
@@ -309,6 +321,7 @@
       "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/BgAffin.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame",
         "fe8.testing.OpSubtitleFlareDifferentialTest#loop follows original counters, affine registers and blend"
       ]
     },
@@ -476,6 +489,26 @@
         "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
       ]
     },
+    "ChapterIntro_Bg2Scroll_Loop": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
+    "ChapterIntro_BlendFogAlpha_Loop": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
     "ChapterIntro_DrawChapterTitle": {
       "decomp_file": "src/chapterintrofx.c",
       "system": "presentation",
@@ -516,6 +549,16 @@
         "fe8.testing.ChapterIntroDifferentialTest#skip path fade out map display and fast fade match every frame"
       ]
     },
+    "ChapterIntro_InitFogGfx": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
     "ChapterIntro_InitMapDisplay": {
       "decomp_file": "src/chapterintrofx.c",
       "system": "presentation",
@@ -546,6 +589,46 @@
         "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
       ]
     },
+    "ChapterIntro_LightBurst_Init": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
+    "ChapterIntro_LightBurst_Loop": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
+    "ChapterIntro_LightExplosion_Init": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
+    "ChapterIntro_LightExplosion_Loop": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
     "ChapterIntro_LoopFadeOut": {
       "decomp_file": "src/chapterintrofx.c",
       "system": "presentation",
@@ -566,6 +649,36 @@
         "fe8.testing.ChapterIntroDifferentialTest#skip path fade out map display and fast fade match every frame"
       ]
     },
+    "ChapterIntro_PutDecalSprite_Loop": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
+    "ChapterIntro_RevealDecalSprite_Init": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
+    "ChapterIntro_RevealDecalSprite_Loop": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
     "ChapterIntro_SetBG_802009C": {
       "decomp_file": "src/chapterintrofx.c",
       "system": "presentation",
@@ -584,6 +697,26 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
+      ]
+    },
+    "ChapterIntro_SetTimer": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
+    "ChapterIntro_TickTimerMaybe": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
       ]
     },
     "ChapterIntro_TwinLights_Loop": {
@@ -770,6 +903,16 @@
       "tests": [
         "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
+    "ClearUnitMapUiStatus": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
       ]
     },
     "ClearWmTextVram": {
@@ -1025,6 +1168,16 @@
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
+    "DrawHpBar": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
     "DrawMenuItemHover": {
       "decomp_file": "src/uimenu.c",
       "system": "menus",
@@ -1120,6 +1273,18 @@
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
+    "DrawUnitMapUi": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window restarts after cancelling the selection",
+        "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window slides out when the cursor leaves the unit",
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
     "EnableKeyComboResetEN": {
       "decomp_file": "src/time.c",
       "system": "core",
@@ -1149,6 +1314,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SuspendSaveReferenceTest#packed unit records equal suspend entry 4 of the reference"
+      ]
+    },
+    "EndGmMuEntry": {
+      "decomp_file": "src/worldmap_entry.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMuEntry.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuEntryTest#mu entry proc follows the original every step"
       ]
     },
     "EndMenu": {
@@ -2290,6 +2465,36 @@
         "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
       ]
     },
+    "GetHpBarLeftTile": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
+    "GetHpBarMidTiles": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
+    "GetHpBarRightTile": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
     "GetItemAttributes": {
       "decomp_file": "src/bmitem.c",
       "system": "battle_logic",
@@ -2785,6 +2990,46 @@
       "status": "verified",
       "tests": [
         "fe8.game.worldmap.GmDataTest#gmDataInit from garbage matches gGMData in the first trace dump"
+      ]
+    },
+    "GmMuEntryStartShow": {
+      "decomp_file": "src/worldmap_entry.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMuEntry.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuEntryTest#mu entry proc follows the original every step"
+      ]
+    },
+    "GmMuEntry_80BFEF8": {
+      "decomp_file": "src/worldmap_entry.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMuEntry.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuEntryTest#mu entry proc follows the original every step"
+      ]
+    },
+    "GmMuEntry_80C0080": {
+      "decomp_file": "src/worldmap_entry.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMuEntry.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuEntryTest#mu entry proc follows the original every step"
+      ]
+    },
+    "GmMuEntry_Init": {
+      "decomp_file": "src/worldmap_entry.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMuEntry.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuEntryTest#mu entry proc follows the original every step"
       ]
     },
     "GmMuPrim_80BD9D8": {
@@ -3306,7 +3551,10 @@
       "tests": [
         "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window follows the cursor inside its quadrant",
         "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window restarts after cancelling the selection",
-        "fe8.testing.TerrainDisplayDifferentialTest#select_move windows start after the unit waits"
+        "fe8.testing.TerrainDisplayDifferentialTest#select_move windows start after the unit waits",
+        "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window restarts after cancelling the selection",
+        "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window slides out when the cursor leaves the unit",
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
       ]
     },
     "InitRN": {
@@ -3589,6 +3837,61 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ConvoBackgroundVramTest#game lock matches gbmst lock byte across trace steps"
+      ]
+    },
+    "MMB_Init": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window slides out when the cursor leaves the unit",
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
+    "MMB_Loop_Display": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window slides out when the cursor leaves the unit",
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
+    "MMB_Loop_OnSideChange": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window restarts after cancelling the selection",
+        "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window slides out when the cursor leaves the unit",
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
+    "MMB_Loop_SlideIn": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window slides out when the cursor leaves the unit",
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
+    "MMB_Loop_SlideOut": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window slides out when the cursor leaves the unit"
       ]
     },
     "MPlayExtender": {
@@ -4800,6 +5103,16 @@
         "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
       ]
     },
+    "PutFaceChibi": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
     "PutFaceOnBackGround": {
       "decomp_file": "src/face.c",
       "system": "text_face",
@@ -4808,6 +5121,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapFaceTest#BG2 tile map matches the EWRAM dumps and portrait data the full dumps"
+      ]
+    },
+    "PutFaceTm": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
       ]
     },
     "PutMapCursor": {
@@ -4838,6 +5161,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "PutOppositeLightExplosionSprites": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
       ]
     },
     "PutSpriteExt": {
@@ -5819,6 +6152,16 @@
         "fe8.testing.WorldMapNodeIconCursorTest#node icon and cursor procs follow the original every step"
       ]
     },
+    "StartGmapMuEntry": {
+      "decomp_file": "src/worldmap_entry.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMuEntry.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuEntryTest#mu entry proc follows the original every step"
+      ]
+    },
     "StartGmapRm": {
       "decomp_file": "src/worldmap_rm.c",
       "system": "worldmap",
@@ -6638,6 +6981,17 @@
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
       ]
     },
+    "UnitMapUiUpdate": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window slides out when the cursor leaves the unit",
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
     "UnitSpriteHoverUpdate": {
       "decomp_file": "src/bmudisp.c",
       "system": "battle_map",
@@ -6676,6 +7030,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterMapGraphicsDifferentialTest#chapter palette alone matches the dump"
+      ]
+    },
+    "UnpackFaceChibiGraphics": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
       ]
     },
     "UnskipGmNodeIconDisplay": {
@@ -7596,6 +7960,56 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "sub_80BFD28": {
+      "decomp_file": "src/worldmap_entry.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMuEntry.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuEntryTest#mu entry proc follows the original every step"
+      ]
+    },
+    "sub_80BFDA0": {
+      "decomp_file": "src/worldmap_entry.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMuEntry.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuEntryTest#mu entry proc follows the original every step"
+      ]
+    },
+    "sub_80C1DA0": {
+      "decomp_file": "src/worldmap_hb.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapHblank.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuEntryTest#mu entry proc follows the original every step"
+      ]
+    },
+    "sub_80C1DC8": {
+      "decomp_file": "src/worldmap_hb.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapHblank.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuEntryTest#mu entry proc follows the original every step"
+      ]
+    },
+    "sub_80C1DD8": {
+      "decomp_file": "src/worldmap_hb.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapHblank.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapMuEntryTest#mu entry proc follows the original every step"
       ]
     },
     "sub_80C488C": {

@@ -47,6 +47,7 @@ public class GotItemPopup(
         public var item: Int = 0,
     )
 
+    /** The [GotItemPopupProc] user data of [proc]. */
     private fun stateOf(proc: Proc): GotItemPopupProc = proc.state as GotItemPopupProc
 
     /**
@@ -68,7 +69,8 @@ public class GotItemPopup(
     )
 
     /**
-     * Shows the "got item" popup, or the "item was pilfered" one for a non-player unit.
+     * Sets the popup item to [item], then shows the "got item" popup, or the "item was
+     * pilfered" one for a non-player unit, blocking [parent].
      *
      * Transcribed from src/popup.c: NewPopup_ItemGot_unused (not verified: no @VerifiesPort test
      * names it)
@@ -81,13 +83,22 @@ public class GotItemPopup(
         deps.newPopupSimple(parent, definition, 0x60, 0x0)
     }
 
-    /** Ported from src/popup.c: ItemGot_DisplayLePopup */
+    /**
+     * The first call of [script]: shows the got-item popup for the proc's unit and item.
+     *
+     * Ported from src/popup.c: ItemGot_DisplayLePopup
+     */
     public fun displayLePopup(proc: Proc) {
         val state = stateOf(proc)
         newPopupItemGotUnused(state.unit, state.item, proc)
     }
 
-    /** Ported from src/popup.c: ItemGot_GotLeItem */
+    /**
+     * The second call of [script]: makes the item word for the proc's item (`MakeNewItem`) and
+     * hands it to the unit through `HandleNewItemGetFromDrop`.
+     *
+     * Ported from src/popup.c: ItemGot_GotLeItem
+     */
     public fun gotLeItem(proc: Proc) {
         val state = stateOf(proc)
         deps.handleNewItemGetFromDrop(state.unit, deps.makeNewItem(state.item), proc)
@@ -115,7 +126,7 @@ public class GotItemPopup(
         return proc
     }
 
-    /** Constants. */
+    /** ROM addresses of the popup and proc scripts used here (decomp labels). */
     public companion object {
         /** `PopupScr_GotItem` (ROM address). */
         public const val POPUP_SCR_GOT_ITEM: Int = 0x08592230

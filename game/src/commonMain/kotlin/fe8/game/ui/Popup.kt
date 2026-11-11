@@ -18,8 +18,13 @@ public object Popup {
     /** `TEXT_COLOR_SYSTEM_WHITE`. */
     public const val TEXT_COLOR_SYSTEM_WHITE: Int = 0
 
+    /** Bytes per entry of a popup instruction list (`struct PopupInstruction`). */
     private const val INSTRUCTION_SIZE = 8
+
+    /** DISPCNT bits for win0, win1 and objWin, which the popup switches off. */
     private const val DISPCNT_WINDOWS = 0xE000 // win0_on, win1_on, objWin_on
+
+    /** Opcodes of a popup instruction list (decomp `POPUP_OP_*`). */
     private const val OP_END = 0x00
     private const val OP_SPACE = 0x01
     private const val OP_ITEM_NAME = 0x02
@@ -66,7 +71,7 @@ public object Popup {
         /** `textColorId` (+0x3B), u8. */
         public var textColorId: Int = 0
 
-        /** `iconId` (+0x3E), u16. */
+        /** `iconId` (+0x3E), u16; 0xFFFF when the popup has no icon. */
         public var iconId: Int = 0
 
         /** `iconObjTileId` (+0x40), u16. */
@@ -175,7 +180,7 @@ public object Popup {
 
     /**
      * Walks the instruction list at [PopupProc.pDefinition] (`struct PopupInstruction`, 8 bytes:
-     * u8 opcode, u32 data at +4), sets [PopupProc.soundId], [PopupProc.iconX] and
+     * u8 opcode, u32 operand at +4), sets [PopupProc.soundId], [PopupProc.iconX] and
      * [PopupProc.iconId] and returns the popup text width in pixels. [loadIconPalette] stands for
      * `LoadIconPalette(slot, proc->iconPalId)`; [popupItem], [popupNumber] and [unitNameTextId]
      * (`gpPopupUnit->pCharacterData->nameTextId`) are the popup globals. The active font of
@@ -194,43 +199,43 @@ public object Popup {
         loadIconPalette: (slot: Int, palId: Int) -> Unit,
     ): Int {
         val items = ItemInfo(rom)
-        var len = 0
-        var inst = proc.pDefinition
-        while (rom.u8(inst) != OP_END) {
-            val data = rom.u32(inst + 4)
-            when (rom.u8(inst)) {
-                OP_SOUND -> proc.soundId = data
-                OP_NUM -> len += numberToStringAsciiLength(popupNumber) * 8
+        var widthPx = 0
+        var instAddr = proc.pDefinition
+        while (rom.u8(instAddr) != OP_END) {
+            val operand = rom.u32(instAddr + 4)
+            when (rom.u8(instAddr)) {
+                OP_SOUND -> proc.soundId = operand
+                OP_NUM -> widthPx += numberToStringAsciiLength(popupNumber) * 8
                 OP_ITEM_ICON -> {
-                    proc.iconX = len
+                    proc.iconX = widthPx
                     proc.iconId = items.getItemIconId(popupItem)
                     loadIconPalette(0, proc.iconPalId)
-                    len += 0x10
+                    widthPx += 0x10
                 }
                 OP_WTYPE_ICON -> {
-                    proc.iconX = len
+                    proc.iconX = widthPx
                     proc.iconId = popupItem + 0x70
                     loadIconPalette(1, proc.iconPalId)
-                    len += 0x10
+                    widthPx += 0x10
                 }
-                OP_MSG -> len += text.getStringTextLen(messages.getStringFromIndex(data))
-                OP_STR -> len += text.getStringTextLen(rom.bytesAt(data))
+                OP_MSG -> widthPx += text.getStringTextLen(messages.getStringFromIndex(operand))
+                OP_STR -> widthPx += text.getStringTextLen(rom.bytesAt(operand))
                 OP_UNIT_NAME ->
-                    len += text.getStringTextLen(messages.getStringFromIndex(unitNameTextId))
+                    widthPx += text.getStringTextLen(messages.getStringFromIndex(unitNameTextId))
                 OP_ITEM_NAME ->
-                    len += text.getStringTextLen(items.getItemName(popupItem, messages))
-                OP_ITEM_STR_CAP -> len += text.getStringTextLen(
+                    widthPx += text.getStringTextLen(items.getItemName(popupItem, messages))
+                OP_ITEM_STR_CAP -> widthPx += text.getStringTextLen(
                     items.getItemNameWithArticle(popupItem, true, messages),
                 )
-                OP_ITEM_STR -> len += text.getStringTextLen(
+                OP_ITEM_STR -> widthPx += text.getStringTextLen(
                     items.getItemNameWithArticle(popupItem, false, messages),
                 )
-                OP_SPACE -> len += data
+                OP_SPACE -> widthPx += operand
                 else -> Unit
             }
-            inst += INSTRUCTION_SIZE
+            instAddr += INSTRUCTION_SIZE
         }
-        return len
+        return widthPx
     }
 
     /**
@@ -256,26 +261,27 @@ public object Popup {
         unitNameTextId: Int,
         loadIconPalette: (slot: Int, palId: Int) -> Unit,
     ): IntArray? {
-        val len = parsePopupInstAndGetLen(
+        val widthPx = parsePopupInstAndGetLen(
             proc, rom, messages, text, popupItem, popupNumber, unitNameTextId, loadIconPalette,
         )
-        val tileLen = gfxDrawLayout(proc, len)
+        val tileLen = gfxDrawLayout(proc, widthPx)
         val iconPos = (tileLen * 8 - proc.xGfxSize) shr 1
         UiFrame.drawUiFrame2(
             hardware, rom, proc.xTileReal, proc.yTileReal, tileLen + 2, 4, proc.winStyle,
         )
-        val th = Text()
-        text.initText(th, tileLen)
-        th.colorId = proc.textColorId
-        th.x = iconPos
+        val popupText = Text()
+        text.initText(popupText, tileLen)
+        popupText.colorId = proc.textColorId
+        popupText.x = iconPos
         generatePopupText(
-            proc.pDefinition, th, rom, messages, text, popupItem, popupNumber, unitNameTextId,
+            proc.pDefinition, popupText, rom, messages, text, popupItem, popupNumber,
+            unitNameTextId,
         )
         if (proc.iconId != 0xFFFF) {
             ItemIcon.loadIconObjectGraphics(hardware, rom, proc.iconId, proc.iconObjTileId)
         }
         text.putText(
-            th, hardware.mapBuffer(0), (proc.yTileReal + 1) * 32 + proc.xTileReal + 1,
+            popupText, hardware.mapBuffer(0), (proc.yTileReal + 1) * 32 + proc.xTileReal + 1,
         )
         text.initTextFont(null, 0x06001000, 0x80, 0)
         return if (proc.iconId != 0xFFFF) iconChildFields(proc) else null
@@ -293,21 +299,21 @@ public object Popup {
         for (buffer in arrayOf(bg0, bg1)) {
             for (row in 0..proc.yTileSize) {
                 for (col in 0..proc.xTileSize) {
-                    val idx = (proc.yTileReal + row) * 32 + proc.xTileReal + col
-                    if (idx in buffer.indices) buffer[idx] = 0
+                    val cellIndex = (proc.yTileReal + row) * 32 + proc.xTileReal + col
+                    if (cellIndex in buffer.indices) buffer[cellIndex] = 0
                 }
             }
         }
     }
 
     /**
-     * Sets the layout fields from the text width [len] (as [parsePopupInstAndGetLen] returns it)
-     * and returns the text width in tiles. Helper of [gfxDraw].
+     * Sets the layout fields from the text width [widthPx] (as [parsePopupInstAndGetLen] returns
+     * it) and returns the text width in tiles. Helper of [gfxDraw].
      */
-    public fun gfxDrawLayout(proc: PopupProc, len: Int): Int {
-        proc.xGfxSize = len and 0xFFFF
-        var tileLen = (len shl 16) shr 19
-        if (len and 7 != 0) tileLen++
+    public fun gfxDrawLayout(proc: PopupProc, widthPx: Int): Int {
+        proc.xGfxSize = widthPx and 0xFFFF
+        var tileLen = (widthPx shl 16) shr 19
+        if (widthPx and 7 != 0) tileLen++
         val iconPos = (tileLen * 8 - proc.xGfxSize) shr 1
         val xPos = if (proc.xTileParam == -1) ((0x1E - tileLen) shr 1) - 1 else proc.xTileParam
         val yPos = if (proc.yTileParam != -1) proc.yTileParam else 8
@@ -331,7 +337,7 @@ public object Popup {
 
     /**
      * Draws the popup text described by the instruction list at [definition] into a copy of
-     * [th] (C passes `struct Text` by value, so the caller's pen is untouched). [text] and
+     * [startText] (C passes `struct Text` by value, so the caller's pen is untouched). [text] and
      * [messages] supply the drawing and the message strings; [popupItem], [popupNumber] and
      * [unitNameTextId] are the popup globals. The `BG_EnableSyncByMask` at the end is a no-op
      * here.
@@ -340,7 +346,7 @@ public object Popup {
      */
     public fun generatePopupText(
         definition: Int,
-        th: Text,
+        startText: Text,
         rom: RomView,
         messages: MsgStrings,
         text: TextSystem,
@@ -349,40 +355,43 @@ public object Popup {
         unitNameTextId: Int,
     ) {
         val items = ItemInfo(rom)
-        val t = Text()
-        t.chrPosition = th.chrPosition
-        t.x = th.x
-        t.colorId = th.colorId
-        t.tileWidth = th.tileWidth
-        t.dbEnabled = th.dbEnabled
-        t.dbId = th.dbId
-        t.isPrinting = th.isPrinting
-        var inst = definition
-        while (rom.u8(inst) != OP_END) {
-            val data = rom.u32(inst + 4)
-            when (rom.u8(inst)) {
-                OP_NUM -> text.drawString(t, numberToStringAscii(popupNumber))
-                OP_WTYPE_ICON, OP_ITEM_ICON -> t.x += 0x10
-                OP_COLOR -> t.colorId = data
-                OP_MSG -> text.drawString(t, messages.getStringFromIndex(data))
-                OP_STR -> text.drawString(t, rom.bytesAt(data))
+        val pen = Text()
+        pen.chrPosition = startText.chrPosition
+        pen.x = startText.x
+        pen.colorId = startText.colorId
+        pen.tileWidth = startText.tileWidth
+        pen.dbEnabled = startText.dbEnabled
+        pen.dbId = startText.dbId
+        pen.isPrinting = startText.isPrinting
+        var instAddr = definition
+        while (rom.u8(instAddr) != OP_END) {
+            val operand = rom.u32(instAddr + 4)
+            when (rom.u8(instAddr)) {
+                OP_NUM -> text.drawString(pen, numberToStringAscii(popupNumber))
+                OP_WTYPE_ICON, OP_ITEM_ICON -> pen.x += 0x10
+                OP_COLOR -> pen.colorId = operand
+                OP_MSG -> text.drawString(pen, messages.getStringFromIndex(operand))
+                OP_STR -> text.drawString(pen, rom.bytesAt(operand))
                 OP_UNIT_NAME ->
-                    text.drawString(t, messages.getStringFromIndex(unitNameTextId))
-                OP_ITEM_NAME -> text.drawString(t, items.getItemName(popupItem, messages))
+                    text.drawString(pen, messages.getStringFromIndex(unitNameTextId))
+                OP_ITEM_NAME -> text.drawString(pen, items.getItemName(popupItem, messages))
                 OP_ITEM_STR_CAP -> text.drawString(
-                    t, items.getItemNameWithArticle(popupItem, true, messages),
+                    pen, items.getItemNameWithArticle(popupItem, true, messages),
                 )
                 OP_ITEM_STR -> text.drawString(
-                    t, items.getItemNameWithArticle(popupItem, false, messages),
+                    pen, items.getItemNameWithArticle(popupItem, false, messages),
                 )
-                OP_SPACE -> t.x += data
+                OP_SPACE -> pen.x += operand
                 else -> Unit
             }
-            inst += INSTRUCTION_SIZE
+            instAddr += INSTRUCTION_SIZE
         }
     }
 
-    // NumberToStringAscii (src/bmlib.c) as a 0-terminated byte string.
+    /**
+     * Decimal text of [value] as a 0-terminated byte string, like `NumberToStringAscii` in
+     * src/bmlib.c. A minus sign leads negative values; only the six lowest digits are written.
+     */
     private fun numberToStringAscii(value: Int): ByteArray {
         var number = value
         val out = ArrayList<Byte>()
@@ -405,18 +414,24 @@ public object Popup {
         return out.toByteArray()
     }
 
-    // Digit count NumberToStringAscii (src/bmlib.c) returns: no dash, at most six digits.
+    /**
+     * Digit count [numberToStringAscii] writes for [number]: no minus sign, at most six
+     * digits.
+     */
     private fun numberToStringAsciiLength(number: Int): Int {
-        var n = if (number < 0) -number else number
+        var magnitude = if (number < 0) -number else number
         var digits = 1
-        while (n > 9) {
-            n /= 10
+        while (magnitude > 9) {
+            magnitude /= 10
             digits++
         }
         return minOf(digits, 6)
     }
 
-    // A 0-terminated string in ROM at [at] (the POPUP_OP_STR operand).
+    /**
+     * The 0-terminated string at ROM address [at], terminator included: the operand of
+     * `POPUP_OP_STR`.
+     */
     private fun RomView.bytesAt(at: Int): ByteArray {
         var end = at
         while (u8(end) != 0) end++
@@ -440,9 +455,9 @@ public object Popup {
 
     /**
      * Sets the fields `NewPopupCore` assigns after starting the proc (the proc start itself is
-     * not modelled).
-     *
-     * Field setup of `NewPopupCore`; the port including the proc start is [PopupScript.start].
+     * not modelled): the instruction list at [definition], [clock], [winStyle], the icon's OBJ
+     * tile [iconObjTileId] and the icon palette [palBase] + 0x10. The port including the proc
+     * start is [PopupScript.start].
      */
     public fun setupCore(
         proc: PopupProc, definition: Int, clock: Int, winStyle: Int, iconObjTileId: Int,

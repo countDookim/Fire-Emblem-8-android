@@ -16,7 +16,7 @@ public object ItemIcon {
     /** Bytes per icon tile payload (16x16 pixels in 4bpp = 4 tiles = 128 bytes). */
     public const val ICON_BYTES: Int = 0x80
 
-    /** Base offset of OBJ character VRAM in GBA VRAM (32 KiB into VRAM). */
+    /** Offset of OBJ character VRAM from the start of GBA VRAM: 64 KiB (0x10000). */
     public const val OBJ_VRAM0: Int = 0x10000
 
     /** `MAX_ICON_COUNT`: entries of `DrawnIconLookupTable` (a 2-byte `struct IconStruct` each). */
@@ -38,21 +38,23 @@ public object ItemIcon {
     }
 
     /**
-     * Returns the base OBJ tile index allocated for dynamic icon slot [index].
+     * Returns the base OBJ tile index allocated for dynamic icon slot [index]. Slots count down
+     * from tile 0x300 in steps of four tiles (one 16x16 icon).
      *
      * Transcribed from src/icon.c: GetIconGfxTileIndex (not verified: formula 0x300 - index * 4; LoadIconObjectGraphics is verified at the PopupProc_GfxDraw tile 0x240)
      */
     public fun getIconGfxTileIndex(index: Int): Int = 0x300 - index * 4
 
     /**
-     * Loads 16 colours of icon palette [index] (0 or 1) into palette slot [dest] (0..31).
+     * Loads 16 colours of icon palette [index] (0 or 1) into palette slot [paletteSlot]
+     * (0..31).
      *
      * Ported from src/icon.c: LoadIconPalette
      */
-    public fun loadIconPalette(hardware: BgHardware, rom: RomView, index: Int, dest: Int) {
+    public fun loadIconPalette(hardware: BgHardware, rom: RomView, index: Int, paletteSlot: Int) {
         val src = ITEM_ICON_PALETTE + index * 0x20
         val colors = rom.pal(src, 16)
-        colors.copyInto(hardware.palette, dest * 16)
+        colors.copyInto(hardware.palette, paletteSlot * 16)
         hardware.enablePaletteSync()
     }
 
@@ -69,6 +71,7 @@ public object ItemIcon {
         index: Int,
         tileIndex: Int,
     ) {
+        // Tile numbers wrap at 1024 (the 10-bit OBJ tile index); each 4bpp tile is 0x20 bytes.
         val target = OBJ_VRAM0 + ((tileIndex and 0x3FF) * 0x20)
         if (index < 0) {
             hardware.vram.fill(0, target, target + 0x40)
@@ -76,11 +79,11 @@ public object ItemIcon {
         } else {
             val src = ITEM_ICON_TILES + index * ICON_BYTES
             if (rom.isWholeRom) {
-                val whole = rom.wholeRomBytes()
+                val romBytes = rom.wholeRomBytes()
                 val romBase = RomView.ROM_BASE
                 val offset = src - romBase
-                whole.copyInto(hardware.vram, target, offset, offset + 0x40)
-                whole.copyInto(hardware.vram, target + 0x400, offset + 0x40, offset + 0x80)
+                romBytes.copyInto(hardware.vram, target, offset, offset + 0x40)
+                romBytes.copyInto(hardware.vram, target + 0x400, offset + 0x40, offset + 0x80)
             } else {
                 for (i in 0 until 0x40) {
                     hardware.vram[target + i] = rom.u8(src + i).toByte()

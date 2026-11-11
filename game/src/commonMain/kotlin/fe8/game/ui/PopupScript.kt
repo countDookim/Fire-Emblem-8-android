@@ -70,6 +70,7 @@ public class PopupScript(
             SecondaryOamWriter { _, _, _, _ -> },
     )
 
+    /** The [Popup.PopupProc] user data of [proc]. */
     private fun popupOf(proc: Proc): Popup.PopupProc = proc.state as Popup.PopupProc
 
     /**
@@ -86,6 +87,9 @@ public class PopupScript(
     )
 
     /**
+     * Pushes the popup icon's 16x16 sprite, at the position and attributes in [fields], to the
+     * secondary OAM. [iconScript] runs this every frame.
+     *
      * Ported from src/popup.c: PopupIconUpdateProc_Loop
      *
      * [fields] are `unk_2C`, `unk_30` and `unk_4A` of the child.
@@ -94,10 +98,15 @@ public class PopupScript(
         deps.pushToSecondaryOam.push(fields[0], fields[1], OBJECT_16X16, fields[2])
     }
 
+    /** Starts [iconScript] as a child of [parent], keeping [fields] as the child's state. */
     private fun startIconChild(parent: Proc, fields: IntArray) {
         engine.start(iconScript, parent).state = fields
     }
 
+    /**
+     * The repeated step of [script]: counts the clock down or waits for a key, and breaks the
+     * popup proc once [Popup.waitForPress] reports it done.
+     */
     private val waitForPress = ProcFunc { proc ->
         val popup = popupOf(proc)
         Popup.waitForPress(popup, deps.newKeys)

@@ -47,7 +47,7 @@ class UiFrameIconTest {
 
         val hardware = BgHardware()
         // OBJ palette 4 corresponds to palette slot 16 + 4 = 20 (0x14).
-        ItemIcon.loadIconPalette(hardware, rom, index = 0, dest = 0x14)
+        ItemIcon.loadIconPalette(hardware, rom, index = 0, paletteSlot = 0x14)
 
         val actualPal = hardware.palette.copyOfRange(20 * 16, 21 * 16)
         val expectedBuf = ByteBuffer.wrap(palBytes, 512 + 4 * 32, 32)

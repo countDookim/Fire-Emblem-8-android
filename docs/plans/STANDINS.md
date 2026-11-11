@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 161 across 25 Kotlin files.
+Total entries: 163 across 26 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -26,6 +26,7 @@ Total entries: 161 across 25 Kotlin files.
 | D11-ci3 | 2 |
 | D11-ci5 | 3 |
 | D11-wire-b | 1 |
+| D11-wm3f | 2 |
 | D11-wm9 | 9 |
 
 ## M6-B (53)
@@ -239,6 +240,13 @@ Total entries: 161 across 25 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startIntroMonologue` | Stand-in until D11-wire-b. |
+
+## D11-wm3f (2)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt` | `gmRoute` | `gmroute` (+0x4C): the `ProcScr_GMapRoute` proc (null while a stand-in until D11-wm3f). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt` | `startGMapRoute` | `StartGMapRoute(proc, &gGMData.openPaths, 0x5000, 0xe)`: stand-in until D11-wm3f; the proc it returns becomes [GmScreenProc.gmRoute]. |
 
 ## D11-wm9 (9)
 

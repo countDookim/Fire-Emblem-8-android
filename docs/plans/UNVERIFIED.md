@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 520 across 61 decomp files (missing reason: 0).
+Total entries: 523 across 62 decomp files (missing reason: 0).
 
 ## src/worldmap_rm.c (42)
 
@@ -134,8 +134,8 @@ Total entries: 520 across 61 decomp files (missing reason: 0).
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
-| `GetUnitSupportBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | the traced units have no supporter on the map, so only the empty sum is compared |
-| `GetUnitPower` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has a power bonus item, so the bonus term is not exercised |
+| `GetUnitSupportBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | the traced units have no supporter on the map, srcOffset only the empty sum is compared |
+| `GetUnitPower` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has a power bonus item, srcOffset the bonus term is not exercised |
 | `GetUnitSkill` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |
 | `GetUnitSpeed` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |
 | `GetUnitDefense` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item in the trace |
@@ -678,6 +678,14 @@ Total entries: 520 across 61 decomp files (missing reason: 0).
 | `GetBattleMapKind` | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapKind.kt` | no ground truth for it |
 | `ResetGmStoryNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapPath.kt` | no reference run yet |
 | `GetNextUnclearedNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapPath.kt` | no reference run yet |
+
+## src/worldmap_screen.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ProcScr_GMapScreenVSync` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt` | script order checked against the `procs` capture in WorldMapScreenTest, which cannot tag a script |
+| `ProcScr_GMapScreen` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt` | script order checked against the `procs` capture in WorldMapScreenTest, which cannot tag a script |
+| `GMScreenVSync_Init` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt` | it runs inside `Proc_Start`, and `NewMapScreenVSync` writes the same two fields right after |
 
 ## src/worldmap_text.c (3)
 

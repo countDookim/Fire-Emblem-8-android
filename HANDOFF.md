@@ -11,7 +11,6 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- TEST-1 (Gemini Flash agent `test-speedup`, worktree `.claude/worktrees/test-speedup`, 11-11 10:45Z).
 - PP-0a (Gemini Flash agent `pp0a`, worktree `.claude/worktrees/pp0a`, 11-11 10:45Z).
 
 ## Current state
@@ -67,7 +66,8 @@ window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose de
 5. **Agent notes (11-11):** brief agents to keep scripts in their own scratchpad subdirectory (one agent ran
    another's `edit1.py`). `WalkingAllocationTest` failed intermittently under heavy load once (PP-1 run); it passed
    3/3 afterwards. Re-run it if it fails.
-6. **Next full test run: do `TEST-1` first** (faster full test, branch `wip/test-speedup`, unrun; steps in TASKS).
+6. **TEST-1 done 11-11:** `:testing` runs in 3 forks; AllocationMeter classes run in `serialTest` (auto-detected).
+   Full run ~3.3 min (was 4.5). Revert notes: [TEST-SPEEDUP](docs/plans/TEST-SPEEDUP.md).
 7. **Owner:** decide modding questions D2–D9 when M7 nears.
 
 `@VerifiesPort` takes bare function names; `"src/x.c: F"` silently counts nothing.

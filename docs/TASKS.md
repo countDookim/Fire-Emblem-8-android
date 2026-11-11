@@ -60,7 +60,6 @@ Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames, proc
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| TEST-1 | WIRE | Faster full test (owner 11-11): branch `wip/test-speedup` (`d3bdbd6`, unrun): `:testing` in 3 forks + `serialTest` for the 11 AllocationMeter classes, targeted `--tests` runs unchanged; memoized identical cases in TextDrawRomTest and M4aChannel/Pitch/Track tests. Log and revert notes: `docs/plans/TEST-SPEEDUP.md` on the branch | (1) compile + `jvmTest test --dry-run` and `:testing:test --tests fe8.testing.WalkingAllocationTest --dry-run` (no serialTest); (2) one full `jvmTest test`: same test count as master (806 on 11-11) and same `progress.py` verified list, 0 failures/skips, note the wall time (was 4.5 min); (3) merge as 3 separate commits (forks / TextDraw / M4a), fill hashes into TEST-SPEEDUP.md | — | claimed 11-11 (agent test-speedup) |
 | CAP-hard1 | CAP | Hard-mode New Game run reaching autolevelled loads (unblocks old M6-13) | Run published; then tag `UnitAutolevelRealistic`, `UnitApplyBonusLevels`, `UnitAutolevelPenalty` | — | todo |
 | CAP-collide1 | CAP | Run where a unit load lands on an occupied tile (unblocks old M6-14) | Run published; then verify `AiGetUnitClosestValidPosition`, `AdjustNewUnitPosition` | — | todo |
 | D12-2 | CAP+PORT | Enemy-phase intro capture with per-scanline blend; extend `PhaseIntroDifferentialTest` | Enemy name graphics/palette and per-line blend equal the capture | — | todo; do with M6-D |
@@ -79,5 +78,6 @@ Row details, including what each task left transcribed: [archive](plans/TASKS-ar
   ports verified as far as the Prologue runs them; the rest is in lane A.
 - M4-02, M4-12, M5-56, 56b, 57..61.
 - **Lane B:** PP-9 (`ff84b6f`; `DisplayFrozenUiHand` still a hook), PP-1 (`8da6b33`; `GenerateUnitMovementMap` itself not run in the window), PP-0 (`PlayerPhaseProcInventoryTest`, `8036f44`), PP-cap1 (`ram_trace_prologue_select_move`, ROM `c3ad5d4`), PP-cap2 (`ram_trace_prologue_cancel_end`, ROM `45f35cf`), PP-cap3 (`ram_trace_prologue_attack`, ROM `07a6ca9`, animations on).
+- **Tests:** TEST-1 (`2103612`, `a0d69c4`, `407a17f`; full run 4.5 → 3.3 min, 806 tests; [TEST-SPEEDUP](plans/TEST-SPEEDUP.md)).
 - **App:** APP-1 (launcher Delete save, `e39c730`; owner-confirmed on 0.1.590).
 - **Alignment:** PROG-1 (`b459cf3`), UNV-1, ALN-1 (`3f85702`), ALN-2, STAND-1, STAND-2, M7-0 ([M7-modding](plans/M7-modding.md): 23 proposed rows; D1 decided = option A, ADR 0015; D2–D9 open).

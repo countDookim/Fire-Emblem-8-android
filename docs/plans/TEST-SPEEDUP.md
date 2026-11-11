@@ -17,7 +17,7 @@ No test or assertion was removed or weakened by any change below. Verified in fu
 
 ## Change 1: parallel forks for `:testing` (testing/build.gradle.kts)
 
-Commit: `e8ed98a` (`e8ed98aa47c83ecd7f56bd12f987d632e0cc2a39`)
+Commit: `2103612`
 
 What changed
 - `test` now has `maxParallelForks = 3` (heap unchanged: default per fork).
@@ -53,12 +53,12 @@ Risk
   machine lower `maxParallelForks` if it swaps.
 
 How to revert
-- `git revert e8ed98a`; or delete the `targeted` val, the `if (!targeted)` block in `test`, the
+- `git revert 2103612`; or delete the `targeted` val, the `if (!targeted)` block in `test`, the
   `serialTestClasses` block and the `serialTest` task.
 
 ## Change 2: TextDrawRomTest memoizes identical searches (TextDrawRomTest.kt)
 
-Commit: `91fed95` (`91fed95948a27e3c249aaa1649de76687806b8fb`)
+Commit: `a0d69c4`
 
 What changed
 - In `replayed talk lines reproduce the traced glyph tiles`, the DFS result is cached per exact key
@@ -75,12 +75,12 @@ Why no assertion is lost
 Risk: none known (a future stateful `TextSystem` field not reset by those init calls would need to join the key).
 
 How to revert
-- `git revert 91fed95`; or replace the `outcomes.getOrPut(key) { ... }` line with
+- `git revert a0d69c4`; or replace the `outcomes.getOrPut(key) { ... }` line with
   `Search(ts, host, rom, i, x, strip).run()` and drop the `outcomes` map.
 
 ## Change 3: scan-every-dump audio tests memoize identical cases
 
-Commit: `9bdeced` (`9bdecedba66b18400acb78311fa00212fbe3ada9`)
+Commit: `407a17f`
 
 Files: M4aChannelTest, M4aPitchTest, M4aTrackTest.
 
@@ -101,7 +101,7 @@ a duplicate has identical inputs and expected values, so it would produce the sa
 
 Risk: none known beyond key collisions, which are excluded by exact packing of every byte read.
 
-How to revert: `git revert 9bdeced`; or remove the `seen` / `results` sets and run the body
+How to revert: `git revert 407a17f`; or remove the `seen` / `results` sets and run the body
 unconditionally.
 
 ## Results (measured 2026-11-11)
@@ -113,9 +113,9 @@ unconditionally.
   0 failures, 0 skips (identical to master).
 - Verified functions (`tools/progress.py`): 817 (10.5%), 0 ported-without-tag.
 - Commit sequence on `wip/test-speedup-run`:
-  1. `e8ed98a`: test(testing): parallel forks and serialTest for allocation-metering classes
-  2. `91fed95`: test(testing): memoize identical search outcomes in TextDrawRomTest
-  3. `9bdeced`: test(testing): memoize pure test cases in M4aChannel, M4aPitch and M4aTrack
+  1. `2103612`: test(testing): parallel forks and serialTest for allocation-metering classes
+  2. `a0d69c4`: test(testing): memoize identical search outcomes in TextDrawRomTest
+  3. `407a17f`: test(testing): memoize pure test cases in M4aChannel, M4aPitch and M4aTrack
 
 ## Deferred
 

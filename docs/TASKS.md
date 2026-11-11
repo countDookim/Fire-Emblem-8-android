@@ -67,12 +67,21 @@ Notes: create `docs/plans/M6B-player-phase.md` with PP-0. Start state: `prologue
 | PP-16 | PORT | Goal window and menu button (`GoalDisplay_*`, `MenuButtonDisp_*`) | BG tilemap/OAM per step | PP-0 | todo |
 | PP-17 | WIRE | Player-phase hooks in `Fe8Boot`; replay cap1 inputs headless | Same unit position/state as cap1; 0 B/frame; MANUAL_TEST | PP-11, PP-13 | todo |
 
+## Alignment: existing code and docs follow the roadmap (no behaviour change)
+
+Owner request 2026-11-11: one coherent plan across code and docs; formatting and comments only, reuse what exists.
+
+| ID | Kind | Task | Acceptance | Deps | Status |
+|---|---|---|---|---|---|
+| PROG-1 | tool | `tools/progress.py`: out-of-scope category (`sio_*`, the four debug files), README shows it separately; unknown `@VerifiesPort` names are reported | No excluded function has a retail caller (checked against the decomp); percentage uses the in-scope total; Python tests pass | — | todo |
+| UNV-1 | tool+doc | `tools/unverified.py` generates `docs/plans/UNVERIFIED.md` from `Transcribed from` KDoc; every such KDoc carries a `(not verified: reason)` | `--check` passes in CI; 0 entries without a reason; no code change beyond comments | — | todo |
+| ALN-1 | comments | Kotlin comments/KDoc: drop IDs of finished tasks, point open work at current rows or milestones; fix stale statements (e.g. `AssetLayer` bundling) | No retired task ID left in Kotlin; `jvmTest` + Dokka green; diff is comments only | UNV-1 | todo |
+| ALN-2 | doc | ARCHITECTURE, module READMEs, ADR 0014 (roadmap, scope, capture-first), brief body merged with its amendments, plan notes point at lanes, READABILITY sizes, MANUAL_TEST milestone refs | No doc names a retired task as open work or contradicts ROADMAP; links resolve | — | todo |
+
 ## Other open rows
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| PROG-1 | tool | `tools/progress.py`: out-of-scope category for `sio_*` and the four debug files; README shows it separately | No excluded function has a retail caller (checked); percentage uses the in-scope total; Python tests pass | — | todo |
-| UNV-1 | doc | List every `Transcribed from … (not verified)` function with the capture it needs | `docs/plans/UNVERIFIED.md` generated from KDoc; each entry names a CAP row or "no reachable path" | — | todo |
 | M7-0 | doc | Audit each "Modding groundwork" bullet of the brief against the code, incl. ROM-address table reads | Findings + M7 task rows in `docs/plans/M7-modding.md` | — | todo |
 | CAP-hard1 | CAP | Hard-mode New Game run reaching autolevelled loads (unblocks old M6-13) | Run published; then tag `UnitAutolevelRealistic`, `UnitApplyBonusLevels`, `UnitAutolevelPenalty` | — | todo |
 | CAP-collide1 | CAP | Run where a unit load lands on an occupied tile (unblocks old M6-14) | Run published; then verify `AiGetUnitClosestValidPosition`, `AdjustNewUnitPosition` | — | todo |

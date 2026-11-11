@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 924,
+    "verified": 937,
     "implemented_unverified": 2
   },
   "functions": {
@@ -945,6 +945,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.CutsceneStartSkipDifferentialTest#skipping ends the talk tree and the faces when the engine reaches the text wait",
         "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
       ]
     },
@@ -1320,6 +1321,17 @@
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
+    "DrawPathArrow": {
+      "decomp_file": "src/bmpatharrowdisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PathArrowDrawDifferentialTest#cancel_end path arrow drawing matches the game",
+        "fe8.testing.PathArrowDrawDifferentialTest#select_move path arrow drawing matches the game"
+      ]
+    },
     "DrawSpriteTextGlyph": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -1414,6 +1426,17 @@
         "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window restarts after cancelling the selection",
         "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window slides out when the cursor leaves the unit",
         "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
+    "DrawUpdatedPathArrow": {
+      "decomp_file": "src/bmpatharrowdisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PathArrowDrawDifferentialTest#cancel_end path arrow drawing matches the game",
+        "fe8.testing.PathArrowDrawDifferentialTest#select_move path arrow drawing matches the game"
       ]
     },
     "EffectWait": {
@@ -1608,6 +1631,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.CutsceneStartSkipDifferentialTest#skipping ends the talk tree and the faces when the engine reaches the text wait",
         "fe8.testing.EventVmDifferentialTest#Event02 EvBitAndIdMod"
       ]
     },
@@ -1688,6 +1712,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.CutsceneStartSkipDifferentialTest#skipping ends the talk tree and the faces when the engine reaches the text wait",
         "fe8.testing.EventVmDifferentialTest#Event0E STAL"
       ]
     },
@@ -2559,6 +2584,28 @@
         "fe8.testing.MuStartDifferentialTest#StartMu from the unit as dumped at f9674 matches the f9674 MU proc and config"
       ]
     },
+    "GetDirectionOfPathAfterIndex": {
+      "decomp_file": "src/bmpatharrowdisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PathArrowDrawDifferentialTest#cancel_end path arrow drawing matches the game",
+        "fe8.testing.PathArrowDrawDifferentialTest#select_move path arrow drawing matches the game"
+      ]
+    },
+    "GetDirectionOfPathBeforeIndex": {
+      "decomp_file": "src/bmpatharrowdisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PathArrowDrawDifferentialTest#cancel_end path arrow drawing matches the game",
+        "fe8.testing.PathArrowDrawDifferentialTest#select_move path arrow drawing matches the game"
+      ]
+    },
     "GetFaceIdByXPos": {
       "decomp_file": "src/scene.c",
       "system": "presentation",
@@ -2810,6 +2857,17 @@
       "tests": [
         "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
+    "GetMovementScriptFromPath": {
+      "decomp_file": "src/bmpatharrowdisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in attack matches the game f1330 to f1365",
+        "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in select_move matches the game f1295 to f1314"
       ]
     },
     "GetMuAnimForJid": {
@@ -4552,6 +4610,17 @@
         "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
       ]
     },
+    "MuExistsActive": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in attack matches the game f1330 to f1365",
+        "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in select_move matches the game f1295 to f1314"
+      ]
+    },
     "Mu_OnLoop": {
       "decomp_file": "src/mu.c",
       "system": "battle_map",
@@ -4964,6 +5033,19 @@
         "fe8.testing.PopupProcDifferentialTest#parsePopupInstAndGetLen reproduces the traced width icon and sound"
       ]
     },
+    "PathArrowDisp_Init": {
+      "decomp_file": "src/bmpatharrowdisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PathArrowDifferentialTest#cancel_end path arrow matches the game after the first select",
+        "fe8.testing.PathArrowDifferentialTest#cancel_end path arrow matches the game after the move is cancelled",
+        "fe8.testing.PathArrowDifferentialTest#select_move path arrow matches the game",
+        "fe8.testing.PathArrowDrawDifferentialTest#select_move path arrow drawing matches the game"
+      ]
+    },
     "PhaseIntroBlendBox_InLoop": {
       "decomp_file": "src/phasechangefx.c",
       "system": "presentation",
@@ -5124,6 +5206,17 @@
         "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
       ]
     },
+    "PlayerPhase_ApplyUnitMovement": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in attack matches the game f1330 to f1365",
+        "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in select_move matches the game f1295 to f1314"
+      ]
+    },
     "PlayerPhase_BackToMove": {
       "decomp_file": "src/playerphase.c",
       "system": "battle_map",
@@ -5132,6 +5225,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.PlayerPhaseMoveSelectDifferentialTest#back to move from the unit menu in cancel_end matches the game f1399 to f1426"
+      ]
+    },
+    "PlayerPhase_DisplayUnitMovement": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in attack matches the game f1330 to f1365",
+        "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in select_move matches the game f1295 to f1314"
       ]
     },
     "PlayerPhase_InitUnitMovementSelect": {
@@ -5157,6 +5261,28 @@
         "fe8.testing.PlayerPhaseMoveSelectDifferentialTest#back to move from the unit menu in cancel_end matches the game f1399 to f1426",
         "fe8.testing.PlayerPhaseMoveSelectDifferentialTest#cancel the select in cancel_end matches the game f1259 to f1292",
         "fe8.testing.PlayerPhaseMoveSelectDifferentialTest#move to the right in select_move matches the game f1259 to f1296"
+      ]
+    },
+    "PlayerPhase_WaitForUnitMovement": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in attack matches the game f1330 to f1365",
+        "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in select_move matches the game f1295 to f1314"
+      ]
+    },
+    "PointInCameraBounds": {
+      "decomp_file": "src/bmpatharrowdisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PathArrowDrawDifferentialTest#cancel_end path arrow drawing matches the game",
+        "fe8.testing.PathArrowDrawDifferentialTest#select_move path arrow drawing matches the game"
       ]
     },
     "PopulateSaveBlockChecksum": {
@@ -5938,6 +6064,17 @@
         "fe8.testing.EventInfoRomTest#turn list search finds no event at the first player phase of the trace"
       ]
     },
+    "SetAutoMuMoveScript": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in attack matches the game f1330 to f1365",
+        "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in select_move matches the game f1295 to f1314"
+      ]
+    },
     "SetBackgroundMapDataOffset": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -6098,6 +6235,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.MsgStringsRomTest#setMsgTerminator turns the trailing dot into the terminator as in the trace"
+      ]
+    },
+    "SetMuMoveScript": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in attack matches the game f1330 to f1365",
+        "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in select_move matches the game f1295 to f1314"
       ]
     },
     "SetNextGameActionId": {

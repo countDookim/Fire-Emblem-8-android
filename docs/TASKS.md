@@ -47,11 +47,8 @@ Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames, proc
 | PP-6 | PORT | Path arrow drawing: `DrawPathArrow`, `DrawUpdatedPathArrow` | OAM at dumps | PP-5 | todo |
 | PP-7 | PORT | `PlayerPhase_RangeDisplayIdle` confirm/cancel, `CanMoveActiveUnitTo`, `PlayerPhase_BackToMove`, `CancelAction` | Proc position per step in cap1/cap2 | PP-3 | todo |
 | PP-8 | PORT | Move: `GenerateBestMovementScript`, `PlayerPhase_DisplayUnitMovement`, `WaitForUnitMovement`, `ApplyUnitMovement`; `ProcScr_MuStepSe` | MU fields per step (f1296–1314); unit x/y after | PP-7 | todo |
-| PP-9 | PORT | Menu core: `uimenu.c` start/init/redraw/idle/input/end (`sProc_Menu`, `sProc_MenuItem`), cursor hand, `ProcScr_GreenTextColor` | Menu proc fields and BG tilemaps per step | — | todo |
-| PP-10 | PORT | Unit menu items the Prologue shows; Wait effect | `gActionData` after select | PP-9 | todo |
-| PP-11 | PORT | `PlayerPhase_PrepareAction`/`FinishAction`, Wait action, `HandleAutoEnd`; post-action event check (StdEventEngine f1356–1358) | Unit state bits after the action | PP-8, PP-10 | todo |
-| PP-12 | PORT | Map menu draw and End | Menu fields; other items are explicit stand-ins | PP-9 | todo |
-| PP-13 | PORT | End turn → phase change: BerserkCpPhase/CpOrder (f1511), faction 0→0x80 (f1514), PhaseIntro start | Faction change and procs equal cap2 (AI stand-in) | PP-12 | todo |
+| PP-10 | PORT | Unit menu items the Prologue shows; Wait effect | `gActionData` after select | PP-11 | PORT | `PlayerPhase_PrepareAction`/`FinishAction`, Wait action, `HandleAutoEnd`; post-action event check (StdEventEngine f1356–1358) | Unit state bits after the action | PP-8, PP-10 | todo |
+| PP-12 | PORT | Map menu draw and End | Menu fields; other items are explicit stand-ins | PP-13 | PORT | End turn → phase change: BerserkCpPhase/CpOrder (f1511), faction 0→0x80 (f1514), PhaseIntro start | Faction change and procs equal cap2 (AI stand-in) | PP-12 | todo |
 | PP-14 | PORT | Terrain window (`gProcScr_TerrainDisplay`) and `gProcScr_SideWindowMaker` | BG tilemap per step | — | todo |
 | PP-15 | PORT | Unit mini-box and HP bar (`gProcScr_UnitDisplay_MinimugBox`, `DrawHpBar`) | BG tilemap per step | — | todo |
 | PP-16 | PORT | Goal window (`gProcScr_GoalDisplay`, `ProcScr_GreenTextColor` child); no menu-button proc runs | BG tilemap/OAM per step | — | todo |
@@ -78,6 +75,6 @@ Row details, including what each task left transcribed: [archive](plans/TASKS-ar
   D11-skip, D11-proc, D11-worldmap, D11-wm1, D11-wm2, D12-1. D11-wm3..wm7 (+ wm4a–c, wm6b–d): standalone
   ports verified as far as the Prologue runs them; the rest is in lane A.
 - M4-02, M4-12, M5-56, 56b, 57..61.
-- **Lane B:** PP-1 (`8da6b33`; `GenerateUnitMovementMap` itself not run in the window), PP-0 (`PlayerPhaseProcInventoryTest`, `8036f44`), PP-cap1 (`ram_trace_prologue_select_move`, ROM `c3ad5d4`), PP-cap2 (`ram_trace_prologue_cancel_end`, ROM `45f35cf`), PP-cap3 (`ram_trace_prologue_attack`, ROM `07a6ca9`, animations on).
+- **Lane B:** PP-9 (`ff84b6f`; `DisplayFrozenUiHand` still a hook), PP-1 (`8da6b33`; `GenerateUnitMovementMap` itself not run in the window), PP-0 (`PlayerPhaseProcInventoryTest`, `8036f44`), PP-cap1 (`ram_trace_prologue_select_move`, ROM `c3ad5d4`), PP-cap2 (`ram_trace_prologue_cancel_end`, ROM `45f35cf`), PP-cap3 (`ram_trace_prologue_attack`, ROM `07a6ca9`, animations on).
 - **App:** APP-1 (launcher Delete save, `e39c730`; device check pending).
 - **Alignment:** PROG-1 (`b459cf3`), UNV-1, ALN-1 (`3f85702`), ALN-2, STAND-1, STAND-2, M7-0 ([M7-modding](plans/M7-modding.md): 23 proposed rows; D1 decided = option A, ADR 0015; D2–D9 open).

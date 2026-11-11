@@ -8,8 +8,8 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 750,
-    "implemented_unverified": 1
+    "verified": 817,
+    "implemented_unverified": 2
   },
   "functions": {
     "AddUnitSprite": {
@@ -30,6 +30,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
+      ]
+    },
+    "ApplyMenuCursorVScroll": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
     "ApplyMoveScriptToCoordinates": {
@@ -436,6 +446,126 @@
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
       ]
     },
+    "ChapterIntro_8020010": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
+      ]
+    },
+    "ChapterIntro_Bg1And3Scroll_Init": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
+      ]
+    },
+    "ChapterIntro_Bg1And3Scroll_Loop": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
+      ]
+    },
+    "ChapterIntro_Init": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
+      ]
+    },
+    "ChapterIntro_InitCameraYPos": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#skip path fade out map display and fast fade match every frame"
+      ]
+    },
+    "ChapterIntro_InitMapDisplay": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#skip path fade out map display and fast fade match every frame"
+      ]
+    },
+    "ChapterIntro_KeyListen_Init": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
+      ]
+    },
+    "ChapterIntro_KeyListen_Loop": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
+      ]
+    },
+    "ChapterIntro_LoopFadeOut": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#skip path fade out map display and fast fade match every frame"
+      ]
+    },
+    "ChapterIntro_LoopFastFadeToMap": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#skip path fade out map display and fast fade match every frame"
+      ]
+    },
+    "ChapterIntro_SetSkipTarget": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
+      ]
+    },
+    "ChapterIntro_TwinLights_Loop": {
+      "decomp_file": "src/chapterintrofx.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
+      ]
+    },
     "CheckCanKeyComboReset": {
       "decomp_file": "src/time.c",
       "system": "core",
@@ -509,6 +639,17 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "ClearMenuBgs": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
     "ClearOam": {
       "decomp_file": "asm/arm.s",
       "system": "core",
@@ -577,6 +718,28 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TextSystemRomTest#initText reproduces the sTalkText structs and clears their VRAM strips"
+      ]
+    },
+    "ClearUiFrame": {
+      "decomp_file": "src/uiutils.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/UiFrame.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
+    "ClearUiItemHoverExt": {
+      "decomp_file": "src/uiutils.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/UiFrame.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
     "ClearWmTextVram": {
@@ -821,6 +984,28 @@
         "fe8.testing.PrologueMapTest#BG3 of the Prologue map matches the first phase reference"
       ]
     },
+    "DisplayUiHand": {
+      "decomp_file": "src/uiutils.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/UiHand.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
+    "DrawMenuItemHover": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
     "DrawSpriteTextGlyph": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -861,6 +1046,17 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
     },
+    "DrawUiFrame": {
+      "decomp_file": "src/uiutils.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/UiFrame.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
     "DrawUiFrame2": {
       "decomp_file": "src/uiutils.c",
       "system": "menus",
@@ -869,6 +1065,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UiFrameIconTest#drawUiFrame2 matches reference BG0 and BG1 tilemaps in item popup"
+      ]
+    },
+    "DrawUiItemHoverExt": {
+      "decomp_file": "src/uiutils.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/UiFrame.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
     "EnableKeyComboResetEN": {
@@ -900,6 +1107,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SuspendSaveReferenceTest#packed unit records equal suspend entry 4 of the reference"
+      ]
+    },
+    "EndMenu": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
     "EndMu": {
@@ -1554,6 +1772,16 @@
         "fe8.testing.UnitSpritesDifferentialTest#forced sheet sync matches OBJ VRAM"
       ]
     },
+    "GMScreenVSync_Loop": {
+      "decomp_file": "src/worldmap_screen.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapScreenTest#screen and VSync procs follow the original every step"
+      ]
+    },
     "GameControl_8009A58": {
       "decomp_file": "src/gamecontrol.c",
       "system": "core",
@@ -1685,6 +1913,16 @@
         "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
       ]
     },
+    "GenerateMovementMap": {
+      "decomp_file": "src/bmidoten.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MovementMap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MovementMapDifferentialTest#select flood matches the game"
+      ]
+    },
     "GeneratePopupText": {
       "decomp_file": "src/popup.c",
       "system": "menus",
@@ -1704,6 +1942,16 @@
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
         "fe8.testing.EventScriptBattleDifferentialTest#script battle command generates the traced battle"
+      ]
+    },
+    "GenerateUnitMovementMapExt": {
+      "decomp_file": "src/bmidoten.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MovementMap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MovementMapDifferentialTest#select flood matches the game"
       ]
     },
     "GetAutoleveledStatIncrease": {
@@ -2090,6 +2338,17 @@
         "fe8.testing.EventUnitLoadsTest#GetLoadUnitsAmount matches definition block counts across the ROM"
       ]
     },
+    "GetMenuCursorPosition": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
     "GetMuAnimForJid": {
       "decomp_file": "src/mu.c",
       "system": "battle_map",
@@ -2289,6 +2548,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitTableDifferentialTest#GetUnitFromCharId finds Eirika where the player phase puts the cursor"
+      ]
+    },
+    "GetUnitMovementCost": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MovementMap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MovementMapDifferentialTest#select flood matches the game"
       ]
     },
     "GetUnitSpritePalette": {
@@ -2491,6 +2760,26 @@
         "fe8.testing.WorldMapAutoMuTest#auto mu runs follow the original script position and fields every step"
       ]
     },
+    "GmapCursor_Init": {
+      "decomp_file": "src/worldmap_cursor.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapCursor.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapNodeIconCursorTest#node icon and cursor procs follow the original every step"
+      ]
+    },
+    "GmapCursor_Loop": {
+      "decomp_file": "src/worldmap_cursor.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapCursor.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapNodeIconCursorTest#node icon and cursor procs follow the original every step"
+      ]
+    },
     "GmapRmBorder1_80C28C4": {
       "decomp_file": "src/worldmap_rm.c",
       "system": "worldmap",
@@ -2621,6 +2910,36 @@
         "fe8.testing.WorldMapRmTest#starting the map loads its graphics, tilemap and BG registers like the original"
       ]
     },
+    "GmapScreen2_Destruct": {
+      "decomp_file": "src/worldmap_screen2.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapNodeIconCursorTest#node icon and cursor procs follow the original every step"
+      ]
+    },
+    "GmapScreen2_Init": {
+      "decomp_file": "src/worldmap_screen2.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapNodeIconCursorTest#node icon and cursor procs follow the original every step"
+      ]
+    },
+    "GmapScreen2_Loop": {
+      "decomp_file": "src/worldmap_screen2.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapNodeIconCursorTest#node icon and cursor procs follow the original every step"
+      ]
+    },
     "GmapUnitFade_Destruct": {
       "decomp_file": "src/worldmap_gmapunit.c",
       "system": "worldmap",
@@ -2669,6 +2988,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "GreenText_OnLoop": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/GreenText.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
     "HBlank_BgVerticalScroll": {
@@ -3193,6 +3523,26 @@
         "fe8.testing.ResumeBootTest#resume from phase idle jumps BMapMain to label 4 like the dumps"
       ]
     },
+    "MapScreen_Init": {
+      "decomp_file": "src/worldmap_screen.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapScreenTest#screen and VSync procs follow the original every step"
+      ]
+    },
+    "MapScreen_OnDelete": {
+      "decomp_file": "src/worldmap_screen.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapScreenTest#screen and VSync procs follow the original every step"
+      ]
+    },
     "MapUnitC_DeleteGmapUnit": {
       "decomp_file": "src/worldmap_gmapunit.c",
       "system": "worldmap",
@@ -3293,6 +3643,65 @@
         "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
       ]
     },
+    "MaybeResetSomePal": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#skip path fade out map display and fast fade match every frame"
+      ]
+    },
+    "MaybeSmoothChangeSomePal": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#skip path fade out map display and fast fade match every frame"
+      ]
+    },
+    "MenuAlwaysEnabled": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
+    "MenuCancelSelect": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "Menu_OnIdle": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
+    "Menu_OnInit": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
     "MidiKeyToCgbFreq": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -3365,6 +3774,16 @@
         "fe8.testing.ArchivedPaletteFadeProcDifferentialTest#fade in timer lifetime and palette match the original"
       ]
     },
+    "NewGmapCursor": {
+      "decomp_file": "src/worldmap_cursor.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapCursor.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapNodeIconCursorTest#node icon and cursor procs follow the original every step"
+      ]
+    },
     "NewGmapUnitContainer": {
       "decomp_file": "src/worldmap_gmapunit.c",
       "system": "worldmap",
@@ -3373,6 +3792,26 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "NewMapScreen": {
+      "decomp_file": "src/worldmap_screen.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapScreenTest#screen and VSync procs follow the original every step"
+      ]
+    },
+    "NewMapScreenVSync": {
+      "decomp_file": "src/worldmap_screen.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapScreenTest#screen and VSync procs follow the original every step"
       ]
     },
     "NewMapUnit": {
@@ -4137,6 +4576,28 @@
         "fe8.testing.ProcMarkedDifferentialTest#BMapDispSuspend and BMapDispResume block and unblock the marked procs"
       ]
     },
+    "ProcessMenuDpadInput": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
+    "ProcessMenuSelectInput": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
     "PushSpriteLayerObjects": {
       "decomp_file": "src/ctc.c",
       "system": "presentation",
@@ -4377,6 +4838,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "RedrawMenu": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
     "RefreshGmNodeLinks": {
@@ -4810,6 +5282,26 @@
         "fe8.testing.TextSystemRomTest#initTextFont reproduces gDefaultFont and sTalkFont and activates the font"
       ]
     },
+    "SetWorkingBmMap": {
+      "decomp_file": "src/bmidoten.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MovementMap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MovementMapDifferentialTest#select flood matches the game"
+      ]
+    },
+    "SetWorkingMoveCosts": {
+      "decomp_file": "src/bmidoten.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MovementMap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MovementMapDifferentialTest#select flood matches the game"
+      ]
+    },
     "SetupBackgrounds": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -4818,6 +5310,26 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
+      ]
+    },
+    "SetupGmapNodeGfx": {
+      "decomp_file": "src/worldmap_main.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapGfxSetupTest#sub_80B8E60 loads graphics and sets window and blend state"
+      ]
+    },
+    "SetupGraphicSystemsForWorldMap": {
+      "decomp_file": "src/worldmap_main.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapGfxSetupTest#graphic systems setup matches BG registers and camera"
       ]
     },
     "SetupOpAnimWorldMapfx": {
@@ -4838,6 +5350,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapTextTest#show text sets visible and draw position like step 5102"
+      ]
+    },
+    "SkipGmNodeIconDisplay": {
+      "decomp_file": "src/worldmap_screen2.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapNodeIconCursorTest#node icon and cursor procs follow the original every step"
       ]
     },
     "SkipTitleFx_Loop_KeyListener": {
@@ -5085,6 +5607,16 @@
         "fe8.testing.WorldMapMuTest#GMapMu starts seven prim procs with no linked map unit"
       ]
     },
+    "StartGmNodeIconDisplay": {
+      "decomp_file": "src/worldmap_screen2.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapNodeIconCursorTest#node icon and cursor procs follow the original every step"
+      ]
+    },
     "StartGmapRm": {
       "decomp_file": "src/worldmap_rm.c",
       "system": "worldmap",
@@ -5115,6 +5647,16 @@
         "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
       ]
     },
+    "StartGreenText": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/GreenText.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
     "StartLockingFadeFromBlack": {
       "decomp_file": "src/bmlib.c",
       "system": "battle_map",
@@ -5133,6 +5675,28 @@
       "status": "verified",
       "tests": [
         "fe8.game.bm.MapMusicReferenceTest#starting the map song leaves the sound state of the reference"
+      ]
+    },
+    "StartMenuAt": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
+    "StartMenuCore": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
     "StartMu": {
@@ -5163,6 +5727,27 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "StartOrphanMenuAdjusted": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
+    "StartSemiCenteredOrphanMenu": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
     "StartSlowFadeToBlack": {
@@ -5813,6 +6398,16 @@
         "fe8.testing.ChapterMapGraphicsDifferentialTest#chapter palette alone matches the dump"
       ]
     },
+    "UnskipGmNodeIconDisplay": {
+      "decomp_file": "src/worldmap_screen2.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapNodeIconCursorTest#node icon and cursor procs follow the original every step"
+      ]
+    },
     "UpdateBmMapDisplay": {
       "decomp_file": "src/bmmap.c",
       "system": "battle_map",
@@ -6310,6 +6905,16 @@
         "fe8.testing.OpSubtitleFlareDifferentialTest#init draws the BG2 byte map and enables BG0 and BG2"
       ]
     },
+    "sub_80017B4": {
+      "decomp_file": "src/hardware.c",
+      "system": "core",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
+      ]
+    },
     "sub_80028FC": {
       "decomp_file": "src/soundwrapper.c",
       "system": "audio",
@@ -6476,9 +7081,10 @@
       "decomp_file": "src/bmlib.c",
       "system": "battle_map",
       "in_scope": true,
-      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/ColorFade.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.ChapterIntroDifferentialTest#skip path fade out map display and fast fade match every frame",
         "fe8.testing.TitleScreenDifferentialTest#START on the idle title fades to dark and ends the title like the per-frame RAM trace"
       ]
     },
@@ -6522,6 +7128,16 @@
         "fe8.testing.WorldMapFaceTest#BG2 tile map matches the EWRAM dumps and portrait data the full dumps"
       ]
     },
+    "sub_80B8E60": {
+      "decomp_file": "src/worldmap_main.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapGfxSetupTest#sub_80B8E60 loads graphics and sets window and blend state"
+      ]
+    },
     "sub_80B8FD4": {
       "decomp_file": "src/worldmap_main.c",
       "system": "worldmap",
@@ -6540,6 +7156,86 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapWrapperTest#sub_80B8FEC clears merge_next_node when no node is next like the original"
+      ]
+    },
+    "sub_80BA458": {
+      "decomp_file": "src/worldmap_screen.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapScreenTest#screen and VSync procs follow the original every step"
+      ]
+    },
+    "sub_80BA490": {
+      "decomp_file": "src/worldmap_screen.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapScreenTest#screen and VSync procs follow the original every step"
+      ]
+    },
+    "sub_80BA4D0": {
+      "decomp_file": "src/worldmap_screen.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapScreenTest#screen and VSync procs follow the original every step"
+      ]
+    },
+    "sub_80BA6DC": {
+      "decomp_file": "src/worldmap_screen.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapScreenTest#screen and VSync procs follow the original every step"
+      ]
+    },
+    "sub_80BA818": {
+      "decomp_file": "src/worldmap_screen.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapScreenTest#screen and VSync procs follow the original every step"
+      ]
+    },
+    "sub_80BA8A0": {
+      "decomp_file": "src/worldmap_screen.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapScreenTest#screen and VSync procs follow the original every step"
+      ]
+    },
+    "sub_80BAB00": {
+      "decomp_file": "src/worldmap_screen.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapScreenTest#screen and VSync procs follow the original every step"
+      ]
+    },
+    "sub_80BAB0C": {
+      "decomp_file": "src/worldmap_screen.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapScreenTest#screen and VSync procs follow the original every step"
       ]
     },
     "sub_80BB194": {

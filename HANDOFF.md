@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-11 08:57Z (owner PC: plan review and alignment). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-11 10:20Z (owner PC: 4–6 agent run). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -11,7 +11,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- PP-9: owner PC, until ~13:30Z
+None.
 
 ## Current state
 
@@ -20,10 +20,10 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 - Published **0.1.551 (`1c30d0b`)**: CI **769 passed, zero failures/skips**. The pinned decomp
   source is now provisioned for node-table tests; missing source fails clearly and invalidates
   stale test-cache results. Rapier popup icon/cleanup fixes remain included (first in 0.1.528).
-- Current source: **750 verified of 7,732 in scope (9.6%)**; 620 link/debug functions are out of scope
-  (8,352 total). `ported-without-tag: 0`, `unknown-verifies-names: 0`; 897 EventScr scripts reproduce ROM bytes at
-  runtime. Full local `jvmTest test` (owner PC 11-11 08:55Z, after the alignment commits): **787 passed, zero
-  failures/skips**; Dokka (game, engine:render, engine:core, engine:extract) and the app compile passed.
+- Current source: **817 verified of 7,732 in scope (10.5%)**; 620 link/debug functions are out of scope
+  (8,352 total). `ported-without-tag: 0`, `unknown-verifies-names: 0`. Full local `jvmTest test` (owner PC 11-11
+  10:15Z): **806 passed, zero failures/skips**. CI 587–589 failed only on tests that scan every capture (fixed:
+  `M4A_UNCOVERED_RUNS`, `M4aTrackTest` skips FLG_START tracks).
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
 - Layout: game-neutral `:gba:*`, `gbafe.*` in `:engine:*`, FE8 `fe8.*` in `:game`/`:app` (ADRs 0010–0013).
@@ -50,17 +50,22 @@ Plan re-done 2026-11-11 (owner-approved): [ROADMAP](docs/plans/ROADMAP.md) has t
 [TASKS](docs/TASKS.md) has the open rows. Tasks are capture-first: CAP → INV → PORT (≤ ~8 functions the capture
 window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose deps are done in either.
 
-1. **Lane A, opening wired (M6-A, D-11).** Start: `D11-wire-a` (skip audio), `D11-wm3b..e` (remaining
-   `WorldMap_Init` callees), `D11-cap1`, `D11-ci0`. Status so far: [D11-worldmap §8](docs/plans/D11-worldmap.md),
-   [M6 notes](docs/plans/M6-notes.md). All monologue/world-map ports are standalone until `D11-wire-b`/`D11-wm9`.
-   Restore the default face VRAM/palette configuration at the world-map exit (`D11-wm8f`).
-2. **Lane B, player phase (M6-B, issue #5 item 5).** Start: `PP-cap1..3` (ROM repo captures from `prologue.sav`),
-   then `PP-0` (inventory), which fixes the function lists of `PP-1..16`.
-3. **Soon (owner request):** `APP-1`, a Delete save button in the launcher (keeps the imported ROM).
+1. **Lane A, opening wired (M6-A, D-11).** Done 11-11: wm3b–d, ci0, ci1, ci4, cap2 (`ram_trace_newgame_intro`,
+   intro main path). Next: `D11-wm3e`, `D11-wm3f`, `D11-ci2`/`ci3` (use the new capture), `D11-wire-a`, `D11-cap1`.
+   Status: [D11-worldmap §8–9a](docs/plans/D11-worldmap.md). Ports stay standalone until `D11-wire-b`/`D11-wm9`/`ci5`.
+2. **Lane B, player phase (M6-B).** Done 11-11: PP-cap1..3, PP-0, PP-1, PP-9. **Next: `PP-0a` hover cursor (owner
+   device report, high)**, then PP-2, PP-3, PP-10, PP-14..16. Notes: [M6B-player-phase](docs/plans/M6B-player-phase.md).
+   PP-cap3 has battle animations on; M6-C needs an animations-off variant.
+3. **Readability (rule 11, changed 11-11):** comments must be meaningful and checked against the decomp
+   ([READABILITY](docs/READABILITY.md)); every older `done` row carries `audit todo`. Use Sonnet, not Haiku.
+   Audit next: fe8.game.ui, OpAnim Eirika functions, bm sprites (Haiku passes of 11-11).
 4. **Alignment done 2026-11-11:** the progress bar counts in-scope functions only; generated lists
    [UNVERIFIED](docs/plans/UNVERIFIED.md) (written but unverified code) and [STANDINS](docs/plans/STANDINS.md)
    (placeholders by milestone) are checked in CI: regenerate both with `--write` after changing such comments.
-5. **Owner:** check Delete save (APP-1) on the next build; decide
+5. **Agent notes (11-11):** brief agents to keep scripts in their own scratchpad subdirectory (one agent ran
+   another's `edit1.py`). `WalkingAllocationTest` failed intermittently under heavy load once (PP-1 run); it passed
+   3/3 afterwards. Re-run it if it fails.
+6. **Owner:** check Delete save (APP-1) on the next build; decide
    modding questions D2–D9 when M7 nears.
 
 `@VerifiesPort` takes bare function names; `"src/x.c: F"` silently counts nothing.

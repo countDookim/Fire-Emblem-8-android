@@ -38,8 +38,8 @@ their old counts); new packages get a row when they appear.
 | engine/core | gbafe.core.mechanics | 1 | 60 | done 2026-11-07 7fab3cc; audit done 2026-11-11 fce7054 |
 | engine/core | gbafe.core.rng | 1 | 181 | done 2026-11-07 7fab3cc; audit done 2026-11-11 fce7054 |
 | engine/core | gbafe.core.time | 1 | 30 | done 2026-11-07 7fab3cc; audit done 2026-11-11 fce7054 |
-| engine/core | gbafe.proc | 2 | 573 | done 2026-11-07 c0f92eb; audit todo |
-| engine/data | gbafe.data | 3 | 88 | done 2026-11-07 c0f92eb; audit todo |
+| engine/core | gbafe.proc | 2 | 573 | done 2026-11-07 c0f92eb; audit done 2026-11-11 (pending commit) |
+| engine/data | gbafe.data | 3 | 88 | done 2026-11-07 c0f92eb; audit done 2026-11-11 (pending commit) |
 | engine/extract | gbafe.extract | 5 | 197 | done 2026-11-07 200eae1; audit todo |
 | engine/extract | gbafe.extract.fe8 | 2 | 278 | done 2026-11-07 200eae1; audit todo |
 | engine/extract | gbafe.extract.fe8.chapters | 1 | 102 | done 2026-11-07 50ec53d; audit todo |

@@ -3,8 +3,9 @@ package gbafe.data
 /**
  * GBA FE "TSA" tilemap blobs (usually LZ77-compressed in ROM): byte 0 = width - 1, byte 1 =
  * height - 1 (in tiles), then `width * height` u16 BG map entries stored **bottom row first**
- * (the layout the games' `CallARM_FillTileRect` copies into a BG tilemap buffer, adding a
- * tile/palette base to every entry). Shared by FE6/FE7/FE8; confirmed against mGBA VRAM for the
+ * (the layout the games' `CallARM_FillTileRect`, which branches to the ARM routine `TmApplyTsa`,
+ * copies into a BG tilemap buffer from the bottom row up, adding a tile/palette base to every
+ * entry). Shared by FE6/FE7/FE8; confirmed against mGBA VRAM for the
  * FE8 health & safety screen.
  */
 public class Tsa(

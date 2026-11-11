@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-11 10:20Z (owner PC: 4–6 agent run). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-11 10:40Z (owner PC: 4–6 agent run; test speed-up left on wip/test-speedup). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -65,7 +65,8 @@ window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose de
 5. **Agent notes (11-11):** brief agents to keep scripts in their own scratchpad subdirectory (one agent ran
    another's `edit1.py`). `WalkingAllocationTest` failed intermittently under heavy load once (PP-1 run); it passed
    3/3 afterwards. Re-run it if it fails.
-6. **Owner:** check Delete save (APP-1) on the next build; decide
+6. **Next full test run: do `TEST-1` first** (faster full test, branch `wip/test-speedup`, unrun; steps in TASKS).
+7. **Owner:** check Delete save (APP-1) on the next build; decide
    modding questions D2–D9 when M7 nears.
 
 `@VerifiesPort` takes bare function names; `"src/x.c: F"` silently counts nothing.

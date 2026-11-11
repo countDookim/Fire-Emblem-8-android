@@ -22,10 +22,11 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      - Expected: the cursor immediately returns to the normal compact animated frame (kind 0); the player unit returns to its resting standing sprite.
   4. Limits: unit selection/movement/action menus remain stand-ins (M6-B/M6-C).
 
-- **D-13 Start during the Prologue castle cutscene (D13-1):**
+- **D-13 Start during the Prologue castle cutscene (D13-1, D13-2):**
   1. New Game, wait for the castle scene's first text box, press Start once.
      - Expected: the screen fades to black in ~4 frames, the rest of the scene is skipped, the next scene fades in
-       (no visible fast-forward). The hold-over after the fade (talk procs ending) is not verified yet (D13-2).
+       (no visible fast-forward). Black for about 45 frames, then the next scene fades in over ~16 frames and plays
+       normally (it waits for A at its first text box).
 
 ## Known differences (owner reports)
 

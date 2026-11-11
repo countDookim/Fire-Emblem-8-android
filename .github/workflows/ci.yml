@@ -1,7 +1,7 @@
 # Build, test, measure, document and publish on every push.
 #   - debug APK + all JVM tests (unit, differential vs mGBA, allocation) + frame-time benchmark
 #   - regenerates README progress + docs/port_map.json (committed back on master with [skip ci])
-#   - Dokka site (master, 1 day), results summary (7 days), APK (branches only, 2 days) as artifacts
+#   - master only: latest successful run's Dokka site and results as Actions artifacts
 #   - master only: APK attached to the rolling `latest` release (install it on the phone from there)
 name: ci
 on:
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 permissions:
   contents: write
-  actions: write # prune stale Gradle cache entries (tools/prune_actions_cache.py)
+  actions: write # prune stale caches and superseded artifacts
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -73,17 +73,8 @@ jobs:
         run: |
           set -o pipefail
           python3 tools/ci_summary.py "${{ steps.assets.outputs.available }}" | tee ci-summary.md >> "$GITHUB_STEP_SUMMARY"
-      # Actions storage is small (private repo): master's APK goes to the `latest` release only.
-      - name: Upload APK (branches)
-        if: always() && github.ref != 'refs/heads/master'
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: warn
-          retention-days: 2
       - name: Upload results
-        if: always()
+        if: success() && github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v4
         with:
           name: results
@@ -92,16 +83,14 @@ jobs:
             **/build/test-results/**/*.xml
             testing/build/reports/benchmark/frame_time.json
             docs/port_map.json
-          if-no-files-found: warn
-          retention-days: 7
+          if-no-files-found: error
       - name: Upload Dokka site
-        if: always() && github.ref == 'refs/heads/master'
+        if: success() && github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v4
         with:
           name: dokka-site
           path: build/dokka/html
-          if-no-files-found: warn
-          retention-days: 1
+          if-no-files-found: error
       - name: Commit progress (master)
         if: success() && github.ref == 'refs/heads/master'
         run: |
@@ -128,3 +117,8 @@ jobs:
           gh release create latest fe8-debug.apk ci-summary.md --target "$GITHUB_SHA" --prerelease \
             --title "latest (${GITHUB_SHA::7}, run ${GITHUB_RUN_NUMBER})" \
             --notes "Debug APK from ${GITHUB_SHA}. What's newly testable: docs/MANUAL_TEST.md. $(head -c 1500 ci-summary.md)"
+      - name: Prune superseded Actions artifacts (master)
+        if: success() && github.ref == 'refs/heads/master'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/prune_actions_artifacts.py "${{ github.repository }}" --keep-run "$GITHUB_RUN_ID"

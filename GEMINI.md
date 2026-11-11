@@ -67,3 +67,8 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
     PORT / WIRE; a PORT covers one behaviour in one capture window (≤ ~8 functions) and writes only functions that
     window runs; no capture for it means add a CAP row, not code. Keep `docs/TASKS.md` to open rows (status ≤ 15
     words); delete finished rows into its Done list.
+15. **Keep only the latest build (owner, 2026-11-11).** Retain only the latest successful master build's outputs
+    repo-wide. After its outputs and rolling release are available, prune superseded Actions artifacts; do not
+    accumulate one- or seven-day build history. Branch runs do not upload build artifacts; a successful replacement
+    prunes remnants of failed or cancelled runs. Keep the previous successful build until its replacement is available.
+    GitHub's default artifact expiry is a fallback, not the retention policy.

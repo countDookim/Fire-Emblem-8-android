@@ -12,7 +12,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - READ-bm-sprites (READABILITY PhaseIntro, UnitTable, MapAnimations, UnitSprites*): owner PC, until ~13:00Z
-- D11-wm3c: owner PC, until ~12:30Z
+- D11-wm3d: owner PC, until ~13:15Z
 - D11-ci4: owner PC, until ~12:45Z
 - PP-1: owner PC, until ~13:00Z
 

@@ -1,11 +1,15 @@
 package fe8.game.worldmap
 
 import fe8.game.GameControl
+import fe8.game.RomView
 import fe8.game.bm.BMapMain.Companion.FACTION_BLUE
 import fe8.game.bm.BMapMain.Companion.FACTION_GREEN
 import fe8.game.bm.BattleMapStart
+import fe8.game.bm.BmSt
 import fe8.game.bm.PlaySt
 import fe8.game.bm.UnitTable
+import fe8.game.ui.UiFrame
+import gbafe.render.BgHardware
 import gbafe.proc.Proc
 import gbafe.proc.ProcArgFunc
 import gbafe.proc.ProcCmd
@@ -30,6 +34,9 @@ import gbafe.proc.ProcScripts.yield
 public class WorldMapMainProc {
     /** `gm_icon` (+0x48): the `ProcScr_GmNodeIconDisplay` proc. */
     public var gmIcon: GmNodeIconDisplayProc = GmNodeIconDisplayProc()
+
+    /** `unk_3a` (+0x3A), cleared by `sub_80B8E60`. */
+    public var unk3a: Int = 0
 
     /** `flags_1` (bit 1 of the byte at +0x29). */
     public var flags1: Int = 0
@@ -277,4 +284,194 @@ public class WorldMapMain(
         /** `StartGmapMuEntry(NULL)`. */
         public val startGmapMuEntry: () -> Unit = {},
     )
+}
+
+/**
+ * The graphics setup that opens `WorldMap_Init`: `SetupGraphicSystemsForWorldMap` and
+ * `sub_80B8E60` (with `SetupGmapNodeGfx`). `WorldMap_Init` itself is still the
+ * [WorldMapMain.MainHooks] stand-in until D11-wm9; nothing calls these two yet.
+ *
+ * `GetSaveWriteAddr(SAVE_ID_XMAP)` only returns an address and has no side effect, so it is not
+ * ported. The `for` loop over `gGMData.nodes` that writes `gm_icon` belongs to `sub_80B9114`
+ * (later in `WorldMap_Init`, after `gm_icon` exists), not to `sub_80B8E60`.
+ *
+ * @param hardware BG buffers, VRAM, palette buffer and `gLCDControlBuffer`
+ * @param rom the ROM the graphics are read from
+ * @param playSt `gPlaySt` (`chapterWeatherId`, `windowColor`)
+ * @param bmSt `gBmSt` (camera)
+ * @param hooks callees that live elsewhere or are not ported
+ */
+public class WorldMapGfxSetup(
+    private val hardware: BgHardware,
+    private val rom: RomView,
+    private val playSt: PlaySt,
+    private val bmSt: BmSt,
+    private val hooks: Hooks = Hooks(),
+) {
+    /** `gGenericBuffer`: scratch for the decompressed images. */
+    private val genericBuffer = ByteArray(GENERIC_BUFFER_SIZE)
+
+    /**
+     * Ported from src/worldmap_main.c: SetupGraphicSystemsForWorldMap
+     *
+     * Resets the BGs (priorities 0, 1, 3, 3), clears the four tilemap buffers, turns the display
+     * layers off and resets text, faces, unit sprites, MUs and the camera.
+     */
+    public fun setupGraphicSystemsForWorldMap() {
+        hardware.setupBackgrounds(null, playSt.chapterWeatherId == WEATHER_CLOUDS)
+        hardware.lcd.setDispEnable(0, 0, 0, 0, 0)
+        fillTilemaps()
+        val bgCnt = hardware.lcd.bgCnt
+        for ((bg, priority) in intArrayOf(0, 1, 3, 3).withIndex()) {
+            bgCnt[bg] = (bgCnt[bg] and 3.inv()) or priority
+        }
+        // GetSaveWriteAddr(SAVE_ID_XMAP) only computes an address: no side effect.
+        hooks.loadLegacyUiFrameGraphics()
+        hooks.resetText()
+        hooks.resetFaces()
+        val tileOffsets = IntArray(FACE_SLOTS) { rom.u32(FACE_CONFIG + 8 * it) }
+        val paletteIds = IntArray(FACE_SLOTS) { rom.u32(FACE_CONFIG + 8 * it + 4) }
+        hooks.setupFaceGfxData(tileOffsets, paletteIds)
+        hooks.resetUnitSprites()
+        hooks.initMus()
+        hooks.applyUnitSpritePalettes()
+        bmSt.cameraX = 0
+        bmSt.cameraY = 0
+    }
+
+    /**
+     * Ported from src/worldmap_main.c: SetupGmapNodeGfx
+     *
+     * Loads the node palettes (banks 0x13-0x14), the node tiles at OBJ VRAM `+0x1000` and the
+     * castle node tiles (0xC x 4 tiles) at `+0x280`.
+     */
+    public fun setupGmapNodeGfx() {
+        applyPalettes(PAL_NODES, 0x13, 2)
+        rom.decompressInto(IMG_GMAP_NODES, hardware.vram, OBJ_VRAM + 0x1000)
+        rom.decompressInto(IMG_GMAP_CASTLE_NODES, genericBuffer, 0)
+        copy2dChr(genericBuffer, OBJ_VRAM + 0x280, 0xC, 4)
+    }
+
+    /**
+     * Ported from src/worldmap_main.c: sub_80B8E60
+     *
+     * Clears the tilemaps, loads the UI, node and path graphics and sets the window, blend and
+     * HBlank state of the world map.
+     */
+    public fun sub80B8E60(proc: WorldMapMainProc) {
+        proc.unk3a = 0
+        val lcd = hardware.lcd
+        lcd.setBlendConfig(0, 0x10, 0, 0) // SetDefaultColorEffects
+        fillTilemaps()
+        hardware.enableBgSyncByMask(0xF)
+        applyPalettes(PAL_MISC_UI, 0x10, 2)
+        applyPalettes(PAL_MISC_UI, 0x1B, 1)
+        rom.decompressInto(GFX_MISC_UI_WM, genericBuffer, 0)
+        copy2dChr(genericBuffer, OBJ_VRAM + 0x5300, 8, 2)
+        setupGmapNodeGfx()
+        applyPalettes(PAL_PATH, 0xE, 1)
+        rom.decompressInto(IMG_GMAP_PATH, hardware.vram, 0x5000)
+        UiFrame.loadUiFrameGraphics(hardware, rom, playSt.windowColor)
+        hooks.resetText()
+        hooks.resetTextFont()
+        lcd.setWinEnable(0, 0, 0)
+        lcd.setWOutLayers(1, 1, 1, 1, 1)
+        lcd.setWincntBit(WIN0_ENABLE_BLEND, true)
+        lcd.setWincntBit(WIN1_ENABLE_BLEND, true)
+        lcd.setWincntBit(WOUT_ENABLE_BLEND, true)
+        // SetBlankBgColor(0, 0, 0)
+        hardware.palette[0] = 0
+        hardware.enablePaletteSync()
+        lcd.setBlendConfig(0, 0, 0, 0)
+        lcd.setBlendTargetA(0, 0, 0, 0, 0)
+        lcd.setBlendTargetB(0, 0, 0, 1, 1)
+        hooks.setWorldMapHblank()
+    }
+
+    /** `BG_Fill(gBGnTilemapBuffer, 0)` for the four BGs. */
+    private fun fillTilemaps() {
+        for (bg in 0..3) hardware.fill(hardware.mapBuffer(bg), 0)
+    }
+
+    private fun applyPalettes(src: Int, palId: Int, count: Int) {
+        rom.pal(src, 16 * count).copyInto(hardware.palette, palId * 16)
+        hardware.enablePaletteSync()
+    }
+
+    /** `Copy2dChr`: rows of [widthInTiles] tiles from packed [source] to rows 0x20 tiles apart. */
+    private fun copy2dChr(
+        source: ByteArray,
+        destOffset: Int,
+        widthInTiles: Int,
+        heightInTiles: Int,
+    ) {
+        val lineSize = widthInTiles * CHR_SIZE
+        for (row in 0 until heightInTiles) {
+            source.copyInto(
+                hardware.vram, destOffset + row * CHR_SIZE * 0x20, row * lineSize,
+                (row + 1) * lineSize,
+            )
+        }
+    }
+
+    /**
+     * Callees of the two functions that are ported elsewhere or not at all. Each is a no-op by
+     * default.
+     */
+    public class Hooks(
+        /** `LoadLegacyUiFrameGraphics`: stand-in until D11-wm9 (world-map wiring). */
+        public val loadLegacyUiFrameGraphics: () -> Unit = {},
+        /** `ResetText`: stand-in until D11-wm9 (world-map wiring). */
+        public val resetText: () -> Unit = {},
+        /** `ResetTextFont`: stand-in until D11-wm9 (world-map wiring). */
+        public val resetTextFont: () -> Unit = {},
+        /** `ResetFaces`: stand-in until D11-wm9 (world-map wiring). */
+        public val resetFaces: () -> Unit = {},
+        /** `SetupFaceGfxData`: ported as `TalkFace.setupFaceGfxData`; tile offsets, palette ids. */
+        public val setupFaceGfxData: (IntArray, IntArray) -> Unit = { _, _ -> },
+        /** `ResetUnitSprites`: ported as `UnitSprites.resetUnitSprites`. */
+        public val resetUnitSprites: () -> Unit = {},
+        /** `InitMus`: ported as `Mu.initMus`. */
+        public val initMus: () -> Unit = {},
+        /** `ApplyUnitSpritePalettes`: ported as `UnitSprites.applyUnitSpritePalettes`. */
+        public val applyUnitSpritePalettes: () -> Unit = {},
+        /** `SetWorldMapHblank`: stand-in until D11-wm9 (world map HBlank, worldmap_hb.c). */
+        public val setWorldMapHblank: () -> Unit = {},
+    )
+
+    /** ROM addresses and layout constants. */
+    public companion object {
+        private const val GENERIC_BUFFER_SIZE = 0x2000
+        private const val FACE_SLOTS = 4
+        private const val CHR_SIZE = 0x20
+        private const val OBJ_VRAM = 0x10000
+        private const val WEATHER_CLOUDS = 7
+        private const val WIN0_ENABLE_BLEND = 5
+        private const val WIN1_ENABLE_BLEND = 13
+        private const val WOUT_ENABLE_BLEND = 21
+
+        /** `gUnknown_08A3D728`: the world map face config (tile offset, palette id) x 4. */
+        public const val FACE_CONFIG: Int = 0x08A3D728
+
+        /** `gUnknown_08A97A40`: node palettes. */
+        public const val PAL_NODES: Int = 0x08A97A40
+
+        /** `Img_GmapNodes`. */
+        public const val IMG_GMAP_NODES: Int = 0x08A96308
+
+        /** `Img_GmapCastleNodes`. */
+        public const val IMG_GMAP_CASTLE_NODES: Int = 0x08A97410
+
+        /** `gPal_MiscUiGraphics`. */
+        public const val PAL_MISC_UI: Int = 0x0859ED70
+
+        /** `gUnknown_08AA11D0`: the world map's misc UI image. */
+        public const val GFX_MISC_UI_WM: Int = 0x08AA11D0
+
+        /** `gUnknown_08A97FA4`: path palette. */
+        public const val PAL_PATH: Int = 0x08A97FA4
+
+        /** `Img_GmapPath`. */
+        public const val IMG_GMAP_PATH: Int = 0x08A97ED8
+    }
 }

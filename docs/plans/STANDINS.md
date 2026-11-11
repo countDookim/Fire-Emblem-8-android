@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 149 across 24 Kotlin files.
+Total entries: 155 across 24 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -24,7 +24,7 @@ Total entries: 149 across 24 Kotlin files.
 | D09-3 | 2 |
 | D11-ci5 | 1 |
 | D11-wire-b | 1 |
-| D11-wm9 | 3 |
+| D11-wm9 | 9 |
 
 ## M6-B (53)
 
@@ -222,10 +222,16 @@ Total entries: 149 across 24 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startIntroMonologue` | Stand-in until D11-wire-b. |
 
-## D11-wm9 (3)
+## D11-wm9 (9)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `NO_WORLD_MAP_NODES` | World map stand-in until the world map is ported (D11-wm9): no node holds a chapter. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `blendSetup` | Stand-in until D11-wm9 (the buffer is then shared with [GameControl]). |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `endWorldMap` | Stand-in until D11-wm9. |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `WorldMapGfxSetup` | `WorldMap_Init` itself is still the [WorldMapMain.MainHooks] stand-in until D11-wm9; nothing calls these two yet. |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `loadLegacyUiFrameGraphics` | `LoadLegacyUiFrameGraphics`: stand-in until D11-wm9 (world-map wiring). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetFaces` | `ResetFaces`: stand-in until D11-wm9 (world-map wiring). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetText` | `ResetText`: stand-in until D11-wm9 (world-map wiring). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetTextFont` | `ResetTextFont`: stand-in until D11-wm9 (world-map wiring). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `setWorldMapHblank` | `SetWorldMapHblank`: stand-in until D11-wm9 (world map HBlank, worldmap_hb.c). |

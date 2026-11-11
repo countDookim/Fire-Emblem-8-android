@@ -56,6 +56,10 @@ class M4aPitchTest {
         val rom = romFile.readBytes()
         val keys = HashSet<Int>()
         var checked = 0
+        // midiKeyToFreq is a pure function of (wave freq, key, fine adjust); a case whose three
+        // inputs and wanted freq were all seen before cannot differ, so it is counted but not
+        // recomputed (keys and checked still see every case).
+        val seen = HashSet<Pair<Long, Long>>()
         for (f in iwramDumps()) {
             val iw = f.readBytes()
             val ew = File(f.path.replace(".iwram.bin", ".ewram.bin")).readBytes()
@@ -73,8 +77,15 @@ class M4aPitchTest {
                 val (tb, to) = mem(track)
                 val (wb, wo) = mem(u32(iw, o + 0x24))
                 val key = maxOf(0, (iw[o + 8].toInt() and 0xFF) + tb[to + 8])
-                val got = M4aPitch.midiKeyToFreq(u32(wb, wo + 4), key, tb[to + 9].toInt() and 0xFF)
-                assertEquals(u32(iw, o + 0x20), got, "${f.path} channel $c")
+                val waveFreq = u32(wb, wo + 4)
+                val fine = tb[to + 9].toInt() and 0xFF
+                val want = u32(iw, o + 0x20)
+                val inputs = (waveFreq.toLong() and 0xFFFFFFFFL) or (key.toLong() shl 32)
+                val outputs = (want.toLong() and 0xFFFFFFFFL) or (fine.toLong() shl 32)
+                if (seen.add(inputs to outputs)) {
+                    val got = M4aPitch.midiKeyToFreq(waveFreq, key, fine)
+                    assertEquals(want, got, "${f.path} channel $c")
+                }
                 keys += key
                 checked++
             }
@@ -87,6 +98,8 @@ class M4aPitchTest {
     fun `CGB channel frequencies match every reference RAM dump`() {
         assumeTrue(ref.available && romFile.isFile, MISSING)
         var checked = 0
+        // midiKeyToCgbFreq is pure in (channel number, key, fine adjust): see the DirectSound test.
+        val seen = HashSet<Long>()
         for (f in iwramDumps()) {
             val iw = f.readBytes()
             val ew = File(f.path.replace(".iwram.bin", ".ewram.bin")).readBytes()
@@ -96,8 +109,14 @@ class M4aPitchTest {
                 if (iw[o].toInt() == 0 || track == 0) continue
                 val (tb, to) = if (track ushr 24 == 3) iw to track - IWRAM else ew to track - EWRAM
                 val key = maxOf(0, (iw[o + 8].toInt() and 0xFF) + tb[to + 8])
-                val got = M4aPitch.midiKeyToCgbFreq(c + 1, key, tb[to + 9].toInt() and 0xFF)
-                assertEquals(u32(iw, o + 0x20), got, "${f.path} CGB channel ${c + 1}")
+                val fine = tb[to + 9].toInt() and 0xFF
+                val want = u32(iw, o + 0x20)
+                val id = (want.toLong() and 0xFFFFFFFFL) or (key.toLong() shl 32) or
+                    (fine.toLong() shl 44) or ((c + 1).toLong() shl 52)
+                if (seen.add(id)) {
+                    val got = M4aPitch.midiKeyToCgbFreq(c + 1, key, fine)
+                    assertEquals(want, got, "${f.path} CGB channel ${c + 1}")
+                }
                 checked++
             }
         }

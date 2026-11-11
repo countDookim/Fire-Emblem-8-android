@@ -22,6 +22,11 @@ class M4aTrackTest {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         var checked = 0
         val distinct = HashSet<List<Int>>()
+        // volPitSet is a pure function of the dumped input bytes on a fresh track (FLG_VOLSET and
+        // FLG_PITSET are both set, so every output is assigned). A case whose whole byte set (the
+        // inputs at TRACK_BYTES plus the wanted outputs) was seen before cannot differ: it is still
+        // counted and added to `distinct` below, only the recomputation and the assert are skipped.
+        val results = HashMap<String, List<Int>>()
         val dumps = ref.root.listFiles().orEmpty().filter { it.isDirectory }
             .flatMap { d -> d.listFiles().orEmpty().filter { it.name.endsWith(".iwram.bin") } }
         for (f in dumps) {
@@ -36,25 +41,29 @@ class M4aTrackTest {
                     // MPlayMain yet, so its volume/pitch outputs were never computed.
                     if (flags and M4aTrack.FLG_EXIST == 0 || flags and 0x0F != 0) continue
                     if (flags and M4aTrack.FLG_START != 0) continue
-                    val track = M4aTrack().apply {
-                        this.flags = flags or M4aTrack.FLG_VOLSET or M4aTrack.FLG_PITSET
-                        keyShift = s8(0x0A)
-                        keyShiftX = s8(0x0B)
-                        tune = s8(0x0C)
-                        pitX = u8(0x0D)
-                        bend = s8(0x0E)
-                        bendRange = u8(0x0F)
-                        vol = u8(0x12)
-                        volX = u8(0x13)
-                        pan = s8(0x14)
-                        panX = s8(0x15)
-                        modM = s8(0x16)
-                        modT = u8(0x18)
+                    val key = String(CharArray(TRACK_BYTES.size) { u8(TRACK_BYTES[it]).toChar() })
+                    val got = results.getOrPut(key) {
+                        val track = M4aTrack().apply {
+                            this.flags = flags or M4aTrack.FLG_VOLSET or M4aTrack.FLG_PITSET
+                            keyShift = s8(0x0A)
+                            keyShiftX = s8(0x0B)
+                            tune = s8(0x0C)
+                            pitX = u8(0x0D)
+                            bend = s8(0x0E)
+                            bendRange = u8(0x0F)
+                            vol = u8(0x12)
+                            volX = u8(0x13)
+                            pan = s8(0x14)
+                            panX = s8(0x15)
+                            modM = s8(0x16)
+                            modT = u8(0x18)
+                        }
+                        track.volPitSet()
+                        val out = listOf(track.volMR, track.volML, track.keyM, track.pitM, track.flags)
+                        val want = listOf(u8(0x10), u8(0x11), u8(0x08), u8(0x09), flags)
+                        assertEquals(want, out, "${f.path} $o")
+                        out
                     }
-                    track.volPitSet()
-                    val got = listOf(track.volMR, track.volML, track.keyM, track.pitM, track.flags)
-                    val want = listOf(u8(0x10), u8(0x11), u8(0x08), u8(0x09), flags)
-                    assertEquals(want, got, "${f.path} $o")
                     distinct += got
                     checked++
                 }
@@ -67,6 +76,12 @@ class M4aTrackTest {
     private companion object {
         const val IWRAM = 0x03000000
         const val TRACK_SIZE = 0x50
+
+        /** Offsets of every byte the case reads: flags, outputs 0x08..0x11, inputs 0x12..0x18. */
+        val TRACK_BYTES = intArrayOf(
+            0x00, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14,
+            0x15, 0x16, 0x18,
+        )
 
         /** `gMPlayTrack_*` (address, size) from fireemblem8.nm.txt: BGM1, BGM2, SE1..SE7. */
         val TRACK_ARRAYS = listOf(

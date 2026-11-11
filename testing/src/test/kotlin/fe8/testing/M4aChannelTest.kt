@@ -27,6 +27,7 @@ class M4aChannelTest {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         var direct = 0
         var cgb = 0
+        val seen = HashSet<Long>()
         val dumps = ref.root.listFiles().orEmpty().filter { it.isDirectory }
             .flatMap { d -> d.listFiles().orEmpty().filter { it.name.endsWith(".iwram.bin") } }
         for (f in dumps) {
@@ -43,17 +44,34 @@ class M4aChannelTest {
                         ew to trackAddress - EWRAM
                     }
                     if (tb[to].toInt() and 0x0F != 0 || u32(tb, to + 0x20) != o + IWRAM) continue
-                    val track = M4aTrack().apply {
-                        volMR = tb[to + 0x10].toInt() and 0xFF
-                        volML = tb[to + 0x11].toInt() and 0xFF
-                    }
-                    val chan = M4aChannel().apply {
-                        velocity = iw[o + 0x12].toInt() and 0xFF
-                        rhythmPan = iw[o + 0x14].toInt()
-                    }
-                    chan.volSet(track)
+                    val volMR = tb[to + 0x10].toInt() and 0xFF
+                    val volML = tb[to + 0x11].toInt() and 0xFF
+                    val velocity = iw[o + 0x12].toInt() and 0xFF
+                    val rhythmPan = iw[o + 0x14].toInt()
                     val want = listOf(iw[o + 2].toInt() and 0xFF, iw[o + 3].toInt() and 0xFF)
-                    assertEquals(want, listOf(chan.rightVolume, chan.leftVolume), "${f.path} $o")
+                    // volSet is a pure function of (rhythmPan, velocity, volMR, volML) on a fresh
+                    // channel, so a case whose inputs and wanted volumes were all seen before
+                    // cannot differ: it is still counted below, only the recomputation is skipped.
+                    var key = 0L
+                    val parts = intArrayOf(
+                        volMR, volML, velocity, rhythmPan and 0xFF, want[0], want[1],
+                    )
+                    for (v in parts) {
+                        key = (key shl 8) or v.toLong()
+                    }
+                    if (seen.add(key)) {
+                        val track = M4aTrack().apply {
+                            this.volMR = volMR
+                            this.volML = volML
+                        }
+                        val chan = M4aChannel().apply {
+                            this.velocity = velocity
+                            this.rhythmPan = rhythmPan
+                        }
+                        chan.volSet(track)
+                        val got = listOf(chan.rightVolume, chan.leftVolume)
+                        assertEquals(want, got, "${f.path} $o")
+                    }
                     if (base == DIRECT_CHANS) direct++ else cgb++
                 }
             }

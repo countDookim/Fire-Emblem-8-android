@@ -11,7 +11,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- READABILITY audit (extract fe8 rows): owner PC, until ~16:25Z
+- D13-2, PP-8, PP-12, READABILITY audit: owner PC, until ~16:25Z
 
 ## Current state
 

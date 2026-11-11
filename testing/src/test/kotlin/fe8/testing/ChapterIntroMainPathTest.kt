@@ -39,10 +39,19 @@ import org.junit.jupiter.api.Test
 /**
  * The chapter intro's main path from the twin lights to the end of the 160-frame timer
  * (src/chapterintrofx.c, src/chapter_title.c, src/sysutil.c) against `ram_trace_newgame_intro`
- * (no key presses), frames 9322-9708: `ChapterIntro_InitBLDCNT`, the light burst (9455-9502) and
+ * (no key presses), frames 9322-9872: `ChapterIntro_InitBLDCNT`, the light burst (9455-9502) and
  * the chapter title draw (9455), the light explosion (9456-9525), `ChapterIntro_SetBG_802009C`,
  * Bg2Scroll, the decal banner and its reveal window, the fog fade-in and the timer (9526-9708).
- * The next row starts at `ChapterIntro_8020A40` (9709).
+ * Then `ChapterIntro_8020A40` and `8020A8C` (the palette fade out, to 9830), the END_EACH of the
+ * scroll and decal procs (9831), `InitMapDisplay`, `BeginFadeToMap`, `LoopFadeToMap`, the
+ * 30-frame sleep and `ChapterIntro_End`; the intro proc is freed at the hand-off frame 9872.
+ *
+ * Lag: the original's main loop overran its frame twice and the dump is sampled at VBlank in the
+ * middle of the pass. [INIT_MAP_LAG] (the map graphics, 9832-9836) and [END_LAG]
+ * (`RefreshBMapGraphics`, 9869-9872) are frames in which the fixture runs no procs and no key
+ * update; [MID_RUN] (9831-9837, 9868-9871) are frames sampled mid-pass and not compared. The
+ * dump of 9870 falls in the second window. At 9872 only the procs, keys, camera, fade state and
+ * DISPCNT/BLDCNT/blend registers are compared, because `RefreshBMapGraphics` is a stand-in.
  *
  * Alignment is that of [ChapterIntroDifferentialTest] (seeded from the dump of 9321, step 9322 is
  * compared with the dump of 9325, then one step per frame, keys from the captured `inputs.bin`).
@@ -65,8 +74,8 @@ import org.junit.jupiter.api.Test
  * synced (six explosion objects, none while PutDecalSprite sleeps, then the banner twice).
  *
  * Limits: `GetPlayChapterId` and `GetNextUnclearedNode` come from the existing world map ports
- * (`WmNodeData`, `WorldMapPath` on the captured `gGMData`). `8020A40`, `8020A8C`,
- * `BeginFadeToMap` and `LoopFadeToMap` are still stand-ins, so nothing is compared after 9708.
+ * (`WmNodeData`, `WorldMapPath` on the captured `gGMData`). `InitCameraYPos` is verified by
+ * [ChapterIntroDifferentialTest] (its value is overwritten by `InitMapDisplay` in the same pass).
  */
 class ChapterIntroMainPathTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -87,6 +96,8 @@ class ChapterIntroMainPathTest {
         "ChapterIntro_RevealDecalSprite_Init", "ChapterIntro_RevealDecalSprite_Loop",
         "ChapterIntro_InitFogGfx", "ChapterIntro_BlendFogAlpha_Loop",
         "ChapterIntro_SetTimer", "ChapterIntro_TickTimerMaybe",
+        "ChapterIntro_8020A40", "ChapterIntro_8020A8C", "ChapterIntro_InitMapDisplay", "ChapterIntro_BeginFadeToMap",
+        "ChapterIntro_LoopFadeToMap",
     )
     fun `twin lights to title draw and light explosion match every frame`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
@@ -103,12 +114,13 @@ class ChapterIntroMainPathTest {
             sim.step(f)
             sim.compare(f, f)
         }
-        assertEquals(LAST - FIRST - 2, sim.compared, "frames compared")
-        assertEquals((9460..9700 step 10).toList(), sim.titleDumps)
+        assertEquals(LAST - FIRST - 2 - MID_RUN.count(), sim.compared, "frames compared")
+        val dumps = (9460..9830 step 10).toList() + (9840..9860 step 10).toList()
+        assertEquals(dumps, sim.titleDumps)
         assertTrue(sim.titleBytesNonZero, "title image compared")
         assertEquals(1, sim.titleDrawnAt.size, "title drawn once")
-        assertEquals((9460..9700 step 10).toList(), sim.oamDumps)
-        assertEquals((9460..9700 step 10).toList(), sim.ioDumps)
+        assertEquals(dumps, sim.oamDumps)
+        assertEquals(dumps, sim.ioDumps)
     }
 
     private inner class Sim {
@@ -188,22 +200,25 @@ class ChapterIntroMainPathTest {
         }
 
         fun step(f: Int) {
-            keys.update(data.inputs[f - 1])
-            clock = u32(iwram(f), GAME_CLOCK - IWRAM) + CLOCK_SKEW
+            // The key status is read once per main loop pass, so lag frames do not update it.
+            if (f !in INIT_MAP_LAG && f !in END_LAG) keys.update(data.inputs[f - 1])
+            clock = u32(iwram(f), GAME_CLOCK - IWRAM) + CLOCK_SKEW + if (f == LATE_CLOCK) 1 else 0
             prevOam = oam.buffer.copyOf()
             prevObjectCount = oam.hiPut / 4
             oam.syncHi()
             // VBlank copies gLCDControlBuffer to the display registers before the procs run.
             hardware.lcd.flushTo(host.io)
             if (f == FIRST) engine.startBlocking(host.script, root)
+            if (f in INIT_MAP_LAG) return
             for (tree in 0 until 8) engine.run(engine.root(tree))
         }
 
         /** Compares the state after our step [step] with the dump of frame [f]. */
         fun compare(step: Int, f: Int) {
+            if (f in MID_RUN) return
             val e = ewram(f)
             val procs = ProcArrayDump.ofEwram(e, procNames)
-            val orig = procs.find("gProcScr_ChapterIntro")!!
+            val orig = procs.find("gProcScr_ChapterIntro")
             compareProc(orig, engine.find(host.script), f, "intro")
             compareProc(
                 procs.find("ProcScr_ChapterIntro_KeyListen"),
@@ -244,10 +259,13 @@ class ChapterIntroMainPathTest {
                 assertEquals(s16(burstOrig, 0x4E), b.unk4E, "f$f burst unk_4E")
                 assertEquals(s16(burstOrig, 0x66), b.unk66, "f$f burst unk_66")
             }
-            compareIntroFields(f, orig, engine.find(host.script)!!.state as ChapterIntro.State)
+            if (orig != null) {
+                compareIntroFields(f, orig, engine.find(host.script)!!.state as ChapterIntro.State)
+            }
+            compareCamera(f, e)
             compareKeys(f, e)
             compareLcd(f)
-            compareBuffers(f, e)
+            if (f < LAST) compareBuffers(f, e) else compareFadeState(f, e)
             if (f >= TITLE_FRAME) {
                 assertEquals(
                     u16(e, CHAPTER_TITLE_FX_ST + 2 - EWRAM), host.chapterTitle.chrStr,
@@ -257,6 +275,12 @@ class ChapterIntroMainPathTest {
             if (f == TITLE_FRAME) titleDrawnAt += f
             compared++
             if (names.getValue(f).startsWith("f") && step > FIRST) compareFull(f)
+        }
+
+        fun compareCamera(f: Int, e: ByteArray) {
+            val want = BmSt().also { it.decode(e, BM_ST - EWRAM) }
+            assertEquals(want.cameraX, bmSt.cameraX, "f$f camera.x")
+            assertEquals(want.cameraY, bmSt.cameraY, "f$f camera.y")
         }
 
         fun compareKeys(f: Int, e: ByteArray) {
@@ -327,6 +351,13 @@ class ChapterIntroMainPathTest {
             assertEquals(orig.u32(0x0C) != 0, ours.idleCb != null, "f$f $what repeat callback")
         }
 
+        fun compareFadeState(f: Int, e: ByteArray) {
+            // RefreshBMapGraphics reloads the palette (stand-in), but the fade state is left.
+            for (i in 0 until 32) {
+                assertEquals(e[FADE_STEP - EWRAM + i], colorFade.step[i], "f$f fade step $i")
+            }
+        }
+
         fun compareLcd(f: Int) {
             val want = LcdControl().also { it.readFrom(iwram(f), LCD_BUFFER - IWRAM) }
             val lcd = hardware.lcd
@@ -336,9 +367,13 @@ class ChapterIntroMainPathTest {
             assertEquals(want.blendCoeffA, lcd.blendCoeffA, "$at blendCoeffA")
             assertEquals(want.blendCoeffB, lcd.blendCoeffB, "$at blendCoeffB")
             assertEquals(want.blendY, lcd.blendY, "$at blendY")
+            if (f == LAST) return
             for (i in 0 until 12) {
                 assertEquals(want.affine[i], lcd.affine[i], "$at affine[$i]")
             }
+            // The hand-off frame follows ChapterIntro_End's RefreshBMapGraphics (a stand-in):
+            // only the registers sub_80141B0 writes are compared there.
+            if (f == LAST) return
             for (bg in 0..3) {
                 assertEquals(want.bgCnt[bg], lcd.bgCnt[bg], "$at bgcnt$bg")
                 assertEquals(want.bgHofs[bg], lcd.bgHofs[bg], "$at hofs$bg")
@@ -378,7 +413,8 @@ class ChapterIntroMainPathTest {
             }
             // Six light explosion objects to 9525, none while PutDecalSprite sleeps (30 frames
             // from 9526), then the decal banner put twice (4 + 4 objects).
-            val expected = if (f <= EXPLOSION_LAST) 6 else if (f <= DECAL_FIRST) 0 else 8
+            val expected =
+                if (f <= EXPLOSION_LAST) 6 else if (f <= DECAL_FIRST) 0 else if (f <= SCROLL_END) 8 else 0
             assertEquals(expected, prevObjectCount, "f$f object count")
             for (obj in 0 until prevObjectCount) {
                 for (attr in 0..2) {
@@ -427,7 +463,30 @@ class ChapterIntroMainPathTest {
 
     private companion object {
         const val FIRST = 9322
-        const val LAST = 9708
+        const val LAST = 9872
+        const val SCROLL_END = 9831
+
+        /**
+         * Passes in which the original's main loop did not reach the proc loop: `InitMapDisplay`
+         * (decompressing and drawing the map) overran into 9832-9835, so the intro stayed
+         * at `ChapterIntro_BeginFadeToMap` until 9835. [Sim.step] skips the proc run there. The
+         * first pass after it ran at 9837 with `gGameClock` already one VBlank past the dump's
+         * sample ([LATE_CLOCK]), which is what lets `LoopFadeToMap` (even clock only) break then.
+         */
+        val INIT_MAP_LAG = 9832..9836
+
+        /**
+         * Frames the dump samples in the middle of a long proc run, which our single pass
+         * cannot reproduce: 9831 (after `SetSkipTarget(0)`, before `InitCameraYPos`; the same pass
+         * is complete in ours) and `ChapterIntro_End` (9868-9871: `RefreshBMapGraphics` runs
+         * 4 frames, the proc is freed at 9872; ours ends it in the pass of 9868).
+         */
+        /** `ChapterIntro_End`'s `RefreshBMapGraphics` overran: no key update, no proc run. */
+        val END_LAG = 9869..9872
+
+        const val LATE_CLOCK = 9837
+
+        val MID_RUN = (9831..9837) + (9868..9871)
         const val DECAL_FIRST = 9556
         const val GAME_CLOCK = 0x03000014
         const val CLOCK_SKEW = 0

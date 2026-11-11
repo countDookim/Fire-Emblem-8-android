@@ -145,10 +145,6 @@ public class ChapterIntro(
         getNextUnclearedNode = { hooks.getNextUnclearedNode() },
     )
 
-    /** A named no-op for a script command filled by a later task; [name] documents the target. */
-    @Suppress("UNUSED_PARAMETER")
-    private fun standInFunc(name: String) = ProcFunc { }
-
     private fun standInScript(name: String) = ProcScript(name, listOf(end()))
 
     /**
@@ -254,12 +250,12 @@ public class ChapterIntro(
      * (D11-ci1), `InitBLDCNT`, `DrawChapterTitle` and `SetBG_802009C` (D11-ci2), the light burst
      * and light explosion (D11-ci3), label 1 (the skip path) and `End` (D11-ci4),
      * `InitCameraYPos` and `InitMapDisplay` (both paths), Bg2Scroll, decals, fog and the timer
-     * (D11-ci3b). Stand-ins for the next row: `8020A40`, `8020A8C` and `BeginFadeToMap`/
-     * `LoopFadeToMap`.
+     * (D11-ci3b), `8020A40`, `8020A8C`, `BeginFadeToMap` and `LoopFadeToMap` (D11-ci3c).
      *
      * Transcribed from src/chapterintrofx.c: gProcScr_ChapterIntro (not verified: the captures
-     *   run commands 0-14 (`ram_trace_newgame_intro` to the fog start), the jump to label 1 and
-     *   the label 1 / 99 commands; the rest of the main path is stand-ins)
+     *   run the main path of `ram_trace_newgame_intro` to the proc's end, the jump to label 1
+     *   and the label 1 / 99 commands; `End` after the main path is checked only to the first
+     *   dump after it)
      */
     public val script: ProcScript = ProcScript(
         "gProcScr_ChapterIntro",
@@ -284,8 +280,8 @@ public class ChapterIntro(
             repeat(ProcFunc { blendFogAlphaLoop(it) }),
             callArg(ProcArgFunc { arg, proc -> setTimer(arg, proc); true }, 160),
             repeat(ProcFunc { tickTimerMaybe(it) }),
-            call(standInFunc("ChapterIntro_8020A40")),
-            repeat(standInFunc("ChapterIntro_8020A8C")),
+            call(ProcFunc { chapterIntro8020A40(it) }),
+            repeat(ProcFunc { chapterIntro8020A8C(it) }),
             endEach { bg2ScrollScript },
             endEach { bg1And3ScrollScript },
             endEach { putDecalScript },
@@ -293,8 +289,8 @@ public class ChapterIntro(
             call(ProcFunc { initCameraYPos() }),
             call(ProcFunc { hooks.bMapDispResume() }),
             call(ProcFunc { initMapDisplay() }),
-            call(standInFunc("ChapterIntro_BeginFadeToMap")),
-            repeat(standInFunc("ChapterIntro_LoopFadeToMap")),
+            call(ProcFunc { beginFadeToMap(it) }),
+            repeat(ProcFunc { loopFadeToMap(it) }),
             sleep(30),
             goto(99),
             label(1),
@@ -875,6 +871,89 @@ public class ChapterIntro(
         bmSt.cameraY = v
         entityBmMaps.refreshEntityBmMaps()
         bmMapRender.renderBmMap()
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_8020A40
+     */
+    private fun chapterIntro8020A40(proc: Proc) {
+        (proc.state as State).timer = 30
+        maybeResetSomePal()
+        maybeSmoothChangeSomePal(4 * 16, 4, 2, -1)
+        maybeSmoothChangeSomePal(14 * 16, 14, 2, -1)
+        maybeSmoothChangeSomePal(18 * 16, 18, 1, -1)
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_8020A8C
+     */
+    private fun chapterIntro8020A8C(proc: Proc) {
+        if ((hooks.gameClock() and 3) != 0) return
+        val state = proc.state as State
+        colorFade.tick()
+        hardware.enablePaletteSync()
+        state.timer = (state.timer - 1).toShort().toInt()
+        if (state.timer < 0) {
+            hardware.lcd.setDispEnable(1, 0, 0, 0, 1)
+            hardware.setTileDataOffset(2, 0)
+            hardware.palette[0] = 0
+            hardware.enablePaletteSync()
+            engine.breakProc(proc)
+        }
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_BeginFadeToMap
+     *
+     * Not verified: the `StartBgm` call (not compared) and the `WEATHER_FLAMES` hook (chapter 0
+     * has no flames weather).
+     */
+    private fun beginFadeToMap(proc: Proc) {
+        maybeResetSomePal()
+        maybeSmoothChangeSomePal(6 * 16, 6, 10, 1)
+        maybeSmoothChangeSomePal(26 * 16, 26, 6, 1)
+        maybeSmoothChangeSomePal(16 * 16, 16, 2, 1)
+        maybeSmoothChangeSomePal(23 * 16, 23, 1, 1)
+        colorFade.tick()
+        hardware.enablePaletteSync()
+        (proc.state as State).timer = 30
+        if (chapterData.initialWeather(playSt.chapterIndex) == WEATHER_FLAMES) {
+            hooks.wfxFlamesInitGradientPublic()
+        }
+    }
+
+    /**
+     * Ported from src/chapterintrofx.c: ChapterIntro_LoopFadeToMap
+     *
+     * Not verified: the capture's chapter fades to black, so the alpha blend branch, the flames
+     * hook and the `StartBgm` calls (not compared) are not run.
+     */
+    private fun loopFadeToMap(proc: Proc) {
+        if ((hooks.gameClock() and 1) != 0) return
+        val state = proc.state as State
+        val chapter = playSt.chapterIndex
+        colorFade.tick()
+        if (chapterData.initialWeather(chapter) == WEATHER_FLAMES) {
+            hooks.wfxFlamesInitGradientPublic()
+        }
+        val song = chapterData.mapBgmId(chapter, MAP_BGM_PROLOGUE)
+        if (hooks.getBattleMapKind() == BattleMapKind.SKIRMISH ||
+            chapterData.fadeToBlack(chapter) != 0
+        ) {
+            if (song != 0xFFFF) sound.startBgm(song, -1)
+            state.timer = 0
+            hardware.lcd.setDispEnable(1, 1, 1, 0, 0)
+        } else {
+            hardware.enablePaletteSync()
+            val bldAmt = (state.timer + 7) / 8
+            setBlendAlpha(bldAmt + 12, 4 - bldAmt)
+        }
+        state.timer = (state.timer - 1).toShort().toInt()
+        if (state.timer == 24 && song != 0xFFFF) sound.startBgm(song, -1)
+        if (state.timer < 0) {
+            mapAnimations.resetMapPaletteAnimations()
+            engine.breakProc(proc)
+        }
     }
 
     /**

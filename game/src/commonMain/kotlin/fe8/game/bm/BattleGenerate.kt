@@ -9,10 +9,12 @@ import gbafe.core.rng.RngService
 import kotlin.math.abs
 
 /**
- * The scripted and event battle generation of `src/bmbattle.c` and `src/eventscr3.c`: the
- * `gBattleHitArray` / `gActionData.scriptedBattleHits` state, `SetScriptedBattle`,
- * `BattleGenerate`, `BattleUnwindScripted` and the event-side `EvtBattleGenerateReal`
- * and `StartEventBattle` set-up, on the battle units of [battle].
+ * The scripted and event battle generation of `src/bmbattle.c`, `src/eventscr3.c` and
+ * `src/eventscr.c`: the `gBattleHitArray` / `gActionData.scriptedBattleHits` state,
+ * `SetScriptedBattle`, `BattleGenerate`, `BattleUnwindScripted` and the event-side
+ * `EvtBattleGenerateReal` and `StartEventBattle` set-up, on the battle units of [battle]. A
+ * scripted battle is one whose hits (who strikes, hit / miss / crit, damage) a map event dictates
+ * instead of the random rolls.
  *
  * Hits are `struct BattleHit` words: `attributes` in bits 0..18, `info` in bits 19..23 and the
  * signed `hpChange` in bits 24..31. Both hit buffers are preallocated.
@@ -49,8 +51,9 @@ public class BattleGenerate(
     public val scriptHits: IntArray = IntArray(BATTLE_HIT_MAX + 1)
 
     /**
-     * `ItemBackupEvtBattle`: the actor's first item saved by an event battle with an item
-     * override, or [ITEM_BACKUP_NONE]. [startEventBattle] resets it; the override is not ported.
+     * `ItemBackupEvtBattle` (eventscr3.c): the actor's first item, saved while an event battle
+     * swaps in another weapon (the `item` argument of `StartEventBattle`), or [ITEM_BACKUP_NONE].
+     * [startEventBattle] resets it; the swap is not ported.
      */
     public var itemBackupEvtBattle: Int = ITEM_BACKUP_NONE
 
@@ -84,9 +87,10 @@ public class BattleGenerate(
      * Ported from src/eventscr.c: GenerateScriptBattleHitFormEventQueue
      *
      * Turns the event queue (`gEventSlotQueue`, 4-byte entries at [queueOff] of [queue]: side,
-     * hp change, attributes) into hits in [scriptHits], at most [count] of them
+     * hp change, attributes as a u16) into hits in [scriptHits], at most [count] of them
      * (`gEventSlots[0xD]`) or up to an entry starting with 0xFF, and terminates them with an END
-     * hit. Returns [scriptHits]. Unlike the C, at most [BATTLE_HIT_MAX] hits are read.
+     * hit. Side 1 marks a strike by the target (`BATTLE_HIT_INFO_RETALIATION`), the first hit
+     * gets BEGIN. Returns [scriptHits]. Unlike the C, at most [BATTLE_HIT_MAX] hits are read.
      */
     public fun generateScriptBattleHitFormEventQueue(
         count: Int,
@@ -113,7 +117,8 @@ public class BattleGenerate(
      *   (not verified: the Prologue battle runs the event variant; the exp tail is not ported)
      *
      * Initialises the battle units from the units at [actorOff] / [targetOff] of [src], generates
-     * the battle and fixes up the target's counter and equipped weapon.
+     * the battle and fixes up the target's counter and equipped weapon. The C then, for a target
+     * that is a unit, applies exp gains and pid stats; not ported, so this stops with an error.
      */
     public fun battleGenerateRealInternal(src: ByteArray, actorOff: Int, targetOff: Int) {
         generateCommon(src, actorOff, targetOff)
@@ -271,9 +276,10 @@ public class BattleGenerate(
     /**
      * Ported from src/bmbattle.c: BattleGenerateHitScriptedDamage
      *
-     * Sets `stats.damage` for the scripted hit under the iterator: 0 for a miss, the scripted
-     * `hpChange`, or attack minus defense (tripled for a crit) when that is 0; capped to 0..127.
-     * Marks [unit] as having dealt damage.
+     * Sets `stats.damage` for the scripted hit under the iterator: 0 for a miss; otherwise the
+     * hit's `hpChange` as a fixed damage, or when that is 0 attack minus defense (tripled for a
+     * crit); capped to 0..[BATTLE_MAX_DAMAGE]. Marks [unit] (the striker) as having dealt damage
+     * when the result is not 0.
      */
     public fun battleGenerateHitScriptedDamage(unit: BattleUnit) {
         val stats = battle.stats
@@ -296,8 +302,10 @@ public class BattleGenerate(
      * Ported from src/bmbattle.c: BattleUnwindScripted
      *
      * Copies [scriptedBattleHits] into [hitArray] up to and including the END hit, then replays
-     * every hit on the battle units (hit effects, wexp, finish flags) until the END hit or a hit
-     * that finishes the battle. Clears [scriptedBattleHits] afterwards.
+     * every hit on the battle units (stats, damage, effects) until the END hit or a hit that ends
+     * the battle: a unit reaching 0 HP (FINISHES, plus KILLS_TARGET when the target died) or a
+     * petrified defender (FINISHES). That hit gets a new END hit after it, and the striker one
+     * more `wexpMultiplier`. Clears [scriptedBattleHits] afterwards.
      */
     public fun battleUnwindScripted() {
         val sourceHits = checkNotNull(scriptedBattleHits)
@@ -367,14 +375,17 @@ public class BattleGenerate(
     /**
      * Ported from src/bmbattle.c: BattleGenerateHitEffects
      *
-     * Applies the hit under the iterator: weapon effects (poison, halve, devil, drain, petrify),
-     * HP changes, `hpChange` of the hit and the weapon's use.
+     * Applies the hit under the iterator (not a miss): the weapon's effect (poison, HP halve,
+     * devil, HP drain, petrify; poison, halve and petrify do not work on the Demon King), the
+     * damage to the defender (or to the attacker for a devil weapon), the damage recorded in the
+     * hit's `hpChange` for the animation, and the weapon's use.
      */
     public fun battleGenerateHitEffects(attacker: BattleUnit, defender: BattleUnit) {
         val stats = battle.stats
         val hitIndex = hitIterator
         attacker.wexpMultiplier++
         val effect = items.getItemWeaponEffect(attacker.weapon)
+        // The Demon King is immune to the poison, HP-halve and petrify weapon effects.
         val isDemonKing = rom.u8(u32(defender.bytes, OFF_CLASS) + 4) == CLASS_DEMON_KING
 
         if ((attributes(hitArray[hitIndex]) and ATTR_MISS) == 0) {
@@ -383,6 +394,8 @@ public class BattleGenerate(
                     WPN_EFFECT_POISON -> {
                         defender.statusOut = STATUS_POISON
                         addAttributes(hitIndex, ATTR_POISON)
+                        // A petrified defender is no longer petrified once poisoned, so it
+                        // is made selectable (not grayed out) again.
                         if (defender.unitStatusIndex == STATUS_PETRIFY ||
                             defender.unitStatusIndex == STATUS_13
                         ) {
@@ -415,6 +428,8 @@ public class BattleGenerate(
             }
 
             if (!isDemonKing && effect == WPN_EFFECT_PETRIFY) {
+                // A petrify hit on a unit of the army whose phase it is gives status 13, any
+                // other target gets plain petrify; no change in other (non-army) phases.
                 val faction = playSt.faction
                 if (faction == UnitLoader.FACTION_BLUE || faction == UnitLoader.FACTION_RED ||
                     faction == UnitLoader.FACTION_GREEN
@@ -426,8 +441,10 @@ public class BattleGenerate(
             }
         }
 
+        // Record the damage dealt in the hit's `hpChange` (bits 24..31).
         hitArray[hitIndex] = (hitArray[hitIndex] and 0x00FFFFFF) or (stats.damage shl 24)
 
+        // The weapon loses a use on a hit, and on a miss only for uncounterable or magic weapons.
         if ((attributes(hitArray[hitIndex]) and ATTR_MISS) == 0 ||
             (attacker.weaponAttributes and
                 (ItemInfo.IA_UNCOUNTERABLE or ItemInfo.IA_MAGIC)) != 0
@@ -440,8 +457,9 @@ public class BattleGenerate(
     /**
      * Ported from src/bmbattle.c: BattleUnitTargetSetEquippedWeapon
      *
-     * Gives a target without a pre-battle weapon its equipped weapon. The staff fallback for magic
-     * users needs `CanUnitUseStaff` and is not ported.
+     * Gives a unit without a pre-battle weapon (it could not counter) its equipped weapon, so the
+     * battle animation can still show it. The C's fallback to a usable staff for units with a
+     * magic rank needs `CanUnitUseStaff` and is not ported.
      */
     public fun battleUnitTargetSetEquippedWeapon(unit: BattleUnit) {
         if (unit.weaponBefore != 0) return
@@ -472,14 +490,17 @@ public class BattleGenerate(
         battleGenerate()
     }
 
-    /** `BattleRoll1RN(threshold, FALSE)`. */
+    /**
+     * `BattleRoll1RN(threshold, FALSE)`: a single random roll that succeeds with probability
+     * `threshold` percent; always false in a simulated (forecast) battle.
+     */
     private fun battleRoll1Rn(threshold: Int): Boolean =
         (battle.stats.config and BattleStats.CONFIG_SIMULATE) == 0 &&
             mechanics.battleRolls.skill(rng, threshold)
 
     /**
-     * The item word after one use: the uses byte drops by one, and the item is gone (0) when it
-     * runs out. Unbreakable items are returned unchanged.
+     * `GetItemAfterUse` (bmitem.c): the item word after one use: the uses (high byte) drop by
+     * one, and the item is gone (0) when none are left. Unbreakable items are unchanged.
      */
     private fun getItemAfterUse(item: Int): Int {
         if ((items.getItemAttributes(item) and ItemInfo.IA_UNBREAKABLE) != 0) return item
@@ -516,25 +537,25 @@ public class BattleGenerate(
         /** `BATTLE_MAX_DAMAGE`. */
         public const val BATTLE_MAX_DAMAGE: Int = 127
 
-        /** `BATTLE_HIT_INFO_BEGIN`. */
+        /** `BATTLE_HIT_INFO_BEGIN`: the first hit of the battle. */
         public const val INFO_BEGIN: Int = 1 shl 0
 
-        /** `BATTLE_HIT_INFO_FINISHES`. */
+        /** `BATTLE_HIT_INFO_FINISHES`: this hit ends the battle (kill or petrify). */
         public const val INFO_FINISHES: Int = 1 shl 1
 
-        /** `BATTLE_HIT_INFO_KILLS_TARGET`. */
+        /** `BATTLE_HIT_INFO_KILLS_TARGET`: this hit leaves the target at 0 HP. */
         public const val INFO_KILLS_TARGET: Int = 1 shl 2
 
-        /** `BATTLE_HIT_INFO_RETALIATION`. */
+        /** `BATTLE_HIT_INFO_RETALIATION`: the target strikes the actor (a counter-attack). */
         public const val INFO_RETALIATION: Int = 1 shl 3
 
-        /** `BATTLE_HIT_INFO_END`. */
+        /** `BATTLE_HIT_INFO_END`: the terminating entry; it is not a hit. */
         public const val INFO_END: Int = 1 shl 4
 
-        /** `BATTLE_HIT_ATTR_CRIT`. */
+        /** `BATTLE_HIT_ATTR_CRIT`: the hit is a critical hit (triple damage). */
         public const val ATTR_CRIT: Int = 1 shl 0
 
-        /** `BATTLE_HIT_ATTR_MISS`. */
+        /** `BATTLE_HIT_ATTR_MISS`: the strike misses. */
         public const val ATTR_MISS: Int = 1 shl 1
 
         /** Packs a hit word. */
@@ -550,11 +571,14 @@ public class BattleGenerate(
         /** The signed `hpChange` (bits 24..31) of hit word [w]. */
         public fun hpChange(w: Int): Int = w shr 24
 
+        // More `BATTLE_HIT_ATTR_*` bits, set by the weapon effects of the hit.
         private const val ATTR_POISON = 1 shl 6
         private const val ATTR_DEVIL = 1 shl 7
         private const val ATTR_HPSTEAL = 1 shl 8
         private const val ATTR_HPHALVE = 1 shl 9
         private const val ATTR_PETRIFY = 1 shl 13
+        // `WPN_EFFECT_*` (`ItemData` 0x1F `weaponEffectId`) and `UNIT_STATUS_*` ids;
+        // `UNIT_STATUS_13` has no decomp name and is treated like petrify.
         private const val WPN_EFFECT_POISON = 1
         private const val WPN_EFFECT_HPDRAIN = 2
         private const val WPN_EFFECT_HPHALVE = 3
@@ -565,10 +589,12 @@ public class BattleGenerate(
         private const val STATUS_13 = 13
         private const val ITYPE_STAFF = 4
         private const val CLASS_DEMON_KING = 0x66
+        // `US_*` unit state bits.
         private const val US_HIDDEN = 1 shl 0
         private const val US_UNSELECTABLE = 1 shl 1
         private const val US_DEAD = 1 shl 2
-        private const val ITEM_BACKUP_NONE = 0xFFFF
+        private const val ITEM_BACKUP_NONE = 0xFFFF // the C's "no item saved" literal
+        // `struct Unit` field offsets (include/bmunit.h).
         private const val OFF_CLASS = 0x04
         private const val OFF_INDEX = 0x0B
         private const val OFF_STATE = 0x0C

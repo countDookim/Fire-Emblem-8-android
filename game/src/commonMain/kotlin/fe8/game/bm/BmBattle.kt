@@ -51,14 +51,14 @@ public class BmBattle(
     public var arenaOpponentWeapon: Int = 0
 
     /**
-     * `GetBallistaItemAt(x, y)` (bmtrick.c, not ported): the item of the ballista at the tile.
-     * Returns 0 until the trap system exists.
+     * `GetBallistaItemAt(x, y)` (bmarch.c, not ported): the item loaded in the ballista trap at
+     * the tile, 0 when it has no uses left. Returns 0 until the trap system exists.
      */
     public var ballistaItemAt: (x: Int, y: Int) -> Int = { _, _ -> 0 }
 
     /**
-     * `IsPositionMagicSealed(x, y)` (bmtrick.c, not ported): whether a magic seal trap covers the
-     * tile. False until the trap system exists.
+     * `IsPositionMagicSealed(x, y)` (bmunit.c, not ported): whether an enemy unit (unit ids
+     * 0x81..0xBF) with `CA_MAGICSEAL` stands within 10 tiles of the tile. False until wired.
      */
     public var isPositionMagicSealed: (x: Int, y: Int) -> Boolean = { _, _ -> false }
 
@@ -67,10 +67,13 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: InitBattleUnit
      *
-     * Copies the unit at [srcOffset] of [src] into [unit] and sets its battle bonus stats,
-     * previous level / exp, initial HP and clears its change fields; `-1` for [srcOffset] is the
-     * C `NULL` and does nothing. As in the C, the `wexpMultiplier`, `weaponBroke` and `expGain`
-     * resets hit [actor] and [target], not [unit].
+     * Copies the unit at [srcOffset] of [src] into [unit] and overwrites the copy's stats with the
+     * values battle uses: equipped-weapon bonuses, Barrier on resistance, and the full Con / Mov
+     * (`UNIT_CON` / `UNIT_MOV`) in `conBonus` / `movBonus`. Remembers level, exp and HP from before
+     * the battle, sets `statusOut` to -1 (no status inflicted) and zeroes the `change*` counters
+     * that collect level-up gains. `-1` for [srcOffset] is the C `NULL` and does nothing. As in
+     * the C, the `wexpMultiplier`, `weaponBroke` and `expGain` resets hit [actor] and [target],
+     * not [unit].
      */
     public fun initBattleUnit(unit: BattleUnit, src: ByteArray, srcOffset: Int) {
         if (srcOffset < 0) return
@@ -121,7 +124,8 @@ public class BmBattle(
      * Transcribed from src/bmbattle.c: InitBattleUnitWithoutBonuses
      *   (not verified: not called by the traced battle)
      *
-     * [initBattleUnit], then the unit's own stats (no item bonuses) and base constitution.
+     * [initBattleUnit], then the unit's raw stats (no weapon or Barrier bonuses) and
+     * `UNIT_CON_BASE` (class plus character base Con, no bonus) in `conBonus`.
      */
     public fun initBattleUnitWithoutBonuses(unit: BattleUnit, src: ByteArray, srcOffset: Int) {
         initBattleUnit(unit, src, srcOffset)
@@ -139,8 +143,9 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: SetBattleUnitTerrainBonuses
      *
-     * Sets [BattleUnit.terrainId] to [terrain] and the avoid, defense and resistance bonuses from
-     * the unit's class lookup tables.
+     * Sets [BattleUnit.terrainId] to [terrain] and looks up the terrain's avoid, defense and
+     * resistance bonuses in the class's per-terrain tables (`pTerrainAvoidLookup`,
+     * `pTerrainDefenseLookup`, `pTerrainResistanceLookup`: `ClassData` 0x44, 0x48, 0x4C).
      */
     public fun setBattleUnitTerrainBonuses(unit: BattleUnit, terrain: Int) {
         unit.terrainId = terrain
@@ -153,7 +158,7 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: SetBattleUnitTerrainBonusesAuto
      *
-     * [setBattleUnitTerrainBonuses] with the terrain under the unit.
+     * [setBattleUnitTerrainBonuses] with the terrain tile the unit stands on.
      */
     public fun setBattleUnitTerrainBonusesAuto(unit: BattleUnit) {
         setBattleUnitTerrainBonuses(unit, terrainAt(unit.unitY, unit.unitX))
@@ -162,9 +167,12 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: SetBattleUnitWeapon
      *
-     * Picks the weapon of [unit] from [itemSlot] ([BU_ISLOT_AUTO] for the equipped one), then
-     * applies the range, magic-sword and status restrictions unless `BATTLE_CONFIG_BIT2` is set in
-     * [stats].
+     * Picks the weapon of [unit] from [itemSlot] ([BU_ISLOT_AUTO] for the first usable weapon;
+     * a unit on a ballista always uses the ballista), then, unless `BATTLE_CONFIG_BIT2` is set in
+     * [stats] (`BattleGenerateUiStats`, the stat preview), applies the battle restrictions:
+     * Windsword / Lightbrand become anima / light magic at range 2 and lose their magic damage
+     * otherwise, the Runesword is dark magic; a weapon that does not reach the current range or
+     * has no inventory slot is dropped (no counter); sleeping or petrified units have no weapon.
      */
     public fun setBattleUnitWeapon(unit: BattleUnit, itemSlot: Int) {
         val bytes = unit.bytes
@@ -181,6 +189,7 @@ public class BmBattle(
                 unit.weapon = u16(bytes, OFF_ITEMS + 2 * slot)
             }
             BU_ISLOT_5 -> {
+                // 0xFF: the weapon is not in the unit's inventory.
                 unit.weaponSlotIndex = 0xFF
                 unit.weapon = bmSt.umTmpItem
             }
@@ -249,7 +258,8 @@ public class BmBattle(
      * Transcribed from src/bmbattle.c: SetBattleUnitWeaponBallista
      *   (not verified: not called by the traced battle)
      *
-     * Gives [unit] the ballista item of its tile and no counter.
+     * Gives [unit] (the actor firing a ballista) the item loaded in the ballista on its tile
+     * and no counter.
      */
     public fun setBattleUnitWeaponBallista(unit: BattleUnit) {
         unit.weapon = ballistaItemAt(unit.unitX, unit.unitY)
@@ -262,7 +272,8 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: ComputeBattleUnitStats
      *
-     * Computes all base battle stats of [attacker] against [defender].
+     * Computes [attacker]'s defense, attack, speed, hit, avoid, crit and dodge (crit avoid)
+     * against [defender], then adds the support, S-rank weapon and status-effect bonuses.
      */
     public fun computeBattleUnitStats(attacker: BattleUnit, defender: BattleUnit) {
         computeBattleUnitDefense(attacker, defender)
@@ -280,7 +291,9 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: ComputeBattleUnitEffectiveStats
      *
-     * Computes the effective hit / crit / silencer rates and the special weapon adjustments.
+     * Computes the effective hit and crit rates (own rate minus the opponent's avoid / dodge),
+     * the silencer rate, and the special weapon adjustments (magic swords, HP-halving and
+     * defense-negating weapons, petrified targets).
      */
     public fun computeBattleUnitEffectiveStats(attacker: BattleUnit, defender: BattleUnit) {
         computeBattleUnitEffectiveHitRate(attacker, defender)
@@ -292,7 +305,8 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: ComputeBattleUnitSupportBonuses
      *
-     * Adds the support bonuses of [attacker] unless this is a clear-weather arena battle.
+     * Adds the support (affinity) bonuses of [attacker], except in an arena battle under
+     * `WEATHER_FINE` (`chapterWeatherId` 0).
      */
     public fun computeBattleUnitSupportBonuses(attacker: BattleUnit, defender: BattleUnit) {
         if ((stats.config and BattleStats.CONFIG_ARENA) == 0 || playSt.chapterWeatherId != 0) {
@@ -310,8 +324,8 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: ComputeBattleUnitDefense
      *
-     * Defense (against magic: resistance) of [attacker] with its terrain bonus, by the damage
-     * type of the [defender]'s weapon.
+     * Defense plus terrain defense of [attacker], or resistance plus terrain resistance when the
+     * [defender]'s weapon is a magic weapon (`IA_MAGIC`) or deals magic damage (`IA_MAGICDAMAGE`).
      */
     public fun computeBattleUnitDefense(attacker: BattleUnit, defender: BattleUnit) {
         val attrs = items.getItemAttributes(defender.weapon)
@@ -328,7 +342,7 @@ public class BmBattle(
      * Transcribed from src/bmbattle.c: ComputeBattleUnitBaseDefense
      *   (not verified: not called by the traced battle)
      *
-     * Terrain defense plus defense, ignoring the opposing weapon.
+     * Terrain defense plus defense, ignoring the opposing weapon (physical defense only).
      */
     public fun computeBattleUnitBaseDefense(unit: BattleUnit) {
         unit.battleDefense = unit.terrainDefense + s8(unit.bytes, OFF_DEF)
@@ -337,7 +351,11 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: ComputeBattleUnitAttack
      *
-     * Weapon might with the triangle bonus, multiplied against effective targets, plus strength.
+     * Weapon might plus the weapon triangle damage bonus, tripled when the actor is a Bishop
+     * against a monster ([isUnitEffectiveAgainst]) or when the weapon is effective against the
+     * target's class ([isItemEffectiveAgainst]; doubled for the eight legendary weapons), plus the
+     * unit's Str / Mag (`pow`). A Monster Stone (`ITEM_MONSTER_STONE`) does no damage. The
+     * multiplications use C `short` arithmetic, hence the `toShort()`.
      */
     public fun computeBattleUnitAttack(attacker: BattleUnit, defender: BattleUnit) {
         attacker.battleAttack = items.getItemMight(attacker.weapon) + attacker.wTriangleDmgBonus
@@ -367,7 +385,8 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: ComputeBattleUnitSpeed
      *
-     * Speed minus the weight of the weapon beyond the unit's constitution, at least 0.
+     * Attack speed: Spd minus the weapon's weight beyond the unit's Con (`conBonus` holds the
+     * full Con here, see [initBattleUnit]), at least 0. Uses the pre-battle weapon.
      */
     public fun computeBattleUnitSpeed(unit: BattleUnit) {
         var effectiveWeight = items.getItemWeight(unit.weaponBefore)
@@ -400,7 +419,7 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: ComputeBattleUnitCritRate
      *
-     * Weapon crit plus skill / 2, plus 15 for crit-bonus classes.
+     * Weapon crit plus skill / 2, plus 15 for a character or class with `CA_CRITBONUS`.
      */
     public fun computeBattleUnitCritRate(unit: BattleUnit) {
         unit.battleCritRate = items.getItemCrit(unit.weapon) + s8(unit.bytes, OFF_SKL) / 2
@@ -410,7 +429,7 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: ComputeBattleUnitDodgeRate
      *
-     * The unit's luck.
+     * Dodge (the chance to avoid enemy crits) is the unit's luck.
      */
     public fun computeBattleUnitDodgeRate(unit: BattleUnit) {
         unit.battleDodgeRate = s8(unit.bytes, OFF_LCK)
@@ -430,8 +449,8 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: ComputeBattleUnitEffectiveCritRate
      *
-     * Crit rate minus the defender's dodge rate, 0 for a Monster Stone attacker and 0 against
-     * a defender carrying a crit-negating item.
+     * Crit rate minus the defender's dodge rate, at least 0; 0 for a Monster Stone attacker and
+     * 0 against a defender carrying an `IA_NEGATE_CRIT` item.
      */
     public fun computeBattleUnitEffectiveCritRate(attacker: BattleUnit, defender: BattleUnit) {
         attacker.battleEffectiveCritRate = attacker.battleCritRate - defender.battleDodgeRate
@@ -453,7 +472,8 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: ComputeBattleUnitSilencerRate
      *
-     * 50 for assassins, 25 against bosses, 0 against lethality-negating units.
+     * Chance (percent) of the Silencer, the instant kill: 50 for a `CA_ASSASSIN` attacker, 25
+     * against a `CA_BOSS` defender, 0 against a `CA_NEGATE_LETHALITY` defender.
      */
     public fun computeBattleUnitSilencerRate(attacker: BattleUnit, defender: BattleUnit) {
         if ((unitCAttributes(attacker.bytes, 0) and CA_ASSASSIN) == 0) {
@@ -470,7 +490,8 @@ public class BmBattle(
      * Transcribed from src/bmbattle.c: ComputeBattleUnitWeaponRankBonuses
      *   (not verified: no traced unit has an S rank weapon)
      *
-     * +5 hit and crit for an S rank in the weapon's type.
+     * +5 hit and crit when the unit's rank in the weapon's type is S (weapon exp at least
+     * `WPN_EXP_S`). Only the eight sword..dark types count.
      */
     public fun computeBattleUnitWeaponRankBonuses(unit: BattleUnit) {
         if (unit.weapon != 0) {
@@ -486,7 +507,8 @@ public class BmBattle(
      * Transcribed from src/bmbattle.c: ComputeBattleUnitStatusBonuses
      *   (not verified: no traced unit has a status effect)
      *
-     * The +10 of the attack, defense, crit and avoid status effects.
+     * +10 to attack, defense, crit or avoid from the matching unit status (`UNIT_STATUS_ATTACK`,
+     * `_DEFENSE`, `_CRIT`, `_AVOID`).
      */
     public fun computeBattleUnitStatusBonuses(unit: BattleUnit) {
         when (unit.unitStatusIndex) {
@@ -501,8 +523,11 @@ public class BmBattle(
      * Transcribed from src/bmbattle.c: ComputeBattleUnitSpecialWeaponStats
      *   (not verified: no special weapon or petrified target in the trace)
      *
-     * Magic swords halve strength and lose crit; half-HP weapons, defense-negating weapons and
-     * petrified targets override attack, defense and rates.
+     * Magic-damage swords (Lightbrand, Runesword, Windsword) lose half the unit's strength from
+     * their attack and cannot crit. Otherwise: an HP-halving weapon (`WPN_EFFECT_HPHALVE`) attacks
+     * for half the defender's HP rounded up (at least 1) against 0 defense and cannot crit; an
+     * `IA_NEGATE_DEFENSE` weapon zeroes the defender's defense; a petrified defender (status 11
+     * or 13) is always hit and takes +30 crit.
      */
     public fun computeBattleUnitSpecialWeaponStats(attacker: BattleUnit, defender: BattleUnit) {
         if ((attacker.weaponAttributes and ItemInfo.IA_MAGICDAMAGE) != 0) {
@@ -539,10 +564,13 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: BattleApplyWeaponTriangleEffect
      *
-     * Sets the weapon triangle hit / damage bonuses of both units from the ROM rule table, with
-     * the reaver inversion.
+     * Sets the weapon triangle hit / damage bonuses of both units from the ROM rule table
+     * (`sWeaponTriangleRules`: sword beats axe beats lance beats sword, anima beats light beats
+     * dark beats anima; the winner gets +15 hit and +1 damage, the loser the same negated), then
+     * applies the reaver inversion.
      */
     public fun battleApplyWeaponTriangleEffect(attacker: BattleUnit, defender: BattleUnit) {
+        // A rule is 4 signed bytes: attacker type, defender type, hit bonus, damage bonus.
         var rule = WEAPON_TRIANGLE_RULES
         while (rom.u8(rule).toByte() >= 0) {
             if (attacker.weaponType == rom.u8(rule) &&
@@ -563,6 +591,7 @@ public class BmBattle(
             battleApplyReaverEffect(attacker, defender)
         }
         if ((defender.weaponAttributes and ItemInfo.IA_REVERTTRIANGLE) != 0) {
+            // Same argument order as for the attacker: the C does not swap them.
             battleApplyReaverEffect(attacker, defender)
         }
     }
@@ -571,7 +600,8 @@ public class BmBattle(
      * Transcribed from src/bmbattle.c: BattleApplyReaverEffect
      *   (not verified: no reaver weapon in the trace)
      *
-     * Inverts and doubles the triangle bonuses unless both weapons are reavers.
+     * Reaver weapons (`IA_REVERTTRIANGLE`): inverts and doubles the triangle bonuses, unless both
+     * weapons are reavers, in which case they are left alone.
      */
     public fun battleApplyReaverEffect(attacker: BattleUnit, defender: BattleUnit) {
         if ((attacker.weaponAttributes and ItemInfo.IA_REVERTTRIANGLE) == 0 ||
@@ -588,8 +618,9 @@ public class BmBattle(
      * Transcribed from src/bmbattle.c: BattleInitTargetCanCounter
      *   (not verified: no gorgon egg, uncounterable weapon or berserk actor in the trace)
      *
-     * Clears the target's weapon and counter for gorgon eggs, uncounterable weapons and a berserk
-     * blue actor attacking a blue target.
+     * Clears the target's weapon and counter when the target is a gorgon egg (`CLASS_GORGONEGG`,
+     * `CLASS_GORGONEGG2`), when either weapon is uncounterable (`IA_UNCOUNTERABLE`), or when a
+     * berserk player-army actor (`FACTION_BLUE`) attacks another player-army unit.
      */
     public fun battleInitTargetCanCounter() {
         val cls = rom.u8(u32(target.bytes, OFF_CLASS) + 4)
@@ -618,7 +649,8 @@ public class BmBattle(
     /**
      * Ported from src/bmbattle.c: BattleUnitTargetCheckCanCounter
      *
-     * A target that cannot counter gets 0xFF attack and rates.
+     * A unit that cannot counter gets 0xFF attack and rates, the "no value" marker the battle
+     * forecast (`src/bksel.c`) tests for.
      */
     public fun battleUnitTargetCheckCanCounter(unit: BattleUnit) {
         if (unit.canCounter == 0) {
@@ -631,13 +663,15 @@ public class BmBattle(
     }
 
     /**
-     * Transcribed from src/bmunit.c: GetUnitSupportBonuses via src/bmreliance.c (not verified:
-     *   the traced units have no supporter on the map, srcOffset only the empty sum is compared)
+     * Transcribed from src/bmreliance.c: GetUnitSupportBonuses via src/bmreliance.c (not verified:
+     *   the traced units have no supporter on the map, so only the empty sum is compared)
      *
      * Writes the halved support bonuses (attack, defense, hit, avoid, crit, dodge) of the unit at
-     * [offset] of [bytes] into [bonusOut] (6 ints); returns the support bit mask of the C. Unlike
-     * the C, an
-     * affinity missing from `gAffinityBonuses` adds nothing (the C reads past the table).
+     * [offset] of [bytes] into [bonusOut] (6 ints): for each supporter within 3 tiles that is
+     * not unavailable or rescued, both characters' affinity bonuses at their support level.
+     * Returns the C's bit mask: bit `i` set when both sides have a support level above 0 with
+     * supporter `i`. Unlike the C, an affinity missing from `gAffinityBonuses` adds nothing (the
+     * C reads past the table).
      */
     internal fun getUnitSupportBonuses(bytes: ByteArray, offset: Int, bonusOut: IntArray): Int {
         bonusOut.fill(0)
@@ -653,7 +687,8 @@ public class BmBattle(
             if (other < 0) continue
             val tableBytes = table.bytes
 
-            // The 3-tile support range is not enforced while game-state bit 0x40 is set.
+            // 0x40 is `BM_FLAG_LINKARENA`: the 3-tile support range is not enforced in link
+            // arena.
             if ((bmSt.gameStateBits and 0x40) == 0) {
                 val distance = abs(s8(bytes, offset + OFF_X) - s8(tableBytes, other + OFF_X)) +
                     abs(s8(bytes, offset + OFF_Y) - s8(tableBytes, other + OFF_Y))
@@ -679,23 +714,26 @@ public class BmBattle(
         return result
     }
 
-    /** The support data table pointer of the unit's character, 0 for none. */
+    /** `pSupportData` (`CharacterData` 0x2C) of the unit's character, 0 for none. */
     private fun supportData(bytes: ByteArray, offset: Int): Int =
         rom.u32(u32(bytes, offset + OFF_CHARACTER) + 0x2C)
 
-    /** The number of supporters the unit's character has in its support data. */
+    /** `GetUnitSupporterCount`: `supportCount` (`SupportData` 0x15), 0 without support data. */
     private fun supporterCount(bytes: ByteArray, offset: Int): Int {
         val d = supportData(bytes, offset)
         return if (d == 0) 0 else rom.u8(d + 0x15)
     }
 
-    /** The character id of supporter [num] of the unit, 0 when there is no support data. */
+    /** `GetUnitSupporterCharacter`: `characters[num]`, 0 when there is no support data. */
     private fun supporterCharacter(bytes: ByteArray, offset: Int, num: Int): Int {
         val d = supportData(bytes, offset)
         return if (d == 0) 0 else rom.u8(d + num)
     }
 
-    /** `GetUnitSupporterUnit`: the table offset of the supporter, or -1. */
+    /**
+     * `GetUnitSupporterUnit`: the table offset of the valid unit of the same faction that is the
+     * unit's supporter [num], or -1.
+     */
     private fun supporterUnit(bytes: ByteArray, offset: Int, num: Int, faction: Int): Int {
         val charId = supporterCharacter(bytes, offset, num)
         for (id in faction + 1 until faction + 0x40) {
@@ -705,7 +743,7 @@ public class BmBattle(
         return -1
     }
 
-    /** The support slot of the unit that holds character [charId], or -1 when none does. */
+    /** `GetUnitSupporterNum`: the support slot of the unit that holds [charId], or -1. */
     private fun supporterNum(bytes: ByteArray, offset: Int, charId: Int): Int {
         val count = supporterCount(bytes, offset)
         for (i in 0 until count) {
@@ -730,8 +768,9 @@ public class BmBattle(
     }
 
     /**
-     * Adds the affinity table row of [affinity] (`gAffinityBonuses`, six bonus bytes per row) at
-     * [level] to [bonusOut]; nothing for an affinity without a row.
+     * Adds the affinity table row of [affinity] (`gAffinityBonuses`, `struct SupportBonuses`: the
+     * affinity byte, then the attack, defense, hit, avoid, crit, dodge bonus per support level)
+     * times the support [level] to [bonusOut]; nothing for an affinity without a row.
      */
     private fun applyAffinitySupportBonuses(bonusOut: IntArray, affinity: Int, level: Int) {
         var row = AFFINITY_BONUSES
@@ -748,9 +787,10 @@ public class BmBattle(
 
     /**
      * Transcribed from src/bmunit.c: GetUnitPower (not verified: no traced unit has a power
-     *   bonus item, srcOffset the bonus term is not exercised)
+     *   bonus item, so the bonus term is not exercised)
      *
-     * `pow` plus the power bonus of the equipped weapon of the unit at [offset] of [bytes].
+     * Str / Mag (`pow`) plus the power bonus of the equipped weapon of the unit at [offset] of
+     * [bytes].
      */
     internal fun getUnitPower(bytes: ByteArray, offset: Int): Int =
         s8(bytes, offset + OFF_POW) +
@@ -759,6 +799,9 @@ public class BmBattle(
     /**
      * Transcribed from src/bmunit.c: GetUnitSkill (not verified: no bonus item and no rescuing
      *   unit in the trace)
+     *
+     * Skill plus the equipped weapon's skill bonus; the unit's own skill is halved while it is
+     * rescuing another unit (`US_RESCUING`).
      */
     internal fun getUnitSkill(bytes: ByteArray, offset: Int): Int {
         val item = loader.getUnitEquippedWeapon(bytes, offset)
@@ -773,6 +816,9 @@ public class BmBattle(
     /**
      * Transcribed from src/bmunit.c: GetUnitSpeed (not verified: no bonus item and no rescuing
      *   unit in the trace)
+     *
+     * Speed plus the equipped weapon's speed bonus; the unit's own speed is halved while it is
+     * rescuing another unit (`US_RESCUING`).
      */
     internal fun getUnitSpeed(bytes: ByteArray, offset: Int): Int {
         val item = loader.getUnitEquippedWeapon(bytes, offset)
@@ -786,6 +832,8 @@ public class BmBattle(
 
     /**
      * Transcribed from src/bmunit.c: GetUnitDefense (not verified: no bonus item in the trace)
+     *
+     * Defense plus the equipped weapon's defense bonus.
      */
     internal fun getUnitDefense(bytes: ByteArray, offset: Int): Int =
         s8(bytes, offset + OFF_DEF) +
@@ -794,6 +842,9 @@ public class BmBattle(
     /**
      * Transcribed from src/bmunit.c: GetUnitResistance (not verified: no bonus item and no
      *   barrier in the trace)
+     *
+     * Resistance plus the equipped weapon's resistance bonus plus the strength of an active
+     * Barrier status (`barrierDuration`, the high nibble of byte 0x31).
      */
     internal fun getUnitResistance(bytes: ByteArray, offset: Int): Int =
         s8(bytes, offset + OFF_RES) +
@@ -802,6 +853,8 @@ public class BmBattle(
 
     /**
      * Transcribed from src/bmunit.c: GetUnitLuck (not verified: no bonus item in the trace)
+     *
+     * Luck plus the equipped weapon's luck bonus.
      */
     internal fun getUnitLuck(bytes: ByteArray, offset: Int): Int =
         s8(bytes, offset + OFF_LCK) +
@@ -812,15 +865,15 @@ public class BmBattle(
         rom.u8(u32(bytes, offset + OFF_CLASS) + 0x11).toByte() +
             rom.u8(u32(bytes, offset + OFF_CHARACTER) + 0x13).toByte()
 
-    /** `UNIT_CON`. */
+    /** `UNIT_CON`: [unitConBase] plus the unit's `conBonus` (bonus Con). */
     private fun unitCon(bytes: ByteArray, offset: Int): Int =
         unitConBase(bytes, offset) + s8(bytes, offset + OFF_CON_BONUS)
 
-    /** `UNIT_MOV`. */
+    /** `UNIT_MOV`: the unit's `movBonus` plus the class base Mov (`ClassData` 0x12). */
     private fun unitMov(bytes: ByteArray, offset: Int): Int =
         s8(bytes, offset + OFF_MOV_BONUS) + rom.u8(u32(bytes, offset + OFF_CLASS) + 0x12).toByte()
 
-    /** `UNIT_CATTRIBUTES`. */
+    /** `UNIT_CATTRIBUTES`: the `CA_*` flags of the unit's character and class combined. */
     private fun unitCAttributes(bytes: ByteArray, offset: Int): Int =
         rom.u32(u32(bytes, offset + OFF_CHARACTER) + 0x28) or
             rom.u32(u32(bytes, offset + OFF_CLASS) + 0x28)
@@ -840,8 +893,9 @@ public class BmBattle(
     }
 
     /**
-     * Whether the unit may wield [item] right now: it must be a weapon, and a magic weapon is
-     * refused while the unit is silenced or on a magic-sealed tile.
+     * `CanUnitUseWeaponNow`: whether the unit may wield [item] right now: it must be a weapon,
+     * and a magic weapon is refused while the unit is magic-sealed ([isUnitMagicSealed]); the
+     * rest (rank, weapon locks, silence) is [UnitLoader.canUnitUseWeapon].
      */
     private fun canUnitUseWeaponNow(bytes: ByteArray, offset: Int, item: Int): Boolean {
         if (item == 0) return false
@@ -853,19 +907,23 @@ public class BmBattle(
         return loader.canUnitUseWeapon(bytes, offset, item)
     }
 
-    /** Whether the unit is silenced or stands on a magic-sealed tile. */
+    /**
+     * `IsUnitMagicSealed`: whether the unit is silenced (`UNIT_STATUS_SILENCED`) or within reach
+     * of an enemy `CA_MAGICSEAL` unit ([isPositionMagicSealed]).
+     */
     private fun isUnitMagicSealed(bytes: ByteArray, offset: Int): Boolean =
         (u8(bytes, offset + OFF_STATUS) and 0xF) == UnitLoader.UNIT_STATUS_SILENCED ||
             isPositionMagicSealed(s8(bytes, offset + OFF_X), s8(bytes, offset + OFF_Y))
 
-    /** Whether [range] is within the item's minimum and maximum range. */
+    /** `IsItemCoveringRange`: whether [range] is within the item's minimum and maximum range. */
     private fun isItemCoveringRange(item: Int, range: Int): Boolean =
         items.getItemMinRange(item) <= range && range <= items.getItemMaxRange(item)
 
     /**
-     * Whether [item] is effective against the unit at [offset] of [bytes]: its class is in the
-     * item's effectiveness list. For the flier lists the match only counts when no item the unit
-     * carries negates flying.
+     * `IsItemEffectiveAgainst`: whether [item] is effective against the unit at [offset] of
+     * [bytes]: its class is in the item's effectiveness list (`pEffectiveness`, class ids ending
+     * in 0). For the flier lists the match only counts when no item the unit carries has
+     * `IA_NEGATE_FLYING`.
      */
     private fun isItemEffectiveAgainst(item: Int, bytes: ByteArray, offset: Int): Boolean {
         val cls = u32(bytes, offset + OFF_CLASS)
@@ -913,7 +971,10 @@ public class BmBattle(
         return false
     }
 
-    /** `gUnknown_03003060`: the arena level (`UNIT_ARENA_LEVEL`) of the last unit updated. */
+    /**
+     * `gUnknown_03003060`: the arena level (`UNIT_ARENA_LEVEL`, bits 17..19 of the unit state) of
+     * the last unit updated; what reads it is unknown.
+     */
     public var arenaLevelLatch: Int = 0
 
     /**
@@ -989,6 +1050,7 @@ public class BmBattle(
         if (unit.statusOut >= 0) {
             // SetUnitStatus
             val index = unit.statusOut
+            // Duration 5 turns in the high nibble; clearing the status clears both nibbles.
             val statusByte = if (index == 0) 0 else (index and 0xF) or (5 shl 4)
             put8(tableBytes, offset + OFF_STATUS, statusByte)
         }
@@ -1032,14 +1094,18 @@ public class BmBattle(
      * Transcribed from src/bmbattle.c: GetBattleUnitUpdatedWeaponExp (not verified: the Prologue
      *   never runs it; the f15075 update is EventBattleReloadBmStatus)
      *
-     * The weapon exp [unit] has after the battle, or -1 where it gains none.
+     * The weapon exp (the raw value behind the E..S rank, `WPN_EXP_*`) [unit] has in the
+     * weapon's type after the battle, or -1 where it gains none: not a player-army unit, dead,
+     * an extra map, link arena (`BM_FLAG_LINKARENA`), or outside the arena a unit that cannot
+     * counter or wields a non-weapon, magic-damage or `IA_LOCK_3` (monster) weapon. The gain is
+     * the weapon's `weaponExp` times `wexpMultiplier`, capped by the unit's tier.
      */
     public fun getBattleUnitUpdatedWeaponExp(unit: BattleUnit): Int {
         val unitBytes = unit.bytes
         if ((s8(unitBytes, OFF_INDEX) and 0xC0) != UnitLoader.FACTION_BLUE) return -1
         if (u8(unitBytes, OFF_CUR_HP) == 0) return -1
         if ((playSt.chapterStateBits and PLAY_FLAG_EXTRA_MAP) != 0) return -1
-        if ((bmSt.gameStateBits and 0x40) != 0) return -1
+        if ((bmSt.gameStateBits and 0x40) != 0) return -1 // BM_FLAG_LINKARENA
         if ((stats.config and BattleStats.CONFIG_ARENA) == 0) {
             if (unit.canCounter == 0) return -1
             val requiresWexp = ItemInfo.IA_WEAPON or ItemInfo.IA_STAFF
@@ -1049,9 +1115,12 @@ public class BmBattle(
             }
         }
         var result = u8(unitBytes, OFF_RANKS + unit.weaponType)
+        // ItemData 0x20 is `weaponExp`, the exp one hit with the weapon awards.
         result += rom.u8(items.getItemData(items.getItemIndex(unit.weapon)) + 0x20) *
             unit.wexpMultiplier
         val cls = u32(unitBytes, OFF_CLASS)
+        // A unit that holds S in another type (not just as a class starting rank, `ClassData`
+        // 0x2C `baseRanks`) cannot reach S in this one: capped at S - 1.
         for (i in 0 until 8) {
             if (i == unit.weaponType) continue
             if (rom.u8(cls + 0x2C + i) == WPN_EXP_S) continue
@@ -1059,6 +1128,7 @@ public class BmBattle(
             if (result >= WPN_EXP_S) result = WPN_EXP_S - 1
             break
         }
+        // Rank cap by tier: promoted up to S, `CA_MAXLEVEL10` classes up to C, others up to A.
         val attrs = unitCAttributes(unitBytes, 0)
         if ((attrs and UnitLoader.CA_PROMOTED) != 0) {
             if (result > WPN_EXP_S) result = WPN_EXP_S
@@ -1074,7 +1144,9 @@ public class BmBattle(
      * Transcribed from src/bmbattle.c: BattleApplyBallistaUpdates (not verified: only the
      *   no-op branch occurs in the Prologue trace)
      *
-     * In a ballista battle stores the remaining uses of the actor's weapon in the ballista trap.
+     * In a ballista battle stores the remaining uses of the actor's weapon (the high byte of
+     * the item word) in the ballista trap (`TRAP_EXTDATA_BLST_ITEMUSES`), so uses persist
+     * between shots.
      */
     public fun battleApplyBallistaUpdates() {
         if ((stats.config and BattleStats.CONFIG_BALLISTA) != 0) {
@@ -1087,18 +1159,21 @@ public class BmBattle(
         /** `BU_ISLOT_AUTO`. */
         public const val BU_ISLOT_AUTO: Int = -1
 
-        /** `BU_ISLOT_5`. */
+        /** `BU_ISLOT_5`: an item outside the inventory (`gBmSt.um_tmp_item`; "borrowed item?"). */
         public const val BU_ISLOT_5: Int = 5
 
-        /** `BU_ISLOT_ARENA_PLAYER`. */
+        /** `BU_ISLOT_ARENA_PLAYER`: the arena player's weapon, no counter. */
         public const val BU_ISLOT_ARENA_PLAYER: Int = 6
 
-        /** `BU_ISLOT_ARENA_OPPONENT`. */
+        /** `BU_ISLOT_ARENA_OPPONENT`: the arena opponent's weapon, no counter. */
         public const val BU_ISLOT_ARENA_OPPONENT: Int = 7
 
-        /** `BU_ISLOT_BALLISTA`. */
+        /** `BU_ISLOT_BALLISTA`: the ballista the unit rides, no counter. */
         public const val BU_ISLOT_BALLISTA: Int = 8
 
+        // `struct Unit` field offsets (include/bmunit.h); `OFF_TORCH_BARRIER` holds the torch
+        // duration in the low nibble and the barrier duration in the high one; `OFF_SUPPORTS`
+        // is the `supports[]` array of support exp per supporter.
         private const val OFF_CHARACTER = 0x00
         private const val OFF_CLASS = 0x04
         private const val OFF_LEVEL = 0x08
@@ -1123,6 +1198,8 @@ public class BmBattle(
         private const val OFF_TORCH_BARRIER = 0x31
         private const val OFF_SUPPORTS = 0x32
 
+        // `US_*` unit state bits, `CA_*` character / class attribute bits, `WPN_EXP_*` weapon exp
+        // at which the S, C and A ranks start (E 1, D 31, C 71, B 121, A 181, S 251).
         private const val US_RESCUED = 1 shl 5
         private const val US_IN_BALLISTA = 1 shl 11
         private const val CA_CRITBONUS = 1 shl 6
@@ -1132,9 +1209,12 @@ public class BmBattle(
         private const val WPN_EXP_S = 251
         private const val WPN_EXP_C = 71
         private const val WPN_EXP_A = 181
+        // `PLAY_FLAG_EXTRA_MAP`, bit 7 of `gPlaySt.chapterStateBits`; the decomp says no more.
         private const val PLAY_FLAG_EXTRA_MAP = 1 shl 7
         private const val OFF_BALLISTA_INDEX = 0x1C
         private const val WPN_EFFECT_HPHALVE = 3
+        // `UNIT_STATUS_*` ids. `UNIT_STATUS_13` has no decomp name: it is handled like PETRIFY
+        // and is set instead of it when a petrify weapon hits a unit of the phase's own faction.
         private const val STATUS_SLEEP = 2
         private const val STATUS_BERSERK = 4
         private const val STATUS_ATTACK = 5
@@ -1148,6 +1228,8 @@ public class BmBattle(
         private const val ITYPE_DARK = 7
         private const val SUPPORT_BONUSES_MAX_DISTANCE = 3
 
+        // Item ids (include/constants/items.h): the magic swords, the eight legendary weapons
+        // (Sieglinde .. Nidhogg, Excalibur, Ivaldi) and the monster weapon "Stone".
         private const val ITEM_SWORD_LIGHTBRAND = 0x10
         private const val ITEM_SWORD_RUNESWORD = 0x11
         private const val ITEM_ANIMA_EXCALIBUR = 0x3E
@@ -1161,10 +1243,10 @@ public class BmBattle(
         private const val ITEM_SWORD_WINDSWORD = 0xA1
         private const val ITEM_MONSTER_STONE = 0xB5
 
-        /** ROM address of `sWeaponTriangleRules`. */
+        /** ROM address of `sWeaponTriangleRules` (12 four-byte rules, then a `-1` terminator). */
         private const val WEAPON_TRIANGLE_RULES = 0x0859BA90
 
-        /** ROM address of `gAffinityBonuses`. */
+        /** ROM address of `gAffinityBonuses` (seven bytes per row, ends at affinity 0). */
         private const val AFFINITY_BONUSES = 0x088B05F8
 
         /** ROM addresses of `ItemEffectiveness_Flier`, `_FlierAndMonsters`, `_Monsters`. */

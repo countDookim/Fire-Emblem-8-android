@@ -74,13 +74,14 @@ Owner request 2026-11-11: one coherent plan across code and docs; formatting and
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
 | ALN-1 | comments | Kotlin comments/KDoc: drop IDs of finished tasks, point open work at current rows or milestones; fix stale statements (e.g. `AssetLayer` bundling) | No retired task ID left in Kotlin; `jvmTest` + Dokka green; diff is comments only | — | started |
-| ALN-2 | doc | ARCHITECTURE, module READMEs, ADR 0014 (roadmap, scope, capture-first), brief body merged with its amendments, plan notes point at lanes, READABILITY sizes, MANUAL_TEST milestone refs | No doc names a retired task as open work or contradicts ROADMAP; links resolve | — | todo |
+| ALN-2 | doc | ARCHITECTURE, module READMEs, ADR 0014 (roadmap, scope, capture-first), brief body merged with its amendments, plan notes point at lanes, READABILITY sizes, MANUAL_TEST milestone refs | No doc names a retired task as open work or contradicts ROADMAP; links resolve | — | started |
+| STAND-1 | tool+doc | `tools/standins.py` generates `docs/plans/STANDINS.md`: every stand-in in main Kotlin, grouped by the milestone or row its comment names | `--check` in CI; each WIRE row can read its checklist there; no Kotlin change | ALN-1 (for the final `--write`) | started |
+| M7-0 | doc | Audit each "Modding groundwork" bullet of the brief against the code, incl. ROM-address table reads | Findings + M7 task rows in `docs/plans/M7-modding.md`; read-only on code | — | started |
 
 ## Other open rows
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| M7-0 | doc | Audit each "Modding groundwork" bullet of the brief against the code, incl. ROM-address table reads | Findings + M7 task rows in `docs/plans/M7-modding.md` | — | todo |
 | CAP-hard1 | CAP | Hard-mode New Game run reaching autolevelled loads (unblocks old M6-13) | Run published; then tag `UnitAutolevelRealistic`, `UnitApplyBonusLevels`, `UnitAutolevelPenalty` | — | todo |
 | CAP-collide1 | CAP | Run where a unit load lands on an occupied tile (unblocks old M6-14) | Run published; then verify `AiGetUnitClosestValidPosition`, `AdjustNewUnitPosition` | — | todo |
 | D12-2 | CAP+PORT | Enemy-phase intro capture with per-scanline blend; extend `PhaseIntroDifferentialTest` | Enemy name graphics/palette and per-line blend equal the capture | — | todo; do with M6-D |

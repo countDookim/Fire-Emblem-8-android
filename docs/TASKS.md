@@ -30,7 +30,6 @@ Notes: [D11-worldmap](plans/D11-worldmap.md) (§8 status), [M6-notes](plans/M6-n
 | D11-cap1 | CAP | Per-step LCD + OAM watch for 5500–5700 and 8100–8450 | Old runs byte-identical; published; available through FE8_ASSETS | — | todo |
 | D11-wm4d | PORT | Border1 blend/OAM/palette and unit-fade palettes | Per-step LCD/OAM equal D11-cap1 | D11-cap1 | todo |
 | D11-wm9 | WIRE | `hooks.worldMapWrapperScript`/`endWorldMap` in `Fe8Boot` | Headless New Game reaches `StartBattleMap`; 0 B/frame; MANUAL_TEST | D11-wm8f | todo |
-| D11-ci3c | PORT | Intro tail: `ChapterIntro_8020A40`/`8020A8C` (f9709–9831), BeginFadeToMap/LoopFadeToMap, end-each + sleep, `ChapterIntro_End` (9872) | Extend ChapterIntroMainPathTest to the hand-off frame | D11-ci3b | todo |
 
 ## Lane B: player phase (M6-B)
 
@@ -38,9 +37,8 @@ Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames, proc
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| PP-5 | PORT | Path arrow data: `ResetPathArrow`, `UpdatePathArrowWithCursor`, `AddPointToPathArrowProc`, `CutOffPathLength` | Path buffers per step | PP-3 | todo |
-| PP-6 | PORT | Path arrow drawing: `DrawPathArrow`, `DrawUpdatedPathArrow` | OAM at dumps | PP-5 | todo |
-| PP-7 | PORT | `PlayerPhase_RangeDisplayIdle` confirm/cancel, `CanMoveActiveUnitTo`, `PlayerPhase_BackToMove`, `CancelAction` | Proc position per step in cap1/cap2 | PP-3 | todo |
+| PP-6 | PORT | Path arrow drawing: `DrawPathArrow`, `DrawUpdatedPathArrow` | OAM at dumps | — | todo |
+| PP-7 | PORT | `PlayerPhase_RangeDisplayIdle` confirm/cancel, `CanMoveActiveUnitTo`, `PlayerPhase_BackToMove`, `CancelAction` | Proc position per step in cap1/cap2 | PP-3 | in progress (owner PC) |
 | PP-8 | PORT | Move: `GenerateBestMovementScript`, `PlayerPhase_DisplayUnitMovement`, `WaitForUnitMovement`, `ApplyUnitMovement`; `ProcScr_MuStepSe` | MU fields per step (f1296–1314); unit x/y after | PP-7 | todo |
 | PP-11 | PORT | `PlayerPhase_PrepareAction`/`FinishAction`, Wait action, `HandleAutoEnd`; post-action event check (StdEventEngine f1356–1358) | Unit state bits after the action | PP-8 | todo |
 | PP-12 | PORT | Map menu draw and End | Menu fields; other items are explicit stand-ins | PP-9 | todo |
@@ -66,11 +64,11 @@ Row details, including what each task left transcribed: [archive](plans/TASKS-ar
 
 - **M1–M5** complete. **M6 part 1** (Prologue opening to turn 1, suspend/resume): M6-01..12, 15..19, 21..28,
   30..39, 41..43, 45, 46 done; M6-20, 29, 40, 44 done as far as captures allow.
-- **D-series:** D13-cap1 (`ram_trace_prologue_cutscene_skip`, ROM `bd66e15`), D11-ci3b (fog, decal, Bg2Scroll, timer; to f9708), D11-wm3e (`ec9883b`; show transition only, hide not captured; wiring in D11-wm9), D11-ci3 (`2c121c6`; light effects), D11-ci2 (`7f92921`; title hooks `getPlayChapterId`/`getNextUnclearedNode` stand-ins until M6-I), D11-ci4 (`e3ef72b`), D11-wm3d (`1f883a6`), D11-cap2 (`ram_trace_newgame_intro`, ROM `eb263d1`), D11-wm3c, D11-ci1 (`89d837d`), D11-wm3b (`f6b08f2`), D11-ci0 (`ChapterIntroProcInventoryTest`), D07-audio, D07-trace, D09-1, D09-1b, D09-2, D11-slides, D11-fades, D11-init, D11-flare,
+- **D-series:** D11-ci3c (`5146b83`; main path to f9872; `ChapterIntro_End` still transcribed), D13-cap1 (`ram_trace_prologue_cutscene_skip`, ROM `bd66e15`), D11-ci3b (fog, decal, Bg2Scroll, timer; to f9708), D11-wm3e (`ec9883b`; show transition only, hide not captured; wiring in D11-wm9), D11-ci3 (`2c121c6`; light effects), D11-ci2 (`7f92921`; title hooks `getPlayChapterId`/`getNextUnclearedNode` stand-ins until M6-I), D11-ci4 (`e3ef72b`), D11-wm3d (`1f883a6`), D11-cap2 (`ram_trace_newgame_intro`, ROM `eb263d1`), D11-wm3c, D11-ci1 (`89d837d`), D11-wm3b (`f6b08f2`), D11-ci0 (`ChapterIntroProcInventoryTest`), D07-audio, D07-trace, D09-1, D09-1b, D09-2, D11-slides, D11-fades, D11-init, D11-flare,
   D11-skip, D11-proc, D11-worldmap, D11-wm1, D11-wm2, D12-1. D11-wm3..wm7 (+ wm4a–c, wm6b–d): standalone
   ports verified as far as the Prologue runs them; the rest is in lane A.
 - M4-02, M4-12, M5-56, 56b, 57..61.
-- **Lane B:** PP-10 (`12f5003`; Attack/Item availability, EffectWait; target count hook until bmtarget.c, menu not started by PlayerPhase yet), PP-4 (range squares; hook in PlayerPhase until PP-17; menu-started stretch of attack run unverified), PP-15 (`6dcb288`+; unit mini-box, HP bar; status/Burst stand-ins → CAP-status1), PP-3 (`unitSelectEnabled` off until PP-17; `MainIdle`/`DisplayUnitEffectRange` partial), PP-14 (`5f3a81b`; terrain window; unit/goal windows hooks, their config gating moves into `InitPlayerPhaseInterface` with PP-15/16), PP-0a (hover cursor, `fe2f778` + fix `c18263a`; owner device check pending), PP-2 (`caa2f1f`; ballista branch, `MapSetInRange`, single-slot reach transcribed), PP-9 (`ff84b6f`; `DisplayFrozenUiHand` still a hook), PP-1 (`8da6b33`; `GenerateUnitMovementMap` itself not run in the window), PP-0 (`PlayerPhaseProcInventoryTest`, `8036f44`), PP-cap1 (`ram_trace_prologue_select_move`, ROM `c3ad5d4`), PP-cap2 (`ram_trace_prologue_cancel_end`, ROM `45f35cf`), PP-cap3 (`ram_trace_prologue_attack`, ROM `07a6ca9`, animations on).
+- **Lane B:** PP-5 (`ce24e79`; re-route branch and `ResetPathArrow` transcribed; best-path hook until PP-8), PP-10 (`12f5003`; Attack/Item availability, EffectWait; target count hook until bmtarget.c, menu not started by PlayerPhase yet), PP-4 (range squares; hook in PlayerPhase until PP-17; menu-started stretch of attack run unverified), PP-15 (`6dcb288`+; unit mini-box, HP bar; status/Burst stand-ins → CAP-status1), PP-3 (`unitSelectEnabled` off until PP-17; `MainIdle`/`DisplayUnitEffectRange` partial), PP-14 (`5f3a81b`; terrain window; unit/goal windows hooks, their config gating moves into `InitPlayerPhaseInterface` with PP-15/16), PP-0a (hover cursor, `fe2f778` + fix `c18263a`; owner device check pending), PP-2 (`caa2f1f`; ballista branch, `MapSetInRange`, single-slot reach transcribed), PP-9 (`ff84b6f`; `DisplayFrozenUiHand` still a hook), PP-1 (`8da6b33`; `GenerateUnitMovementMap` itself not run in the window), PP-0 (`PlayerPhaseProcInventoryTest`, `8036f44`), PP-cap1 (`ram_trace_prologue_select_move`, ROM `c3ad5d4`), PP-cap2 (`ram_trace_prologue_cancel_end`, ROM `45f35cf`), PP-cap3 (`ram_trace_prologue_attack`, ROM `07a6ca9`, animations on).
 - **Tests:** TEST-1 (`2103612`, `a0d69c4`, `407a17f`; full run 4.5 → 3.3 min, 806 tests; [TEST-SPEEDUP](plans/TEST-SPEEDUP.md)).
 - **App:** APP-1 (launcher Delete save, `e39c730`; owner-confirmed on 0.1.590).
 - **Alignment:** PROG-1 (`b459cf3`), UNV-1, ALN-1 (`3f85702`), ALN-2, STAND-1, STAND-2, M7-0 ([M7-modding](plans/M7-modding.md): 23 proposed rows; D1 decided = option A, ADR 0015; D2–D9 open).

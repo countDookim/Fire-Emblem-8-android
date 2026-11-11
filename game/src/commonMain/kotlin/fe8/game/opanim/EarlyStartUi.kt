@@ -17,9 +17,11 @@ import gbafe.render.BgHardware
 import gbafe.render.LcdControl
 
 /**
- * `ProcScr_GameEarlyStartUI` (src/opanim-healthsafetyscreen.c): health & safety screen, Nintendo and
- * Intelligent Systems logos, with the A/B logo skip. Same 28 commands as the ROM script, so command indices match
- * `proc_scrCur`. Screen loads use [Env.gfx] and [Env.hardware].
+ * `ProcScr_GameEarlyStartUI` (src/opanim-healthsafetyscreen.c): the boot-time sequence of the
+ * health & safety screen, then the Nintendo and Intelligent Systems logos, with the A/B logo skip.
+ * Same 28 commands as the ROM script, so command indices match `proc_scrCur`. Screen loads use
+ * [Env.gfx] and [Env.hardware]. The per-frame work lives in [OpAnimHs]; this class only wires
+ * those steps into the script and turns each step's result into proc control (break, skip, goto).
  */
 public class EarlyStartUi(
     /** The proc engine the script runs on. */
@@ -73,8 +75,13 @@ public class EarlyStartUi(
         public val isTsa: OpAnimHs.Blob,
     )
 
+    /** The [OpAnimHs.Proc] state that [script]'s `newState` attached to [p]. */
     private fun st(p: Proc) = p.state as OpAnimHs.Proc
 
+    /**
+     * Turns a logo step's [result] into proc control: [StepResult.BREAK] ends the current repeat
+     * command, [StepResult.SKIP] (A/B pressed) jumps to the skip-fade block at label 0.
+     */
     private fun apply(p: Proc, r: StepResult) {
         when (r) {
             StepResult.CONTINUE -> Unit
@@ -83,10 +90,12 @@ public class EarlyStartUi(
         }
     }
 
+    /** Ends [p]'s current repeat command once the step reports it is [broke] (finished). */
     private fun bool(p: Proc, broke: Boolean) {
         if (broke) engine.breakProc(p)
     }
 
+    /** Short alias for [env], used throughout the script table below. */
     private val e = env
 
     /** `EnablePaletteSync` after a fade wrote [Env.paletteBuffer] (`OpAnimHS_BrightenPalette`, `sub_80CBFC0`). */
@@ -94,6 +103,8 @@ public class EarlyStartUi(
         e.hardware.enablePaletteSync()
         return result
     }
+
+    /** Repeat command body for the one-frame delays between fades; may also skip or soft-reset. */
     private val delay = ProcFunc { p -> apply(p, OpAnimHs.earlyStartDelay(st(p), e.keys, e.softwareReset())) }
 
     /** The script; [ProcScript.newState] creates an [OpAnimHs.Proc]. */
@@ -103,7 +114,7 @@ public class EarlyStartUi(
         call {
             val g = e.gfx
             if (!OpAnimHs.prepareHealthSafety(st(it), e.hardware, e.keys, e.softwareReset(), g.hsImg, g.hsTsaBg1, g.hsTsaBg0)) {
-                engine.goto(it, 0x3E7)
+                engine.goto(it, 0x3E7) // soft reset: skip the health & safety screen
             } else {
                 e.fadeOutBgm(1) // after the software-reset check, as in the original
             }

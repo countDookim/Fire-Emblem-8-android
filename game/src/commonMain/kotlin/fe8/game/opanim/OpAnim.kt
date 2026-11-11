@@ -10,7 +10,6 @@ import gbafe.proc.ProcBoolFunc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
-import gbafe.proc.ProcScripts.block
 import gbafe.proc.ProcScripts.call
 import gbafe.proc.ProcScripts.end
 import gbafe.proc.ProcScripts.endEach
@@ -28,8 +27,11 @@ import gbafe.render.SpriteObject
 
 /**
  * The op anim (intro cutscene after the logos), `ProcScr_OpAnim` (decomp `src/opanim-main.c`,
- * `src/opanimfx.c`). Partial: ported from `OpAnimInit` through `sub_80C9218` and its `sub_80CA940`;
- * a stand-in `PROC_BLOCK` sits where `sub_80CB0A0` would run.
+ * `src/opanimfx.c`): world map, the Ephraim and Eirika close-ups with the split line, the cast
+ * scroll, the shining ring and the face screens. Each `repeat` step of [script] is one of the
+ * public step functions below; the graphics they load are passed in as ROM blobs ([Gfx],
+ * [WorldMapGfx], [EphraimGfx], [EirikaGfx], [CastGfx]). The script runs the whole cutscene
+ * through [endCutscene].
  */
 public class OpAnim(
     /** Proc engine. */
@@ -261,28 +263,31 @@ public class OpAnim(
         public val palettes: List<ShortArray>,
     )
 
-    /** `struct ProcOpAnim` fields used so far. */
+    /** `struct ProcOpAnim`: per-run state of [script]. */
     public class State {
         /** `timer`. */
         public var timer: Int = 0
 
-        /** `unk2C`: BG1 x scroll. */
-        public var unk2C: Int = 0
+        /** BG1 x scroll of the drifting world map fog (`unk2C` in the decomp). */
+        public var bg1ScrollX: Int = 0
 
-        /** `unk2E`: BG1 y scroll. */
-        public var unk2E: Int = 0
+        /** BG1 y scroll of the drifting world map fog (`unk2E` in the decomp). */
+        public var bg1ScrollY: Int = 0
 
-        /** `unk30`. */
-        public var unk30: Int = 0
+        /**
+         * Last scroll position of the front (BG0 / BG2 close-up) layer, so each frame's tilemap
+         * update knows what to redraw (`unk30` in the decomp).
+         */
+        public var frontScrollPos: Int = 0
 
-        /** `unk32`. */
-        public var unk32: Int = 0
+        /** Same for the back (BG1 / shadow) layer (`unk32` in the decomp). */
+        public var backScrollPos: Int = 0
 
-        /** `unk34`. */
-        public var unk34: Int = 0
+        /** [frontScrollPos] saved when the exit slide starts (`unk34` in the decomp). */
+        public var frontScrollStart: Int = 0
 
-        /** `unk36`. */
-        public var unk36: Int = 0
+        /** [backScrollPos] saved when the exit slide starts (`unk36` in the decomp). */
+        public var backScrollStart: Int = 0
 
         /** `unk38`, `unk3A`, `unk3C`, `unk3E`, `unk46`. */
         public val unk38to46: IntArray = IntArray(5)
@@ -290,14 +295,14 @@ public class OpAnim(
         /** `unk40`, `unk42` (u16), `unk44` (s16): scene scroll distance, base and offset. */
         public val unk40to44: IntArray = IntArray(3)
 
-        /** `unk47`: scene scrolls in from the left (non-zero) or the right. */
-        public var unk47: Int = 0
+        /** Scene scrolls in from the left (non-zero) or the right (`unk47` in the decomp). */
+        public var scrollsInFromLeft: Int = 0
 
-        /** `unk48`: byte offset of the scene's first tilemap in [genericBuffer]. */
-        public var unk48: Int = 0
+        /** Byte offset of the scene's first tilemap in [genericBuffer] (`unk48` in the decomp). */
+        public var firstTilemapOffset: Int = 0
 
-        /** `unk4C`: byte offset of its second tilemap in [genericBuffer], or null. */
-        public var unk4C: Int? = null
+        /** Byte offset of its second tilemap in [genericBuffer], or null (`unk4C`). */
+        public var secondTilemapOffset: Int? = null
     }
 
     /** `gOpAnimSt.x`, `y`, `unk04`, `unk06`, `unk08`, `unk0A` (s16 each). */
@@ -327,7 +332,7 @@ public class OpAnim(
         listOf(yield(), repeat(ProcFunc { terminatorMain(it) }), end()),
     )
 
-    /** The script (partial, see the class doc); [ProcScript.newState] creates a [State]. */
+    /** The whole cutscene script; [ProcScript.newState] creates a [State]. */
     public val script: ProcScript = ProcScript(
         "ProcScr_OpAnim",
         listOf(
@@ -460,6 +465,7 @@ public class OpAnim(
             Decompress.into(img.data, img.offset, hw.vram, OBJ_VRAM + objOffsets[i])
         }
         for (i in 0..3) copyToPal(gfx.palettes[i], 0x200 + 0x20 * i, 0x20)
+        // Solid tiles (every 4bpp pixel = colour 15) at the end of OBJ tile memory.
         hw.vramFill16(0xFFFF, OBJ_VRAM + 0x7800, 0x800)
         gameControl.setNextGameActionId(GameControl.GAME_ACTION_PLAYED_THROUGH)
         engine.start(terminatorScript, proc)
@@ -583,8 +589,8 @@ public class OpAnim(
         lcd.setBlendTargetB(0, 0, 1, 0, 0)
         lcd.setDispEnable(0, 1, 1, 0, 1)
         val st = proc.state as State
-        st.unk2C = 0
-        st.unk2E = 0
+        st.bg1ScrollX = 0
+        st.bg1ScrollY = 0
     }
 
     /**
@@ -596,9 +602,9 @@ public class OpAnim(
     public fun worldMapScroll(proc: Proc) {
         val st = proc.state as State
         val lcd = hardware.lcd
-        if (st.timer and 1 == 0) st.unk2C = (st.unk2C + 1).toShort().toInt()
-        if (st.timer and 3 == 0) st.unk2E = (st.unk2E + 1).toShort().toInt()
-        lcd.setBgPosition(1, st.unk2C, st.unk2E)
+        if (st.timer and 1 == 0) st.bg1ScrollX = (st.bg1ScrollX + 1).toShort().toInt()
+        if (st.timer and 3 == 0) st.bg1ScrollY = (st.bg1ScrollY + 1).toShort().toInt()
+        lcd.setBgPosition(1, st.bg1ScrollX, st.bg1ScrollY)
         if (st.timer <= 0x60) {
             val v = linear(0x10, 0, st.timer, 0x60)
             copyToPal(worldMap.pal, 0, 0x20)
@@ -666,6 +672,7 @@ public class OpAnim(
         val st = proc.state as State
         fun dec(b: OpAnimHs.Blob, dst: ByteArray, at: Int) =
             Decompress.into(b.data, b.offset, dst, at)
+        // These steps decompress the biggest blobs; measured on hardware to overrun one VBlank.
         if (st.timer == 0 || st.timer == 1 || st.timer == 5) missedVBlanks = 1
         when (st.timer) {
             0 -> {
@@ -716,8 +723,8 @@ public class OpAnim(
                 hw.enablePaletteSync()
                 hw.lcd.setDispEnable(0, 1, 1, 1, 1)
                 st.timer = 0
-                st.unk30 = 0
-                st.unk32 = 0
+                st.frontScrollPos = 0
+                st.backScrollPos = 0
                 opAnimSt[0] = 0
                 opAnimSt[1] = 0
                 opAnimSt[2] = 0
@@ -796,7 +803,7 @@ public class OpAnim(
                 12 -> tsaModifyFirstPal(ret, 0, 2, vram, 0xC800)
                 13 -> {
                     Decompress.into(g.blur1.first.data, g.blur1.first.offset, vram, 0x8000)
-                    tsaModifyFirstPal(ret, st.unk30, 2, vram, 0xC800)
+                    tsaModifyFirstPal(ret, st.frontScrollPos, 2, vram, 0xC800)
                 }
                 14 -> {
                     Decompress.into(g.blur1.second.data, g.blur1.second.offset, vram, 0xC000)
@@ -807,17 +814,18 @@ public class OpAnim(
                     hw.setTileDataOffset(2, 0x4000)
                     engine.start(mergeBgScript, proc)
                 }
-                else -> tsaModifyFirstPal(ret, st.unk30, 2, vram, 0xC000)
+                else -> tsaModifyFirstPal(ret, st.frontScrollPos, 2, vram, 0xC000)
             }
-            st.unk30 = ret.toShort().toInt()
+            st.frontScrollPos = ret.toShort().toInt()
         }
         val v = st.timer - 5
         if (v >= 0) {
             val ret = Interpolate.interpolate(Interpolate.RSQUARE, 0, 0x90, v, 0x10)
-            scrollInFirstPal(ret, st.unk32, 0xC8, 1, genericBuffer, 0, 0x800, setPal = true)
-            st.unk32 = ret.toShort().toInt()
+            scrollInFirstPal(ret, st.backScrollPos, 0xC8, 1, genericBuffer, 0, 0x800, setPal = true)
+            st.backScrollPos = ret.toShort().toInt()
             if (v == 0x10) {
-                scrollInFirstPal(st.unk32, 0, 0xC8, 0, genericBuffer, 0, 0x800, setPal = false)
+                scrollInFirstPal(st.backScrollPos, 0, 0xC8, 0, genericBuffer, 0, 0x800,
+                        setPal = false)
                 st.timer = 0
                 engine.breakProc(proc)
                 return
@@ -829,7 +837,8 @@ public class OpAnim(
     /**
      * `OpAnimHBlank1` (not verified yet: no frame trace covers it): BG2 uses map block 0x1E and
      * BLDCNT 0xC46 from the first line, map block 0x1D and BLDCNT 0xC42 from line
-     * `gOpAnimSt.unk08`.
+     * `gOpAnimSt.unk08`. Runs every scanline so the two halves of the split screen can show
+     * different BG2 maps and blend settings.
      */
     public val hBlank1: HBlankHandler = HBlankHandler { vcount, io ->
         fun put16(at: Int, v: Int) {
@@ -943,8 +952,9 @@ public class OpAnim(
     }
 
     /**
-     * Shows the split line and the name sprite for 0x38 steps; then saves `unk30/32` into
-     * `unk34/36`, hides BG1, forces palette 15 on BG2's map and breaks.
+     * Shows the split line and the name sprite for 0x38 steps; then saves `frontScrollPos` /
+     * `backScrollPos` into [State.frontScrollStart] / [State.backScrollStart], hides BG1, forces
+     * palette 15 on BG2's map and breaks.
      *
      * Ported from src/opanim-main.c: OpAnimEphraimDisplayName
      */
@@ -954,8 +964,8 @@ public class OpAnim(
         putName(0xB40 / 0x20)
         if (st.timer == 0x38) {
             st.timer = 0
-            st.unk34 = st.unk30
-            st.unk36 = st.unk32
+            st.frontScrollStart = st.frontScrollPos
+            st.backScrollStart = st.backScrollPos
             hardware.lcd.setDispEnable(1, 0, 1, 1, 1)
             val map = hardware.mapBuffer(2)
             for (i in 0 until 0x280) map[i] = ((map[i].toInt() and 0x7FFF) or 0xF000).toShort()
@@ -990,9 +1000,10 @@ public class OpAnim(
         val time1 = time - 4
         if (time1 >= 0) {
             if (time1 <= 0x18) {
-                val ret = Interpolate.interpolate(Interpolate.SQUARE, st.unk34, 0x170, time1, 0x18)
-                tsaModifyFirstPal(ret, st.unk30, 2, genericBuffer, 0x1000, setPal = true)
-                st.unk30 = ret.toShort().toInt()
+                val ret = Interpolate.interpolate(Interpolate.SQUARE, st.frontScrollStart, 0x170,
+                        time1, 0x18)
+                tsaModifyFirstPal(ret, st.frontScrollPos, 2, genericBuffer, 0x1000, setPal = true)
+                st.frontScrollPos = ret.toShort().toInt()
             }
             val time2 = time - 0xB
             if (time2 >= 0) {
@@ -1004,9 +1015,11 @@ public class OpAnim(
                     val a = Interpolate.interpolate(Interpolate.LINEAR, 0x10, 0, time - 0x1B, 0x8)
                     lcd.setBlendConfig(1, a, 0x10 - a, 8)
                 }
-                val ret = Interpolate.interpolate(Interpolate.SQUARE, st.unk36, 0x180, time2, 0x18)
-                scrollInFirstPal(ret, st.unk32, 0xC8, 0, genericBuffer, 0, 0x800, setPal = false)
-                st.unk32 = ret.toShort().toInt()
+                val ret = Interpolate.interpolate(Interpolate.SQUARE, st.backScrollStart, 0x180,
+                        time2, 0x18)
+                scrollInFirstPal(ret, st.backScrollPos, 0xC8, 0, genericBuffer, 0, 0x800,
+                        setPal = false)
+                st.backScrollPos = ret.toShort().toInt()
                 if (time2 == 0x18) {
                     st.timer = 0
                     engine.breakProc(proc)
@@ -1080,8 +1093,8 @@ public class OpAnim(
                 hw.enablePaletteSync()
                 lcd.setDispEnable(0, 1, 1, 1, 1)
                 st.timer = 0
-                st.unk30 = 0
-                st.unk32 = 0
+                st.frontScrollPos = 0
+                st.backScrollPos = 0
                 opAnimSt[0] = 240
                 opAnimSt[1] = 0
                 opAnimSt[2] = 0
@@ -1114,7 +1127,7 @@ public class OpAnim(
                 12 -> slide(0, vram, 0xC800)
                 13 -> {
                     Decompress.into(g.blur1.first.data, g.blur1.first.offset, vram, 0x8000)
-                    slide(st.unk30, vram, 0xC800)
+                    slide(st.frontScrollPos, vram, 0xC800)
                 }
                 14 -> {
                     Decompress.into(g.blur1.second.data, g.blur1.second.offset, vram, 0xC000)
@@ -1124,17 +1137,17 @@ public class OpAnim(
                     slide(0, genericBuffer, 0x1000)
                     hw.setTileDataOffset(2, 0x4000)
                 }
-                else -> slide(st.unk30, vram, 0xC000)
+                else -> slide(st.frontScrollPos, vram, 0xC000)
             }
-            st.unk30 = ret.toShort().toInt()
+            st.frontScrollPos = ret.toShort().toInt()
         }
         val time = st.timer - 5
         if (time >= 0) {
             val ret = Interpolate.interpolate(Interpolate.RSQUARE, 0, 0xCC, time, 0x10)
-            tsaModifyFirstPal(ret, st.unk32, 1, genericBuffer, 0, 0x800, setPal = true)
-            st.unk32 = ret.toShort().toInt()
+            tsaModifyFirstPal(ret, st.backScrollPos, 1, genericBuffer, 0, 0x800, setPal = true)
+            st.backScrollPos = ret.toShort().toInt()
             if (time == 0x10) {
-                tsaModifyFirstPal(st.unk32, 0, 0, genericBuffer, 0, 0x800, setPal = false)
+                tsaModifyFirstPal(st.backScrollPos, 0, 0, genericBuffer, 0, 0x800, setPal = false)
                 st.timer = 0
                 engine.breakProc(proc)
                 return
@@ -1232,7 +1245,8 @@ public class OpAnim(
 
     /**
      * Shows the split line and Eirika's name for 0x38 steps, loading scroll lines 0..21 over the
-     * first three; then saves `unk30/32` into `unk34/36`, hides BG1, forces palette 15 on BG2's
+     * first three; then saves the front/back scroll positions
+     * (`unk30/32`) into `unk34/36`, hides BG1, forces palette 15 on BG2's
      * map and breaks.
      *
      * Ported from src/opanim-main.c: sub_80C8278
@@ -1250,8 +1264,8 @@ public class OpAnim(
         }
         if (st.timer == 0x38) {
             st.timer = 0
-            st.unk34 = st.unk30
-            st.unk36 = st.unk32
+            st.frontScrollStart = st.frontScrollPos
+            st.backScrollStart = st.backScrollPos
             hardware.lcd.setDispEnable(1, 0, 1, 1, 1)
             val map = hardware.mapBuffer(2)
             for (i in 0 until 0x280) map[i] = ((map[i].toInt() and 0x7FFF) or 0xF000).toShort()
@@ -1285,9 +1299,11 @@ public class OpAnim(
         val time1 = time - 4
         if (time1 >= 0) {
             if (time1 <= 0x18) {
-                val ret = Interpolate.interpolate(Interpolate.SQUARE, st.unk34, 0x158, time1, 0x18)
-                scrollInFirstPal(ret, st.unk30, 0x98, 2, genericBuffer, 0x1000, null, setPal = true)
-                st.unk30 = ret.toShort().toInt()
+                val ret = Interpolate.interpolate(Interpolate.SQUARE, st.frontScrollStart, 0x158,
+                        time1, 0x18)
+                scrollInFirstPal(ret, st.frontScrollPos, 0x98, 2, genericBuffer, 0x1000, null,
+                        setPal = true)
+                st.frontScrollPos = ret.toShort().toInt()
             }
             val time2 = time - 0xB
             if (time2 >= 0) {
@@ -1299,9 +1315,10 @@ public class OpAnim(
                     val a = Interpolate.interpolate(Interpolate.LINEAR, 0x10, 0, time - 0x1B, 8)
                     lcd.setBlendConfig(1, a, 0x10 - a, 8)
                 }
-                val ret = Interpolate.interpolate(Interpolate.SQUARE, st.unk36, 0x1BC, time2, 0x18)
-                tsaModifyFirstPal(ret, st.unk32, 0, genericBuffer, 0, 0x800, setPal = false)
-                st.unk32 = ret.toShort().toInt()
+                val ret = Interpolate.interpolate(Interpolate.SQUARE, st.backScrollStart, 0x1BC,
+                        time2, 0x18)
+                tsaModifyFirstPal(ret, st.backScrollPos, 0, genericBuffer, 0, 0x800, setPal = false)
+                st.backScrollPos = ret.toShort().toInt()
                 if (time2 == 0x18) {
                     hw.hblank.setPrimary(null)
                     st.timer = 0
@@ -1393,7 +1410,13 @@ public class OpAnim(
         public var timer: Int = 0
     }
 
-    /** `gUnknown_08AA705C`: lifts a darkening of BG2 over 0x28 steps; resets the blend when ended. */
+    /**
+     * `gUnknown_08AA705C`: BG2 starts almost black (14/16 darkening, [castDarkenInit]) and the
+     * darkening is lifted over 0x28 steps, so the cast scroll fades in; resets the blend when
+     * ended.
+     * (Despite the name, the net effect is brightening; the name follows the decomp's init
+     * function.)
+     */
     public val castDarkenScript: ProcScript = ProcScript(
         "gUnknown_08AA705C",
         listOf(
@@ -1475,6 +1498,7 @@ public class OpAnim(
         }
     }
 
+    /** The cast scene graphics, or an error when the caller built this [OpAnim] without them. */
     private fun castGfx(): CastGfx = cast ?: error("OpAnim.cast graphics not supplied")
 
     /** One cast scroll step: loads lines up to `unk38`, then moves `unk38` along 0..0x270 by `unk3C`. */
@@ -1516,6 +1540,7 @@ public class OpAnim(
         setBgPriorities(1, 2, 0, 3)
     }
 
+    /** Sets the draw priority (low 2 bits of BGCNT) of BG0..BG3; lower values draw in front. */
     private fun setBgPriorities(p0: Int, p1: Int, p2: Int, p3: Int) {
         val c = hardware.lcd.bgCnt
         c[0] = (c[0] and 3.inv()) or p0
@@ -1565,7 +1590,8 @@ public class OpAnim(
 
     /**
      * Sets up a character's scene: display ([setupCastSceneDisplay]), its palettes 0..10 and
-     * scroll parameters; clears `unk30/32`. Each C function hard-codes one [CastScene].
+     * scroll parameters; clears the front/back scroll
+     * positions (`unk30/32`). Each C function hard-codes one [CastScene].
      *
      * Ported from src/opanim-main.c: sub_80C9C08, sub_80C9C5C, sub_80C9CAC, sub_80C9CFC, sub_80C9D4C, sub_80C9DA0
      */
@@ -1573,14 +1599,14 @@ public class OpAnim(
         val st = proc.state as State
         setupCastSceneDisplay()
         copyToPal(scene.pal, 0, 0x160)
-        st.unk47 = if (scene.fromLeft) 1 else 0
-        st.unk48 = 0
-        st.unk4C = 0x800
+        st.scrollsInFromLeft = if (scene.fromLeft) 1 else 0
+        st.firstTilemapOffset = 0
+        st.secondTilemapOffset = 0x800
         st.unk40to44[2] = scene.offset
         st.unk40to44[1] = scene.base
         st.unk40to44[0] = scene.distance
-        st.unk30 = 0
-        st.unk32 = 0
+        st.frontScrollPos = 0
+        st.backScrollPos = 0
     }
 
     /** Steps 1..3 of a scene load: image + tilemap 1, image + tilemap 2, clear BG0/1 and VRAM 0xD800. */
@@ -1641,7 +1667,7 @@ public class OpAnim(
         castBg0(st, Interpolate.interpolate(Interpolate.RSQUARE, 0, u[0], st.timer, 0x1E))
         if (st.timer == 0x1E) {
             hw.enableBgSyncByMask(2)
-            st.unk32 = 0
+            st.backScrollPos = 0
             castBg1(st, u[1] + 240 - u[0])
             st.timer = 0
             engine.breakProc(proc)
@@ -1650,20 +1676,30 @@ public class OpAnim(
         }
     }
 
-    /** The scene's BG0 (front copy) to [x], from `unk30`: `TsaModifyFirstPalMaybe` / `sub_80C689C` by `unk47`. */
+    /**
+     * The scene's BG0 (front copy) to [x], from [State.frontScrollPos]: `TsaModifyFirstPalMaybe` /
+     * `sub_80C689C` by `unk47`.
+     */
     private fun castBg0(st: State, x: Int) {
         val off = st.unk40to44[2].toShort().toInt()
-        if (st.unk47 != 0) tsaModifyFirstPal(x, st.unk30, 0, genericBuffer, st.unk48, st.unk4C, setPal = false)
-        else scrollInFirstPal(x, st.unk30, off, 0, genericBuffer, st.unk48, st.unk4C, setPal = false)
-        st.unk30 = x.toShort().toInt()
+        if (st.scrollsInFromLeft != 0) tsaModifyFirstPal(x, st.frontScrollPos, 0, genericBuffer,
+                st.firstTilemapOffset, st.secondTilemapOffset, setPal = false)
+        else scrollInFirstPal(x, st.frontScrollPos, off, 0, genericBuffer, st.firstTilemapOffset,
+                st.secondTilemapOffset, setPal = false)
+        st.frontScrollPos = x.toShort().toInt()
     }
 
-    /** The scene's BG1 (palette-15 shadow) to [x], from `unk32`, mirrored relative to [castBg0]. */
+    /**
+     * The scene's BG1 (palette-15 shadow) to [x], from [State.backScrollPos], mirrored relative to
+     * [castBg0].
+     */
     private fun castBg1(st: State, x: Int) {
         val off = st.unk40to44[2].toShort().toInt()
-        if (st.unk47 != 0) scrollInFirstPal(x, st.unk32, off, 1, genericBuffer, st.unk48, st.unk4C, setPal = true)
-        else tsaModifyFirstPal(x, st.unk32, 1, genericBuffer, st.unk48, st.unk4C, setPal = true)
-        st.unk32 = x.toShort().toInt()
+        if (st.scrollsInFromLeft != 0) scrollInFirstPal(x, st.backScrollPos, off, 1,
+                genericBuffer, st.firstTilemapOffset, st.secondTilemapOffset, setPal = true)
+        else tsaModifyFirstPal(x, st.backScrollPos, 1, genericBuffer, st.firstTilemapOffset,
+                st.secondTilemapOffset, setPal = true)
+        st.backScrollPos = x.toShort().toInt()
     }
 
     /** `(240 - unk40) + unk42 + lin(0, 0x60, t, 0x3C) + sq(0, 0x60, t, 0x3C)`: BG1's drift. */
@@ -1787,7 +1823,11 @@ public class OpAnim(
         st.timer = (st.timer + 1) and 0xFFFF
     }
 
-    /** `gUnknown_08AA707C`: darkens BG2 from 0 to 12/16 over 0x28 steps; resets the blend when ended. */
+    /**
+     * `gUnknown_08AA707C`: darkens BG2 from 0 to 12/16 over 0x28 steps, so the cast scroll fades
+     * out; resets the blend when ended. (Named opposite to [castDarkenScript]; both names follow
+     * the decomp.)
+     */
     public val castBrightenScript: ProcScript = ProcScript(
         "gUnknown_08AA707C",
         listOf(
@@ -1882,6 +1922,7 @@ public class OpAnim(
             }
         }
         val t = SPARKLES
+        // Each sparkle (5 ints: first step, x, y, kind, variant) is shown once its step is passed.
         for (i in t.indices step 5) if (st.timer > t[i]) putSparkle(t[i + 1], t[i + 2], t[i + 3], t[i + 4])
         var timer = st.timer - 0x52 // u32 in C: negative values compare as large
         if (timer == 0) {
@@ -1977,16 +2018,18 @@ public class OpAnim(
     }
 
     /**
-     * The position of a sliding face: `0xFFFF` (hidden) before step `d - 0x10`, then [a] + [b] *
-     * 240 easing to [a] over 0x10 steps of [c].
+     * The position of a sliding face: `0xFFFF` (hidden) before step `lastStep - 0x10`, then
+     * [target] + [dir] * 240 (off screen) easing to [target] over the 0x10 steps before
+     * [lastStep], and [target] afterwards. [step] is the face's current step. Despite the name it
+     * is also used for the vertical slide of [faces4In].
      *
      * Ported from src/opanim-main.c: sub_80CA9F8
      */
-    public fun faceSlideX(a: Int, b: Int, c: Int, d: Int): Int {
-        val v = 0x10 - (d - c)
+    public fun faceSlideX(target: Int, dir: Int, step: Int, lastStep: Int): Int {
+        val v = 0x10 - (lastStep - step)
         if (v < 0) return 0xFFFF
-        if (v >= 0x10) return a
-        return Interpolate.interpolate(Interpolate.RSQUARE, a + b * 240, a, v, 0x10)
+        if (v >= 0x10) return target
+        return Interpolate.interpolate(Interpolate.RSQUARE, target + dir * 240, target, v, 0x10)
     }
 
     /**
@@ -2002,6 +2045,8 @@ public class OpAnim(
             val x = faceSlideX(0x78, -1, st.timer + 10 - 4 * k, 0x14)
             if (x == 0xFFFF) continue
             val y = 0x34 * k - 0x14 // 0xEC, 0x20, 0x54 as u8
+            // Each face is three OBJs: the face, its shadow (OAM attr0 mode bits 0x400 = semi-
+            // transparent) and an OBJ-window mask (0x800) that clips what the window shows.
             sprites.putExt(1, (x - 0x30) and 0x1FF, y and 0xFF, g.faceObj, 0xF0 * k + (2 * k shl 12))
             sprites.putExt(2, (x - 0x2C) and 0x1FF, 0x400 or (y and 0xFF), g.faceObj, 0x78 + 0xF0 * k + ((2 * k + 1) shl 12))
             sprites.putExt(0, (x - 0x30) and 0x1FF, 0x800 or ((y + 0x18) and 0xFF), g.faceWindowObj, 0)
@@ -2364,6 +2409,7 @@ public class OpAnim(
         u[3] = (u[3] + 1) and 0xFFFF
     }
 
+    /** Puts the Ephraim / Eirika name sprite on the sprite list; [chr] is its tile offset. */
     private fun putName(chr: Int) {
         val g = ephraim ?: error("OpAnim.ephraim graphics not supplied")
         sprites.putExt(1, 0x98, 0x88, g.nameObj, (2 shl 12) + chr)
@@ -2427,6 +2473,10 @@ public class OpAnim(
         hardware.lcd.setBgPosition(bg, e, 0)
     }
 
+    /**
+     * One column [i] of [tsaModifyFirstPal]: cleared when outside the two 32-wide maps, otherwise
+     * copied from map [at] / [at2] (with palette 15 forced if [setPal]) into [dst].
+     */
     private fun firstPalColumn(
         i: Int,
         dst: ShortArray,
@@ -2444,13 +2494,21 @@ public class OpAnim(
     }
 
 
-    /** Ported from src/opanimfx.c: CopyFirstPalDirectly */
+    /**
+     * Copies tilemap column [i] (20 rows) from [src] at byte [at] into [dst] unchanged.
+     *
+     * Ported from src/opanimfx.c: CopyFirstPalDirectly
+     */
     private fun copyFirstPal(src: ByteArray, at: Int, i: Int, dst: ShortArray) {
         val c = i and 0x1F
         for (r in 0 until 20) dst[c + r * 0x20] = u16(src, at + 2 * (c + r * 0x20)).toShort()
     }
 
-    /** Ported from src/opanimfx.c: SetFirstPalDirectly */
+    /**
+     * Like [copyFirstPal] but forces every entry's palette number to [pal].
+     *
+     * Ported from src/opanimfx.c: SetFirstPalDirectly
+     */
     private fun setFirstPal(src: ByteArray, at: Int, i: Int, dst: ShortArray, pal: Int) {
         val c = i and 0x1F
         for (r in 0 until 20) {
@@ -2459,16 +2517,22 @@ public class OpAnim(
         }
     }
 
-    /** Ported from src/opanimfx.c: ClearFirstPalDirectly */
+    /**
+     * Clears tilemap column [c] (20 rows) of [dst].
+     *
+     * Ported from src/opanimfx.c: ClearFirstPalDirectly
+     */
     private fun clearFirstPal(dst: ShortArray, c: Int) {
         for (r in 0 until 20) dst[c + r * 0x20] = 0
     }
 
+    /** Little-endian unsigned 16-bit read from [b] at byte [o]. */
     private fun u16(b: ByteArray, o: Int): Int =
         (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
 
     /**
-     * Copies `gOpAnimSt.y` / `unk06` into `unk08` / `unk0A` every VBlank.
+     * Copies `gOpAnimSt.y` / `unk06` into `unk08` / `unk0A` every VBlank, so the HBlank handlers
+     * see the split positions as of the last frame rather than mid-update.
      *
      * Ported from src/opanim-main.c: Proc08AA6D04Main
      */
@@ -2535,6 +2599,7 @@ public class OpAnim(
     private fun linear(lo: Int, hi: Int, x: Int, xMax: Int): Int =
         if (xMax == 0) hi else lo + (hi - lo) * x / xMax
 
+    /** Sets the tile-data and map-data offsets of BG0..BG3 from [tiles] and [maps]. */
     private fun setOffsets(tiles: IntArray, maps: IntArray) {
         for (bg in 0..3) {
             hardware.setTileDataOffset(bg, tiles[bg])
@@ -2542,6 +2607,7 @@ public class OpAnim(
         }
     }
 
+    /** Adds [d] to the little-endian 16-bit value in [b] at byte [o] (shifts tilemap entries). */
     private fun add16(b: ByteArray, o: Int, d: Int) {
         val v = ((b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)) + d
         b[o] = v.toByte()
@@ -2562,9 +2628,7 @@ public class OpAnim(
 
     /**
      * On A, B or Start: sets the next game action to "user skipped", clears [pal] and jumps the op
-     * anim to label 99.
-     *
-     * Label 99 is not ported yet: the jump is a no-op.
+     * anim to label 99 (0x63, where [script] runs [endCutscene]).
      *
      * Partially ported from src/opanimfx.c: OpAnimfxTerminatorMain
      */
@@ -2579,6 +2643,7 @@ public class OpAnim(
     private companion object {
         /** Ring pulse period and last step of each later face screen's loader (screens 6..12). */
         val LATER_FACES = listOf(9 to 11, 8 to 12, 7 to 13, 6 to 14, 5 to 15, 4 to 16, 3 to 18)
+
         /** `OpAnimPutObjCommon`'s tile numbers by kind and `variant >> 1`. */
         val SPARKLE_CHR = arrayOf(
             intArrayOf(0x8A, 0xB2),
@@ -2602,11 +2667,23 @@ public class OpAnim(
             0x4C, 0x38, 0x28, 4, 0, 0x47, 0x8C, 0x54, 1, 2, 0x41, 0x10, 100, 1, 1, 0x37, 0, 0x7E, 0, 1,
             0x31, 0xA0, 0x78, 0, 2, 0x1D, 0x58, 0x70, 0, 0,
         )
+
+        /** Byte offset of OBJ tile memory in the VRAM array (the GBA's 0x06010000). */
         const val OBJ_VRAM = 0x10000
+
+        /** BLDCNT bit making the backdrop a first blend target. */
         const val BLD_BACKDROP_A = 1 shl 5
+
+        /** BLDCNT bit making the backdrop a second blend target. */
         const val BLD_BACKDROP_B = 1 shl 13
+
+        /** DISPCNT bit selecting one-dimensional OBJ tile mapping. */
         const val DISPCNT_OBJ_1D = 0x40
+
+        /** KEYINPUT bit of the A button. */
         const val A_BUTTON = 0x1
+
+        /** KEYINPUT bit of the B button. */
         const val B_BUTTON = 0x2
     }
 }

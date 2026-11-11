@@ -300,7 +300,9 @@ class ProcEngineDifferentialTest {
                     if (ram >= 9) assertEquals(listOf(0x38, 0x3A, 0x3C, 0x3E).map { u16(e, op + it) } + (e[op + 0x46].toInt() and 0xFF),
                         (ours.state as OpAnim.State).unk38to46.toList(), "f$f op anim unk38..46")
                     if (ram >= 7) assertEquals(listOf(u16(e, op + 0x2C), u16(e, op + 0x2E)),
-                        listOf((ours.state as OpAnim.State).unk2C and 0xFFFF, (ours.state as OpAnim.State).unk2E and 0xFFFF), "f$f op anim unk2C/2E")
+                        listOf((ours.state as OpAnim.State).bg1ScrollX and 0xFFFF,
+                                (ours.state as OpAnim.State).bg1ScrollY and 0xFFFF),
+                                "f$f op anim unk2C/2E")
                     if (bld != null) {
                         assertEquals(listOf((u32(e, bld + 4) - BLDALPHA_SCRIPT) / 8, u16(e, bld + 0x2A)),
                             listOf(ourBld!!.scrCur, (ourBld.state as OpAnim.BldAlphaState).timer), "f$f BLDALPHA scrCur, timer")
@@ -314,7 +316,8 @@ class ProcEngineDifferentialTest {
                             "f$f gOpAnimSt x..unk0A")
                         // unk30/32 hold the slot's old bytes until the last step (gOpAnimSt.unk06 = 0xA0) clears them.
                         if (u16(e, opSt + 6) == 0xA0) assertEquals(listOf(u16(e, op + 0x30), u16(e, op + 0x32)),
-                            listOf(os.unk30 and 0xFFFF, os.unk32 and 0xFFFF), "f$f op anim unk30/32")
+                            listOf(os.frontScrollPos and 0xFFFF, os.backScrollPos and 0xFFFF),
+                                    "f$f op anim unk30/32")
                         val gb = sym["gGenericBuffer"].address - GbaMem.EWRAM
                         assertArrayEquals(e.copyOfRange(gb, gb + 0x2000), opPort.genericBuffer, "f$f gGenericBuffer")
                         val bg3 = sym["gBG3TilemapBuffer"].address - GbaMem.EWRAM
@@ -403,10 +406,13 @@ class ProcEngineDifferentialTest {
                             val gb = sym["gGenericBuffer"].address
                             assertEquals(listOf(u16(e, op + 0x40), u16(e, op + 0x42), u16(e, op + 0x44), e[op + 0x47].toInt() and 0xFF,
                                 u32(e, op + 0x48) - gb, u32(e, op + 0x4C) - gb),
-                                listOf(os.unk40to44[0], os.unk40to44[1], os.unk40to44[2] and 0xFFFF, os.unk47, os.unk48, os.unk4C),
+                                listOf(os.unk40to44[0], os.unk40to44[1],
+                                        os.unk40to44[2] and 0xFFFF, os.scrollsInFromLeft,
+                                        os.firstTilemapOffset, os.secondTilemapOffset),
                                 "f$f op anim unk40..4C")
                             assertEquals(listOf(u16(e, op + 0x30), u16(e, op + 0x32)),
-                                listOf(os.unk30 and 0xFFFF, os.unk32 and 0xFFFF), "f$f op anim unk30/32 (cast)")
+                                listOf(os.frontScrollPos and 0xFFFF, os.backScrollPos and 0xFFFF),
+                                        "f$f op anim unk30/32 (cast)")
                         }
                         val cd = procAt(e, CAST_DARKEN_SCRIPT)
                         val ourCd = engine.find(opPort.castDarkenScript)
@@ -440,7 +446,8 @@ class ProcEngineDifferentialTest {
                         // unk34/36 hold the slot's old bytes until OpAnimEphraimDisplayName breaks (timer back to 0).
                         if ((ram == 17 || ram == 24) && u16(e, op + 0x2A) == 0) {
                             assertEquals(listOf(u16(e, op + 0x34), u16(e, op + 0x36)),
-                                listOf(os.unk34 and 0xFFFF, os.unk36 and 0xFFFF), "f$f op anim unk34/36")
+                                listOf(os.frontScrollStart and 0xFFFF,
+                                        os.backScrollStart and 0xFFFF), "f$f op anim unk34/36")
                             nameEnded = true
                         }
                         assertEquals(listOf(0, 1, 2, 13).map { spriteChain(e, it) }, listOf(0, 1, 2, 13).map { ourChain(opPort.sprites, it) },

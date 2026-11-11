@@ -10,7 +10,8 @@ import gbafe.render.LcdControl
  * Boot intro screens (Nintendo / Intelligent Systems logos, health & safety), decomp
  * `src/opanim-healthsafetyscreen.c`: the `ProcScr_GameEarlyStartUI` steps (palette fades, delays, the
  * health & safety brightness pulse and the logo skip). Step functions return a [StepResult] (what the proc
- * engine does next); screen loading (`PrepareHealthAndSafetyScreen`, `GameIntroPrepareNintendofx`) is not here yet.
+ * engine does next); the screen loaders ([prepareHealthSafety], [prepareNintendofx]) are here too.
+ * [EarlyStartUi] strings these steps into the boot script.
  */
 public object OpAnimHs {
     /** What a `PROC_REPEAT` step asks of the proc engine after this frame. */
@@ -191,6 +192,10 @@ public object OpAnimHs {
         return true
     }
 
+    /**
+     * Shared tail of the logo fades: once [proc]'s palette timer has run [frames] frames, loads
+     * `delay_timer` with [delay] frames and returns [StepResult.BREAK]; otherwise keeps repeating.
+     */
     private fun fadeDone(proc: Proc, frames: Int, delay: Int): StepResult {
         if (proc.paletteTimer > frames - 1) {
             proc.delayTimer = delay
@@ -253,6 +258,7 @@ public object OpAnimHs {
         }
         proc.paletteTimer++
         val t = proc.paletteTimer
+        // Triangle wave of period 64 frames (sign flipped below) driving the blend coefficient.
         val v = (0x10 - ((t - (t / 64) * 64) shr 1)).toShort().toInt()
         lcd.setBlendConfig(2, 0, 0, if (v >= 0) v else -v)
         if (t > 0xE0F || keys.newKeys and 0x3FF != 0) {
@@ -277,6 +283,7 @@ public object OpAnimHs {
     public fun brightenPalette(src: ShortArray, paletteBuffer: ShortArray, palId: Int, lines: Int, cur: Int, max: Int) {
         val len = lines * 16
         val dst = palId * 16
+        // Below full brightness scale each channel; at or past it copy verbatim, as the ROM does.
         if (cur < max) {
             for (i in 0 until len) {
                 val c = src[i].toInt() and 0xFFFF
@@ -298,11 +305,13 @@ public object OpAnimHs {
         public val offset: Int = 0,
     )
 
+    /** Decompresses [tsa] into background [bg]'s tilemap, offsetting tile ids by [tileBase]. */
     private fun tsaInto(hw: BgHardware, bg: Int, tsa: Blob, tileBase: Int) {
         val generic = Decompress.decode(tsa.data, tsa.offset) // gGenericBuffer
         BgTilemap.applyTsa(hw.mapBuffer(bg), 0, generic, 0, tileBase)
     }
 
+    /** Blacks out the palette buffer so the screen fades in from black; queues the uploads. */
     private fun clearPaletteAndSync(hw: BgHardware) {
         hw.palette.fill(0) // CpuFastFill16(0, gPaletteBuffer, 0x400)
         hw.enablePaletteSync()

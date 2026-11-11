@@ -8,12 +8,10 @@ import fe8.game.bm.PlayerInterface
 import fe8.game.bm.PlayerInterfaceState
 import fe8.game.bm.UnitTable
 import fe8.game.text.Fe8Text
+import fe8.game.ui.GreenText
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
 import gbafe.proc.ProcEngine
-import gbafe.proc.ProcFunc
-import gbafe.proc.ProcScript
-import gbafe.proc.ProcScripts
 import gbafe.render.BgHardware
 import gbafe.render.OamBuffer
 import gbafe.text.MsgHuffman
@@ -129,7 +127,10 @@ class UnitDisplayDifferentialTest {
             val messages = MsgStrings(
                 romBytes, MsgHuffman(romBytes, 0x0815A72C - ROM_BASE, root), 0x0815D48C - ROM_BASE,
             )
-            pi = PlayerInterface(engine, bm, playSt, units, rom, hw, oam, text, messages, camMove.script)
+            pi = PlayerInterface(
+                engine, bm, playSt, units, rom, hw, oam, text, messages, camMove.script,
+                GreenText(engine, rom, hw) { 0 },
+            )
             val e = ewram(seedFrame)
             playSt.decode(e, PLAY_ST - EWRAM)
             seedRam = e
@@ -137,18 +138,7 @@ class UnitDisplayDifferentialTest {
             units.loadFrom(e)
             pi.hooks.unitIdAt = { x, y -> unitIdAt(x, y) }
             pi.newUnitWindowResidue = 3
-            // The goal window (PP-16) reserves 16 text tiles, after the terrain window's and before the
-            // unit window's: a proc that does the same in the same order.
-            val goalText = ProcScript(
-                "test goal text",
-                listOf(
-                    ProcScripts.yield(),
-                    ProcScripts.call(ProcFunc { text.activeFont.chrCounter += 16 }),
-                    ProcScripts.end(),
-                ),
-            )
-            pi.hooks.startGoalDisplay = { engine.start(goalText, 3) }
-            pi.hooks.goalDisplayWindowQuadrant = { otherQuadrant(GOAL_SCRIPT) }
+            pi.newGoalWindowResidue = staleGoalQuadrant(seedFrame + 2)
             for (bg in 0..1) {
                 val at = (if (bg == 0) BG0_BUFFER else BG1_BUFFER) - EWRAM
                 for (i in 0 until 0x400) hw.mapBuffer(bg)[i] = u16(e, at + 2 * i).toShort()
@@ -172,23 +162,19 @@ class UnitDisplayDifferentialTest {
             return seedRam[row + x].toInt() and 0xFF
         }
 
-        /**
-         * The `windowQuadrant` byte of the proc running [script] in this pass's dump, as the
-         * dump of the previous frame holds that slot (stale before the proc first runs), or -1
-         * where no such proc exists.
-         */
-        private fun otherQuadrant(script: Int): Int {
-            val slot = slotOf(ewram(current), script)
-            if (slot < 0) return -1
-            return ewram(previous)[PROC_ARRAY - EWRAM + slot * PROC_SIZE + 0x57].toInt()
-        }
-
         /** `gBmMapUnit[y][x]` in this pass's dump. */
         private fun unitIdAt(x: Int, y: Int): Int {
             val e = ewram(current)
             val table = u32(e, GBM_MAP_UNIT - EWRAM) - EWRAM
             val row = u32(e, table + 4 * y) - EWRAM
             return e[row + x].toInt() and 0xFF
+        }
+
+        /** The `windowQuadrant` byte the goal proc's slot held in the seed dump ([first]'s slot). */
+        private fun staleGoalQuadrant(first: Int): Int {
+            val slot = slotOf(ewram(first), GOAL_SCRIPT)
+            if (slot < 0) return -1
+            return ewram(seedFrame)[PROC_ARRAY - EWRAM + slot * PROC_SIZE + 0x57].toInt()
         }
 
         private fun slotOf(e: ByteArray, script: Int): Int {

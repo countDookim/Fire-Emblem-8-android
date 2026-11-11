@@ -1,6 +1,7 @@
 package fe8.game.bm
 
 import fe8.game.RomView
+import fe8.game.ui.GreenText
 import fe8.game.ui.ItemIcon
 import gbafe.proc.Proc
 import gbafe.proc.ProcBoolFunc
@@ -40,8 +41,12 @@ public class UiTmScratch {
 
     /** Sizes. */
     public companion object {
-        /** Entries per buffer: 0x500 bytes of `u16`. */
-        public const val SIZE: Int = 0x280
+        /**
+         * Entries per buffer: 0x500 bytes of `u16` (20 rows) and one row of slack, because the
+         * goal box clears 9 rows from row 12 of buffer A, one past its end (the original writes
+         * into the memory after it; nothing reads it).
+         */
+        public const val SIZE: Int = 0x2A0
     }
 }
 
@@ -56,6 +61,9 @@ public class UiTmScratch {
 public class PlayerInterfaceState {
     /** `texts[0]` (0x2C): the window's text strip (the terrain window draws the name here). */
     public val text: Text = Text()
+
+    /** `texts[1]` (0x34): the goal window's second text strip. */
+    public val text1: Text = Text()
 
     /** `xCursorPrev` (u8, 0x4C). */
     public var xCursorPrev: Int = 0
@@ -110,14 +118,14 @@ public class PlayerInterfaceState {
 }
 
 /**
- * The player-phase side windows of src/player_interface.c, as far as the terrain window and the
- * window maker: `gProcScr_TerrainDisplay` (the terrain name, defence and avoid box that slides in
+ * The player-phase side windows of src/player_interface.c, as far as the terrain window, the goal
+ * window and the window maker: `gProcScr_TerrainDisplay` (the terrain name, defence and avoid box that slides in
  * beside the map cursor) and `gProcScr_SideWindowMaker` with `StartPlayerPhaseSideWindows` and
  * `EndPlayerPhaseSideWindows`.
  *
- * Graphics, palettes and terrain names are read from the ROM at runtime. The unit mini-box and the
- * goal window are other ports; [Hooks] start, end and query them until they exist. Nothing
- * allocates per frame.
+ * Graphics, palettes and terrain names are read from the ROM at runtime. The goal window
+ * (`gProcScr_GoalDisplay`) is here too; the unit mini-box is in this file, and the services
+ * outside the ported part are [Hooks]. Nothing allocates per frame.
  */
 public class PlayerInterface(
     private val engine: ProcEngine,
@@ -131,6 +139,8 @@ public class PlayerInterface(
     private val messages: MsgStrings,
     /** `ProcScr_CamMove`: the side windows wait while it exists. */
     private val camMoveScript: ProcScript,
+    /** `ProcScr_GreenTextColor`'s owner: the goal window starts its colour proc. */
+    private val greenText: GreenText,
     /** `gUiTmScratchA` and `gUiTmScratchB`, shared by all side windows. */
     public val scratch: UiTmScratch = UiTmScratch(),
 ) {
@@ -172,19 +182,24 @@ public class PlayerInterface(
             { _, _ -> }
 
         /**
-         * Stand-in until PP-16 for the goal branch of `InitPlayerPhaseInterface`: starts
-         * `gProcScr_GoalDisplay` in tree 3 if the config and `EVFLAG_OBJWINDOW_DISABLE` allow it.
+         * Stand-in for `CheckFlag(EVFLAG_OBJWINDOW_DISABLE)` (events) until the flag store is
+         * wired: the goal window is not started while it is set.
          */
-        public var startGoalDisplay: () -> Unit = {}
-
-        /** Stand-in until PP-16 for `Proc_EndEach(gProcScr_GoalDisplay)`. */
-        public var endGoalDisplay: () -> Unit = {}
+        public var objWindowDisabled: () -> Boolean = { false }
 
         /**
-         * Stand-in until PP-16 for `Proc_Find(gProcScr_GoalDisplay)`: its `windowQuadrant`, or
-         * [NO_WINDOW] where the proc does not exist.
+         * Stand-in for `GetBattleMapKind() == BATTLEMAP_KIND_SKIRMISH` until the world map state
+         * is wired (the Prologue is a story chapter).
          */
-        public var goalDisplayWindowQuadrant: () -> Int = { NO_WINDOW }
+        public var isSkirmish: () -> Boolean = { false }
+
+        /**
+         * Stand-in until a capture shows a "defeat all" or "defend" goal for the second text line
+         * of `GoalDisplay_Init` (enemy count or turn counter, drawn with
+         * `Text_InsertDrawNumberOrBlank`); [goalType] is the chapter's goal window data type.
+         */
+        public var drawGoalSecondLine: (state: PlayerInterfaceState, goalType: Int) -> Unit =
+            { _, _ -> }
 
         /**
          * Stand-in until M6-I for `Proc_Start(gProcScr_PrepMap_MenuButtonDisplay)`, run instead
@@ -271,6 +286,38 @@ public class PlayerInterface(
             end(),
         ),
     ) { PlayerInterfaceState().also { it.windowQuadrant = newUnitWindowResidue } }
+
+    private val goalInitFn = ProcFunc { goalInit(it) }
+    private val goalSideChangeFn = ProcFunc { goalOnSideChange(it) }
+    private val goalSlideInFn = ProcFunc { goalSlideIn(it) }
+    private val goalDisplayFn = ProcFunc { goalDisplay(it) }
+    private val goalSlideOutFn = ProcFunc { goalSlideOut(it) }
+
+    /**
+     * The `windowQuadrant` a new goal window proc holds before its `GoalDisplay_Init` has run
+     * (the old contents of the proc slot, as for [newUnitWindowResidue]); the terrain window's
+     * first pass reads it.
+     */
+    public var newGoalWindowResidue: Int = NO_WINDOW
+
+    /** `gProcScr_GoalDisplay` (0x08A019E4). */
+    public val goalScript: ProcScript = ProcScript(
+        "gProcScr_GoalDisplay",
+        listOf(
+            name("PI"),
+            proc15,
+            yield(),
+            call(goalInitFn),
+            label(0),
+            whileExists { camMoveScript },
+            repeat(goalSideChangeFn),
+            repeat(goalSlideInFn),
+            repeat(goalDisplayFn),
+            repeat(goalSlideOutFn),
+            goto(0),
+            end(),
+        ),
+    ) { PlayerInterfaceState().also { it.windowQuadrant = newGoalWindowResidue } }
 
     /** `gProcScr_SideWindowMaker` (0x08A019C4). */
     public val sideWindowMakerScript: ProcScript = ProcScript(
@@ -410,7 +457,8 @@ public class PlayerInterface(
         val unitProc = engine.find(minimugScript)
         val unitQuadrant = if (unitProc == null) NO_WINDOW else stateOf(unitProc).windowQuadrant
         if (unitQuadrant > NO_WINDOW && unitQuadrant == quadrant) return
-        val goalQuadrant = hooks.goalDisplayWindowQuadrant()
+        val goalProc = engine.find(goalScript)
+        val goalQuadrant = if (goalProc == null) NO_WINDOW else stateOf(goalProc).windowQuadrant
         if (goalQuadrant > NO_WINDOW && goalQuadrant == quadrant) return
 
         state.windowQuadrant = quadrant
@@ -585,7 +633,9 @@ public class PlayerInterface(
         if (bm.gameStateBits and BM_FLAG_PREPSCREEN != 0) {
             hooks.startPrepMenuButtonDisplay()
         } else {
-            hooks.startGoalDisplay()
+            if (playSt.disableGoalDisplay == 0 && !hooks.objWindowDisabled()) {
+                engine.start(goalScript, PROC_TREE_3)
+            }
         }
         if (playSt.unitDisplayType == 0) engine.start(minimugScript, PROC_TREE_3)
         if (playSt.unitDisplayType == 1) hooks.startBurstDisplay()
@@ -610,7 +660,7 @@ public class PlayerInterface(
         engine.endEach(minimugScript)
         hooks.endBurstDisplay()
         engine.endEach(terrainScript)
-        hooks.endGoalDisplay()
+        engine.endEach(goalScript)
         hooks.endPrepMenuButtonDisplay()
 
         hw.lcd.setBlendConfig(BLEND_EFFECT_NONE, 0x10, 0, 0)
@@ -618,6 +668,231 @@ public class PlayerInterface(
         hw.mapBuffer(0).fill(0)
         hw.mapBuffer(1).fill(0)
         hw.enableBgSyncByMask(BG0_SYNC_BIT or BG1_SYNC_BIT)
+    }
+
+    private val chapters by lazy { ChapterData(rom) }
+
+    /**
+     * Ported from src/player_interface.c: GoalDisplay_Init
+     * (the defeat-all and defend branches are not verified: the Prologue's goal is to defeat the
+     * boss, so only the one-line window runs; their second line is [Hooks.drawGoalSecondLine])
+     *
+     * Starts the window without a position, reserves two 8-tile text strips, starts the green
+     * text colour proc under the window, and draws the goal text (the chapter's, or "Defeat
+     * enemy" in a skirmish) centred in the first strip. A seize, defeat boss or special goal has
+     * one line (`unitClock` 0); the others fill the second strip and have two (`unitClock` 1).
+     */
+    public fun goalInit(proc: Proc) {
+        val state = stateOf(proc)
+        state.showHideClock = 0
+        state.isRetracting = false
+        state.cursorQuadrant = 0
+        state.windowQuadrant = NO_WINDOW
+
+        text.initText(state.text, GOAL_TEXT_TILES)
+        text.initText(state.text1, GOAL_TEXT_TILES)
+        greenText.startGreenText(proc)
+        text.clearText(state.text)
+        text.clearText(state.text1)
+
+        val chapter = chapters.getROMChapterStruct(playSt.chapterIndex)
+        val skirmish = hooks.isSkirmish()
+        val goalTextId = if (skirmish) MSG_DEFEAT_ENEMY else rom.u16(chapter + CHAPTER_GOAL_TEXT)
+        val str = messages.getStringFromIndex(goalTextId)
+        text.textInsertDrawString(
+            state.text, text.getStringTextCenteredPos(GOAL_NAME_WIDTH, str),
+            TEXT_COLOR_SYSTEM_WHITE, str,
+        )
+
+        val goalType = if (skirmish) GOAL_TYPE_DEFEAT_ALL else rom.u8(chapter + CHAPTER_GOAL_TYPE)
+        when (goalType) {
+            GOAL_TYPE_SEIZE, GOAL_TYPE_DEFEAT_BOSS, GOAL_TYPE_SPECIAL -> state.unitClock = 0
+            GOAL_TYPE_DEFEAT_ALL, GOAL_TYPE_DEFENSE -> {
+                hooks.drawGoalSecondLine(state, goalType)
+                state.unitClock = 1
+            }
+        }
+    }
+
+    /**
+     * Ported from src/player_interface.c: sub_808D200
+     * (the two-line box is not verified: the Prologue's goal window has one line)
+     *
+     * Draws the goal box into [scratch]: clears the 11x9 areas, then the one-line or two-line
+     * frame into the BG1 side and the text strip(s) into the BG0 side.
+     */
+    public fun drawGoalWindow(state: PlayerInterfaceState) {
+        fillRect(scratch.b, tmIndex(20, 10), GOAL_CLEAR_WIDTH, GOAL_CLEAR_HEIGHT, 0)
+        fillRect(scratch.a, tmIndex(20, 12), GOAL_CLEAR_WIDTH, GOAL_CLEAR_HEIGHT, 0)
+
+        if (state.unitClock == 0) {
+            fillTsa(scratch.b, tmIndex(20, 10), TSA_GOAL_ONE_LINE, TILEREF_0_PAL1)
+            text.putText(state.text, scratch.a, tmIndex(21, 13))
+        }
+        if (state.unitClock == 1) {
+            fillTsa(scratch.b, tmIndex(20, 10), TSA_GOAL_TWO_LINES, TILEREF_0_PAL1)
+            text.putText(state.text, scratch.a, tmIndex(21, 13))
+            text.putText(state.text1, scratch.a, tmIndex(21, 15))
+        }
+    }
+
+    /**
+     * Ported from src/player_interface.c: GoalDisplay_Loop_OnSideChange
+     *
+     * Picks the corner from the cursor's quadrant; waits if the terrain window holds it.
+     * Otherwise draws the goal box, remembers the cursor and moves on to the slide in.
+     */
+    public fun goalOnSideChange(proc: Proc) {
+        val state = stateOf(proc)
+        state.showHideClock = 0
+        state.hideContents = true
+        state.cursorQuadrant = getCursorQuadrant()
+
+        val quadrant = getWindowQuadrant(
+            CONFIG[state.cursorQuadrant * CONFIG_STRIDE + CONFIG_X_GOAL],
+            CONFIG[state.cursorQuadrant * CONFIG_STRIDE + CONFIG_Y_GOAL],
+        )
+
+        val terrainProc = engine.find(terrainScript)
+        if (terrainProc != null) {
+            val terrainQuadrant = stateOf(terrainProc).windowQuadrant
+            if (terrainQuadrant > NO_WINDOW && terrainQuadrant == quadrant) return
+        }
+
+        state.windowQuadrant = quadrant
+        drawGoalWindow(state)
+
+        state.xCursor = bm.playerCursorX
+        state.yCursor = bm.playerCursorY
+        state.xCursorPrev = state.xCursor
+        state.yCursorPrev = state.yCursor
+        engine.breakProc(proc)
+    }
+
+    /**
+     * Ported from src/player_interface.c: sub_808D514
+     * (quadrant corners other than the top right are not verified: see [goalSlideIn])
+     *
+     * Blanks the goal window's 12x6 area of BG0 and BG1 in the corner [quadrant]'s config says
+     * (columns 0 or 19, rows 0 or 14), then copies [rows] rows of the box from [scratch] in
+     * (from the top or bottom edge, as the corner needs), and flags BG0 and BG1 for sync.
+     * [lines] is the proc's `unitClock` (0 one-line box, 1 two-line box).
+     */
+    public fun copyGoalWindowToBg(quadrant: Int, rows: Int, lines: Int) {
+        val x = CONFIG[quadrant * CONFIG_STRIDE + CONFIG_X_GOAL]
+        val y = CONFIG[quadrant * CONFIG_STRIDE + CONFIG_Y_GOAL]
+        val bg0 = hw.mapBuffer(0)
+        val bg1 = hw.mapBuffer(1)
+        val bottom = (1 - lines) * 2 + 20 - rows
+
+        if (x < 0 && y < 0) {
+            fillRect(bg1, 0, GOAL_BG_WIDTH, GOAL_BG_HEIGHT, 0)
+            fillRect(bg0, 0, GOAL_BG_WIDTH, GOAL_BG_HEIGHT, 0)
+            copyRect(scratch.b, tmIndex(20, 16 - rows), bg1, 0, GOAL_BG_WIDTH, rows)
+            copyRect(scratch.a, tmIndex(20, 18 - rows), bg0, 0, GOAL_BG_WIDTH, rows)
+        }
+        if (x > 0 && y < 0) {
+            val at = tmIndex(19, 0)
+            fillRect(bg1, at, GOAL_BG_WIDTH, GOAL_BG_HEIGHT, 0)
+            fillRect(bg0, at, GOAL_BG_WIDTH, GOAL_BG_HEIGHT, 0)
+            copyRect(scratch.b, tmIndex(20, 16 - rows), bg1, at, GOAL_BG_WIDTH, rows)
+            copyRect(scratch.a, tmIndex(20, 18 - rows), bg0, at, GOAL_BG_WIDTH, rows)
+        }
+        if (x < 0 && y > 0) {
+            val at = tmIndex(0, 14)
+            fillRect(bg1, at, GOAL_BG_WIDTH, GOAL_BG_HEIGHT, 0)
+            fillRect(bg0, at, GOAL_BG_WIDTH, GOAL_BG_HEIGHT, 0)
+            copyRect(scratch.b, tmIndex(20, 10), bg1, tmIndex(0, bottom), GOAL_BG_WIDTH, rows)
+            copyRect(scratch.a, tmIndex(20, 12), bg0, tmIndex(0, bottom), GOAL_BG_WIDTH, rows)
+        }
+        if (x > 0 && y > 0) {
+            val at = tmIndex(19, 14)
+            fillRect(bg1, at, GOAL_BG_WIDTH, GOAL_BG_HEIGHT, 0)
+            fillRect(bg0, at, GOAL_BG_WIDTH, GOAL_BG_HEIGHT, 0)
+            copyRect(scratch.b, tmIndex(20, 10), bg1, tmIndex(19, bottom), GOAL_BG_WIDTH, rows)
+            copyRect(scratch.a, tmIndex(20, 12), bg0, tmIndex(19, bottom), GOAL_BG_WIDTH, rows)
+        }
+
+        hw.enableBgSyncByMask(BG0_SYNC_BIT or BG1_SYNC_BIT)
+    }
+
+    /**
+     * Ported from src/player_interface.c: GoalDisplay_Loop_SlideIn
+     *
+     * One frame of the slide in: the box grows by 1, 3, 4, 5 and 6 rows; after the fifth it shows
+     * the contents and ends the step.
+     */
+    public fun goalSlideIn(proc: Proc) {
+        val state = stateOf(proc)
+        copyGoalWindowToBg(
+            state.cursorQuadrant, GOAL_SLIDE_IN_WIDTH[state.showHideClock], state.unitClock,
+        )
+
+        state.showHideClock++
+        if (state.showHideClock == GOAL_SLIDE_IN_WIDTH.size) {
+            state.showHideClock = 0
+            state.hideContents = false
+            engine.breakProc(proc)
+        }
+    }
+
+    /**
+     * Transcribed from src/player_interface.c: GoalDisplay_Loop_SlideOut
+     * (not verified: no reference run moves the cursor across the screen half, so the window
+     * never slides out; `EndPlayerPhaseSideWindows` ends it instead)
+     *
+     * One frame of the slide out: the box shrinks to 3, 1 and 0 rows; after the third it unhides
+     * the contents, stops retracting, gives up its corner and ends the step.
+     */
+    public fun goalSlideOut(proc: Proc) {
+        val state = stateOf(proc)
+        state.hideContents = true
+        copyGoalWindowToBg(
+            state.cursorQuadrant, GOAL_SLIDE_OUT_WIDTH[state.showHideClock], state.unitClock,
+        )
+
+        state.showHideClock++
+        if (state.showHideClock == GOAL_SLIDE_OUT_WIDTH.size) {
+            state.showHideClock = 0
+            state.hideContents = false
+            state.isRetracting = false
+            state.windowQuadrant = NO_WINDOW
+            engine.breakProc(proc)
+        }
+    }
+
+    /**
+     * Ported from src/player_interface.c: GoalDisplay_Loop_Display
+     * (the slide-out branches are not verified: the cursor never changes quadrant in a reference
+     * run)
+     *
+     * Steady state: while the cursor stays put nothing happens. When it moves with the camera
+     * still, a cursor in the same quadrant (or one whose quadrant puts the window in the same
+     * place) keeps the window; any other move starts the slide out.
+     */
+    public fun goalDisplay(proc: Proc) {
+        val state = stateOf(proc)
+        state.xCursorPrev = state.xCursor
+        state.yCursorPrev = state.yCursor
+        state.xCursor = bm.playerCursorX
+        state.yCursor = bm.playerCursorY
+
+        if (state.xCursor == state.xCursorPrev && state.yCursor == state.yCursorPrev) return
+
+        if (engine.find(camMoveScript) == null) {
+            val cursorQuadrant = getCursorQuadrant()
+            val own = state.cursorQuadrant * CONFIG_STRIDE
+            val now = cursorQuadrant * CONFIG_STRIDE
+            if (cursorQuadrant == state.cursorQuadrant ||
+                (CONFIG[now + CONFIG_X_GOAL] == CONFIG[own + CONFIG_X_GOAL] &&
+                    CONFIG[now + CONFIG_Y_GOAL] == CONFIG[own + CONFIG_Y_GOAL])
+            ) {
+                return
+            }
+        }
+
+        state.isRetracting = true
+        engine.breakProc(proc)
     }
 
     /** `GetUnit(gBmMapUnit[cursor.y][cursor.x])` as a byte offset in [UnitTable.bytes], or -1. */
@@ -1198,6 +1473,31 @@ public class PlayerInterface(
         private const val CONFIG_Y_TERRAIN = 1
         private const val CONFIG_X_MINIMUG = 2
         private const val CONFIG_Y_MINIMUG = 3
+        private const val CONFIG_X_GOAL = 4
+        private const val CONFIG_Y_GOAL = 5
+
+        private const val GOAL_TEXT_TILES = 8
+        private const val GOAL_NAME_WIDTH = 64
+        private const val GOAL_CLEAR_WIDTH = 11
+        private const val GOAL_CLEAR_HEIGHT = 9
+        private const val GOAL_BG_WIDTH = 12
+        private const val GOAL_BG_HEIGHT = 6
+        private const val MSG_DEFEAT_ENEMY = 0x19E
+        private const val CHAPTER_GOAL_TEXT = 0x8A
+        private const val CHAPTER_GOAL_TYPE = 0x8C
+        private const val GOAL_TYPE_SEIZE = 0
+        private const val GOAL_TYPE_DEFEAT_ALL = 1
+        private const val GOAL_TYPE_DEFENSE = 2
+        private const val GOAL_TYPE_DEFEAT_BOSS = 3
+        private const val GOAL_TYPE_SPECIAL = 4
+        private const val TSA_GOAL_TWO_LINES = 0x08A176BC
+        private const val TSA_GOAL_ONE_LINE = 0x08A17744
+
+        /** `sGoalSlideInWidthLut`. */
+        private val GOAL_SLIDE_IN_WIDTH = intArrayOf(1, 3, 4, 5, 6)
+
+        /** `sGoalSlideOutWidthLut`. */
+        private val GOAL_SLIDE_OUT_WIDTH = intArrayOf(3, 1, 0)
 
         private const val MMB_TEXT_TILES = 7
         private const val MMB_WIDTH = 13

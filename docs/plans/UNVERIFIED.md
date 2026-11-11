@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 550 across 70 decomp files (missing reason: 0).
+Total entries: 551 across 70 decomp files (missing reason: 0).
 
 ## src/worldmap_rm.c (42)
 
@@ -663,6 +663,15 @@ Total entries: 550 across 70 decomp files (missing reason: 0).
 | `WriteLinkArenaStruct2` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero link arena block, so no run shows its checksum or data |
 | `WriteSupplyItems` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
 
+## src/player_interface.c (4)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `TerrainDisplay_Loop_SlideOut` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | no reference run moves the cursor across the screen half, so the window never slides out; `EndPlayerPhaseSideWindows` ends it instead |
+| `GoalDisplay_Loop_SlideOut` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | no reference run moves the cursor across the screen half, so the window never slides out; `EndPlayerPhaseSideWindows` ends it instead |
+| `sub_808C234` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | only `MMB_CheckForUnit` and every 64th unit-clock frame call it |
+| `MMB_CheckForUnit` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | reached only through the unverified branch of [mmbDisplay] |
+
 ## src/proc.c (4)
 
 | Function | Kotlin file | Reason |
@@ -705,14 +714,6 @@ Total entries: 550 across 70 decomp files (missing reason: 0).
 | `BmMapFillEdges` | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | no test checks it against a trace yet |
 | `RenderBmMapOnBg2` | `game/src/commonMain/kotlin/fe8/game/bm/BmMapRender.kt` | no trace calls it |
 | `UnpackChapterMapGraphics` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | both traced chapters have obj2Id 0, so the second tileset branch never runs |
-
-## src/player_interface.c (3)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `TerrainDisplay_Loop_SlideOut` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | no reference run moves the cursor across the screen half, so the window never slides out; `EndPlayerPhaseSideWindows` ends it instead |
-| `sub_808C234` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | only `MMB_CheckForUnit` and every 64th unit-clock frame call it |
-| `MMB_CheckForUnit` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | reached only through the unverified branch of [mmbDisplay] |
 
 ## src/worldmap_path.c (3)
 

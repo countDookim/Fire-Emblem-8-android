@@ -31,12 +31,11 @@ Total entries: 208 across 32 Kotlin files.
 | D11-wm9 | 9 |
 | PP-10 | 1 |
 | PP-12 | 8 |
-| PP-16 | 3 |
 | PP-17 | 9 |
 | PP-6 | 3 |
 | PP-8 | 1 |
 | PP-9 | 1 |
-| unassigned | 4 |
+| unassigned | 7 |
 
 ## M6-B (53)
 
@@ -310,14 +309,6 @@ Total entries: 208 across 32 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startMapMenu` | Stand-in until PP-12 for `StartOrphanMenuAdjusted(&gMapMenuDef, ...)` and `sub_80832CC` (the map menu); gets `gBmSt.cursorTarget.x - gBmSt.camera.x`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startStatScreen` | Stand-in until PP-12 for `SetStatScreenConfig` and `StartStatScreen(unit, proc)` (unit id [unit]). |
 
-## PP-16 (3)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `endGoalDisplay` | Stand-in until PP-16 for `Proc_EndEach(gProcScr_GoalDisplay)`. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `goalDisplayWindowQuadrant` | Stand-in until PP-16 for `Proc_Find(gProcScr_GoalDisplay)`: its `windowQuadrant`, or [NO_WINDOW] where the proc does not exist. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `startGoalDisplay` | Stand-in until PP-16 for the goal branch of `InitPlayerPhaseInterface`: starts `gProcScr_GoalDisplay` in tree 3 if the config and `EVFLAG_OBJWINDOW_DISABLE` allow it. |
-
 ## PP-17 (9)
 
 | Kotlin file | Declaration | Stand-in |
@@ -352,11 +343,14 @@ Total entries: 208 across 32 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | `DisplayFrozenUiHand`: stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (4)
+## unassigned (7)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | `Hooks` | Stand-ins for what the path arrow calls in other files. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | `hooks` | Stand-ins this path arrow calls; see [Hooks]. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `drawGoalSecondLine` | Stand-in until a capture shows a "defeat all" or "defend" goal for the second text line of `GoalDisplay_Init` (enemy count or turn counter, drawn with `Text_InsertDrawNumberOrBlank`); [goalType] is... |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `isSkirmish` | Stand-in for `GetBattleMapKind() == BATTLEMAP_KIND_SKIRMISH` until the world map state is wired (the Prologue is a story chapter). |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `objWindowDisabled` | Stand-in for `CheckFlag(EVFLAG_OBJWINDOW_DISABLE)` (events) until the flag store is wired: the goal window is not started while it is set. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `trapTypeAt` | `GetTrapAt(x, y)->type` of src/bmtrick.c; stand-in, -1 for no trap. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them, and a stand-in for every other availability callback, in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold. |

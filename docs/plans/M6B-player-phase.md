@@ -286,3 +286,22 @@ PROC_SET_END_CB and the end markers are noted per entry.
 (gamecontrol.c), ProcScr_StdEventEngine (event.c) and ProcScr_GreenTextColor (fontgrp.c) are outside the listed
 file set. gProcScr_ADJUSTSFROMXI (child of playerphase.c L10) is not in the symbol set and was not looked up.
 ProcScr_CamMove (WHILE_EXISTS target) was not looked up.
+
+### `ram_trace_prologue_attack` (PP-cap3, ROM repo `07a6ca9`; for M6-C)
+
+Turn 1 (two Soldiers at (8,6)/(9,6) are already in reach). Watches as cancel_end plus `target`
+(`gUnitArrayRed[1]` 0x0202D004, Soldier, HP 22). Per-frame RAM f1255..2070, full dumps every 10f.
+Battle animations are ON (save options), so the battle is the ekr screen; M6-C (map combat, no animation)
+will need a variant with animations off.
+
+| Event | Frame |
+|---|---|
+| A select Eirika; range | f1260; f1262 |
+| RIGHT ×4 to (8,5); A confirm; MU walk | f1275–1299; f1330; f1331..1365 |
+| Unit menu Attack/Item/Wait | f1365 |
+| A Attack → weapon list (Rapier only, MenuItemPanel) | f1400 |
+| A Rapier → TargetSelection + BKSEL forecast, cursor on the Soldier | f1430 |
+| A confirm; CombatAction, ekrBattleStarting | f1460; f1464 |
+| ekrBattle (animation) | f1496..1989 |
+| MU back; exp 0→10 (no level-up), Eirika HP 16→7, Soldier HP 22→8 | f2010; f2028 |
+| Eirika state 0x2 (acted); idle UI procs back | f2034; f2038 |

@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M5-40: [BmMapRender.renderBmMap] against `gBG3TilemapBuffer` of per-frame dumps of
+ * [BmMapRender.renderBmMap] against `gBG3TilemapBuffer` of per-frame dumps of
  * `ram_trace_first_phase` (r19280..r19420 and some f-dumps after, camera at (0, 0) on the 15x10
  * chapter 0 map) and `ram_trace_newgame_bm` (f09529..f09769, chapter 16; the chapter 0 dumps
  * f09319.. have no BG3 map yet). The port's map pools are built by [BmMap.initChapterMap]; the fog

@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
-/** M3-02: render state types (ADR 0008) behave and filling a frame allocates nothing. */
+/** Render state types (ADR 0008) behave and filling a frame allocates nothing. */
 class RenderStateTest {
     private fun fill(s: RenderState, frame: Int) {
         s.sprites.clear()

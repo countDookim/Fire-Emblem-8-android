@@ -21,7 +21,7 @@ import gba.input.TouchButtons
 
 /**
  * Transparent view overlaid over the game rendering surface that draws on-screen GBA controls
- * and routes multi-touch events to [buttons] (task M3-15).
+ * and routes multi-touch events to [buttons].
  *
  * Hit testing and dynamic bounding-box calculation are managed by [TouchButtons].
  * The D-pad is drawn as a cross with direction indicators while maintaining a 3x3 touch grid

@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test
 
 /**
  * The app's game object ([Fe8Game] with sound, [Fe8Game.present] every frame) on the two ROM
- * sources the APK uses (M5-61): the whole imported ROM, or the extracted boot/sound windows of a
+ * sources the APK uses: the whole imported ROM, or the extracted boot/sound windows of a
  * debug APK without an import. Regression for the 2026-11-06 device crash: START on the title
  * with windows only threw "ROM address ... not in this view" once New Game read chapter data.
  * Not a port test (no @VerifiesPort).
@@ -73,8 +73,8 @@ class AppRomPathTest {
         var frame = 0
         var pressAt = Int.MAX_VALUE
         game.actionSource = gba.input.ActionSource {
-            // One START on the title; afterwards A pages the Prologue dialogue (real since
-            // M6-44, it waits for a key like on a device).
+            // One START on the title; afterwards A pages the Prologue dialogue
+            // (it waits for a key like on a device).
             when {
                 frame - pressAt in 0..3 -> 0x8L
                 frame - pressAt > 60 && frame % 20 in 5..8 -> 0x1L

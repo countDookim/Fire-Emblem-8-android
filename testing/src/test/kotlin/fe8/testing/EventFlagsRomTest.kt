@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M5-19: [Fe8EventFlags] against the ROM. Symbol addresses come from
+ * [Fe8EventFlags] against the ROM. Symbol addresses come from
  * decomp/fireemblem8.nm.txt: `GetPermanentFlagBitsSize` 0x08083DC8, `GetChapterFlagBitsSize`
  * 0x08083DD4 (4 bytes each: `movs r0,#imm; bx lr`) and `gFlagBitMaskLut` 0x089E857C (13 bytes).
  */

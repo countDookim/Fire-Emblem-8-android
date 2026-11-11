@@ -587,7 +587,7 @@ public class BattleMapStart(
 
         private val ZERO_BM_ST = ByteArray(0x40)
 
-        /** Placeholder for `gProc_BMapMain` until M5-44. */
+        /** Placeholder for `gProc_BMapMain` until [BMapMain.script] is set. */
         private val BMAPMAIN_PLACEHOLDER = ProcScript(
             "gProc_BMapMain",
             listOf(

@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M5-47: the transcribed [PlayerPhase.script] (`gProcScr_PlayerPhase`, 0x0859AAD8, size 0x210)
+ * The transcribed [PlayerPhase.script] (`gProcScr_PlayerPhase`, 0x0859AAD8, size 0x210)
  * has the same commands as the ROM: the same count, opcode (u16 at +0 of each 8-byte `ProcCmd`)
  * and label / goto / sleep / mark immediate (u16 at +2) at every index.
  */

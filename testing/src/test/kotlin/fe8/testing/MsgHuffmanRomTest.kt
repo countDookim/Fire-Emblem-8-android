@@ -37,7 +37,7 @@ class MsgHuffmanRomTest {
         assertEquals("Seth", text(0x213))
     }
 
-    /** Every `gMsgTable` entry decodes and terminates (groundwork for M2-09); not a port verification. */
+    /** Every `gMsgTable` entry decodes and terminates (groundwork for MessagesRomTest); not a port verification. */
     @Test
     fun `all 3404 messages decode`() {
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")

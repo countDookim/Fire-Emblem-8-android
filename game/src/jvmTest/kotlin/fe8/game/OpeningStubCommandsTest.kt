@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * Progress gauge for M6-44 (not a port verification): runs the Prologue opening from New Game
+ * Progress gauge for the opening (not a port verification): runs the Prologue opening from New Game
  * (A pressed a few frames out of 20) to the player phase and pins the event command codes that
  * still reach the no-op release stubs. When a command gets a real handler, remove its code from
  * [EXPECTED]; when this fails with a new code, a handler regressed.

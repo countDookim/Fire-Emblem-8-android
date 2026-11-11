@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M2-11: `portrait_data` (0x088ACBE0, 0x12D0 bytes = 172 entries, decomp/fireemblem8.nm.txt) against
+ * `portrait_data` (0x088ACBE0, 0x12D0 bytes = 172 entries, decomp/fireemblem8.nm.txt) against
  * the decomp's `src/portrait_data.c` (pinned 04d1edb). Dumps `testing/build/extracted/portraits/`.
  */
 class PortraitsRomTest {

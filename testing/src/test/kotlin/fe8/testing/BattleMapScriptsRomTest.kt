@@ -20,10 +20,10 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M5-43: the proc scripts of [BattleMapStart] have the same commands as the ROM's: `gProc_MapTask`
+ * The proc scripts of [BattleMapStart] have the same commands as the ROM's: `gProc_MapTask`
  * (0x0859D908, size 0x50) and `sProc_BMVSync` (0x0859D8B8, size 0x50), command by command (count,
  * opcode, and the label / goto / sleep / mark immediates). The BMapMain placeholder is not
- * checked (its real script is M5-44).
+ * checked (its real script is checked in BMapMainScriptTest).
  */
 class BattleMapScriptsRomTest {
     private val romFile = File(

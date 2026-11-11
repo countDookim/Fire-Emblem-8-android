@@ -13,7 +13,7 @@ import android.view.MotionEvent
 import gba.input.ActionSource
 
 /**
- * [ActionSource] for physical keyboards and gamepads (task M3-10).
+ * [ActionSource] for physical keyboards and gamepads.
  *
  * Maps Android key codes, the analog D-pad hat, and the primary left analog stick to standard
  * GBA button bits in `KEYINPUT` bit order. Hardware events are fed on the Android UI thread

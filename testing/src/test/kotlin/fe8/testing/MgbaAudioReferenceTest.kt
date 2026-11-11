@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
-/** Sanity checks of the harness `--audio` capture (`audio_menu`) that M3-14 level tests use. */
+/** Sanity checks of the harness `--audio` capture (`audio_menu`) that the audio level tests use. */
 class MgbaAudioReferenceTest {
     private val run = ReferenceData.fromEnvironment().run("audio_menu")
 

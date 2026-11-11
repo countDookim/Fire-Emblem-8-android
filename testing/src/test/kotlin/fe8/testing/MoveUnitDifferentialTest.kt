@@ -43,7 +43,7 @@ class MoveUnitDifferentialTest {
         assertEquals(false, pb.boot.eventEngine.eventEngineExists())
     }
 
-    /** D-04: `index` (0x0B) gives UNIT_FACTION and so the sprite palette; it must match r19400. */
+    /** `index` (0x0B) gives UNIT_FACTION and so the sprite palette; it must match r19400. */
     @Test
     fun `every unit at the idle map has the index byte of the r19400 dump`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")

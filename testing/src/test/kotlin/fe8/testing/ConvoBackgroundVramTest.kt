@@ -13,7 +13,7 @@ import gba.core.VerifiesPort
 import org.junit.jupiter.api.Test
 
 /**
- * D-08: while a convo background owns BG3 the map tile animation must not overwrite its
+ * While a convo background owns BG3 the map tile animation must not overwrite its
  * characters (VRAM 0xA000..0xAFFF): `Event23_DisaleMapDisp` suspends the VBlank proc.
  */
 class ConvoBackgroundVramTest {

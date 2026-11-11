@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test
  *
  * Compared: all 0x40 bytes of `gBmSt` (cleared, cursor, cursor target and display positions,
  * camera, map size limits, `just_resumed`, semaphore). `gActionData.suspendPointType` and the
- * `MapMain_ResumeFrom*` variants are stand-ins (M6-10), so the suspend point switch has no
+ * `MapMain_ResumeFrom*` variants are transcribed, not verified, so the suspend point switch has no
  * ground truth here; the prologue's camera is at 0 (map smaller than the screen).
  */
 class StartResumedGameDifferentialTest {

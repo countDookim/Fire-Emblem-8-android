@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 
 /**
  * Inventory (not a port claim) of the proc tree alive during the New Game opening world-map
- * stretch (steps 4898-9313 of `ram_trace_prologue`, `procs` watch), D11-wm1. Each row is
+ * stretch (steps 4898-9313 of `ram_trace_prologue`, `procs` watch). Each row is
  * `script symbol <- parent`, where the parent is the script symbol of the parent slot at the
  * segment's first step, or `tree N` for a root proc, followed by the first and last step of a
  * contiguous run of one slot with one script and one parent.

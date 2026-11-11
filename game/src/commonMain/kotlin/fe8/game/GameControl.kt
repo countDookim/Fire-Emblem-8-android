@@ -248,7 +248,7 @@ public class GameControl(
     }
 
     /**
-     * Stand-in for the title screen (task M4-10): a blocking child that holds the game control
+     * Stand-in for the title screen: a blocking child that holds the game control
      * proc where the title screen would.
      */
     public val titleStandInScript: ProcScript =
@@ -372,7 +372,7 @@ public class GameControl(
      */
     public class Hooks(
         /**
-         * `StartSaveMenu` (save menu, task M5-35): the default holds the game control proc with a
+         * `StartSaveMenu` (save menu, M6-E): the default holds the game control proc with a
          * blocking child, like the title stand-in.
          */
         public var startSaveMenu: ProcFunc? = null,
@@ -384,7 +384,7 @@ public class GameControl(
         /** `WaitForFade` for `PROC_REPEAT`: the default breaks at once. */
         public var waitForFade: ProcFunc? = null,
         /**
-         * `GamceControl_StartClassReel` (`PROC_CALL_2`, class reel, task M5-35): the default holds
+         * `GamceControl_StartClassReel` (`PROC_CALL_2`, class reel, not ported): the default holds
          * the game control proc with a blocking child, like the title stand-in.
          */
         public var startClassReel: ProcBoolFunc? = null,

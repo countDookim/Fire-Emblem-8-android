@@ -10,7 +10,7 @@ import fe8.game.event.ScriptMemory
 /**
  * The world map portrait commands `EventC4_WmShowPortrait` and `EventC5_WmClearPortrait` of
  * `src/eventscr_gmap.c`. Transcribed (not verified through the event engine: that comparison is
- * D11-wm8; the faces they start are verified in [WorldMapFace]). Not registered anywhere yet;
+ * D11-wm8a..f; the faces they start are verified in [WorldMapFace]). Not registered anywhere yet;
  * [registerOn] does it.
  *
  * @param memory script words (the command arguments)

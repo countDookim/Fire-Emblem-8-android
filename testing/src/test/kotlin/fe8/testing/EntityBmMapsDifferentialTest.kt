@@ -17,14 +17,14 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M5-39: [EntityBmMaps] against EWRAM dumps. The units and `gPlaySt` come from a dump taken after
+ * [EntityBmMaps] against EWRAM dumps. The units and `gPlaySt` come from a dump taken after
  * the game ran `RefreshEntityBmMaps`; the port's unit, fog and hidden pools are sentinel-filled,
  * the refresh is run, and the whole pools (rows -2 to height + 1) and the unit structs are
  * compared with the dump. Dumps: `ram_trace_first_phase` (chapter 0, the player phase; the maps
  * do not change across it) and `ram_trace_newgame_bm` (chapter 0 after StartBattleMap, and the
  * chapter 16 map the opening event loads). Those have `chapterVisionRange` 0.
  *
- * M5-39b: `ram_trace_ch6_fog` (chapter 6, vision 3) f1990..f2130, the idle player phase (the maps
+ * Also `ram_trace_ch6_fog` (chapter 6, vision 3) f1990..f2130, the idle player phase (the maps
  * only change with the units, not the cursor or camera), exercises the fog lighting and
  * hidden-by-fog branches; there the unit structs (state bits 8/9) are compared whole as well.
  * The torchlight and mine passes are hooks and chapter 6 has no traps they would act on.

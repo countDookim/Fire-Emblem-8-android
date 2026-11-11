@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M5-47: the cursor handling of [PlayerPhase] against the per-frame RAM dumps (`r<frame>`) of the
+ * The cursor handling of [PlayerPhase] against the per-frame RAM dumps (`r<frame>`) of the
  * cursor holds. Each frame is seeded from dump f-1 (`gBmSt`, `gPlaySt`) and the key status of
  * dump f, runs `HandlePlayerCursorMovement` once, and `playerCursor`, `playerCursorDisplay` and
  * `camera` (plus `cursorTarget` and `gameStateBits`) are compared with dump f. Frames whose key

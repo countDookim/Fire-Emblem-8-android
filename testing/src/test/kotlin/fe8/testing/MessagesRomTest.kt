@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M2-09: all 3404 `gMsgTable` messages decode to tagged text and re-encode to identical bytes, and two
+ * All 3404 `gMsgTable` messages decode to tagged text and re-encode to identical bytes, and two
  * messages match the decomp's `texts/texts.txt` (pinned 04d1edb; its `[LF]` is our `{NL}` alias, source
  * line breaks are not part of the string). Also dumps `testing/build/extracted/text/en/messages.json`.
  * Addresses from decomp/fireemblem8.nm.txt (see [MsgHuffmanRomTest]).

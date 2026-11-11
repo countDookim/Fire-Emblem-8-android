@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * The phase-start cursor reset and camera move (M5-46) against per-frame RAM dumps: each frame
+ * The phase-start cursor reset and camera move against per-frame RAM dumps: each frame
  * the data (gBmSt, gPlaySt, units, the CamMove fields and `sCameraAnimTable`) is seeded from the
  * previous dump, the ported code runs one frame and the camera, cursor, cursor display, the
  * proc fields and script positions are compared with the next dump. The procs themselves

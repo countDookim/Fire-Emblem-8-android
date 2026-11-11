@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
-/** M6-19: the Prologue map tile animation (tiles 0x140.. of BG VRAM) matches the reference. */
+/** The Prologue map tile animation (tiles 0x140.. of BG VRAM) matches the reference. */
 class MapAnimationsTest {
     private val ref = ReferenceData.fromEnvironment()
     private val romFile = File(

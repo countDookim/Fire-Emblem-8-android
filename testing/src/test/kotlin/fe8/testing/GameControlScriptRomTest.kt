@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M5-33: the transcribed [GameControl.script] has the same commands as `gProcScr_GameControl` in
+ * The transcribed [GameControl.script] has the same commands as `gProcScr_GameControl` in
  * the ROM (nm: 0x085916D4, size 0x3D0): the same count, and the same opcode (u16 at +0 of each
  * 8-byte `ProcCmd`) and label / goto / sleep / mark immediate (u16 at +2) at every index.
  */

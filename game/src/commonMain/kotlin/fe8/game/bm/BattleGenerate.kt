@@ -19,7 +19,7 @@ import kotlin.math.abs
  *
  * Not ported (the callers stop with an error instead): `BattleUnwind` (random hits),
  * `ComputeBattleObstacleStats`, the exp gain tail of `BattleGenerateRealInternal`
- * (`BattleApplyExpGains`, M6-40), the light rune toggling and the staff / item effect battles.
+ * (`BattleApplyExpGains`, M6-C), the light rune toggling and the staff / item effect battles.
  *
  * @param battle the battle units, stats and stat computes.
  * @param rom the item and class data.
@@ -119,7 +119,7 @@ public class BattleGenerate(
         generateCommon(src, actorOff, targetOff)
         battle.battleUnitTargetCheckCanCounter(battle.target)
         battleUnitTargetSetEquippedWeapon(battle.target)
-        error("BattleApplyExpGains and the pid stats are not ported (M6-40)")
+        error("BattleApplyExpGains and the pid stats are not ported (M6-C)")
     }
 
     /**

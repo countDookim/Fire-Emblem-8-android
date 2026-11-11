@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M5-43: [BattleMapStart] against the first full dump after the game's `StartBattleMap` +
+ * [BattleMapStart] against the first full dump after the game's `StartBattleMap` +
  * `StartBMapMain` (`ram_trace_newgame_bm` f09319, chapter 0). The state before the call is
  * synthetic: every `gPlaySt` field the function writes, all of `gBmSt` but `lock`, the first five
  * chapter flag bytes hold values the port must change, everything else
@@ -51,7 +51,8 @@ import org.junit.jupiter.api.Test
  * Not compared: the unit deploy loop, the
  * MapTask script position (the dump was taken while the proc was in the middle of its first
  * frame), proc slot numbers and proc-private fields (stale from earlier procs), the BMapMain
- * script after its first yield (placeholder until M5-44), the LCD blend registers, which later
+ * script after its first yield (placeholder here; BMapMainScriptTest checks the real one), the
+ * LCD blend registers, which later
  * code in the frame changes, `GetBattleMapKind` (stand-in: STORY) and every stand-in hook.
  */
 class BattleMapStartDifferentialTest {

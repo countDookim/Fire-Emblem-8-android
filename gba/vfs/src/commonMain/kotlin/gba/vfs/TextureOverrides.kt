@@ -32,7 +32,7 @@ public data class TextureOverride(
 }
 
 /**
- * Asset override layer (mod groundwork, task M3-08): finds replacement / hi-res textures that
+ * Asset override layer (mod groundwork): finds replacement / hi-res textures that
  * mods put next to an original asset path in the [VirtualFileSystem]. The base game ships
  * originals only, so without mods every lookup returns null and the vanilla asset is used.
  *

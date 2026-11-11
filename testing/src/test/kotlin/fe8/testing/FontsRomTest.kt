@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M2-10: text fonts against the decomp's `data/fonts/glyphs_{1,2}.h` (pinned 04d1edb). Table addresses
+ * Text fonts against the decomp's `data/fonts/glyphs_{1,2}.h` (pinned 04d1edb). Table addresses
  * from decomp/fireemblem8.nm.txt: `TextGlyphs_System` 0x0858C7EC, `TextGlyphs_Talk` 0x0858F6F4,
  * `TextGlyphs_Special` 0x08590B44. Also dumps `testing/build/extracted/fonts/` for the schema test.
  */

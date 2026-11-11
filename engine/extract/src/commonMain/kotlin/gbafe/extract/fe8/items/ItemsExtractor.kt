@@ -103,7 +103,7 @@ public object ItemsExtractor {
         return STAT_BONUS_FIELDS.withIndex().associateTo(LinkedHashMap()) { (k, name) -> name to rom[o + k].toInt() }
     }
 
-    /** Effectiveness lists are 0-terminated `u8` class numbers. Class names arrive with M2-05. */
+    /** Effectiveness lists are 0-terminated `u8` class numbers (names are not resolved here). */
     private fun effectiveness(rom: ByteArray, ptr: Int): List<Int>? {
         if (ptr == 0) return null
         var o = romOffset(ptr)

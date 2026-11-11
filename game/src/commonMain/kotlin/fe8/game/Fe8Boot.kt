@@ -989,8 +989,8 @@ public class Fe8Boot(
         control.hooks.startBattleMap = ProcFunc { battleMap.startBattleMap(it) }
         control.hooks.startResumedGame = ProcFunc { battleMap.startResumedGame(it) }
         // The New Game stand-in leads into the battle map, which reads ROM data outside the boot
-        // windows: with windows only (debug APK without an imported ROM) the save menu holds, as
-        // before M5-58, instead of crashing on the first chapter read.
+        // windows: with windows only (debug APK without an imported ROM) the save menu holds,
+        // instead of crashing on the first chapter read.
         if (rom.isWholeRom) control.hooks.startSaveMenu = ProcFunc { newGameSaveMenu() }
         control.sound.setDefaultMaxNumChannels() // AgbMain, after m4aSoundInit
         control.hooks.gmDataInit = ProcFunc { gmData.init() }

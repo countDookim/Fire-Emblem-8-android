@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M5-59: the app path (boot, title A presses, New Game stand-in, real beginning events) reaches the
+ * The app path (boot, title A presses, New Game stand-in, real beginning events) reaches the
  * Prologue map. BG3 is compared with `ram_trace_first_phase` (idle player phase of chapter 0, the
  * map fits the screen so the camera is the same without seeding: the test checks it equals the
  * dump's). Only the map tiles (the 32x32 `gBG3TilemapBuffer`) are compared, not BG3 scroll or

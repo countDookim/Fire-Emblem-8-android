@@ -7,7 +7,7 @@ public fun interface AudioSource {
 }
 
 /**
- * Square-wave test tone (M3-12 manual test): [frequency] Hz at [sampleRate], amplitude [amplitude], both
+ * Square-wave test tone (manual test): [frequency] Hz at [sampleRate], amplitude [amplitude], both
  * channels. Uses a 32-bit phase accumulator so the pitch has no drift; [render] allocates nothing.
  */
 public class ToneSource(

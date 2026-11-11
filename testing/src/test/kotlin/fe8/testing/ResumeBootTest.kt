@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * Booting with a suspend save in the save storage resumes the battle map (M6-12); booting with an
+ * Booting with a suspend save in the save storage resumes the battle map; booting with an
  * empty storage starts a new game and stores the image once the suspend save is written.
  *
  * The unit tests compare all [UnitTable.TOTAL_SIZE] bytes of our unit table at the resumed idle
@@ -51,7 +51,7 @@ class ResumeBootTest {
             orig.invoke(it)
             afterResume(boot, boot.engine.find(boot.bmapMain.script)!!)
         }
-        // A keeps paging the beginning events' dialogue (real since M6-44) until they end.
+        // A keeps paging the beginning events' dialogue until they end.
         while (frame < 12000 && boot.engine.find(boot.playerPhaseScript) == null) {
             boot.frame()
             frame++

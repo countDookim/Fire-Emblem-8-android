@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M2-18: m4a song → MIDI. `gSongTable` 0x08224470 (decomp/fireemblem8.nm.txt; `sound/song_table.s`, 8-byte
+ * m4a song → MIDI. `gSongTable` 0x08224470 (decomp/fireemblem8.nm.txt; `sound/song_table.s`, 8-byte
  * `song` entries), song 1 = `song001_agbfe3_bgm_opening`, checked against the decomp's
  * `sound/songs/midi/song001_agbfe3_bgm_opening.mid` (pinned 04d1edb). Dumps `testing/build/extracted/songs/`.
  */

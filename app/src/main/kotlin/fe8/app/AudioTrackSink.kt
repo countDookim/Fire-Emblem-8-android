@@ -20,7 +20,7 @@ import gba.audio.PcmStream
 import io.github.countdookim.fe8.BuildConfig
 
 /**
- * Low-latency [AudioSink] (M3-12): a streaming 16-bit stereo [AudioTrack] with
+ * Low-latency [AudioSink]: a streaming 16-bit stereo [AudioTrack] with
  * `PERFORMANCE_MODE_LOW_LATENCY` and the smallest buffer the device allows (twice its minimum).
  *
  * [write] blocks until the samples are queued in the native HAL ring buffer, which naturally

@@ -1,7 +1,7 @@
 package gba.input
 
 /**
- * UI element contract (mod groundwork, task M3-11, docs/decisions/0009): each frame, screens
+ * UI element contract (mod groundwork, docs/decisions/0009): each frame, screens
  * that show selectable things (menu rows, map cells, buttons) publish their on-screen bounds
  * together with the [GameAction] that selecting them corresponds to. The base game only
  * *publishes*; it never reads this list, so game logic is unchanged. A touch-UI mod hit-tests a

@@ -97,7 +97,7 @@ public object Camera {
      *
      * Not verified: needs a run with a scripted camera move (sub_8015D84 / SetSomeRealCamPos,
      * e.g. an event camera command); no reference run reaches it, so the CamMove start that
-     * uses it ([CamMove.startCameraOntoPositionCentred]) is untagged too (M5-46 checked).
+     * uses it ([CamMove.startCameraOntoPositionCentred]) is untagged too.
      *
      * @param xIn watched map column (tiles).
      * @param mapSizeX `gBmMapSize.x` (s16, tiles).

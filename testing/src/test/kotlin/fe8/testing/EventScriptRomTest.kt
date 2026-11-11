@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M2-15/M5-11/M5-13: event converter v1 (exact length, layouts, symbols, constants) on the
+ * Event converter v1 (exact length, layouts, symbols, constants) on the
  * prologue. `EventScr_Prologue_BeginningScene` 0x089EEBE8 (0xD4
  * bytes) and `EventScr_Prologue_RenaisThroneCutscene` 0x089EECBC (0x3A4) in
  * decomp/fireemblem8.nm.txt, checked against `src/events/prologue-eventscript.h` (pinned 04d1edb).

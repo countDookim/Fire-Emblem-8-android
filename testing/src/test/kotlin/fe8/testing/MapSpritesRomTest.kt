@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M2-17: `unit_icon_wait_table` 0x088AF880 (0x358 bytes = 107 entries), `unit_icon_move_table` 0x089A2E00
+ * `unit_icon_wait_table` 0x088AF880 (0x358 bytes = 107 entries), `unit_icon_move_table` 0x089A2E00
  * (0x3F8 bytes = 127 = class count) and
  * `gPal_MapSprite` 0x0859EE20 (decomp/fireemblem8.nm.txt) against `src/unit_icon_wait_data.c` (pinned
  * 04d1edb) and `data/const_data_unit_icon_move.s`. Eirika/Ephraim frames checked by eye. Dumps `testing/build/extracted/mapsprites/`.

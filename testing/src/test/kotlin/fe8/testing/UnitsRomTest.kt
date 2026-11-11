@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M2-16: prologue unit placement. `UnitDef_Event_PrologueAlly` 0x088B3C14 (0x3C bytes) and
+ * Prologue unit placement. `UnitDef_Event_PrologueAlly` 0x088B3C14 (0x3C bytes) and
  * `UnitDef_Event_PrologueEnemy` 0x088B3C50 (0x50) in decomp/fireemblem8.nm.txt against
  * `src/events/prologue-eventudefs.h` (pinned 04d1edb).
  */

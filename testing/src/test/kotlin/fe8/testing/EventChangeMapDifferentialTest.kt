@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M6-23: `Event25_ChangeMap` ([EventChangeMap]) with `RestartBattleMap`
+ * `Event25_ChangeMap` ([EventChangeMap]) with `RestartBattleMap`
  * ([BattleMapStart.restartBattleMap]) against `ram_trace_newgame_bm` (the Prologue opening's
  * first `load_map`, chapter 0 -> 16). The game's call spans several frames (a lag frame: the
  * chapter index is set at f9508, the map size at f9509 and the camera at f9513); the state after

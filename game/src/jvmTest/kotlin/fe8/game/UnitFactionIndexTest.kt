@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * D-04: the New Game path must run `InitUnits` (src/bmunit.c), which sets `Unit.index` to the
+ * The New Game path must run `InitUnits` (src/bmunit.c), which sets `Unit.index` to the
  * unit's slot id. `UNIT_FACTION` and so `GetUnitSpritePalette` (src/bmudisp.c) read that byte;
  * with index 0 every enemy was drawn in the ally palette. Ground truth: ram_trace_first_phase
  * f19430 (unit ids 0x81..0x83 are the red array).

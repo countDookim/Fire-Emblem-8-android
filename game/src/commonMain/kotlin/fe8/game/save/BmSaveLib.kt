@@ -306,7 +306,7 @@ public class BmSaveLib(public val sram: CartSram) {
 
     /**
      * Partially ported from src/bmsave-misc.c: EraseInvalidSaveData (foreign-magic conversion
-     * branch missing, M5-25/M5-26)
+     * branch missing)
      *
      * Reads the global save info; returns at once when its `magic32` is the FE8 magic. Otherwise
      * reads the whole SRAM and returns unless the magic is 0x00040603 (the save of another
@@ -320,7 +320,7 @@ public class BmSaveLib(public val sram: CartSram) {
         if (u32(ewramCopy, L.HEADER_MAGIC32) == L.SAVEMAGIC32) return
         readSramFast(sram, 0, ewramCopy, 0, L.SRAM_SIZE)
         if (u32(ewramCopy, L.HEADER_MAGIC32) != FOREIGN_MAGIC32) return
-        TODO("EraseInvalidSaveData: erasing a save with magic32 0x00040603 (task M5-25)")
+        TODO("EraseInvalidSaveData: erasing a save with magic32 0x00040603")
     }
 
     /**
@@ -528,8 +528,8 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-bwl.c: IsPlaythroughIdUnique (not verified: to be verified by
-     * M5-32's full-image check, not yet done)
+     * Transcribed from src/bmsave-bwl.c: IsPlaythroughIdUnique (not verified: no @VerifiesPort
+     * test names it)
      *
      * False when [index] is among the global info's cleared playthroughs or the playthrough id
      * of a valid game save slot.
@@ -550,8 +550,8 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-bwl.c: GetNewPlaythroughId (not verified: to be verified by
-     * M5-32's full-image check, not yet done)
+     * Transcribed from src/bmsave-bwl.c: GetNewPlaythroughId (not verified: no @VerifiesPort
+     * test names it)
      *
      * The smallest id in 1..0xFF that [isPlaythroughIdUnique] (the C code falls off the end
      * without a value when none is; 0 here).
@@ -576,8 +576,8 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-bwl.c: GetGlobalCompletionCount (not verified: to be verified by
-     * M5-32's full-image check, not yet done)
+     * Transcribed from src/bmsave-bwl.c: GetGlobalCompletionCount (not verified: no @VerifiesPort
+     * test names it)
      *
      * 0 when the global save info is invalid, else [getGlobalCompletionCntByInfo] of it.
      */
@@ -587,8 +587,8 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Transcribed from src/bmsave-lib.c: WriteSupplyItems (not verified: to be verified by M5-32's
-     * full-image check, not yet done)
+     * Transcribed from src/bmsave-lib.c: WriteSupplyItems (not verified: no @VerifiesPort test
+     * names it)
      *
      * Packs the 100 convoy [items] (u16 each: item id in the low byte, uses in the high byte)
      * into the 0xB0-byte supply block at SRAM [destOffset]: the ids in bytes 0..99, then the
@@ -619,7 +619,7 @@ public class BmSaveLib(public val sram: CartSram) {
 
     /**
      * Stand-in for src/bmcontainer.c: ClearSupplyItems (zeroes the 100 convoy items) over a raw
-     * little-endian u16 array [convoy] (verified by M5-32's full-image check; not yet).
+     * little-endian u16 array [convoy] (no @VerifiesPort test names it).
      */
     public fun clearSupplyItems(convoy: ByteArray) {
         convoy.fill(0, 0, CONVOY_ITEM_COUNT * 2)

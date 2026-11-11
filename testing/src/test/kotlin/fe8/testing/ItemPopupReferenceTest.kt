@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test
 
 /**
  * Verifies the provenance and input/RAM equivalence of `ram_trace_item_popup` vs
- * `ram_trace_prologue` (D09-1b).
+ * `ram_trace_prologue`.
  */
 class ItemPopupReferenceTest {
     private val ref = ReferenceData.fromEnvironment()

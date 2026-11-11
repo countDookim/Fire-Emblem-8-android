@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M3-06 acceptance: the health & safety screen built from **extracted assets** (tile-set PNG, palette and
+ * The health & safety screen built from **extracted assets** (tile-set PNG, palette and
  * TSA tilemaps from [ScreenExtractor], the `ui/health_safety.*` files), not from VRAM, matches mGBA's frame.
  * Only the LCD registers (BG setup and the BLDY pulse; the screen's proc logic is not ported yet) come from the
  * dump's I/O. ROM offsets from decomp/fireemblem8.nm.txt (pinned 04d1edb): Img_OpAnimHealthSafetyScreen

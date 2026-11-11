@@ -13,7 +13,7 @@ import fe8.game.RomView
  *
  * Stand-ins: [applyEnabledMapChanges] (bmtrick.c-era map change application) and
  * [refreshAllLightRunes] (bmtrick.c) are later tasks, and the tileset graphics/palette unpack
- * (`UnpackChapterMapGraphics`, M5-37) is skipped; the chapter 0x75 water shadow pass
+ * (`UnpackChapterMapGraphics`) is in [ChapterMapGfx], not here; the chapter 0x75 water shadow pass
  * (`sub_8019624`) is not ported yet.
  */
 public class BmMap(

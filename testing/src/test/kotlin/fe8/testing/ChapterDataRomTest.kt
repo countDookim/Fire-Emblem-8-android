@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M5-28: [ChapterData] against bytes read straight from the ROM at the nm addresses
+ * [ChapterData] against bytes read straight from the ROM at the nm addresses
  * (`gChapterDataTable` 0x088B0890, 0x2DAC bytes; `gChapterDataAssetTable` 0x088B363C), decoded
  * independently of [ChapterData].
  */

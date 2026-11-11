@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M5-36: [BmMap] against the EWRAM dumps of `ram_trace_newgame_bm`, taken right after the game's
+ * [BmMap] against the EWRAM dumps of `ram_trace_newgame_bm`, taken right after the game's
  * `InitChapterMap` for chapter 0 (and for the next chapter the opening event loads). The game's
  * pools are decoded by following the row-pointer tables in EWRAM, independently of [BmMap].
  * `BmMapInit` is checked by the pool bases and row-pointer tables of five pools (movement and

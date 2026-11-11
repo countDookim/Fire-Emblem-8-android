@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M5-44: the transcribed [BMapMain.script] (`gProc_BMapMain`, 0x0859A1F0, size 0x248) has the
+ * The transcribed [BMapMain.script] (`gProc_BMapMain`, 0x0859A1F0, size 0x248) has the
  * same commands as the ROM (count, opcode, label / goto / sleep / mark immediate), and
  * `SwitchPhases` moves through the factions as the C does.
  */

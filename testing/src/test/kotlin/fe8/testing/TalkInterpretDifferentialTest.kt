@@ -28,14 +28,14 @@ import org.junit.jupiter.api.Test
  * Coverage: f9866..f10565, the whole talk (Talk proc ends at f10564, its skip listener with it).
  * The first frame that does not match is f10566: the caller's clean-up after the talk (face
  * fade-out, event engine) resets `lineActive`, which is not the talk's own code, so the run
- * stops at f10565. There is no earlier divergence, so no face code needed the M6-35 procs
+ * stops at f10565. There is no earlier divergence, so no face code needed the blink/fade procs
  * beyond the stand-ins below.
  *
  * Bubble and shift-clear procs are the real ones ([TalkBubble]); the BG1 tilemap is compared too.
  * Talk faces are the real ones ([TalkFace]): handles, the face procs' position, display bits,
  * oam2, id and layer, and each face's tiles at its first f-dump. Not compared: face palettes (the
  * fade-in procs are not ported), blink and mouth animation, face sprites.
- * Not ported here (M6-35): the blink/fade procs, temporary lock, skip listener and
+ * Not ported here: the blink/fade procs, temporary lock, skip listener and
  * `GetStrTalkLen`. The [Rig] hosts them with transcriptions of the decomp (durations, state
  * writes), not with trace values; their start frames and lifetimes are compared with the trace
  * like the rest. Not

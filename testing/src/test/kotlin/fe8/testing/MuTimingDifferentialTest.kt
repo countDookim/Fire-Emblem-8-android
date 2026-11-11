@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * D-06: the two pairs walking outside the castle, against the original proc watch.
+ * The two pairs walking outside the castle, against the original proc watch.
  *
  * Unit/class/map data and the four single REDAs are read from r12540 at runtime. The walks
  * start from their original tiles, with the original input stream from n12527 onward. The

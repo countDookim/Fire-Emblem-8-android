@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M5-37: the chapter map graphics loaders of [ChapterMapGfx] against `ram_trace_newgame_bm`. That
+ * The chapter map graphics loaders of [ChapterMapGfx] against `ram_trace_newgame_bm`. That
  * run has one full dump (VRAM, palette RAM) right after `StartBattleMap` (f9319, chapter 0); the
  * state before it is synthetic: `gPlaySt` and the LCD buffer come from the dump (the BG priorities
  * are overwritten with values the ports must change), and VRAM and the palette buffer are

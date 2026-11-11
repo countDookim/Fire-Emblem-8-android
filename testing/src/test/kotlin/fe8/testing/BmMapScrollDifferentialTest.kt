@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M5-42: [BmMapRender.updateBmMapDisplay] (with `RenderBmMapColumn` / `RenderBmMapLine`) against
+ * [BmMapRender.updateBmMapDisplay] (with `RenderBmMapColumn` / `RenderBmMapLine`) against
  * the per-frame dumps of the cursor-hold windows of `ram_trace_first_phase` (no scrolling),
  * `ram_trace_ch2_scroll` (y scrolls) and `ram_trace_ch6_fog` (x and y scroll, fog). For each frame
  * k -> k+1 the port is seeded from dump k (`gBmSt` with `cameraPrevious` and `mapRenderOrigin`,

@@ -129,8 +129,8 @@ public class BMapMain(
         public var berserkCpPhase: ProcScript = standIn("gProcScr_BerserkCpPhase")
 
         /**
-         * `gProcScr_PlayerPhase` (0x0859AAD8; task M5-47 provides the real script). Stand-in:
-         * never ends.
+         * `gProcScr_PlayerPhase` (0x0859AAD8). Default stand-in: never ends; Fe8Boot sets the
+         * transcribed [PlayerPhase.script].
          */
         public var playerPhase: ProcScript = idle("gProcScr_PlayerPhase")
 

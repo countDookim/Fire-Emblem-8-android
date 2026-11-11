@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M6-15: the unit sprite loaders of [UnitSprites] against `ram_trace_first_phase` f19430. The
+ * The unit sprite loaders of [UnitSprites] against `ram_trace_first_phase` f19430. The
  * sprites loaded in the dump are replayed through `ResetUnitSprites` and `UseUnitSprite` in the
  * order their slots imply (16x16 sprites by falling counter, the others by rising counter) and
  * `gSMSGfxBuffer`, `gUnitSpriteSlots` and the counters are compared with the dump; the OBJ

@@ -9,7 +9,7 @@ import gba.extract.SymbolSources
  * Everything the FE extraction steps need besides the ROM: the game-neutral [SymbolSources]
  * plus decomp face names. Behind an interface so extraction can run either from the decomp
  * ([DecompSources]) or, on device, from a committed manifest of the answers
- * (docs/decisions/0011, M4-03); [RecordingSources] produces that manifest.
+ * (docs/decisions/0011); [RecordingSources] produces that manifest.
  */
 public interface ExtractSources : SymbolSources {
     /** Face names (`FID_*`) to ids from `texts/textdefs.txt` (empty without a decomp). */

@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M2-20 (icons): `item_icon_tiles` 0x085926F4 up to `item_icon_palette` 0x085996F4 (0x7000 bytes = 224 icons)
+ * Icons: `item_icon_tiles` 0x085926F4 up to `item_icon_palette` 0x085996F4 (0x7000 bytes = 224 icons)
  * in decomp/fireemblem8.nm.txt (`data/data_item_icon.s`, pinned 04d1edb). Icon 1 = `item_icon_sword_iron`
  * (0x08592774 = tiles + 0x80). Sheet checked by eye. Dumps `testing/build/extracted/ui/`.
  */

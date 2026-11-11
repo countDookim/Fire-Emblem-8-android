@@ -61,7 +61,7 @@ class M4aNoteTest {
         var pcmFreq = 0
         var endties = 0
         var cgbActive = 0
-        // PSG level (M3-14): CgbSound's register writes in ram_trace_menu_cgb f900..f1100 played
+        // PSG level: CgbSound's register writes in ram_trace_menu_cgb f900..f1100 played
         // by PsgSynth, compared with the PSG share of mGBA's audio_menu output.
         val psgRegs = M4aPsg()
         // Channels triggered (NRx4 bit 7) per mGBA step (dump n = step n + 1), f901..f1100.

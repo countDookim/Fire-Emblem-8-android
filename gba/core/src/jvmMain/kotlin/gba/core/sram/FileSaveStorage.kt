@@ -12,7 +12,7 @@ import java.nio.file.StandardCopyOption
  * the next store.
  *
  * On Android pass a file in the app's private files directory (`Context.filesDir`), e.g.
- * `File(filesDir, "fe8.sav")`; the wiring is M6-12.
+ * `File(filesDir, "fe8.sav")`.
  *
  * @property file the save file.
  */

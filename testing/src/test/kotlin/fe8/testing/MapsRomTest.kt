@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M2-13: the prologue map (chapter 0, `map` ids obj1 1, obj2 0, palette 2, tileConfig 3, mainLayer 4 in
+ * The prologue map (chapter 0, `map` ids obj1 1, obj2 0, palette 2, tileConfig 3, mainLayer 4 in
  * `src/data/chapter_settings.json`) from `gChapterDataAssetTable` (0x088B363C, decomp/fireemblem8.nm.txt).
  * Rendered output was checked by eye against the game's prologue map. Dumps
  * `testing/build/extracted/maps/` for the Tiled-structure test in `tools/tests/test_schemas.py`.

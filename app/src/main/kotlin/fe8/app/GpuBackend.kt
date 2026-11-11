@@ -20,7 +20,7 @@ import java.nio.IntBuffer
 import java.nio.ShortBuffer
 
 /**
- * GPU backend v1 (M3-07): composites a packed [GpuFrame] per pixel in a fragment shader that is a
+ * GPU backend v1: composites a packed [GpuFrame] per pixel in a fragment shader that is a
  * line-by-line copy of [gba.render.PackedCompositor] (keep them in sync; the JVM tests check the
  * Kotlin spec against [gba.render.SoftwareRenderer]).
  *

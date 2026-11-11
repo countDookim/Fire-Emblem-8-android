@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M2-12: `gChapterDataTable` (0x088B0890, 0x2DAC bytes = 79 chapters, decomp/fireemblem8.nm.txt) against
+ * `gChapterDataTable` (0x088B0890, 0x2DAC bytes = 79 chapters, decomp/fireemblem8.nm.txt) against
  * the decomp's `src/data/chapter_settings.json` (pinned 04d1edb). Dumps
  * `testing/build/extracted/data/chapters.json` for the schema test.
  */

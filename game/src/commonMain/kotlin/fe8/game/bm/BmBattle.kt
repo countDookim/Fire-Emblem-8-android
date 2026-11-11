@@ -865,18 +865,18 @@ public class BmBattle(
     public var arenaLevelLatch: Int = 0
 
     /**
-     * `PidStatsAddExpGained(pid, exp)` (bmsave-bwl.c, not ported to this class): called by
+     * `PidStatsAddExpGained(pid, exp)` (bmsave-bwl.c, not ported to this class; M6-C): called by
      * [updateUnitFromBattle] for a non-zero `expGain`.
      */
     public var pidStatsAddExpGained: (pid: Int, exp: Int) -> Unit =
-        { _, _ -> error("PidStatsAddExpGained is not wired (M6-40)") }
+        { _, _ -> error("PidStatsAddExpGained is not wired (M6-C)") }
 
     /**
      * `GetTrap(ballistaIndex)->data[TRAP_EXTDATA_BLST_ITEMUSES] = uses` (bmtrick.c, not ported):
      * called by [battleApplyBallistaUpdates] in a ballista battle.
      */
     public var setBallistaItemUses: (ballistaIndex: Int, uses: Int) -> Unit =
-        { _, _ -> error("traps are not ported (M6-40)") }
+        { _, _ -> error("traps are not ported (M6-H)") }
 
     /**
      * Transcribed from src/bmbattle.c: BattleApplyGameStateUpdates

@@ -14,9 +14,9 @@ import gba.vfs.VirtualFileSystem
 /**
  * A [VfsLayer] over the APK's assets under [prefix].
  *
- * Debug and test builds bundle extracted game assets from the ROM repository under `extracted/`
- * as the `base` layer. Release builds bundle no game content (decision 0011), so this layer
- * is empty unless assets are embedded for testing.
+ * No APK bundles game data, debug builds included (decision 0011; `tools/check_no_game_content.py`
+ * guards it), so on a device this layer is empty: the game reads the player's imported ROM through
+ * a `DirectoryLayer` instead and uses this layer only as the fallback before an import.
  *
  * @property assets Android [AssetManager] used to open and list asset streams.
  * @property prefix Subdirectory within the APK asset tree (defaults to "extracted").

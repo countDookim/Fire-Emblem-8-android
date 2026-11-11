@@ -33,7 +33,7 @@ public class WmTextFadeHooks(
 /**
  * The world map commands `Event80..82` and `EventAF..B3` of `src/eventscr_gmap.c`. All handlers
  * are transcribed (not verified: no trace step runs them through the event engine; the opening
- * event VM comparison is D11-wm8). They are not registered anywhere yet; [registerOn] does it.
+ * event VM comparison is D11-wm8a..f). They are not registered anywhere yet; [registerOn] does it.
  *
  * @param memory script words (the command arguments)
  * @param fade the screen fade service

@@ -4,7 +4,7 @@ package gba.audio
  * The GBA's PSG (CGB) sound registers as `CgbSound` sees them: one byte per IO address from
  * `0x04000060` (`NR10`) to `0x040000A0` (end of wave RAM), indexed by `address - 0x04000060`.
  * Only a register file (what the driver writes and reads back); the synth that turns it into
- * samples is separate (task M3-13). Not a port.
+ * samples is separate. Not a port.
  */
 public class M4aPsg {
     /**

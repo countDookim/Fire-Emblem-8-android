@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test
 
 /**
  * Tests for [UiFrame] and [ItemIcon] verifying against the popup capture in
- * `ram_trace_item_popup` (D09-2).
+ * `ram_trace_item_popup`.
  */
 class UiFrameIconTest {
     private val ref = ReferenceData.fromEnvironment()

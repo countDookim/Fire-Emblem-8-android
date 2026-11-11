@@ -245,7 +245,7 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
 
     /**
      * Transcribed from src/bmsave.c: ReadGMMonsterRnState (not verified: no suspend-trace state
-     * covers it; its caller `ReadGameSave` is M6-07)
+     * covers it; its caller `ReadGameSave` is ported)
      *
      * Reads the `u32 buf[2]` at SRAM [srcOffset] and, as the world map's `sub_80A71F8` does,
      * copies its first three halfwords to [rnState] (`gGMData.unk_ce`).
@@ -339,7 +339,7 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
 
     /**
      * Transcribed from src/bmsave.c: WriteGMMonsterRnState (not verified: no suspend-trace
-     * state covers it; its caller `WriteGameSave` is M6-07)
+     * state covers it; its caller `WriteGameSave` is ported)
      *
      * Writes the `u32 buf[2]` that the world map's `sub_80A71E4` fills to SRAM [destOffset]: the
      * three halfwords [rnState] (`gGMData.unk_ce`, copied by `CpuSet`) and two bytes of

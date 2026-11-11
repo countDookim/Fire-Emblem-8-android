@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * M5-46: the transcribed [CamMove.script] (`ProcScr_CamMove`, 0x0859A548, size 0x28) and
+ * The transcribed [CamMove.script] (`ProcScr_CamMove`, 0x0859A548, size 0x28) and
  * [ResetCursorPosition.script] (`gProcScr_ResetCursorPosition`, 0x0859AE00, size 0x18) have the
  * same commands as the ROM: the same count, and the same opcode (u16 at +0 of each 8-byte
  * `ProcCmd`) and label / goto / sleep / mark immediate (u16 at +2) at every index.

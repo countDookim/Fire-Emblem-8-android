@@ -430,9 +430,9 @@ Total entries: 516 across 60 decomp files (missing reason: 0).
 | `LoadSavedBonusClaimFlags` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | the claim flags are zero in every reference save |
 | `WriteBonusContentClaimFlags` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | the New Game trace copies only zeros |
 | `ReadTraps` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | every trap in the reference is zero, which proves the target, not the data |
-| `ReadGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | no suspend-trace state covers it; its caller `ReadGameSave` is M6-07 |
+| `ReadGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | no suspend-trace state covers it; its caller `ReadGameSave` is ported |
 | `WriteTraps` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | every trap in the reference is zero, which proves the target, not the data |
-| `WriteGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | no suspend-trace state covers it; its caller `WriteGameSave` is M6-07 |
+| `WriteGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | no suspend-trace state covers it; its caller `WriteGameSave` is ported |
 
 ## src/face.c (14)
 
@@ -622,10 +622,10 @@ Total entries: 516 across 60 decomp files (missing reason: 0).
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
-| `IsPlaythroughIdUnique` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | to be verified by M5-32's full-image check, not yet done |
-| `GetNewPlaythroughId` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | to be verified by M5-32's full-image check, not yet done |
+| `IsPlaythroughIdUnique` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
+| `GetNewPlaythroughId` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
 | `GetGlobalCompletionCntByInfo` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no test checks it against a trace yet |
-| `GetGlobalCompletionCount` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | to be verified by M5-32's full-image check, not yet done |
+| `GetGlobalCompletionCount` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
 
 ## src/bmsave-lib.c (4)
 
@@ -634,7 +634,7 @@ Total entries: 516 across 60 decomp files (missing reason: 0).
 | `SaveBonusContentData` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero bonus block, so no run shows its checksum or data |
 | `SaveRankings` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero ranking block, so no run shows its checksum or data |
 | `WriteLinkArenaStruct2` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero link arena block, so no run shows its checksum or data |
-| `WriteSupplyItems` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | to be verified by M5-32's full-image check, not yet done |
+| `WriteSupplyItems` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
 
 ## src/proc.c (4)
 

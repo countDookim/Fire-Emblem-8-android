@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test
  *
  * Glyphs: at every full dump the talk strip of `sTalkText[i]` (VRAM `0x06001000 + 1920 * i`) holds
  * the glyphs drawn so far and `sTalkText[i].x` is the pen. The characters are not taken from the
- * message (replaying [MsgStrings] missed every first line; the talk state is M6-33): a depth-first
+ * message (replaying [MsgStrings] missed every first line; the talk state is kept elsewhere): a depth-first
  * search over glyph-bearing bytes draws into a cleared strip, pruned by the dump's finished tiles,
  * until the pen reaches the traced x and the whole strip equals the dump; the found sequence is
  * then redrawn through `drawString`. This is weaker than a message replay (the sequence is chosen

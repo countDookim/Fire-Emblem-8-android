@@ -51,7 +51,7 @@ class NewGameToPrologueTest {
         assertTrue(reached >= 0) { "PlayerPhase not reached; $trail" }
         // The beginning events run for real (no skip: START is never pressed) with the release
         // stand-ins, load the player units and end; the phase then idles. The dialogue is real
-        // now (M6-44, D-01), so A keeps being pressed (every 20 frames) to page through it.
+        // now, so A keeps being pressed (every 20 frames) to page through it.
         var guard = 0
         while (boot.eventEngine.eventEngineExists() && guard++ < 20000) {
             boot.frame()
@@ -77,7 +77,7 @@ class NewGameToPrologueTest {
         // The repeat command has run (scrCur is past it) and installed its callback.
         assertEquals(0x03, cmds[idleIndex].opcode)
         assertNotNull(proc!!.idleCb)
-        // D-03: MOVEUNIT / ENUN walk the units (MuCtrl); ram_trace_first_phase r19400 has the
+        // MOVEUNIT / ENUN walk the units (MuCtrl); ram_trace_first_phase r19400 has the
         // blue units Seth (char 2) at (4,4) and Eirika (char 1) at (4,5).
         val blue = (1..0x3E).filter { boot.units.isValid(it) }
             .associate { boot.units.charId(it) to (boot.units.xPos(it) to boot.units.yPos(it)) }
@@ -110,7 +110,7 @@ class NewGameToPrologueTest {
             frame++
             boot.frame()
             val bytes = boot.units.bytes
-            // D-02: ENUN and the MU end rebuild the unit sprite handles (pMapSpriteHandle).
+            // ENUN and the MU end rebuild the unit sprite handles (pMapSpriteHandle).
             if ((1..0x3E).any {
                     boot.units.isValid(it) && (0x3C..0x3F).any { d ->
                         bytes[boot.units.unitOffset(it) + d].toInt() != 0

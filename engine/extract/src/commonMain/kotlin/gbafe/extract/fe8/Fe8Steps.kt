@@ -6,7 +6,7 @@ import gbafe.extract.hexUpper
 import gbafe.extract.padDec
 
 /**
- * The extraction core (no files: what the app runs on device, M4-04): every FE8 step on [rom]
+ * The extraction core (no files: what the app runs on device): every FE8 step on [rom]
  * with the decomp answers from [symbols] (symbol addresses, enum names, sizes), written to [out];
  * returns one human-readable line per group of paths written.
  *
@@ -194,7 +194,7 @@ public fun runFe8Steps(rom: ByteArray, symbols: ExtractSources, out: ExtractOutp
     written += "scripts/*.fe8s (${scriptNames.size + wmNames.size} scripts in " +
         "${groups.size + 1} files, " +
         "$rawLines raw lines) + scripts/index.json"
-    // m4a (M2-18/19): every gSongTable entry -> songs/songNNN.mid (once per distinct header) +
+    // m4a: every gSongTable entry -> songs/songNNN.mid (once per distinct header) +
     // songs/songs.json, and the voicegroups the songs use -> voicegroups/<name>.json.
     val songTable = symbols["gSongTable"].address - ROM_BASE
     val songs = gbafe.extract.m4a.M4aSong.readSongTable(

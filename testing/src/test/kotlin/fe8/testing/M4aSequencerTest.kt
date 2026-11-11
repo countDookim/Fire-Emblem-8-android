@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test
 /**
  * One [M4aSequencer.step] from each per-frame dump reproduces the next dump's track
  * state, for tracks that met no unmodelled command (notes etc.) in that step. The sequencer itself
- * stays WIP (M3-13); the complete `ply_*` handlers that ran in matching steps are verified.
+ * stays WIP; the complete `ply_*` handlers that ran in matching steps are verified.
  */
 class M4aSequencerTest {
     private val ref = ReferenceData.fromEnvironment()

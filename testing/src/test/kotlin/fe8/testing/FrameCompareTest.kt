@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * M3-06 frame compare: the software compositor, fed the hardware state mGBA dumped for a frame
+ * Frame compare: the software compositor, fed the hardware state mGBA dumped for a frame
  * ([HardwareScene]), must reproduce mGBA's own screen for that frame at 5-bit precision. A failing frame
  * writes `build/frame-diff/<run>_<dump>.png` (expected | ours | differences in red).
  *

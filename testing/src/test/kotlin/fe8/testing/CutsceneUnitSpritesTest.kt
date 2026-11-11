@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * D-02: unit sprites (OBJ) are drawn while the Prologue opening events run, before the battle
+ * Unit sprites (OBJ) are drawn while the Prologue opening events run, before the battle
  * map. The original's `ram_trace_prologue` dumps (every 300 frames) are taken
  * during those events; each has a unit table (valid units and their tiles) and hardware OAM.
  * Our headless New Game flow ([PrologueBoot]) must, for each of these dumps, have a frame with
@@ -85,7 +85,7 @@ class CutsceneUnitSpritesTest {
         assertEquals(dumps.map { it.first }.toSet(), matched, "dumps without a matching frame")
     }
 
-    /** D-06: a walking unit (MU in movement) is drawn: an OBJ with a MU tile is on screen. */
+    /** A walking unit (MU in movement) is drawn: an OBJ with a MU tile is on screen. */
     @Test
     fun `a walking MU is drawn on every frame it moves`() {
         assumeTrue(romFile.isFile, "ROM not present")

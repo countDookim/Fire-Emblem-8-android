@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * [BMapMain] (M5-44) against per-frame RAM dumps from the end of the beginning event to the start
+ * [BMapMain] against per-frame RAM dumps from the end of the beginning event to the start
  * of the player phase. The procs, `gPlaySt`, `gBmSt`, the units and the flags are seeded once
  * (the last frame of the event engine); then the proc engine runs the real
  * `gProc_BMapMain` script, [ResetCursorPosition] and [CamMove] free-running. Every frame, the

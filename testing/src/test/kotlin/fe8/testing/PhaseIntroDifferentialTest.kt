@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * The phase intro banner (D-12, src/phasechangefx.c) against `ram_trace_ch6_phase_start`: the
+ * The phase intro banner (src/phasechangefx.c) against `ram_trace_ch6_phase_start`: the
  * player phase banner of chapter 6, dump frames 1683..1753.
  *
  * Alignment: the dump of frame N is the state after the main loop pass of frame N, except f1683:

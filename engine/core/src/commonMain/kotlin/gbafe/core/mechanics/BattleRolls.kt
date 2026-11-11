@@ -18,17 +18,18 @@ import gbafe.core.rng.RngService
  */
 public interface BattleRolls {
     /**
-     * Does an attack with displayed hit rate [hitRate] (0..100) connect? Vanilla: two RNs
+     * Does an attack with hit rate [hitRate] (percent) connect? Vanilla: two RNs
      * averaged.
      */
     public fun hit(rng: RngService, hitRate: Int): Boolean
 
-    /** Does an attack with crit rate [critRate] (0..100) crit? Vanilla: one RN. */
+    /** Does an attack with crit rate [critRate] (percent) crit? Vanilla: one RN. */
     public fun crit(rng: RngService, critRate: Int): Boolean
 
     /**
-     * Does a percentage-based skill trigger (silencer, Great Shield, Pierce, Sure Strike level
-     * checks)? Vanilla: one RN.
+     * Does a one-RN proc succeed at [rate] percent: the Silencer (its `silencerRate`), the
+     * level-based Sureshot, Pierce and Great Shield procs (the unit's level is the rate), and the
+     * Devil weapon self-hit? Vanilla: one RN.
      */
     public fun skill(rng: RngService, rate: Int): Boolean
 }
@@ -36,7 +37,7 @@ public interface BattleRolls {
 /**
  * The original rolls: `BattleGenerateHitAttributes` (src/bmbattle.c) uses `BattleRoll2RN` for hit
  * ("true hit": the average of two RNs must be below the hit rate) and `BattleRoll1RN` for crit and
- * skill procs.
+ * the other procs.
  */
 public object VanillaBattleRolls : BattleRolls {
     /** Two-RN hit, as `BattleRoll2RN(hitRate)`. */

@@ -1,13 +1,14 @@
 package gbafe.core.math
 
 /**
- * The easing helpers of `src/spline.c` and `src/bmlib.c` that camera and map scrolls use. Results
- * are 12-bit fixed point fractions (0x1000 = 1.0); divisions truncate towards zero (BIOS `Div`)
- * on 32-bit ints.
+ * The easing helpers of `src/spline.c` and `src/bmlib.c` (used by the world map movement among
+ * others). Results are 12-bit fixed point fractions (0x1000 = 1.0); divisions truncate towards
+ * zero (BIOS `Div`) on 32-bit ints.
  */
 public object Spline {
     /**
      * `DivArm(divisor, dividend)`: the BIOS division with swapped arguments, `dividend / divisor`.
+     * A zero [divisor] gives 0 here rather than a hardware fault.
      */
     public fun divArm(divisor: Int, dividend: Int): Int =
         if (divisor == 0) 0 else dividend / divisor
@@ -45,7 +46,7 @@ public object Spline {
      * Ported from src/bmlib.c: sub_8014CA4
      *
      * [easeInOut] of `timer / speed` (as a 0x1000 fraction) with ease-in [start] and ease-out
-     * [end].
+     * [end]. The decomp caller is the world map movement, which passes 0x800 for both.
      */
     public fun sub8014CA4(timer: Int, speed: Int, start: Int, end: Int): Int =
         easeInOut(divArm(speed, timer * 0x1000), start, end)
@@ -73,8 +74,7 @@ public object Spline {
      * Transcribed from src/spline.c: _DivArm2 (not verified: no reference capture reaches a caller)
      *
      * `timer / duration` as a 0x1000 fraction with an ease-in over the first half and an ease-out
-     * over the
-     * second, each raised to [power] (0 = linear).
+     * over the second, each raised to [power] (0 = linear).
      */
     public fun divArm2(timer: Int, duration: Int, power: Int): Int {
         if (power == 0) return divArm(duration, timer shl 12)

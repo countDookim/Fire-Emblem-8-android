@@ -1,8 +1,8 @@
 package gbafe.core.math
 
 /**
- * Easing curves for animations and camera moves: `Interpolate` and its
- * `enum interpolate_method` (src/bmlib.c).
+ * Easing curves for timed screen effects (opening subtitle, background flashes): `Interpolate`
+ * and its `enum interpolate_method` (src/bmlib.c).
  */
 public object Interpolate {
     /** `INTERPOLATE_LINEAR`. */

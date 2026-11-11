@@ -1,8 +1,8 @@
 package gbafe.core.time
 
 /**
- * The in-game frame clock (`gGameClock`, decomp `src/time.c`): frames since boot, shown as play
- * time.
+ * The in-game frame clock (`gGameClock`, decomp `src/time.c`): 60 frames per second, shown as play
+ * time and stored in the save (chapter start times are compared against it).
  */
 public class GameClock {
     /** `gGameClock` (u32, frames). */

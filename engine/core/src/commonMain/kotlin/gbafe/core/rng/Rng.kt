@@ -195,7 +195,7 @@ public class RngService(
 
     /** Constants shared with the original boot sequence. */
     public companion object {
-        /** Constant LCG seed used at boot by the original game. */
+        /** The LCG seed `AgbMain` sets at boot, before drawing the seed for [Fe8Rng]. */
         public const val BOOT_LCG_SEED: Int = 0x42D690E9
     }
 }

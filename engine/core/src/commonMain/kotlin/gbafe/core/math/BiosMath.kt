@@ -26,6 +26,11 @@ public object BiosMath {
         return result.toInt()
     }
 
+    /**
+     * The BIOS `ArcTan` polynomial: the angle for slope [i] (a signed 2.14 fixed-point ratio,
+     * 0x4000 = 1.0), as an angle scaled 4x too large (0x8000 = 45 degrees), which [arcTan2]
+     * shifts right by 2.
+     */
     private fun arcTan(i: Int): Int {
         var a = -((i * i) shr 14)
         var b = ((0xA9 * a) shr 14) + 0x390

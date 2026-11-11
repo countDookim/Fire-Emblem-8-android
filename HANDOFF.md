@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-10 (owner-PC wrap-up). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-11 (scheduled run 05:00Z). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -10,8 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D11-wm6b (GmapUnit fade/loop verification): scheduled, until ~05:35Z
-- D11-wm6c (worldmap_mapmu.c GMapMuPrim port): scheduled, until ~05:35Z
+None. `wip/D11-wm6b` and `wip/D11-wm6c` are merged into master; the remote branches can be deleted.
 
 ## Current state
 
@@ -21,7 +20,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
   source is now provisioned for node-table tests; missing source fails clearly and invalidates
   stale test-cache results. Rapier popup icon/cleanup fixes remain included (first in 0.1.528).
 - Current source: **728/8352 verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce
-  ROM bytes at runtime. Full local `jvmTest test` (scheduled, after wm6/wm4c): **784 passed, zero failures/skips**; earlier both APK
+  ROM bytes at runtime. Full local `jvmTest test` (scheduled 11-11, after wm6b/wm6c): **785 passed, zero failures/skips**; earlier both APK
   builds/content guards, game Dokka, 27 Python tests and instruction sync passed. New source CI pending.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
@@ -69,6 +68,14 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
    - wm6 (scheduled 2026-11-10, `b027750`): `WorldMapUnitTest` verifies 13 GmapUnit/container functions
      (fields per step, 4890–9310); u16/s8/u8 narrowings untested. Loop/OAM, fades, palette ids, scripts and
      opcodes 9E–AC remain transcribed/unregistered.
+   - wm6b (scheduled 2026-11-11): GmapUnit_Loop (UPDATEGFX clear only), SetGfxNeedsUpdate and unit fades
+     (StartGmapUnitFade, GmapUnitFade_Init/Loop/Destruct, GetGmapUnitFade, sub_80BB49C/4C0/538) verified per
+     step; fade palettes are not in the per-step trace (sub_80BB26C transcribed); sub_80BB538's final
+     SetDisplayEnabled is undetectable in the trace. OAM still unchecked.
+   - wm6c (scheduled 2026-11-11): new `WorldMapMu.kt` (worldmap_mapmu.c); StartGmMu/GmMu_OnInit/GmMuPrim_OnInit
+     verified (7 prims at 4901); all GmMu_* accessors transcribed. Movement routines (GmMuPrim_80BD444/
+     80BD830/80BD9D8/80BDA78), sub_80BE45C step SE, `sub_80BD20C` (hook, not in decomp src) and the
+     centered-camera hook (WorldMapScroll port exists) remain. automu.c not started.
    - wm4c (`c2025c8`): events B4–BA (big map, nation highlight) transcribed with unit tests; unverified, unregistered.
    - wm8 (end-to-end + registration) follows. Restore default face
      VRAM/palette configuration at the world-map exit before sharing TalkFace with battle dialogue.

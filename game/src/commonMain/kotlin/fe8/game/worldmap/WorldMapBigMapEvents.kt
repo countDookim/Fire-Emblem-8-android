@@ -31,6 +31,7 @@ public class WmBigMapHooks(
     /** `sub_80C2C10(index)`. */
     public val sub80C2C10: (Int) -> Unit = {},
 ) {
+    /** Factory for hooks backed by the ported world-map services. */
     public companion object {
         /** Hooks that call the ported [rm] and [border] services. */
         public fun of(rm: WorldMapRm, border: WorldMapRmBorder): WmBigMapHooks = WmBigMapHooks(

@@ -353,30 +353,51 @@ public class WorldMapMu(
 
     /** `struct UnknownSub80BDEB4` (field names as in `include/worldmap.h`). */
     public class MoveInput(
+        /** Field `unk_00`. */
         public val unk00: Int,
+        /** Field `unk_01`. */
         public val unk01: Int,
+        /** Field `unk_02`. */
         public val unk02: Int,
+        /** Field `unk_03`. */
         public val unk03: Int,
+        /** Field `unk_04`. */
         public val unk04: Int,
+        /** Field `unk_06`. */
         public val unk06: Int,
+        /** Field `unk_08`. */
         public val unk08: Int,
+        /** Field `unk_0a`. */
         public val unk0a: Int,
+        /** Field `unk_0c`. */
         public val unk0c: Int,
     )
 
     /** `struct UnknownSub80BDFA4` (field names as in `include/worldmap.h`). */
     public class MoveInput2(
+        /** Field `unk_00`. */
         public val unk00: Int,
+        /** Field `unk_01`. */
         public val unk01: Int,
+        /** Field `unk_02`. */
         public val unk02: Int,
+        /** Field `unk_03`. */
         public val unk03: Int,
+        /** Field `unk_04`. */
         public val unk04: Int,
+        /** Field `unk_05`. */
         public val unk05: Int,
+        /** Field `unk_06`. */
         public val unk06: Int,
+        /** Field `unk_08`. */
         public val unk08: Int,
+        /** Field `unk_0a`. */
         public val unk0a: Int,
+        /** Field `unk_0c`. */
         public val unk0c: Int,
+        /** Field `unk_0e`. */
         public val unk0e: Int,
+        /** Field `unk_10`. */
         public val unk10: Int,
     )
 

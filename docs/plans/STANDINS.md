@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 199 across 31 Kotlin files.
+Total entries: 202 across 32 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -35,9 +35,11 @@ Total entries: 199 across 31 Kotlin files.
 | PP-16 | 3 |
 | PP-17 | 6 |
 | PP-5 | 1 |
+| PP-6 | 1 |
 | PP-7 | 1 |
+| PP-8 | 1 |
 | PP-9 | 1 |
-| unassigned | 1 |
+| unassigned | 2 |
 
 ## M6-B (52)
 
@@ -340,11 +342,23 @@ Total entries: 199 across 31 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `pathArrowDispInit` | Stand-in until PP-5 for `PathArrowDisp_Init(mode)`: 0 when the cursor is on the active unit, 1 otherwise. |
 
+## PP-6 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | `PathArrow` | [Hooks.generateBestMovementScript] is a stand-in until PP-8. |
+
 ## PP-7 (1)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `rangeDisplayIdle` | Stand-in for `PlayerPhase_RangeDisplayIdle` (a `PROC_REPEAT`) until PP-7. |
+
+## PP-8 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | `generateBestMovementScript` | Stand-in until PP-8 for `GenerateBestMovementScript(x, y, script)` (bmidoten.c): writes the movement script to ([x], [y]) over the working map into the array. |
 
 ## PP-9 (1)
 
@@ -352,8 +366,9 @@ Total entries: 199 across 31 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | `DisplayFrozenUiHand`: stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
 
-## unassigned (1)
+## unassigned (2)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | `Hooks` | Stand-ins for what the path arrow calls in other files. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them, and a stand-in for every other availability callback, in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold. |

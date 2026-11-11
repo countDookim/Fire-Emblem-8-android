@@ -124,6 +124,18 @@ public class MovementMap(
     }
 
     /**
+     * Transcribed from src/bmidoten.c: GenerateMovementMapOnWorkingMap (not verified: only
+     * `ResetPathArrow` and the path arrow's re-route call it, and the capture runs neither)
+     *
+     * Sets the working move costs of the unit with id [unitId] and floods the working map from
+     * ([x], [y]) with at most [movement] cost.
+     */
+    public fun generateMovementMapOnWorkingMap(unitId: Int, x: Int, y: Int, movement: Int) {
+        setWorkingMoveCosts(getUnitMovementCost(units.unitOffset(unitId)))
+        generateMovementMap(x, y, movement, units.index(unitId))
+    }
+
+    /**
      * Ported from src/bmunit.c: GetUnitMovementCost
      *
      * The ROM address of the cost table of the unit at unit-array offset [o]: the class table

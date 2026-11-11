@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 545 across 69 decomp files (missing reason: 0).
+Total entries: 550 across 70 decomp files (missing reason: 0).
 
 ## src/worldmap_rm.c (42)
 
@@ -636,6 +636,15 @@ Total entries: 545 across 69 decomp files (missing reason: 0).
 | `EndGmPalFade` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapPaletteFade.kt` | no @VerifiesPort test names it |
 | `StartGmPalFade_` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapPaletteFade.kt` | no @VerifiesPort test names it |
 
+## src/bmpatharrowdisp.c (4)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetPathFromMovementScript` | `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | only the re-route branches call it, and the capture's cursor never leaves the path's reach |
+| `GenerateMovementMapForActiveUnit` | `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | only the re-route branches call it |
+| `ResetPathArrow` | `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | the capture's cursor never leaves the range or crosses the path, so no re-route runs |
+| `PathContainsNoCycle` | `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | only the re-route branch calls it |
+
 ## src/bmsave-bwl.c (4)
 
 | Function | Kotlin file | Reason |
@@ -680,6 +689,14 @@ Total entries: 545 across 69 decomp files (missing reason: 0).
 | `DeployEveryUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | no unit has `US_NOT_DEPLOYED` set in the prologue trace, so it cannot tell this from a no-op |
 | `WmMain_MoveCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `gGMData.ix/iy` stay 0 and the camera constant in every prologue dump, so no trace covers any branch |
 | `ProcScr_WorldMapMain` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | prefix, up to and including `PROC_REPEAT(WorldMap_PostBeginningEvent)`; the rest is not transcribed yet |
+
+## src/bmidoten.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `MapSetInRange` | `game/src/commonMain/kotlin/fe8/game/bm/AttackRange.kt` | the select window never calls it |
+| `GenerateMovementMapOnWorkingMap` | `game/src/commonMain/kotlin/fe8/game/bm/MovementMap.kt` | only `ResetPathArrow` and the path arrow's re-route call it, and the capture runs neither |
+| `GenerateBestMovementScript` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | the tie-break draws from the RNG; the walk's end position does not depend on it |
 
 ## src/bmmap.c (3)
 
@@ -727,13 +744,6 @@ Total entries: 545 across 69 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `DecodeString` | `engine/text/src/commonMain/kotlin/gbafe/text/MsgHuffman.kt` | shares its loop with [decode], which carries the verified port tag |
 | `DrawGlyph` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | exercised only through the Text_DrawCharacter test |
-
-## src/bmidoten.c (2)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `MapSetInRange` | `game/src/commonMain/kotlin/fe8/game/bm/AttackRange.kt` | the select window never calls it |
-| `GenerateBestMovementScript` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | the tie-break draws from the RNG; the walk's end position does not depend on it |
 
 ## src/bmphase.c (2)
 

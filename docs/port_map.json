@@ -6,7 +6,7 @@
   ],
   "summary": {
     "total": 8352,
-    "verified": 743,
+    "verified": 750,
     "implemented_unverified": 1
   },
   "functions": {
@@ -1529,7 +1529,7 @@
     "GenerateScriptBattleHitFormEventQueue": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -2178,6 +2178,69 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapMuTest#GMapMu starts seven prim procs with no linked map unit"
+      ]
+    },
+    "GmapAutoMu_80C31C4": {
+      "decomp_file": "src/worldmap_automu.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapAutoMu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapAutoMuTest#auto mu runs follow the original script position and fields every step"
+      ]
+    },
+    "GmapAutoMu_80C31E0": {
+      "decomp_file": "src/worldmap_automu.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapAutoMu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapAutoMuTest#auto mu runs follow the original script position and fields every step"
+      ]
+    },
+    "GmapAutoMu_80C31FC": {
+      "decomp_file": "src/worldmap_automu.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapAutoMu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapAutoMuTest#auto mu runs follow the original script position and fields every step"
+      ]
+    },
+    "GmapAutoMu_80C3350": {
+      "decomp_file": "src/worldmap_automu.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapAutoMu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapAutoMuTest#auto mu runs follow the original script position and fields every step"
+      ]
+    },
+    "GmapAutoMu_StartFadeOut": {
+      "decomp_file": "src/worldmap_automu.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapAutoMu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapAutoMuTest#auto mu runs follow the original script position and fields every step"
+      ]
+    },
+    "GmapAutoMu_WaitForFadeEnd": {
+      "decomp_file": "src/worldmap_automu.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapAutoMu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapAutoMuTest#auto mu runs follow the original script position and fields every step"
+      ]
+    },
+    "GmapAutoMu_WaitInitialDelay": {
+      "decomp_file": "src/worldmap_automu.c",
+      "system": "worldmap",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapAutoMu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapAutoMuTest#auto mu runs follow the original script position and fields every step"
       ]
     },
     "GmapRmBorder1_80C28C4": {

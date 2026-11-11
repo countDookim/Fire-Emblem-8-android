@@ -10,7 +10,7 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 
 ## In progress
 
-- D11-wm6d automu (worldmap_automu.c, new WorldMapAutoMu.kt): owner PC, until ~08:10Z
+None.
 
 ## Current state
 
@@ -19,9 +19,8 @@ Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_
 - Published **0.1.551 (`1c30d0b`)**: CI **769 passed, zero failures/skips**. The pinned decomp
   source is now provisioned for node-table tests; missing source fails clearly and invalidates
   stale test-cache results. Rapier popup icon/cleanup fixes remain included (first in 0.1.528).
-- Current source: **728/8352 verified**, `ported-without-tag: 0`; 897 EventScr scripts reproduce
-  ROM bytes at runtime. Full local `jvmTest test` (scheduled 11-11, after wm6b/wm6c): **785 passed, zero failures/skips**; earlier both APK
-  builds/content guards, game Dokka, 27 Python tests and instruction sync passed. New source CI pending.
+- Current source: **750/8352 verified** (owner PC 11-11 adds wm6c ×2, wm6d ×7), `ported-without-tag: 0`; 897 EventScr scripts reproduce
+  ROM bytes at runtime. Full local `jvmTest test` (owner PC 11-11 07:58Z): **787 passed, zero failures/skips**; game Dokka passed.
 - New Game reaches the Prologue opening and turn-1 map; suspend/resume and cursor movement work.
   Player actions, battle animations and the real save/difficulty menus remain unimplemented.
 - Layout: game-neutral `:gba:*`, `gbafe.*` in `:engine:*`, FE8 `fe8.*` in `:game`/`:app` (ADRs 0010–0013).
@@ -76,6 +75,11 @@ Earlier device checks cover boot/import/controls/GPU/suspend-resume. Do not requ
      verified (7 prims at 4901); all GmMu_* accessors transcribed. Movement routines (GmMuPrim_80BD444/
      80BD830/80BD9D8/80BDA78), sub_80BE45C step SE, `sub_80BD20C` (hook, not in decomp src) and the
      centered-camera hook (WorldMapScroll port exists) remain. automu.c not started.
+   - wm6c movement (owner PC 11-11, `daa1d2b`): linear GmMuPrim_80BD9D8/80BDA78 verified on three prims' first
+     moves from 8218; spline movers 80BD444/80BD830 transcribed (Prologue runs type-2 moves only).
+   - wm6d automu (owner PC 11-11, `818c1b3`): 7 GmapAutoMu callbacks verified per step on all 7 Prologue runs
+     (8174-9129), started from captured args; MU-moving/fade waits driven by the capture. Type0/node path,
+     StartFadeIn, Type1 start, OnEnd, End/IsActive transcribed. Unwired.
    - wm4c (`c2025c8`): events B4–BA (big map, nation highlight) transcribed with unit tests; unverified, unregistered.
    - wm8 (end-to-end + registration) follows. Restore default face
      VRAM/palette configuration at the world-map exit before sharing TalkFace with battle dialogue.

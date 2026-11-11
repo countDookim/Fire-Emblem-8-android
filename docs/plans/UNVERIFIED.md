@@ -169,7 +169,7 @@ Total entries: 550 across 70 decomp files (missing reason: 0).
 | `LoadUnit_800F704` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | b is a guess and terrain is stubbed |
 | `sub_800F8A8` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `Event3C_MoveCursor` | `game/src/commonMain/kotlin/fe8/game/event/EventCursorCamera.kt` | opcode 0x3C is only in tutorial scripts and never runs in available mGBA reference traces |
-| `Event17_Fade` | `game/src/commonMain/kotlin/fe8/game/event/EventFade.kt` | the skipping branch and the SetDispEnable call survive breaks in EventVmDifferentialTest |
+| `Event17_Fade` | `game/src/commonMain/kotlin/fe8/game/event/EventFade.kt` | the skipping branch and the SetDispEnable call survive breaks in EventVmDifferentialTest; subcode 0 (FADU) is compared in CutsceneStartSkipDifferentialTest, f10053..f10069 |
 | `Event37_GiveItem` | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | inventory/gold effects and popups not trace-compared |
 | `TryPrepareEventUnitMovement` | `game/src/commonMain/kotlin/fe8/game/event/EventMoveUnit.kt` | no @VerifiesPort test names it |
 | `ModifyMoveUnitFlag` | `game/src/commonMain/kotlin/fe8/game/event/EventMoveUnit.kt` | no @VerifiesPort test names it |

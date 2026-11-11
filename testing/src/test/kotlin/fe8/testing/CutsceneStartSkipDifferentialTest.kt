@@ -3,7 +3,20 @@ package fe8.testing
 import fe8.game.event.EventEngine
 import fe8.game.event.EventEngineHooks
 import fe8.game.event.EventEngineProc
+import fe8.game.event.EventChangeMap
+import fe8.game.event.EventFade
 import fe8.game.event.EventHandler
+import fe8.game.event.EventInput
+import fe8.game.event.EventScrCore
+import fe8.game.bm.BmSt
+import fe8.game.bm.PlaySt
+import fe8.game.event.EventConst.EVC_ADVANCE_CONTINUE
+import fe8.game.event.EventConst.EVC_ADVANCE_YIELD
+import fe8.game.event.EventConst.EVC_STOP_YIELD
+import fe8.game.flags.Fe8EventFlags
+import gbafe.core.rng.RngService
+import gbafe.input.KeyStatus
+import gbafe.render.BgHardware
 import fe8.game.event.ScriptWords
 import fe8.game.event.EventState
 import fe8.game.event.EventText
@@ -23,7 +36,8 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * `EventEngine_StartSkip` (Start during the Prologue castle cutscene, `ram_trace_prologue_cutscene_skip`)
+ * `EventEngine_StartSkip` (Start during the Prologue castle cutscene,
+ * `ram_trace_prologue_cutscene_skip`)
  * against the per-frame `procs` and `displayio` watches.
  *
  * The proc array of f10004 is mirrored with idle stand-ins (marks, lock counts, tree links); the
@@ -77,13 +91,25 @@ class CutsceneStartSkipDifferentialTest {
     }
 
     /**
-     * After the fade: the engine's `Event1D_WaitForLockTalk` (skipping) ends the talk tree and the
-     * faces at f10010, `Event1B` REMA yields at f10011. The talk procs are seeded with their real
-     * scripts and end callbacks but are not run (they are blocked until they end); the face
-     * procs likewise. Window f10005..f10011.
+     * After the fade, f10005..f10069: the engine's `Event1D_WaitForLockTalk` (skipping) ends the
+     * talk tree and the faces at f10010 (`ClearTalkBubble` clears the DISPCNT window bits, seen in
+     * the hardware register at f10011) and `Event1B` REMA yields at f10011. The commands up to
+     * f10038 run under SKIPPING; `Event02` clears the skip bit at f10038; `Event25` sets chapter 64
+     * at f10039 (the game's map restart lags 13 frames, in which the engine does not run);
+     * `Event17` fades in from black at f10053..f10069 and clears FADEDIN. Compared per frame: live
+     * procs by script, `evStateBits`, `pEventCurrent`, event slots 1..13, `gPlaySt.chapterIndex`,
+     * DISPCNT, and from f10053 the fade proc and BLDY. The talk and face procs are seeded with
+     * their real scripts and end callbacks but never run (blocked until they end).
+     *
+     * Test-only stand-ins ([STAND_IN_CODES]): `Event2C`, `Event2F`, `Event30`, `Event34` and
+     * `Event3B` (unit loads, moves, state, cursor; they return what the trace shows). `Event25`
+     * runs with no-op map restart, camera and render callbacks (only the chapter is compared).
      */
     @Test
-    @VerifiesPort("Event1D_WaitForLockTalk", "Event1B_TEXTSHOW", "sub_800E640")
+    @VerifiesPort(
+        "Event1D_WaitForLockTalk", "Event1B_TEXTSHOW", "sub_800E640", "ClearTalkBubble",
+        "Event02_EvBitAndIdMod", "Event0E_STAL",
+    )
     fun `skipping ends the talk tree and the faces when the engine reaches the text wait`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         val assets = java.io.File(
@@ -118,13 +144,39 @@ class CutsceneStartSkipDifferentialTest {
             (rom[o].toInt() and 0xFF) or ((rom[o + 1].toInt() and 0xFF) shl 8)
         })
         val state = EventState()
+        val trace = TalkTrace(runDir)
+        state.load(trace.iwram(PRESS - 1), EventState.BASE_ADDRESS - IWRAM)
+        val playSt = PlaySt()
+        playSt.chapterIndex = trace.ewram(PRESS - 1)[PLAY_ST_CHAPTER].toInt() and 0xFF
         val events = EventEngine(engine, state, words, hooks)
+        EventScrCore(
+            state, words, object : EventInput {}, Fe8EventFlags.create(), RngService(), playSt,
+            KeyStatus(),
+        ).registerAll(events)
+        EventFade(words, fade).registerOn(events)
+        EventChangeMap(state, words, playSt, BmSt(), BgHardware(), {}, {}, {}).registerOn(events)
+        rig.onDisableTalkWindows = { lcd.setWinEnable(0, 0, 0) }
         val host = EventTextTalkHost(
             engine, rig.talk, rig.bubble, rig.face, rig, rig,
         ) { error("no string needed") }
         EventText(state, words, host).registerOn(events)
-        // 0x2F follows REMA (0x1B22): it must not run in this window (REMA yields).
-        events.register(0x2F, EventHandler { error("0x2F ran: REMA did not yield") })
+        // Unit, cursor and movement commands (2C, 2F, 30, 34, 3B) are test stand-ins: they leave no
+        // state this test compares and return what the trace shows (yield when the frame's last
+        // pc is the next command, park when the pc stays).
+        var frameTarget = 0
+        val stubbed = HashMap<Int, Int>()
+        for (code in STAND_IN_CODES) {
+            events.register(code, EventHandler { proc ->
+                stubbed.merge(code, 1, Int::plus)
+                val here = proc.pEventCurrent
+                val next = here + 2 * ((words.u16(here) ushr 4) and 0xF)
+                when (frameTarget) {
+                    here -> EVC_STOP_YIELD
+                    next -> EVC_ADVANCE_YIELD
+                    else -> EVC_ADVANCE_CONTINUE
+                }
+            })
+        }
         val real = mapOf(
             TalkRig.ADDR_TALK to rig.talk.talkScript,
             0x08591340 to rig.skipScript,
@@ -139,15 +191,23 @@ class CutsceneStartSkipDifferentialTest {
         val fadeAddress = names.entries.first { it.value == "ProcScr_FadeToBlack" }.key
         val addressOf: Map<ProcScript, Int> =
             real.entries.associate { (a, sc) -> sc to a } +
-            (events.stdScript to STD_EVENT_ENGINE) + (fade.toBlack to fadeAddress)
+            (events.stdScript to STD_EVENT_ENGINE) + (fade.toBlack to fadeAddress) +
+            (fade.fromBlack to names.entries.first { it.value == "ProcScr_FadeFromBlack" }.key)
         pressed = true
         events.onUpdate(engineProc)
         pressed = false
-        for (frame in PRESS..TEXT_REMA) {
-            // The engine proc comes before the fade proc in the frame (tree 3 before tree 0 here).
-            if (frame > PRESS && engineProc.proc!!.lockCnt == 0) events.onUpdate(engineProc)
-            engine.procs.firstOrNull { it.script === fade.toBlack }?.let { engine.run(it) }
+        for (frame in PRESS..LAST_FADE) {
             val dump = at(frame)
+            val std = dump.find(STD_EVENT_ENGINE)!!
+            frameTarget = std.u32(0x38)
+            // The engine proc comes before the fade proc in the frame (tree 3 before tree 0 here).
+            // The game's ChangeMap (f10039) lags 13 frames: the engine does not run in them.
+            val inLag = frame in LAST_CHAPTER + 1..MAP_DONE
+            if (frame > PRESS && !inLag && engineProc.proc!!.lockCnt == 0) {
+                events.onUpdate(engineProc)
+            }
+            engine.procs.firstOrNull { it.script === fade.toBlack || it.script === fade.fromBlack }
+                ?.let { engine.run(it) }
             assertEquals(
                 dump.live.map { it.script }.sorted(),
                 engine.procs.mapNotNull { p ->
@@ -155,10 +215,37 @@ class CutsceneStartSkipDifferentialTest {
                 }.sorted(),
                 "f$frame live procs by script",
             )
-            val std = dump.find(STD_EVENT_ENGINE)!!
             assertEquals(std.u16(0x3C), engineProc.evStateBits, "f$frame evStateBits")
-            assertEquals(std.u32(0x38), engineProc.pEventCurrent, "f$frame pEventCurrent")
+            // ChangeMap (0x25) spans a lag frame: the dump of f10039 has the chapter set but the pc
+            // still on the command (its yield advances it later, see EventChangeMapDifferentialTest).
+            val lagged = if (frame in LAST_CHAPTER until MAP_DONE) 4 else 0
+            assertEquals(std.u32(0x38) + lagged, engineProc.pEventCurrent, "f$frame pEventCurrent")
+            if (frame >= TEXT_REMA) {
+                val ew = trace.ewram(frame)
+                assertEquals(
+                    ew[PLAY_ST_CHAPTER].toInt() and 0xFF, playSt.chapterIndex, "f$frame chapter",
+                )
+                val iw = trace.iwram(frame)
+                for (i in 1 until 14) {
+                    assertEquals(
+                        trace.u32(iw, SLOTS_IN_IWRAM + 4 * i),
+                        state.slots[i], "f$frame slot $i",
+                    )
+                }
+            }
+            dump.find("ProcScr_FadeFromBlack")?.let { d ->
+                val f = engine.procs.first { it.script === fade.fromBlack }
+                    .state as ScreenFade.State
+                assertEquals(d.u16(0x64), f.speed, "f$frame fade-in speed")
+                assertEquals(d.u16(0x66), f.level, "f$frame fade-in level")
+            }
+            if (frame >= FADE_IN) {
+                assertEquals(io.u8(frame + 1, BLDY), lcd.blendY, "f$frame BLDY (next frame)")
+            }
+            // The LCD buffer reaches DISPCNT at the next VBlank.
+            assertEquals(io.u16(frame + 1, 0), lcd.dispcnt, "f$frame DISPCNT (next frame)")
         }
+        println("CutsceneStartSkip stand-in commands run: $stubbed")
     }
 
     private fun compare(
@@ -243,6 +330,14 @@ class CutsceneStartSkipDifferentialTest {
         const val SET_END_CB = 0x04
         const val ROM_BASE = 0x08000000
         const val TEXT_REMA = 10011
+        const val LAST_CHAPTER = 10039
+        const val MAP_DONE = 10052
+        const val FADE_IN = 10053
+        const val LAST_FADE = 10069
+        const val IWRAM = 0x03000000
+        const val SLOTS_IN_IWRAM = EventState.BASE_ADDRESS - IWRAM + EventState.SLOTS_OFFSET
+        const val PLAY_ST_CHAPTER = 0x2BCF0 + 0x0E
+        val STAND_IN_CODES = intArrayOf(0x2C, 0x2F, 0x30, 0x34, 0x3B)
         const val STD_EVENT_ENGINE = 0x08591AC0
         const val MARK = 0x26
         const val LOCK = 0x28

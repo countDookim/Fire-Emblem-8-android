@@ -266,7 +266,10 @@ internal class TalkRig(val rom: ByteArray, val runDir: File) :
 
     override fun initTalkTextWin(x: Int, y: Int, width: Int, height: Int) {}
 
-    override fun disableTalkWindows() {}
+    /** Called by `ClearTalkBubble` (the window bits of DISPCNT); a test may hook the LCD. */
+    var onDisableTalkWindows: () -> Unit = {}
+
+    override fun disableTalkWindows() = onDisableTalkWindows()
 
     override fun initTalkBlend() {}
 

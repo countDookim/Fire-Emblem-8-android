@@ -41,11 +41,10 @@ Notes: [D11-worldmap](plans/D11-worldmap.md) (§8 status), [M6-notes](plans/M6-n
 
 ## Lane B: player phase (M6-B)
 
-Notes: create `docs/plans/M6B-player-phase.md` with PP-0. Start state: `prologue.sav` (turn-1 suspend).
+Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames). Start state: `prologue.sav` (turn-1 suspend).
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| PP-cap1 | CAP | `ram_trace_prologue_select_move`: select Eirika, move 2 tiles, Wait | procs/gbmst/actiondata/unit watches per step; full dumps every 10 steps; old runs byte-identical | — | todo |
 | PP-cap2 | CAP | Cancel paths (B at each stage), map menu, End turn | same | — | todo |
 | PP-cap3 | CAP | Attack through forecast to exp gain (for M6-C) | same | — | todo |
 | PP-0 | INV | Proc tree and live step ranges in cap1/cap2 | Inventory test; PP-1..16 function lists corrected | PP-cap1, PP-cap2 | todo |
@@ -88,5 +87,6 @@ Row details, including what each task left transcribed: [archive](plans/TASKS-ar
   D11-skip, D11-proc, D11-worldmap, D11-wm1, D11-wm2, D12-1. D11-wm3..wm7 (+ wm4a–c, wm6b–d): standalone
   ports verified as far as the Prologue runs them; the rest is in lane A.
 - M4-02, M4-12, M5-56, 56b, 57..61.
+- **Lane B:** PP-cap1 (`ram_trace_prologue_select_move`, ROM repo `c3ad5d4`).
 - **App:** APP-1 (launcher Delete save, `e39c730`; device check pending).
 - **Alignment:** PROG-1 (`b459cf3`), UNV-1, ALN-1 (`3f85702`), ALN-2, STAND-1, STAND-2, M7-0 ([M7-modding](plans/M7-modding.md): 23 proposed rows; D1 decided = option A, ADR 0015; D2–D9 open).

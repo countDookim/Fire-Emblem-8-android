@@ -73,7 +73,6 @@ Owner request 2026-11-11: one coherent plan across code and docs; formatting and
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| M7-0 | doc | Audit each "Modding groundwork" bullet of the brief against the code, incl. ROM-address table reads | Findings + M7 task rows in `docs/plans/M7-modding.md`; read-only on code | — | started |
 | STAND-2 | comments | Every stand-in comment in main Kotlin names the ROADMAP milestone or TASKS row that replaces it; comments that are not placeholders stop saying "stand-in" | `tools/standins.py`: 0 unassigned; comment-only diff; compile + Dokka green | — | started |
 
 ## Other open rows
@@ -97,4 +96,4 @@ Row details, including what each task left transcribed: [archive](plans/TASKS-ar
   D11-skip, D11-proc, D11-worldmap, D11-wm1, D11-wm2, D12-1. D11-wm3..wm7 (+ wm4a–c, wm6b–d): standalone
   ports verified as far as the Prologue runs them; the rest is in lane A.
 - M4-02, M4-12, M5-56, 56b, 57..61.
-- **Alignment:** PROG-1 (`b459cf3`), UNV-1, ALN-1 (`3f85702`), ALN-2, STAND-1.
+- **Alignment:** PROG-1 (`b459cf3`), UNV-1, ALN-1 (`3f85702`), ALN-2, STAND-1, M7-0 ([M7-modding](plans/M7-modding.md): 23 proposed rows wait for owner decisions D1–D9).

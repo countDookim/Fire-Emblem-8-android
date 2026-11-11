@@ -7,10 +7,11 @@ Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 ## NEEDS USER
 
 Nothing blocks development. Emulator comparison of D-12 is pending; see [MANUAL_TEST](docs/MANUAL_TEST.md).
+Modding decisions D1–D9 in [M7-modding](docs/plans/M7-modding.md) are open (they set M7's size; M6 is not blocked).
 
 ## In progress
 
-- STAND-2, M7-0: owner PC (4 agents authorized for this run), until ~10:30Z
+- STAND-2: owner PC (4 agents authorized for this run), until ~10:30Z
 
 ## Current state
 

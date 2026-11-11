@@ -82,8 +82,10 @@ remain in scope. The pace depends on captures.
   → M6-G; item 3 (riders at the map edge) confirmed solved earlier; item 4 (Rapier popup) → D-09
   device check pending; item 5 (player phase) → M6-B to M6-D.
 
-## Flagged, not audited
+## Modding audit (M7-0, 2026-11-11)
 
-Recent ports read tables straight from ROM addresses (`WmNodeData(rom)`, `ChapterData(rom)`,
-`Events_WM_Beginning`). The brief wants all game data in versioned, schema-validated JSON. Task
-M7-0 audits this and every other "Modding groundwork" bullet against the code.
+[M7-modding](M7-modding.md) checks every "Modding groundwork" bullet of the brief against the code. Main
+finding: the extracted JSON/Tiled/PNG/MIDI files exist, but no production code reads them; the game reads the
+imported ROM by address (about 76 files in `game/`). Fourteen bullets are partial, the debug menu is missing, and
+"all data in JSON, none hardcoded" is contradicted. Nine owner decisions (D1–D9) and 23 proposed M7 rows are in
+that file; D1 (how mods override ROM-read data) sets the size of M7. None of this blocks M6.

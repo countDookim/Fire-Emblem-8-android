@@ -182,13 +182,11 @@ class PlayerPhaseMoveSelectDifferentialTest {
             bm.gameStateBits = bm.gameStateBits or 1 // MoveLimitView_OnInit: BM_FLAG_0 (PP-4)
             viewUp = true
         }
-        var drawn = 0
         h.hideMoveRangeGraphics = ProcFunc {
             log += "f$frame hideMoveRangeGraphics"
             viewUp = false
             bm.gameStateBits = bm.gameStateBits and 3.inv() // MoveLimitView_OnEnd: BM_FLAG_0, _1
         }
-        h.drawPathArrow = ProcFunc { drawn++ }
         h.cursorSound = PlayerPhase.SoundEffect { log += "f$frame cursorSound $it" }
         h.playSoundEffect = PlayerPhase.SoundEffect { log += "f$frame playSoundEffect $it" }
 
@@ -370,7 +368,7 @@ class PlayerPhaseMoveSelectDifferentialTest {
             )
         }
         if (!case.fromMenu) assertEquals(expected, later, "hooks in order")
-        assertTrue(drawn >= 20, "drawPathArrow ran $drawn times")
+        
         println("PlayerPhaseMoveSelect ${case.run}: $c")
         return c
     }

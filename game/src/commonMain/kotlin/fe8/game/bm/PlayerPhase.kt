@@ -72,7 +72,7 @@ public class PlayerPhase(
     private val movementMap: MovementMap? = null,
     /**
      * The path arrow data ([PathArrow], PP-5); null (as in `Fe8Boot` until PP-17) skips it.
-     * Drawing it is [Hooks.drawPathArrow] (PP-6).
+     * Drawing it is [PathArrow.drawPathArrow] (PP-6).
      */
     private val pathArrow: PathArrow? = null,
 ) {
@@ -281,9 +281,6 @@ public class PlayerPhase(
          * (ported and verified, PP-4) into `Fe8Boot`.
          */
         public var hideMoveRangeGraphics: ProcFunc = ProcFunc {}
-
-        /** `DrawPathArrow` (PP-6); stand-in, draws nothing. */
-        public var drawPathArrow: ProcFunc = ProcFunc {}
 
         /** `CanShowUnitStatScreen(unit)` for unit id [unit]; stand-in until PP-12. */
         public var canShowUnitStatScreen: (unit: Int) -> Boolean = { false }
@@ -699,7 +696,7 @@ public class PlayerPhase(
      * transcribed (not verified: no capture presses them in the range display), as are A without
      * an active unit, the destination event and the range swap (SONG 0x6C on a failed A is
      * not verified either: no capture presses A off the range). Unless the proc left, the path
-     * arrow follows the cursor for a controllable unit ([pathArrow], [Hooks.drawPathArrow]) and
+     * arrow follows the cursor for a controllable unit ([pathArrow], [PathArrow.drawUpdatedPathArrow]) and
      * the cursor sprite is drawn.
      */
     public fun playerPhaseRangeDisplayIdle(proc: Proc) {
@@ -790,8 +787,7 @@ public class PlayerPhase(
         }
 
         if (getPlayerSelectKind(active.unit) == SELECT_CONTROL) {
-            pathArrow?.updatePathArrowWithCursor()
-            hooks.drawPathArrow.invoke(proc)
+            pathArrow?.drawUpdatedPathArrow()
         }
         hooks.putMapCursor.put(bm.playerCursorDisplayX, bm.playerCursorDisplayY, 1)
     }

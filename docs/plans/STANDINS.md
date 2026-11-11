@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 210 across 32 Kotlin files.
+Total entries: 209 across 32 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -32,7 +32,7 @@ Total entries: 210 across 32 Kotlin files.
 | PP-10 | 1 |
 | PP-12 | 9 |
 | PP-17 | 9 |
-| PP-6 | 2 |
+| PP-6 | 1 |
 | PP-9 | 1 |
 | unassigned | 12 |
 
@@ -321,11 +321,10 @@ Total entries: 210 across 32 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `getUnitWeaponUsabilityBits` | `GetUnitWeaponUsabilityBits(unit)` for unit id [unit]; stand-in until PP-17, default 0 (only asked for a unit that cannot be controlled or has moved, not in a capture). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `hideMoveRangeGraphics` | `HideMoveRangeGraphics`: stand-in until PP-17 wires [MoveLimitView.hideMoveRangeGraphics] (ported and verified, PP-4) into `Fe8Boot`. |
 
-## PP-6 (2)
+## PP-6 (1)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `drawPathArrow` | `DrawPathArrow` (PP-6); stand-in, draws nothing. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `pathArrowDispInit` | With a [PathArrow] given to [PlayerPhase] it calls [PathArrow.init] (data only, the graphics are PP-6); a stand-in until PP-17 wires that into `Fe8Boot`. |
 
 ## PP-9 (1)

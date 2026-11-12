@@ -13,7 +13,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 - D11-wm8a: owner PC, until ~11:00Z
 - D11-wire-b: owner PC, until ~12:00Z
-- D11-wm4d: owner PC, until ~12:00Z
+- D11-wm3f: owner PC, until ~12:00Z
 
 ## Current state
 

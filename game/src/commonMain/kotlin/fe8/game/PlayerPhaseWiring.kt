@@ -2,6 +2,7 @@ package fe8.game
 
 import fe8.game.bm.ActiveUnit
 import fe8.game.bm.AttackRange
+import fe8.game.bm.AttackTargets
 import fe8.game.bm.BMapMain
 import fe8.game.bm.BattleMapStart
 import fe8.game.bm.BmMap
@@ -17,6 +18,7 @@ import fe8.game.bm.MuProc
 import fe8.game.bm.PlaySt
 import fe8.game.bm.PlayerInterface
 import fe8.game.bm.PlayerPhase
+import fe8.game.bm.SelectTargets
 import fe8.game.bm.UnitActionMenu
 import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitSpriteHandles
@@ -65,6 +67,8 @@ internal class PlayerPhaseWiring(
     private val active: ActiveUnit,
     private val unitLoader: UnitLoader,
     private val battleMapKind: () -> Int,
+    /** `gTrapArray`, read by the attack target list. */
+    traps: ByteArray,
 ) {
     private val items = ItemInfo(rom)
 
@@ -93,6 +97,8 @@ internal class PlayerPhaseWiring(
     private val attackRange =
         AttackRange(map, units, items, entityMaps, unitLoader)
     private val unitMenu = UnitActionMenu(units, active, items, unitLoader)
+    private val attackTargets =
+        AttackTargets(map, units, items, attackRange, traps, SelectTargets())
     private val mapMenu = MapMenu(
         engine, rom, playSt, flags, hw, talk.text, talk.messages,
     ) { fe8PlayerPhaseScript() }
@@ -131,7 +137,10 @@ internal class PlayerPhaseWiring(
     }
 
     private fun wireMenus(phase: PlayerPhase) {
-        unitMenu.hooks.weaponTargetCount = { _, _ -> 0 }
+        unitMenu.hooks.weaponTargetCount = { unit, item ->
+            attackTargets.makeTargetListForWeapon(unit, item)
+            attackTargets.targets.getSelectTargetCount()
+        }
         unitMenu.hooks.isPositionMagicSealed = { _, _ -> false }
         unitMenu.hooks.unportedUsability = { _, _ -> Menu.MENU_NOTSHOWN }
         unitMenu.install(menu, rom)
@@ -154,7 +163,7 @@ internal class PlayerPhaseWiring(
      * Gives every menu callback of the two menus that no port registered a stand-in that does
      * nothing: the select of an unported command plays the refusal sound (`SONG_6C`) and keeps
      * the menu open, the switch and idle callbacks do nothing. Stand-in: the unit menu's Attack
-     * (`M6-C`), Item and the other commands (`M6-H`) and the map menu's Unit, Status, Guide,
+     * (`M6-C`, MC-3a), Item and the other commands (`M6-H`) and the map menu's Unit, Status, Guide,
      * Options and Suspend (`M6-F`, Suspend `M6-E`).
      */
     private fun registerMenuStandIns(def: Int) {

@@ -21,9 +21,10 @@ public class UnitActionMenu(
     /** Services outside the ported file. */
     public class Hooks {
         /**
-         * `MakeTargetListForWeapon(unit, item)` then `GetSelectTargetCount()` (bmtarget.c,
-         * uiselecttarget.c, not ported): the number of targets of [item] for the unit with id
-         * `unit`.
+         * `MakeTargetListForWeapon(unit, item)` then `GetSelectTargetCount()`
+         * ([AttackTargets.makeTargetListForWeapon], [SelectTargets.getSelectTargetCount]): the
+         * number of targets of [item] for the unit with id `unit`. The game wires it to them; a
+         * test may answer without a map.
          */
         public var weaponTargetCount: (unit: Int, item: Int) -> Int = { _, _ ->
             error("MakeTargetListForWeapon is not ported")

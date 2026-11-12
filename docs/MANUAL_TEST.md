@@ -34,13 +34,15 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      around it (attack range), the path arrow follows the cursor, the move sound. B cancels (Eirika
      is back, squares gone).
   3. Select her again, move the cursor two tiles right and press A. Expected: she walks the arrow
-     path, then the unit menu opens with Item and Wait (no Attack: no enemy is in reach).
+     path, then the unit menu opens with Item and Wait (no Attack: no enemy is in reach). Moving
+     her next to a red unit instead shows Attack first; choosing it only plays the refusal beep and
+     keeps the menu open (the weapon menu is MC-3a).
   4. B in the unit menu. Expected: she is back at her start tile and selected again, the range shows.
      Move again and choose Wait. Expected: the menu closes, Eirika greys out, the cursor is free.
   5. Press A on an empty tile. Expected: the map menu (Unit, Status, Guide, Options, Suspend,
      End). Choose End. Expected: the "Enemy Phase" banner, a short scene or nothing, then, since the
      enemies do nothing, the "Player Phase" banner of turn 2 and Eirika is no longer grey.
-  - Limits (stand-ins): Attack is never offered (the target list is M6-C); Item opens nothing and
+  - Limits (stand-ins): Attack, when offered, only beeps (the weapon menu, target selection and combat are M6-C); Item opens nothing and
     answers with the refusal beep (M6-H); the map menu's Unit, Status, Guide, Options and Suspend,
     and R / L / START in the map do nothing (M6-F; Suspend M6-E); enemies do not move or attack
     (M6-D); no staff range, no traps, no after-move or tutorial events, no records (M6-C, M6-E,

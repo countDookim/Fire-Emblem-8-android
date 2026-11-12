@@ -55,7 +55,7 @@ Total entries: 177 across 35 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `registerMenuStandIns` | Gives every menu callback of the two menus that no port registered a stand-in that does nothing: the select of an unported command plays the refusal sound (`SONG_6C`) and keeps the menu open, the s... |
-| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `registerMenuStandIns` | Stand-in: the unit menu's Attack (`M6-C`), Item and the other commands (`M6-H`) and the map menu's Unit, Status, Guide, Options and Suspend (`M6-F`, Suspend `M6-E`). |
+| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `registerMenuStandIns` | Stand-in: the unit menu's Attack (`M6-C`, MC-3a), Item and the other commands (`M6-H`) and the map menu's Unit, Status, Guide, Options and Suspend (`M6-F`, Suspend `M6-E`). |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `weaponUsabilityBits` | Stand-in until M6-C (the staff bit needs `CanUnitUseStaff`). |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wire` | Sets every hook of [phase] that has a ported implementation; the rest keeps its default (stand-ins, M6-C to M6-I, listed on [PlayerPhase.Hooks]). |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wireStandIns` | Each is a stand-in that never blocks the phase: the cursor, unit menu and Wait keep working; the plan rows are on the hooks' declarations in [PlayerPhase.Hooks] (`M6-C`, `M6-E`, `M6-F`, `M6-H`, `M6... |
@@ -169,7 +169,7 @@ Total entries: 177 across 35 Kotlin files.
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `traps` | Stand-in until M6-H: the trap pool is not ported (no ballistae or light runes). |
+| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `trapPool` | Stand-in until M6-H: the trap pool is not ported (no ballistae, light runes or obstacles), so it stays empty; the sprite refresh and the attack target list read it. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `decayTraps` | Stand-in until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `processTurnSupportExp` | Stand-in until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `updateTraps` | Stand-in until M6-H: ends at once. |

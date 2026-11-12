@@ -725,6 +725,12 @@ public class Fe8Boot(
     private var spriteHandles: UnitSpriteHandles? = null
 
     /**
+     * `gTrapArray`. Stand-in until M6-H: the trap pool is not ported (no ballistae, light runes
+     * or obstacles), so it stays empty; the sprite refresh and the attack target list read it.
+     */
+    private val trapPool = ByteArray(TRAP_POOL_SIZE)
+
+    /**
      * The unit sprite sheet state (`gUnitSpriteSlots`, index counters), set by
      * [wireUnitSprites].
      */
@@ -1001,7 +1007,7 @@ public class Fe8Boot(
             engine, rom, hw, loop.bmSt, playSt, battleBmMap, units, flags, keys,
             IntSupplier { clock.get().toInt() }, control.sound, loop, camMove, bmapRender,
             battleEntityMaps, talkScene, handles, mu, active, loader,
-            { start.hooks.getBattleMapKind() },
+            { start.hooks.getBattleMapKind() }, trapPool,
         ).wire(phase, main, eventInfos)
         // Stand-in until M6-D (enemy phase and AI): the computer phase does nothing and ends at
         // once, so End turn runs the enemy banner and goes on to the next player phase.
@@ -1077,8 +1083,7 @@ public class Fe8Boot(
             it.fogAt = { x, y -> map.fog[y, x] }
             it.terrainAt = { x, y -> map.terrain[y, x] }
         }
-        // Stand-in until M6-H: the trap pool is not ported (no ballistae or light runes).
-        val traps = ByteArray(TRAP_POOL_SIZE)
+        val traps = trapPool
         val mapUnitAt = { x: Int, y: Int -> map.unit[y, x] }
         val refresh = { handles.refreshUnitSprites(mapUnitAt, traps) }
         spriteHandles = handles

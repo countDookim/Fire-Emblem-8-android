@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 539 across 73 decomp files (missing reason: 0).
+Total entries: 542 across 74 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -700,6 +700,14 @@ Total entries: 539 across 73 decomp files (missing reason: 0).
 | `RenderBmMapOnBg2` | `game/src/commonMain/kotlin/fe8/game/bm/BmMapRender.kt` | no trace calls it |
 | `UnpackChapterMapGraphics` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | both traced chapters have obj2Id 0, so the second tileset branch never runs |
 
+## src/bmphase.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `IsSameAllegiance` | `game/src/commonMain/kotlin/fe8/game/bm/BmPhase.kt` | no capture checks it; the truth table restates the C |
+| `CountUnitsInState` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | only reached by the victory-song check, which the Prologue trace never takes |
+| `GetPhaseAbleUnitCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no trace has a unit that the asleep/berserk/unselectable/NOT_ABLE exclusions would skip |
+
 ## src/worldmap_screen.c (3)
 
 | Function | Kotlin file | Reason |
@@ -714,13 +722,6 @@ Total entries: 539 across 73 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `DecodeString` | `engine/text/src/commonMain/kotlin/gbafe/text/MsgHuffman.kt` | shares its loop with [decode], which carries the verified port tag |
 | `DrawGlyph` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | exercised only through the Text_DrawCharacter test |
-
-## src/bmphase.c (2)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `CountUnitsInState` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | only reached by the victory-song check, which the Prologue trace never takes |
-| `GetPhaseAbleUnitCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no trace has a unit that the asleep/berserk/unselectable/NOT_ABLE exclusions would skip |
 
 ## src/bmsave-gmap.c (2)
 
@@ -784,6 +785,13 @@ Total entries: 539 across 73 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `SetGameTime` | `engine/core/src/commonMain/kotlin/gbafe/core/time/GameClock.kt` | no test checks it against a trace yet |
 | `DisableKeyComboResetEN` | `engine/input/src/commonMain/kotlin/gbafe/input/KeyComboReset.kt` | no test checks it against a trace yet |
+
+## src/uiselecttarget.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `LinkTargets` | `game/src/commonMain/kotlin/fe8/game/bm/SelectTargets.kt` | never run in the attack captures |
+| `GetLinkedTargetsFar` | `game/src/commonMain/kotlin/fe8/game/bm/SelectTargets.kt` | never run in the attack captures |
 
 ## src/worldmap_line_fade.c (2)
 

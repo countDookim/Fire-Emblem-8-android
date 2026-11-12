@@ -88,7 +88,7 @@ public class AttackRange(
      * Adds 1 to the working map within [maxRange] of ([x], [y]) and subtracts 1 within
      * `minRange - 1`: the ring from [minRange] to [maxRange].
      */
-    private fun mapAddInBoundedRange(x: Int, y: Int, minRange: Int, maxRange: Int) {
+    internal fun mapAddInBoundedRange(x: Int, y: Int, minRange: Int, maxRange: Int) {
         entityMaps.mapAddInRange(x, y, maxRange, 1)
         entityMaps.mapAddInRange(x, y, minRange - 1, -1)
     }

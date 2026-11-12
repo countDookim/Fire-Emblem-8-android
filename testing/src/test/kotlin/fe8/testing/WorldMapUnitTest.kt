@@ -230,8 +230,8 @@ class WorldMapUnitTest {
                 for (i in have until count) {
                     val index = traceFade.u8(0x30 + i)
                     val duration = traceFade.u16(0x2C)
-                    if (from < 0) unit.sub80BB4C0(index, duration, null)
-                    else unit.sub80BB538(index, duration, null)
+                    if (from < 0) unit.fadeInMapUnit(index, duration, null)
+                    else unit.fadeOutMapUnit(index, duration, null)
                 }
             }
             for ((index, p) in traced.toSortedMap()) {
@@ -241,7 +241,7 @@ class WorldMapUnitTest {
                 assertEquals(new, simFields(s), "sprite $index at step $step")
                 assertEquals(listOf(s.x, s.y), unit.mapUnitCGetPosition(index).toList())
                 assertEquals(new[ANIM].toByte().toInt(), unit.mapUnitCGetAnimId(index))
-                assertEquals(new[CLASS2], unit.sub80BB194(index))
+                assertEquals(new[CLASS2], unit.mapUnitCGetCurrentClassId(index))
             }
             if (step in FADE_PAL_FIRST..palTrace.lastStep) {
                 // The palette RAM shows the buffer as it stood at the end of the previous step.

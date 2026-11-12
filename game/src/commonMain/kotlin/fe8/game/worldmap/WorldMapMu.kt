@@ -415,7 +415,7 @@ public class WorldMapMu(
         if (nodes.shipTravelFlag(p.fromNode) and 1 != 0 &&
             nodes.shipTravelFlag(p.toNode) and 1 != 0
         ) {
-            unit.sub80BB0E0(p.mapUnit, 0x50)
+            unit.mapUnitCSwitchClass(p.mapUnit, 0x50)
         }
         hooks.splineStart(p)
         unit.mapUnitCSetPosition(p.mapUnit, nodes.x(p.fromNode), nodes.y(p.fromNode) + 6)
@@ -517,7 +517,7 @@ public class WorldMapMu(
             if (nodes.shipTravelFlag(p.fromNode) and 1 != 0 &&
                 nodes.shipTravelFlag(p.toNode) and 1 != 0
             ) {
-                unit.sub80BB0E0(p.mapUnit, 0)
+                unit.mapUnitCSwitchClass(p.mapUnit, 0)
             }
             unit.mapUnitCSetPosition(p.mapUnit, nodes.x(p.toNode), nodes.y(p.toNode) + 6)
             if (p.flag4 && p.anim2 >= 0) unit.mapUnitCSetAnimId(p.mapUnit, p.anim2)
@@ -743,7 +743,7 @@ public class WorldMapMu(
                 if (nodes.shipTravelFlag(p.fromNode) and 1 != 0 &&
                     nodes.shipTravelFlag(p.toNode) and 1 != 0
                 ) {
-                    unit.sub80BB0E0(p.mapUnit, 0)
+                    unit.mapUnitCSwitchClass(p.mapUnit, 0)
                 }
                 unit.mapUnitCSetPosition(p.mapUnit, nodes.x(p.toNode), nodes.y(p.toNode) + 6)
                 unit.mapUnitCSetAnimId(p.mapUnit, 4)
@@ -793,14 +793,14 @@ public class WorldMapMu(
      * Ported from src/worldmap_mapmu.c: GmMu_StartFadeIn
      */
     public fun gmMuStartFadeIn(mu: Proc, index: Int, arg: Int) {
-        unit.sub80BB4C0(primAt(mu, index).mapUnit, arg, null)
+        unit.fadeInMapUnit(primAt(mu, index).mapUnit, arg, null)
     }
 
     /**
      * Ported from src/worldmap_mapmu.c: GmMu_StartFadeOut
      */
     public fun gmMuStartFadeOut(mu: Proc, index: Int, arg: Int) {
-        unit.sub80BB538(primAt(mu, index).mapUnit, arg, null)
+        unit.fadeOutMapUnit(primAt(mu, index).mapUnit, arg, null)
     }
 
     /**

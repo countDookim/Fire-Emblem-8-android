@@ -127,16 +127,16 @@ class WorldMapMuTest {
                 first.u16(0x44) - first.u8(0x34).toByte(),
                 first.u16(0x46) - first.u8(0x35).toByte(),
             )
-            p.unk48 = t.u16(0x48).toShort().toInt()
-            p.unk4a = t.u16(0x4A).toShort().toInt()
-            p.unk4c = t.u16(0x4C).toShort().toInt()
-            p.unk4e = t.u16(0x4E).toShort().toInt()
-            p.unk50 = t.u16(0x50)
-            p.unk2f = t.u8(0x2F)
+            p.fromX = t.u16(0x48).toShort().toInt()
+            p.fromY = t.u16(0x4A).toShort().toInt()
+            p.toX = t.u16(0x4C).toShort().toInt()
+            p.toY = t.u16(0x4E).toShort().toInt()
+            p.duration = t.u16(0x50)
+            p.easePower = t.u8(0x2F)
             p.delay = t.u16(0x42)
-            p.flag0 = true
-            p.flag4 = true
-            p.unk2c = 2
+            p.moving = true
+            p.animateWalk = true
+            p.moveKind = 2
             p.anim1 = t.u8(0x31).toByte().toInt()
             p.anim2 = t.u8(0x32).toByte().toInt()
             engine.goto(state.prims[i]!!, 2)
@@ -151,7 +151,7 @@ class WorldMapMuTest {
             val traceK = now[moving[0]].u16(0x54)
             var guard = 0
             while (
-                (state.prims[moving[0]]!!.state as GmapMuPrimProc).unk54 < traceK &&
+                (state.prims[moving[0]]!!.state as GmapMuPrimProc).timer < traceK &&
                 guard++ < 400
             ) {
                 engine.run(engine.root(3))
@@ -161,7 +161,7 @@ class WorldMapMuTest {
                 val p = state.prims[i]!!.state as GmapMuPrimProc
                 if (t.u8(0x2C) != 2 || (t.u8(0x29) and 1) == 0) continue
                 val tag = "prim $i at step $step"
-                assertEquals(t.u16(0x54), p.unk54, "unk_54 of $tag")
+                assertEquals(t.u16(0x54), p.timer, "unk_54 of $tag")
                 assertEquals(t.u16(0x44), p.lastX, "unk_44 of $tag")
                 assertEquals(t.u16(0x46), p.lastY, "unk_46 of $tag")
                 assertEquals(t.u16(0x40), p.trailCount, "unk_40 of $tag")

@@ -131,7 +131,9 @@ internal class WorldMapBoot(
             faces, wmText, muEntry, rm, scroll, { mainProc() },
             WorldMapExit.Hooks(
                 fadeOutBgm = { sound.fadeOutBgm(it) },
-                gmMu80BE108 = { i, f -> mainState()?.gmMu?.let { wmMu.gmMu80BE108(it, i, f) } },
+                gmMu80BE108 = { i, f ->
+                    mainState()?.gmMu?.let { wmMu.gmMuSetCameraFollows(it, i, f) }
+                },
                 endScreenProcs = {
                     mainState()?.let { s ->
                         engine.end(s.gmCursor)
@@ -279,8 +281,8 @@ internal class WorldMapBoot(
     private val automu = WorldMapAutoMu(
         engine, gmData,
         WorldMapAutoMu.Hooks(
-            muMoving = { wmMu.sub80BE12C(gmMu(), it) },
-            muStop = { wmMu.sub80BE330(gmMu(), it) },
+            muMoving = { wmMu.gmMuIsMoving(gmMu(), it) },
+            muStop = { wmMu.finishMoves(gmMu(), it) },
             endUnitFade = unitHost::endGmapUnitFade,
             muSetPosition = { i, x, y -> wmMu.gmMuSetPosition(gmMu(), i, x, y) },
             hideUnit = { wmMu.gmHideMuUnit(gmMu(), it) },
@@ -288,8 +290,8 @@ internal class WorldMapBoot(
             muFadeIn = { i, d -> wmMu.gmMuStartFadeIn(gmMu(), i, d) },
             muFadeOut = { i, d -> wmMu.gmMuStartFadeOut(gmMu(), i, d) },
             unitFadeExists = wmMu::gmUnitFadeExists,
-            muMoveNodes = { wmMu.sub80BDEB4(gmMu(), it) },
-            muMovePositions = { wmMu.sub80BDFA4(gmMu(), it) },
+            muMoveNodes = { wmMu.startNodeMove(gmMu(), it) },
+            muMovePositions = { wmMu.startPositionMove(gmMu(), it) },
         ),
     )
     private val dots = WorldMapDot(engine, hw, rom, layers, { rm.gmapRmGetPosition() })

@@ -149,8 +149,8 @@ class WorldMapEventUnitTest {
         automu = WorldMapAutoMu(
             engine, gm,
             WorldMapAutoMu.Hooks(
-                muMoving = { mu.sub80BE12C(gmMu, it) },
-                muStop = { mu.sub80BE330(gmMu, it) },
+                muMoving = { mu.gmMuIsMoving(gmMu, it) },
+                muStop = { mu.finishMoves(gmMu, it) },
                 endUnitFade = unit::endGmapUnitFade,
                 muSetPosition = { i, x, y -> mu.gmMuSetPosition(gmMu, i, x, y) },
                 hideUnit = { mu.gmHideMuUnit(gmMu, it) },
@@ -158,8 +158,8 @@ class WorldMapEventUnitTest {
                 muFadeIn = { i, d -> mu.gmMuStartFadeIn(gmMu, i, d) },
                 muFadeOut = { i, d -> mu.gmMuStartFadeOut(gmMu, i, d) },
                 unitFadeExists = mu::gmUnitFadeExists,
-                muMoveNodes = { mu.sub80BDEB4(gmMu, it) },
-                muMovePositions = { mu.sub80BDFA4(gmMu, it) },
+                muMoveNodes = { mu.startNodeMove(gmMu, it) },
+                muMovePositions = { mu.startPositionMove(gmMu, it) },
             ),
         )
         val dots = WorldMapDot(engine, hw, rom, layers, { rmPosition() })
@@ -458,13 +458,13 @@ class WorldMapEventUnitTest {
                 val m = simPrims[i]!!.state as GmapMuPrimProc
                 assertEquals(
                     listOf(c.u8(0x2B).toByte().toInt(), c.u8(0x29) and 1, c.u8(0x2C)),
-                    listOf(m.mapUnit, if (m.flag0) 1 else 0, m.unk2c),
+                    listOf(m.mapUnit, if (m.moving) 1 else 0, m.moveKind),
                     "mover $i @$s",
                 )
-                if (m.flag0 && c.u8(0x2C) == 2) {
+                if (m.moving && c.u8(0x2C) == 2) {
                     assertEquals(
                         listOf(c.u16(0x54), c.u16(0x44), c.u16(0x46), c.u16(0x42)),
-                        listOf(m.unk54, m.lastX, m.lastY, m.delay),
+                        listOf(m.timer, m.lastX, m.lastY, m.delay),
                         "mover $i move @$s",
                     )
                 }

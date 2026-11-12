@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-12 12:24Z (owner PC: M6-C..M6-J broken into TASKS rows; CI 621 green on `5a7875c`). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-12 12:27Z (owner PC: M6-C..M6-J rows, lane split owner-approved; CI 621 green on `5a7875c`). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -62,7 +62,7 @@ window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose de
    capture plans: [M6C-J-breakdown](docs/plans/M6C-J-breakdown.md). Lane A's opening is done (device check pending).
 2. **Lane B, player phase (M6-B).** Open: PP-11 (WIP `wip/PP-11`), CAP-status1, PP-17 (WIRE). Then M6-F info
    screens (`IS-*`). Notes: [M6B-player-phase](docs/plans/M6B-player-phase.md). M6-G to M6-J have starter rows only.
-   Owner to confirm: the lane split above, and whether the Easy-mode tutorial (PC-cap3, PC-10) belongs in M6-E.
+   Owner-approved 11-12: this lane split, and the Easy-mode tutorial (PC-cap3, PC-10) as the end of M6-E.
 3. **Readability (rule 11, changed 11-11):** comments must be meaningful and checked against the decomp
    ([READABILITY](docs/READABILITY.md)); every older `done` row carries `audit todo`. Use Sonnet, not Haiku.
    Audit next: fe8.game.ui, OpAnim Eirika functions, bm sprites (Haiku passes of 11-11).

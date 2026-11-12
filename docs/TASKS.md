@@ -85,7 +85,7 @@ EP-cap1/2.
 | PC-7 | PORT | Game over trigger: lord-death misc event, event.c `CallGameOverEvent`, eventcall.c `EventCallGameOverExt`, `GameOver_FadeOutCurrentBgm`, `PostGameOverHandler` | Proc tree and event state per step in PC-cap2 | PC-0, MC-16 | todo |
 | PC-8 | PORT | Game over screen, gameoverbgfx.c 11 (two rows: init, HBlank and scroll; fade loops and end); return to the title | Proc fields per step; LCD/palette at dumps | PC-7 | todo |
 | PC-9 | PORT | New Game difficulty menu, difficultymenu.c 21 (three rows) and the save menu's New Game path | Menu state per step; chosen difficulty in `gPlaySt`; replaces the fixed Normal stand-in | PC-0 | todo |
-| PC-cap3 | CAP | `ram_trace_newgame_easy`: Easy New Game through the tutorial Prologue (forced inputs, tutorial messages, scripted battle) | Run published | — | todo; owner to confirm it belongs in M6-E |
+| PC-cap3 | CAP | `ram_trace_newgame_easy`: Easy New Game through the tutorial Prologue (forced inputs, tutorial messages, scripted battle) | Run published | — | todo |
 | PC-10 | INV+PORT | Easy-mode tutorial: tutorial event scripts, forced-input branches of playerphase.c, menu overrides; rows fixed by an INV of PC-cap3 | Per the INV | PC-cap3, EP-w | todo; until then Easy plays without tutorials (stand-in) |
 | PC-w | WIRE | Prologue completable in `Fe8Boot`: win → ending → save → Chapter 1 turn 1; lord death → game over → title; replay PC-cap1 and PC-cap2 inputs | Save block and Chapter 1 state equal PC-cap1; 0 B/frame; MANUAL_TEST; device check | EP-w, PC-1..9 | todo |
 

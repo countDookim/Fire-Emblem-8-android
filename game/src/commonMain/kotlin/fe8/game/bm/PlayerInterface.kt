@@ -1004,7 +1004,7 @@ public class PlayerInterface(
             FACTION_GREEN -> PAL_INTERFACE_GREEN
             else -> return
         }
-        rom.pal(pal, 16).copyInto(hw.palette, palId * 16)
+        for (i in 0 until 16) hw.palette[palId * 16 + i] = rom.u16(pal + 2 * i).toShort()
         hw.enablePaletteSync()
     }
 
@@ -1126,8 +1126,8 @@ public class PlayerInterface(
         val height = rom.u8(dataAddr + 1)
         var it = dataAddr + 2
         for (iy in 0 until height) {
-            val cols = if (isFlipped) width - 1 downTo 0 else 0 until width
-            for (ix in cols) {
+            for (i in 0 until width) {
+                val ix = if (isFlipped) width - 1 - i else i
                 val v = rom.u8(it++)
                 if (v == 0xFF) continue
                 tm[at + iy * TM_STRIDE + ix] = (v + tileRef).toShort()
@@ -1147,11 +1147,13 @@ public class PlayerInterface(
             val src = FACTION_CHIBI_IMAGES[kind]
             val dst = (chr * CHR_SIZE) and 0x1FFFF
             for (i in 0 until 0x200) hw.vram[dst + i] = rom.u8(src + i).toByte()
-            rom.pal(FACTION_CHIBI_PALETTES[kind], 16).copyInto(hw.palette, pal * 16)
+            val palSrc = FACTION_CHIBI_PALETTES[kind]
+            for (i in 0 until 16) hw.palette[pal * 16 + i] = rom.u16(palSrc + 2 * i).toShort()
         } else {
             val info = PORTRAIT_DATA + (fid - 1) * PORTRAIT_SIZE
             rom.decompressInto(rom.u32(info + 4), hw.vram, chr * CHR_SIZE)
-            rom.pal(rom.u32(info + 8), 16).copyInto(hw.palette, pal * 16)
+            val palSrc = rom.u32(info + 8)
+            for (i in 0 until 16) hw.palette[pal * 16 + i] = rom.u16(palSrc + 2 * i).toShort()
         }
         hw.enablePaletteSync()
     }

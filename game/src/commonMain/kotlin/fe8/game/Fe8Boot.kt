@@ -971,14 +971,16 @@ public class Fe8Boot(
     ) {
         val playSt = control.playSt
         val loader = UnitLoader(
-            units, rom, { type -> if (type == 0) playSt.unk1C0 else if (type == 1) playSt.unk1C1 else 0 },
+            units, rom,
+            { type -> if (type == 0) playSt.unk1C0 else if (type == 1) playSt.unk1C1 else 0 },
             rng, { playSt.chapterStateBits and PLAY_FLAG_HARD != 0 },
         ).apply { bmMap = battleBmMap }
         val handles = checkNotNull(spriteHandles)
         PlayerPhaseWiring(
             engine, rom, hw, loop.bmSt, playSt, battleBmMap, units, flags, keys,
-            IntSupplier { clock.get().toInt() }, control.sound, loop, camMove, bmapRender, battleEntityMaps,
-            talkScene, handles, mu, active, loader, { start.hooks.getBattleMapKind() },
+            IntSupplier { clock.get().toInt() }, control.sound, loop, camMove, bmapRender,
+            battleEntityMaps, talkScene, handles, mu, active, loader,
+            { start.hooks.getBattleMapKind() },
         ).wire(phase, main, eventInfos)
         // Stand-in until M6-D (enemy phase and AI): the computer phase does nothing and ends at
         // once, so End turn runs the enemy banner and goes on to the next player phase.
@@ -992,8 +994,8 @@ public class Fe8Boot(
                 if (!units.isValid(id)) continue
                 units.setState(
                     id,
-                    units.state(id) and (UnitTable.US_UNSELECTABLE or US_HAS_MOVED or US_HAS_MOVED_AI)
-                        .inv(),
+                    units.state(id) and
+                        (UnitTable.US_UNSELECTABLE or US_HAS_MOVED or US_HAS_MOVED_AI).inv(),
                 )
             }
         }
@@ -1136,7 +1138,7 @@ public class Fe8Boot(
         )
     }
 
-    /** The Prologue world map ([WorldMapBoot]); needs the whole ROM, built when the game reaches it. */
+    /** The Prologue world map ([WorldMapBoot]); needs the whole ROM, built on first use. */
     private val worldMapBoot: WorldMapBoot by lazy {
         bmapMain // builds the unit sprites the world map shares
         WorldMapBoot(

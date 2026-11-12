@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1067,
+    "verified": 1080,
     "implemented_unverified": 23
   },
   "functions": {
@@ -332,7 +332,28 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state",
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs"
+      ]
+    },
+    "BattleGenerateHit": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
+    "BattleGenerateHitAttributes": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
       ]
     },
     "BattleGenerateHitEffects": {
@@ -342,6 +363,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state",
         "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
       ]
     },
@@ -353,6 +375,76 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs"
+      ]
+    },
+    "BattleGenerateReal": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
+    "BattleGenerateRealInternal": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
+    "BattleGenerateRoundHits": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
+    "BattleGetBattleUnitOrder": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
+    "BattleGetFollowUpOrder": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
+    "BattleRoll1RN": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
+    "BattleRoll2RN": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
       ]
     },
     "BattleUnitTargetCheckCanCounter": {
@@ -373,6 +465,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#BattleUnitTargetSetEquippedWeapon fills target weaponBefore from equipped weapon when empty"
+      ]
+    },
+    "BattleUnwind": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
       ]
     },
     "BattleUnwindScripted": {
@@ -996,6 +1098,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aChannelTest#head channel volumes match the reference RAM dumps"
+      ]
+    },
+    "ClearBattleHits": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
       ]
     },
     "ClearBattleMapState": {
@@ -2914,6 +3026,16 @@
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
+    "GetBattleUnitHitCount": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
     "GetBgVerticalScrollBuffer": {
       "decomp_file": "src/bmlib-hblank.c",
       "system": "battle_map",
@@ -3248,6 +3370,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
+    "GetItemAfterUse": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
       ]
     },
     "GetItemAttributes": {

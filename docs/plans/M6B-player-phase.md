@@ -334,3 +334,38 @@ StdEventEngine (present, command), the MU (gone from f1360), the game lock.
   `execTrap`, `writeSuspendSave`, `canUnitMove`, `pidStatsAddSquaresMoved`) in `Fe8Boot` (PP-17); porting the
   active event registry and `ExecTrap`/`GetPickTrapType`; the other `ApplyUnitAction` branches (MC-*); the
   cursor line of `FinishAction` is unobserved (the cursor already stands on the unit).
+
+## PP-18: unit window status, label 1 and Burst (`ram_trace_prologue_status_ui`, CAP-status1)
+
+Resume as `select_move`, then hover and move the cursor; Options screen sets `unitDisplayType` to 1. Watches
+as `select_move` plus `unit0` (Seth, 0x0202BE4C). Per-frame RAM in 22 windows, full dumps every 10f f1250..2340.
+Map is 15x10, camera stays (0,0): Eirika (4,5) is cursor quadrant 2, Seth (4,4) quadrant 0 (different
+`yMinimug`), the Soldiers (8,6) and (9,6) quadrant 3. Prologue units all have status NONE.
+
+| Event | Frame |
+|---|---|
+| LEFT onto Eirika; slide in f1251..1254; Display (unitClock 1) | f1250; f1255 |
+| unitClock&63==0 on Eirika (HP branch / status branch) | f1318 (64), f1382 (128) |
+| UP onto Seth: other box side, slide out f1421..1423, in f1425..1428, Display | f1420; f1429 |
+| Seth boundary; RIGHT to empty tile (slide out); LEFT back (slide in) | f1492; f1520; f1560 |
+| Soldier (8,6) slide in; RIGHT to (9,6): label 1 (cmd 13), clock reset; LEFT: label 1 again | f1670; f1700; f1730 |
+| A on empty (8,5): map menu; Options (Config_Field, fade, wall BG); RIGHT sets Burst | f1790; f1880; f1975 |
+| B: Options closes (fade f2011..2029, Config_Field gone f2031); `gProcScr_UnitDisplay_Burst` starts | f2010; f2032 |
+| Burst: cursor onto Eirika (burstUnitId 2); box drawn when showHideClock reaches 8; boundaries | f2084; ~f2092; f2155, f2219 |
+| Burst: UP onto Seth (box cleared, redrawn); boundary | f2250; f2322 |
+
+Verified (`UnitStatusDisplayDifferentialTest`, seeds from a full dump per window, compares procs, BG0/BG1,
+scratch tilemaps, palette banks 3/4, text strips, status icon tiles, HP digit objects): `PutUnitMapUiStatus`
+(NONE early return), `MMB_CheckForUnit`, `sub_808C234`, `MMB_Loop_Display` (label-1 branch),
+`BurstDisplay_Init`, `BurstDisplay_Loop_Display`, `GetUnitBurstMapUiOrientationAt` (orientation 4 only),
+`DrawUnitBurstMapUi`, `ClearUnitBurstMapUi`; the Burst proc replaces the `startBurstDisplay`/`endBurstDisplay`
+hooks. Not verified: the status icon branches of `PutUnitMapUiStatus` and the RECOVER clock reset (no capture
+has a unit with a status; Prologue units are all NONE), the empty-tile branch of `MMB_CheckForUnit`, the other
+Burst orientations (left/right edge, tail below).
+
+Findings: `TileMap_FillRect` (`TmFillRect`, asm/arm.s) writes w+1 columns and h+1 rows (the `bpl` loop), not
+w x h as its C comment says; the capture's Burst clear removes the 9th box column. `fillRect` now does this
+(the terrain, goal and mini-box tests still pass) and `UiTmScratch` has two rows of slack. The earlier
+`UNIT_STATUS_RECOVER` constant was 0xC; the decomp's value is 10. The capture header's "f1446" Eirika boundary
+is wrong (UP at f1420 moves the cursor first); Eirika's boundaries are f1318 and f1382. At f2032 the capture
+also clears scratch B rows 0..1, columns 20..24 (writer not identified; the test clears it in the seed).

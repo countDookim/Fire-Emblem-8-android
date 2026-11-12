@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 204 across 35 Kotlin files.
+Total entries: 200 across 35 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -22,7 +22,6 @@ Total entries: 204 across 35 Kotlin files.
 | M6-H | 21 |
 | M6-I | 26 |
 | M6-J | 8 |
-| CAP-status1 | 4 |
 | D09-3 | 2 |
 | D11-wire-a | 2 |
 | PP-10 | 1 |
@@ -225,15 +224,6 @@ Total entries: 204 across 35 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `clearArenaMoveCell` | Stand-in until M6-J. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `resumeArenaBattle` | Stand-in until M6-J. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `startArenaResultsScreen` | Stand-in until M6-J. |
-
-## CAP-status1 (4)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `endBurstDisplay` | Stand-in until CAP-status1 shows the Burst unit display for its `Proc_EndEach`. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `putUnitMapUiStatus` | Stand-in until CAP-status1 shows a unit with a status for `PutUnitMapUiStatus` (bmunit status icon text into the window's status cells). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `startBurstDisplay` | Stand-in until CAP-status1 shows the Burst unit display (`unitDisplayType` 1) for `Proc_Start(gProcScr_UnitDisplay_Burst)`. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `unitMapUiUpdate` | Ported from src/player_interface.c: UnitMapUiUpdate (the status branch is not verified: no reference run hovers a unit for 64 frames; it calls the [Hooks.putUnitMapUiStatus] stand-in (CAP-status1). |
 
 ## D09-3 (2)
 

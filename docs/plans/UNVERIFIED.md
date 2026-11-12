@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 541 across 73 decomp files (missing reason: 0).
+Total entries: 539 across 73 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -665,15 +665,6 @@ Total entries: 541 across 73 decomp files (missing reason: 0).
 | `StartIntroMonologue` | `game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitle.kt` | lifecycle |
 | `gProcScr_08AA2184` | `game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleScenes.kt` | no @VerifiesPort test names it |
 
-## src/player_interface.c (4)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `TerrainDisplay_Loop_SlideOut` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | no reference run moves the cursor across the screen half, so the window never slides out; `EndPlayerPhaseSideWindows` ends it instead |
-| `GoalDisplay_Loop_SlideOut` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | no reference run moves the cursor across the screen half, so the window never slides out; `EndPlayerPhaseSideWindows` ends it instead |
-| `sub_808C234` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | only `MMB_CheckForUnit` and every 64th unit-clock frame call it |
-| `MMB_CheckForUnit` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | reached only through the unverified branch of [mmbDisplay] |
-
 ## src/proc.c (4)
 
 | Function | Kotlin file | Reason |
@@ -765,6 +756,13 @@ Total entries: 541 across 73 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `PhaseIntroVMatchHi` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt` | the reference dumps hold the registers only after the frame |
 | `PhaseIntroInitText` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseIntro.kt` | sound only |
+
+## src/player_interface.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `TerrainDisplay_Loop_SlideOut` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | no reference run moves the cursor across the screen half, so the window never slides out; `EndPlayerPhaseSideWindows` ends it instead |
+| `GoalDisplay_Loop_SlideOut` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | no reference run moves the cursor across the screen half, so the window never slides out; `EndPlayerPhaseSideWindows` ends it instead |
 
 ## src/playerphase.c (2)
 

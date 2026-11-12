@@ -42,17 +42,18 @@ public class UiTmScratch {
     /** Sizes. */
     public companion object {
         /**
-         * Entries per buffer: 0x500 bytes of `u16` (20 rows) and one row of slack, because the
-         * goal box clears 9 rows from row 12 of buffer A, one past its end (the original writes
-         * into the memory after it; nothing reads it).
+         * Entries per buffer: 0x500 bytes of `u16` (20 rows) and two rows of slack, because the
+         * goal box clears 10 rows from row 12 of buffer A (`TileMap_FillRect` with height 9 writes
+         * 10 rows), two past its end (the original writes into the memory after it; nothing reads
+         * it).
          */
-        public const val SIZE: Int = 0x2A0
+        public const val SIZE: Int = 0x2C0
     }
 }
 
 /**
- * `struct PlayerInterfaceProc` past `PROC_HEADER`, restricted to the members the terrain window
- * uses (src/player_interface.c; the burst display's members are not modelled).
+ * `struct PlayerInterfaceProc` past `PROC_HEADER` (src/player_interface.c): the members of the
+ * terrain, goal, unit mini-box and Burst windows.
  *
  * The three side windows run the same struct. A fresh state is all zero; the original's
  * `Proc_Start` leaves the old contents of the proc slot in place, which matters only for members
@@ -92,8 +93,14 @@ public class PlayerInterfaceState {
     /** `showHideClock` (0x58): frame counter of the slide in or out. */
     public var showHideClock: Int = 0
 
-    /** `statusTm` (0x40): entry index in the BG0 scratch of the unit window's status cells. */
+    /**
+     * `statusTm` (0x40): entry index of the unit window's status cells, in the BG0 scratch for the
+     * mini-box and in the BG0 tilemap buffer itself when [statusInBg0] is set (Burst).
+     */
     public var statusTm: Int = 0
+
+    /** Whether [statusTm] indexes the BG0 tilemap buffer (the original holds a pointer). */
+    public var statusInBg0: Boolean = false
 
     /** `unitClock` (s16, 0x44): frames since the unit window drew its unit. */
     public var unitClock: Int = 0
@@ -115,6 +122,24 @@ public class PlayerInterfaceState {
 
     /** `hpMaxLo` (u8, 0x54): units digit of the maximum HP. */
     public var hpMaxLo: Int = 0
+
+    /** `xBurst` (s8, 0x3C): tile column of the Burst box. */
+    public var xBurst: Int = 0
+
+    /** `yBurst` (s8, 0x3D): tile row of the Burst box. */
+    public var yBurst: Int = 0
+
+    /** `wBurst` (s8, 0x3E): width of the drawn Burst box in tiles, 0 when none is drawn. */
+    public var wBurst: Int = 0
+
+    /** `hBurst` (s8, 0x3F): height of the drawn Burst box in tiles, 0 when none is drawn. */
+    public var hBurst: Int = 0
+
+    /** `burstUnitIdPrev` (u8, 0x4A): the map unit id under the cursor the pass before. */
+    public var burstUnitIdPrev: Int = 0
+
+    /** `burstUnitId` (u8, 0x4B): the map unit id under the cursor (0 for none). */
+    public var burstUnitId: Int = 0
 }
 
 /**
@@ -164,22 +189,6 @@ public class PlayerInterface(
          * unit's byte offset in [UnitTable.bytes].
          */
         public var unitMaxHp: (unitOffset: Int) -> Int = { 0 }
-
-        /**
-         * Stand-in until CAP-status1 shows the Burst unit display (`unitDisplayType` 1) for
-         * `Proc_Start(gProcScr_UnitDisplay_Burst)`.
-         */
-        public var startBurstDisplay: () -> Unit = {}
-
-        /** Stand-in until CAP-status1 shows the Burst unit display for its `Proc_EndEach`. */
-        public var endBurstDisplay: () -> Unit = {}
-
-        /**
-         * Stand-in until CAP-status1 shows a unit with a status for `PutUnitMapUiStatus`
-         * (bmunit status icon text into the window's status cells).
-         */
-        public var putUnitMapUiStatus: (state: PlayerInterfaceState, unitOffset: Int) -> Unit =
-            { _, _ -> }
 
         /**
          * Stand-in for `CheckFlag(EVFLAG_OBJWINDOW_DISABLE)` (events) until the flag store is
@@ -286,6 +295,23 @@ public class PlayerInterface(
             end(),
         ),
     ) { PlayerInterfaceState().also { it.windowQuadrant = newUnitWindowResidue } }
+
+    private val burstInitFn = ProcFunc { burstInit(it) }
+    private val burstDisplayFn = ProcFunc { burstDisplay(it) }
+
+    /** `gProcScr_UnitDisplay_Burst` (0x08A01994): the unit window of option "Burst". */
+    public val burstScript: ProcScript = ProcScript(
+        "gProcScr_UnitDisplay_Burst",
+        listOf(
+            name("UI2"),
+            proc15,
+            yield(),
+            call(burstInitFn),
+            repeat(burstDisplayFn),
+            end(),
+        ),
+        ::PlayerInterfaceState,
+    )
 
     private val goalInitFn = ProcFunc { goalInit(it) }
     private val goalSideChangeFn = ProcFunc { goalOnSideChange(it) }
@@ -638,7 +664,7 @@ public class PlayerInterface(
             }
         }
         if (playSt.unitDisplayType == 0) engine.start(minimugScript, PROC_TREE_3)
-        if (playSt.unitDisplayType == 1) hooks.startBurstDisplay()
+        if (playSt.unitDisplayType == 1) engine.start(burstScript, PROC_TREE_3)
     }
 
     /**
@@ -658,7 +684,7 @@ public class PlayerInterface(
      */
     public fun endPlayerPhaseSideWindows() {
         engine.endEach(minimugScript)
-        hooks.endBurstDisplay()
+        engine.endEach(burstScript)
         engine.endEach(terrainScript)
         engine.endEach(goalScript)
         hooks.endPrepMenuButtonDisplay()
@@ -995,12 +1021,51 @@ public class PlayerInterface(
         tm[at + 6] = 0
     }
 
+    /** The tilemap [PlayerInterfaceState.statusTm] indexes: BG0 for Burst, else scratch A. */
+    private fun statusBuffer(state: PlayerInterfaceState): ShortArray =
+        if (state.statusInBg0) hw.mapBuffer(0) else scratch.a
+
+    /**
+     * Ported from src/player_interface.c: PutUnitMapUiStatus
+     * (not verified: the status icon branches; no capture has a unit with a status, the Prologue
+     * units are all NONE, so only the early return for NONE is compared. The original leaves the
+     * offset undefined for status 12, 14 and 15; they are read as the poison icon)
+     *
+     * Writes the five status icon tiles (tile 0x16F on) and the remaining duration digit at [at]
+     * of [tm] for the unit at [unitOffset] after copying the icon graphics of its status to BG
+     * tile 0x16F; returns without drawing for no unit and for the statuses NONE, sickness and
+     * recovery.
+     */
+    public fun putUnitMapUiStatus(tm: ShortArray, at: Int, unitOffset: Int) {
+        if (unitOffset < 0) return
+        val offset = when (unitStatusIndex(unitOffset)) {
+            STATUS_POISON -> 0
+            STATUS_SLEEP -> 0xA0
+            STATUS_SILENCED -> 0x140
+            STATUS_BERSERK -> 0x1E0
+            STATUS_ATTACK -> 0x280
+            STATUS_DEFENSE -> 0x320
+            STATUS_CRIT -> 0x3C0
+            STATUS_AVOID -> 0x460
+            STATUS_PETRIFY, STATUS_13 -> 0x500
+            UNIT_STATUS_NONE, STATUS_SICK, UNIT_STATUS_RECOVER -> return
+            else -> 0
+        }
+        val dst = STATUS_ICON_CHR * CHR_SIZE
+        for (i in 0 until 5 * CHR_SIZE) {
+            hw.vram[dst + i] = rom.u8(GFX_STATUS_TEXT + offset + i).toByte()
+        }
+        for (i in 0 until 5) tm[at + i] = (STATUS_ICON_CHR + i).toShort()
+        tm[at + 5] = 0
+        val duration = StructCodec.u8(units.bytes, unitOffset + UNIT_STATUS) shr 4
+        tm[at + 6] = (0x1000 + 0x128 + duration).toShort()
+    }
+
     /**
      * Ported from src/player_interface.c: UnitMapUiUpdate
-     * (the status branch is not verified: no reference run hovers a unit for 64 frames; it calls
-     * the [Hooks.putUnitMapUiStatus] stand-in (CAP-status1). A [unitOffset] of -1 stands for the
-     * NULL unit the original passes when the cursor is on an empty tile: its status byte is read
-     * as 0)
+     * (not verified: the RECOVER status clock reset; no capture has a unit with a status.
+     * A [unitOffset] of -1 stands for the NULL unit the original passes when the
+     * cursor is on an empty tile: its status byte is read as 0)
      *
      * Every 64 frames of [PlayerInterfaceState.unitClock] it refreshes the window's status cells
      * (the HP digits at clock 0 mod 128, the status at 64 mod 128); then, unless the window's
@@ -1013,7 +1078,7 @@ public class PlayerInterface(
 
         if (frameCount and 63 == 0) {
             if (frameCount and 64 != 0) {
-                hooks.putUnitMapUiStatus(state, unitOffset)
+                putUnitMapUiStatus(statusBuffer(state), state.statusTm, unitOffset)
                 hw.enableBgSyncByMask(BG0_SYNC_BIT)
             } else {
                 val cur = unitCurrentHp(unitOffset)
@@ -1024,7 +1089,7 @@ public class PlayerInterface(
                 storeNumberStringOrDashes(if (max >= 100) 0xFF else max)
                 state.hpMaxHi = (numberStr[6] - ZERO_CHAR) and 0xFF
                 state.hpMaxLo = (numberStr[7] - ZERO_CHAR) and 0xFF
-                clearUnitMapUiStatus(scratch.a, state.statusTm)
+                clearUnitMapUiStatus(statusBuffer(state), state.statusTm)
                 hw.enableBgSyncByMask(BG0_SYNC_BIT)
             }
         }
@@ -1125,6 +1190,7 @@ public class PlayerInterface(
         putFaceChibi(a, tmIndex(1, 1), faceId, 0xF0, 4)
 
         state.statusTm = tmIndex(5, 3)
+        state.statusInBg0 = false
         state.unitClock = 0
         state.xHp = if (mmbConfig(state, CONFIG_X_MINIMUG) < 0) 5 else 23
         state.yHp = if (mmbConfig(state, CONFIG_Y_MINIMUG) < 0) 3 else 17
@@ -1267,8 +1333,7 @@ public class PlayerInterface(
     }
 
     /**
-     * Transcribed from src/player_interface.c: sub_808C234
-     * (not verified: only `MMB_CheckForUnit` and every 64th unit-clock frame call it)
+     * Ported from src/player_interface.c: sub_808C234
      *
      * Copies the 13x6 window from the BG0 scratch to its corner of BG0 and flags BG0 and BG1 for
      * sync.
@@ -1282,8 +1347,6 @@ public class PlayerInterface(
 
     /**
      * Ported from src/player_interface.c: MMB_Loop_Display
-     * (the same-quadrant branch, `Proc_Goto` to the redraw, is not verified: the cursor leaves
-     * the unit for an empty tile in every reference run)
      *
      * Steady state: counts the unit clock and refreshes the HP digits (every 64th frame also
      * recopies the window). When the cursor has moved: onto a unit within the same corner it
@@ -1322,8 +1385,8 @@ public class PlayerInterface(
     }
 
     /**
-     * Transcribed from src/player_interface.c: MMB_CheckForUnit
-     * (not verified: reached only through the unverified branch of [mmbDisplay])
+     * Ported from src/player_interface.c: MMB_CheckForUnit
+     * (the empty-tile branch, label 3, is not verified: the cursor lands on units in the run)
      *
      * Redraws the window for the unit under the cursor and recopies it, or, with none, goes to
      * label 3 (the slide out).
@@ -1336,6 +1399,160 @@ public class PlayerInterface(
         } else {
             drawUnitMapUi(state, unit)
             copyUnitWindowToBg0(state)
+        }
+    }
+
+    /**
+     * Ported from src/player_interface.c: GetUnitBurstMapUiOrientationAt
+     *
+     * The shape (0..5) of the Burst box for a unit at tile position ([x], [y]) on screen: 1 (the
+     * tail below the box) by default, 4 (the tail above) in the top rows (or the top 12 rows when
+     * the goal window is at the top), one step to the left near the left edge and one to the
+     * right near the right edge.
+     */
+    public fun getUnitBurstMapUiOrientationAt(x: Int, y: Int): Int {
+        val cursorQuadrant = getCursorQuadrant()
+        var result = 1
+        if (y < 6 || (y < 12 && CONFIG[cursorQuadrant * CONFIG_STRIDE + CONFIG_Y_GOAL] < 0)) {
+            result = 4
+        }
+        if (x < 2) result--
+        if (x > 22) result++
+        return result
+    }
+
+    /**
+     * Ported from src/player_interface.c: DrawUnitBurstMapUi
+     *
+     * Draws the Burst box of the unit at [unitOffset] straight into BG0 and BG1 at its screen
+     * position: the name centred, the HP bar cells and digits (through [unitMapUiUpdate], so the
+     * status cells live in BG0), the frame (BG1, palette bank 3) in the shape given by
+     * [getUnitBurstMapUiOrientationAt].
+     */
+    public fun drawUnitBurstMapUi(state: PlayerInterfaceState, unitOffset: Int) {
+        var x = (StructCodec.s8(units.bytes, unitOffset + UNIT_X) * 16 - bm.cameraX) / 8
+        var y = (StructCodec.s8(units.bytes, unitOffset + UNIT_Y) * 16 - bm.cameraY) / 8
+
+        val orientation = getUnitBurstMapUiOrientationAt(x, y)
+
+        x += BURST_X_OFFSET[orientation]
+        y += BURST_Y_OFFSET[orientation]
+
+        state.xBurst = x
+        state.yBurst = y
+        state.wBurst = BURST_WIDTH
+        state.hBurst = BURST_HEIGHT
+
+        val character = StructCodec.u32(units.bytes, unitOffset + UNIT_CHARACTER)
+        val str = messages.getStringFromIndex(rom.u16(character))
+        val name = state.text
+        text.clearText(name)
+        name.x = text.getStringTextCenteredPos(56, str)
+        name.colorId = TEXT_COLOR_SYSTEM_BLACK
+        text.drawString(name, str)
+        val bg0 = hw.mapBuffer(0)
+        text.putText(name, bg0, tmIndex(x + BURST_TEXT_X, y + BURST_TEXT_Y))
+
+        state.statusTm = tmIndex(x + 1, y + 3)
+        state.statusInBg0 = true
+        state.unitClock = 0
+        state.xHp = x + 1
+        state.yHp = y + 3
+
+        unitMapUiUpdate(state, unitOffset)
+
+        val bg1 = hw.mapBuffer(1)
+        fillTsa(bg1, tmIndex(x, y), rom.u32(BURST_TOP_TSA + 4 * orientation), 0x3100)
+        fillTsa(bg1, tmIndex(x, y + 1), TSA_BURST_MIDDLE, 0x3100)
+        fillTsa(bg1, tmIndex(x, y + 4), rom.u32(BURST_BOTTOM_TSA + 4 * orientation), 0x3100)
+
+        hw.enableBgSyncByMask(BG0_SYNC_BIT or BG1_SYNC_BIT)
+        applyUnitMapUiFramePal(StructCodec.s8(units.bytes, unitOffset + UNIT_INDEX) and 0xC0, 3)
+    }
+
+    /**
+     * Ported from src/player_interface.c: ClearUnitBurstMapUi
+     *
+     * Erases the drawn Burst box from BG0 and BG1 and marks it as not drawn.
+     */
+    public fun clearUnitBurstMapUi(state: PlayerInterfaceState) {
+        if (state.wBurst == BURST_WIDTH && state.hBurst == BURST_HEIGHT) {
+            val at = tmIndex(state.xBurst, state.yBurst)
+            fillRect(hw.mapBuffer(0), at, state.wBurst, state.hBurst, 0)
+            fillRect(hw.mapBuffer(1), at, state.wBurst, state.hBurst, 0)
+            hw.enableBgSyncByMask(BG0_SYNC_BIT or BG1_SYNC_BIT)
+            state.wBurst = 0
+            state.hBurst = 0
+        }
+    }
+
+    /**
+     * Ported from src/player_interface.c: BurstDisplay_Init
+     *
+     * Starts the Burst window with nothing shown and reserves its double-buffered text strip of
+     * 7 tiles in the active font.
+     */
+    public fun burstInit(proc: Proc) {
+        val state = stateOf(proc)
+        val font = text.activeFont
+        val name = state.text
+        name.chrPosition = font.chrCounter
+        name.tileWidth = MMB_TEXT_TILES
+        name.dbId = 0
+        name.dbEnabled = true
+        name.isPrinting = false
+        font.chrCounter += MMB_TEXT_TILES * 2
+        state.burstUnitId = 0
+        state.hideContents = false
+        state.showHideClock = 0
+        state.wBurst = 0
+        state.hBurst = 0
+        state.isRetracting = false
+    }
+
+    /**
+     * Ported from src/player_interface.c: BurstDisplay_Loop_Display
+     *
+     * Each frame: when the unit under the cursor changes, erases the box and restarts the
+     * 8-frame delay; with a unit under the cursor and no camera move, counts the delay (it only
+     * counts to 4 while the terrain or goal window is sliding), draws the box on the 8th frame
+     * and from then counts the unit clock and refreshes the HP digits.
+     */
+    public fun burstDisplay(proc: Proc) {
+        val state = stateOf(proc)
+        state.burstUnitIdPrev = state.burstUnitId
+        state.burstUnitId = hooks.unitIdAt(bm.playerCursorX, bm.playerCursorY) and 0xFF
+
+        if (state.burstUnitIdPrev != state.burstUnitId && state.burstUnitIdPrev != 0) {
+            clearUnitBurstMapUi(state)
+            state.showHideClock = 0
+            return
+        }
+
+        if (state.burstUnitId == 0 || engine.find(camMoveScript) != null) return
+
+        val terrain = engine.find(terrainScript)?.let { stateOf(it) }
+        if (terrain != null && terrain.hideContents) {
+            if (state.showHideClock < 4) state.showHideClock++
+            return
+        }
+
+        val goal = engine.find(goalScript)?.let { stateOf(it) }
+        if (goal != null && goal.hideContents) {
+            if (state.showHideClock < 4) state.showHideClock++
+            return
+        }
+
+        state.showHideClock++
+        if (state.showHideClock < 8) return
+
+        val unit = units.unitOffset(state.burstUnitId)
+        if (state.showHideClock == 8) {
+            drawUnitBurstMapUi(state, unit)
+        } else {
+            state.unitClock++
+            state.hideContents = terrain?.hideContents ?: false
+            unitMapUiUpdate(state, unit)
         }
     }
 
@@ -1353,11 +1570,15 @@ public class PlayerInterface(
 
     private fun tmIndex(x: Int, y: Int): Int = y * TM_STRIDE + x
 
-    /** `TileMap_FillRect`: fills a [w] x [h] rectangle at entry [at] of [tm] with [value]. */
+    /**
+     * `TileMap_FillRect` (`TmFillRect`, asm/arm.s): fills the rectangle at entry [at] of [tm] with
+     * [value]. Its loops run `bpl` after `subs`, so it writes [w] + 1 columns and [h] + 1 rows
+     * (the C comment above it says [w] x [h]; the capture shows the extra column and row).
+     */
     private fun fillRect(tm: ShortArray, at: Int, w: Int, h: Int, value: Int) {
-        for (row in 0 until h) {
+        for (row in 0..h) {
             val start = at + row * TM_STRIDE
-            tm.fill(value.toShort(), start, start + w)
+            tm.fill(value.toShort(), start, start + w + 1)
         }
     }
 
@@ -1507,6 +1728,18 @@ public class PlayerInterface(
         private val MMB_SLIDE_IN_WIDTH = intArrayOf(5, 9, 11, 13)
         private val MMB_SLIDE_OUT_WIDTH = intArrayOf(11, 7, 0)
 
+        private const val BURST_WIDTH = 8
+        private const val BURST_HEIGHT = 5
+        private const val BURST_TEXT_X = 1
+        private const val BURST_TEXT_Y = 1
+        private val BURST_X_OFFSET = intArrayOf(0, -1, -6, 0, -1, -6)
+        private val BURST_Y_OFFSET = intArrayOf(-6, -6, -6, 3, 3, 3)
+        private const val BURST_TOP_TSA = 0x08A0186C
+        private const val BURST_BOTTOM_TSA = 0x08A01884
+        private const val TSA_BURST_MIDDLE = 0x08A17604
+
+        private const val UNIT_X = 0x10
+        private const val UNIT_Y = 0x11
         private const val UNIT_CHARACTER = 0x00
         private const val UNIT_CLASS = 0x04
         private const val UNIT_INDEX = 0x0B
@@ -1515,7 +1748,20 @@ public class PlayerInterface(
         private const val UNIT_CUR_HP = 0x13
         private const val UNIT_STATUS = 0x30
         private const val UNIT_STATUS_NONE = 0
-        private const val UNIT_STATUS_RECOVER = 0xC
+        private const val STATUS_POISON = 1
+        private const val STATUS_SLEEP = 2
+        private const val STATUS_SILENCED = 3
+        private const val STATUS_BERSERK = 4
+        private const val STATUS_ATTACK = 5
+        private const val STATUS_DEFENSE = 6
+        private const val STATUS_CRIT = 7
+        private const val STATUS_AVOID = 8
+        private const val STATUS_SICK = 9
+        private const val STATUS_PETRIFY = 11
+        private const val STATUS_13 = 13
+        private const val STATUS_ICON_CHR = 0x16F
+        private const val GFX_STATUS_TEXT = 0x08A16DEC
+        private const val UNIT_STATUS_RECOVER = 0xA
         private const val US_BIT23 = 1 shl 23
         private const val FACTION_BLUE = 0x00
         private const val FACTION_GREEN = 0x40

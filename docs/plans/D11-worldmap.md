@@ -269,7 +269,7 @@ as `ram_trace_prologue`. Up to f9322 identical to `ram_trace_newgame_bm`.
 Twin lights, title draw, light explosion and fog have no proc of their own; they run inside the intro proc's
 callbacks and show only in the dumps. Screenshots (title card f9530, fog f9700) checked by the parent.
 
-### 8a. D11-wm8a analysis (owner PC 11-11; no code yet)
+### 8a. D11-wm8a analysis (owner PC 11-11; done 11-12 `a78a7c5`, WorldMapEventHostTest)
 
 Opcodes run in 4907..5100 (`EventScrWM_Prologue_Beginning`, checked against StdEventEngine `pEventCurrent`
 +0x38 in the procs watch):

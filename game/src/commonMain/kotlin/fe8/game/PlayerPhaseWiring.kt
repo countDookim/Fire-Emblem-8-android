@@ -119,7 +119,11 @@ internal class PlayerPhaseWiring(
         val pi = playerInterface
         pi.hooks.terrainAt = IntBinaryOperator { x, y -> map.terrain[y, x] }
         pi.hooks.unitIdAt = IntBinaryOperator { x, y -> map.unit[y, x] }
-        pi.hooks.unitMaxHp = IntUnaryOperator { offset -> unitLoader.getUnitMaxHp(offset) }
+        // -1 is "no unit": the cursor can leave the unit before the box's slide-in ends, and the
+        // original then reads a NULL unit (BIOS memory, not reproduced); the digits are not shown.
+        pi.hooks.unitMaxHp = IntUnaryOperator { offset ->
+            if (offset < 0) 0 else unitLoader.getUnitMaxHp(offset)
+        }
         pi.hooks.objWindowDisabled = { flags.checkFlag(EVFLAG_OBJWINDOW_DISABLE) }
         pi.hooks.isSkirmish = { battleMapKind() == fe8.game.bm.BattleMapKind.SKIRMISH }
         phase.hooks.startSideWindows = ProcFunc { pi.startPlayerPhaseSideWindows() }

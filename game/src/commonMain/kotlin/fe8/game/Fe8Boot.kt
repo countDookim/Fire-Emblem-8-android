@@ -900,7 +900,9 @@ public class Fe8Boot(
             }
         }
         wireUnitSprites(main, start, phase, map, rom)
-        wirePlayerPhase(main, start, phase, active, eventInfos)
+        // The player-phase menus and windows read text, item and UI data outside the windowed ROM
+        // views some tests boot with; the app always has the whole ROM.
+        if (rom.isWholeRom) wirePlayerPhase(main, start, phase, active, eventInfos)
         if (rom.isWholeRom) main.hooks.chapterIntro = chapterIntro(start).script
         main to start
     }

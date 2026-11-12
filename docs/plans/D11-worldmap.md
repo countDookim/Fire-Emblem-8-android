@@ -339,7 +339,6 @@ sub_8008FAC, sub_8008FB4, TalkSpritePrepNextChar, InitSpriteTextFont, InitSprite
 three sprite-shift scripts (positions only), Event13. TalkSkipListener is still the test rig's transcription
 (`TalkRig`), not production code.
 
-<<<<<<< HEAD
 ### 8 joined run: 4907 -> 8110 in one `WorldMapEventHostTest` pass (gaps worktree)
 
 The host test now continues from 5495 to 8110 with every handler real: C4, C5 (`WorldMapFaceEvents`), B6, B8, B9, BA
@@ -360,7 +359,7 @@ Result: no divergence between the handlers when run together. Two things differ 
 break-checked (dropping `resumeTalk` fails at 5531). Per-step BLDCNT/OBJ/palette comparisons of the siblings are not
 repeated here; D11-wm9 can rely on the handlers composing.
 
-=======
+
 ### 8f. D11-wm8f: world-map exit, steps 9271-9313
 
 `WorldMapExitTest` (seed r09270 + the `procs` watch; no sibling of the other WorldMapEvent* tests) runs the end of the
@@ -388,4 +387,3 @@ registers and `sFaceConfig`; at r09330 `gGMData` and `sFaceConfig`.
   `ResetWorldMapScreen`, the rest stay stand-ins); `GameControl.Hooks.worldMapWrapperScript` = `WorldMapMain.wrapperScript`,
   `GameControl.Hooks.endWorldMap` -> `WorldMapExit.endWm` (with `Hooks.resetDialogueScreen` = `EventTextTalkHost.clearTalkBubble` +
   `resetAllFaces`); `EventEngineHooks.eventEndCleanup` = `EventText.endTextFaces`.
->>>>>>> 743f51e (D11-wm8f: world-map exit 9271..9313 (PostBeginning, intro event, Destruct, ResetFaces))

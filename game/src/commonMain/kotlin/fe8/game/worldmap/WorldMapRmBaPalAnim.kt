@@ -64,8 +64,8 @@ public class WorldMapRmBaPalAnim(
     private fun state(proc: Proc) = proc.state as GmapRmBaPalAnimProc
 
     /**
-     * Transcribed from src/worldmap_rm.c: GmapRmBaPalAnim1_End (not verified: the blend registers
-     * are not traced at the step the proc ends)
+     * Transcribed from src/worldmap_rm.c: GmapRmBaPalAnim1_End (not verified: the next frame's
+     * MergeOut overwrites the restored blend before the registers show it)
      */
     public fun gmapRmBaPalAnim1End(proc: Proc) {
         val value = getWmFaceBlendAmt()
@@ -73,8 +73,7 @@ public class WorldMapRmBaPalAnim(
     }
 
     /**
-     * Transcribed from src/worldmap_rm.c: GmapRmBaPalAnim1_Init (not verified: only the proc
-     * fields are traced, not the blend registers)
+     * Ported from src/worldmap_rm.c: GmapRmBaPalAnim1_Init
      */
     public fun gmapRmBaPalAnim1Init(proc: Proc) {
         lcd.setBlendTargetA(0, 0, 0, 0, 0)
@@ -86,8 +85,7 @@ public class WorldMapRmBaPalAnim(
     }
 
     /**
-     * Transcribed from src/worldmap_rm.c: GmapRmBaPalAnim1_Loop1 (not verified: only the proc
-     * fields are traced, not the blend registers)
+     * Ported from src/worldmap_rm.c: GmapRmBaPalAnim1_Loop1
      */
     public fun gmapRmBaPalAnim1Loop1(proc: Proc) {
         val s = state(proc)
@@ -103,8 +101,7 @@ public class WorldMapRmBaPalAnim(
     }
 
     /**
-     * Transcribed from src/worldmap_rm.c: GmapRmBaPalAnim1_Loop2 (not verified: only the proc
-     * fields are traced, not the blend registers)
+     * Ported from src/worldmap_rm.c: GmapRmBaPalAnim1_Loop2
      */
     public fun gmapRmBaPalAnim1Loop2(proc: Proc) {
         val s = state(proc)
@@ -120,8 +117,7 @@ public class WorldMapRmBaPalAnim(
     }
 
     /**
-     * Transcribed from src/worldmap_rm.c: StartGmapRmBaPalAnim1 (not verified: no test reaches
-     * the start through its callers)
+     * Ported from src/worldmap_rm.c: StartGmapRmBaPalAnim1
      *
      * @param parent blocked by the new proc; the proc is a root of tree 3 when null
      */
@@ -144,8 +140,7 @@ public class WorldMapRmBaPalAnim(
     public fun checkGmapRmBaPalAnim1Exists(): Boolean = engine.find(script) != null
 
     /**
-     * Transcribed from src/worldmap_rm.c: CheckGmapRmBaPalAnim1State (not verified: no traced
-     * call)
+     * Ported from src/worldmap_rm.c: CheckGmapRmBaPalAnim1State
      */
     public fun checkGmapRmBaPalAnim1State(): Int {
         val proc = engine.find(script) ?: return 0

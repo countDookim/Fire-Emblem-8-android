@@ -20,6 +20,7 @@ import gbafe.render.SpriteLayers
 import gbafe.render.SpriteObject
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
@@ -35,7 +36,13 @@ import org.junit.jupiter.api.Test
  * `unk_2c`, `unk_2e`, `unk_30`, `index`, `faction`, `pal`, `animId`, `unk_38`, `unk_3a`, `x`,
  * `y` and whether `ap` is set. Limits: a setter's argument is taken from the trace, so what is
  * verified is the stored fields and the derived ones (`pal` from the faction, `s8` wrapping, `u16`
- * wrapping); the OAM output, `ap->tileBase`, the fades and `GmapUnit_Loop` are not compared.
+ * wrapping); the OAM output, `ap->tileBase` and `GmapUnit_Loop` are not compared.
+ *
+ * Fade palettes: the OBJ palettes of `ram_trace_prologue_wm_lcd` at step 5500 seed the palette
+ * buffer, then OBJ palette 0xA (the fade target) is compared at every step 8185..8450 with the
+ * palette RAM watch (which shows the buffer of the end of the previous step), and OBJ palettes
+ * 0..2 (the factions the fades read) stay equal to the watch. Unit OAM entries need the
+ * `SMS_DisplayOne` hook and are not compared.
  */
 class WorldMapUnitTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -62,6 +69,7 @@ class WorldMapUnitTest {
         "sub_80BB194",
         "GmapUnit_Loop",
         "MapUnitC_SetGfxNeedsUpdate",
+        "sub_80BB26C",
         "GmapUnitFade_Init",
         "GmapUnitFade_Loop",
         "GmapUnitFade_Destruct",
@@ -105,6 +113,15 @@ class WorldMapUnitTest {
             WorldMapUnit.Hooks(screenPosition = { camX to camY }),
         )
         val parent = engine.start(ProcScript("Parent", listOf(block(), end())) { }, 3)
+        // OBJ palettes from `ram_trace_prologue_wm_lcd` (per-step palette RAM from step 5500): the
+        // faction palettes (OBJ 0..2) the fades read, then OBJ palette 0xA compared per step.
+        val palRun = ref.run("ram_trace_prologue_wm_lcd")
+        assumeTrue(palRun.hasWatch("pal"), "no per-step palette watch")
+        val palTrace = palRun.watch("pal")
+        for (i in 0 until 512) hardware.palette[i] = palTrace.u16(palTrace.firstStep, 2 * i).toShort()
+        var palChecked = 0
+        var fadePalChanges = 0
+        var palBefore = fadePalette(hardware)
 
         var container: Proc? = null
         val sim = HashMap<Int, Proc>()
@@ -226,6 +243,21 @@ class WorldMapUnitTest {
                 assertEquals(new[ANIM].toByte().toInt(), unit.mapUnitCGetAnimId(index))
                 assertEquals(new[CLASS2], unit.sub80BB194(index))
             }
+            if (step in FADE_PAL_FIRST..palTrace.lastStep) {
+                // The palette RAM shows the buffer as it stood at the end of the previous step.
+                val shown = List(0x10) { palTrace.u16(step, 2 * (0x100 + FADE_PAL * 0x10 + it)) }
+                assertEquals(shown, palBefore, "OBJ palette 0xA at step $step")
+                for (pal in 0..2) {
+                    assertEquals(
+                        List(0x10) { palTrace.u16(step, 2 * (0x100 + pal * 0x10 + it)) },
+                        List(0x10) { hardware.palette[0x100 + pal * 0x10 + it].toInt() and 0xFFFF },
+                        "faction OBJ palette $pal at step $step",
+                    )
+                }
+                if (shown != fadePalette(hardware)) fadePalChanges++
+                palChecked++
+            }
+            palBefore = fadePalette(hardware)
             val simFade = unit.getGmapUnitFade()
             assertEquals(traceFade != null, simFade != null, "fade exists at $step")
             if (traceFade != null && simFade != null) {
@@ -257,8 +289,14 @@ class WorldMapUnitTest {
                 }
             }
         }
+        assertTrue(palChecked > 250, "steps with a palette compare: $palChecked")
+        assertTrue(fadePalChanges > 60, "steps where the fade palette moved: $fadePalChanges")
         assertEquals(10, seen, "sprites the capture creates")
         assertEquals(true, container != null)
+    }
+
+    private fun fadePalette(hardware: BgHardware): List<Int> = List(0x10) {
+        hardware.palette[0x100 + FADE_PAL * 0x10 + it].toInt() and 0xFFFF
     }
 
     private fun simFields(s: GmapUnitProc): List<Int> = listOf(
@@ -273,6 +311,8 @@ class WorldMapUnitTest {
     )
 
     private companion object {
+        const val FADE_PAL = 0xA
+        const val FADE_PAL_FIRST = 8185
         const val FLAGS = 0
         const val LAYER = 1
         const val FACTION = 5

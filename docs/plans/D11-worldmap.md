@@ -153,6 +153,15 @@ Open rows: [TASKS](../TASKS.md) lane A. All of this is standalone and unwired.
   verified per step on the procs watch (nation 7, 5528–5670; 18 capped 1-frame resyncs asserted). Blend, OAM,
   palette 0x19 and VRAM effects, MergeIn/Out and Start/Show are unverified: no dump falls inside the runs
   (needs a per-step lcd/OAM watch capture). Unwired; nation-highlight event opcode not registered.
+- wm4d (D11-wm4d, capture `ram_trace_prologue_wm_lcd`: per-step displayio/pal/oam from step 5500; its `procs`
+  watch equals `ram_trace_prologue`): `WorldMapRmBorderLcdTest` replays every border run (5528..8016) and
+  verifies BLDCNT/BLDALPHA/BLDY/WIN*, palette RAM (0x19), OAM entries and OBJ tiles; hardware shows the state of
+  the previous step's end (registers keep old values during the start's long pass). Verified: 80C2750, PutSprite2,
+  NationMergeIn/Out, PutSpriteAll, StartGmapRmBorder1 (slot 0 only), WmShowNationHighlightedMap,
+  DrawWmNationHighLightMapGfx, BaPalAnim1 Init/Loop1/Loop2/Start/CheckState. Still transcribed: Border1_End and
+  BaPalAnim1_End (invisible in the trace), EndGmapRmBorder1, sub_80C2BC4, sub_80C2C10, GmapRm_GetPosition (fed from
+  the trace). `WorldMapUnitTest` now also compares OBJ palette 0xA each step 8185..8450 (sub_80BB26C verified;
+  no fade starts from palette 0; `EnablePaletteSync` not observed); unit OAM remains unchecked (SMS hook).
 - wm5 (`807369a`): text handler verified; GmPalFade and opcodes 80–82/AF–B3 transcribed, unregistered.
 - wm7 (`90811ce`): 11 portrait functions verified/mutation-checked against original proc, BG,
   palette, VRAM and OAM state. Init writes remain transcribed; observed state-3 path only.

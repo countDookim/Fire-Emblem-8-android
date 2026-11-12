@@ -87,8 +87,8 @@ public class WorldMapRmBorder(
     private fun state(proc: Proc) = proc.state as GmapRmBorderProc
 
     /**
-     * Transcribed from src/worldmap_rm.c: GmapRmBorder1_End (not verified: no OAM or blend
-     * dump falls inside the traced run)
+     * Transcribed from src/worldmap_rm.c: GmapRmBorder1_End (not verified: removing either sprite
+     * delete or the pulse end leaves the traced OAM, blend and palette unchanged)
      */
     public fun gmapRmBorder1End(proc: Proc) {
         val s = state(proc)
@@ -98,8 +98,9 @@ public class WorldMapRmBorder(
     }
 
     /**
-     * Transcribed from src/worldmap_rm.c: GmapRmBorder1_80C2750 (not verified: no palette or
-     * blend dump falls inside the traced run)
+     * Ported from src/worldmap_rm.c: GmapRmBorder1_80C2750
+     *
+     * Checked per step against `ram_trace_prologue_wm_lcd`: BLDCNT/BLDALPHA/BLDY and palette 0x19.
      */
     public fun gmapRmBorder180C2750(proc: Proc) {
         lcd.setBlendTargetA(0, 0, 0, 0, 0)
@@ -113,8 +114,9 @@ public class WorldMapRmBorder(
     }
 
     /**
-     * Transcribed from src/worldmap_rm.c: GmapRmBorder1_PutSprite2 (not verified: no OAM dump
-     * falls inside the traced run)
+     * Ported from src/worldmap_rm.c: GmapRmBorder1_PutSprite2
+     *
+     * Checked per step against the OAM watch of `ram_trace_prologue_wm_lcd`.
      */
     public fun gmapRmBorder1PutSprite2(proc: Proc, x: Int, y: Int, transparency: Boolean) {
         val (ix, iy) = position()
@@ -132,8 +134,7 @@ public class WorldMapRmBorder(
     private fun setY(index: Int) = rom.u16(GFX_SET_NATION_MAP + 12 * index + 10).toShort().toInt()
 
     /**
-     * Transcribed from src/worldmap_rm.c: GmapRmBorder1_NationMergeIn (not verified: blend and sprite
-     * position effects unobserved; only timer/break checked)
+     * Ported from src/worldmap_rm.c: GmapRmBorder1_NationMergeIn
      *
      * Slides and fades the merge sprite in over 22 frames, then breaks.
      */
@@ -161,8 +162,7 @@ public class WorldMapRmBorder(
     }
 
     /**
-     * Transcribed from src/worldmap_rm.c: GmapRmBorder1_NationMergeOut (not verified: blend and sprite
-     * position effects unobserved; only timer/break checked)
+     * Ported from src/worldmap_rm.c: GmapRmBorder1_NationMergeOut
      */
     public fun gmapRmBorder1NationMergeOut(proc: Proc) {
         val s = state(proc)
@@ -192,8 +192,7 @@ public class WorldMapRmBorder(
     }
 
     /**
-     * Transcribed from src/worldmap_rm.c: GmapRmBorder1_PutSpriteAll (not verified: no OAM dump
-     * falls inside the traced run)
+     * Ported from src/worldmap_rm.c: GmapRmBorder1_PutSpriteAll
      */
     public fun gmapRmBorder1PutSpriteAll(proc: Proc) {
         val s = state(proc)
@@ -224,8 +223,10 @@ public class WorldMapRmBorder(
     }
 
     /**
-     * Transcribed from src/worldmap_rm.c: StartGmapRmBorder1 (not verified: no test reaches it
-     * with more than the traced procs)
+     * Ported from src/worldmap_rm.c: StartGmapRmBorder1
+     *
+     * Checked with the one border the capture runs at a time (slot 0, so the tile base and the
+     * OBJ tiles at `0x06010000`); the slots of concurrent borders stay unobserved.
      *
      * @return the lowest graphics slot (0..2) no border proc uses, or -1 if all are taken
      */
@@ -242,8 +243,9 @@ public class WorldMapRmBorder(
     }
 
     /**
-     * Transcribed from src/worldmap_rm.c: DrawWmNationHighLightMapGfx (not verified: no VRAM dump
-     * falls inside the traced run)
+     * Ported from src/worldmap_rm.c: DrawWmNationHighLightMapGfx
+     *
+     * Checked against the OBJ VRAM of the full dumps inside the runs (slot 0, nation 7).
      */
     public fun drawWmNationHighLightMapGfx(chr: Int, index: Int) {
         rom.decompressInto(
@@ -253,8 +255,9 @@ public class WorldMapRmBorder(
     }
 
     /**
-     * Transcribed from src/worldmap_rm.c: WmShowNationHighlightedMap (not verified: no OAM or
-     * VRAM dump falls inside the traced run; the proc fields are compared)
+     * Ported from src/worldmap_rm.c: WmShowNationHighlightedMap
+     *
+     * Checked: proc fields, tile base, both animations, OBJ tiles and OAM (nation 7).
      *
      * @param parent blocked by the new proc; the proc is a root of tree 3 when null
      */

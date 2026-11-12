@@ -548,8 +548,10 @@ public class WorldMapUnit(
     }
 
     /**
-     * Transcribed from src/worldmap_gmapunit.c: sub_80BB26C (not verified: the palette
-     * buffer is only in the 300-frame snapshots, not the per-step trace)
+     * Ported from src/worldmap_gmapunit.c: sub_80BB26C
+     *
+     * Checked through OBJ palette 0xA of the three unit fades (steps 8185..8450). No fade there
+     * starts from palette 0, so that branch of the start palette test is unobserved.
      *
      * One 15-bit colour of a fade: entry [i1] of OBJ palette [pal1] blended towards entry [i2] of
      * [pal2] by [t] (0x1000 = all the way); a negative palette is black.
@@ -580,8 +582,9 @@ public class WorldMapUnit(
     }
 
     /**
-     * Ported from src/worldmap_gmapunit.c: GmapUnitFade_Loop (checked: timer and the end of the
-     * fade; the palette written to OBJ palette 0xA is not in the capture)
+     * Ported from src/worldmap_gmapunit.c: GmapUnitFade_Loop (checked: timer, the end of the
+     * fade and the palette written to OBJ palette 0xA each step; the palette buffer is compared,
+     * so the `EnablePaletteSync` call itself is not observed)
      *
      * Blends OBJ palette 0xA from the start palette to the end palette over `duration` frames.
      */
@@ -612,8 +615,8 @@ public class WorldMapUnit(
     }
 
     /**
-     * Ported from src/worldmap_gmapunit.c: StartGmapUnitFade (checked: the proc fields; the palette
-     * copy and the blocking parent are not in the capture)
+     * Ported from src/worldmap_gmapunit.c: StartGmapUnitFade (checked: the proc fields and the
+     * start palette copied to OBJ palette 0xA; the blocking parent is not in the capture)
      *
      * Starts a fade of [index] from palette [palA] to [palB] over [duration] frames, blocking
      * [parent] or in tree 3 when it is null, and copies the start palette to OBJ palette 0xA.

@@ -345,7 +345,7 @@ public class WorldMapFace(
     public fun startWmFaceCtrl(parent: Proc?): Proc =
         if (parent != null) engine.start(ctrlScript, parent) else engine.start(ctrlScript, 0)
 
-    /** Transcribed from src/worldmap_face.c: EndWMFaceCtrl (not verified: no traced call). */
+    /** Ported from src/worldmap_face.c: EndWMFaceCtrl */
     public fun endWmFaceCtrl() {
         engine.endEach(ctrlScript)
     }
@@ -484,8 +484,8 @@ public class WorldMapFace(
     }
 
     /**
-     * Transcribed from src/worldmap_face.c: HideWmFace (not verified: the prologue trace never
-     * calls it)
+     * Transcribed from src/worldmap_face.c: HideWmFace (not verified: the world map exit checks
+     * only the blend targets; no face is shown there, so the loop over the wrappers never runs)
      */
     public fun hideWmFace() {
         val proc = engine.find(ctrlScript)!!

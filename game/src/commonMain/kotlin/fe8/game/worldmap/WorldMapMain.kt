@@ -42,6 +42,9 @@ public class WorldMapMainProc {
     /** `flags_1` (bit 1 of the byte at +0x29). */
     public var flags1: Int = 0
 
+    /** `unk_3e` (+0x3E): the leader's node when the world map is left. */
+    public var unk3e: Int = 0
+
     /** `timer` (+0x2C). */
     public var timer: Int = 0
 

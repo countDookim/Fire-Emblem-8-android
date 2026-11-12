@@ -10,14 +10,14 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 207 across 32 Kotlin files.
+Total entries: 222 across 34 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 51 |
 | M6-C | 1 |
 | M6-D | 3 |
-| M6-E | 45 |
+| M6-E | 44 |
 | M6-G | 1 |
 | M6-H | 22 |
 | M6-I | 24 |
@@ -26,7 +26,7 @@ Total entries: 207 across 32 Kotlin files.
 | D09-3 | 2 |
 | D11-ci5 | 3 |
 | D11-wire-a | 1 |
-| D11-wm9 | 9 |
+| D11-wm9 | 25 |
 | PP-10 | 1 |
 | PP-12 | 9 |
 | PP-17 | 9 |
@@ -104,7 +104,7 @@ Total entries: 207 across 32 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `cpPhase` | Stand-in until M6-D: never ends. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `CpPhase` | The AI decision (`gProcScr_CpDecide`) and the enemy phase proper are M6-D: [Hooks] stand in for them. |
 
-## M6-E (45)
+## M6-E (44)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -147,7 +147,6 @@ Total entries: 207 across 32 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `changeUnitSpritePalette` | Stand-in (M6-E): `ChangeUnitSpritePalette` (a palette load, no state) is not ported. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `endBoxDialogue` | Stand-in until M6-E: the box dialogue is not ported, so none can exist, nothing to end. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `endCgText` | Stand-in until M6-E: CG text is not ported, so none can exist and none is ended. |
-| `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `resetAllFaces` | Stand-in until M6-E: `ResetFaces` (face gfx bookkeeping of `src/face.c`) is not ported; the face slots are only emptied. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `talkChoiceResult` | Stand-in (M6-E): `sTalkChoiceResult` is only written by the (not ported) choice proc: 0. |
 | `game/src/commonMain/kotlin/fe8/game/event/ReleaseEventStubs.kt` | `ReleaseEventStubs` | Stand-in until M6-E: not ports; no-op event commands that let a script run past commands whose handlers are not ported yet (text, fades, unit loads, ASMC and so on), as the skip mode of the beginni... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/PostSaveMenu.kt` | `standInSelection` | Stand-in until M6-E: save menu selection logic simulating pressing 'A' on the default menu item. |
@@ -259,19 +258,35 @@ Total entries: 207 across 32 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet). |
 
-## D11-wm9 (9)
+## D11-wm9 (25)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `NO_WORLD_MAP_NODES` | World map stand-in until the world map is ported (D11-wm9): no node holds a chapter. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `blendSetup` | Stand-in until D11-wm9 (the buffer is then shared with [GameControl]). |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `endWorldMap` | Stand-in until D11-wm9. |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `Hooks` | All default to nothing; the defaults are stand-ins until D11-wm9 replaces them. |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `apProcDeleteAll` | `APProc_DeleteAll()` (stand-in until D11-wm9). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `clearHblank` | `SetSecondaryHBlankHandler(NULL)`, `ClearWmHblank()`, `SetPrimaryHBlankHandler(NULL)` (stand-in until D11-wm9). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `clearTalkText` | `ClearTalkText()` (stand-in until D11-wm9). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `endMinimap` | `EndWorldmapMinimap()` (stand-in until D11-wm9). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `endPlayerInterface` | `sub_80BF15C()`: ends the player interface (stand-in until D11-wm9). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `endScreenProcs` | `Proc_End` of `gm_cursor`, `gm_screen` and `gm_icon` (stand-in until D11-wm9: the cursor and screen procs are not ported as scripts yet). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `endTalk` | `EndTalk()` (stand-in until D11-wm9). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `fadeOutBgm` | `Sound_FadeOutBGM(speed)` (stand-in until D11-wm9). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `fadeOutSe` | `Sound_FadeOutSE(speed)` (stand-in until D11-wm9). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `gmMu80BE108` | `GmMu_80BE108(proc->gm_mu, index, flag)` (stand-in until D11-wm9). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `mapRoute80BC2DC` | `MapRoute_80BC2DC(gm_screen->gmroute)` (stand-in until D11-wm9). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `resetDialogueScreen` | `ResetDialogueScreen()`: `ClearTalkBubble`, `Proc_EndEach(gProcScr_E_FACE)`, `ResetFaces` (the default portrait layout), `ClearTalkFaceRefs` (stand-in until D11-wm9: `EventTextTalkHost.clearTalkBub... |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `resetUnitSprites` | `ResetUnitSprites()` (stand-in until D11-wm9). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `wmRemoveRandomMonsters` | `WmRemoveRandomMonsters()` (stand-in until D11-wm9). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `WorldMapGfxSetup` | `WorldMap_Init` itself is still the [WorldMapMain.MainHooks] stand-in until D11-wm9; nothing calls these two yet. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `loadLegacyUiFrameGraphics` | `LoadLegacyUiFrameGraphics`: stand-in until D11-wm9 (world-map wiring). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetFaces` | `ResetFaces`: stand-in until D11-wm9 (world-map wiring). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetText` | `ResetText`: stand-in until D11-wm9 (world-map wiring). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetTextFont` | `ResetTextFont`: stand-in until D11-wm9 (world-map wiring). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `setWorldMapHblank` | `SetWorldMapHblank`: stand-in until D11-wm9 (world map HBlank, worldmap_hb.c). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMainScript.kt` | `WorldMapMainScript` | Stand-in until D11-wm9 registers the callees. |
 
 ## PP-10 (1)
 

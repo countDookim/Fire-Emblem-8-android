@@ -159,10 +159,10 @@ public class TalkFace(
     public val gFaces: Array<Proc?> = arrayOfNulls(FACE_SLOTS)
 
     /** `sFaceConfig[].tileOffset`: byte offset of each slot's tiles in OBJ VRAM. */
-    private val tileOffsets = intArrayOf(0x20 * 0x300, 0x20 * 0x280, 0x20 * 0x200, 0x20 * 0x380)
+    private val tileOffsets = DEFAULT_TILE_OFFSETS.copyOf()
 
     /** `sFaceConfig[].paletteId`: OBJ palette bank of each slot. */
-    private val paletteIds = intArrayOf(6, 7, 8, 9)
+    private val paletteIds = DEFAULT_PALETTE_IDS.copyOf()
 
     /**
      * Replaces the per-slot VRAM tile offsets and OBJ palette banks, as `SetupFaceGfxData(config)`
@@ -181,6 +181,27 @@ public class TalkFace(
 
     /** `sFaceConfig[slot].paletteId`. */
     public fun paletteIdOf(slot: Int): Int = paletteIds[slot]
+
+    /** `sFaceConfig[slot].tileOffset`. */
+    public fun tileOffsetOf(slot: Int): Int = tileOffsets[slot]
+
+    /**
+     * Ends every face slot that holds a face and restores `gDefaultFaceConfig`, undoing the
+     * world map's own portrait layout.
+     *
+     * Ported from src/face.c: ResetFaces
+     *
+     * `EndFaceById` on an empty slot would read the NULL face proc's `faceSlot` in the original;
+     * the slot is skipped here (the callers end every face first, so no slot is full).
+     */
+    public fun resetFaces() {
+        for (slot in 0 until FACE_SLOTS) {
+            val proc = gFaces[slot] ?: continue
+            gFaces[slot] = null
+            engine.end(proc)
+        }
+        setupFaceGfxData(DEFAULT_TILE_OFFSETS, DEFAULT_PALETTE_IDS)
+    }
 
     private val faceInitFn = ProcFunc { faceOnInit(it) }
     private val faceIdleFn = ProcFunc { faceOnIdle(it) }
@@ -757,6 +778,13 @@ public class TalkFace(
         /** Value of a face handle for slot 0. */
         public const val FACE_HANDLE: Int = 0x02030000
         private const val FACE_SLOTS = 4
+
+        /** `gDefaultFaceConfig[].tileOffset`. */
+        private val DEFAULT_TILE_OFFSETS =
+            intArrayOf(0x20 * 0x300, 0x20 * 0x280, 0x20 * 0x200, 0x20 * 0x380)
+
+        /** `gDefaultFaceConfig[].paletteId`. */
+        private val DEFAULT_PALETTE_IDS = intArrayOf(6, 7, 8, 9)
         private const val OBJECT_16X16 = 0x08590F4C
         private const val OBJECT_32X16 = 0x08590F8C
         private const val OBJ_VRAM = 0x06010000

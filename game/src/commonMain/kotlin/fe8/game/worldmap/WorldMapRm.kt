@@ -484,7 +484,7 @@ public class WorldMapRm(
         return proc
     }
 
-    /** Transcribed from src/worldmap_rm.c: EndGmapRM (not verified: not reached in the capture). */
+    /** Ported from src/worldmap_rm.c: EndGmapRM */
     public fun endGmapRm() {
         engine.endEach(rmScript)
     }

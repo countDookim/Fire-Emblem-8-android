@@ -115,12 +115,14 @@ public class EventTextTalkHost(
     /**
      * `Proc_EndEach(gProcScr_E_FACE)`, `ResetFaces`, `ClearTalkFaceRefs`.
      *
-     * Stand-in until M6-E: `ResetFaces` (face gfx bookkeeping of `src/face.c`) is not ported; the
-     * face slots are only emptied.
+     * Transcribed from src/eventscr2.c: ResetDialogueScreen (not verified: `ResetFaces` is checked
+     * by WorldMapExitTest through the event end; `ClearTalkBubble` is a separate host call).
+     * `ResetFaces` restores the default portrait VRAM / palette layout, which the world map
+     * replaced.
      */
     override fun resetAllFaces() {
         procs.endEach(face.faceScript)
-        face.gFaces.fill(null)
+        face.resetFaces()
         talk.clearTalkFaceRefs()
     }
 

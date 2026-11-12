@@ -339,6 +339,7 @@ sub_8008FAC, sub_8008FB4, TalkSpritePrepNextChar, InitSpriteTextFont, InitSprite
 three sprite-shift scripts (positions only), Event13. TalkSkipListener is still the test rig's transcription
 (`TalkRig`), not production code.
 
+<<<<<<< HEAD
 ### 8 joined run: 4907 -> 8110 in one `WorldMapEventHostTest` pass (gaps worktree)
 
 The host test now continues from 5495 to 8110 with every handler real: C4, C5 (`WorldMapFaceEvents`), B6, B8, B9, BA
@@ -359,3 +360,32 @@ Result: no divergence between the handlers when run together. Two things differ 
 break-checked (dropping `resumeTalk` fails at 5531). Per-step BLDCNT/OBJ/palette comparisons of the siblings are not
 repeated here; D11-wm9 can rely on the handlers composing.
 
+=======
+### 8f. D11-wm8f: world-map exit, steps 9271-9313
+
+`WorldMapExitTest` (seed r09270 + the `procs` watch; no sibling of the other WorldMapEvent* tests) runs the end of the
+beginning event (BE/A0 are test stand-ins, D11-wm8e's), `WorldMap_PostBeginningEvent` (Prologue branch: no_fade/skip ->
+`Proc_Goto(15)`), the second engine run (`EVBIT_MODIFY`, `ENUT(137)`, `ENDA`; the `flags` watch is the permanent array,
+bit k = event flag k + 0x65), `WorldMap_WaitForChapterIntroEvents`, label 25 (sleep 16), the end of `ProcScr_WorldMapMain`
+(`WorldMap_Destruct`), the wrapper, and `EndWM` / `sub_8009E28` through a game-control stand-in whose commands sit at the
+original's positions (61.. -> 62/65). Per step: proc tree (name, script position, lock) of the real procs, engine fields,
+`gPlaySt.chapterIndex`, all event flags, the text handler; at f09300 `gGMData` (minus the unit slots), the LCD display/blend
+registers and `sFaceConfig`; at r09330 `gGMData` and `sFaceConfig`.
+- `ResetFaces` (default portrait VRAM/palette layout) runs in the first event's `EventEngine_OnEnd` -> `sub_800E640`
+  (`EV_STATE_FADEDIN`), not in `EndWM`: `sFaceConfig` is the world map's layout at r09270 and the default one at f09300.
+  `EventTextTalkHost.resetAllFaces` now calls `TalkFace.resetFaces`. `EndWM`'s own `ResetDialogueScreen` is then a no-op.
+- Lag: the frame that runs `WorldMap_PostBeginningEvent` is steps 9286-9288 (half-run snapshots at 9286/9287; the port
+  compares at 9288). 9314 (inside `StartBattleMap`) is not compared. Main proc positions: label 15 = command 106,
+  `PROC_SLEEP(16)` at 180 (scrCur 181), 184 commands.
+- The engine proc must come after the main proc in tree 3 (main's `PROC_REPEAT` runs in the frame after the engine ends).
+- Not covered (hooks, stand-ins until D11-wm9): `MapRoute_80BC2DC`, `WmRemoveRandomMonsters`, `GmMu_80BE108`, the
+  HBlank clear, `EndTalk`/`ClearTalkText`/`ResetUnitSprites` of the destructor, `sub_80BF15C`, `EndWorldmapMinimap`,
+  `APProc_DeleteAll`; `EndWM`, `ResetWorldMapScreen`, `HideEverything` (hidden by `WorldMap_PostBeginningEvent`'s identical
+  `SetDispEnable`) are transcribed, unverified (no dump after 9313 sees them: the battle map start rewrites the registers).
+- D11-wm9 hook points: `WorldMapMain.MainHooks.destruct` / `postBeginningEvent` -> `WorldMapExit.destruct` /
+  `postBeginningEvent`; `WorldMapMainScript` (commands 10..183 of `ProcScr_WorldMapMain`, callees by decomp name in `funcs` /
+  `bools` / `argFuncs`: register `WorldMap_CallIntroEvent`, `WorldMap_WaitForChapterIntroEvents`, `WorldMap_HideEverything`,
+  `ResetWorldMapScreen`, the rest stay stand-ins); `GameControl.Hooks.worldMapWrapperScript` = `WorldMapMain.wrapperScript`,
+  `GameControl.Hooks.endWorldMap` -> `WorldMapExit.endWm` (with `Hooks.resetDialogueScreen` = `EventTextTalkHost.clearTalkBubble` +
+  `resetAllFaces`); `EventEngineHooks.eventEndCleanup` = `EventText.endTextFaces`.
+>>>>>>> 743f51e (D11-wm8f: world-map exit 9271..9313 (PostBeginning, intro event, Destruct, ResetFaces))

@@ -83,9 +83,10 @@ class WorldMapScreenTest {
             val now = dump(step)
             val t = checkNotNull(now.find(screenAddr), { "screen proc at $step" })
             val ours = listOf(
-                state.flags0, state.unk2a, state.unk2b, state.unk2c, state.unk2d, state.unk2e,
+                state.flags0, state.redrawRequests, state.drawnColumn, state.drawnRow,
+                state.wantedColumn, state.wantedRow,
                 state.unk2f, state.unk30, state.unk31, state.unk32, state.x, state.y,
-                state.unk38, state.unk3a,
+                state.lastX, state.lastY,
             )
             val expected = listOf(
                 t.u8(0x29) and 1 != 0, t.u8(0x2A), s8(t.u8(0x2B)), s8(t.u8(0x2C)),

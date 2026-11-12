@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1034,
+    "verified": 1056,
     "implemented_unverified": 23
   },
   "functions": {
@@ -94,6 +94,16 @@
         "fe8.testing.ChapterMapGraphicsDifferentialTest#system object palettes match the dump"
       ]
     },
+    "ApplyUnitAction": {
+      "decomp_file": "src/bmmind.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
+      ]
+    },
     "ApplyUnitMapUiFramePal": {
       "decomp_file": "src/player_interface.c",
       "system": "menus",
@@ -152,6 +162,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ArchivedPaletteFadeDifferentialTest#archive copies all banks and resets clock ends"
+      ]
+    },
+    "AreAnyEnemyUnitDead": {
+      "decomp_file": "src/uidebug.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
       ]
     },
     "AttackCommandUsability": {
@@ -468,6 +488,29 @@
       "status": "verified",
       "tests": [
         "fe8.game.BrownTextBoxReferenceTest#the Prologue box hold frame equals the reference OAM entries"
+      ]
+    },
+    "BurstDisplay_Init": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitStatusDisplayDifferentialTest#Burst window starts after the Options screen and waits on empty tiles"
+      ]
+    },
+    "BurstDisplay_Loop_Display": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitStatusDisplayDifferentialTest#Burst window draws Eirika",
+        "fe8.testing.UnitStatusDisplayDifferentialTest#Burst window moves from Eirika to Seth",
+        "fe8.testing.UnitStatusDisplayDifferentialTest#Burst window passes the clock boundaries",
+        "fe8.testing.UnitStatusDisplayDifferentialTest#Burst window starts after the Options screen and waits on empty tiles"
       ]
     },
     "CallARM_FillTileRect": {
@@ -874,6 +917,16 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "CheckForWaitEvents": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
+      ]
+    },
     "CheckGmapRmBaPalAnim1State": {
       "decomp_file": "src/worldmap_rm.c",
       "system": "worldmap",
@@ -1047,6 +1100,16 @@
       "tests": [
         "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
+    "ClearUnitBurstMapUi": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitStatusDisplayDifferentialTest#Burst window moves from Eirika to Seth"
       ]
     },
     "ClearUnitMapUiStatus": {
@@ -1278,6 +1341,16 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "CountAvailableBlueUnits": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
+      ]
+    },
     "CountProcs": {
       "decomp_file": "src/proc.c",
       "system": "core",
@@ -1502,6 +1575,17 @@
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
+    "DrawUnitBurstMapUi": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitStatusDisplayDifferentialTest#Burst window draws Eirika",
+        "fe8.testing.UnitStatusDisplayDifferentialTest#Burst window moves from Eirika to Seth"
+      ]
+    },
     "DrawUnitMapUi": {
       "decomp_file": "src/player_interface.c",
       "system": "menus",
@@ -1648,6 +1732,16 @@
         "fe8.testing.WorldMapExitTest#the world map exit matches the capture"
       ]
     },
+    "EnsureCameraOntoActiveUnitPosition": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
+      ]
+    },
     "EnsureCameraOntoPosition": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -1727,6 +1821,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EventInfoRomTest#turn list search finds no event at the first player phase of the trace"
+      ]
+    },
+    "EvCheck01_AFEV": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
       ]
     },
     "EvCheck02_TURN": {
@@ -3476,6 +3580,16 @@
         "fe8.testing.UnitTableDifferentialTest#unitOffset matches gUnitLookup table in ROM for all 256 unit ids"
       ]
     },
+    "GetUnitBurstMapUiOrientationAt": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitStatusDisplayDifferentialTest#Burst window draws Eirika"
+      ]
+    },
     "GetUnitDefinitionFromEventScr": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -4334,6 +4448,16 @@
         "fe8.testing.PlayerPhaseCursorDifferentialTest#chapter 6 fog cursor holds scroll both axes like the game"
       ]
     },
+    "HandlePostActionTraps": {
+      "decomp_file": "src/bmtrap.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
+      ]
+    },
     "HandleWMFaceFade": {
       "decomp_file": "src/worldmap_face.c",
       "system": "worldmap",
@@ -4462,7 +4586,8 @@
         "fe8.testing.TerrainDisplayDifferentialTest#select_move windows start after the unit waits",
         "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window restarts after cancelling the selection",
         "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window slides out when the cursor leaves the unit",
-        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles",
+        "fe8.testing.UnitStatusDisplayDifferentialTest#Burst window starts after the Options screen and waits on empty tiles"
       ]
     },
     "InitRN": {
@@ -4808,6 +4933,16 @@
         "fe8.testing.ConvoBackgroundVramTest#game lock matches gbmst lock byte across trace steps"
       ]
     },
+    "MMB_CheckForUnit": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitStatusDisplayDifferentialTest#cursor hops from one soldier to the next inside one corner"
+      ]
+    },
     "MMB_Init": {
       "decomp_file": "src/player_interface.c",
       "system": "menus",
@@ -4827,7 +4962,8 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window slides out when the cursor leaves the unit",
-        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles",
+        "fe8.testing.UnitStatusDisplayDifferentialTest#cursor hops from one soldier to the next inside one corner"
       ]
     },
     "MMB_Loop_OnSideChange": {
@@ -5241,6 +5377,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aPitchTest#DirectSound channel frequencies match every reference RAM dump"
+      ]
+    },
+    "MoveActiveUnit": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
       ]
     },
     "MoveLimitViewChange_OnInit": {
@@ -5951,6 +6097,26 @@
         "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in select_move matches the game f1295 to f1314"
       ]
     },
+    "PlayerPhase_FinishAction": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
+      ]
+    },
+    "PlayerPhase_HandleAutoEnd": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
+      ]
+    },
     "PlayerPhase_InitUnitMovementSelect": {
       "decomp_file": "src/playerphase.c",
       "system": "battle_map",
@@ -5962,6 +6128,16 @@
         "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika matches the game in cancel_end at f1260",
         "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika matches the game in select_move at f1260",
         "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika with enemies in reach matches the game in attack at f1260"
+      ]
+    },
+    "PlayerPhase_PrepareAction": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
       ]
     },
     "PlayerPhase_RangeDisplayIdle": {
@@ -6433,6 +6609,18 @@
         "fe8.testing.TextDrawRomTest#putText reproduces the talk lines in gBG0TilemapBuffer"
       ]
     },
+    "PutUnitMapUiStatus": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitStatusDisplayDifferentialTest#Burst window passes the clock boundaries",
+        "fe8.testing.UnitStatusDisplayDifferentialTest#Seth boundary and slide out to an empty tile",
+        "fe8.testing.UnitStatusDisplayDifferentialTest#hover on a unit without a status passes the clock boundaries"
+      ]
+    },
     "PutUnitSpriteIconsOam": {
       "decomp_file": "src/bmudisp.c",
       "system": "battle_map",
@@ -6757,6 +6945,26 @@
       "status": "verified",
       "tests": [
         "fe8.testing.PhaseChangeDifferentialTest#the phase switches to the enemy and the turn event runs"
+      ]
+    },
+    "RunPotentialWaitEvents": {
+      "decomp_file": "src/playerphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
+      ]
+    },
+    "RunWaitEvents": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
       ]
     },
     "SMS_DisplayOne": {
@@ -7179,6 +7387,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "ShouldCallEndEvent": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
       ]
     },
     "ShowWmText": {
@@ -8402,7 +8620,9 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitDisplayDifferentialTest#cancel_end unit window slides out when the cursor leaves the unit",
-        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+        "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles",
+        "fe8.testing.UnitStatusDisplayDifferentialTest#Burst window draws Eirika",
+        "fe8.testing.UnitStatusDisplayDifferentialTest#Burst window passes the clock boundaries"
       ]
     },
     "UnitSpriteHoverUpdate": {
@@ -9380,6 +9600,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
+    "sub_808C234": {
+      "decomp_file": "src/player_interface.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitStatusDisplayDifferentialTest#cursor hops from one soldier to the next inside one corner"
       ]
     },
     "sub_808C288": {

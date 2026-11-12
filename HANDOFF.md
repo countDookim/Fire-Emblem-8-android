@@ -11,8 +11,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- PP-11: owner PC, until ~16:30Z (from 12:30Z)
-- CAP-status1 (capture done, publishing) + PP-18 (status UI port): owner PC, until ~16:30Z (from 12:30Z)
+- PP-17: owner PC, until ~18:00Z (from 13:02Z)
 
 ## Current state
 
@@ -61,7 +60,7 @@ window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose de
 1. **Lane A, main line (M6-C → M6-D → M6-E), broken into rows 11-12.** M6-C `MC-*` (map combat), M6-D `EP-*`
    (enemy phase), M6-E `PC-*` (Prologue completable). First: `MC-cap1`, `MC-0`, `EP-0` (no deps). Call chains and
    capture plans: [M6C-J-breakdown](docs/plans/M6C-J-breakdown.md). Lane A's opening is done (device check pending).
-2. **Lane B, player phase (M6-B).** Open: PP-11 (WIP `wip/PP-11`), CAP-status1, PP-17 (WIRE). Then M6-F info
+2. **Lane B, player phase (M6-B).** PP-11, CAP-status1, PP-18 done 11-12; open: PP-17 (WIRE, in progress). Then M6-F info
    screens (`IS-*`). Notes: [M6B-player-phase](docs/plans/M6B-player-phase.md). M6-G to M6-J have starter rows only.
    Owner-approved 11-12: this lane split, and the Easy-mode tutorial (PC-cap3, PC-10) as the end of M6-E.
 3. **Readability (rule 11, changed 11-11):** comments must be meaningful and checked against the decomp

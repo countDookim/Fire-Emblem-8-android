@@ -306,19 +306,31 @@ will need a variant with animations off.
 | MU back; exp 0→10 (no level-up), Eirika HP 16→7, Soldier HP 22→8 | f2010; f2028 |
 | Eirika state 0x2 (acted); idle UI procs back | f2034; f2038 |
 
-## PP-11 findings (owner PC 11-11; WIP on branch `wip/PP-11`, nothing verified)
+## PP-11 result (Wait after the unit menu, `ram_trace_prologue_select_move` f1356..1364)
 
-- Seed f1354 (unit menu open, `bm.lock` 1 keeps tree 2 frozen); the menu ends f1355 (lock 0, `unitActionType`
-  1). From f1356 PlayerPhase runs `PrepareAction`, `ApplyUnitAction` (state 0x01 → 0x41) and
-  `RunPotentialWaitEvents` (starts the event engine; proc at script position 35); `goto(0)` at f1360.
-  `r%05d` dumps exist for every frame except f1360 (`f01360`).
-- The StdEventEngine f1356..1358 comes from the chapter's misc events via `SearchAvailableEvent`: the first AFEV
-  fails on its flag, the second (`TMP(7)`, one-enemy-left script at 0x089EF0D8) matches; the script takes BNE,
-  `CHECK_EVENTID_`/`ENUF_SLOT2`, NoFade, end, under the `EventScr_08592114` wrapper (NOFADE skips fades).
-  `EvCheck00/01` exist; the test needs `countRedUnits` and the `EventInfos` hooks `callEvent`,
-  `chapterEventGroup`, `areAnyEnemyUnitDead`.
-- Missing: `checkForWaitEvents`/`runWaitEvents`/`checkTutorialEvent`/`runTutorialEvent`/`shouldCallEndEvent`
-  (need a `countAvailableBlueUnits` hook), `MoveActiveUnit`, `TryMakeCantoUnit` (bails at CA_CANTO),
-  `PlayerPhase_PrepareAction`/`FinishAction`, `HandlePostActionTraps`; `HandleAutoEnd` (transcribed) runs
-  f1360..1364. Branches taken: Wait skips the suspend check; FinishAction takes `chapterVisionRange == 0`; its
-  `EndAllMus` removes the MU at f1360.
+`PlayerPhaseActionDifferentialTest` seeds f1355 (menu ended) and runs the real script from label 7 with the
+ported action functions, the real event engine and the post-action event check. The dumps are VBlank
+snapshots of main loop passes: the passes are f1356, f1357, f1358+f1359 (f1358 is inside
+`EventEngine_OnEnd`, after the unlock, before the proc is freed), f1360..f1363 (inside `WriteSuspendSave`
+and `StartPlayerPhaseSideWindows`) and f1364. The test compares state at those calls; PlayerPhase command is
+compared at f1356..1359 (35) and f1364 (16, idle). Compared every dump: Eirika's state (0x1, 0x41, 0x42),
+`gActionData`, active unit, all of `gBmSt` and `gPlaySt`, all units, unit map, event flags and slots, the
+StdEventEngine (present, command), the MU (gone from f1360), the game lock.
+
+- Verified (`Ported from`, break-checked): `PlayerPhase_PrepareAction` (Wait path), `ApplyUnitAction` (Wait
+  branch), `HandlePostActionTraps` (the "no trap" result), `RunPotentialWaitEvents`,
+  `EnsureCameraOntoActiveUnitPosition`, `PlayerPhase_FinishAction` (no fog, no win, no canto),
+  `PlayerPhase_HandleAutoEnd` (the "units can act" path), `MoveActiveUnit` (alive, no rescue), `CheckForWaitEvents`,
+  `RunWaitEvents` (the matching-entry path), `ShouldCallEndEvent`, `EvCheck01_AFEV`, `CountAvailableBlueUnits`,
+  `AreAnyEnemyUnitDead`.
+- Transcribed, not verified: `TryMakeCantoUnit` (its bail at CA_CANTO has no effect that differs from the next
+  test), `UnitBeginCantoAction`, `PlayerPhase_CancelAction`, `SearchNextAvailableEvent` (reached, but the
+  started entry's flag already hides it), `CountRedUnits` (the script's branch is the same for any count > 1);
+  the other branches of the functions above are marked in their KDoc.
+- Stand-ins in the test: `RegisterEventActivation`/`ClearActiveEventRegistry`/`GetEventTriggerId` (the one-enemy-left
+  script's `CHECK_EVENTID_` needs them: slot 2 = 7), `WriteSuspendSave` and `StartPlayerPhaseSideWindows`
+  (only the state at the call is compared).
+- Left: wiring the new hooks (`checkForWaitEvents`, `runWaitEvents`, `shouldCallEndEvent`, `getPickTrapType`,
+  `execTrap`, `writeSuspendSave`, `canUnitMove`, `pidStatsAddSquaresMoved`) in `Fe8Boot` (PP-17); porting the
+  active event registry and `ExecTrap`/`GetPickTrapType`; the other `ApplyUnitAction` branches (MC-*); the
+  cursor line of `FinishAction` is unobserved (the cursor already stands on the unit).

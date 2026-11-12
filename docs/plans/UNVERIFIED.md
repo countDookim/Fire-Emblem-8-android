@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 541 across 74 decomp files (missing reason: 0).
+Total entries: 541 across 73 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -47,6 +47,40 @@ Total entries: 541 across 74 decomp files (missing reason: 0).
 | `InitTalkTextWin` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no @VerifiesPort test names it |
 | `TalkOpen_InitBlend` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no |
 
+## src/bmunit.c (29)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetUnitPower` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has a power bonus item, so the bonus term is not exercised |
+| `GetUnitSkill` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |
+| `GetUnitSpeed` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |
+| `GetUnitDefense` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item in the trace |
+| `GetUnitResistance` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no barrier in the trace |
+| `GetUnitLuck` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item in the trace |
+| `UnitRemoveInvalidItems` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no trace runs it yet |
+| `UnitFinalizeMovement` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | rescuee only; no ballistae |
+| `UnitBeginCantoAction` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | no capture begins a canto action |
+| `UnitFinalizeMovement` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | rescuer and ballista, no capture has either |
+| `IsUnitMagicSealed` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | no magic weapon |
+| `UnitAutolevelRealistic` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
+| `UnitApplyBonusLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced runs return at once (level count 0) |
+| `UnitAutolevelPenalty` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced runs return at once (level count 0) |
+| `UnitAutolevelWExp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitItemCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitMaxHp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `CopyUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitFromCharIdAndFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `UnitChangeFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitFromCharIdAndFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `CopyUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `UnitChangeFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `ClearUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced loads fill slots that are already zero, so a skipped clear survives |
+| `FixROMUnitStructPtr` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no traced unit has `CA_BIT_23`, so a broken repoint survives |
+| `UnitCheckStatCaps` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `CountRedUnits` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | the one-enemy-left script runs it, but the capture's branch is the same for any count above 1 |
+| `SetAllUnitNotBackSprite` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | it runs in the select window, but no unit has `US_BIT8` set there, so the clearing is unobserved |
+| `IsUnitSlotAvailable` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic slot fill; no trace comparison yet |
+
 ## src/worldmap_rm.c (29)
 
 | Function | Kotlin file | Reason |
@@ -80,38 +114,6 @@ Total entries: 541 across 74 decomp files (missing reason: 0).
 | `ProcScr_GmapRmBorder1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | the script order is checked through the proc cursor, but no unit of it is ported here |
 | `GmapRmBorder1_End` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | removing either sprite delete or the pulse end leaves the traced OAM, blend and palette unchanged |
 | `EndGmapRmBorder1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | no traced call |
-
-## src/bmunit.c (27)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `GetUnitPower` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has a power bonus item, so the bonus term is not exercised |
-| `GetUnitSkill` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |
-| `GetUnitSpeed` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no rescuing unit in the trace |
-| `GetUnitDefense` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item in the trace |
-| `GetUnitResistance` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item and no barrier in the trace |
-| `GetUnitLuck` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item in the trace |
-| `UnitRemoveInvalidItems` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no trace runs it yet |
-| `UnitFinalizeMovement` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | rescuee only; no ballistae |
-| `UnitFinalizeMovement` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | rescuer and ballista, no capture has either |
-| `IsUnitMagicSealed` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | no magic weapon |
-| `UnitAutolevelRealistic` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
-| `UnitApplyBonusLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced runs return at once (level count 0) |
-| `UnitAutolevelPenalty` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced runs return at once (level count 0) |
-| `UnitAutolevelWExp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `GetUnitItemCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `GetUnitMaxHp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `CopyUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `GetUnitFromCharIdAndFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `UnitChangeFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `GetUnitFromCharIdAndFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `CopyUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `UnitChangeFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `ClearUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced loads fill slots that are already zero, so a skipped clear survives |
-| `FixROMUnitStructPtr` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no traced unit has `CA_BIT_23`, so a broken repoint survives |
-| `UnitCheckStatCaps` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `SetAllUnitNotBackSprite` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | it runs in the select window, but no unit has `US_BIT8` set there, so the clearing is unobserved |
-| `IsUnitSlotAvailable` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic slot fill; no trace comparison yet |
 
 ## src/eventscr.c (25)
 
@@ -292,26 +294,6 @@ Total entries: 541 across 74 decomp files (missing reason: 0).
 | `GmapUnitContainer_Init` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt` | a fresh proc already has empty slots, so no trace can tell it from a no-op |
 | `EndGmapUnitFade` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt` | runs only on a skipped event in the prologue |
 
-## src/eventinfo.c (15)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `SetChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no test checks it against a trace yet |
-| `ClearChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `ResetChapterFlags` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `CheckChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `ClearPermanentFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `ResetPermanentFlags` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `CheckPermanentFlagFrom` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `CheckPermanentFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `ClearFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `CheckFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `SearchNextAvailableEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | only hand-decoded ROM values check it; no trace reaches a second match |
-| `EvCheck01_AFEV` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | no type-1 entry is reached |
-| `EvCheck0C_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
-| `EvCheck0D_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
-| `EnqueueTutEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-
 ## src/worldmap_scrollmanage.c (15)
 
 | Function | Kotlin file | Reason |
@@ -388,6 +370,25 @@ Total entries: 541 across 74 decomp files (missing reason: 0).
 | `ReadGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | no suspend-trace state covers it; its caller `ReadGameSave` is ported |
 | `WriteTraps` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | every trap in the reference is zero, which proves the target, not the data |
 | `WriteGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | no suspend-trace state covers it; its caller `WriteGameSave` is ported |
+
+## src/eventinfo.c (14)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SetChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no test checks it against a trace yet |
+| `ClearChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `ResetChapterFlags` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `CheckChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `ClearPermanentFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `ResetPermanentFlags` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `CheckPermanentFlagFrom` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `CheckPermanentFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `ClearFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `CheckFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `SearchNextAvailableEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | the Prologue's misc list reaches it, but skipping the step past the entry changes nothing there, as the started entry's flag is set and the entry is skipped anyway |
+| `EvCheck0C_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
+| `EvCheck0D_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
+| `EnqueueTutEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
 
 ## src/face.c (14)
 
@@ -769,8 +770,8 @@ Total entries: 541 across 74 decomp files (missing reason: 0).
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
-| `PlayerPhase_HandleAutoEnd` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | no test checks it against a trace yet |
-| `EnsureCameraOntoActiveUnitPosition` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | no differential test runs it yet, PP-11 stopped before the action test |
+| `PlayerPhase_CancelAction` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | no capture reaches it; only the trade, supply, take, give and ballista actions of [playerPhasePrepareAction] do |
+| `TryMakeCantoUnit` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | the capture's unit has no canto, and a bail at the first test is not observable: `US_HAS_MOVED` is set, so the second test bails too |
 
 ## src/spline.c (2)
 
@@ -811,12 +812,6 @@ Total entries: 541 across 74 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetEnemyStartCursorPosition` | `game/src/commonMain/kotlin/fe8/game/bm/ResetCursorPosition.kt` | the reference runs only reset the cursor in the player phase |
-
-## src/bmmind.c (1)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `ApplyUnitAction` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | no differential test runs it yet |
 
 ## src/bmreliance.c (1)
 

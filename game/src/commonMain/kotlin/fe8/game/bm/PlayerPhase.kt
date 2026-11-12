@@ -90,6 +90,13 @@ public class PlayerPhase(
         }
         hooks.waitForUnitMovement = ProcFunc { playerPhaseWaitForUnitMovement(it) }
         hooks.applyUnitMovement = ProcFunc { playerPhaseApplyUnitMovement(it) }
+        hooks.prepareAction = ProcBoolFunc { playerPhasePrepareAction(it) }
+        hooks.applyUnitAction = ProcBoolFunc { applyUnitActionWait() }
+        hooks.handlePostActionTraps = ProcBoolFunc { handlePostActionTraps(it) }
+        hooks.runPotentialWaitEvents = ProcBoolFunc { runPotentialWaitEvents() }
+        hooks.ensureCameraOntoActiveUnitPosition =
+            ProcBoolFunc { ensureCameraOntoActiveUnitPosition(it) }
+        hooks.finishAction = ProcFunc { playerPhaseFinishAction(it) }
     }
 
     /** `PlaySoundEffect` for the cursor sound (a stand-in until M6-B wires the sound wrapper). */
@@ -330,23 +337,62 @@ public class PlayerPhase(
          */
         public var startUnitActionMenu: (xOffset: Int) -> Unit = {}
 
-        /** Stand-in for `PlayerPhase_PrepareAction` (a `PROC_CALL_2`) until M6-B. */
+        /** `PlayerPhase_PrepareAction` (a `PROC_CALL_2`); [PlayerPhase] sets the port. */
         public var prepareAction: ProcBoolFunc = ProcBoolFunc { true }
 
-        /** Stand-in for `ApplyUnitAction` (a `PROC_CALL_2`) until M6-B. */
+        /** `ApplyUnitAction` (a `PROC_CALL_2`); [PlayerPhase] sets the Wait branch. */
         public var applyUnitAction: ProcBoolFunc = ProcBoolFunc { true }
 
-        /** Stand-in for `HandlePostActionTraps` (a `PROC_CALL_2`) until M6-H. */
+        /** `HandlePostActionTraps` (a `PROC_CALL_2`); replaced by [PlayerPhase] with the port. */
         public var handlePostActionTraps: ProcBoolFunc = ProcBoolFunc { true }
 
-        /** Stand-in for `RunPotentialWaitEvents` (a `PROC_CALL_2`) until M6-B. */
+        /** `RunPotentialWaitEvents` (a `PROC_CALL_2`); replaced by [PlayerPhase] with the port. */
         public var runPotentialWaitEvents: ProcBoolFunc = ProcBoolFunc { true }
 
-        /** Stand-in for `EnsureCameraOntoActiveUnitPosition` (a `PROC_CALL_2`) until M6-B. */
+        /** `EnsureCameraOntoActiveUnitPosition` (a `PROC_CALL_2`); replaced by the port. */
         public var ensureCameraOntoActiveUnitPosition: ProcBoolFunc = ProcBoolFunc { true }
 
-        /** Stand-in for `PlayerPhase_FinishAction` until M6-B. */
+        /** `PlayerPhase_FinishAction`; replaced by [PlayerPhase] with the port. */
         public var finishAction: ProcFunc = ProcFunc {}
+
+        /** `WriteSuspendSave(saveId)`; stand-in until the suspend save is ported. */
+        public var writeSuspendSave: (saveId: Int) -> Unit = {}
+
+        /**
+         * `CheckForWaitEvents` for the active unit; wire to `EventInfos.checkForWaitEvents` with
+         * its tile (PP-17). Default: nothing to run.
+         */
+        public var checkForWaitEvents: () -> Boolean = { false }
+
+        /** `RunWaitEvents` for the active unit; wire to `EventInfos.runWaitEvents` (PP-17). */
+        public var runWaitEvents: () -> Unit = {}
+
+        /** `ShouldCallEndEvent`; wire to `EventInfos.shouldCallEndEvent` (PP-17). */
+        public var shouldCallEndEvent: () -> Boolean = { false }
+
+        /** `MaybeCallEndEvent_`; stand-in until the end event is ported. */
+        public var maybeCallEndEvent: () -> Unit = {}
+
+        /** `GetPickTrapType(unit)` for unit id [unit] (bmtrap.c); 0 is `TRAP_NONE`. Stand-in. */
+        public var getPickTrapType: (unit: Int) -> Int = { 0 }
+
+        /** `ExecTrap(proc, unit, 0)` for unit id [unit]; stand-in, true (go on). */
+        public var execTrap: (proc: Proc, unit: Int) -> Boolean = { _, _ -> true }
+
+        /** `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in, false. */
+        public var battleAnimPreconfOff: () -> Boolean = { false }
+
+        /** `PidStatsAddSquaresMoved(charId, amount)`; stand-in. */
+        public var pidStatsAddSquaresMoved: (charId: Int, amount: Int) -> Unit = { _, _ -> }
+
+        /** `CanUnitMove` for the active unit (a canto move); stand-in, false. */
+        public var canUnitMove: () -> Boolean = { false }
+
+        /** `RenderBmMapOnBg2` (fog chapters only); stand-in. */
+        public var renderBmMapOnBg2: ProcFunc = ProcFunc {}
+
+        /** `NewBMXFADE(flag)` (fog chapters only); stand-in. */
+        public var newBmxFade: (flag: Int) -> Unit = {}
 
         /** Stand-in for `PlayerPhase_ResumeRangeDisplay` until M6-B. */
         public var resumeRangeDisplay: ProcFunc = ProcFunc {}
@@ -464,11 +510,11 @@ public class PlayerPhase(
     private fun s8(v: Int): Int = v.toByte().toInt()
 
     /**
-     * Transcribed from src/playerphase.c: PlayerPhase_HandleAutoEnd (not verified: no test checks
-     *   it against a trace yet)
+     * Ported from src/playerphase.c: PlayerPhase_HandleAutoEnd
      *
      * Jumps [proc] to label 3 (end of the phase) if auto end turns is on and no unit of the active
-     * faction can act.
+     * faction can act. Verified for the "a unit can act" path (the capture's label 0 after the
+     * action); the jump is not exercised.
      */
     public fun playerPhaseHandleAutoEnd(proc: Proc) {
         if (playSt.disableAutoEndTurns == 0 && units.getPhaseAbleUnitCount(playSt.faction) == 0) {
@@ -477,8 +523,7 @@ public class PlayerPhase(
     }
 
     /**
-     * Transcribed from src/playerphase.c: EnsureCameraOntoActiveUnitPosition (not verified: no
-     *   differential test runs it yet, PP-11 stopped before the action test)
+     * Ported from src/playerphase.c: EnsureCameraOntoActiveUnitPosition
      *
      * The `PROC_CALL_2` after the action: true (go on) when no camera move had to start for the
      * active unit's tile.
@@ -487,18 +532,234 @@ public class PlayerPhase(
         !camMove.ensureCameraOntoPosition(proc, units.xPos(active.unit), units.yPos(active.unit))
 
     /**
-     * Transcribed from src/bmmind.c: ApplyUnitAction, the Wait branch only (not verified: no
-     *   differential test runs it yet). Every other action type is not written and fails loudly.
+     * Ported from src/playerphase.c: PlayerPhase_PrepareAction
+     *
+     * Verified for the Wait action (the camera check on the subject, the item switch and the
+     * `unitActionType != WAIT` test that skips the suspend save). Every other branch is
+     * transcribed (not verified: no capture has it): no action chosen (back to move, or a forced
+     * wait after a trade or take), the trade, supply, take, give and ballista actions that go
+     * back to the move (`PlayerPhase_CancelAction`), the promotion items and Solar and Lunar
+     * Braces that return before the suspend save, and the suspend save of the other actions.
+     *
+     * Returns true (go on) when no camera move had to start for the subject.
+     */
+    public fun playerPhasePrepareAction(proc: Proc): Boolean {
+        val subject = active.action.subjectIndex
+        val cameraReturn =
+            !camMove.ensureCameraOntoPosition(proc, units.xPos(subject), units.yPos(subject))
+        when (active.action.unitActionType) {
+            0 -> {
+                if (bm.takenAction != 0) {
+                    active.action.unitActionType = UNIT_ACTION_FORCE_WAIT
+                } else {
+                    playerPhaseBackToMove(proc)
+                    return true
+                }
+            }
+            UNIT_ACTION_TRADED -> {
+                bm.takenAction = bm.takenAction or BM_TAKEN_ACTION_TRADE
+                playerPhaseCancelAction(proc)
+                return true
+            }
+            UNIT_ACTION_TRADED_SUPPLY -> {
+                bm.takenAction = bm.takenAction or BM_TAKEN_ACTION_SUPPLY
+                playerPhaseCancelAction(proc)
+                return true
+            }
+            UNIT_ACTION_TAKE, UNIT_ACTION_GIVE -> {
+                bm.takenAction = bm.takenAction or BM_TAKEN_ACTION_TAKE
+                playerPhaseCancelAction(proc)
+                return true
+            }
+            UNIT_ACTION_RIDE_BALLISTA, UNIT_ACTION_EXIT_BALLISTA -> {
+                bm.takenAction = bm.takenAction or BM_TAKEN_ACTION_BALLISTA
+                playerPhaseCancelAction(proc)
+                return true
+            }
+            UNIT_ACTION_TRADED_1D -> {
+                playerPhaseCancelAction(proc)
+                return true
+            }
+        }
+        val item = units.item(subject, active.action.itemSlotIndex) and 0xFF
+        when (item) {
+            ITEM_HEAVENSEAL, ITEM_HEROCREST, ITEM_KNIGHTCREST, ITEM_ORIONSBOLT, ITEM_ELYSIANWHIP,
+            ITEM_GUIDINGRING, ITEM_MASTERSEAL, ITEM_OCEANSEAL, ITEM_LUNARBRACE, ITEM_SOLARBRACE,
+            ITEM_UNK_C1,
+            -> return cameraReturn
+        }
+        if (active.action.unitActionType != UNIT_ACTION_WAIT_TYPE && bm.justResumed == 0) {
+            active.action.suspendPointType = SUSPEND_POINT_DURINGACTION
+            hooks.writeSuspendSave(SAVE_ID_SUSPEND)
+        }
+        return cameraReturn
+    }
+
+    /**
+     * Transcribed from src/playerphase.c: PlayerPhase_CancelAction (not verified: no capture
+     *   reaches it; only the trade, supply, take, give and ballista actions of
+     *   [playerPhasePrepareAction] do)
+     *
+     * Forgets the chosen action and goes back to label 2, the unit menu.
+     */
+    public fun playerPhaseCancelAction(proc: Proc) {
+        active.action.unitActionType = 0
+        engine.goto(proc, 2)
+    }
+
+    /**
+     * Ported from src/bmmind.c: ApplyUnitAction
+     *
+     * The Wait branch only (verified for Wait; every other action type is not written and fails
+     * loudly).
      *
      * Makes the subject the active unit; Wait and Trapped set `US_HAS_MOVED` and go on (true).
+     * The Nightmare check of a combat action is part of the combat branch (not written).
      */
     public fun applyUnitActionWait(): Boolean {
         active.unit = active.action.subjectIndex
-        check(active.action.unitActionType == UNIT_ACTION_WAIT_TYPE ||
-            active.action.unitActionType == UNIT_ACTION_TRAPPED) {
+        check(
+            active.action.unitActionType == UNIT_ACTION_WAIT_TYPE ||
+                active.action.unitActionType == UNIT_ACTION_TRAPPED,
+        ) {
             "ApplyUnitAction: action ${active.action.unitActionType} is not written"
         }
         units.setState(active.unit, units.state(active.unit) or US_HAS_MOVED)
+        return true
+    }
+
+    /**
+     * Ported from src/bmtrap.c: HandlePostActionTraps
+     *
+     * Runs after the action: nothing to do (true) when the unit stands on no trap it triggers.
+     * Verified for that result only, with [Hooks.getPickTrapType] returning none; the dead and
+     * canto early returns and the rest (the unit stands on a trap) are transcribed (not
+     * verified: no capture has a dead unit, a canto unit or a trap here): marks the action as
+     * Wait, writes the suspend save,
+     * refreshes the unit sprites when battle animations are off and runs the trap
+     * ([Hooks.execTrap], PP-17 and the trap port).
+     */
+    public fun handlePostActionTraps(proc: Proc): Boolean {
+        val unit = active.unit
+        if (units.currentHp(unit) <= 0) return true
+        if ((units.cAttributes(unit) and CA_CANTO) != 0 &&
+            (units.state(unit) and US_CANTOING) == 0
+        ) {
+            when (active.action.unitActionType) {
+                UNIT_ACTION_WAIT_TYPE, UNIT_ACTION_COMBAT, UNIT_ACTION_STAFF -> Unit
+                else -> return true
+            }
+        }
+        if (hooks.getPickTrapType(unit) == 0) return true
+        active.action.suspendPointType = 1
+        active.action.unitActionType = UNIT_ACTION_WAIT_TYPE
+        hooks.writeSuspendSave(SAVE_ID_SUSPEND)
+        if (hooks.battleAnimPreconfOff()) hooks.refreshUnitSprites.invoke(proc)
+        return hooks.execTrap(proc, unit)
+    }
+
+    /**
+     * Ported from src/playerphase.c: RunPotentialWaitEvents
+     *
+     * The `PROC_CALL_2` after the action: when the post-action event check
+     * ([Hooks.checkForWaitEvents]) finds something, starts it ([Hooks.runWaitEvents]) and
+     * ends the frame (false; the started event engine locks the game until it ends), else true.
+     */
+    public fun runPotentialWaitEvents(): Boolean {
+        if (hooks.checkForWaitEvents()) {
+            hooks.runWaitEvents()
+            return false
+        }
+        return true
+    }
+
+    /**
+     * Ported from src/playerphase.c: PlayerPhase_FinishAction
+     *
+     * After the action: puts the active unit on its destination ([moveActiveUnit]), rebuilds the
+     * entity maps and the map, puts the cursor on the unit, then ends the MUs. With fog
+     * (`chapterVisionRange != 0`) the map is also redrawn on BG2 and faded
+     * (not verified: the Prologue has no fog), a canto unit starts its canto
+     * ([tryMakeCantoUnit]) and a won chapter shows the end event and jumps to label 8
+     * (not verified: the win flag is clear in the capture). Putting the cursor on the unit is
+     * not verified either: it already stands there.
+     */
+    public fun playerPhaseFinishAction(proc: Proc) {
+        if (playSt.chapterVisionRange != 0) {
+            hooks.renderBmMapOnBg2.invoke(proc)
+            moveActiveUnit(active.action.xMove, active.action.yMove)
+            entityBmMaps.refreshEntityBmMaps()
+            render.renderBmMap()
+            hooks.newBmxFade(0)
+            hooks.refreshUnitSprites.invoke(proc)
+        } else {
+            moveActiveUnit(active.action.xMove, active.action.yMove)
+            entityBmMaps.refreshEntityBmMaps()
+            render.renderBmMap()
+        }
+        val unit = active.unit
+        Camera.setCursorMapPosition(bm, units.xPos(unit), units.yPos(unit))
+        playSt.xCursor = bm.playerCursorX
+        playSt.yCursor = bm.playerCursorY
+        if (tryMakeCantoUnit(proc)) {
+            hooks.hideUnitSprite(unit)
+            return
+        }
+        if (hooks.shouldCallEndEvent()) {
+            hooks.endAllMus.invoke(proc)
+            entityBmMaps.refreshEntityBmMaps()
+            render.renderBmMap()
+            hooks.refreshUnitSprites.invoke(proc)
+            hooks.maybeCallEndEvent()
+            engine.goto(proc, 8)
+            return
+        }
+        hooks.endAllMus.invoke(proc)
+    }
+
+    /**
+     * Ported from src/bmunit.c: MoveActiveUnit
+     *
+     * Verified for the Wait capture (the unit stays on its tile, no rescue, alive).
+     * Puts the active unit on ([x], [y]), makes it unselectable, records the squares moved,
+     * shows it again if alive and finalizes the move.
+     */
+    private fun moveActiveUnit(x: Int, y: Int) {
+        val unit = active.unit
+        units.setPosition(unit, x, y)
+        units.setState(unit, units.state(unit) or US_UNSELECTABLE)
+        hooks.pidStatsAddSquaresMoved(units.charId(unit), active.action.moveCount)
+        if (units.currentHp(unit) != 0) {
+            units.setState(unit, units.state(unit) and US_HIDDEN.inv())
+        }
+        unitFinalizeMovement(unit)
+    }
+
+    /**
+     * Transcribed from src/playerphase.c: TryMakeCantoUnit (not verified: the capture's unit has
+     *   no canto, and a bail at the first test is not observable: `US_HAS_MOVED` is set, so the
+     *   second test bails too)
+     *
+     * Starts the canto move of an active unit that can canto, has not moved and did not wait,
+     * fight or use a staff, and has movement left: returns true after jumping to label 4 (fog)
+     * or 1. Returns false in every other case.
+     */
+    public fun tryMakeCantoUnit(proc: Proc): Boolean {
+        val unit = active.unit
+        if ((units.cAttributes(unit) and CA_CANTO) == 0) return false
+        if ((units.state(unit) and (US_DEAD or US_HAS_MOVED or US_BIT16)) != 0) return false
+        when (active.action.unitActionType) {
+            UNIT_ACTION_WAIT_TYPE, UNIT_ACTION_COMBAT, UNIT_ACTION_STAFF -> return false
+        }
+        if (units.movement(unit) <= active.action.moveCount) return false
+        if (!hooks.canUnitMove()) return false
+        map.bmMapFill(map.range, 0)
+        unitBeginCantoAction(unit)
+        units.setState(unit, (units.state(unit) or US_HAS_MOVED) and US_UNSELECTABLE.inv())
+        hooks.endAllMus.invoke(proc)
+        hooks.startMu(unit)
+        hooks.setAutoMuDefaultFacing.invoke(proc)
+        engine.goto(proc, if (playSt.chapterVisionRange != 0) 4 else 1)
         return true
     }
 
@@ -973,21 +1234,30 @@ public class PlayerPhase(
         if ((units.state(unit) and US_HAS_MOVED) == 0) {
             unitBeginAction(unit)
         } else {
-            // UnitBeginCantoAction: as UnitBeginAction without the subject and move count.
-            active.unit = unit
-            active.unitId = units.index(unit) and 0xFF
-            active.moveOriginX = units.xPos(unit)
-            active.moveOriginY = units.yPos(unit)
-            active.action.unitActionType = 0
-            bm.takenAction = 0
-            hooks.resetBattleScratch()
-            units.setState(unit, units.state(unit) or US_HIDDEN)
-            map.unit[units.yPos(unit), units.xPos(unit)] = 0
+            unitBeginCantoAction(unit)
         }
         hooks.hideUnitSprite(unit)
         hooks.endAllMus.invoke(proc)
         hooks.startMu(unit)
         engine.goto(proc, 1)
+    }
+
+    /**
+     * Transcribed from src/bmunit.c: UnitBeginCantoAction (not verified: no capture begins a
+     *   canto action)
+     *
+     * As [unitBeginAction] without the subject and the move count.
+     */
+    private fun unitBeginCantoAction(unit: Int) {
+        active.unit = unit
+        active.unitId = units.index(unit) and 0xFF
+        active.moveOriginX = units.xPos(unit)
+        active.moveOriginY = units.yPos(unit)
+        active.action.unitActionType = 0
+        bm.takenAction = 0
+        hooks.resetBattleScratch()
+        units.setState(unit, units.state(unit) or US_HIDDEN)
+        map.unit[units.yPos(unit), units.xPos(unit)] = 0
     }
 
     /**
@@ -1209,6 +1479,38 @@ public class PlayerPhase(
         private const val CA_FLYER = (1 shl 11) or (1 shl 12)
         private const val CA_ASSASSIN = 1 shl 25
         private const val US_HAS_MOVED = 1 shl 6
+        private const val US_CANTOING = US_HAS_MOVED
+        private const val US_UNSELECTABLE = 1 shl 1
+        private const val US_DEAD = 1 shl 2
+        private const val US_BIT16 = 1 shl 16
+        private const val CA_CANTO = 1 shl 1
+        private const val UNIT_ACTION_COMBAT = 0x02
+        private const val UNIT_ACTION_STAFF = 0x03
+        private const val UNIT_ACTION_TAKE = 0x0B
+        private const val UNIT_ACTION_GIVE = 0x0C
+        private const val UNIT_ACTION_TRADED = 0x1B
+        private const val UNIT_ACTION_TRADED_SUPPLY = 0x1C
+        private const val UNIT_ACTION_TRADED_1D = 0x1D
+        private const val UNIT_ACTION_FORCE_WAIT = 0x1F
+        private const val UNIT_ACTION_RIDE_BALLISTA = 0x21
+        private const val UNIT_ACTION_EXIT_BALLISTA = 0x22
+        private const val BM_TAKEN_ACTION_TAKE = 1 shl 0
+        private const val BM_TAKEN_ACTION_TRADE = 1 shl 1
+        private const val BM_TAKEN_ACTION_SUPPLY = 1 shl 2
+        private const val BM_TAKEN_ACTION_BALLISTA = 1 shl 3
+        private const val SUSPEND_POINT_DURINGACTION = 1
+        private const val SAVE_ID_SUSPEND = 3
+        private const val ITEM_HEROCREST = 0x64
+        private const val ITEM_KNIGHTCREST = 0x65
+        private const val ITEM_ORIONSBOLT = 0x66
+        private const val ITEM_ELYSIANWHIP = 0x67
+        private const val ITEM_GUIDINGRING = 0x68
+        private const val ITEM_MASTERSEAL = 0x88
+        private const val ITEM_HEAVENSEAL = 0x8A
+        private const val ITEM_OCEANSEAL = 0x97
+        private const val ITEM_LUNARBRACE = 0x98
+        private const val ITEM_SOLARBRACE = 0x99
+        private const val ITEM_UNK_C1 = 0xC1
         private const val US_RESCUING = 1 shl 4
         private const val KEY_SELECT = 1 shl 2
         private const val KEY_START = KeyStatus.START_BUTTON

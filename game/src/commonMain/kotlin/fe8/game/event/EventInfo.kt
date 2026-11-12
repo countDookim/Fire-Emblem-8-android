@@ -71,6 +71,15 @@ public interface EventInfoHooks {
 
     /** `RunTutorialEvent(type)`: true if it started an event. */
     public fun runTutorialEvent(type: Int): Boolean = false
+
+    /** `CheckTutorialEvent(type)`: true if `RunTutorialEvent(type)` would start an event. */
+    public fun checkTutorialEvent(type: Int): Boolean = false
+
+    /** `CountAvailableBlueUnits`: player units that are valid and not dead or undeployed. */
+    public fun countAvailableBlueUnits(): Int = 1
+
+    /** `sub_80837B0`: the game over sequence (sets `EVFLAG_GAMEOVER`, music, game over event). */
+    public fun startGameOver() {}
 }
 
 /**
@@ -200,8 +209,9 @@ public class EventInfos(
     }
 
     /**
-     * Transcribed from src/eventinfo.c: SearchNextAvailableEvent (not verified: only hand-decoded
-     *   ROM values check it; no trace reaches a second match)
+     * Transcribed from src/eventinfo.c: SearchNextAvailableEvent (not verified: the Prologue's
+     *   misc list reaches it, but skipping the step past the entry changes nothing there, as the
+     *   started entry's flag is set and the entry is skipped anyway)
      *
      * Steps past the entry [info] points at and continues [searchAvailableEvent].
      */
@@ -212,11 +222,88 @@ public class EventInfos(
         return searchAvailableEvent(info)
     }
 
+    /**
+     * Ported from src/eventinfo.c: ShouldCallEndEvent
+     *
+     * True unless on a skirmish map when the chapter is won
+     * (`CheckWin` is `CheckFlag(EVFLAG_WIN)`).
+     */
+    public fun shouldCallEndEvent(): Boolean {
+        if (hooks.getBattleMapKind() == KIND_SKIRMISH) return false
+        return flags.checkFlag(EVFLAG_WIN)
+    }
+
+    /**
+     * Ported from src/eventinfo.c: CheckForWaitEvents
+     *
+     * After a unit action at ([x], [y]), true if
+     * [runWaitEvents] has something to start: the chapter's misc event list has a matching
+     * entry, a post action tutorial event is queued, or a skirmish map has no enemy left.
+     * Keeps `EVFLAG_DEFEAT_ALL` as `AreAnyEnemyUnitDead() == 0`.
+     */
+    public fun checkForWaitEvents(x: Int, y: Int): Boolean {
+        if (!hooks.areAnyEnemyUnitDead()) {
+            flags.setFlag(EVFLAG_DEFEAT_ALL)
+            if (hooks.getBattleMapKind() == KIND_SKIRMISH) return true
+        } else {
+            flags.clearFlag(EVFLAG_DEFEAT_ALL)
+        }
+        if (!flags.checkFlag(EVFLAG_GAMEOVER) && hooks.countAvailableBlueUnits() != 0) {
+            if (hooks.getBattleMapKind() == KIND_SKIRMISH) return false
+            val tutorial = hooks.checkTutorialEvent(TUTORIAL_EVT_TYPE_POSTACTION)
+            val info = EventInfo()
+            info.listScript = u32(hooks.chapterEventGroup(playSt.chapterIndex) + MISC_EVENTS)
+            info.xPos = x
+            info.yPos = y
+            if (searchAvailableEvent(info) == null) return tutorial
+        }
+        return true
+    }
+
+    /**
+     * Ported from src/eventinfo.c: RunWaitEvents
+     *
+     * After a unit action at ([x], [y]), sets or clears
+     * `EVFLAG_DEFEAT_ALL`, starts the game over when no blue unit is left, else runs the post
+     * action tutorial event and every matching entry of the chapter's misc event list.
+     */
+    public fun runWaitEvents(x: Int, y: Int) {
+        if (!hooks.areAnyEnemyUnitDead()) {
+            flags.setFlag(EVFLAG_DEFEAT_ALL)
+            if (hooks.getBattleMapKind() == KIND_SKIRMISH) {
+                hooks.callEndEvent()
+                return
+            }
+        } else {
+            flags.clearFlag(EVFLAG_DEFEAT_ALL)
+        }
+        if (flags.checkFlag(EVFLAG_GAMEOVER) || hooks.countAvailableBlueUnits() == 0) {
+            hooks.startGameOver()
+            return
+        }
+        if (hooks.getBattleMapKind() == KIND_SKIRMISH) return
+        hooks.runTutorialEvent(TUTORIAL_EVT_TYPE_POSTACTION)
+        val info = EventInfo()
+        info.listScript = u32(hooks.chapterEventGroup(playSt.chapterIndex) + MISC_EVENTS)
+        info.xPos = x
+        info.yPos = y
+        var found = searchAvailableEvent(info)
+        if (found == null) return
+        hooks.clearActiveEventRegistry()
+        while (found != null) {
+            startEventFromInfo(info, EV_EXEC_CUTSCENE)
+            found = searchNextAvailableEvent(info)
+        }
+    }
+
     /** Ported from src/eventinfo.c: EvCheck00_Always */
     public fun evCheck00Always(info: EventInfo): Int = 1
 
     /**
-     * Transcribed from src/eventinfo.c: EvCheck01_AFEV (not verified: no type-1 entry is reached)
+     * Ported from src/eventinfo.c: EvCheck01_AFEV
+     *
+     * Verified for an entry whose required flag is clear (no match) and one that needs no flag
+     * (matches); the entry that needs flag 100 or a set flag is not in a trace.
      */
     public fun evCheck01Afev(info: EventInfo): Int {
         val entry = info.listScript
@@ -273,6 +360,16 @@ public class EventInfos(
 
         /** `EV_EXEC_CUTSCENE`: the exec type listed events run with. */
         const val EV_EXEC_CUTSCENE = 1
+
+        /** `RunTutorialEvent` type for after a unit action. */
+        const val TUTORIAL_EVT_TYPE_POSTACTION = 1
+
+        /** `EVFLAG_GAMEOVER` and `EVFLAG_DEFEAT_ALL`. */
+        const val EVFLAG_GAMEOVER = 0x65
+        const val EVFLAG_DEFEAT_ALL = 6
+
+        /** Offset of `miscBasedEvents` in `struct ChapterEventGroup`. */
+        const val MISC_EVENTS = 0x0C
 
         /** `EVFLAG_WIN`: set when the chapter is won. */
         const val EVFLAG_WIN = 3

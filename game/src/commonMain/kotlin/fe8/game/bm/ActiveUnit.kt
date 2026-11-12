@@ -25,6 +25,12 @@ public class ActionData {
     /** `unitActionType` (u8, 0x11): `UNIT_ACTION_*`, 0 while none is chosen. */
     public var unitActionType: Int = 0
 
+    /** `itemSlotIndex` (u8, 0x12): the inventory slot of the item the action uses. */
+    public var itemSlotIndex: Int = 0
+
+    /** `trapType` (u8, 0x15). */
+    public var trapType: Int = 0
+
     /** `suspendPointType` (u8, 0x16). */
     public var suspendPointType: Int = 0
 }

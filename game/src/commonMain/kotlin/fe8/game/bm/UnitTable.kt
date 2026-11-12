@@ -72,6 +72,57 @@ public class UnitTable(
         return count
     }
 
+    /** `curHP` (s8, 0x13) of unit [id]. */
+    public fun currentHp(id: Int): Int = s8(bytes, unitOffset(id) + 0x13)
+
+    /** `items[slot]` (u16 at 0x1E): the item word (id low byte, uses high byte) of unit [id]. */
+    public fun item(id: Int, slot: Int): Int {
+        val at = unitOffset(id) + 0x1E + 2 * slot
+        return u8(bytes, at) or (u8(bytes, at + 1) shl 8)
+    }
+
+    /**
+     * Ported from src/bmunit.c: CountAvailableBlueUnits
+     *
+     * Verified for "some unit is available" (the Prologue after a Wait).
+     *
+     * Number of valid units with ids 1 to 0x3F that are not dead, undeployed or `US_BIT16`.
+     */
+    public fun countAvailableBlueUnits(): Int {
+        var count = 0
+        for (id in 1 until 0x40) {
+            if (isValid(id) && (state(id) and US_UNAVAILABLE) == 0) count++
+        }
+        return count
+    }
+
+    /**
+     * Transcribed from src/bmunit.c: CountRedUnits (not verified: the one-enemy-left script runs
+     *   it, but the capture's branch is the same for any count above 1)
+     *
+     * Number of valid, living units with ids 0x81 to 0xBF.
+     */
+    public fun countRedUnits(): Int {
+        var count = 0
+        for (id in 0x81 until 0xC0) {
+            if (isValid(id) && (state(id) and US_DEAD) == 0) count++
+        }
+        return count
+    }
+
+    /**
+     * Ported from src/uidebug.c: AreAnyEnemyUnitDead
+     *
+     * Despite its name the C returns 1 when a living enemy (ids 0x81 to 0xBF) is left, as this
+     * does.
+     */
+    public fun areAnyEnemyUnitAlive(): Boolean {
+        for (id in 0x81 until 0xC0) {
+            if (isValid(id) && (state(id) and US_DEAD) == 0) return true
+        }
+        return false
+    }
+
     /**
      * Ported from src/bmunit.c: InitUnits
      *

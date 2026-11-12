@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 532 across 72 decomp files (missing reason: 0).
+Total entries: 543 across 72 decomp files (missing reason: 0).
 
 ## src/worldmap_mapmu.c (35)
 
@@ -433,6 +433,25 @@ Total entries: 532 across 72 decomp files (missing reason: 0).
 | `DisableMuCamera` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial setter, driven by the test only as the event code's input |
 | `IsMuActive` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | trivial |
 
+## src/worldmap_path.c (14)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetBattleMapKind` | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapKind.kt` | no ground truth for it |
+| `ResetGmStoryNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapPath.kt` | no reference run yet |
+| `GetNextUnclearedNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapPath.kt` | no reference run yet |
+| `ProcScr_GMapRoute` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | script order checked against the `procs` capture in WorldMapRouteTest, which cannot tag a script |
+| `sub_80BBBF4` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the Prologue has no open paths, so the route buffer is all zero in every dump |
+| `sub_80BBC54` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | only the buffer clear is observable, the open path list is empty in the Prologue |
+| `sub_80BBCC8` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the route buffer is all zero in the Prologue, so the BG2 tilemap cannot tell a wrong copy from none |
+| `sub_80BBDA4` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the route buffer is all zero in the Prologue and the camera never moves one tile at a time |
+| `nullsub_38` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | it does nothing |
+| `MapRoute_StartTransition` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the transition never starts in the Prologue capture |
+| `sub_80BC0F4` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the transition never starts in the Prologue capture |
+| `MapRoute_EnableBGSyncs` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the transition never starts in the Prologue capture |
+| `MapRoute_TransitionLoop` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the transition never starts in the Prologue capture |
+| `MapRoute_TransitionEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the transition never starts in the Prologue capture |
+
 ## src/bmlib.c (12)
 
 | Function | Kotlin file | Reason |
@@ -692,14 +711,6 @@ Total entries: 532 across 72 decomp files (missing reason: 0).
 | `BmMapFillEdges` | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | no test checks it against a trace yet |
 | `RenderBmMapOnBg2` | `game/src/commonMain/kotlin/fe8/game/bm/BmMapRender.kt` | no trace calls it |
 | `UnpackChapterMapGraphics` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | both traced chapters have obj2Id 0, so the second tileset branch never runs |
-
-## src/worldmap_path.c (3)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `GetBattleMapKind` | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapKind.kt` | no ground truth for it |
-| `ResetGmStoryNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapPath.kt` | no reference run yet |
-| `GetNextUnclearedNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapPath.kt` | no reference run yet |
 
 ## src/worldmap_screen.c (3)
 

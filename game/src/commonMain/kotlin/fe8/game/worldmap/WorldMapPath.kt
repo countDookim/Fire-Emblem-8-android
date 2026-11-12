@@ -11,6 +11,9 @@ public class WmPathData(private val rom: RomView) {
     public fun node(path: Int, end: Int): Int =
         rom.u8(PATH_DATA + path * ENTRY_SIZE + NODE + end).toByte().toInt()
 
+    /** `gWMPathData[path].gfxData` (offset 0): ROM address of the path's tilemap patch data. */
+    public fun gfxData(path: Int): Int = rom.u32(PATH_DATA + path * ENTRY_SIZE)
+
     /** `gWMPathData` layout constants. */
     public companion object {
         /** ROM address of `gWMPathData`. */

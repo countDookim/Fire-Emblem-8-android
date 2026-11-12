@@ -69,7 +69,7 @@ public class GmScreenProc {
     /** `unk_48` (+0x48): the `ProcScr_GMapScreenVSync` proc. */
     public var vsync: Proc? = null
 
-    /** `gmroute` (+0x4C): the `ProcScr_GMapRoute` proc (null while a stand-in until D11-wm3f). */
+    /** `gmroute` (+0x4C): the `ProcScr_GMapRoute` proc . */
     public var gmRoute: Proc? = null
 }
 
@@ -130,13 +130,16 @@ public class WorldMapScreen(
     /** `gUnknown_03001E30`, cleared by `sub_80BAB00`. */
     public var unk3001E30: Int = 0
 
+    /** `ProcScr_GMapRoute` (`StartGMapRoute`). */
+    public val route: WorldMapRoute = WorldMapRoute(engine, hardware, rom, gmData)
+
     /** Callees that are not ported yet. */
     public class Hooks(
         /**
-         * `StartGMapRoute(proc, &gGMData.openPaths, 0x5000, 0xe)`: stand-in until D11-wm3f; the
-         * proc it returns becomes [GmScreenProc.gmRoute].
+         * `StartGMapRoute(proc, &gGMData.openPaths, 0x5000, 0xe)`; the proc it returns becomes
+         * [GmScreenProc.gmRoute]. Null runs the real [WorldMapRoute].
          */
-        public val startGMapRoute: (parent: Proc) -> Proc? = { null },
+        public val startGMapRoute: ((parent: Proc) -> Proc?)? = null,
     )
 
     /**
@@ -185,7 +188,9 @@ public class WorldMapScreen(
      */
     public fun newMapScreen(rootIndex: Int): Proc {
         val proc = engine.start(screenScript, rootIndex)
-        (proc.state as GmScreenProc).gmRoute = hooks.startGMapRoute(proc)
+        val start = hooks.startGMapRoute
+        (proc.state as GmScreenProc).gmRoute =
+            if (start != null) start(proc) else route.startGMapRoute(proc, ROUTE_CHR, ROUTE_PAL)
         return proc
     }
 
@@ -531,6 +536,8 @@ public class WorldMapScreen(
         public const val QUEUE_ENTRIES: Int = 8
 
         private const val ENTRY_SIZE = 8
+        private const val ROUTE_CHR = 0x5000
+        private const val ROUTE_PAL = 0xE
         private const val PALETTE_MAP_SIZE = 0x800
         private const val UNK_3001DE8_SIZE = 0x20
         private const val BG3 = 3

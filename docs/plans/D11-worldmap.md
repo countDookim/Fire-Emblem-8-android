@@ -320,6 +320,29 @@ B6, B8, B9, 1C continue; 1D and BA wait (yield while the capture's pEventCurrent
 the real handler. Not covered: per-step BLDCNT/BLDALPHA (the hardware copy lags 0-2 steps, e.g. 5942 shows the
 C5 value before the same frame's fade tick) and the nation highlight owns them in B8..BA; skipping and the
 delayed `WmMergeFace` (delay is 0 throughout) are unwritten. Steps 5764 is before the first C4 (5765).
+### 8e. D11-wm8e: unit and point opcodes (BC, 9E-AC, BD, BE) through the VM (steps 8101-9281)
+
+`WorldMapEventUnitTest` seeds from the wm_lcd dump f08100 (engine stalling at 0x08A39AD0; one hidden unit,
+seven movers, container) and runs the script from there. Opcodes registered one by one: 0E (real), BC, 9E, A8,
+AC, A0, A7, A3, A5, BD, BE (real; new `WorldMapUnitEvents`, `WorldMapDotEvents`). New port `WorldMapDot` (`ProcScr_WmPlaceDot`,
+`ProcScr_WmDotPalAnim`, from worldmap_rm.c). The GmMu/GmapUnit/AutoMu/fade code that the opcodes start is the
+production code with all MU callbacks wired (no capture-driven waits). Stand-ins (test only): 1C, 1D, C9 (yield
+while the traced script stays), C4, C5, C1 (continue unless the traced script stands on them), 17 (sets FADEDIN,
+yields); the RM position is fed from the traced GmapRM proc. Compared per step: engine pc/bits/stall, every GmapUnit
+(14 fields), GmapAutoMu fields, WmPlaceDot, WmDotPalAnim, GmapUnitFade, the seven movers (flags, mapUnit, and the
+move fields while moving); at the dumps: `gGMData.units`, dot tiles (f08200), OAM (f08200/f08300/f08450); per step
+8113..8450 OBJ palettes 4, 5 and 0xA of palette RAM (flushBackgrounds each pass). Verified list: see the test's
+`@VerifiesPort`; all 43 functions were mutated and failed the test.
+
+Trace steps are VBlank samples, not game passes: a frame that runs 9E (NewMapUnit) or starts a mover spans several
+samples (the event proc and movers show their new state before the fade / dot pulse run). The test finds those from the
+capture (script on a 9E; early procs ticked, late ones not), runs the frame at the first and compares after the late
+procs tick; real lag steps (nothing ticked) run no frame (16 such samples). Findings: `BiosMath.arcTan2` shifted by 2
+(wrong; the BIOS ArcTan is already 0x2000 per 45 degrees) and gave wrong walking directions; fixed here. Not covered:
+the standing sprite (animation 4, `SMS_DisplayOne`: one entry at f08450 is excluded and counted), the movement
+helpers `sub_80BD5B8/660/6A8/740` (private, covered through the animation ids, untagged), A1/A2/A4/A6/A9/AA/AB/9F/BB,
+skipping branches, dots with a map effect, `EndWmPlaceDotByIndex`, the unit-index forms of `IsGmAutoMuActiveFor`. The
+test stops at 9281 (dots end); the second event run starts in wm8f.
 ### 8b. D11-wm8b: text phase 5100-5495 through the VM
 
 `WorldMapEventHostTest` continues the 8a run to step 5495. Opcodes, one by one: B1 (till 5100), C7

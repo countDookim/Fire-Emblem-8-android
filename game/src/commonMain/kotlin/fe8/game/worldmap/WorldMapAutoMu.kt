@@ -167,8 +167,10 @@ public class WorldMapAutoMu(
     private fun state(proc: Proc): GmapAutoMuProc = proc.state as GmapAutoMuProc
 
     /**
-     * Transcribed from src/worldmap_automu.c: GmapAutoMu_OnEnd (not verified: no @VerifiesPort test
-     * names it)
+     * Ported from src/worldmap_automu.c: GmapAutoMu_OnEnd
+     *
+     * Checked: the position runs' end position and hide. Not run: the movement still running at
+     * the end and the node runs.
      */
     public fun gmapAutoMuOnEnd(proc: Proc) {
         val s = state(proc)
@@ -216,8 +218,7 @@ public class WorldMapAutoMu(
         }
     }
 
-    /** Transcribed from src/worldmap_automu.c: GmapAutoMu_StartFadeIn (not verified: ShowGmUnit
-     * is not observable) */
+    /** Ported from src/worldmap_automu.c: GmapAutoMu_StartFadeIn */
     public fun gmapAutoMuStartFadeIn(proc: Proc) {
         val unitId = state(proc).unitId
         hooks.muFadeIn(unitId, FADE_FRAMES)
@@ -255,8 +256,7 @@ public class WorldMapAutoMu(
     }
 
     /**
-     * Transcribed from src/worldmap_automu.c: GmapAutoMu_80C32E4 (not verified: no @VerifiesPort
-     * test names it)
+     * Ported from src/worldmap_automu.c: GmapAutoMu_80C32E4
      */
     public fun gmapAutoMu80C32E4(proc: Proc) {
         val s = state(proc)
@@ -354,8 +354,9 @@ public class WorldMapAutoMu(
     }
 
     /**
-     * Transcribed from src/worldmap_automu.c: IsGmAutoMuActiveFor (not verified: no @VerifiesPort
-     * test names it); [index] < 0 asks for any.
+     * Ported from src/worldmap_automu.c: IsGmAutoMuActiveFor
+     *
+     * [index] < 0 asks for any (the form the capture runs); a unit index is not run.
      */
     public fun isActiveFor(index: Int): Boolean {
         if (index < 0) return engine.find(script) != null

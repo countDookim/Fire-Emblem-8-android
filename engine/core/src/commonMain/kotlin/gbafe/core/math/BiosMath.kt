@@ -28,8 +28,7 @@ public object BiosMath {
 
     /**
      * The BIOS `ArcTan` polynomial: the angle for slope [i] (a signed 2.14 fixed-point ratio,
-     * 0x4000 = 1.0), as an angle scaled 4x too large (0x8000 = 45 degrees), which [arcTan2]
-     * shifts right by 2.
+     * 0x4000 = 1.0) as a `u16` turn fraction (0x2000 = 45 degrees).
      */
     private fun arcTan(i: Int): Int {
         var a = -((i * i) shr 14)
@@ -53,20 +52,20 @@ public object BiosMath {
             r = if (y >= 0) 0x4000 else 0xC000
         } else if (y >= 0) {
             r = if (x >= 0) {
-                if (x >= y) arcTan((y shl 14) / x) shr 2
-                else 0x4000 - (arcTan((x shl 14) / y) shr 2)
+                if (x >= y) arcTan((y shl 14) / x)
+                else 0x4000 - (arcTan((x shl 14) / y))
             } else {
-                if (-x >= y) (arcTan((y shl 14) / x) shr 2) + 0x8000
-                else 0x4000 - (arcTan((x shl 14) / y) shr 2)
+                if (-x >= y) (arcTan((y shl 14) / x)) + 0x8000
+                else 0x4000 - (arcTan((x shl 14) / y))
             }
         } else {
             r = if (x <= 0) {
-                if (-x > -y) (arcTan((y shl 14) / x) shr 2) + 0x8000
-                else 0xC000 - (arcTan((x shl 14) / y) shr 2)
+                if (-x > -y) (arcTan((y shl 14) / x)) + 0x8000
+                else 0xC000 - (arcTan((x shl 14) / y))
             } else if (x >= -y) {
-                (arcTan((y shl 14) / x) shr 2) + 0x10000
+                (arcTan((y shl 14) / x)) + 0x10000
             } else {
-                0xC000 - (arcTan((x shl 14) / y) shr 2)
+                0xC000 - (arcTan((x shl 14) / y))
             }
         }
         return r and 0xFFFF

@@ -11,9 +11,11 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- D11-fix1: owner PC, until ~13:30Z
+None.
 
 ## Current state
+
+- 2026-11-12 owner PC: **Lane A (M6-A) done.** New Game → monologue (Start skips) → world map (event script, text, camera, highlights, portraits, units, gradient) → "Prologue" title card → castle → player phase, all wired through Fe8Boot; 872 tests green, Dokka clean, 1034/7732 verified (13.3%). Device check of the whole opening pending (MANUAL_TEST D11-wire-b / D11-wm9 entries). Lane A rows in TASKS are empty; next lane-A-like work comes from the device check.
 
 - Owner PC 11-11 (15:23–16:50Z): PP-5..8, PP-10, PP-12, PP-13, PP-16, D11-ci3c, D13-cap1, D13-1, D13-2 merged; 4 readability audits;
   854 tests, 1 local failure (TEST-2, passes in CI); 944/7732 verified. WIP: `wip/PP-11`; D11-wm8a analysis in D11-worldmap §8a.

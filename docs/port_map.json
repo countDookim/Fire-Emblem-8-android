@@ -8,8 +8,8 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 945,
-    "implemented_unverified": 1
+    "verified": 977,
+    "implemented_unverified": 20
   },
   "functions": {
     "AddPointToPathArrowProc": {
@@ -854,6 +854,14 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "CheckGmapRmBaPalAnim1State": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBaPalAnim.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "Checksum16": {
       "decomp_file": "src/bmsave-lib.c",
       "system": "save",
@@ -1489,6 +1497,14 @@
         "fe8.testing.PathArrowDrawDifferentialTest#select_move path arrow drawing matches the game"
       ]
     },
+    "DrawWmNationHighLightMapGfx": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "EffectWait": {
       "decomp_file": "src/bmmenu.c",
       "system": "menus",
@@ -1948,6 +1964,90 @@
         "fe8.testing.WorldMapScrollTest#centring the camera on the leader gives the camera of the original every 30 steps"
       ]
     },
+    "EventAF_WmShowTextBox": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "EventB1_WmTextBoxWait": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "EventB2_WmFancyFade": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "EventB3_WmFancyFadeWait": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "EventB4_WmDisplayBigMap": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "EventB6_WmMoveBigMap": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "EventB8_WmShowBigMapHighlight": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "EventB9_WmRemoveHighlightNationPart1": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "EventBA_WmRemoveHighlightNationPart2": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "EventBattleReloadBmStatus": {
       "decomp_file": "src/eventscr3.c",
       "system": "events",
@@ -1956,6 +2056,67 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EventBattleReloadDifferentialTest#event battle end reloads the unit table"
+      ]
+    },
+    "EventC2_WmNoFade": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapSpawnEvents.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "EventC3_SpawnLord": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapSpawnEvents.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#spawn lord on an empty slot passes the script arguments to SetGmCharUnit",
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "EventC4_WmShowPortrait": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFaceEvents.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventFaceTest#show and clear portrait commands run by the VM match the capture"
+      ]
+    },
+    "EventC5_WmClearPortrait": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFaceEvents.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventFaceTest#show and clear portrait commands run by the VM match the capture"
+      ]
+    },
+    "EventC6_WmDisplayText": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextEvents.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "EventC7_": {
+      "decomp_file": "src/eventscr_gmap.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextEvents.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
       ]
     },
     "EventDisplayCursor_Loop": {
@@ -2706,6 +2867,16 @@
         "fe8.testing.ConvoBackgroundVramTest#game lock matches gbmst lock byte across trace steps"
       ]
     },
+    "GetGmMuEntryFlag": {
+      "decomp_file": "src/worldmap_entry.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMuEntry.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
     "GetGmapUnitFade": {
       "decomp_file": "src/worldmap_gmapunit.c",
       "system": "worldmap",
@@ -3436,6 +3607,68 @@
         "fe8.testing.WorldMapNodeIconCursorTest#node icon and cursor procs follow the original every step"
       ]
     },
+    "GmapLineFade_80C0358": {
+      "decomp_file": "src/worldmap_line_fade.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapLineFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "GmapLineFade_Loop": {
+      "decomp_file": "src/worldmap_line_fade.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapLineFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "GmapLineFade_OnEnd": {
+      "decomp_file": "src/worldmap_line_fade.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapLineFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "GmapRmBaPalAnim1_Init": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBaPalAnim.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GmapRmBaPalAnim1_Loop1": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBaPalAnim.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GmapRmBaPalAnim1_Loop2": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBaPalAnim.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GmapRmBorder1_80C2750": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "GmapRmBorder1_80C28C4": {
       "decomp_file": "src/worldmap_rm.c",
       "system": "worldmap",
@@ -3475,6 +3708,38 @@
       "tests": [
         "fe8.testing.WorldMapRmBorderTest#border procs follow the original script position and fields every step"
       ]
+    },
+    "GmapRmBorder1_NationMergeIn": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GmapRmBorder1_NationMergeOut": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GmapRmBorder1_PutSprite2": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GmapRmBorder1_PutSpriteAll": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
+      "status": "implemented",
+      "tests": []
     },
     "GmapRmUpdateDirect_Loop": {
       "decomp_file": "src/worldmap_rm.c",
@@ -3525,6 +3790,14 @@
       "tests": [
         "fe8.testing.WorldMapRmTest#map scroll procs follow the original proc fields and BG1 offsets every step"
       ]
+    },
+    "GmapRm_GetPosition": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt",
+      "status": "implemented",
+      "tests": []
     },
     "GmapRm_Goto0IfFlag0": {
       "decomp_file": "src/worldmap_rm.c",
@@ -3902,6 +4175,26 @@
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
       ]
     },
+    "InitSpriteText": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "InitSpriteTextFont": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
     "InitTalk": {
       "decomp_file": "src/scene.c",
       "system": "presentation",
@@ -3971,6 +4264,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramSaveBlockReferenceTest#invalidating the suspend save writes the entries the game wrote"
+      ]
+    },
+    "IsGmapLineFadeActive": {
+      "decomp_file": "src/worldmap_line_fade.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapLineFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
       ]
     },
     "IsSaveValid": {
@@ -6726,6 +7029,16 @@
         "fe8.testing.OpSubtitleProcDifferentialTest#continuous playback follows the original parent through the first cards"
       ]
     },
+    "StartGMapRoute": {
+      "decomp_file": "src/worldmap_path.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRouteTest#route proc follows the original fields and BG2 tilemap every step"
+      ]
+    },
     "StartGame": {
       "decomp_file": "src/gamecontrol.c",
       "system": "core",
@@ -6756,6 +7069,16 @@
         "fe8.testing.WorldMapNodeIconCursorTest#node icon and cursor procs follow the original every step"
       ]
     },
+    "StartGmapLineFade": {
+      "decomp_file": "src/worldmap_line_fade.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapLineFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
     "StartGmapMuEntry": {
       "decomp_file": "src/worldmap_entry.c",
       "system": "worldmap",
@@ -6775,6 +7098,22 @@
       "tests": [
         "fe8.testing.WorldMapRmTest#starting the map loads its graphics, tilemap and BG registers like the original"
       ]
+    },
+    "StartGmapRmBaPalAnim1": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBaPalAnim.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "StartGmapRmBorder1": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
+      "status": "implemented",
+      "tests": []
     },
     "StartGmapRmUpdateExt": {
       "decomp_file": "src/worldmap_rm.c",
@@ -7001,6 +7340,16 @@
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
       ]
     },
+    "StartWmTextMsg": {
+      "decomp_file": "src/worldmap_text.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapText.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
     "StringCompare": {
       "decomp_file": "src/bmlib.c",
       "system": "battle_map",
@@ -7170,6 +7519,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "TalkSpritePrepNextChar": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
       ]
     },
     "TalkWaitForInput_OnIdle": {
@@ -7803,6 +8162,14 @@
         "fe8.testing.WorldMapFaceTest#controller holder and face procs match every step from 4907 to 8846"
       ]
     },
+    "WmShowNationHighlightedMap": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "WmText_Init": {
       "decomp_file": "src/worldmap_text.c",
       "system": "worldmap",
@@ -8247,6 +8614,66 @@
         "fe8.testing.TalkFaceBlinkDifferentialTest#eye objects match reference OAM and portrait tiles"
       ]
     },
+    "sub_80080D0": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "sub_8008108": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "sub_8008F3C": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "sub_8008F64": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "sub_8008FAC": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "sub_8008FB4": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
     "sub_800A42C": {
       "decomp_file": "src/spline.c",
       "system": "presentation",
@@ -8571,6 +8998,16 @@
         "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
       ]
     },
+    "sub_80BB26C": {
+      "decomp_file": "src/worldmap_gmapunit.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
     "sub_80BB49C": {
       "decomp_file": "src/worldmap_gmapunit.c",
       "system": "worldmap",
@@ -8599,6 +9036,26 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapUnitTest#container and sprites follow the traced fields every step"
+      ]
+    },
+    "sub_80BBEB8": {
+      "decomp_file": "src/worldmap_path.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRouteTest#route proc follows the original fields and BG2 tilemap every step"
+      ]
+    },
+    "sub_80BBF60": {
+      "decomp_file": "src/worldmap_path.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapRouteTest#route proc follows the original fields and BG2 tilemap every step"
       ]
     },
     "sub_80BFD28": {
@@ -8650,6 +9107,22 @@
       "tests": [
         "fe8.testing.WorldMapMuEntryTest#mu entry proc follows the original every step"
       ]
+    },
+    "sub_80C2BC4": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "sub_80C2C10": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt",
+      "status": "implemented",
+      "tests": []
     },
     "sub_80C488C": {
       "decomp_file": "src/opsubtitle.c",

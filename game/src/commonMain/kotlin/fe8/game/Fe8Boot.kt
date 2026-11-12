@@ -123,6 +123,7 @@ import gbafe.proc.ProcScripts
 import gbafe.render.ArchivedPaletteFade
 import gbafe.render.BgTilemap
 import gbafe.render.ColorFade
+import gbafe.render.FadeCore
 import gbafe.render.HardwareSceneLoader
 import gbafe.render.PaletteFade
 import gbafe.render.ScreenFade
@@ -252,6 +253,9 @@ public class Fe8Boot(
     /** The units the battle map start path touches (raw unit bytes). */
     public val units: UnitTable by lazy { UnitTable(rom) }
 
+    /** `sub_80141B0` of the event skip (only its [FadeCore.darkenEnd] is used). */
+    private val skipFade: FadeCore by lazy { FadeCore(engine, hw) }
+
     /** The event engine's globals, shared by [eventEngine] and the suspend save. */
     public val eventState: EventState = EventState()
 
@@ -276,6 +280,23 @@ public class Fe8Boot(
         val hooks = object : EventEngineHooks {
             override fun startPressed(): Boolean = keys.newKeys and KeyStatus.START_BUTTON != 0
             override fun fadeExists(): Boolean = screenFade.fadeExists()
+            // `WM_Exists`; a boot that never built the world map has none.
+            override fun worldMapExists(): Boolean =
+                worldMapBootDelegate.isInitialized() && worldMapBoot.exists()
+
+            // `sub_800D488`: `sub_80141B0` (instant black, layers off) and end the talk bubbles
+            // opening; used by the world map skip and by a skip after the scene faded out.
+            override fun skipFadedIn(proc: EventEngineProc) {
+                skipFade.darkenEnd()
+                if (talkSceneDelegate.isInitialized()) engine.endEach(talkScene.bubble.openScript)
+            }
+
+            // `sub_80BA424`: `sub_8002AC8` fades the BGM out (`Sound_FadeOutBGM(1)` stands in for
+            // its two `m4aMPlayFadeOut` calls); `MapRoute_80BC2DC` and the route flags are not
+            // run: the Prologue draws no route.
+            override fun worldMapSkip(proc: EventEngineProc) {
+                control.sound.fadeOutBgm(1)
+            }
             override fun startLockingFadeToBlack(speed: Int, parent: Proc) {
                 screenFade.startLockingFadeToBlack(speed, parent)
             }
@@ -1139,7 +1160,7 @@ public class Fe8Boot(
     }
 
     /** The Prologue world map ([WorldMapBoot]); needs the whole ROM, built on first use. */
-    private val worldMapBoot: WorldMapBoot by lazy {
+    private val worldMapBootDelegate = lazy {
         bmapMain // builds the unit sprites the world map shares
         WorldMapBoot(
             engine, hw, rom, control.playSt, gmData, loop.bmSt, keys, loop.sprites, loop.oam,
@@ -1147,6 +1168,7 @@ public class Fe8Boot(
             control.sound, talkScene, mu, { unitSprites }, battleChapters, state.lines,
         ).also { it.wire() }
     }
+    private val worldMapBoot: WorldMapBoot by worldMapBootDelegate
 
     /** The title screen. */
     public val title: TitleScreen =

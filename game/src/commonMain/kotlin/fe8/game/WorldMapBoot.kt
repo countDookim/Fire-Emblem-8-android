@@ -397,6 +397,9 @@ internal class WorldMapBoot(
     /** `ProcScr_WorldMapWrapper`, to be started as the blocking child of the game control. */
     val wrapperScript: ProcScript get() = main.wrapperScript
 
+    /** `WM_Exists`: whether `ProcScr_WorldMapMain` runs. */
+    fun exists(): Boolean = mainProc() != null
+
     /** `EndWM`, for the game control (`PROC_CALL(EndWM)`). */
     fun endWm(proc: Proc) = exit.endWm(proc)
 

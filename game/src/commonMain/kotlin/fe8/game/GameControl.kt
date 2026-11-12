@@ -256,17 +256,20 @@ public class GameControl(
     public val titleStandInScript: ProcScript =
         ProcScript("gProcScr_TitleScreen (stand-in)", listOf(block()))
 
-    /** Holds [proc] with a blocking stand-in child (M6-E: save menu and class reel). */
+    /** Holds [proc] with a blocking stand-in child (M6-E: save menu). */
     private fun hold(proc: Proc, what: String) {
         engine.startBlocking(ProcScript("$what (stand-in)", listOf(block())), proc)
     }
 
-    /** Starts the class reel demo via [hooks] or holds with a stand-in child (M6-E). */
+    /**
+     * Starts the class reel demo via [hooks]. Stand-in until M6-G (class reel, D15-1): the reel
+     * needs battle animations, so without a hook it is skipped as if it had ended at once. The
+     * original reel leaves `nextAction` at `GAME_ACTION_CLASS_REEL`, so [postClassReel] goes to
+     * the op anim next, as after a played-through reel (`ram_trace_title_idle_reel`, f9837).
+     */
     private fun startClassReel(proc: Proc): Boolean {
         val hook = hooks.startClassReel
-        if (hook != null) return hook.invoke(proc)
-        hold(proc, "GamceControl_StartClassReel")
-        return false
+        return hook?.invoke(proc) ?: false
     }
 
     /** Starts the save menu screen via [hooks] or holds with a stand-in child (M6-E). */
@@ -385,8 +388,8 @@ public class GameControl(
         /** `WaitForFade` for `PROC_REPEAT`: the default breaks at once. */
         public var waitForFade: ProcFunc? = null,
         /**
-         * `GamceControl_StartClassReel` (`PROC_CALL_2`, class reel, not ported): the default holds
-         * the game control proc with a blocking child, like [titleStandInScript].
+         * `GamceControl_StartClassReel` (`PROC_CALL_2`, class reel, not ported): the default skips
+         * the reel (stand-in until M6-G, D15-1), see [startClassReel].
          */
         public var startClassReel: ProcBoolFunc? = null,
         /** `sub_8009A84`. Stand-in until M6-E (class reel, extras). */

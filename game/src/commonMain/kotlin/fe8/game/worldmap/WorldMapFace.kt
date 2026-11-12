@@ -246,7 +246,7 @@ public class WorldMapFace(
                 val w = holder.faceWrapper[i]
                 val faceProc = w.faceProc
                 if (faceProc != null && w.unk0a == 1) {
-                    val state = faceProc.state as FaceState
+                    val state = faceProc.state as? FaceState ?: continue
                     face.setFaceDisplayBits(faceProc, state.displayBits and DISP_BLEND.inv())
                     w.unk0a = 0
                 }
@@ -268,7 +268,9 @@ public class WorldMapFace(
         for (i in 0 until 2) {
             val w = holder.faceWrapper[i]
             val faceProc = w.faceProc ?: continue
-            val state = faceProc.state as FaceState
+            // A skipped talk ends the face procs but leaves `faceWrapper.faceProc` stale; the
+            // freed slot may already run another proc (the original writes into it unchecked).
+            val state = faceProc.state as? FaceState ?: continue
             var action = 0
             val x = w.x
             if (w.y and 0x800 != 0 && (w.y and 0xFF) < 0x10) {
@@ -495,7 +497,8 @@ public class WorldMapFace(
         for (w in (s.faceHolderProc!!.state as WmFaceHolderState).faceWrapper) {
             val faceProc = w.faceProc
             if (faceProc != null && w.y and 0x1000 == 0) {
-                val state = faceProc.state as FaceState
+                // Stale after a skipped talk ended the face (see wmFaceCtrlLoopExt).
+                val state = faceProc.state as? FaceState ?: continue
                 face.setFaceDisplayBits(faceProc, state.displayBits or DISP_HIDDEN)
                 w.y = ((w.y and 0xFF.inv()) + 0x1000) and 0xFFFF
                 w.unk0a = -1

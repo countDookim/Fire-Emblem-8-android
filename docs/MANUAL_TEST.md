@@ -13,6 +13,18 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
 
 ## Test now
 
+- **D-14 world-map Start skip:** New Game, wait for the world-map narration, press Start once
+  while a portrait or text is shown (try a few times, also while a portrait is up). Expected: the
+  screen cuts to black at once (no slow fade), the whole chapter title card plays, black, then the
+  castle scene fades in from black over about a quarter second and its first text box appears. The
+  game must not freeze or stay dark. Limits: the castle scene waits about 3 frames before its fade
+  (the original waits 15 because its loop overruns); pressing Start again during the title card
+  skips it, and during the castle scene skips the scene (as in the original).
+- **D-15 title idle:** Leave the title screen untouched for about 14 seconds. Expected: it fades out
+  and the opening animation plays (no black screen); after it the title returns; idling again goes
+  to the opening animation again. Limits: the class reel that the original plays first is skipped
+  until M6-G (it needs battle animations).
+
 - **PP-17 player phase (Prologue turn 1):**
   1. Resume the Prologue (suspend save) or play New Game to the turn-1 map (Eirika near the
      castle gate, three red enemies to the right). Expected: the goal window (chapter goal) at the

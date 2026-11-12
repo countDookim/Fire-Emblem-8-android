@@ -10,16 +10,16 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 176 across 35 Kotlin files.
+Total entries: 177 across 35 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 16 |
 | M6-C | 10 |
 | M6-D | 12 |
-| M6-E | 52 |
+| M6-E | 51 |
 | M6-F | 13 |
-| M6-G | 2 |
+| M6-G | 4 |
 | M6-H | 30 |
 | M6-I | 26 |
 | M6-J | 8 |
@@ -82,7 +82,7 @@ Total entries: 176 across 35 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayActiveUnitEffectRange` | Stand-in until M6-D for `DisplayActiveUnitEffectRange` (label 11, an enemy's range). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayDangerZone` | Stand-in until M6-D for `PlayerPhase_DisplayDangerZone` (the enemies' reach). |
 
-## M6-E (52)
+## M6-E (51)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -99,10 +99,9 @@ Total entries: 176 across 35 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `declareCompletedChapter` | Stand-in until M6-E. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `endAllMus` | Stand-in until M6-E. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `endMuralBackground` | Stand-in until M6-E (erase-save). |
-| `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `hold` | Holds [proc] with a blocking stand-in child (M6-E: save menu and class reel). |
+| `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `hold` | Holds [proc] with a blocking stand-in child (M6-E: save menu). |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `makeSaveMenuPostChapter` | Stand-in until M6-E. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `savePlayThroughData` | Stand-in until M6-E. |
-| `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startClassReel` | Starts the class reel demo via [hooks] or holds with a stand-in child (M6-E). |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startMidFadeFromBlack` | Stand-in until M6-E (erase-save). |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startMidFadeToBlack` | Stand-in until M6-E (erase-save). |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startSaveMenu` | Starts the save menu screen via [hooks] or holds with a stand-in child (M6-E). |
@@ -157,10 +156,12 @@ Total entries: 176 across 35 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startButton` | Stand-in until M6-F for the START button branch of `PlayerPhase_MainIdle` (the minimap, `Proc_Goto(proc, 9)`); runs when START is new and SELECT is not held and the A branch did not run; returns tr... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startStatScreen` | Stand-in until M6-F for `SetStatScreenConfig` and `StartStatScreen(unit, proc)` (unit id [unit]). |
 
-## M6-G (2)
+## M6-G (4)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startClassReel` | Stand-in until M6-G (class reel, D15-1): the reel needs battle animations, so without a hook it is skipped as if it had ended at once. |
+| `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startClassReel` | `GamceControl_StartClassReel` (`PROC_CALL_2`, class reel, not ported): the default skips the reel (stand-in until M6-G, D15-1), see [startClassReel]. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: the battle animation (deamon) is not ported, never active. |
 

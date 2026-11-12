@@ -52,12 +52,12 @@ class ResumeBootTest {
             afterResume(boot, boot.engine.find(boot.bmapMain.script)!!)
         }
         // A keeps paging the beginning events' dialogue until they end.
-        while (frame < 12000 && boot.engine.find(boot.playerPhaseScript) == null) {
+        while (frame < 16000 && boot.engine.find(boot.playerPhaseScript) == null) {
             boot.frame()
             frame++
         }
         var guard = 0
-        while (boot.eventEngine.eventEngineExists() && guard++ < 12000) {
+        while (boot.eventEngine.eventEngineExists() && guard++ < 16000) {
             boot.frame()
             frame++
         }

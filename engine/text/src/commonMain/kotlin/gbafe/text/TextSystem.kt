@@ -29,7 +29,8 @@ public interface TextHost {
  * The text-font part of `src/fontgrp.c`: `gDefaultFont`, `gActiveFont`, font and [Text] setup,
  * glyph drawing into VRAM tiles and glyph-width measuring. Game-neutral; the game supplies the
  * glyph-table addresses and the function-pointer values through [Config], and its ROM. Not ported
- * here: numbers, special characters, `DrawTextGlyphNoClear` and the text-print procs.
+ * here: the other number and special-character sizes, `DrawTextGlyphNoClear` and the text-print
+ * procs.
  *
  * No call allocates. A glyph pointer that is NULL where C would dereference it throws here
  * (undefined behaviour in C).
@@ -63,7 +64,14 @@ public class TextSystem(
          * unused.
          */
         public val getSpriteDrawDest: Int = 0,
+        /** ROM address of `TextGlyphs_Special`, the glyph pointers of the special characters. */
+        public val glyphsSpecial: Int = 0,
     )
+
+    /** `sSpecialCharStList[64]`: the colour (-1 ends the list), id and tile slot of each entry. */
+    private val specialColor = IntArray(SPECIAL_CHAR_COUNT).also { it[0] = -1 }
+    private val specialId = IntArray(SPECIAL_CHAR_COUNT)
+    private val specialChr = IntArray(SPECIAL_CHAR_COUNT)
 
     /** `gDefaultFont`. */
     public val defaultFont: Font = Font()
@@ -94,6 +102,17 @@ public class TextSystem(
         f.lang = host.language()
         setTextFont(f)
         initSystemTextFont()
+    }
+
+    /**
+     * Transcribed from src/fontgrp.c: ResetTextFont (not verified: the captured window starts
+     * after its caller, `PlayerPhase_ApplyUnitMovement`; the tests call it as that caller does)
+     *
+     * Frees the active font's tiles and forgets the special characters drawn.
+     */
+    public fun resetTextFont() {
+        activeFont.chrCounter = 0
+        specialColor[0] = -1
     }
 
     /**
@@ -545,6 +564,152 @@ public class TextSystem(
     }
 
     /**
+     * Loads `sSpecialCharStList` from [bytes] at [offset] (its EWRAM layout: 64 entries of
+     * colour s8, id s8, tile slot s16), to resume from a dump.
+     */
+    public fun loadSpecialCharList(bytes: ByteArray, offset: Int) {
+        for (i in 0 until SPECIAL_CHAR_COUNT) {
+            val at = offset + i * 4
+            specialColor[i] = bytes[at].toInt()
+            specialId[i] = bytes[at + 1].toInt()
+            specialChr[i] = (bytes[at + 2].toInt() and 0xFF) or (bytes[at + 3].toInt() shl 8)
+        }
+    }
+
+    /**
+     * Ported from src/fontgrp.c: Text_SetParams
+     *
+     * Sets the pen to [x] pixels and the colour to [colorId].
+     */
+    public fun setParams(text: Text, x: Int, colorId: Int) {
+        text.x = x
+        text.colorId = colorId
+    }
+
+    /**
+     * Writes the special character [id] in [color] to the tilemap [tm] at [at] and [at] + 0x20
+     * (nothing for `TEXT_SPECIAL_NOTHING`, which clears both).
+     *
+     * Ported from src/fontgrp.c: PutSpecialChar
+     */
+    public fun putSpecialChar(tm: ShortArray, at: Int, color: Int, id: Int) {
+        if (id == SPECIAL_NOTHING) {
+            tm[at] = 0
+            tm[at + 0x20] = 0
+            return
+        }
+
+        val chr = getSpecialCharChr(color, id) * 2 + activeFont.tileref
+
+        tm[at] = chr.toShort()
+        tm[at + 0x20] = (chr + 1).toShort()
+    }
+
+    /**
+     * Writes [number] in decimal ending at [at] and growing left, each digit the special
+     * character `idZero` + digit; 0 is the single digit `idZero`.
+     *
+     * Ported from src/fontgrp.c: PutNumberExt
+     */
+    public fun putNumberExt(tm: ShortArray, at: Int, color: Int, number: Int, idZero: Int) {
+        if (number == 0) {
+            putSpecialChar(tm, at, color, idZero)
+            return
+        }
+
+        var n = number
+        var i = at
+        while (n != 0) {
+            putSpecialChar(tm, i, color, n % 10 + idZero)
+            n /= 10
+            i--
+        }
+    }
+
+    /**
+     * Writes [number] in the big digits ending at [at].
+     *
+     * Ported from src/fontgrp.c: PutNumber
+     */
+    public fun putNumber(tm: ShortArray, at: Int, color: Int, number: Int) {
+        putNumberExt(tm, at, color, number, SPECIAL_BIGNUM_0)
+    }
+
+    /**
+     * Writes [number] ending at [at], or two dashes ending at [at] for a negative number or 255
+     * (the dash branch is not verified: no captured row has it).
+     *
+     * Ported from src/fontgrp.c: PutNumberOrBlank
+     */
+    public fun putNumberOrBlank(tm: ShortArray, at: Int, color: Int, number: Int) {
+        if (number < 0 || number == 0xFF) {
+            putSpecialChar(tm, at - 1, color, SPECIAL_DASH)
+            putSpecialChar(tm, at, color, SPECIAL_DASH)
+        } else {
+            putNumber(tm, at, color, number)
+        }
+    }
+
+    /**
+     * The tile slot of special character [id] in [color]: the entry of the list, drawn and added
+     * on first use.
+     *
+     * Ported from src/fontgrp.c: GetSpecialCharChr
+     */
+    private fun getSpecialCharChr(color: Int, id: Int): Int {
+        var i = 0
+        while (true) {
+            if (specialColor[i] < 0) return addSpecialChar(i, color, id)
+
+            if (specialColor[i] == color && specialId[i] == id) return specialChr[i]
+
+            i++
+        }
+    }
+
+    /**
+     * Appends special character [id] in [color] as entry [i] of the list, drawing it into the
+     * active font's next tile slot.
+     *
+     * Ported from src/fontgrp.c: AddSpecialChar
+     */
+    private fun addSpecialChar(i: Int, color: Int, id: Int): Int {
+        specialColor[i] = color
+        specialId[i] = id
+        specialChr[i] = activeFont.chrCounter++
+
+        specialColor[i + 1] = -1
+
+        drawSpecialCharGlyph(
+            specialChr[i], color, readU32(config.glyphsSpecial - ROM_BASE + id * 4),
+        )
+
+        return specialChr[i]
+    }
+
+    /**
+     * Draws the 2bpp [glyph] (ROM address) in [color] into the 64 bytes of tile slot [a] of the
+     * active font: 16 rows of one colour-table word each.
+     *
+     * Ported from src/fontgrp.c: DrawSpecialCharGlyph
+     */
+    private fun drawSpecialCharGlyph(a: Int, color: Int, glyph: Int) {
+        val dest = activeFont.vramDest + a * 64
+        val lut = getColorLut(color) - ROM_BASE
+        val bitmap = glyph - ROM_BASE + GLYPH_BITMAP
+
+        for (i in 0 until 16) {
+            val v = readU32(bitmap + i * 4)
+            val lo = rom[lut + (v and 0xFF) * 2].toInt() and 0xFF or
+                ((rom[lut + (v and 0xFF) * 2 + 1].toInt() and 0xFF) shl 8)
+            val hi = rom[lut + ((v shr 8) and 0xFF) * 2].toInt() and 0xFF or
+                ((rom[lut + ((v shr 8) and 0xFF) * 2 + 1].toInt() and 0xFF) shl 8)
+
+            host.writeVram32(dest + i * 4, (hi shl 16) + lo)
+        }
+    }
+
+    /**
      * Writes the tilemap entries that show [text] to the 32-entry-wide tilemap [tm] at [offset]:
      * the top row at [offset], the bottom row 0x20 entries (one map row) later, numbered from
      * the font's `tileref`. When double-buffering is enabled, flips [Text.dbId] so the next draw
@@ -629,6 +794,18 @@ public class TextSystem(
          * line.
          */
         public const val CHAR_NEWLINE: Int = 0x01
+
+        /** `TEXT_SPECIAL_BIGNUM_0`. */
+        private const val SPECIAL_BIGNUM_0 = 0x00
+
+        /** `TEXT_SPECIAL_DASH`. */
+        private const val SPECIAL_DASH = 0x14
+
+        /** `TEXT_SPECIAL_NOTHING`. */
+        private const val SPECIAL_NOTHING = 0xFF
+
+        /** Entries of `sSpecialCharStList`. */
+        private const val SPECIAL_CHAR_COUNT = 64
 
         /** `CHR_SIZE` (`include/hardware.h`): bytes of one 8x8 4bpp tile. */
         private const val CHR_SIZE = 0x20

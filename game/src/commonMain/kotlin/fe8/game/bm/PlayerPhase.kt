@@ -1154,7 +1154,8 @@ public class PlayerPhase(
      * a unit that has not moved and not acted (`taken_action`), stores the cost of the move in
      * `moveCount`. Then `StartAfterUnitMovedEvent` ([Hooks.startAfterUnitMovedEvent], a
      * stand-in until M6-E) and the unit action menu ([Hooks.startUnitActionMenu]) unless the
-     * move was trapped; breaks (both paths of the C end that way). `ResetTextFont` keeps no state.
+     * move was trapped; breaks (both paths of the C end that way). `ResetTextFont` is done by the
+     * wiring of [Hooks.startUnitActionMenu].
      */
     public fun playerPhaseApplyUnitMovement(proc: Proc) {
         val unit = active.unit

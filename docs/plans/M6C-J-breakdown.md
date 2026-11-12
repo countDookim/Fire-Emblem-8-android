@@ -333,6 +333,23 @@ its inputs (`inputs[k]`); the menu x of the restart is clamped in the capture, s
 distinguished; `ResetTextFont` is a hook (no port). Stand-in until MC-5: `NewTargetSelection`; on a device the
 weapon is equipped and the player is back in the unit menu (range hidden).
 
+### MC-4a result
+
+`WeaponSelectMenuDifferentialTest` now draws the weapon rows with the ported `DrawItemMenuLine` and compares BG0
+without the row exclusion (only the item panel's box stays excluded), the text tiles of VRAM (the unit menu and
+weapon strips and the special characters, in the `f` dumps 1640, 1650, 1660, 1710, 1720, 1730), the icon tiles, and
+`DrawnIconLookupTable`/`IconGFXIDLookupTable` at f1630 and f1657. The f1703 restart is run too (the dump resets the
+icons there; the test does that for the unported proc). Ported and break-checked: `DrawItemMenuLine`, `GetItemUses`,
+`DrawIcon`, `GetIconTileIndex`, `GetIconGfxIndex`, `Text_SetParams`, `PutSpecialChar`, `PutNumberExt`, `PutNumber`,
+`PutNumberOrBlank`, `GetSpecialCharChr`, `AddSpecialChar`, `DrawSpecialCharGlyph` (new in `TextSystem`);
+`GetItemName`, `Text_DrawString` and `PutText` ran already. Transcribed: `ResetTextFont` (the window starts after its
+caller; wired to `ResetTextFont` of `PlayerPhase_ApplyUnitMovement` and of the B cancel). Not verified: the grey
+row (the list shows only usable rows), `PutNumberOrBlank`'s dash branch, unbreakable uses. Findings:
+`DrawnIconLookupTable` entries are 4 bytes (`References`, `Index`, 2 unused; the table is 0x380 bytes), not 2 as
+`ResetIconGraphics` assumed; the rows draw on the menu's first frame, after the item panel's `InitText` calls (72 tile
+slots), so the test advances `chr_counter` by 72 in the panel hook and skips those slots and the panel's icon 112
+(MC-4b).
+
 ## M7
 
 Not broken down here: [M7-modding](M7-modding.md) has 23 proposed rows; they wait for owner decisions D2–D9.

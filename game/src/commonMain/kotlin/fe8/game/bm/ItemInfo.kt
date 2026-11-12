@@ -210,6 +210,15 @@ public class ItemInfo(private val rom: RomView) {
     }
 
     /**
+     * Ported from src/bmitem.c: GetItemUses
+     *
+     * The uses left of [item] (the high byte), 0xFF for an unbreakable item (that branch is
+     * not verified: the captured weapon breaks).
+     */
+    public fun getItemUses(item: Int): Int =
+        if ((getItemAttributes(item) and IA_UNBREAKABLE) != 0) 0xFF else (item shr 8) and 0xFF
+
+    /**
      * Ported from src/bmitem.c: GetItemIconId
      *
      * The `iconId` of [item]: its icon in the item icon sheet, -1 for no item.

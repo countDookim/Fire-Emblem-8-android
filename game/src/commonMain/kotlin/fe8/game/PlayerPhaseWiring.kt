@@ -11,6 +11,7 @@ import fe8.game.bm.BmSt
 import fe8.game.bm.CamMove
 import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.ItemInfo
+import fe8.game.bm.ItemMenuLine
 import fe8.game.bm.MapMenu
 import fe8.game.bm.MoveLimitView
 import fe8.game.bm.Mu
@@ -74,6 +75,9 @@ internal class PlayerPhaseWiring(
     private val resetIcons: () -> Unit,
     /** `LoadIconPalettes(palId)`. */
     private val loadIconPalettes: IntConsumer,
+    /** `DrawnIconLookupTable` and `IconGFXIDLookupTable`, read by the item rows. */
+    private val drawnIconLookupTable: ByteArray,
+    private val iconGfxIdLookupTable: ByteArray,
 ) {
     private val items = ItemInfo(rom)
 
@@ -102,6 +106,9 @@ internal class PlayerPhaseWiring(
     private val attackRange =
         AttackRange(map, units, items, entityMaps, unitLoader)
     private val unitMenu = UnitActionMenu(units, active, items, unitLoader, map, attackRange, hw)
+    private val itemLine = ItemMenuLine(
+        talk.text, items, talk.messages, hw, rom, drawnIconLookupTable, iconGfxIdLookupTable,
+    )
     private val attackTargets =
         AttackTargets(map, units, items, attackRange, traps, SelectTargets())
     private val mapMenu = MapMenu(
@@ -158,6 +165,10 @@ internal class PlayerPhaseWiring(
             )
             moveLimitView.hideMoveRangeGraphics()
         }
+        unitMenu.hooks.drawItemMenuLine = UnitActionMenu.ItemLineDrawer { row, item, usable, at ->
+            itemLine.drawItemMenuLine(row, item, usable, hw.mapBuffer(0), at)
+        }
+        unitMenu.hooks.resetTextFont = { talk.text.resetTextFont() }
         unitMenu.hooks.isPositionMagicSealed = { _, _ -> false }
         unitMenu.hooks.resetIconGraphics = resetIcons
         unitMenu.hooks.loadIconPalettes = loadIconPalettes
@@ -176,6 +187,7 @@ internal class PlayerPhaseWiring(
             registerMenuStandIns(def)
         }
         phase.hooks.startUnitActionMenu = { x ->
+            talk.text.resetTextFont() // `ResetTextFont` of PlayerPhase_ApplyUnitMovement
             menu.startSemiCenteredOrphanMenu(Menu.UNIT_ACTION_MENU_DEF, x, 1, 22)
         }
         phase.hooks.startMapMenu = { x ->

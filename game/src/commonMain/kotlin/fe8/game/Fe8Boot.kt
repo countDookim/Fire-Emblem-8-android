@@ -544,8 +544,8 @@ public class Fe8Boot(
     /** `gPopupNumber`. */
     private var popupNumber = 0
 
-    /** `DrawnIconLookupTable` (`MAX_ICON_COUNT` 2-byte entries). */
-    private val drawnIconLookupTable = ByteArray(0x200)
+    /** `DrawnIconLookupTable` (`MAX_ICON_COUNT` 4-byte entries). */
+    private val drawnIconLookupTable = ByteArray(0x380)
 
     /** `IconGFXIDLookupTable`. */
     private val iconGfxIdLookupTable = ByteArray(0x100)
@@ -951,6 +951,7 @@ public class Fe8Boot(
     /** `ResetText`: the default font at VRAM + 0x1000, tile 0x80. */
     private fun resetText() {
         talkScene.text.initTextFont(null, 0x06001000, 0x80, 0)
+        talkScene.text.resetTextFont()
     }
 
     private fun resetIcons() {
@@ -1010,6 +1011,7 @@ public class Fe8Boot(
             battleEntityMaps, talkScene, handles, mu, active, loader,
             { start.hooks.getBattleMapKind() }, trapPool,
             { resetIcons() }, IntConsumer { palId -> loadIconPalettes(palId) },
+            drawnIconLookupTable, iconGfxIdLookupTable,
         ).wire(phase, main, eventInfos)
         // Stand-in until M6-D (enemy phase and AI): the computer phase does nothing and ends at
         // once, so End turn runs the enemy banner and goes on to the next player phase.

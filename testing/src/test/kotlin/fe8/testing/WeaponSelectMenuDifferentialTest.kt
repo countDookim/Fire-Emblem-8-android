@@ -11,6 +11,7 @@ import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.ItemInfo
+import fe8.game.bm.ItemMenuLine
 import fe8.game.bm.MoveLimitView
 import fe8.game.bm.PlaySt
 import fe8.game.bm.SelectTargets
@@ -76,7 +77,10 @@ class WeaponSelectMenuDifferentialTest {
         "UnitActionMenu_Attack", "StartUnitWeaponSelect", "WeaponSelectMenu_IsAvailable",
         "WeaponSelectMenu_SwitchIn", "DisplayUnitStandingAttackRange",
         "HideMoveRangeGraphicsWrapper", "StartOrphanMenu", "GenerateUnitStandingReachRange",
-        "GetUnitWeaponReachBits",
+        "GetUnitWeaponReachBits", "DrawItemMenuLine", "GetItemUses", "DrawIcon",
+        "GetIconTileIndex", "GetIconGfxIndex", "Text_SetParams", "PutSpecialChar",
+        "PutNumberExt", "PutNumber", "PutNumberOrBlank", "GetSpecialCharChr", "AddSpecialChar",
+        "DrawSpecialCharGlyph",
     )
     fun `attack opens the weapon list with the ranges of the game`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
@@ -117,7 +121,7 @@ class WeaponSelectMenuDifferentialTest {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
         val sim = Sim("ram_trace_prologue_attack_noanim", CANCEL_SEED)
-        sim.seed(CANCEL_SEED)
+        sim.seed(CANCEL_SEED, 1700)
         for (f in CANCEL_SEED until WEAPON_CANCELLED) sim.cancelFrame(f)
         sim.cancelFrame(WEAPON_CANCELLED)
     }
@@ -146,7 +150,10 @@ class WeaponSelectMenuDifferentialTest {
         val menu: Menu
         val unitMenu: UnitActionMenu
         val view: MoveLimitView
-        val iconTable = ByteArray(ItemIcon.MAX_ICON_COUNT * 2)
+        lateinit var itemLine: ItemMenuLine
+        var panelFrom = 0
+        var panelTo = 0
+        val iconTable = ByteArray(ItemIcon.MAX_ICON_COUNT * ItemIcon.ICON_ENTRY_SIZE)
         val iconGfxTable = ByteArray(ItemIcon.MAX_ICON_GFX_COUNT)
 
         var faceCalls = 0
@@ -200,10 +207,22 @@ class WeaponSelectMenuDifferentialTest {
                 ItemIcon.loadIconPalette(hw, rom, 1, palId + 1)
             }
             unitMenu.hooks.startUnitFace = IntConsumer { faceCalls++ }
-            unitMenu.hooks.forceMenuItemPanel = IntConsumer { panelCalls++ }
+            unitMenu.hooks.forceMenuItemPanel = IntConsumer {
+                panelCalls++
+                // The panel's `InitText` calls take tile slots (MC-4b); the rows draw after them.
+                panelFrom = text.activeFont.chrCounter
+                text.activeFont.chrCounter += PANEL_CHR_SLOTS
+                panelTo = text.activeFont.chrCounter
+            }
             unitMenu.hooks.updateMenuItemPanel = IntConsumer { panelSlots.add(it) }
-            unitMenu.hooks.drawItemMenuLine =
-                UnitActionMenu.ItemLineDrawer { _, _, _, offset -> rowsDrawn.add(offset) }
+            itemLine = ItemMenuLine(
+                text, itemInfo, messages, hw, rom, iconTable, iconGfxTable,
+            )
+            unitMenu.hooks.drawItemMenuLine = UnitActionMenu.ItemLineDrawer { row, item, ok, at ->
+                rowsDrawn.add(at)
+                itemLine.drawItemMenuLine(row, item, ok, hw.mapBuffer(0), at)
+            }
+            unitMenu.hooks.resetTextFont = { text.resetTextFont() }
             unitMenu.hooks.displayMoveRangeGraphics =
                 IntConsumer { view.displayMoveRangeGraphics(it) }
             unitMenu.hooks.hideMoveRangeGraphics = { view.hideMoveRangeGraphics() }
@@ -214,7 +233,7 @@ class WeaponSelectMenuDifferentialTest {
 
         fun iwram(frame: Int): ByteArray = data.region(names.getValue(frame), "iwram")
 
-        fun seed(unitFrame: Int = UNIT_MENU_FIRST) {
+        fun seed(unitFrame: Int = UNIT_MENU_FIRST, vramFrame: Int = 1590) {
             val e = ewram(before)
             val iw = iwram(before)
             // The unit has reached its tile when the menu starts (the caller, PP-11, moved it):
@@ -249,9 +268,23 @@ class WeaponSelectMenuDifferentialTest {
             }
             hw.lcd.readFrom(iw, LCD_BUFFER - IWRAM)
             text.initTextFont(null, 0x06001000, 0x80, 0)
-            // Icon bookkeeping the Attack command must clear.
-            iconTable.fill(0x55)
-            iconGfxTable.fill(0x55)
+            val vram = data.region(names.getValue(vramFrame), "vram")
+            vram.copyInto(host.vram, 0, 0, host.vram.size)
+            vram.copyInto(hw.vram, 0, 0, minOf(vram.size, hw.vram.size))
+            if (unitFrame == UNIT_MENU_FIRST) {
+                // Icon bookkeeping the Attack command must clear.
+                iconTable.fill(0x55)
+                iconGfxTable.fill(0x55)
+            } else {
+                e.copyInto(iconTable, 0, DRAWN_ICONS - EWRAM, DRAWN_ICONS - EWRAM + iconTable.size)
+                e.copyInto(
+                    iconGfxTable, 0, ICON_GFX_IDS - EWRAM,
+                    ICON_GFX_IDS - EWRAM + iconGfxTable.size,
+                )
+                val font = u32(e, GACTIVE_FONT - EWRAM) - EWRAM
+                text.activeFont.chrCounter = half(e, font + 0x12)
+                text.loadSpecialCharList(e, SPECIAL_CHAR_LIST - EWRAM)
+            }
 
             // The other items' availability, from the first menu frame's item procs.
             val firstProcs = ProcArrayDump.ofEwram(ewram(UNIT_MENU_FIRST))
@@ -272,6 +305,7 @@ class WeaponSelectMenuDifferentialTest {
             val d = if (f > WEAPON_MENU_FIRST) f + 1 else f
             run(f, d)
             compare(f, d)
+            compareVram(d)
         }
 
         /** One frame of the cancel window: the weapon list is started at its first frame. */
@@ -279,6 +313,34 @@ class WeaponSelectMenuDifferentialTest {
             val d = f + 1
             run(f, d)
             if (f >= WEAPON_CANCELLED - 1) compare(f, d)
+            compareVram(d)
+        }
+
+        /**
+         * The text tiles (the unit menu and weapon list strips and the special characters,
+         * not the item panel's slots) and the icon tiles, in the dumps that have VRAM.
+         */
+        private fun compareVram(d: Int) {
+            if (!names.getValue(d).startsWith("f")) return
+            val dump = data.region(names.getValue(d), "vram")
+            val at = "$runName dump $d VRAM"
+            val counter = text.activeFont.chrCounter
+            for (slot in 0 until counter) {
+                if (slot in panelFrom until panelTo) continue
+                for (k in 0 until 0x40) {
+                    val a = 0x1000 + slot * 0x40 + k
+                    assertEquals(dump[a], host.vram[a], "$at text slot $slot byte $k")
+                }
+            }
+            for (slot in 0 until ItemIcon.MAX_ICON_GFX_COUNT) {
+                if (iconGfxTable[slot].toInt() == 0 || iconGfxTable[slot].toInt() == 0x55) continue
+                val from = (0x20 * ItemIcon.getIconGfxTileIndex(slot + 1)) and 0x1FFE0
+                for (a in from until from + ItemIcon.ICON_BYTES) {
+                    assertEquals(
+                        dump[a], hw.vram[a], "$at icon slot $slot byte 0x${a.toString(16)}",
+                    )
+                }
+            }
         }
 
         private fun run(f: Int, d: Int) {
@@ -286,13 +348,18 @@ class WeaponSelectMenuDifferentialTest {
             clock = u32(iwram(d), CLOCK - IWRAM)
             if (f == UNIT_MENU_FIRST) {
                 // The caller (`PlayerPhase_ApplyUnitMovement`) runs before the menu procs.
+                text.resetTextFont()
                 menu.startSemiCenteredOrphanMenu(
                     Menu.UNIT_ACTION_MENU_DEF, bm.cursorTargetX - bm.cameraX, 1, 22,
                 )
             }
             if (f == CANCEL_SEED) {
                 // The target selection's cancel proc (MC-6) starts the weapon list.
+                // It resets the icons like the Attack command (the dump of f1704 has them reset).
+                unitMenu.hooks.resetIconGraphics()
+                unitMenu.hooks.loadIconPalettes.invoke(4)
                 menu.startOrphanMenu(Menu.WEAPON_SELECT_MENU_DEF)
+                unitMenu.hooks.forceMenuItemPanel.invoke(active.unit)
             }
             sprites.clear()
             for (tree in 0 until 8) engine.run(engine.root(tree))
@@ -307,7 +374,7 @@ class WeaponSelectMenuDifferentialTest {
             compareView(dump, at)
             comparePools(e, iw, at)
             compareTilemaps(e, f, at)
-            if (f == WEAPON_MENU_FIRST) compareIcons(e, f, at)
+            if (f == WEAPON_MENU_FIRST || f == WEAPON_CHOSEN - 2) compareIcons(e, f, at)
             val a = ACTION_DATA - EWRAM
             assertEquals(
                 e[a + 0x11].toInt() and 0xFF, active.action.unitActionType, "$at unitActionType",
@@ -407,32 +474,28 @@ class WeaponSelectMenuDifferentialTest {
         }
 
         /**
-         * The tiles MC-4 draws: the item panel (`ForceMenuItemPanel(proc, unit, 0xF, 0xB)`) on
-         * BG0 and BG1, and the weapon list's item rows (`DrawItemMenuLine`) on BG0.
+         * The tiles MC-4b draws: the item panel (`ForceMenuItemPanel(proc, unit, 0xF, 0xB)`) on
+         * BG0 and BG1.
          */
         private fun inMc4Tiles(bg: Int, k: Int, f: Int): Boolean {
             if (f < WEAPON_MENU_FIRST || bg > 1) return false
             val x = k % 32
             val y = k / 32
             if (x in 15..29 && y in 11..18) return true
-            if (bg != 0) return false
-            val m = engine.find(menu.menuScript)?.state as Menu.MenuProc? ?: return false
-            for (i in 0 until m.itemCount) {
-                val item = m.menuItems[i]!!
-                if (y in item.yTile..item.yTile + 1 && x in item.xTile until item.xTile + 15) {
-                    return true
-                }
-            }
             return false
         }
 
         private fun compareIcons(e: ByteArray, f: Int, at: String) {
-            for (k in 0 until ItemIcon.MAX_ICON_COUNT * 2) {
+            // The item panel's icon (MC-4b) is icon 112 in graphics slot 1; not drawn here.
+            val panelIcon = f > WEAPON_MENU_FIRST
+            for (k in 0 until ItemIcon.MAX_ICON_COUNT * ItemIcon.ICON_ENTRY_SIZE) {
+                if (panelIcon && k / ItemIcon.ICON_ENTRY_SIZE == PANEL_ICON) continue
                 assertEquals(
                     e[DRAWN_ICONS - EWRAM + k], iconTable[k], "$at DrawnIconLookupTable[$k]",
                 )
             }
             for (k in 0 until ItemIcon.MAX_ICON_GFX_COUNT) {
+                if (panelIcon && e[ICON_GFX_IDS - EWRAM + k].toInt() == PANEL_ICON + 1) continue
                 assertEquals(
                     e[ICON_GFX_IDS - EWRAM + k], iconGfxTable[k], "$at IconGFXIDLookupTable[$k]",
                 )
@@ -485,6 +548,10 @@ class WeaponSelectMenuDifferentialTest {
         const val FACE_SCRIPT = 0x08591154
         const val PANEL_SCRIPT = 0x0859AE88
         const val UNIT_SIZE = 0x48
+        const val GACTIVE_FONT = 0x02028E70
+        const val SPECIAL_CHAR_LIST = 0x02028E78
+        const val PANEL_CHR_SLOTS = 72
+        const val PANEL_ICON = 112
         const val UNIT_MENU_FIRST = 1595
         const val WEAPON_CHOSEN = 1659
         const val CANCEL_SEED = 1703

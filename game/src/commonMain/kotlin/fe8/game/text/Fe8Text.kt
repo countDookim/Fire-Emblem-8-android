@@ -53,6 +53,9 @@ public object Fe8Text {
      */
     public const val COLOR_LUT_TABLE: Int = 0x08588240
 
+    /** ROM address of `TextGlyphs_Special`. */
+    public const val GLYPHS_SPECIAL: Int = 0x08590B44
+
     /**
      * EWRAM address of `gDefaultFont`, the `struct Font` that `SetTextFont(NULL)` selects and
      * `InitTextFont(NULL, ...)` fills. Not used by [CONFIG]; tests compare `gActiveFont` with it.
@@ -63,6 +66,6 @@ public object Fe8Text {
     public val CONFIG: TextSystem.Config =
         TextSystem.Config(
             GLYPHS_SYSTEM, GLYPHS_TALK, DRAW_TEXT_GLYPH, GET_TEXT_DRAW_DEST, COLOR_LUT_TABLE,
-            DRAW_SPRITE_TEXT_GLYPH, GET_SPRITE_TEXT_DRAW_DEST,
+            DRAW_SPRITE_TEXT_GLYPH, GET_SPRITE_TEXT_DRAW_DEST, GLYPHS_SPECIAL,
         )
 }

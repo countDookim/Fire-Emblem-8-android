@@ -68,7 +68,7 @@ class PopupScriptTest {
             messages = messages,
             text = text,
             hardware = BgHardware(),
-            drawnIconLookupTable = ByteArray(0x200),
+            drawnIconLookupTable = ByteArray(0x380),
             iconGfxIdLookupTable = ByteArray(0x100),
             popupItem = { popupItem },
             popupNumber = { 0 },

@@ -37,7 +37,8 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      path, then the unit menu opens with Item and Wait (no Attack: no enemy is in reach). Moving
      her next to a red unit instead shows Attack first. Choosing it (MC-3a, not yet in a published
      APK) opens a framed weapon list with a hover bar; only the red squares of the highlighted
-     weapon's reach stay. The weapon rows are blank and there is no face or item panel (MC-4); A on
+     weapon's reach stay. The row shows the weapon's icon, name and uses (MC-4a, not yet in a published
+     APK); there is no face or item panel (MC-4b). A on
      a weapon (MC-3b, not yet in a published APK) equips it, clears the list and returns to the unit
      menu with no squares (stand-in until the target cursor, MC-5); B goes back to the unit menu
      with the squares hidden.

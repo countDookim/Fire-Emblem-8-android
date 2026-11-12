@@ -331,7 +331,7 @@ class PopupProcDifferentialTest {
         // The trace has no stale window bits or icon entries before PrepareGfx, so seed some:
         // the original's result must still be the traced, cleared state.
         hardware.lcd.dispcnt = hardware.lcd.dispcnt or 0xE000
-        val drawn = ByteArray(ItemIcon.MAX_ICON_COUNT * 2) { 0x5A }
+        val drawn = ByteArray(ItemIcon.MAX_ICON_COUNT * ItemIcon.ICON_ENTRY_SIZE) { 0x5A }
         val gfxIds = ByteArray(ItemIcon.MAX_ICON_GFX_COUNT) { 0x5A }
         val mine = Popup.PopupProc()
         Popup.setupSimple(mine, GOT_ITEM, 0x60, 0)

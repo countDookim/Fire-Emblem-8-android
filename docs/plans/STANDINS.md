@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 179 across 36 Kotlin files.
+Total entries: 180 across 36 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -21,7 +21,7 @@ Total entries: 179 across 36 Kotlin files.
 | M6-F | 13 |
 | M6-G | 4 |
 | M6-H | 30 |
-| M6-I | 26 |
+| M6-I | 27 |
 | M6-J | 8 |
 | D09-3 | 2 |
 | D11-wire-a | 2 |
@@ -202,7 +202,7 @@ Total entries: 179 across 36 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `renderBmMapOnBg2` | `RenderBmMapOnBg2` (fog chapters only); stand-in until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `trapTypeAt` | `GetTrapAt(x, y)->type` of src/bmtrick.c; stand-in until M6-H, -1 for no trap. |
 
-## M6-I (26)
+## M6-I (27)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -223,12 +223,13 @@ Total entries: 179 across 36 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `writeGameSave` | The world map stuff and dungeon records are written from the stand-ins of [GameSaveRam] (M6-I). |
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `writeGameSave` | WriteWorldMapStuff: not ported (M6-I), the raw stand-in is written. |
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `writeGmMonsterRnState` | Transcribed from src/bmsave.c: WriteGMMonsterRnState (not verified: the world map's RN state is a stand-in and the two trailing stack bytes are not derivable) The world map RN state is a stand-in u... |
-| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBeginning.kt` | `hooks` | `sub80BA008` (M6-I) and `startGmapMuEntry` (D11-wm3e) stay stand-ins; so does `startWmFaceCtrl` (D11-wm8d) unless [faces] is given, and `startGmapMuEntry` unless [muEntry] is given. @param faces th... |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBeginning.kt` | `hooks` | `sub80BA008` (M6-I) stays a stand-in; `startWmFaceCtrl` (D11-wm8d) is one unless [faces] is given and `startGmapMuEntry` (D11-wm3e) unless [muEntry] is given. |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `Hooks` | "M6-I" and "D11-wire-a" are the plan items that will port the stand-ins. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `endMinimap` | `EndWorldmapMinimap()`: stand-in until M6-I (the Prologue world map never starts the minimap). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `endPlayerInterface` | `sub_80BF15C()`: ends the player interface; stand-in until M6-I (the Prologue world map never starts it). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `mapRoute80BC2DC` | `MapRoute_80BC2DC(gm_screen->gmroute)`: stand-in until M6-I (the Prologue draws no route line, so there is nothing to clear). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `wmRemoveRandomMonsters` | `WmRemoveRandomMonsters()`: stand-in until M6-I (random monsters only spawn in the free-roam world map). |
-| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `callBeginningEvent` | Still stand-ins: `sub_80BA008` (monster-merged/postgame branch, M6-I), `StartWMFaceCtrl` (D11-wm8d) and `StartGmapMuEntry` (D11-wm3e). @param nodes `gWMNodeData` @param checkFlag `CheckFlag` @param... |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `callBeginningEvent` | Still a stand-in: `sub_80BA008` (monster-merged/postgame branch, M6-I). @param proc the world map main proc @param nodes `gWMNodeData` @param checkFlag `CheckFlag` @param hooks the unported callees |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMainScript.kt` | `WorldMapMainScript` | `WorldMapBoot.mainScript` registers the callees the Prologue runs (`WorldMap_CallIntroEvent`, `WorldMap_WaitForChapterIntroEvents`, `WorldMap_HideEverything`, `ResetWorldMapScreen`); the free-roam... |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt` | `drawMergeFlag` | Stand-in until M6-I: the flag is never set in the prologue. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt` | `drawNodeIcon` | Stand-in until M6-I: no node is valid in the prologue. |

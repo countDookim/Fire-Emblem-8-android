@@ -96,14 +96,14 @@ Total entries: 546 across 74 decomp files (missing reason: 0).
 | `GmapRmUpdateExt_Delay` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | every captured delay is 0, so `<= 0` cannot be told from `< 0` after the decrement |
 | `EndGmapRmUpdateExt` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | never called in the capture |
 | `GmapRm_OnEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | the capture's `GmapRM` ends the frame the trace stops showing its screen, and most callees are hooks |
-| `GmapRm_InitNop` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | a no-op |
+| `GmapRm_InitNop` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | an empty function |
 | `GmapRm_Goto1IfFlag1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | runs after the unblock |
 | `GmapRm_InitBlend` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | the capture's flag 0 is never set, so the blend-in branch of the script is skipped |
 | `GmapRm_BlendIn` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | see [gmapRmInitBlend] |
 | `GmapRm_80C214C` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | only run after the unblock, past the frames the capture's screen dumps cover |
-| `GmapRm_BlendOut` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | see [gmapRm80C214C] |
-| `GmapRm_DisplayLeaderUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | see [gmapRm80C214C] |
-| `GmapRm_80C2398` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | see [gmapRm80C214C] |
+| `GmapRm_BlendOut` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | see [gmapRmReturnToWorldMap] |
+| `GmapRm_DisplayLeaderUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | see [gmapRmReturnToWorldMap] |
+| `GmapRm_80C2398` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | see [gmapRmReturnToWorldMap] |
 | `GmapRMExists` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | only the event wait calls it |
 | `GmapRm_SetUnblocked` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | the capture's map is ended by the event engine without the flag |
 | `GmapRm_EndAll` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | only the skipping branch of the event commands calls it |

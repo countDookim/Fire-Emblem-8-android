@@ -29,82 +29,106 @@ import gbafe.proc.ProcScripts.whileExists
 import gbafe.proc.ProcScripts.yield
 
 /**
- * The fields of `struct WorldMapMainProc` ported so far. The rest of the struct and the whole
- * `ProcScr_WorldMapMain` script are not ported yet.
+ * The fields of `struct WorldMapMainProc` ported so far: the state of the proc that runs the
+ * whole world map screen (`ProcScr_WorldMapMain`, `src/worldmap_main.c`). The rest of the
+ * struct and the whole `ProcScr_WorldMapMain` script are not ported yet.
  */
 public class WorldMapMainProc {
-    /** `gm_icon` (+0x48): the `ProcScr_GmNodeIconDisplay` proc. */
+    /** `gm_icon` (+0x48): the state of the `ProcScr_GmNodeIconDisplay` proc (node icons). */
     public var gmIcon: GmNodeIconDisplayProc = GmNodeIconDisplayProc()
 
-    /** `gm_screen` (+0x34): the `ProcScr_GMapScreen` proc (set by `WorldMap_Init`). */
+    /** `gm_screen` (+0x44): the `ProcScr_GMapScreen` proc (set by `WorldMap_Init`). */
     public var gmScreen: Proc? = null
 
-    /** `gm_unitc`: the `ProcScr_GmapUnitContainer` proc. */
+    /** `gm_unitc` (+0x4C): the `ProcScr_GmapUnitContainer` proc (the unit sprites). */
     public var gmUnitc: Proc? = null
 
-    /** `gm_cursor`: the `gProcScr_GmapCursor` proc. */
+    /** `gm_cursor` (+0x50): the `gProcScr_GmapCursor` proc. */
     public var gmCursor: Proc? = null
 
-    /** `gm_mu`: the `ProcScr_GMapMu` proc. */
+    /** `gm_mu` (+0x54): the `ProcScr_GMapMu` proc (the map units, `GM_MU`). */
     public var gmMu: Proc? = null
 
-    /** The `ProcScr_GmNodeIconDisplay` proc behind [gmIcon]. */
+    /** The `ProcScr_GmNodeIconDisplay` proc whose state is [gmIcon] (not a struct field). */
     public var gmIconProc: Proc? = null
 
-    /** `delay_timer`, cleared by `WorldMap_Init`. */
+    /** `delay_timer` (+0x2A, `s8`), cleared by `WorldMap_Init`. */
     public var delayTimer: Int = 0
 
-    /** `unk_3a` (+0x3A), cleared by `sub_80B8E60`. */
+    /** `unk_3a` (+0x3A, `u16`), cleared by `sub_80B8E60`; meaning unknown. */
     public var unk3a: Int = 0
 
-    /** `flags_1` (bit 1 of the byte at +0x29). */
+    /** `flags_1` (bit 1 of the byte at +0x29), cleared by `NewWorldMap`; meaning unknown. */
     public var flags1: Int = 0
 
-    /** `unk_3e` (+0x3E): the leader's node when the world map is left. */
+    /**
+     * `unk_3e` (+0x3E, `u8`): the node whose chapter `WorldMap_CallIntroEvent` starts
+     * (`WMLoc_GetChapterId(unk_3e)`); set to the leader's node (`gGMData.units[0].location`) or to
+     * a story node the leader reaches.
+     */
     public var unk3e: Int = 0
 
-    /** `timer` (+0x2C). */
+    /**
+     * `timer` (+0x2C): set by `NewWorldMap` (4 after the postgame flag, 12 once the monsters are
+     * merged, else 16) and passed on to `sub_80BA008`; meaning unknown.
+     */
     public var timer: Int = 0
 
-    /** `scrolling` (+0x30): bit 0 is set while no [WorldMapScroll] scroll runs. */
+    /**
+     * `scrolling` (+0x30): bit 0 is set while no [WorldMapScroll] scroll runs
+     * (`CheckGmScrolling` returns `!(scrolling & 1)`).
+     */
     public val scrolling: GmScrollFlags = GmScrollFlags()
 }
 
 /**
  * The fields of `struct GmNodeIconDisplayProc` (`ProcScr_GmNodeIconDisplay`, see
- * [WorldMapNodeIcons]).
+ * [WorldMapNodeIcons]): the proc that draws the icon of every node whose state bit 0 is set on
+ * the world map, and the flag sprite of the next node.
  */
 public class GmNodeIconDisplayProc {
-    /** `chr` (+0x2C): VRAM offset of the node icon tiles. */
+    /** `chr` (+0x2C): VRAM byte offset of the node icon tiles (divided by `CHR_SIZE` to draw). */
     public var chr: Int = 0
 
     /** `pal` (+0x30): the OBJ palette bank. */
     public var pal: Int = 0
 
-    /** `unk_31` (+0x31). */
+    /**
+     * `unk_31` (+0x31): the `unk` argument of `StartGmNodeIconDisplay`; the decomp never reads
+     * it, meaning unknown.
+     */
     public var unk31: Int = 0
 
-    /** `skip` (bit 0 of the byte at +0x32): the loop draws only while this is set. */
+    /**
+     * `skip` (bit 0 of the byte at +0x32): the loop draws only while this is set (the decomp
+     * name is the opposite of what the loop does; `GmapScreen2_Init` sets it).
+     */
     public var skip: Boolean = false
 
-    /** `unk_34` (+0x34): one bit per node, drawn blended. */
+    /** `unk_34` (+0x34): one bit per node id; a set bit draws that node's icon translucent. */
     public var unk34: Int = 0
 
-    /** `ap` (+0x38): the animation handle of the merge-next-node flag. */
+    /**
+     * `ap` (+0x38): the sprite drawn at node [nodeId]'s icon flag origin while [mergeNextNode] is
+     * set.
+     */
     public var ap: ApHandle? = null
 
-    /** `pScreenProc` (+0x3C). */
+    /** `pScreenProc` (+0x3C): the screen proc whose scroll position the icons are drawn against. */
     public var screen: GmScreenProc? = null
 
-    /** `merge_next_node` (bit 1 of the byte at +0x32). */
+    /** `merge_next_node` (bit 1 of the byte at +0x32): draw the [ap] sprite at [nodeId]. */
     public var mergeNextNode: Boolean = false
 
-    /** `nodeId` (+0x33). */
+    /** `nodeId` (+0x33): the node [ap] is drawn at (the next uncleared node). */
     public var nodeId: Int = 0
 }
 
 /**
- * The world map entry wrapper: [wrapperScript] starts [mainScript] through [newWorldMap].
+ * The world map entry wrapper: [wrapperScript] (`ProcScr_WorldMapWrapper`) starts [mainScript]
+ * through [newWorldMap], waits until the world map proc ends, and then ends any fade-in. Also
+ * holds the first steps of the world map main script (`ProcScr_WorldMapMain`) and a few of its
+ * helpers.
  *
  * @param engine the proc scheduler
  * @param playSt `gPlaySt`
@@ -122,6 +146,9 @@ public class WorldMapMain(
     /**
      * Transcribed from src/worldmap_main.c: ProcScr_WorldMapWrapper (not verified: script order not
      * yet checked against a reference run).
+     *
+     * Waits a frame, starts the world map, and holds until `ProcScr_WorldMapMain` no longer
+     * exists.
      */
     public val wrapperScript: ProcScript = ProcScript(
         "ProcScr_WorldMapWrapper",
@@ -138,7 +165,8 @@ public class WorldMapMain(
 
     /**
      * Starts [mainScript] in proc tree 3 and sets its `flags_1` and `timer`: 4 after the
-     * postgame flag, else 12 once the monsters are merged, else 16.
+     * postgame flag (`PLAY_FLAG_POSTGAME`), else 12 once the monsters are merged
+     * (`monster_merged`), else 16.
      *
      * Ported from src/worldmap_main.c: NewWorldMap
      */
@@ -171,7 +199,8 @@ public class WorldMapMain(
     /**
      * Ported from src/worldmap_main.c: sub_80B8FD4
      *
-     * Sets `gGMData.state.bits.state_0` (bit 0) and clears `state_3` (bit 3). The trace has
+     * First command of the world map main script: sets `gGMData.state.bits.state_0` (bit 0) and
+     * clears `state_3` (bit 3); the decomp does not say what the bits mean. The trace has
      * `state_3` already 0 before, so only the `state_0` write is verified.
      */
     public fun sub80B8FD4() {
@@ -181,9 +210,9 @@ public class WorldMapMain(
     /**
      * Ported from src/worldmap_main.c: sub_80B8FEC
      *
-     * Points the node icon at the next uncleared node and enables merging, or disables merging
-     * if there is none. The prologue trace only covers the no-node branch (node 0 is cleared but
-     * not valid there), so `nodeId` assignment is not verified.
+     * Points the node icon's flag sprite at the next uncleared node and enables merging, or
+     * disables merging if there is none. The prologue trace only covers the no-node branch
+     * (node 0 is cleared but not valid there), so `nodeId` assignment is not verified.
      *
      * @param getNextUnclearedNode `GetNextUnclearedNode(&gGMData)`
      */
@@ -201,8 +230,9 @@ public class WorldMapMain(
      * Transcribed from src/worldmap_main.c: WmMain_MoveCamera (not verified: `gGMData.ix/iy` stay
      * 0 and the camera constant in every prologue dump, so no trace covers any branch)
      *
-     * Scrolls `gGMData.xCamera/yCamera` so the cursor `ix/iy >> 8` stays inside the
-     * 0x20..0xD0 (x) and 0x20..0x80 (y) margins, clamped to 0..0xF0 and 0..0xA0.
+     * Scrolls the world map camera `gGMData.xCamera/yCamera` so the cursor `ix/iy >> 8` stays
+     * inside the 0x20..0xD0 (x) and 0x20..0x80 (y) margins of the screen, clamped to 0..0xF0
+     * and 0..0xA0.
      */
     public fun wmMainMoveCamera() {
         val a = (gmData.ix shr 8).toShort().toInt()
@@ -228,11 +258,14 @@ public class WorldMapMain(
     /**
      * Ported from src/worldmap_main.c: WorldMap_CallBeginningEvent
      *
-     * Real callees come from [WorldMapBeginning] (`Sound_FadeOutBGM`, `Events_WM_Beginning`
-     * lookup, `ResetGmStoryNode`, `merge_next_node`, `CallEvent`). Still stand-ins: `sub_80BA008`
-     * (monster-merged/postgame branch, M6-I), `StartWMFaceCtrl` (D11-wm8d) and
-     * `StartGmapMuEntry` (D11-wm3e).
+     * Fades out the music, then (unless monsters are merged or the postgame flag is set) looks
+     * up the chapter the leader's node leads to and runs that chapter's world map beginning
+     * event; finally starts the face controller and the text box bands. Real callees come from
+     * [WorldMapBeginning] (`Sound_FadeOutBGM`, `Events_WM_Beginning` lookup, `ResetGmStoryNode`,
+     * `merge_next_node`, `CallEvent`, and `StartWMFaceCtrl` / `StartGmapMuEntry` when given
+     * their ports). Still a stand-in: `sub_80BA008` (monster-merged/postgame branch, M6-I).
      *
+     * @param proc the world map main proc
      * @param nodes `gWMNodeData`
      * @param checkFlag `CheckFlag`
      * @param hooks the unported callees
@@ -267,6 +300,8 @@ public class WorldMapMain(
     /**
      * Transcribed from src/worldmap_main.c: ProcScr_WorldMapMain (not verified: prefix, up to and
      * including `PROC_REPEAT(WorldMap_PostBeginningEvent)`; the rest is not transcribed yet).
+     * The prefix runs the init, fades the music, runs the beginning event and then repeats the
+     * post-beginning-event step.
      *
      * @param nodes `gWMNodeData`
      * @param checkFlag `CheckFlag`
@@ -311,7 +346,7 @@ public class WorldMapMain(
         public val postBeginningEvent: (Proc) -> Unit = {},
     )
 
-    /** Callees of `WorldMap_CallBeginningEvent` that are not ported yet. */
+    /** Callees of `WorldMap_CallBeginningEvent` that are not ported here. */
     public class BeginningHooks(
         /** `Sound_FadeOutBGM(speed)`. */
         public val fadeOutBgm: (Int) -> Unit = {},
@@ -321,20 +356,21 @@ public class WorldMapMain(
         public val beginningEvent: (Int) -> Int? = { null },
         /** `ResetGmStoryNode()`. */
         public val resetGmStoryNode: () -> Unit = {},
-        /** `proc->gm_icon->merge_next_node = false`. */
+        /** `proc->gm_icon->merge_next_node = false`: stops drawing the next-node flag. */
         public val clearMergeNextNode: () -> Unit = {},
         /** `CallEvent(Events_WM_Beginning[...], 0)` with the event id from [beginningEvent]. */
         public val callEvent: (Int) -> Unit = {},
-        /** `StartWMFaceCtrl(proc)`. */
+        /** `StartWMFaceCtrl(proc)`: the world map face controller ([WorldMapFace]). */
         public val startWmFaceCtrl: () -> Unit = {},
-        /** `StartGmapMuEntry(NULL)`. */
+        /** `StartGmapMuEntry(NULL)`: the shaded bands behind world map text. */
         public val startGmapMuEntry: () -> Unit = {},
     )
 }
 
 /**
- * The graphics setup that opens `WorldMap_Init`: `SetupGraphicSystemsForWorldMap` and
- * `sub_80B8E60` (with `SetupGmapNodeGfx`). `WorldMapBoot.worldMapInit` calls both.
+ * The graphics setup that opens `WorldMap_Init` (`src/worldmap_main.c`):
+ * `SetupGraphicSystemsForWorldMap` and `sub_80B8E60` (with `SetupGmapNodeGfx`): the BG, palette,
+ * tile, window and blend state of the world map screen. `WorldMapBoot.worldMapInit` calls both.
  *
  * `GetSaveWriteAddr(SAVE_ID_XMAP)` only returns an address and has no side effect, so it is not
  * ported. The `for` loop over `gGMData.nodes` that writes `gm_icon` belongs to `sub_80B9114`
@@ -387,8 +423,8 @@ public class WorldMapGfxSetup(
     /**
      * Ported from src/worldmap_main.c: SetupGmapNodeGfx
      *
-     * Loads the node palettes (banks 0x13-0x14), the node tiles at OBJ VRAM `+0x1000` and the
-     * castle node tiles (0xC x 4 tiles) at `+0x280`.
+     * Loads the node palettes (banks 0x13-0x14), the node tiles at OBJ VRAM `+0x1000`
+     * (`0x06011000`) and the castle node tiles (0xC x 4 tiles) at `+0x280` (`0x06010280`).
      */
     public fun setupGmapNodeGfx() {
         applyPalettes(PAL_NODES, 0x13, 2)
@@ -401,7 +437,8 @@ public class WorldMapGfxSetup(
      * Ported from src/worldmap_main.c: sub_80B8E60
      *
      * Clears the tilemaps, loads the UI, node and path graphics and sets the window, blend and
-     * HBlank state of the world map.
+     * HBlank state of the world map. The path image goes to BG VRAM `0x06005000`, which
+     * `StartGMapRoute(..., 0x5000, 0xe)` (`chr` 0x5000, palette 0xE) draws from.
      */
     public fun sub80B8E60(proc: WorldMapMainProc) {
         proc.unk3a = 0
@@ -438,6 +475,7 @@ public class WorldMapGfxSetup(
         for (bg in 0..3) hardware.fill(hardware.mapBuffer(bg), 0)
     }
 
+    /** `ApplyPalettes(src, palId, count)`: copies [count] 16-colour palettes into the buffer. */
     private fun applyPalettes(src: Int, palId: Int, count: Int) {
         rom.pal(src, 16 * count).copyInto(hardware.palette, palId * 16)
         hardware.enablePaletteSync()
@@ -480,43 +518,58 @@ public class WorldMapGfxSetup(
         public val initMus: () -> Unit = {},
         /** `ApplyUnitSpritePalettes`: ported as `UnitSprites.applyUnitSpritePalettes`. */
         public val applyUnitSpritePalettes: () -> Unit = {},
-        /** `SetWorldMapHblank`: [WorldMapHblank.setWorldMapHblank] in the boot; nothing by default. */
+        /** `SetWorldMapHblank`: [WorldMapHblank.setWorldMapHblank] in the boot; default nothing. */
         public val setWorldMapHblank: () -> Unit = {},
     )
 
     /** ROM addresses and layout constants. */
     public companion object {
+        /** Size of `gGenericBuffer` used here. */
         private const val GENERIC_BUFFER_SIZE = 0x2000
+
+        /** `FACE_SLOT_COUNT`. */
         private const val FACE_SLOTS = 4
+
+        /** `CHR_SIZE`: bytes of one 4bpp tile. */
         private const val CHR_SIZE = 0x20
+
+        /** `0x06010000` as a VRAM offset (OBJ tiles). */
         private const val OBJ_VRAM = 0x10000
+
+        /** `WEATHER_CLOUDS` of `include/types.h`. */
         private const val WEATHER_CLOUDS = 7
+
+        /** Bit index of `wincnt.win0_enableBlend` in the window control word. */
         private const val WIN0_ENABLE_BLEND = 5
+
+        /** Bit index of `wincnt.win1_enableBlend`. */
         private const val WIN1_ENABLE_BLEND = 13
+
+        /** Bit index of `wincnt.wout_enableBlend`. */
         private const val WOUT_ENABLE_BLEND = 21
 
         /** `gUnknown_08A3D728`: the world map face config (tile offset, palette id) x 4. */
         public const val FACE_CONFIG: Int = 0x08A3D728
 
-        /** `gUnknown_08A97A40`: node palettes. */
+        /** `gUnknown_08A97A40`: the node icon palettes (two banks). */
         public const val PAL_NODES: Int = 0x08A97A40
 
-        /** `Img_GmapNodes`. */
+        /** `Img_GmapNodes`: the node icon tiles. */
         public const val IMG_GMAP_NODES: Int = 0x08A96308
 
-        /** `Img_GmapCastleNodes`. */
+        /** `Img_GmapCastleNodes`: the castle node tiles. */
         public const val IMG_GMAP_CASTLE_NODES: Int = 0x08A97410
 
-        /** `gPal_MiscUiGraphics`. */
+        /** `gPal_MiscUiGraphics`: the misc UI palettes. */
         public const val PAL_MISC_UI: Int = 0x0859ED70
 
         /** `gUnknown_08AA11D0`: the world map's misc UI image. */
         public const val GFX_MISC_UI_WM: Int = 0x08AA11D0
 
-        /** `gUnknown_08A97FA4`: path palette. */
+        /** `gUnknown_08A97FA4`: the path palette. */
         public const val PAL_PATH: Int = 0x08A97FA4
 
-        /** `Img_GmapPath`. */
+        /** `Img_GmapPath`: the path tiles. */
         public const val IMG_GMAP_PATH: Int = 0x08A97ED8
     }
 }

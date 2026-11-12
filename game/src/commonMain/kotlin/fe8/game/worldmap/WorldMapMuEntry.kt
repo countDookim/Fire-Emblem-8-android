@@ -21,8 +21,9 @@ import gbafe.render.BgTilemap
 
 /**
  * The fields of `struct GmapMuEntryProc` (`src/worldmap_entry.c:31`), the state of
- * `gProcScr_GmapMuEntry2`. The hide transition (`unk_2c`..`unk_2f` set to the reverse of the show
- * values) is not run by any capture.
+ * `gProcScr_GmapMuEntry2` (the shaded top and bottom bands of the world map text box). The hide
+ * transition (`unk_2c`..`unk_2f` set to the reverse of the show values) is not run by any
+ * capture. The decomp names are kept because tests read these fields.
  */
 public class GmapMuEntryProc {
     /** `flags_0` (+0x29, bit 0): a show/hide transition is running. */
@@ -65,10 +66,13 @@ public class GmapMuEntryProc {
 /**
  * The "Gmap Mu Entry" proc of the world map (`src/worldmap_entry.c`, `gProcScr_GmapMuEntry2`):
  * it fades in (or out) two shaded bands at the top and bottom of the map with a scanline
- * effect and an alpha blend while the map units are shown or hidden. In the Prologue it is
- * started by `WorldMap_CallBeginningEvent`, runs `GmMuEntry_Init`, yields once, waits blocked at
+ * effect and an alpha blend. The decomp names the event commands that drive it
+ * `EventAF_WmShowTextBox`, `EventB0_WmHideTextBox_Bugged` and `EventB1_WmTextBoxWait`, so the
+ * bands are the backdrop of world map text. In the Prologue it is started by
+ * `WorldMap_CallBeginningEvent`, runs `GmMuEntry_Init`, yields once, waits blocked at
  * label 0, runs one show transition (`GmMuEntryStartShow(40, 0x100)`, 40 frames) and waits again
- * until `EndGmMuEntry` ends it.
+ * until `EndGmMuEntry` ends it. (The other `gProcScr_GmapMuEntry1` of the same file fades a
+ * single map unit in and out and is not ported here.)
  *
  * Limits: no capture calls `GmMuEntryStartHide`, so `GmMuEntry_80BFFD0`, `GmMuEntry_80C0144`,
  * `GmMuEntryStartHide`, the flag accessors and `GmMuEntryExists` are not written, and the
@@ -87,10 +91,12 @@ public class WorldMapMuEntry(
     private val rom: RomView,
     private val hblank: WorldMapHblank,
 ) {
+    /** `gGenericBuffer`: scratch for the decompressed band tile arrangement. */
     private val genericBuffer = ByteArray(GENERIC_BUFFER_SIZE)
 
     /**
-     * `gProcScr_GmapMuEntry2`.
+     * `gProcScr_GmapMuEntry2`: init, wait blocked at label 0, and on each show command run
+     * [gmMuEntryStartShow]'s transition (label 1), then wait again.
      *
      * Transcribed from src/worldmap_entry.c: gProcScr_GmapMuEntry2 (not verified: the commands
      * of the second, hide transition fail loudly because their callbacks are not written; the
@@ -109,8 +115,8 @@ public class WorldMapMuEntry(
             label(0),
             block(),
             label(1),
-            call(ProcFunc { gmMuEntry80BFEF8(it.state as GmapMuEntryProc) }),
-            repeat(ProcFunc { gmMuEntry80C0080(it) }),
+            call(ProcFunc { startShowTransition(it.state as GmapMuEntryProc) }),
+            repeat(ProcFunc { stepShowTransition(it) }),
             goto(0),
             label(1),
             call(ProcFunc { notRun() }),
@@ -140,21 +146,18 @@ public class WorldMapMuEntry(
     /**
      * Ported from src/worldmap_entry.c: GetGmMuEntryFlag
      *
-     * `flags_0` of the running proc (a transition is in progress).
+     * `flags_0` of the running proc (a transition is in progress); `EventB1_WmTextBoxWait` waits
+     * until it is clear.
      */
     public fun getGmMuEntryFlag(): Boolean =
         (checkNotNull(engine.find(script)).state as GmapMuEntryProc).flags0
 
-    /**
-     * Ported from src/worldmap_entry.c: EndGmMuEntry
-     */
+    /** Ported from src/worldmap_entry.c: EndGmMuEntry: removes the bands' proc. */
     public fun endGmMuEntry() {
         engine.endEach(script)
     }
 
-    /**
-     * Ported from src/worldmap_entry.c: GmMuEntry_Init
-     */
+    /** Ported from src/worldmap_entry.c: GmMuEntry_Init: no transition running, no bands. */
     public fun gmMuEntryInit(proc: GmapMuEntryProc) {
         proc.flags0 = false
         proc.unk2b = 0
@@ -162,10 +165,10 @@ public class WorldMapMuEntry(
     }
 
     /**
-     * Ported from src/worldmap_entry.c: GmMuEntryStartShow
+     * Ported from src/worldmap_entry.c: GmMuEntryStartShow (`EventAF_WmShowTextBox`)
      *
-     * Starts the transition from no bands to the full ones (16 and 56 lines) and jumps to
-     * label 1. Returns 1 without doing anything if a transition is running.
+     * Starts the transition from no bands to the full ones (16 lines at the top and 56 at the
+     * bottom) and jumps to label 1. Returns 1 without doing anything if a transition is running.
      *
      * @param speed the number of frames the transition takes
      * @param blend the easing power passed to `_DivArm1`
@@ -186,19 +189,20 @@ public class WorldMapMuEntry(
     }
 
     /**
-     * Ported from src/worldmap_entry.c: GmMuEntry_80BFEF8
+     * Ported from src/worldmap_entry.c: GmMuEntry_80BFEF8 (`startShowTransition` here)
      *
      * Start of a show transition: loads the band graphics, clears the transition counter, sets
      * both band heights to their start values, clears both scanline lines, points them at
-     * `0x04000012` (BG0VOFS) and `0x05000054` (a palette color), enables the HBlank copy and
+     * `0x04000012` (`REG_BG0VOFS`) and `0x05000054` (palette RAM colour 42: BG palette 2, colour
+     * 10), enables the HBlank copy and
      * sets BG0 as the first and the other layers as the second blend target with alpha 0/16.
      *
      * (not verified: the `0x10` fill of line 0 and the zero fill of line 1; the same frame's
-     * [gmMuEntry80C0080] rewrites both lines before any dump, so a wrong fill value is not
+     * [stepShowTransition] rewrites both lines before any dump, so a wrong fill value is not
      * visible in the capture.)
      */
-    public fun gmMuEntry80BFEF8(proc: GmapMuEntryProc) {
-        sub80BFD28()
+    public fun startShowTransition(proc: GmapMuEntryProc) {
+        loadBandGraphics()
         proc.unk38 = 0
         proc.unk2a = proc.unk2c
         proc.unk2b = proc.unk2e
@@ -219,13 +223,13 @@ public class WorldMapMuEntry(
     }
 
     /**
-     * Ported from src/worldmap_entry.c: GmMuEntry_80C0080
+     * Ported from src/worldmap_entry.c: GmMuEntry_80C0080 (`stepShowTransition` here)
      *
      * One frame of a show transition (`PROC_REPEAT`): advances the counter by 0x1000, eases the
      * band heights and the blend alpha, and at the end sets the final heights, turns the alpha
      * blend off, clears the transition flag and jumps to label 0. Always redraws the bands.
      */
-    public fun gmMuEntry80C0080(proc: Proc) {
+    public fun stepShowTransition(proc: Proc) {
         val state = proc.state as GmapMuEntryProc
         val unk: Int
         state.unk38 += 0x1000
@@ -243,18 +247,20 @@ public class WorldMapMuEntry(
             state.flags0 = false
             engine.goto(proc, 0)
         }
-        sub80BFDA0(state)
+        drawBands(state)
     }
 
     /**
-     * Ported from src/worldmap_entry.c: sub_80BFDA0
+     * Ported from src/worldmap_entry.c: sub_80BFDA0 (`drawBands` here)
      *
-     * Rewrites the off-screen scanline page: line 0 (BG0VOFS) is `0x40 - y` everywhere, which
-     * keeps BG0 in place, and line 1 (the palette color) is 0, except within the top band
-     * (`unk_2a` lines from the top) and the bottom band (`unk_2b` lines from the bottom) where
-     * the vertical offset shifts and the color ramps toward `(13, 17, 23)`. Then swaps the pages.
+     * Rewrites the off-screen scanline page. Line 0 (BG0VOFS) is `0x40 - y` on every scanline `y`
+     * (so each of them shows BG0 pixel row 0x40; what that row holds is not checked) and line 1
+     * (the palette colour) is 0, except within the top band (`unk_2a` lines from the top) and the
+     * bottom band (`unk_2b` lines from the bottom). There the vertical offset changes and the
+     * colour ramps (in 5-bit RGB, the decomp's literals) up to `(13, 17, 23)`. Then swaps the
+     * pages. The decomp's unused second parameter is dropped.
      */
-    public fun sub80BFDA0(proc: GmapMuEntryProc) {
+    public fun drawBands(proc: GmapMuEntryProc) {
         val palA = hblank.lineBufferIndex(0, 1)
         val palB = hblank.lineBufferIndex(1, 1)
         for (i in 0 until SCREEN_HEIGHT) {
@@ -280,12 +286,13 @@ public class WorldMapMuEntry(
     }
 
     /**
-     * Ported from src/worldmap_entry.c: sub_80BFD28
+     * Ported from src/worldmap_entry.c: sub_80BFD28 (`loadBandGraphics` here)
      *
      * Loads the band graphics: palette bank 2, tiles at VRAM `0x06004C00`, and the tile
-     * arrangement into BG0 with tile base 0x2260 (palette 2).
+     * arrangement into BG0 with tile entry base 0x2260 (tile 0x260 = `0x4C00 / CHR_SIZE`, palette
+     * 2).
      */
-    public fun sub80BFD28() {
+    public fun loadBandGraphics() {
         rom.pal(PAL_BAND, 16).copyInto(hardware.palette, 2 * 16)
         hardware.enablePaletteSync()
         rom.decompressInto(IMG_BAND, hardware.vram, BAND_TILES_VRAM)
@@ -294,6 +301,7 @@ public class WorldMapMuEntry(
         hardware.enableBgSyncByMask(BG0_SYNC_BIT)
     }
 
+    /** Stands in for the hide commands of [script], which no capture reaches. */
     private fun notRun(): Nothing =
         error("not verified: no capture runs GmMuEntryStartHide")
 
@@ -308,16 +316,37 @@ public class WorldMapMuEntry(
         /** `gTsa_08A9E5DC`: the band tile arrangement. */
         public const val TSA_BAND: Int = 0x08A9E5DC
 
+        /** `PROC_MARK_WMSTUFF`. */
         private const val PROC_MARK_WMSTUFF = 8
+
+        /** `PROC_TREE_3`: the root the proc starts in without a parent. */
         private const val ROOT_TREE = 3
+
+        /** Size of `gGenericBuffer` used here. */
         private const val GENERIC_BUFFER_SIZE = 0x2000
+
+        /** `0x06004C00` as a VRAM offset. */
         private const val BAND_TILES_VRAM = 0x4C00
+
+        /** `BG0_SYNC_BIT`. */
         private const val BG0_SYNC_BIT = 1
+
+        /** `REG_BG0VOFS`, the register the scanline effect's line 0 feeds. */
         private const val BG0VOFS_REGISTER = 0x04000012
+
+        /** Palette RAM colour 42 (BG palette 2, colour 10), the register of the effect's line 1. */
         private const val PALETTE_COLOR_REGISTER = 0x05000054
+
+        /** Entries of one scanline-effect line: one per screen row (`DISPLAY_HEIGHT * 2` bytes). */
         private const val LINE = 160
+
+        /** `DISPLAY_HEIGHT`. */
         private const val SCREEN_HEIGHT = 160
+
+        /** `BLEND_EFFECT_NONE`. */
         private const val BLEND_EFFECT_NONE = 0
+
+        /** `BLEND_EFFECT_ALPHA`. */
         private const val BLEND_EFFECT_ALPHA = 1
     }
 }

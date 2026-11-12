@@ -58,7 +58,7 @@ their old counts); new packages get a row when they appear.
 | engine/extract | gbafe.extract.text | 1 | 55 | done 2026-11-09 0194222; audit todo |
 | engine/input | gbafe.input | 2 | 238 | done 2026-11-07 697847c; audit done 2026-11-12 02666d9 |
 | engine/render | gbafe.render | 10 | 1592 | done 2026-11-09 83f2cb6; audit todo |
-| engine/save | gbafe.save | 7 | 621 | done 2026-11-09 d3b21d6; audit done 2026-11-12 PENDING |
+| engine/save | gbafe.save | 7 | 621 | done 2026-11-09 d3b21d6; audit done 2026-11-12 ad1504f |
 | engine/script | gbafe.script | 7 | 920 | done 2026-11-09 d3b21d6; audit todo |
 | engine/text | gbafe.text | 6 | 926 | done 2026-11-09 d3b21d6; audit todo |
 | game | fe8.game | 8 | 1999 | done 2026-11-09 ee10196; audit todo |
@@ -68,7 +68,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.bm (UnitLoader, Mu, MuCtrl, MuSpriteAnim, PlayerPhase, BattleMapStart) | 6 | 3863 | todo |
 | game | fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs) | 4 | 845 | done 2026-11-10 ff286fe / 0bfe1ab; audit todo |
 | game | fe8.game.event (remaining command handlers and script formats) | 18 | 3299 | done 2026-11-10 077a47d; audit todo |
-| game | fe8.game.flags | 1 | 69 | done 2026-11-09 0194222; audit done 2026-11-12 PENDING |
+| game | fe8.game.flags | 1 | 69 | done 2026-11-09 0194222; audit done 2026-11-12 ad1504f |
 | game | fe8.game.opanim (OpAnim, OpAnimHs, EarlyStartUi) | 3 | 3225 | done 2026-11-11 8cf022f / 4735f55; audit todo |
 | game | fe8.game.opanim (OpSubtitle*.kt) | 7 | 796 | done 2026-11-10 f3ad834 / d05e87f; audit todo |
 | game | fe8.game.save | 8 | 2541 | done 2026-11-09 1941586; audit todo |

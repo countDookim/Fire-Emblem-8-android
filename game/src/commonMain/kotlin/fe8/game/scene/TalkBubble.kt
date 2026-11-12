@@ -16,63 +16,86 @@ import gbafe.text.TextSystem
 
 /** Hardware services the bubble and shift-clear procs need beyond [TalkHost]. */
 public interface TalkBubbleHost {
-    /** `gBG1TilemapBuffer`. */
+    /** `gBG1TilemapBuffer`: the tilemap the bubble frame and tail are put on. */
     public fun bg1Tilemap(): ShortArray
 
-    /** `IsBattleDeamonActive`. */
+    /**
+     * `IsBattleDeamonActive` (`gBattleDeamonActive`): true while the battle animation system runs
+     * (fight events talk with a fixed bubble at the bottom of the screen).
+     */
     public fun isBattleDeamonActive(): Boolean
 
-    /** `TalkToggleInvertedPalette(flag)`. */
+    /**
+     * `TalkToggleInvertedPalette(flag)`: loads the inverted (non-zero) or normal text and bubble
+     * palettes.
+     */
     public fun toggleInvertedPalette(flag: Int)
 
-    /** `InitTalkTextWin(x, y, width, height)` (window 0 box and layer masks). */
+    /**
+     * `InitTalkTextWin(x, y, width, height)`: enables window 0 over the bubble interior (the
+     * bubble box inset by one tile) with every layer shown inside and BG0 hidden outside, so the
+     * text, which is on BG0, is cut off at the bubble edge while it scrolls.
+     */
     public fun initTalkTextWin(x: Int, y: Int, width: Int, height: Int)
 
-    /** Turns window 0, window 1 and the object window off (the end of `ClearTalkBubble`). */
+    /** Turns window 0, window 1 and the object window off (the last step of `ClearTalkBubble`). */
     public fun disableTalkWindows()
 
-    /** The blend set-up of `TalkOpen_InitBlend` for the case without `TALK_FLAG_8`. */
+    /**
+     * The blend set-up of `TalkOpen_InitBlend` for the case without `TALK_FLAG_8`: alpha
+     * blending of BG1 (the bubble) against BG2, BG3, the sprites and the backdrop (not BG0, the
+     * text), starting with the bubble fully transparent.
+     */
     public fun initTalkBlend()
 
-    /** `SetBlendAlpha(a, b)`. */
+    /**
+     * `SetBlendAlpha(a, b)`: alpha blending with first-target weight [a] and second-target weight
+     * [b] (of 16).
+     */
     public fun setBlendAlpha(a: Int, b: Int)
 
-    /** `SpriteText_Clear(text)`. */
+    /** `SpriteText_Clear(text)`: zeroes the OBJ tiles of a sprite-text line. */
     public fun spriteTextClear(text: Text)
 }
 
-/** State of a `gProcScr_TalkOpen` proc: [frameTimer] is `unk58`, coordinates `unk64..unk6A`. */
+/**
+ * State of a `gProcScr_TalkOpen` proc: the bubble to put, in tiles, and its opening frame count.
+ */
 public class TalkOpenState {
-    /** Anchor column in 8-pixel tiles (`unk64`). */
+    /** Tile column of the face the bubble points at, clamped to 0..30 (`unk64`). */
     public var x: Int = 0
 
-    /** Anchor row in 8-pixel tiles (`unk66`). */
+    /** Tile row of the bubble's bottom edge, where its tail is drawn: always 8 (`unk66`). */
     public var y: Int = 0
 
-    /** Bubble width in tiles (`unk68`). */
+    /** Bubble width in tiles, [TalkState.activeWidth] (`unk68`). */
     public var width: Int = 0
 
-    /** Bubble height in tiles (`unk6A`). */
+    /** Bubble height in tiles, always 6: two text lines of 2 rows plus the border (`unk6A`). */
     public var height: Int = 0
 
-    /** Animation frame counter (`unk58`). */
+    /** Frames of the opening animation run so far, up to 12 (`unk58`). */
     public var frameTimer: Int = 0
 }
 
 /** State of the bubble-open, shift-clear and shift-clear-all procs (`unk64` and `unk66`). */
 public class TalkCounterState {
-    /** Step counter or elapsed frame count (`unk64`). */
+    /**
+     * Frames counted (`unk64`): in the shift procs the pixels the text has scrolled; in the bubble
+     * opening, twice the animation frame shown.
+     */
     public var counter: Int = 0
 
-    /** Target step count limit (used by `gProcScr_TalkShiftClearAll`, `unk66`). */
+    /** Pixels `gProcScr_TalkShiftClearAll` scrolls before it ends (`unk66`). */
     public var limit: Int = 0
 }
 
 /**
- * The speech bubble and line shift-clear procs of `src/scene.c`: `gProcScr_TalkOpen`,
- * `gProcScr_TalkBubbleOpen`, `gProcScr_TalkShiftClear`, `gProcScr_TalkShiftClearAll`, and
- * `ClearTalkBubble`, `PutTalkBubble`, `TalkFlushAllLine`. Drawing goes to the tilemaps of
- * [host] and [bubbleHost].
+ * The speech bubble and line shift-clear procs of `src/scene.c`: `gProcScr_TalkOpen` (the bubble
+ * slides in and fades in), `gProcScr_TalkBubbleOpen` (the bubble's grow-in tile animation),
+ * `gProcScr_TalkShiftClear` (one line scrolls up) and `gProcScr_TalkShiftClearAll` (all text
+ * scrolls away), and `ClearTalkBubble`, `PutTalkBubble`, `TalkFlushAllLine`. Drawing goes to the
+ * tilemaps of [host] and [bubbleHost].
  */
 public class TalkBubble(
     private val text: TextSystem,
@@ -81,6 +104,7 @@ public class TalkBubble(
     private val host: TalkHost,
     private val bubbleHost: TalkBubbleHost,
 ) {
+    /** `TalkOpen_OnEnd`: an empty function in the decomp. */
     private val onEndFn = ProcFunc { }
     private val initBlendFn = ProcFunc { talkOpenInitBlend(it) }
     private val putBubbleFn = ProcFunc { talkOpenPutTalkBubble(it) }
@@ -91,7 +115,10 @@ public class TalkBubble(
     private val clearAllInitFn = ProcFunc { talkShiftClearAllOnInit(it) }
     private val clearAllIdleFn = ProcFunc { talkShiftClearAllOnIdle(it) }
 
-    /** `gProcScr_TalkOpen`. */
+    /**
+     * `gProcScr_TalkOpen`: [talkOpenInitBlend], put the bubble once, then 12 frames of
+     * [talkOpenOnIdle].
+     */
     public val openScript: ProcScript = ProcScript(
         "gProcScr_TalkOpen",
         listOf(
@@ -100,12 +127,16 @@ public class TalkBubble(
         ),
     ) { TalkOpenState() }
 
-    /** `gProcScr_TalkBubbleOpen`. */
+    /**
+     * `gProcScr_TalkBubbleOpen`: runs [talkBubbleOpenOnIdle] until the last tile image is loaded.
+     */
     public val bubbleOpenScript: ProcScript = ProcScript(
         "gProcScr_TalkBubbleOpen", listOf(repeat(bubbleIdleFn), end()),
     ) { TalkCounterState() }
 
-    /** `gProcScr_TalkShiftClear`. */
+    /**
+     * `gProcScr_TalkShiftClear`: scrolls the dialogue up one line (16 pixels), one pixel per frame.
+     */
     public val shiftClearScript: ProcScript = ProcScript(
         "gProcScr_TalkShiftClear",
         listOf(
@@ -113,13 +144,18 @@ public class TalkBubble(
         ),
     ) { TalkCounterState() }
 
-    /** `gProcScr_TalkShiftClearAll`. */
+    /**
+     * `gProcScr_TalkShiftClearAll`: scrolls the whole dialogue out of the bubble, then clears it.
+     */
     public val shiftClearAllScript: ProcScript = ProcScript(
         "gProcScr_TalkShiftClearAll",
         listOf(mark(Talk.PROC_MARK_TALK), call(clearAllInitFn), repeat(clearAllIdleFn), end()),
     ) { TalkCounterState() }
 
     /**
+     * Closes the bubble: no bubble belongs to a speaker any more, BG1 is blanked, the dialogue
+     * text is cleared and the text window is turned off.
+     *
      * Ported from src/scene.c: ClearTalkBubble
      */
     public fun clearTalkBubble() {
@@ -131,6 +167,11 @@ public class TalkBubble(
     }
 
     /**
+     * Starts the bubble-opening proc for the face in [talkFace], blocking [parent]. The bubble is
+     * 6 tiles tall with its bottom edge at row 8, [TalkState.activeWidth] wide, pointing at the
+     * face's column (`gTalkFaceHPosLut`, clamped to 0..30). The speaker and width are
+     * remembered so [Talk.talkHasCorrectBubble] knows the bubble is current.
+     *
      * Ported from src/scene.c: StartTalkOpen
      */
     public fun startTalkOpen(talkFace: Int, parent: Proc) {
@@ -156,6 +197,8 @@ public class TalkBubble(
     }
 
     /**
+     * Puts the bubble on the tilemap once, then ends this step of `gProcScr_TalkOpen`.
+     *
      * Ported from src/scene.c: TalkOpen_PutTalkBubble
      */
     public fun talkOpenPutTalkBubble(proc: Proc) {
@@ -165,6 +208,9 @@ public class TalkBubble(
     }
 
     /**
+     * One of the 12 opening frames: BG1 slides down from 15 pixels above its place (the
+     * `RSQUARE` interpolation from -30, halved) while the bubble's blend alpha rises.
+     *
      * Ported from src/scene.c: TalkOpen_OnIdle
      */
     public fun talkOpenOnIdle(proc: Proc) {
@@ -180,6 +226,15 @@ public class TalkBubble(
     }
 
     /**
+     * Draws a bubble of [widthIn] by [height] tiles whose tail points at column [xAnchor] and
+     * row [yAnchorIn] on BG1, and starts its opening animation. It also sets the text origin
+     * ([TalkState.xText], [TalkState.yText]) to one tile inside the bubble.
+     *
+     * The tail kind is 0 when [xAnchor] is in the left half (< 16) and 1 otherwise; plus 2
+     * when the battle animation system is active ([TalkBubbleHost.isBattleDeamonActive]), which
+     * ignores the anchor and uses a fixed 20-wide bubble at row 14. The tail is not drawn while
+     * the inverted palettes are on (`invertedFlags` bit 0).
+     *
      * Ported from src/scene.c: PutTalkBubble
      */
     public fun putTalkBubble(xAnchor: Int, yAnchorIn: Int, widthIn: Int, height: Int) {
@@ -233,6 +288,9 @@ public class TalkBubble(
     }
 
     /**
+     * Starts `gProcScr_TalkBubbleOpen` (on proc tree 3), the animation that grows the bubble's
+     * border tiles.
+     *
      * Ported from src/scene.c: StartOpenTalkBubble
      */
     public fun startOpenTalkBubble() {
@@ -241,6 +299,9 @@ public class TalkBubble(
     }
 
     /**
+     * Every second frame loads the next of the six bubble tile images (`Img_TalkBubbleOpening_A`
+     * to `_E`, then the final `Img_TalkBubble`) into BG1's tile data, and breaks after the last.
+     *
      * Ported from src/scene.c: TalkBubbleOpen_OnIdle
      */
     public fun talkBubbleOpenOnIdle(proc: Proc) {
@@ -254,6 +315,12 @@ public class TalkBubble(
     }
 
     /**
+     * Writes the 2x2 tiles of the bubble's tail at ([x], [y]) on [buf]. [kind] 0 and 1 are the
+     * tails of a bubble in the left and right half of the screen, 2 and 3 the same for the
+     * fixed fight-event bubble; 4 and 5 exist in the decomp but `PutTalkBubble` never selects
+     * them. The tiles are bubble tiles 4..9 (tile 0x10 + n of BG1) in palette 3, mirrored with
+     * the flip bits as the C does.
+     *
      * Ported from src/scene.c: PutTalkBubbleTail
      */
     public fun putTalkBubbleTail(buf: ShortArray, x: Int, y: Int, kind: Int) {
@@ -301,6 +368,10 @@ public class TalkBubble(
     }
 
     /**
+     * Writes the bubble frame at ([x], [y]), [widthIn] by [heightIn] tiles, on [buf]: corners
+     * (bubble tile 0), top and bottom edges (1), side edges (2) and the filled inside (3), in
+     * palette 3 with flipped copies for the other corners and edges.
+     *
      * Ported from src/scene.c: PutTalkBubbleTm
      */
     public fun putTalkBubbleTm(buf: ShortArray, x: Int, y: Int, widthIn: Int, heightIn: Int) {
@@ -327,6 +398,9 @@ public class TalkBubble(
     }
 
     /**
+     * Start of a line scroll: blanks the tilemap rows under the visible lines (from row
+     * `yText + 4`) so the scroll shows empty space, and starts counting pixels.
+     *
      * Ported from src/scene.c: TalkShiftClear_OnInit
      */
     public fun talkShiftClearOnInit(proc: Proc) {
@@ -343,6 +417,10 @@ public class TalkBubble(
     }
 
     /**
+     * Scrolls BG0 up one pixel per frame. After 16 pixels (one line) the first line is dropped
+     * (`topTextNum` + 1, `lineActive` - 1), BG0 returns to its place, the remaining lines are
+     * put again one line higher and the freed line is cleared for new text.
+     *
      * Ported from src/scene.c: TalkShiftClear_OnIdle
      */
     public fun talkShiftClearOnIdle(proc: Proc) {
@@ -409,17 +487,19 @@ public class TalkBubble(
         }
     }
 
-    /** `Proc_StartBlocking(gProcScr_TalkShiftClear, parent)`. */
+    /**
+     * `Proc_StartBlocking(gProcScr_TalkShiftClear, parent)`: scrolls one line, blocking [parent].
+     */
     public fun startTalkShiftClear(parent: Proc) {
         engine.startBlocking(shiftClearScript, parent)
     }
 
-    /** `Proc_StartBlocking(gProcScr_TalkShiftClearAll, parent)`. */
+    /** `Proc_StartBlocking(gProcScr_TalkShiftClearAll, parent)`: scrolls all text away. */
     public fun startTalkShiftClearAll(parent: Proc) {
         engine.startBlocking(shiftClearAllScript, parent)
     }
 
-    /** `Proc_EndEach(gProcScr_TalkShiftClearAll)`. */
+    /** `Proc_EndEach(gProcScr_TalkShiftClearAll)`: stops a running scroll-away. */
     public fun endTalkShiftClearAll() {
         engine.endEach(shiftClearAllScript)
     }
@@ -436,22 +516,32 @@ public class TalkBubble(
         }
     }
 
+    /** `TALK_TEXT_BY_LINE(line)`. */
     private fun byLine(line: Int): Text {
         val s = talk.state
         return talk.texts[(line + s.topTextNum) % s.lines]
     }
 
+    /** Zeroes a rectangle of the tilemap `tm`: `TileMap_FillRect(tm + (x, y), w, h, 0)`. */
     private fun fillRect(tm: ShortArray, x: Int, y: Int, w: Int, h: Int) {
         // The ARM routine behind TileMap_FillRect counts both sizes inclusively.
         for (r in 0..h) for (c in 0..w) tm[0x20 * (y + r) + x + c] = 0
     }
 
     private companion object {
+        /** `TILE_HFLIP` (`include/hardware.h`): tilemap entry flag, mirror horizontally. */
         const val TILE_HFLIP = 0x400
+
+        /** `TILE_VFLIP`: tilemap entry flag, mirror vertically. */
         const val TILE_VFLIP = 0x800
+
+        /** Where the bubble tiles go: tile 0x10 (0x200 bytes) of BG1's tile data. */
         const val BUBBLE_DEST = 0x06000200
 
-        /** `gTalkFaceHPosLut`. */
+        /**
+         * `gTalkFaceHPosLut`: the tile column each of the 8 talk face slots sits at (the
+         * decomp's `GetTalkFaceHPos`; its fight-event case, 4 or 26, is not ported).
+         */
         val FACE_HPOS = intArrayOf(3, 6, 9, 21, 24, 27, -8, 38)
 
         /** `Img_TalkBubbleOpening_A..E`, then `Img_TalkBubble`. */

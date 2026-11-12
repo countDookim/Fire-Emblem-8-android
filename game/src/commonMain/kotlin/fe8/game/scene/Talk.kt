@@ -19,36 +19,42 @@ import gbafe.text.TextSystem
 
 /** `TALK_FLAG_*` bits of [TalkState.config] (include/scene.h). */
 public object TalkFlags {
-    /** `TALK_FLAG_INSTANTSHIFT`. */
+    /** `TALK_FLAG_INSTANTSHIFT`: `[2NL]` clears the text at once instead of scrolling it away. */
     public const val INSTANTSHIFT: Int = 1 shl 0
 
-    /** `TALK_FLAG_NOBUBBLE`. */
+    /** `TALK_FLAG_NOBUBBLE`: no speech bubble is opened for the speaker. */
     public const val NOBUBBLE: Int = 1 shl 1
 
-    /** `TALK_FLAG_NOSKIP`. */
+    /** `TALK_FLAG_NOSKIP`: B and START do not skip the dialogue. */
     public const val NOSKIP: Int = 1 shl 2
 
-    /** `TALK_FLAG_NOFAST`. */
+    /** `TALK_FLAG_NOFAST`: D-pad, A and B do not switch to instant printing. */
     public const val NOFAST: Int = 1 shl 3
 
-    /** `TALK_FLAG_4`. */
+    /**
+     * `TALK_FLAG_4`: set by `[SendToBack]`, cleared by `[FastPrint]` (`0x1D`); it is the `toBack`
+     * argument of `SetTalkFaceLayer` (name unknown in the decomp).
+     */
     public const val FLAG_4: Int = 1 shl 4
 
-    /** `TALK_FLAG_SPRITE`. */
+    /** `TALK_FLAG_SPRITE`: the text is sprite text (OBJ tiles) instead of BG0 text. */
     public const val SPRITE: Int = 1 shl 5
 
-    /** `TALK_FLAG_SILENT`. */
+    /** `TALK_FLAG_SILENT`: no blip sound per printed character. */
     public const val SILENT: Int = 1 shl 6
 
-    /** `TALK_FLAG_7`. */
+    /**
+     * `TALK_FLAG_7` (name unknown in the decomp): the variant of sprite talk that prints with
+     * `SONG_7A`, scrolls with a clear fill and shows the arrow on sprite layer 0.
+     */
     public const val FLAG_7: Int = 1 shl 7
 
-    /** `TALK_FLAG_8`. */
+    /** `TALK_FLAG_8`: the bubble opening skips its blend effect (`TalkOpen_InitBlend`). */
     public const val FLAG_8: Int = 1 shl 8
 }
 
 /**
- * The talk window of `src/scene.c` (`sTalkStateCore`, `sTalkFont`, `sTalkText`): set-up
+ * The dialogue window of `src/scene.c` (`sTalkStateCore`, `sTalkFont`, `sTalkText`): set-up
  * ([initTalk], the flag/delay/colour setters, [talkOnInit], [talkPrepNextChar], the talk lock),
  * the interpreter ([talkOnIdle], [talkInterpret]) and the `gProcScr_Talk`, `gProcScr_TalkPause`
  * and `gProcScr_TalkWaitForInput` procs ([talkScript], [pauseScript], [waitForInputScript]).
@@ -62,16 +68,19 @@ public class Talk(
     private val engine: ProcEngine,
     private val host: TalkHost,
 ) {
-    /** `sTalkState` / `sTalkStateCore`. */
+    /** `sTalkState` / `sTalkStateCore`: the interpreter's cursor, line and flag state. */
     public val state: TalkState = TalkState()
 
-    /** `sTalkFont`. */
+    /** `sTalkFont`: the font the dialogue lines are drawn with. */
     public val font: Font = Font()
 
-    /** `sTalkText[3]`. */
+    /** `sTalkText[3]`: the dialogue lines (only the first [TalkState.lines] are used). */
     public val texts: Array<Text> = Array(TEXT_COUNT) { Text() }
 
-    /** `gProcScr_TalkLock` (0x08591388): a single `PROC_BLOCK`. */
+    /**
+     * `gProcScr_TalkLock` (0x08591388): a single `PROC_BLOCK`. While it exists its parent (the
+     * talk) is blocked, until `ResumeTalk` ends it (the code `0x80 0x04`).
+     */
     public val lockScript: ProcScript = ProcScript("gProcScr_TalkLock", listOf(block(), end()))
 
     private val onEndFn = ProcFunc { talkOnEnd() }
@@ -80,7 +89,11 @@ public class Talk(
     private val pauseIdleFn = ProcFunc { talkPauseOnIdle(it) }
     private val waitIdleFn = ProcFunc { talkWaitForInputOnIdle(it) }
 
-    /** `gProcScr_Talk`: sleep one frame, init, then idle. */
+    /**
+     * `gProcScr_Talk`: the dialogue proc. It marks itself `PROC_MARK_TALK`, waits one frame, runs
+     * [talkOnInit] and then [talkOnIdle] every frame until the text ends; [talkOnEnd] runs when
+     * it ends.
+     */
     public val talkScript: ProcScript = ProcScript(
         "gProcScr_Talk",
         listOf(
@@ -93,14 +106,19 @@ public class Talk(
         ),
     )
 
-    /** `gProcScr_TalkPause`; [TalkPauseState.frames] is `unk64`. */
+    /**
+     * `gProcScr_TalkPause`: waits [TalkPauseState.frames] (`unk64`) frames, blocking its parent.
+     */
     public val pauseScript: ProcScript = ProcScript(
         "gProcScr_TalkPause",
         listOf(mark(PROC_MARK_TALK), sleep(1), repeat(pauseIdleFn), end()),
         { TalkPauseState() },
     )
 
-    /** `gProcScr_TalkWaitForInput`; the sprite position is in [TalkWaitState]. */
+    /**
+     * `gProcScr_TalkWaitForInput`: the press-a-key arrow. Waits 8 frames, then shows the arrow
+     * until a button is pressed; the arrow position is in [TalkWaitState].
+     */
     public val waitForInputScript: ProcScript = ProcScript(
         "gProcScr_TalkWaitForInput",
         listOf(mark(PROC_MARK_TALK), sleep(8), repeat(waitIdleFn), sleep(1), end()),
@@ -108,7 +126,8 @@ public class Talk(
     )
 
     /**
-     * `ProcScr_TalkSpriteShiftClear`: scrolls the sprite text up one line.
+     * `ProcScr_TalkSpriteShiftClear`: scrolls the sprite text up one line ([sub80080D0] starts
+     * the scroll, [sub8008108] then makes room for the next line).
      *
      * Transcribed from src/scene.c: ProcScr_TalkSpriteShiftClear (not verified: the script
      * position is checked per step in WorldMapEventHostTest, which cannot tag a script)
@@ -126,7 +145,8 @@ public class Talk(
     )
 
     /**
-     * `ProcScr_0859160C`: blocks the shift-clear proc until [spriteShiftStepScript] is gone.
+     * `ProcScr_0859160C`: blocks its parent until [spriteShiftStepScript] is gone, and ends that
+     * scroll proc if it is itself ended first.
      *
      * Transcribed from src/scene.c: ProcScr_0859160C (not verified: see
      * [spriteShiftClearScript])
@@ -141,7 +161,8 @@ public class Talk(
     )
 
     /**
-     * `ProcScr_08591624`: moves the sprite text tiles up one pixel row per frame.
+     * `ProcScr_08591624`: the sprite-text scroll, one pixel row up per frame for 16 frames (the
+     * height of one text line).
      *
      * Transcribed from src/scene.c: ProcScr_08591624 (not verified: see [spriteShiftClearScript])
      */
@@ -157,7 +178,9 @@ public class Talk(
 
     /**
      * Sets up the sprite text at OBJ tile [chr] with [lines] lines and palette bank [palId] of
-     * the object palettes.
+     * the object palettes. The sprite talk palette is `gUnknown_0859EF20` (the same data as the
+     * talk text palette), with its colours 4, 14 and 15 overwritten; what these three colours
+     * are used for is not known.
      *
      * Transcribed from src/scene.c: InitSpriteTalk (not verified: the lines, texts and font are
      * checked against `sTalkState`, `sTalkText` and `sTalkFont` in WorldMapEventHostTest, but the
@@ -193,9 +216,10 @@ public class Talk(
     /**
      * Ported from src/scene.c: sub_80080D0
      *
-     * Starts the row shifter for the `TALK_FLAG_7` text (it fills the vacated row with 0 and
-     * shifts 0x1C tile rows); the other branch (0x19 rows, fill `0x44444444`) is not run by any
-     * capture and fails loudly.
+     * Starts the scroll of the sprite text for the `TALK_FLAG_7` case: 0x1C tiles per plane,
+     * the vacated row filled with 0 (transparent). The other branch (0x19 tiles, fill
+     * `0x44444444`, a background of colour 4 as `SpriteText_DrawBackground` draws) is not run by
+     * any capture and fails loudly.
      */
     public fun sub80080D0(proc: Proc) {
         check(checkTalkFlag(TalkFlags.FLAG_7) != 0) {
@@ -207,8 +231,9 @@ public class Talk(
     /**
      * Ported from src/scene.c: sub_8008108
      *
-     * After the shift: one line less is active and the second line is blanked (the
-     * non-`TALK_FLAG_7` branch is not run by any capture and fails loudly).
+     * After the scroll: one line less is active and the second line is blanked ready for new text
+     * (the non-`TALK_FLAG_7` branch, which redraws the background in colour 6, is not run by any
+     * capture and fails loudly).
      */
     public fun sub8008108() {
         state.lineActive--
@@ -234,7 +259,9 @@ public class Talk(
     /**
      * Ported from src/scene.c: sub_8008F64
      *
-     * Starts the row shifter on tree 0 and the proc that blocks [parent] until it is done.
+     * Starts the scroll proc ([spriteShiftStepScript], on proc tree 0) for the sprite text at OBJ
+     * tile [chr]: [b] tiles per plane move up, [c] is the word shifted in at the bottom. Also
+     * starts the proc that blocks [parent] until the scroll is done.
      */
     public fun sub8008F64(chr: Int, b: Int, c: Int, parent: Proc) {
         val proc = engine.start(spriteShiftStepScript, 0)
@@ -253,9 +280,11 @@ public class Talk(
     /**
      * Ported from src/scene.c: sub_8008FB4
      *
-     * Moves the first `rows * 8` words of each of four tile planes up by one word per frame (the
-     * word at +7 comes from the next plane, the last plane takes the fill); breaks after 16
-     * frames.
+     * One frame of the sprite-text scroll. Each 8x8 tile is 8 words (one word per pixel row), so
+     * moving every word one place up scrolls the text one pixel row; the first word of the tile
+     * below (0x400 bytes on) is taken in at the bottom, and the last of the four planes (the two
+     * tile rows of each of the two lines) takes the fill. [TalkSpriteShiftState.rows] is the
+     * number of tiles per plane. Breaks after 16 frames.
      */
     public fun sub8008FB4(proc: Proc) {
         val shift = proc.state as TalkSpriteShiftState
@@ -278,8 +307,10 @@ public class Talk(
     }
 
     /**
-     * Sets up the talk font at tile [chr] of background 0, [lines] text lines and, when
-     * [unpackBubble], the speech-bubble tiles (background 1) and palette 3.
+     * Sets up the talk font at tile [chr] of background 0 with BG palette bank 2 (the text
+     * palette), [lines] text lines of 30 tiles each, colour 1 (the dialogue's default) and, when
+     * [unpackBubble], the speech-bubble tiles (on background 1, from tile 0x10) and the bubble
+     * palette in bank 3.
      *
      * Ported from src/scene.c: InitTalk
      */
@@ -321,8 +352,8 @@ public class Talk(
     }
 
     /**
-     * Proc start callback of `gProcScr_Talk`: loads the UI gfx and homes backgrounds 0 and 1
-     * unless the talk is a sprite talk, then starts the skip listener.
+     * First step of `gProcScr_Talk`: for a BG talk loads the OBJ UI graphics (the press-key
+     * arrow) and homes backgrounds 0 and 1; then starts the skip listener.
      *
      * Ported from src/scene.c: Talk_OnInit
      */
@@ -336,10 +367,11 @@ public class Talk(
     }
 
     /**
-     * Before the next character is drawn: opens the bubble when the speaking face or width is out
-     * of date (returns true), starts the line shift when all lines are used (true), otherwise puts
-     * the active line on background 0 once and starts the mouth (false, the caller draws). It
-     * never moves the string cursor or the pen; those belong to the interpreter and the draw call.
+     * Before the next character is drawn: opens a bubble when the open one is not the active
+     * face's at the active width, there is an active face and `TALK_FLAG_NOBUBBLE` is clear
+     * (returns true), starts the line shift when all lines are used (true), otherwise puts the
+     * active line on background 0 once and starts the mouth (false, the caller draws). It never
+     * moves the string cursor or the pen; those belong to the interpreter and the draw call.
      *
      * Ported from src/scene.c: TalkPrepNextChar
      */
@@ -379,8 +411,10 @@ public class Talk(
     // Not @VerifiesPort: no oracle for GetStrTalkLen other than the traced width itself.
     private fun bubbleWidth(): Int {
         val talkState = state
-        // The width comes from the pending string, or from the backup while one is nested.
+        // While a nested string (name, number) is read, the width is measured from the text it
+        // interrupted (strBackup), not from the nested string itself.
         val measured = if (talkState.strBackup == 0) talkState.str else talkState.strBackup
+        // 2 tiles of bubble border plus the text width rounded up to whole tiles.
         return 2 + (host.getStrTalkLen(measured, false) + 7) / 8
     }
 
@@ -418,6 +452,8 @@ public class Talk(
     }
 
     /**
+     * Sets the callback that the code `0x80 0x24` runs.
+     *
      * Transcribed from src/scene.c: sub_8006ABC (not verified: unk38 stays NULL in the run)
      */
     // Not @VerifiesPort: unk38 is NULL for the whole traced talk.
@@ -461,6 +497,8 @@ public class Talk(
     }
 
     /**
+     * `[ToggleRed]` (`0x80 0x21`): switches the dialogue colour between 1 and 4 for every line.
+     *
      * Transcribed from src/scene.c: sub_8006F00 (not verified: printColor stays 1 in the run)
      */
     // Not @VerifiesPort: no traced call.
@@ -493,7 +531,8 @@ public class Talk(
     }
 
     /**
-     * Proc end callback of `gProcScr_Talk`: ends the skip listener and the shift-clear-all procs.
+     * End callback of `gProcScr_Talk`: ends the skip listener and the shift-clear-all procs, so
+     * nothing of the talk outlives it.
      *
      * Ported from src/scene.c: Talk_OnEnd
      */
@@ -515,8 +554,10 @@ public class Talk(
     }
 
     /**
-     * Per-frame body of `gProcScr_Talk`: waits for face moves and the print clock, then runs
-     * [talkInterpret] and draws characters until a code asks to wait.
+     * Per-frame body of `gProcScr_Talk`: waits for face moves and for the print clock (one
+     * character per [TalkState.printDelay] frames, unless [TalkState.instantScroll]), then runs
+     * [talkInterpret] and draws characters until a code asks to wait. When the interpreter
+     * returns 0 the proc breaks (the talk is over).
      *
      * Ported from src/scene.c: Talk_OnIdle
      */
@@ -556,7 +597,12 @@ public class Talk(
         }
     }
 
-    /** The sound branch after a drawn character of [talkOnIdle] (its C `break`s skip the sound). */
+    /**
+     * The sound after a drawn character: `SONG_7A` for `TALK_FLAG_7`; otherwise the blip
+     * `SONG_6E`, except at text speed 1 on every other frame and, while printing instantly, after
+     * the first blip. (The skipped cases are `break`s in C that only skip the sound; the delay
+     * check of the caller still follows.)
+     */
     private fun playTypeSound() {
         val talkState = state
         if (checkTalkFlag(TalkFlags.FLAG_7) != 0) {
@@ -580,8 +626,8 @@ public class Talk(
     }
 
     /**
-     * `TalkPrepNextChar` for sprite talks: shifts when all lines are used, else marks the line
-     * as put.
+     * `TalkPrepNextChar` for sprite talks: scrolls when all lines are used, else marks the line
+     * as put (a sprite line has no tilemap to put, so it opens no bubble and touches no BG0).
      *
      * Ported from src/scene.c: TalkSpritePrepNextChar
      */
@@ -597,8 +643,11 @@ public class Talk(
     }
 
     /**
-     * Executes control codes at the string cursor until a printable character (returns 1) or a
-     * code that needs a frame boundary: 0 = end of text, 2 = continue this frame, 3 = wait.
+     * Executes the control code at the string cursor, or returns 1 for a printable character
+     * (the caller draws it). The other results tell [talkOnIdle] what to do next:
+     * 0 = end of text (also an unknown `0x80 xx` code), 2 = done, carry on in this frame only
+     * when printing instantly or without delay, 3 = done, stop for this frame (the print clock
+     * is set so the next code runs at once, and instant printing is switched off).
      * Face codes call [host]; the interpreter keeps the cursor and the strings.
      *
      * Ported from src/scene.c: TalkInterpret
@@ -720,7 +769,11 @@ public class Talk(
         return 1
     }
 
-    /** `case 0x81` of `TalkInterpret`: the `0x81 0x40` short pause. */
+    /**
+     * `case 0x81` of `TalkInterpret`: `0x81 0x40` is `[TAB]`. It moves the pen 6 pixels right and
+     * pauses for 8 frames (`gTalkPauseDurations[0]`, unless printing instantly or without
+     * delay). Any other `0x81 xx` is a printable character: returns 1.
+     */
     private fun interpretPauseCode(proc: Proc): Int {
         val talkState = state
         if (byteAt(talkState.str + 1) != 0x40) return 1
@@ -731,7 +784,11 @@ public class Talk(
         return 3
     }
 
-    /** `case CHFE_L_LoadFace` of `TalkInterpret`: the run of face open/load codes. */
+    /**
+     * `case CHFE_L_LoadFace` of `TalkInterpret`: consumes the run of `[Open*]` position codes
+     * (`0x08..0x0F`, the slot is the code minus 8) and `[LoadFace]` codes (`0x10` plus a 2-byte
+     * face id) that follows, then waits (returns 3).
+     */
     private fun interpretLoadFace(proc: Proc): Int {
         val talkState = state
         while (true) {
@@ -750,7 +807,22 @@ public class Talk(
         return 3
     }
 
-    /** `case 0x80` of `TalkInterpret`: the two-byte codes. */
+    /**
+     * `case 0x80` of `TalkInterpret`: the two-byte codes `0x80 xx`, with `xx` as follows
+     * (names from `texts/textdefs.txt` or the decomp's comments, where it has one):
+     *  - `0x00..0x03 n`: set the dialogue colour to `n`;
+     *  - `0x04` (`[Events]`): [lockTalk], block until `ResumeTalk` (the script resumes it);
+     *  - `0x05` (`[G]`): read [TalkState.userNumber] as text; `0x06`: read [TalkState.userString];
+     *    `0x20` (`[Tact]`): read the tactician name. Each nests the string (see `strBackup`);
+     *  - `0x07`, `0x08`: no effect; `0x21` (`[ToggleRed]`): [toggleTalkPrintColor];
+     *  - `0x24`: run [TalkState.unk38];
+     *    `0x25` (`[ToggleColorInvert]`): toggle the inverted palettes;
+     *  - `0x0A..0x11` (`[MoveFarLeft]`..`[MoveFarFarRight]`): move the active face to that slot;
+     *  - `0x16..0x1B`: face blink control (`[EnableBlinking]`, `[DelayBlinking]`,
+     *    `[PauseBlinking]`, `[DisableBlinking]`); `0x1C..0x1F` (`[OpenEyes]`, `[CloseEyes]`,
+     *    `[HalfCloseEyes]`, `[Wink]`): face eye state.
+     * An unknown code ends the talk (returns 0).
+     */
     private fun interpretExtendedCode(proc: Proc): Int {
         val talkState = state
         talkState.str++
@@ -828,7 +900,10 @@ public class Talk(
         return 0
     }
 
-    /** `Proc_StartBlocking(gProcScr_TalkPause, proc)` plus `unk64 = frames`. */
+    /**
+     * Pauses the text for [frames] frames: `Proc_StartBlocking(gProcScr_TalkPause, proc)` with
+     * `unk64 = frames`.
+     */
     private fun startPause(proc: Proc, frames: Int) {
         val child = engine.startBlocking(pauseScript, proc) ?: return
         (child.state as TalkPauseState).frames = frames
@@ -850,7 +925,8 @@ public class Talk(
     }
 
     /**
-     * Starts the blocking "press a key" arrow proc at pixel ([x], [y]).
+     * Starts the blocking "press a key" arrow proc at pixel ([x], [y]), which is where `[A]`
+     * stops the text: just after the pen of the active line.
      *
      * Ported from src/scene.c: StartTalkWaitForInput
      */
@@ -863,8 +939,10 @@ public class Talk(
     }
 
     /**
-     * Idle callback of `gProcScr_TalkWaitForInput`: draws the arrow and breaks on a D-pad, A or B
-     * press.
+     * Idle callback of `gProcScr_TalkWaitForInput`: draws the arrow (one of the 16 frames of
+     * `gPressKeyArrowSpriteLut`, advancing every second game frame) and breaks on a newly pressed
+     * D-pad, A or B button. With `TALK_FLAG_7` the arrow goes to sprite layer 0 with OAM2 `0xB2BF`
+     * instead of layer 2 with OAM2 4.
      *
      * Ported from src/scene.c: TalkWaitForInput_OnIdle
      */
@@ -880,7 +958,8 @@ public class Talk(
     }
 
     /**
-     * Empties the three lines without touching the background.
+     * Empties the dialogue lines and resets the line cursor, without touching background 0 (the
+     * `[2NL]` code with `TALK_FLAG_INSTANTSHIFT`).
      *
      * Transcribed from src/scene.c: ClearTalkText (not verified: only reached by the `[2NL]`
      * code with `TALK_FLAG_INSTANTSHIFT`, which the trace does not contain)
@@ -899,8 +978,8 @@ public class Talk(
     }
 
     /**
-     * Blanks background 0 and the three lines and resets the line cursor (what closing the
-     * bubble does to the text).
+     * Blanks background 0 and the dialogue lines and resets the line cursor (what closing the
+     * bubble and the end of a `[2NL]` scroll do to the text).
      *
      * Ported from src/scene.c: ClearPutTalkText
      */
@@ -913,16 +992,20 @@ public class Talk(
         talkState.putLines = 0
         talkState.topTextNum = 0
         for (i in 0 until talkState.lines) {
+            // The original clears each line once; the second call changes nothing.
             text.clearText(texts[i])
             text.clearText(texts[i])
             texts[i].colorId = talkState.printColor
         }
     }
 
-    /** The byte at GBA address [addr] of the string memory. */
+    /** The byte of the message text at GBA address [addr]. */
     private fun byteAt(addr: Int): Int = strArray(addr)[strOffset(addr)].toInt() and 0xFF
 
-    /** The array that holds the string at GBA address [addr]. */
+    /**
+     * The array that holds the string at GBA address [addr]: the talk state's own number and user
+     * strings (so `[G]` can nest them), otherwise whatever the host maps there.
+     */
     private fun strArray(addr: Int): ByteArray = when (addr - STATE_ADDRESS) {
         in USER_NUMBER_STRING until USER_STRING -> state.userNumberString
         in USER_STRING until USER_STRING + TalkState.STRING_SIZE -> state.userString
@@ -937,32 +1020,62 @@ public class Talk(
         else -> host.stringOffset(addr)
     }
 
-    /** `TALK_TEXT_BY_LINE(line)`. */
+    /**
+     * `TALK_TEXT_BY_LINE(line)`: the strip of line [line], counting from [TalkState.topTextNum].
+     */
     private fun talkTextByLine(line: Int): Text =
         texts[(line + state.topTextNum) % state.lines]
 
     /** Addresses of the FE8U (US ROM) talk assets and the control-code values. */
     public companion object {
-        /** `sTalkStateCore` (IWRAM). */
+        /**
+         * `sTalkStateCore` (IWRAM): the GBA address the nested-string pointers into it are based
+         * on.
+         */
         public const val STATE_ADDRESS: Int = 0x03000048
 
-        /** `PROC_MARK_TALK`. */
+        /**
+         * `PROC_MARK_TALK`: the proc mark of every talk proc, used to end or find them together.
+         */
         public const val PROC_MARK_TALK: Int = 5
 
+        /** Offset of `userNumberString` in `struct TalkState`. */
         private const val USER_NUMBER_STRING = 0x40
+
+        /** Offset of `userString` in `struct TalkState`. */
         private const val USER_STRING = 0x60
+
+        /** `SONG_6E` (`include/constants/songs.h`): the blip of a printed character. */
         private const val SONG_6E = 0x6E
+
+        /** `SONG_7A`: the blip of a printed character with `TALK_FLAG_7`. */
         private const val SONG_7A = 0x7A
+
+        /** `DPAD_ANY`: the four direction bits of the key mask. */
         private const val DPAD_ANY = 0x00F0
+
+        /** `A_BUTTON`. */
         private const val A_BUTTON = 1
+
+        /** `B_BUTTON`. */
         private const val B_BUTTON = 2
+
+        // The `CHFE_L_*` codes of include/scene.h (names in the order of that enum).
         private const val CH_X = 0x00
         private const val CH_NL = 0x01
         private const val CH_2NL = 0x02
         private const val CH_A = 0x03
+
+        /** `CHFE_L_Pause8`: the first of the four pauses, 8, 16, 32 and 64 frames. */
         private const val CH_PAUSE8 = 0x04
+
+        /** `CHFE_L_Pause64`. */
         private const val CH_PAUSE64 = 0x07
+
+        /** `CHFE_L_OpenFarLeft`: the first of the eight `[Open*]` codes, one per face slot. */
         private const val CH_OPEN_FIRST = 0x08
+
+        /** `CHFE_L_OpenFarFarRight`. */
         private const val CH_OPEN_LAST = 0x0F
         private const val CH_LOAD_FACE = 0x10
         private const val CH_CLEAR_FACE = 0x11
@@ -977,63 +1090,82 @@ public class Talk(
         private const val CH_BUY_SELL = 0x1A
         private const val CH_SHOP_CONTINUE = 0x1B
         private const val CH_SEND_TO_BACK = 0x1C
+
+        /** `CHFE_L_FastPrint2`: `texts/textdefs.txt` names this `[FastPrint]`. */
         private const val CH_FAST_PRINT2 = 0x1D
 
-        /** `gTalkPauseDurations`. */
+        /** `gTalkPauseDurations`: frames of `[....]` to `[.......]` (codes 4..7). */
         private val PAUSE_DURATIONS = intArrayOf(8, 16, 32, 64)
 
-        /** `SetFaceBlinkControl` modes of codes 0x80 0x16..0x1B. */
+        /**
+         * `SetFaceBlinkControl` modes of codes 0x80 0x16..0x1B: 0 the portrait's own blink kind,
+         * 1..5 fixed kinds (see [TalkFace.faceBlinkProcGenBlinkInterval]).
+         */
         private val BLINK_MODES = intArrayOf(0, 1, 3, 2, 4, 5)
 
-        /** `sub_80064D4` modes of codes 0x80 0x1C..0x1F. */
+        /** `sub_80064D4` eye states of codes 0x80 0x1C..0x1F: open, closed, half closed, wink. */
         private val EYE_MODES = intArrayOf(0, 2, 3, 4)
-        /** `Img_TalkBubble` (LZ77 tiles). */
+        /** `Img_TalkBubble`: LZ77-compressed tiles of the speech bubble's final form. */
         public const val IMG_TALK_BUBBLE: Int = 0x089E8238
 
-        /** `Pal_TalkBubble`. */
+        /** `Pal_TalkBubble`: the bubble palette (loaded into BG bank 3). */
         public const val PAL_TALK_BUBBLE: Int = 0x089E84D4
 
+        /** Size of `sTalkText[]`. */
         private const val TEXT_COUNT = 3
+
+        /** Start of VRAM; BG tile data is at an offset from here. */
         private const val VRAM = 0x06000000
+
+        /** Start of the OBJ tile data in VRAM. */
         private const val OBJ_VRAM = 0x06010000
 
         /** `gUnknown_0859EF20`: the sprite talk palette. */
         private const val PAL_SPRITE_TALK = 0x0859EF20
+
+        /** Where the bubble tiles go: tile 0x10 (0x200 bytes) of BG1's tile data. */
         private const val BUBBLE_DEST = 0x06000200
+
+        /** Bytes of one 8x8 4bpp tile. */
         private const val CHR_SIZE = 0x20
+
+        /** `activeFaceSlot` value that means no active face. */
         private const val NO_FACE = 0xFF
     }
 }
 
 /** Proc fields of `gProcScr_TalkPause`. */
 public class TalkPauseState {
-    /** Frames left to wait before resuming dialogue (`unk64`). */
+    /** Frames left to wait before the dialogue goes on (`unk64`). */
     public var frames: Int = 0
 }
 
 /** Proc fields of `gProcScr_TalkWaitForInput`. */
 public class TalkWaitState {
-    /** Arrow prompt X coordinate in pixels (`unk64`). */
+    /** Arrow X position in pixels (`unk64`). */
     public var x: Int = 0
 
-    /** Arrow prompt Y coordinate in pixels (`unk66`). */
+    /** Arrow Y position in pixels (`unk66`). */
     public var y: Int = 0
 
-    /** Arrow state field (`unk68`). */
+    /**
+     * `unk68`: 0 from `StartTalkWaitForInput` (`StartTalkWaitForInputUnk` sets another value);
+     * unused here.
+     */
     public var unk68: Int = 0
 }
 
 /** Proc fields of `ProcScr_08591624` (`struct TalkDebugProc`). */
 public class TalkSpriteShiftState {
-    /** VRAM address of the first tile row (`unk_4c`). */
+    /** VRAM address of the first tile of the scrolled text (`unk_4c`). */
     public var vram: Int = 0
 
-    /** Tile rows to shift (`unk_54`). */
+    /** Tiles to scroll in each of the four planes (`unk_54`). */
     public var rows: Int = 0
 
-    /** Word shifted in at the bottom (`unk_58`). */
+    /** Word shifted in below the last plane (`unk_58`): 0, or `0x44444444` (colour 4 pixels). */
     public var fill: Int = 0
 
-    /** Frames run (`unk_64`). */
+    /** Frames scrolled so far (`unk_64`); the proc ends after 16. */
     public var step: Int = 0
 }

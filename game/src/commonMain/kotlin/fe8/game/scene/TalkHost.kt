@@ -18,37 +18,51 @@ public interface TalkHost {
     /** `ApplyPalette(src, palId)`: 16 colours at ROM address [src] into palette bank [palId]. */
     public fun applyPalette(src: Int, palId: Int)
 
-    /** `LoadObjUIGfx`. */
+    /**
+     * `LoadObjUIGfx` (`src/bm.c`): the OBJ UI tiles and palettes (they hold the press-key arrow).
+     */
     public fun loadObjUiGfx()
 
     /** `BG_SetPosition(bg, x, y)`. */
     public fun setBgPosition(bg: Int, x: Int, y: Int)
 
-    /** `Proc_Start(gProcScr_TalkSkipListener, PROC_TREE_3)`. */
+    /**
+     * `Proc_Start(gProcScr_TalkSkipListener, PROC_TREE_3)`: the proc that watches B/START (skip
+     * the dialogue) and D-pad/A/B (print instantly) while the talk runs.
+     */
     public fun startTalkSkipListener()
 
-    /** `gBG0TilemapBuffer`. */
+    /** `gBG0TilemapBuffer`: the tilemap the dialogue text is put on. */
     public fun bg0Tilemap(): ShortArray
 
-    /** `GetStrTalkLen(str, isBubbleOpen)` for the string at GBA address [str]. */
+    /**
+     * `GetStrTalkLen(str, isBubbleOpen)` for the string at GBA address [str]: the pixel width of
+     * the widest line (at least 24) of the text that fits the current speaker's bubble.
+     */
     public fun getStrTalkLen(str: Int, isBubbleOpen: Boolean): Int
 
-    /** `ClearTalkBubble`. */
+    /** `ClearTalkBubble`: closes the speech bubble and blanks the text. */
     public fun clearTalkBubble()
 
-    /** `StartTalkOpen(faceSlot, parent)`. */
+    /** `StartTalkOpen(faceSlot, parent)`: opens a bubble for the face in slot [faceSlot]. */
     public fun startTalkOpen(faceSlot: Int, parent: Proc)
 
-    /** `SetTalkFaceLayer(faceSlot, flag)`. */
+    /**
+     * `SetTalkFaceLayer(faceSlot, toBack)`: gives the face of [faceSlot] sprite layer 5 and the
+     * other faces of its group (slots 0..2 or 3..5) layer 6; [flag] is `toBack` (`TALK_FLAG_4`),
+     * and a non-zero value changes nothing.
+     */
     public fun setTalkFaceLayer(faceSlot: Int, flag: Int)
 
-    /** `Proc_StartBlocking(gProcScr_TalkShiftClear, parent)`. */
+    /** `Proc_StartBlocking(gProcScr_TalkShiftClear, parent)`: scrolls the text up one line. */
     public fun startTalkShiftClear(parent: Proc)
 
-    /** `TalkBgSync(bg)`. */
+    /**
+     * `TalkBgSync(bg)`: syncs BG mask [bg] to VRAM, except for sprite talks (`TALK_FLAG_SPRITE`).
+     */
     public fun talkBgSync(bg: Int)
 
-    /** `SetTalkFaceMouthMove(faceSlot)`. */
+    /** `SetTalkFaceMouthMove(faceSlot)`: the face's mouth starts moving (`FACE_DISP_TALK_1`). */
     public fun setTalkFaceMouthMove(faceSlot: Int)
 
     /** The array behind GBA address [addr] of a message string (EWRAM buffer, ROM or IWRAM). */
@@ -60,7 +74,7 @@ public interface TalkHost {
     /** `IsTalkFaceMoving`: a `gProcScr_TalkFaceMove` proc exists. */
     public fun isTalkFaceMoving(): Boolean
 
-    /** `SetTalkFaceNoMouthMove(faceSlot)`. */
+    /** `SetTalkFaceNoMouthMove(faceSlot)`: the face's mouth stops moving. */
     public fun setTalkFaceNoMouthMove(faceSlot: Int)
 
     /**
@@ -83,7 +97,10 @@ public interface TalkHost {
     /** `SetFaceBlinkControl(face, mode)`. */
     public fun setFaceBlinkControl(face: Int, mode: Int)
 
-    /** `sub_80064D4(face, mode)`: the eye state of a face. */
+    /**
+     * `sub_80064D4(face, mode)`: asks the face's blink proc for an eye state: 0 normal blinking,
+     * 2 eyes closed, 3 eyes half closed, 4 one wink (from codes `0x80 0x1C..0x1F`).
+     */
     public fun setFaceEyes(face: Int, mode: Int)
 
     /**
@@ -99,13 +116,15 @@ public interface TalkHost {
         parent: Proc,
     )
 
-    /** `Proc_StartBlocking(gProcScr_TalkShiftClearAll, parent)`. */
+    /**
+     * `Proc_StartBlocking(gProcScr_TalkShiftClearAll, parent)`: scrolls all text away (`[2NL]`).
+     */
     public fun startTalkShiftClearAll(parent: Proc)
 
-    /** `PAL_COLOR(bank, index) = color` (the palette buffer, then synced). */
+    /** `PAL_COLOR(bank, index) = color` (the palette buffer, then synced); a 15-bit BGR colour. */
     public fun setPaletteColor(bank: Int, index: Int, color: Int)
 
-    /** `TalkFlushAllLine` (sprite text). */
+    /** `TalkFlushAllLine`: clears both lines of a sprite talk (`[2NL]` with `TALK_FLAG_7`). */
     public fun talkFlushAllLine()
 
     /** `Proc_EndEach(gProcScr_TalkSkipListener)`. */
@@ -117,21 +136,27 @@ public interface TalkHost {
     /** `NumberToStringAscii(number, buf)`. */
     public fun numberToStringAscii(number: Int, buf: ByteArray)
 
-    /** `GetTacticianName`: GBA address of the player name. */
+    /** `GetTacticianName`: GBA address of the player's tactician name (`[Tact]`, `0x80 0x20`). */
     public fun tacticianName(): Int
 
-    /** `GetTextDisplaySpeed`. */
+    /**
+     * `GetTextDisplaySpeed`: frames per printed character from the text-speed option (8, 4, 1 or
+     * 0).
+     */
     public fun textDisplaySpeed(): Int
 
-    /** `GetGameClock`. */
+    /** `GetGameClock`: the frame counter that drives the arrow animation and the print blip. */
     public fun gameClock(): Int
 
-    /** `gKeyStatusPtr->newKeys`. */
+    /** `gKeyStatusPtr->newKeys`: the buttons newly pressed this frame. */
     public fun newKeys(): Int
 
     /** `PlaySoundEffect(song)`. */
     public fun playSoundEffect(song: Int)
 
-    /** `PutSprite(layer, x, y, gPressKeyArrowSpriteLut[lutIndex], oam2)`. */
+    /**
+     * `PutSprite(layer, x, y, gPressKeyArrowSpriteLut[lutIndex], oam2)`: the bobbing "press a key"
+     * arrow; the table has 16 entries, three distinct poses.
+     */
     public fun putSprite(layer: Int, x: Int, y: Int, lutIndex: Int, oam2: Int)
 }

@@ -58,8 +58,12 @@ public fun interface IntConsumer {
  *
  * Stand-ins until M6-E (no behaviour is invented; each is a no-op or the smallest working
  * substitute):
- *  - sprite text, talk choices, `[G]` numbers and the tactician name are not ported and fail;
- *  - the portrait of the active unit and the portrait swap are not ported and fail.
+ *  - talk choices (`StartTalkChoice`), `[G]` numbers (`NumberToStringAscii`) and the tactician
+ *    name are not ported and fail;
+ *  - the portrait of the active unit (`GetUnitPortraitId`) and the portrait swap
+ *    (`sub_80066E0`) are not ported and fail;
+ *  - the face eye states (`sub_80064D4`) are ignored, and the battle animation system
+ *    (`IsBattleDeamonActive`, until M6-G) is never active.
  */
 public class TalkScene(
     private val rom: RomView,
@@ -131,16 +135,19 @@ public class TalkScene(
 
     // --- TextHost
 
-    /** The text language: 1 (English, the US ROM). */
+    /** The text language: `LANG_ENGLISH` (1), as the US ROM always runs. */
     override fun language(): Int = 1
 
-    /** Loads the text (or [talk] text) palette into BG bank [palid], colour 0 transparent. */
+    /**
+     * Loads the system text palette (`Pal_Text`), or the talk palette (`Pal_Text + 0x10` colours,
+     * so 0x20 bytes on) when [talk], into BG palette bank [palid], with colour 0 transparent.
+     */
     override fun applyTextPalette(talk: Boolean, palid: Int) {
         applyPalette(PAL_TEXT + if (talk) 0x20 else 0, palid)
         hw.palette[palid * 16] = 0
     }
 
-    /** Reads the little-endian word at VRAM address [addr]. */
+    /** Reads the little-endian 32-bit word at VRAM address [addr] (`0x06000000..`). */
     override fun readVram32(addr: Int): Int {
         val offset = addr - VRAM_BASE
         val vramBytes = hw.vram
@@ -150,7 +157,7 @@ public class TalkScene(
             ((vramBytes[offset + 3].toInt() and 0xFF) shl 24)
     }
 
-    /** Writes [value] little-endian at VRAM address [addr]. */
+    /** Writes the 32-bit [value] little-endian at VRAM address [addr]. */
     override fun writeVram32(addr: Int, value: Int) {
         val offset = addr - VRAM_BASE
         for (k in 0..3) hw.vram[offset + k] = (value shr (8 * k)).toByte()
@@ -206,9 +213,19 @@ public class TalkScene(
         if (addr - MSG_ADDR in 0 until messages.buffer.size) addr - MSG_ADDR else addr - ROM_BASE
 
     /**
+     * The pixel width the bubble needs for the text at [str]: the widest line, at least 24. The
+     * walk stops at the end of the message (`0x00`, or `[CloseSpeechSlow]` `0x15`); at
+     * `[ClearFace]` (`0x11`) of the speaking face; at a print-speed code (`0x12..0x14`) when no
+     * bubble is open ([isBubbleOpen] false); and at a printable character once the active face is
+     * not the speaker's while a bubble is open (a new speaker needs a new bubble). `[A]` counts 12
+     * pixels, a `[TAB]` 6, and each of `[Yes]`, `[No]`, `[BuySell]` and `[ShopContinue]` 0x80
+     * pixels, the width reserved for the choice.
+     *
      * Transcribed from src/scene.c: GetStrTalkLen (not verified: in production; the same code
-     * drives the traced talk through the test rig). Without the nested-string codes, which
-     * [stringArray] cannot resolve; they fail.
+     * drives the traced talk through the test rig). Without the nested-string codes (`[G]`,
+     * `[Tact]`, `0x80 0x06`), which [stringArray] cannot resolve; they fail. For an `0x80 xx` code
+     * the C does not list, the C leaves its cursor on `xx` and reads it as a character; this
+     * port skips it.
      */
     override fun getStrTalkLen(str: Int, isBubbleOpen: Boolean): Int {
         val talkState = talk.state
@@ -335,8 +352,12 @@ public class TalkScene(
     }
 
     /**
-     * Ported from src/face.c: StartFaceFadeOut. The delayed face removal can end the child fade
-     * before the palette reaches black.
+     * Fades the face palette to black over 12 frames and ends the face 8 frames later
+     * (`EndFaceIn8Frames`), so the removal can end the fade before the palette reaches black. The
+     * palette bank is `0x16 + slot`, i.e. `gDefaultFaceConfig` (bank 6 + slot, plus 0x10 for
+     * OBJ); a different face layout from `SetupFaceGfxData` is not followed.
+     *
+     * Ported from src/face.c: StartFaceFadeOut.
      */
     override fun startFaceFadeOut(face: Int) {
         val slot = face - TalkFace.FACE_HANDLE
@@ -345,7 +366,7 @@ public class TalkScene(
         (procs.start(faceEndScript, TREE_3).state as FaceEndState).slot = slot
     }
 
-    /** Ends the target face and its children after the scheduled delay. */
+    /** `EndFacePtr`: ends the face of the slot recorded in [FaceEndState] and its child procs. */
     private fun endFace(proc: Proc) {
         val slot = (proc.state as FaceEndState).slot
         val faceProc = face.gFaces[slot] ?: return
@@ -353,6 +374,7 @@ public class TalkScene(
         procs.end(faceProc)
     }
 
+    /** `StartTemporaryLock(proc, frames)` (`src/bmlib.c`): blocks [proc] for [frames] frames. */
     override fun startTemporaryLock(proc: Proc, frames: Int) {
         val lockProc = procs.startBlocking(lockScript, proc) ?: return
         (lockProc.state as LockState).frames = frames
@@ -371,7 +393,7 @@ public class TalkScene(
         this.face.faceOf(face)?.let { this.face.setFaceBlinkControl(it, mode) }
     }
 
-    /** Stand-in (M6-E): the face eye state is not ported. */
+    /** Stand-in (M6-E): `sub_80064D4`, the face eye state, is not ported; the call is ignored. */
     override fun setFaceEyes(face: Int, mode: Int) {}
 
     override fun startTalkChoice(
@@ -431,6 +453,11 @@ public class TalkScene(
     }
 
     /**
+     * Per-frame body of `gProcScr_TalkSkipListener`. While a line shift runs it does nothing. A
+     * B or START press (unless `TALK_FLAG_NOSKIP`) skips the dialogue: sets the dialogue-skip
+     * event bit, ends the talk and blanks BG0 and BG1. Otherwise, unless the press-key arrow is
+     * up, a D-pad, A or B press (unless `TALK_FLAG_NOFAST`) switches to instant printing.
+     *
      * Transcribed from src/scene.c: TalkSkipListener_OnIdle (not verified: the traced talk has no
      * B or START press).
      */
@@ -460,7 +487,10 @@ public class TalkScene(
 
     override fun bg1Tilemap(): ShortArray = hw.mapBuffer(1)
 
-    /** Stand-in until M6-G: the battle animation (deamon) is not ported, never active. */
+    /**
+     * Stand-in until M6-G: `IsBattleDeamonActive` (the battle animation system) is not ported,
+     * so the fixed fight-event bubble is never used.
+     */
     override fun isBattleDeamonActive(): Boolean = false
 
     /**
@@ -517,6 +547,7 @@ public class TalkScene(
 
     // --- TalkFaceHost
 
+    /** The sprite compositions of the faces, in the order of [FACE_SPRITE_ADDRESSES]. */
     private val faceSprites: Array<SpriteObject> by lazy {
         Array(FACE_SPRITE_ADDRESSES.size) { rom.objN(FACE_SPRITE_ADDRESSES[it]) }
     }
@@ -542,7 +573,9 @@ public class TalkScene(
     override fun portraitByte(fid: Int, offset: Int): Int =
         rom.u8(PORTRAIT_TABLE + (fid - 1) * 0x1C + offset)
 
-    // Mouth sheets live in ROM. Keep source addresses until VBlank, in registration order.
+    // `Register2dChrMove` queues a copy that the GBA does at VBlank. The portrait mouth frames
+    // live in ROM; the source and destination of each queued row are kept until `flushTileMoves`,
+    // in registration order.
     private val mouthMoveSources = IntArray(32)
     private val mouthMoveDestinations = IntArray(32)
     private var mouthMoveCount = 0
@@ -557,7 +590,7 @@ public class TalkScene(
         }
     }
 
-    /** Applies queued mouth tile rows at VBlank, in registration order. */
+    /** Applies the queued mouth tile rows (what `Register2dChrMove` does at VBlank), in order. */
     public fun flushTileMoves() {
         for (i in 0 until mouthMoveCount) {
             val src = mouthMoveSources[i]
@@ -573,7 +606,12 @@ public class TalkScene(
         throw NotImplementedError("not ported: GetUnitPortraitId(gActiveUnit)")
     }
 
-    /** Ported from src/face.c: StartFaceFadeIn. */
+    /**
+     * Blacks out the face's palette bank (`0x16 + slot`, see [startFaceFadeOut]) and fades the
+     * portrait palette in over 12 frames.
+     *
+     * Ported from src/face.c: StartFaceFadeIn.
+     */
     override fun startFaceFadeIn(face: Proc) {
         val state = face.state as FaceState
         val bank = 0x16 + state.faceSlot
@@ -587,35 +625,88 @@ public class TalkScene(
 
     /** Addresses and constants of the talk scene. */
     public companion object {
-        /** The GBA address the shared message buffer is seen at (`sMsgString.buffer1`). */
+        /**
+     * The GBA address the shared message buffer is seen at (`sMsgString.buffer1`, in EWRAM):
+     * the address string cursors into the current message hold.
+     */
         public const val MSG_ADDR: Int = 0x0202A6AC
 
-        // gSprite_Face* symbols in the US ROM manifest; compositions remain ROM data.
+        /**
+         * ROM addresses of the face compositions in `FaceRefreshSprite`'s order
+         * (`gSprite_Face64x96`, its flipped copy, `96x96`, `96x96_Flipped`, `80x72`,
+         * `80x72_Flipped`, `96x72`, `96x72_Flipped`), then `gObject_16x16` and `gObject_32x16`.
+         */
         private val FACE_SPRITE_ADDRESSES = intArrayOf(
             0x0859100C, 0x08591026, 0x08591040, 0x08591066,
             0x0859108C, 0x085910BE, 0x085910F0, 0x08591122, 0x08590F4C, 0x08590F8C,
         )
+
+        /** The all-black palette a face fades out to. */
         private val BLACK_PALETTE = ShortArray(16)
+
+        /** Start of the cartridge ROM in the GBA address space. */
         private const val ROM_BASE = 0x08000000
+
+        /** Start of VRAM in the GBA address space. */
         private const val VRAM_BASE = 0x06000000
+
+        /** Offset of the OBJ tile data in VRAM (`0x06010000`). */
         private const val OBJ_VRAM = 0x10000
+
+        /** Bytes of one 8x8 4bpp tile. */
         private const val CHR_SIZE = 0x20
+
+        /** `PROC_TREE_3`: the proc tree the talk's helper procs run on. */
         private const val TREE_3 = 3
+
+        /**
+         * `portrait_data`: the `struct FaceData` table (0x1C bytes each, indexed by face id - 1).
+         */
         private const val PORTRAIT_TABLE = 0x088ACBE0
+
+        /** `gPressKeyArrowSpriteLut`: 16 pointers to the press-key arrow compositions. */
         private const val ARROW_LUT = 0x08591430
+
+        /** Entries of `gPressKeyArrowSpriteLut`. */
         private const val ARROW_LUT_SIZE = 16
+
+        /** `Pal_Text`: the system text palette (the talk palette follows at +0x20). */
         private const val PAL_TEXT = 0x0859EF00
+
+        /** `Pal_Text_Inverted`: the text palette of `[ToggleColorInvert]`. */
         private const val PAL_TEXT_INVERTED = 0x0859EFE0
+
+        /** `Pal_TalkBubble_Inverted`: the bubble palette of `[ToggleColorInvert]`. */
         private const val PAL_TALK_BUBBLE_INVERTED = 0x0859F000
+
+        /** `gGfx_MiscUiGraphics`: LZ77 OBJ UI tiles (`LoadObjUIGfx`). */
         private const val GFX_MISC_UI = 0x0859E8E0
+
+        /** `gPal_MiscUiGraphics`: two palettes, OBJ banks 0 and 1. */
         private const val PAL_MISC_UI = 0x0859ED70
+
+        /** Tile rows of `gGfx_MiscUiGraphics` (`Copy2dChr` height 4). */
         private const val MISC_UI_ROWS = 4
+
+        /** Tiles per row of `gGfx_MiscUiGraphics` (`Copy2dChr` width 0x12). */
         private const val MISC_UI_WIDTH_TILES = 0x12
+
+        /** Bit of `WININ` (window 0 byte): colour special effect (blend) enable in window 0. */
         private const val WIN0_ENABLE_BLEND = 5
+
+        /** Bit of `WINOUT` (outside windows): colour special effect enable. */
         private const val WOUT_ENABLE_BLEND = 21
+
+        /** `B_BUTTON`. */
         private const val B_BUTTON = 2
+
+        /** `START_BUTTON`. */
         private const val START = 8
+
+        /** `DPAD_ANY | A_BUTTON | B_BUTTON`: the buttons that make the text print instantly. */
         private const val ANY_KEY = 0xF3
+
+        /** `speedLookup` of `GetTextDisplaySpeed` (`src/bmio.c`): frames per character. */
         private val DISPLAY_SPEED = intArrayOf(8, 4, 1, 0)
     }
 }

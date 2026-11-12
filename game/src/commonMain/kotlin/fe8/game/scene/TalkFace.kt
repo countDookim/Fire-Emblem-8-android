@@ -17,7 +17,10 @@ public interface TalkFaceHost {
     /** Resolves a face composition from its ROM address; absent in hosts that do not draw. */
     public fun faceSprite(address: Int): SpriteObject? = null
 
-    /** `PutSpriteExt`, preserving the OAM flags in [yOam0]. */
+    /**
+     * `PutSpriteExt(layer, xOam1, yOam0, sprite, oam2)`: queues [sprite] on sprite [layer]; the
+     * raw OAM attribute bits in [xOam1] (OAM1) and [yOam0] (OAM0, e.g. the blend flag) are kept.
+     */
     public fun putFaceSprite(
         layer: Int,
         xOam1: Int,
@@ -26,7 +29,7 @@ public interface TalkFaceHost {
         oam2: Int,
     ) {}
 
-    /** `IsBattleDeamonActive`. */
+    /** `IsBattleDeamonActive`: the battle animation system is running (fight-event faces). */
     public fun isBattleDeamonActive(): Boolean
 
     /** `GetUnitPortraitId(gActiveUnit)`. */
@@ -39,8 +42,9 @@ public interface TalkFaceHost {
     public fun portraitPalette(fid: Int): Int
 
     /**
-     * Byte [offset] of `GetPortraitData(fid)` (a `struct FaceData`): mouth coordinates at
-     * 0x14..0x15, eye coordinates at 0x16..0x17, and `blinkKind` at 0x18.
+     * Byte [offset] of `GetPortraitData(fid)` (a `struct FaceData`): mouth position `xMouth`,
+     * `yMouth` at 0x14..0x15 and eye position `xEyes`, `yEyes` at 0x16..0x17 (in 8-pixel units
+     * from the face's origin), and `blinkKind` at 0x18.
      */
     public fun portraitByte(fid: Int, offset: Int): Int
 
@@ -50,13 +54,13 @@ public interface TalkFaceHost {
      */
     public fun copyMouthTiles(fid: Int, srcTile: Int, dstTile: Int)
 
-    /** `AdvanceGetLCGRNValue()`. */
+    /** `AdvanceGetLCGRNValue()`: the next value of the game's random number generator. */
     public fun advanceLcg(): Int
 
-    /** `StartFaceFadeIn(face)` (palette fade procs). */
+    /** `StartFaceFadeIn(face)`: blacks out the face palette and fades the portrait palette in. */
     public fun startFaceFadeIn(face: Proc)
 
-    /** `sub_80066E0(face, faceId)`: swaps the portrait of a loaded face. */
+    /** `sub_80066E0(face, faceId)`: starts the proc that swaps the portrait of a loaded face. */
     public fun changeFacePortrait(face: Proc, faceId: Int)
 }
 
@@ -65,7 +69,12 @@ public class FaceState {
     /** Sprite composition (`sprite`, 0x38), resolved from ROM composition data. */
     public var sprite: SpriteObject? = null
 
-    /** Display configuration bitmask (`displayBits`, 0x30). */
+    /**
+     * `FACE_DISP_*` flags (`displayBits`, 0x30): bits 0..2 sprite kind and flip (bit 0 =
+     * `FACE_DISP_FLIPPED`), 3 `SMILE`, 4 and 5 `TALK_1` and `TALK_2` (mouth moving), 6..9 the
+     * `HLAYER` priority, 10 `BLEND`, 12 `BIT_12` (no mouth and blink procs), 13 `BIT_13` (no
+     * palette loaded), 14 `HIDDEN`; bit 11 selects the 96x72 kinds (it has no name).
+     */
     public var displayBits: Int = 0
 
     /** Horizontal screen position in pixels (`xPos`, 0x34). */
@@ -74,34 +83,46 @@ public class FaceState {
     /** Vertical screen position in pixels (`yPos`, 0x36). */
     public var yPos: Int = 0
 
-    /** Base OAM2 attribute: palette bank, tile index, priority (`oam2`, 0x3C). */
+    /**
+     * OAM2 attribute of the face's first tile (`oam2`, 0x3C): tile number, OBJ palette bank in
+     * bits 12..15 and priority in bits 10..11, built by `FaceRefreshSprite`.
+     */
     public var oam2: Int = 0
 
-    /** Portrait definition ID (`faceId`, 0x3E). */
+    /** Portrait id, an index into `portrait_data` plus 1 (`faceId`, 0x3E). */
     public var faceId: Int = 0
 
-    /** Allocated face slot index (0..3) (`faceSlot`, 0x40). */
+    /** Face slot (0..3, `gFaces` index) the face occupies (`faceSlot`, 0x40). */
     public var faceSlot: Int = 0
 
-    /** Sprite rendering layer priority (5 or 6) (`spriteLayer`, 0x41). */
+    /**
+     * Sprite layer the face is put on (`spriteLayer`, 0x41): 5 by default, 6 behind (see
+     * `SetTalkFaceLayer`).
+     */
     public var spriteLayer: Int = 0
 
-    /** Mouth animation child proc (`unk_44`); null when mouth animation is disabled (bit 12). */
+    /** The mouth child proc (`unk_44`); null when `FACE_DISP_BIT_12` is set. */
     public var mouthProc: Proc? = null
 
-    /** Blink animation child proc (`pBlinkProc`, 0x48); null when blinking is disabled (bit 12). */
+    /** The blink child proc (`pBlinkProc`, 0x48); null when `FACE_DISP_BIT_12` is set. */
     public var pBlinkProc: Proc? = null
 }
 
-/** State of a `gProcScr_0859124C` mouth child. */
+/**
+ * State of a `gProcScr_0859124C` mouth child. The decomp types it as a `struct FaceBlinkProc`
+ * (the mouth proc reuses that layout).
+ */
 public class FaceMouthState {
     /** Parent face (`pFaceProc`, offset 0x2C). */
     public var face: Proc? = null
 
-    /** Mouth animation phase (`blinkControl`, offset 0x30); new Kotlin states start at zero. */
+    /**
+     * Phase 0..3 of the talking mouth cycle (the `blinkControl` field, offset 0x30, reused by
+     * the mouth proc); new Kotlin states start at zero.
+     */
     public var phase: Int = 0
 
-    /** Frames until the next mouth change (`unk_32`, offset 0x32). */
+    /** Frames until the mouth changes frame while talking (`unk_32`, offset 0x32). */
     public var timer: Int = 0
 }
 
@@ -110,20 +131,27 @@ public class FaceBlinkState {
     /** `pFaceProc` (0x2C): the parent face proc. */
     public var pFaceProc: Proc? = null
 
-    /** `blinkControl` (0x30, s16): blink kind, 1..5; selects the interval in the generator. */
+    /**
+     * `blinkControl` (0x30, s16): the blink kind, 1..5, taken from the portrait's `blinkKind` or
+     * set by `SetFaceBlinkControl`; it selects the interval in
+     * [TalkFace.faceBlinkProcGenBlinkInterval].
+     */
     public var blinkControl: Int = 0
 
-    /** `unk_32` (s16): requested eye state (0 blinking, 2 or 3 held closed/half, see script). */
+    /**
+     * `unk_32` (s16): the eye state asked for through `sub_80064D4`: 0 blink at random, 2 hold
+     * the eyes closed, 3 hold them half closed, 4 wink once (then back to 0).
+     */
     public var unk32: Int = 0
 
-    /** `unk_34` (s16): frame counter inside the current blink or held state. */
+    /** `unk_34` (s16): frames into the current blink (a blink is 10 frames). */
     public var unk34: Int = 0
 
-    /** `unk_38`: frames until the next blink; counts down. */
+    /** `unk_38`: frames until the next blink; counts down, `Int.MAX_VALUE` for never. */
     public var unk38: Int = 0
 }
 
-/** State of a `gProcScr_TalkFaceMove` proc. */
+/** State of a `gProcScr_TalkFaceMove` proc: one face sliding to another slot's column. */
 public class TalkFaceMoveState {
     /** Elapsed movement frame counter (`unk58`). */
     public var timer: Int = 0
@@ -131,23 +159,24 @@ public class TalkFaceMoveState {
     /** Total duration of movement in frames (`unk5C`). */
     public var duration: Int = 0
 
-    /** Face slot index being moved (`unk64`). */
+    /** `gFaces` index of the face that moves (`unk64`). */
     public var slot: Int = 0
 
-    /** Target talk face slot destination (`unk66`). */
+    /** Talk face slot (0..7) whose column the face moves to (`unk66`). */
     public var to: Int = 0
 
-    /** Starting X position in pixels (`unk68`). */
+    /** X position in pixels the move starts from (`unk68`). */
     public var fromX: Int = 0
 
-    /** Whether this face is swapping places with another face (`unk6A`). */
+    /** True when another face moves the opposite way at the same time (`unk6A`); unused here. */
     public var isSwap: Boolean = false
 }
 
 /**
- * The talk face side of `src/scene.c` (load, layer, move, mouth) over a minimal `src/face.c`:
- * `gFaces`, `StartFace` (palette, tiles, fields), and face animation procs. A face handle in
- * [TalkState.faces] is [FACE_HANDLE] plus the face slot.
+ * The talk face side of `src/scene.c` (load, layer, move, mouth) over the part of `src/face.c`
+ * the talk needs: `gFaces`, `StartFace` (palette, tiles, fields), the sprite composition and the
+ * mouth and blink procs. A face handle in [TalkState.faces] is [FACE_HANDLE] plus the face slot.
+ * The fight-event layout (`FaceConfig_FightEvent`, `SetupFaceGfxDataInBanim`) is not ported.
  */
 public class TalkFace(
     private val engine: ProcEngine,
@@ -155,7 +184,7 @@ public class TalkFace(
     private val host: TalkHost,
     private val faceHost: TalkFaceHost,
 ) {
-    /** `gFaces`. */
+    /** `gFaces`: the face proc in each of the 4 face slots, null when free. */
     public val gFaces: Array<Proc?> = arrayOfNulls(FACE_SLOTS)
 
     /** `sFaceConfig[].tileOffset`: byte offset of each slot's tiles in OBJ VRAM. */
@@ -208,7 +237,10 @@ public class TalkFace(
     private val moveInitFn = ProcFunc { talkFaceMoveOnInit(it) }
     private val moveIdleFn = ProcFunc { talkFaceMoveOnIdle(it) }
 
-    /** `gProcScr_E_FACE` (without the camera-move wait). */
+    /**
+     * `gProcScr_E_FACE`: the face proc. Loads the portrait tiles ([faceOnInit]), then submits the
+     * face sprite every frame ([faceOnIdle]). Without the camera-move wait of the original.
+     */
     public val faceScript: ProcScript = ProcScript(
         "gProcScr_E_FACE",
         listOf(sleep(0), call(faceInitFn), call(faceIdleFn), repeat(faceIdleFn), end()),
@@ -217,7 +249,7 @@ public class TalkFace(
     private val mouthInitFn = ProcFunc { sub8005FD4(it) }
     private val mouthIdleFn = ProcFunc { sub8005FE0(it) }
 
-    /** `gProcScr_0859124C`: mouth animation child. */
+    /** `gProcScr_0859124C`: the mouth child of a face: animates and draws the mouth. */
     public val mouthScript: ProcScript = ProcScript(
         "gProcScr_0859124C", listOf(call(mouthInitFn), repeat(mouthIdleFn), end()),
     ) { FaceMouthState() }
@@ -232,7 +264,12 @@ public class TalkFace(
     private val blinkHold4InitFn = ProcFunc { sub80063BC(it) }
     private val blinkHold4Fn = ProcFunc { sub80063C4(it) }
 
-    /** `gProcScr_FaceBlink`; the duplicate label 0 is as in the original. */
+    /**
+     * `gProcScr_FaceBlink`: the blink child. Label 0 waits for the next blink (kind from the
+     * portrait), 1 plays a blink, 2 and 3 hold the eyes closed or half closed, 4 plays a wink and
+     * 97 holds the eyes closed for good (portrait blink kind 6). The duplicate label 0 is as in
+     * the original.
+     */
     public val blinkScript: ProcScript = ProcScript(
         "gProcScr_FaceBlink",
         listOf(
@@ -247,21 +284,25 @@ public class TalkFace(
         ),
     ) { FaceBlinkState() }
 
-    /** `gProcScr_TalkFaceMove`. */
+    /** `gProcScr_TalkFaceMove`: slides a face to another slot's column, hopping on the way. */
     public val moveScript: ProcScript = ProcScript(
         "gProcScr_TalkFaceMove",
         listOf(sleep(1), call(moveInitFn), repeat(moveIdleFn), end()),
     ) { TalkFaceMoveState() }
 
-    /** The face proc of a [TalkState.faces] handle, or null. */
+    /** The face proc of a [TalkState.faces] handle ([FACE_HANDLE] + slot), or null for 0. */
     public fun faceOf(handle: Int): Proc? =
         if (handle == 0) null else gFaces[handle - FACE_HANDLE]
 
+    /** The [TalkState.faces] handle of face slot [slot]. */
     private fun handleOf(slot: Int): Int = FACE_HANDLE + slot
 
+    /** `GetTalkFaceHPos(talkFace)` without the fight-event case: the face's tile column. */
     private fun hpos(talkFace: Int): Int = FACE_HPOS[talkFace]
 
     /**
+     * Decompresses the portrait's tiles into the face slot's place in OBJ VRAM.
+     *
      * Transcribed from src/face.c: Face_OnInit (not verified: no @VerifiesPort test names it)
      */
     public fun faceOnInit(proc: Proc) {
@@ -273,7 +314,8 @@ public class TalkFace(
     }
 
     /**
-     * Submits the face composition with wrapped coordinates and its blend flag.
+     * Submits the face composition every frame unless it is hidden (`FACE_DISP_HIDDEN`), with
+     * x wrapped to 9 bits, y to 8 bits and the blend flag (`OAM0_BLEND`, 0x400).
      *
      * Reference verified for the talk's base 96x96 faces in both orientations. Hidden,
      * blend and coordinate wrapping have behavioral checks only; animation overlays and
@@ -296,8 +338,12 @@ public class TalkFace(
     }
 
     /**
-     * Transcribed from src/face.c: StartFace (not verified: no @VerifiesPort test names it). Unless
-     * display bit 12 is set it starts the mouth and blink children in that order.
+     * Starts the face proc in [slot] for portrait [fid] at pixel ([x], [y]) with `FACE_DISP_*`
+     * flags [disp], loading its palette unless `FACE_DISP_BIT_13` is set; returns null when the
+     * slot is taken. Unless `FACE_DISP_BIT_12` is set it starts the mouth and blink children, in
+     * that order.
+     *
+     * Transcribed from src/face.c: StartFace (not verified: no @VerifiesPort test names it).
      */
     public fun startFace(slot: Int, fid: Int, x: Int, y: Int, disp: Int): Proc? {
         if (gFaces[slot] != null) return null
@@ -321,7 +367,7 @@ public class TalkFace(
     }
 
     /**
-     * Initializes the mouth child with its parent and a zero timer.
+     * Initializes the mouth child: remembers its parent face and zeroes the change timer.
      *
      * Ported from src/face.c: sub_8005FD4
      */
@@ -332,7 +378,10 @@ public class TalkFace(
     }
 
     /**
-     * Updates mouth tiles and submits the 32x16 mouth sprite.
+     * Updates mouth tiles and submits the 32x16 mouth sprite. The mouth frames are 4x2-tile
+     * pictures in the portrait's mouth sheet, at tile offset +0 for the smiling set
+     * (`FACE_DISP_SMILE`) or +24 otherwise. Frame +16 is shown while the face is not talking; the
+     * talking cycle goes through +8, +16, +8, +0, each held for a random 1..8 frames.
      *
      * Normal and talking mouths are checked against the Prologue trace. Smile and blend paths
      * are not reference-checked. The original retains the phase from reused proc memory; newly
@@ -379,8 +428,10 @@ public class TalkFace(
     private fun faceOfBlink(proc: Proc): Proc = blinkOf(proc).pFaceProc!!
 
     /**
-     * Draws the eye object over the face for eye frame [unk] (0 or 1: 32x16 closed or half;
-     * 0x80 or 0x81: the 16x16 variant); any other value draws nothing.
+     * Draws the eye object over the face for eye frame [unk]: 0 closed or 1 half closed (a 32x16
+     * object whose tiles are at 88 and 24 tiles on from the face's `oam2`), or 0x80 / 0x81 for
+     * the same with the 16x16 object (one eye, used by the wink); any other value (the open
+     * eyes) draws nothing.
      *
      * Transcribed from src/face.c: sub_8006134 (not verified: the smaller eye object). Normal blink
      * OAM and tiles are checked against the Prologue trace in both orientations.
@@ -420,7 +471,8 @@ public class TalkFace(
     }
 
     /**
-     * Blink proc start: reads the portrait's blink kind and rolls the first interval.
+     * Blink proc start: reads the portrait's blink kind and rolls the first interval. Kind 6
+     * means eyes always closed: it becomes kind 5 (never blink) held closed (label 97).
      *
      * Ported from src/face.c: sub_800623C
      */
@@ -441,7 +493,8 @@ public class TalkFace(
     }
 
     /**
-     * Counts the blink interval down; jumps to the held-eye label in `unk_32` or starts a blink.
+     * Counts the blink interval down. A requested eye state in `unk_32` (2, 3 or 4) jumps to the
+     * script label of that number; otherwise a blink (label 1) starts when the interval is over.
      *
      * Ported from src/face.c: sub_8006280
      */
@@ -461,7 +514,8 @@ public class TalkFace(
     }
 
     /**
-     * One frame of the blink animation (closed for frames 3..5, half for 0..2 and 6..8).
+     * One frame of the 10-frame blink (eyes closed for frames 3..5, half closed for 0..2 and 6..8,
+     * open for 9), then back to the waiting label 0.
      *
      * Ported from src/face.c: sub_80062B8
      */
@@ -546,6 +600,7 @@ public class TalkFace(
 
     /**
      * Sets the blink kind of [face] (0 restores the portrait's own) and rerolls the interval.
+     * Used by the codes `0x80 0x16..0x1B` of the dialogue.
      *
      * Transcribed from src/face.c: SetFaceBlinkControl (not verified: no reference run sets it)
      */
@@ -558,8 +613,10 @@ public class TalkFace(
     }
 
     /**
-     * Rolls the frames until the next blink from one LCG step (the original falls off the end
-     * for other kinds; 0 is returned there).
+     * Rolls the frames until the next blink from one LCG step (a 16-bit random value `r`): kind 1
+     * `(r >> 7) + 30`, kind 2 `(r >> 9) + 30`, kind 3 `(r >> 7) + 300`, kind 4 always 1 and
+     * kind 5 never (`INT32_MAX`). The original falls off the end of the function for other
+     * kinds; 0 is returned there.
      *
      * Ported from src/face.c: FaceBlinkProc_GenBlinkInterval
      */
@@ -576,6 +633,8 @@ public class TalkFace(
     }
 
     /**
+     * `StartFace` in the first free slot (`FindFreeFaceSlot`); null when all 4 slots are taken.
+     *
      * Transcribed from src/face.c: StartFaceAuto (not verified: no @VerifiesPort test names it)
      */
     public fun startFaceAuto(fid: Int, x: Int, y: Int, disp: Int): Proc? {
@@ -584,6 +643,8 @@ public class TalkFace(
     }
 
     /**
+     * Stores the `FACE_DISP_*` flags and refreshes the sprite composition and `oam2`.
+     *
      * Transcribed from src/face.c: SetFaceDisplayBits (not verified: independently of refresh).
      */
     public fun setFaceDisplayBits(proc: Proc, disp: Int) {
@@ -593,7 +654,9 @@ public class TalkFace(
     }
 
     /**
-     * Selects the ROM composition and the configured tile, palette and hardware priority.
+     * Selects the ROM composition from the kind and flip bits (`displayBits and 0x807`) and
+     * builds `oam2` from the slot's configured tile and palette and the `HLAYER` bits (the
+     * hardware priority, `OAM2_LAYER`).
      *
      * Reference verified for the talk's 96x96 and flipped 96x96 compositions and priority.
      * Other layouts have ROM-loading checks only, without reference execution coverage.
@@ -626,6 +689,13 @@ public class TalkFace(
     }
 
     /**
+     * Handles `[LoadFace]`: reads the 2-byte face id at the string cursor (0xFFFF is the active
+     * unit's portrait, otherwise the id minus 0x100), then either swaps the portrait of the face
+     * already in the active slot or starts a new face there at the slot's column, y 80, faded in,
+     * and locks the talk for 8 frames. The face is the 96x80 kind (`FACE_DISP_KIND(FACE_96x80)`)
+     * and is flipped (`FACE_DISP_FLIPPED`) when its column is 14 or less. The fight-event layout
+     * is not ported and fails.
+     *
      * Ported from src/scene.c: TalkLoadFace
      */
     public fun talkLoadFace(proc: Proc) {
@@ -651,6 +721,9 @@ public class TalkFace(
     }
 
     /**
+     * Gives the face in [talkFace] sprite layer 5 and the other faces of its group (slots 0..2 or
+     * 3..5) layer 6; does nothing when [toBack] is non-zero.
+     *
      * Ported from src/scene.c: SetTalkFaceLayer
      */
     public fun setTalkFaceLayer(talkFace: Int, toBack: Int) {
@@ -664,6 +737,10 @@ public class TalkFace(
     }
 
     /**
+     * Moves the face of slot [from] to slot [to] (`[Move*]` codes): starts the slide of that face
+     * and, when [to] is occupied, of its face the other way (a swap), then swaps the two
+     * handles.
+     *
      * Ported from src/scene.c: MoveTalkFace
      */
     public fun moveTalkFace(from: Int, to: Int) {
@@ -680,11 +757,16 @@ public class TalkFace(
     }
 
     /**
+     * True while any face is sliding; the dialogue waits for it.
+     *
      * Ported from src/scene.c: IsTalkFaceMoving
      */
     public fun isTalkFaceMoving(): Boolean = engine.find(moveScript) != null
 
     /**
+     * Starts the slide of the face standing at the column of talk slot [from] to the column of
+     * slot [to]; nothing if no face stands there.
+     *
      * Ported from src/scene.c: StartTalkFaceMove
      */
     public fun startTalkFaceMove(from: Int, to: Int, isSwap: Boolean) {
@@ -700,6 +782,8 @@ public class TalkFace(
     }
 
     /**
+     * The `gFaces` index of the face whose x position is [x], or -1.
+     *
      * Ported from src/scene.c: GetFaceIdByXPos
      */
     public fun faceIdByXPos(x: Int): Int {
@@ -711,6 +795,8 @@ public class TalkFace(
     }
 
     /**
+     * Picks the slide length: 32 frames when the face has more than 24 pixels to go, else 16.
+     *
      * Ported from src/scene.c: TalkFaceMove_OnInit
      */
     public fun talkFaceMoveOnInit(proc: Proc) {
@@ -720,6 +806,11 @@ public class TalkFace(
     }
 
     /**
+     * One frame of the slide: x follows an `RSQUARE` interpolation to the target column while the
+     * face dips one pixel at fixed fractions of the duration (once for the 16-frame slide, twice
+     * for the 32-frame one; the last frame undoes the last dip). Breaks when the duration is
+     * over.
+     *
      * Ported from src/scene.c: TalkFaceMove_OnIdle
      */
     public fun talkFaceMoveOnIdle(proc: Proc) {
@@ -747,6 +838,9 @@ public class TalkFace(
     }
 
     /**
+     * Sets the mouth bits of the face in [talkFace] to [faceDisp] (0 or `FACE_DISP_TALK_1`) and
+     * its smile bit from [TalkState.faceSmileEnabled]; nothing for slot 0xFF or an empty slot.
+     *
      * Ported from src/scene.c: SetTalkFaceDisp
      */
     public fun setTalkFaceDisp(talkFace: Int, faceDisp: Int) {
@@ -775,24 +869,41 @@ public class TalkFace(
 
     /** Face handle constants. */
     public companion object {
-        /** Value of a face handle for slot 0. */
+        /**
+         * The handle of face slot 0 in [TalkState.faces]. Not a decomp address: it only makes a
+         * face a non-zero value (the decomp stores a `FaceProc` pointer, NULL for none).
+         */
         public const val FACE_HANDLE: Int = 0x02030000
+
+        /** `FACE_SLOT_COUNT`: the number of face slots (`gFaces`). */
         private const val FACE_SLOTS = 4
 
-        /** `gDefaultFaceConfig[].tileOffset`. */
+        /** `gDefaultFaceConfig[].tileOffset`: byte offset of each slot's tiles in OBJ VRAM. */
         private val DEFAULT_TILE_OFFSETS =
             intArrayOf(0x20 * 0x300, 0x20 * 0x280, 0x20 * 0x200, 0x20 * 0x380)
 
-        /** `gDefaultFaceConfig[].paletteId`. */
+        /** `gDefaultFaceConfig[].paletteId`: the OBJ palette bank of each slot. */
         private val DEFAULT_PALETTE_IDS = intArrayOf(6, 7, 8, 9)
+
+        /** `gObject_16x16` (ROM), the one-eye object of the wink. */
         private const val OBJECT_16X16 = 0x08590F4C
+
+        /** `gObject_32x16` (ROM), the mouth and eye object. */
         private const val OBJECT_32X16 = 0x08590F8C
+
+        /** Start of the OBJ tile data in VRAM. */
         private const val OBJ_VRAM = 0x06010000
+
+        /** `FACE_DISP_SMILE`. */
         private const val SMILE = 1 shl 3
+
+        /** `FACE_DISP_TALK_1`: the mouth moves. */
         private const val TALK_1 = 1 shl 4
+
+        /** `FACE_DISP_TALK_2`. */
         private const val TALK_2 = 1 shl 5
 
-        /** `gTalkFaceHPosLut`. */
+        /** `gTalkFaceHPosLut`: the tile column of each of the 8 talk face slots. */
         private val FACE_HPOS = intArrayOf(3, 6, 9, 21, 24, 27, -8, 38)
     }
 }

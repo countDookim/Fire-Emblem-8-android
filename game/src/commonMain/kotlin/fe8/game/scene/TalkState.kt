@@ -25,76 +25,124 @@ public class TalkState {
     /** GBA address to resume at after a nested string, or 0 when not nested (`strBackup`, 0x04). */
     public var strBackup: Int = 0
 
-    /** Active text color ID (1..4) for character rendering (`printColor`, u8, 0x08). */
+    /**
+     * Colour index the dialogue is drawn with (`printColor`, u8, 0x08): 1 from `StartTalkExt`, 4
+     * after `[ToggleRed]` (`sub_8006F00`); the code `0x80 0x00..0x03 n` sets it to `n`.
+     */
     public var printColor: Int = 0
 
-    /** Zero-based index of the currently active text line (0..lines-1, `lineActive`, u8, 0x09). */
+    /**
+     * Zero-based line the text is being drawn on (`lineActive`, u8, 0x09). It reaches [lines]
+     * when every line is used, which makes `TalkPrepNextChar` start a line shift.
+     */
     public var lineActive: Int = 0
 
-    /** Total line capacity of the dialogue window (`lines`, u8, 0x0A). */
+    /** Number of text lines (`Text` strips) in use, as set by `InitTalk` (`lines`, u8, 0x0A). */
     public var lines: Int = 0
 
-    /** Offset of the topmost visible line in the cyclic text buffer (`topTextNum`, u8, 0x0B). */
+    /**
+     * Index of the `Text` strip that is currently the first line (`topTextNum`, u8, 0x0B): the
+     * strips are used cyclically, so a line shift only adds one to it (`TALK_TEXT_BY_LINE`).
+     */
     public var topTextNum: Int = 0
 
-    /** Horizontal tile offset on BG0 where dialogue text starts (`xText`, u8, 0x0C). */
+    /**
+     * Tile column on BG0 where the text starts (`xText`, u8, 0x0C): the argument of
+     * `StartTalkExt`, replaced by the bubble's column plus 1 when `PutTalkBubble` places a bubble.
+     */
     public var xText: Int = 0
 
-    /** Vertical tile offset on BG0 where dialogue text starts (`yText`, u8, 0x0D). */
+    /** Tile row on BG0 where the text starts (`yText`, u8, 0x0D); set like [xText]. */
     public var yText: Int = 0
 
-    /** Speech bubble width in 8-pixel tiles (`activeWidth`, u8, 0x0E). */
+    /**
+     * Width in tiles the bubble needs for the text to come (`activeWidth`, u8, 0x0E): 2 plus the
+     * text width in pixels rounded up to tiles, from `GetStrTalkLen`.
+     */
     public var activeWidth: Int = 0
 
-    /** Slot of the face currently speaking, or -1 if none (`speakingFaceSlot`, s8, 0x0F). */
+    /**
+     * Talk face slot (0..7) the open bubble belongs to, or -1 when no bubble is open
+     * (`speakingFaceSlot`, s8, 0x0F).
+     */
     public var speakingFaceSlot: Int = 0
 
-    /** Width of the speech bubble when last opened (`speakingWidth`, u8, 0x10). */
+    /** [activeWidth] at the time the open bubble was opened (`speakingWidth`, u8, 0x10). */
     public var speakingWidth: Int = 0
 
-    /** Slot of the currently active face, or 0xFF if none (`activeFaceSlot`, u8, 0x11). */
+    /**
+     * Talk face slot (0..7) of the character who speaks next, set by the `[Open*]` and `[Move*]`
+     * codes, or 0xFF if none (`activeFaceSlot`, u8, 0x11).
+     */
     public var activeFaceSlot: Int = 0
 
-    /** Whether instant text scroll / fast-forward is active (`instantScroll`, s8, 0x12). */
+    /**
+     * Non-zero while the text is printed without per-character delay (`instantScroll`, s8, 0x12):
+     * set by a D-pad, A or B press unless `TALK_FLAG_NOFAST`, cleared after any waiting control
+     * code and at line shifts.
+     */
     public var instantScroll: Int = 0
 
-    /** Delay in frames between rendering successive characters (`printDelay`, s8, 0x13). */
+    /**
+     * Frames between two printed characters (`printDelay`, s8, 0x13): `GetTextDisplaySpeed` (the
+     * text-speed option: 8, 4, 1 or 0 frames) at `StartTalkExt`.
+     */
     public var printDelay: Int = 0
 
-    /** Frame countdown timer toward the next character draw (`printClock`, s8, 0x14). */
+    /** Frames counted since the last printed character (`printClock`, s8, 0x14). */
     public var printClock: Int = 0
 
-    /** Whether the current line's text has been flushed to the tilemap (`putLines`, u8, 0x15). */
+    /**
+     * 1 once the active line's `Text` was put on the BG0 tilemap (`putLines`, u8, 0x15); `[NL]`
+     * resets it so the next line is put when its first character is drawn.
+     */
     public var putLines: Int = 0
 
-    /** Whether mouth flap animation is enabled during text printing (`mouthMoveEnabled`, 0x16). */
+    /** 1 if the speaking face's mouth moves while text prints (`mouthMoveEnabled`, u8, 0x16). */
     public var mouthMoveEnabled: Int = 0
 
-    /** Whether smile expression is enabled for the speaking face (`faceSmileEnabled`, u8, 0x17). */
+    /** 1 if the faces use their smiling mouth set (`faceSmileEnabled`, u8, 0x17). */
     public var faceSmileEnabled: Int = 0
 
-    /** Face proc handles or addresses for the 8 face slots (`faces[8]`, 0x18). */
+    /**
+     * The `FaceProc` of each of the 8 talk face slots, 0 for none (`faces[8]`, 0x18). In this
+     * port a face is the handle [TalkFace.FACE_HANDLE] plus its face slot.
+     */
     public val faces: IntArray = IntArray(FACE_COUNT)
 
-    /** Per-character callback invoked by control code `0x80 0x24` (`unk38`, 0x38). */
+    /**
+     * Callback run once when the control code `0x80 0x24` is read (`unk38`, 0x38); set by
+     * `sub_8006ABC`. Its purpose is unknown.
+     */
     public var unk38: ProcFunc? = null
 
-    /** Numeric value formatted as ASCII decimal for the `[G]` code (`userNumber`, u32, 0x3C). */
+    /**
+     * Number that the `[G]` code (`0x80 0x05`) prints, set by `SetTalkNumber` (`userNumber`, 0x3C).
+     */
     public var userNumber: Int = 0
 
-    /** ASCII decimal string buffer for [userNumber] (`userNumberString[0x20]`, 0x40). */
+    /** The decimal text of [userNumber] that `[G]` reads as a nested string (0x40). */
     public val userNumberString: ByteArray = ByteArray(STRING_SIZE)
 
-    /** Custom user string substituted into dialogue (`userString[0x20]`, 0x60). */
+    /**
+     * String a script supplies with `SetTalkUnkStr`, read as a nested string by `0x80 0x06` (0x60).
+     */
     public val userString: ByteArray = ByteArray(STRING_SIZE)
 
     /** Bitfield of `TALK_FLAG_*` configuration flags (`config`, u16, 0x80). */
     public var config: Int = 0
 
-    /** Flag set after typing sound is played during fast scroll (`unk82`, u8, 0x82). */
+    /**
+     * 1 after the print blip (`SONG_6E`) has played (`unk82`, u8, 0x82): while [instantScroll] is
+     * on no further blip plays. Cleared whenever the text is cleared and by `StartTalkExt`.
+     */
     public var unk82: Int = 0
 
-    /** Controls inverted palette toggling for the bubble and text (`invertedFlags`, u8, 0x83). */
+    /**
+     * Inverted-colour state (`invertedFlags`, u8, 0x83), toggled by `[ToggleColorInvert]`
+     * (`0x80 0x25`): bit 0 = inverted palettes wanted (and no bubble tail drawn), bit 1 = palette
+     * swap pending, applied by the next `PutTalkBubble`.
+     */
     public var invertedFlags: Int = 0
 
     /** Writes the [SIZE] bytes the GBA keeps in RAM to [out] at [offset]. */
@@ -161,7 +209,7 @@ public class TalkState {
 
     /** Size constants. */
     public companion object {
-        /** `sizeof(struct TalkState)`. */
+        /** `sizeof(struct TalkState)` (include/scene.h). */
         public const val SIZE: Int = 0x84
 
         /** Entries of [faces]. */

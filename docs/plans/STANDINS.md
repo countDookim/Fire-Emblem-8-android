@@ -135,8 +135,8 @@ Total entries: 177 across 35 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `talkChoiceResult` | Stand-in (M6-E): `sTalkChoiceResult` is only written by the (not ported) choice proc: 0. |
 | `game/src/commonMain/kotlin/fe8/game/event/ReleaseEventStubs.kt` | `ReleaseEventStubs` | Stand-in until M6-E: not ports; no-op event commands that let a script run past commands whose handlers are not ported yet (text, fades, unit loads, ASMC and so on), as the skip mode of the beginni... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/PostSaveMenu.kt` | `standInSelection` | Stand-in until M6-E: save menu selection logic simulating pressing 'A' on the default menu item. |
-| `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `TalkScene` | Stand-ins until M6-E (no behaviour is invented; each is a no-op or the smallest working substitute): - sprite text, talk choices, `[G]` numbers and the tactician name are not ported and fail; - the... |
-| `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `setFaceEyes` | Stand-in (M6-E): the face eye state is not ported. |
+| `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `TalkScene` | Stand-ins until M6-E (no behaviour is invented; each is a no-op or the smallest working substitute): - talk choices (`StartTalkChoice`), `[G]` numbers (`NumberToStringAscii`) and the tactician name... |
+| `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `setFaceEyes` | Stand-in (M6-E): `sub_80064D4`, the face eye state, is not ported; the call is ignored. |
 
 ## M6-F (13)
 
@@ -163,7 +163,7 @@ Total entries: 177 across 35 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startClassReel` | Stand-in until M6-G (class reel, D15-1): the reel needs battle animations, so without a hook it is skipped as if it had ended at once. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startClassReel` | `GamceControl_StartClassReel` (`PROC_CALL_2`, class reel, not ported): the default skips the reel (stand-in until M6-G, D15-1), see [startClassReel]. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
-| `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: the battle animation (deamon) is not ported, never active. |
+| `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: `IsBattleDeamonActive` (the battle animation system) is not ported, so the fixed fight-event bubble is never used. |
 
 ## M6-H (30)
 

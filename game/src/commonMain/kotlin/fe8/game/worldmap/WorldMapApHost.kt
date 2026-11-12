@@ -28,17 +28,25 @@ public class WorldMapApHost(
 
     private val objects = HashMap<Int, SpriteObject>()
 
+    /** The sprite object at ROM address [addr], parsed once and cached. */
     override fun objectAt(addr: Int): SpriteObject = objects.getOrPut(addr) { rom.objN(addr) }
 
+    /** `gSinLookup[a & 0xFF]` (signed 4.12). */
     override fun sin(a: Int): Int = rom.u16(SIN_LOOKUP + 2 * (a and 0xFF)).toShort().toInt()
 
+    /** `gCosLookup[a & 0xFF]`: the sine table read a quarter turn (0x40 entries) ahead. */
     override fun cos(a: Int): Int =
         rom.u16(SIN_LOOKUP + 2 * (0x40 + (a and 0xFF))).toShort().toInt()
 
+    /** `SetObjAffine`: writes the affine parameters of OAM matrix [index]. */
     override fun setObjAffine(index: Int, pa: Int, pb: Int, pc: Int, pd: Int) {
         oam.setObjAffine(index, pa, pb, pc, pd)
     }
 
+    /**
+     * `Register2dChrMove`: copies a [width] x [height] tile block from [src] (ROM or `muGfx`) to
+     * OBJ VRAM at [dstOffset].
+     */
     override fun register2dChrMove(src: Int, dstOffset: Int, width: Int, height: Int) {
         val line = width * CHR_SIZE
         val inRom = src >= RomView.ROM_BASE
@@ -56,6 +64,7 @@ public class WorldMapApHost(
         }
     }
 
+    /** Whether OBJ tiles use 1D mapping (DISPCNT bit 6). */
     override fun obj1dMap(): Boolean = hw.lcd.dispcnt and 0x40 != 0
 
     private companion object {

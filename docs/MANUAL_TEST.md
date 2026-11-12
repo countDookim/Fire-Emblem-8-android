@@ -30,8 +30,12 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      Magvel map appears (the screen was black before, the narration box shows at the bottom),
      with the narration text paging by itself or with A, the map scrolling to different regions,
      the nations being highlighted one after another with the portraits of their rulers at the
-     side, and then the picture fading to black and the castle scene starting. The whole map
-     takes about a minute on the phone.
+     side, and then the picture fading to black. The whole map takes about a minute on the phone.
+  2. D11-ci5 chapter intro: after the world map the "Prologue" title card appears with drifting
+     fog, flashing lights, the decal banner and scrolling backgrounds (about 9 seconds), then the
+     picture fades to the Renais Castle map and the castle scene starts. Pressing A, B or Start
+     after the first second skips the rest: the screen fades out (about one second) and then
+     fades into the map. The sound effect fade at the end of the intro is not wired yet.
   - Limits (all known): the map sprites are not drawn yet (units move invisibly, no node icons, no
      dots); the narration box scanline effect and sound effects of the map are
      missing. The text speed follows the A button: hold A to speed it up. Report a crash or a

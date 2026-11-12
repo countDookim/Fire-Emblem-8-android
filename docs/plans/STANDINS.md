@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 224 across 36 Kotlin files.
+Total entries: 218 across 36 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -20,11 +20,10 @@ Total entries: 224 across 36 Kotlin files.
 | M6-E | 44 |
 | M6-G | 1 |
 | M6-H | 22 |
-| M6-I | 24 |
+| M6-I | 21 |
 | M6-J | 8 |
 | CAP-status1 | 4 |
 | D09-3 | 2 |
-| D11-ci5 | 3 |
 | D11-wire-a | 1 |
 | D11-wm9 | 26 |
 | PP-10 | 1 |
@@ -187,16 +186,13 @@ Total entries: 224 across 36 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `obstacleHpAt` | Stand-in for `GetObstacleHpAt` (bmtrick.c) until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `handlePostActionTraps` | Stand-in for `HandlePostActionTraps` (a `PROC_CALL_2`) until M6-H. |
 
-## M6-I (24)
+## M6-I (21)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `gorgonEggHatchDisplay` | Stand-in until M6-I: ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `updatePrevDeployStates` | Stand-in (M6-I). |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `getBattleMapKind` | Stand-in until M6-I. |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `getBattleMapKind` | Stand-in until M6-I (needs the world map node state); the default answers [BattleMapKind.STORY]. |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `getNextUnclearedNode` | Stand-in until M6-I; the default answers -1. |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `getPlayChapterId` | Stand-in until M6-I; the default answers -1. |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterTitle.kt` | `ChapterTitle` | Stand-in supplied by the caller until M6-I. @param getNextUnclearedNode `GetNextUnclearedNode(&gGMData)` (worldmap_path.c). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `endPrepMenuButtonDisplay` | Stand-in until M6-I for `Proc_EndEach(gProcScr_PrepMap_MenuButtonDisplay)`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `startPrepMenuButtonDisplay` | Stand-in until M6-I for `Proc_Start(gProcScr_PrepMap_MenuButtonDisplay)`, run instead of the goal window while the preparations screen is up. |
@@ -244,14 +240,6 @@ Total entries: 224 across 36 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `gotItemPopup` | Stand-ins (D09-3): `gpPopupUnit` is not tracked, so the unit-name text id is 0 (the got-item and pilfered scripts do not use the unit name), and [addItem] with a full inventory (the item-drop menu)... |
 | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | `event37GiveItem` | Transcribed from src/eventscr.c: Event37_GiveItem (not verified: inventory/gold effects and popups not trace-compared) Host stand-ins (D09-3): the "gold got" popup (`NewPopup_GoldGot`) is not shown... |
-
-## D11-ci5 (3)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `chapterIntro` | Stand-in until D11-ci5: ends at once. |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `ChapterIntro` | Not wired: `BMapMain.Hooks.chapterIntro` still holds its own stand-in (D11-ci5). |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `ChapterIntro` | The rest (Bg2Scroll, decals, fog, the slow fade to the map) is named stand-ins in [script]. |
 
 ## D11-wire-a (1)
 

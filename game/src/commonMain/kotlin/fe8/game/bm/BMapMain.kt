@@ -134,7 +134,8 @@ public class BMapMain(
 
         /**
          * `gProcScr_ChapterIntro` (0x0859B1B0): chapter introduction title/banner sequence.
-         * Stand-in until D11-ci5: ends at once.
+         * Default: ends at once; `Fe8Boot` sets the
+         * [ChapterIntro] script on the whole ROM.
          */
         public var chapterIntro: ProcScript = standIn("gProcScr_ChapterIntro")
 

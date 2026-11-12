@@ -164,7 +164,7 @@ class ChapterIntroMainPathTest {
                 } ?: -1
             }
             it.getNextUnclearedNode = { worldMapPath.getNextUnclearedNode() }
-            it.gameClock = { clock }
+            it.gameClock = ChapterIntro.GameClockSource { clock }
         }
         val host = ChapterIntro(
             engine, hardware, colorFade, oam, rom, SoundWrapper(engine, null) { 0 },

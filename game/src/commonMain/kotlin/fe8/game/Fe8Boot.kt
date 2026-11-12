@@ -12,6 +12,7 @@ import fe8.game.bm.BmSt
 import fe8.game.bm.BmMapRender
 import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
+import fe8.game.bm.ChapterIntro
 import fe8.game.bm.ChapterMapGfx
 import fe8.game.bm.MapAnimations
 import fe8.game.bm.Mu
@@ -86,6 +87,8 @@ import fe8.game.scene.TalkScene
 import fe8.game.title.TitleScreen
 import fe8.game.worldmap.GmData
 import fe8.game.worldmap.WmNodeData
+import fe8.game.worldmap.WmPathData
+import fe8.game.worldmap.WorldMapPath
 import fe8.game.worldmap.WorldMapNodes
 import gba.audio.M4aDriver
 import gba.audio.M4aSound
@@ -113,6 +116,7 @@ import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.render.ArchivedPaletteFade
 import gbafe.render.BgTilemap
+import gbafe.render.ColorFade
 import gbafe.render.HardwareSceneLoader
 import gbafe.render.PaletteFade
 import gbafe.render.ScreenFade
@@ -878,7 +882,40 @@ public class Fe8Boot(
             }
         }
         wireUnitSprites(main, start, phase, map, rom)
+        if (rom.isWholeRom) main.hooks.chapterIntro = chapterIntro(start).script
         main to start
+    }
+
+    /**
+     * The chapter intro (`gProcScr_ChapterIntro`, D11-ci5) over the battle map state, the real
+     * screen fades, the live key status ([keys], so A/B/Start skip it) and the game's
+     * [SoundWrapper]. Needs the whole ROM (title graphics).
+     */
+    private fun chapterIntro(start: BattleMapStart): ChapterIntro {
+        val bm = loop.bmSt
+        val path = WorldMapPath(gmData, WmPathData(rom))
+        val nodes = WmNodeData(rom)
+        val hooks = ChapterIntro.Hooks(
+            newKeys = { keys.newKeys },
+            bMapDispSuspend = { start.bMapDispSuspend() },
+            bMapDispResume = { start.bMapDispResume() },
+        ).also {
+            it.getBattleMapKind = { start.hooks.getBattleMapKind() }
+            it.refreshBMapGraphics = { refreshMapGraphics() }
+            it.getPlayChapterId = { chapter ->
+                (0 until WM_NODE_COUNT).firstOrNull { node ->
+                    nodes.chapterId(node, control.playSt.chapterModeIndex) == chapter
+                } ?: -1
+            }
+            it.getNextUnclearedNode = { path.getNextUnclearedNode() }
+            it.gameClock = ChapterIntro.GameClockSource { clock.get().toInt() }
+        }
+        return ChapterIntro(
+            engine, hw, ColorFade(hw.palette), loop.oam, rom, control.sound, bm, control.playSt,
+            battleChapters, ChapterMapGfx(rom, battleChapters, hw, control.playSt),
+            MapAnimations(rom, battleChapters, hw, control.playSt, engine, bm),
+            checkNotNull(unitSprites), battleEntityMaps, bmapRender, hooks, io,
+        )
     }
 
     /**
@@ -1094,6 +1131,9 @@ public class Fe8Boot(
 }
 
 /** Offset of `suspendPointType` in `struct ActionData`. */
+/** World map nodes tried by `GetPlayChapterId`. */
+private const val WM_NODE_COUNT = 0x1D
+
 private const val ACTION_SUSPEND_POINT_TYPE = 0x16
 
 /** `gTrapArray`: 0x40 entries of `struct Trap` (8 bytes). */

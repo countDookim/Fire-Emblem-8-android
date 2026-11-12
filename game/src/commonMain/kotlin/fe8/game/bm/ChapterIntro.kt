@@ -28,10 +28,10 @@ import gbafe.render.OamBuffer
  * The chapter intro (`src/chapterintrofx.c`): the start of `gProcScr_ChapterIntro` up to the
  * skip to label 1 (`ram_trace_newgame_bm` frames 9322-9420) and the skip path itself, label 1 to
  * `ChapterIntro_End` (frames 9421-9506), plus the main path from the twin lights through the
- * title and the light effects to the fog (`ram_trace_newgame_intro` frames 9322-9535). The rest
- * (Bg2Scroll, decals, fog, the slow fade to the map) is named stand-ins in [script].
+ * title and the light effects, the fog and the slow fade to the map to the proc's end
+ * (`ram_trace_newgame_intro` frames 9322-9872).
  *
- * Not wired: `BMapMain.Hooks.chapterIntro` still holds its own stand-in (D11-ci5).
+ * Wired by `Fe8Boot` into `BMapMain.Hooks.chapterIntro` (D11-ci5).
  */
 public class ChapterIntro(
     private val engine: ProcEngine,
@@ -49,6 +49,13 @@ public class ChapterIntro(
     private val entityBmMaps: EntityBmMaps,
     private val bmMapRender: BmMapRender,
     private val hooks: Hooks,
+    /**
+     * The display registers the intro writes: `FlushLCDControl` ([flushLcdControl]) copies
+     * `gLCDControlBuffer` here, and [bg1And3ScrollLoop] writes `REG_BG3HOFS` directly (it is not
+     * part of the buffer). Layout of the I/O registers (offset 0 = 0x04000000). `Fe8Boot` passes
+     * the registers the renderer reads.
+     */
+    public val io: ByteArray = ByteArray(IO_SIZE),
 ) {
     /** External pieces of the intro. */
     public class Hooks(
@@ -69,8 +76,8 @@ public class ChapterIntro(
         public var wfxFlamesInitGradientPublic: () -> Unit = {}
 
         /**
-         * `GetBattleMapKind` ([BattleMapKind]). Stand-in until M6-I (needs the world map node
-         * state); the default answers [BattleMapKind.STORY].
+         * `GetBattleMapKind` ([BattleMapKind]). Default answers [BattleMapKind.STORY]; `Fe8Boot` sets
+         * the battle map's.
          */
         public var getBattleMapKind: () -> Int = { BattleMapKind.STORY }
 
@@ -83,18 +90,27 @@ public class ChapterIntro(
 
         /**
          * `GetPlayChapterId(chapterIndex)` (worldmap_path.c), used by `GetChapterTitleWM`: the
-         * world map node of the chapter. Stand-in until M6-I; the default answers -1.
+         * world map node of the chapter. Default -1; `Fe8Boot` sets the real search.
          */
         public var getPlayChapterId: (Int) -> Int = { -1 }
 
         /**
          * `GetNextUnclearedNode(&gGMData)` (worldmap_path.c), used by `GetChapterTitleWM`.
-         * Stand-in until M6-I; the default answers -1.
+         * Default -1; `Fe8Boot` sets the real one.
          */
         public var getNextUnclearedNode: () -> Int = { -1 }
 
-        /** `GetGameClock()` (`gGameClock`, frames since boot). */
-        public var gameClock: () -> Int = { 0 }
+        /**
+         * `GetGameClock()` (`gGameClock`, frames since boot). A `fun interface` so the value
+         * (above 127 after two seconds) is not boxed each frame.
+         */
+        public var gameClock: GameClockSource = GameClockSource { 0 }
+    }
+
+    /** `GetGameClock()` without boxing the result. */
+    public fun interface GameClockSource {
+        /** Frames since boot (low 32 bits of `gGameClock`). */
+        public fun frames(): Int
     }
 
     /** `struct ChapterIntroFxProc` fields (0x2C..0x68) shared by the intro and its children. */
@@ -126,13 +142,6 @@ public class ChapterIntro(
         /** `unk_68` (s16). */
         public var unk68: Int = 0
     }
-
-    /**
-     * The display registers the intro writes: `FlushLCDControl` ([flushLcdControl]) copies
-     * `gLCDControlBuffer` here, and [bg1And3ScrollLoop] writes `REG_BG3HOFS` directly (it is not
-     * part of the buffer). Layout of the I/O registers (offset 0 = 0x04000000).
-     */
-    public val io: ByteArray = ByteArray(IO_SIZE)
 
     /** `REG_BG3HOFS` (I/O offset 0x1C). */
     public val regBg3Hofs: Int
@@ -458,7 +467,7 @@ public class ChapterIntro(
      * Scrolls BG2 diagonally by half the game clock, wrapping at 256.
      */
     private fun bg2ScrollLoop() {
-        val offset = (hooks.gameClock() / 2) and 0xFF
+        val offset = (hooks.gameClock.frames() / 2) and 0xFF
         hardware.lcd.setBgPosition(2, offset, offset)
     }
 
@@ -528,7 +537,7 @@ public class ChapterIntro(
     private fun blendFogAlphaLoop(proc: Proc) {
         val state = proc.state as State
         setBlendAlpha(state.timer, 16)
-        if (state.skipTarget == 3 || (hooks.gameClock() and 3) == 0) {
+        if (state.skipTarget == 3 || (hooks.gameClock.frames() and 3) == 0) {
             state.timer = (state.timer + if (state.isSkipping != 0) 4 else 1).toShort().toInt()
             if (state.timer > 5) {
                 setBlendAlpha(6, 16)
@@ -888,7 +897,7 @@ public class ChapterIntro(
      * Ported from src/chapterintrofx.c: ChapterIntro_8020A8C
      */
     private fun chapterIntro8020A8C(proc: Proc) {
-        if ((hooks.gameClock() and 3) != 0) return
+        if ((hooks.gameClock.frames() and 3) != 0) return
         val state = proc.state as State
         colorFade.tick()
         hardware.enablePaletteSync()
@@ -929,7 +938,7 @@ public class ChapterIntro(
      * hook and the `StartBgm` calls (not compared) are not run.
      */
     private fun loopFadeToMap(proc: Proc) {
-        if ((hooks.gameClock() and 1) != 0) return
+        if ((hooks.gameClock.frames() and 1) != 0) return
         val state = proc.state as State
         val chapter = playSt.chapterIndex
         colorFade.tick()

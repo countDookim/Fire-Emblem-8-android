@@ -4,6 +4,8 @@ import fe8.game.RomView
 import fe8.game.bm.StructCodec.u16
 import fe8.game.scene.IntConsumer
 import fe8.game.ui.Menu
+import fe8.game.ui.UiFrame
+import gbafe.render.BgHardware
 import gbafe.text.Text
 
 /**
@@ -13,8 +15,9 @@ import gbafe.text.Text
  * [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold.
  *
  * It also holds the weapon select menu the Attack command opens (`gWeaponSelectMenuDef`): its
- * start and its availability, draw and switch-in callbacks. Choosing a weapon and cancelling are
- * stand-ins until MC-3b.
+ * start, its availability, draw and switch-in callbacks, and its choice and cancel
+ * ([weaponSelectMenuSelected], [itemMenuButtonBPressed]). The target selection a choice starts
+ * is a stand-in until MC-5 ([Hooks.startAttackTargetSelection]).
  *
  * The unit acting is [active] (`gActiveUnit`, `gActionData`).
  */
@@ -27,6 +30,8 @@ public class UnitActionMenu(
     private val map: BmMap,
     /** The reach lookups of src/bmitem.c and the standing reach range. */
     private val range: AttackRange,
+    /** The BG tilemaps the choice and cancel clear. */
+    private val hardware: BgHardware,
 ) {
     /** Services outside the ported file. */
     public class Hooks {
@@ -83,6 +88,29 @@ public class UnitActionMenu(
          * and uses of one weapon row. Stand-in until MC-4 (bmitem.c; needs icons and numbers).
          */
         public var drawItemMenuLine: ItemLineDrawer = ItemLineDrawer { _, _, _, _ -> }
+
+        /**
+         * `MakeTargetListForWeapon(unit, item)` ([AttackTargets.makeTargetListForWeapon]): the
+         * target list of the equipped weapon, for the unit with id `unit`.
+         */
+        public var makeTargetListForWeapon: (unit: Int, item: Int) -> Unit = { _, _ ->
+            error("MakeTargetListForWeapon is not ported")
+        }
+
+        /**
+         * `NewTargetSelection(&gSelectInfo_Attack)`: the cursor that picks the attack target.
+         * Stand-in until MC-5; the game wires one that reopens the unit menu.
+         */
+        public var startAttackTargetSelection: () -> Unit = {}
+
+        /**
+         * `ResetTextFont()`: not ported (no text font reset exists); it only restores the default
+         * font for the next text draw.
+         */
+        public var resetTextFont: () -> Unit = {}
+
+        /** The cursor's screen x, where the unit menu reopens (`ItemMenu_ButtonBPressed`). */
+        public var cursorScreenX: () -> Int = { 0 }
 
         /** `DisplayMoveRangeGraphics(flags)`; the game wires [MoveLimitView]. */
         public var displayMoveRangeGraphics: IntConsumer = IntConsumer {}
@@ -150,6 +178,12 @@ public class UnitActionMenu(
             Menu.MenuFunc { m, item, _, _ -> weaponSelectMenuDraw(m!!, item!!) }
         menu.callbacks[WEAPON_SELECT_MENU_SWITCH_IN] =
             Menu.MenuFunc { m, item, _, _ -> weaponSelectMenuSwitchIn(m!!, item!!) }
+        menu.callbacks[WEAPON_SELECT_MENU_SELECTED] =
+            Menu.MenuFunc { m, item, _, _ -> weaponSelectMenuSelected(m!!, item!!) }
+        menu.callbacks[BALLISTA_RANGE_MENU_SWITCH_OUT] =
+            Menu.MenuFunc { m, item, _, _ -> ballistaRangeMenuSwitchOut(m!!, item!!) }
+        menu.callbacks[ITEM_MENU_BUTTON_B_PRESSED] =
+            Menu.MenuFunc { m, item, _, _ -> itemMenuButtonBPressed(m!!, item!!) }
     }
 
     /**
@@ -371,6 +405,90 @@ public class UnitActionMenu(
     }
 
     /**
+     * Ported from src/bmmenu.c: WeaponSelectMenu_Selected
+     *
+     * Chooses the weapon in the row's slot: it becomes the unit's first item
+     * ([equipUnitItemSlot]), the action's item slot is 0, BG 0 and 1 are cleared
+     * ([UiFrame.clearBg0Bg1]), the target list of the weapon is made, the target selection
+     * starts ([Hooks.startAttackTargetSelection], MC-5) and `sub_80832C8` runs. Returns the menu
+     * actions that end the menu and the face.
+     */
+    public fun weaponSelectMenuSelected(menu: Menu.MenuProc, menuItem: Menu.MenuItemProc): Int {
+        equipUnitItemSlot(active.unit, menuItem.itemNumber)
+        active.action.itemSlotIndex = 0
+
+        UiFrame.clearBg0Bg1(hardware)
+
+        hooks.makeTargetListForWeapon(active.unit, units.item(active.unit, 0))
+
+        hooks.startAttackTargetSelection()
+
+        subEventInfo80832C8()
+
+        return Menu.MENU_ACT_SKIPCURSOR or Menu.MENU_ACT_END or Menu.MENU_ACT_SND6A or
+            Menu.MENU_ACT_ENDFACE
+    }
+
+    /**
+     * Transcribed from src/eventinfo.c: sub_80832C8 (not verified: it returns 0 and writes
+     * nothing, so no capture can show it)
+     */
+    private fun subEventInfo80832C8(): Int = 0
+
+    /**
+     * Ported from src/bmitem.c: EquipUnitItemSlot
+     *
+     * Moves item [itemSlot] of unit [unit] to slot 0, shifting the slots before it down by one.
+     */
+    public fun equipUnitItemSlot(unit: Int, itemSlot: Int) {
+        val at = units.unitOffset(unit) + OFF_ITEMS
+        val item = u16(units.bytes, at + 2 * itemSlot)
+
+        for (i in itemSlot downTo 1) {
+            units.bytes[at + 2 * i] = units.bytes[at + 2 * (i - 1)]
+            units.bytes[at + 2 * i + 1] = units.bytes[at + 2 * (i - 1) + 1]
+        }
+
+        units.bytes[at] = item.toByte()
+        units.bytes[at + 1] = (item shr 8).toByte()
+    }
+
+    /**
+     * Ported from src/bmmenu.c: BallistaRangeMenu_SwitchOut
+     *
+     * Switch-out of a weapon row: hides the range squares unless the menu is ending (the
+     * choice keeps them for the target selection). The weapon list's menu state tests the bit
+     * `US_DEAD`, which is the same bit as `MENU_STATE_ENDING`.
+     */
+    public fun ballistaRangeMenuSwitchOut(menu: Menu.MenuProc, menuItem: Menu.MenuItemProc): Int {
+        if (menu.state and US_DEAD == 0) {
+            hooks.hideMoveRangeGraphics()
+        }
+
+        return 0
+    }
+
+    /**
+     * Ported from src/bmmenu.c: ItemMenu_ButtonBPressed
+     *
+     * B in the weapon list: clears BG 2, reopens the unit menu at the cursor, hides the range
+     * squares and returns the actions that end the menu and the face.
+     */
+    public fun itemMenuButtonBPressed(menu: Menu.MenuProc, menuItem: Menu.MenuItemProc): Int {
+        hardware.fill(hardware.mapBuffer(2), 0)
+        hardware.enableBgSyncByMask(1 shl 2)
+
+        hooks.resetTextFont()
+
+        menus.startSemiCenteredOrphanMenu(Menu.UNIT_ACTION_MENU_DEF, hooks.cursorScreenX(), 1, 22)
+
+        hooks.hideMoveRangeGraphics()
+
+        return Menu.MENU_ACT_SKIPCURSOR or Menu.MENU_ACT_END or Menu.MENU_ACT_SND6B or
+            Menu.MENU_ACT_CLEAR or Menu.MENU_ACT_ENDFACE
+    }
+
+    /**
      * Ported from src/bmitem.c: CanUnitUseWeaponNow
      *
      * Whether the unit at byte offset [o] may wield [item] now: a weapon, not a magic weapon
@@ -427,6 +545,15 @@ public class UnitActionMenu(
         /** ROM address of `WeaponSelectMenu_SwitchIn` (thumb). */
         public const val WEAPON_SELECT_MENU_SWITCH_IN: Int = 0x08022D85
 
+        /** ROM address of `WeaponSelectMenu_Selected` (thumb). */
+        public const val WEAPON_SELECT_MENU_SELECTED: Int = 0x08022CF1
+
+        /** ROM address of `BallistaRangeMenu_SwitchOut` (thumb). */
+        public const val BALLISTA_RANGE_MENU_SWITCH_OUT: Int = 0x08022DD9
+
+        /** ROM address of `ItemMenu_ButtonBPressed` (thumb). */
+        public const val ITEM_MENU_BUTTON_B_PRESSED: Int = 0x08022861
+
         /** `UNIT_ACTION_WAIT`. */
         public const val UNIT_ACTION_WAIT: Int = 1
 
@@ -435,6 +562,7 @@ public class UnitActionMenu(
         private const val TILEMAP_WIDTH = 32
         private const val US_HAS_MOVED = 1 shl 6
         private const val US_IN_BALLISTA = 1 shl 11
+        private const val US_DEAD = 1 shl 2
         private const val CLASS_PHANTOM = 0x51
         private const val OFF_ITEMS = 0x1E
         private const val OFF_STATUS = 0x30

@@ -319,6 +319,20 @@ compares f1631.. with the dump after. The weapon list shows only slot 1 (slot 0 
 the no-target answer of `IsAvailable` is not verified. Stand-ins until MC-3b: weapon choice (refusal sound) and B
 (`ItemMenu_ButtonBPressed`, reopens the unit menu).
 
+### MC-3b result
+
+`WeaponSelectMenuDifferentialTest` now also runs A on the weapon (frame 1659 = dump 1660, noanim) and B in the
+weapon list (frame 1729 = dump 1730). The choice is compared on the active unit's whole struct (item order after
+`EquipUnitItemSlot`), `itemSlotIndex`, BG0/BG1 (`ClearBg0Bg1`), the range squares that stay, and the menu's end.
+B is seeded from the dump of f1703 and the weapon list is started at the frame the dump has it (the cancel proc
+`gProcScr_0859B630` is MC-6); it is compared with the restarted unit menu, the BG2 clear and the hidden range.
+Ported and break-checked: `WeaponSelectMenu_Selected`, `EquipUnitItemSlot`, `ClearBg0Bg1`,
+`BallistaRangeMenu_SwitchOut` (the ending-menu branch; the hide branch is not verified), `ItemMenu_ButtonBPressed`.
+`sub_80832C8` stays transcribed (returns 0). Findings: from f1631 the dump k + 1 is the game's frame k and so are
+its inputs (`inputs[k]`); the menu x of the restart is clamped in the capture, so the cursor x is not
+distinguished; `ResetTextFont` is a hook (no port). Stand-in until MC-5: `NewTargetSelection`; on a device the
+weapon is equipped and the player is back in the unit menu (range hidden).
+
 ## M7
 
 Not broken down here: [M7-modding](M7-modding.md) has 23 proposed rows; they wait for owner decisions D2–D9.

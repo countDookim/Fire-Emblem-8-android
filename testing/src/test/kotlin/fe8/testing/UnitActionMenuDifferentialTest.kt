@@ -130,6 +130,7 @@ class UnitActionMenuDifferentialTest {
             unitMenu = UnitActionMenu(
                 units, active, itemInfo, loader, map,
                 AttackRange(map, units, itemInfo, EntityBmMaps(map, units, PlaySt()), loader),
+                hw,
             )
         }
 

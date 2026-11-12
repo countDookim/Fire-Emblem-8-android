@@ -38,7 +38,9 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      her next to a red unit instead shows Attack first. Choosing it (MC-3a, not yet in a published
      APK) opens a framed weapon list with a hover bar; only the red squares of the highlighted
      weapon's reach stay. The weapon rows are blank and there is no face or item panel (MC-4); A on
-     a weapon only plays the refusal beep (MC-3b); B goes back to the unit menu with its squares.
+     a weapon (MC-3b, not yet in a published APK) equips it, clears the list and returns to the unit
+     menu with no squares (stand-in until the target cursor, MC-5); B goes back to the unit menu
+     with the squares hidden.
   4. B in the unit menu. Expected: she is back at her start tile and selected again, the range shows.
      Move again and choose Wait. Expected: the menu closes, Eirika greys out, the cursor is free.
   5. Press A on an empty tile. Expected: the map menu (Unit, Status, Guide, Options, Suspend,

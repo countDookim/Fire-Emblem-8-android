@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 186 across 36 Kotlin files.
+Total entries: 187 across 36 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -20,14 +20,14 @@ Total entries: 186 across 36 Kotlin files.
 | M6-E | 51 |
 | M6-F | 13 |
 | M6-G | 4 |
-| M6-H | 30 |
+| M6-H | 32 |
 | M6-I | 27 |
 | M6-J | 8 |
 | D09-3 | 2 |
 | D11-wire-a | 2 |
 | MC-14 | 1 |
-| MC-3b | 3 |
 | MC-4 | 4 |
+| MC-5 | 2 |
 | MC-8b | 1 |
 | PP-10 | 1 |
 | PP-17 | 1 |
@@ -65,7 +65,7 @@ Total entries: 186 across 36 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `getCombinedEnemyWeaponUsabilityBits` | `GetCombinedEnemyWeaponUsabilityBits`; stand-in until M6-C, default 0. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `getUnitWeaponUsabilityBits` | `Fe8Boot` answers the weapon bit only (the staff bit is a stand-in until M6-C). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `resetBattleScratch` | Stand-in until M6-C for `sub_802C334` (zeroes `sUnknown_0203A60C`, a scratch struct of the battle code), called by `UnitBeginAction`. |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | Choosing a weapon and cancelling are stand-ins until MC-3b. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | The target selection a choice starts is a stand-in until MC-5 ([Hooks.startAttackTargetSelection]). |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them, and, until M6-C and M6-H, a stand-in for every other availability callback, in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold. |
 
 ## M6-D (12)
@@ -168,11 +168,13 @@ Total entries: 186 across 36 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: `IsBattleDeamonActive` (the battle animation system) is not ported, so the fixed fight-event bubble is never used. |
 
-## M6-H (30)
+## M6-H (32)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `trapPool` | Stand-in until M6-H: the trap pool is not ported (no ballistae, light runes or obstacles), so it stays empty; the sprite refresh and the attack target list read it. |
+| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `registerMenuStandIns` | Gives every menu callback of the two menus that no port registered a stand-in that does nothing: the select of an unported command plays the refusal sound (`SONG_6C`) and keeps the menu open, the s... |
+| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `registerMenuStandIns` | Stand-in: Item and the other commands (`M6-H`) and the map menu's Unit, Status, Guide, Options and Suspend (`M6-F`, Suspend `M6-E`). |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `decayTraps` | Stand-in until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `processTurnSupportExp` | Stand-in until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `updateTraps` | Stand-in until M6-H: ends at once. |
@@ -268,14 +270,6 @@ Total entries: 186 across 36 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | `applyExpGains` | Stand-in until MC-14: does nothing, so exp, the exp gain and level-up fields of the battle units are not generated. |
 
-## MC-3b (3)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `registerMenuStandIns` | Gives every menu callback of the two menus that no port registered a stand-in that does nothing: the select of an unported command plays the refusal sound (`SONG_6C`) and keeps the menu open, the s... |
-| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `registerMenuStandIns` | Stand-in: the weapon list's choice and cancel (MC-3b), Item and the other commands (`M6-H`) and the map menu's Unit, Status, Guide, Options and Suspend (`M6-F`, Suspend `M6-E`). |
-| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `registerWeaponMenuStandIns` | Stand-ins until MC-3b for the weapon select menu's choice and cancel. |
-
 ## MC-4 (4)
 
 | Kotlin file | Declaration | Stand-in |
@@ -284,6 +278,13 @@ Total entries: 186 across 36 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `forceMenuItemPanel` | Stand-in until MC-4 (menuitempanel.c). |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `startUnitFace` | Stand-in until MC-4 (the faces of the menu). |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `updateMenuItemPanel` | Stand-in until MC-4. |
+
+## MC-5 (2)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wireMenus` | Stand-in until MC-5 (the target selection): back to the unit menu, so the player is never stuck. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `startAttackTargetSelection` | Stand-in until MC-5; the game wires one that reopens the unit menu. |
 
 ## MC-8b (1)
 

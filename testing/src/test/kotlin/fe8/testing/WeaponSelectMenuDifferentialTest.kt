@@ -54,7 +54,15 @@ import java.io.File
  * Attack command resets and loads, and the item panel and face the weapon list starts (they are
  * stand-ins until MC-4: the panel and face procs of the dump are matched with the hook calls)
  * are compared as well. The target lists are the ported ones (`MakeTargetListForWeapon`).
- * The selection at f1659 is not run: choosing a weapon is MC-3b.
+ *
+ * MC-3b: A on the weapon at f1660 (`WeaponSelectMenu_Selected`) runs on top of that window and is
+ * compared with the dump after it: the active unit's struct (the item order after
+ * `EquipUnitItemSlot`), the action data's item slot, BG0 and BG1 (`ClearBg0Bg1`), the range
+ * squares that stay (`BallistaRangeMenu_SwitchOut` on a menu that is ending) and the menu's end.
+ * The target selection it starts is MC-5 (a hook). B in the weapon list at f1730
+ * (`ItemMenu_ButtonBPressed`) is run from the dump of f1703 (the target selection's cancel
+ * proc, MC-6, is stood in for by starting the weapon list at f1704, where the dump has it) and
+ * compared with the unit menu the game restarts.
  */
 class WeaponSelectMenuDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -82,6 +90,36 @@ class WeaponSelectMenuDifferentialTest {
         assertEquals(1, sim.resetCalls, "icon graphics reset once")
         assertEquals(listOf(4), sim.paletteCalls, "icon palettes loaded")
         assertEquals(1, sim.rowsDrawn.size, "weapon rows drawn")
+    }
+
+    @Test
+    @VerifiesPort(
+        "WeaponSelectMenu_Selected", "EquipUnitItemSlot", "ClearBg0Bg1",
+        "BallistaRangeMenu_SwitchOut",
+    )
+    fun `choosing a weapon equips it and clears the list`() {
+        assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        val sim = Sim("ram_trace_prologue_attack_noanim", 1594)
+        sim.seed()
+        for (f in 1595..1658) sim.frame(f)
+        // The unit holds its weapon in slot 1 before the choice.
+        val before = sim.units.item(sim.active.unit, 0)
+        sim.frame(WEAPON_CHOSEN)
+        assertEquals(1, sim.selectCalls, "target selection started once")
+        assertEquals(listOf(sim.units.item(sim.active.unit, 0)), sim.listItems, "target list item")
+        assertEquals(false, before == sim.units.item(sim.active.unit, 0), "the weapon moved up")
+    }
+
+    @Test
+    @VerifiesPort("ItemMenu_ButtonBPressed")
+    fun `cancelling the weapon list restarts the unit menu`() {
+        assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        val sim = Sim("ram_trace_prologue_attack_noanim", CANCEL_SEED)
+        sim.seed(CANCEL_SEED)
+        for (f in CANCEL_SEED until WEAPON_CANCELLED) sim.cancelFrame(f)
+        sim.cancelFrame(WEAPON_CANCELLED)
     }
 
     private inner class Sim(val runName: String, val before: Int) {
@@ -118,6 +156,8 @@ class WeaponSelectMenuDifferentialTest {
         val paletteCalls = ArrayList<Int>()
         val rowsDrawn = ArrayList<Int>()
         val shown = HashMap<Int, Int>()
+        var selectCalls = 0
+        val listItems = ArrayList<Int>()
 
         init {
             val root = u32(romBytes, 0x0815D488 - ROM_BASE) - ROM_BASE
@@ -134,13 +174,19 @@ class WeaponSelectMenuDifferentialTest {
             val targets = AttackTargets(
                 map, units, itemInfo, range, ByteArray(TRAP_POOL_SIZE), SelectTargets(),
             )
-            unitMenu = UnitActionMenu(units, active, itemInfo, loader, map, range)
+            unitMenu = UnitActionMenu(units, active, itemInfo, loader, map, range, hw)
             view = MoveLimitView(engine, bm, map, hw, rom, BmMapRender(bm, map, hw))
             view.gameClock = IntSupplier { clock }
             unitMenu.hooks.weaponTargetCount = { unit, item ->
                 targets.makeTargetListForWeapon(unit, item)
                 targets.targets.getSelectTargetCount()
             }
+            unitMenu.hooks.makeTargetListForWeapon = { unit, item ->
+                listItems.add(item)
+                targets.makeTargetListForWeapon(unit, item)
+            }
+            unitMenu.hooks.startAttackTargetSelection = { selectCalls++ }
+            unitMenu.hooks.cursorScreenX = { bm.cursorTargetX - bm.cameraX }
             unitMenu.hooks.unportedUsability = { _, number ->
                 shown[number] ?: Menu.MENU_NOTSHOWN
             }
@@ -168,13 +214,13 @@ class WeaponSelectMenuDifferentialTest {
 
         fun iwram(frame: Int): ByteArray = data.region(names.getValue(frame), "iwram")
 
-        fun seed() {
+        fun seed(unitFrame: Int = UNIT_MENU_FIRST) {
             val e = ewram(before)
             val iw = iwram(before)
             // The unit has reached its tile when the menu starts (the caller, PP-11, moved it):
             // units, action data and the unit map come from the menu's first frame.
-            val first = ewram(UNIT_MENU_FIRST)
-            val firstIw = iwram(UNIT_MENU_FIRST)
+            val first = ewram(unitFrame)
+            val firstIw = iwram(unitFrame)
             units.loadFrom(first)
             playSt.decode(e, PLAY_ST - EWRAM)
             bm.decode(e, BM_ST - EWRAM)
@@ -217,13 +263,26 @@ class WeaponSelectMenuDifferentialTest {
         }
 
         fun frame(f: Int) {
-            keys.update(data.inputs[f - 1])
             // The game's frame of the weapon list's start (f1630 to f1631) runs past one
             // VBlank (the item panel numbers, BattleGenerateUiStats): the dump of f1631 is taken
             // in the middle of it (the menu is before its jump to the main loop, the range view
             // has no flags yet), and from then on the game's frame k is the dump of
-            // k + 1. The dump of f1631 is not compared.
+            // k + 1 (so the inputs of that frame are `inputs[k]`, not `inputs[k - 1]`). The dump of
+            // f1631 is not compared.
             val d = if (f > WEAPON_MENU_FIRST) f + 1 else f
+            run(f, d)
+            compare(f, d)
+        }
+
+        /** One frame of the cancel window: the weapon list is started at its first frame. */
+        fun cancelFrame(f: Int) {
+            val d = f + 1
+            run(f, d)
+            if (f >= WEAPON_CANCELLED - 1) compare(f, d)
+        }
+
+        private fun run(f: Int, d: Int) {
+            keys.update(data.inputs[d - 1])
             clock = u32(iwram(d), CLOCK - IWRAM)
             if (f == UNIT_MENU_FIRST) {
                 // The caller (`PlayerPhase_ApplyUnitMovement`) runs before the menu procs.
@@ -231,9 +290,12 @@ class WeaponSelectMenuDifferentialTest {
                     Menu.UNIT_ACTION_MENU_DEF, bm.cursorTargetX - bm.cameraX, 1, 22,
                 )
             }
+            if (f == CANCEL_SEED) {
+                // The target selection's cancel proc (MC-6) starts the weapon list.
+                menu.startOrphanMenu(Menu.WEAPON_SELECT_MENU_DEF)
+            }
             sprites.clear()
             for (tree in 0 until 8) engine.run(engine.root(tree))
-            compare(f, d)
         }
 
         private fun compare(f: Int, d: Int) {
@@ -250,7 +312,18 @@ class WeaponSelectMenuDifferentialTest {
             assertEquals(
                 e[a + 0x11].toInt() and 0xFF, active.action.unitActionType, "$at unitActionType",
             )
+            assertEquals(
+                e[a + 0x12].toInt() and 0xFF, active.action.itemSlotIndex, "$at itemSlotIndex",
+            )
+            val unitAt = units.unitOffset(active.unit)
+            val dumpAt = u32(iw, GACTIVEUNIT - IWRAM) - EWRAM
+            for (k in 0 until UNIT_SIZE) {
+                assertEquals(
+                    e[dumpAt + k], units.bytes[unitAt + k], "$at unit byte 0x${k.toString(16)}",
+                )
+            }
             // The weapon list's helper procs exist from the frame the menu starts.
+            if (f >= WEAPON_CHOSEN) return
             val faces = dump.findAll(FACE_SCRIPT).size
             val panels = dump.findAll(PANEL_SCRIPT).size
             val started = f >= WEAPON_MENU_FIRST
@@ -411,7 +484,11 @@ class WeaponSelectMenuDifferentialTest {
         const val MENU_SCRIPT = 0x085B64D0
         const val FACE_SCRIPT = 0x08591154
         const val PANEL_SCRIPT = 0x0859AE88
+        const val UNIT_SIZE = 0x48
         const val UNIT_MENU_FIRST = 1595
+        const val WEAPON_CHOSEN = 1659
+        const val CANCEL_SEED = 1703
+        const val WEAPON_CANCELLED = 1729
         const val WEAPON_MENU_FIRST = 1630
         val BG_BUFFERS = intArrayOf(0x02022CA8, 0x020234A8, 0x02023CA8, 0x020244A8)
 

@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 548 across 75 decomp files (missing reason: 0).
+Total entries: 549 across 75 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -298,7 +298,7 @@ Total entries: 548 across 75 decomp files (missing reason: 0).
 | `GmapUnitContainer_Init` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt` | a fresh proc already has empty slots, so no trace can tell it from a no-op |
 | `EndGmapUnitFade` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt` | runs only on a skipped event in the prologue |
 
-## src/eventinfo.c (15)
+## src/eventinfo.c (16)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
@@ -313,6 +313,7 @@ Total entries: 548 across 75 decomp files (missing reason: 0).
 | `ClearFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
 | `CheckFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
 | `sub_80832C4` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | it returns 0 and writes nothing, so no capture can show it |
+| `sub_80832C8` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | it returns 0 and writes nothing, so no capture can show it |
 | `SearchNextAvailableEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | the Prologue's misc list reaches it, but skipping the step past the entry changes nothing there, as the started entry's flag is set and the entry is skipped anyway |
 | `EvCheck0C_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
 | `EvCheck0D_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |

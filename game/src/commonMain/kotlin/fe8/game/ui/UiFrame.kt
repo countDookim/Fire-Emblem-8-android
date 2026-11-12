@@ -38,6 +38,18 @@ public object UiFrame {
     }
 
     /**
+     * Clears the BG 0 and BG 1 tilemaps and flags both for sync.
+     *
+     * Ported from src/uiutils.c: ClearBg0Bg1
+     */
+    public fun clearBg0Bg1(hardware: BgHardware) {
+        hardware.fill(hardware.mapBuffer(0), 0)
+        hardware.fill(hardware.mapBuffer(1), 0)
+
+        hardware.enableBgSyncByMask(3)
+    }
+
+    /**
      * Draws a dialogue or popup frame into [bg0] (cleared to 0) and [bg1] (frame metatiles from
      * [style]). The frame's top-left tile is ([x], [y]) and it is [width] by [height] tiles,
      * border included. [style] (0..3) picks one of the four metatile sets of

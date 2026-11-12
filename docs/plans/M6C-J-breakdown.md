@@ -187,6 +187,19 @@ the hook `BattleGenerate.checkTriangleAttack` (false). Rolls go through `Mechani
 `BattleRoll2RN`, crit roll for the crit rate, skill roll for every other `BattleRoll1RN`). `BattleGenerateSimulation`
 (MC-9) can reuse `battleGenerate` as is.
 
+### MC-9 result (2026-11-13)
+
+`BattleGenerateSimulationDifferentialTest` seeds the unit table, `gPlaySt`, terrain, both battle units,
+`gBattleStats` (and the RNG) from the dump before `AttackMapSelect_SwitchIn`'s call and compares both battle
+units, `gBattleStats`, the 7 hits with the iterator and the RNG state (a forecast must not advance it) with the
+dump after. Five cases pass: cap3 f1430 -> f1431, noanim f1660 -> f1661 and f1790 -> f1791, kill f1680 -> f1681
+and Eirika f2250 -> f2260 (that stretch is dumped every 10 frames and the weapon choice reorders the items in
+between, so her unit table and item slot come from the after dump, which the forecast does not change; the
+f2230 -> f2231 step of the plan is a `BattleGenerateUiStats` call, not a forecast). The active unit is
+`gActiveUnit`; the target is the unit `gBattleTarget` holds after (the target selection proc is not ported).
+Verified (`Ported from`): `BattleGenerateSimulation`, `BattleGenerateSimulationInternal`; the rest of the chain
+is MC-7/MC-8a code. Not covered: an explicit actor position (the AI's call, EP-5) and the ballista simulation.
+
 ## M6-D enemy phase and AI (Prologue)
 
 Exit: enemies move and attack; phases cycle; enemy banner.

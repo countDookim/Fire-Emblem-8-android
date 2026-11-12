@@ -768,6 +768,54 @@ public class BattleGenerate(
     }
 
     /**
+     * Ported from src/bmbattle.c: BattleGenerateSimulation
+     *
+     * Generates the battle of the forecast (no rolls: a hit always lands, a crit and every skill
+     * never happens) for the units at [actorOff] / [targetOff] of [src], with the actor
+     * standing on ([x], [y]), or on its own tile when both are negative, and striking with item
+     * slot [actorWpnSlot].
+     */
+    public fun battleGenerateSimulation(
+        src: ByteArray,
+        actorOff: Int,
+        targetOff: Int,
+        x: Int,
+        y: Int,
+        actorWpnSlot: Int,
+    ) {
+        var px = x
+        var py = y
+        if (px < 0 && py < 0) {
+            px = s8(src, actorOff + OFF_X_POS)
+            py = s8(src, actorOff + OFF_Y_POS)
+        }
+        battle.stats.config = BattleStats.CONFIG_SIMULATE
+        battleGenerateSimulationInternal(src, actorOff, targetOff, px, py, actorWpnSlot)
+    }
+
+    /**
+     * Ported from src/bmbattle.c: BattleGenerateSimulationInternal
+     *
+     * The body of [battleGenerateSimulation] (`stats.config` already set): like the real battle
+     * set-up, but with the actor moved to ([x], [y]) before the range is measured, and its
+     * weapon from [actorWpnSlot]. The light runes are not toggled (not ported).
+     * (Not verified: a position other than the actor's own, as the AI passes, is in no capture.)
+     */
+    public fun battleGenerateSimulationInternal(
+        src: ByteArray,
+        actorOff: Int,
+        targetOff: Int,
+        x: Int,
+        y: Int,
+        actorWpnSlot: Int,
+    ) {
+        battle.initBattleUnit(battle.actor, src, actorOff)
+        battle.initBattleUnit(battle.target, src, targetOff)
+        battle.actor.setUnitPos(x, y)
+        generateRest(actorWpnSlot)
+    }
+
+    /**
      * The shared part of the real battle generators: copies both units in, sets the range, the
      * weapons (ballista or auto slot), counter, weapon triangle and terrain bonuses, then
      * [battleGenerate] for the hits.
@@ -777,11 +825,22 @@ public class BattleGenerate(
         val target = battle.target
         battle.initBattleUnit(actor, src, actorOff)
         battle.initBattleUnit(target, src, targetOff)
+        generateRest(BmBattle.BU_ISLOT_AUTO)
+    }
+
+    /**
+     * The part of the battle set-up after the units are initialised (and, for a simulation,
+     * moved): range, weapons ([actorWpnSlot] for the actor unless ballista), counter, weapon
+     * triangle, terrain bonuses, then [battleGenerate].
+     */
+    private fun generateRest(actorWpnSlot: Int) {
+        val actor = battle.actor
+        val target = battle.target
         battle.stats.range = abs(actor.unitX - target.unitX) + abs(actor.unitY - target.unitY)
         if ((battle.stats.config and BattleStats.CONFIG_BALLISTA) != 0) {
             battle.setBattleUnitWeaponBallista(actor)
         } else {
-            battle.setBattleUnitWeapon(actor, BmBattle.BU_ISLOT_AUTO)
+            battle.setBattleUnitWeapon(actor, actorWpnSlot)
         }
         battle.setBattleUnitWeapon(target, BmBattle.BU_ISLOT_AUTO)
         battle.battleInitTargetCanCounter()
@@ -954,6 +1013,8 @@ public class BattleGenerate(
         private const val ITEM_BACKUP_NONE = 0xFFFF // the C's "no item saved" literal
         // `struct Unit` field offsets (include/bmunit.h).
         private const val OFF_CLASS = 0x04
+        private const val OFF_X_POS = 0x10
+        private const val OFF_Y_POS = 0x11
         private const val OFF_INDEX = 0x0B
         private const val OFF_STATE = 0x0C
         private const val OFF_MAX_HP = 0x12

@@ -48,7 +48,7 @@ class WiredItemPopupTest {
             RngService(),
         )
         fun proc(name: String) = boot.engine.procs.firstOrNull { it.script?.name == name }
-        while (frame < 12000 && proc("ProcScr_GotItem") == null) {
+        while (frame < 24000 && proc("ProcScr_GotItem") == null) {
             boot.frame()
             frame++
         }

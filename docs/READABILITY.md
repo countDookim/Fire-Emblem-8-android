@@ -82,7 +82,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.worldmap (UnitEvents, MuEntry, RmBorder, AutoMu, Dot, Route, Main) | 7 | 3097 | done 2026-11-13 5e95a34 |
 | game | fe8.game.worldmap (WorldMapFace) | 1 | 606 | done 2026-11-13 98805fa |
 | game | fe8.game.worldmap (WorldMapScroll) | 1 | 661 | done 2026-11-13 85a15d0 |
-| game | fe8.game.worldmap (WorldMapScreen) | 1 | 633 | done 2026-11-13 PENDING |
+| game | fe8.game.worldmap (WorldMapScreen) | 1 | 633 | done 2026-11-13 418759a |
 | game | fe8.game.worldmap (WorldMapUnit) | 1 | 749 | todo |
 | game | fe8.game.worldmap (WorldMapMu) | 1 | 851 | todo |
 | gba/audio | gba.audio | 17 | 3162 | done 2026-11-09 1db6a62; audit done 2026-11-12 520ab72 |

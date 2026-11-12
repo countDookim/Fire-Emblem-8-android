@@ -11,7 +11,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- Readability audit fe8.game.worldmap (Nodes … Exit, 18 files): owner PC, until ~02:00Z (from 22:07Z)
+- Readability audit fe8.game.worldmap (UnitEvents, MuEntry, RmBorder, AutoMu, Dot, Route, Main): owner PC, until ~03:30Z (from 22:27Z)
 - MC-3a (weapon menu start): owner PC, until ~03:00Z (from 22:11Z)
 
 ## Current state

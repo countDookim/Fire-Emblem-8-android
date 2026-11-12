@@ -45,13 +45,12 @@ class WorldMapBootTest {
             .map { "${it.name}@${it.scrCur}/l${it.u8(0x28)}" }.sorted()
 
     /**
-     * The boot with A pressed (title, save menu, monologue) until the world map exists, then no
-     * keys: a held A would speed the event's STAL up, which the trace's input did not (until the
-     * text, step 5100).
+     * The boot with A pressed throughout (title, save menu, monologue; and the world map's talk
+     * page, which stays on its wait-for-input page without a key and so never reaches the exit).
      */
     private fun boot(): PrologueBoot {
         lateinit var holder: PrologueBoot
-        holder = PrologueBoot(rom, Pulse { f -> worldMapMain(holder) == null && f % 20 in 5..8 })
+        holder = PrologueBoot(rom, Pulse { f -> f % 20 in 5..8 })
         return holder
     }
 
@@ -117,6 +116,23 @@ class WorldMapBootTest {
     fun `steady world map frames allocate no bytes`() {
         assumeTrue(AllocationMeter.supported, "allocation meter unavailable")
         assumeTrue(rom.isFile, "ROM unavailable")
+        // Two passes over the same deterministic boot; a frame counts only if it allocates in both
+        // (the minimum, as `AllocationMeter.measureMin` does). A first-time branch inside a long
+        // scanline loop (WorldMapLineFade, WorldMapMuEntry) deoptimizes the JIT-compiled code once,
+        // and HotSpot re-creates the scalar-replaced objects of the inlined callers (88..96 bytes
+        // in one frame): that depends on what ran in the JVM before, and is gone in the second
+        // pass. Code that really allocates does so in the same frames in both passes.
+        val first = steadyFrameBytes()
+        val second = steadyFrameBytes()
+        assertTrue(second.size > 100, "steady map frames: ${second.size}")
+        val allocating = second.entries
+            .filter { (t, bytes) -> minOf(bytes, first[t] ?: Long.MAX_VALUE) != 0L }
+            .map { (t, bytes) -> "map frame $t: $bytes" }
+        assertEquals(emptyList<String>(), allocating.take(10), "bytes in steady world map frames")
+    }
+
+    /** One boot to the world map; the allocated bytes of each steady map frame, by map frame. */
+    private fun steadyFrameBytes(): Map<Int, Long> {
         val view = RomView.ofRom(rom.readBytes())
         val game = Fe8Game(rom = view, sound = Fe8Sound.create(view))
         var frame = 0
@@ -161,18 +177,13 @@ class WorldMapBootTest {
                 bytes.add(after - before)
             }
         }
-        var steady = 0
-        val allocating = ArrayList<String>()
+        val steady = LinkedHashMap<Int, Long>()
         for (t in 1 until signatures.size - 1) {
             if (signatures[t] != -1 && signatures[t - 1] == signatures[t] &&
                 signatures[t] == signatures[t + 1]
-            ) {
-                steady++
-                if (bytes[t] != 0L) allocating.add("map frame $t: ${bytes[t]}")
-            }
+            ) steady[t] = bytes[t]
         }
-        assertTrue(steady > 100, "steady map frames: $steady")
-        assertEquals(emptyList<String>(), allocating.take(10), "bytes in steady world map frames")
+        return steady
     }
 
     private fun worldMapMain(boot: fe8.game.Fe8Boot) =

@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 977,
+    "verified": 986,
     "implemented_unverified": 20
   },
   "functions": {
@@ -468,6 +468,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BgTilemapDifferentialTest#TSA tilemaps match the BG buffers in mGBA RAM"
+      ]
+    },
+    "CallChapterWMIntroEvents": {
+      "decomp_file": "src/worldmap_main.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapExitTest#the world map exit matches the capture"
       ]
     },
     "CamMove_OnInit": {
@@ -1553,7 +1563,18 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMuEntry.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.WorldMapExitTest#the world map exit matches the capture",
         "fe8.testing.WorldMapMuEntryTest#mu entry proc follows the original every step"
+      ]
+    },
+    "EndGmapRM": {
+      "decomp_file": "src/worldmap_rm.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapExitTest#the world map exit matches the capture"
       ]
     },
     "EndMenu": {
@@ -1587,6 +1608,16 @@
       "tests": [
         "fe8.testing.GoalDisplayDifferentialTest#ending the windows ends the goal proc and its colour proc",
         "fe8.testing.TerrainDisplayDifferentialTest#select_move ending the windows clears the BGs and the blend"
+      ]
+    },
+    "EndWMFaceCtrl": {
+      "decomp_file": "src/worldmap_face.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapExitTest#the world map exit matches the capture"
       ]
     },
     "EnsureCameraOntoPosition": {
@@ -1821,6 +1852,16 @@
       "tests": [
         "fe8.testing.CutsceneStartSkipDifferentialTest#skipping ends the talk tree and the faces when the engine reaches the text wait",
         "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
+      ]
+    },
+    "Event1D_TalkContinue": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventText.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
       ]
     },
     "Event1D_WaitForLockTalk": {
@@ -4064,6 +4105,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapText.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.WorldMapExitTest#the world map exit matches the capture",
         "fe8.testing.WorldMapTextTest#hide text clears visible like step 9250"
       ]
     },
@@ -6318,6 +6360,16 @@
         "fe8.testing.BmMapScrollDifferentialTest#ch6 fog scrolls in x and y"
       ]
     },
+    "ResetFaces": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapExitTest#the world map exit matches the capture"
+      ]
+    },
     "ResetIconGraphics": {
       "decomp_file": "src/icon.c",
       "system": "text_face",
@@ -8198,6 +8250,46 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapWrapperTest#beginning event sets the current node and chapter like the original"
+      ]
+    },
+    "WorldMap_CallIntroEvent": {
+      "decomp_file": "src/worldmap_main.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapExitTest#the world map exit matches the capture"
+      ]
+    },
+    "WorldMap_Destruct": {
+      "decomp_file": "src/worldmap_main.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapExitTest#the world map exit matches the capture"
+      ]
+    },
+    "WorldMap_PostBeginningEvent": {
+      "decomp_file": "src/worldmap_main.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapExitTest#the world map exit matches the capture"
+      ]
+    },
+    "WorldMap_WaitForChapterIntroEvents": {
+      "decomp_file": "src/worldmap_main.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapExitTest#the world map exit matches the capture"
       ]
     },
     "WriteAndVerifySramFast": {

@@ -12,7 +12,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - MC-4a (weapon list rows, DrawItemMenuLine; split from MC-4): owner PC, until ~02:30Z (from 23:23Z)
-- Readability audit fe8.game.worldmap (WorldMapMu): owner PC, until ~02:30Z (from 23:35Z)
+- Readability audit fe8.game.title: owner PC, until ~02:00Z (from 23:44Z)
 
 ## Current state
 

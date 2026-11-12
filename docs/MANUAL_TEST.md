@@ -1,6 +1,6 @@
 # Manual testing
 
-Latest owner test: **published 0.1.571 (`a1978d9`), 2026-11-11** (Rapier popup).
+Latest owner test: **published 0.1.622 (`22cfc9d`), 2026-11-12**: monologue, world map, monologue skip and hover cursor correct; new D-14 (no fade-in after the world-map skip), D-15 (no class reel on title idle).
 Castle stutter fix published in **0.1.497 (`42dc059`)**; no additional castle re-test is needed.
 Popup fixes are published in **0.1.528 (`e0187ea`)**.
 
@@ -46,7 +46,7 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      stuck black screen on the world map, and anything that looks clearly different from the
      original (the order of the highlighted nations, the portraits, the text).
 
-- **PP-0a hover cursor (owner device report 11-11):**
+- **PP-0a hover cursor (owner device report 11-11; confirmed on 0.1.622, 11-12):**
   1. Boot into New Game or resume a Prologue save (turn 1 map).
   2. Move the map cursor over a player unit (Eirika at (4,5) or Seth at (4,4)).
      - Expected: the cursor immediately expands/widens (uses stretched frame kind 3) to frame the unit sprite rather than staying at the compact corner size.

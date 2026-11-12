@@ -6,12 +6,12 @@ Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
 ## NEEDS USER
 
-Nothing blocks development. APP-1 (Delete save) owner-confirmed on 0.1.590 (11-11). New owner report D-13 below.
+Nothing blocks development. Owner device test 0.1.622 (11-12): D-11 and PP-0a confirmed; new reports D-14, D-15 below.
 Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1 decided: option A, ADR 0015; M6 is not blocked).
 
 ## In progress
 
-- PP-17: unfinished, on `wip/PP-17` (owner PC stopped 13:48Z; claim expired, free to take).
+- PP-17: owner PC, until ~19:00Z (from 16:02Z; continuing `wip/PP-17`)
 
 ## Current state
 
@@ -57,9 +57,12 @@ Close an issue only after reference verification and owner confirmation; preserv
 |---|---|
 | D-07 audio | **Resolved for both reported castle events:** owner heard neither hitch on local 0.1.488 (`0a73f11`); normal trace PCM repetitions fell 4495→0 after the movement frontier change. Earlier cache/reserve changes alone failed. |
 | D-12 phase banner | **Player banner confirmed correct by the owner on 0.1.488 (11-11)**; reference: `PhaseIntroDifferentialTest`. Enemy/green banners open (D12-2, with M6-D). |
-| D-11 cinematic | Open: the subtitle monologue and following world-map opening are unwired. |
+| D-11 cinematic | **Confirmed by the owner on 0.1.622 (11-12):** monologue, Magvel world-map exposition and Start in the monologue (skip to the exposition with a fade-in) are correct. Follow-up D-14. |
+| D-14 WM skip fade | **Open (owner, 0.1.622, 11-12):** Start during the world-map exposition skips to the castle scene, but the castle scene does not fade in. Rows D14-cap1, D14-1. |
+| D-15 class reel | **Open (owner, 0.1.622, 11-12):** idling on the title ("press start") should start the class demo reel after a few seconds; ours fades to black and stays black. Rows D15-0, D15-1. |
 | D-09 Rapier popup | **Resolved:** owner confirmed the popup correct on 0.1.571 (11-11); reference: `WiredItemPopupTest`/`GotItemPopupDifferentialTest`. Other popup branches stay D09-3 (low priority). |
 | D-13 Start in cutscene | **Open (owner, 0.1.590, 11-11):** Start during the Prologue in-game cutscene fast-forwards visibly instead of skipping. Triage: `EventEngine_StartSkip` sets the skip bit but its effects (`StartLockingFadeToBlack(0x40)`, `sub_800D488`, `Proc_BlockEachMarked(5)`) sit behind the no-op `startSkipEffects` hook. Rows D13-cap1, D13-1. |
+| PP-0a hover cursor | **Confirmed by the owner on 0.1.622 (11-12):** the cursor grows/shrinks over units and player units play their hover animation. |
 | D-05 interactions | Expected missing gameplay; re-test when player actions are ported. |
 
 D-01–04, D-06, D-08, D-10 and normal portrait mouths are owner-confirmed solved.

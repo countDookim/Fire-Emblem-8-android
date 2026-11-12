@@ -145,6 +145,10 @@ Sub-lane contents and file counts: [M6C-J-breakdown](plans/M6C-J-breakdown.md).
 | CAP-collide1 | CAP | Run where a unit load lands on an occupied tile (unblocks old M6-14) | Run published; then verify `AiGetUnitClosestValidPosition`, `AdjustNewUnitPosition` | — | todo |
 | TEST-2 | INV | `WalkingAllocationTest` borderline on the owner PC: 1–2 of 26 allocation-free windows (needs 3), 4 of 6 local runs on 11-11 failed; CI passes | Find the allocating call (allocation profiler on the walking window) or show it is GC/JIT noise; fix or adjust with the reason | — | todo |
 | TEST-3 | INV | `tools/tests/test_kmp_common.py` is pytest-style, so CI's `unittest discover` never runs it; locally it fails on `ItemInfo.kt:272` (`toByteArray(Charsets.US_ASCII)` in commonMain, since 11-09) | CI runs the check; the offender uses a common API; other pytest-only test files found | — | todo |
+| D14-cap1 | CAP | Start pressed during the Prologue world-map exposition (NEWGAME prefix; per-frame RAM + LCD/palette until the castle scene fades in) | Run published | — | todo |
+| D14-1 | PORT+WIRE | World-map Start-skip into the castle scene: missing fade-in (owner 0.1.622) | Skip path equals D14-cap1 per step; device check | D14-cap1 | todo |
+| D15-0 | CAP+INV | Title idle until the class demo reel (`LGAMECTRL_CLASS_REEL`, `GamceControl_StartClassReel`, opinfo.c 49) and back to the opening | Run published; procs per step; what the reel needs (battle animations: M6-G?) | — | todo |
+| D15-1 | WIRE | Until the reel is ported: title idle must not end on a black screen (owner 0.1.622); follow the capture's path after the reel | No black hang in a headless title-idle boot; MANUAL_TEST; device check | D15-0 | todo |
 | D09-3 | PORT | Remaining item-popup branches (gold, full inventory, red/root, unit-name/number) | Each branch against a capture that reaches it, else not written | — | low priority; Rapier popup confirmed on device 11-11 |
 
 Owner-PC sessions also continue [READABILITY](READABILITY.md) (rule 11).

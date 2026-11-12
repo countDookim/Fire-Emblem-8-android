@@ -17,8 +17,8 @@ Notes: [D11-worldmap](plans/D11-worldmap.md) (§8 status), [M6-notes](plans/M6-n
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| D11-wm10 | PORT | World-map unit sprites: `StartWorldMapSMS`/`SMS_DisplayOne` (units walk but are invisible after D11-wm9) | Unit OAM per step vs `ram_trace_prologue_wm_lcd` 8100–8450 and f08200/f08300/f08450 | — | todo |
-| D11-wm11 | PORT | World-map text-box HBlank effect and MU step sounds (D11-wm9 stand-ins) | Scanline/LCD state vs captures 5100–5500; SE calls where a capture shows them | — | todo |
+| D11-wm10 | PORT | World-map unit sprites: `StartWorldMapSMS`/`SMS_DisplayOne` (units walk but are invisible after D11-wm9) | Unit OAM per step vs `ram_trace_prologue_wm_lcd` 8100–8450 and f08200/f08300/f08450 | — | in progress (owner PC) |
+| D11-wm11 | PORT | World-map text-box HBlank effect and MU step sounds (D11-wm9 stand-ins) | Scanline/LCD state vs captures 5100–5500; SE calls where a capture shows them | — | in progress (owner PC) |
 
 ## Lane B: player phase (M6-B)
 

@@ -11,7 +11,6 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- Readability audit gbafe.core.flags + gbafe.input: owner PC, until ~21:00Z (from 16:27Z)
 - D14-cap1 + D15-0 (captures): owner PC, until ~21:00Z (from 16:27Z)
 
 ## Current state

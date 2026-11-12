@@ -33,7 +33,7 @@ their old counts); new packages get a row when they appear.
 | Module | Package | Files | Lines | Status |
 |---|---|---:|---:|---|
 | app | fe8.app | 9 | 1270 | done 2026-11-09 1941586; audit todo |
-| engine/core | gbafe.core.flags | 6 | 849 | done 2026-11-07 c7b7651; audit done 2026-11-12 PENDING |
+| engine/core | gbafe.core.flags | 6 | 849 | done 2026-11-07 c7b7651; audit done 2026-11-12 02666d9 |
 | engine/core | gbafe.core.math | 1 | 48 | done 2026-11-07 7fab3cc; audit done 2026-11-11 fce7054 |
 | engine/core | gbafe.core.mechanics | 1 | 60 | done 2026-11-07 7fab3cc; audit done 2026-11-11 fce7054 |
 | engine/core | gbafe.core.rng | 1 | 181 | done 2026-11-07 7fab3cc; audit done 2026-11-11 fce7054 |
@@ -56,7 +56,7 @@ their old counts); new packages get a row when they appear.
 | engine/extract | gbafe.extract.font | 1 | 77 | done 2026-11-09 92119c9; audit todo |
 | engine/extract | gbafe.extract.m4a | 1 | 311 | done 2026-11-09 19d121b; audit todo |
 | engine/extract | gbafe.extract.text | 1 | 55 | done 2026-11-09 0194222; audit todo |
-| engine/input | gbafe.input | 2 | 238 | done 2026-11-07 697847c; audit done 2026-11-12 PENDING |
+| engine/input | gbafe.input | 2 | 238 | done 2026-11-07 697847c; audit done 2026-11-12 02666d9 |
 | engine/render | gbafe.render | 10 | 1592 | done 2026-11-09 83f2cb6; audit todo |
 | engine/save | gbafe.save | 7 | 621 | done 2026-11-09 d3b21d6; audit todo |
 | engine/script | gbafe.script | 7 | 920 | done 2026-11-09 d3b21d6; audit todo |

@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1056,
+    "verified": 1067,
     "implemented_unverified": 23
   },
   "functions": {
@@ -24,6 +24,16 @@
         "fe8.testing.PathArrowDifferentialTest#select_move path arrow matches the game"
       ]
     },
+    "AddTarget": {
+      "decomp_file": "src/uiselecttarget.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/SelectTargets.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackTargetListDifferentialTest#weapon target list matches the game"
+      ]
+    },
     "AddUnitSprite": {
       "decomp_file": "src/bmudisp.c",
       "system": "battle_map",
@@ -32,6 +42,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitSpritesDifferentialTest#handle list matches the dump"
+      ]
+    },
+    "AddUnitToTargetListIfNotAllied": {
+      "decomp_file": "src/bmtarget.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/AttackTargets.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackTargetListDifferentialTest#weapon target list matches the game"
       ]
     },
     "AdvanceGetLCGRNValue": {
@@ -172,6 +192,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
+      ]
+    },
+    "AreUnitsAllied": {
+      "decomp_file": "src/bmphase.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmPhase.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackTargetListDifferentialTest#weapon target list matches the game"
       ]
     },
     "AttackCommandUsability": {
@@ -2652,6 +2682,16 @@
         "fe8.testing.LcdControlDifferentialTest#flushed registers match mGBA I-O for every full dump"
       ]
     },
+    "ForEachUnitInRange": {
+      "decomp_file": "src/bmtarget.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/AttackTargets.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackTargetListDifferentialTest#weapon target list matches the game"
+      ]
+    },
     "ForceSyncUnitSpriteSheet": {
       "decomp_file": "src/bmudisp.c",
       "system": "battle_map",
@@ -2827,7 +2867,7 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -3130,6 +3170,16 @@
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
       ]
     },
+    "GetFurthestTargetDistance": {
+      "decomp_file": "src/uiselecttarget.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/SelectTargets.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackTargetListDifferentialTest#linked targets match the game"
+      ]
+    },
     "GetGameClock": {
       "decomp_file": "src/time.c",
       "system": "core",
@@ -3342,6 +3392,26 @@
         "fe8.testing.SramOwnerSaveBootTest#chapter 6 save without a suspend boots unchanged and selects 0x7F"
       ]
     },
+    "GetLinkedTargets": {
+      "decomp_file": "src/uiselecttarget.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/SelectTargets.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackTargetListDifferentialTest#linked targets match the game"
+      ]
+    },
+    "GetLinkedTargetsNear": {
+      "decomp_file": "src/uiselecttarget.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/SelectTargets.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackTargetListDifferentialTest#linked targets match the game"
+      ]
+    },
     "GetLoadUnitsAmount": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -3508,6 +3578,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramSaveBlockReferenceTest#newgame sram has a valid game slot 0 and block info is reproduced"
+      ]
+    },
+    "GetSelectTargetCount": {
+      "decomp_file": "src/uiselecttarget.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/SelectTargets.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackTargetListDifferentialTest#weapon target list matches the game"
       ]
     },
     "GetSpriteTextDrawDest": {
@@ -4640,6 +4720,16 @@
         "fe8.testing.TextSystemRomTest#initTalkTextFont writes only the draw routine and glyphs of the active font"
       ]
     },
+    "InitTargets": {
+      "decomp_file": "src/uiselecttarget.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/SelectTargets.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackTargetListDifferentialTest#weapon target list matches the game"
+      ]
+    },
     "InitText": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -5068,6 +5158,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#loading the prologue allies reproduces units with items"
+      ]
+    },
+    "MakeTargetListForWeapon": {
+      "decomp_file": "src/bmtarget.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/AttackTargets.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackTargetListDifferentialTest#weapon target list matches the game"
       ]
     },
     "MapAddInBoundedRange": {
@@ -8511,6 +8611,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aTrackTest#volume and pitch of every settled track match the reference RAM dumps"
+      ]
+    },
+    "TryAddTrapsToTargetList": {
+      "decomp_file": "src/bmtarget.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/AttackTargets.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackTargetListDifferentialTest#weapon target list matches the game"
       ]
     },
     "TryTickHSScreenExit": {

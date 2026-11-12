@@ -11,6 +11,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
+- Readability audit gba.audio: owner PC, until ~21:30Z (from 17:08Z)
 - MC-cap1 + MC-cap2 (captures): owner PC, until ~21:00Z (from 16:54Z)
 
 ## Current state

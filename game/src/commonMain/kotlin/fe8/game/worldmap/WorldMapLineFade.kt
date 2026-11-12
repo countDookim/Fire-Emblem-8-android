@@ -35,10 +35,9 @@ public class GmapLineFadeProc {
  * per-scanline coefficient table sweeps down the screen while the generic fade-in runs, so the
  * screen is revealed line by line. The table is copied into `BLDY` by [WorldMapHblank].
  *
- * NOTE: [BLEND_EFFECT_DARKEN] below is 2, but `BLEND_EFFECT_DARKEN` is 3 in the decomp
- * (include/gba/io_reg.h:549; 2 is `BLEND_EFFECT_BRIGHTEN`), so the port's `GmapLineFade_Init`
- * selects brighten. It is not visible in the capture because `NewFadeIn` and the first scanline
- * page overwrite the effect before the first dump; not fixed here.
+ * [BLEND_EFFECT_DARKEN] was 2 (`BLEND_EFFECT_BRIGHTEN`) until 2026-11-13; the decomp value is 3
+ * (include/gba/io_reg.h:549). No capture sees the difference, because `NewFadeIn` and the
+ * first scanline page overwrite the effect before the first dump.
  *
  * Only what the Prologue runs is written: `StartGmapLineFade(0, NULL)`, whose argument selects
  * the 50-frame variant (`NewFadeIn(2, 0)`); the 100-frame variant (argument 2), the blocking
@@ -193,7 +192,7 @@ public class WorldMapLineFade(
         /** `BLEND_EFFECT_NONE`. */
         const val BLEND_EFFECT_NONE = 0
 
-        /** Should be `BLEND_EFFECT_DARKEN` = 3; see the NOTE on the class. */
-        const val BLEND_EFFECT_DARKEN = 2
+        /** `BLEND_EFFECT_DARKEN` (include/gba/io_reg.h:549): `BLDCNT` darken mode. */
+        const val BLEND_EFFECT_DARKEN = 3
     }
 }

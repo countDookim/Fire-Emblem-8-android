@@ -10,13 +10,84 @@ Open rows only. Milestones, task rules and the reasons: [ROADMAP](plans/ROADMAP.
 - Status ≤ 15 words; details go to the lane's notes file. Delete a finished row and add its ID to Done.
 - Fewer than 5 open rows in a lane: break the next ROADMAP milestone into rows.
 
-## Lane A: opening wired (M6-A, D-11)
+## Lane A: main line (M6-C → M6-D → M6-E)
 
-Notes: [D11-worldmap](plans/D11-worldmap.md) (§8 status), [M6-notes](plans/M6-notes.md) (monologue). Captures:
-`ram_trace_prologue` (steps 1213–9313), `ram_trace_newgame_bm` (f9314–9900), the three Start-skip runs.
+Lane A's opening (M6-A) is done; the lane now carries the main line. Notes, call chains and capture plans:
+[M6C-J-breakdown](plans/M6C-J-breakdown.md). Start state: `prologue.sav` (turn-1 suspend). Function lists are from the
+decomp call chains; each INV row corrects the PORT rows after it.
+
+### M6-C map combat, no animation
+
+Captures: `ram_trace_prologue_attack` (cap3, animations on; f1365 unit menu, f1400 weapon list, f1430 target select and
+forecast, f1460 confirm, f2010..2038 results), plus MC-cap1/2.
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
+| MC-cap1 | CAP | `ram_trace_prologue_attack_noanim`: cap3 inputs with battle animations off (Options inputs or a fixture; decide here), one B out of target select and one out of the weapon menu before attacking; per-frame RAM select → idle; cap3 watches + `gBattleActor`, `gBattleTarget`, `gBattleHitArray`, `gBattleStats` | Run published; old runs byte-identical | — | todo |
+| MC-cap2 | CAP | `ram_trace_prologue_kill`: animations off; Seth kills a Soldier, then Eirika attacks the other; to idle; same watches, both enemies | Run published | MC-cap1 | todo |
+| MC-0 | INV | Attack windows of cap3 (f1365..2038), then MC-cap1/2: procs per step; which menu, target, forecast, battle and combat-action functions each window runs | `MapCombatInventoryTest`; MC-1..MC-17 lists corrected | — | todo |
+| MC-1 | PORT | Target list store, uiselecttarget.c: `InitTargets`, `AddTarget`, `GetSelectTargetCount`, `GetTarget`, `LinkTargets` | Target array and count equal the dumps at f1400 and f1430 (with MC-2) | MC-0 | todo |
+| MC-2 | PORT | Attack target list, bmtarget.c: `ForEachUnitInRange`, `AddUnitToTargetListIfNotAllied`, `MakeTargetListForWeapon`, `TryAddTrapsToTargetList`; bmphase.c `AreUnitsAllied`, `IsSameAllegiance` | Same fields; replaces the PP-10 target-count hook | MC-1 | todo |
+| MC-3 | PORT | Weapon select menu, bmmenu.c: `UnitActionMenu_Attack`, `StartUnitWeaponSelect`, `WeaponSelectMenu_IsAvailable`/`_Selected`/`_Draw`/`_SwitchIn`, `DisplayUnitStandingAttackRange`, `HideMoveRangeGraphicsWrapper` | Menu procs, BG0 item rows and the range map per step f1365..1430 | MC-2 | todo |
+| MC-4 | PORT | Item panel, menuitempanel.c (4 functions) + bmitem.c `DrawItemMenuLine`; the unit face beside the list | Panel tilemap and text buffers at the f1400..1430 dumps | MC-0 | todo |
+| MC-5 | PORT | Target selection proc, uiselecttarget.c: `NewTargetSelection`, `TargetSelection_Loop`, `_HandleMoveInput`, `_HandleSelectInput`, `_GetRealCursorPosition`, `EndTargetSelection` | Proc fields and cursor per step f1430..1460; B path in MC-cap1; target switching unreachable → transcribed | MC-1 | todo |
+| MC-6 | PORT | Attack select handlers, bmmenu.c: `AttackMapSelect_SwitchIn`/`_Select`/`_Cancel`/`_End`, `sub_8022E38`, `sub_8022E54`; `ChangeActiveUnitFacing` | `gActionData` at f1460, unit facing; cancel back to the weapon menu in MC-cap1 | MC-5, MC-cap1 | todo |
+| MC-7 | PORT | Battle rounds, bmbattle.c: `BattleGenerateReal`, `BattleGenerateRealInternal`, `ClearBattleHits` (now transcribed), `BattleUnwind`, `BattleGetBattleUnitOrder`, `BattleGetFollowUpOrder`, `BattleGenerateRoundHits`, `GetBattleUnitHitCount` | `gBattleHitArray`, both battle units and the RNG state after confirm (cap3, MC-cap1, MC-cap2) | MC-0 | todo |
+| MC-8 | PORT | Hit generation, bmbattle.c: `BattleGenerateHit`, `BattleGenerateHitAttributes`, `BattleRoll1RN`, `BattleRoll2RN` and the `BattleCheck*` skill checks the windows call | Each hit record and the RNG position; checks that never trigger stay transcribed | MC-7 | todo |
+| MC-9 | PORT | Forecast simulation, bmbattle.c: `BattleGenerateSimulation`, `BattleGenerateSimulationInternal` and what MC-0 shows they call | Both battle units and `gBattleStats` at f1430 | MC-7 | todo |
+| MC-10 | PORT | Forecast window setup, bksel.c: `NewBattleForecast`, `BattleForecast_Init`, `InitBattleForecastBattleStats`, `BattleForecastHitCountUpdate`, `GetBattleForecastPanelSide`, `UpdateBattleForecastContents`, `CloseBattleForecast`, `BattleForecast_OnEnd` | Forecast proc fields per step f1430..1460 | MC-9 | todo |
+| MC-11 | PORT | Forecast drawing, bksel.c: labels, unit and item names, contents (standard or extended, as the save's option selects), frame and icon palettes, tilemaps (about 9 functions) | BG tilemaps and palettes at the dumps | MC-10 | todo |
+| MC-12 | PORT | Forecast loops and sprites, bksel.c: slide in/out, display loop, new-battle update, hit multipliers, weapon-triangle arrows, effectiveness palette (about 8) | Proc state per step; OAM at full dumps; help box left to M6-F | MC-10 | todo |
+| MC-13 | PORT | Combat action, bmmind.c: `ApplyUnitAction` combat branch, `ActionCombat`, the `sProcScr_CombatAction` script, `BATTLE_GOTO1_IfNobodyIsDead`, `DidUnitDie`, `BATTLE_HandleItemDrop` (no-drop path), `BATTLE_HandleCombatDeaths` | Proc tree and script position per step after confirm; `BeginBattleAnimations` is a hook (stand-in until M6-G/M6-H) | MC-7, PP-11 | todo |
+| MC-14 | PORT | Exp, bmbattle.c: `BattleApplyExpGains`, `GetBattleUnitExpGain`, `GetUnitRoundExp`, `GetUnitExpLevel`, `GetUnitPowerLevel`, `CanBattleUnitGainLevels`; kill bonus functions against MC-cap2 | Exp fields of both battle units (cap3: 0→10; MC-cap2: kill) | MC-7 | todo |
+| MC-15 | PORT | Post-battle updates: `BattleApplyGameStateUpdates`, `BattleApplyUnitUpdates`, `UpdateUnitFromBattle`, `GetBattleUnitUpdatedWeaponExp`, `HasBattleUnitGainedWeaponLevel`, bmitem.c `GetItemAfterUse`, battle records as written | Unit HP, exp, items/uses, weapon exp, state and battle records at f2010..2038 | MC-14 | todo |
+| MC-16 | PORT | Death, bmmind.c: `BATTLE_PostCombatDeathFades`, `BATTLE_DeleteLinkedMOVEUNIT`, `KillUnitOnCombatDeath`, `DropRescueOnDeath` (no-rescue path); bmunit.c `UnitKill`; mu.c `MU_StartDeathFade` | MC-cap2: dead unit's fields, MU and sprite removal, unit map | MC-13, MC-cap2 | todo |
+| MC-17 | PORT | Level-up: `CheckBattleUnitLevelUp`, `GetStatIncrease`, `CheckBattleUnitStatCaps` and what the window runs | Stats and level after the first captured level-up (expected in EP-cap2; else add a CAP) | MC-15, EP-cap2 | todo |
+| MC-w | WIRE | Attack in `Fe8Boot`: unit menu → weapon → target and forecast → battle resolves at once → exp, death; replay cap3 and MC-cap2 inputs headless | Final unit HP/exp/uses/state equal the captures (timing differs: animation stand-in); 0 B/frame; MANUAL_TEST; device check | PP-17, MC-1..16 | todo |
+
+### M6-D enemy phase and AI (Prologue)
+
+Captures: `ram_trace_prologue_cancel_end` f1510..1650 (End, phase switch, enemy banner, first decision and walk), plus
+EP-cap1/2.
+
+| ID | Kind | Task | Acceptance | Deps | Status |
+|---|---|---|---|---|---|
+| EP-cap1 | CAP | `ram_trace_prologue_enemy_phase`: animations off; End on turn 1; the whole enemy phase to turn-2 player idle; per-frame RAM; watches + `gAiState`, `gAiDecision`, red units, battle structs; `tracecall` on the AI score functions if RAM does not show them | Run published | MC-cap1 | todo |
+| EP-cap2 | CAP | `ram_trace_prologue_clear`: animations off; whole Prologue to the start of the ending scene (later enemy phases, both Normal-mode events, boss kill); per-step watches; RAM windows from a scout run | Run published; notes list the windows and whether a level-up occurs | EP-cap1 | todo |
+| EP-0 | INV | Enemy phase in cancel_end f1510..1650 and EP-cap1: procs per step; AI script commands and the decision per enemy | `EnemyPhaseInventoryTest`; EP-1..EP-11 lists corrected | — | todo |
+| EP-1 | PORT | Phase start (bm.c label 9 path): bmunit.c `TickActiveFactionTurn`, `ClearActiveFactionGrayedStates`; the four start-of-phase displays ending with empty target lists; `sub_8015434` | Unit state bits, turn/faction and proc tree per step f1510..1597 | EP-0 | todo |
+| EP-2 | PORT | AI order: cp_phase.c `AiPhaseInit`; cp_order.c `CpOrderMain`, `BuildAiUnitList`, `SortAiUnitList`, `GetUnitAiPriority`, `GetUnitBattleAiPriority`, `CpOrderFunc_BeginDecide` | `gAiState` unit list and order at f1597 | EP-0 | todo |
+| EP-3 | PORT | AI decide, cp_decide.c: `CpDecide_Main`, `CpDecide_Suspend`, `AiClearDecision`, `AiSetDecision`, `AiUpdateDecision`, `AiDecideMain`, `DecideScriptA`, `DecideScriptB` | `gAiDecision` per enemy (with EP-4..7) | EP-2 | todo |
+| EP-4 | PORT | AI script interpreter, cp_script.c: `AiTryExecScriptA`/`B`, `AiScript_Exec`, the commands and unit predicates the Prologue enemies run | AI script position per decision; commands not run are not written | EP-3 | todo |
+| EP-5 | PORT | AI combat search, cp_battle.c: `AiAttemptOffensiveAction`, `AiAttemptCombatWithinMovement`, `AiFloodMovementAndRange`, `AiSimulateBestBattleAgainstTarget`, `AiSimulateBattleAgainstTargetAtPosition`, `AiGetCombatPositionScore`, `AiIsBadFight` | Decision target, position and item for every enemy action in EP-cap1 | EP-4, MC-9 | todo |
+| EP-6 | PORT | AI combat score, cp_battle.c: `AiComputeCombatScore` and its score components (12 functions, two rows) | Scores equal the `tracecall` return values, or decisions equal in EP-cap1 and EP-cap2 if not traced | EP-5 | todo |
+| EP-7 | PORT | AI movement helpers, cp_utility.c: `AiTryMoveTowards`, `AiFindTargetInReachByFunc`, `FillMovementAndRangeMapForItem`, `AiMakeMoveRangeUnitPowerMaps` and the counters the window runs | Decision position; movement and range maps at the dumps | EP-4 | todo |
+| EP-8 | PORT | AI perform, movement: cp_perform.c `CpPerform_UpdateMapMusic`, `_MoveCameraOntoUnit`, `_BeginUnitMovement`, `_MoveCameraOntoTarget`, `AiRefreshMap`, `StartAiTargetCursor`, `AiTargetCursor_Main` | MU, camera and cursor per step f1599..1650 | EP-3 | todo |
+| EP-9 | PORT | AI perform, action: cp_perform.c `CpPerform_PerformAction`, `AiStartCombatAction`, `CpPerform_WaitAction`, `CpPerform_Cleanup`, `CpPerform_EquipBest` and the wait action if run | `gActionData`, battle result and unit state after each enemy action in EP-cap1 | EP-8, MC-13, MC-15 | todo |
+| EP-10 | PORT | Phase end to turn 2: turn counter, blue units un-greyed, the turn events (they end at once in Normal mode), player phase restart | `gPlaySt` turn/faction and unit states at the end of EP-cap1 | EP-1, EP-9 | todo |
+| EP-11 | PORT | Prologue Normal-mode events in EP-cap2: one enemy left (misc event, PP-11 notes) and the boss's flag-gated turn event; new opcodes only | Event engine state per step in both windows | EP-cap2 | todo |
+| D12-2 | CAP+PORT | Enemy-phase intro capture with per-scanline blend; extend `PhaseIntroDifferentialTest` | Enemy name graphics/palette and per-line blend equal the capture | — | todo |
+| EP-w | WIRE | Enemy phase in `Fe8Boot`: End → enemies move and attack → turn 2; replay EP-cap1 inputs headless | Unit positions and HP at turn 2 equal the capture; 0 B/frame; MANUAL_TEST; device check | MC-w, EP-1..10 | todo |
+
+### M6-E Prologue completable
+
+| ID | Kind | Task | Acceptance | Deps | Status |
+|---|---|---|---|---|---|
+| PC-cap1 | CAP | `ram_trace_prologue_end`: EP-cap2 inputs continued through the ending scene, the post-chapter save menu (save to a slot) and the Chapter 1 opening to turn 1 | Run published | EP-cap2 | todo |
+| PC-cap2 | CAP | `ram_trace_prologue_gameover`: animations off; Eirika dies; game over screen; back to the title | Run published | EP-cap1 | todo |
+| PC-0 | INV | PC-cap1 and PC-cap2 windows: procs per step, event opcodes run; also whether `ram_trace_newgame`/`menu_screens` cover the New Game difficulty and slot menus densely enough | `PrologueEndInventoryTest`; PC-1..PC-14 corrected; a CAP row added if the menus need one | PC-cap1, PC-cap2 | todo |
+| PC-1 | PORT | Win condition, eventinfo.c: the boss-defeat misc event check, `ShouldCallEndEvent`, `MaybeCallEndEvent`, `CallEndEvent` | Event engine start step and flags in EP-cap2/PC-cap1 | PC-0, MC-16 | todo |
+| PC-2 | PORT | Ending scene: opcodes it runs that are not verified yet (music, background, flags, `MNC2`) | Event state per step; `gPlaySt` after `MNC2` | PC-1 | todo |
+| PC-3 | PORT | Chapter end, gamecontrol.c: `GameControl_PostChapterSwitch`, `GameControl_ChapterSwitch` (RN advance, chapter record, rankings), `GameControl_CallPostChapterSaveMenu`; battle-map teardown as run | GameControl proc position, RNG, `gPlaySt` and unit fields at the save menu | PC-2 | todo |
+| PC-4 | PORT | Post-chapter save menu, savemenu.c 66 + savedraw.c 37: only the path the capture takes (init and graphics, slot drawing, cursor/input, write, exit); split into ≤ 8-function rows by PC-0 | Proc fields per step, tilemaps/OAM at dumps, the written save block | PC-3 | todo |
+| PC-5 | PORT | Chapter 1 start: world-map wrapper with the skip flag set, `StartBattleMap` for chapter 1, chapter intro for a second chapter | Proc tree per step up to the Chapter 1 beginning scene | PC-4 | todo |
+| PC-6 | PORT | Chapter 1 beginning scene: opcodes and unit loads not verified yet; split by PC-0 | Event state per step; units and map at turn 1 | PC-5 | todo |
+| PC-7 | PORT | Game over trigger: lord-death misc event, event.c `CallGameOverEvent`, eventcall.c `EventCallGameOverExt`, `GameOver_FadeOutCurrentBgm`, `PostGameOverHandler` | Proc tree and event state per step in PC-cap2 | PC-0, MC-16 | todo |
+| PC-8 | PORT | Game over screen, gameoverbgfx.c 11 (two rows: init, HBlank and scroll; fade loops and end); return to the title | Proc fields per step; LCD/palette at dumps | PC-7 | todo |
+| PC-9 | PORT | New Game difficulty menu, difficultymenu.c 21 (three rows) and the save menu's New Game path | Menu state per step; chosen difficulty in `gPlaySt`; replaces the fixed Normal stand-in | PC-0 | todo |
+| PC-cap3 | CAP | `ram_trace_newgame_easy`: Easy New Game through the tutorial Prologue (forced inputs, tutorial messages, scripted battle) | Run published | — | todo; owner to confirm it belongs in M6-E |
+| PC-10 | INV+PORT | Easy-mode tutorial: tutorial event scripts, forced-input branches of playerphase.c, menu overrides; rows fixed by an INV of PC-cap3 | Per the INV | PC-cap3, EP-w | todo; until then Easy plays without tutorials (stand-in) |
+| PC-w | WIRE | Prologue completable in `Fe8Boot`: win → ending → save → Chapter 1 turn 1; lord death → game over → title; replay PC-cap1 and PC-cap2 inputs | Save block and Chapter 1 state equal PC-cap1; 0 B/frame; MANUAL_TEST; device check | EP-w, PC-1..9 | todo |
 
 ## Lane B: player phase (M6-B)
 
@@ -28,14 +99,54 @@ Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames, proc
 | CAP-status1 | CAP | Run where the cursor rests ≥ 64 frames on a unit with a status, crosses unit→unit in one corner, and (option) `unitDisplayType` 1 | Then verify `PutUnitMapUiStatus`, `MMB_CheckForUnit`, `sub_808C234`, Burst display | — | todo |
 | PP-17 | WIRE | Player-phase hooks in `Fe8Boot`; replay cap1 inputs headless | Same unit position/state as cap1; 0 B/frame; MANUAL_TEST | PP-11, PP-13 | todo |
 
+### Lane B next: M6-F info screens
+
+Start after PP-17. All captures start from `prologue.sav`. PORT rows here are groups; each INV splits its group into
+rows of at most about 8 functions. Notes: [M6C-J-breakdown](plans/M6C-J-breakdown.md).
+
+| ID | Kind | Task | Acceptance | Deps | Status |
+|---|---|---|---|---|---|
+| IS-cap1 | CAP | `ram_trace_prologue_statscreen`: L to cycle units; R on Eirika; pages left and right; up/down to Seth; R help across fields; B; R on an enemy | Run published | — | todo |
+| IS-0 | INV | Stat-screen and help-box windows of IS-cap1: procs per step, pages and transitions seen | Inventory test; IS-1..IS-3 split into rows | IS-cap1 | todo |
+| IS-1 | PORT | Stat screen, statscreen.c 93: open/close and backgrounds, the three pages, page slide, unit switch, sprites (about 12 rows) | Proc fields per step; tilemaps, palettes and OAM at dumps | IS-0 | todo |
+| IS-2 | PORT | Help boxes, helpbox.c 71: box open/move/close, text, item and stat info (about 9 rows); also the forecast and item-list help | Same; extra windows need IS-cap2 | IS-0 | todo |
+| IS-3 | PORT | Map idle keys, playerphase.c: `PlayerPhase_MainIdle` R/L branches, `CanShowUnitStatScreen`, `TrySwitchViewedUnit`, `TrySetCursorOn` | Cursor, camera and proc tree per step | IS-0 | todo |
+| IS-cap2 | CAP | `ram_trace_prologue_mapmenu_screens`: map menu Unit (sort, page), Status, Options (change two settings), Guide; R help in the item list and forecast; Start minimap (open, move, close) | Run published | — | todo |
+| IS-4 | INV | IS-cap2 windows per screen | Inventory test; IS-5..IS-9 split into rows | IS-cap2 | todo |
+| IS-5 | PORT | Unit list, unitlistscreen.c 40 (about 5 rows) | Per step and at dumps, as IS-1 | IS-4 | todo |
+| IS-6 | PORT | Chapter status, uichapterstatus.c 21 (about 3 rows) | Same | IS-4 | todo |
+| IS-7 | PORT | Options, uiconfig.c 22 (about 3 rows); changed settings take effect where ports read them | Same; `gPlaySt` config after the changes | IS-4 | todo |
+| IS-8 | PORT | Guide, bmguide.c 29 (about 4 rows; PP-12 left hooks) | Same | IS-4 | todo |
+| IS-9 | PORT | Minimap, minimap.c 34 (about 5 rows) | Same | IS-4 | todo |
+| IS-w | WIRE | Info screens in `Fe8Boot`; replay IS-cap1 and IS-cap2 inputs headless | Final state equals the captures; 0 B/frame; MANUAL_TEST; device check | PP-17, IS-1..9 | todo |
+
+## Later milestones (starter rows)
+
+Each sub-lane starts CAP → INV; its INV adds the PORT rows (ROADMAP rules 3 and 6). Nothing past the INV is fixed.
+Sub-lane contents and file counts: [M6C-J-breakdown](plans/M6C-J-breakdown.md).
+
+| ID | Kind | Task | Acceptance | Deps | Status |
+|---|---|---|---|---|---|
+| BA-0 | INV | M6-G: battle-animation windows that exist (`ram_trace_prologue_battle` f14401..15035, `ram_trace_prologue_attack` f1464..2010): ekr/efx procs per step, animation-script commands used | Inventory test; function list for the melee core (about 400) and the PORT rows | — | todo |
+| BA-cap1 | CAP | M6-G: per-step LCD, palette and OAM for both battle windows (as `ram_trace_prologue_wm_lcd`), if BA-0 finds the dumps too sparse | Run published | BA-0 | todo |
+| BA-1 | PORT | M6-G groups, split by BA-0: start transition, setup from the hit array, script driver, main loop, screen furniture, hit effects, sound, death, exp and level-up, ending | Per step: proc fields, LCD, palette, OAM | BA-0, PC-w | todo |
+| BA-w | WIRE | M6-G: animations-on battles animate (scripted Seth/Valter and player attacks); replaces the instant stand-in | Battle windows equal the captures frame by frame; device check | BA-1 | todo |
+| C14-0 | INV | M6-H scout: chapters 1–4 (fixtures `chapter1.sav`, `chapter2.sav`; procs watch only): unported procs each chapter first needs | Ordered sub-lane list; CAP rows per sub-lane | PC-w | todo |
+| C14-ma | INV+PORT | M6-H: map battle animation (mapanim.c, _api, _infobox, _expbar, _lvup; about 80) over the animations-off windows of MC-cap1/2 | Per step: procs, OAM, tilemaps; replaces the instant stand-in when animations are off | MC-w | todo |
+| C14-1 | CAP+INV | M6-H sub-lanes in C14-0's order: items, trade, rescue family, visit/seize, talk/recruit and green phase, heal staves, doors/chests/steal, shops, reinforcements, world-map intros of chapters 2–4 | One capture and inventory per sub-lane; PORT and WIRE rows added | C14-0 | todo |
+| PW-0 | CAP+INV | M6-I: preparations (fixture `chapter6.sav`): main menu, pick units, items/convoy, view map, save | Captures and inventories; PORT rows per screen (prep_*.c, 452) | C14-1 | todo |
+| PW-1 | CAP+INV | M6-I: free-roam world map (fixture `complete100.sav` or a mid-game save): movement, UI, base shops, skirmishes, Tower/Ruins | Captures and inventories; PORT rows (rest of worldmap_*.c, about 480) | PW-0 | todo |
+| LG-0 | CAP+INV | M6-J, one sub-lane each: promotion, arena, supports, remaining spell animations, dragons and final boss, route split, dance/summon/ballista/status staves/traps, endings, sound room, extras | Captures and inventories; PORT rows per sub-lane | PW-1 | todo |
+| M7 | — | Modding surface: 23 proposed rows in [M7-modding](plans/M7-modding.md) | Rows added here after the owner decides D2–D9 | owner | waiting for D2–D9 |
+
 ## Other open rows
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
 | CAP-hard1 | CAP | Hard-mode New Game run reaching autolevelled loads (unblocks old M6-13) | Run published; then tag `UnitAutolevelRealistic`, `UnitApplyBonusLevels`, `UnitAutolevelPenalty` | — | todo |
 | CAP-collide1 | CAP | Run where a unit load lands on an occupied tile (unblocks old M6-14) | Run published; then verify `AiGetUnitClosestValidPosition`, `AdjustNewUnitPosition` | — | todo |
-| D12-2 | CAP+PORT | Enemy-phase intro capture with per-scanline blend; extend `PhaseIntroDifferentialTest` | Enemy name graphics/palette and per-line blend equal the capture | — | todo; do with M6-D |
 | TEST-2 | INV | `WalkingAllocationTest` borderline on the owner PC: 1–2 of 26 allocation-free windows (needs 3), 4 of 6 local runs on 11-11 failed; CI passes | Find the allocating call (allocation profiler on the walking window) or show it is GC/JIT noise; fix or adjust with the reason | — | todo |
+| TEST-3 | INV | `tools/tests/test_kmp_common.py` is pytest-style, so CI's `unittest discover` never runs it; locally it fails on `ItemInfo.kt:272` (`toByteArray(Charsets.US_ASCII)` in commonMain, since 11-09) | CI runs the check; the offender uses a common API; other pytest-only test files found | — | todo |
 | D09-3 | PORT | Remaining item-popup branches (gold, full inventory, red/root, unit-name/number) | Each branch against a capture that reaches it, else not written | — | low priority; Rapier popup confirmed on device 11-11 |
 
 Owner-PC sessions also continue [READABILITY](READABILITY.md) (rule 11).

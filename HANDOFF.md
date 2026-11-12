@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-11 15:20Z (owner PC: latest-only CI artifacts; CI 598 green). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-12 12:24Z (owner PC: M6-C..M6-J broken into TASKS rows; CI 621 green on `5a7875c`). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -57,11 +57,12 @@ Plan re-done 2026-11-11 (owner-approved): [ROADMAP](docs/plans/ROADMAP.md) has t
 [TASKS](docs/TASKS.md) has the open rows. Tasks are capture-first: CAP → INV → PORT (≤ ~8 functions the capture
 window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose deps are done in either.
 
-1. **Lane A, opening wired (M6-A, D-11).** Done 11-11: wm3b–d, ci0, ci1, ci4, cap2 (`ram_trace_newgame_intro`,
-   intro main path). Next: `D11-wm3f`, `D11-ci3c` (intro tail; ci2..ci3b done), `D11-wire-a`, `D11-cap1`.
-   Status: [D11-worldmap §8–9a](docs/plans/D11-worldmap.md). Ports stay standalone until `D11-wire-b`/`D11-wm9`/`ci5`.
-2. **Lane B, player phase (M6-B).** Done 11-11: PP-cap1..3, PP-0, PP-0a (hover cursor; device check pending), PP-1, PP-2, PP-3, PP-4, PP-9, PP-14, PP-15. Next: PP-5, PP-7, PP-10, PP-16, CAP-status1. Notes: [M6B-player-phase](docs/plans/M6B-player-phase.md).
-   PP-cap3 has battle animations on; M6-C needs an animations-off variant.
+1. **Lane A, main line (M6-C → M6-D → M6-E), broken into rows 11-12.** M6-C `MC-*` (map combat), M6-D `EP-*`
+   (enemy phase), M6-E `PC-*` (Prologue completable). First: `MC-cap1`, `MC-0`, `EP-0` (no deps). Call chains and
+   capture plans: [M6C-J-breakdown](docs/plans/M6C-J-breakdown.md). Lane A's opening is done (device check pending).
+2. **Lane B, player phase (M6-B).** Open: PP-11 (WIP `wip/PP-11`), CAP-status1, PP-17 (WIRE). Then M6-F info
+   screens (`IS-*`). Notes: [M6B-player-phase](docs/plans/M6B-player-phase.md). M6-G to M6-J have starter rows only.
+   Owner to confirm: the lane split above, and whether the Easy-mode tutorial (PC-cap3, PC-10) belongs in M6-E.
 3. **Readability (rule 11, changed 11-11):** comments must be meaningful and checked against the decomp
    ([READABILITY](docs/READABILITY.md)); every older `done` row carries `audit todo`. Use Sonnet, not Haiku.
    Audit next: fe8.game.ui, OpAnim Eirika functions, bm sprites (Haiku passes of 11-11).

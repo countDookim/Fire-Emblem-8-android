@@ -5,6 +5,7 @@ import gbafe.core.flags.VarRegistry
 
 /**
  * Serializes and deserializes a mod's persistent state into a mod save section (`mod:<id>`).
+ * Mod data does not exist in the original game; this layout is this port's own.
  *
  * ## Payload Format (Version 1)
  * ```

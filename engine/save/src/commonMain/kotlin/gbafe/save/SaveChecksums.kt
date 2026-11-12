@@ -1,13 +1,14 @@
 package gbafe.save
 
 /**
- * Checksum algorithms stored in FE8 save RAM (SRAM).
+ * The two checksum algorithms the original save code (`src/bmsave.c`, `src/bmsave-lib.c`) stores
+ * in SRAM:
+ * 1. [checksum16]: a 16-bit `(sum + xor)` checksum. FE8 uses it for the global save info, the
+ *    rank, sound room and bonus-claim records and one more small record (`bmsave_unkstruct2`).
+ * 2. [checksum32]: a 32-bit checksum (halfword sum in the low half, halfword xor in the high
+ *    half), stored in each `SaveBlockInfo` for its save block (`VerifySaveBlockChecksum`).
  *
- * FE8 uses two distinct checksum functions:
- * 1. [checksum16]: A 16-bit `(sum + xor)` checksum used in global save metadata and bonus claim records.
- * 2. [checksum32]: A 32-bit checksum (16-bit sum in low halfword, 16-bit xor in high halfword) used for save blocks.
- *
- * Both routines read little-endian halfwords sequentially and allocate zero heap memory.
+ * Both routines read little-endian halfwords sequentially and allocate nothing.
  */
 public object SaveChecksums {
     /** 16-bit truncation mask. */
@@ -18,8 +19,9 @@ public object SaveChecksums {
 
     /**
      * Checksum of the [size] bytes of [data] starting at [offset], as stored in the global save
-     * info, the bonus-claim data and similar small blocks: `(sum + xor)` of the `size / 2`
-     * little-endian halfwords, truncated to 16 bits. A trailing odd byte is ignored.
+     * info (over its first `GLOBALSIZEINFO_SIZE_FOR_CHECKSUM` = 0x50 bytes), the bonus-claim data
+     * and similar small blocks: `(sum + xor)` of the `size / 2` little-endian halfwords,
+     * truncated to 16 bits (the C function returns `u16`). A trailing odd byte is ignored.
      *
      * Ported from src/bmsave-lib.c: Checksum16
      *
@@ -42,11 +44,12 @@ public object SaveChecksums {
     }
 
     /**
-     * Checksum of a save block: the low 16 bits of the halfword sum in the low half and the xor of
-     * the halfwords in the high half, `(sum & 0xFFFF) + (xor << 16)`. It is what the ARM routine
-     * does (the C comment above it says `u32` words, but the loop loads `ldrh`). The routine is a
-     * do-while: it always reads at least one halfword, so any [size] below 4 reads exactly one,
-     * otherwise it reads `size / 2` halfwords.
+     * Checksum of a save block (the value kept in `SaveBlockInfo.checksum32`): the low 16 bits of
+     * the halfword sum in the low half and the xor of the halfwords in the high half,
+     * `(sum & 0xFFFF) + (xor << 16)`. It is what the ARM routine does (the C comment above it says
+     * `u32` words, but the loop loads `ldrh`). The routine is a do-while: it always reads at
+     * least one halfword, so any [size] below 4 reads exactly one, otherwise it reads
+     * `size / 2` halfwords.
      *
      * Ported from asm/arm.s: Checksum32
      *
@@ -68,8 +71,9 @@ public object SaveChecksums {
     }
 
     /**
-     * Thumb veneer that `bx pc`-switches to [checksum32]; the game calls it as
-     * `ComputeChecksum32(buf, size)` from `SramChecksum32`.
+     * Thumb veneer that `bx pc`-switches to the ARM [checksum32]; the game calls it as
+     * `ComputeChecksum32(buf, size)` from `SramChecksum32`, after copying the SRAM bytes into
+     * `gGenericBuffer`.
      *
      * Ported from asm/arm_call.s: ComputeChecksum32
      */

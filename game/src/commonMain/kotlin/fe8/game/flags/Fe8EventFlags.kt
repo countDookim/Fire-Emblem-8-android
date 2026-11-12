@@ -12,13 +12,15 @@ import gbafe.extract.fe8.events.Fe8ScriptConstants
 public object Fe8EventFlags {
     /**
      * Size in bytes of the permanent flag array written to save games and reset on starting a new
-     * game (`GetPermanentFlagBitsSize()`, 0x19 = 25 bytes, covering flags 100..299).
+     * game (`GetPermanentFlagBitsSize()`, 0x19 = 25 bytes, covering flags 101..300: flag 100 is a
+     * no-op, flag `n` is bit `n - 101`).
      */
     public const val PERMANENT_SAVE_BYTES: Int = 0x19
 
     /**
-     * Size in bytes of the chapter-local flag array reset at chapter start and preserved in chapter
-     * suspend data (`GetChapterFlagBitsSize()`, 5 bytes, covering flags 0..39).
+     * Size in bytes of the chapter-local flag array reset when a battle map starts
+     * (`ResetChapterFlags`) and kept in the suspend save (`GetChapterFlagBitsSize()`, 5 bytes,
+     * covering flags 1..40: flag `n` is bit `n - 1`).
      */
     public const val CHAPTER_SAVE_BYTES: Int = 5
 
@@ -41,8 +43,8 @@ public object Fe8EventFlags {
         chapterSaveBytes = CHAPTER_SAVE_BYTES,
         permanentStorageBytes = PERMANENT_STORAGE_BYTES,
         chapterStorageBytes = CHAPTER_STORAGE_BYTES,
-        chapterFlagLimit = 100,
-        permanentBaseId = 100,
+        chapterFlagLimit = 100, // SetFlag/ClearFlag/CheckFlag: flags below 100 are chapter flags
+        permanentBaseId = 100, // permanent flag n is bit `n - 100 - 1`; 100 itself is a no-op
         bitMask = byteArrayOf(1, 2, 4, 8, 16, 32, 64, -128, 0, 0, 0, 0, 0),
     )
 
@@ -91,8 +93,8 @@ public object Fe8EventFlags {
     /**
      * Ported from src/eventinfo.c: GetChapterFlagBitsSize
      *
-     * Returns the number of bytes from the chapter flag array that are cleared when entering
-     * a new chapter or saved during a chapter suspend (5 bytes).
+     * Returns the number of bytes from the chapter flag array that are cleared when a battle map
+     * starts and saved in a suspend save (5 bytes).
      */
     public fun getChapterFlagBitsSize(): Int = CHAPTER_SAVE_BYTES
 }

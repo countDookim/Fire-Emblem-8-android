@@ -2,6 +2,8 @@ package gbafe.save
 
 /**
  * Binary save container specification, version [CURRENT_VERSION]. All integers are little-endian.
+ * The container is this port's own file format (not in the original game); the original's SRAM
+ * layout is what the `core` section carries.
  *
  * ## Binary Layout
  * ```
@@ -39,7 +41,10 @@ public object SaveFormat {
     /** Prefix prepended to mod section identifiers. */
     public const val MOD_PREFIX: String = "mod:"
 
-    /** Size in bytes of the GBA cartridge SRAM image stored in the `core` section (32 KiB = 0x8000). */
+    /**
+     * Size in bytes of the GBA cartridge SRAM image stored in the `core` section (32 KiB = 0x8000;
+     * the size FE8's `WipeSram` erases, 0x200 blocks of 0x40 bytes).
+     */
     public const val CORE_SIZE: Int = 0x8000
 
     /** Returns the formatted section identifier for mod [modId] (`"mod:<modId>"`). */

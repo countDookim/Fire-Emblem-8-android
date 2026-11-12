@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-12 13:48Z (owner PC: Lane B PP-11/PP-18/CAP-status1 merged; PP-17 on `wip/PP-17`, unfinished). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-12 16:13Z (owner PC: M6-B code-complete, PP-17 merged; 885 tests green locally). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -11,23 +11,15 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- PP-17: owner PC, until ~19:00Z (from 16:02Z; continuing `wip/PP-17`)
+None.
 
 ## Current state
 
-- 2026-11-12 owner PC (13:48Z): **M6-B unfinished; PP-17 on `wip/PP-17` (not on master).** Merged and green on master:
-  PP-11, CAP-status1 (`ram_trace_prologue_status_ui`, ROM `assets-5c99df4`), PP-18; full suite 880, 0 failures after the
-  `M4aRuns` exclusion. `wip/PP-17` = `3ce064a` (wiring: select, range, arrow, move, unit menu, Wait, cancels, map menu
-  End, side windows; enemy AI an M6-D stand-in that ends at once; `PlayerPhaseBootTest`, `PlayerPhaseAllocationTest`;
-  boxing hooks made fun interfaces) + `0ea98df` (two crash fixes: wire only with the whole ROM, `AppRomPathTest`;
-  `unitMaxHp(-1)` when the cursor leaves a unit mid slide-in) + `4e8332c` (partial allocation fix by a stopped agent,
-  unreviewed, untested). **Left to finish PP-17:** (1) `PrologueMapTest` "600 idle frames with cursor input allocate
-  nothing" fails, 960 B per 600 frames (~48 B per cursor step) since the side windows run: find and remove the
-  allocation (review or drop `4e8332c`); (2) rerun the full suite (last run on the branch: 885, 2 failures, both fixed
-  except the allocation one); (3) rewrap three >100-column lines PP-17 added in `Fe8Boot.kt` (~974, 980, 995);
-  (4) merge, push, then the owner's phone test (MANUAL_TEST entry is on the branch). Notes: AllocationMeter tests run
-  only via `:testing:test --tests X` when targeted (`serialTest` skips targeted runs). Rule 11 readability pass
-  not done this session (owner asked for Lane B only).
+- 2026-11-12 owner PC (evening): **M6-B code-complete.** PP-17 merged (player phase wired in Fe8Boot: select, range,
+  arrow, move, unit menu, Wait, cancels, map menu End, side windows, Burst; enemy AI an M6-D stand-in that ends at once,
+  End turn reaches turn 2); crash fixes for a windowed ROM and a unit-less slide-in; cursor-move allocations removed.
+  Earlier today: PP-11, CAP-status1 (ROM `assets-5c99df4`), PP-18. Device check pending (MANUAL_TEST PP-17).
+  Readability pass (rule 11) not done (owner: Lane B only).
 
 - 2026-11-12 owner PC: **Lane A (M6-A) done.** New Game → monologue (Start skips) → world map (event script, text, camera, highlights, portraits, units, gradient) → "Prologue" title card → castle → player phase, all wired through Fe8Boot; 872 tests green, Dokka clean, 1034/7732 verified (13.3%). Device check of the whole opening pending (MANUAL_TEST D11-wire-b / D11-wm9 entries). Lane A rows in TASKS are empty; next lane-A-like work comes from the device check.
 
@@ -77,7 +69,8 @@ window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose de
 1. **Lane A, main line (M6-C → M6-D → M6-E), broken into rows 11-12.** M6-C `MC-*` (map combat), M6-D `EP-*`
    (enemy phase), M6-E `PC-*` (Prologue completable). First: `MC-cap1`, `MC-0`, `EP-0` (no deps). Call chains and
    capture plans: [M6C-J-breakdown](docs/plans/M6C-J-breakdown.md). Lane A's opening is done (device check pending).
-2. **Lane B, player phase (M6-B).** PP-11, CAP-status1, PP-18 done 11-12. Open: PP-17 (WIRE), on `wip/PP-17`. Then M6-F info
+2. **Lane B, player phase (M6-B): code-complete 11-12** (PP-11, CAP-status1, PP-18, PP-17); owner device check pending
+   (MANUAL_TEST PP-17). Then M6-F info
    screens (`IS-*`). Notes: [M6B-player-phase](docs/plans/M6B-player-phase.md). M6-G to M6-J have starter rows only.
    Owner-approved 11-12: this lane split, and the Easy-mode tutorial (PC-cap3, PC-10) as the end of M6-E.
 3. **Readability (rule 11, changed 11-11):** comments must be meaningful and checked against the decomp

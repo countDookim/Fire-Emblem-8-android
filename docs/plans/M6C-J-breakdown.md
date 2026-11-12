@@ -9,7 +9,7 @@ rows still correct the lists (ROADMAP rule 3). M6-F names files and behaviours; 
 INV splits into rows of at most about 8 functions. M6-G to M6-J are sub-lane starters (CAP, INV, one grouped PORT
 row, WIRE): nothing past the INV is fixed. Function counts are decomp totals per file, not all reachable.
 
-**Lanes (proposed).** Lane A, now empty, takes the main line M6-C → M6-D → M6-E. Lane B finishes M6-B and then
+**Lanes (owner-approved 2026-11-12).** Lane A, now empty, takes the main line M6-C → M6-D → M6-E. Lane B finishes M6-B and then
 takes M6-F, which needs only the turn-1 save and no combat. M6-G to M6-J follow in ROADMAP order.
 
 ## M6-C map combat, no animation
@@ -98,8 +98,8 @@ Captures:
 - New Game menus: `ram_trace_newgame` and `menu_screens` already pass the difficulty and slot menus; PC-0 checks
   whether their dumps are dense enough or a new capture is needed.
 
-Open point for the owner: once the real difficulty menu is in, Easy is selectable, and Easy runs the Prologue
-tutorial (15 tutorial scripts, forced inputs in playerphase.c, a scripted battle). Rows PC-cap3/PC-15 cover it at
+Easy mode (owner-approved 2026-11-12: part of M6-E): once the real difficulty menu is in, Easy is selectable, and Easy runs the Prologue
+tutorial (15 tutorial scripts, forced inputs in playerphase.c, a scripted battle). Rows PC-cap3/PC-10 cover it at
 the end of M6-E. Until they are done, Easy would play without the tutorial; that has to be listed as a stand-in.
 Hard needs CAP-hard1 (autolevel), already an open row.
 

@@ -290,3 +290,21 @@ Steps 4945..4947 are lag frames inside `GmapRm_StartUpdateDirect` (as in `WorldM
 of B4–B7 runs here (B5–B7 from 5436). Seed: iwram/ewram r04860/r04920, GmapMu proc + 7 prims + container as in
 `WorldMapMuTest`; C3 is provable against r04920 with `units[0]`, camera and no_fade zeroed in the seed. The
 `StartGmapMuEntry` hook in `WorldMapBeginning.hooks` is still a stand-in (`WorldMapMuEntry.startGmapMuEntry` exists).
+
+### 8c. D11-wm8c: camera scrolls and nation highlights through the event VM (steps 5433-8110)
+
+`WorldMapEventCameraTest` (sibling of `WorldMapEventHostTest`). Script commands in the window (decoded from
+`pEventCurrent` and the ROM script at 0x08A397CC..): `0E` STAL, `B6` WM_MOVECAM2 (starts `GmapRmUpdateExt`, 7
+scrolls), `B8` (starts `GmapRmBorder1` and, from its own script, the blend pulse), `B9`/`BA` (flag, wait for end),
+`C4`/`C5` (portrait show/clear), `1C`/`1D` (talk continue / wait for lock); `B5`, `B7` do not run (`BC`, `9E` start
+at 8112). Seed: RM proc brought up as in `WorldMapRmTest`, `GmData` r04920 (r05430's differs in the RM start flags),
+event proc created at the `1D` the capture shows at 5433, LCD buffer and palette from the lcd watch at step 5500.
+`UpdateExt`, `Border1`, `BaPalAnim1`, RM and the event engine proc fields equal the capture every step; BLD/WIN/BG1
+registers, palette 0x19, border OAM entries and OBJ tiles are compared as in `WorldMapRmBorderLcdTest`.
+Stand-ins (test-only, advance the script as the capture shows): `1C`, `1D` (stay while the traced pointer stays),
+`C4`, `C5`. Face fades write BLD and load other palette banks, so BLD is compared only while a border runs (and one
+step after) and only palette 0x19 of the palette RAM.
+Lag: the capture's game loop skips passes: 13 steps after highlight starts (graphics load) and 6 steps where a ticking
+field stalls (6961, 7531, 7621, 7651, 7894, 7921: each within four steps after an A press of the input); read from the capture, pinned.
+Verified: EventB6/B8/B9/BA, sub_80C2C10, sub_80C2BC4 (index >= 0 paths), GmapRm_GetPosition. Skipping branches and
+B5/B7 are not run.

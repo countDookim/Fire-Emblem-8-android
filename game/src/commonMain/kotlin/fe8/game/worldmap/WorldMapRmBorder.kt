@@ -307,7 +307,10 @@ public class WorldMapRmBorder(
     }
 
     /**
-     * Transcribed from src/worldmap_rm.c: sub_80C2BC4 (not verified: no traced call)
+     * Ported from src/worldmap_rm.c: sub_80C2BC4
+     *
+     * Verified through `EventBA` in WorldMapEventCameraTest (the `index >= 0` path); the
+     * negative-index path is not run by the capture.
      *
      * @param index the nation, or negative for any
      * @return whether a border proc for the nation exists
@@ -323,8 +326,10 @@ public class WorldMapRmBorder(
     }
 
     /**
-     * Transcribed from src/worldmap_rm.c: sub_80C2C10 (not verified: the event that calls it is
-     * not ported; the test replays it at the step the traced flag is first set)
+     * Ported from src/worldmap_rm.c: sub_80C2C10
+     *
+     * Verified through `EventB9` in WorldMapEventCameraTest (the `index >= 0` path); the
+     * negative-index path (every border) is not run by the capture.
      *
      * Sets `flag` on the border proc of nation [index], or on every one if [index] is negative.
      */

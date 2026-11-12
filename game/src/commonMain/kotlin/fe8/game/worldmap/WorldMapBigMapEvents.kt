@@ -52,8 +52,10 @@ public class WmBigMapHooks(
 
 /**
  * The world map commands `EventB4..BA` of `src/eventscr_gmap.c`. `EventB4` is verified through
- * the event VM in WorldMapEventHostTest (Prologue steps 4907-5100); the others are transcribed
- * (not run there). The Prologue test registers B4 alone; [registerOn] adds the whole range.
+ * the event VM in WorldMapEventHostTest (Prologue steps 4907-5100); `EventB6`, `EventB8`,
+ * `EventB9` and `EventBA` in WorldMapEventCameraTest (steps 5433-8110); `EventB5` and
+ * `EventB7` are not run by the capture and stay transcribed. The tests register the handlers one
+ * by one; [registerOn] adds the whole range.
  *
  * @param memory script words (the command arguments)
  * @param hooks the callees
@@ -106,8 +108,10 @@ public class WorldMapBigMapEvents(
     }
 
     /**
-     * Transcribed from src/eventscr_gmap.c: EventB6_WmMoveBigMap (not verified: no @VerifiesPort
-     * test names it).
+     * Ported from src/eventscr_gmap.c: EventB6_WmMoveBigMap
+     *
+     * Verified through the event VM: the started `GmapRmUpdateExt` fields equal the capture's at
+     * every step of all seven scrolls. The skipping branch is not run by the capture.
      */
     public val eventB6WmMoveBigMap: EventHandler = EventHandler { proc ->
         if (!skipping(proc)) {
@@ -135,8 +139,9 @@ public class WorldMapBigMapEvents(
     }
 
     /**
-     * Transcribed from src/eventscr_gmap.c: EventB8_WmShowBigMapHighlight (not verified: no
-     * @VerifiesPort test names it).
+     * Ported from src/eventscr_gmap.c: EventB8_WmShowBigMapHighlight
+     *
+     * Verified through the event VM (the nation of every highlight; skipping branch not run).
      */
     public val eventB8WmShowBigMapHighlight: EventHandler = EventHandler { proc ->
         if (!skipping(proc)) hooks.showNationHighlightedMap(arg32(proc, 2))
@@ -144,8 +149,10 @@ public class WorldMapBigMapEvents(
     }
 
     /**
-     * Transcribed from src/eventscr_gmap.c: EventB9_WmRemoveHighlightNationPart1 (not verified: no
-     * @VerifiesPort test names it).
+     * Ported from src/eventscr_gmap.c: EventB9_WmRemoveHighlightNationPart1
+     *
+     * Verified through the event VM (the border's flag is set by this command). The skipping
+     * branch (`EndGmapRmBorder1(-1)`) is not run by the capture.
      */
     public val eventB9WmRemoveHighlightNationPart1: EventHandler = EventHandler { proc ->
         if (skipping(proc)) hooks.endGmapRmBorder1(-1) else hooks.sub80C2C10(arg32(proc, 2))
@@ -153,8 +160,10 @@ public class WorldMapBigMapEvents(
     }
 
     /**
-     * Transcribed from src/eventscr_gmap.c: EventBA_WmRemoveHighlightNationPart2 (not verified: no
-     * @VerifiesPort test names it).
+     * Ported from src/eventscr_gmap.c: EventBA_WmRemoveHighlightNationPart2
+     *
+     * Verified through the event VM (waits on the nation's border, then advances). The skipping
+     * branch is not run by the capture.
      */
     public val eventBAWmRemoveHighlightNationPart2: EventHandler = EventHandler { proc ->
         val nation = arg32(proc, 2)

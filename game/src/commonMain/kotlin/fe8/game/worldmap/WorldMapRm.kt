@@ -507,8 +507,10 @@ public class WorldMapRm(
     }
 
     /**
-     * Transcribed from src/worldmap_rm.c: GmapRm_GetPosition (not verified: only the border
-     * sprites call it)
+     * Ported from src/worldmap_rm.c: GmapRm_GetPosition
+     *
+     * Verified through the border sprites' OAM positions in WorldMapEventCameraTest (the map
+     * is at y 24 for the first highlight and y 0 later).
      *
      * @return the position of the first [rmScript] proc as `(x, y)`, or null if there is none
      */

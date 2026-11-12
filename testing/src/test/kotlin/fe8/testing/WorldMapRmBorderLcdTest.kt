@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test
  * palette RAM (so palette 0x19 and that nothing else is written), the port's sprites as a
  * contiguous run of OAM entries (attr0..2) and, after the end, no visible OBJ at the border's
  * tile base. The OBJ tiles are compared at the full dumps inside the runs. `GmapRm_GetPosition`
- * is fed from the traced `ProcScr_GmapRM` and stays transcribed; `GmapRmBorder1_End`, its pulse
+ * is fed from the traced `ProcScr_GmapRM` here (verified in WorldMapEventCameraTest); `GmapRmBorder1_End`, its pulse
  * end and `GmapRmBaPalAnim1_End` leave no trace (mutations of them pass), so they stay
  * transcribed too.
  */

@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 543 across 72 decomp files (missing reason: 0).
+Total entries: 536 across 72 decomp files (missing reason: 0).
 
 ## src/worldmap_mapmu.c (35)
 
@@ -83,40 +83,6 @@ Total entries: 543 across 72 decomp files (missing reason: 0).
 | `InitTalkTextWin` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no @VerifiesPort test names it |
 | `TalkOpen_InitBlend` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no |
 
-## src/worldmap_rm.c (29)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `ProcScr_GmapRmUpdateDirect` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | script order checked against the `procs` capture in WorldMapRmTest |
-| `ProcScr_GmapRmUpdateExt` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | script order checked against the `procs` capture in WorldMapRmTest |
-| `ProcScr_GmapRM` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | script order checked against the `procs` capture in WorldMapRmTest |
-| `GmapRmUpdateExt_End` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | the update procs end with the position already at the target, so the write cannot be told from a no-op |
-| `GmapRmUpdateExt_Delay` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | every captured delay is 0, so `<= 0` cannot be told from `< 0` after the decrement |
-| `EndGmapRmUpdateExt` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | never called in the capture |
-| `GmapRm_OnEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | the capture's `GmapRM` ends the frame the trace stops showing its screen, and most callees are hooks |
-| `GmapRm_InitNop` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | a no-op |
-| `GmapRm_Goto1IfFlag1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | runs after the unblock |
-| `GmapRm_InitBlend` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | the capture's flag 0 is never set, so the blend-in branch of the script is skipped |
-| `GmapRm_BlendIn` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | see [gmapRmInitBlend] |
-| `GmapRm_80C214C` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | only run after the unblock, past the frames the capture's screen dumps cover |
-| `GmapRm_BlendOut` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | see [gmapRm80C214C] |
-| `GmapRm_DisplayLeaderUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | see [gmapRm80C214C] |
-| `GmapRm_80C2398` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | see [gmapRm80C214C] |
-| `EndGmapRM` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | not reached in the capture |
-| `GmapRMExists` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | only the event wait calls it |
-| `GmapRm_GetPosition` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | only the border sprites call it |
-| `GmapRm_SetUnblocked` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | the capture's map is ended by the event engine without the flag |
-| `GmapRm_EndAll` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | only the skipping branch of the event commands calls it |
-| `ProcScr_GmapRmBaPalAnim1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBaPalAnim.kt` | the script order is checked through the proc cursor, but no unit of it is ported here |
-| `GmapRmBaPalAnim1_End` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBaPalAnim.kt` | the next frame's MergeOut overwrites the restored blend before the registers show it |
-| `EndGmapRmBaPalAnim1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBaPalAnim.kt` | no traced call |
-| `CheckGmapRmBaPalAnim1Exists` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBaPalAnim.kt` | no traced call |
-| `ProcScr_GmapRmBorder1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | the script order is checked through the proc cursor, but no unit of it is ported here |
-| `GmapRmBorder1_End` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | removing either sprite delete or the pulse end leaves the traced OAM, blend and palette unchanged |
-| `EndGmapRmBorder1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | no traced call |
-| `sub_80C2BC4` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | no traced call |
-| `sub_80C2C10` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | the event that calls it is not ported; the test replays it at the step the traced flag is first set |
-
 ## src/bmunit.c (27)
 
 | Function | Kotlin file | Reason |
@@ -180,6 +146,37 @@ Total entries: 543 across 72 decomp files (missing reason: 0).
 | `ModifyMoveUnitFlag` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | test restates bit combinations; no trace comparison yet |
 | `Event34_MessWithUnitState` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | only subs 5, 10 and 15 are compared; breaks in other subs and the CLEA loop survive |
 
+## src/worldmap_rm.c (26)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ProcScr_GmapRmUpdateDirect` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | script order checked against the `procs` capture in WorldMapRmTest |
+| `ProcScr_GmapRmUpdateExt` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | script order checked against the `procs` capture in WorldMapRmTest |
+| `ProcScr_GmapRM` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | script order checked against the `procs` capture in WorldMapRmTest |
+| `GmapRmUpdateExt_End` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | the update procs end with the position already at the target, so the write cannot be told from a no-op |
+| `GmapRmUpdateExt_Delay` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | every captured delay is 0, so `<= 0` cannot be told from `< 0` after the decrement |
+| `EndGmapRmUpdateExt` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | never called in the capture |
+| `GmapRm_OnEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | the capture's `GmapRM` ends the frame the trace stops showing its screen, and most callees are hooks |
+| `GmapRm_InitNop` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | a no-op |
+| `GmapRm_Goto1IfFlag1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | runs after the unblock |
+| `GmapRm_InitBlend` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | the capture's flag 0 is never set, so the blend-in branch of the script is skipped |
+| `GmapRm_BlendIn` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | see [gmapRmInitBlend] |
+| `GmapRm_80C214C` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | only run after the unblock, past the frames the capture's screen dumps cover |
+| `GmapRm_BlendOut` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | see [gmapRm80C214C] |
+| `GmapRm_DisplayLeaderUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | see [gmapRm80C214C] |
+| `GmapRm_80C2398` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | see [gmapRm80C214C] |
+| `EndGmapRM` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | not reached in the capture |
+| `GmapRMExists` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | only the event wait calls it |
+| `GmapRm_SetUnblocked` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | the capture's map is ended by the event engine without the flag |
+| `GmapRm_EndAll` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRm.kt` | only the skipping branch of the event commands calls it |
+| `ProcScr_GmapRmBaPalAnim1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBaPalAnim.kt` | the script order is checked through the proc cursor, but no unit of it is ported here |
+| `GmapRmBaPalAnim1_End` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBaPalAnim.kt` | the next frame's MergeOut overwrites the restored blend before the registers show it |
+| `EndGmapRmBaPalAnim1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBaPalAnim.kt` | no traced call |
+| `CheckGmapRmBaPalAnim1Exists` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBaPalAnim.kt` | no traced call |
+| `ProcScr_GmapRmBorder1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | the script order is checked through the proc cursor, but no unit of it is ported here |
+| `GmapRmBorder1_End` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | removing either sprite delete or the pulse end leaves the traced OAM, blend and palette unchanged |
+| `EndGmapRmBorder1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | no traced call |
+
 ## src/bmbattle.c (21)
 
 | Function | Kotlin file | Reason |
@@ -230,29 +227,6 @@ Total entries: 543 across 72 decomp files (missing reason: 0).
 | `GetUnitEquippedWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `CanUnitUseWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `IsItemUnsealedForUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-
-## src/eventscr_gmap.c (18)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `EventB5_WmHideBigMap` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
-| `EventB6_WmMoveBigMap` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
-| `EventB7_WmBigMapWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
-| `EventB8_WmShowBigMapHighlight` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no |
-| `EventB9_WmRemoveHighlightNationPart1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no |
-| `EventBA_WmRemoveHighlightNationPart2` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no |
-| `EventC4_WmShowPortrait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFaceEvents.kt` | see the class note |
-| `EventC5_WmClearPortrait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFaceEvents.kt` | see the class note |
-| `Event83_WmSetCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event84_WmSetCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event86_WmScrollCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event87_WmScrollCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event88_WmScrollCameraOntoUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event89_WmScrollWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event80_WmSkip_Unsure` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
-| `Event81_WmFadeOut` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
-| `Event82_WmEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
-| `EventB0_WmHideTextBox_Bugged` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no |
 
 ## src/muctrl.c (17)
 
@@ -394,6 +368,25 @@ Total entries: 543 across 72 decomp files (missing reason: 0).
 | `ReadGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | no suspend-trace state covers it; its caller `ReadGameSave` is ported |
 | `WriteTraps` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | every trap in the reference is zero, which proves the target, not the data |
 | `WriteGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | no suspend-trace state covers it; its caller `WriteGameSave` is ported |
+
+## src/eventscr_gmap.c (14)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `EventB5_WmHideBigMap` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
+| `EventB7_WmBigMapWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
+| `EventC4_WmShowPortrait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFaceEvents.kt` | see the class note |
+| `EventC5_WmClearPortrait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFaceEvents.kt` | see the class note |
+| `Event83_WmSetCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event84_WmSetCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event86_WmScrollCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event87_WmScrollCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event88_WmScrollCameraOntoUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event89_WmScrollWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event80_WmSkip_Unsure` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
+| `Event81_WmFadeOut` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
+| `Event82_WmEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
+| `EventB0_WmHideTextBox_Bugged` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no |
 
 ## src/face.c (14)
 

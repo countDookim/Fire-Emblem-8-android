@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 944,
+    "verified": 945,
     "implemented_unverified": 1
   },
   "functions": {
@@ -5053,6 +5053,16 @@
         "fe8.testing.OpSubtitleTransitionsDifferentialTest#hold timer follows original callback including break frame"
       ]
     },
+    "OpSubtitle_HandleStartPress": {
+      "decomp_file": "src/opsubtitle.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.OpSubtitleSkipReplayTest#original Start presses end children and run fast fade"
+      ]
+    },
     "OpSubtitle_Init": {
       "decomp_file": "src/opsubtitle.c",
       "system": "presentation",
@@ -6538,7 +6548,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/SoundWrapper.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
+        "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces",
+        "fe8.testing.OpSubtitleSkipReplayTest#original Start presses end children and run fast fade"
       ]
     },
     "Sound_SetDefaultMaxNumChannels": {

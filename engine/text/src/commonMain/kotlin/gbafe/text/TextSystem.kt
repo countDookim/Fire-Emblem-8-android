@@ -1,15 +1,17 @@
 package gbafe.text
 
 /**
- * Hardware and game services [TextSystem] needs; everything outside `fontgrp.c`'s own state.
+ * Hardware and game services [TextSystem] needs: the language setting, the palette copy and raw
+ * VRAM access. Everything else of `src/fontgrp.c` is [TextSystem]'s own state.
  */
 public interface TextHost {
-    /** `GetLang`: the language mode (0 = Japanese / Shift-JIS, 1 = English / ASCII). */
+    /** `GetLang` (`gLanguageMode`): `LANG_JAPANESE` (0, Shift-JIS) or `LANG_ENGLISH` (1, ASCII). */
     public fun language(): Int
 
     /**
-     * `ApplyPalette(Pal_Text [+ 0x10 for the talk variant], palid)` followed by
-     * `PAL_COLOR(palid, 0) = 0`.
+     * Loads the text palette into bank [palid]: `ApplyPalette(Pal_Text, palid)` (the system
+     * palette) or, when [talk] is set, `ApplyPalette(Pal_Text + 0x10, palid)` (the talk-window
+     * palette); then makes colour 0 of the bank transparent, `PAL_COLOR(palid, 0) = 0`.
      */
     public fun applyTextPalette(talk: Boolean, palid: Int)
 
@@ -19,14 +21,15 @@ public interface TextHost {
     /** Writes the little-endian 32-bit word [value] at VRAM address [addr]. */
     public fun writeVram32(addr: Int, value: Int)
 
-    /** `CpuFastFill16(0, dest, byteCount)` on VRAM. */
+    /** Zeroes [byteCount] bytes of VRAM at [dest]: `CpuFastFill16(0, dest, byteCount)`. */
     public fun clearVram(dest: Int, byteCount: Int)
 }
 
 /**
- * The text-font part of `src/fontgrp.c`: `gDefaultFont`, `gActiveFont`, font and [Text] setup, and
- * glyph-width measuring. Game-neutral; the game supplies the glyph-table addresses and the
- * function-pointer values through [Config], and its ROM.
+ * The text-font part of `src/fontgrp.c`: `gDefaultFont`, `gActiveFont`, font and [Text] setup,
+ * glyph drawing into VRAM tiles and glyph-width measuring. Game-neutral; the game supplies the
+ * glyph-table addresses and the function-pointer values through [Config], and its ROM. Not ported
+ * here: numbers, special characters, `DrawTextGlyphNoClear` and the text-print procs.
  *
  * No call allocates. A glyph pointer that is NULL where C would dereference it throws here
  * (undefined behaviour in C).
@@ -38,32 +41,46 @@ public class TextSystem(
 ) {
     /** Addresses of the game's glyph tables and font routines. */
     public class Config(
-        /** `TextGlyphs_System`. */
+        /** ROM address of `TextGlyphs_System`, the glyph table of menus and system text. */
         public val glyphsSystem: Int,
-        /** `TextGlyphs_Talk`. */
+        /** ROM address of `TextGlyphs_Talk`, the glyph table of the dialogue window font. */
         public val glyphsTalk: Int,
         /** Function-pointer value stored in [Font.drawGlyph] (`DrawTextGlyph`). */
         public val drawGlyph: Int,
         /** Function-pointer value stored in [Font.getDrawDest] (`GetTextDrawDest`). */
         public val getDrawDest: Int,
-        /** `s2bppTo4bppLutTable`: ROM address of the table of 13 colour-LUT pointers. */
+        /**
+         * `s2bppTo4bppLutTable`: ROM address of the table of 13 colour-LUT pointers in FE8U,
+         * indexed by [Text.colorId] (see [getColorLut]).
+         */
         public val colorLutTable: Int,
-        /** Function-pointer value stored in [Font.drawGlyph] (`DrawSpriteTextGlyph`). */
+        /**
+         * Value stored in [Font.drawGlyph] by sprite fonts (`DrawSpriteTextGlyph`); 0 if unused.
+         */
         public val drawSpriteGlyph: Int = 0,
-        /** Function-pointer value stored in [Font.getDrawDest] (`GetSpriteTextDrawDest`). */
+        /**
+         * Value stored in [Font.getDrawDest] by sprite fonts (`GetSpriteTextDrawDest`); 0 if
+         * unused.
+         */
         public val getSpriteDrawDest: Int = 0,
     )
 
     /** `gDefaultFont`. */
     public val defaultFont: Font = Font()
 
-    /** `gActiveFont`; null in C until the first `SetTextFont`, here it starts as the default. */
+    /**
+     * `gActiveFont`, the font every draw and measure call uses. It is null in C until the first
+     * `SetTextFont`; here it starts as [defaultFont].
+     */
     public var activeFont: Font = defaultFont
         private set
 
     /**
-     * Initialises [font] (null means [defaultFont]) to draw at [vramDest] from tile [chr] with
-     * palette [palid], makes it the active font and applies the system font setup.
+     * Initialises [font] (null means [defaultFont]) as a BG font drawing to [vramDest], whose first
+     * tile is number [chr] in palette bank [palid], makes it the active font and applies the
+     * system font setup (system palette, system glyphs).
+     * The `tileref` is `TILEREF(chr, palid)` (`chr + (palid shl 12)`); this port masks [chr] to 10
+     * bits first, which differs from C only for tile numbers above 0x3FF.
      *
      * Ported from src/fontgrp.c: InitTextFont
      */
@@ -89,7 +106,8 @@ public class TextSystem(
     }
 
     /**
-     * Selects the active font's glyph table: [GLYPHS_SYSTEM], or the talk table otherwise.
+     * Selects the active font's glyph table: the system glyphs for [GLYPHS_SYSTEM] (menus), the
+     * talk glyphs otherwise ([GLYPHS_TALK], dialogue).
      *
      * Ported from src/fontgrp.c: SetTextFontGlyphs
      */
@@ -99,7 +117,8 @@ public class TextSystem(
     }
 
     /**
-     * Gives [text] the next [tileWidth] tiles of the active font and clears it.
+     * Gives [text] the next [tileWidth] tile columns of the active font and clears it. Each column
+     * is two tiles tall, so the font's tile counter advances by [tileWidth] column slots.
      *
      * Ported from src/fontgrp.c: InitText
      */
@@ -114,7 +133,8 @@ public class TextSystem(
     }
 
     /**
-     * Resets [text]'s pen and colour and zeroes its tile strip in VRAM.
+     * Resets [text]'s pen to 0 and its colour to white (`TEXT_COLOR_SYSTEM_WHITE`) and zeroes its
+     * whole tile strip in VRAM, `tileWidth * 2` tiles of `CHR_SIZE` bytes.
      *
      * Ported from src/fontgrp.c: ClearText
      */
@@ -125,7 +145,8 @@ public class TextSystem(
     }
 
     /**
-     * Sets the active font up for the talk window: talk palette, draw routine and talk glyphs.
+     * Switches the active font to dialogue text: the talk palette, the normal glyph-drawing routine
+     * and the talk glyph table (the system variant is `initSystemTextFont`).
      *
      * Ported from src/fontgrp.c: InitTalkTextFont
      */
@@ -135,6 +156,10 @@ public class TextSystem(
         setTextFontGlyphs(GLYPHS_TALK)
     }
 
+    /**
+     * `InitSystemTextFont` (`src/fontgrp.c`): the active font's palette bank gets the system text
+     * palette, drawing uses `DrawTextGlyph` and the glyphs are the system table.
+     */
     private fun initSystemTextFont() {
         host.applyTextPalette(false, activeFont.palid)
         activeFont.drawGlyph = config.drawGlyph
@@ -142,8 +167,10 @@ public class TextSystem(
     }
 
     /**
-     * Width in pixels of the string at [str]`[start]` up to its terminator or newline (0x01);
-     * ASCII fonts (`lang != 0`) delegate to [getStringTextLenAscii].
+     * Width in pixels of the string at [str]`[start]` up to its terminator or newline
+     * (`CHAR_NEWLINE`, 0x01). ASCII fonts (`lang != 0`) delegate to [getStringTextLenAscii];
+     * Shift-JIS fonts add up the glyph found for each two-byte character (nothing for an
+     * unmatched one) and skip a lone byte below 0x20.
      *
      * Ported from src/fontgrp.c: GetStringTextLen
      */
@@ -165,7 +192,9 @@ public class TextSystem(
     }
 
     /**
-     * ASCII width of the string at [start].
+     * ASCII width of the string at [start]: the sum of the glyph widths up to the terminator or
+     * newline. Unlike [getCharTextLenAscii] there is no `'?'` fallback: a missing glyph is a NULL
+     * dereference in C and throws here.
      *
      * Ported from src/fontgrp.c: GetStringTextLenASCII
      */
@@ -179,7 +208,8 @@ public class TextSystem(
     }
 
     /**
-     * ASCII width of one character; a missing glyph falls back to `'?'`.
+     * ASCII width of one character, stored in `width[0]`; a missing glyph falls back to the
+     * glyph of `'?'`. Returns the offset after the character.
      *
      * Ported from src/fontgrp.c: GetCharTextLenASCII
      */
@@ -191,8 +221,11 @@ public class TextSystem(
     }
 
     /**
-     * VRAM address of [text]'s current tile strip, at the pen's tile: the `get_draw_dest` of the
-     * active font.
+     * VRAM address of the tile under [text]'s pen: the strip start plus the pen's tile column
+     * (`x / 8`), in the active font's tile area; each column is two tiles (`2 * CHR_SIZE` bytes).
+     * This is the `get_draw_dest` callback of a BG font; when the active font's pointer is
+     * [Config.getSpriteDrawDest] the call goes to [getSpriteTextDrawDest], as the C function
+     * pointer would.
      *
      * Ported from src/fontgrp.c: GetTextDrawDest
      */
@@ -205,8 +238,9 @@ public class TextSystem(
     }
 
     /**
-     * Initialises [font] for sprite text drawn to OBJ tiles at [vramDest] with palette [c] and
-     * makes it the active font.
+     * Initialises [font] as a sprite (OBJ) font drawing to the OBJ tiles at [vramDest] and makes it
+     * the active font. [c] is the OBJ palette number (only its low 4 bits count; the font's
+     * `palid` is `(c and 0xF) + 16`); `tileref` is the OBJ tile number of [vramDest].
      *
      * Ported from src/fontgrp.c: InitSpriteTextFont
      * (verified through `sTalkFont` in WorldMapEventHostTest)
@@ -223,7 +257,8 @@ public class TextSystem(
     }
 
     /**
-     * Gives [text] a 32-tile strip of the active font (64 tiles of its tile counter).
+     * Gives [text] a sprite-text strip: 32 tile columns of two rows, so the font's tile counter
+     * advances by 64 tiles. Pen and colour are reset (colour 0) without touching VRAM.
      *
      * Ported from src/fontgrp.c: InitSpriteText
      * (verified through `sTalkText` in WorldMapEventHostTest)
@@ -240,8 +275,8 @@ public class TextSystem(
     }
 
     /**
-     * Resets the pen and clears the first 0x360 bytes of both tile rows of [text] (nothing when it
-     * has no tiles).
+     * Resets the pen and zeroes the first 0x360 bytes of each of the two tile rows of [text]'s
+     * strip (the second row is 0x400 bytes on); does nothing when it has no tiles.
      *
      * Transcribed from src/fontgrp.c: SpriteText_Clear (not verified: the bytes 0x340..0x360 of a
      * row are never glyph data in the capture; WorldMapEventHostTest checks the rest)
@@ -256,16 +291,17 @@ public class TextSystem(
         }
     }
 
-    /** Reads the word at VRAM address [addr] through the host. */
+    /** Reads the 32-bit word at VRAM address [addr] through the host. */
     public fun readVramWord(addr: Int): Int = host.readVram32(addr)
 
-    /** Writes the word [value] at VRAM address [addr] through the host. */
+    /** Writes the 32-bit word [value] at VRAM address [addr] through the host. */
     public fun writeVramWord(addr: Int, value: Int) {
         host.writeVram32(addr, value)
     }
 
     /**
-     * Resets the pen and fills 0x800 bytes at the draw destination with the word [b].
+     * Resets the pen and fills 0x800 bytes (both tile rows of a 32-column strip) at the draw
+     * destination with the 32-bit pattern [b] (a word of eight 4bpp pixels).
      *
      * Transcribed from src/fontgrp.c: SpriteText_DrawBackgroundExt
      * (not verified: compared only through the Prologue brown text box tiles)
@@ -277,7 +313,9 @@ public class TextSystem(
     }
 
     /**
-     * VRAM address of the sprite text tile at the pen.
+     * VRAM address of the OBJ tile under [text]'s pen: the `get_draw_dest` callback of a sprite
+     * font. Unlike [getTextDrawDest] it advances `CHR_SIZE` bytes per tile column, since the two
+     * rows of a sprite strip are 0x400 bytes apart rather than interleaved.
      *
      * Ported from src/fontgrp.c: GetSpriteTextDrawDest
      * (verified through the Prologue brown text box tiles in ram_trace_newgame_bm f09559; not
@@ -287,8 +325,9 @@ public class TextSystem(
         activeFont.vramDest + (text.dbId * text.tileWidth + text.chrPosition + text.x / 8) * CHR_SIZE
 
     /**
-     * Draws [glyph] (ROM address) as OBJ tiles (two 8-row halves, the second `0x400` bytes on)
-     * and advances the pen.
+     * Draws [glyph] (ROM address) as OBJ tiles and advances the pen by the glyph width. The 16
+     * bitmap rows go to two 8-row halves, the second `0x400` bytes on. Pixels are OR-ed in, so the
+     * strip must be clear; the colour comes from [Text.colorId] through [getColorLut].
      *
      * Ported from src/fontgrp.c: DrawSpriteTextGlyph
      * (verified through the Prologue brown text box tiles in ram_trace_newgame_bm f09559; not
@@ -311,7 +350,7 @@ public class TextSystem(
     }
 
     /**
-     * Pen x that centres [str] in [x] pixels.
+     * Pen x at which [str] is centred in a box [x] pixels wide: `(x - width) / 2`.
      *
      * Transcribed from src/fontgrp.c: GetStringTextCenteredPos
      * (not verified: compared only through the Prologue brown text box tiles)
@@ -320,7 +359,7 @@ public class TextSystem(
         (x - getStringTextLen(str, start)) / 2
 
     /**
-     * Sets the pen x and colour of [text], then draws [str].
+     * Sets the pen to [x] and the colour to [colorId] (a `TEXT_COLOR_*` index), then draws [str].
      *
      * Transcribed from src/fontgrp.c: Text_InsertDrawString
      * (not verified: compared only through the Prologue brown text box tiles)
@@ -332,7 +371,9 @@ public class TextSystem(
     }
 
     /**
-     * ROM address of the 256-entry 2bpp-to-4bpp lookup table (16-bit entries) for [color].
+     * ROM address of the lookup table for colour index [color] (`s2bppTo4bppLutTable[color]`):
+     * 256 16-bit entries that turn one byte of four 2bpp glyph pixels into four 4bpp pixels in
+     * that text colour's palette indices.
      *
      * Ported from src/fontgrp.c: GetColorLut
      */
@@ -353,7 +394,8 @@ public class TextSystem(
     }
 
     /**
-     * Calls the active font's `drawGlyph` function pointer; only `DrawTextGlyph` is ported.
+     * Calls the active font's `drawGlyph` function pointer. Only `DrawTextGlyph` and
+     * `DrawSpriteTextGlyph` are ported; any other value (`DrawTextGlyphNoClear`) throws.
      */
     private fun callDrawGlyph(text: Text, glyph: Int) {
         if (config.drawSpriteGlyph != 0 && activeFont.drawGlyph == config.drawSpriteGlyph) {
@@ -384,7 +426,10 @@ public class TextSystem(
         }
     }
 
-    /** Two LUT entries for the low two bytes of [v]: byte 0 in bits 0-15, byte 1 in 16-31. */
+    /**
+     * Colours four 2bpp pixels twice over: looks up the low two bytes of [v] in the colour table
+     * at [lutBase], byte 0's entry in bits 0-15 and byte 1's entry in bits 16-31 (8 pixels, 4bpp).
+     */
     private fun lutWord(lutBase: Int, v: Int): Int {
         val lo = rom[lutBase + (v and 0xFF) * 2].toInt() and 0xFF or
             ((rom[lutBase + (v and 0xFF) * 2 + 1].toInt() and 0xFF) shl 8)
@@ -394,13 +439,14 @@ public class TextSystem(
         return lo or (hv shl 16)
     }
 
+    /** OR-s [value] into the VRAM word at [addr] (glyph pixels are added over cleared tiles). */
     private fun orWord(addr: Int, value: Int) {
         host.writeVram32(addr, host.readVram32(addr) or value)
     }
 
     /**
-     * Draws the character at [str]`[start]` and returns the offset after it. ASCII fonts delegate
-     * to [drawCharacterAscii].
+     * Draws the character at [str]`[start]` and returns the offset after it (one byte for ASCII
+     * fonts, two for Shift-JIS). ASCII fonts delegate to [drawCharacterAscii].
      *
      * Ported from src/fontgrp.c: Text_DrawCharacter
      */
@@ -410,7 +456,7 @@ public class TextSystem(
     }
 
     /**
-     * ASCII character draw; a missing glyph falls back to `'?'`.
+     * Draws one ASCII character; a character without a glyph is drawn as `'?'`.
      *
      * Ported from src/fontgrp.c: Text_DrawCharacterAscii
      */
@@ -444,7 +490,8 @@ public class TextSystem(
     }
 
     /**
-     * Draws the string at [start] up to its terminator or newline. ASCII fonts take the ASCII path.
+     * Draws the string at [start] up to its terminator or newline (`CHAR_NEWLINE`), advancing the
+     * pen per glyph. ASCII fonts take the ASCII path.
      *
      * Ported from src/fontgrp.c: Text_DrawString
      */
@@ -457,7 +504,7 @@ public class TextSystem(
     }
 
     /**
-     * ASCII string draw.
+     * Draws an ASCII string up to its terminator or newline, character by character.
      *
      * Ported from src/fontgrp.c: Text_DrawStringASCII
      */
@@ -498,8 +545,10 @@ public class TextSystem(
     }
 
     /**
-     * Writes the tilemap entries of [text]'s two tile rows to [tm] at [offset] (row 2 is 0x20
-     * entries later) and toggles the double-buffer id when enabled.
+     * Writes the tilemap entries that show [text] to the 32-entry-wide tilemap [tm] at [offset]:
+     * the top row at [offset], the bottom row 0x20 entries (one map row) later, numbered from
+     * the font's `tileref`. When double-buffering is enabled, flips [Text.dbId] so the next draw
+     * goes to the other half.
      *
      * Ported from src/fontgrp.c: PutText
      */
@@ -551,33 +600,51 @@ public class TextSystem(
         return start + 2
     }
 
-    /** `glyphs[index]`: the glyph address, 0 for NULL. */
+    /** `glyphs[index]` of table [table] (ROM address): the glyph's ROM address, 0 for NULL. */
     private fun glyphAt(table: Int, index: Int): Int = readU32(table - ROM_BASE + index * 4)
 
-    /** `glyph->width` (`struct Glyph` +5). */
+    /** `glyph->width` (`struct Glyph` +5): the glyph's advance in pixels. */
     private fun glyphWidth(glyph: Int): Int = rom[glyph - ROM_BASE + 5].toInt() and 0xFF
 
+    /** Little-endian 32-bit word at ROM offset [o]. */
     private fun readU32(o: Int): Int =
         (rom[o].toInt() and 0xFF) or ((rom[o + 1].toInt() and 0xFF) shl 8) or
             ((rom[o + 2].toInt() and 0xFF) shl 16) or ((rom[o + 3].toInt() and 0xFF) shl 24)
 
     /** Constants of the text system. */
     public companion object {
-        /** `TEXT_GLYPHS_SYSTEM`. */
+        /** `TEXT_GLYPHS_SYSTEM`: the glyph set of menus and system text. */
         public const val GLYPHS_SYSTEM: Int = 0
 
-        /** `TEXT_GLYPHS_TALK`. */
+        /** `TEXT_GLYPHS_TALK`: the glyph set of dialogue text. */
         public const val GLYPHS_TALK: Int = 1
 
-        /** `TEXT_COLOR_SYSTEM_WHITE`. */
+        /**
+         * `TEXT_COLOR_SYSTEM_WHITE` (= `TEXT_COLOR_0123`): colour index 0, the default text colour.
+         */
         public const val COLOR_SYSTEM_WHITE: Int = 0
 
-        /** `CHAR_NEWLINE`. */
+        /**
+         * `CHAR_NEWLINE` (`src/fontgrp.c`): the byte `[NL]` that ends a string's drawn/measured
+         * line.
+         */
         public const val CHAR_NEWLINE: Int = 0x01
 
+        /** `CHR_SIZE` (`include/hardware.h`): bytes of one 8x8 4bpp tile. */
         private const val CHR_SIZE = 0x20
+
+        /**
+         * Offset of `bitmap` in `struct Glyph`: after `sjisNext` (4), `sjisByte1` (1), `width` (1),
+         * 2 padding.
+         */
         private const val GLYPH_BITMAP = 8
+
+        /**
+         * Start of the cartridge ROM in the GBA address space; ROM pointers minus this index [rom].
+         */
         private const val ROM_BASE = 0x08000000
+
+        /** Character whose glyph stands in for a missing ASCII glyph. */
         private const val QUESTION_MARK = '?'.code
     }
 }

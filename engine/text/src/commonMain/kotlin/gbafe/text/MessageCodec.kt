@@ -3,30 +3,44 @@ package gbafe.text
 import gba.data.ByteSink
 
 /**
- * Lossless conversion between raw message bytes (as produced by [MsgHuffman]) and the readable tagged
- * text stored in `text/<lang>/messages.json`, e.g. `{LoadFace FID_Eirika}{OpenLeft}Seth!{A}`.
+ * Lossless conversion between raw message bytes (as produced by [MsgHuffman]) and the readable
+ * tagged text stored in `text/<lang>/messages.json`, e.g.
+ * `{LoadFace FID_Eirika}{OpenLeft}Hello!{A}`.
  *
- * Grammar of the byte stream (from the game's text interpreter, decomp `src/scene.c: TalkInterpret`):
- * `0x10` (`LoadFace`) is followed by a 2-byte little-endian face argument (face id + 0x100, or 0xFFFF for
- * the active unit); `0x80 xx` is a two-byte control code; `0x81 0x40` is a tab; every other byte stands
- * alone. Printable ASCII (except `{` and `}`) and Latin-1 `0xA0..0xFF` are written as characters,
- * everything else as a tag.
+ * Grammar of the byte stream (from the game's text interpreter, decomp
+ * `src/scene.c: TalkInterpret`): `0x10` (`CHFE_L_LoadFace`, `include/scene.h`) is followed by a
+ * 2-byte little-endian face argument (face id + 0x100, or 0xFFFF for the active unit;
+ * `TalkLoadFace`); `0x80 xx` is a two-byte control code; `0x81 0x40` is a tab (`TalkInterpret`
+ * advances the pen 6 pixels); every other byte stands alone. Which bytes are written as characters
+ * rather than tags is this codec's own choice, not the game's: printable ASCII (except `{` and
+ * `}`) and `0xA0..0xFF` are characters, everything else a tag.
  *
- * Tags: `{Name}` for a code in [codes], `{LoadFace F}` where `F` is a name in [faces], and `{0xNN ...}`
- * (one or more hex bytes) for anything without a name, so unknown bytes survive a round trip. When
- * encoding, a tag may mix names and hex bytes (`{LoadFace 0x02 0x01}`); every name in [codes] is
- * accepted, including aliases of the same bytes (decoding uses the first name listed).
+ * Tags: `{Name}` for a code in [codes], `{LoadFace F}` where `F` is a name in [faces], and
+ * `{0xNN ...}` (one or more hex bytes) for anything without a name, so unknown bytes survive a
+ * round trip. When encoding, a tag may mix names and hex bytes (`{LoadFace 0x02 0x01}`); every name
+ * in [codes] is accepted, including aliases of the same bytes (decoding uses the first name
+ * listed).
  *
  * Load/extract time only, like [MsgHuffman].
  */
 public class MessageCodec(
     /** Control-code names to bytes; 1 byte, or 2 bytes starting with `0x80`/`0x81`. */
     private val codes: Map<String, ByteArray> = GbaFeTextCodes.CONTROL,
-    /** Face argument names (`FID_*`) to their 2-byte value `lo | hi << 8` as stored after `LoadFace`. */
+    /**
+     * Face argument names (`FID_*`) to their 2-byte value `lo | hi << 8` as stored after
+     * `LoadFace`.
+     */
     private val faces: Map<String, Int> = emptyMap(),
 ) {
+    /** Decoding table for one-byte codes: byte to the first name listed for it. */
     private val single = HashMap<Int, String>()
+
+    /**
+     * Decoding table for two-byte codes: `lead shl 8 or second` to the first name listed for it.
+     */
     private val pair = HashMap<Int, String>()
+
+    /** Decoding table for `LoadFace` arguments: 16-bit value to its `FID_*` name. */
     private val faceNames = HashMap<Int, String>()
 
     init {
@@ -44,7 +58,10 @@ public class MessageCodec(
         }
     }
 
-    /** Converts message [bytes] (ending in the 0 terminator) to tagged text (without the terminator). */
+    /**
+     * Converts message [bytes] (ending in the 0 terminator) to tagged text (without the
+     * terminator).
+     */
     public fun decode(bytes: ByteArray): String {
         require(bytes.isNotEmpty() && bytes.last().toInt() == 0) { "message must end with the 0 terminator" }
         val n = bytes.size - 1
@@ -77,8 +94,8 @@ public class MessageCodec(
     /**
      * Converts tagged [text] back to message bytes, including the 0 terminator.
      *
-     * @throws IllegalArgumentException on unknown tag names, malformed tags, or characters that have no
-     *   single-byte encoding.
+     * @throws IllegalArgumentException on unknown tag names, malformed tags, or characters that
+     *   have no single-byte encoding.
      */
     public fun encode(text: String): ByteArray {
         val out = ByteSink()
@@ -108,6 +125,7 @@ public class MessageCodec(
     }
 
     private companion object {
+        /** `CHFE_L_LoadFace` (`include/scene.h`): the only code followed by a 2-byte argument. */
         const val LOAD_FACE = 0x10
         val Byte.u8 get() = toInt() and 0xFF
         fun isLiteral(b: Int) = (b in 0x20..0x7E && b != '{'.code && b != '}'.code) || b in 0xA0..0xFF
@@ -117,10 +135,17 @@ public class MessageCodec(
 }
 
 /**
- * Control-code names shared by the GBA Fire Emblem text format, as defined by the FE8 decomp's
- * `texts/textdefs.txt` (pinned commit 04d1edb). `[X]` (0, the terminator) is omitted: it never appears
- * inside a decoded message. Aliases keep textdefs' order; the first name of a byte sequence wins when
- * decoding. Face names (`FID_*`) are game-specific and passed to [MessageCodec] separately.
+ * Control-code names as defined by the FE8 decomp's `texts/textdefs.txt` (pinned commit 04d1edb);
+ * the values are FE8U's and are not checked against other GBA Fire Emblem games. `[X]` (0, the
+ * terminator) is omitted: it never appears inside a decoded message. Aliases keep textdefs' order;
+ * the first name of a byte sequence wins when decoding. Face names (`FID_*`) are game-specific and
+ * passed to [MessageCodec] separately.
+ *
+ * Names follow textdefs, not `include/scene.h`: textdefs `FastPrint` is 29 (0x1D,
+ * `CHFE_L_FastPrint2` in scene.h, which textdefs marks with `// ?`) while scene.h's
+ * `CHFE_L_FastPrint` is 0x13, which textdefs does not name. The four `....` codes 4..7 are
+ * `CHFE_L_Pause8/16/32/64`. `.` (0x1F) is `CHFE_L_DEnd`; `SetMsgTerminator` turns trailing ones
+ * into terminators.
  */
 public object GbaFeTextCodes {
     private fun b(vararg v: Int) = ByteArray(v.size) { v[it].toByte() }

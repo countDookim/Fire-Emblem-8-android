@@ -1,8 +1,11 @@
 package gbafe.text
 
 /**
- * The game's message-string buffer and lookup (`src/msg.c`): `gMsgTable` indexes Huffman-compressed
- * strings that are decoded into a single shared 0x1000-byte buffer (`sMsgString`).
+ * The game's message-string lookup (`src/msg.c`): `gMsgTable` holds one pointer per message id to a
+ * Huffman-compressed string, and a string is decoded into one buffer shared by every caller
+ * (`sMsgString.buffer1`), so a returned string stays valid only until the next different lookup.
+ * The decomp's `buffer1` is 0x555 bytes; this port allocates [BUFFER_SIZE] (the reason for the
+ * larger size is not recorded).
  *
  * Game-neutral: the caller supplies the ROM table location. All state lives in preallocated fields;
  * lookups do not allocate.
@@ -55,6 +58,10 @@ public class MsgStrings(
         return dst
     }
 
+    /**
+     * Shared body of both lookups: `CallARM_DecompText(gMsgTable[index], dst)` followed by
+     * `SetMsgTerminator(dst)`.
+     */
     private fun decodeInto(index: Int, dst: ByteArray, dstOffset: Int) {
         val p = tableOffset + index * 4
         val ptr = (rom[p].toInt() and 0xFF) or ((rom[p + 1].toInt() and 0xFF) shl 8) or
@@ -63,19 +70,33 @@ public class MsgStrings(
         setMsgTerminator(dst, dstOffset)
     }
 
-    /** Buffer size constant and the static terminator fix-up. */
+    /** Buffer size constant and the terminator fix-up applied to every decoded message. */
     public companion object {
-        /** `sizeof(sMsgString.buffer1)`. */
+        /** Size of [buffer]; the decomp's `sizeof(sMsgString.buffer1)` is 0x555, not this value. */
         public const val BUFFER_SIZE: Int = 0x1000
 
+        /** Start of the cartridge ROM in the GBA address space, subtracted from table pointers. */
         private const val ROM_BASE = 0x08000000
+
+        /** `CHFE_L_LoadFace` (`include/scene.h`): followed by a 2-byte face id. */
         private const val CHFE_L_LOAD_FACE = 0x10
-        private const val HALF_CLOSE_EYES = 0x80
+
+        /**
+         * `'\x80'`, the lead byte of every two-byte control code (`0x80 xx`, e.g. `[Wink]`). The
+         * decomp's `SetMsgTerminator` labels it `[HalfCloseEyes]` in its comments, but that code is
+         * `0x80 0x1E`; the function only tests the lead byte.
+         */
+        private const val EXTENDED_CODE_LEAD = 0x80
+
+        /** `CHFE_L_DEnd` (0x1F, the `[.]` code): a trailing run of these ends the message. */
         private const val DOT = 0x1F
 
         /**
-         * Turns trailing `[.]` (0x1F) codes of the 0-terminated string at [str]`[start]` into
-         * terminators, except one that follows `[HalfCloseEyes]` (0x80).
+         * Turns trailing `[.]` (`CHFE_L_DEnd`, 0x1F) codes of the 0-terminated string at
+         * [str]`[start]` into terminators, except one that directly follows a 0x80 byte (see
+         * `EXTENDED_CODE_LEAD`). The first loop only finds the end of the string, skipping the
+         * argument bytes of `LoadFace` (2) and of the 0x80 codes (1) so an argument is never read
+         * as a code.
          *
          * Ported from src/msg.c: SetMsgTerminator
          *
@@ -86,14 +107,14 @@ public class MsgStrings(
             while (str[start + off].toInt() != 0) {
                 val ch = str[start + off].toInt() and 0xFF
                 if (ch == CHFE_L_LOAD_FACE) off += 2
-                if (ch == HALF_CLOSE_EYES) off += 1
+                if (ch == EXTENDED_CODE_LEAD) off += 1
                 off++
             }
             off--
             while (off >= 0) {
                 if ((str[start + off].toInt() and 0xFF) != DOT) return
                 val prev = if (off > 0) str[start + off - 1].toInt() and 0xFF else 0
-                if (prev != HALF_CLOSE_EYES) str[start + off] = 0
+                if (prev != EXTENDED_CODE_LEAD) str[start + off] = 0
                 off--
             }
         }

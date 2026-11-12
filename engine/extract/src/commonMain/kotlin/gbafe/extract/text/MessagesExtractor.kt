@@ -9,12 +9,17 @@ import gbafe.text.MsgHuffman
  * Extracts every `gMsgTable` string as tagged text (`text/<lang>/messages.json`, format
  * `gbafe.text`).
  *
- * The message table (4-byte ROM pointers to Huffman bit streams) and the Huffman tree are laid
- * out the same in all GBA Fire Emblem games; callers pass the game's addresses. Ids are `MSG_%03X`
- * like the decomp's `texts/texts.txt` headers.
+ * The message table (`gMsgTable`: one 4-byte ROM pointer per message id, each to a Huffman bit
+ * stream) and the Huffman tree (`gMsgHuffmanTable`) are laid out as in FE8U (the layout this port
+ * follows; other games are not checked); callers pass the game's addresses. Ids are `MSG_%03X` like
+ * the decomp's `texts/texts.txt` headers.
  */
 public object MessagesExtractor {
-    /** Decodes [count] messages of the table at ROM offset [tableOffset] into tagged strings. */
+    /**
+     * Decodes messages 0 until [count] of `gMsgTable` (at ROM offset [tableOffset]) into tagged
+     * strings. [huffmanOffset] is the ROM offset of `gMsgHuffmanTable` and [rootOffset] that of
+     * its root node (see [MsgHuffman]).
+     */
     public fun extract(
         rom: ByteArray,
         huffmanOffset: Int,
@@ -26,6 +31,7 @@ public object MessagesExtractor {
         val huffman = MsgHuffman(rom, huffmanOffset, rootOffset)
         return List(count) { id ->
             val messagePtr = readU32Le(rom, tableOffset + id * 4)
+            // 0x08000000..0x09FFFFFF: the cartridge ROM mirror the game's pointers use.
             require(messagePtr ushr 25 == 4) {
                 "message $id pointer 0x${messagePtr.toUInt().toString(16)} is not in ROM"
             }
@@ -33,10 +39,13 @@ public object MessagesExtractor {
         }
     }
 
-    /** Message id as written in the decomp (`MSG_000`, `MSG_212`, ...). */
+    /**
+     * Message id of table index [index] as the decomp's `texts.txt` writes it: `MSG_` plus 3+ hex
+     * digits.
+     */
     public fun id(index: Int): String = "MSG_${hexUpper(index, 3)}"
 
-    /** The `gbafe.text` document for [messages] of [game]. */
+    /** The `gbafe.text` JSON document (version 1) for [messages] of [game], one entry per id. */
     public fun toJson(game: String, messages: List<String>): String = Json.write(
         linkedMapOf(
             "format" to "gbafe.text", "game" to game, "version" to 1,
@@ -47,8 +56,9 @@ public object MessagesExtractor {
     )
 
     /**
-     * Parses `texts/textdefs.txt` content [textdefs] for face names, lines
-     * `[FID_Name] = 0xLO, 0xHI`; the value is `lo | hi << 8` as stored after `LoadFace`.
+     * Parses the face names out of the decomp's `texts/textdefs.txt` content [textdefs]: lines
+     * `[FID_Name] = 0xLO, 0xHI`, where the two bytes are the argument stored after a `LoadFace`
+     * code. The map value is `lo | hi << 8`; other lines (the control codes) are ignored.
      */
     public fun parseFaces(textdefs: String): Map<String, Int> {
         val faceDefRegex =

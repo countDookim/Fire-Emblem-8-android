@@ -833,6 +833,18 @@ public class WorldMapMu(
         gmMuSetUnit(mu, index, false, pid, faction, nodeId)
     }
 
+    /**
+     * Transcribed from src/worldmap_draw.c: SetGmCharUnit (not verified: see
+     * WorldMapEventHostTest; the Prologue's slot already holds the character, so only a seeded
+     * run reaches it)
+     *
+     * `MapMU_SetUnitChar(GM_MU, id, pid, allegiance, nodeId)`; `GM_MU` is the running
+     * `ProcScr_GMapMu`.
+     */
+    public fun setGmCharUnit(id: Int, pid: Int, allegiance: Int, nodeId: Int) {
+        mapMuSetUnitChar(checkNotNull(engine.find(script)), id, pid, allegiance, nodeId)
+    }
+
     private companion object {
         const val PROC_MARK_WMSTUFF = 8
 

@@ -51,9 +51,9 @@ public class WmBigMapHooks(
 }
 
 /**
- * The world map commands `EventB4..BA` of `src/eventscr_gmap.c`. All handlers are transcribed
- * (not verified: no trace step runs them through the event engine; the opening event VM
- * comparison is D11-wm8a..f). They are not registered anywhere yet; [registerOn] does it.
+ * The world map commands `EventB4..BA` of `src/eventscr_gmap.c`. `EventB4` is verified through
+ * the event VM in WorldMapEventHostTest (Prologue steps 4907-5100); the others are transcribed
+ * (not run there). The Prologue test registers B4 alone; [registerOn] adds the whole range.
  *
  * @param memory script words (the command arguments)
  * @param hooks the callees
@@ -85,8 +85,9 @@ public class WorldMapBigMapEvents(
         arg16(proc, index) or (arg16(proc, index + 1) shl 16)
 
     /**
-     * Transcribed from src/eventscr_gmap.c: EventB4_WmDisplayBigMap (not verified: no @VerifiesPort
-     * test names it).
+     * Ported from src/eventscr_gmap.c: EventB4_WmDisplayBigMap
+     *
+     * The skipping branch is not run by the capture.
      */
     public val eventB4WmDisplayBigMap: EventHandler = EventHandler { proc ->
         if (!skipping(proc)) {

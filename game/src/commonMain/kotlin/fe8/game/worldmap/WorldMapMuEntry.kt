@@ -138,6 +138,14 @@ public class WorldMapMuEntry(
         }
 
     /**
+     * Ported from src/worldmap_entry.c: GetGmMuEntryFlag
+     *
+     * `flags_0` of the running proc (a transition is in progress).
+     */
+    public fun getGmMuEntryFlag(): Boolean =
+        (checkNotNull(engine.find(script)).state as GmapMuEntryProc).flags0
+
+    /**
      * Ported from src/worldmap_entry.c: EndGmMuEntry
      */
     public fun endGmMuEntry() {

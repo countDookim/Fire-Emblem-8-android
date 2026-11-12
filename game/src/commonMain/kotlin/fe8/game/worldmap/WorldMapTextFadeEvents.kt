@@ -31,9 +31,10 @@ public class WmTextFadeHooks(
 )
 
 /**
- * The world map commands `Event80..82` and `EventAF..B3` of `src/eventscr_gmap.c`. All handlers
- * are transcribed (not verified: no trace step runs them through the event engine; the opening
- * event VM comparison is D11-wm8a..f). They are not registered anywhere yet; [registerOn] does it.
+ * The world map commands `Event80..82` and `EventAF..B3` of `src/eventscr_gmap.c`. `EventAF`,
+ * `EventB1`, `EventB2` and `EventB3` are verified through the event VM in
+ * WorldMapEventHostTest (Prologue steps 4907-5100); the others are transcribed (not run). The
+ * Prologue test registers them one by one; [registerOn] adds the whole range.
  *
  * @param memory script words (the command arguments)
  * @param fade the screen fade service
@@ -94,11 +95,12 @@ public class WorldMapTextFadeEvents(
     }
 
     /**
-     * Transcribed from src/eventscr_gmap.c: EventAF_WmShowTextBox (not verified: no @VerifiesPort
-     * test names it).
+     * Ported from src/eventscr_gmap.c: EventAF_WmShowTextBox
+     *
+     * The speed and blend are the halfwords at `+4` and `+6`.
      */
     public val eventAFWmShowTextBox: EventHandler = EventHandler { proc ->
-        if (!skipping(proc)) hooks.gmMuEntryStartShow(arg16(proc, 1), arg16(proc, 2))
+        if (!skipping(proc)) hooks.gmMuEntryStartShow(arg16(proc, 2), arg16(proc, 3))
         EVC_ADVANCE_CONTINUE
     }
 
@@ -107,13 +109,14 @@ public class WorldMapTextFadeEvents(
      * @VerifiesPort test names it).
      */
     public val eventB0WmHideTextBoxBugged: EventHandler = EventHandler { proc ->
-        if (!skipping(proc)) hooks.gmMuEntryStartHide(arg16(proc, 1), arg16(proc, 2))
+        if (!skipping(proc)) hooks.gmMuEntryStartHide(arg16(proc, 2), arg16(proc, 3))
         EVC_ADVANCE_CONTINUE
     }
 
     /**
-     * Transcribed from src/eventscr_gmap.c: EventB1_WmTextBoxWait (not verified: no @VerifiesPort
-     * test names it).
+     * Ported from src/eventscr_gmap.c: EventB1_WmTextBoxWait
+     *
+     * The skipping branch (`EndGmMuEntry`) is not run by the capture; it is kept as printed.
      */
     public val eventB1WmTextBoxWait: EventHandler = EventHandler { proc ->
         if (skipping(proc)) {
@@ -127,8 +130,7 @@ public class WorldMapTextFadeEvents(
     }
 
     /**
-     * Transcribed from src/eventscr_gmap.c: EventB2_WmFancyFade (not verified: no @VerifiesPort
-     * test names it).
+     * Ported from src/eventscr_gmap.c: EventB2_WmFancyFade
      */
     public val eventB2WmFancyFade: EventHandler = EventHandler { proc ->
         hooks.startGmapLineFade(arg16(proc, 2) or (arg16(proc, 3) shl 16))
@@ -136,8 +138,7 @@ public class WorldMapTextFadeEvents(
     }
 
     /**
-     * Transcribed from src/eventscr_gmap.c: EventB3_WmFancyFadeWait (not verified: no @VerifiesPort
-     * test names it).
+     * Ported from src/eventscr_gmap.c: EventB3_WmFancyFadeWait
      */
     public val eventB3WmFancyFadeWait: EventHandler = EventHandler { _ ->
         if (!hooks.isGmapLineFadeActive()) EVC_ADVANCE_YIELD else EVC_STOP_YIELD

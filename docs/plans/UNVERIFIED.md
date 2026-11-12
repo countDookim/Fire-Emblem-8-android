@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 533 across 70 decomp files (missing reason: 0).
+Total entries: 532 across 72 decomp files (missing reason: 0).
 
 ## src/worldmap_mapmu.c (35)
 
@@ -149,12 +149,13 @@ Total entries: 533 across 70 decomp files (missing reason: 0).
 | `SetAllUnitNotBackSprite` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | it runs in the select window, but no unit has `US_BIT8` set there, so the clearing is unobserved |
 | `IsUnitSlotAvailable` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic slot fill; no trace comparison yet |
 
-## src/eventscr.c (25)
+## src/eventscr.c (26)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `LoadUnit_800F704` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | b is a guess and terrain is stubbed |
 | `sub_800F8A8` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `Event13_BgmFadeIn` | `game/src/commonMain/kotlin/fe8/game/event/EventBgm.kt` | `Sound_FadeOutBGM(2)` leaves no state a trace shows without an audio player; only the dispatch and the yield are checked in WorldMapEventHostTest |
 | `Event3C_MoveCursor` | `game/src/commonMain/kotlin/fe8/game/event/EventCursorCamera.kt` | opcode 0x3C is only in tutorial scripts and never runs in available mGBA reference traces |
 | `Event17_Fade` | `game/src/commonMain/kotlin/fe8/game/event/EventFade.kt` | the skipping branch and the SetDispEnable call survive breaks in EventVmDifferentialTest; subcode 0 (FADU) is compared in CutsceneStartSkipDifferentialTest, f10053..f10069 |
 | `Event37_GiveItem` | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | inventory/gold effects and popups not trace-compared |
@@ -178,34 +179,6 @@ Total entries: 533 across 70 decomp files (missing reason: 0).
 | `ShouldUNITBeLoaded` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic dead unit and tile cases; no trace comparison yet |
 | `ModifyMoveUnitFlag` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | test restates bit combinations; no trace comparison yet |
 | `Event34_MessWithUnitState` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | only subs 5, 10 and 15 are compared; breaks in other subs and the CLEA loop survive |
-
-## src/eventscr_gmap.c (23)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `EventB4_WmDisplayBigMap` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
-| `EventB5_WmHideBigMap` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
-| `EventB6_WmMoveBigMap` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
-| `EventB7_WmBigMapWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
-| `EventB8_WmShowBigMapHighlight` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no |
-| `EventB9_WmRemoveHighlightNationPart1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no |
-| `EventBA_WmRemoveHighlightNationPart2` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no |
-| `EventC4_WmShowPortrait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFaceEvents.kt` | see the class note |
-| `EventC5_WmClearPortrait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFaceEvents.kt` | see the class note |
-| `Event83_WmSetCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event84_WmSetCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event86_WmScrollCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event87_WmScrollCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event88_WmScrollCameraOntoUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event89_WmScrollWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event80_WmSkip_Unsure` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
-| `Event81_WmFadeOut` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
-| `Event82_WmEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
-| `EventAF_WmShowTextBox` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
-| `EventB0_WmHideTextBox_Bugged` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no |
-| `EventB1_WmTextBoxWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
-| `EventB2_WmFancyFade` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
-| `EventB3_WmFancyFadeWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
 
 ## src/bmbattle.c (21)
 
@@ -257,6 +230,29 @@ Total entries: 533 across 70 decomp files (missing reason: 0).
 | `GetUnitEquippedWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `CanUnitUseWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `IsItemUnsealedForUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+
+## src/eventscr_gmap.c (18)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `EventB5_WmHideBigMap` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
+| `EventB6_WmMoveBigMap` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
+| `EventB7_WmBigMapWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
+| `EventB8_WmShowBigMapHighlight` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no |
+| `EventB9_WmRemoveHighlightNationPart1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no |
+| `EventBA_WmRemoveHighlightNationPart2` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no |
+| `EventC4_WmShowPortrait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFaceEvents.kt` | see the class note |
+| `EventC5_WmClearPortrait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFaceEvents.kt` | see the class note |
+| `Event83_WmSetCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event84_WmSetCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event86_WmScrollCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event87_WmScrollCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event88_WmScrollCameraOntoUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event89_WmScrollWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event80_WmSkip_Unsure` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
+| `Event81_WmFadeOut` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
+| `Event82_WmEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
+| `EventB0_WmHideTextBox_Bugged` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no |
 
 ## src/muctrl.c (17)
 
@@ -784,6 +780,13 @@ Total entries: 533 across 70 decomp files (missing reason: 0).
 | `SetGameTime` | `engine/core/src/commonMain/kotlin/gbafe/core/time/GameClock.kt` | no test checks it against a trace yet |
 | `DisableKeyComboResetEN` | `engine/input/src/commonMain/kotlin/gbafe/input/KeyComboReset.kt` | no test checks it against a trace yet |
 
+## src/worldmap_line_fade.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ProcScr_GmapLineFade` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapLineFade.kt` | the script position is checked per step in WorldMapEventHostTest, which cannot tag a script |
+| `GmapLineFade_Init` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapLineFade.kt` | the BLDCNT effect, BLDALPHA, BLDY, the DISPCNT layer enables and the fill value of line 0 are overwritten by `NewFadeIn` and the first scanline page before the first dump at step 4950; the frame count, scanline register, blend targets and status bit are checked |
+
 ## src/agb_sram.c (1)
 
 | Function | Kotlin file | Reason |
@@ -873,6 +876,12 @@ Total entries: 533 across 70 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `gProcScr_GmapCursor` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapCursor.kt` | script order checked against the `procs` capture in WorldMapNodeIconCursorTest, which cannot tag a script; the end callback `nullsub_59` does nothing |
+
+## src/worldmap_draw.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SetGmCharUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt` | see WorldMapEventHostTest; the Prologue's slot already holds the character, so only a seeded run reaches it |
 
 ## src/worldmap_entry.c (1)
 

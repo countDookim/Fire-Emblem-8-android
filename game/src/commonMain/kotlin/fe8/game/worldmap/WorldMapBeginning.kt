@@ -35,15 +35,18 @@ public class WorldMapBeginning(
 
     /**
      * The hooks for [proc]. `sub80BA008` (M6-I) and `startGmapMuEntry` (D11-wm3e) stay
-     * stand-ins; so does `startWmFaceCtrl` (D11-wm8d) unless [faces] is given.
+     * stand-ins; so does `startWmFaceCtrl` (D11-wm8d) unless [faces] is given, and
+     * `startGmapMuEntry` unless [muEntry] is given.
      *
      * @param faces the portrait controller `StartWMFaceCtrl` starts
+     * @param muEntry the entry-band controller `StartGmapMuEntry(NULL)` starts
      * @param mainProc the `ProcScr_WorldMapMain` proc, the controller's parent (a root proc when
      *   null)
      */
     public fun hooks(
         proc: WorldMapMainProc,
         faces: WorldMapFace? = null,
+        muEntry: WorldMapMuEntry? = null,
         mainProc: () -> Proc? = { null },
     ): WorldMapMain.BeginningHooks =
         WorldMapMain.BeginningHooks(
@@ -53,6 +56,7 @@ public class WorldMapBeginning(
             clearMergeNextNode = { proc.gmIcon.mergeNextNode = false },
             callEvent = { events.callEvent(it, 0) },
             startWmFaceCtrl = { faces?.startWmFaceCtrl(mainProc()) },
+            startGmapMuEntry = { muEntry?.startGmapMuEntry() },
         )
 
     private companion object {

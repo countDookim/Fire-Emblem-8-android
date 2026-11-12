@@ -41,6 +41,22 @@ public class EventBgm(
     }
 
     /**
+     * Transcribed from src/eventscr.c: Event13_BgmFadeIn (not verified: `Sound_FadeOutBGM(2)`
+     * leaves no state a trace shows without an audio player; only the dispatch and the yield
+     * are checked in WorldMapEventHostTest)
+     *
+     * Only the `MUSCFAST(0x7FFF)` branch is run by the Prologue (`Sound_FadeOutBGM(subcode)`);
+     * the fade-in with a real song fails loudly.
+     */
+    public val event13BgmFadeIn: EventHandler = EventHandler { proc ->
+        val subcode = memory.u16(proc.pEventCurrent) and 0xF
+        val argument = memory.u16(proc.pEventCurrent + 2).toShort().toInt()
+        check(argument == 0x7FFF) { "not verified: no capture runs StartBgmFadeIn" }
+        sound.fadeOutBgm(if (proc.evStateBits and EV_STATE_SKIPPING != 0) 1 else subcode)
+        EVC_ADVANCE_YIELD
+    }
+
+    /**
      * Ported from src/eventscr.c: Event15_BgmVolume
      *
      * Verified (EventBgmTest) for subcode 0 against `ram_trace_prologue` (the one command in the

@@ -25,7 +25,11 @@ import fe8.game.worldmap.GmapRmBaPalAnimProc
 import fe8.game.worldmap.WmNodeData
 import fe8.game.worldmap.WmPlaceDotProc
 import fe8.game.worldmap.WmUnitHooks
+import fe8.game.bm.BmSt
+import fe8.game.bm.UnitSprites
+import fe8.game.worldmap.WorldMapApHost
 import fe8.game.worldmap.WorldMapAutoMu
+import fe8.game.worldmap.WorldMapSms
 import fe8.game.worldmap.WorldMapDot
 import fe8.game.worldmap.WorldMapDotEvents
 import fe8.game.worldmap.WorldMapMu
@@ -40,12 +44,10 @@ import gbafe.proc.ProcEngine
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.block
 import gbafe.proc.ProcScripts.end
-import gbafe.render.ApHost
 import gbafe.render.BgHardware
 import gbafe.render.OamBuffer
 import gbafe.render.SpriteAnimPlayer
 import gbafe.render.SpriteLayers
-import gbafe.render.SpriteObject
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -81,7 +83,8 @@ class WorldMapEventUnitTest {
         "MapMUPrim_RemoveLinkedMapUnit", "GmShowMuUnit", "GmHideMuUnit", "GmMu_SetSpriteLayer",
         "GmMu_SetPosition", "GmMu_StartFadeIn", "GmMu_StartFadeOut", "GmUnitFadeExists",
         "sub_80BDFA4", "sub_80BE12C", "GmapAutoMu_OnEnd", "GmapAutoMu_StartFadeIn",
-        "GmapAutoMu_80C32E4", "IsGmAutoMuActiveFor",
+        "GmapAutoMu_80C32E4", "IsGmAutoMuActiveFor", "StartWorldMapSMS",
+        "ApplyUnitSpriteUiImage16x16", "SetStandingMuFacingWM", "SMS_DisplayOne", "GetClassSMSId",
     )
     fun `unit and point commands run by the VM match the capture`() {
         val lcd = ref.run("ram_trace_prologue_wm_lcd")
@@ -101,16 +104,8 @@ class WorldMapEventUnitTest {
         engine.init()
         val hw = BgHardware()
         val layers = SpriteLayers()
-        val cache = HashMap<Int, SpriteObject>()
-        val host = object : ApHost {
-            override fun objectAt(addr: Int) = cache.getOrPut(addr) { rom.objN(addr) }
-            override fun sin(a: Int) = 0
-            override fun cos(a: Int) = 0x1000
-            override fun setObjAffine(index: Int, pa: Int, pb: Int, pc: Int, pd: Int) {}
-            override fun register2dChrMove(src: Int, dstOffset: Int, width: Int, height: Int) {}
-            override fun obj1dMap() = false
-        }
-        val player = SpriteAnimPlayer({ rom.u16(it) }, layers, host)
+        val apHost = WorldMapApHost(rom, hw, OamBuffer())
+        val player = SpriteAnimPlayer({ rom.u16(it) }, layers, apHost)
         player.clearAll()
         val iwram = lcd.region("f08100", "iwram").copyOf(0x8000)
         val gm = GmData(iwram, RngService())
@@ -122,9 +117,26 @@ class WorldMapEventUnitTest {
                 rmProc.u16(0x2E).toShort().toInt() to rmProc.u16(0x30).toShort().toInt()
             }
         }
+        val clock = lcd.watch("clock")
+        val unitSprites = UnitSprites(rom, hw, BmSt())
+        // GetGameClock(): the capture's gGameClock (watched from step 5500 to 8450).
+        unitSprites.gameClock = {
+            val at = minOf(step - 1, 8450)
+            clock.u16(at, 0) or (clock.u16(at, 2) shl 16)
+        }
+        val sms = WorldMapSms(rom, layers, unitSprites)
         val unit = WorldMapUnit(
             engine, rom, hw, player, gm,
-            WorldMapUnit.Hooks(rmPosition = ::rmPosition, screenPosition = { rmPosition() }),
+            WorldMapUnit.Hooks(
+                rmPosition = ::rmPosition, screenPosition = { rmPosition() },
+                classSmsId = { sms.classSmsId(it) },
+                startWorldMapSms = { id, frame, slot -> sms.startWorldMapSms(id, frame, slot) },
+                setStandingMuFacingWm = sms.setStandingMuFacing,
+                smsDisplayOne = sms.smsDisplayOne,
+                decompressMuGfx = { img, index ->
+                    rom.decompressInto(img, apHost.muGfx, index * 0x2200)
+                },
+            ),
         )
         val nodes = WmNodeData(rom)
         val mu = WorldMapMu(engine, unit, gm, nodes)
@@ -168,6 +180,7 @@ class WorldMapEventUnitTest {
             hw.paletteRam[i] = u16(palSeed, 2 * i).toShort()
         }
         lcd.region("f08100", "vram").copyInto(hw.vram)
+        hw.lcd.readRegisters(lcd.watch("displayio").step(SEED))
 
         val hooks = WmUnitHooks(
             setClassUnit = { id, jid, al, node -> mu.mapMuSetUnitClass(gmMu, id, jid, al, node) },
@@ -293,10 +306,11 @@ class WorldMapEventUnitTest {
         }
         var compared = 0
         var oamChecked = 0
+        var oamStepsChecked = 0
+        val oamWatch = lcd.watch("oam")
         var palChecked = 0
         var gmChecked = 0
         var palBefore = hw.paletteRam.map { it.toInt() and 0xFFFF }
-        var oamStanding = 0
         var lagged = 0
         var previous = seed
         var inFrame = false
@@ -460,28 +474,31 @@ class WorldMapEventUnitTest {
             if (s in OAM_DUMPS) {
                 val oam = lcd.region("f%05d".format(s), "oam")
                 val traced = List(128) { i -> List(3) { a -> u16(oam, i * 8 + a * 2) } }
-                // Hidden slots (y 160) and the text rows (OBJ tiles 0x200..0x21F) are not ours.
+                // Hidden slots (y 160) and the other sprites (text, arrow, ...) are not ours.
                 val expected = traced
-                    .filter { it[0] and 0xFF != 0xA0 && it[2] and 0x3FF !in 0x200..0x21F }
+                    .filter { it[0] and 0xFF != 0xA0 && (it[2] shr 12) and 0xF in OWN_PALETTES }
                     .map { it.toString() }
-                // A displayed, on-screen standing sprite (animation 4) goes through
-                // SMS_DisplayOne, which is a hook this test does not provide: its entry is the
-                // one the port lacks.
-                val (camX, camY) = rmPosition()
-                val standing = simUnits.filterNotNull().map { it.state as GmapUnitProc }.count {
-                    it.flags and 1 != 0 && it.animId == 4 &&
-                        ((it.y - camY + 0x20) and 0xFFFF) < 0xE0 &&
-                        ((it.x - camX + 0x10) and 0xFFFF) < 0x110
-                }
-                fun matches(list: List<List<Int>>): Boolean {
-                    val mine = list.map { it.toString() }
-                    return mine.all { it in expected } && expected.size == mine.size + standing
-                }
+                fun matches(list: List<List<Int>>) = list.map { it.toString() } == expected
                 assertTrue(
                     matches(latest) || matches(shown),
-                    "sprites @$s: ours=$latest previous=$shown standing=$standing traced=$expected",
+                    "sprites @$s: ours=$latest previous=$shown traced=$expected",
                 )
-                oamStanding += standing
+                // Unit tiles in OBJ VRAM (chr 0x280: four rows of the 0x1C columns the units use)
+                // and the sprite sheet the standing frames are copied from.
+                for (r in 0..3) {
+                    val at = 0x15000 + r * 0x400
+                    assertEquals(
+                        lcd.region("f%05d".format(s), "vram").copyOfRange(at, at + 0x380).toList(),
+                        hw.vram.copyOfRange(at, at + 0x380).toList(),
+                        "unit OBJ tiles row $r @$s",
+                    )
+                }
+                assertEquals(
+                    lcd.region("f%05d".format(s), "ewram").copyOfRange(0x34010, 0x34010 + 0x6000)
+                        .toList(),
+                    unitSprites.gfxBuffer.toList(),
+                    "gSMSGfxBuffer @$s",
+                )
                 oamChecked++
             }
             // OBJ palettes 4 and 5 (the dots, 0x140..0x15F) and 0xA (the unit fade) in palette RAM,
@@ -518,12 +535,29 @@ class WorldMapEventUnitTest {
                     "dot tiles @8200",
                 )
             }
+            // Unit and dot OAM entries every step the OAM watch covers.
+            if (s in 8101..8450 && s !in OAM_DUMPS) {
+                val oamStep = oamWatch.step(s)
+                val expected = List(128) { i -> List(3) { a -> u16(oamStep, i * 8 + a * 2) } }
+                    .filter { it[0] and 0xFF != 0xA0 && (it[2] shr 12) and 0xF in OWN_PALETTES }
+                    .map { it.toString() }
+                // A sample inside a long frame can show some entries of this pass and some of the
+                // previous one: each traced entry is one of the two (count of either).
+                val now = latest.map { it.toString() }
+                val before = shown.map { it.toString() }
+                assertTrue(
+                    (expected.size == now.size || expected.size == before.size) &&
+                        expected.all { it in now || it in before },
+                    "sprites @$s: ours=$latest previous=$shown traced=$expected",
+                )
+                oamStepsChecked++
+            }
             compared++
         }
         assertTrue(compared > 1000)
         assertEquals(3, oamChecked)
+        assertTrue(oamStepsChecked > 200, "OAM steps: $oamStepsChecked")
         assertTrue(palChecked > 300 && gmChecked > 30, "pal=$palChecked gm=$gmChecked")
-        assertEquals(1, oamStanding, "standing sprites in the OAM dumps (no SMS hook)")
     }
 
     private fun dumpIwram(step: Int): ByteArray? {
@@ -542,5 +576,8 @@ class WorldMapEventUnitTest {
         const val SEED = 8100
         const val LAST = 9281
         val OAM_DUMPS = setOf(8200, 8300, 8450)
+
+        /** OBJ palettes of the sprites in this window: dots 4/5, unit fade 0xA, units 0xC..0xE. */
+        val OWN_PALETTES = setOf(4, 5, 0xA, 0xC, 0xD, 0xE)
     }
 }

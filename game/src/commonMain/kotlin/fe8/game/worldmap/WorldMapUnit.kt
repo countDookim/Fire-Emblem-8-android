@@ -250,13 +250,13 @@ public class WorldMapUnit(
     }
 
     /**
-     * Ported from src/worldmap_gmapunit.c: GmapUnit_Loop (checked: the `UPDATEGFX` clear and the
-     * flags; not checked: the screen bounds, which the test makes always true, and the OAM output)
+     * Ported from src/worldmap_gmapunit.c: GmapUnit_Loop (checked per step against the OAM
+     * watch of `ram_trace_prologue_wm_lcd` in WorldMapEventUnitTest: the entries of walking and
+     * standing sprites, the tiles at the dumps and the `UPDATEGFX` clear)
      *
      * Draws the sprite (standing sprite for animation 4, else the [ap] animation) when it is
      * displayed and inside the screen. The standing-sprite branch calls
-     * [Hooks.setStandingMuFacingWm] and [Hooks.smsDisplayOne]; the capture shows only animations
-     * 0-3 on screen, so that branch is not covered by the OAM check.
+     * [Hooks.setStandingMuFacingWm] and [Hooks.smsDisplayOne].
      */
     public fun gmapUnitLoop(proc: Proc) {
         val s = proc.state as GmapUnitProc

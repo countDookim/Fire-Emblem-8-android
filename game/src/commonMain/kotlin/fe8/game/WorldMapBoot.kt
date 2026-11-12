@@ -54,6 +54,9 @@ import fe8.game.worldmap.WorldMapSpawnEvents
 import fe8.game.worldmap.WorldMapText
 import fe8.game.worldmap.WorldMapTextEvents
 import fe8.game.worldmap.WorldMapTextFadeEvents
+import fe8.game.worldmap.SetStandingMuFacing
+import fe8.game.worldmap.SmsDisplayOne
+import fe8.game.worldmap.WorldMapSms
 import fe8.game.worldmap.WorldMapUnit
 import gba.render.LineTable
 import gbafe.core.flags.EventFlags
@@ -109,9 +112,9 @@ internal class WorldMapBoot(
     private val hblank = WorldMapHblank { line, index, color ->
         lines.writePalette(line, index, color)
     }
-    private val player = SpriteAnimPlayer(
-        { rom.u16(it) }, layers, WorldMapApHost(rom, hw, oam),
-    ).also { it.clearAll() }
+    private val apHost = WorldMapApHost(rom, hw, oam)
+    private val player = SpriteAnimPlayer({ rom.u16(it) }, layers, apHost).also { it.clearAll() }
+    private val sms: WorldMapSms by lazy { WorldMapSms(rom, layers, checkNotNull(unitSprites())) }
     private val archivedFade = ArchivedPaletteFade(PaletteFade(hw, engine), hw, engine)
     private val path = WorldMapPath(gmData, WmPathData(rom))
 
@@ -163,6 +166,17 @@ internal class WorldMapBoot(
                 }
             },
             screenPosition = { p -> (p.state as GmScreenProc).let { cachedPair(it.x, it.y) } },
+            classSmsId = { sms.classSmsId(it) },
+            startWorldMapSms = { id, frame, slot -> sms.startWorldMapSms(id, frame, slot) },
+            setStandingMuFacingWm = SetStandingMuFacing { frame, dst ->
+                sms.setStandingMuFacing(frame, dst)
+            },
+            smsDisplayOne = SmsDisplayOne { classId, layer, x, y, oam2, blend ->
+                sms.smsDisplayOne(classId, layer, x, y, oam2, blend)
+            },
+            decompressMuGfx = { img, index ->
+                rom.decompressInto(img, apHost.muGfx, index * MU_GFX_SIZE)
+            },
         ),
     )
     private val wmMu: WorldMapMu = WorldMapMu(
@@ -469,6 +483,9 @@ internal class WorldMapBoot(
 
     private companion object {
         const val TREE_5 = 5
+
+        /** One decompressed map sprite sheet (`GetMapUnitMMSGfxBuffer` stride). */
+        const val MU_GFX_SIZE = 0x2200
 
         /** Index of `PROC_CALL(WorldMap_CallBeginningEvent)` in `ProcScr_WorldMapMain`. */
         const val CALL_BEGINNING = 5

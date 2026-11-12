@@ -168,6 +168,77 @@ public class UnitSprites(
         return (slots[id].toInt() and 0xFF) shl 1
     }
 
+    /** The `size` of sprite [id] in `unit_icon_wait_table` (0 = 16x16, 1 = 16x32, 2 = 32x32). */
+    public fun iconSize(id: Int): Int = rom.u16(INFO_TABLE + 8 * (id and 0x7F) + 2)
+
+    /**
+     * Ported from src/bmudisp.c: StartWorldMapSMS
+     *
+     * Loads sprite [smsId] into the frame column [slot] for the world map unit [frameId]
+     * (a 16x16 sprite goes to the lower two rows of its column, as the standing-sprite copy
+     * expects); returns the tile offset.
+     */
+    public fun startWorldMapSms(smsId: Int, frameId: Int, slot: Int): Int {
+        val infoEntry = INFO_TABLE + 8 * (smsId and 0x7F)
+        rom.decompressInto(rom.u32(infoEntry + 4), unpackBuf, 0)
+        when (rom.u16(infoEntry + 2)) {
+            SIZE_16X16 -> slots[frameId] = (applyUnitSpriteUiImage16x16(slot, smsId) / 2).toByte()
+            SIZE_16X32 -> slots[frameId] = (applyUnitSpriteImage16x32(slot, smsId) / 2).toByte()
+            SIZE_32X32 -> slots[frameId] = (applyUnitSpriteImage32x32(slot, smsId) / 2).toByte()
+        }
+        return (slots[frameId].toInt() and 0xFF) shl 1
+    }
+
+    /**
+     * Ported from src/bmudisp.c: ApplyUnitSpriteUiImage16x16
+     *
+     * Like [applyUnitSpriteImage16x16], but clears the upper two rows and puts the 16x16 frames
+     * in the lower two rows of [slot]'s column; returns its tile offset.
+     */
+    public fun applyUnitSpriteUiImage16x16(slot: Int, id: Int): Int {
+        val chrTile = slotToChr(slot)
+        val outByteOffset = chrTile * CHR_SIZE
+        val frameStep = ((id shr UNITSPRITE_ID_BITS) xor 1) and 1
+        for (i in 0 until 3) {
+            val imgOff = i * frameStep * 4 * CHR_SIZE
+            val base = i * FRAME_SIZE + outByteOffset
+            gfxBuffer.fill(0, base, base + 2 * CHR_SIZE)
+            val row1 = base + CHR_SIZE * CHR_LINE
+            gfxBuffer.fill(0, row1, row1 + 2 * CHR_SIZE)
+            unpackBuf.copyInto(
+                gfxBuffer, base + 2 * CHR_SIZE * CHR_LINE, imgOff, imgOff + 2 * CHR_SIZE,
+            )
+            unpackBuf.copyInto(
+                gfxBuffer, base + 3 * CHR_SIZE * CHR_LINE, 2 * CHR_SIZE + imgOff,
+                4 * CHR_SIZE + imgOff,
+            )
+        }
+        return chrTile
+    }
+
+    /**
+     * Ported from src/bmudisp.c: SetStandingMuFacingWM
+     *
+     * Copies the animation frame of this game clock tick, four rows of four tiles at the tile
+     * column [frameId], to OBJ VRAM at the byte offset [dstOffset] (the original queues the
+     * transfers for VBlank).
+     */
+    public fun setStandingMuFacingWm(frameId: Int, dstOffset: Int) {
+        val phase = now() % 72
+        val frame = when {
+            phase >= 68 -> 1
+            phase >= 36 -> 2
+            phase >= 32 -> 1
+            else -> 0
+        }
+        var a = frameId * CHR_SIZE
+        for (i in 0..3) {
+            val from = frame * FRAME_SIZE + a
+            gfxBuffer.copyInto(hardware.vram, dstOffset + a, from, from + 4 * CHR_SIZE)
+            a += CHR_SIZE * CHR_LINE
+        }
+    }
+
     /**
      * Ported from src/bmudisp.c: ApplyUnitSpriteImage16x16
      *

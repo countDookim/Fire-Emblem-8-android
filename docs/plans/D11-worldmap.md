@@ -420,8 +420,7 @@ the beginning event's opcodes registered on `eventEngine` (0x13, 0x80-0x89, 0x9E
 0xC1-0xC7, 0xC9; 9E-AC and BB-BE are D11-wm8e's handlers with `WorldMapAutoMu`/`WorldMapDot` wired), `GmapRm` route flags -> the real route proc,
 `EventEngineHooks.eventEndCleanup` (already real) for the `ResetFaces` restore. `WorldMap_Init` is transcribed in
 `WorldMapBoot` (with `sub_80B9028`/`sub_80B90CC`); `TalkScene.spriteTextClear` now calls the text system (sprite talk).
-- Stand-ins (all unchanged, hooks default): SMS drawing of map units (`SMS_DisplayOne`, `StartWorldMapSMS`: units are
-  invisible), `Register2dChrMove` of RAM sources, the HBlank text-box effect, spline movers, step sounds, `MapRoute_80BC2DC`,
+- Stand-ins (all unchanged, hooks default; the SMS drawing of map units and `Register2dChrMove` of RAM sources are D11-wm10, see 8h): the HBlank text-box effect, spline movers, step sounds, `MapRoute_80BC2DC`,
   `WmRemoveRandomMonsters`, minimap / player interface ends, `ResetText`, `LoadLegacyUiFrameGraphics`, `Sound_FadeOutSE`.
 - Boot frame `f` vs `ram_trace_prologue` step: the first boot frame with `ProcScr_WorldMapMain` is step 4902 (the original's
   `WorldMap_Init` spans 4899-4901), then step = frame offset + n except the lag steps 4944-4947. The boot's world map is
@@ -457,3 +456,17 @@ the beginning event's opcodes registered on `eventEngine` (0x13, 0x80-0x89, 0x9E
 - Step sounds (`sub_80BE45C`, `StartPlayMuStepSe`, `ProcScr_MuStepSe`): NOT ported. `ram_trace_prologue` `procs` has no
   `ProcScr_MuStepSe` (0x089A2938) in 4899-9313 (first at 9675 in the battle map), so the unit walks 8100-9280 start no step sound
   and nothing can verify the port. `GmapMuPrim` keeps the `stepSound` hook (transcribed, empty by default).
+
+### 8h. D11-wm10: map unit sprites (SMS) for the world map
+
+`WorldMapEventUnitTest` (steps 8101-9281, as 8e) now runs with the real sprite code: new `WorldMapSms`
+(`GetClassSMSId`, `SMS_DisplayOne`, hooks for `StartWorldMapSMS` / `SetStandingMuFacingWM`), `UnitSprites.startWorldMapSms`,
+`applyUnitSpriteUiImage16x16`, `setStandingMuFacingWm` (bmudisp.c), `WorldMapApHost` (now public) copying `Register2dChrMove`
+sources from `muGfx` (the seven `GetMapUnitMMSGfxBuffer` sheets, filled by `Hooks.decompressMuGfx`). `WorldMapBoot` wires all
+of it (fun interfaces for the per-frame hooks, lazy `WorldMapSms`; no allocation on steady frames).
+Compared: OAM entries of the units and dots (OBJ palettes 4, 5, 0xA, 0xC-0xE; hidden slots and text/arrow sprites excluded)
+every step 8101..8450 against the `oam` watch (hardware shows this pass or the previous one; a sample inside a long frame may
+mix the two, so each traced entry must be in either), and exactly at f08200/f08300/f08450 including the standing sprite;
+unit OBJ tiles (chr 0x280, four rows) and the whole `gSMSGfxBuffer` against the dumps. The game clock for the standing
+frame is the capture's `clock` watch at step - 1. Not covered: 16x32 / 32x32 sprites (`StartWorldMapSMS` branches,
+`ApplyUnitSpriteImage*` are the battle map's), the facing for clock phases >= 68, steps after 8450 (no OAM watch).

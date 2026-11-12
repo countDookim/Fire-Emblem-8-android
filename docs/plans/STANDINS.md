@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 216 across 36 Kotlin files.
+Total entries: 215 across 35 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -25,7 +25,7 @@ Total entries: 216 across 36 Kotlin files.
 | CAP-status1 | 4 |
 | D09-3 | 2 |
 | D11-wire-a | 1 |
-| D11-wm9 | 24 |
+| D11-wm9 | 23 |
 | PP-10 | 1 |
 | PP-12 | 9 |
 | PP-17 | 9 |
@@ -247,14 +247,13 @@ Total entries: 216 across 36 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet). |
 
-## D11-wm9 (24)
+## D11-wm9 (23)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `NO_WORLD_MAP_NODES` | World map stand-in until the world map is ported (D11-wm9): no node holds a chapter. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `blendSetup` | Stand-in until D11-wm9 (the buffer is then shared with [GameControl]). |
 | `game/src/commonMain/kotlin/fe8/game/WorldMapBoot.kt` | `WorldMapBoot` | Every callee that is not ported stays a stand-in (see the `Hooks` of the classes used and docs/plans/D11-worldmap.md section 8g). |
-| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapApHost.kt` | `WorldMapApHost` | Stand-in until D11-wm9 gets a real transfer registry for the world map. @param rom the ROM (objects, sine table, tiles) @param hw OBJ VRAM and the display mode @param oam the OAM buffer that holds... |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `Hooks` | All default to nothing; the defaults are stand-ins until D11-wm9 replaces them. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `apProcDeleteAll` | `APProc_DeleteAll()` (stand-in until D11-wm9). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `clearTalkText` | `ClearTalkText()` (stand-in until D11-wm9). |

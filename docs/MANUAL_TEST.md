@@ -31,15 +31,18 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      with the narration text paging by itself or with A, the map scrolling to different regions,
      the nations being highlighted one after another with the portraits of their rulers at the
      side, and then the picture fading to black. The whole map takes about a minute on the phone.
+     D11-wm10: the map units (Eirika's group, the soldiers) and the marked points (dots) are
+     drawn: small sprites walk across the map while the narration runs, fade in and out, then
+     vanish.
   2. D11-ci5 chapter intro: after the world map the "Prologue" title card appears with drifting
      fog, flashing lights, the decal banner and scrolling backgrounds (about 9 seconds), then the
      picture fades to the Renais Castle map and the castle scene starts. Pressing A, B or Start
      after the first second skips the rest: the screen fades out (about one second) and then
      fades into the map. The sound effect fade at the end of the intro is not wired yet.
-  - Limits (all known): the map sprites are not drawn yet (units move invisibly, no node icons, no
-     dots); the unit step sounds are missing (the original plays none in the
+  - Limits (all known): no node icons; no unit step sounds (the original plays none in the
      Prologue). New (D11-wm11): the per-line colour gradient of the narration box now runs (check
-     the box at the bottom for a smooth top-to-bottom colour change, not a flat colour). The text speed follows the A button: hold A to speed it up. Report a crash or a
+     the box at the bottom for a smooth top-to-bottom colour change, not a flat colour). The text
+     speed follows the A button: hold A to speed it up. Report a crash or a
      stuck black screen on the world map, and anything that looks clearly different from the
      original (the order of the highlighted nations, the portraits, the text).
 

@@ -95,7 +95,7 @@ Notes: [M6B-player-phase](plans/M6B-player-phase.md) (captures, key frames, proc
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| PP-17 | WIRE | Player-phase hooks in `Fe8Boot`; replay cap1 inputs headless | Same unit position/state as cap1; 0 B/frame; MANUAL_TEST | PP-11, PP-13 | todo |
+| PP-17 | WIRE | Player-phase hooks in `Fe8Boot`; replay cap1 inputs headless | Same unit position/state as cap1; 0 B/frame; MANUAL_TEST | — | WIP `wip/PP-17`: wired; PrologueMapTest allocates 960 B (cursor moves); see HANDOFF |
 
 ### Lane B next: M6-F info screens
 

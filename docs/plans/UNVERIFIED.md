@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 536 across 72 decomp files (missing reason: 0).
+Total entries: 534 across 72 decomp files (missing reason: 0).
 
 ## src/worldmap_mapmu.c (35)
 
@@ -369,25 +369,6 @@ Total entries: 536 across 72 decomp files (missing reason: 0).
 | `WriteTraps` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | every trap in the reference is zero, which proves the target, not the data |
 | `WriteGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | no suspend-trace state covers it; its caller `WriteGameSave` is ported |
 
-## src/eventscr_gmap.c (14)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `EventB5_WmHideBigMap` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
-| `EventB7_WmBigMapWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
-| `EventC4_WmShowPortrait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFaceEvents.kt` | see the class note |
-| `EventC5_WmClearPortrait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFaceEvents.kt` | see the class note |
-| `Event83_WmSetCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event84_WmSetCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event86_WmScrollCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event87_WmScrollCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event88_WmScrollCameraOntoUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event89_WmScrollWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event80_WmSkip_Unsure` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
-| `Event81_WmFadeOut` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
-| `Event82_WmEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
-| `EventB0_WmHideTextBox_Bugged` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no |
-
 ## src/face.c (14)
 
 | Function | Kotlin file | Reason |
@@ -461,6 +442,23 @@ Total entries: 536 across 72 decomp files (missing reason: 0).
 | `StartMidFadeToBlack` | `engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt` | never called by a traced path |
 | `StartMidFadeFromBlack` | `engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt` | never called by a traced path |
 | `Copy2dChr` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | no test checks it against a trace yet |
+
+## src/eventscr_gmap.c (12)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `EventB5_WmHideBigMap` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
+| `EventB7_WmBigMapWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
+| `Event83_WmSetCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event84_WmSetCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event86_WmScrollCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event87_WmScrollCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event88_WmScrollCameraOntoUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event89_WmScrollWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event80_WmSkip_Unsure` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
+| `Event81_WmFadeOut` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
+| `Event82_WmEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
+| `EventB0_WmHideTextBox_Bugged` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no |
 
 ## src/chapterintrofx.c (11)
 

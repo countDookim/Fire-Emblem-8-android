@@ -9,9 +9,10 @@ import fe8.game.event.ScriptMemory
 
 /**
  * The world map portrait commands `EventC4_WmShowPortrait` and `EventC5_WmClearPortrait` of
- * `src/eventscr_gmap.c`. Transcribed (not verified through the event engine: that comparison is
- * D11-wm8a..f; the faces they start are verified in [WorldMapFace]). Not registered anywhere yet;
- * [registerOn] does it.
+ * `src/eventscr_gmap.c`, verified through the event VM for steps 5701-7781 of the Prologue
+ * (`WorldMapEventFaceTest`; the faces they start are verified in [WorldMapFace]). The skipping
+ * branches and the delayed merge (`delay != 0`) are not run by the capture. [registerOn]
+ * registers both.
  *
  * @param memory script words (the command arguments)
  * @param faces the portrait controller
@@ -37,8 +38,7 @@ public class WorldMapFaceEvents(
         memory.u16(proc.pEventCurrent + 2 + 2 * index).toShort().toInt()
 
     /**
-     * Transcribed from src/eventscr_gmap.c: EventC4_WmShowPortrait (not verified: see the class
-     * note). Shows the portrait at once, or through the delayed merge when `delay` is set;
+     * Ported from src/eventscr_gmap.c: EventC4_WmShowPortrait. Shows the portrait at once, or through the delayed merge when `delay` is set;
      * nothing while skipping.
      */
     public val eventC4WmShowPortrait: EventHandler = EventHandler { proc ->
@@ -57,8 +57,7 @@ public class WorldMapFaceEvents(
     }
 
     /**
-     * Transcribed from src/eventscr_gmap.c: EventC5_WmClearPortrait (not verified: see the class
-     * note). Slides the portrait out at once, or through the delayed merge when `delay` is set;
+     * Ported from src/eventscr_gmap.c: EventC5_WmClearPortrait. Slides the portrait out at once, or through the delayed merge when `delay` is set;
      * while skipping it ends the face outright.
      */
     public val eventC5WmClearPortrait: EventHandler = EventHandler { proc ->

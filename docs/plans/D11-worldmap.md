@@ -291,6 +291,7 @@ of B4–B7 runs here (B5–B7 from 5436). Seed: iwram/ewram r04860/r04920, GmapM
 `WorldMapMuTest`; C3 is provable against r04920 with `units[0]`, camera and no_fade zeroed in the seed. The
 `StartGmapMuEntry` hook in `WorldMapBeginning.hooks` is still a stand-in (`WorldMapMuEntry.startGmapMuEntry` exists).
 
+<<<<<<< HEAD
 ### 8c. D11-wm8c: camera scrolls and nation highlights through the event VM (steps 5433-8110)
 
 `WorldMapEventCameraTest` (sibling of `WorldMapEventHostTest`). Script commands in the window (decoded from
@@ -308,3 +309,17 @@ Lag: the capture's game loop skips passes: 13 steps after highlight starts (grap
 field stalls (6961, 7531, 7621, 7651, 7894, 7921: each within four steps after an A press of the input); read from the capture, pinned.
 Verified: EventB6/B8/B9/BA, sub_80C2C10, sub_80C2BC4 (index >= 0 paths), GmapRm_GetPosition. Skipping branches and
 B5/B7 are not run.
+=======
+### 8d. D11-wm8d: portrait opcodes C4/C5 through the VM (steps 5701-7781)
+
+`WorldMapEventFaceTest` seeds from the wm_lcd dump f05700 (engine stalling at 0x08A39824, face controller
+idle) and runs the script on the frames the original ran. C4 (10 shows, first at 5765) and C5 (last 7749) are
+run by the VM; `EventC4_WmShowPortrait` / `EventC5_WmClearPortrait` are verified (mutation-checked: C4 fid
+index, C5 config). Per step: engine pEventCurrent/evState/stall, controller, wrappers, E_FACE, BG2 map on
+every EWRAM dump, BG palette bank 4 and BG2 scroll (hardware shows the previous step's end), face OBJ
+against the per-step oam watch; at f06000..f07500 portrait tiles and BLDCNT/BLDALPHA. Stand-ins (test only):
+B6, B8, B9, 1C continue; 1D and BA wait (yield while the capture's pEventCurrent stays, yield when done). 0E is
+the real handler. Not covered: per-step BLDCNT/BLDALPHA (the hardware copy lags 0-2 steps, e.g. 5942 shows the
+C5 value before the same frame's fade tick) and the nation highlight owns them in B8..BA; skipping and the
+delayed `WmMergeFace` (delay is 0 throughout) are unwritten. Steps 5764 is before the first C4 (5765).
+>>>>>>> 01bb3ec (D11-wm8d: world-map portrait opcodes C4/C5 through the VM, 5701..7781)

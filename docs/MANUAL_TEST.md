@@ -13,6 +13,29 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
 
 ## Test now
 
+- **PP-17 player phase (Prologue turn 1):**
+  1. Resume the Prologue (suspend save) or play New Game to the turn-1 map (Eirika near the
+     castle gate, three red enemies to the right). Expected: the goal window (chapter goal) at the
+     top right, the terrain window at the bottom right, the unit window with Eirika's face and HP at
+     the top left when the cursor is on her.
+  2. Put the cursor on Eirika and press A. Expected: blue squares (move range) with a red ring
+     around it (attack range), the path arrow follows the cursor, the move sound. B cancels (Eirika
+     is back, squares gone).
+  3. Select her again, move the cursor two tiles right and press A. Expected: she walks the arrow
+     path, then the unit menu opens with Item and Wait (no Attack: no enemy is in reach).
+  4. B in the unit menu. Expected: she is back at her start tile and selected again, the range shows.
+     Move again and choose Wait. Expected: the menu closes, Eirika greys out, the cursor is free.
+  5. Press A on an empty tile. Expected: the map menu (Unit, Status, Guide, Options, Suspend,
+     End). Choose End. Expected: the "Enemy Phase" banner, a short scene or nothing, then, since the
+     enemies do nothing, the "Player Phase" banner of turn 2 and Eirika is no longer grey.
+  - Limits (stand-ins): Attack is never offered (the target list is M6-C); Item opens nothing and
+    answers with the refusal beep (M6-H); the map menu's Unit, Status, Guide, Options and Suspend,
+    and R / L / START in the map do nothing (M6-F; Suspend M6-E); enemies do not move or attack
+    (M6-D); no staff range, no traps, no after-move or tutorial events, no records (M6-C, M6-E,
+    M6-H). Selecting an enemy shows no range. The save is written at each turn start as in the
+    original but not at an action. Frame timing matches the captures except the five frames the
+    original spends writing the suspend save after Wait.
+
 - **D11-wire-b opening monologue (New Game):**
   1. From the title press START (New Game). Expected: the opening monologue now plays before the
      castle scene: the title theme stops, then a slow fade-in to the white text cards with the
@@ -74,9 +97,9 @@ These are known gaps; re-test them only when a relevant change is announced:
 
 - D-11: the monologue and the world map are wired (see Test now); the map sprites and the unit
   commands (D11-wm8e) are not.
-- Missing unit selection, actions, menus and inventory (M6-B, M6-H), combat (M6-C), enemy turns (M6-D), save/difficulty
+- Missing attack and item commands, inventory and the info screens (M6-C, M6-F, M6-H), combat (M6-C), enemy turns (M6-D), save/difficulty
   menus (M6-E) and the Seth/Valter battle animation (M6-G). Combat will resolve instantly until M6-G.
-  Cursor movement works; New Game currently uses Normal difficulty.
+  Cursor movement, unit select, move, Wait and End turn work (see Test now); New Game currently uses Normal difficulty.
 
 Previously confirmed: castle audio, dialogue/portraits/blinking/mouths, backgrounds, walking and rider exits;
 boot, ROM import, controls, GPU rendering and suspend/resume. Report regressions if noticed.

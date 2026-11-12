@@ -7,9 +7,9 @@ import gbafe.render.BgHardware
  * Battle map graphics loading (src/bmmap.c and src/bm.c): the chapter tileset into BG VRAM and
  * palette banks 6-15, the BG layer priorities, and the OBJ UI graphics and palettes.
  *
- * Stand-ins until M6-B: the `ResetText`, `LoadLegacyUiFrameGraphics`, `ResetFaces`,
- * `ResetIconGraphics_` and `LoadIconPalettes` calls of [sub80156D4] are the hooks [resetText] and
- * friends (they do nothing until those modules are wired).
+ * The `ResetText`, `LoadLegacyUiFrameGraphics`, `ResetFaces`, `ResetIconGraphics_` and
+ * `LoadIconPalettes` calls of [sub80156D4] are the hooks [resetText] and friends; `Fe8Boot` wires
+ * all but `ResetFaces` (a stand-in until M6-F, the stat screen faces).
  */
 public class ChapterMapGfx(
     /** ROM the tileset and UI graphics are read from. */
@@ -20,15 +20,15 @@ public class ChapterMapGfx(
     private val hardware: BgHardware,
     /** `gPlaySt` (`chapterIndex`, `chapterWeatherId`). */
     private val playSt: PlaySt,
-    /** Stand-in for `ResetText` (M6-B). */
+    /** `ResetText`; set by `Fe8Boot`. */
     public var resetText: () -> Unit = {},
-    /** Stand-in for `LoadLegacyUiFrameGraphics` (M6-B). */
+    /** `LoadLegacyUiFrameGraphics`; set by `Fe8Boot`. */
     public var loadLegacyUiFrameGraphics: () -> Unit = {},
-    /** Stand-in for `ResetFaces` (M6-B). */
+    /** Stand-in until M6-F for `ResetFaces` (the stat screen faces). */
     public var resetFaces: () -> Unit = {},
-    /** Stand-in for `ResetIconGraphics_` (M6-B). */
+    /** `ResetIconGraphics_`; set by `Fe8Boot`. */
     public var resetIconGraphics: () -> Unit = {},
-    /** Stand-in for `LoadIconPalettes(palId)` (M6-B). */
+    /** `LoadIconPalettes(palId)`; set by `Fe8Boot`. */
     public var loadIconPalettes: (Int) -> Unit = {},
 ) {
     /** `gGenericBuffer` (0x2000 bytes): scratch space [loadObjUiGfx] decompresses into. */

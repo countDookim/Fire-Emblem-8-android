@@ -1,5 +1,6 @@
 package fe8.game.ui
 
+import fe8.game.scene.IntSupplier
 import fe8.game.RomView
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
@@ -18,7 +19,7 @@ public class GreenText(
     private val engine: ProcEngine,
     private val rom: RomView,
     private val hardware: BgHardware,
-    private val gameClock: () -> Int,
+    private val gameClock: IntSupplier,
 ) {
     private val onLoop = ProcFunc { greenTextOnLoop() }
 

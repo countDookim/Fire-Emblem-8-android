@@ -1,5 +1,6 @@
 package fe8.game.ui
 
+import fe8.game.scene.IntSupplier
 import fe8.game.RomView
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
@@ -54,7 +55,7 @@ public class Menu(
         public var playSoundEffect: (Int) -> Unit = {}
 
         /** `GetGameClock`. */
-        public var gameClock: () -> Int = { 0 }
+        public var gameClock: IntSupplier = IntSupplier { 0 }
 
         /** `EndFaceById`. */
         public var endFaceById: (Int) -> Unit = {}

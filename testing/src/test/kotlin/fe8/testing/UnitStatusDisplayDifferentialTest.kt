@@ -1,5 +1,6 @@
 package fe8.testing
 
+import fe8.game.scene.IntBinaryOperator
 import fe8.game.RomView
 import fe8.game.bm.BmSt
 import fe8.game.bm.CamMove
@@ -177,8 +178,8 @@ class UnitStatusDisplayDifferentialTest {
                 engine, bm, playSt, units, rom, hw, oam, text, messages, camMove.script,
                 GreenText(engine, rom, hw) { 0 },
             )
-            pi.hooks.terrainAt = { x, y -> terrainAt(x, y) }
-            pi.hooks.unitIdAt = { x, y -> unitIdAt(x, y) }
+            pi.hooks.terrainAt = IntBinaryOperator { x, y -> terrainAt(x, y) }
+            pi.hooks.unitIdAt = IntBinaryOperator { x, y -> unitIdAt(x, y) }
         }
 
         fun ewram(frame: Int): ByteArray = data.region(names.getValue(frame), "ewram")

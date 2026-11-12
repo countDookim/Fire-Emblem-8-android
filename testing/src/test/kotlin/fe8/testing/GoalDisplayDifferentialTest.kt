@@ -1,5 +1,6 @@
 package fe8.testing
 
+import fe8.game.scene.IntBinaryOperator
 import fe8.game.RomView
 import fe8.game.bm.BmSt
 import fe8.game.bm.CamMove
@@ -157,9 +158,9 @@ class GoalDisplayDifferentialTest {
             val e = ewram(seedFrame)
             playSt.decode(e, PLAY_ST - EWRAM)
             seedRam = e
-            pi.hooks.terrainAt = { x, y -> terrainAt(x, y) }
+            pi.hooks.terrainAt = IntBinaryOperator { x, y -> terrainAt(x, y) }
             units.loadFrom(e)
-            pi.hooks.unitIdAt = { x, y -> unitIdAt(x, y) }
+            pi.hooks.unitIdAt = IntBinaryOperator { x, y -> unitIdAt(x, y) }
             pi.newUnitWindowResidue = 3
             pi.newGoalWindowResidue = staleGoalQuadrant(seedFrame + 2)
             for (bg in 0..1) {

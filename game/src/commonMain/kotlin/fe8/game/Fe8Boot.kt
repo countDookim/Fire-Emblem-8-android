@@ -1,6 +1,9 @@
 package fe8.game
 
+import fe8.game.bm.ActiveUnit
 import fe8.game.bm.BMapMain
+import fe8.game.bm.MovementMap
+import fe8.game.bm.PathArrow
 import fe8.game.bm.BattleGenerate
 import fe8.game.bm.BmBattle
 import fe8.game.bm.ItemInfo
@@ -33,6 +36,7 @@ import fe8.game.bm.PlayerPhase
 import fe8.game.bm.ResetCursorPosition
 import fe8.game.bm.UnitLoader
 import fe8.game.ui.GotItemPopup
+import fe8.game.ui.UiFrame
 import fe8.game.ui.ItemIcon
 import fe8.game.ui.PopupScript
 import fe8.game.bm.UnitSpriteHandles
@@ -83,6 +87,7 @@ import fe8.game.save.BmSaveLib
 import fe8.game.save.BmSuspendSave
 import fe8.game.save.NewGameRam
 import fe8.game.save.SuspendRam
+import fe8.game.scene.IntSupplier
 import fe8.game.scene.TalkScene
 import fe8.game.title.TitleScreen
 import fe8.game.worldmap.GmData
@@ -114,6 +119,7 @@ import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
+import gbafe.proc.ProcScripts
 import gbafe.render.ArchivedPaletteFade
 import gbafe.render.BgTilemap
 import gbafe.render.ColorFade
@@ -832,10 +838,17 @@ public class Fe8Boot(
             control.playSt, chapters, units, flags, control.sound,
         ) { battleMap.hooks.getBattleMapKind() }
         val entityBmMaps = battleEntityMaps
+        val active = ActiveUnit()
+        val moves = MovementMap(rom, map, units, control.playSt)
+        val arrow = PathArrow(
+            map, units, moves, active, bm, rng = rng, sprites = loop.sprites, hardware = hw,
+            rom = rom,
+        )
         val phase = PlayerPhase(
             engine, bm, control.playSt, map, units, camMove,
             entityBmMaps, render, keys,
             eventEngine::eventEngineExists,
+            active = active, movementMap = moves, pathArrow = arrow,
         ).also { pp -> pp.hooks.startMapSongBgm = ProcFunc { music.startMapSongBgm() } }
         main.hooks.playerPhase = phase.script
         main.hooks.phaseIntro = PhaseIntro(
@@ -866,14 +879,19 @@ public class Fe8Boot(
 
             override fun goalWindowDataType(chapter: Int): Int =
                 rom.u8(chapters.getROMChapterStruct(chapter) + GOAL_WINDOW_DATA_TYPE_OFFSET)
+
+            override fun areAnyEnemyUnitDead(): Boolean = units.areAnyEnemyUnitAlive()
+
+            override fun countAvailableBlueUnits(): Int = units.countAvailableBlueUnits()
         }
         main.hooks.runPhaseSwitchEvents = { eventInfos.runPhaseSwitchEvents() }
         val start = BattleMapStart(
             engine, control.playSt, bm, hw, chapters, map,
-            ChapterMapGfx(rom, chapters, hw, control.playSt), render,
+            battleMapGfx(chapters), render,
             flags, rng, clock, units,
         ).also {
             main.hooks.writeSuspendSave = suspendSaveHook(main, rom)
+            it.hooks.readGameSaveCoreGfx = { readGameSaveCoreGfx(chapters) }
             main.hooks.getBattleMapKind = { it.hooks.getBattleMapKind() }
             it.hooks.bmapMainScript = main.script
             it.hooks.refreshEntityBmMaps = { entityBmMaps.refreshEntityBmMaps() }
@@ -882,8 +900,101 @@ public class Fe8Boot(
             }
         }
         wireUnitSprites(main, start, phase, map, rom)
+        wirePlayerPhase(main, start, phase, active, eventInfos)
         if (rom.isWholeRom) main.hooks.chapterIntro = chapterIntro(start).script
         main to start
+    }
+
+    /**
+     * The `ChapterMapGfx` of the battle map start with the text, UI frame and icon resets of
+     * `sub_80156D4` wired (the menus and side windows need them). Stand-in until M6-F:
+     * `ResetFaces` (the stat screen faces are not ported).
+     */
+    private fun battleMapGfx(chapters: ChapterData): ChapterMapGfx =
+        ChapterMapGfx(rom, chapters, hw, control.playSt).also {
+            it.resetText = { resetText() }
+            it.loadLegacyUiFrameGraphics = { loadLegacyUiFrame() }
+            it.resetIconGraphics = { resetIcons() }
+            it.loadIconPalettes = { palId -> loadIconPalettes(palId) }
+        }
+
+    /** `ResetText`: the default font at VRAM + 0x1000, tile 0x80. */
+    private fun resetText() {
+        talkScene.text.initTextFont(null, 0x06001000, 0x80, 0)
+    }
+
+    private fun resetIcons() {
+        ItemIcon.resetIconGraphics(drawnIconLookupTable, iconGfxIdLookupTable)
+    }
+
+    private fun loadIconPalettes(palId: Int) {
+        ItemIcon.loadIconPalette(hw, rom, 0, palId)
+        ItemIcon.loadIconPalette(hw, rom, 1, palId + 1)
+    }
+
+    /**
+     * `ReadGameSaveCoreGfx` (bm.c) for the resumed game: [resetText], the UI frame graphics, the
+     * icon resets and `LoadObjUIGfx`. Stand-in until M6-F: `ResetFaces`.
+     */
+    private fun readGameSaveCoreGfx(chapters: ChapterData) {
+        resetText()
+        UiFrame.loadUiFrameGraphics(hw, rom, control.playSt.windowColor)
+        resetIcons()
+        loadIconPalettes(4)
+        ChapterMapGfx(rom, chapters, hw, control.playSt).loadObjUiGfx()
+    }
+
+    /**
+     * Stand-in until M6-F for `LoadLegacyUiFrameGraphics` (uiutils.c): the window frame image
+     * of `gPlaySt.config.windowColor` to BG tile 0 and its palette to palette 1, from the ROM
+     * lookup tables (not verified against a capture).
+     */
+    private fun loadLegacyUiFrame() {
+        val color = control.playSt.windowColor
+        rom.decompressInto(rom.u32(LEGACY_FRAME_IMAGES + 4 * color), hw.vram, 0)
+        rom.pal(rom.u32(LEGACY_FRAME_PALETTES + 4 * color), 16).copyInto(hw.palette, 16)
+        hw.enablePaletteSync()
+    }
+
+    /**
+     * Connects the player phase hooks ([PlayerPhaseWiring]) and sets the enemy phase
+     * placeholders of [main] (M6-D).
+     */
+    private fun wirePlayerPhase(
+        main: BMapMain,
+        start: BattleMapStart,
+        phase: PlayerPhase,
+        active: ActiveUnit,
+        eventInfos: EventInfos,
+    ) {
+        val playSt = control.playSt
+        val loader = UnitLoader(
+            units, rom, { type -> if (type == 0) playSt.unk1C0 else if (type == 1) playSt.unk1C1 else 0 },
+            rng, { playSt.chapterStateBits and PLAY_FLAG_HARD != 0 },
+        ).apply { bmMap = battleBmMap }
+        val handles = checkNotNull(spriteHandles)
+        PlayerPhaseWiring(
+            engine, rom, hw, loop.bmSt, playSt, battleBmMap, units, flags, keys,
+            IntSupplier { clock.get().toInt() }, control.sound, loop, camMove, bmapRender, battleEntityMaps,
+            talkScene, handles, mu, active, loader, { start.hooks.getBattleMapKind() },
+        ).wire(phase, main, eventInfos)
+        // Stand-in until M6-D (enemy phase and AI): the computer phase does nothing and ends at
+        // once, so End turn runs the enemy banner and goes on to the next player phase.
+        main.hooks.cpPhase = ProcScript("gProcScr_CpPhase", listOf(ProcScripts.end()))
+        // Stand-in until M6-D: only the unit state part of `ClearActiveFactionGrayedStates` (the
+        // acted units of the phase that ended get their turn back); the support and favour
+        // record is M6-J.
+        main.hooks.clearActiveFactionGrayedStates = {
+            val faction = playSt.faction
+            for (id in faction + 1 until faction + 0x40) {
+                if (!units.isValid(id)) continue
+                units.setState(
+                    id,
+                    units.state(id) and (UnitTable.US_UNSELECTABLE or US_HAS_MOVED or US_HAS_MOVED_AI)
+                        .inv(),
+                )
+            }
+        }
     }
 
     /**
@@ -1167,3 +1278,15 @@ private const val BG_BLANK = 0x35
 private const val MSG_HUFFMAN_TABLE = 0x0815A72C
 private const val MSG_HUFFMAN_ROOT = 0x0815D488
 private const val MSG_TABLE = 0x0815D48C
+
+/** `US_HAS_MOVED`. */
+private const val US_HAS_MOVED = 1 shl 6
+
+/** `US_HAS_MOVED_AI`. */
+private const val US_HAS_MOVED_AI = 1 shl 10
+
+/** `sLegacyUiFrameImageLookup`. */
+private const val LEGACY_FRAME_IMAGES = 0x085B6460
+
+/** `sLegacyUiFramePaletteLookup`. */
+private const val LEGACY_FRAME_PALETTES = 0x085B6440

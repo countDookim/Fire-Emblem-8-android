@@ -1,5 +1,6 @@
 package fe8.testing
 
+import fe8.game.scene.IntSupplier
 import fe8.game.RomView
 import fe8.game.bm.BattleMapKind
 import fe8.game.bm.BattleMapNodes
@@ -153,7 +154,7 @@ class MapMenuDifferentialTest {
             menu = Menu(engine, rom, hw, text, messages, keys, hand, greenText, camMove.script)
             menu.hooks.lockGame = { lock++ }
             menu.hooks.unlockGame = { lock-- }
-            menu.hooks.gameClock = { clock }
+            menu.hooks.gameClock = IntSupplier { clock }
             val flags = object : FlagStore {
                 override fun checkFlag(id: Int) = error("no flag is read in a story map")
                 override fun setFlag(id: Int) = error("not used")

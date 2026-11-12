@@ -71,7 +71,7 @@ public class BMapMain(
 
         /**
          * `ClearActiveFactionGrayedStates`: resets greyed-out acted state for active faction
-         * units. Stand-in until M6-B.
+         * units. `Fe8Boot` sets the unit state part (stand-in until M6-D for the rest).
          */
         public var clearActiveFactionGrayedStates: () -> Unit = {}
 
@@ -92,7 +92,7 @@ public class BMapMain(
 
         /**
          * `TickActiveFactionTurn`: decrements status condition turns and item durations.
-         * Stand-in until M6-B.
+         * Stand-in until M6-D.
          */
         public var tickActiveFactionTurn: () -> Unit = {}
 
@@ -153,18 +153,18 @@ public class BMapMain(
 
         /**
          * `gProcScr_StatusDecayDisplay`: status condition recovery visual display. Stand-in
-         * until M6-B: ends at once.
+         * until M6-D: ends at once.
          */
         public var statusDecayDisplay: ProcScript = standIn("gProcScr_StatusDecayDisplay")
 
         /**
          * `gProcScr_TerrainHealDisplay`: terrain recovery (forts/thrones) animation display.
-         * Stand-in until M6-B: ends at once.
+         * Stand-in until M6-D: ends at once.
          */
         public var terrainHealDisplay: ProcScript = standIn("gProcScr_TerrainHealDisplay")
 
         /**
-         * `gProcScr_PoisonDamageDisplay`: poison damage animation display. Stand-in until M6-B:
+         * `gProcScr_PoisonDamageDisplay`: poison damage animation display. Stand-in until M6-D:
          * ends at once.
          */
         public var poisonDamageDisplay: ProcScript = standIn("gProcScr_PoisonDamageDisplay")

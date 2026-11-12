@@ -22,9 +22,12 @@ public class PathArrow(
     private val movementMap: MovementMap,
     private val active: ActiveUnit,
     private val bm: BmSt,
-    /** Stand-ins this path arrow calls; see [Hooks]. */
+    /** The calls this path arrow makes outside its file; see [Hooks]. */
     public val hooks: Hooks = Hooks(),
-    /** `NextRN_N` for the tie break of `GenerateBestMovementScript`; null keeps the stand-in. */
+    /**
+     * `NextRN_N` for the tie break of `GenerateBestMovementScript` (`Fe8Boot` passes its rng);
+     * null keeps the HALT default.
+     */
     rng: RngService? = null,
     /** `sSpriteLayers` that [drawPathArrow] puts the arrow into; null skips the drawing. */
     private val sprites: SpriteLayers? = null,
@@ -33,13 +36,14 @@ public class PathArrow(
     /** The ROM the graphics and the object come from; null skips the graphics. */
     private val rom: RomView? = null,
 ) {
-    /** Stand-ins for what the path arrow calls in other files. */
+    /** What the path arrow calls in other files. */
     public class Hooks {
         /**
          * `GenerateBestMovementScript(x, y, script)` (bmidoten.c): writes the movement script to
          * ([x], [y]) over the working map into the array. Replaced by the port when the
-         * [PathArrow] has an rng; the default (HALT) is a stand-in. Not run in the capture window
-         * (the cursor stays in the range, so the path only grows or shrinks).
+         * [PathArrow] has an rng; the default (HALT) is only for a [PathArrow] without one. Not
+         * run in the capture window (the cursor stays in the range, so the path only grows or
+         * shrinks).
          */
         public var generateBestMovementScript: (x: Int, y: Int, script: IntArray) -> Unit =
             { _, _, script -> script[0] = Mu.MOVE_CMD_HALT }

@@ -1,5 +1,6 @@
 package fe8.testing
 
+import fe8.game.scene.IntSupplier
 import fe8.game.RomView
 import fe8.game.bm.BmSt
 import fe8.game.bm.CamMove
@@ -157,7 +158,7 @@ class MenuDifferentialTest {
             menu.hooks.lockGame = { locks++ }
             menu.hooks.unlockGame = { locks-- }
             menu.hooks.playSoundEffect = { sounds.add(it) }
-            menu.hooks.gameClock = { clock }
+            menu.hooks.gameClock = IntSupplier { clock }
         }
 
         fun ewram(frame: Int): ByteArray = data.region(names.getValue(frame), "ewram")

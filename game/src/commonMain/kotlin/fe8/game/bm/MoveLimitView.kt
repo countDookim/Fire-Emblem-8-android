@@ -1,5 +1,6 @@
 package fe8.game.bm
 
+import fe8.game.scene.IntSupplier
 import fe8.game.RomView
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
@@ -51,7 +52,7 @@ public class MoveLimitView(
     }
 
     /** `GetGameClock`: the frame counter that drives the palette cycle. */
-    public var gameClock: () -> Int = { 0 }
+    public var gameClock: IntSupplier = IntSupplier { 0 }
 
     /**
      * `RegisterDataMove(src, dst, size)`: copy [size] bytes from the ROM address [romSrc] to

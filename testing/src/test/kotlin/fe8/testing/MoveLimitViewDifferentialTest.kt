@@ -1,5 +1,6 @@
 package fe8.testing
 
+import fe8.game.scene.IntSupplier
 import fe8.game.RomView
 import fe8.game.bm.BmMap
 import fe8.game.bm.BmMapRender
@@ -162,7 +163,7 @@ class MoveLimitViewDifferentialTest {
             val e = ew(f)
             val i = iw(f)
             val at = "$name f$f"
-            view.gameClock = { word(i, GAME_CLOCK - IWRAM) }
+            view.gameClock = IntSupplier { word(i, GAME_CLOCK - IWRAM) }
             // The caller runs before tree 4 (PlayerPhase, tree 2) or after it (a tree 3 menu
             // proc, attack f1365); the change proc's unk_4C at the first frame tells which.
             val startWant = ProcArrayDump.ofWatch(trace, start, names)

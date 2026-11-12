@@ -1,6 +1,8 @@
 package fe8.game.bm
 
 import fe8.game.RomView
+import fe8.game.scene.IntBinaryOperator
+import fe8.game.scene.IntUnaryOperator
 import fe8.game.ui.GreenText
 import fe8.game.ui.ItemIcon
 import gbafe.proc.Proc
@@ -171,39 +173,40 @@ public class PlayerInterface(
 ) {
     /** Services outside the ported part of the file; the defaults do nothing. */
     public class Hooks {
-        /** Stand-in for `DoesBMXFADEExist` (false) until M6-B. */
+        /** Stand-in for `DoesBMXFADEExist` (false) until M6-H (the fog fade). */
         public var doesBmxFadeExist: ProcBoolFunc = ProcBoolFunc { false }
 
-        /** Stand-in for `gBmMapTerrain[y][x]` until PP-17 wires the map. */
-        public var terrainAt: (x: Int, y: Int) -> Int = { _, _ -> 0 }
+        /** `gBmMapTerrain[y][x]`; `Fe8Boot` reads the map. */
+        public var terrainAt: IntBinaryOperator = IntBinaryOperator { _, _ -> 0 }
 
         /** Stand-in for `GetObstacleHpAt` (bmtrick.c) until M6-H. */
         public var obstacleHpAt: (x: Int, y: Int) -> Int = { _, _ -> 0 }
 
-        /** Stand-in for `gBmMapUnit[y][x]` until PP-17 wires the map. */
-        public var unitIdAt: (x: Int, y: Int) -> Int = { _, _ -> 0 }
+        /** `gBmMapUnit[y][x]`; `Fe8Boot` reads the map. */
+        public var unitIdAt: IntBinaryOperator = IntBinaryOperator { _, _ -> 0 }
 
         /**
-         * Stand-in for `GetUnitMaxHp` (bmunit.c) until PP-17 wires `UnitLoader`: the default is
-         * the unit's `maxHP` byte (without the equipped weapon's bonus). The argument is the
-         * unit's byte offset in [UnitTable.bytes].
+         * `GetUnitMaxHp` (bmunit.c). The default is the unit's `maxHP` byte (without the
+         * equipped weapon's bonus); `Fe8Boot` sets `UnitLoader.getUnitMaxHp`. The argument is
+         * the unit's byte offset in [UnitTable.bytes].
          */
-        public var unitMaxHp: (unitOffset: Int) -> Int = { 0 }
+        public var unitMaxHp: IntUnaryOperator = IntUnaryOperator { 0 }
 
         /**
-         * Stand-in for `CheckFlag(EVFLAG_OBJWINDOW_DISABLE)` (events) until the flag store is
-         * wired: the goal window is not started while it is set.
+         * `CheckFlag(EVFLAG_OBJWINDOW_DISABLE)`; `Fe8Boot` reads the event flags. The goal window
+         * is not started while it is set.
          */
         public var objWindowDisabled: () -> Boolean = { false }
 
         /**
-         * Stand-in for `GetBattleMapKind() == BATTLEMAP_KIND_SKIRMISH` until the world map state
-         * is wired (the Prologue is a story chapter).
+         * `GetBattleMapKind() == BATTLEMAP_KIND_SKIRMISH`; `Fe8Boot` answers from
+         * [BattleMapKind].
          */
         public var isSkirmish: () -> Boolean = { false }
 
         /**
-         * Stand-in until a capture shows a "defeat all" or "defend" goal for the second text line
+         * Stand-in until M6-H (the first chapter with a "defeat all" or "defend" goal) for the second
+         * text line
          * of `GoalDisplay_Init` (enemy count or turn counter, drawn with
          * `Text_InsertDrawNumberOrBlank`); [goalType] is the chapter's goal window data type.
          */
@@ -232,7 +235,7 @@ public class PlayerInterface(
     public var newUnitWindowResidue: Int = NO_WINDOW
 
     init {
-        hooks.unitMaxHp = { StructCodec.s8(units.bytes, it + UNIT_MAX_HP) }
+        hooks.unitMaxHp = IntUnaryOperator { StructCodec.s8(units.bytes, it + UNIT_MAX_HP) }
     }
 
     /** `gNumberStr`: the digits of the number being drawn, space padded on the left. */

@@ -36,9 +36,11 @@ import gbafe.proc.ProcScripts.yield
  * `PutMapCursor` and `StartMapSongBgm`): the L/R/START actions of the idle loop, the side
  * windows, `PlayerPhase_Suspend`, the tutorial event, the cursor sound effect, the attack range,
  * the range squares, the path arrow and every call of the script after the range display idle
- * (movement, action) are stand-ins until M6-B. [Hooks.unitSelectEnabled] is false by default, so
- * the A button does nothing in the app until PP-17 wires the rest of the select flow. A
- * `PROC_REPEAT` with a default hook never leaves it. Nothing allocates per frame.
+ * (movement, action) have defaults that do nothing; `Fe8Boot` connects them (PP-17,
+ * `PlayerPhaseWiring`), and [Hooks.unitSelectEnabled] is false by default (the tests that do not
+ * wire the select flow). The hooks that stay without a port are listed on [Hooks], each with its
+ * plan row (M6-C to M6-I). A `PROC_REPEAT` with a default hook never leaves it. Nothing
+ * allocates per frame.
  */
 public class PlayerPhase(
     /** The proc engine the player phase proc runs on. */
@@ -99,7 +101,7 @@ public class PlayerPhase(
         hooks.finishAction = ProcFunc { playerPhaseFinishAction(it) }
     }
 
-    /** `PlaySoundEffect` for the cursor sound (a stand-in until M6-B wires the sound wrapper). */
+    /** `PlaySoundEffect` (`Fe8Boot` passes the game's sound wrapper). */
     public fun interface SoundEffect {
         /** Plays song [song]. */
         public fun play(song: Int)
@@ -117,22 +119,22 @@ public class PlayerPhase(
      * itself.
      */
     public class Hooks {
-        /** Stand-in for `PlayerPhase_Suspend` (writes the suspend save) until M6-B. */
+        /** `PlayerPhase_Suspend` (writes the suspend save); set by `PlayerPhaseWiring`. */
         public var suspend: ProcFunc = ProcFunc {}
 
         /** `RefreshUnitSprites`. Default no-op; `Fe8Boot` sets the `UnitSpriteHandles` port. */
         public var refreshUnitSprites: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `StartPlayerPhaseStartTutorialEvent` until M6-B. */
+        /** Stand-in until M6-E for `StartPlayerPhaseStartTutorialEvent` (Easy-mode tutorial). */
         public var startTutorialEvent: ProcFunc = ProcFunc {}
 
         /** `StartMapSongBgm`. Default no-op; `Fe8Boot` sets `MapMusic.startMapSongBgm`. */
         public var startMapSongBgm: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `StartPlayerPhaseSideWindows` until M6-B. */
+        /** `StartPlayerPhaseSideWindows`; set by `PlayerPhaseWiring`. */
         public var startSideWindows: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `EndPlayerPhaseSideWindows` until M6-B. */
+        /** `EndPlayerPhaseSideWindows`; set by `PlayerPhaseWiring`. */
         public var endSideWindows: ProcFunc = ProcFunc {}
 
         /**
@@ -149,20 +151,20 @@ public class PlayerPhase(
         public var unitSelectEnabled: Boolean = false
 
         /**
-         * Stand-in until PP-12 for the L button branch of `PlayerPhase_MainIdle`
+         * Stand-in until M6-F for the L button branch of `PlayerPhase_MainIdle`
          * (`TrySwitchViewedUnit` and the sound).
          */
         public var lButton: ProcFunc = ProcFunc {}
 
         /**
-         * Stand-in until PP-12 for the whole R button branch of `PlayerPhase_MainIdle` (the stat
+         * Stand-in until M6-F for the whole R button branch of `PlayerPhase_MainIdle` (the stat
          * screen, `Proc_Goto(proc, 5)`); runs when R is new and the cursor tile holds a unit;
          * returns true if it left `PlayerPhase_MainIdle`.
          */
         public var rButton: ProcBoolFunc = ProcBoolFunc { false }
 
         /**
-         * Stand-in until PP-12 for the START button branch of `PlayerPhase_MainIdle` (the
+         * Stand-in until M6-F for the START button branch of `PlayerPhase_MainIdle` (the
          * minimap, `Proc_Goto(proc, 9)`); runs when START is new and SELECT is not held and the A
          * branch did not run; returns true if it left `PlayerPhase_MainIdle`.
          */
@@ -185,21 +187,22 @@ public class PlayerPhase(
          */
         public var putMapCursor: PutMapCursor = PutMapCursor { _, _, _ -> }
 
-        /** Stand-in for `PlaySoundEffect(SONG_65)`, the cursor move sound, until M6-B. */
+        /** `PlaySoundEffect(SONG_65)`, the cursor move sound; set by `PlayerPhaseWiring`. */
         public var cursorSound: SoundEffect = SoundEffect {}
 
         /**
-         * `DoesBMXFADEExist` (bmxfade.c, `Proc_Find(sProcScr_BMXFADE)`): stand-in until M6-B,
-         * default false. No capture of the select window has the fade.
+         * `DoesBMXFADEExist` (bmxfade.c, `Proc_Find(sProcScr_BMXFADE)`): stand-in until M6-H
+         * (the fog fade of chapters with vision), default false. No capture of the select window
+         * has it.
          */
         public var doesBmxFadeExist: ProcBoolFunc = ProcBoolFunc { false }
 
-        /** `ShowUnitSprite(unit)` for unit id [unit]; stand-in until PP-12. */
+        /** `ShowUnitSprite(unit)` for unit id [unit]; set by `PlayerPhaseWiring`. */
         public var showUnitSprite: (unit: Int) -> Unit = {}
 
         /**
-         * Stand-in until PP-12 for `StartOrphanMenuAdjusted(&gMapMenuDef, ...)` and
-         * `sub_80832CC` (the map menu); gets `gBmSt.cursorTarget.x - gBmSt.camera.x`.
+         * `StartOrphanMenuAdjusted(&gMapMenuDef, ...)` and `sub_80832CC` (the map menu; set by
+         * `PlayerPhaseWiring`); gets `gBmSt.cursorTarget.x - gBmSt.camera.x`.
          */
         public var startMapMenu: (xOffset: Int) -> Unit = {}
 
@@ -221,29 +224,29 @@ public class PlayerPhase(
          */
         public var resetBattleScratch: () -> Unit = {}
 
-        /** `PlaySoundEffect`; a stand-in until M6-B wires the sound wrapper. */
+        /** `PlaySoundEffect`; set by `PlayerPhaseWiring`. */
         public var playSoundEffect: SoundEffect = SoundEffect {}
 
-        /** Stand-in until M6-B for `MuExists` (`Proc_Find(ProcScr_Mu) != 0`); default false. */
+        /** `MuExists` (`Proc_Find(ProcScr_Mu) != 0`); default false, `Mu.muExists` in the game. */
         public var muExists: ProcBoolFunc = ProcBoolFunc { false }
 
-        /** Stand-in until M6-B for `StartMu(unit)` (unit id [unit]). */
+        /** `StartMu(unit)` (unit id [unit]); the hover's `startMu` in the game. */
         public var startMu: (unit: Int) -> Unit = {}
 
-        /** Stand-in until M6-B for `HideUnitSprite(unit)` (unit id [unit]). */
+        /** `HideUnitSprite(unit)` (unit id [unit]); set by `PlayerPhaseWiring`. */
         public var hideUnitSprite: (unit: Int) -> Unit = {}
 
-        /** Stand-in until M6-B for `SetAutoMuDefaultFacing`. */
+        /** `SetAutoMuDefaultFacing`; set by `PlayerPhaseWiring`. */
         public var setAutoMuDefaultFacing: ProcFunc = ProcFunc {}
 
-        /** Stand-in until M6-B for `TryCallSelectEvents` (select events of the active unit). */
+        /** Stand-in until M6-E for `TryCallSelectEvents` (select events of the active unit). */
         public var tryCallSelectEvents: ProcFunc = ProcFunc {}
 
         /**
-         * Stand-in until PP-17 for the part of `DisplayUnitEffectRange` that runs while the unit
-         * has not moved (`AttackRange.generateUnitCompleteAttackRange` is ported, but
-         * `GetUnitWeaponUsabilityBits` and `GenerateMagicSealMap` are not, so `Fe8Boot` cannot
-         * wire it yet; the select test backs the weapon-only case with it):
+         * The part of `DisplayUnitEffectRange` that runs while the unit has not moved.
+         * `Fe8Boot` sets it (`PlayerPhaseWiring`) with the weapon case of
+         * `AttackRange.generateUnitCompleteAttackRange`; the staff range and
+         * `GenerateMagicSealMap` are a stand-in until M6-C. The original is:
          * `BmMapFill(gBmMapOther, 0)`, `GenerateMagicSealMap` for a unit with magic ranks,
          * `BmMapFill(gBmMapRange, 0)` and the attack or staff range generation for the weapon
          * usability of unit id [unit] (`gBmSt.swapActionRangeCount` selects between both for a
@@ -253,15 +256,15 @@ public class PlayerPhase(
         public var generateAttackRange: (unit: Int) -> Int = { LIMITVIEW_BLUE }
 
         /**
-         * `DisplayMoveRangeGraphics(flags)`: stand-in until PP-17 wires
-         * [MoveLimitView.displayMoveRangeGraphics] (ported and verified, PP-4) into `Fe8Boot`.
+         * `DisplayMoveRangeGraphics(flags)`: `Fe8Boot` sets
+         * [MoveLimitView.displayMoveRangeGraphics] (PP-4).
          */
         public var displayMoveRangeGraphics: (flags: Int) -> Unit = {}
 
         /**
          * `PathArrowDisp_Init(mode)`: 0 when the cursor is on the active unit, 1 otherwise. With a
          * [PathArrow] given to [PlayerPhase] it calls [PathArrow.init] (data only, the graphics
-         * are PP-6); a stand-in until PP-17 wires that into `Fe8Boot`.
+         * are PP-6); `Fe8Boot` gives it a [PathArrow].
          */
         public var pathArrowDispInit: (mode: Int) -> Unit = {}
 
@@ -271,39 +274,38 @@ public class PlayerPhase(
          */
         public var rangeDisplayIdle: ProcFunc = ProcFunc {}
 
-        /** `StartDestSelectedEvent` (events); stand-in, false (no event) until M6-B. */
+        /** `StartDestSelectedEvent` (events); stand-in until M6-E, false (no event). */
         public var startDestSelectedEvent: () -> Boolean = { false }
 
         /**
-         * `GetUnitWeaponUsabilityBits(unit)` for unit id [unit]; stand-in until PP-17, default 0
-         * (only asked for a unit that cannot be controlled or has moved, not in a capture).
+         * `GetUnitWeaponUsabilityBits(unit)` for unit id [unit]; default 0. `Fe8Boot` answers
+         * the weapon bit only (the staff bit is a stand-in until M6-C).
          */
         public var getUnitWeaponUsabilityBits: (unit: Int) -> Int = { 0 }
 
-        /** `GetCombinedEnemyWeaponUsabilityBits`; stand-in until PP-17, default 0. */
+        /** `GetCombinedEnemyWeaponUsabilityBits`; stand-in until M6-C, default 0. */
         public var getCombinedEnemyWeaponUsabilityBits: () -> Int = { 0 }
 
         /**
-         * `HideMoveRangeGraphics`: stand-in until PP-17 wires [MoveLimitView.hideMoveRangeGraphics]
-         * (ported and verified, PP-4) into `Fe8Boot`.
+         * `HideMoveRangeGraphics`: `Fe8Boot` sets [MoveLimitView.hideMoveRangeGraphics] (PP-4).
          */
         public var hideMoveRangeGraphics: ProcFunc = ProcFunc {}
 
-        /** `CanShowUnitStatScreen(unit)` for unit id [unit]; stand-in until PP-12. */
+        /** `CanShowUnitStatScreen(unit)` for unit id [unit]; stand-in until M6-F. */
         public var canShowUnitStatScreen: (unit: Int) -> Boolean = { false }
 
         /**
-         * Stand-in until PP-12 for `SetStatScreenConfig` and `StartStatScreen(unit, proc)` (unit
+         * Stand-in until M6-F for `SetStatScreenConfig` and `StartStatScreen(unit, proc)` (unit
          * id [unit]).
          */
         public var startStatScreen: (unit: Int, proc: Proc) -> Unit = { _, _ -> }
 
-        /** `GetTrapAt(x, y)->type` of src/bmtrick.c; stand-in, -1 for no trap. */
+        /** `GetTrapAt(x, y)->type` of src/bmtrick.c; stand-in until M6-H, -1 for no trap. */
         public var trapTypeAt: (x: Int, y: Int) -> Int = { _, _ -> -1 }
 
         /**
          * `PlayerPhase_DisplayUnitMovement`; [PlayerPhase] replaces it with the port when it has
-         * a [PathArrow], else it stays a stand-in.
+         * a [PathArrow], else it does nothing.
          */
         public var displayUnitMovement: ProcFunc = ProcFunc {}
 
@@ -321,19 +323,19 @@ public class PlayerPhase(
 
         /**
          * `MuExistsActive` ([Mu.muExistsActive]). The default (true) never ends the wait of
-         * [playerPhaseWaitForUnitMovement], as the stand-in it replaces.
+         * [playerPhaseWaitForUnitMovement]; `Fe8Boot` sets [Mu.muExistsActive].
          */
         public var muExistsActive: () -> Boolean = { true }
 
         /**
-         * Stand-in for `StartAfterUnitMovedEvent` (src/eventinfo.c; the tutorial and the chapter's
-         * after-move events, M6-B): true when an event started.
+         * Stand-in until M6-E for `StartAfterUnitMovedEvent` (src/eventinfo.c; the tutorial and
+         * the chapter's after-move events): true when an event started.
          */
         public var startAfterUnitMovedEvent: () -> Boolean = { false }
 
         /**
-         * Stand-in until PP-12 for `StartSemiCenteredOrphanMenu(&gUnitActionMenuDef, x, 1, 0x16)`
-         * (the unit action menu); gets `gBmSt.cursorTarget.x - gBmSt.camera.x`.
+         * `StartSemiCenteredOrphanMenu(&gUnitActionMenuDef, x, 1, 0x16)` (the unit action menu;
+         * set by `PlayerPhaseWiring`); gets `gBmSt.cursorTarget.x - gBmSt.camera.x`.
          */
         public var startUnitActionMenu: (xOffset: Int) -> Unit = {}
 
@@ -355,7 +357,7 @@ public class PlayerPhase(
         /** `PlayerPhase_FinishAction`; replaced by [PlayerPhase] with the port. */
         public var finishAction: ProcFunc = ProcFunc {}
 
-        /** `WriteSuspendSave(saveId)`; stand-in until the suspend save is ported. */
+        /** `WriteSuspendSave(saveId)`; set by `PlayerPhaseWiring` to the boot's suspend save. */
         public var writeSuspendSave: (saveId: Int) -> Unit = {}
 
         /**
@@ -370,46 +372,46 @@ public class PlayerPhase(
         /** `ShouldCallEndEvent`; wire to `EventInfos.shouldCallEndEvent` (PP-17). */
         public var shouldCallEndEvent: () -> Boolean = { false }
 
-        /** `MaybeCallEndEvent_`; stand-in until the end event is ported. */
+        /** `MaybeCallEndEvent_`; stand-in until M6-E (the end event). */
         public var maybeCallEndEvent: () -> Unit = {}
 
-        /** `GetPickTrapType(unit)` for unit id [unit] (bmtrap.c); 0 is `TRAP_NONE`. Stand-in. */
+        /** `GetPickTrapType(unit)` (bmtrap.c) for unit id [unit]; 0 is none. M6-H stand-in. */
         public var getPickTrapType: (unit: Int) -> Int = { 0 }
 
-        /** `ExecTrap(proc, unit, 0)` for unit id [unit]; stand-in, true (go on). */
+        /** `ExecTrap(proc, unit, 0)` for unit id [unit]; stand-in until M6-H, true (go on). */
         public var execTrap: (proc: Proc, unit: Int) -> Boolean = { _, _ -> true }
 
-        /** `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in, false. */
+        /** `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. */
         public var battleAnimPreconfOff: () -> Boolean = { false }
 
-        /** `PidStatsAddSquaresMoved(charId, amount)`; stand-in. */
+        /** `PidStatsAddSquaresMoved(charId, amount)`; stand-in until M6-E (the records). */
         public var pidStatsAddSquaresMoved: (charId: Int, amount: Int) -> Unit = { _, _ -> }
 
-        /** `CanUnitMove` for the active unit (a canto move); stand-in, false. */
+        /** `CanUnitMove` for the active unit (a canto move); stand-in until M6-H, false. */
         public var canUnitMove: () -> Boolean = { false }
 
-        /** `RenderBmMapOnBg2` (fog chapters only); stand-in. */
+        /** `RenderBmMapOnBg2` (fog chapters only); stand-in until M6-H. */
         public var renderBmMapOnBg2: ProcFunc = ProcFunc {}
 
-        /** `NewBMXFADE(flag)` (fog chapters only); stand-in. */
+        /** `NewBMXFADE(flag)` (fog chapters only); stand-in until M6-H. */
         public var newBmxFade: (flag: Int) -> Unit = {}
 
-        /** Stand-in for `PlayerPhase_ResumeRangeDisplay` until M6-B. */
+        /** Stand-in until M6-E for `PlayerPhase_ResumeRangeDisplay` (resume during an action). */
         public var resumeRangeDisplay: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `EndAllMus` until M6-B. */
+        /** `EndAllMus`; set by `PlayerPhaseWiring`. */
         public var endAllMus: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `DisplayActiveUnitEffectRange` (label 11) until M6-B. */
+        /** Stand-in until M6-D for `DisplayActiveUnitEffectRange` (label 11, an enemy's range). */
         public var displayActiveUnitEffectRange: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `PlayerPhase_DisplayDangerZone` until M6-B. */
+        /** Stand-in until M6-D for `PlayerPhase_DisplayDangerZone` (the enemies' reach). */
         public var displayDangerZone: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `PlayerPhase_ReReadGameSaveGfx` until M6-B. */
+        /** Stand-in until M6-F for `PlayerPhase_ReReadGameSaveGfx` (after the stat screen). */
         public var reReadGameSaveGfx: ProcFunc = ProcFunc {}
 
-        /** Stand-in for `gProcScr_ADJUSTSFROMXI`, a script that ends at once until M6-B. */
+        /** Stand-in until M6-F for `gProcScr_ADJUSTSFROMXI`, a script that ends at once. */
         public var adjustsFromXiScript: ProcScript =
             ProcScript("gProcScr_ADJUSTSFROMXI", listOf(end()))
     }
@@ -793,7 +795,7 @@ public class PlayerPhase(
      * Partially ported from src/playerphase.c: PlayerPhase_MainIdle. Ported: the cursor
      * movement and the A button (see [Hooks.unitSelectEnabled]) with [getPlayerSelectKind].
      * The unit sprite hover ([hover], through the hooks PlayerPhase sets) runs at the end.
-     * Stand-ins until PP-12: the L, R and START branches ([Hooks.lButton], [Hooks.rButton],
+     * Stand-ins until M6-F: the L, R and START branches ([Hooks.lButton], [Hooks.rButton],
      * [Hooks.startButton]); `DoesBMXFADEExist` is a hook too, and the cursor sprite is
      * [Hooks.putMapCursor].
      *
@@ -933,8 +935,8 @@ public class PlayerPhase(
      * Floods `gBmMapMovement` from the active unit with `UNIT_MOV - moveCount`
      * ([MovementMap.generateUnitMovementMapExt]; the C ignores its parameter [unit] and uses
      * `gActiveUnit`), and, while the unit has not moved (`US_HAS_MOVED`), generates the attack
-     * or staff range ([Hooks.generateAttackRange], a stand-in until PP-17); then displays the range
-     * squares ([Hooks.displayMoveRangeGraphics], a stand-in until PP-4) with the flags
+     * or staff range ([Hooks.generateAttackRange], set by `Fe8Boot`); then displays the range
+     * squares ([Hooks.displayMoveRangeGraphics], PP-4) with the flags
      * (`LIMITVIEW_BLUE`, or the range's). A unit with `US_HAS_MOVED` set displays
      * `LIMITVIEW_BLUE` only (transcribed, not verified: the window has the unit unmoved).
      */
@@ -1151,8 +1153,8 @@ public class PlayerPhase(
      * Puts the active unit on the destination of the action data, finalizes the movement and, for
      * a unit that has not moved and not acted (`taken_action`), stores the cost of the move in
      * `moveCount`. Then `StartAfterUnitMovedEvent` ([Hooks.startAfterUnitMovedEvent], a
-     * stand-in) and the unit action menu ([Hooks.startUnitActionMenu]) unless the move was
-     * trapped; breaks (both paths of the C end that way). `ResetTextFont` has no state kept here.
+     * stand-in until M6-E) and the unit action menu ([Hooks.startUnitActionMenu]) unless the
+     * move was trapped; breaks (both paths of the C end that way). `ResetTextFont` keeps no state.
      */
     public fun playerPhaseApplyUnitMovement(proc: Proc) {
         val unit = active.unit

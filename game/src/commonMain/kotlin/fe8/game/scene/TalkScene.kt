@@ -29,6 +29,18 @@ public fun interface IntSupplier {
     public operator fun invoke(): Int
 }
 
+/** Functional interface mapping two unboxed integers to an unboxed integer. */
+public fun interface IntBinaryOperator {
+    /** Returns the result for [a] and [b]. */
+    public operator fun invoke(a: Int, b: Int): Int
+}
+
+/** Functional interface mapping an unboxed integer to an unboxed integer. */
+public fun interface IntUnaryOperator {
+    /** Returns the result for [value]. */
+    public operator fun invoke(value: Int): Int
+}
+
 /** Functional interface consuming an unboxed integer value without heap allocation. */
 public fun interface IntConsumer {
     /** Consumes an integer [value]. */

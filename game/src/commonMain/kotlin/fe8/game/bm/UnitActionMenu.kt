@@ -7,7 +7,7 @@ import fe8.game.ui.Menu
 /**
  * The unit action menu's item callbacks of src/bmmenu.c (the items of `gUnitActionMenuItems`,
  * src/menu_def.c) for the Prologue: the Attack and Item availability and the Wait effect.
- * [install] registers them, and a stand-in for every other availability callback, in
+ * [install] registers them, and, until M6-C and M6-H, a stand-in for every other availability callback, in
  * [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold.
  *
  * The unit acting is [active] (`gActiveUnit`, `gActionData`).

@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 533 across 73 decomp files (missing reason: 0).
+Total entries: 538 across 73 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -143,6 +143,34 @@ Total entries: 533 across 73 decomp files (missing reason: 0).
 | `ModifyMoveUnitFlag` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | test restates bit combinations; no trace comparison yet |
 | `Event34_MessWithUnitState` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | only subs 5, 10 and 15 are compared; breaks in other subs and the CLEA loop survive |
 
+## src/eventscr_gmap.c (23)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `EventB5_WmHideBigMap` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
+| `EventB7_WmBigMapWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
+| `EventC1_SKIPWM` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMiscEvents.kt` | only the resulting `gGMData` state bit at the exit is checked, by WorldMapExitTest |
+| `EventC9_RemoveWmText` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMiscEvents.kt` | no test checks the handler against a trace |
+| `Event83_WmSetCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event84_WmSetCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event86_WmScrollCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event87_WmScrollCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event88_WmScrollCameraOntoUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event89_WmScrollWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
+| `Event80_WmSkip_Unsure` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
+| `Event81_WmFadeOut` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
+| `Event82_WmEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
+| `EventB0_WmHideTextBox_Bugged` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no |
+| `Event9F_WmSetCharUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | the window sets no character unit |
+| `EventA1_WmShowUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
+| `EventA2_WmHideUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
+| `EventA4_WmHideUnitFaded` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
+| `EventA6_WmUnitSetOnNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
+| `EventA9_WmUnitMovePaths` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
+| `EventAA_WmUnitPauseMove` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
+| `EventAB_WmUnitResumeMove` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
+| `EventBB_` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
+
 ## src/bmbattle.c (21)
 
 | Function | Kotlin file | Reason |
@@ -168,32 +196,6 @@ Total entries: 533 across 73 decomp files (missing reason: 0).
 | `CheckBattleUnitLevelUp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 | `UpdateUnitFromBattle` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 | `GetStatIncrease` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | `>= 100` for `> 100` and `roll1(g + 1)` survive the autolevel RNG-window test; only exact-boundary rolls differ |
-
-## src/eventscr_gmap.c (21)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `EventB5_WmHideBigMap` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
-| `EventB7_WmBigMapWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBigMapEvents.kt` | no @VerifiesPort test names it |
-| `Event83_WmSetCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event84_WmSetCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event86_WmScrollCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event87_WmScrollCameraOntoNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event88_WmScrollCameraOntoUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event89_WmScrollWait` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScroll.kt` | the prologue never runs it |
-| `Event80_WmSkip_Unsure` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
-| `Event81_WmFadeOut` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
-| `Event82_WmEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no @VerifiesPort test names it |
-| `EventB0_WmHideTextBox_Bugged` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapTextFadeEvents.kt` | no |
-| `Event9F_WmSetCharUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | the window sets no character unit |
-| `EventA1_WmShowUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
-| `EventA2_WmHideUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
-| `EventA4_WmHideUnitFaded` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
-| `EventA6_WmUnitSetOnNode` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
-| `EventA9_WmUnitMovePaths` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
-| `EventAA_WmUnitPauseMove` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
-| `EventAB_WmUnitResumeMove` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
-| `EventBB_` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
 
 ## src/worldmap_mapmu.c (21)
 
@@ -477,6 +479,22 @@ Total entries: 533 across 73 decomp files (missing reason: 0).
 | `ChapterIntro_BeginFastFadeToMap` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the `StartBgm` call is not compared |
 | `ChapterIntro_End` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the capture's chapter fades to black, so `RefreshBMapGraphics` (through [Hooks.refreshBMapGraphics]) and [sub80141B0] overwrite the priorities, window enable and BG0 clear before the next dump; the story-map branch is not run |
 
+## src/worldmap_main.c (11)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `WorldMap_Init` | `game/src/commonMain/kotlin/fe8/game/WorldMapBoot.kt` | wired, then checked through the proc tree of the boot test only |
+| `sub_80B9028` | `game/src/commonMain/kotlin/fe8/game/WorldMapBoot.kt` | wired only |
+| `sub_80B90CC` | `game/src/commonMain/kotlin/fe8/game/WorldMapBoot.kt` | wired only |
+| `WorldMap_HideEverything` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | the display is already off after `WorldMap_PostBeginningEvent`, so no dump shows its effect |
+| `ResetWorldMapScreen` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | the battle map start rewrites the registers before the next dump |
+| `EndWM` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | the main proc has ended on its own and the dialogue screen is already reset when it runs; the backgrounds are not dumped |
+| `ProcScr_WorldMapWrapper` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | script order not yet checked against a reference run |
+| `DeployEveryUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | no unit has `US_NOT_DEPLOYED` set in the prologue trace, so it cannot tell this from a no-op |
+| `WmMain_MoveCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `gGMData.ix/iy` stay 0 and the camera constant in every prologue dump, so no trace covers any branch |
+| `ProcScr_WorldMapMain` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | prefix, up to and including `PROC_REPEAT(WorldMap_PostBeginningEvent)`; the rest is not transcribed yet |
+| `ProcScr_WorldMapMain` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMainScript.kt` | only the path label 15 -> label 25 -> `PROC_END` of the Prologue exit is observed, by WorldMapExitTest |
+
 ## src/event.c (10)
 
 | Function | Kotlin file | Reason |
@@ -546,19 +564,6 @@ Total entries: 533 across 73 decomp files (missing reason: 0).
 | `ResetUnitSpritesB` | `game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt` | never called in the trace |
 | `ApplyUnitSpriteImage32x32` | `game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt` | no 32x32 sprite is loaded in the traced frames |
 | `PutChapterMarkedTileIconOam` | `game/src/commonMain/kotlin/fe8/game/bm/UnitSpritesOam.kt` | the trace chapter has no goal tile (destPosX == 0xFF) |
-
-## src/worldmap_main.c (8)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `WorldMap_HideEverything` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | the display is already off after `WorldMap_PostBeginningEvent`, so no dump shows its effect |
-| `ResetWorldMapScreen` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | the battle map start rewrites the registers before the next dump |
-| `EndWM` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | the main proc has ended on its own and the dialogue screen is already reset when it runs; the backgrounds are not dumped |
-| `ProcScr_WorldMapWrapper` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | script order not yet checked against a reference run |
-| `DeployEveryUnit` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | no unit has `US_NOT_DEPLOYED` set in the prologue trace, so it cannot tell this from a no-op |
-| `WmMain_MoveCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `gGMData.ix/iy` stay 0 and the camera constant in every prologue dump, so no trace covers any branch |
-| `ProcScr_WorldMapMain` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | prefix, up to and including `PROC_REPEAT(WorldMap_PostBeginningEvent)`; the rest is not transcribed yet |
-| `ProcScr_WorldMapMain` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMainScript.kt` | only the path label 15 -> label 25 -> `PROC_END` of the Prologue exit is observed, by WorldMapExitTest |
 
 ## src/gamecontrol.c (6)
 

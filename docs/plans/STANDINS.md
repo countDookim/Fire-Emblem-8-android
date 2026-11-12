@@ -10,11 +10,11 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 222 across 34 Kotlin files.
+Total entries: 224 across 36 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
-| M6-B | 51 |
+| M6-B | 52 |
 | M6-C | 1 |
 | M6-D | 3 |
 | M6-E | 44 |
@@ -26,7 +26,7 @@ Total entries: 222 across 34 Kotlin files.
 | D09-3 | 2 |
 | D11-ci5 | 3 |
 | D11-wire-a | 1 |
-| D11-wm9 | 25 |
+| D11-wm9 | 26 |
 | PP-10 | 1 |
 | PP-12 | 9 |
 | PP-17 | 9 |
@@ -34,12 +34,13 @@ Total entries: 222 across 34 Kotlin files.
 | PP-9 | 1 |
 | unassigned | 12 |
 
-## M6-B (51)
+## M6-B (52)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `suspendSaveHook` | Stand-ins, until the state exists (M6-B: `gActionData`, menu override; M6-H: traps, convoy; M6-I: world map info, dungeon state): `gActionData` is the [SuspendRam.actionData] buffer (zeros apart fr... |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `unitLookup` | Cursor / camera commands: the camera moves and the cursor proc runs; SetSomeRealCamPos and RenderBmMap keep the default no-op stand-ins (M6-B). |
+| `game/src/commonMain/kotlin/fe8/game/WorldMapBoot.kt` | `loadLegacyUiFrameGraphics` | Stand-in until M6-B: `LoadLegacyUiFrameGraphics` (BG UI frame tiles) is not ported. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `clearActiveFactionGrayedStates` | Stand-in until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `poisonDamageDisplay` | Stand-in until M6-B: ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `statusDecayDisplay` | Stand-in until M6-B: ends at once. |
@@ -258,13 +259,14 @@ Total entries: 222 across 34 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet). |
 
-## D11-wm9 (25)
+## D11-wm9 (26)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `NO_WORLD_MAP_NODES` | World map stand-in until the world map is ported (D11-wm9): no node holds a chapter. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `blendSetup` | Stand-in until D11-wm9 (the buffer is then shared with [GameControl]). |
-| `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `endWorldMap` | Stand-in until D11-wm9. |
+| `game/src/commonMain/kotlin/fe8/game/WorldMapBoot.kt` | `WorldMapBoot` | Every callee that is not ported stays a stand-in (see the `Hooks` of the classes used and docs/plans/D11-worldmap.md section 8g). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapApHost.kt` | `WorldMapApHost` | Stand-in until D11-wm9 gets a real transfer registry for the world map. @param rom the ROM (objects, sine table, tiles) @param hw OBJ VRAM and the display mode @param oam the OAM buffer that holds... |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `Hooks` | All default to nothing; the defaults are stand-ins until D11-wm9 replaces them. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `apProcDeleteAll` | `APProc_DeleteAll()` (stand-in until D11-wm9). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `clearHblank` | `SetSecondaryHBlankHandler(NULL)`, `ClearWmHblank()`, `SetPrimaryHBlankHandler(NULL)` (stand-in until D11-wm9). |

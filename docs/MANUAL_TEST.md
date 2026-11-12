@@ -20,10 +20,23 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
   2. Repeat and press START during the monologue (try early, mid and late). Expected: the music fades
      out quickly (about 20 frames), the screen fades to black in about 10 frames, then the castle
      scene starts.
-  - Limits: the world map that follows the monologue in the original is not wired (D11-wm9), so the
-     castle scene starts straight after it, and the original's two BGM fades just after the
-     monologue are missing. The timing runs about 6 frames short of the original (scene setup runs
-     atomically). Report anything that looks different from the monologue on the original game.
+  - Limits: the timing runs about 6 frames short of the original (scene setup runs atomically).
+     Report anything that looks different from the monologue on the original game. The world map
+     that follows is the next entry.
+
+- **D11-wm9 Prologue world map (New Game):**
+  1. From the title press START (New Game), let the monologue end (do not press anything for
+     about 10 more seconds after the last card). Expected: the music fades out, then the big
+     Magvel map appears (the screen was black before, the narration box shows at the bottom),
+     with the narration text paging by itself or with A, the map scrolling to different regions,
+     the nations being highlighted one after another with the portraits of their rulers at the
+     side, and then the picture fading to black and the castle scene starting. The whole map
+     takes about a minute on the phone.
+  - Limits (all known): the map sprites are not drawn yet (units move invisibly, no node icons, no
+     dots); the narration box scanline effect and sound effects of the map are
+     missing. The text speed follows the A button: hold A to speed it up. Report a crash or a
+     stuck black screen on the world map, and anything that looks clearly different from the
+     original (the order of the highlighted nations, the portraits, the text).
 
 - **PP-0a hover cursor (owner device report 11-11):**
   1. Boot into New Game or resume a Prologue save (turn 1 map).
@@ -51,8 +64,8 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
 
 These are known gaps; re-test them only when a relevant change is announced:
 
-- D-11: the monologue is wired (see Test now); the world map between it and the castle scene and the
-  world-map portrait ports remain unwired (D11-wm9).
+- D-11: the monologue and the world map are wired (see Test now); the map sprites and the unit
+  commands (D11-wm8e) are not.
 - Missing unit selection, actions, menus and inventory (M6-B, M6-H), combat (M6-C), enemy turns (M6-D), save/difficulty
   menus (M6-E) and the Seth/Valter battle animation (M6-G). Combat will resolve instantly until M6-G.
   Cursor movement works; New Game currently uses Normal difficulty.

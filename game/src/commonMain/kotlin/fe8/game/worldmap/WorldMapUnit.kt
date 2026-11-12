@@ -19,6 +19,31 @@ import gbafe.render.ApHandle
 import gbafe.render.BgHardware
 import gbafe.render.SpriteAnimPlayer
 
+/**
+ * `SetStandingMuFacingWM(frameId, dst)`; a `fun interface` rather than a lambda type, so the
+ * per-frame call does not box its arguments.
+ */
+public fun interface SetStandingMuFacing {
+    /** Sets the facing of the standing MU frame [frameId] at the GBA VRAM address [dst]. */
+    public operator fun invoke(frameId: Int, dst: Int)
+}
+
+/**
+ * `SMS_DisplayOne(class, layer, x, y, oam2, isBlend)`, a `fun interface` for the same reason as
+ * [SetStandingMuFacing].
+ */
+public fun interface SmsDisplayOne {
+    /** Draws the standing sprite of [classId]. */
+    public operator fun invoke(
+        classId: Int,
+        layer: Int,
+        x: Int,
+        y: Int,
+        oam2: Int,
+        blend: Boolean,
+    )
+}
+
 /** `struct GMapUnitProc` past `PROC_HEADER` (one map sprite of the world map). */
 public class GmapUnitProc {
     /** `flags` (+0x2A, `u16`): `GMAPUNIT_FLAG_*`. */
@@ -129,11 +154,9 @@ public class WorldMapUnit(
         /** `StartWorldMapSMS(smsId, frameId, slot)`. */
         public val startWorldMapSms: (smsId: Int, frameId: Int, slot: Int) -> Unit = { _, _, _ -> },
         /** `SetStandingMuFacingWM(frameId, (u8 *)dst)`: [dst] is a GBA VRAM address. */
-        public val setStandingMuFacingWm: (frameId: Int, dst: Int) -> Unit = { _, _ -> },
+        public val setStandingMuFacingWm: SetStandingMuFacing = SetStandingMuFacing { _, _ -> },
         /** `SMS_DisplayOne(class, layer, x, y, oam2, isBlend)`. */
-        public val smsDisplayOne: (
-            classId: Int, layer: Int, x: Int, y: Int, oam2: Int, blend: Boolean,
-        ) -> Unit = { _, _, _, _, _, _ -> },
+        public val smsDisplayOne: SmsDisplayOne = SmsDisplayOne { _, _, _, _, _, _ -> },
         /** `Decompress(img, GetMapUnitMMSGfxBuffer(index))`. */
         public val decompressMuGfx: (img: Int, index: Int) -> Unit = { _, _ -> },
         /** `GmapRm_GetPosition` (used while `gGMData.state.bits.state_3` is set). */

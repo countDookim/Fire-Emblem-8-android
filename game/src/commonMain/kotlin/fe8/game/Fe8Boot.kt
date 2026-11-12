@@ -986,6 +986,16 @@ public class Fe8Boot(
         )
     }
 
+    /** The Prologue world map (D11-wm9); needs the whole ROM, built when the game reaches it. */
+    private val worldMapBoot: WorldMapBoot by lazy {
+        bmapMain // builds the unit sprites the world map shares
+        WorldMapBoot(
+            engine, hw, rom, control.playSt, gmData, loop.bmSt, keys, loop.sprites, loop.oam,
+            units, eventEngine, eventState, flags, eventTextHost, eventText, screenFade,
+            control.sound, talkScene, mu, { unitSprites }, battleChapters,
+        ).also { it.wire() }
+    }
+
     /** The title screen. */
     public val title: TitleScreen =
         BootRom.titleScreen(rom, engine, hw, opAnim.sprites, keys, control).also { titleRef = it }
@@ -1040,6 +1050,8 @@ public class Fe8Boot(
         if (rom.isWholeRom) control.hooks.startSaveMenu = ProcFunc { newGameSaveMenu() }
         if (rom.isWholeRom) {
             control.hooks.startIntroMonologue = ProcFunc { opSubtitle.startBlocking(it) }
+            control.hooks.worldMapWrapperProvider = { worldMapBoot.wrapperScript }
+            control.hooks.endWorldMap = ProcFunc { worldMapBoot.endWm(it) }
         }
         control.sound.setDefaultMaxNumChannels() // AgbMain, after m4aSoundInit
         control.hooks.gmDataInit = ProcFunc { gmData.init() }

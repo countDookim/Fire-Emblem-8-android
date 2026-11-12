@@ -38,7 +38,7 @@ class NewGameToPrologueTest {
         )
         var reached = -1
         val trail = StringBuilder()
-        while (frame < 16000) { // includes the ~3700-frame opening monologue
+        while (frame < 24000) { // includes the ~3700-frame opening monologue and the ~3400-frame world map
             boot.frame()
             frame++
             if (frame % 100 == 0) {
@@ -117,9 +117,11 @@ class NewGameToPrologueTest {
             { if (!events && frame % 20 in 5..8) 0x0001 else 0 },
             RngService(),
         )
-        while (frame < 7000 && !boot.eventEngine.eventEngineExists()) {
+        var mapSeen = false
+        while (frame < 14000 && !(mapSeen && boot.eventEngine.eventEngineExists() && !inMap(boot))) {
             boot.frame()
             frame++
+            if (inMap(boot)) mapSeen = true
         }
         events = true
         var handleFrames = 0
@@ -180,9 +182,11 @@ class NewGameToPrologueTest {
         )
         // Phase 1 (A presses) runs until the beginning events start: with the game locked
         // during events, player phase only starts after they end.
-        while (frame < 7000 && !boot.eventEngine.eventEngineExists()) {
+        var mapSeen = false
+        while (frame < 14000 && !(mapSeen && boot.eventEngine.eventEngineExists() && !inMap(boot))) {
             boot.frame()
             frame++
+            if (inMap(boot)) mapSeen = true
         }
         phase2 = true
         var frames = 0
@@ -200,4 +204,8 @@ class NewGameToPrologueTest {
     }
 
     private class Run(val skipped: Boolean, val ended: Boolean, val frames: Int)
+
+    /** The world map runs (its own beginning event is not the castle scene's). */
+    private fun inMap(boot: Fe8Boot) =
+        boot.engine.procs.any { it.script?.name == "ProcScr_WorldMapMain" }
 }

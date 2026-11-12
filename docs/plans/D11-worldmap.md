@@ -410,3 +410,27 @@ registers and `sFaceConfig`; at r09330 `gGMData` and `sFaceConfig`.
   `ResetWorldMapScreen`, the rest stay stand-ins); `GameControl.Hooks.worldMapWrapperScript` = `WorldMapMain.wrapperScript`,
   `GameControl.Hooks.endWorldMap` -> `WorldMapExit.endWm` (with `Hooks.resetDialogueScreen` = `EventTextTalkHost.clearTalkBubble` +
   `resetAllFaces`); `EventEngineHooks.eventEndCleanup` = `EventText.endTextFaces`.
+
+### 8g. D11-wm9: the Prologue world map wired into `Fe8Boot`
+
+`WorldMapBoot` (game, internal; built lazily by `Fe8Boot.worldMapBoot` when game control reaches the wrapper; whole ROM only)
+builds every service and wires: `GameControl.Hooks.worldMapWrapperProvider` (new; wins over `worldMapWrapperScript`) and
+`endWorldMap` -> `WorldMapExit.endWm`, the real `ProcScr_WorldMapMain` (prefix + `WorldMap_Init` + `WorldMapMainScript` tail),
+the beginning event's opcodes registered on `eventEngine` (0x13, 0x80-0x89, 0x9E-0xAC, 0xAF-0xB4, 0xB6-0xBA, 0xBB-0xBE,
+0xC1-0xC7, 0xC9; 9E-AC and BB-BE are D11-wm8e's handlers with `WorldMapAutoMu`/`WorldMapDot` wired), `GmapRm` route flags -> the real route proc,
+`EventEngineHooks.eventEndCleanup` (already real) for the `ResetFaces` restore. `WorldMap_Init` is transcribed in
+`WorldMapBoot` (with `sub_80B9028`/`sub_80B90CC`); `TalkScene.spriteTextClear` now calls the text system (sprite talk).
+- Stand-ins (all unchanged, hooks default): SMS drawing of map units (`SMS_DisplayOne`, `StartWorldMapSMS`: units are
+  invisible), `Register2dChrMove` of RAM sources, the HBlank text-box effect, spline movers, step sounds, `MapRoute_80BC2DC`,
+  `WmRemoveRandomMonsters`, minimap / player interface ends, `ResetText`, `LoadLegacyUiFrameGraphics`, `Sound_FadeOutSE`.
+- Boot frame `f` vs `ram_trace_prologue` step: the first boot frame with `ProcScr_WorldMapMain` is step 4902 (the original's
+  `WorldMap_Init` spans 4899-4901), then step = frame offset + n except the lag steps 4944-4947. The boot's world map is
+  ~4400 frames like the original's 4410 (4899-9313) once the unit/dot opcodes run (3430 with them stubbed). `WorldMapBootTest`: proc trees at
+  4902..4943 (every step), 4948, 4950, 4980, 5010, 5040, 5060, 5090 (no A held: A speeds STAL up) and at the exit
+  (aligned on the main proc reaching command 106 = step 9288, then 9288..9313, shared procs only); steady world-map
+  frames (text phase excluded) allocate 0 B with m4a running (`GmapUnit` hooks became `fun interface`s: boxing; the position
+  pair is cached).
+- The two BGM fades after the monologue (`_FadeBgmOut(1)` and `Sound_FadeOutBGM(4)` of `WorldMap_CallBeginningEvent`) are wired:
+  3 frames earlier than the capture's +24/+29 (`WorldMap_Init` atomic); `OpSubtitleBootTest` compares frame c with capture
+  frame c + 3 from start + 21.
+- Boot tests: frame budgets 16000/20000 -> 24000/26000 (player phase now at ~15500).

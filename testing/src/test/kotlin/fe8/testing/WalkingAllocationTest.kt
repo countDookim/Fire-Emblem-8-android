@@ -39,7 +39,7 @@ class WalkingAllocationTest {
         var windowBytes = 0L
         var windows = 0
         var zeroWindows = 0
-        while (frame < 16000 &&
+        while (frame < 24000 &&
             (frame < 1000 || boot.engine.find(boot.playerPhaseScript) == null ||
                 boot.eventEngine.eventEngineExists())
         ) {

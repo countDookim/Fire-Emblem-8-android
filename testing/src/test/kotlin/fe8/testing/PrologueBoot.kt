@@ -57,11 +57,11 @@ internal class PrologueBoot(
      */
     fun reachIdle(): Boolean {
         // The beginning events show their dialogue now: A keeps paging it until they end.
-        while (frame < 16000 && boot.engine.find(boot.playerPhaseScript) == null) {
+        while (frame < 24000 && boot.engine.find(boot.playerPhaseScript) == null) {
             advance()
         }
         var guard = 0
-        while (boot.eventEngine.eventEngineExists() && guard++ < 16000) {
+        while (boot.eventEngine.eventEngineExists() && guard++ < 24000) {
             advance()
         }
         idle = true

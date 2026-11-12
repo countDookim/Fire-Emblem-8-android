@@ -152,11 +152,17 @@ class OpSubtitleBootTest {
                 if (node != null) assertEquals(node.scrCur, ours!!.scrCur, "$start tick $j cursor")
                 // After the end the game control proc runs on (it may block again at once).
                 if (node != null) assertEquals(1, parent.lockCnt, "$start tick $j lock")
-                // From start + 24 the original's next code (the world map start, D11-wm9) begins
-                // its own BGM fades; they are not wired yet.
-                if (j >= pressTick && c <= start + 23) {
+                // From start + 21 the wired world map (D11-wm9) begins its own BGM fades
+                // (`_FadeBgmOut(1)`, then `Sound_FadeOutBGM(4)`): the original's start at +24 and
+                // +29. The port's `WorldMap_Init` is atomic where the original's spans the three
+                // steps 4899-4901, so those fades come 3 frames earlier: frame c is compared
+                // with the capture's frame c + 3 from there on.
+                if (j >= pressTick && c <= start + 26) {
+                    val captured = if (c >= start + 21) c + 3 else c
                     // The BGM players fade as in the capture (tick before the procs, dump after).
-                    val expected = M4aRam.sound(dumps.region("r%05d".format(c), "iwram")).first[0]
+                    val expected = M4aRam.sound(
+                        dumps.region("r%05d".format(captured), "iwram"),
+                    ).first[0]
                     val ours0 = run.boot.m4a!!.players[0]
                     assertEquals(
                         listOf(expected.fadeOI, expected.fadeOC, expected.fadeOV),
@@ -213,7 +219,9 @@ class OpSubtitleBootTest {
             assertEquals(emptyList<String>(), allocating, "bytes allocated in steady frames")
         }
         assertEquals(6, plan.spans, "original frames spent inside atomic scene-setup callbacks")
-        assertEquals(0, parent.lockCnt, "game control released")
+        // Released by the monologue, then blocked at once by the world map wrapper (the trace's
+        // game control has lock 1 at step 4898, too).
+        assertEquals(1, parent.lockCnt, "game control blocked by the world map wrapper")
     }
 
     private companion object {

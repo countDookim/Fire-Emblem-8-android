@@ -36,6 +36,24 @@ public class WorldMapMainProc {
     /** `gm_icon` (+0x48): the `ProcScr_GmNodeIconDisplay` proc. */
     public var gmIcon: GmNodeIconDisplayProc = GmNodeIconDisplayProc()
 
+    /** `gm_screen` (+0x34): the `ProcScr_GMapScreen` proc (set by `WorldMap_Init`). */
+    public var gmScreen: Proc? = null
+
+    /** `gm_unitc`: the `ProcScr_GmapUnitContainer` proc. */
+    public var gmUnitc: Proc? = null
+
+    /** `gm_cursor`: the `gProcScr_GmapCursor` proc. */
+    public var gmCursor: Proc? = null
+
+    /** `gm_mu`: the `ProcScr_GMapMu` proc. */
+    public var gmMu: Proc? = null
+
+    /** The `ProcScr_GmNodeIconDisplay` proc behind [gmIcon]. */
+    public var gmIconProc: Proc? = null
+
+    /** `delay_timer`, cleared by `WorldMap_Init`. */
+    public var delayTimer: Int = 0
+
     /** `unk_3a` (+0x3A), cleared by `sub_80B8E60`. */
     public var unk3a: Int = 0
 

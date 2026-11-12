@@ -82,7 +82,7 @@ class AppRomPathTest {
             }
         }
         var reached = -1
-        while (frame < 20000 && (reached < 0 || frame < reached + 300)) {
+        while (frame < 26000 && (reached < 0 || frame < reached + 300)) {
             if (pressAt == Int.MAX_VALUE &&
                 boot.engine.procs.any { it.script?.name == "gProcScr_DrawTitleSprites" }
             ) {

@@ -29,7 +29,7 @@ class OpeningStubCommandsTest {
         val counts = TreeMap<Int, Int>()
         boot.onEventStub = { counts.merge(it, 1, Int::plus) }
         var reached = false
-        while (frame < 16000 && !reached) { // includes the ~3700-frame opening monologue
+        while (frame < 24000 && !reached) { // includes the ~3700-frame opening monologue and the ~3400-frame world map
             boot.frame()
             frame++
             reached = boot.engine.find(boot.playerPhaseScript) != null

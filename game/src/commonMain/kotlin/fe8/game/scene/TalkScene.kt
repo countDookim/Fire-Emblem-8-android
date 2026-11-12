@@ -500,7 +500,7 @@ public class TalkScene(
     }
 
     override fun spriteTextClear(text: Text) {
-        throw NotImplementedError("not ported: sprite talk")
+        this.text.spriteTextClear(text)
     }
 
     // --- TalkFaceHost

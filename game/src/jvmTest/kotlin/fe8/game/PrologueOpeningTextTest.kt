@@ -60,10 +60,16 @@ class PrologueOpeningTextTest {
         val hw = boot.ui.env.hardware
         var compared = 0
         var maxText = 0
-        while (frame < 12000 && (started < 0 || frame - started < LAST - FIRST)) {
+        var mapSeen = false
+        while (frame < 24000 && (started < 0 || frame - started < LAST - FIRST)) {
             boot.frame()
             frame++
-            if (started < 0 && boot.engine.find(boot.talkScene.talk.talkScript) != null) {
+            val inMap = boot.engine.procs.any { it.script?.name == "ProcScr_WorldMapMain" }
+            if (inMap) mapSeen = true
+            // The world map's narration is a talk, too: the castle scene's talk comes after it.
+            if (started < 0 && mapSeen && !inMap &&
+                boot.engine.find(boot.talkScene.talk.talkScript) != null
+            ) {
                 started = frame
             }
             if (started < 0) continue

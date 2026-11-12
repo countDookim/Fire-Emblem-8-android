@@ -152,7 +152,9 @@ public class GameControl(
             call(ProcFunc { rememberChapterId(it) }),
             call(ProcFunc { startIntroMonologue(it) }),
             yield(),
-            startChildBlocking { hooks.worldMapWrapperScript },
+            startChildBlocking {
+                hooks.worldMapWrapperProvider?.invoke() ?: hooks.worldMapWrapperScript
+            },
             call(ProcFunc { hooks.endWorldMap.invoke(it) }),
             call(ProcFunc { sub8009E28(it) }),
             yield(),
@@ -391,7 +393,12 @@ public class GameControl(
         public var sub8009A84: ProcFunc = ProcFunc { },
         /** `StartBattleMap`; `Fe8Boot` sets the port of `StartBattleMap`. */
         public var startBattleMap: ProcFunc = ProcFunc { },
-        /** `EndWM`. Stand-in until D11-wm9. */
+        /**
+         * Builds [worldMapWrapperScript] on demand (the world map needs the whole ROM and its
+         * talk system, which a boot that never reaches it must not build); wins over it.
+         */
+        public var worldMapWrapperProvider: (() -> ProcScript)? = null,
+        /** `EndWM`. */
         public var endWorldMap: ProcFunc = ProcFunc { },
         /** `GameControl_ChapterSwitch`. Stand-in until M6-E. */
         public var chapterSwitch: ProcFunc = ProcFunc { },

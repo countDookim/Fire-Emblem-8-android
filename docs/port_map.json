@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1082,
+    "verified": 1090,
     "implemented_unverified": 23
   },
   "functions": {
@@ -1621,6 +1621,16 @@
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
+    "DisplayUnitStandingAttackRange": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
     "DrawHpBar": {
       "decomp_file": "src/player_interface.c",
       "system": "menus",
@@ -2999,7 +3009,7 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -3024,6 +3034,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.MovementMapDifferentialTest#select flood matches the game"
+      ]
+    },
+    "GenerateUnitStandingReachRange": {
+      "decomp_file": "src/bmidoten.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/AttackRange.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "GetAutoleveledStatIncrease": {
@@ -3899,7 +3919,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/AttackRange.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.AttackRangeDifferentialTest#select attack range matches the game"
+        "fe8.testing.AttackRangeDifferentialTest#select attack range matches the game",
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "GetWMCenteredCameraPosition": {
@@ -4710,6 +4731,16 @@
         "fe8.testing.MoveLimitViewDifferentialTest#attack range squares match the game",
         "fe8.testing.MoveLimitViewDifferentialTest#cancel_end range squares match the game",
         "fe8.testing.MoveLimitViewDifferentialTest#select_move range squares match the game"
+      ]
+    },
+    "HideMoveRangeGraphicsWrapper": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "HideWmText": {
@@ -8107,6 +8138,16 @@
         "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
       ]
     },
+    "StartOrphanMenu": {
+      "decomp_file": "src/uimenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
     "StartOrphanMenuAdjusted": {
       "decomp_file": "src/uimenu.c",
       "system": "menus",
@@ -8216,6 +8257,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TitleScreenDifferentialTest#title screen start matches the per-frame RAM trace"
+      ]
+    },
+    "StartUnitWeaponSelect": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "StartWmDotPalAnim": {
@@ -8795,6 +8846,16 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "UnitActionMenu_Attack": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
     "UnitAddItem": {
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
@@ -9050,6 +9111,26 @@
       "status": "verified",
       "tests": [
         "fe8.testing.OpSubtitleProcDifferentialTest#continuous playback follows the original parent through the first cards"
+      ]
+    },
+    "WeaponSelectMenu_IsAvailable": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
+    "WeaponSelectMenu_SwitchIn": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "WipeSram": {

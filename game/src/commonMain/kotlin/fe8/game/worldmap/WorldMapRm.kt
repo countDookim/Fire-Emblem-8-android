@@ -18,12 +18,21 @@ import gbafe.proc.ProcScripts.yield
 import gbafe.render.BgHardware
 import gbafe.render.BgTilemap
 
-/** The fields of `struct ProcGmapRm` ported so far. */
+/**
+ * Per-proc state of the full-screen "big map" proc `ProcScr_GmapRM`: the fields of
+ * `struct ProcGmapRm` (include/worldmap.h) ported so far. The decomp's `gm_mu` (+0x54) is not
+ * kept here; [WorldMapRm.Hooks.removeMuUnit] stands in for the call that uses it.
+ */
 public class GmapRmProc {
-    /** `flag` (+0x29, `GMAPRM_FLAG_*` bits). */
+    /**
+     * `flag` (+0x29, `GMAPRM_FLAG_*` bits). [WorldMapRm.FLAG_0] set: fade the big map in when it
+     * appears. [WorldMapRm.FLAG_1] set: fade it back out to the normal world map when it is
+     * unblocked. [WorldMapRm.FLAG_UNBLOCK] set: stop waiting and leave. [WorldMapRm.FLAG_3] set:
+     * the party leader's map unit was visible before the big map and is shown again on leaving.
+     */
     public var flag: Int = 0
 
-    /** `timer` (+0x2A). */
+    /** `timer` (+0x2A): frames into the current blend-in or blend-out. */
     public var timer: Int = 0
 
     /** `x` (+0x2E, `s16`): the BG1 scroll x. */
@@ -33,35 +42,42 @@ public class GmapRmProc {
     public var y: Int = 0
 }
 
-/** The fields of `struct ProcGmapRmUpdate`. */
+/**
+ * Per-proc state of the big map scroll `ProcScr_GmapRmUpdateExt`: the fields of
+ * `struct ProcGmapRmUpdate` (include/worldmap.h), the scroll from `(x0, y0)` to `(x1, y1)` that
+ * the event command `EventB6_WmMoveBigMap` starts.
+ */
 public class GmapRmUpdateProc {
-    /** `x0` (+0x2A, `s16`). */
+    /** `x0` (+0x2A, `s16`): start scroll x. */
     public var x0: Int = 0
 
-    /** `y0` (+0x2C, `s16`). */
+    /** `y0` (+0x2C, `s16`): start scroll y. */
     public var y0: Int = 0
 
-    /** `x1` (+0x2E, `s16`). */
+    /** `x1` (+0x2E, `s16`): end scroll x. */
     public var x1: Int = 0
 
-    /** `y1` (+0x30, `s16`). */
+    /** `y1` (+0x30, `s16`): end scroll y. */
     public var y1: Int = 0
 
-    /** `delay` (+0x32, `s16`). */
+    /** `delay` (+0x32, `s16`): frames to wait before the scroll starts. */
     public var delay: Int = 0
 
-    /** `timer` (+0x34, `s16`). */
+    /** `timer` (+0x34, `s16`): frames scrolled so far. */
     public var timer: Int = 0
 
-    /** `speed` (+0x36, `s16`). */
+    /** `speed` (+0x36, `s16`): length of the scroll in frames. */
     public var speed: Int = 0
 }
 
 /**
- * The big map BG of the world map (`src/worldmap_rm.c`: `ProcScr_GmapRM`, its BG scroll updaters
- * `ProcScr_GmapRmUpdateDirect` / `ProcScr_GmapRmUpdateExt`). The nation border highlight proc
- * `GmapRmBorder1` is in [WorldMapRmBorder], the blend pulse `GmapRmBaPalAnim1` in
- * [WorldMapRmBaPalAnim].
+ * The full-screen "big map" the world map events show over the normal world map (the event
+ * commands `EventB4_WmDisplayBigMap`, `EventB5_WmHideBigMap`, `EventB6_WmMoveBigMap` and
+ * `EventB7_WmBigMapWait`, `src/eventscr_gmap.c`): `src/worldmap_rm.c` `ProcScr_GmapRM`, its BG
+ * scroll updaters `ProcScr_GmapRmUpdateDirect` / `ProcScr_GmapRmUpdateExt`. While it shows, the
+ * big map image is on BG1, the node icons are not drawn and the leader's map unit is hidden. The
+ * nation border highlight proc `GmapRmBorder1` is in [WorldMapRmBorder], the blend pulse
+ * `GmapRmBaPalAnim1` in [WorldMapRmBaPalAnim].
  *
  * @param engine the proc scheduler
  * @param hardware BG registers, tilemap buffers, VRAM and palette
@@ -76,33 +92,42 @@ public class WorldMapRm(
     private val gmData: GmData,
     private val hooks: Hooks = Hooks(),
 ) {
-    /** `gGenericBuffer` (0x2000 bytes): scratch for the tilemap decompression. */
+    /** `gGenericBuffer` (0x2000 bytes): scratch the big map's tile map is decompressed into. */
     private val genericBuffer = ByteArray(GENERIC_BUFFER_SIZE)
 
-    /** Callees of `worldmap_rm.c` that are not ported yet; each defaults to doing nothing. */
+    /**
+     * Callees of `worldmap_rm.c` that are not ported yet; each defaults to doing nothing. Note
+     * the decomp's `GmNodeIconDisplayProc.skip` is inverted in effect: `GmapScreen2_Loop` draws
+     * the node icons only while `skip` is 1 (src/worldmap_screen2.c:180), so [skipNodeIcon]
+     * turns the icons on and [unskipNodeIcon] turns them off.
+     */
     public class Hooks(
-        /** `GM_SCREEN->gmroute->flags = (flags & ~clear) | set`. */
+        /**
+         * `GM_SCREEN->gmroute->flags = (flags & ~clear) | set` on the route state's
+         * `GM_ROUTE_FLAG_*` bits (their meaning is not documented in the decomp).
+         */
         public val updateRouteFlags: (clear: Int, set: Int) -> Unit = { _, _ -> },
-        /** `SkipGmNodeIconDisplay(GM_ICON)`. */
+        /** `SkipGmNodeIconDisplay(GM_ICON)`: sets `skip = 1`, so the node icons are drawn. */
         public val skipNodeIcon: () -> Unit = {},
-        /** `UnskipGmNodeIconDisplay(GM_ICON)`. */
+        /** `UnskipGmNodeIconDisplay(GM_ICON)`: sets `skip = 0`, so no node icons are drawn. */
         public val unskipNodeIcon: () -> Unit = {},
-        /** `SetupGmapNodeGfx()`. */
+        /** `SetupGmapNodeGfx()`: reloads the node icon graphics. */
         public val setupGmapNodeGfx: () -> Unit = {},
-        /** `LoadObjUIGfx()`. */
+        /** `LoadObjUIGfx()`: reloads the shared OBJ UI graphics. */
         public val loadObjUiGfx: () -> Unit = {},
-        /** `LoadLegacyUiFrameGraphics()`. */
+        /** `LoadLegacyUiFrameGraphics()`: reloads the UI window frame graphics. */
         public val loadLegacyUiFrameGraphics: () -> Unit = {},
-        /** `GmMu_RemoveUnit(proc->gm_mu, unit)`. */
+        /** `GmMu_RemoveUnit(proc->gm_mu, unit)`: removes one world map unit's map sprite. */
         public val removeMuUnit: (unit: Int) -> Unit = {},
-        /** `GmHideMuUnit(GM_MU, WM_MU_0)`. */
+        /** `GmHideMuUnit(GM_MU, WM_MU_0)`: hides the party leader's map sprite. */
         public val hideLeaderMu: () -> Unit = {},
-        /** `GmShowMuUnit(GM_MU, WM_MU_0)`. */
+        /** `GmShowMuUnit(GM_MU, WM_MU_0)`: shows the party leader's map sprite again. */
         public val showLeaderMu: () -> Unit = {},
     )
 
     /**
-     * `ProcScr_GmapRmUpdateDirect`: keeps the BG1 scroll at the `ProcScr_GmapRM` position.
+     * `ProcScr_GmapRmUpdateDirect`: child of the big map proc that copies its position to the
+     * BG1 scroll every frame, so the big map scrolls as [gmapRmSetPosition] moves it.
      *
      * Transcribed from src/worldmap_rm.c: ProcScr_GmapRmUpdateDirect (not verified: script order
      * checked against the `procs` capture in WorldMapRmTest)
@@ -118,8 +143,8 @@ public class WorldMapRm(
     )
 
     /**
-     * `ProcScr_GmapRmUpdateExt`: scrolls the `ProcScr_GmapRM` position from `(x0, y0)` to `(x1,
-     * y1)`.
+     * `ProcScr_GmapRmUpdateExt`: waits `delay` frames, then eases the big map's position from
+     * `(x0, y0)` to `(x1, y1)` over `speed` frames (the scroll of `EventB6_WmMoveBigMap`).
      *
      * Transcribed from src/worldmap_rm.c: ProcScr_GmapRmUpdateExt (not verified: script order
      * checked against the `procs` capture in WorldMapRmTest)
@@ -139,7 +164,9 @@ public class WorldMapRm(
     ) { GmapRmUpdateProc() }
 
     /**
-     * `ProcScr_GmapRM`: shows the big map BG until `GMAPRM_FLAG_UNBLOCK` is set.
+     * `ProcScr_GmapRM`: loads and shows the big map (fading it in if [FLAG_0]), waits until
+     * `GMAPRM_FLAG_UNBLOCK` is set (`EventB5_WmHideBigMap`), then (if [FLAG_1]) fades back to
+     * the normal world map; the end callback restores the world map screen.
      *
      * Transcribed from src/worldmap_rm.c: ProcScr_GmapRM (not verified: script order checked
      * against the `procs` capture in WorldMapRmTest)
@@ -157,24 +184,26 @@ public class WorldMapRm(
             call(ProcFunc { gmapRmInitBlend(it) }),
             repeat(ProcFunc { gmapRmBlendIn(it) }),
             label(LABEL_0),
-            call(ProcFunc { gmapRm80C2320(it) }),
+            call(ProcFunc { gmapRmEnterBigMapView(it) }),
             repeat(ProcFunc { gmapRmBlocking(it) }),
             call(ProcFunc { gmapRmGoto1IfFlag1(it) }),
-            call(ProcFunc { gmapRm80C214C(it) }),
+            call(ProcFunc { gmapRmReturnToWorldMap(it) }),
             sleep(1),
             repeat(ProcFunc { gmapRmBlendOut(it) }),
             label(LABEL_1),
-            call(ProcFunc { gmapRm80C2398(it) }),
+            call(ProcFunc { gmapRmFinish(it) }),
             end(),
         ),
     ) { GmapRmProc() }
 
+    /** The [GmapRmProc] state of a `ProcScr_GmapRM` proc. */
     private fun state(proc: Proc): GmapRmProc = proc.state as GmapRmProc
 
     /**
      * Ported from src/worldmap_rm.c: GmapRmUpdateDirect_Loop
      *
-     * Sets the BG1 scroll to the parent's position (the BG1 offsets at the `f` dumps match).
+     * Sets the BG1 scroll to the parent big map proc's position (the BG1 offsets at the `f`
+     * dumps match).
      */
     public fun gmapRmUpdateDirectLoop(proc: Proc) {
         val parent = state(checkNotNull(proc.parent))
@@ -183,8 +212,10 @@ public class WorldMapRm(
 
     /**
      * Transcribed from src/worldmap_rm.c: GmapRmUpdateExt_End (not verified: the update procs end
-     * with the
-     * position already at the target, so the write cannot be told from a no-op)
+     * with the position already at the target, so the write cannot be told from a no-op)
+     *
+     * End callback of [updateExtScript]: snaps the big map to `(x1, y1)`, so ending the scroll
+     * early (`EndGmapRmUpdateExt`) still leaves the map at its target.
      */
     public fun gmapRmUpdateExtEnd(proc: Proc) {
         val s = proc.state as GmapRmUpdateProc
@@ -193,10 +224,9 @@ public class WorldMapRm(
 
     /**
      * Transcribed from src/worldmap_rm.c: GmapRmUpdateExt_Delay (not verified: every captured
-     * delay is 0, so
-     * `<= 0` cannot be told from `< 0` after the decrement)
+     * delay is 0, so `<= 0` cannot be told from `< 0` after the decrement)
      *
-     * `PROC_REPEAT` callback: breaks once `--delay <= 0`.
+     * `PROC_REPEAT` callback: the wait before the scroll; breaks once `--delay <= 0`.
      */
     public fun gmapRmUpdateExtDelay(proc: Proc) {
         val s = proc.state as GmapRmUpdateProc
@@ -218,8 +248,9 @@ public class WorldMapRm(
     /**
      * Ported from src/worldmap_rm.c: GmapRmUpdateExt_ScrollPosition
      *
-     * One frame of the eased scroll (ease-in and ease-out of 0x800 each); ends the repeat at
-     * `speed`.
+     * One frame of the eased scroll: moves the position the fraction `sub_8014CA4(timer, speed,
+     * 0x800, 0x800)` (0x1000 = whole way, ease-in and ease-out of 0x800 each) of the way from
+     * `(x0, y0)` to `(x1, y1)`; at frame `speed` it lands on `(x1, y1)` and ends the repeat.
      */
     public fun gmapRmUpdateExtScrollPosition(proc: Proc) {
         val s = proc.state as GmapRmUpdateProc
@@ -238,6 +269,15 @@ public class WorldMapRm(
     /**
      * Ported from src/worldmap_rm.c: StartGmapRmUpdateExt
      *
+     * Starts the big map scroll of `EventB6_WmMoveBigMap`. Values are truncated to `s16` like
+     * the proc fields.
+     *
+     * @param x0 start scroll x
+     * @param y0 start scroll y
+     * @param x1 end scroll x
+     * @param y1 end scroll y
+     * @param speed length of the scroll in frames
+     * @param delay frames to wait before it starts
      * @param parent blocked until the scroll ends, or null for a tree 3 root
      */
     public fun startGmapRmUpdateExt(
@@ -267,6 +307,8 @@ public class WorldMapRm(
     /**
      * Transcribed from src/worldmap_rm.c: EndGmapRmUpdateExt (not verified: never called in the
      * capture).
+     *
+     * Ends every running big map scroll (each end callback snaps to its target).
      */
     public fun endGmapRmUpdateExt() {
         engine.endEach(updateExtScript)
@@ -274,8 +316,11 @@ public class WorldMapRm(
 
     /**
      * Transcribed from src/worldmap_rm.c: GmapRm_OnEnd (not verified: the capture's `GmapRM` ends
-     * the
-     * frame the trace stops showing its screen, and most callees are hooks)
+     * the frame the trace stops showing its screen, and most callees are hooks)
+     *
+     * End callback of [rmScript]: puts the normal world map screen back (route flags 4 and 3 set,
+     * node icons drawn, node and OBJ UI graphics reloaded, BG1 cleared, UI frame graphics
+     * reloaded, `state_3` off).
      */
     public fun gmapRmOnEnd(proc: Proc) {
         hooks.updateRouteFlags(0, 4)
@@ -289,17 +334,18 @@ public class WorldMapRm(
         gmData.state3 = false
     }
 
-    /** Transcribed from src/worldmap_rm.c: GmapRm_InitNop (not verified: a no-op). */
+    /** Transcribed from src/worldmap_rm.c: GmapRm_InitNop (not verified: an empty function). */
     public fun gmapRmInitNop() {
     }
 
     /**
      * Ported from src/worldmap_rm.c: GmapRm_StartUpdateDirect
      *
-     * Loads the big map: BG1 scrolled to the origin, `Img_EventGmap` to BG VRAM, its palette to
-     * banks
-     * 5-8, `Tsa_EventGmap` into the BG1 tilemap buffer (tile base 0x5000), then starts
-     * [updateDirectScript] as a child.
+     * Loads the big map: clears `GM_ROUTE_FLAG_2` (via the hook), BG1 scrolled to the origin,
+     * `Img_EventGmap` to BG VRAM, its palette `Pal_EventGmap` to palette banks 5-8,
+     * `Tsa_EventGmap` into the BG1 tilemap buffer, then starts [updateDirectScript] as a child.
+     * The tile map entries get 0x5000 added (`CallARM_FillTileRect`'s base), which sets palette
+     * bank 5 in bits 12-15 of every entry so they use the palette loaded above.
      */
     public fun gmapRmStartUpdateDirect(proc: Proc) {
         hooks.updateRouteFlags(ROUTE_FLAG_2, 0)
@@ -313,7 +359,11 @@ public class WorldMapRm(
         engine.start(updateDirectScript, proc)
     }
 
-    /** Ported from src/worldmap_rm.c: GmapRm_Goto0IfFlag0 */
+    /**
+     * Ported from src/worldmap_rm.c: GmapRm_Goto0IfFlag0
+     *
+     * Skips the blend-in (jumps to [LABEL_0]) unless [FLAG_0] is set.
+     */
     public fun gmapRmGoto0IfFlag0(proc: Proc) {
         if (state(proc).flag and FLAG_0 == 0) engine.goto(proc, LABEL_0)
     }
@@ -321,6 +371,8 @@ public class WorldMapRm(
     /**
      * Transcribed from src/worldmap_rm.c: GmapRm_Goto1IfFlag1 (not verified: runs after the
      * unblock).
+     *
+     * Skips the blend-out back to the world map (jumps to [LABEL_1]) unless [FLAG_1] is set.
      */
     public fun gmapRmGoto1IfFlag1(proc: Proc) {
         if (state(proc).flag and FLAG_1 == 0) engine.goto(proc, LABEL_1)
@@ -329,9 +381,9 @@ public class WorldMapRm(
     /**
      * Ported from src/worldmap_rm.c: GmapRm_Blocking
      *
-     * `PROC_REPEAT` callback: ends the repeat once `GMAPRM_FLAG_UNBLOCK` is set. The capture
-     * covers only
-     * the blocked branch (the proc stays at the repeat from step 4948 to 9285).
+     * `PROC_REPEAT` callback: the wait while the big map is shown; ends the repeat once
+     * `GMAPRM_FLAG_UNBLOCK` is set. The capture covers only the blocked branch (the proc stays
+     * at the repeat from step 4948 to 9285).
      */
     public fun gmapRmBlocking(proc: Proc) {
         if (state(proc).flag and FLAG_UNBLOCK != 0) engine.breakProc(proc)
@@ -339,8 +391,11 @@ public class WorldMapRm(
 
     /**
      * Transcribed from src/worldmap_rm.c: GmapRm_InitBlend (not verified: the capture's flag 0 is
-     * never
-     * set, so the blend-in branch of the script is skipped)
+     * never set, so the blend-in branch of the script is skipped)
+     *
+     * Starts the big map blend-in: alpha blending (`SetBlendConfig` effect 1) with BG1 (the big
+     * map) as the first target and BG2, BG3 and OBJ as the second, weights 0x10 / 0, all layers
+     * enabled, timer 0.
      */
     public fun gmapRmInitBlend(proc: Proc) {
         val lcd = hardware.lcd
@@ -351,7 +406,12 @@ public class WorldMapRm(
         state(proc).timer = 0
     }
 
-    /** Transcribed from src/worldmap_rm.c: GmapRm_BlendIn (not verified: see [gmapRmInitBlend]). */
+    /**
+     * Transcribed from src/worldmap_rm.c: GmapRm_BlendIn (not verified: see [gmapRmInitBlend]).
+     *
+     * `PROC_REPEAT` callback: 75 frames (`timer < 75`) of the blend ramp: the BG1 (big map) weight
+     * is `timer * 0x10 / 75` and the second target's `0x10` minus that, then ends the repeat.
+     */
     public fun gmapRmBlendIn(proc: Proc) {
         val s = state(proc)
         s.timer = (s.timer + 1) and 0xFFFF
@@ -365,10 +425,18 @@ public class WorldMapRm(
 
     /**
      * Transcribed from src/worldmap_rm.c: GmapRm_80C214C (not verified: only run after the
-     * unblock, past the
-     * frames the capture's screen dumps cover)
+     * unblock, past the frames the capture's screen dumps cover)
+     *
+     * Start of the way back to the normal world map (only with [FLAG_1]): reloads `Img_GmapPath`
+     * into BG VRAM at byte 0x5000 (where `worldmap_main.c:365` loads it for the world map;
+     * presumably because the big map image overwrote it, which the decomp does not state), sets
+     * `GM_ROUTE_FLAG_2`, `GM_ROUTE_FLAG_0` and `GM_ROUTE_FLAG_1`, draws the node icons, shows the
+     * leader's map unit again if [FLAG_3], restores BG priorities 0/1/3/3 and sets alpha blending
+     * (BG1 against BG2, BG3 and OBJ, BG1 weight 0x10) for [gmapRmBlendOut].
+     *
+     * Named `GmapRm_80C214C` in the decomp (placeholder).
      */
-    public fun gmapRm80C214C(proc: Proc) {
+    public fun gmapRmReturnToWorldMap(proc: Proc) {
         rom.decompressInto(IMG_GMAP_PATH, hardware.vram, PATH_VRAM_OFFSET)
         hooks.updateRouteFlags(0, ROUTE_FLAG_2)
         hooks.updateRouteFlags(0, 3)
@@ -385,7 +453,13 @@ public class WorldMapRm(
         state(proc).timer = 0
     }
 
-    /** Transcribed from src/worldmap_rm.c: GmapRm_BlendOut (not verified: see [gmapRm80C214C]). */
+    /**
+     * Transcribed from src/worldmap_rm.c: GmapRm_BlendOut (not verified: see
+     * [gmapRmReturnToWorldMap]).
+     *
+     * `PROC_REPEAT` callback: the 75-frame reverse of [gmapRmBlendIn] (the BG1 weight is
+     * `0x10 - timer * 0x10 / 75`), then ends the repeat.
+     */
     public fun gmapRmBlendOut(proc: Proc) {
         val s = state(proc)
         s.timer = (s.timer + 1) and 0xFFFF
@@ -400,11 +474,11 @@ public class WorldMapRm(
     /**
      * Ported from src/worldmap_rm.c: GmapRm_RemoveUnits
      *
-     * Removes every unit slot 2.. that is in use at the leader's location, sets `GMAPRM_FLAG_3`
-     * from the
-     * leader's `GM_UNIT_STATE_B0` and hides the leader's MU. The capture covers the flag and not
-     * the
-     * removal loop (no other unit shares the leader's node).
+     * Removes the map sprite of every other world map unit (slots `WM_MU_2` until `WM_MU_MAX`)
+     * that is in use and standing at the leader's (`WM_MU_0`) location, sets `GMAPRM_FLAG_3`
+     * from the leader's `GM_UNIT_STATE_B0` (meaning of that unit state bit unknown) and hides the
+     * leader's MU. The capture covers the flag and not the removal loop (no other unit shares
+     * the leader's node).
      */
     public fun gmapRmRemoveUnits(proc: Proc) {
         for (i in WM_MU_2 until WM_MU_MAX) {
@@ -423,7 +497,9 @@ public class WorldMapRm(
 
     /**
      * Transcribed from src/worldmap_rm.c: GmapRm_DisplayLeaderUnit (not verified: see
-     * [gmapRm80C214C]).
+     * [gmapRmReturnToWorldMap]).
+     *
+     * Shows the leader's map unit again if [FLAG_3] recorded it was visible.
      */
     public fun gmapRmDisplayLeaderUnit(proc: Proc) {
         if (state(proc).flag and FLAG_3 != 0) hooks.showLeaderMu()
@@ -432,9 +508,14 @@ public class WorldMapRm(
     /**
      * Ported from src/worldmap_rm.c: GmapRm_80C2320
      *
-     * Hides the node icon and units, sets BG priorities 0/3/1/3 and clears the BG2 tilemap.
+     * Switches the screen to "big map shown" once the fade-in is done: no node icons, other
+     * units removed and leader hidden ([gmapRmRemoveUnits]), BG priorities 0/3/1/3 (the cleared
+     * BG2 above the big map on BG1) and `state_3` set, which makes the world map face and effect
+     * code use BG2 (`worldmap_face.c:59`).
+     *
+     * Named `GmapRm_80C2320` in the decomp (placeholder).
      */
-    public fun gmapRm80C2320(proc: Proc) {
+    public fun gmapRmEnterBigMapView(proc: Proc) {
         hooks.unskipNodeIcon()
         hardware.lcd.setBlendConfig(0, 0x10, 0x10, 0)
         gmapRmRemoveUnits(proc)
@@ -445,9 +526,15 @@ public class WorldMapRm(
     }
 
     /**
-     * Transcribed from src/worldmap_rm.c: GmapRm_80C2398 (not verified: see [gmapRm80C214C])
+     * Transcribed from src/worldmap_rm.c: GmapRm_80C2398 (not verified: see
+     * [gmapRmReturnToWorldMap])
+     *
+     * Last step of [rmScript]: draws the node icons, shows the leader's map unit again if
+     * [FLAG_3], restores BG priorities 0/1/3/3, `state_3` off, and ends the scroll updater child.
+     *
+     * Named `GmapRm_80C2398` in the decomp (placeholder).
      */
-    public fun gmapRm80C2398(proc: Proc) {
+    public fun gmapRmFinish(proc: Proc) {
         hooks.skipNodeIcon()
         hardware.lcd.setBlendConfig(0, 0x10, 0x10, 0)
         gmapRmDisplayLeaderUnit(proc)
@@ -457,6 +544,10 @@ public class WorldMapRm(
         engine.endEach(updateDirectScript)
     }
 
+    /**
+     * Sets the draw priority (the low 2 bits of BGxCNT, `gLCDControlBuffer.bgNcnt.priority`; 0 is
+     * on top) of the four BGs.
+     */
     private fun setPriorities(bg0: Int, bg1: Int, bg2: Int, bg3: Int) {
         val cnt = hardware.lcd.bgCnt
         cnt[0] = (cnt[0] and 3.inv()) or bg0
@@ -468,6 +559,10 @@ public class WorldMapRm(
     /**
      * Ported from src/worldmap_rm.c: StartGmapRm
      *
+     * Starts the big map of `EventB4_WmDisplayBigMap`.
+     *
+     * @param x initial scroll x (`s16`)
+     * @param y initial scroll y (`s16`)
      * @param mask the initial flag bits (`GMAPRM_FLAG_UNBLOCK` is always cleared)
      * @param parent blocked until the map ends, or null for a tree 3 root
      */
@@ -484,7 +579,7 @@ public class WorldMapRm(
         return proc
     }
 
-    /** Ported from src/worldmap_rm.c: EndGmapRM */
+    /** Ported from src/worldmap_rm.c: EndGmapRM: ends the big map proc (its end callback runs). */
     public fun endGmapRm() {
         engine.endEach(rmScript)
     }
@@ -492,6 +587,8 @@ public class WorldMapRm(
     /**
      * Transcribed from src/worldmap_rm.c: GmapRMExists (not verified: only the event wait calls
      * it).
+     *
+     * Whether the big map is showing; `EventB7_WmBigMapWait` waits on it.
      */
     public fun gmapRmExists(): Boolean = engine.find(rmScript) != null
 
@@ -521,8 +618,7 @@ public class WorldMapRm(
 
     /**
      * Transcribed from src/worldmap_rm.c: GmapRm_SetUnblocked (not verified: the capture's map is
-     * ended
-     * by the event engine without the flag)
+     * ended by the event engine without the flag)
      *
      * Sets `GMAPRM_FLAG_UNBLOCK` on the first [rmScript] proc, letting [gmapRmBlocking] end.
      */
@@ -533,8 +629,10 @@ public class WorldMapRm(
 
     /**
      * Transcribed from src/worldmap_rm.c: GmapRm_EndAll (not verified: only the skipping branch of
-     * the
-     * event commands calls it)
+     * the event commands calls it)
+     *
+     * Ends the big map at once (event skip): restores the world map layer state like
+     * [gmapRmFinish], turns every layer off with `SetDispEnable(0, 0, 0, 0, 0)` and ends the proc.
      */
     public fun gmapRmEndAll() {
         val proc = engine.find(rmScript) ?: return
@@ -550,38 +648,53 @@ public class WorldMapRm(
 
     /** `worldmap_rm.c` constants. */
     public companion object {
-        /** `PROC_MARK_WMSTUFF`. */
+        /** `PROC_MARK_WMSTUFF`: proc mark shared by the world map procs (include/constants). */
         public const val PROC_MARK_WMSTUFF: Int = 8
 
-        /** `GMAPRM_FLAG_0`. */
+        /** `GMAPRM_FLAG_0`: fade the big map in when it starts. */
         public const val FLAG_0: Int = 1
 
-        /** `GMAPRM_FLAG_1`. */
+        /** `GMAPRM_FLAG_1`: fade back to the world map after the unblock. */
         public const val FLAG_1: Int = 2
 
-        /** `GMAPRM_FLAG_UNBLOCK`. */
+        /** `GMAPRM_FLAG_UNBLOCK`: set by [WorldMapRm.gmapRmSetUnblocked] to leave the big map. */
         public const val FLAG_UNBLOCK: Int = 4
 
-        /** `GMAPRM_FLAG_3`. */
+        /** `GMAPRM_FLAG_3`: the leader's map unit is shown again on leaving. */
         public const val FLAG_3: Int = 8
 
-        /** `GMAPRM_LABEL_0`. */
+        /** `GMAPRM_LABEL_0`: the wait, past the blend-in. */
         public const val LABEL_0: Int = 0
 
-        /** `GMAPRM_LABEL_1`. */
+        /** `GMAPRM_LABEL_1`: the end, past the blend-out. */
         public const val LABEL_1: Int = 1
 
+        /** `BG_1` / `BG_2` (include/bg.h). */
         private const val BG_1 = 1
         private const val BG_2 = 2
+
+        /** `BG1_SYNC_BIT` / `BG2_SYNC_BIT` (include/hardware.h): `1 << bg`. */
         private const val BG1_SYNC_BIT = 2
         private const val BG2_SYNC_BIT = 4
+
+        /** `GM_ROUTE_FLAG_2` (include/worldmap.h). */
         private const val ROUTE_FLAG_2 = 4
+
+        /** `GM_UNIT_STATE_B0`: bit 0 of a world map unit's state. */
         private const val GM_UNIT_STATE_B0 = 1
+
+        /** `WM_MU_0` (the party leader), `WM_MU_2`, `WM_MU_MAX` (constants/worldmap.h). */
         private const val WM_MU_0 = 0
         private const val WM_MU_2 = 2
         private const val WM_MU_MAX = 7
+
+        /** Size of `gGenericBuffer`. */
         private const val GENERIC_BUFFER_SIZE = 0x2000
+
+        /** Byte offset in BG VRAM where `Img_GmapPath` is loaded (`BG_VRAM + 0x5000`). */
         private const val PATH_VRAM_OFFSET = 0x5000
+
+        /** ROM addresses of `Img_EventGmap`, `Tsa_EventGmap`, `Pal_EventGmap`, `Img_GmapPath`. */
         private const val IMG_EVENT_GMAP = 0x08A99140
         private const val TSA_EVENT_GMAP = 0x08A9DF74
         private const val PAL_EVENT_GMAP = 0x08A9E4C4

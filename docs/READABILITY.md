@@ -77,7 +77,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.text | 1 | 64 | done 2026-11-09 0194222; audit done 2026-11-12 24bb602 |
 | game | fe8.game.title | 1 | 824 | done 2026-11-09 83f2cb6; audit todo |
 | game | fe8.game.ui | 5 | 1069 | done 2026-11-11 262e4fc; audit todo |
-| game | fe8.game.worldmap (WorldMapRm, WorldMapRmBaPalAnim, WorldMapPaletteFade, WorldMapText, WorldMapTextFadeEvents) | 5 | 1254 | todo |
+| game | fe8.game.worldmap (WorldMapRm, WorldMapRmBaPalAnim, WorldMapPaletteFade, WorldMapText, WorldMapTextFadeEvents) | 5 | 1519 | done 2026-11-12 PENDING |
 | game | fe8.game.worldmap (other files) | 15 | 5092 | todo |
 | gba/audio | gba.audio | 17 | 3162 | done 2026-11-09 1db6a62; audit done 2026-11-12 520ab72 |
 | gba/core | gba.core | 1 | 21 | done 2026-11-07 697847c; audit todo |

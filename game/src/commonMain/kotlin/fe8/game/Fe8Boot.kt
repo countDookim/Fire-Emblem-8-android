@@ -1023,7 +1023,7 @@ public class Fe8Boot(
         )
     }
 
-    /** The Prologue world map (D11-wm9); needs the whole ROM, built when the game reaches it. */
+    /** The Prologue world map ([WorldMapBoot]); needs the whole ROM, built when the game reaches it. */
     private val worldMapBoot: WorldMapBoot by lazy {
         bmapMain // builds the unit sprites the world map shares
         WorldMapBoot(
@@ -1092,6 +1092,11 @@ public class Fe8Boot(
         }
         control.sound.setDefaultMaxNumChannels() // AgbMain, after m4aSoundInit
         control.hooks.gmDataInit = ProcFunc { gmData.init() }
+        control.hooks.blendSetup = ProcFunc {
+            hw.lcd.setBlendConfig(3, 0, 0, 16)
+            hw.lcd.setBlendTargetA(1, 1, 1, 1, 1)
+            hw.lcd.setBlendBackdropA(1)
+        }
         gmData.init() // AgbMain: GmDataInit() after SetInterrupt_LCDVBlank, before StartGame
         control.startGame()
     }
@@ -1142,7 +1147,7 @@ private const val TRAP_POOL_SIZE = 0x40 * 8
 /** Size of the IWRAM image that holds `gGMData`. */
 private const val GM_DATA_IWRAM_SIZE = 0x8000
 
-/** World map stand-in until the world map is ported (D11-wm9): no node holds a chapter. */
+/** Fallback for a ROM without the world map data (windows only): no node holds a chapter. */
 private val NO_WORLD_MAP_NODES = object : BattleMapNodes {
     override fun chapterId(node: Int): Int = -1
 

@@ -20,7 +20,9 @@ import gbafe.proc.ProcScripts.yield
  * The commands of `ProcScr_WorldMapMain` after [WorldMapMain.mainScriptPrefix] (command 10 on),
  * each callee looked up by its decomp name in [funcs], [bools] or [argFuncs] when it runs. A
  * name that is not registered does nothing (`PROC_REPEAT` then never ends, a `PROC_WHILE` and a
- * `PROC_CALL_2` are false). Stand-in until D11-wm9 registers the callees.
+ * `PROC_CALL_2` are false). `WorldMapBoot.mainScript` registers the callees the Prologue runs
+ * (`WorldMap_CallIntroEvent`, `WorldMap_WaitForChapterIntroEvents`, `WorldMap_HideEverything`,
+ * `ResetWorldMapScreen`); the free-roam ones are stand-ins until M6-I.
  *
  * Transcribed from src/worldmap_main.c: ProcScr_WorldMapMain (not verified: only the path
  * label 15 -> label 25 -> `PROC_END` of the Prologue exit is observed, by WorldMapExitTest)

@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 538 across 73 decomp files (missing reason: 0).
+Total entries: 539 across 73 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -565,7 +565,7 @@ Total entries: 538 across 73 decomp files (missing reason: 0).
 | `ApplyUnitSpriteImage32x32` | `game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt` | no 32x32 sprite is loaded in the traced frames |
 | `PutChapterMarkedTileIconOam` | `game/src/commonMain/kotlin/fe8/game/bm/UnitSpritesOam.kt` | the trace chapter has no goal tile (destPosX == 0xFF) |
 
-## src/gamecontrol.c (6)
+## src/gamecontrol.c (7)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
@@ -574,6 +574,7 @@ Total entries: 538 across 73 decomp files (missing reason: 0).
 | `GameCtrl_CheckNewGameAndBranch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no reference run has save_menu_type 2 or 4 |
 | `GameCtrl_CheckGameCompleteAndBranch` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no reference run has the complete state bit |
 | `GameControl_RestoreChapterId` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
+| `sub_8009E28` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | wired by `Fe8Boot`; no dump compares the blend registers at this point |
 | `GameControlHandlePostNormalOrExtraChapter` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
 
 ## src/popup.c (6)

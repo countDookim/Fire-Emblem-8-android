@@ -215,22 +215,31 @@ public class WorldMapExit(
 
     /**
      * The callees that are not ported or live outside the world map code. All default to nothing;
-     * the defaults are stand-ins until D11-wm9 replaces them.
+     * `WorldMapBoot` connects the ones the Prologue needs, the others are marked on their hook.
      */
     public class Hooks(
-        /** `MapRoute_80BC2DC(gm_screen->gmroute)` (stand-in until D11-wm9). */
+        /**
+         * `MapRoute_80BC2DC(gm_screen->gmroute)`: stand-in until M6-I (the Prologue draws no route
+         * line, so there is nothing to clear).
+         */
         public val mapRoute80BC2DC: () -> Unit = {},
-        /** `Sound_FadeOutBGM(speed)` (stand-in until D11-wm9). */
+        /** `Sound_FadeOutBGM(speed)`: `WorldMapBoot` connects `SoundWrapper.fadeOutBgm`. */
         public val fadeOutBgm: (Int) -> Unit = {},
-        /** `Sound_FadeOutSE(speed)` (stand-in until D11-wm9). */
+        /**
+         * `Sound_FadeOutSE(speed)`: stand-in until D11-wire-a (the sound effect players are not in
+         * `SoundWrapper` yet; the Prologue leaves through the other branch of `destruct`).
+         */
         public val fadeOutSe: (Int) -> Unit = {},
-        /** `GmMu_80BE108(proc->gm_mu, index, flag)` (stand-in until D11-wm9). */
+        /** `GmMu_80BE108(proc->gm_mu, index, flag)`: `WorldMapBoot` connects `WorldMapMu`. */
         public val gmMu80BE108: (Int, Boolean) -> Unit = { _, _ -> },
-        /** `WmRemoveRandomMonsters()` (stand-in until D11-wm9). */
+        /**
+         * `WmRemoveRandomMonsters()`: stand-in until M6-I (random monsters only spawn in the
+         * free-roam world map).
+         */
         public val wmRemoveRandomMonsters: () -> Unit = {},
         /**
-         * `Proc_End` of `gm_cursor`, `gm_screen` and `gm_icon` (stand-in until D11-wm9: the
-         * cursor and screen procs are not ported as scripts yet).
+         * `Proc_End` of `gm_cursor`, `gm_screen` and `gm_icon`: `WorldMapBoot` ends the three
+         * procs of the main proc's state.
          */
         public val endScreenProcs: () -> Unit = {},
         /**
@@ -238,23 +247,29 @@ public class WorldMapExit(
          * ([WorldMapHblank.clearWmHblank] in the boot; nothing by default).
          */
         public val clearHblank: () -> Unit = {},
-        /** `EndTalk()` (stand-in until D11-wm9). */
+        /** `EndTalk()`: `WorldMapBoot` connects `EventTextTalkHost.endTalk`. */
         public val endTalk: () -> Unit = {},
-        /** `ClearTalkText()` (stand-in until D11-wm9). */
+        /** `ClearTalkText()`: `WorldMapBoot` connects `Talk.clearTalkText`. */
         public val clearTalkText: () -> Unit = {},
-        /** `ResetUnitSprites()` (stand-in until D11-wm9). */
+        /** `ResetUnitSprites()`: `WorldMapBoot` connects `UnitSprites.resetUnitSprites`. */
         public val resetUnitSprites: () -> Unit = {},
-        /** `sub_80BF15C()`: ends the player interface (stand-in until D11-wm9). */
+        /**
+         * `sub_80BF15C()`: ends the player interface; stand-in until M6-I (the Prologue world map
+         * never starts it).
+         */
         public val endPlayerInterface: () -> Unit = {},
-        /** `EndWorldmapMinimap()` (stand-in until D11-wm9). */
+        /**
+         * `EndWorldmapMinimap()`: stand-in until M6-I (the Prologue world map never starts the
+         * minimap).
+         */
         public val endMinimap: () -> Unit = {},
         /**
          * `ResetDialogueScreen()`: `ClearTalkBubble`, `Proc_EndEach(gProcScr_E_FACE)`,
-         * `ResetFaces` (the default portrait layout), `ClearTalkFaceRefs` (stand-in until
-         * D11-wm9: `EventTextTalkHost.clearTalkBubble` and `resetAllFaces`).
+         * `ResetFaces` (the default portrait layout), `ClearTalkFaceRefs`: `WorldMapBoot` calls
+         * `EventTextTalkHost.clearTalkBubble` and `resetAllFaces`.
          */
         public val resetDialogueScreen: () -> Unit = {},
-        /** `APProc_DeleteAll()` (stand-in until D11-wm9). */
+        /** `APProc_DeleteAll()`: `WorldMapBoot` frees the handles of the world map's animation player. */
         public val apProcDeleteAll: () -> Unit = {},
     )
 

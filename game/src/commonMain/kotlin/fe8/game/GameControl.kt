@@ -446,7 +446,7 @@ public class GameControl(
         /**
          * The three blend calls of `sub_8009E28` (`SetBlendConfig(3, 0, 0, 16)`,
          * `SetBlendTargetA(1, 1, 1, 1, 1)`, `SetBlendBackdropA(1)`) on the LCD control buffer.
-         * Stand-in until D11-wm9 (the buffer is then shared with [GameControl]).
+         * `Fe8Boot` sets it on the shared LCD control buffer.
          */
         public var blendSetup: ProcFunc = ProcFunc { },
     )
@@ -538,7 +538,8 @@ public class GameControl(
      * `SetBlendBackdropA(1)`) through [Hooks.blendSetup], the LCD control buffer not being owned
      * here.
      *
-     * Partially ported from src/gamecontrol.c: sub_8009E28
+     * Transcribed from src/gamecontrol.c: sub_8009E28 (not verified: wired by `Fe8Boot`; no
+     * dump compares the blend registers at this point)
      */
     public fun sub8009E28(proc: Proc) {
         hooks.blendSetup.invoke(proc)

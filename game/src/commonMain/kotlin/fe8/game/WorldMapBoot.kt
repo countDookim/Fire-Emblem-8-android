@@ -78,8 +78,8 @@ import gbafe.render.SpriteLayers
  * The Prologue world map wired into the boot (D11-wm9): `ProcScr_WorldMapWrapper` and
  * `ProcScr_WorldMapMain` with the real `WorldMap_Init`, the beginning event through the event VM
  * with the world map commands registered, the exit ([WorldMapExit]) and `EndWM`. Wiring only: no
- * port claims. Every callee that is not ported stays a stand-in (see the `Hooks` of the classes
- * used and docs/plans/D11-worldmap.md section 8g).
+ * port claims. Hooks that the Prologue needs and that are not ported keep their defaults and are
+ * marked on the hook itself (see docs/plans/D11-worldmap.md section 8g).
  *
  * Needs the whole ROM. Built lazily by [Fe8Boot].
  */
@@ -143,6 +143,7 @@ internal class WorldMapBoot(
                     hw.hblank.setSecondary(null)
                     hblank.clearWmHblank(hw.hblank)
                 },
+                apProcDeleteAll = { player.clearAll() },
                 endTalk = { eventTextHost.endTalk() },
                 clearTalkText = { talkScene.talk.clearTalkText() },
                 resetUnitSprites = { unitSprites()?.resetUnitSprites() },

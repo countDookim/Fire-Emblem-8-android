@@ -334,8 +334,7 @@ public class WorldMapMain(
 
 /**
  * The graphics setup that opens `WorldMap_Init`: `SetupGraphicSystemsForWorldMap` and
- * `sub_80B8E60` (with `SetupGmapNodeGfx`). `WorldMap_Init` itself is still the
- * [WorldMapMain.MainHooks] stand-in until D11-wm9; nothing calls these two yet.
+ * `sub_80B8E60` (with `SetupGmapNodeGfx`). `WorldMapBoot.worldMapInit` calls both.
  *
  * `GetSaveWriteAddr(SAVE_ID_XMAP)` only returns an address and has no side effect, so it is not
  * ported. The `for` loop over `gGMData.nodes` that writes `gm_icon` belongs to `sub_80B9114`
@@ -465,13 +464,13 @@ public class WorldMapGfxSetup(
      * default.
      */
     public class Hooks(
-        /** `LoadLegacyUiFrameGraphics`: stand-in until D11-wm9 (world-map wiring). */
+        /** `LoadLegacyUiFrameGraphics`: stand-in until M6-B (shared with `ChapterMapGfx`). */
         public val loadLegacyUiFrameGraphics: () -> Unit = {},
-        /** `ResetText`: stand-in until D11-wm9 (world-map wiring). */
+        /** `ResetText`: stand-in until M6-B (not ported in `TextSystem`). */
         public val resetText: () -> Unit = {},
-        /** `ResetTextFont`: stand-in until D11-wm9 (world-map wiring). */
+        /** `ResetTextFont`: stand-in until M6-B (not ported in `TextSystem`). */
         public val resetTextFont: () -> Unit = {},
-        /** `ResetFaces`: stand-in until D11-wm9 (world-map wiring). */
+        /** `ResetFaces`: ported as `TalkFace.resetFaces`; `WorldMapBoot` connects it. */
         public val resetFaces: () -> Unit = {},
         /** `SetupFaceGfxData`: ported as `TalkFace.setupFaceGfxData`; tile offsets, palette ids. */
         public val setupFaceGfxData: (IntArray, IntArray) -> Unit = { _, _ -> },

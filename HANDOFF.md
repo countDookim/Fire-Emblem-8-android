@@ -11,7 +11,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- Readability audit fe8.game.worldmap (WorldMapRm, RmBaPalAnim, PaletteFade, Text, TextFadeEvents): owner PC, until ~01:00Z (from 21:48Z)
+- Readability audit fe8.game.worldmap (Nodes … Exit, 18 files): owner PC, until ~02:00Z (from 22:07Z)
 - MC-9 (forecast simulation): owner PC, until ~02:00Z (from 22:02Z)
 
 ## Current state

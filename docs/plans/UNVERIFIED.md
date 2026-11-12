@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 534 across 72 decomp files (missing reason: 0).
+Total entries: 536 across 72 decomp files (missing reason: 0).
 
 ## src/worldmap_mapmu.c (35)
 
@@ -49,10 +49,15 @@ Total entries: 534 across 72 decomp files (missing reason: 0).
 | `MapMU_SetUnitClass` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt` | no @VerifiesPort test names it |
 | `MapMU_SetUnitChar` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMu.kt` | no @VerifiesPort test names it |
 
-## src/scene.c (29)
+## src/scene.c (33)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
+| `ProcScr_TalkSpriteShiftClear` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | the script position is checked per step in WorldMapEventHostTest, which cannot tag a script |
+| `ProcScr_0859160C` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | see [spriteShiftClearScript] |
+| `ProcScr_08591624` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | see [spriteShiftClearScript] |
+| `InitSpriteTalk` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | the lines, texts and font are checked against `sTalkState`, `sTalkText` and `sTalkFont` in WorldMapEventHostTest, but the object palette writes are not seen in the dump: the palette mutation checks survived |
+| `sub_8008F54` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | the shifter breaks itself after 16 frames, so ending it from here is not observable |
 | `TalkPrepNextChar` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | `GetStrTalkLen` is host-supplied, so the traced widths cannot be reproduced independently |
 | `SetTalkLines` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | no traced call |
 | `ClearAllTalkFlags` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | config stays 0 in the run |
@@ -67,7 +72,6 @@ Total entries: 534 across 72 decomp files (missing reason: 0).
 | `IsTalkLocked` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | no TalkLock proc in the run |
 | `ResumeTalk` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | no TalkLock proc in the run |
 | `SetActiveTalkFace` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | a one-line store, only covered through the state its callers produce |
-| `TalkSpritePrepNextChar` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | the run is not a sprite talk |
 | `TalkPause_OnIdle` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | the trace has no pause code |
 | `ClearTalkText` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | only reached by the `[2NL]` code with `TALK_FLAG_INSTANTSHIFT`, which the trace does not contain |
 | `TalkOpen_InitBlend` | `game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt` | no @VerifiesPort test names it |
@@ -491,21 +495,6 @@ Total entries: 534 across 72 decomp files (missing reason: 0).
 | `SetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | the only reference value is 0, so a no-op survives |
 | `GetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | no test checks it against a trace yet |
 
-## src/fontgrp.c (10)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `InitSpriteTextFont` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | compared only through the Prologue brown text box tiles |
-| `InitSpriteText` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | compared only through the Prologue brown text box tiles |
-| `SpriteText_DrawBackgroundExt` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | compared only through the Prologue brown text box tiles |
-| `GetStringTextCenteredPos` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | compared only through the Prologue brown text box tiles |
-| `Text_InsertDrawString` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | compared only through the Prologue brown text box tiles |
-| `Text_DrawCharacter` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | the US ROM has no Shift-JIS glyph lists and the trace runs with lang = 1 |
-| `Text_DrawString` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | see above |
-| `GetStringTextLen` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | the US ROM has no Shift-JIS glyph lists and the trace runs with lang = 1 |
-| `GetCharTextLen` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | see above |
-| `EndGreenText` | `game/src/commonMain/kotlin/fe8/game/ui/GreenText.kt` | only `sProc_MenuMain` calls it after the menu's idle callback breaks, which no capture does |
-
 ## src/hardware.c (10)
 
 | Function | Kotlin file | Reason |
@@ -520,6 +509,20 @@ Total entries: 534 across 72 decomp files (missing reason: 0).
 | `SetBlendBackdropB` | `engine/render/src/commonMain/kotlin/gbafe/render/LcdControl.kt` | never called by a traced path |
 | `SyncLoOam` | `engine/render/src/commonMain/kotlin/gbafe/render/OamBuffer.kt` | no test checks it against a trace yet |
 | `SetObjAffine` | `engine/render/src/commonMain/kotlin/gbafe/render/OamBuffer.kt` | no test checks it against a trace yet |
+
+## src/fontgrp.c (9)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SpriteText_Clear` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | the bytes 0x340..0x360 of a row are never glyph data in the capture; WorldMapEventHostTest checks the rest |
+| `SpriteText_DrawBackgroundExt` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | compared only through the Prologue brown text box tiles |
+| `GetStringTextCenteredPos` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | compared only through the Prologue brown text box tiles |
+| `Text_InsertDrawString` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | compared only through the Prologue brown text box tiles |
+| `Text_DrawCharacter` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | the US ROM has no Shift-JIS glyph lists and the trace runs with lang = 1 |
+| `Text_DrawString` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | see above |
+| `GetStringTextLen` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | the US ROM has no Shift-JIS glyph lists and the trace runs with lang = 1 |
+| `GetCharTextLen` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | see above |
+| `EndGreenText` | `game/src/commonMain/kotlin/fe8/game/ui/GreenText.kt` | only `sProc_MenuMain` calls it after the menu's idle callback breaks, which no capture does |
 
 ## src/worldmap_automu.c (9)
 
@@ -711,14 +714,6 @@ Total entries: 534 across 72 decomp files (missing reason: 0).
 | `ProcScr_GMapScreen` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt` | script order checked against the `procs` capture in WorldMapScreenTest, which cannot tag a script |
 | `GMScreenVSync_Init` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapScreen.kt` | it runs inside `Proc_Start`, and `NewMapScreenVSync` writes the same two fields right after |
 
-## src/worldmap_text.c (3)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `StartWmTextHandler` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapText.kt` | the trace shows the proc exists from step 4901 but not its parent link as a call result |
-| `StartWmTextMsg` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapText.kt` | it only forwards to the talk system, and the glyph VRAM it produces is not compared |
-| `sub_80C34D0` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapText.kt` | no step of the traced opening calls it |
-
 ## asm/arm.s (2)
 
 | Function | Kotlin file | Reason |
@@ -788,6 +783,13 @@ Total entries: 534 across 72 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `ProcScr_GmapLineFade` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapLineFade.kt` | the script position is checked per step in WorldMapEventHostTest, which cannot tag a script |
 | `GmapLineFade_Init` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapLineFade.kt` | the BLDCNT effect, BLDALPHA, BLDY, the DISPCNT layer enables and the fill value of line 0 are overwritten by `NewFadeIn` and the first scanline page before the first dump at step 4950; the frame count, scanline register, blend targets and status bit are checked |
+
+## src/worldmap_text.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `StartWmTextHandler` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapText.kt` | the trace shows the proc exists from step 4901 but not its parent link as a call result |
+| `sub_80C34D0` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapText.kt` | no step of the traced opening calls it |
 
 ## src/agb_sram.c (1)
 

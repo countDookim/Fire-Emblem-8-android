@@ -208,8 +208,8 @@ public class TextSystem(
      * Initialises [font] for sprite text drawn to OBJ tiles at [vramDest] with palette [c] and
      * makes it the active font.
      *
-     * Transcribed from src/fontgrp.c: InitSpriteTextFont
-     * (not verified: compared only through the Prologue brown text box tiles)
+     * Ported from src/fontgrp.c: InitSpriteTextFont
+     * (verified through `sTalkFont` in WorldMapEventHostTest)
      */
     public fun initSpriteTextFont(font: Font, vramDest: Int, c: Int) {
         font.vramDest = vramDest
@@ -225,8 +225,8 @@ public class TextSystem(
     /**
      * Gives [text] a 32-tile strip of the active font (64 tiles of its tile counter).
      *
-     * Transcribed from src/fontgrp.c: InitSpriteText
-     * (not verified: compared only through the Prologue brown text box tiles)
+     * Ported from src/fontgrp.c: InitSpriteText
+     * (verified through `sTalkText` in WorldMapEventHostTest)
      */
     public fun initSpriteText(text: Text) {
         text.chrPosition = activeFont.chrCounter
@@ -237,6 +237,31 @@ public class TextSystem(
         activeFont.chrCounter += 64
         text.x = 0
         text.colorId = 0
+    }
+
+    /**
+     * Resets the pen and clears the first 0x360 bytes of both tile rows of [text] (nothing when it
+     * has no tiles).
+     *
+     * Transcribed from src/fontgrp.c: SpriteText_Clear (not verified: the bytes 0x340..0x360 of a
+     * row are never glyph data in the capture; WorldMapEventHostTest checks the rest)
+     */
+    public fun spriteTextClear(text: Text) {
+        if (text.tileWidth == 0) return
+        text.x = 0
+        val dest = getTextDrawDest(text)
+        for (i in 0 until 0x360 step 4) {
+            host.writeVram32(dest + i, 0)
+            host.writeVram32(dest + 0x400 + i, 0)
+        }
+    }
+
+    /** Reads the word at VRAM address [addr] through the host. */
+    public fun readVramWord(addr: Int): Int = host.readVram32(addr)
+
+    /** Writes the word [value] at VRAM address [addr] through the host. */
+    public fun writeVramWord(addr: Int, value: Int) {
+        host.writeVram32(addr, value)
     }
 
     /**

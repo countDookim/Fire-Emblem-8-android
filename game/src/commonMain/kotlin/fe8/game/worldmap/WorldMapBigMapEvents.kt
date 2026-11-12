@@ -51,11 +51,11 @@ public class WmBigMapHooks(
 }
 
 /**
- * The world map commands `EventB4..BA` of `src/eventscr_gmap.c`. `EventB4` is verified through
- * the event VM in WorldMapEventHostTest (Prologue steps 4907-5100); `EventB6`, `EventB8`,
- * `EventB9` and `EventBA` in WorldMapEventCameraTest (steps 5433-8110); `EventB5` and
- * `EventB7` are not run by the capture and stay transcribed. The tests register the handlers one
- * by one; [registerOn] adds the whole range.
+ * The world map commands `EventB4..BA` of `src/eventscr_gmap.c`. `EventB4` and the first
+ * `EventB6` are verified through the event VM in WorldMapEventHostTest (Prologue steps
+ * 4907-5495); `EventB6`, `EventB8`, `EventB9` and `EventBA` in WorldMapEventCameraTest (steps
+ * 5433-8110); `EventB5` and `EventB7` are not run by the capture and stay transcribed. The tests
+ * register the handlers one by one; [registerOn] adds the whole range.
  *
  * @param memory script words (the command arguments)
  * @param hooks the callees

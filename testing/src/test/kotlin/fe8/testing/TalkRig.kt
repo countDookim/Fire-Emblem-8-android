@@ -51,18 +51,23 @@ internal class TalkTrace(val runDir: File) {
  * The talk plus everything around it that is not ported yet, as transcriptions of the decomp,
  * with the comparison against the dump of a frame ([compare]).
  */
-internal class TalkRig(val rom: ByteArray, val runDir: File) :
-    TextHost, TalkHost, TalkBubbleHost, TalkFaceHost {
+internal class TalkRig(
+    val rom: ByteArray,
+    val runDir: File,
+    val engine: ProcEngine = ProcEngine(),
+    /** The VRAM the talk draws into; a test with its own hardware passes the hardware's. */
+    val vram: ByteArray = ByteArray(0x18000) { SENT },
+    /** Receives `ApplyPalette` and `PAL_COLOR` writes (not kept when null). */
+    val palette: ShortArray? = null,
+) : TextHost, TalkHost, TalkBubbleHost, TalkFaceHost {
     val trace = TalkTrace(runDir)
     private fun iwram(f: Int) = trace.iwram(f)
     private fun ewram(f: Int) = trace.ewram(f)
     private fun u16(b: ByteArray, o: Int) = trace.u16(b, o)
     private fun u32(b: ByteArray, o: Int) = trace.u32(b, o)
 
-    val vram = ByteArray(0x18000) { SENT }
     val tm = ShortArray(0x400)
     val tm1 = ShortArray(0x400)
-    val engine = ProcEngine()
     val ts = TextSystem(rom, this, Fe8Text.CONFIG)
     val talk = Talk(ts, engine, this)
     val bubble = TalkBubble(ts, engine, talk, this, this)
@@ -72,6 +77,9 @@ internal class TalkRig(val rom: ByteArray, val runDir: File) :
     var waitSprites = 0
     val tilesChecked = mutableSetOf<Int>()
     private var io = ByteArray(0x400)
+
+    /** `putSprite` calls of a sprite talk (layer, x, y, lutIndex, oam2) since the last clear. */
+    val sprites = mutableListOf<List<Int>>()
     var msg = ByteArray(0)
     private var displaySpeed = 0
 
@@ -149,7 +157,17 @@ internal class TalkRig(val rom: ByteArray, val runDir: File) :
         Decompress.into(rom, src - ROM_BASE, vram, dest - VRAM_BASE)
     }
 
-    override fun applyPalette(src: Int, palId: Int) {}
+    override fun applyPalette(src: Int, palId: Int) {
+        val pal = palette ?: return
+        for (i in 0 until 16) {
+            pal[palId * 16 + i] = (rom[src - ROM_BASE + 2 * i].toInt() and 0xFF or
+                ((rom[src - ROM_BASE + 2 * i + 1].toInt() and 0xFF) shl 8)).toShort()
+        }
+    }
+
+    override fun setPaletteColor(bank: Int, index: Int, color: Int) {
+        palette?.set(bank * 16 + index, color.toShort())
+    }
 
     override fun loadObjUiGfx() {}
 
@@ -275,7 +293,7 @@ internal class TalkRig(val rom: ByteArray, val runDir: File) :
 
     override fun setBlendAlpha(a: Int, b: Int) {}
 
-    override fun spriteTextClear(text: Text) = error("no sprite talk")
+    override fun spriteTextClear(text: Text) = ts.spriteTextClear(text)
 
     override fun setTalkFaceLayer(faceSlot: Int, flag: Int) =
         face.setTalkFaceLayer(faceSlot, flag)
@@ -349,7 +367,6 @@ internal class TalkRig(val rom: ByteArray, val runDir: File) :
 
     override fun startTalkShiftClearAll(parent: Proc) = bubble.startTalkShiftClearAll(parent)
 
-    override fun startTalkSpriteShiftClear(parent: Proc) = error("no sprite talk")
 
     override fun talkFlushAllLine() = bubble.talkFlushAllLine()
 
@@ -372,6 +389,10 @@ internal class TalkRig(val rom: ByteArray, val runDir: File) :
     override fun playSoundEffect(song: Int) {}
 
     override fun putSprite(layer: Int, x: Int, y: Int, lutIndex: Int, oam2: Int) {
+        if (talk.checkTalkFlag(TalkFlags.SPRITE) != 0) {
+            sprites += listOf(layer, x, y, lutIndex, oam2)
+            return
+        }
         assertEquals(2, layer)
         assertEquals(4, oam2)
         assertEquals((clock / 2) and 0xF, lutIndex)

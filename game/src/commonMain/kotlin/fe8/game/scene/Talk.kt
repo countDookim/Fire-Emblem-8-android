@@ -11,6 +11,8 @@ import gbafe.proc.ProcScripts.mark
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.setEndCb
 import gbafe.proc.ProcScripts.sleep
+import gbafe.proc.ProcScripts.whileTrue
+import gbafe.proc.ProcBoolFunc
 import gbafe.text.Font
 import gbafe.text.Text
 import gbafe.text.TextSystem
@@ -104,6 +106,176 @@ public class Talk(
         listOf(mark(PROC_MARK_TALK), sleep(8), repeat(waitIdleFn), sleep(1), end()),
         { TalkWaitState() },
     )
+
+    /**
+     * `ProcScr_TalkSpriteShiftClear`: scrolls the sprite text up one line.
+     *
+     * Transcribed from src/scene.c: ProcScr_TalkSpriteShiftClear (not verified: the script
+     * position is checked per step in WorldMapEventHostTest, which cannot tag a script)
+     */
+    public val spriteShiftClearScript: ProcScript = ProcScript(
+        "ProcScr_TalkSpriteShiftClear",
+        listOf(
+            mark(PROC_MARK_TALK),
+            call(ProcFunc { sub80080D0(it) }),
+            sleep(0),
+            call(ProcFunc { sub8008108() }),
+            sleep(1),
+            end(),
+        ),
+    )
+
+    /**
+     * `ProcScr_0859160C`: blocks the shift-clear proc until [spriteShiftStepScript] is gone.
+     *
+     * Transcribed from src/scene.c: ProcScr_0859160C (not verified: see
+     * [spriteShiftClearScript])
+     */
+    public val spriteShiftWaitScript: ProcScript = ProcScript(
+        "ProcScr_0859160C",
+        listOf(
+            setEndCb(ProcFunc { sub8008F54() }),
+            whileTrue(ProcBoolFunc { sub8008F3C() }),
+            end(),
+        ),
+    )
+
+    /**
+     * `ProcScr_08591624`: moves the sprite text tiles up one pixel row per frame.
+     *
+     * Transcribed from src/scene.c: ProcScr_08591624 (not verified: see [spriteShiftClearScript])
+     */
+    public val spriteShiftStepScript: ProcScript = ProcScript(
+        "ProcScr_08591624",
+        listOf(
+            call(ProcFunc { sub8008FAC(it.state as TalkSpriteShiftState) }),
+            repeat(ProcFunc { sub8008FB4(it) }),
+            end(),
+        ),
+        { TalkSpriteShiftState() },
+    )
+
+    /**
+     * Sets up the sprite text at OBJ tile [chr] with [lines] lines and palette bank [palId] of
+     * the object palettes.
+     *
+     * Transcribed from src/scene.c: InitSpriteTalk (not verified: the lines, texts and font are
+     * checked against `sTalkState`, `sTalkText` and `sTalkFont` in WorldMapEventHostTest, but the
+     * object palette writes are not seen in the dump: the palette mutation checks survived)
+     */
+    public fun initSpriteTalk(chr: Int, lines: Int, palId: Int) {
+        text.initSpriteTextFont(font, OBJ_VRAM + (0x3FF and chr) * CHR_SIZE, palId)
+        text.setTextFont(font)
+        text.setTextFontGlyphs(TextSystem.GLYPHS_TALK)
+        host.applyPalette(PAL_SPRITE_TALK, palId + 0x10)
+        host.setPaletteColor(palId + 0x10, 4, rgb(7, 18, 28))
+        host.setPaletteColor(palId + 0x10, 14, rgb(14, 13, 12))
+        host.setPaletteColor(palId + 0x10, 15, rgb(31, 31, 31))
+        state.lines = lines
+        for (i in 0 until lines) {
+            text.initSpriteText(texts[i])
+            text.spriteTextClear(texts[i])
+            texts[i].colorId = 0
+            texts[i].x = 4
+        }
+    }
+
+    private fun rgb(r: Int, g: Int, b: Int): Int = r or (g shl 5) or (b shl 10)
+
+    /**
+     * `Proc_StartBlocking(ProcScr_TalkSpriteShiftClear, proc)` of [talkSpritePrepNextChar]: the
+     * line shift as a child of [parent] that blocks it.
+     */
+    private fun startSpriteShiftClear(parent: Proc) {
+        engine.startBlocking(spriteShiftClearScript, parent)
+    }
+
+    /**
+     * Ported from src/scene.c: sub_80080D0
+     *
+     * Starts the row shifter for the `TALK_FLAG_7` text (it fills the vacated row with 0 and
+     * shifts 0x1C tile rows); the other branch (0x19 rows, fill `0x44444444`) is not run by any
+     * capture and fails loudly.
+     */
+    public fun sub80080D0(proc: Proc) {
+        check(checkTalkFlag(TalkFlags.FLAG_7) != 0) {
+            "not verified: no capture shifts a sprite talk without TALK_FLAG_7"
+        }
+        sub8008F64(0x200, 0x1C, 0, proc)
+    }
+
+    /**
+     * Ported from src/scene.c: sub_8008108
+     *
+     * After the shift: one line less is active and the second line is blanked (the
+     * non-`TALK_FLAG_7` branch is not run by any capture and fails loudly).
+     */
+    public fun sub8008108() {
+        state.lineActive--
+        check(checkTalkFlag(TalkFlags.FLAG_7) != 0) {
+            "not verified: no capture shifts a sprite talk without TALK_FLAG_7"
+        }
+        text.spriteTextClear(texts[1])
+        texts[1].colorId = 0
+        texts[1].x = 4
+    }
+
+    /** Ported from src/scene.c: sub_8008F3C */
+    public fun sub8008F3C(): Boolean = engine.find(spriteShiftStepScript) != null
+
+    /**
+     * Transcribed from src/scene.c: sub_8008F54 (not verified: the shifter breaks itself after 16
+     * frames, so ending it from here is not observable)
+     */
+    public fun sub8008F54() {
+        engine.endEach(spriteShiftStepScript)
+    }
+
+    /**
+     * Ported from src/scene.c: sub_8008F64
+     *
+     * Starts the row shifter on tree 0 and the proc that blocks [parent] until it is done.
+     */
+    public fun sub8008F64(chr: Int, b: Int, c: Int, parent: Proc) {
+        val proc = engine.start(spriteShiftStepScript, 0)
+        val shift = proc.state as TalkSpriteShiftState
+        shift.vram = (0x3FF and chr) * CHR_SIZE + OBJ_VRAM
+        shift.rows = b
+        shift.fill = c
+        engine.startBlocking(spriteShiftWaitScript, parent)
+    }
+
+    /** Ported from src/scene.c: sub_8008FAC */
+    public fun sub8008FAC(shift: TalkSpriteShiftState) {
+        shift.step = 0
+    }
+
+    /**
+     * Ported from src/scene.c: sub_8008FB4
+     *
+     * Moves the first `rows * 8` words of each of four tile planes up by one word per frame (the
+     * word at +7 comes from the next plane, the last plane takes the fill); breaks after 16
+     * frames.
+     */
+    public fun sub8008FB4(proc: Proc) {
+        val shift = proc.state as TalkSpriteShiftState
+        var i = 0
+        while (i < shift.rows * 8) {
+            var j = 0
+            while (j <= 0x300) {
+                val base = shift.vram + (i + j) * 4
+                for (k in 0 until 7) {
+                    text.writeVramWord(base + 4 * k, text.readVramWord(base + 4 * (k + 1)))
+                }
+                val next = if (j < 0x300) text.readVramWord(base + 0x400) else shift.fill
+                text.writeVramWord(base + 28, next)
+                j += 0x100
+            }
+            i += 8
+        }
+        shift.step++
+        if (shift.step > 15) engine.breakProc(proc)
+    }
 
     /**
      * Sets up the talk font at tile [chr] of background 0, [lines] text lines and, when
@@ -411,15 +583,13 @@ public class Talk(
      * `TalkPrepNextChar` for sprite talks: shifts when all lines are used, else marks the line
      * as put.
      *
-     * Transcribed from src/scene.c: TalkSpritePrepNextChar (not verified: the run is not a sprite
-     * talk)
+     * Ported from src/scene.c: TalkSpritePrepNextChar
      */
-    // Not @VerifiesPort: TALK_FLAG_SPRITE is never set in the traced talk.
     public fun talkSpritePrepNextChar(proc: Proc): Boolean {
         val talkState = state
         if (talkState.lineActive >= talkState.lines) {
             talkState.instantScroll = 0
-            host.startTalkSpriteShiftClear(proc)
+            startSpriteShiftClear(proc)
             return true
         }
         if (talkState.putLines == 0) talkState.putLines = 1
@@ -825,6 +995,10 @@ public class Talk(
 
         private const val TEXT_COUNT = 3
         private const val VRAM = 0x06000000
+        private const val OBJ_VRAM = 0x06010000
+
+        /** `gUnknown_0859EF20`: the sprite talk palette. */
+        private const val PAL_SPRITE_TALK = 0x0859EF20
         private const val BUBBLE_DEST = 0x06000200
         private const val CHR_SIZE = 0x20
         private const val NO_FACE = 0xFF
@@ -847,4 +1021,19 @@ public class TalkWaitState {
 
     /** Arrow state field (`unk68`). */
     public var unk68: Int = 0
+}
+
+/** Proc fields of `ProcScr_08591624` (`struct TalkDebugProc`). */
+public class TalkSpriteShiftState {
+    /** VRAM address of the first tile row (`unk_4c`). */
+    public var vram: Int = 0
+
+    /** Tile rows to shift (`unk_54`). */
+    public var rows: Int = 0
+
+    /** Word shifted in at the bottom (`unk_58`). */
+    public var fill: Int = 0
+
+    /** Frames run (`unk_64`). */
+    public var step: Int = 0
 }

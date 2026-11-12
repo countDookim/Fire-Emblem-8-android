@@ -378,8 +378,9 @@ public class TalkScene(
         bubble.startTalkShiftClearAll(parent)
     }
 
-    override fun startTalkSpriteShiftClear(parent: Proc) {
-        throw NotImplementedError("not ported: sprite talk")
+    override fun setPaletteColor(bank: Int, index: Int, color: Int) {
+        hw.palette[bank * 16 + index] = color.toShort()
+        hw.enablePaletteSync()
     }
 
     override fun talkFlushAllLine() {

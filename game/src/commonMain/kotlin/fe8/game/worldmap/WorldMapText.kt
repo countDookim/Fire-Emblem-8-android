@@ -141,8 +141,10 @@ public class WorldMapText(
     public fun startWmTextHandler(parent: Proc): Proc = engine.start(script, parent)
 
     /**
-     * Transcribed from src/worldmap_text.c: StartWmTextMsg (not verified: it only forwards to the
-     * talk system, and the glyph VRAM it produces is not compared)
+     * Ported from src/worldmap_text.c: StartWmTextMsg
+     *
+     * Ends the running talk and starts [textId] as a sprite talk (OBJ tile 0x200, 2 lines, palette
+     * 2) with print delay 4 and the sprite, 7, no-skip and instant-shift flags.
      *
      * @param textId message id
      */

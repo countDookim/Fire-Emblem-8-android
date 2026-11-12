@@ -291,7 +291,6 @@ of B4–B7 runs here (B5–B7 from 5436). Seed: iwram/ewram r04860/r04920, GmapM
 `WorldMapMuTest`; C3 is provable against r04920 with `units[0]`, camera and no_fade zeroed in the seed. The
 `StartGmapMuEntry` hook in `WorldMapBeginning.hooks` is still a stand-in (`WorldMapMuEntry.startGmapMuEntry` exists).
 
-<<<<<<< HEAD
 ### 8c. D11-wm8c: camera scrolls and nation highlights through the event VM (steps 5433-8110)
 
 `WorldMapEventCameraTest` (sibling of `WorldMapEventHostTest`). Script commands in the window (decoded from
@@ -309,7 +308,6 @@ Lag: the capture's game loop skips passes: 13 steps after highlight starts (grap
 field stalls (6961, 7531, 7621, 7651, 7894, 7921: each within four steps after an A press of the input); read from the capture, pinned.
 Verified: EventB6/B8/B9/BA, sub_80C2C10, sub_80C2BC4 (index >= 0 paths), GmapRm_GetPosition. Skipping branches and
 B5/B7 are not run.
-=======
 ### 8d. D11-wm8d: portrait opcodes C4/C5 through the VM (steps 5701-7781)
 
 `WorldMapEventFaceTest` seeds from the wm_lcd dump f05700 (engine stalling at 0x08A39824, face controller
@@ -322,4 +320,21 @@ B6, B8, B9, 1C continue; 1D and BA wait (yield while the capture's pEventCurrent
 the real handler. Not covered: per-step BLDCNT/BLDALPHA (the hardware copy lags 0-2 steps, e.g. 5942 shows the
 C5 value before the same frame's fade tick) and the nation highlight owns them in B8..BA; skipping and the
 delayed `WmMergeFace` (delay is 0 throughout) are unwritten. Steps 5764 is before the first C4 (5765).
->>>>>>> 01bb3ec (D11-wm8d: world-map portrait opcodes C4/C5 through the VM, 5701..7781)
+### 8b. D11-wm8b: text phase 5100-5495 through the VM
+
+`WorldMapEventHostTest` continues the 8a run to step 5495. Opcodes, one by one: B1 (till 5100), C7
+`ShowWmText(1)` (5101), C6 `StartWmTextMsg(0x8DB)` (5102; sprite talk: `InitSpriteTalk`, Huffman message
+decode), 1D wait for the talk lock (5106-5434), B6 `WM_MOVECAM2` (5435; `GmapRmUpdateExt`, fields per step
+5436-5495), 0E STAL(60). C4 `WM_SHOWPORTRAIT` runs at 5496 (face procs): not registered; the run stops at 5495.
+Lag frames (steps with no own frame): 5103-5105 (`StartWmTextMsg`), 5191, 5221, 5281, 5311, 5371 (the frame
+after an A press during typing: instant scroll draws a page).
+Compared per step: engine `pEventCurrent`/`evStateBits`/`evStallTimer`; proc tree with lockCnt (Talk,
+SkipListener, WaitForInput, TalkLock, SpriteShiftClear, 0859160C, 08591624, WmText handler, RmUpdateExt);
+fields of WmText, WaitForInput (x, y, unk68), sprite shifter and RmUpdateExt. At every dump: `sTalkState`,
+`sTalkText[2]`, `sTalkFont` bytes; f05100/f05400: text OBJ tiles (0x380 bytes of each of 4 rows).
+New: `Talk.initSpriteTalk`, sprite shift procs (sub_80080D0/8108/8F3C/8F54/8F64/8FAC/8FB4), keys from
+`run.inputs`. Ported+tagged: C6, C7, B6, StartWmTextMsg, sub_80080D0, sub_8008108, sub_8008F3C, sub_8008F64,
+sub_8008FAC, sub_8008FB4, TalkSpritePrepNextChar, InitSpriteTextFont, InitSpriteText. Transcribed: InitSpriteTalk
+(object palette writes not seen: mutations survive), sub_8008F54 and SpriteText_Clear (tail unobservable), the
+three sprite-shift scripts (positions only), Event13. TalkSkipListener is still the test rig's transcription
+(`TalkRig`), not production code.

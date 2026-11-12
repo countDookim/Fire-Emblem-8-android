@@ -10,6 +10,8 @@ import fe8.game.event.EventEngineHooks
 import fe8.game.event.EventEngineProc
 import fe8.game.event.EventInput
 import fe8.game.event.EventScrCore
+import fe8.game.event.EventText
+import fe8.game.event.EventTextTalkHost
 import fe8.game.event.EventState
 import fe8.game.event.ScriptMemory
 import fe8.game.flags.Fe8EventFlags
@@ -32,7 +34,21 @@ import fe8.game.worldmap.WorldMapPath
 import fe8.game.worldmap.WorldMapRm
 import fe8.game.worldmap.WorldMapScroll
 import fe8.game.worldmap.WorldMapSpawnEvents
+import fe8.game.worldmap.WorldMapText
+import fe8.game.worldmap.WorldMapTextEvents
 import fe8.game.worldmap.WorldMapTextFadeEvents
+import fe8.game.worldmap.WmHblankStatus
+import fe8.game.worldmap.WmTextHost
+import fe8.game.worldmap.GMapTextProc
+import fe8.game.scene.TalkState
+import fe8.game.scene.TalkWaitState
+import fe8.game.scene.TalkSpriteShiftState
+import fe8.game.worldmap.GmapRmUpdateProc
+import gbafe.render.SpriteLayers
+import gbafe.text.MsgHuffman
+import gbafe.text.MsgStrings
+import gbafe.text.Text
+import gbafe.proc.ProcScripts.block
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
 import gbafe.core.rng.RngService
@@ -49,7 +65,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * The opening of the Prologue world map, steps 4907-5100 of `ram_trace_prologue`, run through the
+ * The opening of the Prologue world map, steps 4907-5495 of `ram_trace_prologue`, run through the
  * event VM: `EventScrWM_Prologue_Beginning` (started by `WorldMap_CallBeginningEvent`'s
  * `CallEvent`) drives the opcodes registered one by one below; the `GmapRM`, `GmapLineFade`,
  * `BmFadeIN` and `GmapMuEntry2` procs are started by the script, not by the test.
@@ -77,7 +93,10 @@ class WorldMapEventHostTest {
         "IsGmapLineFadeActive", "GmapLineFade_Loop",
         "GmapLineFade_80C0358", "GmapLineFade_OnEnd", "EventAF_WmShowTextBox",
         "EventB1_WmTextBoxWait", "EventB2_WmFancyFade", "EventB3_WmFancyFadeWait",
-        "EventB4_WmDisplayBigMap",
+        "EventB4_WmDisplayBigMap", "EventB6_WmMoveBigMap", "EventC6_WmDisplayText", "EventC7_",
+        "StartWmTextMsg", "sub_80080D0", "sub_8008108", "sub_8008F3C",
+        "sub_8008F64", "sub_8008FAC", "sub_8008FB4", "TalkSpritePrepNextChar",
+        "InitSpriteTextFont", "InitSpriteText",
     )
     fun `the opening script starts the map, fades and entry bands like the original`() {
         assumeTrue(available(), "reference data / ROM / nm file not present")
@@ -128,6 +147,47 @@ class WorldMapEventHostTest {
             },
         )
         val nodes = WmNodeData(rom)
+        val keyStatus = KeyStatus()
+
+        // The talk system behind the world map text (sprite talk) on the same VRAM and palette.
+        val romBytes = romFile.readBytes()
+        val rig = TalkRig(romBytes, File(ref.root, "ram_trace_prologue"), engine, hw.vram, hw.palette)
+        rig.talk.state.decode(hwIwram, TalkRig.STATE)
+        val msgRoot = rig.trace.u32(romBytes, 0x0815D488 - 0x08000000) - 0x08000000
+        val messages = MsgStrings(
+            romBytes, MsgHuffman(romBytes, 0x0815A72C - 0x08000000, msgRoot),
+            0x0815D48C - 0x08000000,
+        )
+        rig.msg = messages.buffer
+        val eventTextHost = EventTextTalkHost(
+            engine, rig.talk, rig.bubble, rig.face, rig, rig,
+        ) { msg ->
+            messages.getStringFromIndex(msg)
+            TalkRig.MSG_ADDR
+        }
+        val layers = SpriteLayers().also { it.clear() }
+        val wmText = WorldMapText(
+            engine, hw, WmHblankStatus(), layers,
+            object : WmTextHost {
+                override fun endTalk() = eventTextHost.endTalk()
+
+                override fun initSpriteTalk(chr: Int, pal: Int, lines: Int) =
+                    rig.talk.initSpriteTalk(chr, lines, pal)
+
+                override fun startTalkMsg(x: Int, y: Int, msg: Int) =
+                    eventTextHost.startTalkMsg(x, y, msg)
+
+                override fun setTalkPrintDelay(delay: Int) = rig.talk.setTalkPrintDelay(delay)
+
+                override fun setTalkFlag(flag: Int) = rig.talk.setTalkFlag(flag)
+            },
+        )
+        // `ProcScr_WorldMapMain` (a root, 4899) and its text handler child (4901).
+        val mainProc = engine.start(
+            ProcScript("ProcScr_WorldMapMain", listOf(block(), end())) { null }, 3,
+        )
+        wmText.startWmTextHandler(mainProc)
+        engine.run(engine.root(3)) // the handler's `PROC_YIELD`
 
         // Services.
         val muEntry = WorldMapMuEntry(engine, hw, rom, hblank)
@@ -136,12 +196,18 @@ class WorldMapEventHostTest {
         val lineFade = WorldMapLineFade(engine, hw.lcd, hblank) { fade.newFadeIn(it, null) }
         val scroll = WorldMapScroll(engine, gm, nodes)
         val core = EventScrCore(
-            eventState, mem, object : EventInput {}, flags, RngService(), playSt, KeyStatus(),
+            eventState, mem, object : EventInput {}, flags, RngService(), playSt, keyStatus,
         )
         val bgm = EventBgm(eventState, mem, SoundWrapper(engine, null) { 0 })
         val spawn = WorldMapSpawnEvents(mem, gm) { _, _, _, _ -> error("slot already holds Eirika") }
         val bigMap = WorldMapBigMapEvents(
-            mem, WmBigMapHooks(startGmapRm = { x, y, c -> rm.startGmapRm(x, y, c, null) }),
+            mem,
+            WmBigMapHooks(
+                startGmapRm = { x, y, c -> rm.startGmapRm(x, y, c, null) },
+                startGmapRmUpdateExt = { x0, y0, x1, y1, speed, delay ->
+                    rm.startGmapRmUpdateExt(x0, y0, x1, y1, speed, delay, null)
+                },
+            ),
         )
         val textFade = WorldMapTextFadeEvents(
             mem, gbafe.render.ScreenFade(engine, hw.lcd),
@@ -152,17 +218,23 @@ class WorldMapEventHostTest {
                 isGmapLineFadeActive = lineFade::isGmapLineFadeActive,
             ),
         )
-        // Exactly the opcodes of steps 4907-5100.
+        val wmTextEvents = WorldMapTextEvents(mem, wmText)
+        val eventText = EventText(eventState, mem, eventTextHost)
+        // Exactly the opcodes of steps 4907-5500.
         events.register(0x0E, core.event0eStal)
         events.register(0x10, core.event10ModifyEvBit)
         events.register(0x12, bgm.event12StartBgm)
         events.register(0x13, bgm.event13BgmFadeIn)
+        events.register(0x1D, eventText.event1dWaitForLockTalk)
         events.register(0x85, scroll.CameraEvents(mem).event85SetCameraOntoUnit)
         events.register(0xAF, textFade.eventAFWmShowTextBox)
         events.register(0xB1, textFade.eventB1WmTextBoxWait)
         events.register(0xB2, textFade.eventB2WmFancyFade)
         events.register(0xB3, textFade.eventB3WmFancyFadeWait)
         events.register(0xB4, bigMap.eventB4WmDisplayBigMap)
+        events.register(0xB6, bigMap.eventB6WmMoveBigMap)
+        events.register(0xC6, wmTextEvents.eventC6WmDisplayText)
+        events.register(0xC7, wmTextEvents.eventC7)
         events.register(0xC2, spawn.eventC2WmNoFade)
         events.register(0xC3, spawn.eventC3SpawnLord)
 
@@ -181,21 +253,23 @@ class WorldMapEventHostTest {
         val symbol = HashMap<ProcScript, String>()
         for (s in listOf(
             events.stdScript, muEntry.script, rm.rmScript, rm.updateDirectScript, fade.script,
-            lineFade.script,
+            lineFade.script, rm.updateExtScript, wmText.script, rig.talk.talkScript, rig.skipScript,
+            rig.talk.waitForInputScript, rig.talk.lockScript, rig.talk.spriteShiftClearScript,
+            rig.talk.spriteShiftWaitScript, rig.talk.spriteShiftStepScript,
         )) symbol[s] = s.name
         val watched = symbol.values.toSet()
 
         fun snapshot(): List<String> = engine.procs.filter { it.script != null }
             .mapNotNull { p ->
                 val n = symbol[p.script!!] ?: return@mapNotNull null
-                "$n@${p.scrCur}/${p.parent?.script?.name ?: "root${p.rootIndex}"}"
+                "$n@${p.scrCur}/l${p.lockCnt}/${p.parent?.script?.name ?: "root${p.rootIndex}"}"
             }.sorted()
 
         fun expectedSnapshot(step: Int): List<String> {
             val dump = ProcArrayDump.ofWatch(trace, step, names)
             return dump.live.filter { it.name in watched }.map { p ->
                 val parent = dump.live.firstOrNull { it.address == p.u32(0x14) }
-                "${p.name}@${p.scrCur}/${parent?.name ?: "root${p.u32(0x14)}"}"
+                "${p.name}@${p.scrCur}/l${p.u8(0x28)}/${parent?.name ?: "root${p.u32(0x14)}"}"
             }.sorted()
         }
 
@@ -229,6 +303,39 @@ class WorldMapEventHostTest {
                     listOf(t.u8(0x29), t.u16(0x2A).toShort().toInt(), t.u16(0x2C).toShort().toInt()),
                     listOf(l.unk29, l.unk2a, l.unk2c),
                     "GmapLineFade fields at $step",
+                )
+            }
+            dump.find("ProcScr_WorldMapTextHandler")?.let { t ->
+                val g = checkNotNull(engine.find(wmText.script)).state as GMapTextProc
+                assertEquals(
+                    listOf(t.u8(0x29), t.u8(0x2A)), listOf(g.drawAtBottom, g.visible),
+                    "WorldMapTextHandler fields at $step",
+                )
+            }
+            dump.find("gProcScr_TalkWaitForInput")?.let { t ->
+                val w = checkNotNull(engine.find(rig.talk.waitForInputScript)).state as TalkWaitState
+                assertEquals(
+                    listOf(t.u16(0x64), t.u16(0x66), t.u16(0x68)), listOf(w.x, w.y, w.unk68),
+                    "TalkWaitForInput x/y/unk68 at $step",
+                )
+            }
+            dump.find("ProcScr_08591624")?.let { t ->
+                val w = checkNotNull(engine.find(rig.talk.spriteShiftStepScript)).state as
+                    TalkSpriteShiftState
+                assertEquals(
+                    listOf(t.u32(0x4C), t.u32(0x54), t.u32(0x58), t.u16(0x64).toShort().toInt()),
+                    listOf(w.vram, w.rows, w.fill, w.step),
+                    "sprite shift fields at $step",
+                )
+            }
+            dump.find("ProcScr_GmapRmUpdateExt")?.let { t ->
+                val x = checkNotNull(engine.find(rm.updateExtScript)).state as GmapRmUpdateProc
+                // The timer is only set by `GmapRmUpdateExt_InitPosition`.
+                val keep = if (t.scrCur < 6) listOf(0, 1, 2, 3, 4, 6) else (0..6).toList()
+                val theirs = IntArray(7) { t.u16(0x2A + 2 * it).toShort().toInt() }
+                val mine = intArrayOf(x.x0, x.y0, x.x1, x.y1, x.delay, x.timer, x.speed)
+                assertEquals(
+                    keep.map { theirs[it] }, keep.map { mine[it] }, "GmapRmUpdateExt fields at $step",
                 )
             }
             dump.find("ProcScr_BmFadeIN")?.let { t ->
@@ -285,6 +392,39 @@ class WorldMapEventHostTest {
             )
         }
 
+        fun compareTalk(step: Int) {
+            val name = (if (step % 300 == 0) "f%05d" else "r%05d").format(step)
+            val iw = run.region(name, "iwram")
+            val got = ByteArray(TalkState.SIZE)
+            rig.talk.state.encode(got)
+            for (i in 0 until TalkState.SIZE) {
+                if (i in 0x18 until 0x38) continue
+                assertEquals(iw[TalkRig.STATE + i], got[i], "sTalkState byte 0x%02X at $name".format(i))
+            }
+            val t = ByteArray(Text.SIZE)
+            for (i in 0..1) {
+                rig.talk.texts[i].serialize(t)
+                for (k in 0 until Text.SIZE) {
+                    assertEquals(iw[TalkRig.TEXTS + 8 * i + k], t[k], "sTalkText[$i] byte $k at $name")
+                }
+            }
+            val font = ByteArray(0x18)
+            rig.talk.font.serialize(font)
+            for (k in 0 until 0x18) {
+                assertEquals(iw[TalkRig.FONT + k], font[k], "sTalkFont byte $k at $name")
+            }
+        }
+
+        fun compareTextVram(step: Int) {
+            val name = "f%05d".format(step)
+            val v = run.region(name, "vram")
+            for (row in 0 until 4) {
+                val at = WorldMapText.TEXT_VRAM + row * 0x400
+                val bad = (0 until 0x380).filter { v[at + it] != hw.vram[at + it] }
+                assertEquals(0, bad.size, "text OBJ tiles row $row at $name, first bad ${bad.firstOrNull()}")
+            }
+        }
+
         fun compare(step: Int) {
             val dump = ProcArrayDump.ofWatch(trace, step, names)
             val t = checkNotNull(dump.find("ProcScr_StdEventEngine")) { "event engine at $step" }
@@ -299,55 +439,68 @@ class WorldMapEventHostTest {
         }
 
         fun frame() {
+            layers.clear()
+            rig.sprites.clear()
             for (i in 0..5) engine.run(engine.root(i))
         }
 
-        compare(4907)
-        var n = 0
-        for (step in 4908..5100) {
-            if (step in 4944..4947) continue
-            n = if (step <= 4943) step - 4907 else step - 4911
-            while (frames < n) {
-                frame()
-                frames++
+        fun compareFullDump() {
+            // Full dump f05100: the big map's tiles, BG1/BG2 tilemaps, palette banks 5-8 and the BG
+            // registers.
+            hw.flushBackgrounds()
+            val vram = run.region("f05100", "vram")
+            val tileBytes = rom.decompressInto(IMG_EVENT_GMAP, ByteArray(0x10000), 0)
+            val bandBytes = rom.decompressInto(WorldMapMuEntry.IMG_BAND, ByteArray(0x2000), 0)
+            for ((range, what) in listOf(
+                (0 until tileBytes) to "BG tile data",
+                (0x6800 until 0x7000) to "BG1 tilemap",
+                (0x7000 until 0x7800) to "BG2 tilemap",
+                (BAND_TILES until BAND_TILES + bandBytes) to "band tiles",
+            )) {
+                val bad = range.filter { vram[it] != hw.vram[it] }
+                assertEquals(
+                    0, bad.size,
+                    "$what at f05100: first bad ${bad.firstOrNull()}, last ${bad.lastOrNull()}, " +
+                        bad.groupBy { it / 0x400 }.mapValues { it.value.size } +
+                        " theirs ${vram.slice(0 until 16)} ours ${hw.vram.slice(0 until 16)}",
+                )
             }
-            compare(step)
-            if (step in DUMPS) compareDump(step)
+            val pal = run.region("f05100", "pal")
+            for (i in 5 * 16 until 9 * 16) {
+                assertEquals(pal.u16(2 * i), hw.paletteRam[i].toInt() and 0xFFFF, "palette entry $i")
+            }
+            // The sprite talk's object palette 2 (`InitSpriteTalk`).
+            for (i in 18 * 16 until 19 * 16) {
+                assertEquals(
+                    pal.u16(2 * i), hw.palette[i].toInt() and 0xFFFF, "object palette entry $i",
+                )
+            }
+            val io = run.region("f05100", "io")
+            val ours = ByteArray(0x100)
+            hw.lcd.flushTo(ours)
+            for (bg in 0 until 4) {
+                assertEquals(io.u16(8 + 2 * bg) and 3, ours.u16(8 + 2 * bg) and 3, "BG$bg priority")
+                // BG0's VOFS is the HBlank copy of the scanline buffer, not the register state.
+                if (bg == 0) continue
+                assertEquals(io.u16(0x10 + 4 * bg) and 0x1FF, ours.u16(0x10 + 4 * bg) and 0x1FF, "BG$bg HOFS")
+                assertEquals(io.u16(0x12 + 4 * bg) and 0x1FF, ours.u16(0x12 + 4 * bg) and 0x1FF, "BG$bg VOFS")
+            }
         }
 
-        // Full dump f05100: the big map's tiles, BG1/BG2 tilemaps, palette banks 5-8 and the BG
-        // registers.
-        hw.flushBackgrounds()
-        val vram = run.region("f05100", "vram")
-        val tileBytes = rom.decompressInto(IMG_EVENT_GMAP, ByteArray(0x10000), 0)
-        val bandBytes = rom.decompressInto(WorldMapMuEntry.IMG_BAND, ByteArray(0x2000), 0)
-        for ((range, what) in listOf(
-            (0 until tileBytes) to "BG tile data",
-            (0x6800 until 0x7000) to "BG1 tilemap",
-            (0x7000 until 0x7800) to "BG2 tilemap",
-            (BAND_TILES until BAND_TILES + bandBytes) to "band tiles",
-        )) {
-            val bad = range.filter { vram[it] != hw.vram[it] }
-            assertEquals(
-                0, bad.size,
-                "$what at f05100: first bad ${bad.firstOrNull()}, last ${bad.lastOrNull()}, " +
-                    bad.groupBy { it / 0x400 }.mapValues { it.value.size } +
-                    " theirs ${vram.slice(0 until 16)} ours ${hw.vram.slice(0 until 16)}",
-            )
-        }
-        val pal = run.region("f05100", "pal")
-        for (i in 5 * 16 until 9 * 16) {
-            assertEquals(pal.u16(2 * i), hw.paletteRam[i].toInt() and 0xFFFF, "palette entry $i")
-        }
-        val io = run.region("f05100", "io")
-        val ours = ByteArray(0x100)
-        hw.lcd.flushTo(ours)
-        for (bg in 0 until 4) {
-            assertEquals(io.u16(8 + 2 * bg) and 3, ours.u16(8 + 2 * bg) and 3, "BG$bg priority")
-            // BG0's VOFS is the HBlank copy of the scanline buffer, not the register state.
-            if (bg == 0) continue
-            assertEquals(io.u16(0x10 + 4 * bg) and 0x1FF, ours.u16(0x10 + 4 * bg) and 0x1FF, "BG$bg HOFS")
-            assertEquals(io.u16(0x12 + 4 * bg) and 0x1FF, ours.u16(0x12 + 4 * bg) and 0x1FF, "BG$bg VOFS")
+        compare(4907)
+        val clock0 = rig.trace.clock(4920) - 4920
+        for (step in 4908..LAST_STEP) {
+            if (step in LAG_STEPS) continue
+            // One frame per non-lag step; the frame's inputs and clock are those of its end step.
+            keyStatus.update(run.inputs[step - 1])
+            rig.keys = keyStatus.newKeys
+            rig.clock = clock0 + step
+            frame()
+            compare(step)
+            if (step in DUMPS) compareDump(step)
+            if (step in TALK_DUMPS) compareTalk(step)
+            if (step == 5100 || step == 5400) compareTextVram(step)
+            if (step == 5100) compareFullDump()
         }
     }
 
@@ -386,8 +539,6 @@ class WorldMapEventHostTest {
         assertEquals(emptyList<List<Int>>(), calls)
     }
 
-    private var frames = 0
-
     private companion object {
         const val LCD_BUFFER = 0x3080
 
@@ -403,8 +554,17 @@ class WorldMapEventHostTest {
         const val HB_PAGE = 0x1C5CF
         const val HB_STATUS = 0x1BE30
 
-        /** Steps with a RAM dump inside the window. */
+        /** Steps inside a lag frame: `GmapRm_StartUpdateDirect` and `StartWmTextMsg`. */
+        val LAG_STEPS = setOf(4944, 4945, 4946, 4947, 5103, 5104, 5105, 5191, 5221, 5281, 5311, 5371)
+
+        /** Last step compared. */
+        const val LAST_STEP = 5495
+
+        /** Steps with a RAM dump inside the opening window (blend and scanline state). */
         val DUMPS = setOf(4920, 4950, 4980, 5010, 5040, 5070, 5100)
+
+        /** Dumps (every 30 steps) with the talk state of the text phase. */
+        val TALK_DUMPS = (5100..5490 step 30).toSet() + 5100
     }
 }
 

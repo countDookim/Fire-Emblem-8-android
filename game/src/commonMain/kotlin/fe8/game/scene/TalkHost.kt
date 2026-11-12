@@ -102,8 +102,8 @@ public interface TalkHost {
     /** `Proc_StartBlocking(gProcScr_TalkShiftClearAll, parent)`. */
     public fun startTalkShiftClearAll(parent: Proc)
 
-    /** `Proc_StartBlocking(ProcScr_TalkSpriteShiftClear, parent)`. */
-    public fun startTalkSpriteShiftClear(parent: Proc)
+    /** `PAL_COLOR(bank, index) = color` (the palette buffer, then synced). */
+    public fun setPaletteColor(bank: Int, index: Int, color: Int)
 
     /** `TalkFlushAllLine` (sprite text). */
     public fun talkFlushAllLine()

@@ -42,7 +42,7 @@ interface TalkHostDefaults : TalkHost {
 
     override fun startTalkShiftClearAll(parent: Proc) {}
 
-    override fun startTalkSpriteShiftClear(parent: Proc) {}
+    override fun setPaletteColor(bank: Int, index: Int, color: Int) {}
 
     override fun talkFlushAllLine() {}
 

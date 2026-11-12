@@ -552,14 +552,18 @@ public object M4aCommands {
         }
     }
 
-    // NOTE: the decomp has `TEMPORARY_FADE` = 0x0001 and `FADE_IN` = 0x0002; the two values here
-    // are the other way round. Neither flag is ever set by this port (no m4aMPlayFadeIn or
-    // m4aMPlayFadeOutTemporarily), so the traces do not reach it; a code fix is left open.
-    /** `FADE_IN` flag in `fadeOV` (value differs from the decomp, see the note above). */
-    private const val FADE_IN = 0x1
+    /**
+     * `FADE_IN` flag in `fadeOV` (0x0002 in `include/gba/m4a_internal.h`). Not set by this port
+     * yet (no `m4aMPlayFadeIn`), so no trace reaches it.
+     */
+    private const val FADE_IN = 0x2
 
-    /** `TEMPORARY_FADE` flag in `fadeOV` (value differs from the decomp, see the note above). */
-    private const val TEMPORARY_FADE = 0x2
+    /**
+     * `TEMPORARY_FADE` flag in `fadeOV` (0x0001 in `include/gba/m4a_internal.h`): a fade-out
+     * that pauses the tracks instead of stopping them. Not set by this port yet (no
+     * `m4aMPlayFadeOutTemporarily`), so no trace reaches it.
+     */
+    private const val TEMPORARY_FADE = 0x1
 
     /**
      * `clear_modM`: ends a modulation: modM = 0, lfoSpeedC = 0 and flags the modulated target

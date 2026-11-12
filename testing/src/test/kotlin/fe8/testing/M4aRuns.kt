@@ -16,7 +16,7 @@ package fe8.testing
  * The subtitle skip runs and their control share the original input prefix and RAM around f975;
  * `OpSubtitleSkipDifferentialTest` checks the input change and RAM before each skip.
  * The player-phase runs (`ram_trace_prologue_select_move`, `_cancel_end`, `_attack`,
- * `_status_ui`) resume the
+ * `_status_ui`, `_attack_noanim`, `_kill`) resume the
  * same `prologue.sav` as `ram_trace_prologue_resume`; `ram_trace_newgame_intro` has the NEWGAME
  * input prefix of `ram_trace_newgame_bm` up to f9321, and `ram_trace_prologue_cutscene_skip` the
  * NEWGAME prefix of `ram_trace_prologue` up to f10004. All inherit the known divergence.
@@ -32,4 +32,5 @@ internal val M4A_UNCOVERED_RUNS: Set<String> = setOf(
     "ram_trace_subtitle_skip_2375", "ram_trace_subtitle_skip_4405",
     "ram_trace_prologue_select_move", "ram_trace_prologue_cancel_end", "ram_trace_prologue_attack",
     "ram_trace_newgame_intro", "ram_trace_prologue_cutscene_skip", "ram_trace_prologue_status_ui",
+    "ram_trace_prologue_attack_noanim", "ram_trace_prologue_kill",
 )

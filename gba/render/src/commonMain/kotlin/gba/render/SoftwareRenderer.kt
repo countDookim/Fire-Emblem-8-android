@@ -19,7 +19,9 @@ package gba.render
  * Affine BG layers: 8bpp maps of 16..128 tiles with one-byte tile indices, sampled at
  * `(ref + pa·x, ref + pc·x) >> 8` per line, the line reference advancing by `pb`/`pd` per line (a LineTable
  * scroll override reloads it, like an HBlank write to `BGxX/Y`); wrap or transparent outside.
- * Not yet: OBJ mosaic, mosaic on affine BGs. Checked against mGBA frames (`FrameCompareTest`, `Fe8BootTest`).
+ * Not yet: OBJ mosaic, mosaic on affine BGs. Checked against mGBA frames (`FrameCompareTest`,
+ * `Fe8BootTest`). Window bounds with left > right wrap around here; that is not checked against
+ * hardware documentation or mGBA.
  *
  * The camera offset is ignored: vanilla mode always shows the 240×160 screen at the origin.
  * [render] allocates nothing.
@@ -34,15 +36,31 @@ public class SoftwareRenderer(
     /** Colour-effect arithmetic; [ColorMath.Hardware] except in emulator comparisons. */
     public val colorMath: ColorMath = ColorMath.Hardware,
 ) : Renderer {
-    /** Working palette for this frame: 0..255 BG, 256..511 OBJ (LineTable writes land here, not in [state]). */
+    /** Working palette: 0..255 BG, 256..511 OBJ (LineTable writes land here, not in [state]). */
     private val palette = ShortArray(2 * PaletteBank.COLORS)
+
+    /**
+     * BG numbers of the enabled layers, front to back (see [sortLayers]); the per-layer arrays
+     * below are indexed by position in it, not by BG number.
+     */
     private val order = IntArray(RenderState.LAYERS)
+
+    /** Per layer: scroll x of this line (text), or the affine reference x of this line. */
     private val lineScrollX = IntArray(RenderState.LAYERS)
+
+    /** Per layer: scroll y of this line (text), or the affine reference y of this line. */
     private val lineScrollY = IntArray(RenderState.LAYERS)
+
+    /** Per layer: running affine reference x, advanced by `pb` each line (like internal `BGxX`). */
     private val affX = IntArray(RenderState.LAYERS)
+
+    /** Per layer: running affine reference y, advanced by `pd` each line. */
     private val affY = IntArray(RenderState.LAYERS)
+
+    /** Per layer: its tile sheet, looked up once per frame. */
     private val lineSheet = arrayOfNulls<ByteArray>(RenderState.LAYERS)
     private val objs = SpriteRasterizer(state, sheets)
+    // The rasterizer's per-column buffers for the current line (same arrays, shorter names).
     private val objColor = objs.color
     private val objPrio = objs.priority
     private val objSemi = objs.semi
@@ -126,8 +144,8 @@ public class SoftwareRenderer(
                 blendMode = (blendControlVal shr 6) and 3
                 blendBottom = (blendControlVal shr 8) and 0x3F
             }
-            val mh = maxOf(1, fx.mosaic[0])
-            val mvY = y - y % maxOf(1, fx.mosaic[1])
+            val mh = maxOf(1, fx.mosaic[0]) // BG mosaic block width
+            val mvY = y - y % maxOf(1, fx.mosaic[1]) // first line of this BG mosaic block
             val backdrop = palette[0].toInt() and 0x7FFF
             val row = y * fb.width
             for (x in 0 until width) {
@@ -182,6 +200,7 @@ public class SoftwareRenderer(
         }
     }
 
+    /** Records a visible pixel as the top (first call) or second (later call) of the composite. */
     private fun push(color: Int, layerBit: Int, semi: Boolean) {
         if (filled == 0) {
             color1 = color; layerBit1 = layerBit; semiTransparent1 = semi
@@ -238,7 +257,10 @@ public class SoftwareRenderer(
         /** Window mask with every layer and colour effects enabled (no windows active). */
         const val ALL = 0x3F
 
-        /** Hardware window bound test: [lo] until [hi], wrapping around when lo > hi. */
+        /**
+         * Window bound test: [coord] in [start] until [end]; when start > end this port treats
+         * it as wrapping around (not checked against hardware documentation or mGBA).
+         */
         fun inside(coord: Int, start: Int, end: Int): Boolean = if (start <= end) coord in start until end else coord >= start || coord < end
     }
 }

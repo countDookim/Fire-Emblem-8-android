@@ -5,14 +5,21 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * The BIOS call `BgAffineSet` (SWI 0x0E) as mGBA (the reference emulator) computes it, in float.
+ * The BIOS call `BgAffineSet` (SWI 0x0E; `BgAffineSet(src, dest, count)` in the decomp's
+ * `include/gba/syscall.h`) for one entry, as mGBA (the reference emulator) computes it, in float.
+ * It turns a source (`struct BgAffineSrcData`: texture and screen origin, scale, angle) into the
+ * `pa, pb, pc, pd, dx, dy` registers of a rotating/scaling background (`struct BgAffineDstData`).
  * Matches mGBA on the title screen's BG2 zoom and turn (`TitleScreenDifferentialTest`).
  */
 public object BgAffine {
     /**
-     * Writes `pa, pb, pc, pd, dx, dy` for one BG into [dst] at [at] (the `LcdControl.affine`
-     * layout) from texture centre [texX]/[texY] (24.8), screen centre [scrX]/[scrY], scales
-     * [scaleX]/[scaleY] (8.8) and angle [angle] (u16, only the high byte is used).
+     * Writes six ints into [dst] starting at [at], in the order of `struct BgAffineDstData`:
+     * `pa, pb, pc, pd` (s16 values, 8.8 fixed point, the 2x2 matrix mapping screen to texture
+     * offsets) then `dx, dy` (the texture point shown at screen (0, 0), 24.8 fixed point; the
+     * `BG2X`/`BG2Y` reference point). Inputs are the BIOS source fields: texture origin
+     * [texX]/[texY] (24.8), the screen point [scrX]/[scrY] (s16 pixels) that shows it, scales
+     * [scaleX]/[scaleY] (s16, 8.8: the texture step per screen pixel, so a larger value shrinks
+     * the picture) and rotation [angle] (u16, 0x10000 = one turn; only the high byte is used).
      */
     public fun set(
         dst: IntArray,

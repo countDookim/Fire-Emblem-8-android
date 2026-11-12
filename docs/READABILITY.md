@@ -57,7 +57,7 @@ their old counts); new packages get a row when they appear.
 | engine/extract | gbafe.extract.m4a | 1 | 311 | done 2026-11-09 19d121b; audit todo |
 | engine/extract | gbafe.extract.text | 1 | 55 | done 2026-11-09 0194222; audit done 2026-11-12 7d13c5d |
 | engine/input | gbafe.input | 2 | 238 | done 2026-11-07 697847c; audit done 2026-11-12 02666d9 |
-| engine/render | gbafe.render | 10 | 1592 | done 2026-11-09 83f2cb6; audit todo |
+| engine/render | gbafe.render | 10 | 1592 | done 2026-11-09 83f2cb6; audit done 2026-11-12 PENDING |
 | engine/save | gbafe.save | 7 | 621 | done 2026-11-09 d3b21d6; audit done 2026-11-12 ad1504f |
 | engine/script | gbafe.script | 7 | 920 | done 2026-11-09 d3b21d6; audit todo |
 | engine/text | gbafe.text | 6 | 926 | done 2026-11-09 d3b21d6; audit done 2026-11-12 7d13c5d |
@@ -87,7 +87,7 @@ their old counts); new packages get a row when they appear.
 | gba/data | gba.data | 7 | 585 | done 2026-11-09 19d121b; audit todo |
 | gba/extract | gba.extract | 9 | 572 | done 2026-11-09 19d121b; audit todo |
 | gba/input | gba.input | 3 | 362 | done 2026-11-07 52e07f0; audit todo |
-| gba/render | gba.render | 10 | 1388 | done 2026-11-09 83f2cb6; audit todo |
+| gba/render | gba.render | 10 | 1388 | done 2026-11-09 83f2cb6; audit done 2026-11-12 PENDING |
 | gba/testkit | gba.testkit | 5 | 352 | done 2026-11-09 19d121b; audit todo |
 | gba/vfs | gba.vfs | 4 | 228 | done 2026-11-07 1b2b121; audit todo |
 | testing | fe8.testing | 3 | 295 | done 2026-11-09 db51e13; audit todo |

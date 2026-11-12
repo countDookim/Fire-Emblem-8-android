@@ -9,7 +9,7 @@ package gba.render
  * between frames (e.g. animated tiles) without re-registering. Lookups never allocate.
  */
 public class TileSheets(
-    /** Number of sheet ids (0 until capacity). */
+    /** Number of sheet ids: valid ids are `0 until capacity`. */
     public val capacity: Int = 64,
 ) {
     private val sheets = arrayOfNulls<ByteArray>(capacity)
@@ -34,7 +34,7 @@ public class TileSheets(
 
     /** Pixel decoding helpers shared by renderers. */
     public companion object {
-        /** Bytes per 4bpp tile. */
+        /** Bytes per 4bpp tile (also the OAM tile unit, `CHR_SIZE` in the decomp). */
         public const val TILE_BYTES_4BPP: Int = 32
 
         /** Bytes per 8bpp tile. */

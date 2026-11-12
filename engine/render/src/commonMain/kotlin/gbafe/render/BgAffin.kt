@@ -4,11 +4,14 @@ import gba.render.BgAffine
 
 /** The BG2/BG3 affine helpers of src/sysutil.c, operating on [LcdControl.affine]. */
 public object BgAffin {
+    /** Index of [bg]'s `BgAffineDstData` in [LcdControl.affine]: BG2 first (0), BG3 second (6). */
     private fun at(bg: Int): Int = if (bg == 2) 0 else 6
 
     /**
-     * Sets [bg]'s affine parameters from a rotation [angle] and scales [sx]/[sy] (8.8, clamped to
-     * at least 4) around ([xCenter], [yCenter]); BG2 uses the BG2 slot, any other BG the BG3 slot.
+     * Sets [bg]'s affine registers so that texture point ([xCenter], [yCenter]) (whole pixels) is
+     * shown at screen (0, 0), rotated by [angle] (s16, 0x1000 = one turn) and magnified by
+     * [sx]/[sy] (8.8, 0x100 = 1x, clamped to at least 4). Passes `0x10000 / scale` to the BIOS
+     * `BgAffineSet`. BG2 uses the BG2 slot, any other BG the BG3 slot.
      *
      * Ported from src/sysutil.c: BgAffinRotScaling
      */
@@ -26,8 +29,8 @@ public object BgAffin {
     }
 
     /**
-     * Scales BG2's `pb`/`pd` by [sy] and `pa`/`pc` by [sx] (8.8 fixed point). Only BG2 exists in
-     * the original, other values are ignored here.
+     * Scales BG2's `pb`/`pd` by [sy] and `pa`/`pc` by [sx] (8.8 fixed point). The original only
+     * handles BG2 (any other [bg] makes it dereference NULL); other values are ignored here.
      *
      * Ported from src/sysutil.c: BgAffinScaling
      */
@@ -41,8 +44,9 @@ public object BgAffin {
     }
 
     /**
-     * Sets BG2's `dx`/`dy` so screen point (q0X, q0Y) shows texture point (p0X, p0Y). Only BG2
-     * exists in the original, other values are ignored here.
+     * Sets BG2's `dx`/`dy` (the `BG2X`/`BG2Y` reference point, 24.8) so screen point (q0X, q0Y)
+     * shows texture point (p0X, p0Y) (whole pixels). The original only handles BG2 (any other [bg]
+     * makes it dereference NULL); other values are ignored here.
      *
      * Ported from src/sysutil.c: BgAffinAnchoring
      */

@@ -13,7 +13,7 @@ public class SpriteRasterizer(
     /** Tile graphics referenced by the sprites' sheet ids. */
     public val sheets: TileSheets,
 ) {
-    /** BGR555 colour of the winning sprite pixel per column, or -1 for none. */
+    /** BGR555 colour of the winning (frontmost opaque) sprite pixel per column, or -1 for none. */
     public val color: IntArray = IntArray(FrameBuffer.GBA_WIDTH)
 
     /** Priority (0..3) of the winning sprite pixel per column; valid where [color] >= 0. */
@@ -49,9 +49,12 @@ public class SpriteRasterizer(
             val spriteX = sprites.x[i]
             val spritePriority = sprites.priority[i].toInt()
             val bpp8 = flags and SpriteBatch.BPP8 != 0
-            val base = sprites.tile[i].toInt() and 0x3FF
+            val base = sprites.tile[i].toInt() and 0x3FF // OAM attr2 tile number (32-byte units)
+            // Tile units per sprite row: 1D mapping packs them; 2D uses a 32-unit-wide sheet.
             val stride = if (sprites.mapping1d) (width shr 3) * (if (bpp8) 2 else 1) else 32
+            // This sprite's palette in the 512-colour working palette (OBJ half starts at 256).
             val palBase = PaletteBank.COLORS + if (bpp8) 0 else (sprites.palette[i].toInt() and 0xF) shl 4
+            // Identity matrix (8.8) for non-affine sprites; their flips are applied below instead.
             var pa = 0x100
             var pb = 0
             var pc = 0
@@ -69,6 +72,7 @@ public class SpriteRasterizer(
                 var tx: Int
                 var ty: Int
                 if (affine) {
+                    // Offset from the bounding box centre, mapped through the matrix.
                     val dx = x - spriteX - (boundWidth shr 1)
                     val dy = relY - (boundHeight shr 1)
                     tx = ((pa * dx + pb * dy) shr 8) + (width shr 1)
@@ -80,6 +84,7 @@ public class SpriteRasterizer(
                     if (flags and SpriteBatch.HFLIP != 0) tx = width - 1 - tx
                     if (flags and SpriteBatch.VFLIP != 0) ty = height - 1 - ty
                 }
+                // 32-byte tile unit holding this pixel; `and 0x3FF` below = 10-bit tile number.
                 val unit = base + (ty shr 3) * stride + (tx shr 3) * (if (bpp8) 2 else 1)
                 val px = tx and 7
                 val py = ty and 7

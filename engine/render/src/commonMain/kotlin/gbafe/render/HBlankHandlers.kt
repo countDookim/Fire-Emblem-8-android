@@ -1,8 +1,11 @@
 package gbafe.render
 
-/** An HBlank interrupt handler: runs once per scanline [vcount] and may rewrite the I/O registers in [io]. */
+/**
+ * An HBlank interrupt handler (`void (*)(void)` in the decomp): runs once per scanline and may
+ * rewrite the I/O registers in [io]. The decomp handlers read `REG_VCOUNT`; here it is passed.
+ */
 public fun interface HBlankHandler {
-    /** Handles the HBlank before line [vcount]. */
+    /** Handles the HBlank after line [vcount] (`REG_VCOUNT`, the line just drawn) of the frame. */
     public fun onHBlank(vcount: Int, io: ByteArray)
 }
 
@@ -83,6 +86,7 @@ public class HBlankHandlers(
     }
 
     private companion object {
+        /** `DISPSTAT_HBLANK_INTR`: DISPSTAT bit 4, HBlank interrupt enabled. */
         const val DISPSTAT_HBLANK_IRQ = 0x10
     }
 }

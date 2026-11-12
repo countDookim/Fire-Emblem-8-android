@@ -48,10 +48,10 @@ public class RenderState {
  * bits 12..15 palette (4bpp only). For affine layers only the low 8 bits (tile index) are used, as on hardware.
  */
 public class TileLayer {
-    /** Whether the layer is drawn. */
+    /** Whether the layer is drawn (`DISPCNT` BGn enable, and the video mode has this BG). */
     public var enabled: Boolean = false
 
-    /** Priority 0 (front) .. 3 (back). */
+    /** `BGxCNT` priority 0 (front) .. 3 (back); equal priorities draw the lower BG number first. */
     public var priority: Int = 0
 
     /** Tile sheet id (resolved by the backend; an asset, never a VRAM address). */
@@ -60,7 +60,7 @@ public class TileLayer {
     /** 8bpp tiles (one 256-colour palette) instead of 4bpp (16 palettes of 16). */
     public var bpp8: Boolean = false
 
-    /** Whether mosaic applies to this layer. */
+    /** `BGxCNT` mosaic bit: the `MOSAIC` register's BG block size applies to this layer. */
     public var mosaic: Boolean = false
 
     /** Map width in tiles (32 or 64 for text layers; 16..128 for affine). */
@@ -71,34 +71,37 @@ public class TileLayer {
     public var heightTiles: Int = 32
         set(v) { require(v in 1..MAX_TILES); field = v }
 
-    /** Horizontal scroll in pixels (text mode). */
+    /** Horizontal scroll in pixels (text mode, `BGxHOFS`, 0..511). */
     public var scrollX: Int = 0
 
-    /** Vertical scroll in pixels (text mode). */
+    /** Vertical scroll in pixels (text mode, `BGxVOFS`, 0..511). */
     public var scrollY: Int = 0
 
     /** Affine (rotation/scaling) mode instead of text mode. */
     public var affine: Boolean = false
 
-    /** Affine: whether the map wraps (otherwise outside = transparent). */
+    /** `BGxCNT` area overflow: whether the affine map wraps (otherwise outside = transparent). */
     public var wrap: Boolean = false
 
-    /** Affine matrix (8.8 fixed point): dx along a line. */
+    /** `BGxPA` (affine matrix, 8.8 fixed point): texture x step per screen pixel to the right. */
     public var pa: Int = 0x100
 
-    /** Affine matrix: dx per line. */
+    /** `BGxPB`: texture x step per screen line down. */
     public var pb: Int = 0
 
-    /** Affine matrix: dy along a line. */
+    /** `BGxPC`: texture y step per screen pixel to the right. */
     public var pc: Int = 0
 
-    /** Affine matrix: dy per line. */
+    /** `BGxPD`: texture y step per screen line down. */
     public var pd: Int = 0x100
 
-    /** Affine reference point x (19.8 fixed point). */
+    /**
+     * `BGxX` affine reference point x: the texture x shown at the start of screen line 0 (28-bit
+     * signed: sign, 19 integer bits, 8 fraction bits; stored sign-extended).
+     */
     public var refX: Int = 0
 
-    /** Affine reference point y (19.8 fixed point). */
+    /** `BGxY` affine reference point y (same format as [refX]). */
     public var refY: Int = 0
 
     /** Tile entries, row-major with a fixed stride of [MAX_TILES]. */
@@ -122,19 +125,19 @@ public class TileLayer {
 
     /** Entry bit layout and map limits. */
     public companion object {
-        /** Largest map side in tiles (affine 1024×1024 px). */
+        /** Largest map side in tiles (the biggest affine map, 128 tiles = 1024 px). */
         public const val MAX_TILES: Int = 128
 
-        /** Tile index mask. */
+        /** Tile index mask (bits 0..9 of a text tile entry). */
         public const val TILE_MASK: Int = 0x3FF
 
-        /** Horizontal flip bit. */
+        /** Horizontal flip bit (bit 10; `TILE_HFLIP` in the decomp). */
         public const val HFLIP: Int = 0x400
 
-        /** Vertical flip bit. */
+        /** Vertical flip bit (bit 11; `TILE_VFLIP` in the decomp). */
         public const val VFLIP: Int = 0x800
 
-        /** Palette shift (bits 12..15). */
+        /** Shift of the 4-bit palette bank (bits 12..15; `TILEREF(chr, pal)` in the decomp). */
         public const val PALETTE_SHIFT: Int = 12
     }
 }
@@ -157,7 +160,7 @@ public class SpriteBatch(
     /** Screen y of the top-left corner (may be negative). */
     public val y: IntArray = IntArray(capacity)
 
-    /** Width in pixels (8, 16, 32 or 64). */
+    /** Width in pixels (8, 16, 32 or 64), from OAM attr0 shape + attr1 size. */
     public val width: ByteArray = ByteArray(capacity)
 
     /** Height in pixels (8, 16, 32 or 64). */
@@ -166,28 +169,36 @@ public class SpriteBatch(
     /** Sheet id holding the sprite's tiles. */
     public val sheet: IntArray = IntArray(capacity)
 
-    /** First tile index in [sheet], in 32-byte units as in OAM (an 8bpp tile spans two units). */
+    /** First tile index in [sheet] (OAM attr2 bits 0..9), in 32-byte units (8bpp tile = two). */
     public val tile: ShortArray = ShortArray(capacity)
 
-    /** Palette 0..15 (4bpp; ignored for 8bpp). */
+    /** OBJ palette bank 0..15 (OAM attr2 bits 12..15; 4bpp only, ignored for 8bpp). */
     public val palette: ByteArray = ByteArray(capacity)
 
-    /** Priority 0 (front) .. 3 (back), relative to BG layers. */
+    /**
+     * Priority 0 (front) .. 3 (back) (OAM attr2 bits 10..11), compared with the BG layers'
+     * priority; a sprite is in front of a BG with an equal or greater value.
+     */
     public val priority: ByteArray = ByteArray(capacity)
 
-    /** Flag bits: [HFLIP], [VFLIP], [MOSAIC], [BPP8], [AFFINE], [DOUBLE_SIZE], [MODE_SEMI], [MODE_WINDOW]. */
+    /**
+     * Flag bits (OAM attr0/attr1 bits regrouped): [HFLIP], [VFLIP], [MOSAIC], [BPP8], [AFFINE],
+     * [DOUBLE_SIZE], [MODE_SEMI], [MODE_WINDOW].
+     */
     public val flags: ShortArray = ShortArray(capacity)
 
-    /** Affine matrix index (0..31) when [AFFINE] is set. */
+    /** Affine matrix index (0..31, OAM attr1 bits 9..13) when [AFFINE] is set. */
     public val affineIndex: ByteArray = ByteArray(capacity)
 
-    /** 32 affine matrices × (pa, pb, pc, pd), 8.8 fixed point. */
+    /** 32 affine matrices × (pa, pb, pc, pd), 8.8 fixed point (the OAM rotation/scaling slots). */
     public val affine: ShortArray = ShortArray(AFFINE_MATRICES * 4)
 
     /**
-     * Tile layout of multi-tile sprites (`DISPCNT` OBJ character mapping). False = 2D: the sheet is 32 units
-     * wide, so the tile below unit `t` is `t + 32` (FE8's usual mode). True = 1D: a sprite's tiles are
-     * consecutive, row after row (FE8 uses it in the opening animation). Kept by [clear].
+     * Tile layout of multi-tile sprites (`DISPCNT_OBJ_1D_MAP`, bit 6). False = 2D: the sheet is 32
+     * units wide, so the tile below unit `t` is `t + 32` (`obj1dMap = 0`, set in
+     * `src/banim-ekrdispup.c` and `src/opanim-main.c`). True = 1D: a sprite's tiles are
+     * consecutive, row after row (`obj1dMap = 1`, set in `src/opanim-main.c`, the opening
+     * animation). Kept by [clear].
      */
     public var mapping1d: Boolean = false
 
@@ -196,7 +207,7 @@ public class SpriteBatch(
         count = 0
     }
 
-    /** Appends a sprite; returns its index, or -1 if the batch is full (the hardware drops it too). */
+    /** Appends a sprite with the fields above; returns its index, or -1 if the batch is full. */
     public fun add(x: Int, y: Int, width: Int, height: Int, sheet: Int, tile: Int, palette: Int, priority: Int, flags: Int = 0, affineIndex: Int = 0): Int {
         if (count == capacity) return -1
         val spriteIndex = count++
@@ -208,7 +219,7 @@ public class SpriteBatch(
         return spriteIndex
     }
 
-    /** Sets affine matrix [index]. */
+    /** Sets affine matrix [index] (0..31) to ([pa], [pb], [pc], [pd]), 8.8 fixed point. */
     public fun setAffine(index: Int, pa: Int, pb: Int, pc: Int, pd: Int) {
         val offset = index * 4
         affine[offset] = pa.toShort()
@@ -237,10 +248,13 @@ public class SpriteBatch(
         /** Affine with a doubled bounding box. */
         public const val DOUBLE_SIZE: Int = 32
 
-        /** Semi-transparent (always a first blend target). */
+        /**
+     * Semi-transparent (OAM attr0 mode 1): alpha-blended with the pixel below when that pixel's
+     * layer is a second target (whatever the first-target bits say).
+     */
         public const val MODE_SEMI: Int = 64
 
-        /** Not drawn; its opaque pixels form the OBJ window. */
+        /** OBJ window (OAM attr0 mode 2): not drawn; its opaque pixels form the OBJ window mask. */
         public const val MODE_WINDOW: Int = 128
 
         /** Number of affine matrices. */
@@ -273,31 +287,31 @@ public class PaletteBank {
  * bit 5 = backdrop (blend targets) or colour-effects-enabled (window masks).
  */
 public class Effects {
-    /** Blend mode: [BLEND_NONE], [BLEND_ALPHA], [BLEND_BRIGHTEN], [BLEND_DARKEN]. */
+    /** `BLDCNT` effect (bits 6..7): one of the `BLEND_*` constants. */
     public var blendMode: Int = BLEND_NONE
 
-    /** First-target layer mask. */
+    /** First-target layer mask (`BLDCNT` bits 0..5). */
     public var blendTop: Int = 0
 
-    /** Second-target layer mask (alpha blending). */
+    /** Second-target layer mask (`BLDCNT` bits 8..13; used by alpha blending). */
     public var blendBottom: Int = 0
 
-    /** Alpha coefficient of the first target, 0..16. */
+    /** `BLDALPHA` EVA: weight of the first target, sixteenths 0..16. */
     public var eva: Int = 0
 
-    /** Alpha coefficient of the second target, 0..16. */
+    /** `BLDALPHA` EVB: weight of the second target, sixteenths 0..16. */
     public var evb: Int = 0
 
-    /** Brightness coefficient, 0..16. */
+    /** `BLDY` EVY: brightness change, sixteenths 0..16. */
     public var evy: Int = 0
 
-    /** Window 0 enabled. */
+    /** Window 0 enabled (`DISPCNT_WIN0_ON`). */
     public var win0: Boolean = false
 
-    /** Window 1 enabled. */
+    /** Window 1 enabled (`DISPCNT_WIN1_ON`). */
     public var win1: Boolean = false
 
-    /** OBJ window enabled. */
+    /** OBJ window enabled (`DISPCNT_OBJWIN_ON`). */
     public var objWindow: Boolean = false
 
     /** Window bounds: index 0/1 = window 0/1; left edge (inclusive). */
@@ -312,13 +326,19 @@ public class Effects {
     /** Bottom edge (exclusive). */
     public val winBottom: IntArray = IntArray(2)
 
-    /** Layer masks inside window 0, window 1 and the OBJ window. */
+    /**
+     * Layer masks inside window 0, window 1 and the OBJ window (`WININ` low/high byte, `WINOUT`
+     * high byte).
+     */
     public val winInside: IntArray = IntArray(3)
 
-    /** Layer mask outside all windows. */
+    /** Layer mask outside all windows (`WINOUT` low byte). */
     public var winOutside: Int = 0
 
-    /** Mosaic block sizes (1 = off): BG horizontal, BG vertical, OBJ horizontal, OBJ vertical. */
+    /**
+     * Mosaic block sizes in pixels (1 = off): BG horizontal, BG vertical, OBJ horizontal, OBJ
+     * vertical (`MOSAIC` register nibbles + 1). OBJ mosaic is not drawn by the renderers yet.
+     */
     public val mosaic: IntArray = intArrayOf(1, 1, 1, 1)
 
     /** Everything off. */
@@ -363,7 +383,9 @@ public class LineTable(
     /** False = no overrides this frame (backends skip all per-line work). */
     public var active: Boolean = false
 
-    /** Per line: override bits ([BG_SCROLL] shl bg, [WIN0_X], [WIN1_X], [BLEND]). */
+    /**
+     * Per line: override bits ([BG_SCROLL] shl bg, [WIN0_X], [WIN1_X], [BLEND], [BLEND_CONTROL]).
+     */
     public val mask: IntArray = IntArray(RenderState.LINES)
 
     /** Per BG × line: scroll x (text) or affine refX, index `bg * LINES + line`. */
@@ -385,7 +407,7 @@ public class LineTable(
     public var paletteWrites: Int = 0
         private set
 
-    /** Palette write: line it takes effect on. */
+    /** Palette write: first line it takes effect on (written in the HBlank before it). */
     public val pwLine: ShortArray = ShortArray(paletteWriteCapacity)
 
     /** Palette write: index 0..255 = BG, 256..511 = OBJ. */

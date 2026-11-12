@@ -13,7 +13,7 @@ public class PackedCompositor(
     /** Colour-effect arithmetic, as for [SoftwareRenderer]. */
     public val colorMath: ColorMath = ColorMath.Hardware,
 ) {
-    /** Composites every pixel of the GBA screen into [fb]. */
+    /** Composites every pixel of the GBA screen (240×160) into [fb]. */
     public fun render(fb: FrameBuffer) {
         for (y in 0 until minOf(fb.height, FrameBuffer.GBA_HEIGHT)) {
             for (x in 0 until minOf(fb.width, FrameBuffer.GBA_WIDTH)) {
@@ -32,14 +32,18 @@ public class PackedCompositor(
         val objPixel = frame.obj[y * FrameBuffer.GBA_WIDTH + x]
         val winX = lines[lineOffset + GpuFrame.L_WIN_X]
         val winFlags = lines[lineOffset + GpuFrame.L_FLAGS]
+        // Layer mask visible at this pixel (Effects mask bits; bit 5 = colour effects allowed):
+        // no window -> all; window 0, window 1, OBJ window in that order; else the outside mask.
         val wmask = when {
             !(fx.win0 || fx.win1 || fx.objWindow) -> 0x3F
-            winFlags and GpuFrame.F_IN0Y != 0 && GpuFrame.inside(x, winX and 0xFF, (winX shr 8) and 0xFF) -> fx.winInside[0]
+            winFlags and GpuFrame.F_IN0Y != 0 &&
+                GpuFrame.inside(x, winX and 0xFF, (winX shr 8) and 0xFF) -> fx.winInside[0]
             winFlags and GpuFrame.F_IN1Y != 0 &&
                 GpuFrame.inside(x, (winX shr 16) and 0xFF, (winX ushr 24) and 0xFF) -> fx.winInside[1]
             fx.objWindow && objPixel and GpuFrame.OBJ_WINDOW != 0 -> fx.winInside[2]
             else -> fx.winOutside
         }
+        // The top two visible pixels (colour, source layer bit) the blend works on.
         var color1 = 0
         var layerMask1 = 0
         var semiTransparent1 = false
@@ -48,7 +52,7 @@ public class PackedCompositor(
         var filled = 0
         var objPending = objPixel and GpuFrame.OBJ_OPAQUE != 0 && wmask and Effects.OBJ != 0
         val objPrio = (objPixel shr GpuFrame.OBJ_PRIO_SHIFT) and 3
-        val mh = maxOf(1, fx.mosaic[0])
+        val mh = maxOf(1, fx.mosaic[0]) // BG mosaic horizontal block width
         // Layers front to back: priority, then BG number (same order as SoftwareRenderer.sortLayers).
         for (prio in 0..3) {
             for (bg in 0 until RenderState.LAYERS) {
@@ -132,7 +136,10 @@ public class PackedCompositor(
         }
     }
 
-    /** Palette index (0..255) of affine [layer] at 8.8 position ([fx], [fy]), or -1 if transparent. */
+    /**
+     * Palette index (0..255) of affine [layer] at texture position ([fx], [fy]) (8.8 fixed point),
+     * or -1 if transparent (colour 0, or outside the map when it does not wrap).
+     */
     private fun affineIndex(layer: TileLayer, sheet: ByteArray, fx: Int, fy: Int): Int {
         val size = layer.widthTiles * 8
         var tx = fx shr 8
@@ -147,7 +154,10 @@ public class PackedCompositor(
         return if (idx == 0) -1 else idx
     }
 
-    /** Palette index (0..255) of text [layer] at world pixel ([wx], [wy]), or -1 if transparent. */
+    /**
+     * Palette index (0..255, 4bpp tiles: palette bank * 16 + colour) of text [layer] at world pixel
+     * ([wx], [wy]) with scroll applied but not yet wrapped, or -1 if transparent (colour 0).
+     */
     private fun textIndex(layer: TileLayer, sheet: ByteArray, wx: Int, wy: Int): Int {
         val mx = wx and (layer.widthTiles * 8 - 1)
         val my = wy and (layer.heightTiles * 8 - 1)

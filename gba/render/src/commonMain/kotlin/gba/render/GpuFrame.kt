@@ -13,9 +13,15 @@ public class GpuFrame(
     sheets: TileSheets,
 ) {
     private val objs = SpriteRasterizer(state, sheets)
+
+    /** The palette on the line being packed: [pack] applies the LineTable writes to it. */
     private val work = ShortArray(PALETTE_WIDTH)
 
-    // Affine line reference points: x for BG0..3, then y for BG0..3.
+    /**
+     * Running affine reference point of each BG for the line being packed: x for BG0..3 in
+     * `0..3`, then y for BG0..3 in `4..7`. Advances by `pb`/`pd` per line (like the hardware's
+     * internal `BGxX/Y` copy), or is reloaded from a LineTable scroll override.
+     */
     private val ref = IntArray(2 * RenderState.LAYERS)
 
     /**
@@ -28,7 +34,11 @@ public class GpuFrame(
     public var paletteRows: Int = 1
         private set
 
-    /** [LINE_INTS] ints per scanline; see the `L_*` offsets. */
+    /**
+     * [LINE_INTS] ints per scanline; see the `L_*` offsets. Ints 0..7 are, per BG, the start of the
+     * line in the layer: text BG scroll x and (mosaic-adjusted) y, or the affine reference point
+     * (8.8 fixed point) for that line.
+     */
     public val lines: IntArray = IntArray(LINE_INTS * RenderState.LINES)
 
     /**
@@ -49,11 +59,12 @@ public class GpuFrame(
             ref[bg] = state.layers[bg].refX
             ref[bg + RenderState.LAYERS] = state.layers[bg].refY
         }
-        val mvMod = maxOf(1, fx.mosaic[1])
+        val mvMod = maxOf(1, fx.mosaic[1]) // BG mosaic vertical block height (`MOSAIC` BG V size)
         for (y in 0 until RenderState.LINES) {
             val mask = if (lineTable.active) lineTable.mask[y] else 0
             if (lineTable.active) {
                 while (nextWrite < lineTable.paletteWrites && lineTable.pwLine[nextWrite] <= y) {
+                    // 0x1FF: index 0..255 = BG colour, 256..511 = OBJ colour
                     work[lineTable.pwIndex[nextWrite].toInt() and 0x1FF] = lineTable.pwColor[nextWrite]
                     nextWrite++
                 }
@@ -111,7 +122,7 @@ public class GpuFrame(
             }
             lines[lineOffset + L_COEFF] = minOf(eva, 16) or (minOf(evb, 16) shl 8) or (minOf(evy, 16) shl 16)
             lines[lineOffset + L_BLEND] = if (mask and LineTable.BLEND_CONTROL != 0) {
-                lineTable.blendControl[y] and 0x3FFF
+                lineTable.blendControl[y] and 0x3FFF // BLDCNT bits 0..13
             } else {
                 (fx.blendTop and 0x3F) or ((fx.blendMode and 3) shl 6) or ((fx.blendBottom and 0x3F) shl 8)
             }
@@ -137,7 +148,10 @@ public class GpuFrame(
         /** Ints per line: 4 × (x, y) layer origin, then [L_WIN_X], [L_FLAGS], [L_COEFF], [L_BLEND]. */
         public const val LINE_INTS: Int = 12
 
-        /** Window 0/1 left/right bounds, one byte each (w0l, w0r, w1l, w1r). */
+        /**
+         * Window 0/1 left/right bounds, one byte each, lowest byte first (w0 left, w0 right,
+         * w1 left, w1 right).
+         */
         public const val L_WIN_X: Int = 8
 
         /** [F_IN0Y] / [F_IN1Y]. */
@@ -146,7 +160,7 @@ public class GpuFrame(
         /** eva | evb << 8 | evy << 16, each clamped to 16. */
         public const val L_COEFF: Int = 10
 
-        /** BLDCNT-style: blendTop | mode << 6 | blendBottom << 8. */
+        /** `BLDCNT` bits 0..13: first targets (bits 0..5) | effect << 6 | second targets << 8. */
         public const val L_BLEND: Int = 11
 
         /** Window 0 is enabled and covers the line. */
@@ -167,7 +181,11 @@ public class GpuFrame(
         /** OBJ plane: an OBJ window sprite covers the pixel. */
         public const val OBJ_WINDOW: Int = 1 shl 19
 
-        /** Hardware window bound test: [coord] in range [start] until [end], wrapping around when start > end. */
+        /**
+         * Window bound test: [coord] in [start] until [end] (`WINxH`/`WINxV`: first and one past
+         * the last pixel). When start > end this port treats the range as wrapping around the
+         * screen edge (not checked against hardware documentation or mGBA).
+         */
         public fun inside(coord: Int, start: Int, end: Int): Boolean =
             if (start <= end) coord in start until end else coord >= start || coord < end
     }

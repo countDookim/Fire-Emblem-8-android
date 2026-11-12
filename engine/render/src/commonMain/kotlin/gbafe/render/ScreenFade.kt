@@ -11,7 +11,10 @@ import gbafe.proc.ProcScripts.sleep
 
 /**
  * The blend-register screen fades of `src/bmlib.c` (`ProcScr_FadeToBlack`, `FromBlack`,
- * `ToWhite`, `FromWhite`): a proc moves `BLDY` between 0 and 16 in steps of a Q4 speed.
+ * `ToWhite`, `FromWhite`): a proc moves `BLDY` between 0 and 16 in steps of a Q4 speed (a
+ * fixed-point number with 4 fraction bits: 0x10 = one `BLDY` step per frame). To black and
+ * from black use the darken effect (`BLDCNT` effect 3), to white and from white the brighten
+ * effect (2).
  */
 public class ScreenFade(
     /** Proc engine. */
@@ -28,6 +31,7 @@ public class ScreenFade(
         public var level: Int = 0
     }
 
+    /** Lets colour effects (bit 5 of each `WININ` / `WINOUT` part) apply in every window part. */
     private fun enableBlendInWindows() {
         lcd.setWincntBit(LcdControl.WIN0_ENABLE_BLEND, true)
         lcd.setWincntBit(LcdControl.WIN1_ENABLE_BLEND, true)
@@ -112,6 +116,7 @@ public class ScreenFade(
         lcd.setBlendConfig(2, 0, 0, 0x10)
     }
 
+    /** The shared shape of the four fade procs: init, sleep 0, loop until done, then block. */
     private fun script(name: String, init: ProcFunc, loop: ProcFunc) = ProcScript(
         name,
         listOf(call(init), sleep(0), repeat(loop), block()),
@@ -146,11 +151,13 @@ public class ScreenFade(
         engine.find(fromBlack) != null || engine.find(toBlack) != null ||
             engine.find(fromWhite) != null || engine.find(toWhite) != null
 
+    /** Starts [script] on proc tree 3 with the Q4 [speed] (a signed 16-bit field, `unk64`). */
     private fun begin(script: ProcScript, speed: Int) {
         val proc = engine.start(script, 3)
         (proc.state as State).speed = speed.toShort().toInt()
     }
 
+    /** Starts [script] blocking [parent] until it ends, with the Q4 [speed]. */
     private fun beginBlocking(script: ProcScript, speed: Int, parent: Proc) {
         val proc = engine.startBlocking(script, parent) ?: return
         (proc.state as State).speed = speed.toShort().toInt()

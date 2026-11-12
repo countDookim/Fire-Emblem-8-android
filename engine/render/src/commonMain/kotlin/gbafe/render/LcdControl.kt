@@ -12,7 +12,7 @@ import gba.render.RenderState
  * (checked against mGBA RAM + I/O dumps by `LcdControlDifferentialTest`).
  */
 public class LcdControl {
-    /** `dispcnt` (struct DispCnt): `DISPCNT` word. */
+    /** `dispcnt` (struct DispCnt): `DISPCNT` word (mode, `DISPCNT_*` layer/window enables). */
     public var dispcnt: Int = 0
 
     /** `dispstat` (struct DispStat): `DISPSTAT` word (bits 0..2 are status flags the hardware owns). */
@@ -36,7 +36,7 @@ public class LcdControl {
     /** `wincnt` (struct WinCnt, 4 bytes): `WININ` in the low half, `WINOUT` in the high half. */
     public var wincnt: Int = 0
 
-    /** `mosaic`: `MOSAIC` word. */
+    /** `mosaic`: `MOSAIC` word (4-bit sizes minus 1: BG H, BG V, OBJ H, OBJ V). */
     public var mosaic: Int = 0
 
     /** `bldcnt` (struct BlendCnt, first u16): `BLDCNT` word. */
@@ -54,7 +54,10 @@ public class LcdControl {
     /** `bg2affin` / `bg3affin` (struct BgAffineDstData): for BG2 then BG3, `pa, pb, pc, pd` (s16), `dx, dy` (s32). */
     public val affine: IntArray = IntArray(12)
 
-    /** `colorAddition` (s8): not a register; used by the palette colour-addition helpers. */
+    /**
+     * `colorAddition` (s8): not a register; added to every colour channel when the palette buffer
+     * is copied to palette RAM (`FlushBackgrounds`).
+     */
     public var colorAddition: Int = 0
 
     /**
@@ -75,7 +78,7 @@ public class LcdControl {
      * Ported from src/hardware.c: SetBlendConfig
      */
     public fun setBlendConfig(effect: Int, coeffA: Int, coeffB: Int, blendY: Int) {
-        bldcnt = (bldcnt and 0xC0.inv()) or ((effect and 3) shl 6)
+        bldcnt = (bldcnt and 0xC0.inv()) or ((effect and 3) shl 6) // BLDCNT bits 6..7
         blendCoeffA = coeffA and 0xFF
         blendCoeffB = coeffB and 0xFF
         this.blendY = blendY and 0xFF
@@ -174,7 +177,10 @@ public class LcdControl {
     private fun targets(bg0: Int, bg1: Int, bg2: Int, bg3: Int, obj: Int): Int =
         (bg0 and 1) or ((bg1 and 1) shl 1) or ((bg2 and 1) shl 2) or ((bg3 and 1) shl 3) or ((obj and 1) shl 4)
 
-    /** Loads every field from a 0x6C-byte `struct LCDControlBuffer` image in [src] at [offset]. */
+    /**
+     * Loads every field from a 0x6C-byte `struct LCDControlBuffer` image in [src] at [offset]
+     * (e.g. a RAM dump); the field offsets are those of `include/hardware.h`.
+     */
     public fun readFrom(src: ByteArray, offset: Int = 0) {
         fun u8(i: Int) = src[offset + i].toInt() and 0xFF
         fun u16(i: Int) = u8(i) or (u8(i + 1) shl 8)
@@ -237,8 +243,10 @@ public class LcdControl {
         }
     }
 
-    /** Inverse of [flushTo]: loads the register fields from an I/O register block (offset 0 = 0x04000000).
-     * [colorAddition] is not a register and is left unchanged. */
+    /**
+     * Inverse of [flushTo]: loads the register fields from an I/O register block (offset 0 =
+     * 0x04000000). [colorAddition] is not a register and is left unchanged.
+     */
     public fun readRegisters(io: ByteArray) {
         fun u16(i: Int) = (io[i].toInt() and 0xFF) or ((io[i + 1].toInt() and 0xFF) shl 8)
         dispcnt = u16(0x00)
@@ -267,26 +275,29 @@ public class LcdControl {
     /**
      * Decodes the registers into the semantic render state, as the PPU interprets them: per-BG enable (by
      * video mode), priority, character block (= [TileLayer.sheet]), mosaic, colour mode, map size, wrap,
-     * scroll, affine mode/matrix; windows, blending, mosaic sizes; OBJ enable/mapping into
+     * scroll, affine mode/matrix; windows, blending, mosaic sizes; the OBJ character mapping into
      * [SpriteBatch.mapping1d]. Map entries, palettes and sprites are not registers and are left untouched.
-     * Returns false when `DISPCNT` forced blank is set (the screen shows white). Allocation-free.
+     * Returns false when `DISPCNT_FORCED_BLANK` (bit 7) is set (the hardware shows white then; not
+     * checked against hardware documentation). Allocation-free.
      */
     public fun applyTo(state: RenderState): Boolean {
-        val mode = dispcnt and 7
+        val mode = dispcnt and 7 // DISPCNT_MODE_0..2 (3..5 are bitmap modes: no layers here)
         for (bg in 0 until RenderState.LAYERS) {
             val layer = state.layers[bg]
             val cnt = bgCnt[bg]
+            // DISPCNT_BG0_ON.. (bit 8 + bg), and the mode must have that BG
             layer.enabled = dispcnt and (0x100 shl bg) != 0 &&
                 when (mode) { 0 -> true; 1 -> bg < 3; 2 -> bg >= 2; else -> false }
             layer.affine = mode == 2 || (mode == 1 && bg == 2)
             layer.priority = cnt and 3
             layer.sheet = (cnt shr 2) and 3
-            layer.mosaic = cnt and 0x40 != 0
+            layer.mosaic = cnt and 0x40 != 0 // BGxCNT bit 6
+            // bit 7 = 256 colours; affine layers are always 8bpp
             layer.bpp8 = cnt and 0x80 != 0 || layer.affine
-            layer.wrap = cnt and 0x2000 != 0
+            layer.wrap = cnt and 0x2000 != 0 // bit 13 = area overflow (wraparound)
             val size = (cnt shr 14) and 3
             if (layer.affine) {
-                layer.widthTiles = 16 shl size
+                layer.widthTiles = 16 shl size // affine sizes: 16, 32, 64, 128 tiles square
                 layer.heightTiles = 16 shl size
                 val affineOffset = 6 * (bg - 2)
                 layer.pa = affine[affineOffset]
@@ -296,20 +307,23 @@ public class LcdControl {
                 layer.refX = (affine[affineOffset + 4] shl 4) shr 4 // 28-bit signed 20.8
                 layer.refY = (affine[affineOffset + 5] shl 4) shr 4
             } else {
+                // text sizes: 32x32, 64x32, 32x64, 64x64 tiles
                 layer.widthTiles = if (size and 1 != 0) 64 else 32
                 layer.heightTiles = if (size and 2 != 0) 64 else 32
             }
-            layer.scrollX = bgHofs[bg] and 0x1FF
+            layer.scrollX = bgHofs[bg] and 0x1FF // 9-bit scroll registers
             layer.scrollY = bgVofs[bg] and 0x1FF
         }
         val fx = state.effects
-        fx.win0 = dispcnt and 0x2000 != 0
-        fx.win1 = dispcnt and 0x4000 != 0
-        fx.objWindow = dispcnt and 0x8000 != 0
+        fx.win0 = dispcnt and 0x2000 != 0 // DISPCNT_WIN0_ON
+        fx.win1 = dispcnt and 0x4000 != 0 // DISPCNT_WIN1_ON
+        fx.objWindow = dispcnt and 0x8000 != 0 // DISPCNT_OBJWIN_ON
         for (win in 0..1) {
             fx.winRight[win] = winH[2 * win]; fx.winLeft[win] = winH[2 * win + 1]
             fx.winBottom[win] = winV[2 * win]; fx.winTop[win] = winV[2 * win + 1]
         }
+        // WININ low byte = window 0, high byte = window 1; WINOUT low byte = outside, high byte
+        // = OBJ window. Bits 0..4 = BG0..3 / OBJ, bit 5 = colour effects (= Effects.BACKDROP bit).
         fx.winInside[0] = wincnt and 0x3F
         fx.winInside[1] = (wincnt shr 8) and 0x3F
         fx.winOutside = (wincnt shr 16) and 0x3F
@@ -318,14 +332,14 @@ public class LcdControl {
         fx.blendTop = bldcnt and 0x3F
         fx.blendMode = (bldcnt shr 6) and 3 // hardware numbering = Effects.BLEND_*
         fx.blendBottom = (bldcnt shr 8) and 0x3F
-        fx.eva = blendCoeffA and 0x1F
+        fx.eva = blendCoeffA and 0x1F // BLDALPHA / BLDY coefficients are 5 bits
         fx.evb = blendCoeffB and 0x1F
         fx.evy = blendY and 0x1F
-        state.sprites.mapping1d = dispcnt and 0x40 != 0
+        state.sprites.mapping1d = dispcnt and 0x40 != 0 // DISPCNT_OBJ_1D_MAP
         return dispcnt and 0x80 == 0
     }
 
-    /** True if `DISPCNT` enables sprites. */
+    /** True if `DISPCNT_OBJ_ON` (bit 12) enables sprites. */
     public val objEnabled: Boolean get() = dispcnt and 0x1000 != 0
 
     private fun put16(io: ByteArray, at: Int, v: Int) {
@@ -333,7 +347,7 @@ public class LcdControl {
         io[at + 1] = (v ushr 8).toByte()
     }
 
-    /** Struct size. */
+    /** Struct size and `WININ` / `WINOUT` colour-effect bit numbers (for [setWincntBit]). */
     public companion object {
         /** Size of `struct LCDControlBuffer` in bytes. */
         public const val STRUCT_SIZE: Int = 0x6C

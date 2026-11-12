@@ -15,7 +15,11 @@ public class OamBuffer {
     /** Hardware OAM (`OAM`, 0x07000000), written by [syncHi] and [syncLo]. */
     public val oam: ShortArray = ShortArray(OBJ_COUNT * 4)
 
-    /** `sOamLo.count` (the `InitOam` argument); the hi part holds the other `128 - loCount` objects. */
+    /**
+     * `sOamLo.count` (the `InitOam` argument); the hi part holds the other `128 - loCount` objects.
+     * Not set by [BgHardware.initOam]: callers must assign it (nothing in the game code does, so it
+     * stays 0 and everything counts as the hi part, which matches `InitOam(0)`).
+     */
     public var loCount: Int = 0
 
     /** `gOamHiPutIt`, as a halfword index into [buffer]. */
@@ -102,7 +106,7 @@ public class OamBuffer {
         buffer[index * 16 + 15] = pd.toShort()
     }
 
-    /** Sizes. */
+    /** OAM sizes and the off-screen marker. */
     public companion object {
         /** Objects in OAM. */
         public const val OBJ_COUNT: Int = 128

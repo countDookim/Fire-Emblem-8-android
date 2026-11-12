@@ -14,18 +14,19 @@ public interface ApHost {
      */
     public fun objectAt(addr: Int): SpriteObject
 
-    /** `SIN(a)` (`include/hardware.h`, 12-bit fixed point). */
+    /** `SIN(a)` (`include/hardware.h`): [a] masked to 0..255 (256 = one turn); 12-bit fixed. */
     public fun sin(a: Int): Int
 
-    /** `COS(a)` (`include/hardware.h`, 12-bit fixed point). */
+    /** `COS(a)` (`include/hardware.h`): same angle unit as [sin]; 12-bit fixed point. */
     public fun cos(a: Int): Int
 
     /** `SetObjAffine(index, pa, pb, pc, pd)` (`src/hardware.c`). */
     public fun setObjAffine(index: Int, pa: Int, pb: Int, pc: Int, pd: Int)
 
     /**
-     * `Register2dChrMove(src, OBJ_VRAM0 + dstOffset, width, height)`: copies [width] x [height]
-     * 4bpp tiles from the graphics at [src] to the OBJ VRAM byte offset [dstOffset].
+     * `Register2dChrMove(src, OBJ_VRAM0 + dstOffset, width, height)`: queues a copy of [width] x
+     * [height] 4bpp tiles from the graphics at [src] to the OBJ VRAM byte offset [dstOffset] (the
+     * original does it during VBlank).
      */
     public fun register2dChrMove(src: Int, dstOffset: Int, width: Int, height: Int)
 
@@ -38,43 +39,43 @@ public interface ApHost {
  * Instances live in the fixed pool of [SpriteAnimPlayer].
  */
 public class ApHandle {
-    /** `pDefinition` (a null definition marks a free slot). */
+    /** `pDefinition`: the animation definition root in ROM (null marks a free slot). */
     public var pDefinition: Int = 0
 
-    /** `pFrameData`. */
+    /** `pFrameData`: the frame (object composition) data array of the definition. */
     public var pFrameData: Int = 0
 
-    /** `pAnimDataStart`. */
+    /** `pAnimDataStart`: start of the current animation's data (where a loop returns to). */
     public var pAnimDataStart: Int = 0
 
-    /** `pAnimDataCurrent`. */
+    /** `pAnimDataCurrent`: cursor in the animation data: (duration, frame offset) pairs. */
     public var pAnimDataCurrent: Int = 0
 
-    /** `pCurrentObjData`. */
+    /** `pCurrentObjData`: object data of the frame being shown (count, then 3 halfwords each). */
     public var pCurrentObjData: Int = 0
 
-    /** `pCurrentRotScale`. */
+    /** `pCurrentRotScale`: the frame's rotation/scaling entries (null if none). */
     public var pCurrentRotScale: Int = 0
 
-    /** `frameTimer` (s16). */
+    /** `frameTimer` (s16): game frames left on the current animation frame. */
     public var frameTimer: Int = 0
 
     /** `frameInterval` (u16, 0x100 is one frame). */
     public var frameInterval: Int = 0
 
-    /** `subframeTimer` (u16). */
+    /** `subframeTimer` (u16): fractional frames carried over (8-bit fraction) between steps. */
     public var subframeTimer: Int = 0
 
-    /** `objLayer`. */
+    /** `objLayer`: the [SpriteLayers] layer the sprites go in (the decomp's "HiObj layer"). */
     public var objLayer: Int = 0
 
-    /** `gfxNeedsUpdate`. */
+    /** `gfxNeedsUpdate`: the current frame's tiles must be copied to OBJ VRAM. */
     public var gfxNeedsUpdate: Boolean = false
 
-    /** `rotScaleIndex`. */
+    /** `rotScaleIndex`: first OAM affine matrix the frame's rotation/scaling entries use. */
     public var rotScaleIndex: Int = 0
 
-    /** `tileBase`. */
+    /** `tileBase`: the `oam2` added to every entry (tile number base, priority, palette bank). */
     public var tileBase: Int = 0
 
     /** `pGraphics` (address understood by [ApHost.register2dChrMove]; 0 = none). */
@@ -301,7 +302,7 @@ public class SpriteAnimPlayer(
         handle.gfxNeedsUpdate = false
     }
 
-    /** `OBJ_SIZE_TABLE_INDEX(itObjData)`. */
+    /** `OBJ_SIZE_TABLE_INDEX(itObjData)`: [SIZE_LUT] index for the entry at [it] (shape, size). */
     private fun objSizeIndex(it: Int): Int =
         (((u16(it) and 0xC000) shr 12) + ((u16(it + 2) and 0xC000) shr 14)) * 2
 
@@ -359,12 +360,15 @@ public class SpriteAnimPlayer(
         return null
     }
 
-    /** Sizes. */
+    /** Pool size and the object size table. */
     public companion object {
         /** `AP_MAX_COUNT`. */
         public const val AP_MAX_COUNT: Int = 0x14
 
-        /** `sOamTileSizeLut` (width, height in tiles per OAM shape/size). */
+        /**
+         * `sOamTileSizeLut` (width, height in tiles), indexed `((shape * 4) + size) * 2` with the
+         * OAM attr0 shape and attr1 size fields (see `OBJ_SIZE_TABLE_INDEX`).
+         */
         private val SIZE_LUT = intArrayOf(
             1, 1, 2, 2, 4, 4, 8, 8,
             2, 1, 4, 1, 4, 2, 8, 4,

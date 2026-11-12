@@ -12,8 +12,10 @@ import gbafe.proc.ProcScripts.yield
 
 /**
  * The palette colour fade of `src/hardware.c` and `asm/arm.s`: every colour of the 32 palettes in
- * [palette] has three biased components (`gFadeComponents`) that move by a per-palette step
- * (`gFadeComponentStep`) each tick.
+ * [palette] has three components (`gFadeComponents`) that move by a per-palette step
+ * (`gFadeComponentStep`) each tick. A component is the 5-bit channel plus a bias that the setup
+ * chooses (0, 0x20 or 0x40); the colour shown is `component - 0x20` clamped to 0..31, so a
+ * bias of 0 starts black, 0x20 starts at the colour and 0x40 starts white.
  */
 public class ColorFade(
     /** `gPaletteBuffer`. */
@@ -22,9 +24,10 @@ public class ColorFade(
     /** `gFadeComponentStep`: per-palette step (s8; 0 leaves the palette alone). */
     public val step: ByteArray = ByteArray(32)
 
-    /** `gFadeComponents`: red, green, blue of each colour, biased by 0x20 (u8). */
+    /** `gFadeComponents`: red, green, blue of each colour plus the setup's bias (u8, wrapping). */
     public val components: ByteArray = ByteArray(512 * 3)
 
+    /** The `ColorFadeSetup*` bodies: all palettes get [stepValue]; component = channel + [bias]. */
     private fun setup(stepValue: Int, bias: Int) {
         for (i in 31 downTo 0) {
             step[i] = stepValue.toByte()
@@ -39,7 +42,8 @@ public class ColorFade(
     }
 
     /**
-     * Starts a fade from the current colours to black ([step] negative).
+     * Starts a fade from the current colours to black ([step] negative: components start at the
+     * colour + 0x20 and fall until the clamp shows black).
      *
      * Ported from src/hardware.c: ColorFadeSetupFromColorToBlack
      */
@@ -53,7 +57,8 @@ public class ColorFade(
     public fun setupFromBlack(step: Int): Unit = setup(step, 0)
 
     /**
-     * Starts a fade from the current colours to white.
+     * Starts a fade from the current colours to white ([step] positive). The decomp body is a
+     * duplicate of `ColorFadeSetupFromColorToBlack`; only the step's sign differs in use.
      *
      * Transcribed from src/hardware.c: ColorFadeSetupFromColorToWhite (not verified: no trace
      *   reaches it)
@@ -68,8 +73,11 @@ public class ColorFade(
     public fun setupFromWhite(step: Int): Unit = setup(step, 64)
 
     /**
-     * Adds each palette's step to its components (u8 wrap) and writes the colours, each
-     * component minus 0x20 clamped to 0..31.
+     * Adds each palette's step to its components (stored as u8, wrapping) and writes the colours,
+     * each component minus 0x20 clamped to 0..31. Note: `ColorFadeTick` in `asm/arm.s` clamps
+     * the unwrapped sum (`ldrb`, `add`, `strb`, then `subs` on the register that was not
+     * wrapped), this port clamps the wrapped byte; they differ only if a component leaves
+     * 0..255, which the speeds of `src/bmlib.c` (0x04..0x40) do not do.
      *
      * Ported from asm/arm.s: ColorFadeTick
      */
@@ -105,20 +113,20 @@ public class FadeCore(
 ) {
     /** `struct FadeCoreProc` fields. */
     public class State {
-        /** `on_end`. */
+        /** `on_end` (+0x4C): called when the fade is done. */
         public var onEnd: (() -> Unit)? = null
 
-        /** `speed` (sixteenths of a tick per frame). */
+        /** `speed` (+0x54): sixteenths of a [ColorFade] tick per frame. */
         public var speed: Int = 0
 
-        /** `looper`. */
+        /** `looper` (+0x58): sixteenths accumulated towards the next colour tick (0x10 = one). */
         public var looper: Int = 0
 
-        /** `counter`. */
+        /** `counter` (+0x5C): total sixteenths so far; the fade ends at 0x200. */
         public var counter: Int = 0
     }
 
-    /** `ProcScr_FadeCore`. */
+    /** `ProcScr_FadeCore`: init, one tick, then tick every frame until done (`PROC_REPEAT`). */
     public val script: ProcScript = ProcScript(
         "ProcScr_FadeCore",
         listOf(
@@ -221,9 +229,10 @@ public class FadeCore(
     }
 
     private companion object {
+        /** `PROC_MARK_EFX_BGCOL`: the proc mark of fades on the BG colours. */
         const val PROC_MARK_EFX_BGCOL = 10
 
-        /** `gUnknown_080D7964[].unit`. */
+        /** `gUnknown_080D7964[].unit`: sign of the component step per fade kind 0..7. */
         val UNIT = intArrayOf(1, -1, 1, -1, -1, 1, -1, 1)
     }
 }

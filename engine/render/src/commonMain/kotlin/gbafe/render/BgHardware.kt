@@ -10,7 +10,7 @@ public class BgHardware(
     /** `gPaletteBuffer` (512 colours). */
     public val palette: ShortArray = ShortArray(PALETTE_COLORS),
 ) {
-    /** `gBG0TilemapBuffer`..`gBG3TilemapBuffer` (32×32 entries each); see [mapBuffer]. */
+    /** `gBG0TilemapBuffer`..`gBG3TilemapBuffer` (32×32 u16 entries each); see [mapBuffer]. */
     public val tilemaps: Array<ShortArray> = Array(4) { ShortArray(TILEMAP_ENTRIES) }
 
     /** BG/OBJ VRAM (`0x06000000`, 96 KiB). */
@@ -31,7 +31,10 @@ public class BgHardware(
     /** HBlank handler slots (`SetPrimaryHBlankHandler` / `SetSecondaryHBlankHandler`). */
     public val hblank: HBlankHandlers = HBlankHandlers(lcd)
 
-    /** `sOamLo.count` (`InitOam` argument); `sOamHi` gets the other `128 - oamLoCount` entries. */
+    /**
+     * `sOamLo.count` (the `InitOam` argument); `sOamHi` gets the other `128 - oamLoCount` entries.
+     * Separate from [OamBuffer.loCount], which [initOam] does not update (no caller sets it).
+     */
     public var oamLoCount: Int = 0
 
     /**
@@ -54,6 +57,7 @@ public class BgHardware(
      * Ported from src/hardware.c: SetBackgroundTileDataOffset
      */
     public fun setTileDataOffset(bg: Int, offset: Int) {
+        // BGxCNT bits 2..3 = character base block (16 KiB units)
         lcd.bgCnt[bg] = (lcd.bgCnt[bg] and 0x000C.inv()) or (((offset shr 14) and 3) shl 2)
     }
 
@@ -65,6 +69,7 @@ public class BgHardware(
      */
     public fun setMapDataOffset(bg: Int, offset: Int) {
         if (offset and 0x7FF == 0) {
+            // BGxCNT bits 8..12 = screen base block (2 KiB units)
             lcd.bgCnt[bg] = (lcd.bgCnt[bg] and 0x1F00.inv()) or (((offset shr 11) and 0x1F) shl 8)
             vramTilemapOffsets[bg] = offset
         }
@@ -76,6 +81,7 @@ public class BgHardware(
      * Ported from src/hardware.c: SetBackgroundScreenSize
      */
     public fun setScreenSize(bg: Int, size: Int) {
+        // BGxCNT bits 14..15 = screen size
         lcd.bgCnt[bg] = (lcd.bgCnt[bg] and 0xC000.inv()) or ((size and 3) shl 14)
     }
 
@@ -117,7 +123,7 @@ public class BgHardware(
     public fun initBmBgLayers(cloudsWeather: Boolean) {
         for (bg in 0..3) {
             val priority = if (cloudsWeather && bg == 3) 2 else bg
-            lcd.bgCnt[bg] = (lcd.bgCnt[bg] and 3.inv()) or priority
+            lcd.bgCnt[bg] = (lcd.bgCnt[bg] and 3.inv()) or priority // BGxCNT bits 0..1
         }
     }
 
@@ -160,19 +166,21 @@ public class BgHardware(
             vramFill16(0, tileDataOffset(bg), 64)
         }
         initBmBgLayers(cloudsWeather)
-        modifiedBgs = modifiedBgs or 0xF
+        modifiedBgs = modifiedBgs or 0xF // all four BGs
         initOam(0)
         palette[0] = 0
         modifiedPalette = true
-        // forcedBlank (7), mode (0..2), win0/win1/objWin (13..15) off; BG0..3 + OBJ (8..12) on.
+        // Clear DISPCNT_FORCED_BLANK (bit 7), the mode (0..2) and DISPCNT_WIN0_ON / WIN1_ON /
+        // OBJWIN_ON (13..15); set DISPCNT_BG_ALL_ON | DISPCNT_OBJ_ON (0x1F00).
         lcd.dispcnt = (lcd.dispcnt and (0xE000 or 0x0087).inv()) or 0x1F00
     }
 
     /**
      * `FlushBackgrounds` (VBlank sync): copies each BG tilemap buffer flagged in [modifiedBgs] to its VRAM
      * destination, then, if [modifiedPalette], the palette buffer to [paletteRam], with `colorAddition` added to
-     * every channel (clamped to 0..31) when it is not 0 (`ApplyColorAddition_ClampMax/Min`, not verified yet).
-     * Clears both flags.
+     * every channel when it is not 0 (`ApplyColorAddition_ClampMax` for positive values, clamped to
+     * 31; `ApplyColorAddition_ClampMin` for negative ones, clamped to 0; one clamp to 0..31 covers
+     * both here; not verified yet). Clears both flags.
      *
      * Ported from src/hardware.c: FlushBackgrounds
      */
@@ -206,7 +214,7 @@ public class BgHardware(
         }
     }
 
-    /** Sizes and defaults. */
+    /** Buffer sizes and the default BG layout. */
     public companion object {
         /** Entries in one BG tilemap buffer. */
         public const val TILEMAP_ENTRIES: Int = 0x400
@@ -217,6 +225,7 @@ public class BgHardware(
         /** Colours in `gPaletteBuffer` (BG + OBJ). */
         public const val PALETTE_COLORS: Int = 0x200
 
+        /** Per BG: tile data offset, tilemap offset, screen size (`defaultBgConfig`). */
         private val DEFAULT_BG_CONFIG = intArrayOf(
             0x0000, 0x6000, 0,
             0x0000, 0x6800, 0,

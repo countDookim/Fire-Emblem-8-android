@@ -37,15 +37,19 @@ internal class ModNameTable(private val kind: String, vanillaNames: Map<String, 
     /** Number of registered mod slots. */
     val count: Int get() = names.size
 
+    /** The vanilla id of [name], or [UNRESOLVED]. */
     fun vanillaId(name: String): Int = vanilla[name] ?: UNRESOLVED
 
     /** Slot of the mod name [name], or [UNRESOLVED]. */
     fun slotOf(name: String): Int = slotByName[name] ?: UNRESOLVED
 
+    /** Name registered in [slot]. */
     fun nameAt(slot: Int): String = names[slot]
 
+    /** Id of the mod that registered [slot]. */
     fun ownerAt(slot: Int): String = owners[slot]
 
+    /** The vanilla name to id pairs, in the order the game supplied them. */
     fun vanillaEntries(): Set<Map.Entry<String, Int>> = vanilla.entries
 
     /**
@@ -79,7 +83,10 @@ internal class ModNameTable(private val kind: String, vanillaNames: Map<String, 
     }
 }
 
-/** Minimal growable byte writer for the per-mod serialization formats (little-endian). */
+/**
+ * Minimal growable byte writer for the per-mod serialization formats (little-endian). Mod data
+ * is not part of the original game; the format is this port's own.
+ */
 internal class ByteSink {
     private var buf = ByteArray(64)
     private var len = 0

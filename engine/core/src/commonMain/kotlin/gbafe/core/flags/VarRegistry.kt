@@ -1,6 +1,9 @@
 package gbafe.core.flags
 
-/** Backing store for a game's vanilla variables (event slots, counters), addressed by index. */
+/**
+ * Backing store for a game's vanilla variables, addressed by index. No FE8 store is plugged in
+ * yet (the original's script variables are the `gEventSlots`); only tests use [IntArrayVarStore].
+ */
 public interface VarStore {
     /** Value of vanilla variable [index]. */
     public fun get(index: Int): Int

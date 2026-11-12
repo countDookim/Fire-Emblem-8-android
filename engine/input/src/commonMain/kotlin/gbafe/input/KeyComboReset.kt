@@ -1,11 +1,14 @@
 package gbafe.input
 
 /**
- * The soft-reset key combos (L+R+A+B or A+B+Select+Start held exactly), gated by
- * `gKeyComboResetEN` (decomp `src/time.c`, `src/hardware.c`).
+ * The soft-reset key combos (L+R+A+B or A+B+Select+Start held exactly, as checked by
+ * `SoftResetIfKeyComboPressed` in `src/hardware.c` once per main-loop pass), gated by the
+ * `gKeyComboResetEN` switch of `src/time.c`. The game turns the gate off at boot
+ * (`DisableKeyComboResetEN` in `AgbMain`) and on again when the Nintendo / Intelligent Systems
+ * logo screens run (`EnableKeyComboResetEN` in `src/opanim-healthsafetyscreen.c`).
  */
 public class KeyComboReset {
-    /** `gKeyComboResetEN`. */
+    /** `gKeyComboResetEN`: true while the soft-reset combos are allowed. */
     public var enabled: Boolean = false
 
     /**
@@ -36,7 +39,8 @@ public class KeyComboReset {
         canReset() && (keys.heldKeys == L_R_A_B || keys.heldKeys == A_B_SELECT_START)
 
     private companion object {
-        // GBA KEYINPUT bits: A=0x1, B=0x2, Select=0x4, Start=0x8, R=0x100, L=0x200.
+        // GBA key bits (L_BUTTON etc. in include/gba/io_reg.h): A=0x1, B=0x2, Select=0x4,
+        // Start=0x8, R=0x100, L=0x200.
         const val L_R_A_B = 0x200 or 0x100 or 0x1 or 0x2
         const val A_B_SELECT_START = 0x1 or 0x2 or 0x4 or 0x8
     }

@@ -2,9 +2,9 @@ package gbafe.input
 
 /**
  * The game's per-frame button state: a field-for-field port of `struct KeyStatusBuffer`
- * (`include/hardware.h`, 0x14 bytes; FE8 keeps one instance, `sKeyStatusBuffer`, at EWRAM
- * 0x02024CC0 reached via `gKeyStatusPtr`), plus the ignore mask `gKeyStatusIgnoredSt` (IWRAM
- * 0x03000010).
+ * (`include/hardware.h`, 0x14 bytes; the game keeps one instance, `sKeyStatusBuffer` in
+ * `src/hardware.c`, reached via `gKeyStatusPtr`; in FE8U it is at EWRAM 0x02024CC0, where the
+ * differential tests read it), plus the ignore mask `gKeyStatusIgnoredSt` (a separate global).
  *
  * All masks are GBA key bits in `KEYINPUT` order (A=0, B=1, Select=2, Start=3, Right=4, Left=5,
  * Up=6, Down=7, R=8, L=9), i.e. the same bits `VanillaButtonMap` uses. Every field keeps the C width:
@@ -16,7 +16,10 @@ package gbafe.input
  * and the auto-repeat timing are defined on these exact fields.
  */
 public class KeyStatus {
-    /** `repeatDelay` (u8): frames a key combination must be held before auto-repeat starts. */
+    /**
+     * `repeatDelay` (u8): "initial delay before generating auto-repeat presses", in frames;
+     * reloaded into [repeatTimer] whenever the held set changes.
+     */
     public var repeatDelay: Int = 0
 
     /** `repeatInterval` (u8): frames between auto-repeat presses once repeating. */
@@ -42,35 +45,43 @@ public class KeyStatus {
     /** `prevKeys` (u16): [heldKeys] of the previous update. */
     public var prevKeys: Int = 0
 
-    /** `LastPressState` (u16): the full held set at the last frame where any key went down. */
+    /**
+     * `LastPressState` (u16): the full held set at the last frame where any key went down
+     * (undocumented in the decomp; used only to compute [ablrPressed]).
+     */
     public var lastPressState: Int = 0
 
     /**
-     * `ABLRPressed` (bool16): on the frame all keys are released, the released A/B/L/R set if it
-     * equals [lastPressState] (a clean press-and-release of only those buttons); 0 otherwise.
+     * `ABLRPressed` (bool16, "1 for Release (A B L R Only), 0 Otherwise" in the decomp header): on
+     * the frame all keys are released, the previous held set ([prevKeys]) if [lastPressState] is
+     * non-zero and equals its A/B/L/R part (a press-and-release of only those buttons); 0
+     * otherwise. (Despite the bool16 type the value is the key mask, not 0/1.)
      */
     public var ablrPressed: Int = 0
 
     /**
-     * `newKeys2` (u16): toggled-and-masked held keys (`newKeys2 = (newKeys2 ^ held) & held`), i.e.
-     * keys held now that were not set last update; the game uses it as a second "new press" view.
+     * `newKeys2` (u16): `newKeys2 = (newKeys2 ^ held) & held`, i.e. held keys that were not in
+     * `newKeys2` last update, so a key held for several frames alternates in and out of it. The
+     * decomp has no comment; it is read for map-cursor movement while B is held
+     * (`HandlePlayerCursorMovement`) and for L+D-pad in the unit list screen.
      */
     public var newKeys2: Int = 0
 
     /**
-     * `TimeSinceStartSelect` (u16): updates since a button other than Start/Select was down
-     * (saturates at 0xFFFF).
+     * `TimeSinceStartSelect` (u16): updates since a button other than Start/Select was last
+     * down; 0 while one is held (saturates at 0xFFFF).
      */
     public var timeSinceStartSelect: Int = 0
 
     /**
-     * `gKeyStatusIgnoredSt` (u16): keys masked out by [update] unless A+B+Start+Select are all
-     * held.
+     * `gKeyStatusIgnoredSt`: keys masked out of the raw input by [update] unless A+B+Start+Select
+     * are all held (the soft-reset combo always gets through).
      */
     public var ignoreMask: Int = 0
 
     /**
-     * `SetKeyStatus_IgnoreMask`: sets [ignoreMask].
+     * Makes the keys in [mask] invisible to [update] until changed or [reset] (for example the
+     * trade screen, `src/bmtrade.c`, masks A/Start/Up/Down while it runs).
      *
      * Ported from src/hardware.c: SetKeyStatus_IgnoreMask
      */
@@ -114,9 +125,9 @@ public class KeyStatus {
     }
 
     /**
-     * Per-frame entry point: takes the raw pressed keys (the complement of `REG_KEYINPUT`, as a
-     * front end reads them), applies [ignoreMask] unless the A+B+Start+Select reset combo is held,
-     * then calls [updateWith].
+     * Per-frame entry point (`UpdateKeyStatus` reads `~REG_KEYINPUT` itself): takes the raw
+     * pressed keys (the complement of `REG_KEYINPUT`, as a front end reads them), applies
+     * [ignoreMask] unless the A+B+Start+Select reset combo is held, then calls [updateWith].
      *
      * Ported from src/hardware.c: UpdateKeyStatus
      */
@@ -127,9 +138,9 @@ public class KeyStatus {
     }
 
     /**
-     * Restores the boot defaults: 12-frame repeat delay, 4-frame repeat interval, no keys, timers
-     * and ignore mask cleared. Like the original it leaves [repeatedKeys], [lastPressState],
-     * [ablrPressed] and [newKeys2] untouched.
+     * Restores the boot defaults (called when the game starts): 12-frame repeat delay, 4-frame
+     * repeat interval, no keys, timers and ignore mask cleared. Like the original it leaves
+     * [repeatedKeys], [lastPressState], [ablrPressed] and [newKeys2] untouched.
      *
      * Ported from src/hardware.c: ResetKeyStatus
      */
@@ -193,15 +204,15 @@ public class KeyStatus {
         timeSinceStartSelect = u16(18)
     }
 
-    /** Key-bit constants and the defaults from `ResetKeyStatus`. */
+    /** Key-bit masks (`include/gba/io_reg.h`) and the defaults that `ResetKeyStatus` installs. */
     public companion object {
         /** Size of `struct KeyStatusBuffer` in bytes. */
         public const val STRUCT_SIZE: Int = 0x14
 
-        /** `START_BUTTON`: the Start key bit (bit 3) of the key masks. */
+        /** `START_BUTTON` (`include/gba/io_reg.h`): the Start key bit (bit 3) of the key masks. */
         public const val START_BUTTON: Int = 0x8
 
-        /** `KEYS_MASK`: the ten GBA key bits. */
+        /** `KEYS_MASK`: the ten GBA key bits (A, B, Select, Start, D-pad, R, L). */
         public const val KEYS_MASK: Int = 0x3FF
 
         /** `ResetKeyStatus` repeat delay (frames). */
@@ -213,7 +224,10 @@ public class KeyStatus {
         /** A + B + Select + Start: when all are held the ignore mask does not apply. */
         public const val RESET_COMBO: Int = 0x00F
 
-        /** L | R | B | A, the buttons `ABLRPressed` reports. */
+        /**
+         * L | R | B | A, the only buttons `ABLRPressed` reports (the mask used in
+         * `_UpdateKeyStatus`).
+         */
         public const val ABLR: Int = 0x303
 
         /** A | B | D-pad | R | L: any button other than Start and Select. */

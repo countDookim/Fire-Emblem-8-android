@@ -2,7 +2,11 @@ package gbafe.input
 
 /**
  * `gSoftwareResetFlag` (decomp `src/hardware.c`): set at boot when the game starts after a soft
- * reset (`AgbMain`: `REG_WAITCNT != 0`), which lets the boot logos be skipped.
+ * reset (`AgbMain`: `REG_WAITCNT != 0`; the decomp comment guesses WAITCNT is not cleared by a
+ * soft reset). While set, the Health and Safety screen is skipped
+ * (`PrepareHealthAndSafetyScreen` in `src/opanim-healthsafetyscreen.c`) and the Nintendo logo
+ * can be skipped with B or Start (`TryTickHSScreenExit`; without it only the Intelligent Systems
+ * logo can be).
  */
 public class SoftwareResetFlag {
     private var flag: Boolean = false

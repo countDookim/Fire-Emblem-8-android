@@ -3,7 +3,9 @@ package gbafe.core.flags
 /**
  * The event-flag operations a script interpreter needs, addressed by the signed 16-bit flag
  * argument of the original's script commands. [EventFlags] is the vanilla implementation;
- * [RoutedFlagStore] adds mod flags. Calls allocate nothing.
+ * [RoutedFlagStore] adds mod flags. Mirrors `SetFlag`/`ClearFlag`/`CheckFlag` of
+ * `src/eventinfo.c`; script flag arguments are `s16` (`EVT_CMD_ARGV` in `include/event.h`). Calls
+ * allocate nothing.
  */
 public interface FlagStore {
     /** True if flag [id] is set. */

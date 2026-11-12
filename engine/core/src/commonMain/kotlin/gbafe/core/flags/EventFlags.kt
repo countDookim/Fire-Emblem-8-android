@@ -1,13 +1,15 @@
 package gbafe.core.flags
 
 /**
- * Shape of the original's event-flag memory (`gPermanentFlagBits` and `gChapterFlagBits`,
- * src/eventinfo.c). Game-neutral; the FE8U values live in `fe8.game.flags.Fe8EventFlags`.
+ * Shape of the original's event-flag memory: the `gPermanentFlagBits` and `gChapterFlagBits` byte
+ * arrays (declared in `include/variables.h`, accessed by the flag functions of `src/eventinfo.c`).
+ * Game-neutral; the FE8U values live in `fe8.game.flags.Fe8EventFlags`.
  *
- * The two arrays are adjacent in IWRAM (0x03005250 and 0x03005270 in FE8U) and each symbol is
+ * In FE8U the two arrays are adjacent in IWRAM (0x03005250 and 0x03005270) and each symbol is
  * larger than the range the game saves or resets: the permanent array is 32 bytes but only 0x19 are
- * saved and reset; the chapter array is 16 bytes but only 5 are. Flags outside the saved range
- * still address real bytes in C, so [EventFlags] mirrors the whole storage.
+ * saved and reset (`GetPermanentFlagBitsSize`, `ResetPermanentFlags`); the chapter array is 16
+ * bytes but only 5 are (`GetChapterFlagBitsSize`, `ResetChapterFlags`). Flags outside the saved
+ * range still address real bytes in C, so [EventFlags] mirrors the whole storage.
  *
  * @property permanentSaveBytes `GetPermanentFlagBitsSize()`; also the bytes `ResetPermanentFlags`
  *     clears.
@@ -16,9 +18,10 @@ package gbafe.core.flags
  *     it.
  * @property chapterStorageBytes allocated size of `gChapterFlagBits`.
  * @property chapterFlagLimit flags strictly below this are chapter flags in
- *     `SetFlag`/`ClearFlag`/`CheckFlag`.
- * @property permanentBaseId permanent flag ids are `permanentBaseId + 1 + bit`; ids up to it are
- *     no-ops.
+ *     `SetFlag`/`ClearFlag`/`CheckFlag` (the literal 100 in the decomp; in FE8 flags 1..99 are
+ *     chapter flags).
+ * @property permanentBaseId permanent flag ids are `permanentBaseId + 1 + bit` (`flag - 100 - 1`
+ *     in the decomp); ids up to it are no-ops (in FE8, flag 100 and below 100).
  * @property bitMask `gFlagBitMaskLut`: the mask for `flag % 8` (first 8 entries are the single
  *     bits).
  */
@@ -42,8 +45,11 @@ public class EventFlagLayout(
 }
 
 /**
- * Event flags: 1..99 are chapter flags (cleared each chapter), above 100 are permanent flags that
- * persist in the save. Storage is one byte array laid out exactly like the original (permanent
+ * Event flags, as the `SetFlag`/`ClearFlag`/`CheckFlag` family of `src/eventinfo.c`. In FE8,
+ * flags 1..99 are chapter flags (cleared when a battle map starts, `ResetChapterFlags` in
+ * `StartBattleMap`) and flags above 100 are permanent flags that persist in the save (cleared
+ * when a new game starts,
+ * `ResetPermanentFlags`). Storage is one byte array laid out exactly like the original (permanent
  * array first, chapter array right after) so saves can copy raw bytes.
  *
  * Quirks kept from C: flag 0 and flag 100 are no-ops and read false; chapter flag `n` is bit `n -
@@ -56,7 +62,7 @@ public class EventFlagLayout(
  * @property layout sizes and constants of the flag memory.
  */
 public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
-    /** The mirrored flag memory: permanent array, then chapter array. */
+    /** The mirrored flag memory: permanent array, then chapter array (as the two IWRAM symbols). */
     private val bits = ByteArray(layout.totalBytes)
     /** Byte offset of the chapter array inside [bits]. */
     private val chapterBase = layout.permanentStorageBytes
@@ -132,8 +138,8 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
      * Transcribed from src/eventinfo.c: ResetChapterFlags (not verified: no non-zero state is
      *   cleared in any trace; needs a later chapter)
      *
-     * Clears the first `chapterSaveBytes` (5) chapter bytes; flags 41..99 live beyond them and
-     * survive.
+     * Clears the first `chapterSaveBytes` chapter bytes (5 in FE8: flags 1..40); flags 41..99
+     * live beyond them and survive.
      */
     public fun resetChapterFlags() {
         bits.fill(0, chapterBase, chapterBase + layout.chapterSaveBytes)
@@ -182,7 +188,7 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
      * Transcribed from src/eventinfo.c: ResetPermanentFlags (not verified: no non-zero state is
      *   cleared in any trace; needs a later chapter)
      *
-     * Clears the first `permanentSaveBytes` (0x19) permanent bytes.
+     * Clears the first `permanentSaveBytes` permanent bytes (0x19 in FE8: flags 101..300).
      */
     public fun resetPermanentFlags() {
         bits.fill(0, 0, layout.permanentSaveBytes)
@@ -192,9 +198,9 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
      * Transcribed from src/eventinfo.c: CheckPermanentFlagFrom (not verified: no non-zero state is
      *   cleared in any trace; needs a later chapter)
      *
-     * True if permanent flag [flag] is set in [list] starting at [offset] (used on save-file
-     * buffers); ids up to and including `permanentBaseId` are always false. Throws if the bit lies
-     * outside [list].
+     * True if permanent flag [flag] is set in [list] starting at [offset] (the game uses it on a
+     * copy of a save slot's permanent flags, `LoadSavedEid8A` in `src/bmsave.c`); ids up to and
+     * including `permanentBaseId` are always false. Throws if the bit lies outside [list].
      */
     public fun checkPermanentFlagFrom(flag: Int, list: ByteArray, offset: Int = 0): Boolean {
         if (flag <= layout.permanentBaseId) return false
@@ -240,7 +246,10 @@ public class EventFlags(public val layout: EventFlagLayout) : FlagStore {
     override fun checkFlag(flag: Int): Boolean =
         if (flag < layout.chapterFlagLimit) checkChapterFlag(flag) else checkPermanentFlag(flag)
 
-    /** Bit number inside the chapter array for chapter flag [flag] (flag 1 is bit 0). */
+    /**
+     * Bit number inside the chapter array for chapter flag [flag] (flag 1 is bit 0, the
+     * `flag - 1` of `SetChapterFlag`); throws where C would index outside the array.
+     */
     private fun chapterBit(flag: Int): Int {
         val bit = flag - 1
         require(bit >= 0 && (bit shr 3) < layout.chapterStorageBytes) {

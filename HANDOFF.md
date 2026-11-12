@@ -20,7 +20,8 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 - Owner PC 11-11 (15:23–16:50Z): PP-5..8, PP-10, PP-12, PP-13, PP-16, D11-ci3c, D13-cap1, D13-1, D13-2 merged; 4 readability audits;
   854 tests, 1 local failure (TEST-2, passes in CI); 944/7732 verified. WIP: `wip/PP-11`; D11-wm8a analysis in D11-worldmap §8a.
 - ROM repo has no Actions minutes until ~2026-12-01 (owner, 11-11): publish new captures locally with
-  `gh release create assets-<sha> --target <full sha> --latest` and publish.yml's file list (done for `assets-bd66e15`).
+  `gh release create assets-<sha> --target <full sha> --latest` and publish.yml's file list (done for `assets-bd66e15`, `assets-8a14ce3`). Every ROM-repo commit message
+  must contain `[skip ci]`: a push touching `dist/` otherwise starts publish.yml (owner 11-12: no ROM Actions).
 - Latest owner test: **local 0.1.488 (`0a73f11`)**: neither reported castle audio stutter reproduced.
   Original save restored afterward; ROM import preserved. Published 0.1.488 (`8c5b7c9`) banner comparison remains partial.
 - Published **0.1.598 (`8605040`)**: CI **830 passed, zero failures/skips**; debug/release APK content

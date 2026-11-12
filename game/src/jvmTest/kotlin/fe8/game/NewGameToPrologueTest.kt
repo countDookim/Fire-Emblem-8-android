@@ -38,7 +38,7 @@ class NewGameToPrologueTest {
         )
         var reached = -1
         val trail = StringBuilder()
-        while (frame < 12000) {
+        while (frame < 16000) { // includes the ~3700-frame opening monologue
             boot.frame()
             frame++
             if (frame % 100 == 0) {
@@ -117,7 +117,7 @@ class NewGameToPrologueTest {
             { if (!events && frame % 20 in 5..8) 0x0001 else 0 },
             RngService(),
         )
-        while (frame < 3000 && !boot.eventEngine.eventEngineExists()) {
+        while (frame < 7000 && !boot.eventEngine.eventEngineExists()) {
             boot.frame()
             frame++
         }
@@ -180,7 +180,7 @@ class NewGameToPrologueTest {
         )
         // Phase 1 (A presses) runs until the beginning events start: with the game locked
         // during events, player phase only starts after they end.
-        while (frame < 3000 && !boot.eventEngine.eventEngineExists()) {
+        while (frame < 7000 && !boot.eventEngine.eventEngineExists()) {
             boot.frame()
             frame++
         }

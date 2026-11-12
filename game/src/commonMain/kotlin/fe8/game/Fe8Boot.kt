@@ -77,6 +77,7 @@ import fe8.game.event.ScriptWords
 import fe8.game.flags.Fe8EventFlags
 import fe8.game.opanim.EarlyStartUi
 import fe8.game.opanim.OpAnim
+import fe8.game.opanim.OpSubtitle
 import fe8.game.save.BmSaveLib
 import fe8.game.save.BmSuspendSave
 import fe8.game.save.NewGameRam
@@ -110,8 +111,10 @@ import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
+import gbafe.render.ArchivedPaletteFade
 import gbafe.render.BgTilemap
 import gbafe.render.HardwareSceneLoader
+import gbafe.render.PaletteFade
 import gbafe.render.ScreenFade
 import gbafe.text.Font
 import gbafe.text.MsgHuffman
@@ -964,6 +967,25 @@ public class Fe8Boot(
     public val opAnim: OpAnim =
         BootRom.opAnim(rom, engine, hw, keys, control).also { opAnimRef = it }
 
+    /**
+     * The opening monologue (`StartIntroMonologue`, `src/opsubtitle.c`) with the real fades, the
+     * live key status and the game's [SoundWrapper]. Needs the whole ROM (scene graphics).
+     */
+    public val opSubtitle: OpSubtitle by lazy {
+        val archivedFade = ArchivedPaletteFade(PaletteFade(hw, engine), hw, engine)
+        OpSubtitle(
+            engine, hw, rom, control.sound,
+            OpSubtitle.Hooks(
+                newFadeIn = { speed, proc -> archivedFade.newFadeIn(speed, proc) },
+                fadeInExists = { archivedFade.exists() },
+                startSlowFadeToBlack = { screenFade.startSlowFadeToBlack() },
+                startFastFadeToBlack = { screenFade.startFastFadeToBlack() },
+                waitForFade = { screenFade.waitForFade(it) },
+                newKeys = { keys.newKeys },
+            ),
+        )
+    }
+
     /** The title screen. */
     public val title: TitleScreen =
         BootRom.titleScreen(rom, engine, hw, opAnim.sprites, keys, control).also { titleRef = it }
@@ -1016,6 +1038,9 @@ public class Fe8Boot(
         // the boot windows: with windows only (debug APK without an imported ROM) the save menu
         // holds, instead of crashing on the first chapter read.
         if (rom.isWholeRom) control.hooks.startSaveMenu = ProcFunc { newGameSaveMenu() }
+        if (rom.isWholeRom) {
+            control.hooks.startIntroMonologue = ProcFunc { opSubtitle.startBlocking(it) }
+        }
         control.sound.setDefaultMaxNumChannels() // AgbMain, after m4aSoundInit
         control.hooks.gmDataInit = ProcFunc { gmData.init() }
         gmData.init() // AgbMain: GmDataInit() after SetInterrupt_LCDVBlank, before StartGame

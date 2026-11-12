@@ -38,7 +38,7 @@ public class M4aDriver(
     /** `m4aSoundMain` (end of the VBlank interrupt): sequencers, `CgbSound`, mixer, then [pcm]. */
     public fun main() {
         frames++
-        for (p in chain) sequencer.step(p)
+        for (i in chain.indices) sequencer.step(chain[i]) // no iterator allocation
         M4aCgb.sound(info, psg, bus)
         M4aMixer.frame(info, bus)
         if (pcm != null && pcm.psg == null && info.pcmFreq > 0) {

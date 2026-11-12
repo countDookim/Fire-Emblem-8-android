@@ -13,6 +13,18 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
 
 ## Test now
 
+- **D11-wire-b opening monologue (New Game):**
+  1. From the title press START (New Game). Expected: the opening monologue now plays before the
+     castle scene: the title theme stops, then a slow fade-in to the white text cards with the
+     blend transitions and light flare, about a minute long, ending in a slow fade to black.
+  2. Repeat and press START during the monologue (try early, mid and late). Expected: the music fades
+     out quickly (about 20 frames), the screen fades to black in about 10 frames, then the castle
+     scene starts.
+  - Limits: the world map that follows the monologue in the original is not wired (D11-wm9), so the
+     castle scene starts straight after it, and the original's two BGM fades just after the
+     monologue are missing. The timing runs about 6 frames short of the original (scene setup runs
+     atomically). Report anything that looks different from the monologue on the original game.
+
 - **PP-0a hover cursor (owner device report 11-11):**
   1. Boot into New Game or resume a Prologue save (turn 1 map).
   2. Move the map cursor over a player unit (Eirika at (4,5) or Seth at (4,4)).
@@ -39,8 +51,8 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
 
 These are known gaps; re-test them only when a relevant change is announced:
 
-- D-11: missing cinematic between New Game and the castle scene (testable after M6-A); subtitle, Start-skip
-  and world-map portrait ports remain standalone and unwired. No new device check for these yet.
+- D-11: the monologue is wired (see Test now); the world map between it and the castle scene and the
+  world-map portrait ports remain unwired (D11-wm9).
 - Missing unit selection, actions, menus and inventory (M6-B, M6-H), combat (M6-C), enemy turns (M6-D), save/difficulty
   menus (M6-E) and the Seth/Valter battle animation (M6-G). Combat will resolve instantly until M6-G.
   Cursor movement works; New Game currently uses Normal difficulty.

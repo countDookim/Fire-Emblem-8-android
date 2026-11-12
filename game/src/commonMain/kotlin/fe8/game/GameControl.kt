@@ -432,7 +432,7 @@ public class GameControl(
         public var endMuralBackground: ProcFunc = ProcFunc { },
         /** `GmDataInit` (world map data); `Fe8Boot` sets the port of `GmDataInit`. */
         public var gmDataInit: ProcFunc = ProcFunc { },
-        /** `StartIntroMonologue`. Stand-in until D11-wire-b. */
+        /** `StartIntroMonologue`; `Fe8Boot` sets the port (whole ROM only), else nothing runs. */
         public var startIntroMonologue: ProcFunc = ProcFunc { },
         /** `EndAllMus`. Stand-in until M6-E. */
         public var endAllMus: ProcFunc = ProcFunc { },

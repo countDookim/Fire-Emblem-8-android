@@ -2,13 +2,19 @@ package fe8.game.bm
 
 import fe8.game.RomView
 import fe8.game.bm.StructCodec.u16
+import fe8.game.scene.IntConsumer
 import fe8.game.ui.Menu
+import gbafe.text.Text
 
 /**
  * The unit action menu's item callbacks of src/bmmenu.c (the items of `gUnitActionMenuItems`,
  * src/menu_def.c) for the Prologue: the Attack and Item availability and the Wait effect.
  * [install] registers them, and, until M6-C and M6-H, a stand-in for every other availability callback, in
  * [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold.
+ *
+ * It also holds the weapon select menu the Attack command opens (`gWeaponSelectMenuDef`): its
+ * start and its availability, draw and switch-in callbacks. Choosing a weapon and cancelling are
+ * stand-ins until MC-3b.
  *
  * The unit acting is [active] (`gActiveUnit`, `gActionData`).
  */
@@ -17,6 +23,10 @@ public class UnitActionMenu(
     private val active: ActiveUnit,
     private val items: ItemInfo,
     private val loader: UnitLoader,
+    /** `gBmMapMovement` and `gBmMapRange`, filled by the range display. */
+    private val map: BmMap,
+    /** The reach lookups of src/bmitem.c and the standing reach range. */
+    private val range: AttackRange,
 ) {
     /** Services outside the ported file. */
     public class Hooks {
@@ -43,13 +53,75 @@ public class UnitActionMenu(
         public var unportedUsability: (itemDef: Int, number: Int) -> Int = { _, _ ->
             error("unit menu item availability is not ported")
         }
+
+        /** `ResetIconGraphics`; the game wires [fe8.game.ui.ItemIcon.resetIconGraphics]. */
+        public var resetIconGraphics: () -> Unit = {}
+
+        /** `LoadIconPalettes(palId)`; the game wires [fe8.game.ui.ItemIcon.loadIconPalette]. */
+        public var loadIconPalettes: IntConsumer = IntConsumer {}
+
+        /**
+         * `StartFace(0, GetUnitPortraitId(unit), 0xB0, 0xC, 2)` then
+         * `SetFaceBlinkControlById(0, 5)` for the unit with id `unit`. Stand-in until MC-4
+         * (the faces of the menu).
+         */
+        public var startUnitFace: IntConsumer = IntConsumer {}
+
+        /**
+         * `ForceMenuItemPanel(proc, unit, 0xF, 0xB)`: the item panel beside the weapon list, for
+         * the unit with id `unit`. Stand-in until MC-4 (menuitempanel.c).
+         */
+        public var forceMenuItemPanel: IntConsumer = IntConsumer {}
+
+        /**
+         * `UpdateMenuItemPanel(slot)`: shows item slot `slot` in the panel. Stand-in until MC-4.
+         */
+        public var updateMenuItemPanel: IntConsumer = IntConsumer {}
+
+        /**
+         * `DrawItemMenuLine(text, item, isUsable, gBG0TilemapBuffer + offset)`: the icon, name
+         * and uses of one weapon row. Stand-in until MC-4 (bmitem.c; needs icons and numbers).
+         */
+        public var drawItemMenuLine: ItemLineDrawer = ItemLineDrawer { _, _, _, _ -> }
+
+        /** `DisplayMoveRangeGraphics(flags)`; the game wires [MoveLimitView]. */
+        public var displayMoveRangeGraphics: IntConsumer = IntConsumer {}
+
+        /** `HideMoveRangeGraphics()`; the game wires [MoveLimitView]. */
+        public var hideMoveRangeGraphics: () -> Unit = {}
+
+        /**
+         * `MenuFrozenHelpBox(menu, 0x858)`, the ballista ammo help of a disabled Attack
+         * (not verified: no capture has it; not ported).
+         */
+        public var ballistaAmmoHelp: () -> Unit = { error("MenuFrozenHelpBox is not ported") }
+
+        /**
+         * `StartUnitBallistaSelect(menu, menuItem)` (not verified: no capture has a ballista
+         * unit; not ported). Returns the menu actions.
+         */
+        public var startUnitBallistaSelect: () -> Int = {
+            error("StartUnitBallistaSelect is not ported")
+        }
+    }
+
+    /** Draws one weapon row: [Hooks.drawItemMenuLine]. */
+    public fun interface ItemLineDrawer {
+        /**
+         * Draws [item] (usable or not, [isUsable]) with [text] at tile offset [tilemapOffset] of
+         * the BG 0 tilemap.
+         */
+        public fun draw(text: Text, item: Int, isUsable: Boolean, tilemapOffset: Int)
     }
 
     /** Services outside the ported file. */
     public val hooks: Hooks = Hooks()
 
+    private lateinit var menus: Menu
+
     /** Registers the unit menu's callbacks in [menu]. */
     public fun install(menu: Menu, rom: RomView) {
+        menus = menu
         val itemDefs = rom.u32(Menu.UNIT_ACTION_MENU_DEF + 8)
         var i = 0
         while (rom.u32(itemDefs + ITEM_DEF_SIZE * i + 0xC) != 0) {
@@ -66,6 +138,18 @@ public class UnitActionMenu(
         menu.callbacks[ITEM_COMMAND_USABILITY] =
             Menu.MenuFunc { _, _, itemDef, number -> itemCommandUsability(itemDef, number) }
         menu.callbacks[EFFECT_WAIT] = Menu.MenuFunc { m, item, _, _ -> effectWait(m!!, item!!) }
+        menu.callbacks[UNIT_ACTION_MENU_ATTACK] =
+            Menu.MenuFunc { m, item, _, _ -> unitActionMenuAttack(m!!, item!!) }
+        menu.callbacks[DISPLAY_UNIT_STANDING_ATTACK_RANGE] =
+            Menu.MenuFunc { m, item, _, _ -> displayUnitStandingAttackRange(m!!, item!!) }
+        menu.callbacks[HIDE_MOVE_RANGE_GRAPHICS_WRAPPER] =
+            Menu.MenuFunc { m, item, _, _ -> hideMoveRangeGraphicsWrapper(m!!, item!!) }
+        menu.callbacks[WEAPON_SELECT_MENU_IS_AVAILABLE] =
+            Menu.MenuFunc { _, _, itemDef, number -> weaponSelectMenuIsAvailable(itemDef, number) }
+        menu.callbacks[WEAPON_SELECT_MENU_DRAW] =
+            Menu.MenuFunc { m, item, _, _ -> weaponSelectMenuDraw(m!!, item!!) }
+        menu.callbacks[WEAPON_SELECT_MENU_SWITCH_IN] =
+            Menu.MenuFunc { m, item, _, _ -> weaponSelectMenuSwitchIn(m!!, item!!) }
     }
 
     /**
@@ -131,6 +215,162 @@ public class UnitActionMenu(
     }
 
     /**
+     * Ported from src/bmmenu.c: UnitActionMenu_Attack
+     *
+     * Chooses Attack: resets the icon graphics, loads the icon palettes at 4 and opens the weapon
+     * select menu ([startUnitWeaponSelect]). The disabled-item and in-ballista branches are
+     * (not verified: no capture has them; [Hooks.ballistaAmmoHelp],
+     * [Hooks.startUnitBallistaSelect]).
+     */
+    public fun unitActionMenuAttack(menu: Menu.MenuProc, menuItem: Menu.MenuItemProc): Int {
+        if (menuItem.availability == Menu.MENU_DISABLED) {
+            hooks.ballistaAmmoHelp()
+            return Menu.MENU_ACT_SND6B
+        }
+
+        hooks.resetIconGraphics()
+
+        hooks.loadIconPalettes.invoke(ICON_PALETTE_ID)
+
+        if (units.state(active.unit) and US_IN_BALLISTA != 0) {
+            return hooks.startUnitBallistaSelect()
+        }
+
+        return startUnitWeaponSelect(menu, menuItem)
+    }
+
+    /**
+     * Ported from src/bmmenu.c: StartUnitWeaponSelect
+     *
+     * Starts the weapon select menu as an orphan menu, the unit's face (not for a Phantom) and
+     * the item panel ([Hooks.startUnitFace], [Hooks.forceMenuItemPanel]: MC-4), then
+     * [subEventInfo80832C4]. Returns the menu actions that end the unit menu.
+     */
+    public fun startUnitWeaponSelect(menu: Menu.MenuProc, menuItem: Menu.MenuItemProc): Int {
+        menus.startOrphanMenu(Menu.WEAPON_SELECT_MENU_DEF)
+
+        if (units.classId(active.unit) != CLASS_PHANTOM) hooks.startUnitFace.invoke(active.unit)
+
+        hooks.forceMenuItemPanel.invoke(active.unit)
+
+        subEventInfo80832C4()
+
+        return Menu.MENU_ACT_SKIPCURSOR or Menu.MENU_ACT_END or Menu.MENU_ACT_SND6A or
+            Menu.MENU_ACT_CLEAR
+    }
+
+    /**
+     * Transcribed from src/eventinfo.c: sub_80832C4 (not verified: it returns 0 and writes
+     * nothing, so no capture can show it)
+     */
+    private fun subEventInfo80832C4(): Int = 0
+
+    /**
+     * Ported from src/bmmenu.c: DisplayUnitStandingAttackRange
+     *
+     * Switch-in of the Attack item: clears `gBmMapMovement` to -1 and `gBmMapRange` to 0, adds
+     * the standing reach of all the unit's usable weapons to the range, and shows the squares
+     * (blue and red). The in-ballista range (1 to 10 tiles) is (not verified: no ballista unit).
+     */
+    public fun displayUnitStandingAttackRange(
+        menu: Menu.MenuProc,
+        menuItem: Menu.MenuItemProc,
+    ): Int {
+        map.bmMapFill(map.movement, -1)
+        map.bmMapFill(map.range, 0)
+
+        if (units.state(active.unit) and US_IN_BALLISTA != 0) {
+            range.mapAddInBoundedRange(units.xPos(active.unit), units.yPos(active.unit), 1, 10)
+        } else {
+            val reach = range.getUnitWeaponReachBits(units.unitOffset(active.unit), -1)
+            range.generateUnitStandingReachRange(active.unit, reach)
+        }
+
+        hooks.displayMoveRangeGraphics.invoke(
+            PlayerPhase.LIMITVIEW_BLUE or PlayerPhase.LIMITVIEW_RED,
+        )
+
+        return 0
+    }
+
+    /**
+     * Ported from src/bmmenu.c: HideMoveRangeGraphicsWrapper
+     *
+     * Switch-out of the Attack item: hides the range squares.
+     */
+    public fun hideMoveRangeGraphicsWrapper(
+        menu: Menu.MenuProc,
+        menuItem: Menu.MenuItemProc,
+    ): Int {
+        hooks.hideMoveRangeGraphics()
+        return 0
+    }
+
+    /**
+     * Ported from src/bmmenu.c: WeaponSelectMenu_IsAvailable
+     *
+     * Item [number] of the unit is shown when it is a weapon the unit can use with at least one
+     * target in reach ([Hooks.weaponTargetCount]); else not shown. The weapon list is built
+     * from this answer, once per slot. The captured slots show only that a non-weapon is not
+     * shown: the unusable-weapon and no-target answers are (not verified: no captured slot has
+     * a weapon that fails them).
+     */
+    public fun weaponSelectMenuIsAvailable(def: Int, number: Int): Int {
+        val o = units.unitOffset(active.unit)
+        val item = u16(units.bytes, o + OFF_ITEMS + 2 * number)
+
+        if (items.getItemAttributes(item) and ItemInfo.IA_WEAPON == 0) return Menu.MENU_NOTSHOWN
+
+        if (!loader.canUnitUseWeapon(o, item)) return Menu.MENU_NOTSHOWN
+
+        if (hooks.weaponTargetCount(active.unit, item) == 0) return Menu.MENU_NOTSHOWN
+
+        return Menu.MENU_ENABLED
+    }
+
+    /**
+     * Transcribed from src/bmmenu.c: WeaponSelectMenu_Draw (not verified: the row itself is
+     * drawn by [Hooks.drawItemMenuLine], MC-4, so no captured tile shows its arguments)
+     *
+     * Draws the weapon row of [menuItem]: the item in its slot, greyed when the unit cannot use
+     * it now.
+     */
+    public fun weaponSelectMenuDraw(menu: Menu.MenuProc, menuItem: Menu.MenuItemProc): Int {
+        val o = units.unitOffset(active.unit)
+        val item = u16(units.bytes, o + OFF_ITEMS + 2 * menuItem.itemNumber)
+
+        val isUsable = loader.canUnitUseWeapon(o, item)
+
+        hooks.drawItemMenuLine.draw(
+            menuItem.text, item, isUsable, menuItem.yTile * TILEMAP_WIDTH + menuItem.xTile,
+        )
+
+        return 0
+    }
+
+    /**
+     * Ported from src/bmmenu.c: WeaponSelectMenu_SwitchIn
+     *
+     * Switch-in of a weapon row: shows its slot in the item panel ([Hooks.updateMenuItemPanel])
+     * and the squares of that weapon's reach alone (red).
+     */
+    public fun weaponSelectMenuSwitchIn(menu: Menu.MenuProc, menuItem: Menu.MenuItemProc): Int {
+        hooks.updateMenuItemPanel.invoke(menuItem.itemNumber)
+
+        map.bmMapFill(map.movement, -1)
+        map.bmMapFill(map.range, 0)
+
+        val reach = range.getUnitWeaponReachBits(
+            units.unitOffset(active.unit), menuItem.itemNumber,
+        )
+        range.generateUnitStandingReachRange(active.unit, reach)
+
+        hooks.displayMoveRangeGraphics.invoke(PlayerPhase.LIMITVIEW_RED)
+
+        return 0
+    }
+
+    /**
      * Ported from src/bmitem.c: CanUnitUseWeaponNow
      *
      * Whether the unit at byte offset [o] may wield [item] now: a weapon, not a magic weapon
@@ -169,10 +409,30 @@ public class UnitActionMenu(
         /** ROM address of `EffectWait` (thumb). */
         public const val EFFECT_WAIT: Int = 0x08022739
 
+        /** ROM address of `UnitActionMenu_Attack` (thumb). */
+        public const val UNIT_ACTION_MENU_ATTACK: Int = 0x08022B31
+
+        /** ROM address of `DisplayUnitStandingAttackRange` (thumb). */
+        public const val DISPLAY_UNIT_STANDING_ATTACK_RANGE: Int = 0x08022C31
+
+        /** ROM address of `HideMoveRangeGraphicsWrapper` (thumb). */
+        public const val HIDE_MOVE_RANGE_GRAPHICS_WRAPPER: Int = 0x08022C99
+
+        /** ROM address of `WeaponSelectMenu_IsAvailable` (thumb). */
+        public const val WEAPON_SELECT_MENU_IS_AVAILABLE: Int = 0x08022CA5
+
+        /** ROM address of `WeaponSelectMenu_Draw` (thumb). */
+        public const val WEAPON_SELECT_MENU_DRAW: Int = 0x08022D35
+
+        /** ROM address of `WeaponSelectMenu_SwitchIn` (thumb). */
+        public const val WEAPON_SELECT_MENU_SWITCH_IN: Int = 0x08022D85
+
         /** `UNIT_ACTION_WAIT`. */
         public const val UNIT_ACTION_WAIT: Int = 1
 
         private const val ITEM_DEF_SIZE = 0x24
+        private const val ICON_PALETTE_ID = 4
+        private const val TILEMAP_WIDTH = 32
         private const val US_HAS_MOVED = 1 shl 6
         private const val US_IN_BALLISTA = 1 shl 11
         private const val CLASS_PHANTOM = 0x51

@@ -25,6 +25,7 @@ import fe8.game.bm.UnitSpriteHandles
 import fe8.game.bm.UnitTable
 import fe8.game.event.EventInfos
 import fe8.game.scene.IntBinaryOperator
+import fe8.game.scene.IntConsumer
 import fe8.game.scene.IntSupplier
 import fe8.game.scene.IntUnaryOperator
 import fe8.game.scene.TalkScene
@@ -69,6 +70,10 @@ internal class PlayerPhaseWiring(
     private val battleMapKind: () -> Int,
     /** `gTrapArray`, read by the attack target list. */
     traps: ByteArray,
+    /** `ResetIconGraphics`, called by the unit menu's Attack. */
+    private val resetIcons: () -> Unit,
+    /** `LoadIconPalettes(palId)`. */
+    private val loadIconPalettes: IntConsumer,
 ) {
     private val items = ItemInfo(rom)
 
@@ -96,7 +101,7 @@ internal class PlayerPhaseWiring(
 
     private val attackRange =
         AttackRange(map, units, items, entityMaps, unitLoader)
-    private val unitMenu = UnitActionMenu(units, active, items, unitLoader)
+    private val unitMenu = UnitActionMenu(units, active, items, unitLoader, map, attackRange)
     private val attackTargets =
         AttackTargets(map, units, items, attackRange, traps, SelectTargets())
     private val mapMenu = MapMenu(
@@ -142,13 +147,21 @@ internal class PlayerPhaseWiring(
             attackTargets.targets.getSelectTargetCount()
         }
         unitMenu.hooks.isPositionMagicSealed = { _, _ -> false }
+        unitMenu.hooks.resetIconGraphics = resetIcons
+        unitMenu.hooks.loadIconPalettes = loadIconPalettes
+        unitMenu.hooks.displayMoveRangeGraphics =
+            IntConsumer { flags -> moveLimitView.displayMoveRangeGraphics(flags) }
+        unitMenu.hooks.hideMoveRangeGraphics = { moveLimitView.hideMoveRangeGraphics() }
         unitMenu.hooks.unportedUsability = { _, _ -> Menu.MENU_NOTSHOWN }
         unitMenu.install(menu, rom)
+        registerWeaponMenuStandIns()
         mapMenu.hooks.battleMapKind = battleMapKind
         mapMenu.hooks.isGuideLocked = { false }
         mapMenu.hooks.guideTextShowGreenOrNormal = { true }
         mapMenu.install(menu, rom)
-        for (def in intArrayOf(Menu.UNIT_ACTION_MENU_DEF, Menu.MAP_MENU_DEF)) {
+        for (def in intArrayOf(
+            Menu.UNIT_ACTION_MENU_DEF, Menu.MAP_MENU_DEF, Menu.WEAPON_SELECT_MENU_DEF,
+        )) {
             registerMenuStandIns(def)
         }
         phase.hooks.startUnitActionMenu = { x ->
@@ -162,11 +175,17 @@ internal class PlayerPhaseWiring(
     /**
      * Gives every menu callback of the two menus that no port registered a stand-in that does
      * nothing: the select of an unported command plays the refusal sound (`SONG_6C`) and keeps
-     * the menu open, the switch and idle callbacks do nothing. Stand-in: the unit menu's Attack
-     * (`M6-C`, MC-3a), Item and the other commands (`M6-H`) and the map menu's Unit, Status, Guide,
-     * Options and Suspend (`M6-F`, Suspend `M6-E`).
+     * the menu open, the switch and idle callbacks do nothing. Stand-in: the weapon list's
+     * choice and cancel (MC-3b), Item and the other commands (`M6-H`) and the map menu's Unit,
+     * Status, Guide, Options and Suspend (`M6-F`, Suspend `M6-E`).
      */
     private fun registerMenuStandIns(def: Int) {
+        for (offset in intArrayOf(0x0C, 0x10, 0x18, 0x1C)) {
+            val callback = rom.u32(def + offset)
+            if (callback != 0 && callback !in menu.callbacks) {
+                menu.callbacks[callback] = Menu.MenuFunc { _, _, _, _ -> 0 }
+            }
+        }
         val refuse = Menu.MenuFunc { _, _, _, _ ->
             sound.playSoundEffect(SONG_REFUSED)
             0
@@ -183,6 +202,29 @@ internal class PlayerPhaseWiring(
                 if (callback != 0 && callback !in menu.callbacks) menu.callbacks[callback] = nothing
             }
             i++
+        }
+    }
+
+    /**
+     * Stand-ins until MC-3b for the weapon select menu's choice and cancel. Choosing a weapon
+     * (`WeaponSelectMenu_Selected`) plays the refusal sound and keeps the menu open. B
+     * (`ItemMenu_ButtonBPressed`, not verified) clears BG 2, reopens the unit menu and hides the
+     * range squares, so the player can leave the weapon list.
+     */
+    private fun registerWeaponMenuStandIns() {
+        menu.callbacks[WEAPON_SELECT_MENU_SELECTED] = Menu.MenuFunc { _, _, _, _ ->
+            sound.playSoundEffect(SONG_REFUSED)
+            0
+        }
+        menu.callbacks[ITEM_MENU_BUTTON_B_PRESSED] = Menu.MenuFunc { _, _, _, _ ->
+            hw.fill(hw.mapBuffer(2), 0)
+            hw.enableBgSyncByMask(1 shl 2)
+            menu.startSemiCenteredOrphanMenu(
+                Menu.UNIT_ACTION_MENU_DEF, bm.cursorTargetX - bm.cameraX, 1, 22,
+            )
+            moveLimitView.hideMoveRangeGraphics()
+            Menu.MENU_ACT_SKIPCURSOR or Menu.MENU_ACT_END or Menu.MENU_ACT_SND6B or
+                Menu.MENU_ACT_CLEAR or Menu.MENU_ACT_ENDFACE
         }
     }
 
@@ -269,5 +311,7 @@ internal class PlayerPhaseWiring(
         const val USEBIT_WEAPON = 1
         const val SUSPEND_POINT_PLAYERIDLE = 0
         const val SONG_REFUSED = 0x6C
+        const val WEAPON_SELECT_MENU_SELECTED = 0x08022CF1
+        const val ITEM_MENU_BUTTON_B_PRESSED = 0x08022861
     }
 }

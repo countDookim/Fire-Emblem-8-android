@@ -131,13 +131,15 @@ public class AttackRange(
     }
 
     /**
-     * Ported from src/bmitem.c: GetUnitWeaponReachBits (the `itemSlot` -1 branch the window runs)
+     * Ported from src/bmitem.c: GetUnitWeaponReachBits
      *
-     * The OR of the `REACH_*` bits of every weapon the unit at unit-array offset [o] can use,
-     * walking its items until the first empty slot. The single-slot branch
-     * (`itemSlot >= 0`) is not here (not verified: not run).
+     * The `REACH_*` bits of the item in slot [itemSlot] of the unit at unit-array offset [o], or
+     * (an [itemSlot] below 0) the OR of those of every weapon the unit can use, walking its items
+     * until the first empty slot.
      */
-    internal fun getUnitWeaponReachBits(o: Int): Int {
+    internal fun getUnitWeaponReachBits(o: Int, itemSlot: Int = -1): Int {
+        if (itemSlot >= 0) return getItemReachBits(u16(units.bytes, o + OFF_ITEMS + 2 * itemSlot))
+
         var result = 0
         for (i in 0 until ITEM_COUNT) {
             val item = u16(units.bytes, o + OFF_ITEMS + 2 * i)
@@ -145,6 +147,39 @@ public class AttackRange(
             if (loader.canUnitUseWeapon(o, item)) result = result or getItemReachBits(item)
         }
         return result
+    }
+
+    /**
+     * Ported from src/bmidoten.c: GenerateUnitStandingReachRange
+     *
+     * Adds to the working map the reach [reach] (`REACH_*` bits) of the unit with id [unitId]
+     * from the tile it stands on. A combination not in the C `switch` adds nothing. The
+     * `REACH_MAGBY2` case is not written: no item reaches by magic here and
+     * `GetUnitMagBy2Range` is not ported.
+     */
+    public fun generateUnitStandingReachRange(unitId: Int, reach: Int) {
+        val x = units.xPos(unitId)
+        val y = units.yPos(unitId)
+        when (reach) {
+            REACH_RANGE1 -> mapAddInBoundedRange(x, y, 1, 1)
+            REACH_RANGE1 or REACH_RANGE2 -> mapAddInBoundedRange(x, y, 1, 2)
+            REACH_RANGE1 or REACH_RANGE2 or REACH_RANGE3 -> mapAddInBoundedRange(x, y, 1, 3)
+            REACH_RANGE2 -> mapAddInBoundedRange(x, y, 2, 2)
+            REACH_RANGE2 or REACH_RANGE3 -> mapAddInBoundedRange(x, y, 2, 3)
+            REACH_RANGE3 -> mapAddInBoundedRange(x, y, 3, 3)
+            REACH_RANGE3 or REACH_TO10 -> mapAddInBoundedRange(x, y, 3, 10)
+            REACH_RANGE1 or REACH_RANGE3 -> {
+                mapAddInBoundedRange(x, y, 1, 1)
+                mapAddInBoundedRange(x, y, 3, 3)
+            }
+            REACH_RANGE1 or REACH_RANGE3 or REACH_TO10 -> {
+                mapAddInBoundedRange(x, y, 1, 1)
+                mapAddInBoundedRange(x, y, 3, 10)
+            }
+            REACH_RANGE1 or REACH_RANGE2 or REACH_RANGE3 or REACH_TO10 ->
+                mapAddInBoundedRange(x, y, 1, 10)
+            REACH_RANGE1 or REACH_TO10 -> mapAddInBoundedRange(x, y, 1, 4)
+        }
     }
 
     /**

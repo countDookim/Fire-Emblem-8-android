@@ -87,6 +87,7 @@ import fe8.game.save.BmSaveLib
 import fe8.game.save.BmSuspendSave
 import fe8.game.save.NewGameRam
 import fe8.game.save.SuspendRam
+import fe8.game.scene.IntConsumer
 import fe8.game.scene.IntSupplier
 import fe8.game.scene.TalkScene
 import fe8.game.title.TitleScreen
@@ -1008,6 +1009,7 @@ public class Fe8Boot(
             IntSupplier { clock.get().toInt() }, control.sound, loop, camMove, bmapRender,
             battleEntityMaps, talkScene, handles, mu, active, loader,
             { start.hooks.getBattleMapKind() }, trapPool,
+            { resetIcons() }, IntConsumer { palId -> loadIconPalettes(palId) },
         ).wire(phase, main, eventInfos)
         // Stand-in until M6-D (enemy phase and AI): the computer phase does nothing and ends at
         // once, so End turn runs the enemy banner and goes on to the next player phase.

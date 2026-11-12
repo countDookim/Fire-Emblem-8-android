@@ -303,6 +303,22 @@ final boss (banim-ekrdragon*.c, about 150), route split, dance/summon/ballista/s
 (ending_credits.c 20, ending_details.c 54), sound room (soundroom.c 52), extras (bonusclaim*.c 32, opinfo.c 49,
 Creature Campaign).
 
+### MC-3a result
+
+`WeaponSelectMenuDifferentialTest` replays `ram_trace_prologue_attack_noanim` f1595..f1658 (unit menu start, A on
+Attack f1630, weapon list to f1658) against the per-frame dumps: menu and item procs, `gBmMapMovement`/`gBmMapRange`,
+the range view proc and flags, BG0..BG3 tilemaps, icon tables and palette. Ported and break-checked:
+`UnitActionMenu_Attack`, `StartUnitWeaponSelect`, `WeaponSelectMenu_IsAvailable`, `WeaponSelectMenu_SwitchIn`,
+`DisplayUnitStandingAttackRange`, `HideMoveRangeGraphicsWrapper`, `StartOrphanMenu`, `GenerateUnitStandingReachRange`
+(not in the row; the windows run it), `GetUnitWeaponReachBits` (slot branch added). Left transcribed:
+`WeaponSelectMenu_Draw` (its row is `DrawItemMenuLine`, MC-4) and `sub_80832C4` (returns 0, no state). Hooks until
+MC-4: face, item panel (`ForceMenuItemPanel`, `UpdateMenuItemPanel`), `DrawItemMenuLine`; BG0/BG1 tiles of the item
+rows and panel are excluded from the compare. Findings: the dump of f1631 is taken mid-frame (the weapon list's start
+frame outruns a VBlank, the item panel numbers); from there the game's frame k is the dump k + 1, so the test
+compares f1631.. with the dump after. The weapon list shows only slot 1 (slot 0 is a weapon the unit cannot use), so
+the no-target answer of `IsAvailable` is not verified. Stand-ins until MC-3b: weapon choice (refusal sound) and B
+(`ItemMenu_ButtonBPressed`, reopens the unit menu).
+
 ## M7
 
 Not broken down here: [M7-modding](M7-modding.md) has 23 proposed rows; they wait for owner decisions D2–D9.

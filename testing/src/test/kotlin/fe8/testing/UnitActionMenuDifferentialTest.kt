@@ -1,7 +1,12 @@
 package fe8.testing
 
 import fe8.game.RomView
+import fe8.game.bm.AttackRange
+import fe8.game.bm.BmMap
 import fe8.game.bm.BmSt
+import fe8.game.bm.ChapterData
+import fe8.game.bm.EntityBmMaps
+import fe8.game.bm.PlaySt
 import fe8.game.bm.CamMove
 import fe8.game.bm.ActiveUnit
 import fe8.game.bm.ItemInfo
@@ -120,8 +125,12 @@ class UnitActionMenuDifferentialTest {
                 engine, rom, hw, text, messages, keys, hand, greenText,
                 CamMove(engine, BmSt()).script,
             )
+            val map = BmMap(rom, ChapterData(rom), BmSt())
             val loader = UnitLoader(units, rom, { 0 }, RngService(), { false })
-            unitMenu = UnitActionMenu(units, active, itemInfo, loader)
+            unitMenu = UnitActionMenu(
+                units, active, itemInfo, loader, map,
+                AttackRange(map, units, itemInfo, EntityBmMaps(map, units, PlaySt()), loader),
+            )
         }
 
         fun ewram(frame: Int): ByteArray = data.region(names.getValue(frame), "ewram")

@@ -226,6 +226,13 @@ public class Menu(
         startMenuCore(def, rect, 1, 0, 0, 0, parent)
 
     /**
+     * Starts [def] as an orphan menu (no parent) at its own rect.
+     *
+     * Ported from src/uimenu.c: StartOrphanMenu
+     */
+    public fun startOrphanMenu(def: Int): Proc = startMenuAt(def, defRect(def), null)
+
+    /**
      * Starts [def] as an orphan menu (no parent), its rect's x set to [xTileRight] when
      * [xSubject] is left of pixel 120, else to [xTileLeft].
      *
@@ -773,6 +780,9 @@ public class Menu(
 
         /** ROM address of `gUnitActionMenuDef`. */
         public const val UNIT_ACTION_MENU_DEF: Int = 0x0859D1F0
+
+        /** ROM address of `gWeaponSelectMenuDef`. */
+        public const val WEAPON_SELECT_MENU_DEF: Int = 0x0859D1CC
 
         /** ROM address of `gMapMenuDef`. */
         public const val MAP_MENU_DEF: Int = 0x0859D214

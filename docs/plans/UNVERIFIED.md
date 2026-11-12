@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 546 across 74 decomp files (missing reason: 0).
+Total entries: 548 across 75 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -298,6 +298,26 @@ Total entries: 546 across 74 decomp files (missing reason: 0).
 | `GmapUnitContainer_Init` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt` | a fresh proc already has empty slots, so no trace can tell it from a no-op |
 | `EndGmapUnitFade` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt` | runs only on a skipped event in the prologue |
 
+## src/eventinfo.c (15)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SetChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no test checks it against a trace yet |
+| `ClearChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `ResetChapterFlags` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `CheckChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `ClearPermanentFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `ResetPermanentFlags` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `CheckPermanentFlagFrom` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `CheckPermanentFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `ClearFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `CheckFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `sub_80832C4` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | it returns 0 and writes nothing, so no capture can show it |
+| `SearchNextAvailableEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | the Prologue's misc list reaches it, but skipping the step past the entry changes nothing there, as the started entry's flag is set and the entry is skipped anyway |
+| `EvCheck0C_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
+| `EvCheck0D_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
+| `EnqueueTutEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
+
 ## src/worldmap_scrollmanage.c (15)
 
 | Function | Kotlin file | Reason |
@@ -374,25 +394,6 @@ Total entries: 546 across 74 decomp files (missing reason: 0).
 | `ReadGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | no suspend-trace state covers it; its caller `ReadGameSave` is ported |
 | `WriteTraps` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | every trap in the reference is zero, which proves the target, not the data |
 | `WriteGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | no suspend-trace state covers it; its caller `WriteGameSave` is ported |
-
-## src/eventinfo.c (14)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `SetChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no test checks it against a trace yet |
-| `ClearChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `ResetChapterFlags` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `CheckChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `ClearPermanentFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `ResetPermanentFlags` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `CheckPermanentFlagFrom` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `CheckPermanentFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `ClearFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `CheckFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `SearchNextAvailableEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | the Prologue's misc list reaches it, but skipping the step past the entry changes nothing there, as the started entry's flag is set and the entry is skipped anyway |
-| `EvCheck0C_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
-| `EvCheck0D_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
-| `EnqueueTutEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
 
 ## src/face.c (14)
 
@@ -822,6 +823,12 @@ Total entries: 546 across 74 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetEnemyStartCursorPosition` | `game/src/commonMain/kotlin/fe8/game/bm/ResetCursorPosition.kt` | the reference runs only reset the cursor in the player phase |
+
+## src/bmmenu.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `WeaponSelectMenu_Draw` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | the row itself is drawn by [Hooks.drawItemMenuLine], MC-4, so no captured tile shows its arguments |
 
 ## src/bmreliance.c (1)
 

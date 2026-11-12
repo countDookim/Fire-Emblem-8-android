@@ -2,21 +2,28 @@ package gba.audio
 
 /**
  * The GBA's PSG (CGB) sound registers as `CgbSound` sees them: one byte per IO address from
- * `0x04000060` (`NR10`) to `0x040000A0` (end of wave RAM), indexed by `address - 0x04000060`.
+ * `0x04000060` (`NR10`) to `0x0400009F` (last byte of wave RAM), indexed by
+ * `address - 0x04000060`.
  * Only a register file (what the driver writes and reads back); the synth that turns it into
  * samples is separate. Not a port.
  */
 public class M4aPsg {
     /**
      * Register bytes, offset = IO address - `0x04000060`. Starts as `MPlayExtender` / `SoundInit`
-     * leave it: NR50 = 0x77 (full master volume), SOUNDCNT_H PSG ratio 100%.
+     * leave them: NR50 = 0x77 (full left and right master volume), SOUNDCNT_H PSG ratio 100%
+     * (`SOUND_ALL_MIX_FULL`).
      */
     public val regs: IntArray = IntArray(0x40).also {
         it[NR50 - BASE] = 0x77
         it[SOUNDCNT_H - BASE] = 0x02
     }
 
-    /** High byte of `SOUNDBIAS` (`0x04000089`): sampling-cycle bits 6..7 (init sets 0x40). */
+    /**
+     * High byte of `SOUNDBIAS` (`0x04000089`): sampling-cycle bits 6..7 (`SoundInit` sets 0x40;
+     * `m4aSoundMode`'s `SOUND_MODE_DA_BIT_*` rewrites them), read by `CgbSound` to adjust the
+     * frequency of voices with `TONEDATA_TYPE_FIX`. 0x42 = those 0x40 plus the hardware's
+     * reset bias bit.
+     */
     public var soundBiasH: Int = 0x42
 
     /** Reads the byte at IO [address]. */
@@ -30,7 +37,7 @@ public class M4aPsg {
     public var lengthLoads: Int = 0
         private set
 
-    /** Bit per channel 1, 2, 4 (bit n-1): envelope register NRx2 written since [takeEnvelopeWrites]. */
+    /** Bit per channel 1, 2, 4 (bit n-1): `NRx2` (envelope) written since [takeEnvelopeWrites]. */
     public var envelopeWrites: Int = 0
         private set
 
@@ -70,7 +77,7 @@ public class M4aPsg {
 
     /** Register addresses. */
     public companion object {
-        /** `REG_NR10`, first PSG register. */
+        /** `REG_NR10` (square 1 sweep), the first PSG register. */
         public const val BASE: Int = 0x04000060
 
         /** `REG_NR50`: PSG master volume (left bits 4..6, right bits 0..2). */
@@ -82,7 +89,7 @@ public class M4aPsg {
         /** `REG_NR51`: PSG pan (left/right enable per channel). */
         public const val NR51: Int = 0x04000081
 
-        /** `REG_WAVE_RAM0`. */
+        /** `REG_WAVE_RAM0`: the first of the 16 bytes of channel 3's wave pattern. */
         public const val WAVE_RAM: Int = 0x04000090
     }
 }

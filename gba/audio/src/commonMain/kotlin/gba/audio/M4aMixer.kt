@@ -1,13 +1,21 @@
 package gba.audio
 
-/** `SoundMainRAM`, the DirectSound mixer run once per VBlank after the sequencers. */
+/**
+ * `SoundMainRAM`, the DirectSound mixer run once per VBlank after the sequencers and
+ * `CgbSound`: mixes the active channels ([M4aSoundInfo.maxChans]) into the next
+ * `pcmSamplesPerVBlank` samples of [M4aSoundInfo.pcmBuffer]. The buffer holds
+ * `pcmDmaPeriod` such slots per half, which the GBA's DMA streams to the sound FIFOs.
+ */
 public object M4aMixer {
     /**
      * One `SoundMainRAM` pass (after the sequencers and `CgbSound`): reverbs (or clears) this
      * frame's [M4aSoundInfo.pcmSamplesPerVBlank] samples of both PCM halves at the slot given by
      * `pcmDmaCounter`, then runs each DirectSound channel's [envelope] and mixes it in (fixed-rate
      * voices 1:1, others linearly interpolated at `divFreq * freq`, looping or stopping at the
-     * wave end). The `maxLines` VCOUNT cut-off is not modelled (FE8 sets 0).
+     * wave end). The slot is `pcmDmaPeriod - (pcmDmaCounter - 1)` slots into the buffer
+     * (slot 0 when the counter is 1: the buffer start, which the DMA plays next). The
+     * `maxLines` scanline cut-off (`SoundInfo` offset 0x0C, from the linker symbol `gMaxLines`,
+     * which the decomp does not define) is not modelled; the port assumes 0 = no limit.
      *
      * Ported from src/m4a_1.s: SoundMainRAM
      */
@@ -15,9 +23,12 @@ public object M4aMixer {
         val spv = info.pcmSamplesPerVBlank
         val buf = info.pcmBuffer
         val n = M4aSoundInfo.PCM_DMA_BUF_SIZE
-        val r7 = info.pcmDmaCounter - 1
+        val r7 = info.pcmDmaCounter - 1 // register name in SoundMain (m4a_1.s)
+        // [at]: start of this frame's slot in the right half; the left half is [n] bytes on.
         val at = if (r7 == 0) 0 else (info.pcmDmaPeriod - r7) * spv
         if (info.reverb != 0) {
+            // Reverb: the sum of left and right of this slot and of the "other" slot (the next
+            // one, or the first when the counter is 2) * reverb >> 9, stored to both halves.
             var other = if (info.pcmDmaCounter == 2) 0 else at + spv
             for (i in at until at + spv) {
                 var v = buf[i + n] + buf[i] + buf[other + n] + buf[other]
@@ -37,9 +48,17 @@ public object M4aMixer {
         }
     }
 
+    /**
+     * The sample loops of `SoundMainRAM` for channel [c]: adds `spv` samples of its wave, scaled
+     * by `er`/`el` (`>> 8`), to the slot at [at] in the right half and `left` bytes on in the
+     * left half. Reads the `WaveData` at `c.wav`: sample data from +0x10, `loopStart` at +8,
+     * `size` at +0x0C. Fixed-rate voices (`TONEDATA_TYPE_FIX`, type bit 3) read one sample per
+     * output sample, the others advance by `divFreq * freq` (fixed point 2^23) and interpolate
+     * linearly. At the wave end the channel loops (status 0x10) or is freed (status 0).
+     */
     private fun mix(c: M4aChannel, info: M4aSoundInfo, bus: M4aBus, at: Int) {
         val buf = info.pcmBuffer
-        val left = M4aSoundInfo.PCM_DMA_BUF_SIZE
+        val left = M4aSoundInfo.PCM_DMA_BUF_SIZE // offset of the left half
         val loop = c.status and 0x10 != 0
         val loopStart = if (loop) c.wav + 0x10 + read32(bus, c.wav + 8) else 0
         val loopLen = if (loop) read32(bus, c.wav + 0x0C) - read32(bus, c.wav + 8) else 0
@@ -81,7 +100,7 @@ public object M4aMixer {
             fw += step
             var adv = fw ushr 23
             if (adv == 0) continue
-            fw = fw and 0x3F800000.inv()
+            fw = fw and 0x3F800000.inv() // clear carry bits 23..29, as `bic lr, lr, 0x3F800000`
             ct -= adv
             if (ct <= 0) {
                 if (loopLen == 0) {
@@ -116,9 +135,11 @@ public object M4aMixer {
 
     /**
      * Envelope stage of DirectSound channel [c] for one frame (`SoundMainRAM_ChanLoop` up to the
-     * sample loop): starts a new note (sample pointer/count from its WaveData, loop flag 0x10),
+     * sample loop): starts a new note (status 0x80: sample pointer `wav + 0x10` and count from
+     * the `WaveData`, loop flag 0x10 if the high byte of `WaveData.status` has 0xC0 bits set),
      * steps attack (3) / decay (2) / sustain (1) / release (0x40) / echo (4) and sets
-     * `ev`/`er`/`el`. Returns false if the channel is (now) silent and is not mixed.
+     * `ev`, `er` and `el` (the volumes times `(masterVolume + 1) * ev >> 4`, then `>> 8`).
+     * Returns false if the channel is (now) silent and is not mixed.
      */
     public fun envelope(c: M4aChannel, info: M4aSoundInfo, bus: M4aBus): Boolean {
         var s = c.status
@@ -181,13 +202,16 @@ public object M4aMixer {
         return true
     }
 
+    /** The channel's `release` byte (bits 24..31 of `adsr`): per-frame envelope decay factor. */
     private fun release(c: M4aChannel): Int = c.adsr ushr 24
 
+    /** Frees [c] (status 0) at the end of its note; returns false: nothing to mix. */
     private fun stop(c: M4aChannel): Boolean {
         c.status = 0
         return false
     }
 
+    /** Little-endian 32-bit read of the `WaveData` header. */
     private fun read32(bus: M4aBus, a: Int): Int = bus.read8(a) or (bus.read8(a + 1) shl 8) or
         (bus.read8(a + 2) shl 16) or (bus.read8(a + 3) shl 24)
 }

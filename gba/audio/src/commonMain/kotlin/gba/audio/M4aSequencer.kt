@@ -3,7 +3,7 @@ package gba.audio
 /**
  * The m4a sequencer: `MPlayMain`'s tempo/tick/command loop, gate countdown and channel
  * volume/pitch updates, plus song starts. With [info], notes (`ply_note`, incl. `TIE`) are
- * played; `PORT`, `MEMACC` (no FE8 trace uses them) and notes without [info] are not modelled:
+ * played; `PORT`, `MEMACC` (no FE8U trace uses them) and notes without [info] are not modelled:
  * a track reaching one is reported in [unsupported] and its state is then undefined. Verified
  * members carry their own `Ported from` line (fade-out is verified; fade-in is not traced).
  */
@@ -16,7 +16,10 @@ public class M4aSequencer(
     public var unsupported: Int = 0
         private set
 
-    /** Per track slot: bit `cmd - 0xB1` for each jump-table command run in the last [step]. */
+    /**
+     * Per track slot (`MAX_MUSICPLAYER_TRACKS` 16): bit `cmd - 0xB1` for each jump-table command
+     * (`gMPlayJumpTable` index) run in the last [step]; a test aid, not part of the engine.
+     */
     public val commandsRun: LongArray = LongArray(16)
 
     /**
@@ -41,6 +44,7 @@ public class M4aSequencer(
                 if (t.flags and M4aTrack.FLG_EXIST == 0) continue
                 live = live or (1 shl i)
                 if (info != null) gate(t)
+                // MPT_FLG_START: a track just started by MPlayStart gets its defaults first.
                 if (t.flags and M4aTrack.FLG_START != 0) clearTrack(t)
                 if (!tick(p, t, i)) continue
             }
@@ -54,6 +58,8 @@ public class M4aSequencer(
         }
         for (i in 0 until p.trackCount) {
             val t = p.tracks[i]
+            // 0x0F = the four volume/pitch bits (MPT_FLG_VOLCHG | MPT_FLG_PITCHG); 0xF0 keeps
+            // START and EXIST and the unnamed upper bits.
             if (t.flags and M4aTrack.FLG_EXIST == 0 || t.flags and 0x0F == 0) continue
             t.volPitSet()
             if (info != null) updateChannels(t)
@@ -129,7 +135,11 @@ public class M4aSequencer(
         }
     }
 
-    /** Gate countdown of [t]'s channels: release at 0, unlink inactive ones. */
+    /**
+     * Gate countdown of [t]'s channels (`MPlayMain`, once per tick): a channel whose `gt`
+     * (gate time) runs down to 0 is released (status 0x40); channels that are no longer in use
+     * are unlinked from the chain.
+     */
     private fun gate(t: M4aTrack) {
         var c = t.chan
         while (c != null) {
@@ -143,7 +153,11 @@ public class M4aSequencer(
         }
     }
 
-    /** Volume / pitch changes of [t] pushed to its channels (end of `MPlayMain`). */
+    /**
+     * Volume / pitch changes of [t] pushed to its playing channels (end of `MPlayMain`): new
+     * `rightVolume`/`leftVolume` (`ChnVolSetAsm`) and a new frequency (`MidiKeyToFreq`, or
+     * `MidiKeyToCgbFreq` for a CGB channel, which also flags `CgbSound` via `mo`).
+     */
     private fun updateChannels(t: M4aTrack) {
         var c = t.chan
         while (c != null) {
@@ -159,7 +173,7 @@ public class M4aSequencer(
                 if (cgb != 0) c.modify = c.modify or 1
             }
             if (t.flags and M4aTrack.FLG_PITCHG != 0) {
-                val k = maxOf(0, c.key + ((t.keyM shl 24) shr 24))
+                val k = maxOf(0, c.key + ((t.keyM shl 24) shr 24)) // keyM is signed (`ldrsb`)
                 c.frequency = if (cgb != 0) {
                     c.modify = c.modify or 2 // CgbSound rewrites NRx3/NRx4
                     M4aPitch.midiKeyToCgbFreq(cgb, k, t.pitM)
@@ -174,7 +188,11 @@ public class M4aSequencer(
     private fun read32(a: Int): Int = bus.read8(a) or (bus.read8(a + 1) shl 8) or
         (bus.read8(a + 2) shl 16) or (bus.read8(a + 3) shl 24)
 
-    /** The `Clear64byte` + defaults of a starting track. */
+    /**
+     * `MPlayMain`'s handling of `MPT_FLG_START` (also `m4aMPlayImmInit`): `Clear64byte` of the
+     * track (its first 0x40 bytes; `cmdPtr` and `patternStack` after them are kept), then
+     * flags = `MPT_FLG_EXIST`, bend range 2, volX 64, LFO speed 22 (0x16) and tone type 1.
+     */
     private fun clearTrack(t: M4aTrack) {
         t.chan = null
         t.echoVolume = 0
@@ -214,7 +232,14 @@ public class M4aSequencer(
         t.tone[2] = 0
     }
 
-    /** Commands until a wait, then the wait countdown and LFO. False if the track stopped early. */
+    /**
+     * One tick of track [t] (slot [slot]): runs commands until one sets a wait (0x80..0xB0: the
+     * wait is `gClockTable[cmd - 0x80]` ticks; 0xB1..0xCE: jump-table commands, see [command];
+     * 0xCF..: notes), then counts the wait down and advances the LFO (`mod`, `lfoSpeed`,
+     * `lfoDelay`): the phase `lfoSpeedC` gives a triangle wave, `modM = mod * wave >> 6`, which
+     * flags the modulated pitch or volume (`modT`). False if the track stopped early or hit an
+     * unmodelled command.
+     */
     private fun tick(p: M4aPlayer, t: M4aTrack, slot: Int): Boolean {
         while (t.wait == 0) {
             var cmd = bus.read8(t.cmdPtr)
@@ -254,12 +279,17 @@ public class M4aSequencer(
         return true
     }
 
+    /** Records that track [slot] hit an unmodelled command; returns false (its tick ends). */
     private fun unsupported(slot: Int): Boolean {
         unsupported = unsupported or (1 shl slot)
         return false
     }
 
-    /** Jump-table commands 0xB1..0xCE; false for the unmodelled ones. */
+    /**
+     * Jump-table commands 0xB1..0xCE (`gMPlayJumpTable[cmd - 0xB1]`); false for the unmodelled
+     * ones: 0xB9 (`MEMACC`) and 0xCC (`PORT`). 0xB1 (`FINE`) and the table's other unused
+     * slots (0xB6..0xB8, 0xC6, 0xC7, 0xC9..0xCB) all run `ply_fine`.
+     */
     private fun command(p: M4aPlayer, t: M4aTrack, cmd: Int): Boolean {
         when (cmd) {
             0xB2 -> M4aCommands.goto(t, bus)
@@ -288,6 +318,7 @@ public class M4aSequencer(
     }
 
     private companion object {
+        /** `tempoC` units per tick: `MPlayMain` runs a tick while `tempoC >= 150` (0x96). */
         const val TICK = 150
 
     }

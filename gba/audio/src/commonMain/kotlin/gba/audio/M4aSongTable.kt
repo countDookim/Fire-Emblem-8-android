@@ -1,14 +1,15 @@
 package gba.audio
 
 /**
- * A ROM's `gSongTable` (`struct Song`: header pointer, `ms` player index, `me`) read through [bus].
- * Song numbers index it; `ms` indexes `gMPlayTable` (the game's players, in table order).
+ * A ROM's `gSongTable` (`struct Song`, 8 bytes: `header` pointer, `ms` player index, `me`) read
+ * through [bus]. Song numbers index it; `ms` indexes `gMPlayTable` (the game's players, in
+ * table order). `me` is not used by any m4a function in the decomp, so it is not read.
  */
 public class M4aSongTable(
     private val bus: M4aBus,
     /** GBA address of `gSongTable`. */
     public val address: Int,
-    /** Number of entries. */
+    /** Number of entries (the decomp declares `gSongTable[]` without a length). */
     public val size: Int,
 ) {
     /** `songTable[n].header`: GBA address of song [n]'s header. */

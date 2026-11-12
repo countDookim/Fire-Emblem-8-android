@@ -4,13 +4,18 @@ import kotlin.math.pow
 import kotlin.math.roundToLong
 
 /**
- * m4a (MusicPlayer2000) pitch math shared by every GBA FE game.
- *
- * The library's `gScaleTable` (key -> octave shift and semitone) and `gFreqTable` (2^31 * 2^(n/12))
- * are generated from their formulas; tests check both against the ROM.
+ * m4a (MusicPlayer2000) pitch math: `MidiKeyToFreq` and `MidiKeyToCgbFreq` with the library's
+ * `gScaleTable` (key -> octave shift and semitone), `gFreqTable` (2^31 * 2^(n/12)),
+ * `gCgbScaleTable`, `gCgbFreqTable` and `gNoiseTable`. The tables are generated from their
+ * formulas (except `gCgbFreqTable`); tests check them against the FE8U ROM.
  */
 public object M4aPitch {
-    /** `gScaleTable`: for key k, `(14 - k / 12) shl 4 or k % 12` (181 entries: key 180 is read). */
+    /**
+     * `gScaleTable`: for key k, `(14 - k / 12) shl 4 or k % 12` (high nibble = octave shift
+     * applied to `gFreqTable`, low nibble = semitone). The decomp's table has 180 entries
+     * (keys 0..179; `MidiKeyToFreq` reads at most key 179); the port allocates one more that
+     * is never read.
+     */
     private val scaleTable: IntArray = IntArray(SCALE_SIZE) { ((14 - it / 12) shl 4) or (it % 12) }
 
     /** `gFreqTable`: unsigned 32-bit 2^31 * 2^(n/12), n = 0..11, stored as Int bits. */
@@ -37,8 +42,10 @@ public object M4aPitch {
     }
 
     /**
-     * Frequency register value of CGB channel [chanNum] (1..3 tone/wave: `NRx3/NRx4` period + 2048;
-     * 4 noise: `NR43` polynomial) at MIDI [key] (0..255) with fine pitch [fineAdjust] (0..255).
+     * Frequency value of CGB channel [chanNum] at MIDI [key] (0..255) with fine pitch
+     * [fineAdjust] (0..255): channels 1..3 (square 1/2, wave) the `NRx3`/`NRx4` frequency
+     * interpolated in `gCgbFreqTable` (+ 2048; keys up to 35 give the lowest value, above 166
+     * the highest), channel 4 (noise) the `gNoiseTable` entry, the `NR43` value (key 21..80).
      *
      * Ported from src/m4a.c: MidiKeyToCgbFreq
      */
@@ -98,13 +105,17 @@ public object M4aPitch {
         return ((hi + (lo ushr 16)) ushr 16) and MASK
     }
 
-    /** `gCgbFreqTable` (m4a library constants; checked against the ROM). */
+    /** `gCgbFreqTable` (s16 constants of the m4a library; checked against the ROM). */
     private val CGB_FREQ =
         intArrayOf(
             -2004, -1891, -1785, -1685, -1591, -1501, -1417, -1337, -1262, -1192, -1125, -1062,
         )
 
+    /** `MidiKeyToFreq` clamps the key to 178 (so that key + 1 = 179 is the last table read). */
     private const val MAX_KEY = 178
+
+    /** [scaleTable] length: the decomp's 180 entries plus one that is never read. */
     private const val SCALE_SIZE = 181
+    /** Keeps a Long to its unsigned 32-bit value. */
     private const val MASK = 0xFFFFFFFFL
 }

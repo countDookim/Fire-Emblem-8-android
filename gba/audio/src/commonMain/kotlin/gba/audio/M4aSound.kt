@@ -6,33 +6,40 @@ package gba.audio
  */
 public class M4aSound(
     private val bus: M4aBus,
-    /** GBA address of `gMPlayTable` (12-byte entries: info, tracks, `unk_8`, pad, `unk_A`). */
+    /**
+     * GBA address of `gMPlayTable` (`struct MusicPlayer`, 12-byte entries: `info`, `track`,
+     * `unk_8`, pad, `unk_A`). `unk_8` is the track count the player is opened with
+     * (`MPlayOpen`'s `trackCount`); `unk_A` is copied to `MusicPlayerInfo.unk_B`, whose only
+     * known use is the priority check of `MPlayStart` (see [M4aPlayer.unkB]).
+     */
     public val mPlayTable: Int,
-    /** `NUM_MUSIC_PLAYERS`. */
+    /** `NUM_MUSIC_PLAYERS`: entries of `gMPlayTable` (a linker symbol, not in the decomp). */
     public val playerCount: Int,
     /** The game's `gSongTable`. */
     public val songs: M4aSongTable,
-    /** DirectSound channel slots (`MAX_DIRECTSOUND_CHANNELS`). */
+    /** DirectSound channel slots (`MAX_DIRECTSOUND_CHANNELS`, 12 in the m4a library). */
     channelCount: Int = 12,
 ) {
     /** `gSoundInfo` with `gCgbChans`, set up by [init] and stepped by [M4aCgb.sound]. */
     public val info: M4aSoundInfo =
         M4aSoundInfo(Array(channelCount) { M4aChannel() }, Array(4) { M4aChannel() })
 
-    /** The players in `gMPlayTable` order, each with `unk_8` track slots. */
+    /** The players in `gMPlayTable` order, each with `unk_8` (its track count) track slots. */
     public val players: List<M4aPlayer> =
         List(playerCount) { i -> M4aPlayer(Array(maxOf(1, entry(i, 8))) { M4aTrack() }) }
 
     /** Starts songs ([songNumStart]). */
     public val sequencer: M4aSequencer = M4aSequencer(bus, info)
 
-    /** A driver running the players opened by [init] and the mixer, pushing to [pcm]. */
+    /** A driver running the players opened by [init] (the `intp` chain) and the mixer. */
     public fun driver(pcm: PcmStream?): M4aDriver = M4aDriver(bus, info, info.chain(), pcm)
 
     /**
-     * `m4aSoundInit`: `SoundInit`, [mPlayExtender], `m4aSoundMode([mode])`, then `MPlayOpen` of each `gMPlayTable`
-     * player with the entry's `unk_8` tracks and `unk_B` = `unk_A`. The SoundMainRAM copy is not
-     * needed; `memAccArea` (`MEMACC`, unsupported) is skipped.
+     * `m4aSoundInit`: `SoundInit`, [mPlayExtender], `m4aSoundMode([mode])`, then `MPlayOpen` of
+     * each `gMPlayTable` player with the entry's `unk_8` tracks and `unk_B` = `unk_A`. The
+     * `SoundMainRAM` copy into RAM is not needed; `memAccArea` (`MEMACC`, unsupported) is
+     * skipped. [mode] is a constant in the decomp: `SOUND_MODE_DA_BIT_8 | SOUND_MODE_FREQ_13379
+     * | (13 << SOUND_MODE_MASVOL_SHIFT) | (7 << SOUND_MODE_MAXCHN_SHIFT)` = 0x0094D700.
      *
      * Ported from src/m4a.c: m4aSoundInit
      */
@@ -50,7 +57,8 @@ public class M4aSound(
      * `MPlayExtender(gCgbChans)`: if unlocked, clears the four CGB channels and gives each its
      * type (1..4) and `panMask` (0x11, 0x22, 0x44, 0x88). The sound register writes, the jump
      * table entries (all commands are built in) and the `CgbSound`/`CgbOscOff` hooks are not
-     * modelled; `maxLines` is FE8's 0 (not modelled either).
+     * modelled; `maxLines` (`MAX_LINES`, a linker symbol the decomp does not define) is not
+     * modelled either, the port assumes no scanline cut-off.
      *
      * Ported from src/m4a.c: MPlayExtender
      */
@@ -95,7 +103,7 @@ public class M4aSound(
         }
     }
 
-    /** `m4aSongNumStart(n)`. */
+    /** `m4aSongNumStart(n)`: starts song [n] of [songs] on its player ([M4aSequencer.start]). */
     public fun songNumStart(n: Int): Boolean = sequencer.songNumStart(players, songs, n)
 
     /**

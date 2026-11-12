@@ -10,9 +10,11 @@ public fun interface M4aBus {
  * The m4a track commands that only touch track/player state (`ply_*` in m4a_1.s). Each reads its
  * arguments at [M4aTrack.cmdPtr] (already past the command byte), like the original.
  *
- * `ld_r3_tp_adr_i` and `ldrb_r3_r2` go through `chk_adr_r2`, which reads 0 below 0x02000000 (the
- * BIOS guard: the jump table template it allows is in ROM, so nothing below EWRAM passes);
- * `ld_r3_tp_adr_i_unchecked` (`LFOS`, `MOD`) and the other `GOTO`/`REPT` bytes read directly.
+ * `ld_r3_tp_adr_i` and `ldrb_r3_r2` go through `chk_adr_r2`, a guard against reading the BIOS:
+ * an address below 0x02000000 reads as 0, except the BIOS area from `gMPlayJumpTableTemplate`
+ * up to 0x4000 (the engine's own jump table template), which the port does not model since
+ * no song data lives there; `ld_r3_tp_adr_i_unchecked` (`LFOS`, `MOD`) and the other
+ * `GOTO`/`REPT` bytes read directly.
  * Functions without a `Ported from` line are not verified by a test yet (no claim, CLAUDE.md
  * rule 4).
  */
@@ -24,7 +26,10 @@ public object M4aCommands {
     private fun argUnchecked(t: M4aTrack, bus: M4aBus): Int =
         bus.read8(t.cmdPtr).also { t.cmdPtr += 1 }
 
-    /** `chk_adr_r2` applied to a byte read: 0 for addresses below 0x02000000. */
+    /**
+     * `chk_adr_r2` applied to a byte read: 0 for addresses below 0x02000000 (the BIOS template
+     * area aside, see the object's doc).
+     */
     private fun checked(bus: M4aBus, a: Int): Int = if (a ushr 25 == 0) 0 else bus.read8(a)
 
     private fun read32(bus: M4aBus, a: Int): Int =
@@ -40,7 +45,11 @@ public object M4aCommands {
             (bus.read8(a + 3) shl 24)
     }
 
-    /** `PATT`: call; at depth 3 behaves as `FINE` ([fine] is invoked). */
+    /**
+     * `PATT addr`: calls the pattern at `addr`: pushes the address after the command on
+     * [M4aTrack.patternStack] (3 levels deep; at a depth of 3 it behaves as `FINE`, [fine]) and
+     * jumps ([goto]). `PEND` ([pend]) returns.
+     */
     public fun patt(t: M4aTrack, bus: M4aBus) {
         if (t.patternLevel >= 3) {
             fine(t)
@@ -62,7 +71,10 @@ public object M4aCommands {
         t.cmdPtr = t.patternStack[t.patternLevel]
     }
 
-    /** `REPT n addr`: loop n times (0 = forever). */
+    /**
+     * `REPT n addr`: repeats the part from `addr` n times in total (`repN` counts the passes;
+     * n = 0 = forever, and then the command is `0 addr`).
+     */
     public fun rept(t: M4aTrack, bus: M4aBus) {
         val n = bus.read8(t.cmdPtr)
         if (n == 0) {
@@ -80,7 +92,7 @@ public object M4aCommands {
         }
     }
 
-    /** `PRIO`. */
+    /** `PRIO n`: sets the track's note priority (added to the player's priority per note). */
     public fun prio(t: M4aTrack, bus: M4aBus) {
         t.priority = arg(t, bus)
     }
@@ -97,7 +109,8 @@ public object M4aCommands {
     }
 
     /**
-     * `KEYSH`.
+     * `KEYSH n`: transposes the track by the signed number of semitones n (flags a pitch
+     * change).
      *
      * Transcribed from src/m4a_1.s: ply_keysh (not verified: the traced key shifts never change)
      */
@@ -107,7 +120,7 @@ public object M4aCommands {
     }
 
     /**
-     * `VOL`.
+     * `VOL n`: sets the track volume (flags a volume change).
      *
      * Ported from src/m4a_1.s: ply_vol
      */
@@ -117,7 +130,7 @@ public object M4aCommands {
     }
 
     /**
-     * `PAN` (stored - 0x40).
+     * `PAN n`: sets the track pan, stored as n - 0x40 (`C_V`: 0x40 = centre).
      *
      * Ported from src/m4a_1.s: ply_pan
      */
@@ -126,24 +139,27 @@ public object M4aCommands {
         t.flags = t.flags or M4aTrack.FLG_VOLCHG
     }
 
-    /** `BEND` (stored - 0x40). */
+    /** `BEND n`: sets the pitch bend, stored as n - 0x40 (`C_V`), scaled by `BENDR`. */
     public fun bend(t: M4aTrack, bus: M4aBus) {
         t.bend = s8(arg(t, bus) - 0x40)
         t.flags = t.flags or M4aTrack.FLG_PITCHG
     }
 
-    /** `BENDR`. */
+    /** `BENDR n`: sets the pitch bend range in semitones (`bendRange`). */
     public fun bendr(t: M4aTrack, bus: M4aBus) {
         t.bendRange = arg(t, bus)
         t.flags = t.flags or M4aTrack.FLG_PITCHG
     }
 
-    /** `LFODL`. */
+    /** `LFODL n`: sets the LFO delay: ticks after a note starts before modulation begins. */
     public fun lfodl(t: M4aTrack, bus: M4aBus) {
         t.lfoDelay = arg(t, bus)
     }
 
-    /** `MODT`: on change, sets all four volume/pitch flags. */
+    /**
+     * `MODT n`: sets the modulation target (0 pitch, 1 volume, 2 pan); on a change flags all
+     * four volume/pitch bits (0x0F) so both are recomputed.
+     */
     public fun modt(t: M4aTrack, bus: M4aBus) {
         val v = arg(t, bus)
         if (t.modT != v) {
@@ -152,19 +168,19 @@ public object M4aCommands {
         }
     }
 
-    /** `TUNE` (stored - 0x40). */
+    /** `TUNE n`: sets the fine tuning, stored as n - 0x40 (`C_V`; flags a pitch change). */
     public fun tune(t: M4aTrack, bus: M4aBus) {
         t.tune = s8(arg(t, bus) - 0x40)
         t.flags = t.flags or M4aTrack.FLG_PITCHG
     }
 
-    /** `LFOS`; 0 clears the modulation. */
+    /** `LFOS n`: sets the LFO speed; 0 clears the modulation ([clearModM]). */
     public fun lfos(t: M4aTrack, bus: M4aBus) {
         t.lfoSpeed = argUnchecked(t, bus)
         if (t.lfoSpeed == 0) clearModM(t)
     }
 
-    /** `MOD`; 0 clears the modulation. */
+    /** `MOD n`: sets the modulation depth; 0 clears the modulation ([clearModM]). */
     public fun mod(t: M4aTrack, bus: M4aBus) {
         t.mod = argUnchecked(t, bus)
         if (t.mod == 0) clearModM(t)
@@ -207,8 +223,10 @@ public object M4aCommands {
     }
 
     /**
-     * `ply_note` voice resolution for a key-split (0x40) or rhythm (0x80) track
-     * voice: the sub-voice entry address is `tone.wav + 12 * (split ? keySplitTable[key] : key)`.
+     * `ply_note` voice resolution for a key-split (`TONEDATA_TYPE_SPL` 0x40) or rhythm
+     * (`TONEDATA_TYPE_RHY` 0x80) track voice: the sub-voice entry address (a `ToneData`, 12
+     * bytes) is `tone.wav + 12 * (split ? keySplitTable[key] : key)`; for a split voice
+     * `tone.attack`'s word holds the key split table pointer.
      * Returns that address, or -1 if the entry is itself split/rhythm (note dropped). For a rhythm
      * voice the caller then plays the entry's key (byte 1) and, if its pan byte 3 has bit 7, rhythm
      * pan `(pan - 0xC0) * 2`.
@@ -358,8 +376,10 @@ public object M4aCommands {
     }
 
     /**
-     * `EOT`: optional key argument (else the track key); releases the newest playing, not yet
-     * releasing channel of [t] whose `midiKey` is that key.
+     * `EOT` (end of tie, `ply_endtie`): optional key argument (else the track key); releases
+     * the newest channel of [t] that is playing (status 0x83 bits: started or in an envelope
+     * phase) and not yet released (0x40) and whose `midiKey` (`mk`) is that key. This ends the
+     * notes started by `TIE` (gate time 0).
      *
      * Ported from src/m4a_1.s: ply_endtie
      */
@@ -532,17 +552,29 @@ public object M4aCommands {
         }
     }
 
+    // NOTE: the decomp has `TEMPORARY_FADE` = 0x0001 and `FADE_IN` = 0x0002; the two values here
+    // are the other way round. Neither flag is ever set by this port (no m4aMPlayFadeIn or
+    // m4aMPlayFadeOutTemporarily), so the traces do not reach it; a code fix is left open.
+    /** `FADE_IN` flag in `fadeOV` (value differs from the decomp, see the note above). */
     private const val FADE_IN = 0x1
+
+    /** `TEMPORARY_FADE` flag in `fadeOV` (value differs from the decomp, see the note above). */
     private const val TEMPORARY_FADE = 0x2
 
-    /** `clear_modM`: modM = 0, lfoSpeedC = 0, flag the modulated target. */
+    /**
+     * `clear_modM`: ends a modulation: modM = 0, lfoSpeedC = 0 and flags the modulated target
+     * (pitch if `modT` is 0, else volume) for recomputation.
+     */
     public fun clearModM(t: M4aTrack) {
         t.modM = 0
         t.lfoSpeedC = 0
         t.flags = t.flags or if (t.modT == 0) M4aTrack.FLG_PITCHG else M4aTrack.FLG_VOLCHG
     }
 
-    /** `gClockTable`: wait lengths of commands 0x80..0xB0. */
+    /**
+     * `gClockTable`: tick lengths 0..96, indexed by a wait command (0x80..0xB0, `cmd - 0x80`)
+     * and by a note command (0xCF..0xFF, `cmd - 0xCF`, the note's gate time).
+     */
     internal val CLOCK_TABLE = intArrayOf(
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
         24, 28, 30, 32, 36, 40, 42, 44, 48, 52, 54, 56, 60, 64, 66, 68, 72, 76, 78, 80, 84, 88,

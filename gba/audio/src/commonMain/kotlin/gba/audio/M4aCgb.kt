@@ -7,18 +7,27 @@ package gba.audio
  * register writes follow the source but are not compared.
  */
 public object M4aCgb {
+    /**
+     * `gCgb3Vol` (src/m4a_tables.c): the `NR32` value (wave channel output level: bits 5..6, bit 7
+     * forces 75%) for each envelope level 0..15.
+     */
     private val CGB3_VOL = intArrayOf(
         0x00, 0x00, 0x60, 0x60, 0x60, 0x60, 0x40, 0x40, 0x40, 0x40, 0x80, 0x80, 0x80, 0x80,
         0x20, 0x20,
     )
 
-    // Register offsets per channel 1..4 (index 0..3): NRx0..NRx4.
+    // IO addresses of NRx0..NRx4 per channel 1..4 (index 0..3), as the pointers set up at the top
+    // of `CgbSound`. NRx0 of channels 2 and 4 does not exist: the decomp points them at the
+    // neighbouring bytes (NR10 + 1, NR30 + 1), which are never used.
     private val NRX0 = intArrayOf(0x04000060, 0x04000061, 0x04000070, 0x04000071)
     private val NRX1 = intArrayOf(0x04000062, 0x04000068, 0x04000072, 0x04000078)
     private val NRX2 = intArrayOf(0x04000063, 0x04000069, 0x04000073, 0x04000079)
     private val NRX3 = intArrayOf(0x04000064, 0x0400006C, 0x04000074, 0x0400007C)
     private val NRX4 = intArrayOf(0x04000065, 0x0400006D, 0x04000075, 0x0400007D)
 
+    // Labels of the goto network in `CgbSound`, named after the last digits of the decomp's
+    // `loc_82E0xxx` labels (L_ED0 = loc_82E0ED0 ...); EC_MINUS and LAST are `EC_MINUS` and
+    // `LAST_LABEL` there; LAST ends the channel's step.
     private const val L_ED0 = 1
     private const val EC_MINUS = 2
     private const val L_F02 = 3
@@ -32,8 +41,10 @@ public object M4aCgb {
     /**
      * `CgbSound`: once per frame (in `SoundMain`, before the mixer), for each active CGB channel:
      * start (registers, envelope attack), release, echo and the attack/decay/sustain envelope
-     * stepped every 15th frame (`c15`), then the volume/frequency register updates flagged in
-     * `mo`. The original's gotos are a label loop here.
+     * (the counter `ec`, [M4aChannel.envelopeLeft], decremented per frame; on the frame where
+     * [M4aSoundInfo.c15] is 0 one extra step runs), then the volume/frequency register updates
+     * flagged in `mo`. For CGB channels `envelopeRight` is `eg` (envelope goal) and
+     * `envelopeLeft` is `ec`. The original's gotos are a label loop here.
      *
      * Ported from src/m4a.c: CgbSound
      */
@@ -202,16 +213,22 @@ public object M4aCgb {
         return EC_MINUS
     }
 
-    /** Label loc_82E0FD6 of `CgbSound`: frequency (`mo` bit 1) and volume/pan (bit 0) writes. */
+    /**
+     * Label loc_82E0FD6 of `CgbSound`: the register writes flagged in `mo`: frequency (bit 1:
+     * `NRx3`/`NRx4`; for a voice with `TONEDATA_TYPE_FIX` first nudged depending on the
+     * `SOUNDBIAS` cycle bits, purpose not stated in the decomp) and volume/pan (bit 0: `NR51`,
+     * `NRx2`, and the trigger bit of `NRx4`). [evAddIn] is the envelope-direction/step byte for
+     * `NRx2`'s low nibble.
+     */
     private fun writeRegs(c: M4aChannel, ch: Int, psg: M4aPsg, evAddIn: Int) {
         val x = ch - 1
         if (c.modify and 2 != 0) {
             if (ch < 4 && c.type and 0x08 != 0) {
                 val biasH = psg.soundBiasH
                 if (biasH < 64) {
-                    c.frequency = (c.frequency + 2) and 0x7FC
+                    c.frequency = (c.frequency + 2) and 0x7FC // 11 bits, multiple of 4
                 } else if (biasH < 128) {
-                    c.frequency = (c.frequency + 1) and 0x7FE
+                    c.frequency = (c.frequency + 1) and 0x7FE // 11 bits, multiple of 2
                 }
             }
             if (ch != 4) {
@@ -241,7 +258,10 @@ public object M4aCgb {
         }
     }
 
-    /** `CgbOscOff`: silences PSG channel [ch] (1..4). */
+    /**
+     * `CgbOscOff`: silences PSG channel [ch] (1..4): for 1, 2, 4 `NRx2` = 8 (volume 0) and
+     * `NRx4` = 0x80 (trigger); for the wave channel `NR30` = 0 (DAC off).
+     */
     public fun oscOff(psg: M4aPsg, ch: Int) {
         val x = ch - 1
         if (ch == 3) {

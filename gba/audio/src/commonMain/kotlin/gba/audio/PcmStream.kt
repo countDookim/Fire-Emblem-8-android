@@ -21,7 +21,11 @@ public class PcmStream(
     prefillFrames: Int = 0,
 ) : AudioSource {
     private val mask = capacity - 1
+
+    /** The queue: interleaved left/right 16-bit samples (the mixer's 8-bit ones << 8, plus PSG). */
     private val ring = ShortArray(2 * capacity)
+
+    /** Input samples advanced per output sample, in 1/65536 (`inputRate / outputRate`). */
     private val step = ((inputRate.toLong() shl 16) / outputRate).toInt()
 
     @Volatile private var written = 0L
@@ -56,11 +60,13 @@ public class PcmStream(
     /** PSG channels mixed into each pushed frame (at `pcmFreq`); null: DirectSound only. */
     public var psg: PsgSynth? = null
 
+    /** Scratch buffer for one frame of PSG output (interleaved left/right floats). */
     private val psgOut = FloatArray(2 * MAX_SAMPLES_PER_VBLANK)
 
     /** Queues this frame's samples of [info] (call right after [M4aMixer.frame]). */
     public fun push(info: M4aSoundInfo) {
-        val n = M4aSoundInfo.PCM_DMA_BUF_SIZE
+        val n = M4aSoundInfo.PCM_DMA_BUF_SIZE // left half starts n bytes after the right half
+        // The slot the mixer just wrote: the same offset as in [M4aMixer.frame].
         val r7 = info.pcmDmaCounter - 1
         val at = if (r7 == 0) 0 else (info.pcmDmaPeriod - r7) * info.pcmSamplesPerVBlank
         val count = minOf(info.pcmSamplesPerVBlank, MAX_SAMPLES_PER_VBLANK)
@@ -117,7 +123,10 @@ public class PcmStream(
     private fun lerp(x: Short, y: Short): Short = (x + (((y - x) * frac) shr 16)).toShort()
 
     private companion object {
-        /** Upper bound of `pcmSamplesPerVBlank` (42048 Hz mode: 701). */
+        /**
+         * Upper bound of `pcmSamplesPerVBlank`: the largest entry of `gPcmSamplesPerVBlankTable`
+         * (`SOUND_MODE_FREQ_42048`, 42048 Hz: 704).
+         */
         const val MAX_SAMPLES_PER_VBLANK = 704
 
         /**

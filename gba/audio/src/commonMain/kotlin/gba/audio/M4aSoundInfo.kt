@@ -1,8 +1,10 @@
 package gba.audio
 
 /**
- * The channel part of `struct SoundInfo` shared by all players: [maxChans] DirectSound [chans]
- * and the four CGB channels [cgbChans] (`cgbChans`, null if no CGB voices are set up).
+ * The sound state shared by all music players (`struct SoundInfo`, `gSoundInfo`): the
+ * DirectSound [chans] (of which [maxChans] are used), the four CGB channels [cgbChans], the
+ * mixer settings (reverb, master volume, sample rate) and the PCM mixer buffer [pcmBuffer].
+ * Only the state ported so far is modelled.
  */
 public class M4aSoundInfo(
     /** `chans`: DirectSound channels (at least [maxChans]). */
@@ -10,10 +12,17 @@ public class M4aSoundInfo(
     /** `cgbChans`: CGB channels 1..4, or null. */
     public val cgbChans: Array<M4aChannel>?,
 ) {
-    /** `ident`: `ID_NUMBER` when idle, `ID_NUMBER + 1` while `SoundMain` runs; else locked. */
+    /**
+     * `ident`: the lock word. `ID_NUMBER` when idle; `ID_NUMBER + 1` while `SoundMain` or an
+     * `m4a*` call is changing the state (all of them return at once on any other value); 10
+     * more after `m4aSoundVSyncOff`; 0 during `SoundInit`.
+     */
     public var ident: Int = M4aPlayer.ID_NUMBER
 
-    /** `intp`: the first player `SoundMain` runs (`func` = `MPlayMain` when non-null). */
+    /**
+     * `intp`: the player most recently opened by [open], the head of the chain `SoundMain` runs
+     * (`func` = `MPlayMain` exactly when this is non-null).
+     */
     public var intp: M4aPlayer? = null
 
     /** The players `SoundMain` runs, in order: [intp], then along [M4aPlayer.intp]. */
@@ -49,12 +58,16 @@ public class M4aSoundInfo(
         p.ident = M4aPlayer.ID_NUMBER
     }
 
-    /** `freq` (u8): the `SOUND_MODE_FREQ_*` index (1..12). */
+    /**
+     * `freq` (u8): the sample rate setting, the `SOUND_MODE_FREQ_*` index 1..12 (bits 16..19 of
+     * a sound mode; 5734 Hz .. 42048 Hz).
+     */
     public var freq: Int = 0
 
     /**
-     * `SampleFreqSet`: sets [freq], [pcmSamplesPerVBlank], [pcmDmaPeriod], [pcmFreq] and
-     * [divFreq] from a `SOUND_MODE_FREQ_*` value ([mode] bits 16..19, 1..12). The timer 0 setup,
+     * `SampleFreqSet`: sets [freq], [pcmSamplesPerVBlank] (from `gPcmSamplesPerVBlankTable`),
+     * [pcmDmaPeriod], [pcmFreq] and [divFreq] from a `SOUND_MODE_FREQ_*` value ([mode] bits
+     * 16..19, 1..12). The timer 0 setup,
      * `m4aSoundVSyncOn` and the VCOUNT wait (hardware) are left to the port's audio output.
      *
      * Ported from src/m4a.c: SampleFreqSet
@@ -78,6 +91,7 @@ public class M4aSoundInfo(
     public fun soundInit() {
         reverb = 0
         intp = null
+        // MAX_DIRECTSOUND_CHANNELS = 12 slots
         for (i in 0 until minOf(12, chans.size)) chans[i].status = 0
         pcmBuffer.fill(0)
         maxChans = 8
@@ -88,9 +102,10 @@ public class M4aSoundInfo(
     }
 
     /**
-     * `m4aSoundMode`: applies each non-zero field of [mode]: reverb (`0x80 | value`), max
-     * channels (bits 8..11; frees all 12 DirectSound channels), master volume (bits 12..15) and
-     * sample rate (bits 16..19: `m4aSoundVSyncOff` clears [pcmBuffer], then [sampleFreqSet] and
+     * `m4aSoundMode`: applies each non-zero field of [mode]: reverb (`SOUND_MODE_REVERB_SET`
+     * 0x80 and `SOUND_MODE_REVERB_VAL` 0x7F: the value is stored), max channels (bits 8..11;
+     * frees all 12 `MAX_DIRECTSOUND_CHANNELS`), master volume (bits 12..15) and sample rate
+     * (bits 16..19: `m4aSoundVSyncOff` clears [pcmBuffer], then [sampleFreqSet] and
      * `m4aSoundVSyncOn` reset [pcmDmaCounter]). The DA bit depth (`SOUNDBIAS`) is hardware.
      * Ignored unless [ident] is `ID_NUMBER`.
      *
@@ -101,6 +116,7 @@ public class M4aSoundInfo(
         if (mode and 0xFF != 0) reverb = mode and 0x7F
         if (mode and 0xF00 != 0) {
             maxChans = (mode and 0xF00) shr 8
+            // MAX_DIRECTSOUND_CHANNELS = 12 slots
             for (i in 0 until minOf(12, chans.size)) chans[i].status = 0
         }
         if (mode and 0xF000 != 0) masterVolume = (mode and 0xF000) shr 12
@@ -111,16 +127,19 @@ public class M4aSoundInfo(
         }
     }
 
-    /** `maxChans` (u8): DirectSound channels in use. */
+    /**
+     * `maxChans` (u8): how many of the DirectSound [chans] the mixer runs and notes may take
+     * (8 after `SoundInit`; `m4aSoundMode` bits 8..11).
+     */
     public var maxChans: Int = chans.size
 
-    /** `reverb` (u8): 0 = off. */
+    /** `reverb` (u8): mixer reverb strength 0..127 (`SOUND_MODE_REVERB_VAL`); 0 = off. */
     public var reverb: Int = 0
 
     /** `pcmDmaCounter` (u8): VBlanks left in the current PCM DMA period. */
     public var pcmDmaCounter: Int = 0
 
-    /** `pcmDmaPeriod` (u8): VBlanks per PCM buffer. */
+    /** `pcmDmaPeriod` (u8): VBlanks per PCM DMA, `PCM_DMA_BUF_SIZE / pcmSamplesPerVBlank`. */
     public var pcmDmaPeriod: Int = 0
 
     /**
@@ -139,25 +158,45 @@ public class M4aSoundInfo(
         return true
     }
 
-    /** `pcmSamplesPerVBlank`. */
+    /**
+     * `pcmSamplesPerVBlank`: samples the mixer produces per VBlank at the current rate
+     * (`gPcmSamplesPerVBlankTable`, set by [sampleFreqSet]).
+     */
     public var pcmSamplesPerVBlank: Int = 0
 
     /** `pcmFreq`: mixer output rate in Hz. */
     public var pcmFreq: Int = 0
 
-    /** `divFreq`: 2^24 / sample rate scale for `freq`. */
+    /**
+     * `divFreq`: `(2^24 / pcmFreq + 1) >> 1`; the mixer multiplies it with a channel's `freq` to
+     * get the sample position step per output sample.
+     */
     public var divFreq: Int = 0
 
-    /** `pcmBuffer`: right half (0..0x62F) and left half (0x630..), signed 8-bit samples. */
+    /**
+     * `pcmBuffer` (2 * `PCM_DMA_BUF_SIZE` bytes): signed 8-bit mixer output, several VBlanks
+     * of samples per half. The first half (0..0x62F) is the right channel (DMA1, FIFO A), the
+     * second (0x630..) the left (DMA2, FIFO B), as `SoundInit` sets up `SOUNDCNT_H`.
+     */
     public val pcmBuffer: ByteArray = ByteArray(2 * PCM_DMA_BUF_SIZE)
 
-    /** `c15` (u8, offset 0x0A): `CgbSound`'s 15-frame envelope divider (14 down to 0). */
+    /**
+     * `c15` (u8, offset 0x0A): `CgbSound`'s frame counter, counting 14 down to 0 once per
+     * frame; in the frame it is 0, the CGB envelope counter takes one extra step. (The decomp
+     * does not say why; hardware envelopes run at 64 Hz, the frame rate is 59.7275 Hz.)
+     */
     public var c15: Int = 0
 
-    /** `masterVolume` (u8, 0..15). */
+    /**
+     * `masterVolume` (u8, 0..15): DirectSound mixer volume, scaled `(masterVolume + 1) / 16`
+     * (15 after `SoundInit`; `m4aSoundMode` bits 12..15).
+     */
     public var masterVolume: Int = 15
 
-    /** `CgbOscOff(n)`: silences CGB channel n (1..4) in hardware; null = no hardware. */
+    /**
+     * `CgbOscOff(n)` hook (`soundInfo->CgbOscOff`): silences CGB channel n (1..4) in the sound
+     * hardware; null = no hardware to silence.
+     */
     public var cgbOscOff: ((Int) -> Unit)? = null
 
     /** Constants. */
@@ -165,7 +204,7 @@ public class M4aSoundInfo(
         /** `PCM_DMA_BUF_SIZE`. */
         public const val PCM_DMA_BUF_SIZE: Int = 0x630
 
-        /** `SOUND_MODE_FREQ_13379` (FE8's rate). */
+        /** `SOUND_MODE_FREQ_13379`: the rate `SoundInit` selects (and FE8U's `m4aSoundInit`). */
         public const val FREQ_13379: Int = 0x40000
 
         /** `gPcmSamplesPerVBlankTable` (src/m4a_tables.c). */

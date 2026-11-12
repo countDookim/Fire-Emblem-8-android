@@ -8,7 +8,8 @@ import kotlin.math.pow
  * wave (32 4-bit samples, volume shift) and noise (7/15-bit LFSR, envelope), panned by NR51.
  * Square 1 has the frequency sweep (NR10); NR50 master volume and the SOUNDCNT_H PSG ratio
  * scale the mix, then a DC blocker (as mGBA). Output is box-filtered per sample (band-limited
- * edges, no aliasing whine at the 13379 Hz mixer rate). Not a port (hardware behaviour, GBATEK). Nothing allocates per call.
+ * edges, no aliasing whine at the 13379 Hz mixer rate). Not a port (hardware behaviour, GBATEK):
+ * nothing in the decomp corresponds to it. Nothing allocates per call.
  */
 public class PsgSynth(
     /** Register file to play. */
@@ -16,18 +17,39 @@ public class PsgSynth(
     /** Output sample rate in Hz. */
     public val sampleRate: Int,
 ) {
+    // Per-channel state, index 0..3 = channel 1 (square 1), 2 (square 2), 3 (wave), 4 (noise).
+
+    /** Channel is sounding (triggered, DAC on, length not expired). */
     private val on = BooleanArray(4)
+
+    /** Position in the channel's waveform period, 0..1 (wave: the 32 samples). */
     private val phase = DoubleArray(4)
+
+    /** Current envelope volume 0..15 (squares and noise). */
     private val volume = IntArray(4)
+
+    /** Envelope steps (at 64 Hz) left until the next volume change (`NRx2` bits 0..2). */
     private val envTimer = IntArray(4)
 
     /** mGBA `envelope.dead`: 0 steps, 1 held at 15 (or period 0), 2 held at 0. */
     private val dead = IntArray(4)
+
+    /** Length counter (256 Hz steps left before the channel is cut; wave 256, others 64). */
     private val length = IntArray(4)
+
+    /** The noise channel's 15-bit linear feedback shift register (7-bit mode via `NR43` bit 3). */
     private var lfsr = 0x7FFF
+
+    /** Fraction of the next 512 Hz frame-sequencer step already elapsed. */
     private var seqPhase = 0.0
+
+    /** Square 1's sweep: the frequency the sweep works on (copy of `NR13`/`NR14` at trigger). */
     private var shadowFreq = 0
+
+    /** Square 1's sweep: sequencer steps (128 Hz) left until the next sweep step. */
     private var sweepTimer = 0
+
+    /** Square 1's sweep is running (`NR10` has a time or a shift). */
     private var sweepOn = false
 
     /** Channel [ch] (1..4) is currently sounding. */
@@ -60,8 +82,8 @@ public class PsgSynth(
             var l = 0f
             var r = 0f
             for (c in 0 until 4) {
-                // A stopped channel holds its last level (mGBA: `GBAudioSamplePSG` adds `chN.sample`,
-                // which only updates while playing); the DC blocker removes it slowly.
+                // A stopped channel holds its last level (mGBA: `GBAudioSamplePSG` adds
+                // `chN.sample`, which only updates while playing); the DC blocker removes it.
                 val v = if (on[c]) sample(c).also { held[c] = it } else held[c]
                 if (v == 0f) continue
                 if (channelMask ushr c and 1 == 0) continue
@@ -95,6 +117,11 @@ public class PsgSynth(
 
     private fun reg(address: Int): Int = latched[address - M4aPsg.BASE]
 
+    /**
+     * Latches the register file [psg] into [latched] and applies what the driver wrote since
+     * the last call: length loads, envelope (`NRx2`) writes, channel triggers (`NRx4` bit 7),
+     * the NR51 pan and the master gains from NR50 and the SOUNDCNT_H PSG ratio.
+     */
     private fun applyWrites(gain: Float) {
         psg.regs.copyInto(latched)
         val loads = psg.takeLengthLoads()
@@ -134,6 +161,7 @@ public class PsgSynth(
         seqStep = ((tick.toLong() + 7) and 7).toInt()
     }
 
+    /** DC blocker coefficient per output sample (mGBA's bass shift 9 at 32768 Hz). */
     private val hpPole = (1.0 - 1.0 / 512).pow(32768.0 / sampleRate).toFloat()
     private var hpL = 0f
     private var hpR = 0f
@@ -142,6 +170,10 @@ public class PsgSynth(
 
     private var seqStep = 0
 
+    /**
+     * One step of the 512 Hz frame sequencer: length counters on even steps (256 Hz), the
+     * sweep on steps 2 and 6 (128 Hz), the envelopes on step 7 (64 Hz).
+     */
     private fun sequencerStep() {
         seqStep = (seqStep + 1) and 7
         if (seqStep == 2 || seqStep == 6) sweepStep()
@@ -205,6 +237,7 @@ public class PsgSynth(
 
     private fun freqReg(c: Int): Int = reg(NRX3[c]) or ((n4(c) and 7) shl 8)
 
+    /** Starts channel [c] (an `NRx4` write with bit 7): volume, timers, length and sweep reload. */
     private fun trigger(c: Int) {
         on[c] = true
         // mGBA keeps the square duty position across triggers (as hardware); others restart.
@@ -230,6 +263,7 @@ public class PsgSynth(
         }
     }
 
+    /** Square 1's next sweep frequency: `shadowFreq` +/- `shadowFreq >> shift` (`NR10`). */
     private fun sweepTarget(nr10: Int): Int {
         val d = shadowFreq ushr (nr10 and 7)
         return if (nr10 and 8 != 0) shadowFreq - d else shadowFreq + d

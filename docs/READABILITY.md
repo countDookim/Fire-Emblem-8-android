@@ -80,7 +80,11 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.worldmap (WorldMapRm, WorldMapRmBaPalAnim, WorldMapPaletteFade, WorldMapText, WorldMapTextFadeEvents) | 5 | 1519 | done 2026-11-12 8f6f480 |
 | game | fe8.game.worldmap (Nodes, WmNodeData, GmData, ApHost, Sms, Path, NodeIcons, Hblank, LineFade, Cursor, Beginning, Exit, MainScript; Text/Misc/Spawn/Face/BigMap events) | 18 | 2553 | done 2026-11-13 8dfd5f7 |
 | game | fe8.game.worldmap (UnitEvents, MuEntry, RmBorder, AutoMu, Dot, Route, Main) | 7 | 3097 | done 2026-11-13 5e95a34 |
-| game | fe8.game.worldmap (Face, Scroll, Screen, Unit, Mu) | 5 | 3214 | todo |
+| game | fe8.game.worldmap (WorldMapFace) | 1 | 530 | todo |
+| game | fe8.game.worldmap (WorldMapScroll) | 1 | 536 | todo |
+| game | fe8.game.worldmap (WorldMapScreen) | 1 | 548 | todo |
+| game | fe8.game.worldmap (WorldMapUnit) | 1 | 749 | todo |
+| game | fe8.game.worldmap (WorldMapMu) | 1 | 851 | todo |
 | gba/audio | gba.audio | 17 | 3162 | done 2026-11-09 1db6a62; audit done 2026-11-12 520ab72 |
 | gba/core | gba.core | 1 | 21 | done 2026-11-07 697847c; audit todo |
 | gba/core | gba.core.event | 2 | 101 | done 2026-11-07 697847c; audit todo |

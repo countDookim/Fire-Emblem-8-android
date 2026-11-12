@@ -37,8 +37,9 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      after the first second skips the rest: the screen fades out (about one second) and then
      fades into the map. The sound effect fade at the end of the intro is not wired yet.
   - Limits (all known): the map sprites are not drawn yet (units move invisibly, no node icons, no
-     dots); the narration box scanline effect and sound effects of the map are
-     missing. The text speed follows the A button: hold A to speed it up. Report a crash or a
+     dots); the unit step sounds are missing (the original plays none in the
+     Prologue). New (D11-wm11): the per-line colour gradient of the narration box now runs (check
+     the box at the bottom for a smooth top-to-bottom colour change, not a flat colour). The text speed follows the A button: hold A to speed it up. Report a crash or a
      stuck black screen on the world map, and anything that looks clearly different from the
      original (the order of the highlighted nations, the portraits, the text).
 

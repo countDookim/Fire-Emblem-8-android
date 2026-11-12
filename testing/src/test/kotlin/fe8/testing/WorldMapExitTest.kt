@@ -25,7 +25,6 @@ import fe8.game.worldmap.GmapMuEntryProc
 import fe8.game.worldmap.GmapRmProc
 import fe8.game.worldmap.WmFaceCtrlState
 import fe8.game.worldmap.WmFaceHolderState
-import fe8.game.worldmap.WmHblankStatus
 import fe8.game.worldmap.WmNodeData
 import fe8.game.worldmap.WmTextHost
 import fe8.game.worldmap.WorldMapExit
@@ -157,7 +156,7 @@ class WorldMapExitTest {
         val faces = WorldMapFace(engine, hw, gm, rom, rig.face, rig, rig)
         faces.setupFaceConfig()
         val wmText = WorldMapText(
-            engine, hw, WmHblankStatus(), SpriteLayers(),
+            engine, hw, hblank, SpriteLayers(),
             object : WmTextHost {
                 override fun endTalk() {}
                 override fun initSpriteTalk(chr: Int, pal: Int, lines: Int) {}

@@ -18,7 +18,6 @@ import fe8.game.worldmap.GmData
 import fe8.game.worldmap.GmRouteProc
 import fe8.game.worldmap.GmScreenProc
 import fe8.game.worldmap.WmBigMapHooks
-import fe8.game.worldmap.WmHblankStatus
 import fe8.game.worldmap.WmNodeData
 import fe8.game.worldmap.WmPathData
 import fe8.game.worldmap.WmTextFadeHooks
@@ -56,6 +55,7 @@ import fe8.game.worldmap.WorldMapText
 import fe8.game.worldmap.WorldMapTextEvents
 import fe8.game.worldmap.WorldMapTextFadeEvents
 import fe8.game.worldmap.WorldMapUnit
+import gba.render.LineTable
 import gbafe.core.flags.EventFlags
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
@@ -102,10 +102,13 @@ internal class WorldMapBoot(
     private val mu: Mu,
     private val unitSprites: () -> UnitSprites?,
     private val chapters: ChapterData,
+    private val lines: LineTable,
 ) {
     private val nodes = WmNodeData(rom)
     private val memory = ScriptMemory { a -> rom.u16(a) }
-    private val hblank = WorldMapHblank()
+    private val hblank = WorldMapHblank { line, index, color ->
+        lines.writePalette(line, index, color)
+    }
     private val player = SpriteAnimPlayer(
         { rom.u16(it) }, layers, WorldMapApHost(rom, hw, oam),
     ).also { it.clearAll() }
@@ -132,6 +135,10 @@ internal class WorldMapBoot(
                         engine.end(s.gmScreen)
                         engine.end(s.gmIconProc)
                     }
+                },
+                clearHblank = {
+                    hw.hblank.setSecondary(null)
+                    hblank.clearWmHblank(hw.hblank)
                 },
                 endTalk = { eventTextHost.endTalk() },
                 clearTalkText = { talkScene.talk.clearTalkText() },
@@ -179,7 +186,7 @@ internal class WorldMapBoot(
         engine, hw, gmData, rom, talkScene.face, talkScene, talkScene,
     )
     private val wmText = WorldMapText(
-        engine, hw, WmHblankStatus(), layers,
+        engine, hw, hblank, layers,
         object : WmTextHost {
             override fun endTalk() = eventTextHost.endTalk()
 
@@ -215,6 +222,7 @@ internal class WorldMapBoot(
         hw, rom, playSt, bmSt,
         WorldMapGfxSetup.Hooks(
             loadLegacyUiFrameGraphics = { loadLegacyUiFrameGraphics() },
+            setWorldMapHblank = { hblank.setWorldMapHblank(hw.hblank) },
             resetFaces = { talkScene.face.resetFaces() },
             setupFaceGfxData = { tiles, pals -> talkScene.face.setupFaceGfxData(tiles, pals) },
             resetUnitSprites = { unitSprites()?.resetUnitSprites() },

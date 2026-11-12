@@ -1,8 +1,8 @@
 package fe8.testing
 
 import fe8.game.worldmap.GMapTextProc
-import fe8.game.worldmap.WmHblankStatus
 import fe8.game.worldmap.WmTextHost
+import fe8.game.worldmap.WorldMapHblank
 import fe8.game.worldmap.WorldMapText
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
@@ -26,7 +26,7 @@ class WorldMapTextTest {
 
     private fun newText(
         hardware: BgHardware = BgHardware(),
-        hblank: WmHblankStatus = WmHblankStatus(),
+        hblank: WorldMapHblank = WorldMapHblank(),
         layers: SpriteLayers = SpriteLayers(),
         engine: ProcEngine = ProcEngine(),
     ) = WorldMapText(engine, hardware, hblank, layers, NullHost)
@@ -52,13 +52,13 @@ class WorldMapTextTest {
     @VerifiesPort("WmText_Init")
     fun `text handler init matches the proc fields and hblank bit`() {
         val run = run()
-        val hblank = WmHblankStatus().apply { bits = 0xFF }
+        val hblank = WorldMapHblank().apply { status = 0xFF }
         val engine = ProcEngine()
         val text = newText(hblank = hblank, engine = engine)
         val proc = engine.start(text.script, 3)
         assertEquals(fields(run, 4903), (proc.state as GMapTextProc).pair(), "fields")
         val ewram = run.region("r05130", "ewram")
-        assertEquals(ewram[HBLANK_STATUS].toInt() and 1, hblank.bits and 1, "gWmHblankStatus bit 0")
+        assertEquals(ewram[HBLANK_STATUS].toInt() and 1, hblank.status and 1, "gWmHblankStatus bit 0")
     }
 
     @Test

@@ -481,7 +481,7 @@ public class WorldMapGfxSetup(
         public val initMus: () -> Unit = {},
         /** `ApplyUnitSpritePalettes`: ported as `UnitSprites.applyUnitSpritePalettes`. */
         public val applyUnitSpritePalettes: () -> Unit = {},
-        /** `SetWorldMapHblank`: stand-in until D11-wm9 (world map HBlank, worldmap_hb.c). */
+        /** `SetWorldMapHblank`: [WorldMapHblank.setWorldMapHblank] in the boot; nothing by default. */
         public val setWorldMapHblank: () -> Unit = {},
     )
 

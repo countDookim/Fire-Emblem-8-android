@@ -1029,7 +1029,7 @@ public class Fe8Boot(
         WorldMapBoot(
             engine, hw, rom, control.playSt, gmData, loop.bmSt, keys, loop.sprites, loop.oam,
             units, eventEngine, eventState, flags, eventTextHost, eventText, screenFade,
-            control.sound, talkScene, mu, { unitSprites }, battleChapters,
+            control.sound, talkScene, mu, { unitSprites }, battleChapters, state.lines,
         ).also { it.wire() }
     }
 

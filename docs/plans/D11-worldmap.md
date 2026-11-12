@@ -434,3 +434,26 @@ the beginning event's opcodes registered on `eventEngine` (0x13, 0x80-0x89, 0x9E
   3 frames earlier than the capture's +24/+29 (`WorldMap_Init` atomic); `OpSubtitleBootTest` compares frame c with capture
   frame c + 3 from start + 21.
 - Boot tests: frame budgets 16000/20000 -> 24000/26000 (player phase now at ~15500).
+
+### 8i. D11-wm11: the world map's HBlank handler and the step sounds
+
+- The "text box HBlank effect" of 8g is `WorldMapHblank` (`worldmap_hb.c`), the only HBlank handler the world map installs
+  (`SetWorldMapHblank` in `SetupGraphicSystemsForWorldMap`, `ClearWmHblank` in `WorldMap_Destruct`). Nothing in worldmap code sets
+  `gWmHblankStatus` bit 0 (the text box only clears it) or bit 1 (the `REG_WIN0H` copy of the map-animation scanline buffer), so
+  the text box has no effect of its own: what the Prologue shows is the bit-2 register copy (`GmapMuEntry2` / `GmapLineFade`
+  buffers). In the Prologue slot 1 is `0x05000054` (palette bank 2 colour 10, the gradient behind the text) for 5100-9270; slots
+  0 and 2 are empty after the line fade (BG0VOFS and BLDY appear only while `GmapLineFade` and the entry transition run).
+- `WmHblankStatus` is gone: `WorldMapText` takes the `WorldMapHblank` and clears bit 0 of its `status`.
+- `WorldMapHblank.onHBlank` (an `HBlankHandler`, installed by `setWorldMapHblank(hw.hblank)`, removed by `clearWmHblank`) writes
+  I/O registers into the captured register image (`HBlankLines` turns BG0VOFS / BLDY changes into per-line overrides, like
+  `PhaseIntro`) and palette registers through a `PaletteLineWriter` -> `LineTable.writePalette` (the first user of the
+  renderer's per-line palette writes; `WorldMapBoot` gets the `LineTable` from `Fe8Boot`). The handler timing is the original's:
+  the value of line n is written by the call at the end of line n - 1 (line 0 by the call at 227).
+- Verified (`WorldMapHblankTest`): at the 98 `ram_trace_prologue` ewram dumps of 5500-8450 the latch of one frame of calls is the
+  dump's (`5C0`, `5D0`, `5D1`), the 160 palette writes are the latched page's buffer lines, and the line-159 colour equals the
+  `ram_trace_prologue_wm_lcd` `pal` watch colour 42 at that step (98 of 98). `SetWorldMapHblank` / `ClearWmHblank` against
+  `r04920` / `r09330` (slots, buffer, status, DISPSTAT bit 4 of `gLCDControlBuffer`). Not trace-verified: the I/O register path
+  (`displayio` BG0VOFS/BLDY are 0 in every step of 5500-8450; synthetic test only) and slot 2.
+- Step sounds (`sub_80BE45C`, `StartPlayMuStepSe`, `ProcScr_MuStepSe`): NOT ported. `ram_trace_prologue` `procs` has no
+  `ProcScr_MuStepSe` (0x089A2938) in 4899-9313 (first at 9675 in the battle map), so the unit walks 8100-9280 start no step sound
+  and nothing can verify the port. `GmapMuPrim` keeps the `stepSound` hook (transcribed, empty by default).

@@ -14,12 +14,6 @@ import gbafe.render.BgHardware
 import gbafe.render.SpriteLayers
 import gbafe.render.SpriteObject
 
-/** `gWmHblankStatus`: the world map's H-blank effect flags (bit 0 text, 2 line fade). */
-public class WmHblankStatus {
-    /** The raw byte. */
-    public var bits: Int = 0
-}
-
 /** `struct GMapTextProc`: the fields of `ProcScr_WorldMapTextHandler`. */
 public class GMapTextProc {
     /** `drawAtBottom` (+0x29). */
@@ -53,14 +47,14 @@ public interface WmTextHost {
  *
  * @param engine the proc scheduler
  * @param hardware BG hardware (VRAM and the palette sync flag)
- * @param hblank `gWmHblankStatus`
+ * @param hblank the scanline-effect state, whose `gWmHblankStatus` bit 0 this clears
  * @param layers the sprite lists the text window is put on
  * @param host the talk services of [startWmTextMsg]
  */
 public class WorldMapText(
     private val engine: ProcEngine,
     private val hardware: BgHardware,
-    private val hblank: WmHblankStatus,
+    private val hblank: WorldMapHblank,
     private val layers: SpriteLayers,
     private val host: WmTextHost,
 ) {
@@ -99,7 +93,7 @@ public class WorldMapText(
         proc.drawAtBottom = 1
         proc.visible = 0
         clearWmTextVram()
-        hblank.bits = hblank.bits and 1.inv()
+        hblank.status = hblank.status and 1.inv()
     }
 
     /**
@@ -122,7 +116,7 @@ public class WorldMapText(
         val proc = engine.find(script) ?: return
         val state = proc.state as GMapTextProc
         clearWmTextVram()
-        hblank.bits = hblank.bits and 1.inv()
+        hblank.status = hblank.status and 1.inv()
         state.drawAtBottom = atBottom and 0xFF
         state.visible = 1
     }
@@ -130,7 +124,7 @@ public class WorldMapText(
     /** Ported from src/worldmap_text.c: HideWmText */
     public fun hideWmText() {
         val proc = engine.find(script) ?: return
-        hblank.bits = hblank.bits and 1.inv()
+        hblank.status = hblank.status and 1.inv()
         (proc.state as GMapTextProc).visible = 0
     }
 

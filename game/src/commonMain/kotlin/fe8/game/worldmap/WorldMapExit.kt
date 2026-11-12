@@ -235,7 +235,7 @@ public class WorldMapExit(
         public val endScreenProcs: () -> Unit = {},
         /**
          * `SetSecondaryHBlankHandler(NULL)`, `ClearWmHblank()`, `SetPrimaryHBlankHandler(NULL)`
-         * (stand-in until D11-wm9).
+         * ([WorldMapHblank.clearWmHblank] in the boot; nothing by default).
          */
         public val clearHblank: () -> Unit = {},
         /** `EndTalk()` (stand-in until D11-wm9). */

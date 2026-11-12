@@ -1,16 +1,28 @@
 package fe8.game.worldmap
 
+import gbafe.render.HBlankHandler
+import gbafe.render.HBlankHandlers
+
+/** Receives the palette colour [WorldMapHblank] writes to palette RAM during HBlank. */
+public fun interface PaletteLineWriter {
+    /** Sets palette entry [index] (0..255 background, 256.. object) to [color] from [line] on. */
+    public fun write(line: Int, index: Int, color: Int)
+}
+
 /**
  * The scanline-effect state of the world map (`src/worldmap_hb.c`): a double-buffered table of
  * per-scanline register values (`gUnknown_0201BE32`) that `WorldMapHblank` copies into up to three
  * hardware registers during HBlank, plus the status bits `gWmHblankStatus`.
  *
- * Only the state and the four accessors the Prologue's `GmapMuEntry2` uses are written. The
- * HBlank handler itself (`WorldMapHblank`), `SetWorldMapHblank` and `ClearWmHblank` are not: the
- * handler also writes [activePage] and the active register slots in a way no step-level capture
- * shows, so only [buffer], [registers], [flags], [page] and [status] are verified.
+ * The handler [handler] copies the active page's per-line values into up to three registers
+ * ([registers] latched at line 160 into [activeRegisters]); the register is an I/O register
+ * (written into the register image the renderer captures per line) or a palette entry (handed
+ * to [palette]). The Prologue's world map uses BG0VOFS, BLDY and palette colour 42 (bank 2
+ * colour 10, the text box's gradient).
+ *
+ * @param palette where `0x05000000` register writes go; null drops them (tests)
  */
-public class WorldMapHblank {
+public class WorldMapHblank(private val palette: PaletteLineWriter? = null) {
     /**
      * `gUnknown_0201BE32`: two pages of three lines of [LINE_LENGTH] halfwords (480 each).
      */
@@ -30,8 +42,91 @@ public class WorldMapHblank {
     /** `gUnknown_0201C5D0`: the page the HBlank handler reads (written by the handler only). */
     public var activePage: Int = 0
 
-    /** `gWmHblankStatus`: bit 2 enables the register copy. */
+    /**
+     * `gWmHblankStatus` (shared with the text box, `worldmap_text.c`): bit 0 text, bit 2 enables
+     * the register copy. Bit 1 (the `REG_WIN0H` copy of the map-animation scanline buffer) is
+     * never set by world map code, so [onHBlank] leaves that branch out.
+     */
     public var status: Int = 0
+
+    /** `gUnknown_0201C5C0[3]`: the registers the handler writes this frame (latched at line 160). */
+    public val activeRegisters: IntArray = IntArray(3)
+
+    /** `gUnknown_0201C5D1`: the handler writes [activeRegisters] this frame. */
+    public var copyEnabled: Boolean = false
+
+    /** The handler to install in the primary HBlank slot. */
+    public val handler: HBlankHandler = HBlankHandler { vcount, io -> onHBlank(vcount, io) }
+
+    /**
+     * Ported from src/worldmap_hb.c: WorldMapHblank
+     *
+     * Runs at the HBlank of line [vcount] (`REG_VCOUNT`); the values it writes apply to the next
+     * line. Lines 0..159 copy `buffer[activePage * 480 + line + 160 * i]` to register i of
+     * [activeRegisters]; at line 160 the [status] bit 2, [page] and [registers] are latched.
+     */
+    public fun onHBlank(vcount: Int, io: ByteArray) {
+        var line = vcount + 1
+        if (line == LAST_LINE) line = 0
+        if (line < SCREEN_LINES) {
+            if (copyEnabled) {
+                val src = activePage * PAGE_LENGTH + line
+                for (i in 0 until 3) {
+                    val reg = activeRegisters[i]
+                    if (reg != 0) write(reg, buffer[src + i * LINE_LENGTH].toInt() and 0xFFFF, line, io)
+                }
+            }
+        } else if (line == SCREEN_LINES) {
+            if (status and 4 != 0) {
+                copyEnabled = true
+                activePage = page
+                for (i in 0 until 3) activeRegisters[i] = registers[i]
+            } else {
+                copyEnabled = false
+            }
+        }
+    }
+
+    private fun write(reg: Int, value: Int, line: Int, io: ByteArray) {
+        val offset = reg and 0xFFFFFF
+        when (reg ushr 24) {
+            IO_REGION -> if (offset + 1 < io.size) {
+                io[offset] = value.toByte()
+                io[offset + 1] = (value shr 8).toByte()
+            }
+            PALETTE_REGION -> palette?.write(line, offset shr 1, value)
+        }
+    }
+
+    /**
+     * Ported from src/worldmap_hb.c: SetWorldMapHblank
+     *
+     * Clears the slots, pages and [status] and installs [handler] as [handlers]' primary handler.
+     */
+    public fun setWorldMapHblank(handlers: HBlankHandlers) {
+        for (i in 0 until 3) {
+            flags[i] = 0
+            activeRegisters[i] = 0
+            registers[i] = 0
+        }
+        activePage = 0
+        page = 0
+        copyEnabled = false
+        status = 0
+        handlers.setPrimary(null)
+        handlers.setPrimary(handler)
+    }
+
+    /**
+     * Ported from src/worldmap_hb.c: ClearWmHblank
+     *
+     * Removes the primary handler of [handlers], zeroes [buffer] and [status].
+     */
+    public fun clearWmHblank(handlers: HBlankHandlers) {
+        handlers.setPrimary(null)
+        buffer.fill(0)
+        status = 0
+    }
 
     /**
      * Ported from src/worldmap_hb.c: sub_80C1DA0
@@ -71,5 +166,9 @@ public class WorldMapHblank {
     private companion object {
         const val LINE_LENGTH = 160
         const val PAGE_LENGTH = 3 * LINE_LENGTH
+        const val SCREEN_LINES = 160
+        const val LAST_LINE = 0xE4
+        const val IO_REGION = 4
+        const val PALETTE_REGION = 5
     }
 }

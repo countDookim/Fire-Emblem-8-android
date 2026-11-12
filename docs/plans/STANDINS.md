@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 218 across 36 Kotlin files.
+Total entries: 216 across 36 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -25,7 +25,7 @@ Total entries: 218 across 36 Kotlin files.
 | CAP-status1 | 4 |
 | D09-3 | 2 |
 | D11-wire-a | 1 |
-| D11-wm9 | 26 |
+| D11-wm9 | 24 |
 | PP-10 | 1 |
 | PP-12 | 9 |
 | PP-17 | 9 |
@@ -247,7 +247,7 @@ Total entries: 218 across 36 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet). |
 
-## D11-wm9 (26)
+## D11-wm9 (24)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -257,7 +257,6 @@ Total entries: 218 across 36 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapApHost.kt` | `WorldMapApHost` | Stand-in until D11-wm9 gets a real transfer registry for the world map. @param rom the ROM (objects, sine table, tiles) @param hw OBJ VRAM and the display mode @param oam the OAM buffer that holds... |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `Hooks` | All default to nothing; the defaults are stand-ins until D11-wm9 replaces them. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `apProcDeleteAll` | `APProc_DeleteAll()` (stand-in until D11-wm9). |
-| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `clearHblank` | `SetSecondaryHBlankHandler(NULL)`, `ClearWmHblank()`, `SetPrimaryHBlankHandler(NULL)` (stand-in until D11-wm9). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `clearTalkText` | `ClearTalkText()` (stand-in until D11-wm9). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `endMinimap` | `EndWorldmapMinimap()` (stand-in until D11-wm9). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `endPlayerInterface` | `sub_80BF15C()`: ends the player interface (stand-in until D11-wm9). |
@@ -275,7 +274,6 @@ Total entries: 218 across 36 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetFaces` | `ResetFaces`: stand-in until D11-wm9 (world-map wiring). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetText` | `ResetText`: stand-in until D11-wm9 (world-map wiring). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetTextFont` | `ResetTextFont`: stand-in until D11-wm9 (world-map wiring). |
-| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `setWorldMapHblank` | `SetWorldMapHblank`: stand-in until D11-wm9 (world map HBlank, worldmap_hb.c). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMainScript.kt` | `WorldMapMainScript` | Stand-in until D11-wm9 registers the callees. |
 
 ## PP-10 (1)

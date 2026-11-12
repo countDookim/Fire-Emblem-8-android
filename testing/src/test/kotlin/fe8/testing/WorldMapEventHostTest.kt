@@ -51,7 +51,6 @@ import fe8.game.worldmap.WorldMapSpawnEvents
 import fe8.game.worldmap.WorldMapText
 import fe8.game.worldmap.WorldMapTextEvents
 import fe8.game.worldmap.WorldMapTextFadeEvents
-import fe8.game.worldmap.WmHblankStatus
 import fe8.game.worldmap.WmTextHost
 import fe8.game.worldmap.GMapTextProc
 import fe8.game.scene.TalkState
@@ -191,7 +190,7 @@ class WorldMapEventHostTest {
         }
         val layers = SpriteLayers().also { it.clear() }
         val wmText = WorldMapText(
-            engine, hw, WmHblankStatus(), layers,
+            engine, hw, hblank, layers,
             object : WmTextHost {
                 override fun endTalk() = eventTextHost.endTalk()
 

@@ -11,6 +11,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
+- Readability audit gba.render + gbafe.render: owner PC, until ~22:00Z (from 17:27Z)
 - MC-1 + MC-2 (target lists): owner PC, until ~21:30Z (from 17:16Z)
 
 ## Current state

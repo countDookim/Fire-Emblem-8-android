@@ -20,7 +20,7 @@ Notes: [D11-worldmap](plans/D11-worldmap.md) (§8 status), [M6-notes](plans/M6-n
 | D11-wm10 | PORT | World-map unit sprites: `StartWorldMapSMS`/`SMS_DisplayOne` (units walk but are invisible after D11-wm9) | Unit OAM per step vs `ram_trace_prologue_wm_lcd` 8100–8450 and f08200/f08300/f08450 | — | in progress (owner PC) |
 | D11-wm11 | PORT | World-map text-box HBlank effect and MU step sounds (D11-wm9 stand-ins) | Scanline/LCD state vs captures 5100–5500; SE calls where a capture shows them | — | in progress (owner PC) |
 | D11-ci5 | WIRE | Wire the ported chapter intro: `BMapMain.Hooks.chapterIntro`/`chapterIntroTitleOnly` still end at once | Headless New Game shows the intro between world map and castle; proc trees vs `ram_trace_newgame_bm`/`ram_trace_newgame_intro`; 0 B/frame; MANUAL_TEST | — | in progress (owner PC) |
-| D11-wm12 | WIRE | Sweep the 26 stand-ins still labelled D11-wm9 (exit callees `EndTalk`, `ClearTalkText`, `ResetUnitSprites`, `Sound_FadeOutSE`, …): connect, port if captured, relabel the rest | STANDINS has no D11-wm9 rows; world-map exit state vs r09300/r09330 | D11-wm10, D11-wm11 | todo |
+| D11-wm12 | WIRE | Sweep the 26 stand-ins still labelled D11-wm9 (exit callees `EndTalk`, `ClearTalkText`, `ResetUnitSprites`, `Sound_FadeOutSE`, …): connect, port if captured, relabel the rest | STANDINS has no D11-wm9 rows; world-map exit state vs r09300/r09330 | — | in progress (owner PC); HBlank/SMS rows left to wm10/wm11 |
 
 ## Lane B: player phase (M6-B)
 

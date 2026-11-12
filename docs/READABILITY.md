@@ -53,14 +53,14 @@ their old counts); new packages get a row when they appear.
 | engine/extract | gbafe.extract.fe8.terrains | 1 | 65 | done 2026-11-09 7c6df24; audit todo |
 | engine/extract | gbafe.extract.fe8.ui | 3 | 189 | done 2026-11-09 94e08df; audit todo |
 | engine/extract | gbafe.extract.fe8.units | 1 | 86 | done 2026-11-09 0dfc62b; audit todo |
-| engine/extract | gbafe.extract.font | 1 | 77 | done 2026-11-09 92119c9; audit done 2026-11-12 PENDING |
+| engine/extract | gbafe.extract.font | 1 | 77 | done 2026-11-09 92119c9; audit done 2026-11-12 7d13c5d |
 | engine/extract | gbafe.extract.m4a | 1 | 311 | done 2026-11-09 19d121b; audit todo |
-| engine/extract | gbafe.extract.text | 1 | 55 | done 2026-11-09 0194222; audit done 2026-11-12 PENDING |
+| engine/extract | gbafe.extract.text | 1 | 55 | done 2026-11-09 0194222; audit done 2026-11-12 7d13c5d |
 | engine/input | gbafe.input | 2 | 238 | done 2026-11-07 697847c; audit done 2026-11-12 02666d9 |
 | engine/render | gbafe.render | 10 | 1592 | done 2026-11-09 83f2cb6; audit todo |
 | engine/save | gbafe.save | 7 | 621 | done 2026-11-09 d3b21d6; audit done 2026-11-12 ad1504f |
 | engine/script | gbafe.script | 7 | 920 | done 2026-11-09 d3b21d6; audit todo |
-| engine/text | gbafe.text | 6 | 926 | done 2026-11-09 d3b21d6; audit done 2026-11-12 PENDING |
+| engine/text | gbafe.text | 6 | 926 | done 2026-11-09 d3b21d6; audit done 2026-11-12 7d13c5d |
 | game | fe8.game | 8 | 1999 | done 2026-11-09 ee10196; audit todo |
 | game | fe8.game.bm (map, camera, state, cursor, music, chapter data: 16 files) | 16 | 2964 | done 2026-11-10 bac8ed1; audit todo |
 | game | fe8.game.bm (battle: BattleGenerate, BattleUnit, BmBattle, ItemInfo) | 4 | 2316 | done 2026-11-11 49679cb; audit done 2026-11-11 39aa20b |

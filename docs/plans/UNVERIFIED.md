@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 548 across 70 decomp files (missing reason: 0).
+Total entries: 547 across 70 decomp files (missing reason: 0).
 
 ## src/worldmap_rm.c (42)
 
@@ -602,16 +602,6 @@ Total entries: 548 across 70 decomp files (missing reason: 0).
 | `Roll1RN` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
 | `Roll2RN` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
 
-## src/opsubtitle.c (5)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `gProcScr_OpSubtitle_LightFlareFx` | `game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitle.kt` | no |
-| `gProcScr_OpSubtitle` | `game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitle.kt` | lifecycle and skip |
-| `StartIntroMonologue` | `game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitle.kt` | lifecycle |
-| `OpSubtitle_HandleStartPress` | `game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitle.kt` | skip timing and cleanup await original input captures |
-| `gProcScr_08AA2184` | `game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleScenes.kt` | no @VerifiesPort test names it |
-
 ## src/worldmap_face.c (5)
 
 | Function | Kotlin file | Reason |
@@ -667,6 +657,15 @@ Total entries: 548 across 70 decomp files (missing reason: 0).
 | `SaveRankings` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero ranking block, so no run shows its checksum or data |
 | `WriteLinkArenaStruct2` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero link arena block, so no run shows its checksum or data |
 | `WriteSupplyItems` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
+
+## src/opsubtitle.c (4)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `gProcScr_OpSubtitle_LightFlareFx` | `game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitle.kt` | no |
+| `gProcScr_OpSubtitle` | `game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitle.kt` | lifecycle and skip |
+| `StartIntroMonologue` | `game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitle.kt` | lifecycle |
+| `gProcScr_08AA2184` | `game/src/commonMain/kotlin/fe8/game/opanim/OpSubtitleScenes.kt` | no @VerifiesPort test names it |
 
 ## src/player_interface.c (4)
 

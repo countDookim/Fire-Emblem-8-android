@@ -24,8 +24,8 @@ import gbafe.render.BgHardware
  * Standalone opening monologue with fade effects and key input supplied by [hooks]. The
  * continuous parent replay covers steps 1214–4897 with the real archived-palette fade-in and
  * slow fade to black, seeding the original reused transition timer from step 1213. Long scene
- * setup callbacks are compared at completion because they run atomically here. Original
- * Start-skip timing and cleanup still need input captures before this host is wired into boot.
+ * setup callbacks are compared at completion because they run atomically here. The three
+ * Start-skip captures (1505, 2375, 4405) check the skip's cursor, fade, child ends and sound.
  */
 public class OpSubtitle(
     private val engine: ProcEngine,
@@ -154,8 +154,7 @@ public class OpSubtitle(
     public fun startBlocking(parent: Proc): Proc? = engine.startBlocking(script, parent)
 
     /**
-     * Transcribed from src/opsubtitle.c: OpSubtitle_HandleStartPress (not verified: skip timing and
-     * cleanup await original input captures).
+     * Ported from src/opsubtitle.c: OpSubtitle_HandleStartPress
      */
     private fun handleStartPress(proc: Proc) {
         if (hooks.newKeys() and 8 != 0) {

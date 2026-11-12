@@ -17,8 +17,8 @@ Notes: [D11-worldmap](plans/D11-worldmap.md) (§8 status), [M6-notes](plans/M6-n
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| D11-wm8e | PORT | Unit/dot opcodes 9E–AC through the VM, 8100–9280 | GmapUnit/AutoMu/WmPlaceDot fields per step; OAM at f08100–f09000 | — | todo |
-| D11-wm8f | PORT | Fade-out, second event run (9289–9292), `EndWM`, `ResetFaces` restore | r09300/r09330 | D11-wm8b–e | todo |
+| D11-wm8e | PORT | Unit/dot opcodes 9E–AC through the VM, 8100–9280 | GmapUnit/AutoMu/WmPlaceDot fields per step; OAM at f08100–f09000 | — | in progress (owner PC) |
+| D11-wm8f | PORT | Fade-out, second event run (9289–9292), `EndWM`, `ResetFaces` restore | r09300/r09330 | — | in progress (owner PC); sibling test from ~9280 |
 | D11-wm9 | WIRE | `hooks.worldMapWrapperScript`/`endWorldMap` in `Fe8Boot` | Headless New Game reaches `StartBattleMap`; 0 B/frame; MANUAL_TEST | D11-wm8f | todo |
 
 ## Lane B: player phase (M6-B)

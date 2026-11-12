@@ -8,8 +8,8 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1029,
-    "implemented_unverified": 20
+    "verified": 1034,
+    "implemented_unverified": 23
   },
   "functions": {
     "AddPointToPathArrowProc": {
@@ -132,6 +132,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitSpritesDifferentialTest#unit sprite palettes match the dump"
+      ]
+    },
+    "ApplyUnitSpriteUiImage16x16": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventUnitTest#unit and point commands run by the VM match the capture"
       ]
     },
     "ArchiveCurrentPalettes": {
@@ -1048,6 +1058,14 @@
       "tests": [
         "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
       ]
+    },
+    "ClearWmHblank": {
+      "decomp_file": "src/worldmap_hb.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapHblank.kt",
+      "status": "implemented",
+      "tests": []
     },
     "ClearWmTextVram": {
       "decomp_file": "src/worldmap_text.c",
@@ -2892,6 +2910,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "GetClassSMSId": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapSms.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventUnitTest#unit and point commands run by the VM match the capture"
       ]
     },
     "GetColorLut": {
@@ -6731,6 +6759,16 @@
         "fe8.testing.PhaseChangeDifferentialTest#the phase switches to the enemy and the turn event runs"
       ]
     },
+    "SMS_DisplayOne": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapSms.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventUnitTest#unit and point commands run by the VM match the capture"
+      ]
+    },
     "SampleFreqSet": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -7015,6 +7053,16 @@
         "fe8.testing.HBlankHandlersDifferentialTest#HBlank handler state matches mGBA"
       ]
     },
+    "SetStandingMuFacingWM": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventUnitTest#unit and point commands run by the VM match the capture"
+      ]
+    },
     "SetTalkFaceDisp": {
       "decomp_file": "src/scene.c",
       "system": "presentation",
@@ -7084,6 +7132,14 @@
       "tests": [
         "fe8.testing.MovementMapDifferentialTest#select flood matches the game"
       ]
+    },
+    "SetWorldMapHblank": {
+      "decomp_file": "src/worldmap_hb.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapHblank.kt",
+      "status": "implemented",
+      "tests": []
     },
     "SetupBackgrounds": {
       "decomp_file": "src/hardware.c",
@@ -7720,6 +7776,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "StartWorldMapSMS": {
+      "decomp_file": "src/bmudisp.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WorldMapEventUnitTest#unit and point commands run by the VM match the capture"
       ]
     },
     "StringCompare": {
@@ -8631,6 +8697,14 @@
       "tests": [
         "fe8.testing.WorldMapTextTest#text window sprites match the OAM of the dumps while shown"
       ]
+    },
+    "WorldMapHblank": {
+      "decomp_file": "src/worldmap_hb.c",
+      "system": "worldmap",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapHblank.kt",
+      "status": "implemented",
+      "tests": []
     },
     "WorldMap_CallBeginningEvent": {
       "decomp_file": "src/worldmap_main.c",

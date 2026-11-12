@@ -322,6 +322,7 @@ public class ItemInfo(private val rom: RomView) {
         internal const val IA_NEGATE_DEFENSE: Int = 1 shl 17
         internal const val IA_STAFF: Int = 1 shl 2
         internal const val IA_UNBREAKABLE: Int = 1 shl 3
+        internal const val IA_BRAVE: Int = 1 shl 5
         internal const val IA_LOCK_3: Int = 1 shl 10
         internal const val IA_LOCK_1: Int = 1 shl 11
         internal const val IA_LOCK_2: Int = 1 shl 12

@@ -19,9 +19,10 @@ import kotlin.math.abs
  * Hits are `struct BattleHit` words: `attributes` in bits 0..18, `info` in bits 19..23 and the
  * signed `hpChange` in bits 24..31. Both hit buffers are preallocated.
  *
- * Not ported (the callers stop with an error instead): `BattleUnwind` (random hits),
- * `ComputeBattleObstacleStats`, the exp gain tail of `BattleGenerateRealInternal`
- * (`BattleApplyExpGains`, M6-C), the light rune toggling and the staff / item effect battles.
+ * Not ported: `ComputeBattleObstacleStats`, `PidStatsRecordBattleRes` / `PidStatsAddBattleAmt`
+ * (save-file statistics), the light rune toggling and the staff / item effect battles. The exp
+ * gain tail of `BattleGenerateRealInternal` is the hook [applyExpGains] (`BattleApplyExpGains`,
+ * MC-14), the triangle attack neighbour scan the hook [checkTriangleAttack] (MC-8b).
  *
  * @param battle the battle units, stats and stat computes.
  * @param rom the item and class data.
@@ -73,13 +74,32 @@ public class BattleGenerate(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: ClearBattleHits
-     *   (not verified: the traced battle never clears a hit array with data)
+     * Hook for `BattleApplyExpGains` (bmbattle.c, MC-14), which the real battle runs after the
+     * hits when the target is a unit. Stand-in until MC-14: does nothing, so exp, the exp
+     * gain and level-up fields of the battle units are not generated.
+     */
+    public var applyExpGains: () -> Unit = {}
+
+    /**
+     * Hook for `BattleCheckTriangleAttack` (bmbattle.c, MC-8b): whether two units of the
+     * attacker's army stand next to the defender. Stand-in until MC-8b: always false.
+     */
+    public var checkTriangleAttack: (attacker: BattleUnit, defender: BattleUnit) -> Boolean =
+        { _, _ -> false }
+
+    /** `BattleGetBattleUnitOrder` / `BattleGetFollowUpOrder` out parameter `outAttacker`. */
+    private var orderAttacker: BattleUnit = battle.actor
+
+    /** `BattleGetBattleUnitOrder` / `BattleGetFollowUpOrder` out parameter `outDefender`. */
+    private var orderDefender: BattleUnit = battle.target
+
+    /**
+     * Ported from src/bmbattle.c: ClearBattleHits
      *
-     * Zeroes [hitArray] and rewinds the iterator.
+     * Zeroes the [BATTLE_HIT_MAX] hits of [hitArray] and rewinds the iterator.
      */
     public fun clearBattleHits() {
-        hitArray.fill(0)
+        for (i in 0 until BATTLE_HIT_MAX) hitArray[i] = 0
         hitIterator = 0
     }
 
@@ -113,23 +133,24 @@ public class BattleGenerate(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: BattleGenerateRealInternal
-     *   (not verified: the Prologue battle runs the event variant; the exp tail is not ported)
+     * Ported from src/bmbattle.c: BattleGenerateRealInternal
      *
      * Initialises the battle units from the units at [actorOff] / [targetOff] of [src], generates
-     * the battle and fixes up the target's counter and equipped weapon. The C then, for a target
-     * that is a unit, applies exp gains and pid stats; not ported, so this stops with an error.
+     * the battle and fixes up the target's counter and equipped weapon. For a target that is a
+     * unit (`index != 0`) the exp gains follow: they are the hook [applyExpGains] (MC-14), and
+     * `PidStatsRecordBattleRes` / `PidStatsAddBattleAmt` (save statistics) are not ported.
      */
     public fun battleGenerateRealInternal(src: ByteArray, actorOff: Int, targetOff: Int) {
         generateCommon(src, actorOff, targetOff)
         battle.battleUnitTargetCheckCanCounter(battle.target)
         battleUnitTargetSetEquippedWeapon(battle.target)
-        error("BattleApplyExpGains and the pid stats are not ported (M6-C)")
+        if ((battle.target.bytes[OFF_INDEX].toInt() and 0xFF) != 0) applyExpGains()
     }
 
     /**
-     * Transcribed from src/bmbattle.c: BattleGenerateReal
-     *   (not verified: see [battleGenerateRealInternal])
+     * Ported from src/bmbattle.c: BattleGenerateReal
+     *
+     * Sets the real battle config, then [battleGenerateRealInternal].
      */
     public fun battleGenerateReal(src: ByteArray, actorOff: Int, targetOff: Int) {
         battle.stats.config = BattleStats.CONFIG_REAL
@@ -259,7 +280,8 @@ public class BattleGenerate(
      * Ported from src/bmbattle.c: BattleGenerate
      *
      * Computes both battle units' stats, then unwinds the scripted hits when a real battle has
-     * them. The random unwind and the obstacle battle (`target == NULL`) are not ported.
+     * them, else the random hits ([battleUnwind]). The obstacle battle (`target == NULL`) is not
+     * ported.
      */
     public fun battleGenerate() {
         battle.computeBattleUnitStats(battle.actor, battle.target)
@@ -269,8 +291,287 @@ public class BattleGenerate(
         if ((battle.stats.config and BattleStats.CONFIG_REAL) != 0 && scriptedBattleHits != null) {
             battleUnwindScripted()
         } else {
-            error("BattleUnwind (random hits) is not ported")
+            battleUnwind()
         }
+    }
+
+    /**
+     * Ported from src/bmbattle.c: BattleUnwind
+     *
+     * Generates the hits of a random battle: the actor strikes (a brave weapon twice), the target
+     * retaliates unless the battle already ended, and the faster unit (by the follow-up speed
+     * threshold) strikes once more. The first hit gets BEGIN, the entry after the last one END.
+     */
+    public fun battleUnwind() {
+        clearBattleHits()
+        battleGetBattleUnitOrder()
+        addInfo(hitIterator, INFO_BEGIN)
+        if (!battleGenerateRoundHits(orderAttacker, orderDefender)) {
+            addAttributes(hitIterator, ATTR_RETALIATE)
+            if (!battleGenerateRoundHits(orderDefender, orderAttacker) &&
+                battleGetFollowUpOrder()
+            ) {
+                setAttributes(hitIterator, ATTR_FOLLOWUP)
+                battleGenerateRoundHits(orderAttacker, orderDefender)
+            }
+        }
+        addInfo(hitIterator, INFO_END)
+    }
+
+    /**
+     * Ported from src/bmbattle.c: BattleGetBattleUnitOrder
+     *
+     * Sets the striking order to actor first (the out parameters of the C are [orderAttacker]
+     * and [orderDefender]).
+     */
+    public fun battleGetBattleUnitOrder() {
+        orderAttacker = battle.actor
+        orderDefender = battle.target
+    }
+
+    /**
+     * Ported from src/bmbattle.c: BattleGetFollowUpOrder
+     *
+     * Whether a follow-up strike happens: the target must not be faster than 250, the speeds must
+     * differ by [BATTLE_FOLLOWUP_SPEED_THRESHOLD] or more, and the faster unit's pre-battle
+     * weapon must not halve HP nor be the Monster stone. Sets the order to the faster unit
+     * first.
+     */
+    public fun battleGetFollowUpOrder(): Boolean {
+        val actor = battle.actor
+        val target = battle.target
+        if (target.battleSpeed > 250) return false
+        if (abs(actor.battleSpeed - target.battleSpeed) < BATTLE_FOLLOWUP_SPEED_THRESHOLD) {
+            return false
+        }
+        if (actor.battleSpeed > target.battleSpeed) {
+            orderAttacker = actor
+            orderDefender = target
+        } else {
+            orderAttacker = target
+            orderDefender = actor
+        }
+        if (items.getItemWeaponEffect(orderAttacker.weaponBefore) == WPN_EFFECT_HPHALVE) {
+            return false
+        }
+        if (items.getItemIndex(orderAttacker.weapon) == ITEM_MONSTER_STONE) return false
+        return true
+    }
+
+    /**
+     * Ported from src/bmbattle.c: BattleGenerateRoundHits
+     *
+     * Generates the hits of one strike round of [attacker] (none without a weapon; a brave
+     * weapon twice), each carrying the round's attributes (low 16 bits only, as the C does).
+     * True when a hit ended the battle. (Not verified: the no-weapon return, the brave second
+     * strike and a battle ending in the actor's own round; no capture takes them.)
+     */
+    public fun battleGenerateRoundHits(attacker: BattleUnit, defender: BattleUnit): Boolean {
+        if (attacker.weapon == 0) return false
+        val attrs = attributes(hitArray[hitIterator]) and 0xFFFF
+        val count = getBattleUnitHitCount(attacker)
+        for (i in 0 until count) {
+            addAttributes(hitIterator, attrs)
+            if (battleGenerateHit(attacker, defender)) return true
+        }
+        return false
+    }
+
+    /**
+     * Ported from src/bmbattle.c: GetBattleUnitHitCount
+     *
+     * The strikes per round: 1, doubled by a brave weapon.
+     */
+    public fun getBattleUnitHitCount(attacker: BattleUnit): Int =
+        1 shl (if (battleCheckBraveEffect(attacker)) 1 else 0)
+
+    /**
+     * Transcribed from src/bmbattle.c: BattleCheckBraveEffect
+     *   (not verified: MC-8b; no traced weapon is brave)
+     *
+     * Marks the current hit BRAVE and returns true for a brave weapon.
+     */
+    private fun battleCheckBraveEffect(attacker: BattleUnit): Boolean {
+        if ((attacker.weaponAttributes and ItemInfo.IA_BRAVE) == 0) return false
+        addAttributes(hitIterator, ATTR_BRAVE)
+        return true
+    }
+
+    /**
+     * Transcribed from src/bmbattle.c: BattleCheckSureShot
+     *   (not verified: MC-8b; no traced attacker is a sniper)
+     */
+    private fun battleCheckSureShot(attacker: BattleUnit) {
+        if ((hitArray[hitIterator] and (ATTR_SURESHOT or ATTR_PIERCE or ATTR_GREATSHLD)) != 0) {
+            return
+        }
+        val cls = classNumber(attacker)
+        if (cls == CLASS_SNIPER || cls == CLASS_SNIPER_F) {
+            when (items.getItemIndex(attacker.weapon)) {
+                ITEM_BALLISTA_REGULAR, ITEM_BALLISTA_LONG, ITEM_BALLISTA_KILLER -> {}
+                else -> if (battleRoll1Rn(unitLevel(attacker), false, crit = false)) {
+                    addAttributes(hitIterator, ATTR_SURESHOT)
+                }
+            }
+        }
+    }
+
+    /**
+     * Transcribed from src/bmbattle.c: BattleCheckPierce
+     *   (not verified: MC-8b; no traced attacker is a wyvern knight)
+     */
+    private fun battleCheckPierce(attacker: BattleUnit) {
+        if ((hitArray[hitIterator] and (ATTR_SURESHOT or ATTR_PIERCE or ATTR_GREATSHLD)) != 0) {
+            return
+        }
+        val cls = classNumber(attacker)
+        if (cls == CLASS_WYVERN_KNIGHT || cls == CLASS_WYVERN_KNIGHT_F) {
+            if (battleRoll1Rn(unitLevel(attacker), false, crit = false)) {
+                addAttributes(hitIterator, ATTR_PIERCE)
+            }
+        }
+    }
+
+    /**
+     * Transcribed from src/bmbattle.c: BattleCheckGreatShield
+     *   (not verified: MC-8b; no traced defender is a general)
+     */
+    private fun battleCheckGreatShield(attacker: BattleUnit, defender: BattleUnit) {
+        if ((hitArray[hitIterator] and
+                (ATTR_MISS or ATTR_SURESHOT or ATTR_PIERCE or ATTR_GREATSHLD)) != 0
+        ) {
+            return
+        }
+        if (items.getItemWeaponEffect(attacker.weapon) == WPN_EFFECT_POISON) return
+        val cls = classNumber(defender)
+        if (cls == CLASS_GENERAL || cls == CLASS_GENERAL_F) {
+            if (battleRoll1Rn(unitLevel(attacker), false, crit = false)) {
+                addAttributes(hitIterator, ATTR_GREATSHLD)
+            }
+        }
+    }
+
+    /**
+     * Transcribed from src/bmbattle.c: BattleCheckSilencer
+     *   (not verified: MC-8b; no traced crit roll succeeds)
+     *
+     * Whether a critical hit is a silencer (instant kill) instead: never against the Demon King
+     * nor the Necromancer of chapter 21, otherwise by the silencer rate.
+     */
+    private fun battleCheckSilencer(defender: BattleUnit): Boolean {
+        val cls = classNumber(defender)
+        if (cls == CLASS_DEMON_KING) return false
+        if (cls == CLASS_NECROMANCER &&
+            (playSt.chapterIndex == CHAPTER_E_21 || playSt.chapterIndex == CHAPTER_I_21)
+        ) {
+            return false
+        }
+        return battleRoll1Rn(battle.stats.silencerRate, false, crit = false)
+    }
+
+    /**
+     * Transcribed from src/bmbattle.c: BattleCheckPetrify
+     *   (not verified: MC-8b; no traced weapon is the Monster stone)
+     */
+    private fun battleCheckPetrify(attacker: BattleUnit) {
+        if (items.getItemIndex(attacker.weapon) == ITEM_MONSTER_STONE) battle.stats.damage = 0
+    }
+
+    /**
+     * Ported from src/bmbattle.c: BattleGenerateHitAttributes
+     *
+     * Rolls the current hit: sure shot, hit (2 RN; a miss ends it), great shield, pierce, damage
+     * (attack minus defense, none for a great shield), crit (silencer or triple damage), the
+     * damage clamped to 0..[BATTLE_MAX_DAMAGE] and the petrify check. Marks [attacker] as having
+     * dealt damage. The checks of the C are MC-8b; the branches no capture takes are marked there.
+     */
+    public fun battleGenerateHitAttributes(attacker: BattleUnit, defender: BattleUnit) {
+        val stats = battle.stats
+        stats.damage = 0
+        battleCheckSureShot(attacker)
+        if ((hitArray[hitIterator] and ATTR_SURESHOT) == 0) {
+            if (!battleRoll2Rn(stats.hitRate, true)) {
+                addAttributes(hitIterator, ATTR_MISS)
+                return
+            }
+        }
+        val attack = stats.attack.toShort().toInt()
+        var defense = stats.defense.toShort().toInt()
+        battleCheckGreatShield(attacker, defender)
+        if ((hitArray[hitIterator] and ATTR_GREATSHLD) == 0) battleCheckPierce(attacker)
+        if ((hitArray[hitIterator] and ATTR_PIERCE) != 0) defense = 0
+        stats.damage = attack - defense
+        if ((hitArray[hitIterator] and ATTR_GREATSHLD) != 0) stats.damage = 0
+        if (battleRoll1Rn(stats.critRate, false, crit = true)) {
+            if (battleCheckSilencer(defender)) {
+                addAttributes(hitIterator, ATTR_SILENCER)
+                stats.damage = BATTLE_MAX_DAMAGE
+                hitArray[hitIterator] = hitArray[hitIterator] and ATTR_GREATSHLD.inv()
+            } else {
+                addAttributes(hitIterator, ATTR_CRIT)
+                stats.damage = stats.damage * 3
+            }
+        }
+        if (stats.damage > BATTLE_MAX_DAMAGE) stats.damage = BATTLE_MAX_DAMAGE
+        if (stats.damage < 0) stats.damage = 0
+        battleCheckPetrify(attacker)
+        if (stats.damage != 0) attacker.nonZeroDamage = 1
+    }
+
+    /**
+     * Transcribed from src/bmbattle.c: BattleGenerateHitTriangleAttack
+     *   (not verified: MC-8b; no traced attacker is a pegasus or armor class)
+     *
+     * A triangle attack (two allies next to the defender, see [checkTriangleAttack]) on the first
+     * hit of a range 1 battle makes it hit and crit for sure.
+     */
+    private fun battleGenerateHitTriangleAttack(attacker: BattleUnit, defender: BattleUnit) {
+        val stats = battle.stats
+        val attributes = rom.u32(u32(attacker.bytes, OFF_CHARACTER) + 0x28) or
+            rom.u32(u32(attacker.bytes, OFF_CLASS) + 0x28)
+        if ((attributes and CA_TRIANGLEATTACK_ANY) == 0) return
+        if (stats.range != 1) return
+        if ((info(hitArray[hitIterator]) and INFO_BEGIN) == 0) return
+        if (attacker.unitStatusIndex == STATUS_BERSERK) return
+        if ((stats.config and BattleStats.CONFIG_ARENA) != 0) return
+        if (!checkTriangleAttack(attacker, defender)) return
+        addAttributes(hitIterator, ATTR_TATTACK)
+        stats.critRate = 100
+        stats.hitRate = 100
+    }
+
+    /**
+     * Ported from src/bmbattle.c: BattleGenerateHit
+     *
+     * Generates one hit of [attacker] on [defender] at the iterator: updates the stats, rolls
+     * the attributes, applies the effects and advances the iterator. A strike by the target is
+     * flagged RETALIATION. A hit that leaves a unit at 0 HP (FINISHES, plus KILLS_TARGET when the
+     * target died) or petrifies the defender ends the battle: true. (Not verified: the petrify
+     * ending and the actor dying; no capture takes them.)
+     */
+    public fun battleGenerateHit(attacker: BattleUnit, defender: BattleUnit): Boolean {
+        if (attacker === battle.target) addInfo(hitIterator, INFO_RETALIATION)
+        battleUpdateBattleStats(attacker, defender)
+        battleGenerateHitTriangleAttack(attacker, defender)
+        battleGenerateHitAttributes(attacker, defender)
+        battleGenerateHitEffects(attacker, defender)
+        if (curHp(attacker) == 0 || curHp(defender) == 0) {
+            attacker.wexpMultiplier++
+            addInfo(hitIterator, INFO_FINISHES)
+            if (curHp(battle.target) != 0) {
+                hitIterator++
+                return true
+            }
+            addInfo(hitIterator, INFO_KILLS_TARGET)
+            hitIterator++
+            return true
+        } else if (defender.statusOut == STATUS_PETRIFY || defender.statusOut == STATUS_13) {
+            addInfo(hitIterator, INFO_FINISHES)
+            hitIterator++
+            return true
+        }
+        hitIterator++
+        return false
     }
 
     /**
@@ -409,7 +710,7 @@ public class BattleGenerate(
 
             // A devil weapon rolls against 31 - luck; on success it hurts the attacker instead.
             if (effect == WPN_EFFECT_DEVIL &&
-                battleRoll1Rn(31 - s8(attacker.bytes, OFF_LCK))
+                battleRoll1Rn(31 - s8(attacker.bytes, OFF_LCK), false, crit = false)
             ) {
                 addAttributes(hitIndex, ATTR_DEVIL)
                 setCurHp(attacker, maxOf(curHp(attacker) - stats.damage, 0))
@@ -491,22 +792,46 @@ public class BattleGenerate(
     }
 
     /**
-     * `BattleRoll1RN(threshold, FALSE)`: a single random roll that succeeds with probability
-     * `threshold` percent; always false in a simulated (forecast) battle.
+     * Ported from src/bmbattle.c: BattleRoll1RN
+     *
+     * A single random roll that succeeds with probability [threshold] percent; [simResult] in a
+     * simulated (forecast) battle. [crit] selects the crit roll of the active
+     * [Mechanics.battleRolls] (the C's `Roll1RN` for the crit rate), else its skill roll.
      */
-    private fun battleRoll1Rn(threshold: Int): Boolean =
-        (battle.stats.config and BattleStats.CONFIG_SIMULATE) == 0 &&
-            mechanics.battleRolls.skill(rng, threshold)
+    private fun battleRoll1Rn(threshold: Int, simResult: Boolean, crit: Boolean): Boolean {
+        if ((battle.stats.config and BattleStats.CONFIG_SIMULATE) != 0) return simResult
+        val rolls = mechanics.battleRolls
+        return if (crit) rolls.crit(rng, threshold) else rolls.skill(rng, threshold)
+    }
 
     /**
-     * `GetItemAfterUse` (bmitem.c): the item word after one use: the uses (high byte) drop by
-     * one, and the item is gone (0) when none are left. Unbreakable items are unchanged.
+     * Ported from src/bmbattle.c: BattleRoll2RN
+     *
+     * The hit roll (`Roll2RN`: two random numbers averaged) of the active
+     * [Mechanics.battleRolls]; [simResult] in a simulated battle.
+     */
+    private fun battleRoll2Rn(threshold: Int, simResult: Boolean): Boolean {
+        if ((battle.stats.config and BattleStats.CONFIG_SIMULATE) != 0) return simResult
+        return mechanics.battleRolls.hit(rng, threshold)
+    }
+
+    /**
+     * Ported from src/bmitem.c: GetItemAfterUse
+     *
+     * The item word after one use: the uses (high byte) drop by one, and the item is gone (0)
+     * when none are left. Unbreakable items are unchanged.
      */
     private fun getItemAfterUse(item: Int): Int {
         if ((items.getItemAttributes(item) and ItemInfo.IA_UNBREAKABLE) != 0) return item
         val used = item - (1 shl 8)
         return if (used < (1 shl 8)) 0 else used
     }
+
+    /** `UNIT_CLASS_ID`: the class number of the battle unit's class. */
+    private fun classNumber(unit: BattleUnit): Int = rom.u8(u32(unit.bytes, OFF_CLASS) + 4)
+
+    /** The `level` of the battle unit's unit struct. */
+    private fun unitLevel(unit: BattleUnit): Int = unit.bytes[OFF_LEVEL].toInt()
 
     /** The current HP of [unit] (signed byte). */
     private fun curHp(unit: BattleUnit): Int = s8(unit.bytes, OFF_CUR_HP)
@@ -517,6 +842,11 @@ public class BattleGenerate(
     /** ORs [bits] (`ATTR_*`) into the attribute bits of the hit at [index]. */
     private fun addAttributes(index: Int, bits: Int) {
         hitArray[index] = hitArray[index] or bits
+    }
+
+    /** Replaces the attribute bits of the hit at [index] with [bits] (`ATTR_*`). */
+    private fun setAttributes(index: Int, bits: Int) {
+        hitArray[index] = (hitArray[index] and 0x7FFFF.inv()) or bits
     }
 
     /** ORs [bits] (`INFO_*`) into the info field of the hit at [index]. */
@@ -571,6 +901,34 @@ public class BattleGenerate(
         /** The signed `hpChange` (bits 24..31) of hit word [w]. */
         public fun hpChange(w: Int): Int = w shr 24
 
+        /** `BATTLE_FOLLOWUP_SPEED_THRESHOLD`: the speed lead for a second strike. */
+        public const val BATTLE_FOLLOWUP_SPEED_THRESHOLD: Int = 4
+
+        private const val ATTR_FOLLOWUP = 1 shl 2
+        private const val ATTR_RETALIATE = 1 shl 3
+        private const val ATTR_BRAVE = 1 shl 4
+        private const val ATTR_TATTACK = 1 shl 10
+        private const val ATTR_SILENCER = 1 shl 11
+        private const val ATTR_SURESHOT = 1 shl 14
+        private const val ATTR_GREATSHLD = 1 shl 15
+        private const val ATTR_PIERCE = 1 shl 16
+        private const val CLASS_GENERAL = 0x0B
+        private const val CLASS_GENERAL_F = 0x0C
+        private const val CLASS_SNIPER = 0x1B
+        private const val CLASS_SNIPER_F = 0x1C
+        private const val CLASS_WYVERN_KNIGHT = 0x23
+        private const val CLASS_WYVERN_KNIGHT_F = 0x24
+        private const val CLASS_NECROMANCER = 0x4F
+        private const val ITEM_BALLISTA_REGULAR = 0x35
+        private const val ITEM_BALLISTA_LONG = 0x36
+        private const val ITEM_BALLISTA_KILLER = 0x37
+        private const val ITEM_MONSTER_STONE = 0xB5
+        private const val CHAPTER_E_21 = 0x15
+        private const val CHAPTER_I_21 = 0x22
+        private const val CA_TRIANGLEATTACK_ANY = (1 shl 21) or (1 shl 22)
+        private const val STATUS_BERSERK = 4
+        private const val OFF_CHARACTER = 0x00
+        private const val OFF_LEVEL = 0x08
         // More `BATTLE_HIT_ATTR_*` bits, set by the weapon effects of the hit.
         private const val ATTR_POISON = 1 shl 6
         private const val ATTR_DEVIL = 1 shl 7

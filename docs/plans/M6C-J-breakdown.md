@@ -166,6 +166,27 @@ generic: `ProcScr_CallDelayedArg`, `ProcScr_PalFade` (bmlib.c). Round windows (n
 f1945..1983. Never run: `ProcScr_MapAnimEnd` level-up screens (`StartManimLevelUp` and the whole mapanim_lvup.c /
 mapanim_lvupfx.c), poison/egg/steal/summon/dance, `MapAnim_BeginNODAMAGEAnim`, the spell-assoc scripts.
 
+### MC-7/MC-8a result (2026-11-12)
+
+`BattleGenerateRealDifferentialTest` seeds the unit table, `gPlaySt`, the terrain, both battle units,
+`gBattleStats`, `gActionData` (who attacks whom) and the RNG state from the dump before the call and compares
+`gBattleActor`, `gBattleTarget`, `gBattleStats`, `gBattleHitArray` (7 hits on sentinels), `gBattleHitIterator`
+and the RNG state with the dump after it. Four cases pass: cap3 f1462 -> f1464 (the call straddles f1463, which
+holds a half-written hit array), noanim f1823 -> f1824, kill f1713 -> f1714 and f2293 -> f2294. Verified
+(`Ported from`): `BattleGenerateReal`, `BattleGenerateRealInternal`, `ClearBattleHits`, `BattleUnwind`,
+`BattleGetBattleUnitOrder`, `BattleGetFollowUpOrder`, `BattleGenerateRoundHits`, `GetBattleUnitHitCount`,
+`BattleGenerateHit`, `BattleGenerateHitAttributes`, `BattleRoll1RN`, `BattleRoll2RN`, `GetItemAfterUse`
+(`BattleGenerate`, `BattleUpdateBattleStats`, `BattleGenerateHitEffects` were verified before). Masked: `unit.exp`
+(+0x09) and `expGain` (+0x6E) of both battle units, which `BattleApplyExpGains` writes (MC-14: the hook
+`BattleGenerate.applyExpGains` stays empty; `PidStats*` save statistics are not ported). Not covered by any
+capture and noted in the KDoc: the brave second strike and the no-weapon return of `BattleGenerateRoundHits`, a
+battle ending in the actor's own round, and the petrify ending. Left for MC-8b (transcribed, `not verified`):
+`BattleCheckBraveEffect`, `BattleCheckSureShot`, `BattleCheckPierce`, `BattleCheckGreatShield`,
+`BattleCheckSilencer`, `BattleCheckPetrify`, `BattleGenerateHitTriangleAttack`; `BattleCheckTriangleAttack` is
+the hook `BattleGenerate.checkTriangleAttack` (false). Rolls go through `Mechanics.battleRolls` (hit roll for
+`BattleRoll2RN`, crit roll for the crit rate, skill roll for every other `BattleRoll1RN`). `BattleGenerateSimulation`
+(MC-9) can reuse `battleGenerate` as is.
+
 ## M6-D enemy phase and AI (Prologue)
 
 Exit: enemies move and attack; phases cycle; enemy banner.

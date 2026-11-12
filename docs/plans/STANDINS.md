@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 177 across 35 Kotlin files.
+Total entries: 179 across 36 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -25,6 +25,8 @@ Total entries: 177 across 35 Kotlin files.
 | M6-J | 8 |
 | D09-3 | 2 |
 | D11-wire-a | 2 |
+| MC-14 | 1 |
+| MC-8b | 1 |
 | PP-10 | 1 |
 | PP-17 | 1 |
 | PP-9 | 1 |
@@ -257,6 +259,18 @@ Total entries: 177 across 35 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `fadeOutSe` | `Sound_FadeOutSE(speed)`: stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet; the Prologue leaves through the other branch of `destruct`). |
+
+## MC-14 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | `applyExpGains` | Stand-in until MC-14: does nothing, so exp, the exp gain and level-up fields of the battle units are not generated. |
+
+## MC-8b (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | `checkTriangleAttack` | Stand-in until MC-8b: always false. |
 
 ## PP-10 (1)
 

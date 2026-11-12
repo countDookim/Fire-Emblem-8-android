@@ -263,7 +263,7 @@ public class M4aSequencer(
     private fun command(p: M4aPlayer, t: M4aTrack, cmd: Int): Boolean {
         when (cmd) {
             0xB2 -> M4aCommands.goto(t, bus)
-            0xB3 -> M4aCommands.patt(t, bus, M4aCommands::fine)
+            0xB3 -> M4aCommands.patt(t, bus)
             0xB4 -> M4aCommands.pend(t)
             0xB5 -> M4aCommands.rept(t, bus)
             0xBA -> M4aCommands.prio(t, bus)

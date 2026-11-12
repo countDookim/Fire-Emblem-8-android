@@ -41,7 +41,7 @@ public object M4aCommands {
     }
 
     /** `PATT`: call; at depth 3 behaves as `FINE` ([fine] is invoked). */
-    public fun patt(t: M4aTrack, bus: M4aBus, fine: (M4aTrack) -> Unit) {
+    public fun patt(t: M4aTrack, bus: M4aBus) {
         if (t.patternLevel >= 3) {
             fine(t)
             return

@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 536 across 72 decomp files (missing reason: 0).
+Total entries: 535 across 72 decomp files (missing reason: 0).
 
 ## src/worldmap_mapmu.c (35)
 
@@ -119,37 +119,6 @@ Total entries: 536 across 72 decomp files (missing reason: 0).
 | `SetAllUnitNotBackSprite` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | it runs in the select window, but no unit has `US_BIT8` set there, so the clearing is unobserved |
 | `IsUnitSlotAvailable` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic slot fill; no trace comparison yet |
 
-## src/eventscr.c (26)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `LoadUnit_800F704` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | b is a guess and terrain is stubbed |
-| `sub_800F8A8` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `Event13_BgmFadeIn` | `game/src/commonMain/kotlin/fe8/game/event/EventBgm.kt` | `Sound_FadeOutBGM(2)` leaves no state a trace shows without an audio player; only the dispatch and the yield are checked in WorldMapEventHostTest |
-| `Event3C_MoveCursor` | `game/src/commonMain/kotlin/fe8/game/event/EventCursorCamera.kt` | opcode 0x3C is only in tutorial scripts and never runs in available mGBA reference traces |
-| `Event17_Fade` | `game/src/commonMain/kotlin/fe8/game/event/EventFade.kt` | the skipping branch and the SetDispEnable call survive breaks in EventVmDifferentialTest; subcode 0 (FADU) is compared in CutsceneStartSkipDifferentialTest, f10053..f10069 |
-| `Event37_GiveItem` | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | inventory/gold effects and popups not trace-compared |
-| `TryPrepareEventUnitMovement` | `game/src/commonMain/kotlin/fe8/game/event/EventMoveUnit.kt` | no @VerifiesPort test names it |
-| `ModifyMoveUnitFlag` | `game/src/commonMain/kotlin/fe8/game/event/EventMoveUnit.kt` | no @VerifiesPort test names it |
-| `Event00_NULL` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-| `Event03_CheckEvBitOrId` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | only sub 0 (EvBit check) is traced; a broken sub 1 (flag check) survives |
-| `Event04_CheckRandom` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-| `Event06_SlotOperation` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | the traced calls prove the slot write only; broken operators survive |
-| `Event0B_EnqueueCall` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-| `Event10_ModifyEvBit` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | only args 0 and 1 are traced; the skipping branch and args 2-4 survive breaks |
-| `Event11_SetIgnoredKeys` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-| `Event19_Checks` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | only sub 7 of the 11 subs runs on data |
-| `Event0F_CounterOps` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-| `sub_800E290` | `game/src/commonMain/kotlin/fe8/game/event/EventText.kt` | no CG text in any trace |
-| `sub_800E31C` | `game/src/commonMain/kotlin/fe8/game/event/EventText.kt` | no box dialogue in any trace |
-| `Event1D_TalkContinue` | `game/src/commonMain/kotlin/fe8/game/event/EventText.kt` | no 0x1C in the traced scripts |
-| `Event2B_ConfigLoadUnit` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | test restates C semantics; no trace comparison yet |
-| `EventLoadUnitWithMovement` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | mocked MU capacity; no trace comparison yet |
-| `TryPrepareEventUnitMovement` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | mocked host; no trace comparison yet |
-| `ShouldUNITBeLoaded` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic dead unit and tile cases; no trace comparison yet |
-| `ModifyMoveUnitFlag` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | test restates bit combinations; no trace comparison yet |
-| `Event34_MessWithUnitState` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | only subs 5, 10 and 15 are compared; breaks in other subs and the CLEA loop survive |
-
 ## src/worldmap_rm.c (26)
 
 | Function | Kotlin file | Reason |
@@ -180,6 +149,36 @@ Total entries: 536 across 72 decomp files (missing reason: 0).
 | `ProcScr_GmapRmBorder1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | the script order is checked through the proc cursor, but no unit of it is ported here |
 | `GmapRmBorder1_End` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | removing either sprite delete or the pulse end leaves the traced OAM, blend and palette unchanged |
 | `EndGmapRmBorder1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | no traced call |
+
+## src/eventscr.c (25)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `LoadUnit_800F704` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | b is a guess and terrain is stubbed |
+| `sub_800F8A8` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `Event13_BgmFadeIn` | `game/src/commonMain/kotlin/fe8/game/event/EventBgm.kt` | `Sound_FadeOutBGM(2)` leaves no state a trace shows without an audio player; only the dispatch and the yield are checked in WorldMapEventHostTest |
+| `Event3C_MoveCursor` | `game/src/commonMain/kotlin/fe8/game/event/EventCursorCamera.kt` | opcode 0x3C is only in tutorial scripts and never runs in available mGBA reference traces |
+| `Event17_Fade` | `game/src/commonMain/kotlin/fe8/game/event/EventFade.kt` | the skipping branch and the SetDispEnable call survive breaks in EventVmDifferentialTest; subcode 0 (FADU) is compared in CutsceneStartSkipDifferentialTest, f10053..f10069 |
+| `Event37_GiveItem` | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | inventory/gold effects and popups not trace-compared |
+| `TryPrepareEventUnitMovement` | `game/src/commonMain/kotlin/fe8/game/event/EventMoveUnit.kt` | no @VerifiesPort test names it |
+| `ModifyMoveUnitFlag` | `game/src/commonMain/kotlin/fe8/game/event/EventMoveUnit.kt` | no @VerifiesPort test names it |
+| `Event00_NULL` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
+| `Event03_CheckEvBitOrId` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | only sub 0 (EvBit check) is traced; a broken sub 1 (flag check) survives |
+| `Event04_CheckRandom` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
+| `Event06_SlotOperation` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | the traced calls prove the slot write only; broken operators survive |
+| `Event0B_EnqueueCall` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
+| `Event10_ModifyEvBit` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | only args 0 and 1 are traced; the skipping branch and args 2-4 survive breaks |
+| `Event11_SetIgnoredKeys` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
+| `Event19_Checks` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | only sub 7 of the 11 subs runs on data |
+| `Event0F_CounterOps` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
+| `sub_800E290` | `game/src/commonMain/kotlin/fe8/game/event/EventText.kt` | no CG text in any trace |
+| `sub_800E31C` | `game/src/commonMain/kotlin/fe8/game/event/EventText.kt` | no box dialogue in any trace |
+| `Event2B_ConfigLoadUnit` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | test restates C semantics; no trace comparison yet |
+| `EventLoadUnitWithMovement` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | mocked MU capacity; no trace comparison yet |
+| `TryPrepareEventUnitMovement` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | mocked host; no trace comparison yet |
+| `ShouldUNITBeLoaded` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic dead unit and tile cases; no trace comparison yet |
+| `ModifyMoveUnitFlag` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | test restates bit combinations; no trace comparison yet |
+| `Event34_MessWithUnitState` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | only subs 5, 10 and 15 are compared; breaks in other subs and the CLEA loop survive |
 
 ## src/bmbattle.c (21)
 

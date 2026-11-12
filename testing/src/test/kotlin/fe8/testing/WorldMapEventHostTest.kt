@@ -15,7 +15,21 @@ import fe8.game.event.EventTextTalkHost
 import fe8.game.event.EventState
 import fe8.game.event.ScriptMemory
 import fe8.game.flags.Fe8EventFlags
+import fe8.game.scene.FaceState
 import fe8.game.worldmap.GmData
+import fe8.game.worldmap.GmapRmBaPalAnimProc
+import fe8.game.worldmap.GmapRmBorderProc
+import fe8.game.worldmap.WmFaceCtrlState
+import fe8.game.worldmap.WmFaceHolderState
+import fe8.game.worldmap.WorldMapFace
+import fe8.game.worldmap.WorldMapFaceEvents
+import fe8.game.worldmap.WorldMapRmBaPalAnim
+import fe8.game.worldmap.WorldMapRmBorder
+import fe8.game.scene.TalkScene
+import gbafe.core.rng.LcgRng
+import gbafe.render.ApHost
+import gbafe.render.SpriteAnimPlayer
+import gbafe.render.SpriteObject
 import fe8.game.worldmap.GmapLineFadeProc
 import fe8.game.worldmap.GmapMuEntryProc
 import fe8.game.worldmap.GmapRmProc
@@ -61,14 +75,20 @@ import gbafe.render.BgHardware
 import gbafe.render.PaletteFade
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * The opening of the Prologue world map, steps 4907-5495 of `ram_trace_prologue`, run through the
+ * The opening of the Prologue world map, steps 4907-8110 of `ram_trace_prologue`, run through the
  * event VM: `EventScrWM_Prologue_Beginning` (started by `WorldMap_CallBeginningEvent`'s
  * `CallEvent`) drives the opcodes registered one by one below; the `GmapRM`, `GmapLineFade`,
  * `BmFadeIN` and `GmapMuEntry2` procs are started by the script, not by the test.
+ *
+ * From step 5496 (the joined run, D11-wm8) the same VM runs the portrait, camera scroll and nation
+ * highlight commands with all handlers real (C4, C5, B6, B8, B9, BA, 1C, 1D, 0E): the portrait
+ * controller and faces, `GmapRmUpdateExt`, the border and its blend pulse join the watched procs.
+ * The original's frames can straddle several steps there; see the loop at the end of the test.
  *
  * Seeds: the `r04920` dump (GmData with the camera and `no_fade` poisoned, LCD buffer, palette
  * buffer, scanline buffer, BG0 tilemap: `WorldMap_Init` and the fade set them before 4907 and
@@ -96,7 +116,11 @@ class WorldMapEventHostTest {
         "EventB4_WmDisplayBigMap", "EventB6_WmMoveBigMap", "EventC6_WmDisplayText", "EventC7_",
         "StartWmTextMsg", "sub_80080D0", "sub_8008108", "sub_8008F3C",
         "sub_8008F64", "sub_8008FAC", "sub_8008FB4", "TalkSpritePrepNextChar",
-        "InitSpriteTextFont", "InitSpriteText",
+        "InitSpriteTextFont", "InitSpriteText", "Event1D_TalkContinue",
+        // The joined run 5495-8110, with the handlers of the sibling tests (camera, faces):
+        "EventB8_WmShowBigMapHighlight", "EventB9_WmRemoveHighlightNationPart1",
+        "EventBA_WmRemoveHighlightNationPart2", "EventC4_WmShowPortrait",
+        "EventC5_WmClearPortrait", "Event0E_STAL",
     )
     fun `the opening script starts the map, fades and entry bands like the original`() {
         assumeTrue(available(), "reference data / ROM / nm file not present")
@@ -200,15 +224,6 @@ class WorldMapEventHostTest {
         )
         val bgm = EventBgm(eventState, mem, SoundWrapper(engine, null) { 0 })
         val spawn = WorldMapSpawnEvents(mem, gm) { _, _, _, _ -> error("slot already holds Eirika") }
-        val bigMap = WorldMapBigMapEvents(
-            mem,
-            WmBigMapHooks(
-                startGmapRm = { x, y, c -> rm.startGmapRm(x, y, c, null) },
-                startGmapRmUpdateExt = { x0, y0, x1, y1, speed, delay ->
-                    rm.startGmapRmUpdateExt(x0, y0, x1, y1, speed, delay, null)
-                },
-            ),
-        )
         val textFade = WorldMapTextFadeEvents(
             mem, gbafe.render.ScreenFade(engine, hw.lcd),
             WmTextFadeHooks(
@@ -219,12 +234,36 @@ class WorldMapEventHostTest {
             ),
         )
         val wmTextEvents = WorldMapTextEvents(mem, wmText)
+        // The big map border (nation highlight) and its blend pulse.
+        val spriteCache = HashMap<Int, SpriteObject>()
+        val apHost = object : ApHost {
+            override fun objectAt(addr: Int) = spriteCache.getOrPut(addr) { rom.objN(addr) }
+            override fun sin(a: Int) = 0
+            override fun cos(a: Int) = 0x1000
+            override fun setObjAffine(index: Int, pa: Int, pb: Int, pc: Int, pd: Int) {}
+            override fun register2dChrMove(src: Int, dstOffset: Int, width: Int, height: Int) {}
+            override fun obj1dMap() = false
+        }
+        val player = SpriteAnimPlayer({ rom.u16(it) }, layers, apHost)
+        player.clearAll()
+        val baPal = WorldMapRmBaPalAnim(engine, hw.lcd) { 1 }
+        val border = WorldMapRmBorder(engine, hw, rom, player, baPal) { rm.gmapRmGetPosition() }
+        // The portraits run on the production talk scene (its own face procs and palette loads).
+        val scene = TalkScene(
+            rom, romBytes, hw, engine, layers, keyStatus, { 0 },
+            MsgStrings(romBytes, MsgHuffman(romBytes, 0, 0), 0), {}, { 0 }, {}, LcgRng(),
+        )
+        val faces = WorldMapFace(engine, hw, gm, rom, scene.face, scene, scene)
+        faces.setupFaceConfig()
+        val faceEvents = WorldMapFaceEvents(mem, faces)
+        val bigMap = WorldMapBigMapEvents(mem, WmBigMapHooks.of(rm, border))
         val eventText = EventText(eventState, mem, eventTextHost)
-        // Exactly the opcodes of steps 4907-5500.
+        // Exactly the opcodes of steps 4907-8110.
         events.register(0x0E, core.event0eStal)
         events.register(0x10, core.event10ModifyEvBit)
         events.register(0x12, bgm.event12StartBgm)
         events.register(0x13, bgm.event13BgmFadeIn)
+        events.register(0x1C, eventText.event1dTalkContinue)
         events.register(0x1D, eventText.event1dWaitForLockTalk)
         events.register(0x85, scroll.CameraEvents(mem).event85SetCameraOntoUnit)
         events.register(0xAF, textFade.eventAFWmShowTextBox)
@@ -233,6 +272,11 @@ class WorldMapEventHostTest {
         events.register(0xB3, textFade.eventB3WmFancyFadeWait)
         events.register(0xB4, bigMap.eventB4WmDisplayBigMap)
         events.register(0xB6, bigMap.eventB6WmMoveBigMap)
+        events.register(0xB8, bigMap.eventB8WmShowBigMapHighlight)
+        events.register(0xB9, bigMap.eventB9WmRemoveHighlightNationPart1)
+        events.register(0xBA, bigMap.eventBAWmRemoveHighlightNationPart2)
+        events.register(0xC4, faceEvents.eventC4WmShowPortrait)
+        events.register(0xC5, faceEvents.eventC5WmClearPortrait)
         events.register(0xC6, wmTextEvents.eventC6WmDisplayText)
         events.register(0xC7, wmTextEvents.eventC7)
         events.register(0xC2, spawn.eventC2WmNoFade)
@@ -247,22 +291,36 @@ class WorldMapEventHostTest {
         )
         val proc = WorldMapMainProc()
         main.callBeginningEvent(
-            proc, nodes, { flags.checkFlag(it) }, beginning.hooks(proc, muEntry = muEntry),
+            proc, nodes, { flags.checkFlag(it) }, beginning.hooks(proc, faces = faces, muEntry = muEntry, mainProc = { mainProc }),
         )
+
+        // The original starts the face controller inside the main proc's pass (step 4907), so it
+        // has already run its first loop pass when the step ends.
+        engine.run(engine.find(faces.ctrlScript))
 
         val symbol = HashMap<ProcScript, String>()
         for (s in listOf(
             events.stdScript, muEntry.script, rm.rmScript, rm.updateDirectScript, fade.script,
-            lineFade.script, rm.updateExtScript, wmText.script, rig.talk.talkScript, rig.skipScript,
+            lineFade.script, rm.updateExtScript, wmText.script, faces.ctrlScript, faces.holderScript,
+            faces.extraFrameScript, border.script, baPal.script, rig.talk.talkScript, rig.skipScript,
             rig.talk.waitForInputScript, rig.talk.lockScript, rig.talk.spriteShiftClearScript,
             rig.talk.spriteShiftWaitScript, rig.talk.spriteShiftStepScript,
         )) symbol[s] = s.name
         val watched = symbol.values.toSet()
 
+        // The port's E_FACE script has no camera-move wait (WorldMapFace.extraFrameScript): its
+        // sleep and idle positions are the original's 3 (first step) and 6 (idle repeat).
+        fun faceCursor(cur: Int) = when (cur) {
+            1 -> 3
+            4 -> 6
+            else -> -cur
+        }
+
         fun snapshot(): List<String> = engine.procs.filter { it.script != null }
             .mapNotNull { p ->
                 val n = symbol[p.script!!] ?: return@mapNotNull null
-                "$n@${p.scrCur}/l${p.lockCnt}/${p.parent?.script?.name ?: "root${p.rootIndex}"}"
+                val cur = if (p.script === faces.extraFrameScript) faceCursor(p.scrCur) else p.scrCur
+                "$n@$cur/l${p.lockCnt}/${p.parent?.script?.name ?: "root${p.rootIndex}"}"
             }.sorted()
 
         fun expectedSnapshot(step: Int): List<String> {
@@ -272,6 +330,8 @@ class WorldMapEventHostTest {
                 "${p.name}@${p.scrCur}/l${p.u8(0x28)}/${parent?.name ?: "root${p.u32(0x14)}"}"
             }.sorted()
         }
+
+        val borderAddress = names.entries.first { it.value == "ProcScr_GmapRmBorder1" }.key
 
         fun compareFields(step: Int, dump: ProcArrayDump) {
             dump.find("gProcScr_GmapMuEntry2")?.let { t ->
@@ -336,6 +396,64 @@ class WorldMapEventHostTest {
                 val mine = intArrayOf(x.x0, x.y0, x.x1, x.y1, x.delay, x.timer, x.speed)
                 assertEquals(
                     keep.map { theirs[it] }, keep.map { mine[it] }, "GmapRmUpdateExt fields at $step",
+                )
+            }
+            dump.find("ProcScr_WorldMapFaceCtrl")?.let { c ->
+                val ctrl = checkNotNull(engine.find(faces.ctrlScript)).state as WmFaceCtrlState
+                assertEquals(
+                    listOf(c.u16(0x2A), c.u8(0x30), c.u8(0x31)),
+                    listOf(ctrl.timer, ctrl.increment and 0xFF, ctrl.blendAmt),
+                    "WorldMapFaceCtrl timer / increment / blendAmt at $step",
+                )
+            }
+            dump.find("ProcScr_WorldMapFaceHolder")?.let { p ->
+                val holder = checkNotNull(engine.find(faces.holderScript)).state as WmFaceHolderState
+                for (i in 0..1) {
+                    val at = 0x2C + 12 * i
+                    val w = holder.faceWrapper[i]
+                    assertEquals(
+                        listOf(
+                            p.u16(at), p.u16(at + 2), if (p.u32(at + 4) == 0) 0 else 1,
+                            p.u16(at + 8), p.u8(at + 10).toByte().toInt(),
+                        ),
+                        listOf(
+                            w.x and 0xFFFF, w.y, if (w.faceProc == null) 0 else 1, w.faceId, w.unk0a,
+                        ),
+                        "face wrapper $i at $step",
+                    )
+                }
+            }
+            dump.find("gProcScr_E_FACE_ExtraFrame")?.let { f ->
+                val st = checkNotNull(engine.find(faces.extraFrameScript)).state as FaceState
+                assertEquals(
+                    listOf(
+                        f.u32(0x30), f.u16(0x34).toShort().toInt(), f.u16(0x36).toShort().toInt(),
+                        f.u16(0x3C), f.u16(0x3E), f.u8(0x40), f.u8(0x41), f.u32(0x38),
+                    ),
+                    listOf(
+                        st.displayBits, st.xPos, st.yPos, st.oam2, st.faceId, st.faceSlot,
+                        st.spriteLayer, st.sprite?.id,
+                    ),
+                    "E_FACE fields at $step",
+                )
+            }
+            val borders = dump.findAll(borderAddress)
+            var mine = engine.findAfter(border.script, null)
+            for (t in borders) {
+                val b = checkNotNull(mine) { "border proc at $step" }
+                val st = b.state as GmapRmBorderProc
+                assertEquals(
+                    listOf(t.u8(0x29), t.u8(0x2A), t.u8(0x2B), t.u16(0x30)),
+                    listOf(st.flag, st.index, st.slot, st.timer),
+                    "GmapRmBorder1 fields at $step",
+                )
+                mine = engine.findAfter(border.script, b)
+            }
+            dump.find("ProcScr_GmapRmBaPalAnim1")?.let { t ->
+                val st = checkNotNull(engine.find(baPal.script)).state as GmapRmBaPalAnimProc
+                assertEquals(
+                    listOf(t.u8(0x29), t.u16(0x2A).toShort().toInt()), listOf(st.flag, st.timer),
+                    "GmapRmBaPalAnim1 fields at $step",
                 )
             }
             dump.find("ProcScr_BmFadeIN")?.let { t ->
@@ -425,6 +543,15 @@ class WorldMapEventHostTest {
             }
         }
 
+        fun comparePortraitTiles(step: Int) {
+            val vram = run.region("f%05d".format(step), "vram")
+            assertEquals(
+                vram.copyOfRange(0x5000, 0x6000).toList(),
+                hw.vram.copyOfRange(0x5000, 0x6000).toList(),
+                "BG portrait tiles at $step",
+            )
+        }
+
         fun compare(step: Int) {
             val dump = ProcArrayDump.ofWatch(trace, step, names)
             val t = checkNotNull(dump.find("ProcScr_StdEventEngine")) { "event engine at $step" }
@@ -489,7 +616,7 @@ class WorldMapEventHostTest {
 
         compare(4907)
         val clock0 = rig.trace.clock(4920) - 4920
-        for (step in 4908..LAST_STEP) {
+        for (step in 4908..TEXT_LAST) {
             if (step in LAG_STEPS) continue
             // One frame per non-lag step; the frame's inputs and clock are those of its end step.
             keyStatus.update(run.inputs[step - 1])
@@ -502,6 +629,35 @@ class WorldMapEventHostTest {
             if (step == 5100 || step == 5400) compareTextVram(step)
             if (step == 5100) compareFullDump()
         }
+
+        // 5496..8110: portraits, scrolls and highlights. A frame of the original can straddle
+        // several steps (a long handler, e.g. the graphics load of B8 or C4, sits inside the event
+        // engine's turn): the face controller, the first proc of the frame, ticks on the first
+        // step of each frame, and the procs after the engine only run once the handler is done.
+        // So the port runs one frame per tick of the controller's timer (the first step of the
+        // original's frame) and compares at the last step before the next tick.
+        fun ticked(step: Int): Boolean =
+            ProcArrayDump.ofWatch(trace, step, names).find("ProcScr_WorldMapFaceCtrl")!!.u16(0x2A) !=
+                ProcArrayDump.ofWatch(trace, step - 1, names).find("ProcScr_WorldMapFaceCtrl")!!.u16(0x2A)
+        var frames = 0
+        var multi = 0
+        var first = TEXT_LAST + 1
+        while (first <= LAST_STEP) {
+            check(ticked(first)) { "step $first starts no frame" }
+            var last = first
+            while (last < LAST_STEP && !ticked(last + 1)) last++
+            keyStatus.update(run.inputs[first - 1])
+            rig.keys = keyStatus.newKeys
+            rig.clock = clock0 + first
+            frame()
+            frames++
+            if (last > first) multi++
+            compare(last)
+            for (d in PORTRAIT_DUMPS) if (d in first..last) comparePortraitTiles(d)
+            first = last + 1
+        }
+        assertEquals(LAG_STEPS_AFTER, multi, "frames spanning several steps")
+        assertTrue(frames > 2400, "frames run: $frames")
     }
 
     /**
@@ -557,8 +713,17 @@ class WorldMapEventHostTest {
         /** Steps inside a lag frame: `GmapRm_StartUpdateDirect` and `StartWmTextMsg`. */
         val LAG_STEPS = setOf(4944, 4945, 4946, 4947, 5103, 5104, 5105, 5191, 5221, 5281, 5311, 5371)
 
+        /** Last step of the text phase (one frame per step); the next frame is at 5496. */
+        const val TEXT_LAST = 5495
+
+        /** Frames of the portrait/scroll phase that span more than one step (read from the capture). */
+        const val LAG_STEPS_AFTER = 17
+
+        /** Full dumps inside the portrait phase: the BG portrait tiles. */
+        val PORTRAIT_DUMPS = setOf(6000, 6300, 6600, 6900, 7200, 7500)
+
         /** Last step compared. */
-        const val LAST_STEP = 5495
+        const val LAST_STEP = 8110
 
         /** Steps with a RAM dump inside the opening window (blend and scanline state). */
         val DUMPS = setOf(4920, 4950, 4980, 5010, 5040, 5070, 5100)

@@ -277,8 +277,11 @@ public class EventText(
     }
 
     /**
-     * Transcribed from src/eventscr.c: Event1D_TalkContinue (not verified: no 0x1C in the traced
-     * scripts)
+     * Ported from src/eventscr.c: Event1D_TalkContinue
+     *
+     * Verified: the not-skipping branch (`ResumeTalk` ends the `TalkLock` proc of a sprite talk),
+     * the 0x1C commands of the Prologue world map (steps 5496-8110, WorldMapEventHostTest). The
+     * skipping branch is not in a trace.
      */
     public val event1dTalkContinue: EventHandler = EventHandler { proc ->
         if (proc.evStateBits and EV_STATE_SKIPPING != 0) endText(proc) else host.resumeTalk()

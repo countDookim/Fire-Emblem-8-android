@@ -111,13 +111,13 @@ class OpSubtitleBootTest {
 
     /**
      * The monologue's own code and its wiring (fades, key status, proc starts) allocate nothing
-     * in frames inside one command's repeat loop. Run without the m4a driver: its sequencer
-     * allocates on some song events (open item), which is not part of the wiring.
+     * in frames inside one command's repeat loop, with the m4a driver running (its sequencer used
+     * to allocate a function reference on every `PATT`).
      */
     @Test
     fun `monologue steady frames allocate no bytes`() {
         assumeTrue(AllocationMeter.supported, "allocation meter unavailable")
-        playThrough(run(withSound = false)!!, allocationFree = true)
+        playThrough(run(withSound = true)!!, allocationFree = true)
     }
 
     /** Every live proc's script and cursor: unchanged while all procs sit in repeat loops. */

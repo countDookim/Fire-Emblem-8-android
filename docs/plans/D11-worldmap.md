@@ -338,3 +338,24 @@ sub_8008FAC, sub_8008FB4, TalkSpritePrepNextChar, InitSpriteTextFont, InitSprite
 (object palette writes not seen: mutations survive), sub_8008F54 and SpriteText_Clear (tail unobservable), the
 three sprite-shift scripts (positions only), Event13. TalkSkipListener is still the test rig's transcription
 (`TalkRig`), not production code.
+
+### 8 joined run: 4907 -> 8110 in one `WorldMapEventHostTest` pass (gaps worktree)
+
+The host test now continues from 5495 to 8110 with every handler real: C4, C5 (`WorldMapFaceEvents`), B6, B8, B9, BA
+(`WorldMapBigMapEvents.of(rm, border)`), 1C (`Event1D_TalkContinue`), 1D, 0E, C6, C7. No stand-ins. Portraits run on a
+`TalkScene` (production face procs) next to the text `TalkRig`; `WorldMapBeginning.hooks(faces=...)` starts the face
+controller at 4907 (after one engine run of its own, as the original runs it in the same step). Watched procs added:
+FaceCtrl, FaceHolder, `E_FACE`, `GmapRmBorder1`, `GmapRmBaPalAnim1` (plus the existing UpdateExt, Talk family); fields
+compared as in the camera and face tests; BG portrait tiles at f06000..f07500.
+Result: no divergence between the handlers when run together. Two things differ from the sibling tests:
+- Frames. A frame of the original straddles several steps whenever a long handler (B8 graphics load, C4) runs inside
+  the event engine's turn: procs created after the engine (Talk and children) only run once it returns, so the dumps in
+  between are half frames. The face controller ticks on the first step of each frame, so the joined run runs one port
+  frame per tick and compares at the last step before the next tick (17 multi-step frames, none else lagging); the
+  sibling lag lists (13 highlight starts + 6 stalls) are inside those. 4907-5495 keeps the old per-step lag list.
+- `E_FACE` script: the port's `extraFrameScript` has no camera-move wait, so its cursor is mapped (port 1/4 -> original
+  3/6) in the proc-tree snapshot.
+`Event1D_TalkContinue` (opcode 1C, first run: ends the `TalkLock` of the sprite talk, first at 5527) is now tagged and
+break-checked (dropping `resumeTalk` fails at 5531). Per-step BLDCNT/OBJ/palette comparisons of the siblings are not
+repeated here; D11-wm9 can rely on the handlers composing.
+

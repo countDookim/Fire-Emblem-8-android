@@ -22,6 +22,14 @@ import gbafe.render.BgHardware
  * [WorldMapMain.MainHooks] and [WorldMapMainScript]) and [endWm] into
  * `GameControl.Hooks.endWorldMap`.
  *
+ * @param engine the proc scheduler
+ * @param hardware the LCD registers and backgrounds
+ * @param playSt `gPlaySt` (chapter index, route)
+ * @param gmData `gGMData`
+ * @param nodes `gWMNodeData`
+ * @param rom the ROM (event tables)
+ * @param chapters `gChapterDataTable` access (`GetROMChapterStruct`)
+ * @param events the event engine
  * @param mainScript `ProcScr_WorldMapMain`
  * @param fadeInScript `ProcScr_BmFadeIN`
  * @param faces the world map portraits (`HideWmFace`, `EndWMFaceCtrl`, `StartWMFaceCtrl`)
@@ -30,6 +38,7 @@ import gbafe.render.BgHardware
  * @param rm the big map (`EndGmapRM`, `EndGmapRmUpdateExt`)
  * @param scroll `GetWMCenteredCameraPosition`
  * @param mainProc the `ProcScr_WorldMapMain` proc, parent of the portrait controller
+ * @param hooks the unported callees
  */
 public class WorldMapExit(
     private val engine: ProcEngine,
@@ -166,8 +175,9 @@ public class WorldMapExit(
      * Transcribed from src/worldmap_main.c: ResetWorldMapScreen (not verified: the battle map
      * start rewrites the registers before the next dump)
      *
-     * Blanks the display, clears the blend targets (second target: backdrop and OBJ) and fades
-     * the music and sound effects out.
+     * Blanks the display, clears the blend (second target: BG3 and OBJ, from
+     * `SetBlendTargetB(0, 0, 0, 1, 1)`) and fades the music and sound effects out; the last
+     * step of `ProcScr_WorldMapMain` before it ends.
      */
     public fun resetWorldMapScreen() {
         hardware.lcd.setDispEnable(0, 0, 0, 0, 0)
@@ -216,6 +226,7 @@ public class WorldMapExit(
     /**
      * The callees that are not ported or live outside the world map code. All default to nothing;
      * `WorldMapBoot` connects the ones the Prologue needs, the others are marked on their hook.
+     * "M6-I" and "D11-wire-a" are the plan items that will port the stand-ins.
      */
     public class Hooks(
         /**
@@ -274,7 +285,7 @@ public class WorldMapExit(
     )
 
     private companion object {
-        /** `GM_STATE_MONSGEN` (`monster_merged`). */
+        /** `GM_STATE_MONSGEN` (`monster_merged`, include/worldmap.h:441). */
         const val GM_STATE_MONSTER_MERGED = 0x02
 
         /** `GM_STATE_SKIPPED` (`skip_wm`). */
@@ -286,16 +297,16 @@ public class WorldMapExit(
         /** `state_0`, `skip_wm` and `no_fade`. */
         const val EXIT_CLEARED_BITS = 0x01 or GM_STATE_SKIPPED or GM_STATE_NOFADE
 
-        /** Label 15 of `ProcScr_WorldMapMain`: `WorldMap_CallIntroEvent`. */
+        /** `PROC_LABEL(15)` of `ProcScr_WorldMapMain` (worldmap_main.c:911). */
         const val LABEL_INTRO_EVENT = 15
 
-        /** `GMAP_NODE_PLACEMENT_DUNGEON`. */
+        /** `GMAP_NODE_PLACEMENT_DUNGEON` (include/worldmap.h:324): a dungeon node. */
         const val PLACEMENT_DUNGEON = 3
 
-        /** `gmapEventId` in `struct ROMChapterData`. */
+        /** Offset of `gmapEventId` in `struct ROMChapterData` (include/chapterdata.h:85). */
         const val OFF_GMAP_EVENT_ID = 0x75
 
-        /** GBA address of `Events_WM_ChapterIntro`. */
+        /** GBA address of `Events_WM_ChapterIntro` (data/data_8B363C.s:306). */
         const val EVENTS_WM_CHAPTER_INTRO = 0x088B3AD8
     }
 }

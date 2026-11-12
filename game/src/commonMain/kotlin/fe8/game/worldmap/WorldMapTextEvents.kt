@@ -23,7 +23,9 @@ public class WorldMapTextEvents(
     /**
      * Ported from src/eventscr_gmap.c: EventC6_WmDisplayText
      *
-     * Starts the text of message `a | b` (the halfwords at `+4` and `+6`). The `EV_STATE_0020`
+     * Prints a world map text box message ([WorldMapText.startWmTextMsg]): the message id is
+     * `a | b`, the halfwords at `+4` and `+6` (the decomp ORs the two halves of a 32-bit id).
+     * Yields so the script waits for the text; does nothing while skipping. The `EV_STATE_0020`
      * branch (`SetTalkFlag(TALK_FLAG_NOSKIP)`, a flag `StartWmTextMsg` already sets) is not run by
      * any capture and fails loudly.
      */
@@ -39,7 +41,8 @@ public class WorldMapTextEvents(
     /**
      * Ported from src/eventscr_gmap.c: EventC7_
      *
-     * Shows the text box at the bottom of the screen.
+     * Shows the text box at the bottom of the screen (`ShowWmText(1)`; `EventC8_` is the same
+     * at the top) and yields; does nothing while skipping.
      */
     public val eventC7: EventHandler = EventHandler { proc: EventEngineProc ->
         if (proc.evStateBits and EV_STATE_SKIPPING != 0) return@EventHandler EVC_ADVANCE_CONTINUE

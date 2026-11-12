@@ -23,7 +23,10 @@ public class WorldMapApHost(
     private val hw: BgHardware,
     private val oam: OamBuffer,
 ) : ApHost {
-    /** The seven decompressed map sprite sheets at `gUnknown_0200AF00` (0x2200 bytes each). */
+    /**
+     * The seven decompressed map sprite sheets at `gUnknown_0200AF00` (0x2200 bytes each;
+     * `GetMapUnitMMSGfxBuffer(idx)` is `gUnknown_0200AF00 + idx * 0x2200`, worldmap_gmapunit.c:30).
+     */
     public val muGfx: ByteArray = ByteArray(MU_GFX_SLOTS * MU_GFX_SIZE)
 
     private val objects = HashMap<Int, SpriteObject>()
@@ -31,10 +34,13 @@ public class WorldMapApHost(
     /** The sprite object at ROM address [addr], parsed once and cached. */
     override fun objectAt(addr: Int): SpriteObject = objects.getOrPut(addr) { rom.objN(addr) }
 
-    /** `gSinLookup[a & 0xFF]` (signed 4.12). */
+    /** `SIN(a)` = `gSinLookup[a & 0xFF]` (hardware.h:237; signed 4.12). */
     override fun sin(a: Int): Int = rom.u16(SIN_LOOKUP + 2 * (a and 0xFF)).toShort().toInt()
 
-    /** `gCosLookup[a & 0xFF]`: the sine table read a quarter turn (0x40 entries) ahead. */
+    /**
+     * `COS(a)` = `gSinLookup[0x40 + (a & 0xFF)]` (hardware.h:238): the sine table read a quarter
+     * turn (0x40 entries) ahead; there is no separate cosine table.
+     */
     override fun cos(a: Int): Int =
         rom.u16(SIN_LOOKUP + 2 * (0x40 + (a and 0xFF))).toShort().toInt()
 
@@ -64,13 +70,23 @@ public class WorldMapApHost(
         }
     }
 
-    /** Whether OBJ tiles use 1D mapping (DISPCNT bit 6). */
+    /**
+     * Whether OBJ tiles use 1D mapping (DISPCNT bit 6, `dispcnt.obj1dMap`); `AP_UpdateFrame`
+     * (src/ap.c:232) advances the tile offset differently in the two modes.
+     */
     override fun obj1dMap(): Boolean = hw.lcd.dispcnt and 0x40 != 0
 
     private companion object {
+        /** ROM address of `gSinLookup` (not listed in the decomp). */
         const val SIN_LOOKUP = 0x080D751C
+
+        /** Bytes per 4bpp tile. */
         const val CHR_SIZE = 0x20
+
+        /** Offset of `OBJ_VRAM0` (0x06010000) in VRAM. */
         const val OBJ_VRAM0 = 0x10000
+
+        /** EWRAM address of `gUnknown_0200AF00`, the slot count (`WM_MU_MAX`) and slot size. */
         const val MU_GFX_BASE = 0x0200AF00
         const val MU_GFX_SLOTS = 7
         const val MU_GFX_SIZE = 0x2200

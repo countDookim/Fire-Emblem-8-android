@@ -3,7 +3,11 @@ package fe8.game.worldmap
 import gbafe.render.HBlankHandler
 import gbafe.render.HBlankHandlers
 
-/** Receives the palette colour [WorldMapHblank] writes to palette RAM during HBlank. */
+/**
+ * Receives the palette color [WorldMapHblank] writes to palette RAM during HBlank (the
+ * per-scanline palette entry change the world map's entry band uses, see
+ * `GmMuEntry`/worldmap_entry.c:513).
+ */
 public fun interface PaletteLineWriter {
     /** Sets palette entry [index] (0..255 background, 256.. object) to [color] from [line] on. */
     public fun write(line: Int, index: Int, color: Int)
@@ -12,13 +16,16 @@ public fun interface PaletteLineWriter {
 /**
  * The scanline-effect state of the world map (`src/worldmap_hb.c`): a double-buffered table of
  * per-scanline register values (`gUnknown_0201BE32`) that `WorldMapHblank` copies into up to three
- * hardware registers during HBlank, plus the status bits `gWmHblankStatus`.
+ * hardware registers during HBlank, plus the status bits `gWmHblankStatus`. World map effects
+ * that change something line by line (the opening's line fade, the entry band) fill the table
+ * and register the targets.
  *
  * The handler [handler] copies the active page's per-line values into up to three registers
  * ([registers] latched at line 160 into [activeRegisters]); the register is an I/O register
  * (written into the register image the renderer captures per line) or a palette entry (handed
- * to [palette]). The Prologue's world map uses BG0VOFS, BLDY and palette colour 42 (bank 2
- * colour 10, the text box's gradient).
+ * to [palette]). The world map uses BG0VOFS (`0x04000012`, worldmap_entry.c:508), BLDY
+ * (`0x04000054`, worldmap_line_fade.c:108) and palette byte 0x54 (`0x05000054`,
+ * worldmap_entry.c:513), i.e. palette color 42 (bank 2 color 10).
  *
  * @param palette where `0x05000000` register writes go; null drops them (tests)
  */
@@ -33,7 +40,10 @@ public class WorldMapHblank(private val palette: PaletteLineWriter? = null) {
      */
     public val registers: IntArray = IntArray(3)
 
-    /** `gUnknown_0201C5CC[3]`: per-line flags; the accessors here only keep bits 0 and 1. */
+    /**
+     * `gUnknown_0201C5CC[3]`: per-line flags (meaning unknown; the decomp's accessors only keep
+     * bits 0 and 1 and nothing reads them in the files checked).
+     */
     public val flags: IntArray = IntArray(3)
 
     /** `gUnknown_0201C5CF`: the page the HBlank handler is not reading. */
@@ -43,13 +53,14 @@ public class WorldMapHblank(private val palette: PaletteLineWriter? = null) {
     public var activePage: Int = 0
 
     /**
-     * `gWmHblankStatus` (shared with the text box, `worldmap_text.c`): bit 0 text, bit 2 enables
-     * the register copy. Bit 1 (the `REG_WIN0H` copy of the map-animation scanline buffer) is
-     * never set by world map code, so [onHBlank] leaves that branch out.
+     * `gWmHblankStatus` (also cleared by the text box, `worldmap_text.c`): bit 0 is only cleared
+     * by the text code and never read (meaning unknown), bit 2 enables the register copy. Bit 1
+     * (the `REG_WIN0H` copy of the map-animation scanline buffer) is never set by world map code,
+     * so [onHBlank] leaves that branch out.
      */
     public var status: Int = 0
 
-    /** `gUnknown_0201C5C0[3]`: the registers the handler writes this frame (latched at line 160). */
+    /** `gUnknown_0201C5C0[3]`: the registers written this frame (latched at line 160). */
     public val activeRegisters: IntArray = IntArray(3)
 
     /** `gUnknown_0201C5D1`: the handler writes [activeRegisters] this frame. */
@@ -87,6 +98,10 @@ public class WorldMapHblank(private val palette: PaletteLineWriter? = null) {
         }
     }
 
+    /**
+     * Writes [value] to the register address [reg]: region 4 (`0x04......`) is the I/O register
+     * image, region 5 (`0x05......`) palette RAM, applying from [line] on.
+     */
     private fun write(reg: Int, value: Int, line: Int, io: ByteArray) {
         val offset = reg and 0xFFFFFF
         when (reg ushr 24) {
@@ -100,6 +115,8 @@ public class WorldMapHblank(private val palette: PaletteLineWriter? = null) {
 
     /**
      * Ported from src/worldmap_hb.c: SetWorldMapHblank
+     *
+     * Called when the world map starts.
      *
      * Clears the slots, pages and [status] and installs [handler] as [handlers]' primary handler.
      */
@@ -120,6 +137,8 @@ public class WorldMapHblank(private val palette: PaletteLineWriter? = null) {
     /**
      * Ported from src/worldmap_hb.c: ClearWmHblank
      *
+     * Called when the world map ends (`WorldMap_Destruct`).
+     *
      * Removes the primary handler of [handlers], zeroes [buffer] and [status].
      */
     public fun clearWmHblank(handlers: HBlankHandlers) {
@@ -131,43 +150,56 @@ public class WorldMapHblank(private val palette: PaletteLineWriter? = null) {
     /**
      * Ported from src/worldmap_hb.c: sub_80C1DA0
      *
-     * The index into [buffer] of line [line] on page `(page + pageOffset) & 1`; the original
-     * returns the pointer.
+     * Decomp name `sub_80C1DA0`. The index into [buffer] of line [line] on page
+     * `(page + pageOffset) & 1`; the original returns the pointer.
      */
-    public fun sub80C1DA0(line: Int, pageOffset: Int): Int =
+    public fun lineBufferIndex(line: Int, pageOffset: Int): Int =
         ((page + pageOffset) and 1) * PAGE_LENGTH + line * LINE_LENGTH
 
     /**
      * Ported from src/worldmap_hb.c: sub_80C1DC8
      *
-     * Swaps the page the next [sub80C1DA0] with offset 1 refers to.
+     * Decomp name `sub_80C1DC8`. Swaps the two pages: the page filled with offset 1 by
+     * [lineBufferIndex] becomes the one the handler reads next.
      */
-    public fun sub80C1DC8() {
+    public fun swapPages() {
         page = page xor 1
     }
 
     /**
      * Ported from src/worldmap_hb.c: sub_80C1DD8
      *
-     * Sets the register address line [idx] is copied to.
+     * Decomp name `sub_80C1DD8`. Sets the register address line [idx] (0..2) is copied to; 0 =
+     * unused.
      */
-    public fun sub80C1DD8(idx: Int, reg: Int) {
+    public fun setLineRegister(idx: Int, reg: Int) {
         registers[idx] = reg
     }
 
     /**
      * Transcribed from src/worldmap_hb.c: sub_80C1DE8 (not verified: [flags] is 0 in every dump
      * of the capture, so the masking cannot be told from a no-op)
+     *
+     * Decomp name `sub_80C1DE8`. Keeps only bits 0 and 1 of the per-line [flags] entry [idx].
      */
-    public fun sub80C1DE8(idx: Int) {
+    public fun maskLineFlags(idx: Int) {
         flags[idx] = flags[idx] and 3
     }
 
     private companion object {
+        /** Halfwords per line of a page (one per scanline of the 160 line screen). */
         const val LINE_LENGTH = 160
+
+        /** Halfwords per page: three lines (one per register), `* 480` in the decomp. */
         const val PAGE_LENGTH = 3 * LINE_LENGTH
+
+        /** Visible scanlines (`0xA0`). */
         const val SCREEN_LINES = 160
+
+        /** `vcount == 0xE4` (the last line, 228) wraps to line 0. */
         const val LAST_LINE = 0xE4
+
+        /** Top byte of the register address: `0x04` I/O registers, `0x05` palette RAM. */
         const val IO_REGION = 4
         const val PALETTE_REGION = 5
     }

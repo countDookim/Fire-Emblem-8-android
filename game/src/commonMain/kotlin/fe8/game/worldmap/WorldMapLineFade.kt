@@ -14,21 +14,31 @@ import gbafe.proc.ProcScripts.setEndCb
 import gbafe.proc.ProcScripts.yield
 import gbafe.render.LcdControl
 
-/** The fields of `struct GmapLineFadeProc` past `PROC_HEADER`. */
+/**
+ * Per-proc state of the opening fade `ProcScr_GmapLineFade`: the fields of
+ * `struct GmapLineFadeProc` (src/worldmap_line_fade.c) past `PROC_HEADER`.
+ */
 public class GmapLineFadeProc {
-    /** `unk_29` (+0x29, `u8`): the argument of `StartGmapLineFade`. */
+    /** `unk_29` (+0x29, `u8`): the argument of `StartGmapLineFade`; 2 = 100 frames. */
     public var unk29: Int = 0
 
-    /** `unk_2a` (+0x2A, `s16`): frames run. */
+    /** `unk_2a` (+0x2A, `s16`): frames run so far. */
     public var unk2a: Int = 0
 
-    /** `unk_2c` (+0x2C, `s16`): frames in total. */
+    /** `unk_2c` (+0x2C, `s16`): length of the fade in frames (50, or 100 for argument 2). */
     public var unk2c: Int = 0
 }
 
 /**
- * The scanline fade of the world map opening (`src/worldmap_line_fade.c`): a darken blend whose
- * per-scanline coefficient table sweeps down the screen while the generic fade-in runs.
+ * The scanline fade of the world map (`src/worldmap_line_fade.c`, the "fancy fade" of the event
+ * commands `EventB2_WmFancyFade` / `EventB3_WmFancyFadeWait`): a darken blend (`BLDY`) whose
+ * per-scanline coefficient table sweeps down the screen while the generic fade-in runs, so the
+ * screen is revealed line by line. The table is copied into `BLDY` by [WorldMapHblank].
+ *
+ * NOTE: [BLEND_EFFECT_DARKEN] below is 2, but `BLEND_EFFECT_DARKEN` is 3 in the decomp
+ * (include/gba/io_reg.h:549; 2 is `BLEND_EFFECT_BRIGHTEN`), so the port's `GmapLineFade_Init`
+ * selects brighten. It is not visible in the capture because `NewFadeIn` and the first scanline
+ * page overwrite the effect before the first dump; not fixed here.
  *
  * Only what the Prologue runs is written: `StartGmapLineFade(0, NULL)`, whose argument selects
  * the 50-frame variant (`NewFadeIn(2, 0)`); the 100-frame variant (argument 2), the blocking
@@ -46,7 +56,7 @@ public class WorldMapLineFade(
     private val newFadeIn: (speed: Int) -> Unit,
 ) {
     /**
-     * `ProcScr_GmapLineFade`.
+     * `ProcScr_GmapLineFade`: init, yield once, then [gmapLineFadeLoop] each frame.
      *
      * Transcribed from src/worldmap_line_fade.c: ProcScr_GmapLineFade (not verified: the script
      * position is checked per step in WorldMapEventHostTest, which cannot tag a script).
@@ -81,12 +91,13 @@ public class WorldMapLineFade(
     /**
      * Ported from src/worldmap_line_fade.c: GmapLineFade_80C0358
      *
-     * Fills the off-screen scanline page of line 0 for the current frame: 0 below the sweep edge
+     * Decomp name `GmapLineFade_80C0358`. Fills the off-screen scanline page of line 0 for the
+     * current frame: 0 below the sweep edge
      * `a`, a ramp from 0x10 over the 0x30 lines above it, 0x10 above that; then mirrors the first
      * 0x50 entries into the second half of the screen (reversed) and swaps the pages.
      */
     public fun gmapLineFade80C0358(proc: GmapLineFadeProc) {
-        val buf = hblank.sub80C1DA0(0, 1)
+        val buf = hblank.lineBufferIndex(0, 1)
         var coeff = Spline.divArm2(proc.unk2a, proc.unk2c, 0)
         val a = (Spline.divArm(0x1000, coeff * -0x80) + 0x80).toShort().toInt()
         val b = (Spline.divArm(0x1000, coeff * -0x80) + 0x50).toShort().toInt()
@@ -107,7 +118,7 @@ public class WorldMapLineFade(
         var bufA = buf
         var bufB = buf + 0x9F
         for (i in 0 until 0x50) hblank.buffer[bufB--] = hblank.buffer[bufA++]
-        hblank.sub80C1DC8()
+        hblank.swapPages()
     }
 
     /**
@@ -116,17 +127,21 @@ public class WorldMapLineFade(
      * overwritten by `NewFadeIn` and the first scanline page before the first dump at step
      * 4950; the frame count, scanline register, blend targets and status bit are checked)
      *
-     * Only the `unk_29 != 2` branch (the 50-frame fade) is run by the Prologue.
+     * Only the `unk_29 != 2` branch (the 50-frame fade) is run by the Prologue. Starts the
+     * generic fade-in (`NewFadeIn(2, 0)`), fills line 0 of the page with 0x10, points register
+     * slot 0 at `BLDY`, sets the darken blend with BG0-BG3 and OBJ as the first target, BG1-BG3
+     * and OBJ enabled and BG0 off (`SetDispEnable(0, 1, 1, 1, 1)`), and turns the scanline copy
+     * on (`gWmHblankStatus` bit 2).
      */
     public fun gmapLineFadeInit(proc: GmapLineFadeProc) {
         check(proc.unk29 != 2) { "not verified: no capture starts the line fade with 2" }
         newFadeIn(2)
         proc.unk2c = 50
         proc.unk2a = 0
-        val line0 = hblank.sub80C1DA0(0, 0)
+        val line0 = hblank.lineBufferIndex(0, 0)
         hblank.buffer.fill(0x10, line0, line0 + LINE_FILL)
-        hblank.sub80C1DD8(0, BLDY_REGISTER)
-        hblank.sub80C1DE8(0)
+        hblank.setLineRegister(0, BLDY_REGISTER)
+        hblank.maskLineFlags(0)
         lcd.setBlendConfig(BLEND_EFFECT_DARKEN, 16, 16, 16)
         lcd.setDispEnable(0, 1, 1, 1, 1)
         lcd.setBlendTargetA(1, 1, 1, 1, 1)
@@ -164,7 +179,10 @@ public class WorldMapLineFade(
     public fun isGmapLineFadeActive(): Boolean = engine.find(script) != null
 
     private companion object {
+        /** `PROC_MARK_WMSTUFF`. */
         const val PROC_MARK_WMSTUFF = 8
+
+        /** `PROC_TREE_3`. */
         const val ROOT_TREE = 3
 
         /** `CpuSet` of 0x140 bytes: the first two lines (160 halfwords each). */
@@ -172,7 +190,10 @@ public class WorldMapLineFade(
 
         /** `BLDY`, the register line 0 is copied to. */
         const val BLDY_REGISTER = 0x04000054
+        /** `BLEND_EFFECT_NONE`. */
         const val BLEND_EFFECT_NONE = 0
+
+        /** Should be `BLEND_EFFECT_DARKEN` = 3; see the NOTE on the class. */
         const val BLEND_EFFECT_DARKEN = 2
     }
 }

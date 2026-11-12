@@ -22,7 +22,8 @@ public class WorldMapSpawnEvents(
     /**
      * Ported from src/eventscr_gmap.c: EventC2_WmNoFade
      *
-     * Sets `gGMData.state.bits.no_fade` (bit 7 of the first byte).
+     * Sets `gGMData.state.bits.no_fade` (`GM_STATE_NOFADE`, bit 7 of the first byte): the world
+     * map exit then blanks the display instead of fading (`WorldMap_PostBeginningEvent`).
      */
     public val eventC2WmNoFade: EventHandler = EventHandler { _ ->
         gmData.stateRaw = gmData.stateRaw or NO_FADE
@@ -32,8 +33,11 @@ public class WorldMapSpawnEvents(
     /**
      * Ported from src/eventscr_gmap.c: EventC3_SpawnLord
      *
-     * Puts character `pid` on unit slot `unitId` at node `nodeId` unless the slot already holds
-     * that character. A class slot (state bit 1) is not run by any capture and fails loudly.
+     * Puts character `pid` on world map unit slot `unitId` (halfword `+4`; `pid` is at `+6`, the
+     * node at `+8` as a 32-bit value) at node `nodeId` (`SetGmCharUnit(unitId, pid, -1, nodeId)`)
+     * unless the slot already holds that character. When the slot's state bit 1 is set the
+     * decomp instead returns without spawning if `pid == 0`; the port fails loudly there because
+     * no capture runs that branch.
      */
     public val eventC3SpawnLord: EventHandler = EventHandler { proc ->
         val unitId = arg16(proc, 2)
@@ -48,12 +52,15 @@ public class WorldMapSpawnEvents(
         EVC_ADVANCE_CONTINUE
     }
 
-    /** The unsigned halfword at halfword [index] of the command. */
+    /**
+     * The unsigned halfword at halfword [index] of the command (0 = opcode); the decomp's
+     * `EVT_CMD_ARGV(cmd)[n]` is `arg16(proc, n + 1)`.
+     */
     private fun arg16(proc: EventEngineProc, index: Int) =
         memory.u16(proc.pEventCurrent + 2 * index)
 
     private companion object {
-        /** `GMStateBits.no_fade`. */
+        /** `GMStateBits.no_fade` / `GM_STATE_NOFADE` (include/worldmap.h:447). */
         const val NO_FADE = 0x80
     }
 }

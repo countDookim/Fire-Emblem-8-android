@@ -9,26 +9,35 @@ import fe8.game.event.EventEngineProc
 import fe8.game.event.EventHandler
 import fe8.game.event.ScriptMemory
 
-/** The callees of the world map big map commands; the defaults do nothing. */
+/**
+ * The callees of the world map big map commands ([WorldMapBigMapEvents]); the defaults do
+ * nothing. [of] wires the ported [WorldMapRm] and [WorldMapRmBorder].
+ */
 public class WmBigMapHooks(
-    /** `StartGmapRm(x, y, mask, NULL)`. */
+    /** `StartGmapRm(x, y, mask, NULL)`: shows the big map ([WorldMapRm.startGmapRm]). */
     public val startGmapRm: (Int, Int, Int) -> Unit = { _, _, _ -> },
-    /** `StartGmapRmUpdateExt(x0, y0, x1, y1, speed, delay, NULL)`. */
+    /** `StartGmapRmUpdateExt(x0, y0, x1, y1, speed, delay, NULL)`: scrolls the big map. */
     public val startGmapRmUpdateExt: (Int, Int, Int, Int, Int, Int) -> Unit =
         { _, _, _, _, _, _ -> },
-    /** `GmapRm_EndAll()`. */
+    /** `GmapRm_EndAll()`: ends the big map at once (event skip). */
     public val gmapRmEndAll: () -> Unit = {},
-    /** `GmapRm_SetUnblocked()`. */
+    /** `GmapRm_SetUnblocked()`: lets the big map proc leave its wait. */
     public val gmapRmSetUnblocked: () -> Unit = {},
-    /** `GmapRMExists()`. */
+    /** `GmapRMExists()`: whether the big map is showing. */
     public val gmapRmExists: () -> Boolean = { false },
-    /** `WmShowNationHighlightedMap(nation, NULL)`. */
+    /** `WmShowNationHighlightedMap(nation, NULL)`: highlights a nation's border on the big map. */
     public val showNationHighlightedMap: (Int) -> Unit = {},
-    /** `EndGmapRmBorder1(index)`. */
+    /** `EndGmapRmBorder1(index)`: ends the nation highlight [index] (all when negative). */
     public val endGmapRmBorder1: (Int) -> Unit = {},
-    /** `sub_80C2BC4(index)`. */
+    /**
+     * `sub_80C2BC4(index)` (src/worldmap_rm.c:788): whether the nation highlight proc [index]
+     * exists (any, when negative).
+     */
     public val sub80C2BC4: (Int) -> Boolean = { false },
-    /** `sub_80C2C10(index)`. */
+    /**
+     * `sub_80C2C10(index)` (src/worldmap_rm.c:813): sets `flag` on the nation highlight proc
+     * [index] (all when negative), which ends its hold and starts its merge-out.
+     */
     public val sub80C2C10: (Int) -> Unit = {},
 ) {
     /** Factory for hooks backed by the ported world-map services. */
@@ -75,11 +84,14 @@ public class WorldMapBigMapEvents(
         engine.register(0xBA, eventBAWmRemoveHighlightNationPart2)
     }
 
+    /** `EVENT_IS_SKIPPING(proc)`: the player is skipping the event. */
     private fun skipping(proc: EventEngineProc) = proc.evStateBits and EV_STATE_SKIPPING != 0
 
+    /** The unsigned halfword [index] of the command (0 = opcode); `ARGV[n]` is `arg16(n + 1)`. */
     private fun arg16(proc: EventEngineProc, index: Int) =
         memory.u16(proc.pEventCurrent + 2 * index)
 
+    /** [arg16] as a signed `s16` (the decomp casts the coordinates and speeds to `s16`). */
     private fun argS16(proc: EventEngineProc, index: Int) = arg16(proc, index).toShort().toInt()
 
     /** The `u32` at halfword [index] of the command. */
@@ -89,7 +101,9 @@ public class WorldMapBigMapEvents(
     /**
      * Ported from src/eventscr_gmap.c: EventB4_WmDisplayBigMap
      *
-     * The skipping branch is not run by the capture.
+     * Shows the full-screen big map at scroll `(x, y)` (halfwords `+4`, `+6`) with the flag mask
+     * (`u32` at `+8`, see [WorldMapRm.FLAG_0]). The skipping branch (nothing is shown) is not
+     * run by the capture.
      */
     public val eventB4WmDisplayBigMap: EventHandler = EventHandler { proc ->
         if (!skipping(proc)) {
@@ -101,6 +115,8 @@ public class WorldMapBigMapEvents(
     /**
      * Transcribed from src/eventscr_gmap.c: EventB5_WmHideBigMap (not verified: no @VerifiesPort
      * test names it).
+     *
+     * Lets the big map leave (`GmapRm_SetUnblocked`), or ends it at once while skipping.
      */
     public val eventB5WmHideBigMap: EventHandler = EventHandler { proc ->
         if (skipping(proc)) hooks.gmapRmEndAll() else hooks.gmapRmSetUnblocked()
@@ -112,6 +128,9 @@ public class WorldMapBigMapEvents(
      *
      * Verified through the event VM: the started `GmapRmUpdateExt` fields equal the capture's at
      * every step of all seven scrolls. The skipping branch is not run by the capture.
+     *
+     * Scrolls the big map from `(x1, y1)` to `(x2, y2)` over `speed` frames after `delay`
+     * ([WorldMapRm.startGmapRmUpdateExt]); the six `s16` arguments are at `+4..+14`.
      */
     public val eventB6WmMoveBigMap: EventHandler = EventHandler { proc ->
         if (!skipping(proc)) {
@@ -126,6 +145,8 @@ public class WorldMapBigMapEvents(
     /**
      * Transcribed from src/eventscr_gmap.c: EventB7_WmBigMapWait (not verified: no @VerifiesPort
      * test names it).
+     *
+     * Holds the event while the big map is showing; while skipping it ends the map at once.
      */
     public val eventB7WmBigMapWait: EventHandler = EventHandler { proc ->
         if (skipping(proc)) {
@@ -142,6 +163,9 @@ public class WorldMapBigMapEvents(
      * Ported from src/eventscr_gmap.c: EventB8_WmShowBigMapHighlight
      *
      * Verified through the event VM (the nation of every highlight; skipping branch not run).
+     *
+     * Starts the highlight of the nation (`u32` at `+4`, an index into `GfxSet_WmNationMap`,
+     * `WM_NATION_*`) on the big map.
      */
     public val eventB8WmShowBigMapHighlight: EventHandler = EventHandler { proc ->
         if (!skipping(proc)) hooks.showNationHighlightedMap(arg32(proc, 2))
@@ -152,7 +176,9 @@ public class WorldMapBigMapEvents(
      * Ported from src/eventscr_gmap.c: EventB9_WmRemoveHighlightNationPart1
      *
      * Verified through the event VM (the border's flag is set by this command). The skipping
-     * branch (`EndGmapRmBorder1(-1)`) is not run by the capture.
+     * branch (`EndGmapRmBorder1(-1)`, which ends every highlight) is not run by the capture.
+     *
+     * Tells the highlight of the given nation to start fading out (`sub_80C2C10`).
      */
     public val eventB9WmRemoveHighlightNationPart1: EventHandler = EventHandler { proc ->
         if (skipping(proc)) hooks.endGmapRmBorder1(-1) else hooks.sub80C2C10(arg32(proc, 2))
@@ -164,6 +190,9 @@ public class WorldMapBigMapEvents(
      *
      * Verified through the event VM (waits on the nation's border, then advances). The skipping
      * branch is not run by the capture.
+     *
+     * Holds the event until the nation's highlight has gone (`sub_80C2BC4` false); the command
+     * stays while it exists. Uses `EVC_ADVANCE_YIELD` once it is gone.
      */
     public val eventBAWmRemoveHighlightNationPart2: EventHandler = EventHandler { proc ->
         val nation = arg32(proc, 2)

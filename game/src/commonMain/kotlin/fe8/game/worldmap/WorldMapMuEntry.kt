@@ -204,14 +204,14 @@ public class WorldMapMuEntry(
         proc.unk2b = proc.unk2e
         proc.unk3c = proc.unk2d - proc.unk2c
         proc.unk40 = proc.unk2f - proc.unk2e
-        val line0 = hblank.sub80C1DA0(0, 1)
+        val line0 = hblank.lineBufferIndex(0, 1)
         hblank.buffer.fill(0x10, line0, line0 + LINE)
-        hblank.sub80C1DD8(0, BG0VOFS_REGISTER)
-        hblank.sub80C1DE8(0)
-        val line1 = hblank.sub80C1DA0(1, 1)
+        hblank.setLineRegister(0, BG0VOFS_REGISTER)
+        hblank.maskLineFlags(0)
+        val line1 = hblank.lineBufferIndex(1, 1)
         hblank.buffer.fill(0, line1, line1 + LINE)
-        hblank.sub80C1DD8(1, PALETTE_COLOR_REGISTER)
-        hblank.sub80C1DE8(1)
+        hblank.setLineRegister(1, PALETTE_COLOR_REGISTER)
+        hblank.maskLineFlags(1)
         hblank.status = hblank.status or 4
         hardware.lcd.setBlendTargetA(1, 0, 0, 0, 0)
         hardware.lcd.setBlendTargetB(0, 1, 1, 1, 1)
@@ -235,7 +235,7 @@ public class WorldMapMuEntry(
             state.unk2b = (state.unk2e + Spline.divArm(0x1000, state.unk40 * unk)) and 0xFF
             hardware.lcd.setBlendConfig(BLEND_EFFECT_ALPHA, unk / 256, 0x10 - (unk / 256), 0)
         } else {
-            hblank.sub80C1DD8(0, 0)
+            hblank.setLineRegister(0, 0)
             unk = 0x1000
             hardware.lcd.setBlendConfig(BLEND_EFFECT_NONE, 0, 0x10, 0)
             state.unk2a = state.unk2d
@@ -255,8 +255,8 @@ public class WorldMapMuEntry(
      * the vertical offset shifts and the color ramps toward `(13, 17, 23)`. Then swaps the pages.
      */
     public fun sub80BFDA0(proc: GmapMuEntryProc) {
-        val palA = hblank.sub80C1DA0(0, 1)
-        val palB = hblank.sub80C1DA0(1, 1)
+        val palA = hblank.lineBufferIndex(0, 1)
+        val palB = hblank.lineBufferIndex(1, 1)
         for (i in 0 until SCREEN_HEIGHT) {
             hblank.buffer[palA + i] = ((0x40 - i) and 0x1FF).toShort()
             hblank.buffer[palB + i] = 0
@@ -276,7 +276,7 @@ public class WorldMapMuEntry(
             val b = (i * -7 / proc.unk2b) + 23
             hblank.buffer[palB + j] = ((b shl 10) + (g shl 5) + r).toShort()
         }
-        hblank.sub80C1DC8()
+        hblank.swapPages()
     }
 
     /**

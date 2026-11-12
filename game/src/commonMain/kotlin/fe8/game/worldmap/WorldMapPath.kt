@@ -4,10 +4,11 @@ import fe8.game.RomView
 
 /**
  * Read-only access to `gWMPathData` (ROM 0x08206674, `struct GMapPathData`, [ENTRY_SIZE] bytes
- * each): the two end nodes of every world map path.
+ * each, include/worldmap.h:310): the two end nodes of every world map path (the roads between
+ * nodes), plus its tile map patch data.
  */
 public class WmPathData(private val rom: RomView) {
-    /** `gWMPathData[path].node[end]` (`s8`, offset 4 + [end]). */
+    /** `gWMPathData[path].node[end]` (`s8`, offset 4 + [end]): the node at end 0 or 1 of [path]. */
     public fun node(path: Int, end: Int): Int =
         rom.u8(PATH_DATA + path * ENTRY_SIZE + NODE + end).toByte().toInt()
 
@@ -27,16 +28,17 @@ public class WmPathData(private val rom: RomView) {
 }
 
 /**
- * The `struct GMapNodeLink[0x1d]` table `gUnknown_0201AFF0`, kept as its raw bytes: per node one
- * `s8 numConnections` followed by `s8 connections[7]` ([ENTRY_SIZE] bytes).
+ * The `struct GMapNodeLink[0x1d]` table `gUnknown_0201AFF0` (a buffer indexed by node id,
+ * include/worldmap.h:791), kept as its raw bytes: per node one `s8 numConnections` followed by
+ * `s8 connections[7]` ([ENTRY_SIZE] bytes), the node ids reachable over the open paths.
  *
  * @param bytes backing storage, [SIZE] bytes
  */
 public class GmNodeLinks(public val bytes: ByteArray = ByteArray(SIZE)) {
-    /** `table[node].numConnections` (`s8`). */
+    /** `table[node].numConnections` (`s8`): how many nodes [node] connects to. */
     public fun numConnections(node: Int): Int = bytes[node * ENTRY_SIZE].toInt()
 
-    /** `table[node].connections[index]` (`s8`). */
+    /** `table[node].connections[index]` (`s8`): the [index]th node connected to [node]. */
     public fun connection(node: Int, index: Int): Int = bytes[node * ENTRY_SIZE + 1 + index].toInt()
 
     /** Table layout constants. */
@@ -52,12 +54,19 @@ public class GmNodeLinks(public val bytes: ByteArray = ByteArray(SIZE)) {
     }
 }
 
-/** The pure `gGMData` node and path helpers of `src/worldmap_path.c`. */
+/**
+ * The pure `gGMData` node and path helpers of `src/worldmap_path.c`: resetting the cleared marks
+ * on the world map nodes and rebuilding the node connection table from the open paths.
+ *
+ * @param gmData `gGMData`
+ * @param pathData `gWMPathData`
+ */
 public class WorldMapPath(private val gmData: GmData, private val pathData: WmPathData) {
     /**
      * Transcribed from src/worldmap_path.c: ResetGmStoryNode (not verified: no reference run yet).
      *
-     * Clears `GM_NODE_STATE_CLEARED` on all [GmNodeLinks.NODE_COUNT] nodes.
+     * Clears `GM_NODE_STATE_CLEARED` on all [GmNodeLinks.NODE_COUNT] nodes
+     * (`WorldMap_CallBeginningEvent` does this just before it runs the beginning event).
      */
     public fun resetGmStoryNode() {
         for (i in 0 until GmNodeLinks.NODE_COUNT) {
@@ -85,8 +94,9 @@ public class WorldMapPath(private val gmData: GmData, private val pathData: WmPa
     /**
      * Ported from src/worldmap_path.c: RefreshGmNodeLinksExt
      *
-     * Rebuilds [links] from `gGMData.openPaths`: each open path adds its two end nodes to each
-     * other's connection list. Like the original, a write for node 0 is repeated into the slot
+     * Rebuilds [links] from `gGMData.openPaths` (`AddGmPath` does this after adding a path):
+     * each open path adds its two end nodes to each other's connection list. Like the
+     * original, a write for node 0 is repeated into the slot
      * after the incremented count, and slot writes address the flat table bytes (a full list
      * spills into the next entry); writes past the table are dropped.
      */
@@ -115,13 +125,17 @@ public class WorldMapPath(private val gmData: GmData, private val pathData: WmPa
         refreshGmNodeLinksExt(links)
     }
 
-    /** `GMapNodeLinkNextConnSlot(entry) = value`: byte `1 + numConnections` of the entry. */
+    /**
+     * `GMapNodeLinkNextConnSlot(entry) = value` (src/worldmap_path.c): byte `1 + numConnections`
+     * of the table entry at byte offset [entry], i.e. the next free connection slot.
+     */
     private fun putSlot(table: ByteArray, entry: Int, value: Byte) {
         val at = entry + 1 + table[entry]
         if (at in table.indices) table[at] = value
     }
 
     private companion object {
+        /** `GM_NODE_STATE_VALID`, `GM_NODE_STATE_CLEARED`. */
         const val VALID = 1
         const val CLEARED = 2
     }

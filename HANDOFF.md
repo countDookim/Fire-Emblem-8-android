@@ -11,9 +11,14 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- Readability audit fe8.game.worldmap (WorldMapFace): owner PC, until ~23:59Z (from 22:41Z)
 
 ## Current state
+
+- 2026-11-12/13 owner PC (17:30–23:10Z): **M6-C started.** MC-1, MC-2, MC-7, MC-8a, MC-9 and MC-3a merged (attack
+  target list, battle rounds and hits, forecast simulation, Attack opens the weapon list; 896 tests green, Dokka
+  clean). Next: MC-3b, MC-4, MC-5, MC-6, MC-8b, MC-10. Readability: gba.render, gbafe.render and 4 of 8 worldmap rows
+  audited; WorldMapLineFade darken constant fixed. Next readability: worldmap Scroll, Screen, Unit, Mu (one file each,
+  owner 11-13: small tasks). Device check pending: PP-17, D-14, D-15, MC-3a (MANUAL_TEST).
 
 - 2026-11-12 owner PC (evening): **M6-B code-complete.** PP-17 merged (player phase wired in Fe8Boot: select, range,
   arrow, move, unit menu, Wait, cancels, map menu End, side windows, Burst; enemy AI an M6-D stand-in that ends at once,

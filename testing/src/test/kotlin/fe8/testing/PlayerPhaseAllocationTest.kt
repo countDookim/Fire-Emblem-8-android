@@ -34,6 +34,34 @@ class PlayerPhaseAllocationTest {
     fun `select move and Wait windows allocate nothing`() {
         val ref = ReferenceData.fromEnvironment()
         assumeTrue(AllocationMeter.supported && ref.available && File(assets, "baserom.gba").isFile)
+        // Two passes over the same deterministic boot; a frame counts as allocating only if it
+        // allocates in both (the minimum, as `AllocationMeter.measureMin` does; see
+        // WorldMapBootTest). A one-off JIT deoptimization re-creates scalar-replaced objects in
+        // one frame, depending on what ran in the JVM before, and is gone in the second pass.
+        // Code that really allocates does so in the same frames in both passes.
+        val first = selectMoveWaitBytes(ref)
+        val second = selectMoveWaitBytes(ref)
+        val bytes = LongArray(2000) { minOf(first[it], second[it]) }
+        // A frame that starts or ends something (a cursor move, a menu, the MU walk, the save
+        // write) may allocate. Each steady stretch of the replay must hold a long run of frames
+        // that allocate nothing: the idle phase with its side windows, the cursor moves in the
+        // range display, the unit menu and the idle phase after the Wait.
+        for ((from, to, run) in listOf(
+            Triple(1176, 1249, 20), Triple(1264, 1295, 10), Triple(1314, 1355, 20),
+            Triple(1360, 1420, 40),
+        )) {
+            var best = 0
+            var current = 0
+            for (f in from..to) {
+                current = if (bytes[f] == 0L) current + 1 else 0
+                best = maxOf(best, current)
+            }
+            assertTrue(best >= run, "longest allocation-free run in f$from..f$to: $best frames")
+        }
+    }
+
+    /** One replay of the select, move and Wait trace; the allocated bytes of each frame. */
+    private fun selectMoveWaitBytes(ref: ReferenceData): LongArray {
         val run = ref.run("ram_trace_prologue_select_move")
         val captured = Array<Any>(2000) { if (it < run.inputs.size) run.inputs[it] else 0 }
         val pulse = arrayOf<Any>(0, 1)
@@ -60,22 +88,7 @@ class PlayerPhaseAllocationTest {
             if (idleAt < 0 && boot.engine.find(boot.playerPhaseScript)?.scrCur == 16) idleAt = frame
             if (idleAt >= 0) bytes[frame - idleAt + 1172] = used
         }
-        // A frame that starts or ends something (a cursor move, a menu, the MU walk, the save
-        // write) may allocate. Each steady stretch of the replay must hold a long run of frames
-        // that allocate nothing: the idle phase with its side windows, the cursor moves in the
-        // range display, the unit menu and the idle phase after the Wait.
-        for ((from, to, run) in listOf(
-            Triple(1176, 1249, 20), Triple(1264, 1295, 10), Triple(1314, 1355, 20),
-            Triple(1360, 1420, 40),
-        )) {
-            var best = 0
-            var current = 0
-            for (f in from..to) {
-                current = if (bytes[f] == 0L) current + 1 else 0
-                best = maxOf(best, current)
-            }
-            assertTrue(best >= run, "longest allocation-free run in f$from..f$to: $best frames")
-        }
+        return bytes
     }
 
     @Test
@@ -96,6 +109,24 @@ class PlayerPhaseAllocationTest {
     private fun restOnEnemy(burst: Boolean) {
         val ref = ReferenceData.fromEnvironment()
         assumeTrue(AllocationMeter.supported && ref.available && File(assets, "baserom.gba").isFile)
+        // Two passes over the same deterministic boot, a frame counts as allocating only if it
+        // allocates in both (the minimum, as `AllocationMeter.measureMin` does; see
+        // WorldMapBootTest): a one-off JIT deoptimization is gone in the second pass.
+        val first = restOnEnemyBytes(ref, burst)
+        val second = restOnEnemyBytes(ref, burst)
+        var best = 0
+        var current = 0
+        for (i in first.indices) {
+            current = if (minOf(first[i], second[i]) == 0L) current + 1 else 0
+            best = maxOf(best, current)
+        }
+        // A per-frame allocation (boxing) leaves no run at all; a stray JIT-time allocation may
+        // split the 60 frames once.
+        assertTrue(best >= 30, "cursor on enemy burst=$burst: longest zero run $best of 60")
+    }
+
+    /** One boot, the cursor walk to the first enemy; the bytes of each of the 60 resting frames. */
+    private fun restOnEnemyBytes(ref: ReferenceData, burst: Boolean): LongArray {
         val pulse = arrayOf<Any>(0, 1)
         val dpad = arrayOf<Any>(0, 0x10, 0x20, 0x40, 0x80)
         var frame = 0
@@ -147,18 +178,13 @@ class PlayerPhaseAllocationTest {
             }
         }
         repeat(40) { boot.frame(); boot.pack() } // the window slides in
-        var best = 0
-        var current = 0
-        repeat(60) {
+        val bytes = LongArray(60)
+        for (i in bytes.indices) {
             val before = AllocationMeter.current()
             boot.frame()
             boot.pack()
-            val used = AllocationMeter.current() - before
-            current = if (used == 0L) current + 1 else 0
-            best = maxOf(best, current)
+            bytes[i] = AllocationMeter.current() - before
         }
-        // A per-frame allocation (boxing) leaves no run at all; a stray JIT-time allocation may
-        // split the 60 frames once.
-        assertTrue(best >= 30, "cursor on enemy $enemy burst=$burst: longest zero run $best of 60")
+        return bytes
     }
 }

@@ -72,7 +72,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.opanim (OpAnim, OpAnimHs, EarlyStartUi) | 3 | 3225 | done 2026-11-11 8cf022f / 4735f55; audit todo |
 | game | fe8.game.opanim (OpSubtitle*.kt) | 7 | 913 | done 2026-11-10 f3ad834 / d05e87f; audit done 2026-11-13 300e7eb |
 | game | fe8.game.save | 8 | 2541 | done 2026-11-09 1941586; audit todo |
-| game | fe8.game.savemenu | 2 | 279 | done 2026-11-09 81db35b; audit done 2026-11-13 PENDING |
+| game | fe8.game.savemenu | 2 | 279 | done 2026-11-09 81db35b; audit done 2026-11-13 ae19ba8 |
 | game | fe8.game.scene | 7 | 3521 | done 2026-11-09 c3bb2ed; audit done 2026-11-12 24bb602 |
 | game | fe8.game.text | 1 | 64 | done 2026-11-09 0194222; audit done 2026-11-12 24bb602 |
 | game | fe8.game.title | 1 | 924 | done 2026-11-09 83f2cb6; audit done 2026-11-13 0efa0a2 |
@@ -96,6 +96,6 @@ their old counts); new packages get a row when they appear.
 | gba/render | gba.render | 10 | 1388 | done 2026-11-09 83f2cb6; audit done 2026-11-12 abaf60c |
 | gba/testkit | gba.testkit | 5 | 491 | done 2026-11-09 19d121b; audit done 2026-11-13 f37a625 |
 | gba/vfs | gba.vfs | 4 | 267 | done 2026-11-07 1b2b121; audit done 2026-11-13 fcba338 |
-| testing | fe8.testing | 3 | 392 | done 2026-11-09 db51e13; audit done 2026-11-13 PENDING |
+| testing | fe8.testing | 3 | 392 | done 2026-11-09 db51e13; audit done 2026-11-13 ae19ba8 |
 | tools/extract | gbafe.extract | 3 | 262 | done 2026-11-09 81db35b; audit done 2026-11-13 f37a625 |
 | tools/extract | gbafe.extract.fe8 | 1 | 40 | done 2026-11-09 81db35b; audit done 2026-11-13 f37a625 |

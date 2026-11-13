@@ -11,9 +11,19 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- MC-4b (weapon list item panel): owner PC, until ~13:30Z (from 09:25Z)
 
 ## Current state
+
+- 2026-11-13 owner PC (to ~10:00Z): **M6-C almost complete.** Merged MC-3a, 3b, 4a, 4b, 5, 6, 9, 10, 11, 12a, 12b,
+  13, 14, 15, 16 (with MC-1/2/7/8a from 11-12): Attack -> weapon list (rows, panel, face) -> target cursor -> forecast
+  (slides in, arrows, x2) -> battle resolves at once (no map anim, M6-H) -> exp, write-back, dead unit removed.
+  Left in M6-C: MC-8b (hit checks), MC-17 (level-up; needs EP-cap2), MC-w (WIRE + headless replay). Stand-ins:
+  level-up bookkeeping only (MC-17), dying rescuer no-op (C14-1). New bug rows: BUG-gold, BUG-changemap.
+  Readability: all fe8.game.worldmap, fe8.game.event, fe8.app, gba.* (core, input, vfs, data, extract, testkit),
+  gbafe.script, small engine/extract rows, savemenu, fe8.testing, title, OpSubtitle, save suspend group audited.
+  Left: gbafe.extract.fe8.events, fe8.game, fe8.game.bm (3 rows), opanim (OpAnim/Hs/EarlyStartUi), save (BmSaveLib;
+  BmGameSave group), fe8.game.ui. Local full suite is now `./gradlew jvmTest --continue` in the main checkout
+  (~6 min; TEST-SPEEDUP Change 4). Device check pending: PP-17, D-14, D-15, M6-C attack flow (MANUAL_TEST step 3).
 
 - 2026-11-12/13 owner PC (17:30–23:10Z): **M6-C started.** MC-1, MC-2, MC-7, MC-8a, MC-9 and MC-3a merged (attack
   target list, battle rounds and hits, forecast simulation, Attack opens the weapon list; 896 tests green, Dokka

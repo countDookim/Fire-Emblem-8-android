@@ -4,15 +4,15 @@ import gba.extract.ExtractOutput
 import java.io.File
 
 /**
- * Filesystem implementation of [ExtractOutput] that writes extracted assets into files rooted at [root].
+ * [ExtractOutput] that writes each extracted file under the directory [root].
  */
 public class FileOutput(
-    /** Destination root directory for extracted files. */
+    /** Directory the relative output paths are resolved against. */
     private val root: File,
 ) : ExtractOutput {
     /**
-     * Writes [bytes] to the relative destination [path] under [root], creating any missing
-     * parent directory structures automatically.
+     * Writes [bytes] to [path] (relative, `/`-separated) under [root], creating missing parent
+     * directories and replacing an existing file.
      */
     override fun write(path: String, bytes: ByteArray) {
         File(root, path).apply { parentFile.mkdirs() }.writeBytes(bytes)

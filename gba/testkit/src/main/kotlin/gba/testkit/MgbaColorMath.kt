@@ -3,12 +3,16 @@ package gba.testkit
 import gba.render.ColorMath
 
 /**
- * Colour-effect arithmetic of the pinned reference emulator (mGBA 0.10.5, 32-bit colour build): each 5-bit
- * channel is first widened to 8 bits as `c << 3 | c >> 2` (`mColorFrom555`), then blended or faded on 8-bit
- * values (`mColorMix5Bit`, `_brighten`, `_darken` in `include/mgba/core/interface.h` and
- * `src/gba/renderers/software-private.h`), and the frame keeps 8 bits. Read back at 5 bits this can be one
- * step above the hardware's 5-bit math ([ColorMath.Hardware]), so frame compares against mGBA dumps use this
- * model. Results are BGR555 holding the top 5 bits of mGBA's 8-bit channels (what the compare looks at).
+ * Colour-effect arithmetic modelled on the pinned reference emulator, mGBA 0.10.5 (the version
+ * named in ARCHITECTURE.md and docs/gba-harness-reuse.md). The model, from this file's author: each
+ * 5-bit channel is widened to 8 bits as `c << 3 | c >> 2` (mGBA's `mColorFrom555`), blended or
+ * faded on 8-bit values (`mColorMix5Bit`, `_brighten`, `_darken`; files
+ * `include/mgba/core/interface.h` and `src/gba/renderers/software-private.h`), and the frame keeps
+ * 8 bits. All of that, and "32-bit colour build", is about mGBA internals and is not checked here:
+ * mGBA's source is not in this repo. What the repo does state: mGBA's frame dumps have only their
+ * top 5 bits valid, and frame compares are made at 5-bit precision (FrameCompareTest), where this
+ * can differ by one step from the hardware's 5-bit math ([ColorMath.Hardware]), so those compares
+ * use this model instead. Results are BGR555 holding the top 5 bits of the 8-bit channels.
  */
 public object MgbaColorMath : ColorMath {
     /** Mask for a 5-bit colour channel. */
@@ -23,28 +27,31 @@ public object MgbaColorMath : ColorMath {
     /** Bit shift for the blue channel in a 16-bit BGR555 value. */
     private const val BLUE_SHIFT = 10
 
-    /** Maximum value of an 8-bit color channel. */
+    /** Largest 8-bit channel value (white). */
     private const val MAX_CHANNEL_8BIT = 255
 
-    /** Scale factor (denominator) for GBA alpha blending weights (EVA, EVB, EVY in 0..16). */
+    /** Denominator of the blend coefficients (EVA, EVB, EVY are 0..16, 16 = 1.0). */
     private const val BLEND_WEIGHT_SCALE = 16
 
-    /** Per 8-bit channel min(255, (a*eva + b*evb) / 16). */
+    /** `BLDCNT` alpha blend: per widened 8-bit channel `min(255, (a*eva + b*evb) / 16)`. */
     override fun alpha(a: Int, b: Int, eva: Int, evb: Int): Int =
         map2(a, b) { channelA, channelB ->
             minOf(MAX_CHANNEL_8BIT, (channelA * eva + channelB * evb) / BLEND_WEIGHT_SCALE)
         }
 
-    /** Per 8-bit channel c + (255 - c) * evy / 16. */
+    /** `BLDCNT` brighten: per widened 8-bit channel `c + (255 - c) * evy / 16`. */
     override fun brighten(c: Int, evy: Int): Int =
         map2(c, 0) { channel, _ ->
             channel + (MAX_CHANNEL_8BIT - channel) * evy / BLEND_WEIGHT_SCALE
         }
 
     /**
-     * Per 8-bit channel: red `c - c * evy / 16`, green and blue `c * (16 - evy) / 16` (= c - ceil(c * evy / 16)).
-     * mGBA's `_darken` subtracts on the packed colour, so the truncated product of the higher channels rounds the
-     * other way (fits every darkened pixel of op anim frames f1110..2230).
+     * `BLDCNT` darken, per widened 8-bit channel: red `c - c * evy / 16`, green and blue
+     * `c * (16 - evy) / 16`, which equals `c - ceil(c * evy / 16)`, so green and blue round the
+     * other way from red. The stated reason is that mGBA's `_darken` subtracts on the packed
+     * colour (not checked here); what is recorded is that this fit every darkened pixel of the
+     * opening-animation frames f1110..2230 (the f1110..1140 part is also cited in OpAnim.kt; the
+     * rest is not re-checked here).
      */
     override fun darken(c: Int, evy: Int): Int {
         val red8 = widen((c shr RED_SHIFT) and CHANNEL_5BIT_MASK)
@@ -59,8 +66,8 @@ public object MgbaColorMath : ColorMath {
     }
 
     /**
-     * Applies channel-wise transformation [transform] across red, green, and blue 5-bit channels of
-     * [colorA] and [colorB], widening each channel to 8 bits first, and packing the resulting top 5 bits.
+     * Applies [transform] to each widened 8-bit red, green and blue channel pair of the BGR555
+     * colours [colorA] and [colorB] and packs the top 5 bits of each result back into BGR555.
      */
     private inline fun map2(colorA: Int, colorB: Int, transform: (Int, Int) -> Int): Int {
         var packed = 0
@@ -75,8 +82,8 @@ public object MgbaColorMath : ColorMath {
     }
 
     /**
-     * Widens a 5-bit GBA channel (0..31) to an 8-bit channel (0..255) by replicating the top two bits
-     * into the bottom two bits: `c << 3 | c >> 2` (matching mGBA's `mColorFrom555`).
+     * Widens a 5-bit channel (0..31) to 8 bits (0..255) by repeating its top 3 bits in the low
+     * bits: `c << 3 | c >> 2` (as mGBA's `mColorFrom555`; not checked here).
      */
     private fun widen(channel5: Int): Int = (channel5 shl 3) or (channel5 shr 2)
 }

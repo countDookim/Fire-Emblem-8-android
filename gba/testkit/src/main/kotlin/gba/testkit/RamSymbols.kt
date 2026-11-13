@@ -10,11 +10,14 @@ import java.io.File
  * names. Test-only: GBA addresses must never be used by the port itself.
  */
 public class RamSymbols(file: File) {
-    /** One symbol from `reference/ram_symbols.tsv`. */
+    /**
+     * One row of `reference/ram_symbols.tsv` (columns name, address, size, binding, region; the
+     * region column is not read).
+     */
     public data class Symbol(
         /** C identifier. */
         val name: String,
-        /** Absolute GBA address (EWRAM 0x02xxxxxx / IWRAM 0x03xxxxxx). */
+        /** GBA bus address (EWRAM 0x02xxxxxx or IWRAM 0x03xxxxxx). */
         val address: Int,
         /** Size in bytes, from the ELF symbol table. */
         val size: Int,
@@ -22,7 +25,7 @@ public class RamSymbols(file: File) {
         val binding: String,
     )
 
-    /** Look-up table of decomp symbols indexed by their C identifier name. */
+    /** All rows by name; a name can have several rows (see [get]). The first row is the header. */
     private val byName: Map<String, List<Symbol>> = file.readLines()
         .drop(1)
         .filter { it.isNotBlank() }
@@ -36,22 +39,26 @@ public class RamSymbols(file: File) {
             Symbol(name, address, size, binding)
         }.groupBy { it.name }
 
-    /** The unique symbol called [name]; fails if missing or ambiguous (same static name in several files). */
+    /**
+     * The only row called [name]; fails if there is none or more than one row (e.g. the same
+     * `static` name in several files). Rows are not de-duplicated by address, so two rows with
+     * the same address also count as ambiguous.
+     */
     public operator fun get(name: String): Symbol {
         val all = byName[name] ?: error("RAM symbol '$name' not in ram_symbols.tsv")
         require(all.size == 1) { "RAM symbol '$name' is ambiguous (${all.size} definitions)" }
         return all[0]
     }
 
-    /** Factory for the committed reference table. */
+    /** Constants and the factory for the committed reference table. */
     public companion object {
-        /** System property key for overriding the reference data directory path. */
+        /** System property naming the directory that holds `ram_symbols.tsv` (set by Gradle). */
         public const val REFERENCE_PROPERTY: String = "fe8.reference"
 
-        /** Default relative directory name holding reference files. */
+        /** Directory used (relative to the working directory) when the property is unset. */
         public const val DEFAULT_REFERENCE_DIR: String = "reference"
 
-        /** File name containing RAM symbol addresses and sizes. */
+        /** Name of the symbol table file inside that directory. */
         public const val RAM_SYMBOLS_FILE_NAME: String = "ram_symbols.tsv"
 
         /**

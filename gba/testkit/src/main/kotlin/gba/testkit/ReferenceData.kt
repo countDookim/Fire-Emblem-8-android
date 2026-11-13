@@ -5,13 +5,14 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 /**
- * Read access to the mGBA reference data produced by `mgba-harness` in the ROM repo and unpacked by
+ * Read access to the mGBA reference data produced by `mgba-harness` (in the ROM repo; the harness
+ * itself is not checked here, only docs/gba-harness-reuse.md) and unpacked by
  * `tools/setup.sh` (sessions) or the CI workflow into `$FE8_ASSETS/reference/out/<script>/`.
  *
  * Each script directory holds:
  * - `manifest.txt`: `<dump_name> <frame_number>` lines
  * - `inputs.bin`: one little-endian uint16 GBA key mask per frame
- * - Per-dump binary snapshots: `<dump>.{ewram,iwram,frame.rgb,vram,pal,oam,io}.bin`
+ * - Per-dump snapshots: `<dump>.{ewram,iwram,vram,pal,oam,io}.bin` and `<dump>.frame.rgb`
  * - Runs may also hold `states.txt` (savestate/loadstate timeline; dump frames are monotonic emulated steps)
  *   and `frames.rgb` + `frames.txt` (screen every N steps); see the ROM repo's `harness/harness.c`.
  *
@@ -42,23 +43,23 @@ public class ReferenceData(
             manifestMap
         }
 
-        /** Per-frame GBA key masks fed to mGBA (index = frame - 1). */
+        /** GBA key masks fed to mGBA, one per emulated step (index = step - 1: not checked). */
         public val inputs: IntArray by lazy {
             val buffer = ByteBuffer.wrap(File(dir, "inputs.bin").readBytes()).order(ByteOrder.LITTLE_ENDIAN)
             IntArray(buffer.remaining() / GBA_KEY_INPUT_BYTES) { buffer.short.toInt() and 0xFFFF }
         }
 
-        /** Raw bytes of a dump region, e.g. `region = "iwram"`. */
+        /** Raw bytes of one region of a dump: `<dump>.<region>.bin`, e.g. `region = "iwram"`. */
         public fun region(dump: String, region: String): ByteArray = File(dir, "$dump.$region.bin").readBytes()
 
-        /** RGB888 frame of a full dump (240×160×3 bytes). */
+        /** RGB888 frame of a full dump (240x160x3 bytes; top 5 bits per channel valid). */
         public fun frameRgb(dump: String): ByteArray = File(dir, "$dump.frame.rgb").readBytes()
 
         /** True if the run holds any `*.sram.bin` dump (harness `dumpsram NAME`). */
         public val hasSram: Boolean
             get() = dir.list()?.any { it.endsWith(".sram.bin") } == true
 
-        /** The 32768-byte save RAM dumped as [dump] (`<dump>.sram.bin`). */
+        /** The save RAM dumped as [dump] (`<dump>.sram.bin`, [GBA_SRAM_SIZE] bytes). */
         public fun sram(dump: String): ByteArray = File(dir, "$dump.sram.bin").readBytes()
 
         /** Watch specifications parsed from `watches.txt`: `<name> <hex_address> <length> <first_step>`. */
@@ -90,13 +91,16 @@ public class ReferenceData(
         /** True when the run was made with `--audio`. */
         public val hasAudio: Boolean get() = File(dir, "audio.s16").isFile
 
-        /** mGBA's mixed output (`--audio`): interleaved L/R signed 16-bit PCM at [AUDIO_RATE] Hz. */
+        /**
+         * mGBA's mixed output (`--audio`): interleaved L/R signed 16-bit PCM at [AUDIO_RATE] Hz.
+         * The format is the harness's; not checked here.
+         */
         public val audio: ShortArray by lazy {
             val buffer = ByteBuffer.wrap(File(dir, "audio.s16").readBytes()).order(ByteOrder.LITTLE_ENDIAN)
             ShortArray(buffer.remaining() / 2) { buffer.short }
         }
 
-        /** Stereo samples written by the end of each step: `audioEnd[step]` (`audioEnd[0]` = 0). */
+        /** Stereo samples written by the end of step `s`: `audioEnd[s]` (`audioEnd[0]` = 0). */
         public val audioEnd: IntArray by lazy {
             val lines = File(dir, "audio.txt").readLines().filter { it.isNotBlank() }
             val end = IntArray(lines.size + 1)
@@ -129,9 +133,10 @@ public class ReferenceData(
     }
 
     /**
-     * One write to the sound registers in mGBA (`--psg-writes`): during [step] (1-based; a step
-     * starts at VBlank), [cycleInStep] CPU cycles after the step started, [width] bytes of
-     * [value] at IO offset [offset] (`0x60..0xAF`).
+     * One write to the sound registers in mGBA (`--psg-writes`): during [step], [cycleInStep] CPU
+     * cycles after the step started, [width] bytes of [value] at IO offset [offset]. That steps
+     * are 1-based and start at VBlank, and that offsets are `0x60..0xAF`, come from the harness
+     * and are not checked here.
      */
     public data class PsgWrite(
         /** Step being run (1-based). */
@@ -166,7 +171,7 @@ public class ReferenceData(
         /** Size of battery-backed GBA static RAM in bytes. */
         public const val GBA_SRAM_SIZE: Int = 32768
 
-        /** Sample rate of `audio.s16` (harness `AUDIO_RATE`). */
+        /** Sample rate of `audio.s16` in Hz (the harness's `AUDIO_RATE`; not checked here). */
         public const val AUDIO_RATE: Int = 32768
 
         /** System property key for assets directory. */

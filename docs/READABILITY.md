@@ -70,7 +70,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs) | 4 | 973 | done 2026-11-10 ff286fe / 0bfe1ab; audit done 2026-11-13 139c8c3 |
 | game | fe8.game.event (EventScrCore, EventPopup, EventFade, EventGiveItem) | 4 | 826 | done 2026-11-10 077a47d; audit done 2026-11-13 f7fec4f |
 | game | fe8.game.event (EventInfo, EventText) | 2 | 819 | done 2026-11-10 077a47d; audit done 2026-11-13 a2d84eb |
-| game | fe8.game.event (EventUnitLoads, EventUnitState, EventAsmCall, EventChangeMap) | 4 | 723 | done 2026-11-10 077a47d; audit todo |
+| game | fe8.game.event (EventUnitLoads, EventUnitState, EventAsmCall, EventChangeMap) | 4 | 786 | done 2026-11-10 077a47d; audit done 2026-11-13 PENDING |
 | game | fe8.game.event (EventCursorCamera, EventTextTalkHost, EventMoveUnit) | 3 | 684 | done 2026-11-10 077a47d; audit todo |
 | game | fe8.game.event (Fe8ScriptCommands, EventScriptBattle, EventTextBg, Fe8ScriptSymbols, EventBgm) | 5 | 751 | done 2026-11-10 077a47d; audit todo |
 | game | fe8.game.flags | 1 | 69 | done 2026-11-09 0194222; audit done 2026-11-12 ad1504f |

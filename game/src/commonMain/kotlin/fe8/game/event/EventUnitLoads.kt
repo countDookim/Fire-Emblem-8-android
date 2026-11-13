@@ -12,21 +12,30 @@ import fe8.game.event.EventConst.EV_STATE_SKIPPING
 import fe8.game.event.EventConst.EV_STATE_UNITCAM
 import gbafe.core.rng.RngService
 
-/** What the walking load reaches outside the unit system. Defaults: nothing blocks. */
+/**
+ * What the walking load (units that walk onto the map during a cutscene) reaches outside the unit
+ * system: the camera and the map unit (MU) pool. Defaults: nothing blocks.
+ */
 public interface EventUnitLoadsHost {
-    /** `Proc_Find(ProcScr_CamMove) != NULL`. */
+    /** `Proc_Find(ProcScr_CamMove) != NULL`: a camera move is already running. */
     public fun camMoveExists(): Boolean = false
 
-    /** `EnsureCameraOntoPosition(proc, x, y)`: true if a camera move was started. */
+    /**
+     * `EnsureCameraOntoPosition(proc, x, y)`: moves the camera to show ([x], [y]); true if a
+     * camera move was started (the unit then has to wait).
+     */
     public fun ensureCameraOntoPosition(proc: EventEngineProc, x: Int, y: Int): Boolean = false
 
-    /** `CanStartMu`: a free MU slot exists. */
+    /** `CanStartMu`: a free MU (map unit, the walking sprite) slot exists. */
     public fun canStartMu(): Boolean = true
 }
 
 /**
- * The unit load commands of `src/eventscr.c` (`Event2B_ConfigLoadUnit`, `Event2C_LoadUnits`) and
- * their helpers. Definitions are held as [UnitDef] values; `gLoadUnitBuffer` is a list of them.
+ * The unit load commands of `src/eventscr.c` (`Event2B_ConfigLoadUnit` = `EV_CMD_LOAD_PRECONF`,
+ * `Event2C_LoadUnits` = `EV_CMD_LOADUNIT`) and their helpers: they put the units of a chapter's
+ * `UnitDefinition` list (character, class, allegiance, position, REDA move script) on the map,
+ * either walking in or at once. Definitions are held as [UnitDef] values; `gLoadUnitBuffer` is a
+ * list of them.
  *
  * @param state the event slots.
  * @param memory script words (the command arguments).
@@ -34,9 +43,9 @@ public interface EventUnitLoadsHost {
  * @param table the unit arrays the units are loaded into.
  * @param loader the unit loader (`LoadUnit_800F704`).
  * @param rng the game's random number service.
- * @param terrainAt `gBmMapTerrain[y][x]`.
- * @param unitAt `gBmMapUnit[y][x]`.
- * @param clearOtherMap `BmMapFill(gBmMapOther, 0)`.
+ * @param terrainAt `gBmMapTerrain[y][x]`: the terrain id at a tile.
+ * @param unitAt `gBmMapUnit[y][x]`: the unit id standing on a tile, 0 for none.
+ * @param clearOtherMap `BmMapFill(gBmMapOther, 0)`: clears the scratch map before a load.
  * @param host camera and MU queries of the walking load.
  */
 public class EventUnitLoads(
@@ -70,7 +79,10 @@ public class EventUnitLoads(
      * Transcribed from src/eventscr.c: Event2B_ConfigLoadUnit (not verified: test restates C
      *   semantics; no trace comparison yet)
      *
-     * Sets the unit count (subcode 0), chance (1, clamped to 0..100) or REDA disabling (2).
+     * Configures the next LOAD: the unit count (`EVSUBCMD_LOAD_SETCOUNT`, subcode 0), the
+     * percent chance that summon-flagged definitions are loaded (`EVSUBCMD_LOAD_SETCHANCE`, 1,
+     * clamped to 0..100) or REDA disabling (`EVSUBCMD_LOAD_NOREDA`, 2: the units appear without
+     * their move script, for the next LOAD only). A negative argument is taken from slot 2.
      */
     public val event2bConfigLoadUnit: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent
@@ -87,13 +99,19 @@ public class EventUnitLoads(
     /**
      * Ported from src/eventscr.c: Event2C_LoadUnits
      *
+     * Loads the definitions at the command's address (the "LOAD" command): subcode 0 normal, 1
+     * the same with load parameter 2 (summon, see [shouldUnitBeLoaded]), 2 with [sub80125c0]
+     * (unknown purpose), 3 the chapter's enemy definitions. While skipping or faded in the units
+     * appear at once, otherwise they walk in over several frames.
+     *
      * partial: subcode 3 (`GetChapterEnemyUnitDefinitions`) throws
      * [UnsupportedOperationException]; definitions must be in the ROM.
      */
     public val event2cLoadUnits: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent
         val subcode = subCmd(cur)
-        // The load parameter: 0 normal, 1 and 2 as `shouldUnitBeLoaded` reads them (2: summon).
+        // The load parameter, see `shouldUnitBeLoaded`: 0 normal, 1 never skips a dead unit,
+        // 2 summon.
         var argument = memory.u16(cur + 2) and 0xFF
         var address = memory.u16(cur + 4) or (memory.u16(cur + 6) shl 16)
         var count = proc.unitLoadCount and 0xFFFF
@@ -105,7 +123,8 @@ public class EventUnitLoads(
             }
             3 -> throw UnsupportedOperationException("GetChapterEnemyUnitDefinitions not ported")
         }
-        // No count set by LOAD config: load every definition up to the terminating one.
+        // No count set by the LOAD config: load every definition up to the terminating (character
+        // 0) one.
         if (count == 0) count = getLoadUnitsAmount(address)
         val defs = getUnitDefinitionFromEventScr(
             readDefs(address, count), count, proc.chance, subcode == 2, proc.disableReda,
@@ -134,7 +153,8 @@ public class EventUnitLoads(
      * Transcribed from src/eventscr.c: EventLoadUnitWithMovement (not verified: mocked MU capacity;
      *   no trace comparison yet)
      *
-     * The walking load, run as the proc's callback each frame until every definition is loaded;
+     * The walking load, run once by [event2cLoadUnits] and then as the proc's callback each frame
+     * until every definition is loaded;
      * a definition whose [tryPrepareEventUnitMovement] fails is retried the next frame. The
      * definitions are the ones kept by [event2cLoadUnits] (the C's `pUnitLoadData` pointer).
      */
@@ -171,8 +191,9 @@ public class EventUnitLoads(
      * Transcribed from src/eventscr.c: TryPrepareEventUnitMovement (not verified: mocked host; no
      *   trace comparison yet)
      *
-     * Whether a unit may start walking: with the unit camera on, no camera move may exist or be
-     * started, and an MU slot must be free.
+     * Whether a unit may start walking in at ([x], [y]): with the unit camera on
+     * (`EV_STATE_UNITCAM`), no camera move may exist or be started to show the tile, and an MU
+     * slot must be free.
      */
     public fun tryPrepareEventUnitMovement(proc: EventEngineProc, x: Int, y: Int): Boolean {
         if (proc.evStateBits and EV_STATE_UNITCAM != 0) {
@@ -182,7 +203,7 @@ public class EventUnitLoads(
         return host.canStartMu()
     }
 
-    /** Reads [count] unit definitions (20 bytes each) from ROM [address]. */
+    /** Reads [count] `UnitDefinition`s (20 bytes each: 0x14) from ROM [address]. */
     private fun readDefs(address: Int, count: Int): List<UnitDef> =
         List(count) { UnitDef(rom, address + 20 * it) }
 
@@ -222,9 +243,10 @@ public class EventUnitLoads(
      * Transcribed from src/eventscr.c: ShouldUNITBeLoaded (not verified: synthetic dead unit and
      *   tile cases; no trace comparison yet)
      *
-     * Whether [def] is to be loaded for load parameter [param]: a blue character that is dead
-     * is skipped for 0 and, unless Seth, L'Arachel, Innes or Myrrh, for 2; a red one needs a
-     * free tile (unless summoned or walking in) and a free red slot.
+     * Whether [def] is to be loaded for load parameter [param]: a player-allegiance (0) character
+     * who is dead is skipped for parameter 0 and, unless Seth, L'Arachel, Innes or Myrrh, for 2
+     * (parameter 1 never skips); an enemy-allegiance (2, `FACTION_ID_RED`) definition needs a
+     * free red slot, and an empty tile unless it is summon-flagged or has a REDA move script.
      */
     public fun shouldUnitBeLoaded(def: UnitDef, param: Int): Boolean {
         if (def.allegiance == 0 && param != 1) {
@@ -244,7 +266,8 @@ public class EventUnitLoads(
     /**
      * Ported from src/eventscr.c: EventLoadUnitSliently
      *
-     * Loads up to [count] of [defs] that [shouldUnitBeLoaded] accepts, quietly.
+     * Loads up to [count] of [defs] that [shouldUnitBeLoaded] accepts, at once (no walking).
+     * Used while skipping a cutscene or when the screen is faded in.
      */
     public fun eventLoadUnitSliently(defs: List<UnitDef>, count: Int, param: Int) {
         var left = count.toShort().toInt()
@@ -302,8 +325,9 @@ public class EventUnitLoads(
      * Transcribed from src/eventscr.c: ModifyMoveUnitFlag (not verified: test restates bit
      *   combinations; no trace comparison yet)
      *
-     * The move flags for a load: bit 0 if [unk], bit 2 with the unit camera, bit 3 with
-     * `EV_STATE_0040`.
+     * The move flags for a load: bit 0 if [unk], bit 2 with the unit camera
+     * (`EV_STATE_UNITCAM`), bit 3 with `EV_STATE_0040`. The decomp has a TODO for naming the
+     * bits; their meaning is not documented there.
      */
     public fun modifyMoveUnitFlag(proc: EventEngineProc, unk: Boolean): Int {
         var result = if (unk) 1 else 0
@@ -313,7 +337,7 @@ public class EventUnitLoads(
     }
 
     private companion object {
-        /** `UNIT_STATE_DEAD`. */
+        /** `US_DEAD`: the unit is dead. */
         const val US_DEAD = 1 shl 2
 
         /** Character ids of Seth, L'Arachel, Innes and Myrrh. */

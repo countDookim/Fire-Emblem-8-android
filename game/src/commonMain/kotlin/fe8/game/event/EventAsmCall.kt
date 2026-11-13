@@ -6,7 +6,9 @@ import fe8.game.event.EventConst.EV_STATE_SKIPPING
 import gbafe.core.flags.FlagStore
 
 /**
- * The ASMC command of `src/eventscr.c` (0x0D): calls a native function with the event proc.
+ * The ASMC command of `src/eventscr.c` (`EV_CMD_ASMC` 0x0D, `Event0D_AsmCall`): the script gives
+ * the address of a function in the game code, which is called with the event proc. The port runs
+ * a Kotlin implementation registered for that address instead.
  *
  * @param memory script words (the command arguments).
  * @param functions Kotlin implementations by ROM function address (thumb bit ignored).
@@ -26,8 +28,10 @@ public class EventAsmCall(
     /**
      * Ported from src/eventscr.c: Event0D_AsmCall
      *
-     * Calls a native function with the event proc. Subcommand 1 skips execution when the event
-     * engine is skipping.
+     * Calls the function at the command's address with the event proc and yields. Subcommand 1
+     * (`EvtAsmCallEnableSkip`) does not call it while the cutscene is being skipped. Port
+     * addition: an address with no implementation calls [onUnknown] and continues, where the C
+     * would call the ROM function.
      */
     public val event0DAsmCall: EventHandler = EventHandler { proc ->
         val currentCmd = proc.pEventCurrent
@@ -46,14 +50,19 @@ public class EventAsmCall(
     }
 }
 
-/** Address of `gGuideTable` (`GuideEnt[]`, 12 bytes each) in the US ROM. */
+/**
+ * Address of `gGuideTable` (`struct GuideEnt[]`, 12 bytes each, the entries of the guide menu) in
+ * the US ROM. Not checkable against the decomp, which has no ROM addresses for data; the
+ * differential test reads the real table.
+ */
 private const val GUIDE_TABLE = 0x08B19E0C
 
 /**
  * Ported from src/bmguide.c: BmGuideTextSetAllGreen
  *
- * Sets the display flag (the u16 at offset 6) of every guide entry, up to the entry whose title
- * is 12; the title is the low byte of the entry's first word.
+ * Sets the display flag (`displayFlag`, the u16 at offset 6) of every guide entry, up to the entry
+ * whose `title` is 12 (the list terminator); the title is the low byte of the entry's first word.
+ * It is meant to run from an ASMC command.
  */
 public fun bmGuideTextSetAllGreen(memory: ScriptMemory, flags: FlagStore) {
     var guideEntryAddress = GUIDE_TABLE

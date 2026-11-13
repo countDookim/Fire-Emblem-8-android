@@ -25,10 +25,13 @@ public interface EventUnitStateHooks {
      */
     public fun playerLeaderPid(): Int = 1
 
-    /** `EndAllMus`. */
+    /** `EndAllMus`: ends every running MU (map unit, the walking sprite). */
     public fun endAllMus() {}
 
-    /** `RefreshEntityBmMaps`, `RefreshUnitSprites` and `RenderBmMap`. */
+    /**
+     * `RefreshEntityBmMaps`, `RefreshUnitSprites` and `RenderBmMap`: redraws the map and the unit
+     * sprites after a unit's state changed.
+     */
     public fun refreshMapAndSprites() {}
 
     /**
@@ -37,13 +40,14 @@ public interface EventUnitStateHooks {
      */
     public fun startUnitDeathFade(unitId: Int) {}
 
-    /** `Proc_Find(ProcScr_MuDeathFade) != 0`. */
+    /** `Proc_Find(ProcScr_MuDeathFade) != 0`: a unit's death fade is still running. */
     public fun muDeathFadeExists(): Boolean = false
 }
 
 /**
- * The unit state command of `src/eventscr.c`, `Event34_MessWithUnitState`, on the unit arrays of
- * [table].
+ * The unit state command of `src/eventscr.c`, `Event34_MessWithUnitState` (`EV_CMD_CHANGESTATE`
+ * 0x34): hides, reveals, kills, removes or changes the faction, HP or state of a unit named by an
+ * event character parameter, on the unit arrays of [table].
  *
  * @param state the event slots.
  * @param memory script words (the command arguments).
@@ -67,9 +71,15 @@ public class EventUnitState(
      * Transcribed from src/eventscr.c: Event34_MessWithUnitState (not verified: only subs 5, 10 and
      *   15 are compared; breaks in other subs and the CLEA loop survive)
      *
-     * The subcodes REMU, REVEAL, CUSA/CUSN/CUSE, SET_HP, SET_ENDTURN, 0x7 (has moved), SET_STATE,
-     * 0x9 (EVSUBCMD_3529: no unit change, only the map and sprite refresh), CLEA, CLEN, CLEE,
-     * KILL, DISA_IF and DISA. `UnitChangeFaction` is partial in [UnitLoader] (`gActiveUnit` is
+     * The subcodes: REMU (hide and make unavailable), REVEAL (undo REMU), CUSA/CUSN/CUSE (move
+     * the unit to the player, ally or enemy faction), SET_HP (HP from slot 1, dead at 0),
+     * SET_ENDTURN (unselectable, as after ending its turn), 0x7 (`EVSUBCMD_3427`: has moved),
+     * SET_STATE (deploy or undeploy from slot 1), 0x9 (`EVSUBCMD_3529`: no unit change, only the
+     * map and sprite refresh), CLEA (hide all player units and drop cutscene-loaded ones), CLEN
+     * and CLEE (remove every ally / enemy unit), KILL (hide and play the death fade), DISA_IF
+     * (DISA once no death fade runs) and DISA (remove the unit at once). With the unit missing
+     * (id < 0) KILL, DISA_IF and DISA continue, CLEA/CLEN/CLEE do not need a unit and every
+     * other subcode is an error. `UnitChangeFaction` is partial in [UnitLoader] (`gActiveUnit` is
      * not updated), the MU parts of KILL are [EventUnitStateHooks].
      *
      * Verification: partial. The differential test compares the unit arrays only for subcodes
@@ -152,7 +162,10 @@ public class EventUnitState(
     /** Clears [bits] in the state word of unit [id]. */
     private fun clearBits(id: Int, bits: Int) = table.setState(id, table.state(id) and bits.inv())
 
-    /** `SetUnitHp` plus the dead flag of subcode SET_HP. */
+    /**
+     * `SetUnitHp` (current HP set to [value] and capped at the unit's maximum HP) plus the dead
+     * flag of subcode SET_HP when [value] is 0.
+     */
     private fun setUnitHp(id: Int, value: Int) {
         val o = table.unitOffset(id)
         var hp = value.toByte().toInt()
@@ -175,10 +188,13 @@ public class EventUnitState(
         }
     }
 
-    /** Whether [id] names a unit that exists and is in use. */
+    /** The decomp's `UNIT_IS_VALID`: whether [id] names a unit that exists and is in use. */
     private fun valid(id: Int): Boolean = table.unitOffset(id) >= 0 && table.isValid(id)
 
-    /** The CLEA loop plus `ClearCutsceneUnits`. */
+    /**
+     * The CLEA loop plus `ClearCutsceneUnits`: hides every valid player unit and makes it
+     * selectable and free of rescue state, then drops the units that were loaded for a cutscene.
+     */
     private fun hideAllAllies() {
         hooks.endAllMus()
         for (id in 1 until 0x40) {
@@ -192,7 +208,9 @@ public class EventUnitState(
     /**
      * Ported from src/bmunit.c: ClearCutsceneUnits
      *
-     * Clears the blue units with `US_BIT22` that are alive; the dead ones lose the bit.
+     * Clears the player units with `US_BIT22` that are alive; the dead ones lose the bit. The
+     * unit load (`LoadUnit_800F704`) sets `US_BIT22` on a player unit it newly creates, or finds
+     * dead, when the load parameter is 2 (summon), and clears it otherwise.
      * Verification: partial. A break of the `US_DEAD` branch (always clearing the unit) survives
      * the differential test, so that branch is not checked against the game.
      */
@@ -209,7 +227,10 @@ public class EventUnitState(
         }
     }
 
-    /** The CLEN / CLEE loops: clears every valid unit with id in [first] until [end]. */
+    /**
+     * The CLEN / CLEE loops: clears every valid unit with id in [first] until [end] (the ally
+     * ids 0x41..0x7F and the enemy ids 0x81..0xBF).
+     */
     private fun clearFaction(first: Int, end: Int) {
         hooks.endAllMus()
         for (id in first until end) {
@@ -241,7 +262,8 @@ public class EventUnitState(
         /** Offset of the current HP byte in a unit record. */
         const val OFF_CUR_HP = 0x13
 
-        // Unit state bits (`UNIT_STATE_*`); the numbered ones are named by bit only.
+        // Unit state bits (`US_*` in bmunit.h); the decomp names the numbered ones by bit only.
+        // US_BIT16 is part of `US_UNAVAILABLE`; US_BIT21 and US_BIT26 have no documented meaning.
         const val US_HIDDEN = 1 shl 0
         const val US_UNSELECTABLE = 1 shl 1
         const val US_DEAD = 1 shl 2

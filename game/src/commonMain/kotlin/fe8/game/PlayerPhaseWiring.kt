@@ -187,6 +187,7 @@ internal class PlayerPhaseWiring(
         val forecast = BattleForecast(
             engine, battle, battleGenerate, items, units, active, playSt, bm, map, hw, rom,
             talk.text, talk.messages, drawnIconLookupTable, iconGfxIdLookupTable,
+            loop.sprites, clock,
         )
         forecast.hooks.eventEngineExists = eventEngineExists
         val select = AttackMapSelect(

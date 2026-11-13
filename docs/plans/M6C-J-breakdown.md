@@ -405,6 +405,21 @@ runs one frame behind the dump index after it; the test skips one engine run at 
 frame is dump start + 7; cancel (B at 1699) goes to label 1 and the slide-out ends the proc at 1704; A ends it at once
 (1820). The ballista and obstacle forecasts and the cap3 and kill runs are not covered.
 
+### MC-12b result
+
+The display now puts the forecast's sprites. `PutBattleForecastWeaponTriangleArrows`, `PutBattleForecastMultipliers`,
+`UpdateBattleForecastEffectivenessPalettes` and `UpdateStatArrowSprites` (bm.c, the arrow frames) are Ported;
+`hooks.putDisplay` is gone. `BattleForecast` takes the sprite lists and the game clock. The full dumps of the two
+noanim windows hold the sprites in their OAM (f1670, f1680, f1690; f1800, f1810): per dump an x2 mark (tile 0x2E8)
+and two arrows (tiles 0x4C..0x4F), the actor's up and the target's down, so the Prologue fight does have a weapon
+triangle. `TargetSelectionDifferentialTest` compares, per full dump, the forecast's OAM entries (by tile, in OAM
+order) and, per dump, palettes 3 and 4 (the MC-11 exclusion is gone). The dumps of the closing frame (1700, 1820)
+hold the frame before's OAM and are skipped. Break-checked (all fail): arrow frame divisor, arrow x, arrow direction
+(target), arrow direction (actor), multiplier x, sway angle, palette 3 and 4 step 0. Not verified (no mutation changes
+captured data): the flash's non-zero steps (nothing is effective in the windows), the target's multiplier, the panel's
+y. The VRAM tile graphic of the mark was already compared in MC-11. Help box (`StartBattleForecastHelpBox`) stays M6-F.
+Not covered: cap3 and kill runs were not checked for other arrows.
+
 ### MC-12a result
 
 `BattleForecast` loops now write BG 0 and 1: `BattleForecast_LoopSlideIn` and `_LoopSlideOut` (one private

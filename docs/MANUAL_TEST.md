@@ -41,10 +41,10 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      APK); there is no face or item panel (MC-4b). A on
      a weapon (MC-3b, not yet in a published APK) equips it and clears the list; the red cursor
      then sits on the enemy in reach (MC-5) and Eirika turns towards it (MC-6, not yet in a
-     published APK) with the attack squares still shown. The battle forecast window (MC-10 to MC-12a, not yet in a
+     published APK) with the attack squares still shown. The battle forecast window (MC-10 to MC-12b, not yet in a
      published APK) slides in from the side away from the enemy (4 frames) and stays: a framed
      panel with both names, HP, damage, hit and crit numbers, the labels and the weapon icons.
-     There are no triangle arrows, no x2 marks and no brightening flash (MC-12b) and no help box.
+     The weapon triangle arrows (up for Eirika, down for the enemy) and a swaying x2 mark by Eirika's side show too (MC-12b); there is no help box (M6-F).
      B
      (cancel sound) slides the panel out, hides the cursor and squares and reopens the weapon list. A (confirm sound)
      ends the cursor and squares and Eirika greys out as after Wait: the attack itself

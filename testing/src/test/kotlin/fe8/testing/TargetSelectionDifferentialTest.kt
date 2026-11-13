@@ -34,12 +34,14 @@ import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.render.BgHardware
+import gbafe.render.OamBuffer
 import gbafe.render.LcdControl
 import gbafe.render.SpriteLayers
 import gbafe.text.MsgHuffman
 import gbafe.text.MsgStrings
 import gbafe.text.TextSystem
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import java.io.File
@@ -73,8 +75,9 @@ import java.io.File
  * (before the display flash) 3, BG 1's vertical offset, the text tiles, the panel's tile graphic
  * and the icon tiles. From the first dump after the start (set-up frames included) the BG 0 and 1
  * tilemaps and BG 0 and 1's offsets (the slide in, the display and the slide out, MC-12a) are
- * compared too. Not compared: the sprites and palettes 3 and 4 of the display (MC-12b) and
- * palette 5 (the range squares').
+ * compared too, and (MC-12b) palettes 3 and 4 (the effectiveness flash) per dump and, in the full
+ * dumps' OAM, the forecast's sprites (the weapon triangle arrows and the multiplier marks, by
+ * their tiles). Not compared: palette 5 (the range squares').
  */
 class TargetSelectionDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -99,12 +102,15 @@ class TargetSelectionDifferentialTest {
         "PutTwoSpecialChar", "PutDrawText", "GetStringTextCenteredPos", "Text_InsertDrawString",
         "BattleForecast_OnNewBattle", "BattleForecast_LoopSlideIn", "BattleForecast_LoopDisplay",
         "BattleForecast_LoopSlideOut", "MapEventEngineExists_",
+        "PutBattleForecastWeaponTriangleArrows", "PutBattleForecastMultipliers",
+        "UpdateBattleForecastEffectivenessPalettes", "UpdateStatArrowSprites",
     )
     fun `the target selection follows the game from the pick to B and to A`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
         val cancelled = Sim(FIRST_START)
         for (f in FIRST_START..RESTART_FRAME) cancelled.frame(f)
+        assertTrue(cancelled.sawSprites > 6, "the full dumps hold the forecast's sprites")
         assertEquals(1, cancelled.cancels, "B cancelled once")
         assertEquals(0, cancelled.selects, "A did not select")
         assertEquals(listOf(0x6B), cancelled.sounds, "cancel sound")
@@ -155,6 +161,7 @@ class TargetSelectionDifferentialTest {
         val sounds = ArrayList<Int>()
         var proc: Proc? = null
         var menuCleared = false
+        var sawSprites = 0
 
         /** The dump that holds the forecast's set-up frame half run (the second selection). */
         val partial = if (start == SECOND_START) start + 2 else -1
@@ -175,7 +182,7 @@ class TargetSelectionDifferentialTest {
             )
             forecast = BattleForecast(
                 engine, battle, gen, items, units, active, playSt, bm, map, hw, rom, text,
-                messages, iconTable, iconGfxTable,
+                messages, iconTable, iconGfxTable, sprites, { clock },
             )
             select = AttackMapSelect(
                 engine, targets, active, units, facing, camMove, forecast, hw,
@@ -330,9 +337,8 @@ class TargetSelectionDifferentialTest {
         /**
          * What the forecast draws: the panel's two scratch tilemaps, the icon palette steps, the
          * label and name text structs, the frame palettes 1 and 2, the panel's palette 0x12 and
-         * the icon palette 3 (until the display's flash, MC-12b, takes it over; palette 4 is
-         * that flash's and palette 5 the range squares'), BG 1's offset and, in the dumps that have
-         * VRAM, the text tiles, the panel's
+         * the icon palettes 3 and 4 (the display's flash; palette 5 is the range squares'), BG 0
+         * and 1 and, in the dumps that have VRAM, the text tiles, the panel's
          * tile graphic and the icon tiles.
          */
         private fun compareDrawing(
@@ -366,8 +372,7 @@ class TargetSelectionDifferentialTest {
                 compareText(e, original.offset + 0x40, state.unitNameTextB, "$at unit name B")
                 compareText(e, original.offset + 0x48, state.itemNameText, "$at item name")
             }
-            for (k in listOf(1, 2, 0x12).flatMap { p -> (p * 16 until p * 16 + 16).toList() } +
-                (if (d < start + FIRST_DISPLAY) (3 * 16 until 4 * 16).toList() else emptyList())
+            for (k in listOf(1, 2, 3, 4, 0x12).flatMap { p -> (p * 16 until p * 16 + 16).toList() }
             ) {
                 assertEquals(
                     half(e, PALETTE - EWRAM + 2 * k), hw.palette[k].toInt() and 0xFFFF,
@@ -376,6 +381,11 @@ class TargetSelectionDifferentialTest {
             }
             compareBgs(d, e, at)
             if (!names.getValue(d).startsWith("f")) return
+            // The frame that closes the forecast (B or A) draws no sprites, but the dump's OAM
+            // still holds the frame before's: only the frames that display are compared.
+            if (d < (if (start == FIRST_START) B_FRAME + 1 else A_FRAME + 1)) {
+                compareSprites(d, at)
+            }
             val vram = data.region(names.getValue(d), "vram")
             for (slot in 0 until text.activeFont.chrCounter) {
                 for (k in 0 until 0x40) {
@@ -416,6 +426,32 @@ class TargetSelectionDifferentialTest {
                 }
             }
         }
+
+        /**
+         * The forecast's sprites in the full dumps' OAM: the weapon triangle arrows (tiles 0x4C
+         * to 0x4F) and the multiplier marks (tiles 0x2E6 to 0x2EF), in OAM order, the map cursor
+         * and the rest left out.
+         */
+        private fun compareSprites(d: Int, at: String) {
+            val dump = data.region(names.getValue(d), "oam")
+            val oam = OamBuffer()
+            sprites.pushLayerObjects(4) { oam.putHi(it.oam1, it.oam0, it.obj!!.data, it.oam2) }
+            val want = ArrayList<List<Int>>()
+            for (i in 0 until 128) {
+                val entry = (0 until 3).map { half(dump, i * 8 + 2 * it) }
+                if (isForecastTile(entry[2]) && (entry[0] shr 8) and 3 != 2) want.add(entry)
+            }
+            val got = ArrayList<List<Int>>()
+            for (i in 0 until oam.hiPut / 4) {
+                val entry = (0 until 3).map { oam.buffer[i * 4 + it].toInt() and 0xFFFF }
+                if (isForecastTile(entry[2])) got.add(entry)
+            }
+            assertEquals(want, got, "$at forecast sprites")
+            sawSprites += want.size
+        }
+
+        private fun isForecastTile(attr2: Int): Boolean =
+            (attr2 and 0x3FF) in 0x4C..0x4F || (attr2 and 0x3FF) in 0x2E6..0x2EF
 
         private fun compareText(e: ByteArray, at: Int, mine: gbafe.text.Text, name: String) {
             assertEquals(half(e, at), mine.chrPosition, "$name chr position")

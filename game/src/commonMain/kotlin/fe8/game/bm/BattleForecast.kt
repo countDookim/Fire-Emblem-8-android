@@ -1,6 +1,7 @@
 package fe8.game.bm
 
 import fe8.game.RomView
+import fe8.game.scene.IntSupplier
 import fe8.game.ui.ItemIcon
 import fe8.game.ui.UiFrame
 import gbafe.proc.Proc
@@ -19,6 +20,8 @@ import gbafe.proc.ProcScripts.sleep
 import gbafe.proc.ProcScripts.whileTrue
 import gbafe.render.BgHardware
 import gbafe.render.BgTilemap
+import gbafe.render.SpriteLayers
+import gbafe.render.SpriteObject
 import gbafe.text.MsgStrings
 import gbafe.text.Text
 import gbafe.text.TextSystem
@@ -31,8 +34,9 @@ import gbafe.text.TextSystem
  * Only the standard layout (`battleForecastType` 0) and the path the Prologue capture takes are
  * written. The panel is drawn into the two scratch tilemaps ([tilemapA], [tilemapB], the
  * original's `gUiTmScratchA` and `B`), the text strips and number tiles in VRAM and the frame and
- * icon palettes; the slide copies it onto BG 0 and 1; the arrows are a [Hooks] entry
- * (MC-12b). Never run by the capture and not written: the extended layout
+ * icon palettes; the slide copies it onto BG 0 and 1; the display puts the weapon triangle
+ * arrows and the multiplier marks as sprites and flashes the icon palettes. Never run by the
+ * capture and not written: the extended layout
  * (`DrawBattleForecastContentsExtended`, `PutBattleForecastTilemaps`), the help box
  * (`StartBattleForecastHelpBox`), the ballista and obstacle forecasts.
  */
@@ -53,6 +57,10 @@ public class BattleForecast(
     /** `DrawnIconLookupTable` and `IconGFXIDLookupTable` ([ItemIcon]). */
     private val drawnIconLookupTable: ByteArray,
     private val iconGfxIdLookupTable: ByteArray,
+    /** The sprite lists the arrows and multipliers are put on (`PutSprite`). */
+    private val sprites: SpriteLayers,
+    /** `GetGameClock`. */
+    private val clock: IntSupplier,
 ) {
     /** `gUiTmScratchA` (0x500 bytes): the panel's BG 0 tilemap, 32 entries a row. */
     public val tilemapA: ShortArray = ShortArray(SCRATCH_ENTRIES)
@@ -62,7 +70,7 @@ public class BattleForecast(
 
     /**
      * `gBkselPals`: 8 palettes of 16 colours, the icon palette brightened a step more each (the
-     * palette flash of [Hooks.putDisplay], MC-12b).
+     * palette flash of [updateBattleForecastEffectivenessPalettes]).
      */
     public val bkselPals: ShortArray = ShortArray(BKSEL_PAL_COLORS)
 
@@ -126,12 +134,6 @@ public class BattleForecast(
         public var eventEngineExists: () -> Boolean = { false }
 
         /**
-         * The arrows, multipliers and palette flash of `BattleForecast_LoopDisplay`. Stand-in
-         * until MC-12b: nothing is drawn.
-         */
-        public var putDisplay: (State) -> Unit = {}
-
-        /**
          * `CheckBattleForecastTutorialEvent` is 1 (the first forecast of the tutorial chapter).
          * Stand-in until PC-10 (the Easy-mode tutorial): no tutorial event runs.
          */
@@ -142,6 +144,18 @@ public class BattleForecast(
     public val hooks: Hooks = Hooks()
 
     private var usesLeft = 0
+
+    /** `gObject_16x16` (ROM), the multiplier marks' object. */
+    private val object16x16: SpriteObject by lazy { rom.objN(OBJECT_16X16) }
+
+    /** `sSprite_SysUpArrowA`..`C` (the frames of `gSysUpArrowSpriteLut`). */
+    private val upArrows: Array<SpriteObject> by lazy { arrowLut(UP_ARROW_LUT) }
+
+    /** `sSprite_SysDownArrowA`..`C`. */
+    private val downArrows: Array<SpriteObject> by lazy { arrowLut(DOWN_ARROW_LUT) }
+
+    private fun arrowLut(at: Int): Array<SpriteObject> =
+        Array(3) { rom.objN(rom.u32(at + 4 * it)) }
 
     /**
      * `gProcScr_BKSEL` (0x0859E520): NAME, end callback [forecastOnEnd], CALL `ClearBg0Bg1`,
@@ -702,11 +716,98 @@ public class BattleForecast(
     }
 
     /**
+     * Ported from src/bm.c: UpdateStatArrowSprites
+     *
+     * Puts the stat arrow (up, or down when [isDown]) at ([x], [y]) on layer 4; its frame
+     * changes every 8 clock ticks.
+     */
+    private fun updateStatArrowSprites(x: Int, y: Int, isDown: Boolean) {
+        val frame = clock() / 8 % 3
+
+        sprites.put(4, x, y, if (isDown) downArrows[frame] else upArrows[frame], 0)
+    }
+
+    /**
+     * Ported from src/bksel.c: PutBattleForecastWeaponTriangleArrows
+     *
+     * Puts an arrow by each side's stat block when its weapon has the triangle's advantage (up)
+     * or disadvantage (down).
+     */
+    private fun putBattleForecastWeaponTriangleArrows(state: State) {
+        var wtArrowA = 0
+        var wtArrowB = 0
+
+        if (battle.actor.wTriangleHitBonus > 0) wtArrowA = 1
+        if (battle.actor.wTriangleHitBonus < 0) wtArrowA = 2
+        if (battle.target.wTriangleHitBonus > 0) wtArrowB = 1
+        if (battle.target.wTriangleHitBonus < 0) wtArrowB = 2
+
+        if (wtArrowB != 0) {
+            updateStatArrowSprites((state.x + 8) * 8 + 3, (state.y + 11) * 8, wtArrowB == 2)
+        }
+
+        if (wtArrowA != 0) {
+            updateStatArrowSprites((state.x + 2) * 8 + 3, (state.y + 1) * 8, wtArrowA == 2)
+        }
+    }
+
+    /**
+     * Ported from src/bksel.c: PutBattleForecastMultipliers
+     *
+     * Puts the x2 (x3, x4) mark, swaying, by each side that strikes more than once (not
+     * verified: the target's mark and the panel's y, the capture's target strikes once and the
+     * panel's y is 0).
+     */
+    private fun putBattleForecastMultipliers(state: State) {
+        val angle = (state.frameCount * 4) and 0xFF
+
+        var x = sin(angle) * 4 shr 12
+        var y = cos(angle) * 2 shr 12
+
+        x += state.x * 8 - 3
+        y += state.y * 8
+
+        if (state.hitCountA > 1) {
+            sprites.put(4, x + 72, y + 40, object16x16, state.hitCountA + MULTIPLIER_OAM2)
+        }
+
+        if (state.hitCountB > 1) {
+            sprites.put(4, x + 24, y + 40, object16x16, state.hitCountB + MULTIPLIER_OAM2)
+        }
+    }
+
+    /** `SIN`: `gSinLookup[angle]`. */
+    private fun sin(angle: Int): Int = rom.u16(SIN_LOOKUP + 2 * (angle and 0xFF)).toShort().toInt()
+
+    /** `COS`: `gSinLookup[angle + 0x40]`. */
+    private fun cos(angle: Int): Int = sin(angle + 0x40)
+
+    /**
+     * Ported from src/bksel.c: UpdateBattleForecastEffectivenessPalettes
+     *
+     * Flashes icon palettes 3 and 4 (the two weapon icons) through the brightened steps of
+     * [bkselPals] while that side's attack is effective (not verified: the flash steps, nothing
+     * is effective in the capture, so palettes 3 and 4 stay at step 0).
+     */
+    private fun updateBattleForecastEffectivenessPalettes(state: State) {
+        val step = PAL_ANIM_LUT[state.frameCount and 0x1F]
+
+        applyBkselPalette(if (state.isEffectiveA != 0) step else 0, 3)
+        applyBkselPalette(if (state.isEffectiveB != 0) step else 0, 4)
+    }
+
+    /** `ApplyPalette(gBkselPals[step], palId)`. */
+    private fun applyBkselPalette(step: Int, palId: Int) {
+        for (i in 0 until 16) hardware.palette[palId * 16 + i] = bkselPals[step * 16 + i]
+        hardware.enablePaletteSync()
+    }
+
+    /**
      * Ported from src/bksel.c: BattleForecast_LoopDisplay
      *
      * Every frame: counts it, and when the contents need an update (not verified: the capture
      * never changes the target) redraws them and puts the panel, or ends the step when the
-     * panel must change side. The arrows and flashes are [Hooks.putDisplay].
+     * panel must change side. The sprites and the palette flash follow.
      */
     private fun loopDisplay(proc: Proc) {
         val state = proc.state as State
@@ -726,7 +827,9 @@ public class BattleForecast(
         }
 
         if (state.frameKind == 1) {
-            hooks.putDisplay(state)
+            putBattleForecastWeaponTriangleArrows(state)
+            putBattleForecastMultipliers(state)
+            updateBattleForecastEffectivenessPalettes(state)
         }
     }
 
@@ -818,6 +921,15 @@ public class BattleForecast(
         val LABEL_STRINGS = intArrayOf(0x503, 0x4F4, 0x501, 0x4F3, 0x4EF, 0x504)
         const val MIDDLE_X = 0x70
         const val SLIDE_STEPS = 4
+        const val OBJECT_16X16 = 0x08590F4C
+        const val UP_ARROW_LUT = 0x0859A530
+        const val DOWN_ARROW_LUT = 0x0859A53C
+        const val SIN_LOOKUP = 0x080D751C
+        const val MULTIPLIER_OAM2 = 0x22E6
+        val PAL_ANIM_LUT = intArrayOf(
+            0, 1, 1, 2, 3, 4, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2,
+            2, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        )
         val SLIDE_IN_LUT = intArrayOf(6, 8, 9, 10)
         val SLIDE_OUT_LUT = intArrayOf(9, 8, 6, 0)
     }

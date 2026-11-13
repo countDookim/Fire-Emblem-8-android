@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 190 across 38 Kotlin files.
+Total entries: 189 across 38 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -25,7 +25,7 @@ Total entries: 190 across 38 Kotlin files.
 | M6-J | 8 |
 | D09-3 | 2 |
 | D11-wire-a | 2 |
-| MC-12b | 3 |
+| MC-12b | 2 |
 | MC-13 | 1 |
 | MC-14 | 1 |
 | MC-4 | 4 |
@@ -266,13 +266,12 @@ Total entries: 190 across 38 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `fadeOutSe` | `Sound_FadeOutSE(speed)`: stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet; the Prologue leaves through the other branch of `destruct`). |
 
-## MC-12b (3)
+## MC-12b (2)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wireAttackSelect` | The battle forecast window slides in and shows its numbers (its arrows and multipliers are MC-12b); A on a target ends the unit's turn like Wait (stand-in until MC-13, no battle). |
 | `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `startForecastHelp` | Stand-in until MC-12b: nothing happens (the selection's `onHelp`). |
-| `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | `putDisplay` | Stand-in until MC-12b: nothing is drawn. |
 
 ## MC-13 (1)
 

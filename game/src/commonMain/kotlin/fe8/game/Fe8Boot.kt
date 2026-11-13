@@ -399,7 +399,12 @@ public class Fe8Boot(
                         y: Int,
                     ) = camMove.ensureCameraOntoPosition(proc.proc, x, y)
 
-                    override fun canStartMu(): Boolean = mu.configs.any { c -> c.slot == 0 }
+                    // An index loop: `any` makes a 32 B iterator each frame a waiting load retries.
+                    override fun canStartMu(): Boolean {
+                        val configs = mu.configs
+                        for (i in 0 until configs.size) if (configs[i].slot == 0) return true
+                        return false
+                    }
                 },
             ).also { loads ->
                 loads.registerOn(it)

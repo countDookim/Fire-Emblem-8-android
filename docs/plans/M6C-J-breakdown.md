@@ -586,6 +586,10 @@ TEST-2 (11-13) found it: bisecting `GameLoop.onMain` per proc showed `gProcScr_P
 `playerPhaseWaitForUnitMovement` calls `Mu.muExistsActive`; `for (c in configs)` over a `List` allocated an
 `ArrayList.Itr` (32 B) each frame. An index loop fixes it (walk frames 0 B; a sprite frame shown for the first time
 still allocates 48 B once per boot). `WalkingAllocationTest` went from 1-2 to 8 of 26 free windows, threshold now 5.
+TEST-4 (11-13): the opening-walk windows are dirty from two things. A load waiting for a free MU slot
+(`EventUnitLoads` callback each frame) called `canStartMu` = `mu.configs.any {}`, a 32 B iterator per frame for
+~35 frames; now an index loop. The 48 B / 96 B spikes at sprite-frame changes are the one-time `objectAt` cache fill
+per boot (confirmed: each coincided with a miss); documented, not changed. Windows stay 8 of 26 (a first-show miss dirties a 10-frame window), threshold 5 kept.
 
 ## M7
 

@@ -79,6 +79,11 @@ internal class MuSpriteAnim(
 
     fun delete(anim: Int) = player.delete(handle(anim))
 
+    /**
+     * The sprite object at [addr], parsed from the ROM on first use and cached for the rest of
+     * the boot. That first use allocates (48 B per object): a MU's sprite frame shown for the
+     * first time. It is one-time per boot and frame, not per walk, so it is accepted.
+     */
     override fun objectAt(addr: Int): SpriteObject {
         for (i in 0 until objectCount) {
             if (objectAddresses[i] == addr) return objects[i]!!

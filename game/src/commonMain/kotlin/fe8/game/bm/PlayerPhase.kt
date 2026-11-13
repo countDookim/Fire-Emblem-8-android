@@ -617,7 +617,7 @@ public class PlayerPhase(
      * Ported from src/bmmind.c: ApplyUnitAction
      *
      * The Wait branch only (verified for Wait; every other action type is not written and fails
-     * loudly). Stand-in until MC-11: a combat action (A on an attack target) ends the unit's
+     * loudly). Stand-in until MC-13: a combat action (A on an attack target) ends the unit's
      * turn like Wait, without the battle.
      *
      * Makes the subject the active unit; Wait and Trapped set `US_HAS_MOVED` and go on (true).

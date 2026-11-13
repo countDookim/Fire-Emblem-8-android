@@ -152,6 +152,21 @@ public class TextSystem(
     }
 
     /**
+     * Gives [text] the next [tileWidth] tile columns of the active font twice over, for double
+     * buffering ([putText] flips between the two halves), without clearing it.
+     *
+     * Ported from src/fontgrp.c: InitTextDb
+     */
+    public fun initTextDb(text: Text, tileWidth: Int) {
+        text.chrPosition = activeFont.chrCounter
+        text.tileWidth = tileWidth
+        text.dbId = 0
+        text.dbEnabled = true
+        text.isPrinting = false
+        activeFont.chrCounter += tileWidth * 2
+    }
+
+    /**
      * Resets [text]'s pen to 0 and its colour to white (`TEXT_COLOR_SYSTEM_WHITE`) and zeroes its
      * whole tile strip in VRAM, `tileWidth * 2` tiles of `CHR_SIZE` bytes.
      *
@@ -371,8 +386,7 @@ public class TextSystem(
     /**
      * Pen x at which [str] is centred in a box [x] pixels wide: `(x - width) / 2`.
      *
-     * Transcribed from src/fontgrp.c: GetStringTextCenteredPos
-     * (not verified: compared only through the Prologue brown text box tiles)
+     * Ported from src/fontgrp.c: GetStringTextCenteredPos
      */
     public fun getStringTextCenteredPos(x: Int, str: ByteArray, start: Int = 0): Int =
         (x - getStringTextLen(str, start)) / 2
@@ -380,8 +394,7 @@ public class TextSystem(
     /**
      * Sets the pen to [x] and the colour to [colorId] (a `TEXT_COLOR_*` index), then draws [str].
      *
-     * Transcribed from src/fontgrp.c: Text_InsertDrawString
-     * (not verified: compared only through the Prologue brown text box tiles)
+     * Ported from src/fontgrp.c: Text_InsertDrawString
      */
     public fun textInsertDrawString(text: Text, x: Int, colorId: Int, str: ByteArray) {
         text.x = x
@@ -627,6 +640,54 @@ public class TextSystem(
     }
 
     /**
+     * Writes [number] ending at [at] as in [putNumber], but 100 as the two characters of the
+     * 100 symbol and a negative number or 255 as two dashes, each ending at [at] + 1 (the two
+     * start at [at] - 1).
+     *
+     * Ported from src/fontgrp.c: PutNumberTwoChr
+     */
+    public fun putNumberTwoChr(tm: ShortArray, at: Int, color: Int, number: Int) {
+        if (number == 100) {
+            putTwoSpecialChar(tm, at - 1, color, SPECIAL_100_A, SPECIAL_100_B)
+        } else if (number < 0 || number == 255) {
+            putTwoSpecialChar(tm, at - 1, color, SPECIAL_DASH, SPECIAL_DASH)
+        } else {
+            putNumber(tm, at, color, number)
+        }
+    }
+
+    /**
+     * Writes the special characters [idA] and [idB] side by side from [at].
+     *
+     * Ported from src/fontgrp.c: PutTwoSpecialChar
+     */
+    public fun putTwoSpecialChar(tm: ShortArray, at: Int, color: Int, idA: Int, idB: Int) {
+        putSpecialChar(tm, at, color, idA)
+        putSpecialChar(tm, at + 1, color, idB)
+    }
+
+    /**
+     * Draws [str] into [text] with the pen at [x] in [color], then puts it at [offset] of [tm]
+     * ([putText]). The original's null [text] (a temporary one) is not written.
+     *
+     * Ported from src/fontgrp.c: PutDrawText
+     */
+    public fun putDrawText(
+        text: Text,
+        tm: ShortArray,
+        offset: Int,
+        color: Int,
+        x: Int,
+        str: ByteArray,
+    ) {
+        text.x = x
+        text.colorId = color
+        drawString(text, str)
+
+        putText(text, tm, offset)
+    }
+
+    /**
      * Writes [number] in the big digits ending at [at].
      *
      * Ported from src/fontgrp.c: PutNumber
@@ -800,6 +861,15 @@ public class TextSystem(
 
         /** `TEXT_SPECIAL_DASH`. */
         private const val SPECIAL_DASH = 0x14
+
+        /** `TEXT_SPECIAL_HP_A` and `_B`: the two halves of the HP symbol. */
+        public const val SPECIAL_HP_A: Int = 0x22
+
+        /** See [SPECIAL_HP_A]. */
+        public const val SPECIAL_HP_B: Int = 0x23
+
+        private const val SPECIAL_100_A = 0x28
+        private const val SPECIAL_100_B = 0x29
 
         /** `TEXT_SPECIAL_NOTHING`. */
         private const val SPECIAL_NOTHING = 0xFF

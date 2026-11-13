@@ -23,6 +23,8 @@ import fe8.game.bm.TargetSelection
 import fe8.game.bm.UnitFacing
 import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitTable
+import fe8.game.text.Fe8Text
+import fe8.game.ui.ItemIcon
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
 import gbafe.core.mechanics.Mechanics
@@ -31,7 +33,11 @@ import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.render.BgHardware
+import gbafe.render.LcdControl
 import gbafe.render.SpriteLayers
+import gbafe.text.MsgHuffman
+import gbafe.text.MsgStrings
+import gbafe.text.TextSystem
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
@@ -58,8 +64,14 @@ import java.io.File
  * counter, hit counts, effectiveness flags; the first dump after the start holds stale bytes in
  * the fields the proc has not set yet, so only the frame kind and `ready` are compared there),
  * and `gBattleActor`, `gBattleTarget`, `gBattleStats` and `gBmMapMovement` (filled with -1) are
- * the dump's until the cancel reopens the weapon list (the panel regenerates them). Not compared:
- * the BG tiles, palettes and text the forecast draws (MC-11, MC-12), which are stand-in hooks.
+ * the dump's until the cancel reopens the weapon list (the panel regenerates them).
+ *
+ * The drawing (MC-11) is compared from the first complete dump after the start (the VRAM
+ * and palette dumps `f` every 10 frames): the two scratch tilemaps (`gUiTmScratchA` and `B`), the
+ * icon palette steps (`gBkselPals`), the label and name text structs, palettes 1, 2, 0x12 and
+ * (before the display flash) 3, BG 1's vertical offset, the text tiles, the panel's tile graphic
+ * and the icon tiles. Not compared: the BG 0 and 1 tilemaps (the slide, MC-12a), the sprites and
+ * palettes 3 and 4 of the display (MC-12b) and palette 5 (the range squares').
  */
 class TargetSelectionDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -77,6 +89,11 @@ class TargetSelectionDifferentialTest {
         "NewBattleForecast", "BattleForecast_Init",
         "InitBattleForecastBattleStats", "BattleForecastHitCountUpdate",
         "GetBattleForecastPanelSide", "CloseBattleForecast",
+        "InitBattleForecastIconPaletteBuffer", "InitBattleForecastLabels",
+        "PutBattleForecastUnitName", "PutBattleForecastItemName", "DrawBattleForecastContents",
+        "DrawBattleForecastContentsStandard", "GetFactionBattleForecastFramePalette",
+        "InitBattleForecastFramePalettes", "Copy2dChr", "InitTextDb", "PutNumberTwoChr",
+        "PutTwoSpecialChar", "PutDrawText", "GetStringTextCenteredPos", "Text_InsertDrawString",
     )
     fun `the target selection follows the game from the pick to B and to A`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
@@ -99,7 +116,12 @@ class TargetSelectionDifferentialTest {
     private inner class Sim(val start: Int) {
         val data = ref.run(RUN)
         val names = data.dumps.entries.associate { it.value to it.key }
-        val rom = RomView.ofRom(romFile.readBytes())
+        val romBytes = romFile.readBytes()
+        val rom = RomView.ofRom(romBytes)
+        val host = TextVram()
+        val text = TextSystem(romBytes, host, Fe8Text.CONFIG)
+        val iconTable = ByteArray(ItemIcon.MAX_ICON_COUNT * ItemIcon.ICON_ENTRY_SIZE)
+        val iconGfxTable = ByteArray(ItemIcon.MAX_ICON_GFX_COUNT)
         val engine = ProcEngine()
         val keys = KeyStatus()
         val sprites = SpriteLayers()
@@ -141,8 +163,13 @@ class TargetSelectionDifferentialTest {
             facing.setAutoMuMoveScript = { facingCalls++ }
             battle = BmBattle(rom, units, loader, playSt, bm) { y, x -> map.terrain[y, x] }
             val gen = BattleGenerate(battle, rom, loader, playSt, RngService(), Mechanics())
+            val root = u32(romBytes, 0x0815D488 - ROM_BASE) - ROM_BASE
+            val messages = MsgStrings(
+                romBytes, MsgHuffman(romBytes, 0x0815A72C - ROM_BASE, root), 0x0815D48C - ROM_BASE,
+            )
             forecast = BattleForecast(
-                engine, battle, gen, items, units, active, playSt, bm, map, hw,
+                engine, battle, gen, items, units, active, playSt, bm, map, hw, rom, text,
+                messages, iconTable, iconGfxTable,
             )
             select = AttackMapSelect(
                 engine, targets, active, units, facing, camMove, forecast, hw,
@@ -189,6 +216,7 @@ class TargetSelectionDifferentialTest {
             )
             battle.stats.decode(e, GBATTLE_STATS - EWRAM)
             readPool(e, iw, GBM_MAP_MOVEMENT, map.movement)
+            seedDrawing(e, iw)
             val pointer = u32(iwram(start + 1), GACTIVEUNIT - IWRAM)
             active.unit = units.bytes[pointer - UnitTable.BLUE_ADDRESS + 0x0B].toInt() and 0xFF
             // The weapon list's end (the menu proc, MC-3b) unlocks the game as the pick returns.
@@ -206,6 +234,30 @@ class TargetSelectionDifferentialTest {
             cursor.lastCoordX = s16(e, SLAST_COORD - EWRAM)
             cursor.lastCoordY = s16(e, SLAST_COORD - EWRAM + 2)
             cursor.lastTimeDrawn = u32(e, SLAST_TIME - EWRAM)
+        }
+
+        /** The text, icon, palette and LCD state the forecast draws over, from the start dump. */
+        private fun seedDrawing(e: ByteArray, iw: ByteArray) {
+            for (i in 0 until BgHardware.PALETTE_COLORS) {
+                hw.palette[i] = half(e, PALETTE - EWRAM + 2 * i).toShort()
+            }
+            hw.lcd.readFrom(iw, LCD_BUFFER - IWRAM)
+            text.initTextFont(null, 0x06001000, 0x80, 0)
+            val vram = data.region(names.getValue(start + 1), "vram")
+            vram.copyInto(host.vram, 0, 0, host.vram.size)
+            vram.copyInto(hw.vram, 0, 0, minOf(vram.size, hw.vram.size))
+            e.copyInto(iconTable, 0, DRAWN_ICONS - EWRAM, DRAWN_ICONS - EWRAM + iconTable.size)
+            e.copyInto(
+                iconGfxTable, 0, ICON_GFX_IDS - EWRAM, ICON_GFX_IDS - EWRAM + iconGfxTable.size,
+            )
+            val font = u32(e, GACTIVE_FONT - EWRAM) - EWRAM
+            text.activeFont.chrCounter = half(e, font + 0x12)
+            text.loadSpecialCharList(e, SPECIAL_CHAR_LIST - EWRAM)
+            val a = SCRATCH_A - EWRAM
+            for (k in 0 until 0x280) {
+                forecast.tilemapA[k] = half(e, a + 2 * k).toShort()
+                forecast.tilemapB[k] = half(e, SCRATCH_B - EWRAM + 2 * k).toShort()
+            }
         }
 
         fun frame(f: Int) {
@@ -253,6 +305,92 @@ class TargetSelectionDifferentialTest {
             }
             val limit = if (start == FIRST_START) B_FRAME + 1 else A_FRAME + 1
             if (d > start && d <= limit) compareBattle(d, e, at)
+            if (d >= start + 2 && d != partial && d <= limit) compareDrawing(d, e, original, at)
+        }
+
+        /**
+         * What the forecast draws: the panel's two scratch tilemaps, the icon palette steps, the
+         * label and name text structs, the frame palettes 1 and 2, the panel's palette 0x12 and
+         * the icon palette 3 (until the display's flash, MC-12b, takes it over; palette 4 is
+         * that flash's and palette 5 the range squares'), BG 1's offset and, in the dumps that have
+         * VRAM, the text tiles, the panel's
+         * tile graphic and the icon tiles. Not compared: the BG 0 and 1 tilemaps the slide fills
+         * (MC-12a).
+         */
+        private fun compareDrawing(
+            d: Int,
+            e: ByteArray,
+            original: ProcArrayDump.Proc?,
+            at: String,
+        ) {
+            for (k in 0 until 0x280) {
+                assertEquals(
+                    half(e, SCRATCH_A - EWRAM + 2 * k), forecast.tilemapA[k].toInt() and 0xFFFF,
+                    "$at scratch A[$k]",
+                )
+                assertEquals(
+                    half(e, SCRATCH_B - EWRAM + 2 * k), forecast.tilemapB[k].toInt() and 0xFFFF,
+                    "$at scratch B[$k]",
+                )
+            }
+            for (k in 0 until 8 * 16) {
+                assertEquals(
+                    half(e, BKSEL_PALS - EWRAM + 2 * k), forecast.bkselPals[k].toInt() and 0xFFFF,
+                    "$at gBkselPals[$k]",
+                )
+            }
+            for (i in 0 until 6) {
+                compareText(e, TEXT_STRUCTS - EWRAM + 8 * i, forecast.labels[i], "$at label $i")
+            }
+            val state = forecast.find()?.state as BattleForecast.State?
+            if (state != null && original != null) {
+                compareText(e, original.offset + 0x38, state.unitNameTextA, "$at unit name A")
+                compareText(e, original.offset + 0x40, state.unitNameTextB, "$at unit name B")
+                compareText(e, original.offset + 0x48, state.itemNameText, "$at item name")
+            }
+            for (k in listOf(1, 2, 0x12).flatMap { p -> (p * 16 until p * 16 + 16).toList() } +
+                (if (d < start + FIRST_DISPLAY) (3 * 16 until 4 * 16).toList() else emptyList())
+            ) {
+                assertEquals(
+                    half(e, PALETTE - EWRAM + 2 * k), hw.palette[k].toInt() and 0xFFFF,
+                    "$at palette colour 0x${k.toString(16)}",
+                )
+            }
+            val lcd = LcdControl()
+            lcd.readFrom(iwram(d), LCD_BUFFER - IWRAM)
+            assertEquals(lcd.bgVofs[1], hw.lcd.bgVofs[1], "$at BG 1 vertical offset")
+            if (!names.getValue(d).startsWith("f")) return
+            val vram = data.region(names.getValue(d), "vram")
+            for (slot in 0 until text.activeFont.chrCounter) {
+                for (k in 0 until 0x40) {
+                    val a = 0x1000 + slot * 0x40 + k
+                    assertEquals(vram[a], host.vram[a], "$at text slot $slot byte $k")
+                }
+            }
+            for (row in 0 until 2) {
+                for (k in 0 until 0x80) {
+                    val a = 0x15D00 + row * 0x400 + k
+                    assertEquals(vram[a], hw.vram[a], "$at panel graphic byte 0x${a.toString(16)}")
+                }
+            }
+            for (slot in 0 until ItemIcon.MAX_ICON_GFX_COUNT) {
+                if (iconGfxTable[slot].toInt() == 0) continue
+                val from = (0x20 * ItemIcon.getIconGfxTileIndex(slot + 1)) and 0x1FFE0
+                for (a in from until from + ItemIcon.ICON_BYTES) {
+                    assertEquals(
+                        vram[a], hw.vram[a], "$at icon slot $slot byte 0x${a.toString(16)}",
+                    )
+                }
+            }
+        }
+
+        private fun compareText(e: ByteArray, at: Int, mine: gbafe.text.Text, name: String) {
+            assertEquals(half(e, at), mine.chrPosition, "$name chr position")
+            assertEquals(e[at + 2].toInt() and 0xFF, mine.x, "$name x")
+            assertEquals(e[at + 3].toInt() and 0xFF, mine.colorId, "$name colour")
+            assertEquals(e[at + 4].toInt() and 0xFF, mine.tileWidth, "$name tile width")
+            assertEquals(e[at + 5].toInt() != 0, mine.dbEnabled, "$name double buffer")
+            assertEquals(e[at + 6].toInt() and 0xFF, mine.dbId, "$name buffer half")
         }
 
         private fun compareBattle(d: Int, e: ByteArray, at: String) {
@@ -379,10 +517,22 @@ class TargetSelectionDifferentialTest {
         const val COUNT = 0x0203E0EC
         const val TRAP_POOL_SIZE = 0x200
         const val MID_FRAME_DUMP = 3
+        const val FIRST_DISPLAY = 7
         const val FIRST_START = 1659
         const val B_FRAME = 1699
         const val RESTART_FRAME = 1703
         const val BKSEL = 0x0859E520
+        const val ROM_BASE = 0x08000000
+        const val PALETTE = 0x020228A8
+        const val LCD_BUFFER = 0x03003080
+        const val DRAWN_ICONS = 0x02026A90
+        const val ICON_GFX_IDS = 0x02026E10
+        const val GACTIVE_FONT = 0x02028E70
+        const val SPECIAL_CHAR_LIST = 0x02028E78
+        const val SCRATCH_A = 0x02003D2C
+        const val SCRATCH_B = 0x0200422C
+        const val BKSEL_PALS = 0x0200300C
+        const val TEXT_STRUCTS = 0x02002FDC
         const val GBATTLE_STATS = 0x0203A4D4
         const val GBATTLE_ACTOR = 0x0203A4EC
         const val GBATTLE_TARGET = 0x0203A56C

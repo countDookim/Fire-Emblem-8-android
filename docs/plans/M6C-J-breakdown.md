@@ -405,6 +405,30 @@ runs one frame behind the dump index after it; the test skips one engine run at 
 frame is dump start + 7; cancel (B at 1699) goes to label 1 and the slide-out ends the proc at 1704; A ends it at once
 (1820). The ballista and obstacle forecasts and the cap3 and kill runs are not covered.
 
+### MC-11 result
+
+`BattleForecast` now draws the standard panel (hooks `initDrawing`, `drawContents`, `initFramePalettes`,
+`resetTextFont`, `unpackUiFrame` are gone). `TargetSelectionDifferentialTest` also compares, from the first complete
+dump after each start (the dump 3 frames after the start is a repeat or half run, see MC-10): the two scratch
+tilemaps `gUiTmScratchA` and `B` (EWRAM, 0x500 bytes each, seeded from the start dump because the panel leaves the
+rest stale), `gBkselPals`, the label and name `struct Text`s, palettes 1, 2, 0x12 (and 3 until the display's flash),
+BG 1's vertical offset, and in the dumps that have VRAM (`f`, every 10 frames: f1670..1700, f1800..1820) the text
+tiles (0x06001000 + slot * 0x40, every slot of the font counter), the 4x2 panel tile graphic at 0x06015D00 and
+the icon tiles. Excluded: the BG 0 and 1 tilemaps (written by the slide steps, MC-12a), the display's palette
+flash and sprites (palettes 3 and 4 from the first display frame, MC-12b) and palette 5 (the range squares').
+Ported and break-checked (one mutation each, all fail): `InitBattleForecastIconPaletteBuffer`,
+`InitBattleForecastLabels`, `PutBattleForecastUnitName`, `PutBattleForecastItemName`,
+`DrawBattleForecastContents` (standard branch), `DrawBattleForecastContentsStandard`,
+`GetFactionBattleForecastFramePalette`, `InitBattleForecastFramePalettes`, and with them the text helpers
+`InitTextDb`, `PutNumberTwoChr`, `PutTwoSpecialChar`, `PutDrawText` (new in `TextSystem`), `Copy2dChr` (private in
+`BattleForecast`), and `GetStringTextCenteredPos` and `Text_InsertDrawString`, which were Transcribed and are now
+Ported. Inside ported ones (not verified): the 100 and dash branches of `PutNumberTwoChr`, the no-weapon target
+branch, the Monster Stone, the purple (wall or trap) frame. `BattleForecast_OnEnd` stays Transcribed (it restores
+the window frame, whose palette equals the forecast's blue one in the capture). Findings: `TileMap_FillRect` fills
+`width + 1` by `height + 1` entries (its asm counters run to -1); `BattleForecast_Init` loads the panel graphic
+and palette 0x12 (OBJ palette 2) too; palette 5 changes every few frames by itself. Not covered: cap3, the kill
+run, extended layout.
+
 ## M7
 
 Not broken down here: [M7-modding](M7-modding.md) has 23 proposed rows; they wait for owner decisions D2–D9.

@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 555 across 76 decomp files (missing reason: 0).
+Total entries: 553 across 76 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -517,21 +517,6 @@ Total entries: 555 across 76 decomp files (missing reason: 0).
 | `SetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | the only reference value is 0, so a no-op survives |
 | `GetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | no test checks it against a trace yet |
 
-## src/fontgrp.c (10)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `ResetTextFont` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | the captured window starts after its caller, `PlayerPhase_ApplyUnitMovement`; the tests call it as that caller does |
-| `SpriteText_Clear` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | the bytes 0x340..0x360 of a row are never glyph data in the capture; WorldMapEventHostTest checks the rest |
-| `SpriteText_DrawBackgroundExt` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | compared only through the Prologue brown text box tiles |
-| `GetStringTextCenteredPos` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | compared only through the Prologue brown text box tiles |
-| `Text_InsertDrawString` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | compared only through the Prologue brown text box tiles |
-| `Text_DrawCharacter` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | the US ROM has no Shift-JIS glyph lists and the trace runs with lang = 1 |
-| `Text_DrawString` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | see above |
-| `GetStringTextLen` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | the US ROM has no Shift-JIS glyph lists and the trace runs with lang = 1 |
-| `GetCharTextLen` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | see above |
-| `EndGreenText` | `game/src/commonMain/kotlin/fe8/game/ui/GreenText.kt` | only `sProc_MenuMain` calls it after the menu's idle callback breaks, which no capture does |
-
 ## src/hardware.c (10)
 
 | Function | Kotlin file | Reason |
@@ -572,6 +557,19 @@ Total entries: 555 across 76 decomp files (missing reason: 0).
 | `ResetUnitSpritesB` | `game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt` | never called in the trace |
 | `ApplyUnitSpriteImage32x32` | `game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt` | no 32x32 sprite is loaded in the traced frames |
 | `PutChapterMarkedTileIconOam` | `game/src/commonMain/kotlin/fe8/game/bm/UnitSpritesOam.kt` | the trace chapter has no goal tile (destPosX == 0xFF) |
+
+## src/fontgrp.c (8)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ResetTextFont` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | the captured window starts after its caller, `PlayerPhase_ApplyUnitMovement`; the tests call it as that caller does |
+| `SpriteText_Clear` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | the bytes 0x340..0x360 of a row are never glyph data in the capture; WorldMapEventHostTest checks the rest |
+| `SpriteText_DrawBackgroundExt` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | compared only through the Prologue brown text box tiles |
+| `Text_DrawCharacter` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | the US ROM has no Shift-JIS glyph lists and the trace runs with lang = 1 |
+| `Text_DrawString` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | see above |
+| `GetStringTextLen` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | the US ROM has no Shift-JIS glyph lists and the trace runs with lang = 1 |
+| `GetCharTextLen` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | see above |
+| `EndGreenText` | `game/src/commonMain/kotlin/fe8/game/ui/GreenText.kt` | only `sProc_MenuMain` calls it after the menu's idle callback breaks, which no capture does |
 
 ## src/gamecontrol.c (7)
 
@@ -703,7 +701,7 @@ Total entries: 555 across 76 decomp files (missing reason: 0).
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
-| `BattleForecast_OnEnd` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | it only restores the frame graphics, which are drawing, MC-11 |
+| `BattleForecast_OnEnd` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | the frame palette it restores is the window's own in the capture, so no mutation changes captured data |
 | `TriggerBattleForcastToturialEvent` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | the capture starts no tutorial event |
 | `UpdateBattleForecastContents` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | the capture's one call comes before the proc is ready, and the contents are redrawn at the start anyway |
 

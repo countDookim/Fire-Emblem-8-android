@@ -175,14 +175,16 @@ internal class PlayerPhaseWiring(
     }
 
     /**
-     * `gSelectInfo_Attack`: [AttackMapSelect]. The battle forecast window runs but draws nothing
-     * (MC-11); A on a target ends the unit's turn like Wait (stand-in until MC-11, no battle).
+     * `gSelectInfo_Attack`: [AttackMapSelect]. The battle forecast window is drawn (its slide
+     * onto the screen is MC-12a); A on a target ends the unit's turn like Wait (stand-in until
+     * MC-13, no battle).
      */
     private fun wireAttackSelect(phase: PlayerPhase) {
         val facing = UnitFacing(units, active, phase.workingMovementScript)
         facing.setAutoMuMoveScript = { script -> mu.setAutoMuMoveScript(script) }
         val forecast = BattleForecast(
-            engine, battle, battleGenerate, items, units, active, playSt, bm, map, hw,
+            engine, battle, battleGenerate, items, units, active, playSt, bm, map, hw, rom,
+            talk.text, talk.messages, drawnIconLookupTable, iconGfxIdLookupTable,
         )
         val select = AttackMapSelect(
             engine, attackTargets.targets, active, units, facing, camMove, forecast, hw,

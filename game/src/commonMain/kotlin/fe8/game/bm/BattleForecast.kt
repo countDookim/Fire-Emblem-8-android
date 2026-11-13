@@ -1,5 +1,7 @@
 package fe8.game.bm
 
+import fe8.game.RomView
+import fe8.game.ui.ItemIcon
 import fe8.game.ui.UiFrame
 import gbafe.proc.Proc
 import gbafe.proc.ProcBoolFunc
@@ -16,6 +18,10 @@ import gbafe.proc.ProcScripts.setEndCb
 import gbafe.proc.ProcScripts.sleep
 import gbafe.proc.ProcScripts.whileTrue
 import gbafe.render.BgHardware
+import gbafe.render.BgTilemap
+import gbafe.text.MsgStrings
+import gbafe.text.Text
+import gbafe.text.TextSystem
 
 /**
  * The battle forecast window of src/bksel.c: the proc `gProcScr_BKSEL`, its fields and the
@@ -23,9 +29,10 @@ import gbafe.render.BgHardware
  * [BattleGenerate.battleGenerateSimulation].
  *
  * Only the standard layout (`battleForecastType` 0) and the path the Prologue capture takes are
- * written. Everything the player sees is a [Hooks] entry (the panel, its labels and palettes
- * are MC-11, the slide and the arrows MC-12); the proc fields, the battle numbers and the
- * slide counters are here. Never run by the capture and not written: the extended layout
+ * written. The panel is drawn into the two scratch tilemaps ([tilemapA], [tilemapB], the
+ * original's `gUiTmScratchA` and `B`), the text strips and number tiles in VRAM and the frame and
+ * icon palettes; copying the panel onto BG 0 and 1 (the slide) and the arrows are [Hooks] entries
+ * (MC-12). Never run by the capture and not written: the extended layout
  * (`DrawBattleForecastContentsExtended`, `PutBattleForecastTilemaps`), the help box
  * (`StartBattleForecastHelpBox`), the ballista and obstacle forecasts.
  */
@@ -40,7 +47,31 @@ public class BattleForecast(
     private val bm: BmSt,
     private val map: BmMap,
     private val hardware: BgHardware,
+    private val rom: RomView,
+    private val text: TextSystem,
+    private val messages: MsgStrings,
+    /** `DrawnIconLookupTable` and `IconGFXIDLookupTable` ([ItemIcon]). */
+    private val drawnIconLookupTable: ByteArray,
+    private val iconGfxIdLookupTable: ByteArray,
 ) {
+    /** `gUiTmScratchA` (0x500 bytes): the panel's BG 0 tilemap, 32 entries a row. */
+    public val tilemapA: ShortArray = ShortArray(SCRATCH_ENTRIES)
+
+    /** `gUiTmScratchB`: the panel's BG 1 tilemap (the frame). */
+    public val tilemapB: ShortArray = ShortArray(SCRATCH_ENTRIES)
+
+    /**
+     * `gBkselPals`: 8 palettes of 16 colours, the icon palette brightened a step more each (the
+     * palette flash of [Hooks.putDisplay], MC-12b).
+     */
+    public val bkselPals: ShortArray = ShortArray(BKSEL_PAL_COLORS)
+
+    /** `gaBattleForecastTextStructs`: the six stat labels. */
+    public val labels: Array<Text> = Array(LABEL_COUNT) { Text() }
+
+    private val tsa = ByteArray(TSA_BYTES)
+    private val gfx = ByteArray(GFX_BYTES)
+
     /** `struct BattleForecastProc` past `PROC_HEADER` (the text structs are drawing). */
     public class State {
         /** `unk_2C` (+0x2C): frames the display has run. */
@@ -78,6 +109,15 @@ public class BattleForecast(
 
         /** `isEffectiveB` (+0x53, s8). */
         public var isEffectiveB: Int = 0
+
+        /** `unitNameTextA` (+0x38). */
+        public val unitNameTextA: Text = Text()
+
+        /** `unitNameTextB` (+0x40). */
+        public val unitNameTextB: Text = Text()
+
+        /** `itemNameText` (+0x48). */
+        public val itemNameText: Text = Text()
     }
 
     /** Services outside the ported file. */
@@ -86,32 +126,9 @@ public class BattleForecast(
         public var eventEngineExists: () -> Boolean = { false }
 
         /**
-         * `ResetTextFont`, for the setting that shows no forecast. Stand-in until MC-11: the
-         * text is not drawn.
-         */
-        public var resetTextFont: () -> Unit = {}
-
-        /**
-         * The drawing set-up of `BattleForecast_Init`: the frame graphics and palette, the icon
-         * and text set-up (`InitBattleForecastIconPaletteBuffer`, `InitBattleForecastLabels`)
-         * and BG 1's position. Stand-in until MC-11: nothing is drawn.
-         */
-        public var initDrawing: () -> Unit = {}
-
-        /**
-         * `DrawBattleForecastContentsStandard` (names, numbers, icons) and
-         * `PutBattleForecastTilemaps`. Stand-in until MC-11: nothing is drawn.
-         */
-        public var drawContents: (State) -> Unit = {}
-
-        /**
-         * `InitBattleForecastFramePalettes`. Stand-in until MC-11: the frame is not coloured.
-         */
-        public var initFramePalettes: () -> Unit = {}
-
-        /**
          * The tilemap copy of `BattleForecast_LoopSlideIn` and `_LoopSlideOut`: the panel's BG 0
-         * and 1 rows for this step of the slide. Stand-in until MC-12a: nothing is drawn.
+         * and 1 rows ([tilemapA], [tilemapB]) for this step of the slide. Stand-in until
+         * MC-12a: nothing is drawn.
          */
         public var drawSlide: (State) -> Unit = {}
 
@@ -120,12 +137,6 @@ public class BattleForecast(
          * until MC-12b: nothing is drawn.
          */
         public var putDisplay: (State) -> Unit = {}
-
-        /**
-         * `UnpackUiFrameBuffered(-1)` of `BattleForecast_OnEnd`. Stand-in until MC-11: the
-         * frame graphics are not changed.
-         */
-        public var unpackUiFrame: () -> Unit = {}
 
         /**
          * `CheckBattleForecastTutorialEvent` is 1 (the first forecast of the tutorial chapter).
@@ -181,7 +192,7 @@ public class BattleForecast(
      */
     public fun newBattleForecast() {
         if (playSt.battleForecastType == 2) {
-            hooks.resetTextFont()
+            text.resetTextFont()
             return
         }
 
@@ -200,23 +211,269 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: BattleForecast_Init
      *
-     * Sets up the panel's graphics ([Hooks.initDrawing]) and marks the proc ready for content
-     * updates.
+     * Loads the panel's two-by-four tile graphic (OBJ VRAM) and palette, restarts the text font
+     * and the icon bookkeeping, sets up the labels and the three name strips (two double-buffered
+     * strips for the names, one for the item) and BG 1's position, and marks the proc ready for
+     * content updates.
      */
     private fun forecastInit(state: State) {
-        hooks.initDrawing()
+        for (i in 0 until TSA_BYTES) tsa[i] = rom.u8(TSA_ADDRESS + i).toByte()
+        rom.decompressInto(GFX_ADDRESS, gfx, 0)
+        copy2dChr(gfx, GFX_VRAM, 4, 2)
+        applyPalette(PAL_X2X4_ADDRESS, 0x12)
+
+        text.resetTextFont()
+
+        ItemIcon.resetIconGraphics(drawnIconLookupTable, iconGfxIdLookupTable)
+
+        initBattleForecastIconPaletteBuffer()
+
+        initBattleForecastLabels()
+
+        text.initTextDb(state.unitNameTextA, 6)
+        text.initTextDb(state.unitNameTextB, 6)
+        text.initTextDb(state.itemNameText, 7)
+
+        hardware.lcd.setBgPosition(1, 0, -1)
+
         state.ready = 1
     }
 
     /**
-     * Transcribed from src/bksel.c: BattleForecast_OnEnd (not verified: it only restores the
-     *   frame graphics, which are drawing, MC-11)
+     * Ported from src/bmlib.c: Copy2dChr
      *
-     * The end callback: [Hooks.unpackUiFrame].
+     * Copies [height] rows of [width] tiles from [src] to VRAM at [dst] (a byte offset of VRAM),
+     * the rows a tile map row (32 tiles) apart.
+     */
+    private fun copy2dChr(src: ByteArray, dst: Int, width: Int, height: Int) {
+        val lineSize = width * CHR_SIZE
+        for (row in 0 until height) {
+            src.copyInto(
+                hardware.vram, dst + row * CHR_SIZE * 0x20, row * lineSize, (row + 1) * lineSize,
+            )
+        }
+    }
+
+    /** `ApplyPalette`: 16 colours from ROM [at] to palette slot [palId]. */
+    private fun applyPalette(at: Int, palId: Int) {
+        for (i in 0 until 16) hardware.palette[palId * 16 + i] = rom.u16(at + 2 * i).toShort()
+        hardware.enablePaletteSync()
+    }
+
+    /**
+     * Transcribed from src/bksel.c: BattleForecast_OnEnd (not verified: the frame palette it
+     *   restores is the window's own in the capture, so no mutation changes captured data)
+     *
+     * The end callback: puts the window frame graphics and palette back (`UnpackUiFrameBuffered`).
      */
     private fun forecastOnEnd() {
-        hooks.unpackUiFrame()
+        UiFrame.loadUiFrameGraphics(hardware, rom, playSt.windowColor)
     }
+
+    /**
+     * Ported from src/bksel.c: InitBattleForecastIconPaletteBuffer
+     *
+     * Loads icon palette 0 into palette 3 and makes [bkselPals]: for each colour of it eight
+     * steps, each three levels brighter per channel (capped at 31).
+     */
+    private fun initBattleForecastIconPaletteBuffer() {
+        ItemIcon.loadIconPalette(hardware, rom, 0, 3)
+
+        for (i in 1 until 16) {
+            val color = hardware.palette[3 * 16 + i].toInt()
+
+            var red = color and 31
+            var green = (color shr 5) and 31
+            var blue = (color shr 10) and 31
+
+            for (j in 0 until 8) {
+                bkselPals[j * 16 + i] = ((blue shl 10) + (green shl 5) + red).toShort()
+
+                red += 3
+                if (red > 31) red = 31
+
+                green += 3
+                if (green > 31) green = 31
+
+                blue += 3
+                if (blue > 31) blue = 31
+            }
+        }
+    }
+
+    /**
+     * Ported from src/bksel.c: InitBattleForecastLabels
+     *
+     * Draws the six stat labels (Mt, Hit, Crit, Atk, Def, AS), centred in four tiles, into
+     * [labels].
+     */
+    private fun initBattleForecastLabels() {
+        for (i in 0 until LABEL_COUNT) {
+            val label = labels[i]
+            text.initText(label, 4)
+
+            val str = messages.getStringFromIndex(LABEL_STRINGS[i])
+
+            text.textInsertDrawString(label, text.getStringTextCenteredPos(0x20, str), 3, str)
+        }
+    }
+
+    /**
+     * Ported from src/bksel.c: PutBattleForecastUnitName
+     *
+     * Draws the name of [unit] centred in 48 pixels into [strip] and puts it at [dest] of
+     * [tilemapA].
+     */
+    private fun putBattleForecastUnitName(dest: Int, strip: Text, unit: BattleUnit) {
+        val str = messages.getStringFromIndex(rom.u16(u32(unit.bytes, 0)))
+        val position = text.getStringTextCenteredPos(48, str)
+
+        text.clearText(strip)
+        text.putDrawText(strip, tilemapA, dest, 0, position, str)
+    }
+
+    /**
+     * Ported from src/bksel.c: PutBattleForecastItemName
+     *
+     * Draws the name of [item] centred in 56 pixels into [strip] and puts it at [dest] of
+     * [tilemapA].
+     */
+    private fun putBattleForecastItemName(dest: Int, strip: Text, item: Int) {
+        val str = items.getItemName(item, messages)
+        val position = text.getStringTextCenteredPos(56, str)
+
+        text.clearText(strip)
+        text.putDrawText(strip, tilemapA, dest, 0, position, str)
+    }
+
+    /**
+     * Ported from src/bksel.c: GetFactionBattleForecastFramePalette
+     *
+     * The ROM address of the frame palette of [faction] (blue, red, green, purple).
+     */
+    private fun getFactionBattleForecastFramePalette(faction: Int): Int = when (faction) {
+        FACTION_BLUE -> FRAME_PALETTE_A
+        FACTION_RED -> FRAME_PALETTE_B
+        FACTION_GREEN -> FRAME_PALETTE_C
+        else -> FRAME_PALETTE_D
+    }
+
+    /**
+     * Ported from src/bksel.c: InitBattleForecastFramePalettes
+     *
+     * Colours the frame: palette 1 for the actor's faction, palette 2 for the target's (purple
+     * for a wall or trap, which has no unit index).
+     */
+    private fun initBattleForecastFramePalettes() {
+        applyPalette(
+            getFactionBattleForecastFramePalette(battle.actor.bytes[0x0B].toInt() and 0xC0), 1,
+        )
+
+        if (battle.target.bytes[0x0B].toInt() != 0) {
+            applyPalette(
+                getFactionBattleForecastFramePalette(battle.target.bytes[0x0B].toInt() and 0xC0),
+                2,
+            )
+        } else {
+            applyPalette(getFactionBattleForecastFramePalette(FACTION_PURPLE), 2)
+        }
+    }
+
+    /**
+     * Ported from src/bksel.c: DrawBattleForecastContentsStandard
+     *
+     * Draws the standard panel: the frame into [tilemapB]; into [tilemapA] the names, the HP,
+     * damage, hit and crit numbers of both sides (a dash when the target cannot counter), the
+     * labels and the two weapon icons.
+     */
+    private fun drawBattleForecastContentsStandard(state: State) {
+        val actor = battle.actor
+        val target = battle.target
+        var damage: Int
+        var critRate: Int
+
+        BgTilemap.applyTsa(tilemapB, 0, tsa, 0, 0x1000)
+
+        fillRect(tilemapA, 10, 15, 0)
+
+        putBattleForecastUnitName(0x23, state.unitNameTextA, actor)
+
+        putBattleForecastUnitName(0x161, state.unitNameTextA, target)
+
+        putBattleForecastItemName(0x1A1, state.itemNameText, target.weaponBefore)
+
+        if (target.weapon == 0 && target.weaponBroke == 0) {
+            damage = -1
+
+            target.battleEffectiveHitRate = 0xFF
+            target.battleEffectiveCritRate = 0xFF
+        } else {
+            damage = target.battleAttack - actor.battleDefense
+
+            if (damage < 0) damage = 0
+        }
+
+        text.putNumberTwoChr(
+            tilemapA, 0x62, 2, if (target.hpInitial > 99) 0xFF else target.hpInitial,
+        )
+
+        text.putNumberTwoChr(tilemapA, 0xA2, 2, damage)
+        text.putNumberTwoChr(tilemapA, 0xA2 + 0x40, 2, target.battleEffectiveHitRate)
+        text.putNumberTwoChr(tilemapA, 0xA2 + 0x80, 2, target.battleEffectiveCritRate)
+
+        damage = actor.battleAttack - target.battleDefense
+
+        if (items.getItemIndex(actor.weapon) == ITEM_MONSTER_STONE) damage = 0xFF
+
+        if (damage < 0) damage = 0
+
+        critRate = actor.battleEffectiveCritRate
+
+        if (items.getItemIndex(actor.weapon) == ITEM_MONSTER_STONE) critRate = 0xFF
+
+        if (critRate < 0) critRate = 0
+
+        text.putNumberTwoChr(
+            tilemapA, 0xA8 - 0x40, 2, if (actor.hpInitial > 99) 0xFF else actor.hpInitial,
+        )
+
+        text.putNumberTwoChr(tilemapA, 0xA8, 2, damage)
+        text.putNumberTwoChr(tilemapA, 0xA8 + 0x40, 2, actor.battleEffectiveHitRate)
+        text.putNumberTwoChr(tilemapA, 0xA8 + 0x80, 2, critRate)
+
+        text.putTwoSpecialChar(
+            tilemapA, 0xA8 - 0x44, TEXT_COLOR_SYSTEM_GOLD, TextSystem.SPECIAL_HP_A,
+            TextSystem.SPECIAL_HP_B,
+        )
+
+        text.putText(labels[0], tilemapA, 0xA8 - 5)
+        text.putText(labels[1], tilemapA, 0xA8 + 0x3B)
+        text.putText(labels[2], tilemapA, 0xA8 + 0x7B)
+
+        ItemIcon.drawIcon(
+            tilemapA, 0xA8 + 0xBF, items.getItemIconId(target.weaponBefore), 0x4000,
+            drawnIconLookupTable, iconGfxIdLookupTable, hardware, rom,
+        )
+
+        ItemIcon.drawIcon(
+            tilemapA, 0xA8 - 0x87, items.getItemIconId(actor.weaponBefore), 0x3000,
+            drawnIconLookupTable, iconGfxIdLookupTable, hardware, rom,
+        )
+    }
+
+    /**
+     * `TileMap_FillRect` (`TmFillRect`, asm/arm.s): [value] into the entries of [tm] from column
+     * 0 to [w] and row 0 to [h] inclusive (its counters run down to -1), a row 32 entries apart.
+     */
+    private fun fillRect(tm: ShortArray, w: Int, h: Int, value: Int) {
+        for (y in 0..h) {
+            for (x in 0..w) tm[y * 0x20 + x] = value.toShort()
+        }
+    }
+
+    private fun u32(bytes: ByteArray, at: Int): Int =
+        (bytes[at].toInt() and 0xFF) or ((bytes[at + 1].toInt() and 0xFF) shl 8) or
+            ((bytes[at + 2].toInt() and 0xFF) shl 16) or ((bytes[at + 3].toInt() and 0xFF) shl 24)
 
     /**
      * Ported from src/bksel.c: GetBattleForecastPanelSide
@@ -324,11 +581,11 @@ public class BattleForecast(
     }
 
     /**
-     * Partially ported from src/bksel.c: DrawBattleForecastContents
+     * Ported from src/bksel.c: DrawBattleForecastContents
      *
-     * The field part (MC-10): clears the frame count and the update flag and counts the hits for
-     * the standard layout; the drawing is [Hooks.drawContents] (MC-11). The extended layout is
-     * never run.
+     * Clears the frame count and the update flag, counts the hits and draws the standard panel.
+     * The extended layout (frame kind 2, `DrawBattleForecastContentsExtended`) is not written: no
+     * capture runs it.
      */
     private fun drawBattleForecastContents(state: State) {
         state.frameCount = 0
@@ -337,7 +594,7 @@ public class BattleForecast(
         when (state.frameKind) {
             1 -> {
                 initBattleForecastBattleStats(state)
-                hooks.drawContents(state)
+                drawBattleForecastContentsStandard(state)
             }
         }
     }
@@ -346,7 +603,7 @@ public class BattleForecast(
      * Partially ported from src/bksel.c: BattleForecast_OnNewBattle
      *
      * The proc's fields for a new forecast: contents, the side (the panel slides in from it),
-     * the slide counter and the position. The frame palettes are [Hooks.initFramePalettes].
+     * the slide counter and the position, and colours the frame.
      */
     private fun onNewBattle(state: State) {
         drawBattleForecastContents(state)
@@ -358,7 +615,7 @@ public class BattleForecast(
 
         state.y = 0
 
-        hooks.initFramePalettes()
+        initBattleForecastFramePalettes()
     }
 
     /**
@@ -407,7 +664,7 @@ public class BattleForecast(
             }
 
             drawBattleForecastContents(state)
-            hooks.initFramePalettes()
+            initBattleForecastFramePalettes()
         }
 
         if (state.frameKind == 1) {
@@ -478,6 +735,29 @@ public class BattleForecast(
 
     private companion object {
         const val PROC_TREE_3 = 3
+        const val SCRATCH_ENTRIES = 0x280
+        const val BKSEL_PAL_COLORS = 8 * 16
+        const val LABEL_COUNT = 6
+        const val TSA_BYTES = 0x200
+        const val GFX_BYTES = 0x400
+        const val CHR_SIZE = 0x20
+        const val GFX_ADDRESS = 0x085A0C80
+        const val GFX_VRAM = 0x15D00
+        const val PAL_X2X4_ADDRESS = 0x085A0D2C
+        const val TSA_ADDRESS = 0x085A09A8
+        const val FRAME_PALETTE_A = 0x085B6BB4
+        const val FRAME_PALETTE_B = 0x085B6BD4
+        const val FRAME_PALETTE_C = 0x085B6BF4
+        const val FRAME_PALETTE_D = 0x085B6C14
+        const val FACTION_BLUE = 0x00
+        const val FACTION_GREEN = 0x40
+        const val FACTION_RED = 0x80
+        const val FACTION_PURPLE = 0xC0
+        const val ITEM_MONSTER_STONE = 0xB5
+        const val TEXT_COLOR_SYSTEM_GOLD = 3
+
+        /** Text indexes of Mt, Hit, Crit, Atk, Def and AS. */
+        val LABEL_STRINGS = intArrayOf(0x503, 0x4F4, 0x501, 0x4F3, 0x4EF, 0x504)
         const val MIDDLE_X = 0x70
         const val SLIDE_STEPS = 4
     }

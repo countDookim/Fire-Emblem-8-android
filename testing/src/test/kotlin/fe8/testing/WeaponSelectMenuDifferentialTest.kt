@@ -563,7 +563,7 @@ class WeaponSelectMenuDifferentialTest {
     }
 }
 
-private class TextVram : gbafe.text.TextHost {
+internal class TextVram : gbafe.text.TextHost {
     val vram = ByteArray(0x18000)
 
     override fun language() = 1

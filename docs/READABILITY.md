@@ -75,7 +75,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.bm (UnitLoader lines 1-577: to before lastReda) | 1 | 577 | todo |
 | game | fe8.game.bm (UnitLoader lines 578-1108: lastReda to end) | 1 | 531 | todo |
 | game | fe8.game.bm (Mu lines 1-462: to before setMuFacing) | 1 | 462 | done 2026-11-13 ef3792d1 |
-| game | fe8.game.bm (Mu lines 463-997: setMuFacing to end) | 1 | 535 | todo |
+| game | fe8.game.bm (Mu lines 463-997: setMuFacing to end) | 1 | 535 | done 2026-11-13 HASH |
 | game | fe8.game.bm (MuCtrl, MuSpriteAnim) | 2 | 655 | done 2026-11-13 62e76692 |
 | game | fe8.game.bm (PlayerPhase lines 1-789: to before handlePlayerCursorMovement) | 1 | 789 | todo |
 | game | fe8.game.bm (PlayerPhase lines 790-1547: handlePlayerCursorMovement to end) | 1 | 758 | todo |

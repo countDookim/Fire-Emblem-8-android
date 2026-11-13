@@ -465,7 +465,8 @@ public class Mu(
         checkNotNull(rom) { "Mu needs a RomView" }.u32(MU_INFO_TABLE + 8 * (jid - 1) + 4)
 
     /**
-     * Sets [mu]'s facing and switches its animation.
+     * Sets [mu]'s facing; `MU_FACING_STANDING` shows the standing map sprite through
+     * [MuHooks.setStandingMuFacing], any other facing switches the walking animation.
      *
      * Transcribed from src/mu.c: SetMuFacing (not verified: facing at start is always 11)
      */
@@ -479,7 +480,7 @@ public class Mu(
     }
 
     /**
-     * Faces [mu] 1 if its class is mounted-aid, else 2.
+     * Faces [mu] `MU_FACING_RIGHT` (1) if its class has `CA_MOUNTEDAID`, else `MU_FACING_DOWN` (2).
      *
      * Transcribed from src/mu.c: SetMuDefaultFacing (not verified: not exercised at f9674)
      */
@@ -489,7 +490,8 @@ public class Mu(
     }
 
     /**
-     * Copies [commands] (0x40 bytes) into the MU's config script, rewinds it and enters movement.
+     * Copies [commands] (`MOVE_CMD_*`, 0x40 entries) into the MU's slot script, rewinds it, enters
+     * `MU_STATE_MOVEMENT` and runs the step sound update once (`PlayMuStepSe`).
      *
      * Ported from src/mu.c: SetMuMoveScript
      */
@@ -502,7 +504,7 @@ public class Mu(
     }
 
     /**
-     * `SetMuMoveScript` for the first MU, if one exists.
+     * `SetMuMoveScript` for the first `ProcScr_Mu` proc found, if any.
      *
      * Ported from src/mu.c: SetAutoMuMoveScript
      */
@@ -512,7 +514,8 @@ public class Mu(
     }
 
     /**
-     * Starts a MU at tile ([x], [y]) running [commands].
+     * Starts a MU of class [jid] with palette [pal] at tile ([x], [y]) and gives it the move script
+     * [commands]; null when no slot is free.
      *
      * Transcribed from src/mu.c: StartMuScripted (not verified: not exercised at f9674)
      */
@@ -530,7 +533,8 @@ public class Mu(
     public fun muExists(): Boolean = procs.find(script) != null
 
     /**
-     * True if any allocated MU is past `MU_STATE_INACTIVE`.
+     * True if any allocated MU is in a state other than `MU_STATE_INACTIVE` (still moving,
+     * sleeping or bumping).
      *
      * Ported from src/mu.c: MuExistsActive
      */
@@ -545,8 +549,9 @@ public class Mu(
     }
 
     /**
-     * Runs the move script commands of [proc] until one takes a frame (`proc->config->pc` is the
-     * cursor).
+     * Runs the move script commands of [proc] from `config.pc` until one ends the step: a move
+     * that changes facing, sleep, bump, halt or end. Face, speed and camera commands fall through
+     * to the next command.
      *
      * Ported from src/mu.c: RunMuMoveScript
      */
@@ -598,7 +603,10 @@ public class Mu(
     }
 
     /**
-     * Advances a walking MU by one frame step.
+     * One frame of `MU_STATE_MOVEMENT`: adds the walk speed to [MuProc.moveClockQ4] and moves the
+     * MU that much along its facing; when a full tile (0x100) is reached, takes back the overshoot
+     * and snaps to the tile grid. Then follows with the camera if [MuProc.camB] and no camera
+     * move runs, and updates the step sounds unless the speed config has `MU_CONFIG_SPPED_NORMAL`.
      *
      * Ported from src/mu.c: Mu_OnStateMovement
      */
@@ -627,7 +635,10 @@ public class Mu(
     }
 
     /**
-     * The movement speed of [proc] in 1/16 pixel per frame.
+     * The movement speed of [proc] in 1/16 pixel per frame (the move clock reaches 0x100 at one
+     * tile). Order: fast walk (0x100); an explicit [MuProc.moveConfig]; else 0x80 with A held after
+     * the game was played through, 0x40 with the game-speed option; else the class walk speed
+     * (`slowWalking`: 32 normal, 16 slow).
      *
      * Ported from src/mu.c: GetMuQ4MovementSpeed
      */
@@ -652,6 +663,7 @@ public class Mu(
         return 16 * WALK_SPEED_LUT[hooks.classSlowWalking(proc.jid) and 1]
     }
 
+    /** `IsFirstPlaythrough` (bmio.c): true until the game is played through, then a config bit. */
     private fun isFirstPlaythrough(): Boolean {
         if (!hooks.isGamePlayedThrough()) return true
         if (playSt.chapterStateBits and PLAY_FLAG_EXTRA_MAP != 0) return false
@@ -659,7 +671,9 @@ public class Mu(
     }
 
     /**
-     * Advances the step sound clock of [proc] and starts the step sound of its class.
+     * Picks the step sound script for [proc]'s class (mounted, flying, undead, heavy and so on; two
+     * classes have none), advances `step_sound_clock` and passes the script and position in its
+     * loop to [MuHooks.startPlayMuStepSe].
      *
      * Transcribed from src/mu.c: UpdateMuStepSounds (not verified: the walk compares only the
      * clock, not the sound chosen; the class lists are unexercised)
@@ -731,7 +745,8 @@ public class Mu(
     }
 
     /**
-     * Frees the slot and deletes the sprite animation.
+     * End callback of `ProcScr_Mu` (`MU_OnEnd`): frees the slot, deletes the sprite animation and
+     * returns the pooled [MuProc].
      *
      * Ported from src/mu.c: MU_OnEnd
      */
@@ -742,7 +757,7 @@ public class Mu(
     }
 
     /**
-     * Ends every MU proc.
+     * Ends every `ProcScr_Mu` proc.
      *
      * Transcribed from src/mu.c: EndAllMus (not verified: the walk ends one MU through EndMu)
      */
@@ -778,12 +793,15 @@ public class Mu(
         proc.camB = false
     }
 
+    /** `HaltMu`: stops the MU's script without ending it (`MU_STATE_INACTIVE`). */
     private fun haltMu(proc: MuProc) {
         proc.state = MU_STATE_INACTIVE
     }
 
     /**
-     * Applies the move script [movescr] to the tile coordinates in [xy] (`xy[0]` = x, `xy[1]` = y).
+     * Moves the tile coordinates in [xy] (`xy[0]` = x, `xy[1]` = y) by the walking commands of
+     * [movescr] up to its end or halt; face and other commands do not change them, sleep skips its
+     * argument.
      *
      * Ported from src/mu.c: ApplyMoveScriptToCoordinates
      */
@@ -815,21 +833,20 @@ public class Mu(
         /** `MU_SUBPIXEL_PRECISION`. */
         public const val MU_SUBPIXEL_PRECISION: Int = 4
 
-        /** `MU_STATE_INACTIVE`. */
+        /** `MU_STATE_INACTIVE`: allocated but not walking (also after a halt). */
         public const val MU_STATE_INACTIVE: Int = 1
 
         /** `MU_STATE_MOVEMENT`. */
         public const val MU_STATE_MOVEMENT: Int = 2
 
-        /** `MU_FACING_UNK11`. */
+        /** `MU_FACING_UNK11`: the facing a MU starts with. */
         public const val MU_FACING_UNK11: Int = 11
 
-        /** `MU_FACING_STANDING`. */
+        /** `MU_FACING_STANDING`: draw the standing map sprite instead of a walk animation. */
         public const val MU_FACING_STANDING: Int = 15
 
         /** `PROC_MARK_MU`. */
         public const val PROC_MARK_MU: Int = 4
-
 
         /** `MU_STATE_SLEEPING`. */
         public const val MU_STATE_SLEEPING: Int = 3
@@ -837,16 +854,16 @@ public class Mu(
         /** `MU_STATE_UNK4`. */
         public const val MU_STATE_UNK4: Int = 4
 
-        /** `MU_STATE_DISPLAY_UI`. */
+        /** `MU_STATE_DISPLAY_UI`: drawn at a fixed screen position (UI MU). */
         public const val MU_STATE_DISPLAY_UI: Int = 6
 
-        /** `MU_STATE_DEATHFADE`. */
+        /** `MU_STATE_DEATHFADE`: dying; drawn with the blend bit. */
         public const val MU_STATE_DEATHFADE: Int = 7
 
-        /** `FACTION_RED`. */
+        /** `FACTION_RED`: enemy units (`UNIT_FACTION`). */
         public const val FACTION_RED: Int = 0x80
 
-        /** `OAM0_BLEND`. */
+        /** `OAM0_BLEND`: OAM attribute 0 semi-transparent mode. */
         public const val OAM0_BLEND: Int = 0x400
 
         /** `gMuInfoTable` (`unit_icon_move_table`) in the ROM. */
@@ -948,6 +965,7 @@ public class Mu(
         /** `MuSoundScr_Myrrh`. */
         public const val STEP_SE_MYRRH: Int = 12
 
+        // Key, play and class ids below come from include/constants and types.h.
         private const val A_BUTTON = 1
         private const val PLAY_FLAG_EXTRA_MAP = 1 shl 7
         private const val CLASS_ARMOR_KNIGHT = 0x09
@@ -987,8 +1005,11 @@ public class Mu(
         private const val CLASS_DEMON_KING = 0x66
         private const val CLASS_FALLEN_PRINCE = 0x78
         private const val CLASS_FALLEN_PEER = 0x7B
+        /** `sMoveOffsetLut`: (dx, dy) in screen axes per facing (left, right, down, up). */
         private val MOVE_OFFSET_LUT = intArrayOf(-1, 0, 1, 0, 0, 1, 0, -1)
+        /** `sMuWalkSpeedLut`: indexed by the class `slowWalking` flag (fast, slow). */
         private val WALK_SPEED_LUT = intArrayOf(2, 1)
+        /** `scr[0]` of each `MuSoundScr_*`, indexed by `STEP_SE_*`: steps per sound loop. */
         private val STEP_SE_PERIOD =
             intArrayOf(0x10, 0x20, 0x15, 0x14, 0x14, 0x0F, 0x0F, 0x14, 0x0A, 0x15, 0x0F, 0x18, 0x10)
 
@@ -1000,7 +1021,9 @@ public class Mu(
         private const val CLASS_BLST_REGULAR_USED = 0x67
         private const val CLASS_BLST_LONG_USED = 0x68
         private const val CLASS_BLST_KILLER_USED = 0x69
+        /** `sMuChrOffLut_Default`. */
         private val CHR_OFF_DEFAULT = intArrayOf(0x00, 0x10, 0x08, 0x18)
+        /** `sMuChrOffLut`. */
         private val CHR_OFF = intArrayOf(0x00, 0x08, 0x04, 0x10)
     }
 }

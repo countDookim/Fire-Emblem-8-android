@@ -1,8 +1,8 @@
 /**
- * Low-level cartridge SRAM management and block validation routines.
- *
- * Implements hardware probing, header management, block descriptors, checksum calculations,
- * and aux block persistence ported from `src/bmsave-lib.c`, `src/bmsave-bwl.c`, and `src/bmsave.c`.
+ * The save RAM layer under the Save / Resume / Extras menus: whether the cartridge SRAM works, the
+ * global save header, the block descriptors that say which save slots are valid, the small
+ * checksummed blocks (rankings, sound room, bonus claim) and the boot-time repair of all of them.
+ * Ported from `src/bmsave-lib.c`, with the descriptor and suspend-slot helpers of `src/bmsave.c`.
  */
 
 package fe8.game.save
@@ -19,42 +19,65 @@ import gbafe.core.flags.EventFlags
 import gbafe.save.SaveChecksums
 
 /**
- * The boot-time save RAM routines of src/bmsave-lib.c (plus the early-return path of
- * `EraseInvalidSaveData` from src/bmsave-misc.c), working on a [CartSram] instead of the memory
- * mapped at 0x0E000000. `struct GlobalSaveInfo` and the small aux blocks are handled as raw
- * little-endian bytes at the [Fe8SramLayout] offsets. The C code's `gGenericBuffer` and stack
- * locals are replaced by buffers allocated once here, so no call allocates.
+ * The save RAM routines of src/bmsave-lib.c and the descriptor helpers of src/bmsave.c, working on
+ * a [CartSram] instead of the memory mapped at 0x0E000000 (`gSram`). The slots the player sees
+ * (three chapter saves, one suspend save kept in two alternating copies) are each valid only if
+ * their `struct SaveBlockInfo` descriptor and its payload checksum are intact; a slot that fails
+ * shows as empty. `struct GlobalSaveInfo` and the small blocks are handled as raw little-endian
+ * bytes at the [Fe8SramLayout] offsets. The C code's `gGenericBuffer` and stack locals are
+ * replaced by buffers allocated once here, so no call allocates.
  *
- * The boot order in src/main.c `AgbMain` is `SramInit`, ..., `EraseInvalidSaveData`,
- * `EraseSramDataIfInvalid`; see [boot].
+ * At start-up src/main.c `AgbMain` runs `SramInit`, ..., `EraseInvalidSaveData`,
+ * `EraseSramDataIfInvalid`; see [boot]. The foreign-magic conversion branch of
+ * `EraseInvalidSaveData` (src/bmsave-misc.c) and `LoadAndVerfySuspendSave`
+ * (src/bmsave-xmap.c) are also here.
  *
  * @property sram the save RAM this instance reads and writes (`gSram`).
  */
 public class BmSaveLib(public val sram: CartSram) {
-    /** `gBoolSramWorking`: set by [sramInit] when the probe write read back correctly. */
+    /**
+     * `gBoolSramWorking`: set by [sramInit] when the probe write read back correctly. While it is
+     * false every load and validity check below reports "invalid", as if there were no save.
+     */
     public var isSramWorkingFlag: Boolean = false
         private set
 
-    /** `gSuspendSaveIdOffset`: the suspend slot [isValidSuspendSave] last chose (0x7F = none). */
+    /**
+     * `gSuspendSaveIdOffset` (`gSaveSuBaseSlot`): which of the two suspend save copies
+     * ([Fe8SramLayout.SAVE_ID_SUSPEND] + 0 or + 1) [isValidSuspendSave] last found valid; 0x7F
+     * when neither was (there is nothing to resume).
+     */
     public var suspendSaveIdOffset: Int = 0
         private set
 
-    /** Buffer for `gGenericBuffer` (aux block loaders/erasers); big enough for every block. */
+    /**
+     * Buffer for `gGenericBuffer` (0x2000 bytes in C): the aux block loaders/erasers and the block
+     * checksum reads go through it. Sized as one suspend block, the largest block moved here.
+     */
     private val genericBuffer = ByteArray(GENERIC_BUFFER_SIZE)
 
-    /** Buffer for the `struct GlobalSaveInfo local_info` / `info` locals. */
+    /**
+     * Buffer for the `struct GlobalSaveInfo` locals (`local_info`, `info`, `header`) of the
+     * header readers and writers.
+     */
     private val infoBuffer = ByteArray(L.HEADER_SIZE)
 
-    /** Buffer for the `struct SaveBlockInfo tmp` local of `ReadSaveBlockInfo`. */
-    private val blockInfoBuffer = ByteArray(L.BLOCK_INFO_SIZE)
+    /**
+     * Buffer for the `struct SaveBlockInfo tmp` local of `ReadSaveBlockInfo` (used when the caller
+     * passes no buffer) and the `chunk` local of `EraseSaveBlockInfo`.
+     */
+    private val blockInfoTmp = ByteArray(L.BLOCK_INFO_SIZE)
 
-    /** Buffer for the `struct SaveBlockInfo chunk` locals of the callers of the above. */
+    /** Buffer for the `struct SaveBlockInfo chunk` locals of `GetSaveReadAddr` and the like. */
     private val scratchInfo = ByteArray(L.BLOCK_INFO_SIZE)
 
-    /** Buffer for the `struct PlaySt playSt` local of `LoadAndVerfySuspendSave` (head only). */
+    /**
+     * Buffer for the `struct PlaySt playSt` local of `LoadAndVerfySuspendSave`; only the first
+     * [PLAY_ST_READ_SIZE] bytes (through `unk_2C_*`) are read.
+     */
     private val playStBuffer = ByteArray(PLAY_ST_READ_SIZE)
 
-    /** Buffer for `gExtraMapSaveHead` (the part read: up to `unk0F`). */
+    /** Buffer for `gExtraMapSaveHead` (`struct ExtraMapSaveHead`, read up to `unk0F`). */
     private val xmapHeadBuffer = ByteArray(XMAP_HEAD_READ_SIZE)
 
     /** Buffer for the `struct PlaySt` bytes read from SRAM. */
@@ -63,7 +86,11 @@ public class BmSaveLib(public val sram: CartSram) {
     /** Buffer for the `struct PlaySt ram_ch` local of `IsPlaythroughIdUnique`. */
     private val scratchPlaySt = PlaySt()
 
-    /** `gBonusContentClaimFlags`. */
+    /**
+     * `gBonusContentClaimFlags`: bit i is set once bonus claim entry i has been claimed (the
+     * bonus claim screen shows a claimed entry as not claimable again). Each chapter save slot
+     * keeps its own copy (`bonusClaimFlags`).
+     */
     public var bonusContentClaimFlags: Int = 0
         private set
 
@@ -73,19 +100,23 @@ public class BmSaveLib(public val sram: CartSram) {
     /** Buffer for the `struct GMapSaveInfo info` of `ClearWorldMapStuff`. */
     private val gmapBuffer = ByteArray(GMAP_SAVE_INFO_SIZE)
 
-    /** The 0x40 bytes of 0xFF that `WipeSram` writes 0x200 times (`u32 buf[0x10]`). */
+    /**
+     * The 0x40 bytes of 0xFF (`u32 buf[0x10]` set to 0xFFFFFFFF) that `WipeSram` writes 0x200
+     * times to blank the 0x8000 bytes of SRAM.
+     */
     private val wipeBuffer = ByteArray(WIPE_CHUNK)
 
-    /** Buffer for the `u32 buf[2]` of `SramInit`. */
+    /** Buffer for the `u32 buf[2]` of `SramInit`: the probe word and its read-back. */
     private val probeBuffer = ByteArray(8)
 
-    /** The EWRAM buffer `EraseInvalidSaveData` reads the whole SRAM into. */
+    /** The EWRAM copy (`EWRAM_ENTRY`) `EraseInvalidSaveData` reads the whole SRAM into. */
     private val ewramCopy = ByteArray(L.SRAM_SIZE)
 
     /**
-     * Runs the save RAM part of `AgbMain` in its original order: [sramInit], then
+     * Runs the save RAM part of `AgbMain` (src/main.c) in its original order: [sramInit], then
      * [eraseInvalidSaveData], then [eraseSramDataIfInvalid]. (Between them the C code starts
-     * procs, the sprite system and the RNG, none of which touches SRAM.)
+     * procs, the sprite system and the RNG, none of which touches SRAM.) Afterwards the title
+     * screen sees either the player's saves or, if the cartridge was new or corrupt, empty slots.
      */
     public fun boot() {
         sramInit()
@@ -96,10 +127,12 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Ported from src/bmsave-lib.c: SramInit
      *
-     * Writes the probe word 0x12345678 to [Fe8SramLayout.RESERVED_OFFSET], reads it back and sets
-     * the working flag when it matches. `SetSramFastFunc` (copying the SRAM routines to WRAM) and
-     * the `REG_IE` write have no equivalent here. Note the probe stays in SRAM until a
-     * [wipeSram] erases it.
+     * Writes the probe word 0x12345678 to the 4 `reserved` bytes at
+     * [Fe8SramLayout.RESERVED_OFFSET], reads it back and sets the working flag when it matches
+     * (a failing cartridge makes every save check report "invalid"). `SetSramFastFunc` (copying
+     * the SRAM routines to WRAM) and the `REG_IE |= INTR_FLAG_GAMEPAK` write (enabling the game
+     * pak interrupt) have no equivalent here. The second probe word 0x87654321 only seeds the
+     * read-back target. The probe stays in SRAM until a [wipeSram] erases it.
      */
     public fun sramInit() {
         putU32(probeBuffer, 0, PROBE_WORD0)
@@ -109,13 +142,15 @@ public class BmSaveLib(public val sram: CartSram) {
         isSramWorkingFlag = u32(probeBuffer, 4) == u32(probeBuffer, 0)
     }
 
-    /** Ported from src/bmsave-lib.c: IsSramWorking */
+    /** Ported from src/bmsave-lib.c: IsSramWorking. The result of the last [sramInit] probe. */
     public fun isSramWorking(): Boolean = isSramWorkingFlag
 
     /**
      * Ported from src/bmsave-lib.c: WipeSram
      *
-     * Overwrites all 0x8000 bytes of SRAM with 0xFF, in 0x200 verified writes of 0x40 bytes.
+     * Overwrites all 0x8000 bytes of SRAM with 0xFF, in 0x200 verified writes of 0x40 bytes. All
+     * saves are lost: every descriptor now reads as invalid, so every slot shows as empty. Only
+     * [initGlobalSaveInfodata] calls it.
      */
     public fun wipeSram() {
         wipeBuffer.fill(0xFF.toByte())
@@ -127,9 +162,12 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Ported from src/bmsave-lib.c: ReadGlobalSaveInfo
      *
-     * Reads the 0x64-byte global save info into [buf] (a private scratch buffer when null, as the
-     * C code uses a local) and returns true when it is valid: SRAM works, the marker string is
-     * "AGB-FE9", both magics match and the checksum over the first 0x50 bytes matches.
+     * Reads the 0x64-byte `struct GlobalSaveInfo` into [buf] (a private scratch buffer when null,
+     * as the C code uses a local) and returns true when it is valid: SRAM works, the marker
+     * string is "AGB-FE9" (`sSaveMarker`), `magic32` is `SAVEMAGIC32`, `magic16` is
+     * `SAVEMAGIC16` and the `Checksum16` over the first `GLOBALSIZEINFO_SIZE_FOR_CHECKSUM` = 0x50
+     * bytes equals `checksum` (0x60). When it is not, [eraseSramDataIfInvalid] starts the
+     * cartridge afresh. [buf] is filled even when the result is false.
      */
     public fun readGlobalSaveInfo(buf: ByteArray? = null): Boolean {
         if (!isSramWorking()) return false
@@ -145,8 +183,8 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Ported from src/bmsave-lib.c: WriteGlobalSaveInfo
      *
-     * Stores the checksum of the first 0x50 bytes of [header] into it, then writes the 0x64 bytes
-     * to SRAM with verification.
+     * Stores the `Checksum16` of the first 0x50 bytes of [header] into its `checksum` field
+     * (0x60), then writes the 0x64 bytes to SRAM with verification.
      */
     public fun writeGlobalSaveInfo(header: ByteArray) {
         val sum = SaveChecksums.checksum16(header, 0, L.HEADER_CHECKSUM_SIZE)
@@ -159,6 +197,8 @@ public class BmSaveLib(public val sram: CartSram) {
      * so no reference test executes it).
      *
      * Writes the 0x64 bytes of [header] to SRAM with verification, leaving its checksum as is.
+     * Fine for the two bytes that follow the checksum (`last_game_save_id`, `last_suspend_slot`,
+     * at 0x62 and 0x63): they lie outside the 0x50 checksummed bytes.
      */
     public fun writeGlobalSaveInfoNoChecksum(header: ByteArray) {
         writeAndVerifySramFast(header, 0, sram, L.HEADER_OFFSET, L.HEADER_SIZE)
@@ -168,7 +208,9 @@ public class BmSaveLib(public val sram: CartSram) {
      * Ported from src/bmsave-lib.c: InitGlobalSaveInfodata
      *
      * Wipes SRAM, then writes a fresh global save info: the marker, both magics, every flag and
-     * counter 0 (including `last_suspend_slot` and `last_game_save_id`), and its checksum.
+     * counter 0 (no playthrough cleared, no support record, no character known, and both
+     * `last_suspend_slot` and `last_game_save_id` 0), and its checksum. This is the "new
+     * cartridge" state; all earlier saves are gone.
      */
     public fun initGlobalSaveInfodata() {
         wipeSram()
@@ -180,7 +222,12 @@ public class BmSaveLib(public val sram: CartSram) {
         writeGlobalSaveInfo(info)
     }
 
-    /** Ported from src/bmsave-lib.c: EraseBonusContentData */
+    /**
+     * Ported from src/bmsave-lib.c: EraseBonusContentData
+     *
+     * Zeroes the 0x144-byte bonus claim block and saves it with its checksum. All 16 entries
+     * are empty, so the bonus claim screen has nothing to offer.
+     */
     public fun eraseBonusContentData() {
         genericBuffer.fill(0, 0, L.BONUS_SIZE)
         saveBonusContentData(genericBuffer)
@@ -189,8 +236,11 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Ported from src/bmsave-lib.c: LoadBonusContentData
      *
-     * Reads the bonus claim block into [buf] (scratch when null); true when SRAM works and the
-     * checksum over its first 0x140 bytes matches the one at 0x140.
+     * Reads the bonus claim block (`struct BonusClaimSaveData`, 0x144 bytes: 16 `BonusClaimEnt`
+     * of 0x14 bytes, then `cksum16`) into [buf] (scratch when null); true when SRAM works and the
+     * `Checksum16` over the 16 entries (0x140 bytes) matches `cksum16` at 0x140. When false,
+     * [eraseSramDataIfInvalid] clears the block. Whether the Extras menu offers the bonus claim
+     * screen depends on the entries read here (`IsExtraBonusClaimEnabled`).
      */
     public fun loadBonusContentData(buf: ByteArray? = null): Boolean =
         loadChecked(L.BONUS_OFFSET, L.BONUS_SIZE, L.BONUS_CHECKSUM, L.BONUS_CHECKSUM, buf)
@@ -199,7 +249,8 @@ public class BmSaveLib(public val sram: CartSram) {
      * Transcribed from src/bmsave-lib.c: SaveBonusContentData (not verified: every reference
      * run holds an all-zero bonus block, so no run shows its checksum or data)
      *
-     * Stores the checksum of the first 0x140 bytes of [buf] at 0x140 and writes the block.
+     * Stores the `Checksum16` of the first 0x140 bytes of [buf] in `cksum16` (0x140) and writes
+     * the block.
      */
     public fun saveBonusContentData(buf: ByteArray) {
         writeChecked(buf, L.BONUS_OFFSET, L.BONUS_SIZE, L.BONUS_CHECKSUM, L.BONUS_CHECKSUM)
@@ -208,8 +259,11 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Ported from src/bmsave-lib.c: LoadAndVerfyRankData
      *
-     * Reads the ranking block into [buf] (scratch when null); true when SRAM works and the
-     * checksum over its first 0x90 bytes matches the one at 0x90.
+     * Reads the ranking block (`struct GameRankSaveDataPacks`, 0x94 bytes) into [buf] (scratch
+     * when null); true when SRAM works and the `Checksum16` over the six `GameRankSaveData`
+     * records (0x90 bytes) matches `magic0` at 0x90. The records hold the best end-of-game
+     * rank per chapter mode and difficulty (`pack[chapter_mode + difficulty * 3]` in
+     * `SaveNewRankData`).
      */
     public fun loadAndVerifyRankData(buf: ByteArray? = null): Boolean =
         loadChecked(L.RANK_OFFSET, L.RANK_SIZE, L.RANK_CHECKSUM, L.RANK_SUM_SIZE, buf)
@@ -218,13 +272,19 @@ public class BmSaveLib(public val sram: CartSram) {
      * Transcribed from src/bmsave-lib.c: SaveRankings (not verified: every reference run holds
      * an all-zero ranking block, so no run shows its checksum or data)
      *
-     * Stores the checksum of the first 0x90 bytes of [buf] at 0x90 and writes the block.
+     * Stores the `Checksum16` of the first 0x90 bytes of [buf] in `magic0` (0x90) and writes the
+     * block.
      */
     public fun saveRankings(buf: ByteArray) {
         writeChecked(buf, L.RANK_OFFSET, L.RANK_SIZE, L.RANK_CHECKSUM, L.RANK_SUM_SIZE)
     }
 
-    /** Ported from src/bmsave-lib.c: EraseSaveRankData */
+    /**
+     * Ported from src/bmsave-lib.c: EraseSaveRankData
+     *
+     * Zeroes the ranking block and saves it with its checksum. Every record has `valid` 0, which
+     * `JudgeGameRankSaveData` treats as "no record yet", so the next clear is stored.
+     */
     public fun eraseSaveRankData() {
         genericBuffer.fill(0, 0, L.RANK_SIZE)
         saveRankings(genericBuffer)
@@ -233,8 +293,9 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Ported from src/bmsave-lib.c: LoadAndVerifySoundRoomData
      *
-     * Reads the sound room block into [buf] (scratch when null); true when SRAM works and the
-     * checksum over its first 0x20 bytes matches the one at 0x20.
+     * Reads the sound room block (`struct SoundRoomSaveData`, 0x24 bytes) into [buf] (scratch
+     * when null); true when SRAM works and the `Checksum16` over the 8 unlock flag words (0x20
+     * bytes, one bit per song, `flags[song >> 5]` bit `song & 31`) matches `magic1` at 0x20.
      */
     public fun loadAndVerifySoundRoomData(buf: ByteArray? = null): Boolean = loadChecked(
         L.SOUND_ROOM_OFFSET, L.SOUND_ROOM_SIZE, L.SOUND_ROOM_CHECKSUM, L.SOUND_ROOM_CHECKSUM, buf,
@@ -243,7 +304,8 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Ported from src/bmsave-lib.c: WriteSoundRoomSaveData
      *
-     * Stores the checksum of the first 0x20 bytes of [buf] at 0x20 and writes the block.
+     * Stores the `Checksum16` of the first 0x20 bytes of [buf] in `magic1` (0x20) and writes the
+     * block.
      */
     public fun writeSoundRoomSaveData(buf: ByteArray) {
         writeChecked(
@@ -252,7 +314,11 @@ public class BmSaveLib(public val sram: CartSram) {
         )
     }
 
-    /** Ported from src/bmsave-lib.c: EraseSoundRoomSaveData */
+    /**
+     * Ported from src/bmsave-lib.c: EraseSoundRoomSaveData
+     *
+     * Zeroes the sound room block and saves it with its checksum: no song is unlocked.
+     */
     public fun eraseSoundRoomSaveData() {
         genericBuffer.fill(0, 0, L.SOUND_ROOM_SIZE)
         writeSoundRoomSaveData(genericBuffer)
@@ -261,8 +327,12 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Ported from src/bmsave-lib.c: LoadAndVerfyLinkArenaStruct2
      *
-     * Reads the link arena block into [buf] (scratch when null); true when SRAM works and the
-     * checksum over its first 0x10 bytes matches the one at 0x10.
+     * Reads `struct bmsave_unkstruct2` (`gSram->unkstruct2`, 0x14 bytes: 4 flag words, `magic1`,
+     * `magic2`) into [buf] (scratch when null); true when SRAM works and the `Checksum16` over
+     * the first 0x10 bytes matches `magic1` at 0x10. Despite the "LinkArena" in the function
+     * names, the decomp does not say what the flags mean (a comment in
+     * `EraseInvalidSaveData` guesses "flags for viewing CGs?"); this is not the Link Arena
+     * save block itself ([Fe8SramLayout.ARENA_OFFSET]).
      */
     public fun loadAndVerifyLinkArenaStruct2(buf: ByteArray? = null): Boolean = loadChecked(
         L.LINK_ARENA2_OFFSET, L.LINK_ARENA2_SIZE, L.LINK_ARENA2_CHECKSUM, L.LINK_ARENA2_CHECKSUM,
@@ -273,7 +343,8 @@ public class BmSaveLib(public val sram: CartSram) {
      * Transcribed from src/bmsave-lib.c: WriteLinkArenaStruct2 (not verified: every reference
      * run holds an all-zero link arena block, so no run shows its checksum or data)
      *
-     * Stores the checksum of the first 0x10 bytes of [buf] at 0x10 and writes the block.
+     * Stores the `Checksum16` of the first 0x10 bytes of [buf] in `magic1` (0x10) and writes the
+     * block.
      */
     public fun writeLinkArenaStruct2(buf: ByteArray) {
         writeChecked(
@@ -282,7 +353,11 @@ public class BmSaveLib(public val sram: CartSram) {
         )
     }
 
-    /** Ported from src/bmsave-lib.c: EraseLinkArenaStruct2 */
+    /**
+     * Ported from src/bmsave-lib.c: EraseLinkArenaStruct2
+     *
+     * Zeroes `bmsave_unkstruct2` (all four flag words clear) and saves it with its checksum.
+     */
     public fun eraseLinkArenaStruct2() {
         genericBuffer.fill(0, 0, L.LINK_ARENA2_SIZE)
         writeLinkArenaStruct2(genericBuffer)
@@ -291,9 +366,11 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Ported from src/bmsave-lib.c: EraseSramDataIfInvalid
      *
-     * Re-initialises whatever is invalid: the global save info (which wipes all of SRAM first),
-     * then the bonus claim, ranking, sound room and link arena blocks, and finally checks the
-     * suspend save ([loadAndVerifySuspendSave]).
+     * Repairs whatever failed its checksum at boot, in this order: the global save info (which
+     * wipes all of SRAM first, so a bad header costs every save), then the bonus claim, ranking,
+     * sound room and `bmsave_unkstruct2` blocks, each reset to empty on its own, and finally the
+     * suspend save check ([loadAndVerifySuspendSave]). Chapter save slots and the suspend save are
+     * not touched here: a damaged one simply fails its descriptor check and shows as empty.
      */
     public fun eraseSramDataIfInvalid() {
         if (!readGlobalSaveInfo(null)) initGlobalSaveInfodata()
@@ -308,10 +385,13 @@ public class BmSaveLib(public val sram: CartSram) {
      * Partially ported from src/bmsave-misc.c: EraseInvalidSaveData (foreign-magic conversion
      * branch missing)
      *
-     * Reads the global save info; returns at once when its `magic32` is the FE8 magic. Otherwise
-     * reads the whole SRAM and returns unless the magic is 0x00040603 (the save of another
-     * game). That last case, which converts the old save by erasing the header, both suspend
-     * blocks, the game saves and the arena block, is not ported.
+     * Reads the global save info; returns at once when its `magic32` is the FE8 magic
+     * (`SAVEMAGIC32`, "FE8U's magic" in the decomp). Otherwise reads the whole SRAM and returns
+     * unless the magic is 0x00040603 (the decomp asks "Which game holds magic32 = 0x040603?" and
+     * does not know). That last case is a conversion: the C code rebuilds the header, both
+     * suspend blocks, the three chapter saves (with `chapterIndex` shifted up at 0x04, 0x15 and
+     * 0x22, i.e. a different chapter numbering), the ranking, sound room, `bmsave_unkstruct2` and
+     * bonus claim blocks, and all seven block descriptors in the FE8 format. It is not ported.
      *
      * @throws NotImplementedError when SRAM holds a save with the foreign magic 0x00040603.
      */
@@ -327,21 +407,25 @@ public class BmSaveLib(public val sram: CartSram) {
      * Partially ported from src/bmsave-xmap.c: LoadAndVerfySuspendSave
      *
      * Does nothing unless [isValidSuspendSave] finds a suspend save. Then it reads the
-     * `chapterIndex` (byte 0x0E) and the `unk_2C_0D` bit field (bits 13..22 of the word at 0x2C)
-     * of the saved `PlaySt`, as `ReadSuspendSavePlaySt` does, and for the extra-map chapter 0x7F
-     * compares it with `unk0F` of the extra-map save head at SRAM 0x7400, invalidating the
-     * suspend save on a mismatch. The C code reads the whole `PlaySt` into a local and uses only
-     * those two fields, so the non-extra-map path is complete: on the owner's chapter 2 save
-     * (`sram_chapter2_boot`) the suspend save is kept and SRAM and `gSuspendSaveIdOffset` match
-     * the dumps. It stays untagged because the extra-map branch (chapter 0x7F, including
+     * `chapterIndex` (byte 0x0E) and the `unk_2C_0D` bit field (10 bits, bits 13..22 of the word
+     * at 0x2C) of the saved `PlaySt`, as `ReadSuspendSavePlaySt` does. A chapter index of 0x7F
+     * (`CHAPTER_7F`, which `GameCtrlStartExtraMap` sets for an extra map) means the suspend save
+     * was made inside an extra map; its `unk_2C_0D` is then compared with `unk0F` (unknown
+     * meaning) of the extra map save head at SRAM 0x7400, and a mismatch invalidates the suspend
+     * save, so it can no longer be resumed. The C code reads the whole `PlaySt` into a local and
+     * uses only those two fields, so the non-extra-map path is complete: on the owner's chapter 2
+     * save (`sram_chapter2_boot`) the suspend save is kept and SRAM and `gSuspendSaveIdOffset`
+     * match the dumps. It stays untagged because the extra-map branch (chapter 0x7F, including
      * `gExtraMapSaveHead`) is transcribed but no reference run has an extra-map suspend save.
      */
     public fun loadAndVerifySuspendSave() {
         if (!isValidSuspendSave(L.SAVE_ID_SUSPEND)) return
         val base = getSaveReadAddr(L.SAVE_ID_SUSPEND + suspendSaveIdOffset)
         readSramFast(sram, base, playStBuffer, 0, PLAY_ST_READ_SIZE)
+        // 0x7F = CHAPTER_7F, the chapter index of an extra map.
         if (playStBuffer[PLAY_ST_CHAPTER_INDEX].toInt() == 0x7F) {
             readSramFast(sram, L.XMAP_OFFSET, xmapHeadBuffer, 0, XMAP_HEAD_READ_SIZE)
+            // `unk_2C_0D`: a 10-bit field starting at bit 13.
             val unk2C0D = (u32(playStBuffer, PLAY_ST_BITS_2C) ushr 13) and 0x3FF
             if (unk2C0D != (xmapHeadBuffer[XMAP_HEAD_UNK0F].toInt() and 0xFF)) {
                 invalidateSuspendSave(L.SAVE_ID_SUSPEND)
@@ -352,9 +436,12 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Ported from src/bmsave.c: IsValidSuspendSave
      *
-     * True when [slot] is [Fe8SramLayout.SAVE_ID_SUSPEND] and one of the two suspend block infos
-     * (last-written slot first) is valid; remembers the chosen slot in [suspendSaveIdOffset]
-     * (0x7F when none is valid).
+     * True when [slot] is [Fe8SramLayout.SAVE_ID_SUSPEND] and one of the two suspend block
+     * descriptors is valid, trying the copy written last (`last_suspend_slot`) first and the
+     * other as a fallback. So a suspend save whose newest copy was damaged (for instance by
+     * power loss mid-write) resumes from the previous copy. Remembers the chosen copy in
+     * [suspendSaveIdOffset] (0x7F when none is valid, meaning there is nothing to resume).
+     * The `+ 3` is `SAVE_ID_SUSPEND`.
      */
     public fun isValidSuspendSave(slot: Int): Boolean {
         if (!isSramWorking()) return false
@@ -370,25 +457,36 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Ported from src/bmsave.c: GetLastSuspendSaveId
      *
-     * 1 when the global save info's `last_suspend_slot` is 1, else 0 (the info is read even when
-     * it is invalid, as in C).
+     * The suspend copy written last: 1 when the global save info's `last_suspend_slot` is 1, else
+     * 0 (the info is read even when it is invalid, as in C; with non-working SRAM nothing is
+     * read, where the C local would be uninitialised).
      */
     public fun getLastSuspendSaveId(): Int {
         readGlobalSaveInfo(infoBuffer)
         return if (infoBuffer[L.HEADER_LAST_SUSPEND_SLOT].toInt() == 1) 1 else 0
     }
 
-    /** Ported from src/bmsave.c: GetNextSuspendSaveId */
+    /**
+     * Ported from src/bmsave.c: GetNextSuspendSaveId
+     *
+     * The suspend copy the next suspend writes to: the one not written last (`WriteSuspendSave`
+     * adds it to `SAVE_ID_SUSPEND`). The older copy is overwritten, never the newest.
+     */
     public fun getNextSuspendSaveId(): Int = 1 - getLastSuspendSaveId()
 
     /**
      * Ported from src/bmsave-lib.c: ReadSaveBlockInfo
      *
-     * Reads block info [index] into [chunk] (scratch when null); true when its `magic16`, its
-     * `magic32` for that block kind and its block checksum ([verifySaveBlockChecksum]) are right.
+     * Reads the `struct SaveBlockInfo` descriptor of block [index] (a `SAVE_ID_*` value) into
+     * [chunk] (scratch when null); true when its `magic16` is `SAVEMAGIC16`, its `magic32` is
+     * the one for that block (`SAVEMAGIC32` for chapter and suspend saves, `SAVEMAGIC32_ARENA`,
+     * `SAVEMAGIC32_XMAP`) and the checksum of the payload it points at matches
+     * ([verifySaveBlockChecksum]). An unknown [index] is invalid. This is what decides whether a
+     * Save slot is shown as filled or empty; a payload that no longer matches its checksum
+     * counts as empty. [chunk] is filled even when the result is false.
      */
     public fun readSaveBlockInfo(chunk: ByteArray?, index: Int): Boolean {
-        val info = chunk ?: blockInfoBuffer
+        val info = chunk ?: blockInfoTmp
         readSramFast(sram, L.blockInfoOffset(index), info, 0, L.BLOCK_INFO_SIZE)
         if (L.SAVEMAGIC16 != u16(info, L.INFO_MAGIC16)) return false
         val magic = when (index) {
@@ -405,10 +503,14 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Ported from src/bmsave-lib.c: WriteSaveBlockInfo
      *
-     * Fills `magic16`, `offset` (the low 16 bits of the write address, which is the SRAM offset),
-     * `size` by `kind` and the block checksum of [chunk] (a 0x10-byte block info the caller has set
-     * `kind`, and for valid kinds `magic32`, on) and writes it to block info [index]. Like the C
-     * code it returns without writing for `index >= 7` or an unknown kind.
+     * Completes the descriptor [chunk] (0x10 bytes; the caller has set `kind`, and for valid kinds
+     * `magic32`) and writes it as block descriptor [index], which makes that block valid: sets
+     * `magic16`, `offset` (the low 16 bits of the write address, which is the SRAM offset), `size`
+     * by `kind` (`SAVEBLOCK_KIND_*`: game, suspend, arena or xmap block size) and `checksum32`
+     * over the payload now in SRAM. For `SAVEBLOCK_KIND_INVALID` size, offset and `magic16` are
+     * zeroed instead, so the slot reads as empty afterwards. Like the C code it returns without
+     * writing for `index >= SAVE_ID_MAX` (7) or an unknown kind, after having already changed
+     * `magic16` and `offset` in [chunk].
      */
     public fun writeSaveBlockInfo(chunk: ByteArray, index: Int) {
         putU16(chunk, L.INFO_MAGIC16, L.SAVEMAGIC16)
@@ -430,12 +532,17 @@ public class BmSaveLib(public val sram: CartSram) {
         writeAndVerifySramFast(chunk, 0, sram, L.blockInfoOffset(index), L.BLOCK_INFO_SIZE)
     }
 
-    /** Ported from src/bmsave-lib.c: EraseSaveBlockInfo */
+    /**
+     * Ported from src/bmsave-lib.c: EraseSaveBlockInfo
+     *
+     * Overwrites descriptor [index] with 0xFF bytes (a no-op for `index >= SAVE_ID_MAX`). The
+     * `magic16` no longer matches, so the block shows as empty.
+     */
     public fun eraseSaveBlockInfo(index: Int) {
         if (index < L.BLOCK_INFO_COUNT) {
-            blockInfoBuffer.fill(0xFF.toByte())
+            blockInfoTmp.fill(0xFF.toByte())
             writeAndVerifySramFast(
-                blockInfoBuffer, 0, sram, L.blockInfoOffset(index), L.BLOCK_INFO_SIZE,
+                blockInfoTmp, 0, sram, L.blockInfoOffset(index), L.BLOCK_INFO_SIZE,
             )
         }
     }
@@ -443,8 +550,9 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Ported from src/bmsave-lib.c: GetSaveWriteAddr
      *
-     * The SRAM offset block [index] is written at (the C pointer's low 16 bits), 0 (NULL) for an
-     * unknown index.
+     * The fixed SRAM offset a new block [index] is written at: a chapter save slot, one of the
+     * two suspend copies, the Link Arena block or the extra map area. 0 (NULL in C) for an
+     * unknown index. The C returns a pointer; its low 16 bits are the offset.
      */
     public fun getSaveWriteAddr(index: Int): Int = when (index) {
         L.SAVE_ID_GAME0 -> L.GAME0_OFFSET
@@ -460,37 +568,60 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Ported from src/bmsave-lib.c: GetSaveReadAddr
      *
-     * The SRAM offset stored in block info [index] (read even when the info is invalid).
+     * The SRAM offset recorded in descriptor [index], i.e. where the payload was actually
+     * written (read even when the descriptor is invalid).
      */
     public fun getSaveReadAddr(index: Int): Int {
         readSaveBlockInfo(scratchInfo, index)
         return u16(scratchInfo, L.INFO_OFFSET)
     }
 
-    /** Ported from src/bmsave.c: SramChecksum32 (reads [size] bytes at SRAM [offset]). */
+    /**
+     * Ported from src/bmsave.c: SramChecksum32
+     *
+     * Copies [size] bytes at SRAM [offset] into the generic buffer and returns their
+     * `ComputeChecksum32` (halfword sum in the low half, halfword xor in the high half), the
+     * value kept in a descriptor's `checksum32`. Overwrites [genericBuffer].
+     */
     public fun sramChecksum32(offset: Int, size: Int): Int {
         readSramFast(sram, offset, genericBuffer, 0, size)
         return SaveChecksums.computeChecksum32(genericBuffer, 0, size)
     }
 
-    /** Ported from src/bmsave.c: VerifySaveBlockChecksum */
+    /**
+     * Ported from src/bmsave.c: VerifySaveBlockChecksum
+     *
+     * True when the descriptor [info]'s `checksum32` equals the checksum of the `size` bytes at
+     * its `offset` in SRAM now; false means the payload changed or was damaged.
+     */
     public fun verifySaveBlockChecksum(info: ByteArray): Boolean =
         u32(info, L.INFO_CHECKSUM32) ==
             sramChecksum32(u16(info, L.INFO_OFFSET), u16(info, L.INFO_SIZE))
 
-    /** Ported from src/bmsave.c: PopulateSaveBlockChecksum */
+    /**
+     * Ported from src/bmsave.c: PopulateSaveBlockChecksum
+     *
+     * Stores the checksum of the payload [info] points at (`offset`, `size`) in its `checksum32`.
+     */
     public fun populateSaveBlockChecksum(info: ByteArray) {
         putU32(info, L.INFO_CHECKSUM32, sramChecksum32(u16(info, L.INFO_OFFSET), u16(info, L.INFO_SIZE)))
     }
 
-    /** Ported from src/bmsave.c: IsSaveValid */
+    /**
+     * Ported from src/bmsave.c: IsSaveValid
+     *
+     * True when block [index] has a valid descriptor ([readSaveBlockInfo]). For
+     * `SAVE_ID_GAME0..2` this is what makes the Save 1/2/3 slot shown as filled instead of empty.
+     */
     public fun isSaveValid(index: Int): Boolean = readSaveBlockInfo(null, index)
 
     /**
      * Ported from src/bmsave.c: InvalidateSuspendSave
      *
-     * Marks block info [slot] (and the alternate one for the first suspend slot) invalid. The
-     * C `chunk` local is uninitialised apart from `kind`; the unset fields are 0 here.
+     * Marks descriptor [slot] invalid (`SAVEBLOCK_KIND_INVALID`, which zeroes its size, offset
+     * and `magic16`), and for [Fe8SramLayout.SAVE_ID_SUSPEND] also the alternate copy's, so
+     * neither suspend copy can be resumed any more. The C `chunk` local is uninitialised apart
+     * from `kind`; the unset fields are 0 here.
      */
     public fun invalidateSuspendSave(slot: Int) {
         scratchInfo.fill(0)
@@ -502,6 +633,11 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Transcribed from src/bmsave.c: WriteLastGameSaveId (not verified: the reference image
      * already holds the written id, so a no-op survives)
+     *
+     * Remembers [num] (a chapter save slot 0..2, not range-checked here) as the slot used last,
+     * in `last_game_save_id` (0x62) of the global save info, without updating its checksum (the
+     * byte is outside the checksummed part). The save menu starts on this slot
+     * (`ReadLastGameSaveId` in `src/savemenu.c`).
      */
     public fun writeLastGameSaveId(num: Int) {
         readGlobalSaveInfo(infoBuffer)
@@ -509,7 +645,13 @@ public class BmSaveLib(public val sram: CartSram) {
         writeGlobalSaveInfoNoChecksum(infoBuffer)
     }
 
-    /** Transcribed from src/bmsave.c: ReadLastGameSaveId (not verified: no trace reads it). */
+    /**
+     * Transcribed from src/bmsave.c: ReadLastGameSaveId (not verified: no trace reads it).
+     *
+     * The chapter save slot (0..2) used last, 0 when the global save info is invalid or the
+     * stored value is outside 0..2. The C compares an unsigned byte, so its `ret < 0` test never
+     * fires; the Kotlin sign extension makes 0x80..0xFF reach it, and both end at slot 0.
+     */
     public fun readLastGameSaveId(): Int {
         if (!readGlobalSaveInfo(infoBuffer)) return 0
         val ret = infoBuffer[L.HEADER_LAST_GAME_SAVE_ID].toInt()

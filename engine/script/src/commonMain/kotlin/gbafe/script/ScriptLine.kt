@@ -4,13 +4,21 @@ package gbafe.script
  * One argument of a script command: an integer value or an identifier.
  */
 public sealed class Arg {
-    /** An integer argument written in decimal, hexadecimal (`0x...`), or with a leading negation `-`. */
+    /**
+     * An integer argument written in decimal or hexadecimal (`0x...`), with an optional leading
+     * `-`. A leading `+` is not accepted ([FeScriptParser] reports "malformed number").
+     */
     public data class IntArg(
         /** The resolved integer value (hex values in `0x80000000..0xFFFFFFFF` wrap to negative [Int]). */
         public val value: Int,
     ) : Arg()
 
-    /** An identifier argument representing a named constant, flag, or local event label. */
+    /**
+     * An identifier argument: a named constant or flag (`CHARACTER_*`, `EVFLAG_*`...), a name from
+     * the game's symbol list (ROM data or functions), or the name of an `event` block in the same
+     * file (a pointer to that script). It may be several names joined by `|` (a bit mask). Numeric
+     * labels (`label N`) are not identifiers; they are plain numbers.
+     */
     public data class IdentArg(
         /** The literal identifier text as written in source code. */
         public val name: String,
@@ -77,7 +85,10 @@ public sealed class ScriptLine {
         override val line: Int,
     ) : ScriptLine()
 
-    /** Jump destination declaration (`label N`) within an event block. */
+    /**
+     * Jump destination declaration (`label N`) within an event block; assembled to one label
+     * command (FE8 `EvtLabel`, 2 words, include/eventscript.h:605) that `goto` finds by number.
+     */
     public data class Label(
         /** Label number, unique within the enclosing event script. */
         public val number: Int,

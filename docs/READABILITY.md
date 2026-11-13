@@ -59,7 +59,7 @@ their old counts); new packages get a row when they appear.
 | engine/input | gbafe.input | 2 | 238 | done 2026-11-07 697847c; audit done 2026-11-12 02666d9 |
 | engine/render | gbafe.render | 10 | 1592 | done 2026-11-09 83f2cb6; audit done 2026-11-12 abaf60c |
 | engine/save | gbafe.save | 7 | 621 | done 2026-11-09 d3b21d6; audit done 2026-11-12 ad1504f |
-| engine/script | gbafe.script | 7 | 920 | done 2026-11-09 d3b21d6; audit todo |
+| engine/script | gbafe.script | 7 | 956 | done 2026-11-09 d3b21d6; audit done 2026-11-13 PENDING |
 | engine/text | gbafe.text | 6 | 926 | done 2026-11-09 d3b21d6; audit done 2026-11-12 7d13c5d |
 | game | fe8.game | 8 | 1999 | done 2026-11-09 ee10196; audit todo |
 | game | fe8.game.bm (map, camera, state, cursor, music, chapter data: 16 files) | 16 | 2964 | done 2026-11-10 bac8ed1; audit todo |

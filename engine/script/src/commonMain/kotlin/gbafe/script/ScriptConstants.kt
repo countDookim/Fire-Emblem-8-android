@@ -14,8 +14,9 @@ public interface ScriptConstants {
     public fun valueOf(kind: String, name: String): Int
 
     /**
-     * The primary name of [value] in [kind] (the first one declared when several share it), or
-     * null if unmapped.
+     * The primary name of [value] in [kind], or null if unmapped. When several names share a value
+     * the implementation picks: [ConstantTable] the first declared, [MutableScriptConstants] the
+     * most recently defined (so a mod's name wins over the base game's).
      */
     public fun nameOf(kind: String, value: Int): String?
 
@@ -38,10 +39,13 @@ public enum class ConstantOrigin {
     /** Named directly by the original game's C headers. */
     DECOMP,
 
-    /** Expanded from a parameterised macro in the headers (such as `EVFLAG_EXTRA_UNIT(i)`). */
+    /**
+     * Expanded from a parameterised macro in the headers (such as `EVFLAG_EXTRA_UNIT(i)`,
+     * include/constants/event-flags.h:19).
+     */
     DERIVED,
 
-    /** Placeholder for an id the headers leave unnamed (such as `EVFLAG_41`). */
+    /** Placeholder for an id the headers leave unnamed (FE8: `EVFLAG_<n>`, such as `EVFLAG_7`). */
     FILLER,
 }
 
@@ -113,7 +117,7 @@ public open class TableScriptConstants(
  * entries while loading; lookups afterwards do not allocate.
  */
 public class MutableScriptConstants(private val base: ScriptConstants? = null) : ScriptConstants {
-    /** Dynamic storage for one constant category kind. */
+    /** Growable storage for one kind: the name map plus parallel arrays in definition order. */
     private class Kind {
         val byName = HashMap<String, Int>()
         var values = IntArray(INITIAL_CAPACITY)
@@ -127,7 +131,10 @@ public class MutableScriptConstants(private val base: ScriptConstants? = null) :
 
     private val kinds = HashMap<String, Kind>()
 
-    /** Defines [name] = [value] in [kind]; redefining a name replaces its value. */
+    /**
+     * Defines [name] = [value] in [kind]; redefining a name replaces its value. A value can have
+     * several names; [nameOf] then returns the most recently defined one.
+     */
     public fun define(kind: String, name: String, value: Int) {
         val kindData = kinds.getOrPut(kind) { Kind() }
         val oldValue = kindData.byName.put(name, value)

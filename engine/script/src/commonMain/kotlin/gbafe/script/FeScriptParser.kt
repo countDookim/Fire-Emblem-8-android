@@ -162,7 +162,10 @@ public class FeScriptParser(
         return ScriptLine.Command(spec, args.toList(), line)
     }
 
-    /** Strips comments and splits row into whitespace-delimited tokens. */
+    /**
+     * Strips the `#` comment from [row] and splits the rest at spaces, tabs and `\r` (so CRLF
+     * files parse).
+     */
     private fun tokenize(row: String): List<String> {
         val hash = row.indexOf('#')
         val code = if (hash >= 0) row.substring(0, hash) else row
@@ -181,7 +184,10 @@ public class FeScriptParser(
         return out
     }
 
-    /** Returns true if string [s] begins with a digit or sign character. */
+    /**
+     * True if [s] begins with a digit or a sign, so it is read as a number. A leading `+` passes
+     * here but fails in [parseNumber], giving "malformed number" rather than "unknown identifier".
+     */
     private fun looksNumeric(s: String): Boolean = isDigit(s[0]) || s[0] == '-' || s[0] == '+'
 
     /** Returns true if char [c] is an ASCII decimal digit. */
@@ -190,7 +196,10 @@ public class FeScriptParser(
     /** An identifier, or identifiers joined by `|` (a bit mask such as `A|B`). */
     private fun isIdentifierMask(s: String): Boolean = s.split('|').all { isIdentifier(it) }
 
-    /** Returns true if all components of identifier mask [s] are declared events or known constants. */
+    /**
+     * True if every `|`-joined part of [s] is an `event` name of this file or known to
+     * [identifiers].
+     */
     private fun isKnownMask(s: String, events: Set<String>): Boolean =
         s.split('|').all { it in events || identifiers.isKnown(it) }
 
@@ -200,7 +209,11 @@ public class FeScriptParser(
         return s.all { it == '_' || it in 'a'..'z' || it in 'A'..'Z' || isDigit(it) }
     }
 
-    /** Decimal (Int range) or `0x` hex (up to 32 bits, wrapping); null if malformed or too big. */
+    /**
+     * Decimal (up to [Int.MAX_VALUE], or down to [Int.MIN_VALUE] with `-`) or `0x` hex (up to 32
+     * bits, so `0xFFFFFFFF` is -1; GBA ROM pointers have bit 31 clear, but event words are
+     * u16/u32 values). Null if malformed or out of range.
+     */
     private fun parseNumber(s: String): Int? {
         val neg = s.startsWith("-")
         val body = if (neg) s.substring(1) else s

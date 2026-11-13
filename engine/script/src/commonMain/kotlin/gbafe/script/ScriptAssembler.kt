@@ -50,7 +50,7 @@ public fun SymbolResolver.resolveMask(name: String, kind: String?): Long {
 
 /** Game-specific encoding rules mapping command specifications to compiled 16-bit bytecode words. */
 public interface CommandEncoder {
-    /** Number of 16-bit words emitted for a `label N` statement. */
+    /** Number of 16-bit words emitted for a `label N` statement (2 for FE8's `EvtLabel`). */
     public val labelWordCount: Int
 
     /** Number of 16-bit words emitted for command [spec]. */
@@ -93,7 +93,10 @@ public fun interface CommandExpander {
 }
 
 /**
- * Assembles parsed script lines into a compiled bytecode [ScriptImage].
+ * Assembles parsed script lines (from [FeScriptParser]) into a [ScriptImage] of event words. Two
+ * passes: first every script's size and address are fixed, so a script can name another (or
+ * itself) as a pointer regardless of order, then the words are encoded. Name lookup order for
+ * identifier arguments is the file's own scripts, then [constants], then [external].
  */
 public class ScriptAssembler(
     private val encoder: CommandEncoder,
@@ -103,10 +106,13 @@ public class ScriptAssembler(
 ) {
     /** Synthetic address and alignment constants. */
     public companion object {
-        /** First synthetic virtual address assigned to scripts lacking fixed ROM addresses. */
+        /**
+         * First synthetic virtual address for scripts without a fixed one (mod scripts): above the
+         * 32 MiB ROM window 0x08000000-0x09FFFFFF (ADR 0001, M5 amendment).
+         */
         public const val SYNTHETIC_BASE: Int = 0x0A000000
 
-        /** Byte alignment boundary for synthetic script allocations. */
+        /** Synthetic addresses advance in multiples of this many bytes (size rounded up). */
         public const val ALIGNMENT: Int = 4
     }
 
@@ -133,11 +139,14 @@ public class ScriptAssembler(
         for (block in blocks) {
             if (byName.put(block.name, block) != null) fail(block.line, "duplicate event '${block.name}'")
             block.wordCount = sizeOf(block)
+            // Start each script on an even word, i.e. a 4-byte boundary in the word array.
             totalWords = (totalWords + 1) and 1.inv()
             block.wordOffset = totalWords
             totalWords += block.wordCount
             val fixed = bases.baseOf(block.name)
             if (fixed != ScriptBases.NONE) {
+                // Event words are u16: an address must be even; negative means bit 31 set, which
+                // ScriptImage also rejects.
                 if (fixed < 0 || fixed and 1 != 0) fail(block.line, "bad address for '${block.name}'")
                 block.base = fixed
             } else {

@@ -995,13 +995,10 @@ public class BmBattle(
         { _, _ -> error("traps are not ported (M6-H)") }
 
     /**
-     * Transcribed from src/bmbattle.c: BattleApplyGameStateUpdates
-     *   (not verified: the Prologue never runs it; the f15075 unit-table update of
-     *   ram_trace_prologue_battle_end is EventBattleReloadBmStatus)
+     * Ported from src/bmbattle.c: BattleApplyGameStateUpdates
      *
      * [battleApplyUnitUpdates] and [battleApplyBallistaUpdates]. The two debug print calls are
-     * no-ops and omitted. Untested: no trace runs the status, level-up, rank gain, exp gain,
-     * ballista or obstacle branches.
+     * no-ops and omitted. No capture runs the status, level-up, ballista or obstacle branches.
      */
     public fun battleApplyGameStateUpdates() {
         battleApplyUnitUpdates()
@@ -1009,9 +1006,7 @@ public class BmBattle(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: BattleApplyUnitUpdates
-     *   (not verified: the Prologue never runs it; the f15075 unit-table update of
-     *   ram_trace_prologue_battle_end is EventBattleReloadBmStatus)
+     * Ported from src/bmbattle.c: BattleApplyUnitUpdates
      *
      * Writes the used weapons back into the battle units' items, then the battle units into the
      * unit table. A target without a unit (`UpdateObstacleFromBattle`) is not ported.
@@ -1034,9 +1029,7 @@ public class BmBattle(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: UpdateUnitFromBattle
-     *   (not verified: the Prologue never runs it; the f15075 unit-table update of
-     *   ram_trace_prologue_battle_end is EventBattleReloadBmStatus)
+     * Ported from src/bmbattle.c: UpdateUnitFromBattle
      *
      * Copies level, exp, HP, state, stat changes, weapon exp and items of [unit] into the unit at
      * [offset] of the unit table, sets [arenaLevelLatch], the status, caps the stats and reports
@@ -1094,8 +1087,7 @@ public class BmBattle(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: GetBattleUnitUpdatedWeaponExp (not verified: the Prologue
-     *   never runs it; the f15075 update is EventBattleReloadBmStatus)
+     * Ported from src/bmbattle.c: GetBattleUnitUpdatedWeaponExp
      *
      * The weapon exp (the raw value behind the E..S rank, `WPN_EXP_*`) [unit] has in the
      * weapon's type after the battle, or -1 where it gains none: not a player-army unit, dead,
@@ -1145,7 +1137,7 @@ public class BmBattle(
 
     /**
      * Transcribed from src/bmbattle.c: BattleApplyBallistaUpdates (not verified: only the
-     *   no-op branch occurs in the Prologue trace)
+     *   no-ballista branch runs, and it writes nothing a capture could show)
      *
      * In a ballista battle stores the remaining uses of the actor's weapon (the high byte of
      * the item word) in the ballista trap (`TRAP_EXTDATA_BLST_ITEMUSES`), so uses persist

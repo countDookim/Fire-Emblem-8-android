@@ -482,8 +482,8 @@ Transcribed (not verified): the item drop branch, the Nightmare, wall/trap and b
 Not written: `BATTLE_PostCombatDeathFades`, `BATTLE_DeleteLinkedMOVEUNIT` (script entries fail loudly).
 Stand-ins: `beginBattleAnimations` (sets `MAPANIMS`, no animation) and `getBattleAnimPreconfType` (M6-H);
 `killUnitOnCombatDeath` (wiring marks a 0-HP unit dead and hidden), `dropRescueOnDeath`, `itemGotPopup` (MC-16);
-The write-back `BmBattle.battleApplyGameStateUpdates` runs (MC-15 still tags it Transcribed; this
-test checks its result). `pidStatsAddExpGained` is a no-op stand-in since MC-14 (the exp now flows to it).
+The write-back `BmBattle.battleApplyGameStateUpdates` runs (tagged Ported since MC-15; this
+test checks its result too). `pidStatsAddExpGained` is a no-op stand-in since MC-14 (the exp now flows to it).
 
 **MC-14 result.** `BattleApplyExpGains` now runs inside `BattleGenerateReal` (`BattleGenerate.battleApplyExpGains`,
 replacing the `applyExpGains` hook), and `BattleGenerateRealDifferentialTest` and `CombatActionDifferentialTest` no
@@ -497,6 +497,17 @@ multiplies is 0). Level-up: no capture crosses 100 exp, so `CheckBattleUnitLevel
 `checkBattleUnitLevelUp` (stand-in until MC-17: level and exp bookkeeping only, no stat gains, RNG not advanced). `pidStatsAddExpGained`
 (save statistics, no plan row) is a no-op stand-in. Not written: `BattleApplyItemExpGains`, `GetBattleUnitStaffExp`,
 `BattleApplyMiscActionExpGains`.
+
+**MC-15 result.** `BattleApplyGameStateUpdates`, `BattleApplyUnitUpdates`, `UpdateUnitFromBattle` and
+`GetBattleUnitUpdatedWeaponExp` are Ported and verified by the new `BattleWriteBackDifferentialTest`: it seeds the
+unit table and both battle units from the dump before the write-back (the frame is found as the first dump whose unit
+entries change) and compares the whole unit entries of actor and target with the dump after it, at noanim f2074,
+kill f1999 and f2549 and cap3 f2028. Break-checked (mutate, test fails, restore): dropping the unit updates, the
+actor's weapon store, exp +1, weapon exp gain +1. The dead unit of the kill run is not compared: `UnitKill` (MC-16)
+clears its struct in the same frame. `BattleApplyBallistaUpdates` stays Transcribed (no ballista, and the
+no-ballista path writes nothing). Not written: `HasBattleUnitGainedWeaponLevel` and `DidBattleUnitBreakWeapon`
+(the map animation's level-up and break popups, M6-H), `UpdateUnitDuringBattle`, `UpdateActorFromBattle`,
+`UpdateObstacleFromBattle`. `PidStatsAddExpGained` is still the no-op stand-in.
 
 ## M7
 

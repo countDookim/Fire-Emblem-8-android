@@ -11,6 +11,8 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
+- 2026-11-13 19:23Z owner PC (Claude): EP-1 enemy phase start/end.
+- 2026-11-13 19:23Z owner PC (Claude): readability audit fe8.game.bm (BmMap, BmMapRender, EntityBmMaps).
 
 ## Current state
 

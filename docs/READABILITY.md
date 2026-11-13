@@ -65,7 +65,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game | 8 | 1999 | done 2026-11-09 ee10196; audit todo |
 | game | fe8.game.bm (PlaySt, PlayConfig, BmSt, StructCodec) | 4 | 727 | done 2026-11-10 bac8ed1; audit done 2026-11-13 d2196f8 |
 | game | fe8.game.bm (Camera, CamMove, MapCursor, ResetCursorPosition, MapMusic) | 5 | 711 | done 2026-11-10 bac8ed1; audit done 2026-11-13 3efb79c |
-| game | fe8.game.bm (BmMap, BmMapRender, EntityBmMaps) | 3 | 720 | done 2026-11-10 bac8ed1; audit todo |
+| game | fe8.game.bm (BmMap, BmMapRender, EntityBmMaps) | 3 | 720 | done 2026-11-10 bac8ed1; audit in progress 2026-11-13 (Claude) |
 | game | fe8.game.bm (BMapMain, BattleMapKind) | 2 | 653 | done 2026-11-10 bac8ed1; audit todo |
 | game | fe8.game.bm (ChapterData, ChapterMapGfx) | 2 | 370 | done 2026-11-10 bac8ed1; audit todo |
 | game | fe8.game.bm (battle: BattleGenerate, BattleUnit, BmBattle, ItemInfo) | 4 | 2316 | done 2026-11-11 49679cb; audit done 2026-11-11 39aa20b |

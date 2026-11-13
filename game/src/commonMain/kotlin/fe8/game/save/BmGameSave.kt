@@ -1,9 +1,12 @@
 /**
- * Chapter-start game save serializer and deserializer.
+ * The chapter save slots (`struct GameSaveBlock`, 0xDC8 bytes each, the three "Save 1/2/3" files)
+ * of `src/bmsave.c`: `ReadGameSave`, `WriteGameSave` and the packed unit record they use.
  *
- * Implements the standard game save reading and writing logic from `src/bmsave.c`, persisting
- * chapter progression, the 51 player unit slots (using the 0x24-byte bitpacked `struct GameSavePackedUnit`),
- * convoy items, permanent event flags, battle history (BWL stats), and world map/dungeon records.
+ * A game save keeps `gPlaySt`, the 51 blue (player) units as 0x24-byte bit-packed
+ * `struct GameSavePackedUnit` records, the convoy (supply) items, the permanent event flags, the
+ * per-unit battle records (`gPidStatsData`) and per-chapter records (`gChapterStats`), the bonus
+ * claim flags, the world map state and the tower / ruins dungeon records. The mid-chapter suspend
+ * save is in [BmSuspendSave].
  */
 
 package fe8.game.save
@@ -34,15 +37,17 @@ import gbafe.core.flags.EventFlags
 import gbafe.core.time.GameClock
 
 /**
- * The RAM `ReadGameSave` fills, as the objects that own it elsewhere, plus stand-ins for what has
- * no owner yet (the world map and dungeon data, M6-I).
+ * The RAM `ReadGameSave` fills and `WriteGameSave` reads, as the objects that own it elsewhere,
+ * plus stand-ins for what has no owner yet (the world map and dungeon data, M6-I).
  *
- * @property playSt `gPlaySt`.
- * @property bmSt `gBmSt` (`gameStateBits` is read).
- * @property units the raw unit arrays (`gUnitArrayBlue/Red/Green`).
- * @property flags the event flag memory (`gPermanentFlagBits`).
- * @property clock the game's one [GameClock] (`gGameClock`).
- * @property convoy `gConvoyItemArray` as 100 raw little-endian u16 values.
+ * @property playSt `gPlaySt`, the chapter and settings state stored at the start of the block.
+ * @property bmSt `gBmSt`; only `gameStateBits` is read, to decide whether the suspend save is
+ *   invalidated (see [BmGameSave.readGameSave]).
+ * @property units the unit arrays (`gUnitArrayBlue/Red/Green`); only the 51 blue (player) units
+ *   are saved.
+ * @property flags the event flag memory (`gPermanentFlagBits`, the flags kept across chapters).
+ * @property clock the game's one [GameClock] (`gGameClock`, restored from `gPlaySt.time_saved`).
+ * @property convoy `gConvoyItemArray` (the supply convoy) as 100 raw little-endian u16 item words.
  */
 public class GameSaveRam(
     public val playSt: PlaySt,
@@ -53,26 +58,28 @@ public class GameSaveRam(
     public val convoy: ByteArray = ByteArray(SuspendRam.CONVOY_BYTES),
 ) {
     /**
-     * Stand-in until M6-I for `gGMData`'s monster RN state (`unk_ce`, three halfwords), the
-     * target of `sub_80A71F8`.
+     * Stand-in until M6-I for the random-number state of the world map's wandering monsters in
+     * `gGMData` (`unk_ce`, three halfwords), the target of `sub_80A71F8`.
      */
     public val gmMonsterRnState: IntArray = IntArray(3)
 
     /**
      * Stand-in until M6-I for what `ReadWorldMapStuff(&src->wmStuff, &gGMData)` decodes (the
-     * world map state is not ported): the raw 0x24 bytes of `struct GMapSaveInfo`.
+     * world map state is not ported): the raw 0x24 bytes of `struct GMapSaveInfo` (world map
+     * nodes, paths, units, cursor position and skirmish state).
      */
     public val worldMapStuff: ByteArray = ByteArray(Fe8SuspendLayout.GMAP_SAVE_INFO_SIZE)
 
     /**
      * Stand-in until M6-I for `gDungeonState.dungeon` (`LoadDungeonRecords`): the raw
-     * `struct Dungeon[2]`.
+     * `struct Dungeon[2]`, the saved records of the two dungeons (tower and ruins).
      */
     public val dungeons: ByteArray = ByteArray(DUNGEONS_SIZE)
 }
 
 /**
- * The game (chapter start) save reader of src/bmsave.c, on top of a [BmSaveLib].
+ * The chapter save slot (`struct GameSaveBlock`) reader and writer of src/bmsave.c, on top of a
+ * [BmSaveLib].
  *
  * @property lib the save RAM routines (and the owner of `gPidStatsData` / `gChapterStats`).
  * @property loader the unit routines (`GetUnitMaxHp`) over the same unit arrays as the RAM read.
@@ -83,97 +90,111 @@ public class BmGameSave(
     private val loader: UnitLoader,
     private val rom: RomView,
 ) {
-    /** Buffer for the `struct GameSavePackedUnit unitp` local. */
-    private val packed = ByteArray(PACKED_UNIT_SIZE)
+    /** Scratch for the 0x24-byte `struct GameSavePackedUnit unitp` local of the C code. */
+    private val packedUnitBuf = ByteArray(PACKED_UNIT_SIZE)
 
-    /** Buffer for the `u32 buf[2]` / `u32 buf` locals. */
-    private val scalar = ByteArray(8)
+    /**
+     * Scratch for the `u32 buf[2]` of `Read/WriteGMMonsterRnState` and the `u32 buf` of
+     * `ReadBonusContentClaimFlags`.
+     */
+    private val wordBuf = ByteArray(8)
 
-    /** The `gPlaySt` bytes read. */
+    /** The raw `gPlaySt` bytes of the block (`struct PlaySt`, read and written). */
     private val playStBytes = ByteArray(PlaySt.SIZE)
 
-    /** `gPermanentFlagBits` as read. */
-    private val permanentBuf = ByteArray(Fe8EventFlags.PERMANENT_SAVE_BYTES)
+    /** The 0x19 permanent flag bytes read from the block (`permanentFlags`). */
+    private val permanentFlagsIn = ByteArray(Fe8EventFlags.PERMANENT_SAVE_BYTES)
 
-    /** Buffer for the `struct Dungeon dungeon[2]` local. */
-    private val dungeon = ByteArray(DUNGEONS_SIZE)
+    /** Scratch for the `struct Dungeon dungeon[2]` local of `ReadGameSave`/`WriteGameSave`. */
+    private val dungeonRecordsBuf = ByteArray(DUNGEONS_SIZE)
 
-    /** Buffer for the `struct SaveBlockInfo chunk` local. */
-    private val chunk = ByteArray(L.BLOCK_INFO_SIZE)
+    /**
+     * Scratch for the `struct SaveBlockInfo chunk` local that `WriteGameSave` fills with
+     * `SAVEMAGIC32` and `SAVEBLOCK_KIND_GAME`.
+     */
+    private val blockInfoBuf = ByteArray(L.BLOCK_INFO_SIZE)
 
-    /** Buffer for the `struct GlobalSaveInfo info` local. */
-    private val info = ByteArray(L.HEADER_SIZE)
+    /** Scratch for the `struct GlobalSaveInfo info` local of `WriteGameSave`. */
+    private val globalInfoBuf = ByteArray(L.HEADER_SIZE)
 
-    /** `gPermanentFlagBits` as written. */
-    private val permanentOut = ByteArray(Fe8EventFlags.PERMANENT_SAVE_BYTES)
+    /** The permanent flag bytes handed to `WritePermanentFlags`. */
+    private val permanentFlagsOut = ByteArray(Fe8EventFlags.PERMANENT_SAVE_BYTES)
 
-    /** The convoy as ints (for `WriteSupplyItems`). */
-    private val supply = IntArray(SuspendRam.CONVOY_BYTES / 2)
+    /** The 100 convoy item words as ints, the form `WriteSupplyItems` packs into 0xB0 bytes. */
+    private val supplyWords = IntArray(SuspendRam.CONVOY_BYTES / 2)
 
-    /** The unit written when the slot has no character (`ClearUnit(&tmp_unit)`). */
+    /** The all-zero unit stored for an empty unit slot (`ClearUnit(&tmp_unit)`). */
     private val clearUnit = ByteArray(UnitTable.UNIT_SIZE)
 
     /**
-     * Extracts [n] bits from the little-endian bit stream [b] starting at bit offset [start].
+     * Reads one bit-field of a `struct GameSavePackedUnit`: [bitCount] bits starting at bit
+     * [start] of [stream]. The C compiler lays the `u32 x : n` fields out LSB first, little endian
+     * (the first field `jid` is bits 0..6 of byte 0), so this reproduces that layout.
      *
-     * @param b Byte array treated as a contiguous bit stream.
-     * @param start Bit index to begin reading from.
-     * @param n Number of bits to read (n <= 16).
-     * @return Extracted integer value.
+     * @param bitCount at most 16 here (the widest packed fields are the 14-bit items).
      */
-    private fun bitsAt(b: ByteArray, start: Int, n: Int): Int {
-        var v = 0
-        for (i in 0 until n) {
+    private fun readBits(stream: ByteArray, start: Int, bitCount: Int): Int {
+        var value = 0
+        for (i in 0 until bitCount) {
             val bit = start + i
-            v = v or (((b[bit shr 3].toInt() shr (bit and 7)) and 1) shl i)
+            value = value or (((stream[bit shr 3].toInt() shr (bit and 7)) and 1) shl i)
         }
-        return v
+        return value
     }
 
     /**
      * Ported from src/bmsave.c: LoadSavedUnit
      *
      * Reads the 0x24-byte `struct GameSavePackedUnit` (a packed bit stream, LSB first) at SRAM
-     * [srcOffset] and unpacks it into the unit at byte offset [unitOffset] of [units]. Fields the
-     * record has no value for (`curHP` is set to the maximum HP, `supportBits` to 0, `index` and
-     * the AI fields are kept).
+     * [srcOffset] and unpacks it into the unit at byte offset [unitOffset] of [units]. The record
+     * keeps only what a chapter start needs: character, class, level, exp, position, stats,
+     * items, weapon ranks, supports and a few state bits. The rest of the unit is not touched
+     * (`InitUnits` has just cleared it), except that `curHP` is set to the maximum HP including
+     * item bonuses (`GetUnitMaxHp`), so every unit starts the chapter at full health, and
+     * `supportBits` is cleared.
      */
     public fun loadSavedUnit(srcOffset: Int, units: UnitTable, unitOffset: Int) {
-        val p = packed
-        readSramFast(lib.sram, srcOffset, p, 0, PACKED_UNIT_SIZE)
-        val u = units.bytes
-        val o = unitOffset
-        val jid = bitsAt(p, 0, 7)
-        val level = bitsAt(p, 7, 5)
-        val exp = bitsAt(p, 12, 7)
-        val xPos = bitsAt(p, 19, 6)
-        val yPos = bitsAt(p, 25, 6)
-        val flag = bitsAt(p, 31, 13)
-        val pid = StructCodec.u8(p, 0x14)
+        val packed = packedUnitBuf
+        readSramFast(lib.sram, srcOffset, packed, 0, PACKED_UNIT_SIZE)
+        val unitRam = units.bytes
+        val base = unitOffset
+        val jid = readBits(packed, 0, 7)
+        val level = readBits(packed, 7, 5)
+        val exp = readBits(packed, 12, 7)
+        val xPos = readBits(packed, 19, 6)
+        val yPos = readBits(packed, 25, 6)
+        val flag = readBits(packed, 31, 13)
+        val pid = StructCodec.u8(packed, 0x14)
 
-        StructCodec.put32(u, o + U_CHARACTER, UnitLoader.characterDataAt(pid))
-        StructCodec.put32(u, o + U_CLASS, UnitLoader.classDataAt(jid))
-        u[o + U_LEVEL] = level.toByte()
-        u[o + U_EXP] = exp.toByte()
-        u[o + U_X_POS] = xPos.toByte()
-        u[o + U_Y_POS] = yPos.toByte()
+        StructCodec.put32(unitRam, base + U_CHARACTER, UnitLoader.characterDataAt(pid))
+        StructCodec.put32(unitRam, base + U_CLASS, UnitLoader.classDataAt(jid))
+        unitRam[base + U_LEVEL] = level.toByte()
+        unitRam[base + U_EXP] = exp.toByte()
+        unitRam[base + U_X_POS] = xPos.toByte()
+        unitRam[base + U_Y_POS] = yPos.toByte()
 
-        u[o + U_MAX_HP] = bitsAt(p, 44, 6).toByte()
-        u[o + U_POW] = bitsAt(p, 50, 5).toByte()
-        u[o + U_SKL] = bitsAt(p, 55, 5).toByte()
-        u[o + U_SPD] = bitsAt(p, 60, 5).toByte()
-        u[o + U_DEF] = bitsAt(p, 65, 5).toByte()
-        u[o + U_RES] = bitsAt(p, 70, 5).toByte()
-        u[o + U_LCK] = bitsAt(p, 75, 5).toByte()
-        u[o + U_CON_BONUS] = bitsAt(p, 80, 5).toByte()
-        u[o + U_MOV_BONUS] = bitsAt(p, 85, 5).toByte()
+        unitRam[base + U_MAX_HP] = readBits(packed, 44, 6).toByte()
+        unitRam[base + U_POW] = readBits(packed, 50, 5).toByte()
+        unitRam[base + U_SKL] = readBits(packed, 55, 5).toByte()
+        unitRam[base + U_SPD] = readBits(packed, 60, 5).toByte()
+        unitRam[base + U_DEF] = readBits(packed, 65, 5).toByte()
+        unitRam[base + U_RES] = readBits(packed, 70, 5).toByte()
+        unitRam[base + U_LCK] = readBits(packed, 75, 5).toByte()
+        unitRam[base + U_CON_BONUS] = readBits(packed, 80, 5).toByte()
+        unitRam[base + U_MOV_BONUS] = readBits(packed, 85, 5).toByte()
 
         for (i in 0 until 5) {
-            StructCodec.put16(u, o + U_ITEMS + i * 2, bitsAt(p, 90 + i * 14, 14))
+            StructCodec.put16(unitRam, base + U_ITEMS + i * 2, readBits(packed, 90 + i * 14, 14))
         }
 
-        if (StructCodec.u8(u, o + U_EXP) > 99) u[o + U_EXP] = -1
+        // Exp above 99 cannot be a real value; the unit gets -1 (0xFF), as in the C code.
+        if (StructCodec.u8(unitRam, base + U_EXP) > 99) unitRam[base + U_EXP] = -1
 
+        // Rebuild the 32-bit `Unit.state` from the 8 packed state bits. `US_BIT16`, `US_BIT21`
+        // and `US_BIT25` have no known name in the decomp: bit 16 marks a unit as unavailable
+        // (part of `US_UNAVAILABLE`), bit 21 remembers that the unit was not deployed, and the
+        // meaning of bit 25 is unknown. `PACKED_US_NEW_FRIEND` is the decomp's name for the
+        // packed bit that maps to bit 21.
         var state = 0
         if ((PACKED_US_DEAD and flag) != 0) state = US_HIDDEN or US_DEAD
         if ((PACKED_US_UNDEPLOYED and flag) != 0) state = state or US_HIDDEN or US_NOT_DEPLOYED
@@ -183,43 +204,47 @@ public class BmGameSave(
         if ((PACKED_US_B4 and flag) != 0) state = state or US_BIT16
         if ((PACKED_US_B5 and flag) != 0) state = state or US_BIT25
         if ((PACKED_US_NEW_FRIEND and flag) != 0) state = state or US_BIT21
-        StructCodec.put32(u, o + U_STATE, state)
+        StructCodec.put32(unitRam, base + U_STATE, state)
 
-        for (i in 0 until 8) u[o + U_RANKS + i] = p[0x15 + i]
-        for (i in 0 until UNIT_SUPPORT_MAX_COUNT) u[o + U_SUPPORTS + i] = p[0x1D + i]
+        for (i in 0 until 8) unitRam[base + U_RANKS + i] = packed[0x15 + i]
+        for (i in 0 until UNIT_SUPPORT_MAX_COUNT) unitRam[base + U_SUPPORTS + i] = packed[0x1D + i]
 
-        // SetUnitHp(unit, GetUnitMaxHp(unit)): the clamp to the maximum is a no-op.
-        u[o + U_CUR_HP] = loader.getUnitMaxHp(o).toByte()
-        u[o + U_SUPPORT_BITS] = 0
+        // SetUnitHp(unit, GetUnitMaxHp(unit)): its clamp to the maximum is a no-op here.
+        unitRam[base + U_CUR_HP] = loader.getUnitMaxHp(base).toByte()
+        unitRam[base + U_SUPPORT_BITS] = 0
 
-        // mins zero
-        if (StructCodec.u8(u, o + U_EXP) == 0x7F) u[o + U_EXP] = -1
-        if (StructCodec.u8(u, o + U_X_POS) == 0x3F) u[o + U_X_POS] = -1
-        if (StructCodec.u8(u, o + U_Y_POS) == 0x3F) u[o + U_Y_POS] = -1
+        // "mins zero" in the decomp: the value -1 is stored with all bits of its field set (0x7F
+        // for exp, 0x3F for the coordinates) and is turned back into -1 here. The decomp does not
+        // say what -1 means for these fields.
+        if (StructCodec.u8(unitRam, base + U_EXP) == 0x7F) unitRam[base + U_EXP] = -1
+        if (StructCodec.u8(unitRam, base + U_X_POS) == 0x3F) unitRam[base + U_X_POS] = -1
+        if (StructCodec.u8(unitRam, base + U_Y_POS) == 0x3F) unitRam[base + U_Y_POS] = -1
     }
 
     /**
      * Transcribed from src/bmsave.c: ReadBonusContentClaimFlags (not verified: the flags are zero
      * in the reference save, which proves the target, not the offset)
      *
-     * Reads `bonusClaimFlags` of the game block at SRAM [blockOffset] into
-     * `gBonusContentClaimFlags`.
+     * Reads `bonusClaimFlags` (which downloadable bonus rewards the player has already claimed)
+     * of the game block at SRAM [blockOffset] into `gBonusContentClaimFlags`.
      */
     public fun readBonusContentClaimFlags(blockOffset: Int) {
-        readSramFast(lib.sram, blockOffset + GAME_BONUS_CLAIM, scalar, 0, 4)
-        lib.setBonusContentClaimFlags(StructCodec.u32(scalar, 0))
+        readSramFast(lib.sram, blockOffset + GAME_BONUS_CLAIM, wordBuf, 0, 4)
+        lib.setBonusContentClaimFlags(StructCodec.u32(wordBuf, 0))
     }
 
     /**
      * Transcribed from src/bmsave.c: ReadGMMonsterRnState (not verified: no trace compares the
      * world map's RN state)
      *
-     * Reads the `u32 buf[2]` at SRAM [srcOffset] and copies its first three halfwords to
-     * `gmMonsterRnState` as `sub_80A71F8` does.
+     * Reads the 8 bytes (`u32 buf[2]`) at SRAM [srcOffset], the block's `gmUnit` slot, and
+     * copies its first three halfwords to `gmMonsterRnState` (the world map monsters' RN state)
+     * as `sub_80A71F8` does. The block slot is a whole `struct GameSavePackedUnit` of which only
+     * these 8 bytes are used.
      */
     public fun readGmMonsterRnState(srcOffset: Int, ram: GameSaveRam) {
-        readSramFast(lib.sram, srcOffset, scalar, 0, 8)
-        for (i in 0 until 3) ram.gmMonsterRnState[i] = StructCodec.u16(scalar, i * 2)
+        readSramFast(lib.sram, srcOffset, wordBuf, 0, 8)
+        for (i in 0 until 3) ram.gmMonsterRnState[i] = StructCodec.u16(wordBuf, i * 2)
     }
 
     /**
@@ -237,7 +262,9 @@ public class BmGameSave(
     /**
      * Transcribed from src/bmsave.c: LoadSavedWMStuff (not verified: see [readWorldMapStuff])
      *
-     * Loads the world map stuff of the game block of [slot] into [dest].
+     * Loads the world map state (`wmStuff`) of the game block of [slot] into [dest]. The save
+     * menu (`SaveMenuInitSaveSlotData`) uses it to find the world map node, and so the chapter
+     * title, of an unfinished slot whose `save_menu_type` is 4.
      */
     public fun loadSavedWmStuff(slot: Int, dest: GameSaveRam) {
         readWorldMapStuff(lib.getSaveReadAddr(slot) + GAME_WM_STUFF, dest)
@@ -250,8 +277,11 @@ public class BmGameSave(
      * and the game clock, the 51 blue units (after `InitUnits`), the monster RN state, the
      * convoy, the permanent flags, pid / chapter stats, the bonus claim flags, the world map
      * stuff and dungeon records (stand-ins of [GameSaveRam], M6-I); then the last game save id.
-     * Without `PLAY_FLAG_HARD` in `gBmSt.gameStateBits` (as the C code tests it) the suspend
-     * save is invalidated.
+     *
+     * The C code tests `PLAY_FLAG_HARD` (a `gPlaySt.chapterStateBits` flag, 1 shl 6) against
+     * `gBmSt.gameStateBits`, where the same bit is `BM_FLAG_LINKARENA`. It is kept as written: when
+     * that bit is clear, which is every time outside the Link Arena, the suspend save is
+     * invalidated.
      */
     public fun readGameSave(ram: GameSaveRam, slot: Int) {
         val src = lib.getSaveReadAddr(slot)
@@ -275,33 +305,30 @@ public class BmGameSave(
 
         readGmMonsterRnState(src + GAME_GM_UNIT, ram)
         lib.readSupplyItems(src + GAME_SUPPLY, ram.convoy)
-        lib.readPermanentFlags(src + GAME_PERMANENT_FLAGS, permanentBuf)
-        ram.flags.copyInPermanent(permanentBuf)
+        lib.readPermanentFlags(src + GAME_PERMANENT_FLAGS, permanentFlagsIn)
+        ram.flags.copyInPermanent(permanentFlagsIn)
         lib.readPidStats(src + GAME_PID_STATS)
         lib.readChapterStats(src + GAME_CHAPTER_STATS)
         readBonusContentClaimFlags(src)
         readWorldMapStuff(src + GAME_WM_STUFF, ram)
-        readSramFast(lib.sram, src + GAME_DUNGEONS, dungeon, 0, DUNGEONS_SIZE)
+        readSramFast(lib.sram, src + GAME_DUNGEONS, dungeonRecordsBuf, 0, DUNGEONS_SIZE)
         // LoadDungeonRecords: memcpy into gDungeonState.dungeon.
-        dungeon.copyInto(ram.dungeons)
+        dungeonRecordsBuf.copyInto(ram.dungeons)
         lib.writeLastGameSaveId(slot)
     }
 
     /**
-     * Stores the lowest [n] bits of integer value [v] into bit stream [b] starting at bit offset [start].
-     *
-     * @param b Target byte array treated as a contiguous bit stream.
-     * @param start Bit index to begin writing to.
-     * @param n Number of bits to write (n <= 16).
-     * @param v Source value whose lowest [n] bits are written.
+     * The inverse of [readBits]: stores the lowest [bitCount] bits of [value] (extra high bits,
+     * such as those of a negative -1, are dropped, as the C bit-field assignment does) at bit
+     * [start] of [stream].
      */
-    private fun putBits(b: ByteArray, start: Int, n: Int, v: Int) {
-        for (i in 0 until n) {
+    private fun writeBits(stream: ByteArray, start: Int, bitCount: Int, value: Int) {
+        for (i in 0 until bitCount) {
             val bit = start + i
             val mask = 1 shl (bit and 7)
-            val cur = b[bit shr 3].toInt()
-            val set = ((v shr i) and 1) != 0
-            b[bit shr 3] = (if (set) cur or mask else cur and mask.inv()).toByte()
+            val current = stream[bit shr 3].toInt()
+            val set = ((value shr i) and 1) != 0
+            stream[bit shr 3] = (if (set) current or mask else current and mask.inv()).toByte()
         }
     }
 
@@ -310,33 +337,36 @@ public class BmGameSave(
      *
      * Packs the unit at byte offset [unitOffset] of [units] into a 0x24-byte
      * `struct GameSavePackedUnit` and writes it to SRAM [destOffset]. A unit without a character
-     * is written as a cleared unit with `pid` and `jid` 0. Values are truncated to their field
-     * width.
+     * (an empty slot) is written as a cleared unit with `pid` and `jid` 0. The character and
+     * class are stored as their ids (`number` of the ROM character / class record, at +4), not as
+     * ROM pointers. Values are truncated to their field width, so exp -1 becomes 0x7F and an
+     * off-map coordinate -1 becomes 0x3F (see [loadSavedUnit]).
      */
     public fun writeGameSavePackedUnit(units: UnitTable, unitOffset: Int, destOffset: Int) {
-        val p = packed
-        var u = units.bytes
-        var o = unitOffset
-        val character = StructCodec.u32(u, o + U_CHARACTER)
+        val packed = packedUnitBuf
+        var unitRam = units.bytes
+        var base = unitOffset
+        val character = StructCodec.u32(unitRam, base + U_CHARACTER)
         val pid: Int
         val jid: Int
         if (character == 0) {
             clearUnit.fill(0)
-            u = clearUnit
-            o = 0
+            unitRam = clearUnit
+            base = 0
             pid = 0
             jid = 0
         } else {
             pid = rom.u8(character + 4)
-            jid = rom.u8(StructCodec.u32(u, o + U_CLASS) + 4)
+            jid = rom.u8(StructCodec.u32(unitRam, base + U_CLASS) + 4)
         }
-        p.fill(0)
-        putBits(p, 0, 7, jid)
-        putBits(p, 7, 5, u[o + U_LEVEL].toInt())
-        putBits(p, 12, 7, u[o + U_EXP].toInt())
-        putBits(p, 19, 6, u[o + U_X_POS].toInt())
-        putBits(p, 25, 6, u[o + U_Y_POS].toInt())
-        val state = StructCodec.u32(u, o + U_STATE)
+        packed.fill(0)
+        writeBits(packed, 0, 7, jid)
+        writeBits(packed, 7, 5, unitRam[base + U_LEVEL].toInt())
+        writeBits(packed, 12, 7, unitRam[base + U_EXP].toInt())
+        writeBits(packed, 19, 6, unitRam[base + U_X_POS].toInt())
+        writeBits(packed, 25, 6, unitRam[base + U_Y_POS].toInt())
+        // Squeeze the 32-bit `Unit.state` into the 8 `PACKED_US_*` bits; all other state is lost.
+        val state = StructCodec.u32(unitRam, base + U_STATE)
         var flag = 0
         if ((US_DEAD and state) != 0) flag = flag or PACKED_US_DEAD
         if ((US_NOT_DEPLOYED and state) != 0) flag = flag or PACKED_US_UNDEPLOYED
@@ -346,46 +376,50 @@ public class BmGameSave(
         if ((US_BIT16 and state) != 0) flag = flag or PACKED_US_B4
         if ((US_BIT25 and state) != 0) flag = flag or PACKED_US_B5
         if ((US_BIT21 and state) != 0) flag = flag or PACKED_US_NEW_FRIEND
-        putBits(p, 31, 13, flag)
-        putBits(p, 44, 6, u[o + U_MAX_HP].toInt())
-        putBits(p, 50, 5, u[o + U_POW].toInt())
-        putBits(p, 55, 5, u[o + U_SKL].toInt())
-        putBits(p, 60, 5, u[o + U_SPD].toInt())
-        putBits(p, 65, 5, u[o + U_DEF].toInt())
-        putBits(p, 70, 5, u[o + U_RES].toInt())
-        putBits(p, 75, 5, u[o + U_LCK].toInt())
-        putBits(p, 80, 5, u[o + U_CON_BONUS].toInt())
-        putBits(p, 85, 5, u[o + U_MOV_BONUS].toInt())
-        for (i in 0 until 5) putBits(p, 90 + i * 14, 14, StructCodec.u16(u, o + U_ITEMS + i * 2))
-        p[0x14] = pid.toByte()
-        for (i in 0 until 8) p[0x15 + i] = u[o + U_RANKS + i]
-        for (i in 0 until UNIT_SUPPORT_MAX_COUNT) p[0x1D + i] = u[o + U_SUPPORTS + i]
-        writeAndVerifySramFast(p, 0, lib.sram, destOffset, PACKED_UNIT_SIZE)
+        writeBits(packed, 31, 13, flag)
+        writeBits(packed, 44, 6, unitRam[base + U_MAX_HP].toInt())
+        writeBits(packed, 50, 5, unitRam[base + U_POW].toInt())
+        writeBits(packed, 55, 5, unitRam[base + U_SKL].toInt())
+        writeBits(packed, 60, 5, unitRam[base + U_SPD].toInt())
+        writeBits(packed, 65, 5, unitRam[base + U_DEF].toInt())
+        writeBits(packed, 70, 5, unitRam[base + U_RES].toInt())
+        writeBits(packed, 75, 5, unitRam[base + U_LCK].toInt())
+        writeBits(packed, 80, 5, unitRam[base + U_CON_BONUS].toInt())
+        writeBits(packed, 85, 5, unitRam[base + U_MOV_BONUS].toInt())
+        for (i in 0 until 5) {
+            writeBits(packed, 90 + i * 14, 14, StructCodec.u16(unitRam, base + U_ITEMS + i * 2))
+        }
+        packed[0x14] = pid.toByte()
+        for (i in 0 until 8) packed[0x15 + i] = unitRam[base + U_RANKS + i]
+        for (i in 0 until UNIT_SUPPORT_MAX_COUNT) packed[0x1D + i] = unitRam[base + U_SUPPORTS + i]
+        writeAndVerifySramFast(packed, 0, lib.sram, destOffset, PACKED_UNIT_SIZE)
     }
 
     /**
      * Transcribed from src/bmsave.c: WriteGMMonsterRnState (not verified: the world map's RN
      * state is a stand-in and the two trailing stack bytes are not derivable)
      *
-     * The world map RN state is a stand-in until M6-I. Writes the `u32 buf[2]` that
-     * `sub_80A71E4` fills (the three halfwords of `gmMonsterRnState`; the other two bytes are
-     * uninitialised stack, zero here) to SRAM
-     * [destOffset].
+     * Writes the 8 bytes (`u32 buf[2]`) that `sub_80A71E4` fills with the world map monsters'
+     * RN state (the three halfwords of `gmMonsterRnState`, a stand-in until M6-I; the other two
+     * bytes are uninitialised stack in the C code, zero here) to SRAM [destOffset], the block's
+     * `gmUnit` slot.
      */
     public fun writeGmMonsterRnState(destOffset: Int, ram: GameSaveRam) {
-        scalar.fill(0)
-        for (i in 0 until 3) StructCodec.put16(scalar, i * 2, ram.gmMonsterRnState[i])
-        writeAndVerifySramFast(scalar, 0, lib.sram, destOffset, 8)
+        wordBuf.fill(0)
+        for (i in 0 until 3) StructCodec.put16(wordBuf, i * 2, ram.gmMonsterRnState[i])
+        writeAndVerifySramFast(wordBuf, 0, lib.sram, destOffset, 8)
     }
 
     /**
      * Ported from src/bmsave.c: WriteGameSave
      *
      * Writes the game save of [slot] from [ram] to the block `GetSaveWriteAddr(slot)` and
-     * publishes it: the suspend save is invalidated, `gameSaveSlot` and `time_saved` are set,
-     * the characters of the blue units are marked known in the global info, and the block info
-     * and last game save id are written. The world map stuff and dungeon records are written
-     * from the stand-ins of [GameSaveRam] (M6-I).
+     * publishes it: the suspend save is invalidated (a chapter save replaces it), `gameSaveSlot`
+     * and `time_saved` (the play time) are set, the characters of the blue units are marked known
+     * in `charKnownFlags` of the global info (the "characters seen" record that outlives
+     * saves), and the block info (the descriptor that makes the block valid) and last game save
+     * id are written. The world map stuff and dungeon records are written from the stand-ins of
+     * [GameSaveRam] (M6-I).
      */
     public fun writeGameSave(ram: GameSaveRam, slot: Int) {
         val dest = lib.getSaveWriteAddr(slot)
@@ -401,46 +435,55 @@ public class BmGameSave(
             )
         }
 
-        lib.readGlobalSaveInfo(info)
+        lib.readGlobalSaveInfo(globalInfoBuf)
         for (i in 0 until UNIT_SAVE_AMOUNT_BLUE) {
-            // UNIT_CHAR_ID, then SGM_SetCharacterKnown(charId, &info).
+            // UNIT_CHAR_ID, then SGM_SetCharacterKnown(charId, &info): set bit charId of
+            // charKnownFlags. Ids above 256 are ignored; an empty slot counts as id 0.
             val character = StructCodec.u32(ram.units.bytes, i * UnitTable.UNIT_SIZE + U_CHARACTER)
             val charId = if (character == 0) 0 else rom.u8(character + 4)
             if (charId <= 256) {
                 val at = L.HEADER_CHAR_KNOWN_FLAGS + (charId shr 3)
-                info[at] = (info[at].toInt() or (1 shl (charId and 7))).toByte()
+                globalInfoBuf[at] = (globalInfoBuf[at].toInt() or (1 shl (charId and 7))).toByte()
             }
         }
-        lib.writeGlobalSaveInfo(info)
+        lib.writeGlobalSaveInfo(globalInfoBuf)
         writeGmMonsterRnState(dest + GAME_GM_UNIT, ram)
-        for (i in supply.indices) supply[i] = StructCodec.u16(ram.convoy, i * 2)
-        lib.writeSupplyItems(dest + GAME_SUPPLY, supply)
+        for (i in supplyWords.indices) supplyWords[i] = StructCodec.u16(ram.convoy, i * 2)
+        lib.writeSupplyItems(dest + GAME_SUPPLY, supplyWords)
         lib.writePidStats(dest + GAME_PID_STATS)
         lib.writeChapterStats(dest + GAME_CHAPTER_STATS)
         lib.writeBonusContentClaimFlags(dest)
         Fe8EventFlags.getPermanentFlagBits(ram.flags)
-            .copyInto(permanentOut, 0, 0, permanentOut.size)
-        lib.writePermanentFlags(dest + GAME_PERMANENT_FLAGS, permanentOut)
+            .copyInto(permanentFlagsOut, 0, 0, permanentFlagsOut.size)
+        lib.writePermanentFlags(dest + GAME_PERMANENT_FLAGS, permanentFlagsOut)
         // WriteWorldMapStuff: not ported (M6-I), the raw stand-in is written.
         writeAndVerifySramFast(
             ram.worldMapStuff, 0, lib.sram, dest + GAME_WM_STUFF,
             Fe8SuspendLayout.GMAP_SAVE_INFO_SIZE,
         )
         // SaveDungeonRecords: memcpy from gDungeonState.dungeon.
-        ram.dungeons.copyInto(dungeon)
-        writeAndVerifySramFast(dungeon, 0, lib.sram, dest + GAME_DUNGEONS, DUNGEONS_SIZE)
+        ram.dungeons.copyInto(dungeonRecordsBuf)
+        writeAndVerifySramFast(dungeonRecordsBuf, 0, lib.sram, dest + GAME_DUNGEONS, DUNGEONS_SIZE)
 
-        chunk.fill(0)
-        StructCodec.put32(chunk, L.INFO_MAGIC32, L.SAVEMAGIC32)
-        chunk[L.INFO_KIND] = L.SAVEBLOCK_KIND_GAME.toByte()
-        lib.writeSaveBlockInfo(chunk, slot)
+        blockInfoBuf.fill(0)
+        StructCodec.put32(blockInfoBuf, L.INFO_MAGIC32, L.SAVEMAGIC32)
+        blockInfoBuf[L.INFO_KIND] = L.SAVEBLOCK_KIND_GAME.toByte()
+        lib.writeSaveBlockInfo(blockInfoBuf, slot)
         lib.writeLastGameSaveId(slot)
     }
 
-    /** Bit masks, unit offsets, and packed format flags. */
+    /**
+     * Bits of `struct GameSavePackedUnit.flag` and of `Unit.state`, and the byte offsets of the
+     * fields of `struct Unit` that the packing reads and writes.
+     */
     private companion object {
-        /** `PLAY_FLAG_HARD` in `gBmSt.gameStateBits`. */
+        /**
+         * `PLAY_FLAG_HARD` (hard mode, a `gPlaySt.chapterStateBits` flag). `ReadGameSave` tests it
+         * against `gBmSt.gameStateBits`, where bit 6 is `BM_FLAG_LINKARENA`.
+         */
         const val PLAY_FLAG_HARD = 1 shl 6
+
+        // `enum packed_unit_state_bits`: the 8 state bits kept in the packed unit's 13-bit flag.
         const val PACKED_US_DEAD = 1 shl 0
         const val PACKED_US_UNDEPLOYED = 1 shl 1
         const val PACKED_US_SOLO_ANIM1 = 1 shl 2
@@ -449,6 +492,8 @@ public class BmGameSave(
         const val PACKED_US_B4 = 1 shl 5
         const val PACKED_US_B5 = 1 shl 6
         const val PACKED_US_NEW_FRIEND = 1 shl 7
+
+        // `Unit.state` bits (`enum` in bmunit.h) that the packed flag maps to.
         const val US_HIDDEN = 1 shl 0
         const val US_DEAD = 1 shl 2
         const val US_NOT_DEPLOYED = 1 shl 3
@@ -458,7 +503,11 @@ public class BmGameSave(
         const val US_BIT16 = 1 shl 16
         const val US_BIT21 = 1 shl 21
         const val US_BIT25 = 1 shl 25
+
+        /** `UNIT_SUPPORT_MAX_COUNT`: support partners per unit, one support level byte each. */
         const val UNIT_SUPPORT_MAX_COUNT = 7
+
+        // Byte offsets in `struct Unit` (the field names are the decomp's).
         const val U_CHARACTER = 0x00
         const val U_CLASS = 0x04
         const val U_LEVEL = 0x08

@@ -1,9 +1,6 @@
 /**
- * New game RAM initialization state container.
- *
- * Holds references to the global in-memory state that `WriteNewGameSave` reads and reinitializes
- * when creating a fresh save file: `gPlaySt`, the permanent event flags (`gPermanentFlagBits`),
- * the supply convoy (`gConvoyItemArray`), game time clock (`gGameClock`), and unit initialization.
+ * The RAM that starting a new game touches: `WriteNewGameSave` (src/bmsave.c, run when a new
+ * file is started from the title screen) resets it before writing the first chapter save.
  */
 
 package fe8.game.save
@@ -15,11 +12,15 @@ import gbafe.core.flags.EventFlags
  * The RAM state `WriteNewGameSave` reads and resets besides the save RAM: `gPlaySt`, the
  * permanent flags, the convoy, the game clock and the unit array.
  *
- * @property playSt In-memory player and chapter state (`gPlaySt`).
- * @property flags The permanent event flag bit array (`gPermanentFlagBits`).
- * @property convoy Supply convoy item array (`gConvoyItemArray`), 100 raw little-endian u16 entries (200 bytes).
- * @property gameClock Global game frame counter (`gGameClock`), reset to 0 by `SetGameTime(0)`.
- * @property initUnits Hook representing `InitUnits` to reinitialize player unit slots.
+ * @property playSt `gPlaySt`: chapter, mode, difficulty and settings state; reinitialised for
+ *   the new game (`InitPlayConfig`, chapter 0, new playthrough id).
+ * @property flags The permanent event flags (`gPermanentFlagBits`), cleared by
+ *   `ResetPermanentFlags`.
+ * @property convoy The supply convoy (`gConvoyItemArray`), 100 raw little-endian u16 item words
+ *   (200 bytes), emptied by `ClearSupplyItems`.
+ * @property gameClock `gGameClock`, the play time in frames, set to 0 by `SetGameTime(0)`.
+ * @property initUnits Stands for `InitUnits`, which clears the unit arrays; the units are not
+ *   modelled here.
  */
 public class NewGameRam(
     public val playSt: PlaySt,
@@ -28,6 +29,9 @@ public class NewGameRam(
     public var gameClock: Int = 0,
     public val initUnits: () -> Unit = {},
 ) {
-    /** Pre-allocated scratch buffer for unpacking convoy items as 16-bit integers without heap allocations. */
+    /**
+     * The 100 convoy item words as ints, the form `WriteSupplyItems` packs into the save's 0xB0
+     * bytes; allocated once so that writing a save does not allocate.
+     */
     internal val supplyScratch: IntArray = IntArray(convoy.size / 2)
 }

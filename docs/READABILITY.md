@@ -68,7 +68,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.bm (PhaseIntro, UnitTable, MapAnimations, UnitSprites, UnitSpriteHandles, UnitSpritesOam) | 6 | 1732 | done 2026-11-11 d9263c3; audit todo |
 | game | fe8.game.bm (UnitLoader, Mu, MuCtrl, MuSpriteAnim, PlayerPhase, BattleMapStart) | 6 | 3863 | todo |
 | game | fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs) | 4 | 973 | done 2026-11-10 ff286fe / 0bfe1ab; audit done 2026-11-13 139c8c3 |
-| game | fe8.game.event (EventScrCore, EventPopup, EventFade, EventGiveItem) | 4 | 735 | done 2026-11-10 077a47d; audit todo |
+| game | fe8.game.event (EventScrCore, EventPopup, EventFade, EventGiveItem) | 4 | 826 | done 2026-11-10 077a47d; audit done 2026-11-13 PENDING |
 | game | fe8.game.event (EventInfo, EventText) | 2 | 704 | done 2026-11-10 077a47d; audit todo |
 | game | fe8.game.event (EventUnitLoads, EventUnitState, EventAsmCall, EventChangeMap) | 4 | 723 | done 2026-11-10 077a47d; audit todo |
 | game | fe8.game.event (EventCursorCamera, EventTextTalkHost, EventMoveUnit) | 3 | 684 | done 2026-11-10 077a47d; audit todo |

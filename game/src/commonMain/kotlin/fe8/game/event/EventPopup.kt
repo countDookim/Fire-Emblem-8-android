@@ -6,7 +6,8 @@ import fe8.game.event.EventConst.EV_STATE_SKIPPING
 import fe8.game.scene.BrownTextBox
 
 /**
- * The popup command of `src/eventscr.c` (0x3A).
+ * The popup command of `src/eventscr.c` (0x3A): a short message box shown during a script.
+ * Only the brown text box variant is ported.
  *
  * @param state the event slots (`gEventSlots[2]` is the default message).
  * @param memory script memory.
@@ -17,7 +18,7 @@ internal class EventPopup(
     private val memory: ScriptMemory,
     private val brownTextBox: BrownTextBox,
 ) {
-    /** Registers 0x3A on [engine]. */
+    /** Registers the popup command 0x3A on [engine]. */
     fun registerOn(engine: EventEngine) {
         engine.register(0x3A, event3ADisplayPopup)
     }
@@ -27,7 +28,9 @@ internal class EventPopup(
      *
      * Subcommand 0 (`NewPopup_VerySimple`) is not ported and throws [NotImplementedError].
      * Subcommand 1 displays a brown text box with the message of the command argument (slot 2
-     * when negative) at the tile position packed in the last argument word (two signed bytes).
+     * when negative) at the position packed in the last argument word (two signed bytes; the
+     * decomp does not say whether it is in tiles or pixels). The box blocks the event proc, and
+     * the command does nothing while the event is being skipped.
      */
     val event3ADisplayPopup: EventHandler = EventHandler { proc ->
         if (proc.evStateBits and EV_STATE_SKIPPING != 0) return@EventHandler EVC_ADVANCE_CONTINUE

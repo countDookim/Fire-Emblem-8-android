@@ -24,18 +24,21 @@ import gbafe.core.flags.FlagStore
 import gbafe.core.rng.RngService
 import gbafe.input.KeyStatus
 
-/** ROM address of `EventScr_08592114`, the script `Event01_End` jumps to after a cutscene. */
+/**
+ * ROM address of `EventScr_08592114`, the closing script `Event01_End` runs after a cutscene
+ * (its commands are not traced here).
+ */
 public const val EVENT_SCR_08592114: Int = 0x08592114
 
-/** Inputs read by the core event commands; defaults are "nothing pressed", speed 0. */
+/** Player input read by the stall command; defaults are "nothing pressed", game speed 0. */
 public interface EventInput {
-    /** `gKeyStatusPtr->newKeys & B_BUTTON`. */
+    /** `gKeyStatusPtr->newKeys & B_BUTTON`: B was pressed this frame (ends a stall). */
     public fun bPressed(): Boolean = false
 
-    /** `gKeyStatusPtr->heldKeys & A_BUTTON`. */
+    /** `gKeyStatusPtr->heldKeys & A_BUTTON`: A is held (speeds a stall up). */
     public fun aHeld(): Boolean = false
 
-    /** `gPlaySt.config.gameSpeed`. */
+    /** `gPlaySt.config.gameSpeed`: the player's game speed option (non-zero speeds stalls up). */
     public fun gameSpeed(): Int = 0
 }
 
@@ -50,16 +53,19 @@ public interface EventScrHooks {
      */
     public fun tutorialEvent(chapterIndex: Int, index: Int): Int = 0
 
-    /** `CountRedUnits`: living units with ids 0x81..0xBF (the unit table is not wired here). */
+    /** `CountRedUnits`: living enemy-army units, ids 0x81..0xBF (the unit table is not wired). */
     public fun countRedUnits(): Int = 0
 
-    /** `CountGreenUnits`: living units with ids 0x41..0x7F. */
+    /** `CountGreenUnits`: living NPC-army (green) units, ids 0x41..0x7F. */
     public fun countGreenUnits(): Int = 0
 
-    /** `GetBattleMapKind` (needs the world map chapter tables). */
+    /** `GetBattleMapKind` (world map chapter tables; value meaning not traced). */
     public fun battleMapKind(): Int = 0
 
-    /** `GetEventTriggerId(script)`: trigger id of the registered event at [script], else 0. */
+    /**
+     * `GetEventTriggerId(script)`: the trigger flag of the registered chapter event whose script
+     * is [script] (`gActiveEventRegistry`), else 0.
+     */
     public fun eventTriggerId(script: Int): Int = 0
 }
 
@@ -72,6 +78,15 @@ public interface EventScrHooks {
  * past the 14 slots (a u16 index in SETVAL/queue ops, a nibble in slot ops, a u16 in branches)
  * address the following global `gEventSlotQueue` as in C; beyond that reads give 0 and writes
  * are dropped.
+ *
+ * @param state the event globals (slots, call stack, counters).
+ * @param memory script words.
+ * @param input player input for STAL.
+ * @param flags the event flag store (the ENUF/ENUT flags).
+ * @param rng the game RNG for the random check.
+ * @param playSt the play state read by the game-state checks and the tutorial queue.
+ * @param keys the key status whose ignore mask the SET_IGNORED_KEYS command sets.
+ * @param hooks game state not modelled yet.
  */
 public class EventScrCore(
     private val state: EventState,
@@ -116,10 +131,16 @@ public class EventScrCore(
     /** The sub-command nibble of the command at [cur]. */
     private fun subCmd(cur: Int): Int = memory.u16(cur) and 0xF
 
-    /** Transcribed from src/eventscr.c: Event00_NULL (not verified: not in the prologue) */
+    /**
+     * The NULL command (0x00): does nothing.
+     *
+     * Transcribed from src/eventscr.c: Event00_NULL (not verified: not in the prologue)
+     */
     public val event00Null: EventHandler = EventHandler { EVC_ADVANCE_CONTINUE }
 
     /**
+     * The END command (ENDA/ENDB): finishes the script, or returns from a CALL.
+     *
      * Ported from src/eventscr.c: Event01_End
      *
      * Sub command 1 (ENDB) clears the whole call stack first. A non-empty stack is popped
@@ -167,6 +188,8 @@ public class EventScrCore(
     }
 
     /**
+     * The EVBIT/ENUF commands: change an engine state bit or an event flag.
+     *
      * Ported from src/eventscr.c: Event02_EvBitAndIdMod
      *
      * Sub command low 3 bits 0 clear/set an `evStateBits` bit (`evStateBits` is `u16`), 1
@@ -194,6 +217,8 @@ public class EventScrCore(
     }
 
     /**
+     * The check commands: test an engine state bit or an event flag.
+     *
      * Transcribed from src/eventscr.c: Event03_CheckEvBitOrId (not verified: only sub 0 (EvBit
      *   check) is traced; a broken sub 1 (flag check) survives)
      *
@@ -214,6 +239,8 @@ public class EventScrCore(
     }
 
     /**
+     * The random check command: a dice roll that scripts branch on.
+     *
      * Transcribed from src/eventscr.c: Event04_CheckRandom (not verified: not in the prologue)
      *
      * Slot C gets a draw in `0..max` (`NextRN_N(max + 1)`) from [rng], or 0 when `max` is 0
@@ -225,7 +252,11 @@ public class EventScrCore(
         EVC_ADVANCE_CONTINUE
     }
 
-    /** Ported from src/eventscr.c: Event05_SetSlot */
+    /**
+     * SETVAL: stores a 32-bit value in a slot (index and value are the command's arguments).
+     *
+     * Ported from src/eventscr.c: Event05_SetSlot
+     */
     public val event05SetSlot: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent
         setSlot(argU16(cur, 0), arg32(cur))
@@ -233,6 +264,9 @@ public class EventScrCore(
     }
 
     /**
+     * The slot arithmetic commands (add, subtract, multiply, divide, modulo, and, or, xor, shifts):
+     * `dest = src1 op src2` on three slot numbers packed in the argument.
+     *
      * Transcribed from src/eventscr.c: Event06_SlotOperation (not verified: the traced calls prove
      *   the slot write only; broken operators survive)
      *
@@ -264,7 +298,12 @@ public class EventScrCore(
         EVC_ADVANCE_CONTINUE
     }
 
-    /** Ported from src/eventscr.c: Event07_SlotQueueOperations */
+    /**
+     * The slot queue commands: 0 enqueues the slot named in the argument, 1 enqueues slot 1, 2
+     * dequeues into the named slot.
+     *
+     * Ported from src/eventscr.c: Event07_SlotQueueOperations
+     */
     public val event07SlotQueueOperations: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent
         when (subCmd(cur)) {
@@ -275,7 +314,11 @@ public class EventScrCore(
         EVC_ADVANCE_CONTINUE
     }
 
-    /** Ported from src/eventscr.c: Event08_Label */
+    /**
+     * LABEL: a jump target for GOTO and the branch commands; does nothing when run.
+     *
+     * Ported from src/eventscr.c: Event08_Label
+     */
     public val event08Label: EventHandler = EventHandler { EVC_ADVANCE_CONTINUE }
 
     /**
@@ -287,6 +330,7 @@ public class EventScrCore(
      */
     public val event09Goto: EventHandler = EventHandler { proc -> goto(proc) }
 
+    /** The GOTO search shared by [event09Goto] and [event0cBranch] (a taken branch). */
     private fun goto(proc: EventEngineProc): Int {
         val ref = (argU16(proc.pEventCurrent, 0) shl 16) or (EV_CMD_LABEL shl 8) or 0x20
         var cur = proc.pEventIdk
@@ -301,6 +345,8 @@ public class EventScrCore(
     }
 
     /**
+     * CALL: runs a script part like a subroutine; END returns to the command after it.
+     *
      * Ported from src/eventscr.c: Event0A_Call
      *
      * Pushes `(pEventIdk, pEventCurrent)` on the 8-deep call stack (the oldest entry falls off)
@@ -319,6 +365,8 @@ public class EventScrCore(
     }
 
     /**
+     * Queues another event script to run after this one (or records a tutorial event).
+     *
      * Transcribed from src/eventscr.c: Event0B_EnqueueCall (not verified: not in the prologue)
      *
      * A negative target is replaced by slot 2; a null target does nothing. Sub command 0 calls
@@ -339,6 +387,9 @@ public class EventScrCore(
     }
 
     /**
+     * Marks the tutorial event [ptr] of the current chapter as pending, so the game runs it
+     * later at the moment of [eventEnqueueType].
+     *
      * Transcribed from src/eventinfo.c: EnqueueTutEvent (not verified: not in the prologue)
      *
      * Looks [ptr] up in the current chapter's tutorial event list ([EventScrHooks.tutorialEvent])
@@ -359,7 +410,12 @@ public class EventScrCore(
         }
     }
 
-    /** Ported from src/eventscr.c: Event0C_Branch (compares the slots as signed `int`). */
+    /**
+     * The branch commands (BEQ, BNE, BGE, BGT, BLE, BLT): when the test of slots argument 1 and
+     * 2 holds, jump to the label like GOTO; the slots are compared as signed `int`.
+     *
+     * Ported from src/eventscr.c: Event0C_Branch
+     */
     public val event0cBranch: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent
         val v1 = slot(argU16(cur, 1))
@@ -377,6 +433,8 @@ public class EventScrCore(
     }
 
     /**
+     * STAL: waits the given number of frames, then continues (the script's pause command).
+     *
      * Ported from src/eventscr.c: Event0E_STAL
      *
      * Bit 0 of the sub command allows ending the stall with B or `EV_STATE_0008`, bit 1 allows
@@ -416,6 +474,9 @@ public class EventScrCore(
     }
 
     /**
+     * The EVBIT_MODIFY command: sets the skip/stall option bits of the engine for the dialogue
+     * that follows.
+     *
      * Transcribed from src/eventscr.c: Event10_ModifyEvBit (not verified: only args 0 and 1 are
      *   traced; the skipping branch and args 2-4 survive breaks)
      *
@@ -442,6 +503,8 @@ public class EventScrCore(
     }
 
     /**
+     * Makes the game ignore some buttons while the event runs (the argument is the button mask).
+     *
      * Transcribed from src/eventscr.c: Event11_SetIgnoredKeys (not verified: not in the prologue)
      *
      * Sub command 0 sets the key ignore mask ([KeyStatus.applyIgnoreMask]) to the argument.
@@ -456,9 +519,12 @@ public class EventScrCore(
      * Transcribed from src/eventscr.c: Event19_Checks (not verified: only sub 7 of the 11 subs runs
      *   on data)
      *
-     * Stores a game-state query in slot C. The unit counts, battle map kind and event trigger id
-     * come from [EventScrHooks]; the rest reads [PlaySt] and the proc. Unknown sub commands do
-     * nothing.
+     * The CHECK commands: store a game-state query in slot C. Sub commands: 0 mode, 1
+     * chapter number, 2 hard mode, 3 turn number, 4 enemy units, 5 other (green) units, 6
+     * battle map kind, 7 tutorial mode (neither controller option nor hard mode), 8 gold (0
+     * in chapter index 5, as `GetPartyGoldAmount`), 9 event trigger id, 0xA game complete.
+     * The unit counts, battle map kind and event trigger id come from [EventScrHooks]; the
+     * rest reads [PlaySt] and the proc. Unknown sub commands do nothing.
      */
     public val event19Checks: EventHandler = EventHandler { proc ->
         val slots = state.slots
@@ -485,6 +551,8 @@ public class EventScrCore(
     /**
      * Transcribed from src/eventscr.c: Event0F_CounterOps (not verified: not in the prologue)
      *
+     * The counter commands: check (into slot C), set, increase (max 15) or decrease (min 0) one
+     * of the eight 4-bit counters of `gEventSlotCounter`, a small script-private memory.
      * Nibble `(low byte of word 1) % 8` of `gEventSlotCounter`. An unknown sub command is
      * undefined in C (uninitialized `newValue`); here it leaves the counter untouched.
      */
@@ -507,7 +575,7 @@ public class EventScrCore(
         EVC_ADVANCE_CONTINUE
     }
 
-    /** Registers the handlers of this class on [engine]. */
+    /** Registers the handlers of this class on [engine] under their command codes. */
     public fun registerAll(engine: EventEngine) {
         this.engine = engine
         engine.register(0x04, event04CheckRandom)
@@ -531,10 +599,20 @@ public class EventScrCore(
     }
 
     private companion object {
+        /** `EV_CMD_LABEL`: command code of LABEL. */
         const val EV_CMD_LABEL = 0x08
+
+        /** Chapter index for which `GetPartyGoldAmount` reports 0 (the decomp does not name it). */
         const val CHAPTER_NO_GOLD = 5
+
+        /** `PLAY_FLAG_COMPLETE` of `chapterStateBits` (include/types.h): the game was completed. */
         const val PLAY_FLAG_COMPLETE = 1 shl 5
+
+        /** Port-only bound on the GOTO label scan, so a missing label ends in `EVC_ERROR`. */
         const val GOTO_SCAN_LIMIT = 0x10000
+
+        // Sub command numbers from `enum event_sub_cmd_idx` (include/eventscript.h).
+        /** `EVSUBCMD_ENDB`: END that also clears the whole call stack. */
         const val EVSUBCMD_ENDB = 1
         const val EVSUBCMD_SADD = 0
         const val EVSUBCMD_SSUB = 1

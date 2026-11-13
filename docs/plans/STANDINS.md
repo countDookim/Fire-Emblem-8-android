@@ -259,7 +259,7 @@ Total entries: 193 across 39 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `gotItemPopup` | Stand-ins (D09-3): `gpPopupUnit` is not tracked, so the unit-name text id is 0 (the got-item and pilfered scripts do not use the unit name), and [addItem] with a full inventory (the item-drop menu)... |
-| `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | `event37GiveItem` | Transcribed from src/eventscr.c: Event37_GiveItem (not verified: inventory/gold effects and popups not trace-compared) Host stand-ins (D09-3): the "gold got" popup (`NewPopup_GoldGot`) is not shown... |
+| `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | `event37GiveItem` | Host stand-ins (D09-3): the "gold got" popup (`NewPopup_GoldGot`) is not shown and the gold add happens at once. |
 
 ## D11-wire-a (2)
 

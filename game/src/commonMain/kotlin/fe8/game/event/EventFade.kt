@@ -8,8 +8,8 @@ import fe8.game.event.EventConst.EV_STATE_SKIPPING
 import gbafe.render.ScreenFade
 
 /**
- * The fade command of `src/eventscr.c` (0x17 FADU, FADI, FAWU, FAWI) on the blend fades of
- * [fade].
+ * The fade command of `src/eventscr.c` (0x17 FADU, FADI, FAWU, FAWI): fades the screen in or
+ * out through black or white during a cutscene, on the blend fades of [fade].
  *
  * @param memory script words (the command arguments).
  * @param fade the screen fade service (blend fades and the display layer switches).
@@ -18,7 +18,7 @@ public class EventFade(
     private val memory: ScriptMemory,
     private val fade: ScreenFade,
 ) {
-    /** Registers 0x17 on [engine]. */
+    /** Registers the fade command 0x17 on [engine]. */
     public fun registerOn(engine: EventEngine) {
         engine.register(0x17, event17Fade)
     }

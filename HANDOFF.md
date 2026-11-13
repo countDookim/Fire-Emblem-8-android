@@ -12,6 +12,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - MC-10 (battle forecast proc and stats): owner PC, until ~03:30Z (from 00:56Z)
+- Readability audit gba.data: owner PC, until ~03:00Z (from 01:05Z)
 
 ## Current state
 

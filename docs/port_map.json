@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1095,
+    "verified": 1108,
     "implemented_unverified": 23
   },
   "functions": {
@@ -22,6 +22,16 @@
         "fe8.testing.PathArrowDifferentialTest#cancel_end path arrow matches the game after the first select",
         "fe8.testing.PathArrowDifferentialTest#cancel_end path arrow matches the game after the move is cancelled",
         "fe8.testing.PathArrowDifferentialTest#select_move path arrow matches the game"
+      ]
+    },
+    "AddSpecialChar": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "AddTarget": {
@@ -1661,6 +1671,26 @@
         "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
       ]
     },
+    "DrawIcon": {
+      "decomp_file": "src/icon.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/ItemIcon.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
+    "DrawItemMenuLine": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemMenuLine.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
     "DrawMenuItemHover": {
       "decomp_file": "src/uimenu.c",
       "system": "menus",
@@ -1681,6 +1711,16 @@
       "tests": [
         "fe8.testing.PathArrowDrawDifferentialTest#cancel_end path arrow drawing matches the game",
         "fe8.testing.PathArrowDrawDifferentialTest#select_move path arrow drawing matches the game"
+      ]
+    },
+    "DrawSpecialCharGlyph": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "DrawSpriteTextGlyph": {
@@ -3039,7 +3079,7 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -3442,6 +3482,26 @@
         "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
       ]
     },
+    "GetIconGfxIndex": {
+      "decomp_file": "src/icon.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/ItemIcon.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
+    "GetIconTileIndex": {
+      "decomp_file": "src/icon.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/ItemIcon.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
     "GetItemAfterUse": {
       "decomp_file": "src/bmitem.c",
       "system": "battle_logic",
@@ -3580,6 +3640,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ItemInfoReferenceTest#actor and target weaponType and weaponAttributes match prologue battle r14430"
+      ]
+    },
+    "GetItemUses": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "GetLastSuspendSaveId": {
@@ -3790,6 +3860,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.AttackTargetListDifferentialTest#weapon target list matches the game"
+      ]
+    },
+    "GetSpecialCharChr": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "GetSpriteTextDrawDest": {
@@ -6862,6 +6942,36 @@
         "fe8.testing.MuDisplayDifferentialTest#PutMu position matches the MU object in OAM on every frame f10580 to f10633"
       ]
     },
+    "PutNumber": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
+    "PutNumberExt": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
+    "PutNumberOrBlank": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
     "PutOamHi": {
       "decomp_file": "asm/arm.s",
       "system": "core",
@@ -6880,6 +6990,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterIntroMainPathTest#twin lights to title draw and light explosion match every frame"
+      ]
+    },
+    "PutSpecialChar": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "PutSpriteExt": {
@@ -8653,6 +8773,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TextDrawRomTest#replayed talk lines reproduce the traced glyph tiles"
+      ]
+    },
+    "Text_SetParams": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "TitleScreenTryJumpIntroAnim": {

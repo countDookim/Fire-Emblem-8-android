@@ -3,7 +3,12 @@ package fe8.game.event
 import fe8.game.bm.PlaySt
 import gbafe.core.flags.FlagStore
 
-/** `struct EventInfo` (eventinfo.h): the cursor and result of an event list search. */
+/**
+ * `struct EventInfo` (eventinfo.h): the cursor and result of a search through a chapter event list
+ * (turn events, misc "wait" events and so on). The caller sets [listScript] (and, for the lists
+ * that match on a position or a unit pair, [xPos]/[yPos]/[pidA]/[pidB]); the check functions fill
+ * in [script] and [flag] for the entry that matched.
+ */
 public class EventInfo {
     /** `listScript`: ROM address of the current event list entry. */
     public var listScript: Int = 0
@@ -23,10 +28,10 @@ public class EventInfo {
     /** `givenItem` (unused by the checks ported so far). */
     public var givenItem: Int = 0
 
-    /** `xPos` (unused by the checks ported so far). */
+    /** `xPos`: the active unit's column, set for the misc list; no ported check reads it yet. */
     public var xPos: Int = 0
 
-    /** `yPos` (unused by the checks ported so far). */
+    /** `yPos`: the active unit's row, set for the misc list; no ported check reads it yet. */
     public var yPos: Int = 0
 
     /** `pidA` (unused by the checks ported so far). */
@@ -41,13 +46,16 @@ public const val EVENT_NOSCRIPT: Int = 1
 
 /** Hooks of [EventInfos] for code outside this package; the defaults do nothing. */
 public interface EventInfoHooks {
-    /** `RegisterEventActivation(script, flag)`. */
+    /** `RegisterEventActivation(script, flag)`: records which list flag started [script]. */
     public fun registerEventActivation(script: Int, flag: Int) {}
 
     /** `CallEvent(script, execType)`, normally `EventEngine.callEvent`. */
     public fun callEvent(script: Int, execType: Int) {}
 
-    /** `RefreshAllies`. */
+    /**
+ * `RefreshAllies`: after a won chapter, clears every unit's unselectable, rescuing and rescued
+ * state and its status, then redraws the map units.
+ */
     public fun refreshAllies() {}
 
     /** `GetBattleMapKind`: 0 story, 1 dungeon, 2 skirmish. */
@@ -57,34 +65,57 @@ public interface EventInfoHooks {
     public fun chapterEventGroup(chapter: Int): Int =
         error("chapterEventGroup is not wired")
 
-    /** `GetROMChapterStruct(chapter)->goalWindowDataType`. */
+    /**
+ * `GetROMChapterStruct(chapter)->goalWindowDataType`: the chapter goal kind (`GOAL_TYPE_*`:
+ * 0 seize, 1 defeat all, 2 defense, 3 defeat boss, 4 special).
+ */
     public fun goalWindowDataType(chapter: Int): Int = 0
 
-    /** `AreAnyEnemyUnitDead() == 0` is `!areAnyEnemyUnitDead()`; the default keeps the phase. */
+    /**
+ * `AreAnyEnemyUnitDead`. Despite its name the decomp function returns 1 while at least one
+ * enemy unit is still alive and 0 once none is left, so `AreAnyEnemyUnitDead() == 0` ("all
+ * enemies defeated") is `!areAnyEnemyUnitDead()`. The default (true) means an enemy is alive.
+ */
     public fun areAnyEnemyUnitDead(): Boolean = true
 
-    /** `CallEndEvent`. */
+    /**
+     * `CallEndEvent`: runs the chapter's ending scene (the common skirmish ending on skirmish
+     * maps), refreshes the allies and sets `EVFLAG_HIDE_BLINKING_ICON`.
+     */
     public fun callEndEvent() {}
 
-    /** `ClearActiveEventRegistry`. */
+    /** `ClearActiveEventRegistry`: forgets the script/flag pairs of earlier list events. */
     public fun clearActiveEventRegistry() {}
 
-    /** `RunTutorialEvent(type)`: true if it started an event. */
+    /**
+ * `RunTutorialEvent(type)`: runs the queued tutorial event if it is of [type] and returns
+ * true. NOTE: when none is queued for [type] the decomp returns whether a forecast tutorial
+ * event is queued (`CheckTutorialEvent(TUTORIAL_EVT_TYPE_FORECAST)`), so true does not
+ * always mean an event started.
+ */
     public fun runTutorialEvent(type: Int): Boolean = false
 
     /** `CheckTutorialEvent(type)`: true if `RunTutorialEvent(type)` would start an event. */
     public fun checkTutorialEvent(type: Int): Boolean = false
 
-    /** `CountAvailableBlueUnits`: player units that are valid and not dead or undeployed. */
+    /**
+ * `CountAvailableBlueUnits`: player units (ids 1 to 0x3F) that are valid and lack every
+ * `US_UNAVAILABLE` state (dead, not deployed, `US_BIT16`).
+ */
     public fun countAvailableBlueUnits(): Int = 1
 
-    /** `sub_80837B0`: the game over sequence (sets `EVFLAG_GAMEOVER`, music, game over event). */
+    /**
+ * `sub_80837B0`: starts game over: sets `EVFLAG_GAMEOVER`, starts the game over song, turns the
+ * BGM config off and creates the game over event.
+ */
     public fun startGameOver() {}
 }
 
 /**
  * The event list search of `src/eventinfo.c`: [gEventListCmdInfoTable] and the functions that walk
- * and start list entries. List entries are read as 32-bit words from [memory].
+ * and start list entries. A list entry starts with a word holding its command id (low half, an
+ * `EVT_LIST_CMD_*`) and the flag that marks it done (high half); the rest depends on the
+ * command. Lists end with an `EVT_LIST_CMD_END` entry. Words are read from [memory].
  *
  * @param memory script/list words (ROM).
  * @param flags the event flags.
@@ -97,15 +128,19 @@ public class EventInfos(
     private val playSt: PlaySt,
     public var hooks: EventInfoHooks = object : EventInfoHooks {},
 ) {
-    /** `struct EventListCmdInfo`: check function and entry length in words. */
+    /** `struct EventListCmdInfo`: how to test one kind of list entry, and how long it is. */
     public class CmdInfo(
-        /** `func`. */
+        /** `func`: the check; returns 1 when the entry matches (and fills in the [EventInfo]). */
         public val func: (EventInfo) -> Int,
         /** `length` in 32-bit words. */
         public val length: Int,
     )
 
-    /** `gEventListCmdInfoTable`, indexed by `EVT_LIST_CMD_*` (0x00..0x10). */
+    /**
+ * `gEventListCmdInfoTable`, indexed by `EVT_LIST_CMD_*` (0x00..0x10): the check and the entry
+ * length in words of each list entry kind. Only END, FLAG, TURN and the two NEVER kinds are
+ * ported; the others fail loudly if a list reaches them.
+ */
     public val gEventListCmdInfoTable: List<CmdInfo> = listOf(
         CmdInfo(::evCheck00Always, 1),
         CmdInfo(::evCheck01Afev, 3),
@@ -136,8 +171,10 @@ public class EventInfos(
     /**
      * Ported from src/eventinfo.c: StartEventFromInfo
      *
-     * The `EVENT_NOSCRIPT` and `EVFLAG_WIN` branches are (not verified: the captured turn event
-     * has a script and does not set the win flag).
+     * Starts the found entry: sets its flag and runs its script as a cutscene-type event. If the
+     * script won the chapter (`EVFLAG_WIN`) the allies are refreshed and the blinking icon is
+     * hidden. The `EVENT_NOSCRIPT` and `EVFLAG_WIN` branches are not verified: the captured turn
+     * event has a script and does not set the win flag.
      */
     public fun startEventFromInfo(info: EventInfo, execType: Int) {
         if (info.script == 0) return
@@ -155,10 +192,14 @@ public class EventInfos(
     /**
      * Ported from src/eventinfo.c: RunPhaseSwitchEvents
      *
-     * Returns true if it started events or the end event. Verified on the "nothing found" return
-     * (EventInfoRomTest) and the event start (the enemy phase turn event of the Prologue,
-     * PhaseChangeDifferentialTest); the end event and the tutorial event branches are (not
-     * verified: no capture reaches them).
+     * At a phase change: ends the chapter if the goal is defeat-all/defeat-boss and no enemy is
+     * left (chapter 0 skips this check), else runs the queued phase-change tutorial event and the
+     * chapter's turn events (`turnBasedEvents`, offset 0 of the event group). Nothing runs on
+     * skirmish maps. Returns true if it started events or the end event.
+     *
+     * Verified on the "nothing found" return (EventInfoRomTest) and the event start (the enemy
+     * phase turn event of the Prologue, PhaseChangeDifferentialTest); the end event and the
+     * tutorial event branches are not verified: no capture reaches them.
      */
     public fun runPhaseSwitchEvents(): Boolean {
         if (hooks.getBattleMapKind() == KIND_SKIRMISH) return false
@@ -192,7 +233,8 @@ public class EventInfos(
      * Ported from src/eventinfo.c: SearchAvailableEvent
      *
      * Walks the list from `info.listScript` and returns [info] with `script`/`flag` of the first
-     * entry whose flag is clear and whose check passes with a script, else null.
+     * entry whose flag is clear and whose check passes with a script, else null. The END entry
+     * always passes its check without a script, which is what stops the walk at the list end.
      */
     public fun searchAvailableEvent(info: EventInfo): EventInfo? {
         info.script = 0
@@ -225,7 +267,7 @@ public class EventInfos(
     /**
      * Ported from src/eventinfo.c: ShouldCallEndEvent
      *
-     * True unless on a skirmish map when the chapter is won
+     * False on skirmish maps, otherwise whether the chapter is won
      * (`CheckWin` is `CheckFlag(EVFLAG_WIN)`).
      */
     public fun shouldCallEndEvent(): Boolean {
@@ -236,10 +278,11 @@ public class EventInfos(
     /**
      * Ported from src/eventinfo.c: CheckForWaitEvents
      *
-     * After a unit action at ([x], [y]), true if
+     * After a unit action at ([x], [y]) (the decomp reads the active unit's position), true if
      * [runWaitEvents] has something to start: the chapter's misc event list has a matching
-     * entry, a post action tutorial event is queued, or a skirmish map has no enemy left.
-     * Keeps `EVFLAG_DEFEAT_ALL` as `AreAnyEnemyUnitDead() == 0`.
+     * entry, a post action tutorial event is queued, or a skirmish map has no enemy left, or
+     * the game is already over. As a side effect it sets `EVFLAG_DEFEAT_ALL` while no enemy is
+     * left and clears it otherwise, as the decomp does.
      */
     public fun checkForWaitEvents(x: Int, y: Int): Boolean {
         if (!hooks.areAnyEnemyUnitDead()) {
@@ -263,9 +306,10 @@ public class EventInfos(
     /**
      * Ported from src/eventinfo.c: RunWaitEvents
      *
-     * After a unit action at ([x], [y]), sets or clears
-     * `EVFLAG_DEFEAT_ALL`, starts the game over when no blue unit is left, else runs the post
-     * action tutorial event and every matching entry of the chapter's misc event list.
+     * After a unit action at ([x], [y]) (the active unit's position), sets or clears
+     * `EVFLAG_DEFEAT_ALL`; ends a skirmish map once no enemy is left; starts the game over when
+     * `EVFLAG_GAMEOVER` is set or no player unit is available; otherwise runs the post action
+     * tutorial event and every matching entry of the chapter's misc event list.
      */
     public fun runWaitEvents(x: Int, y: Int) {
         if (!hooks.areAnyEnemyUnitDead()) {
@@ -296,11 +340,19 @@ public class EventInfos(
         }
     }
 
-    /** Ported from src/eventinfo.c: EvCheck00_Always */
+    /**
+ * Ported from src/eventinfo.c: EvCheck00_Always
+ *
+ * The check of `EVT_LIST_CMD_END`, the list terminator: always passes and leaves `script` 0.
+ */
     public fun evCheck00Always(info: EventInfo): Int = 1
 
     /**
      * Ported from src/eventinfo.c: EvCheck01_AFEV
+     *
+     * The check of `EVT_LIST_CMD_FLAG`: the entry (script in word 1, extra required flag in
+     * word 2) matches when the required flag is 0 (none), 100 (not named in the decomp's
+     * event-flags.h; meaning unknown) or set.
      *
      * Verified for an entry whose required flag is clear (no match) and one that needs no flag
      * (matches); the entry that needs flag 100 or a set flag is not in a trace.
@@ -316,7 +368,13 @@ public class EventInfos(
         return 0
     }
 
-    /** Ported from src/eventinfo.c: EvCheck02_TURN */
+    /**
+ * Ported from src/eventinfo.c: EvCheck02_TURN
+ *
+ * The check of `EVT_LIST_CMD_TURN`: the entry (script in word 1) matches when the chapter turn
+ * is within its turn range and the current phase's faction (`FACTION_BLUE` 0x00 player,
+ * `FACTION_GREEN` 0x40 ally, `FACTION_RED` 0x80 enemy) equals the entry's.
+ */
     public fun evCheck02Turn(info: EventInfo): Int {
         val entry = info.listScript
         // Third word of the entry: first turn, last turn and faction.
@@ -324,7 +382,7 @@ public class EventInfos(
         val turn = turnWord and 0xFF
         var maxTurn = (turnWord ushr 8) and 0xFF
         val faction = (turnWord ushr 16) and 0xFFFF
-        // A last turn of 0 means "only [turn]", 0xFF means "no end".
+        // The range is [turn, maxTurn]: a last turn of 0 means "only [turn]", 0xFF "no end".
         if (maxTurn == 0) {
             maxTurn = turn
         } else if (maxTurn == 0xFF) {
@@ -340,14 +398,22 @@ public class EventInfos(
         return 0
     }
 
-    /** Transcribed from src/eventinfo.c: EvCheck0C_Never (not verified: not reached by a trace) */
+    /**
+     * Transcribed from src/eventinfo.c: EvCheck0C_Never (not verified: not reached by a trace)
+     *
+     * The check of `EVT_LIST_CMD_NEVER_C`: never matches.
+     */
     public fun evCheck0CNever(info: EventInfo): Int = 0
 
-    /** Transcribed from src/eventinfo.c: EvCheck0D_Never (not verified: not reached by a trace) */
+    /**
+     * Transcribed from src/eventinfo.c: EvCheck0D_Never (not verified: not reached by a trace)
+     *
+     * The check of `EVT_LIST_CMD_NEVER_D`: never matches.
+     */
     public fun evCheck0DNever(info: EventInfo): Int = 0
 
     private companion object {
-        /** `GetBattleMapKind` results: story chapter and skirmish. */
+        /** `GetBattleMapKind` results (`BATTLEMAP_KIND_*`): story chapter and skirmish. */
         const val KIND_STORY = 0
         const val KIND_SKIRMISH = 2
 
@@ -368,7 +434,7 @@ public class EventInfos(
         const val EVFLAG_GAMEOVER = 0x65
         const val EVFLAG_DEFEAT_ALL = 6
 
-        /** Offset of `miscBasedEvents` in `struct ChapterEventGroup`. */
+        /** Offset of `miscBasedEvents` (searched by the wait events) in `ChapterEventGroup`. */
         const val MISC_EVENTS = 0x0C
 
         /** `EVFLAG_WIN`: set when the chapter is won. */

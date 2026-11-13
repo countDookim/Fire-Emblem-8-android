@@ -12,7 +12,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - MC-14 (battle experience gains): owner PC, until ~12:00Z (from 08:39Z)
-- Readability audit fe8.game.event (EventScrCore group: merge pending; EventInfo, EventText): owner PC, until ~12:00Z (from 08:40Z)
+- Readability audit fe8.game.event (EventUnitLoads, EventUnitState, EventAsmCall, EventChangeMap): owner PC, until ~12:00Z (from 08:50Z)
 
 ## Current state
 

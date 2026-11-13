@@ -296,6 +296,114 @@ enemy attack, not once per candidate tile, so per-candidate scores are not captu
 Prologue events seen in `prologue-eventinfo.h`: the Turn 1 (red) and Turn 2/3 (blue) events only call tutorial
 scripts, so in Normal mode they end at once. Tutorials are Easy only (see M6-E).
 
+### EP-0 inventory (2026-11-13)
+
+Test: `EnemyPhaseInventoryTest` (procs per window asserted row by row over `ram_trace_prologue_cancel_end`
+f1510..1650 and `ram_trace_prologue_enemy_phase` f1525..2851; plus `gAiDecision`, `gAiState` and the Red units'
+AI fields). Functions: **entered (traced)**. A scratch build of the harness (hook on every Thumb instruction,
+logging entries of the 367 Thumb functions of cp_phase.c, cp_order.c, cp_decide.c, cp_script.c, cp_battle.c,
+cp_utility.c, cp_perform.c, cp_staff.c, cp_0803E2F4.c, and of bm.c, bmphase.c, bmunit.c; then 139 callees of those files
+and cpextra_80407F0.c; then bmusailment.c and bmtrick.c; no ROM-repo change, scratch in the agent cache dir) ran
+the EP-cap1 inputs and the cancel_end inputs; entries per function and the frames they happen in came out of that.
+Nothing is inferred except where a row says so. There is no cp_berserk.c: the berserk phase (`AiPhaseBerserkInit`,
+`CpOrderBerserkInit`, `AiPhaseCleanup`, `CpOrderFunc_End`) lives in cp_phase.c/cp_order.c. The cancel_end window
+f1510..1650 enters exactly the functions the enemy-phase run enters in the same frames (no difference).
+
+Procs per window (enemy-phase run; script symbol, parent `gProc_BMapMain` unless stated):
+
+| Window | Frames | Procs |
+|---|---|---|
+| berserk phase, switch | f1526..1528 | `gProcScr_BerserkCpPhase` + `gProcScr_BerserkCpOrder` (f1526); faction 0 -> 0x80 f1529 |
+| phase events | f1529..1531 | `ProcScr_StdEventEngine` (ends at once) |
+| banner | f1535..1606 | `gProcScr_ResetCursorPosition` f1535, `ProcScr_PhaseIntro` + BlendBox/Squares/Text/Unk |
+| start-of-phase displays | f1607..1611 | none alive (the four `*Display_Init` run at f1607..1610 and end at once) |
+| AI phase | f1612..2745 | `gProcScr_CpPhase` > `gProcScr_CpOrder` > `gProcScr_CpDecide` (f1612..2741) > `gProcScr_CpPerform` per acting unit |
+| Soldier 1 | f1614..2017 | `ProcScr_Mu` (walk), `ProcScr_MuStepSe` x6, `gProcScr_AiTargetCursor` f1648..1694, `sProcScr_CombatAction` f1696..2012 (child of CpPerform), `ProcScr_MapAnimBattle` f1697..2010 and the map-animation procs of MC-0, `ProcScr_MuDeathFade` f1875..1905, `ProcScr_MapAnimExpBar` f1909..1998 |
+| between | f2014..2038 | `ProcScr_StdEventEngine` f2014..2016, `sProcScr_BMXFADE` f2018..2033 |
+| Soldier 2 | f2039..2402 | same as Soldier 1 (f2039 walk, f2081..2127 cursor, `CombatAction` f2129..2401) |
+| event after the last kill | f2403..2721 | `ProcScr_StdEventEngine` + `ProcScr_EventDisplayCursor` f2403..2462, `gProcScr_Talk` f2465..2703 (`gProcScr_TalkWaitForInput` f2644..2701, face procs), `gProcScr_FaceEndIn8Frames` f2706 |
+| phase end | f2723..2745 | `sProcScr_BMXFADE` f2723..2738, Cp procs end f2742..2745 |
+| green phase | f2747..2766 | `BerserkCp*` f2747, empty `gProcScr_CpPhase`/`CpOrder` f2759..2761, `BerserkCp*` f2763, `gProcScr_UpdateTraps` f2766 |
+| turn 2 | f2768..2851 | `StdEventEngine` f2768..2770, banner f2774..2844, `gProcScr_PlayerPhase` f2851 |
+
+AI script commands (unit struct +0x42 `ai1`, +0x43 `ai_a_pc`, +0x44 `ai2`, +0x45 `ai_b_pc`; tables `gAi1ScriptTable`,
+`gAi2ScriptTable` in cp_data.c; `gAiState` has no script pointer, only `cmd_result[8]` at +0x86 and the unit
+struct holds the positions). Three red units, `gAiState.units` = 0x81, 0x82, 0x83 (filled f1612):
+
+| Unit | ai1 / ai2 (ROM scripts) | What ran |
+|---|---|---|
+| Red 0 (0x81) | 6 `gAiScript_DoNothing` (NOP, GOTO_START) / 3 `AiScr_AiB_NeverMove` (NOP_0E, GOTO_START) | f1613: `AiTryExecScriptA` > `AiScript_Exec` > `AiScriptCmd_06_DoNothing` (a-pc 0 -> 1; script ends), then `AiTryExecScriptB` > `AiScriptCmd_0E_DoNothing` (b-pc 0 -> 1). No decision; `GOTO_START` (cmd 03) never runs |
+| Soldier 1 (0x82) | 0 `gAiScript_ActionInRange` (ACTION(100), GOTO_START) / 0x0A (move to Eirika, else enemy) | f1613..1614: `AiScriptCmd_05_DoStandardAction` > `AiAttemptOffensiveAction`; a-pc 0 -> 1 f1614; `AiTryExecScriptB` not called, ai2 never runs |
+| Soldier 2 (0x83) | 0 `gAiScript_ActionInRange` / 0x12 `AiScr_AiB_MoveToEnemyAfterOneTurn` (NOP_0E, SET_AI2 0, GOTO_START) | f2038..2039: the same as Soldier 1; a-pc 0 -> 1 f2039; ai2 never runs |
+
+`DecideScriptA`/`B` run 3x/1x, `AiTryExecScriptA`/`B` 3x/1x, `AiScript_Exec` 4x, `AiIsUnitEnemy` 9x. Commands entered: 05, 06,
+0E. Never entered: 00..04, 07..0D, 0F..1B, `AiExecFallbackScriptA/B`, the berserk commands, the unit predicates other than
+`AiIsUnitEnemy`. `NextRN_N` runs 3x (f1614, f2038..2039). `gAiState.cmd_result` stays 0.
+
+Findings that change the rows:
+
+- **Both attackers decide in script A.** The AI2 scripts (movement towards targets) never run; `AiTryMoveTowards`,
+  `AiFindTargetInReachByFunc`, `AiMakeMoveRangeUnitPowerMaps`, `AiRandomMove` and the ~35 other cp_utility.c helpers are
+  never entered. EP-cap2 is the first capture that can run them (later enemy phases).
+- `AiAttemptCombatWithinMovement` and `AiFloodMovementAndRange` are never entered (the decision comes from
+  `AiAttemptOffensiveAction`: `AiSimulateBestBattleAgainstTarget` > `AiGetCombatPositionScore` >
+  `AiComputeCombatScore`, called once per attacker; `AiSimulateBattleAgainstTargetAtPosition` > `BattleGenerateSimulation`).
+- `CpDecide_Suspend` runs after each performed action (f2035, f2740) and calls `WriteSuspendSave` (SUSPEND_POINT_CPPHASE):
+  the enemy phase writes the suspend save (SRAM) after every acting unit. Red 0 acts without a perform, so no save.
+- `AiTryDoSpecialItems` (cpextra_80407F0.c), `GetSpecialItemFuncIndex`, `sub_8040C5C` and `DecideSpecialItems` run only for Red 0
+  (f1613). `DecideHealOrEscape` runs for all three.
+- `CpPerform_EquipBest` never runs (`EquipUnitItemSlot` runs once per attack, from the combat start, f1696/f2129).
+- The four start-of-phase displays are only `*_Init` (f1607..1610, green f2754..2757, turn 2 f2846..2849);
+  `_Display`, `_Next`, `MassEffectDisplay_*`, `FinishDamageDisplay` never run. `TrapDamageDisplay_Init`/`_Check` run f2766.
+- The event that starts f2403 (dialogue, `CountRedUnits` f2014 and f2403) follows the last kill with Red 0 left alive:
+  it is probably the Normal-mode one-enemy-left event (not checked against the event script); EP-11 can start from this window.
+- Eirika takes no counter damage from Soldier 1 and 9 from Soldier 2; no level-up (exp 0 -> 65 across both).
+
+Functions per file ("entered" = entered (traced), count of entries in brackets; "never" = never entered in the run;
+the tag, if any, is the code repo's `Ported from` / `Transcribed from` today, by a scan that can miss other spellings):
+
+| File | Entered | Never entered |
+|---|---|---|
+| cp_phase.c | `AiPhaseInit` (2), `AiPhaseBerserkInit` (3, Ported), `AiPhaseCleanup` (5, Ported) | none |
+| cp_order.c | `CpOrderMain` (4), `CpOrderFunc_BeginDecide` (2), `BuildAiUnitList` (2), `SortAiUnitList` (1), `GetUnitAiPriority`, `GetUnitBattleAiPriority` (3 each, f1612 only), `CpOrderBerserkInit` (3, Ported), `CpOrderFunc_End` (5, Ported) | none |
+| cp_decide.c | `CpDecide_Main` (4), `CpDecide_Suspend` (2), `AiClearDecision` (3), `AiSetDecision` (2), `AiDecideMain` (3), `DecideHealOrEscape` (3), `DecideSpecialItems` (1), `DecideScriptA` (3), `DecideScriptB` (1) | `AiUpdateDecision` |
+| cp_script.c | `AiTryExecScriptA` (3), `AiTryExecScriptB` (1), `AiScript_Exec` (4), `AiIsUnitEnemy` (9), cmds `05`, `06`, `0E` | cmds 00..04, 07..0D, 0F..1B; `AiExecFallbackScriptA/B`, `AiDoBerserkAction/Move`, `AiIsUnitEnemyAndNotInScrList`, `...AndScrCharId`, `...AndScrClassId`, `AiIsUnitEnemyOrInScrList`, `AiIsUnitNonActive`, `sub_803CF60`, `sub_803CFB4`, `sub_803D124`, `sub_803D43C`, `sub_803D440` |
+| cp_battle.c | `AiAttemptOffensiveAction` (2), `AiFillReversedAttackRangeMap` (3), `AiSimulateBestBattleAgainstTarget` (3), `AiGetCombatPositionScore` (2), `AiIsBadFight` (2), `AiSimulateBattleAgainstTargetAtPosition` (2), `AiComputeCombatScore` (2), 8 `AiGet*CombatScoreComponent` (2 each), 3 `AiGet*CombatPositionScoreComponent` (2 each) | `AiAttemptCombatWithinMovement`, `AiFloodMovementAndRange`, `AiAttemptBallistaCombat`, `AiSimulateBestBallistaBattleAgainstTarget`, `AiAttemptStealActionWithinMovement`, `AiAttemptStealAction_GetMovementAt` |
+| cp_utility.c | `AiReachesByBirdsEyeDistance` (4), `AiCouldReachByBirdsEyeDistance` (6), `FillMovementAndRangeMapForItem` (6), `AiGetClassRank` (2), `SetupUnitInventoryAIFlags` (5), `SetupUnitStatusStaffAIFlags` (15), `SetupUnitHealStaffAIFlags` (15), `SaveNumberOfAlliedUnitsIn0To8Range` (10) | 38: `AiTryMoveTowards(NeglectWall)`, `AiFindTargetInReach*` (4), `AiFindBestAdjacentPositionByFunc`, `AiFindClosest*` (3), `AiFindPillageLocation`, `AiFindSafestReachableLocation`, `AiMakeMoveRangeUnitPowerMaps`, `AiRandomMove`, `AiCount*` (6), `AiGetUnit*`, `AiIs*`/`AiLocationIsPillageTarget`, `AiCompare`, `CharStoreAI`, `sub_803B678`, `sub_803C284..490` |
+| cp_perform.c | `AiTargetCursor_Main` (94), `StartAiTargetCursor` (2), `CpPerform_UpdateMapMusic`, `_MoveCameraOntoUnit`, `_BeginUnitMovement`, `_MoveCameraOntoTarget`, `_PerformAction`, `_WaitAction`, `_Cleanup`, `AiRefreshMap`, `AiStartCombatAction`, `AiDummyAction` (2 each) | 15: `CpPerform_EquipBest`, `AiPickAction`, `AiPillageAction`, `AiTalkAction`, `AiStaffAction`, `AiUseItemAction`, `AiEscapeAction`, `AiStartEscapeAction`, `AiStartStealAction`, `AiRideBallistaAction`, `AiExitBallistaAction`, `AiDKNightmareAction`, `AiDKSummonAction`, `AiRefreshAction`, `AiWaitAndClearScreenAction` |
+| cp_staff.c | `AiTryDoStaff` (2, finds no staff) | the 13 other functions (`AiStaff*`, silence, warp, safest adjacent position) |
+| cp_0803E2F4.c | `AiInitDangerMap`, `AiFillDangerMap` (3 each), `UpdateAllPhaseHealingAIStatus` (7), `AiUpdateGetUnitIsHealing` (12) | 39: equip (`AiEquip*`, `AiCanEquip`), steal/dance, heal, escape, `AiTryMoveToSpecificPosition`, `AiTryActionAfterMove`, `sub_803EC18..F9C8` |
+| cpextra_80407F0.c (+ `sub_80832D4`) | `AiUpdateNoMoveFlag` (3), `AiTryDoSpecialItems` (1), `GetSpecialItemFuncIndex` (1), `sub_8040C5C` (1), `sub_80832D4` (3) | `AiSpecialItem*`, `AiDecideDKSummon`, `AiDecideNightmareStaff`, `AiTryDKSummon`, `AiTryUseNightmareStaff`, `sub_8040AE0..1054`, `sub_80410C4` |
+| bm.c phase path | `SwitchPhases`, `BmMain_ChangePhase`, `BmMain_SuspendBeforePhase`, `BmMain_UpdateTraps` (3 each), `BmMain_StartPhase` (4), `sub_8015434` (3), `LockGame`/`UnlockGame` (11), `StartMapSongBgm`, `GetCurrentMapMusicIndex`, `EnsureCameraOntoPosition`, `SetCursorMapPosition`, `RunPhaseSwitchEvents` (3), `CallEvent` (4) | `BmMain_ResumePlayerPhase`, `BmMain_StartIntroFx`, `CallBeginningEvents`, `GotoChapterWithoutSave`, `UndeployEveryone`, `sub_80155C4`, `GetCurrentPhase`, `GetNonActiveFaction` |
+| bmphase.c | `GetPhaseAbleUnitCount` (11), `CountUnitsInState` (5), `AreUnitsAllied` (49) | `IsSameAllegiance` |
+| bmunit.c (phase path) | `TickActiveFactionTurn` (3: f1607, f2754, f2846), `ClearActiveFactionGrayedStates` (3: f1529, f2750, f2768), `UnitBeginAction` (2), `UnitKill` (2), `UnitFinalizeMovement` (2), `MoveActiveUnit` (2), `CountRedUnits` (2), `CountAvailableBlueUnits` (5), `ClearCutsceneUnits` (4), `SetAllUnitNotBackSprite` (2), unit stat getters (`GetUnitCurrentHp`, `GetUnitMaxHp`, `GetUnitPower`, ...) | the other 62 bmunit.c functions |
+| bmusailment.c / bmtrick.c | `StatusDecayDisplay_Init` (f1607), `TerrainHealDisplay_Init` (f1608), `PoisonDamageDisplay_Init` (f1609), `GorgonEggHatchDisplay_Init` (f1610) (each 3x), `TrapDamageDisplay_Init`/`_Check`, `DecayTraps`, `CountDownTraps`, `GenerateTrapDamageTargets`, `GenerateDisplayedTrapDamageTargets`, `ResetCountedDownTraps`, `PostTrapExecFlag` (f2766..2767), `EnableAllLightRunes`/`DisableAllLightRunes` (4, per attack), `GetTrap` | all `*Display_Display`/`_Next`/`_Watch`, `StatusHealEffect_*`, `KillAllRedUnits_*`, `ApplyHazardHealing`, `AddTrap*`, `GetTrapAt` |
+
+Callees outside those files that the windows enter (all traced; most are Ported/Transcribed already): `GenerateUnitMovementMap`
+(10), `GenerateMovementMap`, `SetWorkingMoveCosts`, `BmMapFill`, `MapAddInRange`/`MapAddInBoundedRange`, `CanUnitUseWeapon`,
+`CanUnitUseStaff`, `GetItemMinRange`/`MaxRange`/`Might`/`Type`/`UseEffect`, `GenerateBestMovementScript`,
+`UnitApplyWorkingMovementScript`, `SetAutoMuMoveScript`, `SetAutoMuDefaultFacing`, `StartMu`, `ApplyUnitAction`,
+`BattleGenerateSimulation`, `EquipUnitItemSlot`, `TryRemoveUnitFromBallista`, `ProcessTurnSupportExp`, `NewBMXFADE`,
+`RenderBmMapOnBg2`. Not entered: `GenerateMagicSealMap`, `MarkMovementMapEdges`, `GenerateUnitExtendedMovementMap`,
+`GenerateExtendedMovementMapOnRange` (+NeglectWall), `GetRiddenBallistaAt`, `GetBallistaItemAt`, `GetItemUses`.
+
+Corrected PORT rows (functions run, with the first frames; "Ported"/"Transcribed" means the code repo already has it):
+
+| Row | Functions run | Not run: keep transcribed / unwritten |
+|---|---|---|
+| EP-1 | `TickActiveFactionTurn`, `ClearActiveFactionGrayedStates`, the four `*Display_Init`, `sub_8015434` (Transcribed), `GetPhaseAbleUnitCount`, `CountUnitsInState` (Transcribed); `SwitchPhases`, `BmMain_ChangePhase`, `_StartPhase`, `_SuspendBeforePhase`, `_UpdateTraps` already Ported | the displays' `_Display`/`_Next` procs, `BmMain_ResumePlayerPhase`, `BmMain_StartIntroFx`, `CallBeginningEvents` |
+| EP-2a | `AiPhaseInit` (f1612), `CpOrderMain`, `CpOrderFunc_BeginDecide`, `BuildAiUnitList`, `SortAiUnitList`, `GetUnitAiPriority`, `GetUnitBattleAiPriority` | none in the two files |
+| EP-2b | `SetupUnitInventoryAIFlags`, `SetupUnitStatusStaffAIFlags`, `SetupUnitHealStaffAIFlags`, `SaveNumberOfAlliedUnitsIn0To8Range`, `UpdateAllPhaseHealingAIStatus`, `AiUpdateGetUnitIsHealing` | the staff/heal/steal helpers of cp_0803E2F4.c |
+| EP-3a | `CpDecide_Main`, `CpDecide_Suspend`, `AiClearDecision`, `AiSetDecision`, `AiDecideMain`, `DecideHealOrEscape`, `DecideScriptA`, `DecideScriptB` | `AiUpdateDecision` |
+| EP-3b | `AiUpdateNoMoveFlag`, `AiInitDangerMap`, `AiFillDangerMap`, `DecideSpecialItems`, `AiTryDoSpecialItems`, `GetSpecialItemFuncIndex`, `sub_8040C5C` | the other special-item/DK/Nightmare functions |
+| EP-4 | `AiTryExecScriptA`, `AiTryExecScriptB`, `AiScript_Exec`, `AiIsUnitEnemy`, cmds 05, 06, 0E | the other 27 commands, fallback scripts, predicates |
+| EP-5 | `AiAttemptOffensiveAction`, `AiFillReversedAttackRangeMap`, `AiSimulateBestBattleAgainstTarget`, `AiSimulateBattleAgainstTargetAtPosition`, `AiGetCombatPositionScore`, `AiIsBadFight`, `AiTryDoStaff` | `AiAttemptCombatWithinMovement`, `AiFloodMovementAndRange`, ballista, steal |
+| EP-6a/b | `AiComputeCombatScore`, 8 `AiGet*CombatScoreComponent`, 3 `AiGet*CombatPositionScoreComponent` | none in the file's score part |
+| EP-7 | `AiReachesByBirdsEyeDistance`, `AiCouldReachByBirdsEyeDistance`, `FillMovementAndRangeMapForItem`, `AiGetClassRank`, `GenerateUnitMovementMap` | the 38 other cp_utility.c functions (movement commands) |
+| EP-8 | `CpPerform_UpdateMapMusic`, `_MoveCameraOntoUnit`, `_BeginUnitMovement`, `_MoveCameraOntoTarget`, `StartAiTargetCursor`, `AiTargetCursor_Main` | |
+| EP-9 | `CpPerform_PerformAction`, `AiStartCombatAction`, `CpPerform_WaitAction`, `AiDummyAction`, `CpPerform_Cleanup`, `AiRefreshMap` | `CpPerform_EquipBest` and the 14 other actions |
+| EP-10 | `ProcessTurnSupportExp`, `DecayTraps`, `CountDownTraps`, `GenerateTrapDamageTargets`, `GenerateDisplayedTrapDamageTargets`, `TrapDamageDisplay_Init`/`_Check`, `ResetCountedDownTraps`, `PostTrapExecFlag`, `CountRedUnits`, `CountAvailableBlueUnits` | trap placement (`AddTrap*`), `TrapDamageDisplay_Display`/`_Next` |
+
 ## M6-E Prologue completable
 
 Exit: win → ending event → save → Chapter 1 map; game over works.

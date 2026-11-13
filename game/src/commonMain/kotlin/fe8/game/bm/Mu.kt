@@ -9,12 +9,12 @@ import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts
 
 /**
- * The unit fields `StartMu` reads (`struct Unit`), as the caller's snapshot. The fields are
- * mutable so a caller can refill one instance per start instead of allocating (the hover start
- * runs from the idle loop); [Mu.startMu] copies what it needs and keeps no reference.
+ * The unit fields `StartMu` and `StartMuExt` read (`struct Unit`), as the caller's snapshot. The
+ * fields are mutable so a caller can refill one instance per start instead of allocating (the
+ * hover start runs from the idle loop); [Mu.startMu] copies what it needs and keeps no reference.
  */
 public class MuUnit(
-    /** GBA address of the unit (`proc->unit`). */
+    /** GBA address of the unit; stored as `proc->unit`, used for the fog check in `PutMu`. */
     public var address: Int,
     /** `unit->xPos`. */
     public var xPos: Int,
@@ -32,8 +32,8 @@ public class MuUnit(
 
 /**
  * Hooks for what mu.c calls outside itself: the sprite animation player (ap.c), the standing
- * map sprite (bmudisp.c), unit and fog lookups, sound and ROM lookups. `Fe8Boot` (Fe8Boot.kt:707)
- * overrides the sprite animation player calls and the class lookups; the rest are stand-ins
+ * map sprite (bmudisp.c), unit and fog lookups, sound and ROM lookups. `Fe8Boot.mu` overrides the
+ * sprite animation player calls and the class lookups; the rest are stand-ins
  * until M6-B (the fog bump: M6-H).
  */
 public interface MuHooks {
@@ -56,7 +56,7 @@ public interface MuHooks {
     /** `GetClassData(jid)->slowWalking`. */
     public fun classSlowWalking(jid: Int): Int = 0
 
-    /** `IsGamePlayedThrough()` (reads the save). */
+    /** `IsGamePlayedThrough()` (reads the save); [Mu] builds `IsFirstPlaythrough()` on it. */
     public fun isGamePlayedThrough(): Boolean = false
 
     /**
@@ -105,26 +105,29 @@ public interface MuHooks {
 
 /** One `struct MuConfig` slot (`sMuConfig`). */
 public class MuConfig {
-    /** `slot`: 0 = free, else index + 1. */
+    /** `slot`: 0 = free, else the slot index + 1 (the 1-based id `GetMuImgBufById` takes). */
     public var slot: Int = 0
 
-    /** `pal`. */
+    /** `pal`: OBJ palette bank of the MU sprite (`OAM2_PAL`). */
     public var pal: Int = 0
 
-    /** `chr`. */
+    /** `chr`: OBJ tile offset of this slot (`sMuChrOffLut*[index] + objTileId`). */
     public var chr: Int = 0
 
-    /** `pc`: move script cursor. */
+    /** `pc`: index of the next command in [movescr]. */
     public var pc: Int = 0
 
-    /** `movescr`. */
+    /** `movescr`: the move script (`MOVE_CMD_*` bytes, at most `MOVE_CMD_MAX_COUNT`). */
     public val movescr: IntArray = IntArray(0x40)
 
-    /** `mu`. */
+    /** `mu`: the [MuProc] that owns this slot. */
     public var mu: MuProc? = null
 }
 
-/** The fields of `struct MuProc` past `PROC_HEADER` (+0x2C..). */
+/**
+ * The fields of `struct MuProc` past `PROC_HEADER` (+0x2C..), minus the unused `_u3D`: the state of
+ * one moving map sprite.
+ */
 public class MuProc {
     /** The proc this state belongs to (`EndMu(proc)` ends it). */
     public var owner: Proc? = null
@@ -132,58 +135,61 @@ public class MuProc {
     /** `unit` (address; 0 = NULL). */
     public var unitAddress: Int = 0
 
-    /** `sprite_anim` (hook handle). */
+    /** `sprite_anim`: handle returned by [MuHooks.createMuAnim] (the `APHandle`). */
     public var spriteAnim: Int = 0
 
-    /** `config`. */
+    /** `config`: the slot this MU occupies. */
     public var config: MuConfig? = null
 
-    /** `pGfxVRAM`. */
+    /** `pGfxVRAM`: OBJ VRAM address of this MU's tiles (`OBJ_VRAM0 + 0x20 * tile`). */
     public var gfxVram: Int = 0
 
-    /** `slot`. */
+    /** `slot`: 0-based slot index (`config.slot - 1`). */
     public var slot: Int = 0
 
-    /** `cam_b`. */
+    /** `cam_b`: the camera follows this MU while it moves. */
     public var camB: Boolean = false
 
     /** `state` (`MU_STATE_*`). */
     public var state: Int = 0
 
-    /** `hidden_b`. */
+    /** `hidden_b`: non-zero while the MU is not drawn (the blink effect toggles it). */
     public var hiddenB: Int = 0
 
-    /** `jid`. */
+    /** `jid`: class id, which selects the sprite sheet and animation in `gMuInfoTable`. */
     public var jid: Int = 0
 
-    /** `facing`. */
+    /** `facing`: `MU_FACING_*`; starts at `MU_FACING_UNK11`. */
     public var facing: Int = 0
 
-    /** `step_sound_clock`. */
+    /**
+     * `step_sound_clock`: step counter that picks the walking sound (0xFE at start if another MU
+     * exists).
+     */
     public var stepSoundClock: Int = 0
 
-    /** `fast_walk_b`. */
+    /** `fast_walk_b`: forces the fastest walking speed (0x100). */
     public var fastWalkB: Boolean = false
 
-    /** `layer`. */
+    /** `layer`: OAM2 priority bits (`OAM2_LAYER(2)`) added to the tile base. */
     public var layer: Int = 0
 
-    /** `move_clock_q4`. */
+    /** `move_clock_q4`: movement progress in 1/16 px; the sleep counter while sleeping. */
     public var moveClockQ4: Int = 0
 
-    /** `moveConfig`. */
+    /** `moveConfig`: speed setting read by `GetMuQ4MovementSpeed` (`MU_CONFIG_SPPED_*`). */
     public var moveConfig: Int = 0
 
-    /** `x_q4`. */
+    /** `x_q4`: map x in 1/16 px (4 subpixel bits). */
     public var xQ4: Int = 0
 
-    /** `y_q4`. */
+    /** `y_q4`: map y in 1/16 px. */
     public var yQ4: Int = 0
 
-    /** `x_offset_q4`. */
+    /** `x_offset_q4`: x added to [xQ4] for display only, in 1/16 px. */
     public var xOffsetQ4: Int = 0
 
-    /** `y_offset_q4`. */
+    /** `y_offset_q4`: y added to [yQ4] for display only, in 1/16 px. */
     public var yOffsetQ4: Int = 0
 
     /** True from [Mu]'s proc start until [Mu.onEnd]; marks the pooled instance as taken. */
@@ -192,7 +198,8 @@ public class MuProc {
 
 /**
  * mu.c: the MU slots, the `ProcScr_Mu` procs, their movement and display position. The
- * sprite animation itself is [MuHooks].
+ * sprite animation itself is [MuHooks]. [camMoveScript] is the camera-move proc script
+ * (`ProcScr_CamMove`): a MU only follows with the camera while none is running.
  */
 public class Mu(
     private val procs: ProcEngine,
@@ -331,8 +338,8 @@ public class Mu(
     }
 
     /**
-     * Claims the first free slot with the default chr offset (`sMuChrOffLut_Default`); null when
-     * all are taken. The slot index is `config.slot - 1`.
+     * Claims the first free slot with the default chr offset (`sMuChrOffLut_Default[i] +
+     * objTileId`); null when all are taken. The slot index is `config.slot - 1`.
      *
      * Ported from src/mu.c: GetDefaultMuConfig
      */
@@ -348,7 +355,8 @@ public class Mu(
     }
 
     /**
-     * Claims the first free slot with the chr offset `sMuChrOffLut`; null when all are taken.
+     * Claims the first free slot with the chr offset `sMuChrOffLut[i] + objTileId`; null when all
+     * are taken.
      *
      * Transcribed from src/mu.c: GetNewMuConfig (not verified: the trace only uses the default
      * config slot)
@@ -377,8 +385,9 @@ public class Mu(
     }
 
     /**
-     * Computes the screen position of [proc] into [displayX]/[displayY]; false when it is off
-     * screen.
+     * Computes the screen position of [proc] into [displayX]/[displayY] (map position minus the
+     * camera, or the raw position for `MU_STATE_DISPLAY_UI`); false when it is off screen, which a
+     * UI MU never is.
      *
      * Ported from src/mu.c: GetMuDisplayPosition
      */
@@ -398,7 +407,7 @@ public class Mu(
     }
 
     /**
-     * Puts the standing map sprite of [proc].
+     * Draws the standing map sprite of [proc] (unless hidden or off screen).
      *
      * Transcribed from src/mu.c: PutMuSMS (not verified: the trace MU never stands, and
      * sub_8026FF4/sub_8027DB4 are hooks)

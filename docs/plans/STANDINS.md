@@ -54,7 +54,7 @@ Total entries: 219 across 45 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `resumeActionUnit` | Stand-in until M6-B (needs MU and the active unit). |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMapRender.kt` | `interface` | Stand-in until M6-B for `DisplayMovementViewTile` (bmmap.c:342), called by the scroll renderers while `gBmSt.gameStateBits & 1` is set. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMapRender.kt` | `movementView` | The `DisplayMovementViewTile` stand-in (until M6-B), or null to draw nothing on BG2. |
-| `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | `MuHooks` | `Fe8Boot` (Fe8Boot.kt:707) overrides the sprite animation player calls and the class lookups; the rest are stand-ins until M6-B (the fog bump: M6-H). |
+| `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | `MuHooks` | `Fe8Boot.mu` overrides the sprite animation player calls and the class lookups; the rest are stand-ins until M6-B (the fog bump: M6-H). |
 | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | `MuCtrl` | Stand-ins until M6-B: `SortMus` (called by several steps of these procs in the C; it only orders the MUs' sprite animation `objLayer` values, so it is not called here) and `ClearEventMoveBuffer` (s... |
 | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | `MuCtrl` | Stand-ins until M6-H: `DisableAllLightRunes` / `EnableAllLightRunes` (traps are not ported). |
 | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | `readSuspendSave` | Ported from src/bmsave.c: ReadSuspendSave Resumes a suspended battle: loads the suspend block of [slot] (`SAVE_ID_SUSPEND`) + `gSuspendSaveIdOffset` (set by [BmSaveLib.isValidSuspendSave]) into [ra... |

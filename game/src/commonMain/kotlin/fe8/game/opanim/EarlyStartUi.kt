@@ -17,11 +17,12 @@ import gbafe.render.BgHardware
 import gbafe.render.LcdControl
 
 /**
- * `ProcScr_GameEarlyStartUI` (src/opanim-healthsafetyscreen.c): the boot-time sequence of the
- * health & safety screen, then the Nintendo and Intelligent Systems logos, with the A/B logo skip.
- * Same 28 commands as the ROM script, so command indices match `proc_scrCur`. Screen loads use
- * [Env.gfx] and [Env.hardware]. The per-frame work lives in [OpAnimHs]; this class only wires
- * those steps into the script and turns each step's result into proc control (break, skip, goto).
+ * `ProcScr_GameEarlyStartUI` (src/opanim-healthsafetyscreen.c): the boot sequence the game control
+ * proc starts before the opening animation: the health and safety screen, then the Nintendo and
+ * Intelligent Systems logos, with the A/B logo skip. Same 28 commands as the decomp script, so
+ * command indices match `proc_scrCur`. Screen loads use [Env.gfx] and [Env.hardware]. The per-frame
+ * work lives in [OpAnimHs]; this class only wires those steps into the script and turns each step's
+ * result into proc control (break, skip, goto).
  */
 public class EarlyStartUi(
     /** The proc engine the script runs on. */
@@ -29,15 +30,15 @@ public class EarlyStartUi(
     /** Game state the steps read and write. */
     public val env: Env,
 ) {
-    /** What the steps touch outside the proc. */
+    /** The game state the steps read and write besides the proc: palettes, LCD, keys, graphics. */
     public class Env(
         /** `gPaletteBuffer` (512 colours). */
         public val paletteBuffer: ShortArray,
         /** `gPaletteOpAnimHsBackup` (512 colours). */
         public val paletteBackup: ShortArray,
-        /** `gLCDControlBuffer`. */
+        /** `gLCDControlBuffer`: display enable and blend registers. */
         public val lcd: LcdControl,
-        /** `gKeyStatusPtr`. */
+        /** `gKeyStatusPtr`: the key state the skip and button-wait checks read. */
         public val keys: KeyStatus,
         /** `Pal_OpAnimHealthSafetyScreen` (16 colours). */
         public val hsPalette: ShortArray,
@@ -45,19 +46,26 @@ public class EarlyStartUi(
         public val nintendoPalette: ShortArray,
         /** `Pal_IntelligentSystems` (48 colours). */
         public val isPalette: ShortArray,
-        /** `IsSoftwareReset()`. */
+        /** `IsSoftwareReset()`: true after a soft reset (skips the warning, A/B skip any logo). */
         public val softwareReset: () -> Boolean = { false },
-        /** The compressed screen graphics `PrepareHealthAndSafetyScreen` and `GameIntroPrepareNintendofx` load. */
+        /**
+         * The compressed graphics that `PrepareHealthAndSafetyScreen` and
+         * `GameIntroPrepareNintendofx` load.
+         */
         public val gfx: Gfx,
-        /** `gKeyComboResetEN` (`EnableKeyComboResetEN`). */
+        /**
+         * `gKeyComboResetEN`, set by `EnableKeyComboResetEN`: while set, the soft-reset key combos
+         * (L+R+A+B, A+B+Select+Start) work. The script sets it after the Nintendo logo, or on a
+         * skip.
+         */
         public val keyComboReset: KeyComboReset = KeyComboReset(),
-        /** BG buffers, VRAM and sync flags; shares [lcd] and [paletteBuffer]. */
+        /** BG tilemap buffers, VRAM and sync flags; shares [lcd] and [paletteBuffer]. */
         public val hardware: BgHardware = BgHardware(lcd, paletteBuffer),
-        /** `Sound_FadeOutBGM(speed)` (both screens' setup calls it with speed 1). */
+        /** `Sound_FadeOutBGM(speed)`: both screens' setup code calls it with speed 1. */
         public val fadeOutBgm: (Int) -> Unit = {},
     )
 
-    /** ROM graphics of the three screens (`Decompress` blobs). */
+    /** ROM graphics of the three screens: tiles and tilemaps as `Decompress` blobs. */
     public class Gfx(
         /** `Img_OpAnimHealthSafetyScreen`. */
         public val hsImg: OpAnimHs.Blob,
@@ -76,76 +84,119 @@ public class EarlyStartUi(
     )
 
     /** The [OpAnimHs.Proc] state that [script]'s `newState` attached to [p]. */
-    private fun st(p: Proc) = p.state as OpAnimHs.Proc
+    private fun hsState(p: Proc) = p.state as OpAnimHs.Proc
 
     /**
      * Turns a logo step's [result] into proc control: [StepResult.BREAK] ends the current repeat
      * command, [StepResult.SKIP] (A/B pressed) jumps to the skip-fade block at label 0.
      */
-    private fun apply(p: Proc, r: StepResult) {
-        when (r) {
+    private fun applyResult(p: Proc, result: StepResult) {
+        when (result) {
             StepResult.CONTINUE -> Unit
             StepResult.BREAK -> engine.breakProc(p)
             StepResult.SKIP -> engine.goto(p, 0)
         }
     }
 
-    /** Ends [p]'s current repeat command once the step reports it is [broke] (finished). */
-    private fun bool(p: Proc, broke: Boolean) {
-        if (broke) engine.breakProc(p)
+    /** Ends [p]'s current repeat command once the warning-screen step reports it [finished]. */
+    private fun breakIfFinished(p: Proc, finished: Boolean) {
+        if (finished) engine.breakProc(p)
     }
 
     /** Short alias for [env], used throughout the script table below. */
     private val e = env
 
-    /** `EnablePaletteSync` after a fade wrote [Env.paletteBuffer] (`OpAnimHS_BrightenPalette`, `sub_80CBFC0`). */
+    /**
+     * Queues the palette upload (`EnablePaletteSync`) after a fade step wrote [Env.paletteBuffer];
+     * the decomp does this inside `OpAnimHS_BrightenPalette` and `sub_80CBFC0`. Returns [result]
+     * unchanged.
+     */
     private fun <T> synced(result: T): T {
         e.hardware.enablePaletteSync()
         return result
     }
 
-    /** Repeat command body for the one-frame delays between fades; may also skip or soft-reset. */
-    private val delay = ProcFunc { p -> apply(p, OpAnimHs.earlyStartDelay(st(p), e.keys, e.softwareReset())) }
+    /**
+     * Repeat command body for the pauses between screens ([OpAnimHs.earlyStartDelay]); it also
+     * checks for the logo skip.
+     */
+    private val delay = ProcFunc { p ->
+        applyResult(p, OpAnimHs.earlyStartDelay(hsState(p), e.keys, e.softwareReset()))
+    }
 
     /** The script; [ProcScript.newState] creates an [OpAnimHs.Proc]. */
     public val script: ProcScript = ProcScript("ProcScr_GameEarlyStartUI", listOf(
         yield(),
-        call { OpAnimHs.setStatus0(st(it)) },
+        call { OpAnimHs.setStatus0(hsState(it)) },
         call {
             val g = e.gfx
-            if (!OpAnimHs.prepareHealthSafety(st(it), e.hardware, e.keys, e.softwareReset(), g.hsImg, g.hsTsaBg1, g.hsTsaBg0)) {
-                engine.goto(it, 0x3E7) // soft reset: skip the health & safety screen
+            val loaded = OpAnimHs.prepareHealthSafety(
+                hsState(it), e.hardware, e.keys, e.softwareReset(), g.hsImg, g.hsTsaBg1, g.hsTsaBg0,
+            )
+            if (!loaded) {
+                engine.goto(it, 0x3E7) // soft reset: skip the health and safety screen
             } else {
-                e.fadeOutBgm(1) // after the software-reset check, as in the original
+                e.fadeOutBgm(1) // after the software-reset check, as in the decomp
             }
         },
-        repeat { bool(it, synced(OpAnimHs.healthSafetyFadeIn(st(it), e.hsPalette, e.paletteBuffer))) },
+        repeat {
+            val done = OpAnimHs.healthSafetyFadeIn(hsState(it), e.hsPalette, e.paletteBuffer)
+            breakIfFinished(it, synced(done))
+        },
         repeat(delay),
-        repeat { bool(it, OpAnimHs.healthSafetyWaitButton(st(it), e.lcd, e.keys)) },
-        repeat { bool(it, synced(OpAnimHs.healthSafetyFadeOut(st(it), e.hsPalette, e.paletteBuffer))) },
+        repeat { breakIfFinished(it, OpAnimHs.healthSafetyWaitButton(hsState(it), e.lcd, e.keys)) },
+        repeat {
+            val done = OpAnimHs.healthSafetyFadeOut(hsState(it), e.hsPalette, e.paletteBuffer)
+            breakIfFinished(it, synced(done))
+        },
         repeat(delay),
         label(0x3E7),
         call {
             val g = e.gfx
             e.fadeOutBgm(1)
-            OpAnimHs.prepareNintendofx(st(it), e.hardware, g.nintendoImg, g.nintendoTsa, g.isImg, g.isTsa)
+            OpAnimHs.prepareNintendofx(
+                hsState(it), e.hardware, g.nintendoImg, g.nintendoTsa, g.isImg, g.isTsa,
+            )
         },
-        call { OpAnimHs.setStatus1(st(it)) },
-        repeat { apply(it, synced(OpAnimHs.nintendoFadeIn(st(it), e.nintendoPalette, e.paletteBuffer, e.lcd, e.keys, e.softwareReset()))) },
+        call { OpAnimHs.setStatus1(hsState(it)) },
+        repeat {
+            val result = OpAnimHs.nintendoFadeIn(
+                hsState(it), e.nintendoPalette, e.paletteBuffer, e.lcd, e.keys, e.softwareReset(),
+            )
+            applyResult(it, synced(result))
+        },
         repeat(delay),
-        repeat { apply(it, synced(OpAnimHs.nintendoFadeOut(st(it), e.nintendoPalette, e.paletteBuffer, e.keys, e.softwareReset()))) },
+        repeat {
+            val result = OpAnimHs.nintendoFadeOut(
+                hsState(it), e.nintendoPalette, e.paletteBuffer, e.keys, e.softwareReset(),
+            )
+            applyResult(it, synced(result))
+        },
         repeat(delay),
         call { e.keyComboReset.enable() },
-        call { OpAnimHs.setStatus2(st(it)) },
-        repeat { apply(it, synced(OpAnimHs.intelligentSystemsFadeIn(st(it), e.isPalette, e.paletteBuffer, e.lcd, e.keys, e.softwareReset()))) },
+        call { OpAnimHs.setStatus2(hsState(it)) },
+        repeat {
+            val result = OpAnimHs.intelligentSystemsFadeIn(
+                hsState(it), e.isPalette, e.paletteBuffer, e.lcd, e.keys, e.softwareReset(),
+            )
+            applyResult(it, synced(result))
+        },
         repeat(delay),
-        repeat { apply(it, synced(OpAnimHs.intelligentSystemsFadeOut(st(it), e.isPalette, e.paletteBuffer, e.keys, e.softwareReset()))) },
+        repeat {
+            val result = OpAnimHs.intelligentSystemsFadeOut(
+                hsState(it), e.isPalette, e.paletteBuffer, e.keys, e.softwareReset(),
+            )
+            applyResult(it, synced(result))
+        },
         repeat(delay),
         goto(1),
         label(0),
         call { e.keyComboReset.enable() },
-        call { OpAnimHs.startSkipFade(st(it), e.paletteBuffer, e.paletteBackup) },
-        repeat { bool(it, synced(OpAnimHs.skipFade(st(it), e.paletteBuffer, e.paletteBackup))) },
+        call { OpAnimHs.startSkipFade(hsState(it), e.paletteBuffer, e.paletteBackup) },
+        repeat {
+            val done = OpAnimHs.skipFade(hsState(it), e.paletteBuffer, e.paletteBackup)
+            breakIfFinished(it, synced(done))
+        },
         label(1),
         end(),
     ), newState = { OpAnimHs.Proc() })

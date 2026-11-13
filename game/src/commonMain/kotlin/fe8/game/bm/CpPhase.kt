@@ -1,6 +1,7 @@
 package fe8.game.bm
 
 import fe8.game.RomView
+import gbafe.core.rng.RngService
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
@@ -82,6 +83,8 @@ public class CpPhase(
     entityMaps: EntityBmMaps? = null,
     /** `gActiveUnit` and `gActionData`, shared with the player phase. */
     active: ActiveUnit = ActiveUnit(),
+    /** The RNG `NextRN_N` of the AI scripts draws from. */
+    rng: RngService = RngService(),
 ) {
     /** `gAiState`. */
     public val aiState: AiState = AiState()
@@ -101,6 +104,12 @@ public class CpPhase(
     public val decide: CpDecide = CpDecide(
         engine, units, aiState, active, aiFlags, entityMaps, rom, loader, map,
     )
+
+    /** The AI script interpreter (cp_script.c); its hooks are the EP-5 and EP-12 stand-ins. */
+    public val script: CpScript = CpScript(rom, units, aiState, active, rng).also {
+        decide.hooks.tryExecScriptA = AiTry { it.tryExecScriptA() }
+        decide.hooks.tryExecScriptB = AiTry { it.tryExecScriptB() }
+    }
 
     private val priorities = IntArray(AiState.UNITS_SIZE)
     private val items = ItemInfo(rom)

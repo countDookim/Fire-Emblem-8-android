@@ -7,6 +7,7 @@ import fe8.game.bm.AiIntPairStep
 import fe8.game.bm.AiProcStep
 import fe8.game.bm.AiReachTest
 import fe8.game.bm.AiStep
+import fe8.game.bm.AiTestStep
 import fe8.game.bm.AiTry
 import fe8.game.bm.AiUnitItemStep
 import fe8.game.bm.BmMap
@@ -52,11 +53,20 @@ import java.io.File
  * - Soldier 2's perform start = f2039 (decision `0x83` attack, `unitIt` 7);
  * - the end of the proc = f2742 (`decideState` 0).
  *
- * Stand-ins (the other tasks own them): `AiTryExecScriptA`/`B` (EP-4) call `AiSetDecision` with
- * the values read from the captured decision bytes of f1614 and f2039, so the script's choice is
- * not verified here, only that the decision loop clears, sets, iterates, marks, suspends and
- * starts the perform proc around it, and that `AiSetDecision` packs the arguments as the dump
- * bytes (the unit id comes from the active unit, not from the dump; `xMove`/`yMove` are both 5
+ * The AI script interpreter (EP-4, `CpScript`) runs for real on the unit bytes of f1611 and the
+ * ROM script tables; compared at each snapshot: `ai1`, `ai_a_pc`, `ai2`, `ai_b_pc` of the three
+ * units (Red 0 0 -> 1 / 0 -> 1 at f1613, Soldier 1 a-pc 0 -> 1 at f1614, Soldier 2 at f2039),
+ * `unk7E` and `cmd_result` (all zero: no written command sets it), and the RNG state at the call
+ * of `AiAttemptOffensiveAction` (one `NextRN_N(100)` draw of command 05 after the captured state of f1611 / f2037; the
+ * battle between them is EP-9's, so Soldier 2 starts from the f2037 state).
+ *
+ * Stand-ins (the other tasks own them): `AiAttemptOffensiveAction` (EP-5) is fed from the
+ * capture: it calls `AiSetDecision` with the values read from the captured decision bytes of
+ * f1614 and f2039, so the decision content (attack Eirika from (5, 5)) is NOT verified here; it
+ * also checks that the captured target passes the `AiIsUnitEnemy` predicate it is handed.
+ * `AiTryDoStaff` (EP-5) finds no staff (null hook). Any other script command (EP-12) fails the
+ * test. What is verified of the decision loop: it clears, sets, iterates, marks, suspends and
+ * starts the perform proc around it, and `AiSetDecision` packs the arguments as the dump bytes (the unit id comes from the active unit, not from the dump; `xMove`/`yMove` are both 5
  * and `xTarget`/`yTarget`/`itemSlot` are 0 in the capture, so only a swap of the target and
  * slot, or a wrong action, is seen). `AiCouldReachByBirdsEyeDistance` and
  * `FillMovementAndRangeMapForItem` (EP-7) are fed from the dump: the reach test says which
@@ -89,6 +99,8 @@ class CpDecideDifferentialTest {
         val decision: WatchTrace
         val red: WatchTrace
         val actionData: WatchTrace
+        val rngWatch: WatchTrace
+        val rng = RngService()
         val map: BmMap
         val log = ArrayList<String>()
         val errors = ArrayList<String>()
@@ -108,11 +120,13 @@ class CpDecideDifferentialTest {
             decision = run.watch("aidecision")
             red = run.watch("red")
             actionData = run.watch("actiondata")
+            rngWatch = run.watch("rng")
+            rng.primary.load(rngWatch.u16(1611, 0), rngWatch.u16(1611, 2), rngWatch.u16(1611, 4))
             map = BmMap(rom, ChapterData(rom), BmSt())
             map.initChapterMap(playSt.chapterIndex)
             val entityMaps = EntityBmMaps(map, units, playSt)
-            val loader = UnitLoader(units, rom, { 0 }, RngService(), { false })
-            cp = CpPhase(engine, rom, playSt, units, loader, map, entityMaps, active)
+            val loader = UnitLoader(units, rom, { 0 }, rng, { false })
+            cp = CpPhase(engine, rom, playSt, units, loader, map, entityMaps, active, rng)
             hook()
         }
 
@@ -132,6 +146,10 @@ class CpDecideDifferentialTest {
                     }
                     0x83 -> {
                         compare(2037, "Soldier 2 before its decision")
+                        // Soldier 1's battle (EP-9) drew from the RNG: take the captured state
+                        rng.primary.load(
+                            rngWatch.u16(2037, 0), rngWatch.u16(2037, 2), rngWatch.u16(2037, 4),
+                        )
                         compareDanger(2037, null, "Soldier 2 before its decision")
                     }
                 }
@@ -162,6 +180,7 @@ class CpDecideDifferentialTest {
                 errors += "rogue special items entered: not in the capture"
                 false
             }
+            val realA = h.tryExecScriptA!!
             h.tryExecScriptA = AiTry {
                 val id = active.unitId
                 log += "scriptA ${hex(id)}"
@@ -170,16 +189,37 @@ class CpDecideDifferentialTest {
                     compare(2038, "Soldier 2 in script A")
                     compareDanger(2038, "r02038", "Soldier 2 in script A")
                 }
-                val frame = if (id == 0x82) 1614 else if (id == 0x83) 2039 else 0
-                if (frame != 0) {
-                    val d = { off: Int -> decision.u8(frame, off) }
-                    cp.decide.aiSetDecision(d(2), d(3), d(0), d(6), d(7), d(8), d(9))
-                }
-                true
+                realA.run()
             }
+            // The only stand-in left inside the script: AiAttemptOffensiveAction (EP-5) sets the
+            // decision from the captured bytes. The RNG state at its call is the capture after
+            // the one draw of AiScriptCmd_05 (f1614 for Soldier 1; f2038 for Soldier 2, whose
+            // search draws once more at f2039).
+            cp.script.hooks.attemptOffensiveAction = AiTestStep { test ->
+                val id = active.unitId
+                log += "offensive ${hex(id)}"
+                val frame = if (id == 0x82) 1614 else 2039
+                val rngFrame = if (id == 0x82) 1614 else 2038
+                for (w in 0 until 3) {
+                    assertEquals(
+                        rngWatch.u16(rngFrame, 2 * w), rng.primary.word(w),
+                        "gRNState word $w at the offensive action of ${hex(id)} (f$rngFrame)",
+                    )
+                }
+                val d = { off: Int -> decision.u8(frame, off) }
+                assertTrue(
+                    test.run(d(6)),
+                    "captured target ${d(6)} of ${hex(id)} is an enemy (f$frame)",
+                )
+                cp.decide.aiSetDecision(d(2), d(3), d(0), d(6), d(7), d(8), d(9))
+            }
+            cp.script.hooks.unportedCommand = AiIntStep {
+                errors += "unwritten script command ${hex(it)} entered: not in the capture"
+            }
+            val realB = h.tryExecScriptB!!
             h.tryExecScriptB = AiTry {
                 log += "scriptB ${hex(active.unitId)}"
-                true
+                realB.run()
             }
             h.healBranch = AiStep { errors += "healing branch entered: not in the capture" }
             h.escapeBranch = AiStep { errors += "escape branch entered: not in the capture" }
@@ -276,6 +316,24 @@ class CpDecideDifferentialTest {
             for (i in ours.indices) {
                 assertEquals(decision.u8(frame, i), ours[i], "gAiDecision byte $i $at")
             }
+            assertEquals(aiState.u8(frame, 0x7E), s.unk7E, "unk7E $at")
+            for (i in 0 until 8) {
+                assertEquals(
+                    aiState.u8(frame, 0x86 + i), s.cmdResult[i].toInt() and 0xFF,
+                    "cmd_result[$i] $at",
+                )
+            }
+            for (u in 0 until 3) {
+                val id = 0x81 + u
+                assertEquals(red.u8(frame, u * 0x48 + 0x42), units.ai1(id), "ai1 of ${hex(id)} $at")
+                assertEquals(
+                    red.u8(frame, u * 0x48 + 0x43), units.aiAPc(id), "ai_a_pc of ${hex(id)} $at",
+                )
+                assertEquals(red.u8(frame, u * 0x48 + 0x44), units.ai2(id), "ai2 of ${hex(id)} $at")
+                assertEquals(
+                    red.u8(frame, u * 0x48 + 0x45), units.aiBPc(id), "ai_b_pc of ${hex(id)} $at",
+                )
+            }
             for (u in 0 until 3) {
                 val captured = red.u32(frame, u * 0x48 + 0x0C) and HAS_MOVED_AI
                 val id = 0x81 + u
@@ -294,6 +352,8 @@ class CpDecideDifferentialTest {
     @VerifiesPort(
         "CpDecide_Main", "CpDecide_Suspend", "AiClearDecision", "AiSetDecision", "AiDecideMain",
         "AiUpdateNoMoveFlag", "AiInitDangerMap", "AiFillDangerMap",
+        "AiTryExecScriptA", "AiTryExecScriptB", "AiScript_Exec",
+        "AiScriptCmd_05_DoStandardAction", "AiScriptCmd_06_DoNothing", "AiScriptCmd_0E_DoNothing",
     )
     fun `the decision loop decides for the three enemies as the capture`() {
         val sim = Sim()
@@ -320,8 +380,8 @@ class CpDecideDifferentialTest {
         assertEquals(
             listOf(
                 "update 81", "scriptA 81", "scriptB 81",
-                "update 82", "scriptA 82", "perform 82", "suspend 3",
-                "update 83", "scriptA 83", "perform 83", "suspend 3",
+                "update 82", "scriptA 82", "offensive 82", "perform 82", "suspend 3",
+                "update 83", "scriptA 83", "offensive 83", "perform 83", "suspend 3",
             ),
             sim.log,
             "the decision calls in order (EP-0 inventory)",

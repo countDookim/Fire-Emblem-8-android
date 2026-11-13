@@ -154,18 +154,18 @@ public class CpDecide(
         public var rogueSpecialItems: AiTry? = null
 
         /**
-         * Stand-in for `AiTryExecScriptA` (cp_script.c; EP-4). Null succeeds without a decision,
-         * as a script that ends at once.
+         * `AiTryExecScriptA`: [CpPhase] sets it to [CpScript.tryExecScriptA]. Null succeeds
+         * without a decision, as a script that ends at once.
          */
         public var tryExecScriptA: AiTry? = null
 
-        /** Stand-in for `AiTryExecScriptB` (cp_script.c; EP-4). Null succeeds, no decision. */
+        /** `AiTryExecScriptB`: [CpPhase] sets it to [CpScript.tryExecScriptB]. Null succeeds. */
         public var tryExecScriptB: AiTry? = null
 
-        /** Stand-in for `AiExecFallbackScriptA` (cp_script.c; EP-4: never entered). */
+        /** Stand-in for `AiExecFallbackScriptA` (cp_script.c; EP-12: never entered). */
         public var execFallbackScriptA: AiStep? = null
 
-        /** Stand-in for `AiExecFallbackScriptB` (cp_script.c; EP-4: never entered). */
+        /** Stand-in for `AiExecFallbackScriptB` (cp_script.c; EP-12: never entered). */
         public var execFallbackScriptB: AiStep? = null
 
         /** Stand-in for `AiDoBerserkAction` (berserk script A; EP-cap2: never entered). */

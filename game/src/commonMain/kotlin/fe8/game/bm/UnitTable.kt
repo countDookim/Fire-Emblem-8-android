@@ -197,6 +197,28 @@ public class UnitTable(
     /** `ai_config` (u16, 0x40) of unit [id]. */
     public fun aiConfig(id: Int): Int = StructCodec.u16(bytes, unitOffset(id) + 0x40)
 
+    /** `ai1` (u8, 0x42) of unit [id]: the index into `gAi1ScriptTable`. */
+    public fun ai1(id: Int): Int = u8(bytes, unitOffset(id) + 0x42)
+
+    /** `ai_a_pc` (u8, 0x43) of unit [id]: the next command of its script A. */
+    public fun aiAPc(id: Int): Int = u8(bytes, unitOffset(id) + 0x43)
+
+    /** Sets `ai_a_pc` (u8, 0x43) of unit [id] (the unit must exist). */
+    public fun setAiAPc(id: Int, value: Int) {
+        bytes[unitOffset(id) + 0x43] = value.toByte()
+    }
+
+    /** `ai2` (u8, 0x44) of unit [id]: the index into `gAi2ScriptTable`. */
+    public fun ai2(id: Int): Int = u8(bytes, unitOffset(id) + 0x44)
+
+    /** `ai_b_pc` (u8, 0x45) of unit [id]: the next command of its script B. */
+    public fun aiBPc(id: Int): Int = u8(bytes, unitOffset(id) + 0x45)
+
+    /** Sets `ai_b_pc` (u8, 0x45) of unit [id] (the unit must exist). */
+    public fun setAiBPc(id: Int, value: Int) {
+        bytes[unitOffset(id) + 0x45] = value.toByte()
+    }
+
     /** `ai_counter` (u8, 0x46) of unit [id]. */
     public fun aiCounter(id: Int): Int = u8(bytes, unitOffset(id) + 0x46)
 

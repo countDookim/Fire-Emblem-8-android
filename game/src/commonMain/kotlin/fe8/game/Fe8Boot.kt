@@ -1035,11 +1035,11 @@ public class Fe8Boot(
             { eventEngine.eventEngineExists() },
         ).wire(phase, main, eventInfos)
         // The enemy phase (EP-2a, EP-3a): `AiPhaseInit`, the unit order and the decision loop.
-        // The script interpreter, danger map and perform proc are stand-ins that decide nothing
-        // (EP-3b, EP-4, EP-8), so End turn runs the enemy banner, marks every enemy as moved and
+        // The script interpreter runs (EP-4); the offensive action, danger map reach and perform
+        // proc are stand-ins that decide nothing (EP-5, EP-7, EP-8), so End turn runs the enemy banner, marks every enemy as moved and
         // goes on to the next player phase.
         val cp = CpPhase(
-            engine, rom, playSt, units, loader, battleBmMap, battleEntityMaps, active,
+            engine, rom, playSt, units, loader, battleBmMap, battleEntityMaps, active, rng,
         )
         cp.decide.hooks.renderBmMap = AiStep { bmapRender.renderBmMap() }
         cp.decide.hooks.refreshUnitSprites = AiStep { main.hooks.refreshUnitSprites() }

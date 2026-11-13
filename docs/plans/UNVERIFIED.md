@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 558 across 80 decomp files (missing reason: 0).
+Total entries: 559 across 81 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -882,6 +882,12 @@ Total entries: 558 across 80 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetChapterMapChangesPointer` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterData.kt` | no test checks it against a trace yet |
+
+## src/cp_script.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `AiIsUnitEnemy` | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | it is only called on the captured target of each attacker, and no captured value shows its result; an allied unit (false) is not seen |
 
 ## src/ctc.c (1)
 

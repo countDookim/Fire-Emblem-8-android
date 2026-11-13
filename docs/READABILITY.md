@@ -79,7 +79,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.bm (MuCtrl, MuSpriteAnim) | 2 | 655 | todo |
 | game | fe8.game.bm (PlayerPhase lines 1-789: to before handlePlayerCursorMovement) | 1 | 789 | todo |
 | game | fe8.game.bm (PlayerPhase lines 790-1547: handlePlayerCursorMovement to end) | 1 | 758 | todo |
-| game | fe8.game.bm (BattleMapStart) | 1 | 624 | done 2026-11-13 HASH |
+| game | fe8.game.bm (BattleMapStart) | 1 | 624 | done 2026-11-13 25d9f084 |
 | game | fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs) | 4 | 973 | done 2026-11-10 ff286fe / 0bfe1ab; audit done 2026-11-13 139c8c3 |
 | game | fe8.game.event (EventScrCore, EventPopup, EventFade, EventGiveItem) | 4 | 826 | done 2026-11-10 077a47d; audit done 2026-11-13 f7fec4f |
 | game | fe8.game.event (EventInfo, EventText) | 2 | 819 | done 2026-11-10 077a47d; audit done 2026-11-13 a2d84eb |

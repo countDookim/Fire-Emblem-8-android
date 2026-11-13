@@ -11,7 +11,8 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- MC-12a (battle forecast slide and display loops): owner PC, until ~04:30Z (from 01:24Z)
+- MC-12a (forecast slide; full suite running): owner PC, until ~02:30Z (from 01:24Z)
+- MC-12b (battle forecast sprites: arrows, multipliers, flash): owner PC, until ~04:30Z (from 01:37Z)
 - Readability audit fe8.game.savemenu, fe8.testing: owner PC, until ~03:30Z (from 01:34Z)
 
 ## Current state

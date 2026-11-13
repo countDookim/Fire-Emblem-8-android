@@ -11,7 +11,8 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- MC-16 (unit death after combat): owner PC, until ~13:00Z (from 09:10Z)
+- MC-16 (unit death; full suite running): owner PC, until ~10:30Z (from 09:14Z)
+- MC-4b (weapon list item panel): owner PC, until ~13:30Z (from 09:25Z)
 - Readability audit fe8.game.save (BmSuspendSave, SuspendRam, Fe8SuspendLayout): owner PC, until ~13:00Z (from 09:21Z)
 
 ## Current state

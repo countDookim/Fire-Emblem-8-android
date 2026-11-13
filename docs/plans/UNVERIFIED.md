@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 551 across 75 decomp files (missing reason: 0).
+Total entries: 552 across 75 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -738,6 +738,13 @@ Total entries: 551 across 75 decomp files (missing reason: 0).
 | `DecodeString` | `engine/text/src/commonMain/kotlin/gbafe/text/MsgHuffman.kt` | shares its loop with [decode], which carries the verified port tag |
 | `DrawGlyph` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | exercised only through the Text_DrawCharacter test |
 
+## src/bmmenu.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `sub_8022E38` | `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | the Prologue map fits the screen, so the camera never moves and no mutation changes captured data |
+| `WeaponSelectMenu_Draw` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | the row itself is drawn by [Hooks.drawItemMenuLine], MC-4, so no captured tile shows its arguments |
+
 ## src/bmsave-gmap.c (2)
 
 | Function | Kotlin file | Reason |
@@ -826,12 +833,6 @@ Total entries: 551 across 75 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetEnemyStartCursorPosition` | `game/src/commonMain/kotlin/fe8/game/bm/ResetCursorPosition.kt` | the reference runs only reset the cursor in the player phase |
-
-## src/bmmenu.c (1)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `WeaponSelectMenu_Draw` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | the row itself is drawn by [Hooks.drawItemMenuLine], MC-4, so no captured tile shows its arguments |
 
 ## src/bmreliance.c (1)
 

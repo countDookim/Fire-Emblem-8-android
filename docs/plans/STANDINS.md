@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 186 across 36 Kotlin files.
+Total entries: 192 across 37 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -25,9 +25,11 @@ Total entries: 186 across 36 Kotlin files.
 | M6-J | 8 |
 | D09-3 | 2 |
 | D11-wire-a | 2 |
+| MC-10 | 6 |
+| MC-11 | 1 |
 | MC-14 | 1 |
 | MC-4 | 4 |
-| MC-6 | 2 |
+| MC-6 | 1 |
 | MC-8b | 1 |
 | PP-10 | 1 |
 | PP-17 | 1 |
@@ -263,6 +265,23 @@ Total entries: 186 across 36 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `fadeOutSe` | `Sound_FadeOutSE(speed)`: stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet; the Prologue leaves through the other branch of `destruct`). |
 
+## MC-10 (6)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wireAttackSelect` | The battle forecast (MC-10) is not shown; A on a target ends the unit's turn like Wait (stand-in until MC-11, no battle). |
+| `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `closeForecast` | Stand-in until MC-10. |
+| `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `forecastExists` | Stand-in until MC-10: it is gone at once. |
+| `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `newBattleForecast` | Stand-in until MC-10: nothing is shown. |
+| `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `startForecastHelp` | Stand-in until MC-10: nothing happens (the selection's `onHelp`). |
+| `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `updateForecast` | Stand-in until MC-10: nothing is shown. |
+
+## MC-11 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `applyUnitActionWait` | Stand-in until MC-11: a combat action (A on an attack target) ends the unit's turn like Wait, without the battle. |
+
 ## MC-14 (1)
 
 | Kotlin file | Declaration | Stand-in |
@@ -278,11 +297,10 @@ Total entries: 186 across 36 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `startUnitFace` | Stand-in until MC-4 (the faces of the menu). |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `updateMenuItemPanel` | Stand-in until MC-4. |
 
-## MC-6 (2)
+## MC-6 (1)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `attackInfo` | Stand-in until MC-6: the cursor walks the targets with the range squares shown and no forecast or facing; A (confirm sound) and B (cancel sound) both end the selection and reopen the unit menu, so... |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `startAttackTargetSelection` | The game wires [TargetSelection] with the attack callbacks (MC-6, MC-10 stand-ins). |
 
 ## MC-8b (1)

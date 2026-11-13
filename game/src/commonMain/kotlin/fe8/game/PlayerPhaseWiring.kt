@@ -1,6 +1,7 @@
 package fe8.game
 
 import fe8.game.bm.ActiveUnit
+import fe8.game.bm.AttackMapSelect
 import fe8.game.bm.AttackRange
 import fe8.game.bm.AttackTargets
 import fe8.game.bm.BMapMain
@@ -24,6 +25,7 @@ import fe8.game.bm.SelectTargets
 import fe8.game.bm.TargetSelection
 import fe8.game.bm.UnitActionMenu
 import fe8.game.bm.UnitLoader
+import fe8.game.bm.UnitFacing
 import fe8.game.bm.UnitSpriteHandles
 import fe8.game.bm.UnitTable
 import fe8.game.event.EventInfos
@@ -127,36 +129,7 @@ internal class PlayerPhaseWiring(
         it.hooks.unlockGame = { loop.unlockGame() }
     }
 
-    /**
-     * `gSelectInfo_Attack` (src/menu_def.c): the callbacks are bmmenu.c's `AttackMapSelect_*`
-     * (MC-6) and the battle forecast (MC-10). Stand-in until MC-6: the cursor walks the targets
-     * with the range squares shown and no forecast or facing; A (confirm sound) and B (cancel
-     * sound) both end the selection and reopen the unit menu, so the player is never stuck and
-     * nothing attacks. The weapon stays equipped.
-     */
-    private val attackInfo = object : TargetSelection.SelectInfo {
-        override fun onEnd(proc: Proc) {
-            moveLimitView.hideMoveRangeGraphics()
-        }
-
-        override fun onSelect(proc: Proc, target: Int): Int {
-            reopenUnitMenu()
-            return TargetSelection.ACTION_ENDFAST or TargetSelection.ACTION_END or
-                TargetSelection.ACTION_SE_6A or TargetSelection.ACTION_CLEARBGS
-        }
-
-        override fun onCancel(proc: Proc, target: Int): Int {
-            reopenUnitMenu()
-            return TargetSelection.ACTION_ENDFAST or TargetSelection.ACTION_END or
-                TargetSelection.ACTION_SE_6B
-        }
-    }
-
-    private fun reopenUnitMenu() {
-        menu.startSemiCenteredOrphanMenu(
-            Menu.UNIT_ACTION_MENU_DEF, bm.cursorTargetX - bm.cameraX, 1, 22,
-        )
-    }
+    private lateinit var attackSelect: AttackMapSelect
 
     private val mapMenu = MapMenu(
         engine, rom, playSt, flags, hw, talk.text, talk.messages,
@@ -195,7 +168,25 @@ internal class PlayerPhaseWiring(
         phase.hooks.endSideWindows = ProcFunc { pi.endPlayerPhaseSideWindows() }
     }
 
+    /**
+     * `gSelectInfo_Attack`: [AttackMapSelect]. The battle forecast (MC-10) is not shown; A on a
+     * target ends the unit's turn like Wait (stand-in until MC-11, no battle).
+     */
+    private fun wireAttackSelect(phase: PlayerPhase) {
+        val facing = UnitFacing(units, active, phase.workingMovementScript)
+        facing.setAutoMuMoveScript = { script -> mu.setAutoMuMoveScript(script) }
+        val select = AttackMapSelect(
+            engine, attackTargets.targets, active, units, facing, camMove, hw,
+        )
+        select.hooks.hideMoveRangeGraphics = { moveLimitView.hideMoveRangeGraphics() }
+        select.hooks.lockGame = { loop.lockGame() }
+        select.hooks.unlockGame = { loop.unlockGame() }
+        select.hooks.restartWeaponList = { unitMenu.unitActionMenuAttackFromProc() }
+        attackSelect = select
+    }
+
     private fun wireMenus(phase: PlayerPhase) {
+        wireAttackSelect(phase)
         unitMenu.hooks.weaponTargetCount = { unit, item ->
             attackTargets.makeTargetListForWeapon(unit, item)
             attackTargets.targets.getSelectTargetCount()
@@ -205,7 +196,7 @@ internal class PlayerPhaseWiring(
         }
         unitMenu.hooks.cursorScreenX = { bm.cursorTargetX - bm.cameraX }
         unitMenu.hooks.startAttackTargetSelection = {
-            targetSelection.newTargetSelection(attackInfo)
+            targetSelection.newTargetSelection(attackSelect)
         }
         unitMenu.hooks.drawItemMenuLine = UnitActionMenu.ItemLineDrawer { row, item, usable, at ->
             itemLine.drawItemMenuLine(row, item, usable, hw.mapBuffer(0), at)

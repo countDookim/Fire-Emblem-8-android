@@ -2,6 +2,7 @@ package fe8.testing
 
 import fe8.game.RomView
 import fe8.game.bm.ActiveUnit
+import fe8.game.bm.AttackMapSelect
 import fe8.game.bm.AttackRange
 import fe8.game.bm.AttackTargets
 import fe8.game.bm.BmMap
@@ -14,6 +15,7 @@ import fe8.game.bm.MapCursor
 import fe8.game.bm.PlaySt
 import fe8.game.bm.SelectTargets
 import fe8.game.bm.TargetSelection
+import fe8.game.bm.UnitFacing
 import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitTable
 import gba.core.VerifiesPort
@@ -22,6 +24,7 @@ import gbafe.core.rng.RngService
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
+import gbafe.render.BgHardware
 import gbafe.render.SpriteLayers
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -58,21 +61,25 @@ class TargetSelectionDifferentialTest {
     @VerifiesPort(
         "NewTargetSelection", "TargetSelection_Loop", "TargetSelection_HandleSelectInput",
         "TargetSelection_GetRealCursorPosition", "EndTargetSelection",
+        "AttackMapSelect_SwitchIn", "AttackMapSelect_Select", "AttackMapSelect_Cancel",
+        "AttackMapSelect_End", "ChangeActiveUnitFacing", "GetFacingDirection",
     )
     fun `the target selection follows the game from the pick to B and to A`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
         val cancelled = Sim(FIRST_START)
-        for (f in FIRST_START..B_FRAME) cancelled.frame(f)
+        for (f in FIRST_START..RESTART_FRAME) cancelled.frame(f)
         assertEquals(1, cancelled.cancels, "B cancelled once")
         assertEquals(0, cancelled.selects, "A did not select")
         assertEquals(listOf(0x6B), cancelled.sounds, "cancel sound")
+        assertEquals(listOf(RESTART_FRAME), cancelled.restarts, "the weapon list reopens")
+        assertEquals(1, cancelled.facingCalls, "facing set once")
         val confirmed = Sim(SECOND_START)
         for (f in SECOND_START..A_FRAME) confirmed.frame(f)
         assertEquals(1, confirmed.selects, "A selected once")
         assertEquals(0, confirmed.cancels, "B did not cancel")
         assertEquals(listOf(0x6A), confirmed.sounds, "select sound")
-        assertEquals(1, confirmed.ends, "the selection ended once")
+        assertEquals(emptyList<Int>(), confirmed.restarts, "no weapon list")
     }
 
     private inner class Sim(val start: Int) {
@@ -94,8 +101,14 @@ class TargetSelectionDifferentialTest {
         val procNames = ProcArrayDump.romNames()
         var clock = 0
         var cancels = 0
-        var selects = 0
-        var ends = 0
+        val selects: Int get() = if (active.action.unitActionType == 2) 1 else 0
+        var facingCalls = 0
+        val restarts = ArrayList<Int>()
+        var frameNow = 0
+        val script = IntArray(0x40)
+        val hw = BgHardware()
+        val camMove = CamMove(engine, bm)
+        val select: AttackMapSelect
         val sounds = ArrayList<Int>()
         var proc: Proc? = null
 
@@ -104,9 +117,21 @@ class TargetSelectionDifferentialTest {
             val items = ItemInfo(rom)
             val range = AttackRange(map, units, items, EntityBmMaps(map, units, playSt), loader)
             attack = AttackTargets(map, units, items, range, ByteArray(TRAP_POOL_SIZE), targets)
-            selection = TargetSelection(
-                engine, targets, keys, CamMove(engine, bm), {},
-            )
+            selection = TargetSelection(engine, targets, keys, camMove, {})
+            val facing = UnitFacing(units, active, script)
+            facing.setAutoMuMoveScript = { facingCalls++ }
+            select = AttackMapSelect(engine, targets, active, units, facing, camMove, hw)
+            select.hooks.lockGame = { bm.lock = (bm.lock + 1) and 0xFF }
+            select.hooks.unlockGame = { bm.lock = (bm.lock - 1) and 0xFF }
+            // `gProcScr_BKSEL` is MC-10: it lives as long as the dumps show it.
+            select.hooks.forecastExists = {
+                ProcArrayDump.ofEwram(ewram(frameNow + 1), procNames).find(BKSEL) != null
+            }
+            select.hooks.restartWeaponList = {
+                restarts.add(frameNow)
+                // The weapon list (`WeaponSelectMenuDifferentialTest`) locks the game while open.
+                bm.lock = (bm.lock + 1) and 0xFF
+            }
             selection.hooks.lockGame = { bm.lock = (bm.lock + 1) and 0xFF }
             selection.hooks.unlockGame = { bm.lock = (bm.lock - 1) and 0xFF }
             selection.hooks.playSoundEffect = { sounds.add(it) }
@@ -136,6 +161,16 @@ class TargetSelectionDifferentialTest {
             active.unit = units.bytes[pointer - UnitTable.BLUE_ADDRESS + 0x0B].toInt() and 0xFF
             // The weapon list's end (the menu proc, MC-3b) unlocks the game as the pick returns.
             bm.lock = (bm.lock - 1) and 0xFF
+            for (i in 0 until 0x40) script[i] = e[WORKING_SCRIPT - EWRAM + i].toInt() and 0xFF
+            for (k in 0 until 0x400) hw.mapBuffer(2)[k] = half(e, BG2 - EWRAM + 2 * k).toShort()
+            val a = ACTION_DATA - EWRAM
+            active.action.subjectIndex = e[a + 0x0C].toInt() and 0xFF
+            active.action.targetIndex = e[a + 0x0D].toInt() and 0xFF
+            active.action.xMove = e[a + 0x0E].toInt() and 0xFF
+            active.action.yMove = e[a + 0x0F].toInt() and 0xFF
+            active.action.moveCount = e[a + 0x10].toInt() and 0xFF
+            active.action.unitActionType = e[a + 0x11].toInt() and 0xFF
+            active.action.itemSlotIndex = e[a + 0x12].toInt() and 0xFF
             cursor.lastCoordX = s16(e, SLAST_COORD - EWRAM)
             cursor.lastCoordY = s16(e, SLAST_COORD - EWRAM + 2)
             cursor.lastTimeDrawn = u32(e, SLAST_TIME - EWRAM)
@@ -143,6 +178,7 @@ class TargetSelectionDifferentialTest {
 
         fun frame(f: Int) {
             val d = f + 1
+            frameNow = f
             keys.update(data.inputs[f])
             clock = u32(iwram(d), CLOCK - IWRAM)
             sprites.clear()
@@ -151,30 +187,9 @@ class TargetSelectionDifferentialTest {
                 // The weapon menu's proc starts it in tree 3 (the dump has the selection proc's
                 // first run one frame later).
                 attack.makeTargetListForWeapon(active.unit, units.item(active.unit, 0))
-                proc = selection.newTargetSelection(info)
+                proc = selection.newTargetSelection(select)
             }
             compare(d, f)
-        }
-
-        private val info = object : TargetSelection.SelectInfo {
-            override fun onEnd(proc: Proc) {
-                ends++
-            }
-
-            override fun onSelect(proc: Proc, target: Int): Int {
-                selects++
-                return TargetSelection.ACTION_ENDFAST or TargetSelection.ACTION_END or
-                    TargetSelection.ACTION_SE_6A or TargetSelection.ACTION_CLEARBGS
-            }
-
-            override fun onCancel(proc: Proc, target: Int): Int {
-                cancels++
-                // `AttackMapSelect_Cancel` starts `gProcScr_0859B630` (MC-6); its first command
-                // is `LockGame`.
-                bm.lock = (bm.lock + 1) and 0xFF
-                return TargetSelection.ACTION_ENDFAST or TargetSelection.ACTION_END or
-                    TargetSelection.ACTION_SE_6B
-            }
         }
 
         private fun compare(d: Int, f: Int) {
@@ -191,6 +206,28 @@ class TargetSelectionDifferentialTest {
                     LIST + 12 * state.currentTarget, original.u32(0x30), "$at current target",
                 )
                 assertEquals(0, original.u32(0x38), "$at onAPress")
+            }
+            val cancelProc = dump.find(CANCEL_SCRIPT)
+            if (cancelProc != null) cancels = 1
+            val cancelMine = engine.find(select.cancelScript) != null
+            assertEquals(cancelProc != null, cancelMine, "$at cancel proc")
+            for (i in 0 until 0x40) {
+                assertEquals(
+                    e[WORKING_SCRIPT - EWRAM + i].toInt() and 0xFF, script[i],
+                    "$at movement script $i",
+                )
+            }
+            val a = ACTION_DATA - EWRAM
+            assertEquals(e[a + 0x0D].toInt() and 0xFF, active.action.targetIndex, "$at target")
+            assertEquals(e[a + 0x11].toInt() and 0xFF, active.action.unitActionType, "$at action")
+            assertEquals(e[a + 0x12].toInt() and 0xFF, active.action.itemSlotIndex, "$at slot")
+            assertEquals(e[a + 0x13].toInt() and 0xFF, active.action.xOther, "$at xOther")
+            assertEquals(e[a + 0x14].toInt() and 0xFF, active.action.yOther, "$at yOther")
+            for (k in 0 until 0x400) {
+                assertEquals(
+                    half(e, BG2 - EWRAM + 2 * k), hw.mapBuffer(2)[k].toInt() and 0xFFFF,
+                    "$at BG2[$k]",
+                )
             }
             val want = BmSt().apply { decode(e, BM_ST - EWRAM) }
             assertEquals(want.lock, bm.lock, "$at lock")
@@ -255,6 +292,12 @@ class TargetSelectionDifferentialTest {
         const val MID_FRAME_DUMP = 3
         const val FIRST_START = 1659
         const val B_FRAME = 1699
+        const val RESTART_FRAME = 1703
+        const val BKSEL = 0x0859E520
+        const val CANCEL_SCRIPT = 0x0859B630
+        const val WORKING_SCRIPT = 0x02033EFC
+        const val ACTION_DATA = 0x0203A958
+        const val BG2 = 0x02023CA8
         const val SECOND_START = 1789
         const val A_FRAME = 1819
 

@@ -116,7 +116,7 @@ class WeaponSelectMenuDifferentialTest {
     }
 
     @Test
-    @VerifiesPort("ItemMenu_ButtonBPressed")
+    @VerifiesPort("ItemMenu_ButtonBPressed", "sub_8022E54")
     fun `cancelling the weapon list restarts the unit menu`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
@@ -354,12 +354,9 @@ class WeaponSelectMenuDifferentialTest {
                 )
             }
             if (f == CANCEL_SEED) {
-                // The target selection's cancel proc (MC-6) starts the weapon list.
-                // It resets the icons like the Attack command (the dump of f1704 has them reset).
-                unitMenu.hooks.resetIconGraphics()
-                unitMenu.hooks.loadIconPalettes.invoke(4)
-                menu.startOrphanMenu(Menu.WEAPON_SELECT_MENU_DEF)
-                unitMenu.hooks.forceMenuItemPanel.invoke(active.unit)
+                // The target selection's cancel proc (`gProcScr_0859B630`, its timing is in
+                // `TargetSelectionDifferentialTest`) runs `sub_8022E54`.
+                unitMenu.unitActionMenuAttackFromProc()
             }
             sprites.clear()
             for (tree in 0 until 8) engine.run(engine.root(tree))

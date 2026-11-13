@@ -40,10 +40,11 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      weapon's reach stay. The row shows the weapon's icon, name and uses (MC-4a, not yet in a published
      APK); there is no face or item panel (MC-4b). A on
      a weapon (MC-3b, not yet in a published APK) equips it and clears the list; the red cursor
-     then sits on the enemy in reach (MC-5, not yet in a published APK) with the attack squares
-     still shown, and there is no forecast box or facing change (MC-6, MC-10). A (confirm sound)
-     or B (cancel sound) ends the cursor, hides the squares and reopens the unit menu (stand-in
-     until MC-6: nothing attacks, and B does not return to the weapon list).
+     then sits on the enemy in reach (MC-5) and Eirika turns towards it (MC-6, not yet in a
+     published APK) with the attack squares still shown; there is no forecast box (MC-10). B
+     (cancel sound) hides the cursor and squares and reopens the weapon list. A (confirm sound)
+     ends the cursor and squares and Eirika greys out as after Wait: the attack itself
+     (battle, damage, experience) is not there yet (stand-in until MC-11).
   4. B in the unit menu. Expected: she is back at her start tile and selected again, the range shows.
      Move again and choose Wait. Expected: the menu closes, Eirika greys out, the cursor is free.
   5. Press A on an empty tile. Expected: the map menu (Unit, Status, Guide, Options, Suspend,

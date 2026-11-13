@@ -78,6 +78,10 @@ public class PlayerPhase(
      */
     private val pathArrow: PathArrow? = null,
 ) {
+    /** `gWorkingMovementScript` (the path arrow's, shared with the facing command). */
+    public val workingMovementScript: IntArray
+        get() = checkNotNull(pathArrow) { "no PathArrow" }.workingMovementScript
+
     /** The unit sprite hover controller ([UnitSpriteHover]). */
     public val hover: UnitSpriteHover = UnitSpriteHover(bm, map, units)
 
@@ -613,7 +617,8 @@ public class PlayerPhase(
      * Ported from src/bmmind.c: ApplyUnitAction
      *
      * The Wait branch only (verified for Wait; every other action type is not written and fails
-     * loudly).
+     * loudly). Stand-in until MC-11: a combat action (A on an attack target) ends the unit's
+     * turn like Wait, without the battle.
      *
      * Makes the subject the active unit; Wait and Trapped set `US_HAS_MOVED` and go on (true).
      * The Nightmare check of a combat action is part of the combat branch (not written).
@@ -622,7 +627,8 @@ public class PlayerPhase(
         active.unit = active.action.subjectIndex
         check(
             active.action.unitActionType == UNIT_ACTION_WAIT_TYPE ||
-                active.action.unitActionType == UNIT_ACTION_TRAPPED,
+                active.action.unitActionType == UNIT_ACTION_TRAPPED ||
+                active.action.unitActionType == UNIT_ACTION_COMBAT,
         ) {
             "ApplyUnitAction: action ${active.action.unitActionType} is not written"
         }

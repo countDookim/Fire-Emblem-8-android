@@ -367,6 +367,24 @@ Findings: the proc first runs (and puts the cursor) one frame after it starts; t
 callbacks stay stand-ins: until MC-6 `AttackMapSelect_*` are replaced by A and B ending the selection and reopening the
 unit menu (range hidden); the forecast is MC-10. The camera never moves in the capture.
 
+### MC-6 result
+
+`TargetSelectionDifferentialTest` now runs the real `AttackMapSelect` (the callbacks of `gSelectInfo_Attack`) on the two
+MC-5 windows: B at game frame 1699 continued to 1703 (the cancel proc and the weapon list restart) and A at 1819.
+Per frame it also compares `gWorkingMovementScript` (the facing command, 07 04 at dump 1660), `gActionData` (target
+0x82, action 2 at dump 1820, item slot, `xOther`/`yOther`), BG2 (`AttackMapSelect_End` clears it), the camera, the lock
+(B: End unlocks, the cancel proc locks, the weapon list locks, the proc unlocks) and the cancel proc's existence.
+The restart is `WeaponSelectMenuDifferentialTest`'s cancel window, which now calls the ported `sub_8022E54`
+(`UnitActionMenu.unitActionMenuAttackFromProc`) instead of its start stub. Ported and break-checked:
+`AttackMapSelect_SwitchIn`, `_Select`, `_Cancel`, `_End`, `sub_8022E54`, `ChangeActiveUnitFacing`,
+`GetFacingDirection` (mapanim_api.c, needed by the facing; new in `UnitFacing`); the proc `gProcScr_0859B630` is
+`AttackMapSelect.cancelScript`. Transcribed: `sub_8022E38` (the map fits the screen, the camera never moves). Inside the ported ones (not verified): the event-engine-running returns, the wall or
+trap target (`uid == 0`), the R help. Findings: the weapon list reopens at game frame 1703, the frame the forecast
+proc `gProcScr_BKSEL` (MC-10, modelled in the test by the dumps) is gone; `NewBattleForecast`,
+`BattleGenerateSimulation` + `UpdateBattleForecastContents` (SwitchIn), `Proc_EndEach(BKSEL)`/`CloseBattleForecast`
+and `StartBattleForecastHelpBox` are hooks, stand-in until MC-10. On a device A on a target sets the combat action and
+`ApplyUnitAction` ends the unit's turn like Wait (stand-in until MC-11: no battle).
+
 ## M7
 
 Not broken down here: [M7-modding](M7-modding.md) has 23 proposed rows; they wait for owner decisions D2–D9.

@@ -273,6 +273,20 @@ public class UnitActionMenu(
         return startUnitWeaponSelect(menu, menuItem)
     }
 
+    private val noMenu = Menu.MenuProc()
+    private val noItem = Menu.MenuItemProc().also { it.availability = Menu.MENU_ENABLED }
+
+    /**
+     * Ported from src/bmmenu.c: sub_8022E54
+     *
+     * `UnitActionMenu_Attack(NULL, NULL)`: what the cancel proc of the target selection runs to
+     * reopen the weapon list. The original reads the NULL item's availability from the BIOS area
+     * (not reproduced: the item counts as enabled).
+     */
+    public fun unitActionMenuAttackFromProc() {
+        unitActionMenuAttack(noMenu, noItem)
+    }
+
     /**
      * Ported from src/bmmenu.c: StartUnitWeaponSelect
      *

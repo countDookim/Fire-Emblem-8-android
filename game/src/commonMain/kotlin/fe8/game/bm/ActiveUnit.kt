@@ -28,6 +28,12 @@ public class ActionData {
     /** `itemSlotIndex` (u8, 0x12): the inventory slot of the item the action uses. */
     public var itemSlotIndex: Int = 0
 
+    /** `xOther` (u8, 0x13): the tile an action without a unit target (a wall or trap) aims at. */
+    public var xOther: Int = 0
+
+    /** `yOther` (u8, 0x14). */
+    public var yOther: Int = 0
+
     /** `trapType` (u8, 0x15). */
     public var trapType: Int = 0
 

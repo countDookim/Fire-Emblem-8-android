@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1183,
+    "verified": 1188,
     "implemented_unverified": 23
   },
   "functions": {
@@ -454,6 +454,56 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "BattleCheckBraveEffect": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
+    "BattleCheckGreatShield": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
+    "BattleCheckPetrify": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
+    "BattleCheckPierce": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
+    "BattleCheckSureShot": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
       ]
     },
     "BattleForecastHitCountUpdate": {
@@ -3360,7 +3410,7 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",

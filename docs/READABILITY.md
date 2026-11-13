@@ -77,7 +77,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.bm (Mu lines 1-462: to before setMuFacing) | 1 | 462 | done 2026-11-13 ef3792d1 |
 | game | fe8.game.bm (Mu lines 463-997: setMuFacing to end) | 1 | 535 | done 2026-11-13 d091e5cc |
 | game | fe8.game.bm (MuCtrl, MuSpriteAnim) | 2 | 655 | done 2026-11-13 62e76692 |
-| game | fe8.game.bm (PlayerPhase lines 1-789: to before handlePlayerCursorMovement) | 1 | 789 | done 2026-11-13 HASH |
+| game | fe8.game.bm (PlayerPhase lines 1-789: to before handlePlayerCursorMovement) | 1 | 789 | done 2026-11-13 817a650c |
 | game | fe8.game.bm (PlayerPhase lines 790-1547: handlePlayerCursorMovement to end) | 1 | 758 | todo |
 | game | fe8.game.bm (BattleMapStart) | 1 | 624 | done 2026-11-13 25d9f084 |
 | game | fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs) | 4 | 973 | done 2026-11-10 ff286fe / 0bfe1ab; audit done 2026-11-13 139c8c3 |

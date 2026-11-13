@@ -12,7 +12,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - EP-5: owner PC, until ~23:10Z
-- Readability bm PlayerPhase lines 1-789: owner PC, until ~22:30Z
+- Readability bm PlayerPhase lines 790-1547: owner PC, until ~22:40Z
 
 ## Current state
 

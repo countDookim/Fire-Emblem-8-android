@@ -2137,7 +2137,7 @@ public class OpAnim(
 
     /**
      * Slides the first face screen's three faces (with shadows and window masks) in from the
-     * right, 4 steps apart, over 0x14 steps; then breaks.
+     * left, 4 steps apart (the first face leads), over 0x14 steps; then breaks.
      *
      * Ported from src/opanim-main.c: sub_80CAA38
      */
@@ -2150,9 +2150,12 @@ public class OpAnim(
             val y = 0x34 * k - 0x14 // 0xEC, 0x20, 0x54 as u8
             // Each face is three OBJs: the face, its shadow (OAM attr0 mode bits 0x400 = semi-
             // transparent) and an OBJ-window mask (0x800) that clips what the window shows.
-            sprites.putExt(1, (x - 0x30) and 0x1FF, y and 0xFF, g.faceObj, 0xF0 * k + (2 * k shl 12))
-            sprites.putExt(2, (x - 0x2C) and 0x1FF, 0x400 or (y and 0xFF), g.faceObj, 0x78 + 0xF0 * k + ((2 * k + 1) shl 12))
-            sprites.putExt(0, (x - 0x30) and 0x1FF, 0x800 or ((y + 0x18) and 0xFF), g.faceWindowObj, 0)
+            sprites.putExt(1, (x - 0x30) and 0x1FF, y and 0xFF, g.faceObj,
+                0xF0 * k + (2 * k shl 12))
+            sprites.putExt(2, (x - 0x2C) and 0x1FF, 0x400 or (y and 0xFF), g.faceObj,
+                0x78 + 0xF0 * k + ((2 * k + 1) shl 12))
+            sprites.putExt(0, (x - 0x30) and 0x1FF, 0x800 or ((y + 0x18) and 0xFF),
+                g.faceWindowObj, 0)
         }
         if (st.timer == 0x14) {
             st.timer = 0
@@ -2163,8 +2166,9 @@ public class OpAnim(
     }
 
     /**
-     * Pulses the ring with [period] and loads [faces] into OBJ VRAM (one per step from step 1);
-     * breaks at step [last]. Each C function hard-codes its faces, period and last step.
+     * Pulses the ring with [period] (see [pulseRing]) and loads [faces] into OBJ VRAM (face
+     * image, its palette and its shadow image; one face per step from step 1); breaks at step
+     * [last]. Each C function hard-codes its faces, period and last step.
      *
      * Ported from src/opanim-main.c: sub_80C8ED4, sub_80C9024, sub_80C9100, sub_80C9218
      * Ported from src/opanim-main.c: sub_80C9330, sub_80C940C, sub_80C955C, sub_80C9638
@@ -2190,8 +2194,8 @@ public class OpAnim(
     }
 
     /**
-     * Slides the second face screen's four faces in diagonally from the corners over 0x12 steps;
-     * then breaks.
+     * Slides the second face screen's four faces in from the four corners (x from the left or
+     * right, y from the top or bottom, all four at once) over 0x12 steps; then breaks.
      *
      * Ported from src/opanim-main.c: sub_80CABB0
      */
@@ -2205,10 +2209,12 @@ public class OpAnim(
         val y2 = faceSlideX(0x76, 1, t, 0x12)
         fun put(k: Int, x: Int, y: Int) {
             if (x == 0xFFFF || y == 0xFFFF || y < -0x28 || y >= 0xC9) return
-            sprites.putExt(1, (x - 0x30) and 0x1FF, (y - 0x28) and 0xFF, g.faceObj, 0xF0 * k + (2 * k shl 12))
+            sprites.putExt(1, (x - 0x30) and 0x1FF, (y - 0x28) and 0xFF, g.faceObj,
+                0xF0 * k + (2 * k shl 12))
             sprites.putExt(2, (x - 0x2C) and 0x1FF, ((y - 0x28) and 0xFF) or 0x400, g.faceObj,
                 0x78 + 0xF0 * k + ((2 * k + 1) shl 12))
-            sprites.putExt(0, (x - 0x30) and 0x1FF, ((y - 0x20) and 0xFF) or 0x800, g.faceWindowObj2, 0)
+            sprites.putExt(0, (x - 0x30) and 0x1FF, ((y - 0x20) and 0xFF) or 0x800,
+                g.faceWindowObj2, 0)
         }
         put(0, x1, y1)
         put(1, x1, y2)
@@ -2237,7 +2243,8 @@ public class OpAnim(
             if (x == 0xFFFF) continue
             val dx = if (k == 0) 0x20 else 0x40
             sprites.putExt(1, (x - dx) and 0x1FF, 0x20, g.faceObj, 0xF0 * k + (2 * k shl 12))
-            sprites.putExt(2, (x - dx + 4) and 0x1FF, 0x420, g.faceObj, 0x78 + 0xF0 * k + ((2 * k + 1) shl 12))
+            sprites.putExt(2, (x - dx + 4) and 0x1FF, 0x420, g.faceObj,
+                0x78 + 0xF0 * k + ((2 * k + 1) shl 12))
             sprites.putExt(0, (x - 0x38) and 0x1FF, 0x838, g.faceWindowObj3, 0)
         }
         if (st.timer == 0x10) {
@@ -2249,8 +2256,9 @@ public class OpAnim(
     }
 
     /**
-     * Slides the fourth (fifth) face screen's three faces in from the top (bottom: [dir] -1, +1),
-     * 4 steps apart, over [last] steps (0xF, 0xD); then breaks.
+     * Slides the fourth face screen's three faces in from the top ([dir] -1, [last] 0xF) or the
+     * fifth's from the bottom ([dir] +1, [last] 0xD), 4 steps apart (the leftmost face leads);
+     * then breaks.
      *
      * Ported from src/opanim-main.c: sub_80CAF2C, sub_80CB0A0
      */
@@ -2262,7 +2270,8 @@ public class OpAnim(
             if (y == 0xFFFF || y < -0x28 || y >= 0xC9) continue
             val oy = (y - 0x28) and 0xFF
             sprites.putExt(1, 0x48 * k, oy, g.faceObj, 0xF0 * k + (2 * k shl 12))
-            sprites.putExt(2, 0x48 * k + 4, oy or 0x400, g.faceObj, 0x78 + 0xF0 * k + ((2 * k + 1) shl 12))
+            sprites.putExt(2, 0x48 * k + 4, oy or 0x400, g.faceObj,
+                0x78 + 0xF0 * k + ((2 * k + 1) shl 12))
             sprites.putExt(0, 0x48 * k + 0x10, oy or 0x800, g.faceWindowObj4, 0)
         }
         if (st.timer == last) {
@@ -2274,16 +2283,17 @@ public class OpAnim(
     }
 
     /**
-     * Slides the sixth (eighth) face screen's two faces in from the left ([dir] -1; right: +1) to
-     * x [a], the upper face 4 steps later, over [last] steps (0xB, 9); then breaks.
+     * Slides the sixth face screen's two faces in from the left ([dir] -1, [last] 0xB) or the
+     * eighth's from the right ([dir] +1, [last] 9) to x [targetX]; the upper face leads and the
+     * lower one follows 4 steps later; then breaks.
      *
      * Ported from src/opanim-main.c: sub_80CB20C, sub_80CB594
      */
-    public fun faces6In(proc: Proc, a: Int, dir: Int, last: Int) {
+    public fun faces6In(proc: Proc, targetX: Int, dir: Int, last: Int) {
         val st = proc.state as State
         val g = castGfx()
         for (k in 0 until 2) {
-            val x = faceSlideX(a, dir, st.timer + 6 - 4 * k, last)
+            val x = faceSlideX(targetX, dir, st.timer + 6 - 4 * k, last)
             if (x == 0xFFFF) continue
             val dx = 0x20 * (k + 1)
             val y = 6 + 0x34 * k
@@ -2302,7 +2312,9 @@ public class OpAnim(
 
     /**
      * The seventh face screen: two faces slide in from the top and bottom in the middle while two
-     * windows open over the side faces over 10 steps; then breaks.
+     * windows (WIN0 and WIN1, blending enabled, BG2 and OBJ visible) open vertically over the
+     * side faces over 10 steps (steps 2..9; the side faces' four OBJs are put every step); then
+     * breaks.
      *
      * Ported from src/opanim-main.c: sub_80CB320
      */
@@ -2349,9 +2361,9 @@ public class OpAnim(
     }
 
     /**
-     * Slides the ninth (eleventh) face screen's three faces, one above the other, in from the
-     * bottom ([dir] +1, lowest face first; top: -1, highest first), 4 steps apart, over [last]
-     * steps (8, 6); then breaks.
+     * Slides the ninth face screen's three faces, one above the other, in from the bottom
+     * ([dir] +1, [last] 8, the highest face leads) or the eleventh's from the top ([dir] -1,
+     * [last] 6, the lowest face leads), 4 steps apart; then breaks.
      *
      * Ported from src/opanim-main.c: sub_80CB6A0, sub_80CBA64
      */
@@ -2412,8 +2424,8 @@ public class OpAnim(
 
     /**
      * Slides the twelfth face screen's two faces in from the left and right over 5 steps; on step
-     * 1 loads the blinking ring's map (`Tsa_OpAnimShiningRingBlinking`, palette bank 8) to BG VRAM
-     * 0xF000; then breaks.
+     * 1 loads the blinking ring's map (`Tsa_OpAnimShiningRingBlinking`) to VRAM 0xF000 and adds
+     * 0x8000 to each of its 0x280 entries (selecting palette bank 8); then breaks.
      *
      * Ported from src/opanim-main.c: sub_80CBC40
      */
@@ -2434,7 +2446,7 @@ public class OpAnim(
             Decompress.into(g.ringBlinkingTsa.data, g.ringBlinkingTsa.offset, vram, 0xF000)
             for (i in 0 until 0x280) {
                 val a = 0xF000 + 2 * i
-                val v = ((vram[a].toInt() and 0xFF) or ((vram[a + 1].toInt() and 0xFF) shl 8)) + 0x8000
+                val v = u16(vram, a) + 0x8000
                 vram[a] = v.toByte()
                 vram[a + 1] = (v shr 8).toByte()
             }
@@ -2448,7 +2460,9 @@ public class OpAnim(
     }
 
     /**
-     * Shows only BG1 and BG2 and fades the ring's blend in over 0x30 steps; then breaks.
+     * Shows only BG1 and BG2 and raises the first-target weight of the alpha blend from 0 to 13
+     * over 0x30 steps (second-target weight 16); then breaks. (The blend target layers are set by
+     * earlier steps.)
      *
      * Ported from src/opanim-main.c: sub_80C9A94
      */
@@ -2456,7 +2470,8 @@ public class OpAnim(
         val st = proc.state as State
         val lcd = hardware.lcd
         lcd.setDispEnable(0, 1, 1, 0, 0)
-        lcd.setBlendConfig(1, Interpolate.interpolate(Interpolate.LINEAR, 0, 0xD, st.timer, 0x30), 0x10, 8)
+        val weight = Interpolate.interpolate(Interpolate.LINEAR, 0, 0xD, st.timer, 0x30)
+        lcd.setBlendConfig(1, weight, 0x10, 8)
         if (st.timer == 0x30) {
             st.timer = 0
             engine.breakProc(proc)
@@ -2466,8 +2481,9 @@ public class OpAnim(
     }
 
     /**
-     * Fades the first 8 palettes (reloaded from `pal_08B103D8` each step) to white over 0x30
-     * steps; then sets `gOpAnimSt.pal` to white and breaks.
+     * Fades the cast scroll's 8 palettes (reloaded from `pal_08B103D8` each step, so the blend
+     * is not cumulative) to white over 0x30 steps; then sets `gOpAnimSt.pal` to white (so
+     * palette entry 0 stays white afterwards) and breaks.
      *
      * Ported from src/opanim-main.c: sub_80C9AFC
      */
@@ -2486,9 +2502,9 @@ public class OpAnim(
     }
 
     /**
-     * Ends the cutscene: ends its children, the input watcher and the terminator, clears the
-     * HBlank handler and OBJ 1D mapping, sets palette entry 0 to `gOpAnimSt.pal` and hides all
-     * layers.
+     * Ends the cutscene: ends its children, the split-position copier ([proc08AA6D04Script]) and
+     * the skip-key terminator ([terminatorScript]), clears the HBlank handler and OBJ 1D mapping,
+     * sets palette entry 0 to `gOpAnimSt.pal` and hides all layers.
      *
      * Ported from src/opanim-main.c: sub_80CBD7C
      */
@@ -2504,7 +2520,10 @@ public class OpAnim(
         hw.lcd.setDispEnable(0, 0, 0, 0, 0)
     }
 
-    /** The ring pulse: blend `(i, 16)` with `i` rising 0..12 and falling back as `unk3E` advances. */
+    /**
+     * The shining ring's pulse: alpha blend with weights `(i, 16)`, `i` rising 0..12 and falling
+     * back to 0 once per [period] steps as `unk3E` advances.
+     */
     private fun pulseRing(st: State, period: Int) {
         val u = st.unk38to46
         val i = Interpolate.interpolate(Interpolate.LINEAR, 0, 0x1A, u[3] % period, period)
@@ -2634,8 +2653,8 @@ public class OpAnim(
         (b[o].toInt() and 0xFF) or ((b[o + 1].toInt() and 0xFF) shl 8)
 
     /**
-     * Copies `gOpAnimSt.y` / `unk06` into `unk08` / `unk0A` every VBlank, so the HBlank handlers
-     * see the split positions as of the last frame rather than mid-update.
+     * Copies `gOpAnimSt.y` / `unk06` into `unk08` / `unk0A` every frame (the proc runs on the
+     * VSync tree); the HBlank handlers compare the scanline against `unk08` / `unk0A`.
      *
      * Ported from src/opanim-main.c: Proc08AA6D04Main
      */
@@ -2759,17 +2778,18 @@ public class OpAnim(
 
         /** `sub_80CA4DC`'s sparkles in call order: (shown after step, x, y, kind, variant). */
         val SPARKLES = intArrayOf(
-            0x8E, 0xAE, 10, 4, 9, 0x8D, 0x38, 0x28, 4, 7, 0x8C, 0x9C, 0x3A, 3, 3, 0x8B, 0x22, 0, 4, 1,
-            0x8A, 0xD2, 0x10, 4, 5, 0x89, 0xC, 0x1A, 3, 1, 0x88, 0xCC, 0x2A, 3, 4, 0x87, 0x60, 0, 4, 0,
-            0x86, 0xE4, 0x10, 4, 0xB, 0x85, 0x58, 0x1E, 3, 3, 0x84, 0x54, 0x2E, 2, 1, 0x83, 0, 2, 4, 2,
-            0x82, 0xC6, 0x18, 4, 9, 0x81, 0x90, 0x22, 3, 5, 0x80, 0xA8, 0x44, 2, 0, 0x7F, 0xCA, 2, 4, 7,
-            0x7E, 0x26, 0x18, 4, 2, 0x7D, 0x80, 0x26, 3, 0, 0x7B, 0x80, 0x32, 2, 5, 0x79, 0x86, 6, 4, 0,
-            0x77, 0x98, 0x16, 4, 1, 0x75, 0xE8, 0x16, 3, 3, 0x73, 100, 0x48, 2, 1, 0x71, 0x70, 6, 4, 10,
-            0x6F, 0x40, 0x14, 4, 8, 0x6D, 0, 0x2E, 3, 4, 0x6B, 0x2C, 0x4A, 2, 4, 0x69, 0x40, 8, 4, 6,
-            0x67, 0x78, 0x1A, 4, 2, 0x65, 0x24, 0x32, 3, 2, 0x62, 0xE, 0x4E, 2, 0, 0x5F, 0x16, 10, 4, 4,
-            0x5C, 0xB4, 0x28, 4, 1, 0x59, 0x42, 0x36, 3, 1, 0x55, 0xDC, 0x32, 2, 2, 0x51, 200, 0x48, 1, 0,
-            0x4C, 0x38, 0x28, 4, 0, 0x47, 0x8C, 0x54, 1, 2, 0x41, 0x10, 100, 1, 1, 0x37, 0, 0x7E, 0, 1,
-            0x31, 0xA0, 0x78, 0, 2, 0x1D, 0x58, 0x70, 0, 0,
+            0x8E, 0xAE, 10, 4, 9, 0x8D, 0x38, 0x28, 4, 7, 0x8C, 0x9C, 0x3A, 3, 3, 0x8B, 0x22, 0, 4,
+            1, 0x8A, 0xD2, 0x10, 4, 5, 0x89, 0xC, 0x1A, 3, 1, 0x88, 0xCC, 0x2A, 3, 4, 0x87, 0x60, 0,
+            4, 0, 0x86, 0xE4, 0x10, 4, 0xB, 0x85, 0x58, 0x1E, 3, 3, 0x84, 0x54, 0x2E, 2, 1, 0x83, 0,
+            2, 4, 2, 0x82, 0xC6, 0x18, 4, 9, 0x81, 0x90, 0x22, 3, 5, 0x80, 0xA8, 0x44, 2, 0, 0x7F,
+            0xCA, 2, 4, 7, 0x7E, 0x26, 0x18, 4, 2, 0x7D, 0x80, 0x26, 3, 0, 0x7B, 0x80, 0x32, 2, 5,
+            0x79, 0x86, 6, 4, 0, 0x77, 0x98, 0x16, 4, 1, 0x75, 0xE8, 0x16, 3, 3, 0x73, 100, 0x48, 2,
+            1, 0x71, 0x70, 6, 4, 10, 0x6F, 0x40, 0x14, 4, 8, 0x6D, 0, 0x2E, 3, 4, 0x6B, 0x2C, 0x4A,
+            2, 4, 0x69, 0x40, 8, 4, 6, 0x67, 0x78, 0x1A, 4, 2, 0x65, 0x24, 0x32, 3, 2, 0x62, 0xE,
+            0x4E, 2, 0, 0x5F, 0x16, 10, 4, 4, 0x5C, 0xB4, 0x28, 4, 1, 0x59, 0x42, 0x36, 3, 1, 0x55,
+            0xDC, 0x32, 2, 2, 0x51, 200, 0x48, 1, 0, 0x4C, 0x38, 0x28, 4, 0, 0x47, 0x8C, 0x54, 1, 2,
+            0x41, 0x10, 100, 1, 1, 0x37, 0, 0x7E, 0, 1, 0x31, 0xA0, 0x78, 0, 2, 0x1D, 0x58, 0x70, 0,
+            0,
         )
 
         /** Byte offset of OBJ tile memory in the VRAM array (the GBA's 0x06010000). */

@@ -11,8 +11,8 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- MC-12b (battle forecast sprites: arrows, multipliers, flash): owner PC, until ~04:30Z (from 01:37Z)
-- Readability audit gbafe.script: owner PC, until ~04:00Z (from 01:45Z)
+- MC-12b (battle forecast sprites: arrows, multipliers, flash): owner PC, until ~10:30Z (resumed 08:10Z)
+- Readability audit gbafe.script: owner PC, until ~10:00Z (resumed 08:10Z)
 
 ## Current state
 

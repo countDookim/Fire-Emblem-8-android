@@ -11,6 +11,8 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
+- EP-2b: owner PC, until ~21:45Z
+- Readability BmSaveLib 521-1080: owner PC, until ~21:15Z
 
 ## Current state
 

@@ -1,8 +1,9 @@
 package gba.data
 
 /**
- * SHA-1 in pure Kotlin for common code; same result as MessageDigest("SHA-1"). Used to identify the
- * player's ROM, not for security (FIPS PUB 180-1 specification).
+ * SHA-1 in pure Kotlin for common code; `Sha1Test` compares it with `MessageDigest("SHA-1")`.
+ * Used to fingerprint the player's ROM at import (`RomImporter`), not for security (FIPS PUB
+ * 180-1; the constants below were not re-checked against the standard text here).
  */
 public object Sha1 {
     /** SHA-1 block size in bytes (512 bits = 64 bytes). */
@@ -11,21 +12,23 @@ public object Sha1 {
     /** SHA-1 digest size in bytes (160 bits = 20 bytes). */
     public const val DIGEST_SIZE: Int = 20
 
-    // Initial hash values (FIPS 180-1 section 5.1)
+    // Initial hash words H0..H4 (FIPS 180-1)
     private const val H0_INIT = 0x67452301
     private const val H1_INIT = 0xEFCDAB89.toInt()
     private const val H2_INIT = 0x98BADCFE.toInt()
     private const val H3_INIT = 0x10325476
     private const val H4_INIT = 0xC3D2E1F0.toInt()
 
-    // Round constant words K_t (FIPS 180-1 section 4.2)
+    // Round constants K_t for rounds 0-19, 20-39, 40-59, 60-79 (FIPS 180-1)
     private const val K00_19 = 0x5A827999
     private const val K20_39 = 0x6ED9EBA1
     private const val K40_59 = 0x8F1BBCDC.toInt()
     private const val K60_79 = 0xCA62C1D6.toInt()
 
-    /** Computes the 20-byte SHA-1 digest of [data]. */
+    /** Computes the 20-byte SHA-1 digest of [data] (big-endian word order, as in the standard). */
     public fun digest(data: ByteArray): ByteArray {
+        // Padding: 0x80, zero bytes up to 8 short of a block boundary, then the bit length as a
+        // 64-bit big-endian number.
         val bitLen = data.size.toLong() * 8
         val padLen = ((BLOCK_SIZE - 8 - ((data.size + 1) % BLOCK_SIZE)) % BLOCK_SIZE + BLOCK_SIZE) % BLOCK_SIZE
         val padded = ByteArray(data.size + 1 + padLen + 8)
@@ -51,6 +54,7 @@ public object Sha1 {
                     ((padded[j + 2].toInt() and 0xFF) shl 8) or
                     (padded[j + 3].toInt() and 0xFF)
             }
+            // Message schedule: words 16..79 are rotl1 of an xor of earlier words.
             for (t in 16 until 80) {
                 val v = w[t - 3] xor w[t - 8] xor w[t - 14] xor w[t - 16]
                 w[t] = (v shl 1) or (v ushr 31)
@@ -60,6 +64,7 @@ public object Sha1 {
             var c = h2
             var d = h3
             var e = h4
+            // 80 rounds; f and k depend on which 20-round group t is in.
             for (t in 0 until 80) {
                 val (f, k) = when (t) {
                     in 0..19 -> ((b and c) or (b.inv() and d)) to K00_19

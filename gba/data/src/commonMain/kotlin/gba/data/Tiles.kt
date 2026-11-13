@@ -20,7 +20,7 @@ public class IndexedImage(
         }
     }
 
-    /** Unsigned palette index at ([x], [y]). */
+    /** Palette index (0..255) of the pixel at ([x], [y]). */
     public operator fun get(x: Int, y: Int): Int = pixels[y * width + x].toInt() and 0xFF
 
     /** Sets the palette index at ([x], [y]) (only the low 8 bits of [index] are kept). */
@@ -33,9 +33,10 @@ public class IndexedImage(
  * Conversion between GBA character (tile) data and [IndexedImage]s. Load/extract-time only.
  *
  * GBA tiles are 8×8 pixels stored row by row. In 4bpp mode a tile is 32 bytes and each byte holds two
- * pixels, the **low nibble being the left pixel**; in 8bpp mode a tile is 64 bytes, one byte per pixel.
- * Tiles are laid out left-to-right, top-to-bottom, [tilesPerRow] to a row of the resulting image; this is
- * just a viewing layout (the game addresses tiles by number), so any width round-trips.
+ * pixels, the **low nibble being the left pixel**; in 8bpp mode a tile is 64 bytes, one byte per
+ * pixel (hardware fact, not checked here beyond `TilesTest` and the ROM round-trip test). Tiles
+ * are laid out left-to-right, top-to-bottom, `tilesPerRow` to a row of the resulting image; this
+ * is just a viewing layout (the game addresses tiles by number), so any width round-trips.
  */
 public object Tiles {
     /** Tile edge in pixels (GBA hardware tiles are 8×8 pixels). */
@@ -47,7 +48,7 @@ public object Tiles {
     /** Bytes per tile at 8 bits per pixel (64 pixels * 1 byte per pixel = 64 bytes). */
     public const val BYTES_8BPP: Int = 64
 
-    /** Maximum palette index that fits in a 4bpp nibble (0..15). */
+    /** Largest palette index a 4bpp pixel can hold. */
     private const val MAX_4BPP_PALETTE_INDEX: Int = 15
 
     /** Mask for extracting a 4-bit nibble. */
@@ -79,7 +80,7 @@ public object Tiles {
     /** Number of whole tiles [image] holds. */
     public fun tileCapacity(image: IndexedImage): Int = (image.width / SIZE) * (image.height / SIZE)
 
-    /** Decodes [tileCount] tiles from [src] starting at [offset] into an [IndexedImage] arranged in rows. */
+    /** Shared body of [decode4bpp] and [decode8bpp]; [bpp] is 4 or 8. */
     private fun decode(src: ByteArray, offset: Int, tileCount: Int, tilesPerRow: Int, bpp: Int): IndexedImage {
         require(tileCount >= 0 && tilesPerRow > 0) { "tileCount=$tileCount tilesPerRow=$tilesPerRow" }
         val tileBytes = if (bpp == 4) BYTES_4BPP else BYTES_8BPP
@@ -107,7 +108,7 @@ public object Tiles {
         return img
     }
 
-    /** Encodes [tileCount] tiles of [image] into a raw byte array formatted for GBA VRAM tile memory. */
+    /** Shared body of [encode4bpp] and [encode8bpp]; [bpp] is 4 or 8. */
     private fun encode(image: IndexedImage, tileCount: Int, bpp: Int): ByteArray {
         require(image.width % SIZE == 0 && image.height % SIZE == 0) { "image is not tile-aligned" }
         require(tileCount in 0..tileCapacity(image)) { "tileCount $tileCount exceeds image" }
@@ -143,24 +144,25 @@ public object Tiles {
 /**
  * GBA BGR555 palette helpers. A colour is 15 bits `0bbbbbgggggrrrrr`, stored little-endian in 2 bytes.
  *
- * Expansion to 8 bits per channel is `c << 3` with zero low bits, matching mGBA's reference dumps and
- * `FrameBuffer.bgr555ToArgb` in engine:render (duplicated here so engine:data does not depend on
- * rendering). Because the low bits are zero, [argbToBgr555] is an exact inverse on expanded colours.
+ * Expansion to 8 bits per channel is `c << 3` with zero low bits, matching the reference frame
+ * dumps and `FrameBuffer.bgr555ToArgb` in gba:render (duplicated here so gba:data does not depend
+ * on rendering). Because the low bits are zero, [fromArgb] is an exact inverse of [toArgb] on
+ * expanded colours.
  */
 public object Bgr555 {
     /** Mask for a 5-bit colour channel. */
     private const val CHANNEL_5BIT_MASK: Int = 0x1F
 
-    /** Shift to align red channel in BGR555 (bits 0..4). */
+    /** Bit position of the red channel in a BGR555 colour (bits 0..4). */
     private const val RED_SHIFT: Int = 0
 
-    /** Shift to align green channel in BGR555 (bits 5..9). */
+    /** Bit position of the green channel in a BGR555 colour (bits 5..9). */
     private const val GREEN_SHIFT: Int = 5
 
-    /** Shift to align blue channel in BGR555 (bits 10..14). */
+    /** Bit position of the blue channel in a BGR555 colour (bits 10..14). */
     private const val BLUE_SHIFT: Int = 10
 
-    /** Fully opaque alpha channel mask in ARGB8888. */
+    /** Alpha byte of an opaque ARGB8888 colour. */
     private const val ALPHA_OPAQUE: Int = 0xFF shl 24
 
     /** Converts one BGR555 colour to opaque ARGB8888. Bit 15 is ignored. */

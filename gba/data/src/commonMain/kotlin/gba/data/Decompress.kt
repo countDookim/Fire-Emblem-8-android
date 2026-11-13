@@ -1,37 +1,44 @@
 package gba.data
 
 /**
- * `Decompress` (src/bmlib.c): unpacks a ROM graphics blob by the type in its header's high nibble:
- * 0x00 raw (`UnpackRaw`: size in header bytes 1..3 includes the 4-byte header) or 0x10 LZ77.
- * Huffman (0x20) and RL (0x30) are not implemented (not verified: no game data uses Huffman/RL
- * compression; every blob the decomp passes to `Decompress` is raw or LZ77). The VRAM/WRAM variants of the BIOS calls only
- * differ in write width, so the result is the same for either destination.
+ * `Decompress` (src/bmlib.c): unpacks a ROM graphics blob by the type in its header's high nibble
+ * (`struct TileMapArr` in include/bmlib.h: type in bits 0..7, size in bits 8..31):
+ * 0x00 raw (`UnpackRaw`: the size field includes the 4-byte header) or 0x10 LZ77.
+ * The decomp's table also dispatches 0x20 to `HuffUnComp` and 0x30 to `RLUnCompVram` or
+ * `RLUnCompWram`; those two types are not implemented here (they throw), and it is not checked
+ * whether any FE8 blob uses them. The decomp picks the VRAM or WRAM variant from the
+ * destination address; the BIOS VRAM variants write 16 bits at a time (hardware/BIOS fact, not
+ * checked here), which does not change the output bytes, so this port has one path for either
+ * destination.
  *
  * Partially ported from src/bmlib.c: Decompress
  */
 public object Decompress {
-    /** Type tag in the high nibble of raw (uncompressed) blobs. */
+    /** Header type value (high nibble, `0x00`) of an uncompressed blob. */
     public const val TYPE_RAW: Int = 0x00
 
-    /** Type tag in the high nibble of LZ77-compressed blobs. */
+    /** Header type value (high nibble, `0x10`) of an LZ77 blob; same as [Lz77.TYPE]. */
     public const val TYPE_LZ77: Int = Lz77.TYPE
 
     /** High-nibble mask for extracting the compression format type from the first header byte. */
     private const val HEADER_TYPE_MASK: Int = 0xF0
 
-    /** Header size in bytes prepended to raw blobs. */
+    /** Size of the type+size header in front of a raw blob's payload (`src + 4` in `UnpackRaw`). */
     private const val RAW_HEADER_SIZE: Int = 4
 
     /**
-     * Decodes the blob at [offset] of [src] into [dst] at [dstOffset]; returns the bytes written.
-     * Does not allocate.
+     * Decodes the blob at [offset] of [src] into [dst] at [dstOffset]; returns the bytes written
+     * (the payload size, without the 4-byte header). Does not allocate.
+     *
+     * @throws UnsupportedOperationException for header types other than raw and LZ77.
      */
     public fun into(src: ByteArray, offset: Int, dst: ByteArray, dstOffset: Int): Int {
         val type = src[offset].toInt() and HEADER_TYPE_MASK
         return when (type) {
             TYPE_RAW -> {
                 val size = rawSize(src, offset)
-                src.copyInto(dst, dstOffset, offset + RAW_HEADER_SIZE, offset + RAW_HEADER_SIZE + size)
+                val payloadStart = offset + RAW_HEADER_SIZE
+                src.copyInto(dst, dstOffset, payloadStart, payloadStart + size)
                 size
             }
             TYPE_LZ77 -> {
@@ -44,7 +51,7 @@ public object Decompress {
         }
     }
 
-    /** Decodes the blob at [offset] of [src] into a new array. */
+    /** Decodes the blob at [offset] of [src] (raw or LZ77) into a newly allocated array. */
     public fun decode(src: ByteArray, offset: Int): ByteArray {
         val type = src[offset].toInt() and HEADER_TYPE_MASK
         if (type == TYPE_LZ77) return Lz77.decode(src, offset).data
@@ -54,8 +61,8 @@ public object Decompress {
     }
 
     /**
-     * Decodes the payload size of a raw blob from header bytes 1..3 (24-bit little-endian),
-     * subtracting the 4-byte header size.
+     * Payload size of a raw blob: the 24-bit little-endian size in header bytes 1..3 (what
+     * `GetDataSize` returns) minus the 4 header bytes, as `UnpackRaw` computes it.
      */
     private fun rawSize(src: ByteArray, offset: Int): Int {
         val b1 = src[offset + 1].toInt() and 0xFF

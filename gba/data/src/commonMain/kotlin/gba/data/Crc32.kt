@@ -1,14 +1,12 @@
 package gba.data
 
 /**
- * CRC-32 (zlib / PNG polynomial) in pure Kotlin for common code; same results as
- * `java.util.zip.CRC32`.
- *
- * Implements the standard IEEE 802.3 32-bit cyclic redundancy check polynomial
- * (`0xEDB88320`, the bit-reversed form of `0x04C11DB7`).
+ * CRC-32 (zlib / PNG / IEEE 802.3) in pure Kotlin for common code; `Crc32Test` compares it with
+ * `java.util.zip.CRC32`. Uses the reflected polynomial `0xEDB88320` (the bit-reversed form of
+ * `0x04C11DB7`), table-driven one byte at a time.
  */
 public class Crc32 {
-    /** Running CRC accumulator state. Initialized to all 1s (`-1`). */
+    /** Running register, before the final bit inversion that [value] applies. */
     private var crc: Int = INITIAL_CRC
 
     /** Adds the low 8 bits of [b] to the running CRC calculation. */
@@ -33,18 +31,20 @@ public class Crc32 {
         crc = INITIAL_CRC
     }
 
+    /** Constants and the byte lookup table. */
     private companion object {
-        /** Initial value of the CRC-32 register. */
+        /** Register start value (all bits set), as the CRC-32 definition requires. */
         private const val INITIAL_CRC: Int = -1
 
-        /** Reversed polynomial for IEEE 802.3 CRC-32. */
+        /** Reflected CRC-32 polynomial. */
         private const val POLYNOMIAL: Int = 0xEDB88320.toInt()
 
-        /** Lookup table of 256 precomputed 32-bit remainders. */
+        /** For each byte value n, the register after shifting n through 8 bits of [POLYNOMIAL]. */
         val TABLE: IntArray = IntArray(256) { n ->
             var remainder = n
             repeat(8) {
-                remainder = if (remainder and 1 != 0) (remainder ushr 1) xor POLYNOMIAL else remainder ushr 1
+                val shifted = remainder ushr 1
+                remainder = if (remainder and 1 != 0) shifted xor POLYNOMIAL else shifted
             }
             remainder
         }

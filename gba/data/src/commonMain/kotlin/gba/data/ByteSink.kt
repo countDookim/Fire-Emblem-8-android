@@ -7,16 +7,16 @@ package gba.data
  * @param initialCapacity initial backing-array size in bytes (at least [MIN_CAPACITY] is used).
  */
 public class ByteSink(initialCapacity: Int = DEFAULT_INITIAL_CAPACITY) {
-    /** Backing byte array buffer that dynamically doubles when capacity is exhausted. */
+    /** Backing array; only the first [count] bytes are valid. Grown by [ensure]. */
     private var buf = ByteArray(maxOf(initialCapacity, MIN_CAPACITY))
 
-    /** Number of bytes written to the sink so far. */
+    /** Number of valid bytes at the start of [buf]. */
     private var count = 0
 
     /** Number of bytes written so far. */
     public val size: Int get() = count
 
-    /** Ensures that [buf] has sufficient room for [extra] additional bytes, doubling size if needed. */
+    /** Grows [buf] so [extra] more bytes fit: to double its size, or to exactly fit if larger. */
     private fun ensure(extra: Int) {
         val need = count + extra
         if (need > buf.size) {
@@ -53,7 +53,7 @@ public class ByteSink(initialCapacity: Int = DEFAULT_INITIAL_CAPACITY) {
         /** Default initial capacity for newly allocated sinks. */
         public const val DEFAULT_INITIAL_CAPACITY: Int = 256
 
-        /** Minimum initial buffer size. */
+        /** Smallest backing array allocated, even if a smaller initial capacity is requested. */
         public const val MIN_CAPACITY: Int = 16
     }
 }

@@ -1,13 +1,24 @@
 package gba.data
 
 /**
- * Minimal JSON reader for the engine's data files (no reflection, no external dependencies):
- * objects become `Map<String, Any?>` (preserving insertion order), arrays `List<Any?>`,
- * integers `Long`, floating-point numbers `Double`, strings `String`, booleans `Boolean`,
- * and `null`.
+ * Minimal JSON reader for the data files the extractors write (no reflection, no external
+ * dependencies): objects become `Map<String, Any?>` (preserving insertion order), arrays
+ * `List<Any?>`, numbers `Long` when the token parses as one and `Double` otherwise (so an integer
+ * too large for `Long` becomes a `Double`), strings `String`, booleans `Boolean`, and `null`.
+ *
+ * Lenient: the number scanner accepts any run of digits and `.eE+-` and leaves validation to
+ * `toLongOrNull`/`toDouble`; duplicate object keys keep the last value.
  */
 public object JsonReader {
-    /** Parses one JSON document; throws [IllegalArgumentException] on malformed input or trailing text. */
+    /**
+     * Parses one JSON document and returns its value (see the class KDoc for the types).
+     *
+     * @throws IllegalArgumentException on most malformed input and on trailing text.
+     *
+     * NOTE: input that ends early inside an object or array (for example `{` or `[1`) reaches an
+     * unchecked `source[cursor]` and throws `StringIndexOutOfBoundsException` instead; an invalid
+     * unicode escape throws `NumberFormatException` (an `IllegalArgumentException` subclass).
+     */
     public fun parse(text: String): Any? {
         val parser = Parser(text)
         val result = parser.parseValue()
@@ -16,8 +27,9 @@ public object JsonReader {
         return result
     }
 
-    /** Recursive descent JSON parser tracking a character cursor over [source]. */
+    /** Recursive-descent parser over [source]; one instance per [parse] call. */
     private class Parser(val source: String) {
+        /** Index of the next unread character in [source]. */
         var cursor: Int = 0
 
         /** Advances [cursor] past any whitespace characters. */

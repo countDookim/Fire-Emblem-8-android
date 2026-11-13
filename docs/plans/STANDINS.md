@@ -307,7 +307,7 @@ Total entries: 192 across 42 Kotlin files.
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `Menu` | The others are stand-ins until their port: the unit menu's are registered by `fe8.game.bm.UnitActionMenu.install` (PP-10) and the map menu's wait for PP-12 (an unregistered address fails loudly ins... |
+| `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `Menu` | The others are stand-ins until their port: the unit menu's are registered by `fe8.game.bm.UnitActionMenu.install` (PP-10), and the remaining ones of the unit and map menus are no-op or refusal stan... |
 
 ## PP-17 (1)
 
@@ -319,4 +319,4 @@ Total entries: 192 across 42 Kotlin files.
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | `DisplayFrozenUiHand`: stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
+| `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |

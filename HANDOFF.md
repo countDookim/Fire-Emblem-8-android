@@ -12,7 +12,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - MC-15 (battle write-back): owner PC, until ~12:30Z (from 08:57Z)
-- Readability audit fe8.game.event (EventUnitLoads group: merge pending; EventCursorCamera, EventTextTalkHost, EventMoveUnit): owner PC, until ~12:30Z (from 08:57Z)
+- Readability audit fe8.game.event (Fe8ScriptCommands, EventScriptBattle, EventTextBg, Fe8ScriptSymbols, EventBgm): owner PC, until ~12:30Z (from 09:07Z)
 
 ## Current state
 

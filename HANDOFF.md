@@ -12,7 +12,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - EP-5: owner PC, until ~23:10Z
-- Readability fe8.game GameControl/GameLoop: owner PC, until ~22:35Z
+- Readability fe8.game BootRom/Fe8Game/Fe8Sound/RomView/SoundWrapper: owner PC, until ~22:45Z
 
 ## Current state
 

@@ -248,6 +248,51 @@ Captures:
   Per-step watches for the whole run; RAM windows are picked after a scout run.
 - D12-2 (per-scanline blend of the enemy banner) keeps its own capture row.
 
+### EP-cap1 result
+
+Run `ram_trace_prologue_enemy_phase` (ROM repo; copy in `.assets/reference/out/`). Inputs: the Options prefix of
+`ram_trace_prologue_attack_noanim`, then A f1480 (map menu), UP f1505 (wraps to End), A f1525 (End), A f2700 (one
+dialogue page waits for input). Per-frame RAM f1480..2895, full dumps every 10f. Watches: the standard `WATCHES`,
+`MC_BATTLE_WATCHES` minus `unit1`/`target`, `blue` (Seth, Eirika), `red` (all 50 `gUnitArrayRed` entries),
+`aistate` (`gAiState`, 0x90), `aidecision` (`gAiDecision`, 0xC). Size 476 MB.
+
+Frame windows (frame N = after step N):
+
+| Window | Frames |
+|---|---|
+| End chosen, `gProcScr_PlayerPhase` gone | f1525 |
+| Berserk order/phase procs, faction 0 -> 0x80 | f1526..1528, f1529 |
+| Enemy phase banner (`ProcScr_PhaseIntro`) | f1535..1606 |
+| `gProcScr_CpPhase`/`CpOrder`/`CpDecide` start; `gAiState.units` = 0x81, 0x82, 0x83 | f1612 |
+| Red 0 (0x81): processed, no decision | f1613 |
+| Soldier 1 (0x82): decision f1614, walk (MU) f1614..1695, `gProcScr_AiTargetCursor` f1648..1695 | f1614..1695 |
+| Soldier 1 battle: `sProcScr_CombatAction` f1696..2013, strikes f1723..1867, death fade f1875..1906, exp bar f1909..1999 | f1696..2013 |
+| Soldier 1 write-back (HP 22 -> 0, struct cleared) | f2012 |
+| Soldier 2 (0x83): decision f2039, walk f2039..2128, target cursor f2081..2128 | f2039..2128 |
+| Soldier 2 battle: `CombatAction` f2129..2402, strikes f2156..2255, death fade f2263..2294, exp bar f2297..2388 | f2129..2402 |
+| Soldier 2 write-back (HP 20 -> 0, struct cleared; Eirika HP 16 -> 7) | f2401 |
+| Event engine + dialogue (`gProcScr_Talk`; waits for A f2644..2702), BMXFADE, Cp procs gone | f2403..2746 |
+| Green phase (faction 0x40, no units), `UpdateTraps` | f2751..2766 |
+| Turn 2: faction 0, turn 2, `StdEventEngine` (ends at once) | f2768..2771 |
+| Turn-2 banner | f2774..2845 |
+| Idle `gProcScr_PlayerPhase` (position 16); map UI procs f2854 | f2851 (run ends f2895) |
+
+Who acts: red 0 (`gUnitArrayRed[0]`, id 0x81, at (10,8)) does nothing and never moves. Soldier 1 (`Red[1]`, 0x82) and
+Soldier 2 (`Red[2]`, 0x83) each move to (5,5) next to Eirika and attack her; both die to her counterattack
+(Soldier 1: Eirika takes no damage; Soldier 2: Eirika HP 16 -> 7). Seth is not attacked. No level-up: Eirika ends level 1, exp 0 -> 65 (f2895), so MC-17 still needs EP-cap2.
+
+`gAiDecision`: yes for the two attackers. It is all zero before f1614; f1614 = action 1 (attack), unit 0x82, move
+(5,5), target 2 (Eirika), item slot 0, `actionPerformed` 1; cleared f2038; f2039 = the same for 0x83. Red 0 never
+changes it (its decision is "no action", flagged processed with the AI_PROCESSED state bit at f1613). `gAiState`: the
+unit list is filled f1612 and `unitIt` (bytes 0x74..) steps 0x0203AA05 -> 06 -> 07 per unit; `orderState` (0x78) is 1 from
+f1612 and `decideState` (0x79) is 2 while a decision is performed (f1614..2037, f2039..2741).
+
+Scores are NOT in RAM per frame (the candidate scores live in a stack struct inside one frame), so the run has
+`tracecall aicombatscore 0x0803E178` (`AiComputeCombatScore`, registered after step 1600): 2 calls, f1614 (Soldier 1,
+`AiCombatSimulationSt` at IWRAM 0x03007C90) and f2039 (Soldier 2, 0x03007CAC). `calls.txt` has r0; the `_entry` and
+`_exit` IWRAM dumps hold the struct (`score` u32 at +8). Both exits have score 6. The function is called once per
+enemy attack, not once per candidate tile, so per-candidate scores are not captured.
+
 Prologue events seen in `prologue-eventinfo.h`: the Turn 1 (red) and Turn 2/3 (blue) events only call tutorial
 scripts, so in Normal mode they end at once. Tutorials are Easy only (see M6-E).
 

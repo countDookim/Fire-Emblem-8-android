@@ -1,9 +1,6 @@
 /**
- * Main Android application activity and entry point.
- *
- * Coordinates the application lifecycle, Jetpack Compose launcher UI for ROM selection and asset
- * extraction, and initialisation of the runtime game container ([Fe8Game]), audio pipeline ([AudioTrackSink]),
- * and OpenGL ES presentation view ([GameSurfaceView]).
+ * Android entry point: the launcher screen (import the player's ROM, delete saves, press Play)
+ * and the hand-over to the running game ([Fe8Game], [AudioTrackSink], [GameSurfaceView]).
  */
 
 package fe8.app
@@ -63,41 +60,52 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Single activity hosting the game.
+ * Single activity hosting the launcher and the game.
  *
- * Jetpack Compose is used exclusively for the launcher, status display, and ROM selection UI.
- * Once the game starts, the activity content switches to a hardware-accelerated [GameSurfaceView]
- * backed by OpenGL ES 3.0, ensuring zero Compose overhead per rendered frame.
+ * Compose draws only the launcher. Pressing Play swaps the content for a [GameSurfaceView] (GL
+ * game picture) with a [TouchOverlayView] on top; Compose does no per-frame work for the game.
+ * Lifecycle: [onPause] stops the audio thread and pauses GL rendering, [onResume] undoes both,
+ * [onDestroy] releases the audio output.
  *
- * No retail game data is distributed with the APK. Play becomes available once a retail FE8 (U) ROM
- * is imported into internal storage, backed by the verified ROM image at `base/rom/baserom.gba`.
+ * No APK bundles game data (decision 0011). Play needs the player's FE8 (U) ROM imported once
+ * (see `RomImport.kt`); the verified copy kept at `base/rom/baserom.gba` is what the game boots
+ * from.
  */
 public class MainActivity : ComponentActivity() {
+    /** The game picture; null while the launcher shows. Paused and resumed with the activity. */
     private var surface: GameSurfaceView? = null
+
+    /** Audio output device wrapper; created with the game, released in [onDestroy]. */
     private var sink: AudioTrackSink? = null
+
+    /** Thread feeding [sink]; null if there was no sound ROM, so the game then runs silent. */
     private var audio: AudioThread? = null
 
-    /** Cartridge SRAM file storage (`fe8.sav`) preserving battery saves and suspend state across app restarts. */
+    /** The cartridge SRAM file (`fe8.sav`): all save slots and the suspend save. */
     private fun saveStorage(ctx: Context): FileSaveStorage =
         saveStorageIn(ctx.filesDir)
 
     /**
-     * Initializes the [Fe8Game] instance, connecting audio mixing pipelines and hardware renderers.
+     * Builds the game when the player presses Play; starts its audio thread if sound data exists.
+     *
+     * With no [full] ROM it falls back to the boot and sound windows extracted into the base layer
+     * ([importedBootRom], [importedSoundRom]); if no sound window exists the game is silent.
      *
      * @param ctx Android application context.
-     * @param full The full cartridge ROM view loaded into memory, or `null` to use bundled windows.
-     * @return Fully configured [Fe8Game] runtime.
+     * @param full The player's whole ROM read into memory, or `null` when none is kept.
+     * @return The game, with sound wired to a new [AudioThread] unless no sound ROM was found.
      */
     private fun createGame(ctx: Context, full: RomView?): Fe8Game {
-        val bootRom = full ?: bundledBootRom(ctx)
-        val soundRom = full ?: bundledSoundRom(ctx) ?: return Fe8Game(
+        val bootRom = full ?: importedBootRom(ctx)
+        val soundRom = full ?: importedSoundRom(ctx) ?: return Fe8Game(
             rom = bootRom,
             saveStorage = saveStorage(ctx),
         )
         val sound = Fe8Sound.create(soundRom)
         val out = AudioTrackSink().also { sink = it }
-        // Two VBlank chunks provide reserve for a short late producer update. Ring capacity
-        // only limits queued audio; capacity alone does not create a startup reserve.
+        // Playback starts only after two VBlanks of audio are queued (2 x pcmSamplesPerVBlank
+        // frames), a reserve for a game tick that runs late. Capacity only caps the queue; it does
+        // not create that reserve.
         val pcm = PcmStream(
             sound.info.pcmFreq,
             out.sampleRate,
@@ -108,13 +116,19 @@ public class MainActivity : ComponentActivity() {
         return Fe8Game(rom = bootRom, sound = sound, pcm = pcm, saveStorage = saveStorage(ctx))
     }
 
+    /**
+     * Shows the launcher; Play creates the game (the factory runs once, on first composition of the
+     * game branch) and puts its views in a [FrameLayout]. `playing` and `full` are `remember`ed,
+     * not saved: the manifest declares `configChanges`, so rotation does not recreate the activity
+     * (a process death returns to the launcher).
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 Surface(Modifier.fillMaxSize()) {
                     var playing by remember { mutableStateOf(false) }
-                    // The full ROM (one 16 MB read), loaded off the main thread before the game.
+                    // The player's ROM (a 16 MB file), read off the main thread by Play.
                     var full by remember { mutableStateOf<RomView?>(null) }
                     if (playing) {
                         AndroidView(
@@ -139,18 +153,21 @@ public class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Activity leaves the foreground: pause GL rendering and stop feeding audio. */
     override fun onPause() {
         super.onPause()
         surface?.onPause()
         audio?.stop()
     }
 
+    /** Activity is going away: stop the audio thread, then free the audio output. */
     override fun onDestroy() {
         audio?.stop()
         sink?.release()
         super.onDestroy()
     }
 
+    /** Activity is back in the foreground: resume GL rendering and restart audio. */
     override fun onResume() {
         super.onResume()
         surface?.onResume()
@@ -158,20 +175,28 @@ public class MainActivity : ComponentActivity() {
     }
 
     private companion object {
-        /** Ring buffer capacity in frames (~150 ms of buffered audio). */
+        /**
+         * PCM ring size in mixer frames (a power of two, as [PcmStream] requires). The mixer
+         * rate is 13379 Hz (`SOUND_MODE_FREQ_13379`, `src/m4a.c:74`), so 2048 / 13379 is
+         * about 153 ms of queued audio at most.
+         */
         private const val PCM_STREAM_CAPACITY = 2048
     }
 }
 
-/** Name of the persistent cartridge SRAM image file in internal storage. */
+/** File name of the cartridge SRAM image inside the app's internal `filesDir`. */
 private const val SAVE_FILE_NAME = "fe8.sav"
 
-/** Save storage for the cartridge SRAM (all saves and the suspend) under [filesDir]. */
+/** The cartridge SRAM store (all save slots and the suspend save) in [filesDir]. */
 internal fun saveStorageIn(filesDir: File): FileSaveStorage =
     FileSaveStorage(File(filesDir, SAVE_FILE_NAME))
 
-/** Resolves the sound ROM window from the base layer's `sound/` directory, or null if absent. */
-private fun bundledSoundRom(ctx: Context): RomView? {
+/**
+ * The sound-data ROM windows (`RomView.SOUND_WINDOWS`) read from the base layer's `sound/` folder,
+ * or null if that folder is empty. The base layer is the folder the ROM import extracted
+ * (`RomImport.kt`); nothing is read from the APK itself (decision 0011).
+ */
+private fun importedSoundRom(ctx: Context): RomView? {
     val base = baseLayer(ctx)
     if (base.list("sound").isEmpty()) return null
     return RomView.ofSoundWindows { name ->
@@ -179,8 +204,11 @@ private fun bundledSoundRom(ctx: Context): RomView? {
     }
 }
 
-/** Resolves boot ROM windows from the base layer's `boot/` directory, or null if absent. */
-private fun bundledBootRom(ctx: Context): RomView? {
+/**
+ * The boot-sequence ROM windows (`RomView.BOOT_WINDOWS`: logos, opening, title) read from the base
+ * layer's `boot/` folder, or null if that folder is empty. Same source as [importedSoundRom].
+ */
+private fun importedBootRom(ctx: Context): RomView? {
     val base = baseLayer(ctx)
     if (base.list("boot").isEmpty()) return null
     return RomView.ofBootWindows { name ->
@@ -189,14 +217,19 @@ private fun bundledBootRom(ctx: Context): RomView? {
 }
 
 /**
- * Jetpack Compose launcher and settings screen shown before launching the game.
+ * The launcher screen shown before the game: import or re-import the ROM, delete the saves, Play.
  *
- * @param onPlay Callback invoked when the user starts the game, passing the loaded ROM view.
+ * Play is enabled once the base layer is current (an import has completed). It reads the kept ROM
+ * and calls [onPlay] with a [RomView] over it, or with null if the kept ROM is missing (an install
+ * from before the ROM was kept); the game then boots only from the extracted boot windows.
+ *
+ * @param onPlay Called when Play is pressed, with the whole-ROM view or null as above.
  */
 @Composable
 private fun Launcher(onPlay: (RomView?) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // current: is the extracted base layer up to date? null until the first check has finished.
     var current by remember { mutableStateOf<Boolean?>(null) }
     var importing by remember { mutableStateOf(false) }
     var progress by remember { mutableFloatStateOf(0f) }
@@ -217,6 +250,7 @@ private fun Launcher(onPlay: (RomView?) -> Unit) {
     LaunchedEffect(Unit) {
         hasSave = withContext(Dispatchers.IO) { saveStorageIn(context.filesDir).file.isFile }
     }
+    // Starts true so the "predates the kept ROM image" hint does not flash before the check runs.
     var hasRom by remember { mutableStateOf(true) }
     LaunchedEffect(current, importing) {
         hasRom = withContext(Dispatchers.IO) { keptRom(context) != null }
@@ -262,7 +296,7 @@ private fun Launcher(onPlay: (RomView?) -> Unit) {
         OutlinedButton(onClick = { confirmDelete = true }, enabled = hasSave && !importing) {
             Text("Delete save")
         }
-        // Every build needs an imported ROM: no APK bundles game data.
+        // Every build needs an imported ROM: no APK bundles game data (decision 0011).
         val canPlay = current == true
         if (current == true && !hasRom) {
             Text(

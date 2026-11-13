@@ -1,9 +1,6 @@
 /**
- * OpenGL ES 3.0 rendering surface and frame presentation pipeline.
- *
- * Hosts the game presentation surface in Android, displaying native 240×160 GBA graphics scaled
- * to screen dimensions with aspect-ratio preservation and crisp nearest-neighbor texture filtering.
- * Bridges input sources (touch buttons and physical controllers) into the game loop.
+ * The game picture on screen: a GL view that runs the game loop, draws the 240×160 GBA frame
+ * scaled to fit the screen (3:2, black bars), and routes keyboard and gamepad input to the game.
  */
 
 package fe8.app
@@ -27,21 +24,24 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 /**
- * OpenGL ES 3.0 game view for Android.
+ * The view the player sees while playing, and the owner of game input.
  *
- * The game renders at native GBA resolution (240×160) into a texture or via [GpuBackend], which
- * a fullscreen quad scales to the maximum aspect-correct size within the display viewport using
- * nearest-neighbor sampling for authentic pixel-art rendering.
+ * The game draws a native 240×160 frame. Either the CPU-drawn frame is uploaded as a texture, or
+ * [GpuBackend] composites it on the GPU; both are scaled to the largest 3:2 area that fits the
+ * view, with nearest-neighbour sampling so pixels stay sharp.
  *
- * Threading architecture:
- * The [GameLoop] executes on the dedicated GL render thread driven by [GLSurfaceView.Renderer.onDrawFrame]
- * at the screen's refresh rate, with deterministic game logic updates locked to ~59.73 Hz by [gba.core.time.FixedStepClock].
- * Allocates no heap memory during rendering frames by reusing pre-allocated direct buffers.
+ * Threading: [GameLoop] runs on the GL render thread, once per [GLSurfaceView.Renderer.onDrawFrame]
+ * (continuous mode, so at the screen's refresh rate; Android behaviour, not checked here). The
+ * loop runs as many fixed logic ticks as elapsed time needs, at
+ * [gba.core.time.FixedStepClock.TICK_HZ] (280896 cycles per GBA frame at 16777216 Hz, about
+ * 59.7275 Hz). Key events arrive on the UI thread and are read by the game thread through
+ * [HardwareKeySource.poll]. The per-frame pixel upload reuses one direct buffer.
  *
- * @param context Android application context.
- * @param game The active FE8 game instance.
- * @param touch Optional on-screen touch controller input source.
- * @param gpu If `true`, renders via [GpuBackend] hardware shaders instead of software frame uploading.
+ * @param context Android context.
+ * @param game The game to run; its input source is set here to keys, OR-ed with [touch] if given.
+ * @param touch The on-screen buttons' state, or null when no overlay is shown.
+ * @param gpu Draw through [GpuBackend]. Takes effect only when the game has a boot sequence
+ *   (`Fe8Game.boot`); otherwise the software frame is uploaded.
  */
 public class GameSurfaceView(
     context: Context,
@@ -52,6 +52,8 @@ public class GameSurfaceView(
 ) : GLSurfaceView(context) {
     private val keys = HardwareKeySource()
 
+    // Keys and touch are OR-ed: either may hold a button. The view takes focus so the system
+    // delivers key events (Android behaviour, not checked here).
     init {
         game.actionSource = if (touch == null) keys else ActionSource { keys.poll() or touch.poll() }
         setEGLContextClientVersion(OPENGL_ES_VERSION)
@@ -62,32 +64,39 @@ public class GameSurfaceView(
         requestFocus()
     }
 
+    /** Key pressed: GBA-mapped keys go to [keys] and are consumed; others get default handling. */
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean =
         keys.onKey(event) || super.onKeyDown(keyCode, event)
 
+    /** Key released: same mapping as [onKeyDown]. */
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean =
         keys.onKey(event) || super.onKeyUp(keyCode, event)
 
+    /** Gamepad hat or stick moved: becomes D-pad directions via [HardwareKeySource.onMotion]. */
     override fun onGenericMotionEvent(event: MotionEvent): Boolean =
         keys.onMotion(event) || super.onGenericMotionEvent(event)
 
+    /** Releases every held key on focus loss, so no button sticks if the key-up is missed. */
     override fun onWindowFocusChanged(hasWindowFocus: Boolean) {
         super.onWindowFocusChanged(hasWindowFocus)
         if (!hasWindowFocus) keys.clear()
     }
 
     private companion object {
+        /** Major OpenGL ES version requested for the context (the code calls `GLES30`). */
         private const val OPENGL_ES_VERSION = 3
     }
 }
 
 /**
- * Internal OpenGL ES 3.0 renderer driving game loop execution, texture uploads, and screen blitting.
+ * The per-frame work on the GL thread: run due game ticks, then draw the game frame to the view.
  *
- * @property game Active FE8 game instance.
- * @property gpu Flag indicating whether hardware GPU shader rasterization is requested.
+ * @property game The game being run and drawn.
+ * @param gpu Whether [GpuBackend] drawing was requested; honoured only if [game] has a boot
+ *   sequence.
  */
 private class GameRenderer(private val game: Fe8Game, gpu: Boolean) : GLSurfaceView.Renderer {
+    // Wraps game.tick/present in systrace sections in debug builds only (profiling aid).
     private val loop = GameLoop(object : Simulation {
         override fun tick() {
             if (BuildConfig.DEBUG) Trace.beginSection("FE8 tick")
@@ -107,19 +116,32 @@ private class GameRenderer(private val game: Fe8Game, gpu: Boolean) : GLSurfaceV
             }
         }
     })
+    /** Draw callbacks so far; only feeds the debug trace counter. */
     private var callbacks = 0L
+
+    /** The GPU compositor, or null for the software-frame path. */
     private val gpuBackend = game.boot?.takeIf { gpu }?.let { GpuBackend(it.gpuFrame, it.tileSheets) }
     private val frame = game.frame
+
+    /** Direct buffer the software frame is copied into before the texture upload. */
     private val upload: IntBuffer = ByteBuffer.allocateDirect(frame.pixels.size * BYTES_PER_PIXEL)
         .order(ByteOrder.nativeOrder())
         .asIntBuffer()
+    /** GL handles for the software-frame path: shader program, frame texture, `uScale` uniform. */
     private var program = 0
     private var texture = 0
     private var uScale = 0
+
+    /** Surface size in pixels, set by [onSurfaceChanged]; used for the aspect-fit. */
     private var viewW = 1
     private var viewH = 1
 
-    /** Initializes OpenGL shaders, uniform locations, textures, and vertex arrays. */
+    /**
+     * Creates the GL objects (also the GPU backend's) once the context exists. GLSurfaceView calls
+     * this again if the context is recreated, e.g. after a pause (Android behaviour, not checked
+     * here), which is why nothing is created earlier. Also tells the game whether to pack its frame
+     * for the GPU (`gpuPresent`) or draw it in software.
+     */
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         game.gpuPresent = gpuBackend != null
         gpuBackend?.init(::link, VERTEX)
@@ -139,14 +161,18 @@ private class GameRenderer(private val game: Fe8Game, gpu: Boolean) : GLSurfaceV
         GLES30.glBindVertexArray(vao[0]) // quad corners are generated from gl_VertexID
     }
 
-    /** Updates viewport dimensions upon surface geometry or orientation changes. */
+    /** Surface resized (first show, rotation): remember its size and set the GL viewport to it. */
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         viewW = width
         viewH = height
         GLES30.glViewport(0, 0, width, height)
     }
 
-    /** Advances game simulation, performs render passes, and draws the scaled output quad. */
+    /**
+     * One display refresh: run the game ticks now due (and present once), then draw the frame.
+     * In debug builds each step is a systrace section and ticks per callback are counted.
+     * `Trace.setCounter` needs API 29 (Android behaviour, not checked here).
+     */
     override fun onDrawFrame(gl: GL10?) {
         if (BuildConfig.DEBUG) Trace.beginSection("FE8 draw frame")
         try {
@@ -168,9 +194,14 @@ private class GameRenderer(private val game: Fe8Game, gpu: Boolean) : GLSurfaceV
         }
     }
 
-    /** Draws the current game frame, scaled to the surface. */
+    /**
+     * Draws the current game frame fitted to the surface: black bars on the spare sides, via the
+     * GPU backend if present, else by uploading the software frame to the texture and drawing a
+     * quad.
+     */
     private fun drawFrame() {
-        // Aspect-correct fit: scale the [-1,1] quad so the 3:2 image fits the view.
+        // Aspect-correct fit: scale the [-1,1] quad so the 3:2 image fits the view; a view wider
+        // than 3:2 shrinks x (side bars), a taller one shrinks y (top and bottom bars).
         val gameAspect = frame.width.toFloat() / frame.height
         val viewAspect = viewW.toFloat() / viewH
         val sx = if (viewAspect > gameAspect) gameAspect / viewAspect else 1f
@@ -198,7 +229,11 @@ private class GameRenderer(private val game: Fe8Game, gpu: Boolean) : GLSurfaceV
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, QUAD_VERTEX_COUNT)
     }
 
-    /** Compiles vertex and fragment shaders and links them into an OpenGL program. */
+    /**
+     * Compiles the two shaders and links them into a program, returning its handle. A shader that
+     * fails to compile throws with the GL log. NOTE: the link result is not checked, so a link
+     * failure would show up only as a blank picture.
+     */
     private fun link(vs: String, fs: String): Int {
         fun compile(type: Int, src: String): Int {
             val s = GLES30.glCreateShader(type)
@@ -217,13 +252,16 @@ private class GameRenderer(private val game: Fe8Game, gpu: Boolean) : GLSurfaceV
     }
 
     private companion object {
-        /** Bytes per pixel in 32-bit ARGB/RGBA format. */
+        /** Bytes per pixel: one `Int` of `0xAARRGGBB` per pixel in the frame. */
         private const val BYTES_PER_PIXEL = 4
 
-        /** Vertex count for a triangle strip unit quad. */
+        /** Vertices of the screen quad, drawn as a triangle strip. */
         private const val QUAD_VERTEX_COUNT = 4
 
-        /** Vertex shader generating fullscreen quad corners dynamically from gl_VertexID. */
+        /**
+         * Vertex shader: no vertex buffer; the quad's four corners come from `gl_VertexID` 0..3,
+         * scaled by `uScale` (the aspect-fit) and with v flipped so frame row 0 is at the top.
+         */
         private const val VERTEX = """#version 300 es
             uniform vec2 uScale;
             out vec2 vUv;
@@ -233,7 +271,10 @@ private class GameRenderer(private val game: Fe8Game, gpu: Boolean) : GLSurfaceV
                 gl_Position = vec4((p * 2.0 - 1.0) * uScale, 0.0, 1.0);
             }"""
 
-        /** Fragment shader sampling the 240×160 GBA frame texture and swizzling BGRA to RGBA. */
+        /**
+         * Fragment shader: samples the frame texture. The ARGB ints are uploaded as RGBA bytes, so
+         * the red and blue channels arrive swapped and `.bgra` puts them right.
+         */
         private const val FRAGMENT = """#version 300 es
             precision mediump float;
             uniform sampler2D uTex;

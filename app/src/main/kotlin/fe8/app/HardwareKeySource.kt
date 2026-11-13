@@ -1,8 +1,6 @@
 /**
- * Hardware controller and keyboard input translation.
- *
- * Maps Android [KeyEvent] key codes and [MotionEvent] joystick / D-pad axes to the Game Boy Advance
- * hardware `KEYINPUT` bitmask format (active-high bits for A, B, Select, Start, Right, Left, Up, Down, R, L).
+ * Keyboard and gamepad input for the game: Android key codes and stick/hat motion become the GBA
+ * button bits the game polls.
  */
 
 package fe8.app
@@ -13,29 +11,31 @@ import android.view.MotionEvent
 import gba.input.ActionSource
 
 /**
- * [ActionSource] for physical keyboards and gamepads.
+ * [ActionSource] for physical keyboards and gamepads, polled by the game once per tick.
  *
- * Maps Android key codes, the analog D-pad hat, and the primary left analog stick to standard
- * GBA button bits in `KEYINPUT` bit order. Hardware events are fed on the Android UI thread
- * via [onKey] and [onMotion], while the OpenGL render loop concurrently reads state via [poll].
- * Operates entirely without per-event or per-poll heap allocations.
+ * Bit order is that of `REG_KEYINPUT` (A, B, Select, Start, Right, Left, Up, Down, R, L = bits
+ * 0..9, `include/gba/io_reg.h:673`). A set bit means "held": the hardware register is active-low,
+ * and the decomp inverts it on read (`src/hardware.c:342`), so this matches the game's view.
+ * Events arrive on the UI thread via [onKey] and [onMotion]; the GL thread reads via [poll]
+ * (hence the volatile fields). Keys and stick are kept in separate masks so one cannot release
+ * the other. Allocates nothing.
  */
 public class HardwareKeySource : ActionSource {
+    /** Buttons held by key presses (keyboard or gamepad buttons). */
     @Volatile private var keys: Long = 0L
+
+    /** Directions held by the hat or left stick; replaced whole on each motion event. */
     @Volatile private var axes: Long = 0L
 
-    /**
-     * Polls the current combined state of physical keys and joystick axes.
-     *
-     * @return Bitmask of currently depressed GBA buttons in `KEYINPUT` bit order.
-     */
+    /** Returns the buttons currently held (keys or stick), as bits in the order above. */
     override fun poll(): Long = keys or axes
 
     /**
-     * Handles an Android key event; updates internal state if mapped to a GBA button.
+     * A key went down or up: sets or clears the matching GBA button bit. Other actions (e.g. a
+     * multiple-key event) leave the state alone but are still consumed if the key is mapped.
      *
-     * @param event The hardware key event to process.
-     * @return `true` if the key code maps to a recognized GBA control, `false` otherwise.
+     * @param event The key event.
+     * @return `true` if the key is mapped to a GBA button (consume it), `false` to let it pass.
      */
     public fun onKey(event: KeyEvent): Boolean {
         val bit = bitFor(event.keyCode)
@@ -48,10 +48,13 @@ public class HardwareKeySource : ActionSource {
     }
 
     /**
-     * Handles joystick and gamepad motion events (hat switch and primary analog stick).
+     * A gamepad hat or stick moved: recomputes the held directions. Per axis the hat wins if it is
+     * off centre, otherwise the stick counts only beyond [DEAD_ZONE]. The new direction set
+     * replaces the old one, so returning to centre releases it. The left stick is
+     * `AXIS_X`/`AXIS_Y` (Android behaviour, not checked here).
      *
-     * @param event The motion event to inspect.
-     * @return `true` if consumed as joystick movement, `false` otherwise.
+     * @param event The motion event.
+     * @return `true` for a joystick-source move event (consumed), `false` otherwise.
      */
     public fun onMotion(event: MotionEvent): Boolean {
         if (event.source and InputDevice.SOURCE_JOYSTICK != InputDevice.SOURCE_JOYSTICK ||
@@ -71,20 +74,19 @@ public class HardwareKeySource : ActionSource {
     }
 
     /**
-     * Releases all currently held keys and directional axes.
-     * Called when the view loses focus or the activity pauses.
+     * Releases every held key and direction. [GameSurfaceView] calls it when the window loses
+     * focus, since a key-up delivered elsewhere would otherwise leave a button stuck. (It is not
+     * called by the activity's own pause.)
      */
     public fun clear() {
         keys = 0L
         axes = 0L
     }
 
-    /** Selects the D-pad hat deflection if non-zero, otherwise falling back to the analog stick. */
+    /** One axis of input: the hat value if it is non-zero, else the stick value. */
     private fun pick(hat: Float, stick: Float): Float = if (hat != 0f) hat else stick
 
-    /**
-     * Constants and mappings from Android input codes to GBA KEYINPUT bit indices.
-     */
+    /** GBA key bit indices (`REG_KEYINPUT` order) and the Android key code mapping. */
     public companion object {
         /** GBA Button A bit index (bit 0). */
         public const val A: Int = 0
@@ -116,18 +118,20 @@ public class HardwareKeySource : ActionSource {
         /** GBA Shoulder button L bit index (bit 9). */
         public const val L: Int = 9
 
-        /** Analog joystick dead zone threshold in the range [-1.0, 1.0]. */
+        /** A stick axis (range -1.0..1.0) counts as a direction only beyond +/- this value. */
         public const val DEAD_ZONE: Float = 0.5f
 
         /**
-         * Resolves the corresponding GBA key bit index for an Android [keyCode], or `-1` if unmapped.
+         * The GBA key bit for an Android [keyCode], or `-1` if the key is not used.
          *
-         * Standard mappings:
-         * - Gamepad: A/B face buttons, Select, Start, L1/L2, R1/R2.
-         * - Keyboard: X = A, Z = B, Backspace = Select, Enter = Start, A = L, S = R, arrow keys = D-pad.
+         * - Gamepad: A, B, Select and Start buttons map to the same GBA buttons; L1 and L2 both
+         *   give L; R1 and R2 both give R. The gamepad D-pad keys (`KEYCODE_DPAD_*`) give the
+         *   directions, and D-pad centre gives A.
+         * - Keyboard: X = A, Z = B, Backspace (`KEYCODE_DEL`) = Select, Enter = Start, A = L,
+         *   S = R, arrow keys = directions.
          *
-         * @param keyCode Android [KeyEvent] keycode.
-         * @return GBA bit index in 0..9, or -1 if unmapped.
+         * @param keyCode Android [KeyEvent] key code.
+         * @return Bit index 0..9, or -1 if unmapped.
          */
         public fun bitFor(keyCode: Int): Int = when (keyCode) {
             KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_X, KeyEvent.KEYCODE_DPAD_CENTER -> A

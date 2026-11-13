@@ -25,7 +25,6 @@ forecast, f1460 confirm, f2010..2038 results), `..._attack_noanim` (f1595..2124,
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
 | MC-17 | PORT | Level-up: only `CheckBattleUnitLevelUp` (no-level-up result) runs; the rest unwritten until a capture has a level-up | `CheckBattleUnitLevelUp` result equals the captures; stats after the first level-up (EP-cap2, else add a CAP) | MC-15, EP-cap2 | todo |
-| MC-w2 | WIRE | Same for MC-cap2 (`ram_trace_prologue_kill`): kill, death removal, kill exp; allocation over the whole attack flow; MANUAL_TEST | Final state equals the capture; 0 B/frame; MANUAL_TEST; device check | MC-w1 | in progress 2026-11-13 (Claude) |
 
 ### M6-D enemy phase and AI (Prologue)
 
@@ -123,7 +122,7 @@ Sub-lane contents and file counts: [M6C-J-breakdown](plans/M6C-J-breakdown.md).
 |---|---|---|---|---|---|
 | CAP-hard1 | CAP | Hard-mode New Game run reaching autolevelled loads (unblocks old M6-13) | Run published; then tag `UnitAutolevelRealistic`, `UnitApplyBonusLevels`, `UnitAutolevelPenalty` | — | todo |
 | CAP-collide1 | CAP | Run where a unit load lands on an occupied tile (unblocks old M6-14) | Run published; then verify `AiGetUnitClosestValidPosition`, `AdjustNewUnitPosition` | — | todo |
-| TEST-2 | INV | `WalkingAllocationTest` borderline on the owner PC: 1–2 of 26 allocation-free windows (needs 3), 4 of 6 local runs on 11-11 failed; CI passes | Find the allocating call (allocation profiler on the walking window) or show it is GC/JIT noise; fix or adjust with the reason | — | todo |
+| TEST-2 | INV | `WalkingAllocationTest` borderline on the owner PC: 1–2 of 26 allocation-free windows (needs 3), 4 of 6 local runs on 11-11 failed; CI passes | Find the allocating call (allocation profiler on the walking window) or show it is GC/JIT noise; fix or adjust with the reason. MC-w2 (11-13): the player-phase MU walk allocates 32 B every frame, steadily (noanim f1560..1595, `PlayerPhaseAllocationTest`), so it is not noise | — | todo |
 | TEST-3 | INV | `tools/tests/test_kmp_common.py` is pytest-style, so CI's `unittest discover` never runs it; locally it fails on `ItemInfo.kt:272` (`toByteArray(Charsets.US_ASCII)` in commonMain, since 11-09) | CI runs the check; the offender uses a common API; other pytest-only test files found | — | todo |
 | BUG-gold | CAP+PORT | Give-gold event path: port `NewPopup_GoldGot` (adds gold only for a blue unit, else the stolen popup) and `GetPartyGoldAmount`/`SetPartyGoldAmount` (chapter index 5 reads 0, cap 999999); Fe8Boot wires the raw field (found by the 11-13 readability audit) | Capture of a gold event checked against the port | — | todo |
 | BUG-changemap | PORT | `event25ChangeMap` (EventChangeMap.kt) differs from `Event25_ChangeMap` (eventscr.c:1896-1925): it adds a backdrop/blend tail that belongs to `sub_8009E28` and omits `RefreshUnitSprites`, `RefreshBMapGraphics`, `ChangeUnitSpritePalette` and the BG0/BG1 clear; its test compares none of these (found by the 11-13 audit) | Handler matches the C; the differential test also compares palettes, blend registers and BG0/BG1 | — | todo |

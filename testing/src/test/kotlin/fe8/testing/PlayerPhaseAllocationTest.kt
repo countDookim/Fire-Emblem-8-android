@@ -92,6 +92,74 @@ class PlayerPhaseAllocationTest {
     }
 
     @Test
+    fun `attack flow windows allocate nothing`() {
+        val ref = ReferenceData.fromEnvironment()
+        assumeTrue(AllocationMeter.supported && ref.available && File(assets, "baserom.gba").isFile)
+        // Two passes, the minimum per frame (see the select move test above).
+        val first = attackFlowBytes(ref)
+        val second = attackFlowBytes(ref)
+        val bytes = LongArray(first.size) { minOf(first[it], second[it]) }
+        for ((name, from, to, run) in ATTACK_WINDOWS) {
+            var best = 0
+            var current = 0
+            for (f in from..to) {
+                current = if (bytes[f] == 0L) current + 1 else 0
+                best = maxOf(best, current)
+            }
+            assertTrue(best >= run, "$name f$from..$to: longest allocation-free run $best")
+        }
+    }
+
+    /**
+     * One replay of the noanim attack inputs from the idle phase to the end of the battle; the
+     * allocated bytes of each frame, indexed by capture frame (idle at 1172) up to the confirm
+     * at f1820 and by the frames after it from there on.
+     */
+    private fun attackFlowBytes(ref: ReferenceData): LongArray {
+        val run = ref.run("ram_trace_prologue_attack_noanim")
+        val captured = Array<Any>(run.inputs.size) { run.inputs[it] }
+        val pulse = arrayOf<Any>(0, 1)
+        var frame = 0
+        var idleAt = -1
+        val boot = Fe8Boot(
+            RomView.ofRom(File(assets, "baserom.gba").readBytes()),
+            @Suppress("UNCHECKED_CAST")
+            ({
+                if (idleAt < 0) pulse[if (frame % 20 in 5..8) 1 else 0]
+                else captured.getOrElse(frame - idleAt + 1172) { 0 }
+            } as () -> Int),
+            RngService(),
+            saveStorage = Image(ref.run("ram_trace_prologue_resume").sram("s01001")),
+        )
+        boot.gpuFrame
+        val bytes = LongArray(2600)
+        var combatSeen = false
+        while (frame < 6000) {
+            val before = AllocationMeter.current()
+            boot.frame()
+            boot.pack()
+            val used = AllocationMeter.current() - before
+            frame++
+            if (idleAt < 0 && boot.engine.find(boot.playerPhaseScript)?.scrCur == 16) idleAt = frame
+            if (idleAt < 0) continue
+            val at = frame - idleAt + 1172
+            if (at < bytes.size) bytes[at] = used
+            val combat = boot.engine.procs.any { it.script?.name == "sProcScr_CombatAction" }
+            combatSeen = combatSeen || combat
+            if (combatSeen && !combat && at > 1820) {
+                for (k in 1..120) {
+                    val b = AllocationMeter.current()
+                    boot.frame()
+                    boot.pack()
+                    if (at + k < bytes.size) bytes[at + k] = AllocationMeter.current() - b
+                }
+                break
+            }
+        }
+        return bytes
+    }
+
+    @Test
     fun `cursor resting on an enemy allocates nothing`() {
         restOnEnemy(burst = false)
     }
@@ -186,5 +254,22 @@ class PlayerPhaseAllocationTest {
             bytes[i] = AllocationMeter.current() - before
         }
         return bytes
+    }
+
+    private class Window(val name: String, val from: Int, val to: Int, val run: Int) {
+        operator fun component1() = name
+        operator fun component2() = from
+        operator fun component3() = to
+        operator fun component4() = run
+    }
+
+    private companion object {
+        // The unit's walk (f1560..1595, the MU proc) is left out: it allocates 32 B per frame.
+        val ATTACK_WINDOWS = listOf(
+            Window("weapon list", 1600, 1625, 10),
+            Window("target and forecast", 1635, 1655, 10),
+            Window("forecast shown", 1668, 1700, 10),
+            Window("after the battle", 1830, 1930, 40),
+        )
     }
 }

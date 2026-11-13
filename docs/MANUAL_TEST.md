@@ -34,35 +34,32 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      around it (attack range), the path arrow follows the cursor, the move sound. B cancels (Eirika
      is back, squares gone).
   3. Select her again, move the cursor two tiles right and press A. Expected: she walks the arrow
-     path, then the unit menu opens with Item and Wait (no Attack: no enemy is in reach). Moving
-     her next to a red unit instead shows Attack first. Choosing it (MC-3a, not yet in a published
-     APK) opens a framed weapon list with a hover bar; only the red squares of the highlighted
-     weapon's reach stay. The row shows the weapon's icon, name and uses (MC-4a, not yet in a published
-     APK). Beside it Eirika's face blinks at the right and a framed item panel at the lower right shows
-     Atk, Hit, Crit and Avoid of the weapon, with its type icon (MC-4b, not yet in a published APK). A on
-     a weapon (MC-3b, not yet in a published APK) equips it and clears the list; the red cursor
-     then sits on the enemy in reach (MC-5) and Eirika turns towards it (MC-6, not yet in a
-     published APK) with the attack squares still shown. The battle forecast window (MC-10 to MC-12b, not yet in a
-     published APK) slides in from the side away from the enemy (4 frames) and stays: a framed
-     panel with both names, HP, damage, hit and crit numbers, the labels and the weapon icons.
-     The weapon triangle arrows (up for Eirika, down for the enemy) and a swaying x2 mark by Eirika's side show too (MC-12b); there is no help box (M6-F).
-     B
-     (cancel sound) slides the panel out, hides the cursor and squares and reopens the weapon list. A (confirm sound)
-     ends the cursor and squares and the attack resolves at once (MC-13, not yet in a published APK): no map
-     animation (stand-in until M6-H), but the enemy's HP drops by the forecast damage (or stays on a miss), the
-     weapon's uses drop and Eirika greys out as after Wait. A killed enemy (MC-16, not yet in a
-     published APK) vanishes from the map at once (no fade, that is M6-H): its tile is empty, the cursor can
-     stand on it and A there opens the map menu, the unit window shows nothing for it. Press End and back: it
-     does not return. No counter animation. The result is written back to the unit (MC-15): after the fight Eirika's HP and weapon uses stay as the
-     forecast said, also after Wait and the end of the turn. Experience (MC-14) is computed (Eirika earns 10 for
-     the fight) but nothing on the map shows it: the exp bar needs the battle animation and the status screen is
-     not ported, so there is nothing to check for it.
+     path, then the unit menu opens with Item and Wait (no Attack: no enemy is in reach).
+     Attack flow (APK 0.1.667 and later): move her next to a red unit instead; the menu shows
+     Attack first. Choose it. Expected, in order:
+     a. A framed weapon list with a hover bar (icon, name, uses per row); only the red squares of
+        the highlighted weapon's reach stay. Eirika's face blinks at the right and an item panel
+        at the lower right shows Atk, Hit, Crit and Avoid with the weapon's type icon.
+     b. A on a weapon: the list closes, the red cursor sits on the enemy in reach, Eirika turns
+        towards it. The forecast window slides in from the side away from the enemy: both names,
+        HP, damage, hit and crit, weapon icons, weapon triangle arrows and a swaying x2 mark.
+     c. B (cancel sound) slides the forecast out and reopens the weapon list; B again closes it.
+     d. A on the target (confirm sound): the fight resolves at once. The enemy's HP drops by the
+        forecast damage (or stays on a miss), the weapon's uses drop, Eirika greys out as after
+        Wait. HP and uses stay as they are after Wait and End turn.
+     e. A kill (Seth can kill on turn 1): the enemy vanishes from its tile at once; the tile is
+        empty, the cursor can stand on it and A there opens the map menu. It does not return
+        after End.
+     Stand-ins (not bugs, later milestones): no battle or map animation (M6-H), no death fade (M6-H),
+     no exp bar (Eirika earns 10 exp for the fight, held in the unit but not shown; the status
+     screen is not ported), no level-up stat gains (MC-17), no help box (M6-F), no counter
+     animation, no weapon-broke or item-drop popups.
   4. B in the unit menu. Expected: she is back at her start tile and selected again, the range shows.
      Move again and choose Wait. Expected: the menu closes, Eirika greys out, the cursor is free.
   5. Press A on an empty tile. Expected: the map menu (Unit, Status, Guide, Options, Suspend,
      End). Choose End. Expected: the "Enemy Phase" banner, a short scene or nothing, then, since the
      enemies do nothing, the "Player Phase" banner of turn 2 and Eirika is no longer grey.
-  - Limits (stand-ins): after Attack, picking a weapon only beeps (target selection and combat are M6-C); Item opens nothing and
+  - Limits (stand-ins): Item opens nothing and
     answers with the refusal beep (M6-H); the map menu's Unit, Status, Guide, Options and Suspend,
     and R / L / START in the map do nothing (M6-F; Suspend M6-E); enemies do not move or attack
     (M6-D); no staff range, no traps, no after-move or tutorial events, no records (M6-C, M6-E,

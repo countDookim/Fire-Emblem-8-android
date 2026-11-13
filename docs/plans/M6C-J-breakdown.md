@@ -574,6 +574,15 @@ capture's f2124: every byte of every unit (HP, exp, level, items and uses, state
 +0x3C..0x3F skipped) and the next 4 RNG draws. All equal on the first run, no wiring bug found; the test fails when
 compared with f1820, so it is not vacuous. Not covered: the kill path and allocation over the flow (MC-w2).
 
+**MC-w2 result.** `KillFlowReplayTest` replays `ram_trace_prologue_kill` the way MC-w1 does (shared helper
+`AttackReplay`): inputs relative to the idle frame, stop when Seth's `sProcScr_CombatAction` has ended with the phase
+idle, compare with f2020 (after the f1999 write-back, before the cursor input of f2029): the whole unit table (Seth's
+kill exp, uses and state, the dead enemy's struct) and the next 4 RNG draws all equal; no wiring bug. `gBmMapUnit` is
+not compared (the boot's map is private). Allocation: `PlayerPhaseAllocationTest` gained an attack-flow case (weapon
+list, target select, forecast shown, 100 frames after the battle): all frames allocate 0 B. Found, not fixed: the unit's
+walk (MU proc, f1560..1595 of the noanim run) allocates 32 B per frame, which the existing select/move windows also
+skip; the window is left out. MANUAL_TEST step 3 now lists the attack flow and its stand-ins.
+
 ## M7
 
 Not broken down here: [M7-modding](M7-modding.md) has 23 proposed rows; they wait for owner decisions D2–D9.

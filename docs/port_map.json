@@ -9,7 +9,7 @@
     "in_scope_total": 7732,
     "out_of_scope": 620,
     "verified": 1188,
-    "implemented_unverified": 23
+    "implemented_unverified": 33
   },
   "functions": {
     "ActionCombat": {
@@ -103,6 +103,14 @@
       "tests": [
         "fe8.testing.PhaseChangeDifferentialTest#berserk phase and order run and end at once after the player phase"
       ]
+    },
+    "AiPhaseInit": {
+      "decomp_file": "src/cp_phase.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt",
+      "status": "implemented",
+      "tests": []
     },
     "ApplyMenuCursorVScroll": {
       "decomp_file": "src/uimenu.c",
@@ -893,6 +901,14 @@
         "fe8.game.BrownTextBoxReferenceTest#the Prologue box hold frame equals the reference OAM entries"
       ]
     },
+    "BuildAiUnitList": {
+      "decomp_file": "src/cp_order.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "BurstDisplay_Init": {
       "decomp_file": "src/player_interface.c",
       "system": "menus",
@@ -1391,6 +1407,14 @@
         "fe8.testing.M4aChannelTest#head channel volumes match the reference RAM dumps"
       ]
     },
+    "ClearActiveFactionGrayedStates": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "ClearBattleHits": {
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
@@ -1834,6 +1858,14 @@
         "fe8.testing.PhaseChangeDifferentialTest#berserk phase and order run and end at once after the player phase"
       ]
     },
+    "CpOrderFunc_BeginDecide": {
+      "decomp_file": "src/cp_order.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "CpOrderFunc_End": {
       "decomp_file": "src/cp_order.c",
       "system": "ai",
@@ -1843,6 +1875,14 @@
       "tests": [
         "fe8.testing.PhaseChangeDifferentialTest#berserk phase and order run and end at once after the player phase"
       ]
+    },
+    "CpOrderMain": {
+      "decomp_file": "src/cp_order.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt",
+      "status": "implemented",
+      "tests": []
     },
     "CutOffPathLength": {
       "decomp_file": "src/bmpatharrowdisp.c",
@@ -5191,6 +5231,14 @@
         "fe8.testing.GoalDisplayDifferentialTest#select_move goal window starts after the unit waits"
       ]
     },
+    "GorgonEggHatchDisplay_Init": {
+      "decomp_file": "src/bmusailment.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "GreenText_OnLoop": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -7137,6 +7185,14 @@
         "fe8.testing.PathArrowDrawDifferentialTest#cancel_end path arrow drawing matches the game",
         "fe8.testing.PathArrowDrawDifferentialTest#select_move path arrow drawing matches the game"
       ]
+    },
+    "PoisonDamageDisplay_Init": {
+      "decomp_file": "src/bmusailment.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt",
+      "status": "implemented",
+      "tests": []
     },
     "PopulateSaveBlockChecksum": {
       "decomp_file": "src/bmsave.c",
@@ -9130,6 +9186,14 @@
         "fe8.testing.WorldMapEventUnitTest#unit and point commands run by the VM match the capture"
       ]
     },
+    "StatusDecayDisplay_Init": {
+      "decomp_file": "src/bmusailment.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "StoreRNStateToActionStruct": {
       "decomp_file": "src/bmmind.c",
       "system": "battle_logic",
@@ -9435,6 +9499,14 @@
         "fe8.testing.TerrainDisplayDifferentialTest#cancel_end window restarts after cancelling the selection",
         "fe8.testing.TerrainDisplayDifferentialTest#select_move windows start after the unit waits"
       ]
+    },
+    "TerrainHealDisplay_Init": {
+      "decomp_file": "src/bmusailment.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt",
+      "status": "implemented",
+      "tests": []
     },
     "Text_DrawCharacter": {
       "decomp_file": "src/fontgrp.c",
@@ -10885,6 +10957,14 @@
       "tests": [
         "fe8.testing.WorldMapRmTest#map scroll procs follow the original proc fields and BG1 offsets every step"
       ]
+    },
+    "sub_8015434": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt",
+      "status": "implemented",
+      "tests": []
     },
     "sub_80156D4": {
       "decomp_file": "src/bm.c",

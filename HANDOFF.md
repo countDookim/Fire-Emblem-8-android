@@ -12,7 +12,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - MC-5 (target selection proc): owner PC, until ~03:00Z (from 23:45Z)
-- Readability audit fe8.game.title: owner PC, until ~02:00Z (from 23:44Z)
+- Readability audit fe8.game.opanim (OpSubtitle*.kt): owner PC, until ~02:30Z (from 00:04Z)
 
 ## Current state
 

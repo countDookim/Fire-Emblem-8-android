@@ -75,7 +75,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.savemenu | 2 | 156 | done 2026-11-09 81db35b; audit todo |
 | game | fe8.game.scene | 7 | 3521 | done 2026-11-09 c3bb2ed; audit done 2026-11-12 24bb602 |
 | game | fe8.game.text | 1 | 64 | done 2026-11-09 0194222; audit done 2026-11-12 24bb602 |
-| game | fe8.game.title | 1 | 924 | done 2026-11-09 83f2cb6; audit done 2026-11-13 PENDING |
+| game | fe8.game.title | 1 | 924 | done 2026-11-09 83f2cb6; audit done 2026-11-13 0efa0a2 |
 | game | fe8.game.ui | 5 | 1069 | done 2026-11-11 262e4fc; audit todo |
 | game | fe8.game.worldmap (WorldMapRm, WorldMapRmBaPalAnim, WorldMapPaletteFade, WorldMapText, WorldMapTextFadeEvents) | 5 | 1519 | done 2026-11-12 8f6f480 |
 | game | fe8.game.worldmap (Nodes, WmNodeData, GmData, ApHost, Sms, Path, NodeIcons, Hblank, LineFade, Cursor, Beginning, Exit, MainScript; Text/Misc/Spawn/Face/BigMap events) | 18 | 2553 | done 2026-11-13 8dfd5f7 |

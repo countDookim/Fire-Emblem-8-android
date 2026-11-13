@@ -1,10 +1,13 @@
 /**
- * Mid-chapter suspend save serializer and deserializer.
+ * Mid-chapter suspend save ("Suspend" on the battle map) writer and reader.
  *
- * Implements the battlefield suspend save reading and writing routines from `src/bmsave.c`,
- * serializing volatile in-combat state for player, enemy, and allied factions (using the 0x34-byte
- * `struct SuspendSavePackedUnit`), active map traps, current turn actions, RNG seeds, event flags,
- * and alternating suspend slot selection.
+ * Ports `WriteSuspendSave` / `ReadSuspendSave` and their helpers from `src/bmsave.c`. A suspend
+ * block (`struct SuspendSaveBlock`, 0x1F78 bytes, see [Fe8SuspendLayout]) holds `gPlaySt`,
+ * `gActionData` (with the RN state), the blue / red / green units each packed into the 0x34-byte
+ * `struct SuspendSavePackedUnit`, the traps, convoy, pid and chapter stats, event flags, menu
+ * overrides, world map and dungeon state and the event slot counter. Two such blocks alternate:
+ * a write goes to the one that is not the last written, then the header's `last_suspend_slot`
+ * flips. Slot choice and block info bookkeeping are done by [BmSaveLib].
  */
 
 package fe8.game.save
@@ -23,8 +26,9 @@ import gba.core.sram.writeAndVerifySramFast
 import gba.core.sram.writeSramFast
 
 /**
- * The suspend (mid-chapter) save writer of src/bmsave.c, on top of a [BmSaveLib]. The C code's
- * `gGenericBuffer` and stack locals are buffers allocated once here.
+ * The suspend (mid-chapter) save writer and reader of src/bmsave.c, on top of a [BmSaveLib]. The
+ * C code's `gGenericBuffer` and stack locals are buffers allocated once here, so a save or load
+ * does not allocate.
  *
  * @property lib the save RAM routines (and the owner of `gPidStatsData` / `gChapterStats`).
  * @property rom the ROM that unit `pCharacterData` / `pClassData` pointers point into.
@@ -38,10 +42,13 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
     public val genericBuffer: ByteArray =
         ByteArray((S.UNIT_SAVE_AMOUNT_RED + S.UNIT_SAVE_AMOUNT_GREEN) * S.PACKED_UNIT_SIZE)
 
-    /** Buffer for the `struct Dungeon dungeon[2]` local. */
+    /**
+     * Buffer for the `struct Dungeon dungeon[2]` local: 0x18 bytes of dungeon records or, for the
+     * `current` dungeon, its first 0xC bytes.
+     */
     private val dungeon = ByteArray(2 * S.DUNGEON_SIZE)
 
-    /** Buffer for the `int val` / `u32 buf[2]` locals. */
+    /** Buffer for the `int val` (event slot counter) and `u32 buf[2]` (RN state) locals. */
     private val scalar = ByteArray(8)
 
     /** Buffer for the `struct SaveBlockInfo chunk` local. */
@@ -53,19 +60,19 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
     /** The `gPlaySt` bytes written. */
     private val playStBytes = ByteArray(PlaySt.SIZE)
 
-    /** The convoy as ints (for `WriteSupplyItems`). */
+    /** The 100 convoy item words widened to ints, as `WriteSupplyItems` takes them. */
     private val supply = IntArray(SuspendRam.CONVOY_BYTES / 2)
 
-    /** `gPermanentFlagBits` as written (copied from the flags, no per-save allocation). */
+    /** The first 0x19 bytes of `gPermanentFlagBits`, the part a save keeps. */
     private val permanentBuf = ByteArray(Fe8EventFlags.PERMANENT_SAVE_BYTES)
 
-    /** `gChapterFlagBits` as written. */
+    /** The first 5 bytes of `gChapterFlagBits`, the part a save keeps. */
     private val chapterBuf = ByteArray(Fe8EventFlags.CHAPTER_SAVE_BYTES)
 
     /** Buffer for the `struct SuspendSavePackedUnit unit_su` local of the reader. */
     private val packed = ByteArray(S.PACKED_UNIT_SIZE)
 
-    /** The RN state words `StoreRNState` copies. */
+    /** The three RN state halfwords of `gActionData._u00` (`LoadRNState` input). */
     private val rnWords = IntArray(3)
 
     /**
@@ -74,7 +81,10 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
      * Packs the unit at byte offset [unitOffset] of [units] (`struct Unit`, 0x48 bytes) into the
      * 0x34-byte `struct SuspendSavePackedUnit` at [buf] + [bufOffset]. A unit without a character
      * only gets `pid` = 0; the other bytes of the record are left as they were. The `BITPACKED`
-     * bit fields are LSB first and, as in C, a value is truncated to its field width.
+     * bit fields are LSB first and, as in C, a value is truncated to its field width. Fields that
+     * have no room are folded into spare bits: bit 3 of `statusIndex` goes to the top bit of
+     * `ai1`, the 7 `supportBits` to the top bit of `ballistaIndex` (bit 0) and the top two bits
+     * of the item words 1..3 (bits 1-2, 3-4, 5-6).
      */
     public fun encodeSuspendSavePackedUnit(
         units: UnitTable,
@@ -164,7 +174,9 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
      * the unit at byte offset [unitOffset] of [units]. Every field the C code assigns is set
      * (also for a record with `pid` 0, whose other bytes are whatever the writer left there);
      * `index` and the bytes the packed record has no field for (0x3A..0x3F, 0x47) are kept.
-     * `exp` 0x7F and positions 0x3F become -1.
+     * `exp` 0x7F and positions 0x3F become -1 (the packed fields are too narrow for the unit's
+     * -1 "none" values). `supportBits` is rebuilt from the spare top bits of `ballistaIndex` and
+     * the three leading item words (see [encodeSuspendSavePackedUnit]).
      */
     public fun readSuspendSavePackedUnit(srcOffset: Int, units: UnitTable, unitOffset: Int) {
         val p = packed
@@ -238,7 +250,8 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
      * Transcribed from src/bmsave.c: ReadTraps (not verified: every trap in the reference is
      * zero, which proves the target, not the data)
      *
-     * Reads the 64 traps of SRAM [srcOffset] into [traps] (`GetTrap(0)`).
+     * Reads the 64 map traps (fire tiles, gas and arrow traps, ballistae; 8 bytes each) of SRAM
+     * [srcOffset] into [traps] (`GetTrap(0)`).
      */
     public fun readTraps(srcOffset: Int, traps: ByteArray) {
         readSramFast(lib.sram, srcOffset, traps, 0, S.TRAP_MAX_COUNT * S.TRAP_SIZE)
@@ -249,7 +262,8 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
      * covers it; its caller `ReadGameSave` is ported)
      *
      * Reads the `u32 buf[2]` at SRAM [srcOffset] and, as the world map's `sub_80A71F8` does,
-     * copies its first three halfwords to [rnState] (`gGMData.unk_ce`).
+     * copies its first three halfwords to [rnState] (`gGMData.unk_ce`, whose meaning the decomp
+     * does not name; the function name suggests the RN state of the world map monsters).
      */
     public fun readGmMonsterRnState(srcOffset: Int, rnState: IntArray) {
         readSramFast(lib.sram, srcOffset, scalar, 0, 8)
@@ -259,13 +273,18 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
     /**
      * Ported from src/bmsave.c: ReadSuspendSave
      *
-     * Loads the suspend block of [slot] (`SAVE_ID_SUSPEND`) + `gSuspendSaveIdOffset` (set by
-     * [BmSaveLib.isValidSuspendSave]) into [ram]: `gPlaySt` and the game clock, `gActionData`
+     * Resumes a suspended battle: loads the suspend block of [slot] (`SAVE_ID_SUSPEND`) +
+     * `gSuspendSaveIdOffset` (set by [BmSaveLib.isValidSuspendSave]) into [ram]: `gPlaySt` and
+     * the game clock, `gActionData`
      * with the RN state in its first 6 bytes (`LoadRNStateFromActionStruct`), the units (after
      * `InitUnits`), pid / chapter stats, the convoy, both flag sets, the traps, and the
      * stand-ins of [SuspendRam] (menu override, M6-B; world map stuff, dungeon records and
      * state, M6-I); then the event slot counter and the bonus claim flags of the game slot in
      * `gPlaySt`.
+     *
+     * The dungeon `type` is taken from `current.unk_0B_4` of the saved record. As in C,
+     * `SaveDungeonState` stores `type` there only after it has copied `current` out, so a block
+     * holds the nibble as the previous save left it; this port keeps that order.
      */
     public fun readSuspendSave(ram: SuspendRam, slot: Int) {
         val src = lib.getSaveReadAddr(slot + lib.suspendSaveIdOffset)
@@ -333,7 +352,7 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
      * Transcribed from src/bmsave.c: WriteTraps (not verified: every trap in the reference is
      * zero, which proves the target, not the data)
      *
-     * Writes the 64 traps of [traps] (`GetTrap(0)`) to SRAM [destOffset].
+     * Writes the 64 map traps of [traps] (`GetTrap(0)`, 8 bytes each) to SRAM [destOffset].
      */
     public fun writeTraps(destOffset: Int, traps: ByteArray) {
         writeAndVerifySramFast(traps, 0, lib.sram, destOffset, S.TRAP_MAX_COUNT * S.TRAP_SIZE)
@@ -345,7 +364,8 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
      *
      * Writes the `u32 buf[2]` that the world map's `sub_80A71E4` fills to SRAM [destOffset]: the
      * three halfwords [rnState] (`gGMData.unk_ce`, copied by `CpuSet`) and two bytes of
-     * uninitialised stack (zero here).
+     * uninitialised stack (zero here: the C leaves them as stack garbage, so those two bytes
+     * cannot match a reference dump).
      */
     public fun writeGmMonsterRnState(destOffset: Int, rnState: IntArray) {
         scalar.fill(0)
@@ -356,8 +376,9 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
     /**
      * Ported from src/bmsave.c: WriteSwappedSuspendSaveId
      *
-     * Reads the global save info, flips `last_suspend_slot` (0 becomes 1, anything else 0) and
-     * writes it back without recomputing the header checksum.
+     * Makes the block just written the "last" suspend save: reads the global save info, flips
+     * `last_suspend_slot` (0 becomes 1, anything else 0) and writes it back without recomputing
+     * the header checksum.
      */
     public fun writeSwappedSuspendSaveId() {
         lib.readGlobalSaveInfo(header)
@@ -371,7 +392,8 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
      *
      * Writes the suspend block for [slot] (`SAVE_ID_SUSPEND`) + the next suspend id from [ram]
      * and publishes it: block info, `gBmSt.just_resumed` cleared and the header's
-     * `last_suspend_slot` flipped. Does nothing in the tutorial or when SRAM is not working.
+     * `last_suspend_slot` flipped, so the next load reads this block. Does nothing in the
+     * tutorial or when SRAM is not working.
      * `gPlaySt.time_saved` is set from [SuspendRam.clock], and the RN state is stored in
      * `gActionData` first (`StoreRNStateToActionStruct`).
      */
@@ -442,7 +464,8 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
         ram.dungeonState.copyInto(dungeon, 0, DUNGEON_RECORDS, DUNGEON_RECORDS + dungeon.size)
         writeAndVerifySramFast(dungeon, 0, sram, dest + S.WM_MONSTER_UNIT, dungeon.size)
 
-        // SaveDungeonState: gDungeonState.current, then current.unk_0B_4 = type.
+        // SaveDungeonState: the saved copy is taken before unk_0B_4 = type (as in C), so the saved
+        // record carries the previous type and only the live record gets the new one.
         ram.dungeonState.copyInto(dungeon, 0, 0, S.DUNGEON_SIZE)
         val unk0b = StructCodec.u8(ram.dungeonState, UNK_0B)
         val type = StructCodec.u8(ram.dungeonState, DUNGEON_TYPE)
@@ -474,16 +497,23 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
         const val RED_BASE = UnitTable.BLUE_COUNT * UnitTable.UNIT_SIZE
         const val GREEN_BASE = RED_BASE + UnitTable.RED_COUNT * UnitTable.UNIT_SIZE
 
-        /** Offsets in `struct Struct030017A0`. */
+        /**
+         * Offsets in `struct Struct030017A0` (`gDungeonState`, include/bmdifficulty.h): the records
+         * at 0x0C, byte 0x0B of `current` (its `unk_0B_4` nibble: meaning unknown in the decomp)
+         * and `type` (tower = 0, ruins = 1).
+         */
         const val DUNGEON_RECORDS = 0x0C
         const val UNK_0B = 0x0B
         const val DUNGEON_TYPE = 0x24
 
-        /** `CharacterData.number` / `ClassData.number`. */
+        /** Offset of `number` (the character id / class id) in `CharacterData` / `ClassData`. */
         const val CHARACTER_NUMBER = 4
         const val CLASS_NUMBER = 4
 
-        /** Offsets in `struct Unit`. */
+        /**
+         * Offsets in `struct Unit` (include/bmunit.h, 0x48 bytes). Bytes the packed record has no
+         * field for: `index` 0x0B, padding 0x3A-0x3B and 0x47, the map sprite handle pointer 0x3C.
+         */
         const val U_CHARACTER = 0x00
         const val U_CLASS = 0x04
         const val U_LEVEL = 0x08
@@ -517,7 +547,11 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
         const val U_AI_B_PC = 0x45
         const val U_AI_COUNTER = 0x46
 
-        /** Offsets in `struct SuspendSavePackedUnit`. */
+        /**
+         * Offsets in `struct SuspendSavePackedUnit` (include/bmsave.h, 0x34 bytes). `P_BITS0..2`
+         * are the three bit-packed words (level / position / stats, stats / status / torch /
+         * barrier, movement bonus / items 4 and 5); the item words 1..3 hold the first 3 items.
+         */
         const val P_PID = 0x00
         const val P_JID = 0x01
         const val P_AI1 = 0x02

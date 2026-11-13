@@ -62,7 +62,7 @@ their old counts); new packages get a row when they appear.
 | engine/save | gbafe.save | 7 | 621 | done 2026-11-09 d3b21d6; audit done 2026-11-12 ad1504f |
 | engine/script | gbafe.script | 7 | 956 | done 2026-11-09 d3b21d6; audit done 2026-11-13 df021fa |
 | engine/text | gbafe.text | 6 | 926 | done 2026-11-09 d3b21d6; audit done 2026-11-12 7d13c5d |
-| game | fe8.game (GameControl, GameLoop) | 2 | 850 | done 2026-11-09 ee10196; audit todo |
+| game | fe8.game (GameControl, GameLoop) | 2 | 850 | done 2026-11-09 ee10196; audit done 2026-11-13 HASH |
 | game | fe8.game (BootRom, Fe8Game, Fe8Sound, RomView, SoundWrapper) | 5 | 836 | done 2026-11-09 ee10196; audit todo |
 | game | fe8.game (PlayerPhaseWiring, WorldMapBoot) | 2 | 889 | done 2026-11-09 ee10196; audit todo |
 | game | fe8.game (Fe8Boot lines 1-680) | 1 | 680 | done 2026-11-09 ee10196; audit todo |

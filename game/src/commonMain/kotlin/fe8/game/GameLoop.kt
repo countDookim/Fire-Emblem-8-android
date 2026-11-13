@@ -17,12 +17,14 @@ import gbafe.render.SpriteLayers
  * whether that happened (the original timing is not modelled, so the caller decides from what the
  * step did).
  *
- * Not modelled yet: `FlushTiles`, `FlushLCDControl`.
+ * Not modelled: `INTR_CHECK`, the `gBmSt.prevVCount` store and `VBlankIntrWait` at the end of
+ * `OnMain` (the caller paces the frames). `FlushLCDControl`, `FlushBackgrounds` and `FlushTiles`
+ * are left to [flush].
  */
 public class GameLoop(
     /** Proc trees run by the loop. */
     public val procs: ProcEngine,
-    /** `gKeyStatusPtr`, updated at the start of every step. */
+    /** `gKeyStatusPtr`, updated (`UpdateKeyStatus`) at the start of every step. */
     public val keys: KeyStatus,
     /** `gGameClock`, incremented every VBlank. */
     public val clock: GameClock,
@@ -30,7 +32,10 @@ public class GameLoop(
     private val keyInput: () -> Int,
     /** How many VBlanks the step that just ran missed (0: it finished within its frame). */
     private val overran: () -> Int = { 0 },
-    /** VBlank display sync after a finished step (`FlushLCDControl`, `FlushBackgrounds`, ...). */
+    /**
+     * VBlank display sync after a finished step (`FlushLCDControl`, `FlushBackgrounds`,
+     * `FlushTiles`).
+     */
     private val flush: () -> Unit = {},
     /** The sprite lists cleared at the start of every step and pushed after trees 5 and 4. */
     public val sprites: SpriteLayers = SpriteLayers(),
@@ -44,7 +49,7 @@ public class GameLoop(
     /** `gBmSt`, the game state struct shared by everything that models its fields. */
     public val bmSt: BmSt = BmSt()
 
-    /** `gBmSt.lock`: while not 0, proc tree 2 is not run. */
+    /** `gBmSt.lock` (`LockGame` / `UnlockGame` count): while not 0, proc tree 2 is not run. */
     public var lock: Int
         get() = bmSt.lock and 0xFF
         private set(value) {
@@ -58,8 +63,10 @@ public class GameLoop(
             bmSt.mainLoopEnded = if (value) 1 else 0
         }
 
+    /** VBlanks left until the overrunning step finishes; 0 when no step is overrunning. */
     private var lagFrames = 0
 
+    /** Callbacks queued by [afterStep] for the end of the current step. */
     private val stepEnd = ArrayList<() -> Unit>(4)
 
     /**
@@ -110,7 +117,7 @@ public class GameLoop(
      * One game step: updates [keys], clears [sprites], runs proc trees 1, 2 (unless locked), 3,
      * 5 and 4 (pushing sprite layers 0 and 13 after 5 and 4), and marks the step ended.
      *
-     * Partially ported from src/bm.c: OnMain
+     * Partially ported from src/bm.c: OnMain (`prevVCount` and `VBlankIntrWait` are not modelled)
      */
     public fun onMain() {
         keys.update(keyInput())
@@ -131,8 +138,9 @@ public class GameLoop(
     }
 
     /**
-     * The VBlank interrupt (`OnVBlank`, partial): clock, `m4aSoundVSync`, proc tree 0,
-     * `SyncLoOam`, then [flush] and `SyncHiOam` if a step has ended, then `m4aSoundMain`.
+     * The VBlank interrupt (`OnVBlank`, partial): `IncrementGameClock`, `m4aSoundVSync`, proc tree
+     * 0, `SyncLoOam`, then, if a step has ended (`main_loop_ended`), [flush] and `SyncHiOam`, then
+     * `m4aSoundMain`.
      */
     public fun onVBlank() {
         clock.increment()

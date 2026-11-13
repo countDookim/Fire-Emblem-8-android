@@ -66,24 +66,25 @@ public class GameControl(
 
     /** `src/soundwrapper.c` state and calls (`gSoundSt`), reading [playStConfig]. */
     public val sound: SoundWrapper = SoundWrapper(engine, m4a) { playStConfig }
-    /** `struct GameCtrlProc` fields after the proc header. */
+
+    /** `struct GameCtrlProc` fields after the proc header (offsets 0x29..0x30). */
     public class State {
-        /** `nextAction` (`GAME_ACTION_*`). */
+        /** `nextAction` (u8 at 0x29, `GAME_ACTION_*`): what the game control proc does next. */
         public var nextAction: Int = 0
 
-        /** `nextChapter`. */
+        /** `nextChapter` (u8 at 0x2A): the chapter id `GameControl_ChapterSwitch` switches to. */
         public var nextChapter: Int = 0
 
-        /** `idle_status`. */
+        /** `idle_status` (u8 at 0x2B): bumped by [postIntro]; its low bit picks reel or op anim. */
         public var idleStatus: Int = 0
 
-        /** `unk_2C`. */
+        /** `unk_2C` (u8 at 0x2C): unknown, never touched by `gamecontrol.c`. */
         public var unk2C: Int = 0
 
-        /** `unk_2E`. */
+        /** `unk_2E` (u16 at 0x2E): unknown, only set to 20 ([setUnk2E]); no reader known. */
         public var unk2E: Int = 0
 
-        /** `ch_index`. */
+        /** `ch_index` (u8 at 0x30): `gPlaySt.chapterIndex` saved by [rememberChapterId]. */
         public var chIndex: Int = 0
     }
 
@@ -93,7 +94,7 @@ public class GameControl(
         listOf(
             name("GAMECTRL"),
             mark(PROC_MARK_GAMECTRL),
-            ProcCmd(0x15),
+            ProcCmd(0x15), // PROC_15 (the engine treats it as a no-op)
             call(ProcFunc { callEraseSaveEventWithKeyCombo(it) }),
             call(ProcFunc { setUnk2E(it) }),
             repeat(ProcFunc { breakSelf(it) }),
@@ -220,7 +221,8 @@ public class GameControl(
     )
 
     /**
-     * Jumps [proc] to the erase-save label when L + Right + Select are held .
+     * Jumps [proc] to the erase-save label when exactly L + Right + Select are held (any other
+     * key held as well does not count: the C compares `heldKeys` for equality).
      *
      * Partially ported from src/gamecontrol.c: GameControl_CallEraseSaveEventWithKeyCombo
      */
@@ -256,7 +258,7 @@ public class GameControl(
     public val titleStandInScript: ProcScript =
         ProcScript("gProcScr_TitleScreen (stand-in)", listOf(block()))
 
-    /** Holds [proc] with a blocking stand-in child (M6-E: save menu). */
+    /** Holds [proc] with a blocking stand-in child named [what] (M6-E: save menu). */
     private fun hold(proc: Proc, what: String) {
         engine.startBlocking(ProcScript("$what (stand-in)", listOf(block())), proc)
     }
@@ -284,13 +286,19 @@ public class GameControl(
         if (hook != null) hook.invoke(proc) else engine.breakProc(proc)
     }
 
-    /** `StartTitleScreen_WithMusic`: title in mode 0, then `StartBgmExt(SONG_MAIN_THEME, 0, 0)`. */
+    /**
+     * `StartTitleScreen_WithMusic`: title in mode 0, then `StartBgmExt(SONG_MAIN_THEME, 0, NULL)`
+     * (the NULL music player is -1 here).
+     */
     private fun startTitleScreenWithMusic(proc: Proc) {
         startTitleScreen(proc, 0)
         sound.startBgmExt(SoundWrapper.SONG_MAIN_THEME, 0, -1)
     }
 
-    /** Starts the title screen child proc in the given [mode]. */
+    /**
+     * Starts the title screen child proc in the given [mode] (`StartTitleScreen_FlagFalse` is 0,
+     * `StartTitleScreen_FlagTrue` is 1).
+     */
     private fun startTitleScreen(proc: Proc, mode: Int) {
         val title = titleScreen
         if (title != null) {
@@ -301,9 +309,9 @@ public class GameControl(
     }
 
     /**
-     * Branches after the op anim or the title screen on `nextAction`: title (skipped), title with
-     * flag (played through), class reel or op anim (alternating on `idle_status`), save menu (event
-     * return; `sub_8009AD8` is not modelled).
+     * Branches after the op anim or the title screen on `nextAction`: title (op anim skipped),
+     * title with flag (game played through), class reel or op anim (alternating on `idle_status`),
+     * save menu (event return; its `sub_8009AD8` music volume change is not modelled).
      *
      * Partially ported from src/gamecontrol.c: GameControl_PostIntro
      */
@@ -326,7 +334,7 @@ public class GameControl(
     }
 
     /**
-     * After the class reel: title on event return, op anim on class reel.
+     * After the class reel (`sub_8009B64`): title on event return, op anim on class reel.
      *
      * Transcribed from src/gamecontrol.c: sub_8009B64 (not verified: no trace reaches it)
      */
@@ -347,7 +355,7 @@ public class GameControl(
     }
 
     /**
-     * Sets `unk_2E` to 20.
+     * Sets `unk_2E` to 20 (runs once at the start of the game control proc).
      *
      * Ported from src/gamecontrol.c: GameControl_8009A58
      */
@@ -356,8 +364,9 @@ public class GameControl(
     }
 
     /**
-     * Starts the game control proc on tree 3 with `nextAction = GAME_ACTION_EVENT_RETURN`. The main
-     * loop and VBlank routines are set by the caller (they are fixed in [GameLoop]).
+     * Starts the game control proc on proc tree 3 with `nextAction = GAME_ACTION_EVENT_RETURN`.
+     * The C also installs `OnMain` / `OnVBlank` (`SetMainUpdateRoutine`, `SetInterrupt_LCDVBlank`);
+     * here that is [GameLoop]'s job.
      *
      * Ported from src/gamecontrol.c: StartGame
      */
@@ -482,7 +491,8 @@ public class GameControl(
     }
 
     /**
-     * Skips to the direct battle map label when the save menu type is 2 or 4.
+     * Jumps to `LGAMECTRL_EXEC_BM_EXT` (straight to the battle map, per `gamecontrol.h`) when
+     * `gPlaySt.save_menu_type` is 2 or 4.
      *
      * Transcribed from src/gamecontrol.c: GameCtrl_CheckNewGameAndBranch
      * (not verified: no reference run has save_menu_type 2 or 4)
@@ -494,7 +504,7 @@ public class GameControl(
     }
 
     /**
-     * Goes to the ending scene when the game is complete and not already in the post game.
+     * Goes to the ending scene when `PLAY_FLAG_COMPLETE` is set and `PLAY_FLAG_POSTGAME` is not.
      *
      * Transcribed from src/gamecontrol.c: GameCtrl_CheckGameCompleteAndBranch
      * (not verified: no reference run has the complete state bit)
@@ -525,8 +535,8 @@ public class GameControl(
     }
 
     /**
-     * Starts the intro monologue ([Hooks.startIntroMonologue]) in chapter 0 unless in the post
-     * game.
+     * Starts the intro monologue ([Hooks.startIntroMonologue]) when `gPlaySt.chapterIndex` is 0,
+     * unless `PLAY_FLAG_POSTGAME` is set.
      *
      * Ported from src/gamecontrol.c: GameCtrlStartIntroMonologue
      */
@@ -550,7 +560,8 @@ public class GameControl(
 
     /**
      * Ends all music ([Hooks.endAllMus]) then branches on `nextAction`: title on event return,
-     * label 16 (ending scene) when played through.
+     * label 16 (`ClearTemporaryUnits`, then the ending scene) when played through. The C's
+     * `GAME_ACTION_CLASS_REEL` / `GAME_ACTION_USR_SKIPPED` cases do nothing.
      *
      * Partially ported from src/gamecontrol.c: GameControl_PostChapterSwitch
      */
@@ -581,7 +592,7 @@ public class GameControl(
         )
     }
 
-    /** Constants from `gamecontrol.h` / `proc.h` / `gbaio.h`. */
+    /** Constants from `gamecontrol.h` / `proc.h` / `types.h` / `gbaio.h`. */
     public companion object {
         /** `PROC_MARK_GAMECTRL`. */
         public const val PROC_MARK_GAMECTRL: Int = 0x0B
@@ -637,19 +648,19 @@ public class GameControl(
         /** `GAME_ACTION_PLAYED_THROUGH`. */
         public const val GAME_ACTION_PLAYED_THROUGH: Int = 3
 
-        /** `GAME_ACTION_4`. */
+        /** `GAME_ACTION_4`: after the save menu, the resumed game (label 8). */
         public const val GAME_ACTION_4: Int = 4
 
-        /** `GAME_ACTION_5`. */
+        /** `GAME_ACTION_5`: after the save menu, title with flag false (label 25). */
         public const val GAME_ACTION_5: Int = 5
 
-        /** `GAME_ACTION_6`. */
+        /** `GAME_ACTION_6`: after the save menu, link arena main menu (label 12). */
         public const val GAME_ACTION_6: Int = 6
 
-        /** `GAME_ACTION_EXTRA_MAP`. */
+        /** `GAME_ACTION_EXTRA_MAP`: after the save menu, the extra map (label 14). */
         public const val GAME_ACTION_EXTRA_MAP: Int = 7
 
-        /** `GAME_ACTION_C`. */
+        /** `GAME_ACTION_C`: after the save menu, `LGAMECTRL_EXEC_BM_` (label 15). */
         public const val GAME_ACTION_C: Int = 0xC
 
         /** `PLAY_FLAG_POSTGAME`. */

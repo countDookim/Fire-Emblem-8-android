@@ -117,7 +117,7 @@ Total entries: 220 across 45 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `declareCompletedChapter` | Stand-in until M6-E. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `endAllMus` | Stand-in until M6-E. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `endMuralBackground` | Stand-in until M6-E (erase-save). |
-| `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `hold` | Holds [proc] with a blocking stand-in child (M6-E: save menu). |
+| `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `hold` | Holds [proc] with a blocking stand-in child named [what] (M6-E: save menu). |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `makeSaveMenuPostChapter` | Stand-in until M6-E. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `savePlayThroughData` | Stand-in until M6-E. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startMidFadeFromBlack` | Stand-in until M6-E (erase-save). |

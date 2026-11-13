@@ -12,6 +12,7 @@ import fe8.game.bm.CamMove
 import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.ItemInfo
 import fe8.game.bm.ItemMenuLine
+import fe8.game.bm.MapCursor
 import fe8.game.bm.MapMenu
 import fe8.game.bm.MoveLimitView
 import fe8.game.bm.Mu
@@ -20,6 +21,7 @@ import fe8.game.bm.PlaySt
 import fe8.game.bm.PlayerInterface
 import fe8.game.bm.PlayerPhase
 import fe8.game.bm.SelectTargets
+import fe8.game.bm.TargetSelection
 import fe8.game.bm.UnitActionMenu
 import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitSpriteHandles
@@ -32,9 +34,11 @@ import fe8.game.scene.IntUnaryOperator
 import fe8.game.scene.TalkScene
 import fe8.game.ui.GreenText
 import fe8.game.ui.Menu
+import fe8.game.ui.UiFrame
 import fe8.game.ui.UiHand
 import gbafe.core.flags.EventFlags
 import gbafe.input.KeyStatus
+import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 
@@ -78,6 +82,7 @@ internal class PlayerPhaseWiring(
     /** `DrawnIconLookupTable` and `IconGFXIDLookupTable`, read by the item rows. */
     private val drawnIconLookupTable: ByteArray,
     private val iconGfxIdLookupTable: ByteArray,
+    private val mapCursor: MapCursor,
 ) {
     private val items = ItemInfo(rom)
 
@@ -111,6 +116,48 @@ internal class PlayerPhaseWiring(
     )
     private val attackTargets =
         AttackTargets(map, units, items, attackRange, traps, SelectTargets())
+    private val targetSelection = TargetSelection(
+        engine, attackTargets.targets, keys, camMove,
+    ) { UiFrame.clearBg0Bg1(hw) }.also {
+        it.hooks.playSoundEffect = { song -> sound.playSoundEffect(song) }
+        it.hooks.endFaceById = { slot -> menu.hooks.endFaceById(slot) }
+        it.hooks.putMapCursor =
+            PlayerPhase.PutMapCursor { x, y, kind -> mapCursor.put(x, y, kind) }
+        it.hooks.lockGame = { loop.lockGame() }
+        it.hooks.unlockGame = { loop.unlockGame() }
+    }
+
+    /**
+     * `gSelectInfo_Attack` (src/menu_def.c): the callbacks are bmmenu.c's `AttackMapSelect_*`
+     * (MC-6) and the battle forecast (MC-10). Stand-in until MC-6: the cursor walks the targets
+     * with the range squares shown and no forecast or facing; A (confirm sound) and B (cancel
+     * sound) both end the selection and reopen the unit menu, so the player is never stuck and
+     * nothing attacks. The weapon stays equipped.
+     */
+    private val attackInfo = object : TargetSelection.SelectInfo {
+        override fun onEnd(proc: Proc) {
+            moveLimitView.hideMoveRangeGraphics()
+        }
+
+        override fun onSelect(proc: Proc, target: Int): Int {
+            reopenUnitMenu()
+            return TargetSelection.ACTION_ENDFAST or TargetSelection.ACTION_END or
+                TargetSelection.ACTION_SE_6A or TargetSelection.ACTION_CLEARBGS
+        }
+
+        override fun onCancel(proc: Proc, target: Int): Int {
+            reopenUnitMenu()
+            return TargetSelection.ACTION_ENDFAST or TargetSelection.ACTION_END or
+                TargetSelection.ACTION_SE_6B
+        }
+    }
+
+    private fun reopenUnitMenu() {
+        menu.startSemiCenteredOrphanMenu(
+            Menu.UNIT_ACTION_MENU_DEF, bm.cursorTargetX - bm.cameraX, 1, 22,
+        )
+    }
+
     private val mapMenu = MapMenu(
         engine, rom, playSt, flags, hw, talk.text, talk.messages,
     ) { fe8PlayerPhaseScript() }
@@ -157,13 +204,8 @@ internal class PlayerPhaseWiring(
             attackTargets.makeTargetListForWeapon(unit, item)
         }
         unitMenu.hooks.cursorScreenX = { bm.cursorTargetX - bm.cameraX }
-        // Stand-in until MC-5 (the target selection): back to the unit menu, so the player is
-        // never stuck. The weapon is already equipped; the real cursor is MC-5.
         unitMenu.hooks.startAttackTargetSelection = {
-            menu.startSemiCenteredOrphanMenu(
-                Menu.UNIT_ACTION_MENU_DEF, bm.cursorTargetX - bm.cameraX, 1, 22,
-            )
-            moveLimitView.hideMoveRangeGraphics()
+            targetSelection.newTargetSelection(attackInfo)
         }
         unitMenu.hooks.drawItemMenuLine = UnitActionMenu.ItemLineDrawer { row, item, usable, at ->
             itemLine.drawItemMenuLine(row, item, usable, hw.mapBuffer(0), at)

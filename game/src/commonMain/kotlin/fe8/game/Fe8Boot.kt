@@ -1011,7 +1011,7 @@ public class Fe8Boot(
             battleEntityMaps, talkScene, handles, mu, active, loader,
             { start.hooks.getBattleMapKind() }, trapPool,
             { resetIcons() }, IntConsumer { palId -> loadIconPalettes(palId) },
-            drawnIconLookupTable, iconGfxIdLookupTable,
+            drawnIconLookupTable, iconGfxIdLookupTable, mapCursor,
         ).wire(phase, main, eventInfos)
         // Stand-in until M6-D (enemy phase and AI): the computer phase does nothing and ends at
         // once, so End turn runs the enemy banner and goes on to the next player phase.

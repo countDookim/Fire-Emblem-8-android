@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 550 across 75 decomp files (missing reason: 0).
+Total entries: 551 across 75 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -715,6 +715,14 @@ Total entries: 550 across 75 decomp files (missing reason: 0).
 | `CountUnitsInState` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | only reached by the victory-song check, which the Prologue trace never takes |
 | `GetPhaseAbleUnitCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no trace has a unit that the asleep/berserk/unselectable/NOT_ABLE exclusions would skip |
 
+## src/uiselecttarget.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `LinkTargets` | `game/src/commonMain/kotlin/fe8/game/bm/SelectTargets.kt` | never run in the attack captures |
+| `GetLinkedTargetsFar` | `game/src/commonMain/kotlin/fe8/game/bm/SelectTargets.kt` | never run in the attack captures |
+| `TargetSelection_HandleMoveInput` | `game/src/commonMain/kotlin/fe8/game/bm/TargetSelection.kt` | the captures never press the d-pad, so only the return without a change runs |
+
 ## src/worldmap_screen.c (3)
 
 | Function | Kotlin file | Reason |
@@ -792,13 +800,6 @@ Total entries: 550 across 75 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `SetGameTime` | `engine/core/src/commonMain/kotlin/gbafe/core/time/GameClock.kt` | no test checks it against a trace yet |
 | `DisableKeyComboResetEN` | `engine/input/src/commonMain/kotlin/gbafe/input/KeyComboReset.kt` | no test checks it against a trace yet |
-
-## src/uiselecttarget.c (2)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `LinkTargets` | `game/src/commonMain/kotlin/fe8/game/bm/SelectTargets.kt` | never run in the attack captures |
-| `GetLinkedTargetsFar` | `game/src/commonMain/kotlin/fe8/game/bm/SelectTargets.kt` | never run in the attack captures |
 
 ## src/worldmap_line_fade.c (2)
 

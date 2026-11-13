@@ -350,6 +350,23 @@ row (the list shows only usable rows), `PutNumberOrBlank`'s dash branch, unbreak
 slots), so the test advances `chr_counter` by 72 in the panel hook and skips those slots and the panel's icon 112
 (MC-4b).
 
+### MC-5 result
+
+`TargetSelectionDifferentialTest` replays `ram_trace_prologue_attack_noanim` twice: the selection started by A on
+the weapon (game frame 1659, dump 1660) with B at 1699 (the cancel), and the one started at 1789 with A at 1819
+(confirm). Seeded from the dump of the start frame (units after the equip), the list made by the ported
+`MakeTargetListForWeapon`, then per frame: the proc (existence, flags, current target), the `gBmSt` camera and cursor
+fields, the game lock, `sLastCoordMapCursorDrawn`/`sLastTimeMapCursorDrawn` (the `PutMapCursor` kind 2 draw, newly
+observed) and the target list with its links. Ported and break-checked: `NewTargetSelection`, `TargetSelection_Loop`,
+`TargetSelection_HandleSelectInput`, `TargetSelection_GetRealCursorPosition`, `EndTargetSelection`. Transcribed:
+`TargetSelection_HandleMoveInput` (no capture presses the d-pad and the list has one target, so no mutation changes
+captured data), the frozen branch, the R branch, `keys.newKeys = 0` (the proc's first run is a frame after its start).
+Not written: `NewTargetSelection_Specialized`, `sub_804FBBC`, `sub_804FBDC`, `LinkTargets` stays as in MC-1.
+Findings: the proc first runs (and puts the cursor) one frame after it starts; the dump 3 frames after each start
+(f1662, f1792) shows the cursor time one frame old (mid-frame dump, the forecast's frame), not compared. The selection
+callbacks stay stand-ins: until MC-6 `AttackMapSelect_*` are replaced by A and B ending the selection and reopening the
+unit menu (range hidden); the forecast is MC-10. The camera never moves in the capture.
+
 ## M7
 
 Not broken down here: [M7-modding](M7-modding.md) has 23 proposed rows; they wait for owner decisions D2–D9.

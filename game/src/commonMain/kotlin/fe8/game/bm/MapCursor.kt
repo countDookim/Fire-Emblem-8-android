@@ -48,7 +48,8 @@ public class MapCursor(
      * Ported from src/bm.c: PutMapCursor
      *
      * Kinds 0 and 1 (plain), 2 (smoothed with the previous frame's position), 3 (stretched) and
-     * 4 (frame 0, oam2 0x24) are all ported; kinds 1 to 4 are not observed in the ground-truth
+     * 4 (frame 0, oam2 0x24) are all ported; kind 2 is observed in the target selection
+     * (`TargetSelectionDifferentialTest`), kinds 1, 3 and 4 are not observed in the ground-truth
      * traces yet. Any other kind puts nothing (the original would pass a null sprite).
      *
      * @param x horizontal pixel position on the map.

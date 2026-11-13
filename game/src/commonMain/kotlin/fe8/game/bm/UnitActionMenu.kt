@@ -17,7 +17,7 @@ import gbafe.text.Text
  * It also holds the weapon select menu the Attack command opens (`gWeaponSelectMenuDef`): its
  * start, its availability, draw and switch-in callbacks, and its choice and cancel
  * ([weaponSelectMenuSelected], [itemMenuButtonBPressed]). The target selection a choice starts
- * is a stand-in until MC-5 ([Hooks.startAttackTargetSelection]).
+ * is [Hooks.startAttackTargetSelection] (`NewTargetSelection`, [TargetSelection]).
  *
  * The unit acting is [active] (`gActiveUnit`, `gActionData`).
  */
@@ -98,8 +98,8 @@ public class UnitActionMenu(
         }
 
         /**
-         * `NewTargetSelection(&gSelectInfo_Attack)`: the cursor that picks the attack target.
-         * Stand-in until MC-5; the game wires one that reopens the unit menu.
+         * `NewTargetSelection(&gSelectInfo_Attack)`: the cursor that picks the attack target. The
+         * game wires [TargetSelection] with the attack callbacks (MC-6, MC-10 stand-ins).
          */
         public var startAttackTargetSelection: () -> Unit = {}
 
@@ -410,7 +410,7 @@ public class UnitActionMenu(
      * Chooses the weapon in the row's slot: it becomes the unit's first item
      * ([equipUnitItemSlot]), the action's item slot is 0, BG 0 and 1 are cleared
      * ([UiFrame.clearBg0Bg1]), the target list of the weapon is made, the target selection
-     * starts ([Hooks.startAttackTargetSelection], MC-5) and `sub_80832C8` runs. Returns the menu
+     * starts ([Hooks.startAttackTargetSelection]) and `sub_80832C8` runs. Returns the menu
      * actions that end the menu and the face.
      */
     public fun weaponSelectMenuSelected(menu: Menu.MenuProc, menuItem: Menu.MenuItemProc): Int {

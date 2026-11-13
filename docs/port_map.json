@@ -8,10 +8,20 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1150,
+    "verified": 1155,
     "implemented_unverified": 23
   },
   "functions": {
+    "ActionCombat": {
+      "decomp_file": "src/bmmind.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CombatActionDifferentialTest#the combat action follows the game from A on the target to the end of its proc"
+      ]
+    },
     "AddPointToPathArrowProc": {
       "decomp_file": "src/bmpatharrowdisp.c",
       "system": "battle_map",
@@ -131,6 +141,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.CombatActionDifferentialTest#the combat action follows the game from A on the target to the end of its proc",
         "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
       ]
     },
@@ -263,6 +274,36 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
+    "BATTLE_GOTO1_IfNobodyIsDead": {
+      "decomp_file": "src/bmmind.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CombatActionDifferentialTest#the combat action follows the game from A on the target to the end of its proc"
+      ]
+    },
+    "BATTLE_HandleCombatDeaths": {
+      "decomp_file": "src/bmmind.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CombatActionDifferentialTest#the combat action follows the game from A on the target to the end of its proc"
+      ]
+    },
+    "BATTLE_HandleItemDrop": {
+      "decomp_file": "src/bmmind.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CombatActionDifferentialTest#the combat action follows the game from A on the target to the end of its proc"
       ]
     },
     "BG_EnableSyncByMask": {
@@ -3239,7 +3280,7 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -8817,6 +8858,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapEventUnitTest#unit and point commands run by the VM match the capture"
+      ]
+    },
+    "StoreRNStateToActionStruct": {
+      "decomp_file": "src/bmmind.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CombatActionDifferentialTest#the RN state is stored in gActionData"
       ]
     },
     "StringCompare": {

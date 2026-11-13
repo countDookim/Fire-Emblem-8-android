@@ -18,7 +18,9 @@ import gbafe.text.TextSystem
 /**
  * Hosts `ProcScr_Popup` (decomp `src/popup.c`) on a [ProcEngine]: the proc's script mirrors the
  * original command for command and calls the step functions of [Popup]. The proc's user data
- * ([Proc.state]) is a [Popup.PopupProc].
+ * ([Proc.state]) is a [Popup.PopupProc]. A popup is the framed banner shown over the map when an
+ * item or gold is received or stolen, a weapon breaks and so on; the proc closes itself after
+ * its clock runs out or a key is pressed and erases its frame.
  */
 public class PopupScript(
     /** The proc engine the popup proc runs on. */
@@ -26,9 +28,15 @@ public class PopupScript(
     /** What the popup steps read and write outside the proc. */
     public val deps: Dependencies,
 ) {
-    /** Writes a popup icon sprite to the secondary OAM buffer. */
+    /**
+     * Writes a popup icon sprite to the secondary OAM buffer (`CallARM_PushToSecondaryOAM`, the
+     * OAM list for sprites drawn after the map's).
+     */
     public fun interface SecondaryOamWriter {
-        /** Pushes a ROM sprite [objectAddress] at ([x], [y]) with [oam2] attributes. */
+        /**
+         * Pushes the ROM sprite shape [objectAddress] at pixel ([x], [y]) with OAM attribute 2
+         * [oam2] (tile id and palette).
+         */
         public fun push(x: Int, y: Int, objectAddress: Int, oam2: Int)
     }
 
@@ -46,13 +54,13 @@ public class PopupScript(
         public val drawnIconLookupTable: ByteArray,
         /** `IconGFXIDLookupTable`. */
         public val iconGfxIdLookupTable: ByteArray,
-        /** `gPopupItem`. */
+        /** `gPopupItem`: the item shown by the item opcodes (`SetPopupItem`). */
         public val popupItem: () -> Int,
-        /** `gPopupNumber`. */
+        /** `gPopupNumber`: the number shown by `POPUP_OP_NUM` (`SetPopupNumber`). */
         public val popupNumber: () -> Int,
         /** Text id of the popup unit's name (`gpPopupUnit->pCharacterData->nameTextId`). */
         public val unitNameTextId: () -> Int,
-        /** `LoadIconPalette(slot, palId)`. */
+        /** `LoadIconPalette(slot, palId)`; slot 0 for item icons, 1 for weapon types. */
         public val loadIconPalette: (slot: Int, palId: Int) -> Unit,
         /**
          * `StartBgmVolumeChange(volume, end, time, proc)`; [proc] is the popup proc, which the
@@ -61,7 +69,7 @@ public class PopupScript(
         public val startBgmVolumeChange: (proc: Proc, volume: Int, end: Int, time: Int) -> Unit,
         /** `PlaySoundEffect`. */
         public val playSoundEffect: (songId: Int) -> Unit,
-        /** `gKeyStatusPtr->newKeys`. */
+        /** `gKeyStatusPtr->newKeys`: the buttons newly pressed this frame. */
         public val newKeys: () -> Int,
         /**
          * `CallARM_PushToSecondaryOAM`: the object address is `gObject_16x16` for the popup icon.
@@ -117,8 +125,9 @@ public class PopupScript(
     }
 
     /**
-     * `ProcScr_Popup`: set end callback, init, sleep 10, prepare graphics, dim the BGM, yield,
-     * play the sound, draw, wait for the clock or a key, restore the BGM, yield, end.
+     * `ProcScr_Popup`: set the end callback (erases the frame), init, sleep 10 frames (the
+     * delay before the popup appears), prepare graphics, dim the BGM, yield, play the sound,
+     * draw, wait for the clock or a key, restore the BGM, yield, end.
      *
      * Transcribed from src/popup.c: ProcScr_Popup (not verified: no @VerifiesPort test names it)
      */
@@ -165,9 +174,11 @@ public class PopupScript(
     )
 
     /**
-     * Starts a popup showing the instruction list at [definition] (`NewPopup_Simple`): blocking
-     * [parent] when it is non-null, otherwise as a root proc of tree 3. Returns the proc, or
-     * null if a blocking popup ended while starting.
+     * Starts a popup showing the instruction list at [definition] (`NewPopup_Simple`, which
+     * calls `NewPopupCore`): blocking [parent] when it is non-null, otherwise as a root proc of
+     * tree 3 (`PROC_TREE_3`). [clock] is the number of frames it stays up (0x60 in the game),
+     * [winStyle] the frame style. Returns the proc, or null if a blocking popup ended while
+     * starting.
      *
      * Ported from src/popup.c: NewPopup_Simple
      *
@@ -181,7 +192,7 @@ public class PopupScript(
     }
 
     private companion object {
-        /** ROM address of `gObject_16x16`. */
+        /** ROM address of `gObject_16x16`, the 16x16 sprite shape of the popup icon. */
         const val OBJECT_16X16 = 0x08590F4C
     }
 }

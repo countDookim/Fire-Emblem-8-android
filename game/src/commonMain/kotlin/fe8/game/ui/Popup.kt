@@ -7,7 +7,14 @@ import gbafe.text.MsgStrings
 import gbafe.text.Text
 import gbafe.text.TextSystem
 
-/** Popup procs (decomp `src/popup.c`): state of `struct PopupProc` and its small callbacks. */
+/**
+ * The popup banner of `src/popup.c`: the small framed message that appears over the map when
+ * an item or gold is received or stolen, a weapon breaks, a weapon rank rises or a new ally can
+ * be used (the `PopupScr_*` lists). A popup is a list of `struct PopupInstruction` (sound,
+ * colour, message, item name, icon, number ...) that is measured, centred and drawn; this
+ * object holds the state of `struct PopupProc` and the steps of `ProcScr_Popup`. [PopupScript]
+ * runs them as the proc.
+ */
 public object Popup {
     /** ROM address of `ProcScr_Popup`. */
     public const val PROC_SCRIPT: Int = 0x085921C8
@@ -15,78 +22,131 @@ public object Popup {
     /** ROM address of `ProcScr_PopupUpdateIcon`. */
     public const val UPDATE_ICON_PROC_SCRIPT: Int = 0x08592228
 
-    /** `TEXT_COLOR_SYSTEM_WHITE`. */
+    /** `TEXT_COLOR_SYSTEM_WHITE` (= `TEXT_COLOR_0123`, 0): the default text palette of a popup. */
     public const val TEXT_COLOR_SYSTEM_WHITE: Int = 0
 
-    /** Bytes per entry of a popup instruction list (`struct PopupInstruction`). */
+    /**
+     * Bytes per `struct PopupInstruction`: a u8 opcode, 3 bytes padding, a u32 operand (`data`).
+     */
     private const val INSTRUCTION_SIZE = 8
 
-    /** DISPCNT bits for win0, win1 and objWin, which the popup switches off. */
+    /**
+     * DISPCNT bits 13..15: window 0, window 1 and the OBJ window enable. `PopupProc_PrepareGfx`
+     * clears them every time; the decomp gives no reason.
+     */
     private const val DISPCNT_WINDOWS = 0xE000 // win0_on, win1_on, objWin_on
 
-    /** Opcodes of a popup instruction list (decomp `POPUP_OP_*`). */
+    // Opcodes of a popup instruction list (`enum popup_opcode_index`, include/popup.h). The
+    // operand is the instruction's `data` word.
+
+    /** `POPUP_OP_END`: ends the list. */
     private const val OP_END = 0x00
+
+    /** `POPUP_OP_SPACE`: a gap of `data` pixels. */
     private const val OP_SPACE = 0x01
+
+    /** `POPUP_OP_ITEM_NAME`: the name of `gPopupItem`. */
     private const val OP_ITEM_NAME = 0x02
+
+    /**
+     * `POPUP_OP_ITEM_STR_CAP`: the item name with its article (a special one for Junafruit;
+     * none for gold, the Metis tome and the legendary weapons), capitalised:
+     * `GetItemNameWithArticle(item, 1)`.
+     */
     private const val OP_ITEM_STR_CAP = 0x03
+
+    /**
+     * `POPUP_OP_ITEM_STR`: the item name with its article as for [OP_ITEM_STR_CAP], lower case:
+     * `GetItemNameWithArticle(item, 0)`.
+     */
     private const val OP_ITEM_STR = 0x04
+
+    /** `POPUP_OP_UNIT_NAME`: the name of `gpPopupUnit`. */
     private const val OP_UNIT_NAME = 0x05
+
+    /** `POPUP_OP_MSG`: the message with text id `data`. */
     private const val OP_MSG = 0x06
+
+    /** `POPUP_OP_STR`: the 0-terminated string at ROM address `data`. */
     private const val OP_STR = 0x07
+
+    /** `POPUP_OP_COLOR`: switches the text colour to `data` (a `TEXT_COLOR_*`); takes no width. */
     private const val OP_COLOR = 0x08
+
+    /** `POPUP_OP_ITEM_ICON`: the icon of `gPopupItem`, 16 pixels wide. */
     private const val OP_ITEM_ICON = 0x09
+
+    /**
+     * `POPUP_OP_WTYPE_ICON`: the weapon-type icon (icon id `gPopupItem + 0x70`), 16 pixels wide.
+     */
     private const val OP_WTYPE_ICON = 0x0A
+
+    /** `POPUP_OP_NUM`: `gPopupNumber` in decimal, 8 pixels per digit. */
     private const val OP_NUM = 0x0B
+
+    /** `POPUP_OP_SOUND`: the sound effect (song id `data`) to play when the popup appears. */
     private const val OP_SOUND = 0x0C
 
-    /** The `struct PopupProc` fields from offset 0x2C on; integer types as in the struct. */
+    /**
+     * The `struct PopupProc` fields from offset 0x2C on; integer types as in the struct. The
+     * `x/y` fields are in 8x8 tiles of the BG0 tilemap (32 cells per row).
+     */
     public class PopupProc {
         /** `pDefinition` (+0x2C): ROM address of the instruction list. */
         public var pDefinition: Int = 0
 
-        /** `clock` (+0x30): frames left, or negative to wait for a key. */
+        /**
+         * `clock` (+0x30): frames left before the popup closes (the callers use 0x60); negative
+         * waits for any new key press; 0 never closes (see [waitForPress]).
+         */
         public var clock: Int = 0
 
-        /** `xTileParam` (+0x34), s8. */
+        /** `xTileParam` (+0x34), s8: requested frame column; -1 (the default) centres the popup. */
         public var xTileParam: Int = 0
 
-        /** `yTileParam` (+0x35), s8. */
+        /** `yTileParam` (+0x35), s8: requested frame row; -1 (the default) is row 8. */
         public var yTileParam: Int = 0
 
-        /** `winStyle` (+0x36), u8. */
+        /** `winStyle` (+0x36), u8: which of the four UI frame styles surrounds the text. */
         public var winStyle: Int = 0
 
-        /** `xTileReal` (+0x37), u8. */
+        /** `xTileReal` (+0x37), u8: the column the frame was drawn at. */
         public var xTileReal: Int = 0
 
-        /** `yTileReal` (+0x38), u8. */
+        /** `yTileReal` (+0x38), u8: the row the frame was drawn at. */
         public var yTileReal: Int = 0
 
-        /** `xTileSize` (+0x39), u8. */
+        /** `xTileSize` (+0x39), u8: frame width in tiles (text tiles + 2); [gfxClear] erases it. */
         public var xTileSize: Int = 0
 
-        /** `yTileSize` (+0x3A), u8. */
+        /** `yTileSize` (+0x3A), u8: set to 3 when drawn; the frame itself is 4 tiles tall. */
         public var yTileSize: Int = 0
 
-        /** `textColorId` (+0x3B), u8. */
+        /** `textColorId` (+0x3B), u8: the text colour the list starts with (a `TEXT_COLOR_*`). */
         public var textColorId: Int = 0
 
-        /** `iconId` (+0x3E), u16; 0xFFFF when the popup has no icon. */
+        /**
+         * `iconId` (+0x3E), u16: the icon to show (item icon id, or weapon type + 0x70); 0xFFFF
+         * for none.
+         */
         public var iconId: Int = 0
 
-        /** `iconObjTileId` (+0x40), u16. */
+        /**
+         * `iconObjTileId` (+0x40), u16: the OBJ tile the icon graphics are loaded to (0x240 for
+         * `NewPopup_Simple`).
+         */
         public var iconObjTileId: Int = 0
 
-        /** `iconPalId` (+0x42), u8. */
+        /** `iconPalId` (+0x42), u8: OBJ palette of the icon (palette base + 0x10). */
         public var iconPalId: Int = 0
 
-        /** `iconX` (+0x44), u8. */
+        /** `iconX` (+0x44), u8: pixel offset of the icon inside the text strip. */
         public var iconX: Int = 0
 
-        /** `xGfxSize` (+0x46), u16. */
+        /** `xGfxSize` (+0x46), u16: width of the text in pixels. */
         public var xGfxSize: Int = 0
 
-        /** `soundId` (+0x48), u16. */
+        /** `soundId` (+0x48), u16: song id of the sound effect; 0 for none. */
         public var soundId: Int = 0
 
         /** Set when the proc was broken out of its wait loop (`Proc_Break`). */
@@ -94,7 +154,8 @@ public object Popup {
     }
 
     /**
-     * Resets the layout, color, icon and sound fields.
+     * Puts the proc in its default state: frame position automatic (-1, -1), white text, no icon
+     * (`iconId` 0xFFFF, the C assigns -1 to a u16) and no sound.
      *
      * Ported from src/popup.c: PopupProc_Init
      */
@@ -111,7 +172,8 @@ public object Popup {
      * Prepares the popup's graphics: initialises the default font at the BG0 character base plus
      * 0x2000 (tile 0x100, palette 0), clears the icon tables ([drawnIconLookupTable],
      * [iconGfxIdLookupTable]), loads the UI frame graphics into [hardware], removes the colour
-     * effect, switches the three windows off in `hardware.lcd.dispcnt` and stores the text width
+     * effect (`SetDefaultColorEffects` is `SetBlendNone`), switches the two windows and the OBJ
+     * window off in `hardware.lcd.dispcnt` and stores the text width
      * from [parsePopupInstAndGetLen] in [PopupProc.xGfxSize]. The other parameters are as for
      * [parsePopupInstAndGetLen].
      *
@@ -143,8 +205,9 @@ public object Popup {
     }
 
     /**
-     * Dims the BGM when the popup has a sound: [startBgmVolumeChange] stands for
-     * `StartBgmVolumeChange(volume, end, time, proc)`, called with 0x100, 0x80, 0x10.
+     * Lowers the BGM to half volume while a popup with a sound is shown, so the jingle is heard:
+     * [startBgmVolumeChange] stands for `StartBgmVolumeChange(volumeInit, volumeEnd, duration,
+     * proc)`, called with 0x100 (full), 0x80 (half) and 0x10 (the duration).
      *
      * Ported from src/popup.c: PopupProc_MaybeSetVolume
      */
@@ -156,7 +219,9 @@ public object Popup {
     }
 
     /**
-     * Plays the popup's sound effect; [playSoundEffect] stands for `PlaySoundEffect`.
+     * Plays the popup's sound effect (the `POPUP_SOUND` song id: 0x5A in
+     * the received / stole / rank-up / new-ally popups, 0x5C in the pilfered / stolen / broken
+     * ones). [playSoundEffect] stands for `PlaySoundEffect`.
      *
      * Transcribed from src/popup.c: PopupProc_PlaySound (not verified: the trace has no record
      * of the sound effect call)
@@ -166,8 +231,8 @@ public object Popup {
     }
 
     /**
-     * Restores the BGM volume when the popup has a sound: [startBgmVolumeChange] is as for
-     * [maybeSetVolume], called with 0x80, 0x100, 0x10.
+     * Brings the BGM back from half to full volume when the popup had a sound:
+     * [startBgmVolumeChange] is as for [maybeSetVolume], called with 0x80, 0x100, 0x10.
      *
      * Ported from src/popup.c: PopupProc_MaybeResetVolume
      */
@@ -181,7 +246,9 @@ public object Popup {
     /**
      * Walks the instruction list at [PopupProc.pDefinition] (`struct PopupInstruction`, 8 bytes:
      * u8 opcode, u32 operand at +4), sets [PopupProc.soundId], [PopupProc.iconX] and
-     * [PopupProc.iconId] and returns the popup text width in pixels. [loadIconPalette] stands for
+     * [PopupProc.iconId] and returns the popup text width in pixels: strings are measured with the
+     * font, an icon is 16 pixels, a number 8 pixels per digit, `OP_SPACE` its operand and a colour
+     * change nothing. [loadIconPalette] stands for
      * `LoadIconPalette(slot, proc->iconPalId)`; [popupItem], [popupNumber] and [unitNameTextId]
      * (`gpPopupUnit->pCharacterData->nameTextId`) are the popup globals. The active font of
      * [text] measures the strings.
@@ -239,14 +306,16 @@ public object Popup {
     }
 
     /**
-     * Lays the popup out and draws it: parses the instruction list, draws the frame into
+     * Lays the popup out and draws it (the frame centred on the screen, the text inside it, the
+     * icon as a sprite): parses the instruction list, draws the frame into
      * [hardware]'s BG0/BG1, draws the text strip into [text]'s font and BG0, and loads the icon
      * graphics into [hardware] when [PopupProc.iconId] is not 0xFFFF. [loadIconPalette],
      * [popupItem], [popupNumber] and [unitNameTextId] are as for [parsePopupInstAndGetLen].
      * `ResetText` is `InitTextFont(&gDefaultFont, VRAM + 0x1000, 0x80, 0)` on [text].
      *
-     * Returns the fields `unk_2C`, `unk_30` and `unk_4A` of the `PopupIconUpdateProc` child the
-     * original starts (see [iconChildFields]), or null when there is no icon.
+     * Returns the fields `unk_2C` (x), `unk_30` (y) and `unk_4A` (OAM attribute 2) of the
+     * `PopupIconUpdateProc` child the original starts (see [iconChildFields]), or null when there
+     * is no icon.
      *
      * Ported from src/popup.c: PopupProc_GfxDraw
      */
@@ -308,7 +377,11 @@ public object Popup {
 
     /**
      * Sets the layout fields from the text width [widthPx] (as [parsePopupInstAndGetLen] returns
-     * it) and returns the text width in tiles. Helper of [gfxDraw].
+     * it) and returns the text width in tiles (rounded up). Unless [PopupProc.xTileParam] says
+     * otherwise the frame is centred on the 30-tile screen (`(0x1E - tiles) / 2 - 1`; the frame
+     * is `tiles + 2` wide), at row 8 unless [PopupProc.yTileParam] is set; the text is centred in
+     * its tile-rounded strip and [PopupProc.iconX] moves by the same margin. Helper of [gfxDraw];
+     * the C does this inline in `PopupProc_GfxDraw`.
      */
     public fun gfxDrawLayout(proc: PopupProc, widthPx: Int): Int {
         proc.xGfxSize = widthPx and 0xFFFF
@@ -326,8 +399,10 @@ public object Popup {
     }
 
     /**
-     * Returns `unk_2C`, `unk_30` and `unk_4A` of the `PopupIconUpdateProc` child that [gfxDraw]
-     * starts when [PopupProc.iconId] is not 0xFFFF.
+     * Returns `unk_2C` (the icon's x pixel), `unk_30` (its y pixel) and `unk_4A` (OAM attribute 2:
+     * OBJ tile id in the low bits, palette in bits 12..15) of the `PopupIconUpdateProc` child that
+     * [gfxDraw] starts when [PopupProc.iconId] is not 0xFFFF. The icon sits one tile inside the
+     * frame, at [PopupProc.iconX] along the text.
      */
     public fun iconChildFields(proc: PopupProc): IntArray = intArrayOf(
         (proc.xTileReal + 1) * 8 + proc.iconX,
@@ -339,8 +414,9 @@ public object Popup {
      * Draws the popup text described by the instruction list at [definition] into a copy of
      * [startText] (C passes `struct Text` by value, so the caller's pen is untouched). [text] and
      * [messages] supply the drawing and the message strings; [popupItem], [popupNumber] and
-     * [unitNameTextId] are the popup globals. The `BG_EnableSyncByMask` at the end is a no-op
-     * here.
+     * [unitNameTextId] are the popup globals. Icon opcodes only leave a 16-pixel gap (the icon is
+     * a sprite); `OP_SPACE` leaves its operand in pixels. The `BG_EnableSyncByMask` at the end is
+     * a no-op here.
      *
      * Ported from src/popup.c: GeneratePopupText
      */
@@ -390,7 +466,9 @@ public object Popup {
 
     /**
      * Decimal text of [value] as a 0-terminated byte string, like `NumberToStringAscii` in
-     * src/bmlib.c. A minus sign leads negative values; only the six lowest digits are written.
+     * src/bmlib.c. A minus sign leads negative values. The C writes digits downwards from its
+     * highest one, so a value of seven or more digits would write before the buffer; here only
+     * the six lowest digits are kept.
      */
     private fun numberToStringAscii(value: Int): ByteArray {
         var number = value
@@ -416,7 +494,8 @@ public object Popup {
 
     /**
      * Digit count [numberToStringAscii] writes for [number]: no minus sign, at most six
-     * digits.
+     * digits. It is the return value of `NumberToStringAscii` (`numStart + 1`), which
+     * `ParsePopupInstAndGetLen` multiplies by 8 pixels.
      */
     private fun numberToStringAsciiLength(number: Int): Int {
         var magnitude = if (number < 0) -number else number
@@ -440,7 +519,9 @@ public object Popup {
 
     /**
      * Counts the clock down, or with a negative clock waits for [newKeys] to be nonzero; sets
-     * [PopupProc.broken] where the original calls `Proc_Break`.
+     * [PopupProc.broken] where the original calls `Proc_Break`. A clock of exactly 0 does nothing,
+     * so such a popup never closes. [newKeys] is `gKeyStatusPtr->newKeys`, the buttons pressed
+     * this frame.
      *
      * Ported from src/popup.c: PopupProc_WaitForPress
      */
@@ -456,8 +537,9 @@ public object Popup {
     /**
      * Sets the fields `NewPopupCore` assigns after starting the proc (the proc start itself is
      * not modelled): the instruction list at [definition], [clock], [winStyle], the icon's OBJ
-     * tile [iconObjTileId] and the icon palette [palBase] + 0x10. The port including the proc
-     * start is [PopupScript.start].
+     * tile [iconObjTileId] and the icon palette [palBase] + 0x10 (the decomp comments the
+     * parameter `pal_base` as `proc->iconPalId - 0x10`). The port including the proc start is
+     * [PopupScript.start].
      */
     public fun setupCore(
         proc: PopupProc, definition: Int, clock: Int, winStyle: Int, iconObjTileId: Int,
@@ -471,7 +553,8 @@ public object Popup {
     }
 
     /**
-     * `NewPopupCore` fields for `NewPopup_Simple` (icon tile 0x240, palette base 4).
+     * `NewPopupCore` fields for `NewPopup_Simple` (icon OBJ tile 0x240, palette base 4); the
+     * game's popups pass a clock of 0x60 frames and window style 0.
      *
      * Field setup of `NewPopup_Simple`; see [PopupScript.start].
      */

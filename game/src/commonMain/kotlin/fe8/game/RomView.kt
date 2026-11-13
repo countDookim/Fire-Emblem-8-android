@@ -7,7 +7,8 @@ import gbafe.render.SpriteObject
 /**
  * Read access to ROM data by GBA address (0x08xxxxxx), backed by the whole ROM image or by the
  * extracted windows of it that the boot screens use ([BOOT_WINDOWS]). Lets the same screen setup
- * code run from a ROM (tests, later on-device import) or from extracted files (debug APKs).
+ * code run from the whole ROM (tests) or from the windows the on-device ROM import extracted
+ * (`boot/` and `sound/` of the base layer; nothing comes from the APK).
  */
 public class RomView(
     /** Segments as (GBA start address, bytes); an address is read from the segment holding it. */
@@ -32,7 +33,7 @@ public class RomView(
         return (bytes[offset].toInt() and 0xFF) or ((bytes[offset + 1].toInt() and 0xFF) shl 8)
     }
 
-    /** The word at [at]. */
+    /** The little-endian 32-bit word at [at] (ROM pointers are 0x08xxxxxx addresses). */
     public fun u32(at: Int): Int = u16(at) or (u16(at + 2) shl 16)
 
     /** [count] BGR555 colours (or halfwords) from [at]. */
@@ -42,7 +43,7 @@ public class RomView(
     /** The sprite object at [at] holding [halfwords] halfwords. */
     public fun obj(at: Int, halfwords: Int): SpriteObject = SpriteObject(at, pal(at, halfwords))
 
-    /** The sprite object at [at] sized by its count (`1 + 3 * count` halfwords). */
+    /** The sprite object at [at]: a halfword entry count, then 3 OAM halfwords per entry. */
     public fun objN(at: Int): SpriteObject = obj(at, 1 + 3 * u16(at))
 
     /**
@@ -88,7 +89,8 @@ public class RomView(
 
         /**
          * ROM ranges (start, end exclusive) holding all boot screen data (H&S, logos, op anim,
-         * title): sprite objects, then the screen graphics. Extracted as `boot/rom_<start>.bin`.
+         * title): sprite objects, then the screen graphics. Extracted by the ROM import as
+         * `boot/rom_<start>.bin`.
          */
         public val BOOT_WINDOWS: List<Pair<Int, Int>> = listOf(
             0x08590F00 to 0x08591000,
@@ -98,9 +100,8 @@ public class RomView(
         /**
          * ROM range (start, end exclusive) of all m4a sound data: the driver tables
          * (`gScaleTable`..`gXcmdTable`), voicegroups, `gMPlayTable`, `gSongTable`, songs and
-         * DirectSound samples (`gScaleTable` .. after `song998`). Extracted as
-         * `sound/rom_<start>.bin`
-         * for debug builds' sound tests.
+         * DirectSound samples (`gScaleTable` .. after `song998`). Extracted by the ROM import as
+         * `sound/rom_<start>.bin`.
          */
         public val SOUND_WINDOWS: List<Pair<Int, Int>> = listOf(0x08207200 to 0x08587700)
 

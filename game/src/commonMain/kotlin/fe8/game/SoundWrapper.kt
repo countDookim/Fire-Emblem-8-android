@@ -68,7 +68,7 @@ public class SoundWrapper(
         var timeEnd = 0
     }
 
-    /** `ProcScr_BgmVolumeChange` (`sMusicProc2Script`): [startBgmVolumeChange]'s proc. */
+    /** `sMusicProc2Script`: [startBgmVolumeChange]'s proc. */
     public val bgmVolumeChangeScript: ProcScript = ProcScript(
         "sMusicProc2Script",
         listOf(yield(), repeat(ProcFunc { musicVcOnLoop(it) }), end()),
@@ -76,8 +76,8 @@ public class SoundWrapper(
     )
 
     /**
-     * The `struct MusicProc` fields of the running volume-change proc ([startBgmVolumeChange]'s), or
-     * null when none runs (observation point for tests).
+     * The `struct MusicProc` fields of the running volume-change proc ([startBgmVolumeChange]'s),
+     * or null when none runs (observation point for tests).
      */
     public val bgmVolumeChange: BgmVolumeChange?
         get() = engine.find(bgmVolumeChangeScript)?.let { p ->
@@ -148,7 +148,8 @@ public class SoundWrapper(
 
     /**
      * `MusicVc_OnLoop`: sets the interpolated volume; at the end stops the song (end volume 0) or
-     * marks it playing, and ends.
+     * marks it playing, and ends. (The C also clears `gSoundSt.unk2` when stopping; the override
+     * song slot is not modelled.)
      *
      * Ported from src/soundwrapper.c: MusicVc_OnLoop
      */
@@ -300,7 +301,8 @@ public class SoundWrapper(
     }
 
     /**
-     * `sub_80028FC`: the title / staff roll themes use 8 channels, every other song the default.
+     * `sub_80028FC`: [song]s in [EIGHT_CHANNEL_SONGS] (below 128 only, see [playSong]) get 8 m4a
+     * channels, every other song the default 7.
      *
      * Ported from src/soundwrapper.c: sub_80028FC
      */
@@ -329,13 +331,17 @@ public class SoundWrapper(
         /** `SONG_MAIN_THEME`. */
         public const val SONG_MAIN_THEME: Int = 0x43
 
-        /** `SONG_6D` (title: A/Start). */
+        /** `SONG_6D`: sound effect when A or Start is pressed on the title screen. */
         public const val SONG_6D: Int = 0x6D
 
-        /** `SONG_317` (title: main screen appears). */
+        /** `SONG_317`: sound effect when the title's main screen is set up. */
         public const val SONG_317: Int = 0x317
 
-        /** `sub_80028FC`'s 8-channel songs (THE_VALIANT, MAIN_THEME_EXT, ...; decomp songs.h). */
+        /**
+         * `sub_80028FC`'s 8-channel songs: `SONG_THE_VALIANT`, `SONG_MAIN_THEME_EXT`,
+         * `SONG_RECORDS` (0x40), `SONG_FLY_WITH_THE_BREEZE` (0x42), `SONG_MAIN_THEME`,
+         * `SONG_BGM_ED_STAFF_2` (0x56) and `SONG_74` (0x74, the exp bar sound).
+         */
         private val EIGHT_CHANNEL_SONGS: Set<Int> = setOf(0x01, 0x02, 0x42, 0x43, 0x40, 0x56, 0x74)
     }
 }

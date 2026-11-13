@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1170,
+    "verified": 1183,
     "implemented_unverified": 23
   },
   "functions": {
@@ -616,6 +616,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BattleGenerateSimulationDifferentialTest#forecast reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
+    "BattleGenerateUiStats": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "BattleGetBattleUnitOrder": {
@@ -2131,6 +2141,26 @@
         "fe8.testing.WorldMapEventUnitTest#unit and point commands run by the VM match the capture"
       ]
     },
+    "EndFace": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
+    "EndFaceById": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
     "EndGmMuEntry": {
       "decomp_file": "src/worldmap_entry.c",
       "system": "worldmap",
@@ -3145,6 +3175,16 @@
         "fe8.testing.AttackTargetListDifferentialTest#weapon target list matches the game"
       ]
     },
+    "ForceMenuItemPanel": {
+      "decomp_file": "src/menuitempanel.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MenuItemPanel.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
     "ForceSyncUnitSpriteSheet": {
       "decomp_file": "src/bmudisp.c",
       "system": "battle_map",
@@ -3320,7 +3360,7 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -4311,6 +4351,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.MovementMapDifferentialTest#select flood matches the game"
+      ]
+    },
+    "GetUnitPortraitId": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "GetUnitPowerLevel": {
@@ -6161,6 +6211,16 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/Menu.kt",
       "status": "implemented",
       "tests": []
+    },
+    "MenuItemPanelProcIdle": {
+      "decomp_file": "src/menuitempanel.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MenuItemPanel.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
     },
     "Menu_OnIdle": {
       "decomp_file": "src/uimenu.c",
@@ -8082,6 +8142,26 @@
         "fe8.testing.EventStateTraceTest#setEventSlotC stores value in slot 0xC matching trace layout"
       ]
     },
+    "SetFaceBlinkControl": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
+    "SetFaceBlinkControlById": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
     "SetFirstPalDirectly": {
       "decomp_file": "src/opanimfx.c",
       "system": "presentation",
@@ -8577,6 +8657,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.PhaseChangeDifferentialTest#the phase switches to the enemy and the turn event runs"
+      ]
+    },
+    "StartFace": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "StartFaceFadeIn": {
@@ -9316,6 +9406,26 @@
         "fe8.testing.TextDrawRomTest#replayed talk lines reproduce the traced glyph tiles"
       ]
     },
+    "Text_DrawNumber": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
+    "Text_DrawNumberOrBlank": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MenuItemPanel.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
     "Text_DrawString": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -9334,6 +9444,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TextDrawRomTest#replayed talk lines reproduce the traced glyph tiles"
+      ]
+    },
+    "Text_InsertDrawNumberOrBlank": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MenuItemPanel.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "Text_InsertDrawString": {
@@ -9799,6 +9919,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
+      ]
+    },
+    "UpdateMenuItemPanel": {
+      "decomp_file": "src/menuitempanel.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MenuItemPanel.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
     "UpdateStatArrowSprites": {

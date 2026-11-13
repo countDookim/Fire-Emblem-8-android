@@ -582,6 +582,10 @@ not compared (the boot's map is private). Allocation: `PlayerPhaseAllocationTest
 list, target select, forecast shown, 100 frames after the battle): all frames allocate 0 B. Found, not fixed: the unit's
 walk (MU proc, f1560..1595 of the noanim run) allocates 32 B per frame, which the existing select/move windows also
 skip; the window is left out. MANUAL_TEST step 3 now lists the attack flow and its stand-ins.
+TEST-2 (11-13) found it: bisecting `GameLoop.onMain` per proc showed `gProcScr_PlayerPhase`, whose
+`playerPhaseWaitForUnitMovement` calls `Mu.muExistsActive`; `for (c in configs)` over a `List` allocated an
+`ArrayList.Itr` (32 B) each frame. An index loop fixes it (walk frames 0 B; a sprite frame shown for the first time
+still allocates 48 B once per boot). `WalkingAllocationTest` went from 1-2 to 8 of 26 free windows, threshold now 5.
 
 ## M7
 

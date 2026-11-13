@@ -86,7 +86,9 @@ class WalkingAllocationTest {
         println("Sustained visible walking: $windows windows, $zeroWindows allocation-free")
         // Other game systems can allocate at animation and event transitions. Each counted window
         // contains ten visible walking frames after the first 25, so idle cannot hide cache boxing.
+        // Before the `Mu.muExistsActive` iterator fix 1-2 of 26 were free (3 needed, flaky); now 8
+        // in every run, so 5 leaves margin while a per-frame allocation still leaves 0.
         assertTrue(windows >= 10, "too few sustained walking windows: $windows")
-        assertTrue(zeroWindows >= 3, "allocation-free walking windows: $zeroWindows of $windows")
+        assertTrue(zeroWindows >= 5, "allocation-free walking windows: $zeroWindows of $windows")
     }
 }

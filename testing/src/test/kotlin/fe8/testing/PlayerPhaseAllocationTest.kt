@@ -264,8 +264,11 @@ class PlayerPhaseAllocationTest {
     }
 
     private companion object {
-        // The unit's walk (f1560..1595, the MU proc) is left out: it allocates 32 B per frame.
+        // The unit's walk (f1560..1574, the MU proc) may allocate where a sprite frame is first
+        // shown (the per-boot object cache); between those frames it must not (it allocated 32 B
+        // every frame, the iterator of `for (c in configs)` in `Mu.muExistsActive`).
         val ATTACK_WINDOWS = listOf(
+            Window("unit walk", 1560, 1574, 6),
             Window("weapon list", 1600, 1625, 10),
             Window("target and forecast", 1635, 1655, 10),
             Window("forecast shown", 1668, 1700, 10),

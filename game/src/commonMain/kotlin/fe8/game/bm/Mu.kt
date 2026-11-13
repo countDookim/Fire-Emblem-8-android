@@ -526,7 +526,9 @@ public class Mu(
      * Ported from src/mu.c: MuExistsActive
      */
     public fun muExistsActive(): Boolean {
-        for (c in configs) {
+        // An index loop: the iterator of `for (c in configs)` costs 32 B every frame this runs.
+        for (i in 0 until MU_MAX_COUNT) {
+            val c = configs[i]
             if (c.slot == 0) continue
             if (c.mu!!.state != MU_STATE_INACTIVE) return true
         }

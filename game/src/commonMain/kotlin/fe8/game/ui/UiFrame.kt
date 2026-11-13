@@ -4,26 +4,45 @@ import fe8.game.RomView
 import gbafe.render.BgHardware
 
 /**
- * UI window frame rendering and graphics loading (decomp `src/uiutils.c`).
+ * The window frame that surrounds menus and popups (decomp `src/uiutils.c`): the border graphics
+ * and their palette, and the routines that draw a bordered box into a BG tilemap. Used by the
+ * popup banner, the item panel beside the action menu, the shop, the trade screens and the prep
+ * screens. A frame is built from a 16-entry model of tile references (4 by 4 tiles: the 2x2 top
+ * left corner with the top edge, the interior pattern, the edges and the bottom row), all in
+ * palette bank 1 (`BGPAL_WINDOW_FRAME`). Also holds the item hover bar (the highlight under the
+ * selected item in the trade screen) and BG 0/1 clearing.
  */
 public object UiFrame {
-    /** ROM address of `sUiFrameModelTilemapLookup` (4 model pointers). */
+    /**
+     * ROM address of `sUiFrameModelTilemapLookup` (4 pointers to 16-entry tile reference
+     * models: the frame styles 0 to 3). The decomp's models are named `gUnknown_080DA2F4`
+     * (style 0), `gUnknown_080DA334` (1), `gUnknown_080DA354` (2) and `gUnknown_080DA314`
+     * (3); what distinguishes them in play is not recorded in the decomp.
+     */
     public const val UI_FRAME_MODEL_LOOKUP: Int = 0x085B6430
 
-    /** ROM address of `sUiFramePaletteLookup` (4 palette pointers). */
+    /**
+     * ROM address of `sUiFramePaletteLookup` (4 palette pointers: `gUiFramePaletteA` to `D`, one
+     * per window colour the player can choose in the config screen, `gPlaySt.config.windowColor`).
+     */
     public const val UI_FRAME_PALETTE_LOOKUP: Int = 0x085B6450
 
-    /** ROM address of `sUiFrameImageLookup` (4 LZ77 image pointers). */
+    /**
+     * ROM address of `sUiFrameImageLookup` (4 LZ77 image pointers). In the decomp all four
+     * entries point to the same `gUiFrameImage`; only the palette changes with the window colour.
+     */
     public const val UI_FRAME_IMAGE_LOOKUP: Int = 0x085B6470
 
-    /** Palette bank index used for UI window frames (`BGPAL_WINDOW_FRAME`). */
+    /** `BGPAL_WINDOW_FRAME`: the BG palette bank (1) the frame tiles and their palette use. */
     public const val BGPAL_WINDOW_FRAME: Int = 1
 
     /**
-     * Unpacks the window frame image into BG tile VRAM (offset 0) and its 16-colour palette into
-     * `gPaletteBuffer` at [BGPAL_WINDOW_FRAME] (palette 1).
+     * Loads the window frame graphics: decompresses the frame image to the start of BG tile VRAM
+     * (`BGCHR_WINDOW_FRAME`, tile 0) and its 16-colour palette into palette bank
+     * [BGPAL_WINDOW_FRAME]. A screen calls this when it sets up, before drawing frames.
      *
-     * [windowColor] (0..3) picks which of the four frame graphics to load.
+     * [windowColor] (0..3) is the player's window colour option (`gPlaySt.config.windowColor`);
+     * the decomp reads it itself, here the caller passes it. It picks the palette.
      *
      * Ported from src/uiutils.c: LoadUiFrameGraphics
      */
@@ -38,7 +57,8 @@ public object UiFrame {
     }
 
     /**
-     * Clears the BG 0 and BG 1 tilemaps and flags both for sync.
+     * Blanks the BG 0 (text) and BG 1 (frame) tilemaps and flags both for upload; screens call it
+     * to wipe the previous menu or window before drawing the next.
      *
      * Ported from src/uiutils.c: ClearBg0Bg1
      */
@@ -50,11 +70,12 @@ public object UiFrame {
     }
 
     /**
-     * Draws a dialogue or popup frame into [bg0] (cleared to 0) and [bg1] (frame metatiles from
-     * [style]). The frame's top-left tile is ([x], [y]) and it is [width] by [height] tiles,
-     * border included. [style] (0..3) picks one of the four metatile sets of
-     * `sUiFrameModelTilemapLookup`. Sets BG0/BG1 positions to (0, 0) and enables sync on
-     * [hardware] if provided.
+     * Draws a window frame (as seen on popups, the shop and trade windows and the item panel)
+     * into [bg1] and blanks the same tiles of [bg0], so text of an earlier window does not show
+     * through the new frame. The frame's top-left tile is ([x], [y]) and it is [width] by
+     * [height] tiles, border included. [style] (0..3) picks a tile model of
+     * `sUiFrameModelTilemapLookup`. Resets the scroll of BG 0 and BG 1 to (0, 0) and flags both
+     * for upload, when [hardware] is given (the decomp always does).
      *
      * Ported from src/uiutils.c: DrawUiFrame2
      */
@@ -72,7 +93,7 @@ public object UiFrame {
         val modelOffset = rom.u32(UI_FRAME_MODEL_LOOKUP + 4 * style)
         val metatiles = ShortArray(16) { rom.u16(modelOffset + 2 * it).toShort() }
 
-        // Last tile column and row of the frame, border included.
+        // Last tile column and row of the frame (`xMax`, `yMax`), border included.
         val xMax = x + width - 1
         val yMax = y + height - 1
 
@@ -137,8 +158,9 @@ public object UiFrame {
             bg1[yMax * 32 + x] = metatiles[12]
             bg1[yMax * 32 + xMax] = metatiles[15]
         } else {
-            // Style 3 has no top border: its first interior row uses metatiles 4..7,
-            // the rows below it use 8..11.
+            // Style 3 does not write the frame's top row (y) at all, so the caller or an earlier
+            // draw provides it. Its first interior row (y + 1) uses model entries 4..7, the
+            // rows below use 8..11 (and 5, 6 become 9, 10), as in the C `r9` flag.
             for (iy in y + 1 until yMax step 2) {
                 val isFirstRow = (iy == y + 1)
                 for (ix in x + 1 until xMax step 2) {
@@ -195,9 +217,10 @@ public object UiFrame {
     }
 
     /**
-     * Draws a dialogue or popup frame into [hardware]'s BG0 (cleared) and BG1 (frame), using
-     * the hardware's map buffers 0 and 1. Arguments are as for the overload above; [style]
-     * defaults to 0.
+     * Draws a window frame into [hardware]'s BG 0 (blanked) and BG 1 (frame) tilemap buffers,
+     * as the decomp's `DrawUiFrame2(x, y, width, height, style)` does with `gBG0TilemapBuffer`
+     * and `gBG1TilemapBuffer`. Arguments are as for the overload above; [style] defaults to 0
+     * (the style of the shop, trade and item panel frames; the popup passes its window style).
      */
     public fun drawUiFrame2(
         hardware: BgHardware,
@@ -221,18 +244,27 @@ public object UiFrame {
         )
     }
 
-    /** ROM address of `gUnknown_080DA374`, the resting metatiles of the item hover bar. */
+    /**
+     * ROM address of `gUnknown_080DA374`, a 16-entry tile model like the frame ones. Entries 6
+     * and 7 (both the plain frame background tile 0x09) are written back when the item hover bar
+     * is cleared; the other entries are not used by this class.
+     */
     public const val HOVER_CLEAR_TILES: Int = 0x080DA374
 
-    /** `TILEREF(0x7A..0x7C, BGPAL_WINDOW_FRAME)`: left, middle and right tile of the hover bar. */
+    /**
+     * `TILEREF(0x7A..0x7C, BGPAL_WINDOW_FRAME)` (tile number plus bank 1 shifted by 12): left,
+     * middle and right tile of the hover bar.
+     */
     private const val HOVER_LEFT: Int = 0x107A
     private const val HOVER_MIDDLE: Int = 0x107B
     private const val HOVER_RIGHT: Int = 0x107C
 
     /**
      * Draws a window frame into the 32 by 32 [tilemap] with its top-left tile at ([x], [y]),
-     * [width] by [height] tiles, border included. [style] (0..3) picks the metatile set and
-     * [tilebase] is added to every tile entry.
+     * [width] by [height] tiles, border included, without touching BG 0 or the scroll (unlike
+     * [drawUiFrame2]). [style] (0..3) picks the tile model and [tilebase] is added to every
+     * tile entry (for a frame drawn on another BG whose tile VRAM or palette differs). The class
+     * change screen uses it for its small frame on BG 2.
      *
      * Ported from src/uiutils.c: DrawUiFrame
      */
@@ -289,8 +321,8 @@ public object UiFrame {
     }
 
     /**
-     * Zeroes the [width] by [height] tile rectangle of [tilemap] whose top-left tile is
-     * ([x], [y]).
+     * Blanks the [width] by [height] tile rectangle of [tilemap] whose top-left tile is
+     * ([x], [y]), to erase a frame drawn by [drawUiFrame].
      *
      * Ported from src/uiutils.c: ClearUiFrame
      */
@@ -302,8 +334,10 @@ public object UiFrame {
     }
 
     /**
-     * Draws the item hover bar, [width] tiles wide, on the tile row below [y] of BG [bg], starting
-     * at column [x]; [base] is added to each tile entry. Enables the BG's sync.
+     * Draws the item hover bar: a highlight [width] tiles wide on tile row [y] + 1 of BG [bg],
+     * from column [x] (left cap, middle tiles, right cap); [base] is added to each tile entry.
+     * The trade screen shows it under the item the cursor is on (the decomp's callers use the
+     * BG 1 version, `DrawUiItemHover`, with width 12). Flags the BG for upload.
      *
      * Ported from src/uiutils.c: DrawUiItemHoverExt
      */
@@ -331,8 +365,9 @@ public object UiFrame {
     }
 
     /**
-     * Restores the plain window tiles under the item hover bar drawn by [drawUiItemHoverExt] (the
-     * arguments are the same). Enables the BG's sync.
+     * Removes the item hover bar drawn by [drawUiItemHoverExt] (same arguments) by writing the
+     * plain frame background tile back, alternating the model's entries 6 and 7 by column; an
+     * even [width] ends on entry 7, an odd one on entry 6. Flags the BG for upload.
      *
      * Ported from src/uiutils.c: ClearUiItemHoverExt
      */

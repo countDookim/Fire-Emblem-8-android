@@ -53,9 +53,9 @@ import java.io.File
  * once and compared with the dump the pass ends at; the dumps inside a pass are compared with the
  * state the port has at the matching call (the unlock, the suspend save).
  *
- * Stand-ins: `UpdateAllPhaseHealingAIStatus` and `SetupUnitInventoryAIFlags` (bmphase AI
- * utilities, not ported; they set `gAiState.bestBlueMov`, byte 0x85, which is not compared), the
- * suspend save write, the unit sprite refresh and the grayed state reset.
+ * Stand-ins: the AI flag setup (`CpUtility`, verified in `CpAiFlagsDifferentialTest`; `CpPhase`
+ * here gets no map objects, so it is skipped and `gAiState.bestBlueMov`, byte 0x85, is not
+ * compared), the suspend save write, the unit sprite refresh and the grayed state reset.
  */
 class PhaseChangeDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()

@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 549 across 78 decomp files (missing reason: 0).
+Total entries: 551 across 78 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -661,6 +661,15 @@ Total entries: 549 across 78 decomp files (missing reason: 0).
 | `WriteLinkArenaStruct2` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero link arena block, so no run shows its checksum or data |
 | `WriteSupplyItems` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
 
+## src/cp_utility.c (4)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SetupUnitStatusStaffAIFlags` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | the capture has no staff, so only the early return for a weapon is run |
+| `SetupUnitHealStaffAIFlags` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | the capture's usable items are range 1 weapons with no use effect, so only the no-flag path is run |
+| `AiGetUnitClosestValidPosition` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no reference trace exercises the occupied case |
+| `CharStoreAI` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | every traced definition has zero AI bytes, so a skipped or wrong store survives |
+
 ## src/opsubtitle.c (4)
 
 | Function | Kotlin file | Reason |
@@ -757,13 +766,6 @@ Total entries: 549 across 78 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `ReadWorldMapStuff` | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | partial, the world map state is not ported, so the raw `struct GMapSaveInfo` is kept |
 | `ClearWorldMapStuff` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | NewGameSaveReferenceTest covers its write but no break-check has been run on it yet |
-
-## src/cp_utility.c (2)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `AiGetUnitClosestValidPosition` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no reference trace exercises the occupied case |
-| `CharStoreAI` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | every traced definition has zero AI bytes, so a skipped or wrong store survives |
 
 ## src/eventscr3.c (2)
 

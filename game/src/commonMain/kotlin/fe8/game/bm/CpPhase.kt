@@ -34,6 +34,9 @@ public class AiState {
     /** `unk84` (u8, 0x84). */
     public var unk84: Int = 0
 
+    /** `bestBlueMov` (u8, 0x85): the highest Mov of the player units, set at the phase start. */
+    public var bestBlueMov: Int = 0
+
     /** `cmd_result[8]` (0x86). */
     public val cmdResult: ByteArray = ByteArray(8)
 
@@ -49,7 +52,7 @@ public class AiState {
  * (ROM 0x085A7F30) and `gProcScr_BerserkCpOrder` (0x085A7F74), which BMapMain starts after every
  * phase. The enemy and ally phase (`gProcScr_CpPhase`, `gProcScr_CpOrder`) are here too. The AI
  * decision (`gProcScr_CpDecide`, EP-3a) is a stand-in that ends at once; [Hooks] stand in for the
- * rest.
+ * rest. The AI flag setup ([CpUtility]) runs only when the map objects are given.
  */
 public class CpPhase(
     private val engine: ProcEngine,
@@ -61,15 +64,13 @@ public class CpPhase(
      * needs; null counts every item as unusable.
      */
     private val loader: UnitLoader? = null,
+    /** `gBmMap*` for the ally count of [CpUtility]; with [entityMaps] and [loader] enables it. */
+    map: BmMap? = null,
+    /** `MapAddInRange` for [CpUtility]. */
+    entityMaps: EntityBmMaps? = null,
 ) {
     /** Services outside the ported files. */
     public class Hooks {
-        /** `UpdateAllPhaseHealingAIStatus()` (cp_utility.c, not ported). */
-        public var updateAllPhaseHealingAiStatus: () -> Unit = {}
-
-        /** `SetupUnitInventoryAIFlags()` (cp_utility.c, not ported). */
-        public var setupUnitInventoryAiFlags: () -> Unit = {}
-
         /**
          * `AiDecideMainFunc = AiDecideMain; Proc_StartBlocking(gProcScr_CpDecide, proc)` (cp_decide,
          * M6-D): the decision loop for [AiState.units], blocking the given proc.
@@ -83,11 +84,22 @@ public class CpPhase(
     /** Services outside the ported files. */
     public val hooks: Hooks = Hooks()
 
-    private val priorities = IntArray(AiState.UNITS_SIZE)
-    private val items = ItemInfo(rom)
-
     /** `gAiState`. */
     public val aiState: AiState = AiState()
+
+    /**
+     * `UpdateAllPhaseHealingAIStatus` and `SetupUnitInventoryAIFlags`; null (both skipped) when
+     * the constructor got no [loader], map and entity maps.
+     */
+    private val aiFlags: CpUtility? =
+        if (loader != null && map != null && entityMaps != null) {
+            CpUtility(rom, units, playSt, aiState, loader, map, entityMaps)
+        } else {
+            null
+        }
+
+    private val priorities = IntArray(AiState.UNITS_SIZE)
+    private val items = ItemInfo(rom)
 
     private val berserkInitFn = ProcFunc { aiPhaseBerserkInit(it) }
     private val cleanupFn = ProcFunc { aiPhaseCleanup() }
@@ -145,7 +157,7 @@ public class CpPhase(
      * Ported from src/cp_phase.c: AiPhaseBerserkInit
      *
      * Resets [aiState] for a berserk phase (flags, `unk7E`, the command results, the chapter's
-     * special item flags), refreshes the healing and inventory AI statuses through [Hooks] and
+     * special item flags), refreshes the healing and inventory AI statuses ([CpUtility]) and
      * starts the berserk order blocking [proc].
      */
     public fun aiPhaseBerserkInit(proc: Proc) {
@@ -156,8 +168,8 @@ public class CpPhase(
 
         aiState.specialItemFlags = rom.u32(AI_ITEM_CONFIG_TABLE + 4 * playSt.chapterIndex)
 
-        hooks.updateAllPhaseHealingAiStatus()
-        hooks.setupUnitInventoryAiFlags()
+        aiFlags?.updateAllPhaseHealingAiStatus()
+        aiFlags?.setupUnitInventoryAiFlags()
 
         engine.startBlocking(berserkOrderScript, proc)
     }
@@ -167,7 +179,7 @@ public class CpPhase(
      *
      * Resets [aiState] for an enemy or ally phase (flags `AI_FLAG_0`, `unk7E`, `orderState`, the
      * command results, the chapter's special item flags, `unk84`), refreshes the healing and
-     * inventory AI statuses through [Hooks] and starts [orderScript] blocking [proc]. Verified:
+     * inventory AI statuses ([CpUtility]) and starts [orderScript] blocking [proc]. Verified:
      * flags, `unk7E`, the special item flags, the proc; the resets of `orderState`, the command
      * results and `unk84` are not seen (the capture holds those values already).
      */
@@ -179,8 +191,8 @@ public class CpPhase(
         aiState.specialItemFlags = rom.u32(AI_ITEM_CONFIG_TABLE + 4 * playSt.chapterIndex)
         aiState.unk84 = 0
 
-        hooks.updateAllPhaseHealingAiStatus()
-        hooks.setupUnitInventoryAiFlags()
+        aiFlags?.updateAllPhaseHealingAiStatus()
+        aiFlags?.setupUnitInventoryAiFlags()
 
         engine.startBlocking(orderScript, proc)
     }

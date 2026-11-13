@@ -311,6 +311,14 @@ Transcribed, not verified: `GetUnitAiPriority` (all three enemies 25: Mov 5 + me
 Stand-ins: `gProcScr_CpDecide` (ends at once, until EP-3a), `UpdateAllPhaseHealingAIStatus`/`SetupUnitInventoryAIFlags` hooks (EP-2b; `dangerMapFilled` 1 at f1612 comes from there).
 Wired: `Fe8Boot` uses `CpPhase.phaseScript` as `cpPhase`; with the stand-in decide the phase still ends and the next player phase starts. EP-w: share `gAiState` with CpDecide, set `hooks.startCpDecide`.
 
+### EP-2b result (2026-11-13)
+
+Test: `CpAiFlagsDifferentialTest` (`aistate`, `blue`, `red`, `gplayst` watches and `gBmMapUnit` of the dumps f1520/f1610; units and `gPlaySt` of the step before fed, `aiFlags`/`ai_counter` of every watched unit and `bestBlueMov` compared after). New class `CpUtility` (game/bm); `UnitTable` got `setAiFlags`, `aiConfig`, `aiCounter`, `setAiCounter`; `AiState.bestBlueMov` (0x85). f1526 runs through `berserkPhaseScript` (faction 0: Seth, HP 13 of 30, enters healing; both blue units get ally count 1; `bestBlueMov` 0 -> 8), f1612 through `phaseScript` (faction 0x80; nothing changes), f2018/f2723 call the healing refresh directly (the dead red units are no longer valid and keep their flags). `dangerMapFilled` is not touched here (AiInitDangerMap, EP-3b).
+Ported: `SetupUnitInventoryAIFlags` (Mov, best Mov, the unusable-item skip: a Vulnerary adds no flag; no magic item or staff in the capture), `SaveNumberOfAlliedUnitsIn0To8Range` (the skip of a non-allied unit is not seen), `UpdateAllPhaseHealingAIStatus` (blue at f1526, red at f1612/f2018/f2723), `AiUpdateGetUnitIsHealing` (enter and no-enter seen; the branch of a unit already healing is not).
+Transcribed, not verified: `SetupUnitStatusStaffAIFlags` (only the early return for a weapon runs), `SetupUnitHealStaffAIFlags` (only the no-flag path: range 1 weapons, no use effect on a usable item).
+Stand-ins: none left of the two hooks (removed). `CpPhase` skips the setup when built without `BmMap`/`EntityBmMaps`/`UnitLoader` (the phase-change test does).
+Wired: `Fe8Boot` passes `battleBmMap` and `battleEntityMaps` to `CpPhase`, so the setup reads the live `gBmMapUnit` of the port.
+
 ### EP-0 inventory (2026-11-13)
 
 Test: `EnemyPhaseInventoryTest` (procs per window asserted row by row over `ram_trace_prologue_cancel_end`

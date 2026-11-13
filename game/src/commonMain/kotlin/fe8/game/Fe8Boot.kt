@@ -1035,7 +1035,8 @@ public class Fe8Boot(
         // The enemy phase (EP-2a): `AiPhaseInit` and the unit order. The decision loop is a
         // stand-in until EP-3a that ends at once, so End turn runs the enemy banner, the order
         // and goes on to the next player phase.
-        main.hooks.cpPhase = CpPhase(engine, rom, playSt, units, loader).phaseScript
+        main.hooks.cpPhase =
+            CpPhase(engine, rom, playSt, units, loader, battleBmMap, battleEntityMaps).phaseScript
         // Phase start and end housekeeping (EP-1). The target list is its own: the displays'
         // `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w
         // shares one list with the player phase when the real `Make*TargetList` come in.

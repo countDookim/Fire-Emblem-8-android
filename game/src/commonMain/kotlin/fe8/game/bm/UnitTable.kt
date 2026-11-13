@@ -189,6 +189,22 @@ public class UnitTable(
     /** `aiFlags` (u8, 0x0A) of unit [id]. */
     public fun aiFlags(id: Int): Int = u8(bytes, unitOffset(id) + 0x0A)
 
+    /** Sets `aiFlags` (u8, 0x0A) of unit [id] (the unit must exist). */
+    public fun setAiFlags(id: Int, value: Int) {
+        bytes[unitOffset(id) + 0x0A] = value.toByte()
+    }
+
+    /** `ai_config` (u16, 0x40) of unit [id]. */
+    public fun aiConfig(id: Int): Int = StructCodec.u16(bytes, unitOffset(id) + 0x40)
+
+    /** `ai_counter` (u8, 0x46) of unit [id]. */
+    public fun aiCounter(id: Int): Int = u8(bytes, unitOffset(id) + 0x46)
+
+    /** Sets `ai_counter` (u8, 0x46) of unit [id] (the unit must exist). */
+    public fun setAiCounter(id: Int, value: Int) {
+        bytes[unitOffset(id) + 0x46] = value.toByte()
+    }
+
     /** `UNIT_LEADER_CHARACTER`: `supports[6]` (u8, 0x38) of unit [id]. */
     public fun leaderCharId(id: Int): Int = u8(bytes, unitOffset(id) + 0x38)
 

@@ -385,6 +385,26 @@ proc `gProcScr_BKSEL` (MC-10, modelled in the test by the dumps) is gone; `NewBa
 and `StartBattleForecastHelpBox` are hooks, stand-in until MC-10. On a device A on a target sets the combat action and
 `ApplyUnitAction` ends the unit's turn like Wait (stand-in until MC-11: no battle).
 
+### MC-10 result
+
+`BattleForecast` (new, `fe8.game.bm`) is the forecast window proc `gProcScr_BKSEL`; `AttackMapSelect` now takes it
+instead of the MC-10 hooks (`newBattleForecast`, `updateForecast`, `closeForecast`, `forecastExists` are gone;
+`startForecastHelp` stays, stand-in until MC-12b). `TargetSelectionDifferentialTest` runs it on the two MC-5 windows
+(f1659..1704 with B, f1789..1820 with A) and compares per frame: the proc's existence and script position, `frameKind`,
+`ready`, frame count, x, y, side, slide counter, hit counts and effectiveness flags (not at the first dump after the
+start, where the proc's fields still hold stale bytes), `gBattleActor`, `gBattleTarget`, `gBattleStats` and
+`gBmMapMovement` (filled with -1). Excluded: BG tiles, palettes and text the forecast draws (MC-11, MC-12).
+Ported and break-checked: `NewBattleForecast`, `BattleForecast_Init`, `InitBattleForecastBattleStats`,
+`BattleForecastHitCountUpdate`, `GetBattleForecastPanelSide`, `CloseBattleForecast`. Transcribed:
+`UpdateBattleForecastContents` (its one call comes before the proc is ready), `BattleForecast_OnEnd` (drawing only),
+`TriggerBattleForcastToturialEvent`. The loop steps (`OnNewBattle`, `LoopSlideIn`, `LoopDisplay`, `LoopSlideOut`,
+`DrawBattleForecastContents`) are "Partially ported": their fields and counters are verified here, the drawing is
+hooks, so MC-12a and MC-11 still tag them. Findings: the forecast's set-up frame is heavy (two VBlanks), so the dump 3
+frames after each start repeats the previous one (first selection) or holds the half-run frame (second), and the game
+runs one frame behind the dump index after it; the test skips one engine run at start + 2. The first display
+frame is dump start + 7; cancel (B at 1699) goes to label 1 and the slide-out ends the proc at 1704; A ends it at once
+(1820). The ballista and obstacle forecasts and the cap3 and kill runs are not covered.
+
 ## M7
 
 Not broken down here: [M7-modding](M7-modding.md) has 23 proposed rows; they wait for owner decisions D2–D9.

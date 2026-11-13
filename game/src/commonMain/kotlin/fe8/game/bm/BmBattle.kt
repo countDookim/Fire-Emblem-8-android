@@ -925,7 +925,7 @@ public class BmBattle(
      * in 0). For the flier lists the match only counts when no item the unit carries has
      * `IA_NEGATE_FLYING`.
      */
-    private fun isItemEffectiveAgainst(item: Int, bytes: ByteArray, offset: Int): Boolean {
+    public fun isItemEffectiveAgainst(item: Int, bytes: ByteArray, offset: Int): Boolean {
         val cls = u32(bytes, offset + OFF_CLASS)
         if (cls == 0) return false
         val classId = rom.u8(cls + 4)
@@ -954,7 +954,7 @@ public class BmBattle(
      * and the target's class is a monster class (`ItemEffectiveness_Monsters`), so the Bishop's
      * attacks are effective against it.
      */
-    private fun isUnitEffectiveAgainst(
+    public fun isUnitEffectiveAgainst(
         actorBytes: ByteArray,
         actorOffset: Int,
         targetBytes: ByteArray,

@@ -1005,13 +1005,17 @@ public class Fe8Boot(
             rng, { playSt.chapterStateBits and PLAY_FLAG_HARD != 0 },
         ).apply { bmMap = battleBmMap }
         val handles = checkNotNull(spriteHandles)
+        val battle = BmBattle(rom, units, loader, playSt, loop.bmSt) { y, x ->
+            battleBmMap.terrain[y, x]
+        }
         PlayerPhaseWiring(
             engine, rom, hw, loop.bmSt, playSt, battleBmMap, units, flags, keys,
             IntSupplier { clock.get().toInt() }, control.sound, loop, camMove, bmapRender,
             battleEntityMaps, talkScene, handles, mu, active, loader,
             { start.hooks.getBattleMapKind() }, trapPool,
             { resetIcons() }, IntConsumer { palId -> loadIconPalettes(palId) },
-            drawnIconLookupTable, iconGfxIdLookupTable, mapCursor,
+            drawnIconLookupTable, iconGfxIdLookupTable, mapCursor, battle,
+            BattleGenerate(battle, rom, loader, playSt, rng, Mechanics()),
         ).wire(phase, main, eventInfos)
         // Stand-in until M6-D (enemy phase and AI): the computer phase does nothing and ends at
         // once, so End turn runs the enemy banner and goes on to the next player phase.

@@ -90,6 +90,9 @@ public class BattleGenerate(
     /** `BattleGetBattleUnitOrder` / `BattleGetFollowUpOrder` out parameter `outAttacker`. */
     private var orderAttacker: BattleUnit = battle.actor
 
+    /** The `buFirst` that [battleGetFollowUpOrder] sets: the unit that strikes first. */
+    public val firstStriker: BattleUnit get() = orderAttacker
+
     /** `BattleGetBattleUnitOrder` / `BattleGetFollowUpOrder` out parameter `outDefender`. */
     private var orderDefender: BattleUnit = battle.target
 

@@ -5,6 +5,11 @@ import fe8.game.bm.ActiveUnit
 import fe8.game.bm.AttackMapSelect
 import fe8.game.bm.AttackRange
 import fe8.game.bm.AttackTargets
+import fe8.game.bm.BattleForecast
+import fe8.game.bm.BattleGenerate
+import fe8.game.bm.BattleStats
+import fe8.game.bm.BattleUnit
+import fe8.game.bm.BmBattle
 import fe8.game.bm.BmMap
 import fe8.game.bm.BmSt
 import fe8.game.bm.CamMove
@@ -20,6 +25,7 @@ import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitTable
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
+import gbafe.core.mechanics.Mechanics
 import gbafe.core.rng.RngService
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
@@ -46,9 +52,14 @@ import java.io.File
  * statics (`sLastCoordMapCursorDrawn`, `sLastTimeMapCursorDrawn`) and the game lock are the
  * dump's, and the target list (the dump's links after `GetLinkedTargets`) is the same.
  *
- * The callbacks of `gSelectInfo_Attack` are MC-6 and MC-10: the test's stand-ins return their
- * `MENU_ACT` results and the cancel one starts the cancel proc's `LockGame` (dumps f1700+ lock
- * the game again).
+ * The forecast window (MC-10, `BattleForecast`) runs for real: per frame the `gProcScr_BKSEL` proc
+ * exists as in the dump (it starts at 1659 and ends at 1703 after B, at 1819 after A) at the same
+ * script position with its fields (frame kind, ready, frame count, position, side, slide
+ * counter, hit counts, effectiveness flags; the first dump after the start holds stale bytes in
+ * the fields the proc has not set yet, so only the frame kind and `ready` are compared there),
+ * and `gBattleActor`, `gBattleTarget`, `gBattleStats` and `gBmMapMovement` (filled with -1) are
+ * the dump's until the cancel reopens the weapon list (the panel regenerates them). Not compared:
+ * the BG tiles, palettes and text the forecast draws (MC-11, MC-12), which are stand-in hooks.
  */
 class TargetSelectionDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -63,6 +74,9 @@ class TargetSelectionDifferentialTest {
         "TargetSelection_GetRealCursorPosition", "EndTargetSelection",
         "AttackMapSelect_SwitchIn", "AttackMapSelect_Select", "AttackMapSelect_Cancel",
         "AttackMapSelect_End", "ChangeActiveUnitFacing", "GetFacingDirection",
+        "NewBattleForecast", "BattleForecast_Init",
+        "InitBattleForecastBattleStats", "BattleForecastHitCountUpdate",
+        "GetBattleForecastPanelSide", "CloseBattleForecast",
     )
     fun `the target selection follows the game from the pick to B and to A`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
@@ -109,8 +123,13 @@ class TargetSelectionDifferentialTest {
         val hw = BgHardware()
         val camMove = CamMove(engine, bm)
         val select: AttackMapSelect
+        val battle: BmBattle
+        val forecast: BattleForecast
         val sounds = ArrayList<Int>()
         var proc: Proc? = null
+
+        /** The dump that holds the forecast's set-up frame half run (the second selection). */
+        val partial = if (start == SECOND_START) start + 2 else -1
 
         init {
             val loader = UnitLoader(units, rom, { 0 }, RngService(), { false })
@@ -120,13 +139,16 @@ class TargetSelectionDifferentialTest {
             selection = TargetSelection(engine, targets, keys, camMove, {})
             val facing = UnitFacing(units, active, script)
             facing.setAutoMuMoveScript = { facingCalls++ }
-            select = AttackMapSelect(engine, targets, active, units, facing, camMove, hw)
+            battle = BmBattle(rom, units, loader, playSt, bm) { y, x -> map.terrain[y, x] }
+            val gen = BattleGenerate(battle, rom, loader, playSt, RngService(), Mechanics())
+            forecast = BattleForecast(
+                engine, battle, gen, items, units, active, playSt, bm, map, hw,
+            )
+            select = AttackMapSelect(
+                engine, targets, active, units, facing, camMove, forecast, hw,
+            )
             select.hooks.lockGame = { bm.lock = (bm.lock + 1) and 0xFF }
             select.hooks.unlockGame = { bm.lock = (bm.lock - 1) and 0xFF }
-            // `gProcScr_BKSEL` is MC-10: it lives as long as the dumps show it.
-            select.hooks.forecastExists = {
-                ProcArrayDump.ofEwram(ewram(frameNow + 1), procNames).find(BKSEL) != null
-            }
             select.hooks.restartWeaponList = {
                 restarts.add(frameNow)
                 // The weapon list (`WeaponSelectMenuDifferentialTest`) locks the game while open.
@@ -157,6 +179,16 @@ class TargetSelectionDifferentialTest {
             map.initChapterMap(playSt.chapterIndex)
             readPool(e, iw, GBM_MAP_TERRAIN, map.terrain)
             readPool(after, iwram(start + 1), GBM_MAP_UNIT, map.unit)
+            e.copyInto(
+                battle.actor.bytes, 0, GBATTLE_ACTOR - EWRAM,
+                GBATTLE_ACTOR - EWRAM + BattleUnit.SIZE,
+            )
+            e.copyInto(
+                battle.target.bytes, 0, GBATTLE_TARGET - EWRAM,
+                GBATTLE_TARGET - EWRAM + BattleUnit.SIZE,
+            )
+            battle.stats.decode(e, GBATTLE_STATS - EWRAM)
+            readPool(e, iw, GBM_MAP_MOVEMENT, map.movement)
             val pointer = u32(iwram(start + 1), GACTIVEUNIT - IWRAM)
             active.unit = units.bytes[pointer - UnitTable.BLUE_ADDRESS + 0x0B].toInt() and 0xFF
             // The weapon list's end (the menu proc, MC-3b) unlocks the game as the pick returns.
@@ -182,7 +214,11 @@ class TargetSelectionDifferentialTest {
             keys.update(data.inputs[f])
             clock = u32(iwram(d), CLOCK - IWRAM)
             sprites.clear()
-            for (tree in 0 until 8) engine.run(engine.root(tree))
+            // The forecast's set-up frame is heavy: the game takes two VBlanks for it, so the dump
+            // 3 frames after the start repeats the one before (the first selection) or holds the
+            // half-run frame (the second), and the game runs one frame behind the dump index
+            // from there (the same frame the cursor's drawn time lags in).
+            if (f != start + 2) for (tree in 0 until 8) engine.run(engine.root(tree))
             if (f == start) {
                 // The weapon menu's proc starts it in tree 3 (the dump has the selection proc's
                 // first run one frame later).
@@ -192,10 +228,63 @@ class TargetSelectionDifferentialTest {
             compare(d, f)
         }
 
+        private fun compareForecast(d: Int, e: ByteArray, dump: ProcArrayDump, at: String) {
+            val original = dump.find(BKSEL)
+            val mine = forecast.find()
+            assertEquals(original != null, mine != null, "$at forecast proc exists")
+            if (original != null) {
+                val s = mine!!.state as BattleForecast.State
+                assertEquals(original.scrCur, mine!!.scrCur, "$at forecast script position")
+                assertEquals(original.u8(0x32), s.frameKind, "$at frameKind")
+                assertEquals(original.u8(0x33), s.ready, "$at ready")
+                if (d != start + 1 && d != partial) {
+                    assertEquals(original.u32(0x2C), s.frameCount, "$at frame count")
+                    assertEquals(original.u8(0x30), s.x and 0xFF, "$at x")
+                    assertEquals(original.u8(0x31), s.y and 0xFF, "$at y")
+                    assertEquals(original.u8(0x34), s.needContentUpdate, "$at need update")
+                    assertEquals(original.u8(0x35), s.side and 0xFF, "$at side")
+    
+                    assertEquals(original.u8(0x36), s.slideOffset and 0xFF, "$at slide")
+                    assertEquals(original.u8(0x50), s.hitCountA and 0xFF, "$at hit count A")
+                    assertEquals(original.u8(0x51), s.hitCountB and 0xFF, "$at hit count B")
+                    assertEquals(original.u8(0x52), s.isEffectiveA, "$at effective A")
+                    assertEquals(original.u8(0x53), s.isEffectiveB, "$at effective B")
+                }
+            }
+            val limit = if (start == FIRST_START) B_FRAME + 1 else A_FRAME + 1
+            if (d > start && d <= limit) compareBattle(d, e, at)
+        }
+
+        private fun compareBattle(d: Int, e: ByteArray, at: String) {
+            for ((bu, address) in listOf(
+                battle.actor to GBATTLE_ACTOR, battle.target to GBATTLE_TARGET,
+            )) {
+                for (i in 0 until BattleUnit.SIZE) {
+                    assertEquals(
+                        e[address - EWRAM + i], bu.bytes[i], "$at battle unit $address+$i",
+                    )
+                }
+            }
+            val stats = ByteArray(BattleStats.SIZE)
+            battle.stats.encode(stats, 0)
+            for (i in stats.indices) {
+                assertEquals(e[GBATTLE_STATS - EWRAM + i], stats[i], "$at gBattleStats+$i")
+            }
+            val want = BmMap.Pool()
+            map.bmMapInit(want, map.sizeX, map.sizeY)
+            readPool(e, iwram(d), GBM_MAP_MOVEMENT, want)
+            for (y in -2 until map.sizeY + 2) {
+                for (x in 0 until map.sizeX + 2) {
+                    assertEquals(want[y, x], map.movement[y, x], "$at movement[$y][$x]")
+                }
+            }
+        }
+
         private fun compare(d: Int, f: Int) {
             val e = ewram(d)
             val at = "$RUN f$f (dump $d)"
             val dump = ProcArrayDump.ofEwram(e, procNames)
+            compareForecast(d, e, dump, at)
             val original = dump.find("gProcScr_TargetSelection")
             val mine = engine.find(selection.script)
             assertEquals(original != null, mine != null, "$at selection proc exists")
@@ -294,6 +383,10 @@ class TargetSelectionDifferentialTest {
         const val B_FRAME = 1699
         const val RESTART_FRAME = 1703
         const val BKSEL = 0x0859E520
+        const val GBATTLE_STATS = 0x0203A4D4
+        const val GBATTLE_ACTOR = 0x0203A4EC
+        const val GBATTLE_TARGET = 0x0203A56C
+        const val GBM_MAP_MOVEMENT = 0x0202E4E0
         const val CANCEL_SCRIPT = 0x0859B630
         const val WORKING_SCRIPT = 0x02033EFC
         const val ACTION_DATA = 0x0203A958

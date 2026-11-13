@@ -5,7 +5,10 @@ import fe8.game.bm.AttackMapSelect
 import fe8.game.bm.AttackRange
 import fe8.game.bm.AttackTargets
 import fe8.game.bm.BMapMain
+import fe8.game.bm.BattleForecast
+import fe8.game.bm.BattleGenerate
 import fe8.game.bm.BattleMapStart
+import fe8.game.bm.BmBattle
 import fe8.game.bm.BmMap
 import fe8.game.bm.BmMapRender
 import fe8.game.bm.BmSt
@@ -85,6 +88,9 @@ internal class PlayerPhaseWiring(
     private val drawnIconLookupTable: ByteArray,
     private val iconGfxIdLookupTable: ByteArray,
     private val mapCursor: MapCursor,
+    /** The battle units and the forecast battle (`gBattleActor`, `BattleGenerateSimulation`). */
+    private val battle: BmBattle,
+    private val battleGenerate: BattleGenerate,
 ) {
     private val items = ItemInfo(rom)
 
@@ -169,14 +175,17 @@ internal class PlayerPhaseWiring(
     }
 
     /**
-     * `gSelectInfo_Attack`: [AttackMapSelect]. The battle forecast (MC-10) is not shown; A on a
-     * target ends the unit's turn like Wait (stand-in until MC-11, no battle).
+     * `gSelectInfo_Attack`: [AttackMapSelect]. The battle forecast window runs but draws nothing
+     * (MC-11); A on a target ends the unit's turn like Wait (stand-in until MC-11, no battle).
      */
     private fun wireAttackSelect(phase: PlayerPhase) {
         val facing = UnitFacing(units, active, phase.workingMovementScript)
         facing.setAutoMuMoveScript = { script -> mu.setAutoMuMoveScript(script) }
+        val forecast = BattleForecast(
+            engine, battle, battleGenerate, items, units, active, playSt, bm, map, hw,
+        )
         val select = AttackMapSelect(
-            engine, attackTargets.targets, active, units, facing, camMove, hw,
+            engine, attackTargets.targets, active, units, facing, camMove, forecast, hw,
         )
         select.hooks.hideMoveRangeGraphics = { moveLimitView.hideMoveRangeGraphics() }
         select.hooks.lockGame = { loop.lockGame() }

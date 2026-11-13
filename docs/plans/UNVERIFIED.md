@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 552 across 75 decomp files (missing reason: 0).
+Total entries: 555 across 76 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -698,6 +698,14 @@ Total entries: 552 across 75 decomp files (missing reason: 0).
 | `WMFaceCtrl_Init` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFace.kt` | fresh-state trace only |
 | `StartWMFaceCtrl` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFace.kt` | the proc fields of its init are compared with the trace, the parent link is not |
 | `HideWmFace` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFace.kt` | the world map exit checks only the blend targets; no face is shown there, so the loop over the wrappers never runs |
+
+## src/bksel.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `BattleForecast_OnEnd` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | it only restores the frame graphics, which are drawing, MC-11 |
+| `TriggerBattleForcastToturialEvent` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | the capture starts no tutorial event |
+| `UpdateBattleForecastContents` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | the capture's one call comes before the proc is ready, and the contents are redrawn at the start anyway |
 
 ## src/bmmap.c (3)
 

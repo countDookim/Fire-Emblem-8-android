@@ -17,8 +17,7 @@ import gbafe.render.BgHardware
  * src/menu_def.c) and the cancel proc `gProcScr_0859B630`: [onSwitchIn], [onSelect], [onCancel]
  * and [onEnd] are `AttackMapSelect_*`.
  *
- * The battle forecast (`NewBattleForecast`, `UpdateBattleForecastContents`,
- * `CloseBattleForecast`, the `gProcScr_BKSEL` proc and the R help) is MC-10, the [Hooks].
+ * The battle forecast is [BattleForecast]; the R help (`StartBattleForecastHelpBox`) is a hook.
  */
 public class AttackMapSelect(
     private val engine: ProcEngine,
@@ -27,6 +26,8 @@ public class AttackMapSelect(
     private val units: UnitTable,
     private val facing: UnitFacing,
     private val camMove: CamMove,
+    /** The forecast window ([BattleForecast]). */
+    private val forecast: BattleForecast,
     /** The BG 2 tilemap [onEnd] clears. */
     private val hardware: BgHardware,
 ) : TargetSelection.SelectInfo {
@@ -51,32 +52,7 @@ public class AttackMapSelect(
         public var restartWeaponList: () -> Unit = {}
 
         /**
-         * `NewBattleForecast` (the selection's `onInit`): starts the forecast window proc
-         * (`gProcScr_BKSEL`). Stand-in until MC-10: nothing is shown.
-         */
-        public var newBattleForecast: () -> Unit = {}
-
-        /**
-         * `BattleGenerateSimulation(gActiveUnit, unit, -1, -1, itemSlotIndex)` then
-         * `UpdateBattleForecastContents()` for the unit with id `unitId` (the ballista and
-         * obstacle variants too). Stand-in until MC-10: nothing is shown.
-         */
-        public var updateForecast: (unitId: Int) -> Unit = {}
-
-        /**
-         * `Proc_EndEach(gProcScr_BKSEL)` (A on a target) and `CloseBattleForecast` ([onEnd]).
-         * Stand-in until MC-10.
-         */
-        public var closeForecast: () -> Unit = {}
-
-        /**
-         * `Proc_Find(gProcScr_BKSEL)`: whether the forecast window proc still exists (the cancel
-         * proc waits for it to end). Stand-in until MC-10: it is gone at once.
-         */
-        public var forecastExists: () -> Boolean = { false }
-
-        /**
-         * `StartBattleForecastHelpBox` (R on a target). Stand-in until MC-10: nothing happens
+         * `StartBattleForecastHelpBox` (R on a target). Stand-in until MC-12b: nothing happens
          * (the selection's `onHelp`).
          */
         public var startForecastHelp: () -> Unit = {}
@@ -95,7 +71,7 @@ public class AttackMapSelect(
         listOf(
             call(ProcFunc { hooks.lockGame() }),
             call(ProcFunc { sub8022E38() }),
-            whileTrue(ProcBoolFunc { hooks.forecastExists() }),
+            whileTrue(ProcBoolFunc { forecast.find() != null }),
             whileExists { camMove.script },
             call(ProcFunc { hooks.restartWeaponList() }),
             call(ProcFunc { hooks.unlockGame() }),
@@ -104,7 +80,7 @@ public class AttackMapSelect(
     )
 
     override fun onInit(proc: Proc) {
-        hooks.newBattleForecast()
+        forecast.newBattleForecast()
     }
 
     /**
@@ -126,7 +102,7 @@ public class AttackMapSelect(
             active.action.trapType = targets.targetExtra(target) and 0xFF
         }
 
-        hooks.closeForecast()
+        forecast.endForecast()
 
         return Menu.MENU_ACT_SKIPCURSOR or Menu.MENU_ACT_END or Menu.MENU_ACT_SND6A or
             Menu.MENU_ACT_CLEAR
@@ -162,7 +138,7 @@ public class AttackMapSelect(
      * The cursor arrives on a target: the active unit turns towards it
      * ([UnitFacing.changeActiveUnitFacing]); a wall or trap target (unit id 0) is stored in the
      * action data and its battle unit set up (not verified: no capture has one); then the forecast
-     * is made ([Hooks.updateForecast], MC-10).
+     * is made ([BattleForecast.simulateAndUpdate]).
      */
     override fun onSwitchIn(proc: Proc, target: Int): Int {
         facing.changeActiveUnitFacing(targets.targetX(target), targets.targetY(target))
@@ -173,7 +149,7 @@ public class AttackMapSelect(
             active.action.trapType = targets.targetExtra(target) and 0xFF
         }
 
-        hooks.updateForecast(targets.targetUid(target))
+        forecast.simulateAndUpdate(targets.targetUid(target))
 
         return 0
     }
@@ -181,14 +157,15 @@ public class AttackMapSelect(
     /**
      * Ported from src/bmmenu.c: AttackMapSelect_End
      *
-     * Clears BG 2, hides the range squares and closes the forecast ([Hooks.closeForecast]).
+     * Clears BG 2, hides the range squares and closes the forecast
+     * ([BattleForecast.closeBattleForecast]).
      */
     override fun onEnd(proc: Proc) {
         hardware.fill(hardware.mapBuffer(2), 0)
         hardware.enableBgSyncByMask(1 shl 2)
 
         hooks.hideMoveRangeGraphics()
-        hooks.closeForecast()
+        forecast.closeBattleForecast()
     }
 
     override fun onHelp(proc: Proc, target: Int): Int {

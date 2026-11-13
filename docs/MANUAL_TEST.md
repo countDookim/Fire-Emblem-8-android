@@ -41,7 +41,9 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      APK); there is no face or item panel (MC-4b). A on
      a weapon (MC-3b, not yet in a published APK) equips it and clears the list; the red cursor
      then sits on the enemy in reach (MC-5) and Eirika turns towards it (MC-6, not yet in a
-     published APK) with the attack squares still shown; there is no forecast box (MC-10). B
+     published APK) with the attack squares still shown. The forecast window (MC-10, not yet in a
+     published APK) now runs behind the scenes (its proc, hit counts and battle numbers) but draws
+     nothing until MC-11, so no box appears and nothing visibly changes. B
      (cancel sound) hides the cursor and squares and reopens the weapon list. A (confirm sound)
      ends the cursor and squares and Eirika greys out as after Wait: the attack itself
      (battle, damage, experience) is not there yet (stand-in until MC-11).

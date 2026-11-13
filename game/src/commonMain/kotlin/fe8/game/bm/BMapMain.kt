@@ -70,58 +70,77 @@ public class BMapMain(
         public var runPhaseSwitchEvents: () -> Boolean = { false }
 
         /**
-         * `ClearActiveFactionGrayedStates`: resets greyed-out acted state for active faction
-         * units. `Fe8Boot` sets `PhaseStartEnd.clearActiveFactionGrayedStates`.
+         * `ClearActiveFactionGrayedStates`: clears `US_UNSELECTABLE`, `US_HAS_MOVED` and
+         * `US_HAS_MOVED_AI` of the units of the current faction (bmunit.c:1108); the blue phase
+         * also lowers the favour value of the player units. [BMapMain.changePhase] calls it
+         * before [BMapMain.switchPhases], so it clears the phase that is ending.
+         * `Fe8Boot` sets `PhaseStartEnd.clearActiveFactionGrayedStates`.
          */
         public var clearActiveFactionGrayedStates: () -> Unit = {}
 
         /**
-         * `RefreshUnitSprites`: updates and synchronizes map sprites for all active units.
-         * Default no-op; `Fe8Boot` sets the `UnitSpriteHandles.refreshUnitSprites` port.
+         * `RefreshUnitSprites`: rebuilds the map sprites of all units. Default no-op;
+         * `Fe8Boot` sets the `UnitSpriteHandles.refreshUnitSprites` port.
          */
         public var refreshUnitSprites: () -> Unit = {}
 
         /**
-         * `ProcessTurnSupportExp`: advances support points between adjacent allied units.
-         * Stand-in until M6-H.
+         * `ProcessTurnSupportExp` (bmreliance.c:177): gives support points to pairs of player
+         * units that are adjacent (or one carries the other); skipped on turn 1 and on extra
+         * maps. Stand-in until M6-H.
          */
         public var processTurnSupportExp: () -> Unit = {}
 
-        /** `UpdatePrevDeployStates`: updates previous turn deployment tracking. Stand-in (M6-I). */
+        /**
+         * `UpdatePrevDeployStates` (bmunit.c:1401): copies `US_NOT_DEPLOYED` into `US_BIT21` and
+         * `US_BIT16` into `US_BIT26` for every unit, saves the unit word structs during the prep
+         * screen and calls `ResetAllPlayerUnitState`. Stand-in (M6-I).
+         */
         public var updatePrevDeployStates: () -> Unit = {}
 
         /**
-         * `TickActiveFactionTurn`: decrements status condition turns and item durations.
+         * `TickActiveFactionTurn` (bmunit.c:1138): for the units of the current faction, counts
+         * down barrier, torch and status durations (a status with `UNIT_STATUS_RECOVER` does not
+         * count down). Runs after [BMapMain.switchPhases], so it ticks the phase that starts.
          * `Fe8Boot` sets `PhaseStartEnd.tickActiveFactionTurn`.
          */
         public var tickActiveFactionTurn: () -> Unit = {}
 
         /**
-         * `DecayTraps`: decrements trap countdowns and handles expiring field traps.
-         * Stand-in until M6-H.
+         * `DecayTraps` (bmtrick.c:692): counts down torchlight and light rune traps and removes
+         * them at zero. Stand-in until M6-H.
          */
         public var decayTraps: () -> Unit = {}
 
-        /** `sub_80155C4` (chapter change cleanup and `StartBattleMap(0)`). Stand-in until M6-E. */
+        /**
+         * `sub_80155C4` (bm.c, after `GotoChapterWithoutSave`): when flag 3 is set, registers the
+         * chapter time and turn count, then computes the chapter rankings, runs
+         * `ChapterChangeUnitCleanup` and `StartBattleMap(0)`, keeping `unk4A_1`. Stand-in until
+         * M6-E.
+         */
         public var sub80155C4: () -> Unit = {}
 
-        /** `RenderBmMap`: full background tilemap redraw. Stand-in until M6-E (resume paths). */
+        /**
+         * `RenderBmMap`: redraws the 15x10 tile window of the map into the BG3 tilemap from the
+         * camera position. Stand-in until M6-E (resume paths).
+         */
         public var renderBmMap: () -> Unit = {}
 
         /**
-         * `StartMapSongBgm`: starts chapter background music for active phase. Default no-op;
+         * `StartMapSongBgm`: starts the map music of the current faction's phase
+         * (`GetCurrentMapMusicIndex`). Default no-op;
          * `Fe8Boot` sets `MapMusic.startMapSongBgm`.
          */
         public var startMapSongBgm: () -> Unit = {}
 
         /**
-         * `StartMidFadeFromBlack`: initiates screen fade-in transition from black. Default
-         * no-op; `Fe8Boot` sets `screenFade.startMidFadeFromBlack`.
+         * `StartMidFadeFromBlack`: starts a fade from black with speed 0x10. Default no-op;
+         * `Fe8Boot` sets `screenFade.startMidFadeFromBlack`.
          */
         public var startMidFadeFromBlack: () -> Unit = {}
 
         /**
-         * `WaitForFade`: returns true when active screen fade has finished. Default true;
+         * `WaitForFade`: true once no fade is running (the C breaks the proc then). Default true;
          * `Fe8Boot` sets `!screenFade.fadeExists()`.
          */
         public var waitForFade: () -> Boolean = { true }
@@ -133,57 +152,58 @@ public class BMapMain(
         public var getBattleMapKind: () -> Int = { BattleMapKind.STORY }
 
         /**
-         * `gProcScr_ChapterIntro` (0x0859B1B0): chapter introduction title/banner sequence.
-         * Default: ends at once; `Fe8Boot` sets the
-         * [ChapterIntro] script on the whole ROM.
+         * `gProcScr_ChapterIntro` (0x0859B1B0): the chapter intro (title card) shown before the
+         * map. Default: ends at once; `Fe8Boot` sets the [ChapterIntro] script on the whole ROM.
          */
         public var chapterIntro: ProcScript = standIn("gProcScr_ChapterIntro")
 
         /**
-         * `gProcScr_ChapterIntroTitleOnly`: title-only chapter transition intro. Stand-in until
-         * M6-E: ends at once.
+         * `gProcScr_ChapterIntroTitleOnly`: the chapter intro with the title card only, shown
+         * after [BMapMain.gotoChapterWithoutSave] (label 2). Stand-in until M6-E: ends at once.
          */
         public var chapterIntroTitleOnly: ProcScript = standIn("gProcScr_ChapterIntroTitleOnly")
 
         /**
-         * `ProcScr_PhaseIntro` (0x0859AF80): phase change banner animation ("Player Phase",
-         * etc.). Default: ends at once; `Fe8Boot` sets the `PhaseIntro` script.
+         * `ProcScr_PhaseIntro` (0x0859AF80): the phase banner animation at the start of each
+         * phase (it ends at once when the faction has no units). Default: ends at once;
+         * `Fe8Boot` sets the `PhaseIntro` script.
          */
         public var phaseIntro: ProcScript = standIn("ProcScr_PhaseIntro")
 
         /**
-         * `gProcScr_StatusDecayDisplay`: status condition recovery visual display. Stand-in
+         * `gProcScr_StatusDecayDisplay` (bmusailment.c:806): shows units whose status wears off
+         * after [tickActiveFactionTurn]. Stand-in
          * until M6-D: ends at once.
          */
         public var statusDecayDisplay: ProcScript = standIn("gProcScr_StatusDecayDisplay")
 
         /**
-         * `gProcScr_TerrainHealDisplay`: terrain recovery (forts/thrones) animation display.
-         * Stand-in until M6-D: ends at once.
+         * `gProcScr_TerrainHealDisplay` (bmusailment.c:583): shows units healed by the terrain
+         * they stand on at the start of the phase. Stand-in until M6-D: ends at once.
          */
         public var terrainHealDisplay: ProcScript = standIn("gProcScr_TerrainHealDisplay")
 
         /**
-         * `gProcScr_PoisonDamageDisplay`: poison damage animation display. Stand-in until M6-D:
-         * ends at once.
+         * `gProcScr_PoisonDamageDisplay` (bmusailment.c:649): shows the poison damage taken at
+         * the start of the phase. Stand-in until M6-D: ends at once.
          */
         public var poisonDamageDisplay: ProcScript = standIn("gProcScr_PoisonDamageDisplay")
 
         /**
-         * `gProcScr_GorgonEggHatchDisplay`: Gorgon egg hatch animation display. Stand-in until
-         * M6-I: ends at once.
+         * `gProcScr_GorgonEggHatchDisplay` (bmusailment.c:731): hatches Gorgon eggs at the start
+         * of the phase. Stand-in until M6-I: ends at once.
          */
         public var gorgonEggHatchDisplay: ProcScript = standIn("gProcScr_GorgonEggHatchDisplay")
 
         /**
-         * `gProcScr_UpdateTraps`: trap activation / damage phase process. Stand-in until M6-H:
-         * ends at once.
+         * `gProcScr_UpdateTraps` (bmtrick.c:17): counts down the traps, computes and displays
+         * the trap damage. Stand-in until M6-H: ends at once.
          */
         public var updateTraps: ProcScript = standIn("gProcScr_UpdateTraps")
 
         /**
-         * `gProcScr_BerserkCpPhase`: computer phase execution for berserked units. Stand-in
-         * until M6-D: ends at once.
+         * `gProcScr_BerserkCpPhase` (cp_phase.c:30): AI phase for berserked units (it runs
+         * after every phase, including the player phase). Stand-in until M6-D: ends at once.
          */
         public var berserkCpPhase: ProcScript = standIn("gProcScr_BerserkCpPhase")
 
@@ -194,8 +214,8 @@ public class BMapMain(
         public var playerPhase: ProcScript = idle("gProcScr_PlayerPhase")
 
         /**
-         * `gProcScr_CpPhase`: computer AI phase execution process. Stand-in until M6-D: never
-         * ends.
+         * `gProcScr_CpPhase`: the AI phase of the RED and GREEN factions. Stand-in until M6-D:
+         * never ends.
          */
         public var cpPhase: ProcScript = idle("gProcScr_CpPhase")
 
@@ -241,9 +261,11 @@ public class BMapMain(
 
     /**
      * `gProc_BMapMain` (bm.c:41, ROM 0x0859A1F0, 73 commands). The state is
-     * [BattleMapStart.BMapMainState]. Labels: 0 intro, 1 beginning events, 11 flag clear, 3 phase
-     * change, 9 phase start, 5 phase run, 2 chapter change, 4/6/7/8 fade-in entries (map
-     * redraw), 10 resumed berserk.
+     * [BattleMapStart.BMapMainState]. Labels: 0 chapter intro, 1 beginning events, 11 clear flag
+     * 0x84, 3 change phase, 9 phase start displays, 5 run the phase, 2 chapter change
+     * ([gotoChapterWithoutSave]), 4/6/7/8 resume entries that redraw the map and fade in, then
+     * continue at 5 / resume the player phase then 3 / 3 after berserk / 9; 10 resumes the
+     * player phase without a redraw.
      */
     public val script: ProcScript = ProcScript(
         "gProc_BMapMain",
@@ -348,8 +370,8 @@ public class BMapMain(
      *   trace yet)
      *
      * Calls the beginning scene events of the chapter (the common skirmish beginning on a
-     * skirmish map) through [Hooks.callEvent] with exec type 1. Returns false (`PROC_CALL_2`
-     * yields one frame).
+     * skirmish map) through [Hooks.callEvent] with exec type 1 and [proc] as the parent proc.
+     * Returns false, so `PROC_CALL_2` waits.
      */
     public fun callBeginningEvents(proc: Proc): Boolean {
         val events = if (hooks.getBattleMapKind() != BattleMapKind.SKIRMISH) {
@@ -371,8 +393,9 @@ public class BMapMain(
     /**
      * Ported from src/bm.c: BmMain_ChangePhase
      *
-     * Clears the grays, refreshes the sprites, runs [switchPhases] and the phase switch events.
-     * Returns false (yield) if the events started.
+     * Clears the acted state of the faction that ends its phase, refreshes the sprites, runs
+     * [switchPhases] and the phase switch events. Returns false (`PROC_CALL_2` waits) if events
+     * started.
      */
     public fun changePhase(): Boolean {
         hooks.clearActiveFactionGrayedStates()
@@ -385,8 +408,8 @@ public class BMapMain(
      * Ported from src/bm.c: sub_8015434
      *
      * Always true: the C returns false (after `sub_80832D0`) only if `sub_80832D4` is 1, and that
-     * returns 0 in the base game, so that branch is not written. Verified by the phase proc
-     * starting right after the displays in the red, green and blue phase start.
+     * returns 0 in the base game (eventinfo.c:352), so that branch is not written. Verified by
+     * the phase proc starting right after the displays in the red, green and blue phase start.
      */
     public fun sub8015434(): Boolean = true
 
@@ -444,8 +467,8 @@ public class BMapMain(
      * Transcribed from src/bm.c: BmMain_StartIntroFx (not verified: no test checks it against a
      *   trace yet)
      *
-     * Starts [Hooks.chapterIntro] blocking [proc] except in chapter 0x38 and in Ch6 with flag
-     * 0x88 set.
+     * Starts [Hooks.chapterIntro] blocking [proc] except in `CHAPTER_CASTLE_FRELIA` (0x38) and
+     * in `CHAPTER_L_5` (0x06) with flag 0x88 set (flag 0x88 has no name in the decomp).
      */
     public fun startIntroFx(proc: Proc) {
         if (playSt.chapterIndex == 0x38) return
@@ -457,7 +480,8 @@ public class BMapMain(
      * Transcribed from src/bm.c: UndeployEveryone (not verified: no trace separates it from a
      *   no-op)
      *
-     * Clears flag 0x84 and, unless `unk4A_1` is set, `US_NOT_DEPLOYED` of every valid blue unit.
+     * Clears flag 0x84 and, unless `unk4A_1` (a `PlaySt` bit of unknown meaning) is set, clears
+     * `US_NOT_DEPLOYED` of every valid unit with id 1..0x3F (player units).
      */
     public fun undeployEveryone() {
         flags.clearFlag(0x84)
@@ -472,7 +496,8 @@ public class BMapMain(
      * Transcribed from src/bm.c: GotoChapterWithoutSave (not verified: no test checks it against a
      *   trace yet)
      *
-     * Sets the chapter, sends the running BMapMain to label 2 and ends the phase procs.
+     * Sets the chapter index, sends the running BMapMain to label 2 (chapter change) and ends
+     * the player, computer and berserk phase procs.
      */
     public fun gotoChapterWithoutSave(chapterId: Int) {
         playSt.chapterIndex = chapterId
@@ -484,7 +509,8 @@ public class BMapMain(
 
     /**
      * Transcribed from src/bm.c: SetEventId_0x84 (not verified: no trace separates it from a
-     *   no-op); `SetFlag(0x84)`). Sets temporary chapter start event flag 0x84.
+     *   no-op); `SetFlag(0x84)`). Sets flag 0x84 (no decomp name); it stays set
+     * while the beginning events run.
      */
     public fun setEventId84() {
         flags.setFlag(0x84)
@@ -492,7 +518,7 @@ public class BMapMain(
 
     /**
      * Transcribed from src/bm.c: UnsetEventId_0x84 (not verified: no trace separates it from a
-     *   no-op); `ClearFlag(0x84)`). Clears temporary chapter start event flag 0x84.
+     *   no-op); `ClearFlag(0x84)`). Clears flag 0x84 (no decomp name) after the beginning events.
      */
     public fun unsetEventId84() {
         flags.clearFlag(0x84)
@@ -500,13 +526,13 @@ public class BMapMain(
 
     /** Faction, save, and event script constants. */
     public companion object {
-        /** Player faction unit ID start (0x00). */
+        /** `FACTION_BLUE`: player faction, `gPlaySt.faction` value and unit id base (0x00). */
         public const val FACTION_BLUE: Int = 0x00
 
-        /** Ally/NPC faction unit ID start (0x40). */
+        /** `FACTION_GREEN`: ally (NPC) faction (0x40). */
         public const val FACTION_GREEN: Int = 0x40
 
-        /** Enemy faction unit ID start (0x80). */
+        /** `FACTION_RED`: enemy faction (0x80). */
         public const val FACTION_RED: Int = 0x80
 
         /** `SUSPEND_POINT_PHASECHANGE`: suspend save point type at phase switch (9). */
@@ -515,7 +541,7 @@ public class BMapMain(
         /** `SAVE_ID_SUSPEND`: suspend save slot index (3). */
         public const val SAVE_ID_SUSPEND: Int = 3
 
-        /** `EventScr_SkirmishCommonBeginning` (ROM 0x089FFC30): common skirmish start event script. */
+        /** `EventScr_SkirmishCommonBeginning` (ROM 0x089FFC30): skirmish beginning events. */
         public const val EVENT_SKIRMISH_COMMON_BEGINNING: Int = 0x089FFC30
     }
 }

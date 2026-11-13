@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1108,
+    "verified": 1113,
     "implemented_unverified": 23
   },
   "functions": {
@@ -1954,6 +1954,16 @@
         "fe8.testing.TerrainDisplayDifferentialTest#select_move ending the windows clears the BGs and the blend"
       ]
     },
+    "EndTargetSelection": {
+      "decomp_file": "src/uiselecttarget.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/TargetSelection.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
     "EndWMFaceCtrl": {
       "decomp_file": "src/worldmap_face.c",
       "system": "worldmap",
@@ -3079,7 +3089,7 @@
       "decomp_file": "src/eventscr.c",
       "system": "events",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventScriptBattle.kt",
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs",
@@ -6005,6 +6015,16 @@
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
     },
+    "NewTargetSelection": {
+      "decomp_file": "src/uiselecttarget.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/TargetSelection.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
     "NewWorldMap": {
       "decomp_file": "src/worldmap_main.c",
       "system": "worldmap",
@@ -8688,6 +8708,36 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TalkRomTest#talkOnInit homes the backgrounds and starts the skip listener once"
+      ]
+    },
+    "TargetSelection_GetRealCursorPosition": {
+      "decomp_file": "src/uiselecttarget.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/TargetSelection.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
+    "TargetSelection_HandleSelectInput": {
+      "decomp_file": "src/uiselecttarget.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/TargetSelection.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
+    "TargetSelection_Loop": {
+      "decomp_file": "src/uiselecttarget.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/TargetSelection.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
       ]
     },
     "TerrainDisplay_Init": {

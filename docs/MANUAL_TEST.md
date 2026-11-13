@@ -38,7 +38,8 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      her next to a red unit instead shows Attack first. Choosing it (MC-3a, not yet in a published
      APK) opens a framed weapon list with a hover bar; only the red squares of the highlighted
      weapon's reach stay. The row shows the weapon's icon, name and uses (MC-4a, not yet in a published
-     APK); there is no face or item panel (MC-4b). A on
+     APK). Beside it Eirika's face blinks at the right and a framed item panel at the lower right shows
+     Atk, Hit, Crit and Avoid of the weapon, with its type icon (MC-4b, not yet in a published APK). A on
      a weapon (MC-3b, not yet in a published APK) equips it and clears the list; the red cursor
      then sits on the enemy in reach (MC-5) and Eirika turns towards it (MC-6, not yet in a
      published APK) with the attack squares still shown. The battle forecast window (MC-10 to MC-12b, not yet in a

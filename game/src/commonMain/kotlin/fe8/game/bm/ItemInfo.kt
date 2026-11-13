@@ -17,6 +17,25 @@ public class ItemInfo(private val rom: RomView) {
     public fun getItemData(itemIndex: Int): Int = ITEM_DATA + itemIndex * ENTRY_SIZE
 
     /**
+     * The body of `EquipUnitItemSlot` ([UnitActionMenu.equipUnitItemSlot], which verifies it) on
+     * the unit at byte [offset] of [bytes]: moves item [itemSlot] to slot 0, shifting the slots
+     * before it down by one.
+     */
+    internal fun equipUnitItemSlot(bytes: ByteArray, offset: Int, itemSlot: Int) {
+        val at = offset + UnitLoader.OFF_ITEMS
+        val item = bytes[at + 2 * itemSlot].toInt() and 0xFF or
+            ((bytes[at + 2 * itemSlot + 1].toInt() and 0xFF) shl 8)
+
+        for (i in itemSlot downTo 1) {
+            bytes[at + 2 * i] = bytes[at + 2 * (i - 1)]
+            bytes[at + 2 * i + 1] = bytes[at + 2 * (i - 1) + 1]
+        }
+
+        bytes[at] = item.toByte()
+        bytes[at + 1] = (item shr 8).toByte()
+    }
+
+    /**
      * Transcribed from src/bmitem.c: GetItemIndex (not verified: a dropped or narrowed mask
      * survives the traced loads)
      *

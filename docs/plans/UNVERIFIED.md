@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 552 across 77 decomp files (missing reason: 0).
+Total entries: 550 across 77 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -393,25 +393,6 @@ Total entries: 552 across 77 decomp files (missing reason: 0).
 | `WriteTraps` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | every trap in the reference is zero, which proves the target, not the data |
 | `WriteGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | no suspend-trace state covers it; its caller `WriteGameSave` is ported |
 
-## src/face.c (14)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `SetupFaceGfxData` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | only checked together with the faces that use it; the world map's `gUnknown_08A3D728` is checked through the `oam2` of its faces |
-| `Face_OnInit` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | no @VerifiesPort test names it |
-| `StartFace` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | no @VerifiesPort test names it |
-| `sub_8006134` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | the smaller eye object |
-| `sub_8006324` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | held-eye path |
-| `sub_800632C` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | held-eye path |
-| `sub_8006370` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | held-eye path |
-| `sub_8006378` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | held-eye path |
-| `sub_80063BC` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | held-eye path |
-| `sub_80063C4` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | held-eye path |
-| `SetFaceBlinkControl` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | no reference run sets it |
-| `StartFaceAuto` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | no @VerifiesPort test names it |
-| `SetFaceDisplayBits` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | independently of refresh |
-| `EndFaceById` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFace.kt` | checked through the faded-out faces of [handleWmFaceFade] |
-
 ## src/mu.c (14)
 
 | Function | Kotlin file | Reason |
@@ -466,6 +447,23 @@ Total entries: 552 across 77 decomp files (missing reason: 0).
 | `StartMidFadeToBlack` | `engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt` | never called by a traced path |
 | `StartMidFadeFromBlack` | `engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt` | never called by a traced path |
 | `Copy2dChr` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | no test checks it against a trace yet |
+
+## src/face.c (12)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SetupFaceGfxData` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | only checked together with the faces that use it; the world map's `gUnknown_08A3D728` is checked through the `oam2` of its faces |
+| `Face_OnInit` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | no @VerifiesPort test names it |
+| `sub_8006134` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | the smaller eye object |
+| `sub_8006324` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | held-eye path |
+| `sub_800632C` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | held-eye path |
+| `sub_8006370` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | held-eye path |
+| `sub_8006378` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | held-eye path |
+| `sub_80063BC` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | held-eye path |
+| `sub_80063C4` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | held-eye path |
+| `StartFaceAuto` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | no @VerifiesPort test names it |
+| `SetFaceDisplayBits` | `game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt` | independently of refresh |
+| `EndFaceById` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFace.kt` | checked through the faded-out faces of [handleWmFaceFade] |
 
 ## src/chapterintrofx.c (11)
 

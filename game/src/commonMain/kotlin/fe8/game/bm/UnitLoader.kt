@@ -419,6 +419,29 @@ public class UnitLoader(
     }
 
     /**
+     * Ported from src/bmunit.c: GetUnitPortraitId
+     *
+     * The portrait id of unit [unit]: its character's, but Lyon's (0x4A) is 0x46 in chapter 0x22;
+     * else its class's default, else 0. [chapterIndex] is `gPlaySt.chapterIndex`.
+     */
+    public fun getUnitPortraitId(unit: Int, chapterIndex: Int): Int {
+        val o = table.unitOffset(unit)
+        val character = StructCodec.u32(table.bytes, o + OFF_CHARACTER)
+        val portrait = rom.u16(character + 6)
+
+        if (portrait != 0) {
+            if (chapterIndex == 0x22 && portrait == 0x4A) return 0x46
+
+            return portrait
+        }
+
+        val classDefault = rom.u16(StructCodec.u32(table.bytes, o + OFF_CLASS) + 8)
+        if (classDefault != 0) return classDefault
+
+        return 0
+    }
+
+    /**
      * Transcribed from src/bmitem.c: CanUnitUseWeapon (not verified: no test checks it against a
      *   trace yet)
      * Transcribed from src/bmitem.c: IsItemUnsealedForUnit (not verified: no test checks it against

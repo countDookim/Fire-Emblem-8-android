@@ -343,7 +343,7 @@ public class TalkFace(
      * slot is taken. Unless `FACE_DISP_BIT_12` is set it starts the mouth and blink children, in
      * that order.
      *
-     * Transcribed from src/face.c: StartFace (not verified: no @VerifiesPort test names it).
+     * Ported from src/face.c: StartFace
      */
     public fun startFace(slot: Int, fid: Int, x: Int, y: Int, disp: Int): Proc? {
         if (gFaces[slot] != null) return null
@@ -602,7 +602,7 @@ public class TalkFace(
      * Sets the blink kind of [face] (0 restores the portrait's own) and rerolls the interval.
      * Used by the codes `0x80 0x16..0x1B` of the dialogue.
      *
-     * Transcribed from src/face.c: SetFaceBlinkControl (not verified: no reference run sets it)
+     * Ported from src/face.c: SetFaceBlinkControl
      */
     public fun setFaceBlinkControl(face: Proc, blinkControl: Int) {
         val faceState = face.state as FaceState
@@ -610,6 +610,38 @@ public class TalkFace(
         blinkOf(blinkProc).blinkControl =
             if (blinkControl == 0) faceHost.portraitByte(faceState.faceId, 0x18) else blinkControl
         blinkOf(blinkProc).unk38 = faceBlinkProcGenBlinkInterval(blinkProc)
+    }
+
+    /**
+     * Ported from src/face.c: SetFaceBlinkControlById
+     *
+     * [setFaceBlinkControl] for the face in [slot]; nothing for an empty slot (the original
+     * would read a null proc).
+     */
+    public fun setFaceBlinkControlById(slot: Int, blinkControl: Int) {
+        val face = gFaces[slot] ?: return
+        setFaceBlinkControl(face, blinkControl)
+    }
+
+    /**
+     * Ported from src/face.c: EndFace
+     *
+     * Frees the slot of [proc] and ends it, with its mouth and blink children.
+     */
+    public fun endFace(proc: Proc) {
+        gFaces[(proc.state as FaceState).faceSlot] = null
+        engine.end(proc)
+    }
+
+    /**
+     * Ported from src/face.c: EndFaceById
+     *
+     * [endFace] of the face in [slot]; nothing for an empty slot (the original would read a null
+     * proc).
+     */
+    public fun endFaceById(slot: Int) {
+        val face = gFaces[slot] ?: return
+        endFace(face)
     }
 
     /**

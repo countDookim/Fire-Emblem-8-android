@@ -3,8 +3,10 @@ package fe8.game.bm
 import fe8.game.RomView
 import fe8.game.bm.StructCodec.u16
 import fe8.game.scene.IntConsumer
+import fe8.game.scene.IntSupplier
 import fe8.game.ui.Menu
 import fe8.game.ui.UiFrame
+import gbafe.proc.Proc
 import gbafe.render.BgHardware
 import gbafe.text.Text
 
@@ -33,6 +35,24 @@ public class UnitActionMenu(
     /** The BG tilemaps the choice and cancel clear. */
     private val hardware: BgHardware,
 ) {
+    /** `StartFace(slot, fid, x, y, disp)`. */
+    public fun interface FaceStarter {
+        /** Starts portrait [fid] in face slot [slot] at pixel ([x], [y]) with bits [disp]. */
+        public fun start(slot: Int, fid: Int, x: Int, y: Int, disp: Int)
+    }
+
+    /** `SetFaceBlinkControlById(slot, control)`. */
+    public fun interface BlinkSetter {
+        /** Sets the blink kind [control] of the face in [slot]. */
+        public fun set(slot: Int, control: Int)
+    }
+
+    /** `ForceMenuItemPanel(menu, unit, x, y)`. */
+    public fun interface PanelStarter {
+        /** Starts the panel as a child of [menu] for the unit with id [unit] at tile ([x], [y]). */
+        public fun start(menu: Proc, unit: Int, x: Int, y: Int)
+    }
+
     /** Services outside the ported file. */
     public class Hooks {
         /**
@@ -65,27 +85,33 @@ public class UnitActionMenu(
         /** `LoadIconPalettes(palId)`; the game wires [fe8.game.ui.ItemIcon.loadIconPalette]. */
         public var loadIconPalettes: IntConsumer = IntConsumer {}
 
-        /**
-         * `StartFace(0, GetUnitPortraitId(unit), 0xB0, 0xC, 2)` then
-         * `SetFaceBlinkControlById(0, 5)` for the unit with id `unit`. Stand-in until MC-4
-         * (the faces of the menu).
-         */
-        public var startUnitFace: IntConsumer = IntConsumer {}
+        /** `gPlaySt.chapterIndex`, which `GetUnitPortraitId` reads. */
+        public var chapterIndex: IntSupplier = IntSupplier { 0 }
+
+        /** `StartFace(slot, fid, x, y, disp)` ([fe8.game.scene.TalkFace.startFace]). */
+        public var startFace: FaceStarter = FaceStarter { _, _, _, _, _ -> }
 
         /**
-         * `ForceMenuItemPanel(proc, unit, 0xF, 0xB)`: the item panel beside the weapon list, for
-         * the unit with id `unit`. Stand-in until MC-4 (menuitempanel.c).
+         * `SetFaceBlinkControlById(slot, control)`
+         * ([fe8.game.scene.TalkFace.setFaceBlinkControlById]).
          */
-        public var forceMenuItemPanel: IntConsumer = IntConsumer {}
+        public var setFaceBlinkControlById: BlinkSetter = BlinkSetter { _, _ -> }
 
         /**
-         * `UpdateMenuItemPanel(slot)`: shows item slot `slot` in the panel. Stand-in until MC-4.
+         * `ForceMenuItemPanel(proc, unit, 0xF, 0xB)` ([MenuItemPanel.forceMenuItemPanel]): the item
+         * panel beside the weapon list, a child of the menu proc, for the unit with id `unit`.
+         */
+        public var forceMenuItemPanel: PanelStarter = PanelStarter { _, _, _, _ -> }
+
+        /**
+         * `UpdateMenuItemPanel(slot)` ([MenuItemPanel.updateMenuItemPanel]): shows item slot `slot`
+         * in the panel.
          */
         public var updateMenuItemPanel: IntConsumer = IntConsumer {}
 
         /**
          * `DrawItemMenuLine(text, item, isUsable, gBG0TilemapBuffer + offset)`: the icon, name
-         * and uses of one weapon row. Stand-in until MC-4 (bmitem.c; needs icons and numbers).
+         * and uses of one weapon row ([ItemMenuLine.drawItemMenuLine]).
          */
         public var drawItemMenuLine: ItemLineDrawer = ItemLineDrawer { _, _, _, _ -> }
 
@@ -291,15 +317,20 @@ public class UnitActionMenu(
      * Ported from src/bmmenu.c: StartUnitWeaponSelect
      *
      * Starts the weapon select menu as an orphan menu, the unit's face (not for a Phantom) and
-     * the item panel ([Hooks.startUnitFace], [Hooks.forceMenuItemPanel]: MC-4), then
+     * the item panel ([Hooks.startFace], [Hooks.forceMenuItemPanel]), then
      * [subEventInfo80832C4]. Returns the menu actions that end the unit menu.
      */
     public fun startUnitWeaponSelect(menu: Menu.MenuProc, menuItem: Menu.MenuItemProc): Int {
-        menus.startOrphanMenu(Menu.WEAPON_SELECT_MENU_DEF)
+        val proc = menus.startOrphanMenu(Menu.WEAPON_SELECT_MENU_DEF)
 
-        if (units.classId(active.unit) != CLASS_PHANTOM) hooks.startUnitFace.invoke(active.unit)
+        if (units.classId(active.unit) != CLASS_PHANTOM) {
+            hooks.startFace.start(
+                0, loader.getUnitPortraitId(active.unit, hooks.chapterIndex()), 0xB0, 0xC, 2,
+            )
+            hooks.setFaceBlinkControlById.set(0, 5)
+        }
 
-        hooks.forceMenuItemPanel.invoke(active.unit)
+        hooks.forceMenuItemPanel.start(proc, active.unit, 0xF, 0xB)
 
         subEventInfo80832C4()
 
@@ -455,16 +486,7 @@ public class UnitActionMenu(
      * Moves item [itemSlot] of unit [unit] to slot 0, shifting the slots before it down by one.
      */
     public fun equipUnitItemSlot(unit: Int, itemSlot: Int) {
-        val at = units.unitOffset(unit) + OFF_ITEMS
-        val item = u16(units.bytes, at + 2 * itemSlot)
-
-        for (i in itemSlot downTo 1) {
-            units.bytes[at + 2 * i] = units.bytes[at + 2 * (i - 1)]
-            units.bytes[at + 2 * i + 1] = units.bytes[at + 2 * (i - 1) + 1]
-        }
-
-        units.bytes[at] = item.toByte()
-        units.bytes[at + 1] = (item shr 8).toByte()
+        items.equipUnitItemSlot(units.bytes, units.unitOffset(unit), itemSlot)
     }
 
     /**

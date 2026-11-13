@@ -721,7 +721,7 @@ public class BattleForecast(
      * Puts the stat arrow (up, or down when [isDown]) at ([x], [y]) on layer 4; its frame
      * changes every 8 clock ticks.
      */
-    private fun updateStatArrowSprites(x: Int, y: Int, isDown: Boolean) {
+    internal fun updateStatArrowSprites(x: Int, y: Int, isDown: Boolean) {
         val frame = clock() / 8 % 3
 
         sprites.put(4, x, y, if (isDown) downArrows[frame] else upArrows[frame], 0)

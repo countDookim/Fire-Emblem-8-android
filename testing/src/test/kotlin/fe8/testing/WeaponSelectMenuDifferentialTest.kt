@@ -5,13 +5,16 @@ import fe8.game.bm.ActiveUnit
 import fe8.game.bm.AttackRange
 import fe8.game.bm.AttackTargets
 import fe8.game.bm.BmMap
+import fe8.game.bm.BmBattle
 import fe8.game.bm.BmMapRender
+import fe8.game.bm.BattleUnit
 import fe8.game.bm.BmSt
 import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.ItemInfo
 import fe8.game.bm.ItemMenuLine
+import fe8.game.bm.MenuItemPanel
 import fe8.game.bm.MoveLimitView
 import fe8.game.bm.PlaySt
 import fe8.game.bm.SelectTargets
@@ -19,7 +22,10 @@ import fe8.game.bm.UnitActionMenu
 import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitTable
 import fe8.game.scene.IntConsumer
+import fe8.game.scene.FaceBlinkState
+import fe8.game.scene.FaceState
 import fe8.game.scene.IntSupplier
+import fe8.game.scene.TalkScene
 import fe8.game.text.Fe8Text
 import fe8.game.ui.GreenText
 import fe8.game.ui.ItemIcon
@@ -27,6 +33,7 @@ import fe8.game.ui.Menu
 import fe8.game.ui.UiHand
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
+import gbafe.core.rng.LcgRng
 import gbafe.core.rng.RngService
 import gbafe.input.KeyStatus
 import gbafe.proc.ProcEngine
@@ -80,7 +87,11 @@ class WeaponSelectMenuDifferentialTest {
         "GetUnitWeaponReachBits", "DrawItemMenuLine", "GetItemUses", "DrawIcon",
         "GetIconTileIndex", "GetIconGfxIndex", "Text_SetParams", "PutSpecialChar",
         "PutNumberExt", "PutNumber", "PutNumberOrBlank", "GetSpecialCharChr", "AddSpecialChar",
-        "DrawSpecialCharGlyph",
+        "DrawSpecialCharGlyph", "ForceMenuItemPanel", "UpdateMenuItemPanel",
+        "MenuItemPanelProcIdle", "BattleGenerateUiStats", "Text_DrawNumber",
+        "Text_InsertDrawNumberOrBlank", "Text_DrawNumberOrBlank", "StartFace",
+        "SetFaceBlinkControl", "SetFaceBlinkControlById", "EndFaceById", "EndFace",
+        "GetUnitPortraitId",
     )
     fun `attack opens the weapon list with the ranges of the game`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
@@ -151,8 +162,11 @@ class WeaponSelectMenuDifferentialTest {
         val unitMenu: UnitActionMenu
         val view: MoveLimitView
         lateinit var itemLine: ItemMenuLine
-        var panelFrom = 0
-        var panelTo = 0
+        lateinit var panel: MenuItemPanel
+        lateinit var battle: BmBattle
+        var arrowCalls = 0
+        lateinit var scene: TalkScene
+        var faceEnds = 0
         val iconTable = ByteArray(ItemIcon.MAX_ICON_COUNT * ItemIcon.ICON_ENTRY_SIZE)
         val iconGfxTable = ByteArray(ItemIcon.MAX_ICON_GFX_COUNT)
 
@@ -206,15 +220,35 @@ class WeaponSelectMenuDifferentialTest {
                 ItemIcon.loadIconPalette(hw, rom, 0, palId)
                 ItemIcon.loadIconPalette(hw, rom, 1, palId + 1)
             }
-            unitMenu.hooks.startUnitFace = IntConsumer { faceCalls++ }
-            unitMenu.hooks.forceMenuItemPanel = IntConsumer {
-                panelCalls++
-                // The panel's `InitText` calls take tile slots (MC-4b); the rows draw after them.
-                panelFrom = text.activeFont.chrCounter
-                text.activeFont.chrCounter += PANEL_CHR_SLOTS
-                panelTo = text.activeFont.chrCounter
+            scene = TalkScene(
+                rom, romBytes, hw, engine, sprites, keys, { clock }, messages, IntConsumer {},
+                { 0 }, {}, LcgRng(),
+            )
+            unitMenu.hooks.chapterIndex = IntSupplier { playSt.chapterIndex }
+            unitMenu.hooks.startFace = UnitActionMenu.FaceStarter { slot, fid, x, y, disp ->
+                faceCalls++
+                scene.face.startFace(slot, fid, x, y, disp)
             }
-            unitMenu.hooks.updateMenuItemPanel = IntConsumer { panelSlots.add(it) }
+            unitMenu.hooks.setFaceBlinkControlById = UnitActionMenu.BlinkSetter { slot, control ->
+                scene.face.setFaceBlinkControlById(slot, control)
+            }
+            menu.hooks.endFaceById = { slot ->
+                faceEnds++
+                scene.face.endFaceById(slot)
+            }
+            battle = BmBattle(rom, units, loader, playSt, bm) { y, x -> map.terrain[y, x] }
+            panel = MenuItemPanel(
+                engine, units, battle, itemInfo, loader, bm, text, messages, hw, rom, iconTable,
+                iconGfxTable,
+            ) { _, _, _ -> arrowCalls++ }
+            unitMenu.hooks.forceMenuItemPanel = UnitActionMenu.PanelStarter { m, u, x, y ->
+                panelCalls++
+                panel.forceMenuItemPanel(m, u, x, y)
+            }
+            unitMenu.hooks.updateMenuItemPanel = IntConsumer {
+                panelSlots.add(it)
+                panel.updateMenuItemPanel(it)
+            }
             itemLine = ItemMenuLine(
                 text, itemInfo, messages, hw, rom, iconTable, iconGfxTable,
             )
@@ -228,6 +262,7 @@ class WeaponSelectMenuDifferentialTest {
             unitMenu.hooks.hideMoveRangeGraphics = { view.hideMoveRangeGraphics() }
             unitMenu.install(menu, rom)
         }
+
 
         fun ewram(frame: Int): ByteArray = data.region(names.getValue(frame), "ewram")
 
@@ -267,6 +302,7 @@ class WeaponSelectMenuDifferentialTest {
                 hw.palette[i] = half(e, PALETTE - EWRAM + 2 * i).toShort()
             }
             hw.lcd.readFrom(iw, LCD_BUFFER - IWRAM)
+            scene.lcg.set(u32(iw, LCG - IWRAM))
             text.initTextFont(null, 0x06001000, 0x80, 0)
             val vram = data.region(names.getValue(vramFrame), "vram")
             vram.copyInto(host.vram, 0, 0, host.vram.size)
@@ -311,14 +347,16 @@ class WeaponSelectMenuDifferentialTest {
         /** One frame of the cancel window: the weapon list is started at its first frame. */
         fun cancelFrame(f: Int) {
             val d = f + 1
-            run(f, d)
+            // The dump of 1706 repeats the one of 1705: that frame outran a VBlank and the face
+            // tree (root 5) did not run in it (the blink timer stays).
+            run(f, d, skipFaceTree = f == CANCEL_LAG_FRAME)
             if (f >= WEAPON_CANCELLED - 1) compare(f, d)
             compareVram(d)
         }
 
         /**
-         * The text tiles (the unit menu and weapon list strips and the special characters,
-         * not the item panel's slots) and the icon tiles, in the dumps that have VRAM.
+         * The text tiles (the unit menu and weapon list strips, the panel's strips and the
+         * special characters) and the icon tiles, in the dumps that have VRAM.
          */
         private fun compareVram(d: Int) {
             if (!names.getValue(d).startsWith("f")) return
@@ -326,10 +364,28 @@ class WeaponSelectMenuDifferentialTest {
             val at = "$runName dump $d VRAM"
             val counter = text.activeFont.chrCounter
             for (slot in 0 until counter) {
-                if (slot in panelFrom until panelTo) continue
                 for (k in 0 until 0x40) {
                     val a = 0x1000 + slot * 0x40 + k
                     assertEquals(dump[a], host.vram[a], "$at text slot $slot byte $k")
+                }
+            }
+            if (scene.face.gFaces[0] != null) {
+                val tiles = 0x10000 + scene.face.tileOffsetOf(0)
+                // The upper 12 by 6 tiles of the portrait, a row of the sprite sheet 0x400 bytes
+                // apart (the rows below change in the dumps of the cancel window: other tiles).
+                for (row in 0 until FACE_TILE_ROWS) {
+                    for (k in 0 until FACE_TILE_ROW_BYTES) {
+                        val a = tiles + row * 0x400 + k
+                        assertEquals(dump[a], hw.vram[a], "$at face tile byte 0x${a.toString(16)}")
+                    }
+                }
+                val pal = data.region(names.getValue(d), "pal")
+                val from = (scene.face.paletteIdOf(0) + 0x10) * 32
+                // The palette reaches the dump at the VBlank after the start frame.
+                for (k in 0 until if (d == WEAPON_MENU_FIRST) 0 else 32) {
+                    assertEquals(pal[from + k], hw.palette[(from + k) / 2].let {
+                        (if (k % 2 == 0) it.toInt() else it.toInt() shr 8).toByte()
+                    }, "$at face palette byte $k")
                 }
             }
             for (slot in 0 until ItemIcon.MAX_ICON_GFX_COUNT) {
@@ -343,7 +399,7 @@ class WeaponSelectMenuDifferentialTest {
             }
         }
 
-        private fun run(f: Int, d: Int) {
+        private fun run(f: Int, d: Int, skipFaceTree: Boolean = false) {
             keys.update(data.inputs[d - 1])
             clock = u32(iwram(d), CLOCK - IWRAM)
             if (f == UNIT_MENU_FIRST) {
@@ -359,7 +415,10 @@ class WeaponSelectMenuDifferentialTest {
                 unitMenu.unitActionMenuAttackFromProc()
             }
             sprites.clear()
-            for (tree in 0 until 8) engine.run(engine.root(tree))
+            for (tree in 0 until 8) {
+                if (!(skipFaceTree && tree == FACE_TREE)) engine.run(engine.root(tree))
+            }
+            scene.flushTileMoves()
         }
 
         private fun compare(f: Int, d: Int) {
@@ -371,7 +430,7 @@ class WeaponSelectMenuDifferentialTest {
             compareView(dump, at)
             comparePools(e, iw, at)
             compareTilemaps(e, f, at)
-            if (f == WEAPON_MENU_FIRST || f == WEAPON_CHOSEN - 2) compareIcons(e, f, at)
+            if (f == WEAPON_MENU_FIRST || f == WEAPON_CHOSEN - 2) compareIcons(e, at)
             val a = ACTION_DATA - EWRAM
             assertEquals(
                 e[a + 0x11].toInt() and 0xFF, active.action.unitActionType, "$at unitActionType",
@@ -386,6 +445,7 @@ class WeaponSelectMenuDifferentialTest {
                     e[dumpAt + k], units.bytes[unitAt + k], "$at unit byte 0x${k.toString(16)}",
                 )
             }
+            compareFace(dump, iw, at)
             // The weapon list's helper procs exist from the frame the menu starts.
             if (f >= WEAPON_CHOSEN) return
             val faces = dump.findAll(FACE_SCRIPT).size
@@ -395,6 +455,74 @@ class WeaponSelectMenuDifferentialTest {
             assertEquals(if (started) 1 else 0, panels, "$at item panel proc exists")
             assertEquals(if (started) 1 else 0, faceCalls, "$at face started")
             assertEquals(if (started) 1 else 0, panelCalls, "$at item panel started")
+            if (started) comparePanel(dump, e, at)
+            assertEquals(0, arrowCalls, "$at stat arrows (the dump's stats are equal)")
+        }
+
+        /**
+         * The face proc of slot 0 (portrait, place, display bits, `oam2`), its blink child, and the
+         * game's random number generator (the blink draws from it).
+         */
+        private fun compareFace(dump: ProcArrayDump, iw: ByteArray, at: String) {
+            val original = dump.findAll(FACE_SCRIPT)
+            val mine = scene.face.gFaces[0]
+            assertEquals(original.size, if (mine != null) 1 else 0, "$at face count")
+            assertEquals(u32(iw, LCG - IWRAM), scene.lcg.value, "$at random number generator")
+            if (mine == null) return
+            val face = original[0]
+            val state = mine.state as FaceState
+            assertEquals(face.u16(0x30), state.displayBits, "$at face display bits")
+            assertEquals(face.u16(0x34), state.xPos, "$at face x")
+            assertEquals(face.u16(0x36), state.yPos, "$at face y")
+            assertEquals(face.u16(0x3C), state.oam2, "$at face oam2")
+            assertEquals(face.u16(0x3E), state.faceId, "$at face portrait")
+            assertEquals(face.u8(0x40), state.faceSlot, "$at face slot")
+            assertEquals(face.u8(0x41), state.spriteLayer, "$at face sprite layer")
+            val blink = dump.findAll(BLINK_SCRIPT).first { it.u32(0x2C) == face.address }
+            val blinkProc = state.pBlinkProc!!
+            val actual = blinkProc.state as FaceBlinkState
+            assertEquals(blink.u16(0x30), actual.blinkControl, "$at blink control")
+            assertEquals(blink.u16(0x32), actual.unk32, "$at blink unk32")
+            assertEquals(blink.u32(0x38), actual.unk38, "$at blink interval")
+            assertEquals(blink.scrCur, blinkProc.scrCur, "$at blink script position")
+        }
+
+        /**
+         * The item panel proc (unit, position, icon palette, weapon slot, the strips and the arrow
+         * switch) and the two battle units `BattleGenerateUiStats` fills.
+         */
+        private fun comparePanel(dump: ProcArrayDump, e: ByteArray, at: String) {
+            val original = dump.find(PANEL_SCRIPT)!!
+            val mine = engine.find(panel.script)
+            assertEquals(true, mine != null, "$at item panel proc")
+            val state = mine!!.state as MenuItemPanel.State
+            assertEquals(
+                original.u32(0x2C), UnitTable.BLUE_ADDRESS + state.unitOffset, "$at panel unit",
+            )
+            assertEquals(original.u8(0x30), state.x, "$at panel x")
+            assertEquals(original.u8(0x31), state.y, "$at panel y")
+            assertEquals(original.u8(0x32), state.iconPalIndex, "$at panel icon palette")
+            assertEquals(original.u8(0x33).toByte().toInt(), state.itemSlotIndex, "$at panel slot")
+            assertEquals(original.u8(0x64) != 0, state.drawArrow, "$at panel draw_arrow")
+            for (i in 0 until 6) {
+                val o = 0x34 + 8 * i
+                val t = state.text[i]
+                assertEquals(original.u16(o), t.chrPosition, "$at panel text $i chr position")
+                assertEquals(original.u8(o + 2), t.x, "$at panel text $i x")
+                assertEquals(original.u8(o + 3), t.colorId, "$at panel text $i colour")
+                assertEquals(original.u8(o + 4), t.tileWidth, "$at panel text $i tile width")
+                assertEquals(original.u8(o + 5) != 0, t.dbEnabled, "$at panel text $i db")
+                assertEquals(original.u8(o + 6), t.dbId, "$at panel text $i buffer half")
+            }
+            for ((bu, address) in listOf(
+                battle.actor to GBATTLE_ACTOR, battle.target to GBATTLE_TARGET,
+            )) {
+                for (i in 0 until BattleUnit.SIZE) {
+                    assertEquals(
+                        e[address - EWRAM + i], bu.bytes[i], "$at battle unit $address+$i",
+                    )
+                }
+            }
         }
 
         private fun compareMenu(dump: ProcArrayDump, at: String) {
@@ -460,7 +588,6 @@ class WeaponSelectMenuDifferentialTest {
         private fun compareTilemaps(e: ByteArray, f: Int, at: String) {
             for (bg in 0..3) {
                 for (k in 0 until 0x400) {
-                    if (inMc4Tiles(bg, k, f)) continue
                     assertEquals(
                         half(e, BG_BUFFERS[bg] - EWRAM + 2 * k),
                         hw.mapBuffer(bg)[k].toInt() and 0xFFFF,
@@ -470,29 +597,13 @@ class WeaponSelectMenuDifferentialTest {
             }
         }
 
-        /**
-         * The tiles MC-4b draws: the item panel (`ForceMenuItemPanel(proc, unit, 0xF, 0xB)`) on
-         * BG0 and BG1.
-         */
-        private fun inMc4Tiles(bg: Int, k: Int, f: Int): Boolean {
-            if (f < WEAPON_MENU_FIRST || bg > 1) return false
-            val x = k % 32
-            val y = k / 32
-            if (x in 15..29 && y in 11..18) return true
-            return false
-        }
-
-        private fun compareIcons(e: ByteArray, f: Int, at: String) {
-            // The item panel's icon (MC-4b) is icon 112 in graphics slot 1; not drawn here.
-            val panelIcon = f > WEAPON_MENU_FIRST
+        private fun compareIcons(e: ByteArray, at: String) {
             for (k in 0 until ItemIcon.MAX_ICON_COUNT * ItemIcon.ICON_ENTRY_SIZE) {
-                if (panelIcon && k / ItemIcon.ICON_ENTRY_SIZE == PANEL_ICON) continue
                 assertEquals(
                     e[DRAWN_ICONS - EWRAM + k], iconTable[k], "$at DrawnIconLookupTable[$k]",
                 )
             }
             for (k in 0 until ItemIcon.MAX_ICON_GFX_COUNT) {
-                if (panelIcon && e[ICON_GFX_IDS - EWRAM + k].toInt() == PANEL_ICON + 1) continue
                 assertEquals(
                     e[ICON_GFX_IDS - EWRAM + k], iconGfxTable[k], "$at IconGFXIDLookupTable[$k]",
                 )
@@ -543,15 +654,21 @@ class WeaponSelectMenuDifferentialTest {
         const val GBM_MAP_FOG = 0x0202E4E8
         const val MENU_SCRIPT = 0x085B64D0
         const val FACE_SCRIPT = 0x08591154
+        const val BLINK_SCRIPT = 0x08591264
+        const val LCG = 0x03000008
         const val PANEL_SCRIPT = 0x0859AE88
         const val UNIT_SIZE = 0x48
+        const val GBATTLE_ACTOR = 0x0203A4EC
+        const val GBATTLE_TARGET = 0x0203A56C
         const val GACTIVE_FONT = 0x02028E70
         const val SPECIAL_CHAR_LIST = 0x02028E78
-        const val PANEL_CHR_SLOTS = 72
-        const val PANEL_ICON = 112
         const val UNIT_MENU_FIRST = 1595
         const val WEAPON_CHOSEN = 1659
         const val CANCEL_SEED = 1703
+        const val CANCEL_LAG_FRAME = 1705
+        const val FACE_TILE_ROWS = 6
+        const val FACE_TILE_ROW_BYTES = 12 * 0x20
+        const val FACE_TREE = 5
         const val WEAPON_CANCELLED = 1729
         const val WEAPON_MENU_FIRST = 1630
         val BG_BUFFERS = intArrayOf(0x02022CA8, 0x020234A8, 0x02023CA8, 0x020244A8)

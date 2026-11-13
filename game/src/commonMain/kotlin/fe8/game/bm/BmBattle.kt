@@ -2,6 +2,7 @@ package fe8.game.bm
 
 import fe8.game.RomView
 import fe8.game.bm.StructCodec.put16
+import fe8.game.bm.StructCodec.put32
 import fe8.game.bm.StructCodec.put8
 import fe8.game.bm.StructCodec.s8
 import fe8.game.bm.StructCodec.u16
@@ -153,6 +154,69 @@ public class BmBattle(
         unit.terrainAvoid = rom.u8(rom.u32(cls + 0x44) + unit.terrainId)
         unit.terrainDefense = rom.u8(rom.u32(cls + 0x48) + unit.terrainId)
         unit.terrainResistance = rom.u8(rom.u32(cls + 0x4C) + unit.terrainId)
+    }
+
+    private val uiUnit = ByteArray(UnitTable.UNIT_SIZE)
+
+    /**
+     * Ported from src/bmbattle.c: BattleGenerateUiStats
+     *
+     * Fills [actor] with the stats the item panel and the stat screen show for the unit at
+     * [srcOffset] of [src] wielding item slot [itemSlot] ([BU_ISLOT_AUTO] for the first usable
+     * weapon), against a target with no class and no weapon. A slot of the inventory is moved
+     * to the front of a copy of the unit first. The Runesword loses half the Str from its attack
+     * and its crit; no weapon, an HP-halving weapon and the Monster Stone show dashes (0xFF).
+     * On the world map the terrain bonuses are those of terrain 0 (not verified: the world map
+     * state is not read, so it is the unit's terrain).
+     */
+    public fun battleGenerateUiStats(src: ByteArray, srcOffset: Int, itemSlot: Int) {
+        stats.config = BattleStats.CONFIG_BIT2
+
+        target.weapon = 0
+        target.weaponAttributes = 0
+        target.weaponType = 0xFF
+
+        put32(target.bytes, OFF_CLASS, 0)
+
+        actor.wTriangleHitBonus = 0
+        actor.wTriangleDmgBonus = 0
+
+        var slot = itemSlot
+        if (slot >= 0 && slot < UnitLoader.UNIT_ITEM_COUNT) {
+            src.copyInto(uiUnit, 0, srcOffset, srcOffset + UnitTable.UNIT_SIZE)
+            items.equipUnitItemSlot(uiUnit, 0, slot)
+            slot = 0
+            initBattleUnit(actor, uiUnit, 0)
+        } else {
+            initBattleUnit(actor, src, srcOffset)
+        }
+
+        setBattleUnitTerrainBonusesAuto(actor)
+
+        setBattleUnitWeapon(actor, slot)
+        computeBattleUnitStats(actor, target)
+
+        if (items.getItemIndex(actor.weapon) == ITEM_SWORD_RUNESWORD) {
+            actor.battleAttack -= s8(actor.bytes, OFF_POW) / 2
+
+            actor.battleCritRate = 0
+            actor.battleEffectiveCritRate = 0
+        }
+
+        if (actor.weapon == 0) {
+            actor.battleAttack = 0xFF
+            actor.battleHitRate = 0xFF
+            actor.battleCritRate = 0xFF
+        }
+
+        if (items.getItemWeaponEffect(actor.weapon) == WPN_EFFECT_HPHALVE) {
+            actor.battleAttack = 0xFF
+        }
+
+        if (items.getItemIndex(actor.weapon) == ITEM_MONSTER_STONE) {
+            actor.battleAttack = 0xFF
+            actor.battleCritRate = 0xFF
+        }
     }
 
     /**
@@ -964,8 +1028,12 @@ public class BmBattle(
         targetOffset: Int,
     ): Boolean {
         val actorClass = rom.u8(u32(actorBytes, actorOffset + OFF_CLASS) + 4)
-        val targetClass = rom.u8(u32(targetBytes, targetOffset + OFF_CLASS) + 4)
         if (actorClass != 0x2B && actorClass != 0x2C) return false
+        // `BattleGenerateUiStats` leaves the target without a class (the original then reads BIOS
+        // bytes: not reproduced, no monster class matches; not verified).
+        val targetClassData = u32(targetBytes, targetOffset + OFF_CLASS)
+        if (targetClassData == 0) return false
+        val targetClass = rom.u8(targetClassData + 4)
         var entry = EFFECTIVENESS_MONSTERS
         while (rom.u8(entry) != 0) {
             if (rom.u8(entry) == targetClass) return true

@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 195 across 41 Kotlin files.
+Total entries: 193 across 42 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -27,7 +27,7 @@ Total entries: 195 across 41 Kotlin files.
 | D11-wire-a | 2 |
 | MC-12b | 1 |
 | MC-17 | 1 |
-| MC-4 | 4 |
+| MC-4b | 2 |
 | MC-6 | 1 |
 | MC-8b | 1 |
 | PC-10 | 1 |
@@ -285,14 +285,12 @@ Total entries: 195 across 41 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | `checkBattleUnitLevelUp` | Stand-in until MC-17: level and exp bookkeeping only, no stat gains (RNG not advanced). |
 
-## MC-4 (4)
+## MC-4b (2)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `drawItemMenuLine` | Stand-in until MC-4 (bmitem.c; needs icons and numbers). |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `forceMenuItemPanel` | Stand-in until MC-4 (menuitempanel.c). |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `startUnitFace` | Stand-in until MC-4 (the faces of the menu). |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `updateMenuItemPanel` | Stand-in until MC-4. |
+| `game/src/commonMain/kotlin/fe8/game/bm/MenuItemPanel.kt` | `MenuItemPanel` | Only the weapon layout is written; the layout of a staff or item (its description) is a stand-in until the item menu (MC-4b: the weapon list never holds one), and `EndMenuItemPanel` is never run (t... |
+| `game/src/commonMain/kotlin/fe8/game/bm/MenuItemPanel.kt` | `item` | Stand-in until the item menu (MC-4b): the description of the item is not drawn. |
 
 ## MC-6 (1)
 

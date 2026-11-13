@@ -350,6 +350,29 @@ row (the list shows only usable rows), `PutNumberOrBlank`'s dash branch, unbreak
 slots), so the test advances `chr_counter` by 72 in the panel hook and skips those slots and the panel's icon 112
 (MC-4b).
 
+### MC-4b result
+
+`WeaponSelectMenuDifferentialTest` now runs the real item panel and face. Added to the compare: the panel proc (unit,
+x, y, icon palette, weapon slot, `draw_arrow`, its six `struct Text`s), `gBattleActor` and `gBattleTarget` (all 128
+bytes), BG0/BG1 without the panel box exclusion, all text tiles of VRAM (the panel's strips included; the 72-slot
+chr-counter workaround is gone) and icon 112; the face proc (display bits, x, y, `oam2`, portrait, slot, layer), its
+blink child (control, interval, script position), `gLCGRNValue`, the face's upper 12x6 tiles and its OBJ palette
+(from the dump after the start frame). Ported and break-checked (one mutation each, all fail): `ForceMenuItemPanel`,
+`UpdateMenuItemPanel`, `MenuItemPanelProcIdle` (a `>=` draws arrows with equal stats; the dump has none), `BattleGenerateUiStats`
+(two mutations: the no-weapon dashes, the equip of the slot), `Text_DrawNumber`, `Text_InsertDrawNumberOrBlank`,
+`Text_DrawNumberOrBlank`, `GetUnitPortraitId`, `StartFace` and `SetFaceBlinkControl` (both were Transcribed),
+`SetFaceBlinkControlById`, `EndFace`, `EndFaceById`. Stand-in: the panel's staff/item description layout
+(`UpdateMenuItemPanel` for a staff or item; the weapon list never shows one). Not verified inside ported ones: the
+stat arrows, the dash branch of `Text_DrawNumberOrBlank`, the world map terrain of `BattleGenerateUiStats`, the
+Lyon portrait and class-default branches, `StartFace` flags 12 and 13. `EndMenuItemPanel` is not written (never runs).
+Findings: the dump of f1706 repeats f1705 (a frame that outran a VBlank); the face tree (root 5) did not run in it, so
+the cancel window skips tree 5 at f1705; the OBJ palette reaches the dump a VBlank after the start frame; face tile
+rows 6 and 7 of the sheet change in the cancel window's dumps (other sprites' tiles), so only rows 0 to 5 are compared;
+`IsUnitEffectiveAgainst` reads the target class, which `BattleGenerateUiStats` clears (the original reads BIOS bytes;
+now it returns false for a null class). Wired in `PlayerPhaseWiring`: the face on slot 0 of the talk scene's faces,
+the panel with the forecast's arrow sprites, `EndFaceById` on the menu's `ENDFACE`. Sprite OAM of the face is not
+compared.
+
 ### MC-5 result
 
 `TargetSelectionDifferentialTest` replays `ram_trace_prologue_attack_noanim` twice: the selection started by A on

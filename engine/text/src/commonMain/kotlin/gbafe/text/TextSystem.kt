@@ -499,6 +499,31 @@ public class TextSystem(
         return start + 1
     }
 
+    private val digitBuffer = ByteArray(2)
+
+    /**
+     * Draws [n] in decimal into [text], the last digit first: each digit is drawn with the pen
+     * then moved 15 pixels left, so the number ends where the pen started plus its own width. 0
+     * is the single digit `0`.
+     *
+     * Ported from src/fontgrp.c: Text_DrawNumber
+     */
+    public fun drawNumber(text: Text, n: Int) {
+        if (n == 0) {
+            digitBuffer[0] = '0'.code.toByte()
+            drawCharacter(text, digitBuffer, 0)
+            return
+        }
+
+        var rest = n
+        while (rest != 0) {
+            digitBuffer[0] = ('0'.code + rest % 10).toByte()
+            rest /= 10
+            drawCharacter(text, digitBuffer, 0)
+            text.x -= 15
+        }
+    }
+
     // Transcribed from src/fontgrp.c: Text_DrawCharacter (Shift-JIS branch; not verified: the US
     // ROM has no Shift-JIS glyph lists and the trace runs with lang = 1).
     // Not @VerifiesPort: no ground truth for lang == 0.

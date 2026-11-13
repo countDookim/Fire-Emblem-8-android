@@ -17,6 +17,7 @@ import fe8.game.bm.CombatAction
 import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.ItemInfo
 import fe8.game.bm.ItemMenuLine
+import fe8.game.bm.MenuItemPanel
 import fe8.game.bm.MapCursor
 import fe8.game.bm.MapMenu
 import fe8.game.bm.MoveLimitView
@@ -125,6 +126,11 @@ internal class PlayerPhaseWiring(
     private val itemLine = ItemMenuLine(
         talk.text, items, talk.messages, hw, rom, drawnIconLookupTable, iconGfxIdLookupTable,
     )
+    private lateinit var forecast: BattleForecast
+    private val menuItemPanel = MenuItemPanel(
+        engine, units, battle, items, unitLoader, bm, talk.text, talk.messages, hw, rom,
+        drawnIconLookupTable, iconGfxIdLookupTable,
+    ) { x, y, isDown -> forecast.updateStatArrowSprites(x, y, isDown) }
     private val attackTargets =
         AttackTargets(map, units, items, attackRange, traps, SelectTargets())
     private val targetSelection = TargetSelection(
@@ -185,7 +191,7 @@ internal class PlayerPhaseWiring(
     private fun wireAttackSelect(phase: PlayerPhase) {
         val facing = UnitFacing(units, active, phase.workingMovementScript)
         facing.setAutoMuMoveScript = { script -> mu.setAutoMuMoveScript(script) }
-        val forecast = BattleForecast(
+        forecast = BattleForecast(
             engine, battle, battleGenerate, items, units, active, playSt, bm, map, hw, rom,
             talk.text, talk.messages, drawnIconLookupTable, iconGfxIdLookupTable,
             loop.sprites, clock,
@@ -217,6 +223,19 @@ internal class PlayerPhaseWiring(
         unitMenu.hooks.drawItemMenuLine = UnitActionMenu.ItemLineDrawer { row, item, usable, at ->
             itemLine.drawItemMenuLine(row, item, usable, hw.mapBuffer(0), at)
         }
+        unitMenu.hooks.chapterIndex = IntSupplier { playSt.chapterIndex }
+        unitMenu.hooks.startFace = UnitActionMenu.FaceStarter { slot, fid, x, y, disp ->
+            talk.face.startFace(slot, fid, x, y, disp)
+        }
+        unitMenu.hooks.setFaceBlinkControlById = UnitActionMenu.BlinkSetter { slot, control ->
+            talk.face.setFaceBlinkControlById(slot, control)
+        }
+        unitMenu.hooks.forceMenuItemPanel = UnitActionMenu.PanelStarter { m, unit, x, y ->
+            menuItemPanel.forceMenuItemPanel(m, unit, x, y)
+        }
+        unitMenu.hooks.updateMenuItemPanel =
+            IntConsumer { slot -> menuItemPanel.updateMenuItemPanel(slot) }
+        menu.hooks.endFaceById = { slot -> talk.face.endFaceById(slot) }
         unitMenu.hooks.resetTextFont = { talk.text.resetTextFont() }
         unitMenu.hooks.isPositionMagicSealed = { _, _ -> false }
         unitMenu.hooks.resetIconGraphics = resetIcons

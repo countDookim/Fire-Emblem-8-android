@@ -1,6 +1,7 @@
 package fe8.testing
 
 import fe8.game.RomView
+import fe8.game.bm.AiUnitStep
 import fe8.game.bm.CpPhase
 import fe8.game.bm.PlaySt
 import fe8.game.bm.UnitLoader
@@ -16,6 +17,7 @@ import gbafe.proc.ProcScripts.repeat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import java.io.File
@@ -25,9 +27,9 @@ import java.io.File
  * `gplayst` and `procs` watches of `ram_trace_prologue_enemy_phase`: the units, `gPlaySt` and
  * `gAiState` of f1611 are fed to `gProcScr_CpPhase`, and the first frame must give the state of
  * f1612 (unit list 0x81, 0x82, 0x83, `unitIt` at the start, `orderState` 1, flags, `unk7E`, the
- * special item flags) and the proc tree CpPhase > CpOrder > CpDecide. The decision loop is a
- * stand-in proc that lives until the test releases it; then the order ends (`orderState` 2) and
- * the cleanup clears the flags, as at f2744..f2746.
+ * special item flags) and the proc tree CpPhase > CpOrder > CpDecide. The state is read at the
+ * first `AiUpdateNoMoveFlag` call of the real `CpDecide` (its default stand-ins decide nothing);
+ * then the order ends (`orderState` 2) and the cleanup clears the flags, as at f2744..f2746.
  */
 class CpOrderDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -44,11 +46,6 @@ class CpOrderDifferentialTest {
         val units: UnitTable
         val cp: CpPhase
         val ai = ref.run(RUN).watch("aistate")
-        var release = false
-        val decide = ProcScript(
-            "gProcScr_CpDecide",
-            listOf(repeat { if (release) engine.breakProc(it) }, end()),
-        )
 
         init {
             assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
@@ -59,7 +56,6 @@ class CpOrderDifferentialTest {
             units = UnitTable(rom)
             val loader = UnitLoader(units, rom, { 0 }, RngService(), { false })
             cp = CpPhase(engine, rom, playSt, units, loader)
-            cp.hooks.startCpDecide = { engine.startBlocking(decide, it) }
         }
 
         fun seed(step: Int) {
@@ -84,30 +80,40 @@ class CpOrderDifferentialTest {
         val parent = sim.engine.start(ProcScript("parent", listOf(repeat { }, end())), 4)
         val phase = sim.engine.startBlocking(sim.cp.phaseScript, parent)
         assertNotNull(phase)
-        sim.frame()
         val state = sim.cp.aiState
-        assertEquals(
-            (0..3).map { sim.ai.u8(1612, it) }, (0..3).map { state.units[it].toInt() and 0xFF },
-        )
-        assertEquals(0, state.unitIt)
-        assertEquals(0x0203AA04, sim.ai.u32(1612, 0x74), "unitIt points at the list")
-        assertEquals(sim.ai.u8(1612, 0x78), state.orderState)
-        assertEquals(sim.ai.u8(1612, 0x7B), state.flags)
-        assertEquals(sim.ai.u8(1612, 0x7E), state.unk7E)
-        assertEquals(sim.ai.u32(1612, 0x80), state.specialItemFlags)
-        assertEquals(sim.ai.u8(1612, 0x84), state.unk84)
-        assertEquals(
-            (0 until 8).map { sim.ai.u8(1612, 0x86 + it) }, state.cmdResult.map { it.toInt() },
-        )
-        // the proc tree: CpPhase > CpOrder > CpDecide
-        val order = sim.engine.find(sim.cp.orderScript)
-        assertNotNull(order)
-        assertNotNull(sim.engine.find(sim.decide))
-        assertEquals(phase, order!!.parent)
-        assertEquals(order, sim.engine.find(sim.decide)!!.parent)
+        var checked = false
+        // The first `AiUpdateNoMoveFlag` call is the first moment CpDecide decides: the state
+        // there is the state of f1612 (the real CPU needs more than a frame for the loop).
+        sim.cp.decide.hooks.updateNoMoveFlag = AiUnitStep {
+            if (!checked) {
+                checked = true
+                assertEquals(
+                    (0..3).map { sim.ai.u8(1612, it) },
+                    (0..3).map { state.units[it].toInt() and 0xFF },
+                )
+                assertEquals(0, state.unitIt)
+                assertEquals(0x0203AA04, sim.ai.u32(1612, 0x74), "unitIt points at the list")
+                assertEquals(sim.ai.u8(1612, 0x78), state.orderState)
+                assertEquals(sim.ai.u8(1612, 0x7B), state.flags)
+                assertEquals(sim.ai.u8(1612, 0x7E), state.unk7E)
+                assertEquals(sim.ai.u32(1612, 0x80), state.specialItemFlags)
+                assertEquals(sim.ai.u8(1612, 0x84), state.unk84)
+                assertEquals(
+                    (0 until 8).map { sim.ai.u8(1612, 0x86 + it) },
+                    state.cmdResult.map { it.toInt() },
+                )
+                // the proc tree: CpPhase > CpOrder > CpDecide
+                val order = sim.engine.find(sim.cp.orderScript)
+                assertNotNull(order)
+                assertNotNull(sim.engine.find(sim.cp.decide.script))
+                assertEquals(phase, order!!.parent)
+                assertEquals(order, sim.engine.find(sim.cp.decide.script)!!.parent)
+            }
+        }
+        sim.frame()
+        assertTrue(checked, "CpDecide started in the first frame")
 
         // the decision finishes: the order ends (orderState 2) and the phase clears the flags
-        sim.release = true
         for (i in 0 until 6) sim.frame()
         assertNull(sim.engine.find(sim.cp.orderScript))
         assertNull(sim.engine.find(sim.cp.phaseScript))

@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 551 across 78 decomp files (missing reason: 0).
+Total entries: 554 across 79 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -721,6 +721,14 @@ Total entries: 551 across 78 decomp files (missing reason: 0).
 | `IsSameAllegiance` | `game/src/commonMain/kotlin/fe8/game/bm/BmPhase.kt` | no capture checks it; the truth table restates the C |
 | `CountUnitsInState` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | only reached by the victory-song check; the enemy-phase windows call it, but the result only shows as the song id, which no capture records |
 | `GetPhaseAbleUnitCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no trace has a unit that the asleep/berserk/unselectable/NOT_ABLE exclusions would skip; the enemy-phase windows only show that the count is 0 exactly when the phase has no banner |
+
+## src/cp_decide.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `DecideHealOrEscape` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | it runs for all three enemies, but only the path of a unit that is not healing and has no `AI_UNIT_FLAG_3`; the berserk return and both branches are not seen, the branches are stand-ins, EP-cap2 |
+| `DecideScriptA` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only a script try that succeeds at once runs; the gorgon egg return, the berserk action and the fallback script never run |
+| `DecideScriptB` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only a script try that succeeds at once runs, for one unit; the ballista return, the berserk move and the fallback script never run |
 
 ## src/cp_order.c (3)
 

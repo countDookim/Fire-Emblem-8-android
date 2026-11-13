@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 200 across 43 Kotlin files.
+Total entries: 215 across 43 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -27,7 +27,11 @@ Total entries: 200 across 43 Kotlin files.
 | D11-wire-a | 2 |
 | EP-1 | 1 |
 | EP-2a | 1 |
-| EP-3a | 2 |
+| EP-3b | 3 |
+| EP-4 | 4 |
+| EP-8 | 1 |
+| EP-cap2 | 6 |
+| EP-w | 3 |
 | MC-12b | 1 |
 | MC-17 | 1 |
 | MC-4b | 2 |
@@ -289,14 +293,49 @@ Total entries: 200 across 43 Kotlin files.
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `wirePlayerPhase` | The decision loop is a stand-in until EP-3a that ends at once, so End turn runs the enemy banner, the order and goes on to the next player phase. |
+| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `cp` | The script interpreter, danger map and perform proc are stand-ins that decide nothing (EP-3b, EP-4, EP-8), so End turn runs the enemy banner, marks every enemy as moved and goes on to the next play... |
 
-## EP-3a (2)
+## EP-3b (3)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `CpPhase` | The AI decision (`gProcScr_CpDecide`, EP-3a) is a stand-in that ends at once; [Hooks] stand in for the rest. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `cpDecideStandIn` | Stand-in until EP-3a for `gProcScr_CpDecide`: ends at once, no unit decides. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `decideSpecialItems` | Stand-in for `DecideSpecialItems` (cp_decide.c, with `AiTryDoSpecialItems`; EP-3b): the whole function, including its berserk check. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `initDangerMap` | Stand-in for `AiInitDangerMap` (cp_0803E2F4.c; EP-3b). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `updateNoMoveFlag` | Stand-in for `AiUpdateNoMoveFlag` (cpextra_80407F0.c; EP-3b). |
+
+## EP-4 (4)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `execFallbackScriptA` | Stand-in for `AiExecFallbackScriptA` (cp_script.c; EP-4: never entered). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `execFallbackScriptB` | Stand-in for `AiExecFallbackScriptB` (cp_script.c; EP-4: never entered). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `tryExecScriptA` | Stand-in for `AiTryExecScriptA` (cp_script.c; EP-4). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `tryExecScriptB` | Stand-in for `AiTryExecScriptB` (cp_script.c; EP-4). |
+
+## EP-8 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `startCpPerform` | Stand-in for `Proc_StartBlocking(gProcScr_CpPerform, proc)` (cp_perform.c; EP-8). |
+
+## EP-cap2 (6)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `decideHealOrEscape` | Transcribed from src/cp_decide.c: DecideHealOrEscape (not verified: it runs for all three enemies, but only the path of a unit that is not healing and has no `AI_UNIT_FLAG_3`; the berserk return an... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `doBerserkAction` | Stand-in for `AiDoBerserkAction` (berserk script A; EP-cap2: never entered). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `doBerserkMove` | Stand-in for `AiDoBerserkMove` (berserk script B; EP-cap2: never entered). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `escapeBranch` | Stand-in for the escape branch of `DecideHealOrEscape` for a unit that is not healing but has `AI_UNIT_FLAG_3`: `AiTryMoveTowardsEscape`, `AiTryDanceOrStealAfterMove` (EP-cap2: never entered). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `healBranch` | Stand-in for the healing branch of `DecideHealOrEscape`: `AiTryHealSelf`, `AiTryMoveTowardsEscape`, `AiTryDanceOrStealAfterMove`, `AiTryGetNearestHealPoint`, `AiTryMoveTowards`, `AiTryActionAfterMo... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `onRiddenBallista` | Stand-in for `GetRiddenBallistaAt(gActiveUnit->xPos, yPos) != NULL` (EP-cap2: never entered). |
+
+## EP-w (3)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `refreshUnitSprites` | Stand-in for `RefreshUnitSprites` (display; EP-w). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `renderBmMap` | Stand-in for `RenderBmMap` (display; EP-w). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `writeSuspendSave` | Stand-in for `WriteSuspendSave(SAVE_ID_SUSPEND)` (bmsave.c; EP-w): called with the slot after `gActionData.suspendPointType` is set. |
 
 ## MC-12b (1)
 

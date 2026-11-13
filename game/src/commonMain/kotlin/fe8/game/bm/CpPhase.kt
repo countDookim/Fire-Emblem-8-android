@@ -22,8 +22,20 @@ public class AiState {
     /** `orderState` (u8, 0x78). */
     public var orderState: Int = 0
 
+    /** `decideState` (u8, 0x79): the index into `sDecideFuncList` of [CpDecide.aiDecideMain]. */
+    public var decideState: Int = 0
+
+    /** `dangerMapFilled` (s8, 0x7A): set by `AiFillDangerMap` (EP-3b), cleared per unit. */
+    public var dangerMapFilled: Boolean = false
+
     /** `flags` (u8, 0x7B): `AI_FLAG_*`. */
     public var flags: Int = 0
+
+    /** `unk7C` (u8, 0x7C): cleared per unit by [CpDecide.cpDecideMain]. */
+    public var unk7C: Int = 0
+
+    /** `combatWeightTableId` (u8, 0x7D): from the unit's `ai_config`. */
+    public var combatWeightTableId: Int = 0
 
     /** `unk7E` (u8, 0x7E). */
     public var unk7E: Int = 0
@@ -51,8 +63,8 @@ public class AiState {
  * The berserk part of the AI phase (src/cp_phase.c, src/cp_order.c): `gProcScr_BerserkCpPhase`
  * (ROM 0x085A7F30) and `gProcScr_BerserkCpOrder` (0x085A7F74), which BMapMain starts after every
  * phase. The enemy and ally phase (`gProcScr_CpPhase`, `gProcScr_CpOrder`) are here too. The AI
- * decision (`gProcScr_CpDecide`, EP-3a) is a stand-in that ends at once; [Hooks] stand in for the
- * rest. The AI flag setup ([CpUtility]) runs only when the map objects are given.
+ * decision loop is [CpDecide]. The AI flag setup ([CpUtility]) runs only when the map objects
+ * are given.
  */
 public class CpPhase(
     private val engine: ProcEngine,
@@ -68,22 +80,9 @@ public class CpPhase(
     map: BmMap? = null,
     /** `MapAddInRange` for [CpUtility]. */
     entityMaps: EntityBmMaps? = null,
+    /** `gActiveUnit` and `gActionData`, shared with the player phase. */
+    active: ActiveUnit = ActiveUnit(),
 ) {
-    /** Services outside the ported files. */
-    public class Hooks {
-        /**
-         * `AiDecideMainFunc = AiDecideMain; Proc_StartBlocking(gProcScr_CpDecide, proc)` (cp_decide,
-         * M6-D): the decision loop for [AiState.units], blocking the given proc.
-         */
-        public var startCpDecide: ((parent: Proc) -> Unit)? = null
-    }
-
-    /** Stand-in until EP-3a for `gProcScr_CpDecide`: ends at once, no unit decides. */
-    private val cpDecideStandIn = ProcScript("gProcScr_CpDecide", listOf(end()))
-
-    /** Services outside the ported files. */
-    public val hooks: Hooks = Hooks()
-
     /** `gAiState`. */
     public val aiState: AiState = AiState()
 
@@ -97,6 +96,9 @@ public class CpPhase(
         } else {
             null
         }
+
+    /** The AI decision loop (`gProcScr_CpDecide`) and its hooks. */
+    public val decide: CpDecide = CpDecide(engine, units, aiState, active, aiFlags, entityMaps)
 
     private val priorities = IntArray(AiState.UNITS_SIZE)
     private val items = ItemInfo(rom)
@@ -212,7 +214,7 @@ public class CpPhase(
      * Ported from src/cp_order.c: CpOrderFunc_BeginDecide
      *
      * Builds and sorts the unit list; if it is not empty, terminates it, points
-     * [AiState.unitIt] at its start and starts the decision loop ([Hooks.startCpDecide]) blocking
+     * [AiState.unitIt] at its start and starts the decision loop ([CpDecide.script]) blocking
      * [proc].
      */
     public fun cpOrderFuncBeginDecide(proc: Proc) {
@@ -336,7 +338,7 @@ public class CpPhase(
      * Ported from src/cp_order.c: CpOrderBerserkInit
      *
      * Collects the current faction's units that are berserk and still able to act into
-     * [AiState.units]; if there are any, starts the decision loop ([Hooks.startCpDecide]) blocking
+     * [AiState.units]; if there are any, starts the decision loop ([CpDecide.script]) blocking
      * [proc]. The non-empty case is (not verified: no capture has a berserk unit).
      */
     public fun cpOrderBerserkInit(proc: Proc) {
@@ -365,8 +367,8 @@ public class CpPhase(
     }
 
     private fun startCpDecide(parent: Proc) {
-        val hook = hooks.startCpDecide
-        if (hook != null) hook(parent) else engine.startBlocking(cpDecideStandIn, parent)
+        decide.aiDecideMainFunc = decide.decideMainStep
+        engine.startBlocking(decide.script, parent)
     }
 
     /**

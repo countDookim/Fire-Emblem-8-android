@@ -1,6 +1,8 @@
 package fe8.game
 
 import fe8.game.bm.ActiveUnit
+import fe8.game.bm.AiIntStep
+import fe8.game.bm.AiStep
 import fe8.game.bm.BMapMain
 import fe8.game.bm.MovementMap
 import fe8.game.bm.PathArrow
@@ -1032,11 +1034,20 @@ public class Fe8Boot(
             },
             { eventEngine.eventEngineExists() },
         ).wire(phase, main, eventInfos)
-        // The enemy phase (EP-2a): `AiPhaseInit` and the unit order. The decision loop is a
-        // stand-in until EP-3a that ends at once, so End turn runs the enemy banner, the order
-        // and goes on to the next player phase.
-        main.hooks.cpPhase =
-            CpPhase(engine, rom, playSt, units, loader, battleBmMap, battleEntityMaps).phaseScript
+        // The enemy phase (EP-2a, EP-3a): `AiPhaseInit`, the unit order and the decision loop.
+        // The script interpreter, danger map and perform proc are stand-ins that decide nothing
+        // (EP-3b, EP-4, EP-8), so End turn runs the enemy banner, marks every enemy as moved and
+        // goes on to the next player phase.
+        val cp = CpPhase(
+            engine, rom, playSt, units, loader, battleBmMap, battleEntityMaps, active,
+        )
+        cp.decide.hooks.renderBmMap = AiStep { bmapRender.renderBmMap() }
+        cp.decide.hooks.refreshUnitSprites = AiStep { main.hooks.refreshUnitSprites() }
+        cp.decide.hooks.writeSuspendSave = AiIntStep { slot ->
+            main.suspendPointType = active.action.suspendPointType
+            main.hooks.writeSuspendSave(slot)
+        }
+        main.hooks.cpPhase = cp.phaseScript
         // Phase start and end housekeeping (EP-1). The target list is its own: the displays'
         // `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w
         // shares one list with the player phase when the real `Make*TargetList` come in.

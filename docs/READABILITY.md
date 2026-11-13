@@ -65,7 +65,9 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game | 8 | 1999 | done 2026-11-09 ee10196; audit todo |
 | game | fe8.game.bm (map, camera, state, cursor, music, chapter data: 16 files) | 16 | 2964 | done 2026-11-10 bac8ed1; audit todo |
 | game | fe8.game.bm (battle: BattleGenerate, BattleUnit, BmBattle, ItemInfo) | 4 | 2316 | done 2026-11-11 49679cb; audit done 2026-11-11 39aa20b |
-| game | fe8.game.bm (PhaseIntro, UnitTable, MapAnimations, UnitSprites, UnitSpriteHandles, UnitSpritesOam) | 6 | 1732 | done 2026-11-11 d9263c3; audit todo |
+| game | fe8.game.bm (PhaseIntro, MapAnimations) | 2 | 840 | done 2026-11-11 d9263c3; audit in progress 2026-11-13 (Claude) |
+| game | fe8.game.bm (UnitSprites, UnitSpriteHandles, UnitSpritesOam) | 3 | 774 | done 2026-11-11 d9263c3; audit todo |
+| game | fe8.game.bm (UnitTable) | 1 | 343 | done 2026-11-11 d9263c3; audit todo |
 | game | fe8.game.bm (UnitLoader, Mu, MuCtrl, MuSpriteAnim, PlayerPhase, BattleMapStart) | 6 | 3863 | todo |
 | game | fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs) | 4 | 973 | done 2026-11-10 ff286fe / 0bfe1ab; audit done 2026-11-13 139c8c3 |
 | game | fe8.game.event (EventScrCore, EventPopup, EventFade, EventGiveItem) | 4 | 826 | done 2026-11-10 077a47d; audit done 2026-11-13 f7fec4f |

@@ -25,7 +25,6 @@ forecast, f1460 confirm, f2010..2038 results), `..._attack_noanim` (f1595..2124,
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
 | MC-17 | PORT | Level-up: only `CheckBattleUnitLevelUp` (no-level-up result) runs; the rest unwritten until a capture has a level-up | `CheckBattleUnitLevelUp` result equals the captures; stats after the first level-up (EP-cap2, else add a CAP) | MC-15, EP-cap2 | todo |
-| MC-w1 | WIRE | Headless replay of the MC-cap1 (`ram_trace_prologue_attack_noanim`) inputs through `Fe8Boot`: unit menu → Attack → weapon → target and forecast → battle resolves at once → exp | Final unit HP/exp/weapon uses/state equal the capture after the battle (timing differs: animation stand-in) | PP-17, MC-1..16 | in progress 2026-11-13 (Claude) |
 | MC-w2 | WIRE | Same for MC-cap2 (`ram_trace_prologue_kill`): kill, death removal, kill exp; allocation over the whole attack flow; MANUAL_TEST | Final state equals the capture; 0 B/frame; MANUAL_TEST; device check | MC-w1 | todo |
 
 ### M6-D enemy phase and AI (Prologue)

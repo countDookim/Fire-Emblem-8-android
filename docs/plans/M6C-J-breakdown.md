@@ -566,6 +566,14 @@ compares `gBmMapUnit` and the handle array with those dumps. Transcribed (not ve
 `UnitGetDeathDropLocation`, `UnitDrop` not written). Stand-ins: `pidStatsRecordDefeatInfo` (save statistics, no-op),
 `InitUnitsupports` (not called, supports lane M6-J), the death fade (M6-H; the unit vanishes at once).
 
+**MC-w1 result.** `AttackFlowReplayTest` boots `Fe8Boot` from the Prologue resume save, replays the
+`ram_trace_prologue_attack_noanim` inputs relative to the first idle `PlayerPhase` frame (the Options prefix, the unit
+menu, Attack, weapon list, both B cancels, the confirm) and stops when `sProcScr_CombatAction` has appeared and ended
+with the phase back at the idle command (the map animation is a stand-in, so frame numbers differ). Compared with the
+capture's f2124: every byte of every unit (HP, exp, level, items and uses, state bits; the sprite pointer
++0x3C..0x3F skipped) and the next 4 RNG draws. All equal on the first run, no wiring bug found; the test fails when
+compared with f1820, so it is not vacuous. Not covered: the kill path and allocation over the flow (MC-w2).
+
 ## M7
 
 Not broken down here: [M7-modding](M7-modding.md) has 23 proposed rows; they wait for owner decisions D2–D9.

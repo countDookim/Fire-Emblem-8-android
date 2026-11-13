@@ -11,8 +11,8 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- 2026-11-13 19:02Z owner PC (Claude): EP-cap1 enemy-phase capture (ROM repo).
-- 2026-11-13 19:02Z owner PC (Claude): readability audit fe8.game.bm (Camera, CamMove, MapCursor, ResetCursorPosition, MapMusic).
+- 2026-11-13 19:02Z owner PC (Claude): EP-cap1 enemy-phase capture (ROM repo; publishing).
+- 2026-11-13 19:09Z owner PC (Claude): EP-0 enemy-phase inventory.
 
 ## Current state
 

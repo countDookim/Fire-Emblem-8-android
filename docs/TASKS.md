@@ -33,7 +33,7 @@ EP-cap1/2.
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| EP-cap1 | CAP | `ram_trace_prologue_enemy_phase`: animations off; End on turn 1; the whole enemy phase to turn-2 player idle; per-frame RAM; watches + `gAiState`, `gAiDecision`, red units, battle structs; `tracecall` on the AI score functions if RAM does not show them | Run published | MC-cap1 | todo |
+| EP-cap1 | CAP | `ram_trace_prologue_enemy_phase`: animations off; End on turn 1; the whole enemy phase to turn-2 player idle; per-frame RAM; watches + `gAiState`, `gAiDecision`, red units, battle structs; `tracecall` on the AI score functions if RAM does not show them | Run published | MC-cap1 | in progress 2026-11-13 (Claude) |
 | EP-cap2 | CAP | `ram_trace_prologue_clear`: animations off; whole Prologue to the start of the ending scene (later enemy phases, both Normal-mode events, boss kill); per-step watches; RAM windows from a scout run | Run published; notes list the windows and whether a level-up occurs | EP-cap1 | todo |
 | EP-0 | INV | Enemy phase in cancel_end f1510..1650 and EP-cap1: procs per step; AI script commands and the decision per enemy | `EnemyPhaseInventoryTest`; EP-1..EP-11 lists corrected | — | todo |
 | EP-1 | PORT | Phase start (bm.c label 9 path): bmunit.c `TickActiveFactionTurn`, `ClearActiveFactionGrayedStates`; the four start-of-phase displays ending with empty target lists; `sub_8015434` | Unit state bits, turn/faction and proc tree per step f1510..1597 | EP-0 | todo |

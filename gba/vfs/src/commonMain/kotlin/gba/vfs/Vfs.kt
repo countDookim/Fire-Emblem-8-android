@@ -2,11 +2,12 @@ package gba.vfs
 
 /**
  * One read-only source of files addressed by normalised virtual paths such as `data/items.json`
- * or `maps/ch01.tmj`. Implementations: [DirectoryLayer] (dev overrides, unpacked mods), a zip
- * layer for packaged mods (milestone 7), and an Android-assets layer in `:app`.
+ * or `maps/ch01.tmj`. Implementations: [DirectoryLayer] (dev overrides, unpacked mods) and
+ * `AssetLayer` / the base layer in `:app`; a zip layer for packaged mods does not exist yet (M7
+ * per `MODDING.md`).
  */
 public interface VfsLayer {
-    /** Human-readable origin, e.g. `base`, `mod:com.example.hardmode@1.2.0`. */
+    /** Human-readable origin for diagnostics, e.g. `base`, `mod:com.example.hardmode@1.2.0`. */
     public val origin: String
 
     /** True if [path] exists in this layer. */
@@ -15,7 +16,10 @@ public interface VfsLayer {
     /** Reads the whole file at [path]. Only called after [exists] returned true. */
     public fun read(path: String): ByteArray
 
-    /** Lists files directly or recursively under [dir] (virtual paths). */
+    /**
+     * Lists the files under [dir], recursively (as [DirectoryLayer] does; callers such as
+     * `TextureOverrides` rely on that), as virtual paths; empty if [dir] does not exist.
+     */
     public fun list(dir: String): List<String>
 }
 
@@ -35,6 +39,7 @@ public class VfsFileNotFoundException(
  * compiled into primitive tables at load). See `docs/decisions/0003-mod-vfs.md`.
  */
 public class VirtualFileSystem {
+    /** Mounted layers, lowest priority first (index 0 is the base game). */
     private val layers = ArrayList<VfsLayer>()
 
     /** Layers in priority order, lowest first. */
@@ -52,19 +57,23 @@ public class VirtualFileSystem {
         return null
     }
 
-    /** Reads [path] from the highest-priority layer that has it. */
+    /** Reads [path] from the top-most layer that has it, else throws [VfsFileNotFoundException]. */
     public fun read(path: String): ByteArray =
         (resolve(path) ?: throw VfsFileNotFoundException(path)).read(normalize(path))
 
     /** Reads [path] as UTF-8 text. */
     public fun readText(path: String): String = read(path).decodeToString()
 
-    /** Union of files under [dir] across all layers, de-duplicated, sorted. */
+    /** Union of the files under [dir] across all layers (recursive), de-duplicated, sorted. */
     public fun list(dir: String): List<String> = layers.flatMap { it.list(dir) }.distinct().sorted()
 
     /** Path helpers shared by all layers. */
     public companion object {
-        /** Normalises a virtual path: forward slashes, no leading slash, no `.`/`..` escapes. */
+        /**
+         * Normalises a virtual path: backslashes become `/`, empty and `.` segments are dropped,
+         * `..` pops the previous segment, no leading slash. Throws [IllegalArgumentException] if
+         * a `..` would climb above the root (`docs/decisions/0003-mod-vfs.md`: `..` rejected).
+         */
         public fun normalize(path: String): String {
             val kept = ArrayList<String>()
             for (segment in path.replace('\\', '/').split('/')) {

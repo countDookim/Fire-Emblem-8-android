@@ -3,9 +3,9 @@ package gba.input
 import kotlin.concurrent.Volatile
 
 /**
- * On-screen GBA button overlay: the only touch input the product ships (decision
- * 0009). It emits exactly the GBA keys (bits in KEYINPUT order, as [VanillaButtonMap]), so game
- * logic cannot tell it from a gamepad.
+ * On-screen GBA button overlay: the only touch input the product ships
+ * (`docs/decisions/0009-vanilla-product-mod-groundwork.md`). It emits exactly the GBA keys (bits
+ * in KEYINPUT order, as [VanillaButtonMap]), so game logic cannot tell it from a gamepad.
  *
  * Platform-free so it is testable on the JVM: the Android view forwards pointer events here
  * and draws the rectangles from [layout]. Multi-touch: each pointer holds its own key mask;
@@ -19,14 +19,18 @@ public class TouchButtons : ActionSource {
     /** Union of every pointer's keys; volatile because the UI thread writes and the game polls. */
     @Volatile private var held: Long = 0L
 
-    /** Rectangles of the buttons, in view pixels, as `left, top, right, bottom` per [Button]. */
+    /**
+     * Rectangles of the buttons, in view pixels: four floats `left, top, right, bottom` per
+     * [Button], at index `button.ordinal * 4`. Filled by [resize].
+     */
     public val layout: FloatArray = FloatArray(Button.entries.size * 4)
 
     /**
      * Lays the buttons out for a view of [width] x [height] pixels (call on size or inset
      * change). The `inset*` arguments are the system bar / display cutout insets in pixels:
      * every button stays inside that safe area, with a margin, so nothing sits under a camera
-     * notch or the gesture bar (issue #3).
+     * notch or the gesture bar (issue #3 per the original comment; the tracker is not
+     * checked here).
      */
     public fun resize(
         width: Int,
@@ -74,7 +78,7 @@ public class TouchButtons : ActionSource {
         set(Button.START, mid + unit * 0.1f, bottom - unit * 0.7f, mid + unit * 2.1f, bottom)
     }
 
-    /** Pointer [id] went down or moved to ([x], [y]). Ids >= [MAX_POINTERS] are ignored. */
+    /** Pointer [id] went down or moved to ([x], [y]); ids >= [MAX_POINTERS] are ignored. */
     public fun pointerAt(id: Int, x: Float, y: Float) {
         if (id !in 0 until MAX_POINTERS) return
         pointerKeys[id] = keysAt(x, y)
@@ -142,7 +146,7 @@ public class TouchButtons : ActionSource {
         /** KEYINPUT bit of this button (unused for [DPAD]). */
         public val gbaBit: Int,
     ) {
-        /** Direction pad, a 3x3 grid (centre cell = no key). */
+        /** Direction pad, a 3x3 grid (centre cell = no key; corner cells = two keys). */
         DPAD(-1),
 
         /** A button. */
@@ -166,13 +170,22 @@ public class TouchButtons : ActionSource {
 
     /** Limits and KEYINPUT bit numbers. */
     public companion object {
-        /** Pointers tracked at once. */
+        /** Pointers tracked at once (extra ids are ignored). */
         public const val MAX_POINTERS: Int = 10
+
         /** Edge margin as a fraction of the layout unit. */
         private const val MARGIN = 0.4f
+
+        /** KEYINPUT bit of the d-pad Right key (`DPAD_RIGHT` 0x10, `include/gba/io_reg.h`). */
         private const val RIGHT = 4
+
+        /** KEYINPUT bit of the d-pad Left key (0x20). */
         private const val LEFT = 5
+
+        /** KEYINPUT bit of the d-pad Up key (0x40). */
         private const val UP = 6
+
+        /** KEYINPUT bit of the d-pad Down key (0x80). */
         private const val DOWN = 7
     }
 }

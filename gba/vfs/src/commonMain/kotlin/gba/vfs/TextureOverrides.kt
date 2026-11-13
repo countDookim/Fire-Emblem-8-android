@@ -3,8 +3,8 @@ package gba.vfs
 import gba.data.Crc32
 
 /**
- * One replacement texture found for an original asset (ADR 0008, "Texture packs vs palette
- * animation").
+ * One replacement texture found for an original asset (`docs/decisions/0008-render-model.md`,
+ * "Texture packs").
  *
  * @property path VFS path of the replacement image.
  * @property scale integer scale relative to the original (1..[TextureOverrides.MAX_SCALE]).
@@ -43,8 +43,9 @@ public data class TextureOverride(
  *   `<hash>`.
  *
  * When several candidates exist, the one in the highest-priority VFS layer wins (later mods
- * override earlier ones, as for every other file), then the larger scale. Load-time only; the
- * software renderer never uses overrides (it is the vanilla reference).
+ * override earlier ones, as for every other file); within one layer the larger scale wins.
+ * Load-time only; the software renderer never uses overrides (it is the vanilla reference; texture
+ * packs are mod-only, `docs/decisions/0008-render-model.md`).
  */
 public class TextureOverrides(private val vfs: VirtualFileSystem) {
     /** The override for original asset [assetPath] (e.g. `gfx/ui/cursors.png`), or null if none. */
@@ -88,7 +89,10 @@ public class TextureOverrides(private val vfs: VirtualFileSystem) {
         /** Largest supported replacement scale. */
         public const val MAX_SCALE: Int = 8
 
+        /** PNG colour type 3 = indexed (palette) image. */
         private const val PNG_INDEXED = 3
+
+        /** A palette hash as written by [paletteHash]: 8 lowercase hex digits. */
         private val HASH_RX = Regex("[0-9a-f]{8}")
 
         /**

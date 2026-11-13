@@ -365,8 +365,8 @@ class TitleScreenDifferentialTest {
         }
         val so = procAt(e0, SPRITES_SCRIPT)!!
         (engine.find(title.drawSpritesScript)!!.state as TitleScreen.SpritesState).apply {
-            unk4c = u16(e0, so + 0x4C).toShort().toInt()
-            unk52 = u16(e0, so + 0x52)
+            frameCounter = u16(e0, so + 0x4C).toShort().toInt()
+            glowPhase = u16(e0, so + 0x52)
         }
         var idle = 0
         var fade = 0

@@ -85,7 +85,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.title | 1 | 924 | done 2026-11-09 83f2cb6; audit done 2026-11-13 0efa0a2 |
 | game | fe8.game.ui (Popup, PopupScript, GotItemPopup) | 3 | 811 | done 2026-11-11 262e4fc; audit done 2026-11-13 b7e5b45 |
 | game | fe8.game.ui (Menu) | 1 | 811 | done 2026-11-11 262e4fc (MC-4a/MC-11 code since); audit todo |
-| game | fe8.game.ui (UiFrame, ItemIcon, UiHand, GreenText) | 4 | 672 | done 2026-11-11 262e4fc (MC-4a/MC-11 code since); audit todo |
+| game | fe8.game.ui (UiFrame, ItemIcon, UiHand, GreenText) | 4 | 672 | done 2026-11-11 262e4fc (MC-4a/MC-11 code since); audit in progress 2026-11-13 (Claude) |
 | game | fe8.game.worldmap (WorldMapRm, WorldMapRmBaPalAnim, WorldMapPaletteFade, WorldMapText, WorldMapTextFadeEvents) | 5 | 1519 | done 2026-11-12 8f6f480 |
 | game | fe8.game.worldmap (Nodes, WmNodeData, GmData, ApHost, Sms, Path, NodeIcons, Hblank, LineFade, Cursor, Beginning, Exit, MainScript; Text/Misc/Spawn/Face/BigMap events) | 18 | 2553 | done 2026-11-13 8dfd5f7 |
 | game | fe8.game.worldmap (UnitEvents, MuEntry, RmBorder, AutoMu, Dot, Route, Main) | 7 | 3097 | done 2026-11-13 5e95a34 |

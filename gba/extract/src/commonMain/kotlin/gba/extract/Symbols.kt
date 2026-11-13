@@ -1,8 +1,9 @@
 package gba.extract
 
 /**
- * Decomp ELF symbols parser for GNU `nm`-style symbol table dumps (`fireemblem8.nm.txt` in the ROM repo):
- * `ADDR [SIZE] TYPE NAME` per line with hexadecimal fields.
+ * Parser for GNU `nm`-style symbol table dumps of a decomp build (FE8 example:
+ * `fireemblem8.nm.txt` in the ROM repo, see docs/plans/M5-notes.md): `ADDR [SIZE] TYPE NAME` per
+ * line with hexadecimal fields. Lines with any other column count are skipped silently.
  *
  * Used during extraction to locate data tables in ROM by their decomp identifier, avoiding hard-coded
  * memory addresses. When assembly data labels lack an explicit size, [sizeOrSpan] determines size as
@@ -19,7 +20,7 @@ public class Symbols(lines: List<String>) {
         val size: Int,
     )
 
-    /** All symbols parsed from the input lines. */
+    /** One entry per input line that has 3 or 4 columns, in input order. */
     private val all: List<Symbol> = lines.mapNotNull { line ->
         val columns = line.trim().split(Regex("""\s+"""))
         when (columns.size) {
@@ -37,14 +38,17 @@ public class Symbols(lines: List<String>) {
         }
     }
 
-    /** Map of symbol names to all symbol definitions sharing that name. */
+    /** Every parsed line grouped by symbol name (a name can repeat; see [get]). */
     private val byName: Map<String, List<Symbol>> = all.groupBy { it.name }
 
-    /** Sorted unique symbol addresses used for span calculation. */
+    /** Distinct symbol addresses in unsigned order, for [sizeOrSpan]'s next-higher lookup. */
     private val sortedAddresses: IntArray = all.map { it.address }.distinct().sortedBy { it.toUInt() }.toIntArray()
 
     /**
      * Returns the unique symbol named [name].
+     *
+     * If the same name appears on several lines at one address, the entry with the largest size
+     * wins (an entry without a size, -1, loses to one with a size).
      *
      * @throws IllegalArgumentException if the symbol is missing or defined at multiple distinct addresses.
      */
@@ -69,8 +73,10 @@ public class Symbols(lines: List<String>) {
             .mapValues { (_, symbols) -> symbols.minOf { it.name } }
 
     /**
-     * Returns the size of [name] in bytes. If the symbol had no size in the ELF table, computes
-     * the span as the distance to the next symbol address.
+     * Returns the size of [name] in bytes. If the dump gave no size, returns the distance to the
+     * next higher symbol address, which also counts padding and any unlisted data in between.
+     *
+     * @throws IllegalArgumentException as [get]; also if no symbol lies above [name].
      */
     public fun sizeOrSpan(name: String): Int {
         val symbol = get(name)

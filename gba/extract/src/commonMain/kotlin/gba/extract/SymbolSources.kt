@@ -4,8 +4,8 @@ package gba.extract
  * Interface providing symbol addresses, table sizes, and decomp enum names needed during extraction.
  *
  * Decouples extraction logic from the underlying source:
- * - Desktop development: [RecordingSymbolSources] queries the decomp ELF directly and records
- *   every query into a compact manifest JSON.
+ * - Desktop development: [RecordingSymbolSources] wraps a source backed by the decomp's build
+ *   outputs and records every query into a compact manifest JSON.
  * - Device / runtime: [ManifestSymbolSources] answers queries from the pre-generated manifest JSON,
  *   enabling on-device extraction without shipping decomp headers or symbol tables.
  */
@@ -19,7 +19,10 @@ public interface SymbolSources {
     /** Returns names of all symbols starting with [prefix], sorted alphabetically. */
     public fun namesWithPrefix(prefix: String): List<String>
 
-    /** Returns address-to-name lookup map for ROM symbols. */
+    /**
+     * Returns the ROM symbol names by address. Only `get(address)` is guaranteed on every
+     * implementation; [ManifestSymbolSources] does not support iterating it.
+     */
     public fun romNamesByAddress(): Map<Int, String>
 
     /** Returns decomp enum value-to-name mapping from header [relPath] for enum constants matching [prefix]. */
@@ -31,10 +34,15 @@ public interface SymbolSources {
  * to produce a minimal JSON manifest of everything used during an extraction run.
  */
 public open class RecordingSymbolSources(private val inner: SymbolSources) : SymbolSources {
+    /** Symbols returned by [get], by name. */
     private val symbols = sortedMapOf<String, Symbols.Symbol>()
+    /** Results of [sizeOrSpan], by name. */
     private val spans = sortedMapOf<String, Int>()
+    /** Results of [namesWithPrefix], by prefix. */
     private val prefixes = sortedMapOf<String, List<String>>()
+    /** Per looked-up unsigned address, the name found or null; only point lookups are recorded. */
     private val romNames = sortedMapOf<Long, String?>()
+    /** Results of [enumNames], keyed `"<relPath> <prefix>"`. */
     private val enums = sortedMapOf<String, Map<Int, String>>()
 
     override fun get(name: String): Symbols.Symbol = inner[name].also { s -> symbols[name] = s }
@@ -44,6 +52,8 @@ public open class RecordingSymbolSources(private val inner: SymbolSources) : Sym
     override fun namesWithPrefix(prefix: String): List<String> =
         inner.namesWithPrefix(prefix).also { prefixes[prefix] = it }
 
+    // Returns a view that records each address looked up with `get`, so the manifest holds only
+    // the names the extractors really asked for rather than every ROM symbol.
     override fun romNamesByAddress(): Map<Int, String> {
         val underlying = inner.romNamesByAddress()
         return object : AbstractMap<Int, String>() {
@@ -92,13 +102,14 @@ public open class ManifestSymbolSources(json: String) : SymbolSources {
     protected val root: Map<*, *> = gba.data.JsonReader.parse(json) as Map<*, *>
 
     init {
+        // Same value as RecordingSymbolSources.MANIFEST_FORMAT_VERSION (integers parse as Long).
         require(root["format"] == 1L) { "unsupported manifest format ${root["format"]}" }
     }
 
-    /** Extracts a subsection map by [key] from the manifest root. */
+    /** Top-level manifest section [key]: `symbols`, `spans`, `prefixes`, `romNames` or `enums`. */
     private fun section(key: String): Map<*, *> = root[key] as Map<*, *>
 
-    /** Throws an error indicating that [what] was missing from the manifest. */
+    /** Fails with a "regenerate the manifest" message: [what] was never recorded. */
     protected fun missing(what: String): Nothing =
         throw IllegalArgumentException("$what not in the extraction manifest (regenerate it)")
 

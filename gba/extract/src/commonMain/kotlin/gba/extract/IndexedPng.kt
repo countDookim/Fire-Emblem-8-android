@@ -8,21 +8,22 @@ import gba.data.IndexedImage
  * Minimal PNG reader/writer for palette images (colour type 3, bit depth 8, with a `PLTE` chunk).
  *
  * Extracted GBA graphics must keep their **palette indices** exactly, not just their colours (two palette
- * slots can share a colour, and slot 0 is transparent on hardware), so this avoids `javax.imageio`, which
- * may remap or reorder palettes. zlib comes from the platform (the JDK on the JVM) and CRC-32 from [Crc32].
+ * slots can share a colour, and slot 0 is transparent on hardware: a hardware fact, not checked
+ * here), so this avoids `javax.imageio`, which may remap palettes (not checked here). zlib comes
+ * from the platform (the JDK on the JVM) and CRC-32 from [Crc32].
  *
  * Reading accepts what this writer produces plus what common editors save for 8-bit palette PNGs: any
  * scanline filter, split `IDAT`s, and ancillary chunks (ignored). Interlacing and bit depths other than 8
  * are rejected with a clear error rather than mis-decoded.
  */
 public object IndexedPng {
-    /** Standard 8-byte PNG magic signature: `\x89 P N G \r \n \x1A \n`. */
+    /** The 8-byte PNG file signature (0x89, "PNG", CR LF, 0x1A, LF). */
     private val SIGNATURE = byteArrayOf(
         0x89.toByte(), 'P'.code.toByte(), 'N'.code.toByte(), 'G'.code.toByte(),
         13, 10, 26, 10,
     )
 
-    /** IHDR chunk length in bytes (13 bytes: 4 width, 4 height, 1 depth, 1 color type, 1 comp, 1 filter, 1 interlace). */
+    /** IHDR data length: width 4, height 4, then five 1-byte fields. */
     private const val IHDR_DATA_LENGTH = 13
 
     /** PNG colour type 3: indexed colour with palette. */
@@ -40,7 +41,7 @@ public object IndexedPng {
     /** PNG interlace method 0: no interlace. */
     private const val INTERLACE_NONE = 0
 
-    /** PNG filter types (RFC 2083 section 6). */
+    /** PNG scanline filter types 0..4: None, Sub, Up, Average, Paeth. */
     private const val FILTER_NONE = 0
     private const val FILTER_SUB = 1
     private const val FILTER_UP = 2
@@ -55,7 +56,7 @@ public object IndexedPng {
 
     /** A decoded PNG: the index image and its palette as opaque ARGB8888. */
     public class Decoded(
-        /** Pixel indices in the image. */
+        /** Palette index of every pixel. */
         public val image: IndexedImage,
         /** Palette entries, ARGB8888 with alpha 0xFF (PNG `tRNS` is ignored). */
         public val palette: IntArray,
@@ -77,7 +78,7 @@ public object IndexedPng {
         val out = ByteSink()
         out.write(SIGNATURE)
 
-        // IHDR Chunk: width (4), height (4), bit depth (1), color type (1), compression (1), filter (1), interlace (1)
+        // IHDR chunk: width, height, bit depth, colour type, compression, filter, interlace
         val ihdr = ByteSink()
         ihdr.writeInt(image.width)
         ihdr.writeInt(image.height)
@@ -110,7 +111,8 @@ public object IndexedPng {
     }
 
     /**
-     * Decodes PNG [bytes] that are 8-bit palette images.
+     * Decodes PNG [bytes] that are 8-bit palette images. The palette may be shorter than 256, and
+     * pixel indices are not checked against its size.
      *
      * @throws IllegalArgumentException on a bad signature or CRC, an unsupported format, or truncated data.
      */
@@ -195,7 +197,7 @@ public object IndexedPng {
         }
     }
 
-    /** Computes the Paeth predictor from adjacent decoded bytes: [a] (left), [b] (above), and [c] (upper-left). */
+    /** PNG Paeth predictor of the neighbours [a] (left), [b] (above), [c] (upper left). */
     private fun paeth(a: Int, b: Int, c: Int): Int {
         val p = a + b - c
         val pa = kotlin.math.abs(p - a)
@@ -211,7 +213,7 @@ public object IndexedPng {
             ((b[off + 2].toInt() and 0xFF) shl 8) or
             (b[off + 3].toInt() and 0xFF)
 
-    /** Appends a complete PNG chunk (length, 4-char type, data, CRC) to [out]. */
+    /** Appends one PNG chunk (big-endian length, type, [data], CRC) to [out]. */
     private fun chunk(out: ByteSink, type: String, data: ByteArray) {
         val t = type.encodeToByteArray()
         out.writeInt(data.size)
@@ -220,7 +222,7 @@ public object IndexedPng {
         out.writeInt(crcOf(t, data))
     }
 
-    /** Computes the CRC-32 of a PNG chunk over its [type] and [data] payloads. */
+    /** CRC-32 stored in a PNG chunk: over the type bytes then [data], not the length. */
     private fun crcOf(type: ByteArray, data: ByteArray): Int {
         val crc = Crc32()
         crc.update(type)

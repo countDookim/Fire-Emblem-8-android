@@ -4,10 +4,10 @@ import java.io.ByteArrayOutputStream
 import java.util.zip.Deflater
 import java.util.zip.Inflater
 
-/** Buffer size used when deflating zlib stream chunks. */
+/** Size of the scratch buffer [zlibDeflate] drains the compressor into. */
 private const val ZLIB_BUFFER_SIZE = 8192
 
-/** JVM implementation of zlib deflate compression using [java.util.zip.Deflater]. */
+/** JVM [zlibDeflate] using [java.util.zip.Deflater] with a zlib header. */
 internal actual fun zlibDeflate(raw: ByteArray): ByteArray {
     val deflater = Deflater(Deflater.BEST_COMPRESSION)
     deflater.setInput(raw)
@@ -22,7 +22,7 @@ internal actual fun zlibDeflate(raw: ByteArray): ByteArray {
     return sink.toByteArray()
 }
 
-/** JVM implementation of zlib inflate decompression using [java.util.zip.Inflater]. */
+/** JVM [zlibInflate] using [java.util.zip.Inflater]; an `inflate` result of 0 means truncated. */
 internal actual fun zlibInflate(z: ByteArray, out: ByteArray) {
     val inflater = Inflater()
     inflater.setInput(z)

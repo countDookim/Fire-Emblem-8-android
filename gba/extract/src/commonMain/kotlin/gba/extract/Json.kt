@@ -3,8 +3,9 @@ package gba.extract
 /**
  * Tiny deterministic JSON writer for extractor output (zero external serialization dependencies).
  *
- * Supported values: `null`, [Boolean], [Int]/[Long], [String], [List], and [Map] with [String] keys.
- * Map insertion order is strictly preserved so extractor output produces clean, deterministic diffs.
+ * Supported values: `null`, [Boolean], [Int]/[Long], [String], [List], and [Map] with [String]
+ * keys; anything else (including floating point) throws [IllegalArgumentException]. Map
+ * iteration order is kept as given so extractor output gives stable diffs (use an ordered map).
  * Objects and lists whose elements are all scalars are written compactly on a single line;
  * complex structures are indented by two spaces per nesting level.
  */
@@ -81,7 +82,10 @@ public object Json {
         repeat(n) { sb.append(' ') }
     }
 
-    /** Appends quoted and escaped string [s] to [sb]. */
+    /**
+     * Appends [s] to [sb] as a JSON string: escapes quote, backslash and newline, and writes every
+     * other character below U+0020 as a `\uXXXX` escape. Other characters are written as is.
+     */
     private fun emitString(sb: StringBuilder, s: String) {
         sb.append('"')
         for (c in s) {

@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 191 across 38 Kotlin files.
+Total entries: 190 across 38 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -25,13 +25,13 @@ Total entries: 191 across 38 Kotlin files.
 | M6-J | 8 |
 | D09-3 | 2 |
 | D11-wire-a | 2 |
-| MC-12a | 3 |
-| MC-12b | 2 |
+| MC-12b | 3 |
 | MC-13 | 1 |
 | MC-14 | 1 |
 | MC-4 | 4 |
 | MC-6 | 1 |
 | MC-8b | 1 |
+| PC-10 | 1 |
 | PP-10 | 1 |
 | PP-17 | 1 |
 | PP-9 | 1 |
@@ -266,18 +266,11 @@ Total entries: 191 across 38 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `fadeOutSe` | `Sound_FadeOutSE(speed)`: stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet; the Prologue leaves through the other branch of `destruct`). |
 
-## MC-12a (3)
+## MC-12b (3)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wireAttackSelect` | The battle forecast window is drawn (its slide onto the screen is MC-12a); A on a target ends the unit's turn like Wait (stand-in until MC-13, no battle). |
-| `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | `drawSlide` | Stand-in until MC-12a: nothing is drawn. |
-| `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | `tutorialPending` | Stand-in until MC-12a: no tutorial event runs. |
-
-## MC-12b (2)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wireAttackSelect` | The battle forecast window slides in and shows its numbers (its arrows and multipliers are MC-12b); A on a target ends the unit's turn like Wait (stand-in until MC-13, no battle). |
 | `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `startForecastHelp` | Stand-in until MC-12b: nothing happens (the selection's `onHelp`). |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | `putDisplay` | Stand-in until MC-12b: nothing is drawn. |
 
@@ -313,6 +306,12 @@ Total entries: 191 across 38 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | `checkTriangleAttack` | Stand-in until MC-8b: always false. |
+
+## PC-10 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | `tutorialPending` | Stand-in until PC-10 (the Easy-mode tutorial): no tutorial event runs. |
 
 ## PP-10 (1)
 

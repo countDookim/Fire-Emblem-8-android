@@ -405,6 +405,22 @@ runs one frame behind the dump index after it; the test skips one engine run at 
 frame is dump start + 7; cancel (B at 1699) goes to label 1 and the slide-out ends the proc at 1704; A ends it at once
 (1820). The ballista and obstacle forecasts and the cap3 and kill runs are not covered.
 
+### MC-12a result
+
+`BattleForecast` loops now write BG 0 and 1: `BattleForecast_LoopSlideIn` and `_LoopSlideOut` (one private
+`slideStep`, they differ in the offset table: 6, 8, 9, 10 and 9, 8, 6, 0) clear both tilemaps, copy the panel's
+columns from the scratch tilemaps and flag sync; `_OnNewBattle`, `_LoopDisplay`, `MapEventEngineExists_` are
+Ported. `TargetSelectionDifferentialTest` (`ram_trace_prologue_attack_noanim`, windows f1659..1704 and
+f1789..1820) now compares the BG 0 and 1 tilemaps and the BG 0 and 1 offsets per dump from start + 2, through
+the slide in, the display and (first window) the slide out to dump 1703 (1704 is the weapon list reopening). At
+A (second window) the menu proc's `MENU_ACT_CLEAR` clears BG 0 and 1; the test does that itself. Break-checked:
+x (left branch), slide-in table, slide-out table (two entries), BG 1 destination, BG fill value, frame count,
+`MapEventEngineExists_` always true; all fail. Not verified (the panel is on the left in both windows): the
+right-side branches (x = 20, copy to column 30 - offset). `PutBattleForecastTilemaps` is Transcribed (only a
+contents redraw calls it); `TriggerBattleForcastToturialEvent` stays Transcribed, its hook `tutorialPending`
+is a stand-in until PC-10. The sprite work and help box stay MC-12b / M6-F. `eventEngineExists` is wired
+in `PlayerPhaseWiring`.
+
 ### MC-11 result
 
 `BattleForecast` now draws the standard panel (hooks `initDrawing`, `drawContents`, `initFramePalettes`,

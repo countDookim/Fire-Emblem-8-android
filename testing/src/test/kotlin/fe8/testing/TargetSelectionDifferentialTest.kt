@@ -25,6 +25,7 @@ import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitTable
 import fe8.game.text.Fe8Text
 import fe8.game.ui.ItemIcon
+import fe8.game.ui.UiFrame
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
 import gbafe.core.mechanics.Mechanics
@@ -70,8 +71,10 @@ import java.io.File
  * and palette dumps `f` every 10 frames): the two scratch tilemaps (`gUiTmScratchA` and `B`), the
  * icon palette steps (`gBkselPals`), the label and name text structs, palettes 1, 2, 0x12 and
  * (before the display flash) 3, BG 1's vertical offset, the text tiles, the panel's tile graphic
- * and the icon tiles. Not compared: the BG 0 and 1 tilemaps (the slide, MC-12a), the sprites and
- * palettes 3 and 4 of the display (MC-12b) and palette 5 (the range squares').
+ * and the icon tiles. From the first dump after the start (set-up frames included) the BG 0 and 1
+ * tilemaps and BG 0 and 1's offsets (the slide in, the display and the slide out, MC-12a) are
+ * compared too. Not compared: the sprites and palettes 3 and 4 of the display (MC-12b) and
+ * palette 5 (the range squares').
  */
 class TargetSelectionDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -94,6 +97,8 @@ class TargetSelectionDifferentialTest {
         "DrawBattleForecastContentsStandard", "GetFactionBattleForecastFramePalette",
         "InitBattleForecastFramePalettes", "Copy2dChr", "InitTextDb", "PutNumberTwoChr",
         "PutTwoSpecialChar", "PutDrawText", "GetStringTextCenteredPos", "Text_InsertDrawString",
+        "BattleForecast_OnNewBattle", "BattleForecast_LoopSlideIn", "BattleForecast_LoopDisplay",
+        "BattleForecast_LoopSlideOut", "MapEventEngineExists_",
     )
     fun `the target selection follows the game from the pick to B and to A`() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
@@ -149,6 +154,7 @@ class TargetSelectionDifferentialTest {
         val forecast: BattleForecast
         val sounds = ArrayList<Int>()
         var proc: Proc? = null
+        var menuCleared = false
 
         /** The dump that holds the forecast's set-up frame half run (the second selection). */
         val partial = if (start == SECOND_START) start + 2 else -1
@@ -223,6 +229,11 @@ class TargetSelectionDifferentialTest {
             bm.lock = (bm.lock - 1) and 0xFF
             for (i in 0 until 0x40) script[i] = e[WORKING_SCRIPT - EWRAM + i].toInt() and 0xFF
             for (k in 0 until 0x400) hw.mapBuffer(2)[k] = half(e, BG2 - EWRAM + 2 * k).toShort()
+            for (bg in 0 until 2) {
+                for (k in 0 until 0x400) {
+                    hw.mapBuffer(bg)[k] = half(e, BG0 + 0x800 * bg - EWRAM + 2 * k).toShort()
+                }
+            }
             val a = ACTION_DATA - EWRAM
             active.action.subjectIndex = e[a + 0x0C].toInt() and 0xFF
             active.action.targetIndex = e[a + 0x0D].toInt() and 0xFF
@@ -277,6 +288,12 @@ class TargetSelectionDifferentialTest {
                 attack.makeTargetListForWeapon(active.unit, units.item(active.unit, 0))
                 proc = selection.newTargetSelection(select)
             }
+            if (selects == 1 && !menuCleared) {
+                // The menu proc `MENU_ACT_CLEAR` of the select (not run here, the weapon list's
+                // menu is another test's) clears BG 0 and 1 as the forecast ends.
+                menuCleared = true
+                UiFrame.clearBg0Bg1(hw)
+            }
             compare(d, f)
         }
 
@@ -306,6 +323,8 @@ class TargetSelectionDifferentialTest {
             val limit = if (start == FIRST_START) B_FRAME + 1 else A_FRAME + 1
             if (d > start && d <= limit) compareBattle(d, e, at)
             if (d >= start + 2 && d != partial && d <= limit) compareDrawing(d, e, original, at)
+            // The slide out after B: BG 0 and 1 until the weapon list takes the screen back.
+            if (start == FIRST_START && d > limit && d <= SLIDE_OUT_END) compareBgs(d, e, at)
         }
 
         /**
@@ -314,8 +333,7 @@ class TargetSelectionDifferentialTest {
          * the icon palette 3 (until the display's flash, MC-12b, takes it over; palette 4 is
          * that flash's and palette 5 the range squares'), BG 1's offset and, in the dumps that have
          * VRAM, the text tiles, the panel's
-         * tile graphic and the icon tiles. Not compared: the BG 0 and 1 tilemaps the slide fills
-         * (MC-12a).
+         * tile graphic and the icon tiles.
          */
         private fun compareDrawing(
             d: Int,
@@ -356,9 +374,7 @@ class TargetSelectionDifferentialTest {
                     "$at palette colour 0x${k.toString(16)}",
                 )
             }
-            val lcd = LcdControl()
-            lcd.readFrom(iwram(d), LCD_BUFFER - IWRAM)
-            assertEquals(lcd.bgVofs[1], hw.lcd.bgVofs[1], "$at BG 1 vertical offset")
+            compareBgs(d, e, at)
             if (!names.getValue(d).startsWith("f")) return
             val vram = data.region(names.getValue(d), "vram")
             for (slot in 0 until text.activeFont.chrCounter) {
@@ -379,6 +395,23 @@ class TargetSelectionDifferentialTest {
                 for (a in from until from + ItemIcon.ICON_BYTES) {
                     assertEquals(
                         vram[a], hw.vram[a], "$at icon slot $slot byte 0x${a.toString(16)}",
+                    )
+                }
+            }
+        }
+
+        /** BG 0 and 1: the tilemap buffers the slide steps write, and the BG offsets. */
+        private fun compareBgs(d: Int, e: ByteArray, at: String) {
+            val lcd = LcdControl()
+            lcd.readFrom(iwram(d), LCD_BUFFER - IWRAM)
+            for (bg in 0 until 2) {
+                assertEquals(lcd.bgHofs[bg], hw.lcd.bgHofs[bg], "$at BG $bg horizontal offset")
+                assertEquals(lcd.bgVofs[bg], hw.lcd.bgVofs[bg], "$at BG $bg vertical offset")
+                for (k in 0 until 0x400) {
+                    assertEquals(
+                        half(e, BG0 + 0x800 * bg - EWRAM + 2 * k),
+                        hw.mapBuffer(bg)[k].toInt() and 0xFFFF,
+                        "$at BG $bg tilemap[$k]",
                     )
                 }
             }
@@ -540,9 +573,11 @@ class TargetSelectionDifferentialTest {
         const val CANCEL_SCRIPT = 0x0859B630
         const val WORKING_SCRIPT = 0x02033EFC
         const val ACTION_DATA = 0x0203A958
+        const val BG0 = 0x02022CA8
         const val BG2 = 0x02023CA8
         const val SECOND_START = 1789
         const val A_FRAME = 1819
+        const val SLIDE_OUT_END = 1703
 
         fun half(b: ByteArray, at: Int) =
             (b[at].toInt() and 0xFF) or ((b[at + 1].toInt() and 0xFF) shl 8)

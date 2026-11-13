@@ -31,8 +31,8 @@ import gbafe.text.TextSystem
  * Only the standard layout (`battleForecastType` 0) and the path the Prologue capture takes are
  * written. The panel is drawn into the two scratch tilemaps ([tilemapA], [tilemapB], the
  * original's `gUiTmScratchA` and `B`), the text strips and number tiles in VRAM and the frame and
- * icon palettes; copying the panel onto BG 0 and 1 (the slide) and the arrows are [Hooks] entries
- * (MC-12). Never run by the capture and not written: the extended layout
+ * icon palettes; the slide copies it onto BG 0 and 1; the arrows are a [Hooks] entry
+ * (MC-12b). Never run by the capture and not written: the extended layout
  * (`DrawBattleForecastContentsExtended`, `PutBattleForecastTilemaps`), the help box
  * (`StartBattleForecastHelpBox`), the ballista and obstacle forecasts.
  */
@@ -126,13 +126,6 @@ public class BattleForecast(
         public var eventEngineExists: () -> Boolean = { false }
 
         /**
-         * The tilemap copy of `BattleForecast_LoopSlideIn` and `_LoopSlideOut`: the panel's BG 0
-         * and 1 rows ([tilemapA], [tilemapB]) for this step of the slide. Stand-in until
-         * MC-12a: nothing is drawn.
-         */
-        public var drawSlide: (State) -> Unit = {}
-
-        /**
          * The arrows, multipliers and palette flash of `BattleForecast_LoopDisplay`. Stand-in
          * until MC-12b: nothing is drawn.
          */
@@ -140,7 +133,7 @@ public class BattleForecast(
 
         /**
          * `CheckBattleForecastTutorialEvent` is 1 (the first forecast of the tutorial chapter).
-         * Stand-in until MC-12a: no tutorial event runs.
+         * Stand-in until PC-10 (the Easy-mode tutorial): no tutorial event runs.
          */
         public var tutorialPending: () -> Boolean = { false }
     }
@@ -165,7 +158,7 @@ public class BattleForecast(
             sleep(0),
             call(ProcFunc { forecastInit(it.state as State) }),
             label(0),
-            whileTrue(ProcBoolFunc { hooks.eventEngineExists() }),
+            whileTrue(ProcBoolFunc { mapEventEngineExists() }),
             call(ProcFunc { onNewBattle(it.state as State) }),
             repeat(ProcFunc { loopSlideIn(it) }),
             call(ProcFunc { triggerTutorial() }),
@@ -178,6 +171,13 @@ public class BattleForecast(
         ),
         newState = { State() },
     )
+
+    /**
+     * Ported from src/bksel.c: MapEventEngineExists_
+     *
+     * Whether an event runs ([Hooks.eventEngineExists]); the proc waits while one does.
+     */
+    private fun mapEventEngineExists(): Boolean = hooks.eventEngineExists()
 
     /** `Proc_Find(gProcScr_BKSEL)`. */
     public fun find(): Proc? = engine.find(script)
@@ -600,10 +600,11 @@ public class BattleForecast(
     }
 
     /**
-     * Partially ported from src/bksel.c: BattleForecast_OnNewBattle
+     * Ported from src/bksel.c: BattleForecast_OnNewBattle
      *
      * The proc's fields for a new forecast: contents, the side (the panel slides in from it),
-     * the slide counter and the position, and colours the frame.
+     * the slide counter and the position, and colours the frame (not verified: the right side's
+     * position 20, the capture's panel is on the left).
      */
     private fun onNewBattle(state: State) {
         drawBattleForecastContents(state)
@@ -619,13 +620,60 @@ public class BattleForecast(
     }
 
     /**
-     * Partially ported from src/bksel.c: BattleForecast_LoopSlideIn
+     * Transcribed from src/bksel.c: PutBattleForecastTilemaps (not verified: only a redraw of
+     *   the contents puts the whole panel, and the capture never changes the target)
      *
-     * Counts the four slide steps (the tile copy is [Hooks.drawSlide]) and ends the step.
+     * Copies the whole panel from the scratch tilemaps onto BG 0 and 1 at its side and flags
+     * both for sync.
      */
-    private fun loopSlideIn(proc: Proc) {
+    private fun putBattleForecastTilemaps(state: State) {
+        val height = if (state.frameKind == 1) 16 else 20
+        val at = if (state.side < 0) 0 else 20
+
+        copyRect(tilemapA, 0, hardware.mapBuffer(0), at, 10, height)
+        copyRect(tilemapB, 0, hardware.mapBuffer(1), at, 10, height)
+
+        hardware.enableBgSyncByMask(3)
+    }
+
+    /**
+     * `TileMap_CopyRect`: copies [w] by [h] entries from [src] at [from] to [dst] at [to], the
+     * rows 32 entries apart.
+     */
+    private fun copyRect(src: ShortArray, from: Int, dst: ShortArray, to: Int, w: Int, h: Int) {
+        for (row in 0 until h) {
+            val start = from + row * 0x20
+            src.copyInto(dst, to + row * 0x20, start, start + w)
+        }
+    }
+
+    /**
+     * The step of `BattleForecast_LoopSlideIn` and `_LoopSlideOut` (they differ in [lut] only):
+     * clears BG 0 and 1, puts as many columns of the panel as the [lut] entry says at the screen
+     * edge of its side (the panel's last columns at the left edge, its first at the right), and
+     * counts the four steps (not verified: the right side, the capture's panel is on the left).
+     */
+    private fun slideStep(proc: Proc, lut: IntArray) {
         val state = proc.state as State
-        hooks.drawSlide(state)
+        val height = if (state.frameKind == 1) 16 else 20
+
+        val bg0 = hardware.mapBuffer(0)
+        val bg1 = hardware.mapBuffer(1)
+
+        hardware.fill(bg0, 0)
+        hardware.fill(bg1, 0)
+
+        hardware.enableBgSyncByMask(3)
+
+        val offset = lut[state.slideOffset]
+
+        if (state.side < 0) {
+            copyRect(tilemapA, 10 - offset, bg0, 0, offset, height)
+            copyRect(tilemapB, 10 - offset, bg1, 0, offset, height)
+        } else {
+            copyRect(tilemapA, 0, bg0, 30 - offset, offset, height)
+            copyRect(tilemapB, 0, bg1, 30 - offset, offset, height)
+        }
 
         state.slideOffset++
 
@@ -636,20 +684,29 @@ public class BattleForecast(
     }
 
     /**
-     * Partially ported from src/bksel.c: BattleForecast_LoopSlideOut
+     * Ported from src/bksel.c: BattleForecast_LoopSlideIn
      *
-     * Counts the four slide steps (the tile copy is [Hooks.drawSlide]) and ends the step.
+     * Four steps: the panel comes in from its side, 6, 8, 9 and 10 columns wide.
      */
-    private fun loopSlideOut(proc: Proc) {
-        loopSlideIn(proc)
+    private fun loopSlideIn(proc: Proc) {
+        slideStep(proc, SLIDE_IN_LUT)
     }
 
     /**
-     * Partially ported from src/bksel.c: BattleForecast_LoopDisplay
+     * Ported from src/bksel.c: BattleForecast_LoopSlideOut
+     *
+     * Four steps: the panel goes out again, 9, 8, 6 and 0 columns wide.
+     */
+    private fun loopSlideOut(proc: Proc) {
+        slideStep(proc, SLIDE_OUT_LUT)
+    }
+
+    /**
+     * Ported from src/bksel.c: BattleForecast_LoopDisplay
      *
      * Every frame: counts it, and when the contents need an update (not verified: the capture
-     * never changes the target) redraws them, or ends the step when the panel must change side.
-     * The arrows and flashes are [Hooks.putDisplay].
+     * never changes the target) redraws them and puts the panel, or ends the step when the
+     * panel must change side. The arrows and flashes are [Hooks.putDisplay].
      */
     private fun loopDisplay(proc: Proc) {
         val state = proc.state as State
@@ -664,6 +721,7 @@ public class BattleForecast(
             }
 
             drawBattleForecastContents(state)
+            putBattleForecastTilemaps(state)
             initBattleForecastFramePalettes()
         }
 
@@ -674,10 +732,10 @@ public class BattleForecast(
 
     /**
      * Transcribed from src/bksel.c: TriggerBattleForcastToturialEvent (not verified: the capture
-     *   starts no tutorial event)
+     *   starts no tutorial event, so no mutation changes captured data)
      *
      * Starts the forecast tutorial event when it is due ([Hooks.tutorialPending]); the event
-     * itself is not written.
+     * itself (and the key mask change before it) is not written.
      */
     private fun triggerTutorial() {
         hooks.tutorialPending()
@@ -760,5 +818,7 @@ public class BattleForecast(
         val LABEL_STRINGS = intArrayOf(0x503, 0x4F4, 0x501, 0x4F3, 0x4EF, 0x504)
         const val MIDDLE_X = 0x70
         const val SLIDE_STEPS = 4
+        val SLIDE_IN_LUT = intArrayOf(6, 8, 9, 10)
+        val SLIDE_OUT_LUT = intArrayOf(9, 8, 6, 0)
     }
 }

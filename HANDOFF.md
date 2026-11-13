@@ -11,7 +11,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- Readability bm Mu lines 1-462: owner PC, until ~22:10Z
+- Readability bm Mu lines 463-997: owner PC, until ~22:15Z
 
 ## Current state
 

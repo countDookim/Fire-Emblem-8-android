@@ -90,7 +90,7 @@ their old counts); new packages get a row when they appear.
 | gba/core | gba.core.event | 2 | 116 | done 2026-11-07 697847c; audit done 2026-11-13 f9ac038 |
 | gba/core | gba.core.sram | 5 | 412 | done 2026-11-07 1b2b121; audit done 2026-11-13 f9ac038 |
 | gba/core | gba.core.time | 2 | 133 | done 2026-11-07 697847c; audit done 2026-11-13 f9ac038 |
-| gba/data | gba.data | 7 | 762 | done 2026-11-09 19d121b; audit done 2026-11-13 PENDING |
+| gba/data | gba.data | 7 | 762 | done 2026-11-09 19d121b; audit done 2026-11-13 5a32978 |
 | gba/extract | gba.extract | 9 | 572 | done 2026-11-09 19d121b; audit todo |
 | gba/input | gba.input | 3 | 432 | done 2026-11-07 52e07f0; audit done 2026-11-13 fcba338 |
 | gba/render | gba.render | 10 | 1388 | done 2026-11-09 83f2cb6; audit done 2026-11-12 abaf60c |

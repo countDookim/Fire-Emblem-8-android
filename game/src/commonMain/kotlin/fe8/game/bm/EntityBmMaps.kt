@@ -6,7 +6,10 @@ import fe8.game.bm.StructCodec.u8
 
 /**
  * Refreshes the entity-dependent battle map pools of [map] (`gBmMapUnit`, `gBmMapFog`,
- * `gBmMapHidden`) from the units in [units] and the fog setting of [playSt].
+ * `gBmMapHidden`) from the units in [units] and the fog setting of [playSt]: who stands where,
+ * which tiles the player's units can see, and which enemy units are hidden by fog. The game
+ * redoes this after anything that moves or removes units or changes the fog (the end of a unit
+ * action, an event that places units or sets the fog vision).
  *
  * Stand-ins until M6-H: the trap-dependent parts of src/bmmap.c, `RefreshTorchlightsOnBmMap` and
  * `RefreshMinesOnBmMap` (they read the bmtrick.c trap pool, not ported yet), are the hooks
@@ -16,9 +19,12 @@ import fe8.game.bm.StructCodec.u8
 public class EntityBmMaps(
     /** The map whose pools are refreshed. */
     private val map: BmMap,
-    /** The unit arrays read, and whose `state` bits 8 and 9 are updated. */
+    /** The unit arrays read, and whose `state` bits 8 (seen) and 9 (in fog) are updated. */
     private val units: UnitTable,
-    /** Source of `chapterVisionRange` (fog) and `faction`. */
+    /**
+     * Source of `chapterVisionRange` (the base vision radius in tiles, 0 for a chapter without
+     * fog) and `faction` (the phase running).
+     */
     private val playSt: PlaySt,
     /** Stand-in (M6-H) for `RefreshTorchlightsOnBmMap`, called between clears and unit pass. */
     public var refreshTorchlightsOnBmMap: () -> Unit = {},
@@ -29,8 +35,9 @@ public class EntityBmMaps(
      * Partially ported from src/bmmap.c: RefreshEntityBmMaps. Missing: the torchlight and mine
      * passes are the [refreshTorchlightsOnBmMap] / [refreshMinesOnBmMap] hooks (traps).
      *
-     * Clears the unit and hidden maps with 0 and the fog map with 1 (no fog) or 0 (fog), then
-     * runs the torchlight hook, [refreshUnitsOnBmMap] and the mine hook.
+     * Clears the unit and hidden maps with 0 and the fog map with 1 (visible, no fog in the
+     * chapter) or 0 (hidden, fog), then runs the torchlight hook (which lights fog around
+     * torch traps), [refreshUnitsOnBmMap] and the mine hook (which marks hidden mines).
      */
     public fun refreshEntityBmMaps() {
         map.bmMapFill(map.unit, 0)
@@ -45,11 +52,17 @@ public class EntityBmMaps(
     /**
      * Ported from src/bmmap.c: RefreshUnitsOnBmMap
      *
-     * Puts every visible blue/green unit on the unit map and, with fog, lights the fog map around
-     * it; then handles the red/purple units: magic-seal units darken the fog map, and fogged
-     * units are kept off the unit map (marked hidden) unless it is the red phase. Updates the
-     * unit `state` bits 8 (seen) and 9 (hidden by fog). Adds to the working map, which must be
-     * the fog map (the last [BmMap.bmMapFill] of [refreshEntityBmMaps]).
+     * Puts every blue/green unit that is not `US_HIDDEN` on the unit map and, with fog, lights
+     * the fog map around it (adds 1 within its vision radius). Then it handles the red units
+     * (ids 0x81..0xBF) and the link arena (purple) units 0xC1..0xC5: a unit with `CA_MAGICSEAL`
+     * subtracts 1 from the fog map within 10 tiles (the decomp comment: this probably only
+     * exists for the alternate map palette), and outside the enemy phase a red unit in fog is
+     * not put on the unit map; it is marked in the hidden map (`HIDDEN_BIT_UNIT`) and gets state
+     * bit 9, while a visible one is put on the unit map and swaps bit 9 for bit 8 if it had it
+     * (it came into view). During the enemy phase all of them go on the unit map and bit 9
+     * follows the fog (bit 8 is never set then). Updates the unit `state` bits 8 and 9 (named
+     * only `US_BIT8`/`US_BIT9` in the decomp). Adds to the working map, which must be the fog
+     * map (the last [BmMap.bmMapFill] of [refreshEntityBmMaps]).
      */
     public fun refreshUnitsOnBmMap() {
         val hasFog = playSt.chapterVisionRange != 0
@@ -97,7 +110,8 @@ public class EntityBmMaps(
      * Ported from src/bmidoten.c: MapAddInRange
      *
      * Adds [value] to every tile of the working map ([BmMap.workingMap]) within manhattan
-     * distance [range] of ([x], [y]), clipped to the map (bytes wrap).
+     * distance [range] of ([x], [y]), clipped to the map (bytes wrap): a diamond, used here for
+     * unit vision (+1) and magic seal fields (-1).
      */
     public fun mapAddInRange(x: Int, y: Int, range: Int, value: Int) {
         val pool = checkNotNull(map.workingMap) { "no working map" }
@@ -117,7 +131,10 @@ public class EntityBmMaps(
         }
     }
 
-    /** Adds [value] across a horizontal span centered at [centerX] with half-width [rowRadius]. */
+    /**
+     * Adds [value] across one row of the diamond of [mapAddInRange]: the span centered at
+     * [centerX] with half-width [rowRadius] (`2 * rowRadius + 1` tiles), clipped to the map.
+     */
     private fun addRow(pool: BmMap.Pool, rowY: Int, centerX: Int, rowRadius: Int, value: Int) {
         var xMin = centerX - rowRadius
         var spanWidth = 2 * rowRadius + 1
@@ -131,8 +148,9 @@ public class EntityBmMaps(
     }
 
     /**
-     * Computes the effective vision range for unit [unitId] at [unitOffset] (`GetUnitFogViewRange`, src/bmunit.c).
-     * Includes chapter base vision, +5 vision bonus for thieves ([CA_THIEF]), and remaining torch item duration.
+     * `GetUnitFogViewRange` (src/bmunit.c): how many tiles the unit [unitId] at [unitOffset]
+     * sees in fog: the chapter's base vision, +5 for a unit with [CA_THIEF], plus the turns left
+     * on its torch (`torchDuration`, the low 4 bits of the byte at 0x31).
      */
     private fun fogViewRange(unitId: Int, unitOffset: Int): Int {
         var result = playSt.chapterVisionRange
@@ -140,7 +158,10 @@ public class EntityBmMaps(
         return result + (u8(units.bytes, unitOffset + OFF_TORCH) and 0xF)
     }
 
-    /** True if the unit struct at byte offset [unitOffset] is valid and has a non-null character pointer. */
+    /**
+     * `UNIT_IS_VALID`: the unit struct at byte offset [unitOffset] exists and has a character
+     * (a non-null `pCharacterData`, the first word), that is, the slot is in use.
+     */
     private fun isValid(unitOffset: Int): Boolean = unitOffset >= 0 && u32(units.bytes, unitOffset) != 0
 
     /** Reads the 32-bit unit state word (`struct Unit.state`) at [unitOffset]. */
@@ -153,10 +174,10 @@ public class EntityBmMaps(
     private fun ySpot(unitOffset: Int): Int = units.bytes[unitOffset + OFF_Y].toInt()
 
     private companion object {
-        /** Red / enemy faction unit index start (0x80). */
+        /** `FACTION_RED` (bmunit.h): enemy units; their slot numbers follow it (0x81..). */
         const val FACTION_RED = 0x80
 
-        /** Purple / link arena faction unit index start (0xC0). */
+        /** `FACTION_PURPLE` (bmunit.h): link arena units; their slot numbers follow it (0xC1..). */
         const val FACTION_PURPLE = 0xC0
 
         /** Byte offset of `state` field in `struct Unit` (0x0C). */
@@ -168,25 +189,34 @@ public class EntityBmMaps(
         /** Byte offset of `yPos` field in `struct Unit` (0x11). */
         const val OFF_Y = 0x11
 
-        /** Byte offset of `torch` item countdown field in `struct Unit` (0x31). */
+        /** Byte offset of the 4-bit `torchDuration` (torch turns left) in `Unit` (0x31). */
         const val OFF_TORCH = 0x31
 
-        /** Unit state flag: unit is hidden / absent from map (bit 0). */
+        /** `US_HIDDEN` (bmunit.h, bit 0): the unit is not shown on the map. */
         const val US_HIDDEN = 1 shl 0
 
-        /** Unit state flag: unit has been revealed / seen this turn (bit 8). */
+        /**
+         * `US_BIT8` (bit 8): the decomp guesses "has been seen?" (in this file it is set when a
+         * fogged unit comes into view; the C comment calls it the "spotted" bit).
+         */
         const val US_BIT8 = 1 shl 8
 
-        /** Unit state flag: unit is concealed by fog of war (bit 9). */
+        /**
+         * `US_BIT9` (bit 9): the decomp guesses "hidden by fog?"; this file sets it while the
+         * unit stands on a fogged tile and clears it when it is seen.
+         */
         const val US_BIT9 = 1 shl 9
 
-        /** Character attribute flag: thief class vision range bonus (+5 tiles, bit 3). */
+        /** `CA_THIEF` (bmunit.h, bit 3): the thief attribute, which adds 5 to fog vision. */
         const val CA_THIEF = 1 shl 3
 
-        /** Character attribute flag: magic seal dampening field (bit 26). */
+        /** `CA_MAGICSEAL` (bmunit.h, bit 26): the magic seal attribute. */
         const val CA_MAGICSEAL = 1 shl 26
 
-        /** Bitmask in `gBmMapHidden` indicating a hidden unit on that tile (bit 0). */
+        /**
+         * `HIDDEN_BIT_UNIT` (bmmap.h, bit 0) of `gBmMapHidden`: a unit hidden in fog stands on the
+         * tile. (`HIDDEN_BIT_TRAP`, bit 1, belongs to the mine pass, which is a hook here.)
+         */
         const val HIDDEN_BIT_UNIT = 1 shl 0
     }
 }

@@ -4,17 +4,22 @@ import fe8.game.RomView
 
 /**
  * The chapter map model of src/bmmap.c: the unpacked map layout (`gBmMapBuffer`), the tileset
- * config (`sTilesetConfig`), the base tile map (`gBmMapBaseTiles`), the terrain map and the other
- * byte pools (`gBmMapUnit`, `gBmMapMovement`, ...), plus `gBmMapSize`.
+ * config (`sTilesetConfig`), the base tile map (`gBmMapBaseTiles`: which tileset tile each map
+ * square shows, before units), the terrain map and the other byte pools (`gBmMapUnit`,
+ * `gBmMapMovement`, ...), plus `gBmMapSize`. Each pool is a map-sized grid of one byte per tile
+ * that the rest of the game reads by `[y][x]`: who stands where, what terrain is there, how far
+ * the selected unit can move or attack, what the fog hides.
  *
  * Every buffer is preallocated at construction for the largest map (the C pool size
  * [MAP_POOL_SIZE]); loading a chapter never allocates. The row-pointer tables the C keeps in EWRAM
  * are implicit (see [Pool]).
  *
- * Stand-ins until M6-H: [applyEnabledMapChanges] (bmtrick.c-era map change application) and
- * [refreshAllLightRunes] (bmtrick.c) are later tasks, and the tileset graphics/palette unpack
- * (`UnpackChapterMapGraphics`) is in [ChapterMapGfx], not here; the chapter 0x75 water shadow pass
- * (`sub_8019624`) is not ported yet.
+ * Stand-ins until M6-H: [applyEnabledMapChanges] (the map change events, such as a wall opening
+ * or a door replaced by floor, which rewrite base tiles) and [refreshAllLightRunes] (bmtrick.c)
+ * are later tasks, and the tileset graphics/palette unpack (`UnpackChapterMapGraphics`) is in
+ * [ChapterMapGfx], not here. Also not ported: the water shadow pass `sub_8019624`, which
+ * `InitChapterMap` runs only for chapter `CHAPTER_75` (0x75) and `sub_8019778` runs after a
+ * reload, and `InitMapForMinimap` (the minimap's cut-down init).
  */
 public class BmMap(
     /** ROM the chapter tables, maps and tileset configs are read from. */
@@ -38,8 +43,10 @@ public class BmMap(
      * One `u8** gBmMapX` pool of `MAP_POOL_SIZE` bytes. In the C the first `(height + 4)` pointers
      * of the pool are row pointers and the tile rows follow; here the table is only reserved
      * ([rowTableBytes]) and rows are addressed arithmetically. `get(y, x)` mirrors `gBmMapX[y][x]`
-     * including the two tiles of safety above the map (`y` from -2) and, as in C, an `x` past the
-     * row end reads the next row.
+     * including the two rows of safety above and below the map (`y` from -2 to height + 1, so a
+     * range that sticks out of the map can be written without checks) and, as in C, an `x` past
+     * the row end reads the next row; the row is `width + 2` bytes wide, the 2 extra bytes shared
+     * between neighbouring rows ("two tiles on each edge (shared)" in `BmMapInit`).
      */
     public class Pool {
         /** The pool bytes, [MAP_POOL_SIZE] long. */
@@ -49,7 +56,7 @@ public class BmMap(
         public var rowTableBytes: Int = 0
             private set
 
-        /** Bytes per row: `width + 2`. */
+        /** Bytes per row: `width + 2` (`BmMapInit`: the extra 2 are shared between rows). */
         public var stride: Int = 0
             private set
 
@@ -84,51 +91,97 @@ public class BmMap(
     public var sizeY: Int = 0
         private set
 
-    /** `gBmMapUnit`: unit slot index map (0 = empty, 1..62 = player, 65.. = NPC, 129.. = enemy). */
+    /**
+     * `gBmMapUnit`: which unit stands on each tile, as its unit slot number (the index
+     * `GetUnit` takes), 0 for an empty tile: 0x01..0x3F player, 0x41..0x7F NPC, 0x81..0xBF
+     * enemy, 0xC1..0xC5 link arena. Filled by [EntityBmMaps.refreshUnitsOnBmMap]; enemy units
+     * hidden by fog are left out of it.
+     */
     public val unit: Pool = Pool()
 
-    /** `gBmMapTerrain`: terrain ID map. */
+    /**
+     * `gBmMapTerrain`: the terrain id of each tile, looked up from the base tile
+     * ([refreshTerrainBmMap]); map changes and traps can overwrite single entries.
+     */
     public val terrain: Pool = Pool()
 
-    /** `gBmMapMovement`: movement cost / reachable area map. */
+    /**
+     * `gBmMapMovement`: the unit move range: the least movement cost from the starting tile to
+     * each tile (0 at the start), filled with -1 (0xFF) first so unreachable tiles stay 0xFF
+     * (negative as `s8`, which `DisplayMovementViewTile` tests to choose the movement
+     * squares). A value above `MAP_MOVEMENT_MAX` (120) means not reachable;
+     * `MAP_MOVEMENT_EXTENDED` (124) is the movement budget some callers pass to
+     * `GenerateMovementMap` (src/bmidoten.c) instead of a unit's own Mov. Not filled in this
+     * class.
+     */
     public val movement: Pool = Pool()
 
-    /** `gBmMapRange`: attack / staff range overlay map. */
+    /**
+     * `gBmMapRange`: nonzero where a unit's attack or staff range reaches (read as `s8`
+     * through `gMapRangeSigned`; `DisplayMovementViewTile` draws the range squares from it).
+     * Not filled in this class.
+     */
     public val range: Pool = Pool()
 
-    /** `gBmMapFog`: fog of war visibility map (0 = hidden by fog, >0 = visible). */
+    /**
+     * `gBmMapFog`: 0 where fog of war hides the tile, nonzero where it is visible (all 1 in a
+     * chapter without fog, `chapterVisionRange` 0). Visible tiles are drawn with palette bank 6
+     * and fogged ones with bank 11 ([BmMapRender.displayBmTile]). Units add 1 around them
+     * (their vision) and magic-seal units subtract 1 (`RefreshUnitsOnBmMap`).
+     */
     public val fog: Pool = Pool()
 
-    /** `gBmMapHidden`: hidden traps and hidden units map. */
+    /**
+     * `gBmMapHidden`: bit 0 (`HIDDEN_BIT_UNIT`) is set where a unit stands in the fog and is
+     * kept off [unit]; bit 1 (`HIDDEN_BIT_TRAP`, set by `RefreshMinesOnBmMap` for a mine on a
+     * tile with no unit) marks a hidden trap there. Other code uses it so that a hidden unit or
+     * mine still blocks that tile (src/cp_utility.c, src/bmidoten.c).
+     */
     public val hidden: Pool = Pool()
 
-    /** `gBmMapOther`: secondary working / calculation map. */
+    /**
+     * `gBmMapOther`: a scratch map several systems borrow; callers clear it first (`BmMapFill`).
+     * Known uses in the decomp: the AI's danger counts per tile, and the unit id of the moving
+     * unit on its square during unit movement (src/muctrl.c). Not filled in this class.
+     */
     public val other: Pool = Pool()
 
     /** The pool last passed to [bmMapFill] (`SetWorkingBmMap`'s `gWorkingBmMap`), if any. */
     public var workingMap: Pool? = null
         internal set
 
-    /** `gBmMapBuffer`: the decompressed map (`x`, `y` bytes, then `x * y` u16 tiles). */
+    /**
+     * `gBmMapBuffer`: the decompressed chapter map: the width and height bytes, then
+     * `width * height` u16 base tiles row by row (0x800 bytes).
+     */
     public val mapBuffer: ByteArray = ByteArray(MAP_BUFFER_SIZE)
 
-    /** `sTilesetConfig`: [TILESET_CONFIG_SIZE] bytes, terrain lookup at [TERRAIN_LOOKUP]. */
+    /**
+     * `sTilesetConfig`: [TILESET_CONFIG_SIZE] bytes: first 0x1000 halfwords (the four BG tilemap
+     * entries of each metatile, 4 halfwords per metatile) then, at [TERRAIN_LOOKUP], one terrain
+     * id byte per metatile (`gTilesetTerrainLookup`).
+     */
     public val tilesetConfig: ByteArray = ByteArray(TILESET_CONFIG_SIZE)
 
-    /** `sBmBaseTilesPool`: row-pointer table followed by the u16 base tiles. */
+    /**
+     * `sBmBaseTilesPool`: `gBmMapBaseTiles`, a row-pointer table followed by the u16 base tiles
+     * (one row more than the map, see [initBaseTilesBmMap]). Each tile is the halfword index of
+     * its metatile in [tilesetConfig] (metatile number times 4).
+     */
     private val baseTiles = ShortArray(MAP_POOL_SIZE)
     private var baseTilesOrigin = 0
 
     /**
      * Ported from src/bmmap.c: InitChapterMap
      *
-     * Unpacks chapter [chapterId]'s map, sets up the unit/terrain/movement/range/fog/hidden/other
-     * pools, builds the base tiles and refreshes the terrain map. Graphics and palette unpack
-     * (`UnpackChapterMapGraphics`) is a separate task and is not done here. The base tile
-     * adjustments after the unpack (`ApplyEnabledMapChanges`, shadow and tile changes) are
-     * stand-ins until M6-H ([applyEnabledMapChanges] is a hook), so a chapter that has them
-     * (e.g. Ch2)
-     * differs from the game's pool; see [loadBaseTiles].
+     * Called when a chapter map is set up (a new chapter, a suspend resume, the link arena map
+     * 0x3A): unpacks chapter [chapterId]'s map, sets up the unit/terrain/movement/range/fog/
+     * hidden/other pools, clears unit and terrain, builds the base tiles and refreshes the
+     * terrain map. Graphics and palette unpack (`UnpackChapterMapGraphics`) is a separate task
+     * and is not done here. The base tile adjustments after the unpack (`ApplyEnabledMapChanges`,
+     * the `CHAPTER_75` water shadows) are stand-ins until M6-H ([applyEnabledMapChanges] is a
+     * hook), so a chapter that has them (e.g. Ch2) differs from the game's pool; see
+     * [loadBaseTiles].
      */
     public fun initChapterMap(chapterId: Int) {
         unpackChapterMap(chapterId)
@@ -171,8 +224,10 @@ public class BmMap(
      * Ported from src/bmmap.c: UnpackChapterMap
      *
      * Decompresses the map of [chapterId] into [mapBuffer] (the C takes the destination as a
-     * parameter, but every caller passes `gBmMapBuffer`), sets the map size, decompresses the
-     * tileset config of the chapter into [tilesetConfig] and sets `cameraMax`.
+     * parameter, but every caller passes `gBmMapBuffer`), sets the map size (the first two
+     * bytes), decompresses the tileset config of the chapter (`tileConfigId` in the chapter
+     * data) into [tilesetConfig] and sets `cameraMax` to the camera position that shows the
+     * map's right and bottom edge (map size in pixels minus the 240x160 screen).
      */
     public fun unpackChapterMap(chapterId: Int) {
         rom.decompressInto(chapterData.getChapterMapPointer(chapterId), mapBuffer, 0)
@@ -195,7 +250,8 @@ public class BmMap(
      * Ported from src/bmmap.c: BmMapInit
      *
      * Lays out [pool] for a [width] x [height] map: rows `width + 2` bytes wide, two extra rows
-     * above and below. The pool contents are left as they are.
+     * above and below (the C sets up the row pointers and points `gBmMapX` at the third one).
+     * The pool contents are left as they are.
      */
     public fun bmMapInit(pool: Pool, width: Int, height: Int) {
         pool.layout(width, height)
@@ -219,7 +275,8 @@ public class BmMap(
      * Transcribed from src/bmmap.c: BmMapFillEdges (not verified: no test checks it against a trace
      *   yet)
      *
-     * Sets the outermost tiles of the map (first and last column and row) of [pool] to [value].
+     * Sets the outermost tiles of the map (first and last column and row) of [pool] to [value],
+     * for example to wall in a range map. Not the padding rows; only the map's own border.
      */
     public fun bmMapFillEdges(pool: Pool, value: Int) {
         for (tileY in 0 until sizeY) {
@@ -236,7 +293,9 @@ public class BmMap(
      * Ported from src/bmmap.c: InitBaseTilesBmMap
      *
      * Copies the u16 tiles of [mapBuffer] into the base tile map; the pool holds one extra,
-     * zeroed row below the map (for the subtitle help at the map edge).
+     * zeroed row below the map: the decomp comment says it is for the "subtitle help" shown
+     * against the map edge, whose camera may reach one row (16 pixels) past the bottom
+     * (`StartSubtitleHelp` raises `cameraMax.y` by 16).
      */
     public fun initBaseTilesBmMap() {
         val rows = sizeY + 1
@@ -256,15 +315,19 @@ public class BmMap(
         for (tileX in 0 until sizeX) baseTiles[baseTilesOrigin + sizeY * sizeX + tileX] = 0
     }
 
-    /** Reads `gBmMapBaseTiles[y][x]`, the tileset tile id of map tile ([x], [y]). */
+    /**
+     * Reads `gBmMapBaseTiles[y][x]`: the halfword index into [tilesetConfig] of the metatile
+     * (4 BG tiles, 2x2) drawn on map tile ([x], [y]); dividing by 4 gives the metatile number.
+     */
     public fun baseTile(x: Int, y: Int): Int =
         baseTiles[baseTilesOrigin + y * sizeX + x].toInt() and 0xFFFF
 
     /**
      * Ported from src/bmmap.c: RefreshTerrainBmMap
      *
-     * Fills [terrain] from the base tiles through the tileset terrain lookup, then calls
-     * [refreshAllLightRunes].
+     * Fills [terrain] from the base tiles through the tileset terrain lookup (one terrain id per
+     * metatile), then calls [refreshAllLightRunes] (`RefreshAllLightRunes`, bmtrick.c: sets
+     * the terrain of each light rune tile to `TERRAIN_NONE`). Run after the base tiles change.
      */
     public fun refreshTerrainBmMap() {
         for (tileY in 0 until sizeY) {
@@ -277,32 +340,41 @@ public class BmMap(
      * Ported from src/bmmap.c: GetTrueTerrainAt
      *
      * The terrain id of tile ([x], [y]) from the base tiles, ignoring [terrain] (which other
-     * systems may have overwritten).
+     * systems may have overwritten, such as a light rune).
      */
     public fun getTrueTerrainAt(x: Int, y: Int): Int = terrainLookup(baseTile(x, y))
 
-    /** Looks up terrain ID from `sTilesetConfig` terrain table (`gTilesetTerrainLookup`) for [tile]. */
+    /**
+     * `gTilesetTerrainLookup[tile >> 2]`: the terrain id of a base [tile] (a halfword index, so
+     * `tile >> 2` is the metatile number).
+     */
     private fun terrainLookup(tile: Int): Int =
         tilesetConfig[TERRAIN_LOOKUP + (tile shr 2)].toInt() and 0xFF
 
     /** Sizes of the C buffers. */
     public companion object {
-        /** `MAP_POOL_SIZE`: bytes of each map pool (and halfwords of the base tile pool). */
+        /**
+         * `MAP_POOL_SIZE` (src/bmmap.c): bytes of each map pool (and halfwords of the base tile
+         * pool); the row table, the padded rows and, for the base tiles, the extra row must fit.
+         */
         public const val MAP_POOL_SIZE: Int = 0x7B8
 
-        /** Size of `gBmMapBuffer` in bytes. */
+        /** Size of `gBmMapBuffer` in bytes (`u16[0x800 / 2]`). */
         public const val MAP_BUFFER_SIZE: Int = 0x800
 
         /** Size of `sTilesetConfig` in bytes (`u16[0x1000 + 0x200]`). */
         public const val TILESET_CONFIG_SIZE: Int = 0x2400
 
-        /** Byte offset of `gTilesetTerrainLookup` (`sTilesetConfig + 0x1000` halfwords). */
+        /**
+         * Byte offset of `gTilesetTerrainLookup` in [BmMap.tilesetConfig]
+         * (`sTilesetConfig + 0x1000` halfwords).
+         */
         public const val TERRAIN_LOOKUP: Int = 0x2000
 
-        /** Screen display width in pixels (240). */
+        /** `DISPLAY_WIDTH` (gba/defines.h): 240 pixels. */
         private const val DISPLAY_WIDTH = 240
 
-        /** Screen display height in pixels (160). */
+        /** `DISPLAY_HEIGHT` (gba/defines.h): 160 pixels. */
         private const val DISPLAY_HEIGHT = 160
     }
 }

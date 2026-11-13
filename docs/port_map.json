@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1113,
+    "verified": 1126,
     "implemented_unverified": 23
   },
   "functions": {
@@ -225,6 +225,46 @@
         "fe8.testing.UnitActionMenuDifferentialTest#unit menu without a target lists Item and Wait and Wait sets the action"
       ]
     },
+    "AttackMapSelect_Cancel": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
+    "AttackMapSelect_End": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
+    "AttackMapSelect_Select": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
+    "AttackMapSelect_SwitchIn": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
     "BG_EnableSyncByMask": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -343,6 +383,26 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
+      ]
+    },
+    "BattleForecastHitCountUpdate": {
+      "decomp_file": "src/bksel.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
+    "BattleForecast_Init": {
+      "decomp_file": "src/bksel.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
       ]
     },
     "BattleGenerate": {
@@ -766,6 +826,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "ChangeActiveUnitFacing": {
+      "decomp_file": "src/unit_facing.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitFacing.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
       ]
     },
     "ChapterIntro_8020010": {
@@ -1330,6 +1400,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapTextTest#clear text vram matches the OBJ tile rows of the f05100 dump"
+      ]
+    },
+    "CloseBattleForecast": {
+      "decomp_file": "src/bksel.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
       ]
     },
     "ColorFadeSetupFromBlack": {
@@ -3146,6 +3226,16 @@
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
+    "GetBattleForecastPanelSide": {
+      "decomp_file": "src/bksel.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
     "GetBattleUnitHitCount": {
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
@@ -3390,6 +3480,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "GetFacingDirection": {
+      "decomp_file": "src/mapanim_api.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitFacing.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
       ]
     },
     "GetFreeBlueUnit": {
@@ -4894,6 +4994,16 @@
         "fe8.testing.BmMapDifferentialTest#pools match the game after InitChapterMap"
       ]
     },
+    "InitBattleForecastBattleStats": {
+      "decomp_file": "src/bksel.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
     "InitBattleUnit": {
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
@@ -5913,6 +6023,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BgmVolumeChangeTest#volume ramp matches the trace"
+      ]
+    },
+    "NewBattleForecast": {
+      "decomp_file": "src/bksel.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
       ]
     },
     "NewFadeIn": {
@@ -10153,6 +10273,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterMapGraphicsDifferentialTest#OBJ UI graphics and palettes match the dump"
+      ]
+    },
+    "sub_8022E54": {
+      "decomp_file": "src/bmmenu.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.WeaponSelectMenuDifferentialTest#cancelling the weapon list restarts the unit menu"
       ]
     },
     "sub_80895B4": {

@@ -11,6 +11,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
+- 2026-11-13 18:55Z owner PC (Claude): readability audit fe8.game.bm (PlaySt, PlayConfig, BmSt, StructCodec).
 - 2026-11-13 18:47Z owner PC (Claude): TEST-4 remaining walk allocations.
 
 ## Current state

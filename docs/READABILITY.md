@@ -63,7 +63,11 @@ their old counts); new packages get a row when they appear.
 | engine/script | gbafe.script | 7 | 956 | done 2026-11-09 d3b21d6; audit done 2026-11-13 df021fa |
 | engine/text | gbafe.text | 6 | 926 | done 2026-11-09 d3b21d6; audit done 2026-11-12 7d13c5d |
 | game | fe8.game | 8 | 1999 | done 2026-11-09 ee10196; audit todo |
-| game | fe8.game.bm (map, camera, state, cursor, music, chapter data: 16 files) | 16 | 2964 | done 2026-11-10 bac8ed1; audit todo |
+| game | fe8.game.bm (PlaySt, PlayConfig, BmSt, StructCodec) | 4 | 727 | done 2026-11-10 bac8ed1; audit in progress 2026-11-13 (Claude) |
+| game | fe8.game.bm (Camera, CamMove, MapCursor, ResetCursorPosition, MapMusic) | 5 | 711 | done 2026-11-10 bac8ed1; audit todo |
+| game | fe8.game.bm (BmMap, BmMapRender, EntityBmMaps) | 3 | 720 | done 2026-11-10 bac8ed1; audit todo |
+| game | fe8.game.bm (BMapMain, BattleMapKind) | 2 | 653 | done 2026-11-10 bac8ed1; audit todo |
+| game | fe8.game.bm (ChapterData, ChapterMapGfx) | 2 | 370 | done 2026-11-10 bac8ed1; audit todo |
 | game | fe8.game.bm (battle: BattleGenerate, BattleUnit, BmBattle, ItemInfo) | 4 | 2316 | done 2026-11-11 49679cb; audit done 2026-11-11 39aa20b |
 | game | fe8.game.bm (PhaseIntro, MapAnimations) | 2 | 840 | done 2026-11-11 d9263c3; audit done 2026-11-13 1dcdbfe |
 | game | fe8.game.bm (UnitSprites, UnitSpriteHandles, UnitSpritesOam) | 3 | 774 | done 2026-11-11 d9263c3; audit todo |

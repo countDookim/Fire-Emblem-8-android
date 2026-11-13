@@ -50,7 +50,8 @@ class BattleGenerateRealDifferentialTest {
         "BattleGenerateHitEffects", "GetItemAfterUse", "BattleApplyExpGains",
         "GetBattleUnitExpGain", "GetUnitRoundExp", "GetUnitExpLevel", "CanBattleUnitGainLevels",
         "GetUnitKillExpBonus", "ModifyUnitSpecialExp", "GetUnitPowerLevel",
-        "GetUnitClassKillExpBonus",
+        "GetUnitClassKillExpBonus", "BattleCheckBraveEffect", "BattleCheckSureShot",
+        "BattleCheckPierce", "BattleCheckGreatShield", "BattleCheckPetrify",
     )
     fun `real battle reproduces the dumped battle units, hits and RNG state`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")

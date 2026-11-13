@@ -187,6 +187,24 @@ the hook `BattleGenerate.checkTriangleAttack` (false). Rolls go through `Mechani
 `BattleRoll2RN`, crit roll for the crit rate, skill roll for every other `BattleRoll1RN`). `BattleGenerateSimulation`
 (MC-9) can reuse `battleGenerate` as is.
 
+### MC-8b result (2026-11-13)
+
+Transcriptions of `BattleCheckBraveEffect`, `BattleCheckSureShot`, `BattleCheckPierce`,
+`BattleCheckGreatShield`, `BattleCheckSilencer`, `BattleCheckPetrify` and
+`BattleGenerateHitTriangleAttack` re-read line by line against `bmbattle.c`: no mismatch. Only the
+not-triggered paths are entered, and a wrong one changes the captured data, checked by mutation in
+`BattleGenerateRealDifferentialTest` (cap3 f1464, which rolls the RNG per hit): brave always true
+(hit count and exp bytes differ; also fails the simulation test), the class test of sure shot, pierce and
+great shield always true (each rolls an RN per hit and shifts the RNG and later hits) and petrify always
+zeroing the damage. Those five are `Ported from`, with KDoc naming the branch no capture takes (brave
+weapon, sniper, wyvern knight, general defender, Monster stone); the simulation test cannot see the
+sniper, wyvern and general mutations because a forecast rolls nothing. `BattleCheckSilencer` stays
+Transcribed: it runs only after a successful crit roll and no capture has a crit, so always-true changes
+nothing. `BattleGenerateHitTriangleAttack` stays Transcribed: no capture attacker has a triangle attack
+class attribute, so its first check returns every time and no mutation of the rest changes data.
+`BattleCheckTriangleAttack` stays the stand-in `checkTriangleAttack` (always false; stand-in until MC-8c, which transcribes it): its map scan (`gBmMapUnit`, unit status and class of the neighbours) would be unreachable for the
+same reason, so it could not be break-checked.
+
 ### MC-9 result (2026-11-13)
 
 `BattleGenerateSimulationDifferentialTest` seeds the unit table, `gPlaySt`, terrain, both battle units,

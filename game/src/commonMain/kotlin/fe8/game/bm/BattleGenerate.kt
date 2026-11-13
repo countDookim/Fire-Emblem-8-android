@@ -23,7 +23,7 @@ import kotlin.math.abs
  * (save-file statistics), the light rune toggling and the staff / item effect battles. The exp
  * gain tail of `BattleGenerateRealInternal` is [battleApplyExpGains], whose level-up check is the
  * hook [checkBattleUnitLevelUp] (MC-17), the triangle attack neighbour scan the hook
- * [checkTriangleAttack] (MC-8b).
+ * [checkTriangleAttack].
  *
  * @param battle the battle units, stats and stat computes.
  * @param rom the item and class data.
@@ -282,8 +282,10 @@ public class BattleGenerate(
     }
 
     /**
-     * Hook for `BattleCheckTriangleAttack` (bmbattle.c, MC-8b): whether two units of the
-     * attacker's army stand next to the defender. Stand-in until MC-8b: always false.
+     * Hook for `BattleCheckTriangleAttack` (bmbattle.c): whether two units of the
+     * attacker's army stand next to the defender. Stand-in until MC-8c: always false, so no
+     * triangle attack happens yet. No capture has an attacker with a triangle attack class
+     * attribute, so the map scan cannot be verified (ADR 0006).
      */
     public var checkTriangleAttack: (attacker: BattleUnit, defender: BattleUnit) -> Boolean =
         { _, _ -> false }
@@ -590,10 +592,10 @@ public class BattleGenerate(
         1 shl (if (battleCheckBraveEffect(attacker)) 1 else 0)
 
     /**
-     * Transcribed from src/bmbattle.c: BattleCheckBraveEffect
-     *   (not verified: MC-8b; no traced weapon is brave)
+     * Ported from src/bmbattle.c: BattleCheckBraveEffect
      *
-     * Marks the current hit BRAVE and returns true for a brave weapon.
+     * Marks the current hit BRAVE and returns true for a brave weapon. (Not verified: the brave
+     * branch; no capture has a brave weapon, only the not-brave path is covered.)
      */
     private fun battleCheckBraveEffect(attacker: BattleUnit): Boolean {
         if ((attacker.weaponAttributes and ItemInfo.IA_BRAVE) == 0) return false
@@ -602,8 +604,11 @@ public class BattleGenerate(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: BattleCheckSureShot
-     *   (not verified: MC-8b; no traced attacker is a sniper)
+     * Ported from src/bmbattle.c: BattleCheckSureShot
+     *
+     * A sniper (not on a ballista) rolls the skill for a sure shot. (Not verified: the sniper
+     * branch; no capture has a sniper, only the not-a-sniper path, which rolls nothing, is
+     * covered.)
      */
     private fun battleCheckSureShot(attacker: BattleUnit) {
         if ((hitArray[hitIterator] and (ATTR_SURESHOT or ATTR_PIERCE or ATTR_GREATSHLD)) != 0) {
@@ -621,8 +626,10 @@ public class BattleGenerate(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: BattleCheckPierce
-     *   (not verified: MC-8b; no traced attacker is a wyvern knight)
+     * Ported from src/bmbattle.c: BattleCheckPierce
+     *
+     * A wyvern knight rolls the skill for a pierce. (Not verified: the wyvern knight branch; no
+     * capture has one, only the path that rolls nothing is covered.)
      */
     private fun battleCheckPierce(attacker: BattleUnit) {
         if ((hitArray[hitIterator] and (ATTR_SURESHOT or ATTR_PIERCE or ATTR_GREATSHLD)) != 0) {
@@ -637,8 +644,10 @@ public class BattleGenerate(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: BattleCheckGreatShield
-     *   (not verified: MC-8b; no traced defender is a general)
+     * Ported from src/bmbattle.c: BattleCheckGreatShield
+     *
+     * A general defender rolls the skill for a great shield. (Not verified: the general branch;
+     * no capture has a general defender, only the path that rolls nothing is covered.)
      */
     private fun battleCheckGreatShield(attacker: BattleUnit, defender: BattleUnit) {
         if ((hitArray[hitIterator] and
@@ -657,7 +666,7 @@ public class BattleGenerate(
 
     /**
      * Transcribed from src/bmbattle.c: BattleCheckSilencer
-     *   (not verified: MC-8b; no traced crit roll succeeds)
+     *   (not verified: no traced crit roll succeeds, so no mutation of it changes captured data)
      *
      * Whether a critical hit is a silencer (instant kill) instead: never against the Demon King
      * nor the Necromancer of chapter 21, otherwise by the silencer rate.
@@ -674,8 +683,10 @@ public class BattleGenerate(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: BattleCheckPetrify
-     *   (not verified: MC-8b; no traced weapon is the Monster stone)
+     * Ported from src/bmbattle.c: BattleCheckPetrify
+     *
+     * The Monster stone deals no damage. (Not verified: the Monster stone branch; no capture
+     * has one, only the damage-kept path is covered.)
      */
     private fun battleCheckPetrify(attacker: BattleUnit) {
         if (items.getItemIndex(attacker.weapon) == ITEM_MONSTER_STONE) battle.stats.damage = 0
@@ -687,7 +698,7 @@ public class BattleGenerate(
      * Rolls the current hit: sure shot, hit (2 RN; a miss ends it), great shield, pierce, damage
      * (attack minus defense, none for a great shield), crit (silencer or triple damage), the
      * damage clamped to 0..[BATTLE_MAX_DAMAGE] and the petrify check. Marks [attacker] as having
-     * dealt damage. The checks of the C are MC-8b; the branches no capture takes are marked there.
+     * dealt damage. The branches of the checks no capture takes are marked on each.
      */
     public fun battleGenerateHitAttributes(attacker: BattleUnit, defender: BattleUnit) {
         val stats = battle.stats
@@ -724,7 +735,8 @@ public class BattleGenerate(
 
     /**
      * Transcribed from src/bmbattle.c: BattleGenerateHitTriangleAttack
-     *   (not verified: MC-8b; no traced attacker is a pegasus or armor class)
+     *   (not verified: no traced attacker has a triangle attack class attribute, so the first
+     *   check returns every time and no mutation of the rest, nor of the hook, changes data)
      *
      * A triangle attack (two allies next to the defender, see [checkTriangleAttack]) on the first
      * hit of a range 1 battle makes it hit and crit for sure.

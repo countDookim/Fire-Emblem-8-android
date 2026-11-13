@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 550 across 77 decomp files (missing reason: 0).
+Total entries: 545 across 77 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -173,33 +173,6 @@ Total entries: 550 across 77 decomp files (missing reason: 0).
 | `EventAB_WmUnitResumeMove` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
 | `EventBB_` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnitEvents.kt` | not run |
 
-## src/bmbattle.c (22)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `SetScriptedBattle` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | a plain pointer store, observable only through the unwind |
-| `GetUnitExpMultiplier` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no assassin in the captures, and the kill bonus it multiplies is 0 there |
-| `BattleCheckBraveEffect` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | MC-8b; no traced weapon is brave |
-| `BattleCheckSureShot` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | MC-8b; no traced attacker is a sniper |
-| `BattleCheckPierce` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | MC-8b; no traced attacker is a wyvern knight |
-| `BattleCheckGreatShield` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | MC-8b; no traced defender is a general |
-| `BattleCheckSilencer` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | MC-8b; no traced crit roll succeeds |
-| `BattleCheckPetrify` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | MC-8b; no traced weapon is the Monster stone |
-| `BattleGenerateHitTriangleAttack` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | MC-8b; no traced attacker is a pegasus or armor class |
-| `InitBattleUnitWithoutBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
-| `SetBattleUnitWeaponBallista` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
-| `ComputeBattleUnitBaseDefense` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
-| `ComputeBattleUnitWeaponRankBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has an S rank weapon |
-| `ComputeBattleUnitStatusBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has a status effect |
-| `ComputeBattleUnitSpecialWeaponStats` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no special weapon or petrified target in the trace |
-| `BattleApplyReaverEffect` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no reaver weapon in the trace |
-| `BattleInitTargetCanCounter` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no gorgon egg, uncounterable weapon or berserk actor in the trace |
-| `BattleApplyBallistaUpdates` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | only the no-ballista branch runs, and it writes nothing a capture could show |
-| `CanBattleUnitGainLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
-| `CheckBattleUnitLevelUp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
-| `UpdateUnitFromBattle` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
-| `GetStatIncrease` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | `>= 100` for `> 100` and `roll1(g + 1)` survive the autolevel RNG-window test; only exact-boundary rolls differ |
-
 ## src/worldmap_mapmu.c (21)
 
 | Function | Kotlin file | Reason |
@@ -250,6 +223,28 @@ Total entries: 550 across 77 decomp files (missing reason: 0).
 | `GetUnitEquippedWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `CanUnitUseWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `IsItemUnsealedForUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+
+## src/bmbattle.c (17)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SetScriptedBattle` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | a plain pointer store, observable only through the unwind |
+| `GetUnitExpMultiplier` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no assassin in the captures, and the kill bonus it multiplies is 0 there |
+| `BattleCheckSilencer` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no traced crit roll succeeds, so no mutation of it changes captured data |
+| `BattleGenerateHitTriangleAttack` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no traced attacker has a triangle attack class attribute, so the first check returns every time and no mutation of the rest, nor of the hook, changes data |
+| `InitBattleUnitWithoutBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
+| `SetBattleUnitWeaponBallista` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
+| `ComputeBattleUnitBaseDefense` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
+| `ComputeBattleUnitWeaponRankBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has an S rank weapon |
+| `ComputeBattleUnitStatusBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no traced unit has a status effect |
+| `ComputeBattleUnitSpecialWeaponStats` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no special weapon or petrified target in the trace |
+| `BattleApplyReaverEffect` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no reaver weapon in the trace |
+| `BattleInitTargetCanCounter` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no gorgon egg, uncounterable weapon or berserk actor in the trace |
+| `BattleApplyBallistaUpdates` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | only the no-ballista branch runs, and it writes nothing a capture could show |
+| `CanBattleUnitGainLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
+| `CheckBattleUnitLevelUp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
+| `UpdateUnitFromBattle` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
+| `GetStatIncrease` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | `>= 100` for `> 100` and `roll1(g + 1)` survive the autolevel RNG-window test; only exact-boundary rolls differ |
 
 ## src/muctrl.c (17)
 

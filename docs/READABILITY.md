@@ -82,7 +82,8 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.flags | 1 | 69 | done 2026-11-09 0194222; audit done 2026-11-12 ad1504f |
 | game | fe8.game.opanim (OpAnim, OpAnimHs, EarlyStartUi) | 3 | 3225 | done 2026-11-11 8cf022f / 4735f55; audit todo |
 | game | fe8.game.opanim (OpSubtitle*.kt) | 7 | 913 | done 2026-11-10 f3ad834 / d05e87f; audit done 2026-11-13 300e7eb |
-| game | fe8.game.save (BmSaveLib) | 1 | 1080 | done 2026-11-09 1941586; audit todo |
+| game | fe8.game.save (BmSaveLib lines 1-520: header, checksums, block info, last save id) | 1 | 520 | done 2026-11-09 1941586; audit in progress 2026-11-13 (Claude) |
+| game | fe8.game.save (BmSaveLib lines 521-1080: playthrough ids, completion, supports, rankings, bonus, misc) | 1 | 560 | done 2026-11-09 1941586; audit todo |
 | game | fe8.game.save (BmSuspendSave, SuspendRam, Fe8SuspendLayout) | 3 | 792 | done 2026-11-09 1941586; audit done 2026-11-13 07c5cec |
 | game | fe8.game.save (BmGameSave, Fe8SramLayout, NewGameRam, Fe8SavImporter) | 4 | 871 | done 2026-11-09 1941586; audit done 2026-11-13 321c975 |
 | game | fe8.game.savemenu | 2 | 279 | done 2026-11-09 81db35b; audit done 2026-11-13 ae19ba8 |

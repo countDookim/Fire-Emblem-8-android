@@ -11,6 +11,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
+- 2026-11-13 19:54Z owner PC (Claude): readability audit BmSaveLib lines 1-520.
 - 2026-11-13 19:44Z owner PC (Claude): EP-2a AI unit order.
 
 ## Current state

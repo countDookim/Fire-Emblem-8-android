@@ -14,7 +14,10 @@ import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.end
 import gbafe.proc.ProcScripts.repeat
 
-/** The game-side effects the script battle command (`src/eventscr.c`) reaches. */
+/**
+ * The game-side effects the script battle command (`src/eventscr.c`) reaches: unit lookup, the
+ * game lock the deamon waits on, the battle animation and the map refreshes after the fight.
+ */
 public interface EventScriptBattleHost {
     /**
      * `GetUnitStructFromEventParameter`: the unit id of event character parameter [pid], or -1
@@ -22,7 +25,10 @@ public interface EventScriptBattleHost {
      */
     public fun getUnitStructFromEventParameter(pid: Int): Int
 
-    /** `GetGameLock`. */
+    /**
+     * `GetGameLock`: the counter of game locks. A fight animation holds a lock; the deamon waits
+     * for it to return to the value saved at the start.
+     */
     public fun gameLock(): Int
 
     /**
@@ -32,22 +38,23 @@ public interface EventScriptBattleHost {
      */
     public fun startScriptBattleAnim(scripted: Boolean, useMapAnims: Boolean) {}
 
-    /** `AiRefreshMap`. */
+    /** `AiRefreshMap`: rebuilds the AI's movement/range maps after the fight. */
     public fun aiRefreshMap() {}
 
-    /** `RefreshEntityBmMaps`. */
+    /** `RefreshEntityBmMaps`: rebuilds the unit maps (a unit may have died in the fight). */
     public fun refreshEntityBmMaps() {}
 
-    /** `RefreshUnitSprites`. */
+    /** `RefreshUnitSprites`: redraws the map sprites of the units. */
     public fun refreshUnitSprites() {}
 }
 
 /**
- * The script battle command of `src/eventscr.c` (0x3F: sub-commands FIGHT, FIGHT_MAP and
- * FIGHT_SCRIPT), its `ProcScr_ScriptBattleDeamon` and the hit queue it reads.
- *
- * Not registered anywhere yet. Left out: the item override (`weaponId != 0`, an error here) and
- * everything [EventScriptBattleHost] stands in for.
+ * The script battle command of `src/eventscr.c` (0x3F, `EV_CMD_SCRIPT_BATTLE`: a fight between
+ * two units played in a scene; sub-commands FIGHT, FIGHT_MAP (map animation) and FIGHT_SCRIPT
+ * (only set the scripted hits for the next fight)), its `ProcScr_ScriptBattleDeamon` and the hit
+ * queue it reads. `Fe8Boot` registers it (the host there leaves the animation start and the
+ * AI/sprite refreshes at their no-op defaults). Left out: the item override (`weaponId != 0`,
+ * an error here) and everything [EventScriptBattleHost] stands in for.
  *
  * @param procs the proc engine the deamon runs on.
  * @param state the event slots (`gEventSlots[0xD]` and the slot queue hold the scripted hits).
@@ -64,13 +71,19 @@ public class EventScriptBattle(
     private val battle: BattleGenerate,
     private val host: EventScriptBattleHost,
 ) {
-    /** The fields of `struct ScriptedBattleProc` past the header. */
+    /**
+     * The fields of `struct ScriptedBattleProc` past the header: the event proc to mark again
+     * (`evtproc`) and the game lock value at the start (`lock`).
+     */
     private class DeamonState(var evtProc: Proc? = null, var lock: Int = 0)
 
-    /** The deamon's per-frame function: [scriptBattleDeamon]. */
+    /** The deamon's per-frame function: [scriptBattleDeamon] (`PROC_REPEAT`). */
     private val deamonFn = ProcFunc { scriptBattleDeamon(it) }
 
-    /** `ProcScr_ScriptBattleDeamon`. */
+    /**
+     * `ProcScr_ScriptBattleDeamon` (src/eventscr.c:3644): the blocking proc that holds the event
+     * until the fight has ended.
+     */
     public val deamonScript: ProcScript = ProcScript(
         "ProcScr_ScriptBattleDeamon",
         listOf(repeat(deamonFn), end()),
@@ -86,7 +99,9 @@ public class EventScriptBattle(
      * Ported from src/eventscr.c: GenerateScriptBattleHitFormEventQueue (the hit building itself
      *   is [BattleGenerate.generateScriptBattleHitFormEventQueue])
      *
-     * The hits of the first `gEventSlots[0xD]` entries of the slot queue.
+     * The scripted hits (side, hp change, attributes) the script queued in the slot queue
+     * (`gEventSlotQueue`): up to `gEventSlots[0xD]` entries, ending at an entry whose first byte
+     * is 0xFF. The queue words are split into bytes (little-endian) for the hit builder.
      */
     public fun generateScriptBattleHits(): IntArray {
         val q = state.slotQueue
@@ -118,11 +133,19 @@ public class EventScriptBattle(
     /**
      * Ported from src/eventscr.c: Event3F_ScriptBattle
      *
-     * Sub-command 0 / 1 (FIGHT / FIGHT_MAP) starts an event battle between the units of the two
-     * character parameters (negative parameters are -2) with the hits of the slot queue, and
-     * yields. Unless skipping or faded in it first starts the blocking deamon above and marks the
-     * event proc `PROC_MARK_EVENT_ANIM`. Sub-command 2 (FIGHT_SCRIPT) only sets the scripted
-     * hits. A NULL unit stops with an error (C would dereference it).
+     * Arguments: attacker and defender character parameters (`EVT_CMD_ARGV[0]`, `[1]`; a negative
+     * one becomes -2, `CHAR_EVT_POSITION_AT_SLOTB`, the unit at the position in slot 0xB), then
+     * the item override (low byte) and the ballista flag (high byte). Sub-command 0 / 1
+     * (FIGHT / FIGHT_MAP) starts an event battle between the two units with the hits of the
+     * slot queue (an empty queue means no scripted hits: the fight is generated normally), and
+     * yields; FIGHT_MAP is the map-animation form. Unless skipping or faded in (then the fight
+     * is not "scripted": nothing waits for it) it first starts the blocking deamon above and
+     * marks the event proc `PROC_MARK_EVENT_ANIM` (the deamon sets it back to
+     * `PROC_MARK_EVENT`). Sub-command 2 (FIGHT_SCRIPT) only sets the scripted hits and
+     * continues.
+     *
+     * NOTE: a NULL unit stops with an error here; the decomp would pass NULL on to
+     * `StartEventBattle` (src/eventscr.c:3677-3695). A different sub-command is an error as in C.
      */
     public val event3FScriptBattle: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent
@@ -164,9 +187,15 @@ public class EventScriptBattle(
     }
 
     private companion object {
+        /** `EVSUBCMD_FIGHT`. */
         const val SUBCMD_FIGHT = 0
+
+        /** `EVSUBCMD_FIGHT_MAP`. */
         const val SUBCMD_FIGHT_MAP = 1
+
+        /** `EVSUBCMD_FIGHT_SCRIPT`. */
         const val SUBCMD_FIGHT_SCRIPT = 2
+
         /** `PROC_MARK_EVENT_ANIM`: the mark of an event proc waiting for a battle animation. */
         const val PROC_MARK_EVENT_ANIM = 7
     }

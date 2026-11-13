@@ -35,7 +35,10 @@ public class NmSymbolIndex(nmText: String) : SymbolResolver, IdentifierResolver 
         namesByAddress = Array(order.size) { order[it].key }
     }
 
-    /** Adds the symbol of one `nm` line, ignoring lines that are not code or data symbols. */
+    /**
+     * Adds the symbol of one `nm` line. Ignored: lines without an 8-digit address and a one-letter
+     * type, absolute symbols (`a`/`A`) and address 0.
+     */
     private fun parse(row: String) {
         val parts = row.trimEnd().split(' ')
         if (parts.size < 3 || parts[0].length != 8) return
@@ -78,16 +81,21 @@ public class NmSymbolIndex(nmText: String) : SymbolResolver, IdentifierResolver 
 /**
  * FE8 constants ([Fe8ScriptConstants]) as a [SymbolResolver] (by the constant kind of the field)
  * and as the parser's [IdentifierResolver] (any kind). It adds [FLAG_AT_SLOT2], the event flag
- * argument `0xFFFF` meaning "the flag number is in slot 2".
+ * argument `0xFFFF` meaning "the flag number is in slot 2" (the flag commands read a negative
+ * flag argument as `gEventSlots[2]`, src/eventscr.c:116-117). That name is ours, not the decomp's.
  */
 public class Fe8ConstantSymbols(
     private val constants: ScriptConstants = Fe8ScriptConstants,
 ) : SymbolResolver, IdentifierResolver {
-    /** Names and kinds. */
+    /** The extra flag name and the constant kinds searched by [isKnown]. */
     public companion object {
         /** `EVFLAG_AT_SLOT2`: the flag is taken from event slot 2. */
         public const val FLAG_AT_SLOT2: String = "EVFLAG_AT_SLOT2"
+
+        /** The value of [FLAG_AT_SLOT2]: -1 as a u16 flag argument. */
         private const val SLOT2_VALUE = 0xFFFFL
+
+        /** Every constant kind of [Fe8ScriptConstants]; a name is known if any kind has it. */
         private val KINDS = listOf(
             Fe8ScriptConstants.KIND_CHARACTER, Fe8ScriptConstants.KIND_CLASS,
             Fe8ScriptConstants.KIND_ITEM, Fe8ScriptConstants.KIND_SONG,
@@ -99,7 +107,11 @@ public class Fe8ConstantSymbols(
         )
     }
 
-    /** Value of [name] for a field of [kind], or `SymbolResolver.UNRESOLVED`. */
+    /**
+     * Value of [name] for a field of constant [kind] (`Fe8ScriptConstants.KIND_*`), or
+     * `SymbolResolver.UNRESOLVED` (also for a null kind: a plain number field has no names).
+     * [FLAG_AT_SLOT2] only resolves for the event flag kind.
+     */
     override fun resolve(name: String, kind: String?): Long {
         if (kind == null) return SymbolResolver.UNRESOLVED
         if (kind == Fe8ScriptConstants.KIND_EVENT_FLAG && name == FLAG_AT_SLOT2) return SLOT2_VALUE
@@ -115,8 +127,10 @@ public class Fe8ConstantSymbols(
 /**
  * The FE8 `.fe8s` toolchain: a parser and an assembler over [Fe8CommandSet], the FE8 constants and
  * the [external] symbols (names of ROM data and functions from the decomp symbol list). [mods]
- * adds mod-registered flag names after the FE8 constants; a command using one gets a `set_slot 2`
- * before it ([ModFlagSlotExpander]).
+ * adds mod-registered flag names after the FE8 constants. A mod flag handle is 0x8000 or more,
+ * negative as a 16-bit argument, which the flag commands read as "use event slot 2"; so a command
+ * using one gets a `set_slot 2, <handle>` before it ([ModFlagSlotExpander]), overwriting the
+ * script's own slot 2 there.
  *
  * @param external ROM data and function names.
  * @param constants the FE8 constants (characters, items, flags and so on).

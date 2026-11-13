@@ -128,10 +128,10 @@ Total entries: 194 across 40 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startTutorialEvent` | Stand-in until M6-E for `StartPlayerPhaseStartTutorialEvent` (Easy-mode tutorial). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `tryCallSelectEvents` | Stand-in until M6-E for `TryCallSelectEvents` (select events of the active unit). |
 | `game/src/commonMain/kotlin/fe8/game/event/EventChangeMap.kt` | `EventChangeMap` | Stand-in until M6-E: nothing by default. |
-| `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `colorFadeIn` | Stand-in (M6-E) for `NewColFadeIn(speed, 0, color, proc)`. |
-| `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `colorFadeOut` | Stand-in (M6-E) for `NewColFadeOut(speed, 0, color, proc)`. |
-| `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `displayCg` | Stand-in until M6-E for the `EVSUBCMD_0x1A22` case: `DisplayCGfx(gBG3TilemapBuffer, ...)`, BG3 and palette sync. |
-| `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `event21TextBg` | Ported from src/eventscr.c: Event21_TextBg The background fade procs are host stand-ins (M6-E). |
+| `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `colorFadeIn` | Stand-in (M6-E) for `NewColFadeIn(speed, 0, color, proc)`: fades the screen in from [color] (a colour word, format not checked here) at [speed]. |
+| `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `colorFadeOut` | Stand-in (M6-E) for `NewColFadeOut(speed, 0, color, proc)`: fades the screen out to [color] at [speed]. |
+| `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `displayCg` | Stand-in until M6-E for the `EVSUBCMD_0x1A22` case (text type 2): `DisplayCGfx( gBG3TilemapBuffer, ...)` shows CG picture [bgIndex] on BG3, then BG3 and palette sync. |
+| `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `event21TextBg` | The background fade procs are host stand-ins (M6-E). |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `startBackgroundFade` | Stand-in until M6-E for `Proc_StartBlocking(gUnknown_08591E00/E58/EB0, proc)` with the fields set as `Event21_TextBg` does (`sub_800EA84` ... |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `boxDialogueExists` | Stand-in (M6-E): the box dialogue is not ported, so none exists. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `cgTextExists` | Stand-in (M6-E): CG text is not ported, so none exists. |

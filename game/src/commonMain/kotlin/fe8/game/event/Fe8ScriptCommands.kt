@@ -10,13 +10,25 @@ import gbafe.script.CommandSpec
 import gbafe.script.SymbolResolver
 import gbafe.script.resolveMask
 
-/** One FE8 command form with the values the `.fe8s` command set and the encoder derive from it. */
+/**
+ * One FE8 command form (a decomp `Evt*` macro) with the values the `.fe8s` command set and the
+ * encoder derive from it. A command word is the header (command code in the high byte, length in
+ * u16 words in bits 4-7, sub-command nibble in bits 0-3, `_EvtCmd` in include/eventscript.h:569)
+ * followed by the argument words.
+ */
 private class Form(
     val command: Fe8EventCommands.Command,
-    /** Header word; the sub-command nibble is 0 when [Fe8EventCommands.Command.subParam] is set. */
+    /**
+     * Header word (code, length, fixed sub-command); the sub-command nibble is 0 when
+     * [Fe8EventCommands.Command.subParam] is set, as the caller supplies it.
+     */
     val header: Int,
     val spec: CommandSpec,
-    /** True for `clear_flag_at_slot2`: the flag field is implied to be 0xFFFF. */
+    /**
+     * True for `clear_flag_at_slot2` (`EvtClearFlagAtSlot2` = `EvtClearFlag(-1)`): the flag field
+     * is implied to be 0xFFFF, which the flag commands read as "the flag number is in event
+     * slot 2" (src/eventscr.c:116-117).
+     */
     val flagAtSlot2: Boolean,
 ) {
 
@@ -29,8 +41,13 @@ private class Form(
 
 /** The FE8 command forms by `.fe8s` name and decomp macro name. */
 private object Fe8Forms {
+    /** The decomp macro that also gets the argument-less `clear_flag_at_slot2` form. */
     const val CLEAR_FLAG_MACRO = "EvtClearFlag"
+
+    /** Forms by canonical `.fe8s` command name (including `clear_flag_at_slot2`). */
     val byName = HashMap<String, Form>()
+
+    /** Forms by decomp macro name or alias (macros that encode the same header). */
     private val byMacro = HashMap<String, Form>()
 
     // Registers every command by name, decomp macro name and alias.
@@ -58,19 +75,27 @@ private object Fe8Forms {
         byName[name] ?: byMacro[name]?.let { byName[it.command.name] }
 }
 
-/** Name of `clear_flag` whose flag is read from event slot 2 (decomp `EvtClearFlagAtSlot2`). */
+/**
+ * Name of the `clear_flag` form whose flag is read from event slot 2 (decomp
+ * `EvtClearFlagAtSlot2`).
+ */
 public const val FLAG_AT_SLOT2_COMMAND: String = "clear_flag_at_slot2"
 
 /**
  * The FE8 event commands as a `.fe8s` [CommandSet], built from [Fe8EventCommands]. A command takes
  * one argument per named layout field in word order, the sub-command nibble (if any) first, as
- * printed by `EventScriptConverter`; decomp macro names and aliases are accepted as well.
+ * printed by `EventScriptConverter`; decomp macro names and aliases are accepted as well
+ * (format: docs/decisions/0001-script-format.md, "v1 notation").
  */
 public object Fe8CommandSet : CommandSet {
     /** Resolves [name] (canonical, macro name or alias) to its command spec, or null. */
     override fun lookup(name: String): CommandSpec? = Fe8Forms.lookup(name)?.spec
 
-    /** Indices into the arguments of [spec] of the fields that take an event flag id. */
+    /**
+     * Indices into the arguments of [spec] of the fields that take an event flag id (the
+     * `KIND_EVENT_FLAG` fields). Used to expand commands that name a mod flag; empty for
+     * `clear_flag_at_slot2`, whose flag is implied.
+     */
     public fun flagArgIndices(spec: CommandSpec): List<Int> {
         val f = Fe8Forms.byName[spec.name] ?: return emptyList()
         if (f.flagAtSlot2) return emptyList()
@@ -83,13 +108,19 @@ public object Fe8CommandSet : CommandSet {
 
 /** Encodes FE8 commands to the original event words per the [Fe8EventCommands] layouts. */
 public object Fe8CommandEncoder : CommandEncoder {
-    /** Commands whose pointer names stand for a Thumb function (address with bit 0 set). */
+    /**
+     * Commands whose pointer names stand for a Thumb function (address with bit 0 set): the
+     * `asm_call` forms (`EV_CMD_ASMC`, 0x0D) call a native Thumb function.
+     */
     private val THUMB_MACROS = setOf("EvtAsmCall", "EvtAsmCallEnableSkip")
 
-    /** The flag value `0xFFFF` of `clear_flag_at_slot2`: take the flag from slot 2. */
+    /** The flag value `0xFFFF` (-1) of `clear_flag_at_slot2`: take the flag from slot 2. */
     private const val FLAG_ALL_BITS = 0xFFFF
 
-    /** Header word of `label`: command 0x08, two words long. */
+    /**
+     * Header word of `label` (`EvtLabel`, `EV_CMD_LABEL` 0x08): code 0x08 in the high byte, length
+     * 2 words, sub-command 0. The second word is the label number.
+     */
     private const val LABEL_HEADER = 0x0820
 
     /** Number of u16 words a `label` command takes. */
@@ -155,7 +186,8 @@ public object Fe8CommandEncoder : CommandEncoder {
                 if (thumb) r or 1L else r
             }
         }
-        // Negative constants (CHARACTER_EVT_SLOT2 = -3) truncate to the field.
+        // Negative constants (CHARACTER_EVT_SLOT2 = -3, `CHAR_EVT_SLOT2` in include/eventinfo.h)
+        // are accepted and truncate to the field.
         require(v >= -(1L shl (bits - 1)) && v < (1L shl bits)) {
             "value $v does not fit $bits bits"
         }

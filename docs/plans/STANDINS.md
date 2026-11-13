@@ -139,7 +139,7 @@ Total entries: 190 across 38 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `endCgText` | Stand-in until M6-E: CG text is not ported, so none can exist and none is ended. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `talkChoiceResult` | Stand-in (M6-E): `sTalkChoiceResult` is only written by the (not ported) choice proc: 0. |
 | `game/src/commonMain/kotlin/fe8/game/event/ReleaseEventStubs.kt` | `ReleaseEventStubs` | Stand-in until M6-E: not ports; no-op event commands that let a script run past commands whose handlers are not ported yet (text, fades, unit loads, ASMC and so on), as the skip mode of the beginni... |
-| `game/src/commonMain/kotlin/fe8/game/savemenu/PostSaveMenu.kt` | `standInSelection` | Stand-in until M6-E: save menu selection logic simulating pressing 'A' on the default menu item. |
+| `game/src/commonMain/kotlin/fe8/game/savemenu/PostSaveMenu.kt` | `standInSelection` | Stand-in until M6-E for the player's choice on the save menu: picks the first usable entry in this order (not checked against the interactive menu code): 1. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `TalkScene` | Stand-ins until M6-E (no behaviour is invented; each is a no-op or the smallest working substitute): - talk choices (`StartTalkChoice`), `[G]` numbers (`NumberToStringAscii`) and the tactician name... |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `setFaceEyes` | Stand-in (M6-E): `sub_80064D4`, the face eye state, is not ported; the call is ignored. |
 

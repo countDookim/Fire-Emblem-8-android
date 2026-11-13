@@ -8,22 +8,25 @@ import fe8.game.save.Fe8SramLayout
 /**
  * Post-exit handler for the save / main menu, ported from `src/savemenu.c: PostSaveMenuHandler`.
  *
- * Once the player confirms a menu choice, [postSaveMenuHandler] terminates active menu helper
- * procs, clears HBlank callbacks, and sets [GameControl.nextAction] to transition game flow:
- * resuming a suspended game (`GAME_ACTION_4`), restarting the current chapter from a save slot
- * (`susSlot + 1`), launching New Game opening events (`GAME_ACTION_EVENT_RETURN`), entering
- * Extras menus (Link Arena `GAME_ACTION_6` or Creature Campaign postgame `GAME_ACTION_C`), or
- * returning to the title screen (`GAME_ACTION_5` or `GAME_ACTION_A`).
+ * Once the save menu proc reaches its exit label, [postSaveMenuHandler] ends the menu's helper
+ * procs, clears the primary HBlank handler and picks the next `GameCtrlProc.nextAction` from the
+ * menu result: resume a suspend save (`GAME_ACTION_4`), load a chapter save slot (action number
+ * `susSlot + 1`, i.e. `GAME_ACTION_CLASS_REEL` .. `GAME_ACTION_PLAYED_THROUGH` for slots 0..2,
+ * which `GameControl.switchPostSaveMenu` sends to the battle map), New Game
+ * (`GAME_ACTION_EVENT_RETURN`; the game control proc then runs `GmDataInit` and goes to the
+ * battle map), the Extras entries (Link Arena `GAME_ACTION_6`, the Map entry
+ * `GAME_ACTION_C` plus `PLAY_FLAG_POSTGAME`), or back to the title screen (`GAME_ACTION_5`, or
+ * `GAME_ACTION_A` when the `MAIN_MENU_OPTION_7` bit is set).
  *
- * The interactive save menu UI is not yet ported, so [standInSelection] automatically picks the
- * default action that pressing 'A' on the save menu would select in vanilla FE8.
+ * The interactive save menu is not ported yet, so [standInSelection] picks a selection in its
+ * place (see its KDoc).
  */
 public class PostSaveMenu(
-    /** The active battle map and game state (`gPlaySt`). */
+    /** The persistent play state (`gPlaySt`); the Extras Map entry sets its postgame flag. */
     private val playSt: PlaySt,
     /** The save library that [standInSelection] queries for valid save slot states. */
     private val lib: BmSaveLib,
-    /** Callback setting `gGameControl.nextAction` to drive state transitions. */
+    /** Stores the next action number in the game control proc (`SetNextGameActionId`). */
     private val setNextGameActionId: (Int) -> Unit,
     /** Side effect hooks for hardware and proc cleanup invoked by the handler. */
     public val effects: Effects = Effects(),
@@ -40,11 +43,18 @@ public class PostSaveMenu(
 
     /** Side effects performed by `PostSaveMenuHandler`; default implementations do nothing. */
     public class Effects(
-        /** Terminates active menu procs (`APProc_Delete(proc->approc)` and `Proc_End(proc->savedraw)`). */
+        /**
+         * Ends the menu's sprite proc (`APProc_Delete(proc->approc)`, only when it is non-null)
+         * and its background proc (`Proc_End(proc->savedraw)`).
+         */
         public var endMenuProcs: () -> Unit = {},
         /** Clears the primary HBlank interrupt handler (`SetPrimaryHBlankHandler(0)`). */
         public var clearHBlankHandler: () -> Unit = {},
-        /** Restores BGM volume (`StartBgmVolumeChange(0xc0, 0x100, 0x10, 0)`). */
+        /**
+         * Fades the BGM volume from 0xC0 up to 0x100 over a duration of 0x10
+         * (`StartBgmVolumeChange(0xc0, 0x100, 0x10, 0)`, no parent proc); called only on the
+         * leave-to-title path. The duration unit is not checked here.
+         */
         public var startBgmVolumeChange: () -> Unit = {},
         /** Reads a suspend save file into memory (`ReadSuspendSave(slot)`). */
         public var readSuspendSave: (Int) -> Unit = {},
@@ -53,9 +63,10 @@ public class PostSaveMenu(
     )
 
     /**
-     * Ends active menu procs and HBlank handlers, then dispatches the next game action based on
-     * [sel]: Extras (Link Arena or Creature Campaign postgame), Exit to title, Resume suspend
-     * save, Restart chapter from slot, or New Game.
+     * Ends the menu procs and the HBlank handler, then picks the next game action from
+     * [sel]. Checked in this order, as in the decomp: Extras (exactly the Extras bit, then
+     * Link Arena or the Map entry; any other Extras item sets no action), the Invalid bit
+     * (returns with no action), Exit, Resume, Restart / option 7, New Game.
      *
      * Ported from src/savemenu.c: PostSaveMenuHandler
      */
@@ -73,7 +84,9 @@ public class PostSaveMenu(
                 }
             }
         } else if (mainOption and MAIN_MENU_OPTION_INVALID != 0) {
-            // Invalid selection / trial map warning dialog active; stay in menu
+            // The bit is still the menu's initial value (the decomp's SaveMenuInit sets it), so
+            // no choice was made: set no next action. Not a trial-map warning (checked in
+            // src/savemenu.c: SaveMenuInit, PostSaveMenuHandler).
             return
         } else if (mainOption and MAIN_MENU_OPTION_EXIT != 0) {
             effects.startBgmVolumeChange()
@@ -95,10 +108,8 @@ public class PostSaveMenu(
     }
 
     /**
-     * Stand-in until M6-E: save menu selection logic simulating pressing 'A' on the default
-     * menu item.
-     *
-     * Follows vanilla precedence:
+     * Stand-in until M6-E for the player's choice on the save menu: picks the first usable
+     * entry in this order (not checked against the interactive menu code):
      * 1. If a valid suspend save exists in slot 3 ([Fe8SramLayout.SAVE_ID_SUSPEND]), selects Resume.
      * 2. Else if the last played save slot ([BmSaveLib.readLastGameSaveId]) is valid, selects Restart.
      * 3. Otherwise selects New Game.
@@ -115,22 +126,29 @@ public class PostSaveMenu(
     }
 
     private companion object {
-        /** `MAIN_MENU_OPTION_RESUME` (1 << 0): resumes a suspended chapter. */
+        /** `MAIN_MENU_OPTION_RESUME` (1 << 0): continue the suspend save. */
         const val MAIN_MENU_OPTION_RESUME = 1 shl 0
 
-        /** `MAIN_MENU_OPTION_RESTART` (1 << 1): restarts the chapter from a saved slot. */
+        /** `MAIN_MENU_OPTION_RESTART` (1 << 1): loads the selected chapter save slot. */
         const val MAIN_MENU_OPTION_RESTART = 1 shl 1
 
-        /** `MAIN_MENU_OPTION_NEW_GAME` (1 << 4): starts a new campaign from the prologue. */
+        /** `MAIN_MENU_OPTION_NEW_GAME` (1 << 4): starts a new game. */
         const val MAIN_MENU_OPTION_NEW_GAME = 1 shl 4
 
         /** `MAIN_MENU_OPTION_EXTRAS` (1 << 5): opens the Extras submenu. */
         const val MAIN_MENU_OPTION_EXTRAS = 1 shl 5
 
-        /** `MAIN_MENU_OPTION_INVALID` (1 << 6): invalid option flag (e.g. trial map error). */
+        /**
+         * `MAIN_MENU_OPTION_INVALID` (1 << 6): the menu's initial `main_sel_bitfile` value
+         * (src/savemenu.c: SaveMenuInit); while it is set, no choice has been made.
+         */
         const val MAIN_MENU_OPTION_INVALID = 1 shl 6
 
-        /** `MAIN_MENU_OPTION_7` (1 << 7): alternative menu slot/exit flag in decomp. */
+        /**
+         * `MAIN_MENU_OPTION_7` (1 << 7): meaning unknown. Only the unused `SaveMenuInitUnused`
+         * starts with it; the exit path ORs `MAIN_MENU_OPTION_EXIT` onto it, which makes this
+         * handler choose `GAME_ACTION_A` instead of `GAME_ACTION_5`.
+         */
         const val MAIN_MENU_OPTION_7 = 1 shl 7
 
         /** `MAIN_MENU_OPTION_EXIT` (1 << 8): returns to the title screen. */
@@ -139,10 +157,17 @@ public class PostSaveMenu(
         /** `EXTRA_MENU_OPTION_LINK_ARENA` (1 << 0): Link Arena multiplayer battle. */
         const val EXTRA_MENU_OPTION_LINK_ARENA = 1
 
-        /** `EXTRA_MENU_OPTION_MAP` (1 << 4): Creature Campaign extra map postgame mode. */
+        /**
+         * `EXTRA_MENU_OPTION_MAP` (1 << 4): the Extras Map entry; the menu requires a save slot
+         * with bit 4 of `unk_3a` set (cleared-save check, not checked further here).
+         */
         const val EXTRA_MENU_OPTION_MAP = 0x10
 
-        /** `GAME_ACTION_A`: secondary exit game action (e.g. soft reset to title). */
+        /**
+         * `GAME_ACTION_A`: set on exit when `MAIN_MENU_OPTION_7` is set. The decomp's
+         * `GameControl_SwitchPostSaveMenu` has no case for it (it does nothing), so what it is
+         * for is unknown.
+         */
         const val GAME_ACTION_A = 0xA
     }
 }

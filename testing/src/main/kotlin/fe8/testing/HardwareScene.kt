@@ -15,7 +15,7 @@ public object HardwareScene {
     /** Sheet id of the OBJ tile area. */
     public const val OBJ_SHEET: Int = gbafe.render.HardwareScene.OBJ_SHEET
 
-    /** True when `DISPCNT` forced blank is set (the screen shows white). */
+    /** True when `DISPCNT` bit 7 (forced blank) is set in [io]: the LCD shows white. */
     public fun forcedBlank(io: ByteArray): Boolean = u16(io, 0) and 0x80 != 0
 
     /**
@@ -36,7 +36,8 @@ public object HardwareScene {
     /**
      * Compares [fb] against an mGBA `frame.rgb` dump (240×160 RGB888) at 5-bit precision.
      * Returns the number of differing pixels; when non-zero and [diffPng] is given, writes a PNG
-     * with the expected frame left, ours in the middle and differing pixels in red on the right.
+     * with the expected frame left, ours in the middle and, on the right, differing pixels in
+     * red and matching pixels as a dimmed copy of the expected frame.
      */
     public fun compare(fb: FrameBuffer, rgb: ByteArray, diffPng: File? = null): Int {
         val width = FrameBuffer.GBA_WIDTH
@@ -75,7 +76,10 @@ public object HardwareScene {
         return diffCount
     }
 
-    /** Mask keeping only the top 5 bits of each 8-bit RGB channel (RGB555 converted to RGB888). */
+    /**
+     * Keeps the top 5 bits of each 8-bit RGB channel: the GBA has 5 bits per channel, so the low
+     * 3 bits of a converted RGB888 pixel carry no information and are ignored when comparing.
+     */
     private const val COLOR_MASK_5BIT: Int = 0xF8F8F8
 
     /**

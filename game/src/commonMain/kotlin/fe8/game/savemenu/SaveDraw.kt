@@ -4,46 +4,50 @@ import gbafe.render.BgVerticalScroll
 import gbafe.render.LcdControl
 
 /**
- * Save and main menu graphical rendering, ported from `src/savedraw.c`.
+ * The drifting fog background of the save / main menu, ported from the
+ * `SaveDraw_ScrollFogBG` part of `src/savedraw.c` (the rest of that file, the menu sprites, is
+ * not ported here).
  *
- * Implements the animated background fog effect: an undulating sine wave scroll applied to the
- * background layer BG2 behind the menu windows, combining scanline-by-scanline horizontal
- * displacement from `gSinLookup` with diagonal drift across frames.
+ * The fog is background layer BG2 (tile graphics `BGCHR_SAVEMENU_BGFOG` in the decomp). Each
+ * frame it drifts diagonally, and each scanline gets its own horizontal offset from `gSinLookup`
+ * so the fog ripples.
  */
 public object SaveDraw {
     /**
-     * Subpixel position coordinates of the drifting background fog.
+     * Drift position of the fog, in 1/8 pixels on both axes.
      *
      * Ported from `struct SaveDrawProc::bg_x` and `bg_y` (u16 each in decomp).
      */
     public class Fog {
         /**
-         * Horizontal background position in 1/8 subpixels (`bg_x`), incremented by 1 per frame
-         * and wrapping within 16-bit range.
+         * Horizontal position in 1/8 pixels (`bg_x`): +1 per frame, kept to 16 bits. Only the low
+         * 12 bits are used for display (0..511 pixels).
          */
         public var bgX: Int = 0
 
         /**
-         * Vertical background position in 1/8 subpixels (`bg_y`), incremented by 2 per frame
-         * and wrapping within 16-bit range.
+         * Vertical position in 1/8 pixels (`bg_y`): +2 per frame, kept to 16 bits. Only
+         * `(bgY / 8) & 0xFF` is used for display, which also seeds the sine angle.
          */
         public var bgY: Int = 0
     }
 
     /**
-     * Advances the drifting rune fog background by one frame on BG2.
+     * Moves the fog one frame: advances [fog], fills the scroll buffer's other half with one
+     * horizontal offset per scanline, sets BG2's scroll in [lcd], and flips the buffer so the
+     * new table is used from the next frame's HBlank handler.
      *
-     * Updates subpixel position counters in [fog], calculates per-scanline horizontal sine wave
-     * offsets `(sin(angle) / 0x300 + x) & 0x1FF` (where `angle` starts at `bgY` and steps by 12
-     * per scanline), populates the next-frame scanline table in [scroll], positions BG2 in [lcd],
-     * and flips the vertical scroll buffers for VBlank display.
+     * Per scanline the offset is `(sin(angle) / 0x300 + x) & 0x1FF`; `angle` starts at the
+     * vertical pixel position and grows by 12 per scanline, so 160 lines cover 1908 angle
+     * steps, wrapping the 256-entry table about 7.5 times (the ripple density).
      *
      * Ported from src/savedraw.c: SaveDraw_ScrollFogBG
      *
      * @param fog the persistent subpixel position state of the fog background.
-     * @param scroll the vertical scanline offset buffer manager for background rendering.
-     * @param lcd LCD controller managing hardware background position registers.
-     * @param sin the game's 256-entry sine lookup table (`gSinLookup`, s16 values in 4.12 fixed point).
+     * @param scroll the per-scanline scroll buffer; register 0 is BG2's horizontal offset.
+     * @param lcd receives the whole-frame BG2 position (`BG_SetPosition(BG_2, ...)`).
+     * @param sin the first 256 entries of `gSinLookup` (s16, 4.12 fixed point; `SIN(a)` indexes
+     *   it with `a & 0xFF`).
      */
     public fun scrollFogBg(fog: Fog, scroll: BgVerticalScroll, lcd: LcdControl, sin: ShortArray) {
         fog.bgX = (fog.bgX + 1) and UINT16_MASK
@@ -61,39 +65,42 @@ public object SaveDraw {
         scroll.flip()
     }
 
-    /** GBA screen height in scanlines (`DISPLAY_HEIGHT` in decomp). */
+    /** GBA screen height in scanlines (`DISPLAY_HEIGHT`, include/gba/defines.h). */
     private const val SCREEN_HEIGHT_LINES = 160
 
     /** Background layer index for the drifting menu fog (`BG_2`). */
     private const val BG_LAYER_2 = 2
 
-    /** Register index 0 for BG vertical/horizontal scroll buffers. */
+    /** Scroll register 0 of the buffer: BG2's horizontal offset (`REG_ADDR_BG2HOFS`). */
     private const val SCROLL_REGISTER_0 = 0
 
-    /** Buffer index 1 used for staging the next frame's scanline table prior to flip. */
+    /** `flip` argument true: the buffer half not currently shown, filled before the flip. */
     private const val NEXT_FRAME_BUFFER = 1
 
-    /** Number of subpixels per whole screen pixel (1/8th pixel resolution). */
+    /** Fog position units per screen pixel. */
     private const val SUBPIXELS_PER_PIXEL = 8
 
-    /** Bit shift converting 1/8th subpixels to whole screen pixels (`>> 3`). */
+    /** Shift converting 1/8 pixels to pixels (`>> 3`); same as dividing by 8. */
     private const val SUBPIXEL_SHIFT = 3
 
-    /** Mask constraining subpixel accumulator before division (`& 0xFFF`). */
+    /** Keeps `bgX` in 0..4095, i.e. 0..511 pixels, the 9-bit scroll range (`& 0xfff`). */
     private const val SUBPIXEL_WRAP_MASK = 0xFFF
 
-    /** Sine table angle increment per scanline. */
+    /** Sine angle increment per scanline (`angle += 12`). */
     private const val ANGLE_STEP_PER_LINE = 12
 
-    /** Divisor scaling 4.12 fixed-point sine values to horizontal pixel displacement (`/ 0x300`). */
+    /**
+     * Divisor turning the 4.12 sine into a pixel offset (`/ 0x300`): with a peak of 0x1000 the
+     * offset ranges about -5..5 pixels (4096 / 768 = 5 1/3, truncated toward zero).
+     */
     private const val SINE_AMPLITUDE_DIVISOR = 0x300
 
-    /** GBA 9-bit horizontal scroll coordinate wrap mask (`& 0x1FF`, 0..511). */
+    /** Wrap of a horizontal scroll value to the hardware's 9 bits (`& 0x1ff`, 0..511). */
     private const val SCROLL_MASK_9BIT = 0x1FF
 
-    /** 8-bit wrap mask for sine lookup table indices and tile Y coordinates (`& 0xFF`). */
+    /** Wrap to 0..255, used for the vertical pixel position and the sine index (`& 0xff`). */
     private const val BYTE_MASK = 0xFF
 
-    /** 16-bit wrap mask for subpixel position counters (`& 0xFFFF`). */
+    /** Wrap of `bgX` / `bgY` to the decomp's u16 fields. */
     private const val UINT16_MASK = 0xFFFF
 }

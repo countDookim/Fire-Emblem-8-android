@@ -10,7 +10,12 @@ import gba.audio.M4aTrack
  * differential tests of the sequencer. Addresses are GBA addresses in IWRAM.
  */
 public object M4aRam {
-    /** `gMPlayInfo_*` / `gMPlayTrack_*` pairs (address, track slots) from fireemblem8.nm.txt. */
+    /**
+     * The nine music players keyed by name (`gMPlayInfo_<name>`): IWRAM address of the
+     * `MusicPlayerInfo` and its number of track slots (`NUM_TRACKS_*` in the decomp's
+     * sound/music_player_table.s). Order is that table's: two BGM players, then the SE ones.
+     * Addresses are from the ROM repo's `decomp/fireemblem8.nm.txt`.
+     */
     public val PLAYERS: Map<String, Pair<Int, Int>> = mapOf(
         "BGM1" to (0x03006440 to 8), "BGM2" to (0x03006650 to 8),
         "SE1_SYS1" to (0x03006690 to 2), "SE2_SYS2" to (0x03006760 to 2),
@@ -19,10 +24,17 @@ public object M4aRam {
         "SE7_EVT" to (0x03006720 to 2),
     )
 
+    /** GBA address of the start of IWRAM (offset 0 of the dump). */
     private const val IWRAM = 0x03000000
+
+    /** `sizeof(struct MusicPlayerTrack)` (0x50). */
     private const val TRACK_SIZE = 0x50
 
-    /** The player at [address] with its [slots] tracks, read from [iwram]. */
+    /**
+     * The `MusicPlayerInfo` at GBA [address] with its [slots] tracks, read from [iwram] (a
+     * dump of the 32 KiB IWRAM). The tracks' own address comes from the `tracks` pointer at
+     * +0x2C; the `intp` link (+0x3C) is left for [sound] to resolve.
+     */
     public fun player(iwram: ByteArray, address: Int, slots: Int): M4aPlayer {
         val offset = address - IWRAM
         val tracksAddress = u32(iwram, offset + 0x2C)
@@ -45,7 +57,10 @@ public object M4aRam {
         return player
     }
 
-    /** The track at [address], read from [iwram]. */
+    /**
+     * The `MusicPlayerTrack` at GBA [address], read from [iwram]. Fields are in struct order
+     * (include/gba/m4a_internal.h); `chan` (+0x20) is left for [sound] to link.
+     */
     public fun track(iwram: ByteArray, address: Int): M4aTrack {
         val offset = address - IWRAM
         fun readU8(offsetDelta: Int) = u8(iwram, offset + offsetDelta)
@@ -90,7 +105,12 @@ public object M4aRam {
         }
     }
 
-    /** All [PLAYERS] (same order) and the shared channels, linked as in [iwram]. */
+    /**
+     * All [PLAYERS] (same order) and the shared `gSoundInfo` state, with every pointer between
+     * players, tracks and channels (track to channel, channel to track and to its neighbours in
+     * the active chain, `intp` back-links) resolved to the matching Kotlin objects. A pointer
+     * that matches none of them (null or stale) becomes null.
+     */
     public fun sound(iwram: ByteArray): Pair<List<M4aPlayer>, M4aSoundInfo> {
         val players = PLAYERS.values.map { (address, slots) -> player(iwram, address, slots) }
         val tracks = players.flatMap { it.tracks.toList() }.associateBy { it.address }
@@ -127,7 +147,12 @@ public object M4aRam {
         return players to info
     }
 
-    /** The channel at [address] (DirectSound or CGB; shared offsets), unlinked. */
+    /**
+     * The sound channel at GBA [address] (one of the 12 DirectSound `SoundChannel`s or one of the 4
+     * `CgbChannel`s; both are 0x40 bytes), read from [iwram] without its `track` / `prev` /
+     * `next` links. Fields from +0x14 on mean different things per type (DirectSound `ct` vs
+     * CGB `sustainGoal`..), so both views are read from the same bytes.
+     */
     public fun channel(iwram: ByteArray, address: Int): M4aChannel {
         val offset = address - IWRAM
         return M4aChannel(address).apply {
@@ -162,10 +187,19 @@ public object M4aRam {
         }
     }
 
+    /** `gSoundInfo` (struct SoundInfo, 0xFB0 bytes) in the nm file. */
     private const val SOUND_INFO = 0x03005410
+
+    /** `gSoundInfo.pcmBuffer`: 0x350 bytes into the struct (after 0x50 header and 12 channels). */
     private const val PCM_BUFFER = SOUND_INFO + 0x350
+
+    /** `gSoundInfo.chans`: the 12 DirectSound channels, 0x50 bytes into the struct. */
     private const val DIRECT_CHANS = 0x03005460
+
+    /** `gCgbChans`: the 4 CGB channels (0x100 bytes in the nm file). */
     private const val CGB_CHANS = 0x03006510
+
+    /** Size of one channel struct, DirectSound or CGB. */
     private const val CHANNEL_SIZE = 0x40
 
     /** Reads an unsigned 8-bit integer from [bytes] at [offset]. */

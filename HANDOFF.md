@@ -12,7 +12,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - MC-13 (combat action): owner PC, until ~11:30Z (from 08:18Z)
-- Readability audit fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs): owner PC, until ~11:30Z (from 08:27Z)
+- Readability audit fe8.game.event (EventScrCore, EventPopup, EventFade, EventGiveItem): owner PC, until ~11:30Z (from 08:34Z)
 
 ## Current state
 

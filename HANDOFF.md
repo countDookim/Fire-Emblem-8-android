@@ -12,7 +12,6 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - EP-3b: owner PC, until ~22:30Z
-- Readability OpAnim lines 2061-end: owner PC, until ~21:35Z
 
 ## Current state
 

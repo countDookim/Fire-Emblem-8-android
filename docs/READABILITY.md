@@ -84,7 +84,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.opanim (OpAnim lines 1-741: to before MergeBgState) | 1 | 741 | done 2026-11-11 8cf022f / 4735f55; audit done 2026-11-13 3432b3b |
 | game | fe8.game.opanim (OpAnim lines 742-1381: MergeBgState to before setupCastDisplay) | 1 | 640 | done 2026-11-11 8cf022f / 4735f55; audit done 2026-11-13 2603a0f |
 | game | fe8.game.opanim (OpAnim lines 1382-2060: setupCastDisplay to before faces1In) | 1 | 679 | done 2026-11-11 8cf022f / 4735f55; audit done 2026-11-13 eee46af |
-| game | fe8.game.opanim (OpAnim lines 2061-2726: faces1In to end) | 1 | 666 | done 2026-11-11 8cf022f / 4735f55; audit done 2026-11-13 HASH |
+| game | fe8.game.opanim (OpAnim lines 2061-2726: faces1In to end) | 1 | 666 | done 2026-11-11 8cf022f / 4735f55; audit done 2026-11-13 1099b8dd |
 | game | fe8.game.opanim (OpSubtitle*.kt) | 7 | 913 | done 2026-11-10 f3ad834 / d05e87f; audit done 2026-11-13 300e7eb |
 | game | fe8.game.save (BmSaveLib lines 1-520: header, checksums, block info, last save id) | 1 | 520 | done 2026-11-09 1941586; audit done 2026-11-13 937d9a1 |
 | game | fe8.game.save (BmSaveLib lines 521-1080: playthrough ids, completion, supports, rankings, bonus, misc) | 1 | 560 | done 2026-11-09 1941586; audit done 2026-11-13 82e09d3 |

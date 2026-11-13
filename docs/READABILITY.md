@@ -86,10 +86,10 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.worldmap (WorldMapUnit) | 1 | 936 | done 2026-11-13 784af68 |
 | game | fe8.game.worldmap (WorldMapMu) | 1 | 1066 | done 2026-11-13 2df8623 |
 | gba/audio | gba.audio | 17 | 3162 | done 2026-11-09 1db6a62; audit done 2026-11-12 520ab72 |
-| gba/core | gba.core | 1 | 22 | done 2026-11-07 697847c; audit done 2026-11-13 PENDING |
-| gba/core | gba.core.event | 2 | 116 | done 2026-11-07 697847c; audit done 2026-11-13 PENDING |
-| gba/core | gba.core.sram | 5 | 412 | done 2026-11-07 1b2b121; audit done 2026-11-13 PENDING |
-| gba/core | gba.core.time | 2 | 133 | done 2026-11-07 697847c; audit done 2026-11-13 PENDING |
+| gba/core | gba.core | 1 | 22 | done 2026-11-07 697847c; audit done 2026-11-13 f9ac038 |
+| gba/core | gba.core.event | 2 | 116 | done 2026-11-07 697847c; audit done 2026-11-13 f9ac038 |
+| gba/core | gba.core.sram | 5 | 412 | done 2026-11-07 1b2b121; audit done 2026-11-13 f9ac038 |
+| gba/core | gba.core.time | 2 | 133 | done 2026-11-07 697847c; audit done 2026-11-13 f9ac038 |
 | gba/data | gba.data | 7 | 585 | done 2026-11-09 19d121b; audit todo |
 | gba/extract | gba.extract | 9 | 572 | done 2026-11-09 19d121b; audit todo |
 | gba/input | gba.input | 3 | 362 | done 2026-11-07 52e07f0; audit todo |

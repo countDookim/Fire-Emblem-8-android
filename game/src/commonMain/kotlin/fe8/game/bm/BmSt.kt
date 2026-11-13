@@ -11,126 +11,205 @@ import fe8.game.bm.StructCodec.u8
 
 /**
  * Mutable model of the decomp's `struct BmSt` (`gBmSt`, include/types.h, 0x40 bytes) with every
- * field as a named property. [decode] and [encode] round-trip the 0x40 bytes exactly. Signed
+ * field as a named property: the state of the chapter map screen while it is running (camera,
+ * cursor, locks, per-phase flags). Unlike [PlaySt] it is not part of the save files, except in
+ * the mid-chapter suspend block; `ClearBattleMapState` (src/bmio.c) zeroes it when a map starts,
+ * keeping only `lock`. [decode] and [encode] round-trip the 0x40 bytes exactly. Signed
  * fields hold their sign-extended value, unsigned ones their zero-extended value (a `u32` holds
  * its 32 bits in the [Int]). `Vec2` members are split into `...X` / `...Y`.
  */
 public class BmSt {
-    /** `main_loop_ended` (s8, 0x00): non-zero when the battle map main loop should terminate. */
+    /**
+     * `main_loop_ended` (s8, 0x00): set to 1 at the end of each main loop frame (the map's
+     * `OnMain` in src/bm.c and the battle animation loops) and cleared when the next VBlank
+     * flushes the display (src/bm.c); the level up and magic effects poll it to know that a
+     * frame has run.
+     */
     public var mainLoopEnded: Int = 0
 
-    /** `lock` (s8, 0x01): input and processing lock counter. */
+    /**
+     * `lock` (s8, 0x01): the game logic lock counter: `LockGame` adds 1, `UnlockGame` takes 1
+     * and `GetGameLock` returns it (src/bm.c); the map logic procs wait while it is not 0. It
+     * is the one field kept by `ClearBattleMapState`.
+     */
     public var lock: Int = 0
 
-    /** `gameGfxSemaphore` (s8, 0x02): graphics update lock semaphore. */
+    /**
+     * `gameGfxSemaphore` (s8, 0x02): how many `BMapDispSuspend` calls have not been undone by
+     * `BMapDispResume` (src/bmio.c); the map display procs are blocked while it is above 0.
+     */
     public var gameGfxSemaphore: Int = 0
 
-    /** `_unk04` (u8, 0x03): unknown byte field (`_unk04` in decomp `struct BmSt`). */
+    /** `_unk04` (u8, 0x03): unknown; the decomp names it `_unk04` though it sits at 0x03. */
     public var unk03: Int = 0
 
-    /** `gameStateBits` (u8, 0x04): battle map state bitfield (`BM_FLAG_*`). */
+    /**
+     * `gameStateBits` (u8, 0x04): `BM_FLAG_*` bits (include/types.h): 0x01 `BM_FLAG_0` (when
+     * set the map render also scrolls BG2 with the camera, src/bmmap.c), 0x02 `BM_FLAG_1`
+     * (set while the player phase shows a unit's movement range) and 0x08 `BM_FLAG_3` (set and
+     * cleared around the same selection, src/playerphase.c; meaning unknown), 0x10
+     * `BM_FLAG_PREPSCREEN`, 0x20 `BM_FLAG_5` (the decomp guesses it mutes battle animation
+     * music), 0x40 `BM_FLAG_LINKARENA` (a link arena battle).
+     */
     public var gameStateBits: Int = 0
 
-    /** `_unk05` (u8, 0x05): unknown byte field (`_unk05` in decomp `struct BmSt`). */
+    /** `_unk05` (u8, 0x05): unknown; no read or write of it was found in src/. */
     public var unk05: Int = 0
 
-    /** `prevVCount` (u16, 0x06): scanline counter value from the previous frame. */
+    /**
+     * `prevVCount` (u16, 0x06): `REG_VCOUNT` stored at the end of a main loop frame (src/bm.c,
+     * the battle animation loops); nothing in src/ reads it.
+     */
     public var prevVCount: Int = 0
 
-    /** `_unk08` (u32, 0x08): unknown 32-bit field (`_unk08` in decomp `struct BmSt`). */
+    /** `_unk08` (u32, 0x08): unknown; no read or write of it was found in src/. */
     public var unk08: Int = 0
 
-    /** `camera.x` (s16, 0x0C): camera horizontal scroll position in pixels. */
+    /** `camera.x` (s16, 0x0C): the map camera's left edge in map pixels. */
     public var cameraX: Int = 0
 
-    /** `camera.y` (s16, 0x0E): camera vertical scroll position in pixels. */
+    /** `camera.y` (s16, 0x0E): the map camera's top edge in map pixels. */
     public var cameraY: Int = 0
 
-    /** `cameraPrevious.x` (s16, 0x10): previous frame camera horizontal position in pixels. */
+    /**
+     * `cameraPrevious.x` (s16, 0x10): `camera.x` at the last map redraw; the map render compares
+     * them to find new tile columns.
+     */
     public var cameraPreviousX: Int = 0
 
-    /** `cameraPrevious.y` (s16, 0x12): previous frame camera vertical position in pixels. */
+    /**
+     * `cameraPrevious.y` (s16, 0x12): `camera.y` at the last map redraw, likewise for tile rows.
+     */
     public var cameraPreviousY: Int = 0
 
-    /** `playerCursor.x` (s16, 0x14): map cursor tile column coordinate. */
+    /** `playerCursor.x` (s16, 0x14): the map cursor's tile column. */
     public var playerCursorX: Int = 0
 
-    /** `playerCursor.y` (s16, 0x16): map cursor tile row coordinate. */
+    /** `playerCursor.y` (s16, 0x16): the map cursor's tile row. */
     public var playerCursorY: Int = 0
 
-    /** `cursorPrevious.x` (s16, 0x18): previous cursor tile column coordinate. */
+    /**
+     * `cursorPrevious.x` (s16, 0x18): the cursor column of the last unit-info refresh (-1 forces
+     * one; src/bmudisp.c).
+     */
     public var cursorPreviousX: Int = 0
 
-    /** `cursorPrevious.y` (s16, 0x1A): previous cursor tile row coordinate. */
+    /** `cursorPrevious.y` (s16, 0x1A): the cursor row of the last unit-info refresh. */
     public var cursorPreviousY: Int = 0
 
-    /** `cursorTarget.x` (s16, 0x1C): target cursor horizontal position in pixels (tile * 16). */
+    /**
+     * `cursorTarget.x` (s16, 0x1C): the cursor's target x in map pixels; menus open beside it
+     * (`cursorTarget.x - camera.x`, src/bmmenu.c).
+     */
     public var cursorTargetX: Int = 0
 
-    /** `cursorTarget.y` (s16, 0x1E): target cursor vertical position in pixels (tile * 16). */
+    /** `cursorTarget.y` (s16, 0x1E): the cursor's target y in map pixels. */
     public var cursorTargetY: Int = 0
 
-    /** `playerCursorDisplay.x` (s16, 0x20): displayed cursor horizontal position in pixels. */
+    /**
+     * `playerCursorDisplay.x` (s16, 0x20): where the cursor sprite is drawn, in map pixels; it is a
+     * multiple of 16 once the cursor has arrived (src/playerphase.c).
+     */
     public var playerCursorDisplayX: Int = 0
 
-    /** `playerCursorDisplay.y` (s16, 0x22): displayed cursor vertical position in pixels. */
+    /** `playerCursorDisplay.y` (s16, 0x22): the cursor sprite's y, likewise. */
     public var playerCursorDisplayY: Int = 0
 
-    /** `mapRenderOrigin.x` (u16, 0x24): BG3 tilemap render origin tile column (`cameraX >> 4`). */
+    /**
+     * `mapRenderOrigin.x` (u16, 0x24): the map tile column at the top left of the drawn map,
+     * `camera.x >> 4` (src/bmmap.c).
+     */
     public var mapRenderOriginX: Int = 0
 
-    /** `mapRenderOrigin.y` (u16, 0x26): BG3 tilemap render origin tile row (`cameraY >> 4`). */
+    /** `mapRenderOrigin.y` (u16, 0x26): the map tile row at the top, `camera.y >> 4`. */
     public var mapRenderOriginY: Int = 0
 
-    /** `cameraMax.x` (s16, 0x28): maximum camera horizontal scroll limit in pixels. */
+    /**
+     * `cameraMax.x` (s16, 0x28): the largest `camera.x`: map width * 16 - 240 (`DISPLAY_WIDTH`,
+     * src/bmmap.c).
+     */
     public var cameraMaxX: Int = 0
 
-    /** `cameraMax.y` (s16, 0x2A): maximum camera vertical scroll limit in pixels. */
+    /**
+     * `cameraMax.y` (s16, 0x2A): the largest `camera.y`: map height * 16 - 160 (`DISPLAY_HEIGHT`).
+     */
     public var cameraMaxY: Int = 0
 
-    /** `um_tmp_item` (u16, 0x2C): temporary item ID/index in unit menu. */
+    /**
+     * `um_tmp_item` (u16, 0x2C): the item the unit menu's current entry shows (src/bmmenu.c sets
+     * it, e.g. for the dance entry; its help box and name read it).
+     */
     public var umTmpItem: Int = 0
 
-    /** `itemUnk2E` (u16, 0x2E): unknown item field (`itemUnk2E` in decomp `struct BmSt`). */
+    /**
+     * `itemUnk2E` (u16, 0x2E): an item waiting to be put into the convoy (`AddItemToConvoy`,
+     * src/convoymenu.c; 0 for none).
+     */
     public var itemUnk2E: Int = 0
 
-    /** `unk30` (u16, 0x30): unknown halfword field (`unk30` in decomp `struct BmSt`). */
+    /** `unk30` (u16, 0x30): unknown; no read or write of it was found in src/. */
     public var unk30: Int = 0
 
-    /** `unk32` (s16, 0x32): unknown signed halfword (`unk32` in decomp `struct BmSt`). */
+    /**
+     * `unk32` (s16, 0x32): the camera x offset within a 16-pixel tile (0..15) during the camera's
+     * stepped scroll (src/bm.c); 0 when aligned.
+     */
     public var unk32: Int = 0
 
-    /** `unk34` (s16, 0x34): unknown signed halfword (`unk34` in decomp `struct BmSt`). */
+    /** `unk34` (s16, 0x34): the same for the y axis (0..15). */
     public var unk34: Int = 0
 
-    /** `unk36` (s8, 0x36): unknown signed byte (`unk36` in decomp `struct BmSt`). */
+    /**
+     * `unk36` (s8, 0x36): the camera's x step per frame (signed) while it scrolls to a tile
+     * boundary (src/bm.c).
+     */
     public var unk36: Int = 0
 
-    /** `unk37` (s8, 0x37): unknown signed byte (`unk37` in decomp `struct BmSt`). */
+    /** `unk37` (s8, 0x37): the camera's y step per frame (signed). */
     public var unk37: Int = 0
 
-    /** `altBlendACa` (u8, 0x38): alternate blend coefficient A Ca. */
+    /**
+     * `altBlendACa` (u8, 0x38): first alpha blend weight (`Ca`, of 16) of pair A, which effects
+     * that blend a screen band by scanline use instead of the normal blend setting
+     * (`PhaseIntro` for the text band, src/bb.c).
+     */
     public var altBlendACa: Int = 0
 
-    /** `altBlendACb` (u8, 0x39): alternate blend coefficient A Cb. */
+    /** `altBlendACb` (u8, 0x39): second alpha blend weight (`Cb`) of pair A. */
     public var altBlendACb: Int = 0
 
-    /** `altBlendBCa` (u8, 0x3A): alternate blend coefficient B Ca. */
+    /**
+     * `altBlendBCa` (u8, 0x3A): first blend weight of pair B (`PhaseIntro` uses it for the
+     * squares).
+     */
     public var altBlendBCa: Int = 0
 
-    /** `altBlendBCb` (u8, 0x3B): alternate blend coefficient B Cb. */
+    /** `altBlendBCb` (u8, 0x3B): second blend weight of pair B. */
     public var altBlendBCb: Int = 0
 
-    /** `just_resumed` (u8, 0x3C): flag indicating map execution just resumed from suspend save. */
+    /**
+     * `just_resumed` (u8, 0x3C): set to true when the map is restored from a suspend save
+     * (src/bmio.c); the action-end and battle record code check it.
+     */
     public var justResumed: Int = 0
 
-    /** `taken_action` (u8, 0x3D): flag indicating whether an action was taken this turn. */
+    /**
+     * `taken_action` (u8, 0x3D): `BM_TAKEN_ACTION_*` bits for what the unit has done this move
+     * (src/playerphase.c): 0x01 `TAKE`, 0x02 `TRADE`, 0x04 `SUPPLY`, 0x08 `BALLISTA`; the unit
+     * menu hides entries according to them (src/bmmenu.c).
+     */
     public var takenAction: Int = 0
 
-    /** `swapActionRangeCount` (u8, 0x3E): swap action range counter. */
+    /**
+     * `swapActionRangeCount` (u8, 0x3E): bit 0 chooses which danger zone range is drawn
+     * (`GenerateDangerZoneRange`, src/playerphase.c); reset to 0 when menus open.
+     */
     public var swapActionRangeCount: Int = 0
 
-    /** `unk3F` (s8, 0x3F): unknown signed byte (`unk3F` in decomp `struct BmSt`). */
+    /**
+     * `unk3F` (s8, 0x3F): an item slot index: set from `gActionData.itemSlotIndex` (src/bmmenu.c);
+     * the trade screen uses it as hover start (src/bmtrade.c); 0xFF for none.
+     */
     public var unk3F: Int = 0
 
     /** Reads the 0x40 bytes at [offset] of [bytes] into this state. Does not allocate. */

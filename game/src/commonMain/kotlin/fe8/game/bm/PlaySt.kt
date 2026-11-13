@@ -12,7 +12,9 @@ import fe8.game.bm.StructCodec.u8
 
 /**
  * Mutable model of the decomp's `struct PlaySt` (`gPlaySt`, include/types.h, 0x4C bytes) with
- * every field as a named property. [decode] and [encode] round-trip the 0x4C bytes exactly.
+ * every field as a named property: the chapter and settings state that lives in the save files
+ * (the chapter progress, turn, gold, rankings and the options screen settings). [decode] and
+ * [encode] round-trip the 0x4C bytes exactly.
  *
  * The struct is `packed`, so GCC lays its bitfields out contiguously, least significant bit first;
  * every bit of every bitfield word is a named property here, so no reserved bits need preserving.
@@ -21,88 +23,141 @@ import fe8.game.bm.StructCodec.u8
  * on [encode]); a `unk_XX_YY` name keeps the decomp's suffix.
  */
 public class PlaySt {
-    /** `time_saved` (u32, 0x00): elapsed game play time in frames saved into the file. */
+    /**
+     * `time_saved` (u32, 0x00): the game clock (`GetGameClock`, frames) written at save time;
+     * `SetGameTime` restores the clock from it on load, and the save menus show it as play time.
+     */
     public var timeSaved: Int = 0
 
-    /** `time_chapter_started` (u32, 0x04): total frame count when the current chapter started. */
+    /**
+     * `time_chapter_started` (u32, 0x04): the game clock (frames) when the chapter started
+     * (src/bmio.c); the chapter's play time is the clock minus this (src/bmsave-xmap.c,
+     * src/bmdifficulty.c).
+     */
     public var timeChapterStarted: Int = 0
 
-    /** `partyGoldAmount` (u32, 0x08): gold currently in the player's party convoy/funds. */
+    /** `partyGoldAmount` (u32, 0x08): the party's gold; `SetPartyGoldAmount` caps it at 999999. */
     public var partyGoldAmount: Int = 0
 
-    /** `gameSaveSlot` (u8, 0x0C): active save game slot index (0, 1, or 2). */
+    /**
+     * `gameSaveSlot` (u8, 0x0C): index of the save slot this game was started in or loaded from.
+     */
     public var gameSaveSlot: Int = 0
 
-    /** `chapterVisionRange` (u8, 0x0D): vision range in tiles for fog of war; 0 means no fog. */
+    /** `chapterVisionRange` (u8, 0x0D): the chapter's fog of war vision range; 0 means no fog. */
     public var chapterVisionRange: Int = 0
 
-    /** `chapterIndex` (s8, 0x0E): chapter ID in `gChapterDataTable`. */
+    /** `chapterIndex` (s8, 0x0E): the current chapter, an index into `gChapterDataTable`. */
     public var chapterIndex: Int = 0
 
-    /** `faction` (u8, 0x0F): active phase faction: 0x00 player, 0x40 NPC/green, 0x80 enemy/red. */
+    /**
+     * `faction` (u8, 0x0F): whose phase it is: 0x00 player (`FACTION_BLUE`), 0x40 NPC
+     * (`FACTION_GREEN`), 0x80 enemy (`FACTION_RED`); the decomp notes 0xC0 as a possible link
+     * arena fourth team.
+     */
     public var faction: Int = 0
 
-    /** `chapterTurnNumber` (u16, 0x10): current turn number in the chapter (1-indexed). */
+    /** `chapterTurnNumber` (u16, 0x10): the current turn of the chapter; the first turn is 1. */
     public var chapterTurnNumber: Int = 0
 
-    /** `xCursor` (u8, 0x12): saved cursor tile X coordinate. */
+    /**
+     * `xCursor` (u8, 0x12): map cursor tile column, copied from `gBmSt.playerCursor` (player
+     * phase).
+     */
     public var xCursor: Int = 0
 
-    /** `yCursor` (u8, 0x13): saved cursor tile Y coordinate. */
+    /** `yCursor` (u8, 0x13): map cursor tile row; see [xCursor]. */
     public var yCursor: Int = 0
 
-    /** `chapterStateBits` (u8, 0x14): chapter state flags (`PLAY_FLAG_*` such as hard mode, postgame, prep screen). */
+    /**
+     * `chapterStateBits` (u8, 0x14): `PLAY_FLAG_*` bits (include/types.h): 0x01 and 0x02 the
+     * stat screen page, 0x04 `POSTGAME`, 0x08 `TUTORIAL`, 0x10 `PREPSCREEN` (in the preparations
+     * screen), 0x20 `COMPLETE`, 0x40 `HARD` ([PLAY_FLAG_HARD], the difficult mode), 0x80
+     * `EXTRA_MAP`.
+     */
     public var chapterStateBits: Int = 0
 
-    /** `chapterWeatherId` (u8, 0x15): active weather condition ID (e.g. rain, snow, clouds). */
+    /** `chapterWeatherId` (u8, 0x15): the map's weather (`WEATHER_*`: rain, snow, clouds, ...). */
     public var chapterWeatherId: Int = 0
 
-    /** `chapterTotalSupportGain` (u16, 0x16): cumulative support points gained in this chapter. */
+    /**
+     * `chapterTotalSupportGain` (u16, 0x16): support points gained this chapter (src/bmreliance.c
+     * adds to it, src/bmio.c clears it when a chapter starts).
+     */
     public var chapterTotalSupportGain: Int = 0
 
-    /** `playthroughIdentifier` (u8, 0x18): unique identifier for this playthrough. */
+    /** `playthroughIdentifier` (u8, 0x18): id from `GetNewPlaythroughId` taken at new game. */
     public var playthroughIdentifier: Int = 0
 
-    /** `unk19` (u8, 0x19): unknown byte field (`unk19` in decomp `PlaySt`). */
+    /**
+     * `unk19` (u8, 0x19): the high nibble holds a unit list screen page (src/unitlistscreen.c
+     * reads `unk19 / 16`, writes the page into the high nibble). The meaning of the low nibble is
+     * unknown.
+     */
     public var unk19: Int = 0
 
-    /** `lastUnitSortType` (u8, 0x1A): last unit sort criterion selected in menus. */
+    /**
+     * `lastUnitSortType` (u8, 0x1A): the unit list screen's last sort setting
+     * (`(unk_34 << 7) + unk_32` of that screen's proc, src/unitlistscreen.c).
+     */
     public var lastUnitSortType: Int = 0
 
-    /** `chapterModeIndex` (u8, 0x1B): route/mode (1 = common/tutorial ch0-8, 2 = Eirika, 3 = Ephraim). */
+    /**
+     * `chapterModeIndex` (u8, 0x1B): `CHAPTER_MODE_COMMON` (1, the shared prologue chapters
+     * 0..8, which the decomp comment calls the tutorial), `CHAPTER_MODE_EIRIKA` (2) or
+     * `CHAPTER_MODE_EPHRAIM` (3).
+     */
     public var chapterModeIndex: Int = 0
 
-    /** `unk1C[0]` (u8, 0x1C): character identifier by weapon type (`unk1C[0]` in decomp `PlaySt`). */
+    /**
+     * `unk1C[0]` (u8, 0x1C): a character id (the decomp comment: "indexed by weapon type; has to do
+     * with allowing unusable weapons to be used"); src/msg.c prints that character's name from
+     * it. Set and read by `SetChapterUnk1C`/`GetChapterUnk1C` (src/bmitem.c).
+     */
     public var unk1C0: Int = 0
 
-    /** `unk1C[1]` (u8, 0x1D): character identifier by weapon type (`unk1C[1]` in decomp `PlaySt`). */
+    /** `unk1C[1]` (u8, 0x1D): the second entry of `unk1C`; see [unk1C0]. */
     public var unk1C1: Int = 0
 
-    /** `unk1E` (u8, 0x1E): unknown byte field (`unk1E` in decomp `PlaySt`). */
+    /** `unk1E` (u8, 0x1E): unknown; no read or write of it was found in src/. */
     public var unk1E: Int = 0
 
-    /** `unk1F` (u8, 0x1F): unknown byte field (`unk1F` in decomp `PlaySt`). */
+    /** `unk1F` (u8, 0x1F): unknown; no read or write of it was found in src/. */
     public var unk1F: Int = 0
 
-    /** `playerName` (char[11], 0x20..0x2A): raw bytes of player name, copied by [decode] and [encode]. */
+    /**
+     * `playerName` (char[11], 0x20..0x2A): the decomp notes it is unused outside the link arena
+     * (it was the tactician name in FE7) and its size is unknown; a new game sets its first byte
+     * to 0. Raw bytes, copied by [decode] and [encode].
+     */
     public val playerName: ByteArray = ByteArray(PLAYER_NAME_SIZE)
 
-    /** `unk_2B_00` (u8 bit 0 at 0x2B): unknown bit flag (`unk_2B_00` in decomp `PlaySt`). */
+    /**
+     * `unk_2B_00` (u8 bit 0 at 0x2B): set to 1 by a new game (src/bmsave.c), copied by
+     * src/bmsave-lib.c and tested by src/bonusclaim.c; meaning unknown.
+     */
     public var unk2B00: Int = 0
 
     /** `unk_2B_01` (u8 bits 1..7 at 0x2B): unknown bitfield (`unk_2B_01` in decomp `PlaySt`). */
     public var unk2B01: Int = 0
 
-    /** `unk_2C_1` (u32 bit 0 at 0x2C): unknown bit flag (`unk_2C_1` in decomp `PlaySt`). */
+    /** `unk_2C_1` (u32 bit 0 at 0x2C): cleared by a new game (src/bmsave.c); meaning unknown. */
     public var unk2C1: Int = 0
 
     /** `unk_2C_01` (u32 bits 1..3 at 0x2C): unknown bitfield (`unk_2C_01` in decomp `PlaySt`). */
     public var unk2C01: Int = 0
 
-    /** `unk_2C_04` (u32 bits 4..12 at 0x2C): unknown bitfield (`unk_2C_04` in decomp `PlaySt`). */
+    /**
+     * `unk_2C_04` (u32 bits 4..12 at 0x2C): a score carried into the overall chapter ranking:
+     * `ComputeChapterRankings` (src/gamerankings.c) adds it to the overall rank (capped at
+     * 0xFF); cleared by `ClearPidStats_ret`.
+     */
     public var unk2C04: Int = 0
 
-    /** `unk_2C_0D` (u32 bits 13..22 at 0x2C): unknown bitfield (`unk_2C_0D` in decomp `PlaySt`). */
+    /**
+     * `unk_2C_0D` (u32 bits 13..22 at 0x2C): copy of `gExtraMapSaveHead.unk0F`, a value of the
+     * extra map save (src/bmsave-xmap.c); meaning unknown.
+     */
     public var unk2C0D: Int = 0
 
     /** `unk_2C_2` (u32 bits 23..27 at 0x2C): unknown bitfield (`unk_2C_2` in decomp `PlaySt`). */
@@ -111,109 +166,188 @@ public class PlaySt {
     /** `unk_2C_3` (u32 bits 28..31 at 0x2C): unknown bitfield (`unk_2C_3` in decomp `PlaySt`). */
     public var unk2C3: Int = 0
 
-    /** `unk_30.total_gold` (s32, 0x30): cumulative lifetime gold earned across the playthrough. */
+    /**
+     * `unk_30.total_gold` (s32, 0x30): the party's total gold value (`GetPartyTotalGoldValue`) at
+     * the last chapter ranking; `GetChapterFundsRank` (src/gamerankings.c) ranks the difference
+     * to now and stores the new value.
+     */
     public var totalGold: Int = 0
 
-    /** `unk_30.unk_4_00` (u32 bits 0..19 at 0x34): unknown bitfield in `struct PlaySt_30`. */
+    /** `unk_30.unk_4_00` (u32 bits 0..19 at 0x34): unknown; only cleared by `ClearPidStats`. */
     public var unk30Unk400: Int = 0
 
-    /** `unk_30.unk_4_14` (u32 bits 20..31 at 0x34): unknown bitfield in `struct PlaySt_30`. */
+    /** `unk_30.unk_4_14` (u32 bits 20..31 at 0x34): unknown; only cleared by `ClearPidStats`. */
     public var unk30Unk414: Int = 0
 
-    /** `unk_30.unk_8_1` (u32 bits 0..7 at 0x38): unknown bitfield in `struct PlaySt_30`. */
+    /** `unk_30.unk_8_1` (u32 bits 0..7 at 0x38): unknown; only cleared by `ClearPidStats`. */
     public var unk30Unk81: Int = 0
 
-    /** `unk_30.unk_8_2` (u32 bits 8..27 at 0x38): Valni/Lagdou dungeon difficulty state bitfield. */
+    /**
+     * `unk_30.unk_8_2` (u32 bits 8..27 at 0x38): the total experience gained
+     * (`PidStatsGetTotalExpGain`, capped at 0xFFFFF) at the last chapter ranking; the exp rank
+     * uses the difference to now, and `src/bmdifficulty.c` (the Valni and Lagdou dungeon score)
+     * adds the same difference.
+     */
     public var unk30Unk82: Int = 0
 
-    /** `unk_30.unk_8_3` (u32 bits 28..31 at 0x38): unknown bitfield in `struct PlaySt_30`. */
+    /** `unk_30.unk_8_3` (u32 bits 28..31 at 0x38): unknown. */
     public var unk30Unk83: Int = 0
 
-    /** `unk_30.unk_C_00` (u32 bits 0..5 at 0x3C): unknown ranking bitfield in `struct PlaySt_30`. */
+    /** `unk_30.unk_C_00` (u32 bits 0..5 at 0x3C): unknown. */
     public var unk30UnkC00: Int = 0
 
-    /** `unk_30.combatRank` (u32 bits 6..8 at 0x3C): combat rank rating (0..7). */
+    /**
+     * `unk_30.combatRank` (u32 bits 6..8 at 0x3C): the combat rank of the last chapter, set by
+     * `ComputeChapterRankings` (src/gamerankings.c) with the other ranks; 3 bits.
+     */
     public var combatRank: Int = 0
 
-    /** `unk_30.expRank` (u32 bits 9..11 at 0x3C): experience rank rating (0..7). */
+    /**
+     * `unk_30.expRank` (u32 bits 9..11 at 0x3C): the experience rank (`GetChapterExpRank`, 0..4).
+     */
     public var expRank: Int = 0
 
-    /** `unk_30.unk_3D_04` (u32 bits 12..14 at 0x3C): unknown ranking bitfield in `struct PlaySt_30`. */
+    /** `unk_30.unk_3D_04` (u32 bits 12..14 at 0x3C): unknown. */
     public var unk30Unk3D04: Int = 0
 
-    /** `unk_30.fundsRank` (u32 bits 15..17 at 0x3C): funds rank rating (0..7). */
+    /** `unk_30.fundsRank` (u32 bits 15..17 at 0x3C): the funds rank (`GetChapterFundsRank`). */
     public var fundsRank: Int = 0
 
-    /** `unk_30.tacticsRank` (u32 bits 18..20 at 0x3C): tactics rank rating (0..7). */
+    /**
+     * `unk_30.tacticsRank` (u32 bits 18..20 at 0x3C): the tactics rank (`GetChapterTacticsRank`).
+     */
     public var tacticsRank: Int = 0
 
-    /** `unk_30.survivalRank` (u32 bits 21..23 at 0x3C): survival rank rating (0..7). */
+    /**
+     * `unk_30.survivalRank` (u32 bits 21..23 at 0x3C): the survival rank
+     * (`GetChapterSurvivalRank`).
+     */
     public var survivalRank: Int = 0
 
-    /** `unk_30.unk_F_00` (u32 bits 24..31 at 0x3C): unknown ranking bitfield in `struct PlaySt_30`. */
+    /** `unk_30.unk_F_00` (u32 bits 24..31 at 0x3C): unknown. */
     public var unk30UnkF00: Int = 0
 
-    /** `config.unitColor` (1 bit, word 0x40 bit 0): unit color style option (0 = faction colors, 1 = alt). */
+    /**
+     * `config.unitColor` (1 bit, word 0x40 bit 0): when set, battle animations use the generic
+     * palettes instead of each character's own (`gBanimUniquePaletteDisabled`,
+     * src/banim-ekrbattleintro.c). The link arena sets it to 1.
+     */
     public var unitColor: Int = 0
 
-    /** `config.disableTerrainDisplay` (1 bit, bit 1): disable terrain info window overlay. */
+    /**
+     * `config.disableTerrainDisplay` (1 bit, bit 1): the options screen's terrain window setting; 1
+     * hides it.
+     */
     public var disableTerrainDisplay: Int = 0
 
-    /** `config.unitDisplayType` (2 bits, bits 2..3): unit panel display format (0..3). */
+    /**
+     * `config.unitDisplayType` (2 bits, bits 2..3): the unit window shown on the map:
+     * 0 is the minimug box (`gProcScr_UnitDisplay_MinimugBox`), 1 the burst window
+     * (`gProcScr_UnitDisplay_Burst`), other values show none (src/player_interface.c).
+     */
     public var unitDisplayType: Int = 0
 
-    /** `config.autoCursor` (1 bit, bit 4): auto-cursor mode (0 = starts on leader, 1 = remembers position). */
+    /**
+     * `config.autoCursor` (1 bit, bit 4): the options screen's auto cursor setting; the link arena
+     * sets it to 1.
+     */
     public var autoCursor: Int = 0
 
-    /** `config.textSpeed` (2 bits, bits 5..6): text display speed (0 = slow, 1 = normal, 2 = fast, 3 = max). */
+    /**
+     * `config.textSpeed` (2 bits, bits 5..6): the dialogue text speed; `GetTextDisplaySpeed`
+     * (src/bmio.c) maps 0, 1, 2, 3 to 8, 4, 1, 0 (the wait per character; 0 is instant). The
+     * new game default is 1.
+     */
     public var textSpeed: Int = 0
 
-    /** `config.gameSpeed` (1 bit, bit 7): game animation/movement speed (0 = normal, 1 = fast). */
+    /**
+     * `config.gameSpeed` (1 bit, bit 7): when set, map units walk fast (src/mu.c; holding A does
+     * the same).
+     */
     public var gameSpeed: Int = 0
 
-    /** `config.disableBgm` (1 bit, bit 8): background music disable toggle (1 = mute, 0 = play). */
+    /**
+     * `config.disableBgm` (1 bit, bit 8): the options screen's music setting; 1 turns the music
+     * off.
+     */
     public var disableBgm: Int = 0
 
-    /** `config.disableSoundEffects` (1 bit, bit 9): sound effect disable toggle (1 = mute, 0 = play). */
+    /**
+     * `config.disableSoundEffects` (1 bit, bit 9): the options screen's sound effect setting; 1
+     * turns them off.
+     */
     public var disableSoundEffects: Int = 0
 
-    /** `config.windowColor` (2 bits, bits 10..11): window theme/color style (0..3). */
+    /**
+     * `config.windowColor` (2 bits, bits 10..11): which of four window palettes the menus use
+     * (src/prepscreen.c).
+     */
     public var windowColor: Int = 0
 
-    /** `config.unk41_5` (1 bit, bit 12): unknown config option flag (`unk41_5` in decomp `PlaySt`). */
+    /** `config.unk41_5` (1 bit, bit 12): unknown; `InitPlayConfig` clears it. */
     public var unk41x5: Int = 0
 
-    /** `config.unk41_6` (1 bit, bit 13): unknown config option flag (`unk41_6` in decomp `PlaySt`). */
+    /** `config.unk41_6` (1 bit, bit 13): unknown; no read or write of it was found in src/. */
     public var unk41x6: Int = 0
 
-    /** `config.disableAutoEndTurns` (1 bit, bit 14): disable auto-ending turn when all units act. */
+    /**
+     * `config.disableAutoEndTurns` (1 bit, bit 14): when 0, the player phase ends by itself once
+     * no unit can act (`GetPhaseAbleUnitCount` is 0, src/playerphase.c).
+     */
     public var disableAutoEndTurns: Int = 0
 
-    /** `config.noSubtitleHelp` (1 bit, bit 15): disable bottom subtitle help bar. */
+    /**
+     * `config.noSubtitleHelp` (1 bit, bit 15): when 1, `StartSubtitleHelp` (src/bb.c) shows no
+     * subtitle help.
+     */
     public var noSubtitleHelp: Int = 0
 
-    /** `config.disableGoalDisplay` (1 bit, bit 16): disable chapter goal banner display. */
+    /**
+     * `config.disableGoalDisplay` (1 bit, bit 16): when 1, the chapter goal window is not shown on
+     * the map.
+     */
     public var disableGoalDisplay: Int = 0
 
-    /** `config.animationType` (2 bits, bits 17..18): battle animation mode (0 = on, 1 = off, 2 = solo, 3 = unique bg). */
+    /**
+     * `config.animationType` (2 bits, bits 17..18): the battle animation setting
+     * (`PLAY_ANIMCONF_ON` 0, `_OFF` 1, `_SOLO_ANIM` 2, `_ON_UNIQUE_BG` 3).
+     */
     public var animationType: Int = 0
 
-    /** `config.battleForecastType` (2 bits, bits 19..20): battle forecast layout format (0..3). */
+    /**
+     * `config.battleForecastType` (2 bits, bits 19..20): 2 shows no battle forecast window;
+     * 0 and 1 choose its frame style (`NewBattleForecast`, src/bksel.c).
+     */
     public var battleForecastType: Int = 0
 
-    /** `config.controller` (1 bit, bit 21): controller configuration setting. */
+    /**
+     * `config.controller` (1 bit, bit 21): set from the `unk` argument of `InitPlayConfig`; the
+     * name is a guess. It is read as a tutorial flag (`TUTORIAL_MODE()` needs it != 1 and not
+     * hard mode; src/bmsave-bwl.c stores it as `isTutorial`), so the real meaning is unknown.
+     */
     public var controller: Int = 0
 
-    /** `config.rankDisplay` (1 bit, bit 22): rank display toggle option. */
+    /**
+     * `config.rankDisplay` (1 bit, bit 22): an options screen setting (src/uiconfig.c); its effect
+     * is unknown.
+     */
     public var rankDisplay: Int = 0
 
-    /** `config.debugControlRed` (2 bits, bits 23..24): debug option for controlling enemy units. */
+    /**
+     * `config.debugControlRed` (2 bits, bits 23..24): debug menu setting for the enemy units
+     * (src/bmdebug.c).
+     */
     public var debugControlRed: Int = 0
 
-    /** `config.debugControlGreen` (2 bits, bits 25..26): debug option for controlling NPC units. */
+    /**
+     * `config.debugControlGreen` (2 bits, bits 25..26): debug menu setting for the NPC units
+     * (src/bmdebug.c).
+     */
     public var debugControlGreen: Int = 0
 
-    /** `config.unk43_4` (5 bits, bits 27..31): unknown config bitfield (`unk43_4` in decomp `PlaySt`). */
+    /**
+     * `config.unk43_4` (5 bits, bits 27..31): unknown; no read or write of it was found in src/.
+     */
     public var unk43x4: Int = 0
 
     /** `config.unk44[0]` (u8, 0x44): unknown config byte 0 (`unk44[0]` in decomp `PlaySt`). */
@@ -228,19 +362,35 @@ public class PlaySt {
     /** `config.unk44[3]` (u8, 0x47): unknown config byte 3 (`unk44[3]` in decomp `PlaySt`). */
     public var configUnk443: Int = 0
 
-    /** `unk48` (u16, 0x48): unknown halfword field (`unk48` in decomp `PlaySt`). */
+    /**
+     * `unk48` (u16, 0x48): the number of battles the player side won this chapter (incremented
+     * when a blue unit is the winner, src/bmsave-bwl.c); the dungeon score adds it to
+     * `enemiesDefeated` (src/bmdifficulty.c). Cleared at chapter start.
+     */
     public var unk48: Int = 0
 
-    /** `unk4A_1` (u8 bit 0 at 0x4A): unknown tutorial/save flag (`unk4A_1` in decomp `PlaySt`). */
+    /**
+     * `unk4A_1` (u8 bit 0 at 0x4A): when set, `UndeployEveryone` (src/bm.c) leaves the units'
+     * deployed state alone; it is kept across `StartBattleMap` by `sub_80155C4`.
+     */
     public var unk4A1: Int = 0
 
-    /** `save_menu_type` (u8 bits 1..3 at 0x4A): save menu type configuration. */
+    /**
+     * `save_menu_type` (u8 bits 1..3 at 0x4A): set to 1 or 2 by the save events
+     * (src/eventscr.c, src/worldmap_main.c); src/gamecontrol.c tests for 2 and 4.
+     */
     public var saveMenuType: Int = 0
 
-    /** `tutorial_exec_type` (u8 bits 4..7 at 0x4A): tutorial script execution state. */
+    /**
+     * `tutorial_exec_type` (u8 bits 4..7 at 0x4A): the event enqueue type of the running tutorial
+     * event (src/eventinfo.c).
+     */
     public var tutorialExecType: Int = 0
 
-    /** `tutorial_counter` (u8, 0x4B): tutorial progress step counter. */
+    /**
+     * `tutorial_counter` (u8, 0x4B): 1-based index of the running event in the chapter's
+     * `tutorialEvents` list; 0 for none.
+     */
     public var tutorialCounter: Int = 0
 
     /** Reads the 0x4C bytes at [offset] of [bytes] into this state. Does not allocate. */

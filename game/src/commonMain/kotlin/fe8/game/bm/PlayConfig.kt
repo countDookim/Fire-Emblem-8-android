@@ -1,22 +1,24 @@
 package fe8.game.bm
 
 /**
- * `PLAY_FLAG_HARD` flag in `PlaySt.chapterStateBits` (include/types.h).
- *
- * Indicates that the playthrough is running in Difficult / Hard mode.
+ * `PLAY_FLAG_HARD` (include/types.h) in `PlaySt.chapterStateBits`: the playthrough was started
+ * on the difficult (hard) mode. [initPlayConfig] sets it at new game; `IsDifficultMode` and the
+ * ranking thresholds (src/gamerankings.c) read it.
  */
 public const val PLAY_FLAG_HARD: Int = 1 shl 6
 
 /**
  * Ported from src/bmio.c: InitPlayConfig
  *
- * Initializes gameplay options and state configuration for a new game or chapter restart.
- * Zeroes [playSt], resets `chapterIndex` to 0, sets the [PLAY_FLAG_HARD] flag when [isDifficult] is true,
- * and sets default option settings (`controller` = [controllerMode], `textSpeed` = 1, all others 0).
+ * Resets [playSt] for a new game: zeroes the whole struct, so every chapter, gold and ranking
+ * field starts empty, sets [PLAY_FLAG_HARD] when [isDifficult], and gives the options screen
+ * settings their defaults (text speed 1, everything else off or 0). The C writes each option
+ * explicitly after zeroing, which is why the fields below are all assigned.
  *
- * @param playSt the battle map player state struct to initialize.
- * @param isDifficult true if playing on Difficult (Hard) mode.
- * @param controllerMode initial controller configuration mode (`unk` in decomp).
+ * @param playSt the player state (`gPlaySt`) to initialize.
+ * @param isDifficult whether the difficult (hard) mode was chosen (`isDifficult` in the C).
+ * @param controllerMode value for `config.controller` (`unk` in the C; its meaning is unknown,
+ *   see [PlaySt.controller]).
  */
 public fun initPlayConfig(playSt: PlaySt, isDifficult: Boolean, controllerMode: Int) {
     playSt.decode(ByteArray(PlaySt.SIZE), 0)

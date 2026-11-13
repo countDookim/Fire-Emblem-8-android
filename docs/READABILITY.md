@@ -32,7 +32,8 @@ their old counts); new packages get a row when they appear.
 
 | Module | Package | Files | Lines | Status |
 |---|---|---:|---:|---|
-| app | fe8.app | 9 | 1270 | done 2026-11-09 1941586; audit todo |
+| app | fe8.app (MainActivity, GameSurfaceView, TouchOverlayView, HardwareKeySource) | 4 | 881 | done 2026-11-09 1941586; audit todo |
+| app | fe8.app (GpuBackend, AudioTrackSink, RomImport, AssetLayer, FileRomSink) | 5 | 906 | done 2026-11-09 1941586; audit todo |
 | engine/core | gbafe.core.flags | 6 | 849 | done 2026-11-07 c7b7651; audit done 2026-11-12 02666d9 |
 | engine/core | gbafe.core.math | 1 | 48 | done 2026-11-07 7fab3cc; audit done 2026-11-11 fce7054 |
 | engine/core | gbafe.core.mechanics | 1 | 60 | done 2026-11-07 7fab3cc; audit done 2026-11-11 fce7054 |
@@ -59,7 +60,7 @@ their old counts); new packages get a row when they appear.
 | engine/input | gbafe.input | 2 | 238 | done 2026-11-07 697847c; audit done 2026-11-12 02666d9 |
 | engine/render | gbafe.render | 10 | 1592 | done 2026-11-09 83f2cb6; audit done 2026-11-12 abaf60c |
 | engine/save | gbafe.save | 7 | 621 | done 2026-11-09 d3b21d6; audit done 2026-11-12 ad1504f |
-| engine/script | gbafe.script | 7 | 956 | done 2026-11-09 d3b21d6; audit done 2026-11-13 PENDING |
+| engine/script | gbafe.script | 7 | 956 | done 2026-11-09 d3b21d6; audit done 2026-11-13 df021fa |
 | engine/text | gbafe.text | 6 | 926 | done 2026-11-09 d3b21d6; audit done 2026-11-12 7d13c5d |
 | game | fe8.game | 8 | 1999 | done 2026-11-09 ee10196; audit todo |
 | game | fe8.game.bm (map, camera, state, cursor, music, chapter data: 16 files) | 16 | 2964 | done 2026-11-10 bac8ed1; audit todo |

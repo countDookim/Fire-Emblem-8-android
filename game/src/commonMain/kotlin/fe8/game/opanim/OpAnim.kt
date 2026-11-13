@@ -769,13 +769,16 @@ public class OpAnim(
         st.timer = (st.timer + 1) and 0xFFFF
     }
 
-    /** `struct Proc08AA7034`. */
+    /** `struct Proc08AA7034`: state of [mergeBgScript]. */
     public class MergeBgState {
-        /** `timer`. */
+        /** `timer` (s16 at offset 0x4C in the decomp). */
         public var timer: Int = 0
     }
 
-    /** `ProcScr_OpAnimMergeBG`: fades BG palette 14 from white to `Pal_OpAnimCharacterBG`. */
+    /**
+     * `ProcScr_OpAnimMergeBG`: fades BG palette 14 (the BG3 backdrop's palette, see
+     * [prepareEphraim]) from white to `Pal_OpAnimCharacterBG`.
+     */
     public val mergeBgScript: ProcScript = ProcScript(
         "ProcScr_OpAnimMergeBG",
         listOf(
@@ -797,8 +800,9 @@ public class OpAnim(
     }
 
     /**
-     * Reloads BG palette 14 and blends it towards white by a factor falling from 16 to 0 over
-     * 0x20 frames, then breaks.
+     * Reloads BG palette 14 from `Pal_OpAnimCharacterBG` each frame and blends it towards white by
+     * a factor falling from 16 to 0 over 0x20 frames, so the backdrop goes from white to its own
+     * colours; then breaks.
      *
      * Ported from src/opanim-main.c: OpAnimMergeBGProcUpdateBgPalette
      */
@@ -817,8 +821,10 @@ public class OpAnim(
     }
 
     /**
-     * Slides Ephraim's close-up in on BG2 (column by column, swapping in the blurred images) and
-     * BG0/BG1 from the right, then breaks; starts [mergeBgScript] at step 16.
+     * Slides Ephraim's close-up in over steps 0..16 on the front layer (BG2, tilemap columns
+     * drawn by [tsaModifyFirstPal]), swapping in the blur image on step 13 and its tilemap on
+     * step 14. From step 5 the back layer (BG1, then BG0 on the last step, [scrollInFirstPal])
+     * comes in from the right. Starts [mergeBgScript] at step 16 and breaks at step 21.
      *
      * Ported from src/opanim-main.c: OpAnimEphraimfxFlyIn
      */
@@ -866,10 +872,10 @@ public class OpAnim(
     }
 
     /**
-     * `OpAnimHBlank1` (not verified yet: no frame trace covers it): BG2 uses map block 0x1E and
-     * BLDCNT 0xC46 from the first line, map block 0x1D and BLDCNT 0xC42 from line
-     * `gOpAnimSt.unk08`. Runs every scanline so the two halves of the split screen can show
-     * different BG2 maps and blend settings.
+     * `OpAnimHBlank1` (not verified yet: no frame trace covers it): BG2 uses screen base block
+     * 0x1E (VRAM 0xF000) and BLDCNT 0xC46 from the first line, block 0x1D (VRAM 0xE800) and
+     * BLDCNT 0xC42 from line `gOpAnimSt.unk08` (or throughout while that is 0). Runs every
+     * scanline so the two halves of the split screen show different BG2 maps and blend settings.
      */
     public val hBlank1: HBlankHandler = HBlankHandler { vcount, io ->
         fun put16(at: Int, v: Int) {
@@ -888,8 +894,9 @@ public class OpAnim(
     }
 
     /**
-     * Sets up the split screen: [hBlank1], window 0 (`gOpAnimSt.x` wide) and the outside window,
-     * BG2 map at 0xF000, blend target A BG1/BG2, then breaks.
+     * Sets up the split screen for Ephraim: [hBlank1]; window 0 covers the left `gOpAnimSt.x`
+     * pixels and shows all layers, the outside window shows all but BG0, both with blending on;
+     * BG2 map at 0xF000, blend target A BG1/BG2; then breaks.
      *
      * Ported from src/opanim-main.c: sub_80C7900
      */
@@ -928,8 +935,8 @@ public class OpAnim(
     }
 
     /**
-     * Puts the split line: eight 32x8 sprites along line [yOam0] and eight 8x32 sprites down
-     * column [xOam1], all on layer 0.
+     * Puts the split line (the image [init] loads at OBJ tile 0): eight 32x8 sprites along line
+     * [yOam0] and eight 8x32 sprites down column [xOam1], all on sprite list 0.
      *
      * Ported from src/opanim-main.c: OpAnimDrawSplitLine
      */
@@ -941,7 +948,8 @@ public class OpAnim(
 
     /**
      * Moves the split point (`gOpAnimSt.x`, `y`) to (0xF0, 0xA0) over 0x10 steps, widening
-     * window 0 and drawing the split line; then switches to [hBlank2] and breaks.
+     * window 0 and drawing the split line (clamped to x 0xE8, y 0x88); then switches to
+     * [hBlank2] and breaks.
      *
      * Ported from src/opanim-main.c: OpAnim1AdvanceSplitLine
      */
@@ -1062,10 +1070,11 @@ public class OpAnim(
     }
 
     /**
-     * Prepares the Eirika opening scene while the screen is dark. Step 0 hides BG0..2 and resets
-     * the blend; steps 1..6 decompress the close-up, the blurred images and the blur palette into
-     * VRAM and the generic buffer. On step 6 it turns the display back on, sets the split point
-     * and breaks.
+     * Prepares the Eirika opening scene while the screen is dark. Step 0 hides BG0..2 (only BG3
+     * and OBJ stay on), clears their tilemaps and sets the blend; steps 1..5 decompress the
+     * close-ups, the main image with the blur palettes and the blurred images into VRAM and the
+     * generic buffer. Step 6 copies a palette-15 BG2 tilemap to VRAM 0xF000, turns BG0..3 and OBJ
+     * on, sets the split point to (240, 0) and the shadow split to 160, and breaks.
      *
      * Ported from src/opanim-main.c: OpAnimPreparefxEirika
      */
@@ -1078,7 +1087,8 @@ public class OpAnim(
         val state = proc.state as State
         fun decompressInto(blob: OpAnimHs.Blob, dst: ByteArray, dstOffset: Int) =
             Decompress.into(blob.data, blob.offset, dst, dstOffset)
-        // These two steps overrun the frame on hardware, so they miss VBlanks
+        // These two steps decompress the biggest blobs; the missed VBlank was measured with mGBA
+        // (see [missedVBlanks])
         if (state.timer == 1 || state.timer == 2) missedVBlanks = 1
         when (state.timer) {
             0 -> {
@@ -1199,7 +1209,8 @@ public class OpAnim(
 
     /**
      * Sets up the split screen for Eirika: [hBlank1], window 0 from `gOpAnimSt.x` to the right
-     * edge, BG2 map at 0xF000, blend target A BG1/BG2, then breaks.
+     * edge, BG2 map at 0xF000, blend target A BG1/BG2, then breaks. Unlike [setupSplitScreen] it
+     * does not touch the window layer masks.
      *
      * Ported from src/opanim-main.c: sub_80C8100
      */
@@ -1217,8 +1228,8 @@ public class OpAnim(
 
     /**
      * Moves the split point (`gOpAnimSt.x`, `y`) from (240, 0) to (0, 160) over 0x10 steps, so
-     * the window 0 edge and the split line sweep diagonally across the screen; then switches to
-     * [hBlank2] and breaks.
+     * the window 0 edge and the split line sweep diagonally across the screen (the line is
+     * clamped to x >= 8, y <= 0x88); then switches to [hBlank2] and breaks.
      *
      * Ported from src/opanim-main.c: sub_80C8184
      */
@@ -1263,8 +1274,9 @@ public class OpAnim(
     /**
      * Draws one line of the scrolling Eirika background for scroll line [index] (0..99, else
      * nothing). It decompresses image `99 - index` into VRAM 0x8000 in one of 22 slots of 0x400
-     * bytes, then writes that image's 30-entry tilemap row into BG2's map at VRAM 0xE800, row
-     * `~index & 0x1F`.
+     * bytes, then writes that image's 30-entry tilemap row (keeping its bits above the tile
+     * number, i.e. palette and flip bits, and pointing the tile number at the slot) into BG2's
+     * map at VRAM 0xE800, row `~index & 0x1F`.
      *
      * Ported from src/opanim-main.c: OpAnim1_UpdateScrollOneLine
      */
@@ -1323,10 +1335,11 @@ public class OpAnim(
     }
 
     /**
-     * Eirika's exit, mirroring [ephraimExit] from the left. Steps 0..1 hide her name, steps 0..16
-     * move the split line down off the bottom of the screen, steps 4..28 scroll the front layer
-     * (BG0/BG2) out to the left from its saved position, and steps 11..35 scroll the back layer
-     * (BG1). Steps 28..35 fade BG0 into BG3, then it breaks.
+     * Eirika's exit, mirroring [ephraimExit] from the left. Her name sprite is drawn only on
+     * steps 0..1 (so it disappears after), steps 0..16 move the shadow split down and the split
+     * line to the left edge, steps 4..28 scroll the front layer (BG2) out from its saved
+     * position, and steps 11..35 scroll the back layer (BG0). Steps 28..35 blend BG0 into BG3;
+     * the HBlank handler is cleared at step 16 and again at the end (step 35), then it breaks.
      *
      * Ported from src/opanim-main.c: sub_80C835C
      */
@@ -2622,7 +2635,8 @@ public class OpAnim(
     }
 
     /**
-     * Brightness-fade setup: effect 2, BLDY 0, all layers first target.
+     * Fade setup: BLDCNT effect 2 (brightness increase: fades toward white, despite the decomp's
+     * name), BLDY 0, all layers first target.
      *
      * Ported from src/opanim-main.c: OpAnimAllBlack
      */

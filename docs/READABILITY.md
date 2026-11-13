@@ -33,7 +33,7 @@ their old counts); new packages get a row when they appear.
 | Module | Package | Files | Lines | Status |
 |---|---|---:|---:|---|
 | app | fe8.app (MainActivity, GameSurfaceView, TouchOverlayView, HardwareKeySource) | 4 | 989 | done 2026-11-09 1941586; audit done 2026-11-13 35336dc |
-| app | fe8.app (GpuBackend, AudioTrackSink, RomImport, AssetLayer, FileRomSink) | 5 | 906 | done 2026-11-09 1941586; audit todo |
+| app | fe8.app (GpuBackend, AudioTrackSink, RomImport, AssetLayer, FileRomSink) | 5 | 976 | done 2026-11-09 1941586; audit done 2026-11-13 PENDING |
 | engine/core | gbafe.core.flags | 6 | 849 | done 2026-11-07 c7b7651; audit done 2026-11-12 02666d9 |
 | engine/core | gbafe.core.math | 1 | 48 | done 2026-11-07 7fab3cc; audit done 2026-11-11 fce7054 |
 | engine/core | gbafe.core.mechanics | 1 | 60 | done 2026-11-07 7fab3cc; audit done 2026-11-11 fce7054 |

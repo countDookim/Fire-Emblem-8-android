@@ -1,9 +1,7 @@
 /**
- * ROM import, verification, and asset extraction pipeline.
- *
- * Provides utilities to read a user-selected Fire Emblem: The Sacred Stones (U) GBA ROM from
- * a content [Uri], verify its SHA-1 hash against the known retail release, extract all game
- * assets into internal app storage under `base/`, and preserve the verified binary image for runtime execution.
+ * The launcher's "Import ROM" step (decision 0011): read the ROM the player picked, check it is
+ * the FE8 (U) dump by SHA-1, extract its assets into `filesDir/base/`, and keep the verified ROM
+ * image there as `rom/baserom.gba`. Also finds that base layer again on later launches.
  */
 
 package fe8.app
@@ -22,21 +20,25 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** Approximate file count of a full extraction; used as the denominator for progress calculation. */
+/**
+ * Rough number of files a full extraction writes: only the denominator of the progress bar,
+ * clamped to 1.0, so a wrong value costs accuracy, not correctness. The reference extraction in
+ * `.assets/extracted` has 1877 files (not necessarily the same format version), so the constant
+ * may be a little low and the bar can sit at 100% before the end.
+ */
 internal const val EXPECTED_FILES = 1830
 
 /** Conversion factor from nanoseconds to milliseconds. */
 private const val NANOS_PER_MILLIS: Long = 1_000_000L
 
 /**
- * An [ExtractOutput] that writes extracted assets to disk under [root], automatically creating parent directories.
+ * An [ExtractOutput] that writes each extracted file to disk under [root], creating folders as
+ * needed. Not fsynced: a half-written `base.tmp` is deleted on failure and renamed only when whole.
  *
  * @property root The target base directory on the local filesystem.
  */
 internal class DirOutput(private val root: File) : ExtractOutput {
-    /**
-     * Writes the extracted file [bytes] to the specified relative [path] under [root].
-     */
+    /** Writes [bytes] to `root/path`, replacing any existing file. */
     override fun write(path: String, bytes: ByteArray) {
         val file = File(root, path)
         file.parentFile?.mkdirs()
@@ -44,39 +46,42 @@ internal class DirOutput(private val root: File) : ExtractOutput {
     }
 }
 
-/** Outcome of the [importRom] extraction operation. */
+/** Result of [importRom]; the launcher turns each case into a message or the file count. */
 internal sealed interface ImportResult {
     /**
-     * ROM successfully verified and extracted.
+     * Verified and extracted.
      *
-     * @property count Total number of individual files extracted.
-     * @property ms Wall-clock elapsed time in milliseconds.
+     * @property count Files extracted, not counting the format stamp or the kept ROM image.
+     * @property ms Milliseconds from the start of extraction to the move into place.
      */
     data class Done(val count: Int, val ms: Long) : ImportResult
 
     /**
-     * The provided file does not match the expected retail FE8 (U) ROM hash.
+     * The file's SHA-1 is not the FE8 (U) one (`Fe8Import.ROM_SHA1`): a different game, region
+     * or a patched dump.
      *
-     * @property sha1 The hex-encoded SHA-1 hash of the supplied file.
+     * @property sha1 Lowercase hex SHA-1 of the file, shown to the player.
      */
     data class WrongRom(val sha1: String) : ImportResult
 
     /**
-     * Extraction failed due to an I/O or parsing error.
+     * Reading, extracting or moving failed (unreadable file, full storage, bad ROM data).
      *
-     * @property message Descriptive failure reason.
+     * @property message Reason shown to the player.
      */
     data class Failed(val message: String) : ImportResult
 }
 
-/** Returns the local directory holding the extracted `base` layer in the app's internal storage. */
+/** The folder holding the extracted base layer: `filesDir/base` (decision 0011, point 5). */
 internal fun baseDir(ctx: Context): File = File(ctx.filesDir, "base")
 
 /**
- * Checks whether the internal `base` directory contains an extraction stamp matching the current format version.
+ * Whether `base/` holds a finished extraction for this app's expected ROM hash and extractor
+ * format version. The stamp is written last, so a partial extraction reads as not current; a new
+ * app version with a newer format makes the player import again.
  *
- * @param ctx Android application context.
- * @return `true` if the existing extraction is up to date, `false` otherwise.
+ * @param ctx Android context.
+ * @return `true` if the stamp file matches, `false` if it is missing, unreadable or older.
  */
 internal fun baseIsCurrent(ctx: Context): Boolean {
     val stamp = File(baseDir(ctx), RomImporter.STAMP_PATH)
@@ -85,35 +90,41 @@ internal fun baseIsCurrent(ctx: Context): Boolean {
 }
 
 /**
- * Resolves the verified ROM image file (`base/rom/baserom.gba`) if the base layer is valid and current.
+ * The kept, SHA-1-verified ROM image (`base/rom/baserom.gba`, on this device only) that Play
+ * reads whole into memory, or `null` if nothing is imported, the format is outdated, or the
+ * install predates keeping the image (decision 0011, amended 2026-11-06).
  *
- * @param ctx Android application context.
- * @return The ROM file, or `null` if not imported or format is outdated.
+ * @param ctx Android context.
+ * @return The file, or `null` as above.
  */
 internal fun keptRom(ctx: Context): File? =
     if (baseIsCurrent(ctx)) File(baseDir(ctx), RomImage.PATH).takeIf { it.isFile } else null
 
 /**
- * Resolves the primary VFS layer: uses [DirectoryLayer] over [baseDir] when current,
- * falling back to APK assets via [AssetLayer] if not yet imported.
+ * The `base` file-system layer: the imported folder when current, else the (empty) APK assets
+ * via [AssetLayer], so before an import every lookup finds nothing.
  *
- * @param ctx Android application context.
- * @return Virtual file system layer for base assets.
+ * @param ctx Android context.
+ * @return The layer to read extracted game files from.
  */
 internal fun baseLayer(ctx: Context): VfsLayer =
     if (baseIsCurrent(ctx)) DirectoryLayer(baseDir(ctx), "base") else AssetLayer(ctx.assets)
 
 /**
- * Reads the ROM at [uri], verifies it, and extracts it into [baseDir], reporting progress in 0..1
- * through [onProgress] (called on the IO coroutine dispatcher).
+ * The import itself: reads the whole ROM at [uri] (16 MB, in memory), checks its SHA-1, extracts
+ * the assets and the format stamp into `filesDir/base.tmp`, adds the kept ROM image, then renames
+ * `base.tmp` to [baseDir]. Progress runs 0..1 by files written over [EXPECTED_FILES]; [onProgress]
+ * is called on the IO dispatcher.
  *
- * Extraction writes to a temporary `base.tmp` folder first, moving it into place via atomic rename
- * only after all assets and format stamps are successfully committed.
+ * NOTE: the old `base/` is deleted before the rename, so if the rename fails (or the process
+ * dies between the two steps) the player is left with no imported ROM, not the previous one.
+ * Whether `renameTo` is atomic here is Android behaviour, not checked.
  *
- * @param ctx Android application context.
- * @param uri Content URI pointing to the source GBA ROM file.
- * @param onProgress Callback invoked with normalized progress values between 0.0 and 1.0.
- * @return [ImportResult] detailing success or error information.
+ * @param ctx Android context.
+ * @param uri Content URI from the document picker.
+ * @param onProgress Receives progress 0.0..1.0.
+ * @return [ImportResult.WrongRom] for the wrong dump, [ImportResult.Failed] on any error
+ *   (the temporary folder is removed), else [ImportResult.Done].
  */
 internal suspend fun importRom(
     ctx: Context,

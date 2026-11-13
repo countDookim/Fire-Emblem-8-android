@@ -223,6 +223,10 @@ private fun importedBootRom(ctx: Context): RomView? {
  * and calls [onPlay] with a [RomView] over it, or with null if the kept ROM is missing (an install
  * from before the ROM was kept); the game then boots only from the extracted boot windows.
  *
+ * NOTE: the "N files" shown right after an import is [ImportResult.Done.count], which excludes the
+ * format stamp; on later launches it is counted from the folder (minus the kept ROM image), which
+ * includes the stamp file, so the two differ by one.
+ *
  * @param onPlay Called when Play is pressed, with the whole-ROM view or null as above.
  */
 @Composable

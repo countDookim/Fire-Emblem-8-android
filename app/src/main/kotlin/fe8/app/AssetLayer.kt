@@ -1,8 +1,6 @@
 /**
- * Android APK asset virtual file system layer.
- *
- * Implements a read-only [gba.vfs.VfsLayer] on top of Android's [AssetManager], exposing bundled
- * files under a specified prefix as a virtual file hierarchy.
+ * Read-only view of the APK's `assets/` folder as a virtual-file-system layer. Since no APK bundles
+ * game data (decision 0011) it is the empty fallback used before the player's ROM is imported.
  */
 
 package fe8.app
@@ -18,9 +16,9 @@ import gba.vfs.VirtualFileSystem
  * guards it), so on a device this layer is empty: the game reads the player's imported ROM through
  * a `DirectoryLayer` instead and uses this layer only as the fallback before an import.
  *
- * @property assets Android [AssetManager] used to open and list asset streams.
- * @property prefix Subdirectory within the APK asset tree (defaults to "extracted").
- * @property origin Identifier for this layer in the virtual file system (defaults to "base").
+ * @property assets Android [AssetManager] used to open and list assets.
+ * @property prefix Asset folder treated as the layer root ("extracted" by default).
+ * @property origin Name of this layer in diagnostics ("base" by default).
  */
 public class AssetLayer(
     private val assets: AssetManager,
@@ -28,9 +26,10 @@ public class AssetLayer(
     override val origin: String = "base",
 ) : VfsLayer {
     /**
-     * Checks whether a file exists at the normalized [path] within this asset layer.
+     * Whether [path] names an asset: its parent folder is listed and must contain the file name.
+     * Costs one `AssetManager.list` call per probe.
      *
-     * @param path The virtual file system path to probe.
+     * @param path Layer-relative path.
      * @return `true` if the asset exists, `false` otherwise.
      */
     override fun exists(path: String): Boolean {
@@ -42,27 +41,28 @@ public class AssetLayer(
     }
 
     /**
-     * Reads all bytes of the asset located at [path].
+     * Reads the whole asset at [path].
      *
-     * @param path The virtual file system path of the asset to read.
-     * @return Raw content bytes of the asset.
+     * @param path Layer-relative path.
+     * @return The file's bytes. Throws if it does not exist (`AssetManager.open` failing).
      */
     override fun read(path: String): ByteArray =
         assets.open("$prefix/${VirtualFileSystem.normalize(path)}").use { it.readBytes() }
 
     /**
-     * Recursively lists all file paths under the given virtual [dir].
+     * Lists every file below [dir] (all depths) as layer-relative paths, sorted.
      *
-     * In Android APK assets, directories exist only as prefix paths of files; leaf entries
-     * that list no children are treated as file leaves.
+     * An entry that lists no children is taken to be a file, because APK assets keep no empty
+     * folders (Android behaviour, not checked here). So an empty or missing [dir] gives an empty
+     * list, which is how callers see "nothing imported".
      *
-     * @param dir The root virtual directory to list.
-     * @return Sorted list of relative paths for all files below [dir].
+     * @param dir Layer-relative folder, `""` for the whole layer.
+     * @return Sorted relative paths of all files below [dir].
      */
     override fun list(dir: String): List<String> {
         val out = ArrayList<String>()
 
-        /** Recursively walks an asset subpath [relativeSubPath]. */
+        /** Adds every file below [relativeSubPath] (relative to [prefix]) to [out]. */
         fun walk(relativeSubPath: String) {
             val fullAssetPath = if (relativeSubPath.isEmpty()) prefix else "$prefix/$relativeSubPath"
             val childNames = assets.list(fullAssetPath) ?: return

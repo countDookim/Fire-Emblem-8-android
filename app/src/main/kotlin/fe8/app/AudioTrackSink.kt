@@ -1,9 +1,6 @@
 /**
- * Low-latency Android audio playback sink and background mixer thread.
- *
- * Implements [gba.audio.AudioSink] via Android's [AudioTrack] API in streaming mode,
- * delivering 16-bit stereo PCM audio with minimal buffering latency to keep sound effects
- * and music closely synchronized with the game loop.
+ * How the game's sound reaches the speaker: an [AudioTrack] output ([AudioTrackSink]) and the
+ * thread that keeps it fed ([AudioThread]). Started on Play, paused with the activity.
  */
 
 package fe8.app
@@ -20,20 +17,26 @@ import gba.audio.PcmStream
 import io.github.countdookim.fe8.BuildConfig
 
 /**
- * Low-latency [AudioSink]: a streaming 16-bit stereo [AudioTrack] with
- * `PERFORMANCE_MODE_LOW_LATENCY` and the smallest buffer the device allows (twice its minimum).
+ * The speaker output: a streaming 16-bit stereo [AudioTrack] in low-latency mode, with a buffer of
+ * twice the device's reported minimum (not the smallest possible; see the `init` block).
  *
- * [write] blocks until the samples are queued in the native HAL ring buffer, which naturally
- * paces the mixer thread to real-time audio consumption.
+ * [write] is a blocking write, so the mixer thread is paced by the track draining at real-time
+ * speed (Android behaviour, not checked here). The game's mixer runs at 13379 Hz
+ * (`src/m4a.c:74`); `PcmStream` resamples it to [sampleRate].
  *
- * @property sampleRate Playback sample rate in Hz (defaults to [DEFAULT_RATE] = 48,000 Hz).
+ * @property sampleRate Output rate in Hz, [DEFAULT_RATE] unless the caller picks another.
  */
 internal class AudioTrackSink(override val sampleRate: Int = DEFAULT_RATE) : AudioSink {
-    /** Frames per [write] chunk: the device minimum buffer split in halves (at least [MIN_CHUNK_FRAMES] frames). */
+    /**
+     * Frames the mixer thread renders and writes per round: half the device's minimum buffer
+     * (`minBytes / 4 bytes per frame / 2`), but at least [MIN_CHUNK_FRAMES].
+     */
     val chunkFrames: Int
 
     private val track: AudioTrack
 
+    // Track buffer = max(device minimum, one chunk) x 2. Since a chunk is half the minimum, that
+    // is normally exactly twice the minimum (more only if the 64-frame floor exceeds it).
     init {
         val minBytes = AudioTrack.getMinBufferSize(
             sampleRate,
@@ -62,8 +65,8 @@ internal class AudioTrackSink(override val sampleRate: Int = DEFAULT_RATE) : Aud
     }
 
     /**
-     * Writes [frames] stereo sample frames from [buffer] into the audio track.
-     * Blocks until the samples are enqueued in the native audio buffer.
+     * Writes [frames] stereo sample frames from [buffer] into the audio track, blocking until the
+     * track has taken them all (`WRITE_BLOCKING`).
      *
      * @param buffer Interleaved 16-bit stereo PCM samples (L, R, L, R...).
      * @param frames Number of stereo frames to write (length in shorts is `frames * CHANNELS_STEREO`).
@@ -72,13 +75,13 @@ internal class AudioTrackSink(override val sampleRate: Int = DEFAULT_RATE) : Aud
         track.write(buffer, 0, frames * CHANNELS_STEREO, AudioTrack.WRITE_BLOCKING)
     }
 
-    /** Native AudioTrack underrun count. */
+    /** Times the track ran out of data since creation (debug trace only). */
     val underrunCount: Int get() = track.underrunCount
 
-    /** Starts audio track playback. */
+    /** Starts (or resumes) playback; the track then drains what has been written. */
     fun play() = track.play()
 
-    /** Stops playback and flushes any queued pending audio samples. */
+    /** Pauses playback and discards queued samples, so resuming starts from fresh audio. */
     fun stop() {
         track.pause()
         track.flush()
@@ -100,34 +103,42 @@ internal class AudioTrackSink(override val sampleRate: Int = DEFAULT_RATE) : Aud
         /** Minimum number of frames per audio chunk. */
         private const val MIN_CHUNK_FRAMES: Int = 64
 
-        /** Buffer size multiplier used for double-buffering. */
+        /** Track buffer size as a multiple of the device minimum. */
         private const val AUDIO_BUFFER_MULTIPLIER: Int = 2
 
-        /** GBA m4a output is resampled to this rate (common native rate: no system resampling). */
+        /**
+         * Output rate the m4a mixer's PCM is resampled to. 48 kHz is chosen as a common device
+         * rate so the system need not resample again (Android behaviour, not checked here).
+         */
         const val DEFAULT_RATE: Int = 48_000
     }
 }
 
 /**
- * Dedicated mixer thread: pulls samples from [source] in [AudioTrackSink.chunkFrames] chunks
- * into a single pre-allocated buffer and writes them to [sink] at `THREAD_PRIORITY_URGENT_AUDIO`.
- * Runs until [stop] is called; performs no per-buffer memory allocations during mixing.
+ * The audio thread: repeatedly asks [source] for one chunk of sound ([AudioTrackSink.chunkFrames]
+ * frames) and writes it to [sink], at `THREAD_PRIORITY_URGENT_AUDIO`, until [stop]. Reuses one
+ * buffer, so the loop allocates nothing. [start] and [stop] follow the activity's resume and pause.
  *
- * @property source Audio provider rendering mixed PCM audio frames.
- * @property sink Target audio track playing samples to device hardware.
+ * NOTE: [stop] gives up waiting after [THREAD_JOIN_TIMEOUT_MS] and clears its thread handle. If
+ * the thread were still inside a blocked write then, a quick [start] would run a second thread
+ * beside it. Not seen in practice here; Android behaviour, not checked.
+ *
+ * @property source Where the sound comes from (the game's `PcmStream`).
+ * @property sink The speaker output.
  */
 internal class AudioThread(private val source: AudioSource, private val sink: AudioTrackSink) {
+    /** True from [start] until [stop]; the loop exits when it turns false. */
     @Volatile private var running = false
     private var thread: Thread? = null
 
-    /** Starts the audio mixing thread (no-op if already running). */
+    /** Starts the speaker and the mixing thread (no-op if already running). */
     fun start() {
         if (running) return
         running = true
         sink.play()
         thread = Thread({
             Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
-            val buffer = ShortArray(sink.chunkFrames * 2)
+            val buffer = ShortArray(sink.chunkFrames * 2) // 2 = stereo samples per frame
             while (running) {
                 if (BuildConfig.DEBUG) Trace.beginSection("FE8 audio render")
                 try {
@@ -135,6 +146,8 @@ internal class AudioThread(private val source: AudioSource, private val sink: Au
                 } finally {
                     if (BuildConfig.DEBUG) Trace.endSection()
                 }
+                // Debug-only trace counters for audio glitches (setCounter needs API 29; Android
+                // behaviour, not checked here).
                 if (BuildConfig.DEBUG && Build.VERSION.SDK_INT >= 29) {
                     val pcm = source as? PcmStream
                     if (pcm != null) {
@@ -156,19 +169,20 @@ internal class AudioThread(private val source: AudioSource, private val sink: Au
     }
 
     /**
-     * Stops the audio mixing thread and waits up to [THREAD_JOIN_TIMEOUT_MS] for completion.
-     * The sink is stopped and flushed once the thread terminates.
+     * Stops the mixing thread, waiting up to [THREAD_JOIN_TIMEOUT_MS] for it, then pauses and
+     * flushes the speaker (also when the wait timed out). No-op if not running.
      */
     fun stop() {
         if (!running) return
         running = false
-        thread?.join(THREAD_JOIN_TIMEOUT_MS) // a playing track drains the current chunk, so this returns promptly
+        // Expected to return promptly: a playing track frees room for the pending blocking write.
+        thread?.join(THREAD_JOIN_TIMEOUT_MS)
         thread = null
         sink.stop()
     }
 
     private companion object {
-        /** Maximum time in milliseconds to wait for the mixer thread to join on shutdown. */
+        /** Longest wait in milliseconds for the mixing thread to finish in [stop]. */
         private const val THREAD_JOIN_TIMEOUT_MS: Long = 500L
     }
 }

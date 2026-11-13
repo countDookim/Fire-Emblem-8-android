@@ -1,9 +1,7 @@
 /**
- * OpenGL ES 3.0 hardware GPU rasterizer and compositor.
- *
- * Implements full hardware-accelerated GBA 2D background and sprite compositing using OpenGL ES 3.0 shaders.
- * Mirrors the logic of [gba.render.PackedCompositor], rendering 4 background tile layers, the affine transform matrix,
- * line-by-line palette switching, OBJ sprite priority, windowing regions, and color blend effects.
+ * The GPU way of drawing the game picture (decision 0008): the GBA's four background layers,
+ * the sprite plane, windows and colour effects are composited per pixel in a fragment shader.
+ * It must give the same pixels as the CPU path, [gba.render.PackedCompositor].
  */
 
 package fe8.app
@@ -22,22 +20,28 @@ import java.nio.ShortBuffer
 /**
  * GPU backend v1: composites a packed [GpuFrame] per pixel in a fragment shader that is a
  * line-by-line copy of [gba.render.PackedCompositor] (keep them in sync; the JVM tests check the
- * Kotlin spec against [gba.render.SoftwareRenderer]).
+ * Kotlin spec against [gba.render.SoftwareRenderer]). Sprites are not drawn on the GPU: the CPU
+ * rasterises them into the OBJ plane ([GpuFrame.obj]) and the shader only merges that plane with
+ * the BG layers by priority, window and blend rules.
  *
- * Textures:
- * - Per-line palettes: `R16UI` 512×rows (up to 160 scanline rows).
- * - Line parameters: `RGBA32I` 3×160 (horizontal offsets, window boundaries, blending flags).
- * - CPU-rasterised OBJ plane: `R32UI` 240×160.
- * - 4 BG tilemaps: `R16UI` 128×128×4 2D texture array.
- * - 4 BG tile sheets: raw pixel bytes in an `R8UI` 1024×64×4 2D texture array.
+ * Textures (the `T_*` slots):
+ * - Palettes: `R16UI`, [GpuFrame.PALETTE_WIDTH] = 512 colours (BG 0..255, OBJ 256..511) per row, up
+ *   to 160 rows (one per scanline when line-table palette writes happened, else 1).
+ * - Line parameters: `RGBA32I`, [GpuFrame.LINE_INTS] / 4 = 3 texels per scanline, 160 scanlines:
+ *   each BG's start-of-line scroll or affine reference point, window x bounds, window y flags,
+ *   blend coefficients and `BLDCNT` bits (layout in [GpuFrame]).
+ * - OBJ plane: `R32UI`, 240×160 ([GpuFrame.obj]).
+ * - BG tile maps: `R16UI`, 128×128 entries ([TileLayer.MAX_TILES]) × 4 layers (2D array).
+ * - BG tile sheets: raw tile bytes, `R8UI`, 1024×64 = 64 KiB per layer × 4 layers (2D array).
  *
- * Shader maps and sheets are re-uploaded only when their content digests change. The compositing shader
- * runs once per GBA pixel into a 240×160 texture target, which [BLIT] scales onto the presentation viewport.
- * All GPU upload buffers are pre-allocated so [draw] generates no per-frame garbage.
- * All methods must be invoked on the OpenGL render thread.
+ * A layer's map and sheet are uploaded again only when their bytes differ from the last upload
+ * (compared against a kept copy, not a digest). The shader renders once per GBA pixel into a
+ * 240×160 texture, which [BLIT] scales onto the view. The upload buffers are allocated once, so
+ * [draw] adds no garbage of its own (what `sheets[...]` and `state` allocate is not checked
+ * here). Every method must run on the GL render thread.
  *
- * @property frame The packed GBA frame containing rasterized OBJ planes and scanline registers.
- * @property sheets Active tile sheet store containing character tile pixel data.
+ * @property frame The packed per-scanline data and OBJ plane for the frame being drawn.
+ * @property sheets Tile graphics of the BG layers, looked up by each layer's `sheet` id.
  */
 internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileSheets) {
     private val state: RenderState = frame.state
@@ -52,11 +56,21 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
     private val lastSheet = Array(RenderState.LAYERS) { ByteArray(SHEET_BYTES) }
     private val lastSheetSize = IntArray(RenderState.LAYERS) { -1 }
     private val mapValid = BooleanArray(RenderState.LAYERS)
+
+    // Shader uniform arrays, one entry group per BG layer. uLayer: flags (BG_FLAG_*), priority,
+    // width and height in tiles; uAff: affine pa and pc (pb and pd only advance the per-line
+    // reference point in GpuFrame.pack); uSheetSize: valid bytes of the sheet, 0 = skip the layer.
     private val layerU = IntArray(4 * RenderState.LAYERS)
     private val affU = IntArray(2 * RenderState.LAYERS)
     private val sheetSizeU = IntArray(RenderState.LAYERS)
+
+    /** GL texture names, indexed by the `T_*` slot constants. */
     private val tex = IntArray(6)
+
+    /** The offscreen framebuffer whose colour attachment is the `T_OUT` texture. */
     private val fbo = IntArray(1)
+
+    /** The compositing program and the program that copies its output to the view. */
     private var program = 0
     private var blit = 0
     private var uBlitScale = 0
@@ -70,11 +84,14 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
     private var uPalRows = 0
 
     /**
-     * Initializes shaders, allocates immutable texture storage, and binds framebuffer objects.
-     * Must be re-invoked if the EGL context is recreated.
+     * Builds both programs, allocates the textures and the offscreen framebuffer, and points the
+     * compositing shader's samplers at texture units 0..4. Run again when the GL context is
+     * recreated, which loses all of these (Android behaviour, not checked here); the upload caches
+     * are reset so everything is re-sent.
      *
-     * @param link Function that compiles and links a vertex and fragment shader into a program.
-     * @param vertex The common vertex shader source code.
+     * @param link Compiles and links a vertex and a fragment shader into a program (the
+     *   renderer's `link`).
+     * @param vertex The vertex shader shared by both programs (quad corners from `gl_VertexID`).
      */
     fun init(link: (String, String) -> Int, vertex: String) {
         program = link(vertex, FRAGMENT)
@@ -110,13 +127,14 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
     }
 
     /**
-     * Uploads the packed frame, composites it at native 240×160 resolution into an offscreen texture,
-     * and blits the result onto the active framebuffer of dimensions [viewW]×[viewH].
+     * Draws one frame: uploads the packed frame (palettes, line parameters, OBJ plane, and each
+     * enabled BG's map and sheet if changed), composites 240×160 pixels into the offscreen texture,
+     * then scales that onto the screen.
      *
-     * @param viewW Display viewport width in pixels.
-     * @param viewH Display viewport height in pixels.
-     * @param sx Horizontal scale factor for aspect ratio preservation.
-     * @param sy Vertical scale factor for aspect ratio preservation.
+     * @param viewW Screen width in pixels.
+     * @param viewH Screen height in pixels.
+     * @param sx Horizontal quad scale of the aspect-fit, 0..1 (see `GameRenderer.drawFrame`).
+     * @param sy Vertical quad scale of the aspect-fit, 0..1.
      */
     fun draw(viewW: Int, viewH: Int, sx: Float, sy: Float) {
         GLES30.glUseProgram(program)
@@ -133,28 +151,29 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
         upload2d(T_OBJ, FrameBuffer.GBA_WIDTH, FrameBuffer.GBA_HEIGHT, GLES30.GL_RED_INTEGER, GLES30.GL_UNSIGNED_INT, obj)
         val fx = state.effects
         for (bg in 0 until RenderState.LAYERS) {
-            val l = state.layers[bg]
-            val s = sheets[l.sheet]
+            val layer = state.layers[bg]
+            val sheetData = sheets[layer.sheet]
             var flags = 0
-            if (l.enabled) flags = flags or BG_FLAG_ENABLED
-            if (l.affine) flags = flags or BG_FLAG_AFFINE
-            if (l.wrap) flags = flags or BG_FLAG_WRAP
-            if (l.mosaic) flags = flags or BG_FLAG_MOSAIC
-            if (l.bpp8) flags = flags or BG_FLAG_BPP8
+            if (layer.enabled) flags = flags or BG_FLAG_ENABLED
+            if (layer.affine) flags = flags or BG_FLAG_AFFINE
+            if (layer.wrap) flags = flags or BG_FLAG_WRAP
+            if (layer.mosaic) flags = flags or BG_FLAG_MOSAIC
+            if (layer.bpp8) flags = flags or BG_FLAG_BPP8
             layerU[4 * bg] = flags
-            layerU[4 * bg + 1] = l.priority
-            layerU[4 * bg + 2] = l.widthTiles
-            layerU[4 * bg + 3] = l.heightTiles
-            affU[2 * bg] = l.pa
-            affU[2 * bg + 1] = l.pc
-            if (!l.enabled || s == null) {
+            layerU[4 * bg + 1] = layer.priority
+            layerU[4 * bg + 2] = layer.widthTiles
+            layerU[4 * bg + 3] = layer.heightTiles
+            affU[2 * bg] = layer.pa
+            affU[2 * bg + 1] = layer.pc
+            if (!layer.enabled || sheetData == null) {
                 sheetSizeU[bg] = 0
                 continue
             }
-            val n = minOf(s.size, SHEET_BYTES)
-            sheetSizeU[bg] = n
-            uploadSheet(bg, s, n)
-            uploadMap(bg, l.entries)
+            // A sheet longer than SHEET_BYTES is cut; the shader reads 0 beyond sheetSizeU.
+            val sheetLen = minOf(sheetData.size, SHEET_BYTES)
+            sheetSizeU[bg] = sheetLen
+            uploadSheet(bg, sheetData, sheetLen)
+            uploadMap(bg, layer.entries)
         }
         GLES30.glUniform4iv(uLayer, RenderState.LAYERS, layerU, 0)
         GLES30.glUniform2iv(uAff, RenderState.LAYERS, affU, 0)
@@ -165,7 +184,9 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
                 (if (fx.win1) WIN_FLAG_WIN1 else 0) or
                 (if (fx.objWindow) WIN_FLAG_OBJ else 0),
         )
+        // Layer masks inside window 0, window 1, the OBJ window, and outside all windows.
         GLES30.glUniform4i(uWinMask, fx.winInside[0], fx.winInside[1], fx.winInside[2], fx.winOutside)
+        // BG mosaic width in pixels (1 = off); the vertical size is applied in GpuFrame.pack.
         GLES30.glUniform1i(uMosaicH, maxOf(1, fx.mosaic[0]))
         GLES30.glUniform1i(uPalRows, frame.paletteRows)
         for (i in 0 until T_OUT) {
@@ -185,22 +206,26 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
     }
 
-    /** Uploads tile sheet data for background layer [bg] if it differs from the previous upload. */
-    private fun uploadSheet(bg: Int, s: ByteArray, n: Int) {
+    /**
+     * Sends the first [length] bytes of BG [bg]'s tile [data] to its layer of the sheet texture,
+     * as rows of [SHEET_WIDTH] bytes, unless the same bytes were sent last time.
+     */
+    private fun uploadSheet(bg: Int, data: ByteArray, length: Int) {
         val last = lastSheet[bg]
-        if (lastSheetSize[bg] == n && s.contentEqualsRange(last, n)) return
-        s.copyInto(last, 0, 0, n)
-        lastSheetSize[bg] = n
+        if (lastSheetSize[bg] == length && data.contentEqualsRange(last, length)) return
+        data.copyInto(last, 0, 0, length)
+        lastSheetSize[bg] = length
         sheet.position(0)
-        sheet.put(s, 0, n).position(0)
+        sheet.put(data, 0, length).position(0)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D_ARRAY, tex[T_SHEET])
         GLES30.glTexSubImage3D(
-            GLES30.GL_TEXTURE_2D_ARRAY, 0, 0, 0, bg, SHEET_WIDTH, (n + SHEET_WIDTH - 1) / SHEET_WIDTH,
+            GLES30.GL_TEXTURE_2D_ARRAY, 0, 0, 0, bg, SHEET_WIDTH,
+            (length + SHEET_WIDTH - 1) / SHEET_WIDTH,
             1, GLES30.GL_RED_INTEGER, GLES30.GL_UNSIGNED_BYTE, sheet,
         )
     }
 
-    /** Uploads tile map entries for background layer [bg] if changed. */
+    /** Sends BG [bg]'s tile map (128×128 entries) to its map texture layer, if it changed. */
     private fun uploadMap(bg: Int, entries: ShortArray) {
         val last = lastMap[bg]
         if (mapValid[bg] && entries.contentEquals(last)) return
@@ -215,47 +240,54 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
         )
     }
 
-    /** Compares the first [n] bytes of two byte arrays for equality. */
+    /** True if the first [n] bytes of this array and [other] are equal. */
     private fun ByteArray.contentEqualsRange(other: ByteArray, n: Int): Boolean {
         for (i in 0 until n) if (this[i] != other[i]) return false
         return true
     }
 
-    /** Allocates immutable 2D texture storage with nearest filtering. */
+    /** Creates texture slot [t] as a [w]×[h] 2D texture of [format], nearest-filtered. */
     private fun storage2d(t: Int, format: Int, w: Int, h: Int) {
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, tex[t])
         nearest(GLES30.GL_TEXTURE_2D)
         GLES30.glTexStorage2D(GLES30.GL_TEXTURE_2D, 1, format, w, h)
     }
 
-    /** Allocates immutable 3D texture array storage with nearest filtering. */
+    /** Creates slot [t] as a [w]×[h] array texture with one layer per BG, nearest-filtered. */
     private fun storage3d(t: Int, format: Int, w: Int, h: Int) {
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D_ARRAY, tex[t])
         nearest(GLES30.GL_TEXTURE_2D_ARRAY)
         GLES30.glTexStorage3D(GLES30.GL_TEXTURE_2D_ARRAY, 1, format, w, h, RenderState.LAYERS)
     }
 
-    /** Sets nearest-neighbor min/mag filtering on [target]. */
+    /** Nearest filtering: integer textures cannot be interpolated, and pixels must stay exact. */
     private fun nearest(target: Int) {
         GLES30.glTexParameteri(target, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST)
         GLES30.glTexParameteri(target, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST)
     }
 
-    /** Updates a subregion of a 2D texture from [data]. */
+    /** Replaces the top-left [w]×[h] texels of slot [t] with [data]. */
     private fun upload2d(t: Int, w: Int, h: Int, format: Int, type: Int, data: java.nio.Buffer) {
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, tex[t])
         GLES30.glTexSubImage2D(GLES30.GL_TEXTURE_2D, 0, 0, 0, w, h, format, type, data)
     }
 
     private companion object {
+        // Texture slots; also the texture unit each is bound to (T_OUT is only sampled by BLIT).
         const val T_PAL = 0
         const val T_LINES = 1
         const val T_OBJ = 2
         const val T_MAP = 3
         const val T_SHEET = 4
         const val T_OUT = 5
+
+        /** Entries in one BG tile map texture layer (fixed 128×128 stride, see `TileLayer`). */
         const val MAP_ENTRIES = TileLayer.MAX_TILES * TileLayer.MAX_TILES
+
+        /** Bytes per row of the sheet texture; 0x10000 / 1024 = 64 rows. */
         const val SHEET_WIDTH = 1024
+
+        /** Largest tile sheet per BG that can be sent: 64 KiB. */
         const val SHEET_BYTES = 0x10000
 
         /** Background layer flag: layer is active and enabled for rendering. */
@@ -267,25 +299,29 @@ internal class GpuBackend(private val frame: GpuFrame, private val sheets: TileS
         /** Background layer flag: layer wraps around edges infinitely (affine layers only). */
         const val BG_FLAG_WRAP = 4
 
-        /** Background layer flag: layer horizontal mosaic effect is enabled. */
+        /** Background layer flag: the horizontal mosaic block size (`uMosaicH`) applies. */
         const val BG_FLAG_MOSAIC = 8
 
         /** Background layer flag: layer uses 8 bits per pixel (256 colors) instead of 4 bpp. */
         const val BG_FLAG_BPP8 = 16
 
-        /** Window flag: Window 0 active. */
+        /** Window flag: window 0 is enabled (`DISPCNT` window 0 on). */
         const val WIN_FLAG_WIN0 = 1
 
-        /** Window flag: Window 1 active. */
+        /** Window flag: window 1 is enabled. */
         const val WIN_FLAG_WIN1 = 2
 
-        /** Window flag: OBJ sprite window active. */
+        /** Window flag: the OBJ window is enabled. */
         const val WIN_FLAG_OBJ = 4
 
         /** Allocates a native-order direct byte buffer. */
         fun direct(bytes: Int): ByteBuffer = ByteBuffer.allocateDirect(bytes).order(ByteOrder.nativeOrder())
 
-        /** Nearest-filtered scale of the composited 240×160 texture (rows already top-first). */
+        /**
+         * Copies the composited 240×160 texture to the view. The composite pass wrote image row 0
+         * at the top of the framebuffer, which is GL row 159 of the texture, so this flips v back;
+         * the shared vertex shader already flips v once, hence the `1.0 - vUv.y`.
+         */
         const val BLIT = """#version 300 es
 precision mediump float;
 uniform sampler2D uTex;
@@ -294,7 +330,12 @@ out vec4 color;
 void main() { color = texture(uTex, vec2(vUv.x, 1.0 - vUv.y)); }
 """
 
-        /** Copy of PackedCompositor.pixel; see that class for the rules. */
+        /**
+         * Per-pixel compositor, a line-by-line copy of `PackedCompositor.pixel` (see that class for
+         * the rules: layer order by priority then BG number, window masks, OBJ merge, the top two
+         * pixels, then alpha blend, brighten or darken). Outputs BGR555 expanded to 8 bits per
+         * channel by shifting left 3, as `FrameBuffer.bgr555ToArgb` does.
+         */
         const val FRAGMENT = """#version 300 es
 precision highp float;
 precision highp int;

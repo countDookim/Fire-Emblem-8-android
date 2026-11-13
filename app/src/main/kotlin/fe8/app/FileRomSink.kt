@@ -1,9 +1,6 @@
 /**
- * Atomic file output sink for ROM storage and extracted assets.
- *
- * Implements [gbafe.extract.RomSink] to safely stream data to disk via an adjacent temporary
- * file before fsyncing and atomically renaming it to the final destination file, guarding
- * against corrupted or partial writes if interrupted.
+ * Writes the kept ROM image (`base/rom/baserom.gba`, see `RomImport.kt`) to disk through a
+ * temporary file, so an interrupted import never leaves a half-written ROM at the final path.
  */
 
 package fe8.app
@@ -13,11 +10,17 @@ import java.io.File
 import java.io.FileOutputStream
 
 /**
- * A [RomSink] that writes to [target] through a `.tmp` sibling file that is fsynced and renamed on commit.
+ * A [RomSink] that writes to [target] through a `.tmp` sibling file that is fsynced and renamed on
+ * commit. [gbafe.extract.RomImage.keep] feeds it the ROM in 64 KiB chunks and aborts it on error.
+ *
+ * NOTE: [commit] deletes an existing [target] before the rename, so replacing a file is not
+ * atomic (a crash in between leaves neither). The import writes into a fresh `base.tmp` folder,
+ * so there is never an existing target there.
  *
  * @property target The final destination file on disk.
  */
 internal class FileRomSink(private val target: File) : RomSink {
+    /** Where bytes go until [commit]; deleted by [abort]. */
     private val tmp = File(target.parentFile, target.name + TMP_EXTENSION)
     private val out: FileOutputStream
 
@@ -27,7 +30,7 @@ internal class FileRomSink(private val target: File) : RomSink {
     }
 
     /**
-     * Appends [len] bytes from [bytes] starting at offset [off] into the temporary file stream.
+     * Appends [len] bytes of [bytes] from offset [off] to the temporary file.
      *
      * @param bytes Buffer containing the payload to write.
      * @param off Starting offset within [bytes].
@@ -36,10 +39,9 @@ internal class FileRomSink(private val target: File) : RomSink {
     override fun write(bytes: ByteArray, off: Int, len: Int) = out.write(bytes, off, len)
 
     /**
-     * Flushes buffered data, synchronizes to physical storage (`fsync`), closes the file,
-     * and atomically moves the temporary file to [target].
+     * Forces the data to storage (`fsync`), closes the file, and renames it to [target].
      *
-     * @throws IllegalStateException If existing target removal or atomic renaming fails.
+     * @throws IllegalStateException If the old [target] cannot be deleted or the rename fails.
      */
     override fun commit() {
         out.fd.sync()
@@ -49,7 +51,8 @@ internal class FileRomSink(private val target: File) : RomSink {
     }
 
     /**
-     * Aborts the in-progress write, silently closing the output stream and deleting the temporary file.
+     * Gives up: closes the stream (ignoring errors) and deletes the temporary file, leaving no
+     * [target].
      */
     override fun abort() {
         runCatching { out.close() }
@@ -57,6 +60,7 @@ internal class FileRomSink(private val target: File) : RomSink {
     }
 
     private companion object {
+        /** Suffix of the sibling file written before the rename. */
         private const val TMP_EXTENSION: String = ".tmp"
     }
 }

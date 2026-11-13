@@ -11,8 +11,6 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- 2026-11-13 17:58Z owner PC (Claude): readability audit fe8.game.save (BmGameSave, Fe8SramLayout, NewGameRam, Fe8SavImporter).
-- 2026-11-13 17:58Z owner PC (Claude): MC-8b hit checks.
 
 ## Current state
 

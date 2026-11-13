@@ -130,6 +130,7 @@ Sub-lane contents and file counts: [M6C-J-breakdown](plans/M6C-J-breakdown.md).
 | CAP-collide1 | CAP | Run where a unit load lands on an occupied tile (unblocks old M6-14) | Run published; then verify `AiGetUnitClosestValidPosition`, `AdjustNewUnitPosition` | — | todo |
 | TEST-2 | INV | `WalkingAllocationTest` borderline on the owner PC: 1–2 of 26 allocation-free windows (needs 3), 4 of 6 local runs on 11-11 failed; CI passes | Find the allocating call (allocation profiler on the walking window) or show it is GC/JIT noise; fix or adjust with the reason | — | todo |
 | TEST-3 | INV | `tools/tests/test_kmp_common.py` is pytest-style, so CI's `unittest discover` never runs it; locally it fails on `ItemInfo.kt:272` (`toByteArray(Charsets.US_ASCII)` in commonMain, since 11-09) | CI runs the check; the offender uses a common API; other pytest-only test files found | — | todo |
+| BUG-gold | CAP+PORT | Give-gold event path: port `NewPopup_GoldGot` (adds gold only for a blue unit, else the stolen popup) and `GetPartyGoldAmount`/`SetPartyGoldAmount` (chapter index 5 reads 0, cap 999999); Fe8Boot wires the raw field (found by the 11-13 readability audit) | Capture of a gold event checked against the port | — | todo |
 | D09-3 | PORT | Remaining item-popup branches (gold, full inventory, red/root, unit-name/number) | Each branch against a capture that reaches it, else not written | — | low priority; Rapier popup confirmed on device 11-11 |
 
 Owner-PC sessions also continue [READABILITY](READABILITY.md) (rule 11).

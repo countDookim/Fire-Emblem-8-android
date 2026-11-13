@@ -303,6 +303,14 @@ Transcribed, not verified: `TickActiveFactionTurn` (no unit has a duration: the 
 Stand-ins: the `Make*TargetList` functions and `sub_8026414` (empty list), the rest of each display script (ends the proc), the torch redraw, `PidStatsSubFavval08` hook (default none; `Fe8Boot` does not keep the statistics).
 For EP-w: `Fe8Boot` now uses `PhaseStartEnd` (own `SelectTargets`; share the player phase list once the `Make*TargetList` exist), the four display scripts and the Tick; `cpPhase` is still the ends-at-once stand-in. EP-10 starts from `BmMain_UpdateTraps` hooks (`updateTraps`, `decayTraps`).
 
+### EP-2a result (2026-11-13)
+
+Test: `CpOrderDifferentialTest` (`aistate`, `blue`, `red`, `gplayst` watches; units and `gPlaySt` of f1611 fed to `gProcScr_CpPhase`). In `CpPhase.kt`: `phaseScript`, `orderScript`, `aiPhaseInit`, `cpOrderMain`, `cpOrderFuncBeginDecide`, `buildAiUnitList`, the priority functions and the sort. After one frame the list is 0x81, 0x82, 0x83, `unitIt` at the start, `orderState` 1, flags 1, `unk7E` 0xFF, special flags 7, and the tree is CpPhase > CpOrder > CpDecide (f1612); after the decision, `orderState` 2 and flags 0 (f2744, f2746).
+Ported: `AiPhaseInit` (the resets of `orderState`, `cmdResult`, `unk84` are not seen: the capture holds those values already), `CpOrderMain`, `CpOrderFunc_BeginDecide`, `BuildAiUnitList` (no unit is skipped by status or state; the 0 terminator is not seen).
+Transcribed, not verified: `GetUnitAiPriority` (all three enemies 25: Mov 5 + melee 20), `GetUnitBattleAiPriority`, `SortAiUnitList` (equal priorities: only the stability shows, `>` to `>=` fails; the direction is not seen).
+Stand-ins: `gProcScr_CpDecide` (ends at once, until EP-3a), `UpdateAllPhaseHealingAIStatus`/`SetupUnitInventoryAIFlags` hooks (EP-2b; `dangerMapFilled` 1 at f1612 comes from there).
+Wired: `Fe8Boot` uses `CpPhase.phaseScript` as `cpPhase`; with the stand-in decide the phase still ends and the next player phase starts. EP-w: share `gAiState` with CpDecide, set `hooks.startCpDecide`.
+
 ### EP-0 inventory (2026-11-13)
 
 Test: `EnemyPhaseInventoryTest` (procs per window asserted row by row over `ram_trace_prologue_cancel_end`

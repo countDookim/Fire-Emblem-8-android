@@ -186,6 +186,12 @@ public class UnitTable(
         bytes[unitOffset(id) + 0x11] = y.toByte()
     }
 
+    /** `aiFlags` (u8, 0x0A) of unit [id]. */
+    public fun aiFlags(id: Int): Int = u8(bytes, unitOffset(id) + 0x0A)
+
+    /** `UNIT_LEADER_CHARACTER`: `supports[6]` (u8, 0x38) of unit [id]. */
+    public fun leaderCharId(id: Int): Int = u8(bytes, unitOffset(id) + 0x38)
+
     /** `statusIndex` (low nibble of byte 0x30) of unit [id]. */
     public fun statusIndex(id: Int): Int = u8(bytes, unitOffset(id) + 0x30) and 0xF
 

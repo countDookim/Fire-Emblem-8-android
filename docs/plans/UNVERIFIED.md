@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 546 across 77 decomp files (missing reason: 0).
+Total entries: 549 across 78 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -712,6 +712,14 @@ Total entries: 546 across 77 decomp files (missing reason: 0).
 | `IsSameAllegiance` | `game/src/commonMain/kotlin/fe8/game/bm/BmPhase.kt` | no capture checks it; the truth table restates the C |
 | `CountUnitsInState` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | only reached by the victory-song check; the enemy-phase windows call it, but the result only shows as the song id, which no capture records |
 | `GetPhaseAbleUnitCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no trace has a unit that the asleep/berserk/unselectable/NOT_ABLE exclusions would skip; the enemy-phase windows only show that the count is 0 exactly when the phase has no banner |
+
+## src/cp_order.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetUnitBattleAiPriority` | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | the three Prologue enemies all come out 20 and no mutation of it changes the captured order |
+| `GetUnitAiPriority` | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | the three Prologue enemies all come out 25, so no mutation changes the captured order |
+| `SortAiUnitList` | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | the priorities are equal, so only the stability is seen, not the direction |
 
 ## src/uiselecttarget.c (3)
 

@@ -12,7 +12,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - MC-11 (battle forecast drawing): owner PC, until ~04:00Z (from 01:08Z)
-- Readability audit gba.extract: owner PC, until ~03:30Z (from 01:08Z)
+- Readability audit gbafe.extract.fe8.terrains, .ui, .units, gbafe.extract.m4a: owner PC, until ~03:30Z (from 01:16Z)
 
 ## Current state
 

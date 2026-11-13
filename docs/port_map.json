@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1155,
+    "verified": 1170,
     "implemented_unverified": 23
   },
   "functions": {
@@ -414,6 +414,36 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WeaponSelectMenuDifferentialTest#choosing a weapon equips it and clears the list"
+      ]
+    },
+    "BattleApplyExpGains": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
+    "BattleApplyGameStateUpdates": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleWriteBackDifferentialTest#the write-back reproduces the dumped unit table entries"
+      ]
+    },
+    "BattleApplyUnitUpdates": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleWriteBackDifferentialTest#the write-back reproduces the dumped unit table entries"
       ]
     },
     "BattleApplyWeaponTriangleEffect": {
@@ -866,6 +896,16 @@
       "tests": [
         "fe8.testing.CamMoveDifferentialTest#camera move without a parent scrolls onto the cursor",
         "fe8.testing.CamMoveDifferentialTest#ch6 phase start resets the cursor and scrolls the camera"
+      ]
+    },
+    "CanBattleUnitGainLevels": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
       ]
     },
     "CanMoveActiveUnitTo": {
@@ -3347,6 +3387,16 @@
         "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
       ]
     },
+    "GetBattleUnitExpGain": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
     "GetBattleUnitHitCount": {
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
@@ -3355,6 +3405,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
+    "GetBattleUnitUpdatedWeaponExp": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleWriteBackDifferentialTest#the write-back reproduces the dumped unit table entries"
       ]
     },
     "GetBgVerticalScrollBuffer": {
@@ -4193,6 +4253,16 @@
         "fe8.testing.UnitStatusDisplayDifferentialTest#Burst window draws Eirika"
       ]
     },
+    "GetUnitClassKillExpBonus": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
     "GetUnitDefinitionFromEventScr": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -4201,6 +4271,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EventUnitLoadsTest#GetUnitDefinitionFromEventScr matches dumped gLoadUnitBuffer in trace"
+      ]
+    },
+    "GetUnitExpLevel": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
       ]
     },
     "GetUnitFromCharId": {
@@ -4213,6 +4293,16 @@
         "fe8.testing.UnitTableDifferentialTest#GetUnitFromCharId finds Eirika where the player phase puts the cursor"
       ]
     },
+    "GetUnitKillExpBonus": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
     "GetUnitMovementCost": {
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
@@ -4221,6 +4311,26 @@
       "status": "verified",
       "tests": [
         "fe8.testing.MovementMapDifferentialTest#select flood matches the game"
+      ]
+    },
+    "GetUnitPowerLevel": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
+      ]
+    },
+    "GetUnitRoundExp": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
       ]
     },
     "GetUnitSpritePalette": {
@@ -5503,6 +5613,16 @@
         "fe8.testing.WeaponSelectMenuDifferentialTest#cancelling the weapon list restarts the unit menu"
       ]
     },
+    "KillUnitOnCombatDeath": {
+      "decomp_file": "src/bmmind.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleWriteBackDifferentialTest#the write-back reproduces the dumped unit table entries"
+      ]
+    },
     "LoadAndVerfyLinkArenaStruct2": {
       "decomp_file": "src/bmsave-lib.c",
       "system": "save",
@@ -6081,6 +6201,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aPitchTest#DirectSound channel frequencies match every reference RAM dump"
+      ]
+    },
+    "ModifyUnitSpecialExp": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleGenerateRealDifferentialTest#real battle reproduces the dumped battle units, hits and RNG state"
       ]
     },
     "MoveActiveUnit": {
@@ -9523,6 +9653,16 @@
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
       ]
     },
+    "UnitKill": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleWriteBackDifferentialTest#the write-back reproduces the dumped unit table entries"
+      ]
+    },
     "UnitLoadStatsFromChracter": {
       "decomp_file": "src/bmunit.c",
       "system": "battle_map",
@@ -9669,6 +9809,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
+    "UpdateUnitFromBattle": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleWriteBackDifferentialTest#the write-back reproduces the dumped unit table entries"
       ]
     },
     "UseUnitSprite": {

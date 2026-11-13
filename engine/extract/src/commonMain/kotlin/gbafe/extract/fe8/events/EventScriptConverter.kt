@@ -8,8 +8,8 @@ import gbafe.script.ScriptConstants
  * per original command, named and laid out by [Fe8EventCommands] (decomp `include/eventscript.h`
  * macros in snake_case).
  *
- * Encoding (decomp `include/event.h`, `_EvtCmd`): header u16 = `cmd shl 8 | len shl 4 | sub`, `len`
- * counted in u16 words including the header.
+ * Encoding (decomp `include/eventscript.h`, `_EvtCmd`): header u16 = `cmd shl 8 | len shl 4 | sub`,
+ * `len` counted in u16 words including the header.
  *
  * Conversion covers exactly the bytes it is given (the script's size in the decomp symbols), with
  * no `return`/`end_all` heuristic. A command is printed as its name and one argument per named
@@ -27,9 +27,10 @@ import gbafe.script.ScriptConstants
  *   value (a Thumb function pointer, as `asm_call` takes) the symbol at the even address below
  *   prints instead: the name stands for the pointer with bit 0 set for `asm_call` arguments.
  * - The flag of `set_flag`/`check_flag`... being `0xFFFF` means "the flag number is in slot 2"
- *   (`src/eventscr.c`: negative argument). `clear_flag` prints as the decomp macro
- *   `EvtClearFlagAtSlot2` (`clear_flag_at_slot2`), the other flag commands, which have no macro,
- *   take the argument name [FLAG_AT_SLOT2].
+ *   (`src/eventscr.c`: handlers `Event02_EvBitAndIdMod`/`Event03_CheckEvBitOrId` read slot 2 when
+ *   the argument is negative). `clear_flag` prints as the decomp macro `EvtClearFlagAtSlot2`
+ *   (`clear_flag_at_slot2`); the other flag commands, which have no such macro, take the argument
+ *   name [FLAG_AT_SLOT2].
  *
  * Numbers print in decimal below 0x100 and as `0x` + uppercase hex above.
  */

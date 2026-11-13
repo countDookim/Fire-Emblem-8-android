@@ -23,7 +23,10 @@ public object Fe8EventCommands {
         /** A whole u16 word. */
         U16(16),
 
-        /** Two words, little-endian (`(EventScr)` cast). */
+        /**
+         * Two words, little-endian: a plain 32-bit value (an `(EventScr)` cast, or an
+         * `(EventListScr)` cast of a value rather than a pointer).
+         */
         U32(32),
 
         /** Two words holding a ROM address (`(EventListScr)` cast). */

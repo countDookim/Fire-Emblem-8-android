@@ -44,7 +44,7 @@ DOC = {
     "wm_nation": "World map highlighted-nation ids (`WM_NATION_*`).",
     "wm_mu": "World map sprite slots (`WM_MU_*`).",
     "slot": "Event slot indices (`EVT_SLOT_*`).",
-    "menu_override": "Menu override bit masks (`EVENT_MENUOVERRIDE_*`).",
+    "menu_override": "Unit-menu override bits for `override_unit_menu` (`EVENT_MENUOVERRIDE_*` of `event3D_menu1override_bitfiles`); the weapon-menu enum `event3D_menu2override_bitfiles` is not included.",
 }
 
 
@@ -138,7 +138,7 @@ def main(decomp):
         out.append("            KIND_%s to %s()," % (kind.upper(), "table" + "".join(p.title() for p in kind.split("_"))))
     out.append("        ),")
     out.append("    )\n")
-    out.append("    /** The value of [name] in [kind], or `NONE` if unknown. */")
+    out.append("    /** The value of [name] in [kind], or [ScriptConstants.NONE] if unknown. */")
     out.append("    override fun valueOf(kind: String, name: String): Int = set.valueOf(kind, name)\n")
     out.append("    /** The primary name of [value] in [kind], or null if none. */")
     out.append("    override fun nameOf(kind: String, value: Int): String? = set.nameOf(kind, value)\n")

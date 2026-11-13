@@ -53,7 +53,11 @@ public object Fe8ScriptConstants : ScriptConstants {
     /** Event slot indices (`EVT_SLOT_*`). */
     public const val KIND_SLOT: String = "slot"
 
-    /** Menu override bit masks (`EVENT_MENUOVERRIDE_*`). */
+    /**
+     * Unit-menu override bits for `override_unit_menu` (`EVENT_MENUOVERRIDE_*` of
+     * `event3D_menu1override_bitfiles`); the weapon-menu enum `event3D_menu2override_bitfiles` is
+     * not included.
+     */
     public const val KIND_MENU_OVERRIDE: String = "menu_override"
 
     private val set = TableScriptConstants(
@@ -74,7 +78,7 @@ public object Fe8ScriptConstants : ScriptConstants {
         ),
     )
 
-    /** The value of [name] in [kind], or `NONE` if unknown. */
+    /** The value of [name] in [kind], or [ScriptConstants.NONE] if unknown. */
     override fun valueOf(kind: String, name: String): Int = set.valueOf(kind, name)
 
     /** The primary name of [value] in [kind], or null if none. */

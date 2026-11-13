@@ -1,13 +1,15 @@
 package gbafe.extract.fe8.events
 
 /**
- * Grouping of the FE8 event scripts into `.fe8s` files like the decomp's `src/events` headers (one `.h` each).
+ * Grouping of the FE8 event scripts into `.fe8s` files that mirror the decomp's per-chapter
+ * `src/events` headers.
  *
- * The decomp's `src/events_script.c` includes the `src/events` headers (one `.h` each) in a fixed order; its
- * `.data` spans 0x089EEA58 until 0x08A006E4 (exclusive) (decomp `fireemblem8.map`:
- * `.data 0x089eea58 0x11c8c src/events_script.o`). Each header's scripts are contiguous there, so
- * a script belongs to the last header whose first script's address is <= its own. Scripts outside
- * that range (other source files) go to `common`.
+ * The decomp's `src/events_script.c` includes those headers (one `.h` per chapter or tutorial,
+ * plus `common-events.h`) in a fixed order. The build map (`fireemblem8.map`) places the object's
+ * data at `.data 0x089eea58 0x11c8c src/events_script.o`, i.e. 0x089EEA58 until 0x08A006E4
+ * (exclusive). Each header's scripts are contiguous there, so a script belongs to the last
+ * header whose first script's address is <= its own. Scripts outside that range (other source
+ * files) go to `common`.
  */
 public object Fe8ScriptFiles {
     /** First address of `events_script.o`'s `.data`. */
@@ -86,7 +88,8 @@ public object Fe8ScriptFiles {
         for ((stem, _) in starts) groups.getOrPut(stem) { ArrayList() }
         val sorted = addresses.entries.sortedBy { it.value.toUInt() }
         for ((name, address) in sorted) {
-            val inData = address.toUInt() >= DATA_START.toUInt() && address.toUInt() < DATA_END.toUInt()
+            val inData =
+                address.toUInt() >= DATA_START.toUInt() && address.toUInt() < DATA_END.toUInt()
             var stem = "common"
             if (inData) {
                 for ((candidateStem, startAddress) in starts) {

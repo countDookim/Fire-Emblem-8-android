@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-12 16:13Z (owner PC: M6-B code-complete, PP-17 merged; 885 tests green locally). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-13 20:08Z (owner PC: M6-C done except MC-17; M6-D started: EP-cap1, EP-0, EP-1, EP-2a; 922 tests green locally). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -11,9 +11,21 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- 2026-11-13 19:54Z owner PC (Claude): readability audit BmSaveLib lines 1-520.
 
 ## Current state
+
+- 2026-11-13 owner PC (17:56–20:08Z): **M6-C done except MC-17; M6-D started.** Merged MC-8b (hit checks verified),
+  MC-8c (triangle attack transcribed; was always false), MC-w1/MC-w2 (headless replays of the attack and kill captures
+  through Fe8Boot match every unit byte and the RNG; attack flow 0 B/frame), TEST-2/TEST-4 (MU walk and waiting event
+  loads no longer allocate; TEST-5 menu callback boxing and TEST-6 one-off walk allocations open). EP-cap1 published
+  (ROM `assets-2500bf5`, `ram_trace_prologue_enemy_phase`: both Soldiers attack Eirika and die, boss idle, no
+  level-up). EP-0 inventory (traced; EP rows rewritten, 2/3/6 split). EP-1 (phase start/end) and EP-2a (AiPhaseInit,
+  CpOrder; Fe8Boot runs them, CpDecide a stand-in until EP-3a). Next: EP-2b (claim released), EP-3a.. ; MC-17 needs
+  EP-cap2. Readability: fe8.game.ui all rows; fe8.game.bm PhaseIntro/MapAnimations, sprite group, state group, camera
+  group, BmMap group, ChapterData/ChapterMapGfx; save BmGameSave group and BmSaveLib 1-520 audited. Left: BmSaveLib
+  521-1080, bm BMapMain/BattleMapKind, bm UnitTable, bm 3863 (never reviewed), opanim, fe8.game, extract events.
+  Merge scripts: `|| exit 1` on every step (set -e did not stop them). Device check pending: PP-17, D-14, D-15, M6-C
+  attack flow (MANUAL_TEST step 3, APK 0.1.667+).
 
 - 2026-11-13 owner PC (to ~10:00Z): **M6-C almost complete.** Merged MC-3a, 3b, 4a, 4b, 5, 6, 9, 10, 11, 12a, 12b,
   13, 14, 15, 16 (with MC-1/2/7/8a from 11-12): Attack -> weapon list (rows, panel, face) -> target cursor -> forecast

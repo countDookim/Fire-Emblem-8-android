@@ -12,7 +12,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - MC-13 (combat action): owner PC, until ~11:30Z (from 08:18Z)
-- Readability audit fe8.app (MainActivity, GameSurfaceView, TouchOverlayView, HardwareKeySource): owner PC, until ~10:30Z (from 08:13Z)
+- Readability audit fe8.app (GpuBackend, AudioTrackSink, RomImport, AssetLayer, FileRomSink): owner PC, until ~11:00Z (from 08:24Z)
 
 ## Current state
 

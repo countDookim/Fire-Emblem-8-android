@@ -13,26 +13,34 @@ import fe8.game.event.EventConst.EV_STATE_0040
 import fe8.game.event.EventConst.EV_STATE_SKIPPING
 import fe8.game.event.EventConst.EV_STATE_UNITCAM
 
-/** What the move commands reach outside the MU and unit systems. Defaults are no-ops. */
+/**
+ * What the unit move commands reach outside the MU (movement unit: the walking map sprite) and
+ * unit systems: the camera scroll proc and the map redraw calls. Defaults are no-ops (no camera
+ * move exists, nothing is started).
+ */
 public interface EventMoveUnitHost {
-    /** `Proc_Find(ProcScr_CamMove) != NULL`. */
+    /** `Proc_Find(ProcScr_CamMove) != NULL`: a camera scroll is already running. */
     public fun camMoveExists(): Boolean = false
 
-    /** `EnsureCameraOntoPosition(proc, x, y)`: true if a camera move was started. */
+    /**
+     * `EnsureCameraOntoPosition(proc, x, y)` (src/bm.c:1044): true if a (blocking) camera
+     * scroll to the tile was started, false if the camera is already there or a scroll runs.
+     */
     public fun ensureCameraOntoPosition(proc: EventEngineProc, x: Int, y: Int): Boolean = false
 
-    /** `RefreshEntityBmMaps`. */
+    /** `RefreshEntityBmMaps`: rebuilds the unit and hidden-unit maps from the unit arrays. */
     public fun refreshEntityBmMaps() {}
 
-    /** `RefreshUnitSprites`. */
+    /** `RefreshUnitSprites`: redraws the standing map sprites of the units. */
     public fun refreshUnitSprites() {}
 
-    /** `RenderBmMap`. */
+    /** `RenderBmMap`: redraws the map tiles. */
     public fun renderBmMap() {}
 }
 
 /**
- * The event commands 0x2F (MOVEUNIT) and 0x30 (ENUN) of `src/eventscr.c` and their helpers
+ * The event commands 0x2F (MOVEUNIT: walk a unit across the map in a scene) and 0x30 (ENUN: wait
+ * until every scripted walk has finished) of `src/eventscr.c` and their helpers
  * `TryPrepareEventUnitMovement` and `ModifyMoveUnitFlag`.
  *
  * Verification: `MoveUnitDifferentialTest` compares the blue units' end tiles after the opening
@@ -69,8 +77,10 @@ public class EventMoveUnit(
      * Transcribed from src/eventscr.c: TryPrepareEventUnitMovement (not verified: no @VerifiesPort
      * test names it).
      *
-     * Whether the walk may start now: with the unit camera on, no camera move may exist or be
-     * started for the unit's tile, and an MU slot must be free (a config with slot 0 is unused).
+     * Whether the walk may start now. With the unit camera on (`EV_STATE_UNITCAM`, "camera
+     * follows unit movement") no camera scroll may be running, and starting one towards the
+     * unit's tile ([x], [y]) counts as not ready (the command is retried next frame). Then an MU
+     * slot must be free (`CanStartMu`: some `sMuConfig` entry has `slot == 0`).
      */
     private fun tryPrepare(proc: EventEngineProc, x: Int, y: Int): Boolean {
         if (proc.evStateBits and EV_STATE_UNITCAM != 0) {
@@ -84,8 +94,12 @@ public class EventMoveUnit(
      * Transcribed from src/eventscr.c: ModifyMoveUnitFlag (not verified: no @VerifiesPort test
      * names it).
      *
-     * The move flags: bit 0 if [unk] (meaning unknown), bit 2 with the unit camera, bit 3 with
-     * `EV_STATE_0040`.
+     * The flags word passed to the MU control walk and [MuCtrl.moveUnit] (`flagsB` in
+     * src/muctrl.c). Bit 0 is [unk], the command's `modify` sub-command bit: the walk may
+     * relocate the destination (`AiGetUnitClosestValidPosition`, src/muctrl.c:526-532). Bit 2
+     * (value 4) with `EV_STATE_UNITCAM`: the MU drags the camera along (`EnableMuCamera`,
+     * src/muctrl.c:448). Bit 3 (value 8) with `EV_STATE_0040` (set by `EVBIT_MODIFY`): the MU
+     * config gets `0x40` (src/muctrl.c:441; that config bit's meaning is not known).
      */
     private fun moveFlags(proc: EventEngineProc, unk: Boolean): Int {
         var result = if (unk) 1 else 0
@@ -98,8 +112,25 @@ public class EventMoveUnit(
      * Ported from src/eventscr.c: Event2F_MoveUnit (verified: end tiles only, see
      * `MoveUnitDifferentialTest`)
      *
-     * Subcodes MOVE, MOVEONTO, MOVE_1STEP and MOVE_DEFINED (REDAs of the slot queue). Skipping or
-     * a negative speed moves the unit at once, else a [MuCtrl] walk starts.
+     * Arguments: speed (`EVT_CMD_ARGV[0]`), the unit's character parameter (`[1]`) and a target
+     * (`[2]`). Subcodes (`EVSUBCMD_`): MOVE (a tile, packed X/Y bytes), MOVEONTO (the tile of
+     * another unit), MOVE_1STEP (one tile in direction 0 left, 1 right, 2 down, 3 up) and
+     * MOVE_DEFINED (the REDAs, scripted move records, of the slot queue). Skipping the scene or a
+     * negative speed moves the unit there at once, else a [MuCtrl] walk starts and the command
+     * continues (use ENUN to wait). Yields while the walk cannot start ([tryPrepare]).
+     *
+     * Skips a missing unit and a dead one that is not a cutscene unit. An unresolved MOVEONTO
+     * target is an error.
+     *
+     * NOTE: subcodes 4-7 (the sub-command is 3 bits) are not handled here (`else` continues
+     * without moving); the decomp switch has no case for them and would use uninitialised
+     * `xOut`/`yOut` (src/eventscr.c:2690-2745). No decomp script macro emits them
+     * (include/eventscript.h:694-697 has only subcodes 0-3).
+     *
+     * NOTE: with MOVE_DEFINED while skipping, the decomp calls `MoveUnit_(unit, xOut, yOut, ...)`
+     * with `xOut`/`yOut` never set on that path (src/eventscr.c:2741-2748, an uninitialised
+     * read); this port instead moves the unit to the last REDA of the queue (what `MoveUnitExt`
+     * does with the queue), and throws if the queue is empty.
      */
     public val event2fMoveUnit: EventHandler = EventHandler { proc ->
         val currentCmd = proc.pEventCurrent
@@ -111,7 +142,7 @@ public class EventMoveUnit(
         if (unit < 0) return@EventHandler EVC_ADVANCE_CONTINUE
         val sourceX = table.xPos(unit)
         val sourceY = table.yPos(unit)
-        // A dead unit does not move, unless it is a cutscene unit (`US_BIT22`).
+        // A dead unit does not move, unless it carries `US_BIT22` (see [US_BIT22]).
         if (table.state(unit) and US_BIT22 == 0 && table.state(unit) and US_DEAD != 0) {
             return@EventHandler EVC_ADVANCE_CONTINUE
         }
@@ -166,7 +197,10 @@ public class EventMoveUnit(
         EVC_ADVANCE_CONTINUE
     }
 
-    /** The REDAs of `gEventSlotQueue`: `gEventSlots[0xD] / 2` of them, two words each. */
+    /**
+     * The REDAs (scripted move records) that the script queued in `gEventSlotQueue`:
+     * `gEventSlots[0xD] / 2` of them, two words each.
+     */
     private fun queueRedas(): List<Reda> =
         List(state.slots[0xD] / 2) {
             Reda.fromWords(state.slotQueue[2 * it], state.slotQueue[2 * it + 1])
@@ -176,8 +210,9 @@ public class EventMoveUnit(
      * Ported from src/eventscr.c: Event30_ENUN (verified: end tiles only, see
      * `MoveUnitDifferentialTest`)
      *
-     * Waits until no [MuCtrl] walk exists (all at full speed while skipping), then refreshes the
-     * entity maps, the unit sprites and the map and clears the other map.
+     * Waits until no [MuCtrl] walk exists (`MuCtrExists`; walking at maximum speed while the
+     * scene is skipped), then refreshes the entity maps, the unit sprites and the map and clears
+     * `gBmMapOther`, which the walks used to mark their destination tiles. Yields once done.
      */
     public val event30Enun: EventHandler = EventHandler { proc ->
         if (proc.evStateBits and EV_STATE_SKIPPING != 0) muCtrl.setMuMaxWalkSpeed()
@@ -190,10 +225,15 @@ public class EventMoveUnit(
     }
 
     private companion object {
-        /** `UNIT_STATE_DEAD`. */
+        /** `US_DEAD` (include/bmunit.h:229). */
         const val US_DEAD = 1 shl 2
 
-        /** `UNIT_STATE_BIT_22`: set on cutscene units (`ClearCutsceneUnits` clears them). */
+        /**
+         * `US_BIT22` (include/bmunit.h:250): its name is unknown; the event unit loader sets it
+         * on a blue unit loaded or revived for a scene (src/eventscr.c:2300-2311), and
+         * `ClearCutsceneUnits` (src/bmunit.c:1590) removes such a unit, or only clears the bit
+         * if the unit is dead.
+         */
         const val US_BIT22 = 1 shl 22
     }
 }

@@ -14,7 +14,9 @@ import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.yield
 
 /**
- * [EventTextHost] over the ported talk code ([Talk], [TalkBubble], [TalkFace]).
+ * [EventTextHost] over the ported talk code ([Talk], [TalkBubble], [TalkFace]): what the event
+ * text commands (talk start, continue, clear screen, map display lock) call to run the speech
+ * bubbles and portrait faces.
  *
  * [stringFromIndex] is `GetStringFromIndex` reduced to what `StartTalkExt` needs: it makes the
  * message current and returns the GBA address of its string (the address [TalkHost] resolves
@@ -43,16 +45,22 @@ public class EventTextTalkHost(
     /** The text speed used when [readTextSpeed] and [writeTextSpeed] are not given. */
     private var textSpeedField: Int = 0
 
-    /** Per-frame function of [waitForFacesScript]: ends the wait once no face proc is left. */
+    /**
+     * Per-frame function of [waitForFacesScript] (`_WhileFace6CExists`, src/eventscr.c:1215):
+     * ends the wait once no portrait face proc is left.
+     */
     private val whileFaceFn = ProcFunc { p -> if (!faceExists()) procs.breakProc(p) }
 
-    /** `gUnknown_08591DE8`: waits until no face proc is left. */
+    /**
+     * `gUnknown_08591DE8` (src/eventscr.c:1222, "face witness" in include/event.h): the blocking
+     * proc that holds the event until every portrait face has faded out and ended.
+     */
     public val waitForFacesScript: ProcScript = ProcScript(
         "gUnknown_08591DE8",
         listOf(repeat(whileFaceFn), yield(), end()),
     )
 
-    /** `Proc_EndEach(gProcScr_Talk)`. */
+    /** `Proc_EndEach(gProcScr_Talk)`: ends every running talk bubble scene. */
     override fun endTalk() {
         procs.endEach(talk.talkScript)
     }
@@ -68,6 +76,11 @@ public class EventTextTalkHost(
 
     /**
      * Ported from src/eventscr.c: Event23_DisaleMapDisp
+     *
+     * "Lock game graphics": the first time (`EV_STATE_GFXLOCKED` clear) suspends the map display
+     * (`BMapDispSuspend`) and blocks every map unit proc (`LockMus` is
+     * `Proc_BlockEachMarked(PROC_MARK_MU)`), so units stop animating under a full-screen scene.
+     * Always sets the flag and yields.
      */
     override fun disableMapDisp(proc: EventEngineProc): Int {
         if (proc.evStateBits and EventConst.EV_STATE_GFXLOCKED == 0) {
@@ -78,7 +91,7 @@ public class EventTextTalkHost(
         return EventConst.EVC_ADVANCE_YIELD
     }
 
-    /** Calls the configured map graphics restoration. */
+    /** `RefreshBMapGraphics` through the injected `refreshMapGraphics` (a no-op by default). */
     override fun refreshBMapGraphics() {
         refreshMapGraphics()
     }
@@ -97,6 +110,10 @@ public class EventTextTalkHost(
 
     /**
      * Ported from src/eventscr.c: Event24_EnableMapDisp
+     *
+     * "Resume game graphics": the inverse of [disableMapDisp]. If `EV_STATE_GFXLOCKED` is set it
+     * resumes the map display (`BMapDispResume`) and unblocks the map unit procs (`ReleaseMus`);
+     * always clears the flag and yields.
      */
     override fun enableMapDisp(proc: EventEngineProc): Int {
         if (proc.evStateBits and EventConst.EV_STATE_GFXLOCKED != 0) {
@@ -107,7 +124,7 @@ public class EventTextTalkHost(
         return EventConst.EVC_ADVANCE_YIELD
     }
 
-    /** `ClearTalkBubble`: removes the speech bubble. */
+    /** `ClearTalkBubble`: removes the speech bubble from the screen. */
     override fun clearTalkBubble() {
         bubble.clearTalkBubble()
     }
@@ -119,6 +136,11 @@ public class EventTextTalkHost(
      * by WorldMapExitTest through the event end; `ClearTalkBubble` is a separate host call).
      * `ResetFaces` restores the default portrait VRAM / palette layout, which the world map
      * replaced.
+     *
+     * NOTE: the decomp function (src/eventscr2.c:35-41) starts with `ClearTalkBubble()`; this
+     * one does not, so it is [clearTalkBubble] plus this that equals `ResetDialogueScreen`. All
+     * callers (`EventText.endTextFaces`, `event22ClearScreen`, `WorldMapBoot`) pair them in that
+     * order, so there is no behaviour difference today.
      */
     override fun resetAllFaces() {
         procs.endEach(face.faceScript)
@@ -126,10 +148,16 @@ public class EventTextTalkHost(
         talk.clearTalkFaceRefs()
     }
 
-    /** `FaceExists`: a `gProcScr_E_FACE` proc exists. */
+    /** `FaceExists` (src/scene.c:2096): a portrait face proc (`gProcScr_E_FACE`) exists. */
     override fun faceExists(): Boolean = procs.find(face.faceScript) != null
 
-    /** `Proc_ForEach(gProcScr_E_FACE, StartFaceFadeOut)`, then the blocking wait proc. */
+    /**
+     * The `else if (FaceExists())` branch of `sub_800E640` (src/eventscr.c:1206-1211) without its
+     * `ClearTalkBubble()`: starts the fade-out of every portrait face
+     * (`Proc_ForEach(gProcScr_E_FACE, StartFaceFadeOut)`, here every occupied face slot), then
+     * blocks [proc] on [waitForFacesScript] until they are gone. The caller does the
+     * `FaceExists` test and `ClearTalkBubble`.
+     */
     override fun fadeOutFacesAndWait(proc: EventEngineProc) {
         for (slot in face.gFaces.indices) {
             if (face.gFaces[slot] != null) talkHost.startFaceFadeOut(TalkFace.FACE_HANDLE + slot)
@@ -137,12 +165,15 @@ public class EventTextTalkHost(
         procs.startBlocking(waitForFacesScript, proc.proc!!)
     }
 
-    /** `ResumeTalk`: lets a paused talk continue. */
+    /** `ResumeTalk`: lets a talk that is waiting for the continue command go on. */
     override fun resumeTalk() {
         talk.resumeTalk()
     }
 
-    /** `IsTalkActive() && !IsTalkLocked()`. */
+    /**
+     * `IsTalkActive() && !IsTalkLocked()` (the first test of the text wait at
+     * src/eventscr.c:1151): a talk bubble scene is running and not held by a talk lock.
+     */
     override fun isTalkRunning(): Boolean =
         procs.find(talk.talkScript) != null && !talk.isTalkLocked()
 
@@ -155,14 +186,15 @@ public class EventTextTalkHost(
     /** Stand-in (M6-E): `sTalkChoiceResult` is only written by the (not ported) choice proc: 0. */
     override fun talkChoiceResult(): Int = 0
 
-    /** `SetBlendAlpha(a, b)` through the bubble host. */
+    /** `SetBlendAlpha(a, b)` through the bubble host: the two blend weights of the screen. */
     override fun setBlendAlpha(a: Int, b: Int) {
         bubbleHost.setBlendAlpha(a, b)
     }
 
     /**
-     * `gPlaySt.config.textSpeed` through [readTextSpeed] and [writeTextSpeed] (`Fe8Boot` passes
-     * both); without them a plain field (the play state is not wired).
+     * The player's text speed option, `gPlaySt.config.textSpeed`, through [readTextSpeed] and
+     * [writeTextSpeed] (`Fe8Boot` passes both); without them a plain field (the play state is
+     * not wired).
      */
     override var textSpeed: Int
         get() = readTextSpeed?.invoke() ?: textSpeedField
@@ -170,13 +202,19 @@ public class EventTextTalkHost(
             if (writeTextSpeed != null) writeTextSpeed.invoke(value) else textSpeedField = value
         }
 
-    /** `InitTalk`: prepares the talk text layer. */
+    /**
+     * `InitTalk(chr, lines, unpackBubble)` (src/scene.c:310): prepares the talk text layer: [chr]
+     * is the BG0 tile index where the text font starts, [lines] the number of text lines;
+     * when [unpackBubble] is set the bubble graphics and palette are
+     * loaded, and the face references are cleared (`ClearTalkFaceRefs`).
+     */
     override fun initTalk(chr: Int, lines: Int, unpackBubble: Boolean) {
         talk.initTalk(chr, lines, unpackBubble)
     }
 
     /**
-     * `StartTalkMsg(x, y, msg)`: `StartTalkExt` on the string of [msg], no parent.
+     * `StartTalkMsg(x, y, msg)`: starts the talk scene (`gProcScr_Talk`) for message id [msg] at
+     * ([x], [y]): `StartTalkExt` on the string of [msg], no parent.
      *
      * Ported from src/scene.c: StartTalkMsg, StartTalkExt
      *
@@ -203,24 +241,28 @@ public class EventTextTalkHost(
         talkState.config = 0
         talkState.unk38 = null
         talkState.invertedFlags = 0
-        // Width in 8-pixel tiles, rounded up, plus two tiles of margin.
+        // `Div(GetStrTalkLen(str, 0) + 7, 8) + 2`: the text length divided by 8 rounded up, plus 2
+        // (the unit of GetStrTalkLen is not stated in the decomp).
         talkState.activeWidth = (talkHost.getStrTalkLen(talkState.str, false) + 7) / 8 + 2
         procs.start(talk.talkScript, TALK_TREE)
     }
 
-    /** `SetTalkFlag(flag)`. */
+    /** `SetTalkFlag(flag)`: sets a `TALK_FLAG_*` bit of the talk scene. */
     override fun setTalkFlag(flag: Int) {
         talk.setTalkFlag(flag)
     }
 
+    /** Not ported: throws, so a script that reaches CG text fails loudly. */
     override fun startCgText(msg: Int, flags: Int) {
         throw NotImplementedError("not ported: StartCgText")
     }
 
+    /** Not ported: throws, `GetBoxDialogueSize` does not exist yet. */
     override fun boxDialogueSize(msg: Int): Pair<Int, Int> {
         throw NotImplementedError("not ported: GetBoxDialogueSize")
     }
 
+    /** Not ported: throws, `sub_808AA04` does not exist yet. */
     override fun startBoxDialogue(x: Int, y: Int, msg: Int, flags: Int) {
         throw NotImplementedError("not ported: sub_808AA04")
     }

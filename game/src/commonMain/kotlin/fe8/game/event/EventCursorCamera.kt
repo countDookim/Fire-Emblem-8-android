@@ -13,7 +13,8 @@ import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts
 
 /**
- * What the cursor and camera commands reach outside [BmSt]. The defaults are no-ops.
+ * What the cursor and camera commands reach outside [BmSt]: unit positions, the map cursor proc,
+ * the camera scroll procs and the map redraw. The defaults are no-ops.
  */
 public interface EventCursorCameraHooks {
     /**
@@ -26,32 +27,45 @@ public interface EventCursorCameraHooks {
     public fun unitPosition(pid: Int): Int = 0
 
     /**
-     * `Proc_Start(ProcScr_EventDisplayCursor, proc)` with the given position, `subcmd` and a
-     * zero timer (`EventDisplayCursor_Loop` is not ported).
+     * `Proc_Start(ProcScr_EventDisplayCursor, proc)` (src/eventscr.c:3485) with the given tile
+     * position, `subcmd` (0/1 plain cursor, 4/5 flashing cursor) and a zero timer. The proc's
+     * per-frame body is [eventDisplayCursorLoop].
      */
     public fun startDisplayCursor(x: Int, y: Int, subcmd: Int) {}
 
-    /** `Proc_EndEach(ProcScr_EventDisplayCursor)`. */
+    /** `Proc_EndEach(ProcScr_EventDisplayCursor)`: removes every event cursor proc (hides it). */
     public fun endDisplayCursor() {}
 
     /**
-     * `SetSomeRealCamPos` (not ported): puts the camera on the position at once. [sc2] is bit 3
-     * of the command's sub-command nibble (the camera move style of the command).
+     * `SetSomeRealCamPos` (src/eventscr_utils.c:89, not ported): puts the camera on the tile at
+     * once, with no scroll. [sc2] is bit 3 of the command's sub-command nibble (`sc2` in the
+     * decomp): 1 uses `StoreAdjustedCameraPositions` (the centred variant), anything else the
+     * `GetCameraAdjustedX/Y` (the smallest scroll that puts the tile inside the camera margins).
      */
     public fun setSomeRealCamPos(x: Int, y: Int, sc2: Int) {}
 
-    /** `EnsureCameraOntoPosition(proc, x, y)`. */
+    /**
+     * `EnsureCameraOntoPosition(proc, x, y)` (src/bm.c:1044): starts a blocking camera scroll
+     * proc that moves just far enough to bring the tile on screen (nothing if the camera is
+     * already there or a scroll is running).
+     */
     public fun ensureCameraOntoPosition(proc: EventEngineProc, x: Int, y: Int) {}
 
-    /** `sub_8015D84(proc, x, y)`. */
+    /**
+     * `sub_8015D84(proc, x, y)` (src/bm.c:1005): like [ensureCameraOntoPosition] but the target
+     * comes from `StoreAdjustedCameraPositions`. The decomp does not name it; the scroll style
+     * the event uses when the move bit is 1 (centred on the tile).
+     */
     public fun cameraOntoPositionCentred(proc: EventEngineProc, x: Int, y: Int) {}
 
-    /** `RenderBmMap`. */
+    /** `RenderBmMap`: redraws the map after an instant camera jump. */
     public fun renderBmMap() {}
 }
 
 /**
- * The cursor and camera event commands of `src/eventscr.c`: 0x26, 0x3B and 0x3C.
+ * The cursor and camera event commands of `src/eventscr.c`: 0x26 (`Event26_CameraControl`, scroll
+ * the camera to a tile or unit), 0x3B (`Event3B_DisplayCursor`, show or hide the event cursor)
+ * and 0x3C (`Event3C_MoveCursor`, read or set the player cursor).
  *
  * Verification: none claimed. The differential test compares the cursor fields of `gBmSt` after
  * 0x26 (one pair) and 0x3B (no cursor write); 0x3C never runs in the trace and the camera is not
@@ -75,19 +89,30 @@ public class EventCursorCamera(
         engine.register(0x3C, event3cMoveCursor)
     }
 
-    /** The signed X byte of the position argument of the command at [cur]. */
+    /**
+     * The signed X byte of the position argument (low byte of `EVT_CMD_ARGV[0]`, the `s8 x` of
+     * the decomp) of the command at [cur]. Negative means "use the position in slot 0xB".
+     */
     private fun argX(cur: Int): Int = memory.u16(cur + 2).toByte().toInt()
 
-    /** The signed Y byte of the position argument of the command at [cur]. */
+    /**
+     * The signed Y byte of the position argument (high byte of `EVT_CMD_ARGV[0]`) of the
+     * command at [cur]. Negative means "use the position in slot 0xB".
+     */
     private fun argY(cur: Int): Int = (memory.u16(cur + 2) shr 8).toByte().toInt()
 
     /**
      * Ported from src/eventscr.c: Event26_CameraControl
      *
-     * Subcode 0 takes the position (slot 0xB when an argument byte is negative), 1 a unit's
-     * position. Skipping or faded in: set the camera and cursor, render, continue; otherwise
-     * start the camera move and yield. `SetSomeRealCamPos`, the camera moves and `RenderBmMap`
-     * are [EventCursorCameraHooks].
+     * Subcode (`EVT_SUB_CMD_LO`, low 3 bits) 0 takes the tile from the argument bytes (from slot
+     * 0xB, X in the low half and Y in the high half, when either byte is negative), 1 takes the
+     * tile of a unit; an unresolvable unit is an error. Skipping the scene or after the screen
+     * has faded in: jump the camera, set the cursor, redraw, continue; otherwise start the
+     * camera scroll and yield until it ends. `SetSomeRealCamPos`, the camera scrolls and
+     * `RenderBmMap` are [EventCursorCameraHooks].
+     *
+     * Other subcodes (2-7) leave the tile at (0, 0) here; the decomp leaves `x`/`y`
+     * uninitialised in that case, and no known script uses them.
      */
     public val event26CameraControl: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent
@@ -133,8 +158,12 @@ public class EventCursorCamera(
     /**
      * Ported from src/eventscr.c: Event3B_DisplayCursor
      *
-     * Subcommand `& 3`: 0 shows the cursor at a position, 1 at a unit, 2 ends the cursor procs
-     * and yields. The cursor proc is [EventCursorCameraHooks.startDisplayCursor].
+     * Subcommand (low nibble) `& 3` (`EVSUBCMD_CURSOR_AT`, `EVSUBCMD_CURSOR_UNIT`,
+     * `EVSUBCMD_CURE`): 0 shows the cursor at a tile (slot 0xB when an argument byte is
+     * negative), 1 at a unit, 2 ends the cursor procs and yields. Bit 2 of the subcommand
+     * selects the flashing cursor (`EVSUBCMD_CURSOR_FLASHING_*`, see [eventDisplayCursorLoop]).
+     * Skipping the scene only removes the cursor. The cursor proc is
+     * [EventCursorCameraHooks.startDisplayCursor].
      */
     public val event3bDisplayCursor: EventHandler = EventHandler { proc ->
         if ((proc.evStateBits and EV_STATE_SKIPPING) != 0) {
@@ -173,8 +202,9 @@ public class EventCursorCamera(
      * Transcribed from src/eventscr.c: Event3C_MoveCursor (not verified: opcode 0x3C is only
      * in tutorial scripts and never runs in available mGBA reference traces)
      *
-     * Subcommand 0 stores the player cursor position in slot 0xC; 1 sets the cursor (slot 0xB
-     * when an argument byte is negative).
+     * Subcommand 0 (`EVSUBCMD_CHECK_CURSOR`) stores the player cursor tile in slot 0xC (X low
+     * half, Y high half); 1 (`EVSUBCMD_SET_CURSOR`) moves the cursor to a tile (slot 0xB when an
+     * argument byte is negative). The camera is not scrolled.
      */
     public val event3cMoveCursor: EventHandler = EventHandler { proc ->
         val cur = proc.pEventCurrent
@@ -196,7 +226,8 @@ public class EventCursorCamera(
 }
 
 /**
- * State for [createProcScrEventDisplayCursor] (`struct MapCursorProc`).
+ * State of one event cursor proc for [createProcScrEventDisplayCursor] (`struct MapCursorProc`
+ * in src/eventscr.c): where it is drawn and which style.
  */
 public class MapCursorProc(
     /** Tile X coordinate (`proc->x`, offset `+0x64`). */
@@ -205,7 +236,7 @@ public class MapCursorProc(
     public var y: Int = 0,
     /** Cursor sub-command (`proc->subcmd`, offset `+0x68`). */
     public var subcmd: Int = 0,
-    /** Shining cursor frame counter (`proc->timer`, offset `+0x6A`). */
+    /** Flashing cursor frame counter (`proc->timer`, offset `+0x6A`); starts at 0. */
     public var timer: Int = 0,
 )
 
@@ -213,10 +244,13 @@ public class MapCursorProc(
  * Ported from src/eventscr.c: EventDisplayCursor_Loop
  *
  * One frame of the event cursor: draws a plain map cursor (sub-command bits `0xC` = 0) or advances
- * the shining cursor animation (= 4) at the tile of [proc].
+ * the flashing cursor animation (= 4, `EventShinningCursorAdvance` in the decomp) at the tile of
+ * [proc]. Other bit values draw nothing.
  *
- * @param putMapCursor draws a map cursor at a pixel position; [kind] 0 is the plain cursor.
- * @param eventShinningCursorAdvance draws the shining cursor at a tile and returns the next
+ * @param proc the cursor proc state.
+ * @param putMapCursor `PutMapCursor`: draws a map cursor at a pixel position (the tile times 16);
+ *   `kind` 0 is passed for the plain cursor.
+ * @param eventShinningCursorAdvance draws the flashing cursor at a tile and returns the next
  *   frame counter.
  */
 public fun eventDisplayCursorLoop(
@@ -231,7 +265,7 @@ public fun eventDisplayCursorLoop(
 }
 
 /**
- * `ProcScr_EventDisplayCursor` (`src/eventscr.c:3400`): the proc that keeps the event cursor
+ * `ProcScr_EventDisplayCursor` (`src/eventscr.c:3435`): the proc that keeps the event cursor
  * drawn every frame with [eventDisplayCursorLoop] until it is ended (`endDisplayCursor`).
  */
 public fun createProcScrEventDisplayCursor(

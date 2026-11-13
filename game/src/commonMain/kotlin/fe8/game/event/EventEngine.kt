@@ -30,19 +30,24 @@ import gbafe.proc.ProcScripts.setEndCb
 import gbafe.proc.ProcScripts.yield
 
 /**
- * The event engine: `ProcScr_StdEventEngine` / `ProcScr_BattleEventEngine` and
- * `EventEngine_OnUpdate` on the [ProcEngine]. Commands are dispatched through preallocated
- * handler tables ([lo] for codes 0x00-0x7F, [hi] for 0x80-0xFF); an unregistered code runs a
- * handler returning `EVC_ERROR`. Per-frame execution allocates nothing.
+ * The event engine: runs event scripts (chapter cutscenes, battle quotes, chest and tile-change
+ * scripts) command by command. It is the `ProcScr_StdEventEngine` proc
+ * (the map engine, one at a time; later calls wait in a queue) and the
+ * `ProcScr_BattleEventEngine` proc (used for quotes during a battle), both driven by
+ * `EventEngine_OnUpdate` on the [ProcEngine]. A command is one u16 header word (code in the
+ * high byte, length in words in bits 4-7) followed by its arguments. Commands are dispatched
+ * through preallocated handler tables ([lo] for codes 0x00-0x7F, [hi] for 0x80-0xFF, the world
+ * map commands); an unregistered code runs a handler returning `EVC_ERROR`. Per-frame
+ * execution allocates nothing.
  */
 public class EventEngine(
     /** The proc engine the engine procs run on. */
     public val procs: ProcEngine,
     /** The event globals (`gEventSlots` and friends). */
     public val state: EventState,
-    /** Script word source. */
+    /** Reads the script words (event commands) by GBA or mod address. */
     public val memory: ScriptMemory,
-    /** Environment hooks. */
+    /** The game systems the engine drives (fades, menus, talk, world map); no-ops by default. */
     public val hooks: EventEngineHooks = object : EventEngineHooks {},
 ) {
     /** `gEventLoCmdTable`, indexed by command code 0x00-0x7F. */
@@ -55,7 +60,10 @@ public class EventEngine(
     private val onEndFn = ProcFunc { onEnd(it.state as EventEngineProc) }
     private val freezeMenuFn = ProcFunc { hooks.freezeMenu() }
 
-    /** `ProcScr_StdEventEngine`. */
+    /**
+     * `ProcScr_StdEventEngine`: the map event engine. Freezes the menu once before the first
+     * script command so a menu left open does not react while the event runs.
+     */
     public val stdScript: ProcScript = ProcScript(
         "ProcScr_StdEventEngine",
         listOf(
@@ -70,7 +78,10 @@ public class EventEngine(
         { EventEngineProc() },
     )
 
-    /** `ProcScr_BattleEventEngine`. */
+    /**
+     * `ProcScr_BattleEventEngine`: the engine for events inside a battle (battle quotes); the
+     * same as [stdScript] without freezing the menu.
+     */
     public val battleScript: ProcScript = ProcScript(
         "ProcScr_BattleEventEngine",
         listOf(
@@ -94,7 +105,9 @@ public class EventEngine(
     }
 
     /**
-     * Creates a standard engine proc on proc tree 3 running the script at [events].
+     * Creates a standard engine proc on proc tree 3 running the script at [events]. [execType]
+     * is an `EV_EXEC_*` value: it decides what the engine locks while running (cutscene and
+     * gameplay events lock the game) and what it cleans up in [onEnd].
      *
      * Ported from src/event.c: EventEngine_Create. Delegated to hooks: `gLCDControlBuffer.blendY`
      * ([EventEngineHooks.blendY]), `gPlaySt.chapterIndex` ([EventEngineHooks.chapterIndex]) and
@@ -130,7 +143,9 @@ public class EventEngine(
     }
 
     /**
-     * Creates a battle engine proc on proc tree 3 running the script at [events].
+     * Creates a battle engine proc on proc tree 3 running the script at [events]. It runs as
+     * `EV_EXEC_QUIET` (no fade, no locking) and starts with `EV_STATE_ABORT`, so ending it does
+     * not start the next queued call.
      *
      * Transcribed from src/event.c: EventEngine_CreateBattle (not verified: no test checks it
      *   against a trace yet). `chapterIndex` keeps its reset value.
@@ -158,18 +173,24 @@ public class EventEngine(
     }
 
     /**
+     * True while a standard (map) event engine proc runs, which blocks player input on the map.
+     *
      * Transcribed from src/event.c: EventEngineExists (not verified: no test checks it against a
      *   trace yet).
      */
     public fun eventEngineExists(): Boolean = findStd() != null
 
     /**
+     * True while a battle event engine proc runs.
+     *
      * Transcribed from src/event.c: BattleEventEngineExists (not verified: no test checks it
      *   against a trace yet).
      */
     public fun battleEventEngineExists(): Boolean = procs.find(battleScript) != null
 
     /**
+     * Ends every running standard and battle engine proc (their `onEnd` still runs).
+     *
      * Transcribed from src/event.c: DeleteEventEngines (not verified: no test checks it against a
      *   trace yet).
      */
@@ -179,6 +200,9 @@ public class EventEngine(
     }
 
     /**
+     * Queues an event call to start after the running engine ends (the queue holds 16 calls;
+     * a call to a full queue is silently dropped).
+     *
      * Transcribed from src/event.c: EnqueueEventCall (not verified: the call queue is empty in the
      *   prologue). The first unused entry of
      * [EventState.callQueue] receives the call; only its `execType` and `isUsed` bytes are
@@ -197,6 +221,8 @@ public class EventEngine(
     }
 
     /**
+     * Starts the oldest queued event call, if any, once the previous engine has ended.
+     *
      * Transcribed from src/event.c: CallNextQueuedEvent (not verified: the call queue is empty in
      *   the prologue). Starts the first entry if used, then shifts
      * the queue down one entry and clears the last (its padding bytes are kept).
@@ -215,6 +241,9 @@ public class EventEngine(
     }
 
     /**
+     * The usual way to run an event script: starts it now, or queues it when an event is already
+     * running so scripts never overlap.
+     *
      * Transcribed from src/event.c: CallEvent (not verified: the call queue is empty in the
      *   prologue). Enqueues the call if a standard engine is running,
      * else starts it now.
@@ -224,6 +253,11 @@ public class EventEngine(
     }
 
     /**
+     * End callback of both engine procs: restores the text font and, by `execType`, unlocks the
+     * game and tears down the talk and portrait state that the script left behind, then starts
+     * the next queued call unless the proc was a battle engine (`EV_STATE_ABORT`).
+     * `EV_EXEC_UNK5` is set by the END command after a cutscene (the decomp calls it unused).
+     *
      * Transcribed from src/event.c: EventEngine_OnEnd (not verified: the call queue is empty in the
      *   prologue). Delegated to hooks:
      * [EventEngineHooks.resetTextFont], [EventEngineHooks.restoreAfterEvent5],
@@ -235,7 +269,7 @@ public class EventEngine(
         hooks.resetTextFont()
 
         when (proc.execType) {
-            EV_EXEC_UNK4 -> Unit
+            EV_EXEC_UNK4 -> Unit // set by the END command when a world map script finishes
             EV_EXEC_UNK5 -> {
                 hooks.restoreAfterEvent5(proc.mapSpritePalIdOverride)
                 if ((proc.evStateBits and EV_STATE_CHANGEGM) != 0) {
@@ -259,7 +293,9 @@ public class EventEngine(
     }
 
     /**
-     * One frame of the engine: runs commands until one yields.
+     * One frame of the engine: runs commands until one yields. A pending map fade pauses the
+     * engine; the Start button skips the event (see [startSkip]); an engine callback replaces
+     * script execution (the unit load with movement command sets one while its units walk in).
      *
      * Ported from src/event.c: EventEngine_OnUpdate. `EVC_STOP_CONTINUE` and `EVC_UNK4` re-run
      * the same command in the loop as in C. Deviation: C does the same for `EVC_ERROR`, which
@@ -286,7 +322,7 @@ public class EventEngine(
         proc.evStateBits = proc.evStateBits or EV_STATE_0002
 
         while (true) {
-            state.slots[0] = 0
+            state.slots[0] = 0 // slot 0 is the null slot: each command starts with it cleared
 
             val code = memory.u16(proc.pEventCurrent) ushr 8
             val handler = if (code < CODES) lo[code] else hi[code - CODES]
@@ -308,13 +344,19 @@ public class EventEngine(
         }
     }
 
-    /** `pEventCurrent += (*pEventCurrent >> 4) & 0xF` in u16 units. */
+    /**
+     * Moves to the next command: `pEventCurrent += (*pEventCurrent >> 4) & 0xF` in C, where the
+     * length nibble counts u16 words; here the address is in bytes, hence the doubling.
+     */
     private fun advance(proc: EventEngineProc) {
         val len = (memory.u16(proc.pEventCurrent) ushr 4) and 0xF
         proc.pEventCurrent += len * 2
     }
 
     /**
+     * Whether pressing Start may skip the running event: the engine has run a command, is not
+     * already skipping, and the script has not forbidden skipping (`EV_STATE_NOSKIP`).
+     *
      * Partially ported from src/event.c: EventEngine_CanStartSkip. Missing: the
      * `IsBattleDeamonActive` and `ProcScr_MuDeathFade` checks, which are only behind
      * [EventEngineHooks.skipBlockedByOthers].
@@ -326,6 +368,9 @@ public class EventEngine(
             !hooks.skipBlockedByOthers()
 
     /**
+     * Starts skipping the event (Start pressed): fades the screen out unless the script forbids
+     * fading, and blocks the conversation procs so skipped dialogue stops.
+     *
      * Ported from src/event.c: EventEngine_StartSkip. `GetZero` is always 0, so its guard is
      * dropped. The fade to black (0x40, locking the engine proc) and `Proc_BlockEachMarked(5)`
      * are verified for the Prologue castle cutscene. The `sub_800D488` branch
@@ -351,24 +396,30 @@ public class EventEngine(
         procs.blockEachMarked(PROC_MARK_TALK)
     }
 
-    /** The first running standard engine proc, or null. */
+    /** The first running standard (map) engine proc, or null when no map event runs. */
     public fun findStd(): Proc? = procs.find(stdScript)
 
-    /** Constants. */
+    /** Proc marks, tree and table sizes shared by the engine. */
     public companion object {
-        /** `PROC_MARK_EVENT`. */
+        /** `PROC_MARK_EVENT`: marks the engine procs so other code can find or block them. */
         public const val PROC_MARK_EVENT: Int = 6
 
-        /** `PROC_TREE_3`. */
+        /** `PROC_TREE_3`: the root proc tree the engine procs are started on (decomp value 3). */
         public const val PROC_TREE_3: Int = 3
 
-        /** `PROC_MARK_TALK`. */
+        /** `PROC_MARK_TALK`: mark of the conversation procs that skipping blocks. */
         private const val PROC_MARK_TALK = 5
 
+        /** Speed argument of `StartLockingFadeToBlack` in the skip fade (0x40 in the decomp). */
         private const val SKIP_FADE_SPEED = 0x40
+
+        /** Number of commands per handler table: 0x80 low codes and 0x80 high codes. */
         private const val CODES = 0x80
+
+        /** Entries in `gEventCallQueue`. */
         private const val QUEUE_ENTRIES = 16
 
+        /** Default handler of unregistered codes: reports `EVC_ERROR`. */
         private val UNKNOWN = EventHandler { EVC_ERROR }
     }
 }

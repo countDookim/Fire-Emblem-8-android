@@ -4,61 +4,70 @@ import gbafe.proc.Proc
 
 /** Event engine constants (`include/event.h`): execution types, state bits and result codes. */
 public object EventConst {
-    /** `EV_EXEC_WORLDMAP`. */
+    /** `EV_EXEC_WORLDMAP`: script of the world map (the `hi` command table). */
     public const val EV_EXEC_WORLDMAP: Int = 0
 
-    /** `EV_EXEC_CUTSCENE`. */
+    /** `EV_EXEC_CUTSCENE`: chapter cutscene; locks the game while it runs. */
     public const val EV_EXEC_CUTSCENE: Int = 1
 
-    /** `EV_EXEC_GAMEPLAY`. */
+    /**
+     * `EV_EXEC_GAMEPLAY`: script started by play (battle quotes, village and chest tiles, game
+     * over); locks the game while it runs.
+     */
     public const val EV_EXEC_GAMEPLAY: Int = 2
 
-    /** `EV_EXEC_QUIET`. */
+    /** `EV_EXEC_QUIET`: runs commands only: no locking, fade or talk cleanup at the end. */
     public const val EV_EXEC_QUIET: Int = 3
 
-    /** `EV_EXEC_UNK4`. */
+    /** `EV_EXEC_UNK4`: set when a world map script ends; the decomp calls it not used. */
     public const val EV_EXEC_UNK4: Int = 4
 
-    /** `EV_EXEC_UNK5`. */
+    /** `EV_EXEC_UNK5`: set when a cutscene script reaches its end command; closing script runs. */
     public const val EV_EXEC_UNK5: Int = 5
 
-    /** `EV_STATE_ABORT`. */
+    /** `EV_STATE_ABORT`: queued event calls wait (decomp); set on battle engines. */
     public const val EV_STATE_ABORT: Int = 1 shl 0
 
     /** `EV_STATE_0002`: prevents ENDA events; set by every update. */
     public const val EV_STATE_0002: Int = 1 shl 1
 
-    /** `EV_STATE_SKIPPING`. */
+    /** `EV_STATE_SKIPPING`: the event is being skipped with Start. */
     public const val EV_STATE_SKIPPING: Int = 1 shl 2
 
-    /** `EV_STATE_0008`. */
+    /**
+     * `EV_STATE_0008`: set by `SetDialogueSkipEvBit`; a stall command that allows it then ends
+     * at once (the decomp guesses it is dialogue related).
+     */
     public const val EV_STATE_0008: Int = 1 shl 3
 
-    /** `EV_STATE_NOSKIP`. */
+    /** `EV_STATE_NOSKIP`: skipping with Start is forbidden (set by the EVBIT_MODIFY command). */
     public const val EV_STATE_NOSKIP: Int = 1 shl 4
 
-    /** `EV_STATE_0020`. */
+    /** `EV_STATE_0020`: set by the EVBIT_MODIFY command; its meaning is unknown. */
     public const val EV_STATE_0020: Int = 1 shl 5
 
-    /** `EV_STATE_0040`. */
+    /** `EV_STATE_0040`: set by EVBIT_MODIFY; stalls then no longer run faster on game speed/A. */
     public const val EV_STATE_0040: Int = 1 shl 6
 
-    /** `EV_STATE_NOFADE`. */
+    /** `EV_STATE_NOFADE`: do not fade at the end of the event (and not when skipping). */
     public const val EV_STATE_NOFADE: Int = 1 shl 7
 
-    /** `EV_STATE_FADEDIN`. */
+    /**
+     * `EV_STATE_FADEDIN`: the screen is faded out (decomp: "faded into white/back"); set at
+     * creation when `blendY` is 0x10, by the fade commands and by skipping.
+     */
     public const val EV_STATE_FADEDIN: Int = 1 shl 8
 
-    /** `EV_STATE_UNITCAM`. */
+    /** `EV_STATE_UNITCAM`: the camera follows unit movement. */
     public const val EV_STATE_UNITCAM: Int = 1 shl 9
 
-    /** `EV_STATE_CHANGECH`. */
+    /** `EV_STATE_CHANGECH`: moving to another chapter (decomp is unsure). */
     public const val EV_STATE_CHANGECH: Int = 1 shl 10
 
-    /** `EV_STATE_CHANGEGM`. */
+    /** `EV_STATE_CHANGEGM`: the game mode is changing; [EventEngine.onEnd] ends the map. */
     public const val EV_STATE_CHANGEGM: Int = 1 shl 11
 
-    /** `EV_STATE_GFXLOCKED`. */
+    /** `EV_STATE_GFXLOCKED`: map graphics were locked by script commands 0x23 and 0x24. */
     public const val EV_STATE_GFXLOCKED: Int = 1 shl 12
 
     /** `EVC_ADVANCE_CONTINUE`: advance by the length nibble, keep running this frame. */
@@ -73,19 +82,23 @@ public object EventConst {
     /** `EVC_STOP_YIELD`: do not advance, end this frame's update. */
     public const val EVC_STOP_YIELD: Int = 3
 
-    /** `EVC_UNK4`: behaves as [EVC_STOP_CONTINUE]. */
+    /** `EVC_UNK4`: behaves as [EVC_STOP_CONTINUE]; the CALL command returns it after jumping. */
     public const val EVC_UNK4: Int = 4
 
     /** `EVC_END`: break the engine proc. */
     public const val EVC_END: Int = 5
 
-    /** `EVC_ERROR`: behaves as [EVC_STOP_CONTINUE] (see [EventEngine.onUpdate]). */
+    /**
+     * `EVC_ERROR`: a command that failed. C re-runs the same command like [EVC_STOP_CONTINUE]
+     * (and so hangs); this port ends the frame instead (see [EventEngine.onUpdate]).
+     */
     public const val EVC_ERROR: Int = 6
 }
 
 /**
- * Event engine proc state: the fields of `struct EventEngineProc` (include/event.h) after the proc
- * header. Script pointers are GBA addresses of `u16` words (see [ScriptMemory]); 0 is NULL.
+ * Event engine proc state: the per-run state of one running event script, the fields of
+ * `struct EventEngineProc` (include/event.h) after the proc header. Script pointers are GBA
+ * addresses of `u16` words (see [ScriptMemory]); 0 is NULL.
  */
 public class EventEngineProc {
     /** The proc running this state, set by [EventEngine.create] right after the proc starts. */
@@ -94,10 +107,14 @@ public class EventEngineProc {
     /** `pCallback` (+2C): when set, replaces script execution (see [EventEngine.onUpdate]). */
     public var callback: EventEngineCallback? = null
 
-    /** `pEventStart` (+30). */
+    /** `pEventStart` (+30): first command of the script; nothing in the decomp changes it. */
     public var pEventStart: Int = 0
 
-    /** `pEventIdk` (+34). */
+    /**
+     * `pEventIdk` (+34): the start of the script part running now; the GOTO command searches for
+     * its label from here, CALL moves it into the callee and END restores it (name is the
+     * decomp's guess).
+     */
     public var pEventIdk: Int = 0
 
     /** `pEventCurrent` (+38): address of the command being executed. */
@@ -106,22 +123,25 @@ public class EventEngineProc {
     /** `evStateBits` (+3C), u16; the `EV_STATE_*` bits of [EventConst]. */
     public var evStateBits: Int = 0
 
-    /** `evStallTimer` (+3E), u16. */
+    /** `evStallTimer` (+3E), u16: frames left of the running STAL (wait) command; 0 = none. */
     public var evStallTimer: Int = 0
 
-    /** `overwrittenTextSpeed` (+40), s8. */
+    /** `overwrittenTextSpeed` (+40), s8: player's text speed saved by a text command; -1 = none. */
     public var overwrittenTextSpeed: Int = 0
 
     /** `execType` (+41), u8: one of `EV_EXEC_*`. */
     public var execType: Int = 0
 
-    /** `activeTextType` (+42), u8. */
+    /** `activeTextType` (+42), u8: subcommand of the last text start command (0 = none). */
     public var activeTextType: Int = 0
 
-    /** `chapterIndex` (+43), u8. */
+    /**
+     * `chapterIndex` (+43), u8: the chapter running when a cutscene or gameplay engine was
+     * created; 0xFF for other engines.
+     */
     public var chapterIndex: Int = 0
 
-    /** `mapSpritePalIdOverride` (+44), u16. */
+    /** `mapSpritePalIdOverride` (+44), u16: palette set by the sprite palette command. */
     public var mapSpritePalIdOverride: Int = 0
 
     /** `pUnitLoadData` (+48): address of the unit definition list. */
@@ -130,16 +150,22 @@ public class EventEngineProc {
     /** `unitLoadCount` (+4C), s16. */
     public var unitLoadCount: Int = 0
 
-    /** `chance` (+4E), u8. */
+    /**
+     * `chance` (+4E), u8: percentage 0-100 set by a unit load command and passed to
+     * `GetUnitDefinitionFromEventScr`; its exact effect is not traced.
+     */
     public var chance: Int = 0
 
-    /** `unitLoadParameter` (+4F, low 7 bits). */
+    /** `unitLoadParameter` (+4F, low 7 bits): the argument of the unit load with movement. */
     public var unitLoadParameter: Int = 0
 
-    /** `diable_REDA` (+4F bit 7). */
+    /**
+     * `diable_REDA` (+4F bit 7): set by unit load subcommand 2 and cleared after the next load;
+     * its effect lives in `GetUnitDefinitionFromEventScr` (not traced).
+     */
     public var disableReda: Boolean = false
 
-    /** `unit` (+54): index of the unit struct the engine refers to (0 = none). */
+    /** `unit` (+54): index of the unit the engine refers to (0 = none); a pointer in C. */
     public var unit: Int = 0
 
     /** Resets every field for a freshly created engine proc. */
@@ -171,7 +197,7 @@ public fun interface EventEngineCallback {
     public fun invoke(proc: EventEngineProc)
 }
 
-/** One event command (`EventFuncType`): returns an `EVC_*` code. */
+/** One event command (`EventFuncType`): the code of one script command; returns an `EVC_*` code. */
 public fun interface EventHandler {
     /** Executes the command at `proc.pEventCurrent`; returns an `EVC_*` code. */
     public fun run(proc: EventEngineProc): Int
@@ -206,12 +232,15 @@ public class ScriptWords(
     }
 }
 
-/** Environment hooks of the engine that live outside this package; defaults do nothing. */
+/**
+ * The game systems the event engine drives but that live outside this package (fades, menu,
+ * talk, world map, LCD); the defaults do nothing, so tests run the engine alone.
+ */
 public interface EventEngineHooks {
-    /** `DoesBMXFADEExist`: a map fade blocks the engine this frame. */
+    /** `DoesBMXFADEExist`: a map fade is running and the engine waits for it this frame. */
     public fun fadeExists(): Boolean = false
 
-    /** `gKeyStatusPtr->newKeys & START_BUTTON`. */
+    /** `gKeyStatusPtr->newKeys & START_BUTTON`: Start was pressed this frame (skips the event). */
     public fun startPressed(): Boolean = false
 
     /** The rest of `EventEngine_CanStartSkip` (`IsBattleDeamonActive`, `ProcScr_MuDeathFade`). */
@@ -232,10 +261,10 @@ public interface EventEngineHooks {
     /** Turns on BG0-3 and OBJ in the LCD control buffer (non-worldmap update). */
     public fun showAllLayers() {}
 
-    /** `_FreezeMenu`. */
+    /** `_FreezeMenu` (`FreezeMenu`): marks an open menu frozen so it ignores input meanwhile. */
     public fun freezeMenu() {}
 
-    /** `gLCDControlBuffer.blendY`. */
+    /** `gLCDControlBuffer.blendY`: 0x10 is a full fade (see `EV_STATE_FADEDIN`). */
     public fun blendY(): Int = 0
 
     /** `gPlaySt.chapterIndex`. */

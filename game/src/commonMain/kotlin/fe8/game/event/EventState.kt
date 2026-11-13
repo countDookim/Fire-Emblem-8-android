@@ -18,27 +18,38 @@ package fe8.game.event
  * [store] after [load] reproduces the bytes exactly.
  */
 public class EventState {
-    /** `gEventSlots`: slot 0 null, 1-10 variables, 0xB position, 0xC check, 0xD queue pointer. */
+    /**
+     * `gEventSlots`: the registers event scripts read and write: slot 0 null (cleared before every
+     * command), 1-0xA variables, 0xB position, 0xC check (the result of the last test, e.g. a
+     * dialogue choice) and 0xD the slot-queue pointer.
+     */
     public val slots: IntArray = IntArray(SLOT_COUNT)
 
     /** Raw words of `gEventCallQueue`: 16 entries of (events pointer, execType/isUsed word). */
     public val callQueue: IntArray = IntArray(CALL_QUEUE_WORDS)
 
-    /** `gEventSlotQueue`: 30 words, indexed by slot 0xD. */
+    /** `gEventSlotQueue`: 30 words, a first-in first-out queue of slot values; slot 0xD = count. */
     public val slotQueue: IntArray = IntArray(SLOT_QUEUE_WORDS)
 
-    /** `gEventSlotCounter`. */
+    /**
+     * `gEventSlotCounter`: eight 4-bit counters (0-15) that the counter commands set, increase
+     * (capped at 15), decrease (floored at 0) and read into slot 0xC.
+     */
     public var slotCounter: Int = 0
 
     /** Alignment word between [slotCounter] and [activeQueue], preserved for round-trips. */
     public var padding: Int = 0
 
-    /** Raw words of `gEventActiveQueue`: 8 entries of (evt1, evt2) pointers. */
+    /**
+     * Raw words of `gEventActiveQueue`: 8 entries of (evt1, evt2) pointers, the return stack of
+     * the CALL command: `pEventIdk` and `pEventCurrent` of the caller, newest at entry 0.
+     */
     public val activeQueue: IntArray = IntArray(ACTIVE_QUEUE_WORDS)
 
     /**
-     * Word [wordIndex] of the memory following `gEventSlotQueue[0]`, so queue overflow lands where it
-     * does in C: 30 is the counter, 31 the padding, 32..47 the active queue. Beyond that the
+     * Word [wordIndex] of the memory following `gEventSlotQueue[0]`, so queue overflow lands where
+     * it does in C (a script pushing more than 30 values corrupts the next globals): 30 is the
+     * counter, 31 the padding, 32..47 the active queue. Beyond that the
      * access is outside the block and reads 0.
      */
     private fun wordAt(wordIndex: Int): Int = when {
@@ -65,6 +76,8 @@ public class EventState {
     /**
      * Ported from src/event.c: SlotQueuePush
      *
+     * Adds [value] to the end of the slot queue (the SENQUEUE commands).
+     *
      * Writes [value] at `gEventSlotQueue[slots[0xD]]` and increments slot 0xD. There is no bounds
      * check in C; an index past 29 overwrites the following globals (see [wordAt]) and an index
      * outside the block is dropped.
@@ -76,6 +89,8 @@ public class EventState {
 
     /**
      * Ported from src/event.c: SlotQueuePop
+     *
+     * Takes the oldest value off the queue (the SDEQUEUE command).
      *
      * Returns `gEventSlotQueue[0]`, decrements slot 0xD and shifts the remaining entries down. In C
      * a pop with slot 0xD == 0 wraps it to 0xFFFFFFFF and then loops (compared unsigned)
@@ -110,13 +125,16 @@ public class EventState {
     /**
      * Ported from src/event.c: SetEventSlotC
      *
-     * Stores [value] in slot 0xC.
+     * Stores [value] in slot 0xC, the check slot that scripts test after a choice or condition.
      */
     public fun setEventSlotC(value: Int) {
         slots[0xC] = value
     }
 
-    /** Reads the block from [mem] at [offset] (little-endian, [BLOCK_SIZE] bytes). */
+    /**
+     * Reads the block from [mem] at [offset] (little-endian, [BLOCK_SIZE] bytes), for example from
+     * an IWRAM capture or a save state.
+     */
     public fun load(mem: ByteArray, offset: Int) {
         readWords(mem, offset + CALL_QUEUE_OFFSET, callQueue)
         readWords(mem, offset + SLOTS_OFFSET, slots)

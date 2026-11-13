@@ -22,10 +22,12 @@ import gbafe.proc.ProcScripts.yield
 import gbafe.render.BgHardware
 
 /**
- * The battle map start path of `src/bmio.c`: [startBattleMap] (with [clearBattleMapState]), and
- * [startBMapMain] / [endBMapMain] with the procs they start (`gProc_BMapMain` on tree 2, the VBlank
- * proc `sProc_BMVSync` on tree 0 and `gProc_MapTask` on tree 4). `GameControl.Hooks.startBattleMap`
- * is wired to [startBattleMap] by the boot.
+ * The battle map start, restart and resume paths of `src/bmio.c`: [startBattleMap] (with
+ * [clearBattleMapState]), [restartBattleMap], [startResumedGame] with the `MapMain_ResumeFrom*`
+ * variants, the display suspend/resume pair, and [startBMapMain] / [endBMapMain] with the procs
+ * they start (`gProc_BMapMain` of bm.c on tree 2, the VBlank proc `sProc_BMVSync` on tree 0 and
+ * `gProc_MapTask` on tree 4). `GameControl.Hooks.startBattleMap` is wired to [startBattleMap] by
+ * the boot.
  *
  * Ported: everything [startBattleMap] does to `gPlaySt`, `gBmSt`, the chapter flags, the map pools
  * ([BmMap.initChapterMap]) and the BG/OBJ graphics ([ChapterMapGfx]), the proc starts of
@@ -34,9 +36,8 @@ import gbafe.render.BgHardware
  * switch. Default hooks ([Hooks], all no-ops by default; `Fe8Boot` sets the ported unit sprite
  * and map animation calls): the menu override resets (M6-B), the trap lists, temporary units,
  * map obstacles and weather effect calls (M6-H), and `GetBattleMapKind` (M6-I, needs world map
- * state). The
- * `gProc_BMapMain` script is [Hooks.bmapMainScript]: a placeholder here, [BMapMain.script] in
- * the boot.
+ * state). The `gProc_BMapMain` script is [Hooks.bmapMainScript]: a placeholder here,
+ * [BMapMain.script] in the boot.
  */
 public class BattleMapStart(
     /** The proc engine the procs are started on. */
@@ -61,7 +62,7 @@ public class BattleMapStart(
     private val rng: RngService,
     /** `GetGameClock`. */
     private val clock: GameClock,
-    /** The raw unit arrays the deploy loop of [startBattleMap] updates (null: no units). */
+    /** The raw unit arrays whose `US_NOT_DEPLOYED` bit [startBattleMap] resets (null: no units). */
     private val units: UnitTable? = null,
     /** The hooks; `Fe8Boot` replaces the ported ones, the rest keep the defaults. */
     public val hooks: Hooks = Hooks(),
@@ -76,7 +77,10 @@ public class BattleMapStart(
          */
         public var readExtraMapInfo: () -> Unit = {}
 
-        /** `ReadGameSaveCoreGfx` (bm.c). Stand-in until M6-E. */
+        /**
+     * `ReadGameSaveCoreGfx` (bm.c): resets text, faces and icons and loads the UI frame and OBJ UI
+     * graphics for a resumed game. Stand-in until M6-E.
+     */
         public var readGameSaveCoreGfx: () -> Unit = {}
 
         /**
@@ -112,9 +116,9 @@ public class BattleMapStart(
         public var resumeArenaBattle: () -> Unit = {}
 
         /**
-         * The arena calls of `MapMain_ResumeFromArenaFight` after `RefreshEntityBmMaps`: clear the
-         * `gBmMapUnit` cell at (`xMove`, `yMove`), `RefreshUnitSprites` order is kept by the port.
-         * Stand-in until M6-J.
+         * The arena call of `MapMain_ResumeFromArenaFight` between `RefreshEntityBmMaps` and
+         * `RefreshUnitSprites`: clear the `gBmMapUnit` cell at (`gActionData.xMove`,
+         * `gActionData.yMove`). Stand-in until M6-J.
          */
         public var clearArenaMoveCell: () -> Unit = {}
 
@@ -279,10 +283,12 @@ public class BattleMapStart(
      * Ported from src/bmio.c: StartBattleMap
      *
      * Sets up the BG layers, clears `gBmSt`, loads the UI graphics, resets the chapter flags,
-     * puts the play state at the start of the chapter (green phase, turn 0, vision and weather of
-     * the chapter), initialises the chapter map, marks the units not deployed that have
-     * `US_BIT21` (the raw [units]), and starts the battle map procs ([startBMapMain]) when
-     * [gameCtrl] is not null. Ends with the backdrop and blend setup.
+     * puts the play state at the start of the chapter (`FACTION_GREEN`, turn 0, the chapter's
+     * initial fog and weather, or a random vision range for a skirmish outside the prep screen),
+     * initialises the chapter map, then for every unit with a character (the raw [units]) copies
+     * `US_BIT21` into `US_NOT_DEPLOYED` (set when `US_BIT21` is set, cleared otherwise). Starts
+     * the battle map procs ([startBMapMain]) when [gameCtrl] is not null. Ends with the backdrop
+     * and blend setup.
      */
     public fun startBattleMap(gameCtrl: Proc?) {
         hardware.setupBackgrounds(null, playSt.chapterWeatherId == ChapterMapGfx.WEATHER_CLOUDS)
@@ -324,7 +330,7 @@ public class BattleMapStart(
 
         val table = units
         if (table != null) {
-            for (id in 1 until 0x40) {
+            for (id in 1 until 0x40) { // unit ids 1..0x3F, as `GetUnit(i)` in the C loop
                 if (!table.isValid(id)) continue
                 val state = table.state(id)
                 val deployed = if (state and US_BIT21 != 0) {
@@ -347,7 +353,7 @@ public class BattleMapStart(
         val lcd = hardware.lcd
         lcd.setBlendTargetA(1, 1, 1, 1, 1)
         lcd.bldcnt = lcd.bldcnt or 0x20 // SetBlendBackdropA(TRUE)
-        lcd.setBlendConfig(3, 0, 0, 0x10)
+        lcd.setBlendConfig(3, 0, 0, 0x10) // effect 3 (darken) with blendY 0x10
     }
 
     /**
@@ -401,6 +407,7 @@ public class BattleMapStart(
      * cursor, runs [resumeMapMain] for the suspend point and ends with the blend setup.
      */
     public fun startResumedGame(gameCtrl: Proc) {
+        // 0x7F: the special chapter index (`TODO: CHAPTER_SPECIAL?` in the decomp).
         if (playSt.chapterIndex == 0x7F) hooks.readExtraMapInfo()
 
         hardware.setupBackgrounds(null, playSt.chapterWeatherId == ChapterMapGfx.WEATHER_CLOUDS)
@@ -428,7 +435,7 @@ public class BattleMapStart(
         val lcd = hardware.lcd
         lcd.setBlendTargetA(1, 1, 1, 1, 1)
         lcd.bldcnt = lcd.bldcnt or 0x20 // SetBlendBackdropA(TRUE)
-        lcd.setBlendConfig(3, 0, 0, 0x10)
+        lcd.setBlendConfig(3, 0, 0, 0x10) // effect 3 (darken) with blendY 0x10
     }
 
     /**
@@ -445,6 +452,10 @@ public class BattleMapStart(
         }
     }
 
+    /**
+     * The common start of the `MapMain_ResumeFrom*` variants other than the arena one:
+     * `RefreshEntityBmMaps`, `RefreshUnitSprites`, then every layer off.
+     */
     private fun refreshAndHideDisplay() {
         hooks.refreshEntityBmMaps()
         hooks.refreshUnitSprites()
@@ -460,8 +471,9 @@ public class BattleMapStart(
      * Ported from src/bmio.c: MapMain_ResumeFromPhaseIdle
      *
      * Refreshes the entity maps and unit sprites, hides every layer and jumps [mapMain] to label
-     * 4. `RefreshEntityBmMaps` / `RefreshUnitSprites` are [Hooks] (no-ops by default, the real
-     * ports in `Fe8Boot`).
+     * 4 of `gProc_BMapMain` (the resume entry for `SUSPEND_POINT_PLAYERIDLE` and
+     * `SUSPEND_POINT_CPPHASE`). `RefreshEntityBmMaps` / `RefreshUnitSprites` are [Hooks] (no-ops by
+     * default, the real ports in `Fe8Boot`).
      *
      * Verification: partial. `ResumeBootTest` compares the label jump and the hidden layers
      * (`dispcnt` 0x1F00) with the dump of the resume; the two refreshes are not compared.
@@ -555,10 +567,10 @@ public class BattleMapStart(
 
     /** Constants. */
     public companion object {
-        /** `PROC_MARK_DISP`. */
+        /** `PROC_MARK_DISP`: procs blocked while the map display is suspended. */
         public const val PROC_MARK_DISP: Int = 1
 
-        /** `PROC_MARK_MAIN`. */
+        /** `PROC_MARK_MAIN`: set on the `gProc_BMapMain` proc. */
         public const val PROC_MARK_MAIN: Int = 2
 
         /** `PROC_TREE_VSYNC`. */
@@ -597,12 +609,13 @@ public class BattleMapStart(
         /** `US_NOT_DEPLOYED` of `Unit.state`. */
         public const val US_NOT_DEPLOYED: Int = 1 shl 3
 
-        /** `US_BIT21` of `Unit.state`. */
+        /** `US_BIT21` of `Unit.state` (meaning unknown in the decomp). */
         public const val US_BIT21: Int = 1 shl 21
 
         /** `PLAY_FLAG_PREPSCREEN` of `gPlaySt.chapterStateBits`. */
         public const val PLAY_FLAG_PREPSCREEN: Int = 1 shl 4
 
+        /** `sizeof(struct BmSt)` zero bytes, decoded over `gBmSt` by [clearBattleMapState]. */
         private val ZERO_BM_ST = ByteArray(0x40)
 
         /** Placeholder for `gProc_BMapMain` until [BMapMain.script] is set. */

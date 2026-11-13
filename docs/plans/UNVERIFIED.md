@@ -263,9 +263,9 @@ Total entries: 558 across 80 decomp files (missing reason: 0).
 | `sub_807A644` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | the generated script is only checked through the walk's end position |
 | `sub_807A294` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | needs two walks that wait on each other |
 | `sub_807A0E4` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | the walk is checked through its end position and frame count only |
-| `sub_807A194` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | as [sub807A0E4] |
-| `MuCtr_ExecREDA_807A358` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | as [sub807A0E4] |
-| `MuCtr_OnEnd` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | as [sub807A0E4] |
+| `sub_807A194` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | as [waitToStartLeg] |
+| `MuCtr_ExecREDA_807A358` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | as [waitToStartLeg] |
+| `MuCtr_OnEnd` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | as [waitToStartLeg] |
 | `MoveUnitExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `MoveUnit_` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `GenUnitDefinitionFinalPosition` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |

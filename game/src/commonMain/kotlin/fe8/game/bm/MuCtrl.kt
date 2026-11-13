@@ -15,22 +15,28 @@ import gbafe.proc.ProcScripts
 
 /** One `struct REDA` (src/muctrl.h): a waypoint of an event walk. */
 public class Reda(
-    /** `x` (6 bits). */
+    /** `x` (6 bits): the leg's target tile column. */
     public val x: Int,
-    /** `y` (6 bits). */
+    /** `y` (6 bits): the leg's target tile row. */
     public val y: Int,
-    /** `flags` (6 bits): the MU speed config of this leg. */
+    /** `flags` (6 bits): the MU move config (`SetMuConfig`) of this leg, speed in effect. */
     public val flags: Int,
     /** `a`: character id this leg waits for, or 0. */
     public val a: Int,
-    /** `b`: with [a], the leg count of the waited-for walk after which this one may start. */
+    /**
+     * `b`: with [a], this leg may start once the waited-for walk's current leg index is above
+     * [b] (0xFFFF = wait until that walk has ended).
+     */
     public val b: Int,
-    /** `delayFrames`. */
+    /** `delayFrames`: frames to wait before this leg starts (A held counts down 4 per frame). */
     public val delayFrames: Int,
 ) {
     /** Decoding from the ROM's packed form. */
     public companion object {
-        /** Reads a REDA from its two little-endian words ([lo] bits 0-23 x/y/flags, 24-31 a). */
+        /**
+         * Reads a REDA from its two little-endian words: [lo] holds `x`, `y` and `flags` in bits
+         * 0-17 and `a` in bits 24-31; [hi] holds `b` (low half) and `delayFrames` (high half).
+         */
         public fun fromWords(lo: Int, hi: Int): Reda = Reda(
             lo and 0x3F, (lo ushr 6) and 0x3F, (lo ushr 12) and 0x3F, (lo ushr 24) and 0xFF,
             hi and 0xFFFF, hi ushr 16,
@@ -38,7 +44,10 @@ public class Reda(
     }
 }
 
-/** What `muctrl.c` reaches outside the MU, unit and map systems. Defaults are no-ops. */
+/**
+ * What `muctrl.c` reaches outside the MU, unit and map systems: the unit sprite display and the
+ * entity map refresh. Defaults are no-ops (`spritePalette` answers 0).
+ */
 public interface MuCtrlHooks {
     /** `HideUnitSprite(unit)`. */
     public fun hideUnitSprite(id: Int) {}
@@ -61,10 +70,12 @@ public interface MuCtrlHooks {
  * helpers it calls (`MoveUnit_`, `AdjustNewUnitPosition`, the movement script generation of
  * bmidoten.c).
  *
- * Stand-ins until M6-B: `SortMus` (only sets the sprite animation's `objLayer`; the sprite
- * animation player is not ported). Stand-ins until M6-H: `DisableAllLightRunes` /
+ * Stand-ins until M6-B: `SortMus` (called by several steps of these procs in the C; it only
+ * orders the MUs' sprite animation `objLayer` values, so it is not called here) and
+ * `ClearEventMoveBuffer` (see below). Stand-ins until M6-H: `DisableAllLightRunes` /
  * `EnableAllLightRunes` (traps are not ported). `CopyEventMoveREDAs` is a Kotlin counterpart
- * (the four fixed buffers are replaced by a list copy).
+ * (the four fixed buffers of `gEventREDAs` are replaced by a list copy, so there is no buffer to
+ * clear in `MuCtr_OnEnd`).
  */
 public class MuCtrl(
     private val procs: ProcEngine,
@@ -90,39 +101,46 @@ public class MuCtrl(
         /** `redaCount`. */
         public var redaCount: Int = 0
 
-        /** `timer`. */
+        /** `timer`: index of the current leg in [redas]. */
         public var timer: Int = 0
 
-        /** `delayFrames`. */
+        /** `delayFrames`: frames left before the current leg starts. */
         public var delayFrames: Int = 0
 
-        /** `flags`. */
+        /**
+         * `flags`: the walk's flags: bit 0 find a free tile near the target, bit 1 pick a random
+         * free neighbour (`AdjustNewUnitPosition`), bit 2 MU camera follows, bit 3 sets 0x40 in
+         * the MU config (as `MuCtr_ExecREDA_807A358` reads them).
+         */
         public var flags: Int = 0
 
-        /** `x` (s8). */
+        /** `x` (s8): the final target tile column, after `AdjustNewUnitPosition`. */
         public var x: Int = 0
 
-        /** `y` (s8). */
+        /** `y` (s8): the final target tile row, after `AdjustNewUnitPosition`. */
         public var y: Int = 0
 
-        /** `unk_42`. */
+        /**
+         * `unk_42`: x of the tile the unit is on or walking to; starts as the unit's own tile and
+         * becomes each leg's target. Written to the unit when the leg ends.
+         */
         public var unk42: Int = 0
 
-        /** `unk_43`. */
+        /** `unk_43`: y counterpart of [unk42]. */
         public var unk43: Int = 0
     }
 
-    /** `ProcScr_MuCtrl`. */
+    /** `ProcScr_MuCtrl` (`E_MuCtr`): per leg, wait for its delay, start it, wait for the MU. */
     public val script: ProcScript = ProcScript(
         "ProcScr_MuCtrl",
         listOf(
             ProcScripts.name("E_MuCtr"),
             ProcScripts.setEndCb(ProcFunc { onEnd(it.state as MuCtrlProc) }),
             ProcScripts.yield(),
-            ProcScripts.whileTrue(ProcBoolFunc { sub807A0E4(it) }),
+            ProcScripts.whileTrue(ProcBoolFunc { waitToStartLeg(it) }),
             ProcScripts.label(0),
-            ProcScripts.whileTrue(ProcBoolFunc { sub807A194(it) }),
-            ProcScripts.whileTrue(ProcBoolFunc { sub807A0E4(it) }),
+            ProcScripts.whileTrue(ProcBoolFunc { waitForLegEnd(it) }),
+            ProcScripts.whileTrue(ProcBoolFunc { waitToStartLeg(it) }),
             ProcScripts.goto(0),
             ProcScripts.label(1),
             ProcScripts.end(),
@@ -135,6 +153,8 @@ public class MuCtrl(
 
     /**
      * Transcribed from src/muctrl.c: MuCtrExists (not verified: trivial Proc_Find)
+     *
+     * True while any `E_MuCtr` walk is running.
      */
     public fun muCtrExists(): Boolean = procs.find(script) != null
 
@@ -142,7 +162,8 @@ public class MuCtrl(
      * Transcribed from src/muctrl.c: MuCtr_StartMoveTowards (not verified: the result is only
      * checked through the walk's end position)
      *
-     * Starts a walk of [unit] to ([x], [y]); [speed] goes into the REDA flags (6 bits).
+     * Starts a one-leg walk of [unit] to ([x], [y]). [speed] is the leg's REDA `flags` (the MU
+     * move config, 6 bits); [flags] are the walk's flags ([MuCtrlProc.flags]).
      */
     public fun startMoveTowards(unit: Int, x: Int, y: Int, speed: Int, flags: Int) {
         val proc = procs.start(script, 5)
@@ -163,6 +184,8 @@ public class MuCtrl(
     /**
      * Transcribed from src/muctrl.c: MuCtr_InitDefinedMove (not verified: no trace walk)
      *
+     * Positions the walk's target ([adjustNewUnitPosition] on the last REDA), starts the unit's
+     * MU, hides the unit's sprite and map entry and reserves the target in the "other" map.
      * With `count == 0` the C reads before the REDA array (undefined); here that is an error.
      */
     private fun initDefinedMove(
@@ -200,6 +223,7 @@ public class MuCtrl(
         proc.muProc?.hiddenB = 1
     }
 
+    /** The `struct Unit` fields [Mu.startMu] needs, read from the unit table entry at [o]. */
     private fun muUnit(unit: Int, o: Int): MuUnit {
         val classPtr = u32(table.bytes, o + OFF_CLASS)
         return MuUnit(
@@ -215,6 +239,9 @@ public class MuCtrl(
     /**
      * Transcribed from src/muctrl.c: SetMuMaxWalkSpeed_ -> SetMuMaxWalkSpeed (not verified:
      * trivial setter)
+     *
+     * Makes every running MU walk at the fastest speed (`fast_walk_b`); `E_MuCtr` then skips to
+     * the end of its walk.
      */
     public fun setMuMaxWalkSpeed() {
         procs.forEach(mu.script, ProcFunc { (it.state as MuProc).fastWalkB = true })
@@ -224,7 +251,8 @@ public class MuCtrl(
      * Transcribed from src/muctrl.c: MoveUnit_, MoveUnitExt (not verified: the headless walk
      * only reaches it through the skip path of the event, which no trace exercises)
      *
-     * Puts [unit] on ([x], [y]) at once (after [adjustNewUnitPosition]) and shows it.
+     * Puts [unit] on ([x], [y]) at once (after [adjustNewUnitPosition]); unless it is under a
+     * roof (`US_UNDER_A_ROOF`) it is also un-hidden and the entity maps and sprites are refreshed.
      */
     public fun moveUnit(unit: Int, x: Int, y: Int, flags: Int) {
         val pos = intArrayOf(x and 0x3F, y and 0x3F)
@@ -239,6 +267,7 @@ public class MuCtrl(
         }
     }
 
+    /** Writes `Unit.xPos` / `Unit.yPos` of [unit]. */
     private fun setPos(unit: Int, x: Int, y: Int) {
         val o = table.unitOffset(unit)
         put8(table.bytes, o + OFF_X, x)
@@ -248,6 +277,8 @@ public class MuCtrl(
     /**
      * Transcribed from src/bmunit.c: UnitFinalizeMovement (not verified: rescuee only; no
      * ballistae).
+     *
+     * Moves a rescued unit along with its rescuer; the ballista trap case throws.
      */
     private fun unitFinalizeMovement(unit: Int) {
         val o = table.unitOffset(unit)
@@ -266,15 +297,15 @@ public class MuCtrl(
      * Transcribed from src/muctrl.c: AdjustNewUnitPosition (not verified: flag 1 is the shared
      * [UnitLoader.closestValidPosition], flag 2 needs the sum position)
      *
-     * Moves [pos] (x, y) to a free tile near it: a random free neighbour with flag 2, the closest
-     * reachable free tile with flag 1 where the tile is blocked.
+     * Moves [pos] (x, y) to a free tile near it: with flag 2 a random free neighbour that the
+     * unit can reach, else with flag 1 the closest valid position if the tile is blocked.
      */
     public fun adjustNewUnitPosition(unit: Int, pos: IntArray, flags: Int) {
         val o = table.unitOffset(unit)
         if (flags and 2 != 0) {
-            loader.floodMovement(map, map.range, pos[0], pos[1], loader.unitMovementCost(o)) { x, y ->
-                map.terrain[y, x]
-            }
+            loader.floodMovement(
+                map, map.range, pos[0], pos[1], loader.unitMovementCost(o),
+            ) { x, y -> map.terrain[y, x] }
             val bx = IntArray(8)
             val by = IntArray(8)
             var n = 0
@@ -314,9 +345,11 @@ public class MuCtrl(
      * Transcribed from src/muctrl.c: sub_807A644 (not verified: the generated script is only
      * checked through the walk's end position)
      *
-     * Builds the best movement script from the unit's tile to [pos] (into [workingScript]);
-     * with [flag] set the target tile is blocked in the terrain map first (so the search does
-     * not end on an occupied tile). `DisableAllLightRunes` / `EnableAllLightRunes` are omitted.
+     * Builds the best movement script from the unit's tile to [pos] (into [workingScript]).
+     * With [flag] (`flagsB & 1`, find a free tile near the target) a free target tile is marked
+     * blocked in the terrain map during the search and restored afterwards; a blocked one is
+     * replaced in [pos] by the closest valid position. `DisableAllLightRunes` /
+     * `EnableAllLightRunes` are omitted.
      */
     private fun buildMoveScript(unit: Int, pos: IntArray, flag: Boolean): IntArray {
         val o = table.unitOffset(unit)
@@ -365,8 +398,8 @@ public class MuCtrl(
      * Transcribed from src/muctrl.c: sub_807A294 (not verified: needs two walks that wait on each
      * other)
      *
-     * True when the walk may start: no walk of character [pid] runs, or the one that runs is
-     * past leg [b] (0xFFFF = no leg condition).
+     * True when the walk may start: [pid] is 0, no walk of character [pid] runs, or one that runs
+     * has a current leg index above [b] (0xFFFF = no leg condition, wait for the walk to end).
      */
     private fun canStartAfter(pid: Int, b: Int): Boolean {
         if (pid == 0) return true
@@ -388,9 +421,12 @@ public class MuCtrl(
      * Transcribed from src/muctrl.c: sub_807A0E4 (not verified: the walk is checked through its
      * end position and frame count only)
      *
-     * Waits for the delay and the walks it depends on, then starts the leg. True = keep waiting.
+     * Step before a leg (`sub_807A0E4` in the decomp): once the walks this leg waits for allow it,
+     * counts the delay down (4 per frame while A is held) and starts the leg; with the fast walk
+     * set, ends the proc instead. For later legs the unit is shown on its tile while waiting.
+     * True = keep waiting.
      */
-    private fun sub807A0E4(proc: Proc): Boolean {
+    private fun waitToStartLeg(proc: Proc): Boolean {
         val s = proc.state as MuCtrlProc
         val reda = s.redas[s.timer]
         val mu = s.muProc!!
@@ -417,11 +453,13 @@ public class MuCtrl(
     }
 
     /**
-     * Transcribed from src/muctrl.c: sub_807A194 (not verified: as [sub807A0E4])
+     * Transcribed from src/muctrl.c: sub_807A194 (not verified: as [waitToStartLeg])
      *
-     * Waits for the MU to finish the leg, then moves to the next one. True = keep waiting.
+     * Step during a leg (`sub_807A194` in the decomp): waits for the MU to finish the leg, puts
+     * the unit on the leg's target and moves to the next leg, or ends the proc after the last one
+     * or with the fast walk set. True = keep waiting.
      */
-    private fun sub807A194(proc: Proc): Boolean {
+    private fun waitForLegEnd(proc: Proc): Boolean {
         val s = proc.state as MuCtrlProc
         val mu = s.muProc!!
         if (!isMuActive(mu)) {
@@ -438,14 +476,21 @@ public class MuCtrl(
         return true
     }
 
-    /** Transcribed from src/mu.c: IsMuActive (not verified: trivial). */
+    /**
+     * Transcribed from src/mu.c: IsMuActive (not verified: trivial).
+     *
+     * True while the MU has a sprite slot and has not reached `MU_STATE_INACTIVE`.
+     */
     private fun isMuActive(m: MuProc): Boolean =
         m.config!!.slot != 0 && m.state != Mu.MU_STATE_INACTIVE
 
     /**
-     * Transcribed from src/muctrl.c: MuCtr_ExecREDA_807A358 (not verified: as [sub807A0E4])
+     * Transcribed from src/muctrl.c: MuCtr_ExecREDA_807A358 (not verified: as [waitToStartLeg])
      *
-     * Starts the current leg: builds the movement script to its target and hands it to the MU.
+     * Starts the current leg: builds the movement script to its target and hands it to the MU
+     * with the leg's move config (+0x40 for flag 8, capped at 0x100 as `SetMuConfig`), the camera
+     * on or off (flag 4), the unit's sprite and map entry hidden and the MU shown. Nothing starts
+     * when the target is the tile the unit is already on.
      */
     private fun execReda(s: MuCtrlProc) {
         val u = s.unit
@@ -485,9 +530,10 @@ public class MuCtrl(
     }
 
     /**
-     * Transcribed from src/muctrl.c: MuCtr_OnEnd (not verified: as [sub807A0E4])
+     * Transcribed from src/muctrl.c: MuCtr_OnEnd (not verified: as [waitToStartLeg])
      *
-     * Puts the unit on its final tile, shows it and ends the MU.
+     * End callback of the proc. Puts the unit on its final tile (through [moveUnit] when the fast
+     * walk cut the walk short), shows it and ends the MU.
      */
     private fun onEnd(s: MuCtrlProc) {
         val m = s.muProc!!
@@ -507,13 +553,18 @@ public class MuCtrl(
     }
 
     private companion object {
+        /** Byte offsets in `struct Unit`: `pClassData`, `xPos`, `yPos` and `rescue`. */
         const val OFF_CLASS = 0x04
         const val OFF_X = 0x10
         const val OFF_Y = 0x11
         const val OFF_RESCUE = 0x1B
+
+        /** `US_HIDDEN`, `US_RESCUING` and `US_UNDER_A_ROOF` of `Unit.state`. */
         const val US_HIDDEN = 1 shl 0
         const val US_RESCUING = 1 shl 4
         const val US_UNDER_A_ROOF = 1 shl 7
+
+        /** `A_BUTTON` of `KeyStatus.heldKeys`. */
         const val A_BUTTON = 1
     }
 }

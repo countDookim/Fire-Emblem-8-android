@@ -18,12 +18,21 @@ import gbafe.render.SpriteLayers
 import gbafe.render.SpriteObject
 
 /**
- * The "Player Phase" / "Enemy Phase" / "Other Phase" banner of src/phasechangefx.c:
- * `ProcScr_PhaseIntro` and its children (text, squares, blend box, sprite).
+ * The phase-change banner of src/phasechangefx.c: the flash across the middle of the map that
+ * names whose phase begins (player, enemy or other). `ProcScr_PhaseIntro` is started as a
+ * blocking child of `gProc_BMapMain` (src/bm.c, label 9, after `BmMain_ChangePhase`), so the
+ * turn does not go on until the banner is gone. It ends at once when the new phase has no unit
+ * that can act.
+ *
+ * The banner is four procs: a text proc (the name tiles on BG0 in rows 9..11, drifting and
+ * fading in and out, with a stretching sprite child), a squares proc (a diagonal wave of
+ * squares on BG1 that grows over the map and then shrinks away), and a blend box proc (a WIN0
+ * band that hides BG1 and narrows to the text rows, plus the blend weight of the squares).
  *
  * The three `PhaseIntroVMatch*` VCount interrupts become one HBlank handler, [vMatchHandler]
  * (the blend registers per scanline band). Graphics are read from the ROM at runtime.
- * Sound and the link arena check go through [hooks].
+ * Sound and the link arena check go through [hooks]. The link arena has its own caller
+ * (`ProcScr_LinkArenaPhaseIntro`, src/sio_uiutils.c) that reuses the three child scripts.
  */
 public class PhaseIntro(
     private val engine: ProcEngine,
@@ -35,24 +44,27 @@ public class PhaseIntro(
     private val oam: OamBuffer,
     private val sprites: SpriteLayers,
 ) {
-    /** Services outside the ported file; the defaults do nothing. */
+    /** Services from other decomp files; the defaults do nothing. */
     public class Hooks {
-        /** `CheckInLinkArena`. */
+        /**
+         * `CheckInLinkArena`: whether this is a link arena battle, where the text sits 8 pixels
+         * further left than in the story chapters.
+         */
         public var checkInLinkArena: () -> Boolean = { false }
 
-        /** `GetCurrentBgmSong`. */
+        /** `GetCurrentBgmSong`: the song playing now. */
         public var currentBgmSong: () -> Int = { 0 }
 
-        /** `GetCurrentMapMusicIndex`. */
+        /** `GetCurrentMapMusicIndex`: the song the chapter's map is meant to play. */
         public var currentMapMusicIndex: () -> Int = { 0 }
 
-        /** `Sound_FadeOutBGM`. */
+        /** `Sound_FadeOutBGM`: fades the music out (the banner passes speed 4). */
         public var fadeOutBgm: (Int) -> Unit = {}
 
-        /** `PlaySoundEffect`. */
+        /** `PlaySoundEffect`: the banner sound ([SONG_73]). */
         public var playSoundEffect: (Int) -> Unit = {}
 
-        /** `StartMapSongBgm`. */
+        /** `StartMapSongBgm`: restarts the map music once the banner has finished. */
         public var startMapSongBgm: () -> Unit = {}
     }
 
@@ -60,14 +72,14 @@ public class PhaseIntro(
     public val hooks: Hooks = Hooks()
 
     /**
-     * `struct PhaseIntroSubProc` past the header: `timer` (s16, 0x4C), `stat_index`
-     * (s16, 0x4E).
+     * `struct PhaseIntroSubProc` past the header (src/phasechangefx.h): `timer` (s16, 0x4C) and
+     * `stat_index` (s16, 0x4E), shared by the four child scripts.
      */
     public class SubState {
-        /** `timer`. */
+        /** `timer`: frame counter of the current stage; what it counts differs per script. */
         public var timer: Int = 0
 
-        /** `stat_index`. */
+        /** `stat_index`: stage of the banner sprite stretch (0 grow, 1 hold, 2 shrink). */
         public var statIndex: Int = 0
     }
 
@@ -77,7 +89,7 @@ public class PhaseIntro(
     /** Truncates [value] to a signed 16-bit number, as the C `s16` fields do. */
     private fun wrapS16(value: Int): Int = value.toShort().toInt()
 
-    /** `gProcScr_PhaseIntroUnk` (0x0859AEE8). */
+    /** `gProcScr_PhaseIntroUnk` (0x0859AEE8): the banner sprite, a child of the text proc. */
     public val unkScript: ProcScript = ProcScript(
         "gProcScr_PhaseIntroUnk",
         listOf(
@@ -88,7 +100,10 @@ public class PhaseIntro(
         ::SubState,
     )
 
-    /** `gProcScr_PhaseIntroText` (0x0859AEF8). */
+    /**
+     * `gProcScr_PhaseIntroText` (0x0859AEF8): fade in the BG0 text for 16 frames, hold 30 frames,
+     * fade it out for 16 frames, then clear BG0.
+     */
     public val textScript: ProcScript = ProcScript(
         "gProcScr_PhaseIntroText",
         listOf(
@@ -105,7 +120,7 @@ public class PhaseIntro(
         ::SubState,
     )
 
-    /** `gProcScr_PhaseIntroSquares` (0x0859AF40). */
+    /** `gProcScr_PhaseIntroSquares` (0x0859AF40): squares in (30 frames), then out (36). */
     public val squaresScript: ProcScript = ProcScript(
         "gProcScr_PhaseIntroSquares",
         listOf(
@@ -117,7 +132,10 @@ public class PhaseIntro(
         ::SubState,
     )
 
-    /** `gProcScr_PhaseIntroBlendBox` (0x0859AF60). */
+    /**
+     * `gProcScr_PhaseIntroBlendBox` (0x0859AF60): narrows the WIN0 band (28 frames), then widens
+     * it again (33 frames).
+     */
     public val blendBoxScript: ProcScript = ProcScript(
         "gProcScr_PhaseIntroBlendBox",
         listOf(
@@ -129,7 +147,11 @@ public class PhaseIntro(
         ::SubState,
     )
 
-    /** `ProcScr_PhaseIntro` (0x0859AF80). */
+    /**
+     * `ProcScr_PhaseIntro` (0x0859AF80): ends at once if no unit can act, loads the graphics,
+     * starts the three child procs, sets up the window and blend, waits for the children to
+     * finish, then restarts the map music.
+     */
     public val script: ProcScript = ProcScript(
         "ProcScr_PhaseIntro",
         listOf(
@@ -152,9 +174,10 @@ public class PhaseIntro(
      * Transcribed from src/phasechangefx.c: PhaseIntroVMatchHi/Mid/Lo (not verified: the
      * reference dumps hold the registers only after the frame)
      *
-     * One scanline handler for the three VCount interrupts: lines 0..71 and 96.. blend BG1 over
-     * BG2/BG3/OBJ/backdrop with `altBlendBCa/Cb`, lines 72..95 blend BG0 over the rest with
-     * `altBlendACa/Cb`.
+     * One scanline handler for the three VCount interrupts. Lines 0..71 and 96..159 blend BG1
+     * (the squares) over BG2/BG3/OBJ/backdrop with `altBlendBCa/Cb`; lines 72..95, the three tile
+     * rows of the banner text (BG0 rows 9..11), blend BG0 (the text) over all the others with
+     * `altBlendACa/Cb`. So the text fades by its own weights while the squares fade by theirs.
      */
     public val vMatchHandler: HBlankHandler = HBlankHandler { vcount, io ->
         // HBlank writes take effect on the next line; VCount interrupts switch at the line start.
@@ -172,7 +195,8 @@ public class PhaseIntro(
     /**
      * Ported from src/phasechangefx.c: PhaseIntroText_PutText
      *
-     * Puts the 0x60 banner name tiles on BG0 from row 9.
+     * Puts the 0x60 banner name tiles (3 rows of 32 map entries; the image holds the name of the
+     * phase's faction) on BG0 from row 9, i.e. screen lines 72..95.
      */
     public fun textPutText(@Suppress("UNUSED_PARAMETER") proc: Proc) {
         val tileMap = hw.mapBuffer(0)
@@ -182,7 +206,12 @@ public class PhaseIntro(
         hw.enableBgSyncByMask(BG0_SYNC_BIT)
     }
 
-    /** Transcribed from src/phasechangefx.c: PhaseIntroInitText (not verified: sound only) */
+    /**
+     * Transcribed from src/phasechangefx.c: PhaseIntroInitText (not verified: sound only)
+     *
+     * Fades the music out if it is not the chapter's map song (the 4 is the fade speed; its
+     * scale is unknown), plays the banner sound and starts the 16-frame text fade-in timer.
+     */
     public fun initText(proc: Proc) {
         if (hooks.currentBgmSong() != hooks.currentMapMusicIndex()) hooks.fadeOutBgm(4)
         hooks.playSoundEffect(SONG_73)
@@ -192,7 +221,10 @@ public class PhaseIntro(
     /**
      * Ported from src/phasechangefx.c: PhaseIntroText_InLoop
      *
-     * Slides BG0 in and fades the text layer in; breaks when the timer runs out.
+     * Fades the text in: the BG0 scroll eases (`INTERPOLATE_RCUBIC`) from -8 down to -0x1C (link
+     * arena: 0 down to -0x14), the text drifting right, over 16 frames while `altBlendACa` rises
+     * and `altBlendACb` falls by 1 a frame
+     * (text weight 0 -> 16 of 16). Breaks when the timer goes below 0.
      */
     public fun textInLoop(proc: Proc) {
         val inLinkArena = hooks.checkInLinkArena()
@@ -213,7 +245,10 @@ public class PhaseIntro(
     /**
      * Ported from src/phasechangefx.c: PhaseIntroText_OutLoop
      *
-     * Slides BG0 out and fades the text layer out; breaks when the timer runs out.
+     * Fades the text out: the BG0 scroll eases (`INTERPOLATE_CUBIC`) from -0x1C down to -0x38
+     * (link arena: -0x14 down to -0x30), the text drifting further right, over 16 frames while
+     * the text weights fall back to 0 / 16. Breaks
+     * when the timer goes below 0.
      */
     public fun textOutLoop(proc: Proc) {
         val inLinkArena = hooks.checkInLinkArena()
@@ -231,13 +266,13 @@ public class PhaseIntro(
         }
     }
 
-    /** Ported from src/phasechangefx.c: PhaseIntroClearText */
+    /** Ported from src/phasechangefx.c: PhaseIntroClearText: erases the banner text from BG0. */
     public fun clearText(@Suppress("UNUSED_PARAMETER") proc: Proc) {
         hw.fill(hw.mapBuffer(0), 0)
         hw.enableBgSyncByMask(BG0_SYNC_BIT)
     }
 
-    /** Ported from src/phasechangefx.c: PhaseIntroUnk_Init */
+    /** Ported from src/phasechangefx.c: PhaseIntroUnk_Init: starts at stage 0, frame 0. */
     public fun unkInit(proc: Proc) {
         val state = stateOf(proc)
         state.timer = 0
@@ -247,8 +282,12 @@ public class PhaseIntro(
     /**
      * Ported from src/phasechangefx.c: PhaseIntroUnk_Loop
      *
-     * Drives the stretch of the banner sprite (timer, stat_index) and puts the sprite with its
-     * affine matrix 0.
+     * Drives the banner sprite, a 240x32 band of five affine parts at screen y 0x44 (the name
+     * for this proc and its image, `Unk`, is not known in the decomp). `value` is its height
+     * scale in 1/256ths: stage 0 grows it from 0x10 to 0x100 over 16 frames
+     * (`INTERPOLATE_RSQUARE`), stage 1 holds 0x100 for 31 frames, stage 2 shrinks it back to
+     * 0x10 over 16 frames (`INTERPOLATE_CUBIC`) and breaks. Only the vertical scale (`pd`)
+     * changes. The sprite is drawn again every frame.
      */
     public fun unkLoop(proc: Proc) {
         val state = stateOf(proc)
@@ -278,12 +317,13 @@ public class PhaseIntro(
             }
             else -> {}
         }
-        // COS(0) = 0x1000 and SIN(0) = 0 (gSinLookup scale): pa = 0x1000 * 0x10 / 0x100.
+        // The C passes Div(COS(0) * 0x10, 0x100) etc.; COS(0) = 0x1000 and SIN(0) = 0 (gSinLookup
+        // scale 0x1000), so pa = 0x100 (no horizontal scale), pb = pc = 0, pd = 0x10000 / value.
         oam.setObjAffine(0, 0x100, 0, 0, 0x10000 / value)
         sprites.putExt(2, 0, 0x44, bannerObject, 0x2600)
     }
 
-    /** Ported from src/phasechangefx.c: PhaseIntroSquares_Init */
+    /** Ported from src/phasechangefx.c: PhaseIntroSquares_Init: the wave starts at frame 4. */
     public fun squaresInit(proc: Proc) {
         stateOf(proc).timer = 4
     }
@@ -291,7 +331,10 @@ public class PhaseIntro(
     /**
      * Ported from src/phasechangefx.c: PhaseIntroSquares_InLoop
      *
-     * Fills BG1 with the growing squares wave; breaks after 0x22 frames.
+     * Fills BG1 (15 x 10 blocks of 2x2 map entries, the whole screen) with a diagonal wave of
+     * squares: each block's size step `squareOffset` (0..0x10, even) rises as `timer` grows, the
+     * wave moving from the bottom left to the top right. Breaks when `timer` reaches 0x22 (30
+     * frames from the start value 4).
      */
     public fun squaresInLoop(proc: Proc) {
         val state = stateOf(proc)
@@ -316,7 +359,9 @@ public class PhaseIntro(
     /**
      * Ported from src/phasechangefx.c: PhaseIntroSquares_OutLoop
      *
-     * Fills BG1 with the shrinking, flipped squares wave; breaks after 0x24 frames.
+     * Same grid as the in loop, but the step falls from 0x10 to 0 and the blocks are drawn
+     * mirrored left to right, so the squares shrink away; breaks when `timer` reaches 0x24
+     * (36 frames from 0).
      */
     public fun squaresOutLoop(proc: Proc) {
         val state = stateOf(proc)
@@ -339,8 +384,9 @@ public class PhaseIntro(
     }
 
     /**
-     * Writes one 2x2 block of map entries at ([x], [y]) on [tileMap]: the four characters of the
-     * square at [squareOffset], each entry with [flipBits] added.
+     * Writes one 2x2 block of map entries at ([x], [y]) on [tileMap] (32 entries a row): the four
+     * characters of the square of size step [squareOffset] in the squares image, each entry with
+     * [flipBits] added (`TILE_HFLIP` for the out loop, which also swaps left and right).
      */
     private fun putSquare(
         tileMap: ShortArray,
@@ -360,7 +406,7 @@ public class PhaseIntro(
         tileMap[x + 1 + (y + 1) * 32] = (tileRef(base + bottomRight, 0) + flipBits).toShort()
     }
 
-    /** Ported from src/phasechangefx.c: PhaseIntroBlendBox_Init */
+    /** Ported from src/phasechangefx.c: PhaseIntroBlendBox_Init: starts at frame 4. */
     public fun blendBoxInit(proc: Proc) {
         stateOf(proc).timer = 4
     }
@@ -368,7 +414,11 @@ public class PhaseIntro(
     /**
      * Ported from src/phasechangefx.c: PhaseIntroBlendBox_InLoop
      *
-     * Opens the WIN0 box and raises the lower blend; breaks at timer 0x20.
+     * Narrows the WIN0 band: it spans screen lines `8 + yoff` to `0xA0 - yoff` (`-0x60 - yoff`
+     * wraps in the u8 register), with `yoff` easing from 16 to 60 (`INTERPOLATE_RCUBIC`) so the
+     * band shrinks from lines 24..144 to 68..100. Inside the band BG1 (the squares) is off
+     * (see [initDisp]). Also sets the squares' blend weights `altBlendBCa` = 0..7 and
+     * `altBlendBCb` = 16 - that. Breaks when `timer` reaches 0x20 (28 frames from 4).
      */
     public fun blendBoxInLoop(proc: Proc) {
         val state = stateOf(proc)
@@ -384,7 +434,9 @@ public class PhaseIntro(
     /**
      * Ported from src/phasechangefx.c: PhaseIntroBlendBox_OutLoop
      *
-     * Closes the WIN0 box and lowers the lower blend; breaks when the timer goes below 0.
+     * Same band and blend weights as the in loop, run backwards: `timer` counts down from 0x20
+     * (where the in loop left it) to -1, `yoff` easing from 60 to 0, so the band widens to lines
+     * 8..160 again. Breaks when the timer goes below 0.
      */
     public fun blendBoxOutLoop(proc: Proc) {
         val state = stateOf(proc)
@@ -397,7 +449,13 @@ public class PhaseIntro(
         if (state.timer < 0) engine.breakProc(proc)
     }
 
-    /** Ported from src/phasechangefx.c: PhaseIntro_EndIfNoUnits */
+    /**
+     * Ported from src/phasechangefx.c: PhaseIntro_EndIfNoUnits
+     *
+     * Skips the banner when the faction whose phase begins has no unit that can act
+     * (`GetPhaseAbleUnitCount` is 0; the C compares with `FACTION_BLUE`, which is 0 only by
+     * coincidence of value).
+     */
     public fun endIfNoUnits(proc: Proc) {
         if (units.getPhaseAbleUnitCount(playSt.faction) == FACTION_BLUE) engine.end(proc)
     }
@@ -406,7 +464,10 @@ public class PhaseIntro(
      * Ported from src/phasechangefx.c: PhaseIntro_InitGraphics
      * (verified for the player faction only; the enemy and other branches are not compared)
      *
-     * Loads the banner images into BG VRAM and the faction's palette into banks 5 and 18.
+     * Loads the banner images: the sprite image `Img_PhaseChangeUnk` to OBJ character 0x200
+     * (BG character 0xA00, the same VRAM), the squares to BG character 0x100 and the name of the
+     * faction in `gPlaySt.faction` to BG character 0x140, with that faction's palette copied to BG
+     * palette bank 5 (`BGPAL_PHASE_CHANGE`) and to bank 18 (OBJ bank 2, used by the sprite).
      */
     public fun initGraphics() {
         rom.decompressInto(IMG_UNK, hw.vram, chrOffset(0xA00))
@@ -430,8 +491,10 @@ public class PhaseIntro(
     /**
      * Ported from src/phasechangefx.c: PhaseIntro_InitDisp
      *
-     * Window 0 over the whole screen, blend setup and the initial `altBlend*` values; installs
-     * [vMatchHandler].
+     * Window 0 over the whole screen with BG1 off inside it and every layer on outside, alpha
+     * blending enabled in both, the initial `altBlend*` weights (all layers 0 / 16, i.e. the
+     * squares and the text start invisible) and BG1 as the first blend target; installs
+     * [vMatchHandler] as the VCount interrupt chain (`SetInterrupt_LCDVCountMatch`).
      */
     public fun initDisp() {
         val lcd = hw.lcd
@@ -455,8 +518,9 @@ public class PhaseIntro(
      * Ported from src/phasechangefx.c: PhaseIntro_WaitForEnd
      * (the handler removal is not compared)
      *
-     * Applies the blend config each frame; when the children are gone clears BG0 and BG1, removes
-     * the blend handler, resets the scroll and breaks.
+     * Each frame applies the squares' blend weights; once the text, squares and blend box procs
+     * are all gone clears BG0 and BG1, removes the blend handler, resets the BG0..BG2 scroll and
+     * breaks, which lets the parent go on to [Hooks.startMapSongBgm].
      */
     public fun waitForEnd(proc: Proc) {
         hw.lcd.setBlendConfig(1, bm.altBlendBCa, bm.altBlendBCb, 0)
@@ -481,30 +545,59 @@ public class PhaseIntro(
     private fun tileRef(chrIndex: Int, paletteBank: Int): Int =
         chrIndex + ((paletteBank + BGPAL_PHASE_CHANGE) shl 12)
 
-    /** Byte offset in VRAM of the 4bpp character [chrIndex] (0x20 bytes each). */
+    /** Byte offset in VRAM of the 4bpp character [chrIndex] (`BG_CHR_ADDR`, 0x20 bytes each). */
     private fun chrOffset(chrIndex: Int): Int = chrIndex * 0x20
 
     private companion object {
+        /** `FACTION_BLUE`/`GREEN`/`RED`: the player, other (ally/NPC) and enemy factions. */
         const val FACTION_BLUE = 0x00
         const val FACTION_GREEN = 0x40
         const val FACTION_RED = 0x80
+
+        /** `BGCHR_PHASE_CHANGE_SQUARES` and `_NAME`: BG character slots of the two images. */
         const val BGCHR_PHASE_CHANGE_SQUARES = 0x100
         const val BGCHR_PHASE_CHANGE_NAME = 0x140
+
+        /** `BGPAL_PHASE_CHANGE`: BG palette bank of the banner. */
         const val BGPAL_PHASE_CHANGE = 5
+
+        /** `BG0_SYNC_BIT` and `BG1_SYNC_BIT`: the `BG_EnableSyncByMask` bits. */
         const val BG0_SYNC_BIT = 1
         const val BG1_SYNC_BIT = 2
+
+        /** `TILE_HFLIP`: the horizontal flip bit of a BG map entry. */
         const val TILE_HFLIP = 0x400
+
+        /** `SONG_73`: the banner sound effect (the decomp has no name for song 0x73). */
         const val SONG_73 = 0x73
         const val DISPLAY_WIDTH = 240
         const val DISPLAY_HEIGHT = 160
+
+        /** Bit numbers in WININ/WINOUT of the "blend enabled" flag of WIN0 and outside. */
         const val WIN0_ENABLE_BLEND = 5
         const val WOUT_ENABLE_BLEND = 21
+
+        /** First scanline of the text band (BG0 row 9 * 8) and the first line after it. */
         const val VMATCH_MID = 72
         const val VMATCH_LO = 96
+
+        /** IO offsets of `REG_BLDCNT` and `REG_BLDALPHA`. */
         const val REG_BLDCNT = 0x50
         const val REG_BLDALPHA = 0x52
+
+        /**
+         * `REG_BLDCNT` outside the text band (`PhaseIntroVMatchHi/Lo`): first target BG1, blend
+         * effect, second targets BG2, BG3, OBJ and backdrop.
+         */
         const val BLDCNT_OUTER = 0x3C42
+
+        /**
+         * `REG_BLDCNT` inside the text band (`PhaseIntroVMatchMid`): first target BG0, blend
+         * effect, second targets BG1, BG2, BG3, OBJ and backdrop.
+         */
         const val BLDCNT_MID = 0x3E41
+
+        /** ROM addresses of the compressed banner images and palettes (`Img_PhaseChange*`). */
         const val IMG_UNK = 0x0859F020
         const val IMG_SQUARES = 0x085A06D8
         const val IMG_PLAYER = 0x0859F3F8
@@ -515,8 +608,10 @@ public class PhaseIntro(
         const val PAL_OTHER = 0x085A0698
 
         /**
-         * `obj_0859AEC8`: five affine parts (64x32 x3, 32x32, 16x32), chr 0, 8, 0x10, 0x18,
-         * 0x1C.
+         * `obj_0859AEC8`: the banner sprite, five affine parts side by side from x 0 (64x32 at x 0,
+         * 64 and 128, 32x32 at 192, 16x32 at 224: 240 pixels wide), characters 0, 8, 0x10, 0x18,
+         * 0x1C, relative to the base 0x2600 given to `putExt` (character 0x200, priority 1,
+         * OBJ palette bank 2).
          */
         val bannerObject = SpriteObject(
             0x0859AEC8,

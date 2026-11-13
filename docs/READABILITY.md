@@ -94,8 +94,8 @@ their old counts); new packages get a row when they appear.
 | gba/extract | gba.extract | 9 | 793 | done 2026-11-09 19d121b; audit done 2026-11-13 d02077f |
 | gba/input | gba.input | 3 | 432 | done 2026-11-07 52e07f0; audit done 2026-11-13 fcba338 |
 | gba/render | gba.render | 10 | 1388 | done 2026-11-09 83f2cb6; audit done 2026-11-12 abaf60c |
-| gba/testkit | gba.testkit | 5 | 491 | done 2026-11-09 19d121b; audit done 2026-11-13 PENDING |
+| gba/testkit | gba.testkit | 5 | 491 | done 2026-11-09 19d121b; audit done 2026-11-13 f37a625 |
 | gba/vfs | gba.vfs | 4 | 267 | done 2026-11-07 1b2b121; audit done 2026-11-13 fcba338 |
 | testing | fe8.testing | 3 | 295 | done 2026-11-09 db51e13; audit todo |
-| tools/extract | gbafe.extract | 3 | 262 | done 2026-11-09 81db35b; audit done 2026-11-13 PENDING |
-| tools/extract | gbafe.extract.fe8 | 1 | 40 | done 2026-11-09 81db35b; audit done 2026-11-13 PENDING |
+| tools/extract | gbafe.extract | 3 | 262 | done 2026-11-09 81db35b; audit done 2026-11-13 f37a625 |
+| tools/extract | gbafe.extract.fe8 | 1 | 40 | done 2026-11-09 81db35b; audit done 2026-11-13 f37a625 |

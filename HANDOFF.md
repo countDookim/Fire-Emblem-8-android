@@ -12,7 +12,6 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - MC-6 (attack select handlers): owner PC, until ~03:30Z (from 00:09Z)
-- Readability audit fe8.game.opanim (OpSubtitle*.kt): owner PC, until ~02:30Z (from 00:04Z)
 
 ## Current state
 

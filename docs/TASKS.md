@@ -24,7 +24,7 @@ forecast, f1460 confirm, f2010..2038 results), `..._attack_noanim` (f1595..2124,
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| MC-8b | PORT | Hit checks, bmbattle.c: `BattleCheckBraveEffect`, `BattleCheckSureShot`, `BattleCheckPierce`, `BattleCheckGreatShield`, `BattleCheckPetrify`, `BattleGenerateHitTriangleAttack` | Branches no capture takes stay `not verified` | MC-8a | todo |
+| MC-8b | PORT | Hit checks, bmbattle.c: `BattleCheckBraveEffect`, `BattleCheckSureShot`, `BattleCheckPierce`, `BattleCheckGreatShield`, `BattleCheckPetrify`, `BattleGenerateHitTriangleAttack` | Branches no capture takes stay `not verified` | MC-8a | in progress 2026-11-13 (Claude) |
 | MC-17 | PORT | Level-up: only `CheckBattleUnitLevelUp` (no-level-up result) runs; the rest unwritten until a capture has a level-up | `CheckBattleUnitLevelUp` result equals the captures; stats after the first level-up (EP-cap2, else add a CAP) | MC-15, EP-cap2 | todo |
 | MC-w | WIRE | Attack in `Fe8Boot`: unit menu → weapon → target and forecast → battle resolves at once → exp, death; replay cap3 and MC-cap2 inputs headless | Final unit HP/exp/uses/state equal the captures (timing differs: animation stand-in); 0 B/frame; MANUAL_TEST; device check | PP-17, MC-1..16 | todo |
 

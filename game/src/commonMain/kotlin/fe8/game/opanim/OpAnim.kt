@@ -30,8 +30,8 @@ import gbafe.render.SpriteObject
  * `src/opanimfx.c`): world map, the Ephraim and Eirika close-ups with the split line, the cast
  * scroll, the shining ring and the face screens. Each `repeat` step of [script] is one of the
  * public step functions below; the graphics they load are passed in as ROM blobs ([Gfx],
- * [WorldMapGfx], [EphraimGfx], [EirikaGfx], [CastGfx]). The script runs the whole cutscene
- * through [endCutscene].
+ * [WorldMapGfx], [EphraimGfx], [EirikaGfx], [CastGfx]). Both the normal end and the skip jump
+ * (label 99 / 0x63, from [terminatorMain]) run [endCutscene].
  */
 public class OpAnim(
     /** Proc engine. */
@@ -65,38 +65,40 @@ public class OpAnim(
         public val characterBg: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
         /** `Img_OpAnimShiningRing`, `Tsa_OpAnimShiningRing`. */
         public val ring: Pair<OpAnimHs.Blob, OpAnimHs.Blob>,
-        /** Joshua's scene (loaded by [joshuaScroll]). */
+        /** The first cast scene (loaded by [joshuaScroll]). */
         public val joshua: CastScene,
-        /** L'Arachel's, Seth's, Myrrh's, Saleh's and Tethys's scenes, in script order. */
+        /** The five cast scenes after the first, in script order. */
         public val scenes: List<CastScene>,
-        /** `Obj_08AA6C22`, `6C36`, `6C4A`, `6C58`, `6C66`, `6C74`, `6C82`, `6C8A`, `6C92`, `6C9A` (sparkles). */
+        /**
+         * `Obj_08AA6C22`, `6C36`, `6C4A`, `6C58`, `6C66`, `6C74`, `6C82`, `6C8A`, `6C92`, `6C9A`
+         * (sparkles).
+         */
         public val sparkles: List<SpriteObject>,
         /** `Pal_08ADBE78` (the face shadows' palette). */
         public val shadowPal: ShortArray,
-        /** The first face screen's faces (Rennac, L'Arachel, Dozla), loaded by [loadFaces]. */
+        /** The first face screen's 3 faces, loaded by [loadFaces]. */
         public val faces1: List<Face>,
         /** `gUnknown_08AA709C` (a face, 64x64 in OBJ window parts). */
         public val faceObj: SpriteObject,
         /** `gUnknown_08AA70BC` (a face's OBJ window mask). */
         public val faceWindowObj: SpriteObject,
-        /** The second face screen's faces (Ewan, Tethys, Gerik, Marisa), loaded by [loadFacesPulsed]. */
+        /** The second face screen's 4 faces, loaded by [loadFacesPulsed]. */
         public val faces2: List<Face>,
         /** `gUnknown_08AA70DC` (the second face screen's OBJ window mask). */
         public val faceWindowObj2: SpriteObject,
-        /** The third face screen's faces (Garcia, Ross). */
+        /** The third face screen's 2 faces. */
         public val faces3: List<Face>,
         /** `gUnknown_08AA70EA` (the third face screen's OBJ window mask). */
         public val faceWindowObj3: SpriteObject,
-        /** The fourth face screen's faces (Vanessa, Tana, Syrene). */
+        /** The fourth face screen's 3 faces. */
         public val faces4: List<Face>,
         /** `gUnknown_08AA7116` (the fourth face screen's OBJ window mask). */
         public val faceWindowObj4: SpriteObject,
-        /** The fifth face screen's faces (Gilliam, Innes, Moulder). */
+        /** The fifth face screen's 3 faces. */
         public val faces5: List<Face>,
         /**
-         * The sixth to twelfth face screens' faces: (Colm, Neimi), (Knoll, Natasha, Cormag,
-         * Amelia), (Lute, Artur), (Duessel, Selena, Glen), (Kyle, Franz, Forde, Seth), (Valter,
-         * Riev, Caellach), (Lyon, Vigarde).
+         * The sixth to twelfth face screens' faces, one list per screen (2, 4, 2, 3, 4, 3 and 2
+         * faces).
          */
         public val laterFaces: List<List<Face>>,
         /** `gUnknown_08AA712A` (the tenth face screen's OBJ window mask). */
@@ -109,7 +111,10 @@ public class OpAnim(
         public val ringBlinkingTsa: OpAnimHs.Blob,
     )
 
-    /** A face in the face screens: `Img_OpAnimFace<Name>`, `Img_OpAnimFace<Name>Shadow`, `Pal_OpAnimFace<Name>`. */
+    /**
+     * A face in the face screens: `Img_OpAnimFace<Name>`, `Img_OpAnimFace<Name>Shadow`,
+     * `Pal_OpAnimFace<Name>`.
+     */
     public class Face(
         /** The face image (compressed). */
         public val img: OpAnimHs.Blob,
@@ -219,7 +224,11 @@ public class OpAnim(
         public var max: Int = 0
     }
 
-    /** `ProcScr_OpAnimFadeIn`: fades the screen in from black over `max` frames. */
+    /**
+     * `ProcScr_OpAnimFadeIn`: after one frame, raises BLDY from 0 to 0x10 over `max` frames with
+     * the brightness-increase effect on every layer (see [allBlack]: the effect is whitening,
+     * despite the decomp's name).
+     */
     public val fadeInScript: ProcScript = ProcScript(
         "ProcScr_OpAnimFadeIn",
         listOf(
@@ -238,8 +247,9 @@ public class OpAnim(
     }
 
     /**
-     * `ProcScr_OpAnimBLDALPHA`: fades the BG palette in from black to white, waits, then blends the
-     * fog in.
+     * `ProcScr_OpAnimBLDALPHA`: runs alongside the world map scene. Fills BG palette 0 with grey
+     * rising from black to white, waits, then moves the blend coefficients from (0x10, 0) to
+     * (0, 0x10). [script] waits for it to end before starting the fog drift.
      */
     public val bldAlphaScript: ProcScript = ProcScript(
         "ProcScr_OpAnimBLDALPHA",
@@ -289,7 +299,11 @@ public class OpAnim(
         /** [backScrollPos] saved when the exit slide starts (`unk36` in the decomp). */
         public var backScrollStart: Int = 0
 
-        /** `unk38`, `unk3A`, `unk3C`, `unk3E`, `unk46`. */
+        /**
+         * Cast scroll counters, in this order: `unk38` (scroll position, 0..0x270), `unk3A`
+         * (previous position), `unk3C` (frame counter driving `unk38`), `unk3E` (ring pulse
+         * counter), `unk46` (flag passed to `sub_80C72A4`, [setupCastDisplay]'s decomp name).
+         */
         public val unk38to46: IntArray = IntArray(5)
 
         /** `unk40`, `unk42` (u16), `unk44` (s16): scene scroll distance, base and offset. */
@@ -326,7 +340,10 @@ public class OpAnim(
      */
     public var afterStep: (() -> Unit) -> Unit = { it() }
 
-    /** `ProcScr_OpAnimfxTerminator`: ends the op anim on A, B or Start. */
+    /**
+     * `ProcScr_OpAnimfxTerminator`: the skip watcher. On A, B or Start it makes the op anim jump
+     * to its end (see [terminatorMain]).
+     */
     public val terminatorScript: ProcScript = ProcScript(
         "ProcScr_OpAnimfxTerminator",
         listOf(yield(), repeat(ProcFunc { terminatorMain(it) }), end()),
@@ -445,8 +462,11 @@ public class OpAnim(
     )
 
     /**
-     * Resets the display, loads the cutscene's OBJ graphics and palettes, sets the next game action
-     * to "played through" and starts the terminator.
+     * Starts the BGM fade-out, resets the display, loads the cutscene's four OBJ images (split
+     * line, `Img_opanim_unk1`, Ephraim / Eirika name, `Img_OpAnimDivlEye`) and palettes into OBJ
+     * VRAM and OBJ palettes 0..3, fills the last 0x800 bytes of OBJ tile memory with solid tiles,
+     * sets the next game action to "played through" and starts the skip watcher
+     * ([terminatorScript]).
      *
      * Ported from src/opanim-main.c: OpAnimInit
      */
@@ -473,7 +493,8 @@ public class OpAnim(
 
     /**
      * Sets up BG2 (world map) and BG1 (fog, palette 2), blending and display, and starts the op
-     * anim BGM (`SONG_THE_VALIANT`).
+     * anim BGM (`SONG_THE_VALIANT`). The decomp also zeroes the exit-slide start positions
+     * (`unk34`, `unk36`); here [State] already starts them at 0.
      *
      * Ported from src/opanim-main.c: SetupOpAnimWorldMapfx
      */
@@ -516,8 +537,9 @@ public class OpAnim(
     }
 
     /**
-     * Fills BG palette 0 with a grey interpolated from black to white over 0x3E frames, then sets
-     * [pal] to white, keeps only OBJ as first blend target and breaks.
+     * Fills BG palette 0 with a grey interpolated from black to white over 0x3E frames; when done,
+     * sets [pal] (the colour later forced into palette entry 0) to white, resets the first blend
+     * target to OBJ only and breaks.
      *
      * Ported from src/opanim-main.c: OpAnimBldAlphaUpdateBgPalette
      */
@@ -538,7 +560,7 @@ public class OpAnim(
     }
 
     /**
-     * Waits 8 frames, then breaks.
+     * Pause between the grey fade and the blend: breaks on the step where `timer` reaches 8.
      *
      * Ported from src/opanim-main.c: OpAnimBldAlphaDelay
      */
@@ -553,7 +575,8 @@ public class OpAnim(
     }
 
     /**
-     * Moves the blend coefficients from (0x10, 0) to (0, 0x10) over 0x10 frames, then breaks.
+     * Moves the blend coefficients from (0x10, 0) to (0, 0x10) over 0x10 frames, then breaks. The
+     * decomp does not say what it is for.
      *
      * Ported from src/opanim-main.c: OpAnimBldAlphaMain
      */
@@ -578,7 +601,8 @@ public class OpAnim(
     public fun bldAlphaExists(): Boolean = engine.find(bldAlphaScript) != null
 
     /**
-     * Blends the fog (BG1) over the world map (BG2) and shows BG1, BG2 and OBJ.
+     * Blends the fog (BG1, first target) over the world map (BG2, second target), shows BG1, BG2
+     * and OBJ and zeroes the fog scroll.
      *
      * Ported from src/opanim-main.c: OpAnimUpdateScreen1
      */
@@ -594,8 +618,10 @@ public class OpAnim(
     }
 
     /**
-     * World map scene, one frame: scrolls the fog, fades the map palette in from white and the fog
-     * out, starts the screen fade-in at frame 0xEF and breaks at 0x110.
+     * World map scene, one frame: drifts the fog (BG1) by 1 pixel every 2 frames in x and every 4
+     * in y, fades the map palette from white to its real colours over frames 0..0x60 and the fog's
+     * blend coefficient from 8 to 0 over frames 0x80..0xE0. At frame 0xEF it hides BG1 and starts
+     * a 0x20-frame brightness fade ([newFadeIn]); breaks at 0x110.
      *
      * Ported from src/opanim-main.c: sub_80C6F70
      */
@@ -626,8 +652,9 @@ public class OpAnim(
     }
 
     /**
-     * Resets the BG layout for the Ephraim / Eirika scenes: offsets, priorities, empty tilemaps,
-     * display off, blend setup.
+     * Resets the BG layout for the Ephraim / Eirika scenes (BG0 and BG1 share tile offset 0, BG2
+     * and BG3 share 0x4000), BG priorities 0..3 in order, empty tilemaps, all layers hidden, blend
+     * setup (alpha, OBJ and BG1 over BG2 and BG3), and zeroes the scroll counters.
      *
      * Ported from src/opanim-main.c: sub_80C7050
      */
@@ -659,8 +686,11 @@ public class OpAnim(
     }
 
     /**
-     * Loads the Ephraim scene over 7 steps (by `timer`: one or two ROM blobs per step), then sets
-     * up BG3 / palettes / `gOpAnimSt` and breaks.
+     * Loads the Ephraim scene over 7 steps (by `timer`, 0..6; one or two compressed ROM blobs per
+     * step, so no single frame decompresses everything): the BG3 backdrop, the two close-up
+     * images, the main image and its blur palettes, then two blur images. The last step builds
+     * the BG0 tilemap, shows all layers, resets the scroll state and `gOpAnimSt` (`unk06` to
+     * 0xA0) and breaks.
      *
      * Ported from src/opanim-main.c: OpAnimPreparefxEphraim
      */
@@ -672,7 +702,8 @@ public class OpAnim(
         val st = proc.state as State
         fun dec(b: OpAnimHs.Blob, dst: ByteArray, at: Int) =
             Decompress.into(b.data, b.offset, dst, at)
-        // These steps decompress the biggest blobs; measured on hardware to overrun one VBlank.
+        // These steps decompress the biggest blobs; the overrun of one VBlank was measured with
+        // mGBA (see [missedVBlanks]).
         if (st.timer == 0 || st.timer == 1 || st.timer == 5) missedVBlanks = 1
         when (st.timer) {
             0 -> {

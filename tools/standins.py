@@ -23,7 +23,7 @@ import progress  # noqa: E402
 ROOT = progress.ROOT
 OUT = "docs/plans/STANDINS.md"
 MATCH_RX = re.compile(r"\bstand[- ]?ins?\b", re.IGNORECASE)
-REF_RX = re.compile(r"\b(M6-[A-J]|M7(?:-\d+)?|D\d{2}-[a-z0-9-]+|PP-\d+|(?:MC|EP|PC|IS)-(?:\d+[a-z]?|w|cap\d)|CAP-[a-z0-9]+)\b")
+REF_RX = re.compile(r"\b(M6-[A-J]|M7(?:-\d+)?|D\d{2}-[a-z0-9-]+|PP-\d+|(?:MC|EP|PC|IS)-(?:\d+[a-z]?|w\d?|cap\d)|CAP-[a-z0-9]+)\b")
 DECL_RX = re.compile(r"\b(?:fun|val|var|class|object|interface)\s+(?:<[^>]*>\s*)?(?:[\w.]+\.)?(\w+)")
 CHAR_RX = re.compile(r"'(?:\\[^']*|[^'\\])'")
 SENTENCE_SPLIT_RX = re.compile(r"(?<=[.!?])\s+(?=[A-Z`\[(\"'])")

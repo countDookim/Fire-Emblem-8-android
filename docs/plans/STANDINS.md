@@ -96,8 +96,8 @@ Total entries: 219 across 45 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `redrawAfterTorch` | Stand-in until M6-D: nothing. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `statusDecayDisplay` | `gProcScr_StatusDecayDisplay`: [statusDecayDisplayInit], then (a stand-in until M6-D for the `MassEffectDisplay_*` / `_Display` / `_Next` loop that no capture runs) the proc ends. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `terrainHealDisplay` | `gProcScr_TerrainHealDisplay`: [terrainHealDisplayInit], then the stand-in (M6-D) end. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayActiveUnitEffectRange` | Stand-in until M6-D for `DisplayActiveUnitEffectRange` (label 11, an enemy's range). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayDangerZone` | Stand-in until M6-D for `PlayerPhase_DisplayDangerZone` (the enemies' reach). |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayActiveUnitEffectRange` | Stand-in until M6-D for `DisplayActiveUnitEffectRange` (label 11: the range of a unit the player does not control, `PLAYER_SELECT_NOCONTROL`). |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayDangerZone` | Stand-in until M6-D for `PlayerPhase_DisplayDangerZone` (label 12: the danger zone, `GenerateDangerZoneRange`, reached when the resume finds no active unit). |
 
 ## M6-E (51)
 
@@ -133,10 +133,10 @@ Total entries: 219 across 45 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `pidStatsAddActAmt` | Stand-in until M6-E for `PidStatsAddActAmt(pid, 1)` (the per-character action count of the save statistics); gets the character id. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `pidStatsAddSquaresMoved` | `PidStatsAddSquaresMoved(charId, amount)`; stand-in until M6-E (the records). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `playerPhaseApplyUnitMovement` | Then `StartAfterUnitMovedEvent` ([Hooks.startAfterUnitMovedEvent], a stand-in until M6-E) and the unit action menu ([Hooks.startUnitActionMenu]) unless the move was trapped; breaks (both paths of t... |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `resumeRangeDisplay` | Stand-in until M6-E for `PlayerPhase_ResumeRangeDisplay` (resume during an action). |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `resumeRangeDisplay` | Stand-in until M6-E for `PlayerPhase_ResumeRangeDisplay` (label 6: back from the stat screen opened in the range display idle; redraws the map and the active unit's range). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startAfterUnitMovedEvent` | Stand-in until M6-E for `StartAfterUnitMovedEvent` (src/eventinfo.c; the tutorial and the chapter's after-move events): true when an event started. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startDestSelectedEvent` | `StartDestSelectedEvent` (events); stand-in until M6-E, false (no event). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startTutorialEvent` | Stand-in until M6-E for `StartPlayerPhaseStartTutorialEvent` (Easy-mode tutorial). |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startTutorialEvent` | Stand-in until M6-E for `StartPlayerPhaseStartTutorialEvent`: runs the chapter's pending tutorial event if it is of the player phase type (never in a skirmish). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `tryCallSelectEvents` | Stand-in until M6-E for `TryCallSelectEvents` (select events of the active unit). |
 | `game/src/commonMain/kotlin/fe8/game/event/EventChangeMap.kt` | `EventChangeMap` | Stand-in until M6-E: nothing by default. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `colorFadeIn` | Stand-in (M6-E) for `NewColFadeIn(speed, 0, color, proc)`: fades the screen in from [color] (a colour word, format not checked here) at [speed]. |
@@ -170,7 +170,7 @@ Total entries: 219 across 45 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `playerPhaseMainIdle` | Stand-ins until M6-F: the L, R and START branches ([Hooks.lButton], [Hooks.rButton], [Hooks.startButton]); `DoesBMXFADEExist` is a hook too, and the cursor sprite is [Hooks.putMapCursor]. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `rButton` | Stand-in until M6-F for the whole R button branch of `PlayerPhase_MainIdle` (the stat screen, `Proc_Goto(proc, 5)`); runs when R is new and the cursor tile holds a unit; returns true if it left `Pl... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `reReadGameSaveGfx` | Stand-in until M6-F for `PlayerPhase_ReReadGameSaveGfx` (after the stat screen). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startButton` | Stand-in until M6-F for the START button branch of `PlayerPhase_MainIdle` (the minimap, `Proc_Goto(proc, 9)`); runs when START is new and SELECT is not held and the A branch did not run; returns tr... |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startButton` | Stand-in until M6-F for the START button branch of `PlayerPhase_MainIdle` (the minimap, `Proc_Goto(proc, 9)`); runs when START is new and SELECT is not held, and A did not select (A not new, or the... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startStatScreen` | Stand-in until M6-F for `SetStatScreenConfig` and `StartStatScreen(unit, proc)` (unit id [unit]). |
 
 ## M6-G (4)
@@ -216,7 +216,7 @@ Total entries: 219 across 45 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `doesBmxFadeExist` | Stand-in for `DoesBMXFADEExist` (false) until M6-H (the fog fade). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `drawGoalSecondLine` | Stand-in until M6-H (the first chapter with a "defeat all" or "defend" goal) for the second text line of `GoalDisplay_Init` (enemy count or turn counter, drawn with `Text_InsertDrawNumberOrBlank`);... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `obstacleHpAt` | Stand-in for `GetObstacleHpAt` (bmtrick.c) until M6-H. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `canUnitMove` | `CanUnitMove` for the active unit (a canto move); stand-in until M6-H, false. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `canUnitMove` | `CanUnitMove` for the active unit: whether an adjacent tile is free of enemies and within the movement left after `moveCount` (asked for a canto move); stand-in until M6-H, false. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `doesBmxFadeExist` | `DoesBMXFADEExist` (bmxfade.c, `Proc_Find(sProcScr_BMXFADE)`): stand-in until M6-H (the fog fade of chapters with vision), default false. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `execTrap` | `ExecTrap(proc, unit, 0)` for unit id [unit]; stand-in until M6-H, true (go on). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `getPickTrapType` | M6-H stand-in. |

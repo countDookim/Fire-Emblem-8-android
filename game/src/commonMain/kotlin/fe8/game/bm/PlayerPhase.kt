@@ -129,7 +129,10 @@ public class PlayerPhase(
         /** `RefreshUnitSprites`. Default no-op; `Fe8Boot` sets the `UnitSpriteHandles` port. */
         public var refreshUnitSprites: ProcFunc = ProcFunc {}
 
-        /** Stand-in until M6-E for `StartPlayerPhaseStartTutorialEvent` (Easy-mode tutorial). */
+        /**
+         * Stand-in until M6-E for `StartPlayerPhaseStartTutorialEvent`: runs the chapter's pending
+         * tutorial event if it is of the player phase type (never in a skirmish).
+         */
         public var startTutorialEvent: ProcFunc = ProcFunc {}
 
         /** `StartMapSongBgm`. Default no-op; `Fe8Boot` sets `MapMusic.startMapSongBgm`. */
@@ -169,8 +172,9 @@ public class PlayerPhase(
 
         /**
          * Stand-in until M6-F for the START button branch of `PlayerPhase_MainIdle` (the
-         * minimap, `Proc_Goto(proc, 9)`); runs when START is new and SELECT is not held and the A
-         * branch did not run; returns true if it left `PlayerPhase_MainIdle`.
+         * minimap, `Proc_Goto(proc, 9)`); runs when START is new and SELECT is not held, and A
+         * did not select (A not new, or the cursor tile gives no select kind); returns true if it
+         * left `PlayerPhase_MainIdle`.
          */
         public var startButton: ProcBoolFunc = ProcBoolFunc { false }
 
@@ -398,7 +402,11 @@ public class PlayerPhase(
         /** `PidStatsAddSquaresMoved(charId, amount)`; stand-in until M6-E (the records). */
         public var pidStatsAddSquaresMoved: (charId: Int, amount: Int) -> Unit = { _, _ -> }
 
-        /** `CanUnitMove` for the active unit (a canto move); stand-in until M6-H, false. */
+        /**
+         * `CanUnitMove` for the active unit: whether an adjacent tile is free of enemies and
+         * within the movement left after `moveCount` (asked for a canto move); stand-in until
+         * M6-H, false.
+         */
         public var canUnitMove: () -> Boolean = { false }
 
         /** `RenderBmMapOnBg2` (fog chapters only); stand-in until M6-H. */
@@ -407,16 +415,25 @@ public class PlayerPhase(
         /** `NewBMXFADE(flag)` (fog chapters only); stand-in until M6-H. */
         public var newBmxFade: (flag: Int) -> Unit = {}
 
-        /** Stand-in until M6-E for `PlayerPhase_ResumeRangeDisplay` (resume during an action). */
+        /**
+         * Stand-in until M6-E for `PlayerPhase_ResumeRangeDisplay` (label 6: back from the stat
+         * screen opened in the range display idle; redraws the map and the active unit's range).
+         */
         public var resumeRangeDisplay: ProcFunc = ProcFunc {}
 
         /** `EndAllMus`; set by `PlayerPhaseWiring`. */
         public var endAllMus: ProcFunc = ProcFunc {}
 
-        /** Stand-in until M6-D for `DisplayActiveUnitEffectRange` (label 11, an enemy's range). */
+        /**
+         * Stand-in until M6-D for `DisplayActiveUnitEffectRange` (label 11: the range of a unit the
+         * player does not control, `PLAYER_SELECT_NOCONTROL`).
+         */
         public var displayActiveUnitEffectRange: ProcFunc = ProcFunc {}
 
-        /** Stand-in until M6-D for `PlayerPhase_DisplayDangerZone` (the enemies' reach). */
+        /**
+         * Stand-in until M6-D for `PlayerPhase_DisplayDangerZone` (label 12: the danger zone,
+         * `GenerateDangerZoneRange`, reached when the resume finds no active unit).
+         */
         public var displayDangerZone: ProcFunc = ProcFunc {}
 
         /** Stand-in until M6-F for `PlayerPhase_ReReadGameSaveGfx` (after the stat screen). */
@@ -428,8 +445,13 @@ public class PlayerPhase(
     }
 
     /**
-     * `gProcScr_PlayerPhase` (0x0859AAD8). Labels 0 (phase start), 9 (idle), 1 (unit selected),
-     * 2, 7 (action), 4, 5, 10, 6, 8, 11, 12 and 3 (end of the phase) as in the C.
+     * `gProcScr_PlayerPhase` (0x0859AAD8), in the order of the C. Labels: 0 phase start (suspend
+     * save, auto end check), 9 cursor idle, 1 unit selected (movement select), 2 unit action menu
+     * (after the move), 7 action (the camera, then the action, traps and events), 4 wait for the
+     * fog fade, then 1 (the canto path), 5 after the stat screen, 10 the child script
+     * `gProcScr_ADJUSTSFROMXI` (its meaning is unknown), 6 resume of the range display, 8 after a
+     * won chapter's end event, 11 range of a unit the player does not control, 12 danger zone and
+     * 3 end of the phase.
      */
     public val script: ProcScript = ProcScript(
         "gProcScr_PlayerPhase",
@@ -518,8 +540,10 @@ public class PlayerPhase(
         ),
     )
 
+    /** Sign-extends the low 16 bits of [v] (a C `s16`). */
     private fun s16(v: Int): Int = v.toShort().toInt()
 
+    /** Sign-extends the low 8 bits of [v] (a C `s8`). */
     private fun s8(v: Int): Int = v.toByte().toInt()
 
     /**
@@ -549,12 +573,14 @@ public class PlayerPhase(
      *
      * Verified for the Wait action (the camera check on the subject, the item switch and the
      * `unitActionType != WAIT` test that skips the suspend save). Every other branch is
-     * transcribed (not verified: no capture has it): no action chosen (back to move, or a forced
-     * wait after a trade or take), the trade, supply, take, give and ballista actions that go
-     * back to the move (`PlayerPhase_CancelAction`), the promotion items and Solar and Lunar
-     * Braces that return before the suspend save, and the suspend save of the other actions.
+     * transcribed (not verified: no capture has it): no action chosen (back to the move origin
+     * with [playerPhaseBackToMove], or a forced wait after a trade or take), the trade, supply,
+     * take, give and ballista actions that go back to the unit menu
+     * ([playerPhaseCancelAction]), the promotion items and Solar and Lunar Braces that return
+     * before the suspend save, and the suspend save of the other actions.
      *
-     * Returns true (go on) when no camera move had to start for the subject.
+     * Returns true (go on) when no camera move had to start for the subject. The C also clears
+     * `gBattleActor.hasItemEffectTarget` before the item switch; that store is not ported here.
      */
     public fun playerPhasePrepareAction(proc: Proc): Boolean {
         val subject = active.action.subjectIndex
@@ -613,7 +639,8 @@ public class PlayerPhase(
      *   reaches it; only the trade, supply, take, give and ballista actions of
      *   [playerPhasePrepareAction] do)
      *
-     * Forgets the chosen action and goes back to label 2, the unit menu.
+     * Forgets the chosen action and goes back to label 2, which applies the move again and opens
+     * the unit action menu.
      */
     public fun playerPhaseCancelAction(proc: Proc) {
         active.action.unitActionType = 0
@@ -651,9 +678,8 @@ public class PlayerPhase(
      * Verified for that result only, with [Hooks.getPickTrapType] returning none; the dead and
      * canto early returns and the rest (the unit stands on a trap) are transcribed (not
      * verified: no capture has a dead unit, a canto unit or a trap here): marks the action as
-     * Wait, writes the suspend save,
-     * refreshes the unit sprites when battle animations are off and runs the trap
-     * ([Hooks.execTrap], PP-17 and the trap port).
+     * Wait, writes the suspend save, refreshes the unit sprites when battle animations are off
+     * and runs the trap ([Hooks.execTrap], PP-17 and the trap port).
      */
     public fun handlePostActionTraps(proc: Proc): Boolean {
         val unit = active.unit
@@ -667,7 +693,7 @@ public class PlayerPhase(
             }
         }
         if (hooks.getPickTrapType(unit) == 0) return true
-        active.action.suspendPointType = 1
+        active.action.suspendPointType = SUSPEND_POINT_DURINGACTION
         active.action.unitActionType = UNIT_ACTION_WAIT_TYPE
         hooks.writeSuspendSave(SAVE_ID_SUSPEND)
         if (hooks.battleAnimPreconfOff()) hooks.refreshUnitSprites.invoke(proc)
@@ -738,7 +764,8 @@ public class PlayerPhase(
      *
      * Verified for the Wait capture (the unit stays on its tile, no rescue, alive).
      * Puts the active unit on ([x], [y]), makes it unselectable, records the squares moved,
-     * shows it again if alive and finalizes the move.
+     * shows it again if alive and finalizes the move (`UnitFinalizeMovement`: a carried rescuee
+     * and a ballista move to the same tile).
      */
     private fun moveActiveUnit(x: Int, y: Int) {
         val unit = active.unit
@@ -756,9 +783,10 @@ public class PlayerPhase(
      *   no canto, and a bail at the first test is not observable: `US_HAS_MOVED` is set, so the
      *   second test bails too)
      *
-     * Starts the canto move of an active unit that can canto, has not moved and did not wait,
-     * fight or use a staff, and has movement left: returns true after jumping to label 4 (fog)
-     * or 1. Returns false in every other case.
+     * Starts the canto move of an active unit that can canto, is alive, has not moved (and is
+     * not `US_BIT16`), did not wait, fight or use a staff, has movement left and a tile to move
+     * to ([Hooks.canUnitMove]): returns true after jumping to label 4 (fog) or 1. Returns false
+     * in every other case.
      */
     public fun tryMakeCantoUnit(proc: Proc): Boolean {
         val unit = active.unit

@@ -905,7 +905,8 @@ public class PlayerPhase(
      *
      * What A on [unit] (a unit id, 0 for none) selects: `PLAYER_SELECT_NOUNIT` (0) for none,
      * `PLAYER_SELECT_TURNENDED` (1) for a unit of the phase's faction that cannot be selected
-     * (it has acted), `PLAYER_SELECT_CONTROL` (2) for one the player can move,
+     * (`US_UNSELECTABLE`: it has acted; or its class has `CA_UNSELECTABLE`),
+     * `PLAYER_SELECT_CONTROL` (2) for one the player can move,
      * `PLAYER_SELECT_NOCONTROL` (3) for another faction's unit or an asleep or berserk one, and 4
      * on the preparation screen for a character that cannot be moved there. The preparation
      * screen branch (`BM_FLAG_PREPSCREEN`, [Hooks.canCharacterBePrepMoved]) is transcribed (not
@@ -975,11 +976,12 @@ public class PlayerPhase(
      * Partially ported from src/playerphase.c: DisplayUnitEffectRange
      *
      * Floods `gBmMapMovement` from the active unit with `UNIT_MOV - moveCount`
-     * ([MovementMap.generateUnitMovementMapExt]; the C ignores its parameter [unit] and uses
-     * `gActiveUnit`), and, while the unit has not moved (`US_HAS_MOVED`), generates the attack
-     * or staff range ([Hooks.generateAttackRange], set by `Fe8Boot`); then displays the range
-     * squares ([Hooks.displayMoveRangeGraphics], PP-4) with the flags
-     * (`LIMITVIEW_BLUE`, or the range's). A unit with `US_HAS_MOVED` set displays
+     * ([MovementMap.generateUnitMovementMapExt]; the C uses [unit] only for the magic rank test
+     * of the stand-in part and `gActiveUnit` for the rest, and callers pass the active unit),
+     * and, while the unit has not moved (`US_HAS_MOVED`), generates the attack or staff range
+     * ([Hooks.generateAttackRange], set by `Fe8Boot`): the flags are `LIMITVIEW_RED` (attack
+     * range) or `LIMITVIEW_GREEN` (staff range) with `LIMITVIEW_BLUE`. Then displays the range
+     * squares ([Hooks.displayMoveRangeGraphics], PP-4). A unit with `US_HAS_MOVED` set displays
      * `LIMITVIEW_BLUE` only (transcribed, not verified: the window has the unit unmoved).
      */
     @Suppress("UNUSED_PARAMETER")
@@ -1020,15 +1022,17 @@ public class PlayerPhase(
      * Ported from src/playerphase.c: PlayerPhase_RangeDisplayIdle
      *
      * The idle loop while the movement range shows: moves the cursor, then picks one action from
-     * the keys. A with an active unit: not moved and not controllable (`GetPlayerSelectKind`
-     * is not 2) swaps the ranges or cancels, else [canMoveActiveUnitTo] the cursor tile moves
-     * (keeps the camera on the origin, hides the range squares, breaks the proc) or fails (sound
-     * 0x6C). B cancels ([cancelSelect]) unless the unit has moved (fail). R and L are
-     * transcribed (not verified: no capture presses them in the range display), as are A without
-     * an active unit, the destination event and the range swap (SONG 0x6C on a failed A is
-     * not verified either: no capture presses A off the range). Unless the proc left, the path
-     * arrow follows the cursor for a controllable unit ([pathArrow], [PathArrow.drawUpdatedPathArrow]) and
-     * the cursor sprite is drawn.
+     * the keys. A with an active unit: a destination event ([Hooks.startDestSelectedEvent])
+     * does nothing more; a unit that is not controllable (`GetPlayerSelectKind` is not 2) and has
+     * not moved swaps the ranges (when it has both weapon and staff usability) or cancels; else
+     * the cursor tile is moved to ([canMoveActiveUnitTo]: keeps the camera on the origin, hides
+     * the range squares, breaks the proc) or refused (`SONG_6C`). B cancels ([cancelSelect])
+     * unless the unit has moved (refused). R opens the stat screen (label 6 on return), L puts the
+     * cursor back on the origin. R and L are transcribed (not verified: no capture presses them
+     * in the range display), as are A without an active unit, the destination event, the range
+     * swap and the refused A (no capture presses A off the range). Unless the proc left, the path
+     * arrow follows the cursor for a controllable unit ([pathArrow],
+     * [PathArrow.drawUpdatedPathArrow]) and the cursor sprite is drawn.
      */
     public fun playerPhaseRangeDisplayIdle(proc: Proc) {
         var action = ACT_NONE
@@ -1088,7 +1092,7 @@ public class PlayerPhase(
             }
             ACT_INFOSCREEN -> {
                 if (eventEngineExists()) {
-                    // break out of the switch: the proc stays
+                    // An event is running: R does nothing.
                 } else {
                     var uid = map.unit[bm.playerCursorY, bm.playerCursorX]
                     if (active.moveOriginX == bm.playerCursorX &&
@@ -1150,8 +1154,8 @@ public class PlayerPhase(
      * Ported from src/playerphase.c: CanMoveActiveUnitTo
      *
      * Whether the active unit can end its move on ([x], [y]): the tile is free of units and in
-     * the movement range, and, for a unit in a ballista, is its origin or has no ballista trap
-     * (the ballista part is transcribed, not verified: no capture has one).
+     * the movement range, and, for a unit in a ballista, is its origin or holds no ballista trap
+     * (`TRAP_BALLISTA`; the ballista part is transcribed, not verified: no capture has one).
      */
     public fun canMoveActiveUnitTo(x: Int, y: Int): Boolean {
         if (map.unit[y, x] != 0) return false
@@ -1196,8 +1200,9 @@ public class PlayerPhase(
      * a unit that has not moved and not acted (`taken_action`), stores the cost of the move in
      * `moveCount`. Then `StartAfterUnitMovedEvent` ([Hooks.startAfterUnitMovedEvent], a
      * stand-in until M6-E) and the unit action menu ([Hooks.startUnitActionMenu]) unless the
-     * move was trapped; breaks (both paths of the C end that way). `ResetTextFont` is done by the
-     * wiring of [Hooks.startUnitActionMenu].
+     * move was trapped; breaks. The C ends the same way whether or not an after-move event
+     * started (its `sub_801D434` is the menu and break part), so the result is not used.
+     * `ResetTextFont` is done by the wiring of [Hooks.startUnitActionMenu].
      */
     public fun playerPhaseApplyUnitMovement(proc: Proc) {
         val unit = active.unit
@@ -1308,10 +1313,14 @@ public class PlayerPhase(
     /**
      * Transcribed from src/bmunit.c: UnitFinalizeMovement (not verified: rescuer and ballista,
      * no capture has either)
+     *
+     * Moves a carried (rescued) unit to [unit]'s tile. The C also moves the ballista trap of a
+     * unit in a ballista; that part throws here.
      */
     private fun unitFinalizeMovement(unit: Int) {
         val state = units.state(unit)
         if ((state and US_RESCUING) != 0) {
+            // Offset 0x1B is `rescue` (the id of the carried unit) in the unit struct.
             val rescuee = units.bytes[units.unitOffset(unit) + 0x1B].toInt() and 0xFF
             units.setPosition(rescuee, units.xPos(unit), units.yPos(unit))
         }
@@ -1325,9 +1334,10 @@ public class PlayerPhase(
      *
      * Moves the cursor one tile by the D-pad bits of [dirKeys] (opposite directions cancel):
      * updates `playerCursor`, `cursorPrevious` and `cursorTarget` per axis where the new position
-     * is on the map. With the movement range shown (`gameStateBits` bit 1) a step off the
-     * reachable area only counts when the D-pad is a new press. The cursor sound plays on a move,
-     * every other call (bit 2 toggles).
+     * is on the map. With the movement range shown (`BM_FLAG_1`) a step off the reachable area
+     * only counts when the D-pad is a new press. `SONG_65` plays on a move when `BM_FLAG_2` is
+     * clear, and that call sets the flag; the next call clears it, so a held direction sounds on
+     * every other step.
      */
     public fun handleMapCursorInput(dirKeys: Int) {
         val dir = (dirKeys shr 4) and 0xF
@@ -1488,7 +1498,7 @@ public class PlayerPhase(
         /** `LIMITVIEW_GREEN`. */
         public const val LIMITVIEW_GREEN: Int = 1 shl 2
 
-        /** `SONG_69`, the sound of selecting a unit. */
+        /** `SONG_69`, played when the path arrow starts on the active unit. */
         public const val SONG_69: Int = 0x69
 
         /** `BM_FLAG_1`: the movement range shows. */
@@ -1503,10 +1513,12 @@ public class PlayerPhase(
         /** `SONG_SE_SYS_WINDOW_CANSEL1`. */
         public const val SONG_CANCEL: Int = 0x6B
 
-        /** `BM_FLAG_3`. */
+        /** `BM_FLAG_3`: set while the danger zone shows (label 12). */
         public const val BM_FLAG_3: Int = 1 shl 3
 
         private const val TRAP_BALLISTA = 1
+
+        // The `ACT_*` enum of `PlayerPhase_RangeDisplayIdle`; ACT_NONE is its initial -1.
         private const val ACT_NONE = -1
         private const val ACT_FAIL = 0
         private const val ACT_MOVE = 1

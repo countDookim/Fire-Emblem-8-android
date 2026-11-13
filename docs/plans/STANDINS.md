@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 219 across 45 Kotlin files.
+Total entries: 220 across 45 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -40,6 +40,7 @@ Total entries: 219 across 45 Kotlin files.
 | PC-10 | 1 |
 | PP-10 | 1 |
 | PP-17 | 1 |
+| PP-4 | 1 |
 | PP-9 | 1 |
 
 ## M6-B (16)
@@ -132,7 +133,7 @@ Total entries: 219 across 45 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `maybeCallEndEvent` | `MaybeCallEndEvent_`; stand-in until M6-E (the end event). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `pidStatsAddActAmt` | Stand-in until M6-E for `PidStatsAddActAmt(pid, 1)` (the per-character action count of the save statistics); gets the character id. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `pidStatsAddSquaresMoved` | `PidStatsAddSquaresMoved(charId, amount)`; stand-in until M6-E (the records). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `playerPhaseApplyUnitMovement` | Then `StartAfterUnitMovedEvent` ([Hooks.startAfterUnitMovedEvent], a stand-in until M6-E) and the unit action menu ([Hooks.startUnitActionMenu]) unless the move was trapped; breaks (both paths of t... |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `playerPhaseApplyUnitMovement` | Then `StartAfterUnitMovedEvent` ([Hooks.startAfterUnitMovedEvent], a stand-in until M6-E) and the unit action menu ([Hooks.startUnitActionMenu]) unless the move was trapped; breaks. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `resumeRangeDisplay` | Stand-in until M6-E for `PlayerPhase_ResumeRangeDisplay` (label 6: back from the stat screen opened in the range display idle; redraws the map and the active unit's range). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startAfterUnitMovedEvent` | Stand-in until M6-E for `StartAfterUnitMovedEvent` (src/eventinfo.c; the tutorial and the chapter's after-move events): true when an event started. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startDestSelectedEvent` | `StartDestSelectedEvent` (events); stand-in until M6-E, false (no event). |
@@ -389,6 +390,12 @@ Total entries: 219 across 45 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `PlayerPhaseWiring` | What stays a stand-in is listed with its plan row on the declarations below: the attack (`M6-C`), the item commands and traps (`M6-H`), the info screens (`M6-F`), the suspend and end events (`M6-E`). |
+
+## PP-4 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayUnitEffectRange` | Partially ported from src/playerphase.c: DisplayUnitEffectRange Floods `gBmMapMovement` from the active unit with `UNIT_MOV - moveCount` ([MovementMap.generateUnitMovementMapExt]; the C uses [unit]... |
 
 ## PP-9 (1)
 

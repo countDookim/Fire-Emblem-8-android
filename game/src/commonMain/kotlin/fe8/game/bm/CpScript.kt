@@ -42,14 +42,15 @@ public class CpScript(
     /** Services outside the written commands; a null hook does nothing. */
     public class Hooks {
         /**
-         * Stand-in for `AiAttemptOffensiveAction(test)` (cp_battle.c; EP-5): decides the attack
-         * on a unit that passes `test` by calling [CpDecide.aiSetDecision].
+         * `AiAttemptOffensiveAction(test)` (cp_battle.c): [CpPhase] sets it to
+         * [CpBattle.aiAttemptOffensiveAction] when it has the map objects; it decides the attack
+         * on a unit that passes `test` by calling [CpDecide.aiSetDecision]. Null does nothing.
          */
         public var attemptOffensiveAction: AiTestStep? = null
 
         /**
-         * Stand-in for `AiTryDoStaff(test)` (cp_staff.c; EP-5): true when a staff was used. Null
-         * counts as false (no staff).
+         * `AiTryDoStaff(test)` (cp_staff.c): [CpPhase] sets it to [CpBattle.aiTryDoStaff]; true
+         * when a staff was used. Null counts as false (no staff).
          */
         public var tryDoStaff: AiTestTry? = null
 

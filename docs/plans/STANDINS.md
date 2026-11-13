@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 220 across 45 Kotlin files.
+Total entries: 232 across 46 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -26,10 +26,9 @@ Total entries: 220 across 45 Kotlin files.
 | D09-3 | 2 |
 | D11-wire-a | 2 |
 | EP-1 | 1 |
-| EP-12 | 6 |
-| EP-2a | 1 |
-| EP-5 | 3 |
-| EP-7 | 2 |
+| EP-12 | 15 |
+| EP-6a | 5 |
+| EP-7 | 4 |
 | EP-8 | 1 |
 | EP-cap2 | 6 |
 | EP-w | 3 |
@@ -291,35 +290,42 @@ Total entries: 220 across 45 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `phaseStartEnd` | The target list is its own: the displays' `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w shares one list with the player phase when the real `Make*TargetList`... |
 
-## EP-12 (6)
+## EP-12 (15)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `aiAttemptOffensiveAction` | Verified: the movement and range maps, the candidate tile, the target, the weapon slot and the simulated battle (via the decision and the dump at the score call); not seen: `AI_FLAG_STAY`, a tie, a... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `ballistaCombat` | Stand-in for `AiAttemptBallistaCombat` (EP-12: never entered), for a `CA_BALLISTAE` unit. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `ballistaSimulation` | Stand-in for `BattleGenerateBallistaSimulation` (EP-12: never entered). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `inBallistaBranch` | Stand-in for the `US_IN_BALLISTA` branch of `AiAttemptOffensiveAction` (`GetRiddenBallistaAt`, `TryRemoveUnitFromBallista`; EP-12: never entered): true to go on to the ballista combat. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `magicSealMap` | Stand-in for `UnitHasMagicRank` and `GenerateMagicSealMap(-1)` (EP-12: never entered): runs for every unit that is not in a ballista and not stealing. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `staffFunc` | Stand-in for the staff AI functions (cp_staff.c; EP-12: never entered). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `stealAction` | Stand-in for the `CA_STEAL` block of `AiAttemptOffensiveAction` (movement map, `MarkMovementMapEdges`, `AiAttemptStealActionWithinMovement`; EP-12: never entered): true when the function returned 1. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `tryRemoveFromBallista` | Stand-in for `TryRemoveUnitFromBallista(gActiveUnit)` (bmarch.c; EP-12: never entered), called only for a unit in a ballista. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `execFallbackScriptA` | Stand-in for `AiExecFallbackScriptA` (cp_script.c; EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `execFallbackScriptB` | Stand-in for `AiExecFallbackScriptB` (cp_script.c; EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `rogueSpecialItems` | Stand-in for the rogue part of `sub_8040C5C` (cpextra_80407F0.c, with `sub_8040B38`, `sub_8040BB4`, `sub_8040B8C`; EP-12: never entered); its result is the function's. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `specialItemFunc` | Stand-in for `sAiSpecialItemFuncLut[index].func(slot)` (cpextra_80407F0.c: `AiSpecialItemDoorKey`, `Lockpick`, `Antitoxin`; EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `sub8040C5C` | Transcribed from src/cpextra_80407F0.c: sub_8040C5C (not verified: only the non-rogue return runs, for Red 0 at f1613, and it shows in no captured value; the rogue part is a stand-in, EP-12) Rogue-... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `script` | The AI script interpreter (cp_script.c); its hooks are the EP-12 stand-ins. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | `unportedCommand` | Stand-in for a command this class does not write (EP-12): called with the command index (`AI_CMD_*`: 00..04, 07..0D, 0F..1B, and 05 with an ignore list, whose predicates `AiIsUnitEnemyOrInScrList`... |
 
-## EP-2a (1)
+## EP-6a (5)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `cp` | The script interpreter runs (EP-4); the offensive action, danger map reach and perform proc are stand-ins that decide nothing (EP-5, EP-7, EP-8), so End turn runs the enemy banner, marks every enem... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `CpBattle` | The score of a simulated battle (`AiComputeCombatScore` and its components) and of a tile (the three position components) are EP-6a/6b stand-ins, the movement and reach (`GenerateUnitMovementMap`,... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `aiGetCombatPositionScore` | Transcribed from src/cp_battle.c: AiGetCombatPositionScore (not verified: the capture has one candidate tile per target, so no captured value shows the score, only that it is not 0; the three compo... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `computeCombatScore` | Stand-in for `AiComputeCombatScore(st)` and its 8 score components (EP-6a/6b): sets [AiCombatSimulationSt.score]. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `positionScore` | Stand-in for `AiGetInRangeCombatPositionScoreComponent`, `AiGetTerrainCombatPositionScoreComponent` and `AiGetFriendZoneCombatPositionScoreComponent` (EP-6a/6b): their sum. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `battle` | The AI attack search (cp_battle.c, `AiTryDoStaff`) and its hooks (EP-6a/6b, EP-7, EP-12 stand-ins); null (the script attacks nothing) when the constructor got no [loader], [map] and [entityMaps]. |
 
-## EP-5 (3)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `script` | The AI script interpreter (cp_script.c); its hooks are the EP-5 and EP-12 stand-ins. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | `attemptOffensiveAction` | Stand-in for `AiAttemptOffensiveAction(test)` (cp_battle.c; EP-5): decides the attack on a unit that passes `test` by calling [CpDecide.aiSetDecision]. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | `tryDoStaff` | Stand-in for `AiTryDoStaff(test)` (cp_staff.c; EP-5): true when a staff was used. |
-
-## EP-7 (2)
+## EP-7 (4)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `generateUnitMovementMap` | Stand-in for `GenerateUnitMovementMap(gActiveUnit)` (bmmap; EP-7): fills `gBmMapMovement` with the active unit's movement costs. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `reachesByBirdsEyeDistance` | Stand-in for `AiReachesByBirdsEyeDistance(active, unit, item)` (cp_utility.c; EP-7). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `couldReachByBirdsEyeDistance` | Stand-in for `AiCouldReachByBirdsEyeDistance(gActiveUnit, unit, item)` (cp_utility.c; EP-7). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `fillMovementAndRangeMapForItem` | Stand-in for `FillMovementAndRangeMapForItem(unit, item)` (cp_utility.c; EP-7): fills `gBmMapRange` with the tiles the unit reaches and attacks. |
 

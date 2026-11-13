@@ -1,6 +1,7 @@
 package fe8.game
 
 import fe8.game.bm.ActiveUnit
+import fe8.game.bm.AiBattleSimulation
 import fe8.game.bm.AiIntStep
 import fe8.game.bm.AiStep
 import fe8.game.bm.BMapMain
@@ -1021,6 +1022,10 @@ public class Fe8Boot(
         val battle = BmBattle(rom, units, loader, playSt, loop.bmSt) { y, x ->
             battleBmMap.terrain[y, x]
         }
+        val battleGenerate = BattleGenerate(battle, rom, loader, playSt, rng, Mechanics()).also {
+            it.bmMap = battleBmMap
+            it.unitTable = units
+        }
         PlayerPhaseWiring(
             engine, rom, hw, loop.bmSt, playSt, battleBmMap, units, flags, keys,
             IntSupplier { clock.get().toInt() }, control.sound, loop, camMove, bmapRender,
@@ -1028,19 +1033,22 @@ public class Fe8Boot(
             { start.hooks.getBattleMapKind() }, trapPool,
             { resetIcons() }, IntConsumer { palId -> loadIconPalettes(palId) },
             drawnIconLookupTable, iconGfxIdLookupTable, mapCursor, battle,
-            BattleGenerate(battle, rom, loader, playSt, rng, Mechanics()).also {
-                it.bmMap = battleBmMap
-                it.unitTable = units
-            },
+            battleGenerate,
             { eventEngine.eventEngineExists() },
         ).wire(phase, main, eventInfos)
         // The enemy phase (EP-2a, EP-3a): `AiPhaseInit`, the unit order and the decision loop.
-        // The script interpreter runs (EP-4); the offensive action, danger map reach and perform
-        // proc are stand-ins that decide nothing (EP-5, EP-7, EP-8), so End turn runs the enemy banner, marks every enemy as moved and
-        // goes on to the next player phase.
+        // The script interpreter (EP-4) and the attack search (EP-5) run; the reach test and the
+        // movement map (EP-7) are null, so no enemy is in reach and nothing is decided (the
+        // score hooks, EP-6a/6b, and the perform proc, EP-8, are null too): End turn runs the enemy
+        // banner, marks every enemy as moved and goes on to the next player phase.
         val cp = CpPhase(
             engine, rom, playSt, units, loader, battleBmMap, battleEntityMaps, active, rng,
         )
+        cp.battle?.hooks?.battleGenerateSimulation = AiBattleSimulation { a, t, x, y, slot ->
+            battleGenerate.battleGenerateSimulation(
+                units.bytes, units.unitOffset(a), units.unitOffset(t), x, y, slot,
+            )
+        }
         cp.decide.hooks.renderBmMap = AiStep { bmapRender.renderBmMap() }
         cp.decide.hooks.refreshUnitSprites = AiStep { main.hooks.refreshUnitSprites() }
         cp.decide.hooks.writeSuspendSave = AiIntStep { slot ->

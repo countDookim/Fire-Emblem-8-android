@@ -105,10 +105,28 @@ public class CpPhase(
         engine, units, aiState, active, aiFlags, entityMaps, rom, loader, map,
     )
 
-    /** The AI script interpreter (cp_script.c); its hooks are the EP-5 and EP-12 stand-ins. */
+    /**
+     * The AI attack search (cp_battle.c, `AiTryDoStaff`) and its hooks (EP-6a/6b, EP-7, EP-12
+     * stand-ins); null (the script attacks nothing) when the constructor got no [loader], [map]
+     * and [entityMaps].
+     */
+    public val battle: CpBattle? =
+        if (loader != null && map != null && entityMaps != null) {
+            CpBattle(rom, units, aiState, active, map, entityMaps, loader, decide)
+        } else {
+            null
+        }
+
+    /** The AI script interpreter (cp_script.c); its hooks are the EP-12 stand-ins. */
     public val script: CpScript = CpScript(rom, units, aiState, active, rng).also {
         decide.hooks.tryExecScriptA = AiTry { it.tryExecScriptA() }
         decide.hooks.tryExecScriptB = AiTry { it.tryExecScriptB() }
+        val b = battle
+        if (b != null) {
+            it.hooks.attemptOffensiveAction =
+                AiTestStep { test -> b.aiAttemptOffensiveAction(test) }
+            it.hooks.tryDoStaff = AiTestTry { test -> b.aiTryDoStaff(test) }
+        }
     }
 
     private val priorities = IntArray(AiState.UNITS_SIZE)

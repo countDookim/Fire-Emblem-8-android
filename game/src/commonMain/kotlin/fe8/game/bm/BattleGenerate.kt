@@ -22,8 +22,8 @@ import kotlin.math.abs
  * Not ported: `ComputeBattleObstacleStats`, `PidStatsRecordBattleRes` / `PidStatsAddBattleAmt`
  * (save-file statistics), the light rune toggling and the staff / item effect battles. The exp
  * gain tail of `BattleGenerateRealInternal` is [battleApplyExpGains], whose level-up check is the
- * hook [checkBattleUnitLevelUp] (MC-17), the triangle attack neighbour scan the hook
- * [checkTriangleAttack].
+ * hook [checkBattleUnitLevelUp] (MC-17). The triangle attack neighbour scan needs [bmMap] and
+ * [unitTable].
  *
  * @param battle the battle units, stats and stat computes.
  * @param rom the item and class data.
@@ -281,14 +281,49 @@ public class BattleGenerate(
         return modifyUnitSpecialExp(actor, target, result)
     }
 
+    /** `gBmMapUnit`, set by the boot; without it no triangle attack is found. */
+    public var bmMap: BmMap? = null
+
+    /** The unit table `GetUnit` reads, set by the boot; without it no triangle attack is found. */
+    public var unitTable: UnitTable? = null
+
     /**
-     * Hook for `BattleCheckTriangleAttack` (bmbattle.c): whether two units of the
-     * attacker's army stand next to the defender. Stand-in until MC-8c: always false, so no
-     * triangle attack happens yet. No capture has an attacker with a triangle attack class
-     * attribute, so the map scan cannot be verified (ADR 0006).
+     * Transcribed from src/bmbattle.c: BattleCheckTriangleAttack
+     *   (not verified: no capture has a triangle attack)
+     *
+     * Whether two units of the attacker's army stand next to the [defender] (4 neighbours through
+     * `gBmMapUnit`), awake, not petrified, not a female wyvern knight and with a triangle attack
+     * class attribute the attacker also has. The C also stores the first two in
+     * `gBattleStats.taUnitA/B`, which only the battle animation reads (M6-H): not kept here.
+     * Neighbours off the map count as empty.
      */
-    public var checkTriangleAttack: (attacker: BattleUnit, defender: BattleUnit) -> Boolean =
-        { _, _ -> false }
+    private fun battleCheckTriangleAttack(attacker: BattleUnit, defender: BattleUnit): Boolean {
+        val map = bmMap ?: return false
+        val table = unitTable ?: return false
+        val triangleAttackAttr = CA_TRIANGLEATTACK_ANY and cAttributes(attacker)
+        val x = defender.unitX
+        val y = defender.unitY
+        val faction = unitFaction(attacker)
+        var count = 0
+        for (i in 0 until 4) {
+            val nx = x + TA_DX[i]
+            val ny = y + TA_DY[i]
+            if (nx < 0 || ny < 0 || nx >= map.sizeX || ny >= map.sizeY) continue
+            val uId = map.unit[ny, nx]
+            if (uId == 0) continue
+            val offset = table.unitOffset(uId)
+            if (offset < 0) continue
+            if ((uId and 0xC0) != faction) continue
+            val status = table.bytes[offset + OFF_STATUS].toInt() and 0xF
+            if (status == STATUS_SLEEP || status == STATUS_PETRIFY || status == STATUS_13) continue
+            val classAddr = u32(table.bytes, offset + OFF_CLASS)
+            if (rom.u8(classAddr + 4) == CLASS_WYVERN_KNIGHT_F) continue
+            val attrs = rom.u32(u32(table.bytes, offset + OFF_CHARACTER) + 0x28) or
+                rom.u32(classAddr + 0x28)
+            if ((attrs and triangleAttackAttr) != 0) count++
+        }
+        return count >= 2
+    }
 
     /** `BattleGetBattleUnitOrder` / `BattleGetFollowUpOrder` out parameter `outAttacker`. */
     private var orderAttacker: BattleUnit = battle.actor
@@ -736,10 +771,10 @@ public class BattleGenerate(
     /**
      * Transcribed from src/bmbattle.c: BattleGenerateHitTriangleAttack
      *   (not verified: no traced attacker has a triangle attack class attribute, so the first
-     *   check returns every time and no mutation of the rest, nor of the hook, changes data)
+     *   check returns every time and no mutation of the rest, nor of the scan, changes data)
      *
-     * A triangle attack (two allies next to the defender, see [checkTriangleAttack]) on the first
-     * hit of a range 1 battle makes it hit and crit for sure.
+     * A triangle attack (two allies next to the defender, see `BattleCheckTriangleAttack`) on the
+     * first hit of a range 1 battle makes it hit and crit for sure.
      */
     private fun battleGenerateHitTriangleAttack(attacker: BattleUnit, defender: BattleUnit) {
         val stats = battle.stats
@@ -750,7 +785,7 @@ public class BattleGenerate(
         if ((info(hitArray[hitIterator]) and INFO_BEGIN) == 0) return
         if (attacker.unitStatusIndex == STATUS_BERSERK) return
         if ((stats.config and BattleStats.CONFIG_ARENA) != 0) return
-        if (!checkTriangleAttack(attacker, defender)) return
+        if (!battleCheckTriangleAttack(attacker, defender)) return
         addAttributes(hitIterator, ATTR_TATTACK)
         stats.critRate = 100
         stats.hitRate = 100
@@ -1243,6 +1278,10 @@ public class BattleGenerate(
         private const val ITEM_BACKUP_NONE = 0xFFFF // the C's "no item saved" literal
         // `struct Unit` field offsets (include/bmunit.h).
         private const val OFF_CLASS = 0x04
+        private const val OFF_STATUS = 0x30
+        private const val STATUS_SLEEP = 2
+        private val TA_DX = intArrayOf(-1, 0, 1, 0)
+        private val TA_DY = intArrayOf(0, -1, 0, 1)
         private const val OFF_X_POS = 0x10
         private const val OFF_Y_POS = 0x11
         private const val OFF_INDEX = 0x0B

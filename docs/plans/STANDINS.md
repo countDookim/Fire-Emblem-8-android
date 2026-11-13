@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 193 across 42 Kotlin files.
+Total entries: 192 across 42 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -29,7 +29,6 @@ Total entries: 193 across 42 Kotlin files.
 | MC-17 | 1 |
 | MC-4b | 2 |
 | MC-6 | 1 |
-| MC-8c | 1 |
 | PC-10 | 1 |
 | PP-10 | 1 |
 | PP-17 | 1 |
@@ -297,12 +296,6 @@ Total entries: 193 across 42 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `startAttackTargetSelection` | The game wires [TargetSelection] with the attack callbacks (MC-6, MC-10 stand-ins). |
-
-## MC-8c (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | `checkTriangleAttack` | Stand-in until MC-8c: always false, so no triangle attack happens yet. |
 
 ## PC-10 (1)
 

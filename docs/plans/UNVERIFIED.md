@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 545 across 77 decomp files (missing reason: 0).
+Total entries: 546 across 77 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -224,14 +224,15 @@ Total entries: 545 across 77 decomp files (missing reason: 0).
 | `CanUnitUseWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `IsItemUnsealedForUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 
-## src/bmbattle.c (17)
+## src/bmbattle.c (18)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `SetScriptedBattle` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | a plain pointer store, observable only through the unwind |
 | `GetUnitExpMultiplier` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no assassin in the captures, and the kill bonus it multiplies is 0 there |
+| `BattleCheckTriangleAttack` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no capture has a triangle attack |
 | `BattleCheckSilencer` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no traced crit roll succeeds, so no mutation of it changes captured data |
-| `BattleGenerateHitTriangleAttack` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no traced attacker has a triangle attack class attribute, so the first check returns every time and no mutation of the rest, nor of the hook, changes data |
+| `BattleGenerateHitTriangleAttack` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no traced attacker has a triangle attack class attribute, so the first check returns every time and no mutation of the rest, nor of the scan, changes data |
 | `InitBattleUnitWithoutBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
 | `SetBattleUnitWeaponBallista` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |
 | `ComputeBattleUnitBaseDefense` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | not called by the traced battle |

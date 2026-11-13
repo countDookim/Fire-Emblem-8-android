@@ -205,6 +205,10 @@ class attribute, so its first check returns every time and no mutation of the re
 `BattleCheckTriangleAttack` stays the stand-in `checkTriangleAttack` (always false; stand-in until MC-8c, which transcribes it): its map scan (`gBmMapUnit`, unit status and class of the neighbours) would be unreachable for the
 same reason, so it could not be break-checked.
 
+### MC-8c result (2026-11-13)
+
+`BattleCheckTriangleAttack` is transcribed (`BattleGenerate.battleCheckTriangleAttack`, `not verified`: no capture has a triangle attack) and replaces the stand-in hook. It scans the defender's 4 neighbours in `gBmMapUnit` (`BattleGenerate.bmMap`, with `unitTable` for `GetUnit`, both set in `Fe8Boot`), skipping other armies, sleep / petrify / status 13, female wyvern knights and units without a shared `CA_TRIANGLEATTACK_ANY` bit; two or more is a triangle attack. Neighbours off the map count as empty (the C reads the map border); `gBattleStats.taUnitA/B` are not kept (battle animation, M6-H).
+
 ### MC-9 result (2026-11-13)
 
 `BattleGenerateSimulationDifferentialTest` seeds the unit table, `gPlaySt`, terrain, both battle units,

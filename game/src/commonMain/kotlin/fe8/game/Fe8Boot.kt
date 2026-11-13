@@ -429,7 +429,10 @@ public class Fe8Boot(
                         battleBmMap.terrain[y, x]
                     },
                     rom, loader, control.playSt, rng, Mechanics(),
-                ),
+                ).also {
+                    it.bmMap = battleBmMap
+                    it.unitTable = units
+                },
                 object : EventScriptBattleHost {
                     override fun getUnitStructFromEventParameter(pid: Int): Int =
                         unitState.getUnitStructFromEventParameter(pid)
@@ -1015,7 +1018,10 @@ public class Fe8Boot(
             { start.hooks.getBattleMapKind() }, trapPool,
             { resetIcons() }, IntConsumer { palId -> loadIconPalettes(palId) },
             drawnIconLookupTable, iconGfxIdLookupTable, mapCursor, battle,
-            BattleGenerate(battle, rom, loader, playSt, rng, Mechanics()),
+            BattleGenerate(battle, rom, loader, playSt, rng, Mechanics()).also {
+                it.bmMap = battleBmMap
+                it.unitTable = units
+            },
             { eventEngine.eventEngineExists() },
         ).wire(phase, main, eventInfos)
         // Stand-in until M6-D (enemy phase and AI): the computer phase does nothing and ends at

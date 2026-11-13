@@ -70,7 +70,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.bm (ChapterData, ChapterMapGfx) | 2 | 370 | done 2026-11-10 bac8ed1; audit todo |
 | game | fe8.game.bm (battle: BattleGenerate, BattleUnit, BmBattle, ItemInfo) | 4 | 2316 | done 2026-11-11 49679cb; audit done 2026-11-11 39aa20b |
 | game | fe8.game.bm (PhaseIntro, MapAnimations) | 2 | 840 | done 2026-11-11 d9263c3; audit done 2026-11-13 1dcdbfe |
-| game | fe8.game.bm (UnitSprites, UnitSpriteHandles, UnitSpritesOam) | 3 | 774 | done 2026-11-11 d9263c3; audit todo |
+| game | fe8.game.bm (UnitSprites, UnitSpriteHandles, UnitSpritesOam) | 3 | 774 | done 2026-11-11 d9263c3; audit in progress 2026-11-13 (Claude) |
 | game | fe8.game.bm (UnitTable) | 1 | 343 | done 2026-11-11 d9263c3; audit todo |
 | game | fe8.game.bm (UnitLoader, Mu, MuCtrl, MuSpriteAnim, PlayerPhase, BattleMapStart) | 6 | 3863 | todo |
 | game | fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs) | 4 | 973 | done 2026-11-10 ff286fe / 0bfe1ab; audit done 2026-11-13 139c8c3 |

@@ -46,7 +46,7 @@ their old counts); new packages get a row when they appear.
 | engine/extract | gbafe.extract.fe8.chapters | 1 | 102 | done 2026-11-07 50ec53d; audit done 2026-11-11 f0b91dd |
 | engine/extract | gbafe.extract.fe8.characters | 1 | 102 | done 2026-11-07 50ec53d; audit done 2026-11-11 f0b91dd |
 | engine/extract | gbafe.extract.fe8.classes | 1 | 132 | done 2026-11-07 50ec53d; audit done 2026-11-11 f0b91dd |
-| engine/extract | gbafe.extract.fe8.events | 4 | 2359 | done 2026-11-09 a0981c8; audit done 2026-11-13 HASH |
+| engine/extract | gbafe.extract.fe8.events | 4 | 2359 | done 2026-11-09 a0981c8; audit done 2026-11-13 65192467 |
 | engine/extract | gbafe.extract.fe8.items | 1 | 111 | done 2026-11-07 21ee533; audit done 2026-11-11 e7a92eb |
 | engine/extract | gbafe.extract.fe8.maps | 1 | 177 | done 2026-11-07 21ee533; audit done 2026-11-11 e7a92eb |
 | engine/extract | gbafe.extract.fe8.mapsprites | 1 | 140 | done 2026-11-07 21ee533; audit done 2026-11-11 e7a92eb |

@@ -47,7 +47,7 @@ Total entries: 546 across 77 decomp files (missing reason: 0).
 | `InitTalkTextWin` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no @VerifiesPort test names it |
 | `TalkOpen_InitBlend` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no |
 
-## src/bmunit.c (29)
+## src/bmunit.c (30)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
@@ -59,6 +59,7 @@ Total entries: 546 across 77 decomp files (missing reason: 0).
 | `GetUnitLuck` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no bonus item in the trace |
 | `UnitRemoveInvalidItems` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no trace runs it yet |
 | `UnitFinalizeMovement` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | rescuee only; no ballistae |
+| `TickActiveFactionTurn` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | no unit in a capture has a barrier, torch or status duration, so the decrements and the redraw never run; the zero guards and the empty target list are seen on the Prologue enemy phase |
 | `UnitBeginCantoAction` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | no capture begins a canto action |
 | `UnitFinalizeMovement` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | rescuer and ballista, no capture has either |
 | `IsUnitMagicSealed` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | no magic weapon |
@@ -351,25 +352,6 @@ Total entries: 546 across 77 decomp files (missing reason: 0).
 | `AP_Init` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
 | `AP_Find` | `engine/render/src/commonMain/kotlin/gbafe/render/SpriteAnim.kt` | no @VerifiesPort test names it |
 
-## src/bm.c (14)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `CallBeginningEvents` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
-| `sub_8015434` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
-| `BmMain_ResumePlayerPhase` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
-| `BmMain_StartIntroFx` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
-| `UndeployEveryone` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
-| `GotoChapterWithoutSave` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
-| `SetEventId_0x84` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
-| `UnsetEventId_0x84` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
-| `sub_8015D84` | `game/src/commonMain/kotlin/fe8/game/bm/CamMove.kt` | no reference run starts it |
-| `CameraMove_8015EDC` | `game/src/commonMain/kotlin/fe8/game/bm/CamMove.kt` | no reference run starts it |
-| `StoreAdjustedCameraPositions` | `game/src/commonMain/kotlin/fe8/game/bm/Camera.kt` | needs a scripted camera or unit menu after scrolling, which no trace has |
-| `StoreAdjustedCameraPositions` | `game/src/commonMain/kotlin/fe8/game/bm/Camera.kt` | needs a scripted camera or unit menu after scrolling, which no trace has |
-| `IsCameraNotWatchingPosition` | `game/src/commonMain/kotlin/fe8/game/bm/Camera.kt` | needs a scripted camera or unit menu after scrolling, which no trace has |
-| `LoadObjUIGfx` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no trace dump holds the OBJ UI tiles of a talk |
-
 ## src/bmsave.c (14)
 
 | Function | Kotlin file | Reason |
@@ -426,6 +408,24 @@ Total entries: 546 across 77 decomp files (missing reason: 0).
 | `MapRoute_EnableBGSyncs` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the transition never starts in the Prologue capture |
 | `MapRoute_TransitionLoop` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the transition never starts in the Prologue capture |
 | `MapRoute_TransitionEnd` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRoute.kt` | the transition never starts in the Prologue capture |
+
+## src/bm.c (13)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `CallBeginningEvents` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
+| `BmMain_ResumePlayerPhase` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
+| `BmMain_StartIntroFx` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
+| `UndeployEveryone` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
+| `GotoChapterWithoutSave` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no test checks it against a trace yet |
+| `SetEventId_0x84` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
+| `UnsetEventId_0x84` | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | no trace separates it from a no-op |
+| `sub_8015D84` | `game/src/commonMain/kotlin/fe8/game/bm/CamMove.kt` | no reference run starts it |
+| `CameraMove_8015EDC` | `game/src/commonMain/kotlin/fe8/game/bm/CamMove.kt` | no reference run starts it |
+| `StoreAdjustedCameraPositions` | `game/src/commonMain/kotlin/fe8/game/bm/Camera.kt` | needs a scripted camera or unit menu after scrolling, which no trace has |
+| `StoreAdjustedCameraPositions` | `game/src/commonMain/kotlin/fe8/game/bm/Camera.kt` | needs a scripted camera or unit menu after scrolling, which no trace has |
+| `IsCameraNotWatchingPosition` | `game/src/commonMain/kotlin/fe8/game/bm/Camera.kt` | needs a scripted camera or unit menu after scrolling, which no trace has |
+| `LoadObjUIGfx` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no trace dump holds the OBJ UI tiles of a talk |
 
 ## src/bmlib.c (12)
 
@@ -710,8 +710,8 @@ Total entries: 546 across 77 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `IsSameAllegiance` | `game/src/commonMain/kotlin/fe8/game/bm/BmPhase.kt` | no capture checks it; the truth table restates the C |
-| `CountUnitsInState` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | only reached by the victory-song check, which the Prologue trace never takes |
-| `GetPhaseAbleUnitCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no trace has a unit that the asleep/berserk/unselectable/NOT_ABLE exclusions would skip |
+| `CountUnitsInState` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | only reached by the victory-song check; the enemy-phase windows call it, but the result only shows as the song id, which no capture records |
+| `GetPhaseAbleUnitCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no trace has a unit that the asleep/berserk/unselectable/NOT_ABLE exclusions would skip; the enemy-phase windows only show that the count is 0 exactly when the phase has no banner |
 
 ## src/uiselecttarget.c (3)
 

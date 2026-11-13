@@ -59,7 +59,8 @@ public class UnitTable(
 
     /**
      * Transcribed from src/bmphase.c: CountUnitsInState (not verified:
-     *   only reached by the victory-song check, which the Prologue trace never takes)
+     *   only reached by the victory-song check; the enemy-phase windows call it, but the result
+     *   only shows as the song id, which no capture records)
      *
      * Counts the valid units with ids `faction + 1` until `faction + 0x40` that have none of the
      * `stateMask` bits.
@@ -221,7 +222,8 @@ public class UnitTable(
 
     /**
      * Transcribed from src/bmphase.c: GetPhaseAbleUnitCount (not verified: no trace has a unit
-     * that the asleep/berserk/unselectable/NOT_ABLE exclusions would skip)
+     * that the asleep/berserk/unselectable/NOT_ABLE exclusions would skip; the enemy-phase
+     * windows only show that the count is 0 exactly when the phase has no banner)
      *
      * Number of units of [faction] (0x00 blue, 0x40 green, 0x80 red) that can act this phase:
      * valid, not unselectable / dead / undeployed / rescued / under a roof / bit 16, not asleep

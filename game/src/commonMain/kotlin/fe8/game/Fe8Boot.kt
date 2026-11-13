@@ -32,8 +32,10 @@ import fe8.game.bm.MapMusic
 import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.PLAY_FLAG_HARD
 import fe8.game.bm.PhaseIntro
+import fe8.game.bm.PhaseStartEnd
 import fe8.game.bm.PlayerPhase
 import fe8.game.bm.ResetCursorPosition
+import fe8.game.bm.SelectTargets
 import fe8.game.bm.UnitLoader
 import fe8.game.ui.GotItemPopup
 import fe8.game.ui.UiFrame
@@ -1032,20 +1034,17 @@ public class Fe8Boot(
         // Stand-in until M6-D (enemy phase and AI): the computer phase does nothing and ends at
         // once, so End turn runs the enemy banner and goes on to the next player phase.
         main.hooks.cpPhase = ProcScript("gProcScr_CpPhase", listOf(ProcScripts.end()))
-        // Stand-in until M6-D: only the unit state part of `ClearActiveFactionGrayedStates` (the
-        // acted units of the phase that ended get their turn back); the support and favour
-        // record is M6-J.
-        main.hooks.clearActiveFactionGrayedStates = {
-            val faction = playSt.faction
-            for (id in faction + 1 until faction + 0x40) {
-                if (!units.isValid(id)) continue
-                units.setState(
-                    id,
-                    units.state(id) and
-                        (UnitTable.US_UNSELECTABLE or US_HAS_MOVED or US_HAS_MOVED_AI).inv(),
-                )
-            }
-        }
+        // Phase start and end housekeeping (EP-1). The target list is its own: the displays'
+        // `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w
+        // shares one list with the player phase when the real `Make*TargetList` come in.
+        val phaseStartEnd = PhaseStartEnd(engine, units, playSt, SelectTargets())
+        main.hooks.clearActiveFactionGrayedStates =
+            { phaseStartEnd.clearActiveFactionGrayedStates() }
+        main.hooks.tickActiveFactionTurn = { phaseStartEnd.tickActiveFactionTurn() }
+        main.hooks.statusDecayDisplay = phaseStartEnd.statusDecayDisplay
+        main.hooks.terrainHealDisplay = phaseStartEnd.terrainHealDisplay
+        main.hooks.poisonDamageDisplay = phaseStartEnd.poisonDamageDisplay
+        main.hooks.gorgonEggHatchDisplay = phaseStartEnd.gorgonEggHatchDisplay
     }
 
     /**
@@ -1329,12 +1328,6 @@ private const val BG_BLANK = 0x35
 private const val MSG_HUFFMAN_TABLE = 0x0815A72C
 private const val MSG_HUFFMAN_ROOT = 0x0815D488
 private const val MSG_TABLE = 0x0815D48C
-
-/** `US_HAS_MOVED`. */
-private const val US_HAS_MOVED = 1 shl 6
-
-/** `US_HAS_MOVED_AI`. */
-private const val US_HAS_MOVED_AI = 1 shl 10
 
 /** `sLegacyUiFrameImageLookup`. */
 private const val LEGACY_FRAME_IMAGES = 0x085B6460

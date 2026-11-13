@@ -10,13 +10,13 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 192 across 42 Kotlin files.
+Total entries: 199 across 43 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 16 |
 | M6-C | 10 |
-| M6-D | 12 |
+| M6-D | 18 |
 | M6-E | 51 |
 | M6-F | 13 |
 | M6-G | 4 |
@@ -25,6 +25,7 @@ Total entries: 192 across 42 Kotlin files.
 | M6-J | 9 |
 | D09-3 | 2 |
 | D11-wire-a | 2 |
+| EP-1 | 1 |
 | MC-12b | 1 |
 | MC-17 | 1 |
 | MC-4b | 2 |
@@ -70,20 +71,26 @@ Total entries: 192 across 42 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `resetBattleScratch` | Stand-in until M6-C for `sub_802C334` (zeroes `sUnknown_0203A60C`, a scratch struct of the battle code), called by `UnitBeginAction`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them, and, until M6-C and M6-H, a stand-in for every other availability callback, in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold. |
 
-## M6-D (12)
+## M6-D (18)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `wirePlayerPhase` | Stand-in until M6-D (enemy phase and AI): the computer phase does nothing and ends at once, so End turn runs the enemy banner and goes on to the next player phase. |
-| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `wirePlayerPhase` | Stand-in until M6-D: only the unit state part of `ClearActiveFactionGrayedStates` (the acted units of the phase that ended get their turn back); the support and favour record is M6-J. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `berserkCpPhase` | Stand-in until M6-D: ends at once. |
-| `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `clearActiveFactionGrayedStates` | `Fe8Boot` sets the unit state part (stand-in until M6-D for the rest). |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `cpPhase` | Stand-in until M6-D: never ends. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `poisonDamageDisplay` | Stand-in until M6-D: ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `statusDecayDisplay` | Stand-in until M6-D: ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `terrainHealDisplay` | Stand-in until M6-D: ends at once. |
-| `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `tickActiveFactionTurn` | Stand-in until M6-D. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `CpPhase` | The AI decision (`gProcScr_CpDecide`) and the enemy phase proper are M6-D: [Hooks] stand in for them. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `PhaseStartEnd` | In the Prologue captures every display finds an empty target list and ends at once, so only the `_Init` of each is here; the rest of each display script (`MassEffectDisplay_*`, `*_Display`, `*_Next... |
+| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `gorgonEggHatchDisplay` | `gProcScr_GorgonEggHatchDisplay`: [gorgonEggHatchDisplayInit], stand-in end (M6-D). |
+| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makeGorgonEggHatchTargetList` | Stand-in until M6-D: empty list. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makePoisonDamageTargetList` | Stand-in until M6-D: empty list. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makeTerrainHealTargetList` | Stand-in until M6-D: only `InitTargets(0, 0)`, so the list is empty (set by [PhaseStartEnd]). |
+| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `poisonDamageDisplay` | `gProcScr_PoisonDamageDisplay`: [poisonDamageDisplayInit], then the stand-in (M6-D) end. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `redrawAfterTorch` | Stand-in until M6-D: nothing. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `statusDecayDisplay` | `gProcScr_StatusDecayDisplay`: [statusDecayDisplayInit], then (a stand-in until M6-D for the `MassEffectDisplay_*` / `_Display` / `_Next` loop that no capture runs) the proc ends. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `terrainHealDisplay` | `gProcScr_TerrainHealDisplay`: [terrainHealDisplayInit], then the stand-in (M6-D) end. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayActiveUnitEffectRange` | Stand-in until M6-D for `DisplayActiveUnitEffectRange` (label 11, an enemy's range). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayDangerZone` | Stand-in until M6-D for `PlayerPhase_DisplayDangerZone` (the enemies' reach). |
 
@@ -271,6 +278,12 @@ Total entries: 192 across 42 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `fadeOutSe` | `Sound_FadeOutSE(speed)`: stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet; the Prologue leaves through the other branch of `destruct`). |
+
+## EP-1 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `phaseStartEnd` | The target list is its own: the displays' `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w shares one list with the player phase when the real `Make*TargetList`... |
 
 ## MC-12b (1)
 

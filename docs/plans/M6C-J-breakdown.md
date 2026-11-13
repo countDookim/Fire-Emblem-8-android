@@ -296,6 +296,13 @@ enemy attack, not once per candidate tile, so per-candidate scores are not captu
 Prologue events seen in `prologue-eventinfo.h`: the Turn 1 (red) and Turn 2/3 (blue) events only call tutorial
 scripts, so in Normal mode they end at once. Tutorials are Easy only (see M6-E).
 
+### EP-1 result (2026-11-13)
+
+Test: `PhaseStartEndDifferentialTest` over `ram_trace_prologue_enemy_phase` (blue/red/gplayst/gbmst/procs watches; `gPidStatsData` from the dumps f1520/f1530). New class `PhaseStartEnd` (game/bm). Ported: `ClearActiveFactionGrayedStates` (units at f1529, f2750, f2768, favour -8 of Seth and Eirika in `gPidStatsData`; the unavailable/unselectable/supply skips are not seen), the four `*Display_Init` (no display proc alive; an inverted end test leaves the proc), `sub_8015434` (phase proc five frames after the tick in the red, green and blue start). The existing `SwitchPhases`, `BmMain_ChangePhase`, `_StartPhase` (red branch new) and `_UpdateTraps` (green branch new) now match all three switches and the f2766 trap proc.
+Transcribed, not verified: `TickActiveFactionTurn` (no unit has a duration: the decrements, targets and torch redraw never run; the test shows only that nothing changes), `GetPhaseAbleUnitCount` (count is 0 exactly when there is no banner; no excluded unit), `CountUnitsInState` (result only visible as the song id).
+Stand-ins: the `Make*TargetList` functions and `sub_8026414` (empty list), the rest of each display script (ends the proc), the torch redraw, `PidStatsSubFavval08` hook (default none; `Fe8Boot` does not keep the statistics).
+For EP-w: `Fe8Boot` now uses `PhaseStartEnd` (own `SelectTargets`; share the player phase list once the `Make*TargetList` exist), the four display scripts and the Tick; `cpPhase` is still the ends-at-once stand-in. EP-10 starts from `BmMain_UpdateTraps` hooks (`updateTraps`, `decayTraps`).
+
 ### EP-0 inventory (2026-11-13)
 
 Test: `EnemyPhaseInventoryTest` (procs per window asserted row by row over `ram_trace_prologue_cancel_end`

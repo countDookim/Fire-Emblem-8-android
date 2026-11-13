@@ -71,7 +71,7 @@ public class BMapMain(
 
         /**
          * `ClearActiveFactionGrayedStates`: resets greyed-out acted state for active faction
-         * units. `Fe8Boot` sets the unit state part (stand-in until M6-D for the rest).
+         * units. `Fe8Boot` sets `PhaseStartEnd.clearActiveFactionGrayedStates`.
          */
         public var clearActiveFactionGrayedStates: () -> Unit = {}
 
@@ -92,7 +92,7 @@ public class BMapMain(
 
         /**
          * `TickActiveFactionTurn`: decrements status condition turns and item durations.
-         * Stand-in until M6-D.
+         * `Fe8Boot` sets `PhaseStartEnd.tickActiveFactionTurn`.
          */
         public var tickActiveFactionTurn: () -> Unit = {}
 
@@ -382,9 +382,11 @@ public class BMapMain(
     }
 
     /**
-     * Transcribed from src/bm.c: sub_8015434 (not verified: no test checks it against a trace yet)
+     * Ported from src/bm.c: sub_8015434
      *
-     * Always returns true: calls `sub_80832D4` in the decomp, which returns 0 in the base game.
+     * Always true: the C returns false (after `sub_80832D0`) only if `sub_80832D4` is 1, and that
+     * returns 0 in the base game, so that branch is not written. Verified by the phase proc
+     * starting right after the displays in the red, green and blue phase start.
      */
     public fun sub8015434(): Boolean = true
 
@@ -417,8 +419,8 @@ public class BMapMain(
      * Ported from src/bm.c: BmMain_UpdateTraps
      *
      * Not the green phase: true. Otherwise starts [Hooks.updateTraps] blocking [proc], runs
-     * [Hooks.decayTraps] and returns false (the green branch is not verified: the captures end
-     * the berserk phase after the player and enemy phases only).
+     * [Hooks.decayTraps] and returns false (verified on the green phase of
+     * `ram_trace_prologue_enemy_phase`; `gProcScr_UpdateTraps` itself is a hook).
      */
     public fun updateTraps(proc: Proc): Boolean {
         if (playSt.faction != FACTION_GREEN) return true

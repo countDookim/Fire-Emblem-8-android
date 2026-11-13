@@ -7,10 +7,15 @@ import gba.extract.IndexedPng
 import gba.extract.Json
 
 /**
- * FE8 window frames, decomp `src/uiutils.c`: `sUiFrameImageLookup[4]` (LZ77 4bpp tile sets, one per
- * `config.windowColor`), `sUiFramePaletteLookup[4]` (16 colors each) and `sUiFrameModelTilemapLookup[4]`
- * (16 raw BG tile entries per frame style used by `DrawUiFrame`). Tile sheets are written 16 tiles wide in
- * tile order; the JSON keeps the model tilemaps as raw u16 (tile | flip | palette bits).
+ * FE8 window frames, decomp `src/uiutils.c`: `sUiFrameImageLookup[4]` (LZ77 4bpp tile sets),
+ * `sUiFramePaletteLookup[4]` (16 colors each) and `sUiFrameModelTilemapLookup[4]`. The image and
+ * palette entries are indexed by `gPlaySt.config.windowColor`; in the decomp all four image entries
+ * point to the same `gUiFrameImage`, so the four PNGs are expected to be identical and only the
+ * palettes differ. The model tilemaps are indexed by the `style` argument of `DrawUiFrame`; each
+ * has 16 raw BG tile entries (tile | flip | palette bits), all used by `DrawUiFrame` as the
+ * frame's 2x2 corners, edge tiles and 2x2 centre/inner-edge tiles. Tile sheets are written 16
+ * tiles wide in tile order; the JSON keeps the model tilemaps as raw u16. The `sLegacyUiFrame*`
+ * tables are not extracted.
  */
 public object WindowFramesExtractor {
     /** Result: PNG files by name and the `gbafe.windowframes` document. */
@@ -21,7 +26,10 @@ public object WindowFramesExtractor {
         public val json: String,
     )
 
-    /** Extracts from the three lookup tables (ROM offsets). */
+    /**
+     * Extracts from the three lookup tables ([imageLookup], [paletteLookup], [modelLookup]):
+     * ROM file offsets of the 4-pointer arrays named in the class KDoc.
+     */
     public fun extract(
         rom: ByteArray, imageLookup: Int, paletteLookup: Int, modelLookup: Int,
     ): Output {
@@ -52,7 +60,9 @@ public object WindowFramesExtractor {
         return Output(files, json)
     }
 
+    /** Base address of the GBA ROM; subtracted from pointers to get file offsets. */
     private const val ROM = 0x08000000
+
     /** Reads a little-endian 16-bit value from the ROM. */
     private fun u16(bytes: ByteArray, offset: Int) =
         (bytes[offset].toInt() and 0xFF) or ((bytes[offset + 1].toInt() and 0xFF) shl 8)

@@ -5,14 +5,19 @@ import gbafe.extract.hexUpper
 
 /**
  * Reads FE8 unit placement arrays (`struct UnitDefinition`, `include/bmunit.h`, 20 bytes,
- * BITPACKED) and their move scripts (`struct REDA`, `include/muctrl.h`, 8 bytes), then turns each
- * array into a Tiled object layer. An entry with `charIndex` 0 ends the array, as in
- * `src/events/prologue-eventudefs.h`.
+ * BITPACKED: the chapter event data that says which units start on a map, where, and with what)
+ * and their move scripts (`struct REDA`, `include/muctrl.h`, 8 bytes), then turns each array into
+ * a Tiled object layer. An entry with `charIndex` 0 ends the array (`{ 0 }` in
+ * `src/events/prologue-eventudefs.h`).
  *
- * Each unit retains byte 3 (`autolevel:1, allegiance:2, level:5`), the u16 at 4 (`x:6, y:6,
- * genMonster:1, itemDrop:1, sumFlag:1, unk_05_7:1`), byte 6 `extraData`, the decoded `redas`
- * referenced by the pointer and count, four items and four AI bytes. A REDA has a u32 containing
- * `x:6, y:6, flags:6`, with `a` at byte 3, `b` at 4 and `delayFrames` at 6.
+ * Each unit keeps `charIndex`, `classIndex`, `leaderCharIndex` (bytes 0..2), byte 3
+ * (`autolevel:1, allegiance:2, level:5`), the u16 at 4 (`x:6, y:6, genMonster:1, itemDrop:1,
+ * sumFlag:1, unk_05_7:1`), byte 6 `extraData`, the decoded `redas` (byte 7 is their count, bytes
+ * 8..11 the pointer), four items (`UNIT_DEFINITION_ITEM_COUNT`) and four AI bytes
+ * (`udef_ai_index`: AI_A, AI_B, AI_CONF_L, AI_CONF_H). A REDA (a scripted move step) has a u32
+ * containing `x:6, y:6, flags:6`, with `a` at byte 3, `b` (u16) at 4 and `delayFrames` at 6.
+ * The decomp does not say what `unk_05_7`, `sumFlag`, `a` and `b` mean; they are kept as raw
+ * values.
  */
 public object UnitsExtractor {
     /** Size of `UnitDefinition`. */
@@ -22,8 +27,9 @@ public object UnitsExtractor {
     public const val REDA_SIZE: Int = 8
 
     /**
-     * Reads the array at [offset] up to its terminator (charIndex 0), at most [maxEntries]
-     * entries; one map per unit with every field (keys as in the decomp struct, `redas` decoded).
+     * Reads the `UnitDefinition` array at ROM file offset [offset] up to its terminator
+     * (charIndex 0), at most [maxEntries] entries; one map per unit with every field (keys as in
+     * the decomp struct, `redas` decoded to a list of REDA maps).
      */
     public fun readGroup(
         rom: ByteArray,
@@ -62,7 +68,7 @@ public object UnitsExtractor {
         return units
     }
 
-    /** Decodes one REDA at a byte offset in the ROM. */
+    /** Decodes one `struct REDA` at ROM file offset [offset] (keys as in the decomp struct). */
     private fun readReda(rom: ByteArray, offset: Int): Map<String, Int> {
         val positionAndFlags = u32(rom, offset)
         return linkedMapOf(
@@ -75,8 +81,9 @@ public object UnitsExtractor {
     }
 
     /**
-     * Hidden Tiled object layer named [name], holding one 16×16 object per unit at its tile
-     * position. Object names are `char_<charIndex>`, fields are int properties, and
+     * Hidden Tiled object layer named [name] with layer id [id], holding one 16x16 object (one map
+     * tile) per unit of [units] at its tile position times 16. Object names are
+     * `char_<charIndex>`, int fields are int properties, and the list fields
      * `items`/`ai`/`redas` are JSON-string properties. Object ids start at [firstObjectId].
      */
     public fun objectLayer(
@@ -103,7 +110,7 @@ public object UnitsExtractor {
         },
     )
 
-    /** Base address used to convert GBA ROM pointers to byte offsets. */
+    /** GBA address of the first ROM byte; subtracted from the `redas` pointer. */
     private const val ROM = 0x08000000
 
     /** Reads an unsigned byte. */
@@ -113,7 +120,7 @@ public object UnitsExtractor {
     private fun u16(bytes: ByteArray, offset: Int) =
         u8(bytes, offset) or (u8(bytes, offset + 1) shl 8)
 
-    /** Reads a little-endian word. */
+    /** Reads a little-endian 32-bit word. */
     private fun u32(bytes: ByteArray, offset: Int) =
         u16(bytes, offset) or (u16(bytes, offset + 2) shl 16)
 }

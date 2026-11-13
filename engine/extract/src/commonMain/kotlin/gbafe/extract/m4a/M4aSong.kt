@@ -4,71 +4,92 @@ import gba.data.ByteSink
 import gbafe.extract.hexUpper
 
 /**
- * Decoder and converter for the GBA m4a ("MusicPlayer2000" / mp2k / Sappy) sound engine format shared
- * by FE6, FE7, and FE8 (decomp `src/m4a.c`, `asm/macros/m4a.inc`, `include/m4a.h`).
+ * Decoder and converter for the GBA m4a ("MusicPlayer2000" / mp2k / Sappy) sound engine format
+ * shared by FE6, FE7, and FE8 (decomp `src/m4a.c`, `src/m4a_1.s`, `src/m4a_tables.c`,
+ * `asm/macros/m4a.inc`, `asm/macros/music_voice.inc`, `include/gba/m4a_internal.h`). Reads song
+ * tables, song headers, track byte streams, voicegroups and direct-sound samples out of the ROM,
+ * and converts a song to a Standard MIDI File and a sample to a WAV file.
  *
  * ## Binary Layouts
  *
  * ### Song Table
- * Each entry in the global song table is 8 bytes (`.4byte header; .2byte ms, me`):
+ * Each entry in the global song table (`gSongTable`, `struct Song`) is 8 bytes. The decomp macro is
+ * `song label, music_player, unknown`:
  * - 4-byte pointer to the song header in ROM
- * - 2-byte music player index
- * - 2-byte unknown / flags field
+ * - 2-byte music player index (`music_player` in the macro; `ms` in `struct Song`)
+ * - 2-byte field the decomp calls `unknown` (`me` in `struct Song`); its meaning is not known here
  *
  * ### Song Header
  * `SongHeader { u8 trackCount, blockCount, priority, reverb; u32 tone; u32 part[trackCount] }`:
  * - `trackCount`: number of parallel sequence tracks (1 byte)
- * - `blockCount`, `priority`, `reverb`: playback control bytes (3 bytes)
+ * - `blockCount`: not read by `MPlayStart`; meaning unknown here
+ * - `priority`: copied to the music player; a new song replaces a playing one only if the playing
+ *   priority is not higher (`MPlayStart`)
+ * - `reverb`: if bit 7 is set, `MPlayStart` passes it to `m4aSoundMode`
  * - `tone`: GBA pointer to the instrument voicegroup (`ToneData` table)
  * - `part[trackCount]`: array of GBA pointers to the start of each track's byte stream
  *
  * ### Track Byte Stream Commands
- * Each track is an independent sequence of command bytes:
+ * Each track is an independent sequence of command bytes. The engine dispatches commands
+ * `0xB1..0xCE` through `gMPlayJumpTableTemplate` (index = command - 0xB1, `src/m4a_tables.c`):
  * - `0x80..0xB0`: `WAIT` commands (advance time by 0..96 m4a clocks via [CLOCKS])
  * - `0xB1`: `FINE` / end of track
- * - `0xB2`: `GOTO` loop jump (4-byte ROM address target)
- * - `0xB3`: `PATT` pattern subroutine call (4-byte ROM address target)
+ * - `0xB2`: `GOTO` jump (4-byte ROM address target)
+ * - `0xB3`: `PATT` pattern subroutine call (4-byte ROM address target; up to 3 levels deep)
  * - `0xB4`: `PEND` pattern subroutine return
- * - `0xB5`: `REPT` pattern repeat loop (1-byte repeat count, 4-byte ROM address target)
+ * - `0xB5`: `REPT` repeat (1-byte count, 4-byte ROM address target)
  * - `0xB9`: `MEMACC` memory access operation (3 parameter bytes)
- * - `0xBA..0xC8`: parameter modification commands (tempo, voice, volume, pan, bend, etc.)
- * - `0xCD`: `XCMD` extended sound command (2 parameter bytes)
+ * - `0xBA..0xC8`: parameter commands with one byte of argument (see `PARAMS`: priority, tempo,
+ *   key shift, voice, volume, pan, bend, bend range, LFO and modulation settings, tune); `0xC6`
+ *   and `0xC7` map to `ply_fine` in the jump table and are not decoded
+ * - `0xCD`: `XCMD` extended sound command (command number byte, then per-command arguments)
  * - `0xCE`: `EOT` end of tie / note off (optional key argument)
  * - `0xCF`: `TIE` tied note on (optional key and velocity arguments)
- * - `0xD0..0xFF`: `NOTE` (N01..N96) note on with duration (optional key, velocity, gate extra arguments)
+ * - `0xD0..0xFF`: `NOTE` (N01..N96) note on with duration (optional key, velocity, gate extra
+ *   arguments)
  *
- * Commands `>= 0xBD` establish running status: subsequent bytes `< 0x80` repeat the active command
- * with new arguments. Time is measured in m4a clocks ([CLOCKS_PER_QUARTER_NOTE] = 24 clocks per quarter note).
+ * Commands `>= 0xBD` establish running status (`src/m4a_1.s`: stored when the command is >= 0xBD):
+ * subsequent bytes `< 0x80` repeat the active command with new arguments. Time is measured in m4a
+ * clocks ([CLOCKS_PER_QUARTER_NOTE] = 24 clocks per quarter note).
  */
 public object M4aSong {
-    /** Clocks per quarter note (standard m4a timebase resolution). */
+    /**
+     * Clocks per quarter note: the m4a timebase used for the MIDI division. Not named in the
+     * decomp (it is the mid2agb convention), so not checked against it.
+     */
     public const val CLOCKS_PER_QUARTER_NOTE: Int = 24
 
-    /** Base bus address where GBA ROM is mapped in the system memory map. */
+    /** GBA address of the first ROM byte; subtracted from pointers to get file offsets. */
     public const val GBA_ROM_BASE: Int = 0x08000000
 
-    /** Size of each song table entry in bytes (`.4byte header; .2byte ms, me`). */
+    /** Size of each song table entry in bytes (`struct Song`: pointer, 2 x u16). */
     public const val SONG_TABLE_ENTRY_SIZE: Int = 8
 
-    /** Byte offset in `SongHeader` where the array of track pointers begins. */
+    /** Byte offset in `SongHeader` of `part[]`, the array of track pointers. */
     public const val SONG_HEADER_TRACK_POINTERS_OFFSET: Int = 8
 
-    /** Size of each `ToneData` instrument entry in bytes. */
+    /** Size of each `ToneData` voice entry in bytes (`struct ToneData`). */
     public const val TONE_SIZE: Int = 12
 
-    /** Size of a `WaveData` direct sound sample header before sample bytes. */
+    /** Bytes of `WaveData` before the samples: type, status, freq, loopStart, size. */
     public const val WAVE_HEADER_SIZE: Int = 16
 
-    /** Maximum plausible direct sound sample size in bytes (4 MB). */
+    /**
+     * Upper bound (4 MiB) on `WaveData.size` accepted by [readWave]; a sanity limit of this
+     * extractor, not a format limit.
+     */
     public const val MAX_WAVE_SIZE: Int = 0x400000
 
-    /** Bit flag in `WaveData.status` indicating that the sample loops (`WAVE_LOOP`). */
+    /**
+     * Bit in `WaveData.status` taken to mean "sample loops". The decomp's m4a code names no
+     * such flag, so this follows the common m4a format description and is not checked there.
+     */
     public const val WAVE_LOOP_FLAG: Int = 0x4000
 
-    /** Scale factor between `WaveData.freq` and sample rate in Hz (freq = sampleRate * 1024). */
+    /** Scale between `WaveData.freq` and the sample rate in Hz (freq = rate x 1024). */
     public const val WAVE_FREQ_SCALE: Int = 1024
 
-    // --- m4a Command Byte Constants ---
+    // --- m4a command bytes (see the class KDoc) ---
     private const val CMD_WAIT_MIN = 0x80
     private const val CMD_WAIT_MAX = 0xB0
     private const val CMD_FINE = 0xB1
@@ -86,11 +107,13 @@ public object M4aSong {
     private const val CMD_NOTE_MIN = 0xD0
     private const val CMD_NOTE_MAX = 0xFF
 
-    // --- Note Parameter Defaults ---
-    private const val DEFAULT_MIDI_KEY = 60 // Middle C
+    // --- Note defaults: this decoder's own starting key/velocity, used if a NOTE/TIE/EOT
+    // --- arrives before any explicit key or velocity. The engine zero-fills track state at start
+    // --- instead, so these only matter for streams that rely on unset values.
+    private const val DEFAULT_MIDI_KEY = 60 // MIDI middle C
     private const val DEFAULT_VELOCITY = 127
 
-    // --- MIDI Protocol Constants ---
+    // --- Standard MIDI File constants (status bytes, meta event types, controller numbers) ---
     private const val MIDI_NOTE_OFF = 0x80
     private const val MIDI_NOTE_ON = 0x90
     private const val MIDI_CONTROL_CHANGE = 0xB0
@@ -102,6 +125,9 @@ public object M4aSong {
     private const val META_MARKER = 0x06
     private const val META_END_OF_TRACK = 0x2F
 
+    // Controller numbers: 1/7/10 are standard MIDI (modulation, volume, pan); 6/100/101 select
+    // RPN 0 (pitch bend range); 21/22/24/26/33 are this converter's own choices for the m4a LFO
+    // speed, modulation type, tune, LFO delay and priority commands.
     private const val CC_MODULATION = 1
     private const val CC_DATA_ENTRY_MSB = 6
     private const val CC_VOLUME = 7
@@ -118,37 +144,49 @@ public object M4aSong {
     private const val MIDI_PITCH_BEND_CENTER = 8192
     private const val MIDI_CHANNEL_COUNT = 16
 
-    /** `gClockTable`: WAIT/N lengths in clocks for command - 0x80 (WAIT) or - 0xCF (N01 = index 1). */
+    /**
+     * `gClockTable` (`src/m4a_tables.c`): length in clocks, indexed by command - 0x80 for WAIT
+     * and by command - 0xCF for TIE/NOTE (TIE = index 0, N01 = index 1, N96 = index 48).
+     */
     public val CLOCKS: IntArray = intArrayOf(
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
         28, 30, 32, 36, 40, 42, 44, 48, 52, 54, 56, 60, 64, 66, 68, 72, 76, 78, 80, 84, 88, 90, 92, 96,
     )
 
-    /** Map of m4a parameter command bytes to their mnemonic names. */
+    /**
+     * m4a parameter command byte to mnemonic. The handler behind each byte is in
+     * `gMPlayJumpTableTemplate` (`ply_prio`, `ply_tempo`, `ply_keysh`, `ply_voice`, `ply_vol`,
+     * `ply_pan`, `ply_bend`, `ply_bendr`, `ply_lfos`, `ply_lfodl`, `ply_mod`, `ply_modt`,
+     * `ply_tune`); each takes one argument byte.
+     */
     private val PARAMS = mapOf(
-        0xBA to "PRIO", 0xBB to "TEMPO", 0xBC to "KEYSH", 0xBD to "VOICE", 0xBE to "VOL", 0xBF to "PAN", 0xC0 to "BEND",
-        0xC1 to "BENDR", 0xC2 to "LFOS", 0xC3 to "LFODL", 0xC4 to "MOD", 0xC5 to "MODT", 0xC8 to "TUNE",
+        0xBA to "PRIO", 0xBB to "TEMPO", 0xBC to "KEYSH", 0xBD to "VOICE", 0xBE to "VOL",
+        0xBF to "PAN", 0xC0 to "BEND", 0xC1 to "BENDR", 0xC2 to "LFOS", 0xC3 to "LFODL",
+        0xC4 to "MOD", 0xC5 to "MODT", 0xC8 to "TUNE",
     )
 
-    /** One decoded event at [time] (clocks). [type] is the m4a mnemonic (`NOTE`, `TIE`, `EOT`, `VOL`, ...). */
+    /** One decoded track event: a command with its arguments at a time in m4a clocks. */
     public data class Event(
         /** Time in m4a clocks from the start of the sequence. */
         val time: Int,
-        /** m4a mnemonic (`NOTE`, `TIE`, `EOT`, `VOL`, `TEMPO`, `GOTO`, `END`, etc.). */
+        /** m4a mnemonic (`NOTE`, `TIE`, `EOT`, `VOL`, `TEMPO`, `GOTO`, ...); `END` is FINE. */
         val type: String,
-        /** Command arguments (e.g. key, velocity, gate length, or controller value). */
+        /**
+         * Arguments: NOTE = key, velocity, gate length in clocks; TIE = key, velocity; EOT = key;
+         * GOTO = target time in clocks (-1 if unknown); parameter commands = their one byte.
+         */
         val args: List<Int>,
     )
 
-    /** A decoded song: header fields, and per track its events plus the loop start time (GOTO target) or -1. */
+    /** A decoded song: header fields plus, per track, its events and loop start time. */
     public class Song(
-        /** `SongHeader.blockCount`: sound player block count. */
+        /** `SongHeader.blockCount`; `MPlayStart` does not read it, meaning unknown here. */
         public val blockCount: Int,
-        /** `SongHeader.priority`: playback priority relative to other songs. */
+        /** `SongHeader.priority`: compared with the playing song's priority by `MPlayStart`. */
         public val priority: Int,
-        /** `SongHeader.reverb`: reverb depth or send level. */
+        /** `SongHeader.reverb`: if bit 7 is set, `MPlayStart` passes it to `m4aSoundMode`. */
         public val reverb: Int,
-        /** Voicegroup GBA address (`SongHeader.tone`). */
+        /** GBA address of the voicegroup (`SongHeader.tone`, a `ToneData` array). */
         public val voicegroup: Int,
         /** Events per track in playback order. */
         public val tracks: List<List<Event>>,
@@ -156,18 +194,22 @@ public object M4aSong {
         public val loopStarts: List<Int>,
     )
 
-    /** One song table entry (`.4byte header; .2byte ms, me`, decomp `asm/macros/m4a.inc: song`). */
+    /** One song table entry (`struct Song`; decomp macro `song` in `asm/macros/m4a.inc`). */
     public data class SongEntry(
         /** Song header GBA ROM address. */
         val header: Int,
-        /** Music player index responsible for playing this song. */
+        /** Music player index (`music_player` in the macro; `ms` in `struct Song`). */
         val musicPlayer: Int,
-        /** Second u16 (`unknown` / flags in the decomp macro). */
+        /** Second u16: named `unknown` in the decomp macro (`me` in `struct Song`). */
         val unknown: Int,
     )
 
-    /** Reads [count] 8-byte song table entries at ROM offset [offset]. */
-    public fun readSongTable(rom: ByteArray, offset: Int, count: Int): List<SongEntry> = List(count) { index ->
+    /** Reads [count] 8-byte song table entries at ROM file offset [offset]. */
+    public fun readSongTable(
+        rom: ByteArray,
+        offset: Int,
+        count: Int,
+    ): List<SongEntry> = List(count) { index ->
         val entryOffset = offset + SONG_TABLE_ENTRY_SIZE * index
         val headerAddress = u32(rom, entryOffset)
         val musicPlayer = u8(rom, entryOffset + 4) or (u8(rom, entryOffset + 5) shl 8)
@@ -175,7 +217,7 @@ public object M4aSong {
         SongEntry(headerAddress, musicPlayer, unknown)
     }
 
-    /** Decodes the song header and all its track sequences at ROM offset [offset]. */
+    /** Decodes the song header and all its track byte streams at ROM file offset [offset]. */
     public fun decode(rom: ByteArray, offset: Int): Song {
         val trackCount = u8(rom, offset)
         val tracks = ArrayList<List<Event>>(trackCount)
@@ -195,11 +237,21 @@ public object M4aSong {
     }
 
     /**
-     * Decodes a single m4a track byte stream starting at ROM offset [start].
+     * Decodes one m4a track byte stream starting at ROM file offset [start], until its `FINE`.
      *
-     * Traverses the byte stream in playback order, tracking running status, subroutine calls (`PATT`),
-     * repeat loops (`REPT`), and jumps (`GOTO`). Returns the sequence of [Event]s and the clock time
-     * of the first loop jump target (or -1 if the track does not loop).
+     * Walks the stream in byte order, tracking running status, following `PATT` calls (one return
+     * level, whereas the engine keeps 3: `patternStack[3]`) and `REPT` repeats. `GOTO` is
+     * recorded as an event but not followed: decoding continues after its operand, relying on
+     * the track ending with `FINE` there. Returns the events and the clock time of the first
+     * `GOTO` target that was already decoded (the loop start), or -1 if there is none.
+     *
+     * NOTE: possible mismatches with the engine (not fixed here):
+     * - `REPT` (`ply_rept`, src/m4a_1.s) jumps to its target without pushing a return address and
+     *   jumps count - 1 times; count 0 jumps unconditionally. This decoder treats it as a pattern
+     *   call that returns to the `REPT` and jumps `count` times (count 0 as 1).
+     * - `XCMD` operands vary by command number (`gXcmdTable`, src/m4a_tables.c): `ply_xwave`
+     *   (src/m4a.c) takes 4 bytes, `ply_xxx` none, the rest 1; exactly 2 bytes are consumed here.
+     * - Commands `0xB6..0xB8`, `0xC6`, `0xC7`, `0xC9..0xCC` are not handled; most throw.
      */
     private fun decodeTrack(rom: ByteArray, start: Int): Pair<List<Event>, Int> {
         val events = ArrayList<Event>()
@@ -217,6 +269,7 @@ public object M4aSong {
         fun readOptionalArg(): Int? =
             if (u8(rom, cursor) < 0x80) u8(rom, cursor++) else null
 
+        // Stops a malformed stream that never reaches FINE (e.g. a PATT loop) from hanging.
         var safetyGuard = 0
         while (safetyGuard++ < 1_000_000) {
             offsetToTime.putIfAbsent(cursor, currentClock)
@@ -261,7 +314,8 @@ public object M4aSong {
                     }
                 }
                 cmd == CMD_REPT -> {
-                    // REPT count, pattern: count 0 = forever (treated as once); repeats are calls to the pattern.
+                    // See the NOTE in the KDoc: REPT is modelled as a pattern call that returns
+                    // here, which differs from ply_rept in the engine.
                     if (reptReturnOffset != cursor) {
                         reptReturnOffset = cursor
                         reptCountLeft = maxOf(1, u8(rom, cursor))
@@ -283,8 +337,9 @@ public object M4aSong {
                     cursor += 2
                 }
                 cmd in CMD_PARAM_MIN..CMD_PARAM_MAX -> {
-                    val name = PARAMS[cmd]
-                        ?: throw IllegalArgumentException("m4a: unknown command 0x${hexUpper(cmd)} at 0x${hexUpper(cursor - 1)}")
+                    val name = PARAMS[cmd] ?: throw IllegalArgumentException(
+                        "m4a: unknown command 0x${hexUpper(cmd)} at 0x${hexUpper(cursor - 1)}",
+                    )
                     events += Event(currentClock, name, listOf(u8(rom, cursor++)))
                 }
                 cmd == CMD_EOT -> {
@@ -307,7 +362,9 @@ public object M4aSong {
                             readOptionalArg()?.let { extra -> gateLength += extra }
                         }
                     }
-                    events += Event(currentClock, "NOTE", listOf(currentKey, currentVelocity, gateLength))
+                    events += Event(
+                        currentClock, "NOTE", listOf(currentKey, currentVelocity, gateLength),
+                    )
                 }
             }
         }
@@ -315,22 +372,27 @@ public object M4aSong {
     }
 
     /**
-     * Converts [song] to a Standard MIDI File (SMF format 1, 24 ticks per quarter note = m4a clocks).
+     * Converts [song] to a Standard MIDI File (SMF format 1, 24 ticks per quarter note = m4a
+     * clocks).
      *
      * Structure:
-     * - Track 0: tempo events (microsecond tempo = 60,000,000 / (bpm * 2)).
-     * - Tracks 1..N: sequence events mapped to MIDI channels `trackIndex % 16`.
+     * - Track 0: tempo events. `ply_tempo` (src/m4a_1.s) stores 2 x the TEMPO argument as the
+     *   tempo, taken here as BPM, so microseconds per quarter = 60,000,000 / (argument * 2);
+     *   NOTE: a TEMPO argument of 0 would divide by zero here.
+     * - Tracks 1..N: one per m4a track, on MIDI channel `trackIndex % 16` (so tracks 16 and above
+     *   share channels with earlier ones; `MAX_MUSICPLAYER_TRACKS` is 16).
      * - Controllers: VOICE -> Program Change, VOL -> CC7, PAN -> CC10, MOD -> CC1, LFOS -> CC21,
      *   LFODL -> CC26, MODT -> CC22, TUNE -> CC24, PRIO -> CC33, BENDR -> RPN 0, BEND -> Pitch Bend.
-     * - Loop start/end markers `[` and `]` are placed at GOTO source and target times.
-     * - Any ties remaining open at track end are released automatically.
+     * - Loop markers: a `[` marker at each GOTO's target time and a `]` marker at its own time.
+     * - Ties still open at `FINE` are released there.
      */
     public fun toMidi(song: Song): ByteArray {
         val tracks = ArrayList<ByteArray>()
         val tempoEvents = song.tracks.flatten().filter { it.type == "TEMPO" }.sortedBy { it.time }
         val tempoTrackMessages = tempoEvents.map { e ->
             val microsPerQuarter = MICROS_PER_MINUTE / (e.args[0] * 2)
-            e.time to (byteArrayOf(MIDI_META_EVENT.toByte(), META_TEMPO.toByte(), 3) + be24(microsPerQuarter))
+            val tempoMeta = byteArrayOf(MIDI_META_EVENT.toByte(), META_TEMPO.toByte(), 3)
+            e.time to (tempoMeta + be24(microsPerQuarter))
         }
         tracks += track(tempoTrackMessages)
 
@@ -347,7 +409,8 @@ public object M4aSong {
 
                 when (e.type) {
                     "KEYSH" -> keyShift = e.args[0].toByte().toInt()
-                    "VOICE" -> midiMessages += e.time to bytes(MIDI_PROGRAM_CHANGE or channel, e.args[0])
+                    "VOICE" -> midiMessages +=
+                        e.time to bytes(MIDI_PROGRAM_CHANGE or channel, e.args[0])
                     "VOL" -> cc(CC_VOLUME, e.args[0])
                     "PAN" -> cc(CC_PAN, e.args[0])
                     "MOD" -> cc(CC_MODULATION, e.args[0])
@@ -362,9 +425,10 @@ public object M4aSong {
                         cc(CC_DATA_ENTRY_MSB, e.args[0])
                     }
                     "BEND" -> {
-                        // m4a bend argument is 0..127 with center at 64; MIDI pitch bend is 14-bit with center at 8192.
+                        // m4a bend is 0..127, centre 64; MIDI pitch bend is 14-bit, centre 8192.
                         val bend14 = (e.args[0] - 64) * 128 + MIDI_PITCH_BEND_CENTER
-                        midiMessages += e.time to bytes(MIDI_PITCH_BEND or channel, bend14 and 0x7F, bend14 shr 7)
+                        midiMessages += e.time to
+                            bytes(MIDI_PITCH_BEND or channel, bend14 and 0x7F, bend14 shr 7)
                     }
                     "NOTE" -> {
                         val key = (e.args[0] + keyShift).coerceIn(0, 127)
@@ -386,8 +450,9 @@ public object M4aSong {
                         }
                     }
                     "GOTO" -> if (e.args[0] >= 0) {
-                        midiMessages += e.args[0] to (bytes(MIDI_META_EVENT, META_MARKER, 1) + "[".encodeToByteArray())
-                        midiMessages += e.time to (bytes(MIDI_META_EVENT, META_MARKER, 1) + "]".encodeToByteArray())
+                        val marker = bytes(MIDI_META_EVENT, META_MARKER, 1)
+                        midiMessages += e.args[0] to (marker + "[".encodeToByteArray())
+                        midiMessages += e.time to (marker + "]".encodeToByteArray())
                     }
                     "END" -> {
                         for (key in tieKeys) {
@@ -398,7 +463,8 @@ public object M4aSong {
                 }
             }
 
-            // Note-off events sort before note-on events at identical timestamps to prevent overlapping voice leaks.
+            // At equal times note-offs sort before everything else, so a note ending exactly when
+            // the next starts does not overlap it; ties are broken by original order.
             val sortedMessages = midiMessages.withIndex().sortedWith(
                 compareBy(
                     { it.value.first },
@@ -427,11 +493,15 @@ public object M4aSong {
     }
 
     /**
-     * Reads [count] `ToneData` entries (decomp `asm/macros/music_voice.inc`) at ROM offset [offset], every byte
-     * kept: `{u8 type, key, length, panSweep; u32 data; u8 attack, decay, sustain, release}`. `data` is the sample /
-     * wave / sub-voicegroup pointer (a square voice's duty cycle for types 1/2/9/10); ROM pointers are given as their
-     * symbol name when [symbols] knows them, else as an int. Keysplit voices (type 0x40) keep their table pointer
-     * in the 4 trailing bytes, so `attack..release` are also reported as `split` (u32) for them.
+     * Reads [count] `ToneData` voices (`struct ToneData`; decomp macros in
+     * `asm/macros/music_voice.inc`) at ROM file offset [offset], keeping every byte:
+     * `{u8 type, key, length, panSweep; u32 data; u8 attack, decay, sustain, release}`. `type`
+     * is 0, 8 or 16 for direct-sound voices, 1/2/9/10 square waves, 3 programmable wave, 0x40
+     * key split and 0x80 rhythm (all keys). `data` is the sample / wave / sub-voicegroup
+     * pointer (for square voices the macros put the duty cycle there instead); ROM pointers are
+     * given as their symbol name when [symbols] (GBA address to name) knows them, else as an
+     * unsigned int. Key-split voices hold their key-to-voice table pointer in the 4 trailing
+     * bytes, so for them `attack..release` are also reported as `split` (u32).
      */
     public fun readVoicegroup(
         rom: ByteArray,
@@ -455,27 +525,30 @@ public object M4aSong {
         ).also { if (type and 0x40 != 0) it["split"] = ref(u32(rom, o + 8)) }
     }
 
-    /** A direct-sound sample (`struct WaveData`, decomp `include/gba/m4a_internal.h`); [data] = [size] signed samples. */
+    /**
+     * A direct-sound sample (`struct WaveData`, `include/gba/m4a_internal.h`); [data] holds the
+     * `size` signed 8-bit samples.
+     */
     public class Wave(
-        /** `WaveData.type`: format type identifier. */
+        /** `WaveData.type`; [collectWaves] only accepts 0. */
         public val type: Int,
-        /** `WaveData.status` (loop flag 0x4000). */
+        /** `WaveData.status`; see [WAVE_LOOP_FLAG] for the loop bit. */
         public val status: Int,
-        /** `WaveData.freq` (sample rate × 1024). */
+        /** `WaveData.freq`: sample rate x [WAVE_FREQ_SCALE]. */
         public val freq: Int,
-        /** `WaveData.loopStart` in samples. */
+        /** `WaveData.loopStart`: sample index where a looping sample restarts. */
         public val loopStart: Int,
         /** Signed 8-bit PCM audio samples. */
         public val data: ByteArray,
     ) {
-        /** Loop flag (`status & 0x4000`, the m4a's WAVE_LOOP). */
+        /** Whether the sample loops (`status` has [WAVE_LOOP_FLAG]). */
         public val loops: Boolean get() = status and WAVE_LOOP_FLAG != 0
 
-        /** Sample rate in Hz (`freq` is the rate × 1024, the pitch at the sample's base key). */
+        /** Sample rate in Hz (`freq` / 1024, rounded down). */
         public val sampleRate: Int get() = freq ushr 10
     }
 
-    /** Reads the `WaveData` at ROM offset [offset]. */
+    /** Reads the `WaveData` at ROM file offset [offset]; fails if it runs past the ROM. */
     public fun readWave(rom: ByteArray, offset: Int): Wave {
         val size = u32(rom, offset + 12)
         require(size in 0..MAX_WAVE_SIZE && offset + WAVE_HEADER_SIZE + size <= rom.size) {
@@ -490,9 +563,11 @@ public object M4aSong {
     }
 
     /**
-     * Every direct-sound sample (voice types 0/8/16) reachable from [voicegroups] (ROM offsets), following
-     * keysplit (0x40) and drum (0x80) sub-voicegroups one level (128 entries scanned; entries whose wave header
-     * is implausible are skipped). Result: wave ROM offsets in first-seen order.
+     * Collects the ROM file offsets of every direct-sound sample (voice types 0/8/16) reachable
+     * from [voicegroups] (ROM file offsets), in first-seen order. Scans 128 voices per group and
+     * follows the sub-voicegroup of key-split (0x40) and rhythm (0x80) voices one level only.
+     * A sample is accepted only if its header looks plausible (type 0, no status bits other than
+     * 0x4000, size 1..[MAX_WAVE_SIZE]); a heuristic, since the ROM has no table of samples.
      */
     public fun collectWaves(rom: ByteArray, voicegroups: Collection<Int>): List<Int> {
         val waves = LinkedHashSet<Int>()
@@ -522,8 +597,9 @@ public object M4aSong {
     }
 
     /**
-     * Serializes [w] as a RIFF WAVE file (8-bit unsigned mono PCM at [Wave.sampleRate]).
-     * Looping samples include a standard `smpl` chunk defining the loop boundary to the end of the sample.
+     * Serializes [w] as a RIFF WAVE file (8-bit unsigned mono PCM at [Wave.sampleRate]); the
+     * signed m4a samples are shifted by 128. Looping samples add a `smpl` chunk with one forward
+     * loop from `loopStart` to the last sample.
      */
     public fun toWav(w: Wave): ByteArray {
         val body = ByteSink()
@@ -573,7 +649,7 @@ public object M4aSong {
         return out.toByteArray()
     }
 
-    /** Reads an unsigned 16-bit little-endian value at [offset] in [bytes]. */
+    /** Reads an unsigned little-endian halfword at [offset] in [bytes]. */
     private fun u16w(bytes: ByteArray, offset: Int): Int =
         (bytes[offset].toInt() and 0xFF) or ((bytes[offset + 1].toInt() and 0xFF) shl 8)
 
@@ -612,16 +688,21 @@ public object M4aSong {
         }
     }
 
+    /** Packs the low 8 bits of each of [values] into a byte array. */
     private fun bytes(vararg values: Int): ByteArray = ByteArray(values.size) { values[it].toByte() }
 
+    /** Big-endian 3-byte form of [value] (MIDI tempo meta event payload). */
     private fun be24(value: Int): ByteArray =
         bytes((value shr 16) and 0xFF, (value shr 8) and 0xFF, value and 0xFF)
 
+    /** Big-endian 4-byte form of [value] (MIDI chunk lengths). */
     private fun be32(value: Int): ByteArray =
         bytes(value ushr 24, (value shr 16) and 0xFF, (value shr 8) and 0xFF, value and 0xFF)
 
+    /** Reads an unsigned byte. */
     private fun u8(bytes: ByteArray, offset: Int): Int = bytes[offset].toInt() and 0xFF
 
+    /** Reads a little-endian 32-bit word (pointers and sizes). */
     private fun u32(bytes: ByteArray, offset: Int): Int =
         u8(bytes, offset) or
             (u8(bytes, offset + 1) shl 8) or

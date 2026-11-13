@@ -7,10 +7,12 @@ import gba.extract.IndexedPng
 import gba.extract.Json
 
 /**
- * FE8 item/UI icons: `item_icon_tiles` (decomp `data/data_item_icon.s`, uncompressed 4bpp, 0x80 bytes =
- * 2×2 tiles row-major per 16×16 icon; `src/icon.c` copies them to 4 consecutive tiles and `DrawIcon` places
- * them 2 wide) and `item_icon_palette[2][16]`. The sheet PNG has 16 icons per row in icon-index order and a
- * 32-color palette (palette 0, then 1); pixel indices are 0–15, the caller picks the palette at run time.
+ * FE8 item/UI icons: `item_icon_tiles` (`data/data_item_icon.s`, uncompressed 4bpp, 0x80 bytes per
+ * 16x16 icon = 2x2 tiles, row-major) and `item_icon_palette[2][16]` (`include/icon.h`). In game,
+ * `GetIconTileIndex` (`src/icon.c`) copies one icon's 0x80 bytes to 4 consecutive tiles and
+ * `DrawIcon` writes them as a 2-wide, 2-tall tilemap block. The sheet PNG has 16 icons per row in
+ * icon-index order and a 32-color palette (palette 0, then 1); pixel indices are 0-15, and the
+ * caller picks the palette at run time (`LoadIconPalettes` loads both).
  */
 public object IconsExtractor {
     /** Bytes per icon. */
@@ -29,7 +31,10 @@ public object IconsExtractor {
         public val count: Int,
     )
 
-    /** Extracts [count] icons at [tilesOffset] with the 2 palettes at [paletteOffset]. */
+    /**
+     * Extracts [count] icons from [tilesOffset] (`item_icon_tiles`) with the 2 palettes at
+     * [paletteOffset] (`item_icon_palette`); both are ROM file offsets.
+     */
     public fun extract(rom: ByteArray, tilesOffset: Int, count: Int, paletteOffset: Int): Output {
         val rows = (count + PER_ROW - 1) / PER_ROW
         val sheet = IndexedImage(PER_ROW * 16, rows * 16)
@@ -43,7 +48,8 @@ public object IconsExtractor {
         val json = Json.write(
             linkedMapOf(
                 "format" to "gbafe.icons", "game" to "fe8", "version" to 1, "image" to "icons.png",
-                "iconWidth" to 16, "iconHeight" to 16, "perRow" to PER_ROW, "count" to count, "palettes" to 2,
+                "iconWidth" to 16, "iconHeight" to 16, "perRow" to PER_ROW, "count" to count,
+                "palettes" to 2,
             ),
         )
         return Output(IndexedPng.write(sheet, palette), json, count)

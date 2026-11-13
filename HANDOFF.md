@@ -11,8 +11,9 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
+- 2026-11-13 18:37Z owner PC (Claude): readability audit fe8.game.ui (Menu).
+- 2026-11-13 18:36Z owner PC (Claude): TEST-2 MU walk allocation (32 B/frame).
 - 2026-11-13 18:29Z owner PC (Claude): readability audit fe8.game.ui (UiFrame, ItemIcon, UiHand, GreenText).
-- 2026-11-13 18:12Z owner PC (Claude): MC-w2 headless kill replay, attack-flow allocation, MANUAL_TEST.
 
 ## Current state
 

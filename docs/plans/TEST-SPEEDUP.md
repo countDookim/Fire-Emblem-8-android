@@ -104,6 +104,34 @@ Risk: none known beyond key collisions, which are excluded by exact packing of e
 How to revert: `git revert 407a17f`; or remove the `seen` / `results` sets and run the body
 unconditionally.
 
+## Change 4: local full-suite command and daemon memory (owner PC, 2026-11-13)
+
+No build or test file changed; this is how the owner-PC session runs the suite.
+
+Measured (owner PC, 10.7 GB RAM, 12 cores): `./gradlew jvmTest test --continue -Pfe8.docs=true
+dokkaGenerate` in a fresh worktree took 10 to 17 min and once failed with "Failed to run Gradle
+Worker Daemon". `--profile`: `:app:compileDebugKotlin` 408 s and `:app:compileReleaseKotlin` 249 s
+(root `test` builds the `:app` unit-test variants, which have no sources), Dokka of `:game` and
+`:testing` about 540 s, `:testing:test` 447 s (CI: 214 s), and 6.6 GB of 8 GB swap in use: the
+3-hour-old Gradle and Kotlin daemons (each `-Xmx3g`) held 5.8 GB in swap.
+
+What changed
+- Full suite is `./gradlew jvmTest --continue`, the same tests CI runs: root `jvmTest` already
+  depends on every JVM test task, including `:testing:test` (+ `serialTest`) and
+  `:tools:extract:test`. Dropping `test` drops only the empty `:app` unit-test builds.
+- Dokka is not part of the local merge run: agents run the changed module's
+  `-Pfe8.docs=true :<module>:dokkaGenerate`, and CI runs `dokkaGenerate` on every push.
+- The merge run is in the main checkout after the cherry-pick (warm build directories), not in a
+  fresh worktree.
+- `~/.gradle/gradle.properties` on the owner PC (not in the repo, CI unaffected) caps the daemons:
+  `org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8` and `kotlin.daemon.jvmargs=-Xmx2g`. When swap
+  use is high, stop the daemons while holding the agent lock (`flock .gradle/agent-checks.lock
+  ./gradlew --stop`).
+
+Result: 5 min 15 s (`:testing:test` 194 s and `serialTest` 80 s are now most of it), swap 0.9 GB.
+
+How to revert: delete `~/.gradle/gradle.properties`; use the old command.
+
 ## Results (measured 2026-11-11)
 
 - Wall time (`./gradlew jvmTest test --max-workers=2`):

@@ -460,6 +460,31 @@ the window frame, whose palette equals the forecast's blue one in the capture). 
 and palette 0x12 (OBJ palette 2) too; palette 5 changes every few frames by itself. Not covered: cap3, the kill
 run, extended layout.
 
+### MC-13 result (2026-11-13)
+
+`CombatActionDifferentialTest` seeds the unit table, `gPlaySt`, `gBmSt`, terrain, both battle units, `gBattleStats`,
+`gActionData` and the RNG from `ram_trace_prologue_attack_noanim` f1823 and runs `PlayerPhase.applyUnitAction` (a
+test proc in tree 2 calls it) -> `ActionCombat` -> `BattleGenerateReal` -> `sProcScr_CombatAction` through f2076.
+The trees run as `OnMain` does: tree 2 is skipped while the game is locked (this is why the real combat proc
+stays at command 2 from f1825 to f2073: the map animation's `LockGame`, not the proc script, holds it).
+The map animation is a test placeholder that locks the game and unlocks it when the dump's
+`ProcScr_MapAnimBattle` is gone; its BG/OAM/palette/sprite writes are M6-H and not compared. Dump 1824 holds
+`BeginBattleAnimations` half run and is skipped. Compared per dump from 1825: the combat proc and its script
+position, the blocked parent's lock count, both battle units (but `unit.exp` and `expGain`, MC-14), `gBattleStats`,
+the RNG; at the end both unit table entries after the write-back (HP, weapon uses and exp of the weapon; every byte
+but `unit.exp`), the unit ids `BATTLE_HandleItemDrop` stores in the proc (+0x64/+0x66, s16 sign-extended) as the
+arguments of the death hooks. `StoreRNStateToActionStruct` runs in the suspend save: f1820 (stores the pre-battle
+state, equal to the old bytes) and f2079 (the post-battle state); the test checks both against the dumps with a
+filled buffer (`BmSuspendSave` now calls it). Verified: `ApplyUnitAction` (combat branch), `ActionCombat`,
+`BATTLE_GOTO1_IfNobodyIsDead`, `BATTLE_HandleItemDrop`, `BATTLE_HandleCombatDeaths`, `StoreRNStateToActionStruct`.
+Combat does not set `US_HAS_MOVED` (the unit turns grey through `MoveActiveUnit`'s `US_UNSELECTABLE`).
+Transcribed (not verified): the item drop branch, the Nightmare, wall/trap and ballista paths (fail loudly).
+Not written: `BATTLE_PostCombatDeathFades`, `BATTLE_DeleteLinkedMOVEUNIT` (script entries fail loudly).
+Stand-ins: `beginBattleAnimations` (sets `MAPANIMS`, no animation) and `getBattleAnimPreconfType` (M6-H);
+`killUnitOnCombatDeath` (wiring marks a 0-HP unit dead and hidden), `dropRescueOnDeath`, `itemGotPopup` (MC-16);
+exp (MC-14). The write-back `BmBattle.battleApplyGameStateUpdates` runs (MC-15 still tags it Transcribed; this
+test checks its result). `pidStatsAddExpGained` throws if wired late: MC-14 must wire it.
+
 ## M7
 
 Not broken down here: [M7-modding](M7-modding.md) has 23 proposed rows; they wait for owner decisions D2–D9.

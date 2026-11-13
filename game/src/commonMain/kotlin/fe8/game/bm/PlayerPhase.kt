@@ -97,7 +97,7 @@ public class PlayerPhase(
         hooks.waitForUnitMovement = ProcFunc { playerPhaseWaitForUnitMovement(it) }
         hooks.applyUnitMovement = ProcFunc { playerPhaseApplyUnitMovement(it) }
         hooks.prepareAction = ProcBoolFunc { playerPhasePrepareAction(it) }
-        hooks.applyUnitAction = ProcBoolFunc { applyUnitActionWait() }
+        hooks.applyUnitAction = ProcBoolFunc { applyUnitAction(it) }
         hooks.handlePostActionTraps = ProcBoolFunc { handlePostActionTraps(it) }
         hooks.runPotentialWaitEvents = ProcBoolFunc { runPotentialWaitEvents() }
         hooks.ensureCameraOntoActiveUnitPosition =
@@ -346,8 +346,15 @@ public class PlayerPhase(
         /** `PlayerPhase_PrepareAction` (a `PROC_CALL_2`); [PlayerPhase] sets the port. */
         public var prepareAction: ProcBoolFunc = ProcBoolFunc { true }
 
-        /** `ApplyUnitAction` (a `PROC_CALL_2`); [PlayerPhase] sets the Wait branch. */
+        /** `ApplyUnitAction` (a `PROC_CALL_2`); [PlayerPhase] sets the port. */
         public var applyUnitAction: ProcBoolFunc = ProcBoolFunc { true }
+
+        /**
+         * `ActionCombat` ([CombatAction.actionCombat]); set by `PlayerPhaseWiring`. Default:
+         * fails loudly (the combat action is not wired).
+         */
+        public var actionCombat: ProcBoolFunc =
+            ProcBoolFunc { error("ActionCombat is not wired") }
 
         /** `HandlePostActionTraps` (a `PROC_CALL_2`); replaced by [PlayerPhase] with the port. */
         public var handlePostActionTraps: ProcBoolFunc = ProcBoolFunc { true }
@@ -616,21 +623,22 @@ public class PlayerPhase(
     /**
      * Ported from src/bmmind.c: ApplyUnitAction
      *
-     * The Wait branch only (verified for Wait; every other action type is not written and fails
-     * loudly). Stand-in until MC-13: a combat action (A on an attack target) ends the unit's
-     * turn like Wait, without the battle.
-     *
-     * Makes the subject the active unit; Wait and Trapped set `US_HAS_MOVED` and go on (true).
-     * The Nightmare check of a combat action is part of the combat branch (not written).
+     * The Wait, Trapped and Combat branches (every other action type is not written and fails
+     * loudly). Makes the subject the active unit; a combat action with the Nightmare staff is not
+     * written (fails loudly, not verified: no capture has it). Wait and Trapped set
+     * `US_HAS_MOVED` and go on (true); Combat is [Hooks.actionCombat] (`ActionCombat`,
+     * [CombatAction]), which starts the combat proc that blocks [proc] (false).
      */
-    public fun applyUnitActionWait(): Boolean {
+    public fun applyUnitAction(proc: Proc): Boolean {
         active.unit = active.action.subjectIndex
-        check(
-            active.action.unitActionType == UNIT_ACTION_WAIT_TYPE ||
-                active.action.unitActionType == UNIT_ACTION_TRAPPED ||
-                active.action.unitActionType == UNIT_ACTION_COMBAT,
-        ) {
-            "ApplyUnitAction: action ${active.action.unitActionType} is not written"
+        val type = active.action.unitActionType
+        if (type == UNIT_ACTION_COMBAT) {
+            val item = units.item(active.unit, active.action.itemSlotIndex) and 0xFF
+            check(item != ITEM_NIGHTMARE) { "ApplyUnitAction: the Nightmare staff is not written" }
+            return hooks.actionCombat.invoke(proc)
+        }
+        check(type == UNIT_ACTION_WAIT_TYPE || type == UNIT_ACTION_TRAPPED) {
+            "ApplyUnitAction: action $type is not written"
         }
         units.setState(active.unit, units.state(active.unit) or US_HAS_MOVED)
         return true
@@ -1494,6 +1502,7 @@ public class PlayerPhase(
         private const val US_BIT16 = 1 shl 16
         private const val CA_CANTO = 1 shl 1
         private const val UNIT_ACTION_COMBAT = 0x02
+        private const val ITEM_NIGHTMARE = 0xA6
         private const val UNIT_ACTION_STAFF = 0x03
         private const val UNIT_ACTION_TAKE = 0x0B
         private const val UNIT_ACTION_GIVE = 0x0C

@@ -47,8 +47,10 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      The weapon triangle arrows (up for Eirika, down for the enemy) and a swaying x2 mark by Eirika's side show too (MC-12b); there is no help box (M6-F).
      B
      (cancel sound) slides the panel out, hides the cursor and squares and reopens the weapon list. A (confirm sound)
-     ends the cursor and squares and Eirika greys out as after Wait: the attack itself
-     (battle, damage, experience) is not there yet (stand-in until MC-13).
+     ends the cursor and squares and the attack resolves at once (MC-13, not yet in a published APK): no map
+     animation (stand-in until M6-H), but the enemy's HP drops by the forecast damage (or stays on a miss), the
+     weapon's uses drop and Eirika greys out as after Wait. A killed enemy stays on the map with 0 HP and is hidden
+     (stand-in until MC-16); no experience (MC-14), no counter animation.
   4. B in the unit menu. Expected: she is back at her start tile and selected again, the range shows.
      Move again and choose Wait. Expected: the menu closes, Eirika greys out, the cursor is free.
   5. Press A on an empty tile. Expected: the map menu (Unit, Status, Guide, Options, Suspend,

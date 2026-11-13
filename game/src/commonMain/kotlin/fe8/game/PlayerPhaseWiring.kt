@@ -13,6 +13,7 @@ import fe8.game.bm.BmMap
 import fe8.game.bm.BmMapRender
 import fe8.game.bm.BmSt
 import fe8.game.bm.CamMove
+import fe8.game.bm.CombatAction
 import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.ItemInfo
 import fe8.game.bm.ItemMenuLine
@@ -178,8 +179,8 @@ internal class PlayerPhaseWiring(
 
     /**
      * `gSelectInfo_Attack`: [AttackMapSelect]. The battle forecast window slides in and shows
-     * its numbers (its arrows and multipliers are MC-12b); A on a target ends the unit's turn
-     * like Wait (stand-in until MC-13, no battle).
+     * its numbers (its arrows and multipliers are MC-12b); A on a target runs the combat action
+     * ([wireAction]).
      */
     private fun wireAttackSelect(phase: PlayerPhase) {
         val facing = UnitFacing(units, active, phase.workingMovementScript)
@@ -340,6 +341,19 @@ internal class PlayerPhaseWiring(
         }
         h.runWaitEvents = { infos.runWaitEvents(units.xPos(active.unit), units.yPos(active.unit)) }
         h.shouldCallEndEvent = { infos.shouldCallEndEvent() }
+        val combat = CombatAction(engine, battle, battleGenerate, units, active)
+        combat.hooks.doesBmxFadeExist = gbafe.proc.ProcBoolFunc { p ->
+            h.doesBmxFadeExist.invoke(p)
+        }
+        // Stand-in until MC-16 (UnitKill): a unit with 0 HP is marked dead and hidden.
+        combat.hooks.killUnitOnCombatDeath = CombatAction.UnitKiller { unit, _ ->
+            if (units.currentHp(unit) <= 0) {
+                units.setState(unit, units.state(unit) or US_DEAD_HIDDEN)
+            }
+        }
+        h.actionCombat = gbafe.proc.ProcBoolFunc { combat.actionCombat(it) }
+        h.battleAnimPreconfOff =
+            { combat.hooks.getBattleAnimPreconfType.get() == CombatAction.PLAY_ANIMCONF_OFF }
         h.cursorSound = PlayerPhase.SoundEffect { song -> sound.playSoundEffect(song) }
         h.playSoundEffect = PlayerPhase.SoundEffect { song -> sound.playSoundEffect(song) }
     }
@@ -359,5 +373,6 @@ internal class PlayerPhaseWiring(
         const val USEBIT_WEAPON = 1
         const val SUSPEND_POINT_PLAYERIDLE = 0
         const val SONG_REFUSED = 0x6C
+        const val US_DEAD_HIDDEN = (1 shl 2) or (1 shl 0)
     }
 }

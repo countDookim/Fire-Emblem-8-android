@@ -10,6 +10,7 @@
 package fe8.game.save
 
 import fe8.game.RomView
+import fe8.game.bm.CombatAction
 import fe8.game.bm.PlaySt
 import fe8.game.bm.StructCodec
 import fe8.game.bm.UnitLoader
@@ -386,8 +387,7 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
         writeAndVerifySramFast(playStBytes, 0, sram, dest + S.PLAY_ST, PlaySt.SIZE)
 
         // StoreRNStateToActionStruct: StoreRNState(gActionData._u00).
-        ram.rng.primary.store(rnWords)
-        for (i in 0 until 3) StructCodec.put16(ram.actionData, i * 2, rnWords[i])
+        CombatAction.storeRNStateToActionStruct(ram.rng, ram.actionData)
         writeAndVerifySramFast(ram.actionData, 0, sram, dest + S.ACTION, S.ACTION_SIZE)
 
         var buf = 0

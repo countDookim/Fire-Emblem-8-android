@@ -1417,9 +1417,10 @@ public class OpAnim(
     }
 
     /**
-     * Sets up the cast scroll display: [type] 0 shows BG2 only; otherwise BG0..3 get priorities
-     * 0..3, BG1 shows the shining ring (tiles 0x4000, map 0xF000, palettes 8..11) blended over BG2.
-     * Either way BG2 shows the scroll lines (tiles 0x8000, map 0xE800, palettes 0..7).
+     * Sets up the cast scroll display. [type] 0 shows BG2 only. Otherwise BG0..3 get priorities
+     * 0..3, only BG0 is enabled, and BG1 is configured for the shining ring (tiles 0x4000, map
+     * 0xF000, palettes 8..11) with BG1 as first and BG2 as second blend target. Either way BG2 is
+     * configured for the scroll lines (tiles 0x8000, map 0xE800, palettes 0..7).
      *
      * Ported from src/opanim-main.c: sub_80C72A4
      */
@@ -1447,8 +1448,9 @@ public class OpAnim(
     }
 
     /**
-     * Loads the scroll lines between [old] and [new] (in pixels, 8 per line, 0x15 lines ahead)
-     * and scrolls BG2 to `0x60 - new`.
+     * Loads the scroll lines that came into range between [old] and [new] (scroll positions in
+     * pixels, 8 per line; lines are loaded 0x15 lines ahead of the position) and scrolls BG2
+     * vertically to `0x60 - new`.
      *
      * Ported from src/opanim-main.c: OpAnim1_UpdateScroll
      */
@@ -1458,7 +1460,8 @@ public class OpAnim(
     }
 
     /**
-     * Sets up the cast display (type `unk46`) and loads the scroll lines up to `unk38`.
+     * Sets up the cast display for type `unk46` ([setupCastDisplay]; 0 = BG2 only, 1 = with the
+     * ring layer) and loads the scroll lines from `unk3A` (previous position) up to `unk38`.
      *
      * Ported from src/opanim-main.c: sub_80C8564
      */
@@ -1470,15 +1473,14 @@ public class OpAnim(
 
     /** `struct ProcOpAnimBlend` (`gUnknown_08AA705C`, `gUnknown_08AA707C`). */
     public class BlendState {
-        /** `unk4C`. */
+        /** `unk4C`: step counter of the BG2 darken ramp. */
         public var timer: Int = 0
     }
 
     /**
      * `gUnknown_08AA705C`: BG2 starts almost black (14/16 darkening, [castDarkenInit]) and the
      * darkening is lifted over 0x28 steps, so the cast scroll fades in; resets the blend when
-     * ended.
-     * (Despite the name, the net effect is brightening; the name follows the decomp's init
+     * ended. (Despite the name, the net effect is brightening; the name follows the decomp's init
      * function.)
      */
     public val castDarkenScript: ProcScript = ProcScript(
@@ -1493,7 +1495,7 @@ public class OpAnim(
     )
 
     /**
-     * Darkens BG2 by 14/16 and clears the timer.
+     * Starts the BG2 darken at level 14/16 and clears the step counter [BlendState.timer].
      *
      * Ported from src/opanim-main.c: sub_80C8580
      */
@@ -1510,13 +1512,15 @@ public class OpAnim(
      */
     public fun castDarkenMain(proc: Proc) {
         val st = proc.state as BlendState
-        hardware.lcd.setBlendConfig(3, 8, 8, Interpolate.interpolate(Interpolate.LINEAR, 0xE, 0, st.timer, 0x28))
+        val level = Interpolate.interpolate(Interpolate.LINEAR, 0xE, 0, st.timer, 0x28)
+        hardware.lcd.setBlendConfig(3, 8, 8, level)
         if (st.timer == 0x28) engine.breakProc(proc) else st.timer = (st.timer + 1) and 0xFFFF
     }
 
     /**
-     * Scrolls the cast lines (`unk38` from 0 to 0x270 over 0x430 steps of `unk3C`) while loading
-     * Joshua's scene and the shining ring over steps 1..6; at step 0x28 ends the darken procs and
+     * Scrolls the cast lines ([advanceCastScroll]) while loading the BG3 backdrop (step 1), the
+     * `Img_OpAnimJoshua` scene (steps 2..4, as in [loadCastSceneStep]) and the shining ring (steps
+     * 5..6); at step 0x28 ends both blend procs ([castDarkenScript], [castBrightenScript]) and
      * breaks.
      *
      * Ported from src/opanim-main.c: sub_80C8690
@@ -1527,7 +1531,8 @@ public class OpAnim(
         val vram = hw.vram
         val g = cast ?: error("OpAnim.cast graphics not supplied")
         advanceCastScroll(st)
-        fun dec(b: OpAnimHs.Blob, dst: ByteArray, at: Int) = Decompress.into(b.data, b.offset, dst, at)
+        fun dec(b: OpAnimHs.Blob, dst: ByteArray, at: Int) =
+            Decompress.into(b.data, b.offset, dst, at)
         if (st.timer == 2) missedVBlanks = 1
         when (st.timer) {
             1 -> {
@@ -1535,7 +1540,9 @@ public class OpAnim(
                 val t = Decompress.decode(g.characterBg.second.data, g.characterBg.second.offset)
                 val map = hw.mapBuffer(3)
                 for (i in 0 until minOf(t.size / 2, map.size)) {
-                    map[i] = ((t[2 * i].toInt() and 0xFF) or ((t[2 * i + 1].toInt() and 0xFF) shl 8)).toShort()
+                    val lo = t[2 * i].toInt() and 0xFF
+                    val hi = t[2 * i + 1].toInt() and 0xFF
+                    map[i] = (lo or (hi shl 8)).toShort()
                 }
                 for (i in 0 until 0x280) map[i] = (map[i] + 0xE100).toShort()
                 hw.enableBgSyncByMask(8)
@@ -1565,7 +1572,11 @@ public class OpAnim(
     /** The cast scene graphics, or an error when the caller built this [OpAnim] without them. */
     private fun castGfx(): CastGfx = cast ?: error("OpAnim.cast graphics not supplied")
 
-    /** One cast scroll step: loads lines up to `unk38`, then moves `unk38` along 0..0x270 by `unk3C`. */
+    /**
+     * One cast scroll step: loads the lines from `unk3A` up to `unk38`, then `unk3A` takes the old
+     * `unk38` and `unk38` takes the next position on the linear ramp 0..0x270 over 0x430 steps,
+     * with `unk3C` as the step counter.
+     */
     private fun advanceCastScroll(st: State) {
         val u = st.unk38to46
         updateScroll(u[0], u[1])
@@ -1591,7 +1602,8 @@ public class OpAnim(
     }
 
     /**
-     * Shows all layers with BG2 (the scroll lines) on top, fully blended over BG3.
+     * Shows all layers with BG2 (the scroll lines) in front, as first blend target over BG3 with
+     * weights 16/0, so BG2 starts fully opaque.
      *
      * Ported from src/opanim-main.c: sub_80C9DF0
      */
@@ -1614,7 +1626,9 @@ public class OpAnim(
     }
 
     /**
-     * Scrolls the cast lines and fades BG2's blend from 16/0 to 0/16 over 0x10 steps, then breaks.
+     * Scrolls the cast lines and lowers BG2's blend weight from 16/0 to 0/16 over 0x10 steps, so
+     * the scroll lines fade away behind the scene (the name refers to the scene appearing), then
+     * breaks.
      *
      * Ported from src/opanim-main.c: sub_80C9E6C
      */
@@ -1636,7 +1650,8 @@ public class OpAnim(
     }
 
     /**
-     * BG0..3 priorities 0..3, BG1 (tiles 0, map 0xE000) blended over BG3, BG2 hidden.
+     * BG0..3 priorities 0..3, BG0, BG1, BG3 and OBJ shown, BG2 hidden, BG1 (tiles 0, map 0xE000)
+     * blended over BG3 with weights 16/0.
      *
      * Ported from src/opanim-main.c: sub_80C9B6C
      */
@@ -1653,9 +1668,11 @@ public class OpAnim(
     }
 
     /**
-     * Sets up a character's scene: display ([setupCastSceneDisplay]), its palettes 0..10 and
-     * scroll parameters; clears the front/back scroll
-     * positions (`unk30/32`). Each C function hard-codes one [CastScene].
+     * Sets up a character's scene: display ([setupCastSceneDisplay]), its palettes 0..10 (0x160
+     * bytes) and its scroll parameters: direction (`unk47`), distance (`unk40`), the shadow's base
+     * x (`unk42`) and the scroll offset (`unk44`). Also points the two tilemap halves at the
+     * generic buffer (`unk48`, `unk4C`) and clears the front/back scroll positions (`unk30/32`).
+     * Each C function hard-codes one [CastScene].
      *
      * Ported from src/opanim-main.c: sub_80C9C08, sub_80C9C5C, sub_80C9CAC, sub_80C9CFC, sub_80C9D4C, sub_80C9DA0
      */
@@ -1673,11 +1690,15 @@ public class OpAnim(
         st.backScrollPos = 0
     }
 
-    /** Steps 1..3 of a scene load: image + tilemap 1, image + tilemap 2, clear BG0/1 and VRAM 0xD800. */
+    /**
+     * Steps 1..3 of a scene load: image + tilemap 1, image + tilemap 2, clear BG0/1 and the VRAM
+     * from 0xD800.
+     */
     private fun loadCastSceneStep(scene: CastScene, step: Int) {
         val hw = hardware
         val vram = hw.vram
-        fun dec(b: OpAnimHs.Blob, dst: ByteArray, at: Int) = Decompress.into(b.data, b.offset, dst, at)
+        fun dec(b: OpAnimHs.Blob, dst: ByteArray, at: Int) =
+            Decompress.into(b.data, b.offset, dst, at)
         when (step) {
             1 -> {
                 dec(scene.first.first, vram, hw.tileDataOffset(0))
@@ -1696,14 +1717,16 @@ public class OpAnim(
     }
 
     /**
-     * Scrolls the cast lines while loading [scene] over steps 1..3; at step 0x28 breaks (the
-     * first, L'Arachel's, also ends the darken proc). Each C function hard-codes one [CastScene].
+     * Scrolls the cast lines while loading [scene] over steps 1..3; at step 0x28 breaks. The
+     * first scene (`sub_80C883C`, [endDarken]) also ends [castDarkenScript]. Each C function
+     * hard-codes one [CastScene].
      *
      * Ported from src/opanim-main.c: sub_80C883C, sub_80C8934, sub_80C8A20, sub_80C8B0C, sub_80C8BF8
      */
     public fun loadCastScene(proc: Proc, scene: CastScene, endDarken: Boolean) {
         val st = proc.state as State
         advanceCastScroll(st)
+        // Scenes 3 and 4 also overrun at step 2 (see [missedVBlanks]).
         val late = castGfx().scenes.indexOf(scene) >= 3
         if (st.timer == 1 || (st.timer == 2 && late)) missedVBlanks = 1
         loadCastSceneStep(scene, st.timer)
@@ -1718,7 +1741,8 @@ public class OpAnim(
 
     /**
      * Scrolls the scene's BG0 in over 0x1E steps (from the left if `unk47`, else from the right),
-     * then draws its BG1 copy at the end position and breaks.
+     * then draws its BG1 copy (the palette-15 shadow) at the shadow's starting position and
+     * breaks.
      *
      * Ported from src/opanim-main.c: sub_80C9FF8
      */
@@ -1774,8 +1798,9 @@ public class OpAnim(
     }
 
     /**
-     * Holds the scene for 0x1E steps: BG0 drifts 0x10 pixels, BG1 (the shadow) drifts away and its
-     * blend falls from 8/8.
+     * Holds the scene for 0x1E steps: BG0 drifts a further 0x10 pixels and BG1 (the shadow) drifts
+     * away while its alpha weight falls from 8 towards 0 (BG3's rises from 8 towards 16) on a
+     * 0x28-step ramp, whose last 0xB steps [castShadowOut] runs.
      *
      * Ported from src/opanim-main.c: sub_80CA10C
      */
@@ -1799,8 +1824,9 @@ public class OpAnim(
     }
 
     /**
-     * Continues [castSceneHold]'s shadow for 0xB more steps, then hides BG1 and blends BG0 over
-     * BG3 at 16/0.
+     * Continues [castSceneHold]'s shadow ramp for its last 0xB steps (ramp position
+     * `timer + 0x1E`), then hides BG1 and BG2 and sets BG0 as first blend target over BG3 with
+     * weights 16/0. Not a proc step of its own: [castSceneScrollOut] calls it.
      *
      * Ported from src/opanim-main.c: sub_80CA26C
      */
@@ -1824,7 +1850,8 @@ public class OpAnim(
     }
 
     /**
-     * Scrolls the scene's BG0 out over 0x1E steps while fading it out from step 0xF, then breaks.
+     * Scrolls the scene's BG0 out over 0x1E steps while fading it into BG3 over the last 0xF
+     * steps (BG0's alpha weight 16 to 0), running [castShadowOut] alongside; then breaks.
      *
      * Ported from src/opanim-main.c: sub_80CA3B8
      */
@@ -1840,7 +1867,9 @@ public class OpAnim(
             hw.lcd.blendCoeffB = 16 - a
         }
         hw.enableBgSyncByMask(1)
-        castBg0(st, Interpolate.interpolate(Interpolate.SQUARE, u[0] + 0x10, u[0] * 2 + 0x10, st.timer, 0x1E))
+        val x = Interpolate.interpolate(
+            Interpolate.SQUARE, u[0] + 0x10, u[0] * 2 + 0x10, st.timer, 0x1E)
+        castBg0(st, x)
         if (st.timer == 0x1E) {
             st.timer = 0
             engine.breakProc(proc)
@@ -1850,7 +1879,8 @@ public class OpAnim(
     }
 
     /**
-     * Reloads the scroll lines' palettes and shows BG2 (on top) blended over BG3 at 0/16.
+     * Reloads the scroll lines' palettes and shows BG2 (in front) as first blend target over BG3
+     * with weights 0/16, so BG2 starts fully transparent; [fadeOutCastScene] then fades it in.
      *
      * Ported from src/opanim-main.c: sub_80C9EE8
      */
@@ -1866,7 +1896,8 @@ public class OpAnim(
     }
 
     /**
-     * Scrolls the cast lines and raises BG2's blend from 0/16 to 16/0 over 0x10 steps, then breaks.
+     * Scrolls the cast lines and raises BG2's blend weight from 0/16 to 16/0 over 0x10 steps, so
+     * the scroll lines fade back in over the scene, then breaks.
      *
      * Ported from src/opanim-main.c: sub_80C9F7C
      */
@@ -1890,7 +1921,7 @@ public class OpAnim(
     /**
      * `gUnknown_08AA707C`: darkens BG2 from 0 to 12/16 over 0x28 steps, so the cast scroll fades
      * out; resets the blend when ended. (Named opposite to [castDarkenScript]; both names follow
-     * the decomp.)
+     * the decomp's init functions.)
      */
     public val castBrightenScript: ProcScript = ProcScript(
         "gUnknown_08AA707C",
@@ -1904,7 +1935,7 @@ public class OpAnim(
     )
 
     /**
-     * Sets a darken blend (0) on BG2 and clears the timer.
+     * Starts the BG2 darken at level 0 and clears the step counter [BlendState.timer].
      *
      * Transcribed from src/opanim-main.c: sub_80C8608 (not verified: the blend registers it sets
      * are rewritten before any traced frame compares them)
@@ -1916,18 +1947,20 @@ public class OpAnim(
     }
 
     /**
-     * Raises the darkening from 0 to 12 over 0x28 steps, then breaks.
+     * Raises BG2's darkening from 0 to 12/16 over 0x28 steps, then breaks.
      *
      * Ported from src/opanim-main.c: sub_80C8638
      */
     public fun castFadeOutMain(proc: Proc) {
         val st = proc.state as BlendState
-        hardware.lcd.setBlendConfig(3, 8, 8, Interpolate.interpolate(Interpolate.LINEAR, 0, 12, st.timer, 0x28))
+        val level = Interpolate.interpolate(Interpolate.LINEAR, 0, 12, st.timer, 0x28)
+        hardware.lcd.setBlendConfig(3, 8, 8, level)
         if (st.timer == 0x28) engine.breakProc(proc) else st.timer = (st.timer + 1) and 0xFFFF
     }
 
     /**
-     * Keeps scrolling the cast lines for 0x28 steps, then breaks.
+     * Keeps scrolling the cast lines for 0x28 steps while [castBrightenScript] fades the scroll
+     * out, then breaks.
      *
      * Ported from src/opanim-main.c: sub_80C8CE4
      */
@@ -1943,7 +1976,7 @@ public class OpAnim(
     }
 
     /**
-     * Ends the darkening proc and shows only OBJ, with no blend.
+     * Ends [castBrightenScript] (the BG2 fade-out) and shows only OBJ, with no blend.
      *
      * Ported from src/opanim-main.c: sub_80CA4A4
      */
@@ -1954,8 +1987,8 @@ public class OpAnim(
     }
 
     /**
-     * Puts sparkle sprite [kind] (0..4: size class) variant [variant] at ([x], [y]) on layer 0,
-     * palette 3.
+     * Puts a sparkle sprite at ([x], [y]) on layer 0, palette 3. [kind] (0..4) and [variant] select
+     * the tile (`variant >> 1`) and the OAM shape (`variant & 1`) within the kind.
      *
      * Ported from src/opanim-main.c: OpAnimPutObjCommon
      */
@@ -1965,9 +1998,10 @@ public class OpAnim(
     }
 
     /**
-     * After the cast scroll: loads its last lines (steps 1..4), shows the sparkles appearing one by
-     * one (step 0x1E onwards), shows BG2 again and fades its palettes from white (step 0x52, 0x60
-     * steps), then fades OBJ out over it (step 0xB1, 0x20 steps); breaks at step 0xD1.
+     * After the cast scroll: loads its last lines (steps 1..3) and pins both scroll positions at
+     * 0x230 (step 4); shows each sparkle from its own step (the first from step 0x1E, the last
+     * from 0x8F), shows BG2 again and fades its palettes in from black (step 0x52, 0x60 steps),
+     * then fades OBJ out over BG2 (step 0xB1, 0x20 steps); breaks at step 0xD1.
      *
      * Ported from src/opanim-main.c: sub_80CA4DC
      */
@@ -1986,8 +2020,10 @@ public class OpAnim(
             }
         }
         val t = SPARKLES
-        // Each sparkle (5 ints: first step, x, y, kind, variant) is shown once its step is passed.
-        for (i in t.indices step 5) if (st.timer > t[i]) putSparkle(t[i + 1], t[i + 2], t[i + 3], t[i + 4])
+        // Each sparkle (5 ints: step, x, y, kind, variant) is put once the timer is past its step.
+        for (i in t.indices step 5) {
+            if (st.timer > t[i]) putSparkle(t[i + 1], t[i + 2], t[i + 3], t[i + 4])
+        }
         var timer = st.timer - 0x52 // u32 in C: negative values compare as large
         if (timer == 0) {
             lcd.setDispEnable(0, 0, 1, 0, 1)
@@ -2019,7 +2055,8 @@ public class OpAnim(
     }
 
     /**
-     * Resets the blend; the next [setupCastScroll] then uses the full display (`unk46` = 1).
+     * Resets the blend; the next [setupCastScroll] then sets up the display with the ring layer
+     * (`unk46` = 1).
      *
      * Ported from src/opanim-main.c: sub_80CA92C
      */
@@ -2030,7 +2067,8 @@ public class OpAnim(
 
     /**
      * Pulses BG1's (the shining ring's) blend with `unk3E` (period 0x4C), fades the scroll lines'
-     * palettes in from black over 0x26 steps and loads [faces] into OBJ VRAM (steps 2..5), then
+     * palettes in from 12/16 black over 0x26 steps, loads the shared shadow palette (step 2) and
+     * the three [faces] (image, palette and shadow image each; steps 3..5) into OBJ VRAM, then
      * breaks.
      *
      * Ported from src/opanim-main.c: sub_80C8D30
@@ -2062,8 +2100,9 @@ public class OpAnim(
     }
 
     /**
-     * Sets up a face screen: ends the darkening proc, shows BG2 and OBJ, with the OBJ window
-     * showing BG2 and OBJ blended (4/8) and nothing outside it.
+     * Sets up a face screen: ends [castBrightenScript], resets BG3's position, shows BG2 and OBJ,
+     * enables only the OBJ window (BG2 and OBJ visible inside it, nothing outside) and sets alpha
+     * blending 4/8, applied inside the OBJ window only.
      *
      * Ported from src/opanim-main.c: sub_80CA940
      */
@@ -2085,7 +2124,7 @@ public class OpAnim(
      * The position of a sliding face: `0xFFFF` (hidden) before step `lastStep - 0x10`, then
      * [target] + [dir] * 240 (off screen) easing to [target] over the 0x10 steps before
      * [lastStep], and [target] afterwards. [step] is the face's current step. Despite the name it
-     * is also used for the vertical slide of [faces4In].
+     * is also used for vertical slides (for example in [faces2In] and [faces4In]).
      *
      * Ported from src/opanim-main.c: sub_80CA9F8
      */

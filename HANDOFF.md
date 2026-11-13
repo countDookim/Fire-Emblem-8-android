@@ -11,6 +11,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
+- EP-6a: owner PC, until ~23:15Z
 - Readability fe8.game PlayerPhaseWiring/WorldMapBoot: owner PC, until ~22:45Z
 
 ## Current state

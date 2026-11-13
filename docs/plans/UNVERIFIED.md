@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 554 across 79 decomp files (missing reason: 0).
+Total entries: 558 across 80 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -661,6 +661,15 @@ Total entries: 554 across 79 decomp files (missing reason: 0).
 | `WriteLinkArenaStruct2` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero link arena block, so no run shows its checksum or data |
 | `WriteSupplyItems` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
 
+## src/cp_decide.c (4)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `DecideSpecialItems` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | it runs once, for Red 0, and changes nothing; leaving out the call keeps the test green |
+| `DecideHealOrEscape` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | it runs for all three enemies, but only the path of a unit that is not healing and has no `AI_UNIT_FLAG_3`; the berserk return and both branches are not seen, the branches are stand-ins, EP-cap2 |
+| `DecideScriptA` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only a script try that succeeds at once runs; the gorgon egg return, the berserk action and the fallback script never run |
+| `DecideScriptB` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only a script try that succeeds at once runs, for one unit; the ballista return, the berserk move and the fallback script never run |
+
 ## src/cp_utility.c (4)
 
 | Function | Kotlin file | Reason |
@@ -722,14 +731,6 @@ Total entries: 554 across 79 decomp files (missing reason: 0).
 | `CountUnitsInState` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | only reached by the victory-song check; the enemy-phase windows call it, but the result only shows as the song id, which no capture records |
 | `GetPhaseAbleUnitCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no trace has a unit that the asleep/berserk/unselectable/NOT_ABLE exclusions would skip; the enemy-phase windows only show that the count is 0 exactly when the phase has no banner |
 
-## src/cp_decide.c (3)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `DecideHealOrEscape` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | it runs for all three enemies, but only the path of a unit that is not healing and has no `AI_UNIT_FLAG_3`; the berserk return and both branches are not seen, the branches are stand-ins, EP-cap2 |
-| `DecideScriptA` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only a script try that succeeds at once runs; the gorgon egg return, the berserk action and the fallback script never run |
-| `DecideScriptB` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only a script try that succeeds at once runs, for one unit; the ballista return, the berserk move and the fallback script never run |
-
 ## src/cp_order.c (3)
 
 | Function | Kotlin file | Reason |
@@ -737,6 +738,14 @@ Total entries: 554 across 79 decomp files (missing reason: 0).
 | `GetUnitBattleAiPriority` | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | the three Prologue enemies all come out 20 and no mutation of it changes the captured order |
 | `GetUnitAiPriority` | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | the three Prologue enemies all come out 25, so no mutation changes the captured order |
 | `SortAiUnitList` | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | the priorities are equal, so only the stability is seen, not the direction |
+
+## src/cpextra_80407F0.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetSpecialItemFuncIndex` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only the result -1 runs, for Red 0's items, and it shows in no captured value; a wrong hit would enter a special item function, which the EP-0 trace says never runs |
+| `AiTryDoSpecialItems` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | it runs once, for Red 0, and changes nothing; its result is discarded by the caller |
+| `sub_8040C5C` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only the non-rogue return runs, for Red 0 at f1613, and it shows in no captured value; the rogue part is a stand-in, EP-12 |
 
 ## src/uiselecttarget.c (3)
 

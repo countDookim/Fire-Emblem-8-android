@@ -1,7 +1,7 @@
 package fe8.testing
 
 import fe8.game.RomView
-import fe8.game.bm.AiUnitStep
+import fe8.game.bm.AiStep
 import fe8.game.bm.CpPhase
 import fe8.game.bm.PlaySt
 import fe8.game.bm.UnitLoader
@@ -28,7 +28,7 @@ import java.io.File
  * `gAiState` of f1611 are fed to `gProcScr_CpPhase`, and the first frame must give the state of
  * f1612 (unit list 0x81, 0x82, 0x83, `unitIt` at the start, `orderState` 1, flags, `unk7E`, the
  * special item flags) and the proc tree CpPhase > CpOrder > CpDecide. The state is read at the
- * first `AiUpdateNoMoveFlag` call of the real `CpDecide` (its default stand-ins decide nothing);
+ * first `RefreshUnitSprites` call of the real `CpDecide` (its default stand-ins decide nothing);
  * then the order ends (`orderState` 2) and the cleanup clears the flags, as at f2744..f2746.
  */
 class CpOrderDifferentialTest {
@@ -82,9 +82,9 @@ class CpOrderDifferentialTest {
         assertNotNull(phase)
         val state = sim.cp.aiState
         var checked = false
-        // The first `AiUpdateNoMoveFlag` call is the first moment CpDecide decides: the state
+        // The first `RefreshUnitSprites` call is the first moment CpDecide decides: the state
         // there is the state of f1612 (the real CPU needs more than a frame for the loop).
-        sim.cp.decide.hooks.updateNoMoveFlag = AiUnitStep {
+        sim.cp.decide.hooks.refreshUnitSprites = AiStep {
             if (!checked) {
                 checked = true
                 assertEquals(

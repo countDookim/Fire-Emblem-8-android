@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 215 across 43 Kotlin files.
+Total entries: 217 across 43 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -26,9 +26,10 @@ Total entries: 215 across 43 Kotlin files.
 | D09-3 | 2 |
 | D11-wire-a | 2 |
 | EP-1 | 1 |
+| EP-12 | 3 |
 | EP-2a | 1 |
-| EP-3b | 3 |
 | EP-4 | 4 |
+| EP-7 | 2 |
 | EP-8 | 1 |
 | EP-cap2 | 6 |
 | EP-w | 3 |
@@ -289,19 +290,19 @@ Total entries: 215 across 43 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `phaseStartEnd` | The target list is its own: the displays' `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w shares one list with the player phase when the real `Make*TargetList`... |
 
+## EP-12 (3)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `rogueSpecialItems` | Stand-in for the rogue part of `sub_8040C5C` (cpextra_80407F0.c, with `sub_8040B38`, `sub_8040BB4`, `sub_8040B8C`; EP-12: never entered); its result is the function's. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `specialItemFunc` | Stand-in for `sAiSpecialItemFuncLut[index].func(slot)` (cpextra_80407F0.c: `AiSpecialItemDoorKey`, `Lockpick`, `Antitoxin`; EP-12: never entered). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `sub8040C5C` | Transcribed from src/cpextra_80407F0.c: sub_8040C5C (not verified: only the non-rogue return runs, for Red 0 at f1613, and it shows in no captured value; the rogue part is a stand-in, EP-12) Rogue-... |
+
 ## EP-2a (1)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `cp` | The script interpreter, danger map and perform proc are stand-ins that decide nothing (EP-3b, EP-4, EP-8), so End turn runs the enemy banner, marks every enemy as moved and goes on to the next play... |
-
-## EP-3b (3)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `decideSpecialItems` | Stand-in for `DecideSpecialItems` (cp_decide.c, with `AiTryDoSpecialItems`; EP-3b): the whole function, including its berserk check. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `initDangerMap` | Stand-in for `AiInitDangerMap` (cp_0803E2F4.c; EP-3b). |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `updateNoMoveFlag` | Stand-in for `AiUpdateNoMoveFlag` (cpextra_80407F0.c; EP-3b). |
 
 ## EP-4 (4)
 
@@ -311,6 +312,13 @@ Total entries: 215 across 43 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `execFallbackScriptB` | Stand-in for `AiExecFallbackScriptB` (cp_script.c; EP-4: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `tryExecScriptA` | Stand-in for `AiTryExecScriptA` (cp_script.c; EP-4). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `tryExecScriptB` | Stand-in for `AiTryExecScriptB` (cp_script.c; EP-4). |
+
+## EP-7 (2)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `couldReachByBirdsEyeDistance` | Stand-in for `AiCouldReachByBirdsEyeDistance(gActiveUnit, unit, item)` (cp_utility.c; EP-7). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `fillMovementAndRangeMapForItem` | Stand-in for `FillMovementAndRangeMapForItem(unit, item)` (cp_utility.c; EP-7): fills `gBmMapRange` with the tiles the unit reaches and attacks. |
 
 ## EP-8 (1)
 

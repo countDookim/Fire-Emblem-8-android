@@ -98,7 +98,9 @@ public class CpPhase(
         }
 
     /** The AI decision loop (`gProcScr_CpDecide`) and its hooks. */
-    public val decide: CpDecide = CpDecide(engine, units, aiState, active, aiFlags, entityMaps)
+    public val decide: CpDecide = CpDecide(
+        engine, units, aiState, active, aiFlags, entityMaps, rom, loader, map,
+    )
 
     private val priorities = IntArray(AiState.UNITS_SIZE)
     private val items = ItemInfo(rom)

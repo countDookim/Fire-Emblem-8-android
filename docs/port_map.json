@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1146,
+    "verified": 1150,
     "implemented_unverified": 23
   },
   "functions": {
@@ -7172,7 +7172,27 @@
         "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
       ]
     },
+    "PutBattleForecastMultipliers": {
+      "decomp_file": "src/bksel.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
     "PutBattleForecastUnitName": {
+      "decomp_file": "src/bksel.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
+    "PutBattleForecastWeaponTriangleArrows": {
       "decomp_file": "src/bksel.c",
       "system": "menus",
       "in_scope": true,
@@ -9548,6 +9568,16 @@
         "fe8.testing.WorldMapNodeIconCursorTest#node icon and cursor procs follow the original every step"
       ]
     },
+    "UpdateBattleForecastEffectivenessPalettes": {
+      "decomp_file": "src/bksel.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
     "UpdateBmMapDisplay": {
       "decomp_file": "src/bmmap.c",
       "system": "battle_map",
@@ -9578,6 +9608,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
+      ]
+    },
+    "UpdateStatArrowSprites": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
       ]
     },
     "UseUnitSprite": {

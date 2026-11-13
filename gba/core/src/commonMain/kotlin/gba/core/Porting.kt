@@ -14,7 +14,8 @@ package gba.core
  *
  * SOURCE retention: this is read by tooling only and costs nothing at runtime.
  *
- * @property functions decomp function names exactly as listed in `reference/decomp_functions.tsv`.
+ * @property functions decomp function names exactly as listed in the `name` column of
+ *   `reference/decomp_functions.tsv`.
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.SOURCE)

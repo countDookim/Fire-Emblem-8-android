@@ -26,11 +26,12 @@ public class EventChannel<L : Any>(public val name: String) {
     /** Priority of each entry in [listeners], same indices. */
     private var priorities: IntArray = IntArray(0)
 
-    /** Number of current listeners. */
+    /** Number of current listeners (also the length of [listeners]). */
     public val size: Int get() = listeners.size
 
     /**
-     * Adds [listener] with the given [priority] (lower runs first; vanilla game systems use 0).
+     * Adds [listener] with the given [priority] (lower runs first; the default 0 is the
+     * convention for vanilla game systems, an assumption not enforced here).
      * Returns the listener for convenient chaining.
      */
     public fun subscribe(listener: L, priority: Int = 0): L {
@@ -82,7 +83,7 @@ public class EventChannel<L : Any>(public val name: String) {
     }
 
     private companion object {
-        /** Shared empty listener array (never mutated). */
+        /** Shared empty listener array for channels with no listeners (never mutated). */
         private val EMPTY = arrayOfNulls<Any>(0)
     }
 }

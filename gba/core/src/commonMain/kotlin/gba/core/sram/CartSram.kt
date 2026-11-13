@@ -1,13 +1,17 @@
 package gba.core.sram
 
 /**
- * The cartridge's 32 KiB battery-backed SRAM. Blank (never written) SRAM reads as 0xFF.
+ * The cartridge's 32 KiB battery-backed SRAM ([SIZE] = `CART_SRAM_SIZE`, [BASE_ADDRESS] =
+ * `CART_SRAM_ADDR` in `include/agb_sram.h:12-13`). Blank SRAM is modelled as 0xFF; that value is
+ * this model's choice of "never written" (real chips power up with arbitrary contents, hardware
+ * fact, not checked here).
  *
  * Offsets are relative to the start of SRAM (GBA address 0x0E000000, [BASE_ADDRESS]). Every access
  * is bounds-checked and throws [IllegalArgumentException] instead of touching memory outside the
  * chip. [dirty] is raised by any write so a host can persist the image lazily.
  */
 public class CartSram {
+    /** The chip contents, one byte per SRAM address. */
     private val data = ByteArray(SIZE).also { it.fill(0xFF.toByte()) }
 
     /** True once any write happened since construction or the last [clearDirty]. */
@@ -38,7 +42,7 @@ public class CartSram {
         dirty = true
     }
 
-    /** Copies [size] bytes from SRAM at [offset] into [dest] at [destOffset]. */
+    /** Copies [size] bytes from SRAM at [offset] into [dest] at [destOffset]. Bounds-checked. */
     public fun read(offset: Int, dest: ByteArray, destOffset: Int, size: Int) {
         checkRange(offset, size)
         data.copyInto(dest, destOffset, offset, offset + size)

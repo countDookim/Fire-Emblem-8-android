@@ -1,6 +1,9 @@
 package gba.core.sram
 
-/** Number of write+verify attempts `WriteAndVerifySramFast` makes before giving up. */
+/**
+ * Number of write+verify attempts `WriteAndVerifySramFast` makes before giving up (the decomp's
+ * loop `for (i = 0; i < 3; i++)`, src/agb_sram.c:82).
+ */
 public const val SRAM_WRITE_ATTEMPTS: Int = 3
 
 /**

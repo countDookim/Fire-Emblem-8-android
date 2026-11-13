@@ -4,8 +4,11 @@ package gba.core.sram
  * Little-endian field access for save structures laid out by GCC for the GBA (ARM, little-endian).
  *
  * Bitfields are addressed as one LSB-first bit stream starting at a byte offset: bit `k` is bit `k
- * % 8` of byte `k / 8`. That is how GCC packs `u32 a : 5; u32 b : 12; ...` including fields that
- * straddle byte or 32-bit unit boundaries in packed structs. None of the functions allocate.
+ * % 8` of byte `k / 8`. This is the layout the save structs are assumed to use for
+ * `u32 a : 5; u32 b : 12; ...` fields, including ones that straddle byte or 32-bit unit boundaries
+ * in packed structs (GCC ARM bitfield ABI: hardware/toolchain fact, not checked here; the save code
+ * that calls this is checked against reference SRAM images instead). None of the functions
+ * allocate.
  */
 public object SramBits {
     /** Unsigned 16-bit little-endian value at [offset] of [buf]. */

@@ -3,11 +3,13 @@ package gba.core.time
 /**
  * Fixed-timestep clock that converts wall-clock time into a whole number of logic ticks at the GBA
  * refresh rate (2^24 Hz / 280 896 cycles per frame ≈ 59.7275 Hz), independent of the display rate.
+ * The GBA clock and frame-length figures are hardware facts, not checked here
+ * (`docs/PROJECT_BRIEF.md` only says "~59.73 Hz").
  *
  * Why exact rational arithmetic: storing the step as rounded nanoseconds (16 742 706 ns) would
- * drift by ~0.3 ns per frame. Instead the accumulator is kept in units of `ns × 2^24`, and one
- * tick costs `280 896 × 10^9` of those units, so the long-run tick rate is exactly the hardware
- * rate.
+ * drift by ~0.3 ns per frame (the exact step is 16 742 706.2988 ns). Instead the accumulator is
+ * kept in units of `ns × 2^24`, and one tick costs `280 896 × 10^9` of those units, so the
+ * long-run tick rate is exactly the hardware rate.
  *
  * Why a catch-up cap: after a stall (app backgrounded, GC, debugger) we must not run hundreds of
  * ticks in one display frame ("spiral of death"). At most [maxStepsPerAdvance] ticks are produced
@@ -21,6 +23,7 @@ package gba.core.time
 public class FixedStepClock(private val maxStepsPerAdvance: Int = 4) {
     /** Monotonic time of the previous [advance] call, or [NOT_STARTED] before the first. */
     private var lastNanos: Long = NOT_STARTED
+
     /** Elapsed time not yet turned into ticks, in `ns × 2^24` units (see class doc). */
     private var accumulator: Long = 0L
 
@@ -57,15 +60,15 @@ public class FixedStepClock(private val maxStepsPerAdvance: Int = 4) {
         return stepsDue
     }
 
-    /** Fraction (0..1) of the next tick already elapsed; renderers may use it to interpolate. */
+    /** Fraction (0 until 1) of the next tick already elapsed; renderers may interpolate with it. */
     public val alpha: Float get() = (accumulator.toDouble() / UNITS_PER_TICK).toFloat()
 
     /** GBA timing constants that define the fixed logic rate (~59.73 Hz). */
     public companion object {
-        /** GBA master clock, Hz (2^24). */
+        /** GBA master clock, Hz (2^24; hardware fact, not checked here). */
         public const val CPU_HZ: Long = 16_777_216L
 
-        /** CPU cycles per video frame (228 lines × 1232 cycles). */
+        /** CPU cycles per video frame (228 lines × 1232; hardware fact, not checked here). */
         public const val CYCLES_PER_FRAME: Long = 280_896L
 
         /** Logic rate in Hz (≈ 59.7275), for diagnostics only; ticking uses exact integers. */
@@ -73,10 +76,13 @@ public class FixedStepClock(private val maxStepsPerAdvance: Int = 4) {
 
         /** Accumulator units per nanosecond (the CPU frequency, so ticks stay exact). */
         private const val TIME_SCALE: Long = CPU_HZ
+
         /** Accumulator units that make up one logic tick. */
         private const val UNITS_PER_TICK: Long = CYCLES_PER_FRAME * 1_000_000_000L
+
         /** Nanoseconds per tick, rounded up; only used to size the catch-up cap. */
         private const val NANOS_PER_TICK_CEIL: Long = (UNITS_PER_TICK + TIME_SCALE - 1) / TIME_SCALE
+
         /** Sentinel for "[advance] has not been called yet". */
         private const val NOT_STARTED: Long = Long.MIN_VALUE
     }

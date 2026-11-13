@@ -20,6 +20,7 @@ public interface SaveStorage {
 
 /** A [SaveStorage] that keeps a copy of the image in memory, for tests and headless runs. */
 public class InMemorySaveStorage : SaveStorage {
+    /** Copy of the last stored image, or null until the first [store]. */
     private var image: ByteArray? = null
 
     override fun load(dest: ByteArray): Boolean {

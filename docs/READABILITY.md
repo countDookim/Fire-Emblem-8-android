@@ -50,11 +50,11 @@ their old counts); new packages get a row when they appear.
 | engine/extract | gbafe.extract.fe8.maps | 1 | 177 | done 2026-11-07 21ee533; audit done 2026-11-11 e7a92eb |
 | engine/extract | gbafe.extract.fe8.mapsprites | 1 | 140 | done 2026-11-07 21ee533; audit done 2026-11-11 e7a92eb |
 | engine/extract | gbafe.extract.fe8.portraits | 1 | 97 | done 2026-11-07 21ee533; audit done 2026-11-11 e7a92eb |
-| engine/extract | gbafe.extract.fe8.terrains | 1 | 98 | done 2026-11-09 7c6df24; audit done 2026-11-13 428417e |
-| engine/extract | gbafe.extract.fe8.ui | 3 | 262 | done 2026-11-09 94e08df; audit done 2026-11-13 428417e |
-| engine/extract | gbafe.extract.fe8.units | 1 | 126 | done 2026-11-09 0dfc62b; audit done 2026-11-13 428417e |
+| engine/extract | gbafe.extract.fe8.terrains | 1 | 98 | done 2026-11-09 7c6df24; audit done 2026-11-13 82de2e5 |
+| engine/extract | gbafe.extract.fe8.ui | 3 | 262 | done 2026-11-09 94e08df; audit done 2026-11-13 82de2e5 |
+| engine/extract | gbafe.extract.fe8.units | 1 | 126 | done 2026-11-09 0dfc62b; audit done 2026-11-13 82de2e5 |
 | engine/extract | gbafe.extract.font | 1 | 77 | done 2026-11-09 92119c9; audit done 2026-11-12 7d13c5d |
-| engine/extract | gbafe.extract.m4a | 1 | 711 | done 2026-11-09 19d121b; audit done 2026-11-13 428417e |
+| engine/extract | gbafe.extract.m4a | 1 | 711 | done 2026-11-09 19d121b; audit done 2026-11-13 82de2e5 |
 | engine/extract | gbafe.extract.text | 1 | 55 | done 2026-11-09 0194222; audit done 2026-11-12 7d13c5d |
 | engine/input | gbafe.input | 2 | 238 | done 2026-11-07 697847c; audit done 2026-11-12 02666d9 |
 | engine/render | gbafe.render | 10 | 1592 | done 2026-11-09 83f2cb6; audit done 2026-11-12 abaf60c |

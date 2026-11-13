@@ -72,7 +72,14 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.bm (PhaseIntro, MapAnimations) | 2 | 840 | done 2026-11-11 d9263c3; audit done 2026-11-13 1dcdbfe |
 | game | fe8.game.bm (UnitSprites, UnitSpriteHandles, UnitSpritesOam) | 3 | 774 | done 2026-11-11 d9263c3; audit done 2026-11-13 545c8cf |
 | game | fe8.game.bm (UnitTable) | 1 | 343 | done 2026-11-11 d9263c3; audit todo |
-| game | fe8.game.bm (UnitLoader, Mu, MuCtrl, MuSpriteAnim, PlayerPhase, BattleMapStart) | 6 | 3863 | todo |
+| game | fe8.game.bm (UnitLoader lines 1-577: to before lastReda) | 1 | 577 | todo |
+| game | fe8.game.bm (UnitLoader lines 578-1108: lastReda to end) | 1 | 531 | todo |
+| game | fe8.game.bm (Mu lines 1-462: to before setMuFacing) | 1 | 462 | todo |
+| game | fe8.game.bm (Mu lines 463-997: setMuFacing to end) | 1 | 535 | todo |
+| game | fe8.game.bm (MuCtrl, MuSpriteAnim) | 2 | 655 | todo |
+| game | fe8.game.bm (PlayerPhase lines 1-789: to before handlePlayerCursorMovement) | 1 | 789 | todo |
+| game | fe8.game.bm (PlayerPhase lines 790-1547: handlePlayerCursorMovement to end) | 1 | 758 | todo |
+| game | fe8.game.bm (BattleMapStart) | 1 | 624 | todo |
 | game | fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs) | 4 | 973 | done 2026-11-10 ff286fe / 0bfe1ab; audit done 2026-11-13 139c8c3 |
 | game | fe8.game.event (EventScrCore, EventPopup, EventFade, EventGiveItem) | 4 | 826 | done 2026-11-10 077a47d; audit done 2026-11-13 f7fec4f |
 | game | fe8.game.event (EventInfo, EventText) | 2 | 819 | done 2026-11-10 077a47d; audit done 2026-11-13 a2d84eb |

@@ -11,6 +11,8 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
+- EP-4: owner PC, until ~22:50Z
+- Readability bm BattleMapStart: owner PC, until ~21:55Z
 
 ## Current state
 

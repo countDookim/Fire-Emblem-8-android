@@ -21,8 +21,9 @@ import kotlin.math.abs
  *
  * Not ported: `ComputeBattleObstacleStats`, `PidStatsRecordBattleRes` / `PidStatsAddBattleAmt`
  * (save-file statistics), the light rune toggling and the staff / item effect battles. The exp
- * gain tail of `BattleGenerateRealInternal` is the hook [applyExpGains] (`BattleApplyExpGains`,
- * MC-14), the triangle attack neighbour scan the hook [checkTriangleAttack] (MC-8b).
+ * gain tail of `BattleGenerateRealInternal` is [battleApplyExpGains], whose level-up check is the
+ * hook [checkBattleUnitLevelUp] (MC-17), the triangle attack neighbour scan the hook
+ * [checkTriangleAttack] (MC-8b).
  *
  * @param battle the battle units, stats and stat computes.
  * @param rom the item and class data.
@@ -73,12 +74,212 @@ public class BattleGenerate(
         scriptedBattleHits = hits
     }
 
+    /** The level-up check of one battle unit, a `fun interface` so that no lambda is boxed. */
+    public fun interface LevelUpCheck {
+        /** Runs `CheckBattleUnitLevelUp` on [unit]. */
+        public fun check(unit: BattleUnit)
+    }
+
     /**
-     * Hook for `BattleApplyExpGains` (bmbattle.c, MC-14), which the real battle runs after the
-     * hits when the target is a unit. Stand-in until MC-14: does nothing, so exp, the exp
-     * gain and level-up fields of the battle units are not generated.
+     * Hook for `CheckBattleUnitLevelUp` (bmbattle.c, MC-17), which [battleApplyExpGains] runs on
+     * both units after the exp is added. Stand-in until MC-17: level and exp bookkeeping only,
+     * no stat gains (RNG not advanced). For a unit that can gain levels and has 100 exp it takes
+     * 100 exp, adds a level and, at the maximum level (10 for `CA_MAXLEVEL10`, else 20),
+     * subtracts the leftover exp from `expGain` and disables the exp. The RNG draws the stat
+     * gains would make are missing, so RNG-dependent behaviour after a level-up diverges until
+     * MC-17. Not verified: no capture levels up.
      */
-    public var applyExpGains: () -> Unit = {}
+    public var checkBattleUnitLevelUp: LevelUpCheck = LevelUpCheck { unit ->
+        if (canBattleUnitGainLevels(unit) && unit.exp >= 100) {
+            unit.exp -= 100
+            val level = unit.bytes[OFF_LEVEL] + 1
+            unit.bytes[OFF_LEVEL] = level.toByte()
+            val maxLevel = if ((cAttributes(unit) and CA_MAXLEVEL10) != 0) 10 else 20
+            if (level == maxLevel) {
+                unit.expGain -= unit.exp
+                unit.exp = UNIT_EXP_DISABLED
+            }
+        }
+    }
+
+    /**
+     * Ported from src/bmbattle.c: BattleApplyExpGains
+     *
+     * Unless both units are player units or the map is an extra (link / skirmish) map, sets
+     * each unit's [BattleUnit.expGain], adds it to the unit's exp and runs the level-up check.
+     */
+    public fun battleApplyExpGains() {
+        val actor = battle.actor
+        val target = battle.target
+        if (unitFaction(actor) == FACTION_BLUE && unitFaction(target) == FACTION_BLUE) return
+        if ((playSt.chapterStateBits and PLAY_FLAG_EXTRA_MAP) != 0) return
+        actor.expGain = getBattleUnitExpGain(actor, target)
+        target.expGain = getBattleUnitExpGain(target, actor)
+        actor.exp += actor.expGain
+        target.exp += target.expGain
+        checkBattleUnitLevelUp.check(actor)
+        checkBattleUnitLevelUp.check(target)
+    }
+
+    /** `UNIT_FACTION`: the army bits of the unit's index. */
+    private fun unitFaction(unit: BattleUnit): Int = unit.bytes[OFF_INDEX].toInt() and 0xC0
+
+    /** `unit->exp` (u8, `UNIT_EXP_DISABLED` is 0xFF). */
+    private var BattleUnit.exp: Int
+        get() = bytes[OFF_EXP].toInt() and 0xFF
+        set(value) {
+            bytes[OFF_EXP] = value.toByte()
+        }
+
+    /** `UNIT_CATTRIBUTES`: the `CA_*` flags of the unit's character and class combined. */
+    private fun cAttributes(unit: BattleUnit): Int =
+        rom.u32(u32(unit.bytes, OFF_CHARACTER) + 0x28) or rom.u32(u32(unit.bytes, OFF_CLASS) + 0x28)
+
+    /** `unit->pClassData->classRelativePower` (s8). */
+    private fun relativePower(classAddr: Int): Int = rom.u8(classAddr + 0x1A).toByte().toInt()
+
+    /**
+     * Ported from src/bmbattle.c: CanBattleUnitGainLevels
+     *
+     * Whether the unit can gain exp: always in a link arena, else only a player unit whose exp
+     * is not disabled.
+     */
+    public fun canBattleUnitGainLevels(unit: BattleUnit): Boolean {
+        if (battle.isLinkArena) return true
+        if (unit.exp == UNIT_EXP_DISABLED) return false
+        return unitFaction(unit) == FACTION_BLUE
+    }
+
+    /**
+     * Ported from src/bmbattle.c: GetUnitExpLevel
+     *
+     * The level, plus 20 for a promoted class.
+     */
+    public fun getUnitExpLevel(unit: BattleUnit): Int {
+        val level = unit.bytes[OFF_LEVEL].toInt()
+        return if ((cAttributes(unit) and CA_PROMOTED) != 0) level + 20 else level
+    }
+
+    /**
+     * Ported from src/bmbattle.c: GetUnitRoundExp
+     *
+     * The exp for taking part: 31 less the level lead over [target] (floored at 0), divided by
+     * the actor class's relative power.
+     */
+    public fun getUnitRoundExp(actor: BattleUnit, target: BattleUnit): Int {
+        var expLevel = 31 - (getUnitExpLevel(actor) - getUnitExpLevel(target))
+        if (expLevel < 0) expLevel = 0
+        return expLevel / relativePower(u32(actor.bytes, OFF_CLASS))
+    }
+
+    /**
+     * Ported from src/bmbattle.c: GetUnitPowerLevel
+     *
+     * Level times the class's relative power, plus 20 times the promotion class's for a
+     * promoted unit.
+     */
+    public fun getUnitPowerLevel(unit: BattleUnit): Int {
+        val classAddr = u32(unit.bytes, OFF_CLASS)
+        var result = unit.bytes[OFF_LEVEL] * relativePower(classAddr)
+        val promotion = rom.u8(classAddr + 0x05)
+        if ((cAttributes(unit) and CA_PROMOTED) != 0 && promotion != 0) {
+            result += 20 * relativePower(loader.classData(promotion))
+        }
+        return result
+    }
+
+    /**
+     * Ported from src/bmbattle.c: GetUnitClassKillExpBonus
+     *
+     * The kill bonus of the target: 20 for a thief, 40 for a boss, 40 for the `ENTOUMBED` class.
+     */
+    public fun getUnitClassKillExpBonus(target: BattleUnit): Int {
+        var result = 0
+        val attributes = cAttributes(target)
+        if ((attributes and CA_THIEF) != 0) result += 20
+        if ((attributes and CA_BOSS) != 0) result += 40
+        if (rom.u8(u32(target.bytes, OFF_CLASS) + 0x04) == CLASS_ENTOUMBED) result += 40
+        return result
+    }
+
+    /**
+     * Transcribed from src/bmbattle.c: GetUnitExpMultiplier
+     *   (not verified: no assassin in the captures, and the kill bonus it multiplies is 0 there)
+     *
+     * 2 for an assassin when a hit of the battle was a Silencer kill, else 1.
+     */
+    public fun getUnitExpMultiplier(actor: BattleUnit): Int {
+        if ((cAttributes(actor) and CA_ASSASSIN) == 0) return 1
+        for (i in 0 until BATTLE_HIT_MAX) {
+            if ((attributes(hitArray[i]) and ATTR_SILENCER) != 0) return 2
+        }
+        return 1
+    }
+
+    /**
+     * Ported from src/bmbattle.c: GetUnitKillExpBonus
+     *
+     * 0 unless [target] died, else 20 plus the power level lead of the target (half the actor's
+     * level counts against it in the prologue chapters), the class kill bonus, times the
+     * multiplier; never negative.
+     */
+    public fun getUnitKillExpBonus(actor: BattleUnit, target: BattleUnit): Int {
+        if (target.bytes[OFF_CUR_HP].toInt() == 0) {
+            var result = 20
+            if (battle.isLinkArena || playSt.chapterModeIndex != 1) {
+                result = getUnitPowerLevel(target) + 20 - getUnitPowerLevel(actor)
+            } else {
+                val targetPower = getUnitPowerLevel(target)
+                val actorPower = getUnitPowerLevel(actor)
+                result += if (targetPower <= actorPower) {
+                    targetPower - actorPower / 2
+                } else {
+                    targetPower - actorPower
+                }
+            }
+            result += getUnitClassKillExpBonus(target)
+            result *= getUnitExpMultiplier(actor)
+            return if (result < 0) 0 else result
+        }
+        return 0
+    }
+
+    /**
+     * Ported from src/bmbattle.c: ModifyUnitSpecialExp
+     *
+     * Overrides [exp]: 50 for killing a Gorgon egg (0 for hitting one), 0 for killing the demon
+     * king, 0 for a phantom actor. Returns the new value.
+     */
+    public fun modifyUnitSpecialExp(actor: BattleUnit, target: BattleUnit, exp: Int): Int {
+        var result = exp
+        val targetClass = rom.u8(u32(target.bytes, OFF_CLASS) + 0x04)
+        if (targetClass == CLASS_GORGONEGG || targetClass == CLASS_GORGONEGG2) {
+            result = if (target.bytes[OFF_CUR_HP].toInt() == 0) 50 else 0
+        }
+        if (targetClass == CLASS_DEMON_KING && target.bytes[OFF_CUR_HP].toInt() == 0) result = 0
+        if (rom.u8(u32(actor.bytes, OFF_CLASS) + 0x04) == CLASS_PHANTOM) result = 0
+        return result
+    }
+
+    /**
+     * Ported from src/bmbattle.c: GetBattleUnitExpGain
+     *
+     * The exp [actor] earns: 0 when it cannot gain levels, is dead or fights a lethality-immune
+     * unit, 1 when it dealt no damage, else the round exp plus the kill bonus clamped to 1..100
+     * and adjusted by [modifyUnitSpecialExp].
+     */
+    public fun getBattleUnitExpGain(actor: BattleUnit, target: BattleUnit): Int {
+        if (!canBattleUnitGainLevels(actor) || actor.bytes[OFF_CUR_HP].toInt() == 0 ||
+            (cAttributes(target) and CA_NEGATE_LETHALITY) != 0
+        ) {
+            return 0
+        }
+        if (actor.nonZeroDamage == 0) return 1
+        var result = getUnitRoundExp(actor, target) + getUnitKillExpBonus(actor, target)
+        if (result > 100) result = 100
+        if (result < 1) result = 1
+        return modifyUnitSpecialExp(actor, target, result)
+    }
 
     /**
      * Hook for `BattleCheckTriangleAttack` (bmbattle.c, MC-8b): whether two units of the
@@ -140,14 +341,14 @@ public class BattleGenerate(
      *
      * Initialises the battle units from the units at [actorOff] / [targetOff] of [src], generates
      * the battle and fixes up the target's counter and equipped weapon. For a target that is a
-     * unit (`index != 0`) the exp gains follow: they are the hook [applyExpGains] (MC-14), and
+     * unit (`index != 0`) the exp gains follow: they are [battleApplyExpGains], and
      * `PidStatsRecordBattleRes` / `PidStatsAddBattleAmt` (save statistics) are not ported.
      */
     public fun battleGenerateRealInternal(src: ByteArray, actorOff: Int, targetOff: Int) {
         generateCommon(src, actorOff, targetOff)
         battle.battleUnitTargetCheckCanCounter(battle.target)
         battleUnitTargetSetEquippedWeapon(battle.target)
-        if ((battle.target.bytes[OFF_INDEX].toInt() and 0xFF) != 0) applyExpGains()
+        if ((battle.target.bytes[OFF_INDEX].toInt() and 0xFF) != 0) battleApplyExpGains()
     }
 
     /**
@@ -991,6 +1192,20 @@ public class BattleGenerate(
         private const val STATUS_BERSERK = 4
         private const val OFF_CHARACTER = 0x00
         private const val OFF_LEVEL = 0x08
+        private const val OFF_EXP = 0x09
+        private const val FACTION_BLUE = 0x00
+        private const val UNIT_EXP_DISABLED = 0xFF
+        private const val PLAY_FLAG_EXTRA_MAP = 1 shl 7
+        private const val CA_THIEF = 1 shl 3
+        private const val CA_PROMOTED = 1 shl 8
+        private const val CA_MAXLEVEL10 = 1 shl 19
+        private const val CA_BOSS = 1 shl 15
+        private const val CA_NEGATE_LETHALITY = 1 shl 24
+        private const val CA_ASSASSIN = 1 shl 25
+        private const val CLASS_GORGONEGG2 = 0x34
+        private const val CLASS_PHANTOM = 0x51
+        private const val CLASS_ENTOUMBED = 0x53
+        private const val CLASS_GORGONEGG = 0x62
         // More `BATTLE_HIT_ATTR_*` bits, set by the weapon effects of the hit.
         private const val ATTR_POISON = 1 shl 6
         private const val ATTR_DEVIL = 1 shl 7

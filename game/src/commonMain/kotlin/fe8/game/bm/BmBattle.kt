@@ -873,6 +873,9 @@ public class BmBattle(
     private fun unitMov(bytes: ByteArray, offset: Int): Int =
         s8(bytes, offset + OFF_MOV_BONUS) + rom.u8(u32(bytes, offset + OFF_CLASS) + 0x12).toByte()
 
+    /** `gBmSt.gameStateBits & BM_FLAG_LINKARENA`. */
+    internal val isLinkArena: Boolean get() = (bmSt.gameStateBits and 0x40) != 0
+
     /** `UNIT_CATTRIBUTES`: the `CA_*` flags of the unit's character and class combined. */
     private fun unitCAttributes(bytes: ByteArray, offset: Int): Int =
         rom.u32(u32(bytes, offset + OFF_CHARACTER) + 0x28) or
@@ -978,11 +981,11 @@ public class BmBattle(
     public var arenaLevelLatch: Int = 0
 
     /**
-     * `PidStatsAddExpGained(pid, exp)` (bmsave-bwl.c, not ported to this class; M6-C): called by
-     * [updateUnitFromBattle] for a non-zero `expGain`.
+     * `PidStatsAddExpGained(pid, exp)` (bmsave-bwl.c, the save statistics; no plan row): called by
+     * [updateUnitFromBattle] for a non-zero `expGain`. Stand-in until M6-C: does nothing, the
+     * statistics are not kept.
      */
-    public var pidStatsAddExpGained: (pid: Int, exp: Int) -> Unit =
-        { _, _ -> error("PidStatsAddExpGained is not wired (M6-C)") }
+    public var pidStatsAddExpGained: (pid: Int, exp: Int) -> Unit = { _, _ -> }
 
     /**
      * `GetTrap(ballistaIndex)->data[TRAP_EXTDATA_BLST_ITEMUSES] = uses` (bmtrick.c, not ported):

@@ -10,12 +10,12 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 193 across 39 Kotlin files.
+Total entries: 194 across 40 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 16 |
-| M6-C | 8 |
+| M6-C | 9 |
 | M6-D | 12 |
 | M6-E | 51 |
 | M6-F | 13 |
@@ -26,8 +26,8 @@ Total entries: 193 across 39 Kotlin files.
 | D09-3 | 2 |
 | D11-wire-a | 2 |
 | MC-12b | 1 |
-| MC-14 | 1 |
 | MC-16 | 4 |
+| MC-17 | 1 |
 | MC-4 | 4 |
 | MC-6 | 1 |
 | MC-8b | 1 |
@@ -57,13 +57,14 @@ Total entries: 193 across 39 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetText` | `ResetText`: stand-in until M6-B (not ported in `TextSystem`). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetTextFont` | `ResetTextFont`: stand-in until M6-B (not ported in `TextSystem`). |
 
-## M6-C (8)
+## M6-C (9)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `weaponUsabilityBits` | Stand-in until M6-C (the staff bit needs `CanUnitUseStaff`). |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wire` | Sets every hook of [phase] that has a ported implementation; the rest keeps its default (stand-ins, M6-C to M6-I, listed on [PlayerPhase.Hooks]). |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wireStandIns` | Each is a stand-in that never blocks the phase: the cursor, unit menu and Wait keep working; the plan rows are on the hooks' declarations in [PlayerPhase.Hooks] (`M6-C`, `M6-E`, `M6-F`, `M6-H`, `M6... |
+| `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | `pidStatsAddExpGained` | Stand-in until M6-C: does nothing, the statistics are not kept. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `generateAttackRange` | `Fe8Boot` sets it (`PlayerPhaseWiring`) with the weapon case of `AttackRange.generateUnitCompleteAttackRange`; the staff range and `GenerateMagicSealMap` are a stand-in until M6-C. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `getCombinedEnemyWeaponUsabilityBits` | `GetCombinedEnemyWeaponUsabilityBits`; stand-in until M6-C, default 0. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `getUnitWeaponUsabilityBits` | `Fe8Boot` answers the weapon bit only (the staff bit is a stand-in until M6-C). |
@@ -274,12 +275,6 @@ Total entries: 193 across 39 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `startForecastHelp` | Stand-in until MC-12b: nothing happens (the selection's `onHelp`). |
 
-## MC-14 (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | `applyExpGains` | Stand-in until MC-14: does nothing, so exp, the exp gain and level-up fields of the battle units are not generated. |
-
 ## MC-16 (4)
 
 | Kotlin file | Declaration | Stand-in |
@@ -288,6 +283,12 @@ Total entries: 193 across 39 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `dropRescueOnDeath` | Stand-in until MC-16: does nothing, so a unit that dies while rescuing keeps its passenger. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `itemGotPopup` | Stand-in until MC-16 (the drop): nothing is shown or given. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `killUnitOnCombatDeath` | Stand-in until MC-16: does nothing, so a unit with 0 HP stays on the map. |
+
+## MC-17 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | `checkBattleUnitLevelUp` | Stand-in until MC-17: level and exp bookkeeping only, no stat gains (RNG not advanced). |
 
 ## MC-4 (4)
 

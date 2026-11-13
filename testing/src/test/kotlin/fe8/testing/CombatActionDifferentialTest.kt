@@ -50,10 +50,9 @@ import org.junit.jupiter.api.Test
  * the real one does; its BG, OAM, palette, sprite and hit flash writes are not compared.
  *
  * From dump 1825 per frame: the combat proc and its script position, the blocked parent's lock
- * count, both battle units (all bytes, except `unit.exp` +0x09 and `expGain` +0x6E, which
- * `BattleApplyExpGains` writes: MC-14, still a stand-in), `gBattleStats` and the RNG. Dump 1824
+ * count, both battle units (all bytes, exp included), `gBattleStats` and the RNG. Dump 1824
  * holds `BeginBattleAnimations` half run and is skipped. At the end the unit table entries of both
- * units (HP, weapon uses, weapon exp, every byte but `unit.exp`), the proc's unit ids
+ * units (HP, weapon uses, weapon exp, every byte), the proc's unit ids
  * (`BATTLE_HandleItemDrop`) and the arguments of the death hooks (`BATTLE_HandleCombatDeaths`,
  * nobody dies here) are compared.
  */
@@ -205,7 +204,6 @@ class CombatActionDifferentialTest {
         for (id in intArrayOf(actorId, targetId)) {
             val o = table.unitOffset(id)
             for (i in 0 until UnitTable.UNIT_SIZE) {
-                if (i == 0x09) continue
                 assertEquals(
                     units.bytes[o + i], table.bytes[o + i], "unit $id byte 0x${i.toString(16)}",
                 )
@@ -224,7 +222,6 @@ class CombatActionDifferentialTest {
             battle.actor to GBATTLE_ACTOR, battle.target to GBATTLE_TARGET,
         )) {
             for (i in 0 until BattleUnit.SIZE) {
-                if (i == 0x09 || i == 0x6E) continue
                 assertEquals(e[address - EWRAM + i], bu.bytes[i], "$at battle unit $address+$i")
             }
         }

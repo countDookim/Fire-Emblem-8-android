@@ -482,8 +482,21 @@ Transcribed (not verified): the item drop branch, the Nightmare, wall/trap and b
 Not written: `BATTLE_PostCombatDeathFades`, `BATTLE_DeleteLinkedMOVEUNIT` (script entries fail loudly).
 Stand-ins: `beginBattleAnimations` (sets `MAPANIMS`, no animation) and `getBattleAnimPreconfType` (M6-H);
 `killUnitOnCombatDeath` (wiring marks a 0-HP unit dead and hidden), `dropRescueOnDeath`, `itemGotPopup` (MC-16);
-exp (MC-14). The write-back `BmBattle.battleApplyGameStateUpdates` runs (MC-15 still tags it Transcribed; this
-test checks its result). `pidStatsAddExpGained` throws if wired late: MC-14 must wire it.
+The write-back `BmBattle.battleApplyGameStateUpdates` runs (MC-15 still tags it Transcribed; this
+test checks its result). `pidStatsAddExpGained` is a no-op stand-in since MC-14 (the exp now flows to it).
+
+**MC-14 result.** `BattleApplyExpGains` now runs inside `BattleGenerateReal` (`BattleGenerate.battleApplyExpGains`,
+replacing the `applyExpGains` hook), and `BattleGenerateRealDifferentialTest` and `CombatActionDifferentialTest` no
+longer mask `unit.exp` (+0x09), `expGain` (+0x6E) or the write-back exp: cap3 and noanim 0 -> 10, kill run Seth 0 -> 3
+all match. Verified, each break-checked against the captures: `BattleApplyExpGains`, `GetBattleUnitExpGain`,
+`GetUnitRoundExp`, `GetUnitExpLevel`, `CanBattleUnitGainLevels`, `GetUnitKillExpBonus`, `GetUnitPowerLevel`,
+`GetUnitClassKillExpBonus`, `ModifyUnitSpecialExp` (a mutation that adds 1 to the result). Caveats: the kill bonus is
+clamped to 0 in the captured kills, so only a large change to `GetUnitClassKillExpBonus` shows (thief, boss and
+`ENTOUMBED` branches are not told apart); `GetUnitExpMultiplier` is Transcribed (no assassin, and the bonus it
+multiplies is 0). Level-up: no capture crosses 100 exp, so `CheckBattleUnitLevelUp` stays the hook
+`checkBattleUnitLevelUp` (stand-in until MC-17: level and exp bookkeeping only, no stat gains, RNG not advanced). `pidStatsAddExpGained`
+(save statistics, no plan row) is a no-op stand-in. Not written: `BattleApplyItemExpGains`, `GetBattleUnitStaffExp`,
+`BattleApplyMiscActionExpGains`.
 
 ## M7
 

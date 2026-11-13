@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 554 across 76 decomp files (missing reason: 0).
+Total entries: 555 across 76 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -115,11 +115,12 @@ Total entries: 554 across 76 decomp files (missing reason: 0).
 | `GmapRmBorder1_End` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | removing either sprite delete or the pulse end leaves the traced OAM, blend and palette unchanged |
 | `EndGmapRmBorder1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | no traced call |
 
-## src/bmbattle.c (25)
+## src/bmbattle.c (26)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `SetScriptedBattle` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | a plain pointer store, observable only through the unwind |
+| `GetUnitExpMultiplier` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no assassin in the captures, and the kill bonus it multiplies is 0 there |
 | `BattleCheckBraveEffect` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | MC-8b; no traced weapon is brave |
 | `BattleCheckSureShot` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | MC-8b; no traced attacker is a sniper |
 | `BattleCheckPierce` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | MC-8b; no traced attacker is a wyvern knight |

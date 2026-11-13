@@ -31,8 +31,8 @@ import org.junit.jupiter.api.Test
  * half-written hit array), noanim f1823 -> f1824, kill run Seth's kill f1713 -> f1714 (3 hits,
  * one a miss) and Eirika's second attack f2293 -> f2294.
  *
- * Masked: +0x09 of each battle unit (`unit.exp`) and +0x6E (`expGain`), which
- * `BattleApplyExpGains` writes inside `BattleGenerateReal` (MC-14; the hook is not set here).
+ * Nothing is masked: the exp bytes (`unit.exp` +0x09, `expGain` +0x6E) come from
+ * `BattleApplyExpGains` (cap3 and noanim 0 -> 10, the kill run's Seth 0 -> 3).
  */
 class BattleGenerateRealDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -47,7 +47,10 @@ class BattleGenerateRealDifferentialTest {
         "BattleUnwind", "BattleGetBattleUnitOrder", "BattleGetFollowUpOrder",
         "BattleGenerateRoundHits", "GetBattleUnitHitCount", "BattleGenerateHit",
         "BattleGenerateHitAttributes", "BattleRoll1RN", "BattleRoll2RN",
-        "BattleGenerateHitEffects", "GetItemAfterUse",
+        "BattleGenerateHitEffects", "GetItemAfterUse", "BattleApplyExpGains",
+        "GetBattleUnitExpGain", "GetUnitRoundExp", "GetUnitExpLevel", "CanBattleUnitGainLevels",
+        "GetUnitKillExpBonus", "ModifyUnitSpecialExp", "GetUnitPowerLevel",
+        "GetUnitClassKillExpBonus",
     )
     fun `real battle reproduces the dumped battle units, hits and RNG state`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
@@ -93,7 +96,6 @@ class BattleGenerateRealDifferentialTest {
             for ((bu, at) in units) {
                 val diffs = ArrayList<String>()
                 for (i in 0 until BattleUnit.SIZE) {
-                    if (i == 0x09 || i == 0x6E) continue
                     val want = after[at - EWRAM + i]
                     if (bu.bytes[i] != want) {
                         diffs += "+0x%02X: port %02X dump %02X".format(

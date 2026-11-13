@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 551 across 76 decomp files (missing reason: 0).
+Total entries: 552 across 77 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -837,6 +837,12 @@ Total entries: 551 across 76 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetEnemyStartCursorPosition` | `game/src/commonMain/kotlin/fe8/game/bm/ResetCursorPosition.kt` | the reference runs only reset the cursor in the player phase |
+
+## src/bmmind.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `DropRescueOnDeath` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no capture has a dying rescuer and the stand-in body is empty, so no mutation changes captured data |
 
 ## src/bmreliance.c (1)
 

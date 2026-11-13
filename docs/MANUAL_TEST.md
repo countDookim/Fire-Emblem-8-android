@@ -49,8 +49,10 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      (cancel sound) slides the panel out, hides the cursor and squares and reopens the weapon list. A (confirm sound)
      ends the cursor and squares and the attack resolves at once (MC-13, not yet in a published APK): no map
      animation (stand-in until M6-H), but the enemy's HP drops by the forecast damage (or stays on a miss), the
-     weapon's uses drop and Eirika greys out as after Wait. A killed enemy stays on the map with 0 HP and is hidden
-     (stand-in until MC-16); no counter animation. The result is written back to the unit (MC-15): after the fight Eirika's HP and weapon uses stay as the
+     weapon's uses drop and Eirika greys out as after Wait. A killed enemy (MC-16, not yet in a
+     published APK) vanishes from the map at once (no fade, that is M6-H): its tile is empty, the cursor can
+     stand on it and A there opens the map menu, the unit window shows nothing for it. Press End and back: it
+     does not return. No counter animation. The result is written back to the unit (MC-15): after the fight Eirika's HP and weapon uses stay as the
      forecast said, also after Wait and the end of the turn. Experience (MC-14) is computed (Eirika earns 10 for
      the fight) but nothing on the map shows it: the exp bar needs the battle animation and the status screen is
      not ported, so there is nothing to check for it.

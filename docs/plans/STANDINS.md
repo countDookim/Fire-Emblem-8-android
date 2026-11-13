@@ -10,23 +10,22 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 194 across 40 Kotlin files.
+Total entries: 195 across 41 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 16 |
-| M6-C | 9 |
+| M6-C | 10 |
 | M6-D | 12 |
 | M6-E | 51 |
 | M6-F | 13 |
 | M6-G | 4 |
-| M6-H | 34 |
+| M6-H | 37 |
 | M6-I | 27 |
-| M6-J | 8 |
+| M6-J | 9 |
 | D09-3 | 2 |
 | D11-wire-a | 2 |
 | MC-12b | 1 |
-| MC-16 | 4 |
 | MC-17 | 1 |
 | MC-4 | 4 |
 | MC-6 | 1 |
@@ -57,7 +56,7 @@ Total entries: 194 across 40 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetText` | `ResetText`: stand-in until M6-B (not ported in `TextSystem`). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetTextFont` | `ResetTextFont`: stand-in until M6-B (not ported in `TextSystem`). |
 
-## M6-C (9)
+## M6-C (10)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -65,6 +64,7 @@ Total entries: 194 across 40 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wire` | Sets every hook of [phase] that has a ported implementation; the rest keeps its default (stand-ins, M6-C to M6-I, listed on [PlayerPhase.Hooks]). |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wireStandIns` | Each is a stand-in that never blocks the phase: the cursor, unit menu and Wait keep working; the plan rows are on the hooks' declarations in [PlayerPhase.Hooks] (`M6-C`, `M6-E`, `M6-F`, `M6-H`, `M6... |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | `pidStatsAddExpGained` | Stand-in until M6-C: does nothing, the statistics are not kept. |
+| `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | `pidStatsRecordDefeatInfo` | Stand-in until M6-C: does nothing, the statistics are not kept. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `generateAttackRange` | `Fe8Boot` sets it (`PlayerPhaseWiring`) with the weapon case of `AttackRange.generateUnitCompleteAttackRange`; the staff range and `GenerateMagicSealMap` are a stand-in until M6-C. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `getCombinedEnemyWeaponUsabilityBits` | `GetCombinedEnemyWeaponUsabilityBits`; stand-in until M6-C, default 0. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `getUnitWeaponUsabilityBits` | `Fe8Boot` answers the weapon bit only (the staff bit is a stand-in until M6-C). |
@@ -171,7 +171,7 @@ Total entries: 194 across 40 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: `IsBattleDeamonActive` (the battle animation system) is not ported, so the fixed fight-event bubble is never used. |
 
-## M6-H (34)
+## M6-H (37)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -189,6 +189,8 @@ Total entries: 194 across 40 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `mapTaskScript` | `gProc_MapTask` (bmio.c:139, ROM 0x0859D908, 10 commands): the map task, started on tree 4; every frame it runs `PutUnitSpritesOam`, `WfxUpdate` (stand-in until M6-H) and then the ported [BmMapRend... |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `wfxUpdate` | Stand-in until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `wfxVSync` | Stand-in until M6-H (weather). |
+| `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | `dropRescueOnDeath` | The drop itself (`sProcScr_DeathDropAnim`, `UnitGetDeathDropLocation`, `UnitDrop`) is a stand-in until C14-1 (the rescue family, M6-H): nothing happens, the rescued unit is not dropped and the resc... |
+| `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | `dropRescueOnDeath` | Transcribed from src/bmmind.c: DropRescueOnDeath (not verified: no capture has a dying rescuer and the stand-in body is empty, so no mutation changes captured data) Does nothing for the unit [id] u... |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `BmMap` | Stand-ins until M6-H: [applyEnabledMapChanges] (bmtrick.c-era map change application) and [refreshAllLightRunes] (bmtrick.c) are later tasks, and the tileset graphics/palette unpack (`UnpackChapter... |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `applyEnabledMapChanges` | Stand-in for `ApplyEnabledMapChanges` (until M6-H), called by [initChapterMap] after the base tiles are built; does nothing until the map change system is ported. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `initChapterMap` | The base tile adjustments after the unpack (`ApplyEnabledMapChanges`, shadow and tile changes) are stand-ins until M6-H ([applyEnabledMapChanges] is a hook), so a chapter that has them (e.g. |
@@ -196,6 +198,7 @@ Total entries: 194 across 40 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `wfxFlamesInitGradientPublic` | Stand-in until M6-H (weather effects). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `beginBattleAnimations` | Stand-in until M6-H: sets only the flag, so the animation ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `getBattleAnimPreconfType` | Stand-in until M6-H: always `PLAY_ANIMCONF_OFF` (map animations). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `itemGotPopup` | Stand-in until M6-H (the popup): nothing is shown or given. |
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `EntityBmMaps` | Stand-ins until M6-H: the trap-dependent parts of src/bmmap.c, `RefreshTorchlightsOnBmMap` and `RefreshMinesOnBmMap` (they read the bmtrick.c trap pool, not ported yet), are the hooks [refreshTorch... |
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `refreshMinesOnBmMap` | Stand-in (M6-H) for `RefreshMinesOnBmMap`, called after the unit pass. |
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `refreshTorchlightsOnBmMap` | Stand-in (M6-H) for `RefreshTorchlightsOnBmMap`, called between clears and unit pass. |
@@ -242,7 +245,7 @@ Total entries: 194 across 40 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt` | `drawMergeFlag` | Stand-in until M6-I: the flag is never set in the prologue. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt` | `drawNodeIcon` | Stand-in until M6-I: no node is valid in the prologue. |
 
-## M6-J (8)
+## M6-J (9)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -254,6 +257,7 @@ Total entries: 194 across 40 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `clearArenaMoveCell` | Stand-in until M6-J. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `resumeArenaBattle` | Stand-in until M6-J. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `startArenaResultsScreen` | Stand-in until M6-J. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | `unitKill` | `InitUnitsupports` (the supports of a dead blue unit) is a stand-in until the supports lane (M6-J). |
 
 ## D09-3 (2)
 
@@ -274,15 +278,6 @@ Total entries: 194 across 40 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `startForecastHelp` | Stand-in until MC-12b: nothing happens (the selection's `onHelp`). |
-
-## MC-16 (4)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wireAction` | Stand-in until MC-16 (UnitKill): a unit with 0 HP is marked dead and hidden. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `dropRescueOnDeath` | Stand-in until MC-16: does nothing, so a unit that dies while rescuing keeps its passenger. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `itemGotPopup` | Stand-in until MC-16 (the drop): nothing is shown or given. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `killUnitOnCombatDeath` | Stand-in until MC-16: does nothing, so a unit with 0 HP stays on the map. |
 
 ## MC-17 (1)
 

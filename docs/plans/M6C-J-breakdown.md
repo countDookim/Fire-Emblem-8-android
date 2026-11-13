@@ -481,7 +481,7 @@ Combat does not set `US_HAS_MOVED` (the unit turns grey through `MoveActiveUnit`
 Transcribed (not verified): the item drop branch, the Nightmare, wall/trap and ballista paths (fail loudly).
 Not written: `BATTLE_PostCombatDeathFades`, `BATTLE_DeleteLinkedMOVEUNIT` (script entries fail loudly).
 Stand-ins: `beginBattleAnimations` (sets `MAPANIMS`, no animation) and `getBattleAnimPreconfType` (M6-H);
-`killUnitOnCombatDeath` (wiring marks a 0-HP unit dead and hidden), `dropRescueOnDeath`, `itemGotPopup` (MC-16);
+`itemGotPopup` (M6-H; no capture drops an item);
 The write-back `BmBattle.battleApplyGameStateUpdates` runs (tagged Ported since MC-15; this
 test checks its result too). `pidStatsAddExpGained` is a no-op stand-in since MC-14 (the exp now flows to it).
 
@@ -503,11 +503,23 @@ multiplies is 0). Level-up: no capture crosses 100 exp, so `CheckBattleUnitLevel
 unit table and both battle units from the dump before the write-back (the frame is found as the first dump whose unit
 entries change) and compares the whole unit entries of actor and target with the dump after it, at noanim f2074,
 kill f1999 and f2549 and cap3 f2028. Break-checked (mutate, test fails, restore): dropping the unit updates, the
-actor's weapon store, exp +1, weapon exp gain +1. The dead unit of the kill run is not compared: `UnitKill` (MC-16)
-clears its struct in the same frame. `BattleApplyBallistaUpdates` stays Transcribed (no ballista, and the
+actor's weapon store, exp +1, weapon exp gain +1. The dead unit of the kill run is compared since MC-16. `BattleApplyBallistaUpdates` stays Transcribed (no ballista, and the
 no-ballista path writes nothing). Not written: `HasBattleUnitGainedWeaponLevel` and `DidBattleUnitBreakWeapon`
 (the map animation's level-up and break popups, M6-H), `UpdateUnitDuringBattle`, `UpdateActorFromBattle`,
 `UpdateObstacleFromBattle`. `PidStatsAddExpGained` is still the no-op stand-in.
+
+**MC-16 result.** `KillUnitOnCombatDeath` (`BmBattle`) and `UnitKill`
+(`UnitTable.unitKill`) are Ported; `DropRescueOnDeath` (`BmBattle`) is Transcribed (not verified: a break check cannot change captured data); the hooks `killUnitOnCombatDeath` and `dropRescueOnDeath` and the wiring's
+dead-and-hidden stand-in are gone (`BATTLE_HandleCombatDeaths` calls them directly). What the dumps show: at the
+write-back frame (kill f1999, f2549) the dead enemy's `pCharacterData` is 0 and nothing else of the struct changes
+beyond the write-back; `gBmMapUnit` and the sprite handles still hold it. It leaves the unit map at the next
+`RefreshEntityBmMaps` (f2005) and the sprite list at the next `RefreshUnitSprites` (f2008), both already ported (a
+unit without a character is skipped). `BattleWriteBackDifferentialTest` now compares the dead unit's whole struct
+after the write-back plus the death handling, and a second test replays both refreshes on the killed table and
+compares `gBmMapUnit` and the handle array with those dumps. Transcribed (not verified): the blue branch of
+`UnitKill` (no player unit dies in the captures); `DropRescueOnDeath` with a rescuer does nothing (stand-in until C14-1: no drop, rescue link left; `DeathDropAnim`,
+`UnitGetDeathDropLocation`, `UnitDrop` not written). Stand-ins: `pidStatsRecordDefeatInfo` (save statistics, no-op),
+`InitUnitsupports` (not called, supports lane M6-J), the death fade (M6-H; the unit vanishes at once).
 
 ## M7
 

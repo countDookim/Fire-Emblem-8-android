@@ -141,6 +141,24 @@ public class UnitTable(
     /** `pCharacterData->number` of unit [id], read from the ROM (the unit must be valid). */
     public fun charId(id: Int): Int = rom.u8(u32(bytes, unitOffset(id) + OFF_CHARACTER) + 4)
 
+    /**
+     * Ported from src/bmunit.c: UnitKill
+     *
+     * Removes unit [id] from play. A non-blue unit (and a blue phantom) loses its character
+     * (`pCharacterData = NULL`), which takes it off the unit map and the sprite list at the next
+     * refresh; any other blue unit is marked `US_DEAD | US_HIDDEN`. The blue branch is
+     * transcribed (not verified: no capture kills a blue unit). `InitUnitsupports` (the supports
+     * of a dead blue unit) is a stand-in until the supports lane (M6-J).
+     */
+    public fun unitKill(id: Int) {
+        val offset = unitOffset(id)
+        if ((s8(bytes, offset + 0x0B) and 0xC0) == 0 && classId(id) != CLASS_PHANTOM) {
+            StructCodec.put32(bytes, offset + 0x0C, u32(bytes, offset + 0x0C) or US_DEAD or 1)
+        } else {
+            StructCodec.put32(bytes, offset + OFF_CHARACTER, 0)
+        }
+    }
+
     /** `pClassData->number` of unit [id], read from the ROM (the unit must be valid). */
     public fun classId(id: Int): Int = rom.u8(u32(bytes, unitOffset(id) + OFF_CLASS) + 4)
 
@@ -294,6 +312,7 @@ public class UnitTable(
         private const val OFF_CHARACTER = 0x00
         private const val OFF_CLASS = 0x04
         private const val OFF_ATTRIBUTES = 0x28
+        private const val CLASS_PHANTOM = 0x51
 
         /** `US_UNSELECTABLE`. */
         public const val US_UNSELECTABLE: Int = 1 shl 1

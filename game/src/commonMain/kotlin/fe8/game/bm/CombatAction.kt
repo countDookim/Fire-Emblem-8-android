@@ -57,18 +57,6 @@ public class CombatAction(
         public fun get(): Int
     }
 
-    /** `DropRescueOnDeath(proc, unit)`. */
-    public fun interface RescueDrop {
-        /** Drops the unit [unit] (an id) rescued by a unit that died. */
-        public fun drop(proc: Proc, unit: Int)
-    }
-
-    /** `KillUnitOnCombatDeath(unitA, unitB)`. */
-    public fun interface UnitKiller {
-        /** Kills unit [unit] when its HP is 0; [killer] is the other unit of the battle. */
-        public fun kill(unit: Int, killer: Int)
-    }
-
     /** `NewPopup_GeneralItemGot(unit, item, proc)`. */
     public fun interface ItemPopup {
         /** Shows the "got item" popup for [unit] and blocks [proc] until it ends. */
@@ -94,20 +82,8 @@ public class CombatAction(
         public var doesBmxFadeExist: ProcBoolFunc = ProcBoolFunc { false }
 
         /**
-         * `DropRescueOnDeath` (bmmind.c). Stand-in until MC-16: does nothing, so a unit that
-         * dies while rescuing keeps its passenger.
-         */
-        public var dropRescueOnDeath: RescueDrop = RescueDrop { _, _ -> }
-
-        /**
-         * `KillUnitOnCombatDeath` (bmmind.c, with `UnitKill`). Stand-in until MC-16: does
-         * nothing, so a unit with 0 HP stays on the map.
-         */
-        public var killUnitOnCombatDeath: UnitKiller = UnitKiller { _, _ -> }
-
-        /**
          * `NewPopup_GeneralItemGot` (popup.c): the killer is given the dead unit's last item.
-         * Stand-in until MC-16 (the drop): nothing is shown or given.
+         * Stand-in until M6-H (the popup): nothing is shown or given.
          */
         public var itemGotPopup: ItemPopup = ItemPopup { _, _, _ -> }
     }
@@ -252,15 +228,15 @@ public class CombatAction(
      * Ported from src/bmmind.c: BATTLE_HandleCombatDeaths
      *
      * For each of the two units (as [battleHandleItemDrop] stored them): drops a rescued unit
-     * ([Hooks.dropRescueOnDeath]) when it died, then kills it ([Hooks.killUnitOnCombatDeath]),
-     * the actor first.
+     * ([BmBattle.dropRescueOnDeath]) when it died, then kills it
+     * ([BmBattle.killUnitOnCombatDeath]), the actor first.
      */
     private fun battleHandleCombatDeaths(proc: Proc) {
         val state = proc.state as State
-        hooks.dropRescueOnDeath.drop(proc, state.unitIdA)
-        hooks.dropRescueOnDeath.drop(proc, state.unitIdB)
-        hooks.killUnitOnCombatDeath.kill(state.unitIdA, state.unitIdB)
-        hooks.killUnitOnCombatDeath.kill(state.unitIdB, state.unitIdA)
+        battle.dropRescueOnDeath(state.unitIdA)
+        battle.dropRescueOnDeath(state.unitIdB)
+        battle.killUnitOnCombatDeath(state.unitIdA, state.unitIdB)
+        battle.killUnitOnCombatDeath(state.unitIdB, state.unitIdA)
     }
 
     /** [storeRNStateToActionStruct] and the constants. */

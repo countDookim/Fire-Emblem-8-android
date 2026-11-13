@@ -53,7 +53,7 @@ import org.junit.jupiter.api.Test
  * count, both battle units (all bytes, exp included), `gBattleStats` and the RNG. Dump 1824
  * holds `BeginBattleAnimations` half run and is skipped. At the end the unit table entries of both
  * units (HP, weapon uses, weapon exp, every byte), the proc's unit ids
- * (`BATTLE_HandleItemDrop`) and the arguments of the death hooks (`BATTLE_HandleCombatDeaths`,
+ * (`BATTLE_HandleItemDrop`) and the ids the death handling reads (`BATTLE_HandleCombatDeaths`,
  * nobody dies here) are compared.
  */
 class CombatActionDifferentialTest {
@@ -119,11 +119,6 @@ class CombatActionDifferentialTest {
         // The player phase proc the combat proc blocks (tree 2), and the map animation
         // placeholder (tree 3).
         var frame = START
-        val kills = ArrayList<List<Int>>()
-        val drops = ArrayList<List<Int>>()
-        combat.hooks.killUnitOnCombatDeath =
-            CombatAction.UnitKiller { u, k -> kills.add(listOf(u, k)) }
-        combat.hooks.dropRescueOnDeath = CombatAction.RescueDrop { _, u -> drops.add(listOf(u)) }
         combat.hooks.itemGotPopup = CombatAction.ItemPopup { _, _, _ -> error("no item drop") }
         val animation = ProcScript(
             "map animation (test placeholder)",
@@ -187,14 +182,12 @@ class CombatActionDifferentialTest {
         assertEquals(0, parent.lockCnt, "the player phase proc is released")
         assertEquals(0, bm.lock, "the game is unlocked")
 
-        // The proc's last dump (2074) holds the ids BATTLE_HandleItemDrop stored; the death hooks
-        // got them.
+        // The proc's last dump (2074) holds the ids BATTLE_HandleItemDrop stored (nobody dies, so
+        // the death handling changes nothing: the unit table is compared above).
         val last = ProcArrayDump.ofEwram(ewram(LAST_PROC), procNames).find(COMBAT_SCRIPT)
         assertNotNull(last)
         val idA = last!!.u16(0x64).toShort().toInt()
         val idB = last.u16(0x66).toShort().toInt()
-        assertEquals(listOf(listOf(idA, idB), listOf(idB, idA)), kills, "KillUnitOnCombatDeath")
-        assertEquals(listOf(listOf(idA), listOf(idB)), drops, "DropRescueOnDeath")
         assertEquals(idA and 0xFF, actorId, "the actor's id")
         assertEquals(idB and 0xFF, targetId, "the target's id")
 

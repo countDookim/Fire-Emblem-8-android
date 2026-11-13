@@ -988,6 +988,39 @@ public class BmBattle(
     public var pidStatsAddExpGained: (pid: Int, exp: Int) -> Unit = { _, _ -> }
 
     /**
+     * `PidStatsRecordDefeatInfo(pid, killerPid, cause)` (bmsave-bwl.c, the save statistics; no
+     * plan row): called by [killUnitOnCombatDeath] with `DEFEAT_CAUSE_COMBAT`. Stand-in until
+     * M6-C: does nothing, the statistics are not kept.
+     */
+    public var pidStatsRecordDefeatInfo: (pid: Int, killerPid: Int) -> Unit = { _, _ -> }
+
+    /**
+     * Transcribed from src/bmmind.c: DropRescueOnDeath (not verified: no capture has a dying
+     * rescuer and the stand-in body is empty, so no mutation changes captured data)
+     *
+     * Does nothing for the unit [id] unless it has 0 HP and is rescuing another unit. The drop
+     * itself (`sProcScr_DeathDropAnim`, `UnitGetDeathDropLocation`, `UnitDrop`) is a stand-in
+     * until C14-1 (the rescue family, M6-H): nothing happens, the rescued unit is not dropped and
+     * the rescue link is left as it is. The C takes the combat proc too; only the drop uses it.
+     */
+    public fun dropRescueOnDeath(id: Int) {
+        if (table.currentHp(id) != 0) return
+        if ((table.state(id) and UnitLoader.US_RESCUING) == 0) return
+    }
+
+    /**
+     * Ported from src/bmmind.c: KillUnitOnCombatDeath
+     *
+     * Kills unit [unitA] ([UnitTable.unitKill]) when it has 0 HP; [unitB] is the other unit of the
+     * battle, recorded as its killer by [pidStatsRecordDefeatInfo].
+     */
+    public fun killUnitOnCombatDeath(unitA: Int, unitB: Int) {
+        if (table.currentHp(unitA) != 0) return
+        pidStatsRecordDefeatInfo(table.charId(unitA), table.charId(unitB))
+        table.unitKill(unitA)
+    }
+
+    /**
      * `GetTrap(ballistaIndex)->data[TRAP_EXTDATA_BLST_ITEMUSES] = uses` (bmtrick.c, not ported):
      * called by [battleApplyBallistaUpdates] in a ballista battle.
      */

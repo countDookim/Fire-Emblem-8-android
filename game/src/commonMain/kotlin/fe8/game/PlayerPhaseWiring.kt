@@ -345,12 +345,6 @@ internal class PlayerPhaseWiring(
         combat.hooks.doesBmxFadeExist = gbafe.proc.ProcBoolFunc { p ->
             h.doesBmxFadeExist.invoke(p)
         }
-        // Stand-in until MC-16 (UnitKill): a unit with 0 HP is marked dead and hidden.
-        combat.hooks.killUnitOnCombatDeath = CombatAction.UnitKiller { unit, _ ->
-            if (units.currentHp(unit) <= 0) {
-                units.setState(unit, units.state(unit) or US_DEAD_HIDDEN)
-            }
-        }
         h.actionCombat = gbafe.proc.ProcBoolFunc { combat.actionCombat(it) }
         h.battleAnimPreconfOff =
             { combat.hooks.getBattleAnimPreconfType.get() == CombatAction.PLAY_ANIMCONF_OFF }
@@ -373,6 +367,5 @@ internal class PlayerPhaseWiring(
         const val USEBIT_WEAPON = 1
         const val SUSPEND_POINT_PLAYERIDLE = 0
         const val SONG_REFUSED = 0x6C
-        const val US_DEAD_HIDDEN = (1 shl 2) or (1 shl 0)
     }
 }

@@ -9,7 +9,7 @@
     "in_scope_total": 7732,
     "out_of_scope": 620,
     "verified": 1188,
-    "implemented_unverified": 33
+    "implemented_unverified": 57
   },
   "functions": {
     "ActionCombat": {
@@ -84,6 +84,62 @@
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
       ]
     },
+    "AiAttemptOffensiveAction": {
+      "decomp_file": "src/cp_battle.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiClearDecision": {
+      "decomp_file": "src/cp_decide.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiDecideMain": {
+      "decomp_file": "src/cp_decide.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiFillDangerMap": {
+      "decomp_file": "src/cp_0803E2F4.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiFillReversedAttackRangeMap": {
+      "decomp_file": "src/cp_battle.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiInitDangerMap": {
+      "decomp_file": "src/cp_0803E2F4.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiIsBadFight": {
+      "decomp_file": "src/cp_battle.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "AiPhaseBerserkInit": {
       "decomp_file": "src/cp_phase.c",
       "system": "ai",
@@ -109,6 +165,102 @@
       "system": "ai",
       "in_scope": true,
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiScriptCmd_05_DoStandardAction": {
+      "decomp_file": "src/cp_script.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiScriptCmd_06_DoNothing": {
+      "decomp_file": "src/cp_script.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiScriptCmd_0E_DoNothing": {
+      "decomp_file": "src/cp_script.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiScript_Exec": {
+      "decomp_file": "src/cp_script.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiSetDecision": {
+      "decomp_file": "src/cp_decide.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiSimulateBattleAgainstTargetAtPosition": {
+      "decomp_file": "src/cp_battle.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiSimulateBestBattleAgainstTarget": {
+      "decomp_file": "src/cp_battle.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiTryDoStaff": {
+      "decomp_file": "src/cp_staff.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiTryExecScriptA": {
+      "decomp_file": "src/cp_script.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiTryExecScriptB": {
+      "decomp_file": "src/cp_script.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiUpdateGetUnitIsHealing": {
+      "decomp_file": "src/cp_0803E2F4.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiUpdateNoMoveFlag": {
+      "decomp_file": "src/cpextra_80407F0.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt",
       "status": "implemented",
       "tests": []
     },
@@ -1847,6 +1999,22 @@
       "tests": [
         "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
       ]
+    },
+    "CpDecide_Main": {
+      "decomp_file": "src/cp_decide.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "CpDecide_Suspend": {
+      "decomp_file": "src/cp_decide.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt",
+      "status": "implemented",
+      "tests": []
     },
     "CpOrderBerserkInit": {
       "decomp_file": "src/cp_order.c",
@@ -8127,6 +8295,14 @@
         "fe8.testing.SaveDrawDifferentialTest#fog scroll turns the previous dump into the next one"
       ]
     },
+    "SaveNumberOfAlliedUnitsIn0To8Range": {
+      "decomp_file": "src/cp_utility.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "ScriptBattleDeamon": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -8538,6 +8714,14 @@
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
+    },
+    "SetupUnitInventoryAIFlags": {
+      "decomp_file": "src/cp_utility.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt",
+      "status": "implemented",
+      "tests": []
     },
     "ShouldCallEndEvent": {
       "decomp_file": "src/eventinfo.c",
@@ -10000,6 +10184,14 @@
       "tests": [
         "fe8.testing.WorldMapNodeIconCursorTest#node icon and cursor procs follow the original every step"
       ]
+    },
+    "UpdateAllPhaseHealingAIStatus": {
+      "decomp_file": "src/cp_0803E2F4.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt",
+      "status": "implemented",
+      "tests": []
     },
     "UpdateBattleForecastEffectivenessPalettes": {
       "decomp_file": "src/bksel.c",

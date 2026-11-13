@@ -5,6 +5,11 @@ import gbafe.core.flags.FlagStore
 
 /**
  * The battle map music choice of `src/bm.c`: [getCurrentMapMusicIndex] and [startMapSongBgm].
+ * Each chapter has a table of map songs (`mapBgmIds` in its ROM chapter data) with one slot per
+ * phase colour (player, enemy, NPC) plus alternates; the song heard on the map is the slot of
+ * the phase that is running, or, in the player phase, a victory song when few enemies are
+ * left. The song is chosen again at every phase start (`StartMapSongBgm` is a step of the map
+ * main loop, the phase banner and the config menu).
  */
 public class MapMusic(
     private val playSt: PlaySt,
@@ -12,7 +17,7 @@ public class MapMusic(
     private val units: UnitTable,
     private val flags: FlagStore,
     private val sound: SoundWrapper,
-    /** `GetBattleMapKind`. */
+    /** `GetBattleMapKind`: story chapter, dungeon or skirmish (`BattleMapKind`). */
     private val battleMapKind: () -> Int,
 ) {
     /**
@@ -24,8 +29,12 @@ public class MapMusic(
      * alternates and the victory song.
      *
      * The `mapBgmIds` entry of the current chapter for the phase's faction (the alternates after
-     * `EVFLAG_BGM_CHANGE`); in the player phase the victory song once the red units alive are
-     * down to the chapter's threshold (1 in a skirmish).
+     * the story sets `EVFLAG_BGM_CHANGE`: slot 6 for player and NPC, slot 7 for enemy). In the
+     * player phase, unless that flag is set, the victory song (`SONG_GRASP_AT_VICTORY`) instead
+     * once the enemy units still available are down to the chapter's
+     * `victorySongEnemyThreshold` (in a story or dungeon chapter with a nonzero threshold) or
+     * to 1 (in a skirmish). A faction other than the three returns 0 (the C falls off the end
+     * of the function there, so its value is undefined).
      */
     public fun getCurrentMapMusicIndex(): Int {
         val chapterIndex = playSt.chapterIndex
@@ -58,6 +67,10 @@ public class MapMusic(
     /**
      * Ported from src/bm.c: StartMapSongBgm
      *
+     * Starts the song the current phase should play: does nothing if that song is already
+     * playing, fades the playing one out first, and does nothing if the BGM option is off (all
+     * in `StartOrChangeBgm`). The `-1` is the port's value for the C `NULL` music player.
+     *
      * Verified against traces: from the stopped state, `gSoundSt` (songId, is_song_playing, unk7,
      * maxChannels) after the call (Prologue, chapter 6). The m4a player state is not compared.
      */
@@ -66,34 +79,46 @@ public class MapMusic(
     }
 
     private companion object {
-        /** Event flag indicating that the alternate chapter music should play (flag 4). */
+        /**
+         * `EVFLAG_BGM_CHANGE` (event-flags.h, flag 4): set by chapter events to switch the map
+         * to its alternate songs.
+         */
         const val EVFLAG_BGM_CHANGE = 4
 
-        /** Chapter data BGM table slot for default player phase music (0). */
+        /** `MAP_BGM_BLUE` (chapterdata.h): `mapBgmIds` slot 0, the player phase song. */
         const val MAP_BGM_BLUE = 0
 
-        /** Chapter data BGM table slot for default enemy phase music (1). */
+        /** `MAP_BGM_RED` (chapterdata.h): `mapBgmIds` slot 1, the enemy phase song. */
         const val MAP_BGM_RED = 1
 
-        /** Chapter data BGM table slot for default NPC/ally phase music (2). */
+        /** `MAP_BGM_GREEN` (chapterdata.h): `mapBgmIds` slot 2, the NPC phase song. */
         const val MAP_BGM_GREEN = 2
 
-        /** Chapter data BGM table slot for alternate player/NPC music (6). */
+        /**
+         * `MAP_BGM_BLUE_GREEN_ALT` (chapterdata.h): `mapBgmIds` slot 6, the player and NPC
+         * phase song once `EVFLAG_BGM_CHANGE` is set.
+         */
         const val MAP_BGM_BLUE_GREEN_ALT = 6
 
-        /** Chapter data BGM table slot for alternate enemy music (7). */
+        /**
+         * `MAP_BGM_RED_ALT` (chapterdata.h): `mapBgmIds` slot 7, the enemy phase song once
+         * `EVFLAG_BGM_CHANGE` is set.
+         */
         const val MAP_BGM_RED_ALT = 7
 
-        /** Song ID for the player phase near-victory theme ("Grasp at Victory", 0x10). */
+        /**
+         * `SONG_GRASP_AT_VICTORY` (constants/songs.h, 0x10): the player phase song played when
+         * few enemies are left.
+         */
         const val SONG_GRASP_AT_VICTORY = 0x10
 
-        /** Player faction ID (0x00). */
+        /** `FACTION_BLUE` (bmunit.h): the player faction (0x00). */
         const val FACTION_BLUE = 0x00
 
-        /** Ally/NPC faction ID (0x40). */
+        /** `FACTION_GREEN` (bmunit.h): the ally NPC faction (0x40). */
         const val FACTION_GREEN = 0x40
 
-        /** Enemy faction ID (0x80). */
+        /** `FACTION_RED` (bmunit.h): the enemy faction (0x80). */
         const val FACTION_RED = 0x80
     }
 }

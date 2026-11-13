@@ -9,8 +9,12 @@ import gbafe.proc.ProcScripts.yield
 
 /**
  * The phase-start cursor reset of src/bmcamadjust.c: `gProcScr_ResetCursorPosition` and the
- * functions it calls. It puts the cursor on the active faction's start position and starts a
- * [CamMove] (blocking the reset proc) if the camera has to follow.
+ * functions it calls. At the start of each phase it puts the map cursor on the active faction's
+ * start position (the player's leader or last cursor spot; for the enemy and NPC phases the boss
+ * or last unit) and starts a [CamMove] (blocking the reset proc) if the camera has to follow, so
+ * the player sees the map scroll there. `gProc_BMapMain` (src/bm.c, label 9) starts it twice per
+ * phase: first as a plain child before the phase banner, then blocking after the status, terrain
+ * heal, poison and egg-hatch displays.
  *
  * Unit access goes through the raw unit table [units]. Nothing allocates per frame.
  */
@@ -22,16 +26,20 @@ public class ResetCursorPosition(
     private val camMove: CamMove,
     private val nodes: BattleMapNodes,
 ) {
-    /** Output x of the last `Get*StartCursorPosition` call (C `*px`; -1 if it was not set). */
+    /**
+     * Output x (map tile column) of the last `Get*StartCursorPosition` call (C `*px`, a local of
+     * `ProcFun_ResetCursorPosition` there; -1 if it was not set).
+     */
     public var x: Int = -1
         private set
 
-    /** Output y of the last `Get*StartCursorPosition` call (C `*py`; -1 if it was not set). */
+    /** Output y (map tile row) of the last `Get*StartCursorPosition` call (C `*py`; -1 unset). */
     public var y: Int = -1
         private set
 
     /**
      * `gProcScr_ResetCursorPosition` (0x0859AE00): CALL [procFunResetCursorPosition], YIELD, END.
+     * A camera move started by the call blocks the proc until the camera has arrived.
      */
     public val script: ProcScript = ProcScript(
         "gProcScr_ResetCursorPosition",
@@ -44,9 +52,13 @@ public class ResetCursorPosition(
     /**
      * Ported from src/bmcamadjust.c: GetPlayerStartCursorPosition
      *
-     * Sets [x], [y] to the player leader's position (or the saved cursor with `autoCursor`); on
-     * turn 1 first stores the leader's position as the saved cursor. Where the leader is missing
-     * (C dereferences NULL) [x] and [y] are left as they were.
+     * Sets [x], [y] to where the player phase cursor starts: the saved cursor position
+     * (`gPlaySt.xCursor`/`yCursor`, where the cursor was last left in the player phase) when the
+     * game option "auto cursor" (`config.autoCursor`) is 1, otherwise the leader's position (the
+     * main lord of the chosen route, from `GetPlayerLeaderPid`, or the first available unit when
+     * that lord is not deployed). On turn 1 the leader's position is first stored as the saved
+     * cursor, so the first turn always starts on the leader. Where the leader is missing (C
+     * dereferences NULL) [x] and [y] are left as they were.
      */
     public fun getPlayerStartCursorPosition() {
         val leaderUnitId = units.getUnitFromCharId(units.getPlayerLeaderPid(playSt, nodes))
@@ -69,8 +81,9 @@ public class ResetCursorPosition(
      * Transcribed from src/bmcamadjust.c: GetEnemyStartCursorPosition (not verified: the
      * reference runs only reset the cursor in the player phase)
      *
-     * Sets [x], [y] to the last visible unit of the active faction before (and including) the
-     * first boss, if any.
+     * Sets [x], [y] to where the cursor goes at the start of an enemy or NPC phase: the first
+     * boss (`CA_BOSS`) of the active faction that is not hidden, or the last such unit if there
+     * is no boss. Walks the faction's unit ids in order and keeps overwriting until a boss.
      */
     public fun getEnemyStartCursorPosition() {
         val faction = playSt.faction
@@ -87,8 +100,10 @@ public class ResetCursorPosition(
      * Ported from src/bmcamadjust.c: ProcFun_ResetCursorPosition
      * (the non-blue faction branch is not verified, see [getEnemyStartCursorPosition])
      *
-     * Ends [proc] if no unit of the active faction can act; otherwise moves the cursor to the
-     * faction's start position, with a camera move (blocking [proc]) if the camera must follow.
+     * Ends [proc] if no unit of the active faction can act (`GetPhaseAbleUnitCount` is 0, for
+     * example an NPC phase with no NPC left), leaving cursor and camera alone; otherwise moves
+     * the cursor to the faction's start position, with a camera move (blocking [proc]) if the
+     * camera must follow. A faction value other than the three below leaves [x], [y] unset.
      */
     public fun procFunResetCursorPosition(proc: Proc) {
         x = -1
@@ -109,22 +124,25 @@ public class ResetCursorPosition(
     }
 
     private companion object {
-        /** `FACTION_BLUE`: player faction unit index start (0x00). */
+        /** `FACTION_BLUE` (bmunit.h): player units; unit ids 0x01..0x3F follow it. */
         const val FACTION_BLUE = 0x00
 
-        /** `FACTION_GREEN`: ally/NPC faction unit index start (0x40). */
+        /** `FACTION_GREEN` (bmunit.h): ally NPC units; unit ids 0x41..0x7F follow it. */
         const val FACTION_GREEN = 0x40
 
-        /** `FACTION_RED`: enemy faction unit index start (0x80). */
+        /** `FACTION_RED` (bmunit.h): enemy units; unit ids 0x81..0xBF follow it. */
         const val FACTION_RED = 0x80
 
-        /** `US_HIDDEN`: unit state flag indicating the unit is absent or hidden from the map (bit 0). */
+        /** `US_HIDDEN` (bmunit.h, `1 << 0`): the unit is hidden, not drawn on the map. */
         const val US_HIDDEN = 1 shl 0
 
-        /** `US_BIT9`: unit state flag indicating the unit is hidden by fog of war (bit 9). */
+        /**
+         * `US_BIT9` (bmunit.h, `1 << 9`): the decomp's comment guesses "hidden by fog?"; its
+         * real meaning is not confirmed.
+         */
         const val US_BIT9 = 1 shl 9
 
-        /** `CA_BOSS`: character/class attribute flag for boss units (bit 15). */
+        /** `CA_BOSS` (bmunit.h, `1 << 15`): the character/class attribute that marks a boss. */
         const val CA_BOSS = 1 shl 15
     }
 }

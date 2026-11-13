@@ -1,27 +1,42 @@
 package fe8.game.bm
 
 /**
- * Battle map camera and cursor placement helpers over [BmSt]. Positions are pixels unless a
- * function says "map position" (tiles). Results follow the C integer semantics: `int` math is
- * 32-bit, `u16` returns are truncated to 16 bits and `s16` stores sign-truncate. None allocates.
+ * Where the chapter map's camera (the top-left pixel of the 240x160 view, `gBmSt.camera`) has to
+ * be so that a cursor or unit stays on screen, from src/bm.c. The camera scrolls only when the
+ * watched point comes within a margin of the screen edge ([MARGIN_LEFT] and the others), and
+ * never past the map (`gBmSt.cameraMax`). Positions are pixels unless a function says "map
+ * position" (tiles). Results follow the C integer semantics: `int` math is 32-bit, `u16`
+ * returns are truncated to 16 bits and `s16` stores sign-truncate. None allocates.
  */
 public object Camera {
-    /** `CAMERA_MARGIN_LEFT` (bm.h): pixels the cursor may be from the left screen edge (48 pixels / 3 tiles). */
+    /**
+     * `CAMERA_MARGIN_LEFT` (bm.h): the camera scrolls left when the cursor is less than 48
+     * pixels (3 tiles) from the left screen edge.
+     */
     public const val MARGIN_LEFT: Int = 16 * 3
 
-    /** `CAMERA_MARGIN_RIGHT` (bm.h): offset from the camera x of the right scroll margin (176 pixels / 11 tiles). */
+    /**
+     * `CAMERA_MARGIN_RIGHT` (bm.h): the camera scrolls right when the cursor is more than 176
+     * pixels (11 tiles) right of the camera x, leaving 4 tiles (its own included) to the edge.
+     */
     public const val MARGIN_RIGHT: Int = 16 * 11
 
-    /** `CAMERA_MARGIN_TOP` (bm.h): pixels the cursor may be from the top screen edge (32 pixels / 2 tiles). */
+    /**
+     * `CAMERA_MARGIN_TOP` (bm.h): the camera scrolls up when the cursor is less than 32 pixels
+     * (2 tiles) from the top screen edge.
+     */
     public const val MARGIN_TOP: Int = 16 * 2
 
-    /** `CAMERA_MARGIN_BOTTOM` (bm.h): offset from the camera y of the bottom scroll margin (112 pixels / 7 tiles). */
+    /**
+     * `CAMERA_MARGIN_BOTTOM` (bm.h): the camera scrolls down when the cursor is more than 112
+     * pixels (7 tiles) below the camera y, leaving 3 tiles (its own included) to the edge.
+     */
     public const val MARGIN_BOTTOM: Int = 16 * 7
 
-    /** `DISPLAY_WIDTH` (gba/defines.h): screen width in pixels (240). */
+    /** `DISPLAY_WIDTH` (gba/defines.h): the GBA screen is 240 pixels (15 tiles) wide. */
     public const val DISPLAY_WIDTH: Int = 240
 
-    /** `DISPLAY_HEIGHT` (gba/defines.h): screen height in pixels (160). */
+    /** `DISPLAY_HEIGHT` (gba/defines.h): the GBA screen is 160 pixels (10 tiles) high. */
     public const val DISPLAY_HEIGHT: Int = 160
 
     /** Truncates [value] to a signed 16-bit integer sign-extended to 32 bits. */
@@ -33,8 +48,11 @@ public object Camera {
     /**
      * Ported from src/bm.c: GetCameraAdjustedX
      *
-     * Computes the camera x coordinate (`u16`) that keeps pixel column [x] inside the horizontal
-     * scroll margins, starting from `bm.camera.x` and clamped to `[0, bm.cameraMax.x]`.
+     * The camera x that brings pixel column [x] back inside the horizontal scroll margins with
+     * the least scrolling: the current `bm.camera.x` if [x] is already inside them, otherwise
+     * the camera that puts [x] exactly on the nearer margin, limited to `[0, bm.cameraMax.x]`.
+     * This is where a camera move onto a unit or event target ends up (see
+     * [CamMove.ensureCameraOntoPosition]).
      */
     public fun getCameraAdjustedX(bm: BmSt, x: Int): Int {
         var adjustedX = bm.cameraX
@@ -50,8 +68,9 @@ public object Camera {
     /**
      * Ported from src/bm.c: GetCameraAdjustedY
      *
-     * Computes the camera y coordinate (`u16`) that keeps pixel row [y] inside the vertical
-     * scroll margins, starting from `bm.camera.y` and clamped to `[0, bm.cameraMax.y]`.
+     * The camera y that brings pixel row [y] back inside the vertical scroll margins with the
+     * least scrolling: the current `bm.camera.y` if [y] is already inside them, otherwise the
+     * camera that puts [y] exactly on the nearer margin, limited to `[0, bm.cameraMax.y]`.
      */
     public fun getCameraAdjustedY(bm: BmSt, y: Int): Int {
         var adjustedY = bm.cameraY
@@ -67,8 +86,9 @@ public object Camera {
     /**
      * Ported from src/bm.c: GetCameraCenteredX
      *
-     * Computes the camera horizontal coordinate (`u16`) that centers pixel column [x] on screen,
-     * clamped to `[0, bm.cameraMax.x]` and rounded down to a 16-pixel metatile boundary.
+     * The camera x that puts pixel column [x] in the middle of the screen (`DISPLAY_WIDTH / 2`
+     * = 120 pixels left of it), limited to `[0, bm.cameraMax.x]` and rounded down to a whole
+     * 16-pixel map tile so the map is not drawn half-shifted.
      */
     public fun getCameraCenteredX(bm: BmSt, x: Int): Int {
         var centeredX = x - DISPLAY_WIDTH / 2
@@ -80,8 +100,9 @@ public object Camera {
     /**
      * Ported from src/bm.c: GetCameraCenteredY
      *
-     * Computes the camera vertical coordinate (`u16`) that centers pixel row [y] on screen,
-     * clamped to `[0, bm.cameraMax.y]` and rounded down to a 16-pixel metatile boundary.
+     * The camera y that puts pixel row [y] in the middle of the screen (`DISPLAY_HEIGHT / 2`
+     * = 80 pixels above it), limited to `[0, bm.cameraMax.y]` and rounded down to a whole
+     * 16-pixel map tile.
      */
     public fun getCameraCenteredY(bm: BmSt, y: Int): Int {
         var centeredY = y - DISPLAY_HEIGHT / 2
@@ -94,6 +115,12 @@ public object Camera {
      * Transcribed from src/bm.c: StoreAdjustedCameraPositions (not verified: needs a scripted
      *   camera or unit menu after scrolling, which no trace has). This is the `*xOut` half; the C
      *   function returns both through pointers, split here to avoid allocating.
+     *
+     * The camera column that frames [xIn] in a screen-sized window of 15 tiles: 7 tiles to the
+     * left of it, 7 to the right (a hard-coded 15x10 tile window, not derived from
+     * [DISPLAY_WIDTH]), never left of column 0 and never past the map's right edge. Used by the
+     * event camera command (`Event26_CameraControl`, src/eventscr.c) when its flag byte is
+     * nonzero, through `sub_8015D84` and `SetSomeRealCamPos`.
      *
      * Not verified: needs a run with a scripted camera move (sub_8015D84 / SetSomeRealCamPos,
      * e.g. an event camera command); no reference run reaches it, so the CamMove start that
@@ -115,6 +142,9 @@ public object Camera {
      *   camera or unit menu after scrolling, which no trace has). This is the `*yOut` half, see
      *   [storeAdjustedCameraPositionX]. Not verified, same reason.
      *
+     * The camera row that frames [yIn] in a 10-tile-high window: 5 tiles above it, 4 below,
+     * never above row 0 and never past the map's bottom edge.
+     *
      * @param yIn watched map row (tiles).
      * @param mapSizeY `gBmMapSize.y` (s16, tiles).
      * @return the camera row in tiles.
@@ -130,7 +160,9 @@ public object Camera {
      * Ported from src/bm.c: SetCursorMapPosition
      *
      * Puts the player cursor on map tile position ([x], [y]) and snaps its target and display
-     * positions (pixels, `s16`) to it.
+     * positions (pixels, `s16`, 16 per tile) to it, so the cursor jumps there instead of gliding
+     * (the glide is the display position catching up with `cursorTarget`). Called when a phase
+     * starts, by event camera commands, and after the camera is moved onto a unit.
      */
     public fun setCursorMapPosition(bm: BmSt, x: Int, y: Int) {
         bm.playerCursorX = s16(x)
@@ -145,7 +177,8 @@ public object Camera {
      * Transcribed from src/bm.c: IsCameraNotWatchingPosition (not verified: needs a scripted camera
      *   or unit menu after scrolling, which no trace has)
      *
-     * True (C `1`) if the camera would have to move to show map tile position ([x], [y]).
+     * True (C `1`) if the camera would have to move to show map tile position ([x], [y]), that
+     * is, if [getCameraAdjustedX]/[getCameraAdjustedY] differ from the camera now.
      *
      * Not verified: callers are the player action menu (bmmenu.c) and item use (bmitemuse.c);
      * a run that opens a unit's menu after the camera has scrolled would reach it.

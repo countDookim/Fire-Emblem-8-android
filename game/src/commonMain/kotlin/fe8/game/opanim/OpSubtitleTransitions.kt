@@ -5,20 +5,31 @@ import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.render.BgHardware
 
-/** The opening subtitle's hold timer and first palette fade-in. */
+/**
+ * The timed steps of the opening monologue: the hold timer, the slide palette fades, the blends
+ * of the text layers over the background image and the final fade of the whole palette. Each is
+ * a repeating proc step that counts [OpSubtitleSlides.State.transitionTimer] and breaks (or
+ * jumps to a label) when its fade is complete. All of them call [handleStartPress].
+ */
 public class OpSubtitleTransitions(
     private val engine: ProcEngine,
     private val hardware: BgHardware,
     private val rom: RomView,
     private val handleStartPress: (Proc) -> Unit,
 ) {
+    /** `gPal_OpSubtitle`: the slides' text palette (BG palette 3). */
     private val subtitlePalette: ShortArray = rom.pal(PALETTE, 16)
+
+    /** `Pal_08B1756C`: the full-screen background image's palette (BG palette 15). */
     private val cardPalette: ShortArray = rom.pal(CARD_PALETTE, 16)
+
+    /** `gUnk_OpSubtitle_0201CDD4`: the palette copy that [fadeOutAll] fades from. */
     private val paletteSnapshot = ShortArray(PALETTE_COLORS)
 
     /**
-     * Decrements the hold timer, breaks its repeat when it reaches zero, and checks Start even
-     * on the breaking frame. The proc's state must be [OpSubtitleSlides.State].
+     * The pause between steps: decrements the hold timer, breaks its repeat when it reaches
+     * zero, and checks Start even on the breaking frame. The proc's state must be
+     * [OpSubtitleSlides.State].
      *
      * Ported from src/opsubtitle.c: OpSubtitle_AwaitTimer2a
      */
@@ -30,8 +41,10 @@ public class OpSubtitleTransitions(
     }
 
     /**
-     * Advances the subtitle palette fade, starts the indexed slide's hold at completion, marks
-     * the palette for sync, then checks Start. The proc's state must be [OpSubtitleSlides.State].
+     * Fades the slide text in from black over 80 frames by scaling `gPal_OpSubtitle` into BG
+     * palette 3 (see [scalePalette]); at completion sets the full palette, breaks, and starts the
+     * slide's own hold from the `gOpSubtitleGfxLut` entry. Then checks Start. The proc's state
+     * must be [OpSubtitleSlides.State].
      *
      * Ported from src/opsubtitle.c: sub_80C4DA0
      */
@@ -52,9 +65,10 @@ public class OpSubtitleTransitions(
     }
 
     /**
-     * Fades the subtitle palette out; at completion clears it and advances the slide index. The
-     * first two slides then hold for 80 frames, later ones turn every layer off and jump to
-     * label 1. The proc's state must be [OpSubtitleSlides.State].
+     * Fades the slide text out to black over 80 frames; at completion clears BG palette 3 and
+     * advances the slide index. After slide 0 it holds 80 frames and breaks (the next slide
+     * loads); after slide 1 (index now 2) it turns every layer off and jumps to label 1, the
+     * flare scene. The proc's state must be [OpSubtitleSlides.State].
      *
      * Ported from src/opsubtitle.c: sub_80C4E18
      */
@@ -81,9 +95,9 @@ public class OpSubtitleTransitions(
     }
 
     /**
-     * Fades the subtitle palette out; at completion clears it, advances the slide index, holds
-     * for 90 frames with only BG2 shown and breaks. The proc's state must be
-     * [OpSubtitleSlides.State].
+     * Fades the last slide's text out to black over 80 frames; at completion clears BG palette 3,
+     * advances the slide index, holds for 90 frames with only BG2 shown and breaks (towards the
+     * natural end, label 5). The proc's state must be [OpSubtitleSlides.State].
      *
      * Ported from src/opsubtitle.c: sub_80C4EC4
      */
@@ -106,9 +120,10 @@ public class OpSubtitleTransitions(
     }
 
     /**
-     * Blends the card layer in. At completion slides before index 5 start their hold and break;
-     * later ones start the hold, advance the index and jump to label 4. The proc's state must be
-     * [OpSubtitleSlides.State].
+     * Fades a slide's text layers (BG0 and BG1, second blend targets) in over the background
+     * (BG3, first target) over 80 frames: the blend coefficients go 16/0 to 0/16. At completion
+     * slides 3 and 4 start their hold and break; slide 5, the last of this group, starts its hold,
+     * advances the index and jumps to label 4. The proc's state must be [OpSubtitleSlides.State].
      *
      * Ported from src/opsubtitle.c: sub_80C4F60
      */
@@ -136,9 +151,10 @@ public class OpSubtitleTransitions(
     }
 
     /**
-     * Blends the card layer out. At completion advances the slide index, holds for 80 frames and
-     * breaks; Start is checked twice on that frame, as in the original. The proc's state must be
-     * [OpSubtitleSlides.State].
+     * Fades the slide's text layers out again over 80 frames (the mirror of [blendIn], ending
+     * with the background fully shown). At completion advances the slide index, holds for 80
+     * frames and breaks; Start is checked twice on that frame, as in the original. The proc's
+     * state must be [OpSubtitleSlides.State].
      *
      * Ported from src/opsubtitle.c: sub_80C501C
      */
@@ -162,8 +178,9 @@ public class OpSubtitleTransitions(
     }
 
     /**
-     * Fades the card palette into BG palette 15 over 46 frames, showing BG0 to BG2 on the first
-     * frame; at completion starts the slide's hold and breaks. The proc's state must be
+     * Fades the full-screen background image (BG1) in from black over 46 frames by scaling
+     * `Pal_08B1756C` into BG palette 15, showing BG0 to BG2 on the first frame; at completion
+     * sets the full palette, starts the current slide's hold and breaks. The proc's state must be
      * [OpSubtitleSlides.State].
      *
      * Ported from src/opsubtitle.c: sub_80C5104
@@ -186,7 +203,8 @@ public class OpSubtitleTransitions(
     }
 
     /**
-     * Clears the first 0x20 bytes of VRAM, marks BG1 for sync and shows BG0, BG1 and BG3.
+     * Clears the first tile of VRAM, so that the empty entries (tile 0) of BG1's map show nothing,
+     * marks BG1 for sync and shows BG0, BG1 and BG3, ready for slides 3 to 5.
      *
      * Ported from src/opsubtitle.c: sub_80C5328
      */
@@ -198,7 +216,7 @@ public class OpSubtitleTransitions(
 
     /**
      * Resets the proc's transition timer and saves the BG half of the palette (0x200 bytes) for
-     * the final fade. The proc's state must be [OpSubtitleSlides.State].
+     * [fadeOutAll]. The proc's state must be [OpSubtitleSlides.State].
      *
      * Ported from src/opsubtitle.c: sub_80C5370
      */
@@ -209,7 +227,8 @@ public class OpSubtitleTransitions(
     }
 
     /**
-     * Fades all 512 colours from the saved buffer over 60 frames; at completion clears the BG
+     * Fades the whole screen to black: all 512 colours from the saved buffer over 60 frames; at
+     * completion clears the BG
      * half (0x200 bytes), starts a 60-frame hold and breaks. The original reads the OBJ half from
      * EWRAM past its 256-colour copy; here that half of the buffer stays zero (unverified, OBJ is
      * off in this stage). The proc's state must be [OpSubtitleSlides.State].
@@ -233,7 +252,9 @@ public class OpSubtitleTransitions(
     }
 
     /**
-     * Scales BGR555 channels by a 12-bit fixed-point coefficient into the destination palette.
+     * Writes [count] colours of [source] into [destination] at [offset], each BGR555 channel
+     * scaled by [coefficient] / 0x1000 (0 is black, 0x1000 the original colour), which is how
+     * palettes fade in and out here.
      *
      * Ported from src/opsubtitle.c: sub_80C4BB4
      */
@@ -250,10 +271,19 @@ public class OpSubtitleTransitions(
     }
 
     private companion object {
+        /** `gOpSubtitleGfxLut`: 12-byte entries; the hold time is the u32 at +8. */
         const val LUT = 0x08206FE4
+
+        /** `gPal_OpSubtitle`. */
         const val PALETTE = 0x08AA239C
+
+        /** BG and OBJ palette colours together. */
         const val PALETTE_COLORS = 0x200
+
+        /** BG palette colours (the first half of the palette buffer). */
         const val BG_PALETTE_COLORS = 0x100
+
+        /** `Pal_08B1756C`. */
         const val CARD_PALETTE = 0x08B1756C
     }
 }

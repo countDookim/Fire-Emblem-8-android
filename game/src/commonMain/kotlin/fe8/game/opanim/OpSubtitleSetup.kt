@@ -4,8 +4,9 @@ import fe8.game.RomView
 import gbafe.render.BgHardware
 
 /**
- * Opening subtitle initialization and background setup. [rom] must contain the subtitle's BG
- * configuration tables and graphics; [startBgm] stands in for `StartBgm(song, player)`.
+ * Opening monologue initialization and the shared screen-building helpers. [rom] must contain the
+ * monologue's BG configuration tables and graphics; [startBgm] stands in for
+ * `StartBgm(song, player)`.
  */
 public class OpSubtitleSetup(
     private val rom: RomView,
@@ -13,9 +14,12 @@ public class OpSubtitleSetup(
     private val startBgm: (song: Int, player: Int) -> Unit = { _, _ -> },
 ) {
     /**
-     * Sets up the subtitle backgrounds (mode 1; BG2 holds the lens-flare graphics), blending,
-     * palette banks 0..2 and the prologue BGM, then starts the first hold at 60 frames. The sound
-     * request is only forwarded to [startBgm]; its audio is not verified.
+     * Sets up the monologue screen: the `gBgConfig_OpSubtitle` backgrounds, mode 1 with BG0 and
+     * OBJ shown and BG2 (priority 0, 256x256 affine, no wrap) holding the lens-flare graphics,
+     * all windows off, alpha blend with BG2 as first target and BG0, BG1 and OBJ as second, the
+     * lens-flare palettes in BG palette banks 0..2, `SONG_PROLOGUE`, slide index 0 and a first
+     * hold of 60 frames. The sound request is only forwarded to [startBgm]; its audio is not
+     * verified.
      *
      * Ported from src/opsubtitle.c: OpSubtitle_Init
      */
@@ -27,7 +31,7 @@ public class OpSubtitleSetup(
             lcd.bgCnt[bg] = (lcd.bgCnt[bg] and 3.inv()) or (if (bg == 2) 0 else 3)
         }
         lcd.setDispEnable(1, 0, 0, 0, 1)
-        // screenSize = 1, areaOverflowMode = 0
+        // BG2: screenSize = 1 (256x256 affine), areaOverflowMode = 0 (no wraparound).
         lcd.bgCnt[2] = (lcd.bgCnt[2] and 0xE000.inv()) or 0x4000
         lcd.setWinEnable(0, 0, 0)
         lcd.setBlendConfig(1, 0, 0x10, 0)
@@ -44,8 +48,9 @@ public class OpSubtitleSetup(
     }
 
     /**
-     * Resets the four BG controls and applies the second subtitle BG table (tile base, map base,
-     * screen size, zero scroll).
+     * Resets the four BG controls and applies the table `gUnknown_08AA21A4` (tile base, map base
+     * and screen size per BG), used by the final scene; it differs from the first table only in
+     * BG2's tile base (0 instead of 0x8000). All BG scrolls are reset to 0.
      *
      * Ported from src/opsubtitle.c: OpSubtitle_SetupBackgrounds
      */
@@ -61,8 +66,11 @@ public class OpSubtitleSetup(
     }
 
     /**
-     * Decompresses the common game background screen into [bg]'s tile data, clears 0x20 bytes
-     * at +0x5000, syncs [bg] and fills palette bank 0xE with 0x08A7.
+     * Loads the full-screen background image `Img_CommGameBgScreen` (0x280 tiles, one 32x20
+     * screen when drawn with [fillIndexedMap]) into [bg]'s tile data, clears the one tile at
+     * +0x5000 (that BG's tile 0x280, the blank tile used to empty a map), syncs [bg] and
+     * fills palette bank 0xE with the single colour 0x08A7 (a dark brown in BGR555). What the
+     * image shows: meaning unknown.
      *
      * Ported from src/opsubtitle.c: sub_80C488C
      */
@@ -76,7 +84,9 @@ public class OpSubtitleSetup(
     }
 
     /**
-     * Fills the first 0x280 entries of [bg]'s tilemap buffer with `0xF000 + i`.
+     * Fills the first 0x280 entries of [bg]'s tilemap buffer with `0xF000 + i`: tile i in palette
+     * bank 15, so the 32x20 screen shows tiles 0..0x27F in order (the image of
+     * [loadCommonScreen]).
      *
      * Ported from src/opsubtitle.c: sub_80C48F0
      */
@@ -87,12 +97,21 @@ public class OpSubtitleSetup(
 
     /** Constants of the subtitle data. */
     public companion object {
-        /** `SONG_PROLOGUE`. */
+        /** `SONG_PROLOGUE` (include/constants/songs.h): the monologue's music. */
         public const val SONG_PROLOGUE: Int = 3
+        /** `gBgConfig_OpSubtitle`: 4 x (tile offset, map offset, screen size) u16. */
         private const val BG_CONFIG_SUBTITLE = 0x08AA213C
+
+        /** `gUnknown_08AA21A4`: same layout, used by [setupBackgrounds]. */
         private const val BG_CONFIG_SCENE = 0x08AA21A4
+
+        /** `Img_ChapterIntro_LensFlare`. */
         private const val LENS_FLARE_IMG = 0x08B17B64
+
+        /** `Pal_ChapterIntro_LensFlare` (3 palettes). */
         private const val LENS_FLARE_PAL = 0x08B18ED4
+
+        /** `Img_CommGameBgScreen`. */
         private const val COMM_GAME_BG_SCREEN = 0x08B12DB4
     }
 }

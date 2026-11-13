@@ -5,27 +5,30 @@ import gbafe.render.BgHardware
 import gbafe.render.BgTilemap
 
 /**
- * Loads the opening subtitle's ROM graphics and tilemaps into the BG buffers. [rom] must contain
- * `gOpSubtitleGfxLut` and the referenced graphics. [scratch] is reused for decompressed TSA data.
+ * Loads the opening monologue's story slides into VRAM and the BG map buffers. Each slide is one
+ * 12-byte entry of `gOpSubtitleGfxLut` (compressed graphics, compressed map, hold time in
+ * frames); [rom] must contain it and the referenced data. [scratch] stands in for
+ * `gGenericBuffer`, which holds the decompressed map.
  */
 public class OpSubtitleSlides(
     private val rom: RomView,
     private val hardware: BgHardware,
     private val scratch: ByteArray = ByteArray(0x10000),
 ) {
-    /** Fields shared by the slide loaders and subtitle transition callbacks. */
+    /** The `struct OpSubtitleProc` fields shared by the slide loaders and the transitions. */
     public class State(
-        /** `OpSubtitleProc.index`. */
+        /** `index` (s8): the current slide, an index into `gOpSubtitleGfxLut` (0..6). */
         public var index: Int = 0,
-        /** `OpSubtitleProc.timer_2c`. */
+        /** `timer_2c` (s16): frame counter of the running fade or blend (80 frames for most). */
         public var transitionTimer: Int = 0,
-        /** `OpSubtitleProc.timer_2a`. */
+        /** `timer_2a` (s16): frames left in the current hold (`OpSubtitle_AwaitTimer2a`). */
         public var holdTimer: Int = 0,
     )
 
     /**
-     * Loads [state]'s slide into VRAM at 0x1000 and BG0 with base 0x3080, enables BG0 and its
-     * sync, and clears the transition timer.
+     * Loads [state]'s slide: graphics into VRAM at 0x1000 (tile 0x80) and its map into BG0 with
+     * base 0x3080 (tile 0x80, palette 3, which holds the slide palette), shows BG0, syncs it and
+     * clears the transition timer.
      *
      * Ported from src/opsubtitle.c: sub_80C4C60
      */
@@ -37,8 +40,10 @@ public class OpSubtitleSlides(
     }
 
     /**
-     * Loads [state]'s slide at 0x1000 into BG0 and BG1 with bases 0x3080 and 0xE080; enables BG0,
-     * syncs both maps, and clears the transition timer.
+     * Like [loadSingle], but also draws the same map into BG1 with base 0xE080 (palette 14,
+     * the single dark colour of `loadCommonScreen`; that and the (-3, -3) offset set on BG1 in the
+     * final scene suggest a drop shadow, inferred and not stated in the decomp). Syncs both
+     * maps and clears the transition timer.
      *
      * Ported from src/opsubtitle.c: sub_80C4CD0
      */
@@ -50,7 +55,9 @@ public class OpSubtitleSlides(
     }
 
     /**
-     * Loads slide [index] into VRAM at 0x5000 and BG0 with base 0x3280, and syncs BG0.
+     * Loads slide [index] with its graphics at VRAM 0x5000 (tile 0x280) and its map into BG0 with
+     * base 0x3280 (tile 0x280, palette 3), and syncs BG0. Used for the title card, which is
+     * shown while the background image owns the tiles from VRAM 0.
      *
      * Ported from src/opsubtitle.c: sub_80C4D54
      */
@@ -59,7 +66,11 @@ public class OpSubtitleSlides(
         hardware.enableBgSyncByMask(1)
     }
 
-    /** Decompresses the selected image and TSA and applies the TSA to the requested maps. */
+    /**
+     * Decompresses slide [index]'s graphics to [vramOffset] and its map to [scratch], then fills
+     * BG0's map (and BG1's if [includeSecondLayer]) from it with tile base [tileBase]
+     * (`CallARM_FillTileRect`).
+     */
     private fun load(index: Int, vramOffset: Int, tileBase: Int, includeSecondLayer: Boolean) {
         val entry = LUT + index * 12
         rom.decompressInto(rom.u32(entry), hardware.vram, vramOffset)
@@ -69,6 +80,7 @@ public class OpSubtitleSlides(
     }
 
     private companion object {
+        /** `gOpSubtitleGfxLut`. */
         const val LUT = 0x08206FE4
     }
 }

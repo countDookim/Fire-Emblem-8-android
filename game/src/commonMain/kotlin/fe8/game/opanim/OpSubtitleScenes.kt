@@ -9,8 +9,9 @@ import gbafe.proc.ProcScripts.sleep
 import gbafe.render.BgHardware
 
 /**
- * The opening subtitle's scene set-up callbacks (lens-flare card and final scene). They build on
- * [setup] and [slides], which must share [hardware] and [rom].
+ * The opening monologue's scene set-up callbacks: the lens-flare scene with the title card
+ * (slide 2) and the final scene that hosts slides 3 to 5. They build on [setup] and [slides],
+ * which must share [hardware] and [rom].
  */
 public class OpSubtitleScenes(
     private val hardware: BgHardware,
@@ -19,9 +20,11 @@ public class OpSubtitleScenes(
     private val slides: OpSubtitleSlides,
 ) {
     /**
-     * Prepares the card scene: common screen and indexed map on BG1, palette bank 0xF cleared,
-     * VRAM 0x5000..0x6000 cleared, BG0 map filled with 0x280, then a 22-frame hold with the
-     * transition timer cleared. The proc's state must be [OpSubtitleSlides.State].
+     * Prepares the lens-flare scene: the full-screen background image and its indexed map on
+     * BG1 (palette bank 15, cleared to black so it can be faded in), VRAM 0x5000..0x6000 cleared
+     * (room for the title card's graphics), BG0's map filled with tile 0x280 (the blank tile) to
+     * empty it, then a 22-frame hold with the transition timer cleared. The proc's state must be
+     * [OpSubtitleSlides.State].
      *
      * Ported from src/opsubtitle.c: sub_80C50A0
      */
@@ -38,7 +41,9 @@ public class OpSubtitleScenes(
     }
 
     /**
-     * Loads slide 2 at the alternate offset and the subtitle palette into BG palette 3.
+     * Shows the title card: loads slide 2 at the alternate offset (VRAM 0x5000, BG0) and the
+     * slide palette `gPal_OpSubtitle` into BG palette 3. Run by the child proc 36 frames into
+     * the flare scene and again by [setupFinalScene].
      *
      * Ported from src/opsubtitle.c: sub_80C51A8
      */
@@ -49,7 +54,8 @@ public class OpSubtitleScenes(
     }
 
     /**
-     * The flare's child proc: yields once, sleeps 36 frames, then runs [loadFinalCard].
+     * The title card's child proc: yields once, sleeps 36 frames, then runs [loadFinalCard],
+     * so the card appears during the flare.
      *
      * Transcribed from src/opsubtitle.c: gProcScr_08AA2184 (not verified: no @VerifiesPort test
      * names it)
@@ -60,10 +66,14 @@ public class OpSubtitleScenes(
     )
 
     /**
-     * Sets up the final scene: backgrounds, mode 0 with BG priorities 1, 2, 3, 0, blending, BG1
-     * offset (-3, -3), the common screen and indexed map on BG3, empty BG1 and BG2 maps, slide 2,
-     * BG0 and BG3 shown, slide index 2 and a 120-frame hold. The proc's state must be
-     * [OpSubtitleSlides.State].
+     * Sets up the final scene that hosts slides 3 to 5: the [OpSubtitleSetup.setupBackgrounds]
+     * layout, mode 0 with BG priorities 1, 2, 3, 0 for BG0..BG3 (BG3, the background image, is
+     * in front), alpha blend with BG3 as first target and BG0 and BG1 as second targets (the
+     * slides' text layers show through as BG3's weight drops), no backdrop targets, BG1
+     * scrolled to (-3, -3) (the BG1 copy of a slide is drawn offset from BG0's; see
+     * [OpSubtitleSlides.loadDouble]), the background image and indexed map on BG3, empty BG1 and
+     * BG2 maps, the title card (slide 2), BG0 and BG3 shown, slide index 2 and a 120-frame hold.
+     * The proc's state must be [OpSubtitleSlides.State].
      *
      * Ported from src/opsubtitle.c: sub_80C5218
      */
@@ -94,11 +104,13 @@ public class OpSubtitleScenes(
     }
 
     private companion object {
+        /** `gPal_OpSubtitle`. */
         const val PALETTE = 0x08AA239C
     }
 
     /**
-     * Resets the BG1 scroll offset to (0, 0) once the final scene has finished.
+     * Resets the BG1 scroll offset from the final scene's (-3, -3) to (0, 0) once the monologue
+     * has finished (label 7).
      *
      * Ported from src/opsubtitle.c: sub_80C540C
      */

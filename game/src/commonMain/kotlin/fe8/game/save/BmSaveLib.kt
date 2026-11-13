@@ -604,7 +604,10 @@ public class BmSaveLib(public val sram: CartSram) {
      * Stores the checksum of the payload [info] points at (`offset`, `size`) in its `checksum32`.
      */
     public fun populateSaveBlockChecksum(info: ByteArray) {
-        putU32(info, L.INFO_CHECKSUM32, sramChecksum32(u16(info, L.INFO_OFFSET), u16(info, L.INFO_SIZE)))
+        putU32(
+            info, L.INFO_CHECKSUM32,
+            sramChecksum32(u16(info, L.INFO_OFFSET), u16(info, L.INFO_SIZE)),
+        )
     }
 
     /**
@@ -695,8 +698,9 @@ public class BmSaveLib(public val sram: CartSram) {
      * Transcribed from src/bmsave-bwl.c: GetNewPlaythroughId (not verified: no @VerifiesPort
      * test names it)
      *
-     * The smallest id in 1..0xFF that [isPlaythroughIdUnique] (the C code falls off the end
-     * without a value when none is; 0 here).
+     * The smallest id in 1..0xFF that [isPlaythroughIdUnique], used to tag a new game so its
+     * clear can be recorded in `cleared_playthroughs`. The C code falls off the end without a
+     * return value when none is unique; 0 here.
      */
     public fun getNewPlaythroughId(): Int {
         for (i in 1 until 0x100) if (isPlaythroughIdUnique(i)) return i
@@ -792,6 +796,9 @@ public class BmSaveLib(public val sram: CartSram) {
     /**
      * Transcribed from src/bmsave.c: SetBonusContentClaimFlags (not verified: no trace sets a
      * non-zero value).
+     *
+     * Sets the in-memory `gBonusContentClaimFlags` word (the bonus content claimed for this
+     * playthrough) that [writeBonusContentClaimFlags] later stores in a game block.
      */
     public fun setBonusContentClaimFlags(num: Int) {
         bonusContentClaimFlags = num
@@ -807,10 +814,10 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
 
-    /** `gPidStatsData` (0x46 entries of 16 bytes). */
+    /** `gPidStatsData`: one packed `UnitUsageStats` (16 bytes) per character, 0x46 entries. */
     public val pidStatsData: ByteArray = ByteArray(PID_STATS_SIZE)
 
-    /** `gChapterStats` (0x30 entries of 4 bytes). */
+    /** `gChapterStats`: one packed `ChapterStats` (4 bytes) per chapter slot, 0x30 entries. */
     public val chapterStatsData: ByteArray = ByteArray(CHAPTER_STATS_SIZE)
 
     /** `gPidStatsSaveLoc` as an SRAM offset (-1 = NULL). */
@@ -1053,7 +1060,9 @@ public class BmSaveLib(public val sram: CartSram) {
     private val unitBuffer = ByteArray(PACKED_UNIT_SIZE.coerceAtLeast(DUNGEONS_SIZE))
 
     /**
-     * Shared helper for loading and verifying checksummed auxiliary save records.
+     * Reads the [size]-byte record at SRAM [offset] and checks its stored `Checksum16` (sum of the
+     * halfwords plus xor of the halfwords, the `Checksum16` of `src/bmsave-lib.c`) over the first
+     * [sumSize] bytes. Shared by the bonus claim, ranking, sound room and link arena records.
      *
      * @param offset SRAM byte offset of the record.
      * @param size Total record size in bytes.
@@ -1076,7 +1085,8 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
-     * Shared helper for populating the 16-bit additive checksum and committing an auxiliary record to SRAM.
+     * Stores `Checksum16` (halfword sum plus halfword xor) of the first [sumSize] bytes of [buf] at
+     * [checksumAt], then writes the [size]-byte record to SRAM. Counterpart of [loadChecked].
      *
      * @param buf Source buffer containing record data.
      * @param offset SRAM destination byte offset.
@@ -1097,7 +1107,10 @@ public class BmSaveLib(public val sram: CartSram) {
 
     /** Layout constants, bit masks, and buffer size definitions for SRAM blocks. */
     internal companion object {
-        /** `gGenericBuffer` is 0x2000 bytes in C; the largest block used here is 0x144. */
+        /**
+         * `gGenericBuffer` is 0x2000 bytes in C. The largest payload copied through it here is a
+         * suspend block (`SUSPEND_SIZE`, 0x1F78), checksummed by `SramChecksum32`.
+         */
         const val GENERIC_BUFFER_SIZE = L.SUSPEND_SIZE
 
         /** Bytes `WipeSram` writes per call (0x200 calls cover the 0x8000 bytes). */
@@ -1158,6 +1171,7 @@ public class BmSaveLib(public val sram: CartSram) {
         const val GAME_PID_STATS = GAME_SUPPLY + SUPPLY_SIZE
         const val GAME_CHAPTER_STATS = GAME_PID_STATS + PID_STATS_SIZE
         const val GAME_PERMANENT_FLAGS = GAME_CHAPTER_STATS + CHAPTER_STATS_SIZE
+        // 0x19 flag bytes padded to 0x1C so the u32 `bonusClaimFlags` is word-aligned.
         const val GAME_BONUS_CLAIM = GAME_PERMANENT_FLAGS + 0x1C
         const val GAME_WM_STUFF = GAME_BONUS_CLAIM + 4
         const val GAME_DUNGEONS = GAME_WM_STUFF + GMAP_SAVE_INFO_SIZE

@@ -209,7 +209,7 @@ public class Fe8Boot(
     /** The blend fades of `src/bmlib.c` (`StartMidFadeFromBlack`, the event fade command). */
     public val screenFade: ScreenFade = ScreenFade(engine, hw.lcd)
 
-    /** The LCD I/O register image (offset 0 = 0x04000000) that [loop] flushes each frame for the renderer. */
+    /** The LCD I/O register image (offset 0 = 0x04000000) that [loop] flushes each frame. */
     private val io = ByteArray(0x60)
 
     private lateinit var opAnimRef: OpAnim
@@ -777,7 +777,8 @@ public class Fe8Boot(
 
     /**
      * The MU system (`mu.c`) with class lookups from the ROM; walking MUs are drawn by the ap.c
-     * sprite animation player ([MuSpriteAnim]); the standing-MU SMS hooks are still no-ops.
+     * sprite animation player ([MuSpriteAnim]); the standing-MU facing, step sound, fog bump and
+     * played-through hooks keep their no-op defaults.
      */
     public val mu: Mu by lazy {
         val spriteAnim = MuSpriteAnim(rom, hw, loop.oam, loop.sprites)
@@ -863,19 +864,27 @@ public class Fe8Boot(
         ).registerOn(engine)
     }
 
+    /** The camera mover (`gProcScr_CamMove`) of the battle map. */
     private val camMove: CamMove by lazy { CamMove(engine, loop.bmSt) }
 
+    /** The ROM chapter table (`GetROMChapterStruct`, event pointers). */
     private val battleChapters: ChapterData by lazy { ChapterData(rom) }
 
     /** The battle map's `gBmMap*` pools, shared by the battle map path and the unit loads. */
     private val battleBmMap: BmMap by lazy { BmMap(rom, battleChapters, loop.bmSt) }
 
+    /** `RenderBmMap` of the battle map. */
     private val bmapRender: BmMapRender by lazy { BmMapRender(loop.bmSt, battleBmMap, hw) }
 
+    /** `RefreshEntityBmMaps`: the unit and hidden-unit maps of the battle map. */
     private val battleEntityMaps: EntityBmMaps by lazy {
         EntityBmMaps(battleBmMap, units, control.playSt)
     }
 
+    /**
+     * Builds the battle map: [BMapMain] (first) with the player phase, phase intro, events, map
+     * music and chapter intro hooked up, and its [BattleMapStart] (second).
+     */
     private val bmapMainParts: Pair<BMapMain, BattleMapStart> by lazy {
         val chapters = battleChapters
         val bm = loop.bmSt
@@ -985,10 +994,12 @@ public class Fe8Boot(
         talkScene.text.resetTextFont()
     }
 
+    /** `ResetIconGraphics_`: clears both icon lookup tables. */
     private fun resetIcons() {
         ItemIcon.resetIconGraphics(drawnIconLookupTable, iconGfxIdLookupTable)
     }
 
+    /** `LoadIconPalettes(palId)`: icon palettes 0 and 1 into palette banks `palId` and +1. */
     private fun loadIconPalettes(palId: Int) {
         ItemIcon.loadIconPalette(hw, rom, 0, palId)
         ItemIcon.loadIconPalette(hw, rom, 1, palId + 1)
@@ -1019,8 +1030,9 @@ public class Fe8Boot(
     }
 
     /**
-     * Connects the player phase hooks ([PlayerPhaseWiring]) and sets the enemy phase
-     * placeholders of [main] (M6-D).
+     * Connects the player phase hooks ([PlayerPhaseWiring]), then builds the enemy phase
+     * ([CpPhase]) and the phase start and end housekeeping ([PhaseStartEnd]) into the hooks of
+     * [main]; the unported parts of the enemy phase are listed at the [CpPhase] construction.
      */
     private fun wirePlayerPhase(
         main: BMapMain,
@@ -1030,8 +1042,11 @@ public class Fe8Boot(
         eventInfos: EventInfos,
     ) {
         val playSt = control.playSt
+        // Used for item rules and unit stats only (the player phase, battle and AI read them); it
+        // loads no units, so unlike the event engine's loader it has no level bonus or weather.
         val loader = UnitLoader(
             units, rom,
+            // `gPlaySt.unk1C[weaponType]`, the character that unseals a weapon type (types 0, 1).
             { type -> if (type == 0) playSt.unk1C0 else if (type == 1) playSt.unk1C1 else 0 },
             rng, { playSt.chapterStateBits and PLAY_FLAG_HARD != 0 },
         ).apply { bmMap = battleBmMap }
@@ -1053,11 +1068,13 @@ public class Fe8Boot(
             battleGenerate,
             { eventEngine.eventEngineExists() },
         ).wire(phase, main, eventInfos)
-        // The enemy phase (EP-2a, EP-3a): `AiPhaseInit`, the unit order and the decision loop.
+        // The enemy phase (EP-2a, EP-3a/b): `AiPhaseInit`, the unit order and the decision loop.
         // The script interpreter (EP-4), the attack search (EP-5), the score (EP-6a) and the reach
-        // and movement maps (EP-7) run, so an enemy in reach decides its attack; the perform proc
-        // (EP-8) and the EP-6b score components are null: nothing is performed, End turn runs
-        // the enemy banner, marks every enemy as moved and goes on to the next player phase.
+        // and movement maps (EP-7) run, so an enemy in reach decides its attack. Left null: the
+        // perform proc `gProcScr_CpPerform` (EP-8, action part EP-9), the four EP-6b score
+        // components and tile position components, and the EP-12 branches the Prologue never
+        // enters. So nothing is performed: End turn runs the enemy banner, marks every enemy as
+        // moved and goes on to the next player phase.
         val cp = CpPhase(
             engine, rom, playSt, units, loader, battleBmMap, battleEntityMaps, active, rng,
         )
@@ -1198,9 +1215,10 @@ public class Fe8Boot(
         }
     }
 
+    /** The m4a driver whose VBlank and main steps [loop] runs; null: silent. */
     private val driver: M4aDriver? = m4a?.driver(pcm)
 
-    /** The op anim. */
+    /** The opening animation (`OpAnim`) shown before the title. */
     public val opAnim: OpAnim =
         BootRom.opAnim(rom, engine, hw, keys, control).also { opAnimRef = it }
 
@@ -1265,7 +1283,10 @@ public class Fe8Boot(
         soundMain = { driver?.main() },
     )
 
+    /** Display state the renderers draw from, filled by [prepare]. */
     private val state = RenderState()
+
+    /** Tile graphics of [state]. */
     private val sheets = TileSheets()
 
     /** Packed per-frame data for the GPU backend, drawn from the same state as [screen]. */
@@ -1273,6 +1294,8 @@ public class Fe8Boot(
 
     /** Tile graphics the GPU backend uploads (sheet ids as in [gpuFrame]'s state). */
     public val tileSheets: TileSheets get() = sheets
+
+    /** Copies the synced hardware state into [state] and [sheets]. */
     private val loader = HardwareSceneLoader()
 
     private val renderer = SoftwareRenderer(state, sheets, screen, colorMath)
@@ -1307,7 +1330,10 @@ public class Fe8Boot(
         loop.frame()
     }
 
+    /** Scratch I/O image the HBlank handler writes per line during capture. */
     private val hblankIo = ByteArray(io.size)
+
+    /** Runs the active HBlank handler for one line against the scratch register image. */
     private val hblankLine: (Int, ByteArray) -> Unit = {
         lineIndex, regs -> hw.hblank.active?.onHBlank(lineIndex, regs)
     }
@@ -1336,10 +1362,10 @@ public class Fe8Boot(
     }
 }
 
-/** Offset of `suspendPointType` in `struct ActionData`. */
 /** World map nodes tried by `GetPlayChapterId`. */
 private const val WM_NODE_COUNT = 0x1D
 
+/** Offset of `suspendPointType` in `struct ActionData`. */
 private const val ACTION_SUSPEND_POINT_TYPE = 0x16
 
 /** `gTrapArray`: 0x40 entries of `struct Trap` (8 bytes). */
@@ -1359,12 +1385,16 @@ private val NO_WORLD_MAP_NODES = object : BattleMapNodes {
     override fun placementFlag(node: Int): Int = 0
 }
 
+/** Offset of `goalWindowDataType` in `struct ChapterData` (the ROM chapter struct). */
 private const val GOAL_WINDOW_DATA_TYPE_OFFSET = 0x8C
 
-/** `gMsgHuffmanTable`, `gMsgHuffmanTableRoot` and `gMsgTable` of FE8U. */
 /** `gConvoBackgroundData`: gfx, tsa, pal pointers per background. */
 private const val CONVO_BACKGROUND_DATA = 0x0895DD1C
+
+/** `BG_BLANK`: the random text background is `NextRN_N(BG_BLANK)`, below the blank one. */
 private const val BG_BLANK = 0x35
+
+/** `gMsgHuffmanTable`, `gMsgHuffmanTableRoot` and `gMsgTable` of FE8U. */
 private const val MSG_HUFFMAN_TABLE = 0x0815A72C
 private const val MSG_HUFFMAN_ROOT = 0x0815D488
 private const val MSG_TABLE = 0x0815D48C

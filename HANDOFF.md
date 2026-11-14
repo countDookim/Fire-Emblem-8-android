@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-13 20:08Z (owner PC: M6-C done except MC-17; M6-D started: EP-cap1, EP-0, EP-1, EP-2a; 922 tests green locally). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-14 23:08Z (owner PC: M6-D AI decide/score/reach ported, EP-cap2 and MC-cap3 published, readability pass complete; 931 tests green locally). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -13,6 +13,25 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 
 ## Current state
+
+- 2026-11-13 20:16Z – 2026-11-14 23:08Z owner PC (paused ~22:10Z–21:40Z next day on the usage limit): **M6-D AI
+  decision chain ported; full-Prologue and level-up captures; readability done.** Merged EP-2b (AI unit flags),
+  EP-3a (CpDecide loop, suspend point), EP-3b (no-move flag, danger map), EP-4 (script interpreter, commands 05/06/0E),
+  EP-5 (attack search), EP-6a (combat score, damage-dealt fallback), EP-7 (movement/range maps, class rank). In-game,
+  End turn now runs the real AI: both Soldiers choose the captured attack, but nothing is performed (EP-8 perform is
+  null), so enemies still do nothing visible and turn 2 starts. Demoted to Transcribed in review (evidence was
+  hand-derived or a self-made assertion): GetSpecialItemFuncIndex, sub_8040C5C, AiIsUnitEnemy,
+  AiGetOpponentLowHpScoreComponent. Open mismatch EP-7b: Red 0's f1612 danger map lacks the second player unit's
+  damage on 35 tiles (those tiles are skipped in the test; a mid-frame snapshot was ruled out). Captures (ROM repo):
+  EP-cap2 `ram_trace_prologue_clear` (`assets-93b13fa`: boss turn event, boss move-only phase, Seth kills the boss,
+  ending scene start; no level-up) and MC-cap3 `ram_trace_prologue_levelup` (`assets-8051ed8`: Eirika levels at
+  f6760; also two more boss attack phases). EP-0b inventoried the new windows into 45 PORT rows (EP-1b..EP-36, PC-2a;
+  EP-0b's boss-move row renamed EP-7d to avoid the EP-7b CAP). Readability: every READABILITY row is now done/audited
+  (BmSaveLib 2, BMapMain, opanim x5, events extractor, bm unreviewed row x8, fe8.game x5, UnitTable). Behaviour
+  mismatches the reviews found are TASKS rows: BUG-evtmenu, BUG-muadjust, BUG-mustepse, BUG-itemefftgt, BUG-wminit,
+  BUG-wpnbits, BUG-blueleader, INV-iconstride. Next: EP-8 (perform: move, cursor), EP-9 (perform: action), then EP-7d
+  (boss move), MC-17 (level-up, capture ready), EP-6b. Device check still pending: PP-17, D-14, D-15, MANUAL_TEST
+  step 3 (no new manual-test behaviour this session).
 
 - 2026-11-13 owner PC (17:56–20:08Z): **M6-C done except MC-17; M6-D started.** Merged MC-8b (hit checks verified),
   MC-8c (triangle attack transcribed; was always false), MC-w1/MC-w2 (headless replays of the attack and kill captures
@@ -103,8 +122,8 @@ window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose de
    screens (`IS-*`). Notes: [M6B-player-phase](docs/plans/M6B-player-phase.md). M6-G to M6-J have starter rows only.
    Owner-approved 11-12: this lane split, and the Easy-mode tutorial (PC-cap3, PC-10) as the end of M6-E.
 3. **Readability (rule 11, changed 11-11):** comments must be meaningful and checked against the decomp
-   ([READABILITY](docs/READABILITY.md)); every older `done` row carries `audit todo`. Use Sonnet, not Haiku.
-   Audit next: fe8.game.ui, OpAnim Eirika functions, bm sprites (Haiku passes of 11-11).
+   ([READABILITY](docs/READABILITY.md)). All rows done and audited 2026-11-14; new or heavily changed files get a new
+   row (Use Sonnet, not Haiku).
 4. **Alignment done 2026-11-11:** the progress bar counts in-scope functions only; generated lists
    [UNVERIFIED](docs/plans/UNVERIFIED.md) (written but unverified code) and [STANDINS](docs/plans/STANDINS.md)
    (placeholders by milestone) are checked in CI: regenerate both with `--write` after changing such comments.

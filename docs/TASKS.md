@@ -126,6 +126,8 @@ Sub-lane contents and file counts: [M6C-J-breakdown](plans/M6C-J-breakdown.md).
 | BUG-muadjust | PORT | `MuCtrl.adjustNewUnitPosition` flag 1 tests terrain != 0 AND `isOccupied`; `AdjustNewUnitPosition` (muctrl.c:521-528) tests only `gBmMapTerrain` != 0 | Find what the C map holds there; match it, with a capture of an event move onto such a tile (else add a CAP) | - | todo |
 | BUG-mustepse | PORT | `Mu.updateMuStepSounds` calls `MuHooks.startPlayMuStepSe` every step; `UpdateMuStepSounds` (mu.c:831-835) plays only non-zero script entries, with the `GetMuDisplayPosition` x | Fixed with the step-sound port; test against a walk capture with `MuStepSe` procs | - | todo |
 | BUG-itemefftgt | PORT | `PlayerPhase.playerPhasePrepareAction` skips `gBattleActor.hasItemEffectTarget = 0` (`PlayerPhase_PrepareAction`, playerphase.c:772) | Clear it; test against a capture that uses an item after a battle | - | todo |
+| BUG-wminit | PORT | `WorldMapBoot.worldMapInit` omits `if (monster_merged) sub_80B9114(proc)` (`WorldMap_Init`, worldmap_main.c:538-541: node icon on the first node with state bit 2) | Port it with a capture after monsters merge on the world map (else add a CAP) | - | todo |
+| BUG-wpnbits | PORT | `PlayerPhaseWiring.weaponUsabilityBits` uses `canUnitUseWeaponNow` (adds the magic-seal test); `GetUnitWeaponUsabilityBits` (bmunit.c:1283) uses `CanUnitUseWeapon` | Match the C; test with a unit under a magic seal (else add a CAP) | - | todo |
 | D09-3 | PORT | Remaining item-popup branches (gold, full inventory, red/root, unit-name/number) | Each branch against a capture that reaches it, else not written | — | low priority; Rapier popup confirmed on device 11-11 |
 
 Owner-PC sessions also continue [READABILITY](READABILITY.md) (rule 11).

@@ -14,10 +14,12 @@ import fe8.game.bm.StructCodec.u8
  * first free unit slot from a ROM `struct UnitDefinition`.
  *
  * Only part of `LoadUnit` is ported: `genMonster`, gorgon eggs, summon (`sumFlag`) positions and
- * autolevel of blue units or of bosses / characters below 0x40 (these need
- * `UnitAutolevelRealistic`, the battle level-up code) throw
- * [UnsupportedOperationException]. Event-layer side effects
- * (`LoadUnit_800F704`) are not part of this class.
+ * the autolevel of bosses and of characters numbered below 0x40 (the C copies the unit into a
+ * scratch slot and runs `UnitAutolevelRealistic` there) throw [UnsupportedOperationException].
+ * The event-layer wrapper `LoadUnit_800F704` is [loadUnitForEvent].
+ *
+ * Methods taking `o` work on the unit whose `struct Unit` starts at byte offset `o` of
+ * [UnitTable.bytes]; a `b` array parameter is any array with that layout.
  *
  * @param table the unit arrays that are filled.
  * @param rom the ROM holding `gCharacterData`, `gClassData`, `gItemData`, the support data and
@@ -67,8 +69,9 @@ public class UnitLoader(
     public var weatherId: () -> Int = { 0 }
 
     /**
-     * Part of AiGetUnitClosestValidPosition (src/cp_utility.c; free-tile shortcut): true where
-     * (x, y) holds a unit, other or hidden marker.
+     * The free-tile test of `AiGetUnitClosestValidPosition` (src/cp_utility.c): true where tile
+     * ([x], [y]) holds a unit, an "other" entity or a hidden marker. True everywhere while
+     * [bmMap] is unset.
      */
     private fun occupied(x: Int, y: Int): Boolean {
         val m = bmMap ?: return true
@@ -78,8 +81,8 @@ public class UnitLoader(
     /**
      * Ported from src/bmunit.c: LoadUnit
      *
-     * partial: `genMonster`, gorgon eggs, `sumFlag` positions and autolevel of bosses and
-     * characters below 0x40 throws [UnsupportedOperationException].
+     * partial: `genMonster`, gorgon eggs, and autolevel of bosses and characters below 0x40 throw
+     * [UnsupportedOperationException].
      *
      * Loads the `struct UnitDefinition` at ROM address [defAddress] into a free slot of its
      * allegiance. [terrainAt] is `gBmMapTerrain[y][x]`. Returns the new unit's id, or 0 where the
@@ -114,17 +117,17 @@ public class UnitLoader(
                 unitAutolevelWExp(o, def)
                 put8(table.bytes, o + OFF_SUPPORTS + 6, def.leaderCharIndex)
             } else {
-            val number = rom.u8(u32(table.bytes, o + OFF_CHARACTER) + 4)
-            if ((cAttributes(o) and CA_BOSS) != 0 || number < 0x40) {
-                throw UnsupportedOperationException(
-                    "LoadUnit: autolevel of bosses/characters < 0x40 (UnitAutolevelRealistic) " +
-                        "is not ported",
-                )
-            }
-            unitAutolevel(o)
-            unitAutolevelWExp(o, def)
-            // SetUnitLeaderCharId
-            put8(table.bytes, o + OFF_SUPPORTS + 6, def.leaderCharIndex)
+                val number = rom.u8(u32(table.bytes, o + OFF_CHARACTER) + 4)
+                if ((cAttributes(o) and CA_BOSS) != 0 || number < 0x40) {
+                    throw UnsupportedOperationException(
+                        "LoadUnit: autolevel of bosses/characters < 0x40 " +
+                            "(UnitAutolevelRealistic on a scratch unit) is not ported",
+                    )
+                }
+                unitAutolevel(o)
+                unitAutolevelWExp(o, def)
+                // SetUnitLeaderCharId
+                put8(table.bytes, o + OFF_SUPPORTS + 6, def.leaderCharIndex)
             }
         }
         fixROMUnitStructPtr(o)
@@ -137,6 +140,7 @@ public class UnitLoader(
         return id
     }
 
+    /** `UNIT_CATTRIBUTES`: the character's and the class's `CA_*` attribute words ORed. */
     private fun cAttributes(o: Int): Int =
         rom.u32(u32(table.bytes, o + OFF_CHARACTER) + 0x28) or
             rom.u32(u32(table.bytes, o + OFF_CLASS) + 0x28)
@@ -155,7 +159,9 @@ public class UnitLoader(
      * `UnitCheckStatCaps` apply (curHP, state, items are unchanged, there is no status, weapon
      * exp or `expGain`).
      *
-     * Levels the unit at [o] from its character's base level up to its level by its level difference.
+     * Replays the unit's levels above its character's base level as real level-ups: sets its level
+     * back to the base level, then per level gives it 100 exp and rolls each stat growth (with
+     * the stat caps) and applies the result. Used for blue autolevel units.
      */
     internal fun unitAutolevelRealistic(o: Int) {
         val b = table.bytes
@@ -228,8 +234,8 @@ public class UnitLoader(
      * Ported from src/bmunit.c: UnitAutolevel
      * Ported from src/bmdifficulty.c: GetCurrentPromotedLevelBonus
      *
-     * Raises the stats of the unit at [o] by its class growths for `level - 1` levels, after 9
-     * (19 in hard mode) levels first if its class is promoted.
+     * Raises the stats of the unit at [o] by its class growths for `level - 1` levels. A promoted
+     * class first gets `GetCurrentPromotedLevelBonus` levels (9, or 19 in hard mode) on top.
      */
     internal fun unitAutolevel(o: Int) {
         if ((cAttributes(o) and CA_PROMOTED) != 0) {
@@ -260,8 +266,9 @@ public class UnitLoader(
      * Transcribed from src/bmunit.c: UnitAutolevelPenalty (not verified: the traced runs return at
      *   once (level count 0))
      *
-     * Resets the stats of the unit at [o] to its bases and autolevels them again for its level
-     * minus [levelCount].
+     * Lowers the unit at [o] by [levelCount] levels: resets its stats to character plus class
+     * bases and autolevels them again at (level - [levelCount]), if that is above the base level.
+     * Does nothing for a unit at or below its base level.
      */
     internal fun unitAutolevelPenalty(o: Int, levelCount: Int) {
         val b = table.bytes
@@ -335,8 +342,9 @@ public class UnitLoader(
      * Transcribed from src/bmitem.c: CanUnitUseStaff (not verified: no test checks it against a
      *   trace yet)
      *
-     * For an autoleveled definition: raises the weapon ranks of the unit at [o] to what its
-     * usable-restricted weapons and staves need.
+     * For an autoleveled [def]: for each weapon or staff in the inventory of the unit at [o] that
+     * it cannot use yet (and that has no lock attribute), sets the rank of that weapon type to the
+     * item's required rank, or leaves it 0 if the unit had no rank in that type.
      */
     internal fun unitAutolevelWExp(o: Int, def: UnitDef) {
         if (!def.autolevel) return
@@ -360,7 +368,7 @@ public class UnitLoader(
      * Transcribed from src/bmunit.c: GetUnitItemCount (not verified: no test checks it against a
      *   trace yet)
      *
-     * The number of item slots of the unit at [o] up to its last non-empty one.
+     * The inventory length of the unit at [o]: the index of its last non-empty slot plus one.
      */
     internal fun getUnitItemCount(o: Int): Int {
         for (i in UNIT_ITEM_COUNT - 1 downTo 0) {
@@ -393,7 +401,8 @@ public class UnitLoader(
      * Transcribed from src/bmunit.c: GetUnitMaxHp (not verified: no test checks it against a trace
      *   yet)
      *
-     * `maxHP` of the unit at [o] plus the HP bonus of its equipped weapon.
+     * `maxHP` of the unit at [o] plus the HP bonus of its equipped weapon (the effective maximum
+     * HP).
      */
     internal fun getUnitMaxHp(o: Int): Int = getUnitMaxHp(table.bytes, o)
 
@@ -421,8 +430,9 @@ public class UnitLoader(
     /**
      * Ported from src/bmunit.c: GetUnitPortraitId
      *
-     * The portrait id of unit [unit]: its character's, but Lyon's (0x4A) is 0x46 in chapter 0x22;
-     * else its class's default, else 0. [chapterIndex] is `gPlaySt.chapterIndex`.
+     * The portrait id of unit [unit]: its character's, except that portrait 0x4A is replaced by
+     * 0x46 in chapter 0x22 (the decomp has a TODO naming 0x4A as Lyon's); with no character
+     * portrait, its class's default, else 0. [chapterIndex] is `gPlaySt.chapterIndex`.
      */
     public fun getUnitPortraitId(unit: Int, chapterIndex: Int): Int {
         val o = table.unitOffset(unit)
@@ -447,8 +457,10 @@ public class UnitLoader(
      * Transcribed from src/bmitem.c: IsItemUnsealedForUnit (not verified: no test checks it against
      *   a trace yet)
      *
-     * Whether the unit at [o] can wield [item]: a weapon, with the unit meeting the item's lock
-     * attributes, not silenced for magic, and with enough weapon rank.
+     * Whether the unit at [o] can wield [item]: a weapon, with the unit's character or class
+     * carrying every lock attribute the item has (a monster-locked item needs only that one and
+     * skips the rank check), the item unsealed for the character where `IA_UNUSABLE`, not
+     * silenced for magic, and with enough weapon rank.
      */
     internal fun canUnitUseWeapon(o: Int, item: Int): Boolean =
         canUnitUseWeapon(table.bytes, o, item)
@@ -513,8 +525,9 @@ public class UnitLoader(
      *
      * partial: the event engine's unit load. Finds the definition's character among the blue
      * units (moving it to the definition's faction if that is not blue), loads a new unit
-     * otherwise, and sets its state bits and position. [b] are the move flags, [quiet] the
-     * silent-load flag, [d] the `load_unit2` flag. Not ported (throw
+     * otherwise, and sets its state bits and position. [b] are the move flags (bit 0 is cleared
+     * when an existing blue unit already stands at its target), [quiet] the silent-load flag,
+     * [d] the `load_unit2` flag (sets or clears `US_BIT22` of blue units). Not ported (throw
      * [UnsupportedOperationException]): red characters from 0x3C on (`UnitApplyBonusLevels`
      * with chapter data), `sumFlag` definitions, a non-zero terrain under a [b] bit 0 target
      * (`AiGetUnitClosestValidPosition`), units rescuing or in a ballista (`UnitFinalizeMovement`)

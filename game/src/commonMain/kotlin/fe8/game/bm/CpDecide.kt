@@ -60,28 +60,10 @@ public fun interface AiTry {
     public fun run(): Boolean
 }
 
-/** An AI step on a unit id (`void (*)(struct Unit *)`). */
-public fun interface AiUnitStep {
-    /** Runs the step on unit [id]. */
-    public fun run(id: Int)
-}
-
 /** An AI step with one integer argument. */
 public fun interface AiIntStep {
     /** Runs the step with [value]. */
     public fun run(value: Int)
-}
-
-/** An AI step on a unit and an item (`void (*)(struct Unit *, int item)`). */
-public fun interface AiUnitItemStep {
-    /** Runs the step on unit [id] with [item]. */
-    public fun run(id: Int, item: Int)
-}
-
-/** An AI test of an active unit, another unit and an item. */
-public fun interface AiReachTest {
-    /** True when unit [other] could reach unit [active] with [item]. */
-    public fun run(active: Int, other: Int, item: Int): Boolean
 }
 
 /** An AI step with two integer arguments. */
@@ -127,18 +109,6 @@ public class CpDecide(
 
         /** Stand-in for `RefreshUnitSprites` (display; EP-w). */
         public var refreshUnitSprites: AiStep? = null
-
-        /**
-         * Stand-in for `AiCouldReachByBirdsEyeDistance(gActiveUnit, unit, item)` (cp_utility.c;
-         * EP-7). Null counts as false: no unit adds to the danger map.
-         */
-        public var couldReachByBirdsEyeDistance: AiReachTest? = null
-
-        /**
-         * Stand-in for `FillMovementAndRangeMapForItem(unit, item)` (cp_utility.c; EP-7): fills
-         * `gBmMapRange` with the tiles the unit reaches and attacks. Null leaves it as it is.
-         */
-        public var fillMovementAndRangeMapForItem: AiUnitItemStep? = null
 
         /**
          * Stand-in for `sAiSpecialItemFuncLut[index].func(slot)` (cpextra_80407F0.c:
@@ -411,17 +381,18 @@ public class CpDecide(
      * Ported from src/cp_0803E2F4.c: AiFillDangerMap
      *
      * For each valid, shown enemy of the active unit that has a weapon it can wield and could
-     * reach the active unit ([Hooks.couldReachByBirdsEyeDistance], EP-7): adds
+     * reach the active unit ([CpUtility.aiCouldReachByBirdsEyeDistance]): adds
      * `(power + might) / 2` of its strongest weapon to every tile of
-     * [Hooks.fillMovementAndRangeMapForItem]'s range map (EP-7). As in the C, the best weapon
-     * and its might carry over from one unit to the next. Verified (the reach test and the
-     * range map are fed from the capture): the unit filters, the weapon choice, the damage
+     * [CpUtility.fillMovementAndRangeMapForItem]'s range map. As in the C, the best weapon
+     * and its might carry over from one unit to the next. Verified (EP-7: the reach test, the
+     * movement and the range map run for real): the unit filters, the weapon choice, the damage
      * formula and the accumulation, for the three units; not seen: a unit with a second
      * weapon, a hidden or undeployed enemy.
      */
     private fun aiFillDangerMap(m: BmMap) {
         val loader = loader ?: return
         val items = items ?: return
+        val util = aiFlags ?: return
         var item = 0
         var might = 0
         for (i in 1 until 0xC0) {
@@ -445,9 +416,9 @@ public class CpDecide(
             }
             if (item == 0) continue
 
-            if (hooks.couldReachByBirdsEyeDistance?.run(active.unit, i, item) != true) continue
+            if (!util.aiCouldReachByBirdsEyeDistance(active.unit, i, item)) continue
 
-            hooks.fillMovementAndRangeMapForItem?.run(i, item)
+            util.fillMovementAndRangeMapForItem(i, item)
 
             val power = units.bytes[o + OFF_POW] + items.getItemPowBonus(
                 loader.getUnitEquippedWeapon(o),

@@ -111,8 +111,8 @@ public class CpPhase(
      * and [entityMaps].
      */
     public val battle: CpBattle? =
-        if (loader != null && map != null && entityMaps != null) {
-            CpBattle(rom, units, aiState, active, map, entityMaps, loader, decide)
+        if (aiFlags != null && loader != null && map != null && entityMaps != null) {
+            CpBattle(rom, units, aiState, active, map, entityMaps, loader, decide, aiFlags)
         } else {
             null
         }

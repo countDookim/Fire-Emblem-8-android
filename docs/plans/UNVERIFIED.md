@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 563 across 82 decomp files (missing reason: 0).
+Total entries: 565 across 82 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -574,6 +574,17 @@ Total entries: 563 across 82 decomp files (missing reason: 0).
 | `sub_8009E28` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | wired by `Fe8Boot`; no dump compares the blend registers at this point |
 | `GameControlHandlePostNormalOrExtraChapter` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
 
+## src/cp_utility.c (6)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SetupUnitStatusStaffAIFlags` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | the capture has no staff, so only the early return for a weapon is run |
+| `SetupUnitHealStaffAIFlags` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | the capture's usable items are range 1 weapons with no use effect, so only the no-flag path is run |
+| `AiReachesByBirdsEyeDistance` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | the capture sees only the tests that are clearly true or false; a threshold 4 tiles too wide, or a distance of x only, keeps the test green |
+| `AiCouldReachByBirdsEyeDistance` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | for the Prologue's first enemy and the second player unit the formula says true, but the capture's danger map shows no damage of that unit |
+| `AiGetUnitClosestValidPosition` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no reference trace exercises the occupied case |
+| `CharStoreAI` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | every traced definition has zero AI bytes, so a skipped or wrong store survives |
+
 ## src/popup.c (6)
 
 | Function | Kotlin file | Reason |
@@ -668,7 +679,7 @@ Total entries: 563 across 82 decomp files (missing reason: 0).
 | `AiGetCombatPositionScore` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | the capture has one candidate tile per target, so no captured value shows the score, only that it is not 0; the three components are a stand-in, EP-6a/6b |
 | `AiGetOpponentLowHpScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | its value shows only through a total that stays below 0, and that total includes the EP-6b components the test feeds with hand-computed values; a target above 20 HP is not seen |
 | `AiGetFriendZoneCombatScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | no allied unit stands within 3 tiles of the attacker's tile in either captured call, so it is 0 and no captured value shows it |
-| `AiGetTargetClassCombatScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | the rank is 9 for every class, one past the bonus list, so the bonus is the padding byte 0 in both captured calls and no captured value shows it; the rank is an EP-7 stand-in |
+| `AiGetTargetClassCombatScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | the rank is 9 for every class, one past the bonus list, so the bonus is the padding byte 0 in both captured calls and no captured value shows it; the rank is [CpUtility.aiGetClassRank] |
 
 ## src/cp_decide.c (4)
 
@@ -678,15 +689,6 @@ Total entries: 563 across 82 decomp files (missing reason: 0).
 | `DecideHealOrEscape` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | it runs for all three enemies, but only the path of a unit that is not healing and has no `AI_UNIT_FLAG_3`; the berserk return and both branches are not seen, the branches are stand-ins, EP-cap2 |
 | `DecideScriptA` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only a script try that succeeds at once runs; the gorgon egg return, the berserk action and the fallback script never run |
 | `DecideScriptB` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only a script try that succeeds at once runs, for one unit; the ballista return, the berserk move and the fallback script never run |
-
-## src/cp_utility.c (4)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `SetupUnitStatusStaffAIFlags` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | the capture has no staff, so only the early return for a weapon is run |
-| `SetupUnitHealStaffAIFlags` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | the capture's usable items are range 1 weapons with no use effect, so only the no-flag path is run |
-| `AiGetUnitClosestValidPosition` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no reference trace exercises the occupied case |
-| `CharStoreAI` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | every traced definition has zero AI bytes, so a skipped or wrong store survives |
 
 ## src/opsubtitle.c (4)
 

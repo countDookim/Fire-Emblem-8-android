@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 237 across 46 Kotlin files.
+Total entries: 231 across 46 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -29,7 +29,6 @@ Total entries: 237 across 46 Kotlin files.
 | EP-12 | 15 |
 | EP-6a | 3 |
 | EP-6b | 6 |
-| EP-7 | 6 |
 | EP-8 | 1 |
 | EP-cap2 | 6 |
 | EP-w | 3 |
@@ -328,17 +327,6 @@ Total entries: 237 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `dangerScore` | Stand-in for `AiGetDangerScoreComponent` (EP-6b), subtracted from the score. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `lowHpScore` | Stand-in for `AiGetLowHpScoreComponent` (EP-6b), subtracted from the score. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `turnScore` | Stand-in for `AiGetTurnCombatScoreComponent` (EP-6b): `chapterTurnNumber` times the turn coefficient. |
-
-## EP-7 (6)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `aiGetTargetClassCombatScoreComponent` | Transcribed from src/cp_battle.c: AiGetTargetClassCombatScoreComponent (not verified: the rank is 9 for every class, one past the bonus list, so the bonus is the padding byte 0 in both captured cal... |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `generateUnitMovementMap` | Stand-in for `GenerateUnitMovementMap(gActiveUnit)` (bmmap; EP-7): fills `gBmMapMovement` with the active unit's movement costs. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `getClassRank` | Stand-in for `AiGetClassRank(classId)` (cp_utility.c; EP-7): the rank of the target's class number. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `reachesByBirdsEyeDistance` | Stand-in for `AiReachesByBirdsEyeDistance(active, unit, item)` (cp_utility.c; EP-7). |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `couldReachByBirdsEyeDistance` | Stand-in for `AiCouldReachByBirdsEyeDistance(gActiveUnit, unit, item)` (cp_utility.c; EP-7). |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `fillMovementAndRangeMapForItem` | Stand-in for `FillMovementAndRangeMapForItem(unit, item)` (cp_utility.c; EP-7): fills `gBmMapRange` with the tiles the unit reaches and attacks. |
 
 ## EP-8 (1)
 

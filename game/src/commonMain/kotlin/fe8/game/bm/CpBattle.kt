@@ -36,12 +36,6 @@ public fun interface AiScoreComponent {
     public fun run(): Int
 }
 
-/** An AI function of one integer (`u8 (*)(u8)`). */
-public fun interface AiIntFunc {
-    /** The result for [value]. */
-    public fun run(value: Int): Int
-}
-
 /** The position score components: unit [target], tile ([x], [y]). */
 public fun interface AiPositionScore {
     /** The sum of the three components for a unit standing on ([x], [y]) against [target]. */
@@ -80,10 +74,9 @@ public fun interface AiStaffStep {
  * Written: [aiAttemptOffensiveAction] and the functions the Prologue's attackers run. The score
  * of a simulated battle is written ([aiComputeCombatScore]) but for four components (turn, damage
  * taken, danger, own low HP), and the three tile position components, which are EP-6b stand-ins;
- * the movement and reach (`GenerateUnitMovementMap`,
- * `AiReachesByBirdsEyeDistance`) EP-7 stand-ins, and the branches the capture never enters
- * (`AiAttemptCombatWithinMovement` and the ballista, steal, magic seal and staff code) EP-12
- * stand-ins, all through [Hooks].
+ * the movement and reach ([CpUtility], EP-7) run for real, and the branches the capture never
+ * enters (`AiAttemptCombatWithinMovement` and the ballista, steal, magic seal and staff code) are
+ * EP-12 stand-ins, all through [Hooks].
  */
 public class CpBattle(
     private val rom: RomView,
@@ -99,34 +92,18 @@ public class CpBattle(
     private val loader: UnitLoader,
     /** `AiSetDecision`, `gAiDecision`. */
     private val decide: CpDecide,
+    /** `GenerateUnitMovementMap`, `AiReachesByBirdsEyeDistance`, `AiGetClassRank`. */
+    private val util: CpUtility,
 ) {
     private val items = ItemInfo(rom)
 
     /** Services outside the written functions; a null hook does nothing. */
     public class Hooks {
         /**
-         * Stand-in for `GenerateUnitMovementMap(gActiveUnit)` (bmmap; EP-7): fills
-         * `gBmMapMovement` with the active unit's movement costs.
-         */
-        public var generateUnitMovementMap: AiUnitStep? = null
-
-        /**
-         * Stand-in for `AiReachesByBirdsEyeDistance(active, unit, item)` (cp_utility.c; EP-7).
-         * Null counts as false: no unit is in reach.
-         */
-        public var reachesByBirdsEyeDistance: AiReachTest? = null
-
-        /**
          * `BattleGenerateSimulation(gActiveUnit, target, x, y, slot)` (bmbattle.c, written in
          * [BattleGenerate]): the wiring passes it. Null simulates nothing.
          */
         public var battleGenerateSimulation: AiBattleSimulation? = null
-
-        /**
-         * Stand-in for `AiGetClassRank(classId)` (cp_utility.c; EP-7): the rank of the target's
-         * class number. Null counts as 0.
-         */
-        public var getClassRank: AiIntFunc? = null
 
         /**
          * Stand-in for `AiGetTurnCombatScoreComponent` (EP-6b): `chapterTurnNumber` times the
@@ -252,7 +229,7 @@ public class CpBattle(
                 map.bmMapFill(map.movement, -1)
                 map.movement[units.yPos(unit), units.xPos(unit)] = 0
             } else {
-                hooks.generateUnitMovementMap?.run(unit)
+                util.moves.generateUnitMovementMap(unit)
             }
             hooks.magicSealMap?.run()
         }
@@ -298,7 +275,7 @@ public class CpBattle(
             val skip = !units.isValid(uid) ||
                 units.state(uid) and (US_HIDDEN or US_DEAD or US_RESCUED or US_BIT16) != 0 ||
                 !test.run(uid) ||
-                hooks.reachesByBirdsEyeDistance?.run(unit, uid, item) != true
+                !util.aiReachesByBirdsEyeDistance(unit, uid, item)
             if (!skip) {
                 aiFillReversedAttackRangeMap(uid, item)
                 tmpResult.targetId = units.index(uid) and 0xFF
@@ -509,14 +486,14 @@ public class CpBattle(
     /**
      * Transcribed from src/cp_battle.c: AiGetTargetClassCombatScoreComponent (not verified: the
      * rank is 9 for every class, one past the bonus list, so the bonus is the padding byte 0 in
-     * both captured calls and no captured value shows it; the rank is an EP-7 stand-in)
+     * both captured calls and no captured value shows it; the rank is [CpUtility.aiGetClassRank])
      *
      * The coefficient times the class rank bonus of the target's class, at most 20.
      */
     public fun aiGetTargetClassCombatScoreComponent(): Int {
         val b = battleUnits ?: return 0
         val classPtr = StructCodec.u32(b.target.bytes, OFF_CLASS)
-        val rank = (hooks.getClassRank?.run(rom.u8(classPtr + 4)) ?: 0) and 0xFF
+        val rank = util.aiGetClassRank(rom.u8(classPtr + 4)) and 0xFF
         var score = rom.u8(coefficients + COEFF_CLASS_BONUSES + rank)
         score = rom.u8(coefficients + COEFF_CLASS_RANK_BONUS) * score
         if (score > 20) score = 20

@@ -5,14 +5,10 @@ import fe8.game.bm.ActiveUnit
 import fe8.game.bm.AiIntStep
 import fe8.game.bm.AiIntPairStep
 import fe8.game.bm.AiProcStep
-import fe8.game.bm.AiReachTest
 import fe8.game.bm.AiBattleSimulation
-import fe8.game.bm.AiIntFunc
 import fe8.game.bm.AiScoreComponent
 import fe8.game.bm.AiStep
 import fe8.game.bm.AiTry
-import fe8.game.bm.AiUnitItemStep
-import fe8.game.bm.AiUnitStep
 import fe8.game.bm.BattleGenerate
 import fe8.game.bm.BattleStats
 import fe8.game.bm.BattleUnit
@@ -77,21 +73,18 @@ import java.io.File
  * `gBattleStats`, `gBattleHitArray`) from the real `BattleGenerateSimulation` (MC-9).
  * Stand-ins fed from the capture: `AiComputeCombatScore` (EP-6a/6b) returns the `score` of the exit
  * dump (6 for both calls); the three position score components (EP-6a/6b) are 0 (there is one
- * candidate tile per target, so no captured value shows the position score); the movement map
- * (`GenerateUnitMovementMap`, EP-7) is the entry dump's `gBmMapMovement`; every unit is in
- * reach (`AiReachesByBirdsEyeDistance`, EP-7: Seth has no tile to attack from either way), so the
- * reach test, the movement costs and the range are NOT verified. The simulation starts from the
- * `gBattle*` structs of the dump before it (unused bytes), the blue units and the actor's sprite
- * handle of the capture at that moment. `AiTryDoStaff` runs for real on Soldiers with a lance (no
+ * candidate tile per target, so no captured value shows the position score). The EP-7 reach and
+ * movement functions run for real (`CpUtility`, `MovementMap`): `gBmMapMovement` and `gBmMapRange`
+ * are compared at the `aicombatscore` entry dumps and at the dumps of f1612, f1613, f1614 and
+ * f2038; the reach tests, the movement costs and the range come from the port. The simulation
+ * starts from the `gBattle*` structs of the dump before it (unused bytes), the blue units and the
+ * actor's sprite handle of the capture at that moment. `AiTryDoStaff` runs for real on Soldiers with a lance (no
  * staff, so the staff functions are an EP-12 stand-in). Any other script command (EP-12) fails
  * the test. What is verified of the decision loop: it clears, sets, iterates, marks, suspends and
- * starts the perform proc around it. `AiCouldReachByBirdsEyeDistance` and
- * `FillMovementAndRangeMapForItem` (EP-7) are fed from the dump: the reach test says which
- * player unit is in reach, and the range map of the first player unit is the tiles where the
- * captured danger map is not 0, of the second the tiles where it is 23 (14 + 9). So what the
- * danger map verifies is the unit and weapon filters, the `(power + might) / 2` damage (14 and
- * 9: Seth's and Eirika's `pow` and best weapon), the sum over tiles, the clear per unit and the
- * flags; not the reach and the range themselves. The perform proc (EP-8) lives three frames;
+ * starts the perform proc around it. The danger map (EP-3b) is built from the real reach test
+ * and range map; what it verifies is the unit and weapon filters, the `(power + might) / 2`
+ * damage (14 and 9: Seth's and Eirika's `pow` and best weapon), the sum over tiles, the clear per
+ * unit and the flags, and with EP-7 the reach and the range. The perform proc (EP-8) lives three frames;
  * `WriteSuspendSave` (EP-w) records the call. The call order is the EP-0 inventory (script A 3x,
  * script B once, for Red 0). The special item functions and the rogue part of `sub_8040C5C`
  * (EP-12) fail the test if entered. Only the `US_HAS_MOVED_AI` bit of the unit state is
@@ -167,7 +160,9 @@ class CpDecideDifferentialTest {
                     0x81 -> compare(1612, "Red 0 before its decision")
                     0x82 -> {
                         compare(1613, "Soldier 1 before its decision")
-                        compareDanger(1613, "r01613", "Soldier 1 before its decision")
+                        compareDanger(
+                            1613, "r01613", "Soldier 1 before its decision", "r01612",
+                        )
                     }
                     0x83 -> {
                         compare(2037, "Soldier 2 before its decision")
@@ -176,25 +171,6 @@ class CpDecideDifferentialTest {
                             rngWatch.u16(2037, 0), rngWatch.u16(2037, 2), rngWatch.u16(2037, 4),
                         )
                         compareDanger(2037, null, "Soldier 2 before its decision")
-                    }
-                }
-            }
-            h.couldReachByBirdsEyeDistance = AiReachTest { a, other, _ ->
-                // Red 0 is only in reach of the first player unit (EP-7 owns the real test)
-                !(a == 0x81 && other == 2)
-            }
-            h.fillMovementAndRangeMapForItem = AiUnitItemStep { unit, _ ->
-                // EP-7 owns the range map: here the tiles the captured danger map shows
-                val shown = dangerDump(dumpOf(active.unitId))
-                for (y in 0 until map.sizeY) {
-                    for (x in 0 until map.sizeX) {
-                        val v = shown[y * map.sizeX + x]
-                        val reached = when (unit) {
-                            1 -> v != 0
-                            2 -> v == 23
-                            else -> true
-                        }
-                        map.range[y, x] = if (reached) 1 else 0
                     }
                 }
             }
@@ -209,26 +185,21 @@ class CpDecideDifferentialTest {
             h.tryExecScriptA = AiTry {
                 val id = active.unitId
                 log += "scriptA ${hex(id)}"
-                if (id == 0x81) compareDanger(1612, "r01612", "Red 0 in script A")
+                if (id == 0x81) {
+                    compareDanger(1612, "r01612", "Red 0 in script A", "r01612")
+                    compareMaps("r01612", "Red 0 in script A")
+                }
                 if (id == 0x83) {
                     compare(2038, "Soldier 2 in script A")
                     compareDanger(2038, "r02038", "Soldier 2 in script A")
                 }
                 realA.run()
             }
-            // AiAttemptOffensiveAction (EP-5) runs for real. Its stand-ins: the movement map is
-            // the dump's (EP-7), every unit is in reach (EP-7: Seth has no tile to attack from
-            // either way) and the battle is the real BattleGenerateSimulation (MC-9); the score is
-            // computed for real (EP-6a) with the EP-6b components fed below.
+            // AiAttemptOffensiveAction (EP-5) runs for real, with the movement and reach (EP-7),
+            // the battle (the real BattleGenerateSimulation, MC-9) and the score (EP-6a); the
+            // EP-6b components are fed below.
             val b = cp.battle!!
             b.battleUnits = battle
-            b.hooks.generateUnitMovementMap = AiUnitStep {
-                val shown = poolDump(entryOf(active.unitId), GBM_MAP_MOVEMENT)
-                for (y in 0 until map.sizeY) {
-                    for (x in 0 until map.sizeX) map.movement[y, x] = shown[y * map.sizeX + x]
-                }
-            }
-            b.hooks.reachesByBirdsEyeDistance = AiReachTest { _, _, _ -> true }
             b.hooks.battleGenerateSimulation = AiBattleSimulation { actor, target, x, y, slot ->
                 // The unused bytes of the battle structs hold the previous battle's: start from
                 // the dump of the frame before the decision
@@ -253,8 +224,8 @@ class CpDecideDifferentialTest {
                 )
                 compareScoreInputs(actor, x, y, target, slot)
             }
-            // The EP-6b components (turn, damage taken, danger, own low HP) and the class rank
-            // (EP-7) are fed. Values worked out by hand from the entry dump's battle units and
+            // The EP-6b components (turn, damage taken, danger, own low HP)
+            // are fed. Values worked out by hand from the entry dump's battle units and
             // danger map with the decomp formulas (Soldier 1: 1, 7, 2, 12; Soldier 2: 1, 10, 2,
             // 20), so the total is -1 and -12: the score check verifies the damage dealt
             // component (the backup the C returns for a total of 0), the clamp, the opponent's
@@ -263,7 +234,6 @@ class CpDecideDifferentialTest {
             b.hooks.damageTakenScore = AiScoreComponent { if (active.unitId == 0x82) 7 else 10 }
             b.hooks.dangerScore = AiScoreComponent { 2 }
             b.hooks.lowHpScore = AiScoreComponent { if (active.unitId == 0x82) 12 else 20 }
-            b.hooks.getClassRank = AiIntFunc { 9 }
             cp.script.hooks.unportedCommand = AiIntStep {
                 errors += "unwritten script command ${hex(it)} entered: not in the capture"
             }
@@ -292,8 +262,18 @@ class CpDecideDifferentialTest {
                 if (id == 0x82) {
                     compare(1614, "Soldier 1 decided")
                     compareDanger(1614, "r01614", "Soldier 1 decided")
+                    compareMaps("r01614", "Soldier 1 decided")
+                    // Soldier 1's battle and death (EP-9) are not run: its struct and the blue
+                    // units are the capture's of f2037, before Soldier 2 begins
+                    run.watch("red").step(2037).copyInto(
+                        units.bytes, units.unitOffset(0x82), RED_SIZE, 2 * RED_SIZE,
+                    )
+                    run.watch("blue").step(2037).copyInto(units.bytes, 0)
                 }
-                if (id == 0x83) compare(2039, "Soldier 2 decided")
+                if (id == 0x83) {
+                    compare(2039, "Soldier 2 decided")
+                    compareMaps("r02038", "Soldier 2 decided")
+                }
                 hold = 0
                 engine.startBlocking(performScript, it)
             }
@@ -370,15 +350,7 @@ class CpDecideDifferentialTest {
                 (iwram[at + 4].toInt() and 0xFF) or ((iwram[at + 5].toInt() and 0xFF) shl 8),
                 slot, "st.itemSlot at $entry",
             )
-            val range = poolDump(entry, GBM_MAP_RANGE)
-            for (my in 0 until map.sizeY) {
-                for (mx in 0 until map.sizeX) {
-                    assertEquals(
-                        range[my * map.sizeX + mx], map.range[my, mx],
-                        "gBmMapRange ($mx, $my) $entry",
-                    )
-                }
-            }
+            compareMaps(entry, "at the combat score of ${hex(id)}")
             compareBattle(entry)
         }
 
@@ -425,19 +397,45 @@ class CpDecideDifferentialTest {
             }
         }
 
+        /** Compares `gBmMapMovement` and `gBmMapRange` with the EWRAM dump [name]. */
+        fun compareMaps(name: String, what: String) {
+            val moves = poolDump(name, GBM_MAP_MOVEMENT)
+            val range = poolDump(name, GBM_MAP_RANGE)
+            for (y in 0 until map.sizeY) {
+                for (x in 0 until map.sizeX) {
+                    assertEquals(
+                        moves[y * map.sizeX + x], map.movement[y, x],
+                        "gBmMapMovement ($x, $y) $what ($name)",
+                    )
+                    assertEquals(
+                        range[y * map.sizeX + x], map.range[y, x],
+                        "gBmMapRange ($x, $y) $what ($name)",
+                    )
+                }
+            }
+        }
+
         /** Compares `dangerMapFilled` and, with a [dump], `gBmMapOther` with the capture. */
-        fun compareDanger(frame: Int, dump: String?, what: String) {
+        fun compareDanger(frame: Int, dump: String?, what: String, lateRange: String? = null) {
             val at = "$what (f$frame)"
             assertEquals(
                 aiState.u8(frame, 0x7A) != 0, cp.aiState.dangerMapFilled, "dangerMapFilled $at",
             )
             if (dump == null) return
             val shown = dangerDump(dump)
+            // EP-7b: Red 0's captured map (f1612, f1613) lacks the second player unit's damage on
+            // the tiles of its range (the dump's range map). The next dump (f1614) is already
+            // Soldier 1's map, so no complete map of Red 0 exists to compare: those tiles are
+            // skipped, every other tile is exact.
+            val late = lateRange?.let { poolDump(it, GBM_MAP_RANGE) }
             for (y in 0 until map.sizeY) {
                 for (x in 0 until map.sizeX) {
-                    assertEquals(
-                        shown[y * map.sizeX + x], map.other[y, x], "gBmMapOther ($x, $y) $at",
-                    )
+                    val i = y * map.sizeX + x
+                    if (late != null && late[i] != 0) {
+                        continue
+                    } else {
+                        assertEquals(shown[i], map.other[y, x], "gBmMapOther ($x, $y) $at")
+                    }
                 }
             }
         }
@@ -504,6 +502,7 @@ class CpDecideDifferentialTest {
         "AiSimulateBestBattleAgainstTarget", "AiSimulateBattleAgainstTargetAtPosition",
         "AiIsBadFight", "AiTryDoStaff",
         "AiComputeCombatScore", "AiGetDamageDealtCombatScoreComponent",
+        "FillMovementAndRangeMapForItem", "AiGetClassRank", "GenerateUnitMovementMap",
     )
     fun `the decision loop decides for the three enemies as the capture`() {
         val sim = Sim()

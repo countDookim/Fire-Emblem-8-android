@@ -110,6 +110,15 @@ public class MovementMap(
     public val workingMoveCosts: ByteArray = ByteArray(TERRAIN_COUNT)
 
     /**
+     * Ported from src/bmidoten.c: GenerateUnitMovementMap
+     *
+     * [generateUnitMovementMapExt] with the unit's own movement (`UNIT_MOV`) as the budget.
+     */
+    public fun generateUnitMovementMap(unitId: Int) {
+        generateUnitMovementMapExt(unitId, units.movement(unitId))
+    }
+
+    /**
      * Ported from src/bmidoten.c: GenerateUnitMovementMapExt
      *
      * Floods `map.movement` from the unit with id [unitId] (position, `index` as the blocking id,

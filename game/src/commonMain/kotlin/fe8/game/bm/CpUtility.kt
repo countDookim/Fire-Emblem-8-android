@@ -1,6 +1,7 @@
 package fe8.game.bm
 
 import fe8.game.RomView
+import kotlin.math.abs
 
 /**
  * The AI unit flag setup of src/cp_utility.c and src/cp_0803E2F4.c that `AiPhaseInit` and
@@ -19,6 +20,8 @@ public class CpUtility(
     private val entityMaps: EntityBmMaps,
 ) {
     private val items = ItemInfo(rom)
+    /** `GenerateUnitMovementMap` and the movement flood of the AI. */
+    internal val moves = MovementMap(rom, map, units, playSt)
 
     /**
      * Ported from src/cp_0803E2F4.c: UpdateAllPhaseHealingAIStatus
@@ -167,7 +170,87 @@ public class CpUtility(
         units.setAiCounter(id, count)
     }
 
+    /**
+     * Transcribed from src/cp_utility.c: AiReachesByBirdsEyeDistance (not verified: the capture
+     * sees only the tests that are clearly true or false; a threshold 4 tiles too wide, or a
+     * distance of x only, keeps the test green)
+     *
+     * True when unit [other] is within the movement of unit [unit] plus the maximum range of
+     * [item], counted in tiles as `|dx| + |dy|` (walls and costs are ignored).
+     */
+    public fun aiReachesByBirdsEyeDistance(unit: Int, other: Int, item: Int): Boolean {
+        val distance = abs(units.xPos(unit) - units.xPos(other)) +
+            abs(units.yPos(unit) - units.yPos(other))
+        return distance <= units.movement(unit) + items.getItemMaxRange(item)
+    }
+
+    /**
+     * Transcribed from src/cp_utility.c: AiCouldReachByBirdsEyeDistance (not verified: for the
+     * Prologue's first enemy and the second player unit the formula says true, but the capture's
+     * danger map shows no damage of that unit)
+     *
+     * As [aiReachesByBirdsEyeDistance], with the movement of [other] added: [other] could reach
+     * [unit] with [item] after both moved.
+     */
+    public fun aiCouldReachByBirdsEyeDistance(unit: Int, other: Int, item: Int): Boolean {
+        val distance = abs(units.xPos(unit) - units.xPos(other)) +
+            abs(units.yPos(unit) - units.yPos(other))
+        return distance <= units.movement(unit) + units.movement(other) +
+            items.getItemMaxRange(item)
+    }
+
+    /**
+     * Ported from src/cp_utility.c: FillMovementAndRangeMapForItem
+     *
+     * Floods `gBmMapMovement` for [unit] ([MovementMap.generateUnitMovementMap]) and fills
+     * `gBmMapRange` with the number of reachable tiles from which each tile is in the range of
+     * [item] (the ring between its minimum and maximum range around every reachable tile).
+     */
+    public fun fillMovementAndRangeMapForItem(unit: Int, item: Int) {
+        moves.generateUnitMovementMap(unit)
+        map.bmMapFill(map.range, 0)
+        val min = items.getItemMinRange(item)
+        val max = items.getItemMaxRange(item)
+        var iy = map.sizeY - 1
+        while (iy >= 0) {
+            var ix = map.sizeX - 1
+            while (ix >= 0) {
+                if (map.movement[iy, ix] <= MAP_MOVEMENT_MAX) {
+                    entityMaps.mapAddInRange(ix, iy, max, 1)
+                    entityMaps.mapAddInRange(ix, iy, min - 1, -1)
+                }
+                ix--
+            }
+            iy--
+        }
+    }
+
+    /**
+     * Ported from src/cp_utility.c: AiGetClassRank
+     *
+     * The index of the first list of `gAiClassRankLists` that holds [classId], or the number of
+     * lists (9) when none does. FE8's lists are all empty (leftover from FE6), so the result is
+     * always 9 and the found branch is dead code in FE8 data.
+     */
+    public fun aiGetClassRank(classId: Int): Int {
+        var num = 0
+        var it = CLASS_RANK_LISTS
+        while (rom.u32(it) != 0) {
+            var list = rom.u32(it)
+            while (rom.u8(list) != 0) {
+                if (rom.u8(list) == classId) return num
+                list++
+            }
+            num++
+            it += 4
+        }
+        return num
+    }
+
     private companion object {
+        /** `gAiClassRankLists`: a null-terminated array of zero-terminated class lists. */
+        const val CLASS_RANK_LISTS = 0x085A8150
+        const val MAP_MOVEMENT_MAX = 120
         const val UNIT_ITEM_COUNT = 5
         const val AI_UNIT_FLAG_0 = 1 shl 0
         const val AI_UNIT_FLAG_1 = 1 shl 1

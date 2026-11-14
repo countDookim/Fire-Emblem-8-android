@@ -1037,10 +1037,10 @@ public class Fe8Boot(
             { eventEngine.eventEngineExists() },
         ).wire(phase, main, eventInfos)
         // The enemy phase (EP-2a, EP-3a): `AiPhaseInit`, the unit order and the decision loop.
-        // The script interpreter (EP-4) and the attack search (EP-5) run; the reach test and the
-        // movement map (EP-7) are null, so no enemy is in reach and nothing is decided (the
-        // score hooks, EP-6a/6b, and the perform proc, EP-8, are null too): End turn runs the enemy
-        // banner, marks every enemy as moved and goes on to the next player phase.
+        // The script interpreter (EP-4), the attack search (EP-5), the score (EP-6a) and the reach
+        // and movement maps (EP-7) run, so an enemy in reach decides its attack; the perform proc
+        // (EP-8) and the EP-6b score components are null: nothing is performed, End turn runs
+        // the enemy banner, marks every enemy as moved and goes on to the next player phase.
         val cp = CpPhase(
             engine, rom, playSt, units, loader, battleBmMap, battleEntityMaps, active, rng,
         )

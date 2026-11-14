@@ -75,7 +75,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.bm (battle: BattleGenerate, BattleUnit, BmBattle, ItemInfo) | 4 | 2316 | done 2026-11-11 49679cb; audit done 2026-11-11 39aa20b |
 | game | fe8.game.bm (PhaseIntro, MapAnimations) | 2 | 840 | done 2026-11-11 d9263c3; audit done 2026-11-13 1dcdbfe |
 | game | fe8.game.bm (UnitSprites, UnitSpriteHandles, UnitSpritesOam) | 3 | 774 | done 2026-11-11 d9263c3; audit done 2026-11-13 545c8cf |
-| game | fe8.game.bm (UnitTable) | 1 | 389 | done 2026-11-11 d9263c3; audit done 2026-11-14 HASH |
+| game | fe8.game.bm (UnitTable) | 1 | 389 | done 2026-11-11 d9263c3; audit done 2026-11-14 b14fbb50 |
 | game | fe8.game.bm (UnitLoader lines 1-577: to before lastReda) | 1 | 577 | done 2026-11-14 254e577e |
 | game | fe8.game.bm (UnitLoader lines 578-1108: lastReda to end) | 1 | 531 | done 2026-11-14 9c589540 |
 | game | fe8.game.bm (Mu lines 1-462: to before setMuFacing) | 1 | 462 | done 2026-11-13 ef3792d1 |

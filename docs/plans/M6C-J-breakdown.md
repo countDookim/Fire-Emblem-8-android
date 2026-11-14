@@ -312,6 +312,22 @@ engine starts f4894; run ends f5000. Level-up: none (MC-17 needs MC-cap3). Per-f
 f2955..3010, f3250..3262, f3316..3330, f3680..3730, f3795..3880, f3955..3970, f4175..4215, f4266..4300, f4436..4470,
 f4480..4650, f4700..4960; RAM every 30f f1260..2850, every 10f elsewhere to f5000. Watches as EP-cap1;
 `tracecall aicombatscore` records only the two EP-cap1 calls. Size 358 MB (1.3 MB compressed).
+
+### MC-cap3 result (2026-11-14)
+
+Run `ram_trace_prologue_levelup` (ROM repo release `assets-8051ed8`; copy in `.assets/reference/out/`). Inputs: EP-cap2
+to the turn-3 idle map (f3961), then turn 3: A f4000, A f4040, A f4120, A f4160, A f4200 (Eirika uses a Vulnerary,
+HP 7 -> 16, write-back f4204); RIGHT f4400, A f4430, UP f4460, A f4490 (End); A f4900 (boss dialogue page); turn 4:
+LEFT f5280, A f5310, UP f5340, A f5370 (End); turn 5: A f5880, A f5920, A f5990, A f6020, A f6050 (Eirika attacks
+the boss); A f6220 (death dialogue page). Seth never acts. Enemy phase 3: the boss decides f4575 to attack Eirika from
+(5,5), write-back f5124 (boss HP 13, Eirika exp 76); enemy phase 4: decision f5455, write-back f5714 (boss HP 3,
+Eirika HP 6, exp 87). Turn 5: kill strike f6082..6104, death event f6128..6241, death fade f6242..6273, exp bar
+f6276..6746 with the level-up procs f6413..6746 (stat screen f6519..6729), write-back f6760; ending scene event
+engine f6762, run ends f6870. Level-up: Eirika level 1 -> 2, exp 87 -> 67 (80 for the kill), max HP 16 -> 17, skl
+8 -> 9, def 3 -> 4, lck 5 -> 6 (pow, spd, res unchanged). Per-frame RAM (full dump every 10f) in f4196..4210,
+f4385..4395, f4570..4700, f4895..5130, f5450..5720, f6050..6830; RAM every 30f elsewhere. Watches as EP-cap2;
+`tracecall aicombatscore` records four calls (f1614, f2039, f4575, f5455). Size 568 MB (1.6 MB compressed). The
+boss's hit rolls decide the outcome: changing any input may change them.
 ### EP-1 result (2026-11-13)
 
 Test: `PhaseStartEndDifferentialTest` over `ram_trace_prologue_enemy_phase` (blue/red/gplayst/gbmst/procs watches; `gPidStatsData` from the dumps f1520/f1530). New class `PhaseStartEnd` (game/bm). Ported: `ClearActiveFactionGrayedStates` (units at f1529, f2750, f2768, favour -8 of Seth and Eirika in `gPidStatsData`; the unavailable/unselectable/supply skips are not seen), the four `*Display_Init` (no display proc alive; an inverted end test leaves the proc), `sub_8015434` (phase proc five frames after the tick in the red, green and blue start). The existing `SwitchPhases`, `BmMain_ChangePhase`, `_StartPhase` (red branch new) and `_UpdateTraps` (green branch new) now match all three switches and the f2766 trap proc.

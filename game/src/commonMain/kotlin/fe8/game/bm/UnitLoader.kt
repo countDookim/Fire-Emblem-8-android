@@ -320,8 +320,8 @@ public class UnitLoader(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: GetStatIncrease (not verified: `>= 100` for `> 100` and
-     * `roll1(g + 1)` survive the autolevel RNG-window test; only exact-boundary rolls differ)
+     * Transcribed from src/bmbattle.c: GetStatIncrease (not verified: no test checks it
+     *   against a trace yet)
      *
      * One point per full 100 of [growth], plus one more with the remainder as percent chance.
      */
@@ -588,9 +588,21 @@ public class UnitLoader(
         return id
     }
 
+    /**
+     * The last REDA of [def], the final target of its walk. Its `x` is bits 0-5 and `y` bits 6-11
+     * of the first word of the 8-byte entry (`struct REDA` in include/muctrl.h).
+     */
     private fun lastReda(def: UnitDef): Int = rom.u32(def.redas + 8 * (def.redaCount - 1))
 
-    /** sub_800F8A8, MoveUnit_ and MoveUnitExt without the map and sprite refresh. */
+    /**
+     * The placement step of the event unit load: `sub_800F8A8` (src/eventscr.c) with `MoveUnit_` /
+     * `MoveUnitExt` (src/muctrl.c) for the unit [id], without `RefreshEntityBmMaps` and
+     * `RefreshUnitSprites`. Starts the REDA walk where the C does (a definition with REDAs, not
+     * [quiet], not under a roof), else puts the unit at its final tile (moved to the closest free
+     * tile if [flagsIn] bit 0 is set and the target is occupied) and un-hides it unless it is
+     * under a roof. `sumFlag` (flag 2), and rescuing or ballista units, throw
+     * [UnsupportedOperationException].
+     */
     private fun moveLoadedUnit(
         id: Int,
         def: UnitDef,
@@ -698,9 +710,10 @@ public class UnitLoader(
     /** `unit->pClassData->pMovCostTable[0]` for the unit at offset [o]. */
     internal fun classMovementCost0(o: Int): Int = rom.u32(u32(table.bytes, o + OFF_CLASS) + 0x38)
 
-    /** True where (x, y) holds a unit, other or hidden marker (the shortcut of the search). */
+    /** [occupied] for tests: whether tile ([x], [y]) holds a unit, other or hidden marker. */
     internal fun isOccupied(x: Int, y: Int): Boolean = occupied(x, y)
 
+    /** The `pMovCostTable` slot `GetUnitMovementCost` picks for the weather (rain 1, snow 2). */
     private fun movCostTableIndex(): Int = when (weatherId()) {
         WEATHER_RAIN -> 1
         WEATHER_SNOW, WEATHER_SNOWSTORM -> 2
@@ -739,7 +752,9 @@ public class UnitLoader(
      * Transcribed from src/bmunit.c: UnitChangeFaction, CopyUnit (not verified: no test checks it
      *   against a trace yet)
      *
-     * partial: `gActiveUnit` is not updated. Moves unit [id] into a free slot of [faction].
+     * partial: `gActiveUnit` is not updated. Copies unit [id] into a free slot of [faction] (the
+     * slot keeps its own `index`), clears the old slot, re-arms exp for a blue unit below the
+     * level cap, clears `US_DROP_ITEM` and points the rescued or rescuing partner at the new id.
      */
     internal fun unitChangeFaction(id: Int, faction: Int) {
         val newId = getFreeUnit(faction)
@@ -800,6 +815,10 @@ public class UnitLoader(
      * Ported from src/bmunit.c: UnitInitFromDefinition
      *
      * partial: gorgon eggs throw [UnsupportedOperationException].
+     *
+     * Sets the character and class pointers (the character's default class when the definition's
+     * class is 0), the level, the position and the inventory from [def] for the unit at [o], then
+     * stores the AI bytes.
      */
     internal fun unitInitFromDefinition(o: Int, def: UnitDef) {
         val b = table.bytes
@@ -870,8 +889,10 @@ public class UnitLoader(
     /**
      * Ported from src/bmunit.c: UnitLoadStatsFromChracter
      *
-     * Sets the stats, con bonus, weapon ranks and exp of the unit at [o] from its character and
-     * class (already stored in the unit).
+     * Sets the stats (character base plus class base; luck from the character only), a zero con
+     * bonus, the weapon ranks (class ranks, overridden by non-zero character ranks) and the exp
+     * (0 for a blue unit below the level cap, else disabled) of the unit at [o] from its
+     * character and class (already stored in the unit).
      */
     internal fun unitLoadStatsFromChracter(o: Int) {
         val b = table.bytes
@@ -946,7 +967,9 @@ public class UnitLoader(
      * Transcribed from src/bmunit.c: UnitCheckStatCaps (not verified: no test checks it against a
      *   trace yet)
      *
-     * Clamps the stats, con bonus and mov bonus of the unit at [o] to the class limits.
+     * Clamps the unit at [o]: max HP to 60 (120 for a red unit), pow/skl/spd/def/res to the class
+     * maxima, luck to 30, and the con and mov bonuses so that con and mov stay within the class
+     * maximum con and 15 (`UNIT_*_MAX` in include/bmunit.h).
      */
     internal fun unitCheckStatCaps(o: Int) {
         val b = table.bytes
@@ -967,11 +990,13 @@ public class UnitLoader(
         cap(OFF_MOV_BONUS, 15 - rom.s8(cl + 0x12))
     }
 
+    /** `UNIT_IS_GORGON_EGG`: the unit at [o] is of a gorgon egg class (0x62 or 0x34). */
     private fun isGorgonEgg(o: Int): Boolean {
         val number = rom.u8(u32(table.bytes, o + OFF_CLASS) + 4)
         return number == CLASS_GORGONEGG || number == CLASS_GORGONEGG2
     }
 
+    /** The signed byte at ROM address [at]. */
     private fun RomView.s8(at: Int): Int = u8(at).toByte().toInt()
 
     /**
@@ -991,21 +1016,23 @@ public class UnitLoader(
     /**
      * A `struct UnitDefinition` (20 bytes), decoded from ROM or copied with changes.
      *
-     * @property charIndex `charIndex`.
-     * @property classIndex `classIndex`.
-     * @property leaderCharIndex `leaderCharIndex`.
-     * @property autolevel `autolevel`.
-     * @property allegiance `allegiance` (0 blue, 1 green, 2 red).
-     * @property level `level`.
-     * @property x `xPosition`.
-     * @property y `yPosition`.
-     * @property genMonster `genMonster`.
-     * @property itemDrop `itemDrop`.
-     * @property sumFlag `sumFlag`.
-     * @property redaCount `redaCount`.
+     * @property charIndex character id (`gCharacterData` index plus one).
+     * @property classIndex class id, or 0 to use the character's default class.
+     * @property leaderCharIndex character id stored as the leader of an autoleveled non-player
+     *     unit.
+     * @property autolevel whether the unit is levelled to [level] from its bases.
+     * @property allegiance 0 blue, 1 green, 2 red.
+     * @property level starting level.
+     * @property x `xPosition`, the starting tile column.
+     * @property y `yPosition`, the starting tile row.
+     * @property genMonster whether class, level and items are generated (random monster).
+     * @property itemDrop whether the unit drops its last item when defeated.
+     * @property sumFlag whether the unit is placed on a random free tile next to the target
+     *     (summons).
+     * @property redaCount number of REDA move entries (0 for none).
      * @property redas ROM address of the REDA list (0 for none).
-     * @property items `items[4]`.
-     * @property ai `ai[4]`.
+     * @property items `items[4]`, item ids with 0 meaning end of list.
+     * @property ai `ai[4]`: the two AI script ids, then the low and high byte of the AI config.
      */
     public data class UnitDef(
         val charIndex: Int,

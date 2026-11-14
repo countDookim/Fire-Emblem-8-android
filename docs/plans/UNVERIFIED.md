@@ -246,7 +246,7 @@ Total entries: 560 across 82 decomp files (missing reason: 0).
 | `CanBattleUnitGainLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 | `CheckBattleUnitLevelUp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 | `UpdateUnitFromBattle` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
-| `GetStatIncrease` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | `>= 100` for `> 100` and `roll1(g + 1)` survive the autolevel RNG-window test; only exact-boundary rolls differ |
+| `GetStatIncrease` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 
 ## src/muctrl.c (17)
 

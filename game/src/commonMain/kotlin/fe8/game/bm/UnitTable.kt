@@ -41,6 +41,8 @@ public class UnitTable(
      */
     public fun unitOffset(id: Int): Int {
         val lookupId = id and 0xFF
+        // Ids are faction (blue 0x00, green 0x40, red 0x80, purple 0xC0) + 1 + slot; the arrays are
+        // stored blue, red, green, purple, so green sits after red in [bytes].
         val slot = when (lookupId) {
             in 0x01..0x3E -> lookupId - 0x01
             in 0x81..0xB2 -> BLUE_COUNT + lookupId - 0x81
@@ -73,7 +75,7 @@ public class UnitTable(
         return count
     }
 
-    /** `curHP` (s8, 0x13) of unit [id]. */
+    /** `curHP` (s8, 0x13) of unit [id]: its hit points left. */
     public fun currentHp(id: Int): Int = s8(bytes, unitOffset(id) + 0x13)
 
     /** `items[slot]` (u16 at 0x1E): the item word (id low byte, uses high byte) of unit [id]. */
@@ -146,10 +148,10 @@ public class UnitTable(
      * Ported from src/bmunit.c: UnitKill
      *
      * Removes unit [id] from play. A non-blue unit (and a blue phantom) loses its character
-     * (`pCharacterData = NULL`), which takes it off the unit map and the sprite list at the next
-     * refresh; any other blue unit is marked `US_DEAD | US_HIDDEN`. The blue branch is
-     * transcribed (not verified: no capture kills a blue unit). `InitUnitsupports` (the supports
-     * of a dead blue unit) is a stand-in until the supports lane (M6-J).
+     * (`pCharacterData = NULL`), so [isValid] is false for it from then on; any other blue unit
+     * is marked `US_DEAD | US_HIDDEN`. The blue branch is transcribed (not verified: no capture
+     * kills a blue unit). `InitUnitsupports` (the supports of a dead blue unit) is a stand-in
+     * until the supports lane (M6-J).
      */
     public fun unitKill(id: Int) {
         val offset = unitOffset(id)
@@ -186,7 +188,7 @@ public class UnitTable(
         bytes[unitOffset(id) + 0x11] = y.toByte()
     }
 
-    /** `aiFlags` (u8, 0x0A) of unit [id]. */
+    /** `aiFlags` (u8, 0x0A) of unit [id]: the `AI_UNIT_FLAG_*` bits of `include/cp_common.h`. */
     public fun aiFlags(id: Int): Int = u8(bytes, unitOffset(id) + 0x0A)
 
     /** Sets `aiFlags` (u8, 0x0A) of unit [id] (the unit must exist). */
@@ -194,13 +196,16 @@ public class UnitTable(
         bytes[unitOffset(id) + 0x0A] = value.toByte()
     }
 
-    /** `ai_config` (u16, 0x40) of unit [id]. */
+    /**
+     * `ai_config` (u16, 0x40) of unit [id]: the AI bitmask (`AI_UNIT_CONFIG_*`: heal threshold in
+     * bits 0-2, combat weight table in bits 3-7, stay flag at bit 13).
+     */
     public fun aiConfig(id: Int): Int = StructCodec.u16(bytes, unitOffset(id) + 0x40)
 
     /** `ai1` (u8, 0x42) of unit [id]: the index into `gAi1ScriptTable`. */
     public fun ai1(id: Int): Int = u8(bytes, unitOffset(id) + 0x42)
 
-    /** `ai_a_pc` (u8, 0x43) of unit [id]: the next command of its script A. */
+    /** `ai_a_pc` (u8, 0x43) of unit [id]: the index of its current command in script A. */
     public fun aiAPc(id: Int): Int = u8(bytes, unitOffset(id) + 0x43)
 
     /** Sets `ai_a_pc` (u8, 0x43) of unit [id] (the unit must exist). */
@@ -211,7 +216,7 @@ public class UnitTable(
     /** `ai2` (u8, 0x44) of unit [id]: the index into `gAi2ScriptTable`. */
     public fun ai2(id: Int): Int = u8(bytes, unitOffset(id) + 0x44)
 
-    /** `ai_b_pc` (u8, 0x45) of unit [id]: the next command of its script B. */
+    /** `ai_b_pc` (u8, 0x45) of unit [id]: the index of its current command in script B. */
     public fun aiBPc(id: Int): Int = u8(bytes, unitOffset(id) + 0x45)
 
     /** Sets `ai_b_pc` (u8, 0x45) of unit [id] (the unit must exist). */
@@ -219,7 +224,10 @@ public class UnitTable(
         bytes[unitOffset(id) + 0x45] = value.toByte()
     }
 
-    /** `ai_counter` (u8, 0x46) of unit [id]. */
+    /**
+     * `ai_counter` (u8, 0x46) of unit [id]: how many times the current script command has run, for
+     * commands that repeat a set number of times.
+     */
     public fun aiCounter(id: Int): Int = u8(bytes, unitOffset(id) + 0x46)
 
     /** Sets `ai_counter` (u8, 0x46) of unit [id] (the unit must exist). */
@@ -227,7 +235,10 @@ public class UnitTable(
         bytes[unitOffset(id) + 0x46] = value.toByte()
     }
 
-    /** `UNIT_LEADER_CHARACTER`: `supports[6]` (u8, 0x38) of unit [id]. */
+    /**
+     * `UNIT_LEADER_CHARACTER`: `supports[6]` (u8, 0x38) of unit [id], the character id of the
+     * leader it follows. (`GetUnitLeaderCharId` returns 0 for blue units; this does not.)
+     */
     public fun leaderCharId(id: Int): Int = u8(bytes, unitOffset(id) + 0x38)
 
     /** `statusIndex` (low nibble of byte 0x30) of unit [id]. */
@@ -249,7 +260,8 @@ public class UnitTable(
      */
     public fun movement(id: Int): Int {
         val offset = unitOffset(id)
-        return s8(bytes, offset + 0x1D) + rom.u8(u32(bytes, offset + OFF_CLASS) + 0x12).toByte().toInt()
+        val baseMov = rom.u8(u32(bytes, offset + OFF_CLASS) + 0x12).toByte().toInt()
+        return s8(bytes, offset + 0x1D) + baseMov
     }
 
     /**
@@ -355,24 +367,47 @@ public class UnitTable(
         public const val TOTAL_SIZE: Int =
             (BLUE_COUNT + RED_COUNT + GREEN_COUNT + PURPLE_COUNT) * UNIT_SIZE
 
+        /** `pCharacterData` in `struct Unit`. */
         private const val OFF_CHARACTER = 0x00
+
+        /** `pClassData` in `struct Unit`. */
         private const val OFF_CLASS = 0x04
+
+        /** `attributes` (u32) in both `struct CharacterData` and `struct ClassData`. */
         private const val OFF_ATTRIBUTES = 0x28
+
+        /** `CLASS_PHANTOM`. */
         private const val CLASS_PHANTOM = 0x51
 
         /** `US_UNSELECTABLE`. */
         public const val US_UNSELECTABLE: Int = 1 shl 1
+
+        /** `US_DEAD`. */
         private const val US_DEAD = 1 shl 2
+
+        /** `US_NOT_DEPLOYED`. */
         private const val US_NOT_DEPLOYED = 1 shl 3
+
+        /** `US_RESCUED`. */
         private const val US_RESCUED = 1 shl 5
+
+        /** `US_UNDER_A_ROOF`. */
         private const val US_UNDER_A_ROOF = 1 shl 7
+
+        /** `US_BIT8`; `SetAllUnitNotBackSprite` clears it. */
         private const val US_BIT8 = 1 shl 8
+
+        /** `US_BIT16`, an unnamed state bit that `US_UNAVAILABLE` includes. */
         private const val US_BIT16 = 1 shl 16
+
         /** `US_UNAVAILABLE`. */
         public const val US_UNAVAILABLE: Int = US_DEAD or US_NOT_DEPLOYED or US_BIT16
+
+        /** The state mask `GetPhaseAbleUnitCount` tests (a local in the C). */
         private const val NOT_ABLE =
             US_UNSELECTABLE or US_DEAD or US_NOT_DEPLOYED or US_RESCUED or US_UNDER_A_ROOF or
                 US_BIT16
+
         /** `UNIT_STATUS_SLEEP`. */
         public const val STATUS_SLEEP: Int = 2
 
@@ -381,9 +416,17 @@ public class UnitTable(
 
         /** `CA_UNSELECTABLE`. */
         public const val CA_UNSELECTABLE: Int = 1 shl 20
+
+        /** `CHARACTER_EIRIKA`. */
         private const val CHARACTER_EIRIKA = 0x01
+
+        /** `CHARACTER_EPHRAIM`. */
         private const val CHARACTER_EPHRAIM = 0x0F
+
+        /** `CHAPTER_L_5X`. */
         private const val CHAPTER_L_5X = 0x05
+
+        /** `CHAPTER_MODE_EPHRAIM`. */
         private const val CHAPTER_MODE_EPHRAIM = 3
     }
 }

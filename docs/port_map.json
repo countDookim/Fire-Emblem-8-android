@@ -9,7 +9,7 @@
     "in_scope_total": 7732,
     "out_of_scope": 620,
     "verified": 1188,
-    "implemented_unverified": 59
+    "implemented_unverified": 62
   },
   "functions": {
     "ActionCombat": {
@@ -129,6 +129,14 @@
       "system": "ai",
       "in_scope": true,
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiGetClassRank": {
+      "decomp_file": "src/cp_utility.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt",
       "status": "implemented",
       "tests": []
     },
@@ -3409,6 +3417,14 @@
         "fe8.testing.OpSubtitleProcDifferentialTest#continuous playback follows the original parent through the first cards"
       ]
     },
+    "FillMovementAndRangeMapForItem": {
+      "decomp_file": "src/cp_utility.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "FlipBgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
       "system": "battle_map",
@@ -3650,6 +3666,14 @@
       "tests": [
         "fe8.testing.AttackRangeDifferentialTest#select attack range matches the game"
       ]
+    },
+    "GenerateUnitMovementMap": {
+      "decomp_file": "src/bmidoten.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MovementMap.kt",
+      "status": "implemented",
+      "tests": []
     },
     "GenerateUnitMovementMapExt": {
       "decomp_file": "src/bmidoten.c",

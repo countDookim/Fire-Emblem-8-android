@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test
 class EnemyPhaseInventoryTest {
     private val ref = ReferenceData.fromEnvironment()
 
-    private fun rows(run: String, first: Int, last: Int): List<String> {
+    internal fun rows(run: String, first: Int, last: Int): List<String> {
         val names = ProcArrayDump.romNames()
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         assumeTrue(names.isNotEmpty(), "decomp nm file not present")

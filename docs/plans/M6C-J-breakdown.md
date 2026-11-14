@@ -497,6 +497,319 @@ Corrected PORT rows (functions run, with the first frames; "Ported"/"Transcribed
 | EP-9 | `CpPerform_PerformAction`, `AiStartCombatAction`, `CpPerform_WaitAction`, `AiDummyAction`, `CpPerform_Cleanup`, `AiRefreshMap` | `CpPerform_EquipBest` and the 14 other actions |
 | EP-10 | `ProcessTurnSupportExp`, `DecayTraps`, `CountDownTraps`, `GenerateTrapDamageTargets`, `GenerateDisplayedTrapDamageTargets`, `TrapDamageDisplay_Init`/`_Check`, `ResetCountedDownTraps`, `PostTrapExecFlag`, `CountRedUnits`, `CountAvailableBlueUnits` | trap placement (`AddTrap*`), `TrapDamageDisplay_Display`/`_Next` |
 
+### EP-0b inventory (2026-11-14)
+
+Test: `EnemyPhaseInventory2Test` (procs per window, asserted row by row over `ram_trace_prologue_clear`, plus the boss's
+AI fields and `gAiDecision` at the move-only decision). Functions: **entered (traced)**, by a scratch build of the
+harness as in EP-0, scratch in the agent scratchpad, no ROM-repo change. The hook logs entries of every Thumb function
+with a `T`/`t` symbol of the decomp nm file below 0x080D8000 (8526 functions; EP-0 traced 590) and the frames of each
+entry. The `tracecall aicombatscore` line of the script was dropped in the scratch copy (`tracecall` replaces the
+instruction hook); the `procs` watch of the scratch run is byte-identical to the published run. Function to decomp
+file by the text sections of `fireemblem8.map`. ARM functions (`arm_func_start`) are not seen by the hook.
+Tags: a scan of main-source Kotlin (tests excluded) for `Ported from src/<file>: <Func>` and
+`Transcribed from src/<file>: <Func>` (a differently spelled tag is missed); **Ported/Transcribed here means tagged, not
+verified**. A function with no tag is NEW; `*` marks NEW names that appear in main source without a tag (a stand-in or a
+comment). Engine layer (no rows): `hardware.c`, `proc.c`, `ctc.c`, `time.c`, `irq.c`, `ramfunc.c`, `libagbsyscall.c`,
+`m4a*.c`, `sio_main.c`, `asm/arm_call.c`, compiler runtime; the gbafe engine implements these without per-function tags;
+whether one needs a tag is not decided here. The four main-loop functions `OnMain`, `OnVBlank`, `WfxUpdate`, `WfxVSync`
+are entered every frame and have no row (engine loop).
+
+Windows (EP-cap2 timeline from "EP-cap2 result"; procs from the test; script symbols, parent `gProc_BMapMain` unless stated):
+
+| Window | Frames | Procs |
+|---|---|---|
+| a: boss turn event | f2964..3722 | `SwitchPhases` at f2964 starts `ProcScr_StdEventEngine` (f2964..3721; no `gProcScr_PlayerPhase`, no banner yet); `gMusicProc3Script` f2964..3012; `gProcScr_Talk` f2966..3703 (+ `gProcScr_TalkSkipListener` f2968, `TalkOpen`/`TalkBubbleOpen` f2982..2994, `gProcScr_TalkWaitForInput` f3259..3321 and f3685..3701 (the two A presses), `gProcScr_TalkShiftClear` f3327..3343 and f3496..3512); face procs `gProcScr_E_FACE` + `gProcScr_FaceBlink` + `gProcScr_0859124C` f2972..3714 with `ProcScr_PalFade` f2972..2984 and f3706..3714; `ProcScr_TemporaryLock` f2972..2980; `gProcScr_FaceEndIn8Frames` f3706..3714, `gUnknown_08591DE8` f3706..3717; event ends f3721 (boss `ai1`/`ai2` and positions 6/1/3/1 -> 0/0/0/0 at f3719) |
+| b: move-only enemy phase | f3726..3877 | banner `ProcScr_PhaseIntro` (+ BlendBox, Squares, Text, Unk) f3726..3796 (the banner starts earlier); `gProcScr_CpPhase` > `CpOrder` f3803..3854, `gProcScr_CpDecide` f3803..3851, `gProcScr_CpPerform` f3804..3831 (one unit), `ProcScr_Mu` f3804..3831 with four `ProcScr_MuStepSe` pulses (f3805, 3812, 3820, 3828); no `gProcScr_AiTargetCursor`, no `CombatAction`, no map-animation proc; `sProcScr_BMXFADE` f3832..3847; berserk phase f3856..3857, empty `CpPhase`/`CpOrder` f3868..3870, berserk f3872, `gProcScr_UpdateTraps` f3875, `ProcScr_StdEventEngine` f3877 (turn 3) |
+| c: Seth attacks the boss | f4130..4892 | unit walk `ProcScr_Mu` + `MuStepSe` f4131..4176; unit menu `sProc_Menu` + `sProc_MenuItem` + `gProcCmd_MenuItemPanel` + `ProcScr_GreenTextColor` + `sProcScr_MoveLimitView` f4181..4239; target selection `gProcScr_TargetSelection` + `gProcScr_BKSEL` f4240..4269; `sProcScr_CombatAction` (child of `gProcScr_PlayerPhase`) f4274..4892; `ProcScr_MapAnimBattle` f4275..4890; pre-battle quote event `ProcScr_BattleEventEngine` f4278..4460 with `gProcScr_Talk` f4279..4443 (face procs f4285..4454, `TalkWaitForInput` f4432..4441); `ProcScr_MapBattleInfoBox` f4468..4635; per round `ProcScr_MapAnimDefaultItemEffect` (f4485..4535, 4544..4581, 4590..4627) with `ProcScr_CallDelayedArg`, `ProcScr_MuHitFlash` f4491..4507 and 4596..4612, `ProcScr_ApProc` (miss) f4550..4577; death event `ProcScr_BattleEventEngine` f4636..4740 with `gProcScr_Talk` f4636..4723 (`TalkWaitForInput` f4709..4721); `ProcScr_MuDeathFade` f4742..4772; `ProcScr_MapAnimExpBar` f4776..4878; `sProcScr_CombatAction` ends f4892 |
+| d: ending scene start | f4894..5000 | `gProcScr_PlayerPhase` stays alive (f4894..5000); `ProcScr_StdEventEngine` f4894..5000; `gMusicProc3Script` f4894..4944; `ProcScr_FadeToBlack` f4895..4910 and `ProcScr_FadeFromBlack` f4916..4931 (children of the event); `gProcScr_Talk` f4933..5000 (+ `TalkSkipListener` f4935, `TalkOpen`/`TalkBubbleOpen` f4949..4961); two face slots `gProcScr_E_FACE` f4939..5000 with `ProcScr_PalFade` and `ProcScr_TemporaryLock` f4939..4951 |
+
+Sub-timeline of window c (first entries of the functions in the tables): move f4130..4180 (`UnitFinalizeMovement`
+f4181), unit menu f4181..4239, weapon list f4210..4239, target selection and forecast f4240..4270, `BeginBattleAnimations`
+f4274 (battle-animation setup queries, then `BeginBattleMapAnims`), pre-battle event f4278..4461, rounds f4484..4635,
+death event f4636..4741, death fade f4742..4773, exp bar f4776..4879, weapon-break and rank-up checks f4880..4888,
+write-back f4892 (`BattleApplyGameStateUpdates`, `UnitKill`, `KillUnitOnCombatDeath` entered 4892, as at f2012/f2401).
+
+Findings that change rows:
+
+- **Window a has one new opcode.** Commands run: 01 End, 02, 03 (Transcribed), 05, 08, 09, 0A, 0C, 12 (BGM), 19 (Transcribed),
+  1A, 1B, 1D (text), 39 `Event39_ChangeAiScript` (`ChangeUnitAi` > `ChangeAiForCharacter`, f3719, NEW). Everything else
+  (`EvCheck02_TURN`, `RunPhaseSwitchEvents`, `StartEventFromInfo`, `SearchAvailableEvent`, flags) is Ported/Transcribed.
+  The rest of the window's NEW functions are the text, face and UI plumbing around the talk procs.
+- **The boss's move needs the movement commands EP-0 found never entered.** f3804: `AiScriptCmd_05_DoStandardAction` >
+  `AiAttemptOffensiveAction` (Ported, finds nothing: `AiComputeCombatScore` is not called), then script B runs
+  `AiScriptCmd_12_MoveTowardsEnemy` > `AiTryMoveTowards` > `AiFindTargetInReachByFunc`; `AiReachesByBirdsEyeDistance`,
+  `AiCouldReachByBirdsEyeDistance`, `FillMovementAndRangeMapForItem`, `GenerateUnitMovementMap`,
+  `GenerateExtendedMovementMapOnRange`, `RevertMovementScript`, `AiCheckDangerAt`, `UnitHasMagicRank` are entered at
+  f3803..3804. Not entered: `AiMakeMoveRangeUnitPowerMaps`, `AiRandomMove`, `AiTryMoveTowardsNeglectWall`, the other 30+ cp_utility.c
+  functions. `gAiDecision` at f3804: action 0, unit 0x81, move to (9,6); the boss ends the phase at (9,6) with a-pc/b-pc 1.
+- **`CpPerform_EquipBest` runs** (f3832, with `AiCanEquip`, `AiEquipBestConsideringDanger`, `AiEquipGetDanger`,
+  `AiEquipGetFlags`, `AiIsWithinFlyingDistance`): EP-0 said it never runs; it does for a unit that moved without acting.
+  `AiDummyAction` f3831 (action 0), then `AiRefreshMap`, `CpPerform_Cleanup`, `NewBMXFADE` f3832.
+- The same phase end as EP-0 follows: `CpDecide_Suspend` f3849 (suspend save written f3850..3860), `ProcessTurnSupportExp`
+  f3877, `DecayTraps` ... `PostTrapExecFlag` f3875..3876, `TrapDamageDisplay_Init`/`_Check` f3875. The four start-of-phase
+  `*Display_Init` run before the banner (f3798..3801; their target-list callees `MakeTerrainHealTargetList`,
+  `MakePoisonDamageTargetList`, `MakeGorgonEggHatchTargetList`, `sub_8026414` and the terrain-heal helpers are NEW).
+- **Window c's battle runs through the animation-setup queries.** `BeginBattleAnimations` (f4274) calls 20 banim functions
+  (`banim-ekrcmd.c`, `-battleparse.c`, `-ekrarena.c`, `-ekrbattle.c`, `-ekrhensei.c`, `-ekrdragonstatus.c`, ...) only to learn
+  that no animation runs, then `BeginBattleMapAnims`. No ekr/efx proc, no animation script. All of mapanim*.c except
+  `mapanim_lvup.c` (19 + 15 + 10 + 7 + 6 + 1 NEW functions in mapanim.c, mapanim_infobox.c, mapanim_spellassoc.c,
+  mapanim_expbar.c, mapanim_scanline.c, mapanim_specialeffect.c) runs here; the level-up branch is entered as a check only
+  (`ProcMAExpBar_LevelUpIfPossible` f4878, no level-up; `CheckBattleUnitLevelUp` runs once at f4274).
+- The death event is `CheckBattleDefeatTalk` > `GetDefeatTalkEntry` > `DisplayDefeatTalkForPid` + `SetPidDefeatedFlag`
+  (f4636), run through `EventEngine_CreateBattle` (Transcribed) with `Event1B`/`Event1D`/`sub_800E210`/`sub_800E640`/`Event01`
+  and `Event10_ModifyEvBit` (Transcribed); the pre-battle event is `CallBattleQuoteEventsIfAny` > `GetBattleQuoteEntry` >
+  `CallBattleQuoteEventInBattle` (f4278; same functions ran at f1700, f2133 with no quote).
+- f4181..4240 enter the unit-menu build of the player phase: 26 `*Usability` functions of bmmenu.c, 10 target-list builders of
+  bmtarget.c, `CheckForCharacterEvents`, `GetAvailableTileEventCommand` and the forecast tutorial checks are untagged. They are
+  M6-B code paths (the menu was wired in PP-17); whether the menu port covers them under other names is not checked here.
+- **The ending scene is started by the wait-event path, not by the end-event functions.** f4894: `RunPotentialWaitEvents` >
+  `CheckForWaitEvents` > `RunWaitEvents` > `EvCheck01_AFEV` > `StartEventFromInfo` (all Ported) after `AreAnyEnemyUnitDead`;
+  `ShouldCallEndEvent`, `MaybeCallEndEvent`, `CallEndEvent` and `CallGameOverEvent` are never entered in the whole run
+  (PC-1 listed them). Commands run: 05, 0A, 0C, 12, 08, 1A, 23 `Event23_DisaleMapDisp`, 21 `Event21_TextBg` +
+  `EventShowTextBgDirect`, 17 `Event17_Fade` (Transcribed), 03 (Transcribed), 01, 1B, 1D; plus `SetPermanentFlag`,
+  `AreAnyEnemyUnitDead`, `HandlePostActionTraps`, `ChangeUnitSpritePalette`, `RefreshAllies`, `SetUnitStatus`, `LockMus`. NEW in window
+  d: 51 functions, all of them already counted in a..c except `RefreshAllies`, `SetUnitStatus`, `LockMus`.
+- `MuStepSe_*`, `StartPlayMuStepSe`, `PlayMuStepSe`, `PlaySeSpacial`, `Screen2Pan`, `IsFirstPlaythrough`, `IsGamePlayedThrough`
+  (the step-sound chain, BUG-mustepse) are untagged in every walk of the run (also f1615, f2039).
+- `PidStats*` (bmsave-bwl.c) run in every battle (f1696, f2129, f4274) and at f2964 (`PidStatsAddFavval`); `PidStatsAddExpGained`
+  is the no-op stand-in of MC-14. `WriteWorldMap*`, `SaveDungeon*`, `GetConvoyItemArray`, `SramOffsetToAddr` run with each suspend
+  save (f3850..3860, f4272, f2036, f2741 ...).
+
+Counts of distinct functions entered per window (class: P = `Ported from` tag, T = `Transcribed from` tag, NEW = no tag, E = no tag and in the engine layer, see below):
+
+| Window | Ported | Transcribed | NEW (game logic) | Engine layer |
+|---|---|---|---|---|
+| a: boss turn event f2964..3722 | 165 | 40 | 61 | 66 |
+| b: move-only enemy phase f3726..3877 | 203 | 72 | 109 | 72 |
+| c: turn 3 attack on the boss f4130..4892 | 394 | 109 | 252 | 80 |
+| d: ending scene start f4894..5000 | 168 | 45 | 51 | 61 |
+| union (a..d) | 507 | 144 | 336 | 90 |
+
+NEW functions per window, by decomp file (`name@first entry frame`; `*` = the name appears in main-source Kotlin without a tag, i.e. a stand-in or a comment; functions run in several windows are listed in each):
+
+**Window a: boss turn event f2964..3722**
+
+| File | NEW functions |
+|---|---|
+| banim-ekrbattle.c | `IsBattleDeamonActive*`@2965 |
+| bm.c | `OnMain*`@2964 `OnVBlank*`@2964 `ReadGameSaveCoreGfx*`@3721 |
+| bmio.c | `WfxUpdate*`@2964 `WfxVSync*`@2964 `GetTextDisplaySpeed*`@2966 |
+| bmlib.c | `Decompress*`@2966 `GetDataSize*`@2972 `Register2dChrMove*`@2972 `SetBlackPal`@2972 `StartTemporaryLock*`@2972 `TemporaryLock_OnLoop`@2972 `UnpackRaw*`@2972 `StartPalFadeToBlack`@3706 |
+| bmsave-bwl.c | `PidStatsAddFavval`@2964 `PidStatsSubFavval08*`@2964 |
+| bmsave-lib.c | `UnlockSoundRoomSong*`@3013 |
+| bmtrick.c | `GetTrap*`@2964 |
+| bmunit.c | `GetUnitSMSId*`@2964 |
+| bmxfade.c | `DoesBMXFADEExist*`@2964 |
+| cgtext.c | `CgTextExists*`@3705 `EndCgText*`@3706 |
+| event.c | `EventEngine_CanStartSkip*`@2964 `_FreezeMenu*`@2964 |
+| eventinfo.c | `ClearActiveEventRegistry*`@2964 `RegisterEventActivation*`@2964 `RunTutorialEvent*`@2964 |
+| eventscr.c | `_WhileFace6CExists*`@3706 `Event39_ChangeAiScript`@3719 |
+| eventscr3.c | `ChangeAiForCharacter`@3719 `ChangeUnitAi`@3719 |
+| eventscr_utils.c | `ChangeUnitSpritePalette*`@3706 `ResetBkselPalette*`@3722 |
+| face.c | `FindFreeFaceSlot*`@2972 `GetFaceDisplayBits`@2972 `GetPortraitData*`@2972 `EndFaceIn8Frames*`@3706 `EndFacePtr*`@3715 |
+| fontgrp.c | `GetLang*`@2966 `InitSystemTextFont*`@2966 `Text_SetColor*`@2966 `Text_GetCursor`@3259 `ResetText*`@3721 |
+| helpbox.c | `sub_808BB74*`@3706 |
+| icon.c | `LoadIconPalettes*`@3721 `ResetIconGraphics_*`@3721 |
+| scene.c | `IsTalkActive*`@2966 `StartTalkExt*`@2966 `GetTalkFaceHPos*`@2972 `TalkOpen_OnEnd*`@2995 `GetTalkChoiceResult*`@3705 `EndTalk*`@3706 `FaceExists*`@3706 |
+| soundwrapper.c | `DeleteAll6CWaitMusicRelated*`@2964 `GetCurrentBgmSong*`@2964 `PlaySong*`@3013 |
+| uimenu.c | `FreezeMenu*`@2964 `ResumeMenu*`@3722 |
+| uiutils.c | `UnpackUiFrameImage`@3721 `UnpackUiFramePalette`@3721 |
+| engine layer (66) | asm/arm_call.c 2, hardware.c 9, libagbsyscall.c 6, m4a.c 5, m4a_1.c 9, proc.c 22, ramfunc.c 3, tools/agbcc/lib/libc.a(memcpy.c) 1, tools/agbcc/lib/libc.a(memset.c) 1, tools/agbcc/lib/libgcc.a(_call_via_rX.c) 6, tools/agbcc/lib/libgcc.a(_modsi3.c) 1, tools/agbcc/lib/libgcc.a(_umodsi3.c) 1 |
+
+**Window b: move-only enemy phase f3726..3877**
+
+| File | NEW functions |
+|---|---|
+| bm.c | `OnVBlank*`@3726 `OnMain*`@3728 |
+| bmbattle.c | `sub_802C334*`@3804 |
+| bmcontainer.c | `GetConvoyItemArray`@3850 |
+| bmdifficulty.c | `SaveDungeonRecords*`@3850 `SaveDungeonState*`@3850 |
+| bmidoten.c | `GenerateUnitMovementMap*`@3803 `GenerateExtendedMovementMapOnRange*`@3804 `RevertMovementScript*`@3804 |
+| bmio.c | `WfxVSync*`@3726 `WfxUpdate*`@3727 `IsFirstPlaythrough*`@3805 |
+| bmitem.c | `GetItemUseEffect`@3803 |
+| bmlib.c | `Decompress*`@3726 `PlaySeSpacial`@3805 `Register2dChrMove*`@3805 `Screen2Pan`@3805 |
+| bmmap.c | `GetTerrainHealAmount*`@3799 `GetTerrainHealsStatus*`@3799 `RefreshEntityBmMaps*`@3803 `RefreshMinesOnBmMap*`@3803 `RefreshTorchlightsOnBmMap*`@3803 |
+| bmreliance.c | `GetUnitSupportLevel*`@3877 `GetUnitSupporterCharacter*`@3877 `GetUnitSupporterUnit*`@3877 `GetUnitTotalSupportLevel`@3877 `ProcessTurnSupportExp*`@3877 `UnitGainSupportExp`@3877 |
+| bmsave-bwl.c | `PidStatsAddSquaresMoved*`@3832 |
+| bmsave-gmap.c | `WriteWorldMapNodes`@3850 `WriteWorldMapPaths`@3850 `WriteWorldMapSkirmishes`@3850 `WriteWorldMapStuff*`@3850 `WriteWorldMapUnits`@3850 |
+| bmsave-lib.c | `WriteGlobalSaveInfoNoChecksum*`@3726 `IsGamePlayedThrough*`@3805 `SramOffsetToAddr`@3850 |
+| bmtarget.c | `MakeTerrainHealTargetList*`@3799 `MakePoisonDamageTargetList*`@3800 `sub_8026414*`@3800 `MakeGorgonEggHatchTargetList*`@3801 |
+| bmtrap.c | `GetPickTrapType*`@3832 |
+| bmtrick.c | `GetTrap*`@3803 `GetTrapAt*`@3832 `CountDownTraps`@3875 `DecayTraps*`@3875 `GenerateDisplayedTrapDamageTargets`@3875 `GenerateTrapDamageTargets`@3875 `sub_802EA00`@3875 `sub_802EA1C`@3875 `PostTrapExecFlag`@3876 `ResetCountedDownTraps`@3876 |
+| bmunit.c | `GetUnitCurrentHp`@3803 `GetUnitLeaderCharId*`@3803 `GetUnitSMSId*`@3803 `UnitHasMagicRank*`@3804 |
+| bmusailment.c | `TrapDamageDisplay_Check`@3875 `TrapDamageDisplay_Init`@3875 |
+| bmxfade.c | `NewBMXFADE*`@3832 `bmxfade_init`@3832 `bmxfade_loop`@3832 `Destruct6CBMXFADE`@3848 `DoesBMXFADEExist*`@3877 |
+| cp_0803E2F4.c | `AiCheckDangerAt`@3804 `AiCanEquip`@3832 `AiEquipBestConsideringDanger`@3832 `AiEquipGetDanger`@3832 `AiEquipGetFlags`@3832 `AiIsWithinFlyingDistance`@3832 |
+| cp_perform.c | `CpPerform_BeginUnitMovement`@3804 `CpPerform_MoveCameraOntoUnit`@3804 `CpPerform_UpdateMapMusic`@3804 `CpPerform_MoveCameraOntoTarget`@3830 `AiDummyAction`@3831 `CpPerform_PerformAction`@3831 `CpPerform_WaitAction`@3831 `AiRefreshMap*`@3832 `CpPerform_Cleanup`@3832 `CpPerform_EquipBest`@3832 |
+| cp_script.c | `AiScriptCmd_12_MoveTowardsEnemy`@3804 |
+| cp_utility.c | `AiCouldReachByBirdsEyeDistance*`@3803 `FillMovementAndRangeMapForItem*`@3803 `AiFindTargetInReachByFunc`@3804 `AiReachesByBirdsEyeDistance*`@3804 `AiTryMoveTowards*`@3804 |
+| event.c | `EventEngine_CanStartSkip*`@3877 `_FreezeMenu*`@3877 |
+| eventinfo.c | `sub_80832D4*`@3803 `CheckTutorialEvent*`@3832 `RunTutorialEvent*`@3859 `ClearActiveEventRegistry*`@3877 `RegisterEventActivation*`@3877 |
+| mu.c | `GetMuImgBufById*`@3804 `MuStepSe_Init`@3805 `MuStepSe_PlaySeA`@3805 `PlayMuStepSe*`@3805 `SetAutoMuDefaultFacing*`@3805 `StartPlayMuStepSe*`@3805 `MuStepSe_PlaySeB`@3806 `EndMuMovement`@3829 `HaltMu*`@3829 `Mu_OnStateDoNothing`@3829 |
+| phasechangefx.c | `PhaseIntroVMatchLo`@3728 `PhaseIntroVMatchMid*`@3728 |
+| soundwrapper.c | `GetCurrentBgmSong*`@3726 `StartBgm*`@3797 |
+| uimenu.c | `GetForceDisabledMenuItems*`@3850 `FreezeMenu*`@3877 |
+| uiselecttarget.c | `GetTarget`@3875 |
+| engine layer (72) | asm/arm_call.c 2, hardware.c 13, irq.c 1, libagbsyscall.c 7, m4a.c 4, m4a_1.c 6, proc.c 26, ramfunc.c 2, sio_main.c 1, tools/agbcc/lib/libc.a(memcpy.c) 1, tools/agbcc/lib/libc.a(memset.c) 1, tools/agbcc/lib/libgcc.a(_call_via_rX.c) 7, tools/agbcc/lib/libgcc.a(_umodsi3.c) 1 |
+
+**Window c: turn 3 attack on the boss f4130..4892**
+
+| File | NEW functions |
+|---|---|
+| ap.c | `APProc_Create`@4550 `APProc_OnUpdate`@4551 `APProc_OnEnd`@4578 |
+| banim-battleparse.c | `GetBanimTerrainGround`@4274 `GetSpellAnimId`@4274 `ParseBattleHitToBanimCmd`@4274 `UnsetMapStaffAnim`@4274 |
+| banim-ekrarena.c | `GetBattleAnimArenaFlag`@4274 `SetBanimArenaFlag`@4274 |
+| banim-ekrbattle.c | `GetBanimLinkArenaFlag`@4274 `SetBanimLinkArenaFlag`@4274 `IsBattleDeamonActive*`@4285 |
+| banim-ekrbattleintro.c | `PrepareBattleGraphicsMaybe`@4274 |
+| banim-ekrbattlestarting.c | `sub_8055BC4`@4274 |
+| banim-ekrcmd.c | `CheckBattleScripted`@4274 `FilterBattleAnimCharacterPalette`@4274 `GetBanimFactionPalette`@4274 `GetBattleAnimationId*`@4274 `GetEfxHp`@4274 `SetBattleUnscripted`@4274 |
+| banim-ekrdragonstatus.c | `ResetEkrDragonStatus`@4274 |
+| banim-ekrhensei.c | `CheckBanimHensei`@4274 |
+| bm.c | `OnMain*`@4130 `OnVBlank*`@4130 |
+| bmbattle.c | `BeginBattleAnimations*`@4274 `GetBattleAnimPreconfType*`@4274 `DidBattleUnitBreakWeapon`@4880 `HasBattleUnitGainedWeaponLevel`@4888 `BattlePrintDebugHitInfo`@4892 `BattlePrintDebugUnitInfo`@4892 |
+| bmcontainer.c | `HasConvoyAccess`@4181 `GetConvoyItemArray`@4272 |
+| bmdifficulty.c | `CanUnitSeize`@4181 `SaveDungeonRecords*`@4272 `SaveDungeonState*`@4272 |
+| bmio.c | `WfxUpdate*`@4130 `WfxVSync*`@4130 `IsFirstPlaythrough*`@4131 `GetTextDisplaySpeed*`@4279 |
+| bmitem.c | `GetUnitItemSlot`@4181 `IsItemEffectiveAgainst*`@4210 `IsUnitEffectiveAgainst`@4210 `IsItemCoveringRange*`@4240 `GetItemAwardedExp`@4888 `GetWeaponLevelFromExp`@4888 |
+| bmlib.c | `PlaySeSpacial`@4131 `Register2dChrMove*`@4131 `Screen2Pan`@4131 `Decompress*`@4210 `GetDataSize*`@4210 `UnpackRaw*`@4210 `CopyString`@4211 `SetBlackPal`@4285 `StartTemporaryLock*`@4285 `TemporaryLock_OnLoop`@4285 `StartPalFadeToBlack`@4446 `PutStringCentered`@4470 `sub_8013168`@4470 `CallDelayedArg`@4485 `CallDelayedArg_OnLoop`@4486 |
+| bmmenu.c | `ArenaCommandUsability`@4181 `ArmoryCommandUsability`@4181 `AttackBallistaCommandUsability`@4181 `ChestCommandUsability`@4181 `DanceCommandUsability`@4181 `DoorCommandUsability`@4181 `DropUsability`@4181 `ExitCommandUsability`@4181 `GiveUsability`@4181 `ItemSubMenu_IsTradeAvailable`@4181 `PickCommandUsability`@4181 `PlayCommandUsability`@4181 `RescueUsability`@4181 `RideCommandUsability`@4181 `SecretShopCommandUsability`@4181 `StaffCommandUsability`@4181 `StealCommandUsability`@4181 `SummonCommandUsability`@4181 `SupplyUsability`@4181 `SupportCommandUsability`@4181 `TakeUsability`@4181 `TalkCommandUsability`@4181 `UnitActionMenu_CanSeize`@4181 `VendorCommandUsability`@4181 `VisitCommandUsability`@4181 `YobimaCommandUsability`@4181 |
+| bmreliance.c | `GetUnitSupporterCharacter*`@4181 `GetUnitSupporterUnit*`@4181 `InitSupportBonuses`@4210 |
+| bmsave-bwl.c | `PidStatsAddBattleAmt*`@4274 `PidStatsAddFavval`@4274 `PidStatsAddWinAmt`@4274 `PidStatsRecordBattleRes*`@4274 `PidStatsAddExpGained*`@4892 `PidStatsRecordDefeatInfo*`@4892 |
+| bmsave-gmap.c | `WriteWorldMapNodes`@4272 `WriteWorldMapPaths`@4272 `WriteWorldMapSkirmishes`@4272 `WriteWorldMapStuff*`@4272 `WriteWorldMapUnits`@4272 |
+| bmsave-lib.c | `IsGamePlayedThrough*`@4131 `SramOffsetToAddr`@4272 `WriteGlobalSaveInfoNoChecksum*`@4274 |
+| bmtarget.c | `ForEachAdjacentUnit`@4181 `MakeRescueTargetList`@4181 `MakeTakeTargetList`@4181 `MakeTalkTargetList`@4181 `MakeTargetListForSupport`@4181 `MakeTradeTargetList`@4181 `TryAddRescuedUnitToTakeTargetList`@4181 `TryAddUnitToRescueTargetList`@4181 `TryAddUnitToTalkTargetList`@4181 `TryAddUnitToTradeTargetList`@4181 |
+| bmtrick.c | `GetTrap*`@4181 `DisableAllLightRunes*`@4240 `EnableAllLightRunes*`@4240 |
+| bmunit.c | `GetUnitKeyItemSlotForTerrain`@4181 `GetUnitCurrentHp`@4274 `UnitHasMagicRank*`@4274 |
+| bmxfade.c | `DoesBMXFADEExist*`@4279 |
+| cgtext.c | `CgTextExists*`@4445 `EndCgText*`@4446 |
+| event.c | `CallBattleQuoteEventInBattle`@4278 `GetEventTriggerState`@4278 `EventEngine_CanStartSkip*`@4279 |
+| eventinfo.c | `RunTutorialEvent*`@4130 `StartDestSelectedEvent*`@4130 `CheckForCharacterEvents`@4181 `GetAvailableTileEventCommand`@4181 `StartAfterUnitMovedEvent*`@4181 `CheckBattleForecastTutorialEvent*`@4240 `CheckTutorialEvent*`@4240 `CallBattleQuoteEventsIfAny`@4278 `GetBattleQuoteEntry`@4278 `CheckBattleDefeatTalk`@4636 `DisplayDefeatTalkForPid`@4636 `GetDefeatTalkEntry`@4636 `SetPidDefeatedFlag`@4636 |
+| eventscr.c | `_WhileFace6CExists*`@4446 |
+| face.c | `GetFaceDisplayBits`@4210 `GetPortraitData*`@4210 `FindFreeFaceSlot*`@4285 `EndFaceIn8Frames*`@4446 `EndFacePtr*`@4455 |
+| fontgrp.c | `Text_SetColor*`@4211 `Text_SetCursor`@4211 `GetLang*`@4275 `InitSystemTextFont*`@4275 `ResetText*`@4275 `Text_GetCursor`@4432 |
+| helpbox.c | `sub_808BB74*`@4446 |
+| icon.c | `LoadIconPalettes*`@4210 `ResetIconGraphics_*`@4241 |
+| mapanim.c | `MapAnim_PrepareBattleTalk`@4275 `MapAnim_MoveCameraOntoSubject`@4276 `MapAnim_CallBattleQuoteEvents`@4278 `SetBattleMuPalette`@4467 `SetBattleMuPaletteByIndex`@4467 `MapAnim_InitInfoBox`@4468 `MapAnim_AdvanceBattleRound`@4484 `MapAnim_PrepareNextBattleRound`@4484 `MapAnim_DisplayRoundAnim`@4485 `MapAnim_ShowPoisonEffectIfAny`@4537 `MapAnim_DisplayDeathQuote`@4636 `MapAnim_DisplayDeathFade`@4742 `MapAnim_StoleItemPopup`@4775 `MapAnim_DisplayExpBar`@4776 `BattleUnit_ShouldDisplayWpnBroke`@4880 `DisplayWpnBrokePopup`@4880 `BattleUnit_ShouldDisplayWRankUp`@4888 `DisplayWRankUpPopup`@4888 `MapAnim_Cleanup`@4891 |
+| mapanim_api.c | `BeginBattleMapAnims`@4274 `MakeBattleMOVEUNIT`@4274 `SetupMapAnimSpellData`@4274 `SetupMapBattleAnim`@4274 `SetBattleAnimFacing`@4275 `SetupBattleMOVEUNITs`@4275 `sub_807B4D0`@4275 |
+| mapanim_expbar.c | `DrawMAExpBar`@4777 `ProcMAExpBar_FrameAdvance`@4777 `ProcMAExpBar_InitDisplay`@4777 `ProcMAExpBar_OnDraw`@4777 `ProcMAExpBar_PlaySound74`@4803 `ProcMAExpBar_OnIncrement`@4805 `ProcMAExpBar_LevelUpIfPossible`@4878 |
+| mapanim_infobox.c | `StartMapAnimInfoWindow`@4468 `DisplayBattleInfoBox`@4470 `GetBattleInfoPalByFaction`@4470 `MapInfoBoxShake`@4470 `MapInfoBox_PrepareForShake`@4470 `PrepareMapBattleBoxNumGfx`@4470 `ProcMapInfoBox_OnDraw`@4470 `UncompMapBattleBoxNumGfx`@4470 `sub_807BA28`@4470 `sub_807BB10`@4470 `sub_807BB40`@4470 `sub_807BD54`@4470 `sub_807BCA8`@4479 `EndMapAnimInfoWindow`@4636 `ProcMapInfoBox_OnEnd`@4636 |
+| mapanim_scanline.c | `InitScanline`@4470 `InitScanlineBuf`@4470 `PrepareGradientScanlineBuf`@4470 `StartManimFrameGradientScanlineEffect`@4470 `SwapScanlineBufs`@4471 `sub_8081FFC`@4471 |
+| mapanim_specialeffect.c | `MapAnim_BeginMISSAnim`@4550 |
+| mapanim_spellassoc.c | `MapAnimMoveUnitTowardsTargetExt`@4485 `MapAnim_BeginSubjectFastAnim`@4485 `MapAnim_GetRoundProcScript`@4485 `MapAnim_MoveSubjectsTowardsTarget`@4485 `MapAnim_MoveCameraOnTarget`@4489 `MapAnim_BeginRoundSpecificAnims`@4491 `RegisterMapHpChangeAnim`@4491 `MapAnim_WaitForHPToEndChangingMaybe`@4499 `MapAnimMoveUnitAwayFromTargetExt`@4513 `MapAnim_MoveSubjectsAwayFromTarget`@4513 |
+| msg.c | `StrInsertTact*`@4211 |
+| mu.c | `Mu_OnStateDoNothing`@4130 `MuStepSe_Init`@4131 `MuStepSe_PlaySeA`@4131 `PlayMuStepSe*`@4131 `StartPlayMuStepSe*`@4131 `MuStepSe_PlaySeB`@4132 `EndMuMovement`@4179 `HaltMu*`@4179 `GetMuImgBufById*`@4274 `StartMuSpeedUpAnim`@4485 `StartMuHitFlash`@4491 `MuSlowDownAnimFreezeFunc`@4506 `MuFlashFadeFrom_RestorePal`@4508 `MU_StartDeathFade*`@4742 `MuDeathFade_OnLoop`@4742 `EndMuExt*`@4773 |
+| scene.c | `IsTalkActive*`@4279 `StartTalkExt*`@4279 `GetTalkFaceHPos*`@4285 `TalkOpen_OnEnd*`@4308 `GetTalkChoiceResult*`@4445 `EndTalk*`@4446 `FaceExists*`@4446 |
+| spellassoc.c | `GetSpellAssocCharCount`@4274 `GetSpellAssocMapAnimProcScript`@4274 `GetSpellAssocStructPtr`@4274 `GetSpellAssocFacing`@4275 `GetSpellAssocReturnBool`@4468 `GetSpellAssocFlashColor`@4491 |
+| uimenu.c | `GetForceDisabledMenuItems*`@4272 |
+| uiutils.c | `UnpackUiFrameBuffered*`@4270 `UnpackUiFramePalette`@4270 `UnpackUiFrameImage`@4461 |
+| engine layer (80) | asm/arm_call.c 5, hardware.c 10, irq.c 1, libagbsyscall.c 7, m4a.c 5, m4a_1.c 9, proc.c 29, ramfunc.c 3, tools/agbcc/lib/libc.a(memcpy.c) 1, tools/agbcc/lib/libgcc.a(_call_via_rX.c) 7, tools/agbcc/lib/libgcc.a(_divsi3.c) 1, tools/agbcc/lib/libgcc.a(_modsi3.c) 1, tools/agbcc/lib/libgcc.a(_umodsi3.c) 1 |
+
+**Window d: ending scene start f4894..5000**
+
+| File | NEW functions |
+|---|---|
+| banim-ekrbattle.c | `IsBattleDeamonActive*`@4895 |
+| bm.c | `OnMain*`@4894 `OnVBlank*`@4894 |
+| bmio.c | `WfxUpdate*`@4894 `WfxVSync*`@4894 `GetTextDisplaySpeed*`@4933 |
+| bmlib.c | `Register2dChrMove*`@4905 `Decompress*`@4913 `GetDataSize*`@4939 `SetBlackPal`@4939 `StartTemporaryLock*`@4939 `TemporaryLock_OnLoop`@4939 `UnpackRaw*`@4939 |
+| bmmap.c | `RefreshEntityBmMaps*`@4894 `RefreshMinesOnBmMap*`@4894 `RefreshTorchlightsOnBmMap*`@4894 |
+| bmsave-lib.c | `UnlockSoundRoomSong*`@4945 |
+| bmtrap.c | `GetPickTrapType*`@4894 |
+| bmtrick.c | `GetTrap*`@4894 `GetTrapAt*`@4894 |
+| bmunit.c | `GetUnitCurrentHp`@4894 `GetUnitSMSId*`@4894 `RefreshAllies*`@4894 `SetUnitStatus*`@4894 |
+| bmxfade.c | `DoesBMXFADEExist*`@4894 |
+| cgtext.c | `EndCgText*`@4912 |
+| event.c | `EventEngine_CanStartSkip*`@4894 `_FreezeMenu*`@4894 |
+| eventinfo.c | `CheckTutorialEvent*`@4894 `ClearActiveEventRegistry*`@4894 `RegisterEventActivation*`@4894 `RunTutorialEvent*`@4894 |
+| eventscr_utils.c | `ChangeUnitSpritePalette*`@4912 |
+| face.c | `FindFreeFaceSlot*`@4939 `GetFaceDisplayBits`@4939 `GetPortraitData*`@4939 |
+| fontgrp.c | `Text_SetColor*`@4912 `GetLang*`@4933 `InitSystemTextFont*`@4933 |
+| helpbox.c | `sub_808BB74*`@4912 |
+| mu.c | `Mu_OnStateDoNothing`@4894 `LockMus*`@4912 |
+| scene.c | `EndTalk*`@4912 `IsTalkActive*`@4933 `StartTalkExt*`@4933 `GetTalkFaceHPos*`@4939 `TalkOpen_OnEnd*`@4962 |
+| soundwrapper.c | `DeleteAll6CWaitMusicRelated*`@4894 `GetCurrentBgmSong*`@4894 `PlaySong*`@4945 |
+| uimenu.c | `FreezeMenu*`@4894 |
+| engine layer (61) | asm/arm_call.c 2, hardware.c 9, libagbsyscall.c 6, m4a.c 5, m4a_1.c 6, proc.c 21, ramfunc.c 3, tools/agbcc/lib/libc.a(memcpy.c) 1, tools/agbcc/lib/libc.a(memset.c) 1, tools/agbcc/lib/libgcc.a(_call_via_rX.c) 5, tools/agbcc/lib/libgcc.a(_modsi3.c) 1, tools/agbcc/lib/libgcc.a(_umodsi3.c) 1 |
+
+Ported and Transcribed functions the windows enter (union a..d, by file; engine-layer files left out):
+
+| File | Ported | Transcribed |
+|---|---|---|
+| agb_sram.c | `WriteAndVerifySramFast` `WriteSramFast` |  |
+| ap.c |  | `AP_Create` `AP_Delete` `AP_Display` `AP_ExecDummyFrame` `AP_ExecFrame` `AP_Find` `AP_Init` `AP_LoadDefinition` `AP_QueueObjGraphics` `AP_QueueObjRotScale` `AP_SwitchAnimation` `AP_Update` |
+| bksel.c | `BattleForecastHitCountUpdate` `BattleForecast_Init` `BattleForecast_LoopDisplay` `BattleForecast_LoopSlideIn` `BattleForecast_OnNewBattle` `CloseBattleForecast` `DrawBattleForecastContents` `DrawBattleForecastContentsStandard` `GetBattleForecastPanelSide` `GetFactionBattleForecastFramePalette` `InitBattleForecastBattleStats` `InitBattleForecastFramePalettes` `InitBattleForecastIconPaletteBuffer` `InitBattleForecastLabels` `MapEventEngineExists_` `NewBattleForecast` `PutBattleForecastItemName` `PutBattleForecastMultipliers` `PutBattleForecastUnitName` `PutBattleForecastWeaponTriangleArrows` `UpdateBattleForecastEffectivenessPalettes` | `BattleForecast_OnEnd` `TriggerBattleForcastToturialEvent` `UpdateBattleForecastContents` |
+| bm.c | `BmMain_ChangePhase` `BmMain_StartPhase` `BmMain_SuspendBeforePhase` `BmMain_UpdateTraps` `EnsureCameraOntoPosition` `GetCameraAdjustedX` `GetCameraAdjustedY` `GetCurrentMapMusicIndex` `GetGameLock` `HandleMapCursorInput` `HandleMoveCameraWithMapCursor` `HandleMoveMapCursor` `InitBmBgLayers` `LoadObjUIGfx` `LockGame` `PutMapCursor` `SetCursorMapPosition` `StartMapSongBgm` `SwitchPhases` `UnlockGame` `UpdateStatArrowSprites` `sub_8015434` |  |
+| bmbattle.c | `BattleApplyExpGains` `BattleApplyGameStateUpdates` `BattleApplyUnitUpdates` `BattleApplyWeaponTriangleEffect` `BattleCheckBraveEffect` `BattleCheckGreatShield` `BattleCheckPetrify` `BattleCheckPierce` `BattleCheckSureShot` `BattleGenerate` `BattleGenerateHit` `BattleGenerateHitAttributes` `BattleGenerateHitEffects` `BattleGenerateReal` `BattleGenerateRealInternal` `BattleGenerateRoundHits` `BattleGenerateSimulation` `BattleGenerateSimulationInternal` `BattleGenerateUiStats` `BattleGetBattleUnitOrder` `BattleGetFollowUpOrder` `BattleRoll1RN` `BattleRoll2RN` `BattleUnitTargetCheckCanCounter` `BattleUnitTargetSetEquippedWeapon` `BattleUnwind` `BattleUpdateBattleStats` `CanBattleUnitGainLevels` `ClearBattleHits` `ComputeBattleUnitAttack` `ComputeBattleUnitAvoidRate` `ComputeBattleUnitCritRate` `ComputeBattleUnitDefense` `ComputeBattleUnitDodgeRate` `ComputeBattleUnitEffectiveCritRate` `ComputeBattleUnitEffectiveHitRate` `ComputeBattleUnitEffectiveStats` `ComputeBattleUnitHitRate` `ComputeBattleUnitSilencerRate` `ComputeBattleUnitSpeed` `ComputeBattleUnitStats` `ComputeBattleUnitSupportBonuses` `GetBattleUnitExpGain` `GetBattleUnitHitCount` `GetBattleUnitUpdatedWeaponExp` `GetUnitClassKillExpBonus` `GetUnitExpLevel` `GetUnitKillExpBonus` `GetUnitPowerLevel` `GetUnitRoundExp` `InitBattleUnit` `ModifyUnitSpecialExp` `SetBattleUnitTerrainBonusesAuto` `SetBattleUnitWeapon` `UpdateUnitFromBattle` | `BattleApplyBallistaUpdates` `BattleGenerateHitTriangleAttack` `BattleInitTargetCanCounter` `CheckBattleUnitLevelUp` `ComputeBattleUnitSpecialWeaponStats` `ComputeBattleUnitStatusBonuses` `ComputeBattleUnitWeaponRankBonuses` `GetUnitExpMultiplier` |
+| bmcamadjust.c | `ProcFun_ResetCursorPosition` | `GetEnemyStartCursorPosition` |
+| bmidoten.c | `GenerateMovementMap` `GenerateUnitStandingReachRange` `MapAddInBoundedRange` `MapAddInRange` `SetWorkingBmMap` `SetWorkingMoveCosts` | `GenerateBestMovementScript` `UnitApplyWorkingMovementScript` |
+| bmio.c | `BMapDispSuspend` `BMapVSync_OnLoop` `BMapVSync_UpdateMapImgAnimations` | `BMapVSync_UpdateMapPalAnimations` |
+| bmitem.c | `CanUnitUseWeaponNow` `DrawItemMenuLine` `EquipUnitItemSlot` `GetItemAfterUse` `GetItemAttributes` `GetItemCrit` `GetItemHit` `GetItemIconId` `GetItemMaxUses` `GetItemMight` `GetItemMinRange` `GetItemName` `GetItemReachBits` `GetItemType` `GetItemUses` `GetUnitWeaponReachBits` | `CanUnitUseStaff` `CanUnitUseWeapon` `GetItemDefBonus` `GetItemHpBonus` `GetItemIndex` `GetItemLckBonus` `GetItemMaxRange` `GetItemPowBonus` `GetItemResBonus` `GetItemSklBonus` `GetItemSpdBonus` `GetItemWeaponEffect` `GetItemWeight` `GetUnitEquippedWeapon` `GetUnitEquippedWeaponSlot` |
+| bmlib.c | `Copy2dChr` `FadeFromBlack_OnInit` `FadeToBlack_OnInit` `FadeToCommon_OnLoop` `Interpolate` `StartLockingFadeFromBlack` `StartLockingFadeToBlack` `StringCompare` | `FadeFromCommon_OnLoop` `PalFade_OnLoop` `StartPalFade` |
+| bmmap.c | `BmMapFill` `DisplayBmTile` `DisplayMovementViewTile` `RefreshUnitsOnBmMap` `RenderBmMap` `UnpackChapterMapPalette` `UpdateBmMapDisplay` | `RenderBmMapOnBg2` |
+| bmmenu.c | `AttackCommandUsability` `AttackMapSelect_End` `AttackMapSelect_Select` `AttackMapSelect_SwitchIn` `BallistaRangeMenu_SwitchOut` `DisplayUnitStandingAttackRange` `HideMoveRangeGraphicsWrapper` `ItemCommandUsability` `StartUnitWeaponSelect` `UnitActionMenu_Attack` `WeaponSelectMenu_IsAvailable` `WeaponSelectMenu_Selected` `WeaponSelectMenu_SwitchIn` | `WeaponSelectMenu_Draw` |
+| bmmind.c | `ActionCombat` `ApplyUnitAction` `BATTLE_GOTO1_IfNobodyIsDead` `BATTLE_HandleCombatDeaths` `BATTLE_HandleItemDrop` `KillUnitOnCombatDeath` `StoreRNStateToActionStruct` | `DropRescueOnDeath` |
+| bmpatharrowdisp.c | `GetMovementScriptFromPath` |  |
+| bmphase.c | `AreUnitsAllied` | `GetPhaseAbleUnitCount` `IsSameAllegiance` |
+| bmreliance.c | `GetUnitSupporterCount` | `GetUnitSupportBonuses` |
+| bmsave-bwl.c | `WriteChapterStats` `WritePidStats` |  |
+| bmsave-lib.c | `Checksum16` `GetSaveWriteAddr` `IsSramWorking` `LoadAndVerifySoundRoomData` `ReadGlobalSaveInfo` `WriteChapterFlags` `WritePermanentFlags` `WriteSaveBlockInfo` | `WriteSupplyItems` |
+| bmsave.c | `EncodeSuspendSavePackedUnit` `GetLastSuspendSaveId` `GetNextSuspendSaveId` `PopulateSaveBlockChecksum` `SramChecksum32` `WriteSuspendSave` `WriteSwappedSuspendSaveId` | `WriteTraps` |
+| bmtarget.c | `AddUnitToTargetListIfNotAllied` `ForEachUnitInRange` `MakeTargetListForWeapon` `TryAddTrapsToTargetList` |  |
+| bmtrap.c | `HandlePostActionTraps` |  |
+| bmudisp.c | `AddUnitSprite` `ApplyUnitSpritePalettes` `GetUnitSpritePalette` `PutUnitSpriteIconsOam` `PutUnitSpritesOam` `RefreshUnitSprites` `UseUnitSprite` | `GetUnitDisplayedSpritePalette` `GetUnitSpriteHideFlag` `HideUnitSprite` `PutChapterMarkedTileIconOam` `ShowUnitSprite` `SyncUnitSpriteSheet` |
+| bmunit.c | `ClearActiveFactionGrayedStates` `ClearCutsceneUnits` `CountAvailableBlueUnits` `GetCharacterData` `GetClassData` `GetUnit` `GetUnitFromCharId` `GetUnitMovementCost` `GetUnitPortraitId` `MoveActiveUnit` `UnitBeginAction` `UnitKill` | `GetUnitDefense` `GetUnitItemCount` `GetUnitLuck` `GetUnitMaxHp` `GetUnitPower` `GetUnitResistance` `GetUnitSkill` `GetUnitSpeed` `SetAllUnitNotBackSprite` `TickActiveFactionTurn` `UnitCheckStatCaps` `UnitFinalizeMovement` `UnitRemoveInvalidItems` |
+| bmusailment.c | `GorgonEggHatchDisplay_Init` `PoisonDamageDisplay_Init` `StatusDecayDisplay_Init` `TerrainHealDisplay_Init` |  |
+| chapterdata.c | `GetChapterEventDataPointer` `GetROMChapterStruct` |  |
+| cp_0803E2F4.c | `AiFillDangerMap` `AiInitDangerMap` `AiUpdateGetUnitIsHealing` `UpdateAllPhaseHealingAIStatus` |  |
+| cp_battle.c | `AiAttemptOffensiveAction` |  |
+| cp_decide.c | `AiClearDecision` `AiDecideMain` `AiSetDecision` `CpDecide_Main` `CpDecide_Suspend` | `DecideHealOrEscape` `DecideScriptA` `DecideScriptB` |
+| cp_order.c | `BuildAiUnitList` `CpOrderBerserkInit` `CpOrderFunc_BeginDecide` `CpOrderFunc_End` `CpOrderMain` | `GetUnitAiPriority` `GetUnitBattleAiPriority` `SortAiUnitList` |
+| cp_phase.c | `AiPhaseBerserkInit` `AiPhaseCleanup` `AiPhaseInit` |  |
+| cp_script.c | `AiScriptCmd_05_DoStandardAction` `AiScript_Exec` `AiTryExecScriptA` `AiTryExecScriptB` | `AiIsUnitEnemy` |
+| cp_staff.c | `AiTryDoStaff` |  |
+| cp_utility.c | `SaveNumberOfAlliedUnitsIn0To8Range` `SetupUnitInventoryAIFlags` | `SetupUnitHealStaffAIFlags` `SetupUnitStatusStaffAIFlags` |
+| cpextra_80407F0.c | `AiUpdateNoMoveFlag` |  |
+| ctc.c | `ClearSprites` `PushSpriteLayerObjects` `PutSpriteExt` | `PutSprite` |
+| event.c | `EventEngine_Create` `EventEngine_OnUpdate` | `BattleEventEngineExists` `CallEvent` `CallNextQueuedEvent` `EventEngineExists` `EventEngine_CreateBattle` `EventEngine_OnEnd` `GetEventSlotCounter` |
+| eventinfo.c | `CheckForWaitEvents` `EvCheck00_Always` `EvCheck01_AFEV` `EvCheck02_TURN` `GetChapterFlagBits` `GetChapterFlagBitsSize` `GetPermanentFlagBits` `GetPermanentFlagBitsSize` `RunPhaseSwitchEvents` `RunWaitEvents` `SearchAvailableEvent` `SetFlag` `SetPermanentFlag` `StartEventFromInfo` | `CheckChapterFlag` `CheckFlag` `CheckPermanentFlag` `CheckPermanentFlagFrom` `ClearChapterFlag` `ClearFlag` `SearchNextAvailableEvent` `SetChapterFlag` `sub_80832C4` `sub_80832C8` |
+| eventscr.c | `Event01_End` `Event02_EvBitAndIdMod` `Event05_SetSlot` `Event08_Label` `Event09_Goto` `Event0A_Call` `Event0C_Branch` `Event12_StartBGM` `Event1A_TEXTSTART` `Event1B_TEXTSHOW` `Event1D_WaitForLockTalk` `Event21_TextBg` `Event23_DisaleMapDisp` `EventShowTextBgDirect` `sub_800E210` `sub_800E640` | `Event03_CheckEvBitOrId` `Event10_ModifyEvBit` `Event17_Fade` `Event19_Checks` |
+| face.c | `EndFace` `EndFaceById` `FaceBlinkProc_GenBlinkInterval` `FaceRefreshSprite` `Face_OnIdle` `ResetFaces` `SetFaceBlinkControl` `SetFaceBlinkControlById` `StartFace` `StartFaceFadeIn` `StartFaceFadeOut` `sub_8005FD4` `sub_8005FE0` `sub_800623C` `sub_8006280` `sub_80062B8` | `Face_OnInit` `SetFaceDisplayBits` `SetupFaceGfxData` `StartFaceAuto` `sub_8006134` |
+| fontgrp.c | `AddSpecialChar` `ClearText` `DrawSpecialCharGlyph` `DrawTextGlyph` `GetCharTextLen` `GetCharTextLenASCII` `GetColorLut` `GetSpecialCharChr` `GetStringTextCenteredPos` `GetStringTextLen` `GetStringTextLenASCII` `GetTextDrawDest` `GreenText_OnLoop` `InitTalkTextFont` `InitText` `InitTextDb` `InitTextFont` `PutDrawText` `PutNumber` `PutNumberExt` `PutNumberOrBlank` `PutNumberTwoChr` `PutSpecialChar` `PutText` `PutTwoSpecialChar` `SetTextFont` `SetTextFontGlyphs` `StartGreenText` `Text_DrawCharacter` `Text_DrawCharacterAscii` `Text_DrawNumber` `Text_DrawNumberOrBlank` `Text_DrawString` `Text_DrawStringASCII` `Text_InsertDrawNumberOrBlank` `Text_InsertDrawString` `Text_SetParams` | `ResetTextFont` |
+| hardware.c | `BG_EnableSyncByMask` `BG_Fill` `BG_GetMapBuffer` `BG_SetPosition` `EnablePaletteSync` `FlushBackgrounds` `FlushLCDControl` `GetBackgroundTileDataOffset` `SetBackgroundTileDataOffset` `SetBlendConfig` `SetPrimaryHBlankHandler` `SyncHiOam` `UpdateHBlankHandlerState` `UpdateKeyStatus` `_UpdateKeyStatus` | `SetBlendBackdropA` `SetBlendBackdropB` `SetObjAffine` `SetSecondaryHBlankHandler` `SyncLoOam` |
+| icon.c | `DrawIcon` `GetIconGfxIndex` `GetIconTileIndex` `LoadIconPalette` `ResetIconGraphics` | `GetIconGfxTileIndex` |
+| m4a.c | `CgbModVol` `CgbSound` `FadeOutBody` `MPlayFadeOut` `MPlayStart` `MidiKeyToCgbFreq` `MidiKeyToFreq` `TrkVolPitSet` `m4aMPlayImmInit` `m4aMPlayStop` `m4aSongNumStart` `m4aSongNumStop` `m4aSoundMode` |  |
+| m4a_1.c | `ChnVolSetAsm` `MPlayMain` `RealClearChain` `TrackStop` `m4aSoundVSync` `ply_endtie` `ply_fine` `ply_note` `ply_pan` `ply_pend` `ply_tempo` `ply_voice` `ply_vol` | `ply_keysh` |
+| mapanim_api.c | `GetFacingDirection` |  |
+| menuitempanel.c | `ForceMenuItemPanel` `MenuItemPanelProcIdle` `UpdateMenuItemPanel` |  |
+| msg.c | `GetStringFromIndex` `SetMsgTerminator` |  |
+| mu.c | `EndMu` `GetDefaultMuConfig` `GetMuAnimForJid` `GetMuDisplayPosition` `GetMuImg` `GetMuQ4MovementSpeed` `MU_OnEnd` `MuExistsActive` `Mu_OnLoop` `Mu_OnStateMovement` `PutMu` `RunMuMoveScript` `SetAutoMuMoveScript` `SetMuMoveScript` `StartMu` `StartMuInternal` | `EndAllMus` `ResetMuAnims` `SetMuDefaultFacing` `SetMuFacing` `UpdateMuStepSounds` |
+| phasechangefx.c | `PhaseIntroBlendBox_InLoop` `PhaseIntroBlendBox_Init` `PhaseIntroBlendBox_OutLoop` `PhaseIntroClearText` `PhaseIntroSquares_InLoop` `PhaseIntroSquares_Init` `PhaseIntroSquares_OutLoop` `PhaseIntroText_InLoop` `PhaseIntroText_OutLoop` `PhaseIntroText_PutText` `PhaseIntroUnk_Init` `PhaseIntroUnk_Loop` `PhaseIntro_EndIfNoUnits` `PhaseIntro_InitDisp` `PhaseIntro_InitGraphics` `PhaseIntro_WaitForEnd` | `PhaseIntroInitText` `PhaseIntroVMatchHi` |
+| playerphase.c | `CanMoveActiveUnitTo` `DisplayMoveRangeGraphics` `GetPlayerSelectKind` `HandlePlayerCursorMovement` `HideMoveRangeGraphics` `MoveLimitViewChange_OnInit` `MoveLimitViewChange_OnLoop` `MoveLimitView_OnEnd` `MoveLimitView_OnInit` `MoveLimitView_OnLoop` `PlayerPhase_ApplyUnitMovement` `PlayerPhase_DisplayUnitMovement` `PlayerPhase_PrepareAction` `PlayerPhase_RangeDisplayIdle` `PlayerPhase_WaitForUnitMovement` `RunPotentialWaitEvents` |  |
+| proc.c | `Proc_BlockEachMarked` `Proc_Break` `Proc_End` `Proc_Find` `Proc_ForEach` `Proc_Goto` `Proc_Run` `Proc_Start` `Proc_StartBlocking` | `Proc_SetEndCb` |
+| rng.c | `AdvanceGetLCGRNValue` `NextRN` | `NextRN_100` `NextRN_N` `Roll1RN` `Roll2RN` `StoreRNState` |
+| scene.c | `ClearPutTalkText` `ClearTalkBubble` `ClearTalkFaceRefs` `InitTalk` `IsTalkFaceMoving` `PutTalkBubble` `PutTalkBubbleTail` `PutTalkBubbleTm` `SetInitTalkTextFont` `SetTalkFaceDisp` `SetTalkFaceLayer` `StartOpenTalkBubble` `StartTalkMsg` `StartTalkOpen` `StartTalkWaitForInput` `TalkBubbleOpen_OnIdle` `TalkHasCorrectBubble` `TalkInterpret` `TalkLoadFace` `TalkOpen_OnIdle` `TalkOpen_PutTalkBubble` `TalkPrepNextChar` `TalkShiftClear_OnIdle` `TalkShiftClear_OnInit` `TalkWaitForInput_OnIdle` `Talk_OnEnd` `Talk_OnIdle` `Talk_OnInit` | `CheckTalkFlag` `GetStrTalkLen` `InitTalkTextWin` `IsTalkLocked` `SetActiveTalkFace` `SetTalkFaceMouthMove` `SetTalkFaceNoMouthMove` `TalkBgSync` `TalkOpen_InitBlend` `TalkSkipListener_OnIdle` |
+| soundwrapper.c | `DelaySong_OnLoop` `Sound_FadeOutBGM` `StartBgmExt` `StartSongDelayed` `sub_80028FC` | `StartOrChangeBgm` |
+| time.c | `CheckCanKeyComboReset` `GetGameClock` `IncrementGameClock` |  |
+| uidebug.c | `AreAnyEnemyUnitDead` |  |
+| uimenu.c | `ApplyMenuCursorVScroll` `DrawMenuItemHover` `EndMenu` `GetMenuCursorPosition` `MenuAlwaysEnabled` `Menu_OnIdle` `Menu_OnInit` `ProcessMenuDpadInput` `ProcessMenuSelectInput` `RedrawMenu` `StartMenuAt` `StartMenuCore` `StartOrphanMenu` `StartOrphanMenuAdjusted` `StartSemiCenteredOrphanMenu` | `OverriddenMenuAvailability` `OverriddenMenuSelected` |
+| uiselecttarget.c | `AddTarget` `EndTargetSelection` `GetFurthestTargetDistance` `GetLinkedTargets` `GetLinkedTargetsNear` `GetSelectTargetCount` `InitTargets` `NewTargetSelection` `TargetSelection_GetRealCursorPosition` `TargetSelection_HandleSelectInput` `TargetSelection_Loop` | `TargetSelection_HandleMoveInput` |
+| uiutils.c | `ClearBg0Bg1` `ClearUiFrame` `DisplayUiHand` `DrawUiFrame` `DrawUiFrame2` `DrawUiItemHoverExt` `LoadUiFrameGraphics` |  |
+| unit_facing.c | `ChangeActiveUnitFacing` |  |
+| worldmap_path.c |  | `GetBattleMapKind` |
+
+Corrected and new PORT rows (all in `docs/TASKS.md`; every NEW function of the table above is in exactly one row; checked by
+script against the trace):
+
+| Window | Rows |
+|---|---|
+| a: boss turn event | EP-11a (opcode 39, event start), EP-11b..h (talk, face, text, UI restore, BGM, polls), EP-27 (`PidStatsAddFavval`) |
+| b: move-only phase | EP-7d, EP-7c (movement commands and helpers), EP-7/EP-8/EP-9 (windows added), EP-8b, EP-8c (Mu), EP-9b (equip), EP-9c (fade, map refresh), EP-1b (display targets), EP-3c, EP-3d (suspend save), EP-10a..c (traps, counts, support exp), D12-2 (banner per scanline) |
+| c: boss battle | EP-13..EP-16 (setup, banim queries, spell lookups), EP-17..EP-19 (flow, popups), EP-20..EP-22 (info box, scanline), EP-23..EP-25 (round effects, miss, Mu effects), EP-26 (exp bar), EP-27 (stats), EP-28 (quote and defeat events), EP-29..EP-36 (unit-menu build and battle helpers); `C14-ma` is now the umbrella that re-verifies EP-13..26 on MC-cap1/2 |
+| d: ending scene start | PC-1 (corrected: wait-event path), PC-2 (opcode list), PC-2a (3 functions), EP-11b..h and EP-29 (shared plumbing) |
+
+Counts of NEW functions per row group: 336 distinct NEW game-logic functions (union of a..d) = 4 main-loop functions without a
+row + 332 in rows. Engine-layer functions: 90, no rows.
+
 ## M6-E Prologue completable
 
 Exit: win → ending event → save → Chapter 1 map; game over works.

@@ -65,7 +65,7 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game (GameControl, GameLoop) | 2 | 850 | done 2026-11-09 ee10196; audit done 2026-11-13 460fe3bc |
 | game | fe8.game (BootRom, Fe8Game, Fe8Sound, RomView, SoundWrapper) | 5 | 836 | done 2026-11-09 ee10196; audit done 2026-11-13 dcad7a9a |
 | game | fe8.game (PlayerPhaseWiring, WorldMapBoot) | 2 | 889 | done 2026-11-09 ee10196; audit done 2026-11-14 c269803b |
-| game | fe8.game (Fe8Boot lines 1-680) | 1 | 680 | done 2026-11-09 ee10196; audit todo |
+| game | fe8.game (Fe8Boot lines 1-680) | 1 | 680 | done 2026-11-09 ee10196; audit done 2026-11-14 HASH |
 | game | fe8.game (Fe8Boot lines 681-1350) | 1 | 670 | done 2026-11-09 ee10196; audit todo |
 | game | fe8.game.bm (PlaySt, PlayConfig, BmSt, StructCodec) | 4 | 727 | done 2026-11-10 bac8ed1; audit done 2026-11-13 d2196f8 |
 | game | fe8.game.bm (Camera, CamMove, MapCursor, ResetCursorPosition, MapMusic) | 5 | 711 | done 2026-11-10 bac8ed1; audit done 2026-11-13 3efb79c |

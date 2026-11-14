@@ -145,6 +145,9 @@ import gbafe.text.MsgStrings
  * synced display state ([HardwareSceneLoader] -> [SoftwareRenderer], or the GPU renderer on
  * device). With [m4a], the boot's BGM and sound effects play through [SoundWrapper], mixed in
  * the VBlank exactly as traced (`Fe8BootSoundTest`); CGB (PSG) channels are still silent.
+ *
+ * Past the title, New Game goes through the world map and chapter intro to the Prologue battle
+ * map, with the player phase and the enemy phase ([wirePlayerPhase]) running on the same procs.
  */
 public class Fe8Boot(
     /** ROM data of the boot screens (whole ROM, or the extracted [RomView.BOOT_WINDOWS]). */
@@ -205,6 +208,8 @@ public class Fe8Boot(
 
     /** The blend fades of `src/bmlib.c` (`StartMidFadeFromBlack`, the event fade command). */
     public val screenFade: ScreenFade = ScreenFade(engine, hw.lcd)
+
+    /** The LCD I/O register image (offset 0 = 0x04000000) that [loop] flushes each frame for the renderer. */
     private val io = ByteArray(0x60)
 
     private lateinit var opAnimRef: OpAnim
@@ -231,15 +236,15 @@ public class Fe8Boot(
     }
 
     /**
-     * Stand-in until M6-E for `StartSaveMenu` (the save menu is not ported). With a valid suspend
-     * save in
-     * [sram] it takes the menu's "Resume" choice: reads the suspend save
-     * ([BmSuspendSave.readSuspendSave]) and sets `nextAction` to `GAME_ACTION_4`, so the game
-     * control proc continues at the resumed game. Otherwise it is the dev "New Game" choice: writes
-     * a fresh game to slot 0 ([BmSaveLib.writeNewGameSave], the save menu's difficulty 1 "Normal":
-     * `SaveMenuWriteNewGame` passes mode 1, isTutorial 1, not hard; ram_trace_prologue has
-     * `config.controller` = 1, so Event19 CHECK_TUTORIAL is false) and leaves `nextAction` at event
-     * return, so the game control proc continues to chapter 0.
+     * Stand-in until M6-E (PC-9 for the New Game path) for `StartSaveMenu` (the save menu is not
+     * ported). With a valid suspend save in [sram] it takes the menu's "Resume" choice: reads the
+     * suspend save ([BmSuspendSave.readSuspendSave]) and sets `nextAction` to `GAME_ACTION_4`,
+     * so the game control proc continues at the resumed game. Otherwise it is the dev "New Game"
+     * choice: writes a fresh game to slot 0 ([BmSaveLib.writeNewGameSave], the save menu's
+     * difficulty 1 "Normal": `SaveMenuWriteNewGame` passes mode 1, isTutorial 1, not hard;
+     * ram_trace_prologue has `config.controller` = 1, so `CHECK_TUTORIAL` (`Event19_Checks`) is
+     * false) and leaves `nextAction` at event return, so the game control proc continues to
+     * chapter 0.
      */
     private fun newGameSaveMenu() {
         if (saveLib.isValidSuspendSave(SAVE_ID_SUSPEND)) {
@@ -276,9 +281,12 @@ public class Fe8Boot(
     private val gmData = GmData(ByteArray(GM_DATA_IWRAM_SIZE), rng)
 
     /**
-     * The event engine (`EventEngine`) with the ported command handlers of [EventScrCore],
-     * [EventUnitState] (0x34) and [EventScriptBattle] (0x3F) registered; the other commands stay
-     * unknown. Hooks are the defaults (no-ops), except the map accessors and entity map refresh.
+     * The event engine (`EventEngine`) with every ported command handler registered (core,
+     * unit state and loads, cursor and camera, map change, battle, fade, BGM, give item, popup,
+     * and with the whole ROM the talk, text background and ASM-call commands). The commands
+     * still unported are registered as no-op release stubs ([ReleaseEventStubs], reported to
+     * [onEventStub]). The engine hooks are wired to the screen fade, talk scene, world map,
+     * game lock and sound of this boot.
      */
     public val eventEngine: EventEngine by lazy {
         val state = eventState
@@ -299,8 +307,8 @@ public class Fe8Boot(
             }
 
             // `sub_80BA424`: `sub_8002AC8` fades the BGM out (`Sound_FadeOutBGM(1)` stands in for
-            // its two `m4aMPlayFadeOut` calls); `MapRoute_80BC2DC` and the route flags are not
-            // run: the Prologue draws no route.
+            // its wait-music proc end and two `m4aMPlayFadeOut` calls); `MapRoute_80BC2DC` and
+            // the route flags are not run: the Prologue draws no route.
             override fun worldMapSkip(proc: EventEngineProc) {
                 control.sound.fadeOutBgm(1)
             }
@@ -334,6 +342,10 @@ public class Fe8Boot(
                 },
                 rng, { control.playSt.chapterStateBits and PLAY_FLAG_HARD != 0 },
             ).apply {
+                // `UnitLoadSub`'s level adjustment of red units (character number >= 0x3C): the
+                // u16 at +0x14 of the chapter struct holds `easyModeLevelMalus` (bits 0-3),
+                // `difficultModeLevelBonus` (4-7) and `normalModeLevelMalus` (8-11);
+                // `config.controller` 0 in normal mode is the easy branch.
                 chapterLevelBonus = {
                     val ps = control.playSt
                     val levels = rom.u16(
@@ -558,12 +570,16 @@ public class Fe8Boot(
     /** `gPopupNumber`. */
     private var popupNumber = 0
 
-    /** `DrawnIconLookupTable` (`MAX_ICON_COUNT` 4-byte entries). */
+    /**
+     * `DrawnIconLookupTable`: per icon, how many places draw it and its graphics slot
+     * ([ItemIcon.MAX_ICON_COUNT] entries of [ItemIcon.ICON_ENTRY_SIZE] bytes).
+     */
     private val drawnIconLookupTable = ByteArray(0x380)
 
-    /** `IconGFXIDLookupTable`. */
+    /** `IconGFXIDLookupTable`: per icon graphics slot, the icon index plus one (0 = free). */
     private val iconGfxIdLookupTable = ByteArray(0x100)
 
+    /** The [gotItemPopup] result, kept so the popup machinery is built once. */
     private var gotItemPopupInstance: GotItemPopup? = null
 
     /**
@@ -633,6 +649,7 @@ public class Fe8Boot(
     /** The talk scene, created on first use. */
     public val talkScene: TalkScene by talkSceneDelegate
 
+    /** Host of the talk commands: the [talkScene] parts, text speed and map display hooks. */
     private val eventTextHost: EventTextTalkHost by lazy {
         val scene = talkScene
         EventTextTalkHost(

@@ -105,7 +105,7 @@ Total entries: 231 across 46 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `camera` | The New Game stand-in (M6-E) leads into the battle map, which reads ROM data outside the boot windows: with windows only (debug APK without an imported ROM) the save menu holds, instead of crashing... |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `eventTextBg` | Real: BG positions, the random background, the BG3 load of subcode 0; the fade procs and `DisplayCGfx` are no-op stand-ins (M6-E). |
-| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `newGameSaveMenu` | Stand-in until M6-E for `StartSaveMenu` (the save menu is not ported). |
+| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `newGameSaveMenu` | Stand-in until M6-E (PC-9 for the New Game path) for `StartSaveMenu` (the save menu is not ported). |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `refreshMapGraphics` | Text, UI frame, face and icon resets, weather particles and system font setup are stand-ins (M6-E). |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `talkSceneDelegate` | The talk window on the game's BG buffers, VRAM, fonts, procs, keys and the ROM messages (see [TalkScene] for its stand-ins, M6-E). |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `callEraseMural` | Stand-in until M6-E. |

@@ -12,7 +12,6 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - EP-0b: owner PC, until ~2026-11-15 00:15Z
-- Readability fe8.game Fe8Boot lines 681-1359: owner PC, until ~2026-11-14 23:35Z
 
 ## Current state
 

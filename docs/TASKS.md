@@ -129,6 +129,7 @@ Sub-lane contents and file counts: [M6C-J-breakdown](plans/M6C-J-breakdown.md).
 | BUG-wminit | PORT | `WorldMapBoot.worldMapInit` omits `if (monster_merged) sub_80B9114(proc)` (`WorldMap_Init`, worldmap_main.c:538-541: node icon on the first node with state bit 2) | Port it with a capture after monsters merge on the world map (else add a CAP) | - | todo |
 | BUG-wpnbits | PORT | `PlayerPhaseWiring.weaponUsabilityBits` uses `canUnitUseWeaponNow` (adds the magic-seal test); `GetUnitWeaponUsabilityBits` (bmunit.c:1283) uses `CanUnitUseWeapon` | Match the C; test with a unit under a magic seal (else add a CAP) | - | todo |
 | BUG-blueleader | PORT | `UnitLoader.loadUnit` writes `leaderCharIndex` (supports[6]) in the blue autolevel branch; `LoadUnit` (bmunit.c:618-641) calls `SetUnitLeaderCharId` only for non-blue units | Match the C; test with a blue autolevel load whose definition has a leader | - | todo |
+| INV-iconstride | INV | `ItemIcon.ICON_ENTRY_SIZE` is 4 (from the 0x380-byte `DrawnIconLookupTable` in the build map) but `struct IconStruct` (include/icon.h) is 2 bytes with `MAX_ICON_COUNT` 224 (0x1C0): check which stride the game uses against a capture that draws item icons | Stride confirmed by a RAM dump; fix and test if wrong | - | todo |
 | D09-3 | PORT | Remaining item-popup branches (gold, full inventory, red/root, unit-name/number) | Each branch against a capture that reaches it, else not written | — | low priority; Rapier popup confirmed on device 11-11 |
 
 Owner-PC sessions also continue [READABILITY](READABILITY.md) (rule 11).

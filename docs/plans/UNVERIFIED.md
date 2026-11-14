@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 560 across 82 decomp files (missing reason: 0).
+Total entries: 563 across 82 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -661,6 +661,15 @@ Total entries: 560 across 82 decomp files (missing reason: 0).
 | `WriteLinkArenaStruct2` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero link arena block, so no run shows its checksum or data |
 | `WriteSupplyItems` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
 
+## src/cp_battle.c (4)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `AiGetCombatPositionScore` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | the capture has one candidate tile per target, so no captured value shows the score, only that it is not 0; the three components are a stand-in, EP-6a/6b |
+| `AiGetOpponentLowHpScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | its value shows only through a total that stays below 0, and that total includes the EP-6b components the test feeds with hand-computed values; a target above 20 HP is not seen |
+| `AiGetFriendZoneCombatScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | no allied unit stands within 3 tiles of the attacker's tile in either captured call, so it is 0 and no captured value shows it |
+| `AiGetTargetClassCombatScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | the rank is 9 for every class, one past the bonus list, so the bonus is the padding byte 0 in both captured calls and no captured value shows it; the rank is an EP-7 stand-in |
+
 ## src/cp_decide.c (4)
 
 | Function | Kotlin file | Reason |
@@ -882,12 +891,6 @@ Total entries: 560 across 82 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetChapterMapChangesPointer` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterData.kt` | no test checks it against a trace yet |
-
-## src/cp_battle.c (1)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `AiGetCombatPositionScore` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | the capture has one candidate tile per target, so no captured value shows the score, only that it is not 0; the three components are a stand-in, EP-6a/6b |
 
 ## src/cp_script.c (1)
 

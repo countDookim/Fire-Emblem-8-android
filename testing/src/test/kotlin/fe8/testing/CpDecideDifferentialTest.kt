@@ -7,7 +7,8 @@ import fe8.game.bm.AiIntPairStep
 import fe8.game.bm.AiProcStep
 import fe8.game.bm.AiReachTest
 import fe8.game.bm.AiBattleSimulation
-import fe8.game.bm.AiScoreStep
+import fe8.game.bm.AiIntFunc
+import fe8.game.bm.AiScoreComponent
 import fe8.game.bm.AiStep
 import fe8.game.bm.AiTry
 import fe8.game.bm.AiUnitItemStep
@@ -217,9 +218,10 @@ class CpDecideDifferentialTest {
             }
             // AiAttemptOffensiveAction (EP-5) runs for real. Its stand-ins: the movement map is
             // the dump's (EP-7), every unit is in reach (EP-7: Seth has no tile to attack from
-            // either way), the battle is the real BattleGenerateSimulation (MC-9), and the score
-            // of the battle (EP-6a/6b) is read from the exit dump of the same call.
+            // either way) and the battle is the real BattleGenerateSimulation (MC-9); the score is
+            // computed for real (EP-6a) with the EP-6b components fed below.
             val b = cp.battle!!
+            b.battleUnits = battle
             b.hooks.generateUnitMovementMap = AiUnitStep {
                 val shown = poolDump(entryOf(active.unitId), GBM_MAP_MOVEMENT)
                 for (y in 0 until map.sizeY) {
@@ -249,42 +251,19 @@ class CpDecideDifferentialTest {
                 gen.battleGenerateSimulation(
                     units.bytes, units.unitOffset(actor), units.unitOffset(target), x, y, slot,
                 )
+                compareScoreInputs(actor, x, y, target, slot)
             }
-            b.hooks.computeCombatScore = AiScoreStep { st ->
-                val id = active.unitId
-                log += "score ${hex(id)}"
-                val entry = entryOf(id)
-                // The inputs the port built: gAiState's RNG draw, the candidate, the range map
-                // of the target, the simulated battle
-                for (w in 0 until 3) {
-                    assertEquals(
-                        rngWatch.u16(if (id == 0x82) 1614 else 2038, 2 * w), rng.primary.word(w),
-                        "gRNState word $w at the combat score of ${hex(id)}",
-                    )
-                }
-                val iwram = run.region(entry, "iwram")
-                val at = (if (id == 0x82) ST_1 else ST_2) - IWRAM
-                assertEquals(iwram[at].toInt() and 0xFF, st.xMove, "st.xMove at $entry")
-                assertEquals(iwram[at + 1].toInt() and 0xFF, st.yMove, "st.yMove at $entry")
-                assertEquals(iwram[at + 2].toInt() and 0xFF, st.targetId, "st.targetId at $entry")
-                assertEquals(
-                    (iwram[at + 4].toInt() and 0xFF) or ((iwram[at + 5].toInt() and 0xFF) shl 8),
-                    st.itemSlot, "st.itemSlot at $entry",
-                )
-                val range = poolDump(entry, GBM_MAP_RANGE)
-                for (y in 0 until map.sizeY) {
-                    for (x in 0 until map.sizeX) {
-                        assertEquals(
-                            range[y * map.sizeX + x], map.range[y, x],
-                            "gBmMapRange ($x, $y) $entry",
-                        )
-                    }
-                }
-                compareBattle(entry)
-                // EP-6a/6b stand-in: the score of the exit dump (6 for both calls)
-                val exit = run.region(entry.replace("entry", "exit"), "iwram")
-                st.score = (0 until 4).sumOf { (exit[at + 8 + it].toInt() and 0xFF) shl (8 * it) }
-            }
+            // The EP-6b components (turn, damage taken, danger, own low HP) and the class rank
+            // (EP-7) are fed. Values worked out by hand from the entry dump's battle units and
+            // danger map with the decomp formulas (Soldier 1: 1, 7, 2, 12; Soldier 2: 1, 10, 2,
+            // 20), so the total is -1 and -12: the score check verifies the damage dealt
+            // component (the backup the C returns for a total of 0), the clamp, the opponent's
+            // low HP term (leaving the clamp when raised), and not the four fed values.
+            b.hooks.turnScore = AiScoreComponent { 1 }
+            b.hooks.damageTakenScore = AiScoreComponent { if (active.unitId == 0x82) 7 else 10 }
+            b.hooks.dangerScore = AiScoreComponent { 2 }
+            b.hooks.lowHpScore = AiScoreComponent { if (active.unitId == 0x82) 12 else 20 }
+            b.hooks.getClassRank = AiIntFunc { 9 }
             cp.script.hooks.unportedCommand = AiIntStep {
                 errors += "unwritten script command ${hex(it)} entered: not in the capture"
             }
@@ -309,6 +288,7 @@ class CpDecideDifferentialTest {
             h.startCpPerform = AiProcStep {
                 val id = active.unitId
                 log += "perform ${hex(id)}"
+                compareScoreResult(id)
                 if (id == 0x82) {
                     compare(1614, "Soldier 1 decided")
                     compareDanger(1614, "r01614", "Soldier 1 decided")
@@ -369,6 +349,54 @@ class CpDecideDifferentialTest {
                 for (x in 0 until map.sizeX) out[y * map.sizeX + x] = byte(row + x)
             }
             return out
+        }
+
+        /** Compares what the port built for the score call with the entry dump. */
+        fun compareScoreInputs(id: Int, x: Int, y: Int, target: Int, slot: Int) {
+            log += "simulate ${hex(id)}"
+            val entry = entryOf(id)
+            for (w in 0 until 3) {
+                assertEquals(
+                    rngWatch.u16(if (id == 0x82) 1614 else 2038, 2 * w), rng.primary.word(w),
+                    "gRNState word $w at the combat score of ${hex(id)}",
+                )
+            }
+            val iwram = run.region(entry, "iwram")
+            val at = (if (id == 0x82) ST_1 else ST_2) - IWRAM
+            assertEquals(iwram[at].toInt() and 0xFF, x, "st.xMove at $entry")
+            assertEquals(iwram[at + 1].toInt() and 0xFF, y, "st.yMove at $entry")
+            assertEquals(iwram[at + 2].toInt() and 0xFF, target, "st.targetId at $entry")
+            assertEquals(
+                (iwram[at + 4].toInt() and 0xFF) or ((iwram[at + 5].toInt() and 0xFF) shl 8),
+                slot, "st.itemSlot at $entry",
+            )
+            val range = poolDump(entry, GBM_MAP_RANGE)
+            for (my in 0 until map.sizeY) {
+                for (mx in 0 until map.sizeX) {
+                    assertEquals(
+                        range[my * map.sizeX + mx], map.range[my, mx],
+                        "gBmMapRange ($mx, $my) $entry",
+                    )
+                }
+            }
+            compareBattle(entry)
+        }
+
+        /** Compares the best attack found with the exit dump's `AiCombatSimulationSt`. */
+        fun compareScoreResult(id: Int) {
+            val exitName = entryOf(id).replace("entry", "exit")
+            val exit = run.region(exitName, "iwram")
+            val at = (if (id == 0x82) ST_1 else ST_2) - IWRAM
+            val best = cp.battle!!.bestResult
+            assertEquals(exit[at].toInt() and 0xFF, best.xMove, "st.xMove at $exitName")
+            assertEquals(exit[at + 1].toInt() and 0xFF, best.yMove, "st.yMove at $exitName")
+            assertEquals(exit[at + 2].toInt() and 0xFF, best.targetId, "st.targetId at $exitName")
+            assertEquals(
+                (exit[at + 4].toInt() and 0xFF) or ((exit[at + 5].toInt() and 0xFF) shl 8),
+                best.itemSlot, "st.itemSlot at $exitName",
+            )
+            val score = (0 until 4).sumOf { (exit[at + 8 + it].toInt() and 0xFF) shl (8 * it) }
+            assertEquals(score, best.score, "st.score at $exitName")
         }
 
         /** Compares the simulated battle with `gBattleActor`, `gBattleTarget`, `gBattleStats`. */
@@ -475,6 +503,7 @@ class CpDecideDifferentialTest {
         "AiAttemptOffensiveAction", "AiFillReversedAttackRangeMap",
         "AiSimulateBestBattleAgainstTarget", "AiSimulateBattleAgainstTargetAtPosition",
         "AiIsBadFight", "AiTryDoStaff",
+        "AiComputeCombatScore", "AiGetDamageDealtCombatScoreComponent",
     )
     fun `the decision loop decides for the three enemies as the capture`() {
         val sim = Sim()
@@ -501,8 +530,8 @@ class CpDecideDifferentialTest {
         assertEquals(
             listOf(
                 "update 81", "scriptA 81", "scriptB 81",
-                "update 82", "scriptA 82", "score 82", "perform 82", "suspend 3",
-                "update 83", "scriptA 83", "score 83", "perform 83", "suspend 3",
+                "update 82", "scriptA 82", "simulate 82", "perform 82", "suspend 3",
+                "update 83", "scriptA 83", "simulate 83", "perform 83", "suspend 3",
             ),
             sim.log,
             "the decision calls in order (EP-0 inventory)",

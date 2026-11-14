@@ -1044,6 +1044,7 @@ public class Fe8Boot(
         val cp = CpPhase(
             engine, rom, playSt, units, loader, battleBmMap, battleEntityMaps, active, rng,
         )
+        cp.battle?.battleUnits = battle
         cp.battle?.hooks?.battleGenerateSimulation = AiBattleSimulation { a, t, x, y, slot ->
             battleGenerate.battleGenerateSimulation(
                 units.bytes, units.unitOffset(a), units.unitOffset(t), x, y, slot,

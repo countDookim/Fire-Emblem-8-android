@@ -296,6 +296,22 @@ enemy attack, not once per candidate tile, so per-candidate scores are not captu
 Prologue events seen in `prologue-eventinfo.h`: the Turn 1 (red) and Turn 2/3 (blue) events only call tutorial
 scripts, so in Normal mode they end at once. Tutorials are Easy only (see M6-E).
 
+
+### EP-cap2 result (2026-11-14)
+
+Run `ram_trace_prologue_clear` (ROM repo release `assets-93b13fa`; copy in `.assets/reference/out/`). Inputs: all of
+EP-cap1, then turn 2: RIGHT f2870, A f2900, UP f2930, A f2960 (End); A f3320, A f3700 (two dialogue pages of the
+boss's turn event); turn 3: UP f4000, A f4020 (select Seth), RIGHT f4050/4058/4066/4074, DOWN f4082/4090 (cursor on
+(8,6)), A f4130 (move), A f4210 (Attack), A f4240 (weapon), A f4270 (target); A f4440, A f4720 (boss battle and death
+dialogue pages). Timeline: turn 2 nobody acts; the boss's flag-gated turn event f2964..3722 (boss `ai1`/`ai2` 6/3 ->
+0/0 at f3719); enemy phase 2 banner f3726..3803, the boss's decision f3804 is a move to (9,6) with no attack
+(`AiTryMoveTowards` runs, `AiComputeCombatScore` is not called), walk f3804..3831, turn 3 at f3877; Seth attacks from
+(8,6): pre-battle event f4278..4461, CombatAction f4275..4891 (hit, counter miss, hit), death event f4636..4741, death
+fade f4742..4773, exp bar f4776..4879, write-back f4892 (boss removed, Seth exp 0 -> 45); the ending scene's event
+engine starts f4894; run ends f5000. Level-up: none (MC-17 needs MC-cap3). Per-frame RAM (full dump every 10f) in
+f2955..3010, f3250..3262, f3316..3330, f3680..3730, f3795..3880, f3955..3970, f4175..4215, f4266..4300, f4436..4470,
+f4480..4650, f4700..4960; RAM every 30f f1260..2850, every 10f elsewhere to f5000. Watches as EP-cap1;
+`tracecall aicombatscore` records only the two EP-cap1 calls. Size 358 MB (1.3 MB compressed).
 ### EP-1 result (2026-11-13)
 
 Test: `PhaseStartEndDifferentialTest` over `ram_trace_prologue_enemy_phase` (blue/red/gplayst/gbmst/procs watches; `gPidStatsData` from the dumps f1520/f1530). New class `PhaseStartEnd` (game/bm). Ported: `ClearActiveFactionGrayedStates` (units at f1529, f2750, f2768, favour -8 of Seth and Eirika in `gPidStatsData`; the unavailable/unselectable/supply skips are not seen), the four `*Display_Init` (no display proc alive; an inverted end test leaves the proc), `sub_8015434` (phase proc five frames after the tick in the red, green and blue start). The existing `SwitchPhases`, `BmMain_ChangePhase`, `_StartPhase` (red branch new) and `_UpdateTraps` (green branch new) now match all three switches and the f2766 trap proc.

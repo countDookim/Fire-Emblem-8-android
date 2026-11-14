@@ -11,7 +11,6 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- EP-6a: owner PC, until ~2026-11-14 22:45Z
 - Readability bm UnitTable: owner PC, until ~2026-11-14 22:30Z
 
 ## Current state

@@ -9,7 +9,7 @@
     "in_scope_total": 7732,
     "out_of_scope": 620,
     "verified": 1188,
-    "implemented_unverified": 57
+    "implemented_unverified": 59
   },
   "functions": {
     "ActionCombat": {
@@ -100,6 +100,14 @@
       "status": "implemented",
       "tests": []
     },
+    "AiComputeCombatScore": {
+      "decomp_file": "src/cp_battle.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "AiDecideMain": {
       "decomp_file": "src/cp_decide.c",
       "system": "ai",
@@ -117,6 +125,14 @@
       "tests": []
     },
     "AiFillReversedAttackRangeMap": {
+      "decomp_file": "src/cp_battle.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "AiGetDamageDealtCombatScoreComponent": {
       "decomp_file": "src/cp_battle.c",
       "system": "ai",
       "in_scope": true,

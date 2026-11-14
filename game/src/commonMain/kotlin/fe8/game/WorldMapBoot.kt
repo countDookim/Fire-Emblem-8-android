@@ -188,6 +188,7 @@ internal class WorldMapBoot(
             unitAt = { i ->
                 if (units.isValid(i)) units.charId(i) to units.classId(i) else null
             },
+            // `defaultClass` (+5) of the `CharacterData` row for character id `pid`.
             defaultClass = { pid ->
                 rom.u8(UnitLoader.CHARACTER_DATA + (pid - 1) * UnitLoader.CHARACTER_DATA_SIZE + 5)
             },
@@ -251,21 +252,25 @@ internal class WorldMapBoot(
     /** The last position pair handed to a unit: positions repeat, so no pair per frame. */
     private var lastPair: Pair<Int, Int> = 0 to 0
 
+    /** Returns [lastPair] when it already holds ([x], [y]), else a new pair that replaces it. */
     private fun cachedPair(x: Int, y: Int): Pair<Int, Int> {
         if (lastPair.first != x || lastPair.second != y) lastPair = x to y
         return lastPair
     }
 
+    /** `LoadLegacyUiFrameGraphics` hook of [rm] and [gfx]; does nothing yet (see the body). */
     private fun loadLegacyUiFrameGraphics() {
         // Stand-in until M6-B: `LoadLegacyUiFrameGraphics` (BG UI frame tiles) is not ported.
     }
 
+    /** The running `ProcScr_WorldMapMain` proc, or null when the world map is not running. */
     private fun mainProc(): Proc? = engine.find(mainScript)
 
     private fun mainState(): WorldMapMainProc? = mainProc()?.state as WorldMapMainProc?
 
     private fun Proc.gmMuProc(): Proc? = (state as WorldMapMainProc).gmMu
 
+    /** The route proc (`gmRoute`) of the running map screen, or null when there is none. */
     private fun routeProc(): GmRouteProc? =
         ((engine.find(screens.screenScript)?.state as GmScreenProc?)?.gmRoute?.state
             as GmRouteProc?)
@@ -276,6 +281,7 @@ internal class WorldMapBoot(
             WorldMapRmBaPalAnim(engine, hw.lcd) { faces.getWmFaceBlendAmt() },
         ) { rm.gmapRmGetPosition() }
     }
+    /** The `GMapMu` proc of the running world map; throws when there is none. */
     private fun gmMu(): Proc = checkNotNull(mainState()?.gmMu) { "no GMapMu proc" }
 
     private val automu = WorldMapAutoMu(
@@ -339,6 +345,9 @@ internal class WorldMapBoot(
     /**
      * Transcribed from src/worldmap_main.c: WorldMap_Init (not verified: wired, then checked
      * through the proc tree of the boot test only)
+     *
+     * Not transcribed: the `sub_80B9114` call (points the node icon at the first node with state
+     * bit 2) that the C makes when the monsters are merged.
      */
     private fun worldMapInit(proc: Proc) {
         val state = proc.state as WorldMapMainProc
@@ -360,7 +369,7 @@ internal class WorldMapBoot(
         path.refreshGmNodeLinks(fe8.game.worldmap.GmNodeLinks())
         wmText.startWmTextHandler(proc)
         builder.sub80B8FEC(state) { path.getNextUnclearedNode() }
-        sub80B90CC(state)
+        placeGmUnits(state)
         routeProc()?.let { it.flags = it.flags or 3 }
         if (playSt.chapterStateBits and GameControl.PLAY_FLAG_POSTGAME != 0) {
             path.resetGmStoryNode()
@@ -371,10 +380,10 @@ internal class WorldMapBoot(
 
     /**
      * Transcribed from src/worldmap_main.c: sub_80B9028, sub_80B90CC (not verified: wired
-     * only): puts the units of gGMData on the map, dropping the three monster slots first unless
-     * the monsters are merged.
+     * only): `sub_80B90CC` in the decomp, with `sub_80B9028` inlined. Puts the units of gGMData
+     * on the map, dropping the three monster slots (4 to 6) first unless the monsters are merged.
      */
-    private fun sub80B90CC(state: WorldMapMainProc) {
+    private fun placeGmUnits(state: WorldMapMainProc) {
         val mu = state.gmMu ?: return
         if (!gmData.monsterMerged()) {
             for (i in 4 until 7) {
@@ -411,8 +420,9 @@ internal class WorldMapBoot(
     }
 
     private fun registerEvents() {
-        // `MUSCFAST(0x7FFF)` (0x13) is the only fade-in the Prologue runs; the other chapters'
-        // world map events keep the release stub, so it is registered here, not in `EventBgm`.
+        // Event 0x13 (`Event13_BgmFadeIn`) in its `MUSCFAST(0x7FFF)` fade-out form is the only
+        // form the Prologue runs; it is registered here, not in `EventBgm`, because the other
+        // chapters' world map events keep the release stub.
         events.register(0x13, EventBgm(eventState, memory, sound).event13BgmFadeIn)
         val textEvents = WorldMapTextEvents(memory, wmText)
         events.register(0xC6, textEvents.eventC6WmDisplayText)

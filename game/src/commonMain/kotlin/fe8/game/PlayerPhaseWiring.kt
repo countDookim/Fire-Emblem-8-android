@@ -237,15 +237,18 @@ internal class PlayerPhaseWiring(
             IntConsumer { slot -> menuItemPanel.updateMenuItemPanel(slot) }
         menu.hooks.endFaceById = { slot -> talk.face.endFaceById(slot) }
         unitMenu.hooks.resetTextFont = { talk.text.resetTextFont() }
+        // `IsPositionMagicSealed` is not ported: no tile counts as magic-sealed.
         unitMenu.hooks.isPositionMagicSealed = { _, _ -> false }
         unitMenu.hooks.resetIconGraphics = resetIcons
         unitMenu.hooks.loadIconPalettes = loadIconPalettes
         unitMenu.hooks.displayMoveRangeGraphics =
             IntConsumer { flags -> moveLimitView.displayMoveRangeGraphics(flags) }
         unitMenu.hooks.hideMoveRangeGraphics = { moveLimitView.hideMoveRangeGraphics() }
+        // The unit menu commands without a port are hidden.
         unitMenu.hooks.unportedUsability = { _, _ -> Menu.MENU_NOTSHOWN }
         unitMenu.install(menu, rom)
         mapMenu.hooks.battleMapKind = battleMapKind
+        // The map menu's Guide entry is never locked and always uses the normal text color.
         mapMenu.hooks.isGuideLocked = { false }
         mapMenu.hooks.guideTextShowGreenOrNormal = { true }
         mapMenu.install(menu, rom)
@@ -264,9 +267,11 @@ internal class PlayerPhaseWiring(
     }
 
     /**
-     * Gives every menu callback of the two menus that no port registered a stand-in that does
-     * nothing: the select of an unported command plays the refusal sound (`SONG_6C`) and keeps
-     * the menu open, the switch and idle callbacks do nothing. Stand-in: Item and the other
+     * For the menu `def` (a `MenuDef` address), registers a do-nothing callback for every
+     * callback in the def and its `MenuItemDef`s that no port registered: the menu-level
+     * `onInit`, `onEnd`, `onBPress` and `onRPress`, and each item's `onDraw`, `onIdle`,
+     * `onSwitchIn` and `onSwitchOut`. The `onSelected` of an unported command plays the refusal
+     * sound (`SONG_6C`) and returns 0 (keeps the menu open). Stand-in: Item and the other
      * commands (`M6-H`) and the map menu's Unit, Status, Guide, Options and Suspend (`M6-F`,
      * Suspend `M6-E`).
      */
@@ -372,9 +377,10 @@ internal class PlayerPhaseWiring(
     }
 
     /**
-     * The hooks without a port. Each is a stand-in that never blocks the phase: the cursor,
-     * unit menu and Wait keep working; the plan rows are on the hooks' declarations in
-     * [PlayerPhase.Hooks] (`M6-C`, `M6-E`, `M6-F`, `M6-H`, `M6-I`).
+     * Turns on the A-button select flow ([PlayerPhase.Hooks.unitSelectEnabled]). The hooks left
+     * at their defaults are stand-ins that never block the phase: the cursor, unit menu and Wait
+     * keep working; the plan rows are on the hooks' declarations in [PlayerPhase.Hooks]
+     * (`M6-C`, `M6-E`, `M6-F`, `M6-H`, `M6-I`).
      */
     private fun wireStandIns(phase: PlayerPhase) {
         phase.hooks.unitSelectEnabled = true

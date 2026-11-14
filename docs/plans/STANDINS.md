@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 232 across 46 Kotlin files.
+Total entries: 231 across 46 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -20,7 +20,7 @@ Total entries: 232 across 46 Kotlin files.
 | M6-E | 51 |
 | M6-F | 13 |
 | M6-G | 4 |
-| M6-H | 37 |
+| M6-H | 36 |
 | M6-I | 27 |
 | M6-J | 9 |
 | D09-3 | 2 |
@@ -69,7 +69,7 @@ Total entries: 232 across 46 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `weaponUsabilityBits` | Stand-in until M6-C (the staff bit needs `CanUnitUseStaff`). |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wire` | Sets every hook of [phase] that has a ported implementation; the rest keeps its default (stand-ins, M6-C to M6-I, listed on [PlayerPhase.Hooks]). |
-| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wireStandIns` | Each is a stand-in that never blocks the phase: the cursor, unit menu and Wait keep working; the plan rows are on the hooks' declarations in [PlayerPhase.Hooks] (`M6-C`, `M6-E`, `M6-F`, `M6-H`, `M6... |
+| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wireStandIns` | The hooks left at their defaults are stand-ins that never block the phase: the cursor, unit menu and Wait keep working; the plan rows are on the hooks' declarations in [PlayerPhase.Hooks] (`M6-C`,... |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | `pidStatsAddExpGained` | Stand-in until M6-C: does nothing, the statistics are not kept. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | `pidStatsRecordDefeatInfo` | Stand-in until M6-C: does nothing, the statistics are not kept. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `generateAttackRange` | `Fe8Boot` sets it (`PlayerPhaseWiring`) with the weapon case of `AttackRange.generateUnitCompleteAttackRange`; the staff range and `GenerateMagicSealMap` are a stand-in until M6-C. |
@@ -182,12 +182,11 @@ Total entries: 232 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: `IsBattleDeamonActive` (the battle animation system) is not ported, so the fixed fight-event bubble is never used. |
 
-## M6-H (37)
+## M6-H (36)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `trapPool` | Stand-in until M6-H: the trap pool is not ported (no ballistae, light runes or obstacles), so it stays empty; the sprite refresh and the attack target list read it. |
-| `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `registerMenuStandIns` | Gives every menu callback of the two menus that no port registered a stand-in that does nothing: the select of an unported command plays the refusal sound (`SONG_6C`) and keeps the menu open, the s... |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `registerMenuStandIns` | Stand-in: Item and the other commands (`M6-H`) and the map menu's Unit, Status, Guide, Options and Suspend (`M6-F`, Suspend `M6-E`). |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `decayTraps` | Stand-in until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `processTurnSupportExp` | Stand-in until M6-H. |

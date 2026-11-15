@@ -14,11 +14,17 @@ import gbafe.render.SpriteAnimPlayer
 
 /**
  * The node icons and the "merge next node" flag of the world map (`src/worldmap_screen2.c`,
- * `ProcScr_GmNodeIconDisplay`): every frame it puts a sprite on each valid node (the places the
- * party can visit), and, while `merge_next_node` is set, an animated flag at node `nodeId`.
+ * `ProcScr_GmNodeIconDisplay`, the `GM_ICON` proc of `WorldMapMainProc`): every frame it puts a
+ * sprite on each node whose state has `GM_NODE_STATE_VALID` (the places the party can visit),
+ * and, while `merge_next_node` is set, an animated flag at node `nodeId`.
  * Like the decomp's `skip` byte, [skipGmNodeIconDisplay] / [unskipGmNodeIconDisplay] are named
  * the wrong way round for what they do: the loop draws only while `skip` is set
  * (`worldmap_screen2.c:180`), so "skip" turns the icons on and "unskip" off.
+ *
+ * Icon choice in the decomp (`GmapScreen2_Loop`, `worldmap_screen2.c:197`): a node with
+ * `GM_NODE_STATE_CLEARED` uses `iconPreClear` of its `GMapNodeData`, any other `iconPostClear`.
+ * The field names look inverted, but the code is as printed, and in the decomp's `gWMNodeData`
+ * all 29 nodes have equal values in both fields, so the choice makes no difference there.
  *
  * @param engine the proc scheduler
  * @param ap the sprite animation player (`src/ap.c`)
@@ -37,13 +43,18 @@ public class WorldMapNodeIcons(
      */
     public class Hooks(
         /**
-         * The body of the node loop for a valid node (`state & 1`): the icon sprite through
-         * `PutSpriteExt`. Stand-in until M6-I: no node is valid in the prologue.
+         * The body of the node loop for a node with `GM_NODE_STATE_VALID`: puts the node's icon
+         * (`gWMNodeIconData[iconPreClear or iconPostClear]`, see the class note) on sprite layer
+         * 12 through `PutSpriteExt` at the node position minus the icon centre and the screen
+         * scroll, translucent when the node's bit in [GmNodeIconDisplayProc.unk34] is set, with
+         * tile `sheetTileId + chr / CHR_SIZE` plus palette [GmNodeIconDisplayProc.pal] and
+         * `OAM2_LAYER(2)`. Stand-in until M6-I: no node is valid in the prologue.
          */
         public val drawNodeIcon: (proc: GmNodeIconDisplayProc, node: Int) -> Unit = { _, _ -> },
         /**
-         * The `merge_next_node` flag drawn through `AP_Update`. Stand-in until M6-I: the flag is
-         * never set in the prologue.
+         * The `merge_next_node` flag: `AP_Update` of the flag animation at the icon of node
+         * `nodeId` offset by the icon's `xFlagOrigin` / `yFlagOrigin`, translucent like the icon.
+         * Stand-in until M6-I: the flag is never set in the prologue.
          */
         public val drawMergeFlag: (proc: GmNodeIconDisplayProc) -> Unit = {},
     )
@@ -71,9 +82,10 @@ public class WorldMapNodeIcons(
     /**
      * Ported from src/worldmap_screen2.c: StartGmNodeIconDisplay
      *
-     * Starts the proc in root tree [rootIndex] and creates the flag animation (definition
-     * `Sprite_08A97AEC`, animation 1, on sprite layer 11). The animation's tile base is the
-     * icon tiles at `chr + 0x1000` with palette [palId] and `OAM2_LAYER(2)` (bits 10-11).
+     * Starts the proc in root tree [rootIndex] (the decomp passes `parent` to `Proc_Start`) and
+     * creates the flag animation (definition `Sprite_08A97AEC`, animation 1, on sprite layer
+     * 11). The flag's tiles lie 0x1000 bytes after the icon tiles: its tile base is
+     * `(chr + 0x1000) / CHR_SIZE` with palette [palId] and `OAM2_LAYER(2)` (bits 10-11).
      *
      * @param chr VRAM offset of the node icon tiles
      * @param palId OBJ palette bank of the icons
@@ -133,7 +145,8 @@ public class WorldMapNodeIcons(
     /**
      * Ported from src/worldmap_screen2.c: GmapScreen2_Init
      *
-     * Clears the blend bit mask `unk_34` and sets `skip`, so the icons start out drawn.
+     * Clears the translucency mask `unk_34` (one bit per node, `u32 unk_34[1]` in the decomp)
+     * and sets `skip`, so the icons start out drawn.
      */
     public fun gmapScreen2Init(proc: GmNodeIconDisplayProc) {
         proc.unk34 = 0
@@ -143,14 +156,15 @@ public class WorldMapNodeIcons(
     /**
      * Ported from src/worldmap_screen2.c: GmapScreen2_Loop
      *
-     * While `skip` is set, draws every valid node and the merge flag. Only the `skip` test and
-     * the node loop run in the prologue capture (no node is valid, `merge_next_node` is never
-     * set); the drawing bodies are the [Hooks] and are not verified.
+     * While `skip` is set, draws the icon of every node with `GM_NODE_STATE_VALID` and the
+     * merge flag. Only the `skip` test and the node loop run in the prologue capture (no node
+     * is valid, `merge_next_node` is never set); the drawing bodies are the [Hooks] and are
+     * not verified.
      */
     public fun gmapScreen2Loop(proc: GmNodeIconDisplayProc) {
         if (!proc.skip) return
         for (i in 0 until NODE_COUNT) {
-            if (gmData.nodeState(i) and 1 == 0) continue
+            if (gmData.nodeState(i) and GM_NODE_STATE_VALID == 0) continue
             hooks.drawNodeIcon(proc, i)
         }
         if (proc.mergeNextNode) hooks.drawMergeFlag(proc)
@@ -161,13 +175,16 @@ public class WorldMapNodeIcons(
         /** `Sprite_08A97AEC`: the animation definition of the merge flag. */
         public const val SPRITE_FLAG: Int = 0x08A97AEC
 
-        /** `NODE_MAX`. */
+        /** `NODE_MAX`: the number of world map nodes. */
         private const val NODE_COUNT = 0x1D
+
+        /** `GM_NODE_STATE_VALID`: bit 0 of a node's state, set for nodes the party can visit. */
+        private const val GM_NODE_STATE_VALID = 1
 
         /** Bytes per 4bpp tile (`CHR_SIZE`). */
         private const val CHR_SIZE = 0x20
 
-        /** `PROC_MARK_WMSTUFF`. */
+        /** `PROC_MARK_WMSTUFF`: the proc mark of world map procs. */
         private const val PROC_MARK_WMSTUFF = 8
     }
 }

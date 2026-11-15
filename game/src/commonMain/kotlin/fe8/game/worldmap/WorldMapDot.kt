@@ -27,19 +27,25 @@ public class WmPlaceDotProc {
     /**
      * `flag` (+0x29, `s8`): set by event command `BD` ([WorldMapDotEvents.eventBD]) to ask the dot
      * to end; the dot then keeps drawing until the palette pulse is back at the standard colours.
+     * `BE` waits until the dot has ended.
      */
     public var flag: Int = 0
 
     /**
      * `unk_2a` (+0x2A, `u8`): bit 0 = draw with OBJ palette 5 (the pulsing one) instead of 4, bit 1
-     * = also owns a `GmapEffectProc` ([effectProc]).
+     * = also owns a `GmapEffectProc` ([effectProc]). `EventBB` passes it as `e`, `EventBC` as
+     * `eff`.
      */
     public var effects: Int = 0
 
-    /** `unk_2b` (+0x2B, `u8`): the index event commands `BD` / `BE` address the dot by. */
+    /** `unk_2b` (+0x2B, `u8`): the id the event commands `BD` / `BE` address the dot by. */
     public var index: Int = 0
 
-    /** `unk_2c` (+0x2C, `u8`): the tile offset added to OAM attribute 2 of the dot sprite. */
+    /**
+     * `unk_2c` (+0x2C, `u8`): the tile offset added to OAM attribute 2 of the dot sprite
+     * (`EventBC` passes its argument named `pal` here; the value is used as a tile offset, see
+     * [WorldMapDot.putWmDotSprite]).
+     */
     public var tile: Int = 0
 
     /** `x` (+0x2E, `s16`): the position on the big map (`EventBC` passes half the node's x). */
@@ -55,7 +61,9 @@ public class WmPlaceDotProc {
 /**
  * The marked points of the world map (`src/worldmap_rm.c`: `ProcScr_WmPlaceDot` and the shared
  * palette pulse `ProcScr_WmDotPalAnim` that makes highlighted dots blink), started by event
- * commands `EventBB` / `EventBC` and ended through `EventBD` / `EventBE`.
+ * commands `EventBB_` (explicit position) / `EventBC_MarkPoint` (a node's position) and ended
+ * through `EventBD_` (sets the dot's flag) / `EventBE_` (waits until the dot is gone). The dots
+ * are drawn on sprite layer 11 against the scroll of the `GmapRM` big map proc.
  *
  * @param engine the proc scheduler
  * @param hardware the palette buffer and VRAM
@@ -74,7 +82,7 @@ public class WorldMapDot(
 ) {
     /**
      * The callees for a dot that owns a map effect (`StartGmapEffect`, `sub_80C13CC` of
-     * `src/worldmap_effect.c`); no capture runs one.
+     * `src/worldmap_effect.c`); no capture runs one, so both fail loudly by default.
      */
     public class Hooks(
         /**
@@ -94,8 +102,9 @@ public class WorldMapDot(
     private val dotSprite: SpriteObject by lazy { rom.objN(SPRITE_WM_PLACE_DOT) }
 
     /**
-     * `ProcScr_WmDotPalAnim`: fades OBJ palette 5 between the standard and the highlight colours
-     * and back, 30 frames each way plus 2 frames of rest, forever until ended.
+     * `ProcScr_WmDotPalAnim`: fades OBJ palette 5 (the palette of dots with
+     * [WmPlaceDotProc.effects] bit 0) from the standard to the highlight colours and back, 30
+     * frames each way plus 2 frames of rest after each, forever until ended.
      *
      * Transcribed from src/worldmap_rm.c: ProcScr_WmDotPalAnim (not verified: the script order is
      * checked through the proc cursor, but no unit of it is ported here)
@@ -119,8 +128,10 @@ public class WorldMapDot(
     ) { GmapRmBaPalAnimProc() }
 
     /**
-     * `ProcScr_WmPlaceDot`: one marked point. It draws the dot each frame until the palette pulse
-     * is at rest, waits for [WmPlaceDotProc.flag], then draws until the pulse is at rest again.
+     * `ProcScr_WmPlaceDot`: one marked point. The first dot (which starts the pulse) goes
+     * straight to label 1; a later dot first draws until the already running pulse is at rest.
+     * Then it draws until [WmPlaceDotProc.flag] is set and draws until the pulse is at rest again
+     * before ending, so the dot never vanishes mid-fade.
      *
      * Transcribed from src/worldmap_rm.c: ProcScr_WmPlaceDot (not verified: the script order is
      * checked through the proc cursor, but no unit of it is ported here)
@@ -140,13 +151,13 @@ public class WorldMapDot(
         ),
     ) { WmPlaceDotProc() }
 
-    /** The dot state of a [script] proc. */
+    /** The [WmPlaceDotProc] state of a [script] proc. */
     private fun dot(proc: Proc) = proc.state as WmPlaceDotProc
 
     /** The pulse state of a [palAnimScript] proc (the `ProcGmapRmBaPalAnim` fields). */
     private fun pulse(proc: Proc) = proc.state as GmapRmBaPalAnimProc
 
-    /** `ApplyPalette(source, bank)`: copies the 16 colours at [source] into palette [bank]. */
+    /** `ApplyPalette(source, bank)`: copies the 16 colours at ROM [source] into palette [bank]. */
     private fun applyPalette(source: Int, bank: Int) {
         rom.pal(source, 16).copyInto(hardware.palette, bank * 16)
     }
@@ -154,7 +165,8 @@ public class WorldMapDot(
     /**
      * Ported from src/worldmap_rm.c: WmDotPalAnim_Init
      *
-     * Puts the standard dot colours in OBJ palette 5 and marks the pulse as at rest (`flag = 1`).
+     * Puts the standard dot colours in OBJ palette 5 (`0x15`: palettes 0-15 are BG, 16-31 OBJ, so
+     * bank 0x15 is OBJ palette 5) and marks the pulse as at rest (`flag = 1`).
      *
      * Checked per step: the pulse's `flag` / `timer` and OBJ palette 5 against the capture.
      */
@@ -170,7 +182,9 @@ public class WorldMapDot(
      * Ported from src/worldmap_rm.c: sub_80C2C80 (`blendPalette` here)
      *
      * Writes the 16 colours of [srcA] moved by the fraction [a] / [b] of the way towards [srcB]
-     * to the palette buffer at colour [dst] (the dot pulse's cross-fade).
+     * to the palette buffer at colour [dst] (the dot pulse's cross-fade). Both are ROM addresses
+     * of 16 BGR555 colours; the fraction is eased with `_DivArm1(a, b, 0)` and each 5-bit channel
+     * is interpolated separately. `sub_80C2C80` in the decomp.
      */
     public fun blendPalette(a: Int, b: Int, srcA: Int, srcB: Int, dst: Int) {
         val coeff = Spline.divArm1(a, b, 0)
@@ -192,6 +206,8 @@ public class WorldMapDot(
      * Ported from src/worldmap_rm.c: WmDotPalAnim_Loop1
      *
      * One frame of the fade from the standard to the highlight colours; breaks after 30 frames.
+     * The decomp's target `Pal_WmPlaceDot_Standard - 0x10` (in `u16`s) is
+     * `Pal_WmPlaceDot_Highlight`, which lies 0x20 bytes before it.
      */
     public fun wmDotPalAnimLoop1(proc: Proc) {
         val s = pulse(proc)
@@ -246,8 +262,9 @@ public class WorldMapDot(
     /**
      * Ported from src/worldmap_rm.c: sub_80C2E50 (`pulseFlag` here)
      *
-     * The `flag` of the pulse: 1 while it rests on the standard colours, 0 while it is in the
-     * highlight half of its cycle, and 0 without a pulse.
+     * The `flag` of the pulse: 1 while it rests on the standard colours (before the first fade
+     * and after each fade back), 0 while it is fading to or from the highlight colours, and 0
+     * without a pulse. The dots wait for it so they stay up until the colours are back to normal.
      */
     public fun pulseFlag(): Int {
         val proc = engine.find(palAnimScript) ?: return 0
@@ -263,7 +280,8 @@ public class WorldMapDot(
     /**
      * Ported from src/worldmap_rm.c: WmPlaceDot_OnEnd
      *
-     * The last dot ends the palette pulse; the map effect branch is not run by the capture.
+     * The last dot ends the shared palette pulse; the map effect branch (`sub_80C13CC`, for
+     * a dot started with bit 1 of `e`) is not run by the capture.
      */
     public fun wmPlaceDotOnEnd(proc: Proc) {
         if (engine.count(script) == 1) endAllWmDotPalAnim()
@@ -275,9 +293,10 @@ public class WorldMapDot(
     /**
      * Ported from src/worldmap_rm.c: WmPlaceDot_Init
      *
-     * The first dot loads the dot tile and standard palette 0x14 (OBJ palette 4), starts the pulse
-     * and jumps to label 1 to wait for [WmPlaceDotProc.flag]; later dots only draw (the tiles
-     * and pulse are shared).
+     * The first dot loads the dot tile (`Img_WorldMapPlaceDot` at VRAM `0x060133C0`) and the
+     * standard palette into bank 0x14 (OBJ palette 4), starts the pulse and jumps to label 1 to
+     * wait for [WmPlaceDotProc.flag]; later dots do nothing here (the tile and the pulse are
+     * shared) and so run the first drawing phase of the script.
      */
     public fun wmPlaceDotInit(proc: Proc) {
         if (engine.count(script) > 1) return
@@ -291,8 +310,12 @@ public class WorldMapDot(
     /**
      * Ported from src/worldmap_rm.c: PutWmDotSprite
      *
-     * Draws the dot at its big map position minus the scroll, only when it is on screen (the
-     * `0x21` / `0x112` / `0xC2` bounds are the decomp's literal on-screen window test).
+     * Draws the dot at its big map position minus the scroll of the big map (`GmapRm_GetPosition`;
+     * the 4 centres the 8x8 sprite), only when it is on screen. The `0x21` / `0x112` / `0xC2`
+     * literals are the decomp's window test: the 240x160 screen plus a margin of about 32 pixels.
+     * OAM attribute 2 is the proc's tile offset plus tile `0x19E` (VRAM `0x060133C0`, where
+     * [wmPlaceDotInit] loaded the dot), palette 4 or 5 and `OAM2_LAYER(3)` (`0xC00`). Without a
+     * big map proc the decomp reads uninitialised coordinates; here they are 0.
      *
      * Checked at the full OAM dumps of the capture.
      */
@@ -325,11 +348,12 @@ public class WorldMapDot(
     /**
      * Ported from src/worldmap_rm.c: StartWmPlaceDot
      *
-     * Starts one dot. The decomp names the parameters `a, b, x, y, e`.
+     * Starts one dot (`EventBB_` passes explicit coordinates, `EventBC_MarkPoint` half of a
+     * node's). The decomp names the parameters `a, b, x, y, e`.
      *
-     * @param index `a`: the dot's index for `BD` / `BE`
+     * @param index `a`: the dot's id for `BD` / `BE`
      * @param tile `b`: the tile offset added to OAM attribute 2
-     * @param x the big map position
+     * @param x the big map position, `y` likewise
      * @param effects `e`: bit 0 = pulsing palette, bit 1 = also starts a map effect
      * @param parent blocked by the new proc (a root of tree 3 when null)
      */
@@ -375,7 +399,8 @@ public class WorldMapDot(
     /**
      * Ported from src/worldmap_rm.c: IsWmPlaceDotActiveAtIndex
      *
-     * [index] < 0 asks for any dot.
+     * Whether a dot with id [index] exists ([index] < 0 asks for any dot); `EventBE_` waits
+     * until it does not.
      */
     public fun isWmPlaceDotActiveAtIndex(index: Int): Boolean {
         if (index < 0) return engine.find(script) != null
@@ -385,8 +410,9 @@ public class WorldMapDot(
     /**
      * Ported from src/worldmap_rm.c: SetWmPlaceDotFlagForIndex
      *
-     * [index] < 0 sets every dot's flag (the original then also writes through a NULL proc,
-     * which does nothing on the GBA).
+     * Sets the flag of the dot with id [index], so it ends once the pulse is at rest ([index] < 0
+     * sets every dot's flag; the original then also writes through a NULL proc at the end of
+     * the list, which does nothing on the GBA).
      */
     public fun setWmPlaceDotFlagForIndex(index: Int) {
         var proc = engine.find(script)
@@ -424,7 +450,7 @@ public class WorldMapDot(
         /** `Pal_WmPlaceDot_Standard`. */
         const val PAL_STANDARD = 0x08AA11B0
 
-        /** `0x060133C0` as a VRAM offset. */
+        /** `0x060133C0` as a VRAM offset: OBJ tile `0x19E`, where the dot tile is loaded. */
         const val DOT_TILES = 0x133C0
 
         /** `gPaletteBuffer + 0x150` as a colour index (OBJ palette 5). */

@@ -644,7 +644,7 @@ Total entries: 575 across 84 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `MapSetInRange` | `game/src/commonMain/kotlin/fe8/game/bm/AttackRange.kt` | the select window never calls it |
-| `GenerateBestMovementScript` | `game/src/commonMain/kotlin/fe8/game/bm/BestMovementScript.kt` | no frame of the captures calls it, the path arrow only re-routes when the cursor leaves the path; `PlayerPhaseMoveDifferentialTest` runs it on the dumped working map and compares with the script the game built from the path |
+| `GenerateBestMovementScript` | `game/src/commonMain/kotlin/fe8/game/bm/BestMovementScript.kt` | the enemy phase walk calls it (`CpPerform_BeginUnitMovement`) and its script is compared there, but no `@VerifiesPort` test names it; the player's path arrow does not call it in the captures, it only re-routes when the cursor leaves the path; `PlayerPhaseMoveDifferentialTest` runs it on the dumped working map and compares with the script the game built from the path |
 | `GenerateMovementMapOnWorkingMap` | `game/src/commonMain/kotlin/fe8/game/bm/MovementMap.kt` | only `ResetPathArrow` and the path arrow's re-route call it, and the capture runs neither |
 | `UnitApplyWorkingMovementScript` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | the trap and hidden-unit branches, no capture walks onto one |
 

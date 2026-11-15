@@ -2,9 +2,10 @@ package fe8.game.bm
 
 /**
  * `gActionData` (`struct ActionData`, bmmind.h, 0x0203A958): the action the player or the AI
- * is building for the active unit. Only the fields the player phase reads or writes so far are
- * modelled; the other bytes of the C struct (`item`, `unk08`, `unk0A`, `itemSlotIndex`,
- * `xOther`, `yOther`, `trapType`, `scriptedBattleHits`) are added by the ports that use them.
+ * is building for the active unit. Only the byte fields from `subjectIndex` (0x0C) on are
+ * modelled; the other members of the C struct (the 6 bytes of random-number state at the
+ * start, `item`, `unk08`, `unk0A`, `scriptedBattleHits` and `script_hits`) are added by the
+ * ports that use them. `struct ActionData` is 0x38 bytes.
  */
 public class ActionData {
     /** `subjectIndex` (u8, 0x0C): the `index` of the unit acting. */
@@ -42,9 +43,10 @@ public class ActionData {
 }
 
 /**
- * The active unit of src/bmunit.c: `gActiveUnit`, `gActiveUnitId` and `gActiveUnitMoveOrigin`,
- * with [action] (`gActionData`). The unit is held as the id [UnitTable.unitOffset] takes
- * (0 for NULL), not as a pointer.
+ * The unit whose turn it is in src/bmunit.c, shared by the player phase, the AI and the
+ * battle code: `gActiveUnit`, `gActiveUnitId` and `gActiveUnitMoveOrigin`, with [action]
+ * (`gActionData`). The unit is held as the id [UnitTable.unitOffset] takes (0 for NULL), not
+ * as a pointer.
  */
 public class ActiveUnit {
     /** `gActionData`. */
@@ -53,10 +55,13 @@ public class ActiveUnit {
     /** `gActiveUnit` as a unit id, or 0 for NULL. */
     public var unit: Int = 0
 
-    /** `gActiveUnitId` (u8). */
+    /** `gActiveUnitId` (u8): the unit's `index` (faction and slot, as in `Unit.index`). */
     public var unitId: Int = 0
 
-    /** `gActiveUnitMoveOrigin.x` (s16): where the unit stood when its action began. */
+    /**
+     * `gActiveUnitMoveOrigin.x` (s16): where the unit stood when its action began (set by
+     * `UnitBeginAction` and `UnitBeginCantoAction`).
+     */
     public var moveOriginX: Int = 0
 
     /** `gActiveUnitMoveOrigin.y` (s16). */

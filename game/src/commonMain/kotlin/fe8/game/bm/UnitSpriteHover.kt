@@ -1,10 +1,16 @@
 package fe8.game.bm
 
 /**
- * The unit sprite hover controller of src/bmudisp.c: the hover timer ([hoverTimer],
+ * The unit sprite hover of src/bmudisp.c: when the player's cursor rests on a selectable player
+ * unit for 5 frames, the unit's standing map sprite is swapped for its animated MU; moving the
+ * cursor away swaps it back. Holds the hover timer ([hoverTimer],
  * `gMapSpriteSwitchHoverTimer`), resetting it ([resetUnitSpriteHover]), the frame update
- * ([unitSpriteHoverUpdate]) which starts the unit's MU on hover and cleans up on move, and
- * the hover predicate ([isUnitSpriteHoverEnabledAt]).
+ * ([unitSpriteHoverUpdate]) and the hover predicate ([isUnitSpriteHoverEnabledAt]).
+ *
+ * @param bm `gBmSt` (cursor positions)
+ * @param map `gBmMapUnit` and the map size
+ * @param units the unit table
+ * @param hooks the MU and sprite actions
  */
 public class UnitSpriteHover(
     private val bm: BmSt,
@@ -13,18 +19,18 @@ public class UnitSpriteHover(
     /** Callbacks for external MU and sprite visibility actions. */
     public val hooks: Hooks = Hooks(),
 ) {
-    /** Callbacks for external MU and sprite visibility actions. */
+    /** Callbacks for external MU and sprite visibility actions; the arguments are unit ids. */
     public class Hooks {
-        /** `StartMu(unit)`. */
+        /** `StartMu(unit)`: the animated walking sprite of the unit. */
         public var startMu: (unitId: Int) -> Unit = {}
 
-        /** `HideUnitSprite(unit)`. */
+        /** `HideUnitSprite(unit)`: hides the unit's standing map sprite. */
         public var hideUnitSprite: (unitId: Int) -> Unit = {}
 
         /** `EndAllMus()`. */
         public var endAllMus: () -> Unit = {}
 
-        /** `ShowUnitSprite(unit)`. */
+        /** `ShowUnitSprite(unit)`: shows the unit's standing map sprite again. */
         public var showUnitSprite: (unitId: Int) -> Unit = {}
     }
 
@@ -43,10 +49,12 @@ public class UnitSpriteHover(
     /**
      * Ported from src/bmudisp.c: UnitSpriteHoverUpdate
      *
-     * Advances the hover timer (`gMapSpriteSwitchHoverTimer`) while hovering a selectable player
-     * unit, starting its MU and hiding the standing map sprite when the timer reaches 5 frames.
-     * When the cursor moves to a different tile, resets the hover timer to 0, ends all active MUs,
-     * and shows the standing sprite of the unit at the previous cursor position.
+     * Advances the hover timer (`gMapSpriteSwitchHoverTimer`) while the cursor is on a selectable
+     * player unit, starting its MU and hiding the standing map sprite when the timer reaches 5
+     * frames (and then skipping the rest of the update). When the cursor has moved to a different
+     * tile, resets the hover timer to 0, ends all active MUs and shows the standing sprite of
+     * the unit at the previous cursor position. Deviation: the previous position is checked
+     * against the map size; the C indexes `gBmMapUnit` unchecked.
      */
     public fun unitSpriteHoverUpdate() {
         val curX = bm.playerCursorX
@@ -78,8 +86,9 @@ public class UnitSpriteHover(
     /**
      * Ported from src/bmudisp.c: IsUnitSpriteHoverEnabledAt
      *
-     * True if tile ([x], [y]) has a player unit that is selectable (not unavailable, not asleep,
-     * not berserk).
+     * True if tile ([x], [y]) has a player unit (`FACTION_BLUE`) that can be selected
+     * (`US_UNSELECTABLE` clear) and is neither asleep nor berserk. Deviation: false outside the
+     * map; the C indexes `gBmMapUnit` unchecked.
      */
     public fun isUnitSpriteHoverEnabledAt(x: Int, y: Int): Boolean {
         if (x !in 0 until map.sizeX || y !in 0 until map.sizeY) return false
@@ -109,10 +118,10 @@ public class UnitSpriteHover(
         /** GBA address of `gMapSpriteSwitchHoverTimer` in EWRAM. */
         public const val HOVER_TIMER_ADDRESS: Int = 0x0203A4D0
 
-        /** `US_UNSELECTABLE` unit state mask (1 shl 1). */
+        /** `US_UNSELECTABLE` unit state bit (include/bmunit.h): the unit cannot be selected. */
         public const val US_UNSELECTABLE: Int = 1 shl 1
 
-        /** `FACTION_BLUE` unit index faction bits (0x00). */
+        /** `FACTION_BLUE` (0x00): the faction bits (0xC0) of a player unit's `index`. */
         public const val FACTION_BLUE: Int = 0x00
 
         /** `UNIT_STATUS_SLEEP` status index (2). */

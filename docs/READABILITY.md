@@ -100,7 +100,7 @@ fe8.game.worldmap files that had none (sizes on that date).
 | game | fe8.game.bm (AttackMapSelect, AttackRange, AttackTargets) | 3 | 513 | done 2026-11-15 57c52073 |
 | game | fe8.game.bm (SelectTargets, TargetSelection, CombatAction) | 3 | 730 | done 2026-11-15 ad2f9cf2 |
 | game | fe8.game.bm (MovementMap, PathArrow) | 2 | 601 | done 2026-11-15 64d74db1 |
-| game | fe8.game.bm (MoveLimitView, UnitFacing, UnitSpriteHover, ActiveUnit, BestMovementScript) | 5 | 617 | todo |
+| game | fe8.game.bm (MoveLimitView, UnitFacing, UnitSpriteHover, ActiveUnit, BestMovementScript) | 5 | 617 | done 2026-11-15 HASH |
 | game | fe8.game.worldmap (WorldMapMain, WorldMapBeginning, WorldMapNodes, WorldMapApHost) | 4 | 769 | done 2026-11-15 9305e93a |
 | game | fe8.game.worldmap (WorldMapMainScript, WorldMapBigMapEvents, WorldMapFaceEvents, WorldMapMiscEvents, WorldMapSpawnEvents, WorldMapTextEvents) | 6 | 717 | done 2026-11-15 9c716cea |
 | game | fe8.game.worldmap (WorldMapUnitEvents, WorldMapSms) | 2 | 510 | done 2026-11-15 2c158a5c |

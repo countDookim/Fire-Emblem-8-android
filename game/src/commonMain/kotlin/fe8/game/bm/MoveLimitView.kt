@@ -18,10 +18,13 @@ import gbafe.render.BgHardware
 /**
  * The blue, red and green movement and attack range squares of src/playerphase.c and
  * src/bmmap.c: [displayMoveRangeGraphics] starts `sProcScr_MoveLimitView` ([viewScript], a BG2
- * overlay over the map: a tile per map tile that is in `gBmMapMovement` (blue) or `gBmMapRange`
- * (red), whose palette cycles with the game clock) and its child `sProcScr_MoveLimitViewChange`
- * ([changeScript], which opens the squares by copying six frames of tile graphics into VRAM, one
- * per frame); [hideMoveRangeGraphics] ends it.
+ * overlay over the map: a 2x2 tile square per map tile that is in `gBmMapMovement` (blue) or
+ * `gBmMapRange` (red; the same overlay shows the green staff range, whose squares use the
+ * red tiles with a green palette), whose palette cycles with the game clock) and its child
+ * `sProcScr_MoveLimitViewChange` ([changeScript], which opens the squares by copying six frames
+ * of tile graphics into VRAM, one per frame); [hideMoveRangeGraphics] ends it. The squares'
+ * four tiles live at VRAM 0x5000 (BG tile 0x280, the animated copy) and 0x5080 (tile 0x284, a
+ * static copy of the base image).
  *
  * Deviations: `RegisterDataMove` (queued until the next VBlank in the C) is [registerDataMove],
  * which copies at once by default; `GetGameClock` is [gameClock]. The proc fields past
@@ -31,7 +34,7 @@ import gbafe.render.BgHardware
 public class MoveLimitView(
     /** The proc engine the procs run on (the view is a root proc of tree 4). */
     private val engine: ProcEngine,
-    /** `gBmSt`. */
+    /** `gBmSt` (`gameStateBits`, `mapRenderOrigin`). */
     private val bm: BmSt,
     /** `gBmMapMovement` and `gBmMapRange`. */
     private val map: BmMap,
@@ -44,10 +47,13 @@ public class MoveLimitView(
 ) {
     /** The fields of the two procs past `PROC_HEADER`. */
     public class State {
-        /** `MoveLimitViewProc.flags` (+0x4A): the `LIMITVIEW_*` bits of the view proc. */
+        /** `MoveLimitViewProc.flags` (+0x4A, `s16`): the `LIMITVIEW_*` bits of the view proc. */
         public var flags: Int = 0
 
-        /** `MoveLimitViewProc.unk_4C`: the frame (2 to 7) of the next opening graphics copy. */
+        /**
+         * `MoveLimitViewProc.unk_4C` (+0x4C, `s16`): the frame (2 to 7) of the next opening
+         * graphics copy; indexes `gOpenLimitViewImgLut`, whose first two entries are NULL.
+         */
         public var unk4C: Int = 0
     }
 
@@ -97,6 +103,7 @@ public class MoveLimitView(
         newState = { State() },
     )
 
+    // The incremental map redraw (BM_FLAG_0 set) draws the range squares through this hook.
     init {
         render.movementView = BmMapRender.MovementViewTile { bg, xBm, yBm, xTile, yTile ->
             displayMovementViewTile(bg, xBm, yBm, xTile, yTile)
@@ -106,10 +113,12 @@ public class MoveLimitView(
     /**
      * Ported from src/playerphase.c: DisplayMoveRangeGraphics
      *
-     * Shows the range squares with the `LIMITVIEW_*` bits [flags]: starts the view proc in tree 4
-     * with those flags. If the view already exists it is redrawn instead
-     * ([moveLimitViewOnInit], [moveLimitViewChangeOnInit] without a proc) and keeps its old flags
-     * (not verified: no capture displays the range while the squares are up).
+     * Shows the range squares with the `LIMITVIEW_*` bits [flags] (the callers pass, for
+     * example, blue for the movement squares and blue plus red for the movement and attack
+     * range of `DisplayUnitEffectRange`): starts the view proc in tree 4 with those flags. If
+     * the view already exists it is redrawn instead ([moveLimitViewOnInit],
+     * [moveLimitViewChangeOnInit] without a proc) and keeps its old flags (not verified: no
+     * capture displays the range while the squares are up).
      */
     public fun displayMoveRangeGraphics(flags: Int) {
         val view = engine.find(viewScript)
@@ -134,10 +143,11 @@ public class MoveLimitView(
     /**
      * Ported from src/playerphase.c: MoveLimitViewChange_OnInit
      *
-     * Copies the base square graphics (the image after the six opening frames) to VRAM
-     * 0x5080. With `BM_FLAG_0` not yet set it starts the opening at frame 2 ([proc]'s `unk_4C`);
-     * with it set (the view is redrawn) it also copies that image to 0x5000 and ends [proc]
-     * (null when called from [displayMoveRangeGraphics]).
+     * Copies the base square graphics (`gUnknown_08A02EB4`, the image after the six opening
+     * frames) to VRAM 0x5080. With `BM_FLAG_0` not yet set (the view is new) it starts the
+     * opening at frame 2 ([proc]'s `unk_4C`); with it set (the view is redrawn) it also copies
+     * that image to 0x5000, so the squares show fully open, and ends [proc] (null when called
+     * from [displayMoveRangeGraphics]).
      */
     public fun moveLimitViewChangeOnInit(proc: Proc?) {
         registerDataMove(BASE_IMAGE, VRAM_SQUARES + 0x80, 0x80)
@@ -152,8 +162,9 @@ public class MoveLimitView(
     /**
      * Ported from src/playerphase.c: MoveLimitViewChange_OnLoop
      *
-     * Copies the opening frame `unk_4C` (a 0x80 byte image of `gOpenLimitViewImgLut`) to VRAM
-     * 0x5000 and advances it; after frame 7 the proc moves on (and ends).
+     * Copies the opening frame `unk_4C` (a 0x80 byte image of `gOpenLimitViewImgLut`, which
+     * starts at `Img_LimitViewSquares` for frame 2) to VRAM 0x5000 and advances it; after
+     * frame 7 the proc breaks (and ends).
      */
     public fun moveLimitViewChangeOnLoop(proc: Proc) {
         val state = proc.state as State
@@ -165,7 +176,8 @@ public class MoveLimitView(
     /**
      * Ported from src/playerphase.c: MoveLimitView_OnInit
      *
-     * Turns the windows off, sets `BM_FLAG_0`, redraws the map ([BmMapRender.renderBmMap]) and
+     * Turns the windows off, sets `BM_FLAG_0` (from here the map redraws also draw the squares),
+     * redraws the map ([BmMapRender.renderBmMap]) and
      * fills the 15x10 visible tiles of BG2 with [displayMovementViewTile], requests the BG2
      * sync, resets its scroll, sets alpha blending of BG2 (first target) over BG3 and the
      * sprites (second target) with coefficients 10 and 6, and resets the BG priorities.
@@ -199,26 +211,30 @@ public class MoveLimitView(
      * Ported from src/playerphase.c: MoveLimitView_OnLoop
      *
      * Each frame cycles the square colours: with `frame = (GetGameClock() / 2) & 31`, copies 16
-     * colours of the blue table from `frame` to palette colour 0x41 (`LIMITVIEW_BLUE`; the word
-     * alignment of the copy is in [copyToPaletteBuffer]), the red table to 0x51
-     * (`LIMITVIEW_RED`), the green table to 0x51 (`LIMITVIEW_GREEN`) and the blue table to 0x51
-     * (`LIMITVIEW_UNK`), and flags the palette for sync. The green and unknown tables are (not
-     * verified: the captures show blue and red only).
+     * colours of the blue table from `frame` to palette colour 0x41 (BG palette 4, the one the
+     * blue tiles 0x4280.. use; `LIMITVIEW_BLUE`; the word alignment of the copy is in
+     * [copyToPaletteBuffer]), the red table to 0x51 (BG palette 5, the red tiles 0x5280..;
+     * `LIMITVIEW_RED`), the green table to 0x51 (`LIMITVIEW_GREEN`) and the blue table to 0x51
+     * (`LIMITVIEW_UNK`), and flags the palette for sync. The green and unknown branches are not
+     * verified: the captures show blue and red only.
      */
     public fun moveLimitViewOnLoop(proc: Proc) {
         val flags = (proc.state as State).flags
         val frame = (gameClock() / 2) and 31
-        if ((flags and LIMITVIEW_BLUE) != 0) copyToPaletteBuffer(PAL_BLUE + frame * 2, 0x82)
-        if ((flags and LIMITVIEW_RED) != 0) copyToPaletteBuffer(PAL_RED + frame * 2, 0xA2)
-        if ((flags and LIMITVIEW_GREEN) != 0) copyToPaletteBuffer(PAL_GREEN + frame * 2, 0xA2)
-        if ((flags and LIMITVIEW_UNK) != 0) copyToPaletteBuffer(PAL_BLUE + frame * 2, 0xA2)
+        if ((flags and LIMITVIEW_BLUE) != 0) copyToPaletteBuffer(PAL_BLUE + frame * 2, DEST_BLUE)
+        if ((flags and LIMITVIEW_RED) != 0) copyToPaletteBuffer(PAL_RED + frame * 2, DEST_OVERLAY)
+        if ((flags and LIMITVIEW_GREEN) != 0) {
+            copyToPaletteBuffer(PAL_GREEN + frame * 2, DEST_OVERLAY)
+        }
+        if ((flags and LIMITVIEW_UNK) != 0) copyToPaletteBuffer(PAL_BLUE + frame * 2, DEST_OVERLAY)
     }
 
     /**
      * Ported from src/playerphase.c: MoveLimitView_OnEnd
      *
      * The end callback of the view: when the flags have the blue (or unknown) bit, clears BG2 and
-     * requests its sync; clears `BM_FLAG_0` and `BM_FLAG_1` and resets the BG priorities.
+     * requests its sync (a red-only or green-only view leaves BG2 as it is); clears `BM_FLAG_0`
+     * and `BM_FLAG_1` and resets the BG priorities.
      */
     public fun moveLimitViewOnEnd(proc: Proc) {
         if (((proc.state as State).flags and (LIMITVIEW_BLUE or LIMITVIEW_UNK)) != 0) {
@@ -233,9 +249,11 @@ public class MoveLimitView(
      * Ported from src/bmmap.c: DisplayMovementViewTile
      *
      * Writes the 2x2 BG2 entries at tile ([xTileMap], [yTileMap]) of [bg] for map tile
-     * ([xBmMap], [yBmMap]): the blue square (0x4280..0x4283) where `gBmMapMovement` is not
-     * negative, else the red square (0x5280..0x5283) where `gBmMapRange` is set, else nothing
-     * (0). A red tile whose first entry is already set gets the variant 0x5284..0x5287.
+     * ([xBmMap], [yBmMap]): the blue square (palette 4, tiles 0x280..0x283) where
+     * `gBmMapMovement` is not negative as a signed byte (0xFF marks a tile out of reach), else
+     * the red square (palette 5, tiles 0x280..0x283) where `gBmMapRange` is set, else nothing
+     * (0). A red tile whose first entry is already set gets the variant with tiles
+     * 0x284..0x287 (the static copy of the base image at VRAM 0x5080).
      */
     public fun displayMovementViewTile(
         bg: ShortArray,
@@ -312,5 +330,11 @@ public class MoveLimitView(
         private const val PAL_BLUE = 0x08A02F34 // gUnknown_08A02F34
         private const val PAL_RED = 0x08A02F94 // gUnknown_08A02F94
         private const val PAL_GREEN = 0x08A02FF4 // gUnknown_08A02FF4
+
+        /** `CopyToPaletteBuffer` byte offset of palette colour 0x41 (BG palette 4, colour 1). */
+        private const val DEST_BLUE = 0x82
+
+        /** The byte offset of palette colour 0x51 (BG palette 5, colour 1): red, green, unknown. */
+        private const val DEST_OVERLAY = 0xA2
     }
 }

@@ -17,7 +17,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 - MC-18e: GPT owner PC Terra, level-up label palette cycle, until ~22:30Z (2026-11-15).
 
 
-- EP-28 (battle quote and defeat events: event.c / eventinfo.c), owner PC Gemini Flash agent `ep28`, claimed 2026-11-15 20:11Z.
+- EP-17 (map animation flow A: mapanim.c), owner PC Gemini Flash agent `ep17`, claimed 2026-11-15 21:05Z.
 - EP-11d (text and CG text: fontgrp.c, cgtext.c), owner PC Gemini Flash agent `ep11d`, claimed 2026-11-15 20:15Z.
 
 

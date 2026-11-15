@@ -4,10 +4,11 @@ package fe8.game.bm
  * The target list of src/uiselecttarget.c: `sSelectTargetRoot`, `sSelectTargetList` (the
  * `struct SelectTarget` array of [MAX_TARGET_COUNT]) and `sSelectTargetCount`. The
  * `Make*TargetList` functions of src/bmtarget.c fill it for the unit acting and the target
- * selection walks it. A target is the tile and unit it holds, an `extra` byte (the trap's `extra`,
- * 0 for a unit), and the
- * links the cursor follows. Targets are addressed by index, [NONE] standing for a NULL link. The
- * arrays are allocated once; nothing here allocates afterwards.
+ * selection ([TargetSelection]) walks it, whatever command (attack, staff, trade, ...) made the
+ * list. A target is the tile and unit it holds, an `extra` byte (the trap's `extra`, 0 for a
+ * unit), and the `next` and `prev` links the cursor follows with the d-pad. Targets are
+ * addressed by index (`GetTarget(index)`), [NONE] standing for a NULL link. The arrays are
+ * allocated once; nothing here allocates afterwards.
  */
 public class SelectTargets {
     private val xs = IntArray(MAX_TARGET_COUNT)
@@ -17,7 +18,10 @@ public class SelectTargets {
     private val nexts = IntArray(MAX_TARGET_COUNT)
     private val prevs = IntArray(MAX_TARGET_COUNT)
 
-    /** `sSelectTargetRoot.x`: the tile the list is made around (the acting unit's). */
+    /**
+     * `sSelectTargetRoot.x`: the tile the list is made around (the acting unit's), which orders
+     * the cursor's walk ([getLinkedTargetsNear]) and measures [getFurthestTargetDistance].
+     */
     public var rootX: Int = 0
         private set
 
@@ -25,6 +29,7 @@ public class SelectTargets {
     public var rootY: Int = 0
         private set
 
+    /** `sSelectTargetCount`. */
     private var count: Int = 0
 
     /**
@@ -91,11 +96,13 @@ public class SelectTargets {
     /**
      * Ported from src/uiselecttarget.c: GetLinkedTargetsNear
      *
-     * Links the targets in the order of the 13 tiles around the root that [NEAR_LINK_ORDER] lists,
-     * so the cursor moves around the acting unit like a clock. Each target found points `next` at
-     * the one found before it and that one's `prev` at it; the first and last are tied together.
-     * Returns the index of the first target found. The list must not be empty (the original reads
-     * NULL then).
+     * Links the targets in the order of the 13 tiles of the radius-2 diamond around the root that
+     * [NEAR_LINK_ORDER] lists (the root, then the tiles from straight above it clockwise), so
+     * the cursor of a close-range selection moves around the acting unit. Each target found
+     * points `next` at the one found before it and that one's `prev` at it; the first and last
+     * are tied together. Returns the index of the first target found, where the cursor starts.
+     * The list must hold a target on one of those tiles (the original reads NULL otherwise,
+     * and [getLinkedTargets] only calls this when every target is within 2 tiles).
      */
     public fun getLinkedTargetsNear(): Int {
         var first = NONE
@@ -122,7 +129,8 @@ public class SelectTargets {
      * Transcribed from src/uiselecttarget.c: LinkTargets (not verified: never run in the attack
      *   captures)
      *
-     * Links the targets in list order into a ring.
+     * Links the targets in list order into a ring: `next` of the last is the first, `prev` of
+     * the first is the last. The list must not be empty.
      */
     public fun linkTargets() {
         for (i in 0 until count) {
@@ -138,7 +146,8 @@ public class SelectTargets {
      * Transcribed from src/uiselecttarget.c: GetLinkedTargetsFar (not verified: never run in the
      *   attack captures)
      *
-     * Links the targets in list order and returns the first.
+     * Links the targets in list order ([linkTargets]) and returns the first. Used for a list
+     * with a target more than 2 tiles from the root (a bow or magic reach).
      */
     public fun getLinkedTargetsFar(): Int {
         linkTargets()
@@ -161,10 +170,10 @@ public class SelectTargets {
         /** `MAX_TARGET_LIST_COUNT`: the capacity of the list. */
         public const val MAX_TARGET_COUNT: Int = 64
 
-        /** A NULL link. */
+        /** A NULL link of `SelectTarget.next` or `prev`. */
         public const val NONE: Int = -1
 
-        /** `gNearTargetLinkOrder`: the (x, y) offsets from the root, in pairs. */
+        /** `gNearTargetLinkOrder`: the (x, y) offsets from the root, in pairs (13 tiles). */
         private val NEAR_LINK_ORDER = intArrayOf(
             0, 0, 0, -2, 0, -1, 1, -1, 1, 0, 2, 0, 1, 1, 0, 1, 0, 2, -1, 1, -1, 0, -2, 0, -1, -1,
         )

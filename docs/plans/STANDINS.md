@@ -20,13 +20,15 @@ Total entries: 235 across 47 Kotlin files.
 | M6-E | 51 |
 | M6-F | 13 |
 | M6-G | 4 |
-| M6-H | 38 |
+| M6-H | 36 |
 | M6-I | 27 |
 | M6-J | 10 |
 | D09-3 | 2 |
 | D11-wire-a | 1 |
 | EP-1 | 1 |
 | EP-12 | 24 |
+| EP-13 | 1 |
+| EP-14 | 1 |
 | EP-1b | 4 |
 | EP-30 | 2 |
 | EP-6b | 11 |
@@ -176,7 +178,7 @@ Total entries: 235 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: `IsBattleDeamonActive` (the battle animation system) is not ported, so the fixed fight-event bubble is never used. |
 
-## M6-H (38)
+## M6-H (36)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -200,9 +202,7 @@ Total entries: 235 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `initChapterMap` | The base tile adjustments after the unpack (`ApplyEnabledMapChanges`, the `CHAPTER_75` water shadows) are stand-ins until M6-H ([applyEnabledMapChanges] is a hook), so a chapter that has them (e.g. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `refreshAllLightRunes` | Stand-in for `RefreshAllLightRunes` (bmtrick.c; until M6-H), called at the end of [refreshTerrainBmMap]; does nothing until traps are ported. |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in until M6-H (sound effects as chapters first need them): the sound effect players are not in `SoundWrapper` yet, so this does nothing unless `Fe8Boot` sets it (D11-wire-a left it a no-op). |
-| `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `beginBattleAnimations` | Stand-in until M6-H: sets only the flag, so the animation ends at once. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `getBattleAnimPreconfType` | Stand-in until M6-H: always `PLAY_ANIMCONF_OFF` (map animations). |
-| `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `itemGotPopup` | Stand-in until M6-H (the popup): nothing is shown or given. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `itemGotPopup` | Stand-in until M6-H (the popup): nothing is shown. |
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `EntityBmMaps` | Stand-ins until M6-H: the trap-dependent parts of src/bmmap.c, `RefreshTorchlightsOnBmMap` and `RefreshMinesOnBmMap` (they read the bmtrick.c trap pool, not ported yet), are the hooks [refreshTorch... |
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `refreshMinesOnBmMap` | Stand-in (M6-H) for `RefreshMinesOnBmMap`, called after the unit pass. |
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `refreshTorchlightsOnBmMap` | Stand-in (M6-H) for `RefreshTorchlightsOnBmMap`, called between clears and unit pass. |
@@ -313,6 +313,18 @@ Total entries: 235 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `rideBallista` | Stand-in for `RideBallista(gActiveUnit)` (bmunit.c; EP-12: the ballista branch of `CpPerform_MoveCameraOntoTarget` is never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `script` | The AI script interpreter (cp_script.c); its hooks are the EP-12 stand-ins. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | `unportedCommand` | Stand-in for a command this class does not write (EP-12 for 00..04, 07..0D, 0F..11, 13..1B and 05 with an ignore list, whose predicates `AiIsUnitEnemyOrInScrList` and `AiIsUnitEnemyAndNotInScrList`... |
+
+## EP-13 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `beginBattleAnimations` | Stand-in until EP-13: sets only the flag, so the animation ends at once. |
+
+## EP-14 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `getBattleAnimPreconfType` | Stand-in until EP-14: always `PLAY_ANIMCONF_OFF` (battle animations off). |
 
 ## EP-1b (4)
 

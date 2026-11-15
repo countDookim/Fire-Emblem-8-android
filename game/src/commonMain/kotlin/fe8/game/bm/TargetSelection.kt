@@ -15,7 +15,8 @@ import gbafe.proc.ProcScripts.sleep
 /**
  * The target selection proc of src/uiselecttarget.c: the cursor that walks the targets of
  * [SelectTargets] (one tile each) and hands the A, B and R buttons and the target changes to the
- * [SelectInfo] it was started with.
+ * [SelectInfo] it was started with (a `gSelectInfo_*` of src/menu_def.c: the attack selection's
+ * is [AttackMapSelect]).
  *
  * The proc's fields past `PROC_HEADER` are [State]; targets are indices of [targets]. Nothing
  * allocates per frame (`gKeyStatusPtr` is [keys]).
@@ -32,7 +33,11 @@ public class TargetSelection(
     /** BG 0 and 1 of the original's `ClearBg0Bg1`, cleared when an action asks for it. */
     private val clearBg0Bg1: () -> Unit,
 ) {
-    /** The callbacks of a `struct SelectInfo`; every one defaults to doing nothing. */
+    /**
+     * The callbacks of a `struct SelectInfo`; every one defaults to doing nothing, as a NULL
+     * entry of the C table does. The `onSelect`, `onCancel` and `onHelp` callbacks return the
+     * `TARGETSELECTION_ACTION_*` bits ([ACTION_END] and the others of [Companion]).
+     */
     public interface SelectInfo {
         /** `onInit`: the selection starts. */
         public fun onInit(proc: Proc) {}
@@ -40,7 +45,7 @@ public class TargetSelection(
         /** `onEnd`: the selection ends. */
         public fun onEnd(proc: Proc) {}
 
-        /** `onUnk08`: runs after [onInit]. */
+        /** `onUnk08`: runs after [onInit]; purpose unknown (`gSelectInfo_Attack` has none). */
         public fun onUnk08(proc: Proc) {}
 
         /** `onSwitchIn`: the cursor arrives on [target] (an index of the list). */
@@ -73,10 +78,10 @@ public class TargetSelection(
 
     /** Services outside the ported file. */
     public class Hooks {
-        /** `PlaySoundEffect`. */
+        /** `PlaySoundEffect(song)`: the cursor move and the select and cancel sounds. */
         public var playSoundEffect: (song: Int) -> Unit = {}
 
-        /** `EndFaceById`. */
+        /** `EndFaceById(slot)`: ends the unit's face ([ACTION_ENDFACE] ends slot 0). */
         public var endFaceById: (slot: Int) -> Unit = {}
 
         /** `PutMapCursor(x, y, kind)` (`MapCursor.put`). */
@@ -85,16 +90,17 @@ public class TargetSelection(
         /** `RefreshBMapGraphics` (the proc script's step after a target change that never ends). */
         public var refreshBMapGraphics: ProcFunc = ProcFunc {}
 
-        /** `LockGame`. */
+        /** `LockGame`: no other proc takes input while the selection runs. */
         public var lockGame: () -> Unit = {}
 
-        /** `UnlockGame`. */
+        /** `UnlockGame`, when the selection ends ([FLAG_GAMELOCK]). */
         public var unlockGame: () -> Unit = {}
     }
 
     /** The hooks, set by the game. */
     public val hooks: Hooks = Hooks()
 
+    /** The pixel position `TargetSelection_GetRealCursorPosition` writes (`xPos`, `yPos`). */
     private var realX = 0
     private var realY = 0
 
@@ -122,7 +128,8 @@ public class TargetSelection(
      * Locks the game and starts the selection proc (tree 3) with [info], on the first target
      * `GetLinkedTargets` links; runs `onInit`, `onUnk08` and `onSwitchIn`, and clears the new
      * keys so the press that opened the selection does not select (not verified: the dumps show
-     * the proc's first run a frame later, after the keys were renewed).
+     * the proc's first run a frame later, after the keys were renewed). The original also clears
+     * `onAPress`, which only `NewTargetSelection_Specialized` sets (not written).
      */
     public fun newTargetSelection(info: SelectInfo): Proc {
         hooks.lockGame()
@@ -143,7 +150,7 @@ public class TargetSelection(
     /**
      * Ported from src/uiselecttarget.c: TargetSelection_GetRealCursorPosition
      *
-     * Sets [realX] and [realY] to the pixel position of the current target.
+     * Sets [realX] and [realY] to the pixel position of the current target (tile times 16).
      */
     private fun getRealCursorPosition(state: State) {
         realX = targets.targetX(state.currentTarget) * 16
@@ -154,17 +161,18 @@ public class TargetSelection(
      * Ported from src/uiselecttarget.c: TargetSelection_Loop
      *
      * One frame: the d-pad ([handleMoveInput]), the buttons ([handleSelectInput]) and the actions
-     * they ask for (end, sounds 0x6A and 0x6B, clearing BG 0 and 1, ending the face), then the
-     * camera follows the current target and the cursor is put on it (kind 2) unless a camera
-     * move was started. The frozen branch (only the cursor, kind 4) is transcribed (not
-     * verified: nothing sets the flag in the captures). The sounds are not in the dumps (not
-     * verified).
+     * they ask for (end, `SONG_SE_SYS_WINDOW_SELECT1` and `SONG_SE_SYS_WINDOW_CANSEL1`, clearing
+     * BG 0 and 1, ending the face), then, unless [ACTION_ENDFAST] skips it, the camera follows
+     * the current target and the cursor is put on it (`PutMapCursor` kind 2, the red cursor
+     * that blends with its last position) unless a camera move was started. The frozen branch
+     * (only the still red cursor, kind 4) is transcribed (not verified: nothing sets the flag
+     * in the captures). The sounds are not in the dumps (not verified).
      */
     private fun targetSelectionLoop(proc: Proc) {
         val state = proc.state as State
         if (state.flags and FLAG_FROZEN != 0) {
             getRealCursorPosition(state)
-            hooks.putMapCursor.put(realX, realY, 4)
+            hooks.putMapCursor.put(realX, realY, CURSOR_KIND_FROZEN)
             return
         }
 
@@ -185,7 +193,7 @@ public class TargetSelection(
         if (actions and ACTION_ENDFAST == 0) {
             getRealCursorPosition(state)
             if (!camMove.ensureCameraOntoPosition(proc, realX shr 4, realY shr 4)) {
-                hooks.putMapCursor.put(realX, realY, 2)
+                hooks.putMapCursor.put(realX, realY, CURSOR_KIND_ACTIVE)
             }
         }
     }
@@ -208,8 +216,9 @@ public class TargetSelection(
      * Transcribed from src/uiselecttarget.c: TargetSelection_HandleMoveInput (not verified: the
      *   captures never press the d-pad, so only the return without a change runs)
      *
-     * Left and up (auto-repeating) go to the next target, right and down to the previous one;
-     * when the target changed `onSwitchOut` and `onSwitchIn` run and sound 0x67 plays.
+     * Left and up (auto-repeating) go to the next target, right and down to the previous one
+     * (a NULL link keeps the target); when the target changed `onSwitchOut` and `onSwitchIn`
+     * run and `SONG_SE_SYS_CURSOR_LR1` plays.
      */
     private fun handleMoveInput(proc: Proc, state: State) {
         val current = state.currentTarget
@@ -278,7 +287,10 @@ public class TargetSelection(
         /** `TARGETSELECTION_ACTION_ENDFACE`: end the face in slot 0. */
         public const val ACTION_ENDFACE: Int = 1 shl 5
 
+        /** `PROC_TREE_3`: the proc tree of the selection. */
         private const val PROC_TREE_3 = 3
+
+        /** `A_BUTTON`, `B_BUTTON`, `R_BUTTON` and the four `DPAD_*` keys. */
         private const val KEY_A = 1
         private const val KEY_B = 2
         private const val KEY_RIGHT = 0x10
@@ -286,6 +298,14 @@ public class TargetSelection(
         private const val KEY_UP = 0x40
         private const val KEY_DOWN = 0x80
         private const val KEY_R = 0x100
+
+        /** `PutMapCursor` kind of the moving selection cursor. */
+        private const val CURSOR_KIND_ACTIVE = 2
+
+        /** `PutMapCursor` kind of the frozen selection cursor. */
+        private const val CURSOR_KIND_FROZEN = 4
+
+        /** `SONG_SE_SYS_CURSOR_LR1`, `SONG_SE_SYS_WINDOW_SELECT1`, `SONG_SE_SYS_WINDOW_CANSEL1`. */
         private const val SONG_SE_SYS_CURSOR_LR1 = 0x67
         private const val SONG_SE_SYS_WINDOW_SELECT1 = 0x6A
         private const val SONG_SE_SYS_WINDOW_CANSEL1 = 0x6B

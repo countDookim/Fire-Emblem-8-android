@@ -12,7 +12,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - EP-8b: owner PC, until ~2026-11-15 17:30Z
-- READABILITY fe8.game.worldmap (WorldMapUnitEvents, WorldMapSms): owner PC, until ~2026-11-15 17:00Z
+- READABILITY fe8.game.worldmap (WorldMapAutoMu, WorldMapMuEntry): owner PC, until ~2026-11-15 17:30Z
 
 ## Current state
 

@@ -103,7 +103,7 @@ fe8.game.worldmap files that had none (sizes on that date).
 | game | fe8.game.bm (MoveLimitView, UnitFacing, UnitSpriteHover, ActiveUnit, BestMovementScript) | 5 | 617 | todo |
 | game | fe8.game.worldmap (WorldMapMain, WorldMapBeginning, WorldMapNodes, WorldMapApHost) | 4 | 769 | done 2026-11-15 9305e93a |
 | game | fe8.game.worldmap (WorldMapMainScript, WorldMapBigMapEvents, WorldMapFaceEvents, WorldMapMiscEvents, WorldMapSpawnEvents, WorldMapTextEvents) | 6 | 717 | done 2026-11-15 9c716cea |
-| game | fe8.game.worldmap (WorldMapUnitEvents, WorldMapSms) | 2 | 510 | done 2026-11-15 HASH |
+| game | fe8.game.worldmap (WorldMapUnitEvents, WorldMapSms) | 2 | 510 | done 2026-11-15 2c158a5c |
 | game | fe8.game.worldmap (WorldMapAutoMu, WorldMapMuEntry) | 2 | 795 | todo |
 | game | fe8.game.worldmap (WorldMapDot, WorldMapNodeIcons) | 2 | 612 | todo |
 | game | fe8.game.worldmap (WorldMapRoute, WorldMapPath) | 2 | 610 | todo |

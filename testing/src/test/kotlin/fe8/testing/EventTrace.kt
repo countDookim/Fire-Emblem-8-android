@@ -28,6 +28,9 @@ class EventTrace private constructor(
         /** `ProcScr_StdEventEngine` ROM address. */
         const val STD_EVENT_ENGINE = 0x08591AC0
 
+        /** `ProcScr_BattleEventEngine` ROM address. */
+        const val BATTLE_EVENT_ENGINE = 0x08591AF8
+
         /** Address of `gEventCallQueue`, the first byte of the `evglobals` watch. */
         const val GLOBALS_ADDRESS = 0x03000438
 
@@ -112,7 +115,8 @@ class EventTrace private constructor(
         ): EventSnapshot {
             fun u32(o: Int) = (g[o].toInt() and 0xFF) or ((g[o + 1].toInt() and 0xFF) shl 8) or
                 ((g[o + 2].toInt() and 0xFF) shl 16) or ((g[o + 3].toInt() and 0xFF) shl 24)
-            val engine = procs.find(STD_EVENT_ENGINE)?.let { p ->
+            val engineProc = procs.find(STD_EVENT_ENGINE) ?: procs.find(BATTLE_EVENT_ENGINE)
+            val engine = engineProc?.let { p ->
                 EngineState(
                     procSlot = p.slot,
                     pEventStart = p.u32(0x30),

@@ -173,6 +173,17 @@ public class EventEngine(
     }
 
     /**
+     * Starts the battle quote event script ([EVENT_SCR_DISPLAY_BATTLE_QUOTE]) on proc tree 3 as
+     * a quiet event and writes the message id [textIndex] to event slot 2.
+     *
+     * Ported from src/event.c: CallBattleQuoteEventInBattle
+     */
+    public fun callBattleQuoteEventInBattle(textIndex: Int) {
+        createBattle(EVENT_SCR_DISPLAY_BATTLE_QUOTE)
+        state.slots[2] = textIndex
+    }
+
+    /**
      * True while a standard (map) event engine proc runs, which blocks player input on the map.
      *
      * Transcribed from src/event.c: EventEngineExists (not verified: no test checks it against a
@@ -401,6 +412,9 @@ public class EventEngine(
 
     /** Proc marks, tree and table sizes shared by the engine. */
     public companion object {
+        /** `EventScr_DisplayBattleQuote` ROM address (0x08591F88). */
+        public const val EVENT_SCR_DISPLAY_BATTLE_QUOTE: Int = 0x08591F88
+
         /** `PROC_MARK_EVENT`: marks the engine procs so other code can find or block them. */
         public const val PROC_MARK_EVENT: Int = 6
 

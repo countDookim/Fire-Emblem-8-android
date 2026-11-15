@@ -41,6 +41,50 @@ public class EventInfo {
     public var pidB: Int = 0
 }
 
+/**
+ * `struct BattleTalkExtEnt` (eventinfo.h): one entry in `gBattleTalkList`.
+ *
+ * @property pidA first character id (`CHAR_EVT_PLAYER_LEADER` for player leader, 0 for any).
+ * @property pidB second character id (0 for any).
+ * @property chapter chapter index (0xFF for any chapter, 0xFE for triangle attack).
+ * @property flag flag id set when this quote is triggered.
+ * @property msg message index of the battle quote.
+ * @property event event script address to run instead of [msg] when [msg] is 0.
+ */
+public class BattleTalkExtEnt(
+    public val pidA: Int,
+    public val pidB: Int,
+    public val chapter: Int,
+    public val flag: Int,
+    public val msg: Int,
+    public val event: Int,
+)
+
+/**
+ * `struct DefeatTalkEnt` (eventinfo.h): one entry in `gDefeatTalkList`.
+ *
+ * @property pid character id defeated.
+ * @property route route / chapter mode index (0xFF for any).
+ * @property chapter chapter index (0xFF for any).
+ * @property flag flag id set when this defeat quote is triggered.
+ * @property msg message index of the defeat quote.
+ * @property event event script address to run instead of [msg] when [msg] is 0.
+ */
+public class DefeatTalkEnt(
+    public val pid: Int,
+    public val route: Int,
+    public val chapter: Int,
+    public val flag: Int,
+    public val msg: Int,
+    public val event: Int,
+)
+
+/** `gBattleTalkList` ROM address (0x089EC6BC). */
+public const val BATTLE_TALK_LIST_ADDRESS: Int = 0x089EC6BC
+
+/** `gDefeatTalkList` ROM address (0x089ECD4C). */
+public const val DEFEAT_TALK_LIST_ADDRESS: Int = 0x089ECD4C
+
 /** `EVENT_NOSCRIPT` (eventinfo.h): a list entry that only sets its flag. */
 public const val EVENT_NOSCRIPT: Int = 1
 
@@ -49,10 +93,31 @@ public interface EventInfoHooks {
     /** `CallEvent(script, execType)`, normally `EventEngine.callEvent`. */
     public fun callEvent(script: Int, execType: Int) {}
 
+    /** `CallBattleQuoteEventInBattle(msg)`. */
+    public fun callBattleQuoteEventInBattle(msg: Int) {}
+
+    /** `EventEngine_CreateBattle(event)`. */
+    public fun createBattle(event: Int) {}
+
+    /** `gActionData.unitActionType`: 2 for `UNIT_ACTION_COMBAT`. */
+    public fun unitActionType(): Int = 2
+
+    /** `BattleIsTriangleAttack`: true if a triangle attack is occurring in battle. */
+    public fun battleIsTriangleAttack(): Boolean = false
+
+    /** `GetROMChapterStruct(chapter)->protectCharacterIndex`. */
+    public fun protectCharacterIndex(chapter: Int): Int = 0
+
+    /** `UNIT_FACTION(GetUnitFromCharId(pid))`: unit faction (0 blue, 0x40 green, 0x80 red). */
+    public fun unitFaction(pid: Int): Int = 0x80
+
+    /** `StartBgm(song, NULL)`. */
+    public fun startBgm(song: Int) {}
+
     /**
- * `RefreshAllies`: after a won chapter, clears every unit's unselectable, rescuing and rescued
- * state and its status, then redraws the map units.
- */
+     * `RefreshAllies`: after a won chapter, clears every unit's unselectable, rescuing and rescued
+     * state and its status, then redraws the map units.
+     */
     public fun refreshAllies() {}
 
     /** `GetBattleMapKind`: 0 story, 1 dungeon, 2 skirmish. */
@@ -454,7 +519,208 @@ public class EventInfos(
      */
     public fun evCheck0DNever(info: EventInfo): Int = 0
 
+    /**
+     * Returns true if event flag [triggerId] is set, false otherwise.
+     *
+     * Ported from src/event.c: GetEventTriggerState
+     */
+    public fun getEventTriggerState(triggerId: Int): Boolean = flags.checkFlag(triggerId)
+
+    /**
+     * Searches `gBattleTalkList` for a battle quote entry matching [pidA] and [pidB] in the
+     * current chapter, whose flag is not yet set.
+     *
+     * Ported from src/eventinfo.c: GetBattleQuoteEntry
+     */
+    public fun getBattleQuoteEntry(pidA: Int, pidB: Int): BattleTalkExtEnt? {
+        var addr = BATTLE_TALK_LIST_ADDRESS
+        while (true) {
+            val entryPidA = memory.u16(addr)
+            if (entryPidA == 0xFFFF) break
+            val entryPidB = memory.u16(addr + 2)
+            val chapter = memory.u16(addr + 4)
+            val flag = memory.u16(addr + 6)
+            val msg = memory.u16(addr + 8)
+            val event = u32(addr + 12)
+            addr += 16
+
+            if (chapter != 0xFF && chapter != playSt.chapterIndex) {
+                if (chapter != 0xFE || !hooks.battleIsTriangleAttack()) {
+                    continue
+                }
+            }
+
+            if (getEventTriggerState(flag)) {
+                continue
+            }
+
+            if (entryPidA != 0) {
+                if (entryPidB == 0) {
+                    if (pidA == entryPidA) {
+                        return BattleTalkExtEnt(entryPidA, entryPidB, chapter, flag, msg, event)
+                    }
+                    continue
+                }
+            } else {
+                if (entryPidB == 0) {
+                    continue
+                }
+                if (pidB == entryPidB) {
+                    return BattleTalkExtEnt(entryPidA, entryPidB, chapter, flag, msg, event)
+                }
+                continue
+            }
+
+            if (pidA == entryPidA && pidB == entryPidB) {
+                return BattleTalkExtEnt(entryPidA, entryPidB, chapter, flag, msg, event)
+            }
+
+            if (pidB == entryPidA && pidA == entryPidB) {
+                return BattleTalkExtEnt(entryPidA, entryPidB, chapter, flag, msg, event)
+            }
+        }
+        return null
+    }
+
+    /**
+     * Checks whether a battle quote should be shown for combatants [pidA] and [pidB], starts the
+     * quote or event on proc tree 3 if found, and sets its event flag.
+     *
+     * Ported from src/eventinfo.c: CallBattleQuoteEventsIfAny
+     */
+    public fun callBattleQuoteEventsIfAny(pidA: Int, pidB: Int) {
+        if (hooks.getBattleMapKind() == KIND_SKIRMISH) return
+        if (hooks.unitActionType() != UNIT_ACTION_COMBAT) return
+        val ent = getBattleQuoteEntry(pidA, pidB)
+            ?: getBattleQuoteEntry(pidA, 0)
+            ?: getBattleQuoteEntry(0, pidB)
+            ?: return
+
+        if (ent.msg != 0) {
+            hooks.callBattleQuoteEventInBattle(ent.msg)
+        } else if (ent.event != 0) {
+            hooks.createBattle(ent.event)
+        }
+        flags.setFlag(ent.flag)
+    }
+
+    /**
+     * Checks if a battle quote should be called for combatants [pidA] and [pidB].
+     *
+     * Transcribed from src/eventinfo.c: ShouldCallBattleQuote (not verified: no capture checks it)
+     */
+    public fun shouldCallBattleQuote(pidA: Int, pidB: Int): Boolean {
+        if (hooks.getBattleMapKind() == KIND_SKIRMISH) return false
+        if (hooks.unitActionType() != UNIT_ACTION_COMBAT) return false
+        if (getBattleQuoteEntry(pidA, pidB) != null) return true
+        if (getBattleQuoteEntry(pidA, 0) != null) return true
+        if (getBattleQuoteEntry(0, pidB) != null) return true
+        return false
+    }
+
+    /**
+     * Sets the defeat event flag [flag] for character [pid], unless on a non-story map where
+     * [pid] is the protected character and [flag] is 0x65.
+     *
+     * Ported from src/eventinfo.c: SetPidDefeatedFlag
+     */
+    public fun setPidDefeatedFlag(pid: Int, flag: Int) {
+        if (hooks.getBattleMapKind() == KIND_STORY ||
+            pid != hooks.protectCharacterIndex(playSt.chapterIndex) ||
+            flag != EVFLAG_GAMEOVER
+        ) {
+            flags.setFlag(flag)
+        }
+    }
+
+    /**
+     * Searches `gDefeatTalkList` for a defeat quote entry matching [pid] in the current route
+     * and chapter, whose flag is not yet set.
+     *
+     * Ported from src/eventinfo.c: GetDefeatTalkEntry
+     */
+    public fun getDefeatTalkEntry(pid: Int): DefeatTalkEnt? {
+        var addr = DEFEAT_TALK_LIST_ADDRESS
+        while (true) {
+            val entryPid = memory.u16(addr)
+            if (entryPid == 0xFFFF) break
+            val word = memory.u16(addr + 2)
+            val route = word and 0xFF
+            val chapter = (word ushr 8) and 0xFF
+            val flag = memory.u16(addr + 4)
+            val msg = memory.u16(addr + 6)
+            val event = u32(addr + 8)
+            addr += 12
+
+            if (route != 0xFF && route != playSt.chapterModeIndex) {
+                continue
+            }
+
+            if (chapter != 0xFF && chapter != playSt.chapterIndex) {
+                continue
+            }
+
+            if (getEventTriggerState(flag)) {
+                continue
+            }
+
+            if (pid != entryPid) {
+                continue
+            }
+
+            return DefeatTalkEnt(entryPid, route, chapter, flag, msg, event)
+        }
+        return null
+    }
+
+    /**
+     * Checks if character [pid] has a defeat talk entry. If an entry exists but has no message
+     * or event, sets its defeat flag immediately and returns false; returns true if a quote or
+     * event should be displayed.
+     *
+     * Ported from src/eventinfo.c: CheckBattleDefeatTalk
+     */
+    public fun checkBattleDefeatTalk(pid: Int): Boolean {
+        val ent = getDefeatTalkEntry(pid) ?: return false
+        if (ent.msg == 0 && ent.event == 0) {
+            setPidDefeatedFlag(pid, ent.flag)
+            return false
+        }
+        return true
+    }
+
+    /**
+     * Displays the defeat dialogue or runs the defeat event for character [pid], plays death BGM
+     * if applicable, and sets the defeat event flag.
+     *
+     * Ported from src/eventinfo.c: DisplayDefeatTalkForPid
+     */
+    public fun displayDefeatTalkForPid(pid: Int) {
+        val ent = getDefeatTalkEntry(pid) ?: return
+        if (ent.route == 1 && ent.flag == EVFLAG_GAMEOVER) {
+            hooks.startBgm(SONG_GAME_OVER)
+            playSt.disableBgm = 1
+        } else if (hooks.unitFaction(pid) == FACTION_BLUE) {
+            hooks.startBgm(SONG_IN_SORROWS_SHROUD)
+        }
+        if (ent.msg != 0) {
+            hooks.callBattleQuoteEventInBattle(ent.msg)
+        } else if (ent.event != 0) {
+            hooks.createBattle(ent.event)
+        }
+        setPidDefeatedFlag(pid, ent.flag)
+    }
+
     private companion object {
+        /** `UNIT_ACTION_COMBAT`. */
+        const val UNIT_ACTION_COMBAT = 2
+
+        /** `SONG_GAME_OVER` and `SONG_IN_SORROWS_SHROUD`. */
+        const val SONG_GAME_OVER = 0x3E
+        const val SONG_IN_SORROWS_SHROUD = 0x3F
+
+        /** `FACTION_BLUE`. */
+        const val FACTION_BLUE = 0x00
         /** `GetBattleMapKind` results (`BATTLEMAP_KIND_*`): story chapter and skirmish. */
         const val KIND_STORY = 0
         const val KIND_SKIRMISH = 2

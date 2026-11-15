@@ -963,6 +963,28 @@ public class Fe8Boot(
                 eventEngine.callEvent(script, execType)
             }
 
+            override fun callBattleQuoteEventInBattle(msg: Int) {
+                eventEngine.callBattleQuoteEventInBattle(msg)
+            }
+
+            override fun createBattle(event: Int) {
+                eventEngine.createBattle(event)
+            }
+
+            override fun unitActionType(): Int = active.action.unitActionType
+
+            override fun protectCharacterIndex(chapter: Int): Int =
+                rom.u8(chapters.getROMChapterStruct(chapter) + OFF_PROTECT_CHARACTER)
+
+            override fun unitFaction(pid: Int): Int {
+                val u = units.getUnitFromCharId(pid)
+                return if (u >= 0) u and 0xC0 else 0x80
+            }
+
+            override fun startBgm(song: Int) {
+                control.sound.startBgm(song, 0)
+            }
+
             override fun getBattleMapKind(): Int = battleMap.hooks.getBattleMapKind()
 
             override fun chapterEventGroup(chapter: Int): Int =
@@ -1462,6 +1484,9 @@ private val NO_WORLD_MAP_NODES = object : BattleMapNodes {
 
 /** Offset of `goalWindowDataType` in `struct ChapterData` (the ROM chapter struct). */
 private const val GOAL_WINDOW_DATA_TYPE_OFFSET = 0x8C
+
+/** Offset of `protectCharacterIndex` in `struct ChapterData`. */
+private const val OFF_PROTECT_CHARACTER = 0x8E
 
 /** `gConvoBackgroundData`: gfx, tsa, pal pointers per background. */
 private const val CONVO_BACKGROUND_DATA = 0x0895DD1C

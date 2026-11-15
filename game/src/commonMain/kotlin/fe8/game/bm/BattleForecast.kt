@@ -54,7 +54,7 @@ public class BattleForecast(
     private val rom: RomView,
     private val text: TextSystem,
     private val messages: MsgStrings,
-    /** `DrawnIconLookupTable` and `IconGFXIDLookupTable` ([ItemIcon]). */
+    /** `DrawnIconLookupTable` and `IconGFXIDLookupTable` ([ItemIcon]): the icon slot tables. */
     private val drawnIconLookupTable: ByteArray,
     private val iconGfxIdLookupTable: ByteArray,
     /** The sprite lists the arrows and multipliers are put on (`PutSprite`). */
@@ -80,51 +80,58 @@ public class BattleForecast(
     private val tsa = ByteArray(TSA_BYTES)
     private val gfx = ByteArray(GFX_BYTES)
 
-    /** `struct BattleForecastProc` past `PROC_HEADER` (the text structs are drawing). */
+    /**
+     * `struct BattleForecastProc` past `PROC_HEADER`: the per-proc state of the window. The
+     * [Text] fields are the text strips (the two names and the target's weapon name) that
+     * [forecastInit] sets up and the draw functions fill.
+     */
     public class State {
         /** `unk_2C` (+0x2C): frames the display has run. */
         public var frameCount: Int = 0
 
-        /** `x` (+0x30, s8). */
+        /** `x` (+0x30, s8): the panel's tile column on screen, 0 (left) or 20 (right). */
         public var x: Int = 0
 
-        /** `y` (+0x31, s8). */
+        /** `y` (+0x31, s8): the panel's tile row on screen, always 0 here. */
         public var y: Int = 0
 
-        /** `frameKind` (+0x32): 1 standard, 2 extended. */
+        /** `frameKind` (+0x32): 1 standard layout, 2 extended (from `battleForecastType`). */
         public var frameKind: Int = 0
 
         /** `ready` (+0x33, s8): [forecastInit] ran. */
         public var ready: Int = 0
 
-        /** `needContentUpdate` (+0x34, s8). */
+        /**
+         * `needContentUpdate` (+0x34, s8): set by `UpdateBattleForecastContents` when the cursor
+         * is on a new target; the display loop then redraws the panel.
+         */
         public var needContentUpdate: Int = 0
 
         /** `side` (+0x35, s8): -1 is left, +1 is right. */
         public var side: Int = 0
 
-        /** `slide_offset` (+0x36, s8). */
+        /** `slide_offset` (+0x36, s8): step (0-3) of the slide-in or slide-out. */
         public var slideOffset: Int = 0
 
         /** `hitCountA` (+0x50, s8): the actor's hits, a brave weapon counting twice. */
         public var hitCountA: Int = 0
 
-        /** `hitCountB` (+0x51, s8). */
+        /** `hitCountB` (+0x51, s8): the same for the target. */
         public var hitCountB: Int = 0
 
-        /** `isEffectiveA` (+0x52, s8). */
+        /** `isEffectiveA` (+0x52, s8): 1 when the actor's attack is effective (or reversed). */
         public var isEffectiveA: Int = 0
 
-        /** `isEffectiveB` (+0x53, s8). */
+        /** `isEffectiveB` (+0x53, s8): the same for the target's counterattack. */
         public var isEffectiveB: Int = 0
 
-        /** `unitNameTextA` (+0x38). */
+        /** `unitNameTextA` (+0x38): double-buffered strip, drawn for both unit names. */
         public val unitNameTextA: Text = Text()
 
-        /** `unitNameTextB` (+0x40). */
+        /** `unitNameTextB` (+0x40): initialised, but the standard layout never draws it. */
         public val unitNameTextB: Text = Text()
 
-        /** `itemNameText` (+0x48). */
+        /** `itemNameText` (+0x48): the target's weapon name strip. */
         public val itemNameText: Text = Text()
     }
 
@@ -134,7 +141,8 @@ public class BattleForecast(
         public var eventEngineExists: () -> Boolean = { false }
 
         /**
-         * `CheckBattleForecastTutorialEvent` is 1 (the first forecast of the tutorial chapter).
+         * Whether `CheckBattleForecastTutorialEvent` returns 1 (the first forecast of the
+         * tutorial chapter, which also makes `NewBattleForecast` ignore the A button).
          * Stand-in until PC-10 (the Easy-mode tutorial): no tutorial event runs.
          */
         public var tutorialPending: () -> Boolean = { false }
@@ -143,9 +151,13 @@ public class BattleForecast(
     /** The hooks, set by the game. */
     public val hooks: Hooks = Hooks()
 
+    /**
+     * The `usesA`/`usesB` local of `InitBattleForecastBattleStats` (passed by pointer to
+     * `BattleForecastHitCountUpdate`): the weapon uses not yet counted as hits.
+     */
     private var usesLeft = 0
 
-    /** `gObject_16x16` (ROM), the multiplier marks' object. */
+    /** `gObject_16x16` (ROM), the sprite shape of the effectiveness multiplier marks. */
     private val object16x16: SpriteObject by lazy { rom.objN(OBJECT_16X16) }
 
     /** `sSprite_SysUpArrowA`..`C` (the frames of `gSysUpArrowSpriteLut`). */
@@ -154,14 +166,15 @@ public class BattleForecast(
     /** `sSprite_SysDownArrowA`..`C`. */
     private val downArrows: Array<SpriteObject> by lazy { arrowLut(DOWN_ARROW_LUT) }
 
+    /** Reads the three sprite frames of the arrow table at ROM address [at]. */
     private fun arrowLut(at: Int): Array<SpriteObject> =
         Array(3) { rom.objN(rom.u32(at + 4 * it)) }
 
     /**
      * `gProcScr_BKSEL` (0x0859E520): NAME, end callback [forecastOnEnd], CALL `ClearBg0Bg1`,
      * SLEEP 0, CALL [forecastInit], LABEL 0, WHILE an event runs, CALL [onNewBattle], REPEAT
-     * [loopSlideIn], CALL the tutorial event, REPEAT [loopDisplay], REPEAT [loopSlideOut], GOTO
-     * 0, LABEL 1, REPEAT [loopSlideOut], END.
+     * [loopSlideIn], CALL `TriggerBattleForcastToturialEvent`, REPEAT [loopDisplay], REPEAT
+     * [loopSlideOut], GOTO 0, LABEL 1, REPEAT [loopSlideOut], END.
      */
     public val script: ProcScript = ProcScript(
         "gProcScr_BKSEL",
@@ -193,16 +206,16 @@ public class BattleForecast(
      */
     private fun mapEventEngineExists(): Boolean = hooks.eventEngineExists()
 
-    /** `Proc_Find(gProcScr_BKSEL)`. */
+    /** `Proc_Find(gProcScr_BKSEL)`: the running forecast window, if any. */
     public fun find(): Proc? = engine.find(script)
 
     /**
      * Ported from src/bksel.c: NewBattleForecast
      *
-     * Starts the forecast proc (tree 3) for the chosen layout (0 standard, 1 extended; 2 shows
-     * none: only the text font is reset, not verified: the capture uses the standard one) and
-     * sets every tile of the movement map to -1. The tutorial event's key mask is not written
-     * (no capture has the event).
+     * Starts the forecast proc (`PROC_TREE_3`) for the chosen layout (`battleForecastType` 0
+     * standard, 1 extended; 2 shows none: only the text font is reset, not verified: the capture
+     * uses the standard one) and sets every tile of the movement map to -1. The tutorial's
+     * `SetKeyStatus_IgnoreMask` (A button) is not written (no capture has the event).
      */
     public fun newBattleForecast() {
         if (playSt.battleForecastType == 2) {
@@ -225,10 +238,11 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: BattleForecast_Init
      *
-     * Loads the panel's two-by-four tile graphic (OBJ VRAM) and palette, restarts the text font
-     * and the icon bookkeeping, sets up the labels and the three name strips (two double-buffered
-     * strips for the names, one for the item) and BG 1's position, and marks the proc ready for
-     * content updates.
+     * Loads the panel's 4x2-tile graphic (`gBattleForecast_x2x4Gfx`, to OBJ VRAM 0x06015D00) and
+     * its palette (slot 0x12, OBJ palette 2), restarts the text font and the icon graphics,
+     * builds the icon palette flash buffer and the labels, initialises the three double-buffered
+     * text strips (two for the names, one for the item), puts BG 1 one pixel up and marks the
+     * proc ready for content updates.
      */
     private fun forecastInit(state: State) {
         for (i in 0 until TSA_BYTES) tsa[i] = rom.u8(TSA_ADDRESS + i).toByte()
@@ -256,8 +270,8 @@ public class BattleForecast(
     /**
      * Ported from src/bmlib.c: Copy2dChr
      *
-     * Copies [height] rows of [width] tiles from [src] to VRAM at [dst] (a byte offset of VRAM),
-     * the rows a tile map row (32 tiles) apart.
+     * Copies [height] rows of [width] 4bpp tiles from [src] to VRAM at [dst] (a byte offset of
+     * VRAM), the rows 32 tiles (one row of the tile sheet) apart.
      */
     private fun copy2dChr(src: ByteArray, dst: Int, width: Int, height: Int) {
         val lineSize = width * CHR_SIZE
@@ -268,7 +282,10 @@ public class BattleForecast(
         }
     }
 
-    /** `ApplyPalette`: 16 colours from ROM [at] to palette slot [palId]. */
+    /**
+     * `ApplyPalette`: copies 16 colours from ROM [at] to palette slot [palId] (0-15 BG, 16-31
+     * OBJ) and flags the palette for upload.
+     */
     private fun applyPalette(at: Int, palId: Int) {
         for (i in 0 until 16) hardware.palette[palId * 16 + i] = rom.u16(at + 2 * i).toShort()
         hardware.enablePaletteSync()
@@ -287,8 +304,9 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: InitBattleForecastIconPaletteBuffer
      *
-     * Loads icon palette 0 into palette 3 and makes [bkselPals]: for each colour of it eight
-     * steps, each three levels brighter per channel (capped at 31).
+     * Loads icon palette 0 into BG palette 3 and fills [bkselPals]: for each of its colours
+     * (1-15) eight steps, each three levels brighter per RGB channel (capped at 31), which the
+     * effectiveness display cycles through to flash the weapon icon.
      */
     private fun initBattleForecastIconPaletteBuffer() {
         ItemIcon.loadIconPalette(hardware, rom, 0, 3)
@@ -318,8 +336,10 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: InitBattleForecastLabels
      *
-     * Draws the six stat labels (Mt, Hit, Crit, Atk, Def, AS), centred in four tiles, into
-     * [labels].
+     * Draws the six stat labels into [labels] (message ids 0x503 might, 0x4F4 hit, 0x501 crit,
+     * 0x4F3 attack, 0x4EF defence, 0x504 attack speed; the decomp has no `MSG_` names for them),
+     * each centred in a 32-pixel (four-tile) strip in [TEXT_COLOR_SYSTEM_GOLD]. The standard
+     * layout shows the first three.
      */
     private fun initBattleForecastLabels() {
         for (i in 0 until LABEL_COUNT) {
@@ -328,17 +348,20 @@ public class BattleForecast(
 
             val str = messages.getStringFromIndex(LABEL_STRINGS[i])
 
-            text.textInsertDrawString(label, text.getStringTextCenteredPos(0x20, str), 3, str)
+            text.textInsertDrawString(
+                label, text.getStringTextCenteredPos(0x20, str), TEXT_COLOR_SYSTEM_GOLD, str,
+            )
         }
     }
 
     /**
      * Ported from src/bksel.c: PutBattleForecastUnitName
      *
-     * Draws the name of [unit] centred in 48 pixels into [strip] and puts it at [dest] of
-     * [tilemapA].
+     * Draws the name of [unit] (its character's `nameTextId`) centred in 48 pixels into [strip]
+     * and puts it at tilemap entry [dest] of [tilemapA].
      */
     private fun putBattleForecastUnitName(dest: Int, strip: Text, unit: BattleUnit) {
+        // Unit +0 is the pointer to its character data, whose first u16 is `nameTextId`.
         val str = messages.getStringFromIndex(rom.u16(u32(unit.bytes, 0)))
         val position = text.getStringTextCenteredPos(48, str)
 
@@ -349,8 +372,8 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: PutBattleForecastItemName
      *
-     * Draws the name of [item] centred in 56 pixels into [strip] and puts it at [dest] of
-     * [tilemapA].
+     * Draws the name of [item] centred in 56 pixels into [strip] and puts it at tilemap entry
+     * [dest] of [tilemapA].
      */
     private fun putBattleForecastItemName(dest: Int, strip: Text, item: Int) {
         val str = items.getItemName(item, messages)
@@ -375,8 +398,8 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: InitBattleForecastFramePalettes
      *
-     * Colours the frame: palette 1 for the actor's faction, palette 2 for the target's (purple
-     * for a wall or trap, which has no unit index).
+     * Colours the frame: BG palette 1 for the actor's faction, palette 2 for the target's
+     * (purple for a wall or trap, whose `unit.index` is 0).
      */
     private fun initBattleForecastFramePalettes() {
         applyPalette(
@@ -396,9 +419,12 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: DrawBattleForecastContentsStandard
      *
-     * Draws the standard panel: the frame into [tilemapB]; into [tilemapA] the names, the HP,
-     * damage, hit and crit numbers of both sides (a dash when the target cannot counter), the
-     * labels and the two weapon icons.
+     * Draws the standard panel (11x16 tiles): the frame (`gTSA_BattleForecastStandard`, BG
+     * palette 1 added) into [tilemapB]; into [tilemapA] the names, the HP, damage, hit and crit
+     * numbers of both sides, the labels and the two weapon icons (target's in BG palette 4,
+     * actor's in 3). A value of -1 or 0xFF prints as dashes: a target without a weapon (damage
+     * -1, hit and crit 0xFF), HP above 99, and a Monster Stone ([ITEM_MONSTER_STONE]) attack's
+     * damage and crit.
      */
     private fun drawBattleForecastContentsStandard(state: State) {
         val actor = battle.actor
@@ -476,8 +502,9 @@ public class BattleForecast(
     }
 
     /**
-     * `TileMap_FillRect` (`TmFillRect`, asm/arm.s): [value] into the entries of [tm] from column
-     * 0 to [w] and row 0 to [h] inclusive (its counters run down to -1), a row 32 entries apart.
+     * `TileMap_FillRect` (`TmFillRect`, asm/arm.s): [value] into the (w + 1) x (h + 1) entries
+     * of [tm] from column 0 to [w] and row 0 to [h] inclusive (its counters run down to -1), the
+     * rows 32 entries apart.
      */
     private fun fillRect(tm: ShortArray, w: Int, h: Int, value: Int) {
         for (y in 0..h) {
@@ -485,6 +512,7 @@ public class BattleForecast(
         }
     }
 
+    /** Little-endian u32 of [bytes] at offset [at]. */
     private fun u32(bytes: ByteArray, at: Int): Int =
         (bytes[at].toInt() and 0xFF) or ((bytes[at + 1].toInt() and 0xFF) shl 8) or
             ((bytes[at + 2].toInt() and 0xFF) shl 16) or ((bytes[at + 3].toInt() and 0xFF) shl 24)
@@ -492,8 +520,9 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: GetBattleForecastPanelSide
      *
-     * The side of the screen the panel goes on, opposite the target: 1 (right) when the target
-     * is left of the middle column, -1 when right of it, 0 on it.
+     * The side of the screen the panel goes on, opposite the target: 1 (right) when the target's
+     * screen x is left of [MIDDLE_X] (0x70, the middle tile column of the 15-column screen), -1
+     * (left) when right of it, 0 on it.
      */
     public fun getBattleForecastPanelSide(): Int {
         val x = battle.target.unitX * 16 - bm.cameraX

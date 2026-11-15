@@ -3,6 +3,14 @@ package fe8.game.bm
 import fe8.game.RomView
 import kotlin.math.abs
 
+/** `struct Vec2` (types.h): 2D integer coordinates. */
+public class Vec2(
+    /** X coordinate. */
+    public var x: Int = 0,
+    /** Y coordinate. */
+    public var y: Int = 0,
+)
+
 /**
  * AI helpers of src/cp_utility.c and src/cp_0803E2F4.c.
  *
@@ -21,6 +29,9 @@ public class CpUtility(
     private val loader: UnitLoader,
     private val map: BmMap,
     private val entityMaps: EntityBmMaps,
+    private val active: ActiveUnit? = null,
+    /** The decision loop ([CpDecide]); [aiTryMoveTowards] sets decisions on it when not null. */
+    public var decide: CpDecide? = null,
 ) {
     /** Item attributes, ranges and use effects. */
     private val items = ItemInfo(rom)
@@ -271,6 +282,155 @@ public class CpUtility(
             it += 4
         }
         return num
+    }
+
+    /**
+     * Ported from src/cp_utility.c: AiFindTargetInReachByFunc
+     *
+     * Floods `gBmMapRange` from the active unit with
+     * [MovementMap.generateExtendedMovementMapOnRange] and finds the closest unit satisfying
+     * [func] (range cost at most [MAP_MOVEMENT_MAX]). Ties broken in favour of smaller y, then
+     * smaller x. Returns true when a target is found and sets [out]. Verified: finding Eirika at
+     * (4, 5) for the boss at (10, 8); not seen: no target reachable (returning false).
+     */
+    public fun aiFindTargetInReachByFunc(func: AiUnitTest, out: Vec2): Boolean {
+        val act = checkNotNull(active) { "active unit required" }
+        moves.generateExtendedMovementMapOnRange(
+            units.xPos(act.unit),
+            units.yPos(act.unit),
+            moves.unitMovementCostTable(act.unit),
+        )
+        var bestDistance = 0xFF
+        var xOut = -1
+        var yOut = -1
+        var iy = map.sizeY - 1
+        while (iy >= 0) {
+            var ix = map.sizeX - 1
+            while (ix >= 0) {
+                val r = map.range[iy, ix]
+                if (r > MAP_MOVEMENT_MAX) {
+                    ix--
+                    continue
+                }
+                val occupant = map.unit[iy, ix]
+                if (occupant == 0 || occupant == act.unitId) {
+                    ix--
+                    continue
+                }
+                if (!func.run(occupant)) {
+                    ix--
+                    continue
+                }
+                if (r > bestDistance) {
+                    ix--
+                    continue
+                }
+                bestDistance = r
+                xOut = ix
+                yOut = iy
+                ix--
+            }
+            iy--
+        }
+        if (xOut >= 0) {
+            out.x = xOut
+            out.y = yOut
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Ported from src/cp_utility.c: AiTryMoveTowards
+     *
+     * Floods `gBmMapRange` from ([x], [y]) with the active unit's movement cost table (without
+     * blocking units when [unk] is non-zero, else with enemy blocking units), floods
+     * `gBmMapMovement` from the active unit, and picks the reachable tile (movement cost at most
+     * [MAP_MOVEMENT_MAX], unoccupied or occupied by the active unit, danger not exceeding
+     * [maxDanger]) that minimizes `gBmMapRange`. If a tile is found (or the active unit is
+     * already at `([x], [y])`), calls [CpDecide.aiSetDecision] with [action] (0 for move only).
+     * Verified: boss moving towards (4, 5) choosing (9, 6) with danger 23 <= 255; not seen:
+     * active unit already at target, unk = 0, maxDanger = 0 filtering, or no reachable tile.
+     */
+    public fun aiTryMoveTowards(
+        x: Int,
+        y: Int,
+        action: Int = 0,
+        maxDanger: Int = 0xFF,
+        unk: Int = 1,
+    ): Boolean {
+        val act = checkNotNull(active) { "active unit required" }
+        if (units.xPos(act.unit) == x && units.yPos(act.unit) == y) {
+            decide?.aiSetDecision(x, y, action, 0, 0, 0, 0)
+            return true
+        }
+        val costTable = moves.unitMovementCostTable(act.unit)
+        if (unk != 0) {
+            moves.generateExtendedMovementMapOnRange(x, y, costTable)
+        } else {
+            moves.generateExtendedMovementMapOnRange(x, y, costTable, units.index(act.unit))
+        }
+        moves.generateUnitMovementMap(act.unit)
+
+        var bestRange = map.range[units.yPos(act.unit), units.xPos(act.unit)]
+        var xOut = -1
+        var yOut = -1
+
+        var iy = map.sizeY - 1
+        while (iy >= 0) {
+            var ix = map.sizeX - 1
+            while (ix >= 0) {
+                if (map.movement[iy, ix] > MAP_MOVEMENT_MAX) {
+                    ix--
+                    continue
+                }
+                val occupant = map.unit[iy, ix]
+                if (occupant != 0 && occupant != act.unitId) {
+                    ix--
+                    continue
+                }
+                if (maxDanger == 0) {
+                    if (units.movement(act.unit) < aiState.bestBlueMov && map.other[iy, ix] != 0) {
+                        ix--
+                        continue
+                    }
+                }
+                if (!aiCheckDangerAt(ix, iy, maxDanger)) {
+                    ix--
+                    continue
+                }
+                val r = map.range[iy, ix]
+                if (r > bestRange) {
+                    ix--
+                    continue
+                }
+                bestRange = r
+                xOut = ix
+                yOut = iy
+                ix--
+            }
+            iy--
+        }
+
+        if (xOut >= 0) {
+            decide?.aiSetDecision(xOut, yOut, action, 0, 0, 0, 0)
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Helper for [AiScriptCmd_12_MoveTowardsEnemy] (cp_script.c).
+     *
+     * Finds the closest target in reach matching [test] via [aiFindTargetInReachByFunc], and if
+     * found, moves towards it via [aiTryMoveTowards] with `action = 0`, [maxDanger], and `unk = 1`.
+     */
+    public fun aiMoveTowardsEnemy(test: AiUnitTest, maxDanger: Int): Boolean {
+        val pos = Vec2()
+        if (aiFindTargetInReachByFunc(test, pos)) {
+            return aiTryMoveTowards(pos.x, pos.y, 0, maxDanger, 1)
+        }
+        return false
     }
 
     private companion object {

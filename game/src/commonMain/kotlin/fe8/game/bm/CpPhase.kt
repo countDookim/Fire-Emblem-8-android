@@ -115,7 +115,7 @@ public class CpPhase(
      */
     internal val utility: CpUtility? =
         if (loader != null && map != null && entityMaps != null) {
-            CpUtility(rom, units, playSt, aiState, loader, map, entityMaps)
+            CpUtility(rom, units, playSt, aiState, loader, map, entityMaps, active)
         } else {
             null
         }
@@ -123,7 +123,9 @@ public class CpPhase(
     /** The AI decision loop (`gProcScr_CpDecide`) and its hooks. */
     public val decide: CpDecide = CpDecide(
         engine, units, aiState, active, utility, entityMaps, rom, loader, map,
-    )
+    ).also {
+        utility?.decide = it
+    }
 
     /**
      * The AI attack search (cp_battle.c, `AiTryDoStaff` of cp_staff.c) and its hooks (EP-12
@@ -152,6 +154,12 @@ public class CpPhase(
             it.hooks.attemptOffensiveAction =
                 AiTestStep { test -> b.aiAttemptOffensiveAction(test) }
             it.hooks.tryDoStaff = AiTestTry { test -> b.aiTryDoStaff(test) }
+        }
+        val u = utility
+        if (u != null) {
+            it.hooks.moveTowardsEnemy = AiMoveStep { test, maxDanger ->
+                u.aiMoveTowardsEnemy(test, maxDanger)
+            }
         }
     }
 

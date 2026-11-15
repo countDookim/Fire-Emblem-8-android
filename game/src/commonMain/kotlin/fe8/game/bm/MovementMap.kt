@@ -163,12 +163,18 @@ public class MovementMap(
      * Ported from src/bmidoten.c: GenerateExtendedMovementMapOnRange
      *
      * Sets working move costs to [costTable] and floods `map.range` (`gBmMapRange`) from ([x],
-     * [y]) with [MAP_MOVEMENT_EXTENDED] (124) movement budget and unit id 0 (no blocking units).
+     * [y]) with [MAP_MOVEMENT_EXTENDED] (124) movement budget and [unitId] (0 means no blocking
+     * units).
      */
-    public fun generateExtendedMovementMapOnRange(x: Int, y: Int, costTable: Int) {
+    public fun generateExtendedMovementMapOnRange(
+        x: Int,
+        y: Int,
+        costTable: Int,
+        unitId: Int = 0,
+    ) {
         setWorkingMoveCosts(costTable)
         setWorkingBmMap(map.range)
-        generateMovementMap(x, y, MAP_MOVEMENT_EXTENDED, 0)
+        generateMovementMap(x, y, MAP_MOVEMENT_EXTENDED, unitId)
     }
 
     /**

@@ -21,6 +21,12 @@ public fun interface AiTestTry {
     public fun run(test: AiUnitTest): Boolean
 }
 
+/** An AI step that takes a unit test and a danger threshold (`AiScriptCmd_12_MoveTowardsEnemy`). */
+public fun interface AiMoveStep {
+    /** Runs the step with [test] and [maxDanger]. */
+    public fun run(test: AiUnitTest, maxDanger: Int)
+}
+
 /**
  * The AI script interpreter of src/cp_script.c. A script is a table of 0x10-byte `struct AiScr`
  * entries in ROM (byte 0 the command `AI_CMD_*`, byte 1 mostly a chance in percent, byte 2 the
@@ -29,8 +35,9 @@ public fun interface AiTestTry {
  * `ai_b_pc` is the next entry. Each try runs one command.
  *
  * Written: [tryExecScriptA], [tryExecScriptB], [scriptExec], [aiIsUnitEnemy] and the commands 05
- * (`AI_CMD_ACTION`), 06 (`AI_CMD_NOP`) and 0E (`AI_CMD_NOP_0E`), the ones the Prologue's enemies
- * run. Every other command index goes to [Hooks.unportedCommand].
+ * (`AI_CMD_ACTION`), 06 (`AI_CMD_NOP`), 0E (`AI_CMD_NOP_0E`) and 12 (`AI_CMD_MOVE_TO_ENEMY`),
+ * the ones the Prologue's enemies run. Every other command index goes to
+ * [Hooks.unportedCommand].
  */
 public class CpScript(
     private val rom: RomView,
@@ -57,12 +64,18 @@ public class CpScript(
         public var tryDoStaff: AiTestTry? = null
 
         /**
+         * `AiScriptCmd_12_MoveTowardsEnemy` (cp_script.c): [CpPhase] sets it to
+         * [CpUtility.aiMoveTowardsEnemy] when it has the map objects; it finds the closest target
+         * in reach matching the test and tries to move towards it. Null does nothing.
+         */
+        public var moveTowardsEnemy: AiMoveStep? = null
+
+        /**
          * Stand-in for a command this class does not write (EP-12 for 00..04, 07..0D, 0F..11,
          * 13..1B and 05 with an ignore list, whose predicates `AiIsUnitEnemyOrInScrList` and
-         * `AiIsUnitEnemyAndNotInScrList` are not written either; 12 is EP-7d): called with the
-         * command index (`AI_CMD_*`). The label 1C has no entry in the C's `funcLut`, so the C
-         * reads past it; here it also reaches this hook. Null does nothing: the script stays on
-         * that command.
+         * `AiIsUnitEnemyAndNotInScrList` are not written either): called with the command index
+         * (`AI_CMD_*`). The label 1C has no entry in the C's `funcLut`, so the C reads past it;
+         * here it also reaches this hook. Null does nothing: the script stays on that command.
          */
         public var unportedCommand: AiIntStep? = null
     }
@@ -134,6 +147,7 @@ public class CpScript(
             AI_CMD_ACTION -> cmdDoStandardAction()
             AI_CMD_NOP -> cmdDoNothing()
             AI_CMD_NOP_0E -> cmdDoNothing()
+            AI_CMD_MOVE_TO_ENEMY -> cmdMoveTowardsEnemy()
             else -> hooks.unportedCommand?.run(cmd)
         }
     }
@@ -147,6 +161,33 @@ public class CpScript(
      */
     public fun aiIsUnitEnemy(id: Int): Boolean =
         !BmPhase.areUnitsAllied(units.index(active.unit) and 0xFF, units.index(id) and 0xFF)
+
+    /**
+     * Transcribed from src/cp_script.c: AiIsUnitEnemyAndNotInScrList (not verified: no capture has
+     * an ignore list in script commands)
+     *
+     * True when unit [id] is an enemy of the active unit and its character id is not in the
+     * zero-terminated u16 list at ROM address [listAddress].
+     */
+    public fun aiIsUnitEnemyAndNotInScrList(id: Int, listAddress: Int): Boolean {
+        if (aiIsInShortList(listAddress, units.charId(id))) return false
+        return aiIsUnitEnemy(id)
+    }
+
+    /**
+     * Transcribed from src/cp_utility.c: AiIsInShortList (not verified: no capture uses short list)
+     *
+     * True when [item] is found in the zero-terminated 16-bit list at ROM address [listAddress].
+     */
+    public fun aiIsInShortList(listAddress: Int, item: Int): Boolean {
+        var p = listAddress
+        while (true) {
+            val entry = rom.u16(p)
+            if (entry == 0) return false
+            if (entry == item) return true
+            p += 2
+        }
+    }
 
     /**
      * Ported from src/cp_script.c: AiScriptCmd_05_DoStandardAction
@@ -171,6 +212,26 @@ public class CpScript(
         } else {
             aiState.decideState = 4
         }
+        advancePc()
+    }
+
+    /**
+     * Ported from src/cp_script.c: AiScriptCmd_12_MoveTowardsEnemy
+     *
+     * If byte 8 (`unk_08`) is 0, tests candidate targets with [isUnitEnemy]; otherwise with
+     * [aiIsUnitEnemyAndNotInScrList]. If a target is found, moves towards it with the danger
+     * threshold from byte 2 (`unk_02`). Then advances the script. Verified: the unk_08 = 0
+     * branch and script advance on the Prologue boss; not seen: unk_08 != 0 branch.
+     */
+    private fun cmdMoveTowardsEnemy() {
+        val unk08 = rom.u32(current + 8)
+        val maxDanger = rom.u8(current + 2)
+        val test = if (unk08 == 0) {
+            isUnitEnemy
+        } else {
+            AiUnitTest { aiIsUnitEnemyAndNotInScrList(it, unk08) }
+        }
+        hooks.moveTowardsEnemy?.run(test, maxDanger)
         advancePc()
     }
 
@@ -203,6 +264,9 @@ public class CpScript(
 
         /** `AI_CMD_NOP_0E`: `AiScriptCmd_0E_DoNothing`, advance only. */
         public const val AI_CMD_NOP_0E: Int = 0x0E
+
+        /** `AI_CMD_MOVE_TO_ENEMY`: `AiScriptCmd_12_MoveTowardsEnemy`, move towards enemy. */
+        public const val AI_CMD_MOVE_TO_ENEMY: Int = 0x12
 
         /** `AI_CMD_COUNT` (cp_script.h): command indices at or above it use the fallback. */
         public const val AI_CMD_COUNT: Int = 0x1D

@@ -30,6 +30,13 @@ public class SoundWrapper(
     public var songId: Int = 0
         private set
 
+    /**
+     * Returns `gSoundSt.songId`.
+     *
+     * Ported from src/soundwrapper.c: GetCurrentBgmSong
+     */
+    public fun getCurrentBgmSong(): Int = songId
+
     /** `gSoundSt.is_song_playing`. */
     public var isSongPlaying: Boolean = false
         private set
@@ -199,7 +206,7 @@ public class SoundWrapper(
      * already-playing / BGM-disabled returns or end a pending delayed start)
      */
     public fun startOrChangeBgm(song: Int, speed: Int, player: Int) {
-        if (isSongPlaying && songId == song) return
+        if (isSongPlaying && getCurrentBgmSong() == song) return
         if (config() and GameControl.CONFIG_DISABLE_BGM != 0) return
         engine.endEach(delayedSongScript) // DeleteAll6CWaitMusicRelated
         if (isSongPlaying) {
@@ -211,7 +218,10 @@ public class SoundWrapper(
     }
 
     /**
-     * `StartBgm`: [startOrChangeBgm] with speed 3. (No boot caller: not verified yet.)
+     * `StartBgm`: [startOrChangeBgm] with speed 3. The captured call already plays the
+     * requested song, so the speed and transition remain unverified.
+     *
+     * Transcribed from src/soundwrapper.c: StartBgm
      */
     public fun startBgm(song: Int, player: Int): Unit = startOrChangeBgm(song, 3, player)
 

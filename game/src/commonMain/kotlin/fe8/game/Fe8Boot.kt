@@ -3,7 +3,9 @@ package fe8.game
 import fe8.game.bm.ActiveUnit
 import fe8.game.bm.AiBattleSimulation
 import fe8.game.bm.AiIntStep
+import fe8.game.bm.AiProcStep
 import fe8.game.bm.AiStep
+import fe8.game.bm.AiTry
 import fe8.game.bm.BMapMain
 import fe8.game.bm.MovementMap
 import fe8.game.bm.PathArrow
@@ -20,6 +22,7 @@ import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterIntro
 import fe8.game.bm.ChapterMapGfx
+import fe8.game.bm.CpPerform
 import fe8.game.bm.CpPhase
 import fe8.game.bm.MapAnimations
 import fe8.game.bm.Mu
@@ -1070,11 +1073,12 @@ public class Fe8Boot(
         ).wire(phase, main, eventInfos)
         // The enemy phase (EP-2a, EP-3a/b): `AiPhaseInit`, the unit order and the decision loop.
         // The script interpreter (EP-4), the attack search (EP-5), the score (EP-6a) and the reach
-        // and movement maps (EP-7) run, so an enemy in reach decides its attack. Left null: the
-        // perform proc `gProcScr_CpPerform` (EP-8, action part EP-9), the four EP-6b score
-        // components and tile position components, and the EP-12 branches the Prologue never
-        // enters. So nothing is performed: End turn runs the enemy banner, marks every enemy as
-        // moved and goes on to the next player phase.
+        // and movement maps (EP-7) run, so an enemy in reach decides its attack. The perform proc
+        // `gProcScr_CpPerform` walks the unit (EP-8). Left null: its action half (EP-9, EP-9b),
+        // the four EP-6b score components and tile position components, and the EP-12 branches
+        // the Prologue never enters. So nothing is performed: End turn runs the enemy banner,
+        // walks each deciding enemy to its tile, marks every enemy as moved and goes on to the
+        // next player phase.
         val cp = CpPhase(
             engine, rom, playSt, units, loader, battleBmMap, battleEntityMaps, active, rng,
         )
@@ -1090,6 +1094,39 @@ public class Fe8Boot(
             main.suspendPointType = active.action.suspendPointType
             main.hooks.writeSuspendSave(slot)
         }
+        // The perform proc's movement half (EP-8): the camera, the unit's walk (an MU along the
+        // best path) and the target cursor. Its action half is EP-9 (null hooks), so after the
+        // walk the proc ends and the unit's position is not applied: the sprite snaps back to its
+        // old tile until EP-9's `ApplyUnitAction`.
+        val perform = CpPerform(
+            engine, playSt, units, active, cp.decide.decision, battleBmMap,
+            MovementMap(rom, battleBmMap, units, playSt), camMove, mu, phase, keys, rng,
+            phase.workingMovementScript,
+        )
+        perform.hooks.musicProc3Exists = AiTry {
+            engine.find(control.sound.delayedSongScript) != null
+        }
+        perform.hooks.startMapSongBgm = AiStep { main.hooks.startMapSongBgm() }
+        perform.hooks.hideUnitSprite = AiIntStep { id -> handles.hideUnitSprite(id) }
+        perform.hooks.startMu = AiIntStep { id -> phase.hover.hooks.startMu(id) }
+        perform.hooks.setAutoMuDefaultFacing = AiStep {
+            val muProc = engine.find(mu.script)
+            if (muProc != null) mu.setMuDefaultFacing(muProc.state as MuProc)
+        }
+        perform.hooks.endAllMus = AiStep { mu.endAllMus() }
+        // Stand-in for `CpPerform_Cleanup` (EP-9: `AiRefreshMap` applies the move): ends the walk's
+        // MU and shows the unit's sprite again where its data still stands (the C hides it in
+        // `UnitBeginAction`), so the unit snaps back to its old tile after the walk.
+        perform.hooks.cleanup = AiProcStep {
+            val unit = active.unit
+            mu.endAllMus()
+            units.setState(unit, units.state(unit) and US_HIDDEN.inv())
+            handles.showUnitSprite(unit)
+        }
+        perform.hooks.putMapCursor = PlayerPhase.PutMapCursor { x, y, kind ->
+            mapCursor.put(x, y, kind)
+        }
+        cp.decide.hooks.startCpPerform = perform.start
         main.hooks.cpPhase = cp.phaseScript
         // Phase start and end housekeeping (EP-1). The target list is its own: the displays'
         // `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w
@@ -1361,6 +1398,9 @@ public class Fe8Boot(
         }
     }
 }
+
+/** `US_HIDDEN`: set by `UnitBeginAction`, the unit's sprite is not drawn. */
+private const val US_HIDDEN = 1
 
 /** World map nodes tried by `GetPlayChapterId`. */
 private const val WM_NODE_COUNT = 0x1D

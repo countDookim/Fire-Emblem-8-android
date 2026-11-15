@@ -165,8 +165,8 @@ public class CpDecide(
         public var escapeBranch: AiStep? = null
 
         /**
-         * Stand-in for `Proc_StartBlocking(gProcScr_CpPerform, proc)` (cp_perform.c; EP-8). Null
-         * starts nothing, so the decision loop goes on at once.
+         * `Proc_StartBlocking(gProcScr_CpPerform, proc)`: [CpPerform.start] (`Fe8Boot` sets it).
+         * Null starts nothing, so the decision loop goes on at once.
          */
         public var startCpPerform: AiProcStep? = null
 

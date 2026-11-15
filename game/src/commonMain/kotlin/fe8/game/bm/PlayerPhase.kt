@@ -1229,7 +1229,7 @@ public class PlayerPhase(
      * walker that is no thief, flyer or assassin stops at a hidden trap (script cut, action
      * `UNIT_ACTION_TRAPPED`); a hidden unit on the way turns the step into a bump.
      */
-    private fun unitApplyWorkingMovementScript(unit: Int, x0: Int, y0: Int, script: IntArray) {
+    public fun unitApplyWorkingMovementScript(unit: Int, x0: Int, y0: Int, script: IntArray) {
         var x = x0
         var y = y0
         var it = 0

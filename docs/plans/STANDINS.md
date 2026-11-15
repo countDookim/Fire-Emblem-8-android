@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 233 across 46 Kotlin files.
+Total entries: 239 across 47 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -26,9 +26,10 @@ Total entries: 233 across 46 Kotlin files.
 | D09-3 | 2 |
 | D11-wire-a | 2 |
 | EP-1 | 1 |
-| EP-12 | 15 |
+| EP-12 | 17 |
 | EP-6b | 11 |
-| EP-8 | 1 |
+| EP-9 | 4 |
+| EP-9b | 1 |
 | EP-cap2 | 6 |
 | EP-w | 3 |
 | MC-12b | 1 |
@@ -288,7 +289,7 @@ Total entries: 233 across 46 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `phaseStartEnd` | The target list is its own: the displays' `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w shares one list with the player phase when the real `Make*TargetList`... |
 
-## EP-12 (15)
+## EP-12 (17)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -305,6 +306,8 @@ Total entries: 233 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `rogueSpecialItems` | Stand-in for the rogue part of `sub_8040C5C` (cpextra_80407F0.c, with `sub_8040B38`, `sub_8040BB4`, `sub_8040B8C`; EP-12: never entered); its result is the function's. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `specialItemFunc` | Stand-in for `sAiSpecialItemFuncLut[index].func(slot)` (cpextra_80407F0.c: `AiSpecialItemDoorKey`, `Lockpick`, `Antitoxin`; EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `sub8040C5C` | Transcribed from src/cpextra_80407F0.c: sub_8040C5C (not verified: only the non-rogue return runs, for Red 0 at f1613, and it shows in no captured value; the rogue part is a stand-in, EP-12) Rogue-... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `cpPerformMoveCameraOntoTarget` | Not seen: the camera call (see [cpPerformMoveCameraOntoUnit]), the trapped return, the other actions, and the ballista start of an attack with item slot -1 (stand-in [Hooks.rideBallista], EP-12). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `rideBallista` | Stand-in for `RideBallista(gActiveUnit)` (bmunit.c; EP-12: the ballista branch of `CpPerform_MoveCameraOntoTarget` is never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `script` | The AI script interpreter (cp_script.c); its hooks are the EP-12 stand-ins. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | `unportedCommand` | Stand-in for a command this class does not write (EP-12 for 00..04, 07..0D, 0F..11, 13..1B and 05 with an ignore list, whose predicates `AiIsUnitEnemyOrInScrList` and `AiIsUnitEnemyAndNotInScrList`... |
 
@@ -324,11 +327,20 @@ Total entries: 233 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `turnScore` | Stand-in for `AiGetTurnCombatScoreComponent` (EP-6b): `chapterTurnNumber` of `gPlaySt` times `coeffTurnNumber`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `battle` | The AI attack search (cp_battle.c, `AiTryDoStaff` of cp_staff.c) and its hooks (EP-6b and EP-12 stand-ins); null (the script attacks nothing) when the constructor got no loader, map and entity maps. |
 
-## EP-8 (1)
+## EP-9 (4)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `startCpPerform` | Stand-in for `Proc_StartBlocking(gProcScr_CpPerform, proc)` (cp_perform.c; EP-8). |
+| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `wirePlayerPhase` | Stand-in for `CpPerform_Cleanup` (EP-9: `AiRefreshMap` applies the move): ends the walk's MU and shows the unit's sprite again where its data still stands (the C hides it in `UnitBeginAction`), so... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `cleanup` | Stand-in for `CpPerform_Cleanup` (EP-9: `AiRefreshMap`). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `performAction` | Stand-in for `CpPerform_PerformAction` with `AiStartCombatAction` and the other actions (EP-9): runs once after the camera is on the target. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `waitAction` | Stand-in for `CpPerform_WaitAction` (EP-9): true when the action is done. |
+
+## EP-9b (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `equipBest` | Stand-in for `CpPerform_EquipBest` (EP-9b). |
 
 ## EP-cap2 (6)
 

@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 565 across 82 decomp files (missing reason: 0).
+Total entries: 567 across 83 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -794,6 +794,13 @@ Total entries: 565 across 82 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `ReadWorldMapStuff` | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | partial, the world map state is not ported, so the raw `struct GMapSaveInfo` is kept |
 | `ClearWorldMapStuff` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | NewGameSaveReferenceTest covers its write but no break-check has been run on it yet |
+
+## src/cp_perform.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `CpPerform_UpdateMapMusic` | `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | the music restart shows in no captured value, the sound registers are not watched |
+| `CpPerform_MoveCameraOntoUnit` | `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | the camera call shows in no captured value; the Prologue map fits the screen, so `gBmSt.camera` is (0, 0) in every window and a camera move onto another tile survives the tests |
 
 ## src/eventscr3.c (2)
 

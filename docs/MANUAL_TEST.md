@@ -1,15 +1,11 @@
 # Manual testing
 
-Latest owner test: **published 0.1.622 (`22cfc9d`), 2026-11-12**: monologue, world map, monologue skip and hover cursor correct; new D-14 (no fade-in after the world-map skip), D-15 (no class reel on title idle).
-Castle stutter fix published in **0.1.497 (`42dc059`)**; no additional castle re-test is needed.
-Popup fixes are published in **0.1.528 (`e0187ea`)**.
+**APK:** install `fe8-debug.apk` from the
+[latest release](https://github.com/countDookim/Fire-Emblem-8-android/releases/tag/latest)
+(rolling: always the newest master build; its title names the commit). Every build needs your ROM.
 
-- **D-07 resolved on this build:** the owner heard neither castle stutter; the retest trace had zero
-  repeated PCM frames. The movement-map frontier replaced repeated full-map scans.
-- **D-12 player banner confirmed (owner, 2026-11-11, 0.1.488):** the Player Phase banner is correct.
-  Enemy/green banners are not ready (D12-2, with M6-D).
-- **D-09 resolved (owner, 2026-11-11, 0.1.571):** the Rapier popup is correct.
-- **APP-1 confirmed (owner, 2026-11-11, 0.1.590):** Delete save works.
+Last owner test: 0.1.622 (`22cfc9d`, 2026-11-12). Everything confirmed up to then has been removed
+from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Only untested items remain.
 
 ## Test now
 
@@ -30,6 +26,11 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
   and the opening animation plays (no black screen); after it the title returns; idling again goes
   to the opening animation again. Limits: the class reel that the original plays first is skipped
   until M6-G (it needs battle animations).
+- **D-13 Start during the Prologue castle cutscene:** New Game, wait for the castle scene's first
+  text box, press Start once. Expected: the screen fades to black in ~4 frames and the rest of the
+  scene is skipped (no visible fast-forward, which was the reported bug). Black for about 45 frames,
+  then the next scene fades in over ~16 frames and plays normally (it waits for A at its first
+  text box).
 
 - **PP-17 player phase (Prologue turn 1):**
   1. Resume the Prologue (suspend save) or play New Game to the turn-1 map (Eirika near the
@@ -41,8 +42,8 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      is back, squares gone).
   3. Select her again, move the cursor two tiles right and press A. Expected: she walks the arrow
      path, then the unit menu opens with Item and Wait (no Attack: no enemy is in reach).
-     Attack flow (APK 0.1.667 and later): move her next to a red unit instead; the menu shows
-     Attack first. Choose it. Expected, in order:
+     Attack flow: move her next to a red unit instead; the menu shows Attack first. Choose it.
+     Expected, in order:
      a. A framed weapon list with a hover bar (icon, name, uses per row); only the red squares of
         the highlighted weapon's reach stay. Eirika's face blinks at the right and an item panel
         at the lower right shows Atk, Hit, Crit and Avoid with the weapon's type icon.
@@ -56,96 +57,36 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      e. A kill (Seth can kill on turn 1): the enemy vanishes from its tile at once; the tile is
         empty, the cursor can stand on it and A there opens the map menu. It does not return
         after End.
-     Stand-ins (not bugs, later milestones): no battle or map animation (M6-H), no death fade (M6-H),
-     no exp bar (Eirika earns 10 exp for the fight, held in the unit but not shown; the status
-     screen is not ported), no level-up stat gains (MC-17), no help box (M6-F), no counter
-     animation, no weapon-broke or item-drop popups.
   4. B in the unit menu. Expected: she is back at her start tile and selected again, the range shows.
      Move again and choose Wait. Expected: the menu closes, Eirika greys out, the cursor is free.
   5. Press A on an empty tile. Expected: the map menu (Unit, Status, Guide, Options, Suspend,
      End). Choose End. Expected: the "Enemy Phase" banner, then the two Soldiers walk one after the
      other to the tile next to Eirika with the target cursor on her (about 1 second each) and
-     attack her. There is no battle animation: the result applies at once, one Soldier hits her
-     (the HP of the unit at (4, 5) drops by 9) and each Soldier dies to her counter and vanishes (no death fade, no exp
-     bar, no dialogue yet). After each Soldier the game pauses for about 0.3 s (the map fade, EP-9c;
-     the map tiles do not change, so it is only a pause). Each walk now has footstep sounds,
-     panned by the walker's screen position (EP-8b; needs sound effects on; not yet heard on a
-     device). Then the "Player Phase" banner of turn 2 and Eirika is no longer grey.
-  - Limits (stand-ins): Item opens nothing and
-    answers with the refusal beep (M6-H); the map menu's Unit, Status, Guide, Options and Suspend,
-    and R / L / START in the map do nothing (M6-F; Suspend M6-E); enemies walk and attack with no battle
-    animation, death fade or exp bar (M6-D, M6-H, EP-11); no staff range, no traps, no after-move or tutorial events, no records (M6-C, M6-E,
-    M6-H). Selecting an enemy shows no range. The save is written at each turn start as in the
-    original but not at an action. Frame timing matches the captures except the five frames the
-    original spends writing the suspend save after Wait.
+     attack her. The result applies at once: one Soldier hits her (the HP of the unit at (4, 5)
+     drops by 9) and each Soldier dies to her counter and vanishes. After each Soldier the game
+     pauses for about 0.3 s (the map fade; the tiles do not change, so it is only a pause). Each
+     walk has footstep sounds panned by the walker's screen position (needs sound effects on).
+     Then the "Player Phase" banner of turn 2 and Eirika is no longer grey.
+  - Limits: frame timing matches the captures except the five frames the original spends writing
+    the suspend save after Wait. The save is written at each turn start as in the original, not at
+    an action. Everything else missing here is listed under "Ignore".
 
-- **D11-wire-b opening monologue (New Game):**
-  1. From the title press START (New Game). Expected: the opening monologue now plays before the
-     castle scene: the title theme stops, then a slow fade-in to the white text cards with the
-     blend transitions and light flare, about a minute long, ending in a slow fade to black.
-  2. Repeat and press START during the monologue (try early, mid and late). Expected: the music fades
-     out quickly (about 20 frames), the screen fades to black in about 10 frames, then the castle
-     scene starts.
-  - Limits: the timing runs about 6 frames short of the original (scene setup runs atomically).
-     Report anything that looks different from the monologue on the original game. The world map
-     that follows is the next entry.
+## Ignore (known gaps, not bugs)
 
-- **D11-wm9 Prologue world map (New Game):**
-  1. From the title press START (New Game), let the monologue end (do not press anything for
-     about 10 more seconds after the last card). Expected: the music fades out, then the big
-     Magvel map appears (the screen was black before, the narration box shows at the bottom),
-     with the narration text paging by itself or with A, the map scrolling to different regions,
-     the nations being highlighted one after another with the portraits of their rulers at the
-     side, and then the picture fading to black. The whole map takes about a minute on the phone.
-     D11-wm10: the map units (Eirika's group, the soldiers) and the marked points (dots) are
-     drawn: small sprites walk across the map while the narration runs, fade in and out, then
-     vanish.
-  2. D11-ci5 chapter intro: after the world map the "Prologue" title card appears with drifting
-     fog, flashing lights, the decal banner and scrolling backgrounds (about 9 seconds), then the
-     picture fades to the `CHAPTER_L_PROLOGUE` map and the castle scene starts. Pressing A, B or Start
-     after the first second skips the rest: the screen fades out (about one second) and then
-     fades into the map. The sound effect fade at the end of the intro is not wired yet.
-  - Limits (all known): no node icons; no unit step sounds (the original plays none in the
-     Prologue). New (D11-wm11): the per-line colour gradient of the narration box now runs (check
-     the box at the bottom for a smooth top-to-bottom colour change, not a flat colour). The text
-     speed follows the A button: hold A to speed it up. Report a crash or a
-     stuck black screen on the world map, and anything that looks clearly different from the
-     original (the order of the highlighted nations, the portraits, the text).
+Re-test these only when a change to them is announced.
 
-- **PP-0a hover cursor (owner device report 11-11; confirmed on 0.1.622, 11-12):**
-  1. Boot into New Game or resume a Prologue save (turn 1 map).
-  2. Move the map cursor over a player unit (Eirika at (4,5) or Seth at (4,4)).
-     - Expected: the cursor immediately expands/widens (uses stretched frame kind 3) to frame the unit sprite rather than staying at the compact corner size.
-     - After hovering for 5 frames (~0.08 s), the unit begins its active standing idle animation (MU).
-  3. Move the cursor away to an empty tile (e.g. (5,5)):
-     - Expected: the cursor immediately returns to the normal compact animated frame (kind 0); the player unit returns to its resting standing sprite.
-  4. Limits: unit selection/movement/action menus remain stand-ins (M6-B/M6-C).
+- **Combat display:** no battle or map animation, death fade, exp bar, level-up display (stat gains
+  are applied but not shown), counter animation, weapon-broke or item-drop popups (M6-G, M6-H,
+  MC-18). Eirika's exp is held in the unit but not shown.
+- **Commands and screens:** Item answers with the refusal beep; the map menu's Unit, Status, Guide,
+  Options and Suspend, and R / L / START on the map do nothing; no help box, inventory or info
+  screens (M6-E, M6-F, M6-H). Selecting an enemy shows no range.
+- **Map events and rules:** no staff range, traps, after-move or tutorial events, dialogue during
+  the enemy phase, or records (M6-C, M6-E, M6-H). Enemy and green phase banners (D12-2).
+- **Opening:** the title's class reel (D-15, M6-G); the chapter intro's closing sound-effect fade;
+  world-map node icons. New Game always uses Normal difficulty (save/difficulty menus M6-E).
+- **Popups:** other item-popup branches than the confirmed Rapier one (D09-3, low priority).
 
-- **D-13 Start during the Prologue castle cutscene (D13-1, D13-2):**
-  1. New Game, wait for the castle scene's first text box, press Start once.
-     - Expected: the screen fades to black in ~4 frames, the rest of the scene is skipped, the next scene fades in
-       (no visible fast-forward). Black for about 45 frames, then the next scene fades in over ~16 frames and plays
-       normally (it waits for A at its first text box).
-
-## Known differences (owner reports)
-
-- Map cursor over a player unit: resolved by PP-0a (cursor expands to stretched frame kind 3 when hovering
-  a player unit; active MU starts after 5 frames).
-- Start during the Prologue in-game cutscene fast-forwards visibly instead of fading out and skipping
-  (owner, 2026-11-11, 0.1.590). Fix planned as D13-cap1/D13-1.
-
-## Currently ignore
-
-These are known gaps; re-test them only when a relevant change is announced:
-
-- D-11: the monologue and the world map are wired (see Test now); the map sprites and the unit
-  commands (D11-wm8e) are not.
-- Missing attack and item commands, inventory and the info screens (M6-C, M6-F, M6-H), combat (M6-C), enemy turns (M6-D), save/difficulty
-  menus (M6-E) and the Seth/Valter battle animation (M6-G). Combat will resolve instantly until M6-G.
-  Cursor movement, unit select, move, Wait and End turn work (see Test now); New Game currently uses Normal difficulty.
-
-Previously confirmed: castle audio, dialogue/portraits/blinking/mouths, backgrounds, walking and rider exits;
-boot, ROM import, controls, GPU rendering and suspend/resume. Report regressions if noticed.
-
-Install `fe8-debug.apk` from the [latest release](../../../releases/tag/latest); every build requires your ROM.
-Implementation status: [HANDOFF](../HANDOFF.md).
+Report any regression in things confirmed earlier (boot, ROM import, controls, rendering, suspend and
+resume, the opening monologue, world map and title card, castle scene and audio, the player phase
+banner, the hover cursor, the Rapier popup, Delete save).

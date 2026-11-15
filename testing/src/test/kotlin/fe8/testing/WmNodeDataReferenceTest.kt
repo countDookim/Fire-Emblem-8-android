@@ -92,7 +92,7 @@ class WmNodeDataReferenceTest {
                 )
             }
         }
-        // Prologue world map uses node 0 (Border Mulan) before its clear flag is set.
+        // Prologue world map uses node 0 (name `MSG_650`) before its clear flag is set.
         assertEquals(0, data.nextLocId(0, 2) { false })
     }
 

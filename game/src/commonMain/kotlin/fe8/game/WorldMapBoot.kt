@@ -260,7 +260,7 @@ internal class WorldMapBoot(
 
     /** `LoadLegacyUiFrameGraphics` hook of [rm] and [gfx]; does nothing yet (see the body). */
     private fun loadLegacyUiFrameGraphics() {
-        // Stand-in until M6-B: `LoadLegacyUiFrameGraphics` (BG UI frame tiles) is not ported.
+        // Stand-in until M6-F: `LoadLegacyUiFrameGraphics` (BG UI frame tiles) is not ported.
     }
 
     /** The running `ProcScr_WorldMapMain` proc, or null when the world map is not running. */

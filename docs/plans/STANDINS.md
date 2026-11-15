@@ -14,11 +14,11 @@ Total entries: 233 across 47 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
-| M6-B | 13 |
+| M6-B | 12 |
 | M6-C | 9 |
 | M6-D | 13 |
 | M6-E | 51 |
-| M6-F | 14 |
+| M6-F | 15 |
 | M6-G | 4 |
 | M6-H | 33 |
 | M6-I | 27 |
@@ -43,13 +43,12 @@ Total entries: 233 across 47 Kotlin files.
 | PP-4 | 1 |
 | PP-9 | 1 |
 
-## M6-B (13)
+## M6-B (12)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `suspendSaveHook` | Stand-ins, until the state exists (M6-B: `gActionData`, menu override; M6-H: traps, convoy; M6-I: world map info, dungeon state): `gActionData` is the [SuspendRam.actionData] buffer (zeros apart fr... |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `unitLookup` | Cursor / camera commands: the camera moves and the cursor proc runs; SetSomeRealCamPos and RenderBmMap keep the default no-op stand-ins (M6-B). |
-| `game/src/commonMain/kotlin/fe8/game/WorldMapBoot.kt` | `loadLegacyUiFrameGraphics` | Stand-in until M6-B: `LoadLegacyUiFrameGraphics` (BG UI frame tiles) is not ported. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `suspendPointType` | Stand-in until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `resetMenuOverrides` | Stand-in until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `resumeActionUnit` | Stand-in until M6-B (needs MU and the active unit). |
@@ -149,13 +148,14 @@ Total entries: 233 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `TalkScene` | Stand-ins until M6-E (no behaviour is invented; each is a no-op or the smallest working substitute): - talk choices (`StartTalkChoice`), `[G]` numbers (`NumberToStringAscii`) and the tactician name... |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `setFaceEyes` | Stand-in (M6-E): `sub_80064D4`, the face eye state, is not ported; the call is ignored. |
 
-## M6-F (14)
+## M6-F (15)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `battleMapGfx` | Stand-in until M6-F: `ResetFaces` (the stat screen faces are not ported). |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `loadLegacyUiFrame` | Stand-in until M6-F for `LoadLegacyUiFrameGraphics` (uiutils.c): the window frame image of `gPlaySt.config.windowColor` to BG tile 0 and its palette to palette 1, from the ROM lookup tables (not ve... |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `readGameSaveCoreGfx` | Stand-in until M6-F: `ResetFaces`. |
+| `game/src/commonMain/kotlin/fe8/game/WorldMapBoot.kt` | `loadLegacyUiFrameGraphics` | Stand-in until M6-F: `LoadLegacyUiFrameGraphics` (BG UI frame tiles) is not ported. |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | `ChapterMapGfx` | The `ResetText`, `LoadLegacyUiFrameGraphics`, `ResetFaces`, `ResetIconGraphics_` and `LoadIconPalettes` calls of [sub80156D4] are the hooks [resetText] and friends; `Fe8Boot` wires all but `ResetFa... |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | `resetFaces` | Stand-in until M6-F for `ResetFaces` (the stat screen faces). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `adjustsFromXiScript` | Stand-in until M6-F for `gProcScr_ADJUSTSFROMXI`, a script that ends at once. |

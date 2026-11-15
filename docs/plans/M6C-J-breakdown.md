@@ -4,12 +4,13 @@ Written 2026-11-12 (owner PC) when Lane A finished. Rows are in [TASKS](../TASKS
 [ROADMAP](ROADMAP.md). This file holds what the rows are based on: the decomp call chains, the captures each
 milestone needs, and what is not known yet.
 
-**How exact the rows are.** M6-C, M6-D and M6-E name functions read from the decomp call chains below; their INV
-rows still correct the lists (ROADMAP rule 3). M6-F names files and behaviours; its PORT rows are groups that the
-INV splits into rows of at most about 8 functions. M6-G to M6-J are sub-lane starters (CAP, INV, one grouped PORT
-row, WIRE): nothing past the INV is fixed. Function counts are decomp totals per file, not all reachable.
+**Current scopes (2026-11-15):** [M6 task scopes](M6-task-scopes.md) and TASKS supersede the broad
+planning groups below. M6-D/E/F now have smaller inventories and candidate function groups; M6-G..J
+have scenario-sized CAP/INV rows. A source shortlist is not captured coverage: each INV must fix its
+PORT windows/functions and WIRE dependencies before coding. Function counts below are source totals,
+not all reachable. Dated results are historical; use HANDOFF for current implementation status.
 
-**Lanes (owner-approved 2026-11-12).** Lane A, now empty, takes the main line M6-C → M6-D → M6-E. Lane B finishes M6-B and then
+**Lanes (owner-approved 2026-11-12).** Lane A takes the main line M6-C → M6-D → M6-E. Lane B finishes M6-B and then
 takes M6-F, which needs only the turn-1 save and no combat. M6-G to M6-J follow in ROADMAP order.
 
 ## M6-C map combat, no animation
@@ -945,7 +946,8 @@ row + 332 in rows. Engine-layer functions: 90, no rows.
 
 Exit: win → ending event → save → Chapter 1 map; game over works.
 
-Call chain: boss death → misc event `DefeatBoss` → `CallEndEvent` (eventinfo.c) → ending scene script (victory
+Observed chain (EP-0b): boss death → wait-event path (`RunPotentialWaitEvents` / `RunWaitEvents`)
+→ ending scene script (victory
 music, background, eleven flags, `MNC2`) → `gProcScr_GameControl` label POST_NORMAL_CHAPTER:
 `GameControl_PostChapterSwitch`, `GameControl_ChapterSwitch` (RN advance, chapter time/turn record, rankings),
 `GameControl_CallPostChapterSaveMenu` (savemenu.c, savedraw.c) → label EXEC_BM: world map wrapper (the Chapter 1

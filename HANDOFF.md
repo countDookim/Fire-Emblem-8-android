@@ -11,13 +11,19 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- PLAN-M6: GPT owner PC, planning only; split M6-D..J backlog in TASKS/plans, until ~21:10Z (2026-11-15). No code or captures.
 
 - EP-28 (battle quote and defeat events: event.c / eventinfo.c), owner PC Gemini Flash agent `ep28`, claimed 2026-11-15 20:11Z.
 - EP-11d (text and CG text: fontgrp.c, cgtext.c), owner PC Gemini Flash agent `ep11d`, claimed 2026-11-15 20:15Z.
 
 
 ## Current state
+
+- 2026-11-15 GPT planning only (owner-selected Astra high): broad M6-D..J tasks split in
+  [TASKS](docs/TASKS.md) and [task scopes](docs/plans/M6-task-scopes.md). Candidate ports require
+  inventory confirmation; later milestones have scenario CAP/INV rows, not invented function coverage.
+  PC-easy-w closes M6-E with tutorials included. M7 still awaits D2–D9. No code/captures or device changes;
+  planning checks only, no new JVM run or port credits. Other agents' claims remain authoritative.
+
 
 - 2026-11-15 GPT owner PC: **EP-7b resolved** by original callback-phase capture; the danger-map test
   compares all 150 tiles with no exclusion. **EP-29a partial:** 27 original helper calls checked, but
@@ -136,13 +142,15 @@ Plan re-done 2026-11-11 (owner-approved): [ROADMAP](docs/plans/ROADMAP.md) has t
 [TASKS](docs/TASKS.md) has the open rows. Tasks are capture-first: CAP → INV → PORT (≤ ~8 functions the capture
 window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose deps are done in either.
 
-1. **Lane A, main line (M6-C → M6-D → M6-E), broken into rows 11-12.** M6-C `MC-*` (map combat), M6-D `EP-*`
-   (enemy phase), M6-E `PC-*` (Prologue completable). First: `MC-cap1`, `MC-0`, `EP-0` (no deps). Call chains and
-   capture plans: [M6C-J-breakdown](docs/plans/M6C-J-breakdown.md). Lane A's opening is done (device check pending).
-2. **Lane B, player phase (M6-B): code-complete 11-12** (PP-11, CAP-status1, PP-18, PP-17); owner device check pending
-   (MANUAL_TEST PP-17). Then M6-F info
-   screens (`IS-*`). Notes: [M6B-player-phase](docs/plans/M6B-player-phase.md). M6-G to M6-J have starter rows only.
-   Owner-approved 11-12: this lane split, and the Easy-mode tutorial (PC-cap3, PC-10) as the end of M6-E.
+1. **Lane A (M6-D → M6-E):** finish unclaimed, dependency-ready EP rows; skip live claims above.
+   `MC-18i` inventories the existing level-up display capture before MC-18a..f. `PC-cap1` captures the
+   ending/save/Chapter 1 route; `PC-cap2` the lord-death path. `PC-9i` checks existing menu coverage.
+   Source scopes and proposed test names: [M6 task scopes](docs/plans/M6-task-scopes.md).
+2. **Lane B (M6-F):** `IS-cap1` → `IS-0`/`IS-2i` → the observed stat-screen/help function groups.
+   Unit list, status, options, guide and minimap each have their own CAP/INV. M6-G..J likewise use
+   scenario-sized discovery tasks; their inventories must add exact PORT dependencies before WIRE.
+   Do not code a `blocked` shortlist merely because its source functions are named. Normal completion
+   is `PC-w`; Easy tutorials are required by `PC-easy-w`, the M6-E close. M6-B is code-complete.
 3. **Readability paused by the owner 2026-11-15 ~15:30Z for two days (until ~2026-11-17): porting only.** Then resume
    one row per session; 4 rows open (added 11-15 for new files).
    **Readability (rule 11, changed 11-11):** comments must be meaningful and checked against the decomp

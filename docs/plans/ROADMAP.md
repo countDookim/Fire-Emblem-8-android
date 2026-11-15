@@ -69,10 +69,14 @@ main files, not all of them reachable.
 | M6-J | Late game and extras | Promotion, arena, supports, endings, sound room, remaining spell/dragon animations | `classchg*`, `bmarena.c`, `uisupport.c`, `ending_*`, `soundroom.c`, rest of battle_anim |
 | M7 | Modding surface | Mod loader, debug menu (debug builds), MODDING.md current | starts with audit M7-0 |
 
-M6-C to M6-F have rows in TASKS since 2026-11-12; M6-G to M6-J have starter rows (CAP/INV) only. Call chains,
-capture plans and open points: [M6C-J-breakdown](M6C-J-breakdown.md). Lanes from 2026-11-12 (owner-approved):
+Planning updated 2026-11-15: [M6 task scopes](M6-task-scopes.md) splits the remaining broad M6-D/E/F
+work into bounded inventories and candidate function groups, and M6-G..J into scenario captures/inventories.
+Candidate PORT rows remain blocked until an inventory fixes the observed functions and exact windows;
+later inventories still have to produce their implementation rows. M7 remains proposed pending D2–D9.
+Historical call chains and capture results: [M6C-J-breakdown](M6C-J-breakdown.md). Lanes from 2026-11-12 (owner-approved):
 Lane A carries the main line M6-C → M6-D → M6-E; Lane B finishes M6-B, then M6-F. The Easy-mode tutorial
-(PC-cap3, PC-10) is part of M6-E, at its end; until then Easy plays without tutorials (stand-in). Earlier milestone numbering: M1–M5 and
+(PC-cap3, PC-10) is part of M6-E, at its end; `PC-w` verifies Normal and `PC-easy-w` closes M6-E
+with Easy included. Until then Easy plays without tutorials (stand-in). Earlier milestone numbering: M1–M5 and
 "M6 part 1" are done (TASKS Done line; row details in
 [TASKS-archive-2026-11-11](TASKS-archive-2026-11-11.md)).
 

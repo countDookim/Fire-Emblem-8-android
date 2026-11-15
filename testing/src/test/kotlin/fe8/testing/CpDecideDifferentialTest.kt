@@ -46,9 +46,9 @@ import java.io.File
  * `RefreshUnitSprites` is the call right before `AiUpdateNoMoveFlag`:
  *
  * - Red 0's start = f1612 (decision zero, `unitIt` at the start, `decideState` 0, nobody marked);
- *   its script A call = the f1612 danger map (the dump lies after `AiInitDangerMap`);
- * - Soldier 1's start = f1613 (Red 0 marked `US_HAS_MOVED_AI`, `unitIt` 5; the danger map is
- *   still Red 0's);
+ *   its script A call = the completed danger map at the first `AiFillDangerMap` return;
+ * - Soldier 1's start = f1613 (Red 0 marked `US_HAS_MOVED_AI`, `unitIt` 5); the frame
+ *   snapshot is already inside Soldier 1's danger fill, so use Red 0's return snapshot;
  * - Soldier 1's perform start = f1614 (decision `0x82` attack, `decideState` 2, `unitIt` 6, the
  *   danger map of Soldier 1);
  * - Soldier 2's start = f2037 (`decideState` 0, the old decision still set);
@@ -98,6 +98,7 @@ class CpDecideDifferentialTest {
 
     private inner class Sim {
         val run: ReferenceData.Run
+        val dangerRun: ReferenceData.Run
         val rom: RomView
         val engine = ProcEngine()
         val playSt = PlaySt()
@@ -121,6 +122,22 @@ class CpDecideDifferentialTest {
             assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
             assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
             run = ref.run(RUN)
+            assertTrue(
+                File(ref.root, "$DANGER_RUN/call_danger_1_exit.ewram.bin").isFile,
+                "EP-7b danger-map reference not present",
+            )
+            dangerRun = ref.run(DANGER_RUN)
+            // Trace hooks add no emulated cycles: the input prefix and frame states match EP-cap1.
+            val capturedInputs = dangerRun.inputs
+            assertTrue(run.inputs.take(capturedInputs.size) == capturedInputs.toList())
+            for (frame in listOf("r01612", "r01613", "r01614")) {
+                for (region in listOf("ewram", "iwram")) {
+                    assertTrue(
+                        run.region(frame, region).contentEquals(dangerRun.region(frame, region)),
+                        "$frame $region differs from EP-cap1",
+                    )
+                }
+            }
             assumeTrue(run.hasWatch("aidecision"), "run has no aidecision watch")
             rom = RomView.ofRom(romFile.readBytes())
             units = UnitTable(rom)
@@ -160,7 +177,7 @@ class CpDecideDifferentialTest {
                     0x82 -> {
                         compare(1613, "Soldier 1 before its decision")
                         compareDanger(
-                            1613, "r01613", "Soldier 1 before its decision", "r01612",
+                            1613, "call_danger_1_exit", "Soldier 1 before its decision",
                         )
                     }
                     0x83 -> {
@@ -185,7 +202,7 @@ class CpDecideDifferentialTest {
                 val id = active.unitId
                 log += "scriptA ${hex(id)}"
                 if (id == 0x81) {
-                    compareDanger(1612, "r01612", "Red 0 in script A", "r01612")
+                    compareDanger(1612, "call_danger_1_exit", "Red 0 in script A")
                     compareMaps("r01612", "Red 0 in script A")
                 }
                 if (id == 0x83) {
@@ -291,7 +308,8 @@ class CpDecideDifferentialTest {
 
         /** `gBmMapOther` of the EWRAM dump [name], row by row (15 x 10). */
         fun dangerDump(name: String): IntArray {
-            val ewram = run.region(name, "ewram")
+            val source = if (name == "call_danger_1_exit") dangerRun else run
+            val ewram = source.region(name, "ewram")
             fun word(a: Int) =
                 (0..3).sumOf { (ewram[a - EWRAM + it].toInt() and 0xFF) shl (8 * it) }
             val rows = word(GBM_MAP_OTHER)
@@ -410,26 +428,17 @@ class CpDecideDifferentialTest {
         }
 
         /** Compares `dangerMapFilled` and, with a [dump], `gBmMapOther` with the capture. */
-        fun compareDanger(frame: Int, dump: String?, what: String, lateRange: String? = null) {
+        fun compareDanger(frame: Int, dump: String?, what: String) {
             val at = "$what (f$frame)"
             assertEquals(
                 aiState.u8(frame, 0x7A) != 0, cp.aiState.dangerMapFilled, "dangerMapFilled $at",
             )
             if (dump == null) return
             val shown = dangerDump(dump)
-            // EP-7b: Red 0's captured map (f1612, f1613) lacks the second player unit's damage on
-            // the tiles of its range (the dump's range map). The next dump (f1614) is already
-            // Soldier 1's map, so no complete map of Red 0 exists to compare: those tiles are
-            // skipped, every other tile is exact.
-            val late = lateRange?.let { poolDump(it, GBM_MAP_RANGE) }
             for (y in 0 until map.sizeY) {
                 for (x in 0 until map.sizeX) {
                     val i = y * map.sizeX + x
-                    if (late != null && late[i] != 0) {
-                        continue
-                    } else {
-                        assertEquals(shown[i], map.other[y, x], "gBmMapOther ($x, $y) $at")
-                    }
+                    assertEquals(shown[i], map.other[y, x], "gBmMapOther ($x, $y) $at")
                 }
             }
         }
@@ -535,6 +544,7 @@ class CpDecideDifferentialTest {
 }
 
 private const val RUN = "ram_trace_prologue_enemy_phase"
+private const val DANGER_RUN = "ram_trace_ai_danger_calls"
 private const val AI_STATE_ADDRESS = 0x0203AA04
 private const val HAS_MOVED_AI = 1 shl 10
 private const val EWRAM = 0x02000000

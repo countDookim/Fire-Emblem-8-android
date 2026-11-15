@@ -11,8 +11,8 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- EP-6b (AI combat score components), owner PC Gemini Flash agent `ep6b`, claimed 2026-11-15 15:47Z.
-- EP-7c (boss move helpers: GenerateExtendedMovementMapOnRange, RevertMovementScript, AiCheckDangerAt, UnitHasMagicRank), owner PC Gemini Flash agent `ep7c`, claimed 2026-11-15 15:47Z.
+- EP-7d (AI movement command: AiScriptCmd_12_MoveTowardsEnemy, AiTryMoveTowards, AiFindTargetInReachByFunc), owner PC Gemini Flash agent `ep7d`, claimed 2026-11-15 16:51Z.
+- EP-27 (per-unit battle stats bmsave-bwl.c PidStatsAdd* / RecordDefeatInfo), owner PC Gemini Flash agent `ep27`, claimed 2026-11-15 16:51Z.
 - EP-11b (talk plumbing, scene.c), fresh agent, claimed 2026-11-15 16:15Z.
 - EP-15 (battle-animation setup queries B), agent worktree `agent-a7035ed0a4ce9a596`, claimed 2026-11-15 16:33Z.
 

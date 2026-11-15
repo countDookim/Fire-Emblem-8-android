@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 588 across 87 decomp files (missing reason: 0).
+Total entries: 597 across 87 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -47,7 +47,7 @@ Total entries: 588 across 87 decomp files (missing reason: 0).
 | `InitTalkTextWin` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no @VerifiesPort test names it |
 | `TalkOpen_InitBlend` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no |
 
-## src/bmunit.c (30)
+## src/bmunit.c (31)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
@@ -79,6 +79,7 @@ Total entries: 588 across 87 decomp files (missing reason: 0).
 | `FixROMUnitStructPtr` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no traced unit has `CA_BIT_23`, so a broken repoint survives |
 | `UnitCheckStatCaps` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `CountRedUnits` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | the one-enemy-left script runs it, but the capture's branch is the same for any count above 1 |
+| `UnitHasMagicRank` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no unit in the captures has a magic rank, and no captured decision or output depends on it |
 | `SetAllUnitNotBackSprite` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | it runs in the select window, but no unit has `US_BIT8` set there, so the clearing is unobserved |
 | `IsUnitSlotAvailable` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic slot fill; no trace comparison yet |
 
@@ -484,6 +485,22 @@ Total entries: 588 across 87 decomp files (missing reason: 0).
 | `ChapterIntro_BeginFastFadeToMap` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the `StartBgm` call is not compared |
 | `ChapterIntro_End` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | the capture's chapter fades to black, so `RefreshBMapGraphics` (through [Hooks.refreshBMapGraphics]) and [sub80141B0] overwrite the priorities, window enable and BG0 clear before the next dump; the story-map branch is not run |
 
+## src/cp_battle.c (11)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `AiGetCombatPositionScore` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | the capture has one candidate tile per target, so no captured value shows the score, only that it is not 0; the three position components are transcribed |
+| `AiGetOpponentLowHpScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | its value shows only through a total that stays below 0, and that total includes the EP-6b components the test feeds with hand-computed values; a target above 20 HP is not seen |
+| `AiGetFriendZoneCombatScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | no allied unit stands within 3 tiles of the attacker's tile in either captured call, so it is 0 and no captured value shows it |
+| `AiGetTargetClassCombatScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | the rank is 9 for every class, one past the bonus list, so the bonus is the padding byte 0 in both captured calls and no captured value shows it; the rank is [CpUtility.aiGetClassRank] |
+| `AiGetTurnCombatScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | turn component 1 only shifts negative score totals from -2 to -1 for Soldier 1 and -13 to -12 for Soldier 2, so omitting or negating it leaves the total below 0 and returns the backup score 6 |
+| `AiGetDamageTakenScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | realistic off-by-one mutations leave the score total <= 0, returning backup score 6; unarmed target path -10 is not seen in the capture |
+| `AiGetDangerScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | danger component 2 only shifts the score total to -1 / -12, so off-by-one mutations leave the total <= 0 and return backup score 6; cap 20 is not reached |
+| `AiGetLowHpScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | low HP component (12 for Soldier 1, 20 for Soldier 2) only shifts the score total to -1 / -12, so off-by-one mutations leave the total <= 0 and return backup score 6; actor HP > 20 is not seen |
+| `AiGetInRangeCombatPositionScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | target weapon range 1 covers candidate distance 1 so the component returns 0, and only one candidate tile (5, 5) reaches the target |
+| `AiGetTerrainCombatPositionScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | only one candidate tile (5, 5) reaches the target, so terrain score differences between tiles are never tested against captured output |
+| `AiGetFriendZoneCombatPositionScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | only one candidate tile (5, 5) reaches the target, so friend zone position score differences between tiles are never tested against captured output |
+
 ## src/worldmap_main.c (11)
 
 | Function | Kotlin file | Reason |
@@ -698,14 +715,14 @@ Total entries: 588 across 87 decomp files (missing reason: 0).
 | `WriteLinkArenaStruct2` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero link arena block, so no run shows its checksum or data |
 | `WriteSupplyItems` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
 
-## src/cp_battle.c (4)
+## src/cp_0803E2F4.c (4)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
-| `AiGetCombatPositionScore` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | the capture has one candidate tile per target, so no captured value shows the score, only that it is not 0; the three components are a stand-in, EP-6b |
-| `AiGetOpponentLowHpScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | its value shows only through a total that stays below 0, and that total includes the EP-6b components the test feeds with hand-computed values; a target above 20 HP is not seen |
-| `AiGetFriendZoneCombatScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | no allied unit stands within 3 tiles of the attacker's tile in either captured call, so it is 0 and no captured value shows it |
-| `AiGetTargetClassCombatScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | the rank is 9 for every class, one past the bonus list, so the bonus is the padding byte 0 in both captured calls and no captured value shows it; the rank is [CpUtility.aiGetClassRank] |
+| `sub_803EC18` | `game/src/commonMain/kotlin/fe8/game/bm/CpEquip.kt` | no staff in the capture |
+| `AiEquipBestConsideringDanger` | `game/src/commonMain/kotlin/fe8/game/bm/CpEquip.kt` | with the danger 0 it does nothing, and the boss has one item, so no equip happens |
+| `AiEquipBestMatch` | `game/src/commonMain/kotlin/fe8/game/bm/CpEquip.kt` | never reached, see [aiEquipBestConsideringDanger] |
+| `AiCheckDangerAt` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | the captures pass threshold 0xFF so no candidate tile is filtered by danger, and no captured decision depends on a threshold comparison |
 
 ## src/cp_decide.c (4)
 
@@ -759,14 +776,6 @@ Total entries: 588 across 87 decomp files (missing reason: 0).
 | `IsSameAllegiance` | `game/src/commonMain/kotlin/fe8/game/bm/BmPhase.kt` | no capture checks it; the truth table restates the C |
 | `CountUnitsInState` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | only reached by the victory-song check; the enemy-phase windows call it, but the result only shows as the song id, which no capture records |
 | `GetPhaseAbleUnitCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no trace has a unit that the asleep/berserk/unselectable/NOT_ABLE exclusions would skip; the enemy-phase windows only show that the count is 0 exactly when the phase has no banner |
-
-## src/cp_0803E2F4.c (3)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `sub_803EC18` | `game/src/commonMain/kotlin/fe8/game/bm/CpEquip.kt` | no staff in the capture |
-| `AiEquipBestConsideringDanger` | `game/src/commonMain/kotlin/fe8/game/bm/CpEquip.kt` | with the danger 0 it does nothing, and the boss has one item, so no equip happens |
-| `AiEquipBestMatch` | `game/src/commonMain/kotlin/fe8/game/bm/CpEquip.kt` | never reached, see [aiEquipBestConsideringDanger] |
 
 ## src/cp_order.c (3)
 

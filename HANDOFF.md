@@ -12,6 +12,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - EP-11a (boss turn event, opcode 39 and event start), fresh agent, claimed 2026-11-15 15:40Z.
+- EP-14 (battle-animation setup queries A), fresh agent, claimed 2026-11-15 15:47Z.
 
 
 ## Current state

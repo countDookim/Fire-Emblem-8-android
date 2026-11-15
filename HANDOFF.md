@@ -12,7 +12,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - EP-9: owner PC, until ~2026-11-15 15:00Z
-- READABILITY fe8.game.bm (AttackMapSelect, AttackRange, AttackTargets): owner PC, until ~2026-11-15 13:30Z
+- READABILITY fe8.game.bm (ChapterIntro lines 1-551): owner PC, until ~2026-11-15 14:00Z
 
 ## Current state
 

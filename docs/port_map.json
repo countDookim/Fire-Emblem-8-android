@@ -8,8 +8,8 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1198,
-    "implemented_unverified": 62
+    "verified": 1218,
+    "implemented_unverified": 74
   },
   "functions": {
     "ActionCombat": {
@@ -92,6 +92,16 @@
       "status": "implemented",
       "tests": []
     },
+    "AiCanEquip": {
+      "decomp_file": "src/cp_0803E2F4.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpEquip.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CpPerformActionDifferentialTest#the boss moves without an action as the capture f3831 to f3832"
+      ]
+    },
     "AiClearDecision": {
       "decomp_file": "src/cp_decide.c",
       "system": "ai",
@@ -125,6 +135,26 @@
       "tests": [
         "fe8.testing.CpPerformActionDifferentialTest#Soldier 1 attacks and dies as the capture f1696 to f2018",
         "fe8.testing.CpPerformActionDifferentialTest#Soldier 2 attacks and dies as the capture f2129 to f2723",
+        "fe8.testing.CpPerformActionDifferentialTest#the boss moves without an action as the capture f3831 to f3832"
+      ]
+    },
+    "AiEquipGetDanger": {
+      "decomp_file": "src/cp_0803E2F4.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpEquip.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CpPerformActionDifferentialTest#the boss moves without an action as the capture f3831 to f3832"
+      ]
+    },
+    "AiEquipGetFlags": {
+      "decomp_file": "src/cp_0803E2F4.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpEquip.kt",
+      "status": "verified",
+      "tests": [
         "fe8.testing.CpPerformActionDifferentialTest#the boss moves without an action as the capture f3831 to f3832"
       ]
     },
@@ -175,6 +205,16 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt",
       "status": "implemented",
       "tests": []
+    },
+    "AiIsWithinFlyingDistance": {
+      "decomp_file": "src/cp_0803E2F4.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpEquip.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CpPerformActionDifferentialTest#the boss moves without an action as the capture f3831 to f3832"
+      ]
     },
     "AiPhaseBerserkInit": {
       "decomp_file": "src/cp_phase.c",
@@ -998,6 +1038,14 @@
         "fe8.testing.BattleScriptedDifferentialTest#scripted battle hits and stats match the dumped structs"
       ]
     },
+    "BeginBattleMapAnims": {
+      "decomp_file": "src/mapanim_api.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "BgAffinAnchoring": {
       "decomp_file": "src/sysutil.c",
       "system": "core",
@@ -1567,6 +1615,22 @@
       "tests": [
         "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
       ]
+    },
+    "CheckBattleUnitLevelUp": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "CheckBattleUnitStatCaps": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "implemented",
+      "tests": []
     },
     "CheckCanKeyComboReset": {
       "decomp_file": "src/time.c",
@@ -2214,6 +2278,18 @@
         "fe8.testing.Fe8BootSoundTest#boot sound state matches the traces"
       ]
     },
+    "Destruct6CBMXFADE": {
+      "decomp_file": "src/bmxfade.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmxFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 1 dies as the capture f2018 to f2034",
+        "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 2 dies as the capture f2723 to f2739",
+        "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
+      ]
+    },
     "DisplayBmTile": {
       "decomp_file": "src/bmmap.c",
       "system": "battle_map",
@@ -2268,6 +2344,18 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
+    "DoesBMXFADEExist": {
+      "decomp_file": "src/bmxfade.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmxFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 1 dies as the capture f2018 to f2034",
+        "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 2 dies as the capture f2723 to f2739",
+        "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
       ]
     },
     "DrawBattleForecastContents": {
@@ -4607,6 +4695,30 @@
         "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
+    "GetSpellAssocCharCount": {
+      "decomp_file": "src/spellassoc.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/SpellAssoc.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetSpellAssocFacing": {
+      "decomp_file": "src/spellassoc.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/SpellAssoc.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetSpellAssocMapAnimProcScript": {
+      "decomp_file": "src/spellassoc.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/SpellAssoc.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "GetSpriteTextDrawDest": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -4616,6 +4728,14 @@
       "tests": [
         "fe8.game.BrownTextBoxReferenceTest#the Prologue box hold frame equals the reference OAM entries"
       ]
+    },
+    "GetStatIncrease": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "status": "implemented",
+      "tests": []
     },
     "GetStringFromIndex": {
       "decomp_file": "src/msg.c",
@@ -5576,6 +5696,18 @@
         "fe8.testing.FrameCompareTest#menu frames with the wavy rune background match mGBA"
       ]
     },
+    "HaltMu": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CpPerformDifferentialTest#Soldier 1 walks and the target cursor shows as the capture f1614 to f1695",
+        "fe8.testing.CpPerformDifferentialTest#Soldier 2 walks and the target cursor shows as the capture f2039 to f2128",
+        "fe8.testing.CpPerformDifferentialTest#the boss moves without a target cursor as the capture f3804 to f3831"
+      ]
+    },
     "HandleMapCursorInput": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -6326,6 +6458,14 @@
         "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
       ]
     },
+    "MakeBattleMOVEUNIT": {
+      "decomp_file": "src/mapanim_api.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "MakeNewItem": {
       "decomp_file": "src/bmitem.c",
       "system": "battle_logic",
@@ -6776,6 +6916,30 @@
         "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in select_move matches the game f1295 to f1314"
       ]
     },
+    "MuStepSe_PlaySeA": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuStepSeDifferentialTest#Soldier 1's step sounds match the capture f1615 to f1647",
+        "fe8.testing.MuStepSeDifferentialTest#Soldier 2's step sounds match the capture f2040 to f2080",
+        "fe8.testing.MuStepSeDifferentialTest#the boss's step sounds match the capture f3805 to f3829"
+      ]
+    },
+    "MuStepSe_PlaySeB": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuStepSeDifferentialTest#Soldier 1's step sounds match the capture f1615 to f1647",
+        "fe8.testing.MuStepSeDifferentialTest#Soldier 2's step sounds match the capture f2040 to f2080",
+        "fe8.testing.MuStepSeDifferentialTest#the boss's step sounds match the capture f3805 to f3829"
+      ]
+    },
     "Mu_OnLoop": {
       "decomp_file": "src/mu.c",
       "system": "battle_map",
@@ -6785,6 +6949,18 @@
       "tests": [
         "fe8.testing.MuMoveDifferentialTest#MU walk of the prologue talk run matches f10580 to f10621 and f10624 to f10633",
         "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
+      ]
+    },
+    "Mu_OnStateDoNothing": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CpPerformDifferentialTest#Soldier 1 walks and the target cursor shows as the capture f1614 to f1695",
+        "fe8.testing.CpPerformDifferentialTest#Soldier 2 walks and the target cursor shows as the capture f2039 to f2128",
+        "fe8.testing.CpPerformDifferentialTest#the boss moves without a target cursor as the capture f3804 to f3831"
       ]
     },
     "Mu_OnStateMovement": {
@@ -6806,6 +6982,18 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BgmVolumeChangeTest#volume ramp matches the trace"
+      ]
+    },
+    "NewBMXFADE": {
+      "decomp_file": "src/bmxfade.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmxFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 1 dies as the capture f2018 to f2034",
+        "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 2 dies as the capture f2723 to f2739",
+        "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
       ]
     },
     "NewBattleForecast": {
@@ -7389,6 +7577,30 @@
       "status": "verified",
       "tests": [
         "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PlayMuStepSe": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuStepSeDifferentialTest#Soldier 1's step sounds match the capture f1615 to f1647",
+        "fe8.testing.MuStepSeDifferentialTest#Soldier 2's step sounds match the capture f2040 to f2080",
+        "fe8.testing.MuStepSeDifferentialTest#the boss's step sounds match the capture f3805 to f3829"
+      ]
+    },
+    "PlaySeSpacial": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/SpacialSe.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuStepSeDifferentialTest#Soldier 1's step sounds match the capture f1615 to f1647",
+        "fe8.testing.MuStepSeDifferentialTest#Soldier 2's step sounds match the capture f2040 to f2080",
+        "fe8.testing.MuStepSeDifferentialTest#the boss's step sounds match the capture f3805 to f3829"
       ]
     },
     "PlayerPhase_ApplyUnitMovement": {
@@ -8228,6 +8440,19 @@
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
+    "RefreshEntityBmMaps": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmxFadeDifferentialTest#the decision loop's refresh leaves the maps of the capture f3805",
+        "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 1 dies as the capture f2018 to f2034",
+        "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 2 dies as the capture f2723 to f2739",
+        "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
+      ]
+    },
     "RefreshGmNodeLinks": {
       "decomp_file": "src/worldmap_path.c",
       "system": "worldmap",
@@ -8308,6 +8533,18 @@
       "tests": [
         "fe8.testing.BmMapScrollDifferentialTest#ch2 vertical scroll redraws lines into the wrapped BG3 buffer",
         "fe8.testing.BmMapScrollDifferentialTest#ch6 fog scrolls in x and y"
+      ]
+    },
+    "RenderBmMapOnBg2": {
+      "decomp_file": "src/bmmap.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmMapRender.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 1 dies as the capture f2018 to f2034",
+        "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 2 dies as the capture f2723 to f2739",
+        "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
       ]
     },
     "ResetFaces": {
@@ -8449,6 +8686,18 @@
       "status": "implemented",
       "tests": []
     },
+    "Screen2Pan": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/SpacialSe.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuStepSeDifferentialTest#Soldier 1's step sounds match the capture f1615 to f1647",
+        "fe8.testing.MuStepSeDifferentialTest#Soldier 2's step sounds match the capture f2040 to f2080",
+        "fe8.testing.MuStepSeDifferentialTest#the boss's step sounds match the capture f3805 to f3829"
+      ]
+    },
     "ScriptBattleDeamon": {
       "decomp_file": "src/eventscr.c",
       "system": "events",
@@ -8509,6 +8758,14 @@
       "tests": [
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
+    },
+    "SetBattleAnimFacing": {
+      "decomp_file": "src/mapanim_api.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "implemented",
+      "tests": []
     },
     "SetBattleUnitTerrainBonuses": {
       "decomp_file": "src/bmbattle.c",
@@ -8831,6 +9088,14 @@
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
+    "SetupBattleMOVEUNITs": {
+      "decomp_file": "src/mapanim_api.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "SetupGmapNodeGfx": {
       "decomp_file": "src/worldmap_main.c",
       "system": "worldmap",
@@ -8850,6 +9115,22 @@
       "tests": [
         "fe8.testing.WorldMapGfxSetupTest#graphic systems setup matches BG registers and camera"
       ]
+    },
+    "SetupMapAnimSpellData": {
+      "decomp_file": "src/mapanim_api.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "SetupMapBattleAnim": {
+      "decomp_file": "src/mapanim_api.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "implemented",
+      "tests": []
     },
     "SetupOpAnimWorldMapfx": {
       "decomp_file": "src/opanim-main.c",
@@ -9375,6 +9656,18 @@
       "tests": [
         "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
+    "StartPlayMuStepSe": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuStepSeDifferentialTest#Soldier 1's step sounds match the capture f1615 to f1647",
+        "fe8.testing.MuStepSeDifferentialTest#Soldier 2's step sounds match the capture f2040 to f2080",
+        "fe8.testing.MuStepSeDifferentialTest#the boss's step sounds match the capture f3805 to f3829"
       ]
     },
     "StartPlayerPhaseSideWindows": {
@@ -10883,6 +11176,30 @@
         "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
       ]
     },
+    "bmxfade_init": {
+      "decomp_file": "src/bmxfade.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmxFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 1 dies as the capture f2018 to f2034",
+        "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 2 dies as the capture f2723 to f2739",
+        "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
+      ]
+    },
+    "bmxfade_loop": {
+      "decomp_file": "src/bmxfade.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmxFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 1 dies as the capture f2018 to f2034",
+        "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 2 dies as the capture f2723 to f2739",
+        "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
+      ]
+    },
     "m4aMPlayImmInit": {
       "decomp_file": "src/m4a.c",
       "system": "audio",
@@ -10891,6 +11208,18 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aNoteTest#channels step like the per-frame RAM traces"
+      ]
+    },
+    "m4aMPlayPanpotControl": {
+      "decomp_file": "src/m4a.c",
+      "system": "audio",
+      "in_scope": true,
+      "kotlin_file": "gba/audio/src/commonMain/kotlin/gba/audio/M4aSequencer.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuStepSeDifferentialTest#Soldier 1's step sounds match the capture f1615 to f1647",
+        "fe8.testing.MuStepSeDifferentialTest#Soldier 2's step sounds match the capture f2040 to f2080",
+        "fe8.testing.MuStepSeDifferentialTest#the boss's step sounds match the capture f3805 to f3829"
       ]
     },
     "m4aMPlayStop": {

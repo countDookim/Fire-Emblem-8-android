@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 649 across 90 decomp files (missing reason: 0).
+Total entries: 648 across 90 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -49,7 +49,7 @@ Total entries: 649 across 90 decomp files (missing reason: 0).
 | `InitTalkTextWin` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no @VerifiesPort test names it |
 | `TalkOpen_InitBlend` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no |
 
-## src/bmunit.c (31)
+## src/bmunit.c (30)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
@@ -80,7 +80,6 @@ Total entries: 649 across 90 decomp files (missing reason: 0).
 | `ClearUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced loads fill slots that are already zero, so a skipped clear survives |
 | `FixROMUnitStructPtr` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no traced unit has `CA_BIT_23`, so a broken repoint survives |
 | `UnitCheckStatCaps` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `CountRedUnits` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | the one-enemy-left script runs it, but the capture's branch is the same for any count above 1 |
 | `UnitHasMagicRank` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no unit in the captures has a magic rank, and no captured decision or output depends on it |
 | `SetAllUnitNotBackSprite` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | it runs in the select window, but no unit has `US_BIT8` set there, so the clearing is unobserved |
 | `IsUnitSlotAvailable` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic slot fill; no trace comparison yet |

@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 225 across 49 Kotlin files.
+Total entries: 224 across 49 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -25,7 +25,6 @@ Total entries: 225 across 49 Kotlin files.
 | M6-J | 10 |
 | D09-3 | 2 |
 | EP-1 | 1 |
-| EP-10b | 1 |
 | EP-12 | 26 |
 | EP-13 | 1 |
 | EP-17 | 5 |
@@ -267,12 +266,6 @@ Total entries: 225 across 49 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `phaseStartEnd` | The target list is its own: the displays' `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w shares one list with the player phase when the real `Make*TargetList`... |
-
-## EP-10b (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | `trapDamageDisplay` | Stand-in until EP-10b: ends at once. |
 
 ## EP-12 (26)
 

@@ -126,13 +126,15 @@ public class CpPhase(
     )
 
     /**
-     * The AI attack search (cp_battle.c, `AiTryDoStaff` of cp_staff.c) and its hooks (EP-6b and
-     * EP-12 stand-ins); null (the script attacks nothing) when the constructor got no loader,
-     * map and entity maps.
+     * The AI attack search (cp_battle.c, `AiTryDoStaff` of cp_staff.c) and its hooks (EP-12
+     * stand-ins); null (the script attacks nothing) when the constructor got no loader, map
+     * and entity maps.
      */
     public val battle: CpBattle? =
         if (utility != null && loader != null && map != null && entityMaps != null) {
-            CpBattle(rom, units, aiState, active, map, entityMaps, loader, decide, utility)
+            CpBattle(
+                rom, units, aiState, active, map, entityMaps, loader, decide, utility, playSt,
+            )
         } else {
             null
         }

@@ -6,7 +6,6 @@ import fe8.game.bm.AiIntStep
 import fe8.game.bm.AiIntPairStep
 import fe8.game.bm.AiProcStep
 import fe8.game.bm.AiBattleSimulation
-import fe8.game.bm.AiScoreComponent
 import fe8.game.bm.AiStep
 import fe8.game.bm.AiTry
 import fe8.game.bm.BattleGenerate
@@ -224,16 +223,11 @@ class CpDecideDifferentialTest {
                 )
                 compareScoreInputs(actor, x, y, target, slot)
             }
-            // The EP-6b components (turn, damage taken, danger, own low HP)
-            // are fed. Values worked out by hand from the entry dump's battle units and
-            // danger map with the decomp formulas (Soldier 1: 1, 7, 2, 12; Soldier 2: 1, 10, 2,
-            // 20), so the total is -1 and -12: the score check verifies the damage dealt
-            // component (the backup the C returns for a total of 0), the clamp, the opponent's
-            // low HP term (leaving the clamp when raised), and not the four fed values.
-            b.hooks.turnScore = AiScoreComponent { 1 }
-            b.hooks.damageTakenScore = AiScoreComponent { if (active.unitId == 0x82) 7 else 10 }
-            b.hooks.dangerScore = AiScoreComponent { 2 }
-            b.hooks.lowHpScore = AiScoreComponent { if (active.unitId == 0x82) 12 else 20 }
+            // The EP-6b components (turn, damage taken, danger, own low HP, and the position
+            // components) run for real. Values at the entry dumps (Soldier 1: 1, 7, 2, 12;
+            // Soldier 2: 1, 10, 2, 20), so the combat score total is -1 and -12: the score check
+            // verifies the damage dealt component (the backup the C returns for a total of 0),
+            // the clamp, and the opponent's low HP term (leaving the clamp when raised).
             cp.script.hooks.unportedCommand = AiIntStep {
                 errors += "unwritten script command ${hex(it)} entered: not in the capture"
             }

@@ -30,17 +30,6 @@ public class AiCombatSimulationSt {
     }
 }
 
-/** A score component of the simulated battle (`int (*)(void)`), read from the battle units. */
-public fun interface AiScoreComponent {
-    /** The component's value. */
-    public fun run(): Int
-}
-
-/** The position score components of a tile ([x], [y]) against the unit [target]. */
-public fun interface AiPositionScore {
-    /** The sum of the three components for a unit standing on ([x], [y]) against [target]. */
-    public fun run(x: Int, y: Int, target: Int): Int
-}
 
 /** `BattleGenerateSimulation(actor, target, x, y, slot)` on unit ids. */
 public fun interface AiBattleSimulation {
@@ -72,11 +61,10 @@ public fun interface AiStaffStep {
  * battle and keep the best-scoring attack as the decision ([CpDecide.aiSetDecision]).
  *
  * Written: [aiAttemptOffensiveAction] and the functions the Prologue's attackers run. The score
- * of a simulated battle is written ([aiComputeCombatScore]) but for four components (turn, damage
- * taken, danger, own low HP) and the three tile position components, which are EP-6b stand-ins
- * ([Hooks.turnScore] to [Hooks.positionScore]). The movement and reach ([CpUtility], EP-7) run
- * for real. The branches the capture never enters (`AiAttemptCombatWithinMovement` and the
- * ballista, steal, magic seal and staff code) are EP-12 stand-ins. All stand-ins are [Hooks].
+ * of a simulated battle is written ([aiComputeCombatScore]) with its 8 combat score components
+ * and the 3 tile position components. The movement and reach ([CpUtility], EP-7) run for real.
+ * The branches the capture never enters (`AiAttemptCombatWithinMovement` and the ballista, steal,
+ * magic seal and staff code) are EP-12 stand-ins. All stand-ins are [Hooks].
  *
  * The score formulas contain literals that have no name in the decomp (the caps 40, 20 and 10,
  * the 50 for a kill, the factor 40, the divisor 8); they are kept as literals here too.
@@ -97,6 +85,8 @@ public class CpBattle(
     private val decide: CpDecide,
     /** `GenerateUnitMovementMap`, `AiReachesByBirdsEyeDistance`, `AiGetClassRank`. */
     private val util: CpUtility,
+    /** `gPlaySt` for chapter turn number. */
+    private val playSt: PlaySt,
 ) {
     /** Item ranges, attributes and the required weapon rank. */
     private val items = ItemInfo(rom)
@@ -109,39 +99,6 @@ public class CpBattle(
          */
         public var battleGenerateSimulation: AiBattleSimulation? = null
 
-        /**
-         * Stand-in for `AiGetTurnCombatScoreComponent` (EP-6b): `chapterTurnNumber` of `gPlaySt`
-         * times `coeffTurnNumber`. Null counts as 0.
-         */
-        public var turnScore: AiScoreComponent? = null
-
-        /**
-         * Stand-in for `AiGetDamageTakenScoreComponent` (EP-6b), subtracted from the score: -10
-         * when the target has no weapon, else the target's attack minus the actor's defense (not
-         * below 0) times its hit rate, divided by 100, times `coeffDamageTaken`, at most 40. Null
-         * counts as 0.
-         */
-        public var damageTakenScore: AiScoreComponent? = null
-
-        /**
-         * Stand-in for `AiGetDangerScoreComponent` (EP-6b), subtracted from the score: an eighth
-         * of the danger map value (`gBmMapOther`) at the actor's tile times `coeffDanger`, at
-         * most 20. Null counts as 0.
-         */
-        public var dangerScore: AiScoreComponent? = null
-
-        /**
-         * Stand-in for `AiGetLowHpScoreComponent` (EP-6b), subtracted from the score: 20 minus
-         * the actor's HP after the battle (not below 0) times `coeffLowHpSelf`. Null counts as 0.
-         */
-        public var lowHpScore: AiScoreComponent? = null
-
-        /**
-         * Stand-in for `AiGetInRangeCombatPositionScoreComponent`,
-         * `AiGetTerrainCombatPositionScoreComponent` and
-         * `AiGetFriendZoneCombatPositionScoreComponent` (EP-6b): their sum. Null counts as 0.
-         */
-        public var positionScore: AiPositionScore? = null
 
         /**
          * Stand-in for the `US_IN_BALLISTA` branch of `AiAttemptOffensiveAction`
@@ -368,7 +325,7 @@ public class CpBattle(
     /**
      * Transcribed from src/cp_battle.c: AiGetCombatPositionScore (not verified: the capture has
      * one candidate tile per target, so no captured value shows the score, only that it is not
-     * 0; the three components are a stand-in, EP-6b)
+     * 0; the three position components are transcribed)
      *
      * The u32 score (as its 32 bits) of standing on ([x], [y]) against [st]'s target: the
      * position components, minus the movement map value of the tile (signed, the movement cost),
@@ -376,7 +333,9 @@ public class CpBattle(
      * C); the callers compare the sum as unsigned and treat 0 as "no tile".
      */
     public fun aiGetCombatPositionScore(x: Int, y: Int, st: AiCombatSimulationSt): Int {
-        var score = hooks.positionScore?.run(x, y, st.targetId) ?: 0
+        var score = aiGetInRangeCombatPositionScoreComponent(x, y, st.targetId)
+        score += aiGetTerrainCombatPositionScoreComponent(x, y)
+        score += aiGetFriendZoneCombatPositionScoreComponent(x, y)
         score -= map.movement[y, x].toByte().toInt()
         score -= map.other[y, x] / 8
         score += 0x7FFFFFFF
@@ -423,9 +382,8 @@ public class CpBattle(
      * HP components, clamped to 0 and times 40; a total of 0 gives the damage dealt component
      * itself (so a fight that scores 0 overall still ranks by its damage).
      * Verified: the damage dealt value and the clamp to 0 (the total is below 0 in both captured
-     * calls: the turn, damage taken, danger and low HP components are EP-6b stand-ins), the
-     * opponent's low HP term (enough to leave the clamp when raised); not seen: a positive
-     * total, the other terms' signs.
+     * calls), the opponent's low HP term (enough to leave the clamp when raised); not seen: a
+     * positive total, the other terms' signs.
      */
     public fun aiComputeCombatScore(st: AiCombatSimulationSt) {
         coefficients = COEFF_TABLE + COEFF_STRIDE * aiState.combatWeightTableId
@@ -434,10 +392,10 @@ public class CpBattle(
         score += aiGetOpponentLowHpScoreComponent()
         score += aiGetFriendZoneCombatScoreComponent()
         score += aiGetTargetClassCombatScoreComponent()
-        score += hooks.turnScore?.run() ?: 0
-        score -= hooks.damageTakenScore?.run() ?: 0
-        score -= hooks.dangerScore?.run() ?: 0
-        score -= hooks.lowHpScore?.run() ?: 0
+        score += aiGetTurnCombatScoreComponent()
+        score -= aiGetDamageTakenScoreComponent()
+        score -= aiGetDangerScoreComponent()
+        score -= aiGetLowHpScoreComponent()
         if (score < 0) score = 0
         st.score = if (score != 0) score * 40 else backup
     }
@@ -530,6 +488,133 @@ public class CpBattle(
     }
 
     /**
+     * Transcribed from src/cp_battle.c: AiGetTurnCombatScoreComponent (not verified: turn
+     * component 1 only shifts negative score totals from -2 to -1 for Soldier 1 and -13 to
+     * -12 for Soldier 2, so omitting or negating it leaves the total below 0 and returns the
+     * backup score 6)
+     *
+     * `chapterTurnNumber` of `gPlaySt` times `coeffTurnNumber`.
+     */
+    public fun aiGetTurnCombatScoreComponent(): Int =
+        playSt.chapterTurnNumber * rom.u8(coefficients + COEFF_TURN_NUMBER)
+
+    /**
+     * Transcribed from src/cp_battle.c: AiGetDamageTakenScoreComponent (not verified: realistic
+     * off-by-one mutations leave the score total <= 0, returning backup score 6; unarmed target
+     * path -10 is not seen in the capture)
+     *
+     * -10 when the target has no weapon; else the target's attack minus the actor's defense (not
+     * below 0) times the target's effective hit rate, divided by 100, times `coeffDamageTaken`,
+     * at most 40.
+     */
+    public fun aiGetDamageTakenScoreComponent(): Int {
+        val b = battleUnits ?: return 0
+        if (b.target.weapon == 0) return -10
+        var score = (b.target.battleAttack - b.actor.battleDefense) *
+            b.target.battleEffectiveHitRate
+        if (score < 0) score = 0
+        score /= 100
+        score = rom.u8(coefficients + COEFF_DAMAGE_TAKEN) * score
+        if (score > 40) score = 40
+        return score
+    }
+
+    /**
+     * Transcribed from src/cp_battle.c: AiGetDangerScoreComponent (not verified: danger component 2
+     * only shifts the score total to -1 / -12, so off-by-one mutations leave the total <= 0 and
+     * return backup score 6; cap 20 is not reached)
+     *
+     * An eighth of the danger map value (`gBmMapOther`) at the actor's tile times `coeffDanger`,
+     * at most 20.
+     */
+    public fun aiGetDangerScoreComponent(): Int {
+        val b = battleUnits ?: return 0
+        val ax = b.actor.bytes[OFF_X_POS].toInt() and 0xFF
+        val ay = b.actor.bytes[OFF_Y_POS].toInt() and 0xFF
+        var score = (map.other[ay, ax] / 8) * rom.u8(coefficients + COEFF_DANGER)
+        if (score > 20) score = 20
+        return score
+    }
+
+    /**
+     * Transcribed from src/cp_battle.c: AiGetLowHpScoreComponent (not verified: low HP component
+     * (12 for Soldier 1, 20 for Soldier 2) only shifts the score total to -1 / -12, so off-by-one
+     * mutations leave the total <= 0 and return backup score 6; actor HP > 20 is not seen)
+     *
+     * `coeffLowHpSelf` times (20 minus the actor's HP after the battle), not below 0.
+     */
+    public fun aiGetLowHpScoreComponent(): Int {
+        val b = battleUnits ?: return 0
+        var score = 20 - b.actor.bytes[OFF_CUR_HP]
+        score = rom.u8(coefficients + COEFF_LOW_HP_SELF) * score
+        if (score < 0) score = 0
+        return score
+    }
+
+    /**
+     * Transcribed from src/cp_battle.c: AiGetInRangeCombatPositionScoreComponent (not verified:
+     * target weapon range 1 covers candidate distance 1 so the component returns 0, and only one
+     * candidate tile (5, 5) reaches the target)
+     *
+     * 50 if the target unit [target] has an equipped weapon and standing on ([x], [y]) is outside
+     * its attack range; else 0.
+     */
+    public fun aiGetInRangeCombatPositionScoreComponent(x: Int, y: Int, target: Int): Int {
+        val dist = abs(units.xPos(target) - x) + abs(units.yPos(target) - y)
+        val item = loader.getUnitEquippedWeapon(units.unitOffset(target)) and 0xFFFF
+        if (item == 0) return 0
+        if (dist > items.getItemMaxRange(item) || dist < items.getItemMinRange(item)) {
+            return 50
+        }
+        return 0
+    }
+
+    /**
+     * Transcribed from src/cp_battle.c: AiGetTerrainCombatPositionScoreComponent (not verified:
+     * only one candidate tile (5, 5) reaches the target, so terrain score differences between
+     * tiles are never tested against captured output)
+     *
+     * The sum of terrain avoid, defense and resistance lookup values for the active unit's class
+     * on tile ([x], [y]).
+     */
+    public fun aiGetTerrainCombatPositionScoreComponent(x: Int, y: Int): Int {
+        val terrainId = map.terrain[y, x]
+        val classPtr = StructCodec.u32(
+            units.bytes, units.unitOffset(active.unit) + UnitTable.OFF_CLASS,
+        )
+        return rom.s8(rom.u32(classPtr + 0x44) + terrainId) +
+            rom.s8(rom.u32(classPtr + 0x48) + terrainId) +
+            rom.s8(rom.u32(classPtr + 0x4C) + terrainId)
+    }
+
+    /**
+     * Transcribed from src/cp_battle.c: AiGetFriendZoneCombatPositionScoreComponent (not verified:
+     * only one candidate tile (5, 5) reaches the target, so friend zone position score differences
+     * between tiles are never tested against captured output)
+     *
+     * Adds 5 for each allied unit and subtracts 5 for each enemy unit within a diamond of radius
+     * 3 (offsets in [RANGE3_OFFSET_X] and [RANGE3_OFFSET_Y]) around ([x], [y]).
+     */
+    public fun aiGetFriendZoneCombatPositionScoreComponent(x: Int, y: Int): Int {
+        var score = 0
+        for (i in RANGE3_OFFSET_X.indices) {
+            val nx = x + RANGE3_OFFSET_X[i]
+            val ny = y + RANGE3_OFFSET_Y[i]
+            if (nx in 0 until map.sizeX && ny in 0 until map.sizeY) {
+                val uid = map.unit[ny, nx]
+                if (uid != 0) {
+                    if (BmPhase.areUnitsAllied(active.unit, uid)) {
+                        score += 5
+                    } else {
+                        score -= 5
+                    }
+                }
+            }
+        }
+        return score
+    }
+
+    /**
      * Ported from src/cp_staff.c: AiTryDoStaff
      *
      * A silenced unit (`UNIT_STATUS_SILENCED`) does nothing; else each staff in its inventory
@@ -577,6 +662,18 @@ public class CpBattle(
 
         /** `coeffClassRankBonus`. */
         const val COEFF_CLASS_RANK_BONUS = 3
+
+        /** `coeffTurnNumber`. */
+        const val COEFF_TURN_NUMBER = 4
+
+        /** `coeffDamageTaken`. */
+        const val COEFF_DAMAGE_TAKEN = 5
+
+        /** `coeffDanger`. */
+        const val COEFF_DANGER = 6
+
+        /** `coeffLowHpSelf`. */
+        const val COEFF_LOW_HP_SELF = 7
 
         /** `classRankBonuses`, indexed by the class rank. */
         const val COEFF_CLASS_BONUSES = 8
@@ -626,5 +723,29 @@ public class CpBattle(
         const val US_RESCUED = 1 shl 5
         const val US_IN_BALLISTA = 1 shl 11
         const val US_BIT16 = 1 shl 16
+
+        /** `sRange3OffsetLut_` (cp_battle.c): x offsets of a radius-3 diamond without (0, 0). */
+        val RANGE3_OFFSET_X = intArrayOf(
+            0,
+            -1, 0, 1,
+            -2, -1, 0, 1, 2,
+            -3, -2, -1, 1, 2, 3,
+            -2, -1, 0, 1, 2,
+            -1, 0, 1,
+            0,
+        )
+
+        /** `sRange3OffsetLut_` (cp_battle.c): y offsets paired with [RANGE3_OFFSET_X]. */
+        val RANGE3_OFFSET_Y = intArrayOf(
+            -3,
+            -2, -2, -2,
+            -1, -1, -1, -1, -1,
+            0, 0, 0, 0, 0, 0,
+            1, 1, 1, 1, 1,
+            2, 2, 2,
+            3,
+        )
     }
 }
+
+private fun RomView.s8(at: Int): Int = u8(at).toByte().toInt()

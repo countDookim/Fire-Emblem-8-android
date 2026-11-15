@@ -371,7 +371,7 @@ public class UnitTable(
         private const val OFF_CHARACTER = 0x00
 
         /** `pClassData` in `struct Unit`. */
-        private const val OFF_CLASS = 0x04
+        public const val OFF_CLASS: Int = 0x04
 
         /** `attributes` (u32) in both `struct CharacterData` and `struct ClassData`. */
         private const val OFF_ATTRIBUTES = 0x28

@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 237 across 47 Kotlin files.
+Total entries: 235 across 47 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -30,8 +30,6 @@ Total entries: 237 across 47 Kotlin files.
 | EP-1b | 4 |
 | EP-6b | 11 |
 | EP-7d | 1 |
-| EP-9 | 1 |
-| EP-9b | 1 |
 | EP-9c | 1 |
 | IS-2 | 1 |
 | MC-17 | 1 |
@@ -347,18 +345,6 @@ Total entries: 237 across 47 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `healBranch` | Stand-in for the healing branch of `DecideHealOrEscape`: `AiTryHealSelf`, `AiTryMoveTowardsEscape`, `AiTryDanceOrStealAfterMove`, `AiTryGetNearestHealPoint`, `AiTryMoveTowards` (EP-7d), `AiTryActio... |
-
-## EP-9 (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `CpPerform` | The action half (EP-9: a combat or no action) is ported too; `CpPerform_EquipBest` (EP-9b) is a stand-in hook. |
-
-## EP-9b (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `equipBest` | Stand-in for `CpPerform_EquipBest` (EP-9b). |
 
 ## EP-9c (1)
 

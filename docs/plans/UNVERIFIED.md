@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 567 across 83 decomp files (missing reason: 0).
+Total entries: 571 across 84 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -742,6 +742,14 @@ Total entries: 567 across 83 decomp files (missing reason: 0).
 | `CountUnitsInState` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | only reached by the victory-song check; the enemy-phase windows call it, but the result only shows as the song id, which no capture records |
 | `GetPhaseAbleUnitCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no trace has a unit that the asleep/berserk/unselectable/NOT_ABLE exclusions would skip; the enemy-phase windows only show that the count is 0 exactly when the phase has no banner |
 
+## src/cp_0803E2F4.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `sub_803EC18` | `game/src/commonMain/kotlin/fe8/game/bm/CpEquip.kt` | no staff in the capture |
+| `AiEquipBestConsideringDanger` | `game/src/commonMain/kotlin/fe8/game/bm/CpEquip.kt` | with the danger 0 it does nothing, and the boss has one item, so no equip happens |
+| `AiEquipBestMatch` | `game/src/commonMain/kotlin/fe8/game/bm/CpEquip.kt` | never reached, see [aiEquipBestConsideringDanger] |
+
 ## src/cp_order.c (3)
 
 | Function | Kotlin file | Reason |
@@ -749,6 +757,14 @@ Total entries: 567 across 83 decomp files (missing reason: 0).
 | `GetUnitBattleAiPriority` | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | the three Prologue enemies all come out 20 and no mutation of it changes the captured order |
 | `GetUnitAiPriority` | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | the three Prologue enemies all come out 25, so no mutation changes the captured order |
 | `SortAiUnitList` | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | the priorities are equal, so only the stability is seen, not the direction |
+
+## src/cp_perform.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `CpPerform_EquipBest` | `game/src/commonMain/kotlin/fe8/game/bm/CpEquip.kt` | the calls are seen (the danger query's maps change at f3832), but swapping the x and y it passes to [aiEquipGetDanger] keeps the test green, and the equip itself is not seen: the boss has one item |
+| `CpPerform_UpdateMapMusic` | `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | the music restart shows in no captured value, the sound registers are not watched |
+| `CpPerform_MoveCameraOntoUnit` | `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | the camera call shows in no captured value; the Prologue map fits the screen, so `gBmSt.camera` is (0, 0) in every window and a camera move onto another tile survives the tests |
 
 ## src/cpextra_80407F0.c (3)
 
@@ -794,13 +810,6 @@ Total entries: 567 across 83 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `ReadWorldMapStuff` | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | partial, the world map state is not ported, so the raw `struct GMapSaveInfo` is kept |
 | `ClearWorldMapStuff` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | NewGameSaveReferenceTest covers its write but no break-check has been run on it yet |
-
-## src/cp_perform.c (2)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `CpPerform_UpdateMapMusic` | `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | the music restart shows in no captured value, the sound registers are not watched |
-| `CpPerform_MoveCameraOntoUnit` | `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | the camera call shows in no captured value; the Prologue map fits the screen, so `gBmSt.camera` is (0, 0) in every window and a camera move onto another tile survives the tests |
 
 ## src/eventscr3.c (2)
 

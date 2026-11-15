@@ -48,8 +48,8 @@ public class AiTargetCursorState {
  * The AI perform proc of src/cp_perform.c, movement half: `gProcScr_CpPerform` (ROM 0x085A8024)
  * with the camera onto the unit, the unit's walk (an MU along the best path to the decided tile),
  * the camera onto the target and the target cursor `gProcScr_AiTargetCursor` (0x085A8004). The
- * action half (EP-9: a combat or no action) is ported too; `CpPerform_EquipBest` (EP-9b) is a
- * stand-in hook. [start] is the value of [CpDecide.Hooks.startCpPerform].
+ * action half (EP-9: a combat or no action) and `CpPerform_EquipBest` (EP-9b, [CpEquip]) are
+ * ported too. [start] is the value of [CpDecide.Hooks.startCpPerform].
  *
  * The unit walk reuses the player phase's ported code ([PlayerPhase.unitBeginAction],
  * [PlayerPhase.unitApplyWorkingMovementScript], [PlayerPhase.handlePostActionTraps],
@@ -82,6 +82,8 @@ public class CpPerform(
     private val rng: RngService,
     /** `gWorkingMovementScript`. */
     private val workingMovementScript: IntArray,
+    /** `CpPerform_EquipBest` and its helpers. */
+    private val equip: CpEquip,
 ) {
     /** Services outside this file; a null hook does nothing. */
     public class Hooks {
@@ -129,9 +131,6 @@ public class CpPerform(
 
         /** `RefreshUnitSprites` (display; EP-w). */
         public var refreshUnitSprites: AiStep? = null
-
-        /** Stand-in for `CpPerform_EquipBest` (EP-9b). */
-        public var equipBest: AiProcStep? = null
     }
 
     /** Services outside this file. */
@@ -144,7 +143,7 @@ public class CpPerform(
     private val performActionFn = ProcFunc { cpPerformPerformAction(it) }
     private val waitActionFn = ProcFunc { cpPerformWaitAction(it) }
     private val cleanupFn = ProcFunc { cpPerformCleanup(it) }
-    private val equipBestFn = ProcFunc { hooks.equipBest?.run(it) }
+    private val equipBestFn = ProcFunc { equip.cpPerformEquipBest() }
     private val targetCursorFn = ProcFunc { aiTargetCursorMain(it) }
     private val muActiveFn = ProcBoolFunc { mu.muExistsActive() }
     private val postActionTrapsFn = ProcBoolFunc { phase.handlePostActionTraps(it) }
@@ -394,9 +393,10 @@ public class CpPerform(
      *
      * Updates the healing flags, refreshes the map ([aiRefreshMap]) and, for a unit that has no
      * character any more (killed in the action), is hidden, dead or `US_BIT16`, skips
-     * `CpPerform_EquipBest` (label 1). Verified: the map refresh. Not seen: the skip itself (the
-     * proc ends at the same frame either way until `CpPerform_EquipBest` is written, EP-9b) and
-     * the healing update (no healer in the Prologue's enemy phases).
+     * `CpPerform_EquipBest` (label 1). Verified: the map refresh and both sides of the skip (the
+     * live boss runs the equip, whose danger query rewrites `gBmMapOther`; the Soldiers killed
+     * in their attack skip it). Not seen: the healing update (no healer in the Prologue's enemy
+     * phases).
      */
     public fun cpPerformCleanup(proc: Proc) {
         hooks.updateAllPhaseHealingAIStatus?.run()

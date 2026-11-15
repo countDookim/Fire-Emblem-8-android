@@ -20,6 +20,8 @@ import fe8.game.bm.BmSt
 import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.CpDecide
+import fe8.game.bm.CpEquip
+import fe8.game.bm.CpUtility
 import fe8.game.bm.CpPerform
 import fe8.game.bm.AiState
 import fe8.game.bm.ActiveUnit
@@ -118,11 +120,13 @@ internal class CpPerformSim(
             movementMap = moves,
         )
         decide = CpDecide(engine, units, aiState, active, null, entityMaps)
+        battle = BmBattle(rom, units, loader, playSt, bm) { y, x -> map.terrain[y, x] }
+        val util = CpUtility(rom, units, playSt, aiState, loader, map, entityMaps)
         perform = CpPerform(
             engine, bm, playSt, units, ItemInfo(rom), entityMaps, active, decide.decision, map,
             moves, camMove, mu, phase, keys, rng, workingScript,
+            CpEquip(rom, units, active, decide.decision, map, loader, battle, util),
         )
-        battle = BmBattle(rom, units, loader, playSt, bm) { y, x -> map.terrain[y, x] }
         gen = BattleGenerate(battle, rom, loader, playSt, rng, Mechanics()).also {
             it.bmMap = map
             it.unitTable = units

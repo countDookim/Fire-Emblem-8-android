@@ -170,6 +170,7 @@ class CpPerformActionDifferentialTest {
     @VerifiesPort(
         "CpPerform_PerformAction", "CpPerform_WaitAction", "AiDummyAction", "CpPerform_Cleanup",
         "AiRefreshMap",
+        "AiCanEquip", "AiEquipGetFlags", "AiEquipGetDanger", "AiIsWithinFlyingDistance",
     )
     fun `the boss moves without an action as the capture f3831 to f3832`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
@@ -182,14 +183,59 @@ class CpPerformActionDifferentialTest {
                 assertEquals(dump.find(PROC_SCR_CP_PERFORM)!!.scrCur,
                     s.engine.find(s.perform.script)!!.scrCur, "gProcScr_CpPerform position f3831")
                 actionData(s, f, "f$f")
+                units(s, f, "f$f", withItems = true, only = 0)
+                comparePool(s, "r03831", GBM_MAP_MOVEMENT, s.map.movement, "gBmMapMovement f3831")
+                // The decision's danger map (EP-3b, not built here) is the capture's; the
+                // equip's danger query clears and rebuilds it.
+                copyPool(s, "r03831", GBM_MAP_OTHER, s.map.other)
             }
         }
         s.frame()
         assertNull(s.engine.find(s.perform.script), "the perform proc ends at f3832")
         actionData(s, 3832, "f3832")
         cursor(s, 3832, "f3832")
-        // The boss's inventory is `CpPerform_EquipBest` (EP-9b), run at f3832.
-        units(s, 3832, "f3832", withItems = false, only = 0)
+        // `CpPerform_EquipBest` (EP-9b) runs at f3832: the inventory and the equipped weapon (slot
+        // 0) are the capture's, the danger query clears `gBmMapOther` (no player unit reaches the
+        // boss's tile) and leaves the flood of the last player unit in range in `gBmMapMovement`.
+        units(s, 3832, "f3832", withItems = true, only = 0)
+        comparePool(s, "r03832", GBM_MAP_MOVEMENT, s.map.movement, "gBmMapMovement f3832")
+        comparePool(s, "r03832", GBM_MAP_OTHER, s.map.other, "gBmMapOther f3832")
+        s.frame()
+        units(s, 3833, "f3833", withItems = true, only = 0)
+    }
+
+    /** One `gBmMap*` pool of the EWRAM or IWRAM dump [name] (15 x 10) as rows. */
+    private fun dumpPool(s: CpPerformSim, name: String, pointer: Int): Array<IntArray> {
+        val ewram = s.data.region(name, "ewram")
+        val iwram = s.data.region(name, "iwram")
+        fun byte(a: Int) = (if (a >= 0x03000000) iwram[a - 0x03000000] else ewram[a - 0x02000000])
+            .toInt() and 0xFF
+        fun word(a: Int) = (0..3).sumOf { byte(a + it) shl (8 * it) }
+        val rows = word(pointer)
+        return Array(s.map.sizeY) { y ->
+            val row = word(rows + 4 * y)
+            IntArray(s.map.sizeX) { x -> byte(row + x) }
+        }
+    }
+
+    private fun copyPool(s: CpPerformSim, name: String, pointer: Int, pool: fe8.game.bm.BmMap.Pool) {
+        val rows = dumpPool(s, name, pointer)
+        for (y in rows.indices) for (x in rows[y].indices) pool[y, x] = rows[y][x]
+    }
+
+    private fun comparePool(
+        s: CpPerformSim,
+        name: String,
+        pointer: Int,
+        pool: fe8.game.bm.BmMap.Pool,
+        what: String,
+    ) {
+        val rows = dumpPool(s, name, pointer)
+        for (y in rows.indices) {
+            for (x in rows[y].indices) {
+                assertEquals(rows[y][x], pool[y, x] and 0xFF, "$what ($x, $y)")
+            }
+        }
     }
 
     private companion object {
@@ -198,5 +244,7 @@ class CpPerformActionDifferentialTest {
         val AI_PC = 0x42..0x45
         const val UNIT_SIZE = 0x48
         const val RED_OFFSET = 62 * 0x48
+        const val GBM_MAP_MOVEMENT = 0x0202E4E0
+        const val GBM_MAP_OTHER = 0x0202E4F0
     }
 }

@@ -21,6 +21,7 @@ import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterIntro
 import fe8.game.bm.ChapterMapGfx
+import fe8.game.bm.CpEquip
 import fe8.game.bm.CpPerform
 import fe8.game.bm.CpPhase
 import fe8.game.bm.MapAnimations
@@ -1102,6 +1103,8 @@ public class Fe8Boot(
             cp.decide.decision, battleBmMap,
             MovementMap(rom, battleBmMap, units, playSt), camMove, mu, phase, keys, rng,
             phase.workingMovementScript,
+            CpEquip(rom, units, active, cp.decide.decision, battleBmMap, loader, battle,
+                checkNotNull(cp.utility)),
         )
         perform.hooks.musicProc3Exists = AiTry {
             engine.find(control.sound.delayedSongScript) != null

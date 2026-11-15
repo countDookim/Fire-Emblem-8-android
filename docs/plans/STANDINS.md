@@ -10,14 +10,14 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 226 across 47 Kotlin files.
+Total entries: 222 across 47 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 12 |
 | M6-C | 7 |
 | M6-D | 13 |
-| M6-E | 49 |
+| M6-E | 47 |
 | M6-F | 15 |
 | M6-G | 6 |
 | M6-H | 34 |
@@ -25,7 +25,6 @@ Total entries: 226 across 47 Kotlin files.
 | M6-J | 10 |
 | D09-3 | 2 |
 | EP-1 | 1 |
-| EP-11d | 2 |
 | EP-12 | 26 |
 | EP-13 | 1 |
 | EP-17 | 5 |
@@ -87,7 +86,7 @@ Total entries: 226 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayActiveUnitEffectRange` | Stand-in until M6-D for `DisplayActiveUnitEffectRange` (label 11: the range of a unit the player does not control, `PLAYER_SELECT_NOCONTROL`). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayDangerZone` | Stand-in until M6-D for `PlayerPhase_DisplayDangerZone` (label 12: the danger zone, `GenerateDangerZoneRange`, reached when the resume finds no active unit). |
 
-## M6-E (49)
+## M6-E (47)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -132,10 +131,8 @@ Total entries: 226 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `event21TextBg` | The background fade procs are host stand-ins (M6-E). |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextBg.kt` | `startBackgroundFade` | Stand-in until M6-E for `Proc_StartBlocking(gUnknown_08591E00/E58/EB0, proc)` with the fields set as `Event21_TextBg` does (`sub_800EA84` ... |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `boxDialogueExists` | Stand-in (M6-E): the box dialogue is not ported, so none exists. |
-| `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `cgTextExists` | Stand-in (M6-E): CG text is not ported, so none exists. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `changeUnitSpritePalette` | Stand-in (M6-E): `ChangeUnitSpritePalette` (a palette load, no state) is not ported. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `endBoxDialogue` | Stand-in until M6-E: the box dialogue is not ported, so none can exist, nothing to end. |
-| `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `endCgText` | Stand-in until M6-E: CG text is not ported, so none can exist and none is ended. |
 | `game/src/commonMain/kotlin/fe8/game/event/ReleaseEventStubs.kt` | `ReleaseEventStubs` | Stand-in until M6-E: not ports; no-op event commands that let a script run past commands whose handlers are not ported yet (text, fades, unit loads, ASMC and so on), as the skip mode of the beginni... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/PostSaveMenu.kt` | `standInSelection` | Stand-in until M6-E for the player's choice on the save menu: picks the first usable entry in this order (not checked against the interactive menu code): 1. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `TalkScene` | Stand-ins until M6-E (no behaviour is invented; each is a no-op or the smallest working substitute): - talk choices (`StartTalkChoice`), `[G]` numbers (`NumberToStringAscii`) and the tactician name... |
@@ -270,13 +267,6 @@ Total entries: 226 across 47 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `phaseStartEnd` | The target list is its own: the displays' `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w shares one list with the player phase when the real `Make*TargetList`... |
-
-## EP-11d (2)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetText` | `ResetText`: stand-in until EP-11d (not ported in `TextSystem`). |
-| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetTextFont` | `ResetTextFont`: stand-in until EP-11d (text system, fontgrp.c; not ported yet). |
 
 ## EP-12 (26)
 

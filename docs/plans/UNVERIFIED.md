@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 623 across 88 decomp files (missing reason: 0).
+Total entries: 625 across 89 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -874,6 +874,13 @@ Total entries: 623 across 88 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `ReadWorldMapStuff` | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | partial, the world map state is not ported, so the raw `struct GMapSaveInfo` is kept |
 | `ClearWorldMapStuff` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | NewGameSaveReferenceTest covers its write but no break-check has been run on it yet |
+
+## src/cgtext.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `EndCgText` | `game/src/commonMain/kotlin/fe8/game/scene/CgText.kt` | in the captured text ends no CG text proc is active, so the find returns null |
+| `CgTextExists` | `game/src/commonMain/kotlin/fe8/game/scene/CgText.kt` | only the event wait calls it while no CG text is running |
 
 ## src/cp_script.c (2)
 

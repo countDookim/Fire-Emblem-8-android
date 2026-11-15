@@ -8,9 +8,13 @@ import gbafe.text.Text
 import gbafe.text.TextSystem
 
 /**
- * The item row of the item menus (`DrawItemMenuLine`, src/bmitem.c): icon, name and uses.
- * The icon bookkeeping tables are `DrawnIconLookupTable` and `IconGFXIDLookupTable`
- * ([ItemIcon]).
+ * The item row of the item menus (`DrawItemMenuLine`, src/bmitem.c): icon, name and uses, as in
+ * the weapon list of the unit action menu ([UnitActionMenu.weaponSelectMenuDraw]). The sibling
+ * rows `DrawItemMenuLineLong` (uses / max uses) and `DrawItemMenuLineNoColor` are not ported.
+ *
+ * [drawnIconLookupTable] and [iconGfxIdLookupTable] are the RAM tables the icon drawing keeps
+ * (`DrawnIconLookupTable`, `IconGFXIDLookupTable`, see [ItemIcon]); [hardware] and [rom] receive
+ * the icon tiles it loads.
  */
 public class ItemMenuLine(
     private val text: TextSystem,
@@ -24,9 +28,11 @@ public class ItemMenuLine(
     /**
      * Ported from src/bmitem.c: DrawItemMenuLine
      *
-     * Draws the name of [item] into [row] (white, grey when it is not [isUsable]) and puts it at
-     * [at] + 2 of [tm], the uses at [at] + 11 (blue, grey) and the icon at [at]. The grey rows
-     * are (not verified: the captured weapon list has only usable rows).
+     * Draws the name of [item] into [row] (`TEXT_COLOR_SYSTEM_WHITE`, or `TEXT_COLOR_SYSTEM_GRAY`
+     * when it is not [isUsable]) and puts it at tile [at] + 2 of the tilemap [tm], the uses
+     * (`TEXT_COLOR_SYSTEM_BLUE`, or gray; two dashes for an item with unlimited uses) ending at
+     * [at] + 11, and the 2x2 icon at [at]. The gray rows are (not verified: the captured weapon
+     * list has only usable rows).
      */
     public fun drawItemMenuLine(row: Text, item: Int, isUsable: Boolean, tm: ShortArray, at: Int) {
         text.setParams(row, 0, if (isUsable) COLOR_WHITE else COLOR_GRAY)
@@ -45,9 +51,16 @@ public class ItemMenuLine(
     }
 
     private companion object {
+        /** `TEXT_COLOR_SYSTEM_WHITE` (`TEXT_COLOR_0123`). */
         const val COLOR_WHITE = 0
+
+        /** `TEXT_COLOR_SYSTEM_GRAY` (`TEXT_COLOR_0456`). */
         const val COLOR_GRAY = 1
+
+        /** `TEXT_COLOR_SYSTEM_BLUE` (`TEXT_COLOR_0789`). */
         const val COLOR_BLUE = 2
+
+        /** The `DrawIcon` palette argument of the decomp: bank 4 (`BGPAL_ICONS`) in bits 12-15. */
         const val ICON_PALETTE_BASE = 0x4000
     }
 }

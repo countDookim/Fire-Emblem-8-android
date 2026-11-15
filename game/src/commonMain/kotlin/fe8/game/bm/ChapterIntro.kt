@@ -67,8 +67,9 @@ public class ChapterIntro(
         public val bMapDispResume: () -> Unit,
     ) {
         /**
-         * `Sound_FadeOutSE(speed)`. Stand-in: the sound effect players are not in `SoundWrapper`
-         * yet, so this does nothing unless `Fe8Boot` sets it (D11-wire-a left it a no-op).
+         * `Sound_FadeOutSE(speed)`. Stand-in until M6-H (sound effects as chapters first need
+         * them): the sound effect players are not in `SoundWrapper` yet, so this does nothing
+         * unless `Fe8Boot` sets it (D11-wire-a left it a no-op).
          */
         public var fadeOutSe: (Int) -> Unit = {}
 
@@ -587,6 +588,9 @@ public class ChapterIntro(
 
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_SetTimer
+     *
+     * Script argument command: the script passes 160, the frames [tickTimerMaybe] then waits
+     * with the title on screen.
      */
     private fun setTimer(timer: Int, proc: Proc) {
         (proc.state as State).timer = timer.toShort().toInt()
@@ -595,8 +599,9 @@ public class ChapterIntro(
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_TickTimerMaybe
      *
-     * Counts the timer down and breaks when it was already negative, or at once when the intro
-     * is being skipped (not verified: the `isSkipping` branch is not run by the capture).
+     * Holds the title on screen: counts the timer (set to 160 by [setTimer]) down one per frame
+     * and breaks when it was already negative, or at once when the player pressed a key
+     * (`isSkipping`; not verified: that branch is not run by the capture).
      */
     private fun tickTimerMaybe(proc: Proc) {
         val state = proc.state as State
@@ -624,10 +629,10 @@ public class ChapterIntro(
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_DrawChapterTitle
      *
-     * Fills BG0 with tile 0x280 (palette 1), loads the title palette into bank 5 and the title
-     * image of the current chapter to tile 0x280, and lays its 64 tiles out at tile (3, 9) of BG0.
-     * The text is drawn from the ROM at run time. The `ChapterTitle` functions it calls are
-     * `sub_80895B4`, `GetChapterTitleWM`, `_PutChapterTitleGfx` and `sub_80896FC`.
+     * Fills BG0 with tile 0x280 (palette 1), loads the title palette into BG palette bank 5 and
+     * the title image of the current chapter (`GetChapterTitleWM`) to tile 0x280, and lays its 64
+     * tile references (palette 5) out at tile (3, 9) of BG0. The `ChapterTitle` functions it
+     * calls are `sub_80895B4`, `GetChapterTitleWM`, `_PutChapterTitleGfx` and `sub_80896FC`.
      */
     private fun drawChapterTitle() {
         val bg0 = hardware.mapBuffer(0)
@@ -642,7 +647,9 @@ public class ChapterIntro(
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_SetBG_802009C
      *
-     * Back to mode 0 with BG2's tile data at 0x8000 and BG priorities 0, 2, 1, 3 and BG2 size 0.
+     * Back to BG mode 0 (BG2 is a regular tiled background again, no longer the affine lens
+     * flare) with BG2's tile data at 0x8000, BG2 size 0 and the BG priorities 0, 2, 1, 3 (lower
+     * is in front), which puts BG2 (the fog) between BG0 (the title) and BG1.
      */
     private fun setBg802009C() {
         val lcd = hardware.lcd
@@ -654,6 +661,9 @@ public class ChapterIntro(
 
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_KeyListen_Init
+     *
+     * Clears the skip label of the listener and of the intro proc (the script sets the intro's
+     * to 1 right after starting the listener).
      */
     private fun keyListenInit(proc: Proc) {
         val state = proc.state as State
@@ -663,6 +673,11 @@ public class ChapterIntro(
 
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_KeyListen_Loop
+     *
+     * The skip logic of the intro: a first A, B or Start press sets the intro's `isSkipping` (the
+     * fades speed up); a second press arms the listener's `skipTarget`. Once armed and the intro's
+     * `skipTarget` is nonzero (label 1 from the twin lights until the title timer ends, see
+     * [setSkipTarget]), the intro jumps to that label (the fade-out path) and the listener ends.
      */
     private fun keyListenLoop(proc: Proc) {
         val state = proc.state as State
@@ -685,6 +700,8 @@ public class ChapterIntro(
 
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_Bg1And3Scroll_Init
+     *
+     * Restarts the scroll counter.
      */
     private fun bg1And3ScrollInit(state: State) {
         state.timer = 0
@@ -692,6 +709,9 @@ public class ChapterIntro(
 
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_Bg1And3Scroll_Loop
+     *
+     * Scrolls BG1 (through the buffer) and BG3 (`REG_BG3HOFS` written directly into [io]) right
+     * by one pixel every two frames.
      */
     private fun bg1And3ScrollLoop(state: State) {
         state.timer = (state.timer + 1).toShort().toInt()
@@ -703,6 +723,9 @@ public class ChapterIntro(
 
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_SetSkipTarget
+     *
+     * Script argument command: sets the label [keyListenLoop] jumps to (1 = the skip path,
+     * 0 = skipping no longer jumps).
      */
     private fun setSkipTarget(targetLabel: Int, proc: Proc) {
         (proc.state as State).skipTarget = targetLabel.toShort().toInt()
@@ -711,7 +734,14 @@ public class ChapterIntro(
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_Init
      *
-     * `Decompress` and `ApplyPalettes` read the ROM image and palette data directly.
+     * Sets up the intro screen: BG mode 1 (BG2 affine), only the objects on, all three BGs
+     * cleared and unscrolled, window 0 and the outside both showing every layer with blending
+     * (window 0 is still empty), no blend, palettes 0 and 1 fading in from white
+     * ([sub80017B4]), then the lens flare image to BG tile 0x400, its 3 palette banks to BG
+     * palette 0, its tilemap to BG2 (tile base 0, 5 bits of row stride), the intro sprites to
+     * OBJ tile 0x200 and OBJ palette 2 (palette index 18), and the scrolling common game
+     * background ([loadCommonGameBg] with palette 14). `Decompress` and `ApplyPalettes` read the
+     * ROM image and palette data directly.
      */
     private fun init(proc: Proc) {
         val lcd = hardware.lcd
@@ -749,12 +779,17 @@ public class ChapterIntro(
         (proc.state as State).isSkipping = 0
     }
 
+    /** Sets the `priority` field of BG0CNT-BG3CNT (0 is in front). */
     private fun setPriorities(bg0: Int, bg1: Int, bg2: Int, bg3: Int) {
         val bgCnt = hardware.lcd.bgCnt
         val priorities = intArrayOf(bg0, bg1, bg2, bg3)
         for (bg in 0..3) bgCnt[bg] = (bgCnt[bg] and 3.inv()) or priorities[bg]
     }
 
+    /**
+     * Copies the lens flare tilemap (`Tsa_ClassReel_LensFlare`: byte TSA, width - 1 and
+     * height - 1 then the entries) out of the ROM for `sub_800154C`.
+     */
     private fun lensFlareTsa(): ByteArray {
         val size = (rom.u8(TSA_LENS_FLARE) + 1) * (rom.u8(TSA_LENS_FLARE + 1) + 1) * 2 + 2
         return ByteArray(size) { rom.u8(TSA_LENS_FLARE + it).toByte() }
@@ -763,7 +798,12 @@ public class ChapterIntro(
     /**
      * Ported from src/hardware.c: sub_80017B4
      *
-     * Needed by [init]; checked through the `gFadeComponents` and `gFadeComponentStep` dumps.
+     * Sets up a fade of [b] palettes starting at palette [a]: step [d] per `ColorFadeTick` and
+     * every channel biased by [c] (64 = shown as white and falling to the colour with a negative
+     * step). Needed by [init]; checked through the `gFadeComponents` and `gFadeComponentStep`
+     * dumps. The destination offset is `a * 16` as in the original, although
+     * `MaybeSmoothChangeSomePal` indexes `gFadeComponents` with a stride of 48 per palette; the
+     * two agree only for [a] = 0 (the only call).
      */
     private fun sub80017B4(a: Int, b: Int, c: Int, d: Int) {
         var destOffset = a * 16
@@ -783,8 +823,10 @@ public class ChapterIntro(
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_8020010
      *
-     * Loads the common game background screen into BG1's tile data and tilemap and starts
-     * [bg1And3ScrollScript] under [proc].
+     * Loads the common game background screen (`Img_CommGameBgScreen`, 2 palette banks
+     * `Pal_CommGameBgScreenInShop` at [palId]) into BG tile 0 and fills BG1's tilemap with its
+     * 640 tiles, in palette [palId] for rows 0-6 and 13-19 and [palId] + 1 for rows 7-12, and
+     * starts [bg1And3ScrollScript] under [proc].
      */
     private fun loadCommonGameBg(proc: Proc, palId: Int) {
         val map = hardware.mapBuffer(1)
@@ -800,6 +842,9 @@ public class ChapterIntro(
     }
 
     /**
+     * Starts the twin lights: zeroes the counters, first segment 3 frames long, and plays
+     * `SONG_SYS_CHAPTER_START` (0x316).
+     *
      * Transcribed from src/chapterintrofx.c: ChapterIntro_TwinLights_InitAndPlaySe (not
      *   verified: the fields are compared, the sound effect call is not)
      */
@@ -815,6 +860,13 @@ public class ChapterIntro(
 
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_TwinLights_Loop
+     *
+     * Two 32x32 light sprites (OBJ chr 0x210 and 0x214, palette 2, OBJ affine matrix 0) fly along
+     * a path given by `gChapterIntroLightXLerpLut` and `gChapterIntroLightYLerpLut` (read from
+     * the ROM; entry `timer` to `timer + 1`, linear, `unk_68` frames per segment, growing from 3
+     * to 8 over 18 segments). The second sprite is the first reflected through the screen centre
+     * (`224 - x`, `144 - y`). Matrix 0 shrinks the sprites (scale 320 to 64 over 100 frames).
+     * The proc breaks when the next X entry is 0 (the table's terminator).
      */
     private fun twinLightsLoop(proc: Proc) {
         val state = proc.state as State
@@ -855,6 +907,8 @@ public class ChapterIntro(
 
     /**
      * Ported from src/hardware.c: MaybeResetSomePal
+     *
+     * Stops every palette fade (`gFadeComponentStep` all 0) before a scene sets up its own.
      */
     private fun maybeResetSomePal() {
         for (i in 31 downTo 0) colorFade.step[i] = 0
@@ -863,7 +917,9 @@ public class ChapterIntro(
     /**
      * Ported from src/hardware.c: MaybeSmoothChangeSomePal
      *
-     * [src] is the first colour of the palette buffer ([src] = `b * 16` in every call here).
+     * Sets up a fade of [c] palettes starting at palette [b] from the colours at buffer index
+     * [src] (`b * 16` in every call here), [d] per `ColorFadeTick`. A negative [d] starts at the
+     * colours and fades them to black; a positive one starts at black and fades them in.
      */
     private fun maybeSmoothChangeSomePal(src: Int, b: Int, c: Int, d: Int) {
         val r3 = if (d < 0) 32 else 0
@@ -883,6 +939,9 @@ public class ChapterIntro(
 
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_InitCameraYPos
+     *
+     * Sets the camera's Y to 4 screen heights (640); [initMapDisplay] later replaces it with the
+     * chapter's start position. Why the intro sets it first is not known.
      */
     private fun initCameraYPos() {
         bmSt.cameraY = Camera.DISPLAY_HEIGHT * 4
@@ -891,8 +950,13 @@ public class ChapterIntro(
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_InitMapDisplay
      *
-     * `UnpackChapterMapGraphics`, `ApplyUnitSpritePalettes`, `LoadObjUIGfx`,
-     * `DisableMapPaletteAnimations`, `RefreshEntityBmMaps` and `RenderBmMap` are existing ports.
+     * Builds the map screen behind the intro: all layers on, alpha blend with BG1 as first
+     * target against BG3, the objects and the backdrop (second target) at weights 16 and 0, BG
+     * tile 0 blanked, BG0-BG2 cleared, then the chapter's map graphics, unit palettes and UI
+     * graphics, the camera centred on the chapter's start position (`initialPosX` and
+     * `initialPosY`, snapped to 16 pixels) and the map rendered. `UnpackChapterMapGraphics`,
+     * `ApplyUnitSpritePalettes`, `LoadObjUIGfx`, `DisableMapPaletteAnimations`,
+     * `RefreshEntityBmMaps` and `RenderBmMap` are existing ports.
      */
     private fun initMapDisplay() {
         val lcd = hardware.lcd
@@ -923,6 +987,9 @@ public class ChapterIntro(
 
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_8020A40
+     *
+     * Starts the fade of the title scene to black: BG palettes 4 and 14 (2 each) and OBJ palette
+     * 2 (palette index 18), 1 step per tick; the timer is set to 30.
      */
     private fun chapterIntro8020A40(proc: Proc) {
         (proc.state as State).timer = 30
@@ -934,6 +1001,9 @@ public class ChapterIntro(
 
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_8020A8C
+     *
+     * Every fourth frame ticks the fade; after 31 ticks only BG0 and the objects stay on, BG2's
+     * tile data goes back to offset 0 and the backdrop colour is cleared, then the proc breaks.
      */
     private fun chapterIntro8020A8C(proc: Proc) {
         if ((hooks.gameClock.frames() and 3) != 0) return
@@ -953,8 +1023,11 @@ public class ChapterIntro(
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_BeginFadeToMap
      *
-     * Not verified: the `StartBgm` call (not compared) and the `WEATHER_FLAMES` hook (chapter 0
-     * has no flames weather).
+     * Starts fading the map's palettes in from black (BG palettes 6-15, OBJ palettes 10-15, 0-1
+     * and 7 as palette indices 26.., 16.. and 23, step 1) with a 30 tick timer; a chapter with
+     * `WEATHER_FLAMES` also sets up the flames gradient.
+     *
+     * Not verified: the `WEATHER_FLAMES` hook (chapter 0 has no flames weather).
      */
     private fun beginFadeToMap(proc: Proc) {
         maybeResetSomePal()
@@ -973,8 +1046,15 @@ public class ChapterIntro(
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_LoopFadeToMap
      *
-     * Not verified: the capture's chapter fades to black, so the alpha blend branch, the flames
-     * hook and the `StartBgm` calls (not compared) are not run.
+     * Every second frame ticks the map's palette fade-in. A skirmish or fade-to-black chapter
+     * starts the map BGM (`mapBgmIds[MAP_BGM_PROLOGUE]`), sets the timer to 0 (the proc breaks
+     * this tick) and turns BG3 and the objects off. Any other chapter blends the map in over the
+     * intro: BG1's weight `12 + (timer + 7) / 8` against `4 - (timer + 7) / 8`, and starts the
+     * BGM at `timer` 24.
+     * Breaks when the timer passes 0 and restarts the map palette animations.
+     *
+     * Not verified: the capture's chapter fades to black, so the alpha blend branch and the
+     * flames hook are not run.
      */
     private fun loopFadeToMap(proc: Proc) {
         if ((hooks.gameClock.frames() and 1) != 0) return
@@ -1005,6 +1085,9 @@ public class ChapterIntro(
     }
 
     /**
+     * The skip path: fades the BGM out (speed 4) and the title scene's palettes to black (BG 0-2,
+     * 4 and 14, OBJ palette 2) at 2 steps per tick for 15 ticks, and fades the sound effects out.
+     *
      * Transcribed from src/chapterintrofx.c: ChapterIntro_BeginFadeOut (not verified: the sound
      *   calls `Sound_FadeOutBGM` and `Sound_FadeOutSE` are not compared)
      */
@@ -1021,6 +1104,9 @@ public class ChapterIntro(
 
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_LoopFadeOut
+     *
+     * Ticks the fade every frame; when the timer passes 0 every layer is switched off and BG2's
+     * tile data returns to offset 0.
      */
     private fun loopFadeOut(proc: Proc) {
         val state = proc.state as State
@@ -1035,6 +1121,10 @@ public class ChapterIntro(
     }
 
     /**
+     * The skip path's fade to the map: back to BG mode 0, BG tile 0 blanked and BG0-BG2 cleared,
+     * the scroll and decal procs ended, the map palettes fading in from black at 2 steps per tick
+     * for 14 ticks, and the map BGM started.
+     *
      * Transcribed from src/chapterintrofx.c: ChapterIntro_BeginFastFadeToMap (not verified: the
      *   `StartBgm` call is not compared)
      */
@@ -1063,6 +1153,11 @@ public class ChapterIntro(
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_LoopFastFadeToMap
      *
+     * Like [loopFadeToMap] without the blend or the BGM: ticks the fade every frame (flames
+     * gradient on `WEATHER_FLAMES`), sets the timer to 0 and hides BG3 and the objects on a
+     * skirmish or fade-to-black chapter (the proc then breaks this tick), and restarts the map
+     * palette animations when the timer passes 0.
+     *
      * Not run by the capture (chapter 0 has no flames weather and fades to black): the flames
      * hook call and the `EnablePaletteSync` branch (not verified).
      */
@@ -1090,6 +1185,9 @@ public class ChapterIntro(
 
     /**
      * Ported from src/bmlib.c: sub_80141B0
+     *
+     * Leaves a black screen: darken blend (`BLEND_EFFECT_DARKEN`) at full strength 0x10 over
+     * every layer and the backdrop, backdrop colour 0 and all layers switched off.
      */
     private fun sub80141B0() {
         val lcd = hardware.lcd
@@ -1102,6 +1200,10 @@ public class ChapterIntro(
     }
 
     /**
+     * The end of the intro: BG priorities back to 0, 1, 2, 3 (BG0 in front), windows off, BG0
+     * cleared; on a skirmish or fade-to-black chapter it rebuilds the map graphics
+     * ([Hooks.refreshBMapGraphics]) and blanks the screen with [sub80141B0].
+     *
      * Transcribed from src/chapterintrofx.c: ChapterIntro_End (not verified: the capture's
      *   chapter fades to black, so `RefreshBMapGraphics` (through [Hooks.refreshBMapGraphics])
      *   and [sub80141B0] overwrite the priorities, window enable and BG0 clear before the next
@@ -1122,18 +1224,27 @@ public class ChapterIntro(
     }
 
     private companion object {
+        /** `CHR_SIZE`: bytes of one 4bpp tile. */
         const val CHR_SIZE = 0x20
+
+        /** `MAP_BGM_PROLOGUE` (include/chapterdata.h): index into the chapter's `mapBgmIds`. */
         const val MAP_BGM_PROLOGUE = 9
+
+        /** `WEATHER_FLAMES` (include/types.h). */
         const val WEATHER_FLAMES = 5
         const val A_BUTTON = 0x0001
         const val B_BUTTON = 0x0002
         const val START_BUTTON = 0x0008
+        /** `SONG_SYS_CHAPTER_START` (include/constants/songs.h). */
         const val SONG_SYS_CHAPTER_START = 0x316
         const val OAM0_AFFINE_ENABLE = 0x100
         const val OAM2_CHR_210_PAL_2 = 0x210 or (2 shl 12)
         const val OAM2_CHR_214_PAL_2 = 0x214 or (2 shl 12)
         const val OAM2_CHR_218_PAL_2 = 0x218 or (2 shl 12)
+        /** Bytes of the I/O registers kept in [io] (0x04000000..0x0400005F). */
         const val IO_SIZE = 0x60
+
+        /** Offset of OBJ tile data in VRAM (`OBJ_CHR_ADDR(0)`, 0x06010000). */
         const val OBJ_VRAM = 0x10000
         const val IMG_COMM_GAME_BG = 0x08B12DB4
         const val PAL_COMM_GAME_BG = 0x08B1754C

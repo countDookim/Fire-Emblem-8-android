@@ -20,11 +20,11 @@ Total entries: 239 across 47 Kotlin files.
 | M6-E | 51 |
 | M6-F | 13 |
 | M6-G | 4 |
-| M6-H | 35 |
+| M6-H | 36 |
 | M6-I | 27 |
 | M6-J | 10 |
 | D09-3 | 2 |
-| D11-wire-a | 2 |
+| D11-wire-a | 1 |
 | EP-1 | 1 |
 | EP-12 | 17 |
 | EP-6b | 11 |
@@ -182,7 +182,7 @@ Total entries: 239 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: `IsBattleDeamonActive` (the battle animation system) is not ported, so the fixed fight-event bubble is never used. |
 
-## M6-H (35)
+## M6-H (36)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -205,6 +205,7 @@ Total entries: 239 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `applyEnabledMapChanges` | Stand-in for `ApplyEnabledMapChanges` (until M6-H), called by [initChapterMap] after the base tiles are built; does nothing until the map change system is ported. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `initChapterMap` | The base tile adjustments after the unpack (`ApplyEnabledMapChanges`, the `CHAPTER_75` water shadows) are stand-ins until M6-H ([applyEnabledMapChanges] is a hook), so a chapter that has them (e.g. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `refreshAllLightRunes` | Stand-in for `RefreshAllLightRunes` (bmtrick.c; until M6-H), called at the end of [refreshTerrainBmMap]; does nothing until traps are ported. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in until M6-H (sound effects as chapters first need them): the sound effect players are not in `SoundWrapper` yet, so this does nothing unless `Fe8Boot` sets it (D11-wire-a left it a no-op). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `beginBattleAnimations` | Stand-in until M6-H: sets only the flag, so the animation ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `getBattleAnimPreconfType` | Stand-in until M6-H: always `PLAY_ANIMCONF_OFF` (map animations). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `itemGotPopup` | Stand-in until M6-H (the popup): nothing is shown or given. |
@@ -276,11 +277,10 @@ Total entries: 239 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `gotItemPopup` | Stand-ins (D09-3): `gpPopupUnit` is not tracked, so the unit-name text id is 0 (the got-item and pilfered scripts do not use the unit name), and [addItem] with a full inventory (the item-drop menu)... |
 | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | `event37GiveItem` | Host stand-ins (D09-3): the "gold got" popup (`NewPopup_GoldGot`) is not shown and the gold add happens at once. |
 
-## D11-wire-a (2)
+## D11-wire-a (1)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in: the sound effect players are not in `SoundWrapper` yet, so this does nothing unless `Fe8Boot` sets it (D11-wire-a left it a no-op). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `fadeOutSe` | `Sound_FadeOutSE(speed)`: stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet; the Prologue leaves through the other branch of `destruct`). |
 
 ## EP-1 (1)

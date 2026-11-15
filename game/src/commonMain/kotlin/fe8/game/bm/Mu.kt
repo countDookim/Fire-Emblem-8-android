@@ -56,15 +56,14 @@ public interface MuHooks {
     /** `GetClassData(jid)->slowWalking`. */
     public fun classSlowWalking(jid: Int): Int = 0
 
-    /** `IsGamePlayedThrough()` (reads the save); [Mu] builds `IsFirstPlaythrough()` on it. */
+    /**
+     * `IsGamePlayedThrough()` (reads the save, bmsave-lib.c; stand-in until the save library is
+     * ported, M6-E: no captured value depends on it); [Mu] builds `IsFirstPlaythrough()` on it.
+     */
     public fun isGamePlayedThrough(): Boolean = false
 
-    /**
-     * `StartPlayMuStepSe(scr[2 + pc], scr[1], position.x)` for the sound script [script]
-     * (`Mu.STEP_SE_*`) at step [pc]; the song table and `GetMuDisplayPosition` belong to the sound
-     * and display ports.
-     */
-    public fun startPlayMuStepSe(proc: MuProc, script: Int, pc: Int) {}
+    /** `PlaySeSpacial(song, x)` (bmlib.c, [fe8.game.SpacialSe]): a step sound at screen x [x]. */
+    public fun playSeSpacial(song: Int, x: Int) {}
 
     /** `StartMuFogBump(x, y)`: [x]/[y] are the screen-relative pixel position. */
     public fun startMuFogBump(x: Int, y: Int) {}
@@ -234,6 +233,41 @@ public class Mu(
         ),
         ::newMuProc,
     )
+
+    /** `struct MuStepSoundProc` past `PROC_HEADER`: the two queued step sounds. */
+    public class StepSeState {
+        /** `song1` (0x58): the first sound queued this frame, 0 for none. */
+        public var song1: Int = 0
+
+        /** `song2` (0x5C): the second sound queued this frame, 0 for none. */
+        public var song2: Int = 0
+
+        /** `unk60` (0x60): never set; the second slot is open while it is 0. */
+        public var unk60: Int = 0
+
+        /** `x1` (0x64, s16): screen x of [song1]. */
+        public var x1: Int = 0
+
+        /** `x2` (0x66, s16): screen x of [song2]. */
+        public var x2: Int = 0
+    }
+
+    /** `ProcScr_MuStepSe`: plays the sounds the walks queued, one frame after each other. */
+    public val stepSeScript: ProcScript = ProcScript(
+        "ProcScr_MuStepSe",
+        listOf(
+            ProcScripts.call(ProcFunc { muStepSeInit(it) }),
+            ProcScripts.yield(),
+            ProcScripts.call(ProcFunc { muStepSePlaySeA(it) }),
+            ProcScripts.yield(),
+            ProcScripts.call(ProcFunc { muStepSePlaySeB(it) }),
+            ProcScripts.end(),
+        ),
+        { stepSeState },
+    )
+
+    /** The one [StepSeState] (a step sound proc is started on demand, one at a time). */
+    private val stepSeState = StepSeState()
 
     /** One `MuProc` per slot, reused so starting a MU in the idle loop allocates nothing. */
     private val muProcPool: List<MuProc> = List(MU_MAX_COUNT) { MuProc() }
@@ -511,7 +545,7 @@ public class Mu(
         for (i in 0 until 0x40) config.movescr[i] = commands[i]
         config.pc = 0
         mu.state = MU_STATE_MOVEMENT
-        updateMuStepSounds(mu)
+        playMuStepSe(mu)
     }
 
     /**
@@ -674,7 +708,12 @@ public class Mu(
         return 16 * WALK_SPEED_LUT[hooks.classSlowWalking(proc.jid) and 1]
     }
 
-    /** `IsFirstPlaythrough` (bmio.c): true until the game is played through, then a config bit. */
+    /**
+     * True until the game is played through, then a config bit.
+     *
+     * Transcribed from src/bmio.c: IsFirstPlaythrough (not verified: it only matters with A held
+     * during a walk, which no capture has)
+     */
     private fun isFirstPlaythrough(): Boolean {
         if (!hooks.isGamePlayedThrough()) return true
         if (playSt.chapterStateBits and PLAY_FLAG_EXTRA_MAP != 0) return false
@@ -683,11 +722,12 @@ public class Mu(
 
     /**
      * Picks the step sound script for [proc]'s class (mounted, flying, undead, heavy and so on; two
-     * classes have none), advances `step_sound_clock` and passes the script and position in its
-     * loop to [MuHooks.startPlayMuStepSe].
+     * classes have none), advances `step_sound_clock` and, for a non-zero entry of the script at
+     * the clock's place in its loop, starts that sound at the MU's screen x
+     * ([startPlayMuStepSe]).
      *
-     * Transcribed from src/mu.c: UpdateMuStepSounds (not verified: the walk compares only the
-     * clock, not the sound chosen; the class lists are unexercised)
+     * Transcribed from src/mu.c: UpdateMuStepSounds (not verified: the Foot class of the
+     * Prologue walks is the only class list seen; the song and x it passes are compared)
      */
     public fun updateMuStepSounds(proc: MuProc) {
         val jid = proc.jid
@@ -721,9 +761,76 @@ public class Mu(
                 else -> STEP_SE_FOOT
             }
         }
-        val pc = proc.stepSoundClock % STEP_SE_PERIOD[script]
+        val address = STEP_SE_ADDRESS[script]
+        val pc = proc.stepSoundClock % (rom?.u16(address) ?: 1)
         proc.stepSoundClock = (proc.stepSoundClock + 1) and 0xFF
-        hooks.startPlayMuStepSe(proc, script, pc)
+        val table = rom ?: return
+        getMuDisplayPosition(proc)
+        val song = table.u16(address + 4 + 2 * pc)
+        if (song != 0) startPlayMuStepSe(song, table.u16(address + 2), displayX)
+    }
+
+    /**
+     * Ported from src/mu.c: PlayMuStepSe
+     *
+     * [updateMuStepSounds].
+     */
+    public fun playMuStepSe(proc: MuProc) {
+        updateMuStepSounds(proc)
+    }
+
+    /**
+     * Ported from src/mu.c: StartPlayMuStepSe
+     *
+     * Queues [song] at screen x [x] for the step sound proc (started on tree 3 if none exists):
+     * the first call of a frame fills the first slot, a second call the other slot with
+     * [song] + [altOffset]. The original tests `unk60`, which nothing sets, so the second slot is
+     * rewritten by every later call.
+     */
+    public fun startPlayMuStepSe(song: Int, altOffset: Int, x: Int) {
+        val proc = procs.find(stepSeScript) ?: procs.start(stepSeScript, STEP_SE_TREE)
+        val state = proc.state as StepSeState
+        if (state.song1 == 0) {
+            state.song1 = song
+            state.x1 = x
+        } else if (state.unk60 == 0) {
+            state.song2 = song + altOffset
+            state.x2 = x
+        }
+    }
+
+    /**
+     * Transcribed from src/mu.c: MuStepSe_Init (not verified: the proc is new when it runs, so
+     * the cleared fields are 0 either way)
+     *
+     * Clears both queued sounds.
+     */
+    public fun muStepSeInit(proc: Proc) {
+        val state = proc.state as StepSeState
+        state.song1 = 0
+        state.x1 = 0
+        state.song2 = 0
+        state.x2 = 0
+    }
+
+    /**
+     * Ported from src/mu.c: MuStepSe_PlaySeA
+     *
+     * Plays the first queued sound at its x (a zero song is played too, as in the original).
+     */
+    public fun muStepSePlaySeA(proc: Proc) {
+        val state = proc.state as StepSeState
+        hooks.playSeSpacial(state.song1, state.x1)
+    }
+
+    /**
+     * Ported from src/mu.c: MuStepSe_PlaySeB
+     *
+     * Plays the second queued sound, if any.
+     */
+    public fun muStepSePlaySeB(proc: Proc) {
+        val state = proc.state as StepSeState
+        if (state.song2 != 0) hooks.playSeSpacial(state.song2, state.x2)
     }
 
     /**
@@ -961,7 +1068,7 @@ public class Mu(
         /** `MOVE_CMD_CAMERA_OFF`. */
         public const val MOVE_CMD_CAMERA_OFF: Int = 14
 
-        /** Step sound script `MuSoundScr_Foot` for [MuHooks.startPlayMuStepSe]. */
+        /** Step sound script `MuSoundScr_Foot` for [updateMuStepSounds]. */
         public const val STEP_SE_FOOT: Int = 0
 
         /** `MuSoundScr_FootHeavy`. */
@@ -1044,9 +1151,14 @@ public class Mu(
         private val MOVE_OFFSET_LUT = intArrayOf(-1, 0, 1, 0, 0, 1, 0, -1)
         /** `sMuWalkSpeedLut`: indexed by the class `slowWalking` flag (fast, slow). */
         private val WALK_SPEED_LUT = intArrayOf(2, 1)
-        /** `scr[0]` of each `MuSoundScr_*`, indexed by `STEP_SE_*`: steps per sound loop. */
-        private val STEP_SE_PERIOD =
-            intArrayOf(0x10, 0x20, 0x15, 0x14, 0x14, 0x0F, 0x0F, 0x14, 0x0A, 0x15, 0x0F, 0x18, 0x10)
+        /** ROM address of each `MuSoundScr_*` (u16: period, alt offset, songs), by `STEP_SE_*`. */
+        private val STEP_SE_ADDRESS = intArrayOf(
+            0x089A2998, 0x089A29BC, 0x089A2A00, 0x089A2A2E, 0x089A2A5A, 0x089A2AB2, 0x089A2AD4,
+            0x089A2AF6, 0x089A2B22, 0x089A2B3A, 0x089A2B68, 0x089A2BCE, 0x089A2C02,
+        )
+
+        /** Proc tree of `ProcScr_MuStepSe` (`PROC_TREE_3`). */
+        private const val STEP_SE_TREE = 3
 
         private const val US_IN_BALLISTA = 1 shl 11
         private const val CA_MOUNTEDAID = 1

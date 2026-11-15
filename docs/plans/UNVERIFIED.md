@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 574 across 84 decomp files (missing reason: 0).
+Total entries: 576 across 84 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -248,6 +248,28 @@ Total entries: 574 across 84 decomp files (missing reason: 0).
 | `UpdateUnitFromBattle` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 | `GetStatIncrease` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 
+## src/mu.c (17)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `InitMus` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace has no free-slot state to compare |
+| `StartMuExt` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace MU is started by StartMu |
+| `GetNewMuConfig` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace only uses the default config slot |
+| `ResetMuAnims` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | nothing in the trace calls it |
+| `PutMuSMS` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace MU never stands, and sub_8026FF4/sub_8027DB4 are hooks |
+| `SetMuFacing` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | facing at start is always 11 |
+| `SetAutoMuDefaultFacing` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the facing it sets is replaced by the move script's first command before any captured frame shows it |
+| `SetMuDefaultFacing` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | not exercised at f9674 |
+| `StartMuScripted` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | not exercised at f9674 |
+| `MuExists` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial Proc_Find |
+| `UpdateMuStepSounds` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the Foot class of the Prologue walks is the only class list seen; the song and x it passes are compared |
+| `MuStepSe_Init` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the proc is new when it runs, so the cleared fields are 0 either way |
+| `EndAllMus` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the walk ends one MU through EndMu |
+| `EnableMuCamera` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial setter |
+| `DisableMuCamera` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial setter, driven by the test only as the event code's input |
+| `EndMuMovement` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the function has no body |
+| `IsMuActive` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | trivial |
+
 ## src/muctrl.c (17)
 
 | Function | Kotlin file | Reason |
@@ -312,27 +334,6 @@ Total entries: 574 across 84 decomp files (missing reason: 0).
 | `EvCheck0C_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
 | `EvCheck0D_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
 | `EnqueueTutEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
-
-## src/mu.c (16)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `InitMus` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace has no free-slot state to compare |
-| `StartMuExt` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace MU is started by StartMu |
-| `GetNewMuConfig` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace only uses the default config slot |
-| `ResetMuAnims` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | nothing in the trace calls it |
-| `PutMuSMS` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace MU never stands, and sub_8026FF4/sub_8027DB4 are hooks |
-| `SetMuFacing` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | facing at start is always 11 |
-| `SetAutoMuDefaultFacing` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the facing it sets is replaced by the move script's first command before any captured frame shows it |
-| `SetMuDefaultFacing` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | not exercised at f9674 |
-| `StartMuScripted` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | not exercised at f9674 |
-| `MuExists` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial Proc_Find |
-| `UpdateMuStepSounds` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the walk compares only the clock, not the sound chosen; the class lists are unexercised |
-| `EndAllMus` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the walk ends one MU through EndMu |
-| `EnableMuCamera` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial setter |
-| `DisableMuCamera` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial setter, driven by the test only as the event code's input |
-| `EndMuMovement` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the function has no body |
-| `IsMuActive` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | trivial |
 
 ## src/worldmap_scrollmanage.c (15)
 
@@ -525,7 +526,7 @@ Total entries: 574 across 84 decomp files (missing reason: 0).
 | `SyncLoOam` | `engine/render/src/commonMain/kotlin/gbafe/render/OamBuffer.kt` | no test checks it against a trace yet |
 | `SetObjAffine` | `engine/render/src/commonMain/kotlin/gbafe/render/OamBuffer.kt` | no test checks it against a trace yet |
 
-## src/bmio.c (8)
+## src/bmio.c (9)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
@@ -537,6 +538,7 @@ Total entries: 574 across 84 decomp files (missing reason: 0).
 | `BMapVSync_OnEnd` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | secondary HBlank handler is a stub / weather effect teardown not traced |
 | `DisableMapPaletteAnimations` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | no trace exercises disabling map palette animations |
 | `ResetMapPaletteAnimations` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimations.kt` | no trace exercises resetting map palette animations |
+| `IsFirstPlaythrough` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | it only matters with A held during a walk, which no capture has |
 
 ## src/bmudisp.c (8)
 

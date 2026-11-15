@@ -1,6 +1,9 @@
 package fe8.testing
 
+import fe8.game.Fe8Sound
 import fe8.game.RomView
+import fe8.game.SoundWrapper
+import fe8.game.SpacialSe
 import fe8.game.bm.AiIntStep
 import fe8.game.bm.BattleGenerate
 import fe8.game.bm.BattleStats
@@ -71,7 +74,15 @@ internal class CpPerformSim(
     val aiState = AiState()
     val map: BmMap
     val camMove = CamMove(engine, bm)
-    val mu = Mu(engine, bm, playSt, keys, camMove.script, ClassHooks())
+    val m4a = Fe8Sound.create(rom)
+    val spacial = SpacialSe(SoundWrapper(engine, m4a) { 0 })
+
+    /** The step sounds played (`PlaySeSpacial`): "song x" per call, with the engine frame. */
+    val seLog = ArrayList<String>()
+
+    /** Whether [seLog] is filled (off by default: building the strings allocates). */
+    var logSe = false
+    val mu = Mu(engine, bm, playSt, keys, camMove.script, ClassHooks(), rom)
     val cursor: MapCursor
     val phase: PlayerPhase
     val decide: CpDecide
@@ -276,6 +287,11 @@ internal class CpPerformSim(
 
     /** Class data from the ROM (read at test time, not copied). */
     inner class ClassHooks : MuHooks {
+        override fun playSeSpacial(song: Int, x: Int) {
+            if (logSe) seLog += "f${seed + 2 + frames} $song $x"
+            spacial.playSeSpacial(song, x)
+        }
+
         private fun classByte(jid: Int, o: Int): Int =
             romBytes[GCLASS_DATA - ROM_BASE + (jid - 1) * CLASS_SIZE + o].toInt() and 0xFF
 

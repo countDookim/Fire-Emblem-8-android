@@ -779,10 +779,14 @@ public class Fe8Boot(
     /** MU animation owner retained to flush its registered tile moves during VBlank. */
     private var muSpriteAnim: MuSpriteAnim? = null
 
+    /** `PlaySeSpacial` over the game's [SoundWrapper] (the MU step sounds). */
+    private val spacialSe: SpacialSe by lazy { SpacialSe(control.sound) }
+
     /**
      * The MU system (`mu.c`) with class lookups from the ROM; walking MUs are drawn by the ap.c
-     * sprite animation player ([MuSpriteAnim]); the standing-MU facing, step sound, fog bump and
-     * played-through hooks keep their no-op defaults.
+     * sprite animation player ([MuSpriteAnim]) and step on the game's sound effects
+     * ([SpacialSe]); the standing-MU facing, fog bump and played-through hooks keep their no-op
+     * defaults.
      */
     public val mu: Mu by lazy {
         val spriteAnim = MuSpriteAnim(rom, hw, loop.oam, loop.sprites)
@@ -812,6 +816,9 @@ public class Fe8Boot(
                 override fun spriteAnimObjLayer(anim: Int): Int = spriteAnim.objLayer(anim)
 
                 override fun deleteMuAnim(proc: MuProc) = spriteAnim.delete(proc.spriteAnim)
+
+                override fun playSeSpacial(song: Int, x: Int) =
+                    spacialSe.playSeSpacial(song, x)
             },
             rom,
         )

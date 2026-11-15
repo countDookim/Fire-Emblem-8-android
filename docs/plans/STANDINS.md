@@ -10,14 +10,14 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 233 across 47 Kotlin files.
+Total entries: 234 across 47 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 12 |
 | M6-C | 9 |
 | M6-D | 13 |
-| M6-E | 51 |
+| M6-E | 52 |
 | M6-F | 15 |
 | M6-G | 4 |
 | M6-H | 33 |
@@ -92,7 +92,7 @@ Total entries: 233 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayActiveUnitEffectRange` | Stand-in until M6-D for `DisplayActiveUnitEffectRange` (label 11: the range of a unit the player does not control, `PLAYER_SELECT_NOCONTROL`). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayDangerZone` | Stand-in until M6-D for `PlayerPhase_DisplayDangerZone` (label 12: the danger zone, `GenerateDangerZoneRange`, reached when the resume finds no active unit). |
 
-## M6-E (51)
+## M6-E (52)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -122,6 +122,7 @@ Total entries: 233 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `readExtraMapInfo` | Stand-in until M6-E. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `readGameSaveCoreGfx` | Stand-in until M6-E. |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `refreshBMapGraphics` | Stand-in until M6-E (`Fe8Boot` holds a partial version of it). |
+| `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | `isGamePlayedThrough` | `IsGamePlayedThrough()` (reads the save, bmsave-lib.c; stand-in until the save library is ported, M6-E: no captured value depends on it); [Mu] builds `IsFirstPlaythrough()` on it. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `maybeCallEndEvent` | `MaybeCallEndEvent_`; stand-in until M6-E (the end event). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `pidStatsAddActAmt` | Stand-in until M6-E for `PidStatsAddActAmt(pid, 1)` (the per-character action count of the save statistics); gets the character id. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `pidStatsAddSquaresMoved` | `PidStatsAddSquaresMoved(charId, amount)`; stand-in until M6-E (the records). |

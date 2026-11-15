@@ -121,6 +121,26 @@ public class M4aSequencer(
         start(players[songs.player(n and 0xFFFF)], songs.header(n and 0xFFFF))
 
     /**
+     * `m4aMPlayPanpotControl`: sets the external pan [pan] (an s8) of every existing track of [p]
+     * whose bit is set in [trackBits] and marks its volume changed. Does nothing while [p] is
+     * locked (`ident` is not `ID_NUMBER`).
+     *
+     * Ported from src/m4a.c: m4aMPlayPanpotControl
+     */
+    public fun panpotControl(p: M4aPlayer, trackBits: Int, pan: Int) {
+        if (p.ident != M4aPlayer.ID_NUMBER) return
+        p.ident++
+        for (i in 0 until p.trackCount) {
+            val t = p.tracks[i]
+            if (trackBits and (1 shl i) != 0 && t.flags and M4aTrack.FLG_EXIST != 0) {
+                t.panX = pan.toByte().toInt()
+                t.flags = t.flags or M4aTrack.FLG_VOLCHG
+            }
+        }
+        p.ident = M4aPlayer.ID_NUMBER
+    }
+
+    /**
      * `m4aMPlayImmInit`: resets each starting track (`EXIST | START`) to the `Clear64byte`
      * defaults at once, as `MPlayMain` would on its next tick.
      *

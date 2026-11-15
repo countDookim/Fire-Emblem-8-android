@@ -33,8 +33,8 @@ public class WorldMapSpawnEvents(
     /**
      * Ported from src/eventscr_gmap.c: EventC3_SpawnLord
      *
-     * Puts character `pid` on world map unit slot `unitId` (halfword `+4`; `pid` is at `+6`, the
-     * node at `+8` as a 32-bit value) at node `nodeId` (`SetGmCharUnit(unitId, pid, -1, nodeId)`)
+     * Puts the character `pid` (halfword `+6`) on world map unit slot `unitId` (halfword `+4`)
+     * at node `nodeId` (32-bit value at `+8`) with `SetGmCharUnit(unitId, pid, -1, nodeId)`,
      * unless the slot already holds that character. When the slot's state bit 1 is set the
      * decomp instead returns without spawning if `pid == 0`; the port fails loudly there because
      * no capture runs that branch.

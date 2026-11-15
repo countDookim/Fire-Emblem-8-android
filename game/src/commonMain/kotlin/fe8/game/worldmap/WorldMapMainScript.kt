@@ -55,7 +55,8 @@ public class WorldMapMainScript {
             call(f("WorldMap_GenerateRandomMonsters")), // 10
             call(f("WorldMap_SetMonsterMergedState")), // 11
             goto(3), // 12
-            // Monsters merge in (`_WmMergeMonsters`), then falls through to label 3.
+            // Reached from `WorldMap_GenerateRandomMonsters` when monsters were generated:
+            // merges them in (`_WmMergeMonsters`), then falls through to label 3.
             label(2), // 13
             call(f("sub_80B9A34")), // 14
             whileTrue(fb("FadeInExists")), // 15
@@ -76,13 +77,16 @@ public class WorldMapMainScript {
             call(f("sub_80B97F8")), // 28
             repeat(f("WorldMap_Loop")), // 29
             block(), // 30
-            // General menu (`StartWMGeneralMenu`).
+            // General menu (`StartWMGeneralMenu`); `WorldMap_LoopExt` jumps here on A.
             label(5), // 31
             call(f("sub_80BF15C")), // 32
             call(f("EndWorldmapMinimap")), // 33
             sleep(1), // 34
             call(f("StartWMGeneralMenu")), // 35
             goto(3), // 36
+            // Walk of the leader to the node the player picked: `sub_80B8A7C` centres the
+            // camera on the leader and starts the walk, `sub_80B8BA4` (label 7) steps it along
+            // the path. `sub_80B92D0` jumps to label 6.
             label(6), // 37
             call(f("sub_80BF15C")), // 38
             call(f("EndWorldmapMinimap")), // 39
@@ -93,9 +97,12 @@ public class WorldMapMainScript {
             repeat(f("sub_80B8BA4")), // 44
             sleep(1), // 45
             goto(3), // 46
+            // Waits for the cursor jump after the L button (`sub_80B961C`), then back to the loop.
             label(8), // 47
             repeat(f("sub_80B96DC")), // 48
             goto(4), // 49
+            // Fade to black, `sub_80B9810`/`sub_80B9820`, `WorldMap_Init` again, then label 23.
+            // No decomp function jumps here, so what it is for is unknown.
             label(9), // 50
             call(f("StartFastFadeToBlack")), // 51
             repeat(f("WaitForFade")), // 52
@@ -163,7 +170,9 @@ public class WorldMapMainScript {
             repeat(f("WorldMap_WaitForChapterIntroEvents")), // 108
             call(f("WorldMap_HideEverything")), // 109
             goto(25), // 110
-            // Skirmish animation (`Worldmap_WaitForSkirmishAnim`), then label 25.
+            // Skirmish animation (`Worldmap_WaitForSkirmishAnim`), then label 25. Entered from
+            // `sub_80B92D0` when `sub_80BCA1C(picked node) >= 0` and from `sub_80B8BA4` when
+            // `sub_80B8B60(destination)` holds (what those two tests mean is not known).
             label(16), // 111
             call(f("sub_80BF15C")), // 112
             call(f("EndWorldmapMinimap")), // 113
@@ -176,7 +185,8 @@ public class WorldMapMainScript {
             whileTrue(fb("FadeOutExists")), // 120
             call(f("sub_80B9AEC")), // 121
             goto(25), // 122
-            // `Worlmap_StartGmapSogu` effect, then back to label 3.
+            // `Worlmap_StartGmapSogu` effect, entered from `sub_80B8BA4` when
+            // `sub_80BCA1C(next node on the path) >= 0`; then back to label 3.
             label(17), // 123
             call(f("Worlmap_StartGmapSogu")), // 124
             repeat(f("Worlmap_WaitGmapSogu")), // 125

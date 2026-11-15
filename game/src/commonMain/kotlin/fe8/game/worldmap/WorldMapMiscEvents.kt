@@ -8,7 +8,7 @@ import fe8.game.event.EventHandler
 
 /**
  * The small world map commands the Prologue's beginning event runs that no other class owns:
- * 0xC1 (`WM_SKIPWM`) and 0xC9 (`WM_REMOVETEXT`).
+ * 0xC1 (`EV_CMD_WM_SKIPWN`, `EventC1_SKIPWM`) and 0xC9 (`EV_CMD_WM_REMOVETEXT`).
  *
  * @param gmData `gGMData`
  * @param hideWmText `HideWmText`
@@ -40,7 +40,7 @@ public class WorldMapMiscEvents(
      * the handler against a trace)
      *
      * Hides the text box ([WorldMapText.hideWmText]), then yields unless the event is being
-     * skipped (`EventC9_RemoveWmText` hides in both branches).
+     * skipped (the decomp hides in both branches).
      */
     public val eventC9RemoveWmText: EventHandler = EventHandler { proc ->
         hideWmText()

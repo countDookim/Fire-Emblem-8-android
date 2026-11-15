@@ -44,9 +44,11 @@ public class WorldMapFaceEvents(
      *
      * Shows portrait `fid` in face slot `slot` ([WorldMapFace.wmDrawFace]) at once, or through
      * the delayed merge (`WmMergeFace` kind 6) when `delay` is set; nothing while skipping. The
-     * command's halfwords at `+4..+10` are slot, fid, config and delay. In `WmDrawFace` the low
-     * byte of `config` is the face's x, bit 0x400 flips it and bits 0x2000/0x4000 pick the
-     * sprite layer (`worldmap_face.c:317-355`); the face is always drawn at y 28.
+     * command's halfwords at `+4..+10` are slot, fid, config and delay. In `WmDrawFace`
+     * (`worldmap_face.c:317-355`) the low byte of `config` is the face's x (the face is always
+     * started at y 28), bit 0x400 flips it, bit 0x8000 sets `FACE_DISP_BIT_13`, and bits
+     * 0x2000/0x4000 pick the face proc's `spriteLayer` (3 with neither, 4, 5, or 6 with both);
+     * the high byte feeds the wrapper's `y` (`(config & 0xFF00) + 0x800`).
      */
     public val eventC4WmShowPortrait: EventHandler = EventHandler { proc ->
         val slot = argv(proc, 1)

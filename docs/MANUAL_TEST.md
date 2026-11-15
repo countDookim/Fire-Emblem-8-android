@@ -13,6 +13,12 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
 
 ## Test now
 
+- **APP-icon:** (1) The launcher icon is a gold shield with a sword on dark blue (original art, not
+  from the game). (2) After importing the ROM (and on each later start), recents shows Eirika's
+  portrait as the app icon. (3) After an import a dialog offers "Add to home screen"; the launcher
+  also has an "Add to home screen" button. Accept the system prompt: the shortcut shows the portrait
+  and starts the app. Limits: needs a launcher that supports pinned shortcuts; recents icon
+  may depend on the Android version; before an import there is no portrait.
 - **D-14 world-map Start skip:** New Game, wait for the world-map narration, press Start once
   while a portrait or text is shown (try a few times, also while a portrait is up). Expected: the
   screen cuts to black at once (no slow fade), the whole chapter title card plays, black, then the

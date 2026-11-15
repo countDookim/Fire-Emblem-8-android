@@ -100,6 +100,50 @@ public object PortraitsExtractor {
         return Output(files, entries)
     }
 
+    /**
+     * The main face of portrait [fid] assembled from its tile sheet: the neutral face without
+     * the mouth frames, the blink frames or the shoulder pieces, as the game's face sprites
+     * (`gSprite_Face96x96` in decomp `src/face.c`) put it together from `img` tiles, which sit
+     * 32 tiles to a row:
+     * the two 64×32 blocks at tile 0x00 and 0x08 (rows 0..3), then two 32×16 blocks at 0x10 and
+     * 0x50 side by side. The result is [FACE_WIDTH]×[FACE_HEIGHT]; palette index 0 is transparent.
+     *
+     * @param rom The ROM image.
+     * @param tableOffset ROM offset of `portrait_data`.
+     * @param fid Portrait id (entry `fid - 1`).
+     * @return The face's indices and its 16 palette colours as opaque ARGB (index 0 is to be
+     *   drawn transparent by the caller).
+     * @throws IllegalArgumentException if the portrait has no face sheet.
+     */
+    public fun face(rom: ByteArray, tableOffset: Int, fid: Int): Face {
+        val e = tableOffset + (fid - 1) * ENTRY_SIZE
+        val img = u32(rom, e)
+        require(img != 0) { "portrait $fid has no face sheet" }
+        val data = decompress(rom, rel(img))
+        val sheet = Tiles.decode4bpp(data, 0, data.size / Tiles.BYTES_4BPP, SHEET_TILES_PER_ROW)
+        val face = IndexedImage(FACE_WIDTH, FACE_HEIGHT)
+        fun block(sx: Int, sy: Int, w: Int, h: Int, dx: Int, dy: Int) {
+            for (y in 0 until h) for (x in 0 until w) face[dx + x, dy + y] = sheet[sx + x, sy + y]
+        }
+        block(0, 0, 64, 32, 0, 0)
+        block(64, 0, 64, 32, 0, 32)
+        block(128, 0, 32, 16, 0, 64)
+        block(128, 16, 32, 16, 32, 64)
+        return Face(face, Bgr555.readPalette(rom, rel(u32(rom, e + 8)), 16))
+    }
+
+    /** An assembled face: [image] indices and the 16 [palette] colours (ARGB, index 0 unused). */
+    public class Face(public val image: IndexedImage, public val palette: IntArray)
+
+    /** Width in pixels of the face [face] assembles. */
+    public const val FACE_WIDTH: Int = 64
+
+    /** Height in pixels of the face [face] assembles. */
+    public const val FACE_HEIGHT: Int = 80
+
+    /** Tiles per row of a portrait's `img` sheet. */
+    private const val SHEET_TILES_PER_ROW = 32
+
     /** Mouth frames: 6 frames of 4×2 tiles. */
     public const val MOUTH_TILES: Int = 48
 

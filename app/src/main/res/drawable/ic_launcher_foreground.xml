@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original artwork: a plain shield with a sword, drawn as simple polygons (no game art). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Shield body -->
+    <path
+        android:fillColor="#E8C45A"
+        android:pathData="M54,30L78,38L78,56C78,68 68,77 54,82C40,77 30,68 30,56L30,38Z" />
+    <path
+        android:fillColor="#B02E3A"
+        android:pathData="M54,35L73,41L73,56C73,65 65,72 54,76C43,72 35,65 35,56L35,41Z" />
+    <!-- Sword: blade, guard, grip -->
+    <path
+        android:fillColor="#F2F4F8"
+        android:pathData="M54,24L58,30L58,64L50,64L50,30Z" />
+    <path
+        android:fillColor="#E8C45A"
+        android:pathData="M42,64L66,64L66,68L42,68Z" />
+    <path
+        android:fillColor="#E8C45A"
+        android:pathData="M51.5,68L56.5,68L56.5,78L51.5,78Z" />
+</vector>

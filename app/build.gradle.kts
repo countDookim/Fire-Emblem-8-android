@@ -55,4 +55,10 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.activity.compose)
     implementation(libs.core.ktx)
+    // JVM unit tests of the pure builders (PortraitIconTest); test scope only, never in the APK.
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
+
+android.testOptions.unitTests.all { it.useJUnitPlatform() }

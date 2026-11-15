@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 657 across 92 decomp files (missing reason: 0).
+Total entries: 658 across 92 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -876,6 +876,14 @@ Total entries: 657 across 92 decomp files (missing reason: 0).
 | `SetBattleMuPaletteByIndex` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | no Manakete/Myrrh actor appears in any Prologue capture, so the non-Myrrh return leaves MU palettes unchanged |
 | `SetBattleMuPalette` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | no Manakete/Myrrh actor appears in any Prologue capture, so the non-Myrrh return leaves MU palettes unchanged |
 
+## src/mapanim_lvup.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ManimLevelUp_DimBgm` | `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | the capture does not record audio |
+| `ManimLevelUp_RestoreBgm` | `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | the capture does not record audio |
+| `ClearManimLevelUpWindow` | `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | the windows are already off when it runs, so no register in the capture depends on it |
+
 ## src/spellassoc.c (3)
 
 | Function | Kotlin file | Reason |
@@ -941,13 +949,6 @@ Total entries: 657 across 92 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `EvtBattleGenerateBallistaReal` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no ballista in the trace |
 | `StartEventBattle` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | the weapon / exp reset is covered by the Prologue battle, the rest of the function is not ported |
-
-## src/mapanim_lvup.c (2)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `ManimLevelUp_DimBgm` | `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | the capture does not record audio |
-| `ManimLevelUp_RestoreBgm` | `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | the capture does not record audio |
 
 ## src/opanim-main.c (2)
 

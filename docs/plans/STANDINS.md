@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 219 across 49 Kotlin files.
+Total entries: 220 across 49 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -33,7 +33,7 @@ Total entries: 219 across 49 Kotlin files.
 | EP-36 | 2 |
 | EP-7 | 2 |
 | IS-2 | 1 |
-| MC-18d | 3 |
+| MC-18d | 4 |
 | PC-10 | 1 |
 | PP-10 | 1 |
 | PP-17 | 1 |
@@ -346,13 +346,14 @@ Total entries: 219 across 49 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `startForecastHelp` | Stand-in until IS-2 (help boxes): nothing happens (the selection's `onHelp`). |
 
-## MC-18d (3)
+## MC-18d (4)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `MapLevelUpAnnouncement` | The rest of `ProcScr_ManimLevelUp` (the stat panel, MC-18d) is the stand-in [Hooks.restOfLevelUp], and the end callback `ManimLevelUp_Clear` is the stand-in [Hooks.clear]. @param engine the proc en... |
-| `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `clear` | Stand-in (MC-18d) for `ManimLevelUp_Clear` (`ResetDialogueScreen`), the end callback. |
-| `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `restOfLevelUp` | Stand-in for the commands after `ManimLevelUp_RestoreBgm` (MC-18d). |
+| `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `MapLevelUpAnnouncement` | The portrait (`StartFace`, `gFaces`) and `ResetDialogueScreen` are the stand-ins in [Hooks] (MC-18d-follow-up). @param engine the proc engine. @param hardware the LCD buffer, BG buffers, OBJ VRAM a... |
+| `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `resetDialogueScreen` | Stand-in (MC-18d-follow-up) for `ResetDialogueScreen` (src/eventscr2.c). |
+| `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `setFaceY` | Stand-in (MC-18d-follow-up) for the write to `gFaces[0]->yPos`. |
+| `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `startFace` | Stand-in (MC-18d-follow-up) for `StartFace(slot, portraitId, x, y, disp)` (src/face.c). |
 
 ## PC-10 (1)
 

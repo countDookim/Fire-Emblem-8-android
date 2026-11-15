@@ -5,7 +5,8 @@ import fe8.game.RomView
 /**
  * Read-only access to `gWMPathData` (ROM 0x08206674, `struct GMapPathData`, [ENTRY_SIZE] bytes
  * each, include/worldmap.h:310): the two end nodes of every world map path (the roads between
- * nodes), plus its tile map patch data.
+ * nodes), plus its tile map patch data. The third field, `movementPath` (offset 8, the points a
+ * unit walks along), is not read here.
  */
 public class WmPathData(private val rom: RomView) {
     /** `gWMPathData[path].node[end]` (`s8`, offset 4 + [end]): the node at end 0 or 1 of [path]. */
@@ -65,7 +66,7 @@ public class WorldMapPath(private val gmData: GmData, private val pathData: WmPa
     /**
      * Transcribed from src/worldmap_path.c: ResetGmStoryNode (not verified: no reference run yet).
      *
-     * Clears `GM_NODE_STATE_CLEARED` on all [GmNodeLinks.NODE_COUNT] nodes
+     * Clears `GM_NODE_STATE_CLEARED` (bit 1) on all [GmNodeLinks.NODE_COUNT] nodes
      * (`WorldMap_CallBeginningEvent` does this just before it runs the beginning event).
      */
     public fun resetGmStoryNode() {
@@ -79,7 +80,11 @@ public class WorldMapPath(private val gmData: GmData, private val pathData: WmPa
      * yet).
      *
      * The first node that has both `GM_NODE_STATE_VALID` and `GM_NODE_STATE_CLEARED` set (as the
-     * original is written, despite its name), or -1.
+     * original is written, despite its name), or -1. Several uses of bit 1 in the decomp read as
+     * "not yet cleared": `GmapScreen2_Loop` shows `iconPreClear` for it, `GmapBaseEntry_80BF8CC`
+     * puts the merge-next-node flag on such a node and `worldmap_path.c:1988` skips a chapter
+     * node that lacks it. So the header name `GM_NODE_STATE_CLEARED` may be inverted (an
+     * inference, not verified); the code here keeps the decomp's.
      */
     public fun getNextUnclearedNode(): Int {
         for (i in 0 until GmNodeLinks.NODE_COUNT) {
@@ -96,9 +101,10 @@ public class WorldMapPath(private val gmData: GmData, private val pathData: WmPa
      *
      * Rebuilds [links] from `gGMData.openPaths` (`AddGmPath` does this after adding a path):
      * each open path adds its two end nodes to each other's connection list. Like the
-     * original, a write for node 0 is repeated into the slot
-     * after the incremented count, and slot writes address the flat table bytes (a full list
-     * spills into the next entry); writes past the table are dropped.
+     * original, a write for node 0 is repeated into the slot after the incremented count (the
+     * decomp's `if (r2 == 0)` line), and slot writes address the
+     * flat table bytes (a full list spills into the next entry); writes past the table are
+     * dropped.
      */
     public fun refreshGmNodeLinksExt(links: GmNodeLinks) {
         val table = links.bytes
@@ -135,8 +141,10 @@ public class WorldMapPath(private val gmData: GmData, private val pathData: WmPa
     }
 
     private companion object {
-        /** `GM_NODE_STATE_VALID`, `GM_NODE_STATE_CLEARED`. */
+        /** `GM_NODE_STATE_VALID`: bit 0 of a node's state, a node the party can visit. */
         const val VALID = 1
+
+        /** `GM_NODE_STATE_CLEARED`: bit 1 of a node's state (see [getNextUnclearedNode]). */
         const val CLEARED = 2
     }
 }

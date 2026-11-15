@@ -21,7 +21,7 @@ import kotlin.math.abs
 
 /**
  * The fields of `struct GmRouteProc` (`ProcScr_GMapRoute`): the state of the proc that draws the
- * paths already travelled on the world map.
+ * paths already opened on the world map (the `gmroute` field of `GmScreenProc`).
  */
 public class GmRouteProc {
     /** `chr` (+0x2C): VRAM byte offset of the route tiles. */
@@ -32,13 +32,15 @@ public class GmRouteProc {
 
     /**
      * `flags` (+0x31): bit 0 redraw the visible tiles, bit 1 rebuild the route tile buffer, bit 2
-     * enabled (the decomp enum `gm_route_flags` has only `GM_ROUTE_FLAG_n` names).
+     * enabled (the decomp enum `gm_route_flags` has only `GM_ROUTE_FLAG_n` names; bits 3-7 are
+     * not used by this file).
      */
     public var flags: Int = 0
 
     /**
      * `unk_32` (+0x32): bit 0 is set while a route fade-in transition runs (set by
-     * `MapRoute_BeginRouteTransition`, cleared when it ends); other bits unused.
+     * `MapRoute_BeginRouteTransition`, cleared by `MapRoute_TransitionEnd` and
+     * `MapRoute_80BC2DC`); other bits unused.
      */
     public var unk32: Int = 0
 
@@ -51,7 +53,7 @@ public class GmRouteProc {
     /** `bgB` (+0x35): the BG the transition fade-in draws on (BG1). */
     public var bgB: Int = 0
 
-    /** `x1` (+0x36, `s8`): the current camera tile column. */
+    /** `x1` (+0x36, `s8`): the current camera tile column (screen x / 8). */
     public var x1: Int = 0
 
     /** `y1` (+0x37, `s8`): the current camera tile row. */
@@ -79,7 +81,10 @@ public class GmRouteProc {
 /**
  * The drawn paths of the world map (`src/worldmap_path.c`, `ProcScr_GMapRoute`): a proc under
  * `ProcScr_GMapScreen` that keeps a BG tilemap (BG2) in step with the scrolling map by copying
- * the visible part of the route tile buffer `gUnknown_02019D00`.
+ * the visible part of the route tile buffer `gUnknown_02019D00`. That buffer holds the tile
+ * patches (`gfxData` of `gWMPathData`) of every path in `gGMData.openPaths`, i.e. the roads the
+ * story has opened. `MapRoute_BeginRouteTransition` (fade in a newly opened road),
+ * `MapRoute_80BC2DC`, `sub_80BC3D4`, `sub_80BC404` and `sub_80BBF1C` are not ported.
  *
  * @param engine the proc scheduler
  * @param hardware BG tilemap buffers, BG sync flags and the LCD registers
@@ -98,8 +103,8 @@ public class WorldMapRoute(
     private val pathData = WmPathData(rom)
 
     /**
-     * `gUnknown_02019D00`: the 60 x 40 tilemap of every open path, in world map tiles; the visible
-     * 32 x 21 part is copied to BG2.
+     * `gUnknown_02019D00`: the 60 x 40 tilemap of every open path, in world map tiles (8x8
+     * pixels, so a 480 x 320 pixel map); the visible 31 x 21 part is copied to BG2.
      */
     public val buffer: ShortArray = ShortArray(BUFFER_ENTRIES)
 
@@ -143,8 +148,8 @@ public class WorldMapRoute(
     /**
      * Ported from src/worldmap_path.c: StartGMapRoute
      *
-     * Starts the route proc under [parent] (`gGMData.openPaths` is the path list). The decomp
-     * takes the path list as a parameter; here it is always `gGMData.openPaths`.
+     * Starts the route proc under [parent] (the world map screen proc). The decomp takes the
+     * path list `pPaths` as a parameter; here it is always `gGMData.openPaths`.
      *
      * @param chr VRAM byte offset of the route tiles
      * @param pal palette bank of the route tiles
@@ -162,9 +167,10 @@ public class WorldMapRoute(
      * Transcribed from src/worldmap_path.c: sub_80BBBF4 (`copyTilePatches` here; not verified: the
      * Prologue has no open paths, so the route buffer is all zero in every dump)
      *
-     * Copies the tile patches at ROM address [data] (x, y, width, rows, then `width * rows`
-     * halfwords; terminated by 0xFF) into a tilemap [buf] [size] entries wide, adding [oam2] to
-     * each tile (the tile index and palette bank of the route graphics).
+     * Copies the tile patches at ROM address [data] into a tilemap [buf] [size] entries wide.
+     * Each patch is x, y, width, rows (bytes), then `width * rows` halfwords stored row by row at
+     * (x, y); a first byte of 0xFF ends the list. [oam2] is added to every tile (the tile index
+     * and palette bank of the route graphics, as built by [rebuildBuffer]).
      */
     public fun copyTilePatches(data: Int, buf: ShortArray, size: Int, oam2: Int) {
         var at = data
@@ -187,7 +193,9 @@ public class WorldMapRoute(
      * Transcribed from src/worldmap_path.c: sub_80BBC54 (`rebuildBuffer` here; not verified: only
      * the buffer clear is observable, the open path list is empty in the Prologue)
      *
-     * Clears the route tile buffer and redraws every open path's tile patches into it.
+     * Clears the route tile buffer and redraws every open path's tile patches into it. The
+     * tile base is the route tiles' VRAM offset in tiles (`chr / CHR_SIZE`) with the palette
+     * bank in bits 12-15 of the tile entry.
      */
     public fun rebuildBuffer(proc: GmRouteProc) {
         val oam2Base = ((proc.chr / CHR_SIZE) or (proc.pal shl 12)) and 0xFFFF
@@ -203,8 +211,10 @@ public class WorldMapRoute(
      * the route buffer is all zero in the Prologue, so the BG2 tilemap cannot tell a wrong copy
      * from none)
      *
-     * Copies the 31 x 21 visible tiles at tile position ([a], [b]) from the route buffer into
-     * the tilemap of BG [bg], wrapping at 32 columns and rows (the BG tilemap is 32 x 32).
+     * Copies the 31 x 21 visible tiles at tile position ([a], [b]) (camera column and row)
+     * from the route buffer into the tilemap of BG [bg], wrapping at 32 columns and rows (the
+     * BG tilemap is 32 x 32). Near the bottom of the buffer (row 19 on) it stops at row 40
+     * instead of copying 21 rows.
      */
     public fun copyVisibleTiles(a: Int, b: Int, bg: Int) {
         val terminator = if (b < 19) b + 21 else 40
@@ -231,12 +241,19 @@ public class WorldMapRoute(
      * Transcribed from src/worldmap_path.c: sub_80BBDA4 (`copyScrollEdge` here; not verified: the
      * route buffer is all zero in the Prologue and the camera never moves one tile at a time)
      *
-     * Draws the one new column ([a1] against [r4]) and row ([r8] against [r9]) that scrolling by
-     * one tile exposes into the tilemap of BG [sp20]. [a1] / [r8] are the new camera tile column
-     * / row, [r4] / [r9] the previous ones; the parameter names are the decomp's register names.
+     * Draws the one new column and row that scrolling by one tile exposes into the tilemap of
+     * BG [bg]. A column is drawn when [newColumn] differs from [oldColumn]: the far right one
+     * (`newColumn + 30`) when scrolling right, else the left one. A row is drawn when [newRow]
+     * differs from [oldRow]: the bottom one (`newRow + 20`) when scrolling down, else the top
+     * one. The decomp's parameter names are the registers `a1`, `r8`, `r4`, `r9` and `sp20`, in
+     * that order.
      */
-    public fun copyScrollEdge(a1: Int, r8: Int, r4: Int, r9: Int, sp20: Int) {
-        val bgBuf = hardware.mapBuffer(sp20)
+    public fun copyScrollEdge(newColumn: Int, newRow: Int, oldColumn: Int, oldRow: Int, bg: Int) {
+        val a1 = newColumn
+        val r8 = newRow
+        val r4 = oldColumn
+        val r9 = oldRow
+        val bgBuf = hardware.mapBuffer(bg)
         val r8u = r8 and 0xFFFF
         if (a1 != r4) {
             val r1: Int
@@ -288,8 +305,10 @@ public class WorldMapRoute(
     /**
      * Ported from src/worldmap_path.c: sub_80BBEB8 (`routeInit` here)
      *
-     * Route proc init: enables it, reads the BG1 priority and the screen position and builds the
-     * tile buffer. The previous camera tile is set to -2 so the first frame redraws everything.
+     * Route proc init: enables it (flag bit 2), sets the route BG to BG2 and the transition BG
+     * to BG1, reads BG1's priority (to restore after a transition) and the screen position and
+     * builds the tile buffer. The previous camera tile is set to -2 so the first frame redraws
+     * everything (a jump of two tiles), and flag bits 0 and 1 request a redraw and a rebuild.
      */
     public fun routeInit(s: GmRouteProc, proc: Proc) {
         s.flags = 4
@@ -309,8 +328,9 @@ public class WorldMapRoute(
     /**
      * Ported from src/worldmap_path.c: sub_80BBF60 (`routeLoop` here)
      *
-     * Per frame: follows the screen position, draws the newly visible column and row (or all if
-     * it moved two or more tiles), and honours the rebuild (bit 1) and redraw-all (bit 0) flags.
+     * Per frame: follows the screen position (in tiles, x / 8 and y / 8), draws the newly
+     * visible column and row (or all if it moved two or more tiles), and honours the rebuild
+     * (bit 1) and redraw-all (bit 0) flags, then scrolls BG2 to the screen position.
      * The proc fields and flags are verified per step; which draw runs and the BG2 scroll write
      * are not observable in the Prologue (zero route buffer, BG2 scroll reset by `GmapRm`).
      */
@@ -348,7 +368,8 @@ public class WorldMapRoute(
      * transition never starts in the Prologue capture)
      *
      * First step of the fade-in: clears the transition BG and plays `SONG_310` (a sound effect;
-     * the decomp gives the song no name).
+     * the decomp gives the song no name). The `Boolean` result mirrors the decomp's `int` return
+     * of 0 for `PROC_CALL_2`.
      */
     public fun mapRouteStartTransition(s: GmRouteProc): Boolean {
         hardware.fill(hardware.mapBuffer(s.bgB), 0)
@@ -362,8 +383,9 @@ public class WorldMapRoute(
      * verified: the transition never starts in the Prologue capture)
      *
      * Second step of the fade-in: sets alpha blending (coefficients 0 and 0x10) with the
-     * transition BG as first target and BG3 (`BLDCNT_TGT2_BG3`) as second, then draws the whole
-     * route into the transition BG at the screen position.
+     * transition BG as first target and BG3 (`BLDCNT_TGT2_BG3`) as second, then rebuilds the
+     * route buffer (now with the newly opened path) and draws it into the transition BG at the
+     * screen position.
      */
     public fun routeTransitionSetup(s: GmRouteProc, proc: Proc): Boolean {
         val lcd = hardware.lcd
@@ -381,7 +403,8 @@ public class WorldMapRoute(
      * Transcribed from src/worldmap_path.c: MapRoute_EnableBGSyncs (not verified: the transition
      * never starts in the Prologue capture)
      *
-     * Third step: gives the transition BG the priority of BG3 and queues both BGs for upload.
+     * Third step: gives the transition BG the priority of BG3 (so it blends with it) and
+     * queues both BGs for upload.
      */
     public fun mapRouteEnableBgSyncs(s: GmRouteProc): Boolean {
         hardware.lcd.bgCnt[s.bgB] =
@@ -394,8 +417,9 @@ public class WorldMapRoute(
      * Transcribed from src/worldmap_path.c: MapRoute_TransitionLoop (not verified: the
      * transition never starts in the Prologue capture)
      *
-     * One frame of the fade-in: ramps the blend coefficients over `unk_3c` frames, then copies the
-     * transition BG's tilemap (0x800 bytes) onto the route BG and breaks.
+     * One frame of the fade-in: ramps the blend coefficients (the transition BG's share up
+     * from 0, BG3's down from 0x10) over `unk_3c` frames, then copies the transition BG's tilemap
+     * (0x800 bytes) onto the route BG and breaks.
      */
     public fun mapRouteTransitionLoop(proc: Proc) {
         val s = state(proc)
@@ -431,14 +455,14 @@ public class WorldMapRoute(
         return false
     }
 
-    /** `CpuCopy16`: copies [count] tilemap entries. */
+    /** `CpuCopy16`: copies [count] tilemap entries from [src] at [from] to [dst] at [to]. */
     private fun copy(src: ShortArray, from: Int, dst: ShortArray, to: Int, count: Int) {
         src.copyInto(dst, to, from, from + count)
     }
 
     /** Layout constants. */
     public companion object {
-        /** `PROC_MARK_WMSTUFF`. */
+        /** `PROC_MARK_WMSTUFF`: the proc mark of world map procs. */
         public const val PROC_MARK_WMSTUFF: Int = 8
 
         /** `SONG_310` (`include/constants/songs.h`), played when a route transition starts. */

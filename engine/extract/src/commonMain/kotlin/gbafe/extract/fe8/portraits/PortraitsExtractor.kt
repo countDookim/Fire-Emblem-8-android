@@ -133,7 +133,12 @@ public object PortraitsExtractor {
     }
 
     /** An assembled face: [image] indices and the 16 [palette] colours (ARGB, index 0 unused). */
-    public class Face(public val image: IndexedImage, public val palette: IntArray)
+    public class Face(
+        /** The [FACE_WIDTH] x [FACE_HEIGHT] face as palette indices (0 is transparent). */
+        public val image: IndexedImage,
+        /** The portrait's 16 colours as ARGB; index 0 is the transparent colour. */
+        public val palette: IntArray,
+    )
 
     /** Width in pixels of the face [face] assembles. */
     public const val FACE_WIDTH: Int = 64

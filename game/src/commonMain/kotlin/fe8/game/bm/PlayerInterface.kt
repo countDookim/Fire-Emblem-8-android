@@ -716,6 +716,7 @@ public class PlayerInterface(
         hw.enableBgSyncByMask(BG0_SYNC_BIT or BG1_SYNC_BIT)
     }
 
+    /** The chapter table the goal window reads its text and goal type from. */
     private val chapters by lazy { ChapterData(rom) }
 
     /**
@@ -724,9 +725,12 @@ public class PlayerInterface(
      * boss, so only the one-line window runs; their second line is [Hooks.drawGoalSecondLine])
      *
      * Starts the window without a position, reserves two 8-tile text strips, starts the green
-     * text colour proc under the window, and draws the goal text (the chapter's, or "Defeat
-     * enemy" in a skirmish) centred in the first strip. A seize, defeat boss or special goal has
-     * one line (`unitClock` 0); the others fill the second strip and have two (`unitClock` 1).
+     * text colour proc under the window, and draws the goal text (the chapter's
+     * `goalWindowTextId`, or `MSG_19E` in a skirmish) centred in the first strip. A
+     * `GOAL_TYPE_SEIZE`, `GOAL_TYPE_DEFEAT_BOSS` or `GOAL_TYPE_SPECIAL` goal has one line
+     * (`unitClock` 0); `GOAL_TYPE_DEFEAT_ALL` and `GOAL_TYPE_DEFENSE` fill the second strip and
+     * have two (`unitClock` 1). A skirmish counts as `GOAL_TYPE_DEFEAT_ALL`. The chapter's
+     * `goalWindowDataType` is read at 0x8C of its table entry and the text id at 0x8A.
      */
     public fun goalInit(proc: Proc) {
         val state = stateOf(proc)
@@ -764,8 +768,10 @@ public class PlayerInterface(
      * Ported from src/player_interface.c: sub_808D200
      * (the two-line box is not verified: the Prologue's goal window has one line)
      *
-     * Draws the goal box into [scratch]: clears the 11x9 areas, then the one-line or two-line
-     * frame into the BG1 side and the text strip(s) into the BG0 side.
+     * Draws the goal box into [scratch] from column 20: clears the BG1 side from row 10 and the BG0
+     * side from row 12 (`TileMap_FillRect` with 11 by 9 clears 12 by 10, which reaches two rows
+     * past the BG0 buffer, see [UiTmScratch.SIZE]), then draws the one-line or two-line frame
+     * (by `unitClock`) into the BG1 side and the text strip(s) into the BG0 side.
      */
     public fun drawGoalWindow(state: PlayerInterfaceState) {
         fillRect(scratch.b, tmIndex(20, 10), GOAL_CLEAR_WIDTH, GOAL_CLEAR_HEIGHT, 0)
@@ -785,8 +791,9 @@ public class PlayerInterface(
     /**
      * Ported from src/player_interface.c: GoalDisplay_Loop_OnSideChange
      *
-     * Picks the corner from the cursor's quadrant; waits if the terrain window holds it.
-     * Otherwise draws the goal box, remembers the cursor and moves on to the slide in.
+     * Picks the goal window's corner from the cursor's quadrant; waits if the terrain window
+     * holds it. Otherwise draws the goal box, remembers the cursor (as both current and previous
+     * position) and moves on to the slide in. The contents stay hidden until the slide in ends.
      */
     public fun goalOnSideChange(proc: Proc) {
         val state = stateOf(proc)
@@ -817,12 +824,16 @@ public class PlayerInterface(
 
     /**
      * Ported from src/player_interface.c: sub_808D514
-     * (quadrant corners other than the top right are not verified: see [goalSlideIn])
+     * (the corners other than the top right are not verified; the left corners cannot occur,
+     * since `xGoal` is +1 in every row of the config table)
      *
-     * Blanks the goal window's 12x6 area of BG0 and BG1 in the corner [quadrant]'s config says
-     * (columns 0 or 19, rows 0 or 14), then copies [rows] rows of the box from [scratch] in
-     * (from the top or bottom edge, as the corner needs), and flags BG0 and BG1 for sync.
-     * [lines] is the proc's `unitClock` (0 one-line box, 1 two-line box).
+     * Blanks the goal window's area of BG0 and BG1 in the corner the config entry of [quadrant]
+     * (a cursor quadrant) gives (`TileMap_FillRect` with 12 by 6 clears 13 columns by 7 rows,
+     * from column 0 or 19 and row 0 or 14), then copies [rows] rows of the box from [scratch]
+     * into it and flags BG0 and BG1 for sync. A top corner shows the box's lowest [rows] rows; a
+     * bottom corner shows its top [rows] rows, starting at row `20 - rows` (`22 - rows` for the
+     * one-line box). [lines] is the proc's `unitClock` (0
+     * one-line box, 1 two-line box).
      */
     public fun copyGoalWindowToBg(quadrant: Int, rows: Int, lines: Int) {
         val x = CONFIG[quadrant * CONFIG_STRIDE + CONFIG_X_GOAL]
@@ -945,11 +956,14 @@ public class PlayerInterface(
     private fun unitAtCursor(): Int =
         units.unitOffset(hooks.unitIdAt(bm.playerCursorX, bm.playerCursorY))
 
+    /** `unit->curHP` (s8) of the unit at byte offset [o]. */
     private fun unitCurrentHp(o: Int): Int = StructCodec.s8(units.bytes, o + UNIT_CUR_HP)
 
+    /** `unit->statusIndex` (the low 4 bits of byte 0x30); 0 (none) for no unit, offset -1. */
     private fun unitStatusIndex(o: Int): Int =
         if (o < 0) 0 else StructCodec.u8(units.bytes, o + UNIT_STATUS) and 0xF
 
+    /** The unit window field [field] (`CONFIG_X_MINIMUG`, ...) of the window's cursor quadrant. */
     private fun mmbConfig(state: PlayerInterfaceState, field: Int): Int =
         CONFIG[state.cursorQuadrant * CONFIG_STRIDE + field]
 
@@ -1011,8 +1025,10 @@ public class PlayerInterface(
      * Ported from src/player_interface.c: ApplyUnitMapUiFramePal
      * (the unknown-faction branch is not verified: a unit's faction is blue, green or red)
      *
-     * Loads the window frame palette of [faction] (0 blue, 0x40 green, 0x80 red) into BG
-     * palette bank [palId].
+     * Loads the window frame palette of [faction] (`FACTION_BLUE` 0, `FACTION_GREEN` 0x40,
+     * `FACTION_RED` 0x80, as `UNIT_FACTION` gives it) into BG palette bank [palId]. For any other
+     * value the original calls `nullsub_8` and then `ApplyPalette` with a NULL palette; this
+     * port leaves the bank unchanged.
      */
     public fun applyUnitMapUiFramePal(faction: Int, palId: Int) {
         val pal = when (faction) {
@@ -1028,8 +1044,9 @@ public class PlayerInterface(
     /**
      * Ported from src/player_interface.c: ClearUnitMapUiStatus
      *
-     * Writes the seven status cells at [at] of [tm] for a unit without a status shown: the HP
-     * label tiles, blanks, and the "/" tile.
+     * Writes the seven status cells at [at] of [tm] for the HP half of the unit window (palette
+     * 2): the two HP label tiles (0x120, 0x121), two blanks, the separator tile 0x13E between the
+     * current and maximum HP, and two blanks. The digits themselves are sprites.
      */
     public fun clearUnitMapUiStatus(tm: ShortArray, at: Int) {
         tm[at] = 0x2120
@@ -1051,10 +1068,11 @@ public class PlayerInterface(
      * units are all NONE, so only the early return for NONE is compared. The original leaves the
      * offset undefined for status 12, 14 and 15; they are read as the poison icon)
      *
-     * Writes the five status icon tiles (tile 0x16F on) and the remaining duration digit at [at]
-     * of [tm] for the unit at [unitOffset] after copying the icon graphics of its status to BG
-     * tile 0x16F; returns without drawing for no unit and for the statuses NONE, sickness and
-     * recovery.
+     * Writes the five status icon tiles (tile 0x16F on, palette 0) and the remaining duration
+     * digit (`statusDuration`, tile 0x128 plus the turns, palette 1) at [at] of [tm] for the unit
+     * at [unitOffset], after copying the 5-tile (0xA0 bytes) icon graphics of its status from
+     * `gGfx_StatusText` to BG tile 0x16F; returns without drawing for no unit and for
+     * `UNIT_STATUS_NONE`, `UNIT_STATUS_SICK` and `UNIT_STATUS_RECOVER`.
      */
     public fun putUnitMapUiStatus(tm: ShortArray, at: Int, unitOffset: Int) {
         if (unitOffset < 0) return
@@ -1087,10 +1105,12 @@ public class PlayerInterface(
      * A [unitOffset] of -1 stands for the NULL unit the original passes when the
      * cursor is on an empty tile: its status byte is read as 0)
      *
-     * Every 64 frames of [PlayerInterfaceState.unitClock] it refreshes the window's status cells
-     * (the HP digits at clock 0 mod 128, the status at 64 mod 128); then, unless the window's
-     * contents are hidden, pushes the four HP digit sprites (current and maximum HP, a tens
-     * digit left blank when 0).
+     * Every 64 frames of [PlayerInterfaceState.unitClock] it swaps the status cells: at clock 0
+     * mod 128 it reads the current and maximum HP into the digit fields (two dashes for 100 or
+     * more) and draws the HP labels, at 64 mod 128 it draws the status icon. (A unit in
+     * `UNIT_STATUS_RECOVER` holds the clock at 0, so the HP always shows.) Then, unless the
+     * window's contents are hidden or the status icon is showing, it pushes the four HP digit
+     * sprites (current and maximum HP; the tens digit is skipped for a one-digit number).
      */
     public fun unitMapUiUpdate(state: PlayerInterfaceState, unitOffset: Int) {
         var frameCount = state.unitClock
@@ -1189,10 +1209,12 @@ public class PlayerInterface(
     /**
      * Ported from src/player_interface.c: DrawUnitMapUi
      *
-     * Draws the unit window for the unit at [unitOffset] into [scratch]: the name centred in
-     * black, the mini portrait (tile 0xF0, palette bank 4), the status cells and HP digits
-     * (through [unitMapUiUpdate]), the HP bar, the frame (BG1) with the faction palette in
-     * bank 3. Resets the unit clock and places the HP digits by the window's corner.
+     * Draws the unit mini-box for the unit at [unitOffset] into [scratch]: the name centred in
+     * black, the mini portrait (`GetUnitMiniPortraitId`, one more when `US_BIT23` is set; BG tile
+     * 0xF0, palette bank 4), the status cells and HP digits (through [unitMapUiUpdate]), the HP
+     * bar, and the frame (BG1 side) with the unit's faction palette in bank 3. Resets the unit
+     * clock and places the HP digit sprites by the window's corner (tile columns 5 or 23, rows 3
+     * or 17).
      */
     public fun drawUnitMapUi(state: PlayerInterfaceState, unitOffset: Int) {
         val a = scratch.a

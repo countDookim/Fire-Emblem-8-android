@@ -17,7 +17,7 @@ import gbafe.render.BgHardware
  * proc's end callback `WorldMap_Destruct` and `EndWM`, which `GameControl` calls once the blocking
  * [WorldMapMain.wrapperScript] is gone.
  *
- * D11-wm9 wires [postBeginningEvent], [callIntroEvent], [waitForChapterIntroEvents],
+ * `WorldMapBoot` wires [postBeginningEvent], [callIntroEvent], [waitForChapterIntroEvents],
  * [hideEverything], [resetWorldMapScreen] and [destruct] into `ProcScr_WorldMapMain` (through
  * [WorldMapMain.MainHooks] and [WorldMapMainScript]) and [endWm] into
  * `GameControl.Hooks.endWorldMap`.
@@ -63,9 +63,13 @@ public class WorldMapExit(
      * Ported from src/worldmap_main.c: WorldMap_PostBeginningEvent
      *
      * Runs once the beginning event is over (`PROC_REPEAT`: it returns while the event engine
-     * exists). Ends the portrait, entry band and map procs, then either jumps to the chapter
-     * intro event (label 15: the event skipped the world map or asked for no fade, as the
-     * Prologue's does) or centres the camera on the leader and goes on (`Proc_Break`).
+     * exists). Clears the route line ([Hooks.mapRoute80BC2DC]), then either resets the blend
+     * (fade allowed) or blanks the display (`GM_STATE_NOFADE`), and hides the portraits and text
+     * and ends the portrait controller, entry band and map procs. Then it either jumps to the
+     * chapter intro event (label 15, after fading the music out) when the event set
+     * `GM_STATE_SKIPPED` or `GM_STATE_NOFADE`, remembering the leader's node in `unk_3e`, or
+     * puts the cursor on the leader's node, centres the camera on it and goes on
+     * (`Proc_Break`).
      */
     public fun postBeginningEvent(proc: Proc) {
         if (events.eventEngineExists()) return
@@ -124,10 +128,12 @@ public class WorldMapExit(
     /**
      * Ported from src/worldmap_main.c: WorldMap_CallIntroEvent
      *
-     * Sets `gPlaySt.chapterIndex` to the chapter of the node the world map was left from (the
-     * leader's own node when it stands on a dungeon), runs the chapter intro event and removes
-     * the random monsters. `GmMu_80BE108` (clears flag 3 of `GMapMu` slot 0) and
-     * `WmRemoveRandomMonsters` are hooks.
+     * Sets `gPlaySt.chapterIndex` to the chapter of the node in `unk_3e` (the leader's node
+     * [postBeginningEvent] recorded) and clears `GM_STATE_MONSGEN`, or, when the leader stands
+     * on a dungeon node (`GMAP_NODE_PLACEMENT_DUNGEON`), to that node's chapter. Then it runs the
+     * chapter intro event, clears `sprite_disp` and removes the random monsters.
+     * `GmMu_80BE108` (sets flag 3 of `GMapMu` slot 0 to 0) and `WmRemoveRandomMonsters` are
+     * hooks.
      */
     public fun callIntroEvent(proc: Proc) {
         val state = proc.state as WorldMapMainProc
@@ -147,8 +153,8 @@ public class WorldMapExit(
     /**
      * Ported from src/worldmap_main.c: WorldMap_WaitForChapterIntroEvents
      *
-     * `PROC_REPEAT`: waits for the intro event, then blanks the display and ends the portrait,
-     * entry band and map procs.
+     * `PROC_REPEAT` of label 15: waits for the intro event, then blanks the display, hides the
+     * portraits and text and ends the portrait controller, entry band and map procs.
      */
     public fun waitForChapterIntroEvents(proc: Proc) {
         if (events.eventEngineExists()) return
@@ -175,9 +181,10 @@ public class WorldMapExit(
      * Transcribed from src/worldmap_main.c: ResetWorldMapScreen (not verified: the battle map
      * start rewrites the registers before the next dump)
      *
-     * Blanks the display, clears the blend (second target: BG3 and OBJ, from
-     * `SetBlendTargetB(0, 0, 0, 1, 1)`) and fades the music and sound effects out; the last
-     * step of `ProcScr_WorldMapMain` before it ends.
+     * Blanks the display, sets blend effect none with no first target and BG3 and OBJ as the
+     * second target, and fades the music and sound effects out. Label 25 of
+     * `ProcScr_WorldMapMain` (reached from label 15), after a 16-frame sleep and before
+     * `NULL_080B9F08` and the end of the proc.
      */
     public fun resetWorldMapScreen() {
         hardware.lcd.setDispEnable(0, 0, 0, 0, 0)
@@ -193,7 +200,8 @@ public class WorldMapExit(
      *
      * The end callback of `ProcScr_WorldMapMain`: ends the cursor, screen and node icon procs,
      * removes the HBlank handlers, ends the talk, resets the unit sprites, sets the blend to
-     * black and clears the `skip_wm`, `no_fade` and `state_0` bits of `gGMData`.
+     * black (darken effect, EVY 0x10), ends the player interface and the minimap and clears the
+     * `skip_wm`, `no_fade` and `state_0` bits of `gGMData`.
      */
     public fun destruct(@Suppress("UNUSED_PARAMETER") proc: Proc) {
         hooks.endScreenProcs()
@@ -226,7 +234,8 @@ public class WorldMapExit(
     /**
      * The callees that are not ported or live outside the world map code. All default to nothing;
      * `WorldMapBoot` connects the ones the Prologue needs, the others are marked on their hook.
-     * "M6-I" and "D11-wire-a" are the plan items that will port the stand-ins.
+     * M6-I (the free-roam world map) and M6-H (sound effects) are the milestones that will port
+     * the stand-ins.
      */
     public class Hooks(
         /**
@@ -237,8 +246,9 @@ public class WorldMapExit(
         /** `Sound_FadeOutBGM(speed)`: `WorldMapBoot` connects `SoundWrapper.fadeOutBgm`. */
         public val fadeOutBgm: (Int) -> Unit = {},
         /**
-         * `Sound_FadeOutSE(speed)`: stand-in until D11-wire-a (the sound effect players are not in
-         * `SoundWrapper` yet; the Prologue leaves through the other branch of `destruct`).
+         * `Sound_FadeOutSE(speed)`: stand-in until M6-H (the sound effect players are not in
+         * `SoundWrapper` yet; no visible effect in the Prologue, which calls it in the skip branch
+         * of [postBeginningEvent] and in [resetWorldMapScreen]).
          */
         public val fadeOutSe: (Int) -> Unit = {},
         /** `GmMu_80BE108(proc->gm_mu, index, flag)`: `WorldMapBoot` connects `WorldMapMu`. */
@@ -280,7 +290,10 @@ public class WorldMapExit(
          * `EventTextTalkHost.clearTalkBubble` and `resetAllFaces`.
          */
         public val resetDialogueScreen: () -> Unit = {},
-        /** `APProc_DeleteAll()`: `WorldMapBoot` frees the handles of the world map's animation player. */
+        /**
+         * `APProc_DeleteAll()`: `WorldMapBoot` frees the handles of the world map's animation
+         * player.
+         */
         public val apProcDeleteAll: () -> Unit = {},
     )
 
@@ -294,10 +307,10 @@ public class WorldMapExit(
         /** `GM_STATE_NOFADE` (`no_fade`). */
         const val GM_STATE_NOFADE = 0x80
 
-        /** `state_0`, `skip_wm` and `no_fade`. */
+        /** `GM_STATE_0` (`state_0`), `skip_wm` and `no_fade`: cleared by `WorldMap_Destruct`. */
         const val EXIT_CLEARED_BITS = 0x01 or GM_STATE_SKIPPED or GM_STATE_NOFADE
 
-        /** `PROC_LABEL(15)` of `ProcScr_WorldMapMain` (worldmap_main.c:911). */
+        /** `PROC_LABEL(15)` of `ProcScr_WorldMapMain` (worldmap_main.c:912). */
         const val LABEL_INTRO_EVENT = 15
 
         /** `GMAP_NODE_PLACEMENT_DUNGEON` (include/worldmap.h:324): a dungeon node. */

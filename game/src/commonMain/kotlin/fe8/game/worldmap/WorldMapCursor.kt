@@ -19,10 +19,10 @@ import gbafe.render.SpriteLayers
  * `struct GmapCursorProc` (include/worldmap.h:152).
  */
 public class GmapCursorProc {
-    /** `chr` (+0x2C): VRAM offset of the cursor tiles. */
+    /** `chr` (+0x2C): byte offset of the cursor tiles in OBJ VRAM (0x12C0 from the main proc). */
     public var chr: Int = 0
 
-    /** `pal` (+0x30): the OBJ palette bank. */
+    /** `pal` (+0x30): the OBJ palette bank of the cursor sprite (4 from the main proc). */
     public var pal: Int = 0
 
     /** `unk_31` (+0x31): "set to 0 on init and unreferenced" (decomp comment). */
@@ -31,7 +31,11 @@ public class GmapCursorProc {
     /** `unk_32` (+0x32, `s8`): the last `gGMData.sprite_disp` (the cursor is shown while > 0). */
     public var unk32: Int = 0
 
-    /** `frameIdx` (+0x33, `s8`): index into the cursor sprite table. */
+    /**
+     * `frameIdx` (+0x33, `s8`): index into `gUnknown_08206498`, whose two entries differ only in
+     * tile offset (0 or 2). Only `GmapCursor_Init` writes it (0), so the cursor always uses the
+     * first.
+     */
     public var frameIdx: Int = 0
 
     /** `unk_34` (+0x34): index (0..15) into the blink palette `gPal_08A97ACC`. */
@@ -52,7 +56,7 @@ public class GmapCursorProc {
     /** `unk_44` (+0x44): `unk_3c` as of the last frame the cursor was drawn; never read. */
     public var unk44: Int = 0
 
-    /** `unk_48` (+0x48, `u16`): set to 0x300 on init (meaning unknown). */
+    /** `unk_48` (+0x48, `u16`): set to 0x300 on init and never read (meaning unknown). */
     public var unk48: Int = 0
 
     /** `pScreenProc` (+0x4C): the world map screen proc; its scroll offsets the cursor. */
@@ -99,7 +103,12 @@ public class WorldMapCursor(
     /**
      * Ported from src/worldmap_cursor.c: NewGmapCursor
      *
-     * Starts the proc in root tree [rootIndex].
+     * Starts the cursor proc in root tree [rootIndex] (the decomp's `parent` argument;
+     * the world map's `WorldMap_Init` passes `PROC_TREE_5`).
+     *
+     * @param chr byte offset of the cursor tiles in OBJ VRAM
+     * @param pal OBJ palette bank
+     * @param screen the world map screen proc whose scroll the cursor subtracts
      */
     public fun newGmapCursor(rootIndex: Int, chr: Int, pal: Int, screen: GmScreenProc): Proc {
         val proc = engine.start(script, rootIndex)
@@ -113,8 +122,8 @@ public class WorldMapCursor(
     /**
      * Ported from src/worldmap_cursor.c: GmapCursor_Init
      *
-     * Clears the fields and sets the blink color (`gPal_08A97ACC[0]`) in OBJ palette 4, color
-     * 14.
+     * Clears the fields (`unk_48` to 0x300, the blink timer `unk_35` to 4) and sets the blink
+     * color (`gPal_08A97ACC[0]`) in OBJ palette 4, color 14.
      */
     public fun gmapCursorInit(proc: GmapCursorProc) {
         proc.unk31 = 0
@@ -133,11 +142,11 @@ public class WorldMapCursor(
     /**
      * Ported from src/worldmap_cursor.c: GmapCursor_Loop
      *
-     * Follows `gGMData.sprite_disp`, `ix` and `iy`. While `sprite_disp > 0` it draws the cursor
-     * (16x16 object, layer 4, `frameIdx` picks tile offset 0 or 2, 16 above the position) and
-     * every 4 frames steps the blink color through the 16 colors of `gPal_08A97ACC`. The drawing
-     * and blinking never run in the prologue capture (`sprite_disp` stays 0) and are not
-     * verified.
+     * Copies `gGMData.sprite_disp`, `ix` and `iy` into the proc. While `sprite_disp > 0` it
+     * draws the cursor (`gObject_16x16` in sprite layer 4, at the world map position minus the
+     * screen scroll and 16 pixels up, tile offset from `frameIdx`, OAM priority 2) and every 4
+     * frames steps the blink color through the 16 colors of `gPal_08A97ACC`. The drawing and
+     * blinking never run in the Prologue capture (`sprite_disp` stays 0) and are not verified.
      */
     public fun gmapCursorLoop(proc: GmapCursorProc) {
         proc.unk32 = gmData.spriteDisp.toByte().toInt()
@@ -148,11 +157,11 @@ public class WorldMapCursor(
         val x = screen.x
         val y = screen.y
         // gUnknown_08206498[frameIdx] (worldmap_cursor.c): (tile offset 0 or 2, gObject_16x16,
-        // x 0, y 16).
+        // x 0, y 16). The last argument is OAM attribute 2: tile number + OAM2_PAL + OAM2_LAYER(2).
         layers.put(
             4,
             (gmData.ix shr 8) - x,
-            (gmData.iy shr 8) - y - 16,
+            (gmData.iy shr 8) - y - SPRITE_Y_OFFSET,
             rom.objN(OBJECT_16X16),
             (proc.chr / CHR_SIZE) + (proc.frameIdx * 2) + (proc.pal shl 12) + (2 shl 10),
         )
@@ -167,7 +176,10 @@ public class WorldMapCursor(
         proc.unk44 = proc.unk3c
     }
 
-    /** `PAL_OBJ_COLOR(4, 14) = gPal_08A97ACC[index]` and `EnablePaletteSync`. */
+    /**
+     * Sets the blinking color, `PAL_OBJ_COLOR(4, 14) = gPal_08A97ACC[index]`, and requests a
+     * palette sync (`EnablePaletteSync`).
+     */
     private fun setBlinkColor(index: Int) {
         hardware.palette[OBJ_PALETTE + 4 * 16 + 14] = rom.u16(BLINK_PALETTE + 2 * index).toShort()
         hardware.enablePaletteSync()
@@ -180,6 +192,9 @@ public class WorldMapCursor(
 
         /** `gObject_16x16`. */
         public const val OBJECT_16X16: Int = 0x08590F4C
+
+        /** `gmapCursorLoop`: the cursor sits 16 pixels above its position (`y` of the table). */
+        private const val SPRITE_Y_OFFSET = 16
 
         /** Palette buffer index of the OBJ palettes (`PAL_OBJ_COLOR`). */
         private const val OBJ_PALETTE = 0x100

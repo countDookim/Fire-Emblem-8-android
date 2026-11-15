@@ -15,17 +15,18 @@ public fun interface PaletteLineWriter {
 
 /**
  * The scanline-effect state of the world map (`src/worldmap_hb.c`): a double-buffered table of
- * per-scanline register values (`gUnknown_0201BE32`) that `WorldMapHblank` copies into up to three
- * hardware registers during HBlank, plus the status bits `gWmHblankStatus`. World map effects
- * that change something line by line (the opening's line fade, the entry band) fill the table
- * and register the targets.
+ * per-scanline register values (`gUnknown_0201BE32`) that the decomp's `WorldMapHblank` handler
+ * ([onHBlank]) copies into up to three hardware registers during HBlank, plus the status bits
+ * `gWmHblankStatus`. World map effects that change something line by line (the opening's line
+ * fade, the entry band) fill the off-screen page, register the target addresses and set the
+ * copy-enable bit of [status].
  *
- * The handler [handler] copies the active page's per-line values into up to three registers
- * ([registers] latched at line 160 into [activeRegisters]); the register is an I/O register
- * (written into the register image the renderer captures per line) or a palette entry (handed
- * to [palette]). The world map uses BG0VOFS (`0x04000012`, worldmap_entry.c:508), BLDY
- * (`0x04000054`, worldmap_line_fade.c:108) and palette byte 0x54 (`0x05000054`,
- * worldmap_entry.c:513), i.e. palette color 42 (bank 2 color 10).
+ * The handler copies the active page's per-line values into up to three registers ([registers]
+ * latched at line 160 into [activeRegisters]); the register is an I/O register (written into
+ * the register image the renderer captures per line) or a palette entry (handed to [palette]).
+ * The world map uses BG0VOFS (`0x04000012`, worldmap_entry.c:508), BLDY (`0x04000054`,
+ * worldmap_line_fade.c:108) and palette byte 0x54 (`0x05000054`, worldmap_entry.c:513), i.e.
+ * palette color 42 (bank 2 color 10).
  *
  * @param palette where `0x05000000` register writes go; null drops them (tests)
  */
@@ -41,29 +42,40 @@ public class WorldMapHblank(private val palette: PaletteLineWriter? = null) {
     public val registers: IntArray = IntArray(3)
 
     /**
-     * `gUnknown_0201C5CC[3]`: per-line flags (meaning unknown; the decomp's accessors only keep
-     * bits 0 and 1 and nothing reads them in the files checked).
+     * `gUnknown_0201C5CC[3]`: per-line flags (meaning unknown). The decomp keeps only bits 0 and
+     * 1 (`sub_80C1DE8`, [maskLineFlags]) and has two setters, `sub_80C1DFC` (bit 0) and
+     * `sub_80C1E14` (bit 1), that no world map code calls; nothing reads the flags.
      */
     public val flags: IntArray = IntArray(3)
 
-    /** `gUnknown_0201C5CF`: the page the HBlank handler is not reading. */
+    /**
+     * `gUnknown_0201C5CF`: the page last completed by the writers. The effects fill page
+     * `(page + 1) and 1` ([lineBufferIndex]) and then flip this with [swapPages]; the handler
+     * latches it into [activePage] at line 160.
+     */
     public var page: Int = 0
 
-    /** `gUnknown_0201C5D0`: the page the HBlank handler reads (written by the handler only). */
+    /**
+     * `gUnknown_0201C5D0`: the page the HBlank handler reads this frame (latched from [page] at
+     * line 160; written by the handler and [setWorldMapHblank] only).
+     */
     public var activePage: Int = 0
 
     /**
      * `gWmHblankStatus` (also cleared by the text box, `worldmap_text.c`): bit 0 is only cleared
-     * by the text code and never read (meaning unknown), bit 2 enables the register copy. Bit 1
-     * (the `REG_WIN0H` copy of the map-animation scanline buffer) is never set by world map code,
-     * so [onHBlank] leaves that branch out.
+     * by the text code and never read (meaning unknown), bit 2 ([STATUS_COPY_ENABLE]) enables the
+     * register copy. Bit 1 (the `REG_WIN0H` copy of the map-animation scanline buffer) is never
+     * set by world map code, so [onHBlank] leaves that branch out.
      */
     public var status: Int = 0
 
-    /** `gUnknown_0201C5C0[3]`: the registers written this frame (latched at line 160). */
+    /**
+     * `gUnknown_0201C5C0[3]`: the register addresses written this frame (latched from
+     * [registers] at line 160).
+     */
     public val activeRegisters: IntArray = IntArray(3)
 
-    /** `gUnknown_0201C5D1`: the handler writes [activeRegisters] this frame. */
+    /** `gUnknown_0201C5D1`: the handler writes [activeRegisters] this frame (copy bit set). */
     public var copyEnabled: Boolean = false
 
     /** The handler to install in the primary HBlank slot. */
@@ -74,7 +86,8 @@ public class WorldMapHblank(private val palette: PaletteLineWriter? = null) {
      *
      * Runs at the HBlank of line [vcount] (`REG_VCOUNT`); the values it writes apply to the next
      * line. Lines 0..159 copy `buffer[activePage * 480 + line + 160 * i]` to register i of
-     * [activeRegisters]; at line 160 the [status] bit 2, [page] and [registers] are latched.
+     * [activeRegisters]; at line 160 the copy bit of [status] decides whether the copy is on for
+     * the next frame and [page] and [registers] are latched.
      */
     public fun onHBlank(vcount: Int, io: ByteArray) {
         var line = vcount + 1
@@ -84,11 +97,12 @@ public class WorldMapHblank(private val palette: PaletteLineWriter? = null) {
                 val src = activePage * PAGE_LENGTH + line
                 for (i in 0 until 3) {
                     val reg = activeRegisters[i]
-                    if (reg != 0) write(reg, buffer[src + i * LINE_LENGTH].toInt() and 0xFFFF, line, io)
+                    if (reg == 0) continue
+                    write(reg, buffer[src + i * LINE_LENGTH].toInt() and 0xFFFF, line, io)
                 }
             }
         } else if (line == SCREEN_LINES) {
-            if (status and 4 != 0) {
+            if (status and STATUS_COPY_ENABLE != 0) {
                 copyEnabled = true
                 activePage = page
                 for (i in 0 until 3) activeRegisters[i] = registers[i]
@@ -99,8 +113,9 @@ public class WorldMapHblank(private val palette: PaletteLineWriter? = null) {
     }
 
     /**
-     * Writes [value] to the register address [reg]: region 4 (`0x04......`) is the I/O register
-     * image, region 5 (`0x05......`) palette RAM, applying from [line] on.
+     * Writes the halfword [value] to the register address [reg]: region 4 (`0x04......`) is the
+     * I/O register image [io] (ignored past its end), region 5 (`0x05......`) palette RAM,
+     * applying from [line] on. The original stores through the pointer.
      */
     private fun write(reg: Int, value: Int, line: Int, io: ByteArray) {
         val offset = reg and 0xFFFFFF
@@ -160,7 +175,7 @@ public class WorldMapHblank(private val palette: PaletteLineWriter? = null) {
      * Ported from src/worldmap_hb.c: sub_80C1DC8
      *
      * Decomp name `sub_80C1DC8`. Swaps the two pages: the page filled with offset 1 by
-     * [lineBufferIndex] becomes the one the handler reads next.
+     * [lineBufferIndex] becomes [page], which the handler latches at line 160.
      */
     public fun swapPages() {
         page = page xor 1
@@ -199,8 +214,13 @@ public class WorldMapHblank(private val palette: PaletteLineWriter? = null) {
         /** `vcount == 0xE4` (the last line, 228) wraps to line 0. */
         const val LAST_LINE = 0xE4
 
-        /** Top byte of the register address: `0x04` I/O registers, `0x05` palette RAM. */
+        /** `gWmHblankStatus` bit 2 (`& 4`): the handler copies the table. */
+        const val STATUS_COPY_ENABLE = 4
+
+        /** Top byte of a register address: `0x04` I/O registers. */
         const val IO_REGION = 4
+
+        /** Top byte of a register address: `0x05` palette RAM. */
         const val PALETTE_REGION = 5
     }
 }

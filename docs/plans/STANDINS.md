@@ -20,11 +20,10 @@ Total entries: 233 across 46 Kotlin files.
 | M6-E | 52 |
 | M6-F | 15 |
 | M6-G | 4 |
-| M6-H | 33 |
+| M6-H | 34 |
 | M6-I | 27 |
 | M6-J | 10 |
 | D09-3 | 2 |
-| D11-wire-a | 1 |
 | EP-1 | 1 |
 | EP-11d | 2 |
 | EP-12 | 24 |
@@ -177,7 +176,7 @@ Total entries: 233 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: `IsBattleDeamonActive` (the battle animation system) is not ported, so the fixed fight-event bubble is never used. |
 
-## M6-H (33)
+## M6-H (34)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -214,6 +213,7 @@ Total entries: 233 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `newBmxFade` | `NewBMXFADE(flag)` (fog chapters only); stand-in until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `renderBmMapOnBg2` | `RenderBmMapOnBg2` (fog chapters only); stand-in until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `trapTypeAt` | `GetTrapAt(x, y)->type` of src/bmtrick.c; stand-in until M6-H, -1 for no trap. |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `fadeOutSe` | `Sound_FadeOutSE(speed)`: stand-in until M6-H (the sound effect players are not in `SoundWrapper` yet; no visible effect in the Prologue, which calls it in the skip branch of [postBeginningEvent] a... |
 
 ## M6-I (27)
 
@@ -237,7 +237,7 @@ Total entries: 233 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `writeGameSave` | WriteWorldMapStuff: not ported (M6-I), the raw stand-in is written. |
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `writeGmMonsterRnState` | Transcribed from src/bmsave.c: WriteGMMonsterRnState (not verified: the world map's RN state is a stand-in and the two trailing stack bytes are not derivable) Writes the 8 bytes (`u32 buf[2]`) that... |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBeginning.kt` | `hooks` | `sub80BA008` (M6-I) stays a stand-in. |
-| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `Hooks` | "M6-I" and "D11-wire-a" are the plan items that will port the stand-ins. |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `Hooks` | M6-I (the free-roam world map) and M6-H (sound effects) are the milestones that will port the stand-ins. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `endMinimap` | `EndWorldmapMinimap()`: stand-in until M6-I (the Prologue world map never starts the minimap). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `endPlayerInterface` | `sub_80BF15C()`: ends the player interface; stand-in until M6-I (the Prologue world map never starts it). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `mapRoute80BC2DC` | `MapRoute_80BC2DC(gm_screen->gmroute)`: stand-in until M6-I (the Prologue draws no route line, so there is nothing to clear). |
@@ -268,12 +268,6 @@ Total entries: 233 across 46 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `gotItemPopup` | Stand-ins (D09-3): `gpPopupUnit` is not tracked, so the unit-name text id is 0 (the got-item and pilfered scripts do not use the unit name), and [addItem] with a full inventory (the item-drop menu)... |
 | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | `event37GiveItem` | Host stand-ins (D09-3): the "gold got" popup (`NewPopup_GoldGot`) is not shown and the gold add happens at once. |
-
-## D11-wire-a (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `fadeOutSe` | `Sound_FadeOutSE(speed)`: stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet; the Prologue leaves through the other branch of `destruct`). |
 
 ## EP-1 (1)
 

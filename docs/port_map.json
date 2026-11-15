@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1233,
+    "verified": 1241,
     "implemented_unverified": 79
   },
   "functions": {
@@ -1664,6 +1664,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ChapterIntroDifferentialTest#intro start twin lights and A skip match every frame"
+      ]
+    },
+    "CheckBanimHensei": {
+      "decomp_file": "src/banim-ekrhensei.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimPrepare.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BanimPrepareDifferentialTest#the real chain writes the battle animation variables of the capture"
       ]
     },
     "CheckBattleUnitLevelUp": {
@@ -4016,6 +4026,16 @@
       "status": "implemented",
       "tests": []
     },
+    "GetBattleAnimArenaFlag": {
+      "decomp_file": "src/banim-ekrarena.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimPrepare.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BanimPrepareDifferentialTest#the real chain writes the battle animation variables of the capture"
+      ]
+    },
     "GetBattleAnimationId": {
       "decomp_file": "src/banim-ekrcmd.c",
       "system": "battle_anim",
@@ -4288,6 +4308,16 @@
       "tests": [
         "fe8.testing.PathArrowDrawDifferentialTest#cancel_end path arrow drawing matches the game",
         "fe8.testing.PathArrowDrawDifferentialTest#select_move path arrow drawing matches the game"
+      ]
+    },
+    "GetEfxHp": {
+      "decomp_file": "src/banim-ekrcmd.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BanimPrepareDifferentialTest#the real chain writes the battle animation variables of the capture"
       ]
     },
     "GetFaceIdByXPos": {
@@ -4848,7 +4878,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },
@@ -7544,6 +7574,16 @@
         "fe8.testing.OpSubtitleInitDifferentialTest#scene setup matches BG3 data after sub_80C5218"
       ]
     },
+    "ParseBattleHitToBanimCmd": {
+      "decomp_file": "src/banim-battleparse.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimPrepare.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BanimPrepareDifferentialTest#the real chain writes the battle animation variables of the capture"
+      ]
+    },
     "ParsePopupInstAndGetLen": {
       "decomp_file": "src/popup.c",
       "system": "menus",
@@ -7967,6 +8007,16 @@
       "tests": [
         "fe8.testing.PostSaveMenuDifferentialTest#last game slot restarts into the battle map like ch6_start",
         "fe8.testing.PostSaveMenuDifferentialTest#suspend save resumes the game like ch2_scroll"
+      ]
+    },
+    "PrepareBattleGraphicsMaybe": {
+      "decomp_file": "src/banim-ekrbattleintro.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimPrepare.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BanimPrepareDifferentialTest#the real chain writes the battle animation variables of the capture"
       ]
     },
     "Proc08AA6D04Main": {
@@ -8705,6 +8755,16 @@
         "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
       ]
     },
+    "ResetEkrDragonStatus": {
+      "decomp_file": "src/banim-ekrdragonstatus.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimPrepare.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BanimPrepareDifferentialTest#the real chain writes the battle animation variables of the capture"
+      ]
+    },
     "ResetFaces": {
       "decomp_file": "src/face.c",
       "system": "text_face",
@@ -8935,6 +8995,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
+      ]
+    },
+    "SetBanimArenaFlag": {
+      "decomp_file": "src/banim-ekrarena.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimPrepare.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BanimPrepareDifferentialTest#the real chain writes the battle animation variables of the capture"
       ]
     },
     "SetBanimLinkArenaFlag": {
@@ -11858,6 +11928,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WeaponSelectMenuDifferentialTest#cancelling the weapon list restarts the unit menu"
+      ]
+    },
+    "sub_8055BC4": {
+      "decomp_file": "src/banim-ekrbattlestarting.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimPrepare.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BanimPrepareDifferentialTest#the real chain writes the battle animation variables of the capture"
       ]
     },
     "sub_80895B4": {

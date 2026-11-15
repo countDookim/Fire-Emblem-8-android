@@ -90,7 +90,7 @@ fe8.game.worldmap files that had none (sizes on that date).
 | game | fe8.game.bm (CpBattle, CpScript) | 2 | 778 | done 2026-11-15 3db4a04b |
 | game | fe8.game.bm (PlayerInterface lines 1-633: to before initPlayerPhaseInterface) | 1 | 633 | done 2026-11-15 d1940f95 |
 | game | fe8.game.bm (PlayerInterface lines 634-1210: initPlayerPhaseInterface to before unitMiniPortraitId) | 1 | 577 | done 2026-11-15 c48b6119 |
-| game | fe8.game.bm (PlayerInterface lines 1211-1814: unitMiniPortraitId to end) | 1 | 604 | todo |
+| game | fe8.game.bm (PlayerInterface lines 1211-1814: unitMiniPortraitId to end) | 1 | 604 | done 2026-11-15 HASH |
 | game | fe8.game.bm (BattleForecast lines 1-514: to before battleForecastHitCountUpdate) | 1 | 514 | todo |
 | game | fe8.game.bm (BattleForecast lines 515-936: battleForecastHitCountUpdate to end) | 1 | 422 | todo |
 | game | fe8.game.bm (ChapterIntro lines 1-551: to before setTimer) | 1 | 551 | todo |

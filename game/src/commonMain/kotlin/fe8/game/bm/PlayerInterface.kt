@@ -1246,7 +1246,13 @@ public class PlayerInterface(
         applyUnitMapUiFramePal(StructCodec.s8(units.bytes, unitOffset + UNIT_INDEX) and 0xC0, 3)
     }
 
-    /** `GetUnitMiniPortraitId` (bmunit.c, inline) for the unit at [o] of data [character]. */
+    /**
+     * `GetUnitMiniPortraitId` (bmunit.c, inline) for the unit at byte offset [o] whose character
+     * data is at ROM address [character]: a character with a `miniPortrait` (byte 8) gives
+     * `FID_FACTION_CHIBI` plus it; else `GetUnitPortraitId`: the character's `portraitId` (u16 at
+     * 6; the portrait 0x4A of chapter index 0x22 is replaced by 0x46, a hard-coded exception in
+     * the decomp), else the class's `defaultPortraitId` (u16 at 8 of the class data), else 0.
+     */
     private fun unitMiniPortraitId(o: Int, character: Int): Int {
         if (rom.u8(character + 8) != 0) return FID_FACTION_CHIBI + rom.u8(character + 8)
         val portrait = rom.u16(character + 6)
@@ -1281,9 +1287,9 @@ public class PlayerInterface(
     /**
      * Ported from src/player_interface.c: MMB_Loop_OnSideChange
      *
-     * Waits while the cursor is on an empty tile. Otherwise picks the window's corner from the
-     * cursor's quadrant; if the terrain window holds it, waits; else draws the unit window, notes
-     * the cursor and moves on to the slide in.
+     * Waits (returns, so the step runs again next frame) while the cursor is on an empty tile.
+     * Otherwise picks the window's corner from the cursor's quadrant; if the terrain window holds
+     * it, waits; else draws the unit window, notes the cursor and moves on to the slide in.
      */
     public fun mmbOnSideChange(proc: Proc) {
         val state = stateOf(proc)
@@ -1310,6 +1316,12 @@ public class PlayerInterface(
         engine.breakProc(proc)
     }
 
+    /**
+     * The strip clear shared by the unit window's slide in and out: blanks the window's area of
+     * BG0 and BG1 at rows [y]..[y] + 6 (`TileMap_FillRect` with 13 by 6 clears 14 by 7), from
+     * column 0 for a window on the left of the screen or from column 17 for one on the right,
+     * and flags both BGs for sync.
+     */
     private fun mmbClearStrip(state: PlayerInterfaceState, y: Int) {
         val left = mmbConfig(state, CONFIG_X_MINIMUG) < 0
         val at = if (left) tmIndex(0, y) else tmIndex(17, 0) + tmIndex(0, y)
@@ -1318,6 +1330,12 @@ public class PlayerInterface(
         hw.enableBgSyncByMask(BG0_SYNC_BIT or BG1_SYNC_BIT)
     }
 
+    /**
+     * Copies [width] columns of the 13x6 unit window from [scratch] to BG0 and BG1 at row [y]:
+     * the rightmost [width] columns of the window at the left screen edge, or its leftmost
+     * [width] columns ending at column 29 on the right (the slide in and out show the window
+     * growing from the screen edge).
+     */
     private fun mmbCopyStrip(state: PlayerInterfaceState, y: Int, width: Int) {
         val bg0 = hw.mapBuffer(0)
         val bg1 = hw.mapBuffer(1)
@@ -1333,10 +1351,11 @@ public class PlayerInterface(
     /**
      * Ported from src/player_interface.c: MMB_Loop_SlideIn
      *
-     * One frame of the slide in: clears the window's 13x6 strip of BG0 and BG1 (top or bottom,
-     * left or right as the quadrant says) and copies the last 5, 9, 11 and 13 columns of the
-     * window from [scratch]; after the fourth frame it shows the contents, ends the step and
-     * refreshes the HP digits.
+     * One frame of the slide in: clears the window's strip of BG0 and BG1 (top or bottom, left or
+     * right as the cursor quadrant's `yMinimug` and `xMinimug` say) and copies 5, 9, 11 and then
+     * 13 columns of the window from [scratch], growing from the screen edge; after the fourth
+     * frame it shows the contents, ends the step and runs [unitMapUiUpdate] once for the unit
+     * under the cursor.
      */
     public fun mmbSlideIn(proc: Proc) {
         val state = stateOf(proc)
@@ -1379,8 +1398,10 @@ public class PlayerInterface(
     /**
      * Ported from src/player_interface.c: sub_808C234
      *
-     * Copies the 13x6 window from the BG0 scratch to its corner of BG0 and flags BG0 and BG1 for
-     * sync.
+     * Copies the 13x6 window from the BG0 scratch to its corner of BG0 (column 0 or 18, row 0 or
+     * 14) and flags BG0 and BG1 for sync. Only BG0 is copied; the BG1 frame stays. On the right
+     * the column is 18 here but the slide in places the window at column 17 (as the original
+     * does).
      */
     public fun copyUnitWindowToBg0(state: PlayerInterfaceState) {
         val x = if (mmbConfig(state, CONFIG_X_MINIMUG) < 0) 0 else MMB_RIGHT_X
@@ -1449,10 +1470,13 @@ public class PlayerInterface(
     /**
      * Ported from src/player_interface.c: GetUnitBurstMapUiOrientationAt
      *
-     * The shape (0..5) of the Burst box for a unit at tile position ([x], [y]) on screen: 1 (the
-     * tail below the box) by default, 4 (the tail above) in the top rows (or the top 12 rows when
-     * the goal window is at the top), one step to the left near the left edge and one to the
-     * right near the right edge.
+     * The shape (0..5) of the Burst box for a unit at screen tile position ([x], [y]) (pixel
+     * position over 8). Shapes 0..2 put the box above the unit and 3..5 below it (the
+     * `gUnitBurstMapUiYOffsetTable` rows -6 and 3); within each group the first is the box
+     * extending right of a unit near the left edge, the middle one centred and the last one
+     * shifted left near the right edge. The default is 1 (above, centred); the box goes below
+     * (4) when the unit is in the top 6 tile rows, or the top 12 when the goal window is at the
+     * top, and the column step is -1 for `x < 2` and +1 for `x > 22`.
      */
     public fun getUnitBurstMapUiOrientationAt(x: Int, y: Int): Int {
         val cursorQuadrant = getCursorQuadrant()
@@ -1469,9 +1493,13 @@ public class PlayerInterface(
      * Ported from src/player_interface.c: DrawUnitBurstMapUi
      *
      * Draws the Burst box of the unit at [unitOffset] straight into BG0 and BG1 at its screen
-     * position: the name centred, the HP bar cells and digits (through [unitMapUiUpdate], so the
-     * status cells live in BG0), the frame (BG1, palette bank 3) in the shape given by
-     * [getUnitBurstMapUiOrientationAt].
+     * position, 8x5 tiles placed by [getUnitBurstMapUiOrientationAt] and the
+     * `gUnitBurstMapUiXOffsetTable` and `gUnitBurstMapUiYOffsetTable` offsets: the name centred in
+     * black (row 1 of the box; `gUnitBurstMapUiTextXTable` and `...YTable` are all 1 here), the
+     * status cells and HP digits (through [unitMapUiUpdate], with the status cells in BG0 at
+     * row 3 of the box; there is no HP bar), and the three-part frame in BG1 (top and bottom
+     * parts by orientation, `gUnknown_08A0186C` and `gUnknown_08A01884`, tile 0x100, palette
+     * bank 3) with the unit's faction palette.
      */
     public fun drawUnitBurstMapUi(state: PlayerInterfaceState, unitOffset: Int) {
         var x = (StructCodec.s8(units.bytes, unitOffset + UNIT_X) * 16 - bm.cameraX) / 8
@@ -1517,7 +1545,8 @@ public class PlayerInterface(
     /**
      * Ported from src/player_interface.c: ClearUnitBurstMapUi
      *
-     * Erases the drawn Burst box from BG0 and BG1 and marks it as not drawn.
+     * Erases the drawn Burst box from BG0 and BG1 (`TileMap_FillRect` with 8 by 5 clears 9 by 6)
+     * and marks it as not drawn; does nothing unless a box of the full 8x5 size is drawn.
      */
     public fun clearUnitBurstMapUi(state: PlayerInterfaceState) {
         if (state.wBurst == BURST_WIDTH && state.hBurst == BURST_HEIGHT) {
@@ -1533,8 +1562,8 @@ public class PlayerInterface(
     /**
      * Ported from src/player_interface.c: BurstDisplay_Init
      *
-     * Starts the Burst window with nothing shown and reserves its double-buffered text strip of
-     * 7 tiles in the active font.
+     * Starts the Burst window with nothing drawn (no unit, no box) and reserves its
+     * double-buffered text strip of 7 tiles in the active font.
      */
     public fun burstInit(proc: Proc) {
         val state = stateOf(proc)
@@ -1557,10 +1586,12 @@ public class PlayerInterface(
     /**
      * Ported from src/player_interface.c: BurstDisplay_Loop_Display
      *
-     * Each frame: when the unit under the cursor changes, erases the box and restarts the
-     * 8-frame delay; with a unit under the cursor and no camera move, counts the delay (it only
-     * counts to 4 while the terrain or goal window is sliding), draws the box on the 8th frame
-     * and from then counts the unit clock and refreshes the HP digits.
+     * Each frame: when the unit under the cursor changes from one unit to anything else, erases
+     * the box and restarts the 8-frame delay; with a unit under the cursor and no camera move,
+     * counts the delay (only up to 4 while the terrain or goal window has its contents hidden,
+     * i.e. is sliding), draws the box on the 8th frame, and on later frames counts the unit clock
+     * (hiding the digits while the terrain window hides its contents) and refreshes the HP
+     * digits.
      */
     public fun burstDisplay(proc: Proc) {
         val state = stateOf(proc)
@@ -1600,7 +1631,10 @@ public class PlayerInterface(
         }
     }
 
-    /** `StoreNumberStringOrDashesToSmallBuffer`: 255 or -1 become `::`. */
+    /**
+     * `StoreNumberStringOrDashesToSmallBuffer`: 255 or -1 become two `:` characters (digit tile
+     * 10, the dash the original means), else the number as for `StoreNumberStringToSmallBuffer`.
+     */
     private fun storeNumberStringOrDashes(n: Int) {
         numberStr.fill(SPACE, 0, 8)
         numberStr[8] = 0
@@ -1612,12 +1646,14 @@ public class PlayerInterface(
         }
     }
 
+    /** `TILEMAP_INDEX(x, y)`: the entry index of column [x], row [y] in a 32-entry-wide tilemap. */
     private fun tmIndex(x: Int, y: Int): Int = y * TM_STRIDE + x
 
     /**
      * `TileMap_FillRect` (`TmFillRect`, asm/arm.s): fills the rectangle at entry [at] of [tm] with
      * [value]. Its loops run `bpl` after `subs`, so it writes [w] + 1 columns and [h] + 1 rows
-     * (the C comment above it says [w] x [h]; the capture shows the extra column and row).
+     * (the C model above it in arm.s says [w] x [h]; the assembly and the captures agree on the
+     * extra column and row).
      */
     private fun fillRect(tm: ShortArray, at: Int, w: Int, h: Int, value: Int) {
         for (row in 0..h) {
@@ -1635,8 +1671,10 @@ public class PlayerInterface(
     }
 
     /**
-     * `CallARM_FillTileRect` for a TSA stored uncompressed in the ROM at [addr]: byte 0 and 1 are
-     * width and height less 1, then the entries, bottom row first; [tileRef] is added to each.
+     * `CallARM_FillTileRect` (`TmApplyTsa`, asm/arm.s) for a tilemap arrangement stored
+     * uncompressed in the ROM at [addr]: byte 0 and 1 are width and height less 1, then the
+     * entries, bottom row first (the original fills upwards from row `height`); [tileRef] is
+     * added to each.
      */
     private fun fillTsa(tm: ShortArray, at: Int, addr: Int, tileRef: Int) {
         val width = rom.u8(addr) + 1
@@ -1679,6 +1717,7 @@ public class PlayerInterface(
         }
     }
 
+    /** `gObject_8x8`: the OAM shape data of a single 8x8 sprite, used for the HP digits. */
     private val object8x8: ShortArray by lazy { rom.objN(OBJECT_8X8).data }
 
     /** Constants. */

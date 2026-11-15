@@ -156,7 +156,7 @@ public class CpDecide(
         /**
          * Stand-in for the healing branch of `DecideHealOrEscape`: `AiTryHealSelf`,
          * `AiTryMoveTowardsEscape`, `AiTryDanceOrStealAfterMove`, `AiTryGetNearestHealPoint`,
-         * `AiTryMoveTowards` (EP-7d), `AiTryActionAfterMove` (EP-12: never entered).
+         * `AiTryMoveTowards` (in `CpUtility`), `AiTryActionAfterMove` (EP-12: never entered).
          */
         public var healBranch: AiStep? = null
 

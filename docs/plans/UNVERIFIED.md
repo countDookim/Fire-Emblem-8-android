@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 599 across 87 decomp files (missing reason: 0).
+Total entries: 601 across 87 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -589,6 +589,18 @@ Total entries: 599 across 87 decomp files (missing reason: 0).
 | `GetCharTextLen` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | see above |
 | `EndGreenText` | `game/src/commonMain/kotlin/fe8/game/ui/GreenText.kt` | only `sProc_MenuMain` calls it after the menu's idle callback breaks, which no capture does |
 
+## src/cp_utility.c (7)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `AiIsInShortList` | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | no capture uses short list |
+| `SetupUnitStatusStaffAIFlags` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | the capture has no staff, so only the early return for a weapon is run |
+| `SetupUnitHealStaffAIFlags` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | the capture's usable items are range 1 weapons with no use effect, so only the no-flag path is run |
+| `AiReachesByBirdsEyeDistance` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | the capture sees only the tests that are clearly true or false; a threshold 4 tiles too wide, or a distance of x only, keeps the test green |
+| `AiCouldReachByBirdsEyeDistance` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | for the Prologue's first enemy and the second player unit the formula says true, but the capture's danger map shows no damage of that unit |
+| `AiGetUnitClosestValidPosition` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no reference trace exercises the occupied case |
+| `CharStoreAI` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | every traced definition has zero AI bytes, so a skipped or wrong store survives |
+
 ## src/gamecontrol.c (7)
 
 | Function | Kotlin file | Reason |
@@ -600,17 +612,6 @@ Total entries: 599 across 87 decomp files (missing reason: 0).
 | `GameControl_RestoreChapterId` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
 | `sub_8009E28` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | wired by `Fe8Boot`; no dump compares the blend registers at this point |
 | `GameControlHandlePostNormalOrExtraChapter` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
-
-## src/cp_utility.c (6)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `SetupUnitStatusStaffAIFlags` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | the capture has no staff, so only the early return for a weapon is run |
-| `SetupUnitHealStaffAIFlags` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | the capture's usable items are range 1 weapons with no use effect, so only the no-flag path is run |
-| `AiReachesByBirdsEyeDistance` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | the capture sees only the tests that are clearly true or false; a threshold 4 tiles too wide, or a distance of x only, keeps the test green |
-| `AiCouldReachByBirdsEyeDistance` | `game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt` | for the Prologue's first enemy and the second player unit the formula says true, but the capture's danger map shows no damage of that unit |
-| `AiGetUnitClosestValidPosition` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no reference trace exercises the occupied case |
-| `CharStoreAI` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | every traced definition has zero AI bytes, so a skipped or wrong store survives |
 
 ## src/popup.c (6)
 
@@ -848,6 +849,13 @@ Total entries: 599 across 87 decomp files (missing reason: 0).
 | `ReadWorldMapStuff` | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | partial, the world map state is not ported, so the raw `struct GMapSaveInfo` is kept |
 | `ClearWorldMapStuff` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | NewGameSaveReferenceTest covers its write but no break-check has been run on it yet |
 
+## src/cp_script.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `AiIsUnitEnemy` | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | it is only called on the captured target of each attacker, and no captured value shows its result; an allied unit (false) is not seen |
+| `AiIsUnitEnemyAndNotInScrList` | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | no capture has an ignore list in script commands |
+
 ## src/eventscr3.c (2)
 
 | Function | Kotlin file | Reason |
@@ -946,12 +954,6 @@ Total entries: 599 across 87 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetChapterMapChangesPointer` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterData.kt` | no test checks it against a trace yet |
-
-## src/cp_script.c (1)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `AiIsUnitEnemy` | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | it is only called on the captured target of each attacker, and no captured value shows its result; an allied unit (false) is not seen |
 
 ## src/ctc.c (1)
 

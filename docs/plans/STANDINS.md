@@ -26,7 +26,7 @@ Total entries: 230 across 47 Kotlin files.
 | D09-3 | 2 |
 | EP-1 | 1 |
 | EP-11d | 2 |
-| EP-12 | 25 |
+| EP-12 | 26 |
 | EP-13 | 1 |
 | EP-15 | 1 |
 | EP-17 | 5 |
@@ -34,7 +34,6 @@ Total entries: 230 across 47 Kotlin files.
 | EP-30 | 2 |
 | EP-36 | 2 |
 | EP-7 | 2 |
-| EP-7d | 1 |
 | IS-2 | 1 |
 | PC-10 | 1 |
 | PP-10 | 1 |
@@ -283,7 +282,7 @@ Total entries: 230 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetText` | `ResetText`: stand-in until EP-11d (not ported in `TextSystem`). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetTextFont` | `ResetTextFont`: stand-in until EP-11d (text system, fontgrp.c; not ported yet). |
 
-## EP-12 (25)
+## EP-12 (26)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -302,6 +301,7 @@ Total entries: 230 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `escapeBranch` | Stand-in for the escape branch of `DecideHealOrEscape` for a unit that is not healing but has `AI_UNIT_FLAG_3`: `AiTryMoveTowardsEscape`, `AiTryDanceOrStealAfterMove` (EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `execFallbackScriptA` | Stand-in for `AiExecFallbackScriptA` (cp_script.c; EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `execFallbackScriptB` | Stand-in for `AiExecFallbackScriptB` (cp_script.c; EP-12: never entered). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `healBranch` | Stand-in for the healing branch of `DecideHealOrEscape`: `AiTryHealSelf`, `AiTryMoveTowardsEscape`, `AiTryDanceOrStealAfterMove`, `AiTryGetNearestHealPoint`, `AiTryMoveTowards` (in `CpUtility`), `A... |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `hooks` | The stand-ins (EP-12, EP-3c, EP-3d) and wiring points of this class. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `onRiddenBallista` | Stand-in for `GetRiddenBallistaAt(gActiveUnit->xPos, yPos) != NULL` (EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `rogueSpecialItems` | Stand-in for the rogue part of `sub_8040C5C` (cpextra_80407F0.c, with `sub_8040B38`, `sub_8040BB4`, `sub_8040B8C`; EP-12: never entered); its result is the function's. |
@@ -364,12 +364,6 @@ Total entries: 230 across 47 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `CpBattle` | All stand-ins are [Hooks]. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `CpBattle` | The branches the capture never enters (`AiAttemptCombatWithinMovement` and the ballista, steal, magic seal and staff code) are EP-12 stand-ins. |
-
-## EP-7d (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `healBranch` | Stand-in for the healing branch of `DecideHealOrEscape`: `AiTryHealSelf`, `AiTryMoveTowardsEscape`, `AiTryDanceOrStealAfterMove`, `AiTryGetNearestHealPoint`, `AiTryMoveTowards` (EP-7d), `AiTryActio... |
 
 ## IS-2 (1)
 

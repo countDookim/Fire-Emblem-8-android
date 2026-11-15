@@ -89,7 +89,7 @@ public class BanimSetup(
      * Whether the item is one of the four Rings of the legendary weapons' staffs shown in a
      * battle animation.
      */
-    private fun isItemDisplayedInBattle(item: Int): Boolean {
+    public fun isItemDisplayedInBattle(item: Int): Boolean {
         val index = items.getItemIndex(item)
         return index == ITEM_FILLAS_MIGHT || index == ITEM_NINISS_GRACE ||
             index == ITEM_THORS_IRE || index == ITEM_SETS_LITANY
@@ -129,8 +129,7 @@ public class BanimSetup(
     }
 
     /**
-     * Transcribed from src/banim-ekrcmd.c: GetEfxHp (not verified: only the battle animation's
-     *   HP bar reads it (EP-17 and later), no captured value shows a result)
+     * Ported from src/banim-ekrcmd.c: GetEfxHp
      *
      * The low byte of `gEfxHpLut[index]`: the HP shown for round position [index].
      */

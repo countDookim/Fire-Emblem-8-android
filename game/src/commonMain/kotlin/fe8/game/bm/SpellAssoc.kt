@@ -52,6 +52,12 @@ public class SpellAssoc(private val rom: RomView) {
     public fun getSpellAssocFacing(item: Int): Int = rom.u8(getSpellAssocStructPtr(item) + 0xD)
 
     /**
+     * The `efx` halfword of [item]'s entry (`struct SpellAssoc` +4): the spell animation id that
+     * `GetSpellAnimId` (src/banim-battleparse.c, [BanimPrepare]) turns into the animation index.
+     */
+    public fun getSpellAssocEfx(item: Int): Int = rom.u16(getSpellAssocStructPtr(item) + 4)
+
+    /**
      * Transcribed from src/spellassoc.c: GetSpellAssocReturnBool (not verified: its caller, the
      *   info box (EP-20), is not written, so no captured value shows the result)
      *

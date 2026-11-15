@@ -15,6 +15,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 - MC-18d: Claude owner PC, level-up stat panel lifecycle (mapanim_lvup.c), until ~02:00Z (2026-11-17).
 - EP-1b: Claude owner PC, start-of-phase display targets (bmtarget.c, bmmap.c), until ~02:00Z (2026-11-17).
+- EP-11h: Claude owner PC, per-frame polls and decompression (event.c, bmio.c, bmlib.c), until ~03:00Z (2026-11-17).
 
 
 - EP-17 (map animation flow A: mapanim.c), owner PC Gemini Flash agent `ep17`, claimed 2026-11-15 21:05Z.

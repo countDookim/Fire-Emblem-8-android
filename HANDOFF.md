@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-14 23:08Z (owner PC: M6-D AI decide/score/reach ported, EP-cap2 and MC-cap3 published, readability pass complete; 931 tests green locally). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-15 14:35Z (owner PC: enemies walk, attack and fade (EP-8..9c, EP-8b/8c), level-up rolls (MC-17), ROM-portrait app icon, game-text CI check, 23 of 24 new readability rows; 949 tests green locally). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -16,6 +16,18 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## Current state
 
+- 2026-11-15 10:26Z – 14:35Z owner PC (Sonnet agents hit the 5-hour limit twice; resumed after account switches):
+  **enemies act in game.** Merged EP-8 (perform walk, AI target cursor), EP-9 (perform action: Soldiers attack via
+  the real map battle and die to Eirika's counter), EP-9b (equip after a move), EP-9c (BMXFADE map fade, entity map
+  refresh), EP-8c (MU end of walk), EP-8b (MU step sounds, fixes BUG-mustepse), MC-17 (level-up growth rolls; display
+  is new row MC-18). Demoted in review: CpPerform_MoveCameraOntoUnit (camera never moves in a capture). APP-icon:
+  original vector launcher icon; after ROM import Eirika's portrait (built from the ROM in memory) is the recents
+  icon and an "Add to home screen" shortcut (owner chose runtime-only, rule 3). BUG-gametext: ROM message text removed
+  from tests/comments/docs, new CI step `tools/check_no_game_text_in_source.py`. READABILITY: the 11-14 "complete" was
+  wrong (rows named files sized 11-11); 24 rows added for fe8.game.bm and fe8.game.worldmap, 23 done (last row
+  MoveLimitView/UnitFacing/... in progress). New rows: BUG-deadmovestat (C reads a stat pid through NULL after the
+  actor dies), MC-18 (level-up display), LG-0 weather sub-lane. Device checks pending: MANUAL_TEST step 5 (enemy walk,
+  attack, fade pause, footsteps), APP-icon step; earlier PP-17, D-14, D-15.
 - 2026-11-13 20:16Z – 2026-11-14 23:08Z owner PC (paused ~22:10Z–21:40Z next day on the usage limit): **M6-D AI
   decision chain ported; full-Prologue and level-up captures; readability done.** Merged EP-2b (AI unit flags),
   EP-3a (CpDecide loop, suspend point), EP-3b (no-move flag, danger map), EP-4 (script interpreter, commands 05/06/0E),

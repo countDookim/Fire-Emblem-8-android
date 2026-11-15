@@ -11,7 +11,6 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- BUG-gametext: owner PC, until ~2026-11-15 16:00Z
 - EP-8c: owner PC, until ~2026-11-15 17:00Z
 
 ## Current state

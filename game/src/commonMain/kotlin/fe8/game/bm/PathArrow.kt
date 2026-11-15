@@ -7,14 +7,18 @@ import gbafe.render.SpriteLayers
 import gbafe.render.SpriteObject
 
 /**
- * The path arrow's data of src/bmpatharrowdisp.c: `gPathArrowProc` (`struct PathArrowProc`,
- * 0x0203A990) without its 0x29-byte proc header and the drawing (`DrawPathArrow`, PP-6). The
- * 0x43 bytes after the header are one buffer, [buffer], so the C's reach past an array end (the
- * `pathCosts[-1]` write of `CutOffPathLength(0)` lands in `pathY[19]`) is kept.
+ * The move path arrow of src/bmpatharrowdisp.c: the data of `gPathArrowProc` (`struct
+ * PathArrowProc`, 0x0203A990) without its 0x29-byte proc header, and the drawing
+ * (`DrawPathArrow`). The path is up to 20 tiles (`pathX`, `pathY`) from the active unit's tile
+ * to the cursor, with the movement left after entering each (`pathCosts`). The 0x43 bytes after
+ * the header (0x40 of arrays plus struct padding) are one buffer, [buffer], so the C's reach
+ * past an array end (the `pathCosts[-1]` write of `CutOffPathLength(0)` lands in `pathY[19]`)
+ * is kept.
  *
- * Reads the terrain and the working map of [map], the active unit [active] and the cost table
- * [movementMap] last set. [Hooks.generateBestMovementScript] is
- * [fe8.game.bm.generateBestMovementScript] on the working map when an [rng] is given.
+ * Reads the terrain and the working map (`gWorkingBmMap`) of [map], the active unit [active]
+ * and the terrain cost table [movementMap] last set (`GetWorkingMoveCosts`).
+ * [Hooks.generateBestMovementScript] is [fe8.game.bm.generateBestMovementScript] on the working
+ * map when an [rng] is given.
  */
 public class PathArrow(
     private val map: BmMap,
@@ -59,27 +63,33 @@ public class PathArrow(
         }
     }
 
-    /** `gPathArrowProc` from 0x29: lastX, lastY, maxMov, pathLen, pathX, pathY, pathCosts. */
+    /**
+     * `gPathArrowProc` from 0x29: lastX, lastY, maxMov, pathLen, then `pathX`, `pathY` and
+     * `pathCosts` of 20 s8 each (see the `OFF_*` offsets).
+     */
     public val buffer: ByteArray = ByteArray(BUFFER_SIZE)
 
-    /** `gWorkingMovementScript`. */
+    /**
+     * `gWorkingMovementScript` (`MOVE_CMD_MAX_COUNT` = 0x40 commands of include/mu.h): the path
+     * as unit move commands, in and out of `GenerateBestMovementScript`.
+     */
     public val workingMovementScript: IntArray = IntArray(0x40)
 
-    /** `lastX` (s8). */
+    /** `lastX` (s8): the cursor column of the last update; -1 forces the next one. */
     public var lastX: Int
         get() = buffer[OFF_LAST_X].toInt()
         set(v) {
             buffer[OFF_LAST_X] = v.toByte()
         }
 
-    /** `lastY` (s8). */
+    /** `lastY` (s8): the cursor row of the last update; -1 forces the next one. */
     public var lastY: Int
         get() = buffer[OFF_LAST_Y].toInt()
         set(v) {
             buffer[OFF_LAST_Y] = v.toByte()
         }
 
-    /** `maxMov` (s8). */
+    /** `maxMov` (s8): the movement the active unit has to spend on the path. */
     public var maxMov: Int
         get() = buffer[OFF_MAX_MOV].toInt()
         set(v) {
@@ -93,26 +103,32 @@ public class PathArrow(
             buffer[OFF_PATH_LEN] = v.toByte()
         }
 
+    /** `pathX[i]` (s8): the tile column of path point [i]. */
     private fun pathX(i: Int): Int = buffer[OFF_PATH_X + i].toInt()
 
+    /** `pathY[i]` (s8): the tile row of path point [i]. */
     private fun pathY(i: Int): Int = buffer[OFF_PATH_Y + i].toInt()
 
+    /** `pathCosts[i]` (s8): the movement left after entering path point [i]. */
     private fun pathCost(i: Int): Int = buffer[OFF_PATH_COSTS + i].toInt()
 
+    /** Writes `pathCosts[i]` (see [pathCost]). */
     private fun setPathCost(i: Int, v: Int) {
         buffer[OFF_PATH_COSTS + i] = v.toByte()
     }
 
+    /** The working move cost of terrain id [terrain]; 0xFF (-1 in the C table) is impassable. */
     private fun moveCost(terrain: Int): Int = movementMap.workingMoveCosts[terrain].toInt() and 0xFF
 
     /**
      * Ported from src/bmpatharrowdisp.c: PathArrowDisp_Init
      *
-     * Loads the arrow tiles to OBJ VRAM 0x5E00 and its palette to palette 0x13 (both when a
-     * [rom] and [hardware] are given). Then, in mode 0 (the cursor is on the active unit),
-     * `maxMov` is the unit's movement less `moveCount`, the path is cut to nothing and starts at
-     * the unit, and the cursor is applied. Mode 1 (the cursor off the unit) only loads the
-     * graphics (the C has no data part for it; not verified: no capture runs it).
+     * Loads the arrow tiles (`gUnknown_08A03054`) to OBJ VRAM + 0x5E00 and its palette
+     * (`gUnknown_08A0328C`) to palette bank 0x13 (an OBJ palette; both when a [rom] and
+     * [hardware] are given). Then, for [mode] 0, `maxMov` is the active unit's movement
+     * (`UNIT_MOV`) less `moveCount`, the path is cut to nothing and starts at the unit, and the
+     * cursor is applied. Any other mode only loads the graphics (the C has no data part for it;
+     * not verified: no capture runs it).
      */
     public fun init(mode: Int) {
         if (rom != null && hardware != null) {
@@ -129,7 +145,11 @@ public class PathArrow(
         updatePathArrowWithCursor()
     }
 
-    /** Ported from src/bmpatharrowdisp.c: SetLastCoords */
+    /**
+     * Ported from src/bmpatharrowdisp.c: SetLastCoords
+     *
+     * Records the cursor position ([x], [y]) the path was last updated for.
+     */
     public fun setLastCoords(x: Int, y: Int) {
         lastX = x
         lastY = y
@@ -138,8 +158,9 @@ public class PathArrow(
     /**
      * Ported from src/bmpatharrowdisp.c: CutOffPathLength
      *
-     * When the path reaches [newIndex], shortens it to [newIndex] - 1 points past the start and
-     * recomputes the costs from `maxMov` along the kept points.
+     * When the path reaches [newIndex] (`pathLen >= newIndex`), ends it at point [newIndex] - 1
+     * and recomputes the movement left along the kept points, from `maxMov` at the start.
+     * `CutOffPathLength(0)` empties the path (`pathLen` -1).
      */
     public fun cutOffPathLength(newIndex: Int) {
         val index = newIndex.toByte().toInt()
@@ -167,7 +188,11 @@ public class PathArrow(
         setPathCost(pathLen, pathCost(pathLen - 1) - moveCost(terrain))
     }
 
-    /** Ported from src/bmpatharrowdisp.c: GetPointAlongPath */
+    /**
+     * Ported from src/bmpatharrowdisp.c: GetPointAlongPath
+     *
+     * The index of tile ([x], [y]) in the path, or -1 when the path does not pass it.
+     */
     public fun getPointAlongPath(x: Int, y: Int): Int {
         for (i in 0..pathLen) {
             if (pathX(i) == x && pathY(i) == y) return i
@@ -178,7 +203,8 @@ public class PathArrow(
     /**
      * Ported from src/bmpatharrowdisp.c: GetMovementScriptFromPath
      *
-     * Writes the direction of each step of the path into [workingMovementScript] and a HALT.
+     * Writes one `MOVE_CMD_MOVE_*` per step of the path into [workingMovementScript], then
+     * `MOVE_CMD_HALT`.
      */
     public fun getMovementScriptFromPath() {
         var i = 1
@@ -199,7 +225,8 @@ public class PathArrow(
      * Transcribed from src/bmpatharrowdisp.c: GetPathFromMovementScript (not verified: only the
      * re-route branches call it, and the capture's cursor never leaves the path's reach)
      *
-     * Appends the points the [workingMovementScript] walks from the path's last point.
+     * Appends the points the `MOVE_CMD_MOVE_*` commands of [workingMovementScript] walk from the
+     * path's last point, up to `MOVE_CMD_HALT`.
      */
     public fun getPathFromMovementScript() {
         var i = 0
@@ -213,7 +240,7 @@ public class PathArrow(
                 Mu.MOVE_CMD_MOVE_RIGHT -> addPointToPathArrowProc(x + 1, y)
                 Mu.MOVE_CMD_MOVE_UP -> addPointToPathArrowProc(x, y - 1)
                 Mu.MOVE_CMD_MOVE_DOWN -> addPointToPathArrowProc(x, y + 1)
-                else -> Unit // faces and sleep (and END, which a u8 script never holds) skip
+                else -> Unit // face and sleep commands are skipped (the u8 script never holds END)
             }
         }
     }
@@ -222,7 +249,8 @@ public class PathArrow(
      * Transcribed from src/bmpatharrowdisp.c: GenerateMovementMapForActiveUnit (not verified:
      * only the re-route branches call it)
      *
-     * Floods the working map from the path's last point with the cost left there.
+     * Floods the working map from the path's last point with the movement left there, so it
+     * holds the cost to reach each tile from the path's end.
      */
     public fun generateMovementMapForActiveUnit() {
         movementMap.generateMovementMapOnWorkingMap(
@@ -234,7 +262,8 @@ public class PathArrow(
      * Transcribed from src/bmpatharrowdisp.c: ResetPathArrow (not verified: the capture's cursor
      * never leaves the range or crosses the path, so no re-route runs)
      *
-     * Restarts the path at the unit and routes it to the cursor.
+     * Restarts the path at the unit and routes it to the cursor along the cheapest path
+     * (`GenerateBestMovementScript`).
      */
     public fun resetPathArrow() {
         cutOffPathLength(1)
@@ -259,10 +288,11 @@ public class PathArrow(
     /**
      * Partially ported from src/bmpatharrowdisp.c: UpdatePathArrowWithCursor
      *
-     * Follows the cursor: the path is cut back when the cursor is on it, extended by one point
-     * when the cursor is a neighbour of its end within the cost left, and re-routed otherwise
-     * (the re-route, from `GenerateMovementMapForActiveUnit` on, is transcribed, not verified:
-     * the capture's cursor never needs it).
+     * Follows the cursor once it has moved: nothing happens when the cursor is outside the unit's
+     * movement range (`gBmMapMovement` is -1 there); the path is cut back when the cursor is on
+     * it, extended by one point when the cursor is a neighbour of its end within the movement
+     * left, and re-routed otherwise (the re-route, from `GenerateMovementMapForActiveUnit` on, is
+     * transcribed, not verified: the capture's cursor never needs it).
      */
     public fun updatePathArrowWithCursor() {
         val cx = bm.playerCursorX
@@ -297,8 +327,10 @@ public class PathArrow(
     /**
      * Ported from src/bmpatharrowdisp.c: GetDirectionOfPathBeforeIndex
      *
-     * 0 for the first point, else 3, 1, 4 or 2 for the previous point being left of, right of,
-     * above or below point [i].
+     * The side of point [i] the arrow comes from: 0 for the first point, else 3, 1, 4 or 2 for
+     * the previous point being left of, right of, above or below it. This is the column index
+     * of `gPathArrowOAMTable`; the codes are 1 right, 2 down, 3 left, 4 up. The C returns an
+     * undefined value when both points are the same tile; this returns 2.
      */
     public fun getDirectionOfPathBeforeIndex(i: Int): Int {
         if (i == 0) return 0
@@ -313,8 +345,10 @@ public class PathArrow(
     /**
      * Ported from src/bmpatharrowdisp.c: GetDirectionOfPathAfterIndex
      *
-     * 0 for the last point, else 1, 3, 2 or 4 for the next point being right of, left of, below
-     * or above point [i].
+     * The side of point [i] the arrow leaves toward: 0 for the last point, else 1, 3, 2 or 4 for
+     * the next point being right of, left of, below or above it (codes as in
+     * [getDirectionOfPathBeforeIndex]), the row index of `gPathArrowOAMTable`. The C returns an
+     * undefined value when both points are the same tile; this returns 4.
      */
     public fun getDirectionOfPathAfterIndex(i: Int): Int {
         if (i == pathLen) return 0
@@ -329,7 +363,9 @@ public class PathArrow(
     /**
      * Ported from src/bmpatharrowdisp.c: PointInCameraBounds
      *
-     * True when the pixel position ([x], [y]) is on the screen widened by [xBound] and [yBound].
+     * True when the map pixel position ([x], [y]) is on the 240x160 screen at the camera
+     * (`gBmSt.camera`), widened on the left and top by [xBound] and [yBound] (0xEF and 0x9F are
+     * the last screen column and row).
      */
     public fun pointInCameraBounds(x: Int, y: Int, xBound: Int, yBound: Int): Boolean =
         y - bm.cameraY > -yBound && y - bm.cameraY <= 0x9F &&
@@ -339,7 +375,8 @@ public class PathArrow(
      * Ported from src/bmpatharrowdisp.c: DrawPathArrow
      *
      * Puts one 16x16 sprite per path point on screen into sprite layer 11, last point first; its
-     * tile is picked from the directions after and before the point.
+     * tile (the `gPathArrowOAMTable` oam2 value) is picked from the directions after and before
+     * the point, which make it a start, straight, corner or end segment.
      */
     public fun drawPathArrow() {
         val layers = sprites ?: return
@@ -349,7 +386,8 @@ public class PathArrow(
             val xp = 16 * pathX(i)
             val yp = 16 * pathY(i)
             if (pointInCameraBounds(xp, yp, 16, 16)) {
-                val oam2 = OAM_TABLE[getDirectionOfPathAfterIndex(i)][getDirectionOfPathBeforeIndex(i)]
+                val oam2 =
+                    OAM_TABLE[getDirectionOfPathAfterIndex(i)][getDirectionOfPathBeforeIndex(i)]
                 layers.put(11, xp - bm.cameraX, yp - bm.cameraY, obj, oam2)
             }
         }
@@ -358,7 +396,8 @@ public class PathArrow(
     /**
      * Ported from src/bmpatharrowdisp.c: DrawUpdatedPathArrow
      *
-     * Applies the cursor to the path ([updatePathArrowWithCursor]), then draws it.
+     * Applies the cursor to the path ([updatePathArrowWithCursor]), then draws it
+     * ([drawPathArrow]).
      */
     public fun drawUpdatedPathArrow() {
         updatePathArrowWithCursor()
@@ -372,15 +411,23 @@ public class PathArrow(
     private fun workingPointAtCursor(): Int =
         checkNotNull(map.workingMap)[bm.playerCursorY, bm.playerCursorX].toByte().toInt()
 
+    /** The C file's own `abs` macro. */
     private fun abs(n: Int): Int = if (n >= 0) n else -n
 
     private companion object {
+        /** `gObject_16x16`. */
         const val OBJECT_16X16 = 0x08590F4C
+
+        /** `gUnknown_08A03054`: the compressed arrow tiles. */
         const val ARROW_GFX = 0x08A03054
+
+        /** `gUnknown_08A0328C`: the arrow palette. */
         const val ARROW_PALETTE = 0x08A0328C
+
+        /** `OBJ_VRAM0` (VRAM + 0x10000) in the VRAM buffer. */
         const val OBJ_VRAM_OFFSET = 0x10000
 
-        /** `gPathArrowOAMTable`: oam2 by direction after, direction before. */
+        /** `gPathArrowOAMTable`: oam2 by direction after (row), direction before (column). */
         val OAM_TABLE = arrayOf(
             intArrayOf(0x3AF0, 0x3B04, 0x3B06, 0x3B00, 0x3B02),
             intArrayOf(0x3AF0, 0x3AF0, 0x3AF8, 0x3B0C, 0x3AFC),
@@ -388,7 +435,12 @@ public class PathArrow(
             intArrayOf(0x3AF4, 0x3B0E, 0x3AFA, 0x3AF4, 0x3AFE),
             intArrayOf(0x3AF6, 0x3AFC, 0x3B0A, 0x3AFE, 0x3AF6),
         )
+
+        /** Bytes of `PathArrowProc` after its 0x29-byte header (see the class KDoc). */
         const val BUFFER_SIZE = 0x43
+
+        // Field offsets from the end of the proc header (struct offsets 0x2D, 0x41, 0x55 less
+        // 0x29 for the arrays).
         const val OFF_LAST_X = 0
         const val OFF_LAST_Y = 1
         const val OFF_MAX_MOV = 2

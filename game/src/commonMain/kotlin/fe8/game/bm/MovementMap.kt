@@ -5,21 +5,28 @@ import fe8.game.bm.StructCodec.s8
 import fe8.game.bm.StructCodec.u32
 
 /**
- * The movement-map flood shared by [MovementMap] (`GenerateMovementMap`) and the loader's
- * `AiGetUnitClosestValidPosition` search. Owns the preallocated frontier, so a flood allocates
- * nothing.
+ * The flood fill behind `GenerateMovementMap` (the ARM `MapFloodCore`), shared by [MovementMap]
+ * and the unit loader's `AiGetUnitClosestValidPosition` search. Owns the preallocated frontier,
+ * so a flood allocates nothing.
  */
 internal class MovementFlood(val rom: RomView) {
-    // A tile can be queued only once at a time, so the map pool bounds the queue size.
+    /** Ring buffer of tiles to expand, as `(y + 2) * width + x`; the C's `gMovMapFillStPool*`. */
     internal val queue = IntArray(BmMap.MAP_POOL_SIZE)
+
+    /**
+     * Whether a tile (same index as in [queue]) is waiting there. A tile is queued at most once
+     * at a time, so the map pool size bounds the ring buffer.
+     */
     internal val queued = BooleanArray(BmMap.MAP_POOL_SIZE)
 
     /**
-     * The flood `GenerateMovementMap` starts (src/bmidoten.c, asm/arm.s `MapFloodCore` and
-     * `MapFloodCoreStep`) into [pool]: the cheapest cost to each tile (0xFF = not reached), rows
-     * `-2 until height + 2`, from ([x0], [y0]) with the byte cost table at ROM address
-     * [costTable] and the most a path may cost, [movement]. With a non-zero [unitId], tiles of
-     * `map.unit` held by a unit of the other allegiance (id bit 0x80 differs) are not entered. A
+     * The flood `GenerateMovementMap` starts (src/bmidoten.c; `MapFloodCore` and
+     * `MapFloodCoreStep` in asm/arm.s) into [pool]: the cheapest movement cost to each tile
+     * (0xFF, the C's -1, = not reached), rows `-2 until height + 2`, from ([x0], [y0]) with the
+     * s8 terrain cost table at ROM address [costTable] (indexed by terrain id, `TERRAIN_*`; an
+     * impassable terrain costs -1 = 0xFF, which always exceeds [movement]) and the most a path
+     * may cost, [movement]. With a non-zero [unitId], tiles of `map.unit` held by a unit on the
+     * other side (bit 0x80 of the unit id, set for enemy units, differs) are not entered. A
      * reusable frontier revisits tiles when a cheaper path is found; the resulting minima match
      * the repeated relaxation of every tile (the ARM's wave order gives the same minima).
      *
@@ -83,15 +90,18 @@ internal class MovementFlood(val rom: RomView) {
     }
 
     companion object {
+        /** Column offsets of the four neighbours: up, down, left, right. */
         val DX = intArrayOf(0, 0, -1, 1)
+
+        /** Row offsets of the four neighbours, in the order of [DX]. */
         val DY = intArrayOf(-1, 1, 0, 0)
     }
 }
 
 /**
- * The unit movement map of src/bmidoten.c over [map]: `gBmMapMovement` flooded from a unit with
- * its class cost table. Reads the `unit` and `terrain` pools of [map], [units] and the chapter
- * weather of [playSt].
+ * The unit movement map of src/bmidoten.c over [map]: `gBmMapMovement` (`map.movement`) flooded
+ * from a unit with its class's terrain movement costs. Reads the `unit` and `terrain` pools of
+ * [map], [units] and the chapter weather (`chapterWeatherId`) of [playSt].
  *
  * Deviation: the C copies the cost table into `gWorkingTerrainMoveCosts` and the flood reads
  * that copy; here [workingMoveCosts] holds the copy and the flood reads the same ROM table.
@@ -103,10 +113,15 @@ public class MovementMap(
     private val playSt: PlaySt,
 ) {
     private val flood = MovementFlood(rom)
+
+    /** The terrain id of a tile, `gBmMapTerrain[y][x]`, for the flood. */
     private val terrainAt: (Int, Int) -> Int = { x, y -> map.terrain[y, x] }
+
+    /** ROM address of the cost table the flood reads, set with [workingMoveCosts]. */
     private var costTable = 0
 
-    /** `gWorkingTerrainMoveCosts`: the cost table [setWorkingMoveCosts] copied last. */
+    /** `gWorkingTerrainMoveCosts`: the cost table [setWorkingMoveCosts] copied last, by terrain
+     * id (what `GetWorkingMoveCosts` returns; the path arrow reads it). */
     public val workingMoveCosts: ByteArray = ByteArray(TERRAIN_COUNT)
 
     /**
@@ -121,13 +136,12 @@ public class MovementMap(
     /**
      * Ported from src/bmidoten.c: GenerateUnitMovementMapExt
      *
-     * Floods `map.movement` from the unit with id [unitId] (position, `index` as the blocking id,
-     * class cost table of the chapter weather) with at most [movement] cost. The window ran it
-     * from `DisplayUnitEffectRange` with `UNIT_MOV - moveCount`.
+     * Floods `map.movement` from the unit with id [unitId] (its position, its `index` as the
+     * blocking id, its cost table from [getUnitMovementCost]) with at most [movement] cost. The
+     * capture ran it from `DisplayUnitEffectRange` with `UNIT_MOV - moveCount`.
      */
     public fun generateUnitMovementMapExt(unitId: Int, movement: Int) {
-        val o = units.unitOffset(unitId)
-        setWorkingMoveCosts(getUnitMovementCost(o))
+        setWorkingMoveCosts(getUnitMovementCost(units.unitOffset(unitId)))
         setWorkingBmMap(map.movement)
         generateMovementMap(units.xPos(unitId), units.yPos(unitId), movement, units.index(unitId))
     }
@@ -136,8 +150,9 @@ public class MovementMap(
      * Transcribed from src/bmidoten.c: GenerateMovementMapOnWorkingMap (not verified: only
      * `ResetPathArrow` and the path arrow's re-route call it, and the capture runs neither)
      *
-     * Sets the working move costs of the unit with id [unitId] and floods the working map from
-     * ([x], [y]) with at most [movement] cost.
+     * Sets the working move costs of the unit with id [unitId] and floods the current working map
+     * (`gWorkingBmMap`, chosen by [setWorkingBmMap]) from ([x], [y]) with at most [movement]
+     * cost.
      */
     public fun generateMovementMapOnWorkingMap(unitId: Int, x: Int, y: Int, movement: Int) {
         setWorkingMoveCosts(getUnitMovementCost(units.unitOffset(unitId)))
@@ -147,21 +162,29 @@ public class MovementMap(
     /**
      * Ported from src/bmunit.c: GetUnitMovementCost
      *
-     * The ROM address of the cost table of the unit at unit-array offset [o]: the class table
-     * for the chapter weather, or the ballista table. The ballista and the rain/snow tables are
+     * The ROM address of the terrain cost table of the unit at unit-array offset [unitOffset]:
+     * the ballista table (`Unk_TerrainTable_0880BC18`) for a unit in a ballista
+     * (`US_IN_BALLISTA`), else the class's `pMovCostTable` entry for the chapter weather (0
+     * standard, 1 rain, 2 snow and snowstorm). The ballista and the rain/snow tables are
      * transcribed (not verified: no capture has a unit in a ballista or weather).
      */
-    internal fun getUnitMovementCost(o: Int): Int {
-        if ((u32(units.bytes, o + OFF_STATE) and US_IN_BALLISTA) != 0) return BALLISTA_COST_TABLE
+    internal fun getUnitMovementCost(unitOffset: Int): Int {
+        if ((u32(units.bytes, unitOffset + OFF_STATE) and US_IN_BALLISTA) != 0) {
+            return BALLISTA_COST_TABLE
+        }
         val index = when (playSt.chapterWeatherId) {
             WEATHER_RAIN -> 1
             WEATHER_SNOW, WEATHER_SNOWSTORM -> 2
             else -> 0
         }
-        return rom.u32(u32(units.bytes, o + OFF_CLASS) + OFF_MOV_COST_TABLES + 4 * index)
+        return rom.u32(u32(units.bytes, unitOffset + OFF_CLASS) + OFF_MOV_COST_TABLES + 4 * index)
     }
 
-    /** Ported from src/bmidoten.c: SetWorkingBmMap (inline). Makes [pool] the working map. */
+    /**
+     * Ported from src/bmidoten.c: SetWorkingBmMap (inline)
+     *
+     * Makes [pool] the working map (`gWorkingBmMap`) that the flood and the path search use.
+     */
     internal fun setWorkingBmMap(pool: BmMap.Pool) {
         map.workingMap = pool
     }
@@ -169,18 +192,23 @@ public class MovementMap(
     /**
      * Ported from src/bmidoten.c: SetWorkingMoveCosts
      *
-     * Copies the [TERRAIN_COUNT] cost bytes at ROM address [mct] into [workingMoveCosts].
+     * Copies the [TERRAIN_COUNT] cost bytes at ROM address [costTableAddress] into
+     * [workingMoveCosts].
      */
-    internal fun setWorkingMoveCosts(mct: Int) {
-        costTable = mct
-        for (i in 0 until TERRAIN_COUNT) workingMoveCosts[i] = rom.u8(mct + i).toByte()
+    internal fun setWorkingMoveCosts(costTableAddress: Int) {
+        costTable = costTableAddress
+        for (i in 0 until TERRAIN_COUNT) {
+            workingMoveCosts[i] = rom.u8(costTableAddress + i).toByte()
+        }
     }
 
     /**
      * Ported from src/bmidoten.c: GenerateMovementMap
      *
-     * Fills the working map with 0xFF and floods it from ([x], [y]) with the working move costs
-     * (see [MovementFlood.flood]; [unitId] 0 means no unit blocks).
+     * Fills the working map with 0xFF (not reached) and floods it from ([x], [y]) with the
+     * working move costs (see [MovementFlood.flood]; [unitId] 0 means no unit blocks). The C
+     * also sets `maxMovementValue` to `MAP_MOVEMENT_MAX`; only the range-extension passes read
+     * it, so the flood has no use for it.
      */
     internal fun generateMovementMap(x: Int, y: Int, movement: Int, unitId: Int) {
         val pool = checkNotNull(map.workingMap) { "no working map" }
@@ -188,12 +216,25 @@ public class MovementMap(
     }
 
     private companion object {
+        /** `TERRAIN_COUNT` (include/constants/terrains.h). */
         const val TERRAIN_COUNT = 0x41
+
+        /** `Unit.pClassData`. */
         const val OFF_CLASS = 0x04
+
+        /** `Unit.state`. */
         const val OFF_STATE = 0x0C
+
+        /** `ClassData.pMovCostTable` (standard, rain, snow). */
         const val OFF_MOV_COST_TABLES = 0x38
+
+        /** `US_IN_BALLISTA` (include/bmunit.h). */
         const val US_IN_BALLISTA = 1 shl 11
+
+        /** `Unk_TerrainTable_0880BC18` (src/data_terrains.c). */
         const val BALLISTA_COST_TABLE = 0x0880BC18
+
+        /** `WEATHER_RAIN`, `WEATHER_SNOW`, `WEATHER_SNOWSTORM` (include/types.h). */
         const val WEATHER_RAIN = 4
         const val WEATHER_SNOW = 1
         const val WEATHER_SNOWSTORM = 2

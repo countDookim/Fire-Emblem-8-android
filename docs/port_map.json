@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1275,
+    "verified": 1276,
     "implemented_unverified": 79
   },
   "functions": {
@@ -8596,6 +8596,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
+    "PutManimLevelUpFrame": {
+      "decomp_file": "src/mapanim_lvupfx.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapLevelUpFrame.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpStatsDifferentialTest#frame and initial panel match captured buffers"
       ]
     },
     "PutManimLevelUpStat": {

@@ -69,6 +69,7 @@ public class ActiveEventRegistry {
     private fun get16(src: ByteArray, at: Int): Int =
         (src[at].toInt() and 0xFF) or ((src[at + 1].toInt() and 0xFF) shl 8)
 
+    /** The registry's size and layout constants. */
     public companion object {
         /** Entries of `scripts` and `flags`. */
         public const val CAPACITY: Int = 10

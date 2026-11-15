@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-15 14:35Z (owner PC: enemies walk, attack and fade (EP-8..9c, EP-8b/8c), level-up rolls (MC-17), ROM-portrait app icon, game-text CI check, 23 of 24 new readability rows; 949 tests green locally). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-15 14:35Z (owner PC: enemies walk, attack and fade (EP-8..9c, EP-8b/8c), map battle start (EP-13), level-up rolls (MC-17), ROM-portrait app icon, game-text CI check, 24 new readability rows done, readability paused 2 days; 950 tests green locally). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -18,12 +18,11 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
   **enemies act in game.** Merged EP-8 (perform walk, AI target cursor), EP-9 (perform action: Soldiers attack via
   the real map battle and die to Eirika's counter), EP-9b (equip after a move), EP-9c (BMXFADE map fade, entity map
   refresh), EP-8c (MU end of walk), EP-8b (MU step sounds, fixes BUG-mustepse), MC-17 (level-up growth rolls; display
-  is new row MC-18). Demoted in review: CpPerform_MoveCameraOntoUnit (camera never moves in a capture). APP-icon:
+  is new row MC-18), EP-13 (map battle start: MOVEUNITs face off ~3 frames, rest of the animation is EP-17). Demoted in review: CpPerform_MoveCameraOntoUnit (camera never moves in a capture). APP-icon:
   original vector launcher icon; after ROM import Eirika's portrait (built from the ROM in memory) is the recents
   icon and an "Add to home screen" shortcut (owner chose runtime-only, rule 3). BUG-gametext: ROM message text removed
   from tests/comments/docs, new CI step `tools/check_no_game_text_in_source.py`. READABILITY: the 11-14 "complete" was
-  wrong (rows named files sized 11-11); 24 rows added for fe8.game.bm and fe8.game.worldmap, 23 done (last row
-  MoveLimitView/UnitFacing/... in progress). New rows: BUG-deadmovestat (C reads a stat pid through NULL after the
+  wrong (rows named files sized 11-11); 24 rows added for fe8.game.bm and fe8.game.worldmap, all done. New rows: BUG-deadmovestat (C reads a stat pid through NULL after the
   actor dies), MC-18 (level-up display), LG-0 weather sub-lane. Device checks pending: MANUAL_TEST step 5 (enemy walk,
   attack, fade pause, footsteps), APP-icon step; earlier PP-17, D-14, D-15.
 - 2026-11-13 20:16Z – 2026-11-14 23:08Z owner PC (paused ~22:10Z–21:40Z next day on the usage limit): **M6-D AI
@@ -133,7 +132,9 @@ window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose de
    (MANUAL_TEST PP-17). Then M6-F info
    screens (`IS-*`). Notes: [M6B-player-phase](docs/plans/M6B-player-phase.md). M6-G to M6-J have starter rows only.
    Owner-approved 11-12: this lane split, and the Easy-mode tutorial (PC-cap3, PC-10) as the end of M6-E.
-3. **Readability (rule 11, changed 11-11):** comments must be meaningful and checked against the decomp
+3. **Readability paused by the owner 2026-11-15 ~15:30Z for two days (until ~2026-11-17): porting only.** Then resume
+   one row per session; 4 rows open (added 11-15 for new files).
+   **Readability (rule 11, changed 11-11):** comments must be meaningful and checked against the decomp
    ([READABILITY](docs/READABILITY.md)). Rows done before 2026-11-15 are audited; 24 rows added 2026-11-15 for
    fe8.game.bm and fe8.game.worldmap files that had none (the 11-14 "complete" missed them). New or heavily
    changed files get a new row (Use Sonnet, not Haiku).

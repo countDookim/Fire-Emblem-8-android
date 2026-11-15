@@ -28,7 +28,8 @@ Rows marked done before 2026-11-11 10:00Z were reviewed for names and no behavio
 not checked for meaning against the decomp. They carry `audit todo` until a meaning audit is committed.
 
 Sizes are main-source files/lines on 2026-11-07; counts for open rows were refreshed 2026-11-11 (done rows keep
-their old counts); new packages get a row when they appear.
+their old counts); new packages get a row when they appear. Rows added 2026-11-15 cover the fe8.game.bm and
+fe8.game.worldmap files that had none (sizes on that date).
 
 | Module | Package | Files | Lines | Status |
 |---|---|---:|---:|---|
@@ -84,6 +85,30 @@ their old counts); new packages get a row when they appear.
 | game | fe8.game.bm (PlayerPhase lines 1-789: to before handlePlayerCursorMovement) | 1 | 789 | done 2026-11-13 817a650c |
 | game | fe8.game.bm (PlayerPhase lines 790-1547: handlePlayerCursorMovement to end) | 1 | 758 | done 2026-11-13 6bce8583 |
 | game | fe8.game.bm (BattleMapStart) | 1 | 624 | done 2026-11-13 25d9f084 |
+| game | fe8.game.bm (CpPhase, CpUtility) | 2 | 710 | todo |
+| game | fe8.game.bm (CpDecide) | 1 | 602 | todo |
+| game | fe8.game.bm (CpBattle, CpScript) | 2 | 778 | todo |
+| game | fe8.game.bm (PlayerInterface lines 1-633: to before initPlayerPhaseInterface) | 1 | 633 | todo |
+| game | fe8.game.bm (PlayerInterface lines 634-1210: initPlayerPhaseInterface to before unitMiniPortraitId) | 1 | 577 | todo |
+| game | fe8.game.bm (PlayerInterface lines 1211-1814: unitMiniPortraitId to end) | 1 | 604 | todo |
+| game | fe8.game.bm (BattleForecast lines 1-514: to before battleForecastHitCountUpdate) | 1 | 514 | todo |
+| game | fe8.game.bm (BattleForecast lines 515-936: battleForecastHitCountUpdate to end) | 1 | 422 | todo |
+| game | fe8.game.bm (ChapterIntro lines 1-551: to before setTimer) | 1 | 551 | todo |
+| game | fe8.game.bm (ChapterIntro lines 552-1117: setTimer to end) | 1 | 566 | todo |
+| game | fe8.game.bm (UnitActionMenu, ItemMenuLine) | 2 | 659 | todo |
+| game | fe8.game.bm (MapMenu, MenuItemPanel, ChapterTitle, BmPhase, PhaseStartEnd) | 5 | 814 | todo |
+| game | fe8.game.bm (AttackMapSelect, AttackRange, AttackTargets) | 3 | 513 | todo |
+| game | fe8.game.bm (SelectTargets, TargetSelection, CombatAction) | 3 | 730 | todo |
+| game | fe8.game.bm (MovementMap, PathArrow) | 2 | 601 | todo |
+| game | fe8.game.bm (MoveLimitView, UnitFacing, UnitSpriteHover, ActiveUnit, BestMovementScript) | 5 | 617 | todo |
+| game | fe8.game.worldmap (WorldMapMain, WorldMapBeginning, WorldMapNodes, WorldMapApHost) | 4 | 769 | todo |
+| game | fe8.game.worldmap (WorldMapMainScript, WorldMapBigMapEvents, WorldMapFaceEvents, WorldMapMiscEvents, WorldMapSpawnEvents, WorldMapTextEvents) | 6 | 717 | todo |
+| game | fe8.game.worldmap (WorldMapUnitEvents, WorldMapSms) | 2 | 510 | todo |
+| game | fe8.game.worldmap (WorldMapAutoMu, WorldMapMuEntry) | 2 | 795 | todo |
+| game | fe8.game.worldmap (WorldMapDot, WorldMapNodeIcons) | 2 | 612 | todo |
+| game | fe8.game.worldmap (WorldMapRoute, WorldMapPath) | 2 | 610 | todo |
+| game | fe8.game.worldmap (WorldMapRmBorder, WorldMapLineFade) | 2 | 622 | todo |
+| game | fe8.game.worldmap (WorldMapExit, WorldMapCursor, WorldMapHblank) | 3 | 711 | todo |
 | game | fe8.game.event (EventEngine, EventEngineProc, EventState, ReleaseEventStubs) | 4 | 973 | done 2026-11-10 ff286fe / 0bfe1ab; audit done 2026-11-13 139c8c3 |
 | game | fe8.game.event (EventScrCore, EventPopup, EventFade, EventGiveItem) | 4 | 826 | done 2026-11-10 077a47d; audit done 2026-11-13 f7fec4f |
 | game | fe8.game.event (EventInfo, EventText) | 2 | 819 | done 2026-11-10 077a47d; audit done 2026-11-13 a2d84eb |

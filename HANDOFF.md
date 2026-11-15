@@ -11,6 +11,8 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
+- EP-8: owner PC, until ~2026-11-15 14:00Z
+- READABILITY fe8.game.bm (CpPhase, CpUtility): owner PC, until ~2026-11-15 13:00Z
 
 ## Current state
 
@@ -122,8 +124,9 @@ window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose de
    screens (`IS-*`). Notes: [M6B-player-phase](docs/plans/M6B-player-phase.md). M6-G to M6-J have starter rows only.
    Owner-approved 11-12: this lane split, and the Easy-mode tutorial (PC-cap3, PC-10) as the end of M6-E.
 3. **Readability (rule 11, changed 11-11):** comments must be meaningful and checked against the decomp
-   ([READABILITY](docs/READABILITY.md)). All rows done and audited 2026-11-14; new or heavily changed files get a new
-   row (Use Sonnet, not Haiku).
+   ([READABILITY](docs/READABILITY.md)). Rows done before 2026-11-15 are audited; 24 rows added 2026-11-15 for
+   fe8.game.bm and fe8.game.worldmap files that had none (the 11-14 "complete" missed them). New or heavily
+   changed files get a new row (Use Sonnet, not Haiku).
 4. **Alignment done 2026-11-11:** the progress bar counts in-scope functions only; generated lists
    [UNVERIFIED](docs/plans/UNVERIFIED.md) (written but unverified code) and [STANDINS](docs/plans/STANDINS.md)
    (placeholders by milestone) are checked in CI: regenerate both with `--write` after changing such comments.

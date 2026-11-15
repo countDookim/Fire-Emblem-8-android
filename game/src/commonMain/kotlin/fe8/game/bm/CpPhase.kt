@@ -113,7 +113,7 @@ public class CpPhase(
      * `UpdateAllPhaseHealingAIStatus` and `SetupUnitInventoryAIFlags` (and the helpers of the AI
      * decisions); null (both skipped) when the constructor got no loader, map and entity maps.
      */
-    private val utility: CpUtility? =
+    internal val utility: CpUtility? =
         if (loader != null && map != null && entityMaps != null) {
             CpUtility(rom, units, playSt, aiState, loader, map, entityMaps)
         } else {

@@ -21,6 +21,12 @@ import gbafe.proc.ProcScripts.yield
 public class CpPerformState {
     /** `isUnitVisible` (0x31): false when fog hides the walk, so no MU is started. */
     public var isUnitVisible: Boolean = false
+
+    /** `unk_30` (0x30): frames [CpPerform.cpPerformWaitAction] has run. */
+    public var unk30: Int = 0
+
+    /** `func` (0x2C): the action step; only `AiDummyAction` is written (always done). */
+    public var funcIsDummy: Boolean = false
 }
 
 /** `struct UnkProcA` past `PROC_HEADER` (src/cp_perform.c): the AI target cursor. */
@@ -42,8 +48,8 @@ public class AiTargetCursorState {
  * The AI perform proc of src/cp_perform.c, movement half: `gProcScr_CpPerform` (ROM 0x085A8024)
  * with the camera onto the unit, the unit's walk (an MU along the best path to the decided tile),
  * the camera onto the target and the target cursor `gProcScr_AiTargetCursor` (0x085A8004). The
- * action half (EP-9, EP-9b) is reached through [Hooks]; without a hook the script goes on at
- * once, so it ends. [start] is the value of [CpDecide.Hooks.startCpPerform].
+ * action half (EP-9: a combat or no action) is ported too; `CpPerform_EquipBest` (EP-9b) is a
+ * stand-in hook. [start] is the value of [CpDecide.Hooks.startCpPerform].
  *
  * The unit walk reuses the player phase's ported code ([PlayerPhase.unitBeginAction],
  * [PlayerPhase.unitApplyWorkingMovementScript], [PlayerPhase.handlePostActionTraps],
@@ -52,8 +58,13 @@ public class AiTargetCursorState {
  */
 public class CpPerform(
     private val engine: ProcEngine,
+    private val bm: BmSt,
     private val playSt: PlaySt,
     private val units: UnitTable,
+    /** `EquipUnitItemSlot`. */
+    private val items: ItemInfo,
+    /** `RefreshEntityBmMaps`. */
+    private val entityMaps: EntityBmMaps,
     /** `gActiveUnit` and `gActionData`. */
     private val active: ActiveUnit,
     /** `gAiDecision` ([CpDecide.decision]). */
@@ -101,20 +112,23 @@ public class CpPerform(
         /** `EndAllMus` ([Mu.endAllMus]). */
         public var endAllMus: AiStep? = null
 
-        /**
-         * Stand-in for `CpPerform_PerformAction` with `AiStartCombatAction` and the other
-         * actions (EP-9): runs once after the camera is on the target.
-         */
-        public var performAction: AiProcStep? = null
+        /** `UpdateAllPhaseHealingAIStatus` ([CpUtility.updateAllPhaseHealingAiStatus]). */
+        public var updateAllPhaseHealingAIStatus: AiStep? = null
 
-        /**
-         * Stand-in for `CpPerform_WaitAction` (EP-9): true when the action is done. Null counts
-         * as done at once.
-         */
-        public var waitAction: ProcBoolFunc? = null
+        /** `RenderBmMapOnBg2` (display; EP-w). */
+        public var renderBmMapOnBg2: AiStep? = null
 
-        /** Stand-in for `CpPerform_Cleanup` (EP-9: `AiRefreshMap`). */
-        public var cleanup: AiProcStep? = null
+        /** `RenderBmMap` (display; EP-w). */
+        public var renderBmMap: AiStep? = null
+
+        /** Stand-in for `NewBMXFADE(flag)` (bmxfade.c; EP-9c). */
+        public var newBmxFade: AiIntStep? = null
+
+        /** `ShowUnitSprite(unit)` ([UnitSpriteHandles.showUnitSprite]) for a unit id. */
+        public var showUnitSprite: AiIntStep? = null
+
+        /** `RefreshUnitSprites` (display; EP-w). */
+        public var refreshUnitSprites: AiStep? = null
 
         /** Stand-in for `CpPerform_EquipBest` (EP-9b). */
         public var equipBest: AiProcStep? = null
@@ -127,12 +141,9 @@ public class CpPerform(
     private val moveCameraOntoUnitFn = ProcFunc { cpPerformMoveCameraOntoUnit(it) }
     private val beginUnitMovementFn = ProcFunc { cpPerformBeginUnitMovement(it) }
     private val moveCameraOntoTargetFn = ProcFunc { cpPerformMoveCameraOntoTarget(it) }
-    private val performActionFn = ProcFunc { hooks.performAction?.run(it) }
-    private val waitActionFn = ProcFunc {
-        val wait = hooks.waitAction
-        if (wait == null || wait.invoke(it)) engine.breakProc(it)
-    }
-    private val cleanupFn = ProcFunc { hooks.cleanup?.run(it) }
+    private val performActionFn = ProcFunc { cpPerformPerformAction(it) }
+    private val waitActionFn = ProcFunc { cpPerformWaitAction(it) }
+    private val cleanupFn = ProcFunc { cpPerformCleanup(it) }
     private val equipBestFn = ProcFunc { hooks.equipBest?.run(it) }
     private val targetCursorFn = ProcFunc { aiTargetCursorMain(it) }
     private val muActiveFn = ProcBoolFunc { mu.muExistsActive() }
@@ -308,6 +319,119 @@ public class CpPerform(
     }
 
     /**
+     * Ported from src/cp_perform.c: CpPerform_PerformAction
+     *
+     * Chooses the action step by `gAiDecision.actionId`: a trapped unit and no action are
+     * [aiDummyAction]; a combat action also starts the attack ([aiStartCombatAction]). Verified:
+     * both. The other 14 actions are not written and fail loudly (EP-12 and later).
+     */
+    public fun cpPerformPerformAction(proc: Proc) {
+        val state = proc.state as CpPerformState
+        state.unk30 = 0
+        if (active.action.unitActionType == UNIT_ACTION_TRAPPED) {
+            state.funcIsDummy = true
+            return
+        }
+        when (decision.actionId) {
+            AI_ACTION_NONE -> state.funcIsDummy = true
+            AI_ACTION_COMBAT -> {
+                state.funcIsDummy = true
+                aiStartCombatAction(proc)
+            }
+            else -> error("CpPerform_PerformAction: action ${decision.actionId} is not written")
+        }
+    }
+
+    /**
+     * Ported from src/cp_perform.c: AiStartCombatAction
+     *
+     * Records the attack of the active unit on the decided target in `gActionData`, puts the
+     * unit on its move tile, equips the decided weapon (or marks a ballista attack) and applies
+     * the action ([PlayerPhase.applyUnitAction], which starts the combat proc blocking [proc]).
+     * A target without a unit (a wall or trap, `GetTrapAt`) is not written and fails loudly.
+     */
+    public fun aiStartCombatAction(proc: Proc) {
+        val a = active.action
+        val unit = active.unit
+        a.subjectIndex = active.unitId
+        a.unitActionType = UNIT_ACTION_COMBAT
+        a.targetIndex = decision.targetId
+        units.setPosition(unit, decision.xMove, decision.yMove)
+        check(decision.targetId != 0) { "AiStartCombatAction: GetTrapAt is not written" }
+        if (decision.itemSlot.toByte().toInt() != BmBattle.BU_ISLOT_AUTO) {
+            items.equipUnitItemSlot(units.bytes, units.unitOffset(unit), decision.itemSlot)
+            a.itemSlotIndex = 0
+        } else {
+            a.itemSlotIndex = BmBattle.BU_ISLOT_BALLISTA
+        }
+        phase.applyUnitAction(proc)
+    }
+
+    /**
+     * Ported from src/cp_perform.c: CpPerform_WaitAction
+     *
+     * The repeat step after the action starts: counts the frame, ends the wait when the action
+     * step is done ([aiDummyAction]: at once) and puts the active unit on the decided tile.
+     * Verified: the end of the wait. Not seen: the counter and the position write (the unit
+     * already stands there and [aiRefreshMap] moves it again).
+     */
+    public fun cpPerformWaitAction(proc: Proc) {
+        val state = proc.state as CpPerformState
+        state.unk30++
+        if (state.funcIsDummy && aiDummyAction()) engine.breakProc(proc)
+        units.setPosition(active.unit, decision.xMove, decision.yMove)
+    }
+
+    /**
+     * Ported from src/cp_perform.c: AiDummyAction
+     *
+     * The action step that has nothing to wait for: done (true).
+     */
+    public fun aiDummyAction(): Boolean = true
+
+    /**
+     * Ported from src/cp_perform.c: CpPerform_Cleanup
+     *
+     * Updates the healing flags, refreshes the map ([aiRefreshMap]) and, for a unit that has no
+     * character any more (killed in the action), is hidden, dead or `US_BIT16`, skips
+     * `CpPerform_EquipBest` (label 1). Verified: the map refresh. Not seen: the skip itself (the
+     * proc ends at the same frame either way until `CpPerform_EquipBest` is written, EP-9b) and
+     * the healing update (no healer in the Prologue's enemy phases).
+     */
+    public fun cpPerformCleanup(proc: Proc) {
+        hooks.updateAllPhaseHealingAIStatus?.run()
+        aiRefreshMap()
+        val unit = active.unit
+        if (!units.isValid(unit) || units.state(unit) and (US_HIDDEN or US_DEAD or US_BIT16) != 0) {
+            engine.goto(proc, 1)
+        }
+    }
+
+    /**
+     * Ported from src/cp_perform.c: AiRefreshMap
+     *
+     * Makes the action's subject the active unit, puts the cursor on its move tile, moves the unit
+     * there ([PlayerPhase.moveActiveUnit]), rebuilds the entity maps and the map, ends the walk's
+     * MUs and shows the unit sprite. The fade (`NewBMXFADE(1)`, EP-9c) and the display calls are
+     * hooks. Verified: the cursor and the unit's move (position, `US_UNSELECTABLE`, hidden bit),
+     * for a surviving unit and for one killed in its attack. Not seen: the entity-map refreshes,
+     * `EndAllMus`, `ShowUnitSprite` and the display calls (they show in no value this test reads).
+     */
+    public fun aiRefreshMap() {
+        active.unit = active.action.subjectIndex
+        Camera.setCursorMapPosition(bm, decision.xMove, decision.yMove)
+        hooks.renderBmMapOnBg2?.run()
+        phase.moveActiveUnit(decision.xMove, decision.yMove)
+        entityMaps.refreshEntityBmMaps()
+        hooks.renderBmMap?.run()
+        hooks.newBmxFade?.run(1)
+        hooks.endAllMus?.run()
+        entityMaps.refreshEntityBmMaps()
+        hooks.showUnitSprite?.run(active.unit)
+        hooks.refreshUnitSprites?.run()
+    }
+
+    /**
      * Ported from src/cp_perform.c: StartAiTargetCursor
      *
      * Starts [targetCursorScript] blocking [parent] with the cursor at pixel ([x], [y]), sprite
@@ -340,7 +464,12 @@ public class CpPerform(
 
     private companion object {
         const val FACTION_RED = 0x80
+        const val AI_ACTION_NONE = 0
         const val AI_ACTION_COMBAT = 1
+        const val UNIT_ACTION_COMBAT = 2
+        const val US_HIDDEN = 1
+        const val US_DEAD = 1 shl 2
+        const val US_BIT16 = 1 shl 16
         const val AI_ACTION_STEAL = 3
         const val AI_ACTION_PILLAGE = 4
         const val AI_ACTION_STAFF = 5

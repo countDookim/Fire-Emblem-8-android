@@ -58,13 +58,14 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      Move again and choose Wait. Expected: the menu closes, Eirika greys out, the cursor is free.
   5. Press A on an empty tile. Expected: the map menu (Unit, Status, Guide, Options, Suspend,
      End). Choose End. Expected: the "Enemy Phase" banner, then the two Soldiers walk one after the
-     other to the tile next to Eirika with the target cursor on her (about 1 second each); they
-     do not attack and jump back to where they stood (the action is EP-9). Then the "Player Phase"
-     banner of turn 2 and Eirika is no longer grey.
+     other to the tile next to Eirika with the target cursor on her (about 1 second each) and
+     attack her. There is no battle animation: the result applies at once, one Soldier hits her
+     (the HP of the unit at (4, 5) drops by 9) and each Soldier dies to her counter and vanishes (no death fade, no exp
+     bar, no dialogue yet). Then the "Player Phase" banner of turn 2 and Eirika is no longer grey.
   - Limits (stand-ins): Item opens nothing and
     answers with the refusal beep (M6-H); the map menu's Unit, Status, Guide, Options and Suspend,
-    and R / L / START in the map do nothing (M6-F; Suspend M6-E); enemies walk but do not attack and
-    jump back (M6-D, EP-9); no staff range, no traps, no after-move or tutorial events, no records (M6-C, M6-E,
+    and R / L / START in the map do nothing (M6-F; Suspend M6-E); enemies walk and attack with no battle
+    animation, death fade or exp bar (M6-D, M6-H, EP-11); no staff range, no traps, no after-move or tutorial events, no records (M6-C, M6-E,
     M6-H). Selecting an enemy shows no range. The save is written at each turn start as in the
     original but not at an action. Frame timing matches the captures except the five frames the
     original spends writing the suspend save after Wait.

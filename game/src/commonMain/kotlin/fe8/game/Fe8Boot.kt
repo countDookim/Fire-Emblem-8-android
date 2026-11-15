@@ -3,7 +3,6 @@ package fe8.game
 import fe8.game.bm.ActiveUnit
 import fe8.game.bm.AiBattleSimulation
 import fe8.game.bm.AiIntStep
-import fe8.game.bm.AiProcStep
 import fe8.game.bm.AiStep
 import fe8.game.bm.AiTry
 import fe8.game.bm.BMapMain
@@ -1095,11 +1094,12 @@ public class Fe8Boot(
             main.hooks.writeSuspendSave(slot)
         }
         // The perform proc's movement half (EP-8): the camera, the unit's walk (an MU along the
-        // best path) and the target cursor. Its action half is EP-9 (null hooks), so after the
-        // walk the proc ends and the unit's position is not applied: the sprite snaps back to its
-        // old tile until EP-9's `ApplyUnitAction`.
+        // best path), the target cursor and the action (EP-9: an attack through the player
+        // phase's `ApplyUnitAction` and the map combat, or no action); `CpPerform_EquipBest` is
+        // EP-9b and the fade EP-9c.
         val perform = CpPerform(
-            engine, playSt, units, active, cp.decide.decision, battleBmMap,
+            engine, loop.bmSt, playSt, units, ItemInfo(rom), battleEntityMaps, active,
+            cp.decide.decision, battleBmMap,
             MovementMap(rom, battleBmMap, units, playSt), camMove, mu, phase, keys, rng,
             phase.workingMovementScript,
         )
@@ -1114,15 +1114,12 @@ public class Fe8Boot(
             if (muProc != null) mu.setMuDefaultFacing(muProc.state as MuProc)
         }
         perform.hooks.endAllMus = AiStep { mu.endAllMus() }
-        // Stand-in for `CpPerform_Cleanup` (EP-9: `AiRefreshMap` applies the move): ends the walk's
-        // MU and shows the unit's sprite again where its data still stands (the C hides it in
-        // `UnitBeginAction`), so the unit snaps back to its old tile after the walk.
-        perform.hooks.cleanup = AiProcStep {
-            val unit = active.unit
-            mu.endAllMus()
-            units.setState(unit, units.state(unit) and US_HIDDEN.inv())
-            handles.showUnitSprite(unit)
+        perform.hooks.updateAllPhaseHealingAIStatus = AiStep {
+            cp.utility?.updateAllPhaseHealingAiStatus()
         }
+        perform.hooks.renderBmMap = AiStep { bmapRender.renderBmMap() }
+        perform.hooks.showUnitSprite = AiIntStep { id -> handles.showUnitSprite(id) }
+        perform.hooks.refreshUnitSprites = AiStep { main.hooks.refreshUnitSprites() }
         perform.hooks.putMapCursor = PlayerPhase.PutMapCursor { x, y, kind ->
             mapCursor.put(x, y, kind)
         }
@@ -1398,9 +1395,6 @@ public class Fe8Boot(
         }
     }
 }
-
-/** `US_HIDDEN`: set by `UnitBeginAction`, the unit's sprite is not drawn. */
-private const val US_HIDDEN = 1
 
 /** World map nodes tried by `GetPlayChapterId`. */
 private const val WM_NODE_COUNT = 0x1D

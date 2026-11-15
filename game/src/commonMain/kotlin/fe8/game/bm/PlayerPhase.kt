@@ -767,11 +767,16 @@ public class PlayerPhase(
      * shows it again if alive and finalizes the move (`UnitFinalizeMovement`: a carried rescuee
      * and a ballista move to the same tile).
      */
-    private fun moveActiveUnit(x: Int, y: Int) {
+    public fun moveActiveUnit(x: Int, y: Int) {
         val unit = active.unit
         units.setPosition(unit, x, y)
         units.setState(unit, units.state(unit) or US_UNSELECTABLE)
-        hooks.pidStatsAddSquaresMoved(units.charId(unit), active.action.moveCount)
+        // Deviation: a unit killed in its action has no character (`AiRefreshMap` after an enemy
+        // attack); the C reads the character number from address 4 there and stores it in the
+        // statistics, which is skipped.
+        if (units.isValid(unit)) {
+            hooks.pidStatsAddSquaresMoved(units.charId(unit), active.action.moveCount)
+        }
         if (units.currentHp(unit) != 0) {
             units.setState(unit, units.state(unit) and US_HIDDEN.inv())
         }

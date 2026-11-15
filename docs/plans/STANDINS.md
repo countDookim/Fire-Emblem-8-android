@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 239 across 47 Kotlin files.
+Total entries: 237 across 47 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -28,8 +28,9 @@ Total entries: 239 across 47 Kotlin files.
 | EP-1 | 1 |
 | EP-12 | 17 |
 | EP-6b | 11 |
-| EP-9 | 4 |
+| EP-9 | 1 |
 | EP-9b | 1 |
+| EP-9c | 1 |
 | EP-cap2 | 6 |
 | EP-w | 3 |
 | IS-2 | 1 |
@@ -327,20 +328,23 @@ Total entries: 239 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `turnScore` | Stand-in for `AiGetTurnCombatScoreComponent` (EP-6b): `chapterTurnNumber` of `gPlaySt` times `coeffTurnNumber`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `battle` | The AI attack search (cp_battle.c, `AiTryDoStaff` of cp_staff.c) and its hooks (EP-6b and EP-12 stand-ins); null (the script attacks nothing) when the constructor got no loader, map and entity maps. |
 
-## EP-9 (4)
+## EP-9 (1)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `wirePlayerPhase` | Stand-in for `CpPerform_Cleanup` (EP-9: `AiRefreshMap` applies the move): ends the walk's MU and shows the unit's sprite again where its data still stands (the C hides it in `UnitBeginAction`), so... |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `cleanup` | Stand-in for `CpPerform_Cleanup` (EP-9: `AiRefreshMap`). |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `performAction` | Stand-in for `CpPerform_PerformAction` with `AiStartCombatAction` and the other actions (EP-9): runs once after the camera is on the target. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `waitAction` | Stand-in for `CpPerform_WaitAction` (EP-9): true when the action is done. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `CpPerform` | The action half (EP-9: a combat or no action) is ported too; `CpPerform_EquipBest` (EP-9b) is a stand-in hook. |
 
 ## EP-9b (1)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `equipBest` | Stand-in for `CpPerform_EquipBest` (EP-9b). |
+
+## EP-9c (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `newBmxFade` | Stand-in for `NewBMXFADE(flag)` (bmxfade.c; EP-9c). |
 
 ## EP-cap2 (6)
 

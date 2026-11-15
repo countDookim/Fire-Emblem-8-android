@@ -6,14 +6,14 @@ import fe8.game.event.EventEngine
 import gbafe.proc.Proc
 
 /**
- * Real callees for [WorldMapMain.BeginningHooks] (the Prologue path of
+ * Real callees for [WorldMapMain.BeginningHooks] (the non-monster, non-postgame path of
  * `WorldMap_CallBeginningEvent`, src/worldmap_main.c:1969): the world map's beginning event, the
- * scripted scene that plays when the world map opens after a chapter (the Prologue's opening
- * story map).
+ * scripted scene (`Events_WM_Beginning`) that plays when the world map opens for the chapter the
+ * leader's node leads to.
  *
  * @param rom the ROM, for `Events_WM_Beginning`
  * @param chapters `gChapterDataTable` access (`GetROMChapterStruct`)
- * @param path `ResetGmStoryNode`'s owner
+ * @param path [WorldMapPath], the port of `ResetGmStoryNode` (src/worldmap_path.c)
  * @param events the event engine (`CallEvent`)
  * @param fadeOutBgm `Sound_FadeOutBGM`
  */
@@ -37,13 +37,15 @@ public class WorldMapBeginning(
     }
 
     /**
-     * The hooks for [proc]. `sub80BA008` (M6-I) stays a stand-in; `startWmFaceCtrl` (D11-wm8d)
-     * is one unless [faces] is given and `startGmapMuEntry` (D11-wm3e) unless [muEntry] is given.
-     * `clearMergeNextNode` clears the node icons' `merge_next_node` flag, as the decomp does just
-     * before it calls the event.
+     * The hooks for [proc]. `sub80BA008` (M6-I) stays a stand-in. `startWmFaceCtrl` and
+     * `startGmapMuEntry` do nothing unless [faces] / [muEntry] are given (`WorldMapBoot` gives
+     * both). `clearMergeNextNode` clears the node icons' `merge_next_node` flag, as the decomp
+     * does just before it calls the event.
      *
-     * @param faces the portrait controller `StartWMFaceCtrl` starts
-     * @param muEntry the entry-band controller `StartGmapMuEntry(NULL)` starts
+     * @param proc the world map main proc state, whose `gmIcon` flag `clearMergeNextNode` clears
+     * @param faces the face controller (`ProcScr_WorldMapFaceCtrl`) `StartWMFaceCtrl` starts
+     * @param muEntry the text band controller (`gProcScr_GmapMuEntry2`) `StartGmapMuEntry(NULL)`
+     *   starts
      * @param mainProc the `ProcScr_WorldMapMain` proc, the controller's parent (a root proc when
      *   null)
      */

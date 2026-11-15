@@ -58,19 +58,30 @@ public class WorldMapMainProc {
     /** `unk_3a` (+0x3A, `u16`), cleared by `sub_80B8E60`; meaning unknown. */
     public var unk3a: Int = 0
 
-    /** `flags_1` (bit 1 of the byte at +0x29), cleared by `NewWorldMap`; meaning unknown. */
+    /**
+     * `flags_1` (bit 1 of the byte at +0x29): set by `sub_80B8A7C` when the leader starts walking
+     * to the chosen node, cleared on arrival (`sub_80B8BA4`) and by `NewWorldMap`. While set,
+     * holding A shortens the per-step delay `unk_41` in `sub_80B8BA4`, and it is passed to the
+     * MU walk as its `unk_01`; reading it as an A-button speed-up of the walk is inferred.
+     */
     public var flags1: Int = 0
 
     /**
      * `unk_3e` (+0x3E, `u8`): the node whose chapter `WorldMap_CallIntroEvent` starts
-     * (`WMLoc_GetChapterId(unk_3e)`); set to the leader's node (`gGMData.units[0].location`) or to
-     * a story node the leader reaches.
+     * (`WMLoc_GetChapterId(unk_3e)`). Set to the leader's node (`gGMData.units[0].location`) by
+     * `WorldMap_PostBeginningEvent` when the world map was skipped or entered without a fade
+     * (`GM_STATE_SKIPPED` / `GM_STATE_NOFADE`). `sub_80B92D0` (the picked node) and
+     * `sub_80B8BA4` (the next node on the walk path, when it is cleared and not a dungeon) set it
+     * before jumping the script to label 14.
      */
     public var unk3e: Int = 0
 
     /**
-     * `timer` (+0x2C): set by `NewWorldMap` (4 after the postgame flag, 12 once the monsters are
-     * merged, else 16) and passed on to `sub_80BA008`; meaning unknown.
+     * `timer` (+0x2C): despite the name a set of flag bits. `NewWorldMap` sets it to 4 after the
+     * postgame flag (`PLAY_FLAG_POSTGAME`), 12 once the monsters are merged, else 16;
+     * `sub_80BA008` overwrites it. Only bit 2 (value 4) is understood: `sub_80B9A34` starts a
+     * fade-in (`NewFadeIn(4, 0)`) and clears bits 0x44 when it is set. The other bits are
+     * unknown.
      */
     public var timer: Int = 0
 
@@ -83,8 +94,8 @@ public class WorldMapMainProc {
 
 /**
  * The fields of `struct GmNodeIconDisplayProc` (`ProcScr_GmNodeIconDisplay`, see
- * [WorldMapNodeIcons]): the proc that draws the icon of every node whose state bit 0 is set on
- * the world map, and the flag sprite of the next node.
+ * [WorldMapNodeIcons]): the proc that draws the icon of every node whose state has
+ * `GM_NODE_STATE_VALID` on the world map, and the flag sprite of the next uncleared node.
  */
 public class GmNodeIconDisplayProc {
     /** `chr` (+0x2C): VRAM byte offset of the node icon tiles (divided by `CHR_SIZE` to draw). */
@@ -100,8 +111,9 @@ public class GmNodeIconDisplayProc {
     public var unk31: Int = 0
 
     /**
-     * `skip` (bit 0 of the byte at +0x32): the loop draws only while this is set (the decomp
-     * name is the opposite of what the loop does; `GmapScreen2_Init` sets it).
+     * `skip` (bit 0 of the byte at +0x32): `GmapScreen2_Loop` draws only while this is set (the
+     * decomp name is the opposite of what the loop does; `GmapScreen2_Init` sets it,
+     * `SkipGmNodeIconDisplay` sets it and `UnskipGmNodeIconDisplay` clears it).
      */
     public var skip: Boolean = false
 
@@ -125,10 +137,10 @@ public class GmNodeIconDisplayProc {
 }
 
 /**
- * The world map entry wrapper: [wrapperScript] (`ProcScr_WorldMapWrapper`) starts [mainScript]
- * through [newWorldMap], waits until the world map proc ends, and then ends any fade-in. Also
- * holds the first steps of the world map main script (`ProcScr_WorldMapMain`) and a few of its
- * helpers.
+ * The world map entry wrapper: [wrapperScript] (`ProcScr_WorldMapWrapper`, started by the game
+ * control script) starts [mainScript] through [newWorldMap], waits until the world map proc ends,
+ * and then ends any fade-in. Also holds the first steps of the world map main script
+ * (`ProcScr_WorldMapMain`, whose per-frame loop is not ported here) and a few of its helpers.
  *
  * @param engine the proc scheduler
  * @param playSt `gPlaySt`
@@ -199,8 +211,9 @@ public class WorldMapMain(
     /**
      * Ported from src/worldmap_main.c: sub_80B8FD4
      *
-     * First command of the world map main script: sets `gGMData.state.bits.state_0` (bit 0) and
-     * clears `state_3` (bit 3); the decomp does not say what the bits mean. The trace has
+     * First command of the world map main script: sets `gGMData.state.bits.state_0`
+     * (`GM_STATE_0`, bit 0) and clears `state_3` (`GM_STATE_3`, bit 3); the decomp does not say
+     * what the bits mean (`WorldMap_Destruct` clears `state_0` again). The trace has
      * `state_3` already 0 before, so only the `state_0` write is verified.
      */
     public fun sub80B8FD4() {
@@ -230,40 +243,43 @@ public class WorldMapMain(
      * Transcribed from src/worldmap_main.c: WmMain_MoveCamera (not verified: `gGMData.ix/iy` stay
      * 0 and the camera constant in every prologue dump, so no trace covers any branch)
      *
-     * Scrolls the world map camera `gGMData.xCamera/yCamera` so the cursor `ix/iy >> 8` stays
-     * inside the 0x20..0xD0 (x) and 0x20..0x80 (y) margins of the screen, clamped to 0..0xF0
-     * and 0..0xA0.
+     * Scrolls the world map camera `gGMData.xCamera/yCamera` so the cursor (`ix/iy >> 8`, in
+     * map pixels) stays at least 0x20 pixels from every edge of the 240 x 160 screen, i.e. its
+     * screen x stays within 0x20..0xD0 and its screen y within 0x20..0x80. The camera is clamped
+     * to 0..0xF0 (x) and 0..0xA0 (y).
      */
     public fun wmMainMoveCamera() {
-        val a = (gmData.ix shr 8).toShort().toInt()
-        val b = (gmData.iy shr 8).toShort().toInt()
-        var c = gmData.xCamera
-        var d = gmData.yCamera
-        var delta = (a - c).toShort().toInt()
+        val cursorX = (gmData.ix shr 8).toShort().toInt()
+        val cursorY = (gmData.iy shr 8).toShort().toInt()
+        var cameraX = gmData.xCamera
+        var cameraY = gmData.yCamera
+        var delta = (cursorX - cameraX).toShort().toInt()
         if (delta < 0x20) {
-            c = if (a >= 0x20) a - 0x20 else 0
+            cameraX = if (cursorX >= 0x20) cursorX - 0x20 else 0
         } else if (delta > 0xD0) {
-            c = if (a < 0x1C0) a - 0xD0 else 0xF0
+            cameraX = if (cursorX < 0x1C0) cursorX - 0xD0 else 0xF0
         }
-        delta = (b - d).toShort().toInt()
+        delta = (cursorY - cameraY).toShort().toInt()
         if (delta < 0x20) {
-            d = if (b >= 0x20) b - 0x20 else 0
+            cameraY = if (cursorY >= 0x20) cursorY - 0x20 else 0
         } else if (delta > 0x80) {
-            d = if (b < 0x120) b - 0x80 else 0xA0
+            cameraY = if (cursorY < 0x120) cursorY - 0x80 else 0xA0
         }
-        gmData.xCamera = c
-        gmData.yCamera = d
+        gmData.xCamera = cameraX
+        gmData.yCamera = cameraY
     }
 
     /**
      * Ported from src/worldmap_main.c: WorldMap_CallBeginningEvent
      *
-     * Fades out the music, then (unless monsters are merged or the postgame flag is set) looks
+     * Fades out the music, then, unless monsters are merged or the postgame flag is set, looks
      * up the chapter the leader's node leads to and runs that chapter's world map beginning
-     * event; finally starts the face controller and the text box bands. Real callees come from
-     * [WorldMapBeginning] (`Sound_FadeOutBGM`, `Events_WM_Beginning` lookup, `ResetGmStoryNode`,
-     * `merge_next_node`, `CallEvent`, and `StartWMFaceCtrl` / `StartGmapMuEntry` when given
-     * their ports). Still a stand-in: `sub_80BA008` (monster-merged/postgame branch, M6-I).
+     * event (nothing runs if its `Events_WM_Beginning` entry is NULL: the decomp returns before
+     * the face controller starts); finally starts the face controller and the text box bands.
+     * [WorldMapBeginning] supplies the real [BeginningHooks] (`Sound_FadeOutBGM`, the
+     * `Events_WM_Beginning` lookup, `ResetGmStoryNode`, `CallEvent`, `StartWMFaceCtrl`,
+     * `StartGmapMuEntry`). Still a stand-in: `sub_80BA008` (the monster-merged/postgame branch,
+     * M6-I).
      *
      * @param proc the world map main proc
      * @param nodes `gWMNodeData`
@@ -350,7 +366,10 @@ public class WorldMapMain(
     public class BeginningHooks(
         /** `Sound_FadeOutBGM(speed)`. */
         public val fadeOutBgm: (Int) -> Unit = {},
-        /** `sub_80BA008(timer)`: the monster-merged/postgame branch. */
+        /**
+         * `sub_80BA008(timer)`: stores [timer] in the proc and jumps the main script to label 0
+         * (the monster-merged/postgame branch).
+         */
         public val sub80BA008: (Int) -> Unit = {},
         /** `Events_WM_Beginning[GetROMChapterStruct(chIndex)->gmapEventId]`, null if NULL. */
         public val beginningEvent: (Int) -> Int? = { null },
@@ -395,8 +414,10 @@ public class WorldMapGfxSetup(
     /**
      * Ported from src/worldmap_main.c: SetupGraphicSystemsForWorldMap
      *
-     * Resets the BGs (priorities 0, 1, 3, 3), clears the four tilemap buffers, turns the display
-     * layers off and resets text, faces, unit sprites, MUs and the camera.
+     * Resets the BGs (`SetupBackgrounds`; the clouds-weather flag is the `WEATHER_CLOUDS` check
+     * the decomp makes inside it), turns the display layers off, clears the four tilemap buffers,
+     * sets the BG priorities to 0, 1, 3, 3, and resets the UI frame, text, faces, unit sprites,
+     * MUs and the camera.
      */
     public fun setupGraphicSystemsForWorldMap() {
         hardware.setupBackgrounds(null, playSt.chapterWeatherId == WEATHER_CLOUDS)
@@ -502,11 +523,11 @@ public class WorldMapGfxSetup(
      * default.
      */
     public class Hooks(
-        /** `LoadLegacyUiFrameGraphics`: stand-in until M6-B (shared with `ChapterMapGfx`). */
+        /** `LoadLegacyUiFrameGraphics`: stand-in until M6-F (shared with `ChapterMapGfx`). */
         public val loadLegacyUiFrameGraphics: () -> Unit = {},
-        /** `ResetText`: stand-in until M6-B (not ported in `TextSystem`). */
+        /** `ResetText`: stand-in until EP-11d (not ported in `TextSystem`). */
         public val resetText: () -> Unit = {},
-        /** `ResetTextFont`: stand-in until M6-B (not ported in `TextSystem`). */
+        /** `ResetTextFont`: stand-in until EP-11d (text system, fontgrp.c; not ported yet). */
         public val resetTextFont: () -> Unit = {},
         /** `ResetFaces`: ported as `TalkFace.resetFaces`; `WorldMapBoot` connects it. */
         public val resetFaces: () -> Unit = {},

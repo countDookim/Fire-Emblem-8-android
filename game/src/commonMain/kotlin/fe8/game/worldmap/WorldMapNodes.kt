@@ -13,7 +13,10 @@ public class WorldMapNodes(
     private val gmData: GmData,
     private val playSt: PlaySt,
 ) : BattleMapNodes {
-    /** `WMLoc_GetChapterId(node)` for the Eirika or Ephraim route in [playSt]. */
+    /**
+     * `WMLoc_GetChapterId(node)`: `chapteridx_ephram` for `CHAPTER_MODE_EPHRAIM`, else (including
+     * `CHAPTER_MODE_EIRIKA`) `chapteridx_eirika`, chosen by `gPlaySt.chapterModeIndex`.
+     */
     override fun chapterId(node: Int): Int = nodeData.chapterId(node, playSt.chapterModeIndex)
 
     /** Whether the player has cleared [node] (`GM_NODE_STATE_CLEARED`). */

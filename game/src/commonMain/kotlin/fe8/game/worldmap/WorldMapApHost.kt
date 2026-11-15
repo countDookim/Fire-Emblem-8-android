@@ -7,12 +7,13 @@ import gbafe.render.OamBuffer
 import gbafe.render.SpriteObject
 
 /**
- * The `src/ap.c` host of the world map's sprite animations (node flag, cursor, nation border):
- * sprite objects from the ROM, the sine table, affine parameters in the OAM buffer and OBJ tile
- * transfers.
+ * The [ApHost] behind `src/ap.c` for the world map's sprite animations (node flag sprite,
+ * map units, nation borders, `worldmap_sogu.c` sprites): sprite objects from the ROM, the sine
+ * table, affine parameters in the OAM buffer and OBJ tile transfers.
  *
- * `Register2dChrMove` copies tiles at once (the original queues the transfer for VBlank), from a
- * ROM address or from [muGfx], the decompressed map sprite sheets (`GetMapUnitMMSGfxBuffer`).
+ * `Register2dChrMove` (src/bmlib.c) copies tiles at once (the original queues each row for
+ * VBlank), from a ROM address or from [muGfx], the decompressed map sprite sheets
+ * (`GetMapUnitMMSGfxBuffer`).
  *
  * @param rom the ROM (objects, sine table, tiles)
  * @param hw OBJ VRAM and the display mode
@@ -24,11 +25,13 @@ public class WorldMapApHost(
     private val oam: OamBuffer,
 ) : ApHost {
     /**
-     * The seven decompressed map sprite sheets at `gUnknown_0200AF00` (0x2200 bytes each;
-     * `GetMapUnitMMSGfxBuffer(idx)` is `gUnknown_0200AF00 + idx * 0x2200`, worldmap_gmapunit.c:30).
+     * The `WM_MU_MAX` (7) decompressed map sprite sheets at `gUnknown_0200AF00` (0x2200 bytes
+     * each; `GetMapUnitMMSGfxBuffer(idx)` is `gUnknown_0200AF00 + idx * 0x2200`,
+     * worldmap_gmapunit.c:30).
      */
     public val muGfx: ByteArray = ByteArray(MU_GFX_SLOTS * MU_GFX_SIZE)
 
+    /** Parsed sprite objects by ROM address, so each is read from the ROM once. */
     private val objects = HashMap<Int, SpriteObject>()
 
     /** The sprite object at ROM address [addr], parsed once and cached. */
@@ -71,13 +74,13 @@ public class WorldMapApHost(
     }
 
     /**
-     * Whether OBJ tiles use 1D mapping (DISPCNT bit 6, `dispcnt.obj1dMap`); `AP_UpdateFrame`
-     * (src/ap.c:232) advances the tile offset differently in the two modes.
+     * Whether OBJ tiles use 1D mapping (DISPCNT bit 6, `dispcnt.obj1dMap`); `AP_QueueObjGraphics`
+     * (src/ap.c:205) advances the tile offset differently in the two modes.
      */
     override fun obj1dMap(): Boolean = hw.lcd.dispcnt and 0x40 != 0
 
     private companion object {
-        /** ROM address of `gSinLookup` (not listed in the decomp). */
+        /** ROM address of `gSinLookup` (data/trig_rodata.s). */
         const val SIN_LOOKUP = 0x080D751C
 
         /** Bytes per 4bpp tile. */
@@ -86,9 +89,13 @@ public class WorldMapApHost(
         /** Offset of `OBJ_VRAM0` (0x06010000) in VRAM. */
         const val OBJ_VRAM0 = 0x10000
 
-        /** EWRAM address of `gUnknown_0200AF00`, the slot count (`WM_MU_MAX`) and slot size. */
+        /** EWRAM address of `gUnknown_0200AF00`, the map sprite sheet buffer. */
         const val MU_GFX_BASE = 0x0200AF00
+
+        /** Number of sprite sheet slots (`WM_MU_MAX`). */
         const val MU_GFX_SLOTS = 7
+
+        /** Bytes per slot (the `0x2200` factor of `GetMapUnitMMSGfxBuffer`). */
         const val MU_GFX_SIZE = 0x2200
     }
 }

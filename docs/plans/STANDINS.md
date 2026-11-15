@@ -14,11 +14,11 @@ Total entries: 233 across 47 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
-| M6-B | 16 |
+| M6-B | 13 |
 | M6-C | 9 |
 | M6-D | 13 |
 | M6-E | 51 |
-| M6-F | 13 |
+| M6-F | 14 |
 | M6-G | 4 |
 | M6-H | 33 |
 | M6-I | 27 |
@@ -26,6 +26,7 @@ Total entries: 233 across 47 Kotlin files.
 | D09-3 | 2 |
 | D11-wire-a | 1 |
 | EP-1 | 1 |
+| EP-11d | 2 |
 | EP-12 | 24 |
 | EP-13 | 1 |
 | EP-14 | 1 |
@@ -42,7 +43,7 @@ Total entries: 233 across 47 Kotlin files.
 | PP-4 | 1 |
 | PP-9 | 1 |
 
-## M6-B (16)
+## M6-B (13)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -59,9 +60,6 @@ Total entries: 233 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | `MuCtrl` | Stand-ins until M6-H: `DisableAllLightRunes` / `EnableAllLightRunes` (traps are not ported). |
 | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | `readSuspendSave` | Ported from src/bmsave.c: ReadSuspendSave Resumes a suspended battle: loads the suspend block of [slot] (`SAVE_ID_SUSPEND`) + `gSuspendSaveIdOffset` (set by [BmSaveLib.isValidSuspendSave]) into [ra... |
 | `game/src/commonMain/kotlin/fe8/game/save/SuspendRam.kt` | `SuspendRam` | The only things held here are buffers that have no owner yet (the stand-ins [actionData] and [menuOverride] until M6-B, [traps] and [convoy] until M6-H, [worldMapStuff] and [dungeonState] until M6-... |
-| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `loadLegacyUiFrameGraphics` | `LoadLegacyUiFrameGraphics`: stand-in until M6-B (shared with `ChapterMapGfx`). |
-| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetText` | `ResetText`: stand-in until M6-B (not ported in `TextSystem`). |
-| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetTextFont` | `ResetTextFont`: stand-in until M6-B (not ported in `TextSystem`). |
 
 ## M6-C (9)
 
@@ -151,7 +149,7 @@ Total entries: 233 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `TalkScene` | Stand-ins until M6-E (no behaviour is invented; each is a no-op or the smallest working substitute): - talk choices (`StartTalkChoice`), `[G]` numbers (`NumberToStringAscii`) and the tactician name... |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `setFaceEyes` | Stand-in (M6-E): `sub_80064D4`, the face eye state, is not ported; the call is ignored. |
 
-## M6-F (13)
+## M6-F (14)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -168,6 +166,7 @@ Total entries: 233 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `reReadGameSaveGfx` | Stand-in until M6-F for `PlayerPhase_ReReadGameSaveGfx` (after the stat screen). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startButton` | Stand-in until M6-F for the START button branch of `PlayerPhase_MainIdle` (the minimap, `Proc_Goto(proc, 9)`); runs when START is new and SELECT is not held, and A did not select (A not new, or the... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startStatScreen` | Stand-in until M6-F for `SetStatScreenConfig` and `StartStatScreen(unit, proc)` (unit id [unit]). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `loadLegacyUiFrameGraphics` | `LoadLegacyUiFrameGraphics`: stand-in until M6-F (shared with `ChapterMapGfx`). |
 
 ## M6-G (4)
 
@@ -237,13 +236,13 @@ Total entries: 233 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `writeGameSave` | The world map stuff and dungeon records are written from the stand-ins of [GameSaveRam] (M6-I). |
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `writeGameSave` | WriteWorldMapStuff: not ported (M6-I), the raw stand-in is written. |
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `writeGmMonsterRnState` | Transcribed from src/bmsave.c: WriteGMMonsterRnState (not verified: the world map's RN state is a stand-in and the two trailing stack bytes are not derivable) Writes the 8 bytes (`u32 buf[2]`) that... |
-| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBeginning.kt` | `hooks` | `sub80BA008` (M6-I) stays a stand-in; `startWmFaceCtrl` (D11-wm8d) is one unless [faces] is given and `startGmapMuEntry` (D11-wm3e) unless [muEntry] is given. |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBeginning.kt` | `hooks` | `sub80BA008` (M6-I) stays a stand-in. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `Hooks` | "M6-I" and "D11-wire-a" are the plan items that will port the stand-ins. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `endMinimap` | `EndWorldmapMinimap()`: stand-in until M6-I (the Prologue world map never starts the minimap). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `endPlayerInterface` | `sub_80BF15C()`: ends the player interface; stand-in until M6-I (the Prologue world map never starts it). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `mapRoute80BC2DC` | `MapRoute_80BC2DC(gm_screen->gmroute)`: stand-in until M6-I (the Prologue draws no route line, so there is nothing to clear). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `wmRemoveRandomMonsters` | `WmRemoveRandomMonsters()`: stand-in until M6-I (random monsters only spawn in the free-roam world map). |
-| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `callBeginningEvent` | Still a stand-in: `sub_80BA008` (monster-merged/postgame branch, M6-I). @param proc the world map main proc @param nodes `gWMNodeData` @param checkFlag `CheckFlag` @param hooks the unported callees |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `callBeginningEvent` | Still a stand-in: `sub_80BA008` (the monster-merged/postgame branch, M6-I). @param proc the world map main proc @param nodes `gWMNodeData` @param checkFlag `CheckFlag` @param hooks the unported cal... |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMainScript.kt` | `WorldMapMainScript` | `WorldMapBoot.mainScript` registers the callees the Prologue runs (`WorldMap_CallIntroEvent`, `WorldMap_WaitForChapterIntroEvents`, `WorldMap_HideEverything`, `ResetWorldMapScreen`); the free-roam... |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt` | `drawMergeFlag` | Stand-in until M6-I: the flag is never set in the prologue. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt` | `drawNodeIcon` | Stand-in until M6-I: no node is valid in the prologue. |
@@ -281,6 +280,13 @@ Total entries: 233 across 47 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `phaseStartEnd` | The target list is its own: the displays' `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w shares one list with the player phase when the real `Make*TargetList`... |
+
+## EP-11d (2)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetText` | `ResetText`: stand-in until EP-11d (not ported in `TextSystem`). |
+| `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `resetTextFont` | `ResetTextFont`: stand-in until EP-11d (text system, fontgrp.c; not ported yet). |
 
 ## EP-12 (24)
 

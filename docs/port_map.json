@@ -8,8 +8,8 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1224,
-    "implemented_unverified": 74
+    "verified": 1226,
+    "implemented_unverified": 79
   },
   "functions": {
     "ActionCombat": {
@@ -3860,6 +3860,16 @@
         "fe8.testing.OpAnimHsLogoDifferentialTest#logo fade steps match the boot RAM trace"
       ]
     },
+    "GenerateExtendedMovementMapOnRange": {
+      "decomp_file": "src/bmidoten.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MovementMap.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AiBossMoveHelpersDifferentialTest#extended movement map on range matches boss move r03804"
+      ]
+    },
     "GenerateMovementMap": {
       "decomp_file": "src/bmidoten.c",
       "system": "battle_map",
@@ -3948,6 +3958,30 @@
       "tests": [
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
+    },
+    "GetBanimFactionPalette": {
+      "decomp_file": "src/banim-ekrcmd.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetBanimLinkArenaFlag": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt",
+      "status": "implemented",
+      "tests": []
+    },
+    "GetBattleAnimationId": {
+      "decomp_file": "src/banim-ekrcmd.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt",
+      "status": "implemented",
+      "tests": []
     },
     "GetBattleForecastPanelSide": {
       "decomp_file": "src/bksel.c",
@@ -8657,6 +8691,16 @@
         "fe8.testing.EventChangeMapDifferentialTest#load_map 16 from the prologue opening reproduces the dumped map"
       ]
     },
+    "RevertMovementScript": {
+      "decomp_file": "src/bmidoten.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BestMovementScript.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AiBossMoveHelpersDifferentialTest#revert movement script matches captured movement scripts"
+      ]
+    },
     "RunMuMoveScript": {
       "decomp_file": "src/mu.c",
       "system": "battle_map",
@@ -8819,6 +8863,14 @@
         "fe8.testing.ScreenPrepareDifferentialTest#intro logo screen setup matches mGBA"
       ]
     },
+    "SetBanimLinkArenaFlag": {
+      "decomp_file": "src/banim-ekrbattle.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt",
+      "status": "implemented",
+      "tests": []
+    },
     "SetBattleAnimFacing": {
       "decomp_file": "src/mapanim_api.c",
       "system": "map_anim",
@@ -8856,6 +8908,14 @@
       "tests": [
         "fe8.testing.BattleUnitDifferentialTest#battle units after init, terrain and stat computes match the dumped structs"
       ]
+    },
+    "SetBattleUnscripted": {
+      "decomp_file": "src/banim-ekrcmd.c",
+      "system": "battle_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt",
+      "status": "implemented",
+      "tests": []
     },
     "SetBlendConfig": {
       "decomp_file": "src/hardware.c",

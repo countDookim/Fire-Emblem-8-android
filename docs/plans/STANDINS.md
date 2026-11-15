@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 222 across 48 Kotlin files.
+Total entries: 225 across 49 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -34,6 +34,7 @@ Total entries: 222 across 48 Kotlin files.
 | EP-36 | 2 |
 | EP-7 | 2 |
 | IS-2 | 1 |
+| MC-18d | 3 |
 | PC-10 | 1 |
 | PP-10 | 1 |
 | PP-17 | 1 |
@@ -356,6 +357,14 @@ Total entries: 222 across 48 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `startForecastHelp` | Stand-in until IS-2 (help boxes): nothing happens (the selection's `onHelp`). |
+
+## MC-18d (3)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `MapLevelUpAnnouncement` | The rest of `ProcScr_ManimLevelUp` (the stat panel, MC-18d) is the stand-in [Hooks.restOfLevelUp], and the end callback `ManimLevelUp_Clear` is the stand-in [Hooks.clear]. @param engine the proc en... |
+| `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `clear` | Stand-in (MC-18d) for `ManimLevelUp_Clear` (`ResetDialogueScreen`), the end callback. |
+| `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `restOfLevelUp` | Stand-in for the commands after `ManimLevelUp_RestoreBgm` (MC-18d). |
 
 ## PC-10 (1)
 

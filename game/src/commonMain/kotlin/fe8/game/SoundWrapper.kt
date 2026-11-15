@@ -176,7 +176,7 @@ public class SoundWrapper(
             } else {
                 isSongPlaying = true
             }
-            engine.end(proc)
+            engine.breakProc(proc) // the script's END command ends it on the next frame
             musicProc2 = null
         }
     }

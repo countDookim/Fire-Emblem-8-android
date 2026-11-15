@@ -20,9 +20,9 @@ Total entries: 239 across 47 Kotlin files.
 | M6-E | 51 |
 | M6-F | 13 |
 | M6-G | 4 |
-| M6-H | 36 |
+| M6-H | 35 |
 | M6-I | 27 |
-| M6-J | 9 |
+| M6-J | 10 |
 | D09-3 | 2 |
 | D11-wire-a | 2 |
 | EP-1 | 1 |
@@ -182,7 +182,7 @@ Total entries: 239 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: `IsBattleDeamonActive` (the battle animation system) is not ported, so the fixed fight-event bubble is never used. |
 
-## M6-H (36)
+## M6-H (35)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -205,7 +205,6 @@ Total entries: 239 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `applyEnabledMapChanges` | Stand-in for `ApplyEnabledMapChanges` (until M6-H), called by [initChapterMap] after the base tiles are built; does nothing until the map change system is ported. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `initChapterMap` | The base tile adjustments after the unpack (`ApplyEnabledMapChanges`, the `CHAPTER_75` water shadows) are stand-ins until M6-H ([applyEnabledMapChanges] is a hook), so a chapter that has them (e.g. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `refreshAllLightRunes` | Stand-in for `RefreshAllLightRunes` (bmtrick.c; until M6-H), called at the end of [refreshTerrainBmMap]; does nothing until traps are ported. |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `wfxFlamesInitGradientPublic` | Stand-in until M6-H (weather effects). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `beginBattleAnimations` | Stand-in until M6-H: sets only the flag, so the animation ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `getBattleAnimPreconfType` | Stand-in until M6-H: always `PLAY_ANIMCONF_OFF` (map animations). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `itemGotPopup` | Stand-in until M6-H (the popup): nothing is shown or given. |
@@ -255,7 +254,7 @@ Total entries: 239 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt` | `drawMergeFlag` | Stand-in until M6-I: the flag is never set in the prologue. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapNodeIcons.kt` | `drawNodeIcon` | Stand-in until M6-I: no node is valid in the prologue. |
 
-## M6-J (9)
+## M6-J (10)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -267,6 +266,7 @@ Total entries: 239 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `clearArenaMoveCell` | Stand-in until M6-J. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `resumeArenaBattle` | Stand-in until M6-J. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `startArenaResultsScreen` | Stand-in until M6-J. |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `wfxFlamesInitGradientPublic` | Stand-in until M6-J (LG-0 weather sub-lane): weather effects (`WfxUpdate`, `WfxVSync`) are not ported; the Prologue has no weather. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | `unitKill` | `InitUnitsupports` (the supports of a dead blue unit) is a stand-in until the supports lane (M6-J). |
 
 ## D09-3 (2)
@@ -280,7 +280,7 @@ Total entries: 239 across 47 Kotlin files.
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet). |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in: the sound effect players are not in `SoundWrapper` yet, so this does nothing unless `Fe8Boot` sets it (D11-wire-a left it a no-op). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `fadeOutSe` | `Sound_FadeOutSE(speed)`: stand-in until D11-wire-a (the sound effect players are not in `SoundWrapper` yet; the Prologue leaves through the other branch of `destruct`). |
 
 ## EP-1 (1)

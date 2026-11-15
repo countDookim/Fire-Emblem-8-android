@@ -67,24 +67,28 @@ public class ChapterIntro(
         public val bMapDispResume: () -> Unit,
     ) {
         /**
-         * `Sound_FadeOutSE(speed)`. Stand-in until D11-wire-a (the sound effect players are not
-         * in `SoundWrapper` yet).
+         * `Sound_FadeOutSE(speed)`. Stand-in: the sound effect players are not in `SoundWrapper`
+         * yet, so this does nothing unless `Fe8Boot` sets it (D11-wire-a left it a no-op).
          */
         public var fadeOutSe: (Int) -> Unit = {}
 
-        /** `WfxFlamesInitGradientPublic`. Stand-in until M6-H (weather effects). */
+        /**
+         * `WfxFlamesInitGradientPublic` (bmio.h), the flames weather effect's gradient setup.
+         * Stand-in until M6-J (LG-0 weather sub-lane): weather effects (`WfxUpdate`,
+         * `WfxVSync`) are not ported; the Prologue has no weather.
+         */
         public var wfxFlamesInitGradientPublic: () -> Unit = {}
 
         /**
-         * `GetBattleMapKind` ([BattleMapKind]). Default answers [BattleMapKind.STORY]; `Fe8Boot` sets
-         * the battle map's.
+         * `GetBattleMapKind` ([BattleMapKind]). Default answers [BattleMapKind.STORY]; `Fe8Boot`
+         * sets the battle map's.
          */
         public var getBattleMapKind: () -> Int = { BattleMapKind.STORY }
 
         /**
          * `RefreshBMapGraphics` (bmio.c: `SetupBackgrounds`, `ReadGameSaveCoreGfx`,
-         * `InitMoreBMapGraphics`), run by [end] on skirmish and fade-to-black maps. Stand-in until
-         * M6-E (`Fe8Boot` holds a partial version of it).
+         * `InitMoreBMapGraphics`), run by [chapterEnd] on skirmish and fade-to-black maps.
+         * Stand-in until M6-E (`Fe8Boot` holds a partial version of it).
          */
         public var refreshBMapGraphics: () -> Unit = {}
 
@@ -113,7 +117,11 @@ public class ChapterIntro(
         public fun frames(): Int
     }
 
-    /** `struct ChapterIntroFxProc` fields (0x2C..0x68) shared by the intro and its children. */
+    /**
+     * `struct ChapterIntroFxProc` fields (offsets 0x2C..0x68, include/bmfx.h) shared by the intro
+     * and its children. The `unk_` fields are reused by each effect (counters, phase flags, blend
+     * weight); their use is documented where each effect runs.
+     */
     public class State {
         /** `xLight` (0x2C). */
         public var xLight: Int = 0
@@ -121,25 +129,37 @@ public class ChapterIntro(
         /** `yLight` (0x30). */
         public var yLight: Int = 0
 
-        /** `timer` (0x4C, s16). */
+        /** `timer` (0x4C, s16): frame counter or blend weight of the running effect. */
         public var timer: Int = 0
 
-        /** `unk_4E` (s16). */
+        /**
+         * `unk_4E` (0x4E, s16): the blend weight in [lightBurstLoop], the step within a segment
+         * in the twin lights.
+         */
         public var unk4E: Int = 0
 
-        /** `skipTarget` (0x50, s16). */
+        /**
+         * `skipTarget` (0x50, s16): the proc label `KeyListen` jumps the intro to when a key is
+         * pressed (0 = no skip yet; the script sets 1 before the twin lights).
+         */
         public var skipTarget: Int = 0
 
-        /** `isSkipping` (0x52, u16). */
+        /** `isSkipping` (0x52, u16): 1 once A, B or Start was pressed; speeds up the fades. */
         public var isSkipping: Int = 0
 
-        /** `unk_64` (s16). */
+        /** `unk_64` (0x64, s16): affine scale step of the first light (twin lights, explosion). */
         public var unk64: Int = 0
 
-        /** `unk_66` (s16). */
+        /**
+         * `unk_66` (0x66, s16): the phase in [lightBurstLoop], the step counter in the twin
+         * lights, the second light's scale step in the explosion.
+         */
         public var unk66: Int = 0
 
-        /** `unk_68` (s16). */
+        /**
+         * `unk_68` (0x68, s16): the length of the current twin lights segment in frames, the
+         * third light's scale step in the explosion.
+         */
         public var unk68: Int = 0
     }
 
@@ -154,10 +174,13 @@ public class ChapterIntro(
         getNextUnclearedNode = { hooks.getNextUnclearedNode() },
     )
 
+    /** A proc script that ends at once (unused: no caller in this file). */
     private fun standInScript(name: String) = ProcScript(name, listOf(end()))
 
     /**
-     * `ProcScr_ChapterIntro_Bg1And3Scroll`. Started by [loadCommonGameBg], not by the intro script.
+     * `ProcScr_ChapterIntro_Bg1And3Scroll`: scrolls BG1 and BG3 sideways by half a pixel per
+     * frame. Started by [loadCommonGameBg] (`ChapterIntro_8020010`), not by the intro script; the
+     * intro script ends it with `endEach` before the fade to the map.
      *
      * Transcribed from src/chapterintrofx.c: ProcScr_ChapterIntro_Bg1And3Scroll (not verified:
      *   the script layout is only exercised through the differential test of its two callbacks)
@@ -249,9 +272,16 @@ public class ChapterIntro(
         newState = { State() },
     )
 
+    /** `Sprite_ChapterIntro_DecalBanner`: four 64x32 OAM pieces (1 count + 4 * 3 halfwords). */
     private val decalBanner: ShortArray by lazy { rom.pal(SPRITE_DECAL_BANNER, 13) }
+
+    /** `gObject_16x16`: the single-piece 16x16 OAM sprite definition. */
     private val object16: ShortArray by lazy { rom.pal(OBJECT_16X16, 4) }
+
+    /** `gObject_32x32`: the single-piece 32x32 OAM sprite definition. */
     private val object32: ShortArray by lazy { rom.pal(OBJECT_32X32, 4) }
+
+    /** `gGenericBuffer`: scratch space for decompressed tilemaps. */
     private val genericBuffer = ByteArray(GENERIC_BUFFER_SIZE)
 
     /**
@@ -330,10 +360,13 @@ public class ChapterIntro(
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_LightBurst_Loop
      *
-     * The burst of white over the lens flare: `unk_66` is the phase (0 fading in, 1 fading out),
-     * `unk_4E` the blend weight (`SetBlendAlpha`) and `timer` the BG2 zoom. While `timer < 256`
-     * BG2's affine matrix is rebuilt every frame (zoom `timer + 240`) and flushed; at the end of
-     * the fade-out every light burst proc ends.
+     * The lens flare (BG2, an affine background in BG mode 1) blending in and out over BG1:
+     * `unk_66` is the phase (0 fading in, 1 fading out), `unk_4E` the blend weight
+     * (`SetBlendAlpha`: BG2's weight stays 16 and BG1's rises while fading in, then BG2's is
+     * `unk_4E / 2` falling to 0 with BG1's at 16) and `timer` the BG2 zoom. While `timer < 256`
+     * BG2's affine matrix is rebuilt every frame (scale `timer + DISPLAY_WIDTH`) and flushed,
+     * and in the fade-out phase `timer` grows by 4. At the end of the fade-out every light burst
+     * proc ends.
      */
     private fun lightBurstLoop(proc: Proc) {
         val state = proc.state as State
@@ -423,8 +456,10 @@ public class ChapterIntro(
     }
 
     /**
-     * The scale parameter (`Div(COS(0) * 16, scale)`, `COS(0)` = 0x1000) of one light explosion
-     * matrix at [counter]: the scale shrinks from 320 to 16 over 70 frames.
+     * The OBJ affine entry `Div(COS(0) * 16, scale)` (`COS(0)` = 0x1000) used for the diagonal
+     * and the zero entries (`-SIN(0)` and `SIN(0)` are 0) of one light explosion matrix at
+     * [counter]. `scale` runs from 320 to 16 over 70 frames (`RSQUARE`), so the entry grows from
+     * 204 to 4096 and the displayed sprite (affine entries are inverse scales) shrinks.
      */
     private fun lightExplosionMatrix(counter: Int): Int {
         val scale = Interpolate.interpolate(Interpolate.RSQUARE, 320, 16, counter, 70)
@@ -435,7 +470,8 @@ public class ChapterIntro(
      * Ported from src/chapterintrofx.c: ChapterIntro_LightExplosion_Loop
      *
      * Three light pairs (OBJ affine matrices 1-3, targets (215, 17), (192, 32), (169, 47)) fly
-     * out of the screen centre for 70 frames, then the proc breaks.
+     * out of the screen centre; each matrix steps while its counter is at most 70, the sprites
+     * move by `timer` and the proc breaks once `timer` reaches 70.
      */
     private fun lightExplosionLoop(proc: Proc) {
         val state = proc.state as State
@@ -475,6 +511,7 @@ public class ChapterIntro(
      * Ported from src/chapterintrofx.c: ChapterIntro_PutDecalSprite_Loop
      *
      * Puts the decal banner (OBJ chr 0x200, palette 2) at (0, 64) twice, as the original does.
+     * The banner is only visible inside the window [revealDecalSpriteLoop] opens.
      */
     private fun putDecalSpriteLoop() {
         oam.putHi(0, 64, decalBanner, OAM2_CHR_200_PAL_2)
@@ -495,7 +532,8 @@ public class ChapterIntro(
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_RevealDecalSprite_Loop
      *
-     * Opens window 0 from the screen's horizontal centre to the full width over 40 frames.
+     * Opens window 0 (full height) from the screen's horizontal centre outwards, reaching the
+     * full width at `timer` 40 (`RCUBIC`); the proc breaks at `timer` 41.
      */
     private fun revealDecalSpriteLoop(proc: Proc) {
         val state = proc.state as State
@@ -508,8 +546,9 @@ public class ChapterIntro(
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_InitFogGfx
      *
-     * Loads the fog image to BG tile 0x400, its palette to bank 4 and its tilemap (palette 4)
-     * to BG2, and sets BG1 as the second and BG2 as the first blend target.
+     * Enables BG0-BG2 and the objects, loads the fog image to BG tile 0x400 (the start of BG2's
+     * tile data at 0x8000, see `SetBG_802009C`), its palette to BG palette bank 4 and its tilemap
+     * (palette 4) to BG2, and sets BG2 as the first and BG1 as the second blend target.
      */
     private fun initFogGfx(state: State) {
         val lcd = hardware.lcd
@@ -528,9 +567,9 @@ public class ChapterIntro(
     /**
      * Ported from src/chapterintrofx.c: ChapterIntro_BlendFogAlpha_Loop
      *
-     * Fades the fog in: BG2's blend weight `timer` rises by one every fourth frame (by four
-     * when the intro is being skipped, or when `skipTarget` is 3) until it passes 5, then
-     * stays at 6 and the proc breaks.
+     * Fades the fog in: BG2's blend weight `timer` (against BG1's 16) rises by one every fourth
+     * frame, or every frame while `skipTarget` is 3, by four instead of one when `isSkipping`,
+     * until it passes 5; then it stays at 6 and the proc breaks.
      *
      * Not run by the capture (not verified: the `isSkipping` and `skipTarget == 3` branches).
      */

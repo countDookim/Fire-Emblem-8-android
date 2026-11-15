@@ -150,7 +150,7 @@ Sub-lane contents and file counts: [M6C-J-breakdown](plans/M6C-J-breakdown.md).
 | C14-1 | CAP+INV | M6-H sub-lanes in C14-0's order: items, trade, rescue family, visit/seize, talk/recruit and green phase, heal staves, doors/chests/steal, shops, reinforcements, world-map intros of chapters 2–4 | One capture and inventory per sub-lane; PORT and WIRE rows added | C14-0 | todo |
 | PW-0 | CAP+INV | M6-I: preparations (fixture `chapter6.sav`): main menu, pick units, items/convoy, view map, save | Captures and inventories; PORT rows per screen (prep_*.c, 452) | C14-1 | todo |
 | PW-1 | CAP+INV | M6-I: free-roam world map (fixture `complete100.sav` or a mid-game save): movement, UI, base shops, skirmishes, Tower/Ruins | Captures and inventories; PORT rows (rest of worldmap_*.c, about 480) | PW-0 | todo |
-| LG-0 | CAP+INV | M6-J, one sub-lane each: promotion, arena, supports, remaining spell animations, dragons and final boss, route split, dance/summon/ballista/status staves/traps, endings, sound room, extras | Captures and inventories; PORT rows per sub-lane | PW-1 | todo |
+| LG-0 | CAP+INV | M6-J, one sub-lane each: promotion, arena, supports, remaining spell animations, dragons and final boss, route split, dance/summon/ballista/status staves/traps, weather (bmfx.c `Wfx*`), endings, sound room, extras | Captures and inventories; PORT rows per sub-lane | PW-1 | todo |
 | M7 | — | Modding surface: 23 proposed rows in [M7-modding](plans/M7-modding.md) | Rows added here after the owner decides D2–D9 | owner | waiting for D2–D9 |
 
 ## Other open rows

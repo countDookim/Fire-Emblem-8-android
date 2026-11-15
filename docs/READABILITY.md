@@ -94,7 +94,7 @@ fe8.game.worldmap files that had none (sizes on that date).
 | game | fe8.game.bm (BattleForecast lines 1-514: to before battleForecastHitCountUpdate) | 1 | 514 | done 2026-11-15 83e31738 |
 | game | fe8.game.bm (BattleForecast lines 515-936: battleForecastHitCountUpdate to end) | 1 | 422 | done 2026-11-15 9790308d |
 | game | fe8.game.bm (ChapterIntro lines 1-551: to before setTimer) | 1 | 551 | done 2026-11-15 a9283c83 |
-| game | fe8.game.bm (ChapterIntro lines 552-1117: setTimer to end) | 1 | 566 | done 2026-11-15 HASH |
+| game | fe8.game.bm (ChapterIntro lines 552-1117: setTimer to end) | 1 | 566 | done 2026-11-15 2c77e484 |
 | game | fe8.game.bm (UnitActionMenu, ItemMenuLine) | 2 | 659 | todo |
 | game | fe8.game.bm (MapMenu, MenuItemPanel, ChapterTitle, BmPhase, PhaseStartEnd) | 5 | 814 | todo |
 | game | fe8.game.bm (AttackMapSelect, AttackRange, AttackTargets) | 3 | 513 | done 2026-11-15 57c52073 |

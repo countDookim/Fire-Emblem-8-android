@@ -77,10 +77,9 @@ EP-cap1/2.
 | EP-25 | PORT | Mu effects, mu.c: `StartMuSpeedUpAnim`, `StartMuHitFlash`, `MuSlowDownAnimFreezeFunc`, `MuFlashFadeFrom_RestorePal`, `MU_StartDeathFade`, `MuDeathFade_OnLoop`, `EndMuExt` | `ProcScr_MuHitFlash` f4491..4507, 4596..4612, 4742..4758 and `ProcScr_MuDeathFade` f4742..4772 (palette, OAM); Mu removed f4773 | EP-18 | todo |
 | EP-26 | PORT | Exp bar, mapanim_expbar.c: `DrawMAExpBar`, `ProcMAExpBar_FrameAdvance`, `ProcMAExpBar_InitDisplay`, `ProcMAExpBar_OnDraw`, `ProcMAExpBar_PlaySound74`, `ProcMAExpBar_OnIncrement`, `ProcMAExpBar_LevelUpIfPossible` (no-level-up path only; growth rolls are MC-17; display dispatch is MC-18f) | `ProcScr_MapAnimExpBar` fields, tilemap and sound per step f4776..4878 (Seth 0 -> 45); also f1909..1998, f2297..2387 | EP-18, MC-14 | todo |
 | MC-18a | PORT | Level-up announcement; [scope](plans/M6-task-scopes.md#mc-18a-level-up-announcement) | Actor ID, AP procs, sound/volume and announcement OAM | MC-18i | todo; inventory complete; see captured limits |
-| MC-18b | PORT | Level-up base stat drawing; [scope](plans/M6-task-scopes.md#mc-18b-level-up-base-stat-drawing) | Frame/stat tilemaps and pre/post-gain values | MC-18i | todo; inventory complete; see captured limits |
+| MC-18b | PORT | Level-up base stat drawing; [scope](plans/M6-task-scopes.md#mc-18b-level-up-base-stat-drawing) | Frame/stat tilemaps and pre/post-gain values | MC-18i | todo: only PutManimLevelUpFrame left; three stat functions Ported |
 | MC-18c | PORT | Level-up gain label animation; [scope](plans/M6-task-scopes.md#mc-18c-level-up-gain-label-animation) | Label AP lifecycle, OAM, tiles and palettes | MC-18i | todo; inventory complete; see captured limits |
 | MC-18d | PORT | Level-up stat panel lifecycle; [scope](plans/M6-task-scopes.md#mc-18d-level-up-stat-panel-lifecycle) | Panel proc fields, scroll offsets, tilemaps and cleanup | MC-18a, MC-18b, MC-18c | todo; inventory complete; see captured limits |
-| MC-18e | PORT | Level-up label palette cycle; [scope](plans/M6-task-scopes.md#mc-18e-level-up-label-palette-cycle) | Color-cycle counter and palette at each observed step | MC-18i | todo; inventory complete; see captured limits |
 | MC-18f | PORT | Exp-bar level-up dispatch; [scope](plans/M6-task-scopes.md#mc-18f-exp-bar-level-up-dispatch) | Blocking parent and child start/end frames; exp-bar resume | EP-26, MC-18d, MC-18e | todo; inventory complete; see captured limits |
 | MC-18 | WIRE | Map level-up display through Fe8Boot; growth rolls stay MC-17 | Panel/announcement match capture; write-back unchanged; allocations and MANUAL_TEST | MC-17, MC-18f | todo |
 | EP-29a | PORT | Battle item helpers, bmitem.c: `GetUnitItemSlot`, `IsItemEffectiveAgainst`, `IsUnitEffectiveAgainst`, `IsItemCoveringRange` (check `BmBattle.kt` existing helpers first) | Original return values/caller state f4181..4274 | MC-13 | partial: default paths checked; nondefault CAP needed |
@@ -396,6 +395,8 @@ Scenario scopes and stop conditions: [M6 task scopes](plans/M6-task-scopes.md).
 Readability remains owner-paused until ~2026-11-17 (HANDOFF).
 
 ## Done
+
+- **Claude 2026-11-15 (finishing GPT wip):** MC-18e (`ManimLevelUpLabelColor_Init`/`_Loop` Ported, `MapLevelUpLabelColorDifferentialTest`, f6520..6728 every step). MC-18b partial: `PutManimLevelUpStat`, `GetManimLevelUpStatGain`, `GetManimLevelUpBaseStat` Ported (`MapLevelUpStatsDifferentialTest`, f6519 panel and five gain redraws); Pow/Spd/Res/Con gains unseen.
 
 - **GPT 2026-11-15:** MC-18i display inventory: three reference tests, no port credit. EP-11g partial: current-song query verified; broader capture gaps retained.
 

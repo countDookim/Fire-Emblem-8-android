@@ -86,7 +86,7 @@ fe8.game.worldmap files that had none (sizes on that date).
 | game | fe8.game.bm (PlayerPhase lines 790-1547: handlePlayerCursorMovement to end) | 1 | 758 | done 2026-11-13 6bce8583 |
 | game | fe8.game.bm (BattleMapStart) | 1 | 624 | done 2026-11-13 25d9f084 |
 | game | fe8.game.bm (CpPhase, CpUtility) | 2 | 710 | done 2026-11-15 cadb036d |
-| game | fe8.game.bm (CpDecide) | 1 | 602 | done 2026-11-15 HASH |
+| game | fe8.game.bm (CpDecide) | 1 | 602 | done 2026-11-15 00f722ed |
 | game | fe8.game.bm (CpBattle, CpScript) | 2 | 778 | done 2026-11-15 3db4a04b |
 | game | fe8.game.bm (PlayerInterface lines 1-633: to before initPlayerPhaseInterface) | 1 | 633 | done 2026-11-15 d1940f95 |
 | game | fe8.game.bm (PlayerInterface lines 634-1210: initPlayerPhaseInterface to before unitMiniPortraitId) | 1 | 577 | done 2026-11-15 c48b6119 |

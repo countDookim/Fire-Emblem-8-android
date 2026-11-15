@@ -13,7 +13,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- MC-18b: Claude owner PC (continuing GPT wip/gpt-mc18b), level-up frame/stat drawing, until ~23:30Z (2026-11-15).
+- MC-18c: Claude owner PC, level-up gain label animation (mapanim_lvupfx.c), until ~01:30Z (2026-11-16).
 - MC-18a: Claude owner PC, level-up announcement (mapanim_lvup.c), until ~01:00Z (2026-11-16).
 
 

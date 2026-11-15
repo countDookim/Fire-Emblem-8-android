@@ -4,9 +4,10 @@ import fe8.game.bm.StructCodec.u16
 
 /**
  * The attack range of a selected unit (src/bmidoten.c, with the weapon reach lookups of
- * src/bmitem.c): the tiles a unit can hit from any tile of its movement map. Runs right after
- * the movement map in `DisplayUnitEffectRange` (src/playerphase.c), into the pool that is the
- * working map when it starts (`gBmMapRange`, cleared by the caller). Allocates nothing.
+ * src/bmitem.c): the tiles a unit can hit from any tile of its movement map, shown as the red
+ * squares. Runs right after the movement map in `DisplayUnitEffectRange` (src/playerphase.c),
+ * into the pool that is the working map when it starts (`gBmMapRange`, cleared by the caller).
+ * Allocates nothing.
  */
 public class AttackRange(
     private val map: BmMap,
@@ -18,7 +19,8 @@ public class AttackRange(
 ) {
     /**
      * `GetBallistaItemAt(x, y)` (bmarch.c, not ported): the item loaded in the ballista at the
-     * tile, 0 when none or without uses. Returns 0 until the trap system exists.
+     * tile, 0 when none or without uses. Returns 0 until the trap system and ballistae exist
+     * (EP-36, LG-0).
      */
     public var ballistaItemAt: (x: Int, y: Int) -> Int = { _, _ -> 0 }
 
@@ -26,15 +28,17 @@ public class AttackRange(
      * Ported from src/bmidoten.c: GenerateUnitCompleteAttackRange
      *
      * Adds to the working map (`gBmMapRange`) the reach of the unit with id [unitId] from every
-     * tile of `gBmMapMovement` it can stand on (cost at most 120, no unit on `gBmMapUnit`, no
-     * mark on `gBmMapOther`): each tile within the unit's weapon reach bits of such a tile counts
-     * once per ring added. Then makes the movement map the working map. A reach-bit combination
-     * not in the C `switch` adds nothing. The ballista branch is
-     * (not verified: no capture has a ballista unit) and uses [ballistaItemAt].
+     * tile of `gBmMapMovement` it can stand on (cost at most `MAP_MOVEMENT_MAX`, no unit on
+     * `gBmMapUnit`, nothing on `gBmMapOther`, which holds the magic seal map for a magic user):
+     * every tile in the weapon reach (`getUnitWeaponReachBits` of all usable weapons) of such a
+     * tile gets +1 per reach ring. Then makes the movement map the working map again. A
+     * reach-bit combination not in the C `switch` adds nothing. A `CA_BALLISTAE` unit also gets
+     * the reach of the ballista item at each such tile ([ballistaItemAt]; not verified: no
+     * capture has a ballista unit).
      */
     public fun generateUnitCompleteAttackRange(unitId: Int) {
-        val o = units.unitOffset(unitId)
-        when (getUnitWeaponReachBits(o)) {
+        val unitOffset = units.unitOffset(unitId)
+        when (getUnitWeaponReachBits(unitOffset)) {
             REACH_RANGE1 -> addOverMovement(1, 1, 0, 0)
             REACH_RANGE1 or REACH_RANGE2 -> addOverMovement(1, 2, 0, 0)
             REACH_RANGE1 or REACH_RANGE2 or REACH_RANGE3 -> addOverMovement(1, 3, 0, 0)
@@ -52,7 +56,9 @@ public class AttackRange(
             forEachStandableTile { x, y ->
                 val item = ballistaItemAt(x, y)
                 if (item != 0) {
-                    mapAddInBoundedRange(x, y, items.getItemMinRange(item), items.getItemMaxRange(item))
+                    mapAddInBoundedRange(
+                        x, y, items.getItemMinRange(item), items.getItemMaxRange(item),
+                    )
                 }
             }
         }
@@ -61,7 +67,8 @@ public class AttackRange(
 
     /**
      * The `FOR_EACH_IN_MOVEMENT_RANGE` macro of [generateUnitCompleteAttackRange] with its
-     * `MapAddInBoundedRange` calls for ([min1], [max1]) and, when [max2] is not 0, ([min2], [max2]).
+     * `MapAddInBoundedRange` calls for ([min1], [max1]) and, when [max2] is not 0, ([min2],
+     * [max2]): the second ring pair of a weapon set with a gap in its reach (a 1 and a 3 range).
      */
     private fun addOverMovement(min1: Int, max1: Int, min2: Int, max2: Int) {
         forEachStandableTile { x, y ->
@@ -70,7 +77,10 @@ public class AttackRange(
         }
     }
 
-    /** The loop of `FOR_EACH_IN_MOVEMENT_RANGE`: bottom-right to top-left, skipping blocked tiles. */
+    /**
+     * The loop of `FOR_EACH_IN_MOVEMENT_RANGE`: calls [block] for every tile the unit can stand
+     * on (see [generateUnitCompleteAttackRange]), from the bottom-right to the top-left.
+     */
     private inline fun forEachStandableTile(block: (x: Int, y: Int) -> Unit) {
         for (y in map.sizeY - 1 downTo 0) {
             for (x in map.sizeX - 1 downTo 0) {
@@ -86,7 +96,7 @@ public class AttackRange(
      * Ported from src/bmidoten.c: MapAddInBoundedRange (inline)
      *
      * Adds 1 to the working map within [maxRange] of ([x], [y]) and subtracts 1 within
-     * `minRange - 1`: the ring from [minRange] to [maxRange].
+     * `minRange - 1`: the ring of tiles at manhattan distance [minRange] to [maxRange].
      */
     internal fun mapAddInBoundedRange(x: Int, y: Int, minRange: Int, maxRange: Int) {
         entityMaps.mapAddInRange(x, y, maxRange, 1)
@@ -98,7 +108,8 @@ public class AttackRange(
      *   it)
      *
      * Sets (not adds) [value] on every working-map tile within manhattan distance [range] of
-     * ([x], [y]), clipped to the map.
+     * ([x], [y]), clipped to the map (`GenerateMagicSealMap` uses it with range 10 around each
+     * unit with `CA_MAGICSEAL`).
      */
     public fun mapSetInRange(x: Int, y: Int, range: Int, value: Int) {
         val pool = checkNotNull(map.workingMap) { "no working map" }
@@ -118,6 +129,7 @@ public class AttackRange(
         }
     }
 
+    /** One row of [mapSetInRange]: [value] from [centerX] - [radius] to + [radius], clipped. */
     private fun setRow(pool: BmMap.Pool, rowY: Int, centerX: Int, radius: Int, value: Int) {
         var xMin = centerX - radius
         var span = 2 * radius + 1
@@ -185,8 +197,10 @@ public class AttackRange(
     /**
      * Ported from src/bmitem.c: GetItemReachBits
      *
-     * The `REACH_*` mask of the encoded range of [item]; unlisted ranges give 0. The 0x3F range
-     * (`REACH_RANGE3 | REACH_TO15`) is (not verified: no capture has such a weapon).
+     * The `REACH_*` mask of the encoded range of [item] (`GetItemEncodedRange`: minimum range in
+     * the high nibble, maximum in the low one; 0xA is 10, 0xF is 15); unlisted
+     * ranges give 0 (`REACH_NONE`). The 0x3F range (`REACH_RANGE3 | REACH_TO15`) is not verified:
+     * no capture has such a weapon.
      */
     internal fun getItemReachBits(item: Int): Int = when (items.getItemEncodedRange(item)) {
         0x11 -> REACH_RANGE1
@@ -202,6 +216,7 @@ public class AttackRange(
     }
 
     private companion object {
+        /** `REACH_*` of include/bmitem.h (bit 5, `REACH_MAGBY2`, is not written). */
         const val REACH_RANGE1 = 1 shl 0
         const val REACH_RANGE2 = 1 shl 1
         const val REACH_RANGE3 = 1 shl 2
@@ -209,7 +224,11 @@ public class AttackRange(
         const val REACH_TO15 = 1 shl 4
         const val MAP_MOVEMENT_MAX = 120
         const val CA_BALLISTAE = 1 shl 7
+
+        /** `UNIT_ITEM_COUNT`. */
         const val ITEM_COUNT = 5
+
+        /** Offset of `Unit.items` in the unit struct. */
         const val OFF_ITEMS = 0x1E
     }
 }

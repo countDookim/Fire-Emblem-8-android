@@ -1,9 +1,10 @@
 package fe8.game.bm
 
 /**
- * The attack target list of src/bmtarget.c: the units (and breakable walls) a unit can attack
- * with a weapon from where it stands, collected into [targets]. The range map is `gBmMapRange`
- * of [map], filled through [attackRange]. Allocates nothing.
+ * The attack target list of src/bmtarget.c: the units (and damaged walls and snags) a unit can
+ * attack with a weapon from where it stands, collected into [targets] for the target selection
+ * ([AttackMapSelect]). The range map is `gBmMapRange` of [map], filled through [attackRange].
+ * Allocates nothing.
  */
 public class AttackTargets(
     @PublishedApi internal val map: BmMap,
@@ -52,8 +53,9 @@ public class AttackTargets(
     /**
      * Ported from src/bmtarget.c: MakeTargetListForWeapon
      *
-     * Makes the list of the enemies, and breakable walls, within [item]'s reach of the unit with
-     * id [unit] where it stands.
+     * Makes the target list for the unit with id [unit] using [item] from where it stands: starts
+     * a list at its tile, marks the ring of [item]'s minimum to maximum range on a cleared
+     * `gBmMapRange`, adds every non-allied unit in it and then the obstacle traps.
      */
     public fun makeTargetListForWeapon(unit: Int, item: Int) {
         val x = units.xPos(unit)
@@ -77,7 +79,9 @@ public class AttackTargets(
     /**
      * Ported from src/bmtarget.c: TryAddTrapsToTargetList
      *
-     * Adds the obstacle traps (damaged walls and snags) in the range map. The Prologue has no
+     * Adds the obstacle traps (`TRAP_OBSTACLE`: damaged walls, `TERRAIN_WALL_DAMAGED`, and snags,
+     * `TERRAIN_SNAG`) whose tile is in the range map, as targets with unit id 0 and the trap's
+     * `extra` byte. A damaged wall is also checked one tile below the trap. The Prologue has no
      * traps, so the loop ends at the first entry (the obstacle branches are not verified).
      */
     public fun tryAddTrapsToTargetList() {
@@ -106,9 +110,11 @@ public class AttackTargets(
         }
     }
 
+    /** Byte [at] of [traps] (a `struct Trap`: x, y, type, extra, ...), unsigned. */
     private fun trapByte(at: Int): Int = traps[at].toInt() and 0xFF
 
     private companion object {
+        /** `sizeof(struct Trap)`. */
         const val TRAP_SIZE = 8
         const val TRAP_NONE = 0
         const val TRAP_OBSTACLE = 2

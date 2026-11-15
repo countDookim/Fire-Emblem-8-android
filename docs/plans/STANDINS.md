@@ -32,7 +32,7 @@ Total entries: 239 across 47 Kotlin files.
 | EP-9b | 1 |
 | EP-cap2 | 6 |
 | EP-w | 3 |
-| MC-12b | 1 |
+| IS-2 | 1 |
 | MC-17 | 1 |
 | MC-4b | 2 |
 | MC-6 | 1 |
@@ -361,11 +361,11 @@ Total entries: 239 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `renderBmMap` | Stand-in for `RenderBmMap` (display; EP-w). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `writeSuspendSave` | Stand-in for `WriteSuspendSave(SAVE_ID_SUSPEND)` (bmsave.c; EP-w): called with the slot after `gActionData.suspendPointType` is set. |
 
-## MC-12b (1)
+## IS-2 (1)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `startForecastHelp` | Stand-in until MC-12b: nothing happens (the selection's `onHelp`). |
+| `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `startForecastHelp` | Stand-in until IS-2 (help boxes): nothing happens (the selection's `onHelp`). |
 
 ## MC-17 (1)
 

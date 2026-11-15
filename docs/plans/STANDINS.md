@@ -10,14 +10,14 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 230 across 47 Kotlin files.
+Total entries: 226 across 47 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 12 |
-| M6-C | 9 |
+| M6-C | 7 |
 | M6-D | 13 |
-| M6-E | 51 |
+| M6-E | 49 |
 | M6-F | 15 |
 | M6-G | 6 |
 | M6-H | 34 |
@@ -57,15 +57,13 @@ Total entries: 230 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | `readSuspendSave` | Ported from src/bmsave.c: ReadSuspendSave Resumes a suspended battle: loads the suspend block of [slot] (`SAVE_ID_SUSPEND`) + `gSuspendSaveIdOffset` (set by [BmSaveLib.isValidSuspendSave]) into [ra... |
 | `game/src/commonMain/kotlin/fe8/game/save/SuspendRam.kt` | `SuspendRam` | The only things held here are buffers that have no owner yet (the stand-ins [actionData] and [menuOverride] until M6-B, [traps] and [convoy] until M6-H, [worldMapStuff] and [dungeonState] until M6-... |
 
-## M6-C (9)
+## M6-C (7)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `weaponUsabilityBits` | Stand-in until M6-C (the staff bit needs `CanUnitUseStaff`). |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wire` | Sets every hook of [phase] that has a ported implementation; the rest keeps its default (stand-ins, M6-C to M6-I, listed on [PlayerPhase.Hooks]). |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `wireStandIns` | The hooks left at their defaults are stand-ins that never block the phase: the cursor, unit menu and Wait keep working; the plan rows are on the hooks' declarations in [PlayerPhase.Hooks] (`M6-C`,... |
-| `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | `pidStatsAddExpGained` | Stand-in until M6-C: does nothing, the statistics are not kept. |
-| `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | `pidStatsRecordDefeatInfo` | Stand-in until M6-C: does nothing, the statistics are not kept. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `generateAttackRange` | `Fe8Boot` sets it (`PlayerPhaseWiring`) with the weapon case of `AttackRange.generateUnitCompleteAttackRange`; the staff range and `GenerateMagicSealMap` are a stand-in until M6-C. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `getCombinedEnemyWeaponUsabilityBits` | `GetCombinedEnemyWeaponUsabilityBits`; stand-in until M6-C, default 0. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `getUnitWeaponUsabilityBits` | `Fe8Boot` answers the weapon bit only (the staff bit is a stand-in until M6-C). |
@@ -89,7 +87,7 @@ Total entries: 230 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayActiveUnitEffectRange` | Stand-in until M6-D for `DisplayActiveUnitEffectRange` (label 11: the range of a unit the player does not control, `PLAYER_SELECT_NOCONTROL`). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayDangerZone` | Stand-in until M6-D for `PlayerPhase_DisplayDangerZone` (label 12: the danger zone, `GenerateDangerZoneRange`, reached when the resume finds no active unit). |
 
-## M6-E (51)
+## M6-E (49)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -121,8 +119,6 @@ Total entries: 230 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `refreshBMapGraphics` | Stand-in until M6-E (`Fe8Boot` holds a partial version of it). |
 | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | `isGamePlayedThrough` | `IsGamePlayedThrough()` (reads the save, bmsave-lib.c; stand-in until the save library is ported, M6-E: no captured value depends on it); [Mu] builds `IsFirstPlaythrough()` on it. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `maybeCallEndEvent` | `MaybeCallEndEvent_`; stand-in until M6-E (the end event). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `pidStatsAddActAmt` | Stand-in until M6-E for `PidStatsAddActAmt(pid, 1)` (the per-character action count of the save statistics); gets the character id. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `pidStatsAddSquaresMoved` | `PidStatsAddSquaresMoved(charId, amount)`; stand-in until M6-E (the records). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `playerPhaseApplyUnitMovement` | Then `StartAfterUnitMovedEvent` ([Hooks.startAfterUnitMovedEvent], a stand-in until M6-E) and the unit action menu ([Hooks.startUnitActionMenu]) unless the move was trapped; breaks. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `resumeRangeDisplay` | Stand-in until M6-E for `PlayerPhase_ResumeRangeDisplay` (label 6: back from the stat screen opened in the range display idle; redraws the map and the active unit's range). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startAfterUnitMovedEvent` | Stand-in until M6-E for `StartAfterUnitMovedEvent` (src/eventinfo.c; the tutorial and the chapter's after-move events): true when an event started. |

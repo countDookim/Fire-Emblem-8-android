@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 607 across 88 decomp files (missing reason: 0).
+Total entries: 621 across 88 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -256,6 +256,29 @@ Total entries: 607 across 88 decomp files (missing reason: 0).
 | `CanBattleUnitGainLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 | `CheckBattleUnitLevelUp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 | `UpdateUnitFromBattle` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
+
+## src/bmsave-bwl.c (18)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `IsPlaythroughIdUnique` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
+| `GetNewPlaythroughId` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
+| `GetGlobalCompletionCntByInfo` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no test checks it against a trace yet |
+| `GetGlobalCompletionCount` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
+| `PidStatsRecordLoseData` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | no player death in captures |
+| `PidStatsSubFavval100` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | prep screen undeployment not in prologue clear |
+| `PidStatsAddSquaresMoved` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | units in prologue clear do not move across turns |
+| `PidStatsAddStatViewAmt` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | status screen views not captured in differential tests |
+| `PidStatsAddDeployAmt` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | prep screen deployment not in prologue clear |
+| `PidStatsRecordDefeatInfo` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | no player death in captures |
+| `PidStatsGetTotalBattleAmt` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
+| `PidStatsGetTotalWinAmt` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
+| `PidStatsGetTotalLossAmt` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
+| `PidStatsGetTotalLevel` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
+| `PidStatsGetTotalExpGain` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
+| `PidStatsGetExpGain` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ranking screen not in prologue clear |
+| `PidStatsGetFavval` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | ending details not in prologue clear |
+| `ClearPidStats` | `game/src/commonMain/kotlin/fe8/game/save/PidStats.kt` | new game / save init in differential tests |
 
 ## src/eventinfo.c (18)
 
@@ -694,15 +717,6 @@ Total entries: 607 across 88 decomp files (missing reason: 0).
 | `GenerateMovementMapForActiveUnit` | `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | only the re-route branches call it |
 | `ResetPathArrow` | `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | the capture's cursor never leaves the range or crosses the path, so no re-route runs |
 | `PathContainsNoCycle` | `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | only the re-route branch calls it |
-
-## src/bmsave-bwl.c (4)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `IsPlaythroughIdUnique` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
-| `GetNewPlaythroughId` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
-| `GetGlobalCompletionCntByInfo` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no test checks it against a trace yet |
-| `GetGlobalCompletionCount` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
 
 ## src/bmsave-lib.c (4)
 

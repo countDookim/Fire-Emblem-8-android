@@ -13,7 +13,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 - PLAN-M6: GPT owner PC, planning only; split M6-D..J backlog in TASKS/plans, until ~21:10Z (2026-11-15). No code or captures.
 
-- EP-27 (per-unit battle stats bmsave-bwl.c PidStatsAdd* / RecordDefeatInfo), owner PC Gemini Flash agent `ep27`, claimed 2026-11-15 16:51Z.
+- EP-28 (battle quote and defeat events: event.c / eventinfo.c), owner PC Gemini Flash agent `ep28`, claimed 2026-11-15 20:11Z.
 - EP-11c (face plumbing, face.c), fresh agent, claimed 2026-11-15 16:56Z.
 
 

@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1226,
+    "verified": 1233,
     "implemented_unverified": 79
   },
   "functions": {
@@ -174,6 +174,16 @@
       "status": "implemented",
       "tests": []
     },
+    "AiFindTargetInReachByFunc": {
+      "decomp_file": "src/cp_utility.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AiMoveTowardsEnemyDifferentialTest#aiFindTargetInReachByFunc finds target Eirika for boss at r03803"
+      ]
+    },
     "AiGetClassRank": {
       "decomp_file": "src/cp_utility.c",
       "system": "ai",
@@ -280,6 +290,16 @@
       "status": "implemented",
       "tests": []
     },
+    "AiScriptCmd_12_MoveTowardsEnemy": {
+      "decomp_file": "src/cp_script.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AiMoveTowardsEnemyDifferentialTest#script cmd 12 executes move towards enemy and advances boss script pc"
+      ]
+    },
     "AiScript_Exec": {
       "decomp_file": "src/cp_script.c",
       "system": "ai",
@@ -357,6 +377,16 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt",
       "status": "implemented",
       "tests": []
+    },
+    "AiTryMoveTowards": {
+      "decomp_file": "src/cp_utility.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpUtility.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AiMoveTowardsEnemyDifferentialTest#aiTryMoveTowards decides boss move and matches r03804 movement and range maps"
+      ]
     },
     "AiUpdateGetUnitIsHealing": {
       "decomp_file": "src/cp_0803E2F4.c",
@@ -3511,6 +3541,17 @@
         "fe8.testing.TalkFaceBlinkDifferentialTest#blink procs follow reference intervals and frame counters"
       ]
     },
+    "FaceExists": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
+      ]
+    },
     "FaceRefreshSprite": {
       "decomp_file": "src/face.c",
       "system": "text_face",
@@ -4807,7 +4848,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "implemented",
       "tests": []
     },
@@ -4849,6 +4890,28 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TextSystemRomTest#widths of traced messages match the glyph widths and the traced pen positions"
+      ]
+    },
+    "GetTalkChoiceResult": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
+      ]
+    },
+    "GetTalkFaceHPos": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFaceHPos.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
       ]
     },
     "GetTextDrawDest": {
@@ -6196,6 +6259,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "IsTalkActive": {
+      "decomp_file": "src/scene.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/Talk.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
       ]
     },
     "IsTalkFaceMoving": {
@@ -9837,7 +9911,9 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands"
+        "fe8.testing.EventTextDifferentialTest#the first talk is started waited for and ended by the event text commands",
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
       ]
     },
     "StartTalkFaceMove": {

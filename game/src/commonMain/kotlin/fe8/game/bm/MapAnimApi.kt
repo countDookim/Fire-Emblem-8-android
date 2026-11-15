@@ -231,10 +231,9 @@ public class MapAnimApi(
      * spell's map animation script from the actor's weapon at battle start.
      */
     public fun setupMapAnimSpellData(actor: BattleUnit) {
-        val entry = spellAssocEntry(actor.weaponBefore)
-        state.actorCount = rom.u8(entry + SA_COUNT)
+        state.actorCount = spells.getSpellAssocCharCount(actor.weaponBefore)
         state.currentRound = 0
-        state.specialProcScr = rom.u32(entry + SA_PROC)
+        state.specialProcScr = spells.getSpellAssocMapAnimProcScript(actor.weaponBefore)
     }
 
     /**
@@ -338,7 +337,7 @@ public class MapAnimApi(
      * toward the actor; a triangle attack's partners face the target too.
      */
     public fun setupBattleMoveUnits() {
-        val facing = rom.u8(spellAssocEntry(state.bu[0]!!.weaponBefore) + SA_FACING)
+        val facing = spells.getSpellAssocFacing(state.bu[0]!!.weaponBefore)
         sub807B4D0()
         when (state.actorCount) {
             2 -> {
@@ -352,6 +351,8 @@ public class MapAnimApi(
             1 -> setBattleAnimFacing(0, 1, facing)
         }
     }
+
+    private val spells = SpellAssoc(rom)
 
     private val order = IntArray(ManimSt.ACTORS)
 
@@ -384,21 +385,6 @@ public class MapAnimApi(
 
     private fun tattack(): Boolean = (generate.hitArray[0] and ATTR_TATTACK) != 0
 
-    /**
-     * Stand-in until EP-16 for `GetSpellAssocStructPtr` and its three getters: the ROM address of
-     * the `gSpellAssocData` entry of [item] (the first entry for an unknown item, as the scan of
-     * the C stops on the terminator). Not verified: only its results are compared.
-     */
-    private fun spellAssocEntry(item: Int): Int {
-        var it = SPELL_ASSOC_DATA
-        var entry = rom.u16(it)
-        while (entry != 0xFFFF && entry != (item and 0xFF)) {
-            it += SA_SIZE
-            entry = rom.u16(it)
-        }
-        return it
-    }
-
     /** The stand-in end of the animation, EP-17 (see [Hooks.restOfAnimation]). */
     private fun endAnimation() {
         mu.endAllMus()
@@ -408,11 +394,6 @@ public class MapAnimApi(
 
     /** Constants. */
     public companion object {
-        private const val SPELL_ASSOC_DATA = 0x088AFBD8
-        private const val SA_SIZE = 0x10
-        private const val SA_COUNT = 2
-        private const val SA_PROC = 8
-        private const val SA_FACING = 0xD
         private const val MA_FACING_OPPONENT = 0
         private const val MA_FACING_DEFAULT = 1
         private const val MA_FACING_UNK = 2

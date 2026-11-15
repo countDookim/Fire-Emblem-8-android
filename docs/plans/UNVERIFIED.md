@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 577 across 85 decomp files (missing reason: 0).
+Total entries: 580 across 86 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -778,6 +778,14 @@ Total entries: 577 across 85 decomp files (missing reason: 0).
 | `GetSpecialItemFuncIndex` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only the result -1 runs, for Red 0's items, and it shows in no captured value; a wrong hit would enter a special item function, which the function trace of the Prologue says never runs |
 | `AiTryDoSpecialItems` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | it runs once, for Red 0, and changes nothing; its result is discarded by the caller |
 | `sub_8040C5C` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only the non-rogue return runs, for Red 0 at f1613, and it shows in no captured value; the rogue part is a stand-in, EP-12 |
+
+## src/spellassoc.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetSpellAssocStructPtr` | `game/src/commonMain/kotlin/fe8/game/bm/SpellAssoc.kt` | every captured weapon's entry has the same values as the first entry and its neighbours, so a scan that returns the wrong entry passes; needs a battle with a magic weapon, M6-H |
+| `GetSpellAssocReturnBool` | `game/src/commonMain/kotlin/fe8/game/bm/SpellAssoc.kt` | its caller, the info box (EP-20), is not written, so no captured value shows the result |
+| `GetSpellAssocFlashColor` | `game/src/commonMain/kotlin/fe8/game/bm/SpellAssoc.kt` | its caller, the hit flash (EP-25), is not written, so no captured value shows the result |
 
 ## src/uiselecttarget.c (3)
 

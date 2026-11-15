@@ -57,7 +57,8 @@ class MapAnimStartDifferentialTest {
     @VerifiesPort(
         "BeginBattleMapAnims", "SetupMapAnimSpellData", "SetupMapBattleAnim",
         "MakeBattleMOVEUNIT", "SetBattleAnimFacing", "SetupBattleMOVEUNITs", "sub_807B4D0",
-        "SetMuFacing", "StartMu",
+        "SetMuFacing", "StartMu", "GetSpellAssocCharCount",
+        "GetSpellAssocMapAnimProcScript", "GetSpellAssocFacing",
     )
     fun `the map animation start reproduces gManimSt, the MOVEUNIT procs and the animation proc`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")

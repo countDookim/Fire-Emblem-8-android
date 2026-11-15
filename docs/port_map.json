@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1270,
+    "verified": 1275,
     "implemented_unverified": 79
   },
   "functions": {
@@ -4798,6 +4798,26 @@
         "fe8.testing.EventUnitLoadsTest#GetLoadUnitsAmount matches definition block counts across the ROM"
       ]
     },
+    "GetManimLevelUpBaseStat": {
+      "decomp_file": "src/mapanim_lvupfx.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapLevelUpStats.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpStatsDifferentialTest#gain redraws match captured buffers"
+      ]
+    },
+    "GetManimLevelUpStatGain": {
+      "decomp_file": "src/mapanim_lvupfx.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapLevelUpStats.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpStatsDifferentialTest#gain redraws match captured buffers"
+      ]
+    },
     "GetMenuCursorPosition": {
       "decomp_file": "src/uimenu.c",
       "system": "menus",
@@ -6832,6 +6852,26 @@
         "fe8.testing.AttackTargetListDifferentialTest#weapon target list matches the game"
       ]
     },
+    "ManimLevelUpLabelColor_Init": {
+      "decomp_file": "src/mapanim_lvup.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpLabelColor.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpLabelColorDifferentialTest#color proc and palette follow the original every step"
+      ]
+    },
+    "ManimLevelUpLabelColor_Loop": {
+      "decomp_file": "src/mapanim_lvup.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpLabelColor.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpLabelColorDifferentialTest#color proc and palette follow the original every step"
+      ]
+    },
     "MapAddInBoundedRange": {
       "decomp_file": "src/bmidoten.c",
       "system": "battle_map",
@@ -8556,6 +8596,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
+    "PutManimLevelUpStat": {
+      "decomp_file": "src/mapanim_lvupfx.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapLevelUpStats.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpStatsDifferentialTest#gain redraws match captured buffers"
       ]
     },
     "PutMapCursor": {

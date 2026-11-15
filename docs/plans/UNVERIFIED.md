@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 605 across 87 decomp files (missing reason: 0).
+Total entries: 607 across 88 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -659,15 +659,6 @@ Total entries: 605 across 87 decomp files (missing reason: 0).
 | `EndGmPalFade` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapPaletteFade.kt` | no @VerifiesPort test names it |
 | `StartGmPalFade_` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapPaletteFade.kt` | no @VerifiesPort test names it |
 
-## src/banim-ekrcmd.c (4)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `IsItemDisplayedInBattle` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | no captured battle uses an item of type "item"; only [getBattleAnimationId] calls it |
-| `FilterBattleAnimCharacterPalette` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | the captures show only the null default; the ballista animations are not in a capture |
-| `GetEfxHp` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | only the battle animation's HP bar reads it (EP-17 and later), no captured value shows a result |
-| `CheckBattleScripted` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | the result only feeds the branch of `PrepareBattleGraphicsMaybe` (EP-15) that is not taken either way |
-
 ## src/bksel.c (4)
 
 | Function | Kotlin file | Reason |
@@ -775,6 +766,22 @@ Total entries: 605 across 87 decomp files (missing reason: 0).
 | `WMFaceCtrl_Init` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFace.kt` | fresh-state trace only |
 | `StartWMFaceCtrl` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFace.kt` | the proc fields of its init are compared with the trace, the parent link is not |
 | `HideWmFace` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFace.kt` | the world map exit checks only the blend targets; no face is shown there, so the loop over the wrappers never runs |
+
+## src/banim-battleparse.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetBanimTerrainGround` | `game/src/commonMain/kotlin/fe8/game/bm/BanimPrepare.kt` | every capture is in tileset 0, so the tileset choice is not seen; only two terrains are |
+| `GetSpellAnimId` | `game/src/commonMain/kotlin/fe8/game/bm/BanimPrepare.kt` | the captured weapons all have the animation id 0, so the class choice of the generic id is not seen |
+| `UnsetMapStaffAnim` | `game/src/commonMain/kotlin/fe8/game/bm/BanimPrepare.kt` | no captured battle uses a map staff |
+
+## src/banim-ekrcmd.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `IsItemDisplayedInBattle` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | no captured battle uses an item of type "item"; only [getBattleAnimationId] calls it |
+| `FilterBattleAnimCharacterPalette` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | the captures show only the null default; the ballista animations are not in a capture |
+| `CheckBattleScripted` | `game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt` | the result only feeds the branch of `PrepareBattleGraphicsMaybe` (EP-15) that is not taken either way |
 
 ## src/bmphase.c (3)
 

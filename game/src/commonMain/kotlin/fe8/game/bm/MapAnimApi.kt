@@ -123,8 +123,9 @@ public class MapAnimApi(
         public var eventEngineExists: () -> Boolean = { false }
 
         /**
-         * Stand-in until EP-15 for `sub_8055BC4` (banim-ekrbattle): whether the battle is
-         * shown with battle animations. Always false here: the map animation runs.
+         * Stand-in until M6-G for `BeginAnimsOnBattleAnimations` / `sub_8055BC4` (banim-ekrbattle):
+         * whether the battle is shown with battle animations ([BanimPrepare.sub8055BC4] exists in
+         * fe8.game.bm, left unwired until M6-G). Always false here: the map animation runs.
          */
         public var battleAnimationsOn: () -> Boolean = { false }
 

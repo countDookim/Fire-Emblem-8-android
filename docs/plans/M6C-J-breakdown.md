@@ -1287,3 +1287,30 @@ per boot (confirmed: each coincided with a miss); documented, not changed. Windo
 
 [M7-modding](M7-modding.md) now includes accepted extensive-modding scope (ADR 0016), implementation
 proposals and design inventories M7-24..32. Runtime/API/storage/packaging choices remain open.
+
+## MC-18i display inventory (2026-11-15)
+
+MC-18i inventory — original `ram_trace_prologue_levelup`, after-step numbering
+
+The procs watch records f6413..6746 and the test asserts exact relevant proc lifetimes and parentage. The exp-bar proc is child of map battle and blocks on ManimLevelUp f6413..6745; both exp bar and battle remain at f6746. `ProcMAExpBar_LevelUpIfPossible` calls `StartManimLevelUp`, whose blocking child actor_id is 0. No function-entry watch for these routines is present: call timing below is inferred from proc cursor, fields, source script and proc presence, not directly recorded function entries. Uninitialized fields before f6519 must not be treated as values.
+
+Cursor: window initialization/dim and music child f6414; announcement AP f6431..6500; ending at f6501; restore music f6502..6517; main-screen initialization f6519; scroll in f6521..6532 (-144 to -48 in steps of 8); gain labels f6563, 6584, 6605, 6626, 6647 (next_stat_num 1, 2, 4, 6, 7); gain scan ends f6669; gain-label/color children end f6728; scroll out f6730..6741; cleanup cursor f6742; level-up ends after f6745. Face is live f6519..6741. Label parent f6519..6728; color child f6520..6728. AP lifetimes include short and long overlapping instances; see test rows. Gain selection is only this capture; missing stats and loss cases are not covered.
+
+Dump timing: EWRAM proc snapshots agree with watches throughout f6519..6745. BG0/BG1 buffers and palette RAM are available per step. VRAM, hardware palette, OAM and IO snapshots occur every ten steps. Source/proc analysis supplies tentative attribution. Audio timing requires another capture.
+
+Candidate corrected subsets, observed path only:
+- MC-18a f6413..6518: `StartManimLevelUp`, `InitManimLevelUpWindow`, `ManimLevelUp_DimBgm`, `ManimLevelUp_StartLevelUpText`, `ManimLevelUp_EndLevelUpText`, `ManimLevelUp_RestoreBgm`. Check child/actor, AP lifecycle, window IO and OAM at full snapshots; sound/volume require new instrumentation to directly verify.
+- MC-18b f6519, 6563..6669: `PutManimLevelUpFrame`, `PutManimLevelUpStat`, `GetManimLevelUpStatGain`, `GetManimLevelUpBaseStat`; compare original EWRAM BG tilemaps and source unit/battle fields using runtime data; VRAM only at fNNNNN snapshots. Non-gain and magic-label alternatives need separate captures.
+- MC-18c f6519..6728: `StartManimLevelUpStatGainLabels`, `StartManimLevelUpStatGainLabelAnim`, `EndManimLevelUpStatGainLabels`, `ManimLevelUpStatGainLabel_Finish`; compare child/AP lifetimes, label proc fields and available full snapshots; loss path and prep-item helper unobserved.
+- MC-18d f6519..6745: `ManimLevelUp_InitMainScreen`, `ManimLevelUp_ScrollIn`, `ManimLevelUp_PutStatGainLabels`, `ManimLevelUp_ScrollOut`, `ClearManimLevelUpWindow`, `ManimLevelUp_Clear`; panel fields each step; EWRAM buffers each step and IO/OAM only full snapshots. ResetDialogueScreen executes both via script and end callback; distinguish source calls from recorded direct entry.
+- MC-18e f6520..6728: `ManimLevelUpLabelColor_Init`, `ManimLevelUpLabelColor_Loop`; color proc fields and palette buffer per-step EWRAM; hardware palette full snapshots only.
+- MC-18f start at f6413 through f6746 and beyond for resume: `ProcMAExpBar_LevelUpIfPossible` plus `StartManimLevelUp` boundary; compare blocking parent/child and continuation. Confirm actual resume using later frames before asserting its precise timing.
+
+## EP-11g music query result (2026-11-15)
+
+EP-11g evidence and follow-ups
+Capture ram_trace_prologue_clear: at f2963 a song is playing; f2964 has a delayed music proc with counter 48 and a new song, with no prior pending proc to cancel. Proc is present through f3012 and gone f3013. f3797 calls StartBgm from StartMapSongBgm for the already-playing song; no transition or speed is distinguishable. No SRAM or sound-room save watch exists in this capture. Current test covers the f3797 map caller and two captured current-song values; it does not reconstruct the f2964 event or compare the delayed proc each step. Existing PlaySong omits sound-room unlocking; SoundWrapper is not wired to BmSaveLib. No new implementation/credit for cancellation, StartBgm, PlaySong, or unlocking.
+Recommend CAP: transition while a delayed song proc already exists, with proc fields per step, to distinguish cancellation; separate StartBgm transition with a different song, observing delay; SRAM/sound-room watch surrounding a new unlock, repeated unlock, invalid checksum and special pair unlocks, plus player state for PlaySong. Wire SoundWrapper to save service only after observing the save behavior.
+
+
+`EventMusicDifferentialTest`: `GetCurrentBgmSong` returning 0 fails against the original song field; restored test passes. No credit for other helpers.

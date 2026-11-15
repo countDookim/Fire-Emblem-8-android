@@ -13,14 +13,19 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- MC-18i: GPT owner PC Terra, level-up display inventory, until ~22:00Z (2026-11-15).
-- EP-11g: GPT owner PC Terra, captured music helpers, until ~22:00Z (2026-11-15).
 
 - EP-28 (battle quote and defeat events: event.c / eventinfo.c), owner PC Gemini Flash agent `ep28`, claimed 2026-11-15 20:11Z.
 - EP-11d (text and CG text: fontgrp.c, cgtext.c), owner PC Gemini Flash agent `ep11d`, claimed 2026-11-15 20:15Z.
 
 
 ## Current state
+
+- 2026-11-15 GPT/Terra: **MC-18i done**, original level-up display inventory (3 tests); MC-18a..f
+  now have exact proc/display windows and dump-density limits. **EP-11g partial:** current-song query
+  ported and mutation-checked; real map-song caller compared. No transition/cancellation/save credit;
+  three CAP rows retain those gaps. Full local JVM suite: **980 passed, zero failures/errors/skips**
+  (12m39s); progress **1256/7732**, ported-without-tag/unknown-verifies both 0. No new device behavior.
+  Other AI claims preserved. Game Dokka passed (2m38s); instruction/generated-list/game-text checks passed.
 
 - 2026-11-15 GPT planning: owner-approved extensive modding recorded in ADR 0016 and M7 plan.
   Vanilla stays original; mods can replace data/audio, executable AI/rules, camera and controls without
@@ -154,7 +159,7 @@ Plan re-done 2026-11-11 (owner-approved): [ROADMAP](docs/plans/ROADMAP.md) has t
 window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose deps are done in either.
 
 1. **Lane A (M6-D → M6-E):** finish unclaimed, dependency-ready EP rows; skip live claims above.
-   `MC-18i` inventories the existing level-up display capture before MC-18a..f. `PC-cap1` captures the
+   `MC-18i` is done; take MC-18a..f using its evidence limits and a precise coding brief. `PC-cap1` captures the
    ending/save/Chapter 1 route; `PC-cap2` the lord-death path. `PC-9i` checks existing menu coverage.
    Source scopes and proposed test names: [M6 task scopes](docs/plans/M6-task-scopes.md).
 2. **Lane B (M6-F):** `IS-cap1` → `IS-0`/`IS-2i` → the observed stat-screen/help function groups.

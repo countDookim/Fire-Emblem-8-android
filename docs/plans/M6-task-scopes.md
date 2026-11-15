@@ -2,7 +2,8 @@
 
 Planning revision 2026-11-15. [TASKS](../TASKS.md) is the executable queue; this document supplies
 scope and stop conditions. Existing capture results remain in [M6C-J-breakdown](M6C-J-breakdown.md).
-No code, captures, tests or new port credits were produced by this planning revision.
+No code, captures, tests or new port credits were produced by the original planning revision.
+MC-18i subsequently completed: [inventory evidence](M6C-J-breakdown.md#mc-18i-display-inventory-2026-11-15).
 
 ## How to take a task
 
@@ -58,34 +59,46 @@ if no fixture exists, add a fixture acquisition task, not a speculative port.
 ### MC-18a: Level-up announcement
 
 Candidate source: `src/mapanim_lvup.c`: `StartManimLevelUp`, `InitManimLevelUpWindow`, `ManimLevelUp_DimBgm`, `ManimLevelUp_StartLevelUpText`, `ManimLevelUp_EndLevelUpText`, `ManimLevelUp_RestoreBgm`.
-Window: ram_trace_prologue_levelup f6413..6746; stat panel f6519..6729. MC-18i fixes narrower subwindows. Compare: Actor ID, AP procs, sound/volume and announcement OAM. Proposed test: `MapLevelUpDifferentialTest`.
+Window: MC-18i confirmed this display path; use its exact subwindow below and evidence limits, not every candidate branch. Compare: Actor ID, AP procs, sound/volume and announcement OAM. Proposed test: `MapLevelUpDifferentialTest`.
+
+Confirmed inventory window: f6413..6518 announcement; audio not directly recorded. Per-frame EWRAM; full display snapshots every ten frames.
 
 ### MC-18b: Level-up base stat drawing
 
 Candidate source: `src/mapanim_lvupfx.c`: `PutManimLevelUpFrame`, `PutManimLevelUpStat`, `GetManimLevelUpStatGain`, `GetManimLevelUpBaseStat`.
-Window: ram_trace_prologue_levelup f6413..6746; stat panel f6519..6729. MC-18i fixes narrower subwindows. Compare: Frame/stat tilemaps and pre/post-gain values. Proposed test: `MapLevelUpDifferentialTest`.
+Window: MC-18i confirmed this display path; use its exact subwindow below and evidence limits, not every candidate branch. Compare: Frame/stat tilemaps and pre/post-gain values. Proposed test: `MapLevelUpDifferentialTest`.
+
+Confirmed inventory window: f6519 and f6563..6669 frame/stat redraws. Per-frame EWRAM; full display snapshots every ten frames.
 
 ### MC-18c: Level-up gain label animation
 
 Candidate source: `src/mapanim_lvupfx.c`: `ManimLevelUpStatGainLabel_Finish`, `StartManimLevelUpStatGainLabels`, `EndManimLevelUpStatGainLabels`, `StartManimLevelUpStatGainLabelAnim`.
-Window: ram_trace_prologue_levelup f6413..6746; stat panel f6519..6729. MC-18i fixes narrower subwindows. Compare: Label AP lifecycle, OAM, tiles and palettes. Proposed test: `MapLevelUpDifferentialTest`.
+Window: MC-18i confirmed this display path; use its exact subwindow below and evidence limits, not every candidate branch. Compare: Label AP lifecycle, OAM, tiles and palettes. Proposed test: `MapLevelUpDifferentialTest`.
+
+Confirmed inventory window: f6519..6728 label/AP lifetimes. Per-frame EWRAM; full display snapshots every ten frames.
 
 ### MC-18d: Level-up stat panel lifecycle
 
 Candidate source: `src/mapanim_lvup.c`: `ManimLevelUp_InitMainScreen`, `ManimLevelUp_ScrollIn`, `ManimLevelUp_ScrollOut`, `ManimLevelUp_PutStatGainLabels`, `ClearManimLevelUpWindow`, `ManimLevelUp_Clear`.
-Window: ram_trace_prologue_levelup f6413..6746; stat panel f6519..6729. MC-18i fixes narrower subwindows. Compare: Panel proc fields, scroll offsets, tilemaps and cleanup. Proposed test: `MapLevelUpDifferentialTest`.
+Window: MC-18i confirmed this display path; use its exact subwindow below and evidence limits, not every candidate branch. Compare: Panel proc fields, scroll offsets, tilemaps and cleanup. Proposed test: `MapLevelUpDifferentialTest`.
+
+Confirmed inventory window: f6519..6745 panel, scroll and cleanup. Per-frame EWRAM; full display snapshots every ten frames.
 
 ### MC-18e: Level-up label palette cycle
 
 Candidate source: `src/mapanim_lvup.c`: `ManimLevelUpLabelColor_Init`, `ManimLevelUpLabelColor_Loop`.
-Window: ram_trace_prologue_levelup f6413..6746; stat panel f6519..6729. MC-18i fixes narrower subwindows. Compare: Color-cycle counter and palette at each observed step. Proposed test: `MapLevelUpDifferentialTest`.
+Window: MC-18i confirmed this display path; use its exact subwindow below and evidence limits, not every candidate branch. Compare: Color-cycle counter and palette at each observed step. Proposed test: `MapLevelUpDifferentialTest`.
+
+Confirmed inventory window: f6520..6728 label palette cycle. Per-frame EWRAM; full display snapshots every ten frames.
 
 ### MC-18f: Exp-bar level-up dispatch
 
 Candidate source: `src/mapanim_expbar.c`: `ProcMAExpBar_LevelUpIfPossible`.
-Window: ram_trace_prologue_levelup f6413..6746; stat panel f6519..6729. MC-18i fixes narrower subwindows. Compare: Blocking parent and child start/end frames; exp-bar resume. Proposed test: `MapLevelUpDifferentialTest`.
+Window: MC-18i confirmed this display path; use its exact subwindow below and evidence limits, not every candidate branch. Compare: Blocking parent and child start/end frames; exp-bar resume. Proposed test: `MapLevelUpDifferentialTest`.
 
 ## M6-E chapter completion and menus
+
+Confirmed inventory window: f6413..6746 blocking parent; later resume timing still needs checking. Per-frame EWRAM; full display snapshots every ten frames.
 
 ### PC-4a: Post-chapter save entry
 

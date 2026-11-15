@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1255,
+    "verified": 1256,
     "implemented_unverified": 79
   },
   "functions": {
@@ -4277,6 +4277,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TextDrawRomTest#getColorLut returns the pointers of the built ROM's colour tables"
+      ]
+    },
+    "GetCurrentBgmSong": {
+      "decomp_file": "src/soundwrapper.c",
+      "system": "audio",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/SoundWrapper.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventMusicDifferentialTest#map music call preserves the song already playing in the capture"
       ]
     },
     "GetCurrentMapMusicIndex": {

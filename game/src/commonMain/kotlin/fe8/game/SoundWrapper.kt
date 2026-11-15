@@ -202,8 +202,8 @@ public class SoundWrapper(
      * delayed starts, then either fades the current song out at [speed] and starts [song]
      * `speed * 16` frames later, or starts it at once.
      *
-     * Transcribed from src/soundwrapper.c: StartOrChangeBgm (not verified: the traces never run its
-     * already-playing / BGM-disabled returns or end a pending delayed start)
+     * Transcribed from src/soundwrapper.c: StartOrChangeBgm (not verified: BGM-disabled return,
+     * cancellation of a pending start and transition behavior are not fully observed)
      */
     public fun startOrChangeBgm(song: Int, speed: Int, player: Int) {
         if (isSongPlaying && getCurrentBgmSong() == song) return
@@ -221,7 +221,8 @@ public class SoundWrapper(
      * `StartBgm`: [startOrChangeBgm] with speed 3. The captured call already plays the
      * requested song, so the speed and transition remain unverified.
      *
-     * Transcribed from src/soundwrapper.c: StartBgm
+     * Transcribed from src/soundwrapper.c: StartBgm (not verified: captured call already plays
+     * requested song; speed/transition unobserved)
      */
     public fun startBgm(song: Int, player: Int): Unit = startOrChangeBgm(song, 3, player)
 

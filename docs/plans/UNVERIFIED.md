@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 621 across 88 decomp files (missing reason: 0).
+Total entries: 622 across 88 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -916,6 +916,13 @@ Total entries: 621 across 88 decomp files (missing reason: 0).
 | `PlayerPhase_CancelAction` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | no capture reaches it; only the trade, supply, take, give and ballista actions of [playerPhasePrepareAction] do |
 | `TryMakeCantoUnit` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | the capture's unit has no canto, and a bail at the first test is not observable: `US_HAS_MOVED` is set, so the second test bails too |
 
+## src/soundwrapper.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `StartOrChangeBgm` | `game/src/commonMain/kotlin/fe8/game/SoundWrapper.kt` | BGM-disabled return, cancellation of a pending start and transition behavior are not fully observed |
+| `StartBgm` | `game/src/commonMain/kotlin/fe8/game/SoundWrapper.kt` | captured call already plays requested song; speed/transition unobserved |
+
 ## src/spline.c (2)
 
 | Function | Kotlin file | Reason |
@@ -1021,12 +1028,6 @@ Total entries: 621 across 88 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetPlayerLeaderPid` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no test checks it against a trace yet |
-
-## src/soundwrapper.c (1)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `StartOrChangeBgm` | `game/src/commonMain/kotlin/fe8/game/SoundWrapper.kt` | the traces never run its already-playing / BGM-disabled returns or end a pending delayed start |
 
 ## src/sysutil.c (1)
 

@@ -14,8 +14,10 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
-/** Original calls in frames 4181..4274. Each helper has only one observed return value, so
- * constant-return implementations survive and these checks do not verify the ports. */
+/**
+ * Original calls in frames 4181..4274. Each helper has only one observed return value, so
+ * constant-return implementations survive and these checks do not verify the ports.
+ */
 class BattleItemHelpersDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
     private val assets = File(

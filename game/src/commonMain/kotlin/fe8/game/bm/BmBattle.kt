@@ -983,7 +983,7 @@ public class BmBattle(
             isPositionMagicSealed(s8(bytes, offset + OFF_X), s8(bytes, offset + OFF_Y))
 
     /**
-     * Transcribed from bmitem.c: GetUnitItemSlot
+     * Transcribed from src/bmitem.c: GetUnitItemSlot
      * (not verified: captured calls have one return value)
      *
      * Returns the first inventory slot containing [itemIndex], or -1 if absent. The captured
@@ -997,7 +997,7 @@ public class BmBattle(
     }
 
     /**
-     * Transcribed from bmitem.c: IsItemCoveringRange
+     * Transcribed from src/bmitem.c: IsItemCoveringRange
      * (not verified: captured calls have one return value)
      *
      * Whether [range] is within the item's minimum and maximum range. Out-of-range results are
@@ -1007,7 +1007,7 @@ public class BmBattle(
         items.getItemMinRange(item) <= range && range <= items.getItemMaxRange(item)
 
     /**
-     * Transcribed from bmitem.c: IsItemEffectiveAgainst
+     * Transcribed from src/bmitem.c: IsItemEffectiveAgainst
      * (not verified: captured calls have one return value)
      *
      * Whether [item] is effective against the unit at [offset] of
@@ -1040,7 +1040,7 @@ public class BmBattle(
     }
 
     /**
-     * Transcribed from bmitem.c: IsUnitEffectiveAgainst
+     * Transcribed from src/bmitem.c: IsUnitEffectiveAgainst
      * (not verified: captured calls have one return value)
      *
      * Bishop "Slayer": whether the actor is a Bishop (`CLASS_BISHOP` 0x2B, `CLASS_BISHOP_F` 0x2C)

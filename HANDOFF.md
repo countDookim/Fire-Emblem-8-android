@@ -15,6 +15,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 - MC-18c: Claude owner PC, level-up gain label animation (mapanim_lvupfx.c), until ~01:30Z (2026-11-16).
 - MC-18a: Claude owner PC, level-up announcement (mapanim_lvup.c), until ~01:00Z (2026-11-16).
+- EP-1b: Claude owner PC, start-of-phase display targets (bmtarget.c, bmmap.c), until ~02:00Z (2026-11-16).
 
 
 - EP-17 (map animation flow A: mapanim.c), owner PC Gemini Flash agent `ep17`, claimed 2026-11-15 21:05Z.

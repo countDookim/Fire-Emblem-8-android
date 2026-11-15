@@ -12,6 +12,7 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 ## In progress
 
 - READABILITY fe8.game.worldmap (WorldMapRmBorder, WorldMapLineFade): owner PC, until ~2026-11-15 18:30Z
+- EP-13: owner PC, until ~2026-11-15 19:00Z
 
 ## Current state
 

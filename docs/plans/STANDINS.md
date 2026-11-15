@@ -27,8 +27,9 @@ Total entries: 224 across 49 Kotlin files.
 | EP-1 | 1 |
 | EP-12 | 26 |
 | EP-13 | 1 |
-| EP-17 | 5 |
+| EP-18 | 4 |
 | EP-1b | 5 |
+| EP-20 | 1 |
 | EP-30 | 2 |
 | EP-36 | 2 |
 | EP-7 | 2 |
@@ -304,15 +305,14 @@ Total entries: 224 across 49 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `beginBattleAnimations` | Stand-in until EP-13: sets only the flag, so the animation ends at once. |
 
-## EP-17 (5)
+## EP-18 (4)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `MapAnimApi` | [script] holds only the commands the capture runs after the start (`LockGame`, the battle talk reset, SLEEP 1, camera onto the subject, SLEEP 2); the animation itself (EP-17 and later) is the stand... |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `endAnimation` | The stand-in end of the animation, EP-17 (see [Hooks.restOfAnimation]). |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `moveCameraOntoSubject` | Stand-in until EP-17: the camera stays. |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `restOfAnimation` | Stand-in until EP-17: ends the MOVEUNITs, shows the sprites again and unlocks the game, so the animation lasts the few frames of the start and the battle result applies right after. |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `script` | `ProcScr_MapAnimBattle` (0x089A3508): CALL `LockGame`, CALL `MapAnim_PrepareBattleTalk`, SLEEP 1, CALL `MapAnim_MoveCameraOntoSubject`, SLEEP 2, then the stand-in (EP-17) [Hooks.restOfAnimation] an... |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `displayRoundAnim` | Stand-in until EP-18: round animation effect. |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `endAnimation` | The stand-in end of the animation, EP-18 (see [Hooks.mapAnimEnd]). |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `mapAnimEnd` | Stand-in until EP-18: ends battle animation. |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `showPoisonEffectIfAny` | Stand-in until EP-18: map poison effect. |
 
 ## EP-1b (5)
 
@@ -323,6 +323,12 @@ Total entries: 224 across 49 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makeGorgonEggHatchTargetList` | Stand-in until EP-1b: empty list. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makePoisonDamageTargetList` | Stand-in until EP-1b: empty list. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makeTerrainHealTargetList` | Stand-in until EP-1b: when null, [PhaseStartEnd] only does `InitTargets(0, 0)`, so the list is empty. |
+
+## EP-20 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `startMapAnimInfoWindow` | Stand-in until EP-20: info box UI window. |
 
 ## EP-30 (2)
 

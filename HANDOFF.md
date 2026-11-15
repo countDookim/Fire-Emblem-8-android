@@ -19,7 +19,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 - EP-11e: Claude owner PC, event end UI restore (uimenu.c, eventscr_utils.c, icon.c), until ~03:30Z (2026-11-16).
 
 
-- EP-17 (map animation flow A: mapanim.c), owner PC Gemini Flash agent `ep17`, claimed 2026-11-15 21:05Z.
+- EP-20 (map info box A: mapanim_infobox.c), owner PC Gemini Flash agent `ep20`, claimed 2026-11-15 23:57Z.
 - EP-10c (turn support exp: bmreliance.c), owner PC Gemini Flash agent `ep10c`, claimed 2026-11-15 23:42Z.
 
 

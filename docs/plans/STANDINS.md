@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 234 across 47 Kotlin files.
+Total entries: 233 across 46 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -36,7 +36,6 @@ Total entries: 234 across 47 Kotlin files.
 | EP-6b | 11 |
 | EP-7d | 1 |
 | IS-2 | 1 |
-| MC-17 | 1 |
 | PC-10 | 1 |
 | PP-10 | 1 |
 | PP-17 | 1 |
@@ -380,12 +379,6 @@ Total entries: 234 across 47 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/AttackMapSelect.kt` | `startForecastHelp` | Stand-in until IS-2 (help boxes): nothing happens (the selection's `onHelp`). |
-
-## MC-17 (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | `checkBattleUnitLevelUp` | Stand-in until MC-17: level and exp bookkeeping only, no stat gains (RNG not advanced). |
 
 ## PC-10 (1)
 

@@ -328,6 +328,14 @@ engine f6762, run ends f6870. Level-up: Eirika level 1 -> 2, exp 87 -> 67 (80 fo
 f4385..4395, f4570..4700, f4895..5130, f5450..5720, f6050..6830; RAM every 30f elsewhere. Watches as EP-cap2;
 `tracecall aicombatscore` records four calls (f1614, f2039, f4575, f5455). Size 568 MB (1.6 MB compressed). The
 boss's hit rolls decide the outcome: changing any input may change them.
+### MC-17 result (2026-11-15)
+
+Test: `LevelUpDifferentialTest` over `ram_trace_prologue_levelup`. The whole kill-strike battle runs in the step f6054 (the last full dump before it is f6050; the watches show no change in the battle units, unit table or RNG between f6050 and f6053). Seeded from the f6050 dump: `BattleGenerateReal` leaves `gBattleActor` and `gBattleTarget` (level 2, exp 67, `expGain` 80, `changeHP`/`changeSkl`/`changeDef`/`changeLck` 1, the rest 0) and the RNG state as the f6054 watches. The state right before the growth rolls is the same battle run with Eirika's exp 0 (no level-up); `CheckBattleUnitLevelUp` alone on her with 167 exp gives the f6054 unit and RNG state. Write-back: the f6750 dump through `BattleApplyGameStateUpdates` gives Eirika's unit struct of f6760 (dump and `blue` watch; level 2, exp 67, max HP 17, skl 9, def 4, lck 6).
+Ported: `CheckBattleUnitLevelUp` (level-up branch, seven growth rolls in order), `GetStatIncrease` (moved from Transcribed in `UnitLoader`), `CheckBattleUnitStatCaps` (private; caps run, none reached). `UpdateUnitFromBattle` was already Ported (MC-15); now also seen with changed stats.
+Transcribed: none new. Not seen (KDoc): level 10/20 exp disable, `US_GROWTH_BOOST`, the all-zero re-roll, a stat at its cap, a promoted unit. The growth boost mutation (always +5) survives: the captured rolls pass either way.
+Stand-ins: none new. The level-up display (map level-up popup and stat screen procs f6413..6746, `ProcMAExpBar_LevelUpIfPossible` level-up branch) has no TASKS row (EP-26 covers the no-level-up path only and names MC-17 for the branch).
+Wired: `BattleApplyExpGains` calls the real check in every `BattleGenerate` (`Fe8Boot` sets `unitTable`, so caps read the table unit).
+
 ### EP-1 result (2026-11-13)
 
 Test: `PhaseStartEndDifferentialTest` over `ram_trace_prologue_enemy_phase` (blue/red/gplayst/gbmst/procs watches; `gPidStatsData` from the dumps f1520/f1530). New class `PhaseStartEnd` (game/bm). Ported: `ClearActiveFactionGrayedStates` (units at f1529, f2750, f2768, favour -8 of Seth and Eirika in `gPidStatsData`; the unavailable/unselectable/supply skips are not seen), the four `*Display_Init` (no display proc alive; an inverted end test leaves the proc), `sub_8015434` (phase proc five frames after the tick in the red, green and blue start). The existing `SwitchPhases`, `BmMain_ChangePhase`, `_StartPhase` (red branch new) and `_UpdateTraps` (green branch new) now match all three switches and the f2766 trap proc.

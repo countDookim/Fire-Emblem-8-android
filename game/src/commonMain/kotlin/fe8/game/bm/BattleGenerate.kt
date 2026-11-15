@@ -22,7 +22,7 @@ import kotlin.math.abs
  * Not ported: `ComputeBattleObstacleStats`, `PidStatsRecordBattleRes` / `PidStatsAddBattleAmt`
  * (save-file statistics), the light rune toggling and the staff / item effect battles. The exp
  * gain tail of `BattleGenerateRealInternal` is [battleApplyExpGains], whose level-up check is the
- * hook [checkBattleUnitLevelUp] (MC-17). The triangle attack neighbour scan needs [bmMap] and
+ * [checkBattleUnitLevelUp] (MC-17). The triangle attack neighbour scan needs [bmMap] and
  * [unitTable].
  *
  * @param battle the battle units, stats and stat computes.
@@ -74,31 +74,105 @@ public class BattleGenerate(
         scriptedBattleHits = hits
     }
 
-    /** The level-up check of one battle unit, a `fun interface` so that no lambda is boxed. */
-    public fun interface LevelUpCheck {
-        /** Runs `CheckBattleUnitLevelUp` on [unit]. */
-        public fun check(unit: BattleUnit)
-    }
-
     /**
-     * Hook for `CheckBattleUnitLevelUp` (bmbattle.c, MC-17), which [battleApplyExpGains] runs on
-     * both units after the exp is added. Stand-in until MC-17: level and exp bookkeeping only,
-     * no stat gains (RNG not advanced). For a unit that can gain levels and has 100 exp it takes
-     * 100 exp, adds a level and, at the maximum level (10 for `CA_MAXLEVEL10`, else 20),
-     * subtracts the leftover exp from `expGain` and disables the exp. The RNG draws the stat
-     * gains would make are missing, so RNG-dependent behaviour after a level-up diverges until
-     * MC-17. Not verified: no capture levels up.
+     * Ported from src/bmbattle.c: CheckBattleUnitLevelUp
+     * Ported from src/bmbattle.c: GetStatIncrease
+     * Ported from src/bmbattle.c: CheckBattleUnitStatCaps
+     *
+     * When [unit] can gain levels and has 100 exp: takes the 100 exp, adds a level (at the
+     * maximum level, 10 for `CA_MAXLEVEL10` else 20, the leftover exp leaves `expGain` and the
+     * exp is disabled), rolls the seven stat gains from the character's growths (plus 5 with
+     * `US_GROWTH_BOOST`) in the order HP, Pow, Skl, Spd, Def, Res, Lck, re-rolls up to twice
+     * until one gain is non-zero when all seven were 0, and caps the gains by
+     * `CheckBattleUnitStatCaps` against the unit table's unit (the battle unit's own copy
+     * without [unitTable]).
+     *
+     * Verified on the level-up of `ram_trace_prologue_levelup` (Eirika 1 -> 2 at f6054): level,
+     * exp, `expGain`, the gains and the RNG state. Not seen: the maximum level branches, a
+     * growth boost, the all-zero re-roll and a stat reaching its cap.
      */
-    public var checkBattleUnitLevelUp: LevelUpCheck = LevelUpCheck { unit ->
-        if (canBattleUnitGainLevels(unit) && unit.exp >= 100) {
-            unit.exp -= 100
-            val level = unit.bytes[OFF_LEVEL] + 1
-            unit.bytes[OFF_LEVEL] = level.toByte()
-            val maxLevel = if ((cAttributes(unit) and CA_MAXLEVEL10) != 0) 10 else 20
-            if (level == maxLevel) {
+    public fun checkBattleUnitLevelUp(unit: BattleUnit) {
+        if (!canBattleUnitGainLevels(unit) || unit.exp < 100) return
+        val b = unit.bytes
+        unit.exp -= 100
+        val level = b[OFF_LEVEL] + 1
+        b[OFF_LEVEL] = level.toByte()
+        if ((cAttributes(unit) and CA_MAXLEVEL10) != 0) {
+            if (level == 10) {
                 unit.expGain -= unit.exp
                 unit.exp = UNIT_EXP_DISABLED
             }
+        } else if (level == 20) {
+            unit.expGain -= unit.exp
+            unit.exp = UNIT_EXP_DISABLED
+        }
+        val growthBonus = if ((u32(b, OFF_STATE) and US_GROWTH_BOOST) != 0) 5 else 0
+        val character = u32(b, OFF_CHARACTER)
+        // Growths are at CharacterData 0x1C..0x22: HP, Pow, Skl, Spd, Def, Res, Lck.
+        var total = 0
+        for (i in 0 until 7) {
+            val gain = loader.getStatIncrease(rom.u8(character + 0x1C + i) + growthBonus)
+            setStatGain(unit, i, gain)
+            total += gain
+        }
+        if (total == 0) {
+            pass@ for (pass in 0 until 2) {
+                for (i in 0 until 7) {
+                    val gain = loader.getStatIncrease(rom.u8(character + 0x1C + i))
+                    setStatGain(unit, i, gain)
+                    if (gain != 0) break@pass
+                }
+            }
+        }
+        checkBattleUnitStatCaps(unit)
+    }
+
+    /** `bu->changeHP` .. `bu->changeLck` by index 0..6. */
+    private fun setStatGain(unit: BattleUnit, index: Int, gain: Int) {
+        when (index) {
+            0 -> unit.changeHP = gain
+            1 -> unit.changePow = gain
+            2 -> unit.changeSkl = gain
+            3 -> unit.changeSpd = gain
+            4 -> unit.changeDef = gain
+            5 -> unit.changeRes = gain
+            else -> unit.changeLck = gain
+        }
+    }
+
+    /** `bu->changeHP` .. `bu->changeLck` by index 0..6. */
+    private fun statGain(unit: BattleUnit, index: Int): Int = when (index) {
+        0 -> unit.changeHP
+        1 -> unit.changePow
+        2 -> unit.changeSkl
+        3 -> unit.changeSpd
+        4 -> unit.changeDef
+        5 -> unit.changeRes
+        else -> unit.changeLck
+    }
+
+    private fun checkBattleUnitStatCaps(unit: BattleUnit) {
+        val table = unitTable
+        val bytes: ByteArray
+        val at: Int
+        if (table != null) {
+            bytes = table.bytes
+            at = table.unitOffset(s8(unit.bytes, OFF_INDEX))
+        } else {
+            bytes = unit.bytes
+            at = 0
+        }
+        val cls = u32(bytes, at + OFF_CLASS)
+        val red = (s8(bytes, at + OFF_INDEX) and 0xC0) == FACTION_RED
+        for (i in 0 until 7) {
+            val stat = s8(bytes, at + (if (i == 0) OFF_MAX_HP else 0x13 + i))
+            // UNIT_MHP_MAX, the class maxima of Pow..Res (ClassData 0x14..0x18), UNIT_LCK_MAX.
+            val max = when (i) {
+                0 -> if (red) 120 else 60
+                6 -> 30
+                else -> rom.u8(cls + 0x13 + i).toByte().toInt()
+            }
+            if (stat + statGain(unit, i) > max) setStatGain(unit, i, max - stat)
         }
     }
 
@@ -117,8 +191,8 @@ public class BattleGenerate(
         target.expGain = getBattleUnitExpGain(target, actor)
         actor.exp += actor.expGain
         target.exp += target.expGain
-        checkBattleUnitLevelUp.check(actor)
-        checkBattleUnitLevelUp.check(target)
+        checkBattleUnitLevelUp(actor)
+        checkBattleUnitLevelUp(target)
     }
 
     /** `UNIT_FACTION`: the army bits of the unit's index. */
@@ -1241,6 +1315,8 @@ public class BattleGenerate(
         private const val OFF_LEVEL = 0x08
         private const val OFF_EXP = 0x09
         private const val FACTION_BLUE = 0x00
+        private const val FACTION_RED = 0x80
+        private const val US_GROWTH_BOOST = 1 shl 13
         private const val UNIT_EXP_DISABLED = 0xFF
         private const val PLAY_FLAG_EXTRA_MAP = 1 shl 7
         private const val CA_THIEF = 1 shl 3

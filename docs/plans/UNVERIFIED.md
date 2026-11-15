@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 576 across 84 decomp files (missing reason: 0).
+Total entries: 575 across 84 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -225,7 +225,7 @@ Total entries: 576 across 84 decomp files (missing reason: 0).
 | `CanUnitUseWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `IsItemUnsealedForUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 
-## src/bmbattle.c (18)
+## src/bmbattle.c (17)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
@@ -246,7 +246,6 @@ Total entries: 576 across 84 decomp files (missing reason: 0).
 | `CanBattleUnitGainLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 | `CheckBattleUnitLevelUp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 | `UpdateUnitFromBattle` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
-| `GetStatIncrease` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 
 ## src/mu.c (17)
 

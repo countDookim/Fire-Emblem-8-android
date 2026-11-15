@@ -320,8 +320,7 @@ public class UnitLoader(
     }
 
     /**
-     * Transcribed from src/bmbattle.c: GetStatIncrease (not verified: no test checks it
-     *   against a trace yet)
+     * Ported from src/bmbattle.c: GetStatIncrease
      *
      * One point per full 100 of [growth], plus one more with the remainder as percent chance.
      */

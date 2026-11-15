@@ -60,7 +60,12 @@ public class EventTextTalkHost(
         listOf(repeat(whileFaceFn), yield(), end()),
     )
 
-    /** `Proc_EndEach(gProcScr_Talk)`: ends every running talk bubble scene. */
+    /**
+     * `Proc_EndEach(gProcScr_Talk)`: ends every running talk bubble scene.
+     *
+     * Transcribed from src/scene.c: EndTalk (not verified: in the captured text ends the talk has
+     * already ended, so no talk proc is there to end)
+     */
     override fun endTalk() {
         procs.endEach(talk.talkScript)
     }
@@ -148,7 +153,14 @@ public class EventTextTalkHost(
         talk.clearTalkFaceRefs()
     }
 
-    /** `FaceExists` (src/scene.c:2096): a portrait face proc (`gProcScr_E_FACE`) exists. */
+    /**
+     * Whether a portrait face proc (`gProcScr_E_FACE`) exists.
+     *
+     * Ported from src/scene.c: FaceExists
+     *
+     * Only the true result is seen (the wait for the faces starts at the text end); the false
+     * result needs the face fade-out ending (EP-11c), so it is in no compared value.
+     */
     override fun faceExists(): Boolean = procs.find(face.faceScript) != null
 
     /**
@@ -174,8 +186,7 @@ public class EventTextTalkHost(
      * `IsTalkActive() && !IsTalkLocked()` (the first test of the text wait at
      * src/eventscr.c:1151): a talk bubble scene is running and not held by a talk lock.
      */
-    override fun isTalkRunning(): Boolean =
-        procs.find(talk.talkScript) != null && !talk.isTalkLocked()
+    override fun isTalkRunning(): Boolean = talk.isTalkActive() && !talk.isTalkLocked()
 
     /** Stand-in (M6-E): CG text is not ported, so none exists. */
     override fun cgTextExists(): Boolean = false
@@ -183,8 +194,8 @@ public class EventTextTalkHost(
     /** Stand-in (M6-E): the box dialogue is not ported, so none exists. */
     override fun boxDialogueExists(): Boolean = false
 
-    /** Stand-in (M6-E): `sTalkChoiceResult` is only written by the (not ported) choice proc: 0. */
-    override fun talkChoiceResult(): Int = 0
+    /** `GetTalkChoiceResult` ([Talk.getTalkChoiceResult]). */
+    override fun talkChoiceResult(): Int = talk.getTalkChoiceResult()
 
     /** `SetBlendAlpha(a, b)` through the bubble host: the two blend weights of the screen. */
     override fun setBlendAlpha(a: Int, b: Int) {
@@ -218,7 +229,8 @@ public class EventTextTalkHost(
      *
      * Ported from src/scene.c: StartTalkMsg, StartTalkExt
      *
-     * Verified without a parent proc (f9865); the `Proc_StartBlocking` branch is in no trace.
+     * Verified without a parent proc (f9865, the boss turn event f2966, the Soldiers' dialogue
+     * f2465); the `Proc_StartBlocking` branch is not seen.
      */
     override fun startTalkMsg(x: Int, y: Int, msg: Int) {
         val talkState = talk.state

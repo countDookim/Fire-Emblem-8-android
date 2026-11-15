@@ -10,14 +10,14 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 231 across 47 Kotlin files.
+Total entries: 230 across 47 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 12 |
 | M6-C | 9 |
 | M6-D | 13 |
-| M6-E | 52 |
+| M6-E | 51 |
 | M6-F | 15 |
 | M6-G | 5 |
 | M6-H | 34 |
@@ -91,7 +91,7 @@ Total entries: 231 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayActiveUnitEffectRange` | Stand-in until M6-D for `DisplayActiveUnitEffectRange` (label 11: the range of a unit the player does not control, `PLAYER_SELECT_NOCONTROL`). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayDangerZone` | Stand-in until M6-D for `PlayerPhase_DisplayDangerZone` (label 12: the danger zone, `GenerateDangerZoneRange`, reached when the resume finds no active unit). |
 
-## M6-E (52)
+## M6-E (51)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -142,7 +142,6 @@ Total entries: 231 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `changeUnitSpritePalette` | Stand-in (M6-E): `ChangeUnitSpritePalette` (a palette load, no state) is not ported. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `endBoxDialogue` | Stand-in until M6-E: the box dialogue is not ported, so none can exist, nothing to end. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `endCgText` | Stand-in until M6-E: CG text is not ported, so none can exist and none is ended. |
-| `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `talkChoiceResult` | Stand-in (M6-E): `sTalkChoiceResult` is only written by the (not ported) choice proc: 0. |
 | `game/src/commonMain/kotlin/fe8/game/event/ReleaseEventStubs.kt` | `ReleaseEventStubs` | Stand-in until M6-E: not ports; no-op event commands that let a script run past commands whose handlers are not ported yet (text, fades, unit loads, ASMC and so on), as the skip mode of the beginni... |
 | `game/src/commonMain/kotlin/fe8/game/savemenu/PostSaveMenu.kt` | `standInSelection` | Stand-in until M6-E for the player's choice on the save menu: picks the first usable entry in this order (not checked against the interactive menu code): 1. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `TalkScene` | Stand-ins until M6-E (no behaviour is invented; each is a no-op or the smallest working substitute): - talk choices (`StartTalkChoice`), `[G]` numbers (`NumberToStringAscii`) and the tactician name... |

@@ -509,6 +509,27 @@ public class Talk(
     }
 
     /**
+     * `sTalkChoiceResult`: the choice the player made in the last talk choice. Only the choice
+     * proc writes it (`SetTalkChoiceResult`, not ported: it is not in a captured window), so it
+     * stays 0 here.
+     */
+    private var choiceResult: Int = 0
+
+    /**
+     * `GetTalkChoiceResult`: the choice the player made in the last talk choice.
+     *
+     * Ported from src/scene.c: GetTalkChoiceResult
+     */
+    public fun getTalkChoiceResult(): Int = choiceResult
+
+    /**
+     * Whether a talk scene (`gProcScr_Talk`) is running.
+     *
+     * Ported from src/scene.c: IsTalkActive
+     */
+    public fun isTalkActive(): Boolean = engine.find(talkScript) != null
+
+    /**
      * Transcribed from src/scene.c: LockTalk (not verified: no TalkLock proc in the run)
      */
     // Not @VerifiesPort: the traced procs never contain gProcScr_TalkLock.

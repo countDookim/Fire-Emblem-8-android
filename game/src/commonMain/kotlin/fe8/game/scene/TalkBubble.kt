@@ -104,7 +104,12 @@ public class TalkBubble(
     private val host: TalkHost,
     private val bubbleHost: TalkBubbleHost,
 ) {
-    /** `TalkOpen_OnEnd`: an empty function in the decomp. */
+    /**
+     * `TalkOpen_OnEnd`.
+     *
+     * Transcribed from src/scene.c: TalkOpen_OnEnd (not verified: the function has no body, so no
+     * captured value depends on it)
+     */
     private val onEndFn = ProcFunc { }
     private val initBlendFn = ProcFunc { talkOpenInitBlend(it) }
     private val putBubbleFn = ProcFunc { talkOpenPutTalkBubble(it) }
@@ -169,7 +174,7 @@ public class TalkBubble(
     /**
      * Starts the bubble-opening proc for the face in [talkFace], blocking [parent]. The bubble is
      * 6 tiles tall with its bottom edge at row 8, [TalkState.activeWidth] wide, pointing at the
-     * face's column (`gTalkFaceHPosLut`, clamped to 0..30). The speaker and width are
+     * face's column ([TalkFaceHPos], clamped to 0..30). The speaker and width are
      * remembered so [Talk.talkHasCorrectBubble] knows the bubble is current.
      *
      * Ported from src/scene.c: StartTalkOpen
@@ -177,7 +182,7 @@ public class TalkBubble(
     public fun startTalkOpen(talkFace: Int, parent: Proc) {
         val proc = engine.startBlocking(openScript, parent)!!
         val openState = proc.state as TalkOpenState
-        openState.x = FACE_HPOS[talkFace]
+        openState.x = TalkFaceHPos.of(talkFace, bubbleHost.isBattleDeamonActive())
         openState.y = 8
         openState.width = talk.state.activeWidth
         openState.height = 6
@@ -537,12 +542,6 @@ public class TalkBubble(
 
         /** Where the bubble tiles go: tile 0x10 (0x200 bytes) of BG1's tile data. */
         const val BUBBLE_DEST = 0x06000200
-
-        /**
-         * `gTalkFaceHPosLut`: the tile column each of the 8 talk face slots sits at (the
-         * decomp's `GetTalkFaceHPos`; its fight-event case, 4 or 26, is not ported).
-         */
-        val FACE_HPOS = intArrayOf(3, 6, 9, 21, 24, 27, -8, 38)
 
         /** `Img_TalkBubbleOpening_A..E`, then `Img_TalkBubble`. */
         val BUBBLE_IMAGES = intArrayOf(

@@ -297,8 +297,9 @@ public class TalkFace(
     /** The [TalkState.faces] handle of face slot [slot]. */
     private fun handleOf(slot: Int): Int = FACE_HANDLE + slot
 
-    /** `GetTalkFaceHPos(talkFace)` without the fight-event case: the face's tile column. */
-    private fun hpos(talkFace: Int): Int = FACE_HPOS[talkFace]
+    /** `GetTalkFaceHPos(talkFace)`: the face's tile column. */
+    private fun hpos(talkFace: Int): Int =
+        TalkFaceHPos.of(talkFace, faceHost.isBattleDeamonActive())
 
     /**
      * Decompresses the portrait's tiles into the face slot's place in OBJ VRAM.
@@ -934,8 +935,5 @@ public class TalkFace(
 
         /** `FACE_DISP_TALK_2`. */
         private const val TALK_2 = 1 shl 5
-
-        /** `gTalkFaceHPosLut`: the tile column of each of the 8 talk face slots. */
-        private val FACE_HPOS = intArrayOf(3, 6, 9, 21, 24, 27, -8, 38)
     }
 }

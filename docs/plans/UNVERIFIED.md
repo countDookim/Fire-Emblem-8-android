@@ -7,12 +7,13 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 597 across 87 decomp files (missing reason: 0).
+Total entries: 599 across 87 decomp files (missing reason: 0).
 
-## src/scene.c (33)
+## src/scene.c (35)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
+| `EndTalk` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | in the captured text ends the talk has already ended, so no talk proc is there to end |
 | `ProcScr_TalkSpriteShiftClear` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | the script position is checked per step in WorldMapEventHostTest, which cannot tag a script |
 | `ProcScr_0859160C` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | see [spriteShiftClearScript] |
 | `ProcScr_08591624` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | see [spriteShiftClearScript] |
@@ -34,6 +35,7 @@ Total entries: 597 across 87 decomp files (missing reason: 0).
 | `SetActiveTalkFace` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | a one-line store, only covered through the state its callers produce |
 | `TalkPause_OnIdle` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | the trace has no pause code |
 | `ClearTalkText` | `game/src/commonMain/kotlin/fe8/game/scene/Talk.kt` | only reached by the `[2NL]` code with `TALK_FLAG_INSTANTSHIFT`, which the trace does not contain |
+| `TalkOpen_OnEnd` | `game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt` | the function has no body, so no captured value depends on it |
 | `TalkOpen_InitBlend` | `game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt` | no @VerifiesPort test names it |
 | `TalkShiftClearAll_OnInit` | `game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt` | no @VerifiesPort test names it |
 | `TalkShiftClearAll_OnIdle` | `game/src/commonMain/kotlin/fe8/game/scene/TalkBubble.kt` | no @VerifiesPort test names it |

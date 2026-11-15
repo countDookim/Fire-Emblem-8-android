@@ -122,8 +122,13 @@ internal class TalkRig(
      * write stays), and the text speed [speed] that `GetTextDisplaySpeed` returns. No Talk proc
      * is started: the event text host does that. [messages] is the string buffer.
      */
-    fun seedBeforeEvent(frame: Int, messages: ByteArray, speed: Int) {
-        io = File(runDir, "f09860.io.bin").readBytes()
+    fun seedBeforeEvent(
+        frame: Int,
+        messages: ByteArray,
+        speed: Int,
+        ioDump: String = "f09860.io.bin",
+    ) {
+        io = File(runDir, ioDump).readBytes()
         val ew = ewram(frame)
         msg = messages
         for (i in tm.indices) tm[i] = u16(ew, BG0_TM + 2 * i).toShort()
@@ -450,7 +455,34 @@ internal class TalkRig(
                 return "BG1 tilemap cell $i want ${u16(ew, BG1_TM + 2 * i)} got ${tm1[i]}"
             }
         }
-        val procs = ProcArrayDump.ofEwram(ew)
+        compareProcs(ProcArrayDump.ofEwram(ew))?.let { return it }
+        val vramFile = File(runDir, "f%05d.vram.bin".format(f))
+        if (vramFile.isFile) {
+            val v = vramFile.readBytes()
+            for (i in STRIPS until STRIPS + STRIP_BYTES) {
+                if (v[i] != vram[i]) return "vram strip byte ${i - STRIPS}"
+            }
+            for (slot in 0 until 4) {
+                // Blink and mouth procs (not ported) rewrite eye and mouth tiles later, so each
+                // face's tiles are compared at its first f-dump only.
+                if (face.gFaces[slot] == null || !tilesChecked.add(slot)) continue
+                val base = 0x10000 + FACE_TILES[slot]
+                for (i in 0 until FACE_BYTES) {
+                    if (v[base + i] != vram[base + i]) {
+                        return "face $slot tile byte $i want ${v[base + i]} " +
+                            "got ${vram[base + i]}"
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    /**
+     * Compares the procs the talk runs (counts of [watched], the face procs' fields, the Talk
+     * and wait procs' script position and lock count) with [procs], a proc array of the reference.
+     */
+    fun compareProcs(procs: ProcArrayDump): String? {
         for ((addr, script) in watched) {
             val want = procs.findAll(addr).size
             val have = engine.procs.count { it.script === script }
@@ -485,25 +517,6 @@ internal class TalkRig(
             if (waitProc.u16(0x66) != w.y) return "wait y"
             if (waitProc.scrCur != myWait.scrCur) return "wait scrCur"
             if (waitProc.u8(0x28) != myWait.lockCnt) return "wait lockCnt"
-        }
-        val vramFile = File(runDir, "f%05d.vram.bin".format(f))
-        if (vramFile.isFile) {
-            val v = vramFile.readBytes()
-            for (i in STRIPS until STRIPS + STRIP_BYTES) {
-                if (v[i] != vram[i]) return "vram strip byte ${i - STRIPS}"
-            }
-            for (slot in 0 until 4) {
-                // Blink and mouth procs (not ported) rewrite eye and mouth tiles later, so each
-                // face's tiles are compared at its first f-dump only.
-                if (face.gFaces[slot] == null || !tilesChecked.add(slot)) continue
-                val base = 0x10000 + FACE_TILES[slot]
-                for (i in 0 until FACE_BYTES) {
-                    if (v[base + i] != vram[base + i]) {
-                        return "face $slot tile byte $i want ${v[base + i]} " +
-                            "got ${vram[base + i]}"
-                    }
-                }
-            }
         }
         return null
     }

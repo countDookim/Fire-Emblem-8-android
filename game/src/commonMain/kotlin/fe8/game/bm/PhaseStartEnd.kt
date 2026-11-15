@@ -9,23 +9,24 @@ import gbafe.proc.ProcScripts.call
 import gbafe.proc.ProcScripts.end
 
 /**
- * The unit housekeeping at the end and the start of a phase: `ClearActiveFactionGrayedStates`
- * and `TickActiveFactionTurn` of `src/bmunit.c`, and the `_Init` functions of the four blocking
- * displays of `src/bmusailment.c` that `gProc_BMapMain` starts after the phase banner (status
- * decay, terrain heal, poison, Gorgon egg hatch).
+ * The unit housekeeping around a phase change: `ClearActiveFactionGrayedStates` (called by
+ * `BmMain_ChangePhase` before the factions switch) and `TickActiveFactionTurn` (called by
+ * `gProc_BMapMain` after the phase banner) of `src/bmunit.c`, and the `_Init` functions of the
+ * four blocking displays of `src/bmusailment.c` that `gProc_BMapMain` starts right after it
+ * (status decay, terrain heal, poison, Gorgon egg hatch).
  *
  * In the Prologue captures every display finds an empty target list and ends at once, so only
  * the `_Init` of each is here; the rest of each display script (`MassEffectDisplay_*`,
  * `*_Display`, `*_Next`) is a stand-in (M6-D) that ends the proc, as are the
- * `Make*TargetList` calls of `src/bmtarget.c` (they leave the list empty) and the pieces behind
- * [Hooks]. Nothing allocates after construction.
+ * `Make*TargetList` calls of `src/bmtarget.c` (EP-1b; they leave the list empty) and the pieces
+ * behind [Hooks]. Nothing allocates after construction.
  */
 public class PhaseStartEnd(
     private val engine: ProcEngine,
     private val units: UnitTable,
     private val playSt: PlaySt,
     private val targets: SelectTargets,
-    /** The calls that are not ported; every one does nothing by default. */
+    /** The calls this class makes that are not ported; every one does nothing by default. */
     public val hooks: Hooks = Hooks(),
 ) {
     /** A call that takes a unit's character id. */
@@ -56,25 +57,30 @@ public class PhaseStartEnd(
         public var redrawAfterTorch: Runnable = Runnable { }
 
         /**
-         * `MakeTerrainHealTargetList(faction)` (bmtarget.c). Stand-in until M6-D: only
-         * `InitTargets(0, 0)`, so the list is empty (set by [PhaseStartEnd]).
+         * `MakeTerrainHealTargetList(faction)` (bmtarget.c). Stand-in until EP-1b: when null,
+         * [PhaseStartEnd] only does `InitTargets(0, 0)`, so the list is empty.
          */
         public var makeTerrainHealTargetList: FactionAction? = null
 
         /**
-         * `MakePoisonDamageTargetList(faction)` (bmtarget.c). Stand-in until M6-D: empty list.
+         * `MakePoisonDamageTargetList(faction)` (bmtarget.c). Stand-in until EP-1b: empty list.
          */
         public var makePoisonDamageTargetList: FactionAction? = null
 
         /**
-         * `MakeGorgonEggHatchTargetList(faction)` (bmtarget.c). Stand-in until M6-D: empty list.
+         * `MakeGorgonEggHatchTargetList(faction)` (bmtarget.c). Stand-in until EP-1b: empty list.
          */
         public var makeGorgonEggHatchTargetList: FactionAction? = null
 
-        /** `sub_8026414(4)` (bmtarget.c): the defeat statistics of the poison victims. */
+        /**
+         * `sub_8026414(4)` (bmtarget.c): for each poison target whose current HP is at most its
+         * damage, records the defeat and loss in the save statistics (`PidStatsRecordDefeatInfo`,
+         * `PidStatsRecordLoseData`). Default: does nothing.
+         */
         public var preparePoisonDefeats: Runnable = Runnable { }
     }
 
+    /** The `Make*TargetList` stand-in: leaves the target list empty. */
     private val emptyList = FactionAction { targets.initTargets(0, 0) }
 
     private val statusDecayInitFn = ProcFunc { statusDecayDisplayInit(it) }
@@ -168,6 +174,7 @@ public class PhaseStartEnd(
         if (displayMapChange) hooks.redrawAfterTorch.run()
     }
 
+    /** Sets the 4 bits at [shift] of the unit byte at [offset] (the packed durations). */
     private fun setNibble(offset: Int, shift: Int, value: Int) {
         val bytes = units.bytes
         val old = u8(bytes, offset)
@@ -187,7 +194,8 @@ public class PhaseStartEnd(
     /**
      * Ported from src/bmusailment.c: TerrainHealDisplay_Init
      *
-     * Makes the terrain heal target list of the active faction, ends [proc] if it is empty.
+     * Makes the terrain heal target list of the active faction, ends [proc] if it is empty. (The
+     * C otherwise zeroes `unk_4C`, which only the unported `_Display` / `_Next` read.)
      */
     public fun terrainHealDisplayInit(proc: Proc) {
         (hooks.makeTerrainHealTargetList ?: emptyList).run(playSt.faction)
@@ -198,7 +206,7 @@ public class PhaseStartEnd(
      * Ported from src/bmusailment.c: PoisonDamageDisplay_Init
      *
      * Makes the poison target list of the active faction, runs [Hooks.preparePoisonDefeats],
-     * ends [proc] if the list is empty.
+     * ends [proc] if the list is empty. (The C otherwise zeroes `unk_4C`.)
      */
     public fun poisonDamageDisplayInit(proc: Proc) {
         (hooks.makePoisonDamageTargetList ?: emptyList).run(playSt.faction)
@@ -209,7 +217,8 @@ public class PhaseStartEnd(
     /**
      * Ported from src/bmusailment.c: GorgonEggHatchDisplay_Init
      *
-     * Makes the Gorgon egg hatch target list of the active faction, ends [proc] if it is empty.
+     * Makes the Gorgon egg hatch target list of the active faction, ends [proc] if it is
+     * empty. (The C otherwise zeroes `unk_4C`.)
      */
     public fun gorgonEggHatchDisplayInit(proc: Proc) {
         (hooks.makeGorgonEggHatchTargetList ?: emptyList).run(playSt.faction)
@@ -217,10 +226,19 @@ public class PhaseStartEnd(
     }
 
     private companion object {
+        /** `FACTION_BLUE` (include/bmunit.h): the player's units. */
         const val FACTION_BLUE = 0x00
+
+        /** `US_RESCUED`. */
         const val US_RESCUED = 1 shl 5
+
+        /** `CA_SUPPLY`: the supply convoy's character attribute. */
         const val CA_SUPPLY = 1 shl 9
+
+        /** `UNIT_STATUS_RECOVER`: its duration does not count down. */
         const val STATUS_RECOVER = 10
+
+        /** `US_UNSELECTABLE | US_HAS_MOVED | US_HAS_MOVED_AI`. */
         const val CLEARED_BITS = (1 shl 1) or (1 shl 6) or (1 shl 10)
     }
 }

@@ -10,12 +10,13 @@ import gbafe.text.MsgStrings
 import gbafe.text.TextSystem
 
 /**
- * The map menu's item callbacks of src/bmmenu.c (the items of `gMapMenuItems`, src/menu_def.c:
- * Unit, Status, Guide, Records, Options, Retreat, Suspend, End) as the Prologue shows them. The
- * availability callbacks of Guide, Records, Retreat and Suspend, the Guide item's draw and the End
- * effect are written; the effects of the other items (Unit, Status, Guide, Options, Records,
- * Retreat, Suspend) are not, so selecting one fails loudly in [Menu.callbacks]. [install]
- * registers them under the ROM addresses the `MenuItemDef`s hold.
+ * The map menu's item callbacks of src/bmmenu.c: the menu the player opens on an empty tile
+ * during the player phase, `gMapMenuItems` of src/menu_def.c (Unit, Status, Guide, Records,
+ * Options, Retreat, Suspend, End Phase). Written: the availability callbacks of Guide, Records,
+ * Retreat and Suspend, the Guide item's draw and the End Phase effect. The effects of the other
+ * items (Unit, Status, Guide, Records, Options, Retreat, Suspend) are not, so selecting one
+ * fails loudly in [Menu.callbacks]. [install] registers the written ones under the ROM addresses
+ * the `MenuItemDef`s hold.
  */
 public class MapMenu(
     private val engine: ProcEngine,
@@ -28,7 +29,7 @@ public class MapMenu(
     /** `gProcScr_PlayerPhase`, which [commandEffectEndPlayerPhase] ends. */
     private val playerPhaseScript: () -> ProcScript,
 ) {
-    /** Services outside the ported file. */
+    /** Calls into other source files that this class needs and that are not wired by default. */
     public class Hooks {
         /** `GetBattleMapKind()` (worldmap_path.c, transcribed in [BattleMapKind]). */
         public var battleMapKind: () -> Int = { error("GetBattleMapKind is not wired") }
@@ -45,10 +46,13 @@ public class MapMenu(
         }
     }
 
-    /** Services outside the ported file. */
+    /** The outside calls; the boot wiring sets them (the defaults fail loudly). */
     public val hooks: Hooks = Hooks()
 
-    /** Registers the map menu's callbacks in [menu]. */
+    /**
+     * Registers the callbacks written here in [menu] under their ROM addresses (the `MenuItemDef`
+     * function pointers). The [rom] parameter is unused.
+     */
     public fun install(menu: Menu, rom: RomView) {
         menu.callbacks[GUIDE_USABILITY] =
             Menu.MenuFunc { _, _, def, number -> guideCommandUsability(def, number) }
@@ -68,7 +72,8 @@ public class MapMenu(
     /**
      * Ported from src/bmmenu.c: MapMenu_IsSuspendCommandAvailable
      *
-     * Disabled in the tutorial, else enabled.
+     * The Suspend item is grayed out (`MENU_DISABLED`) while `PLAY_FLAG_TUTORIAL` is set, else
+     * enabled.
      */
     public fun suspendCommandUsability(def: Int, number: Int): Int {
         if (playSt.chapterStateBits and PLAY_FLAG_TUTORIAL != 0) return Menu.MENU_DISABLED
@@ -79,7 +84,8 @@ public class MapMenu(
     /**
      * Ported from src/bmmenu.c: MapMenu_IsGuideCommandAvailable
      *
-     * Not shown while the guide is locked ([Hooks.isGuideLocked]), else enabled.
+     * The Guide item is not shown (`MENU_NOTSHOWN`) while the guide is locked
+     * ([Hooks.isGuideLocked]), else enabled.
      */
     public fun guideCommandUsability(def: Int, number: Int): Int {
         if (hooks.isGuideLocked()) return Menu.MENU_NOTSHOWN
@@ -90,8 +96,10 @@ public class MapMenu(
     /**
      * Ported from src/bmmenu.c: MapMenu_GuideCommandDraw
      *
-     * Draws the item's name in green when the guide has unread entries
-     * ([Hooks.guideTextShowGreenOrNormal] false), gray when disabled, onto the front BG.
+     * Draws the item's name (the `nameMsgId` at offset 4 of the `MenuItemDef`) onto the menu's
+     * front BG, in green (`TEXT_COLOR_SYSTEM_GREEN`) when the guide has unread entries
+     * ([Hooks.guideTextShowGreenOrNormal] false), in gray (`TEXT_COLOR_SYSTEM_GRAY`) when the
+     * item is disabled. The C has no return statement here (`BUG?`); the port returns 0.
      */
     public fun guideCommandDraw(menu: Menu.MenuProc, menuItem: Menu.MenuItemProc): Int {
         if (!hooks.guideTextShowGreenOrNormal()) menuItem.text.colorId = TEXT_COLOR_SYSTEM_GREEN
@@ -113,8 +121,10 @@ public class MapMenu(
     /**
      * Ported from src/bmmenu.c: MapMenu_IsRecordsCommandAvailable
      *
-     * Only in a dungeon map: shown once the chapter is not one of the ten floors or all seven
-     * record flags (0x71..0x77) are set. The dungeon branch is (not verified: the capture is a
+     * Only in a dungeon map (`BATTLEMAP_KIND_DUNGEON`; else not shown). On the ten chapters
+     * from `CHAPTER_T_01` (0x24, the Tower of Valni floors) the item is shown only once the seven
+     * flags 0x71..0x77 are all set; on other dungeon chapters it is always shown. What the flags
+     * mean is not named in the decomp. The dungeon branch is (not verified: the capture is a
      * story map, which returns not shown).
      */
     public fun recordsCommandUsability(def: Int, number: Int): Int {
@@ -134,8 +144,8 @@ public class MapMenu(
     /**
      * Ported from src/bmmenu.c: MapMenu_IsRetreatCommandAvailable
      *
-     * Not shown in a story map, else enabled (the other branch is not verified: the capture is a
-     * story map).
+     * The Retreat item is not shown in a story map (`BATTLEMAP_KIND_STORY`), else enabled (the
+     * other branch is not verified: the capture is a story map).
      */
     public fun retreatCommandUsability(def: Int, number: Int): Int {
         if (hooks.battleMapKind() == BattleMapKind.STORY) return Menu.MENU_NOTSHOWN
@@ -146,8 +156,10 @@ public class MapMenu(
     /**
      * Ported from src/bmmenu.c: CommandEffectEndPlayerPhase
      *
-     * Ends every player phase proc and returns the menu actions: skip the cursor, end the menu,
-     * the select sound, clear the menu BGs.
+     * The End Phase item: ends every `gProcScr_PlayerPhase` proc (which hands the turn to the
+     * next faction) and returns the menu actions `MENU_ACT_SKIPCURSOR`, `MENU_ACT_END`,
+     * `MENU_ACT_SND6A` and `MENU_ACT_CLEAR` (skip the cursor, end the menu, play sound 0x6A, clear
+     * the menu BGs).
      */
     public fun commandEffectEndPlayerPhase(
         menu: Menu.MenuProc,
@@ -179,8 +191,13 @@ public class MapMenu(
         /** ROM address of `CommandEffectEndPlayerPhase` (thumb). */
         public const val COMMAND_EFFECT_END_PLAYER_PHASE: Int = 0x080225F9
 
+        /** `PLAY_FLAG_TUTORIAL` (include/types.h). */
         private const val PLAY_FLAG_TUTORIAL = 1 shl 3
+
+        /** `TEXT_COLOR_SYSTEM_GRAY` (= `TEXT_COLOR_0456`, include/fontgrp.h). */
         private const val TEXT_COLOR_SYSTEM_GRAY = 1
+
+        /** `TEXT_COLOR_SYSTEM_GREEN` (= `TEXT_COLOR_0DEF`, include/fontgrp.h). */
         private const val TEXT_COLOR_SYSTEM_GREEN = 4
     }
 }

@@ -10,23 +10,24 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 237 across 47 Kotlin files.
+Total entries: 238 across 47 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 16 |
 | M6-C | 10 |
-| M6-D | 16 |
+| M6-D | 13 |
 | M6-E | 51 |
 | M6-F | 13 |
 | M6-G | 4 |
-| M6-H | 36 |
+| M6-H | 38 |
 | M6-I | 27 |
 | M6-J | 10 |
 | D09-3 | 2 |
 | D11-wire-a | 1 |
 | EP-1 | 1 |
 | EP-12 | 17 |
+| EP-1b | 3 |
 | EP-6b | 11 |
 | EP-9 | 1 |
 | EP-9b | 1 |
@@ -35,13 +36,13 @@ Total entries: 237 across 47 Kotlin files.
 | EP-w | 3 |
 | IS-2 | 1 |
 | MC-17 | 1 |
-| MC-4b | 2 |
 | MC-6 | 1 |
 | PC-10 | 1 |
 | PP-10 | 1 |
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
+| unassigned | 1 |
 
 ## M6-B (16)
 
@@ -79,7 +80,7 @@ Total entries: 237 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `resetBattleScratch` | Stand-in until M6-C for `sub_802C334` (zeroes `sUnknown_0203A60C`, a scratch struct of the battle code), called by `UnitBeginAction`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them, and, until M6-C and M6-H, a stand-in for every other availability callback, in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold. |
 
-## M6-D (16)
+## M6-D (13)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -90,9 +91,6 @@ Total entries: 237 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `terrainHealDisplay` | Stand-in until M6-D: ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `PhaseStartEnd` | In the Prologue captures every display finds an empty target list and ends at once, so only the `_Init` of each is here; the rest of each display script (`MassEffectDisplay_*`, `*_Display`, `*_Next... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `gorgonEggHatchDisplay` | `gProcScr_GorgonEggHatchDisplay`: [gorgonEggHatchDisplayInit], stand-in end (M6-D). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makeGorgonEggHatchTargetList` | Stand-in until M6-D: empty list. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makePoisonDamageTargetList` | Stand-in until M6-D: empty list. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makeTerrainHealTargetList` | Stand-in until M6-D: only `InitTargets(0, 0)`, so the list is empty (set by [PhaseStartEnd]). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `poisonDamageDisplay` | `gProcScr_PoisonDamageDisplay`: [poisonDamageDisplayInit], then the stand-in (M6-D) end. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `redrawAfterTorch` | Stand-in until M6-D: nothing. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `statusDecayDisplay` | `gProcScr_StatusDecayDisplay`: [statusDecayDisplayInit], then (a stand-in until M6-D for the `MassEffectDisplay_*` / `_Display` / `_Next` loop that no capture runs) the proc ends. |
@@ -183,7 +181,7 @@ Total entries: 237 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: `IsBattleDeamonActive` (the battle animation system) is not ported, so the fixed fight-event bubble is never used. |
 
-## M6-H (36)
+## M6-H (38)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -213,6 +211,8 @@ Total entries: 237 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `EntityBmMaps` | Stand-ins until M6-H: the trap-dependent parts of src/bmmap.c, `RefreshTorchlightsOnBmMap` and `RefreshMinesOnBmMap` (they read the bmtrick.c trap pool, not ported yet), are the hooks [refreshTorch... |
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `refreshMinesOnBmMap` | Stand-in (M6-H) for `RefreshMinesOnBmMap`, called after the unit pass. |
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `refreshTorchlightsOnBmMap` | Stand-in (M6-H) for `RefreshTorchlightsOnBmMap`, called between clears and unit pass. |
+| `game/src/commonMain/kotlin/fe8/game/bm/MenuItemPanel.kt` | `MenuItemPanel` | Only the weapon layout is written; the layout of a staff or other item (its use description) is a stand-in until M6-H (the item menu; the weapon list never holds one), and `EndMenuItemPanel` is nev... |
+| `game/src/commonMain/kotlin/fe8/game/bm/MenuItemPanel.kt` | `item` | Stand-in until M6-H (the item menu, where staffs and items first appear): the use description of the item is not drawn. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `doesBmxFadeExist` | Stand-in for `DoesBMXFADEExist` (false) until M6-H (the fog fade). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `drawGoalSecondLine` | Stand-in until M6-H (the first chapter with a "defeat all" or "defend" goal) for the second text line of `GoalDisplay_Init`: the enemy count for `GOAL_TYPE_DEFEAT_ALL`, the turn counter for `GOAL_T... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `obstacleHpAt` | Stand-in for `GetObstacleHpAt` (bmtrick.c) until M6-H. |
@@ -231,7 +231,7 @@ Total entries: 237 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `gorgonEggHatchDisplay` | Stand-in until M6-I: ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `updatePrevDeployStates` | Stand-in (M6-I). |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `getBattleMapKind` | Stand-in until M6-I. |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterTitle.kt` | `ChapterTitle` | Stand-in supplied by the caller until M6-I. @param getNextUnclearedNode `GetNextUnclearedNode(&gGMData)` (worldmap_path.c). |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterTitle.kt` | `ChapterTitle` | Stand-in supplied by the caller until M6-I (the rest of the world map). @param getNextUnclearedNode `GetNextUnclearedNode(&gGMData)` (worldmap_path.c): the world map node the story reaches next. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `endPrepMenuButtonDisplay` | Stand-in until M6-I for `Proc_EndEach(gProcScr_PrepMap_MenuButtonDisplay)`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `startPrepMenuButtonDisplay` | Stand-in until M6-I for `Proc_Start(gProcScr_PrepMap_MenuButtonDisplay)`, run instead of the goal window while the preparations screen is up. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `canCharacterBePrepMoved` | Stand-in until M6-I for `CanCharacterBePrepMoved(pid)` (only asked on the preparation screen); default false. |
@@ -312,6 +312,14 @@ Total entries: 237 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `script` | The AI script interpreter (cp_script.c); its hooks are the EP-12 stand-ins. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | `unportedCommand` | Stand-in for a command this class does not write (EP-12 for 00..04, 07..0D, 0F..11, 13..1B and 05 with an ignore list, whose predicates `AiIsUnitEnemyOrInScrList` and `AiIsUnitEnemyAndNotInScrList`... |
 
+## EP-1b (3)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makeGorgonEggHatchTargetList` | Stand-in until EP-1b: empty list. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makePoisonDamageTargetList` | Stand-in until EP-1b: empty list. |
+| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makeTerrainHealTargetList` | Stand-in until EP-1b: when null, [PhaseStartEnd] only does `InitTargets(0, 0)`, so the list is empty. |
+
 ## EP-6b (11)
 
 | Kotlin file | Declaration | Stand-in |
@@ -377,13 +385,6 @@ Total entries: 237 across 47 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | `checkBattleUnitLevelUp` | Stand-in until MC-17: level and exp bookkeeping only, no stat gains (RNG not advanced). |
 
-## MC-4b (2)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/MenuItemPanel.kt` | `MenuItemPanel` | Only the weapon layout is written; the layout of a staff or item (its description) is a stand-in until the item menu (MC-4b: the weapon list never holds one), and `EndMenuItemPanel` is never run (t... |
-| `game/src/commonMain/kotlin/fe8/game/bm/MenuItemPanel.kt` | `item` | Stand-in until the item menu (MC-4b): the description of the item is not drawn. |
-
 ## MC-6 (1)
 
 | Kotlin file | Declaration | Stand-in |
@@ -419,3 +420,9 @@ Total entries: 237 across 47 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
+
+## unassigned (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `emptyList` | The `Make*TargetList` stand-in: leaves the target list empty. |

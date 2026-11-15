@@ -16,11 +16,13 @@ import gbafe.text.Text
 import gbafe.text.TextSystem
 
 /**
- * The item panel beside the weapon list (src/menuitempanel.c, `gProcCmd_MenuItemPanel`): a frame
- * on BG 0 and BG 1 with the Atk, Hit, Crit and Avoid of the weapon the cursor is on and its type
- * icon, a child proc of the menu. Only the weapon layout is written; the layout of a staff or
- * item (its description) is a stand-in until the item menu (MC-4b: the weapon list never holds
- * one), and `EndMenuItemPanel` is never run (the panel ends with its menu).
+ * The item panel beside the weapon list (src/menuitempanel.c, `gProcCmd_MenuItemPanel`): a 14x8
+ * tile frame (`DrawUiFrame2`, on BG1) with the attack, hit, crit and avoid numbers of the weapon
+ * the cursor is on and its weapon type icon (on BG0), a child proc of the menu; stat arrow
+ * sprites show where the cursor's weapon beats or trails the equipped one. Only the weapon
+ * layout is written; the layout of a staff or other item (its use description) is a stand-in
+ * until M6-H (the item menu; the weapon list never holds one), and `EndMenuItemPanel` is never
+ * run (the panel ends with its menu).
  */
 public class MenuItemPanel(
     private val engine: ProcEngine,
@@ -38,13 +40,13 @@ public class MenuItemPanel(
     private val iconGfxIdLookupTable: ByteArray,
     private val arrows: StatArrows,
 ) {
-    /** `UpdateStatArrowSprites(x, y, isDown)`: puts a stat arrow sprite. */
+    /** `UpdateStatArrowSprites(x, y, isDown)`: puts a stat arrow sprite (OBJ, pixel position). */
     public fun interface StatArrows {
         /** Puts the up (or, when [isDown], down) arrow at ([x], [y]). */
         public fun put(x: Int, y: Int, isDown: Boolean)
     }
 
-    /** `struct MenuItemPanelProc` past `PROC_HEADER`. */
+    /** `struct MenuItemPanelProc` (include/menuitempanel.h) past `PROC_HEADER`. */
     public class State {
         /** `unit` (+0x2C): the byte offset of the unit in the unit table. */
         public var unitOffset: Int = 0
@@ -55,13 +57,13 @@ public class MenuItemPanel(
         /** `y` (+0x31): the panel's top tile. */
         public var y: Int = 0
 
-        /** `IconPalIndex` (+0x32): the palette bank of the type icon. */
+        /** `IconPalIndex` (+0x32): the BG palette bank of the weapon type icon (3). */
         public var iconPalIndex: Int = 0
 
         /** `ItemSlotIndex` (+0x33, s8): the unit's equipped weapon slot, -1 for none. */
         public var itemSlotIndex: Int = 0
 
-        /** `text[6]` (+0x34): the strips of the panel; three are used. */
+        /** `text[6]` (+0x34): the text strips of the panel; three (rows 1, 3 and 5) are used. */
         public val text: Array<Text> = Array(TEXT_COUNT) { Text() }
 
         /** `draw_arrow` (+0x64): whether the stat arrows are drawn. */
@@ -70,7 +72,10 @@ public class MenuItemPanel(
 
     private val idleFn = ProcFunc { menuItemPanelProcIdle(it) }
 
-    /** `gProcCmd_MenuItemPanel`: `PROC_15`, then [menuItemPanelProcIdle] every frame. */
+    /**
+     * `gProcCmd_MenuItemPanel`: `PROC_15` (command 0x15, which has no argument), then
+     * [menuItemPanelProcIdle] every frame.
+     */
     public val script: ProcScript = ProcScript(
         "gProcCmd_MenuItemPanel",
         listOf(ProcCmd(0x15), repeat(idleFn), end()),
@@ -79,8 +84,10 @@ public class MenuItemPanel(
     /**
      * Ported from src/menuitempanel.c: MenuItemPanelProcIdle
      *
-     * Puts an up or down arrow beside each of the four numbers where the weapon under the cursor
-     * ([BmBattle.actor]) beats or trails the equipped one ([BmBattle.target]).
+     * Puts an up or down arrow beside each of the four numbers (attack and hit on the left,
+     * crit and avoid on the right; top row attack and crit, bottom row hit and avoid) where the
+     * weapon under the cursor ([BmBattle.actor]) beats or trails the equipped one
+     * ([BmBattle.target]).
      * (The arrows themselves are not verified: the captured list has one weapon, so the numbers
      * are equal and none is drawn; the test checks that none is.)
      */
@@ -113,8 +120,10 @@ public class MenuItemPanel(
      * Ported from src/menuitempanel.c: ForceMenuItemPanel
      *
      * Starts the panel as a child of [menu] for unit [unit] (an id) with its top left tile at
-     * ([x], [y]) unless one exists: the three double-buffered strips, the icon palette, and the
-     * stats of the equipped weapon, which are also the ones the arrows compare with.
+     * ([x], [y]) unless one exists: the three double-buffered strips (`InitTextDb`, 0xC tiles
+     * wide), the icon palette (BG palette 3), and the stats of the equipped weapon
+     * (`BattleGenerateUiStats` with `BU_ISLOT_AUTO`), copied to the battle target so the arrows
+     * compare the cursor's weapon with it.
      */
     public fun forceMenuItemPanel(menu: Proc, unit: Int, x: Int, y: Int) {
         if (engine.find(script) != null) return
@@ -142,10 +151,12 @@ public class MenuItemPanel(
     /**
      * Ported from src/menuitempanel.c: UpdateMenuItemPanel
      *
-     * Redraws the panel for item slot [slotOrItem] of the unit (0..4; 5 is the borrowed item,
-     * `gBmSt.um_tmp_item`; anything else an item word, shown as the ballista's): the frame, the
-     * four numbers and the weapon type icon. Does nothing when there is no panel (the original
-     * would read a null proc).
+     * Redraws the panel for item slot [slotOrItem] of the unit (0..4; 5 is `BU_ISLOT_5`, the
+     * borrowed item `gBmSt.um_tmp_item`; anything else is an item word, shown as the ballista's
+     * stats, `BU_ISLOT_BALLISTA`): the frame, the labels, the four numbers (blue if the unit can
+     * use the weapon, gray if not) and the weapon type icon. A staff, item, monster or dance item
+     * only copies the target's numbers to the actor (the description is not drawn). Does nothing
+     * when there is no panel (the original would read a null proc).
      */
     public fun updateMenuItemPanel(slotOrItem: Int) {
         val proc = engine.find(script) ?: return
@@ -175,7 +186,8 @@ public class MenuItemPanel(
 
         when (items.getItemType(item)) {
             ITYPE_STAFF, ITYPE_ITEM, ITYPE_MONSTER, ITYPE_DANCE -> {
-                // Stand-in until the item menu (MC-4b): the description of the item is not drawn.
+                // Stand-in until M6-H (the item menu, where staffs and items first appear): the
+                // use description of the item is not drawn.
                 battle.actor.battleAttack = battle.target.battleAttack
                 battle.actor.battleHitRate = battle.target.battleHitRate
                 battle.actor.battleCritRate = battle.target.battleCritRate
@@ -216,7 +228,10 @@ public class MenuItemPanel(
         hardware.enableBgSyncByMask(1)
     }
 
-    /** `Text_InsertDrawString(strip, x, TEXT_COLOR_SYSTEM_WHITE, GetStringFromIndex(index))`. */
+    /**
+     * `Text_InsertDrawString(strip, x, TEXT_COLOR_SYSTEM_WHITE, GetStringFromIndex(index))`:
+     * draws message [index] (a stat label of the panel) at pixel [x] of [strip].
+     */
     private fun label(strip: Text, x: Int, index: Int) {
         text.textInsertDrawString(strip, x, WHITE, messages.getStringFromIndex(index))
     }
@@ -243,8 +258,8 @@ public class MenuItemPanel(
     /**
      * Ported from src/fontgrp.c: Text_DrawNumberOrBlank
      *
-     * Draws [n], or the dashes of string 0x535 eight pixels back for 255 or -1 (not verified:
-     * the captured numbers are all drawn).
+     * Draws [n], or message 0x535 eight pixels back for 255 or -1 (a stat that does not
+     * apply; not verified: the captured numbers are all drawn).
      */
     private fun drawNumberOrBlank(strip: Text, n: Int) {
         if (n == 255 || n == -1) {
@@ -257,10 +272,19 @@ public class MenuItemPanel(
     }
 
     private companion object {
+        /** `text[6]` of `MenuItemPanelProc`. */
         const val TEXT_COUNT = 6
+
+        /** `TEXT_COLOR_SYSTEM_WHITE` (= `TEXT_COLOR_0123`, include/fontgrp.h). */
         const val WHITE = 0
+
+        /** `TEXT_COLOR_SYSTEM_GRAY` (= `TEXT_COLOR_0456`). */
         const val GRAY = 1
+
+        /** `TEXT_COLOR_SYSTEM_BLUE` (= `TEXT_COLOR_0789`). */
         const val BLUE = 2
+
+        /** `ITYPE_STAFF`, `ITYPE_ITEM`, `ITYPE_MONSTER` and `ITYPE_DANCE` (include/bmitem.h). */
         const val ITYPE_STAFF = 4
         const val ITYPE_ITEM = 9
         const val ITYPE_MONSTER = 11

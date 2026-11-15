@@ -265,6 +265,21 @@ public class UnitTable(
     }
 
     /**
+     * Transcribed from src/bmunit.c: UnitHasMagicRank (not verified: no unit in the captures has a
+     * magic rank, and no captured decision or output depends on it)
+     *
+     * Whether unit [id] has a non-zero weapon rank in any magic type (Staff, Anima, Light, Dark).
+     */
+    public fun unitHasMagicRank(id: Int): Boolean {
+        val o = unitOffset(id) + OFF_RANKS
+        val combined = (bytes[o + ITYPE_STAFF].toInt() and 0xFF) or
+            (bytes[o + ITYPE_ANIMA].toInt() and 0xFF) or
+            (bytes[o + ITYPE_LIGHT].toInt() and 0xFF) or
+            (bytes[o + ITYPE_DARK].toInt() and 0xFF)
+        return combined != 0
+    }
+
+    /**
      * Transcribed from src/bmunit.c: SetAllUnitNotBackSprite (not verified: it runs in the select
      * window, but no unit has `US_BIT8` set there, so the clearing is unobserved)
      *
@@ -375,6 +390,15 @@ public class UnitTable(
 
         /** `attributes` (u32) in both `struct CharacterData` and `struct ClassData`. */
         private const val OFF_ATTRIBUTES = 0x28
+
+        /** `ranks[8]` in `struct Unit`. */
+        private const val OFF_RANKS = 0x28
+
+        /** `ITYPE_STAFF`, `ITYPE_ANIMA`, `ITYPE_LIGHT`, `ITYPE_DARK` (bmitem.h). */
+        private const val ITYPE_STAFF = 4
+        private const val ITYPE_ANIMA = 5
+        private const val ITYPE_LIGHT = 6
+        private const val ITYPE_DARK = 7
 
         /** `CLASS_PHANTOM`. */
         private const val CLASS_PHANTOM = 0x51

@@ -3,12 +3,11 @@ package fe8.game.bm
 import gbafe.core.rng.RngService
 
 /**
- * Transcribed from src/bmidoten.c: GenerateBestMovementScript and RevertMovementScript (not
- * verified: the enemy phase walk calls it (`CpPerform_BeginUnitMovement`) and its script is
- * compared there, but no `@VerifiesPort` test names it; the player's path arrow does not call
- * it in the captures, it only re-routes when the cursor leaves the path;
- * `PlayerPhaseMoveDifferentialTest` runs it on the dumped working map and compares with the
- * script the game built from the path)
+ * Transcribed from src/bmidoten.c: GenerateBestMovementScript (not verified: the enemy phase walk
+ * calls it (`CpPerform_BeginUnitMovement`) and its script is compared there, but no
+ * `@VerifiesPort` test names it; the player's path arrow does not call it in the captures, it only
+ * re-routes when the cursor leaves the path; `PlayerPhaseMoveDifferentialTest` runs it on the
+ * dumped working map and compares with the script the game built from the path)
  *
  * Builds the walk from the unit's tile to ([x0], [y0]) from the movement cost map [working]
  * (`gWorkingBmMap`, `sizeX` by `sizeY` tiles, cost 0 on the unit's own tile). It starts at the
@@ -16,7 +15,7 @@ import gbafe.core.rng.RngService
  * equal ones, drawn with [rng]; no random number is consumed when only one is lowest) until it
  * reaches cost 0. Tiles outside the map count as cost 0xFF. The steps are collected from the
  * destination back, so each step is written as the opposite move, and then reversed into
- * [output] (`RevertMovementScript` inline), followed by `MOVE_CMD_HALT`. Callers fill
+ * [output] using [revertMovementScript], followed by `MOVE_CMD_HALT`. Callers fill
  * `gWorkingMovementScript` with it for the AI walk, the path arrow and the player's walk.
  * Deviation: stops after 0x3F steps (the C buffer size) instead of looping on an unreachable
  * target.
@@ -55,6 +54,35 @@ public fun generateBestMovementScript(
             Mu.MOVE_CMD_MOVE_DOWN -> y--
         }
     }
-    for (i in 0 until count) output[i] = dirs[count - 1 - i]
+    revertMovementScript(dirs, count, output)
+}
+
+/**
+ * Ported from src/bmidoten.c: RevertMovementScript
+ *
+ * Reverses the first [count] movement commands from [input] into [output] and terminates with
+ * [Mu.MOVE_CMD_HALT]. When [output] is the same array as [input], the reversal is performed
+ * in-place.
+ */
+public fun revertMovementScript(
+    input: IntArray,
+    count: Int,
+    output: IntArray = input,
+) {
+    if (input === output) {
+        var i = 0
+        var j = count - 1
+        while (i < j) {
+            val t = input[i]
+            input[i] = input[j]
+            input[j] = t
+            i++
+            j--
+        }
+    } else {
+        for (i in 0 until count) {
+            output[i] = input[count - 1 - i]
+        }
+    }
     output[count] = Mu.MOVE_CMD_HALT
 }

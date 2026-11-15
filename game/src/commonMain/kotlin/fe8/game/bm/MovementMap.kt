@@ -160,6 +160,25 @@ public class MovementMap(
     }
 
     /**
+     * Ported from src/bmidoten.c: GenerateExtendedMovementMapOnRange
+     *
+     * Sets working move costs to [costTable] and floods `map.range` (`gBmMapRange`) from ([x],
+     * [y]) with [MAP_MOVEMENT_EXTENDED] (124) movement budget and unit id 0 (no blocking units).
+     */
+    public fun generateExtendedMovementMapOnRange(x: Int, y: Int, costTable: Int) {
+        setWorkingMoveCosts(costTable)
+        setWorkingBmMap(map.range)
+        generateMovementMap(x, y, MAP_MOVEMENT_EXTENDED, 0)
+    }
+
+    /**
+     * The ROM address of the terrain cost table of unit [unitId] for current weather (see
+     * [getUnitMovementCost]).
+     */
+    public fun unitMovementCostTable(unitId: Int): Int =
+        getUnitMovementCost(units.unitOffset(unitId))
+
+    /**
      * Ported from src/bmunit.c: GetUnitMovementCost
      *
      * The ROM address of the terrain cost table of the unit at unit-array offset [unitOffset]:
@@ -215,28 +234,32 @@ public class MovementMap(
         flood.flood(map, pool, x, y, movement and 0xFF, unitId and 0xFF, costTable, terrainAt)
     }
 
-    private companion object {
+    /** Constants and limits of [MovementMap]. */
+    public companion object {
+        /** `MAP_MOVEMENT_EXTENDED` (bmmap.h): extended movement map flood budget. */
+        public const val MAP_MOVEMENT_EXTENDED: Int = 124
+
         /** `TERRAIN_COUNT` (include/constants/terrains.h). */
-        const val TERRAIN_COUNT = 0x41
+        private const val TERRAIN_COUNT = 0x41
 
         /** `Unit.pClassData`. */
-        const val OFF_CLASS = 0x04
+        private const val OFF_CLASS = 0x04
 
         /** `Unit.state`. */
-        const val OFF_STATE = 0x0C
+        private const val OFF_STATE = 0x0C
 
         /** `ClassData.pMovCostTable` (standard, rain, snow). */
-        const val OFF_MOV_COST_TABLES = 0x38
+        private const val OFF_MOV_COST_TABLES = 0x38
 
         /** `US_IN_BALLISTA` (include/bmunit.h). */
-        const val US_IN_BALLISTA = 1 shl 11
+        private const val US_IN_BALLISTA = 1 shl 11
 
         /** `Unk_TerrainTable_0880BC18` (src/data_terrains.c). */
-        const val BALLISTA_COST_TABLE = 0x0880BC18
+        private const val BALLISTA_COST_TABLE = 0x0880BC18
 
         /** `WEATHER_RAIN`, `WEATHER_SNOW`, `WEATHER_SNOWSTORM` (include/types.h). */
-        const val WEATHER_RAIN = 4
-        const val WEATHER_SNOW = 1
-        const val WEATHER_SNOWSTORM = 2
+        private const val WEATHER_RAIN = 4
+        private const val WEATHER_SNOW = 1
+        private const val WEATHER_SNOWSTORM = 2
     }
 }

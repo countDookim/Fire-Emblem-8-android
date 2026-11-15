@@ -242,6 +242,16 @@ public class CpUtility(
     }
 
     /**
+     * Transcribed from src/cp_0803E2F4.c: AiCheckDangerAt (not verified: the captures pass
+     * threshold 0xFF so no candidate tile is filtered by danger, and no captured decision
+     * depends on a threshold comparison)
+     *
+     * Returns true if danger at ([x], [y]) on `gBmMapOther` does not exceed [threshold].
+     */
+    public fun aiCheckDangerAt(x: Int, y: Int, threshold: Int): Boolean =
+        map.other[y, x] <= (threshold and 0xFF)
+
+    /**
      * Ported from src/cp_utility.c: AiGetClassRank
      *
      * The index of the first list of `gAiClassRankLists` that holds [classId], or the number of

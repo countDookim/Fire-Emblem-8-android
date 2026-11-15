@@ -18,7 +18,7 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
 3. Never commit the ROM or anything extracted from it, including bytes, text, glyphs, dumps or assets. ROM-derived
    data goes to the ROM repo only. **No APK bundles game data, debug/test builds included** (owner 2026-11-08,
    replaces the 2026-10-28 amendment): every build needs a ROM imported on the device (docs/decisions/0011); CI's
-   `check_no_game_content.py` guards debug and release APKs. Tests read runtime `FE8_ASSETS` rather than embedding
+   `check_no_game_content.py` guards debug and release APKs and `check_no_game_text_in_source.py` guards tracked sources against message text (name things by decomp constant). Tests read runtime `FE8_ASSETS` rather than embedding
    ROM-derived ground truth.
 4. A function is "ported" only with a `Ported from <file>: <Func>` KDoc AND a passing, break-checked
    `@VerifiesPort` test against ground truth (docs/decisions/0006-verification-policy.md). Deliberately mutate the

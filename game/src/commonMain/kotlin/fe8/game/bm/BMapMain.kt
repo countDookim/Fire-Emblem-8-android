@@ -190,7 +190,7 @@ public class BMapMain(
         public var poisonDamageDisplay: ProcScript = standIn("gProcScr_PoisonDamageDisplay")
 
         /**
-         * `gProcScr_GorgonEggHatchDisplay` (bmusailment.c:731): hatches Gorgon eggs at the start
+         * `gProcScr_GorgonEggHatchDisplay` (bmusailment.c:731): hatches `CLASS_GORGONEGG` units at the start
          * of the phase. Stand-in until M6-I: ends at once.
          */
         public var gorgonEggHatchDisplay: ProcScript = standIn("gProcScr_GorgonEggHatchDisplay")

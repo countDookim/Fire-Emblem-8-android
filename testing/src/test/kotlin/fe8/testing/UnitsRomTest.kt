@@ -24,7 +24,7 @@ class UnitsRomTest {
         val allies = UnitsExtractor.readGroup(rom(), 0x8B3C14, 0x3C / UnitsExtractor.ENTRY_SIZE)
         assertEquals(2, allies.size)
         val (seth, eirika) = allies
-        // Seth: CLASS_PALADIN, FACTION_ID_BLUE, level 1, (13, 9), Steel Sword / Silver Lance / Vulnerary, 6 REDAs.
+        // Seth: CLASS_PALADIN, FACTION_ID_BLUE, level 1, (13, 9), ITEM_SWORD_STEEL / ITEM_LANCE_SILVER / ITEM_VULNERARY, 6 REDAs.
         assertEquals(listOf(0x02, 0x07, 0, 1, 13, 9), listOf("charIndex", "classIndex", "allegiance", "level", "xPosition", "yPosition").map { seth[it] })
         assertEquals(listOf(0x03, 0x17, 0x6C, 0), seth["items"])
         @Suppress("UNCHECKED_CAST") val redas = seth["redas"] as List<Map<String, Int>>
@@ -39,7 +39,7 @@ class UnitsRomTest {
     fun `prologue enemies match prologue-eventudefs_h`() {
         val enemies = UnitsExtractor.readGroup(rom(), 0x8B3C50, 0x50 / UnitsExtractor.ENTRY_SIZE)
         assertEquals(3, enemies.size)
-        // O'Neill: CLASS_FIGHTER, FACTION_ID_RED, level 4, (14, 8), Iron Axe, ai {6, 3, 0, 0}, REDA (10, 8).
+        // CHARACTER_ONEILL: CLASS_FIGHTER, FACTION_ID_RED, level 4, (14, 8), ITEM_AXE_IRON, ai {6, 3, 0, 0}, REDA (10, 8).
         val oneill = enemies[0]
         assertEquals(listOf(0x68, 0x3F, 2, 4, 14, 8), listOf("charIndex", "classIndex", "allegiance", "level", "xPosition", "yPosition").map { oneill[it] })
         assertEquals(listOf(0x1F, 0, 0, 0), oneill["items"])

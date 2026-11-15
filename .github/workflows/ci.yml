@@ -53,6 +53,8 @@ jobs:
         run: ./gradlew jvmTest :app:assembleDebug :app:assembleRelease --continue --console=plain
       - name: No game content in the debug or release APK (M4-05, decision 0011)
         run: python3 tools/check_no_game_content.py --extracted "${FE8_ASSETS:-.assets}/extracted" app/build/outputs/apk/debug app/build/outputs/apk/release
+      - name: No game text in tracked sources (rule 3)
+        run: python3 tools/check_no_game_text_in_source.py --extracted "${FE8_ASSETS:-.assets}/extracted"
       - name: Extraction reproduces ROM-repo extracted/ (M2-21)
         if: steps.assets.outputs.available == 'true'
         run: tools/ci_check_extraction.sh

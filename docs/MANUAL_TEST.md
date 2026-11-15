@@ -100,7 +100,7 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      vanish.
   2. D11-ci5 chapter intro: after the world map the "Prologue" title card appears with drifting
      fog, flashing lights, the decal banner and scrolling backgrounds (about 9 seconds), then the
-     picture fades to the Renais Castle map and the castle scene starts. Pressing A, B or Start
+     picture fades to the `CHAPTER_L_PROLOGUE` map and the castle scene starts. Pressing A, B or Start
      after the first second skips the rest: the screen fades out (about one second) and then
      fades into the map. The sound effect fade at the end of the intro is not wired yet.
   - Limits (all known): no node icons; no unit step sounds (the original plays none in the

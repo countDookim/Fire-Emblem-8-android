@@ -703,8 +703,8 @@ public class BattleGenerate(
      * Transcribed from src/bmbattle.c: BattleCheckSilencer
      *   (not verified: no traced crit roll succeeds, so no mutation of it changes captured data)
      *
-     * Whether a critical hit is a silencer (instant kill) instead: never against the Demon King
-     * nor the Necromancer of chapter 21, otherwise by the silencer rate.
+     * Whether a critical hit is a silencer (instant kill) instead: never against `CLASS_DEMON_KING`
+     * nor the `CLASS_NECROMANCER` of `CHAPTER_E_21`, otherwise by the silencer rate.
      */
     private fun battleCheckSilencer(defender: BattleUnit): Boolean {
         val cls = classNumber(defender)
@@ -928,7 +928,7 @@ public class BattleGenerate(
      * Ported from src/bmbattle.c: BattleGenerateHitEffects
      *
      * Applies the hit under the iterator (not a miss): the weapon's effect (poison, HP halve,
-     * devil, HP drain, petrify; poison, halve and petrify do not work on the Demon King), the
+     * devil, HP drain, petrify; poison, halve and petrify do not work on `CLASS_DEMON_KING`), the
      * damage to the defender (or to the attacker for a devil weapon), the damage recorded in the
      * hit's `hpChange` for the animation, and the weapon's use.
      */
@@ -937,7 +937,7 @@ public class BattleGenerate(
         val hitIndex = hitIterator
         attacker.wexpMultiplier++
         val effect = items.getItemWeaponEffect(attacker.weapon)
-        // The Demon King is immune to the poison, HP-halve and petrify weapon effects.
+        // `CLASS_DEMON_KING` is immune to the poison, HP-halve and petrify weapon effects.
         val isDemonKing = rom.u8(u32(defender.bytes, OFF_CLASS) + 4) == CLASS_DEMON_KING
 
         if ((attributes(hitArray[hitIndex]) and ATTR_MISS) == 0) {

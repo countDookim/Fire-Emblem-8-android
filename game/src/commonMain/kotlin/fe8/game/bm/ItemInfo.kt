@@ -324,9 +324,11 @@ public class ItemInfo(private val rom: RomView) {
 
         /**
          * Items for which `GetItemNameWithArticle` adds no article: the named legendary weapons
-         * (Reginleif, Fimbulvetr, Aircalibur, Fenrir, Sieglinde, Siegmund, Naglfar, Audhulma,
-         * Vidofnir, Garm, Nidhogg, Excalibur, Ivaldi, Gleipnir, Latona), Gold, Metis's Tome
-         * (`ITEM_METISSTOME`) and the gold-amount items.
+         * (`ITEM_LANCE_REGINLEIF`, `ITEM_ANIMA_FIMBULVETR`, `ITEM_ANIMA_AIRCALIBUR`,
+         * `ITEM_DARK_FENRIR`, `ITEM_SWORD_SIEGLINDE`, `ITEM_LANCE_SIEGMUND`, `ITEM_DARK_NAGLFAR`,
+         * `ITEM_SWORD_AUDHULMA`, `ITEM_LANCE_VIDOFNIR`, `ITEM_AXE_GARM`, `ITEM_BOW_NIDHOGG`,
+         * `ITEM_ANIMA_EXCALIBUR`, `ITEM_LIGHT_IVALDI`, `ITEM_DARK_GLEIPNIR`, `ITEM_STAFF_LATONA`),
+         * `ITEM_GOLD`, `ITEM_METISSTOME` and the gold-amount items.
          */
         private val NO_ARTICLE: Set<Int> = setOf(
             0x78, 0x3C, 0xB6, 0x49, 0x85, 0x92, 0x8F, 0x91, 0x8E, 0x93, 0x94, 0x3E, 0x87, 0x4A,

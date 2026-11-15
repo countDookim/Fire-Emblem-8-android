@@ -25,7 +25,7 @@ and `hooks.endWorldMap` are empty stand-ins (end at once) and `GmDataInit` is a 
 - Script data: `src/events/prologue-wm.h` (233 lines): ~54 STAL, text (`TEXTSTART/TEXTCONT/TEXTEND` x18,
   `WM_TEXT*`), `WM_SHOWPORTRAIT/CLEARPORTRAIT` x9, `WM_MOVECAM2` x9, `WM_HIGHLIGHT*` x24, `WM_PUTSPRITE/
   PUTMOVINGSPRITE/REMSPRITE/WAITFORSPRITES`, `WM_PLACEDOT`, `WM_SPAWNLORD`, `WM_SHOWDRAWNMAP`, `WM_FADEOUT`,
-  `WM_FXCLEAR*`, `MUSC/MUSCFAST`, `FADI`, `EVBIT_MODIFY`. The Beginning script is the first part; the
+  `WM_FXCLEAR*`, `MUSC/MUSCFAST`, `FADI`, `EVBIT_MODIFY`. The `CHAPTER_L_PROLOGUE` beginning script is the first part; the
   ChapterIntro script a later one (exact split *unverified*).
 - `src/eventscr_gmap.c` opcodes 0x80-0xB8 (`Event80..B8_Wm*`). Kotlin `EventEngine.kt` has the hi-table but these
   handlers are unregistered (stubs/skip).

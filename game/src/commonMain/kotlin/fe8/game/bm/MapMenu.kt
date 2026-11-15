@@ -122,7 +122,7 @@ public class MapMenu(
      * Ported from src/bmmenu.c: MapMenu_IsRecordsCommandAvailable
      *
      * Only in a dungeon map (`BATTLEMAP_KIND_DUNGEON`; else not shown). On the ten chapters
-     * from `CHAPTER_T_01` (0x24, the Tower of Valni floors) the item is shown only once the seven
+     * from `CHAPTER_T_01` (0x24, the `CHAPTER_T_*` tower floors) the item is shown only once the seven
      * flags 0x71..0x77 are all set; on other dungeon chapters it is always shown. What the flags
      * mean is not named in the decomp. The dungeon branch is (not verified: the capture is a
      * story map, which returns not shown).

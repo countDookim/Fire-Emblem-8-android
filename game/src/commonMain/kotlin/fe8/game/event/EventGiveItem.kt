@@ -42,7 +42,7 @@ internal class EventGiveItem(
      * 0 (the decomp names it GIVETOSLOT3).
      *
      * NOTE: in C `NewPopup_GoldGot` adds the gold only when the target unit is a player unit;
-     * for any other unit it shows the "gold was stolen" popup and changes nothing. Here the gold
+     * for any other unit it shows the `PopupScr_GoldWasStole` popup and changes nothing. Here the gold
      * is always added. Also, `Fe8Boot` wires [getGold] and [setGold] to the raw
      * `partyGoldAmount`, without the chapter-5 zero of `GetPartyGoldAmount` and the 999999 cap
      * of `SetPartyGoldAmount` (src/bmgold.c).

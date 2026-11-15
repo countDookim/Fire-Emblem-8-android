@@ -10,9 +10,8 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 /**
- * All 3404 `gMsgTable` messages decode to tagged text and re-encode to identical bytes, and two
- * messages match the decomp's `texts/texts.txt` (pinned 04d1edb; its `[LF]` is our `{NL}` alias, source
- * line breaks are not part of the string). Also dumps `testing/build/extracted/text/en/messages.json`.
+ * All 3404 `gMsgTable` messages decode to tagged text and re-encode to identical bytes, and all
+ * messages equal the runtime extraction ([RuntimeMessages]; no game text is embedded). Also dumps `testing/build/extracted/text/en/messages.json`.
  * Addresses from decomp/fireemblem8.nm.txt (see [MsgHuffmanRomTest]).
  */
 class MessagesRomTest {
@@ -44,15 +43,20 @@ class MessagesRomTest {
     }
 
     @Test
-    fun `messages match texts_txt`() {
+    fun `messages match the runtime extraction`() {
         val text = messages(rom())
-        assertEquals("Weapon Level increased.{.}", text[0x002])
-        assertEquals("Eirika", text[0x212])
-        val msg904 = "{OpenMidLeft}{LoadFace FID_Fado}{OpenMidRight}{LoadFace FID_Eirika}{OpenMidRight}{MoveRight}" +
-            "{OpenRight}Father{ToggleMouthMove}...{.}{ToggleMouthMove}{A}{OpenMidLeft}Eirika.{.}{A}{NL}" +
-            "Are you wearing the{.}{NL}bracelet I gave you?{A}{OpenRight}Yes, I have it right here.{A}"
-        assertEquals(msg904, text[0x904].substring(0, msg904.length))
-        assertEquals(true, text[0x904].endsWith("{OpenMidLeft}Go now, Seth! Ride!{.}{NL}Take her to safety!{.}{A}"))
+        val expected = RuntimeMessages.load()
+        assertEquals(expected.size, text.size)
+        // This test's codec names only three faces; the extraction names all, so compare face tags alike.
+        val face = Regex("""\{LoadFace [^}]*\}""")
+        for ((id, t) in text.withIndex()) {
+            assertEquals(
+                face.replace(expected[id], "{LoadFace}"),
+                face.replace(t, "{LoadFace}"),
+                "${MessagesExtractor.id(id)} differs from the runtime extraction",
+            )
+        }
+        for (id in intArrayOf(0x002, 0x212, 0x904)) assertEquals(true, text[id].isNotEmpty(), "message $id empty")
     }
 
     @Test

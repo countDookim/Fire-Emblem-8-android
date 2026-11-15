@@ -31,7 +31,7 @@ class ItemsRomTest {
     }
 
     @Test
-    fun `first item Iron Sword matches data_items_c`() {
+    fun `first item ITEM_SWORD_IRON matches data_items_c`() {
         val e = entries()[1]
         assertEquals("SWORD_IRON", e["id"])
         assertEquals(0x354, e["nameText"]); assertEquals(0x404, e["descText"])

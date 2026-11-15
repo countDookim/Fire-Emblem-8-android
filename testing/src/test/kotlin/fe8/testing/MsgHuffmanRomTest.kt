@@ -8,9 +8,9 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 /**
- * Golden test of [MsgHuffman] on ROM strings whose text is known independently of our decoder: the
- * names referenced by the decomp tables (`src/data_items.c` Iron Sword `nameTextId = 0x354`,
- * `src/data_characters.c` Eirika `0x212`, Seth `0x213`), as shown in game. Addresses from
+ * Golden test of [MsgHuffman] against the runtime extraction ([RuntimeMessages]) for the name messages
+ * the decomp tables reference (`ITEM_SWORD_IRON` `nameTextId = 0x354`, `CHARACTER_EIRIKA` `0x212`,
+ * `CHARACTER_SETH` `0x213`); no game text is embedded (CLAUDE.md rule 3). Addresses from
  * decomp/fireemblem8.nm.txt: `gMsgHuffmanTable` 0x0815A72C, `gMsgHuffmanTableRoot` 0x0815D488,
  * `gMsgTable` 0x0815D48C (0x3530 bytes = 3404 string pointers).
  */
@@ -32,9 +32,12 @@ class MsgHuffmanRomTest {
             assertEquals(0, bytes.last().toInt(), "terminator")
             return String(bytes, 0, bytes.size - 1, Charsets.ISO_8859_1)
         }
-        assertEquals("Iron Sword", text(0x354))
-        assertEquals("Eirika", text(0x212))
-        assertEquals("Seth", text(0x213))
+        val expected = RuntimeMessages.load()
+        for (id in intArrayOf(0x354, 0x212, 0x213)) {
+            val decoded = text(id)
+            assertEquals(expected[id], decoded, "message 0x${id.toString(16)}")
+            assertEquals(true, decoded.isNotEmpty() && decoded.all { it in ' '..'~' }, "message 0x${id.toString(16)} is a plain name")
+        }
     }
 
     /** Every `gMsgTable` entry decodes and terminates (groundwork for MessagesRomTest); not a port verification. */

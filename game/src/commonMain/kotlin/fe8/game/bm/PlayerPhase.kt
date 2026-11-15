@@ -576,7 +576,7 @@ public class PlayerPhase(
      * transcribed (not verified: no capture has it): no action chosen (back to the move origin
      * with [playerPhaseBackToMove], or a forced wait after a trade or take), the trade, supply,
      * take, give and ballista actions that go back to the unit menu
-     * ([playerPhaseCancelAction]), the promotion items and Solar and Lunar Braces that return
+     * ([playerPhaseCancelAction]), the promotion items and `ITEM_SOLARBRACE` / `ITEM_LUNARBRACE` that return
      * before the suspend save, and the suspend save of the other actions.
      *
      * Returns true (go on) when no camera move had to start for the subject. The C also clears

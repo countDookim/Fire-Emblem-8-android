@@ -143,7 +143,7 @@ settles ~f9513; BattleEventEngine f14479..14631; PhaseIntro f19316 (= suspend en
 
 - Fixtures (ROM repo `reference/fixtures/`, owner's mGBA saves 2026-11-05; ROM repo only): `prologue.sav` and
   `chapter1.sav` (chapter-start suspends, unused so far), `chapter2.sav`, `chapter6.sav`. Every owner save also holds
-  game slot 1 = Ch6 "Victims of War" (turn 0, fog). With a suspend the main menu's first item is Resume Chapter (then
+  game slot 1 = `CHAPTER_L_6` (turn 0, fog). With a suspend the main menu's first item is Resume Chapter (then
   a slot list on the suspend's slot); without one it is Restart Chapter.
 - Watch files hold one entry per harness step, not per frame (`hold` without split_holds is one step).
 - `sram_chapter2_boot` / `sram_chapter6_boot`: boot with the owner save preloaded (dumps f1..f5, f13, f60, f900);

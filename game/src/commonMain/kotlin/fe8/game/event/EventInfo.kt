@@ -46,9 +46,6 @@ public const val EVENT_NOSCRIPT: Int = 1
 
 /** Hooks of [EventInfos] for code outside this package; the defaults do nothing. */
 public interface EventInfoHooks {
-    /** `RegisterEventActivation(script, flag)`: records which list flag started [script]. */
-    public fun registerEventActivation(script: Int, flag: Int) {}
-
     /** `CallEvent(script, execType)`, normally `EventEngine.callEvent`. */
     public fun callEvent(script: Int, execType: Int) {}
 
@@ -83,20 +80,6 @@ public interface EventInfoHooks {
      * maps), refreshes the allies and sets `EVFLAG_HIDE_BLINKING_ICON`.
      */
     public fun callEndEvent() {}
-
-    /** `ClearActiveEventRegistry`: forgets the script/flag pairs of earlier list events. */
-    public fun clearActiveEventRegistry() {}
-
-    /**
- * `RunTutorialEvent(type)`: runs the queued tutorial event if it is of [type] and returns
- * true. NOTE: when none is queued for [type] the decomp returns whether a forecast tutorial
- * event is queued (`CheckTutorialEvent(TUTORIAL_EVT_TYPE_FORECAST)`), so true does not
- * always mean an event started.
- */
-    public fun runTutorialEvent(type: Int): Boolean = false
-
-    /** `CheckTutorialEvent(type)`: true if `RunTutorialEvent(type)` would start an event. */
-    public fun checkTutorialEvent(type: Int): Boolean = false
 
     /**
  * `CountAvailableBlueUnits`: player units (ids 1 to 0x3F) that are valid and lack every
@@ -168,6 +151,65 @@ public class EventInfos(
     /** The little-endian 32-bit word at [address] (list entries are read as words). */
     private fun u32(address: Int): Int = memory.u16(address) or (memory.u16(address + 2) shl 16)
 
+    /** `gActiveEventRegistry`: the scripts started from the chapter's event lists. */
+    public val registry: ActiveEventRegistry = ActiveEventRegistry()
+
+    /**
+     * Ported from src/eventinfo.c: ClearActiveEventRegistry
+     *
+     * Zeroes [registry] (scripts, flags and count).
+     */
+    public fun clearActiveEventRegistry() {
+        registry.clear()
+    }
+
+    /**
+     * Ported from src/eventinfo.c: RegisterEventActivation
+     *
+     * Appends [script] and its list [flag] to [registry]. Not seen: the registry already holding
+     * ten entries (the C writes past the arrays).
+     */
+    public fun registerEventActivation(script: Int, flag: Int) {
+        registry.register(script, flag)
+    }
+
+    /**
+     * Transcribed from src/eventinfo.c: CheckTutorialEvent (not verified: not reached by a
+     *   capture; its callers are the after-action checks of EP-35)
+     *
+     * True when a tutorial event is queued (`tutorial_counter` is not 0) for [type]
+     * (`tutorial_exec_type`).
+     */
+    public fun checkTutorialEvent(type: Int): Boolean =
+        playSt.tutorialCounter != 0 && playSt.tutorialExecType == type
+
+    /**
+     * Ported from src/eventinfo.c: RunTutorialEvent
+     *
+     * If a tutorial event is queued for [type], runs entry `tutorial_counter - 1` of the chapter's
+     * `tutorialEvents` list as a cutscene event, clears the queue and returns true; else false.
+     * Verified on the nothing-queued path of the boss turn event's start (f2964): no
+     * event is called and the queue is unchanged. The queued branch is not seen in any capture
+     * (a break there survives).
+     */
+    public fun runTutorialEvent(type: Int): Boolean {
+        if (playSt.tutorialCounter != 0 && playSt.tutorialExecType == type) {
+            val counter = playSt.tutorialCounter
+            val list = u32(hooks.chapterEventGroup(playSt.chapterIndex) + TUTORIAL_EVENTS)
+            hooks.callEvent(u32(list + 4 * (counter - 1)), EV_EXEC_CUTSCENE)
+            playSt.tutorialCounter = 0
+            playSt.tutorialExecType = 0
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Transcribed from src/eventinfo.c: sub_80832D4 (not verified: returns the constant 0; its
+     *   caller `sub_8015434` is written without the call, see its KDoc)
+     */
+    public fun sub80832D4(): Int = 0
+
     /**
      * Ported from src/eventinfo.c: StartEventFromInfo
      *
@@ -180,7 +222,7 @@ public class EventInfos(
         if (info.script == 0) return
         flags.setFlag(info.flag)
         if (info.script != EVENT_NOSCRIPT) {
-            hooks.registerEventActivation(info.script, info.flag)
+            registerEventActivation(info.script, info.flag)
             hooks.callEvent(info.script, execType)
             if (flags.checkFlag(EVFLAG_WIN)) {
                 hooks.refreshAllies()
@@ -214,12 +256,12 @@ public class EventInfos(
                 return true
             }
         }
-        val tutorialStarted = hooks.runTutorialEvent(TUTORIAL_EVT_TYPE_PHASECHANGE)
+        val tutorialStarted = runTutorialEvent(TUTORIAL_EVT_TYPE_PHASECHANGE)
         val info = EventInfo()
         info.listScript = u32(hooks.chapterEventGroup(playSt.chapterIndex))
         var found = searchAvailableEvent(info)
         if (found != null) {
-            hooks.clearActiveEventRegistry()
+            clearActiveEventRegistry()
             while (found != null) {
                 startEventFromInfo(info, EV_EXEC_CUTSCENE)
                 found = searchNextAvailableEvent(info)
@@ -293,7 +335,7 @@ public class EventInfos(
         }
         if (!flags.checkFlag(EVFLAG_GAMEOVER) && hooks.countAvailableBlueUnits() != 0) {
             if (hooks.getBattleMapKind() == KIND_SKIRMISH) return false
-            val tutorial = hooks.checkTutorialEvent(TUTORIAL_EVT_TYPE_POSTACTION)
+            val tutorial = checkTutorialEvent(TUTORIAL_EVT_TYPE_POSTACTION)
             val info = EventInfo()
             info.listScript = u32(hooks.chapterEventGroup(playSt.chapterIndex) + MISC_EVENTS)
             info.xPos = x
@@ -326,14 +368,14 @@ public class EventInfos(
             return
         }
         if (hooks.getBattleMapKind() == KIND_SKIRMISH) return
-        hooks.runTutorialEvent(TUTORIAL_EVT_TYPE_POSTACTION)
+        runTutorialEvent(TUTORIAL_EVT_TYPE_POSTACTION)
         val info = EventInfo()
         info.listScript = u32(hooks.chapterEventGroup(playSt.chapterIndex) + MISC_EVENTS)
         info.xPos = x
         info.yPos = y
         var found = searchAvailableEvent(info)
         if (found == null) return
-        hooks.clearActiveEventRegistry()
+        clearActiveEventRegistry()
         while (found != null) {
             startEventFromInfo(info, EV_EXEC_CUTSCENE)
             found = searchNextAvailableEvent(info)
@@ -433,6 +475,9 @@ public class EventInfos(
         /** `EVFLAG_GAMEOVER` and `EVFLAG_DEFEAT_ALL`. */
         const val EVFLAG_GAMEOVER = 0x65
         const val EVFLAG_DEFEAT_ALL = 6
+
+        /** Offset of `tutorialEvents` in `ChapterEventGroup`. */
+        const val TUTORIAL_EVENTS = 0x1C
 
         /** Offset of `miscBasedEvents` (searched by the wait events) in `ChapterEventGroup`. */
         const val MISC_EVENTS = 0x0C

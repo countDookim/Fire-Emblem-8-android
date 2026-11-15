@@ -57,6 +57,8 @@ import fe8.game.event.EventConst
 import fe8.game.event.EventEngine
 import fe8.game.event.EventEngineHooks
 import fe8.game.event.EventBgm
+import fe8.game.event.EventChangeAi
+import fe8.game.event.EventChangeAiHooks
 import fe8.game.event.EventAsmCall
 import fe8.game.event.EventGiveItem
 import fe8.game.event.bmGuideTextSetAllGreen
@@ -449,6 +451,12 @@ public class Fe8Boot(
                     }
                 },
             ).also { us -> us.registerOn(it) }
+            EventChangeAi(
+                state, memory, units,
+                object : EventChangeAiHooks {
+                    override fun unitAt(x: Int, y: Int): Int = battleBmMap.unit[y, x]
+                },
+            ).registerOn(it)
             EventScriptBattle(
                 engine, state, memory, units,
                 BattleGenerate(

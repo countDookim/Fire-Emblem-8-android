@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 580 across 86 decomp files (missing reason: 0).
+Total entries: 582 across 86 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -248,6 +248,29 @@ Total entries: 580 across 86 decomp files (missing reason: 0).
 | `CheckBattleUnitLevelUp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 | `UpdateUnitFromBattle` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 
+## src/eventinfo.c (18)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `SetChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no test checks it against a trace yet |
+| `ClearChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `ResetChapterFlags` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `CheckChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `ClearPermanentFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `ResetPermanentFlags` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `CheckPermanentFlagFrom` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `CheckPermanentFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `ClearFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `CheckFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
+| `sub_80832C4` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | it returns 0 and writes nothing, so no capture can show it |
+| `sub_80832C8` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | it returns 0 and writes nothing, so no capture can show it |
+| `CheckTutorialEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a capture; its callers are the after-action checks of EP-35 |
+| `sub_80832D4` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | returns the constant 0; its caller `sub_8015434` is written without the call, see its KDoc |
+| `SearchNextAvailableEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | the Prologue's misc list reaches it, but skipping the step past the entry changes nothing there, as the started entry's flag is set and the entry is skipped anyway |
+| `EvCheck0C_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
+| `EvCheck0D_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
+| `EnqueueTutEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
+
 ## src/mu.c (17)
 
 | Function | Kotlin file | Reason |
@@ -313,27 +336,6 @@ Total entries: 580 across 86 decomp files (missing reason: 0).
 | `GmapUnitContainer_Destruct` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt` | the container ends after its sprites in the capture's last step |
 | `GmapUnitContainer_Init` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt` | a fresh proc already has empty slots, so no trace can tell it from a no-op |
 | `EndGmapUnitFade` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapUnit.kt` | runs only on a skipped event in the prologue |
-
-## src/eventinfo.c (16)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `SetChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no test checks it against a trace yet |
-| `ClearChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `ResetChapterFlags` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `CheckChapterFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `ClearPermanentFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `ResetPermanentFlags` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `CheckPermanentFlagFrom` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `CheckPermanentFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `ClearFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `CheckFlag` | `engine/core/src/commonMain/kotlin/gbafe/core/flags/EventFlags.kt` | no non-zero state is cleared in any trace; needs a later chapter |
-| `sub_80832C4` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | it returns 0 and writes nothing, so no capture can show it |
-| `sub_80832C8` | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | it returns 0 and writes nothing, so no capture can show it |
-| `SearchNextAvailableEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | the Prologue's misc list reaches it, but skipping the step past the entry changes nothing there, as the started entry's flag is set and the entry is skipped anyway |
-| `EvCheck0C_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
-| `EvCheck0D_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
-| `EnqueueTutEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
 
 ## src/worldmap_scrollmanage.c (15)
 

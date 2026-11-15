@@ -147,10 +147,6 @@ class EventInfoRomTest {
         override fun callEndEvent() {
             calls += "end"
         }
-
-        override fun clearActiveEventRegistry() {
-            calls += "clear"
-        }
     }
 
     private fun phaseSwitch(run: String, frames: IntRange, firstAfter: Int, chapter: Int) {

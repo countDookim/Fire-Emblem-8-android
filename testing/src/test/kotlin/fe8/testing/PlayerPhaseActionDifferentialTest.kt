@@ -104,9 +104,8 @@ class PlayerPhaseActionDifferentialTest {
         val state = EventState()
         for (k in 0 until 14) state.slots[k] = word(seedIw, GLOBALS + 0x80 + 4 * k - IWRAM)
 
-        // gActiveEventRegistry (RegisterEventActivation, ClearActiveEventRegistry,
-        // GetEventTriggerId): not ported yet, a stand-in here.
-        val registry = ArrayList<Pair<Int, Int>>()
+        // GetEventTriggerId stays a lookup here; the registry itself is `infos.registry`.
+        val infos = EventInfos(words, flags, playSt)
         var compareMid: (Int, Int) -> Unit = { _, _ -> }
         var frame = SEED
         val events = EventEngine(
@@ -126,19 +125,16 @@ class PlayerPhaseActionDifferentialTest {
             hooks = object : EventScrHooks {
                 override fun countRedUnits(): Int = units.countRedUnits()
                 override fun eventTriggerId(script: Int): Int =
-                    registry.firstOrNull { it.first == script }?.second ?: 0
+                    (0 until infos.registry.idx).firstOrNull {
+                        infos.registry.scripts[it] == script
+                    }?.let { infos.registry.flags[it] } ?: 0
             },
         ).registerAll(events)
         val chapters = ChapterData(rom)
-        val infos = EventInfos(words, flags, playSt)
         infos.hooks = object : EventInfoHooks {
             override fun callEvent(script: Int, execType: Int) = events.callEvent(script, execType)
             override fun chapterEventGroup(chapter: Int) =
                 chapters.getChapterEventDataPointer(chapter)
-            override fun registerEventActivation(script: Int, flag: Int) {
-                registry += script to flag
-            }
-            override fun clearActiveEventRegistry() = registry.clear()
             override fun areAnyEnemyUnitDead(): Boolean = units.areAnyEnemyUnitAlive()
             override fun countAvailableBlueUnits(): Int = units.countAvailableBlueUnits()
         }

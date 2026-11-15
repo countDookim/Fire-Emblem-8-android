@@ -1,10 +1,15 @@
 package fe8.game.bm
 
 import gbafe.core.flags.EventFlags
+import gbafe.proc.Proc
+import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.call
 import gbafe.proc.ProcScripts.end
+import gbafe.proc.ProcScripts.goto
+import gbafe.proc.ProcScripts.label
+import gbafe.proc.ProcScripts.sleep
 import gbafe.proc.ProcScripts.startChildBlocking
 
 /**
@@ -22,6 +27,8 @@ public class MapTraps(
     private val playSt: PlaySt,
     private val flags: EventFlags,
     private val targets: SelectTargets,
+    private val engine: ProcEngine = ProcEngine(),
+    private val action: ActionData = ActionData(),
     /** Unported or external calls made by this subsystem. */
     public val hooks: Hooks = Hooks(),
 ) : EntityBmMaps.Traps {
@@ -41,15 +48,70 @@ public class MapTraps(
 
         /**
          * `gProcScr_TrapDamageDisplay` (bmusailment.c:938): displays animations and applies
-         * hazard damage for trap targets. Stand-in until EP-10b: ends at once.
+         * hazard damage for trap targets. Defaults to [trapDamageDisplayScript].
          */
         public var trapDamageDisplay: ProcScript =
             ProcScript("gProcScr_TrapDamageDisplay", listOf(end()))
 
         /**
+         * `TrapDamageDisplay_Watch` (bmusailment.c:856). Hook for camera centering onto trap target.
+         */
+        public var trapDamageDisplayWatch: (Proc) -> Unit = {}
+
+        /**
+         * `TrapDamageDisplay_Display` (bmusailment.c:866). Hook for displaying trap animation.
+         */
+        public var trapDamageDisplayDisplay: (Proc) -> Unit = {}
+
+        /**
+         * `FinishDamageDisplay` (bmusailment.c:558). Hook for finishing damage display.
+         */
+        public var finishDamageDisplay: () -> Unit = {}
+
+        /**
+         * `TrapDamageDisplay_Next` (bmusailment.c:919). Hook for applying hazard damage and advancing target.
+         */
+        public var trapDamageDisplayNext: (Proc) -> Unit = {}
+
+        /**
          * `CallGameOverEvent` (event.c:401): calls the game over event engine script.
          */
         public var callGameOverEvent: () -> Unit = {}
+    }
+
+    /**
+     * Script-specific proc state of `gProcScr_TrapDamageDisplay` (`struct UnknownBMUSAilmentProc`).
+     */
+    public class TrapDamageDisplayState(
+        /** `unk_4C`: current target index in [targets]. */
+        public var unk4C: Int = 0,
+    )
+
+    /**
+     * `gProcScr_TrapDamageDisplay` (bmusailment.c:938): displays animations and applies
+     * hazard damage for trap targets.
+     */
+    public val trapDamageDisplayScript: ProcScript = ProcScript(
+        "gProcScr_TrapDamageDisplay",
+        listOf(
+            call(ProcFunc { trapDamageDisplayInit(it) }),
+            label(0),
+            sleep(0),
+            call(ProcFunc { trapDamageDisplayCheck(it) }),
+            call(ProcFunc { hooks.trapDamageDisplayWatch(it) }),
+            sleep(0),
+            call(ProcFunc { hooks.trapDamageDisplayDisplay(it) }),
+            sleep(0),
+            call(ProcFunc { hooks.finishDamageDisplay() }),
+            label(1),
+            call(ProcFunc { hooks.trapDamageDisplayNext(it) }),
+            goto(0),
+            end(),
+        ),
+    )
+
+    init {
+        hooks.trapDamageDisplay = trapDamageDisplayScript
     }
 
     /**
@@ -516,6 +578,57 @@ public class MapTraps(
         }
         if (!units.areAnyEnemyUnitAlive()) {
             flags.setFlag(EVFLAG_DEFEAT_ALL)
+        }
+    }
+
+    /**
+     * Ported from src/bmusailment.c: TrapDamageDisplay_Init
+     *
+     * Initializes the target index (`unk_4C`) of [proc] to 0.
+     */
+    public fun trapDamageDisplayInit(proc: Proc) {
+        val state = proc.state as? TrapDamageDisplayState ?: TrapDamageDisplayState().also { proc.state = it }
+        state.unk4C = 0
+    }
+
+    /**
+     * Ported from src/bmusailment.c: TrapDamageDisplay_Check
+     *
+     * Reads the current target at index `unk_4C` and updates `action.subjectIndex` with the
+     * target's unit id (matching C reading `target->uid` before the count check). If all targets
+     * have been checked (`unk_4C == GetSelectTargetCount()`), ends [proc]. Otherwise, if the target
+     * has no unit (a hazard effect), returns to proceed to watch and display. If the unit is hidden
+     * by fog of war or has 0 HP, skips to label 1 (`TrapDamageDisplay_Next`).
+     */
+    public fun trapDamageDisplayCheck(proc: Proc) {
+        val state = proc.state as? TrapDamageDisplayState ?: TrapDamageDisplayState().also { proc.state = it }
+        val uid = if (state.unk4C in 0 until SelectTargets.MAX_TARGET_COUNT) {
+            targets.targetUid(state.unk4C)
+        } else {
+            0
+        }
+
+        action.subjectIndex = uid
+
+        if (state.unk4C == targets.getSelectTargetCount()) {
+            engine.end(proc)
+            return
+        }
+
+        if (uid == 0) return
+
+        val unitOffset = units.unitOffset(uid)
+        if (unitOffset >= 0) {
+            val uX = units.xPos(uid)
+            val uY = units.yPos(uid)
+            if (playSt.chapterVisionRange != 0 && map.fog[uY, uX] == 0) {
+                engine.goto(proc, 1)
+                return
+            }
+            if (units.currentHp(uid) == 0) {
+                engine.goto(proc, 1)
+                return
+            }
         }
     }
 

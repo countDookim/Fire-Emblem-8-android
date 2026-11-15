@@ -1205,6 +1205,7 @@ public class Fe8Boot(
         main.hooks.gorgonEggHatchDisplay = phaseStartEnd.gorgonEggHatchDisplay
         val trapsObj = MapTraps(
             trapPool, battleBmMap, units, playSt, flags, SelectTargets(),
+            engine = engine, action = active.action,
         ).also {
             it.hooks.refreshEntityBmMaps = { battleEntityMaps.refreshEntityBmMaps() }
         }

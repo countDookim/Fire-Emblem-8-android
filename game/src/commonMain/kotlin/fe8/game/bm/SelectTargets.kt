@@ -61,6 +61,41 @@ public class SelectTargets {
     /** Ported from src/uiselecttarget.c: GetSelectTargetCount (inline): the number of targets. */
     public fun getSelectTargetCount(): Int = count
 
+    /**
+     * Ported from src/uiselecttarget.c: GetTarget (inline)
+     *
+     * Returns the target at [index] in the list.
+     */
+    public fun getTarget(index: Int): Target {
+        require(index in 0 until MAX_TARGET_COUNT) { "target index $index out of bounds" }
+        return Target(
+            x = xs[index],
+            y = ys[index],
+            uid = uids[index],
+            extra = extras[index],
+            next = nexts[index],
+            prev = prevs[index],
+        )
+    }
+
+    /**
+     * One entry of the target list (`struct SelectTarget`).
+     */
+    public data class Target(
+        /** `SelectTarget.x` (s8). */
+        public val x: Int,
+        /** `SelectTarget.y` (s8). */
+        public val y: Int,
+        /** `SelectTarget.uid` (s8): the unit's id, 0 for a trap or wall. */
+        public val uid: Int,
+        /** `SelectTarget.extra` (s8). */
+        public val extra: Int,
+        /** `SelectTarget.next` as an index, [NONE] for NULL. */
+        public val next: Int = NONE,
+        /** `SelectTarget.prev` as an index, [NONE] for NULL. */
+        public val prev: Int = NONE,
+    )
+
     /** `SelectTarget.x` (s8) of target [index]. */
     public fun targetX(index: Int): Int = xs[index]
 

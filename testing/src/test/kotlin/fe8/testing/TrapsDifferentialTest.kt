@@ -1,6 +1,7 @@
 package fe8.testing
 
 import fe8.game.RomView
+import fe8.game.bm.ActionData
 import fe8.game.bm.BmMap
 import fe8.game.bm.BmSt
 import fe8.game.bm.ChapterData
@@ -19,6 +20,7 @@ import gbafe.proc.ProcScripts.end
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
@@ -161,6 +163,44 @@ class TrapsDifferentialTest {
         sim.flags.setFlag(MapTraps.EVFLAG_GAMEOVER)
         sim.traps.postTrapExecFlag()
         assertTrue(gameOverCalled, "gameOver must be called when EVFLAG_GAMEOVER is set")
+    }
+
+    @Test
+    @VerifiesPort("TrapDamageDisplay_Init", "TrapDamageDisplay_Check")
+    fun `TrapDamageDisplay spawns, yields on sleep 0, and ends when target count is 0 at f2766 and f3875`() {
+        // ram_trace_prologue_enemy_phase at f2766
+        val enemySim = Sim("ram_trace_prologue_enemy_phase")
+        enemySim.seedUnits(2766)
+        enemySim.seedPlaySt(2766)
+        assertEquals(0, enemySim.targets.getSelectTargetCount())
+
+        val enemyProc = enemySim.engine.start(enemySim.traps.trapDamageDisplayScript, 6)
+        assertNotNull(enemyProc, "enemyProc started")
+        val enemyState = requireNotNull(enemyProc?.state as? MapTraps.TrapDamageDisplayState)
+        assertEquals(0, enemyState.unk4C, "unk4C initialized to 0")
+        assertEquals(1, enemySim.engine.count(enemySim.traps.trapDamageDisplayScript), "alive at sleep 0")
+
+        enemySim.action.subjectIndex = 0x55
+        enemySim.engine.run(enemySim.engine.root(6))
+        assertEquals(0, enemySim.action.subjectIndex, "subjectIndex updated to target uid (0)")
+        assertEquals(0, enemySim.engine.count(enemySim.traps.trapDamageDisplayScript), "proc ended by check")
+
+        // ram_trace_prologue_clear at f3875
+        val clearSim = Sim("ram_trace_prologue_clear")
+        clearSim.seedUnits(3875)
+        clearSim.seedPlaySt(3875)
+        assertEquals(0, clearSim.targets.getSelectTargetCount())
+
+        val clearProc = clearSim.engine.start(clearSim.traps.trapDamageDisplayScript, 6)
+        assertNotNull(clearProc, "clearProc started")
+        val clearState = requireNotNull(clearProc?.state as? MapTraps.TrapDamageDisplayState)
+        assertEquals(0, clearState.unk4C, "unk4C initialized to 0")
+        assertEquals(1, clearSim.engine.count(clearSim.traps.trapDamageDisplayScript), "alive at sleep 0")
+
+        clearSim.action.subjectIndex = 0x77
+        clearSim.engine.run(clearSim.engine.root(6))
+        assertEquals(0, clearSim.action.subjectIndex, "subjectIndex updated to target uid (0)")
+        assertEquals(0, clearSim.engine.count(clearSim.traps.trapDamageDisplayScript), "proc ended by check")
     }
 
     @Test
@@ -327,6 +367,7 @@ class TrapsDifferentialTest {
         val map: BmMap
         val units: UnitTable
         val flags = Fe8EventFlags.create()
+        val action = ActionData()
         val targets = SelectTargets()
         val traps: MapTraps
 
@@ -338,7 +379,7 @@ class TrapsDifferentialTest {
             units = UnitTable(rom)
             map = BmMap(rom, ChapterData(rom), BmSt())
             map.initChapterMap(0)
-            traps = MapTraps(ByteArray(MapTraps.POOL_SIZE), map, units, playSt, flags, targets)
+            traps = MapTraps(ByteArray(MapTraps.POOL_SIZE), map, units, playSt, flags, targets, engine, action)
         }
 
         val blue = run.watch("blue")

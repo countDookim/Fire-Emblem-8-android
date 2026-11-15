@@ -100,8 +100,7 @@ public class UnitTable(
     }
 
     /**
-     * Transcribed from src/bmunit.c: CountRedUnits (not verified: the one-enemy-left script runs
-     *   it, but the capture's branch is the same for any count above 1)
+     * Ported from src/bmunit.c: CountRedUnits
      *
      * Number of valid, living units with ids 0x81 to 0xBF.
      */

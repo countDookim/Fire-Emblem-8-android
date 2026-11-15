@@ -44,7 +44,7 @@ class AttackTargetListDifferentialTest {
 
     @Test
     @VerifiesPort(
-        "InitTargets", "AddTarget", "GetSelectTargetCount", "MakeTargetListForWeapon",
+        "InitTargets", "AddTarget", "GetSelectTargetCount", "GetTarget", "MakeTargetListForWeapon",
         "ForEachUnitInRange", "AddUnitToTargetListIfNotAllied", "TryAddTrapsToTargetList",
         "AreUnitsAllied",
     )
@@ -142,13 +142,20 @@ class AttackTargetListDifferentialTest {
             assertEquals(u32(e, COUNT - EWRAM), t.getSelectTargetCount(), "$at count")
             for (i in 0 until t.getSelectTargetCount()) {
                 val o = LIST - EWRAM + 12 * i
+                val target = t.getTarget(i)
                 assertEquals(e[o].toInt(), t.targetX(i), "$at target $i x")
                 assertEquals(e[o + 1].toInt(), t.targetY(i), "$at target $i y")
                 assertEquals(e[o + 2].toInt(), t.targetUid(i), "$at target $i uid")
                 assertEquals(e[o + 3].toInt(), t.targetExtra(i), "$at target $i extra")
+                assertEquals(e[o].toInt(), target.x, "$at getTarget $i x")
+                assertEquals(e[o + 1].toInt(), target.y, "$at getTarget $i y")
+                assertEquals(e[o + 2].toInt(), target.uid, "$at getTarget $i uid")
+                assertEquals(e[o + 3].toInt(), target.extra, "$at getTarget $i extra")
                 if (linked) {
                     assertEquals(link(u32(e, o + 4)), t.targetNext(i), "$at target $i next")
                     assertEquals(link(u32(e, o + 8)), t.targetPrev(i), "$at target $i prev")
+                    assertEquals(link(u32(e, o + 4)), target.next, "$at getTarget $i next")
+                    assertEquals(link(u32(e, o + 8)), target.prev, "$at getTarget $i prev")
                 }
             }
         }

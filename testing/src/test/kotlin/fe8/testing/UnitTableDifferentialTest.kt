@@ -174,6 +174,44 @@ class UnitTableDifferentialTest {
         assertTrue(counts.getValue(0x00).size > 1, "player count never changes: $counts")
     }
 
+    @Test
+    @VerifiesPort("CountRedUnits", "CountAvailableBlueUnits")
+    fun `CountRedUnits and CountAvailableBlueUnits match capture dumps f2014, f2403, f2767, f3832, f4894`() {
+        assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
+        assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")
+        val rom = RomView.ofRom(romBytes())
+
+        val enemyPhase = ref.run("ram_trace_prologue_enemy_phase")
+        val table = UnitTable(rom)
+
+        // f2014: both enemies alive (O'Neill and Fighter), Seth and Eirika available
+        table.loadFrom(enemyPhase.region("r02014", "ewram"))
+        assertEquals(2, table.countRedUnits(), "f2014 red units")
+        assertEquals(2, table.countAvailableBlueUnits(), "f2014 blue units")
+
+        // f2403: one enemy killed, one remains
+        table.loadFrom(enemyPhase.region("r02403", "ewram"))
+        assertEquals(1, table.countRedUnits(), "f2403 red units")
+        assertEquals(2, table.countAvailableBlueUnits(), "f2403 blue units")
+
+        // f2767: during enemy phase, one enemy remains
+        table.loadFrom(enemyPhase.region("r02767", "ewram"))
+        assertEquals(1, table.countRedUnits(), "f2767 red units")
+        assertEquals(2, table.countAvailableBlueUnits(), "f2767 blue units")
+
+        val clear = ref.run("ram_trace_prologue_clear")
+
+        // f3832: Seth and Eirika available, one enemy remains
+        table.loadFrom(clear.region("r03832", "ewram"))
+        assertEquals(1, table.countRedUnits(), "f3832 red units")
+        assertEquals(2, table.countAvailableBlueUnits(), "f3832 blue units")
+
+        // f4894: boss defeated / clear sequence
+        table.loadFrom(clear.region("r04894", "ewram"))
+        assertEquals(0, table.countRedUnits(), "f4894 red units")
+        assertEquals(2, table.countAvailableBlueUnits(), "f4894 blue units")
+    }
+
     private fun romBytes(): ByteArray = cachedRom ?: romFile.readBytes().also { cachedRom = it }
     private var cachedRom: ByteArray? = null
 

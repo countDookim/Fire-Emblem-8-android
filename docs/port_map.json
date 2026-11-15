@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1241,
+    "verified": 1255,
     "implemented_unverified": 79
   },
   "functions": {
@@ -2707,6 +2707,28 @@
         "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
       ]
     },
+    "EndFaceIn8Frames": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
+      ]
+    },
+    "EndFacePtr": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
+      ]
+    },
     "EndGmMuEntry": {
       "decomp_file": "src/worldmap_entry.c",
       "system": "worldmap",
@@ -3710,6 +3732,17 @@
       "status": "implemented",
       "tests": []
     },
+    "FindFreeFaceSlot": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
+      ]
+    },
     "FlipBgVerticalScroll": {
       "decomp_file": "src/bmlib-hblank.c",
       "system": "battle_map",
@@ -4320,6 +4353,17 @@
         "fe8.testing.BanimPrepareDifferentialTest#the real chain writes the battle animation variables of the capture"
       ]
     },
+    "GetFaceDisplayBits": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkFace.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
+      ]
+    },
     "GetFaceIdByXPos": {
       "decomp_file": "src/scene.c",
       "system": "presentation",
@@ -4754,6 +4798,17 @@
         "fe8.testing.EventFlagsRomTest#save sizes equal the movs immediates in the rom"
       ]
     },
+    "GetPidStats": {
+      "decomp_file": "src/bmsave-bwl.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/PidStats.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PidStatsDifferentialTest#favour of Seth and Eirika drops by 8 across the phase ends at f1530 and f2964",
+        "fe8.testing.PidStatsDifferentialTest#step by step battle stats progression reproduces EWRAM dumps across prologue clear"
+      ]
+    },
     "GetPlayerSelectKind": {
       "decomp_file": "src/playerphase.c",
       "system": "battle_map",
@@ -4788,6 +4843,17 @@
         "fe8.testing.PathArrowDifferentialTest#cancel_end path arrow matches the game after the first select",
         "fe8.testing.PathArrowDifferentialTest#cancel_end path arrow matches the game after the move is cancelled",
         "fe8.testing.PathArrowDifferentialTest#select_move path arrow matches the game"
+      ]
+    },
+    "GetPortraitData": {
+      "decomp_file": "src/face.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/PortraitData.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
       ]
     },
     "GetROMChapterStruct": {
@@ -7765,6 +7831,83 @@
       "status": "verified",
       "tests": [
         "fe8.testing.PhaseIntroDifferentialTest#ch6 player phase banner matches every frame"
+      ]
+    },
+    "PidStatsAddActAmt": {
+      "decomp_file": "src/bmsave-bwl.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/PidStats.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PidStatsDifferentialTest#experience and action increments reproduce the stats at f2040, f2430, f4274 and f4892",
+        "fe8.testing.PidStatsDifferentialTest#step by step battle stats progression reproduces EWRAM dumps across prologue clear"
+      ]
+    },
+    "PidStatsAddBattleAmt": {
+      "decomp_file": "src/bmsave-bwl.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/PidStats.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PidStatsDifferentialTest#battle and win count increment with favour bonuses at f1696, f2129 and f4274",
+        "fe8.testing.PidStatsDifferentialTest#step by step battle stats progression reproduces EWRAM dumps across prologue clear"
+      ]
+    },
+    "PidStatsAddExpGained": {
+      "decomp_file": "src/bmsave-bwl.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/PidStats.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PidStatsDifferentialTest#experience and action increments reproduce the stats at f2040, f2430, f4274 and f4892",
+        "fe8.testing.PidStatsDifferentialTest#step by step battle stats progression reproduces EWRAM dumps across prologue clear"
+      ]
+    },
+    "PidStatsAddFavval": {
+      "decomp_file": "src/bmsave-bwl.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/PidStats.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PidStatsDifferentialTest#favour of Seth and Eirika drops by 8 across the phase ends at f1530 and f2964",
+        "fe8.testing.PidStatsDifferentialTest#step by step battle stats progression reproduces EWRAM dumps across prologue clear"
+      ]
+    },
+    "PidStatsAddWinAmt": {
+      "decomp_file": "src/bmsave-bwl.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/PidStats.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PidStatsDifferentialTest#battle and win count increment with favour bonuses at f1696, f2129 and f4274",
+        "fe8.testing.PidStatsDifferentialTest#step by step battle stats progression reproduces EWRAM dumps across prologue clear"
+      ]
+    },
+    "PidStatsRecordBattleRes": {
+      "decomp_file": "src/bmsave-bwl.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/PidStats.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PidStatsDifferentialTest#battle and win count increment with favour bonuses at f1696, f2129 and f4274",
+        "fe8.testing.PidStatsDifferentialTest#step by step battle stats progression reproduces EWRAM dumps across prologue clear"
+      ]
+    },
+    "PidStatsSubFavval08": {
+      "decomp_file": "src/bmsave-bwl.c",
+      "system": "save",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/save/PidStats.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.PidStatsDifferentialTest#favour of Seth and Eirika drops by 8 across the phase ends at f1530 and f2964",
+        "fe8.testing.PidStatsDifferentialTest#step by step battle stats progression reproduces EWRAM dumps across prologue clear"
       ]
     },
     "PlayMuStepSe": {
@@ -11440,6 +11583,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.KeyStatusDifferentialTest#per-frame key status matches mGBA on the title screen"
+      ]
+    },
+    "_WhileFace6CExists": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
       ]
     },
     "bmxfade_init": {

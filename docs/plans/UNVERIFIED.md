@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 575 across 84 decomp files (missing reason: 0).
+Total entries: 577 across 85 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -225,7 +225,7 @@ Total entries: 575 across 84 decomp files (missing reason: 0).
 | `CanUnitUseWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `IsItemUnsealedForUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 
-## src/bmbattle.c (17)
+## src/bmbattle.c (18)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
@@ -243,6 +243,7 @@ Total entries: 575 across 84 decomp files (missing reason: 0).
 | `BattleApplyReaverEffect` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no reaver weapon in the trace |
 | `BattleInitTargetCanCounter` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no gorgon egg, uncounterable weapon or berserk actor in the trace |
 | `BattleApplyBallistaUpdates` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | only the no-ballista branch runs, and it writes nothing a capture could show |
+| `BeginBattleAnimations` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | the display writes (BG 2 clear, backdrop colour, the two map renders) are not compared; the branch it takes is verified through its callees |
 | `CanBattleUnitGainLevels` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 | `CheckBattleUnitLevelUp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
 | `UpdateUnitFromBattle` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no blue autolevel unit is loaded in the traced runs |
@@ -943,6 +944,12 @@ Total entries: 575 across 84 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `ply_keysh` | `gba/audio/src/commonMain/kotlin/gba/audio/M4aCommands.kt` | the traced key shifts never change |
+
+## src/mapanim_api.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `sub_807B4D0` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | its only effect is the sprite animation layer, the display hook [Hooks.setMuAnimLayer], in no captured value |
 
 ## src/msg.c (1)
 

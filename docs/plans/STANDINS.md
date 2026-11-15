@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 233 across 46 Kotlin files.
+Total entries: 240 across 47 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -28,7 +28,9 @@ Total entries: 233 across 46 Kotlin files.
 | EP-11d | 2 |
 | EP-12 | 24 |
 | EP-13 | 1 |
-| EP-14 | 1 |
+| EP-14 | 2 |
+| EP-16 | 1 |
+| EP-17 | 5 |
 | EP-1b | 4 |
 | EP-30 | 2 |
 | EP-36 | 2 |
@@ -317,11 +319,28 @@ Total entries: 233 across 46 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `beginBattleAnimations` | Stand-in until EP-13: sets only the flag, so the animation ends at once. |
 
-## EP-14 (1)
+## EP-14 (2)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `getBattleAnimPreconfType` | Stand-in until EP-14: always `PLAY_ANIMCONF_OFF` (battle animations off). |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `battleAnimationsOn` | Stand-in until EP-14/EP-15 for `sub_8055BC4` (banim-ekrbattle): whether the battle is shown with battle animations. |
+
+## EP-16 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `spellAssocEntry` | Stand-in until EP-16 for `GetSpellAssocStructPtr` and its three getters: the ROM address of the `gSpellAssocData` entry of [item] (the first entry for an unknown item, as the scan of the C stops on... |
+
+## EP-17 (5)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `MapAnimApi` | [script] holds only the commands the capture runs after the start (`LockGame`, the battle talk reset, SLEEP 1, camera onto the subject, SLEEP 2); the animation itself (EP-17 and later) is the stand... |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `endAnimation` | The stand-in end of the animation, EP-17 (see [Hooks.restOfAnimation]). |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `moveCameraOntoSubject` | Stand-in until EP-17: the camera stays. |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `restOfAnimation` | Stand-in until EP-17: ends the MOVEUNITs, shows the sprites again and unlocks the game, so the animation lasts the few frames of the start and the battle result applies right after. |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `script` | `ProcScr_MapAnimBattle` (0x089A3508): CALL `LockGame`, CALL `MapAnim_PrepareBattleTalk`, SLEEP 1, CALL `MapAnim_MoveCameraOntoSubject`, SLEEP 2, then the stand-in (EP-17) [Hooks.restOfAnimation] an... |
 
 ## EP-1b (4)
 

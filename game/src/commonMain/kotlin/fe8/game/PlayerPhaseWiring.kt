@@ -18,6 +18,7 @@ import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.ItemInfo
 import fe8.game.bm.ItemMenuLine
 import fe8.game.bm.MenuItemPanel
+import fe8.game.bm.MapAnimApi
 import fe8.game.bm.MapCursor
 import fe8.game.bm.MapMenu
 import fe8.game.bm.MoveLimitView
@@ -369,6 +370,14 @@ internal class PlayerPhaseWiring(
         combat.hooks.doesBmxFadeExist = gbafe.proc.ProcBoolFunc { p ->
             h.doesBmxFadeExist.invoke(p)
         }
+        // EP-13: the map battle animation start (MOVEUNITs and the animation proc).
+        val mapAnim = MapAnimApi(engine, bm, battle, battleGenerate, units, unitLoader, mu, rom, hw)
+        mapAnim.hooks.renderBmMap = { render.renderBmMap() }
+        mapAnim.hooks.hideUnitSprite = { id -> handles.hideUnitSprite(id) }
+        mapAnim.hooks.showUnitSprite = { id -> handles.showUnitSprite(id) }
+        mapAnim.hooks.spritePalette = { id -> handles.getUnitSpritePalette(id) }
+        mapAnim.hooks.eventEngineExists = eventEngineExists
+        combat.hooks.beginBattleAnimations = ProcFunc { mapAnim.beginBattleAnimations() }
         h.actionCombat = gbafe.proc.ProcBoolFunc { combat.actionCombat(it) }
         h.battleAnimPreconfOff =
             { combat.hooks.getBattleAnimPreconfType.get() == CombatAction.PLAY_ANIMCONF_OFF }

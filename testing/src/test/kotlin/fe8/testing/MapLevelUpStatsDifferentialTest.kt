@@ -2,6 +2,7 @@ package fe8.testing
 
 import fe8.game.RomView
 import fe8.game.bm.BattleUnit
+import fe8.game.bm.MapLevelUpFrame
 import fe8.game.bm.MapLevelUpStats
 import fe8.game.bm.UnitTable
 import fe8.game.text.Fe8Text
@@ -9,6 +10,8 @@ import gba.core.VerifiesPort
 import gba.extract.Symbols
 import gba.testkit.RamSymbols
 import gba.testkit.ReferenceData
+import gbafe.text.MsgHuffman
+import gbafe.text.MsgStrings
 import gbafe.text.TextSystem
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertArrayEquals
@@ -90,6 +93,73 @@ class MapLevelUpStatsDifferentialTest {
                 after.copyOfRange(bg1Address, bg1Address + 0x800), "BG1 f$frame",
             )
         }
+    }
+
+    @Test
+    @VerifiesPort("PutManimLevelUpFrame")
+    fun `frame and initial panel match captured buffers`() {
+        val ref = ReferenceData.fromEnvironment()
+        val assets = System.getProperty("fe8.assets") ?: System.getenv("FE8_ASSETS") ?: ".assets"
+        val romFile = File(assets, "baserom.gba")
+        assumeTrue(ref.available && romFile.isFile)
+        val romBytes = romFile.readBytes()
+        val rom = RomView.ofRom(romBytes)
+        val run = ref.run("ram_trace_prologue_levelup")
+        val symbols = RamSymbols.fromEnvironment()
+        val bg0Address = symbols["gBG0TilemapBuffer"].address - EWRAM
+        val bg1Address = symbols["gBG1TilemapBuffer"].address - EWRAM
+        val paletteAddress = symbols["gPaletteBuffer"].address - EWRAM
+        val battleActor = symbols["gBattleActor"].address - EWRAM
+        val before = run.region("r06518", "ewram")
+        val after = run.region("r06519", "ewram")
+        val root = u32(romBytes, 0x0815D488 - 0x08000000) - 0x08000000
+        val messages = MsgStrings(
+            romBytes, MsgHuffman(romBytes, 0x0815A72C - 0x08000000, root),
+            0x0815D48C - 0x08000000,
+        )
+        val textVram = TextVram()
+        val text = TextSystem(romBytes, textVram, Fe8Text.CONFIG)
+        text.initTextFont(null, 0x06001000, 0x80, 0)
+        text.resetTextFont()
+        val units = UnitTable(rom).also { it.loadFrom(before) }
+        val battle = BattleUnit()
+        before.copyInto(battle.bytes, 0, battleActor, battleActor + BattleUnit.SIZE)
+        val bg0 = ShortArray(1024)
+        val bg1 = ShortArray(1024) { u16(before, bg1Address + 2 * it).toShort() }
+        val palette = ShortArray(512) { u16(before, paletteAddress + 2 * it).toShort() }
+        val vram = ByteArray(0x18000)
+        val io = run.region("f06520", "io")
+        val bg1Control = u16(io, 0x0A)
+        val tileBase = ((bg1Control shr 2) and 3) * 0x4000
+        val frame = MapLevelUpFrame(
+            rom, units, arrayOf(battle), text, messages, bg0, bg1, palette, vram, tileBase,
+        )
+        val stats = MapLevelUpStats(rom, units, arrayOf(battle), text, bg0)
+        frame.putManimLevelUpFrame(0, 1, 1)
+        for (stat in 0..8) stats.putManimLevelUpStat(0, 1, 1, stat, false)
+        assertArrayEquals(
+            ShortArray(1024) { u16(after, bg0Address + 2 * it).toShort() }, bg0, "BG0",
+        )
+        assertArrayEquals(
+            ShortArray(1024) { u16(after, bg1Address + 2 * it).toShort() }, bg1, "BG1",
+        )
+        assertArrayEquals(
+            ShortArray(16) { u16(after, paletteAddress + 5 * 32 + 2 * it).toShort() },
+            palette.copyOfRange(5 * 16, 6 * 16), "palette bank 5",
+        )
+        val captured = run.region("f06520", "vram")
+        // Glyph pixels carry the text colors, which the tilemaps do not.
+        val glyphBytes = text.activeFont.chrCounter * 64
+        assertArrayEquals(
+            captured.copyOfRange(0x1000, 0x1000 + glyphBytes),
+            textVram.vram.copyOfRange(0x1000, 0x1000 + glyphBytes), "text tiles",
+        )
+        val tiles = tileBase + 0x200 * 32
+        val length = (bg1.maxOf { (it.toInt() and 0x3FF) } - 0x200 + 1) * 32
+        assertArrayEquals(
+            captured.copyOfRange(tiles, tiles + length), vram.copyOfRange(tiles, tiles + length),
+            "BG1 frame tiles",
+        )
     }
 
     private fun u16(bytes: ByteArray, at: Int): Int =

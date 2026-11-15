@@ -537,9 +537,9 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: BattleForecastHitCountUpdate
      *
-     * One strike of [battleUnit]: [hits] grows by one (two for a brave weapon) while the weapon
-     * has uses left; [usesLeft] counts them down (not verified: a brave weapon is in no capture).
-     * Returns the new hit count.
+     * Counts one attack round of [battleUnit] into [hits]: one hit, or two when its weapon is
+     * brave (`IA_BRAVE`), each using up one of [usesLeft] and only while uses are left (not
+     * verified: a brave weapon is in no capture). Returns the new hit count (a u8, as in C).
      */
     private fun battleForecastHitCountUpdate(battleUnit: BattleUnit, hits: Int): Int {
         var hitsCounter = hits
@@ -558,9 +558,12 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: InitBattleForecastBattleStats
      *
-     * Counts each side's hits (a follow-up strike for the one that strikes first, as many as its
-     * weapon has uses) and whether each side's attack is effective or reverts the weapon
-     * triangle (not verified: no capture has an effective attack).
+     * Fills the hit counts and effectiveness flags of [state] for both sides. A side with a
+     * weapon (or one that just broke) gets one attack round, plus a second when the battle has a
+     * follow-up and that side strikes first, each limited by the weapon's uses. It is flagged
+     * effective when the unit is effective against the other (`IsUnitEffectiveAgainst`), its
+     * weapon is (`IsItemEffectiveAgainst`), or it has a weapon-triangle advantage and a weapon
+     * with `IA_REVERTTRIANGLE` (not verified: no capture has an effective attack).
      */
     private fun initBattleForecastBattleStats(state: State) {
         val actor = battle.actor
@@ -626,9 +629,9 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: DrawBattleForecastContents
      *
-     * Clears the frame count and the update flag, counts the hits and draws the standard panel.
-     * The extended layout (frame kind 2, `DrawBattleForecastContentsExtended`) is not written: no
-     * capture runs it.
+     * Resets the frame count and the update flag, then counts the hits and draws the standard
+     * panel into the scratch tilemaps. The extended layout (frame kind 2,
+     * `DrawBattleForecastContentsExtended`) is not written: no capture runs it.
      */
     private fun drawBattleForecastContents(state: State) {
         state.frameCount = 0
@@ -645,9 +648,10 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: BattleForecast_OnNewBattle
      *
-     * The proc's fields for a new forecast: contents, the side (the panel slides in from it),
-     * the slide counter and the position, and colours the frame (not verified: the right side's
-     * position 20, the capture's panel is on the left).
+     * Prepares a new forecast: draws the contents, picks the panel's side (it slides in from
+     * there), resets the slide step, sets the panel's tile position (column 0 on the left, 20 on
+     * the right, row 0) and colours the frame (not verified: the right side's column 20, the
+     * capture's panel is on the left).
      */
     private fun onNewBattle(state: State) {
         drawBattleForecastContents(state)
@@ -666,8 +670,8 @@ public class BattleForecast(
      * Transcribed from src/bksel.c: PutBattleForecastTilemaps (not verified: only a redraw of
      *   the contents puts the whole panel, and the capture never changes the target)
      *
-     * Copies the whole panel from the scratch tilemaps onto BG 0 and 1 at its side and flags
-     * both for sync.
+     * Copies the whole panel (10 columns, 16 rows standard or 20 extended) from the scratch
+     * tilemaps onto BG 0 and 1 at its side (column 0 or 20) and flags both for sync.
      */
     private fun putBattleForecastTilemaps(state: State) {
         val height = if (state.frameKind == 1) 16 else 20
@@ -680,8 +684,9 @@ public class BattleForecast(
     }
 
     /**
-     * `TileMap_CopyRect`: copies [w] by [h] entries from [src] at [from] to [dst] at [to], the
-     * rows 32 entries apart.
+     * `TileMap_CopyRect` (`TmCopyRect`, asm/arm.s): copies [w] by [h] entries from [src] at
+     * [from] to [dst] at [to], the rows 32 entries apart in both (unlike `TmFillRect` it copies
+     * exactly w columns; w or h of 0 copies nothing).
      */
     private fun copyRect(src: ShortArray, from: Int, dst: ShortArray, to: Int, w: Int, h: Int) {
         for (row in 0 until h) {
@@ -691,10 +696,12 @@ public class BattleForecast(
     }
 
     /**
-     * The step of `BattleForecast_LoopSlideIn` and `_LoopSlideOut` (they differ in [lut] only):
-     * clears BG 0 and 1, puts as many columns of the panel as the [lut] entry says at the screen
-     * edge of its side (the panel's last columns at the left edge, its first at the right), and
-     * counts the four steps (not verified: the right side, the capture's panel is on the left).
+     * The body of `BattleForecast_LoopSlideIn` and `_LoopSlideOut` (identical in C but for their
+     * offset tables, [lut]): clears BG 0 and 1, then puts the number of panel columns that [lut]
+     * gives for this step at the screen edge of the panel's side (a left panel shows its last
+     * columns at BG column 0, a right panel its first columns ending at column 30), and breaks
+     * the proc after [SLIDE_STEPS] steps (not verified: the right side, the capture's panel is on
+     * the left).
      */
     private fun slideStep(proc: Proc, lut: IntArray) {
         val state = proc.state as State
@@ -729,7 +736,8 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: BattleForecast_LoopSlideIn
      *
-     * Four steps: the panel comes in from its side, 6, 8, 9 and 10 columns wide.
+     * Four frames: the panel comes in from its side, 6, 8, 9 and 10 columns wide (a full panel
+     * is 10 columns).
      */
     private fun loopSlideIn(proc: Proc) {
         slideStep(proc, SLIDE_IN_LUT)
@@ -738,7 +746,7 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: BattleForecast_LoopSlideOut
      *
-     * Four steps: the panel goes out again, 9, 8, 6 and 0 columns wide.
+     * Four frames: the panel goes out again, 9, 8, 6 and 0 columns wide.
      */
     private fun loopSlideOut(proc: Proc) {
         slideStep(proc, SLIDE_OUT_LUT)
@@ -747,8 +755,9 @@ public class BattleForecast(
     /**
      * Ported from src/bm.c: UpdateStatArrowSprites
      *
-     * Puts the stat arrow (up, or down when [isDown]) at ([x], [y]) on layer 4; its frame
-     * changes every 8 clock ticks.
+     * Puts the stat arrow sprite (`gSysUpArrowSpriteLut`, or `gSysDownArrowSpriteLut` when
+     * [isDown]) at screen pixel ([x], [y]) on sprite layer 4. It cycles through its three frames,
+     * one per 8 game clock ticks.
      */
     internal fun updateStatArrowSprites(x: Int, y: Int, isDown: Boolean) {
         val frame = clock() / 8 % 3
@@ -759,8 +768,9 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: PutBattleForecastWeaponTriangleArrows
      *
-     * Puts an arrow by each side's stat block when its weapon has the triangle's advantage (up)
-     * or disadvantage (down).
+     * Puts an arrow beside each side's name when its weapon has the weapon triangle's advantage
+     * (up arrow, `wTriangleHitBonus` > 0) or disadvantage (down arrow, < 0): the actor's at tile
+     * (2, 1) of the panel, the target's at (8, 11).
      */
     private fun putBattleForecastWeaponTriangleArrows(state: State) {
         var wtArrowA = 0
@@ -783,9 +793,10 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: PutBattleForecastMultipliers
      *
-     * Puts the x2 (x3, x4) mark, swaying, by each side that strikes more than once (not
-     * verified: the target's mark and the panel's y, the capture's target strikes once and the
-     * panel's y is 0).
+     * Puts the multiplier mark (x2, x3...) beside the damage number of each side that strikes
+     * more than once, swaying in a small ellipse (sine for x, cosine for y, from the frame count).
+     * The mark is the OBJ tile [MULTIPLIER_OAM2] plus the hit count (not verified: the target's
+     * mark and the panel's y, the capture's target strikes once and the panel's y is 0).
      */
     private fun putBattleForecastMultipliers(state: State) {
         val angle = (state.frameCount * 4) and 0xFF
@@ -805,18 +816,19 @@ public class BattleForecast(
         }
     }
 
-    /** `SIN`: `gSinLookup[angle]`. */
+    /** `SIN` (include/hardware.h): `gSinLookup[angle & 0xFF]`, a signed 16-bit value. */
     private fun sin(angle: Int): Int = rom.u16(SIN_LOOKUP + 2 * (angle and 0xFF)).toShort().toInt()
 
-    /** `COS`: `gSinLookup[angle + 0x40]`. */
+    /** `COS` (include/hardware.h): `gSinLookup[0x40 + (angle & 0xFF)]`. */
     private fun cos(angle: Int): Int = sin(angle + 0x40)
 
     /**
      * Ported from src/bksel.c: UpdateBattleForecastEffectivenessPalettes
      *
-     * Flashes icon palettes 3 and 4 (the two weapon icons) through the brightened steps of
-     * [bkselPals] while that side's attack is effective (not verified: the flash steps, nothing
-     * is effective in the capture, so palettes 3 and 4 stay at step 0).
+     * Pulses BG palettes 3 (the actor's weapon icon) and 4 (the target's) through the brightened
+     * steps of [bkselPals] along [PAL_ANIM_LUT] (32 frames per cycle) while that side's attack is
+     * effective, and holds step 0 (the plain icon palette) otherwise (not verified: the flash
+     * steps, nothing is effective in the capture, so palettes 3 and 4 stay at step 0).
      */
     private fun updateBattleForecastEffectivenessPalettes(state: State) {
         val step = PAL_ANIM_LUT[state.frameCount and 0x1F]
@@ -825,7 +837,7 @@ public class BattleForecast(
         applyBkselPalette(if (state.isEffectiveB != 0) step else 0, 4)
     }
 
-    /** `ApplyPalette(gBkselPals[step], palId)`. */
+    /** `ApplyPalette(gBkselPals[step], palId)`: BG palette [palId] gets brightness step [step]. */
     private fun applyBkselPalette(step: Int, palId: Int) {
         for (i in 0 until 16) hardware.palette[palId * 16 + i] = bkselPals[step * 16 + i]
         hardware.enablePaletteSync()
@@ -834,9 +846,11 @@ public class BattleForecast(
     /**
      * Ported from src/bksel.c: BattleForecast_LoopDisplay
      *
-     * Every frame: counts it, and when the contents need an update (not verified: the capture
-     * never changes the target) redraws them and puts the panel, or ends the step when the
-     * panel must change side. The sprites and the palette flash follow.
+     * The window's per-frame loop: counts the frame, and when the contents need an update (not
+     * verified: the capture never changes the target) redraws them, or, if the new target puts
+     * the panel on the other side, breaks the loop (the script then slides out and restarts at
+     * label 0 for the new side). The standard layout then puts the triangle arrows and the
+     * multiplier marks and pulses the icon palettes.
      */
     private fun loopDisplay(proc: Proc) {
         val state = proc.state as State
@@ -866,8 +880,9 @@ public class BattleForecast(
      * Transcribed from src/bksel.c: TriggerBattleForcastToturialEvent (not verified: the capture
      *   starts no tutorial event, so no mutation changes captured data)
      *
-     * Starts the forecast tutorial event when it is due ([Hooks.tutorialPending]); the event
-     * itself (and the key mask change before it) is not written.
+     * Starts the forecast tutorial event (`StartBattleForecastTutorialEvent`) when it is due
+     * ([Hooks.tutorialPending]), after unmasking the A button; the event itself and the key mask
+     * change are not written.
      */
     private fun triggerTutorial() {
         hooks.tutorialPending()
@@ -875,8 +890,9 @@ public class BattleForecast(
 
     /**
      * `BattleGenerateSimulation(gActiveUnit, unit, -1, -1, gActionData.itemSlotIndex)` then
-     * [updateBattleForecastContents], the forecast part of `AttackMapSelect_SwitchIn` for the
-     * unit [unitId] (the ballista and obstacle forecasts are not written: no capture has them).
+     * [updateBattleForecastContents]: the part of `AttackMapSelect_SwitchIn` (src/bmmenu.c) that
+     * runs when the target cursor lands on the unit [unitId] (the ballista and obstacle
+     * forecasts are not written: no capture has them).
      */
     public fun simulateAndUpdate(unitId: Int) {
         gen.battleGenerateSimulation(
@@ -890,7 +906,7 @@ public class BattleForecast(
      * Transcribed from src/bksel.c: UpdateBattleForecastContents (not verified: the capture's one
      *   call comes before the proc is ready, and the contents are redrawn at the start anyway)
      *
-     * Asks a ready forecast to redraw its contents.
+     * Asks a ready forecast to redraw its contents on its next display frame.
      */
     public fun updateBattleForecastContents() {
         val proc = find() ?: return
@@ -918,7 +934,10 @@ public class BattleForecast(
         engine.goto(proc, 1)
     }
 
-    /** `Proc_EndEach(gProcScr_BKSEL)`: the forecast ends at once (A on a target). */
+    /**
+     * `Proc_EndEach(gProcScr_BKSEL)` of `AttackMapSelect_Select` (src/bmmenu.c): the forecast
+     * ends at once, with no slide-out, when A confirms a target.
+     */
     public fun endForecast() {
         engine.endEach(script)
     }
@@ -946,20 +965,35 @@ public class BattleForecast(
         const val ITEM_MONSTER_STONE = 0xB5
         const val TEXT_COLOR_SYSTEM_GOLD = 3
 
-        /** Text indexes of Mt, Hit, Crit, Atk, Def and AS. */
+        /** Message ids of the six stat labels (see [initBattleForecastLabels]). */
         val LABEL_STRINGS = intArrayOf(0x503, 0x4F4, 0x501, 0x4F3, 0x4EF, 0x504)
         const val MIDDLE_X = 0x70
+        /** Frames of one slide-in or slide-out (`slide_offset` reaching 4). */
         const val SLIDE_STEPS = 4
         const val OBJECT_16X16 = 0x08590F4C
         const val UP_ARROW_LUT = 0x0859A530
         const val DOWN_ARROW_LUT = 0x0859A53C
+
+        /** `gSinLookup` (ROM): 256 signed 16-bit sine values. */
         const val SIN_LOOKUP = 0x080D751C
+
+        /**
+         * OAM attribute 2 of the multiplier marks before the hit count is added: OBJ tile 0x2E6
+         * and palette 2 (0x2000). With a hit count of 2 the tile is 0x2E8, the graphic that
+         * [forecastInit] loads to OBJ VRAM 0x06015D00 (0x2E8 * 0x20 = 0x5D00 into OBJ VRAM).
+         */
         const val MULTIPLIER_OAM2 = 0x22E6
+
+        /** `palAnimLut` of `UpdateBattleForecastEffectivenessPalettes`: step by frame. */
         val PAL_ANIM_LUT = intArrayOf(
             0, 1, 1, 2, 3, 4, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2,
             2, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         )
+
+        /** The `offsetLut` of `BattleForecast_LoopSlideIn`: columns shown per step. */
         val SLIDE_IN_LUT = intArrayOf(6, 8, 9, 10)
+
+        /** The `offsetLut` of `BattleForecast_LoopSlideOut`. */
         val SLIDE_OUT_LUT = intArrayOf(9, 8, 6, 0)
     }
 }

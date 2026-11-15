@@ -11,6 +11,9 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
+- EP-16 (spell association lookups), agent worktree `agent-ad917899f1083c681`, claimed 2026-11-15 15:50Z.
+- EP-11a (boss turn event, opcode 39 and event start), fresh agent, claimed 2026-11-15 15:50Z.
+
 
 ## Current state
 

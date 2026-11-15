@@ -99,8 +99,6 @@ class MapAnimStartDifferentialTest {
             }
             val hidden = ArrayList<Int>()
             api.hooks.hideUnitSprite = { id -> hidden += id }
-            // The battle quote (EP-28) follows the last compared command.
-            api.hooks.restOfAnimation = ProcFunc {}
             engine.start(
                 ProcScript(
                     "CombatAction (test)",

@@ -1130,6 +1130,7 @@ public class Fe8Boot(
             drawnIconLookupTable, iconGfxIdLookupTable, mapCursor, battle,
             battleGenerate,
             { eventEngine.eventEngineExists() },
+            { eventEngine.battleEventEngineExists() },
             pidStats,
         ).wire(phase, main, eventInfos)
         // The enemy phase (EP-2a, EP-3a/b): `AiPhaseInit`, the unit order and the decision loop.

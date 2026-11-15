@@ -97,6 +97,8 @@ internal class PlayerPhaseWiring(
     private val battleGenerate: BattleGenerate,
     /** `EventEngineExists`, which the forecast waits on. */
     private val eventEngineExists: () -> Boolean,
+    /** `BattleEventEngineExists`. */
+    private val battleEventEngineExists: () -> Boolean = { false },
     /** Per-unit battle stats (`gPidStatsData`). */
     private val pidStats: PidStats? = null,
 ) {
@@ -374,12 +376,19 @@ internal class PlayerPhaseWiring(
             h.doesBmxFadeExist.invoke(p)
         }
         // EP-13: the map battle animation start (MOVEUNITs and the animation proc).
-        val mapAnim = MapAnimApi(engine, bm, battle, battleGenerate, units, unitLoader, mu, rom, hw)
+        val mapAnim = MapAnimApi(
+            engine, bm, battle, battleGenerate, units, unitLoader, mu, rom, hw, camMove,
+        )
         mapAnim.hooks.renderBmMap = { render.renderBmMap() }
         mapAnim.hooks.hideUnitSprite = { id -> handles.hideUnitSprite(id) }
         mapAnim.hooks.showUnitSprite = { id -> handles.showUnitSprite(id) }
         mapAnim.hooks.spritePalette = { id -> handles.getUnitSpritePalette(id) }
         mapAnim.hooks.eventEngineExists = eventEngineExists
+        mapAnim.hooks.resetText = { talk.text.resetText() }
+        mapAnim.hooks.battleEventEngineExists = battleEventEngineExists
+        mapAnim.hooks.callBattleQuoteEventsIfAny = { pidA, pidB ->
+            infos.callBattleQuoteEventsIfAny(pidA, pidB)
+        }
         combat.hooks.beginBattleAnimations = ProcFunc { mapAnim.beginBattleAnimations() }
         h.actionCombat = gbafe.proc.ProcBoolFunc { combat.actionCombat(it) }
         h.battleAnimPreconfOff =

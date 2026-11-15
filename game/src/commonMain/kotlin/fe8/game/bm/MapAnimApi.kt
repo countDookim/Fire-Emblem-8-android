@@ -4,12 +4,17 @@ import fe8.game.RomView
 import fe8.game.bm.StructCodec.s8
 import fe8.game.bm.StructCodec.u32
 import gbafe.proc.Proc
+import gbafe.proc.ProcBoolFunc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts.call
 import gbafe.proc.ProcScripts.end
+import gbafe.proc.ProcScripts.goto
+import gbafe.proc.ProcScripts.label
+import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.sleep
+import gbafe.proc.ProcScripts.whileTrue
 import gbafe.render.BgHardware
 
 /**
@@ -58,6 +63,27 @@ public class ManimSt {
     /** `mapAnimKind` (u8, 0x62): `MANIM_KIND_*`. */
     public var mapAnimKind: Int = 0
 
+    /** `subjectActorId` (u8, 0x58): round attacker actor index (0 or 1). */
+    public var subjectActorId: Int = 0
+
+    /** `targetActorId` (u8, 0x59): round defender actor index (0 or 1). */
+    public var targetActorId: Int = 0
+
+    /** `hitAttributes` (u16, 0x5A): `BATTLE_HIT_ATTR_*` for the current round. */
+    public var hitAttributes: Int = 0
+
+    /** `hitInfo` (u8, 0x5C): `BATTLE_HIT_INFO_*` for the current round. */
+    public var hitInfo: Int = 0
+
+    /** `hitDamage` (s8, 0x5D): damage dealt in the current round. */
+    public var hitDamage: Int = 0
+
+    /** `xTarget` (u8, 0x60): camera target tile X. */
+    public var xTarget: Int = 0
+
+    /** `yTarget` (u8, 0x61): camera target tile Y. */
+    public var yTarget: Int = 0
+
     /** Layout constants. */
     public companion object {
         /** The actors of `gManimSt.actor`. */
@@ -65,6 +91,12 @@ public class ManimSt {
 
         /** `MANIM_KIND_DAMAGE`. */
         public const val KIND_DAMAGE: Int = 0
+
+        /** `MANIM_KIND_STEAL`. */
+        public const val KIND_STEAL: Int = 1
+
+        /** `MANIM_KIND_REFRESH`. */
+        public const val KIND_REFRESH: Int = 2
     }
 }
 
@@ -74,10 +106,9 @@ public class ManimSt {
  * which fill [state] (`gManimSt`), start one `ProcScr_Mu` per actor and the map animation proc
  * ([script]).
  *
- * [script] holds only the commands the capture runs after the start (`LockGame`, the battle talk
- * reset, SLEEP 1, camera onto the subject, SLEEP 2); the animation itself (EP-17 and later) is the
- * stand-in [Hooks.restOfAnimation]. Not written (no capture runs them; they fail loudly): the
- * dance / refresh animation (`BeginMapAnimForDance`), the event battle script
+ * [script] drives the map animation proc through talk reset, camera, battle quotes,
+ * MOVEUNIT palette, info box and round execution. Not written (no capture runs them; they fail
+ * loudly): the dance / refresh animation (`BeginMapAnimForDance`), the event battle script
  * (`ProcScr_MapAnimEventBattle`) and the link-arena style battle animations
  * (`BeginAnimsOnBattleAnimations`, EP-15).
  *
@@ -90,6 +121,7 @@ public class ManimSt {
  * @param mu the MOVEUNIT (`Mu`) system.
  * @param rom `gSpellAssocData`.
  * @param hardware BG 2 and the palette buffer of `BeginBattleAnimations`, `null` headless.
+ * @param camMove the map camera mover for [mapAnimMoveCameraOntoSubject], null headless.
  */
 public class MapAnimApi(
     private val engine: ProcEngine,
@@ -101,6 +133,7 @@ public class MapAnimApi(
     private val mu: Mu,
     private val rom: RomView,
     private val hardware: BgHardware? = null,
+    camMove: CamMove? = null,
 ) {
     /** What the start calls outside the ported functions. */
     public class Hooks {
@@ -119,7 +152,7 @@ public class MapAnimApi(
         /** `GetUnitSpritePalette(unit)` for the unit with id `unit` (its faction's OBJ bank). */
         public var spritePalette: (Int) -> Int = { 0 }
 
-        /** `EventEngineExists`: an event engine is running (the event battle proc is not written). */
+        /** `EventEngineExists`: event engine is running (the event battle proc is not written). */
         public var eventEngineExists: () -> Boolean = { false }
 
         /**
@@ -139,31 +172,70 @@ public class MapAnimApi(
         /** `SetDefaultColorEffects`: resets the blend registers. Display only: nothing happens. */
         public var setDefaultColorEffects: () -> Unit = {}
 
-        /** `MapAnim_PrepareBattleTalk`: `ResetText`. Display only: nothing happens. */
-        public var prepareBattleTalk: ProcFunc = ProcFunc {}
+        /** `ResetText`: resets text systems. Display only: nothing happens. */
+        public var resetText: () -> Unit = {}
 
-        /** `MapAnim_MoveCameraOntoSubject` (EP-17). Stand-in until EP-17: the camera stays. */
-        public var moveCameraOntoSubject: ProcFunc = ProcFunc {}
+        /** `EnsureCameraOntoPosition`: moves camera smoothly onto the subject. */
+        public var ensureCameraOntoPosition: (parent: Proc?, x: Int, y: Int) -> Boolean =
+            { _, _, _ -> false }
+
+        /** `CallBattleQuoteEventsIfAny`: checks and triggers battle quotes. */
+        public var callBattleQuoteEventsIfAny: (pidA: Int, pidB: Int) -> Unit = { _, _ -> }
+
+        /** `BattleEventEngineExists`: true while battle quote event is running. */
+        public var battleEventEngineExists: () -> Boolean = { false }
+
+        /** `StartMapAnimInfoWindow` (EP-20). Stand-in until EP-20: info box UI window. */
+        public var startMapAnimInfoWindow: (x: Int, y: Int, proc: Proc) -> Unit = { _, _, _ -> }
+
+        /** `MapAnim_DisplayRoundAnim` (EP-18). Stand-in until EP-18: round animation effect. */
+        public var displayRoundAnim: ProcFunc = ProcFunc {}
+
+        /** `MapAnim_ShowPoisonEffectIfAny` (EP-18). Stand-in until EP-18: map poison effect. */
+        public var showPoisonEffectIfAny: ProcFunc = ProcFunc {}
 
         /**
-         * The rest of `ProcScr_MapAnimBattle` (EP-17 to EP-26). Stand-in until EP-17: ends the
-         * MOVEUNITs, shows the sprites again and unlocks the game, so the animation lasts the few
-         * frames of the start and the battle result applies right after.
+         * `Proc_GotoScript into ProcScr_MapAnimEnd` (EP-18). Stand-in until EP-18: ends battle
+         * animation.
          */
-        public var restOfAnimation: ProcFunc = ProcFunc {}
+        public var mapAnimEnd: (Proc) -> Unit = {}
+
+        /** `SetBattleMuPaletteByIndex`: `SetMuPal`. */
+        public var setMuPal: (mu: Proc, pal: Int) -> Unit = { _, _ -> }
+
+        /** `SetBattleMuPaletteByIndex`: `SetMuSpecialSprite`. */
+        public var setMuSpecialSprite: (mu: Proc, classId: Int, palAddress: Int) -> Unit =
+            { _, _, _ -> }
+
+        /** `MapAnim_PrepareBattleTalk`: calls [mapAnimPrepareBattleTalk]. */
+        public var prepareBattleTalk: ProcFunc = ProcFunc {}
+
+        /** `MapAnim_MoveCameraOntoSubject`: calls [mapAnimMoveCameraOntoSubject]. */
+        public var moveCameraOntoSubject: ProcFunc = ProcFunc {}
+
     }
 
     /** The hooks, set by the game. */
-    public val hooks: Hooks = Hooks().also { it.restOfAnimation = ProcFunc { endAnimation() } }
+    public val hooks: Hooks = Hooks().also { h ->
+        if (camMove != null) {
+            h.ensureCameraOntoPosition = { parent, x, y ->
+                camMove.ensureCameraOntoPosition(parent, x, y)
+            }
+        }
+        h.prepareBattleTalk = ProcFunc { mapAnimPrepareBattleTalk() }
+        h.moveCameraOntoSubject = ProcFunc { mapAnimMoveCameraOntoSubject(it) }
+        h.mapAnimEnd = { p ->
+            endAnimation()
+            engine.end(p)
+        }
+    }
 
     /** `gManimSt`. */
     public val state: ManimSt = ManimSt()
 
     /**
-     * `ProcScr_MapAnimBattle` (0x089A3508): CALL `LockGame`, CALL `MapAnim_PrepareBattleTalk`,
-     * SLEEP 1, CALL `MapAnim_MoveCameraOntoSubject`, SLEEP 2, then the stand-in (EP-17)
-     * [Hooks.restOfAnimation] and END. A data table: its position and sleep timer are compared
-     * with the capture.
+     * `ProcScr_MapAnimBattle` (0x089A3508): 21 commands driving the map battle animation from lock
+     * through battle quotes, MOVEUNIT palettes, info box, round loop and ending jump.
      */
     public val script: ProcScript = ProcScript(
         "ProcScr_MapAnimBattle",
@@ -173,8 +245,22 @@ public class MapAnimApi(
             sleep(1),
             call(ProcFunc { hooks.moveCameraOntoSubject.invoke(it) }),
             sleep(2),
-            call(ProcFunc { hooks.restOfAnimation.invoke(it) }),
-            end(),
+            call(ProcFunc { mapAnimCallBattleQuoteEvents() }),
+            whileTrue(ProcBoolFunc { hooks.battleEventEngineExists() }),
+            sleep(5),
+            call(ProcFunc { setBattleMuPalette() }),
+            call(ProcFunc { setupBattleMoveUnits() }),
+            sleep(1),
+            call(ProcFunc { mapAnimInitInfoBox(it) }),
+            sleep(15),
+            label(0),
+            repeat(ProcFunc { mapAnimPrepareNextBattleRound(it) }),
+            call(ProcFunc { hooks.displayRoundAnim.invoke(it) }),
+            sleep(1),
+            call(ProcFunc { hooks.showPoisonEffectIfAny.invoke(it) }),
+            sleep(1),
+            sleep(5),
+            goto(0),
         ),
     )
 
@@ -271,9 +357,9 @@ public class MapAnimApi(
      * Ported from src/mapanim_api.c: MakeBattleMOVEUNIT
      *
      * Fills actor [index] of `gManimSt` with the unit at [offset] of [bytes] (GBA address
-     * [address]) and its battle unit [bu], and starts its MOVEUNIT. An obstacle's MOVEUNIT is hidden
-     * and a petrified unit's gets the gray palette; neither occurs in a capture (not written: they
-     * fail loudly).
+     * [address]) and its battle unit [bu], and starts its MOVEUNIT. An obstacle's MOVEUNIT is
+     * hidden and a petrified unit's gets the gray palette; neither occurs in a capture (not
+     * written: they fail loudly).
      */
     public fun makeBattleMoveUnit(
         index: Int,
@@ -386,7 +472,195 @@ public class MapAnimApi(
 
     private fun tattack(): Boolean = (generate.hitArray[0] and ATTR_TATTACK) != 0
 
-    /** The stand-in end of the animation, EP-17 (see [Hooks.restOfAnimation]). */
+    /**
+     * Transcribed from src/mapanim.c: MapAnim_PrepareBattleTalk (not verified: text display only).
+     *
+     * Resets active text for battle talk.
+     */
+    public fun mapAnimPrepareBattleTalk() {
+        hooks.resetText()
+    }
+
+    /**
+     * Ported from src/mapanim.c: MapAnim_MoveCameraOntoSubject
+     *
+     * Ensures camera is centered on actor 0 (the battle subject).
+     */
+    public fun mapAnimMoveCameraOntoSubject(proc: Proc) {
+        hooks.ensureCameraOntoPosition(proc, x(0), y(0))
+    }
+
+    /**
+     * Ported from src/mapanim.c: MapAnim_CallBattleQuoteEvents
+     *
+     * Triggers pre-battle quotes if both combatants are present.
+     */
+    public fun mapAnimCallBattleQuoteEvents() {
+        if (state.actorCount == 2) {
+            hooks.callBattleQuoteEventsIfAny(charId(0), charId(1))
+        }
+    }
+
+    /**
+     * Transcribed from src/mapanim.c: SetBattleMuPaletteByIndex (not verified: no Manakete/Myrrh
+     * actor appears in any Prologue capture, so the non-Myrrh return leaves MU palettes unchanged)
+     *
+     * Configures the MOVEUNIT palette and special sprite for transformed Manaketes.
+     */
+    public fun setBattleMuPaletteByIndex(actorNum: Int) {
+        val b0 = state.unitBytes[0] ?: return
+        val o0 = state.unitOffset[0]
+        val b1 = state.unitBytes[1] ?: return
+        val o1 = state.unitOffset[1]
+        val faction0 = b0[o0 + OFF_INDEX].toInt() and 0xC0
+        val faction1 = b1[o1 + OFF_INDEX].toInt() and 0xC0
+        if (faction0 == faction1) {
+            val isObstacle0 = u32(b0, o0 + OFF_CHARACTER) == 0
+            val isObstacle1 = u32(b1, o1 + OFF_CHARACTER) == 0
+            if (!isObstacle0 && !isObstacle1) return
+        }
+
+        val bActor = state.unitBytes[actorNum] ?: return
+        val oActor = state.unitOffset[actorNum]
+        val classPtr = u32(bActor, oActor + OFF_CLASS)
+        val classId = if (classPtr < UnitLoader.CLASS_DATA) {
+            0
+        } else {
+            (classPtr - UnitLoader.CLASS_DATA) / UnitLoader.CLASS_DATA_SIZE + 1
+        }
+        if (classId != CLASS_MANAKETE_MYRRH) return
+
+        val status = bActor[oActor + OFF_STATUS].toInt() and 0x0F
+        when (status) {
+            STATUS_SLEEP, STATUS_PETRIFY, STATUS_13 -> return
+        }
+
+        val otherActor = actorNum xor 1
+        val otherBu = state.bu[otherActor] ?: return
+        val otherWeapon = otherBu.weaponBefore and 0xFF
+        when (otherWeapon) {
+            ITEM_STAFF_SILENCE, ITEM_STAFF_SLEEP, ITEM_STAFF_BERSERK, ITEM_MONSTER_STONE -> return
+        }
+
+        val actorBu = state.bu[actorNum] ?: return
+        val actorWeapon = actorBu.weaponBefore and 0xFF
+        if (actorWeapon != ITEM_DIVINESTONE) return
+
+        state.mu[actorNum]?.let { muProc ->
+            hooks.setMuPal(muProc, BM_OBJPAL_BANIM_SPECIALMU + actorNum)
+            hooks.setMuSpecialSprite(muProc, CLASS_MANAKETE, PAL_MAP_ANIM_MANAKETE_MU)
+        }
+    }
+
+    /**
+     * Transcribed from src/mapanim.c: SetBattleMuPalette (not verified: no Manakete/Myrrh actor
+     * appears in any Prologue capture, so the non-Myrrh return leaves MU palettes unchanged)
+     *
+     * Sets MOVEUNIT palettes for participating actors.
+     */
+    public fun setBattleMuPalette() {
+        when (state.actorCount) {
+            2 -> {
+                setBattleMuPaletteByIndex(1)
+                setBattleMuPaletteByIndex(0)
+            }
+            1 -> {
+                setBattleMuPaletteByIndex(0)
+            }
+        }
+    }
+
+    /**
+     * Ported from src/mapanim.c: MapAnim_InitInfoBox
+     *
+     * Initializes the map animation battle info box window position.
+     */
+    public fun mapAnimInitInfoBox(proc: Proc) {
+        hooks.setDefaultColorEffects()
+
+        when (state.mapAnimKind) {
+            ManimSt.KIND_STEAL, ManimSt.KIND_REFRESH -> return
+            else -> {}
+        }
+
+        if (spells.getSpellAssocReturnBool(state.bu[0]!!.weaponBefore) != 0) {
+            val y: Int
+            if (state.actorCount == 1) {
+                val y0 = y(0) * 16 - bm.cameraY
+                y = if (y0 >= 112) y0 - 40 else y0 + 24
+            } else {
+                val array0 = y(0) * 16 - bm.cameraY
+                val array1 = y(1) * 16 - bm.cameraY
+                if (kotlin.math.abs(array0 - array1) >= 80) {
+                    y = 64
+                } else {
+                    val actorNum = if (array0 > array1) 0 else 1
+                    val chosen = if (actorNum == 0) array0 else array1
+                    val other = if (actorNum == 0) array1 else array0
+                    y = if (chosen >= 112) other - 40 else chosen + 24
+                }
+            }
+            hooks.startMapAnimInfoWindow(15, y / 8, proc)
+        }
+    }
+
+    /**
+     * Ported from src/mapanim.c: MapAnim_AdvanceBattleRound
+     *
+     * Advances to the next battle round and sets attacker/defender and hit fields.
+     */
+    public fun mapAnimAdvanceBattleRound() {
+        val hit = generate.hitArray[state.currentRound]
+        val info = BattleGenerate.info(hit)
+        val attributes = BattleGenerate.attributes(hit)
+        val hpChange = BattleGenerate.hpChange(hit)
+
+        state.subjectActorId = if ((info and BattleGenerate.INFO_RETALIATION) != 0) 1 else 0
+        state.targetActorId = 1 - state.subjectActorId
+
+        state.hitAttributes = attributes and 0xFFFF
+        state.hitInfo = info
+        state.hitDamage = hpChange
+
+        if (state.actorCount == 1) {
+            state.subjectActorId = 0
+            state.targetActorId = 0
+        }
+
+        state.currentRound++
+    }
+
+    /**
+     * Ported from src/mapanim.c: MapAnim_PrepareNextBattleRound
+     *
+     * Prepares next battle round or ends the battle if terminating entry reached.
+     */
+    public fun mapAnimPrepareNextBattleRound(proc: Proc) {
+        val hit = generate.hitArray[state.currentRound]
+        val info = BattleGenerate.info(hit)
+        if ((info and BattleGenerate.INFO_END) != 0) {
+            engine.breakProc(proc)
+            hooks.mapAnimEnd(proc)
+            return
+        }
+
+        mapAnimAdvanceBattleRound()
+        state.specialProcScr = spells.getSpellAssocMapAnimProcScript(
+            state.bu[state.subjectActorId]!!.weaponBefore,
+        )
+
+        engine.breakProc(proc)
+    }
+
+    private fun charId(actor: Int): Int {
+        val bytes = state.unitBytes[actor] ?: return 0
+        val offset = state.unitOffset[actor]
+        val charPtr = u32(bytes, offset + OFF_CHARACTER)
+        if (charPtr == 0) return 0
+        return rom.u8(charPtr + 4)
+    }
+
+    /** The stand-in end of the animation, EP-18 (see [Hooks.mapAnimEnd]). */
     private fun endAnimation() {
         mu.endAllMus()
         if (state.actorCount > 1) hooks.showUnitSprite(s8(battle.target.bytes, OFF_INDEX) and 0xFF)
@@ -405,14 +679,25 @@ public class MapAnimApi(
         private const val CONFIG_DANCERING = 1 shl 9
         private const val TERRAIN_WALL_DAMAGED = 0x1B
         private const val TERRAIN_SNAG = 0x33
+        private const val STATUS_SLEEP = 2
         private const val STATUS_PETRIFY = 0xB
         private const val STATUS_13 = 0xD
+        private const val OFF_CHARACTER = 0x00
         private const val OFF_CLASS = 0x04
         private const val OFF_INDEX = 0x0B
         private const val OFF_STATE = 0x0C
         private const val OFF_X = 0x10
         private const val OFF_Y = 0x11
         private const val OFF_STATUS = 0x30
+        private const val CLASS_MANAKETE = 0x0E
+        private const val CLASS_MANAKETE_MYRRH = 0x3C
+        private const val ITEM_STAFF_SILENCE = 0x51
+        private const val ITEM_STAFF_SLEEP = 0x52
+        private const val ITEM_STAFF_BERSERK = 0x53
+        private const val ITEM_DIVINESTONE = 0xAA
+        private const val ITEM_MONSTER_STONE = 0xB5
+        private const val BM_OBJPAL_BANIM_SPECIALMU = 8
+        private const val PAL_MAP_ANIM_MANAKETE_MU = 0x089A8F74
         private val LAYERS = intArrayOf(10, 9, 8, 7)
     }
 }

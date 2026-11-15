@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1218,
+    "verified": 1224,
     "implemented_unverified": 74
   },
   "functions": {
@@ -1305,6 +1305,26 @@
         "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
       ]
     },
+    "ChangeAiForCharacter": {
+      "decomp_file": "src/eventscr3.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventChangeAi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BossTurnEventDifferentialTest#opcode 39 at f3719 sets the boss AI bytes and positions to the captured values"
+      ]
+    },
+    "ChangeUnitAi": {
+      "decomp_file": "src/eventscr3.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventChangeAi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BossTurnEventDifferentialTest#opcode 39 at f3719 sets the boss AI bytes and positions to the captured values"
+      ]
+    },
     "ChapterIntro_8020010": {
       "decomp_file": "src/chapterintrofx.c",
       "system": "presentation",
@@ -1691,6 +1711,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aChannelTest#head channel volumes match the reference RAM dumps"
+      ]
+    },
+    "ClearActiveEventRegistry": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BossTurnEventDifferentialTest#the turn event start at f2964 reproduces the registry, flags and tutorial queue"
       ]
     },
     "ClearActiveFactionGrayedStates": {
@@ -3084,6 +3114,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.MoveUnitDifferentialTest#blue units end on the tiles of the r19400 dump after the opening moves"
+      ]
+    },
+    "Event39_ChangeAiScript": {
+      "decomp_file": "src/eventscr.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventChangeAi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BossTurnEventDifferentialTest#opcode 39 at f3719 sets the boss AI bytes and positions to the captured values"
       ]
     },
     "Event3A_DisplayPopup": {
@@ -4733,7 +4773,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },
@@ -8503,6 +8543,16 @@
         "fe8.testing.EntityBmMapsDifferentialTest#fog maps match the game on chapter 6"
       ]
     },
+    "RegisterEventActivation": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BossTurnEventDifferentialTest#the turn event start at f2964 reproduces the registry, flags and tutorial queue"
+      ]
+    },
     "RenderBmMap": {
       "decomp_file": "src/bmmap.c",
       "system": "battle_map",
@@ -8636,6 +8686,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
+      ]
+    },
+    "RunTutorialEvent": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BossTurnEventDifferentialTest#the turn event start at f2964 reproduces the registry, flags and tutorial queue"
       ]
     },
     "RunWaitEvents": {

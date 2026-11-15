@@ -13,8 +13,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- MC-18b: GPT owner PC Terra, level-up frame/stat drawing, until ~22:30Z (2026-11-15).
-- MC-18e: GPT owner PC Terra, level-up label palette cycle, until ~22:30Z (2026-11-15).
+- MC-18b: Claude owner PC (continuing GPT wip/gpt-mc18b), level-up frame/stat drawing, until ~23:30Z (2026-11-15).
+- MC-18e: Claude owner PC (continuing GPT wip/gpt-mc18e), level-up label palette cycle, until ~23:30Z (2026-11-15).
 
 
 - EP-17 (map animation flow A: mapanim.c), owner PC Gemini Flash agent `ep17`, claimed 2026-11-15 21:05Z.

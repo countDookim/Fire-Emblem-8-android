@@ -11,6 +11,8 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
+- EP-7b: owner PC GPT/Terra, until ~21:00Z; danger-map trace/capture investigation (isolated worktree).
+- EP-29a: owner PC GPT/Terra, until ~21:00Z; four battle item/range helpers; excludes Gemini/Claude claims.
 - EP-7d (AI movement command: AiScriptCmd_12_MoveTowardsEnemy, AiTryMoveTowards, AiFindTargetInReachByFunc), owner PC Gemini Flash agent `ep7d`, claimed 2026-11-15 16:51Z.
 - EP-27 (per-unit battle stats bmsave-bwl.c PidStatsAdd* / RecordDefeatInfo), owner PC Gemini Flash agent `ep27`, claimed 2026-11-15 16:51Z.
 - EP-11b (talk plumbing, scene.c), fresh agent, claimed 2026-11-15 16:15Z.

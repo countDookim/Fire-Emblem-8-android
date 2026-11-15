@@ -676,7 +676,7 @@ Total entries: 565 across 82 decomp files (missing reason: 0).
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
-| `AiGetCombatPositionScore` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | the capture has one candidate tile per target, so no captured value shows the score, only that it is not 0; the three components are a stand-in, EP-6a/6b |
+| `AiGetCombatPositionScore` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | the capture has one candidate tile per target, so no captured value shows the score, only that it is not 0; the three components are a stand-in, EP-6b |
 | `AiGetOpponentLowHpScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | its value shows only through a total that stays below 0, and that total includes the EP-6b components the test feeds with hand-computed values; a target above 20 HP is not seen |
 | `AiGetFriendZoneCombatScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | no allied unit stands within 3 tiles of the attacker's tile in either captured call, so it is 0 and no captured value shows it |
 | `AiGetTargetClassCombatScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | the rank is 9 for every class, one past the bonus list, so the bonus is the padding byte 0 in both captured calls and no captured value shows it; the rank is [CpUtility.aiGetClassRank] |

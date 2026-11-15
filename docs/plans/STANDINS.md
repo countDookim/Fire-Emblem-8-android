@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 231 across 46 Kotlin files.
+Total entries: 233 across 46 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -27,8 +27,7 @@ Total entries: 231 across 46 Kotlin files.
 | D11-wire-a | 2 |
 | EP-1 | 1 |
 | EP-12 | 15 |
-| EP-6a | 2 |
-| EP-6b | 7 |
+| EP-6b | 11 |
 | EP-8 | 1 |
 | EP-cap2 | 6 |
 | EP-w | 3 |
@@ -296,36 +295,33 @@ Total entries: 231 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `aiAttemptOffensiveAction` | Verified: the movement and range maps, the candidate tile, the target, the weapon slot and the simulated battle (via the decision and the dump at the score call); not seen: `AI_FLAG_STAY`, a tie, a... |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `ballistaCombat` | Stand-in for `AiAttemptBallistaCombat` (EP-12: never entered), for a `CA_BALLISTAE` unit. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `ballistaSimulation` | Stand-in for `BattleGenerateBallistaSimulation` (EP-12: never entered). |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `inBallistaBranch` | Stand-in for the `US_IN_BALLISTA` branch of `AiAttemptOffensiveAction` (`GetRiddenBallistaAt`, `TryRemoveUnitFromBallista`; EP-12: never entered): true to go on to the ballista combat. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `magicSealMap` | Stand-in for `UnitHasMagicRank` and `GenerateMagicSealMap(-1)` (EP-12: never entered): runs for every unit that is not in a ballista and not stealing. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `staffFunc` | Stand-in for the staff AI functions (cp_staff.c; EP-12: never entered). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `inBallistaBranch` | Stand-in for the `US_IN_BALLISTA` branch of `AiAttemptOffensiveAction` (`GetRiddenBallistaAt`, `TryRemoveUnitFromBallista`; EP-12: never entered): true when a ballista is ridden, to skip the weapon... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `magicSealMap` | Stand-in for `UnitHasMagicRank` and `GenerateMagicSealMap(-1)` (EP-12: never entered): runs after the movement map of every unit that is not in a ballista, a thief whose steal action did not decide... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `staffFunc` | Stand-in for the staff AI functions of `sAiStaffFuncLut` (cp_staff.c; EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `stealAction` | Stand-in for the `CA_STEAL` block of `AiAttemptOffensiveAction` (movement map, `MarkMovementMapEdges`, `AiAttemptStealActionWithinMovement`; EP-12: never entered): true when the function returned 1. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `tryRemoveFromBallista` | Stand-in for `TryRemoveUnitFromBallista(gActiveUnit)` (bmarch.c; EP-12: never entered), called only for a unit in a ballista. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `tryRemoveFromBallista` | Stand-in for the final `TryRemoveUnitFromBallista(gActiveUnit)` of a found attack (bmarch.c; EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `execFallbackScriptA` | Stand-in for `AiExecFallbackScriptA` (cp_script.c; EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `execFallbackScriptB` | Stand-in for `AiExecFallbackScriptB` (cp_script.c; EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `rogueSpecialItems` | Stand-in for the rogue part of `sub_8040C5C` (cpextra_80407F0.c, with `sub_8040B38`, `sub_8040BB4`, `sub_8040B8C`; EP-12: never entered); its result is the function's. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `specialItemFunc` | Stand-in for `sAiSpecialItemFuncLut[index].func(slot)` (cpextra_80407F0.c: `AiSpecialItemDoorKey`, `Lockpick`, `Antitoxin`; EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `sub8040C5C` | Transcribed from src/cpextra_80407F0.c: sub_8040C5C (not verified: only the non-rogue return runs, for Red 0 at f1613, and it shows in no captured value; the rogue part is a stand-in, EP-12) Rogue-... |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `script` | The AI script interpreter (cp_script.c); its hooks are the EP-12 stand-ins. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | `unportedCommand` | Stand-in for a command this class does not write (EP-12): called with the command index (`AI_CMD_*`: 00..04, 07..0D, 0F..1B, and 05 with an ignore list, whose predicates `AiIsUnitEnemyOrInScrList`... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | `unportedCommand` | Stand-in for a command this class does not write (EP-12 for 00..04, 07..0D, 0F..11, 13..1B and 05 with an ignore list, whose predicates `AiIsUnitEnemyOrInScrList` and `AiIsUnitEnemyAndNotInScrList`... |
 
-## EP-6a (2)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `aiGetCombatPositionScore` | Transcribed from src/cp_battle.c: AiGetCombatPositionScore (not verified: the capture has one candidate tile per target, so no captured value shows the score, only that it is not 0; the three compo... |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `positionScore` | Stand-in for `AiGetInRangeCombatPositionScoreComponent`, `AiGetTerrainCombatPositionScoreComponent` and `AiGetFriendZoneCombatPositionScoreComponent` (EP-6a/6b): their sum. |
-
-## EP-6b (7)
+## EP-6b (11)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `CpBattle` | The score of a simulated battle is written ([aiComputeCombatScore]) but for four components (turn, damage taken, danger, own low HP), and the three tile position components, which are EP-6b stand-i... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `CpBattle` | All stand-ins are [Hooks]. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `CpBattle` | The branches the capture never enters (`AiAttemptCombatWithinMovement` and the ballista, steal, magic seal and staff code) are EP-12 stand-ins. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `CpBattle` | The score of a simulated battle is written ([aiComputeCombatScore]) but for four components (turn, damage taken, danger, own low HP) and the three tile position components, which are EP-6b stand-in... |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `aiComputeCombatScore` | Verified: the damage dealt value and the clamp to 0 (the total is below 0 in both captured calls: the turn, damage taken, danger and low HP components are EP-6b stand-ins), the opponent's low HP te... |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `damageTakenScore` | Stand-in for `AiGetDamageTakenScoreComponent` (EP-6b), subtracted from the score. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `dangerScore` | Stand-in for `AiGetDangerScoreComponent` (EP-6b), subtracted from the score. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `lowHpScore` | Stand-in for `AiGetLowHpScoreComponent` (EP-6b), subtracted from the score. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `turnScore` | Stand-in for `AiGetTurnCombatScoreComponent` (EP-6b): `chapterTurnNumber` times the turn coefficient. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `aiGetCombatPositionScore` | Transcribed from src/cp_battle.c: AiGetCombatPositionScore (not verified: the capture has one candidate tile per target, so no captured value shows the score, only that it is not 0; the three compo... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `damageTakenScore` | Stand-in for `AiGetDamageTakenScoreComponent` (EP-6b), subtracted from the score: -10 when the target has no weapon, else the target's attack minus the actor's defense (not below 0) times its hit r... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `dangerScore` | Stand-in for `AiGetDangerScoreComponent` (EP-6b), subtracted from the score: an eighth of the danger map value (`gBmMapOther`) at the actor's tile times `coeffDanger`, at most 20. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `lowHpScore` | Stand-in for `AiGetLowHpScoreComponent` (EP-6b), subtracted from the score: 20 minus the actor's HP after the battle (not below 0) times `coeffLowHpSelf`. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `positionScore` | Stand-in for `AiGetInRangeCombatPositionScoreComponent`, `AiGetTerrainCombatPositionScoreComponent` and `AiGetFriendZoneCombatPositionScoreComponent` (EP-6b): their sum. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `turnScore` | Stand-in for `AiGetTurnCombatScoreComponent` (EP-6b): `chapterTurnNumber` of `gPlaySt` times `coeffTurnNumber`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `battle` | The AI attack search (cp_battle.c, `AiTryDoStaff` of cp_staff.c) and its hooks (EP-6b and EP-12 stand-ins); null (the script attacks nothing) when the constructor got no loader, map and entity maps. |
 
 ## EP-8 (1)

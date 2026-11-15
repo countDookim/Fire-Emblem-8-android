@@ -23,12 +23,14 @@ public fun interface AiTestTry {
 
 /**
  * The AI script interpreter of src/cp_script.c. A script is a table of 0x10-byte `struct AiScr`
- * entries in ROM, found through `gpAi1Table` / `gpAi2Table` by the unit's `ai1` / `ai2`; the unit's
- * `ai_a_pc` / `ai_b_pc` is the next entry. Each try runs one command.
+ * entries in ROM (byte 0 the command `AI_CMD_*`, byte 1 mostly a chance in percent, byte 2 the
+ * value stored in [AiState.unk7E], bytes 4 to 0xF arguments). The unit's `ai1` / `ai2` picks the
+ * script from row 0 of `gpAi1Table` / `gpAi2Table` (script A and B); the unit's `ai_a_pc` /
+ * `ai_b_pc` is the next entry. Each try runs one command.
  *
- * Written: [tryExecScriptA], [tryExecScriptB], [scriptExec], [aiIsUnitEnemy] and the commands 05,
- * 06 and 0E (the ones the Prologue's enemies run). Every other command index goes to
- * [Hooks.unportedCommand].
+ * Written: [tryExecScriptA], [tryExecScriptB], [scriptExec], [aiIsUnitEnemy] and the commands 05
+ * (`AI_CMD_ACTION`), 06 (`AI_CMD_NOP`) and 0E (`AI_CMD_NOP_0E`), the ones the Prologue's enemies
+ * run. Every other command index goes to [Hooks.unportedCommand].
  */
 public class CpScript(
     private val rom: RomView,
@@ -55,10 +57,12 @@ public class CpScript(
         public var tryDoStaff: AiTestTry? = null
 
         /**
-         * Stand-in for a command this class does not write (EP-12): called with the command
-         * index (`AI_CMD_*`: 00..04, 07..0D, 0F..1B, and 05 with an ignore list, whose
-         * predicates `AiIsUnitEnemyOrInScrList` and `AiIsUnitEnemyAndNotInScrList` are not
-         * written either). Null does nothing: the script stays on that command.
+         * Stand-in for a command this class does not write (EP-12 for 00..04, 07..0D, 0F..11,
+         * 13..1B and 05 with an ignore list, whose predicates `AiIsUnitEnemyOrInScrList` and
+         * `AiIsUnitEnemyAndNotInScrList` are not written either; 12 is EP-7d): called with the
+         * command index (`AI_CMD_*`). The label 1C has no entry in the C's `funcLut`, so the C
+         * reads past it; here it also reaches this hook. Null does nothing: the script stays on
+         * that command.
          */
         public var unportedCommand: AiIntStep? = null
     }
@@ -114,11 +118,12 @@ public class CpScript(
      * Ported from src/cp_script.c: AiScript_Exec
      *
      * Runs the command at [current] on the active unit's `ai_a_pc` or `ai_b_pc` (by the script
-     * kind): an entry with a command index of 0x1D or more is replaced by the fallback script's
-     * first entry, `unk7E` is set from the entry's byte 2, then the command runs. Verified: the
-     * dispatch of 05, 06 and 0E, and `unk7E` holding the entry's 0xFF (a write of another value
-     * fails; leaving the write out does not, `AiPhaseInit` set 0xFF already); not seen: the
-     * fallback replacement.
+     * kind): an entry with a command index of `AI_CMD_COUNT` or more is replaced by the first
+     * entry of `gAiScript_FallbackAi1` / `Ai2` (`AI_ACTION(100)` / `AI_MOVE_TO_ENEMY`),
+     * [AiState.unk7E] is set from the entry's byte 2 (`unk_02`), then the command runs.
+     * Verified: the dispatch of 05, 06 and 0E, and `unk7E` holding the entry's 0xFF (a write of
+     * another value fails; leaving the write out does not, `AiPhaseInit` set 0xFF already); not
+     * seen: the fallback replacement.
      */
     public fun scriptExec() {
         if (rom.u8(current) >= AI_CMD_COUNT) {
@@ -147,9 +152,10 @@ public class CpScript(
      * Ported from src/cp_script.c: AiScriptCmd_05_DoStandardAction
      *
      * Draws `NextRN_N(100)`; when it is at most the entry's chance (byte 1): with no ignore list
-     * (word at 8 is 0) tries a staff, then [Hooks.attemptOffensiveAction], else (the list
-     * predicates, EP-12) [Hooks.unportedCommand]; otherwise sets `decideState` to 4. Then
-     * advances the script. Verified: the draw (RNG state), the no-list branch and the advance;
+     * (the pointer at byte 8 is 0) tries a staff ([Hooks.tryDoStaff]) and, if none was used,
+     * [Hooks.attemptOffensiveAction], else (the list predicates, EP-12)
+     * [Hooks.unportedCommand]; otherwise sets [AiState.decideState] to 4. Then advances the
+     * script. Verified: the draw (RNG state), the no-list branch and the advance;
      * not seen: a failed chance roll (every captured chance is 100) and the ignore list.
      */
     private fun cmdDoStandardAction() {
@@ -177,7 +183,7 @@ public class CpScript(
         advancePc()
     }
 
-    /** `(*pc)++`: the active unit's `ai_a_pc` or `ai_b_pc` by the script kind (u8). */
+    /** `(*pc)++`: advances the active unit's `ai_a_pc` or `ai_b_pc` (by the script kind; u8). */
     private fun advancePc() {
         val id = active.unit
         if (scriptKind == KIND_AI1) {
@@ -189,23 +195,30 @@ public class CpScript(
 
     /** Constants of cp_script.c and the ROM tables it reads. */
     public companion object {
-        /** `AI_CMD_ACTION`. */
+        /** `AI_CMD_ACTION`: `AiScriptCmd_05_DoStandardAction`, attack or use a staff by chance. */
         public const val AI_CMD_ACTION: Int = 0x05
 
-        /** `AI_CMD_NOP`. */
+        /** `AI_CMD_NOP`: `AiScriptCmd_06_DoNothing`, advance only. */
         public const val AI_CMD_NOP: Int = 0x06
 
-        /** `AI_CMD_NOP_0E`. */
+        /** `AI_CMD_NOP_0E`: `AiScriptCmd_0E_DoNothing`, advance only. */
         public const val AI_CMD_NOP_0E: Int = 0x0E
 
-        /** `AI_CMD_COUNT`. */
+        /** `AI_CMD_COUNT` (cp_script.h): command indices at or above it use the fallback. */
         public const val AI_CMD_COUNT: Int = 0x1D
 
+        /** `AI_SCRIPT_AI1` and `AI_SCRIPT_AI2` (`enum ScriptKind`): script A and script B. */
         private const val KIND_AI1 = 0
         private const val KIND_AI2 = 1
+
+        /** `sizeof(struct AiScr)`. */
         private const val SCR_SIZE = 0x10
+
+        /** `gpAi2Table`, `gpAi1Table`: three pointers to the same table; row 0 is used. */
         private const val GP_AI2_TABLE = 0x085A91D8
         private const val GP_AI1_TABLE = 0x085A91E4
+
+        /** `gAiScript_FallbackAi1` (`AI_ACTION(100)`) and `gAiScript_FallbackAi2`. */
         private const val FALLBACK_AI1 = 0x085A812C
         private const val FALLBACK_AI2 = 0x085A813C
     }

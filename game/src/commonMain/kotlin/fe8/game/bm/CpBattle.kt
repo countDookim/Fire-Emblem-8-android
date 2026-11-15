@@ -30,13 +30,13 @@ public class AiCombatSimulationSt {
     }
 }
 
-/** A score component of the simulated battle (`int (*)(void)`). */
+/** A score component of the simulated battle (`int (*)(void)`), read from the battle units. */
 public fun interface AiScoreComponent {
     /** The component's value. */
     public fun run(): Int
 }
 
-/** The position score components: unit [target], tile ([x], [y]). */
+/** The position score components of a tile ([x], [y]) against the unit [target]. */
 public fun interface AiPositionScore {
     /** The sum of the three components for a unit standing on ([x], [y]) against [target]. */
     public fun run(x: Int, y: Int, target: Int): Int
@@ -73,10 +73,13 @@ public fun interface AiStaffStep {
  *
  * Written: [aiAttemptOffensiveAction] and the functions the Prologue's attackers run. The score
  * of a simulated battle is written ([aiComputeCombatScore]) but for four components (turn, damage
- * taken, danger, own low HP), and the three tile position components, which are EP-6b stand-ins;
- * the movement and reach ([CpUtility], EP-7) run for real, and the branches the capture never
- * enters (`AiAttemptCombatWithinMovement` and the ballista, steal, magic seal and staff code) are
- * EP-12 stand-ins, all through [Hooks].
+ * taken, danger, own low HP) and the three tile position components, which are EP-6b stand-ins
+ * ([Hooks.turnScore] to [Hooks.positionScore]). The movement and reach ([CpUtility], EP-7) run
+ * for real. The branches the capture never enters (`AiAttemptCombatWithinMovement` and the
+ * ballista, steal, magic seal and staff code) are EP-12 stand-ins. All stand-ins are [Hooks].
+ *
+ * The score formulas contain literals that have no name in the decomp (the caps 40, 20 and 10,
+ * the 50 for a kill, the factor 40, the divisor 8); they are kept as literals here too.
  */
 public class CpBattle(
     private val rom: RomView,
@@ -95,6 +98,7 @@ public class CpBattle(
     /** `GenerateUnitMovementMap`, `AiReachesByBirdsEyeDistance`, `AiGetClassRank`. */
     private val util: CpUtility,
 ) {
+    /** Item ranges, attributes and the required weapon rank. */
     private val items = ItemInfo(rom)
 
     /** Services outside the written functions; a null hook does nothing. */
@@ -106,40 +110,45 @@ public class CpBattle(
         public var battleGenerateSimulation: AiBattleSimulation? = null
 
         /**
-         * Stand-in for `AiGetTurnCombatScoreComponent` (EP-6b): `chapterTurnNumber` times the
-         * turn coefficient. Null counts as 0.
+         * Stand-in for `AiGetTurnCombatScoreComponent` (EP-6b): `chapterTurnNumber` of `gPlaySt`
+         * times `coeffTurnNumber`. Null counts as 0.
          */
         public var turnScore: AiScoreComponent? = null
 
         /**
-         * Stand-in for `AiGetDamageTakenScoreComponent` (EP-6b), subtracted from the score. Null
+         * Stand-in for `AiGetDamageTakenScoreComponent` (EP-6b), subtracted from the score: -10
+         * when the target has no weapon, else the target's attack minus the actor's defense (not
+         * below 0) times its hit rate, divided by 100, times `coeffDamageTaken`, at most 40. Null
          * counts as 0.
          */
         public var damageTakenScore: AiScoreComponent? = null
 
         /**
-         * Stand-in for `AiGetDangerScoreComponent` (EP-6b), subtracted from the score. Null
-         * counts as 0.
+         * Stand-in for `AiGetDangerScoreComponent` (EP-6b), subtracted from the score: an eighth
+         * of the danger map value (`gBmMapOther`) at the actor's tile times `coeffDanger`, at
+         * most 20. Null counts as 0.
          */
         public var dangerScore: AiScoreComponent? = null
 
         /**
-         * Stand-in for `AiGetLowHpScoreComponent` (EP-6b), subtracted from the score. Null counts
-         * as 0.
+         * Stand-in for `AiGetLowHpScoreComponent` (EP-6b), subtracted from the score: 20 minus
+         * the actor's HP after the battle (not below 0) times `coeffLowHpSelf`. Null counts as 0.
          */
         public var lowHpScore: AiScoreComponent? = null
 
         /**
          * Stand-in for `AiGetInRangeCombatPositionScoreComponent`,
          * `AiGetTerrainCombatPositionScoreComponent` and
-         * `AiGetFriendZoneCombatPositionScoreComponent` (EP-6a/6b): their sum. Null counts as 0.
+         * `AiGetFriendZoneCombatPositionScoreComponent` (EP-6b): their sum. Null counts as 0.
          */
         public var positionScore: AiPositionScore? = null
 
         /**
          * Stand-in for the `US_IN_BALLISTA` branch of `AiAttemptOffensiveAction`
-         * (`GetRiddenBallistaAt`, `TryRemoveUnitFromBallista`; EP-12: never entered): true to go
-         * on to the ballista combat. Null counts as false.
+         * (`GetRiddenBallistaAt`, `TryRemoveUnitFromBallista`; EP-12: never entered): true when a
+         * ballista is ridden, to skip the weapons and go on to the ballista combat. When false the
+         * C also calls `TryRemoveUnitFromBallista` before the weapons; the port does not yet.
+         * Null counts as false.
          */
         public var inBallistaBranch: AiTry? = null
 
@@ -152,7 +161,8 @@ public class CpBattle(
 
         /**
          * Stand-in for `UnitHasMagicRank` and `GenerateMagicSealMap(-1)` (EP-12: never entered):
-         * runs for every unit that is not in a ballista and not stealing.
+         * runs after the movement map of every unit that is not in a ballista, a thief whose
+         * steal action did not decide included.
          */
         public var magicSealMap: AiStep? = null
 
@@ -169,12 +179,16 @@ public class CpBattle(
         public var ballistaSimulation: AiBallistaSimulation? = null
 
         /**
-         * Stand-in for `TryRemoveUnitFromBallista(gActiveUnit)` (bmarch.c; EP-12: never
-         * entered), called only for a unit in a ballista.
+         * Stand-in for the final `TryRemoveUnitFromBallista(gActiveUnit)` of a found attack
+         * (bmarch.c; EP-12: never entered). The C calls it for every unit and the function checks
+         * `US_IN_BALLISTA` itself; the port calls the hook only for a unit in a ballista.
          */
         public var tryRemoveFromBallista: AiStep? = null
 
-        /** Stand-in for the staff AI functions (cp_staff.c; EP-12: never entered). */
+        /**
+         * Stand-in for the staff AI functions of `sAiStaffFuncLut` (cp_staff.c; EP-12: never
+         * entered). Null counts as false.
+         */
         public var staffFunc: AiStaffStep? = null
     }
 
@@ -184,7 +198,10 @@ public class CpBattle(
     /** `gBattleActor` and `gBattleTarget`; null (the score is not computed) until wired. */
     public var battleUnits: BmBattle? = null
 
+    /** `tmpResult` of `AiAttemptOffensiveAction`: the candidate being simulated. */
     private val tmpResult = AiCombatSimulationSt()
+
+    /** `finalResult` of `AiAttemptOffensiveAction`: the best candidate so far. */
     private val finalResult = AiCombatSimulationSt()
 
     /** `finalResult` of the last [aiAttemptOffensiveAction]: the best attack found. */
@@ -197,12 +214,13 @@ public class CpBattle(
     /**
      * Ported from src/cp_battle.c: AiAttemptOffensiveAction
      *
-     * Finds the best attack of the active unit: its movement map (the tile it stands on only
-     * with `AI_FLAG_STAY`), then for each usable weapon but the Nightmare staff and each enemy
+     * Finds the best attack of the active unit: its movement map (only the tile it stands on
+     * with `AI_FLAG_STAY`), then for each usable weapon except `ITEM_NIGHTMARE` and each enemy
      * ([test]) in reach the best tile ([aiSimulateBestBattleAgainstTarget]); the highest score
-     * wins (a tie goes to the later one). A found attack becomes the decision (combat, no
-     * target tile). Verified: the movement and range maps, the candidate tile, the target, the
-     * weapon slot and the simulated battle (via the decision and the dump at the score call);
+     * wins (a tie goes to the later one). A found attack becomes the decision
+     * (`AI_ACTION_COMBAT`, target tile 0).
+     * Verified: the movement and range maps, the candidate tile, the target, the weapon slot
+     * and the simulated battle (via the decision and the dump at the score call);
      * not seen: `AI_FLAG_STAY`, a tie, a second weapon, a unit in a ballista, a thief, a magic
      * unit (stand-ins, EP-12).
      */
@@ -267,7 +285,12 @@ public class CpBattle(
         }
     }
 
-    /** The unit loop of [aiAttemptOffensiveAction] for the weapon [item] in [slot]. */
+    /**
+     * The unit loop of [aiAttemptOffensiveAction] for the weapon [item] in [slot]: every unit
+     * (ids 1 to 0xBF) that is valid, not hidden, dead, rescued or `US_BIT16`, passes [test] and
+     * is within [CpUtility.aiReachesByBirdsEyeDistance] is simulated; the best score is kept in
+     * [finalResult].
+     */
     private fun searchTargets(test: AiUnitTest, item: Int, slot: Int) {
         val unit = active.unit
         var uid = 1
@@ -278,7 +301,7 @@ public class CpBattle(
                 !util.aiReachesByBirdsEyeDistance(unit, uid, item)
             if (!skip) {
                 aiFillReversedAttackRangeMap(uid, item)
-                tmpResult.targetId = units.index(uid) and 0xFF
+                tmpResult.targetId = units.index(uid) and 0xFF  // `unit->index`
                 if (aiSimulateBestBattleAgainstTarget(tmpResult) &&
                     Integer.compareUnsigned(tmpResult.score, finalResult.score) >= 0
                 ) {
@@ -307,8 +330,9 @@ public class CpBattle(
     /**
      * Ported from src/cp_battle.c: AiSimulateBestBattleAgainstTarget
      *
-     * Picks the tile for [st]'s target: of the tiles the active unit can reach, from which the
-     * target is in range and that no other unit holds, the one with the highest
+     * Picks the tile for [st]'s target: of the tiles the active unit can reach (movement value
+     * at most `MAP_MOVEMENT_MAX`), from which the target is in range (`gBmMapRange`) and that no
+     * other unit holds, the one with the highest
      * [aiGetCombatPositionScore] (the first found, scanning from the bottom right, on a tie).
      * Sets [AiCombatSimulationSt.xMove] and `yMove` and simulates that battle
      * ([aiSimulateBattleAgainstTargetAtPosition]); false when no tile scores. Verified: the
@@ -344,11 +368,12 @@ public class CpBattle(
     /**
      * Transcribed from src/cp_battle.c: AiGetCombatPositionScore (not verified: the capture has
      * one candidate tile per target, so no captured value shows the score, only that it is not
-     * 0; the three components are a stand-in, EP-6a/6b)
+     * 0; the three components are a stand-in, EP-6b)
      *
      * The u32 score (as its 32 bits) of standing on ([x], [y]) against [st]'s target: the
-     * position components, minus the movement cost, minus an eighth of the danger, plus
-     * 0x7FFFFFFF.
+     * position components, minus the movement map value of the tile (signed, the movement cost),
+     * minus an eighth of the danger map value (`gBmMapOther`), plus 0x7FFFFFFF (a literal in the
+     * C); the callers compare the sum as unsigned and treat 0 as "no tile".
      */
     public fun aiGetCombatPositionScore(x: Int, y: Int, st: AiCombatSimulationSt): Int {
         var score = hooks.positionScore?.run(x, y, st.targetId) ?: 0
@@ -361,9 +386,8 @@ public class CpBattle(
     /**
      * Ported from src/cp_battle.c: AiIsBadFight
      *
-     * Always false (FE6 used it for Eclipse). Verified through the score call of
-     * [aiSimulateBattleAgainstTargetAtPosition]:
-     * a true result leaves no decision.
+     * Always false (FE6 used it to check whether Eclipse is worthwhile). Verified through the
+     * score call of [aiSimulateBattleAgainstTargetAtPosition]: a true result leaves no decision.
      */
     @Suppress("UNUSED_PARAMETER")
     public fun aiIsBadFight(st: AiCombatSimulationSt): Boolean = false
@@ -371,9 +395,9 @@ public class CpBattle(
     /**
      * Ported from src/cp_battle.c: AiSimulateBattleAgainstTargetAtPosition
      *
-     * Simulates the battle of the active unit against [st]'s target on (`xMove`,
-     * `yMove`) with `itemSlot` (the ballista simulation for 0xFFFF), and unless it is a bad fight
-     * scores it ([aiComputeCombatScore]); true when scored.
+     * Simulates the battle of the active unit against [st]'s target on (`xMove`, `yMove`) with
+     * `itemSlot` (the ballista simulation for 0xFFFF) into the battle units, and unless it is a
+     * bad fight scores it ([aiComputeCombatScore]); true when scored.
      */
     public fun aiSimulateBattleAgainstTargetAtPosition(st: AiCombatSimulationSt): Boolean {
         if (st.itemSlot != 0xFFFF) {
@@ -393,14 +417,15 @@ public class CpBattle(
     /**
      * Ported from src/cp_battle.c: AiComputeCombatScore
      *
-     * Selects the coefficient row of `combatWeightTableId` and sets [AiCombatSimulationSt.score]
-     * of [st]: the damage dealt, plus the opponent's low HP, friend zone, target class and turn
-     * components, minus the damage taken, danger and own low HP components, clamped to 0 and
-     * times 40; a total of 0 gives the damage dealt component itself. Verified: the damage dealt
-     * value and the clamp to 0 (the total is below 0 in both captured calls: the turn, damage
-     * taken, danger and low HP components are EP-6b stand-ins), the opponent's low HP term
-     * (enough to leave the clamp when raised); not seen: a positive total, the other terms'
-     * signs.
+     * Selects the row of `gAiCombatScoreCoefficientTable` for [AiState.combatWeightTableId] and
+     * sets [AiCombatSimulationSt.score] of [st]: the damage dealt, plus the opponent's low HP,
+     * friend zone, target class and turn components, minus the damage taken, danger and own low
+     * HP components, clamped to 0 and times 40; a total of 0 gives the damage dealt component
+     * itself (so a fight that scores 0 overall still ranks by its damage).
+     * Verified: the damage dealt value and the clamp to 0 (the total is below 0 in both captured
+     * calls: the turn, damage taken, danger and low HP components are EP-6b stand-ins), the
+     * opponent's low HP term (enough to leave the clamp when raised); not seen: a positive
+     * total, the other terms' signs.
      */
     public fun aiComputeCombatScore(st: AiCombatSimulationSt) {
         coefficients = COEFF_TABLE + COEFF_STRIDE * aiState.combatWeightTableId
@@ -420,8 +445,9 @@ public class CpBattle(
     /**
      * Ported from src/cp_battle.c: AiGetDamageDealtCombatScoreComponent
      *
-     * 50 when the battle kills the target; else the actor's attack minus the target's defense
-     * (not below 0) times its hit chance, divided by 100, times the coefficient, at most 40.
+     * 50 when the simulated battle leaves the target at 0 HP; else the actor's attack minus
+     * the target's defense (not below 0) times the actor's effective hit rate, divided by 100,
+     * times `coeffDamageDealt`, at most 40.
      * Verified: the value 6 (3 times 2) in both captured calls; not seen: a kill, the cap, a
      * negative damage.
      */
@@ -441,7 +467,7 @@ public class CpBattle(
      * shows only through a total that stays below 0, and that total includes the EP-6b
      * components the test feeds with hand-computed values; a target above 20 HP is not seen)
      *
-     * The coefficient times 20 minus the target's HP after the battle, not below 0.
+     * `coeffLowHpOpponent` times (20 minus the target's HP after the battle), not below 0.
      */
     public fun aiGetOpponentLowHpScoreComponent(): Int {
         val b = battleUnits ?: return 0
@@ -456,9 +482,11 @@ public class CpBattle(
      * allied unit stands within 3 tiles of the attacker's tile in either captured call, so it
      * is 0 and no captured value shows it)
      *
-     * For each tile of the friend zone around the actor (a diamond of radius 3, score 4 minus
-     * the distance, as the C's table with its one off-pattern entry) that holds an ally: adds
-     * the tile's score; times the coefficient, at most 10.
+     * For each tile of `sFriendZoneRangeScoreLut` around the actor's tile that holds an ally
+     * (`AreUnitsAllied`): adds the tile's score, 4 minus its distance; times `coeffFriendZone`,
+     * at most 10. The table is a diamond of radius 3 except that the C lists (-3, +1) where
+     * (-1, -2) belongs (a decomp "BUG!" note); that entry scores 0 and (-1, -2) is never
+     * counted. `FRIEND_ZONE_X` and `FRIEND_ZONE_Y` keep the C's order.
      */
     public fun aiGetFriendZoneCombatScoreComponent(): Int {
         val b = battleUnits ?: return 0
@@ -488,7 +516,8 @@ public class CpBattle(
      * rank is 9 for every class, one past the bonus list, so the bonus is the padding byte 0 in
      * both captured calls and no captured value shows it; the rank is [CpUtility.aiGetClassRank])
      *
-     * The coefficient times the class rank bonus of the target's class, at most 20.
+     * `coeffClassRankBonus` times the entry of `classRankBonuses` for the rank of the target's
+     * class, at most 20.
      */
     public fun aiGetTargetClassCombatScoreComponent(): Int {
         val b = battleUnits ?: return 0
@@ -503,10 +532,12 @@ public class CpBattle(
     /**
      * Ported from src/cp_staff.c: AiTryDoStaff
      *
-     * A silenced unit does nothing; else each staff the unit can use (not below the experience
-     * of the last staff that decided) runs its AI function ([Hooks.staffFunc]). Returns whether
-     * a decision is set. Verified: the result for a unit without a staff (false, so the attack
-     * search runs: a true result leaves no decision); not seen: a silenced unit, a staff.
+     * A silenced unit (`UNIT_STATUS_SILENCED`) does nothing; else each staff in its inventory
+     * whose required rank (`GetItemRequiredExp`) is not below that of the last staff that set a
+     * decision runs its AI function ([Hooks.staffFunc], which returns false for a staff
+     * without one). Returns whether a decision is set (`actionPerformed`).
+     * Verified: the result for a unit without a staff (false, so the attack search runs: a true
+     * result leaves no decision); not seen: a silenced unit, a staff.
      */
     public fun aiTryDoStaff(test: AiUnitTest): Boolean {
         val unit = active.unit
@@ -529,34 +560,67 @@ public class CpBattle(
     }
 
     private companion object {
+        /** `gAiCombatScoreCoefficientTable` in the ROM: 32 rows of `COEFF_STRIDE` bytes. */
         const val COEFF_TABLE = 0x080D8178
+
+        /** Bytes per row (0x280 for 32 rows; the struct in cp_data.h shows fewer fields). */
         const val COEFF_STRIDE = 20
+
+        /** Offsets in a row of `struct AiCombatScoreCoefficients`: `coeffDamageDealt`. */
         const val COEFF_DAMAGE_DEALT = 0
+
+        /** `coeffLowHpOpponent`. */
         const val COEFF_LOW_HP_OPPONENT = 1
+
+        /** `coeffFriendZone`. */
         const val COEFF_FRIEND_ZONE = 2
+
+        /** `coeffClassRankBonus`. */
         const val COEFF_CLASS_RANK_BONUS = 3
+
+        /** `classRankBonuses`, indexed by the class rank. */
         const val COEFF_CLASS_BONUSES = 8
+
+        /** Offsets in `struct Unit` (bmunit.h): `pClassData`, `index`, `xPos`, `yPos`, `curHP`. */
         const val OFF_CLASS = 0x04
         const val OFF_INDEX = 0x0B
         const val OFF_X_POS = 0x10
         const val OFF_Y_POS = 0x11
         const val OFF_CUR_HP = 0x13
 
-        /** `sFriendZoneRangeScoreLut`: the offsets in the C's order (the (-3, +1) entry is odd). */
+        /** `sFriendZoneRangeScoreLut`: the x offsets in the C's order (see the component). */
         val FRIEND_ZONE_X = intArrayOf(
             0, -3, 0, 1, -2, -1, 0, 1, 2, -3, -2, -1, 1, 2, 3, -2, -1, 0, 1, 2, -1, 0, 1, 0,
         )
+
+        /** `sFriendZoneRangeScoreLut`: the y offsets, paired with `FRIEND_ZONE_X`. */
         val FRIEND_ZONE_Y = intArrayOf(
             -3, 1, -2, -2, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 3,
         )
+
+        /** `UNIT_ITEM_COUNT` (bmunit.h). */
         const val UNIT_ITEM_COUNT = 5
+
+        /** The `0xC0` of the `uid < 0xC0` unit loops: ids 1 to 0xBF (blue, green, red). */
         const val UNIT_ID_END = 0xC0
+
+        /** `MAP_MOVEMENT_MAX` (bmmap.h). */
         const val MAP_MOVEMENT_MAX = 120
+
+        /** `ITEM_NIGHTMARE` (constants/items.h). */
         const val ITEM_NIGHTMARE = 0xA6
+
+        /** `UNIT_STATUS_SILENCED` (bmunit.h). */
         const val UNIT_STATUS_SILENCED = 3
+
+        /** `AI_FLAG_STAY` (cp_common.h): the unit does not move. */
         const val AI_FLAG_STAY = 1 shl 1
+
+        /** `CA_STEAL`, `CA_BALLISTAE` (bmunit.h). */
         const val CA_STEAL = 1 shl 2
         const val CA_BALLISTAE = 1 shl 7
+
+        /** `US_*` unit state bits (bmunit.h). */
         const val US_HIDDEN = 1 shl 0
         const val US_DEAD = 1 shl 2
         const val US_RESCUED = 1 shl 5

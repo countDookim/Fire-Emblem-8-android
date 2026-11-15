@@ -37,6 +37,7 @@ import fe8.game.bm.MuUnit
 import fe8.game.bm.MuSpriteAnim
 import fe8.game.bm.MapCursor
 import fe8.game.bm.MapMusic
+import fe8.game.bm.MapTraps
 import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.PLAY_FLAG_HARD
 import fe8.game.bm.PhaseIntro
@@ -778,6 +779,10 @@ public class Fe8Boot(
      */
     private val trapPool = ByteArray(TRAP_POOL_SIZE)
 
+    /** `gTrapArray` / `sTrapPool` of the battle map, set by [wirePhases]. */
+    public var mapTraps: MapTraps? = null
+        private set
+
     /**
      * The unit sprite sheet state (`gUnitSpriteSlots`, index counters), set by
      * [wireUnitSprites].
@@ -1198,6 +1203,15 @@ public class Fe8Boot(
         main.hooks.terrainHealDisplay = phaseStartEnd.terrainHealDisplay
         main.hooks.poisonDamageDisplay = phaseStartEnd.poisonDamageDisplay
         main.hooks.gorgonEggHatchDisplay = phaseStartEnd.gorgonEggHatchDisplay
+        val trapsObj = MapTraps(
+            trapPool, battleBmMap, units, playSt, flags, SelectTargets(),
+        ).also {
+            it.hooks.refreshEntityBmMaps = { battleEntityMaps.refreshEntityBmMaps() }
+        }
+        mapTraps = trapsObj
+        battleEntityMaps.traps = trapsObj
+        main.hooks.updateTraps = trapsObj.updateTrapsScript
+        main.hooks.decayTraps = { trapsObj.decayTraps() }
     }
 
     /**

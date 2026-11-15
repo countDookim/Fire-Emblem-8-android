@@ -108,7 +108,7 @@ public class BMapMain(
 
         /**
          * `DecayTraps` (bmtrick.c:692): counts down torchlight and light rune traps and removes
-         * them at zero. Stand-in until M6-H.
+         * them at zero. `Fe8Boot` sets `MapTraps.decayTraps`.
          */
         public var decayTraps: () -> Unit = {}
 
@@ -197,7 +197,7 @@ public class BMapMain(
 
         /**
          * `gProcScr_UpdateTraps` (bmtrick.c:17): counts down the traps, computes and displays
-         * the trap damage. Stand-in until M6-H: ends at once.
+         * the trap damage. Default: ends at once; `Fe8Boot` sets [MapTraps.updateTrapsScript].
          */
         public var updateTraps: ProcScript = standIn("gProcScr_UpdateTraps")
 

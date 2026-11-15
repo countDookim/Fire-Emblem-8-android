@@ -982,15 +982,38 @@ public class BmBattle(
         (u8(bytes, offset + OFF_STATUS) and 0xF) == UnitLoader.UNIT_STATUS_SILENCED ||
             isPositionMagicSealed(s8(bytes, offset + OFF_X), s8(bytes, offset + OFF_Y))
 
-    /** `IsItemCoveringRange`: whether [range] is within the item's minimum and maximum range. */
-    private fun isItemCoveringRange(item: Int, range: Int): Boolean =
+    /**
+     * Transcribed from bmitem.c: GetUnitItemSlot
+     * (not verified: captured calls have one return value)
+     *
+     * Returns the first inventory slot containing [itemIndex], or -1 if absent. The captured
+     * calls only miss; matching slots are transcribed but not verified.
+     */
+    public fun getUnitItemSlot(bytes: ByteArray, offset: Int, itemIndex: Int): Int {
+        for (i in 0 until UnitLoader.UNIT_ITEM_COUNT) {
+            if (items.getItemIndex(u16(bytes, offset + OFF_ITEMS + 2 * i)) == itemIndex) return i
+        }
+        return -1
+    }
+
+    /**
+     * Transcribed from bmitem.c: IsItemCoveringRange
+     * (not verified: captured calls have one return value)
+     *
+     * Whether [range] is within the item's minimum and maximum range. Out-of-range results are
+     * transcribed but not verified by the captured calls.
+     */
+    public fun isItemCoveringRange(item: Int, range: Int): Boolean =
         items.getItemMinRange(item) <= range && range <= items.getItemMaxRange(item)
 
     /**
-     * `IsItemEffectiveAgainst`: whether [item] is effective against the unit at [offset] of
+     * Transcribed from bmitem.c: IsItemEffectiveAgainst
+     * (not verified: captured calls have one return value)
+     *
+     * Whether [item] is effective against the unit at [offset] of
      * [bytes]: its class is in the item's effectiveness list (`pEffectiveness`, class ids ending
      * in 0). For the flier lists the match only counts when no item the unit carries has
-     * `IA_NEGATE_FLYING`.
+     * `IA_NEGATE_FLYING`. Class matches and flying negation are transcribed but not verified.
      */
     public fun isItemEffectiveAgainst(item: Int, bytes: ByteArray, offset: Int): Boolean {
         val cls = u32(bytes, offset + OFF_CLASS)
@@ -1017,9 +1040,13 @@ public class BmBattle(
     }
 
     /**
+     * Transcribed from bmitem.c: IsUnitEffectiveAgainst
+     * (not verified: captured calls have one return value)
+     *
      * Bishop "Slayer": whether the actor is a Bishop (`CLASS_BISHOP` 0x2B, `CLASS_BISHOP_F` 0x2C)
      * and the target's class is a monster class (`ItemEffectiveness_Monsters`), so the Bishop's
-     * attacks are effective against it.
+     * attacks are effective against it. Bishop and monster branches are transcribed but not
+     * verified by the captured calls.
      */
     public fun isUnitEffectiveAgainst(
         actorBytes: ByteArray,

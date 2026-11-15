@@ -19,7 +19,8 @@ package fe8.testing
  * `_status_ui`, `_attack_noanim`, `_kill`, `_enemy_phase`, `_clear`, `_levelup`) resume the
  * same `prologue.sav` as `ram_trace_prologue_resume`; `ram_trace_newgame_intro` has the NEWGAME
  * input prefix of `ram_trace_newgame_bm` up to f9321, and `ram_trace_prologue_cutscene_skip` the
- * NEWGAME prefix of `ram_trace_prologue` up to f10004. All inherit the known divergence.
+ * NEWGAME prefix of `ram_trace_prologue` up to f10004. The battle-item and AI danger call
+ * captures share the Prologue clear timeline and resume save. All inherit the known divergence.
  */
 internal val M4A_UNCOVERED_RUNS: Set<String> = setOf(
     "sram_boot", "sram_preload", "ram_trace_newgame", "ram_trace_newgame_bm",
@@ -34,5 +35,5 @@ internal val M4A_UNCOVERED_RUNS: Set<String> = setOf(
     "ram_trace_newgame_intro", "ram_trace_prologue_cutscene_skip", "ram_trace_prologue_status_ui",
     "ram_trace_prologue_attack_noanim", "ram_trace_prologue_kill",
     "ram_trace_prologue_enemy_phase", "ram_trace_prologue_clear",
-    "ram_trace_prologue_levelup",
+    "ram_trace_prologue_levelup", "ram_trace_battle_item_helpers", "ram_trace_ai_danger_calls",
 )

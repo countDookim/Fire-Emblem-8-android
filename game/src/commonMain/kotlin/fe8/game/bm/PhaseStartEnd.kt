@@ -80,7 +80,7 @@ public class PhaseStartEnd(
         public var preparePoisonDefeats: Runnable = Runnable { }
     }
 
-    /** The `Make*TargetList` stand-in: leaves the target list empty. */
+    /** The `Make*TargetList` stand-in until EP-1b: leaves the target list empty. */
     private val emptyList = FactionAction { targets.initTargets(0, 0) }
 
     private val statusDecayInitFn = ProcFunc { statusDecayDisplayInit(it) }

@@ -686,7 +686,7 @@ Total entries: 567 across 83 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `DecideSpecialItems` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | it runs once, for Red 0, and changes nothing; leaving out the call keeps the test green |
-| `DecideHealOrEscape` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | it runs for all three enemies, but only the path of a unit that is not healing and has no `AI_UNIT_FLAG_3`; the berserk return and both branches are not seen, the branches are stand-ins, EP-cap2 |
+| `DecideHealOrEscape` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | it runs for all three enemies, but only the path of a unit that is not healing and has no `AI_UNIT_FLAG_3`; the berserk return and both branches are not seen, the branches are stand-ins, EP-12 |
 | `DecideScriptA` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only a script try that succeeds at once runs; the gorgon egg return, the berserk action and the fallback script never run |
 | `DecideScriptB` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only a script try that succeeds at once runs, for one unit; the ballista return, the berserk move and the fallback script never run |
 
@@ -754,7 +754,7 @@ Total entries: 567 across 83 decomp files (missing reason: 0).
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
-| `GetSpecialItemFuncIndex` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only the result -1 runs, for Red 0's items, and it shows in no captured value; a wrong hit would enter a special item function, which the EP-0 trace says never runs |
+| `GetSpecialItemFuncIndex` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only the result -1 runs, for Red 0's items, and it shows in no captured value; a wrong hit would enter a special item function, which the function trace of the Prologue says never runs |
 | `AiTryDoSpecialItems` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | it runs once, for Red 0, and changes nothing; its result is discarded by the caller |
 | `sub_8040C5C` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only the non-rogue return runs, for Red 0 at f1613, and it shows in no captured value; the rogue part is a stand-in, EP-12 |
 

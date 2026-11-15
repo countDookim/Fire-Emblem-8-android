@@ -20,25 +20,25 @@ public class AiDecision {
     /** `unitId` (u8, 0x01): `gActiveUnitId` when the decision was set. */
     public var unitId: Int = 0
 
-    /** `xMove` (u8, 0x02). */
+    /** `xMove` (u8, 0x02): the tile the unit moves to. */
     public var xMove: Int = 0
 
     /** `yMove` (u8, 0x03). */
     public var yMove: Int = 0
 
-    /** `unk04` (u8, 0x04). */
+    /** `unk04` (u8, 0x04): only cleared in the decomp; meaning unknown. */
     public var unk04: Int = 0
 
-    /** `unk05` (u8, 0x05). */
+    /** `unk05` (u8, 0x05): only cleared in the decomp; meaning unknown. */
     public var unk05: Int = 0
 
-    /** `targetId` (u8, 0x06). */
+    /** `targetId` (u8, 0x06): the `index` of the target unit of the action. */
     public var targetId: Int = 0
 
-    /** `itemSlot` (u8, 0x07). */
+    /** `itemSlot` (u8, 0x07): the inventory slot the action uses. */
     public var itemSlot: Int = 0
 
-    /** `xTarget` (u8, 0x08). */
+    /** `xTarget` (u8, 0x08): the target tile of the action (steal, pick), if it has one. */
     public var xTarget: Int = 0
 
     /** `yTarget` (u8, 0x09). */
@@ -60,13 +60,13 @@ public fun interface AiTry {
     public fun run(): Boolean
 }
 
-/** An AI step with one integer argument. */
+/** An AI step with one integer argument (an item slot or a command index). */
 public fun interface AiIntStep {
     /** Runs the step with [value]. */
     public fun run(value: Int)
 }
 
-/** An AI step with two integer arguments. */
+/** An AI step with two integer arguments (a special item function index and a slot). */
 public fun interface AiIntPairStep {
     /** Runs the step with [first] and [second]. */
     public fun run(first: Int, second: Int)
@@ -79,9 +79,11 @@ public fun interface AiProcStep {
 }
 
 /**
- * The AI decision loop of src/cp_decide.c: `gProcScr_CpDecide` (ROM 0x085A7FD4) and the decision
- * functions it runs for each unit of [AiState.units]. What later tasks own is reached through
- * [Hooks].
+ * The AI decision loop of src/cp_decide.c: `gProcScr_CpDecide` (ROM 0x085A7FCC) and the decision
+ * functions it runs for each unit of [AiState.units]: heal or escape, script A, script B and the
+ * special items. Each unit's decision is stored in [decision]; a decision that does something
+ * starts the perform proc ([CpPerform], through [Hooks.startCpPerform]). The branches the
+ * Prologue never enters (EP-12) and the save writer (EP-3c, EP-3d) are [Hooks] stand-ins.
  */
 public class CpDecide(
     private val engine: ProcEngine,
@@ -89,8 +91,8 @@ public class CpDecide(
     private val aiState: AiState,
     /** `gActiveUnit`, `gActiveUnitId` and `gActionData`. */
     private val active: ActiveUnit,
-    /** `AiUpdateGetUnitIsHealing`; null counts no unit as healing. */
-    private val aiFlags: CpUtility? = null,
+    /** `AiUpdateGetUnitIsHealing` and the distance tests; null counts no unit as healing. */
+    private val utility: CpUtility? = null,
     /** `RefreshEntityBmMaps`; null skips it. */
     private val entityMaps: EntityBmMaps? = null,
     /** Item rules for `AiFillDangerMap` and the special items. */
@@ -100,14 +102,15 @@ public class CpDecide(
     /** `gBmMapOther`, `gBmMapRange`, `gBmMapSize`; null skips the danger map. */
     private val map: BmMap? = null,
 ) {
+    /** Item might, type and power bonus for the danger map and the special items. */
     private val items: ItemInfo? = if (rom != null) ItemInfo(rom) else null
 
     /** Services outside this file; a null hook does nothing (a script try succeeds). */
     public class Hooks {
-        /** Stand-in for `RenderBmMap` (display; EP-w). */
+        /** `RenderBmMap` (display): `Fe8Boot` sets it to the map renderer. */
         public var renderBmMap: AiStep? = null
 
-        /** Stand-in for `RefreshUnitSprites` (display; EP-w). */
+        /** `RefreshUnitSprites` (display): `Fe8Boot` sets it. */
         public var refreshUnitSprites: AiStep? = null
 
         /**
@@ -138,14 +141,14 @@ public class CpDecide(
         /** Stand-in for `AiExecFallbackScriptB` (cp_script.c; EP-12: never entered). */
         public var execFallbackScriptB: AiStep? = null
 
-        /** Stand-in for `AiDoBerserkAction` (berserk script A; EP-cap2: never entered). */
+        /** Stand-in for `AiDoBerserkAction` (berserk script A; EP-12: never entered). */
         public var doBerserkAction: AiStep? = null
 
-        /** Stand-in for `AiDoBerserkMove` (berserk script B; EP-cap2: never entered). */
+        /** Stand-in for `AiDoBerserkMove` (berserk script B; EP-12: never entered). */
         public var doBerserkMove: AiStep? = null
 
         /**
-         * Stand-in for `GetRiddenBallistaAt(gActiveUnit->xPos, yPos) != NULL` (EP-cap2: never
+         * Stand-in for `GetRiddenBallistaAt(gActiveUnit->xPos, yPos) != NULL` (EP-12: never
          * entered). Null counts as false.
          */
         public var onRiddenBallista: AiTry? = null
@@ -153,37 +156,41 @@ public class CpDecide(
         /**
          * Stand-in for the healing branch of `DecideHealOrEscape`: `AiTryHealSelf`,
          * `AiTryMoveTowardsEscape`, `AiTryDanceOrStealAfterMove`, `AiTryGetNearestHealPoint`,
-         * `AiTryMoveTowards`, `AiTryActionAfterMove` (EP-cap2: never entered).
+         * `AiTryMoveTowards` (EP-7d), `AiTryActionAfterMove` (EP-12: never entered).
          */
         public var healBranch: AiStep? = null
 
         /**
          * Stand-in for the escape branch of `DecideHealOrEscape` for a unit that is not healing
          * but has `AI_UNIT_FLAG_3`: `AiTryMoveTowardsEscape`, `AiTryDanceOrStealAfterMove`
-         * (EP-cap2: never entered).
+         * (EP-12: never entered).
          */
         public var escapeBranch: AiStep? = null
 
         /**
-         * `Proc_StartBlocking(gProcScr_CpPerform, proc)`: [CpPerform.start] (`Fe8Boot` sets it).
+         * `Proc_StartBlocking(gProcScr_CpPerform, proc)`: `Fe8Boot` sets it to [CpPerform.start].
          * Null starts nothing, so the decision loop goes on at once.
          */
         public var startCpPerform: AiProcStep? = null
 
         /**
-         * Stand-in for `WriteSuspendSave(SAVE_ID_SUSPEND)` (bmsave.c; EP-w): called with the
-         * slot after `gActionData.suspendPointType` is set. Null does nothing.
+         * `WriteSuspendSave(SAVE_ID_SUSPEND)` (bmsave.c): `Fe8Boot` sets it; the writer's
+         * remaining pieces are EP-3c and EP-3d. Called with the slot after
+         * `gActionData.suspendPointType` is set. Null does nothing.
          */
         public var writeSuspendSave: AiIntStep? = null
     }
 
-    /** Services outside the ported files. */
+    /** The stand-ins (EP-12, EP-3c, EP-3d) and wiring points of this class. */
     public val hooks: Hooks = Hooks()
 
     /** `gAiDecision`. */
     public val decision: AiDecision = AiDecision()
 
+    /** `CpDecide_Main` as the proc function of [script]. */
     private val mainFn = ProcFunc { cpDecideMain(it) }
+
+    /** `CpDecide_Suspend` as the proc function of [script]. */
     private val suspendFn = ProcFunc { cpDecideSuspend() }
 
     /** `AiDecideMain` as an [AiStep], the value `AiDecideMainFunc` is set to. */
@@ -192,7 +199,7 @@ public class CpDecide(
     /** `AiDecideMainFunc`: what [cpDecideMain] runs for each unit. */
     public var aiDecideMainFunc: AiStep = decideMainStep
 
-    /** `gProcScr_CpDecide`. */
+    /** `gProcScr_CpDecide`: decide for a unit, wait, write the suspend save, next unit. */
     public val script: ProcScript = ProcScript(
         "gProcScr_CpDecide",
         listOf(
@@ -209,9 +216,9 @@ public class CpDecide(
     /**
      * Ported from src/cp_decide.c: CpDecide_Suspend
      *
-     * Sets `gActionData.suspendPointType` (`SUSPEND_POINT_BSKPHASE` for a blue active unit, else
-     * `SUSPEND_POINT_CPPHASE`) and writes the suspend save ([Hooks.writeSuspendSave]). Verified:
-     * the red case (twice); the blue case is not seen.
+     * Sets `gActionData.suspendPointType` (`SUSPEND_POINT_BSKPHASE` for a blue (player) active
+     * unit, else `SUSPEND_POINT_CPPHASE`) and writes the suspend save
+     * ([Hooks.writeSuspendSave]). Verified: the red case (twice); the blue case is not seen.
      */
     public fun cpDecideSuspend() {
         val type = if (units.index(active.unit) and FACTION_MASK == FACTION_BLUE) {
@@ -230,8 +237,10 @@ public class CpDecide(
      * active, refreshes the maps, clears and fills [decision] ([aiDecideMainFunc]), marks the
      * unit `US_HAS_MOVED_AI`, advances the iterator, and either loops to the next unit (no
      * action, or a move to the same tile) or starts the perform proc ([Hooks.startCpPerform])
-     * blocking [proc]. Verified: the loop, both starts of the perform proc, the marking, the
-     * end; not seen: a dead or unselectable unit being skipped, a move to the same tile with an
+     * blocking [proc]. A dead or unselectable unit is skipped. The C's `Proc_Goto(proc, 0)` for
+     * a decision that does nothing is the `continue` of the loop here.
+     * Verified: the loop, both starts of the perform proc, the marking, the end;
+     * not seen: a dead or unselectable unit being skipped, a move to the same tile with an
      * action, and the `combatWeightTableId` value (every captured `ai_config` is 0).
      */
     public fun cpDecideMain(proc: Proc) {
@@ -256,6 +265,7 @@ public class CpDecide(
 
             aiUpdateNoMoveFlag(id)
 
+            // The row of `gAiCombatScoreCoefficientTable` CpBattle scores with.
             aiState.combatWeightTableId = (units.aiConfig(id) and COMBATWEIGHT_MASK) shr
                 COMBATWEIGHT_SHIFT
 
@@ -304,7 +314,7 @@ public class CpDecide(
      * Ported from src/cp_decide.c: AiSetDecision
      *
      * Stores the arguments (each truncated to a byte) and the active unit's id in [decision] and
-     * marks it performed.
+     * marks it performed. `unk04` and `unk05` are left as they are.
      */
     public fun aiSetDecision(
         xMove: Int,
@@ -330,9 +340,10 @@ public class CpDecide(
     /**
      * Ported from src/cp_decide.c: AiDecideMain
      *
-     * Runs the decision functions in order (0 [decideHealOrEscape], 1 [decideScriptA], 2
-     * [decideScriptB], 3 [decideSpecialItems]) from [AiState.decideState], which counts up
-     * before each call, until one has set [decision] or the list (4 entries) is done.
+     * Runs the decision functions of `sDecideFuncList` in order (0 [decideHealOrEscape], 1
+     * [decideScriptA], 2 [decideScriptB], 3 [decideSpecialItems]) from [AiState.decideState],
+     * which counts up before each call, until one has set [decision] or the list (4 entries,
+     * then NULL) is done. A script command can reset `decideState` to 0 or 4.
      */
     public fun aiDecideMain() {
         while (aiState.decideState < DECIDE_FUNC_COUNT && !decision.actionPerformed) {
@@ -380,19 +391,21 @@ public class CpDecide(
     /**
      * Ported from src/cp_0803E2F4.c: AiFillDangerMap
      *
-     * For each valid, shown enemy of the active unit that has a weapon it can wield and could
-     * reach the active unit ([CpUtility.aiCouldReachByBirdsEyeDistance]): adds
-     * `(power + might) / 2` of its strongest weapon to every tile of
-     * [CpUtility.fillMovementAndRangeMapForItem]'s range map. As in the C, the best weapon
-     * and its might carry over from one unit to the next. Verified (EP-7: the reach test, the
-     * movement and the range map run for real): the unit filters, the weapon choice, the damage
+     * For each valid enemy of the active unit that is not hidden, dead, undeployed or
+     * `US_BIT16`, has a weapon it can wield and could reach the active unit
+     * ([CpUtility.aiCouldReachByBirdsEyeDistance]): adds `(power + might) / 2`, from its
+     * strongest wieldable weapon's might and its `GetUnitPower`, to every tile of
+     * [CpUtility.fillMovementAndRangeMapForItem]'s range map. As in the C ("BUG: Item is never
+     * re-initialized in the loop"), the best weapon and its might carry over from one unit to
+     * the next. Verified (the reach test, the movement and the range map run for real): the
+     * unit filters, the weapon choice, the damage
      * formula and the accumulation, for the three units; not seen: a unit with a second
      * weapon, a hidden or undeployed enemy.
      */
     private fun aiFillDangerMap(m: BmMap) {
         val loader = loader ?: return
         val items = items ?: return
-        val util = aiFlags ?: return
+        val util = utility ?: return
         var item = 0
         var might = 0
         for (i in 1 until 0xC0) {
@@ -420,6 +433,7 @@ public class CpDecide(
 
             util.fillMovementAndRangeMapForItem(i, item)
 
+            // `GetUnitPower`: the unit's Pow plus the Pow bonus of its equipped weapon.
             val power = units.bytes[o + OFF_POW] + items.getItemPowBonus(
                 loader.getUnitEquippedWeapon(o),
             )
@@ -447,10 +461,10 @@ public class CpDecide(
     /**
      * Transcribed from src/cpextra_80407F0.c: GetSpecialItemFuncIndex (not verified: only the
      * result -1 runs, for Red 0's items, and it shows in no captured value; a wrong hit would
-     * enter a special item function, which the EP-0 trace says never runs)
+     * enter a special item function, which the function trace of the Prologue says never runs)
      *
-     * The index into the special item table (0 door key, 1 lockpick, 2 antitoxin) of [item], or
-     * -1.
+     * The index into `sAiSpecialItemFuncLut` (0 `ITEM_DOORKEY`, 1 `ITEM_LOCKPICK`, 2
+     * `ITEM_ANTITOXIN`) of [item], or -1.
      */
     public fun getSpecialItemFuncIndex(item: Int): Int {
         val itemId = item and 0xFF
@@ -464,9 +478,9 @@ public class CpDecide(
      * Transcribed from src/cpextra_80407F0.c: AiTryDoSpecialItems (not verified: it runs once,
      * for Red 0, and changes nothing; its result is discarded by the caller)
      *
-     * Not when `AI_FLAG_STAY`; [sub8040C5C] first; then runs the special item function of each
-     * inventory item whose type is not 0. Returns whether a decision was made (true when
-     * [AiState.decideState] is 0).
+     * Not when `AI_FLAG_STAY`; [sub8040C5C] first; then runs the special item function
+     * ([Hooks.specialItemFunc]) of each inventory item whose item type is not 0. Returns
+     * whether a decision was made (true when [AiState.decideState] is 0).
      */
     public fun aiTryDoSpecialItems(): Boolean {
         if (aiState.flags and AI_FLAG_STAY != 0) return false
@@ -489,7 +503,9 @@ public class CpDecide(
      * return runs, for Red 0 at f1613, and it shows in no captured value; the rogue part is a
      * stand-in, EP-12)
      *
-     * Rogue-only item pickup: false for any other class ([Hooks.rogueSpecialItems] otherwise).
+     * Rogue-only (`CLASS_ROGUE`) behaviour: with a full inventory it sets `AI_UNIT_FLAG_3` and
+     * resets `decideState`; otherwise it can decide an `AI_ACTION_PICK` move. False for any
+     * other class; for a rogue the result of [Hooks.rogueSpecialItems].
      */
     public fun sub8040C5C(): Boolean {
         if (units.classId(active.unit) != CLASS_ROGUE) return false
@@ -499,7 +515,7 @@ public class CpDecide(
     /**
      * Transcribed from src/cp_decide.c: DecideHealOrEscape (not verified: it runs for all three
      * enemies, but only the path of a unit that is not healing and has no `AI_UNIT_FLAG_3`; the
-     * berserk return and both branches are not seen, the branches are stand-ins, EP-cap2)
+     * berserk return and both branches are not seen, the branches are stand-ins, EP-12)
      *
      * Does nothing when berserked; for a healing unit runs [Hooks.healBranch]; else, for a unit
      * with `AI_UNIT_FLAG_3`, [Hooks.escapeBranch].
@@ -507,7 +523,7 @@ public class CpDecide(
     public fun decideHealOrEscape() {
         if (aiState.flags and CpPhase.AI_FLAG_BERSERKED != 0) return
         val id = active.unit
-        if (aiFlags != null && aiFlags.aiUpdateGetUnitIsHealing(id)) {
+        if (utility != null && utility.aiUpdateGetUnitIsHealing(id)) {
             hooks.healBranch?.run()
         } else if (units.aiFlags(id) and AI_UNIT_FLAG_3 != 0) {
             hooks.escapeBranch?.run()
@@ -562,40 +578,67 @@ public class CpDecide(
         hooks.execFallbackScriptB?.run()
     }
 
-    /** Constants of cp_decide.c and the headers it uses. */
+    /** Constants of cp_decide.c and the headers it uses (cp_common.h, types.h, bmunit.h). */
     public companion object {
         /** `AI_ACTION_NONE`: move only. */
         public const val AI_ACTION_NONE: Int = 0
 
-        /** `AI_ACTION_COMBAT`. */
+        /** `AI_ACTION_COMBAT`: attack with the item in `itemSlot`. */
         public const val AI_ACTION_COMBAT: Int = 1
 
-        /** `SUSPEND_POINT_CPPHASE`. */
+        /** `SUSPEND_POINT_CPPHASE`: suspended during the enemy or ally phase. */
         public const val SUSPEND_POINT_CPPHASE: Int = 2
 
-        /** `SUSPEND_POINT_BSKPHASE`. */
+        /** `SUSPEND_POINT_BSKPHASE`: suspended during the berserk phase. */
         public const val SUSPEND_POINT_BSKPHASE: Int = 3
 
+        /** The non-NULL entries of `sDecideFuncList`. */
         private const val DECIDE_FUNC_COUNT = 4
+
+        /** `UNIT_ITEM_COUNT` (bmunit.h). */
         private const val UNIT_ITEM_COUNT = 5
+
+        /** Offset of `pow` in `struct Unit` (bmunit.h). */
         private const val OFF_POW = 0x14
+
+        /** `AI_FLAG_STAY` (cp_common.h), a bit of [AiState.flags]. */
         private const val AI_FLAG_STAY = 1 shl 1
+
+        /** `AI_UNIT_CONFIG_FLAG_STAY` (cp_common.h), a bit of the unit's `ai_config`. */
         private const val AI_UNIT_CONFIG_FLAG_STAY = 1 shl 13
+
+        /** `US_*` unit state bits (bmunit.h). */
         private const val US_HIDDEN = 1 shl 0
         private const val US_NOT_DEPLOYED = 1 shl 3
         private const val US_BIT16 = 1 shl 16
+
+        /** `CLASS_ROGUE` (constants/classes.h). */
         private const val CLASS_ROGUE = 0x33
+
+        /** `ITEM_DOORKEY`, `ITEM_LOCKPICK`, `ITEM_ANTITOXIN` of `sAiSpecialItemFuncLut`. */
         private val SPECIAL_ITEM_IDS = intArrayOf(0x6A, 0x6B, 0x6F)
+
+        /** The `0x100` of the script try loops of `DecideScriptA` and `DecideScriptB`. */
         private const val SCRIPT_TRIES = 0x100
+
+        /** `UNIT_FACTION(unit)` is `index & 0xC0`; `FACTION_BLUE` (bmunit.h) is 0. */
         private const val FACTION_MASK = 0xC0
         private const val FACTION_BLUE = 0
+
+        /** `US_UNSELECTABLE`, `US_DEAD`, `US_HAS_MOVED_AI`, `US_IN_BALLISTA` (bmunit.h). */
         private const val US_UNSELECTABLE = 1 shl 1
         private const val US_DEAD = 1 shl 2
         private const val US_HAS_MOVED_AI = 1 shl 10
         private const val US_IN_BALLISTA = 1 shl 11
+
+        /** `AI_UNIT_FLAG_3` (cp_common.h), a bit of `Unit::aiFlags`. */
         private const val AI_UNIT_FLAG_3 = 1 shl 3
+
+        /** `AI_UNIT_CONFIG_COMBATWEIGHT_MASK` and `_SHIFT` (cp_common.h): bits 3 to 7. */
         private const val COMBATWEIGHT_MASK = 0xF8
         private const val COMBATWEIGHT_SHIFT = 3
+
+        /** `CLASS_GORGONEGG2`, `CLASS_GORGONEGG` (the two classes of `UNIT_IS_GORGON_EGG`). */
         private const val CLASS_GORGONEGG2 = 0x34
         private const val CLASS_GORGONEGG = 0x62
     }

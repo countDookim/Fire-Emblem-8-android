@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 238 across 47 Kotlin files.
+Total entries: 237 across 47 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -26,14 +26,13 @@ Total entries: 238 across 47 Kotlin files.
 | D09-3 | 2 |
 | D11-wire-a | 1 |
 | EP-1 | 1 |
-| EP-12 | 17 |
-| EP-1b | 3 |
+| EP-12 | 24 |
+| EP-1b | 4 |
 | EP-6b | 11 |
+| EP-7d | 1 |
 | EP-9 | 1 |
 | EP-9b | 1 |
 | EP-9c | 1 |
-| EP-cap2 | 6 |
-| EP-w | 3 |
 | IS-2 | 1 |
 | MC-17 | 1 |
 | MC-6 | 1 |
@@ -42,7 +41,6 @@ Total entries: 238 across 47 Kotlin files.
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
-| unassigned | 1 |
 
 ## M6-B (16)
 
@@ -290,7 +288,7 @@ Total entries: 238 across 47 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `phaseStartEnd` | The target list is its own: the displays' `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w shares one list with the player phase when the real `Make*TargetList`... |
 
-## EP-12 (17)
+## EP-12 (24)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -302,8 +300,15 @@ Total entries: 238 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `staffFunc` | Stand-in for the staff AI functions of `sAiStaffFuncLut` (cp_staff.c; EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `stealAction` | Stand-in for the `CA_STEAL` block of `AiAttemptOffensiveAction` (movement map, `MarkMovementMapEdges`, `AiAttemptStealActionWithinMovement`; EP-12: never entered): true when the function returned 1. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `tryRemoveFromBallista` | Stand-in for the final `TryRemoveUnitFromBallista(gActiveUnit)` of a found attack (bmarch.c; EP-12: never entered). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `CpDecide` | The branches the Prologue never enters (EP-12) and the save writer (EP-3c, EP-3d) are [Hooks] stand-ins. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `decideHealOrEscape` | Transcribed from src/cp_decide.c: DecideHealOrEscape (not verified: it runs for all three enemies, but only the path of a unit that is not healing and has no `AI_UNIT_FLAG_3`; the berserk return an... |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `doBerserkAction` | Stand-in for `AiDoBerserkAction` (berserk script A; EP-12: never entered). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `doBerserkMove` | Stand-in for `AiDoBerserkMove` (berserk script B; EP-12: never entered). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `escapeBranch` | Stand-in for the escape branch of `DecideHealOrEscape` for a unit that is not healing but has `AI_UNIT_FLAG_3`: `AiTryMoveTowardsEscape`, `AiTryDanceOrStealAfterMove` (EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `execFallbackScriptA` | Stand-in for `AiExecFallbackScriptA` (cp_script.c; EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `execFallbackScriptB` | Stand-in for `AiExecFallbackScriptB` (cp_script.c; EP-12: never entered). |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `hooks` | The stand-ins (EP-12, EP-3c, EP-3d) and wiring points of this class. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `onRiddenBallista` | Stand-in for `GetRiddenBallistaAt(gActiveUnit->xPos, yPos) != NULL` (EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `rogueSpecialItems` | Stand-in for the rogue part of `sub_8040C5C` (cpextra_80407F0.c, with `sub_8040B38`, `sub_8040BB4`, `sub_8040B8C`; EP-12: never entered); its result is the function's. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `specialItemFunc` | Stand-in for `sAiSpecialItemFuncLut[index].func(slot)` (cpextra_80407F0.c: `AiSpecialItemDoorKey`, `Lockpick`, `Antitoxin`; EP-12: never entered). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `sub8040C5C` | Transcribed from src/cpextra_80407F0.c: sub_8040C5C (not verified: only the non-rogue return runs, for Red 0 at f1613, and it shows in no captured value; the rogue part is a stand-in, EP-12) Rogue-... |
@@ -312,10 +317,11 @@ Total entries: 238 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `script` | The AI script interpreter (cp_script.c); its hooks are the EP-12 stand-ins. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | `unportedCommand` | Stand-in for a command this class does not write (EP-12 for 00..04, 07..0D, 0F..11, 13..1B and 05 with an ignore list, whose predicates `AiIsUnitEnemyOrInScrList` and `AiIsUnitEnemyAndNotInScrList`... |
 
-## EP-1b (3)
+## EP-1b (4)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `emptyList` | The `Make*TargetList` stand-in until EP-1b: leaves the target list empty. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makeGorgonEggHatchTargetList` | Stand-in until EP-1b: empty list. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makePoisonDamageTargetList` | Stand-in until EP-1b: empty list. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makeTerrainHealTargetList` | Stand-in until EP-1b: when null, [PhaseStartEnd] only does `InitTargets(0, 0)`, so the list is empty. |
@@ -336,6 +342,12 @@ Total entries: 238 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `turnScore` | Stand-in for `AiGetTurnCombatScoreComponent` (EP-6b): `chapterTurnNumber` of `gPlaySt` times `coeffTurnNumber`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `battle` | The AI attack search (cp_battle.c, `AiTryDoStaff` of cp_staff.c) and its hooks (EP-6b and EP-12 stand-ins); null (the script attacks nothing) when the constructor got no loader, map and entity maps. |
 
+## EP-7d (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `healBranch` | Stand-in for the healing branch of `DecideHealOrEscape`: `AiTryHealSelf`, `AiTryMoveTowardsEscape`, `AiTryDanceOrStealAfterMove`, `AiTryGetNearestHealPoint`, `AiTryMoveTowards` (EP-7d), `AiTryActio... |
+
 ## EP-9 (1)
 
 | Kotlin file | Declaration | Stand-in |
@@ -353,25 +365,6 @@ Total entries: 238 across 47 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `newBmxFade` | Stand-in for `NewBMXFADE(flag)` (bmxfade.c; EP-9c). |
-
-## EP-cap2 (6)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `decideHealOrEscape` | Transcribed from src/cp_decide.c: DecideHealOrEscape (not verified: it runs for all three enemies, but only the path of a unit that is not healing and has no `AI_UNIT_FLAG_3`; the berserk return an... |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `doBerserkAction` | Stand-in for `AiDoBerserkAction` (berserk script A; EP-cap2: never entered). |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `doBerserkMove` | Stand-in for `AiDoBerserkMove` (berserk script B; EP-cap2: never entered). |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `escapeBranch` | Stand-in for the escape branch of `DecideHealOrEscape` for a unit that is not healing but has `AI_UNIT_FLAG_3`: `AiTryMoveTowardsEscape`, `AiTryDanceOrStealAfterMove` (EP-cap2: never entered). |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `healBranch` | Stand-in for the healing branch of `DecideHealOrEscape`: `AiTryHealSelf`, `AiTryMoveTowardsEscape`, `AiTryDanceOrStealAfterMove`, `AiTryGetNearestHealPoint`, `AiTryMoveTowards`, `AiTryActionAfterMo... |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `onRiddenBallista` | Stand-in for `GetRiddenBallistaAt(gActiveUnit->xPos, yPos) != NULL` (EP-cap2: never entered). |
-
-## EP-w (3)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `refreshUnitSprites` | Stand-in for `RefreshUnitSprites` (display; EP-w). |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `renderBmMap` | Stand-in for `RenderBmMap` (display; EP-w). |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `writeSuspendSave` | Stand-in for `WriteSuspendSave(SAVE_ID_SUSPEND)` (bmsave.c; EP-w): called with the slot after `gActionData.suspendPointType` is set. |
 
 ## IS-2 (1)
 
@@ -420,9 +413,3 @@ Total entries: 238 across 47 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
-
-## unassigned (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `emptyList` | The `Make*TargetList` stand-in: leaves the target list empty. |

@@ -16,8 +16,9 @@ import gbafe.proc.ProcScripts.yield
 
 /**
  * `struct GMapAutoMuProc` past `PROC_HEADER`: one scripted walk of a world map unit (the
- * "auto" movement that event commands `A8` / `A9` start). Unions of `target` are flattened
- * into the `src*` / `dst*` fields.
+ * "auto" movement that the event commands `EventA8_WmUnitMoveFree` and
+ * `EventA9_WmUnitMovePaths` start). The unions of `target` are flattened into the `src*` /
+ * `dst*` fields; the `u16` at +0x2E (`unk_2e`) is never used by the decomp and is not kept.
  */
 public class GmapAutoMuProc {
     /** `kind` (+0x29): 0 moves from node to node, 1 moves between two map positions. */
@@ -25,8 +26,8 @@ public class GmapAutoMuProc {
 
     /**
      * `flags` (+0x2A): bit 0 fade the unit in first, bit 1 fade it out and hide it at the end,
-     * bit 2 is passed on to the map unit's move input (`flags_5` of `GMapMuPrimProc`; meaning
-     * unknown).
+     * bit 2 is handed to the map unit's move as `flags_5` of `GMapMuPrimProc`, which makes the
+     * node walk play the per-step walking sound (`sub_80BE45C`; the position walk ignores it).
      */
     public var flags: Int = 0
 
@@ -45,15 +46,22 @@ public class GmapAutoMuProc {
     /** `target.dst.pos.y` (+0x36, `s16`), unused for a node. */
     public var dstY: Int = 0
 
-    /** `unk_38` (+0x38, `u8`): copied to the map unit move input; meaning unknown. */
+    /**
+     * `unk_38` (+0x38, `u8`): becomes `flags_2` of `GMapMuPrimProc`: while it is set, holding
+     * the A button makes the walk advance faster (its frame counter `unk_54` gets 2 extra).
+     */
     public var unk38: Int = 0
 
-    /** `unk_39` (+0x39, `u8`): as [unk38], used only by kind 1; meaning unknown. */
+    /**
+     * `unk_39` (+0x39, `u8`): used only by kind 1; becomes `unk_2f` of `GMapMuPrimProc`, the
+     * easing power of the position walk (the third argument of `_DivArm2`).
+     */
     public var unk39: Int = 0
 
     /**
-     * `speed` (+0x3A, `s16`): passed to the map unit move; `sub_80BDEB4` multiplies a negative
-     * value by a distance-derived factor (`sub_80BD41C`).
+     * `speed` (+0x3A, `s16`): the walk length in frames. For a node walk, `sub_80BDEB4`
+     * replaces a negative value by `sub_80BD41C` of the node distance times the absolute value;
+     * a position walk uses it unchanged.
      */
     public var speed: Int = 0
 
@@ -62,9 +70,12 @@ public class GmapAutoMuProc {
 }
 
 /**
- * `src/worldmap_automu.c`: the proc that walks one world map unit (a lord or army marker)
- * from node to node or between two map positions, with optional fade in / fade out. Started by
- * the world map unit event commands (`EventA8_WmUnitMoveFree`, `EventA9_WmUnitMovePaths`).
+ * `src/worldmap_automu.c`: the proc that walks one world map unit (an entry of
+ * `gGMData.units`, drawn by the map unit manager `GM_MU`) from node to node or between two map
+ * positions, with optional fade in / fade out. Started by the world map unit event commands
+ * `EventA8_WmUnitMoveFree` (positions) and `EventA9_WmUnitMovePaths` (nodes);
+ * `EventAC_WmUnitMoveWait` waits on it through [isActiveFor] and, when skipping, ends it with
+ * [endFor].
  *
  * @param engine the proc scheduler
  * @param gmData `gGMData`
@@ -108,7 +119,7 @@ public class WorldMapAutoMu(
     public class Type0Input(
         /** `wm_uid`: the unit's index. */
         public val unitId: Int,
-        /** `unk_01`: meaning unknown ([GmapAutoMuProc.unk38]). */
+        /** `unk_01`: the hold-A speed-up flag ([GmapAutoMuProc.unk38]); `EventA9` passes 0. */
         public val unk01: Int,
         /** `srcNode`: the node the walk starts at. */
         public val srcNode: Int,
@@ -125,11 +136,11 @@ public class WorldMapAutoMu(
         /** `wm_uid`: the unit's index. */
         public val unitId: Int,
         /**
-         * `unk_01`: meaning unknown ([GmapAutoMuProc.unk39]); `EventA8` passes the value its
-         * decomp calls `acceleration`.
+         * `unk_01`: the easing power ([GmapAutoMuProc.unk39]); `EventA8` passes the
+         * value its decomp calls `acceleration`.
          */
         public val unk01: Int,
-        /** `unk_02`: meaning unknown ([GmapAutoMuProc.unk38]; `EventA8` passes 0). */
+        /** `unk_02`: the hold-A speed-up flag ([GmapAutoMuProc.unk38]); `EventA8` passes 0. */
         public val unk02: Int,
         /** `x1`: the start position, x. */
         public val x1: Int,
@@ -185,7 +196,7 @@ public class WorldMapAutoMu(
         ),
     ) { GmapAutoMuProc() }
 
-    /** The walk state of a [script] proc. */
+    /** The [GmapAutoMuProc] state of a [script] proc. */
     private fun state(proc: Proc): GmapAutoMuProc = proc.state as GmapAutoMuProc
 
     /**
@@ -213,7 +224,10 @@ public class WorldMapAutoMu(
         }
     }
 
-    /** Ported from src/worldmap_automu.c: GmapAutoMu_WaitInitialDelay: counts `delay` down. */
+    /**
+     * Ported from src/worldmap_automu.c: GmapAutoMu_WaitInitialDelay: waits out the start delay,
+     * decrementing `delay` (an `s16`) each frame until it is below 1.
+     */
     public fun gmapAutoMuWaitInitialDelay(proc: Proc) {
         val s = state(proc)
         s.delay = (s.delay - 1).toShort().toInt()
@@ -284,8 +298,10 @@ public class WorldMapAutoMu(
      * Transcribed from src/worldmap_automu.c: GmapAutoMu_80C3280 (`gmapAutoMuStartNodeMove`
      * here; not verified: no node run)
      *
-     * Starts the map unit's node-to-node move: the literals 0xFF and 4 are `unk_03` / `unk_04`
-     * of `struct UnknownSub80BDEB4`, meaning unknown.
+     * Starts the map unit's node-to-node move (`sub_80BDEB4`). The literals 0xFF and 4 are
+     * `unk_03` / `unk_04` of `struct UnknownSub80BDEB4`: the animation id set when the move
+     * starts (0xFF is -1 as `s8`, so none) and the one set on arrival (which pose 4 is is not
+     * checked). Bit 2 of the flags becomes `unk_02` (the step sound).
      */
     public fun gmapAutoMuStartNodeMove(proc: Proc) {
         val s = state(proc)
@@ -308,8 +324,9 @@ public class WorldMapAutoMu(
      * Ported from src/worldmap_automu.c: GmapAutoMu_80C32E4 (`gmapAutoMuStartPositionMove`
      * here)
      *
-     * Starts the map unit's position-to-position move; 0xFF and 4 are `unk_04` / `unk_05` of
-     * `struct UnknownSub80BDFA4`, meaning unknown.
+     * Starts the map unit's position-to-position move (`sub_80BDFA4`). 0xFF and 4 are `unk_04`
+     * / `unk_05` of `struct UnknownSub80BDFA4`: the animation ids at the start (-1, none) and on
+     * arrival, as in [gmapAutoMuStartNodeMove]. Bit 2 of the flags becomes `unk_03`.
      */
     public fun gmapAutoMuStartPositionMove(proc: Proc) {
         val s = state(proc)
@@ -341,7 +358,10 @@ public class WorldMapAutoMu(
         }
     }
 
-    /** The `parent != NULL` split shared by both starters: blocks [parent] or starts in tree 3. */
+    /**
+     * The `parent != NULL` split both starters share: blocks [parent] until the walk ends, or
+     * starts the proc in root tree `PROC_TREE_3` when there is no parent.
+     */
     private fun startProc(parent: Proc?): Proc? =
         if (parent != null) {
             engine.startBlocking(script, parent)
@@ -352,8 +372,8 @@ public class WorldMapAutoMu(
     /**
      * Transcribed from src/worldmap_automu.c: StartGmapAutoMu_Type0 (not verified: no node run)
      *
-     * Starts a node-to-node walk; blocks [parent] when it is not null. [flag] becomes
-     * [GmapAutoMuProc.flags].
+     * Starts a node-to-node walk (`EventA9_WmUnitMovePaths`); blocks [parent] when it is not
+     * null. [flag] becomes [GmapAutoMuProc.flags].
      */
     public fun startType0(input: Type0Input, flag: Int, parent: Proc?): Proc? {
         val proc = startProc(parent) ?: return null
@@ -373,8 +393,8 @@ public class WorldMapAutoMu(
      * Transcribed from src/worldmap_automu.c: StartGmapAutoMu_Type1 (not verified: unk_38/unk_39
      * hold equal values in the capture, so a swap is invisible)
      *
-     * Starts a position-to-position walk; blocks [parent] when it is not null. [flag] becomes
-     * [GmapAutoMuProc.flags].
+     * Starts a position-to-position walk (`EventA8_WmUnitMoveFree`); blocks [parent] when it
+     * is not null. [flag] becomes [GmapAutoMuProc.flags].
      */
     public fun startType1(input: Type1Input, flag: Int, parent: Proc?): Proc? {
         val proc = startProc(parent) ?: return null
@@ -397,7 +417,9 @@ public class WorldMapAutoMu(
      * Transcribed from src/worldmap_automu.c: EndGmAutoMuFor (not verified: no @VerifiesPort test
      * names it)
      *
-     * Ends the walk of unit [index]; [index] < 0 ends all.
+     * Ends the walk of unit [index]; [index] < 0 ends all. Ending runs [gmapAutoMuOnEnd], which
+     * puts the unit at its destination. The decomp loop dereferences a null proc when no walk
+     * belongs to [index]; here that case does nothing.
      */
     public fun endFor(index: Int) {
         if (index < 0) {
@@ -418,7 +440,8 @@ public class WorldMapAutoMu(
      * Ported from src/worldmap_automu.c: IsGmAutoMuActiveFor
      *
      * Whether unit [index] is walking; [index] < 0 asks for any (the form the capture runs); a
-     * unit index is not run.
+     * unit index is not run. The decomp loop dereferences a null proc when no walk belongs to
+     * [index]; here that case returns false.
      */
     public fun isActiveFor(index: Int): Boolean {
         if (index < 0) return engine.find(script) != null
@@ -431,13 +454,13 @@ public class WorldMapAutoMu(
     }
 
     private companion object {
-        /** `PROC_MARK_WMSTUFF`. */
+        /** `PROC_MARK_WMSTUFF`: the proc mark of world map procs. */
         const val PROC_MARK_WMSTUFF = 8
 
         /** `PROC_TREE_3`: the root used without a parent. */
         const val PROC_TREE_3 = 3
 
-        /** The literal 30 the fade-in and fade-out pass to `GmMu_StartFadeIn` / `Out`. */
+        /** The duration in frames `GmapAutoMu_StartFadeIn` / `StartFadeOut` pass (literal 30). */
         const val FADE_FRAMES = 30
     }
 }

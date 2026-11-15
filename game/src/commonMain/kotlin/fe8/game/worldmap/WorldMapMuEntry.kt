@@ -22,8 +22,9 @@ import gbafe.render.BgTilemap
 /**
  * The fields of `struct GmapMuEntryProc` (`src/worldmap_entry.c:31`), the state of
  * `gProcScr_GmapMuEntry2` (the shaded top and bottom bands of the world map text box). The hide
- * transition (`unk_2c`..`unk_2f` set to the reverse of the show values) is not run by any
- * capture. The decomp names are kept because tests read these fields.
+ * transition (`GmMuEntryStartHide` sets `unk_2c`..`unk_2f` to the reverse of the show values) is
+ * not run by any capture yet (M6-I). The decomp names are kept because tests read these
+ * fields.
  */
 public class GmapMuEntryProc {
     /** `flags_0` (+0x29, bit 0): a show/hide transition is running. */
@@ -47,7 +48,7 @@ public class GmapMuEntryProc {
     /** `unk_2f` (+0x2F): bottom band height at the end of a transition. */
     public var unk2f: Int = 0
 
-    /** `unk_30` (+0x30, `s16`): the easing power passed to `_DivArm1`. */
+    /** `unk_30` (+0x30, `s16`): the easing power passed to `_DivArm1` (`blend` of the event). */
     public var unk30: Int = 0
 
     /** `unk_34` (+0x34): transition length, `speed << 12`. */
@@ -71,14 +72,17 @@ public class GmapMuEntryProc {
  * bands are the backdrop of world map text. In the Prologue it is started by
  * `WorldMap_CallBeginningEvent`, runs `GmMuEntry_Init`, yields once, waits blocked at
  * label 0, runs one show transition (`GmMuEntryStartShow(40, 0x100)`, 40 frames) and waits again
- * until `EndGmMuEntry` ends it. (The other `gProcScr_GmapMuEntry1` of the same file fades a
- * single map unit in and out and is not ported here.)
+ * until `EndGmMuEntry` ends it. (The other proc of the file, `gProcScr_GmapMuEntry1`,
+ * alpha-fades one map unit in and out through `sub_80BE080` and is not ported here.)
  *
- * Limits: no capture calls `GmMuEntryStartHide`, so `GmMuEntry_80BFFD0`, `GmMuEntry_80C0144`,
- * `GmMuEntryStartHide`, the flag accessors and `GmMuEntryExists` are not written, and the
- * hide commands of the script fail loudly. The callers of `GmMuEntryStartShow` and
- * `EndGmMuEntry` (event and world-map exit code, not ported) are fed from the trace in the test.
- * `GmMuEntry_OnEnd_Null` does nothing and is written as an empty callback.
+ * Callers: `EventAF_WmShowTextBox` and `EventB1_WmTextBoxWait` ([WorldMapTextFadeEvents]),
+ * `StartGmapMuEntry` from `WorldMap_CallBeginningEvent` ([WorldMapBeginning]) and the world map
+ * exit ([WorldMapExit]).
+ *
+ * Limits: no capture calls `GmMuEntryStartHide` (`EventB0_WmHideTextBox_Bugged`), so
+ * `GmMuEntry_80BFFD0`, `GmMuEntry_80C0144`, `GmMuEntryStartHide` and `GmMuEntryExists` are not
+ * written and the hide commands of the script fail loudly; they belong with the free-roam world
+ * map captures (M6-I). `GmMuEntry_OnEnd_Null` does nothing and is written as an empty callback.
  *
  * @param engine the proc scheduler
  * @param hardware BG0 tilemap, VRAM, palette and `gLCDControlBuffer`
@@ -152,12 +156,18 @@ public class WorldMapMuEntry(
     public fun getGmMuEntryFlag(): Boolean =
         (checkNotNull(engine.find(script)).state as GmapMuEntryProc).flags0
 
-    /** Ported from src/worldmap_entry.c: EndGmMuEntry: removes the bands' proc. */
+    /**
+     * Ported from src/worldmap_entry.c: EndGmMuEntry: removes the bands' proc (the event
+     * `EventB1_WmTextBoxWait` when skipping, and the world map exit).
+     */
     public fun endGmMuEntry() {
         engine.endEach(script)
     }
 
-    /** Ported from src/worldmap_entry.c: GmMuEntry_Init: no transition running, no bands. */
+    /**
+     * Ported from src/worldmap_entry.c: GmMuEntry_Init: no transition running, both band heights
+     * 0 (nothing drawn until a transition starts).
+     */
     public fun gmMuEntryInit(proc: GmapMuEntryProc) {
         proc.flags0 = false
         proc.unk2b = 0
@@ -192,10 +202,11 @@ public class WorldMapMuEntry(
      * Ported from src/worldmap_entry.c: GmMuEntry_80BFEF8 (`startShowTransition` here)
      *
      * Start of a show transition: loads the band graphics, clears the transition counter, sets
-     * both band heights to their start values, clears both scanline lines, points them at
-     * `0x04000012` (`REG_BG0VOFS`) and `0x05000054` (palette RAM colour 42: BG palette 2, colour
-     * 10), enables the HBlank copy and
-     * sets BG0 as the first and the other layers as the second blend target with alpha 0/16.
+     * both band heights to their start values, fills scanline line 0 with 0x10 and line 1 with
+     * 0, points them at `0x04000012` (`REG_BG0VOFS`) and `0x05000054` (palette RAM colour 42:
+     * BG palette 2, colour 10), sets `gWmHblankStatus |= 4` (the HBlank handler then latches
+     * the lines at scanline 160) and makes BG0 the first and the other BGs and OBJ the second
+     * blend target with alpha 0/16.
      *
      * (not verified: the `0x10` fill of line 0 and the zero fill of line 1; the same frame's
      * [stepShowTransition] rewrites both lines before any dump, so a wrong fill value is not
@@ -231,16 +242,18 @@ public class WorldMapMuEntry(
      */
     public fun stepShowTransition(proc: Proc) {
         val state = proc.state as GmapMuEntryProc
-        val unk: Int
+        // Eased progress of the transition, 0..0x1000 (`unk` in the decomp).
+        val eased: Int
         state.unk38 += 0x1000
         if (state.unk38 < state.unk34) {
-            unk = Spline.divArm1(state.unk38, state.unk34, state.unk30)
-            state.unk2a = (state.unk2c + Spline.divArm(0x1000, state.unk3c * unk)) and 0xFF
-            state.unk2b = (state.unk2e + Spline.divArm(0x1000, state.unk40 * unk)) and 0xFF
-            hardware.lcd.setBlendConfig(BLEND_EFFECT_ALPHA, unk / 256, 0x10 - (unk / 256), 0)
+            eased = Spline.divArm1(state.unk38, state.unk34, state.unk30)
+            state.unk2a = (state.unk2c + Spline.divArm(0x1000, state.unk3c * eased)) and 0xFF
+            state.unk2b = (state.unk2e + Spline.divArm(0x1000, state.unk40 * eased)) and 0xFF
+            hardware.lcd.setBlendConfig(BLEND_EFFECT_ALPHA, eased / 256, 0x10 - (eased / 256), 0)
         } else {
+            // A null register stops line 0 from writing BG0VOFS; line 1 keeps its palette colour.
             hblank.setLineRegister(0, 0)
-            unk = 0x1000
+            eased = 0x1000
             hardware.lcd.setBlendConfig(BLEND_EFFECT_NONE, 0, 0x10, 0)
             state.unk2a = state.unk2d
             state.unk2b = state.unk2f
@@ -257,8 +270,9 @@ public class WorldMapMuEntry(
      * (so each of them shows BG0 pixel row 0x40; what that row holds is not checked) and line 1
      * (the palette colour) is 0, except within the top band (`unk_2a` lines from the top) and the
      * bottom band (`unk_2b` lines from the bottom). There the vertical offset changes and the
-     * colour ramps (in 5-bit RGB, the decomp's literals) up to `(13, 17, 23)`. Then swaps the
-     * pages. The decomp's unused second parameter is dropped.
+     * colour (5-bit RGB, the decomp's literals) ramps from `(7, 7, 16)` at the screen edge to
+     * `(13, 17, 23)` at the band's inner edge. Then swaps the pages. The decomp's unused second
+     * parameter is dropped.
      */
     public fun drawBands(proc: GmapMuEntryProc) {
         val palA = hblank.lineBufferIndex(0, 1)
@@ -301,7 +315,11 @@ public class WorldMapMuEntry(
         hardware.enableBgSyncByMask(BG0_SYNC_BIT)
     }
 
-    /** Stands in for the hide commands of [script], which no capture reaches. */
+    /**
+     * Placeholder callback of the hide steps of [script] (`GmMuEntry_80BFFD0`,
+     * `GmMuEntry_80C0144`), which no capture reaches; they are due with the free-roam world map
+     * captures (M6-I). Fails instead of silently doing nothing.
+     */
     private fun notRun(): Nothing =
         error("not verified: no capture runs GmMuEntryStartHide")
 

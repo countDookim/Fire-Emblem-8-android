@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 571 across 84 decomp files (missing reason: 0).
+Total entries: 572 across 84 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -645,6 +645,15 @@ Total entries: 571 across 84 decomp files (missing reason: 0).
 | `GenerateMovementMapOnWorkingMap` | `game/src/commonMain/kotlin/fe8/game/bm/MovementMap.kt` | only `ResetPathArrow` and the path arrow's re-route call it, and the capture runs neither |
 | `UnitApplyWorkingMovementScript` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | the trap and hidden-unit branches, no capture walks onto one |
 
+## src/bmmap.c (4)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `BmMapFillEdges` | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | no test checks it against a trace yet |
+| `UnpackChapterMapGraphics` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | both traced chapters have obj2Id 0, so the second tileset branch never runs |
+| `RefreshTorchlightsOnBmMap` | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | the Prologue has no trap, so the pool is empty in every capture |
+| `RefreshMinesOnBmMap` | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | the Prologue has no trap |
+
 ## src/bmpatharrowdisp.c (4)
 
 | Function | Kotlin file | Reason |
@@ -725,14 +734,6 @@ Total entries: 571 across 84 decomp files (missing reason: 0).
 | `WMFaceCtrl_Init` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFace.kt` | fresh-state trace only |
 | `StartWMFaceCtrl` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFace.kt` | the proc fields of its init are compared with the trace, the parent link is not |
 | `HideWmFace` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapFace.kt` | the world map exit checks only the blend targets; no face is shown there, so the loop over the wrappers never runs |
-
-## src/bmmap.c (3)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `BmMapFillEdges` | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | no test checks it against a trace yet |
-| `RenderBmMapOnBg2` | `game/src/commonMain/kotlin/fe8/game/bm/BmMapRender.kt` | no trace calls it |
-| `UnpackChapterMapGraphics` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | both traced chapters have obj2Id 0, so the second tileset branch never runs |
 
 ## src/bmphase.c (3)
 

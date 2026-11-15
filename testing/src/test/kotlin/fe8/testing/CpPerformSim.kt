@@ -16,6 +16,7 @@ import gbafe.proc.ProcScripts
 import fe8.game.bm.AiStep
 import fe8.game.bm.BmMap
 import fe8.game.bm.BmMapRender
+import fe8.game.bm.BmxFade
 import fe8.game.bm.BmSt
 import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
@@ -76,6 +77,10 @@ internal class CpPerformSim(
     val decide: CpDecide
     val perform: CpPerform
     val workingScript = IntArray(0x40)
+
+    /** The BG hardware the map renders and the fade draw into (EP-9c). */
+    val hardware = BgHardware()
+    val fade: BmxFade
     val loader = UnitLoader(units, rom, { 0 }, rng, { false })
     val battle: BmBattle
     val gen: BattleGenerate
@@ -116,7 +121,7 @@ internal class CpPerformSim(
         cursor = MapCursor(rom, bm, SpriteLayers())
         phase = PlayerPhase(
             engine, bm, playSt, map, units, camMove, entityMaps,
-            BmMapRender(bm, map, BgHardware()), keys, { false }, active = active,
+            BmMapRender(bm, map, hardware), keys, { false }, active = active,
             movementMap = moves,
         )
         decide = CpDecide(engine, units, aiState, active, null, entityMaps)
@@ -161,6 +166,11 @@ internal class CpPerformSim(
             combatStartStep = stepOfFrame
             engine.start(animation, 3)
         }
+        fade = BmxFade(engine, bm, units, hardware, playSt)
+        val render = BmMapRender(bm, map, hardware)
+        perform.hooks.renderBmMapOnBg2 = AiStep { render.renderBmMapOnBg2() }
+        perform.hooks.renderBmMap = AiStep { render.renderBmMap() }
+        perform.hooks.newBmxFade = AiIntStep { fade.newBmxFade(it != 0) }
         perform.hooks.endAllMus = AiStep { mu.endAllMus() }
         perform.hooks.showUnitSprite = AiIntStep { log += "show ${Integer.toHexString(it)}" }
         val h = perform.hooks
@@ -244,6 +254,30 @@ internal class CpPerformSim(
 
     fun iwram(f: Int): ByteArray = data.region(dumpName(f), "iwram")
 
+    /**
+     * Puts the capture's display state of frame [f] into [hardware]: `gLCDControlBuffer` (DISPCNT,
+     * BGCNT, blend), the palette buffer and the BG2 tilemap buffer.
+     */
+    fun loadDisplay(f: Int) {
+        val i = iwram(f)
+        val e = ewram(f)
+        val lcd = hardware.lcd
+        val base = LCD_BUFFER - GbaMem.IWRAM
+        lcd.dispcnt = GbaMem.u16(i, GbaMem.IWRAM, LCD_BUFFER)
+        for (bg in 0 until 4) lcd.bgCnt[bg] = GbaMem.u16(i, GbaMem.IWRAM, LCD_BUFFER + 0x0C + 4 * bg)
+        lcd.bldcnt = GbaMem.u16(i, GbaMem.IWRAM, LCD_BUFFER + 0x3C)
+        lcd.blendCoeffA = i[base + 0x44].toInt() and 0xFF
+        lcd.blendCoeffB = i[base + 0x45].toInt() and 0xFF
+        lcd.blendY = i[base + 0x46].toInt() and 0xFF
+        for (c in hardware.palette.indices) {
+            hardware.palette[c] = GbaMem.u16(e, GbaMem.EWRAM, PALETTE_BUFFER + 2 * c).toShort()
+        }
+        val bg2 = hardware.mapBuffer(2)
+        for (t in bg2.indices) {
+            bg2[t] = GbaMem.u16(e, GbaMem.EWRAM, BG2_BUFFER + 2 * t).toShort()
+        }
+    }
+
     /** Class data from the ROM (read at test time, not copied). */
     inner class ClassHooks : MuHooks {
         private fun classByte(jid: Int, o: Int): Int =
@@ -279,6 +313,7 @@ internal class CpPerformSim(
             sim.cursor.lastCoordX = GbaMem.u16(e, GbaMem.EWRAM, LAST_COORD).toShort().toInt()
             sim.cursor.lastCoordY = GbaMem.u16(e, GbaMem.EWRAM, LAST_COORD + 2).toShort().toInt()
             sim.cursor.lastTimeDrawn = GbaMem.u32(e, GbaMem.EWRAM, LAST_TIME)
+            sim.loadDisplay(seed)
             sim.arm()
             return sim
         }
@@ -289,6 +324,9 @@ internal class CpPerformSim(
         const val ROM_BASE = 0x08000000
         const val CFG = 0x03001900
         const val GAME_CLOCK = 0x03000014
+        const val LCD_BUFFER = 0x03003080
+        const val PALETTE_BUFFER = 0x020228A8
+        const val BG2_BUFFER = 0x02023CA8
         const val LAST_COORD = 0x0202BD3C
         const val LAST_TIME = 0x0202BD40
         val IWRAM = GbaMem.IWRAM

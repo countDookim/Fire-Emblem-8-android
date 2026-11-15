@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 235 across 47 Kotlin files.
+Total entries: 233 across 47 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -20,7 +20,7 @@ Total entries: 235 across 47 Kotlin files.
 | M6-E | 51 |
 | M6-F | 13 |
 | M6-G | 4 |
-| M6-H | 36 |
+| M6-H | 33 |
 | M6-I | 27 |
 | M6-J | 10 |
 | D09-3 | 2 |
@@ -31,9 +31,9 @@ Total entries: 235 across 47 Kotlin files.
 | EP-14 | 1 |
 | EP-1b | 4 |
 | EP-30 | 2 |
+| EP-36 | 2 |
 | EP-6b | 11 |
 | EP-7d | 1 |
-| EP-9c | 1 |
 | IS-2 | 1 |
 | MC-17 | 1 |
 | PC-10 | 1 |
@@ -178,7 +178,7 @@ Total entries: 235 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: `IsBattleDeamonActive` (the battle animation system) is not ported, so the fixed fight-event bubble is never used. |
 
-## M6-H (36)
+## M6-H (33)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -203,9 +203,6 @@ Total entries: 235 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `refreshAllLightRunes` | Stand-in for `RefreshAllLightRunes` (bmtrick.c; until M6-H), called at the end of [refreshTerrainBmMap]; does nothing until traps are ported. |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in until M6-H (sound effects as chapters first need them): the sound effect players are not in `SoundWrapper` yet, so this does nothing unless `Fe8Boot` sets it (D11-wire-a left it a no-op). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `itemGotPopup` | Stand-in until M6-H (the popup): nothing is shown. |
-| `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `EntityBmMaps` | Stand-ins until M6-H: the trap-dependent parts of src/bmmap.c, `RefreshTorchlightsOnBmMap` and `RefreshMinesOnBmMap` (they read the bmtrick.c trap pool, not ported yet), are the hooks [refreshTorch... |
-| `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `refreshMinesOnBmMap` | Stand-in (M6-H) for `RefreshMinesOnBmMap`, called after the unit pass. |
-| `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `refreshTorchlightsOnBmMap` | Stand-in (M6-H) for `RefreshTorchlightsOnBmMap`, called between clears and unit pass. |
 | `game/src/commonMain/kotlin/fe8/game/bm/MenuItemPanel.kt` | `MenuItemPanel` | Only the weapon layout is written; the layout of a staff or other item (its use description) is a stand-in until M6-H (the item menu; the weapon list never holds one), and `EndMenuItemPanel` is nev... |
 | `game/src/commonMain/kotlin/fe8/game/bm/MenuItemPanel.kt` | `item` | Stand-in until M6-H (the item menu, where staffs and items first appear): the use description of the item is not drawn. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `doesBmxFadeExist` | Stand-in for `DoesBMXFADEExist` (false) until M6-H (the fog fade). |
@@ -342,6 +339,13 @@ Total entries: 235 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold, together with a stand-in for the availability callback of every other command (EP-30, EP-31, EP-32 and... |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `unportedUsability` | The game's stand-in answers `MENU_NOTSHOWN` for all of them, so only the three ported commands appear; EP-30 to EP-33 port the real callbacks. |
 
+## EP-36 (2)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `EntityBmMaps` | Stand-in until EP-36: the trap pool of src/bmtrick.c (`GetTrap(i)`, not ported) is the [Traps] source, empty by default, so torchlights never light the fog map and mines never mark the hidden map. |
+| `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `traps` | `GetTrap(i)` of src/bmtrick.c (stand-in, EP-36): the trap pool, empty by default. |
+
 ## EP-6b (11)
 
 | Kotlin file | Declaration | Stand-in |
@@ -363,12 +367,6 @@ Total entries: 235 across 47 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | `healBranch` | Stand-in for the healing branch of `DecideHealOrEscape`: `AiTryHealSelf`, `AiTryMoveTowardsEscape`, `AiTryDanceOrStealAfterMove`, `AiTryGetNearestHealPoint`, `AiTryMoveTowards` (EP-7d), `AiTryActio... |
-
-## EP-9c (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt` | `newBmxFade` | Stand-in for `NewBMXFADE(flag)` (bmxfade.c; EP-9c). |
 
 ## IS-2 (1)
 

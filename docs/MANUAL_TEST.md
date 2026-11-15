@@ -67,7 +67,8 @@ Popup fixes are published in **0.1.528 (`e0187ea`)**.
      other to the tile next to Eirika with the target cursor on her (about 1 second each) and
      attack her. There is no battle animation: the result applies at once, one Soldier hits her
      (the HP of the unit at (4, 5) drops by 9) and each Soldier dies to her counter and vanishes (no death fade, no exp
-     bar, no dialogue yet). Then the "Player Phase" banner of turn 2 and Eirika is no longer grey.
+     bar, no dialogue yet). After each Soldier the game pauses for about 0.3 s (the map fade, EP-9c;
+     the map tiles do not change, so it is only a pause). Then the "Player Phase" banner of turn 2 and Eirika is no longer grey.
   - Limits (stand-ins): Item opens nothing and
     answers with the refusal beep (M6-H); the map menu's Unit, Status, Guide, Options and Suspend,
     and R / L / START in the map do nothing (M6-F; Suspend M6-E); enemies walk and attack with no battle

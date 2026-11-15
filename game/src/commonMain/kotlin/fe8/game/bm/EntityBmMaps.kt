@@ -11,10 +11,9 @@ import fe8.game.bm.StructCodec.u8
  * redoes this after anything that moves or removes units or changes the fog (the end of a unit
  * action, an event that places units or sets the fog vision).
  *
- * Stand-ins until M6-H: the trap-dependent parts of src/bmmap.c, `RefreshTorchlightsOnBmMap` and
- * `RefreshMinesOnBmMap` (they read the bmtrick.c trap pool, not ported yet), are the hooks
- * [refreshTorchlightsOnBmMap] and [refreshMinesOnBmMap]; they do nothing until traps are ported,
- * so torchlights never light the fog map and mines never mark the hidden map.
+ * Stand-in until EP-36: the trap pool of src/bmtrick.c (`GetTrap(i)`, not ported) is the
+ * [Traps] source, empty by default, so torchlights never light the fog map and mines never mark
+ * the hidden map.
  */
 public class EntityBmMaps(
     /** The map whose pools are refreshed. */
@@ -26,18 +25,44 @@ public class EntityBmMaps(
      * fog) and `faction` (the phase running).
      */
     private val playSt: PlaySt,
-    /** Stand-in (M6-H) for `RefreshTorchlightsOnBmMap`, called between clears and unit pass. */
-    public var refreshTorchlightsOnBmMap: () -> Unit = {},
-    /** Stand-in (M6-H) for `RefreshMinesOnBmMap`, called after the unit pass. */
-    public var refreshMinesOnBmMap: () -> Unit = {},
+    /** `GetTrap(i)` of src/bmtrick.c (stand-in, EP-36): the trap pool, empty by default. */
+    public var traps: Traps = Traps.NONE,
 ) {
+    /** `struct Trap` list of src/bmtrick.c as far as the map refreshes read it. */
+    public interface Traps {
+        /** `GetTrap(index)->type` (`TRAP_NONE` 0 ends the list). */
+        public fun type(index: Int): Int
+
+        /** `GetTrap(index)->xPos`. */
+        public fun x(index: Int): Int
+
+        /** `GetTrap(index)->yPos`. */
+        public fun y(index: Int): Int
+
+        /** `GetTrap(index)->extra`. */
+        public fun extra(index: Int): Int
+
+        /** No traps. */
+        public companion object {
+            /** The empty pool. */
+            @JvmField
+            public val NONE: Traps = object : Traps {
+                override fun type(index: Int): Int = 0
+                override fun x(index: Int): Int = 0
+                override fun y(index: Int): Int = 0
+                override fun extra(index: Int): Int = 0
+            }
+        }
+    }
+
     /**
-     * Partially ported from src/bmmap.c: RefreshEntityBmMaps. Missing: the torchlight and mine
-     * passes are the [refreshTorchlightsOnBmMap] / [refreshMinesOnBmMap] hooks (traps).
+     * Ported from src/bmmap.c: RefreshEntityBmMaps
      *
      * Clears the unit and hidden maps with 0 and the fog map with 1 (visible, no fog in the
-     * chapter) or 0 (hidden, fog), then runs the torchlight hook (which lights fog around
-     * torch traps), [refreshUnitsOnBmMap] and the mine hook (which marks hidden mines).
+     * chapter) or 0 (hidden, fog), then runs [refreshTorchlightsOnBmMap] (lights fog around
+     * torch traps), [refreshUnitsOnBmMap] and [refreshMinesOnBmMap] (marks hidden mines).
+     * Verified: the unit, fog and hidden maps after an enemy's action (Prologue, no fog) and in
+     * the fog chapter's idle phase; not seen: a map with a torchlight or mine.
      */
     public fun refreshEntityBmMaps() {
         map.bmMapFill(map.unit, 0)
@@ -47,6 +72,38 @@ public class EntityBmMaps(
         refreshTorchlightsOnBmMap()
         refreshUnitsOnBmMap()
         refreshMinesOnBmMap()
+    }
+
+    /**
+     * Transcribed from src/bmmap.c: RefreshTorchlightsOnBmMap (not verified: the Prologue has
+     * no trap, so the pool is empty in every capture)
+     *
+     * Lights the fog map within the trap's `extra` tiles for every torchlight trap.
+     */
+    public fun refreshTorchlightsOnBmMap() {
+        var i = 0
+        while (traps.type(i) != TRAP_NONE) {
+            if (traps.type(i) == TRAP_TORCHLIGHT) {
+                mapAddInRange(traps.x(i), traps.y(i), traps.extra(i), 1)
+            }
+            i++
+        }
+    }
+
+    /**
+     * Transcribed from src/bmmap.c: RefreshMinesOnBmMap (not verified: the Prologue has no trap)
+     *
+     * Marks `HIDDEN_BIT_TRAP` in the hidden map under every mine with no unit on it.
+     */
+    public fun refreshMinesOnBmMap() {
+        var i = 0
+        while (traps.type(i) != TRAP_NONE) {
+            if (traps.type(i) == TRAP_MINE && map.unit[traps.y(i), traps.x(i)] == 0) {
+                map.hidden[traps.y(i), traps.x(i)] =
+                    map.hidden[traps.y(i), traps.x(i)] or HIDDEN_BIT_TRAP
+            }
+            i++
+        }
     }
 
     /**
@@ -218,5 +275,12 @@ public class EntityBmMaps(
          * tile. (`HIDDEN_BIT_TRAP`, bit 1, belongs to the mine pass, which is a hook here.)
          */
         const val HIDDEN_BIT_UNIT = 1 shl 0
+
+        /** `HIDDEN_BIT_TRAP` (bmmap.h, bit 1): a mine on a tile with no unit. */
+        const val HIDDEN_BIT_TRAP = 1 shl 1
+
+        const val TRAP_NONE = 0
+        const val TRAP_TORCHLIGHT = 10
+        const val TRAP_MINE = 11
     }
 }

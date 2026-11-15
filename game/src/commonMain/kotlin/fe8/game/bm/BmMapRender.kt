@@ -109,12 +109,14 @@ public class BmMapRender(
     }
 
     /**
-     * Transcribed from src/bmmap.c: RenderBmMapOnBg2 (not verified: no trace calls it)
+     * Ported from src/bmmap.c: RenderBmMapOnBg2
      *
      * [renderBmMap] onto BG2: tile data offset 0x8000, `gBG2TilemapBuffer`, BG2 sync and scroll
      * reset (the display enable is left alone). The callers (`src/bmunit.c`, `src/bmusailment.c`,
      * `src/eventscr_utils.c`) call it just before a fog or map change refreshes the maps and
-     * redraws BG3, so BG2 keeps the map as it was before the change.
+     * redraws BG3, so BG2 keeps the map as it was before the change. Verified: the BG2 tilemap
+     * buffer and BG2CNT (tile data offset) while the enemy phase's map fade runs
+     * (`BmxFadeDifferentialTest`).
      */
     public fun renderBmMapOnBg2() {
         hardware.setTileDataOffset(BG2, TILESET_OFFSET)

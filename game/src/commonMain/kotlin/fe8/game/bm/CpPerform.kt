@@ -117,13 +117,13 @@ public class CpPerform(
         /** `UpdateAllPhaseHealingAIStatus` ([CpUtility.updateAllPhaseHealingAiStatus]). */
         public var updateAllPhaseHealingAIStatus: AiStep? = null
 
-        /** `RenderBmMapOnBg2` (display; EP-w). */
+        /** `RenderBmMapOnBg2` ([BmMapRender.renderBmMapOnBg2]). */
         public var renderBmMapOnBg2: AiStep? = null
 
-        /** `RenderBmMap` (display; EP-w). */
+        /** `RenderBmMap` ([BmMapRender.renderBmMap]). */
         public var renderBmMap: AiStep? = null
 
-        /** Stand-in for `NewBMXFADE(flag)` (bmxfade.c; EP-9c). */
+        /** `NewBMXFADE(flag)` ([BmxFade.newBmxFade]). */
         public var newBmxFade: AiIntStep? = null
 
         /** `ShowUnitSprite(unit)` ([UnitSpriteHandles.showUnitSprite]) for a unit id. */
@@ -412,8 +412,8 @@ public class CpPerform(
      *
      * Makes the action's subject the active unit, puts the cursor on its move tile, moves the unit
      * there ([PlayerPhase.moveActiveUnit]), rebuilds the entity maps and the map, ends the walk's
-     * MUs and shows the unit sprite. The fade (`NewBMXFADE(1)`, EP-9c) and the display calls are
-     * hooks. Verified: the cursor and the unit's move (position, `US_UNSELECTABLE`, hidden bit),
+     * MUs and shows the unit sprite. The fade (`NewBMXFADE(1)`, [BmxFade]) and the display calls
+     * are hooks. Verified: the cursor and the unit's move (position, `US_UNSELECTABLE`, hidden bit),
      * for a surviving unit and for one killed in its attack. Not seen: the entity-map refreshes,
      * `EndAllMus`, `ShowUnitSprite` and the display calls (they show in no value this test reads).
      */

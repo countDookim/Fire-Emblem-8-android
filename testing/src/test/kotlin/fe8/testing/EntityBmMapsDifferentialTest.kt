@@ -27,7 +27,7 @@ import java.io.File
  * Also `ram_trace_ch6_fog` (chapter 6, vision 3) f1990..f2130, the idle player phase (the maps
  * only change with the units, not the cursor or camera), exercises the fog lighting and
  * hidden-by-fog branches; there the unit structs (state bits 8/9) are compared whole as well.
- * The torchlight and mine passes are hooks and chapter 6 has no traps they would act on.
+ * Chapter 6 has no traps for the torchlight and mine passes to act on.
  */
 class EntityBmMapsDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -41,8 +41,9 @@ class EntityBmMapsDifferentialTest {
         u8(addr) or (u8(addr + 1) shl 8) or (u8(addr + 2) shl 16) or (u8(addr + 3) shl 24)
 
     @Test
-    // Not @VerifiesPort (CLAUDE.md rule 4): RefreshEntityBmMaps is partial (trap passes are
-    // hooks). These dumps have chapterVisionRange 0; the fog branches run in the ch6 test below.
+    // RefreshEntityBmMaps itself is @VerifiesPort in BmxFadeDifferentialTest (EP-9c). These dumps
+    // have chapterVisionRange 0; the fog branches run in the ch6 test below. The trap passes
+    // (Transcribed, empty pool) are not seen in any dump.
     fun `unit, fog and hidden maps match the game`() {
         val total = compareDumps(DUMPS)
         assertTrue(total >= 10, "units placed across the dumps: $total")

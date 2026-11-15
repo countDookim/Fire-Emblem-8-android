@@ -22,6 +22,7 @@ import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterIntro
 import fe8.game.bm.ChapterMapGfx
 import fe8.game.bm.CpEquip
+import fe8.game.bm.BmxFade
 import fe8.game.bm.CpPerform
 import fe8.game.bm.CpPhase
 import fe8.game.bm.MapAnimations
@@ -1098,6 +1099,7 @@ public class Fe8Boot(
         // best path), the target cursor and the action (EP-9: an attack through the player
         // phase's `ApplyUnitAction` and the map combat, or no action); `CpPerform_EquipBest` is
         // EP-9b and the fade EP-9c.
+        val bmxFade = BmxFade(engine, loop.bmSt, units, hw, playSt)
         val perform = CpPerform(
             engine, loop.bmSt, playSt, units, ItemInfo(rom), battleEntityMaps, active,
             cp.decide.decision, battleBmMap,
@@ -1121,6 +1123,8 @@ public class Fe8Boot(
             cp.utility?.updateAllPhaseHealingAiStatus()
         }
         perform.hooks.renderBmMap = AiStep { bmapRender.renderBmMap() }
+        perform.hooks.renderBmMapOnBg2 = AiStep { bmapRender.renderBmMapOnBg2() }
+        perform.hooks.newBmxFade = AiIntStep { flag -> bmxFade.newBmxFade(flag != 0) }
         perform.hooks.showUnitSprite = AiIntStep { id -> handles.showUnitSprite(id) }
         perform.hooks.refreshUnitSprites = AiStep { main.hooks.refreshUnitSprites() }
         perform.hooks.putMapCursor = PlayerPhase.PutMapCursor { x, y, kind ->

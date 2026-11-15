@@ -7,7 +7,10 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import java.io.File
 
-/** Zero bytes per frame in the AI perform proc: the unit walk and the target cursor (EP-8). */
+/**
+ * Zero bytes per frame in the AI perform proc: the unit walk and the target cursor (EP-8), and
+ * the map fade (EP-9c).
+ */
 class CpPerformAllocationTest {
     private val ref = ReferenceData.fromEnvironment()
     private val romFile = File(
@@ -42,5 +45,29 @@ class CpPerformAllocationTest {
                 "frames $from..$to allocate in frames $allocating: ${allocating.map { bytes[it] }}",
             )
         }
+    }
+
+    private fun fadeBytes(): LongArray {
+        val sim = CpPerformSim.create(ref, romFile, "ram_trace_prologue_clear", 3803, 0x81)
+        var guard = 0
+        while (!sim.fade.doesBmxFadeExist() && guard++ < 100) sim.frame()
+        val out = LongArray(16)
+        for (i in out.indices) {
+            val before = AllocationMeter.current()
+            sim.frame()
+            out[i] = AllocationMeter.current() - before
+        }
+        return out
+    }
+
+    @Test
+    fun `the map fade frames allocate nothing`() {
+        assumeTrue(AllocationMeter.supported)
+        // The fade (EP-9c) runs 16 frames after its start frame; a frame counts only if it
+        // allocates in both passes.
+        val first = fadeBytes()
+        val second = fadeBytes()
+        val allocating = first.indices.filter { minOf(first[it], second[it]) != 0L }
+        assertTrue(allocating.isEmpty(), "fade frames allocate: $allocating")
     }
 }

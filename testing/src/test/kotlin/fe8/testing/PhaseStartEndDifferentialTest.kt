@@ -3,10 +3,13 @@ package fe8.testing
 import fe8.game.RomView
 import fe8.game.bm.BMapMain
 import fe8.game.bm.BattleMapNodes
+import fe8.game.bm.BmMap
 import fe8.game.bm.BmSt
 import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
+import fe8.game.bm.MapTraps
 import fe8.game.bm.PhaseStartEnd
+import fe8.game.bm.PhaseTargets
 import fe8.game.bm.PlaySt
 import fe8.game.bm.ResetCursorPosition
 import fe8.game.bm.SelectTargets
@@ -14,6 +17,7 @@ import fe8.game.bm.UnitTable
 import fe8.game.flags.Fe8EventFlags
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
+import gbafe.core.rng.RngService
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcScript
@@ -61,6 +65,7 @@ class PhaseStartEndDifferentialTest {
         val units: UnitTable
         val targets = SelectTargets()
         val phase: PhaseStartEnd
+        val lists: PhaseTargets
 
         init {
             assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
@@ -69,7 +74,16 @@ class PhaseStartEndDifferentialTest {
             assumeTrue(run.hasWatch("red"), "run has no red watch")
             rom = RomView.ofRom(romFile.readBytes())
             units = UnitTable(rom)
-            phase = PhaseStartEnd(engine, units, playSt, targets)
+            val map = BmMap(rom, ChapterData(rom), BmSt())
+            val traps = MapTraps(
+                ByteArray(MapTraps.POOL_SIZE), map, units, playSt, Fe8EventFlags.create(), targets,
+            )
+            // the map of the windows is the blank one: the lists only have to stay empty, and
+            // PhaseTargetsDifferentialTest runs them over the dumped map
+            lists = PhaseTargets(
+                rom, units, targets, map, traps, RngService(), maxHp = { 1 },
+            )
+            phase = PhaseStartEnd(engine, units, playSt, targets, lists)
         }
 
         val blue = run.watch("blue")
@@ -205,21 +219,6 @@ class PhaseStartEndDifferentialTest {
             val alive = ProcArrayDump.ofWatch(trace, step, names).live.mapNotNull { it.name }
             assertTrue(alive.none { it in displays }, "display alive f$step: $alive")
         }
-        val calls = ArrayList<String>()
-        val h = sim.phase.hooks
-        h.makeTerrainHealTargetList = PhaseStartEnd.FactionAction {
-            calls += "terrain"
-            sim.targets.initTargets(0, 0)
-        }
-        h.makePoisonDamageTargetList = PhaseStartEnd.FactionAction {
-            calls += "poison"
-            sim.targets.initTargets(0, 0)
-        }
-        h.preparePoisonDefeats = Runnable { calls += "poisonDefeats" }
-        h.makeGorgonEggHatchTargetList = PhaseStartEnd.FactionAction {
-            calls += "gorgon"
-            sim.targets.initTargets(0, 0)
-        }
         val idle = ProcScript("idle", listOf(block(), end()))
         val inits = listOf<(Proc) -> Unit>(
             sim.phase::statusDecayDisplayInit, sim.phase::terrainHealDisplayInit,
@@ -233,13 +232,11 @@ class PhaseStartEndDifferentialTest {
             for (id in listOf(1, 2, 0x81, 0x82, 0x83)) {
                 if (sim.units.isValid(id)) assertEquals(0, sim.units.statusIndex(id), "id $id")
             }
-            calls.clear()
             for ((i, init) in inits.withIndex()) {
                 val proc = sim.engine.start(idle, 5)
                 init(proc)
                 assertNull(sim.engine.find(idle), "init $i ended its proc f$step")
             }
-            assertEquals(listOf("terrain", "poison", "poisonDefeats", "gorgon"), calls)
         }
     }
 
@@ -325,7 +322,9 @@ class PhaseStartEndDifferentialTest {
             assertEquals(factionAt, sim.playSt.faction)
             val assets = ResetAssets(sim)
             val main = assets.main
-            val startEnd = PhaseStartEnd(sim.engine, sim.units, sim.playSt, SelectTargets())
+            val startEnd = PhaseStartEnd(
+                sim.engine, sim.units, sim.playSt, sim.targets, sim.lists,
+            )
             var tickFrame = -1
             var frame = 0
             main.hooks.tickActiveFactionTurn = {

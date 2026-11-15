@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 224 across 49 Kotlin files.
+Total entries: 219 across 49 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -24,11 +24,10 @@ Total entries: 224 across 49 Kotlin files.
 | M6-I | 27 |
 | M6-J | 10 |
 | D09-3 | 2 |
-| EP-1 | 1 |
 | EP-12 | 26 |
 | EP-13 | 1 |
 | EP-18 | 4 |
-| EP-1b | 5 |
+| EP-1b | 1 |
 | EP-20 | 1 |
 | EP-30 | 2 |
 | EP-36 | 2 |
@@ -262,12 +261,6 @@ Total entries: 224 across 49 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `gotItemPopup` | Stand-ins (D09-3): `gpPopupUnit` is not tracked, so the unit-name text id is 0 (the got-item and pilfered scripts do not use the unit name), and [addItem] with a full inventory (the item-drop menu)... |
 | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | `event37GiveItem` | Host stand-ins (D09-3): the "gold got" popup (`NewPopup_GoldGot`) is not shown and the gold add happens at once. |
 
-## EP-1 (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `phaseStartEnd` | The target list is its own: the displays' `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w shares one list with the player phase when the real `Make*TargetList`... |
-
 ## EP-12 (26)
 
 | Kotlin file | Declaration | Stand-in |
@@ -314,15 +307,11 @@ Total entries: 224 across 49 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `mapAnimEnd` | Stand-in until EP-18: ends battle animation. |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `showPoisonEffectIfAny` | Stand-in until EP-18: map poison effect. |
 
-## EP-1b (5)
+## EP-1b (1)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | `prepareTrapDefeats` | Stand-in until EP-1b. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `emptyList` | The `Make*TargetList` stand-in until EP-1b: leaves the target list empty. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makeGorgonEggHatchTargetList` | Stand-in until EP-1b: empty list. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makePoisonDamageTargetList` | Stand-in until EP-1b: empty list. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makeTerrainHealTargetList` | Stand-in until EP-1b: when null, [PhaseStartEnd] only does `InitTargets(0, 0)`, so the list is empty. |
 
 ## EP-20 (1)
 

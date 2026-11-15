@@ -42,6 +42,7 @@ import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.PLAY_FLAG_HARD
 import fe8.game.bm.PhaseIntro
 import fe8.game.bm.PhaseStartEnd
+import fe8.game.bm.PhaseTargets
 import fe8.game.bm.PlayerPhase
 import fe8.game.bm.ResetCursorPosition
 import fe8.game.bm.SelectTargets
@@ -1189,10 +1190,29 @@ public class Fe8Boot(
         }
         cp.decide.hooks.startCpPerform = perform.start
         main.hooks.cpPhase = cp.phaseScript
-        // Phase start and end housekeeping (EP-1). The target list is its own: the displays'
-        // `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w
-        // shares one list with the player phase when the real `Make*TargetList` come in.
-        val phaseStartEnd = PhaseStartEnd(engine, units, playSt, SelectTargets()).also {
+        val trapsObj = MapTraps(
+            trapPool, battleBmMap, units, playSt, flags, SelectTargets(),
+            engine = engine, action = active.action,
+        ).also {
+            it.hooks.refreshEntityBmMaps = { battleEntityMaps.refreshEntityBmMaps() }
+        }
+        // Phase start and end housekeeping (EP-1, EP-1b). The target list is its own; EP-w
+        // shares one list with the player phase.
+        val phaseTargetList = SelectTargets()
+        val phaseTargets = PhaseTargets(
+            rom, units, phaseTargetList, battleBmMap, trapsObj, rng,
+            { id -> loader.getUnitMaxHp(units.unitOffset(id)) },
+        ).also {
+            it.hooks.recordDefeatInfo = { pid, cause ->
+                pidStats.pidStatsRecordDefeatInfo(
+                    pid, 0, cause, playSt.chapterIndex, playSt.chapterTurnNumber,
+                )
+            }
+            it.hooks.recordLoseData = { pid -> pidStats.pidStatsRecordLoseData(pid) }
+        }
+        val phaseStartEnd = PhaseStartEnd(
+            engine, units, playSt, phaseTargetList, phaseTargets,
+        ).also {
             it.hooks.pidStatsSubFavval08 = PhaseStartEnd.PidAction { pid ->
                 pidStats.pidStatsSubFavval08(pid)
             }
@@ -1204,12 +1224,6 @@ public class Fe8Boot(
         main.hooks.terrainHealDisplay = phaseStartEnd.terrainHealDisplay
         main.hooks.poisonDamageDisplay = phaseStartEnd.poisonDamageDisplay
         main.hooks.gorgonEggHatchDisplay = phaseStartEnd.gorgonEggHatchDisplay
-        val trapsObj = MapTraps(
-            trapPool, battleBmMap, units, playSt, flags, SelectTargets(),
-            engine = engine, action = active.action,
-        ).also {
-            it.hooks.refreshEntityBmMaps = { battleEntityMaps.refreshEntityBmMaps() }
-        }
         mapTraps = trapsObj
         battleEntityMaps.traps = trapsObj
         main.hooks.updateTraps = trapsObj.updateTrapsScript

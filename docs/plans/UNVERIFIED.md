@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 651 across 91 decomp files (missing reason: 0).
+Total entries: 657 across 92 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -668,6 +668,17 @@ Total entries: 651 across 91 decomp files (missing reason: 0).
 | `sub_8009E28` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | wired by `Fe8Boot`; no dump compares the blend registers at this point |
 | `GameControlHandlePostNormalOrExtraChapter` | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | no test checks it against a trace yet |
 
+## src/bmmap.c (6)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `BmMapFillEdges` | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | no test checks it against a trace yet |
+| `UnpackChapterMapGraphics` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | both traced chapters have obj2Id 0, so the second tileset branch never runs |
+| `RefreshTorchlightsOnBmMap` | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | the Prologue has no trap, so the pool is empty in every capture |
+| `RefreshMinesOnBmMap` | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | the Prologue has no trap |
+| `GetTerrainHealAmount` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseTargets.kt` | no unit in a capture stands on a terrain that heals, and the map of the Prologue has none |
+| `GetTerrainHealsStatus` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseTargets.kt` | no unit in a capture stands on a terrain that heals a status, and the map of the Prologue has none |
+
 ## src/popup.c (6)
 
 | Function | Kotlin file | Reason |
@@ -728,15 +739,6 @@ Total entries: 651 across 91 decomp files (missing reason: 0).
 | `GenerateMovementMapOnWorkingMap` | `game/src/commonMain/kotlin/fe8/game/bm/MovementMap.kt` | only `ResetPathArrow` and the path arrow's re-route call it, and the capture runs neither |
 | `UnitApplyWorkingMovementScript` | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | the trap and hidden-unit branches, no capture walks onto one |
 
-## src/bmmap.c (4)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `BmMapFillEdges` | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | no test checks it against a trace yet |
-| `UnpackChapterMapGraphics` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | both traced chapters have obj2Id 0, so the second tileset branch never runs |
-| `RefreshTorchlightsOnBmMap` | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | the Prologue has no trap, so the pool is empty in every capture |
-| `RefreshMinesOnBmMap` | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | the Prologue has no trap |
-
 ## src/bmpatharrowdisp.c (4)
 
 | Function | Kotlin file | Reason |
@@ -754,6 +756,15 @@ Total entries: 651 across 91 decomp files (missing reason: 0).
 | `SaveRankings` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero ranking block, so no run shows its checksum or data |
 | `WriteLinkArenaStruct2` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | every reference run holds an all-zero link arena block, so no run shows its checksum or data |
 | `WriteSupplyItems` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | no @VerifiesPort test names it |
+
+## src/bmtarget.c (4)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `MakeTerrainHealTargetList` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseTargets.kt` | the captured lists are empty, the Prologue map has no terrain that heals and no unit has a status |
+| `MakePoisonDamageTargetList` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseTargets.kt` | no unit in a capture is poisoned, so the damage roll never runs |
+| `MakeGorgonEggHatchTargetList` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseTargets.kt` | no Gorgon egg exists in the Prologue |
+| `sub_8026414` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseTargets.kt` | the captured lists are empty, so no target is ever recorded |
 
 ## src/cp_0803E2F4.c (4)
 

@@ -17,15 +17,17 @@ import gbafe.proc.ProcScripts.end
  *
  * In the Prologue captures every display finds an empty target list and ends at once, so only
  * the `_Init` of each is here; the rest of each display script (`MassEffectDisplay_*`,
- * `*_Display`, `*_Next`) is a stand-in (M6-D) that ends the proc, as are the
- * `Make*TargetList` calls of `src/bmtarget.c` (EP-1b; they leave the list empty) and the pieces
- * behind [Hooks]. Nothing allocates after construction.
+ * `*_Display`, `*_Next`) is a stand-in (M6-D) that ends the proc, as are the pieces behind
+ * [Hooks]. The `Make*TargetList` calls of `src/bmtarget.c` are [PhaseTargets]. Nothing allocates
+ * after construction.
  */
 public class PhaseStartEnd(
     private val engine: ProcEngine,
     private val units: UnitTable,
     private val playSt: PlaySt,
     private val targets: SelectTargets,
+    /** The `Make*TargetList` functions of the displays; they make their lists into [targets]. */
+    private val lists: PhaseTargets,
     /** The calls this class makes that are not ported; every one does nothing by default. */
     public val hooks: Hooks = Hooks(),
 ) {
@@ -33,12 +35,6 @@ public class PhaseStartEnd(
     public fun interface PidAction {
         /** Runs the call for [pid]. */
         public fun run(pid: Int)
-    }
-
-    /** A call that takes the faction (0x00, 0x40 or 0x80). */
-    public fun interface FactionAction {
-        /** Runs the call for [faction]. */
-        public fun run(faction: Int)
     }
 
     /** The calls this class makes that are not ported yet. */
@@ -54,33 +50,7 @@ public class PhaseStartEnd(
          * `RefreshUnitSprites`, the redraw after a torch ran out. Stand-in until M6-D: nothing.
          */
         public var redrawAfterTorch: Runnable = Runnable { }
-
-        /**
-         * `MakeTerrainHealTargetList(faction)` (bmtarget.c). Stand-in until EP-1b: when null,
-         * [PhaseStartEnd] only does `InitTargets(0, 0)`, so the list is empty.
-         */
-        public var makeTerrainHealTargetList: FactionAction? = null
-
-        /**
-         * `MakePoisonDamageTargetList(faction)` (bmtarget.c). Stand-in until EP-1b: empty list.
-         */
-        public var makePoisonDamageTargetList: FactionAction? = null
-
-        /**
-         * `MakeGorgonEggHatchTargetList(faction)` (bmtarget.c). Stand-in until EP-1b: empty list.
-         */
-        public var makeGorgonEggHatchTargetList: FactionAction? = null
-
-        /**
-         * `sub_8026414(4)` (bmtarget.c): for each poison target whose current HP is at most its
-         * damage, records the defeat and loss in the save statistics (`PidStatsRecordDefeatInfo`,
-         * `PidStatsRecordLoseData`). Default: does nothing.
-         */
-        public var preparePoisonDefeats: Runnable = Runnable { }
     }
-
-    /** The `Make*TargetList` stand-in until EP-1b: leaves the target list empty. */
-    private val emptyList = FactionAction { targets.initTargets(0, 0) }
 
     private val statusDecayInitFn = ProcFunc { statusDecayDisplayInit(it) }
     private val terrainHealInitFn = ProcFunc { terrainHealDisplayInit(it) }
@@ -197,19 +167,19 @@ public class PhaseStartEnd(
      * C otherwise zeroes `unk_4C`, which only the unported `_Display` / `_Next` read.)
      */
     public fun terrainHealDisplayInit(proc: Proc) {
-        (hooks.makeTerrainHealTargetList ?: emptyList).run(playSt.faction)
+        lists.makeTerrainHealTargetList(playSt.faction)
         if (targets.getSelectTargetCount() == 0) engine.end(proc)
     }
 
     /**
      * Ported from src/bmusailment.c: PoisonDamageDisplay_Init
      *
-     * Makes the poison target list of the active faction, runs [Hooks.preparePoisonDefeats],
-     * ends [proc] if the list is empty. (The C otherwise zeroes `unk_4C`.)
+     * Makes the poison target list of the active faction, records the defeats the damage would
+     * cause (`sub_8026414(4)`), ends [proc] if the list is empty. (The C otherwise zeroes `unk_4C`.)
      */
     public fun poisonDamageDisplayInit(proc: Proc) {
-        (hooks.makePoisonDamageTargetList ?: emptyList).run(playSt.faction)
-        hooks.preparePoisonDefeats.run()
+        lists.makePoisonDamageTargetList(playSt.faction)
+        lists.sub8026414(DEFEAT_CAUSE_POISON)
         if (targets.getSelectTargetCount() == 0) engine.end(proc)
     }
 
@@ -220,11 +190,14 @@ public class PhaseStartEnd(
      * empty. (The C otherwise zeroes `unk_4C`.)
      */
     public fun gorgonEggHatchDisplayInit(proc: Proc) {
-        (hooks.makeGorgonEggHatchTargetList ?: emptyList).run(playSt.faction)
+        lists.makeGorgonEggHatchTargetList(playSt.faction)
         if (targets.getSelectTargetCount() == 0) engine.end(proc)
     }
 
     private companion object {
+        /** `DEFEAT_CAUSE_POISON`: the cause `sub_8026414` records for the poison displays. */
+        const val DEFEAT_CAUSE_POISON = 4
+
         /** `FACTION_BLUE` (include/bmunit.h): the player's units. */
         const val FACTION_BLUE = 0x00
 

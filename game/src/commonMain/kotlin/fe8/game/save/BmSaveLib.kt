@@ -7,6 +7,7 @@
 
 package fe8.game.save
 
+import fe8.game.RomView
 import fe8.game.bm.PlaySt
 import fe8.game.bm.initPlayConfig
 import fe8.game.flags.Fe8EventFlags
@@ -816,6 +817,9 @@ public class BmSaveLib(public val sram: CartSram) {
 
     /** `gPidStatsData`: one packed `UnitUsageStats` (16 bytes) per character, 0x46 entries. */
     public val pidStatsData: ByteArray = ByteArray(PID_STATS_SIZE)
+
+    /** Returns a [PidStats] view over [pidStatsData] for [rom]. */
+    public fun pidStats(rom: RomView): PidStats = PidStats(rom, pidStatsData)
 
     /** `gChapterStats`: one packed `ChapterStats` (4 bytes) per chapter slot, 0x30 entries. */
     public val chapterStatsData: ByteArray = ByteArray(CHAPTER_STATS_SIZE)

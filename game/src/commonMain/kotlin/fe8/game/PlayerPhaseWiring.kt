@@ -35,6 +35,7 @@ import fe8.game.bm.UnitFacing
 import fe8.game.bm.UnitSpriteHandles
 import fe8.game.bm.UnitTable
 import fe8.game.event.EventInfos
+import fe8.game.save.PidStats
 import fe8.game.scene.IntBinaryOperator
 import fe8.game.scene.IntConsumer
 import fe8.game.scene.IntSupplier
@@ -96,6 +97,8 @@ internal class PlayerPhaseWiring(
     private val battleGenerate: BattleGenerate,
     /** `EventEngineExists`, which the forecast waits on. */
     private val eventEngineExists: () -> Boolean,
+    /** Per-unit battle stats (`gPidStatsData`). */
+    private val pidStats: PidStats? = null,
 ) {
     private val items = ItemInfo(rom)
 
@@ -393,6 +396,12 @@ internal class PlayerPhaseWiring(
      */
     private fun wireStandIns(phase: PlayerPhase) {
         phase.hooks.unitSelectEnabled = true
+        if (pidStats != null) {
+            phase.hooks.pidStatsAddActAmt = { pid -> pidStats.pidStatsAddActAmt(pid) }
+            phase.hooks.pidStatsAddSquaresMoved = { charId, amount ->
+                pidStats.pidStatsAddSquaresMoved(charId, amount)
+            }
+        }
     }
 
     private companion object {

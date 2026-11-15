@@ -453,14 +453,31 @@ public class BattleGenerate(
      * Initialises the battle units from the units at [actorOff] / [targetOff] of [src], generates
      * the battle and fixes up the target's counter and equipped weapon. For a target that is a
      * unit (`index != 0`) the exp gains follow: they are [battleApplyExpGains], and
-     * `PidStatsRecordBattleRes` / `PidStatsAddBattleAmt` (save statistics) are not ported.
+     * [pidStatsRecordBattleRes] and [pidStatsAddBattleAmt] record the battle statistics.
      */
     public fun battleGenerateRealInternal(src: ByteArray, actorOff: Int, targetOff: Int) {
         generateCommon(src, actorOff, targetOff)
         battle.battleUnitTargetCheckCanCounter(battle.target)
         battleUnitTargetSetEquippedWeapon(battle.target)
-        if ((battle.target.bytes[OFF_INDEX].toInt() and 0xFF) != 0) battleApplyExpGains()
+        if ((battle.target.bytes[OFF_INDEX].toInt() and 0xFF) != 0) {
+            battleApplyExpGains()
+            pidStatsRecordBattleRes()
+            pidStatsAddBattleAmt(src, actorOff)
+            pidStatsAddBattleAmt(src, targetOff)
+        }
     }
+
+    /**
+     * Records win/loss for the battle result (`PidStatsRecordBattleRes`, `bmsave-bwl.c`).
+     * Wired in `Fe8Boot` to `PidStats`; default is a no-op for unconfigured unit tests.
+     */
+    public var pidStatsRecordBattleRes: () -> Unit = {}
+
+    /**
+     * Records the battle count for a combatant (`PidStatsAddBattleAmt`, `bmsave-bwl.c`).
+     * Wired in `Fe8Boot` to `PidStats`; default is a no-op for unconfigured unit tests.
+     */
+    public var pidStatsAddBattleAmt: (src: ByteArray, offset: Int) -> Unit = { _, _ -> }
 
     /**
      * Ported from src/bmbattle.c: BattleGenerateReal

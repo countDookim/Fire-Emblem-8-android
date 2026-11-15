@@ -215,8 +215,8 @@ public class PlayerPhase(
         public var startMapMenu: (xOffset: Int) -> Unit = {}
 
         /**
-         * Stand-in until M6-E for `PidStatsAddActAmt(pid, 1)` (the per-character action count of
-         * the save statistics); gets the character id.
+         * `PidStatsAddActAmt(pid)` (the per-character action count of the save statistics); wired
+         * in `Fe8Boot` to `PidStats`, default no-op for standalone tests.
          */
         public var pidStatsAddActAmt: (pid: Int) -> Unit = {}
 
@@ -399,7 +399,7 @@ public class PlayerPhase(
         /** `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. */
         public var battleAnimPreconfOff: () -> Boolean = { false }
 
-        /** `PidStatsAddSquaresMoved(charId, amount)`; stand-in until M6-E (the records). */
+        /** `PidStatsAddSquaresMoved(charId, amount)`; wired in `Fe8Boot` to `PidStats` (transcribed). */
         public var pidStatsAddSquaresMoved: (charId: Int, amount: Int) -> Unit = { _, _ -> }
 
         /**

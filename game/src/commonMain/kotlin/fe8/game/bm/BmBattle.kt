@@ -1076,16 +1076,15 @@ public class BmBattle(
     public var arenaLevelLatch: Int = 0
 
     /**
-     * `PidStatsAddExpGained(pid, exp)` (bmsave-bwl.c, the save statistics; no plan row): called by
-     * [updateUnitFromBattle] for a non-zero `expGain`. Stand-in until M6-C: does nothing, the
-     * statistics are not kept.
+     * `PidStatsAddExpGained(pid, exp)` (bmsave-bwl.c): called by [updateUnitFromBattle] for a
+     * non-zero `expGain`. Wired in `Fe8Boot` to `PidStats`; default does nothing.
      */
     public var pidStatsAddExpGained: (pid: Int, exp: Int) -> Unit = { _, _ -> }
 
     /**
-     * `PidStatsRecordDefeatInfo(pid, killerPid, cause)` (bmsave-bwl.c, the save statistics; no
-     * plan row): called by [killUnitOnCombatDeath] with `DEFEAT_CAUSE_COMBAT`. Stand-in until
-     * M6-C: does nothing, the statistics are not kept.
+     * `PidStatsRecordDefeatInfo(pid, killerPid, cause)` (bmsave-bwl.c): called by
+     * [killUnitOnCombatDeath] with `DEFEAT_CAUSE_COMBAT`. Wired in `Fe8Boot` to `PidStats`
+     * (transcribed, awaiting a player-death capture).
      */
     public var pidStatsRecordDefeatInfo: (pid: Int, killerPid: Int) -> Unit = { _, _ -> }
 

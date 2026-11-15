@@ -45,8 +45,7 @@ public class PhaseStartEnd(
     public class Hooks {
         /**
          * `PidStatsSubFavval08(pid)` (bmsave-bwl.c, the save statistics): lowers the favour of
-         * a character. Default: does nothing. `Fe8Boot` leaves the default until the
-         * statistics are kept.
+         * a character. Wired in `Fe8Boot` to `PidStats`; default does nothing.
          */
         public var pidStatsSubFavval08: PidAction = PidAction { }
 

@@ -98,6 +98,7 @@ import fe8.game.opanim.OpSubtitle
 import fe8.game.save.BmSaveLib
 import fe8.game.save.BmSuspendSave
 import fe8.game.save.NewGameRam
+import fe8.game.save.PidStats
 import fe8.game.save.SuspendRam
 import fe8.game.scene.IntConsumer
 import fe8.game.scene.IntSupplier
@@ -230,6 +231,9 @@ public class Fe8Boot(
 
     /** The save routines on [sram]. */
     public val saveLib: BmSaveLib by lazy { BmSaveLib(sram).also { it.sramInit() } }
+
+    /** The per-unit battle statistics (`gPidStatsData`). */
+    public val pidStats: PidStats by lazy { PidStats(rom, saveLib.pidStatsData) }
 
     /** The suspend save's RAM, shared by the write hook and the resume read (`actionData`). */
     private val suspendRam: SuspendRam by lazy {
@@ -1072,10 +1076,24 @@ public class Fe8Boot(
         val handles = checkNotNull(spriteHandles)
         val battle = BmBattle(rom, units, loader, playSt, loop.bmSt) { y, x ->
             battleBmMap.terrain[y, x]
+        }.also {
+            it.pidStatsAddExpGained = { pid, exp -> pidStats.pidStatsAddExpGained(pid, exp) }
+            it.pidStatsRecordDefeatInfo = { pid, killerPid ->
+                pidStats.pidStatsRecordDefeatInfo(
+                    pid, killerPid, PidStats.DEFEAT_CAUSE_COMBAT,
+                    playSt.chapterIndex, playSt.chapterTurnNumber,
+                )
+            }
         }
         val battleGenerate = BattleGenerate(battle, rom, loader, playSt, rng, Mechanics()).also {
             it.bmMap = battleBmMap
             it.unitTable = units
+            it.pidStatsRecordBattleRes = {
+                pidStats.pidStatsRecordBattleRes(battle.actor, battle.target, playSt)
+            }
+            it.pidStatsAddBattleAmt = { src, offset ->
+                pidStats.pidStatsAddBattleAmt(src, offset)
+            }
         }
         PlayerPhaseWiring(
             engine, rom, hw, loop.bmSt, playSt, battleBmMap, units, flags, keys,
@@ -1086,6 +1104,7 @@ public class Fe8Boot(
             drawnIconLookupTable, iconGfxIdLookupTable, mapCursor, battle,
             battleGenerate,
             { eventEngine.eventEngineExists() },
+            pidStats,
         ).wire(phase, main, eventInfos)
         // The enemy phase (EP-2a, EP-3a/b): `AiPhaseInit`, the unit order and the decision loop.
         // The script interpreter (EP-4), the attack search (EP-5), the score (EP-6a) and the reach
@@ -1146,7 +1165,11 @@ public class Fe8Boot(
         // Phase start and end housekeeping (EP-1). The target list is its own: the displays'
         // `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w
         // shares one list with the player phase when the real `Make*TargetList` come in.
-        val phaseStartEnd = PhaseStartEnd(engine, units, playSt, SelectTargets())
+        val phaseStartEnd = PhaseStartEnd(engine, units, playSt, SelectTargets()).also {
+            it.hooks.pidStatsSubFavval08 = PhaseStartEnd.PidAction { pid ->
+                pidStats.pidStatsSubFavval08(pid)
+            }
+        }
         main.hooks.clearActiveFactionGrayedStates =
             { phaseStartEnd.clearActiveFactionGrayedStates() }
         main.hooks.tickActiveFactionTurn = { phaseStartEnd.tickActiveFactionTurn() }

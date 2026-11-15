@@ -13,6 +13,9 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- MC-18i: GPT owner PC Terra, level-up display inventory, until ~22:00Z (2026-11-15).
+- EP-11g: GPT owner PC Terra, captured music helpers, until ~22:00Z (2026-11-15).
+
 - EP-28 (battle quote and defeat events: event.c / eventinfo.c), owner PC Gemini Flash agent `ep28`, claimed 2026-11-15 20:11Z.
 - EP-11d (text and CG text: fontgrp.c, cgtext.c), owner PC Gemini Flash agent `ep11d`, claimed 2026-11-15 20:15Z.
 

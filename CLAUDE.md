@@ -26,8 +26,11 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
    `@VerifiesPort` test against ground truth (docs/decisions/0006-verification-policy.md). Deliberately mutate the
    port, observe the test fail, restore it and rerun the test green. Never inflate progress.
 5. Default branch is `master`. Commit + push after every completed step; unfinished work on `wip/<task-id>`.
-6. Product = 1:1 original; modding = extension points only (docs/decisions/0009). Code is split for reuse by
-   FE6/FE7 ports: game-neutral `gbafe.*` vs FE8-only `fe8.*` (docs/decisions/0010); never use `fe8` from `gbafe`.
+6. Vanilla = 1:1 original; loaded mods may extensively replace data and logic, including AI, camera,
+   rules and control schemes (docs/decisions/0009, 0016). Keep vanilla defaults and reference tests exact;
+   establish replaceable boundaries as systems are ported, tracking gaps without speculative ports or
+   broad refactors. Executable-mod runtime/API choices need their planned review. Code is split for reuse
+   by FE6/FE7 ports: game-neutral `gbafe.*` vs FE8-only `fe8.*` (0010); never use `fe8` from `gbafe`.
 7. Save tokens, not quality: short replies, commits and HANDOFF lines; no narration. Read excerpts, never re-read
    what you wrote. CI: check step conclusions first, then `tail_lines` <= 80 of the one failing job, never full
    logs. During work run only the tests for what changed; full `jvmTest` (+ Dokka if public API changed) once

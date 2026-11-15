@@ -1285,4 +1285,5 @@ per boot (confirmed: each coincided with a miss); documented, not changed. Windo
 
 ## M7
 
-Not broken down here: [M7-modding](M7-modding.md) has 23 proposed rows; they wait for owner decisions D2–D9.
+[M7-modding](M7-modding.md) now includes accepted extensive-modding scope (ADR 0016), implementation
+proposals and design inventories M7-24..32. Runtime/API/storage/packaging choices remain open.

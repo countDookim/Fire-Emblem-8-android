@@ -26,7 +26,8 @@ No code, captures, tests or new port credits were produced by this planning revi
 - New test names in these plans are proposed, not existing tests. Focused command after implementation:
   `:testing:test --tests fe8.testing.<Class>` under the shared Gradle lock. One parent full JVM run at
   integration; do not regenerate progress after filtered tests. No Gradle is needed for this docs-only plan.
-- No schema, gameplay or M7 policy decisions are made here. M7 remains proposed pending D2–D9.
+- This M6 decomposition does not select M7 implementation choices. Extensive scope is now accepted
+  in [ADR 0016](../decisions/0016-faithful-vanilla-extensive-mods.md); see [M7](M7-modding.md) for open choices.
 
 Task aliases retained for older code/comments: EP-12 is now an evidence inventory, EP-34 is split into
 EP-34a/b, MC-18 is the display integration gate, PC-4/6/8/9/10 and IS-1/2/5..9 are integration gates.

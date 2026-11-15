@@ -7,12 +7,11 @@ Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 ## NEEDS USER
 
 Nothing blocks development. Owner device test 0.1.622 (11-12): D-11 and PP-0a confirmed; new reports D-14, D-15 below.
-Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1 decided: option A, ADR 0015; M6 is not blocked).
+Extensive modding scope, separate vanilla tests and replaceable camera/controls/AI are accepted (ADR 0016).
+[M7 decisions](docs/plans/M7-modding.md): release staging (D2), API details (D5), layout/debug/storage/packaging
+(D4/D6/D8/D9) and executable runtime (D10) remain open; M6 and design inventories are not blocked.
 
 ## In progress
-
-- PLAN-M7: GPT owner PC, docs only; extensive modding with faithful vanilla, until ~21:15Z (2026-11-15).
-
 
 - EP-28 (battle quote and defeat events: event.c / eventinfo.c), owner PC Gemini Flash agent `ep28`, claimed 2026-11-15 20:11Z.
 - EP-11d (text and CG text: fontgrp.c, cgtext.c), owner PC Gemini Flash agent `ep11d`, claimed 2026-11-15 20:15Z.
@@ -20,10 +19,17 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## Current state
 
+- 2026-11-15 GPT planning: owner-approved extensive modding recorded in ADR 0016 and M7 plan.
+  Vanilla stays original; mods can replace data/audio, executable AI/rules, camera and controls without
+  rebuilding the APK. Added M7-24..32 design tasks; no runtime/storage choice silently selected.
+  Brief, architecture, modding guide and all three assistant instructions aligned. Docs only; no new
+  code, captures, port credits, APK or device checks. Existing implementation claims preserved.
+
 - 2026-11-15 GPT planning only (owner-selected Astra high): broad M6-D..J tasks split in
   [TASKS](docs/TASKS.md) and [task scopes](docs/plans/M6-task-scopes.md). Candidate ports require
   inventory confirmation; later milestones have scenario CAP/INV rows, not invented function coverage.
-  PC-easy-w closes M6-E with tutorials included. M7 still awaits D2–D9. No code/captures or device changes;
+  PC-easy-w closes M6-E with tutorials included. M7 implementation choices are tracked separately.
+  No code/captures or device changes;
   planning checks only, no new JVM run or port credits. Other agents' claims remain authoritative.
 
 
@@ -167,7 +173,8 @@ window runs) → WIRE. Two lanes run in parallel; take the first `todo` whose de
    3/3 afterwards. Re-run it if it fails.
 6. **TEST-1 done 11-11:** `:testing` runs in 3 forks; AllocationMeter classes run in `serialTest` (auto-detected).
    Full run ~3.3 min (was 4.5). Revert notes: [TEST-SPEEDUP](docs/plans/TEST-SPEEDUP.md).
-7. **Owner:** decide modding questions D2–D9 when M7 nears.
+7. **M7:** design inventories M7-24..32 precede implementation. Scope is accepted; present concrete
+   runtime/API and remaining packaging/storage proposals for owner review before dependent coding.
 
 `@VerifiesPort` takes bare function names; `"src/x.c: F"` silently counts nothing.
 Node table checks use pinned runtime source: `tools/setup_decomp.sh` or `FE8U_DECOMP` (read-only).

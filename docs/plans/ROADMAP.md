@@ -67,12 +67,12 @@ main files, not all of them reachable.
 | M6-H | Chapters 1–4 systems, as first needed | Items, trade, rescue, visit, talk, shops, fog, staves, reinforcements | `bmitemuse.c` 57, `bmtrade.c` 44, `bmusemind.c` 38, `bmshop.c` 81, `mapanim*` 358, spell efx per spell |
 | M6-I | Prep screen and free-roam world map | Preparations; world-map travel, skirmishes | `prep_*` 452, rest of `worldmap_*` (about 480) |
 | M6-J | Late game and extras | Promotion, arena, supports, endings, sound room, remaining spell/dragon animations | `classchg*`, `bmarena.c`, `uisupport.c`, `ending_*`, `soundroom.c`, rest of battle_anim |
-| M7 | Modding surface | Mod loader, debug menu (debug builds), MODDING.md current | starts with audit M7-0 |
+| M7 | Extensive modding | Loaded data/audio and executable AI/rule/camera/control mods; vanilla unchanged; author docs and debug tools | design M7-24..32, then staged implementation |
 
 Planning updated 2026-11-15: [M6 task scopes](M6-task-scopes.md) splits the remaining broad M6-D/E/F
 work into bounded inventories and candidate function groups, and M6-G..J into scenario captures/inventories.
 Candidate PORT rows remain blocked until an inventory fixes the observed functions and exact windows;
-later inventories still have to produce their implementation rows. M7 remains proposed pending D2–D9.
+later inventories still have to produce their implementation rows. M7 scope is accepted in ADR 0016; runtime/API/storage/packaging details remain open.
 Historical call chains and capture results: [M6C-J-breakdown](M6C-J-breakdown.md). Lanes from 2026-11-12 (owner-approved):
 Lane A carries the main line M6-C → M6-D → M6-E; Lane B finishes M6-B, then M6-F. The Easy-mode tutorial
 (PC-cap3, PC-10) is part of M6-E, at its end; `PC-w` verifies Normal and `PC-easy-w` closes M6-E
@@ -96,9 +96,13 @@ remain in scope. The pace depends on captures.
 [M7-modding](M7-modding.md) checks every "Modding groundwork" bullet of the brief against the code. Main
 finding: the extracted JSON/Tiled/PNG/MIDI files exist, but no production code reads them; the game reads the
 imported ROM by address (about 76 files in `game/`). Fourteen bullets are partial, the debug menu is missing, and
-"all data in JSON, none hardcoded" is contradicted. Nine owner decisions (D1–D9) and 23 proposed M7 rows are in
-that file. **D1 is decided (owner, 2026-11-11): option A** — the ROM stays the vanilla source and mods override
-per table in M7 ([ADR 0015](../decisions/0015-rom-base-mod-overrides.md)); M6 ports are unaffected. D2–D9 are open.
+"all data in JSON, none hardcoded" was contradicted in that historical audit. **D1** selected ROM-backed
+vanilla with per-table overrides (ADR 0015). **2026-11-15:** [ADR 0016](../decisions/0016-faithful-vanilla-extensive-mods.md)
+adds extensive executable logic, AI/rule replacement, camera/viewports and new controls to the required scope,
+including all content groups and audio. Vanilla defaults and original reference checks stay exact.
+[M7-modding](M7-modding.md) records accepted direction and remaining choices; TASKS M7-24..32 are design
+inventories. Runtime/API, storage and packaging proposals need review before dependent implementation.
+M6 ports identify replaceable boundaries or small follow-ups while preserving capture-first verification.
 
 ## Soon (owner request, 2026-11-11)
 

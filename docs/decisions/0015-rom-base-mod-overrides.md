@@ -19,4 +19,6 @@ The differential tests compare ports against the same ROM, so ROM reads are what
 
 **Consequences.** Verification is unaffected. M7 is sized by the number of reader groups, not by a migration of
 every reader. "None hardcoded" becomes "every table reachable by an override". ROM address constants stay in
-`fe8.*` main sources (never in `gbafe.*`; M7-22 checks that). Decisions D2–D9 of the audit are still open.
+`fe8.*` main sources (never in `gbafe.*`; M7-22 checks that). The original audit left D2–D9 open;
+[0016](0016-faithful-vanilla-extensive-mods.md) later settles extensive scope, vanilla verification and
+camera direction. The current decision list is in M7-modding; data overrides remain part of the wider plan.

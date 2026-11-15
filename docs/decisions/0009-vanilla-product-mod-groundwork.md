@@ -2,6 +2,10 @@
 
 **Status.** Accepted (owner, 2026-10-25).
 
+**Clarification 2026-11-15:** [0016](0016-faithful-vanilla-extensive-mods.md) makes extensive
+player-loaded logic mods an explicit requirement. “Not shipped” / “only in tests” below exclude
+built-in non-original defaults; they do not forbid loaded mods from replacing AI, camera, rules or controls.
+
 **Context.** The app must play exactly like the original; changes (touch gameplay, 1-RN hit, widescreen, QoL)
 must be easy for mods to add, not shipped.
 

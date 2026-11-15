@@ -1,11 +1,43 @@
-# M7 modding audit (task M7-0)
+# M7 extensive modding plan and historical audit
 
 Audited 2026-11-11 at `74c9fa2`, read-only. Method: grep and reading of the classes named below. "Not checked"
 means I did not read it. Statuses: `in place` (works in production code), `partial`, `missing`, `contradicted`
 (code or another doc says the opposite of the brief). Test-only means a unit/differential test exercises it
 but no production code path (`:app`, `Fe8Boot`, `Fe8Game`) does.
 
-## 1. Summary
+## 0. Accepted direction (owner, 2026-11-15)
+
+[ADR 0016](../decisions/0016-faithful-vanilla-extensive-mods.md): the base game remains faithful to
+original behavior; mods can extensively replace data **and executable logic** without rebuilding the APK.
+The audit below is a 2026-11-11 snapshot, not a claim that its counts/callers describe today's code.
+
+| Area | Vanilla contract | Required mod capability (planned) |
+|---|---|---|
+| AI | Original decisions, priorities, movement and RNG consumption | Replace targeting/scoring/movement policies and whole decision routines |
+| Rules | Original combat, skills, action and phase behavior | Replace formulas and action/turn rules through explicit contracts |
+| Camera | Original framing/scrolling and 240×160 presentation | Replace tracking, zoom, coordinate transforms and viewport dimensions |
+| Input | Original key timing and on-screen GBA controls | Semantic actions, custom action types and entirely new schemes, including direct touch |
+| Data/content | Imported ROM remains the default | Override tables, maps, event scripts, text, graphics and audio |
+| Save state | Preserve vanilla state and original-save compatibility | Versioned per-mod state with explicit migration/compatibility policy |
+
+**Delivery order:** (1) audit boundaries and review runtime/API contracts; (2) loader/data overrides and
+vanilla isolation checks; (3) executable logic with independent AI, camera and control demonstrations;
+(4) complete remaining reader/effect groups, audio, mod state and author documentation. These are stages,
+not cuts to the required scope. First release contents remain an owner decision. M6 continues toward
+playable vanilla; each touched system records its replacement boundary or a small follow-up task.
+
+**Contract requirements:** semantic IDs/state views instead of raw ROM/proc access; notifications separate
+from decision replacements; documented ordering and conflicts when two mods replace the same service;
+versioned APIs and mod dependencies; defined load/unload/error behavior, RNG/clock access and state ownership.
+No assumption that `.fe8s`, `UiElements`, an event bus or a button mapper already supplies general logic mods.
+Vanilla keeps its allocation/performance budget; loaded logic needs explicit measured budgets. Full API
+signatures and runtime choices are review outputs, not decisions silently made by these planning rows.
+
+**Verification:** original captures compare vanilla only. Independent mod tests prove changed behavior;
+disabling mods from the same clean initial state must reproduce vanilla. Existing modded saves need an
+explicit compatibility decision, not silent conversion. Mod-only tests never add verified FE8 functions.
+
+## 1. Summary (historical audit)
 
 | Bullet | Status | Evidence | Gap |
 |---|---|---|---|
@@ -65,59 +97,88 @@ data, tests and the ROM-repo CI check (`ci_check_extraction.sh`).
 | C. Hybrid by group | Data tables (B), assets via `TextureOverrides`/path override (A), scripts via `.fe8s` loader; world map and proc data stay ROM-only until a mod needs them | Smallest first step: about 15 readers (tables, scripts); the rest deferred |
 | D. Document the contradiction | Amend the brief/ARCHITECTURE: mods override only what has a loader; ROM stays the base for the rest | 0 code; edits to PROJECT_BRIEF, ARCHITECTURE, MODDING |
 
-## 3. Decisions needed from the owner
+## 3. Decisions and remaining choices
 
-1. **ROM reads vs "all data through the VFS"** (section 2): **decided 2026-11-11: option A** (ROM stays the
-   vanilla source; per-table VFS overrides; [ADR 0015](../decisions/0015-rom-base-mod-overrides.md)). Rows below
-   with "D1" in Deps are no longer blocked by it.
-2. **Which groups must be moddable at 1.0 of M7?** Candidates: unit/class/item/character stats, chapter data and
-   maps, event scripts, text, textures, audio. Anything not named stays ROM-only.
-3. **Vanilla checks with mods on:** differential tests compare against the ROM. Mods change the data under test.
-   Keep tests on the ROM-only path (default) and test mod paths separately? Or add a "no mods" fixture only?
-4. **Mod file layout:** the extractor writes `fonts/`, `portraits/`, `ui/`, `songs/` (no `gfx/`/`audio/` prefix);
-   MODDING.md documents `gfx/` and `audio/`. Keep the extractor layout (and fix MODDING.md) or rename.
-5. **Event-bus scope:** which events (`map.onMapEnter`, `battle.onBattleStart`, ...) must exist for M7, since they
-   attach to systems that are only now ported (M6-B..D).
-6. **Debug menu scope:** list of tools for M7 (warp, flags/vars, items, battles, inspect), and whether it is
-   Compose or an in-game overlay. Debug menus of the decomp are out of scope (ROADMAP).
-7. **Camera not tied to 240x160** (brief) versus "Fixed 240x160" (ARCHITECTURE): keep fixed (amend the brief) or
-   plan a wide-view camera.
-8. **Saves:** switch the running game's SRAM to `SaveContainer` with per-mod sections, or keep raw SRAM and store
-   mod sections in a side file.
-9. **Mod format on disk:** zip support and `override/` layer now or later; JSON schema validation at load for
-   mods only, or for base data as well.
+| ID | Status | Direction / remaining choice |
+|---|---|---|
+| D1 | Decided 11-11 | ROM is the vanilla source; per-table overrides (ADR 0015). |
+| D2 | Scope decided 11-15; release staging open | All content groups, including audio, plus AI, rules, camera and new controls are required. Decide the first release cut after estimates; do not permanently defer these capabilities. |
+| D3 | Decided 11-15 | Separate vanilla reference tests and mod behavior tests; disabling mods on a clean baseline restores original behavior. |
+| D4 | Open | Keep extractor paths or rename? Existing-layout recommendation remains a proposal. |
+| D5 | Direction decided 11-15; API details open | Both notifications and replacement contracts are needed. Review event list, timing, mutation permissions and conflict ordering. |
+| D6 | Open | Debug tools and Android/Compose versus in-game UI; debug-only requirement unchanged. |
+| D7 | Direction decided 11-15 | Vanilla remains 240×160; mods can replace camera, zoom and viewport. Rendering/input contracts require design, not permission to change vanilla defaults. |
+| D8 | Requirement decided; storage choice open | Versioned mod state and original-save compatibility required. SaveContainer versus sidecar, missing-mod behavior and migrations need review. |
+| D9 | Open | Packaging/reload support and schema-validation policy: folder/ZIP/override layers and which data is checked when. |
+| D10 | New, open | Executable-mod runtime and public API/lifecycle: evaluate how authors supply AI/camera/control logic without rebuilding the app. No language, VM or native-plugin format selected. |
+
+The owner approved the extensive-modding direction; this does not silently approve every earlier
+packaging, debug-UI or save-format recommendation. Open choices block their dependent implementation,
+not M6 ports or the read-only design inventories below.
 
 ## 4. Proposed M7 rows
 
-Format follows ROADMAP task rules where they apply: one behaviour per row, concrete acceptance, headless test for
-WIRE rows, device check at the end. Rows marked "D1" depend on owner decision 1 (and may change shape).
+The original M7-1..23 rows below are retained as proposals, amended for the accepted scope. They are
+not all ready coding briefs. M7-24..32 are bounded design inventories in TASKS; their results split the
+implementation proposals and add executable-logic work before coding. Existing engine libraries are
+not proof that production supports loading mods. New mod infrastructure does not receive FE8 port tags.
 
 | ID | Kind | Task | Acceptance | Deps | Status |
 |---|---|---|---|---|---|
-| M7-1 | PORT | `ModManifest` parser (`mod.json`): validate id, semver, `formatVersion`, dependencies | Unit test: valid manifest parses; missing id, bad version and unknown `formatVersion` each give a named error | — | todo |
-| M7-2 | PORT | Mod resolver: dependency check and ordering (deps, then `loadOrder`, then id), cycle and missing-dependency errors | Unit test: 3 mods with deps load in the expected order; cycle and missing dep report the mod ids | M7-1 | todo |
-| M7-3 | PORT | Zip `VfsLayer` (jvm + android) and `override/` debug layer | Test: a zip and a folder with the same path; top layer wins; `list()` unions; zip with `..` paths is refused | M7-1; D9 | todo |
-| M7-4 | WIRE | Create the `VirtualFileSystem` in `:app` (base + mods dir), mount mods in resolved order, show loaded mods and errors in the launcher | Headless test with a fake mods dir; MANUAL_TEST entry; allocation test unchanged | M7-2, M7-3 | todo |
-| M7-5 | PORT | JSON table loader with schema check at load (`DataTable` impls compiled to primitive arrays) for one table, `items.json` | Test: loads extracted `items.json`; a schema-violating file gives a named error; no allocation after load | D1 | todo |
-| M7-6 | PORT | Item data through the loader: `ItemInfo` reads the compiled table, ROM fallback if no file | Existing `ItemInfoReferenceTest` still passes with ROM path; test with a mod file changing one item field changes `ItemInfo` output | M7-5; D1 | todo |
-| M7-7 | PORT | Same for characters and classes (`UnitLoader`, `UnitTable`) | Existing unit tests pass unchanged; mod override of one class stat test | M7-6; D1 | todo |
-| M7-8 | PORT | Chapter data and `.tmj` maps through the loader (`ChapterData`, `BmMap`) | Existing `ChapterDataRomTest` passes; mod override of one chapter field test | M7-5; D1 | todo |
-| M7-9 | WIRE | Script loader: assemble `.fe8s` from the VFS to `ScriptWords` mod words; map a script id to an address; run from a chapter event | Headless end-to-end test (extends `ModScriptEndToEndTest`) runs a mod script from `Fe8Boot`; MANUAL_TEST entry | M7-4 | todo |
-| M7-10 | PORT | Text loader: `text/<lang>/messages.json` override with tags; `TextTag` set completed against the extracted tags | Test: mod string replaces message id N; unknown tag errors by name; vanilla ids unchanged | D1, D2 | todo |
-| M7-11 | WIRE | Texture override into the renderers for one asset (item icons) via `TextureOverrides` | Headless test: a `@2x.png` is picked; frame compare with and without; MANUAL_TEST entry | M7-4; D2 | todo |
-| M7-12 | INV | Extractors for data with no extracted form that mods would need (weapon triangle, affinity, effectiveness lists; unit lists for all chapters) | Each new file has a schema and passes `test_schemas.py`; extraction CI check updated | D2 | todo |
-| M7-13 | WIRE | Feature flags: register one non-vanilla flag in a system, behaviour behind it, `vanilla=true` keeps bit-exact | Differential test passes with flags off; test shows the flag changes the behaviour with `vanilla=false` | — | todo |
-| M7-14 | WIRE | Use `Fe8Game.mechanics` in `Fe8Boot` (replace its own `Mechanics()`) | Test: swapping `battleRolls` on the game changes a battle in `Fe8Boot`; vanilla differential tests unchanged | — | todo |
-| M7-15 | PORT | Event bus: first gameplay events chosen in D5, fired by the ported systems | Test per event: fires once with the expected arguments; zero-allocation test | D5; M6-B..D | todo |
-| M7-16 | WIRE | Flag/var registries into `Fe8Boot` and event scripts; mod flags saved in `mod:<id>` sections | Test: a mod flag set by a script survives save and load; vanilla bytes unchanged | D8 | todo |
-| M7-17 | WIRE | Save through `SaveContainer` (or the side file, per D8); `.sav` import entry in the launcher | Test: import of the reference `.sav` loads; round trip keeps mod sections; MANUAL_TEST entry | D8 | todo |
-| M7-18 | WIRE | Publish `UiElements` from at least the menu screens ported by then; touch mod example | Test: `hitTest` returns the element for a tap on a menu row | M6-B | todo |
-| M7-19 | PORT | Hot reload: watch folder layers in debug builds, invalidate loaders between ticks | Test: change a file in a temp mod folder; next tick sees the new data; release build has no watcher | M7-4, M7-5 | todo |
-| M7-20 | WIRE | Debug menu (debug builds only) with the tools chosen in D6 | Headless test of each tool's state change; `BuildConfig` guard test shows it absent in release; MANUAL_TEST entry | D6 | todo |
-| M7-21 | doc | Bring MODDING.md, ARCHITECTURE principle 6 and the brief in line with D1/D4/D7 and the finished rows | Every "planned" mark in MODDING.md matches code; no row's status contradicts a doc | D1, D4, D7 | todo |
-| M7-22 | tool | Layering check for ROM addresses: fail CI if a `gbafe.*` file (outside `gbafe.extract.<game>`) holds an FE8 `0x08xxxxxx` constant | `test_layering.py` case passes today; fails on a seeded offender | — | todo |
-| M7-23 | WIRE | Milestone close: mod example (texture + stat + script) loaded on the device | Device check by the owner; MANUAL_TEST entry | M7-4..M7-9 | todo |
+| M7-1 | PORT | `ModManifest` parser (`mod.json`): validate id, semver, `formatVersion`, dependencies | Unit test: valid manifest parses; missing id, bad version and unknown `formatVersion` each give a named error | — | proposed |
+| M7-2 | PORT | Mod resolver: dependency check and ordering (deps, then `loadOrder`, then id), cycle and missing-dependency errors | Unit test: 3 mods with deps load in the expected order; cycle and missing dep report the mod ids | M7-1 | proposed |
+| M7-3 | PORT | Zip `VfsLayer` (jvm + android) and `override/` debug layer | Test: a zip and a folder with the same path; top layer wins; `list()` unions; zip with `..` paths is refused | M7-1; D9 | proposed |
+| M7-4 | WIRE | Create the `VirtualFileSystem` in `:app` (base + mods dir), mount mods in resolved order, show loaded mods and errors in the launcher | Headless test with a fake mods dir; MANUAL_TEST entry; allocation test unchanged | M7-2, M7-3 | proposed |
+| M7-5 | PORT | JSON table loader with schema check at load (`DataTable` impls compiled to primitive arrays) for one table, `items.json` | Test: loads extracted `items.json`; a schema-violating file gives a named error; no allocation after load | D1 | proposed |
+| M7-6 | PORT | Item data through the loader: `ItemInfo` reads the compiled table, ROM fallback if no file | Existing `ItemInfoReferenceTest` still passes with ROM path; test with a mod file changing one item field changes `ItemInfo` output | M7-5; D1 | proposed |
+| M7-7 | PORT | Same for characters and classes (`UnitLoader`, `UnitTable`) | Existing unit tests pass unchanged; mod override of one class stat test | M7-6; D1 | proposed |
+| M7-8 | PORT | Chapter data and `.tmj` maps through the loader (`ChapterData`, `BmMap`) | Existing `ChapterDataRomTest` passes; mod override of one chapter field test | M7-5; D1 | proposed |
+| M7-9 | WIRE | Script loader: assemble `.fe8s` from the VFS to `ScriptWords` mod words; map a script id to an address; run from a chapter event | Headless end-to-end test (extends `ModScriptEndToEndTest`) runs a mod script from `Fe8Boot`; MANUAL_TEST entry | M7-4 | proposed |
+| M7-10 | PORT | Text loader: `text/<lang>/messages.json` override with tags; `TextTag` set completed against the extracted tags | Test: mod string replaces message id N; unknown tag errors by name; vanilla ids unchanged | D1, D2 | proposed |
+| M7-11 | WIRE | Texture override into the renderers for one asset (item icons) via `TextureOverrides` | Headless test: a `@2x.png` is picked; frame compare with and without; MANUAL_TEST entry | M7-4; D2 | proposed |
+| M7-12 | INV | Extractors for data with no extracted form that mods would need (weapon triangle, affinity, effectiveness lists; unit lists for all chapters) | Each new file has a schema and passes `test_schemas.py`; extraction CI check updated | D2 | proposed |
+| M7-13 | WIRE | Feature flags: register one non-vanilla flag in a system, behaviour behind it, `vanilla=true` keeps bit-exact | Differential test passes with flags off; test shows the flag changes the behaviour with `vanilla=false` | — | proposed |
+| M7-14 | WIRE | Use `Fe8Game.mechanics` in `Fe8Boot` (replace its own `Mechanics()`) | Test: swapping `battleRolls` on the game changes a battle in `Fe8Boot`; vanilla differential tests unchanged | — | proposed |
+| M7-15 | PORT | Typed notifications for the reviewed D5 event list; replacement policies are separate M7-26..29 contracts | Timing, order and arguments tested per event; vanilla allocation check | D5; M7-30; M6-B..D | proposed |
+| M7-16 | WIRE | Flag/var registries into `Fe8Boot` and event scripts; mod flags saved in `mod:<id>` sections | Test: a mod flag set by a script survives save and load; vanilla bytes unchanged | D8 | proposed |
+| M7-17 | WIRE | Save through `SaveContainer` (or the side file, per D8); `.sav` import entry in the launcher | Test: import of the reference `.sav` loads; round trip keeps mod sections; MANUAL_TEST entry | D8 | proposed |
+| M7-18 | WIRE | First semantic input adapter and direct-touch selection, scoped by M7-28; UiElements is one source | Valid action dispatch changes selection; invalid/context-mismatched action rejected; original key replay unchanged | M7-28; D10 | proposed |
+| M7-19 | PORT | Hot reload: watch folder layers in debug builds, invalidate loaders between ticks | Test: change a file in a temp mod folder; next tick sees the new data; release build has no watcher | M7-4, M7-5 | proposed |
+| M7-20 | WIRE | Debug menu (debug builds only) with the tools chosen in D6 | Headless test of each tool's state change; `BuildConfig` guard test shows it absent in release; MANUAL_TEST entry | D6 | proposed |
+| M7-21 | doc | Bring MODDING.md, ARCHITECTURE principle 6 and the brief in line with D1/D4/D7 and the finished rows | Every "planned" mark in MODDING.md matches code; no row's status contradicts a doc | D1, D4, D7 | proposed |
+| M7-22 | tool | Layering check for ROM addresses: fail CI if a `gbafe.*` file (outside `gbafe.extract.<game>`) holds an FE8 `0x08xxxxxx` constant | `test_layering.py` case passes today; fails on a seeded offender | — | proposed |
+| M7-23 | WIRE | Milestone close after all required capability groups, including executable logic, audio and mod state | Coverage ledger complete; separate AI/camera/control examples run without APK rebuild; clean vanilla replay restored; owner device tests | M7-24..32 outputs and required implementation rows | blocked: inventories must add implementation deps |
 
 Not checked: `ScriptVm` implementation beyond the contract file, Tiled layers other than units, the full
 `TextTag` list versus extracted control codes, whether `items.json` `effectiveAgainst` covers the `BmBattle`
 lists, `testing/` tests that read the VFS.
+
+## 5. Bounded design tasks (no implementation in this planning revision)
+
+These inventories produce reviewable documents and small implementation briefs, not code, captures or
+port credit. Prefer one representative running flow over auditing every source file. Confirm current
+code before deciding an interface. Each brief names files, signatures, semantics, tests and acceptance.
+
+| ID | Scope | Required output / stop condition | Deps |
+|---|---|---|---|
+| M7-24 | Boundary audit of one enemy turn, one camera scroll and one player action | Actual callers/ownership in CpDecide/CpBattle/CpUtility, BmSt/camera and PlayerPhaseWiring/input; identify hard coupling; small per-system follow-up rows | — |
+| M7-25 | Executable logic options only; `.fe8s` remains the event-script format | Compare JVM/Android feasibility, author workflow, API access, determinism, cost/allocation, failure behavior and distribution constraints; one recommended D10 ADR proposal for owner review; no runtime code | M7-24 |
+| M7-26 | Enemy AI replacement contract for one enemy turn | State view, targeting/movement/scoring and whole-decision boundaries; legality/ownership, RNG call order, custom state, conflict policy; split adapter/strategy/loader tasks and vanilla/mod tests | M7-24 |
+| M7-27 | Camera tracking and viewport contract for one map scene | Separate logical world, camera, viewport and UI transforms; scope tracking, zoom and viewport implementation separately; original-frame parity and transformed hit-test cases | M7-24 |
+| M7-28 | Semantic input contract for select → move → choose action | Trace original keys; define context/legality and custom action registration, device adapters, UI/world coordinates; direct touch must not require fake key navigation; split small implementation rows | M7-24, M7-27 |
+| M7-29 | Rule replacement contract for one combat action and one phase transition | Separate formula, skill, action and turn-policy replacement points with explicit state ownership; vanilla hit/RNG/phase replay and alternative-policy tests; no rewrite of all combat | M7-24 |
+| M7-30 | Versioned mod API registration and lifecycle | D5/D10 proposal: notifications versus replacements, API/dependency compatibility, conflict/order, load/unload/errors, clock/RNG access, save-state handoff; signatures and bounded implementation rows | M7-25, M7-26, M7-27, M7-28, M7-29 |
+| M7-31 | Audio override path for one song and one effect | Inspect Fe8Sound/m4a/VFS boundary; format/loader choices, unchanged vanilla playback, replace-and-disable checks, resource lifetime and performance; split song/effect rows, list remaining audio groups | — |
+| M7-32 | Mod coverage and verification plan | Ledger for every required capability/reader group, vanilla baseline and independent mod tests; load-disable baseline, API compatibility, save/missing-mod cases and performance checks; update M7-23 dependencies and propose release staging | M7-30, M7-31 |
+
+**Required demonstrations, each implemented as separate small tasks after design:**
+- Load authored logic without rebuilding the APK; compatibility failures identify the affected mod.
+- Replace an enemy decision routine and observe different legal behavior; vanilla retains original choices/RNG.
+- Replace camera tracking, then separately exercise zoom/viewport and matching coordinate transforms.
+- Select/move/act through a new control scheme; demonstrate a registered custom action beyond button remapping.
+- Replace one combat rule and one action/turn policy independently; no default behavior changes.
+- Replace one song and one sound effect; the vanilla playback path still matches reference checks.
+- Persist versioned mod state under the chosen D8 policy; disabling on a clean baseline restores vanilla.
+
+Publish author-facing API documentation and minimal original examples for each capability. No ROM-derived
+content goes into public examples. A texture/stat/script mod remains an early check, not milestone completion.

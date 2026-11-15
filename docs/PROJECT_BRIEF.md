@@ -14,16 +14,16 @@ at the end and win over the text above it.
 ## Goal
 A native Kotlin Android app that is a **1:1 copy** of the game (behaviour bit-exact vs the original), designed like a
 modern moddable game: not an emulator, no line-for-line transliteration, no GBA memory-layout mimicry. The ROM
-supplies assets and is the test ground truth. Modding = **extension points only** (data/VFS, event hooks, strategy
-interfaces); the app ships no non-original features: no touch gameplay, QoL flags, alternate formulas or widescreen
-(docs/decisions/0009). The only touch input shipped: an on-screen GBA button overlay (D-pad, A, B, L, R, Start,
-Select) sending exactly GBA keys.
+supplies assets and is the test ground truth. The **unmodded experience** preserves original behavior;
+loaded mods may extensively replace data and logic, including enemy AI, camera, rules and entirely new
+control schemes, without rebuilding the APK (ADRs 0009, 0016). Vanilla touch input remains the on-screen
+GBA button overlay. Custom touch gameplay, viewports and formulas belong to opt-in mods, not vanilla defaults.
 
 ## Hard requirements
 1. **Architecture:** by game system; idiomatic Kotlin (sealed states, enums, data classes); Compose for menus and
    settings only, game view on OpenGL ES 3.0. Code style: Google's Android Kotlin style guide (new/changed code).
 2. **Low-end phones:** zero per-frame allocations in game loop and renderer; hot data in primitive arrays behind
-   typed wrappers; GPU rendering at 240×160 scaled by shader; fixed ~59.73 Hz logic decoupled from display;
+   typed wrappers; vanilla GPU rendering at 240×160 scaled by shader; fixed ~59.73 Hz logic decoupled from display;
    low-latency `AudioTrack`; minSdk 26; allocation tests + JVM frame-time benchmark in CI.
 3. **Docs:** KDoc on every public declaration (what, why, non-obvious choices); ported functions cite their source
    (`/** Ported from src/battle_main.c: BattleMainCB2 */`); a README per module; `ARCHITECTURE.md`, `MODDING.md`
@@ -38,22 +38,29 @@ Select) sending exactly GBA keys.
    Multiplatform, targets jvm + android only (0013).
 
 ## Modding groundwork (designed in, not retrofitted)
-- **Input:** abstract actions, never raw buttons in game logic; buttons/touch/controllers interchangeable; UI
-  elements expose screen bounds + actions for hit-testing.
+- **Input:** preserve original key semantics in the vanilla adapter; expose semantic and mod-defined actions
+  for new control schemes, including direct touch. UI/world coordinates and context/legality are explicit.
+  This is a target contract; existing ports still use GBA key bits pending the M7 input tasks.
 - **Feature flags:** anything non-original behind flags; vanilla stays bit-exact (the product ships none).
-- **Data:** all game data in versioned, schema-validated JSON, compiled to primitive arrays at load; none hardcoded.
+- **Data:** imported ROM is the vanilla source (0015); versioned mod tables override it group by group,
+  compiled to primitive arrays at load. All content groups remain in the modding scope.
 - **Maps:** Tiled `.tmj` (layout, collision, warps, events, units, connections) + PNG tilesets, converted from decomp.
 - **Event scripts:** readable text format, allocation-free interpreter, new logic without recompiling (ADR 0001).
 - **Graphics:** PNG + JSON metadata; replacement/hi-res texture packs via the override layer; vanilla palettes.
 - **Audio:** MIDI + voicegroup definitions, WAV/OGG effects, all overridable.
 - **Text:** localization files with readable tags (`{PLAYER}`, `{PAUSE 30}`); Unicode font system.
-- **Mechanics:** formulas/AI as strategy interfaces with vanilla impls (alternatives only in tests); battle rolls via
-  `BattleRolls` (switching 2-RN to 1-RN hit is one method). Typed, allocation-free event bus.
+- **Mechanics:** replaceable AI decisions, targeting/movement/scoring, combat formulas, skills, actions and turn
+  rules with verified vanilla implementations. Typed notifications and decision replacements are separate.
+- **Executable mods:** load authored logic without rebuilding the app; versioned semantic APIs, documented
+  lifecycle/conflicts, RNG/clock access and performance budgets. Runtime choice is D10, still open.
+- **Verification:** vanilla reference tests remain separate from mod tests; disabling mods from a clean
+  baseline restores vanilla results. Mod tests do not add port credit.
 - **Flags/variables:** registry named after decomp constants; mods can add more.
 - **Saves:** versioned, migratable, per-mod sections; import original `.sav`.
 - **Mod loader:** folders/zips with manifest (id, version, deps, order); layered VFS overrides any path; hot reload
   in debug builds.
-- **Camera** not tied to 240×160 (vanilla stays 240×160); seedable central RNG (vanilla exact) + game clock.
+- **Camera:** original framing/scrolling and 240×160 in vanilla; replaceable tracking, zoom, viewport and
+  coordinate transforms for mods. Seedable central RNG (vanilla exact) and game clock remain explicit services.
 - **Debug menu** (debug builds only): warp, flags/vars, items, battles, inspect state.
 
 ## ROM and distribution
@@ -135,3 +142,4 @@ chapters 1–4 systems, prep screen and world map, late game), each ending in a 
 | 2026-11-11 | **Task rules:** capture-first kinds CAP / INV / PORT / WIRE replace the old per-source-file task size (merged above) | Owner: whole-file ports left unverifiable code and nothing reached the phone |
 | 2026-11-11 | **Game data:** the imported ROM is the vanilla source for all tables and assets; mods override per table through the VFS, added group by group in M7 (ADR 0015). Replaces "all game data in JSON, none hardcoded" in "Modding groundwork: Data". | Owner decision D1 of the M7-0 audit: keeps verification against the ROM valid and M6 ports unchanged |
 | 2026-11-11 | **Launcher:** add a "Delete save" button (deletes the save file, keeps the imported ROM; TASKS `APP-1`), to be done soon. App shell only, not a gameplay feature. | Owner: tired of clearing app data in Android settings |
+| 2026-11-15 | **Extensive mods, faithful vanilla:** ADR 0016 accepts executable AI/rule/camera/control replacement plus all content groups including audio; semantic/versioned APIs and separate vanilla/mod verification. Establish boundaries alongside ports; implementation follows reviewed small tasks. Runtime/packaging/storage choices are not selected by this direction. | Owner clarified vision and requested plan changes |

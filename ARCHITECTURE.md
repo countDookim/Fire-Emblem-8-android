@@ -5,14 +5,25 @@
    ([0006](docs/decisions/0006-verification-policy.md)).
 2. **Original behaviour, modern design:** idiomatic Kotlin per game system. Tests use GBA addresses freely; main sources still read ROM tables by
    `0x08…` address and keep some GBA RAM layouts (`BootRom`, `worldmap`, `bm`); TASKS row `M7-0` audits this.
-3. **1:1 product; modding = extension points** ([0009](docs/decisions/0009-vanilla-product-mod-groundwork.md),
-   [MODDING.md](MODDING.md)).
+3. **Faithful vanilla, extensive opt-in mods:** data and executable AI/rule/camera/control replacement
+   ([0016](docs/decisions/0016-faithful-vanilla-extensive-mods.md), [MODDING.md](MODDING.md)).
+   Runtime/API work is planned, not implemented by this decision. Vanilla stays the reference-tested default.
 4. **Zero allocations per frame** (`AllocationTest`, CI benchmark). All but `:app` is Android-free.
 5. **`gba.*` knows no Fire Emblem, `gbafe.*` is game-neutral FE code, `fe8.*` is FE8-only**
    ([0010](docs/decisions/0010-multi-game-reuse.md), [0012](docs/decisions/0012-gba-library.md)), CI-enforced.
 6. **The imported ROM is the vanilla data source; mods override per table through the layered VFS**
    (JSON, Tiled, `.fe8s`, PNG/MIDI/WAV; [0015](docs/decisions/0015-rom-base-mod-overrides.md)). No override
    loader exists yet (M7).
+
+## Planned replacement boundaries
+
+[M7-24..32](docs/plans/M7-modding.md#5-bounded-design-tasks-no-implementation-in-this-planning-revision)
+review semantic input/custom actions, full AI decisions, combat/action/turn policies, camera/view transforms,
+executable logic loading, API lifecycle and audio overrides. Notifications report events; strategy/action
+contracts supply behavior. Mods should use documented semantic IDs/state views, not ROM addresses or proc
+internals. Existing `.fe8s` event scripts and event listeners are not assumed to be a general logic runtime.
+Keep verified vanilla adapters as the default. During M6 work, identify the boundary or add a small follow-up;
+do not broadly refactor working ports or implement unobserved original functions for speculative mod needs.
 
 ## Modules
 
@@ -63,7 +74,10 @@ One semantic render state ([0008](docs/decisions/0008-render-model.md), per-line
 software (JVM reference, compared with mGBA on 5-bit channels) and GL ES 3.0 (`app/GpuBackend`: `GpuFrame` packs
 per-line state, the shader composites 240×160 into an FBO, then aspect-correct nearest scaling; `PackedCompositor`
 is its Kotlin spec, checked against `SoftwareRenderer` and, via `tools/shader_parity.mjs`, WebGL2). Sprites are
-rasterised on the CPU (`SpriteRasterizer`). Fixed 240×160.
+rasterised on the CPU (`SpriteRasterizer`). The current vanilla renderer is fixed at 240×160.
+The planned mod camera/view layer separates world, camera, viewport and UI coordinates so tracking, zoom
+and viewport sizes can be replaced; this capability is not implemented yet (M7-27). Vanilla rendering
+keeps the existing reference comparisons.
 
 ## Verification pipeline
 ```

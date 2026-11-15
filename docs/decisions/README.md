@@ -18,3 +18,4 @@ new record; owner amendments are folded in with their date.
 - [0013](0013-kmp-targets.md) Kotlin Multiplatform: jvm + android targets, commonMain rules
 - [0014](0014-roadmap-scope-capture-first.md) Roadmap: scope exclusion, milestones, capture-first tasks
 - [0015](0015-rom-base-mod-overrides.md) Game data: ROM is the vanilla source; mods override per table
+- [0016](0016-faithful-vanilla-extensive-mods.md) Faithful vanilla; extensive executable AI, camera, control and rule mods

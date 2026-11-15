@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1256,
+    "verified": 1270,
     "implemented_unverified": 79
   },
   "functions": {
@@ -1242,6 +1242,27 @@
         "fe8.testing.BgTilemapDifferentialTest#TSA tilemaps match the BG buffers in mGBA RAM"
       ]
     },
+    "CallBattleQuoteEventInBattle": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleQuoteDifferentialTest#pre-battle quote at f4278 starts battle engine proc and sets slot 2 and flag 1"
+      ]
+    },
+    "CallBattleQuoteEventsIfAny": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleQuoteDifferentialTest#combat at f1700 and f2133 in prologue clear and enemy phase produces no quote",
+        "fe8.testing.BattleQuoteDifferentialTest#pre-battle quote at f4278 starts battle engine proc and sets slot 2 and flag 1"
+      ]
+    },
     "CallChapterWMIntroEvents": {
       "decomp_file": "src/worldmap_main.c",
       "system": "worldmap",
@@ -1674,6 +1695,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BanimPrepareDifferentialTest#the real chain writes the battle animation variables of the capture"
+      ]
+    },
+    "CheckBattleDefeatTalk": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleQuoteDifferentialTest#defeat event at f4636 starts battle engine proc and sets boss defeat flag"
       ]
     },
     "CheckBattleUnitLevelUp": {
@@ -2369,6 +2400,16 @@
       "tests": [
         "fe8.testing.BmMapRenderDifferentialTest#fogged BG3 tilemap matches the dump on chapter 6",
         "fe8.testing.PrologueMapTest#BG3 of the Prologue map matches the first phase reference"
+      ]
+    },
+    "DisplayDefeatTalkForPid": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleQuoteDifferentialTest#defeat event at f4636 starts battle engine proc and sets boss defeat flag"
       ]
     },
     "DisplayMoveRangeGraphics": {
@@ -4087,6 +4128,17 @@
         "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
       ]
     },
+    "GetBattleQuoteEntry": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleQuoteDifferentialTest#combat at f1700 and f2133 in prologue clear and enemy phase produces no quote",
+        "fe8.testing.BattleQuoteDifferentialTest#pre-battle quote at f4278 starts battle engine proc and sets slot 2 and flag 1"
+      ]
+    },
     "GetBattleUnitExpGain": {
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
@@ -4331,6 +4383,16 @@
         "fe8.testing.MuStartDifferentialTest#StartMu from the unit as dumped at f9674 matches the f9674 MU proc and config"
       ]
     },
+    "GetDefeatTalkEntry": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleQuoteDifferentialTest#defeat event at f4636 starts battle engine proc and sets boss defeat flag"
+      ]
+    },
     "GetDirectionOfPathAfterIndex": {
       "decomp_file": "src/bmpatharrowdisp.c",
       "system": "battle_map",
@@ -4361,6 +4423,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BanimPrepareDifferentialTest#the real chain writes the battle animation variables of the capture"
+      ]
+    },
+    "GetEventTriggerState": {
+      "decomp_file": "src/event.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleQuoteDifferentialTest#pre-battle quote at f4278 starts battle engine proc and sets slot 2 and flag 1"
       ]
     },
     "GetFaceDisplayBits": {
@@ -4672,6 +4744,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
+    "GetLang": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextSystemRomTest#resetText sets up gDefaultFont with system font and palette"
       ]
     },
     "GetLastSuspendSaveId": {
@@ -6219,6 +6301,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "InitSystemTextFont": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextSystemRomTest#resetText sets up gDefaultFont with system font and palette"
       ]
     },
     "InitTalk": {
@@ -8948,6 +9040,16 @@
         "fe8.testing.KeyStatusDifferentialTest#boot key status matches ResetKeyStatus plus idle updates"
       ]
     },
+    "ResetText": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TextSystemRomTest#resetText sets up gDefaultFont with system font and palette"
+      ]
+    },
     "ResetUnitSpriteHover": {
       "decomp_file": "src/bmudisp.c",
       "system": "battle_map",
@@ -9395,6 +9497,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EventVmDifferentialTest#flag bits changed by Event02 match the trace"
+      ]
+    },
+    "SetPidDefeatedFlag": {
+      "decomp_file": "src/eventinfo.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.BattleQuoteDifferentialTest#defeat event at f4636 starts battle engine proc and sets boss defeat flag"
       ]
     },
     "SetPrimaryHBlankHandler": {
@@ -10621,6 +10733,17 @@
         "fe8.testing.TextDrawRomTest#replayed talk lines reproduce the traced glyph tiles"
       ]
     },
+    "Text_GetCursor": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
+      ]
+    },
     "Text_InsertDrawNumberOrBlank": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -10632,6 +10755,28 @@
       ]
     },
     "Text_InsertDrawString": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
+    "Text_SetColor": {
+      "decomp_file": "src/fontgrp.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state",
+        "fe8.testing.TextSystemRomTest#initText reproduces the sTalkText structs and clears their VRAM strips"
+      ]
+    },
+    "Text_SetCursor": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
       "in_scope": true,

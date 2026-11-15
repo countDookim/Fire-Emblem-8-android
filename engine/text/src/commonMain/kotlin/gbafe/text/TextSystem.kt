@@ -84,6 +84,24 @@ public class TextSystem(
         private set
 
     /**
+     * Language mode (`gLanguageMode`): `LANG_JAPANESE` (0) or `LANG_ENGLISH` (1).
+     *
+     * Ported from src/fontgrp.c: GetLang
+     */
+    public fun getLang(): Int = host.language()
+
+    /**
+     * Reinitialises the default font at VRAM address 0x06001000, tile 0x80, palette bank 0,
+     * makes it the active font and clears the special-character colour slot.
+     *
+     * Ported from src/fontgrp.c: ResetText
+     */
+    public fun resetText() {
+        initTextFont(defaultFont, VRAM_DEFAULT, CHR_DEFAULT, PAL_DEFAULT)
+        specialColor[0] = -1
+    }
+
+    /**
      * Initialises [font] (null means [defaultFont]) as a BG font drawing to [vramDest], whose first
      * tile is number [chr] in palette bank [palid], makes it the active font and applies the
      * system font setup (system palette, system glyphs).
@@ -99,7 +117,7 @@ public class TextSystem(
         f.palid = palid
         f.tileref = (chr and 0x3FF) or (palid shl 12)
         f.chrCounter = 0
-        f.lang = host.language()
+        f.lang = getLang()
         setTextFont(f)
         initSystemTextFont()
     }
@@ -191,10 +209,12 @@ public class TextSystem(
     }
 
     /**
-     * `InitSystemTextFont` (`src/fontgrp.c`): the active font's palette bank gets the system text
-     * palette, drawing uses `DrawTextGlyph` and the glyphs are the system table.
+     * Switches the active font to system text: the system palette, `DrawTextGlyph` drawing, and
+     * the system glyph table.
+     *
+     * Ported from src/fontgrp.c: InitSystemTextFont
      */
-    private fun initSystemTextFont() {
+    public fun initSystemTextFont() {
         host.applyTextPalette(false, activeFont.palid)
         activeFont.drawGlyph = config.drawGlyph
         setTextFontGlyphs(GLYPHS_SYSTEM)
@@ -356,7 +376,8 @@ public class TextSystem(
      * covered: dbId != 0, chrPosition != 0)
      */
     public fun getSpriteTextDrawDest(text: Text): Int =
-        activeFont.vramDest + (text.dbId * text.tileWidth + text.chrPosition + text.x / 8) * CHR_SIZE
+        activeFont.vramDest +
+            (text.dbId * text.tileWidth + text.chrPosition + text.x / 8) * CHR_SIZE
 
     /**
      * Draws [glyph] (ROM address) as OBJ tiles and advances the pen by the glyph width. The 16
@@ -392,13 +413,38 @@ public class TextSystem(
         (x - getStringTextLen(str, start)) / 2
 
     /**
+     * Sets [text]'s pen position in pixels from the left margin of the strip.
+     *
+     * Ported from src/fontgrp.c: Text_SetCursor
+     */
+    public fun setCursor(text: Text, x: Int) {
+        text.x = x
+    }
+
+    /**
+     * Returns [text]'s pen position in pixels from the left margin of the strip.
+     *
+     * Ported from src/fontgrp.c: Text_GetCursor
+     */
+    public fun getCursor(text: Text): Int = text.x
+
+    /**
+     * Sets [text]'s text colour id.
+     *
+     * Ported from src/fontgrp.c: Text_SetColor
+     */
+    public fun setColor(text: Text, colorId: Int) {
+        text.colorId = colorId
+    }
+
+    /**
      * Sets the pen to [x] and the colour to [colorId] (a `TEXT_COLOR_*` index), then draws [str].
      *
      * Ported from src/fontgrp.c: Text_InsertDrawString
      */
     public fun textInsertDrawString(text: Text, x: Int, colorId: Int, str: ByteArray) {
-        text.x = x
-        text.colorId = colorId
+        setCursor(text, x)
+        setColor(text, colorId)
         drawString(text, str)
     }
 
@@ -620,8 +666,8 @@ public class TextSystem(
      * Sets the pen to [x] pixels and the colour to [colorId].
      */
     public fun setParams(text: Text, x: Int, colorId: Int) {
-        text.x = x
-        text.colorId = colorId
+        setCursor(text, x)
+        setColor(text, colorId)
     }
 
     /**
@@ -705,8 +751,8 @@ public class TextSystem(
         x: Int,
         str: ByteArray,
     ) {
-        text.x = x
-        text.colorId = color
+        setCursor(text, x)
+        setColor(text, color)
         drawString(text, str)
 
         putText(text, tm, offset)
@@ -880,6 +926,17 @@ public class TextSystem(
          * line.
          */
         public const val CHAR_NEWLINE: Int = 0x01
+
+        /**
+         * VRAM address `VRAM + 0x1000` (0x06001000): destination of the default text font.
+         */
+        public const val VRAM_DEFAULT: Int = 0x06001000
+
+        /** Default font starting tile number (`0x80`). */
+        public const val CHR_DEFAULT: Int = 0x80
+
+        /** Default font palette bank (0). */
+        public const val PAL_DEFAULT: Int = 0
 
         /** `TEXT_SPECIAL_BIGNUM_0`. */
         private const val SPECIAL_BIGNUM_0 = 0x00

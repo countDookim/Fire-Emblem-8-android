@@ -246,6 +246,8 @@ internal class WorldMapBoot(
             resetUnitSprites = { unitSprites()?.resetUnitSprites() },
             initMus = { mu.initMus() },
             applyUnitSpritePalettes = { unitSprites()?.applyUnitSpritePalettes() },
+            resetText = { talkScene.text.resetText() },
+            resetTextFont = { talkScene.text.resetTextFont() },
         ),
     )
 

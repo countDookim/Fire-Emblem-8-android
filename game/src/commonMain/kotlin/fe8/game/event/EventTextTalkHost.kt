@@ -1,6 +1,7 @@
 package fe8.game.event
 
 import fe8.game.bm.Mu
+import fe8.game.scene.CgText
 import fe8.game.scene.Talk
 import fe8.game.scene.TalkBubble
 import fe8.game.scene.TalkBubbleHost
@@ -43,6 +44,7 @@ public class EventTextTalkHost(
     private val resumeMapDisp: () -> Unit = {},
     private val stringFromIndex: (Int) -> Int,
 ) : EventTextHost {
+    private val cgText: CgText = CgText(procs)
     /** The text speed used when [readTextSpeed] and [writeTextSpeed] are not given. */
     private var textSpeedField: Int = 0
 
@@ -76,8 +78,10 @@ public class EventTextTalkHost(
         procs.endEach(talk.talkScript)
     }
 
-    /** Stand-in until M6-E: CG text is not ported, so none can exist and none is ended. */
-    override fun endCgText() {}
+    /** `EndCgText`: ends the CG text. */
+    override fun endCgText() {
+        cgText.endCgText()
+    }
 
     /** Stand-in until M6-E: the box dialogue is not ported, so none can exist, nothing to end. */
     override fun endBoxDialogue() {}
@@ -191,8 +195,8 @@ public class EventTextTalkHost(
      */
     override fun isTalkRunning(): Boolean = talk.isTalkActive() && !talk.isTalkLocked()
 
-    /** Stand-in (M6-E): CG text is not ported, so none exists. */
-    override fun cgTextExists(): Boolean = false
+    /** `CgTextExists`: whether CG text is running. */
+    override fun cgTextExists(): Boolean = cgText.cgTextExists()
 
     /** Stand-in (M6-E): the box dialogue is not ported, so none exists. */
     override fun boxDialogueExists(): Boolean = false

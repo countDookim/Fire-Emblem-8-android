@@ -525,9 +525,9 @@ public class WorldMapGfxSetup(
     public class Hooks(
         /** `LoadLegacyUiFrameGraphics`: stand-in until M6-F (shared with `ChapterMapGfx`). */
         public val loadLegacyUiFrameGraphics: () -> Unit = {},
-        /** `ResetText`: stand-in until EP-11d (not ported in `TextSystem`). */
+        /** `ResetText` ([gbafe.text.TextSystem.resetText]). */
         public val resetText: () -> Unit = {},
-        /** `ResetTextFont`: stand-in until EP-11d (text system, fontgrp.c; not ported yet). */
+        /** `ResetTextFont` ([gbafe.text.TextSystem.resetTextFont]). */
         public val resetTextFont: () -> Unit = {},
         /** `ResetFaces`: ported as `TalkFace.resetFaces`; `WorldMapBoot` connects it. */
         public val resetFaces: () -> Unit = {},

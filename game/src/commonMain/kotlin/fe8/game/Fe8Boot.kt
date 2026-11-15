@@ -1035,8 +1035,7 @@ public class Fe8Boot(
 
     /** `ResetText`: the default font at VRAM + 0x1000, tile 0x80. */
     private fun resetText() {
-        talkScene.text.initTextFont(null, 0x06001000, 0x80, 0)
-        talkScene.text.resetTextFont()
+        talkScene.text.resetText()
     }
 
     /** `ResetIconGraphics_`: clears both icon lookup tables. */

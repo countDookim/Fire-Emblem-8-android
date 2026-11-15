@@ -198,8 +198,8 @@ public class Talk(
         for (i in 0 until lines) {
             text.initSpriteText(texts[i])
             text.spriteTextClear(texts[i])
-            texts[i].colorId = 0
-            texts[i].x = 4
+            text.setColor(texts[i], 0)
+            text.setCursor(texts[i], 4)
         }
     }
 
@@ -325,7 +325,7 @@ public class Talk(
         state.lines = lines
         for (i in 0 until lines) {
             text.initText(texts[i], 30)
-            texts[i].colorId = 1 // Text_SetColor
+            text.setColor(texts[i], 1)
         }
         if (unpackBubble) {
             host.decompressToVram(IMG_TALK_BUBBLE, host.backgroundTileDataOffset(1) + BUBBLE_DEST)
@@ -717,7 +717,7 @@ public class Talk(
             CH_A -> {
                 startTalkWaitForInput(
                     proc,
-                    talkState.xText * 8 + talkTextByLine(talkState.lineActive).x + 4,
+                    talkState.xText * 8 + text.getCursor(talkTextByLine(talkState.lineActive)) + 4,
                     talkState.yText * 8 + talkState.lineActive * 16 + 8,
                 )
                 talkState.str++
@@ -994,7 +994,7 @@ public class Talk(
         talkState.topTextNum = 0
         for (i in 0 until talkState.lines) {
             text.clearText(texts[i])
-            texts[i].colorId = talkState.printColor
+            text.setColor(texts[i], talkState.printColor)
         }
     }
 
@@ -1016,7 +1016,7 @@ public class Talk(
             // The original clears each line once; the second call changes nothing.
             text.clearText(texts[i])
             text.clearText(texts[i])
-            texts[i].colorId = talkState.printColor
+            text.setColor(texts[i], talkState.printColor)
         }
     }
 

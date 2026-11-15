@@ -100,6 +100,7 @@ class TargetSelectionDifferentialTest {
         "DrawBattleForecastContentsStandard", "GetFactionBattleForecastFramePalette",
         "InitBattleForecastFramePalettes", "Copy2dChr", "InitTextDb", "PutNumberTwoChr",
         "PutTwoSpecialChar", "PutDrawText", "GetStringTextCenteredPos", "Text_InsertDrawString",
+        "Text_SetCursor",
         "BattleForecast_OnNewBattle", "BattleForecast_LoopSlideIn", "BattleForecast_LoopDisplay",
         "BattleForecast_LoopSlideOut", "MapEventEngineExists_",
         "PutBattleForecastWeaponTriangleArrows", "PutBattleForecastMultipliers",

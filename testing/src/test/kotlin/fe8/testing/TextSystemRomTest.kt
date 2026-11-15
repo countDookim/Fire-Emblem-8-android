@@ -93,7 +93,7 @@ class TextSystemRomTest {
     }
 
     @Test
-    @VerifiesPort("InitText", "ClearText")
+    @VerifiesPort("InitText", "ClearText", "Text_SetColor")
     fun `initText reproduces the sTalkText structs and clears their VRAM strips`() {
         val (_, ts, host) = setup()
         val after = frame("f09870")
@@ -110,7 +110,7 @@ class TextSystemRomTest {
             t.dbId = 9
             t.isPrinting = true
             ts.initText(t, 30)
-            t.colorId = 1 // Text_SetColor(sTalkText + i, 1) in InitTalk
+            ts.setColor(t, 1) // Text_SetColor(sTalkText + i, 1) in InitTalk
         }
         for (i in 0..1) {
             val b = ByteArray(Text.SIZE)
@@ -126,6 +126,21 @@ class TextSystemRomTest {
             val o = dest - 0x06000000
             assertTrue(after.vram.copyOfRange(o, o + n).all { it.toInt() == 0 }, "strip $o")
         }
+    }
+
+    @Test
+    @VerifiesPort("ResetText", "InitSystemTextFont", "GetLang")
+    fun `resetText sets up gDefaultFont with system font and palette`() {
+        val (_, ts, host) = setup()
+        val before = frame("f09850")
+        sentinel(ts.defaultFont)
+        ts.resetText()
+        assertEquals(
+            slice(before.ew, DEFAULT_FONT, Font.SIZE).toList(), ser(ts.defaultFont).toList(),
+        )
+        assertSame(ts.defaultFont, ts.activeFont)
+        assertEquals(1, ts.getLang())
+        assertEquals(listOf(false to 0), host.palettes)
     }
 
     @Test

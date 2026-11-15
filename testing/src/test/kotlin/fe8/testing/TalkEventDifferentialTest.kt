@@ -60,7 +60,7 @@ class TalkEventDifferentialTest {
     @VerifiesPort(
         "StartTalkExt", "GetTalkFaceHPos", "GetTalkChoiceResult", "IsTalkActive", "FaceExists",
         "FindFreeFaceSlot", "GetPortraitData", "GetFaceDisplayBits", "EndFaceIn8Frames",
-        "EndFacePtr", "_WhileFace6CExists",
+        "EndFacePtr", "_WhileFace6CExists", "Text_SetColor", "Text_GetCursor",
     )
     fun `the boss turn event talk matches the captured procs and talk state per step`() {
         run(Window("ram_trace_prologue_clear", 2964, 2966, 3706, "f02960.io.bin", 3718))
@@ -70,7 +70,7 @@ class TalkEventDifferentialTest {
     @VerifiesPort(
         "StartTalkExt", "GetTalkFaceHPos", "GetTalkChoiceResult", "IsTalkActive", "FaceExists",
         "FindFreeFaceSlot", "GetPortraitData", "GetFaceDisplayBits", "EndFaceIn8Frames",
-        "EndFacePtr", "_WhileFace6CExists",
+        "EndFacePtr", "_WhileFace6CExists", "Text_SetColor", "Text_GetCursor",
     )
     fun `the soldiers dialogue in the enemy phase matches the captured procs and talk state`() {
         run(Window("ram_trace_prologue_enemy_phase", 2463, 2465, 2706, "f02460.io.bin", 2718))

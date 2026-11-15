@@ -79,7 +79,7 @@ public class ManimSt {
  * stand-in [Hooks.restOfAnimation]. Not written (no capture runs them; they fail loudly): the
  * dance / refresh animation (`BeginMapAnimForDance`), the event battle script
  * (`ProcScr_MapAnimEventBattle`) and the link-arena style battle animations
- * (`BeginAnimsOnBattleAnimations`, EP-14/EP-15).
+ * (`BeginAnimsOnBattleAnimations`, EP-15).
  *
  * @param engine the proc engine the animation proc runs on (tree 3).
  * @param bm `gBmSt` (the game lock).
@@ -123,7 +123,7 @@ public class MapAnimApi(
         public var eventEngineExists: () -> Boolean = { false }
 
         /**
-         * Stand-in until EP-14/EP-15 for `sub_8055BC4` (banim-ekrbattle): whether the battle is
+         * Stand-in until EP-15 for `sub_8055BC4` (banim-ekrbattle): whether the battle is
          * shown with battle animations. Always false here: the map animation runs.
          */
         public var battleAnimationsOn: () -> Boolean = { false }

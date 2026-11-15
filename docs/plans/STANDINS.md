@@ -19,7 +19,7 @@ Total entries: 239 across 47 Kotlin files.
 | M6-D | 13 |
 | M6-E | 52 |
 | M6-F | 15 |
-| M6-G | 4 |
+| M6-G | 5 |
 | M6-H | 34 |
 | M6-I | 27 |
 | M6-J | 10 |
@@ -28,7 +28,7 @@ Total entries: 239 across 47 Kotlin files.
 | EP-11d | 2 |
 | EP-12 | 24 |
 | EP-13 | 1 |
-| EP-14 | 2 |
+| EP-15 | 1 |
 | EP-17 | 5 |
 | EP-1b | 4 |
 | EP-30 | 2 |
@@ -168,12 +168,13 @@ Total entries: 239 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startStatScreen` | Stand-in until M6-F for `SetStatScreenConfig` and `StartStatScreen(unit, proc)` (unit id [unit]). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `loadLegacyUiFrameGraphics` | `LoadLegacyUiFrameGraphics`: stand-in until M6-F (shared with `ChapterMapGfx`). |
 
-## M6-G (4)
+## M6-G (5)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startClassReel` | Stand-in until M6-G (class reel, D15-1): the reel needs battle animations, so without a hook it is skipped as if it had ended at once. |
 | `game/src/commonMain/kotlin/fe8/game/GameControl.kt` | `startClassReel` | `GamceControl_StartClassReel` (`PROC_CALL_2`, class reel, not ported): the default skips the reel (stand-in until M6-G, D15-1), see [startClassReel]. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `getBattleAnimPreconfType` | Stand-in until M6-G (battle animations on): always `PLAY_ANIMCONF_OFF`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: `IsBattleDeamonActive` (the battle animation system) is not ported, so the fixed fight-event bubble is never used. |
 
@@ -318,12 +319,11 @@ Total entries: 239 across 47 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `beginBattleAnimations` | Stand-in until EP-13: sets only the flag, so the animation ends at once. |
 
-## EP-14 (2)
+## EP-15 (1)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `getBattleAnimPreconfType` | Stand-in until EP-14: always `PLAY_ANIMCONF_OFF` (battle animations off). |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `battleAnimationsOn` | Stand-in until EP-14/EP-15 for `sub_8055BC4` (banim-ekrbattle): whether the battle is shown with battle animations. |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `battleAnimationsOn` | Stand-in until EP-15 for `sub_8055BC4` (banim-ekrbattle): whether the battle is shown with battle animations. |
 
 ## EP-17 (5)
 

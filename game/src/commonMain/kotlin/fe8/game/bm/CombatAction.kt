@@ -77,8 +77,10 @@ public class CombatAction(
         public var beginBattleAnimations: ProcFunc = ProcFunc {}
 
         /**
-         * `GetBattleAnimPreconfType` (bmbattle.c). Stand-in until EP-14: always
-         * `PLAY_ANIMCONF_OFF` (battle animations off).
+         * `GetBattleAnimPreconfType` (bmbattle.c). Stand-in until M6-G (battle animations on):
+         * always `PLAY_ANIMCONF_OFF`. The port is [BanimSetup.getBattleAnimPreconfType] (EP-14);
+         * it is not wired because a new game's setting is ON and the battle animation is not
+         * written.
          */
         public var getBattleAnimPreconfType: PreconfType = PreconfType { PLAY_ANIMCONF_OFF }
 

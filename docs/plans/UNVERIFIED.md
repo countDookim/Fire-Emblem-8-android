@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 572 across 84 decomp files (missing reason: 0).
+Total entries: 574 across 84 decomp files (missing reason: 0).
 
 ## src/scene.c (33)
 
@@ -313,6 +313,27 @@ Total entries: 572 across 84 decomp files (missing reason: 0).
 | `EvCheck0D_Never` | `game/src/commonMain/kotlin/fe8/game/event/EventInfo.kt` | not reached by a trace |
 | `EnqueueTutEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventScrCore.kt` | not in the prologue |
 
+## src/mu.c (16)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `InitMus` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace has no free-slot state to compare |
+| `StartMuExt` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace MU is started by StartMu |
+| `GetNewMuConfig` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace only uses the default config slot |
+| `ResetMuAnims` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | nothing in the trace calls it |
+| `PutMuSMS` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace MU never stands, and sub_8026FF4/sub_8027DB4 are hooks |
+| `SetMuFacing` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | facing at start is always 11 |
+| `SetAutoMuDefaultFacing` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the facing it sets is replaced by the move script's first command before any captured frame shows it |
+| `SetMuDefaultFacing` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | not exercised at f9674 |
+| `StartMuScripted` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | not exercised at f9674 |
+| `MuExists` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial Proc_Find |
+| `UpdateMuStepSounds` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the walk compares only the clock, not the sound chosen; the class lists are unexercised |
+| `EndAllMus` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the walk ends one MU through EndMu |
+| `EnableMuCamera` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial setter |
+| `DisableMuCamera` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial setter, driven by the test only as the event code's input |
+| `EndMuMovement` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the function has no body |
+| `IsMuActive` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | trivial |
+
 ## src/worldmap_scrollmanage.c (15)
 
 | Function | Kotlin file | Reason |
@@ -370,25 +391,6 @@ Total entries: 572 across 84 decomp files (missing reason: 0).
 | `ReadGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | no suspend-trace state covers it; its caller `ReadGameSave` is ported |
 | `WriteTraps` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | every trap in the reference is zero, which proves the target, not the data |
 | `WriteGMMonsterRnState` | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | no suspend-trace state covers it; its caller `WriteGameSave` is ported |
-
-## src/mu.c (14)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `InitMus` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace has no free-slot state to compare |
-| `StartMuExt` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace MU is started by StartMu |
-| `GetNewMuConfig` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace only uses the default config slot |
-| `ResetMuAnims` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | nothing in the trace calls it |
-| `PutMuSMS` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the trace MU never stands, and sub_8026FF4/sub_8027DB4 are hooks |
-| `SetMuFacing` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | facing at start is always 11 |
-| `SetMuDefaultFacing` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | not exercised at f9674 |
-| `StartMuScripted` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | not exercised at f9674 |
-| `MuExists` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial Proc_Find |
-| `UpdateMuStepSounds` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the walk compares only the clock, not the sound chosen; the class lists are unexercised |
-| `EndAllMus` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | the walk ends one MU through EndMu |
-| `EnableMuCamera` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial setter |
-| `DisableMuCamera` | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | trivial setter, driven by the test only as the event code's input |
-| `IsMuActive` | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | trivial |
 
 ## src/worldmap_path.c (14)
 

@@ -99,9 +99,6 @@ public class CpPerform(
         /** `StartMu(unit)` for a unit id. */
         public var startMu: AiIntStep? = null
 
-        /** `SetAutoMuDefaultFacing` (EP-8c). */
-        public var setAutoMuDefaultFacing: AiStep? = null
-
         /** `PutMapCursor(x, y, kind)` ([MapCursor.put]). */
         public var putMapCursor: PlayerPhase.PutMapCursor? = null
 
@@ -238,9 +235,9 @@ public class CpPerform(
      * tile of a trap), which becomes the decision's move tile. A visible walk starts the MU with
      * the script. Verified: the action reset, the movement map, the script and the destination
      * written back, the MU walk. Not seen: the trap and hidden-unit cases of the script, the
-     * sprite hide ([Hooks.hideUnitSprite]) and the default facing ([Hooks.setAutoMuDefaultFacing],
-     * EP-8c; the script sets the facing before the first frame is shown), a walk that is not
-     * visible (no fog).
+     * sprite hide ([Hooks.hideUnitSprite]) and the default facing
+     * ([Mu.setAutoMuDefaultFacing]; the script sets the facing before the first frame is
+     * shown), a walk that is not visible (no fog).
      */
     public fun cpPerformBeginUnitMovement(proc: Proc) {
         val state = proc.state as CpPerformState
@@ -259,7 +256,7 @@ public class CpPerform(
         decision.yMove = active.action.yMove
         if (state.isUnitVisible) {
             hooks.startMu?.run(unit)
-            hooks.setAutoMuDefaultFacing?.run()
+            mu.setAutoMuDefaultFacing()
             mu.setAutoMuMoveScript(workingMovementScript)
         }
     }
@@ -295,7 +292,7 @@ public class CpPerform(
                     units.setPosition(unit, decision.xMove, decision.yMove)
                     hooks.rideBallista?.run(unit)
                     hooks.startMu?.run(unit)
-                    hooks.setAutoMuDefaultFacing?.run()
+                    mu.setAutoMuDefaultFacing()
                 }
             }
             AI_ACTION_STEAL, AI_ACTION_REFRESH -> {

@@ -149,6 +149,7 @@ class CpPerformDifferentialTest {
     @VerifiesPort(
         "CpPerform_BeginUnitMovement",
         "CpPerform_MoveCameraOntoTarget", "StartAiTargetCursor", "AiTargetCursor_Main",
+        "HaltMu", "Mu_OnStateDoNothing",
     )
     fun `Soldier 1 walks and the target cursor shows as the capture f1614 to f1695`() {
         val s = sim(ENEMY_PHASE, 1613, 0x82)
@@ -160,6 +161,7 @@ class CpPerformDifferentialTest {
     @VerifiesPort(
         "CpPerform_BeginUnitMovement",
         "CpPerform_MoveCameraOntoTarget", "StartAiTargetCursor", "AiTargetCursor_Main",
+        "HaltMu", "Mu_OnStateDoNothing",
     )
     fun `Soldier 2 walks and the target cursor shows as the capture f2039 to f2128`() {
         val s = sim(ENEMY_PHASE, 2038, 0x83)
@@ -169,7 +171,7 @@ class CpPerformDifferentialTest {
     @Test
     @VerifiesPort(
         "CpPerform_BeginUnitMovement",
-        "CpPerform_MoveCameraOntoTarget",
+        "CpPerform_MoveCameraOntoTarget", "HaltMu", "Mu_OnStateDoNothing",
     )
     fun `the boss moves without a target cursor as the capture f3804 to f3831`() {
         val s = sim(CLEAR, 3803, 0x81)

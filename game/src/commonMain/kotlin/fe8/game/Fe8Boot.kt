@@ -1114,10 +1114,6 @@ public class Fe8Boot(
         perform.hooks.startMapSongBgm = AiStep { main.hooks.startMapSongBgm() }
         perform.hooks.hideUnitSprite = AiIntStep { id -> handles.hideUnitSprite(id) }
         perform.hooks.startMu = AiIntStep { id -> phase.hover.hooks.startMu(id) }
-        perform.hooks.setAutoMuDefaultFacing = AiStep {
-            val muProc = engine.find(mu.script)
-            if (muProc != null) mu.setMuDefaultFacing(muProc.state as MuProc)
-        }
         perform.hooks.endAllMus = AiStep { mu.endAllMus() }
         perform.hooks.updateAllPhaseHealingAIStatus = AiStep {
             cp.utility?.updateAllPhaseHealingAiStatus()

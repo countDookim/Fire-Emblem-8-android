@@ -480,6 +480,17 @@ public class Mu(
     }
 
     /**
+     * [setMuDefaultFacing] for the first MU proc, if one exists.
+     *
+     * Transcribed from src/mu.c: SetAutoMuDefaultFacing (not verified: the facing it sets is
+     * replaced by the move script's first command before any captured frame shows it)
+     */
+    public fun setAutoMuDefaultFacing() {
+        val proc = procs.find(script) ?: return
+        setMuDefaultFacing(proc.state as MuProc)
+    }
+
+    /**
      * Faces [mu] `MU_FACING_RIGHT` (1) if its class has `CA_MOUNTEDAID`, else `MU_FACING_DOWN` (2).
      *
      * Transcribed from src/mu.c: SetMuDefaultFacing (not verified: not exercised at f9674)
@@ -737,6 +748,8 @@ public class Mu(
                         proc.moveClockQ4--
                     }
                 }
+                MU_STATE_INACTIVE, MU_STATE_DISPLAY_UI, MU_STATE_DEATHFADE ->
+                    onStateDoNothing(proc)
                 MU_STATE_UNK4 -> proc.state = MU_STATE_MOVEMENT
                 MU_STATE_BUMPING -> if (!hooks.isFogBumpFxActive()) proc.state = MU_STATE_SLEEPING
             }
@@ -793,10 +806,32 @@ public class Mu(
         proc.camB = false
     }
 
-    /** `HaltMu`: stops the MU's script without ending it (`MU_STATE_INACTIVE`). */
-    private fun haltMu(proc: MuProc) {
+    /**
+     * Stops the MU's script without ending it: [endMuMovement], then `MU_STATE_INACTIVE`.
+     *
+     * Ported from src/mu.c: HaltMu
+     */
+    public fun haltMu(proc: MuProc) {
+        endMuMovement(proc)
         proc.state = MU_STATE_INACTIVE
     }
+
+    /**
+     * Called when a walk stops; empty in the original.
+     *
+     * Transcribed from src/mu.c: EndMuMovement (not verified: the function has no body)
+     */
+    @Suppress("UNUSED_PARAMETER")
+    public fun endMuMovement(proc: MuProc) {}
+
+    /**
+     * The state handler of `MU_STATE_INACTIVE`, `MU_STATE_DISPLAY_UI` and `MU_STATE_DEATHFADE`:
+     * nothing moves, the clock and position stay.
+     *
+     * Ported from src/mu.c: Mu_OnStateDoNothing
+     */
+    @Suppress("UNUSED_PARAMETER")
+    public fun onStateDoNothing(proc: MuProc) {}
 
     /**
      * Moves the tile coordinates in [xy] (`xy[0]` = x, `xy[1]` = y) by the walking commands of

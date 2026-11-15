@@ -184,10 +184,6 @@ internal class CpPerformSim(
             muUnit.spritePalette = spritePalette
             mu.startMu(muUnit)
         }
-        h.setAutoMuDefaultFacing = AiStep {
-            val proc = engine.find(mu.script)
-            if (proc != null) mu.setMuDefaultFacing(proc.state as fe8.game.bm.MuProc)
-        }
         h.putMapCursor = PlayerPhase.PutMapCursor { x, y, kind -> cursor.put(x, y, kind) }
         h.hideUnitSprite = AiIntStep { log += "hide ${Integer.toHexString(it)}" }
         decide.hooks.startCpPerform = perform.start

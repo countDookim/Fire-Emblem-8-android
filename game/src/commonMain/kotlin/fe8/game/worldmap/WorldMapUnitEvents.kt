@@ -9,9 +9,10 @@ import fe8.game.event.EventHandler
 import fe8.game.event.ScriptMemory
 
 /**
- * The callees of the world map unit commands (the army and lord markers that walk the world
- * map; the "map unit" manager `GM_MU` of `src/worldmap_mapmu.c` and `src/worldmap_draw.c`).
- * Each defaults to nothing. A unit is addressed by its index in that manager (`muId`).
+ * The callees of the world map unit commands (the unit sprites that walk the world map, kept by
+ * the `GM_MU` manager of `src/worldmap_mapmu.c` and created by `src/worldmap_draw.c`). Each
+ * defaults to nothing. A unit is addressed by its slot in that manager (`muId`, `WM_MU_0`..
+ * `WM_MU_6`; `WM_MU_MAX` is 7).
  */
 public class WmUnitHooks(
     /** `SetGmClassUnit(id, jid, allegiance, nodeId)`: a unit shown as class `jid` on a node. */
@@ -24,9 +25,9 @@ public class WmUnitHooks(
     public val showUnit: (Int) -> Unit = {},
     /** `HideGmUnit(index)`: makes the unit invisible at once. */
     public val hideUnit: (Int) -> Unit = {},
-    /** `GmMu_StartFadeIn(GM_MU, index, delay)`: fades the unit in; (index, delay). */
+    /** `GmMu_StartFadeIn(GM_MU, index, arg)`: fades the unit in; (index, duration). */
     public val fadeIn: (Int, Int) -> Unit = { _, _ -> },
-    /** `GmMu_StartFadeOut(GM_MU, index, delay)`: fades the unit out; (index, delay). */
+    /** `GmMu_StartFadeOut(GM_MU, index, arg)`: fades the unit out; (index, duration). */
     public val fadeOut: (Int, Int) -> Unit = { _, _ -> },
     /** `EndGmapUnitFade()`: ends all running unit fades. */
     public val endUnitFade: () -> Unit = {},
@@ -130,8 +131,9 @@ public class WorldMapUnitEvents(
     /**
      * Ported from src/eventscr_gmap.c: EventA3_WmShowUnitFaded
      *
-     * Fades the unit in over `delay` (the decomp's name; the unit of the value is not checked);
-     * when skipping it just shows it.
+     * Fades the unit in (`GmMu_StartFadeIn`); the decomp calls the argument `delay`, but it ends
+     * up as the frame count `unk_2c` of `GmapUnitFade_Loop` (worldmap_gmapunit.c:588), i.e. the
+     * fade's duration. When skipping it just shows the unit.
      *
      * The skipping branch is not run by the capture.
      */
@@ -145,7 +147,8 @@ public class WorldMapUnitEvents(
     /**
      * Transcribed from src/eventscr_gmap.c: EventA4_WmHideUnitFaded (not verified: not run)
      *
-     * Fades the unit out (the decomp calls the delay argument `b`); when skipping it just hides it.
+     * Fades the unit out (`GmMu_StartFadeOut`; the argument, called `b` in the decomp, is the
+     * fade's duration in frames like A3's); when skipping it just hides the unit.
      */
     public val eventA4WmHideUnitFaded: EventHandler = EventHandler { proc ->
         val index = arg16(proc, 2)
@@ -194,8 +197,9 @@ public class WorldMapUnitEvents(
      * Ported from src/eventscr_gmap.c: EventA8_WmUnitMoveFree
      *
      * Walks the unit from (x1, y1) to (x2, y2) in `time` (the decomp's name for the `speed`
-     * field), after `delay`. `flag` is passed on to the walk: bit 0 fades the unit in first, bit 1
-     * fades it out and hides it at the end. When skipping, the unit jumps to (x2, y2) and is
+     * field), after `delay`. `flag` is the `GmapAutoMu` proc's `flags` (worldmap_automu.c): bit 0
+     * fades the unit in first, bit 1 fades it out and hides it at the end, and bit 2 is passed to
+     * the MU walk as `unk_03` (meaning unknown). When skipping, the unit jumps to (x2, y2) and is
      * hidden if bit 1 is set.
      *
      * The skipping branch is not run by the capture.

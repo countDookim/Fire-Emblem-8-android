@@ -7,9 +7,11 @@ import gbafe.render.SpriteLayers
 import gbafe.render.SpriteObject
 
 /**
- * The map sprite (SMS) callees of `src/worldmap_gmapunit.c` that live in `src/bmudisp.c` and
- * `src/bmunit.c`: the class sprite lookup, the loading of a unit's standing sprite, its facing
- * copy and its OAM entry. The graphics slots are the battle map's [UnitSprites].
+ * The standing map sprite (SMS) callees of `src/worldmap_gmapunit.c` that live in
+ * `src/bmudisp.c` and `src/bmunit.c`: the class sprite lookup (`GetClassSMSId`), the loading of
+ * a world map unit's sprite sheet (`StartWorldMapSMS`), its walk-cycle frame copy
+ * (`SetStandingMuFacingWM`) and its OAM entry (`SMS_DisplayOne`). The graphics slots are the
+ * battle map's [UnitSprites].
  *
  * Wire [classSmsId] / [startWorldMapSms] into `WorldMapUnit.Hooks` as lambdas (they run when a
  * sprite is made) and [setStandingMuFacing] / [smsDisplayOne] as they are (they run every frame
@@ -39,9 +41,9 @@ public class WorldMapSms(
 
     /**
      * `StartWorldMapSMS(smsId, frameId, slot)` (src/bmudisp.c:410,
-     * [UnitSprites.startWorldMapSms]):
-     * unpacks map sprite sheet [smsId] into graphics slot [slot] and records where it landed for
-     * [frameId] (`gUnitSpriteSlots[frameId]`), so a world map unit gets its map sprite.
+     * [UnitSprites.startWorldMapSms]): unpacks map sprite sheet [smsId] into graphics slot
+     * [slot] and records where it landed for [frameId], so a world map unit gets its map
+     * sprite.
      */
     public fun startWorldMapSms(smsId: Int, frameId: Int, slot: Int) {
         unitSprites.startWorldMapSms(smsId, frameId, slot)
@@ -49,9 +51,10 @@ public class WorldMapSms(
 
     /**
      * `SetStandingMuFacingWM(frameId, dst)` (src/bmudisp.c:757,
-     * [UnitSprites.setStandingMuFacingWm]): copies the standing animation frame picked by the
-     * game clock modulo 72 into the unit's tiles at VRAM address [dst], four rows of 4 tiles
-     * starting at tile offset [frameId].
+     * [UnitSprites.setStandingMuFacingWm]): copies the current frame of the three-image walk
+     * cycle into the unit's tiles at VRAM address [dst], four rows of 4 tiles starting at tile
+     * offset [frameId]. The frame comes from the game clock modulo 72: sheet 0 for 0..31, sheet
+     * 1 for 32..35, sheet 2 for 36..67 and sheet 1 again for 68..71 (`gSMSGfxBuffer`).
      */
     public val setStandingMuFacing: SetStandingMuFacing = SetStandingMuFacing { frameId, dst ->
         unitSprites.setStandingMuFacingWm(frameId, dst - VRAM_BASE)
@@ -60,9 +63,11 @@ public class WorldMapSms(
     /**
      * Ported from src/bmudisp.c: SMS_DisplayOne
      *
-     * Puts the standing sprite of class `classId` on `layer` at (`x`, `y`) unless it is off
-     * screen; `blend` adds the semi-transparency bit. A 16x16 sprite reads its tiles 0x40
-     * further on, in the lower rows of its column.
+     * Puts the standing sprite of class `classId` on `layer` at (`x`, `y`) unless it is more
+     * than 16 (x) or 32 (y) pixels off screen; `blend` adds the semi-transparency bit
+     * (`OAM0_BLEND`). The object (`gObject_16x16` / `_16x32` / `_32x32`) and the offset from
+     * (`x`, `y`) follow the class sprite's `UNIT_ICON_SIZE_*`. A 16x16 sprite reads its tiles
+     * 0x40 further on, in the lower rows of its column.
      */
     public val smsDisplayOne: SmsDisplayOne =
         SmsDisplayOne { classId, layer, x, y, oam2, blend ->
@@ -88,9 +93,13 @@ public class WorldMapSms(
     }
 
     private companion object {
-        /** ROM addresses of the three `gObject_*` shapes (not listed in the decomp). */
+        /** ROM address of `gObject_16x16` (not listed in the decomp). */
         const val OBJECT_16X16 = 0x08590F4C
+
+        /** ROM address of `gObject_32x32` (not listed in the decomp). */
         const val OBJECT_32X32 = 0x08590F54
+
+        /** ROM address of `gObject_16x32` (not listed in the decomp). */
         const val OBJECT_16X32 = 0x08590F6C
 
         /** Offset of `SMSId` in `struct ClassData` (include/bmunit.h:67). */

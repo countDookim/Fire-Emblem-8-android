@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1188,
+    "verified": 1198,
     "implemented_unverified": 62
   },
   "functions": {
@@ -116,6 +116,18 @@
       "status": "implemented",
       "tests": []
     },
+    "AiDummyAction": {
+      "decomp_file": "src/cp_perform.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CpPerformActionDifferentialTest#Soldier 1 attacks and dies as the capture f1696 to f2018",
+        "fe8.testing.CpPerformActionDifferentialTest#Soldier 2 attacks and dies as the capture f2129 to f2723",
+        "fe8.testing.CpPerformActionDifferentialTest#the boss moves without an action as the capture f3831 to f3832"
+      ]
+    },
     "AiFillDangerMap": {
       "decomp_file": "src/cp_0803E2F4.c",
       "system": "ai",
@@ -192,6 +204,18 @@
       "status": "implemented",
       "tests": []
     },
+    "AiRefreshMap": {
+      "decomp_file": "src/cp_perform.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CpPerformActionDifferentialTest#Soldier 1 attacks and dies as the capture f1696 to f2018",
+        "fe8.testing.CpPerformActionDifferentialTest#Soldier 2 attacks and dies as the capture f2129 to f2723",
+        "fe8.testing.CpPerformActionDifferentialTest#the boss moves without an action as the capture f3831 to f3832"
+      ]
+    },
     "AiScriptCmd_05_DoStandardAction": {
       "decomp_file": "src/cp_script.c",
       "system": "ai",
@@ -247,6 +271,28 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt",
       "status": "implemented",
       "tests": []
+    },
+    "AiStartCombatAction": {
+      "decomp_file": "src/cp_perform.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CpPerformActionDifferentialTest#Soldier 1 attacks and dies as the capture f1696 to f2018",
+        "fe8.testing.CpPerformActionDifferentialTest#Soldier 2 attacks and dies as the capture f2129 to f2723"
+      ]
+    },
+    "AiTargetCursor_Main": {
+      "decomp_file": "src/cp_perform.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CpPerformDifferentialTest#Soldier 1 walks and the target cursor shows as the capture f1614 to f1695",
+        "fe8.testing.CpPerformDifferentialTest#Soldier 2 walks and the target cursor shows as the capture f2039 to f2128"
+      ]
     },
     "AiTryDoStaff": {
       "decomp_file": "src/cp_staff.c",
@@ -2075,6 +2121,66 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt",
       "status": "implemented",
       "tests": []
+    },
+    "CpPerform_BeginUnitMovement": {
+      "decomp_file": "src/cp_perform.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CpPerformDifferentialTest#Soldier 1 walks and the target cursor shows as the capture f1614 to f1695",
+        "fe8.testing.CpPerformDifferentialTest#Soldier 2 walks and the target cursor shows as the capture f2039 to f2128",
+        "fe8.testing.CpPerformDifferentialTest#the boss moves without a target cursor as the capture f3804 to f3831"
+      ]
+    },
+    "CpPerform_Cleanup": {
+      "decomp_file": "src/cp_perform.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CpPerformActionDifferentialTest#Soldier 1 attacks and dies as the capture f1696 to f2018",
+        "fe8.testing.CpPerformActionDifferentialTest#Soldier 2 attacks and dies as the capture f2129 to f2723",
+        "fe8.testing.CpPerformActionDifferentialTest#the boss moves without an action as the capture f3831 to f3832"
+      ]
+    },
+    "CpPerform_MoveCameraOntoTarget": {
+      "decomp_file": "src/cp_perform.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CpPerformDifferentialTest#Soldier 1 walks and the target cursor shows as the capture f1614 to f1695",
+        "fe8.testing.CpPerformDifferentialTest#Soldier 2 walks and the target cursor shows as the capture f2039 to f2128",
+        "fe8.testing.CpPerformDifferentialTest#the boss moves without a target cursor as the capture f3804 to f3831"
+      ]
+    },
+    "CpPerform_PerformAction": {
+      "decomp_file": "src/cp_perform.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CpPerformActionDifferentialTest#Soldier 1 attacks and dies as the capture f1696 to f2018",
+        "fe8.testing.CpPerformActionDifferentialTest#Soldier 2 attacks and dies as the capture f2129 to f2723",
+        "fe8.testing.CpPerformActionDifferentialTest#the boss moves without an action as the capture f3831 to f3832"
+      ]
+    },
+    "CpPerform_WaitAction": {
+      "decomp_file": "src/cp_perform.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CpPerformActionDifferentialTest#Soldier 1 attacks and dies as the capture f1696 to f2018",
+        "fe8.testing.CpPerformActionDifferentialTest#Soldier 2 attacks and dies as the capture f2129 to f2723",
+        "fe8.testing.CpPerformActionDifferentialTest#the boss moves without an action as the capture f3831 to f3832"
+      ]
     },
     "CutOffPathLength": {
       "decomp_file": "src/bmpatharrowdisp.c",
@@ -8906,6 +9012,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
+      ]
+    },
+    "StartAiTargetCursor": {
+      "decomp_file": "src/cp_perform.c",
+      "system": "ai",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CpPerform.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.CpPerformDifferentialTest#Soldier 1 walks and the target cursor shows as the capture f1614 to f1695",
+        "fe8.testing.CpPerformDifferentialTest#Soldier 2 walks and the target cursor shows as the capture f2039 to f2128"
       ]
     },
     "StartBMapMain": {

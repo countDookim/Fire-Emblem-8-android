@@ -145,14 +145,16 @@ public class PlayerInterfaceState {
 }
 
 /**
- * The player-phase side windows of src/player_interface.c, as far as the terrain window, the goal
- * window and the window maker: `gProcScr_TerrainDisplay` (the terrain name, defence and avoid box that slides in
- * beside the map cursor) and `gProcScr_SideWindowMaker` with `StartPlayerPhaseSideWindows` and
- * `EndPlayerPhaseSideWindows`.
+ * The player-phase side windows of src/player_interface.c: the terrain window
+ * (`gProcScr_TerrainDisplay`: terrain name, defence and avoid, sliding in beside the map cursor),
+ * the goal window (`gProcScr_GoalDisplay`), the unit window in its two layouts (the mini-box
+ * `gProcScr_UnitDisplay_MinimugBox` and the Burst box `gProcScr_UnitDisplay_Burst`, chosen by the
+ * `unitDisplayType` config option) and the maker `gProcScr_SideWindowMaker` with
+ * `StartPlayerPhaseSideWindows` and `EndPlayerPhaseSideWindows`. The preparations screen's menu
+ * button window is not ported; see [Hooks.startPrepMenuButtonDisplay].
  *
- * Graphics, palettes and terrain names are read from the ROM at runtime. The goal window
- * (`gProcScr_GoalDisplay`) is here too; the unit mini-box is in this file, and the services
- * outside the ported part are [Hooks]. Nothing allocates per frame.
+ * Graphics, palettes and terrain names are read from the ROM at runtime. Services outside this
+ * file are [Hooks]. Nothing allocates per frame.
  */
 public class PlayerInterface(
     private val engine: ProcEngine,
@@ -205,10 +207,10 @@ public class PlayerInterface(
         public var isSkirmish: () -> Boolean = { false }
 
         /**
-         * Stand-in until M6-H (the first chapter with a "defeat all" or "defend" goal) for the second
-         * text line
-         * of `GoalDisplay_Init` (enemy count or turn counter, drawn with
-         * `Text_InsertDrawNumberOrBlank`); [goalType] is the chapter's goal window data type.
+         * Stand-in until M6-H (the first chapter with a "defeat all" or "defend" goal) for the
+         * second text line of `GoalDisplay_Init`: the enemy count for `GOAL_TYPE_DEFEAT_ALL`, the
+         * turn counter for `GOAL_TYPE_DEFENSE` (both drawn with `Text_InsertDrawNumberOrBlank`).
+         * [goalType] is the chapter's `goalWindowDataType`.
          */
         public var drawGoalSecondLine: (state: PlayerInterfaceState, goalType: Int) -> Unit =
             { _, _ -> }
@@ -241,6 +243,7 @@ public class PlayerInterface(
     /** `gNumberStr`: the digits of the number being drawn, space padded on the left. */
     private val numberStr = ByteArray(NUMBER_STR_SIZE)
 
+    /** `PROC_15` (opcode 0x15), the second command of every side window script. */
     private val proc15 = ProcCmd(0x15)
     private val initFn = ProcFunc { terrainInit(it) }
     private val sideChangeFn = ProcFunc { terrainOnSideChange(it) }
@@ -377,9 +380,10 @@ public class PlayerInterface(
     /**
      * Ported from src/player_interface.c: GetCursorQuadrant
      *
-     * The quadrant of the 240x160 screen holding the map cursor (screen position of the cursor
-     * tile less 8 pixels of camera slack): 0 top left, 1 top right, 2 bottom left, 3 bottom
-     * right, the split being at x 121 and y 81.
+     * The quadrant of the 240x160 screen holding the map cursor: 0 top left, 1 top right, 2 bottom
+     * left, 3 bottom right. The cursor's pixel position relative to the camera is taken 8 pixels
+     * further right and down (`camera - 8`), and the split is at x 121 and y 81 (`DISPLAY_WIDTH / 2
+     * + 1`, `DISPLAY_HEIGHT / 2 + 1`).
      */
     public fun getCursorQuadrant(): Int {
         val x = bm.playerCursorX * 16 - (bm.cameraX - 8)
@@ -394,9 +398,13 @@ public class PlayerInterface(
      * (the obstacle and ballista branches are not verified: the cursor stands on plain terrain
      * in every reference run)
      *
-     * Draws the box for the terrain under the map cursor into [scratch]: the terrain name
-     * centred, the labels and the defence and avoid digits (the digits only where the terrain
-     * can be entered; walls and ballistae show their own labels and hit points).
+     * Draws the terrain window for the tile under the map cursor into [scratch] (rows 10..17 of
+     * both buffers, 7 rows of tiles by 14 columns as `TileMap_FillRect` counts, which fills one
+     * more of each): the terrain name centred in white on the BG0 side, the defence and avoid
+     * labels and digits (the digits only where the terrain's `TerrainTable_MovCost_BerserkerNormal`
+     * cost is positive, i.e. the tile can be entered), and the box frame on the BG1 side. Snags
+     * (`TERRAIN_SNAG`), damaged walls (`TERRAIN_WALL_DAMAGED`) and the three ballista terrains
+     * swap in their own labels and show the obstacle's hit points instead.
      */
     public fun drawTerrainDisplayWindow(state: PlayerInterfaceState) {
         val cursorX = bm.playerCursorX
@@ -467,11 +475,14 @@ public class PlayerInterface(
      * Ported from src/player_interface.c: TerrainDisplay_Loop_OnSideChange
      *
      * Picks the corner for the window from the cursor's quadrant. If the unit window or the goal
-     * window already holds that corner it waits (a proc that does not exist holds none: C reads
-     * the goal proc through a pointer that is NULL only in a build without BUGFIX when the unit
-     * window is also absent). Otherwise it draws the window, remembers the cursor and moves on to
-     * the slide in. The original's first pass reads the other windows' `windowQuadrant` from
-     * their not yet initialised proc slots.
+     * window already holds that corner it waits (returns, so the step runs again next frame);
+     * a window that does not exist holds none. Otherwise it draws the window, remembers the
+     * cursor and moves on to the slide in. The original's first pass reads the other windows'
+     * `windowQuadrant` from their not yet initialised proc slots (see [newUnitWindowResidue]).
+     *
+     * The original without `BUGFIX` tests the unit window proc where it means the goal window
+     * proc before reading the latter's quadrant, so it dereferences NULL when only the unit
+     * window exists. This port follows the `BUGFIX` form (an absent proc holds no corner).
      */
     public fun terrainOnSideChange(proc: Proc) {
         val state = stateOf(proc)
@@ -500,10 +511,12 @@ public class PlayerInterface(
     /**
      * Ported from src/player_interface.c: TerrainDisplay_Loop_SlideIn
      *
-     * One frame of the slide in: clears the window's strip of BG0 and BG1 (columns 0..6 on the
-     * left of the screen, 23..29 on the right, rows 13..19), then copies the rightmost (or
-     * leftmost) 5, 6 and 7 columns of the box from [scratch] on successive frames. Shows the
-     * contents and ends the step after the third.
+     * One frame of the slide in: clears the window's strip of BG0 and BG1 (`TileMap_FillRect` with
+     * 7 by 7 clears 8 by 8: columns 0..7 on the left of the screen, 23..30 on the right, rows
+     * 13..20), then copies the box's 5, 6 and then 7 outer columns (the rightmost when the window
+     * is on the left, the leftmost when on the right) from [scratch] to the screen edge on
+     * successive frames. After the third frame it shows the contents (`hideContents` off) and
+     * ends the step.
      */
     public fun terrainSlideIn(proc: Proc) {
         val state = stateOf(proc)
@@ -573,9 +586,9 @@ public class PlayerInterface(
      * (not verified: no reference run moves the cursor across the screen half, so the window
      * never slides out; `EndPlayerPhaseSideWindows` ends it instead)
      *
-     * One frame of the slide out: the same strip clear as [terrainSlideIn], then the box
-     * narrowed to 5, 4 and 0 columns. Hides the contents; after the third frame it unhides them,
-     * stops retracting and ends the step.
+     * One frame of the slide out: hides the contents, makes the same strip clear as
+     * [terrainSlideIn], then copies the box narrowed to 5, 4 and 0 columns. After the third frame
+     * it unhides the contents, stops retracting and ends the step.
      */
     public fun terrainSlideOut(proc: Proc) {
         val state = stateOf(proc)
@@ -609,8 +622,9 @@ public class PlayerInterface(
     /**
      * Ported from src/player_interface.c: sub_808C288
      *
-     * Copies the terrain box (7x7 tiles at row 10 of the BG0 scratch) to its place on BG0, on the
-     * left or right of the screen as the window's quadrant says, and flags BG0 and BG1 for sync.
+     * Copies the terrain box (7x7 tiles at row 10 of the BG0 scratch) to rows 13..19 of BG0, at
+     * the left edge or at column 23 as the `cursorQuadrant`'s terrain side (`xTerrain`) says,
+     * and flags BG0 and BG1 for sync. Only BG0 is copied; the BG1 frame stays in place.
      */
     public fun copyTerrainWindowToBg0(state: PlayerInterfaceState) {
         val left = CONFIG[state.cursorQuadrant * CONFIG_STRIDE + CONFIG_X_TERRAIN] < 0
@@ -624,12 +638,15 @@ public class PlayerInterface(
      * (the preparations-screen branch is not verified: the reference runs are in the player
      * phase)
      *
-     * Sets up the display for the side windows: no windows but the outside-window layers with
-     * blending, BG scroll 0, alpha blend 13/3 of BG0 over BG1, BG2, BG3 and OBJ, the interface
-     * font tiles in BG VRAM (tile 0x100) and the digit tiles in OBJ VRAM (tile 0x2E0), palette
-     * bank 0 copied to bank 0x18 and the item icon palette in bank 2; then resets the font's tile
-     * counter and starts the windows: terrain (unless disabled), then the preparations menu
-     * button or the goal window, then the unit window.
+     * Sets up the display for the side windows: no window areas, every layer shown outside them
+     * with blending allowed, BG0..BG2 scroll 0, alpha blend 13/3 with BG1 (the window frames) as
+     * the top target over BG2, BG3 and OBJ, the interface font tiles in BG VRAM (tile 0x100), the
+     * HP digit tiles in OBJ VRAM (tile 0x2E0) plus a copy of BG tile 0x175 at OBJ tile 0x2EA,
+     * palette bank 0 copied to palette index 0x18 (OBJ palette 8, the digits') and the item icon
+     * palette in bank 2; then resets the font's tile counter and starts the windows: terrain
+     * (unless `disableTerrainDisplay`), then the preparations menu button (`BM_FLAG_PREPSCREEN`)
+     * or the goal window (unless `disableGoalDisplay` or `EVFLAG_OBJWINDOW_DISABLE`), then the
+     * unit mini-box (`unitDisplayType` 0) or Burst box (1).
      */
     public fun initPlayerPhaseInterface() {
         val lcd = hw.lcd

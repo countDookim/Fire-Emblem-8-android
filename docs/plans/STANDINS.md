@@ -212,7 +212,7 @@ Total entries: 233 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `refreshMinesOnBmMap` | Stand-in (M6-H) for `RefreshMinesOnBmMap`, called after the unit pass. |
 | `game/src/commonMain/kotlin/fe8/game/bm/EntityBmMaps.kt` | `refreshTorchlightsOnBmMap` | Stand-in (M6-H) for `RefreshTorchlightsOnBmMap`, called between clears and unit pass. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `doesBmxFadeExist` | Stand-in for `DoesBMXFADEExist` (false) until M6-H (the fog fade). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `drawGoalSecondLine` | Stand-in until M6-H (the first chapter with a "defeat all" or "defend" goal) for the second text line of `GoalDisplay_Init` (enemy count or turn counter, drawn with `Text_InsertDrawNumberOrBlank`);... |
+| `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `drawGoalSecondLine` | Stand-in until M6-H (the first chapter with a "defeat all" or "defend" goal) for the second text line of `GoalDisplay_Init`: the enemy count for `GOAL_TYPE_DEFEAT_ALL`, the turn counter for `GOAL_T... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `obstacleHpAt` | Stand-in for `GetObstacleHpAt` (bmtrick.c) until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `canUnitMove` | `CanUnitMove` for the active unit: whether an adjacent tile is free of enemies and within the movement left after `moveCount` (asked for a canto move); stand-in until M6-H, false. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `doesBmxFadeExist` | `DoesBMXFADEExist` (bmxfade.c, `Proc_Find(sProcScr_BMXFADE)`): stand-in until M6-H (the fog fade of chapters with vision), default false. |

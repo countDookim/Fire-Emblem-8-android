@@ -12,45 +12,61 @@ import gbafe.proc.ProcScripts.name
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.yield
 
-/** `gAiState` (cp_common.h): the fields the berserk phase touches. */
+/**
+ * `struct AiState` / `gAiState` (cp_common.h, defined in cp_phase.c): the state shared by the AI
+ * phase, order and decision procs. The decomp's `unk7F` (0x7F) is not modelled: nothing in the
+ * decomp reads or writes it.
+ */
 public class AiState {
-    /** `units[116]`: the unit ids to decide for, 0 terminated. */
+    /** `units[116]`: the ids of the units to decide for, in decision order, 0 terminated. */
     public val units: ByteArray = ByteArray(UNITS_SIZE)
 
-    /** `unitIt`: index into [units] of the unit being decided. */
+    /** `unitIt` (a pointer into `units` in the decomp): index of the unit being decided. */
     public var unitIt: Int = 0
 
-    /** `orderState` (u8, 0x78). */
+    /** `orderState` (u8, 0x78): the step of `sCpOrderFuncList` that `CpOrderMain` runs next. */
     public var orderState: Int = 0
 
     /** `decideState` (u8, 0x79): the index into `sDecideFuncList` of [CpDecide.aiDecideMain]. */
     public var decideState: Int = 0
 
-    /** `dangerMapFilled` (s8, 0x7A): set by `AiFillDangerMap` (EP-3b), cleared per unit. */
+    /** `dangerMapFilled` (s8, 0x7A): set by `AiInitDangerMap` (EP-3b), cleared per unit. */
     public var dangerMapFilled: Boolean = false
 
-    /** `flags` (u8, 0x7B): `AI_FLAG_*`. */
+    /** `flags` (u8, 0x7B): the `AI_FLAG_*` of the phase being run (cp_common.h). */
     public var flags: Int = 0
 
-    /** `unk7C` (u8, 0x7C): cleared per unit by [CpDecide.cpDecideMain]. */
+    /**
+     * `unk7C` (u8, 0x7C): cleared per unit by [CpDecide.cpDecideMain]. The staff AI (cp_staff.c)
+     * reads it as a lowest-HP-percentage threshold; its meaning is otherwise unknown.
+     */
     public var unk7C: Int = 0
 
-    /** `combatWeightTableId` (u8, 0x7D): from the unit's `ai_config`. */
+    /**
+     * `combatWeightTableId` (u8, 0x7D): the row of `gAiCombatScoreCoefficientTable`, from the
+     * `AI_UNIT_CONFIG_COMBATWEIGHT` bits of the unit's `ai_config`.
+     */
     public var combatWeightTableId: Int = 0
 
-    /** `unk7E` (u8, 0x7E). */
+    /**
+     * `unk7E` (u8, 0x7E): 0xFF at the phase start, later set by an AI script command; passed as
+     * the fourth argument of `AiTryMoveTowards`. Meaning of that argument unknown.
+     */
     public var unk7E: Int = 0
 
-    /** `specialItemFlags` (u32, 0x80). */
+    /**
+     * `specialItemFlags` (u32, 0x80): the chapter's entry of `gAiItemConfigTable`; the special
+     * item AI (cpextra_80407F0.c) tests its bits.
+     */
     public var specialItemFlags: Int = 0
 
-    /** `unk84` (u8, 0x84). */
+    /** `unk84` (u8, 0x84): only cleared, by [CpPhase.aiPhaseInit]; meaning unknown. */
     public var unk84: Int = 0
 
     /** `bestBlueMov` (u8, 0x85): the highest Mov of the player units, set at the phase start. */
     public var bestBlueMov: Int = 0
 
-    /** `cmd_result[8]` (0x86). */
+    /** `cmd_result[8]` (0x86): the results of AI script commands, cleared at the phase start. */
     public val cmdResult: ByteArray = ByteArray(8)
 
     /** Layout constants. */
@@ -61,11 +77,15 @@ public class AiState {
 }
 
 /**
- * The berserk part of the AI phase (src/cp_phase.c, src/cp_order.c): `gProcScr_BerserkCpPhase`
- * (ROM 0x085A7F30) and `gProcScr_BerserkCpOrder` (0x085A7F74), which BMapMain starts after every
- * phase. The enemy and ally phase (`gProcScr_CpPhase`, `gProcScr_CpOrder`) are here too. The AI
- * decision loop is [CpDecide]. The AI flag setup ([CpUtility]) runs only when the map objects
- * are given.
+ * The AI phase procs of src/cp_phase.c and src/cp_order.c, and the sub-systems they start.
+ *
+ * `gProcScr_CpPhase` (ROM 0x085A7F08) runs the enemy and ally phase (`BmMain_StartPhase` starts
+ * it); `gProcScr_BerserkCpPhase` (0x085A7F30) is started by BMapMain after each phase for the
+ * berserked units. Each starts an order proc (`gProcScr_CpOrder` 0x085A7F5C,
+ * `gProcScr_BerserkCpOrder` 0x085A7F74) that picks the units and starts the decision loop
+ * [CpDecide]. The attack search ([CpBattle]), the script interpreter ([CpScript]) and the AI
+ * flag setup ([CpUtility]) are built here and wired into the decision loop; the flag setup and
+ * the attack search exist only when the loader, the map and the entity maps are given.
  */
 public class CpPhase(
     private val engine: ProcEngine,
@@ -77,7 +97,7 @@ public class CpPhase(
      * needs; null counts every item as unusable.
      */
     private val loader: UnitLoader? = null,
-    /** `gBmMap*` for the ally count of [CpUtility]; with [entityMaps] and [loader] enables it. */
+    /** `gBmMap*` of [CpUtility], [CpDecide] and [CpBattle]; with the loader, enables them. */
     map: BmMap? = null,
     /** `MapAddInRange` for [CpUtility]. */
     entityMaps: EntityBmMaps? = null,
@@ -90,10 +110,10 @@ public class CpPhase(
     public val aiState: AiState = AiState()
 
     /**
-     * `UpdateAllPhaseHealingAIStatus` and `SetupUnitInventoryAIFlags`; null (both skipped) when
-     * the constructor got no [loader], map and entity maps.
+     * `UpdateAllPhaseHealingAIStatus` and `SetupUnitInventoryAIFlags` (and the helpers of the AI
+     * decisions); null (both skipped) when the constructor got no loader, map and entity maps.
      */
-    private val aiFlags: CpUtility? =
+    private val utility: CpUtility? =
         if (loader != null && map != null && entityMaps != null) {
             CpUtility(rom, units, playSt, aiState, loader, map, entityMaps)
         } else {
@@ -102,22 +122,26 @@ public class CpPhase(
 
     /** The AI decision loop (`gProcScr_CpDecide`) and its hooks. */
     public val decide: CpDecide = CpDecide(
-        engine, units, aiState, active, aiFlags, entityMaps, rom, loader, map,
+        engine, units, aiState, active, utility, entityMaps, rom, loader, map,
     )
 
     /**
-     * The AI attack search (cp_battle.c, `AiTryDoStaff`) and its hooks (EP-6a/6b, EP-7, EP-12
-     * stand-ins); null (the script attacks nothing) when the constructor got no [loader], [map]
-     * and [entityMaps].
+     * The AI attack search (cp_battle.c, `AiTryDoStaff` of cp_staff.c) and its hooks (EP-6b and
+     * EP-12 stand-ins); null (the script attacks nothing) when the constructor got no loader,
+     * map and entity maps.
      */
     public val battle: CpBattle? =
-        if (aiFlags != null && loader != null && map != null && entityMaps != null) {
-            CpBattle(rom, units, aiState, active, map, entityMaps, loader, decide, aiFlags)
+        if (utility != null && loader != null && map != null && entityMaps != null) {
+            CpBattle(rom, units, aiState, active, map, entityMaps, loader, decide, utility)
         } else {
             null
         }
 
-    /** The AI script interpreter (cp_script.c); its hooks are the EP-12 stand-ins. */
+    /**
+     * The AI script interpreter (cp_script.c); its hooks are the EP-12 stand-ins. Wired here as
+     * the `AiTryExecScriptA`/`B` of [decide] and, when [battle] exists, as the hooks of its
+     * attack commands.
+     */
     public val script: CpScript = CpScript(rom, units, aiState, active, rng).also {
         decide.hooks.tryExecScriptA = AiTry { it.tryExecScriptA() }
         decide.hooks.tryExecScriptB = AiTry { it.tryExecScriptB() }
@@ -129,7 +153,10 @@ public class CpPhase(
         }
     }
 
+    /** `sUnitPriorityArray` (in `gGenericBuffer`): the sort key of each [AiState.units] entry. */
     private val priorities = IntArray(AiState.UNITS_SIZE)
+
+    /** Item attributes and ranges for [getUnitBattleAiPriority]. */
     private val items = ItemInfo(rom)
 
     private val berserkInitFn = ProcFunc { aiPhaseBerserkInit(it) }
@@ -139,7 +166,7 @@ public class CpPhase(
     private val phaseInitFn = ProcFunc { aiPhaseInit(it) }
     private val orderMainFn = ProcFunc { cpOrderMain(it) }
 
-    /** `gProcScr_CpOrder` (cp_order.c). */
+    /** `gProcScr_CpOrder` (cp_order.c): runs [cpOrderMain] until it breaks. */
     public val orderScript: ProcScript = ProcScript(
         "gProcScr_CpOrder",
         listOf(
@@ -149,7 +176,7 @@ public class CpPhase(
         ),
     )
 
-    /** `gProcScr_CpPhase` (cp_phase.c). */
+    /** `gProcScr_CpPhase` (cp_phase.c): [aiPhaseInit], wait for the order proc, clean up. */
     public val phaseScript: ProcScript = ProcScript(
         "gProcScr_CpPhase",
         listOf(
@@ -161,7 +188,7 @@ public class CpPhase(
         ),
     )
 
-    /** `gProcScr_BerserkCpOrder` (cp_order.c). */
+    /** `gProcScr_BerserkCpOrder` (cp_order.c): [cpOrderBerserkInit], then waits to end. */
     public val berserkOrderScript: ProcScript = ProcScript(
         "gProcScr_BerserkCpOrder",
         listOf(
@@ -172,7 +199,7 @@ public class CpPhase(
         ),
     )
 
-    /** `gProcScr_BerserkCpPhase` (cp_phase.c). */
+    /** `gProcScr_BerserkCpPhase` (cp_phase.c): [aiPhaseBerserkInit], wait, then clean up. */
     public val berserkPhaseScript: ProcScript = ProcScript(
         "gProcScr_BerserkCpPhase",
         listOf(
@@ -187,9 +214,9 @@ public class CpPhase(
     /**
      * Ported from src/cp_phase.c: AiPhaseBerserkInit
      *
-     * Resets [aiState] for a berserk phase (flags, `unk7E`, the command results, the chapter's
-     * special item flags), refreshes the healing and inventory AI statuses ([CpUtility]) and
-     * starts the berserk order blocking [proc].
+     * Resets [aiState] for a berserk phase (flags `AI_FLAG_BERSERKED`, `unk7E`, the command
+     * results, the chapter's special item flags), refreshes the healing and inventory AI
+     * statuses ([CpUtility]) and starts the berserk order blocking [proc].
      */
     public fun aiPhaseBerserkInit(proc: Proc) {
         aiState.flags = AI_FLAG_BERSERKED
@@ -199,8 +226,8 @@ public class CpPhase(
 
         aiState.specialItemFlags = rom.u32(AI_ITEM_CONFIG_TABLE + 4 * playSt.chapterIndex)
 
-        aiFlags?.updateAllPhaseHealingAiStatus()
-        aiFlags?.setupUnitInventoryAiFlags()
+        utility?.updateAllPhaseHealingAiStatus()
+        utility?.setupUnitInventoryAiFlags()
 
         engine.startBlocking(berserkOrderScript, proc)
     }
@@ -222,8 +249,8 @@ public class CpPhase(
         aiState.specialItemFlags = rom.u32(AI_ITEM_CONFIG_TABLE + 4 * playSt.chapterIndex)
         aiState.unk84 = 0
 
-        aiFlags?.updateAllPhaseHealingAiStatus()
-        aiFlags?.setupUnitInventoryAiFlags()
+        utility?.updateAllPhaseHealingAiStatus()
+        utility?.setupUnitInventoryAiFlags()
 
         engine.startBlocking(orderScript, proc)
     }
@@ -260,8 +287,9 @@ public class CpPhase(
      * Transcribed from src/cp_order.c: GetUnitBattleAiPriority (not verified: the three Prologue
      * enemies all come out 20 and no mutation of it changes the captured order)
      *
-     * 72 if the unit can use a staff, else 40 if it can wield a ranged weapon, else 20 for a
-     * melee weapon, else 87.
+     * Smaller values act first. Looks at the unit's usable items (weapons and staffs it can
+     * use): 72 if one is a staff, else 40 if one is a weapon with a maximum range above 1, else
+     * 20 if one is a melee weapon, else 87. The values are literals in the decomp.
      */
     public fun getUnitBattleAiPriority(id: Int): Int {
         val o = units.unitOffset(id)
@@ -289,11 +317,15 @@ public class CpPhase(
      * Transcribed from src/cp_order.c: GetUnitAiPriority (not verified: the three Prologue enemies
      * all come out 25, so no mutation changes the captured order)
      *
-     * Movement, minus 149 for a dancer or player, else plus the leader's character id times 256
-     * and 60 for a thief, 87 for a lord or the leader itself, or the battle priority.
+     * The sort key of [sortAiUnitList]; lower acts first. Starts from the unit's Mov. A dancer or
+     * bard (`CA_DANCE`, `CA_PLAY`) returns that minus 149. Otherwise, unless the unit has
+     * `AI_UNIT_FLAG_0` (healing, or carrying a magic item; see [CpUtility]), the leader's
+     * character id times 256 is added, then 60 for a thief (`CA_STEAL`), 87 for a lord
+     * (`CA_LORD`) or the leader itself, or else [getUnitBattleAiPriority].
      */
     public fun getUnitAiPriority(id: Int): Int {
         var priority = units.movement(id)
+        // `GetUnitLeaderCharId`: player units (deployment ids below 0x40) have no leader.
         val lead = if (units.index(id) and 0xC0 == 0) 0 else units.leaderCharId(id)
         val attributes = units.cAttributes(id)
         if (attributes and (CA_DANCE or CA_PLAY) != 0) return priority - 149
@@ -309,10 +341,11 @@ public class CpPhase(
     /**
      * Ported from src/cp_order.c: BuildAiUnitList
      *
-     * Fills [AiState.units] with the ids of the current faction's units that can act (not asleep,
-     * berserk, hidden, unselectable, dead, rescued or already moved by the AI) and the priority
-     * of each; returns the count. Verified: the list and the valid check; no unit in the capture
-     * is skipped by status or state, and the 0 terminator is written by [cpOrderFuncBeginDecide].
+     * Fills [AiState.units] with the ids of the current faction's units that can act (not asleep
+     * or berserk, and none of `US_HIDDEN`, `US_UNSELECTABLE`, `US_DEAD`, `US_RESCUED`,
+     * `US_HAS_MOVED_AI`) and [priorities] with the key of each; returns the count.
+     * Verified: the list and the valid check; no unit in the capture is skipped by status or
+     * state, and the 0 terminator is written by [cpOrderFuncBeginDecide].
      */
     public fun buildAiUnitList(): Int {
         var aiNum = 0
@@ -335,8 +368,8 @@ public class CpPhase(
      * Transcribed from src/cp_order.c: SortAiUnitList (not verified: the priorities are equal, so
      * only the stability is seen, not the direction)
      *
-     * Bubble sort of [AiState.units] by the priority, unsigned, lowest first; equal priorities
-     * keep their order.
+     * Bubble sort of the first [count] entries of [AiState.units] by [priorities] (compared as
+     * unsigned, lowest first); equal priorities keep their order.
      */
     public fun sortAiUnitList(count: Int) {
         if (count <= 1) return
@@ -366,9 +399,10 @@ public class CpPhase(
     /**
      * Ported from src/cp_order.c: CpOrderBerserkInit
      *
-     * Collects the current faction's units that are berserk and still able to act into
-     * [AiState.units]; if there are any, starts the decision loop ([CpDecide.script]) blocking
-     * [proc]. The non-empty case is (not verified: no capture has a berserk unit).
+     * Collects the current faction's berserk units that can still act (none of `US_HIDDEN`,
+     * `US_UNSELECTABLE`, `US_DEAD`, `US_RESCUED`, `US_HAS_MOVED_AI`) into [AiState.units], in id
+     * order, unsorted; if there are any, starts the decision loop ([CpDecide.script]) blocking
+     * [proc]. The non-empty case is not verified: no capture has a berserk unit.
      */
     public fun cpOrderBerserkInit(proc: Proc) {
         var aiNum = 0
@@ -395,6 +429,10 @@ public class CpPhase(
         }
     }
 
+    /**
+     * The tail shared by `CpOrderFunc_BeginDecide` and `CpOrderBerserkInit`: sets
+     * `AiDecideMainFunc` to `AiDecideMain` and starts `gProcScr_CpDecide` blocking [parent].
+     */
     private fun startCpDecide(parent: Proc) {
         decide.aiDecideMainFunc = decide.decideMainStep
         engine.startBlocking(decide.script, parent)
@@ -414,19 +452,34 @@ public class CpPhase(
         /** `gAiItemConfigTable` in the ROM (u32 per chapter). */
         public const val AI_ITEM_CONFIG_TABLE: Int = 0x080D8538
 
-        /** `AI_FLAG_0`. */
+        /** `AI_FLAG_0` (cp_common.h): the flags of a normal AI phase; its meaning is unknown. */
         public const val AI_FLAG_0: Int = 1
 
-        /** `AI_FLAG_BERSERKED`. */
+        /** `AI_FLAG_BERSERKED` (cp_common.h): the phase of berserked units. */
         public const val AI_FLAG_BERSERKED: Int = 1 shl 2
 
+        /** `UNIT_ITEM_COUNT` (bmunit.h). */
         private const val UNIT_ITEM_COUNT = 5
+
+        /** `AI_UNIT_FLAG_0` (cp_common.h), a bit of `Unit::aiFlags`. */
         private const val AI_UNIT_FLAG_0 = 1
+
+        /** `CA_STEAL` (bmunit.h): the class can steal (thief). */
         private const val CA_STEAL = 1 shl 2
+
+        /** `CA_DANCE` (bmunit.h): the class can dance. */
         private const val CA_DANCE = 1 shl 4
+
+        /** `CA_PLAY` (bmunit.h): the class can play (bard). */
         private const val CA_PLAY = 1 shl 5
+
+        /** `CA_LORD` (bmunit.h). */
         private const val CA_LORD = 1 shl 13
 
+        /**
+         * The `factionUnitCountLut` of cp_order.c, indexed by `faction shr 6`: the unit slots of
+         * the blue (player), green (ally) and red (enemy) faction.
+         */
         private val FACTION_UNIT_COUNT = intArrayOf(62, 20, 50)
 
         /** `US_HIDDEN | US_UNSELECTABLE | US_DEAD | US_RESCUED | US_HAS_MOVED_AI`. */

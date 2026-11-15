@@ -27,8 +27,8 @@ Total entries: 231 across 46 Kotlin files.
 | D11-wire-a | 2 |
 | EP-1 | 1 |
 | EP-12 | 15 |
-| EP-6a | 3 |
-| EP-6b | 6 |
+| EP-6a | 2 |
+| EP-6b | 7 |
 | EP-8 | 1 |
 | EP-cap2 | 6 |
 | EP-w | 3 |
@@ -309,15 +309,14 @@ Total entries: 231 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `script` | The AI script interpreter (cp_script.c); its hooks are the EP-12 stand-ins. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | `unportedCommand` | Stand-in for a command this class does not write (EP-12): called with the command index (`AI_CMD_*`: 00..04, 07..0D, 0F..1B, and 05 with an ignore list, whose predicates `AiIsUnitEnemyOrInScrList`... |
 
-## EP-6a (3)
+## EP-6a (2)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `aiGetCombatPositionScore` | Transcribed from src/cp_battle.c: AiGetCombatPositionScore (not verified: the capture has one candidate tile per target, so no captured value shows the score, only that it is not 0; the three compo... |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `positionScore` | Stand-in for `AiGetInRangeCombatPositionScoreComponent`, `AiGetTerrainCombatPositionScoreComponent` and `AiGetFriendZoneCombatPositionScoreComponent` (EP-6a/6b): their sum. |
-| `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `battle` | The AI attack search (cp_battle.c, `AiTryDoStaff`) and its hooks (EP-6a/6b, EP-7, EP-12 stand-ins); null (the script attacks nothing) when the constructor got no [loader], [map] and [entityMaps]. |
 
-## EP-6b (6)
+## EP-6b (7)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -327,6 +326,7 @@ Total entries: 231 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `dangerScore` | Stand-in for `AiGetDangerScoreComponent` (EP-6b), subtracted from the score. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `lowHpScore` | Stand-in for `AiGetLowHpScoreComponent` (EP-6b), subtracted from the score. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | `turnScore` | Stand-in for `AiGetTurnCombatScoreComponent` (EP-6b): `chapterTurnNumber` times the turn coefficient. |
+| `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `battle` | The AI attack search (cp_battle.c, `AiTryDoStaff` of cp_staff.c) and its hooks (EP-6b and EP-12 stand-ins); null (the script attacks nothing) when the constructor got no loader, map and entity maps. |
 
 ## EP-8 (1)
 

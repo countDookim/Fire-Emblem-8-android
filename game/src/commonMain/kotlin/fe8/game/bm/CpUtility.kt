@@ -4,11 +4,14 @@ import fe8.game.RomView
 import kotlin.math.abs
 
 /**
- * The AI unit flag setup of src/cp_utility.c and src/cp_0803E2F4.c that `AiPhaseInit` and
- * `AiPhaseBerserkInit` (cp_phase.c) call: the heal-threshold flag of each unit of the current
- * faction and the item based flags and ally count of each player unit. They write `aiFlags`
- * (0x0A) and `ai_counter` (0x46) of [units] and `bestBlueMov` of [aiState]. The ally count reads
- * `gBmMapUnit` ([map]) as it stands, like the C.
+ * AI helpers of src/cp_utility.c and src/cp_0803E2F4.c.
+ *
+ * The flag setup that `AiPhaseInit` and `AiPhaseBerserkInit` (cp_phase.c) call: the healing flag
+ * (`AI_UNIT_FLAG_0`) of each unit of the current faction, and the item based flags and ally
+ * count of each blue (player) unit. They write `aiFlags` (0x0A) and `ai_counter` (0x46) of
+ * [units] and `bestBlueMov` of [aiState]. The ally count reads `gBmMapUnit` ([map]) as it
+ * stands, like the C. The distance tests, the item range map and the class rank are used by
+ * [CpDecide] and [CpBattle].
  */
 public class CpUtility(
     private val rom: RomView,
@@ -19,7 +22,9 @@ public class CpUtility(
     private val map: BmMap,
     private val entityMaps: EntityBmMaps,
 ) {
+    /** Item attributes, ranges and use effects. */
     private val items = ItemInfo(rom)
+
     /** `GenerateUnitMovementMap` and the movement flood of the AI. */
     internal val moves = MovementMap(rom, map, units, playSt)
 
@@ -47,9 +52,11 @@ public class CpUtility(
      * Ported from src/cp_0803E2F4.c: AiUpdateGetUnitIsHealing
      *
      * Whether unit [id] is in healing mode: sets `AI_UNIT_FLAG_0` when its HP percentage falls
-     * below the enter threshold of its `ai_config` row in `gAI3HealingThresholdTable`, clears it
-     * once the percentage reaches the exit threshold. Verified: entering (a unit at 43%) and not
-     * entering (full HP); the branch of a unit that already has the flag is not seen.
+     * below the enter threshold of its `ai_config` row in `gAI3HealingThresholdTable` (selected
+     * by `AI_UNIT_CONFIG_HEALTHRESHOLD_MASK`), clears it once the percentage reaches the exit
+     * threshold. The C divides without a zero check (BIOS `Div`); a max HP of 0 gives 0% here.
+     * Verified: entering (a unit at 43%) and not entering (full HP); the branch of a unit that
+     * already has the flag is not seen.
      */
     public fun aiUpdateGetUnitIsHealing(id: Int): Boolean {
         val o = units.unitOffset(id)
@@ -72,14 +79,16 @@ public class CpUtility(
     /**
      * Ported from src/cp_utility.c: SetupUnitInventoryAIFlags
      *
-     * Sets [AiState.bestBlueMov] to the highest Mov of the player units (ids 1 to 0x3F) that are
-     * valid and not hidden, dead or `US_BIT16`; for each such unit's usable weapon or staff sets
-     * `AI_UNIT_FLAG_0` for a magic item and runs the staff flag functions, then saves its ally
-     * count. Verified: the Mov, the skip of an unusable item (a Vulnerary adds no flag), the ally
+     * Sets [AiState.bestBlueMov] to the highest Mov of the blue (player) units (ids 1 to 0x3F)
+     * that are valid and none of `US_HIDDEN`, `US_DEAD`, `US_BIT16`. For each usable weapon or
+     * staff of such a unit it sets `AI_UNIT_FLAG_0` for a magic item (`IA_MAGIC`) and runs the
+     * two staff flag functions, then saves the unit's ally count.
+     * Verified: the Mov, the skip of an unusable item (a Vulnerary adds no flag), the ally
      * counts; no magic item or staff is in the capture.
      */
     public fun setupUnitInventoryAiFlags() {
         aiState.bestBlueMov = 0
+        // The blue faction's ids are 1..0x3F (`FACTION_BLUE` + 1..62).
         for (id in 1 until 0x40) {
             if (!units.isValid(id)) continue
             if (units.state(id) and SKIP_STATES != 0) continue
@@ -106,8 +115,9 @@ public class CpUtility(
      * Transcribed from src/cp_utility.c: SetupUnitStatusStaffAIFlags (not verified: the capture
      * has no staff, so only the early return for a weapon is run)
      *
-     * For a staff ORs `AI_UNIT_FLAG_3` (silence), `_4` (sleep), `_5` (berserk) or else
-     * `AI_UNIT_FLAG_1` into the flags of unit [id].
+     * For a staff [item] ORs `AI_UNIT_FLAG_3` (Silence staff), `_4` (Sleep), `_5` (Berserk) or
+     * else `AI_UNIT_FLAG_1` (any other staff) into the flags of unit [id]; a weapon changes
+     * nothing.
      */
     public fun setupUnitStatusStaffAiFlags(id: Int, item: Int) {
         if (items.getItemAttributes(item) and ItemInfo.IA_STAFF == 0) return
@@ -125,7 +135,9 @@ public class CpUtility(
      * usable items are range 1 weapons with no use effect, so only the no-flag path is run)
      *
      * ORs `AI_UNIT_FLAG_6` for a weapon with a maximum range above 1 and `AI_UNIT_FLAG_2` for
-     * the healing use effects (1 to 5, 0x21, 0x22) into the flags of unit [id].
+     * a healing use effect into the flags of unit [id]. The use effect is `useEffectId` (byte
+     * 0x1E of the item data, `GetItemUseEffect`): 1 to 5 are the Heal, Mend, Recover, Physic and
+     * Fortify staffs, 0x21 the Vulnerary and 0x22 the Elixir.
      */
     public fun setupUnitHealStaffAiFlags(id: Int, item: Int) {
         var flags = 0
@@ -134,6 +146,7 @@ public class CpUtility(
         ) {
             flags = AI_UNIT_FLAG_6
         }
+        // `GetItemUseEffect`.
         when (rom.u8(items.getItemData(items.getItemIndex(item)) + 0x1E)) {
             0x01, 0x02, 0x03, 0x04, 0x05, 0x21, 0x22 -> flags = flags or AI_UNIT_FLAG_2
         }
@@ -144,13 +157,14 @@ public class CpUtility(
      * Ported from src/cp_utility.c: SaveNumberOfAlliedUnitsIn0To8Range
      *
      * Stores in `ai_counter` of unit [id] the number of tiles at distance 1 to 8 from it that
-     * hold an allied unit on `gBmMapUnit` (the movement map is used as scratch). Verified: the
-     * two player units at distance 1; the skip of a non-allied unit is not seen.
+     * hold an allied unit on `gBmMapUnit` (`gBmMapMovement` is used as scratch). Despite the
+     * `0To8` in the name, the unit's own tile is not counted. Verified: the two player units at
+     * distance 1; the skip of a non-allied unit is not seen.
      */
     public fun saveNumberOfAlliedUnitsIn0To8Range(id: Int) {
         var count = 0
         map.bmMapFill(map.movement, 0)
-        // MapAddInBoundedRange(x, y, 1, 8): +1 within 8, -1 within 0
+        // `MapAddInBoundedRange(x, y, 1, 8)`: +1 within distance 8, then -1 within distance 0.
         entityMaps.mapAddInRange(units.xPos(id), units.yPos(id), 8, 1)
         entityMaps.mapAddInRange(units.xPos(id), units.yPos(id), 0, -1)
         var iy = map.sizeY - 1
@@ -203,8 +217,9 @@ public class CpUtility(
      * Ported from src/cp_utility.c: FillMovementAndRangeMapForItem
      *
      * Floods `gBmMapMovement` for [unit] ([MovementMap.generateUnitMovementMap]) and fills
-     * `gBmMapRange` with the number of reachable tiles from which each tile is in the range of
-     * [item] (the ring between its minimum and maximum range around every reachable tile).
+     * `gBmMapRange` with the number of reachable tiles (movement value at most
+     * `MAP_MOVEMENT_MAX`) from which each tile is in the range of [item]: the ring between its
+     * minimum and maximum range around every reachable tile.
      */
     public fun fillMovementAndRangeMapForItem(unit: Int, item: Int) {
         moves.generateUnitMovementMap(unit)
@@ -216,6 +231,7 @@ public class CpUtility(
             var ix = map.sizeX - 1
             while (ix >= 0) {
                 if (map.movement[iy, ix] <= MAP_MOVEMENT_MAX) {
+                    // `MapAddInBoundedRange(ix, iy, min, max)`: +1 within max, -1 within min - 1.
                     entityMaps.mapAddInRange(ix, iy, max, 1)
                     entityMaps.mapAddInRange(ix, iy, min - 1, -1)
                 }
@@ -250,8 +266,14 @@ public class CpUtility(
     private companion object {
         /** `gAiClassRankLists`: a null-terminated array of zero-terminated class lists. */
         const val CLASS_RANK_LISTS = 0x085A8150
+
+        /** `MAP_MOVEMENT_MAX` (bmmap.h): the largest movement map value of a reachable tile. */
         const val MAP_MOVEMENT_MAX = 120
+
+        /** `UNIT_ITEM_COUNT` (bmunit.h). */
         const val UNIT_ITEM_COUNT = 5
+
+        /** `AI_UNIT_FLAG_0..6` (cp_common.h), the bits of `Unit::aiFlags`. */
         const val AI_UNIT_FLAG_0 = 1 shl 0
         const val AI_UNIT_FLAG_1 = 1 shl 1
         const val AI_UNIT_FLAG_2 = 1 shl 2
@@ -259,7 +281,11 @@ public class CpUtility(
         const val AI_UNIT_FLAG_4 = 1 shl 4
         const val AI_UNIT_FLAG_5 = 1 shl 5
         const val AI_UNIT_FLAG_6 = 1 shl 6
+
+        /** `AI_UNIT_CONFIG_HEALTHRESHOLD_MASK` (cp_common.h): bits 0 to 2 of `ai_config`. */
         const val AI_CONFIG_HEAL_MASK = 0x7
+
+        /** `ITEM_STAFF_SILENCE`, `ITEM_STAFF_SLEEP`, `ITEM_STAFF_BERSERK` (constants/items.h). */
         const val ITEM_STAFF_SILENCE = 0x51
         const val ITEM_STAFF_SLEEP = 0x52
         const val ITEM_STAFF_BERSERK = 0x53
@@ -270,6 +296,7 @@ public class CpUtility(
         /** `US_HIDDEN | US_DEAD | US_BIT16`. */
         const val SKIP_STATES = 0x1 or 0x4 or (1 shl 16)
 
+        /** The `factionUnitCountLut`, indexed by `faction shr 6`: blue, green, red. */
         val FACTION_UNIT_COUNT = intArrayOf(62, 20, 50)
     }
 }

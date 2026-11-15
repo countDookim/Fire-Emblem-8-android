@@ -105,7 +105,7 @@ fe8.game.worldmap files that had none (sizes on that date).
 | game | fe8.game.worldmap (WorldMapMainScript, WorldMapBigMapEvents, WorldMapFaceEvents, WorldMapMiscEvents, WorldMapSpawnEvents, WorldMapTextEvents) | 6 | 717 | done 2026-11-15 9c716cea |
 | game | fe8.game.worldmap (WorldMapUnitEvents, WorldMapSms) | 2 | 510 | done 2026-11-15 2c158a5c |
 | game | fe8.game.worldmap (WorldMapAutoMu, WorldMapMuEntry) | 2 | 795 | done 2026-11-15 e7a32d80 |
-| game | fe8.game.worldmap (WorldMapDot, WorldMapNodeIcons) | 2 | 612 | done 2026-11-15 HASH |
+| game | fe8.game.worldmap (WorldMapDot, WorldMapNodeIcons) | 2 | 612 | done 2026-11-15 2b13d2c4 |
 | game | fe8.game.worldmap (WorldMapRoute, WorldMapPath) | 2 | 610 | todo |
 | game | fe8.game.worldmap (WorldMapRmBorder, WorldMapLineFade) | 2 | 622 | todo |
 | game | fe8.game.worldmap (WorldMapExit, WorldMapCursor, WorldMapHblank) | 3 | 711 | todo |

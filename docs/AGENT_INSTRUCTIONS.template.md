@@ -14,7 +14,9 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
    Owner-PC sessions use `$HOME/.cache/fe8-tmp` for logs and temporary files; fetch and rebase the existing checkout
    instead of cloning: `git fetch` then `git rebase --rebase-merges origin/master`. They have no time box unless the
    owner sets one; ask the owner directly instead of NEEDS USER. The SDK is in `~/android-sdk` (export `ANDROID_HOME`
-   in non-interactive shells), so `:app` and the android targets build there too.
+   in non-interactive shells), so `:app` and the android targets build there too. When finished or wrapping up
+   (and no build holds `.gradle/agent-checks.lock`), sessions and subagents must free memory:
+   `flock -n /home/dookim/FE8/Fire-Emblem-8-android/.gradle/agent-checks.lock ./gradlew --stop || true` and remove finished worktrees.
 3. Never commit the ROM or anything extracted from it, including bytes, text, glyphs, dumps or assets. ROM-derived
    data goes to the ROM repo only. **No APK bundles game data, debug/test builds included** (owner 2026-11-08,
    replaces the 2026-10-28 amendment): every build needs a ROM imported on the device (docs/decisions/0011); CI's

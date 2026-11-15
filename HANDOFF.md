@@ -11,8 +11,6 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## In progress
 
-- EP-7b: owner PC GPT/Terra, until ~21:00Z; danger-map trace/capture investigation (isolated worktree).
-- EP-29a: owner PC GPT/Terra, until ~21:00Z; four battle item/range helpers; excludes Gemini/Claude claims.
 - EP-27 (per-unit battle stats bmsave-bwl.c PidStatsAdd* / RecordDefeatInfo), owner PC Gemini Flash agent `ep27`, claimed 2026-11-15 16:51Z.
 - EP-15 (battle-animation setup queries B), agent worktree `agent-a7035ed0a4ce9a596`, claimed 2026-11-15 16:33Z.
 - EP-11c (face plumbing, face.c), fresh agent, claimed 2026-11-15 16:56Z.
@@ -20,6 +18,12 @@ Modding decisions D2–D9 in [M7-modding](docs/plans/M7-modding.md) are open (D1
 
 ## Current state
 
+- 2026-11-15 GPT owner PC: **EP-7b resolved** by original callback-phase capture; the danger-map test
+  compares all 150 tiles with no exclusion. **EP-29a partial:** 27 original helper calls checked, but
+  only default returns; all four helpers stay Transcribed (0 new port credits), EP-29cap added.
+  Private references: `assets-c52dd60`; 50,728 older files byte-identical. Full local `jvmTest`:
+  **966 passed, zero failures/skips**; game Dokka, Python/schema and game-text checks passed.
+  Used isolated integration worktrees; other agents' unpublished work left untouched. No new device check.
 - 2026-11-15 10:26Z – 14:35Z owner PC (Sonnet agents hit the 5-hour limit twice; resumed after account switches):
   **enemies act in game.** Merged EP-8 (perform walk, AI target cursor), EP-9 (perform action: Soldiers attack via
   the real map battle and die to Eirika's counter), EP-9b (equip after a move), EP-9c (BMXFADE map fade, entity map

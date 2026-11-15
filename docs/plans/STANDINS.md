@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 222 across 47 Kotlin files.
+Total entries: 222 across 48 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -20,15 +20,16 @@ Total entries: 222 across 47 Kotlin files.
 | M6-E | 47 |
 | M6-F | 15 |
 | M6-G | 6 |
-| M6-H | 34 |
+| M6-H | 32 |
 | M6-I | 27 |
 | M6-J | 10 |
 | D09-3 | 2 |
 | EP-1 | 1 |
+| EP-10b | 1 |
 | EP-12 | 26 |
 | EP-13 | 1 |
 | EP-17 | 5 |
-| EP-1b | 4 |
+| EP-1b | 5 |
 | EP-30 | 2 |
 | EP-36 | 2 |
 | EP-7 | 2 |
@@ -169,15 +170,13 @@ Total entries: 222 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: `IsBattleDeamonActive` (the battle animation system) is not ported, so the fixed fight-event bubble is never used. |
 
-## M6-H (34)
+## M6-H (32)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `trapPool` | Stand-in until M6-H: the trap pool is not ported (no ballistae, light runes or obstacles), so it stays empty; the sprite refresh and the attack target list read it. |
 | `game/src/commonMain/kotlin/fe8/game/PlayerPhaseWiring.kt` | `registerMenuStandIns` | Stand-in: Item and the other commands (`M6-H`) and the map menu's Unit, Status, Guide, Options and Suspend (`M6-F`, Suspend `M6-E`). |
-| `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `decayTraps` | Stand-in until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `processTurnSupportExp` | Stand-in until M6-H. |
-| `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `updateTraps` | Stand-in until M6-H: ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `bmapVSyncOnEnd` | Stand-in until M6-H (weather). |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `clearTemporaryUnits` | Stand-in until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `clearTraps` | Stand-in until M6-H. |
@@ -268,6 +267,12 @@ Total entries: 222 across 47 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `phaseStartEnd` | The target list is its own: the displays' `Make*TargetList` stand-ins (M6-D) leave it empty, so each display ends at once; EP-w shares one list with the player phase when the real `Make*TargetList`... |
 
+## EP-10b (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | `trapDamageDisplay` | Stand-in until EP-10b: ends at once. |
+
 ## EP-12 (26)
 
 | Kotlin file | Declaration | Stand-in |
@@ -315,10 +320,11 @@ Total entries: 222 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `restOfAnimation` | Stand-in until EP-17: ends the MOVEUNITs, shows the sprites again and unlocks the game, so the animation lasts the few frames of the start and the battle result applies right after. |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `script` | `ProcScr_MapAnimBattle` (0x089A3508): CALL `LockGame`, CALL `MapAnim_PrepareBattleTalk`, SLEEP 1, CALL `MapAnim_MoveCameraOntoSubject`, SLEEP 2, then the stand-in (EP-17) [Hooks.restOfAnimation] an... |
 
-## EP-1b (4)
+## EP-1b (5)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | `prepareTrapDefeats` | Stand-in until EP-1b. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `emptyList` | The `Make*TargetList` stand-in until EP-1b: leaves the target list empty. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makeGorgonEggHatchTargetList` | Stand-in until EP-1b: empty list. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PhaseStartEnd.kt` | `makePoisonDamageTargetList` | Stand-in until EP-1b: empty list. |

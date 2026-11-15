@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 625 across 89 decomp files (missing reason: 0).
+Total entries: 647 across 89 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -177,6 +177,34 @@ Total entries: 625 across 89 decomp files (missing reason: 0).
 | `GetUnitEquippedWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `CanUnitUseWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `IsItemUnsealedForUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+
+## src/bmtrick.c (23)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetTrapAt` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue |
+| `GetTypedTrapAt` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue |
+| `GetObstacleHpAt` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue |
+| `ClearTraps` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue |
+| `AddTrap` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap added in the Prologue |
+| `AddDamagingTrap` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
+| `AddFireTile` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
+| `AddGasTrap` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
+| `AddArrowTrap` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
+| `AddLightRune` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
+| `RemoveTrap` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
+| `RemoveLightRune` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap in the Prologue |
+| `CountDownTraps` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures |
+| `GenerateFireTileTrapTargets` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists |
+| `GenerateArrowTrapTargets` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists |
+| `GenerateGasTrapTargets` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists |
+| `ShouldSkipGasTrapDisplay` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists |
+| `GenerateTrapDamageTargets` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures; the empty target list is verified |
+| `sub_802EA1C` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | target list is empty in the Prologue captures |
+| `GenerateDisplayedTrapDamageTargets` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures; the empty target list is verified |
+| `ResetCountedDownTraps` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures |
+| `DecayTraps` | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | no trap exists in the Prologue captures |
+| `UnitHideIfUnderRoof` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 
 ## src/eventscr_gmap.c (23)
 
@@ -982,12 +1010,6 @@ Total entries: 625 across 89 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `GetUnitSupportBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | the traced units have no supporter on the map, so only the empty sum is compared |
-
-## src/bmtrick.c (1)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `UnitHideIfUnderRoof` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 
 ## src/chapterdata.c (1)
 

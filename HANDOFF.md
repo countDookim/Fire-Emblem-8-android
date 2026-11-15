@@ -18,7 +18,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 
 - EP-17 (map animation flow A: mapanim.c), owner PC Gemini Flash agent `ep17`, claimed 2026-11-15 21:05Z.
-- EP-10a (traps at phase end: bmtrick.c), owner PC Gemini Flash agent `ep10a`, claimed 2026-11-15 21:08Z.
+- EP-10b (trap damage display and unit counts: bmusailment.c, uiselecttarget.c, bmunit.c), owner PC Gemini Flash agent `ep10b`, claimed 2026-11-15 22:20Z.
 
 
 ## Current state

@@ -6,6 +6,7 @@ import fe8.game.scene.TalkBubble
 import fe8.game.scene.TalkBubbleHost
 import fe8.game.scene.TalkFace
 import fe8.game.scene.TalkHost
+import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
@@ -46,10 +47,15 @@ public class EventTextTalkHost(
     private var textSpeedField: Int = 0
 
     /**
-     * Per-frame function of [waitForFacesScript] (`_WhileFace6CExists`, src/eventscr.c:1215):
-     * ends the wait once no portrait face proc is left.
+     * Ends the wait once no portrait face proc is left.
+     *
+     * Ported from src/eventscr.c: _WhileFace6CExists
      */
-    private val whileFaceFn = ProcFunc { p -> if (!faceExists()) procs.breakProc(p) }
+    public fun whileFace6CExists(proc: Proc) {
+        if (!faceExists()) procs.breakProc(proc)
+    }
+
+    private val whileFaceFn = ProcFunc { whileFace6CExists(it) }
 
     /**
      * `gUnknown_08591DE8` (src/eventscr.c:1222, "face witness" in include/event.h): the blocking
@@ -157,9 +163,6 @@ public class EventTextTalkHost(
      * Whether a portrait face proc (`gProcScr_E_FACE`) exists.
      *
      * Ported from src/scene.c: FaceExists
-     *
-     * Only the true result is seen (the wait for the faces starts at the text end); the false
-     * result needs the face fade-out ending (EP-11c), so it is in no compared value.
      */
     override fun faceExists(): Boolean = procs.find(face.faceScript) != null
 

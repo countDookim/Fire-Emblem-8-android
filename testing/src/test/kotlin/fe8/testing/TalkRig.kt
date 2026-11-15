@@ -1,6 +1,8 @@
 package fe8.testing
 
+import fe8.game.RomView
 import fe8.game.scene.FaceState
+import fe8.game.scene.PortraitData
 import fe8.game.scene.Talk
 import fe8.game.scene.TalkBubble
 import fe8.game.scene.TalkBubbleHost
@@ -22,6 +24,8 @@ import gbafe.proc.ProcScripts.mark
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.sleep
 import gbafe.proc.ProcScripts.yield
+import gbafe.render.SpriteLayers
+import gbafe.render.SpriteObject
 import gbafe.text.Text
 import gbafe.text.TextHost
 import gbafe.text.TextSystem
@@ -66,6 +70,14 @@ internal class TalkRig(
     private fun u16(b: ByteArray, o: Int) = trace.u16(b, o)
     private fun u32(b: ByteArray, o: Int) = trace.u32(b, o)
 
+    private val romView by lazy { RomView.ofRom(rom) }
+
+    /**
+     * The face, mouth and eye objects the face procs submit (`PutSpriteExt`), for the OAM
+     * comparison of [compareFaceOam]; the test clears it ([clearFaceDraws]) once per frame.
+     */
+    val faceLayers = SpriteLayers()
+
     val tm = ShortArray(0x400)
     val tm1 = ShortArray(0x400)
     val ts = TextSystem(rom, this, Fe8Text.CONFIG)
@@ -100,6 +112,7 @@ internal class TalkRig(
         0x08591530 to bubble.bubbleOpenScript,
         0x08591540 to bubble.openScript,
         0x08591154 to face.faceScript,
+        0x08591234 to face.faceEndScript,
         0x0859A0D4 to lockScript,
     )
 
@@ -113,6 +126,7 @@ internal class TalkRig(
         talk.initTalk(0x80, 2, false)
         talk.state.decode(iwram(frame), STATE)
         displaySpeed = talk.state.printDelay // GetTextDisplaySpeed() fed StartTalkExt
+        lcg.set(u32(iwram(frame), 8))
         engine.start(talk.talkScript, 3)
     }
 
@@ -135,6 +149,7 @@ internal class TalkRig(
         for (i in tm1.indices) tm1[i] = u16(ew, BG1_TM + 2 * i).toShort()
         talk.state.decode(iwram(frame), STATE)
         displaySpeed = speed
+        lcg.set(u32(iwram(frame), 8))
     }
 
     override fun language() = 1
@@ -315,17 +330,67 @@ internal class TalkRig(
 
     override fun talkLoadFace(proc: Proc) = face.talkLoadFace(proc)
 
+    override fun faceSprite(address: Int): SpriteObject = romView.objN(address)
+
+    override fun putFaceSprite(
+        layer: Int,
+        xOam1: Int,
+        yOam0: Int,
+        sprite: SpriteObject,
+        oam2: Int,
+    ) {
+        // A test that never clears per frame must not overflow the 0x80 entry pool.
+        if (faceLayers.allocIt >= faceLayers.pool.size) faceLayers.clear()
+        faceLayers.putExt(layer, xOam1, yOam0, sprite, oam2)
+    }
+
+    /** Starts a frame's face submissions afresh (`ClearSprites`). */
+    fun clearFaceDraws() = faceLayers.clear()
+
+    /**
+     * Checks that every object the face procs submitted this frame stands as one consecutive run
+     * of OAM entries (attributes 0..2) in [oam], the 128 entries of the reference's OAM dump;
+     * null when they all do.
+     */
+    fun compareFaceOam(oam: ByteArray): String? {
+        var bad: String? = null
+        var seen = 0
+        faceLayers.pushLayerObjects(0) { entry ->
+            val buffer = gbafe.render.OamBuffer()
+            buffer.putHi(entry.oam1, entry.oam0, entry.obj!!.data, entry.oam2)
+            val count = buffer.hiPut / 4
+            val found = (0..128 - count).any { start ->
+                (0 until count).all { i ->
+                    (0..2).all { attr ->
+                        u16(oam, (start + i) * 8 + attr * 2) ==
+                            (buffer.buffer[i * 4 + attr].toInt() and 0xFFFF)
+                    }
+                }
+            }
+            seen++
+            if (!found && bad == null) {
+                bad = "face object ${entry.obj!!.id.toString(16)} at x=${entry.oam1} " +
+                    "y=${entry.oam0} oam2=${entry.oam2} not in OAM; wanted " +
+                    (0 until count).joinToString { i ->
+                        (0..2).joinToString("/") { a ->
+                            (buffer.buffer[i * 4 + a].toInt() and 0xFFFF).toString(16)
+                        }
+                    }
+            }
+        }
+        return bad ?: if (seen == 0) "no face object drawn" else null
+    }
+
     override fun portraitImage(fid: Int): Int = portraitWord(fid, 0)
 
     override fun portraitPalette(fid: Int): Int = portraitWord(fid, 8)
 
     private fun portraitWord(fid: Int, field: Int): Int {
-        val at = PORTRAIT_TABLE - ROM_BASE + (fid - 1) * 0x1C + field
-        return u32(rom, at)
+        return u32(rom, PortraitData.of(fid) - ROM_BASE + field)
     }
 
     override fun portraitByte(fid: Int, offset: Int): Int =
-        rom[PORTRAIT_TABLE - ROM_BASE + (fid - 1) * 0x1C + offset].toInt() and 0xFF
+        rom[PortraitData.of(fid) - ROM_BASE + offset].toInt() and 0xFF
 
     val lcg = gbafe.core.rng.LcgRng()
 
@@ -347,7 +412,13 @@ internal class TalkRig(
 
     override fun changeFacePortrait(face: Proc, faceId: Int) = error("no face swap in trace")
 
-    override fun startFaceFadeOut(face: Int) {}
+    /**
+     * The `EndFaceIn8Frames` half of `StartFaceFadeOut`; the palette fade to black of its other
+     * half (`StartPalFadeToBlack`, EP-11f) is not modelled here.
+     */
+    override fun startFaceFadeOut(face: Int) {
+        this.face.endFaceIn8Frames(this.face.faceOf(face) ?: return)
+    }
 
     override fun startTemporaryLock(proc: Proc, frames: Int) {
         val p = engine.startBlocking(lockScript, proc)!!

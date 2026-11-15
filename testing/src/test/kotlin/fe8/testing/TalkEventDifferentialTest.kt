@@ -45,9 +45,9 @@ import org.junit.jupiter.api.Test
  * event slots) and the key and clock inputs are compared. At the text end the face wait proc
  * exists (`FaceExists`).
  *
- * Not modelled (EP-11c..d, EP-11h): the face fade-in and fade-out procs (a stand-in), the music
- * and palette procs of the event, so the wait for the faces does not end here (it ends at 3718 in
- * the capture).
+ * Not modelled (EP-11d, EP-11f, EP-11h): the palette fade procs of face fade-in and fade-out
+ * (EP-11f), and the music procs of the event; the delayed face end (`EndFaceIn8Frames`) and the
+ * face wait (`_WhileFace6CExists`) are verified up to the wait finish.
  */
 class TalkEventDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -59,17 +59,21 @@ class TalkEventDifferentialTest {
     @Test
     @VerifiesPort(
         "StartTalkExt", "GetTalkFaceHPos", "GetTalkChoiceResult", "IsTalkActive", "FaceExists",
+        "FindFreeFaceSlot", "GetPortraitData", "GetFaceDisplayBits", "EndFaceIn8Frames",
+        "EndFacePtr", "_WhileFace6CExists",
     )
     fun `the boss turn event talk matches the captured procs and talk state per step`() {
-        run(Window("ram_trace_prologue_clear", 2964, 2966, 3706, "f02960.io.bin"))
+        run(Window("ram_trace_prologue_clear", 2964, 2966, 3706, "f02960.io.bin", 3718))
     }
 
     @Test
     @VerifiesPort(
         "StartTalkExt", "GetTalkFaceHPos", "GetTalkChoiceResult", "IsTalkActive", "FaceExists",
+        "FindFreeFaceSlot", "GetPortraitData", "GetFaceDisplayBits", "EndFaceIn8Frames",
+        "EndFacePtr", "_WhileFace6CExists",
     )
     fun `the soldiers dialogue in the enemy phase matches the captured procs and talk state`() {
-        run(Window("ram_trace_prologue_enemy_phase", 2463, 2465, 2706, "f02460.io.bin"))
+        run(Window("ram_trace_prologue_enemy_phase", 2463, 2465, 2706, "f02460.io.bin", 2718))
     }
 
     @Test
@@ -91,6 +95,8 @@ class TalkEventDifferentialTest {
         val talk: Int,
         val end: Int,
         val ioDump: String,
+        /** The last step compared: the wait for the faces has ended, the event goes on. */
+        val finish: Int,
     )
 
     private fun run(w: Window) {
@@ -151,7 +157,8 @@ class TalkEventDifferentialTest {
         val inputs = run.inputs
         val seedClock = trace.clock(w.seed)
         var compared = 0
-        for (f in w.seed + 1..w.end) {
+        var oamCompared = 0
+        for (f in w.seed + 1..w.finish) {
             val keys = inputs[f - 1] and inputs[f - 2].inv() and 0x3FF
             val dumped = hasDump(runDir, f)
             if (dumped) {
@@ -161,6 +168,7 @@ class TalkEventDifferentialTest {
             rig.keys = keys
             rig.clock = seedClock + (f - w.seed)
             waitCalls = 0
+            rig.clearFaceDraws()
             rig.engine.run(rig.engine.root(3))
             rig.engine.run(rig.engine.root(5))
             assertEquals(if (f in w.talk until w.end) 1 else 0, waitCalls, "0x1D calls at f$f")
@@ -171,9 +179,27 @@ class TalkEventDifferentialTest {
             assertEquals(wantEngine.u16(0x3C), proc.evStateBits, "evStateBits at f$f")
             assertEquals(wantEngine.u16(0x3E), proc.evStallTimer, "evStallTimer at f$f")
             assertEquals(wantEngine.u8(0x41), proc.execType, "execType at f$f")
-            if (f < w.end) assertEquals(null, rig.compareProcs(want), "talk procs at f$f")
+            assertEquals(null, rig.compareProcs(want), "talk procs at f$f")
+            if (f >= w.talk) {
+                // The wait for the faces (`_WhileFace6CExists`) starts at the text end and ends
+                // when the last face is gone.
+                assertEquals(
+                    want.findAll(FACE_WAIT).size, rig.engine.count(host.waitForFacesScript),
+                    "face wait procs at f$f",
+                )
+                assertEquals(
+                    want.findAll(FACE_SCRIPT).size, rig.engine.count(rig.face.faceScript),
+                    "face procs at f$f",
+                )
+                if (hasOam(runDir, f) && want.findAll(FACE_SCRIPT).isNotEmpty()) {
+                    val oam = File(runDir, "f%05d.oam.bin".format(f)).readBytes()
+                    assertEquals(null, rig.compareFaceOam(oam), "face OAM at f$f")
+                    oamCompared++
+                }
+            }
             if (dumped) {
                 val iw = trace.iwram(f)
+                rig.lcg.set(trace.u32(iw, 8))
                 for (i in 1 until 14) {
                     assertEquals(trace.u32(iw, SLOTS + 4 * i), state.slots[i], "slot $i at f$f")
                 }
@@ -182,16 +208,17 @@ class TalkEventDifferentialTest {
             }
         }
         assertTrue(compared > 20, "dumped steps compared: $compared")
-        // The text end (`sub_800E640`): `FaceExists` is true, so the wait for the faces starts.
-        assertEquals(
-            want(at(w.end)).size, rig.engine.count(host.waitForFacesScript),
-            "face wait procs at f${w.end}",
-        )
-        assertEquals(1, rig.engine.count(host.waitForFacesScript), "the wait for the faces")
+        assertTrue(oamCompared > 3, "OAM dumps compared: $oamCompared")
+        // The wait ended as in the capture: no face, no face end proc, no wait proc, and the
+        // engine proc is past the wait.
+        assertEquals(0, rig.engine.count(host.waitForFacesScript), "the wait for the faces")
+        assertEquals(0, rig.engine.count(rig.face.faceEndScript), "the face end procs")
+        assertEquals(false, host.faceExists(), "FaceExists at f${w.finish}")
         assertEquals(0, rig.engine.procs.count { it.script === rig.talk.talkScript })
     }
 
-    private fun want(dump: ProcArrayDump): List<ProcArrayDump.Proc> = dump.findAll(FACE_WAIT)
+    private fun hasOam(runDir: File, f: Int): Boolean =
+        File(runDir, "f%05d.oam.bin".format(f)).isFile
 
     private fun hasDump(runDir: File, f: Int): Boolean =
         listOf("r", "f").any { File(runDir, "%s%05d.ewram.bin".format(it, f)).isFile } &&
@@ -201,6 +228,7 @@ class TalkEventDifferentialTest {
         const val ROM_BASE = 0x08000000
         const val STD_EVENT_ENGINE = 0x08591AC0
         const val FACE_WAIT = 0x08591DE8
+        const val FACE_SCRIPT = 0x08591154
         const val PLAY_ST = 0x2BCF0
         const val SLOTS = 0x438 + 0x80
     }

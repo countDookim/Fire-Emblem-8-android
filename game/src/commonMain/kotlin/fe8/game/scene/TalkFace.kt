@@ -151,6 +151,12 @@ public class FaceBlinkState {
     public var unk38: Int = 0
 }
 
+/** State of a `gProcScr_FaceEndIn8Frames` proc (`struct DeleteFaceProc`). */
+public class FaceEndState {
+    /** The face to end (`target`, 0x54). */
+    public var target: Proc? = null
+}
+
 /** State of a `gProcScr_TalkFaceMove` proc: one face sliding to another slot's column. */
 public class TalkFaceMoveState {
     /** Elapsed movement frame counter (`unk58`). */
@@ -289,6 +295,55 @@ public class TalkFace(
         "gProcScr_TalkFaceMove",
         listOf(sleep(1), call(moveInitFn), repeat(moveIdleFn), end()),
     ) { TalkFaceMoveState() }
+
+    private val faceEndFn = ProcFunc { endFacePtr(it) }
+
+    /** `gProcScr_FaceEndIn8Frames`: waits 8 frames, then ends its target face ([endFacePtr]). */
+    public val faceEndScript: ProcScript = ProcScript(
+        "gProcScr_FaceEndIn8Frames",
+        listOf(sleep(8), call(faceEndFn), end()),
+    ) { FaceEndState() }
+
+    /**
+     * The first free face slot, or -1 when all four are taken.
+     *
+     * Ported from src/face.c: FindFreeFaceSlot
+     */
+    public fun findFreeFaceSlot(): Int {
+        for (i in 0 until FACE_SLOTS) {
+            if (gFaces[i] == null) return i
+        }
+        return -1
+    }
+
+    /**
+     * The `FACE_DISP_*` flags of [proc].
+     *
+     * Ported from src/face.c: GetFaceDisplayBits
+     */
+    public fun getFaceDisplayBits(proc: Proc): Int = (proc.state as FaceState).displayBits
+
+    /**
+     * Starts the proc that ends [target] 8 frames later, on proc tree 3 (the palette fade of
+     * `StartFaceFadeOut` runs meanwhile).
+     *
+     * Ported from src/face.c: EndFaceIn8Frames
+     */
+    public fun endFaceIn8Frames(target: Proc) {
+        (engine.start(faceEndScript, 3).state as FaceEndState).target = target
+    }
+
+    /**
+     * [endFace] of the face [proc] was started for. A target that is no longer in its slot (ended
+     * and the slot freed or reused meanwhile) is left alone; the original would end freed memory.
+     *
+     * Ported from src/face.c: EndFacePtr
+     */
+    public fun endFacePtr(proc: Proc) {
+        val target = (proc.state as FaceEndState).target ?: return
+        if (gFaces[(target.state as FaceState).faceSlot] !== target) return
+        endFace(target)
+    }
 
     /** The face proc of a [TalkState.faces] handle ([FACE_HANDLE] + slot), or null for 0. */
     public fun faceOf(handle: Int): Proc? =
@@ -671,7 +726,7 @@ public class TalkFace(
      * Transcribed from src/face.c: StartFaceAuto (not verified: no @VerifiesPort test names it)
      */
     public fun startFaceAuto(fid: Int, x: Int, y: Int, disp: Int): Proc? {
-        val slot = gFaces.indexOfFirst { it == null }
+        val slot = findFreeFaceSlot()
         return if (slot < 0) null else startFace(slot, fid, x, y, disp)
     }
 
@@ -880,7 +935,7 @@ public class TalkFace(
         if (talkFace == 0xFF) return
         val face = faceOf(talk.state.faces[talkFace]) ?: return
         val faceState = face.state as FaceState
-        val disp = faceState.displayBits and (SMILE or TALK_1 or TALK_2).inv()
+        val disp = getFaceDisplayBits(face) and (SMILE or TALK_1 or TALK_2).inv()
         val smile = if (talk.state.faceSmileEnabled != 0) SMILE else 0
         setFaceDisplayBits(face, disp or faceDisp or smile)
     }

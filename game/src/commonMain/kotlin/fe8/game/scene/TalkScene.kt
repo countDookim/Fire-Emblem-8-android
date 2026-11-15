@@ -12,7 +12,6 @@ import gbafe.proc.ProcScripts.call
 import gbafe.proc.ProcScripts.end
 import gbafe.proc.ProcScripts.mark
 import gbafe.proc.ProcScripts.repeat
-import gbafe.proc.ProcScripts.sleep
 import gbafe.proc.ProcScripts.yield
 import gbafe.render.BgHardware
 import gbafe.render.PaletteFade
@@ -103,21 +102,11 @@ public class TalkScene(
         "ProcScr_TemporaryLock",
         listOf(yield(), repeat(ProcFunc { lockOnLoop(it) }), end()),
     ) { LockState() }
-    private val faceEndScript = ProcScript(
-        "gProcScr_FaceEndIn8Frames",
-        listOf(sleep(8), call(ProcFunc { endFace(it) }), end()),
-    ) { FaceEndState() }
 
     /** State of the temporary lock proc. */
     private class LockState {
         /** Remaining frames to keep the parent proc locked. */
         var frames = 0
-    }
-
-    /** State of the delayed face end proc. */
-    private class FaceEndState {
-        /** Face slot index to terminate after the fade delay. */
-        var slot = 0
     }
 
     private val arrowLut: Array<SpriteObject> by lazy {
@@ -363,15 +352,7 @@ public class TalkScene(
         val slot = face - TalkFace.FACE_HANDLE
         val target = this.face.gFaces[slot] ?: return
         paletteFade.start(BLACK_PALETTE, 0x16 + slot, 12, target)
-        (procs.start(faceEndScript, TREE_3).state as FaceEndState).slot = slot
-    }
-
-    /** `EndFacePtr`: ends the face of the slot recorded in [FaceEndState] and its child procs. */
-    private fun endFace(proc: Proc) {
-        val slot = (proc.state as FaceEndState).slot
-        val faceProc = face.gFaces[slot] ?: return
-        face.gFaces[slot] = null
-        procs.end(faceProc)
+        this.face.endFaceIn8Frames(target)
     }
 
     /** `StartTemporaryLock(proc, frames)` (`src/bmlib.c`): blocks [proc] for [frames] frames. */
@@ -566,12 +547,12 @@ public class TalkScene(
     }
 
 
-    override fun portraitImage(fid: Int): Int = rom.u32(PORTRAIT_TABLE + (fid - 1) * 0x1C)
+    override fun portraitImage(fid: Int): Int = rom.u32(PortraitData.of(fid))
 
-    override fun portraitPalette(fid: Int): Int = rom.u32(PORTRAIT_TABLE + (fid - 1) * 0x1C + 8)
+    override fun portraitPalette(fid: Int): Int = rom.u32(PortraitData.of(fid) + 8)
 
     override fun portraitByte(fid: Int, offset: Int): Int =
-        rom.u8(PORTRAIT_TABLE + (fid - 1) * 0x1C + offset)
+        rom.u8(PortraitData.of(fid) + offset)
 
     // `Register2dChrMove` queues a copy that the GBA does at VBlank. The portrait mouth frames
     // live in ROM; the source and destination of each queued row are kept until `flushTileMoves`,
@@ -582,7 +563,7 @@ public class TalkScene(
 
     override fun copyMouthTiles(fid: Int, srcTile: Int, dstTile: Int) {
         check(mouthMoveCount + 2 <= mouthMoveSources.size) { "mouth tile transfer queue overflow" }
-        val src = rom.u32(PORTRAIT_TABLE + (fid - 1) * 0x1C + 0x0C) + srcTile * 32
+        val src = rom.u32(PortraitData.of(fid) + 0x0C) + srcTile * 32
         for (row in 0..1) {
             mouthMoveSources[mouthMoveCount] = src + row * 128
             mouthMoveDestinations[mouthMoveCount] = 0x10000 + (dstTile + row * 32) * 32
@@ -658,11 +639,6 @@ public class TalkScene(
 
         /** `PROC_TREE_3`: the proc tree the talk's helper procs run on. */
         private const val TREE_3 = 3
-
-        /**
-         * `portrait_data`: the `struct FaceData` table (0x1C bytes each, indexed by face id - 1).
-         */
-        private const val PORTRAIT_TABLE = 0x088ACBE0
 
         /** `gPressKeyArrowSpriteLut`: 16 pointers to the press-key arrow compositions. */
         private const val ARROW_LUT = 0x08591430

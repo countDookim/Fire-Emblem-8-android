@@ -14,7 +14,6 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 ## In progress
 
 - EP-35: Claude owner PC, after-move events and tutorial checks (eventinfo.c), until ~04:30Z (2026-11-16).
-- EP-11f: Claude owner PC, event end graphics and fades (uiutils.c, bm.c, bmlib.c), until ~05:30Z (2026-11-16).
 
 
 - EP-20 (map info box A: mapanim_infobox.c): Claude owner PC taking over Gemini's uncommitted `ep20` worktree (owner request), until ~06:00Z (2026-11-16).

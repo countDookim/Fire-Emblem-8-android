@@ -748,9 +748,9 @@ public class MapTraps(
         /** Terrain ID: Damaged wall. */
         public const val TERRAIN_WALL_DAMAGED: Int = 0x1B
 
-        /** Event flag: Game over (0x65). */
+        /** Event flag `EVFLAG_GAMEOVER` (0x65). */
         public const val EVFLAG_GAMEOVER: Int = 0x65
-        /** Event flag: Defeat all enemies (6). */
+        /** Event flag `EVFLAG_DEFEAT_ALL` (6). */
         public const val EVFLAG_DEFEAT_ALL: Int = 6
 
         /** Faction ID: Red / enemy faction (0x80). */

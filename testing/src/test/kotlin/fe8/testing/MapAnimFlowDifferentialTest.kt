@@ -305,7 +305,7 @@ class MapAnimFlowDifferentialTest {
         battle.actor.weaponBefore = 0xAA // ITEM_DIVINESTONE
         api.state.bu[0] = battle.actor
 
-        // Actor 1: Red enemy with Iron Sword
+        // Actor 1: red enemy holding ITEM_SWORD_IRON
         val enemyBytes = ByteArray(0x48)
         val enemyCharPtr = characterDataAt(0x41)
         val enemyClassPtr = classDataAt(1)

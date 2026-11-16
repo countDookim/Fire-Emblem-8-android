@@ -8,10 +8,50 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1276,
+    "verified": 1305,
     "implemented_unverified": 79
   },
   "functions": {
+    "APProc_Create": {
+      "decomp_file": "src/ap.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/ApProcs.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpGainLabelsDifferentialTest#label proc animation procs handles tiles and palettes follow the original"
+      ]
+    },
+    "APProc_DeleteAll": {
+      "decomp_file": "src/ap.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/ApProcs.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpGainLabelsDifferentialTest#label proc animation procs handles tiles and palettes follow the original"
+      ]
+    },
+    "APProc_OnEnd": {
+      "decomp_file": "src/ap.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/ApProcs.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpGainLabelsDifferentialTest#label proc animation procs handles tiles and palettes follow the original"
+      ]
+    },
+    "APProc_OnUpdate": {
+      "decomp_file": "src/ap.c",
+      "system": "presentation",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/ApProcs.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpGainLabelsDifferentialTest#label proc animation procs handles tiles and palettes follow the original"
+      ]
+    },
     "ActionCombat": {
       "decomp_file": "src/bmmind.c",
       "system": "battle_logic",
@@ -2222,7 +2262,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364"
+        "fe8.testing.PlayerPhaseActionDifferentialTest#wait after the unit menu matches the game f1355 to f1364",
+        "fe8.testing.UnitTableDifferentialTest#CountRedUnits and CountAvailableBlueUnits match capture dumps f2014, f2403, f2767, f3832, f4894"
       ]
     },
     "CountProcs": {
@@ -2233,6 +2274,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EarlyStartUiBootDifferentialTest#intro proc from its start matches the boot trace"
+      ]
+    },
+    "CountRedUnits": {
+      "decomp_file": "src/bmunit.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.UnitTableDifferentialTest#CountRedUnits and CountAvailableBlueUnits match capture dumps f2014, f2403, f2767, f3832, f4894"
       ]
     },
     "CpDecide_Main": {
@@ -2789,6 +2840,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapExitTest#the world map exit matches the capture"
+      ]
+    },
+    "EndManimLevelUpStatGainLabels": {
+      "decomp_file": "src/mapanim_lvupfx.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpGainLabels.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpGainLabelsDifferentialTest#label proc animation procs handles tiles and palettes follow the original"
       ]
     },
     "EndMenu": {
@@ -5056,7 +5117,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "implemented",
       "tests": []
     },
@@ -5120,6 +5181,16 @@
       "tests": [
         "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
         "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
+      ]
+    },
+    "GetTarget": {
+      "decomp_file": "src/uiselecttarget.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/SelectTargets.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.AttackTargetListDifferentialTest#weapon target list matches the game"
       ]
     },
     "GetTextDrawDest": {
@@ -6255,6 +6326,16 @@
         "fe8.testing.SramBootReferenceTest#boot sequence on blank sram reproduces the settled sram_boot dumps"
       ]
     },
+    "InitManimLevelUpWindow": {
+      "decomp_file": "src/mapanim_lvup.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpAnnouncementDifferentialTest#level-up follows the original every step"
+      ]
+    },
     "InitOam": {
       "decomp_file": "src/hardware.c",
       "system": "core",
@@ -6644,6 +6725,16 @@
         "fe8.testing.UiFrameIconTest#loadIconPalette matches reference OBJ palette 4 in item popup"
       ]
     },
+    "LoadIconPalettes": {
+      "decomp_file": "src/icon.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/ItemIcon.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventEndUiRestoreDifferentialTest#the icon palettes of f3721 are the item icon palettes in BG palettes 4 and 5"
+      ]
+    },
     "LoadObjUIGfx": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -6872,6 +6963,86 @@
         "fe8.testing.MapLevelUpLabelColorDifferentialTest#color proc and palette follow the original every step"
       ]
     },
+    "ManimLevelUpStatGainLabel_Finish": {
+      "decomp_file": "src/mapanim_lvupfx.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpGainLabels.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpGainLabelsDifferentialTest#label proc animation procs handles tiles and palettes follow the original"
+      ]
+    },
+    "ManimLevelUp_Clear": {
+      "decomp_file": "src/mapanim_lvup.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpAnnouncementDifferentialTest#level-up follows the original every step"
+      ]
+    },
+    "ManimLevelUp_EndLevelUpText": {
+      "decomp_file": "src/mapanim_lvup.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpAnnouncementDifferentialTest#level-up follows the original every step"
+      ]
+    },
+    "ManimLevelUp_InitMainScreen": {
+      "decomp_file": "src/mapanim_lvup.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpAnnouncementDifferentialTest#level-up follows the original every step"
+      ]
+    },
+    "ManimLevelUp_PutStatGainLabels": {
+      "decomp_file": "src/mapanim_lvup.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpAnnouncementDifferentialTest#level-up follows the original every step"
+      ]
+    },
+    "ManimLevelUp_ScrollIn": {
+      "decomp_file": "src/mapanim_lvup.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpAnnouncementDifferentialTest#level-up follows the original every step"
+      ]
+    },
+    "ManimLevelUp_ScrollOut": {
+      "decomp_file": "src/mapanim_lvup.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpAnnouncementDifferentialTest#level-up follows the original every step"
+      ]
+    },
+    "ManimLevelUp_StartLevelUpText": {
+      "decomp_file": "src/mapanim_lvup.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpAnnouncementDifferentialTest#level-up follows the original every step"
+      ]
+    },
     "MapAddInBoundedRange": {
       "decomp_file": "src/bmidoten.c",
       "system": "battle_map",
@@ -6890,6 +7061,56 @@
       "status": "verified",
       "tests": [
         "fe8.testing.EntityBmMapsDifferentialTest#fog maps match the game on chapter 6"
+      ]
+    },
+    "MapAnim_AdvanceBattleRound": {
+      "decomp_file": "src/mapanim.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle reproduces script positions and gManimSt f4275 to f4484"
+      ]
+    },
+    "MapAnim_CallBattleQuoteEvents": {
+      "decomp_file": "src/mapanim.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle reproduces script positions and gManimSt f4275 to f4484"
+      ]
+    },
+    "MapAnim_InitInfoBox": {
+      "decomp_file": "src/mapanim.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle reproduces script positions and gManimSt f4275 to f4484"
+      ]
+    },
+    "MapAnim_MoveCameraOntoSubject": {
+      "decomp_file": "src/mapanim.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle reproduces script positions and gManimSt f4275 to f4484"
+      ]
+    },
+    "MapAnim_PrepareNextBattleRound": {
+      "decomp_file": "src/mapanim.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle reproduces script positions and gManimSt f4275 to f4484"
       ]
     },
     "MapEventEngineExists_": {
@@ -8292,6 +8513,16 @@
       "tests": [
         "fe8.testing.PostSaveMenuDifferentialTest#last game slot restarts into the battle map like ch6_start",
         "fe8.testing.PostSaveMenuDifferentialTest#suspend save resumes the game like ch2_scroll"
+      ]
+    },
+    "PostTrapExecFlag": {
+      "decomp_file": "src/bmtrick.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TrapsDifferentialTest#PostTrapExecFlag checks game over and defeat all against capture state"
       ]
     },
     "PrepareBattleGraphicsMaybe": {
@@ -10164,6 +10395,36 @@
         "fe8.testing.CutsceneStartSkipDifferentialTest#Start during the castle cutscene fades to black and blocks the talk procs"
       ]
     },
+    "StartManimLevelUp": {
+      "decomp_file": "src/mapanim_lvup.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpAnnouncementDifferentialTest#level-up follows the original every step"
+      ]
+    },
+    "StartManimLevelUpStatGainLabelAnim": {
+      "decomp_file": "src/mapanim_lvupfx.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpGainLabels.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpGainLabelsDifferentialTest#label proc animation procs handles tiles and palettes follow the original"
+      ]
+    },
+    "StartManimLevelUpStatGainLabels": {
+      "decomp_file": "src/mapanim_lvupfx.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpGainLabels.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpGainLabelsDifferentialTest#label proc animation procs handles tiles and palettes follow the original"
+      ]
+    },
     "StartMapSongBgm": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -11045,6 +11306,26 @@
       "status": "verified",
       "tests": [
         "fe8.testing.M4aStopTest#stopping BGM1 matches the next dump"
+      ]
+    },
+    "TrapDamageDisplay_Check": {
+      "decomp_file": "src/bmusailment.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TrapsDifferentialTest#TrapDamageDisplay spawns, yields on sleep 0, and ends when target count is 0 at f2766 and f3875"
+      ]
+    },
+    "TrapDamageDisplay_Init": {
+      "decomp_file": "src/bmusailment.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TrapsDifferentialTest#TrapDamageDisplay spawns, yields on sleep 0, and ends when target count is 0 at f2766 and f3875"
       ]
     },
     "TrkVolPitSet": {
@@ -12297,6 +12578,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WeaponSelectMenuDifferentialTest#cancelling the weapon list restarts the unit menu"
+      ]
+    },
+    "sub_802EA00": {
+      "decomp_file": "src/bmtrick.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TrapsDifferentialTest#sub_802EA00 sets faction to RED during refresh and restores it"
       ]
     },
     "sub_8055BC4": {

@@ -13,10 +13,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- MC-18d: Claude owner PC, level-up stat panel lifecycle (mapanim_lvup.c), until ~02:00Z (2026-11-16).
-- EP-1b: Claude owner PC, start-of-phase display targets (bmtarget.c, bmmap.c), until ~02:00Z (2026-11-16).
 - EP-11h: Claude owner PC, per-frame polls and decompression (event.c, bmio.c, bmlib.c), until ~03:00Z (2026-11-16).
-- EP-11e: Claude owner PC, event end UI restore (uimenu.c, eventscr_utils.c, icon.c), until ~03:30Z (2026-11-16).
 - EP-35: Claude owner PC, after-move events and tutorial checks (eventinfo.c), until ~04:30Z (2026-11-16).
 
 
@@ -25,6 +22,14 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 
 ## Current state
+
+- 2026-11-15 21:15Z – 11-16 01:00Z owner PC Claude (finished GPT's MC-18b/e, then two Sonnet agents): **map level-up display
+  ported (MC-18a..e)**: announcement, panel frame/stats, gain labels with AP procs, palette cycle and the whole
+  `ProcScr_ManimLevelUp` replay f6413..6746 match the capture; not wired yet (needs EP-26, MC-18f, MC-18 WIRE).
+  SoundWrapper music-volume proc now ends one frame later (Proc_Break). EP-1b and most of EP-11e Transcribed only
+  (captures lack heal/poison/egg and menus; CAP rows added). Fixed master CI (game text in EP-10a/EP-17 comments).
+  MANUAL_TEST compacted to untested items + ignore list with a link to the latest release. Full suite 1012 green.
+  No new device behaviour.
 
 - 2026-11-15 GPT/Terra: **MC-18i done**, original level-up display inventory (3 tests); MC-18a..f
   now have exact proc/display windows and dump-density limits. **EP-11g partial:** current-song query

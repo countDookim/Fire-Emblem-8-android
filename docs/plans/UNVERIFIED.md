@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 673 across 96 decomp files (missing reason: 0).
+Total entries: 676 across 96 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -766,6 +766,15 @@ Total entries: 673 across 96 decomp files (missing reason: 0).
 | `ResetPathArrow` | `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | the capture's cursor never leaves the range or crosses the path, so no re-route runs |
 | `PathContainsNoCycle` | `game/src/commonMain/kotlin/fe8/game/bm/PathArrow.kt` | only the re-route branch calls it |
 
+## src/bmreliance.c (4)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetUnitSupportBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | the traced units have no supporter on the map, so only the empty sum is compared |
+| `GetUnitSupportLevel` | `game/src/commonMain/kotlin/fe8/game/bm/SupportReliance.kt` | every traced support exp is 80 or less, so only level 0 is compared |
+| `GetUnitTotalSupportLevel` | `game/src/commonMain/kotlin/fe8/game/bm/SupportReliance.kt` | every traced support level is 0, so only the empty sum is compared |
+| `GetUnitSupportBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/SupportReliance.kt` | the traced units have no supporter on the map, so only the empty sum is compared |
+
 ## src/bmsave-lib.c (4)
 
 | Function | Kotlin file | Reason |
@@ -1059,12 +1068,6 @@ Total entries: 673 across 96 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `DropRescueOnDeath` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | no capture has a dying rescuer and the stand-in body is empty, so no mutation changes captured data |
-
-## src/bmreliance.c (1)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `GetUnitSupportBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | the traced units have no supporter on the map, so only the empty sum is compared |
 
 ## src/chapterdata.c (1)
 

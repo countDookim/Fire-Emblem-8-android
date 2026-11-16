@@ -39,6 +39,7 @@ import fe8.game.bm.MuSpriteAnim
 import fe8.game.bm.MapCursor
 import fe8.game.bm.MapMusic
 import fe8.game.bm.MapTraps
+import fe8.game.bm.SupportReliance
 import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.PLAY_FLAG_HARD
 import fe8.game.bm.PhaseIntro
@@ -812,6 +813,10 @@ public class Fe8Boot(
     public var mapTraps: MapTraps? = null
         private set
 
+    /** Support system helper of the battle map, set by [wirePhases]. */
+    public var supportReliance: SupportReliance? = null
+        private set
+
     /**
      * The unit sprite sheet state (`gUnitSpriteSlots`, index counters), set by
      * [wireUnitSprites].
@@ -1256,6 +1261,8 @@ public class Fe8Boot(
         main.hooks.clearActiveFactionGrayedStates =
             { phaseStartEnd.clearActiveFactionGrayedStates() }
         main.hooks.tickActiveFactionTurn = { phaseStartEnd.tickActiveFactionTurn() }
+        main.hooks.processTurnSupportExp = { battle.supportReliance.processTurnSupportExp() }
+        supportReliance = battle.supportReliance
         main.hooks.statusDecayDisplay = phaseStartEnd.statusDecayDisplay
         main.hooks.terrainHealDisplay = phaseStartEnd.terrainHealDisplay
         main.hooks.poisonDamageDisplay = phaseStartEnd.poisonDamageDisplay

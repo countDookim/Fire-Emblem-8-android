@@ -34,6 +34,9 @@ public class BmBattle(
     private val bmSt: BmSt,
     private val terrainAt: (y: Int, x: Int) -> Int,
 ) {
+    /** Support reliance and bonus calculator. */
+    public val supportReliance: SupportReliance =
+        SupportReliance(rom, table, playSt) { bmSt.gameStateBits }
     private val items = ItemInfo(rom)
 
     /** `gBattleActor`. */
@@ -737,117 +740,8 @@ public class BmBattle(
      * supporter `i`. Unlike the C, an affinity missing from `gAffinityBonuses` adds nothing (the
      * C reads past the table).
      */
-    internal fun getUnitSupportBonuses(bytes: ByteArray, offset: Int, bonusOut: IntArray): Int {
-        bonusOut.fill(0)
-        var result = 0
-        val count = supporterCount(bytes, offset)
-        val faction = s8(bytes, offset + OFF_INDEX) and 0xC0
-        val myAffinity = rom.u8(u32(bytes, offset + OFF_CHARACTER) + 9)
-        val myChar = rom.u8(u32(bytes, offset + OFF_CHARACTER) + 4)
-
-        for (i in 0 until count) {
-            result = result shr 1
-            val other = supporterUnit(bytes, offset, i, faction)
-            if (other < 0) continue
-            val tableBytes = table.bytes
-
-            // 0x40 is `BM_FLAG_LINKARENA`: the 3-tile support range is not enforced in link
-            // arena.
-            if ((bmSt.gameStateBits and 0x40) == 0) {
-                val distance = abs(s8(bytes, offset + OFF_X) - s8(tableBytes, other + OFF_X)) +
-                    abs(s8(bytes, offset + OFF_Y) - s8(tableBytes, other + OFF_Y))
-                if (distance > SUPPORT_BONUSES_MAX_DISTANCE) continue
-            }
-
-            val unavailable = UnitTable.US_UNAVAILABLE or US_RESCUED
-            if ((StructCodec.u32(tableBytes, other + OFF_STATE) and unavailable) != 0) continue
-
-            val otherSupportLevel =
-                supportLevel(tableBytes, other, supporterNum(tableBytes, other, myChar))
-            applyAffinitySupportBonuses(
-                bonusOut, rom.u8(u32(tableBytes, other + OFF_CHARACTER) + 9), otherSupportLevel,
-            )
-
-            val mySupportLevel = supportLevel(bytes, offset, i)
-            applyAffinitySupportBonuses(bonusOut, myAffinity, mySupportLevel)
-
-            if (otherSupportLevel != 0 && mySupportLevel != 0) result += 1 shl (count - 1)
-        }
-
-        for (i in 0 until 6) bonusOut[i] = (bonusOut[i] and 0xFF) / 2
-        return result
-    }
-
-    /** `pSupportData` (`CharacterData` 0x2C) of the unit's character, 0 for none. */
-    private fun supportData(bytes: ByteArray, offset: Int): Int =
-        rom.u32(u32(bytes, offset + OFF_CHARACTER) + 0x2C)
-
-    /** `GetUnitSupporterCount`: `supportCount` (`SupportData` 0x15), 0 without support data. */
-    private fun supporterCount(bytes: ByteArray, offset: Int): Int {
-        val d = supportData(bytes, offset)
-        return if (d == 0) 0 else rom.u8(d + 0x15)
-    }
-
-    /** `GetUnitSupporterCharacter`: `characters[num]`, 0 when there is no support data. */
-    private fun supporterCharacter(bytes: ByteArray, offset: Int, num: Int): Int {
-        val d = supportData(bytes, offset)
-        return if (d == 0) 0 else rom.u8(d + num)
-    }
-
-    /**
-     * `GetUnitSupporterUnit`: the table offset of the valid unit of the same faction that is the
-     * unit's supporter [num], or -1.
-     */
-    private fun supporterUnit(bytes: ByteArray, offset: Int, num: Int, faction: Int): Int {
-        val charId = supporterCharacter(bytes, offset, num)
-        for (id in faction + 1 until faction + 0x40) {
-            if (!table.isValid(id)) continue
-            if (table.charId(id) == charId) return table.unitOffset(id)
-        }
-        return -1
-    }
-
-    /** `GetUnitSupporterNum`: the support slot of the unit that holds [charId], or -1. */
-    private fun supporterNum(bytes: ByteArray, offset: Int, charId: Int): Int {
-        val count = supporterCount(bytes, offset)
-        for (i in 0 until count) {
-            if (supporterCharacter(bytes, offset, i) == charId) return i
-        }
-        return -1
-    }
-
-    /**
-     * The support level of the unit's support slot [num] from its support points
-     * (`GetUnitSupportLevel`, bmreliance.c): 0 none (80 or less), 1 C (above 80), 2 B (above
-     * 160), 3 A (above 240). FE8 has no S rank.
-     */
-    private fun supportLevel(bytes: ByteArray, offset: Int, num: Int): Int {
-        val supportExp = u8(bytes, offset + OFF_SUPPORTS + num)
-        return when {
-            supportExp > 240 -> 3
-            supportExp > 160 -> 2
-            supportExp > 80 -> 1
-            else -> 0
-        }
-    }
-
-    /**
-     * Adds the affinity table row of [affinity] (`gAffinityBonuses`, `struct SupportBonuses`: the
-     * affinity byte, then the attack, defense, hit, avoid, crit, dodge bonus per support level)
-     * times the support [level] to [bonusOut]; nothing for an affinity without a row.
-     */
-    private fun applyAffinitySupportBonuses(bonusOut: IntArray, affinity: Int, level: Int) {
-        var row = AFFINITY_BONUSES
-        while (rom.u8(row) != 0) {
-            if (rom.u8(row) == affinity) {
-                for (i in 0 until 6) {
-                    bonusOut[i] = (bonusOut[i] + level * rom.u8(row + 1 + i)) and 0xFF
-                }
-                return
-            }
-            row += 7
-        }
-    }
+    internal fun getUnitSupportBonuses(bytes: ByteArray, offset: Int, bonusOut: IntArray): Int =
+        supportReliance.getUnitSupportBonuses(bytes, offset, bonusOut)
 
     /**
      * Transcribed from src/bmunit.c: GetUnitPower (not verified: no traced unit has a power
@@ -1348,7 +1242,6 @@ public class BmBattle(
         private const val ITYPE_ANIMA = 5
         private const val ITYPE_LIGHT = 6
         private const val ITYPE_DARK = 7
-        private const val SUPPORT_BONUSES_MAX_DISTANCE = 3
 
         // Item ids (include/constants/items.h): the magic swords, the eight legendary weapons
         // (Sieglinde .. Nidhogg, Excalibur, Ivaldi) and the monster weapon "Stone".
@@ -1367,9 +1260,6 @@ public class BmBattle(
 
         /** ROM address of `sWeaponTriangleRules` (12 four-byte rules, then a `-1` terminator). */
         private const val WEAPON_TRIANGLE_RULES = 0x0859BA90
-
-        /** ROM address of `gAffinityBonuses` (seven bytes per row, ends at affinity 0). */
-        private const val AFFINITY_BONUSES = 0x088B05F8
 
         /** ROM addresses of `ItemEffectiveness_Flier`, `_FlierAndMonsters`, `_Monsters`. */
         private const val EFFECTIVENESS_FLIER = 0x088ADF2A

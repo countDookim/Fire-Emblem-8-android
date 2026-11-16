@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1346,
+    "verified": 1353,
     "implemented_unverified": 82
   },
   "functions": {
@@ -2900,6 +2900,16 @@
       "tests": [
         "fe8.testing.MuMoveDifferentialTest#MU walk of the prologue talk run matches f10580 to f10621 and f10624 to f10633",
         "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
+      ]
+    },
+    "EndMuExt": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuEffectsDifferentialTest#MU speed up, hit flash and death fade match the capture f4481 to f4780"
       ]
     },
     "EndPlayerPhaseSideWindows": {
@@ -7025,6 +7035,16 @@
         "fe8.testing.MuMoveDifferentialTest#first MU walk of the new game matches every per-frame dump f9675 to f9782"
       ]
     },
+    "MU_StartDeathFade": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuEffectsDifferentialTest#MU speed up, hit flash and death fade match the capture f4481 to f4780"
+      ]
+    },
     "MakeBattleMOVEUNIT": {
       "decomp_file": "src/mapanim_api.c",
       "system": "map_anim",
@@ -7684,6 +7704,16 @@
         "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
       ]
     },
+    "MuDeathFade_OnLoop": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuEffectsDifferentialTest#MU speed up, hit flash and death fade match the capture f4481 to f4780"
+      ]
+    },
     "MuExistsActive": {
       "decomp_file": "src/mu.c",
       "system": "battle_map",
@@ -7693,6 +7723,26 @@
       "tests": [
         "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in attack matches the game f1330 to f1365",
         "fe8.testing.PlayerPhaseMoveDifferentialTest#move after the confirm in select_move matches the game f1295 to f1314"
+      ]
+    },
+    "MuFlashFadeFrom_RestorePal": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuEffectsDifferentialTest#MU speed up, hit flash and death fade match the capture f4481 to f4780"
+      ]
+    },
+    "MuSlowDownAnimFreezeFunc": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuEffectsDifferentialTest#MU speed up, hit flash and death fade match the capture f4481 to f4780"
       ]
     },
     "MuStepSe_PlaySeA": {
@@ -10758,6 +10808,16 @@
         "fe8.testing.MuStartDifferentialTest#StartMu from the unit as dumped at f9674 matches the f9674 MU proc and config"
       ]
     },
+    "StartMuHitFlash": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuEffectsDifferentialTest#MU speed up, hit flash and death fade match the capture f4481 to f4780"
+      ]
+    },
     "StartMuInternal": {
       "decomp_file": "src/mu.c",
       "system": "battle_map",
@@ -10766,6 +10826,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.MuStartDifferentialTest#StartMu from the unit as dumped at f9674 matches the f9674 MU proc and config"
+      ]
+    },
+    "StartMuSpeedUpAnim": {
+      "decomp_file": "src/mu.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/Mu.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MuEffectsDifferentialTest#MU speed up, hit flash and death fade match the capture f4481 to f4780"
       ]
     },
     "StartOpenTalkBubble": {

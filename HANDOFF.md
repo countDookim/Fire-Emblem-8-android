@@ -17,6 +17,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 - EP-1b: Claude owner PC, start-of-phase display targets (bmtarget.c, bmmap.c), until ~02:00Z (2026-11-16).
 - EP-11h: Claude owner PC, per-frame polls and decompression (event.c, bmio.c, bmlib.c), until ~03:00Z (2026-11-16).
 - EP-11e: Claude owner PC, event end UI restore (uimenu.c, eventscr_utils.c, icon.c), until ~03:30Z (2026-11-16).
+- EP-35: Claude owner PC, after-move events and tutorial checks (eventinfo.c), until ~04:30Z (2026-11-16).
 
 
 - EP-20 (map info box A: mapanim_infobox.c), owner PC Gemini Flash agent `ep20`, claimed 2026-11-15 23:57Z.

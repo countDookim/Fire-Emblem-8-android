@@ -13,7 +13,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- EP-10c (wip/ep10c) and EP-20 (wip/ep20): owner PC Claude finishing Gemini's unreviewed work, until ~14:00Z.
+- EP-18, EP-21: owner PC Claude, until ~15:00Z.
 
 ## Current state
 

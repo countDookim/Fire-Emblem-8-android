@@ -9,7 +9,7 @@
     "in_scope_total": 7732,
     "out_of_scope": 620,
     "verified": 1316,
-    "implemented_unverified": 79
+    "implemented_unverified": 81
   },
   "functions": {
     "APProc_Create": {
@@ -2244,6 +2244,14 @@
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
+    },
+    "CopyString": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/MsgStrings.kt",
+      "status": "implemented",
+      "tests": []
     },
     "CopyToPalOpAnim": {
       "decomp_file": "src/opanimfx.c",
@@ -10762,6 +10770,14 @@
       "tests": [
         "fe8.testing.CombatActionDifferentialTest#the RN state is stored in gActionData"
       ]
+    },
+    "StrInsertTact": {
+      "decomp_file": "src/msg.c",
+      "system": "text_face",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/MsgStrings.kt",
+      "status": "implemented",
+      "tests": []
     },
     "StringCompare": {
       "decomp_file": "src/bmlib.c",

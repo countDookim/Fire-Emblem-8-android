@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-16 14:17Z (owner PC: EP-19 popup checks, EP-24 miss/delayed calls, MC-18 level-up display wired). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-16 14:41Z (owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -13,21 +13,21 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- `MC-18d-face`: Gemini owner PC, until ~14:35Z (`wip/mc18d-face`).
 - `EP-29b`: Gemini owner PC, until ~14:50Z (`wip/ep29b`).
+- `EP-30`: Gemini owner PC, until ~15:10Z (`wip/ep30`).
 
 ## Current state
 
-- 2026-11-16 12:48Z – 14:17Z owner PC Gemini (Flash agents): **EP-19 done (`12b51ee4`)**, **EP-24 done (`ce824507`)**,
-  **MC-18 wired (`dc310c29`)**. `EP-19` ported `GetItemAwardedExp`, `GetWeaponLevelFromExp`, `DidBattleUnitBreakWeapon`,
-  `HasBattleUnitGainedWeaponLevel`, `BattleUnit_ShouldDisplayWpnBroke`, `DisplayWpnBrokePopup`,
-  `BattleUnit_ShouldDisplayWRankUp`, and `DisplayWRankUpPopup` (`ram_trace_prologue_clear` `f4880..4892` &
-  `enemy_phase` `f1700`, `NewPopup_WeaponBroke`/`_WRankIncrease` stay M6-H stand-ins). `EP-24` ported
-  `CallDelayedArg`/`_OnLoop`, `MapAnimMoveUnitAwayFromTargetExt`, `MapAnim_MoveSubjectsAwayFromTarget`, and
-  `MapAnim_BeginMISSAnim` (`f4485..4611`, miss OAM `f4550..4577`, 0-damage `MapAnim_BeginNODAMAGEAnim` deferred to
-  `EP-24b`). `MC-18` wired `MapLevelUpAnnouncement` into `MapAnimExpBar` in `PlayerPhaseWiring`. All passed
-  `:game:dokkaGenerate` and untargeted `:testing:serialTest --rerun`. Next: `MC-18d-face` & `EP-29b` (in progress),
-  `EP-21b`, `EP-23b`, `EP-24b`, `EP-30`..`34`.
+- 2026-11-16 12:48Z – 14:41Z owner PC Gemini (Flash agents): **MC-18d-face done (`f9f127cf`)**, **EP-19 done
+  (`12b51ee4`)**, **EP-24 done (`ce824507`)**, **MC-18 wired (`dc310c29`)**. `MC-18d-face` ported
+  `TalkScene.resetDialogueScreen()` (`eventscr2.c`), wired `startFace`/`setFaceY`/`resetDialogueScreen` in
+  `PlayerPhaseWiring` (zero `MC-18d` stand-ins left), verified `gProcScr_E_FACE` `f6519..6741` & BG0/BG1 cleanup,
+  and documented the `InitMainScreen` 1-frame GBA overrun at `f6519`. `EP-19` ported post-exp weapon broke / rank up
+  popup checks (`f4880..4892`, popups stay M6-H stand-ins). `EP-24` ported `CallDelayedArg`, move-away, and
+  `MapAnim_BeginMISSAnim` (`f4485..4611`, miss OAM `f4550..4577`, no-damage deferred to `EP-24b`). `MC-18` wired
+  `MapLevelUpAnnouncement` into `PlayerPhaseWiring` (matches `f6519`, preserves write-back). All passed
+  `:game:dokkaGenerate` and untargeted `:testing:serialTest --rerun`. Next: `EP-29b` & `EP-30` (in progress),
+  `EP-21b`, `EP-23b`, `EP-24b`, `EP-31`..`34`.
 
 - 2026-11-16 09:30Z – 13:30Z owner PC Claude (Sonnet agents, two at a time): **map battle animation in game.**
   Finished Gemini's EP-10c (turn support exp; 4 bugs fixed, levels/total Transcribed, EP10c-cap) and EP-20 (info box A).

@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1353,
+    "verified": 1359,
     "implemented_unverified": 82
   },
   "functions": {
@@ -2586,6 +2586,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
+    "DrawMAExpBar": {
+      "decomp_file": "src/mapanim_expbar.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimExpBar.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimExpBarDifferentialTest#exp bar follows the capture while Seth's exp goes 0 to 45 f4776 to f4878"
       ]
     },
     "DrawMenuItemHover": {
@@ -5176,7 +5186,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "implemented",
       "tests": []
     },
@@ -8796,6 +8806,56 @@
       "tests": [
         "fe8.testing.CamMoveDifferentialTest#ch6 phase start resets the cursor and scrolls the camera",
         "fe8.testing.CamMoveDifferentialTest#first phase resets the cursor without moving the camera"
+      ]
+    },
+    "ProcMAExpBar_FrameAdvance": {
+      "decomp_file": "src/mapanim_expbar.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimExpBar.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimExpBarDifferentialTest#exp bar follows the capture while Seth's exp goes 0 to 45 f4776 to f4878"
+      ]
+    },
+    "ProcMAExpBar_InitDisplay": {
+      "decomp_file": "src/mapanim_expbar.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimExpBar.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimExpBarDifferentialTest#exp bar follows the capture while Seth's exp goes 0 to 45 f4776 to f4878"
+      ]
+    },
+    "ProcMAExpBar_OnDraw": {
+      "decomp_file": "src/mapanim_expbar.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimExpBar.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimExpBarDifferentialTest#exp bar follows the capture while Seth's exp goes 0 to 45 f4776 to f4878"
+      ]
+    },
+    "ProcMAExpBar_OnIncrement": {
+      "decomp_file": "src/mapanim_expbar.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimExpBar.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimExpBarDifferentialTest#exp bar follows the capture while Seth's exp goes 0 to 45 f4776 to f4878"
+      ]
+    },
+    "ProcMAExpBar_PlaySound74": {
+      "decomp_file": "src/mapanim_expbar.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimExpBar.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimExpBarDifferentialTest#exp bar follows the capture while Seth's exp goes 0 to 45 f4776 to f4878"
       ]
     },
     "ProcMapInfoBox_OnDraw": {

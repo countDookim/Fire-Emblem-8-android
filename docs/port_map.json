@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1373,
+    "verified": 1381,
     "implemented_unverified": 82
   },
   "functions": {
@@ -1079,6 +1079,28 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BattleScriptedDifferentialTest#BattleUnitTargetSetEquippedWeapon fills target weaponBefore from equipped weapon when empty"
+      ]
+    },
+    "BattleUnit_ShouldDisplayWRankUp": {
+      "decomp_file": "src/mapanim.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map anim popup checks and helpers reproduce captured trace steps f4880 to f4892",
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
+      ]
+    },
+    "BattleUnit_ShouldDisplayWpnBroke": {
+      "decomp_file": "src/mapanim.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map anim popup checks and helpers reproduce captured trace steps f4880 to f4892",
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
       ]
     },
     "BattleUnwind": {
@@ -2475,6 +2497,17 @@
         "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
       ]
     },
+    "DidBattleUnitBreakWeapon": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map anim popup checks and helpers reproduce captured trace steps f4880 to f4892",
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
+      ]
+    },
     "DisplayBattleInfoBox": {
       "decomp_file": "src/mapanim_infobox.c",
       "system": "map_anim",
@@ -2549,6 +2582,28 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WeaponSelectMenuDifferentialTest#attack opens the weapon list with the ranges of the game"
+      ]
+    },
+    "DisplayWRankUpPopup": {
+      "decomp_file": "src/mapanim.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map anim popup checks and helpers reproduce captured trace steps f4880 to f4892",
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
+      ]
+    },
+    "DisplayWpnBrokePopup": {
+      "decomp_file": "src/mapanim.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map anim popup checks and helpers reproduce captured trace steps f4880 to f4892",
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
       ]
     },
     "DoesBMXFADEExist": {
@@ -4771,6 +4826,17 @@
         "fe8.testing.ItemInfoReferenceTest#actor and target weaponType and weaponAttributes match prologue battle r14430"
       ]
     },
+    "GetItemAwardedExp": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map anim popup checks and helpers reproduce captured trace steps f4880 to f4892",
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
+      ]
+    },
     "GetItemCrit": {
       "decomp_file": "src/bmitem.c",
       "system": "battle_logic",
@@ -5211,7 +5277,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },
@@ -5537,6 +5603,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapFaceTest#BG2 tile map matches the EWRAM dumps and portrait data the full dumps"
+      ]
+    },
+    "GetWeaponLevelFromExp": {
+      "decomp_file": "src/bmitem.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map anim popup checks and helpers reproduce captured trace steps f4880 to f4892",
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
       ]
     },
     "GetWindowQuadrant": {
@@ -6315,6 +6392,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapFaceTest#controller holder and face procs match every step from 4907 to 8846"
+      ]
+    },
+    "HasBattleUnitGainedWeaponLevel": {
+      "decomp_file": "src/bmbattle.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map anim popup checks and helpers reproduce captured trace steps f4880 to f4892",
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
       ]
     },
     "HideMoveRangeGraphics": {

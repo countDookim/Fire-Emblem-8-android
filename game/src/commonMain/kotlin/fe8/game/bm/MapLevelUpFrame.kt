@@ -67,8 +67,8 @@ public class MapLevelUpFrame(
         var label = LABEL_INFO
         while (rom.u8(label) != 0xFF) {
             val msg = rom.u32(rom.u32(label + 4 + 4 * magic))
-            putStringCentered(
-                (y + rom.u8(label + 1)) * 32 + x + rom.u8(label), COLOR_GOLD, 3,
+            text.putStringCentered(
+                bg0, (y + rom.u8(label + 1)) * 32 + x + rom.u8(label), COLOR_GOLD, 3,
                 messages.getStringFromIndex(msg),
             )
             label += 12
@@ -78,15 +78,6 @@ public class MapLevelUpFrame(
     // Private copy of src/bmlib.c PutString; checked only through the frame test.
     private fun putString(at: Int, color: Int, str: ByteArray) {
         text.initText(tmpText, (text.getStringTextLen(str) + 7) / 8)
-        tmpText.colorId = color
-        text.drawString(tmpText, str)
-        text.putText(tmpText, bg0, at)
-    }
-
-    // Private copy of src/bmlib.c PutStringCentered; checked only through the frame test.
-    private fun putStringCentered(at: Int, color: Int, width: Int, str: ByteArray) {
-        text.initText(tmpText, width)
-        tmpText.x = (width * 8 - text.getStringTextLen(str) - 1) / 2
         tmpText.colorId = color
         text.drawString(tmpText, str)
         text.putText(tmpText, bg0, at)

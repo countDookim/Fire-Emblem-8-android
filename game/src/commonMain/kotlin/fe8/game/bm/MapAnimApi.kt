@@ -48,6 +48,15 @@ public class ManimSt {
     /** `actor[i].hp_cur`. */
     public val hpCur: IntArray = IntArray(ACTORS)
 
+    /** `actor[i].hp_displayed_q4`. */
+    public val hpDisplayedQ4: IntArray = IntArray(ACTORS)
+
+    /** `actor[i].hp_info_x`. */
+    public val hpInfoX: IntArray = IntArray(ACTORS)
+
+    /** `actor[i].hp_info_y`. */
+    public val hpInfoY: IntArray = IntArray(ACTORS)
+
     /** `pCurrentRound` as an index into `gBattleHitArray`. */
     public var currentRound: Int = 0
 
@@ -185,7 +194,11 @@ public class MapAnimApi(
         /** `BattleEventEngineExists`: true while battle quote event is running. */
         public var battleEventEngineExists: () -> Boolean = { false }
 
-        /** `StartMapAnimInfoWindow` (EP-20). Stand-in until EP-20: info box UI window. */
+        /**
+         * `StartMapAnimInfoWindow` (src/mapanim_infobox.c). Stand-in until EP-21: the port exists
+         * ([MapAnimInfoBox.startMapAnimInfoWindow]) but is not wired, because the box cannot yet
+         * shake, drain HP or end itself (`MapInfoBoxShake`, `EndMapAnimInfoWindow`).
+         */
         public var startMapAnimInfoWindow: (x: Int, y: Int, proc: Proc) -> Unit = { _, _, _ -> }
 
         /** `MapAnim_DisplayRoundAnim` (EP-18). Stand-in until EP-18: round animation effect. */

@@ -758,6 +758,29 @@ public class TextSystem(
         putText(text, tm, offset)
     }
 
+    private val tmpText: Text = Text()
+
+    /**
+     * Draws [str] centered in a tile slot [width] tiles wide on [tm] at [offset], in colour
+     * [color].
+     *
+     * Ported from src/bmlib.c: PutStringCentered
+     */
+    public fun putStringCentered(
+        tm: ShortArray,
+        offset: Int,
+        color: Int,
+        width: Int,
+        str: ByteArray,
+    ): Text {
+        initText(tmpText, width)
+        setCursor(tmpText, (width * 8 - getStringTextLen(str) - 1) / 2)
+        setColor(tmpText, color)
+        drawString(tmpText, str)
+        putText(tmpText, tm, offset)
+        return tmpText
+    }
+
     /**
      * Writes [number] in the big digits ending at [at].
      *

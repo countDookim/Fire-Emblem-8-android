@@ -91,6 +91,26 @@ internal class MuSpriteAnim(
     /** `ap->objLayer` of [anim] (0 when it has no handle). */
     fun objLayer(anim: Int): Int = handle(anim)?.objLayer ?: 0
 
+    /** `FreezeSpriteAnim` on [anim]: `frameTimer = 0; frameInterval = 0`. */
+    fun freeze(anim: Int) = setClock(anim, 0)
+
+    /** `frameTimer = 0; frameInterval = [interval]` on [anim]. */
+    fun setClock(anim: Int, interval: Int) {
+        val h = handle(anim) ?: return
+        h.frameTimer = 0
+        h.frameInterval = interval
+    }
+
+    /** `anim->tileBase = tileBase`. */
+    fun setTileBase(anim: Int, tileBase: Int) {
+        handle(anim)?.tileBase = tileBase
+    }
+
+    /** `anim->objLayer = layer`. */
+    fun setObjLayer(anim: Int, layer: Int) {
+        handle(anim)?.objLayer = layer
+    }
+
     /** `AP_Delete` on the handle of [anim]. */
     fun delete(anim: Int) = player.delete(handle(anim))
 

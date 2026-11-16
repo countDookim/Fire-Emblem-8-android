@@ -100,6 +100,52 @@ public interface MuHooks {
 
     /** `AP_Delete(proc->sprite_anim)`. */
     public fun deleteMuAnim(proc: MuProc) {}
+
+    /**
+     * `ApplyPalette(src, bank)` (bmlib.c): copies the 16-colour palette at ROM address [src] into
+     * palette bank [bank] (0x10 + n for OBJ bank n) and requests the palette upload.
+     */
+    public fun applyPalette(src: Int, bank: Int) {}
+
+    /**
+     * `StartPalFade(PAL_OBJ(n), bank, duration, parent)` (bmlib.c): fades palette bank [bank] from
+     * its current colours to those of bank [targetBank] over [duration] frames, as a child of
+     * [parent]; the palette fade runs on the shared hardware, so it is a hook.
+     */
+    public fun startPalFade(targetBank: Int, bank: Int, duration: Int, parent: Proc) {}
+
+    /** `SetBlendConfig(effect, coeffA, coeffB, blendY)` (hardware.c). */
+    public fun setBlendConfig(effect: Int, coeffA: Int, coeffB: Int, blendY: Int) {}
+
+    /** `FreezeSpriteAnim(anim)` (ap.h): `frameTimer = 0; frameInterval = 0`. */
+    public fun freezeSpriteAnim(anim: Int) {}
+
+    /** `anim->frameTimer = 0; anim->frameInterval = interval` (the animation clock). */
+    public fun setSpriteAnimClock(anim: Int, interval: Int) {}
+
+    /** `anim->tileBase = tileBase` of an `APHandle`. */
+    public fun setSpriteAnimTileBase(anim: Int, tileBase: Int) {}
+
+    /** `anim->objLayer = layer` of an `APHandle`. */
+    public fun setSpriteAnimObjLayer(anim: Int, layer: Int) {}
+
+    /** `PlaySoundEffect(song)`. */
+    public fun playSoundEffect(song: Int) {}
+
+    /**
+     * `CallDelayedArg(func, arg, delay)` (bmlib.c): calls [func] with [arg] after [delay]
+     * frames. Stand-in until EP-24 (its port).
+     */
+    public fun callDelayedArg(func: (Int) -> Unit, arg: Int, delay: Int) {}
+
+    /** `unit->state` of the unit at [address] (read for `US_IN_BALLISTA` by the death fade). */
+    public fun unitState(address: Int): Int = 0
+
+    /**
+     * `TryRemoveUnitFromBallista(unit)` then `HideUnitSprite(unit)` of the unit at [address]
+     * (the death fade of a unit on a ballista).
+     */
+    public fun removeUnitFromBallista(address: Int) {}
 }
 
 /** One `struct MuConfig` slot (`sMuConfig`). */
@@ -886,11 +932,20 @@ public class Mu(
     }
 
     /**
-     * Ends [proc]'s proc (`EndMuExt`: `Proc_End`).
+     * Ends [proc]'s proc (`EndMuExt`).
      *
      * Ported from src/mu.c: EndMu
      */
     public fun endMu(proc: MuProc) {
+        endMuExt(proc)
+    }
+
+    /**
+     * Ends [proc]'s proc and so its child procs (the effect procs).
+     *
+     * Ported from src/mu.c: EndMuExt
+     */
+    public fun endMuExt(proc: MuProc) {
         procs.end(proc.owner)
     }
 
@@ -961,6 +1016,138 @@ public class Mu(
         }
     }
 
+    /** State of `ProcScr_MuDeathFade` (`struct MuEffectProc` past `PROC_HEADER`). */
+    public class MuEffectState {
+        /** `mu` (0x54): the dying MU. */
+        public var mu: MuProc? = null
+
+        /** `timeLeft` (0x64, s16): frames of fade left. */
+        public var timeLeft: Int = 0
+    }
+
+    /** State of `ProcScr_MuHitFlash` (`struct MuFlashEffectProc` past `PROC_HEADER`). */
+    public class MuFlashState {
+        /** `mu` (0x2C): the flashing MU. */
+        public var mu: MuProc? = null
+    }
+
+    /** `ProcScr_MuDeathFade`. */
+    public val deathFadeScript: ProcScript = ProcScript(
+        "ProcScr_MuDeathFade",
+        listOf(
+            ProcScripts.repeat(ProcFunc { muDeathFadeOnLoop(it) }),
+            ProcScripts.sleep(15),
+            ProcScripts.end(),
+        ),
+        { MuEffectState() },
+    )
+
+    /** `ProcScr_MuHitFlash`. */
+    public val hitFlashScript: ProcScript = ProcScript(
+        "ProcScr_MuHitFlash",
+        listOf(
+            ProcScripts.sleep(17),
+            ProcScripts.call(ProcFunc { muFlashFadeFromRestorePal(it) }),
+            ProcScripts.end(),
+        ),
+        { MuFlashState() },
+    )
+
+    /** `MuSlowDownAnimFreezeFunc` as the callback `StartMuSpeedUpAnim` queues (no allocation). */
+    private val slowDownFreeze: (Int) -> Unit = { muSlowDownAnimFreezeFunc(it) }
+
+    /**
+     * Runs [proc]'s sprite animation at speed 0x40 and queues the freeze 20 frames later.
+     *
+     * Ported from src/mu.c: StartMuSpeedUpAnim
+     */
+    public fun startMuSpeedUpAnim(proc: MuProc) {
+        hooks.setSpriteAnimClock(proc.spriteAnim, 0x40)
+        hooks.callDelayedArg(slowDownFreeze, proc.spriteAnim, 20)
+    }
+
+    /**
+     * The delayed call of [startMuSpeedUpAnim]: freezes the sprite animation [arg].
+     *
+     * Ported from src/mu.c: MuSlowDownAnimFreezeFunc
+     */
+    public fun muSlowDownAnimFreezeFunc(arg: Int) {
+        hooks.freezeSpriteAnim(arg)
+    }
+
+    /**
+     * Flashes [mu] with the palette `gMuFlashPalLut[flashType]`: loads it into the MU fade bank,
+     * draws the MU with that bank and fades the bank back to the MU's own palette, then starts
+     * `ProcScr_MuHitFlash`, which restores the palette.
+     *
+     * Ported from src/mu.c: StartMuHitFlash
+     */
+    public fun startMuHitFlash(mu: MuProc, flashType: Int) {
+        val config = mu.config!!
+        hooks.applyPalette(rom!!.u32(MU_FLASH_PAL_LUT + 4 * flashType), 0x10 + OBPAL_MU_FADE)
+        hooks.setSpriteAnimTileBase(
+            mu.spriteAnim, (OBPAL_MU_FADE shl 12) + config.chr + mu.layer,
+        )
+        hooks.startPalFade(0x10 + config.pal, 0x10 + OBPAL_MU_FADE, 0x14, mu.owner!!)
+        val proc = procs.start(hitFlashScript, mu.owner!!)
+        (proc.state as MuFlashState).mu = mu
+    }
+
+    /**
+     * End of the hit flash: draws the MU with its own palette bank again.
+     *
+     * Ported from src/mu.c: MuFlashFadeFrom_RestorePal
+     */
+    public fun muFlashFadeFromRestorePal(proc: Proc) {
+        val mu = (proc.state as MuFlashState).mu!!
+        hooks.setSpriteAnimTileBase(
+            mu.spriteAnim, (mu.config!!.pal shl 12) + mu.config!!.chr + mu.layer,
+        )
+    }
+
+    /**
+     * Starts the death fade of [mu]: freezes its animation, flashes it white and starts
+     * `ProcScr_MuDeathFade`, which fades it out over 32 frames and then ends it. The death sound
+     * and the ballista branch (the capture's MU is not on a ballista; the sound is not captured)
+     * are not compared with the capture.
+     *
+     * Ported from src/mu.c: MU_StartDeathFade
+     */
+    public fun muStartDeathFade(mu: MuProc) {
+        mu.state = MU_STATE_DEATHFADE
+        val proc = procs.start(deathFadeScript, mu.owner!!)
+        val state = proc.state as MuEffectState
+        state.mu = mu
+        state.timeLeft = 0x20
+        hooks.setBlendConfig(0, 0x10, 0x10, 0)
+        hooks.freezeSpriteAnim(mu.spriteAnim)
+        startMuHitFlash(mu, MU_FLASH_WHITE)
+        hooks.setSpriteAnimObjLayer(mu.spriteAnim, 13)
+        hooks.playSoundEffect(SONG_D6)
+        if (hooks.unitState(mu.unitAddress) and US_IN_BALLISTA != 0) {
+            hooks.removeUnitFromBallista(mu.unitAddress)
+        }
+    }
+
+    /** `Proc_Find(ProcScr_MuDeathFade) != NULL`: a MU is fading out. */
+    public fun muDeathFadeExists(): Boolean = procs.find(deathFadeScript) != null
+
+    /**
+     * One frame of the death fade: sets the blend coefficient from the frames left and ends the
+     * MU (and with it this proc) when none are left.
+     *
+     * Ported from src/mu.c: MuDeathFade_OnLoop
+     */
+    public fun muDeathFadeOnLoop(proc: Proc) {
+        val state = proc.state as MuEffectState
+        hooks.setBlendConfig(0, state.timeLeft shr 1, 0x10, 0)
+        state.timeLeft--
+        if (state.timeLeft == 0) {
+            endMu(state.mu!!)
+            procs.breakProc(proc)
+        }
+    }
+
     /** Constants of mu.h / classes / items. */
     public companion object {
         /** `MU_MAX_COUNT`. */
@@ -998,6 +1185,18 @@ public class Mu(
 
         /** `MU_STATE_DISPLAY_UI`: drawn at a fixed screen position (UI MU). */
         public const val MU_STATE_DISPLAY_UI: Int = 6
+
+        /** `MU_FLASH_WHITE`. */
+        public const val MU_FLASH_WHITE: Int = 0
+
+        /** `OBPAL_MU_FADE`: OBJ palette bank of the MU flash. */
+        public const val OBPAL_MU_FADE: Int = 5
+
+        /** `SONG_D6`: the death fade sound. */
+        public const val SONG_D6: Int = 0xD6
+
+        /** `gMuFlashPalLut` in the ROM: palette addresses by `MU_FLASH_*`. */
+        public const val MU_FLASH_PAL_LUT: Int = 0x089A2920
 
         /** `MU_STATE_DEATHFADE`: dying; drawn with the blend bit. */
         public const val MU_STATE_DEATHFADE: Int = 7

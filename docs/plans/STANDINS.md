@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 221 across 48 Kotlin files.
+Total entries: 222 across 48 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -29,6 +29,7 @@ Total entries: 221 across 48 Kotlin files.
 | EP-19 | 2 |
 | EP-1b | 1 |
 | EP-23 | 1 |
+| EP-24 | 1 |
 | EP-25 | 2 |
 | EP-26 | 1 |
 | EP-30 | 2 |
@@ -315,6 +316,12 @@ Total entries: 221 across 48 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `roundProcScript` | Stand-in until EP-23 and EP-24: null, so no round animation runs and the round takes no time. |
+
+## EP-24 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | `callDelayedArg` | Stand-in until EP-24 (its port). |
 
 ## EP-25 (2)
 

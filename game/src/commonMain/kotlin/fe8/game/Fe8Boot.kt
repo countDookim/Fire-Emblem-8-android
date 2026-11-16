@@ -831,6 +831,9 @@ public class Fe8Boot(
     /** `RefreshUnitSprites` of the battle map, set by [wireUnitSprites]. */
     private var refreshSprites: () -> Unit = {}
 
+    /** The palette fade of the MU hit flash (`StartPalFade`) on the shared palette. */
+    private val muPalFade: PaletteFade by lazy { PaletteFade(hw, engine) }
+
     /** MU animation owner retained to flush its registered tile moves during VBlank. */
     private var muSpriteAnim: MuSpriteAnim? = null
 
@@ -871,6 +874,48 @@ public class Fe8Boot(
                 override fun spriteAnimObjLayer(anim: Int): Int = spriteAnim.objLayer(anim)
 
                 override fun deleteMuAnim(proc: MuProc) = spriteAnim.delete(proc.spriteAnim)
+
+                override fun freezeSpriteAnim(anim: Int) = spriteAnim.freeze(anim)
+
+                override fun setSpriteAnimClock(anim: Int, interval: Int) =
+                    spriteAnim.setClock(anim, interval)
+
+                override fun setSpriteAnimTileBase(anim: Int, tileBase: Int) =
+                    spriteAnim.setTileBase(anim, tileBase)
+
+                override fun setSpriteAnimObjLayer(anim: Int, layer: Int) =
+                    spriteAnim.setObjLayer(anim, layer)
+
+                override fun applyPalette(src: Int, bank: Int) {
+                    rom.pal(src, 16).copyInto(hw.palette, bank * 16)
+                    hw.enablePaletteSync()
+                }
+
+                override fun startPalFade(targetBank: Int, bank: Int, duration: Int, parent: Proc) {
+                    muPalFade.start(
+                        hw.palette.copyOfRange(targetBank * 16, targetBank * 16 + 16),
+                        bank, duration, parent,
+                    )
+                }
+
+                override fun setBlendConfig(effect: Int, coeffA: Int, coeffB: Int, blendY: Int) =
+                    hw.lcd.setBlendConfig(effect, coeffA, coeffB, blendY)
+
+                override fun playSoundEffect(song: Int) = control.sound.playSoundEffect(song)
+
+                override fun callDelayedArg(func: (Int) -> Unit, arg: Int, delay: Int) {
+                    engine.start(
+                        ProcScript(
+                            "ProcScr_CallDelayedArg",
+                            listOf(
+                                ProcScripts.sleep(delay),
+                                ProcScripts.call(ProcFunc { func(arg) }),
+                                ProcScripts.end(),
+                            ),
+                        ),
+                        3,
+                    )
+                }
 
                 override fun playSeSpacial(song: Int, x: Int) =
                     spacialSe.playSeSpacial(song, x)

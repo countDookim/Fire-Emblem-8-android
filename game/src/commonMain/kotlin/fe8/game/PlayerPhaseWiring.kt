@@ -132,7 +132,12 @@ internal class PlayerPhaseWiring(
     private val itemLine = ItemMenuLine(
         talk.text, items, talk.messages, hw, rom, drawnIconLookupTable, iconGfxIdLookupTable,
     )
-    private lateinit var forecast: BattleForecast
+    /** The battle forecast window; set once [wire] has run the attack select. */
+    lateinit var forecast: BattleForecast
+        private set
+
+    /** Whether [forecast] has been built. */
+    val isForecastReady: Boolean get() = this::forecast.isInitialized
     private val menuItemPanel = MenuItemPanel(
         engine, units, battle, items, unitLoader, bm, talk.text, talk.messages, hw, rom,
         drawnIconLookupTable, iconGfxIdLookupTable,

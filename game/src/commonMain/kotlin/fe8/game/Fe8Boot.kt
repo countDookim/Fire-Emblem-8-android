@@ -329,7 +329,19 @@ public class Fe8Boot(
             }
             override fun blendY(): Int = hw.lcd.blendY
             override fun lockGame() { loop.lockGame() }
-            override fun resumeGameplay() { loop.unlockGame() }
+            override fun freezeMenu() { playerWiring?.menu?.freezeMenu() }
+            // `UnlockGame`, `ResumeMenu`, `ResetBkselPalette` (`ClearCutsceneUnits` is EP-11h
+            // territory and not ported).
+            override fun resumeGameplay() {
+                loop.unlockGame()
+                playerWiring?.let {
+                    it.menu.resumeMenu()
+                    if (it.isForecastReady) it.forecast.resetBkselPalette()
+                }
+            }
+            override fun changeUnitSpritePalette(palId: Int) {
+                unitSprites?.changeUnitSpritePalette(palId)
+            }
             // The talk needs the whole ROM (messages, portraits); with boot windows only the
             // chapter data of the events is missing as well, so the default no-op stays.
             override fun endEventTalk() { if (rom.isWholeRom) eventTextHost.endTalk() }
@@ -678,6 +690,7 @@ public class Fe8Boot(
             refreshMapGraphics = { if (rom.isWholeRom) refreshMapGraphics() },
             suspendMapDisp = { if (rom.isWholeRom) battleMap.bMapDispSuspend() },
             resumeMapDisp = { if (rom.isWholeRom) battleMap.bMapDispResume() },
+            changeSpritePalette = { unitSprites?.changeUnitSpritePalette(it) },
         )
     }
 
@@ -789,6 +802,9 @@ public class Fe8Boot(
      * [wireUnitSprites].
      */
     public var unitSprites: UnitSprites? = null
+
+    /** The player phase wiring (menu and battle forecast), set by the battle map wiring. */
+    private var playerWiring: PlayerPhaseWiring? = null
         private set
 
     /** `RefreshUnitSprites` of the battle map, set by [wireUnitSprites]. */
@@ -1044,15 +1060,20 @@ public class Fe8Boot(
         talkScene.text.resetText()
     }
 
-    /** `ResetIconGraphics_`: clears both icon lookup tables. */
+    /**
+     * `ResetIconGraphics_`: clears both icon lookup tables.
+     *
+     * Transcribed from src/icon.c: ResetIconGraphics_ (not verified: the debug wrapper of
+     * `ResetIconGraphics`; both tables are already empty at f3720 and f3721 of
+     * `ram_trace_prologue_clear`, where the event end runs it)
+     */
     private fun resetIcons() {
         ItemIcon.resetIconGraphics(drawnIconLookupTable, iconGfxIdLookupTable)
     }
 
     /** `LoadIconPalettes(palId)`: icon palettes 0 and 1 into palette banks `palId` and +1. */
     private fun loadIconPalettes(palId: Int) {
-        ItemIcon.loadIconPalette(hw, rom, 0, palId)
-        ItemIcon.loadIconPalette(hw, rom, 1, palId + 1)
+        ItemIcon.loadIconPalettes(hw, rom, palId)
     }
 
     /**
@@ -1133,7 +1154,7 @@ public class Fe8Boot(
             { eventEngine.eventEngineExists() },
             { eventEngine.battleEventEngineExists() },
             pidStats,
-        ).wire(phase, main, eventInfos)
+        ).also { playerWiring = it }.wire(phase, main, eventInfos)
         // The enemy phase (EP-2a, EP-3a/b): `AiPhaseInit`, the unit order and the decision loop.
         // The script interpreter (EP-4), the attack search (EP-5), the score (EP-6a) and the reach
         // and movement maps (EP-7) run, so an enemy in reach decides its attack. The perform proc

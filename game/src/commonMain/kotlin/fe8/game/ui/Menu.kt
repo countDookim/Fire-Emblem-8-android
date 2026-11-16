@@ -231,6 +231,29 @@ public class Menu(
         ::MenuItemProc,
     )
 
+    /**
+     * Transcribed from src/uimenu.c: FreezeMenu (not verified: the captures have no menu proc when
+     * it runs, f2964 and f4894 of `ram_trace_prologue_clear` start events from the bare map)
+     *
+     * Sets `MENU_STATE_FROZEN` on the running menu ([menuScript]), if there is one, so that it
+     * ignores input; `_FreezeMenu` (src/event.c) is the event engine's call of it.
+     */
+    public fun freezeMenu() {
+        val menu = engine.find(menuScript)?.state as? MenuProc ?: return
+        menu.state = menu.state or MENU_STATE_FROZEN
+    }
+
+    /**
+     * Transcribed from src/uimenu.c: ResumeMenu (not verified: no menu proc exists when the boss
+     * turn event ends at f3722 of `ram_trace_prologue_clear`)
+     *
+     * Clears `MENU_STATE_FROZEN` on the running menu ([menuScript]), if there is one.
+     */
+    public fun resumeMenu() {
+        val menu = engine.find(menuScript)?.state as? MenuProc ?: return
+        menu.state = menu.state and MENU_STATE_FROZEN.inv()
+    }
+
     init {
         callbacks[MENU_ALWAYS_ENABLED] =
             MenuFunc { _, _, itemDef, number -> menuAlwaysEnabled(itemDef, number) }

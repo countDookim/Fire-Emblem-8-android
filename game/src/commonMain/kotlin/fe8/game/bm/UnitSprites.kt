@@ -105,6 +105,46 @@ public class UnitSprites(
     }
 
     /**
+     * `IsBattleDeamonActive` (src/banim-ekrbattle.c): the battle animation system runs, which
+     * stops [changeUnitSpritePalette]. Default none; the game wires the battle animation.
+     */
+    public var isBattleDeamonActive: () -> Boolean = { false }
+
+    /**
+     * Transcribed from src/eventscr_utils.c: ChangeUnitSpritePalette (not verified: the packed
+     * value is 0 in the captured events, so only [applyUnitSpritePalettes] runs, and the palettes
+     * it writes are already in place before the call at f3720..3722 of
+     * `ram_trace_prologue_clear`)
+     *
+     * Reloads the standard map sprite palettes ([applyUnitSpritePalettes]), then recolours the
+     * blue, red and green banks (OBJ palettes 12 to 14, `0x1C` to `0x1E`) by the three low
+     * nibbles of [packedPal] (an event's `mapSpritePalIdOverride`, lowest nibble the blue bank):
+     * 1 standard, 2 enemy, 3 NPC, 4 sepia, where the C switch has the case; any other value keeps
+     * the standard palette. Does nothing while [isBattleDeamonActive].
+     */
+    public fun changeUnitSpritePalette(packedPal: Int) {
+        if (isBattleDeamonActive()) return
+
+        applyUnitSpritePalettes()
+
+        when (packedPal and 0xF) {
+            2 -> applyPalettes(PAL_ENEMY, 0x1C, 1)
+            3 -> applyPalettes(PAL_NPC, 0x1C, 1)
+            4 -> applyPalettes(PAL_SEPIA, 0x1C, 1)
+        }
+        when ((packedPal shr 4) and 0xF) {
+            1 -> applyPalettes(PAL_MAP_SPRITE, 0x1D, 1)
+            3 -> applyPalettes(PAL_NPC, 0x1D, 1)
+            4 -> applyPalettes(PAL_SEPIA, 0x1D, 1)
+        }
+        when ((packedPal shr 8) and 0xF) {
+            1 -> applyPalettes(PAL_MAP_SPRITE, 0x1E, 1)
+            2 -> applyPalettes(PAL_ENEMY, 0x1E, 1)
+            4 -> applyPalettes(PAL_SEPIA, 0x1E, 1)
+        }
+    }
+
+    /**
      * Transcribed from src/bmudisp.c: SyncUnitSpriteSheet (not verified: the trace has no dump at
      * a tick that starts an animation frame)
      *
@@ -383,5 +423,11 @@ public class UnitSprites(
         const val PAL_ARENA = 0x0859EEA0
         /** `gPal_LightRune`. */
         const val PAL_LIGHT_RUNE = 0x0859EEC0
+        /** `unit_icon_pal_enemy`. */
+        const val PAL_ENEMY = 0x0859EE40
+        /** `unit_icon_pal_npc`. */
+        const val PAL_NPC = 0x0859EE60
+        /** `gPal_MapSpriteSepia`. */
+        const val PAL_SEPIA = 0x0859EEE0
     }
 }

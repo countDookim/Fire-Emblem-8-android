@@ -417,6 +417,17 @@ public class BattleForecast(
     }
 
     /**
+     * Transcribed from src/eventscr_utils.c: ResetBkselPalette (not verified: no forecast proc
+     * exists when the boss turn event ends at f3722 of `ram_trace_prologue_clear`)
+     *
+     * Colours the frame again if the forecast window is up ([find]), as the end of an event does:
+     * [initBattleForecastFramePalettes].
+     */
+    public fun resetBkselPalette() {
+        if (find() != null) initBattleForecastFramePalettes()
+    }
+
+    /**
      * Ported from src/bksel.c: DrawBattleForecastContentsStandard
      *
      * Draws the standard panel (11x16 tiles): the frame (`gTSA_BattleForecastStandard`, BG

@@ -175,6 +175,19 @@ public object ItemIcon {
     }
 
     /**
+     * Loads both icon palettes (the 32 colours of `item_icon_palette`) into the palette banks
+     * [paletteSlot] and [paletteSlot] + 1 and flags the palettes for upload. Screens that draw
+     * item icons call it with 4 (`LoadIconPalettes(4)`, BG palettes 4 and 5, from
+     * `ReadGameSaveCoreGfx`).
+     *
+     * Ported from src/icon.c: LoadIconPalettes
+     */
+    public fun loadIconPalettes(hardware: BgHardware, rom: RomView, paletteSlot: Int) {
+        loadIconPalette(hardware, rom, 0, paletteSlot)
+        loadIconPalette(hardware, rom, 1, paletteSlot + 1)
+    }
+
+    /**
      * Copies icon [index] into OBJ VRAM so a sprite can show it: the top two tiles (0x40 bytes) go
      * to sprite tile [tileIndex] (taken modulo 0x400) and the bottom two to the tiles 32 later
      * (0x400 bytes on), the layout of 2D sprite tile mapping where a tile row is 32 tiles. If

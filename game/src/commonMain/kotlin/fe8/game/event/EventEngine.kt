@@ -58,6 +58,10 @@ public class EventEngine(
 
     private val onUpdateFn = ProcFunc { onUpdate(it.state as EventEngineProc) }
     private val onEndFn = ProcFunc { onEnd(it.state as EventEngineProc) }
+    /**
+     * Transcribed from src/event.c: _FreezeMenu (not verified: no menu proc exists when the boss
+     * turn event starts at f2964 or the clear event at f4894 of `ram_trace_prologue_clear`)
+     */
     private val freezeMenuFn = ProcFunc { hooks.freezeMenu() }
 
     /**

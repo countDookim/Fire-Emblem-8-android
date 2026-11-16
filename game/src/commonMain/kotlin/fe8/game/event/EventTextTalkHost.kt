@@ -42,6 +42,8 @@ public class EventTextTalkHost(
     private val suspendMapDisp: () -> Unit = {},
     /** `BMapDispResume`; the default does nothing. */
     private val resumeMapDisp: () -> Unit = {},
+    /** `ChangeUnitSpritePalette(id)`; the default does nothing. */
+    private val changeSpritePalette: (Int) -> Unit = {},
     private val stringFromIndex: (Int) -> Int,
 ) : EventTextHost {
     private val cgText: CgText = CgText(procs)
@@ -83,11 +85,21 @@ public class EventTextTalkHost(
         cgText.endCgText()
     }
 
-    /** Stand-in until M6-E: the box dialogue is not ported, so none can exist, nothing to end. */
+    /**
+     * Transcribed from src/helpbox.c: sub_808BB74 (not verified: none of its five procs
+     * `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`,
+     * `ProcScr_BoxDialogueDrawTextExt`, `gUnknown_08A01800` is in the procs of f3706..3722 or
+     * f4894..4912 of `ram_trace_prologue_clear`)
+     *
+     * Stand-in until M6-E: the box dialogue is not ported, so none of those procs can exist and
+     * there is nothing to end.
+     */
     override fun endBoxDialogue() {}
 
-    /** Stand-in (M6-E): `ChangeUnitSpritePalette` (a palette load, no state) is not ported. */
-    override fun changeUnitSpritePalette(id: Int) {}
+    /** `ChangeUnitSpritePalette(id)`: `UnitSprites.changeUnitSpritePalette` when wired. */
+    override fun changeUnitSpritePalette(id: Int) {
+        changeSpritePalette.invoke(id)
+    }
 
     /**
      * Ported from src/eventscr.c: Event23_DisaleMapDisp

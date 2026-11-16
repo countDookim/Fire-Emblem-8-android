@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 658 across 92 decomp files (missing reason: 0).
+Total entries: 665 across 94 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -558,6 +558,22 @@ Total entries: 658 across 92 decomp files (missing reason: 0).
 | `AiGetTerrainCombatPositionScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | only one candidate tile (5, 5) reaches the target, so terrain score differences between tiles are never tested against captured output |
 | `AiGetFriendZoneCombatPositionScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | only one candidate tile (5, 5) reaches the target, so friend zone position score differences between tiles are never tested against captured output |
 
+## src/event.c (11)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `_FreezeMenu` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no menu proc exists when the boss turn event starts at f2964 or the clear event at f4894 of `ram_trace_prologue_clear` |
+| `EventEngine_CreateBattle` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
+| `EventEngineExists` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
+| `BattleEventEngineExists` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
+| `DeleteEventEngines` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
+| `EnqueueEventCall` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
+| `CallNextQueuedEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
+| `CallEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
+| `EventEngine_OnEnd` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
+| `SetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | the only reference value is 0, so a no-op survives |
+| `GetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | no test checks it against a trace yet |
+
 ## src/worldmap_main.c (11)
 
 | Function | Kotlin file | Reason |
@@ -573,21 +589,6 @@ Total entries: 658 across 92 decomp files (missing reason: 0).
 | `WmMain_MoveCamera` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `gGMData.ix/iy` stay 0 and the camera constant in every prologue dump, so no trace covers any branch |
 | `ProcScr_WorldMapMain` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | prefix, up to and including `PROC_REPEAT(WorldMap_PostBeginningEvent)`; the rest is not transcribed yet |
 | `ProcScr_WorldMapMain` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMainScript.kt` | only the path label 15 -> label 25 -> `PROC_END` of the Prologue exit is observed, by WorldMapExitTest |
-
-## src/event.c (10)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `EventEngine_CreateBattle` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
-| `EventEngineExists` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
-| `BattleEventEngineExists` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
-| `DeleteEventEngines` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
-| `EnqueueEventCall` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
-| `CallNextQueuedEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
-| `CallEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
-| `EventEngine_OnEnd` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
-| `SetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | the only reference value is 0, so a no-op survives |
-| `GetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | no test checks it against a trace yet |
 
 ## src/hardware.c (10)
 
@@ -701,6 +702,17 @@ Total entries: 658 across 92 decomp files (missing reason: 0).
 | `Roll1RN` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
 | `Roll2RN` | `engine/core/src/commonMain/kotlin/gbafe/core/rng/Rng.kt` | no test checks it against a trace yet |
 
+## src/uimenu.c (6)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `FreezeMenu` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the captures have no menu proc when it runs, f2964 and f4894 of `ram_trace_prologue_clear` start events from the bare map |
+| `ResumeMenu` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | no menu proc exists when the boss turn event ends at f3722 of `ram_trace_prologue_clear` |
+| `SyncMenuBgs` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the sync flags are consumed in VBlank before the RAM dumps |
+| `HasMenuChangedItem` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | only its callers' switch in and out branches use it, and no item of the captured menus has such callbacks |
+| `OverriddenMenuAvailability` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the override table is empty in the captures and AddMenuOverride is not ported |
+| `OverriddenMenuSelected` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | see [overriddenMenuAvailability] |
+
 ## src/worldmap_automu.c (5)
 
 | Function | Kotlin file | Reason |
@@ -801,15 +813,6 @@ Total entries: 658 across 92 decomp files (missing reason: 0).
 | `Proc_SetRepeatCb` | `engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt` | its only caller, PlayPhaseForcePressAButtonInRangeDisp in playerphase.c, never runs in the 41 reference runs |
 | `Proc_ForAll` | `engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt` | its only callers, sub_8009A84 via GameControl label 3 and ClassReel_OnEnd, were not found running in any of the 41 reference runs; the search was not exhaustive |
 | `Proc_ForEachMarked` | `engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt` | the game never calls it |
-
-## src/uimenu.c (4)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `SyncMenuBgs` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the sync flags are consumed in VBlank before the RAM dumps |
-| `HasMenuChangedItem` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | only its callers' switch in and out branches use it, and no item of the captured menus has such callbacks |
-| `OverriddenMenuAvailability` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | the override table is empty in the captures and AddMenuOverride is not ported |
-| `OverriddenMenuSelected` | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | see [overriddenMenuAvailability] |
 
 ## src/worldmap_face.c (4)
 
@@ -950,6 +953,20 @@ Total entries: 658 across 92 decomp files (missing reason: 0).
 | `EvtBattleGenerateBallistaReal` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | no ballista in the trace |
 | `StartEventBattle` | `game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt` | the weapon / exp reset is covered by the Prologue battle, the rest of the function is not ported |
 
+## src/eventscr_utils.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ResetBkselPalette` | `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | no forecast proc exists when the boss turn event ends at f3722 of `ram_trace_prologue_clear` |
+| `ChangeUnitSpritePalette` | `game/src/commonMain/kotlin/fe8/game/bm/UnitSprites.kt` | the packed value is 0 in the captured events, so only [applyUnitSpritePalettes] runs, and the palettes it writes are already in place before the call at f3720..3722 of `ram_trace_prologue_clear` |
+
+## src/icon.c (2)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ResetIconGraphics_` | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | the debug wrapper of `ResetIconGraphics`; both tables are already empty at f3720 and f3721 of `ram_trace_prologue_clear`, where the event end runs it |
+| `GetIconGfxTileIndex` | `game/src/commonMain/kotlin/fe8/game/ui/ItemIcon.kt` | formula 0x300 - index * 4; LoadIconObjectGraphics is verified at the PopupProc_GfxDraw tile 0x240 |
+
 ## src/opanim-main.c (2)
 
 | Function | Kotlin file | Reason |
@@ -1055,11 +1072,11 @@ Total entries: 658 across 92 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `ResetDialogueScreen` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | `ResetFaces` is checked by WorldMapExitTest through the event end; `ClearTalkBubble` is a separate host call |
 
-## src/icon.c (1)
+## src/helpbox.c (1)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
-| `GetIconGfxTileIndex` | `game/src/commonMain/kotlin/fe8/game/ui/ItemIcon.kt` | formula 0x300 - index * 4; LoadIconObjectGraphics is verified at the PopupProc_GfxDraw tile 0x240 |
+| `sub_808BB74` | `game/src/commonMain/kotlin/fe8/game/event/EventTextTalkHost.kt` | none of its five procs `gProcScr_BoxDialogue`, `ProcScr_TalkBoxIdle`, `ProcScr_MergeBoxDialogue`, `ProcScr_BoxDialogueDrawTextExt`, `gUnknown_08A01800` is in the procs of f3706..3722 or f4894..4912 of `ram_trace_prologue_clear` |
 
 ## src/m4a_1.s (1)
 

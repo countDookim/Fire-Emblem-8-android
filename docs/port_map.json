@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1305,
+    "verified": 1309,
     "implemented_unverified": 79
   },
   "functions": {
@@ -4434,6 +4434,17 @@
         "fe8.testing.TerrainDisplayDifferentialTest#select_move windows start after the unit waits"
       ]
     },
+    "GetDataSize": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "gba/data/src/commonMain/kotlin/gba/data/Decompress.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
+      ]
+    },
     "GetDefaultMuConfig": {
       "decomp_file": "src/mu.c",
       "system": "battle_map",
@@ -5117,7 +5128,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },
@@ -5191,6 +5202,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.AttackTargetListDifferentialTest#weapon target list matches the game"
+      ]
+    },
+    "GetTextDisplaySpeed": {
+      "decomp_file": "src/bmio.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/PlaySt.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
       ]
     },
     "GetTextDrawDest": {
@@ -9237,6 +9259,17 @@
         "fe8.testing.EntityBmMapsDifferentialTest#fog maps match the game on chapter 6"
       ]
     },
+    "Register2dChrMove": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "gba/data/src/commonMain/kotlin/gba/data/ChrMove.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
+      ]
+    },
     "RegisterEventActivation": {
       "decomp_file": "src/eventinfo.c",
       "system": "events",
@@ -11528,6 +11561,17 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitDisplayDifferentialTest#select_move unit window draws Eirika and settles"
+      ]
+    },
+    "UnpackRaw": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "gba/data/src/commonMain/kotlin/gba/data/Decompress.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
+        "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
       ]
     },
     "UnskipGmNodeIconDisplay": {

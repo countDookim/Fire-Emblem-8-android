@@ -24,6 +24,8 @@ import fe8.game.bm.MapAnimExpBar
 import fe8.game.bm.MapAnimInfoBox
 import fe8.game.bm.MapAnimScanline
 import fe8.game.bm.MapCursor
+import fe8.game.bm.MapLevelUpFrame
+import fe8.game.bm.MapLevelUpStats
 import fe8.game.bm.MapMenu
 import fe8.game.bm.MoveLimitView
 import fe8.game.bm.Mu
@@ -39,6 +41,9 @@ import fe8.game.bm.UnitFacing
 import fe8.game.bm.UnitSpriteHandles
 import fe8.game.bm.UnitTable
 import fe8.game.event.EventInfos
+import fe8.game.mapanim.ApProcs
+import fe8.game.mapanim.MapLevelUpAnnouncement
+import fe8.game.mapanim.MapLevelUpGainLabels
 import fe8.game.save.PidStats
 import fe8.game.scene.IntBinaryOperator
 import fe8.game.scene.IntConsumer
@@ -49,11 +54,13 @@ import fe8.game.ui.GreenText
 import fe8.game.ui.Menu
 import fe8.game.ui.UiFrame
 import fe8.game.ui.UiHand
+import fe8.game.worldmap.WorldMapApHost
 import gbafe.core.flags.EventFlags
 import gbafe.input.KeyStatus
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
+import gbafe.render.SpriteAnimPlayer
 
 /**
  * Connects the ported player phase parts to [PlayerPhase.hooks] for the real game (PP-17): the
@@ -101,7 +108,7 @@ internal class PlayerPhaseWiring(
     private val iconGfxIdLookupTable: ByteArray,
     private val mapCursor: MapCursor,
     /** The battle units and the forecast battle (`gBattleActor`, `BattleGenerateSimulation`). */
-    private val battle: BmBattle,
+    internal val battle: BmBattle,
     private val battleGenerate: BattleGenerate,
     /** `EventEngineExists`, which the forecast waits on. */
     private val eventEngineExists: () -> Boolean,
@@ -146,6 +153,18 @@ internal class PlayerPhaseWiring(
 
     /** Whether [forecast] has been built. */
     val isForecastReady: Boolean get() = this::forecast.isInitialized
+
+    /** The map battle exp bar; set by [wireAction]. */
+    lateinit var expBar: MapAnimExpBar
+        private set
+
+    /** The level-up announcement display started when exp passes 100; set by [wireAction]. */
+    lateinit var levelUp: MapLevelUpAnnouncement
+        private set
+
+    /** The map animation API; set by [wireAction]. */
+    internal lateinit var mapAnim: MapAnimApi
+        private set
     private val menuItemPanel = MenuItemPanel(
         engine, units, battle, items, unitLoader, bm, talk.text, talk.messages, hw, rom,
         drawnIconLookupTable, iconGfxIdLookupTable,
@@ -395,6 +414,7 @@ internal class PlayerPhaseWiring(
         val mapAnim = MapAnimApi(
             engine, bm, battle, battleGenerate, units, unitLoader, mu, rom, hw, camMove, flags,
         )
+        this.mapAnim = mapAnim
         mapAnim.hooks.renderBmMap = { render.renderBmMap() }
         mapAnim.hooks.hideUnitSprite = { id -> handles.hideUnitSprite(id) }
         mapAnim.hooks.showUnitSprite = { id -> handles.showUnitSprite(id) }
@@ -411,11 +431,60 @@ internal class PlayerPhaseWiring(
         }
         val infoBox = MapAnimInfoBox(engine, mapAnim.state, rom, talk.text, talk.messages, hw)
         infoBox.scanline.paletteWriter = gradientLines
-        mapAnim.hooks.startMapAnimInfoWindow = { x, y, p -> infoBox.startMapAnimInfoWindow(x, y, p) }
+        mapAnim.hooks.startMapAnimInfoWindow = { x, y, p ->
+            infoBox.startMapAnimInfoWindow(x, y, p)
+        }
         mapAnim.hooks.endMapAnimInfoWindow = { infoBox.endMapAnimInfoWindow() }
-        val expBar = MapAnimExpBar(engine, rom, infoBox, sound, hw)
+        val spritePlayer = SpriteAnimPlayer(
+            { rom.u16(it) },
+            loop.sprites,
+            WorldMapApHost(rom, hw, loop.oam),
+        ).also { it.clearAll() }
+        val apProcs = ApProcs(engine, spritePlayer)
+        val battles = arrayOf(battle.actor, battle.target)
+        val levelUpFrame = MapLevelUpFrame(
+            rom,
+            units,
+            battles,
+            talk.text,
+            talk.messages,
+            hw.tilemaps[0],
+            hw.tilemaps[1],
+            hw.palette,
+            hw.vram,
+            hw.tileDataOffset(1),
+        )
+        val levelUpStats = MapLevelUpStats(rom, units, battles, talk.text, hw.tilemaps[0])
+        val levelUpLabels = MapLevelUpGainLabels(engine, apProcs, hw, rom)
+        val levelUpHooks = MapLevelUpAnnouncement.Hooks().apply {
+            resetDialogueScreen = {
+                hw.fill(hw.tilemaps[0], 0)
+                hw.fill(hw.tilemaps[1], 0)
+                hw.enableBgSyncByMask(3)
+                hw.lcd.setWinEnable(0, 0, 0)
+                hw.lcd.setBgPosition(0, 0, 0)
+                hw.lcd.setBgPosition(1, 0, 0)
+            }
+        }
+        val levelUpAnnouncement = MapLevelUpAnnouncement(
+            engine,
+            hw,
+            rom,
+            sound,
+            bm,
+            mapAnim.state,
+            apProcs,
+            talk.text,
+            levelUpFrame,
+            levelUpStats,
+            levelUpLabels,
+            levelUpHooks,
+        )
+        levelUp = levelUpAnnouncement
+        val expBarInstance = MapAnimExpBar(engine, rom, infoBox, sound, hw, levelUpAnnouncement)
+        expBar = expBarInstance
         mapAnim.hooks.startMapAnimExpBar = { p, from, to, actor ->
-            expBar.start(p, from, to, actor)
+            expBarInstance.start(p, from, to, actor)
         }
         mapAnim.hooks.resetTextFont = { talk.text.resetTextFont() }
         mapAnim.hooks.initBmBgLayers = { mapGfx.initBmBgLayers() }

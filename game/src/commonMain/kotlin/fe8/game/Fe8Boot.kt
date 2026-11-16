@@ -825,7 +825,7 @@ public class Fe8Boot(
     public var unitSprites: UnitSprites? = null
 
     /** The player phase wiring (menu and battle forecast), set by the battle map wiring. */
-    private var playerWiring: PlayerPhaseWiring? = null
+    internal var playerWiring: PlayerPhaseWiring? = null
         private set
 
     /** `RefreshUnitSprites` of the battle map, set by [wireUnitSprites]. */

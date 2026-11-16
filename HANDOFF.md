@@ -18,8 +18,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 - EP-11f: Claude owner PC, event end graphics and fades (uiutils.c, bm.c, bmlib.c), until ~05:30Z (2026-11-16).
 
 
-- EP-20 (map info box A: mapanim_infobox.c), owner PC Gemini Flash agent `ep20`, claimed 2026-11-15 23:57Z.
-- EP-10c (turn support exp: bmreliance.c), owner PC Gemini Flash agent `ep10c`, claimed 2026-11-15 23:42Z.
+- EP-20 (map info box A: mapanim_infobox.c): Claude owner PC taking over Gemini's uncommitted `ep20` worktree (owner request), until ~06:00Z (2026-11-16).
+- EP-10c (turn support exp: bmreliance.c): Claude owner PC taking over Gemini's uncommitted `ep10c` worktree (owner request), until ~05:00Z (2026-11-16).
 
 
 ## Current state

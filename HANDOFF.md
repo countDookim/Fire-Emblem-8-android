@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-15 14:35Z (owner PC: enemies walk, attack and fade (EP-8..9c, EP-8b/8c), map battle start (EP-13), level-up rolls (MC-17), ROM-portrait app icon, game-text CI check, 24 new readability rows done, readability paused 2 days; 950 tests green locally). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-16 13:30Z (owner PC: map battle animation in game: info box, rounds, HP drain, death fade, exp bar; EP-10c support exp; level-up dispatch MC-18f). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -13,9 +13,22 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- EP-23, MC-18f + MC-18 WIRE: owner PC Claude, until ~17:00Z.
 
 ## Current state
+
+- 2026-11-16 09:30Z – 13:30Z owner PC Claude (Sonnet agents, two at a time): **map battle animation in game.**
+  Finished Gemini's EP-10c (turn support exp; 4 bugs fixed, levels/total Transcribed, EP10c-cap) and EP-20 (info box A).
+  Merged EP-21 (info box shake/drain/end), EP-22 (frame gradient; HBlank `sub_8081FFC` Transcribed, EP-22cap),
+  EP-18 (round/death/exp dispatch, real `ProcScr_MapAnimEnd`), EP-25 (Mu hit flash, speed-up, death fade), EP-26
+  (exp bar), EP-23 (round proc: lunge, hit flash, HP drain, death fade; crit/wall 1:1 with EP-23b stand-ins, spell path
+  `TODO()`), MC-18f (exp bar starts the real level-up display at 100). In game, a map battle now shows the info box
+  with gradient, the rounds, HP drain, death fade and exp bar (MANUAL_TEST EP-18/EP-26 item). Fixed per-frame
+  allocations (HBlank replay boxing, face mouth `ChrMove`, palette fades). Next: **MC-18 WIRE** (agent sketch: build
+  `SpriteAnimPlayer` on `loop.sprites` with `WorldMapApHost`, `ApProcs`, `MapLevelUpFrame`/`MapLevelUpStats` over
+  battle actor/target, `MapLevelUpGainLabels`, `MapLevelUpAnnouncement` with a `resetDialogueScreen` that clears
+  BG0/BG1/window enables, pass it as `levelUp` to `MapAnimExpBar` in PlayerPhaseWiring), EP-24 (MISS/no damage,
+  move away, `CallDelayedArg`), EP-19 (popups), EP-21b, EP-23b. Lesson: agents must run the UNTARGETED
+  `:testing:serialTest --rerun` (targeted serialTest skips; targeted allocation runs are unreliable).
 
 - 2026-11-16 03:00Z wrap-up (owner PC Claude): also merged EP-11h, EP-11f, EP-35 (most event-end/after-move
   functions Transcribed where the Prologue captures cannot tell them from stand-ins; see TASKS Done). Master CI

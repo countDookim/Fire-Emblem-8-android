@@ -37,8 +37,10 @@ from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Onl
   units' names and HP appears next to the fighters (top or bottom of the screen) over a coloured
   vertical gradient; it closes after the fight, and the map, menus and windows look as before
   afterwards (no leftover tiles or wrong colours). The fight takes about a third of a second longer
-  than before. Limits: the HP numbers and bars do not drain yet (round animations EP-23/24 missing),
-  so the box shows the HP before the fight and closes; no hit flash or death fade yet.
+  than before. Each round: the attacker lunges towards the target and steps back, the target
+  flashes white on a hit with the hit sound, and the HP number and bar in the box drain. A unit at
+  0 HP fades out. Limits: a miss shows no MISS text and a 0-damage hit no NO DAMAGE text (EP-24);
+  a critical hit has no crit flash or screen shake (EP-23b).
   After the fight, when a player unit gained exp (Eirika attacking, or surviving an enemy attack),
   an exp bar window opens in the middle of the screen and fills from the old to the new exp with a
   ticking sound, then closes. Limits: a bar that reaches 100 (level up) shows no level-up screen yet.
@@ -86,8 +88,7 @@ from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Onl
 
 Re-test these only when a change to them is announced.
 
-- **Combat display:** no battle animation or map round animation (the info box shows, but its HP
-  does not drain), death fade, level-up display (stat gains
+- **Combat display:** no battle animation, MISS / NO DAMAGE text, crit flash, level-up display (stat gains
   are applied but not shown), counter animation, weapon-broke or item-drop popups (M6-G, M6-H,
   MC-18).
 - **Commands and screens:** Item answers with the refusal beep; the map menu's Unit, Status, Guide,

@@ -243,6 +243,19 @@ public class ProcEngine(
         }
     }
 
+    /**
+     * Moves [proc] to the first command of [script] (which need not be its own) and clears its
+     * repeat callback, so it runs the new commands on the next [run]. [Proc.script] keeps naming
+     * the script the proc started with.
+     *
+     * Ported from src/proc.c: Proc_GotoScript
+     */
+    public fun gotoScript(proc: Proc, script: ProcScript) {
+        proc.scrScript = script
+        proc.scrCur = 0
+        proc.idleCb = null
+    }
+
     /** Ends every proc running [script], children included (`Proc_EndEach`). */
     public fun endEach(script: ProcScript) {
         for (i in 0 until maxProcs) {

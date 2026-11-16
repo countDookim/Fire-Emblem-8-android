@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 677 across 97 decomp files (missing reason: 0).
+Total entries: 680 across 97 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -686,6 +686,17 @@ Total entries: 677 across 97 decomp files (missing reason: 0).
 | `GetTerrainHealAmount` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseTargets.kt` | no unit in a capture stands on a terrain that heals, and the map of the Prologue has none |
 | `GetTerrainHealsStatus` | `game/src/commonMain/kotlin/fe8/game/bm/PhaseTargets.kt` | no unit in a capture stands on a terrain that heals a status, and the map of the Prologue has none |
 
+## src/mapanim.c (6)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `MapAnim_PrepareBattleTalk` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | text display only |
+| `SetBattleMuPaletteByIndex` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | no Manakete/Myrrh actor appears in any Prologue capture, so the non-Myrrh return leaves MU palettes unchanged |
+| `SetBattleMuPalette` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | no Manakete/Myrrh actor appears in any Prologue capture, so the non-Myrrh return leaves MU palettes unchanged |
+| `MapAnim_ShowPoisonEffectIfAny` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | no hit of the capture poisons, so the taken branch is a no-op the capture cannot tell from a stand-in |
+| `MapAnim_StoleItemPopup` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | no steal in the capture; the branch is the stolen item popup, a stand-in hook |
+| `MapAnim_Cleanup` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | its calls are display set-up, and the capture's only difference is the one skipped branch: `EndAllMus` runs only while an event engine exists, none does at the end of the capture's animation |
+
 ## src/popup.c (6)
 
 | Function | Kotlin file | Reason |
@@ -885,14 +896,6 @@ Total entries: 677 across 97 decomp files (missing reason: 0).
 | `GetSpecialItemFuncIndex` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only the result -1 runs, for Red 0's items, and it shows in no captured value; a wrong hit would enter a special item function, which the function trace of the Prologue says never runs |
 | `AiTryDoSpecialItems` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | it runs once, for Red 0, and changes nothing; its result is discarded by the caller |
 | `sub_8040C5C` | `game/src/commonMain/kotlin/fe8/game/bm/CpDecide.kt` | only the non-rogue return runs, for Red 0 at f1613, and it shows in no captured value; the rogue part is a stand-in, EP-12 |
-
-## src/mapanim.c (3)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `MapAnim_PrepareBattleTalk` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | text display only |
-| `SetBattleMuPaletteByIndex` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | no Manakete/Myrrh actor appears in any Prologue capture, so the non-Myrrh return leaves MU palettes unchanged |
-| `SetBattleMuPalette` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | no Manakete/Myrrh actor appears in any Prologue capture, so the non-Myrrh return leaves MU palettes unchanged |
 
 ## src/mapanim_lvup.c (3)
 

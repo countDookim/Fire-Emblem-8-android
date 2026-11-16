@@ -18,7 +18,10 @@ import fe8.game.bm.EntityBmMaps
 import fe8.game.bm.ItemInfo
 import fe8.game.bm.ItemMenuLine
 import fe8.game.bm.MenuItemPanel
+import fe8.game.bm.ChapterMapGfx
 import fe8.game.bm.MapAnimApi
+import fe8.game.bm.MapAnimInfoBox
+import fe8.game.bm.MapAnimScanline
 import fe8.game.bm.MapCursor
 import fe8.game.bm.MapMenu
 import fe8.game.bm.MoveLimitView
@@ -78,6 +81,10 @@ internal class PlayerPhaseWiring(
     private val entityMaps: EntityBmMaps,
     private val talk: TalkScene,
     private val handles: UnitSpriteHandles,
+    /** `InitBmBgLayers` and `LoadObjUIGfx` for the map animation's clean-up. */
+    private val mapGfx: ChapterMapGfx,
+    /** The per-line palette writes of the info box's gradient (`LineTable.writePalette`). */
+    private val gradientLines: MapAnimScanline.PaletteLineWriter,
     private val mu: Mu,
     private val active: ActiveUnit,
     private val unitLoader: UnitLoader,
@@ -385,7 +392,7 @@ internal class PlayerPhaseWiring(
         }
         // EP-13: the map battle animation start (MOVEUNITs and the animation proc).
         val mapAnim = MapAnimApi(
-            engine, bm, battle, battleGenerate, units, unitLoader, mu, rom, hw, camMove,
+            engine, bm, battle, battleGenerate, units, unitLoader, mu, rom, hw, camMove, flags,
         )
         mapAnim.hooks.renderBmMap = { render.renderBmMap() }
         mapAnim.hooks.hideUnitSprite = { id -> handles.hideUnitSprite(id) }
@@ -397,6 +404,18 @@ internal class PlayerPhaseWiring(
         mapAnim.hooks.callBattleQuoteEventsIfAny = { pidA, pidB ->
             infos.callBattleQuoteEventsIfAny(pidA, pidB)
         }
+        val infoBox = MapAnimInfoBox(engine, mapAnim.state, rom, talk.text, talk.messages, hw)
+        infoBox.scanline.paletteWriter = gradientLines
+        mapAnim.hooks.startMapAnimInfoWindow = { x, y, p -> infoBox.startMapAnimInfoWindow(x, y, p) }
+        mapAnim.hooks.endMapAnimInfoWindow = { infoBox.endMapAnimInfoWindow() }
+        mapAnim.hooks.resetTextFont = { talk.text.resetTextFont() }
+        mapAnim.hooks.initBmBgLayers = { mapGfx.initBmBgLayers() }
+        mapAnim.hooks.loadUiFrameGraphics = {
+            UiFrame.loadUiFrameGraphics(hw, rom, playSt.windowColor)
+        }
+        mapAnim.hooks.loadObjUiGfx = { mapGfx.loadObjUiGfx() }
+        mapAnim.hooks.checkBattleDefeatTalk = { pid -> infos.checkBattleDefeatTalk(pid) }
+        mapAnim.hooks.displayDefeatTalkForPid = { pid -> infos.displayDefeatTalkForPid(pid) }
         combat.hooks.beginBattleAnimations = ProcFunc { mapAnim.beginBattleAnimations() }
         h.actionCombat = gbafe.proc.ProcBoolFunc { combat.actionCombat(it) }
         h.battleAnimPreconfOff =

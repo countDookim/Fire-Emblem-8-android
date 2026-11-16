@@ -1347,7 +1347,8 @@ public class BattleGenerate(
         private const val CLASS_ENTOUMBED = 0x53
         private const val CLASS_GORGONEGG = 0x62
         // More `BATTLE_HIT_ATTR_*` bits, set by the weapon effects of the hit.
-        private const val ATTR_POISON = 1 shl 6
+        /** `BATTLE_HIT_ATTR_POISON`: the hit poisons the target. */
+        public const val ATTR_POISON: Int = 1 shl 6
         private const val ATTR_DEVIL = 1 shl 7
         private const val ATTR_HPSTEAL = 1 shl 8
         private const val ATTR_HPHALVE = 1 shl 9

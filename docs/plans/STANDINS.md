@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 215 across 48 Kotlin files.
+Total entries: 221 across 48 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -23,12 +23,14 @@ Total entries: 215 across 48 Kotlin files.
 | M6-H | 32 |
 | M6-I | 27 |
 | M6-J | 10 |
-| D09-3 | 2 |
+| D09-3 | 3 |
 | EP-12 | 26 |
 | EP-13 | 1 |
-| EP-18 | 4 |
+| EP-19 | 2 |
 | EP-1b | 1 |
-| EP-21 | 1 |
+| EP-23 | 1 |
+| EP-25 | 2 |
+| EP-26 | 1 |
 | EP-30 | 2 |
 | EP-36 | 2 |
 | EP-7 | 2 |
@@ -38,6 +40,7 @@ Total entries: 215 across 48 Kotlin files.
 | PP-17 | 1 |
 | PP-4 | 1 |
 | PP-9 | 1 |
+| unassigned | 4 |
 
 ## M6-B (12)
 
@@ -249,11 +252,12 @@ Total entries: 215 across 48 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `wfxFlamesInitGradientPublic` | Stand-in until M6-J (LG-0 weather sub-lane): weather effects (`WfxUpdate`, `WfxVSync`) are not ported; the Prologue has no weather. |
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | `unitKill` | `InitUnitsupports` (the supports of a dead blue unit) is a stand-in until the supports lane (M6-J). |
 
-## D09-3 (2)
+## D09-3 (3)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `gotItemPopup` | Stand-ins (D09-3): `gpPopupUnit` is not tracked, so the unit-name text id is 0 (the got-item and pilfered scripts do not use the unit name), and [addItem] with a full inventory (the item-drop menu)... |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `newPopupItemStealing` | Stand-in until the popups are ported (D09-3; no capture holds a steal): nothing happens. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | `event37GiveItem` | Host stand-ins (D09-3): the "gold got" popup (`NewPopup_GoldGot`) is not shown and the gold add happens at once. |
 
 ## EP-12 (26)
@@ -293,14 +297,12 @@ Total entries: 215 across 48 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `beginBattleAnimations` | Stand-in until EP-13: sets only the flag, so the animation ends at once. |
 
-## EP-18 (4)
+## EP-19 (2)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `displayRoundAnim` | Stand-in until EP-18: round animation effect. |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `endAnimation` | The stand-in end of the animation, EP-18 (see [Hooks.mapAnimEnd]). |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `mapAnimEnd` | Stand-in until EP-18: ends battle animation. |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `showPoisonEffectIfAny` | Stand-in until EP-18: map poison effect. |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `displayWRankUpPopup` | Stand-in until EP-19: nothing happens. |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `displayWpnBrokePopup` | Stand-in until EP-19: nothing happens (the popup checks and the popup procs are not written). |
 
 ## EP-1b (1)
 
@@ -308,11 +310,24 @@ Total entries: 215 across 48 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | `prepareTrapDefeats` | Stand-in until EP-1b. |
 
-## EP-21 (1)
+## EP-23 (1)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `startMapAnimInfoWindow` | Stand-in until EP-21: the port exists ([MapAnimInfoBox.startMapAnimInfoWindow]) but is not wired, because the box cannot yet shake, drain HP or end itself (`MapInfoBoxShake`, `EndMapAnimInfoWindow`). |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `roundProcScript` | Stand-in until EP-23 and EP-24: null, so no round animation runs and the round takes no time. |
+
+## EP-25 (2)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `muDeathFadeExists` | Stand-in until EP-25: never (no fade is started). |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `muStartDeathFade` | Stand-in until EP-25: nothing happens, so the dead unit's MOVEUNIT does not fade. |
+
+## EP-26 (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `startMapAnimExpBar` | Stand-in until EP-26: nothing happens, so no exp bar shows and the animation does not wait for it. |
 
 ## EP-30 (2)
 
@@ -373,3 +388,12 @@ Total entries: 215 across 48 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/ui/Menu.kt` | `displayFrozenUiHand` | Stand-in for PP-9 follow-up (a capture that runs a frozen menu). |
+
+## unassigned (4)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `afterCleanup` | Stand-in until those are ported: [MapAnimApi] sets it to end all MOVEUNITs and show the target's sprite. |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `mapAnimShowPoisonEffectIfAny` | Transcribed from src/mapanim.c: MapAnim_ShowPoisonEffectIfAny (not verified: no hit of the capture poisons, so the taken branch is a no-op the capture cannot tell from a stand-in) Starts the poison... |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `mapAnimStoleItemPopup` | Transcribed from src/mapanim.c: MapAnim_StoleItemPopup (not verified: no steal in the capture; the branch is the stolen item popup, a stand-in hook) Shows the stolen item's popup for a steal animat... |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `newMapPoisonEffect` | Stand-in until the poison effect is ported (no capture holds a poisoned hit): nothing happens. |

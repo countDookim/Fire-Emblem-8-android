@@ -3,6 +3,7 @@ package fe8.game.bm
 import fe8.game.RomView
 import fe8.game.bm.StructCodec.s8
 import fe8.game.bm.StructCodec.u32
+import gbafe.core.flags.FlagStore
 import gbafe.proc.Proc
 import gbafe.proc.ProcBoolFunc
 import gbafe.proc.ProcEngine
@@ -14,6 +15,8 @@ import gbafe.proc.ProcScripts.goto
 import gbafe.proc.ProcScripts.label
 import gbafe.proc.ProcScripts.repeat
 import gbafe.proc.ProcScripts.sleep
+import gbafe.proc.ProcScripts.yield
+import gbafe.proc.TemporaryLock
 import gbafe.proc.ProcScripts.whileTrue
 import gbafe.render.BgHardware
 
@@ -131,6 +134,9 @@ public class ManimSt {
  * @param rom `gSpellAssocData`.
  * @param hardware BG 2 and the palette buffer of `BeginBattleAnimations`, `null` headless.
  * @param camMove the map camera mover for [mapAnimMoveCameraOntoSubject], null headless.
+ * @param flags the event flags `MapAnim_DisplayDeathQuote` clears `EVFLAG_GAMEOVER` in; null
+ *   headless (a death of a lord then leaves the flag alone).
+ * @param temporaryLock the `StartTemporaryLock` proc of the poison effect's pause.
  */
 public class MapAnimApi(
     private val engine: ProcEngine,
@@ -143,6 +149,8 @@ public class MapAnimApi(
     private val rom: RomView,
     private val hardware: BgHardware? = null,
     camMove: CamMove? = null,
+    private val flags: FlagStore? = null,
+    private val temporaryLock: TemporaryLock = TemporaryLock(engine),
 ) {
     /** What the start calls outside the ported functions. */
     public class Hooks {
@@ -195,23 +203,95 @@ public class MapAnimApi(
         public var battleEventEngineExists: () -> Boolean = { false }
 
         /**
-         * `StartMapAnimInfoWindow` (src/mapanim_infobox.c). Stand-in until EP-21: the port exists
-         * ([MapAnimInfoBox.startMapAnimInfoWindow]) but is not wired, because the box cannot yet
-         * shake, drain HP or end itself (`MapInfoBoxShake`, `EndMapAnimInfoWindow`).
+         * `StartMapAnimInfoWindow` (src/mapanim_infobox.c), [MapAnimInfoBox.startMapAnimInfoWindow]
+         * (wired by the game; nothing happens headless).
          */
         public var startMapAnimInfoWindow: (x: Int, y: Int, proc: Proc) -> Unit = { _, _, _ -> }
 
-        /** `MapAnim_DisplayRoundAnim` (EP-18). Stand-in until EP-18: round animation effect. */
-        public var displayRoundAnim: ProcFunc = ProcFunc {}
-
-        /** `MapAnim_ShowPoisonEffectIfAny` (EP-18). Stand-in until EP-18: map poison effect. */
-        public var showPoisonEffectIfAny: ProcFunc = ProcFunc {}
+        /**
+         * `MapAnim_GetRoundProcScript` (src/mapanim_spellassoc.c): the script of the proc that
+         * animates the current round, which [mapAnimDisplayRoundAnim] starts as a blocking child.
+         * Stand-in until EP-23 and EP-24: null, so no round animation runs and the round takes no
+         * time.
+         */
+        public var roundProcScript: () -> ProcScript? = { null }
 
         /**
-         * `Proc_GotoScript into ProcScr_MapAnimEnd` (EP-18). Stand-in until EP-18: ends battle
-         * animation.
+         * `NewMapPoisonEffect(unit)` (the poison hit's map effect) for the unit at GBA address
+         * `unit`. Stand-in until the poison effect is ported (no capture holds a poisoned hit):
+         * nothing happens.
          */
-        public var mapAnimEnd: (Proc) -> Unit = {}
+        public var newMapPoisonEffect: (unit: Int) -> Unit = {}
+
+        /**
+         * `NewPopup_ItemStealing(item, proc)`: the stolen item popup. Stand-in until the popups
+         * are ported (D09-3; no capture holds a steal): nothing happens.
+         */
+        public var newPopupItemStealing: (item: Int, proc: Proc) -> Unit = { _, _ -> }
+
+        /**
+         * `CheckBattleDefeatTalk(pid)` ([EventInfos.checkBattleDefeatTalk]): whether character
+         * [pid] has a defeat quote to show. No quote without the event system.
+         */
+        public var checkBattleDefeatTalk: (pid: Int) -> Boolean = { false }
+
+        /** `DisplayDefeatTalkForPid(pid)` ([EventInfos.displayDefeatTalkForPid]). */
+        public var displayDefeatTalkForPid: (pid: Int) -> Unit = {}
+
+        /**
+         * `EndMapAnimInfoWindow` (src/mapanim_infobox.c), [MapAnimInfoBox.endMapAnimInfoWindow]
+         * (wired by the game; nothing happens headless).
+         */
+        public var endMapAnimInfoWindow: () -> Unit = {}
+
+        /**
+         * `MU_StartDeathFade(mu)` (src/mu.c) for the `ProcScr_Mu` proc `mu`. Stand-in until EP-25:
+         * nothing happens, so the dead unit's MOVEUNIT does not fade.
+         */
+        public var muStartDeathFade: (mu: Proc) -> Unit = {}
+
+        /**
+         * `PROC_WHILE_EXISTS(ProcScr_MuDeathFade)`: a death fade proc runs. Stand-in until EP-25:
+         * never (no fade is started).
+         */
+        public var muDeathFadeExists: () -> Boolean = { false }
+
+        /**
+         * `ProcScr_MapAnimExpBar` started as a blocking child of the animation proc with
+         * `MAExpBarProc.expFrom`, `expTo` and `actorId` set. Stand-in until EP-26: nothing
+         * happens, so no exp bar shows and the animation does not wait for it.
+         */
+        public var startMapAnimExpBar: (parent: Proc, expFrom: Int, expTo: Int, actorId: Int) ->
+            Unit = { _, _, _, _ -> }
+
+        /**
+         * `DisplayWpnBrokePopup` (src/mapanim.c). Stand-in until EP-19: nothing happens (the
+         * popup checks and the popup procs are not written).
+         */
+        public var displayWpnBrokePopup: ProcFunc = ProcFunc {}
+
+        /** `DisplayWRankUpPopup` (src/mapanim.c). Stand-in until EP-19: nothing happens. */
+        public var displayWRankUpPopup: ProcFunc = ProcFunc {}
+
+        /** `ResetTextFont` ([TextSystem.resetTextFont], wired by the game). */
+        public var resetTextFont: () -> Unit = {}
+
+        /** `InitBmBgLayers` ([ChapterMapGfx.initBmBgLayers], wired by the game). */
+        public var initBmBgLayers: () -> Unit = {}
+
+        /** `LoadUiFrameGraphics` ([UiFrame.loadUiFrameGraphics], wired by the game). */
+        public var loadUiFrameGraphics: () -> Unit = {}
+
+        /** `LoadObjUIGfx` ([ChapterMapGfx.loadObjUiGfx], wired by the game). */
+        public var loadObjUiGfx: () -> Unit = {}
+
+        /**
+         * Not in the original: what the game still needs when the animation has ended. The
+         * original leaves the MOVEUNITs and the hidden target sprite to later map code (the
+         * cursor hover and the next action). Stand-in until those are ported: [MapAnimApi] sets
+         * it to end all MOVEUNITs and show the target's sprite.
+         */
+        public var afterCleanup: () -> Unit = {}
 
         /** `SetBattleMuPaletteByIndex`: `SetMuPal`. */
         public var setMuPal: (mu: Proc, pal: Int) -> Unit = { _, _ -> }
@@ -237,10 +317,7 @@ public class MapAnimApi(
         }
         h.prepareBattleTalk = ProcFunc { mapAnimPrepareBattleTalk() }
         h.moveCameraOntoSubject = ProcFunc { mapAnimMoveCameraOntoSubject(it) }
-        h.mapAnimEnd = { p ->
-            endAnimation()
-            engine.end(p)
-        }
+        h.afterCleanup = { endAnimation() }
     }
 
     /** `gManimSt`. */
@@ -268,12 +345,42 @@ public class MapAnimApi(
             sleep(15),
             label(0),
             repeat(ProcFunc { mapAnimPrepareNextBattleRound(it) }),
-            call(ProcFunc { hooks.displayRoundAnim.invoke(it) }),
+            call(ProcFunc { mapAnimDisplayRoundAnim(it) }),
             sleep(1),
-            call(ProcFunc { hooks.showPoisonEffectIfAny.invoke(it) }),
+            call(ProcFunc { mapAnimShowPoisonEffectIfAny(it) }),
             sleep(1),
             sleep(5),
             goto(0),
+        ),
+    )
+
+    /**
+     * `ProcScr_MapAnimEnd` (0x089A35B0): the end of the animation, 19 commands: the defeat
+     * quote, the death fade, the info box end, the steal popup, the exp bar, the popups, the
+     * camera, the game unlock and the clean-up.
+     */
+    public val endScript: ProcScript = ProcScript(
+        "ProcScr_MapAnimEnd",
+        listOf(
+            call(ProcFunc { mapAnimDisplayDeathQuote() }),
+            whileTrue(ProcBoolFunc { hooks.battleEventEngineExists() }),
+            call(ProcFunc { mapAnimDisplayDeathFade() }),
+            whileTrue(ProcBoolFunc { hooks.muDeathFadeExists() }),
+            call(ProcFunc { hooks.endMapAnimInfoWindow() }),
+            sleep(1),
+            call(ProcFunc { mapAnimStoleItemPopup(it) }),
+            yield(),
+            call(ProcFunc { mapAnimDisplayExpBar(it) }),
+            yield(),
+            call(ProcFunc { hooks.displayWpnBrokePopup.invoke(it) }),
+            sleep(8),
+            call(ProcFunc { hooks.displayWRankUpPopup.invoke(it) }),
+            yield(),
+            call(ProcFunc { hooks.moveCameraOntoSubject.invoke(it) }),
+            sleep(2),
+            call(ProcFunc { bm.lock = (bm.lock - 1) and 0xFF }),
+            call(ProcFunc { mapAnimCleanup() }),
+            end(),
         ),
     )
 
@@ -653,7 +760,7 @@ public class MapAnimApi(
         val info = BattleGenerate.info(hit)
         if ((info and BattleGenerate.INFO_END) != 0) {
             engine.breakProc(proc)
-            hooks.mapAnimEnd(proc)
+            engine.gotoScript(proc, endScript)
             return
         }
 
@@ -665,6 +772,128 @@ public class MapAnimApi(
         engine.breakProc(proc)
     }
 
+    /**
+     * Ported from src/mapanim.c: MapAnim_DisplayRoundAnim
+     *
+     * Starts the round's animation proc ([Hooks.roundProcScript]) as a blocking child of [proc].
+     */
+    public fun mapAnimDisplayRoundAnim(proc: Proc) {
+        hooks.roundProcScript()?.let { engine.startBlocking(it, proc) }
+    }
+
+    /**
+     * Transcribed from src/mapanim.c: MapAnim_ShowPoisonEffectIfAny (not verified: no hit of the
+     * capture poisons, so the taken branch is a no-op the capture cannot tell from a stand-in)
+     *
+     * Starts the poison effect on the round's target and holds [proc] for 100 frames when the hit
+     * poisons.
+     */
+    public fun mapAnimShowPoisonEffectIfAny(proc: Proc) {
+        if ((state.hitAttributes and BattleGenerate.ATTR_POISON) != 0) {
+            hooks.newMapPoisonEffect(state.unitAddress[state.targetActorId])
+            temporaryLock.start(proc, 100)
+        }
+    }
+
+    /**
+     * Transcribed from src/mapanim.c: MapAnim_StoleItemPopup (not verified: no steal in the
+     * capture; the branch is the stolen item popup, a stand-in hook)
+     *
+     * Shows the stolen item's popup for a steal animation.
+     */
+    public fun mapAnimStoleItemPopup(proc: Proc) {
+        if (state.mapAnimKind == ManimSt.KIND_STEAL) {
+            hooks.newPopupItemStealing(state.bu[1]!!.weapon, proc)
+        }
+    }
+
+    /**
+     * The actor whose HP reached 0 (the target wins a tie, then the actor overrides it), or -1:
+     * the `actorNum` search of `MapAnim_DisplayDeathQuote` and `MapAnim_DisplayDeathFade`.
+     */
+    private fun deadActor(): Int {
+        var actorNum = -1
+        when (state.actorCount) {
+            2 -> {
+                if (state.hpCur[1] == 0) actorNum = 1
+                if (state.hpCur[0] == 0) actorNum = 0
+            }
+            1 -> if (state.hpCur[0] == 0) actorNum = 0
+        }
+        return actorNum
+    }
+
+    /**
+     * Ported from src/mapanim.c: MapAnim_DisplayDeathQuote
+     *
+     * When an actor died, clears `EVFLAG_GAMEOVER` for Eirika and Ephraim (the lord's death is
+     * decided later) and, if the dead character has a defeat quote, ends the info box and shows it.
+     */
+    public fun mapAnimDisplayDeathQuote() {
+        val actorNum = deadActor()
+        if (actorNum == -1) return
+        val pid = charId(actorNum)
+        when (pid) {
+            CHARACTER_EIRIKA, CHARACTER_EPHRAIM -> {
+                if (flags?.checkFlag(EVFLAG_GAMEOVER) == true) flags.clearFlag(EVFLAG_GAMEOVER)
+            }
+        }
+        if (hooks.checkBattleDefeatTalk(pid)) {
+            hooks.endMapAnimInfoWindow()
+            hooks.displayDefeatTalkForPid(pid)
+        }
+    }
+
+    /**
+     * Ported from src/mapanim.c: MapAnim_DisplayDeathFade
+     *
+     * Starts the death fade of the dead actor's MOVEUNIT.
+     */
+    public fun mapAnimDisplayDeathFade() {
+        val actorNum = deadActor()
+        if (actorNum != -1) hooks.muStartDeathFade(state.mu[actorNum]!!)
+    }
+
+    /**
+     * Ported from src/mapanim.c: MapAnim_DisplayExpBar
+     *
+     * Starts the exp bar for the actor that gained exp (the target if both did, then the actor
+     * overrides it) from its exp before the battle by the exp gained, blocking [proc].
+     */
+    public fun mapAnimDisplayExpBar(proc: Proc) {
+        var actorNum = -1
+        when (state.actorCount) {
+            2 -> {
+                if (state.bu[1]!!.expGain != 0) actorNum = 1
+                if (state.bu[0]!!.expGain != 0) actorNum = 0
+            }
+            1 -> if (state.bu[0]!!.expGain != 0) actorNum = 0
+        }
+        if (actorNum >= 0) {
+            val bu = state.bu[actorNum]!!
+            hooks.startMapAnimExpBar(proc, bu.expPrevious, bu.expPrevious + bu.expGain, actorNum)
+        }
+    }
+
+    /**
+     * Transcribed from src/mapanim.c: MapAnim_Cleanup (not verified: its calls are display
+     * set-up, and the capture's only difference is the one skipped branch: `EndAllMus` runs only
+     * while an event engine exists, none does at the end of the capture's animation)
+     *
+     * Resets the MOVEUNIT animations, text font, info box and BG layers and UI graphics after the
+     * animation.
+     */
+    public fun mapAnimCleanup() {
+        mu.resetMuAnims()
+        hooks.resetTextFont()
+        hooks.endMapAnimInfoWindow()
+        hooks.initBmBgLayers()
+        hooks.loadUiFrameGraphics()
+        hooks.loadObjUiGfx()
+        if (hooks.eventEngineExists()) mu.endAllMus()
+        hooks.afterCleanup()
+    }
+
     private fun charId(actor: Int): Int {
         val bytes = state.unitBytes[actor] ?: return 0
         val offset = state.unitOffset[actor]
@@ -673,15 +902,17 @@ public class MapAnimApi(
         return rom.u8(charPtr + 4)
     }
 
-    /** The stand-in end of the animation, EP-18 (see [Hooks.mapAnimEnd]). */
+    /** The default [Hooks.afterCleanup]. */
     private fun endAnimation() {
         mu.endAllMus()
         if (state.actorCount > 1) hooks.showUnitSprite(s8(battle.target.bytes, OFF_INDEX) and 0xFF)
-        bm.lock = (bm.lock - 1) and 0xFF
     }
 
     /** Constants. */
     public companion object {
+        private const val CHARACTER_EIRIKA = 0x01
+        private const val CHARACTER_EPHRAIM = 0x0F
+        private const val EVFLAG_GAMEOVER = 0x65
         private const val MA_FACING_OPPONENT = 0
         private const val MA_FACING_DEFAULT = 1
         private const val MA_FACING_UNK = 2

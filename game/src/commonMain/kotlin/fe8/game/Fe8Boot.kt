@@ -22,6 +22,7 @@ import fe8.game.bm.CamMove
 import fe8.game.bm.ChapterData
 import fe8.game.bm.ChapterIntro
 import fe8.game.bm.ChapterMapGfx
+import fe8.game.bm.MapAnimScanline
 import fe8.game.bm.CpEquip
 import fe8.game.bm.BmxFade
 import fe8.game.bm.CpPerform
@@ -1166,7 +1167,12 @@ public class Fe8Boot(
         PlayerPhaseWiring(
             engine, rom, hw, loop.bmSt, playSt, battleBmMap, units, flags, keys,
             IntSupplier { clock.get().toInt() }, control.sound, loop, camMove, bmapRender,
-            battleEntityMaps, talkScene, handles, mu, active, loader,
+            battleEntityMaps, talkScene, handles,
+            ChapterMapGfx(rom, battleChapters, hw, control.playSt),
+            MapAnimScanline.PaletteLineWriter { line, index, color ->
+                state.lines.writePalette(line, index, color)
+            },
+            mu, active, loader,
             { start.hooks.getBattleMapKind() }, trapPool,
             { resetIcons() }, IntConsumer { palId -> loadIconPalettes(palId) },
             drawnIconLookupTable, iconGfxIdLookupTable, mapCursor, battle,

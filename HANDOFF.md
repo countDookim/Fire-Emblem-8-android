@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-16 13:36Z (owner PC: MC-18 level-up display wired in PlayerPhaseWiring). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-16 14:02Z (owner PC: EP-24 round move-away, CallDelayedArg and MISS anim ported/wired; MC-18 wired). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -13,17 +13,19 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- `EP-24`: Gemini owner PC, until ~14:00Z (`wip/ep24`).
-- `EP-19`: Gemini owner PC, until ~14:15Z (`wip/ep19`).
+- `EP-19`: Gemini owner PC, until ~14:30Z (`wip/ep19`).
+- `MC-18d-face`: Gemini owner PC, until ~14:35Z (`wip/mc18d-face`).
 
 ## Current state
 
-- 2026-11-16 12:48Z – 13:36Z owner PC Gemini (Flash agents): **MC-18 wired (`dc310c29`)** — `PlayerPhaseWiring` now
-  wires `MapLevelUpAnnouncement` (`WorldMapApHost`, `ApProcs`, `MapLevelUpFrame`/`Stats`/`GainLabels`, and
-  `resetDialogueScreen`) into `MapAnimExpBar`. End-to-end replay through `Fe8Boot` matches f6519 BG0/BG1, cleans up
-  BG0/BG1/window enables/scroll offsets, leaves write-back untouched, and passes untargeted `:testing:serialTest`.
-  In game, exp bars reaching 100 now show the level-up banner, panel and stat gains (portrait stays `MC-18d-face`).
-  Next: EP-24 (in progress), MC-18d-face, EP-19, EP-21b, EP-23b.
+- 2026-11-16 12:48Z – 14:02Z owner PC Gemini (Flash agents): **EP-24 done (`ce824507`)**, **MC-18 wired (`dc310c29`)**.
+  `EP-24` ported `CallDelayedArg`/`_OnLoop` (`CallDelayedArg.kt`), `MapAnimMoveUnitAwayFromTargetExt`,
+  `MapAnim_MoveSubjectsAwayFromTarget` (`ATTR_TATTACK` branch Transcribed), and `MapAnim_BeginMISSAnim` (reusing
+  `ApProcs` with pooled states, verified against `ram_trace_prologue_clear` `f4485..4611` and miss OAM `f4550..4577`;
+  0-damage `MapAnim_BeginNODAMAGEAnim` deferred to `EP-24b` for CAP; shared `ApProcs` in `PlayerPhaseWiring`).
+  `MC-18` wired `MapLevelUpAnnouncement` into `MapAnimExpBar` in `PlayerPhaseWiring` (matches `f6519`, preserves
+  write-back). Both passed `:game:dokkaGenerate` and untargeted `:testing:serialTest --rerun`. Next: `EP-19` &
+  `MC-18d-face` (both in progress), `EP-21b`, `EP-23b`, `EP-24b`, `EP-30`..`34`.
 
 - 2026-11-16 09:30Z – 13:30Z owner PC Claude (Sonnet agents, two at a time): **map battle animation in game.**
   Finished Gemini's EP-10c (turn support exp; 4 bugs fixed, levels/total Transcribed, EP10c-cap) and EP-20 (info box A).

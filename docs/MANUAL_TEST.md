@@ -39,7 +39,8 @@ from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Onl
   afterwards (no leftover tiles or wrong colours). The fight takes about a third of a second longer
   than before. Each round: the attacker lunges towards the target and steps back, the target
   flashes white on a hit with the hit sound, and the HP number and bar in the box drain. A unit at
-  0 HP fades out. Limits: a miss shows no MISS text and a 0-damage hit no NO DAMAGE text (EP-24);
+  0 HP fades out, and a miss shows the MISS sprite above the defender (**needs a build with EP-24**).
+  Limits: a 0-damage hit shows no NO DAMAGE text (`EP-24b`);
   a critical hit has no crit flash or screen shake (EP-23b).
   After the fight, when a player unit gained exp (Eirika attacking, or surviving an enemy attack),
   an exp bar window opens in the middle of the screen and fills from the old to the new exp with a
@@ -90,7 +91,7 @@ from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Onl
 
 Re-test these only when a change to them is announced.
 
-- **Combat display:** no MISS / NO DAMAGE text, crit flash, level-up portrait (`MC-18d-face`),
+- **Combat display:** no NO DAMAGE text (`EP-24b`), crit flash (`EP-23b`), level-up portrait (`MC-18d-face`),
   weapon-broke or item-drop popups (M6-G, M6-H).
 - **Commands and screens:** Item answers with the refusal beep; the map menu's Unit, Status, Guide,
   Options and Suspend, and R / L / START on the map do nothing; no help box, inventory or info

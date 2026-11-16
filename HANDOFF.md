@@ -13,7 +13,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- EP-23, EP-26: owner PC Claude, until ~16:00Z.
+- EP-23: owner PC Claude, until ~16:00Z.
 
 ## Current state
 

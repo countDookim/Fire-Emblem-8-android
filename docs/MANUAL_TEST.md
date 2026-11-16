@@ -32,13 +32,16 @@ from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Onl
   then the next scene fades in over ~16 frames and plays normally (it waits for A at its first
   text box).
 
-- **EP-18 map battle info box (needs a build with EP-18):** attack an enemy with Eirika (PP-17 step 3d) and
+- **EP-18/EP-26 map battle info box and exp bar (needs a build with EP-26):** attack an enemy with Eirika (PP-17 step 3d) and
   let the Soldiers attack at End (step 5). Expected: when the fight starts, a two-row box with both
   units' names and HP appears next to the fighters (top or bottom of the screen) over a coloured
   vertical gradient; it closes after the fight, and the map, menus and windows look as before
   afterwards (no leftover tiles or wrong colours). The fight takes about a third of a second longer
   than before. Limits: the HP numbers and bars do not drain yet (round animations EP-23/24 missing),
-  so the box shows the HP before the fight and closes; no hit flash, death fade or exp bar yet.
+  so the box shows the HP before the fight and closes; no hit flash or death fade yet.
+  After the fight, when a player unit gained exp (Eirika attacking, or surviving an enemy attack),
+  an exp bar window opens in the middle of the screen and fills from the old to the new exp with a
+  ticking sound, then closes. Limits: a bar that reaches 100 (level up) shows no level-up screen yet.
 
 - **PP-17 player phase (Prologue turn 1):**
   1. Resume the Prologue (suspend save) or play New Game to the turn-1 map (Eirika near the
@@ -84,9 +87,9 @@ from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Onl
 Re-test these only when a change to them is announced.
 
 - **Combat display:** no battle animation or map round animation (the info box shows, but its HP
-  does not drain), death fade, exp bar, level-up display (stat gains
+  does not drain), death fade, level-up display (stat gains
   are applied but not shown), counter animation, weapon-broke or item-drop popups (M6-G, M6-H,
-  MC-18). Eirika's exp is held in the unit but not shown.
+  MC-18).
 - **Commands and screens:** Item answers with the refusal beep; the map menu's Unit, Status, Guide,
   Options and Suspend, and R / L / START on the map do nothing; no help box, inventory or info
   screens (M6-E, M6-F, M6-H). Selecting an enemy shows no range.

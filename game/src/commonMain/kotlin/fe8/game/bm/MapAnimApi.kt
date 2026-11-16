@@ -320,12 +320,21 @@ public class MapAnimApi(
             Unit = { _, _, _, _ -> }
 
         /**
-         * `DisplayWpnBrokePopup` (src/mapanim.c). Stand-in until EP-19: nothing happens (the
-         * popup checks and the popup procs are not written).
+         * `NewPopup_WeaponBroke(weapon, parent)`: broken weapon popup. Stand-in until M6-H
+         * (popup is unwritten): nothing happens.
          */
+        public var newPopupWeaponBroke: (weapon: Int, parent: Proc) -> Unit = { _, _ -> }
+
+        /**
+         * `NewPopup_WRankIncrease(weaponType, parent)`: weapon rank increase popup. Stand-in
+         * until M6-H (popup is unwritten): nothing happens.
+         */
+        public var newPopupWRankIncrease: (weaponType: Int, parent: Proc) -> Unit = { _, _ -> }
+
+        /** `DisplayWpnBrokePopup` (src/mapanim.c): calls [displayWpnBrokePopup]. */
         public var displayWpnBrokePopup: ProcFunc = ProcFunc {}
 
-        /** `DisplayWRankUpPopup` (src/mapanim.c). Stand-in until EP-19: nothing happens. */
+        /** `DisplayWRankUpPopup` (src/mapanim.c): calls [displayWRankUpPopup]. */
         public var displayWRankUpPopup: ProcFunc = ProcFunc {}
 
         /** `ResetTextFont` ([TextSystem.resetTextFont], wired by the game). */
@@ -378,6 +387,8 @@ public class MapAnimApi(
         h.beginMissAnim = IntConsumer { mapAnimBeginMissAnim(it) }
         h.muStartDeathFade = { p -> mu.muStartDeathFade(p.state as MuProc) }
         h.muDeathFadeExists = { mu.muDeathFadeExists() }
+        h.displayWpnBrokePopup = ProcFunc { displayWpnBrokePopup(it) }
+        h.displayWRankUpPopup = ProcFunc { displayWRankUpPopup(it) }
     }
 
     /** `gManimSt`. */
@@ -1202,6 +1213,74 @@ public class MapAnimApi(
         if (actorNum >= 0) {
             val bu = state.bu[actorNum]!!
             hooks.startMapAnimExpBar(proc, bu.expPrevious, bu.expPrevious + bu.expGain, actorNum)
+        }
+    }
+
+    /**
+     * Ported from src/mapanim.c: BattleUnit_ShouldDisplayWpnBroke
+     *
+     * Returns true if [bu] belongs to the player faction and broke its weapon in battle (the true
+     * broken-weapon branch is not exercised by any Prologue capture).
+     */
+    public fun battleUnitShouldDisplayWpnBroke(bu: BattleUnit): Boolean {
+        if ((s8(bu.bytes, OFF_INDEX) and 0xC0) == UnitLoader.FACTION_BLUE) {
+            return battle.didBattleUnitBreakWeapon(bu)
+        }
+        return false
+    }
+
+    /**
+     * Ported from src/mapanim.c: DisplayWpnBrokePopup
+     *
+     * Shows the broken weapon popup if either battle unit is a player unit that broke its weapon
+     * ([Hooks.newPopupWeaponBroke] stays a stand-in until M6-H; no Prologue capture breaks a
+     * weapon).
+     */
+    public fun displayWpnBrokePopup(proc: Proc) {
+        var unit: BattleUnit? = null
+        if (battleUnitShouldDisplayWpnBroke(battle.actor)) {
+            unit = battle.actor
+        }
+        if (battleUnitShouldDisplayWpnBroke(battle.target)) {
+            unit = battle.target
+        }
+        if (unit != null) {
+            hooks.newPopupWeaponBroke(unit.weaponBefore, proc)
+        }
+    }
+
+    /**
+     * Ported from src/mapanim.c: BattleUnit_ShouldDisplayWRankUp
+     *
+     * Returns true if [bu] belongs to the player faction and gained a weapon level in battle (the
+     * true rank-up branch is not exercised by any Prologue capture).
+     */
+    public fun battleUnitShouldDisplayWRankUp(bu: BattleUnit): Boolean {
+        if ((s8(bu.bytes, OFF_INDEX) and 0xC0) == UnitLoader.FACTION_BLUE) {
+            if (battle.hasBattleUnitGainedWeaponLevel(bu)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
+     * Ported from src/mapanim.c: DisplayWRankUpPopup
+     *
+     * Shows the weapon rank up popup if either battle unit is a player unit that gained a rank
+     * ([Hooks.newPopupWRankIncrease] stays a stand-in until M6-H; no Prologue capture gains a
+     * rank).
+     */
+    public fun displayWRankUpPopup(proc: Proc) {
+        var bu: BattleUnit? = null
+        if (battleUnitShouldDisplayWRankUp(battle.actor)) {
+            bu = battle.actor
+        }
+        if (battleUnitShouldDisplayWRankUp(battle.target)) {
+            bu = battle.target
+        }
+        if (bu != null) {
+            hooks.newPopupWRankIncrease(bu.weaponType, proc)
         }
     }
 

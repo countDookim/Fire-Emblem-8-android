@@ -1131,9 +1131,7 @@ public class BmBattle(
             }
         }
         var result = u8(unitBytes, OFF_RANKS + unit.weaponType)
-        // ItemData 0x20 is `weaponExp`, the exp one hit with the weapon awards.
-        result += rom.u8(items.getItemData(items.getItemIndex(unit.weapon)) + 0x20) *
-            unit.wexpMultiplier
+        result += items.getItemAwardedExp(unit.weapon) * unit.wexpMultiplier
         val cls = u32(unitBytes, OFF_CLASS)
         // A unit that holds S in another type (not just as a class starting rank, `ClassData`
         // 0x2C `baseRanks`) cannot reach S in this one: capped at S - 1.
@@ -1154,6 +1152,32 @@ public class BmBattle(
             result = WPN_EXP_A
         }
         return result
+    }
+
+    /**
+     * Ported from src/bmbattle.c: HasBattleUnitGainedWeaponLevel
+     *
+     * Returns true if [unit] gained enough weapon exp to advance to a higher weapon level.
+     * Verified against Prologue clear and enemy phase (no weapon level gain); level gain
+     * true branch is unexercised in prologue traces.
+     */
+    public fun hasBattleUnitGainedWeaponLevel(unit: BattleUnit): Boolean {
+        val oldWexp = u8(unit.bytes, OFF_RANKS + unit.weaponType)
+        val newWexp = getBattleUnitUpdatedWeaponExp(unit)
+        if (newWexp < 0) return false
+        return items.getWeaponLevelFromExp(oldWexp) != items.getWeaponLevelFromExp(newWexp)
+    }
+
+    /**
+     * Ported from src/bmbattle.c: DidBattleUnitBreakWeapon
+     *
+     * Returns true if [unit] survived the battle with HP > 0 and its weapon broke. Surviving
+     * weapon-intact unit and 0-HP dead unit verified against Prologue clear; weapon-breaking
+     * true branch is unexercised in prologue traces.
+     */
+    public fun didBattleUnitBreakWeapon(unit: BattleUnit): Boolean {
+        if (u8(unit.bytes, OFF_CUR_HP) == 0) return false
+        return unit.weaponBroke != 0
     }
 
     /**

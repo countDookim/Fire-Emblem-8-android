@@ -8,6 +8,7 @@ import fe8.game.bm.BmBattle
 import fe8.game.bm.BmSt
 import fe8.game.bm.CamMove
 import fe8.game.SoundWrapper
+import fe8.game.bm.ItemInfo
 import fe8.game.bm.MapAnimApi
 import fe8.game.bm.MapAnimExpBar
 import fe8.game.bm.MapAnimInfoBox
@@ -38,6 +39,7 @@ import gbafe.text.TextSystem
 import fe8.game.text.Fe8Text
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -213,6 +215,14 @@ class MapAnimFlowDifferentialTest {
         "MapAnim_WaitForHPToEndChangingMaybe",
         "MapAnimMoveUnitAwayFromTargetExt",
         "MapAnim_MoveSubjectsAwayFromTarget",
+        "DidBattleUnitBreakWeapon",
+        "HasBattleUnitGainedWeaponLevel",
+        "GetWeaponLevelFromExp",
+        "GetItemAwardedExp",
+        "BattleUnit_ShouldDisplayWpnBroke",
+        "BattleUnit_ShouldDisplayWRankUp",
+        "DisplayWpnBrokePopup",
+        "DisplayWRankUpPopup",
     )
     fun `map animation battle runs rounds, death and exp bar through the end script f4275 to f4891`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
@@ -352,6 +362,11 @@ class MapAnimFlowDifferentialTest {
             expBar.start(parent, from, to, actor)
         }
 
+        val brokenCalls = ArrayList<Int>()
+        hooks.newPopupWeaponBroke = { weapon, _ -> brokenCalls.add(weapon) }
+        val rankUpCalls = ArrayList<Int>()
+        hooks.newPopupWRankIncrease = { wType, _ -> rankUpCalls.add(wType) }
+
         engine.start(
             ProcScript(
                 "CombatAction (test)",
@@ -481,6 +496,132 @@ class MapAnimFlowDifferentialTest {
         assertEquals(s16(bar.u16(0x64)), expArgs[0][1], "exp from")
         assertEquals(s16(bar.u16(0x66)), expArgs[0][2], "exp to")
         assertEquals(s16(bar.u16(0x68)), expArgs[0][3], "exp actor")
+
+        // Popups after exp bar: no broken weapon popup or weapon rank increase popup triggered.
+        assertEquals(emptyList<Int>(), brokenCalls, "no weapon broke popups")
+        assertEquals(emptyList<Int>(), rankUpCalls, "no rank up popups")
+        assertFalse(api.battleUnitShouldDisplayWpnBroke(battle.actor), "actor should not display wpn broke")
+        assertFalse(api.battleUnitShouldDisplayWpnBroke(battle.target), "target should not display wpn broke")
+        assertFalse(api.battleUnitShouldDisplayWRankUp(battle.actor), "actor should not display rank up")
+        assertFalse(api.battleUnitShouldDisplayWRankUp(battle.target), "target should not display rank up")
+        assertFalse(battle.didBattleUnitBreakWeapon(battle.actor), "actor did not break weapon")
+        assertFalse(battle.didBattleUnitBreakWeapon(battle.target), "target did not break weapon")
+        assertFalse(battle.hasBattleUnitGainedWeaponLevel(battle.actor), "actor did not gain weapon level")
+    }
+
+    @Test
+    @VerifiesPort(
+        "DidBattleUnitBreakWeapon",
+        "HasBattleUnitGainedWeaponLevel",
+        "GetWeaponLevelFromExp",
+        "GetItemAwardedExp",
+        "BattleUnit_ShouldDisplayWpnBroke",
+        "BattleUnit_ShouldDisplayWRankUp",
+        "DisplayWpnBrokePopup",
+        "DisplayWRankUpPopup",
+    )
+    fun `map anim popup checks and helpers reproduce captured trace steps f4880 to f4892`() {
+        assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
+        val rom = RomView.ofRom(romFile.readBytes())
+        val names = ProcArrayDump.romNames()
+        val runClear = ref.run(RUN_CLEAR)
+        val items = ItemInfo(rom)
+
+        val bactorWatch = runClear.watch("bactor")
+        val btargetWatch = runClear.watch("btarget")
+        val procsWatch = runClear.watch("procs")
+
+        val table = UnitTable(rom)
+        val playSt = PlaySt()
+        val bm = BmSt()
+        val rng = RngService()
+        val loader = UnitLoader(table, rom, { 0 }, rng, { false })
+        val battle = BmBattle(rom, table, loader, playSt, bm) { _, _ -> 0 }
+        val gen = BattleGenerate(battle, rom, loader, playSt, rng, Mechanics())
+        val engine = ProcEngine()
+        val camMove = CamMove(engine, bm)
+        val mu = Mu(engine, bm, playSt, KeyStatus(), camMove.script, ClassHooks(rom))
+        val api = MapAnimApi(engine, bm, battle, gen, table, loader, mu, rom, null, camMove)
+
+        val actorBytes4880 = bactorWatch.step(4880)
+        val targetBytes4880 = btargetWatch.step(4880)
+        System.arraycopy(actorBytes4880, 0, battle.actor.bytes, 0, BattleUnit.SIZE)
+        System.arraycopy(targetBytes4880, 0, battle.target.bytes, 0, BattleUnit.SIZE)
+
+        // 1. Verify GetItemAwardedExp
+        assertEquals(1, items.getItemAwardedExp(battle.actor.weapon), "actor weapon wexp gain")
+        assertEquals(1, items.getItemAwardedExp(battle.actor.weaponBefore), "actor weaponBefore wexp gain")
+
+        // 2. Verify GetWeaponLevelFromExp
+        assertEquals(ItemInfo.WPN_LEVEL_A, items.getWeaponLevelFromExp(181), "wexp 181 is rank A")
+        assertEquals(ItemInfo.WPN_LEVEL_A, items.getWeaponLevelFromExp(182), "wexp 182 is rank A")
+        assertEquals(ItemInfo.WPN_LEVEL_E, items.getWeaponLevelFromExp(1), "wexp 1 is rank E")
+        assertEquals(ItemInfo.WPN_LEVEL_E, items.getWeaponLevelFromExp(3), "wexp 3 is rank E")
+
+        // 3. Verify DidBattleUnitBreakWeapon
+        assertFalse(battle.didBattleUnitBreakWeapon(battle.actor), "actor curHP > 0 and broke == 0")
+        assertFalse(battle.didBattleUnitBreakWeapon(battle.target), "target curHP == 0")
+
+        // 4. Verify HasBattleUnitGainedWeaponLevel
+        assertFalse(battle.hasBattleUnitGainedWeaponLevel(battle.actor), "actor rank A did not increase")
+
+        // 5. Verify BattleUnit_ShouldDisplayWpnBroke
+        assertFalse(api.battleUnitShouldDisplayWpnBroke(battle.actor), "actor blue did not break")
+        assertFalse(api.battleUnitShouldDisplayWpnBroke(battle.target), "target red not blue faction")
+
+        // 6. Verify BattleUnit_ShouldDisplayWRankUp
+        assertFalse(api.battleUnitShouldDisplayWRankUp(battle.actor), "actor blue did not rank up")
+        assertFalse(api.battleUnitShouldDisplayWRankUp(battle.target), "target red not blue faction")
+
+        // 7. Verify DisplayWpnBrokePopup and DisplayWRankUpPopup do not trigger popups
+        val dummyParent = engine.start(ProcScript("DummyParent", listOf(ProcScripts.end())), 1)!!
+        var wpnBrokePopupCalled = false
+        var wRankUpPopupCalled = false
+        api.hooks.newPopupWeaponBroke = { _, _ -> wpnBrokePopupCalled = true }
+        api.hooks.newPopupWRankIncrease = { _, _ -> wRankUpPopupCalled = true }
+
+        api.displayWpnBrokePopup(dummyParent)
+        assertFalse(wpnBrokePopupCalled, "displayWpnBrokePopup should not trigger popup")
+
+        api.displayWRankUpPopup(dummyParent)
+        assertFalse(wRankUpPopupCalled, "displayWRankUpPopup should not trigger popup")
+
+        // 8. Evaluation on prologue_enemy_phase at step 1700 where target is blue faction
+        val runEnemy = ref.run(RUN_ENEMY)
+        val actorEnemy1700 = runEnemy.watch("bactor").step(1700)
+        val targetEnemy1700 = runEnemy.watch("btarget").step(1700)
+        System.arraycopy(actorEnemy1700, 0, battle.actor.bytes, 0, BattleUnit.SIZE)
+        System.arraycopy(targetEnemy1700, 0, battle.target.bytes, 0, BattleUnit.SIZE)
+
+        assertEquals(2, items.getItemAwardedExp(battle.target.weapon), "target weapon wexp gain")
+        assertFalse(battle.didBattleUnitBreakWeapon(battle.target), "target curHP=16, broke=0")
+        assertFalse(battle.didBattleUnitBreakWeapon(battle.actor), "enemy actor curHP=0")
+        assertFalse(battle.hasBattleUnitGainedWeaponLevel(battle.target), "target wexp 1->3 stays rank E")
+        assertFalse(api.battleUnitShouldDisplayWpnBroke(battle.target), "target blue did not break")
+        assertFalse(api.battleUnitShouldDisplayWpnBroke(battle.actor), "enemy red not blue faction")
+        assertFalse(api.battleUnitShouldDisplayWRankUp(battle.target), "target blue did not rank up")
+        assertFalse(api.battleUnitShouldDisplayWRankUp(battle.actor), "enemy red not blue faction")
+
+        api.displayWpnBrokePopup(dummyParent)
+        assertFalse(wpnBrokePopupCalled, "enemy phase: no broke weapon popup")
+        api.displayWRankUpPopup(dummyParent)
+        assertFalse(wRankUpPopupCalled, "enemy phase: no rank up popup")
+
+        // 9. Verify step-by-step proc states in prologue_clear f4880..f4892:
+        // Confirming that no popup procs exist in the capture and the animation ends cleanly.
+        for (step in 4880..4892) {
+            val dump = ProcArrayDump.ofWatch(procsWatch, step, names)
+            val popup = dump.find("ProcScr_Popup")
+            assertEquals(null, popup, "step $step has no popup proc")
+            if (step in 4880..4889) {
+                val animProc = checkNotNull(dump.find("ProcScr_MapAnimBattle")) {
+                    "step $step has map anim proc"
+                }
+                assertTrue(animProc.scrCur in 33..37, "step $step script command in range 33..37")
+            } else if (step >= 4891) {
+                assertEquals(null, dump.find("ProcScr_MapAnimBattle"), "step $step map anim proc ended")
+            }
+        }
     }
 
     /**

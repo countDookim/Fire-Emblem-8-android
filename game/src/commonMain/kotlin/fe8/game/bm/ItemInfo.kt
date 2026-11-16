@@ -82,6 +82,30 @@ public class ItemInfo(private val rom: RomView) {
     public fun getItemRequiredExp(item: Int): Int = rom.u8(getItemData(getItemIndex(item)) + 0x1C)
 
     /**
+     * Ported from src/bmitem.c: GetItemAwardedExp
+     *
+     * The `weaponExp` byte of [item] (`gItemData` offset 0x20): the weapon exp awarded per hit.
+     */
+    public fun getItemAwardedExp(item: Int): Int = rom.u8(getItemData(getItemIndex(item)) + 0x20)
+
+    /**
+     * Ported from src/bmitem.c: GetWeaponLevelFromExp
+     *
+     * Maps a unit's raw weapon exp [wexp] to its weapon rank level (`WPN_LEVEL_0`..`WPN_LEVEL_S`).
+     * Thresholds `WPN_LEVEL_E` and `WPN_LEVEL_A` are verified against prologue traces;
+     * thresholds 0, D, C, B, S are unexercised in prologue captures.
+     */
+    public fun getWeaponLevelFromExp(wexp: Int): Int {
+        if (wexp < WPN_EXP_E) return WPN_LEVEL_0
+        if (wexp < WPN_EXP_D) return WPN_LEVEL_E
+        if (wexp < WPN_EXP_C) return WPN_LEVEL_D
+        if (wexp < WPN_EXP_B) return WPN_LEVEL_C
+        if (wexp < WPN_EXP_A) return WPN_LEVEL_B
+        if (wexp < WPN_EXP_S) return WPN_LEVEL_A
+        return WPN_LEVEL_S
+    }
+
+    /**
      * Transcribed from src/bmitem.c: GetItemStatBonuses (not verified: no test checks it against a
      *   trace yet)
      *
@@ -295,7 +319,50 @@ public class ItemInfo(private val rom: RomView) {
         return (uses shl 8) + getItemIndex(item)
     }
 
-    internal companion object {
+    /** Constants and tables for item data, weapon rank levels, and item attributes. */
+    public companion object {
+        /** WPN_LEVEL_0 (rank --). */
+        public const val WPN_LEVEL_0: Int = 0
+
+        /** WPN_LEVEL_E. */
+        public const val WPN_LEVEL_E: Int = 1
+
+        /** WPN_LEVEL_D. */
+        public const val WPN_LEVEL_D: Int = 2
+
+        /** WPN_LEVEL_C. */
+        public const val WPN_LEVEL_C: Int = 3
+
+        /** WPN_LEVEL_B. */
+        public const val WPN_LEVEL_B: Int = 4
+
+        /** WPN_LEVEL_A. */
+        public const val WPN_LEVEL_A: Int = 5
+
+        /** WPN_LEVEL_S. */
+        public const val WPN_LEVEL_S: Int = 6
+
+        /** WPN_EXP_0 (threshold for --). */
+        public const val WPN_EXP_0: Int = 0
+
+        /** WPN_EXP_E (threshold for E). */
+        public const val WPN_EXP_E: Int = 1
+
+        /** WPN_EXP_D (threshold for D). */
+        public const val WPN_EXP_D: Int = 31
+
+        /** WPN_EXP_C (threshold for C). */
+        public const val WPN_EXP_C: Int = 71
+
+        /** WPN_EXP_B (threshold for B). */
+        public const val WPN_EXP_B: Int = 121
+
+        /** WPN_EXP_A (threshold for A). */
+        public const val WPN_EXP_A: Int = 181
+
+        /** WPN_EXP_S (threshold for S). */
+        public const val WPN_EXP_S: Int = 251
+
         /** `gItemData`. */
         internal const val ITEM_DATA: Int = 0x08809B10
 

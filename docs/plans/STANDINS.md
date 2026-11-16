@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 222 across 48 Kotlin files.
+Total entries: 224 across 48 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -20,13 +20,12 @@ Total entries: 222 across 48 Kotlin files.
 | M6-E | 43 |
 | M6-F | 16 |
 | M6-G | 5 |
-| M6-H | 32 |
+| M6-H | 36 |
 | M6-I | 27 |
 | M6-J | 10 |
 | D09-3 | 3 |
 | EP-12 | 26 |
 | EP-13 | 1 |
-| EP-19 | 2 |
 | EP-1b | 1 |
 | EP-23b | 4 |
 | EP-24b | 1 |
@@ -167,7 +166,7 @@ Total entries: 222 across 48 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `battleAnimationsOn` | Stand-in until M6-G for `BeginAnimsOnBattleAnimations` / `sub_8055BC4` (banim-ekrbattle): whether the battle is shown with battle animations ([BanimPrepare.sub8055BC4] exists in fe8.game.bm, left u... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 
-## M6-H (32)
+## M6-H (36)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -190,6 +189,10 @@ Total entries: 222 across 48 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/BmMap.kt` | `refreshAllLightRunes` | Stand-in for `RefreshAllLightRunes` (bmtrick.c; until M6-H), called at the end of [refreshTerrainBmMap]; does nothing until traps are ported. |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `fadeOutSe` | Stand-in until M6-H (sound effects as chapters first need them): the sound effect players are not in `SoundWrapper` yet, so this does nothing unless `Fe8Boot` sets it (D11-wire-a left it a no-op). |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `itemGotPopup` | Stand-in until M6-H (the popup): nothing is shown. |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `displayWRankUpPopup` | Ported from src/mapanim.c: DisplayWRankUpPopup Shows the weapon rank up popup if either battle unit is a player unit that gained a rank ([Hooks.newPopupWRankIncrease] stays a stand-in until M6-H; n... |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `displayWpnBrokePopup` | Ported from src/mapanim.c: DisplayWpnBrokePopup Shows the broken weapon popup if either battle unit is a player unit that broke its weapon ([Hooks.newPopupWeaponBroke] stays a stand-in until M6-H;... |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `newPopupWRankIncrease` | Stand-in until M6-H (popup is unwritten): nothing happens. |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `newPopupWeaponBroke` | Stand-in until M6-H (popup is unwritten): nothing happens. |
 | `game/src/commonMain/kotlin/fe8/game/bm/MenuItemPanel.kt` | `MenuItemPanel` | Only the weapon layout is written; the layout of a staff or other item (its use description) is a stand-in until M6-H (the item menu; the weapon list never holds one), and `EndMenuItemPanel` is nev... |
 | `game/src/commonMain/kotlin/fe8/game/bm/MenuItemPanel.kt` | `item` | Stand-in until M6-H (the item menu, where staffs and items first appear): the use description of the item is not drawn. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerInterface.kt` | `doesBmxFadeExist` | Stand-in for `DoesBMXFADEExist` (false) until M6-H (the fog fade). |
@@ -295,13 +298,6 @@ Total entries: 222 across 48 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `beginBattleAnimations` | Stand-in until EP-13: sets only the flag, so the animation ends at once. |
-
-## EP-19 (2)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `displayWRankUpPopup` | Stand-in until EP-19: nothing happens. |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `displayWpnBrokePopup` | Stand-in until EP-19: nothing happens (the popup checks and the popup procs are not written). |
 
 ## EP-1b (1)
 

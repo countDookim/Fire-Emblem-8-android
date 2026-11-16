@@ -13,14 +13,26 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- EP-35: Claude owner PC, after-move events and tutorial checks (eventinfo.c), until ~04:30Z (2026-11-16).
+- Unclaimed, unreviewed work saved on remote branches (free to take; Claude released the claims at wrap-up):
+  - **EP-10c** (turn support exp, bmreliance.c) on `wip/ep10c`: Gemini's uncommitted work as one commit
+    (`SupportReliance.kt` + `SupportRelianceDifferentialTest`, support code moved out of `BmBattle`). Needs: run
+    the test, break-check each Ported claim, `unverified.py`/`standins.py --write`, Dokka, rebase on master.
+  - **EP-20** (map info box A, mapanim_infobox.c) on `wip/ep20`: Gemini's uncommitted work (`MapAnimInfoBox.kt`
+    + test; moves `PutStringCentered` into `gbafe.text.TextSystem`, edits `MapLevelUpFrame`, `MapAnimApi`,
+    `PlayerPhaseWiring`). Same checks; expect rebase conflicts in `PlayerPhaseWiring` (EP-11e/EP-35 changed it).
+    Its `PutStringCentered` @VerifiesPort must be break-checked before keeping the credit.
+  - Local worktrees `.claude/worktrees/ep10c` and `ep20` hold the same commits.
 
 
-- EP-20 (map info box A: mapanim_infobox.c): Claude owner PC taking over Gemini's uncommitted `ep20` worktree (owner request), until ~06:00Z (2026-11-16).
-- EP-10c (turn support exp: bmreliance.c): Claude owner PC taking over Gemini's uncommitted `ep10c` worktree (owner request), until ~05:00Z (2026-11-16).
 
 
 ## Current state
+
+- 2026-11-16 03:00Z wrap-up (owner PC Claude): also merged EP-11h, EP-11f, EP-35 (most event-end/after-move
+  functions Transcribed where the Prologue captures cannot tell them from stand-ins; see TASKS Done). Master CI
+  green again from `beafec55`. Next for the level-up display to appear in game: EP-26 (exp bar) -> MC-18f ->
+  MC-18 WIRE (+ MC-18d-face). Open follow-ups: EP-11f2, EP-35b, EP1b-*-cap, EP1b-trapwire; `ApProcs` could move
+  to gbafe. Device checks still pending: MANUAL_TEST (APP-icon, D-13, D-14, D-15, PP-17).
 
 - 2026-11-15 21:15Z – 11-16 01:00Z owner PC Claude (finished GPT's MC-18b/e, then two Sonnet agents): **map level-up display
   ported (MC-18a..e)**: announcement, panel frame/stats, gain labels with AP procs, palette cycle and the whole

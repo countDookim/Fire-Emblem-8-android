@@ -14,6 +14,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 ## In progress
 
 - `EP-24`: Gemini owner PC, until ~14:00Z (`wip/ep24`).
+- `EP-19`: Gemini owner PC, until ~14:15Z (`wip/ep19`).
 
 ## Current state
 

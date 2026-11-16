@@ -8,8 +8,8 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1329,
-    "implemented_unverified": 81
+    "verified": 1346,
+    "implemented_unverified": 82
   },
   "functions": {
     "APProc_Create": {
@@ -2868,6 +2868,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.MapLevelUpGainLabelsDifferentialTest#label proc animation procs handles tiles and palettes follow the original"
+      ]
+    },
+    "EndMapAnimInfoWindow": {
+      "decomp_file": "src/mapanim_infobox.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#info box follows the capture from draw through shake, HP drain and end"
       ]
     },
     "EndMenu": {
@@ -6454,6 +6464,26 @@
         "fe8.testing.RngDifferentialTest#boot RNG state matches mGBA"
       ]
     },
+    "InitScanline": {
+      "decomp_file": "src/mapanim_scanline.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimScanline.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#procMapInfoBoxOnDraw decompresses frame graphics and draws boxes matching f4470"
+      ]
+    },
+    "InitScanlineBuf": {
+      "decomp_file": "src/mapanim_scanline.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimScanline.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#procMapInfoBoxOnDraw decompresses frame graphics and draws boxes matching f4470"
+      ]
+    },
     "InitSpriteText": {
       "decomp_file": "src/fontgrp.c",
       "system": "text_face",
@@ -7163,6 +7193,46 @@
         "fe8.testing.MapAnimFlowDifferentialTest#map animation battle reproduces script positions and gManimSt f4275 to f4484"
       ]
     },
+    "MapAnim_DisplayDeathFade": {
+      "decomp_file": "src/mapanim.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
+      ]
+    },
+    "MapAnim_DisplayDeathQuote": {
+      "decomp_file": "src/mapanim.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
+      ]
+    },
+    "MapAnim_DisplayExpBar": {
+      "decomp_file": "src/mapanim.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
+      ]
+    },
+    "MapAnim_DisplayRoundAnim": {
+      "decomp_file": "src/mapanim.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
+      ]
+    },
     "MapAnim_InitInfoBox": {
       "decomp_file": "src/mapanim.c",
       "system": "map_anim",
@@ -7190,7 +7260,8 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle reproduces script positions and gManimSt f4275 to f4484"
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle reproduces script positions and gManimSt f4275 to f4484",
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
       ]
     },
     "MapEventEngineExists_": {
@@ -7203,6 +7274,17 @@
         "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
       ]
     },
+    "MapInfoBoxShake": {
+      "decomp_file": "src/mapanim_infobox.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#info box follows the capture from draw through shake, HP drain and end",
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#mapInfoBoxPrepareForShake starts the shake and sets the window registers of f4470"
+      ]
+    },
     "MapInfoBox_PrepareForShake": {
       "decomp_file": "src/mapanim_infobox.c",
       "system": "map_anim",
@@ -7210,7 +7292,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.MapAnimInfoBoxDifferentialTest#mapInfoBoxPrepareForShake resets unk2A and sets the window registers of f4470"
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#mapInfoBoxPrepareForShake starts the shake and sets the window registers of f4470"
       ]
     },
     "MapMUPrim_MakeUnitForClass": {
@@ -8625,6 +8707,16 @@
         "fe8.testing.BanimPrepareDifferentialTest#the real chain writes the battle animation variables of the capture"
       ]
     },
+    "PrepareGradientScanlineBuf": {
+      "decomp_file": "src/mapanim_scanline.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimScanline.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#procMapInfoBoxOnDraw decompresses frame graphics and draws boxes matching f4470"
+      ]
+    },
     "PrepareMapBattleBoxNumGfx": {
       "decomp_file": "src/mapanim_infobox.c",
       "system": "map_anim",
@@ -8664,6 +8756,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.MapAnimInfoBoxDifferentialTest#procMapInfoBoxOnDraw decompresses frame graphics and draws boxes matching f4470"
+      ]
+    },
+    "ProcMapInfoBox_OnEnd": {
+      "decomp_file": "src/mapanim_infobox.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#info box follows the capture from draw through shake, HP drain and end"
       ]
     },
     "Proc_BlockEachMarked": {
@@ -8756,6 +8858,14 @@
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
       ]
+    },
+    "Proc_GotoScript": {
+      "decomp_file": "src/proc.c",
+      "system": "core",
+      "in_scope": true,
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/ProcEngine.kt",
+      "status": "implemented",
+      "tests": []
     },
     "Proc_Init": {
       "decomp_file": "src/proc.c",
@@ -10556,6 +10666,16 @@
         "fe8.testing.CutsceneStartSkipDifferentialTest#Start during the castle cutscene fades to black and blocks the talk procs"
       ]
     },
+    "StartManimFrameGradientScanlineEffect": {
+      "decomp_file": "src/mapanim_scanline.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimScanline.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#procMapInfoBoxOnDraw decompresses frame graphics and draws boxes matching f4470"
+      ]
+    },
     "StartManimLevelUp": {
       "decomp_file": "src/mapanim_lvup.c",
       "system": "map_anim",
@@ -10593,7 +10713,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
       "status": "verified",
       "tests": [
-        "fe8.testing.MapAnimInfoBoxDifferentialTest#info box proc follows the capture through steps 4468 to 4480"
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#info box follows the capture from draw through shake, HP drain and end"
       ]
     },
     "StartMapSongBgm": {
@@ -12781,6 +12901,16 @@
         "fe8.game.BrownTextBoxReferenceTest#the Prologue box lifecycle and blend match reference trace r09541 to r09675"
       ]
     },
+    "sub_8013168": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#info box follows the capture from draw through shake, HP drain and end"
+      ]
+    },
     "sub_8013F40": {
       "decomp_file": "src/bmlib.c",
       "system": "battle_map",
@@ -12858,6 +12988,56 @@
       "status": "verified",
       "tests": [
         "fe8.testing.BanimPrepareDifferentialTest#the real chain writes the battle animation variables of the capture"
+      ]
+    },
+    "sub_807BA28": {
+      "decomp_file": "src/mapanim_infobox.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#info box follows the capture from draw through shake, HP drain and end"
+      ]
+    },
+    "sub_807BB10": {
+      "decomp_file": "src/mapanim_infobox.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#info box follows the capture from draw through shake, HP drain and end"
+      ]
+    },
+    "sub_807BB40": {
+      "decomp_file": "src/mapanim_infobox.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#info box follows the capture from draw through shake, HP drain and end"
+      ]
+    },
+    "sub_807BCA8": {
+      "decomp_file": "src/mapanim_infobox.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#info box follows the capture from draw through shake, HP drain and end"
+      ]
+    },
+    "sub_807BD54": {
+      "decomp_file": "src/mapanim_infobox.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#info box follows the capture from draw through shake, HP drain and end"
       ]
     },
     "sub_80895B4": {

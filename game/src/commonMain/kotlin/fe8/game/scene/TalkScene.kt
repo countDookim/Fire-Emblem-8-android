@@ -313,6 +313,19 @@ public class TalkScene(
         bubble.clearTalkBubble()
     }
 
+    /**
+     * Resets the dialogue screen: speech bubble, text lines, face procs, face slots and face
+     * references.
+     *
+     * Ported from src/eventscr2.c: ResetDialogueScreen
+     */
+    public fun resetDialogueScreen() {
+        clearTalkBubble()
+        procs.endEach(face.faceScript)
+        face.resetFaces()
+        talk.clearTalkFaceRefs()
+    }
+
     override fun startTalkOpen(faceSlot: Int, parent: Proc) {
         bubble.startTalkOpen(faceSlot, parent)
     }

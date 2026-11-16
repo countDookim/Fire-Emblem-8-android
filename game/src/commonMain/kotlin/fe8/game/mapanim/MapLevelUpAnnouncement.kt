@@ -26,9 +26,6 @@ import gbafe.text.TextSystem
  * dip, the level-up text sprite that stays for 70 frames, then the stat panel that scrolls in,
  * shows the stat gains one by one and scrolls out.
  *
- * The portrait (`StartFace`, `gFaces`) and `ResetDialogueScreen` are the stand-ins in [Hooks]
- * (MC-18d-follow-up).
- *
  * @param engine the proc engine.
  * @param hardware the LCD buffer, BG buffers, OBJ VRAM and palette buffer.
  * @param rom the ROM (text graphics and palette, character data).
@@ -59,15 +56,14 @@ public class MapLevelUpAnnouncement(
     /** What the level-up calls outside the ported functions. */
     public class Hooks {
         /**
-         * Stand-in (MC-18d-follow-up) for `StartFace(slot, portraitId, x, y, disp)`
-         * (src/face.c).
+         * Starts a portrait face (`StartFace(slot, portraitId, x, y, disp)` in src/face.c).
          */
         public var startFace: (Int, Int, Int, Int, Int) -> Unit = { _, _, _, _, _ -> }
 
-        /** Stand-in (MC-18d-follow-up) for the write to `gFaces[0]->yPos`. */
+        /** Writes to the face's vertical position (`gFaces[0]->yPos` in src/mapanim_lvup.c). */
         public var setFaceY: (Int) -> Unit = {}
 
-        /** Stand-in (MC-18d-follow-up) for `ResetDialogueScreen` (src/eventscr2.c). */
+        /** Resets the dialogue screen and faces (`ResetDialogueScreen` in src/eventscr2.c). */
         public var resetDialogueScreen: () -> Unit = {}
     }
 
@@ -316,8 +312,19 @@ public class MapLevelUpAnnouncement(
             sleep(1),
             call(ProcFunc { restoreBgm(it) }),
             yield(),
-            // The capture shows the script stopping for a frame after this call (cursor 12 at
-            // f6519, the yield below at f6520), unlike the other calls of the script.
+            // Hardware frame overrun investigation (MC-18d-face):
+            // In ram_trace_prologue_levelup, r06519 was captured at VBlank while the main loop
+            // had overran its frame (gBmSt.main_loop_ended == 0). ManimLevelUp_InitMainScreen
+            // executes multiple heavy operations in one frame: three LZ77 decompressions
+            // (Img_LevelUpBoxFrame, Tsa_LevelUpBoxFrame, Img_ManimLevelUpStatGain), font reset,
+            // string renders for class name and 9 stat labels, and StartFace / labels setup.
+            // On GBA hardware, this exceeds the ~280,000 cycle frame budget, causing VBlank to
+            // interrupt OnMain right after ManimLevelUp_InitMainScreen finished. At that VBlank,
+            // the proc cursor is at index 12 (PROC_YIELD). Once OnMain resumes after VBlank,
+            // PROC_YIELD executes, yielding until the next VBlank (f6520, cursor 13).
+            // In this cooperative ProcEngine (which does not simulate CPU cycles), call2 returning
+            // false followed by yield() models this 1-frame lag precisely so differential tests
+            // match the trace step-by-step.
             call2(
                 ProcBoolFunc {
                     initMainScreen(it)

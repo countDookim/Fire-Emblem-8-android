@@ -45,6 +45,7 @@ import fe8.game.mapanim.ApProcs
 import fe8.game.mapanim.MapLevelUpAnnouncement
 import fe8.game.mapanim.MapLevelUpGainLabels
 import fe8.game.save.PidStats
+import fe8.game.scene.FaceState
 import fe8.game.scene.IntBinaryOperator
 import fe8.game.scene.IntConsumer
 import fe8.game.scene.IntSupplier
@@ -456,13 +457,14 @@ internal class PlayerPhaseWiring(
         val levelUpStats = MapLevelUpStats(rom, units, battles, talk.text, hw.tilemaps[0])
         val levelUpLabels = MapLevelUpGainLabels(engine, apProcs, hw, rom)
         val levelUpHooks = MapLevelUpAnnouncement.Hooks().apply {
+            startFace = { slot, fid, x, y, disp ->
+                talk.face.startFace(slot, fid, x, y, disp)
+            }
+            setFaceY = { y ->
+                (talk.face.gFaces[0]?.state as? FaceState)?.yPos = y
+            }
             resetDialogueScreen = {
-                hw.fill(hw.tilemaps[0], 0)
-                hw.fill(hw.tilemaps[1], 0)
-                hw.enableBgSyncByMask(3)
-                hw.lcd.setWinEnable(0, 0, 0)
-                hw.lcd.setBgPosition(0, 0, 0)
-                hw.lcd.setBgPosition(1, 0, 0)
+                talk.resetDialogueScreen()
             }
         }
         val levelUpAnnouncement = MapLevelUpAnnouncement(

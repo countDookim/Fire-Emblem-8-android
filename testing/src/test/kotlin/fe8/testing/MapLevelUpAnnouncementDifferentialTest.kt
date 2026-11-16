@@ -9,8 +9,13 @@ import fe8.game.bm.MapLevelUpFrame
 import fe8.game.bm.MapLevelUpStats
 import fe8.game.bm.UnitTable
 import fe8.game.mapanim.MapLevelUpGainLabels
+import fe8.game.scene.FaceState
+import fe8.game.scene.TalkFace
+import fe8.game.scene.TalkScene
 import fe8.game.text.Fe8Text
 import fe8.game.worldmap.WorldMapApHost
+import gbafe.core.rng.LcgRng
+import gbafe.input.KeyStatus
 import gbafe.text.MsgHuffman
 import gbafe.text.MsgStrings
 import gbafe.text.TextSystem
@@ -46,10 +51,10 @@ import org.junit.jupiter.api.Test
  * the text sprite's OAM entries.
  *
  * Seeded from the r06412 dump (gBmSt camera, the actor's unit, the LCD buffer, the palette
- * buffer). The portrait (`StartFace`, `gFaces[0]->yPos`) and `ResetDialogueScreen` are the
- * stand-in hooks: the test records their arguments and compares them with the `gProcScr_E_FACE`
- * proc of the watch. Audio is not recorded, so the volume and sound calls are checked only as the
- * lifetime of the `sMusicProc2Script` children.
+ * buffer). The portrait (`StartFace`, `gFaces[0]->yPos`) and `ResetDialogueScreen` are wired
+ * to real `TalkScene` (`TalkFace`), and tested against the `gProcScr_E_FACE` proc of the watch.
+ * Audio is not recorded, so the volume and sound calls are checked only as the lifetime of the
+ * `sMusicProc2Script` children.
  */
 class MapLevelUpAnnouncementDifferentialTest {
     private val ref = ReferenceData.fromEnvironment()
@@ -59,6 +64,7 @@ class MapLevelUpAnnouncementDifferentialTest {
         "StartManimLevelUp", "InitManimLevelUpWindow", "ManimLevelUp_StartLevelUpText",
         "ManimLevelUp_EndLevelUpText", "ManimLevelUp_InitMainScreen", "ManimLevelUp_ScrollIn",
         "ManimLevelUp_ScrollOut", "ManimLevelUp_PutStatGainLabels", "ManimLevelUp_Clear",
+        "ResetDialogueScreen",
     )
     fun `level-up follows the original every step`() {
         val romFile = File(
@@ -118,21 +124,20 @@ class MapLevelUpAnnouncementDifferentialTest {
         )
         val stats = MapLevelUpStats(rom, units, arrayOf(battle), text, hardware.tilemaps[0])
         val labels = MapLevelUpGainLabels(engine, apProcs, hardware, rom)
-        // Stand-in hooks: record the portrait the panel asks for.
-        var face: IntArray? = null
+        val talkScene = TalkScene(
+            rom, romBytes, hardware, engine, layers, KeyStatus(), { 0 },
+            messages, {}, { 0 }, {}, LcgRng(),
+        )
         var resets = 0
-        hooks.startFace = { slot, portrait, x, y, disp ->
-            face = intArrayOf(portrait, x, y, disp, slot)
+        hooks.startFace = { slot, fid, x, y, disp ->
+            talkScene.face.startFace(slot, fid, x, y, disp)
         }
-        hooks.setFaceY = { y -> face?.set(2, y) }
+        hooks.setFaceY = { y ->
+            (talkScene.face.gFaces[0]?.state as? FaceState)?.yPos = y
+        }
         hooks.resetDialogueScreen = {
-            // ClearTalkBubble (with ClearPutTalkText) clears BG0 and BG1 and the window
-            // enables; the faces are gone.
             resets++
-            face = null
-            hardware.fill(hardware.tilemaps[0], 0)
-            hardware.fill(hardware.tilemaps[1], 0)
-            hardware.lcd.setWinEnable(0, 0, 0)
+            talkScene.resetDialogueScreen()
         }
         val announcement = MapLevelUpAnnouncement(
             engine, hardware, rom, sound, bm, manim, apProcs, text, frame, stats, labels, hooks,
@@ -169,13 +174,15 @@ class MapLevelUpAnnouncementDifferentialTest {
             val flushed = lastFlush
             lastFlush = ByteArray(0x58).also { hardware.lcd.flushTo(it) }
             engine.run(engine.root(3))
+            if (step != 6519) engine.run(engine.root(5))
             val now = at(step)
             val expBar = checkNotNull(now.find("ProcScr_MapAnimExpBar"))
             assertEquals(expBar.u8(0x28), parent.lockCnt, "expbar lockCnt f$step")
             if (step == 6746) {
                 assertNull(now.find("ProcScr_ManimLevelUp"), "level-up gone f$step")
                 assertNull(engine.find(announcement.script), "own level-up gone f$step")
-                assertNull(face, "portrait cleared f$step")
+                assertNull(talkScene.face.gFaces[0], "portrait slot cleared f$step")
+                assertNull(engine.find(talkScene.face.faceScript), "portrait proc cleared f$step")
                 // The script's call and the proc's end callback.
                 assertEquals(2, resets, "ResetDialogueScreen calls")
                 break
@@ -195,13 +202,19 @@ class MapLevelUpAnnouncementDifferentialTest {
             val portrait = now.find("gProcScr_E_FACE")
             assertEquals(step in 6519..6741, portrait != null, "portrait window f$step")
             if (portrait != null) {
-                val mineFace = checkNotNull(face, { "portrait record f$step" })
-                assertEquals(portrait.u16(0x3E), mineFace[0], "portrait id f$step")
-                assertEquals(portrait.u16(0x34), mineFace[1], "portrait x f$step")
-                assertEquals(portrait.u16(0x36), mineFace[2] and 0xFFFF, "portrait y f$step")
-                assertEquals(0x1042, mineFace[3])
+                val mineFace = checkNotNull(talkScene.face.gFaces[0], { "portrait record f$step" })
+                assertEquals(mineFace, engine.find(talkScene.face.faceScript), "face proc f$step")
+                val faceState = mineFace.state as FaceState
+                assertEquals(portrait.u8(0x40), faceState.faceSlot, "face slot f$step")
+                assertEquals(portrait.u16(0x3E), faceState.faceId, "portrait id f$step")
+                assertEquals(portrait.u16(0x34), faceState.xPos, "portrait x f$step")
+                assertEquals(portrait.u16(0x36), faceState.yPos and 0xFFFF, "portrait y f$step")
+                assertEquals(portrait.u32(0x30), faceState.displayBits, "display bits f$step")
+                assertEquals(portrait.u8(0x41), faceState.spriteLayer, "sprite layer f$step")
             } else {
-                assertNull(face, "portrait record f$step")
+                assertNull(talkScene.face.gFaces[0], "portrait record f$step")
+                assertNull(engine.find(talkScene.face.faceScript), "portrait proc f$step")
+                assertEquals(0, talkScene.talk.state.faces[0], "talk face refs f$step")
             }
             // sMusicProc2Script children of the level-up proc.
             val music = now.live.count { it.name == "sMusicProc2Script" }

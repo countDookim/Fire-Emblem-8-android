@@ -8,6 +8,7 @@ import fe8.game.bm.PlaySt
 import fe8.game.bm.UnitLoader
 import fe8.game.bm.UnitTable
 import fe8.game.mapanim.MapLevelUpAnnouncement
+import fe8.game.scene.FaceState
 import gba.testkit.GbaMem
 import gba.testkit.RamSymbols
 import gba.testkit.ReferenceData
@@ -26,7 +27,8 @@ import org.junit.jupiter.api.Test
  * Tests that [PlayerPhaseWiring] wires [MapLevelUpAnnouncement] into [fe8.game.bm.MapAnimExpBar],
  * that an exp gain crossing 100 starts `ProcScr_ManimLevelUp` as a blocking child, that exp below
  * 100 does not, and that the display cleanup via [MapLevelUpAnnouncement.Hooks.resetDialogueScreen]
- * clears BG0/BG1 tilemaps, resets window enables and scroll offsets, and flags background sync.
+ * clears BG0/BG1 tilemaps, resets window enables and preserves scroll offsets (as in decomp
+ * ResetDialogueScreen), and flags background sync.
  */
 class MapLevelUpWiringTest {
     private fun boot(): Fe8Boot {
@@ -114,17 +116,16 @@ class MapLevelUpWiringTest {
 
         wiring.levelUp.clear()
 
-        // resetDialogueScreen must have cleared tilemaps 0 & 1, reset win enable,
-        // and reset BG offsets.
+        // resetDialogueScreen clears tilemaps 0 & 1 and disables windows, leaving BG offsets as-is.
         for (i in 0 until 1024) {
             assertEquals(0, hw.tilemaps[0][i].toInt(), "tilemap 0 entry $i must be 0")
             assertEquals(0, hw.tilemaps[1][i].toInt(), "tilemap 1 entry $i must be 0")
         }
         assertEquals(0, hw.lcd.dispcnt and (7 shl 13), "all windows must be disabled")
         assertEquals(0, hw.lcd.bgHofs[0], "BG0 H offset must be 0")
-        assertEquals(0, hw.lcd.bgVofs[0], "BG0 V offset must be 0")
+        assertEquals((-136) and 0xFFFF, hw.lcd.bgVofs[0], "BG0 V offset preserved")
         assertEquals(0, hw.lcd.bgHofs[1], "BG1 H offset must be 0")
-        assertEquals(0, hw.lcd.bgVofs[1], "BG1 V offset must be 0")
+        assertEquals((-136) and 0xFFFF, hw.lcd.bgVofs[1], "BG1 V offset preserved")
         assertEquals(3, hw.modifiedBgs and 3, "BG0 and BG1 must be flagged for sync")
     }
 
@@ -205,6 +206,14 @@ class MapLevelUpWiringTest {
                     findProc("ProcScr_ManimLevelUpStatGainLabel"),
                     "ProcScr_ManimLevelUpStatGainLabel must exist at f6519",
                 )
+                val faceProc = findProc("gProcScr_E_FACE")
+                assertNotNull(faceProc, "gProcScr_E_FACE must exist at f6519")
+                val faceState = faceProc!!.state as? FaceState
+                assertNotNull(faceState, "FaceState must exist on face proc")
+                assertEquals(0, faceState!!.faceSlot)
+                assertEquals(2, faceState.faceId)
+                assertEquals(184, faceState.xPos)
+                assertEquals(176, faceState.yPos)
 
                 // Verify BG0 and BG1 panel draw matches ram_trace_prologue_levelup
                 val ewram6519 = run.region("r06519", "ewram")
@@ -247,6 +256,10 @@ class MapLevelUpWiringTest {
             boot.engine.find(wiring.expBar.script),
             "ProcScr_MapAnimExpBar must end cleanly",
         )
+        assertNull(
+            findProc("gProcScr_E_FACE"),
+            "gProcScr_E_FACE must end cleanly",
+        )
 
         // Verify display cleanup: BG0/BG1 tilemaps, window enables, scroll offsets
         for (i in 0 until 1024) {
@@ -255,9 +268,9 @@ class MapLevelUpWiringTest {
         }
         assertEquals(0, hw.lcd.dispcnt and (7 shl 13), "all windows must be disabled")
         assertEquals(0, hw.lcd.bgHofs[0], "BG0 H offset must be reset")
-        assertEquals(0, hw.lcd.bgVofs[0], "BG0 V offset must be reset")
+        assertEquals((-144) and 0xFFFF, hw.lcd.bgVofs[0], "BG0 V offset matches f6741..6747")
         assertEquals(0, hw.lcd.bgHofs[1], "BG1 H offset must be reset")
-        assertEquals(0, hw.lcd.bgVofs[1], "BG1 V offset must be reset")
+        assertEquals((-144) and 0xFFFF, hw.lcd.bgVofs[1], "BG1 V offset matches f6741..6747")
         assertEquals(3, hw.modifiedBgs and 3, "BG0 and BG1 must be flagged for sync")
 
         // b) Verify battle actor/target bytes are completely unchanged by level-up display

@@ -13,6 +13,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
+- `MC-18`: Gemini owner PC, until ~13:45Z (`wip/mc18`).
+- `EP-24`: Gemini owner PC, until ~13:45Z (`wip/ep24`).
 
 ## Current state
 

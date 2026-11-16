@@ -143,7 +143,8 @@ public class BattleForecast(
         /**
          * Whether `CheckBattleForecastTutorialEvent` returns 1 (the first forecast of the
          * tutorial chapter, which also makes `NewBattleForecast` ignore the A button).
-         * Stand-in until PC-10 (the Easy-mode tutorial): no tutorial event runs.
+         * `PlayerPhaseWiring` sets `EventInfos.checkBattleForecastTutorialEvent`; the default
+         * is false.
          */
         public var tutorialPending: () -> Boolean = { false }
     }

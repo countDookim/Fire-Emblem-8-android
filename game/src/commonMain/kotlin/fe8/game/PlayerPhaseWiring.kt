@@ -376,6 +376,9 @@ internal class PlayerPhaseWiring(
         }
         h.runWaitEvents = { infos.runWaitEvents(units.xPos(active.unit), units.yPos(active.unit)) }
         h.shouldCallEndEvent = { infos.shouldCallEndEvent() }
+        h.startDestSelectedEvent = { infos.startDestSelectedEvent() }
+        h.startAfterUnitMovedEvent = { infos.startAfterUnitMovedEvent() }
+        forecast.hooks.tutorialPending = { infos.checkBattleForecastTutorialEvent() }
         val combat = CombatAction(engine, battle, battleGenerate, units, active)
         combat.hooks.doesBmxFadeExist = gbafe.proc.ProcBoolFunc { p ->
             h.doesBmxFadeExist.invoke(p)

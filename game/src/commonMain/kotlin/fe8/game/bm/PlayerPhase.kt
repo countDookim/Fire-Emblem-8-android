@@ -282,7 +282,10 @@ public class PlayerPhase(
          */
         public var rangeDisplayIdle: ProcFunc = ProcFunc {}
 
-        /** `StartDestSelectedEvent` (events); stand-in until M6-E, false (no event). */
+        /**
+         * `StartDestSelectedEvent` (true when an event started); `PlayerPhaseWiring` sets
+         * `EventInfos.startDestSelectedEvent`; the default starts none.
+         */
         public var startDestSelectedEvent: () -> Boolean = { false }
 
         /**
@@ -336,8 +339,9 @@ public class PlayerPhase(
         public var muExistsActive: () -> Boolean = { true }
 
         /**
-         * Stand-in until M6-E for `StartAfterUnitMovedEvent` (src/eventinfo.c; the tutorial and
-         * the chapter's after-move events): true when an event started.
+         * `StartAfterUnitMovedEvent` (src/eventinfo.c; the tutorial and the chapter's after-move
+         * events): true when an event started. `PlayerPhaseWiring` sets
+         * `EventInfos.startAfterUnitMovedEvent`; the default starts none.
          */
         public var startAfterUnitMovedEvent: () -> Boolean = { false }
 
@@ -1203,10 +1207,10 @@ public class PlayerPhase(
      *
      * Puts the active unit on the destination of the action data, finalizes the movement and, for
      * a unit that has not moved and not acted (`taken_action`), stores the cost of the move in
-     * `moveCount`. Then `StartAfterUnitMovedEvent` ([Hooks.startAfterUnitMovedEvent], a
-     * stand-in until M6-E) and the unit action menu ([Hooks.startUnitActionMenu]) unless the
-     * move was trapped; breaks. The C ends the same way whether or not an after-move event
-     * started (its `sub_801D434` is the menu and break part), so the result is not used.
+     * `moveCount`. Then `StartAfterUnitMovedEvent` ([Hooks.startAfterUnitMovedEvent]) and the
+     * unit action menu ([Hooks.startUnitActionMenu]) unless the move was trapped; breaks. The C
+     * ends the same way whether or not an after-move event started (its `sub_801D434` is the
+     * menu and break part), so the result is not used.
      * `ResetTextFont` is done by the wiring of [Hooks.startUnitActionMenu].
      */
     public fun playerPhaseApplyUnitMovement(proc: Proc) {

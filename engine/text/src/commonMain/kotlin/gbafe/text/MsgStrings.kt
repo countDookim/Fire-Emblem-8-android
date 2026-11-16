@@ -59,6 +59,49 @@ public class MsgStrings(
     }
 
     /**
+     * `sMsgString.buffer4` (0x100 bytes): the working copy of [buffer] that [strInsertTact]
+     * reads.
+     */
+    public val buffer4: ByteArray = ByteArray(SPECIAL_BUFFER_SIZE)
+
+    /** `sMsgString.buffer5` (0x100 bytes): the result of [strInsertTact]. */
+    public val buffer5: ByteArray = ByteArray(SPECIAL_BUFFER_SIZE)
+
+    /**
+     * Copies the 0-terminated string in [buffer] to [buffer4] and from there to [buffer5], with
+     * every `[Tact]` code (0x80 0x20) replaced by the string at [tactician]`[tacticianOffset]`
+     * (the 0-terminated name, `GetTacticianName`); every other code is copied through. Returns
+     * [buffer5]. A string over 0xFF bytes after the replacement overruns the 0x100-byte buffers
+     * (the original writes past them into the next one); here that throws. Not seen: the
+     * `[Tact]` replacement (item names carry no such code, so a break there survives).
+     *
+     * Ported from src/msg.c: StrInsertTact
+     */
+    public fun strInsertTact(tactician: ByteArray, tacticianOffset: Int = 0): ByteArray {
+        var src = 0
+        var dst = 0
+        copyString(buffer4, 0, buffer, 0)
+        while (buffer4[src].toInt() != 0) {
+            val ch = buffer4[src].toInt() and 0xFF
+            if (ch != EXTENDED_CODE_LEAD) {
+                buffer5[dst++] = buffer4[src++]
+            } else {
+                src++
+                if (buffer4[src].toInt() != TACT_CODE) {
+                    buffer5[dst++] = ch.toByte()
+                    buffer5[dst++] = buffer4[src++]
+                } else {
+                    copyString(buffer5, dst, tactician, tacticianOffset)
+                    while (buffer5[dst].toInt() != 0) dst++
+                    src++
+                }
+            }
+        }
+        buffer5[dst] = 0
+        return buffer5
+    }
+
+    /**
      * Shared body of both lookups: `CallARM_DecompText(gMsgTable[index], dst)` followed by
      * `SetMsgTerminator(dst)`.
      */
@@ -74,6 +117,25 @@ public class MsgStrings(
     public companion object {
         /** Size of [buffer]; the decomp's `sizeof(sMsgString.buffer1)` is 0x555, not this value. */
         public const val BUFFER_SIZE: Int = 0x1000
+
+        /** Size of [buffer4] and [buffer5] (`sMsgString.buffer4`, `buffer5`). */
+        public const val SPECIAL_BUFFER_SIZE: Int = 0x100
+
+        /** Second byte of the `[Tact]` code (0x80 0x20): the tactician's name. */
+        private const val TACT_CODE = 0x20
+
+        /**
+         * Copies the 0-terminated string at [src]`[srcOffset]` to [dst]`[dstOffset]`, terminator
+         * included.
+         *
+         * Ported from src/bmlib.c: CopyString
+         */
+        public fun copyString(dst: ByteArray, dstOffset: Int, src: ByteArray, srcOffset: Int) {
+            var d = dstOffset
+            var s = srcOffset
+            while (src[s].toInt() != 0) dst[d++] = src[s++]
+            dst[d] = src[s]
+        }
 
         /** Start of the cartridge ROM in the GBA address space, subtracted from table pointers. */
         private const val ROM_BASE = 0x08000000

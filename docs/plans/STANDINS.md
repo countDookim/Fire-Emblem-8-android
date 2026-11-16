@@ -10,14 +10,14 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 219 across 49 Kotlin files.
+Total entries: 215 across 48 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
 | M6-B | 12 |
 | M6-C | 7 |
 | M6-D | 13 |
-| M6-E | 46 |
+| M6-E | 43 |
 | M6-F | 16 |
 | M6-G | 5 |
 | M6-H | 32 |
@@ -34,7 +34,6 @@ Total entries: 219 across 49 Kotlin files.
 | EP-7 | 2 |
 | IS-2 | 1 |
 | MC-18d | 4 |
-| PC-10 | 1 |
 | PP-10 | 1 |
 | PP-17 | 1 |
 | PP-4 | 1 |
@@ -87,7 +86,7 @@ Total entries: 219 across 49 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayActiveUnitEffectRange` | Stand-in until M6-D for `DisplayActiveUnitEffectRange` (label 11: the range of a unit the player does not control, `PLAYER_SELECT_NOCONTROL`). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `displayDangerZone` | Stand-in until M6-D for `PlayerPhase_DisplayDangerZone` (label 12: the danger zone, `GenerateDangerZoneRange`, reached when the resume finds no active unit). |
 
-## M6-E (46)
+## M6-E (43)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -119,10 +118,7 @@ Total entries: 219 across 49 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterIntro.kt` | `refreshBMapGraphics` | Stand-in until M6-E (`Fe8Boot` holds a partial version of it). |
 | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | `isGamePlayedThrough` | `IsGamePlayedThrough()` (reads the save, bmsave-lib.c; stand-in until the save library is ported, M6-E: no captured value depends on it); [Mu] builds `IsFirstPlaythrough()` on it. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `maybeCallEndEvent` | `MaybeCallEndEvent_`; stand-in until M6-E (the end event). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `playerPhaseApplyUnitMovement` | Then `StartAfterUnitMovedEvent` ([Hooks.startAfterUnitMovedEvent], a stand-in until M6-E) and the unit action menu ([Hooks.startUnitActionMenu]) unless the move was trapped; breaks. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `resumeRangeDisplay` | Stand-in until M6-E for `PlayerPhase_ResumeRangeDisplay` (label 6: back from the stat screen opened in the range display idle; redraws the map and the active unit's range). |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startAfterUnitMovedEvent` | Stand-in until M6-E for `StartAfterUnitMovedEvent` (src/eventinfo.c; the tutorial and the chapter's after-move events): true when an event started. |
-| `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startDestSelectedEvent` | `StartDestSelectedEvent` (events); stand-in until M6-E, false (no event). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startTutorialEvent` | Stand-in until M6-E for `StartPlayerPhaseStartTutorialEvent`: runs the chapter's pending tutorial event if it is of the player phase type (never in a skirmish). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `tryCallSelectEvents` | Stand-in until M6-E for `TryCallSelectEvents` (select events of the active unit). |
 | `game/src/commonMain/kotlin/fe8/game/event/EventChangeMap.kt` | `EventChangeMap` | Stand-in until M6-E: nothing by default. |
@@ -353,12 +349,6 @@ Total entries: 219 across 49 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `resetDialogueScreen` | Stand-in (MC-18d-follow-up) for `ResetDialogueScreen` (src/eventscr2.c). |
 | `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `setFaceY` | Stand-in (MC-18d-follow-up) for the write to `gFaces[0]->yPos`. |
 | `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `startFace` | Stand-in (MC-18d-follow-up) for `StartFace(slot, portraitId, x, y, disp)` (src/face.c). |
-
-## PC-10 (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/BattleForecast.kt` | `tutorialPending` | Stand-in until PC-10 (the Easy-mode tutorial): no tutorial event runs. |
 
 ## PP-10 (1)
 

@@ -248,37 +248,20 @@ public class ItemInfo(private val rom: RomView) {
     /**
      * Ported from src/bmitem.c: GetItemName
      *
-     * A fresh 0-terminated copy of the name of [item] after `StrInsertTact`; the `[Tact]` code
-     * (0x80 0x20) is replaced by [tactician] (the original reads the save's name; item names
-     * have no such code).
+     * A fresh 0-terminated copy of the name of [item] after `StrInsertTact`
+     * ([MsgStrings.strInsertTact]); the `[Tact]` code (0x80 0x20) is replaced by the 0-terminated
+     * [tactician] (the original reads the save's name; item names have no such code).
      */
     public fun getItemName(
         item: Int,
         messages: MsgStrings,
-        tactician: ByteArray = ByteArray(0),
+        tactician: ByteArray = byteArrayOf(0),
     ): ByteArray {
-        val rawName = messages.getStringFromIndex(rom.u16(getItemData(getItemIndex(item))))
-        val resultBytes = ArrayList<Byte>()
-        var i = 0
-        while (rawName[i].toInt() != 0) {
-            // 0x80 starts a two-byte text control code; `[Tact]` (0x80 0x20) is the tactician's
-            // name, any other code is copied through unchanged (`StrInsertTact`, src/msg.c).
-            if ((rawName[i].toInt() and 0xFF) != 0x80) {
-                resultBytes.add(rawName[i])
-                i++
-            } else {
-                i++
-                if (rawName[i].toInt() != 0x20) {
-                    resultBytes.add(0x80.toByte())
-                    resultBytes.add(rawName[i])
-                } else {
-                    tactician.forEach { resultBytes.add(it) }
-                }
-                i++
-            }
-        }
-        resultBytes.add(0)
-        return resultBytes.toByteArray()
+        messages.getStringFromIndex(rom.u16(getItemData(getItemIndex(item))))
+        val result = messages.strInsertTact(tactician)
+        var end = 0
+        while (result[end].toInt() != 0) end++
+        return result.copyOf(end + 1)
     }
 
     /**

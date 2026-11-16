@@ -240,7 +240,7 @@ public class EventInfos(
 
     /**
      * Transcribed from src/eventinfo.c: CheckTutorialEvent (not verified: not reached by a
-     *   capture; its callers are the after-action checks of EP-35)
+     *   capture; its caller is CheckBattleForecastTutorialEvent, EP-35)
      *
      * True when a tutorial event is queued (`tutorial_counter` is not 0) for [type]
      * (`tutorial_exec_type`).
@@ -267,6 +267,82 @@ public class EventInfos(
             return true
         }
         return false
+    }
+
+    /**
+     * Transcribed from src/eventinfo.c: CheckForCharacterEvents (not verified: no captured call finds an event or a queued tutorial, so the result equals a check that finds nothing; the f4130..4240 test only shows that reading a wrong list would start one)
+     *
+     * True when the chapter's `characterBasedEvents` list has an entry for the character pair
+     * ([pidA], [pidB]); false on skirmish maps.
+     */
+    public fun checkForCharacterEvents(pidA: Int, pidB: Int): Boolean {
+        if (hooks.getBattleMapKind() == KIND_SKIRMISH) return false
+        val info = EventInfo()
+        info.listScript = u32(hooks.chapterEventGroup(playSt.chapterIndex) + CHARACTER_EVENTS)
+        info.pidA = pidA
+        info.pidB = pidB
+        return searchAvailableEvent(info) != null
+    }
+
+    /**
+     * Transcribed from src/eventinfo.c: GetAvailableTileEventCommand (not verified: no captured call finds an event or a queued tutorial, so the result equals a check that finds nothing; the f4130..4240 test only shows that reading a wrong list would start one)
+     *
+     * The `commandId` (`TILE_COMMAND_*`) of the entry of the chapter's `locationBasedEvents` list
+     * that matches the tile ([x], [y]); 0 for none and on skirmish maps.
+     */
+    public fun getAvailableTileEventCommand(x: Int, y: Int): Int {
+        val info = EventInfo()
+        info.listScript = u32(hooks.chapterEventGroup(playSt.chapterIndex) + LOCATION_EVENTS)
+        info.xPos = x
+        info.yPos = y
+        if (searchAvailableEvent(info) != null && hooks.getBattleMapKind() != KIND_SKIRMISH) {
+            return info.commandId
+        }
+        return 0
+    }
+
+    /**
+     * Transcribed from src/eventinfo.c: StartDestSelectedEvent (not verified: no captured call finds an event or a queued tutorial, so the result equals a check that finds nothing; the f4130..4240 test only shows that reading a wrong list would start one)
+     *
+     * After the player picked a destination: runs the queued `DESTSELECTED` tutorial event and
+     * the first matching entry of the chapter's `specialEventsWhenDestSelected` list (true when
+     * that one started); else true when the tutorial event ran. False on skirmish maps.
+     */
+    public fun startDestSelectedEvent(): Boolean =
+        startSpecialEvent(TUTORIAL_EVT_TYPE_DESTSELECTED, DEST_SELECTED_EVENTS)
+
+    /**
+     * Transcribed from src/eventinfo.c: StartAfterUnitMovedEvent (not verified: no captured call finds an event or a queued tutorial, so the result equals a check that finds nothing; the f4130..4240 test only shows that reading a wrong list would start one)
+     *
+     * After a unit moved: as [startDestSelectedEvent] for the `AFTERMOVE` tutorial event and the
+     * chapter's `specialEventsAfterUnitMoved` list.
+     */
+    public fun startAfterUnitMovedEvent(): Boolean =
+        startSpecialEvent(TUTORIAL_EVT_TYPE_AFTERMOVE, AFTER_UNIT_MOVED_EVENTS)
+
+    /** The shared body of [startDestSelectedEvent] and [startAfterUnitMovedEvent]. */
+    private fun startSpecialEvent(tutorialType: Int, listOffset: Int): Boolean {
+        if (hooks.getBattleMapKind() == KIND_SKIRMISH) return false
+        val tutorialStarted = runTutorialEvent(tutorialType)
+        val info = EventInfo()
+        info.listScript = u32(hooks.chapterEventGroup(playSt.chapterIndex) + listOffset)
+        if (searchAvailableEvent(info) != null) {
+            clearActiveEventRegistry()
+            startEventFromInfo(info, EV_EXEC_CUTSCENE)
+            return true
+        }
+        return tutorialStarted
+    }
+
+    /**
+     * Transcribed from src/eventinfo.c: CheckBattleForecastTutorialEvent (not verified: no captured call finds an event or a queued tutorial, so the result equals a check that finds nothing; the f4130..4240 test only shows that reading a wrong list would start one)
+     *
+     * True when the `FORECAST` tutorial event is queued ([checkTutorialEvent]); false on skirmish
+     * maps.
+     */
+    public fun checkBattleForecastTutorialEvent(): Boolean {
+        if (hooks.getBattleMapKind() == KIND_SKIRMISH) return false
+        return checkTutorialEvent(TUTORIAL_EVT_TYPE_FORECAST)
     }
 
     /**
@@ -734,6 +810,19 @@ public class EventInfos(
 
         /** `EV_EXEC_CUTSCENE`: the exec type listed events run with. */
         const val EV_EXEC_CUTSCENE = 1
+
+        /** `RunTutorialEvent` types for a chosen destination, after a move and the forecast. */
+        const val TUTORIAL_EVT_TYPE_DESTSELECTED = 3
+        const val TUTORIAL_EVT_TYPE_AFTERMOVE = 4
+        const val TUTORIAL_EVT_TYPE_FORECAST = 5
+
+        /** Offsets of `characterBasedEvents`, `locationBasedEvents` in `ChapterEventGroup`. */
+        const val CHARACTER_EVENTS = 0x04
+        const val LOCATION_EVENTS = 0x08
+
+        /** Offsets of `specialEventsWhenDestSelected` and `specialEventsAfterUnitMoved`. */
+        const val DEST_SELECTED_EVENTS = 0x14
+        const val AFTER_UNIT_MOVED_EVENTS = 0x18
 
         /** `RunTutorialEvent` type for after a unit action. */
         const val TUTORIAL_EVT_TYPE_POSTACTION = 1

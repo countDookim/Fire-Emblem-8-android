@@ -7,7 +7,10 @@ import fe8.game.bm.BattleUnit
 import fe8.game.bm.BmBattle
 import fe8.game.bm.BmSt
 import fe8.game.bm.CamMove
+import fe8.game.SoundWrapper
 import fe8.game.bm.MapAnimApi
+import fe8.game.bm.MapAnimExpBar
+import fe8.game.bm.MapAnimInfoBox
 import fe8.game.bm.Mu
 import fe8.game.bm.MuHooks
 import fe8.game.bm.PlaySt
@@ -26,6 +29,11 @@ import gbafe.proc.ProcBoolFunc
 import gbafe.proc.ProcFunc
 import gbafe.proc.ProcScript
 import gbafe.proc.ProcScripts
+import gbafe.text.MsgHuffman
+import gbafe.text.MsgStrings
+import gbafe.text.TextHost
+import gbafe.text.TextSystem
+import fe8.game.text.Fe8Text
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -297,11 +305,17 @@ class MapAnimFlowDifferentialTest {
         }
         hooks.muDeathFadeExists = { engine.find(fadeScript) != null }
 
+        // The real exp bar (EP-26), headless: the info box only supplies its tile writers.
+        val romBytes = romFile.readBytes()
+        val infoBox = MapAnimInfoBox(
+            engine, api.state, rom, TextSystem(romBytes, NoTextHost, Fe8Text.CONFIG),
+            MsgStrings(romBytes, MsgHuffman(romBytes, 0, 0), 0),
+        )
+        val expBar = MapAnimExpBar(engine, rom, infoBox, SoundWrapper(engine, null) { 0 })
         val expArgs = ArrayList<IntArray>()
-        val expScript = capturedProcScript("ProcScr_MapAnimExpBar")
         hooks.startMapAnimExpBar = { parent, from, to, actor ->
             expArgs.add(intArrayOf(currentStep, from, to, actor))
-            engine.startBlocking(expScript, parent)
+            expBar.start(parent, from, to, actor)
         }
 
         engine.start(
@@ -343,6 +357,10 @@ class MapAnimFlowDifferentialTest {
             assertEquals(gbm.u8(step, 1), bm.lock, "$at gBmSt.lock")
             assertEquals(
                 dump.findAll(addressOf("ProcScr_Mu")).size, engine.count(mu.script), "$at MUs",
+            )
+            assertEquals(
+                dump.find("ProcScr_MapAnimExpBar") != null, engine.find(expBar.script) != null,
+                "$at exp bar exists",
             )
         }
         assertEquals(4891, ended, "animation proc ends")
@@ -519,6 +537,14 @@ class MapAnimFlowDifferentialTest {
 
         assertEquals(8, palSetMu, "BM_OBJPAL_BANIM_SPECIALMU set on Myrrh MU")
         assertEquals(0x0E, specialSpriteClass, "CLASS_MANAKETE sprite set on Myrrh MU")
+    }
+
+    private object NoTextHost : TextHost {
+        override fun language(): Int = 1
+        override fun applyTextPalette(talk: Boolean, palid: Int) {}
+        override fun readVram32(addr: Int): Int = 0
+        override fun writeVram32(addr: Int, value: Int) {}
+        override fun clearVram(dest: Int, byteCount: Int) {}
     }
 
     private class SoldierCase(val start: Int, val end: Int, val ewram: ByteArray)

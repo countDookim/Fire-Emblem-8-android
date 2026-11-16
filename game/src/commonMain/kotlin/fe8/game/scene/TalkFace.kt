@@ -491,8 +491,7 @@ public class TalkFace(
             OBJ_VRAM + ((faceState.oam2 + 28) and 0x3FF) * 0x20,
             4,
             2,
-            faceHost::registerDataMove,
-        )
+        ) { src, dst, size -> faceHost.registerDataMove(src, dst, size) }
     }
 
     private fun blinkOf(proc: Proc): FaceBlinkState = proc.state as FaceBlinkState

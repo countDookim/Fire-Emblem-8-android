@@ -49,6 +49,9 @@ public class MapAnimInfoBox(
 ) {
     private val genericBuffer = ByteArray(GENERIC_BUFFER_SIZE)
 
+    /** The digit characters of [sub807BA28] (reused: it runs every frame the HP or exp moves). */
+    private val digitBuffer = CharArray(8)
+
     /**
      * `ProcScr_MapBattleInfoBox` (0x089A3688): 7 commands managing the info box shake, draw, and
      * HP bar draining loops.
@@ -344,7 +347,7 @@ public class MapAnimInfoBox(
         blankRef: Int,
         overflow: Boolean,
     ) {
-        val buf = CharArray(8)
+        val buf = digitBuffer
         var n = num
         for (i in buf.size - 1 downTo 0) {
             buf[i] = '0' + n % 10

@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 220 across 48 Kotlin files.
+Total entries: 221 across 49 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -30,12 +30,12 @@ Total entries: 220 across 48 Kotlin files.
 | EP-1b | 1 |
 | EP-23 | 1 |
 | EP-24 | 1 |
-| EP-26 | 1 |
 | EP-30 | 2 |
 | EP-36 | 2 |
 | EP-7 | 2 |
 | IS-2 | 1 |
 | MC-18d | 4 |
+| MC-18f | 2 |
 | PP-10 | 1 |
 | PP-17 | 1 |
 | PP-4 | 1 |
@@ -322,12 +322,6 @@ Total entries: 220 across 48 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | `callDelayedArg` | Stand-in until EP-24 (its port). |
 
-## EP-26 (1)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `startMapAnimExpBar` | Stand-in until EP-26: nothing happens, so no exp bar shows and the animation does not wait for it. |
-
 ## EP-30 (2)
 
 | Kotlin file | Declaration | Stand-in |
@@ -363,6 +357,13 @@ Total entries: 220 across 48 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `resetDialogueScreen` | Stand-in (MC-18d-follow-up) for `ResetDialogueScreen` (src/eventscr2.c). |
 | `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `setFaceY` | Stand-in (MC-18d-follow-up) for the write to `gFaces[0]->yPos`. |
 | `game/src/commonMain/kotlin/fe8/game/mapanim/MapLevelUpAnnouncement.kt` | `startFace` | Stand-in (MC-18d-follow-up) for `StartFace(slot, portraitId, x, y, disp)` (src/face.c). |
+
+## MC-18f (2)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimExpBar.kt` | `procMAExpBarLevelUpIfPossible` | The display is the [Hooks.startManimLevelUp] stand-in (MC-18f); the growth rolls were made in the battle. |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimExpBar.kt` | `startManimLevelUp` | Stand-in until MC-18f: nothing happens, so a level-up shows no display and the bar does not wait for one. |
 
 ## PP-10 (1)
 

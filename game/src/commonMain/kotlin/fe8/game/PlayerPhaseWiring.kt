@@ -20,6 +20,7 @@ import fe8.game.bm.ItemMenuLine
 import fe8.game.bm.MenuItemPanel
 import fe8.game.bm.ChapterMapGfx
 import fe8.game.bm.MapAnimApi
+import fe8.game.bm.MapAnimExpBar
 import fe8.game.bm.MapAnimInfoBox
 import fe8.game.bm.MapAnimScanline
 import fe8.game.bm.MapCursor
@@ -408,6 +409,10 @@ internal class PlayerPhaseWiring(
         infoBox.scanline.paletteWriter = gradientLines
         mapAnim.hooks.startMapAnimInfoWindow = { x, y, p -> infoBox.startMapAnimInfoWindow(x, y, p) }
         mapAnim.hooks.endMapAnimInfoWindow = { infoBox.endMapAnimInfoWindow() }
+        val expBar = MapAnimExpBar(engine, rom, infoBox, sound, hw)
+        mapAnim.hooks.startMapAnimExpBar = { p, from, to, actor ->
+            expBar.start(p, from, to, actor)
+        }
         mapAnim.hooks.resetTextFont = { talk.text.resetTextFont() }
         mapAnim.hooks.initBmBgLayers = { mapGfx.initBmBgLayers() }
         mapAnim.hooks.loadUiFrameGraphics = {

@@ -258,8 +258,8 @@ public class MapAnimApi(
 
         /**
          * `ProcScr_MapAnimExpBar` started as a blocking child of the animation proc with
-         * `MAExpBarProc.expFrom`, `expTo` and `actorId` set. Stand-in until EP-26: nothing
-         * happens, so no exp bar shows and the animation does not wait for it.
+         * `MAExpBarProc.expFrom`, `expTo` and `actorId` set ([MapAnimExpBar.start], wired in
+         * `PlayerPhaseWiring`). The default (no exp bar) is for tests that do not run it.
          */
         public var startMapAnimExpBar: (parent: Proc, expFrom: Int, expTo: Int, actorId: Int) ->
             Unit = { _, _, _, _ -> }

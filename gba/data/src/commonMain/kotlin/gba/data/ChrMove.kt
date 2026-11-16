@@ -5,17 +5,14 @@ public object ChrMove {
     /** `CHR_SIZE`: bytes in one 4bpp tile. */
     public const val CHR_SIZE: Int = 0x20
 
-    /** Tiles in one row of a 2D-mapped OBJ or BG character area (`CHR_SIZE * 0x20` bytes). */
-    private const val ROW_TILES: Int = 0x20
-
     /**
      * `Register2dChrMove(src, dst, width, height)`: queues [height] rows of [width] tiles by
-     * calling [registerDataMove] (`RegisterDataMove(src, dst, size)`) once per row. The source
+     * calling [registerDataMove] (inlined, so per-frame callers neither box nor allocate) (`RegisterDataMove(src, dst, size)`) once per row. The source
      * rows follow each other; the destination rows are 0x20 tiles apart.
      *
      * Ported from src/bmlib.c: Register2dChrMove
      */
-    public fun register2dChrMove(
+    public inline fun register2dChrMove(
         src: Int,
         dst: Int,
         width: Int,
@@ -29,7 +26,7 @@ public object ChrMove {
         for (i in height downTo 1) {
             registerDataMove(s, d, lineSize)
             s += lineSize
-            d += CHR_SIZE * ROW_TILES
+            d += CHR_SIZE * 0x20
         }
     }
 }

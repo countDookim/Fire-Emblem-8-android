@@ -344,6 +344,15 @@ public class Fe8Boot(
             override fun changeUnitSpritePalette(palId: Int) {
                 unitSprites?.changeUnitSpritePalette(palId)
             }
+            // `ReadGameSaveCoreGfx`, `UnpackChapterMapPalette`, `ChangeUnitSpritePalette`; the
+            // graphics need the whole ROM (text, icons), boot windows keep the no-op.
+            override fun restoreAfterEvent5(mapSpritePalIdOverride: Int) {
+                if (!rom.isWholeRom) return
+                val gfx = battleMapGfx(battleChapters)
+                gfx.readGameSaveCoreGfx()
+                gfx.unpackChapterMapPalette()
+                unitSprites?.changeUnitSpritePalette(mapSpritePalIdOverride)
+            }
             // The talk needs the whole ROM (messages, portraits); with boot windows only the
             // chapter data of the events is missing as well, so the default no-op stays.
             override fun endEventTalk() { if (rom.isWholeRom) eventTextHost.endTalk() }
@@ -1057,6 +1066,9 @@ public class Fe8Boot(
         ChapterMapGfx(rom, chapters, hw, control.playSt).also {
             it.resetText = { resetText() }
             it.loadLegacyUiFrameGraphics = { loadLegacyUiFrame() }
+            it.loadUiFrameGraphics = {
+                UiFrame.loadUiFrameGraphics(hw, rom, control.playSt.windowColor)
+            }
             it.resetIconGraphics = { resetIcons() }
             it.loadIconPalettes = { palId -> loadIconPalettes(palId) }
         }
@@ -1083,15 +1095,12 @@ public class Fe8Boot(
     }
 
     /**
-     * `ReadGameSaveCoreGfx` (bm.c) for the resumed game: [resetText], the UI frame graphics, the
-     * icon resets and `LoadObjUIGfx`. Stand-in until M6-F: `ResetFaces`.
+     * `ReadGameSaveCoreGfx` (bm.c) for the resumed game and the end of an event:
+     * [ChapterMapGfx.readGameSaveCoreGfx] with the hooks of [battleMapGfx]. Stand-in until M6-F:
+     * `ResetFaces`.
      */
     private fun readGameSaveCoreGfx(chapters: ChapterData) {
-        resetText()
-        UiFrame.loadUiFrameGraphics(hw, rom, control.playSt.windowColor)
-        resetIcons()
-        loadIconPalettes(4)
-        ChapterMapGfx(rom, chapters, hw, control.playSt).loadObjUiGfx()
+        battleMapGfx(chapters).readGameSaveCoreGfx()
     }
 
     /**

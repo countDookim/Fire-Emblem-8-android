@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 667 across 95 decomp files (missing reason: 0).
+Total entries: 668 across 96 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -1120,6 +1120,12 @@ Total entries: 667 across 95 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `Title_IDLE` | `game/src/commonMain/kotlin/fe8/game/title/TitleScreen.kt` | the 815-step class reel branch never runs in the traces and the next-action id and sound effect are not compared |
+
+## src/uiutils.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `UnpackUiFrameBuffered` | `game/src/commonMain/kotlin/fe8/game/ui/UiFrame.kt` | the traced windows never call it, and the image lookup holds one image for all colours |
 
 ## src/worldmap_cursor.c (1)
 

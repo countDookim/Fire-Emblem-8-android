@@ -68,6 +68,25 @@ public class PaletteFade(private val hardware: BgHardware, private val engine: P
     }
 
     /**
+     * Starts a fade of [bank] to black ([duration] frames) as a child of [parent].
+     *
+     * Ported from src/bmlib.c: StartPalFadeToBlack
+     */
+    public fun startPalFadeToBlack(bank: Int, duration: Int, parent: Proc) {
+        start(ShortArray(16), bank, duration, parent)
+    }
+
+    /**
+     * Sets the 16 colours of [bank] in the palette buffer to black (`Pal_AllBlack`). Like the
+     * decomp's `CpuCopy16` it does not request a palette upload.
+     *
+     * Ported from src/bmlib.c: SetBlackPal
+     */
+    public fun setBlackPal(bank: Int) {
+        hardware.palette.fill(0, bank * 16, bank * 16 + 16)
+    }
+
+    /**
      * One frame of the fade: ends the proc when `clock` reaches `clock_stop` or passes
      * `clock_end`, else sets each of the bank's 16 colours to the per-channel linear interpolation
      * of source and target at `clock` / `clock_end`, requests a palette sync and counts the frame.

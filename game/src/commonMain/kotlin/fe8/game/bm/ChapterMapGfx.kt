@@ -9,9 +9,10 @@ import gbafe.render.BgHardware
  * the OBJ UI graphics (the small map icons and cursor pieces) and their palettes. Palette numbers
  * here are indices into the palette buffer in 16 color banks: 0-15 are BG banks, 16-31 OBJ banks.
  *
- * The `ResetText`, `LoadLegacyUiFrameGraphics`, `ResetFaces`, `ResetIconGraphics_` and
- * `LoadIconPalettes` calls of [sub80156D4] are the hooks [resetText] and friends; `Fe8Boot` wires
- * all but `ResetFaces` (a stand-in until M6-F, the stat screen faces).
+ * The `ResetText`, `LoadLegacyUiFrameGraphics`, `LoadUiFrameGraphics`, `ResetFaces`,
+ * `ResetIconGraphics_` and `LoadIconPalettes` calls of [sub80156D4] and [readGameSaveCoreGfx] are
+ * the hooks [resetText] and friends; `Fe8Boot` wires all but `ResetFaces` (a stand-in until M6-F, the stat screen
+ * faces).
  */
 public class ChapterMapGfx(
     /** ROM the tileset and UI graphics are read from. */
@@ -26,6 +27,8 @@ public class ChapterMapGfx(
     public var resetText: () -> Unit = {},
     /** `LoadLegacyUiFrameGraphics`; set by `Fe8Boot`. */
     public var loadLegacyUiFrameGraphics: () -> Unit = {},
+    /** `LoadUiFrameGraphics` ([fe8.game.ui.UiFrame.loadUiFrameGraphics]); set by `Fe8Boot`. */
+    public var loadUiFrameGraphics: () -> Unit = {},
     /** Stand-in until M6-F for `ResetFaces` (the stat screen faces). */
     public var resetFaces: () -> Unit = {},
     /** `ResetIconGraphics_`; set by `Fe8Boot`. */
@@ -50,6 +53,24 @@ public class ChapterMapGfx(
         val colors = rom.pal(paletteAddress, 16 * bankCount)
         colors.copyInto(hardware.palette, paletteBankId * 16)
         hardware.enablePaletteSync()
+    }
+
+    /**
+     * Ported from src/bm.c: ReadGameSaveCoreGfx
+     *
+     * The graphics reset of a resumed game and of the end of an event: resets text, loads the
+     * window frame graphics ([loadUiFrameGraphics]), resets faces and item icon graphics, loads
+     * the item icon palettes into BG palettes 4-5 ([ICON_PAL_ID]), then [loadObjUiGfx]. The
+     * text, face and icon resets are the hooks ([resetText], [resetFaces], [resetIconGraphics]),
+     * as in [sub80156D4]; `ResetFaces` is a stand-in until M6-F.
+     */
+    public fun readGameSaveCoreGfx() {
+        resetText()
+        loadUiFrameGraphics()
+        resetFaces()
+        resetIconGraphics()
+        loadIconPalettes(ICON_PAL_ID)
+        loadObjUiGfx()
     }
 
     /**

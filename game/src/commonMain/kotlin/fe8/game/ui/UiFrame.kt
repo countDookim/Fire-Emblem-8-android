@@ -37,9 +37,10 @@ public object UiFrame {
     public const val BGPAL_WINDOW_FRAME: Int = 1
 
     /**
-     * Loads the window frame graphics: decompresses the frame image to the start of BG tile VRAM
+     * Loads the window frame graphics: the frame image to the start of BG tile VRAM
      * (`BGCHR_WINDOW_FRAME`, tile 0) and its 16-colour palette into palette bank
-     * [BGPAL_WINDOW_FRAME]. A screen calls this when it sets up, before drawing frames.
+     * [BGPAL_WINDOW_FRAME] ([unpackUiFrameImage], [unpackUiFramePalette]). A screen calls this
+     * when it sets up, before drawing frames.
      *
      * [windowColor] (0..3) is the player's window colour option (`gPlaySt.config.windowColor`);
      * the decomp reads it itself, here the caller passes it. It picks the palette.
@@ -47,13 +48,61 @@ public object UiFrame {
      * Ported from src/uiutils.c: LoadUiFrameGraphics
      */
     public fun loadUiFrameGraphics(hardware: BgHardware, rom: RomView, windowColor: Int = 0) {
-        val imageAddr = rom.u32(UI_FRAME_IMAGE_LOOKUP + 4 * windowColor)
-        rom.decompressInto(imageAddr, hardware.vram, 0)
+        unpackUiFrameImage(hardware, rom, windowColor)
+        unpackUiFramePalette(hardware, rom, windowColor)
+    }
 
+    /**
+     * Decompresses the window frame image of [windowColor] (`gPlaySt.config.windowColor`) into BG
+     * VRAM at byte offset [vramOffset] (the decomp's `dest`; NULL means `BG_CHAR_ADDR(0)`, tile
+     * 0, the default here).
+     *
+     * Ported from src/uiutils.c: UnpackUiFrameImage
+     */
+    public fun unpackUiFrameImage(
+        hardware: BgHardware,
+        rom: RomView,
+        windowColor: Int,
+        vramOffset: Int = 0,
+    ) {
+        val imageAddr = rom.u32(UI_FRAME_IMAGE_LOOKUP + 4 * windowColor)
+        rom.decompressInto(imageAddr, hardware.vram, vramOffset)
+    }
+
+    /**
+     * Applies the frame palette of [windowColor] to palette bank [palId] and flags the palette
+     * for upload; a negative [palId] (the decomp's -1) means [BGPAL_WINDOW_FRAME].
+     *
+     * Ported from src/uiutils.c: UnpackUiFramePalette
+     */
+    public fun unpackUiFramePalette(
+        hardware: BgHardware,
+        rom: RomView,
+        windowColor: Int,
+        palId: Int = -1,
+    ) {
+        val bank = if (palId < 0) BGPAL_WINDOW_FRAME else palId
         val palAddr = rom.u32(UI_FRAME_PALETTE_LOOKUP + 4 * windowColor)
-        val palette = rom.pal(palAddr, 16)
-        palette.copyInto(hardware.palette, BGPAL_WINDOW_FRAME * 16)
+        rom.pal(palAddr, 16).copyInto(hardware.palette, bank * 16)
         hardware.enablePaletteSync()
+    }
+
+    /**
+     * The frame image of [id] (negative: [windowColor]) to BG tile 0 and the frame palette of
+     * [windowColor] to [BGPAL_WINDOW_FRAME]. The decomp decompresses to a scratch buffer and
+     * queues the copy with `RegisterDataMove`; here the image is written at once.
+     *
+     * Transcribed from src/uiutils.c: UnpackUiFrameBuffered (not verified: the traced windows
+     * never call it, and the image lookup holds one image for all colours)
+     */
+    public fun unpackUiFrameBuffered(
+        hardware: BgHardware,
+        rom: RomView,
+        windowColor: Int,
+        id: Int = -1,
+    ) {
+        unpackUiFrameImage(hardware, rom, if (id < 0) windowColor else id)
+        unpackUiFramePalette(hardware, rom, windowColor)
     }
 
     /**

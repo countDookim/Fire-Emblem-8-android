@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 218 across 49 Kotlin files.
+Total entries: 219 across 49 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -18,7 +18,7 @@ Total entries: 218 across 49 Kotlin files.
 | M6-C | 7 |
 | M6-D | 13 |
 | M6-E | 46 |
-| M6-F | 15 |
+| M6-F | 16 |
 | M6-G | 5 |
 | M6-H | 32 |
 | M6-I | 27 |
@@ -138,7 +138,7 @@ Total entries: 218 across 49 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `TalkScene` | Stand-ins until M6-E (no behaviour is invented; each is a no-op or the smallest working substitute): - talk choices (`StartTalkChoice`), `[G]` numbers (`NumberToStringAscii`) and the tactician name... |
 | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `setFaceEyes` | Stand-in (M6-E): `sub_80064D4`, the face eye state, is not ported; the call is ignored. |
 
-## M6-F (15)
+## M6-F (16)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -146,7 +146,8 @@ Total entries: 218 across 49 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `loadLegacyUiFrame` | Stand-in until M6-F for `LoadLegacyUiFrameGraphics` (uiutils.c): the window frame image of `gPlaySt.config.windowColor` to BG tile 0 and its palette to palette 1, from the ROM lookup tables (not ve... |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `readGameSaveCoreGfx` | Stand-in until M6-F: `ResetFaces`. |
 | `game/src/commonMain/kotlin/fe8/game/WorldMapBoot.kt` | `loadLegacyUiFrameGraphics` | Stand-in until M6-F: `LoadLegacyUiFrameGraphics` (BG UI frame tiles) is not ported. |
-| `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | `ChapterMapGfx` | The `ResetText`, `LoadLegacyUiFrameGraphics`, `ResetFaces`, `ResetIconGraphics_` and `LoadIconPalettes` calls of [sub80156D4] are the hooks [resetText] and friends; `Fe8Boot` wires all but `ResetFa... |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | `ChapterMapGfx` | The `ResetText`, `LoadLegacyUiFrameGraphics`, `LoadUiFrameGraphics`, `ResetFaces`, `ResetIconGraphics_` and `LoadIconPalettes` calls of [sub80156D4] and [readGameSaveCoreGfx] are the hooks [resetTe... |
+| `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | `readGameSaveCoreGfx` | The text, face and icon resets are the hooks ([resetText], [resetFaces], [resetIconGraphics]), as in [sub80156D4]; `ResetFaces` is a stand-in until M6-F. |
 | `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | `resetFaces` | Stand-in until M6-F for `ResetFaces` (the stat screen faces). |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `adjustsFromXiScript` | Stand-in until M6-F for `gProcScr_ADJUSTSFROMXI`, a script that ends at once. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `canShowUnitStatScreen` | `CanShowUnitStatScreen(unit)` for unit id [unit]; stand-in until M6-F. |

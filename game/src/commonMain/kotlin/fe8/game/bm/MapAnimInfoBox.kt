@@ -1,6 +1,7 @@
 package fe8.game.bm
 
 import fe8.game.RomView
+import fe8.game.ui.UiFrame
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
@@ -45,29 +46,9 @@ public class MapAnimInfoBox(
     private val hardware: BgHardware? = null,
 ) {
     /**
-     * Hooks for callbacks and unported functions belonging to later milestones.
+     * Hooks for unported functions belonging to later milestones (EP-22, the scanline effects).
      */
     public class Hooks {
-        /**
-         * Stand-in until EP-21: `ProcMapInfoBox_OnEnd` (src/mapanim_infobox.c).
-         */
-        public var procMapInfoBoxOnEnd: () -> Unit = {}
-
-        /**
-         * Stand-in until EP-21: `MapInfoBoxShake` (src/mapanim_infobox.c).
-         */
-        public var mapInfoBoxShake: (MAInfoFrameProc) -> Unit = {}
-
-        /**
-         * Stand-in until EP-21: `sub_807BD54` (src/mapanim_infobox.c).
-         */
-        public var sub807BD54: (proc: MAInfoFrameProc, index: Int) -> Unit = { _, _ -> }
-
-        /**
-         * Stand-in until EP-21: `sub_807BCA8` (src/mapanim_infobox.c).
-         */
-        public var mapInfoBoxHpDrain: (MAInfoFrameProc) -> Unit = {}
-
         /**
          * Stand-in until EP-22: `InitScanline` (src/mapanim_scanline.c).
          */
@@ -92,12 +73,12 @@ public class MapAnimInfoBox(
     public val script: ProcScript = ProcScript(
         "ProcScr_MapBattleInfoBox",
         listOf(
-            setEndCb(ProcFunc { hooks.procMapInfoBoxOnEnd() }),
+            setEndCb(ProcFunc { procMapInfoBoxOnEnd() }),
             sleep(1),
-            call(ProcFunc { mapInfoBoxPrepareForShake(it.state as MAInfoFrameProc) }),
+            call(ProcFunc { mapInfoBoxPrepareForShake(it) }),
             call(ProcFunc { procMapInfoBoxOnDraw(it.state as MAInfoFrameProc) }),
-            repeat(ProcFunc { hooks.mapInfoBoxShake(it.state as MAInfoFrameProc) }),
-            repeat(ProcFunc { hooks.mapInfoBoxHpDrain(it.state as MAInfoFrameProc) }),
+            repeat(ProcFunc { mapInfoBoxShake(it) }),
+            repeat(ProcFunc { sub807BCA8(it.state as MAInfoFrameProc) }),
             end(),
         ),
         newState = { MAInfoFrameProc() },
@@ -164,14 +145,56 @@ public class MapAnimInfoBox(
     }
 
     /**
+     * Ends every info window proc (`Proc_EndEach(ProcScr_MapBattleInfoBox)`), which runs
+     * [procMapInfoBoxOnEnd] for each.
+     *
+     * Ported from src/mapanim_infobox.c: EndMapAnimInfoWindow
+     */
+    public fun endMapAnimInfoWindow() {
+        engine.endEach(script)
+    }
+
+    /**
+     * End callback of the info window proc: removes the primary HBlank handler (the gradient
+     * scanline effect) and clears BG0 and BG1.
+     *
+     * Ported from src/mapanim_infobox.c: ProcMapInfoBox_OnEnd
+     */
+    public fun procMapInfoBoxOnEnd() {
+        val hw = hardware ?: return
+        hw.hblank.setPrimary(null)
+        UiFrame.clearBg0Bg1(hw)
+    }
+
+    /**
+     * One shake step of the info window: sets Window 0 to a band of half-height
+     * [MAInfoFrameProc.unk2A] pixels around the box's top edge, grows [MAInfoFrameProc.unk2A] by
+     * 2, and past [SHAKE_LIMIT] disables Window 0 and breaks [proc].
+     *
+     * Ported from src/mapanim_infobox.c: MapInfoBoxShake
+     */
+    public fun mapInfoBoxShake(proc: Proc) {
+        val state = proc.state as MAInfoFrameProc
+        val mid = (state.y + 2) * 8
+        hardware?.lcd?.setWin0Box(0, mid - state.unk2A, SCREEN_WIDTH, mid + state.unk2A)
+
+        state.unk2A += 2
+
+        if (state.unk2A > SHAKE_LIMIT) {
+            hardware?.lcd?.setWinEnable(0, 0, 0)
+            engine.breakProc(proc)
+        }
+    }
+
+    /**
      * Prepares the info box window for shaking by resetting [MAInfoFrameProc.unk2A] to 0,
-     * performing the first shake step via [Hooks.mapInfoBoxShake], and enabling Window 0.
+     * performing the first shake step via [mapInfoBoxShake], and enabling Window 0.
      *
      * Ported from src/mapanim_infobox.c: MapInfoBox_PrepareForShake
      */
-    public fun mapInfoBoxPrepareForShake(proc: MAInfoFrameProc) {
-        proc.unk2A = 0
-        hooks.mapInfoBoxShake(proc)
+    public fun mapInfoBoxPrepareForShake(proc: Proc) {
+        (proc.state as MAInfoFrameProc).unk2A = 0
+        mapInfoBoxShake(proc)
         hardware?.lcd?.let { lcd ->
             lcd.setWinEnable(1, 0, 0)
             lcd.setWin0Layers(1, 1, 1, 1, 1)
@@ -225,7 +248,7 @@ public class MapAnimInfoBox(
      * Displays the info box for actor [index] offset by [arg2] tiles from [proc]'s X position:
      * sets info box position in [ManimSt], applies faction palette, applies TSA on BG1, writes
      * the unit's name centered on BG0, initializes [ManimSt.hpDisplayedQ4], and calls
-     * [Hooks.sub807BD54].
+     * [sub807BD54].
      *
      * Ported from src/mapanim_infobox.c: DisplayBattleInfoBox
      */
@@ -267,8 +290,186 @@ public class MapAnimInfoBox(
 
         manim.hpDisplayedQ4[index] = manim.hpCur[index] * 16
 
-        hooks.sub807BD54(proc, index)
+        sub807BD54(proc, index)
     }
+
+    /**
+     * Steps the HP shown for each actor of the info window towards its real HP: a falling value
+     * drops by one HP (16 in Q4) per frame. Clears [ManimSt.hpChanging] on a frame in which no
+     * actor's value moved.
+     *
+     * The rising branch (`+4` per frame with the `SONG_75` tick, used by healing) is not written:
+     * the Prologue capture never raises an actor's HP in the info box.
+     *
+     * Ported from src/mapanim_infobox.c: sub_807BCA8
+     */
+    public fun sub807BCA8(proc: MAInfoFrameProc) {
+        var updated = false
+        for (i in 0 until manim.actorCount) {
+            var shown = manim.hpDisplayedQ4[i]
+            val target = manim.hpCur[i] * 16
+
+            if (shown > target) shown -= 16
+
+            if (shown < target) {
+                TODO("sub_807BCA8: rising HP (healing) is not exercised by the capture")
+            }
+
+            if (shown != manim.hpDisplayedQ4[i]) {
+                manim.hpDisplayedQ4[i] = shown
+                sub807BD54(proc, i)
+                updated = true
+            }
+        }
+
+        if (!updated && manim.hpChanging != 0) manim.hpChanging = 0
+    }
+
+    /**
+     * Draws the HP of actor [a] on BG0: the shown HP as three digit tiles at (`hp_info_x + 3`,
+     * `hp_info_y + 3`) and the HP bar to its right.
+     *
+     * Ported from src/mapanim_infobox.c: sub_807BD54
+     */
+    public fun sub807BD54(proc: MAInfoFrameProc, a: Int) {
+        val bg0 = hardware?.tilemaps?.get(0) ?: ShortArray(BgTilemap.ROW * BgTilemap.ROW)
+        val shown = manim.hpDisplayedQ4[a] / 16
+        val row = (manim.hpInfoY[a] + 3) * BgTilemap.ROW
+        val x = manim.hpInfoX[a]
+
+        sub807BA28(bg0, row + x + 3, shown, tileRef(32, BM_BGPAL_BANIM_UNK5), 3, 0, shown >= 100)
+        sub807BB40(bg0, row + x + 4, manim.hpMax[a], shown, 0, HP_BAR_TABLE)
+
+        hardware?.enableBgSyncByMask(1 shl 0)
+    }
+
+    /**
+     * Writes [num] right-aligned as digit tiles into [tilemap], the last digit at [index], and
+     * fills the [len] tiles ending at [index] with [blankRef] where no digit stands. With
+     * [overflow] set (the number has three digits) the last two tiles show the overflow glyph
+     * instead. The trailing blanking loop only repeats what [sub8013168] already cleared when
+     * [blankRef] is 0, so the capture cannot tell it from its absence.
+     *
+     * Ported from src/mapanim_infobox.c: sub_807BA28
+     */
+    public fun sub807BA28(
+        tilemap: ShortArray,
+        index: Int,
+        num: Int,
+        tileRef: Int,
+        len: Int,
+        blankRef: Int,
+        overflow: Boolean,
+    ) {
+        val buf = CharArray(8)
+        var n = num
+        for (i in buf.size - 1 downTo 0) {
+            buf[i] = '0' + n % 10
+            n /= 10
+            if (n == 0) {
+                for (j in i - 1 downTo 0) buf[j] = ' '
+                break
+            }
+        }
+
+        sub8013168(tilemap, index, buf, buf.size - 1, tileRef, len, overflow)
+
+        var i = len - 1
+        while (i > 0 && buf[7 - i] == ' ') {
+            tilemap[index - i] = blankRef.toShort()
+            --i
+        }
+    }
+
+    /**
+     * Writes one HP bar tile at [index] of [tilemap]: tile `base + min(remaining, span)`, with
+     * palette [pal], then lowers [remaining] by [span] - 1 (never below 0). Returns the new
+     * [remaining].
+     *
+     * Ported from src/mapanim_infobox.c: sub_807BB10
+     */
+    public fun sub807BB10(
+        tilemap: ShortArray,
+        index: Int,
+        remaining: Int,
+        pal: Int,
+        span: Int,
+        base: Int,
+    ): Int {
+        tilemap[index] = tileRef(base + minOf(remaining, span), pal).toShort()
+        return maxOf(remaining + 1 - span, 0)
+    }
+
+    /**
+     * Draws the HP bar of [maxHp] and [curHp] at [index] of [tilemap] from the segment list
+     * [table] (ROM address of `u16` span/base pairs ending with a zero span). C draws one
+     * segment for a non-zero [curHp] that scales to none; the capture has no such HP, so that
+     * case is not written.
+     *
+     * Ported from src/mapanim_infobox.c: sub_807BB40
+     */
+    public fun sub807BB40(
+        tilemap: ShortArray,
+        index: Int,
+        maxHp: Int,
+        curHp: Int,
+        palIndex: Int,
+        table: Int,
+    ) {
+        var count = 0
+        var it = table
+        while (rom.u16(it) != 0) {
+            count -= 1 - rom.u16(it)
+            it += 4
+        }
+        count += 1
+
+        var filled = if (maxHp == curHp) count else (((count shl 8) / maxHp * curHp) shr 8)
+        if (filled == 0 && curHp > 0) {
+            TODO("sub_807BB40: the one-segment minimum is not exercised by the capture")
+        }
+
+        val pal = rom.u32(PAL_TABLE + 4 * palIndex)
+        var at = index
+        it = table
+        while (rom.u16(it) != 0) {
+            filled = sub807BB10(tilemap, at, filled, pal, rom.u16(it), rom.u16(it + 2))
+            ++at
+            it += 4
+        }
+    }
+
+    /**
+     * Writes the digit characters of [digits] (read backwards from [last] up to the first space)
+     * as tiles into [tilemap], the last at [dst] and the earlier ones to its left, after blanking
+     * the [len] tiles ending at [dst]. With [overflow] set, C writes the overflow glyph (tile
+     * `base + 10`) into the two tiles ending at [dst] instead of digits; the Prologue capture
+     * never shows an HP of 100 or more, so that branch is not written. The initial blanking of the
+     * [len] tiles is covered by [sub807BA28]'s own blanking, so the capture cannot test it alone.
+     *
+     * Ported from src/bmlib.c: sub_8013168
+     */
+    public fun sub8013168(
+        tilemap: ShortArray,
+        dst: Int,
+        digits: CharArray,
+        last: Int,
+        base: Int,
+        len: Int,
+        overflow: Boolean,
+    ) {
+        for (k in 0 until len) tilemap[dst - k] = 0
+
+        var at = dst
+        if (overflow) TODO("sub_8013168: the HP overflow glyph is not exercised by the capture")
+        var src = last
+        while (digits[src] != ' ') {
+            tilemap[at--] = (digits[src].code + base - '0'.code).toShort()
+            --src
+        }
+    }
+
+    private fun tileRef(chr: Int, pal: Int): Int = chr + (pal shl 12)
 
     private fun applyPalette(palAddress: Int, bank: Int) {
         val hw = hardware ?: return
@@ -285,6 +486,18 @@ public class MapAnimInfoBox(
     public companion object {
         /** Root tree for info window proc (`PROC_TREE_3`). */
         public const val TREE_INFOBOX: Int = 3
+
+        /** `MapInfoBoxShake` breaks once [MAInfoFrameProc.unk2A] exceeds this. */
+        public const val SHAKE_LIMIT: Int = 0x10
+
+        /** `SCREEN_WIDTH` in pixels: the right edge of the shake window. */
+        public const val SCREEN_WIDTH: Int = 240
+
+        /** ROM address of `gUnknown_089A3648`: the HP bar segments (span, base tile pairs). */
+        public const val HP_BAR_TABLE: Int = 0x089A3648
+
+        /** ROM address of `gUnknown_089A3668`: the HP bar palette bank per bar style. */
+        public const val PAL_TABLE: Int = 0x089A3668
 
         /** Size of `gGenericBuffer` (src/variables.c: `u8 gGenericBuffer[0x2000]`). */
         public const val GENERIC_BUFFER_SIZE: Int = 0x2000

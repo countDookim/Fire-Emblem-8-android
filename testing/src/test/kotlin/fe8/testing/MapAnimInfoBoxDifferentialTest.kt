@@ -19,6 +19,7 @@ import gbafe.text.TextSystem
 import java.io.File
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
@@ -187,8 +188,8 @@ class MapAnimInfoBoxDifferentialTest {
     }
 
     @Test
-    @VerifiesPort("MapInfoBox_PrepareForShake")
-    fun `mapInfoBoxPrepareForShake resets unk2A and sets the window registers of f4470`() {
+    @VerifiesPort("MapInfoBox_PrepareForShake", "MapInfoBoxShake")
+    fun `mapInfoBoxPrepareForShake starts the shake and sets the window registers of f4470`() {
         val run = ref.run("ram_trace_prologue_clear")
         val iwram = run.region("f04470", "iwram")
         val engine = ProcEngine()
@@ -197,13 +198,17 @@ class MapAnimInfoBoxDifferentialTest {
         val ts = createHwText(hw)
         val infoBox = MapAnimInfoBox(engine, manim, rom, ts, messages, hw)
 
-        var unk2AAtShake = -1
-        infoBox.hooks.mapInfoBoxShake = { p -> unk2AAtShake = p.unk2A }
-
-        val proc = MAInfoFrameProc(unk2A = 10, x = 15, y = 15)
+        val proc = infoBox.startMapAnimInfoWindow(15, 15, engine.start(PARENT, 2))
+        (proc.state as MAInfoFrameProc).unk2A = 10
         infoBox.mapInfoBoxPrepareForShake(proc)
 
-        assertEquals(0, unk2AAtShake, "unk2A reset before MapInfoBoxShake")
+        assertEquals(2, (proc.state as MAInfoFrameProc).unk2A, "unk2A reset, then one shake step")
+        // The first shake step writes the band from unk2A = 0: top and bottom both at the box's
+        // top edge (win0_right/left, win0_bottom/top of the capture's gLCDControlBuffer).
+        assertEquals(iwram[LCD_BUFFER + LCD_WIN0_V + 1].toInt() and 0xFF, hw.lcd.winV[1], "top")
+        assertEquals(iwram[LCD_BUFFER + LCD_WIN0_V].toInt() and 0xFF, hw.lcd.winV[0], "bottom")
+        assertEquals(iwram[LCD_BUFFER + LCD_WIN0_H + 1].toInt() and 0xFF, hw.lcd.winH[1], "left")
+        assertEquals(iwram[LCD_BUFFER + LCD_WIN0_H].toInt() and 0xFF, hw.lcd.winH[0], "right")
         // The capture's gLCDControlBuffer; the colour-effect enable bits (0x20 in WININ/WINOUT)
         // come from the scanline effect, not from this function, so only the layer bits compare.
         val dispcnt = u16(iwram, LCD_BUFFER)
@@ -229,9 +234,6 @@ class MapAnimInfoBoxDifferentialTest {
         setActors(manim, ewram)
 
         val proc = MAInfoFrameProc(x = 15, y = 15)
-        val subCalls = mutableListOf<Int>()
-        infoBox.hooks.sub807BD54 = { _, idx -> subCalls += idx }
-
         infoBox.displayBattleInfoBox(proc, 0, -1)
         infoBox.displayBattleInfoBox(proc, 1, -11)
 
@@ -242,7 +244,6 @@ class MapAnimInfoBoxDifferentialTest {
             assertEquals(ewram[actor + 0x11].toInt() and 0xFF, manim.hpInfoY[i], "actor $i y")
             assertEquals(u16(ewram, actor + 0x0E), manim.hpDisplayedQ4[i], "actor $i hp q4")
         }
-        assertEquals(listOf(0, 1), subCalls)
 
         // Palette banks 1 and 2 in hardware palette match f04470 gPaletteBuffer
         for (i in 0 until 16) {
@@ -259,6 +260,15 @@ class MapAnimInfoBoxDifferentialTest {
                 val exp = u16(ewram, bg1Off + (r * 32 + c) * 2)
                 val act = hw.tilemaps[1][r * 32 + c].toInt() and 0xFFFF
                 assertEquals(exp, act, "BG1 row $r col $c")
+            }
+        }
+        // BG0 rows 16 (names) and 18 (HP digits and bar) of f04470: DisplayBattleInfoBox ends in
+        // sub_807BD54, which draws the HP.
+        for (r in 15..19) {
+            for (c in 0 until 32) {
+                val exp = u16(ewram, BG0_TILEMAP + (r * 32 + c) * 2)
+                val act = hw.tilemaps[0][r * 32 + c].toInt() and 0xFFFF
+                assertEquals(exp, act, "BG0 row $r col $c")
             }
         }
     }
@@ -316,65 +326,136 @@ class MapAnimInfoBoxDifferentialTest {
     }
 
     @Test
-    @VerifiesPort("StartMapAnimInfoWindow")
-    fun `info box proc follows the capture through steps 4468 to 4480`() {
+    @VerifiesPort(
+        "StartMapAnimInfoWindow", "MapInfoBoxShake", "sub_807BCA8", "sub_807BD54", "sub_807BA28",
+        "sub_807BB10", "sub_807BB40", "sub_8013168", "EndMapAnimInfoWindow",
+        "ProcMapInfoBox_OnEnd",
+    )
+    fun `info box follows the capture from draw through shake, HP drain and end`() {
         val run = ref.run("ram_trace_prologue_clear")
         val procsTrace = run.watch("procs")
-        val ewram = run.region("f04470", "ewram")
         val names = ProcArrayDump.romNames()
+        val dumpOfStep = run.dumps.entries.associate { (dump, step) -> step to dump }
+        fun ewramAt(step: Int): ByteArray? = dumpOfStep[step]?.let { run.region(it, "ewram") }
+        fun iwramAt(step: Int): ByteArray? = dumpOfStep[step]?.let { run.region(it, "iwram") }
+        fun boxAt(step: Int) =
+            ProcArrayDump.ofWatch(procsTrace, step, names).find("ProcScr_MapBattleInfoBox")
 
         val engine = ProcEngine()
         val manim = ManimSt()
         val hw = BgHardware()
-        val ts = createHwText(hw)
-        val infoBox = MapAnimInfoBox(engine, manim, rom, ts, messages, hw)
-        setActors(manim, ewram)
-
-        // MapInfoBoxShake is EP-21; the test supplies its counter and its Proc_Break only.
-        lateinit var infoProc: Proc
-        infoBox.hooks.mapInfoBoxShake = { p ->
-            p.unk2A += 2
-            if (p.unk2A > SHAKE_LIMIT) engine.breakProc(infoProc)
+        val infoBox = MapAnimInfoBox(engine, manim, rom, createHwText(hw), messages, hw)
+        setActors(manim, checkNotNull(ewramAt(4470)))
+        // InitScanline and the gradient effect are EP-22; the effect owns the primary HBlank
+        // handler that ProcMapInfoBox_OnEnd removes, so the test installs a bare one.
+        infoBox.hooks.startManimFrameGradientScanlineEffect = { _, _, _, _ ->
+            hw.hblank.setPrimary { _, _ -> }
         }
 
-        val parent = engine.start(
-            ProcScript("parent", listOf(ProcScripts.sleep(100), ProcScripts.end())),
-            2,
-        )
-        infoProc = infoBox.startMapAnimInfoWindow(15, 15, parent)
+        val parent = engine.start(PARENT, 2)
+        val infoProc = infoBox.startMapAnimInfoWindow(15, 15, parent)
         assertEquals(MapAnimInfoBox.TREE_INFOBOX, infoProc.rootIndex)
         assertEquals(parent, (infoProc.state as MAInfoFrameProc).maMain)
 
         // The capture samples at frame boundaries, and the frame that runs ProcMapInfoBox_OnDraw
         // spans a boundary: sample 4470 is taken before that frame's PROC_REPEAT ran, sample 4471
         // is the state after it. One engine frame therefore covers samples 4470 and 4471.
-        for (step in 4468..4480) {
-            val orig = checkNotNull(
-                ProcArrayDump.ofWatch(procsTrace, step, names).find("ProcScr_MapBattleInfoBox"),
-            ) { "step $step ProcScr_MapBattleInfoBox" }
-            val mine = infoProc.state as MAInfoFrameProc
-            if (step != 4470) {
-                assertEquals(orig.scrCur, infoProc.scrCur, "step $step scrCur")
-                // unk2A is uninitialised before PrepareForShake runs.
-                if (step >= 4471) assertEquals(orig.u16(0x2A), mine.unk2A, "step $step unk2A")
+        var ended = false
+        var sampled = 0
+        for (step in 4468..LAST_STEP) {
+            val orig = boxAt(step)
+            if (orig == null) {
+                if (!ended) infoBox.endMapAnimInfoWindow()
+                ended = true
+                assertNull(engine.find(infoBox.script), "step $step proc ended")
+            } else {
+                assertTrue(!ended, "step $step: the box is never restarted")
+                val mine = infoProc.state as MAInfoFrameProc
+                if (step != 4470) {
+                    assertEquals(orig.scrCur, infoProc.scrCur, "step $step scrCur")
+                    // unk2A is uninitialised before PrepareForShake runs.
+                    if (step >= 4471) assertEquals(orig.u16(0x2A), mine.unk2A, "step $step unk2A")
+                }
+                assertEquals(orig.u16(0x2C), mine.unk2C, "step $step unk2C")
+                assertEquals(orig.u8(0x2E), mine.x, "step $step x")
+                assertEquals(orig.u8(0x2F), mine.y, "step $step y")
             }
-            assertEquals(orig.u16(0x2C), mine.unk2C, "step $step unk2C")
-            assertEquals(orig.u8(0x2E), mine.x, "step $step x")
-            assertEquals(orig.u8(0x2F), mine.y, "step $step y")
+
+            val ewram = ewramAt(step)
+            if (ewram != null && step <= END_STEP) {
+                sampled++
+                // Before ProcMapInfoBox_OnDraw the actor fields still hold the previous battle's.
+                if (step >= 4470) for (i in 0 until manim.actorCount) {
+                    val actor = MANIM_ST + i * ACTOR_SIZE
+                    assertEquals(u16(ewram, actor + 0x0E), manim.hpDisplayedQ4[i], "$step hp q4 $i")
+                    assertEquals(u16(ewram, actor + 0x10) and 0xFF, manim.hpInfoX[i], "$step x $i")
+                    assertEquals(ewram[actor + 0x11].toInt() and 0xFF, manim.hpInfoY[i], "$step y $i")
+                }
+                assertEquals(
+                    ewram[MANIM_ST + MANIM_HP_CHANGING].toInt(), manim.hpChanging,
+                    "step $step hp_changing",
+                )
+                for (c in 0 until 32 * 32) {
+                    assertEquals(
+                        u16(ewram, BG0_TILEMAP + 2 * c), hw.tilemaps[0][c].toInt() and 0xFFFF,
+                        "step $step BG0 row ${c / 32} col ${c % 32}",
+                    )
+                    assertEquals(
+                        u16(ewram, BG1_TILEMAP + 2 * c), hw.tilemaps[1][c].toInt() and 0xFFFF,
+                        "step $step BG1 row ${c / 32} col ${c % 32}",
+                    )
+                }
+            }
+            val iwram = iwramAt(step)
+            if (iwram != null && step in 4480..END_STEP) {
+                // Shake window at its final band, switched off; the HBlank IRQ bit follows the
+                // gradient effect and drops when the proc ends.
+                assertEquals(
+                    u16(iwram, LCD_BUFFER) and DISPCNT_WIN_MASK, hw.lcd.dispcnt and DISPCNT_WIN_MASK,
+                    "step $step DISPCNT window bits",
+                )
+                assertEquals(iwram[LCD_BUFFER + LCD_WIN0_V + 1].toInt() and 0xFF, hw.lcd.winV[1], "$step top")
+                assertEquals(iwram[LCD_BUFFER + LCD_WIN0_V].toInt() and 0xFF, hw.lcd.winV[0], "$step bottom")
+                assertEquals(
+                    u16(iwram, LCD_BUFFER + LCD_DISPSTAT) and DISPSTAT_HBLANK_IRQ,
+                    hw.lcd.dispstat and DISPSTAT_HBLANK_IRQ, "step $step DISPSTAT HBlank IRQ",
+                )
+            }
+            if (step == LAST_STEP) break
+
+            // The next frame: the battle code (not ported here) has already written hp_cur and
+            // hp_changing into the sample of that frame, before this proc runs in it.
+            ewramAt(step + 1)?.let { next ->
+                for (i in 0 until manim.actorCount) {
+                    manim.hpCur[i] = next[MANIM_ST + i * ACTOR_SIZE + 0x0D].toInt() and 0xFF
+                }
+                if (next[MANIM_ST + MANIM_HP_CHANGING].toInt() != 0) manim.hpChanging = 1
+            }
+            if (boxAt(step + 1) == null) continue
             if (step != 4470) engine.run(engine.root(MapAnimInfoBox.TREE_INFOBOX))
         }
+        assertTrue(sampled > 100, "steps compared: $sampled")
+        assertTrue(ended, "the capture ends the box")
     }
 
     private companion object {
+        val PARENT = ProcScript("parent", listOf(ProcScripts.sleep(100), ProcScripts.end()))
+
         // Byte offsets into the capture's EWRAM dump (address - 0x02000000) of decomp symbols.
         const val PALETTE_BUFFER = 0x228A8 // gPaletteBuffer
         const val BG0_TILEMAP = 0x22CA8 // gBG0TilemapBuffer
         const val BG1_TILEMAP = 0x234A8 // gBG1TilemapBuffer
         const val MANIM_ST = 0x3E1F0 // gManimSt
+        const val LAST_STEP = 4891 // end of the window the acceptance names
+        const val END_STEP = 4636 // the step the box is gone and BG0/BG1 are cleared
+        const val MANIM_HP_CHANGING = 0x5F // gManimSt.hp_changing
+        const val DISPSTAT_HBLANK_IRQ = 0x10 // DISPSTAT bit 4
         const val ACTOR_SIZE = 0x14 // sizeof(struct MapAnimActorState)
         const val MANIM_ACTOR_COUNT = 0x5E // gManimSt.actorCount
-        const val SHAKE_LIMIT = 0x10 // MapInfoBoxShake: break once unk2A exceeds this
-                const val LCD_BUFFER = 0x3080 // gLCDControlBuffer, IWRAM
+        const val LCD_BUFFER = 0x3080 // gLCDControlBuffer, IWRAM
+        const val LCD_DISPSTAT = 0x04 // gLCDControlBuffer.dispstat
+        const val LCD_WIN0_H = 0x2C // win0_right, win0_left
+        const val LCD_WIN0_V = 0x30 // win0_bottom, win0_top
         const val LCD_WINCNT = 0x34 // gLCDControlBuffer.wincnt
         const val DISPCNT_WIN_MASK = 0xE000 // DISPCNT_WIN0_ON | WIN1_ON | WINOBJ_ON
         const val WIN_LAYERS = 0x1F // win0_enableBg0..Obj / wout_enableBg0..Obj
@@ -386,6 +467,7 @@ class MapAnimInfoBoxDifferentialTest {
                 val actor = MANIM_ST + i * ACTOR_SIZE
                 manim.unitBytes[i] = ewram
                 manim.unitOffset[i] = u32(ewram, actor) - 0x02000000
+                manim.hpMax[i] = ewram[actor + 0x0C].toInt() and 0xFF
                 manim.hpCur[i] = ewram[actor + 0x0D].toInt() and 0xFF
             }
         }

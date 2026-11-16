@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 221 across 49 Kotlin files.
+Total entries: 217 across 49 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -28,7 +28,7 @@ Total entries: 221 across 49 Kotlin files.
 | EP-13 | 1 |
 | EP-18 | 4 |
 | EP-1b | 1 |
-| EP-21 | 5 |
+| EP-21 | 1 |
 | EP-22 | 2 |
 | EP-30 | 2 |
 | EP-36 | 2 |
@@ -309,15 +309,11 @@ Total entries: 221 across 49 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapTraps.kt` | `prepareTrapDefeats` | Stand-in until EP-1b. |
 
-## EP-21 (5)
+## EP-21 (1)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `startMapAnimInfoWindow` | Stand-in until EP-21: the port exists ([MapAnimInfoBox.startMapAnimInfoWindow]) but is not wired, because the box cannot yet shake, drain HP or end itself (`MapInfoBoxShake`, `EndMapAnimInfoWindow`). |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt` | `mapInfoBoxHpDrain` | Stand-in until EP-21: `sub_807BCA8` (src/mapanim_infobox.c). |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt` | `mapInfoBoxShake` | Stand-in until EP-21: `MapInfoBoxShake` (src/mapanim_infobox.c). |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt` | `procMapInfoBoxOnEnd` | Stand-in until EP-21: `ProcMapInfoBox_OnEnd` (src/mapanim_infobox.c). |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt` | `sub807BD54` | Stand-in until EP-21: `sub_807BD54` (src/mapanim_infobox.c). |
 
 ## EP-22 (2)
 

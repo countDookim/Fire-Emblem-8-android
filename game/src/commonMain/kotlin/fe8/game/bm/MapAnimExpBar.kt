@@ -2,6 +2,7 @@ package fe8.game.bm
 
 import fe8.game.RomView
 import fe8.game.SoundWrapper
+import fe8.game.mapanim.MapLevelUpAnnouncement
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
 import gbafe.proc.ProcFunc
@@ -41,6 +42,8 @@ public class MAExpBarProc(
  * @param infoBox the info box whose tile writers and end callback the exp bar uses.
  * @param sound the sound effect and its stop (`SONG_74`).
  * @param hardware the LCD buffer, BG 0 tile data, tilemap and palette, null headless.
+ * @param levelUp the level-up display the bar starts when the exp passes 100; null only for
+ *   bars that never reach 100 (the game always passes it).
  */
 public class MapAnimExpBar(
     private val engine: ProcEngine,
@@ -48,20 +51,8 @@ public class MapAnimExpBar(
     private val infoBox: MapAnimInfoBox,
     private val sound: SoundWrapper,
     private val hardware: BgHardware? = null,
+    private val levelUp: MapLevelUpAnnouncement? = null,
 ) {
-    /** The calls outside the ported functions. */
-    public class Hooks {
-        /**
-         * `StartManimLevelUp(actorId, parent)` (src/mapanim_lvup.c), which starts the level-up
-         * display as a blocking child of the exp bar. Stand-in until MC-18f: nothing happens, so
-         * a level-up shows no display and the bar does not wait for one.
-         */
-        public var startManimLevelUp: (actorId: Int, parent: Proc) -> Unit = { _, _ -> }
-    }
-
-    /** The calls outside the ported functions. */
-    public val hooks: Hooks = Hooks()
-
     /**
      * `ProcScr_MapAnimExpBar` (0x089A36F8): the window opens, the bar ticks up, the info box is
      * cleared, and a level-up (if the exp passed 100) is displayed.
@@ -159,7 +150,7 @@ public class MapAnimExpBar(
      * Counts the shown exp up by one (wrapping at 100) and redraws; on reaching `expTo % 100` ends
      * the loop and stops the tick.
      *
-     * The wrap at 100 is not exercised by the captured bars (all end below 100 exp).
+     * The wrap at 100 is exercised by `ram_trace_prologue_levelup` (87 to 167).
      *
      * Ported from src/mapanim_expbar.c: ProcMAExpBar_OnIncrement
      */
@@ -211,16 +202,15 @@ public class MapAnimExpBar(
     }
 
     /**
-     * Starts the level-up display when the exp passed 100. The display is the
-     * [Hooks.startManimLevelUp] stand-in (MC-18f); the growth rolls were made in the battle.
+     * Starts the level-up display ([MapLevelUpAnnouncement.startManimLevelUp]) as a blocking
+     * child of the exp bar when the exp passed 100; the bar resumes when it ends. The growth
+     * rolls were made in the battle.
      *
-     * Transcribed from src/mapanim_expbar.c: ProcMAExpBar_LevelUpIfPossible (not verified: the
-     * captured bars end below 100 exp, so the capture cannot tell the check from an empty body;
-     * the level-up window f6413..6746 is MC-18f)
+     * Ported from src/mapanim_expbar.c: ProcMAExpBar_LevelUpIfPossible
      */
     public fun procMAExpBarLevelUpIfPossible(proc: Proc) {
         val state = proc.state as MAExpBarProc
-        if (state.expTo >= EXP_WRAP) hooks.startManimLevelUp(state.actorId, proc)
+        if (state.expTo >= EXP_WRAP) levelUp?.startManimLevelUp(state.actorId, proc)
     }
 
     private fun copyToVram(hw: BgHardware, romSrc: Int, vramOffset: Int, size: Int) {

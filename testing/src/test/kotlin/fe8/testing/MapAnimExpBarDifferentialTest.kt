@@ -3,10 +3,14 @@ package fe8.testing
 import fe8.game.RomView
 import fe8.game.SoundWrapper
 import fe8.game.Fe8Sound
+import fe8.game.bm.BattleUnit
+import fe8.game.bm.BmSt
 import fe8.game.bm.MAExpBarProc
 import fe8.game.bm.ManimSt
 import fe8.game.bm.MapAnimExpBar
 import fe8.game.bm.MapAnimInfoBox
+import fe8.game.bm.UnitTable
+import fe8.game.mapanim.MapLevelUpAnnouncement
 import fe8.game.text.Fe8Text
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
@@ -86,10 +90,12 @@ class MapAnimExpBarDifferentialTest {
             engine, ManimSt(), rom, TextSystem(romBytes, NoTextHost, Fe8Text.CONFIG),
             MsgStrings(romBytes, MsgHuffman(romBytes, 0, 0), 0), hw,
         )
-        val expBar = MapAnimExpBar(engine, rom, infoBox, sound, hw)
-
-        val levelUps = ArrayList<Int>()
-        expBar.hooks.startManimLevelUp = { id, _ -> levelUps.add(id) }
+        val text = TextSystem(romBytes, NoTextHost, Fe8Text.CONFIG)
+        val rig = MapLevelUpRig(
+            engine, rom, hw, sound, BmSt(), ManimSt(), UnitTable(rom), BattleUnit(), text,
+            MsgStrings(romBytes, MsgHuffman(romBytes, 0, 0), 0), MapLevelUpAnnouncement.Hooks(),
+        )
+        val expBar = MapAnimExpBar(engine, rom, infoBox, sound, hw, rig.announcement)
         var blocked = false
         engine.start(
             ProcScript(
@@ -199,7 +205,7 @@ class MapAnimExpBarDifferentialTest {
             }
         }
         assertTrue(ended, "the capture ends the proc")
-        assertTrue(levelUps.isEmpty(), "no level-up display for exp $from -> $to")
+        assertEquals(null, engine.find(rig.announcement.script), "no level-up for exp $from -> $to")
         assertTrue(vramChecked >= 5, "VRAM dumps compared: $vramChecked")
         for (tree in 0 until 8) engine.run(engine.root(tree))
         for (tree in 0 until 8) engine.run(engine.root(tree))

@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 681 across 98 decomp files (missing reason: 0).
+Total entries: 680 across 97 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -1107,12 +1107,6 @@ Total entries: 681 across 98 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `sub_807B4D0` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | its only effect is the sprite animation layer, the display hook [Hooks.setMuAnimLayer], in no captured value |
-
-## src/mapanim_expbar.c (1)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `ProcMAExpBar_LevelUpIfPossible` | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimExpBar.kt` | the captured bars end below 100 exp, so the capture cannot tell the check from an empty body; the level-up window f6413..6746 is MC-18f |
 
 ## src/mapanim_scanline.c (1)
 

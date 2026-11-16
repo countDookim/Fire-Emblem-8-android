@@ -43,10 +43,14 @@ public class PaletteFade(private val hardware: BgHardware, private val engine: P
     /** `struct PalFadeProc`: ties a fade proc to its bank's state (`st`, +0x2C). */
     private class ProcState { lateinit var fade: State }
     private val states = Array(32) { State() }
+
+    /** Reused proc states: starting a fade allocates nothing (a fade ends before 32 start). */
+    private val procStates = Array(32) { ProcState() }
+    private var nextProcState = 0
     private val script = ProcScript(
         "ProcScr_PalFade",
         listOf(mark(PROC_MARK_EFX_BGCOL), repeat(ProcFunc { onLoop(it) }), end()),
-    ) { ProcState() }
+    ) { procStates[nextProcState++ and 31] }
 
     /**
      * Starts a fade to [colors] for [bank], as a child of [parent].

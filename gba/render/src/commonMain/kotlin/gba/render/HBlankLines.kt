@@ -14,10 +14,20 @@ package gba.render
  */
 public object HBlankLines {
     /**
+     * The per-line callback of [capture]. A `fun interface` instead of a function type: its
+     * `vcount` is not boxed, which a `(Int, ByteArray) -> Unit` would do for 128 and up, ~100
+     * allocations every frame.
+     */
+    public fun interface LineHandler {
+        /** Runs the HBlank handler after line [vcount] against the register image [io]. */
+        public fun onLine(vcount: Int, io: ByteArray)
+    }
+
+    /**
      * Records the lines of one frame. [base] is the register image at the start of the frame's VBlank period
      * (after the game's flush); it is not modified. [handler] receives `vcount` and the live register image.
      */
-    public fun capture(base: ByteArray, state: RenderState, handler: (vcount: Int, io: ByteArray) -> Unit) {
+    public fun capture(base: ByteArray, state: RenderState, handler: LineHandler) {
         capture(base, state, base.copyOf(), handler)
     }
 
@@ -29,11 +39,11 @@ public object HBlankLines {
         base: ByteArray,
         state: RenderState,
         io: ByteArray,
-        handler: (vcount: Int, io: ByteArray) -> Unit,
+        handler: LineHandler,
     ) {
         base.copyInto(io)
         val lines = state.lines
-        for (vcount in RenderState.LINES - 1 until TOTAL_LINES) handler(vcount, io)
+        for (vcount in RenderState.LINES - 1 until TOTAL_LINES) handler.onLine(vcount, io)
         for (line in 0 until RenderState.LINES) {
             for (bg in 0 until RenderState.LAYERS) {
                 val layer = state.layers[bg]
@@ -61,7 +71,7 @@ public object HBlankLines {
             val bldcnt = u16(io, 0x50) and 0x3FFF // BLDCNT: targets, effect (bits 6..7)
             val baseCnt = fx.blendTop or (fx.blendMode shl 6) or (fx.blendBottom shl 8)
             if (bldcnt != baseCnt) lines.setBlendControl(line, bldcnt)
-            if (line < RenderState.LINES - 1) handler(line, io)
+            if (line < RenderState.LINES - 1) handler.onLine(line, io)
         }
     }
 

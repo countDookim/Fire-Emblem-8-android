@@ -19,6 +19,7 @@ import gbafe.proc.ProcScripts.yield
 import gbafe.proc.TemporaryLock
 import gbafe.proc.ProcScripts.whileTrue
 import gbafe.render.BgHardware
+import java.util.function.IntConsumer
 
 /**
  * `struct MapAnimState gManimSt` (include/mapanim.h): the state of the map battle animation. The
@@ -110,6 +111,15 @@ public class ManimSt {
         /** `MANIM_KIND_REFRESH`. */
         public const val KIND_REFRESH: Int = 2
     }
+}
+
+/**
+ * `PlaySeSpacial(song, x)`: a sound at screen x. A `fun interface`, so the ints are not boxed on
+ * the per-round call.
+ */
+public fun interface SeSpacial {
+    /** Plays [song] panned by screen x [x]. */
+    public fun play(song: Int, x: Int)
 }
 
 /**
@@ -211,10 +221,53 @@ public class MapAnimApi(
         /**
          * `MapAnim_GetRoundProcScript` (src/mapanim_spellassoc.c): the script of the proc that
          * animates the current round, which [mapAnimDisplayRoundAnim] starts as a blocking child.
-         * Stand-in until EP-23 and EP-24: null, so no round animation runs and the round takes no
-         * time.
+         * Wired to [mapAnimGetRoundProcScript] by [MapAnimApi].
          */
         public var roundProcScript: () -> ProcScript? = { null }
+
+        /**
+         * `PlaySeSpacial(song, x)` (src/bmlib.c, [fe8.game.SpacialSe]) for the hit sounds of
+         * [mapAnimBeginRoundSpecificAnims]; `x` is the screen x. Nothing happens headless.
+         */
+        public var playSeSpacial: SeSpacial = SeSpacial { _, _ -> }
+
+        /**
+         * `MapAnim_MoveSubjectsAwayFromTarget` (src/mapanim_spellassoc.c), the command of
+         * `ProcScr_MapAnimDefaultItemEffect` that steps the subjects back. Stand-in until EP-24:
+         * [moveAwayStandIn], which steps each subject 16 units (1 px) per call away from the
+         * target on each axis where they differ, as `MapAnimMoveUnitAwayFromTargetExt` does.
+         */
+        public var moveSubjectsAwayFromTarget: ProcFunc = ProcFunc {}
+
+        /**
+         * `MapAnim_BeginMISSAnim(unit)` (src/mapanim_specialeffect.c) for the unit at GBA address
+         * `unit`: the "MISS" text. Stand-in until EP-24: nothing happens, no text shows.
+         */
+        public var beginMissAnim: IntConsumer = IntConsumer {}
+
+        /**
+         * `StartMuCritFlash(mu, flashType)` (src/mu.c) for the MOVEUNIT `mu`. Stand-in until
+         * EP-23b: nothing happens, so a critical hit shows no crit flash.
+         */
+        public var startMuCritFlash: (mu: MuProc, flashType: Int) -> Unit = { _, _ -> }
+
+        /**
+         * `NewBG0Shaker` (the critical hit's screen shake). Stand-in until EP-23b: nothing
+         * happens, so the screen does not shake.
+         */
+        public var newBg0Shaker: () -> Unit = {}
+
+        /**
+         * `MapAnim_BeginWallBreakAnim(unit, finishes)` (src/mapanim_specialeffect.c) for the unit
+         * at GBA address `unit`. Stand-in until EP-23b: nothing happens, so no wall break shows.
+         */
+        public var beginWallBreakAnim: (unit: Int, finishes: Int) -> Unit = { _, _ -> }
+
+        /**
+         * `MapAnim_BeginNODAMAGEAnim(unit)` (src/mapanim_specialeffect.c) for the unit at GBA
+         * address `unit`: the "NO DAMAGE" text. Stand-in until EP-24: nothing happens.
+         */
+        public var beginNoDamageAnim: IntConsumer = IntConsumer {}
 
         /**
          * `NewMapPoisonEffect(unit)` (the poison hit's map effect) for the unit at GBA address
@@ -318,6 +371,8 @@ public class MapAnimApi(
         h.prepareBattleTalk = ProcFunc { mapAnimPrepareBattleTalk() }
         h.moveCameraOntoSubject = ProcFunc { mapAnimMoveCameraOntoSubject(it) }
         h.afterCleanup = { endAnimation() }
+        h.roundProcScript = { mapAnimGetRoundProcScript() }
+        h.moveSubjectsAwayFromTarget = ProcFunc { moveAwayStandIn() }
         h.muStartDeathFade = { p -> mu.muStartDeathFade(p.state as MuProc) }
         h.muDeathFadeExists = { mu.muDeathFadeExists() }
     }
@@ -775,6 +830,213 @@ public class MapAnimApi(
     }
 
     /**
+     * `ProcScr_MapAnimDefaultItemEffect`: the round's proc for a weapon without a map animation
+     * script of its own. Four steps toward the target, the hit (flash, HP), a wait for the HP
+     * drain, four steps back.
+     */
+    public val roundScript: ProcScript = ProcScript(
+        "ProcScr_MapAnimDefaultItemEffect",
+        listOf(
+            call(ProcFunc { mapAnimBeginSubjectFastAnim() }),
+            call(ProcFunc { mapAnimMoveSubjectsTowardsTarget() }),
+            sleep(1),
+            call(ProcFunc { mapAnimMoveSubjectsTowardsTarget() }),
+            sleep(1),
+            call(ProcFunc { mapAnimMoveSubjectsTowardsTarget() }),
+            sleep(1),
+            call(ProcFunc { mapAnimMoveSubjectsTowardsTarget() }),
+            sleep(1),
+            call(ProcFunc { mapAnimMoveCameraOnTarget(it) }),
+            sleep(2),
+            call(ProcFunc { mapAnimBeginRoundSpecificAnims() }),
+            sleep(8),
+            repeat(ProcFunc { mapAnimWaitForHpToEndChangingMaybe(it) }),
+            call(ProcFunc { hooks.moveSubjectsAwayFromTarget.invoke(it) }),
+            sleep(1),
+            call(ProcFunc { hooks.moveSubjectsAwayFromTarget.invoke(it) }),
+            sleep(1),
+            call(ProcFunc { hooks.moveSubjectsAwayFromTarget.invoke(it) }),
+            sleep(1),
+            call(ProcFunc { hooks.moveSubjectsAwayFromTarget.invoke(it) }),
+            sleep(20),
+            end(),
+        ),
+    )
+
+    private fun muProc(actor: Int): MuProc = state.mu[actor]!!.state as MuProc
+
+    /**
+     * Ported from src/mapanim_spellassoc.c: MapAnim_GetRoundProcScript
+     *
+     * The script of the current round: [roundScript] unless the weapon has a map animation script
+     * of its own (`gManimSt.specialProcScr`, a spell; none in the Prologue's windows).
+     */
+    public fun mapAnimGetRoundProcScript(): ProcScript {
+        if (state.specialProcScr != 0) {
+            TODO("EP-23b: spell map animation")
+        }
+        return roundScript
+    }
+
+    /**
+     * Ported from src/mapanim_spellassoc.c: MapAnim_BeginSubjectFastAnim
+     *
+     * Speeds up the sprite animation of the round's subject ([Mu.startMuSpeedUpAnim]).
+     */
+    public fun mapAnimBeginSubjectFastAnim() {
+        mu.startMuSpeedUpAnim(muProc(state.subjectActorId))
+    }
+
+    /**
+     * Ported from src/mapanim_spellassoc.c: MapAnimMoveUnitTowardsTargetExt
+     *
+     * Moves [mu1] 16 units (1 px) toward [mu2] on each axis where they differ.
+     */
+    public fun mapAnimMoveUnitTowardsTargetExt(mu1: MuProc, mu2: MuProc) {
+        mu1.xQ4 += Integer.signum(mu2.xQ4 - mu1.xQ4) * 0x10
+        mu1.yQ4 += Integer.signum(mu2.yQ4 - mu1.yQ4) * 0x10
+    }
+
+    /**
+     * Ported from src/mapanim_spellassoc.c: MapAnim_MoveSubjectsTowardsTarget
+     *
+     * Moves the subject toward the target and, in a triangle attack, its two partners too.
+     */
+    public fun mapAnimMoveSubjectsTowardsTarget() {
+        val target = muProc(state.targetActorId)
+        mapAnimMoveUnitTowardsTargetExt(muProc(state.subjectActorId), target)
+        if ((state.hitAttributes and ATTR_TATTACK) != 0) {
+            mapAnimMoveUnitTowardsTargetExt(muProc(2), target)
+            mapAnimMoveUnitTowardsTargetExt(muProc(3), target)
+        }
+    }
+
+    /**
+     * [Hooks.moveSubjectsAwayFromTarget] until EP-24: moves the subject (and a triangle attack's
+     * partners) 16 units away from the target on each axis where they differ.
+     */
+    private fun moveAwayStandIn() {
+        val target = muProc(state.targetActorId)
+        moveAwayOne(muProc(state.subjectActorId), target)
+        if ((state.hitAttributes and ATTR_TATTACK) != 0) {
+            moveAwayOne(muProc(2), target)
+            moveAwayOne(muProc(3), target)
+        }
+    }
+
+    private fun moveAwayOne(m: MuProc, target: MuProc) {
+        m.xQ4 -= Integer.signum(target.xQ4 - m.xQ4) * 0x10
+        m.yQ4 -= Integer.signum(target.yQ4 - m.yQ4) * 0x10
+    }
+
+    /**
+     * Ported from src/mapanim_spellassoc.c: MapAnim_MoveCameraOnTarget
+     *
+     * Moves the camera onto the target's tile.
+     */
+    public fun mapAnimMoveCameraOnTarget(proc: Proc) {
+        hooks.ensureCameraOntoPosition(proc, x(state.targetActorId), y(state.targetActorId))
+    }
+
+    /**
+     * Ported from src/mapanim_spellassoc.c: RegisterMapHpChangeAnim
+     *
+     * Lowers actor [actor]'s `hpCur` by [damage] (a negative [damage] heals), within 0..`hpMax`.
+     */
+    public fun registerMapHpChangeAnim(actor: Int, damage: Int) {
+        val hp = state.hpCur[actor]
+        state.hpCur[actor] = if (hp <= damage) 0 else hp - damage
+        if (state.hpCur[actor] > state.hpMax[actor]) state.hpCur[actor] = state.hpMax[actor]
+    }
+
+    /**
+     * Ported from src/mapanim_spellassoc.c: MapAnim_WaitForHPToEndChangingMaybe
+     *
+     * Ends the wait once the info box's HP drain has finished (`hpChanging` is 0).
+     */
+    public fun mapAnimWaitForHpToEndChangingMaybe(proc: Proc) {
+        if (state.hpChanging == 0) engine.breakProc(proc)
+    }
+
+    /**
+     * Ported from src/mapanim_spellassoc.c: MapAnim_BeginRoundSpecificAnims
+     *
+     * The hit of the round: registers the HP change, then plays the miss, no-damage or hit
+     * effect on the target. Verified: the hit and the miss round. The critical hit and the
+     * damaged wall / snag branches are 1:1 from the C but no capture runs them (their callees
+     * are [Hooks.startMuCritFlash], [Hooks.newBg0Shaker] and [Hooks.beginWallBreakAnim],
+     * stand-ins until EP-23b); the miss and no-damage texts are [Hooks.beginMissAnim] and
+     * [Hooks.beginNoDamageAnim] (EP-24).
+     */
+    public fun mapAnimBeginRoundSpecificAnims() {
+        val actor = state.subjectActorId
+        val target = if ((state.hitAttributes and ATTR_DEVIL) != 0) {
+            state.subjectActorId
+        } else {
+            state.targetActorId
+        }
+        val weapon = state.bu[actor]!!.weaponBefore
+        val targetX = x(target) * 0x10 - bm.cameraX
+
+        if (spells.getSpellAssocReturnBool(weapon) == 0) {
+            if ((state.hitAttributes and BattleGenerate.ATTR_MISS) != 0) {
+                hooks.beginMissAnim.accept(state.unitAddress[target])
+            }
+            return
+        }
+
+        state.hpChanging = 1
+        val recover = (state.unitBytes[0]!![state.unitOffset[0] + OFF_STATUS].toInt() and 0xF) ==
+            STATUS_RECOVER
+        if (recover) {
+            registerMapHpChangeAnim(actor, -state.hitDamage)
+        } else {
+            registerMapHpChangeAnim(target, state.hitDamage)
+        }
+        if ((state.hitAttributes and ATTR_HPSTEAL) != 0) {
+            registerMapHpChangeAnim(actor, -state.hitDamage)
+        }
+        if (state.hitDamage < 0) return
+
+        if ((state.hitAttributes and BattleGenerate.ATTR_MISS) != 0) {
+            hooks.playSeSpacial.play(SONG_C8, targetX)
+            hooks.beginMissAnim.accept(state.unitAddress[target])
+            return
+        }
+        if (state.hitDamage == 0) {
+            if ((state.hitAttributes and ATTR_PETRIFY) == 0) {
+                hooks.playSeSpacial.play(SONG_2CE, targetX)
+                hooks.beginNoDamageAnim.accept(state.unitAddress[target])
+            }
+            return
+        }
+
+        val terrain = state.bu[target]!!.terrainId
+        val finishes = (state.hitInfo and BattleGenerate.INFO_FINISHES) != 0
+        val sfx: Int
+        if (terrain == TERRAIN_WALL_DAMAGED || terrain == TERRAIN_SNAG) {
+            sfx = if (finishes) SONG_AF else SONG_B0
+            hooks.beginWallBreakAnim(state.unitAddress[target], if (finishes) 1 else 0)
+        } else {
+            sfx = when {
+                recover -> SONG_3C9
+                finishes -> SONG_D5
+                else -> SONG_D2
+            }
+        }
+        if ((state.hitAttributes and BattleGenerate.ATTR_CRIT) != 0) {
+            hooks.playSeSpacial.play(sfx, targetX)
+            hooks.startMuCritFlash(muProc(target), spells.getSpellAssocFlashColor(weapon))
+            hooks.newBg0Shaker()
+            hooks.playSeSpacial.play(SONG_D8, targetX)
+            mu.startMuSpeedUpAnim(muProc(actor))
+            return
+        }
+        hooks.playSeSpacial.play(sfx, targetX)
+        mu.startMuHitFlash(muProc(target), spells.getSpellAssocFlashColor(weapon))
+    }
+
+    /**
      * Ported from src/mapanim.c: MapAnim_DisplayRoundAnim
      *
      * Starts the round's animation proc ([Hooks.roundProcScript]) as a blocking child of [proc].
@@ -921,6 +1183,18 @@ public class MapAnimApi(
         private const val GBATTLE_ACTOR = 0x0203A4EC
         private const val GBATTLE_TARGET = 0x0203A56C
         private const val ATTR_TATTACK = 1 shl 10
+        private const val ATTR_DEVIL = 1 shl 7
+        private const val ATTR_HPSTEAL = 1 shl 8
+        private const val ATTR_PETRIFY = 1 shl 13
+        private const val STATUS_RECOVER = 10
+        private const val SONG_C8 = 0xC8
+        private const val SONG_2CE = 0x2CE
+        private const val SONG_3C9 = 0x3C9
+        private const val SONG_D2 = 0xD2
+        private const val SONG_D5 = 0xD5
+        private const val SONG_D8 = 0xD8
+        private const val SONG_AF = 0xAF
+        private const val SONG_B0 = 0xB0
         private const val CONFIG_REFRESH = 1 shl 6
         private const val CONFIG_DANCERING = 1 shl 9
         private const val TERRAIN_WALL_DAMAGED = 0x1B

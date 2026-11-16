@@ -834,6 +834,50 @@ public class Fe8Boot(
     /** The palette fade of the MU hit flash (`StartPalFade`) on the shared palette. */
     private val muPalFade: PaletteFade by lazy { PaletteFade(hw, engine) }
 
+    /** The target palette of a MOVEUNIT palette fade per bank, reused (the fade keeps it). */
+    private val fadeTargets = Array(0x40) { ShortArray(16) }
+
+    /** The call a delayed-call proc makes; pooled so starting one allocates nothing. */
+    private class DelayedCall {
+        var func: ((Int) -> Unit)? = null
+        var arg: Int = 0
+    }
+
+    private val delayedPool = Array(DELAYED_CALLS) { DelayedCall() }
+    private var delayedNext = 0
+    private var delayedPending: DelayedCall? = null
+    private val delayedScripts = HashMap<Int, ProcScript>()
+
+    /**
+     * Stand-in until EP-24 (`CallDelayedArg`): runs `func(arg)` after [delay] frames in a proc on
+     * tree 3. The scripts per delay and the call records are reused, so a call allocates nothing
+     * once its delay has been seen.
+     */
+    private fun startDelayedCall(func: (Int) -> Unit, arg: Int, delay: Int) {
+        val script = delayedScripts.getOrPut(delay) {
+            ProcScript(
+                "ProcScr_CallDelayedArg",
+                listOf(
+                    ProcScripts.sleep(delay),
+                    ProcScripts.call(
+                        ProcFunc {
+                            val call = it.state as DelayedCall
+                            call.func!!.invoke(call.arg)
+                        },
+                    ),
+                    ProcScripts.end(),
+                ),
+                { delayedPending!! },
+            )
+        }
+        val call = delayedPool[delayedNext]
+        delayedNext = (delayedNext + 1) % DELAYED_CALLS
+        call.func = func
+        call.arg = arg
+        delayedPending = call
+        engine.start(script, 3)
+    }
+
     /** MU animation owner retained to flush its registered tile moves during VBlank. */
     private var muSpriteAnim: MuSpriteAnim? = null
 
@@ -887,15 +931,14 @@ public class Fe8Boot(
                     spriteAnim.setObjLayer(anim, layer)
 
                 override fun applyPalette(src: Int, bank: Int) {
-                    rom.pal(src, 16).copyInto(hw.palette, bank * 16)
+                    for (i in 0 until 16) hw.palette[bank * 16 + i] = rom.u16(src + 2 * i).toShort()
                     hw.enablePaletteSync()
                 }
 
                 override fun startPalFade(targetBank: Int, bank: Int, duration: Int, parent: Proc) {
-                    muPalFade.start(
-                        hw.palette.copyOfRange(targetBank * 16, targetBank * 16 + 16),
-                        bank, duration, parent,
-                    )
+                    val target = fadeTargets[bank and 0x3F]
+                    hw.palette.copyInto(target, 0, targetBank * 16, targetBank * 16 + 16)
+                    muPalFade.start(target, bank, duration, parent)
                 }
 
                 override fun setBlendConfig(effect: Int, coeffA: Int, coeffB: Int, blendY: Int) =
@@ -903,19 +946,8 @@ public class Fe8Boot(
 
                 override fun playSoundEffect(song: Int) = control.sound.playSoundEffect(song)
 
-                override fun callDelayedArg(func: (Int) -> Unit, arg: Int, delay: Int) {
-                    engine.start(
-                        ProcScript(
-                            "ProcScr_CallDelayedArg",
-                            listOf(
-                                ProcScripts.sleep(delay),
-                                ProcScripts.call(ProcFunc { func(arg) }),
-                                ProcScripts.end(),
-                            ),
-                        ),
-                        3,
-                    )
-                }
+                override fun callDelayedArg(func: (Int) -> Unit, arg: Int, delay: Int) =
+                    startDelayedCall(func, arg, delay)
 
                 override fun playSeSpacial(song: Int, x: Int) =
                     spacialSe.playSeSpacial(song, x)
@@ -1554,8 +1586,8 @@ public class Fe8Boot(
     private val hblankIo = ByteArray(io.size)
 
     /** Runs the active HBlank handler for one line against the scratch register image. */
-    private val hblankLine: (Int, ByteArray) -> Unit = {
-        lineIndex, regs -> hw.hblank.active?.onHBlank(lineIndex, regs)
+    private val hblankLine = HBlankLines.LineHandler { lineIndex, regs ->
+        hw.hblank.active?.onHBlank(lineIndex, regs)
     }
 
     /**
@@ -1581,6 +1613,9 @@ public class Fe8Boot(
         }
     }
 }
+
+/** Pool size of [Fe8Boot]'s delayed calls (more than can be pending at once). */
+private const val DELAYED_CALLS = 8
 
 /** World map nodes tried by `GetPlayChapterId`. */
 private const val WM_NODE_COUNT = 0x1D

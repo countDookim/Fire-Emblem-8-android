@@ -402,6 +402,10 @@ internal class PlayerPhaseWiring(
         mapAnim.hooks.eventEngineExists = eventEngineExists
         mapAnim.hooks.resetText = { talk.text.resetText() }
         mapAnim.hooks.battleEventEngineExists = battleEventEngineExists
+        val spacialSe = SpacialSe(sound)
+        mapAnim.hooks.playSeSpacial = fe8.game.bm.SeSpacial { song, x ->
+            spacialSe.playSeSpacial(song, x)
+        }
         mapAnim.hooks.callBattleQuoteEventsIfAny = { pidA, pidB ->
             infos.callBattleQuoteEventsIfAny(pidA, pidB)
         }

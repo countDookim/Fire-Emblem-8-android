@@ -1050,8 +1050,12 @@ public class Mu(
             ProcScripts.call(ProcFunc { muFlashFadeFromRestorePal(it) }),
             ProcScripts.end(),
         ),
-        { MuFlashState() },
+        { flashStates[nextFlashState++ and 3] },
     )
+
+    /** Reused flash states (four MOVEUNITs flash at most), so a hit flash allocates nothing. */
+    private val flashStates = Array(4) { MuFlashState() }
+    private var nextFlashState = 0
 
     /** `MuSlowDownAnimFreezeFunc` as the callback `StartMuSpeedUpAnim` queues (no allocation). */
     private val slowDownFreeze: (Int) -> Unit = { muSlowDownAnimFreezeFunc(it) }

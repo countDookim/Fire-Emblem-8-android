@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1316,
+    "verified": 1321,
     "implemented_unverified": 81
   },
   "functions": {
@@ -5136,7 +5136,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
       "status": "implemented",
       "tests": []
     },
@@ -5373,6 +5373,16 @@
         "fe8.testing.MoveUnitDifferentialTest#blue units end on the tiles of the r19400 dump after the opening moves"
       ]
     },
+    "GetUnitSupporterCharacter": {
+      "decomp_file": "src/bmreliance.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/SupportReliance.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SupportRelianceDifferentialTest#ProcessTurnSupportExp reproduces unit supports and total gain at f2768 and f3877"
+      ]
+    },
     "GetUnitSupporterCount": {
       "decomp_file": "src/bmreliance.c",
       "system": "battle_logic",
@@ -5391,6 +5401,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.UnitLoaderDifferentialTest#loading the throne room units reproduces the dumped unit structs"
+      ]
+    },
+    "GetUnitSupporterUnit": {
+      "decomp_file": "src/bmreliance.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/SupportReliance.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SupportRelianceDifferentialTest#ProcessTurnSupportExp reproduces unit supports and total gain at f2768 and f3877"
       ]
     },
     "GetUnitWeaponReachBits": {
@@ -6432,6 +6452,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapEventHostTest#the opening script starts the map, fades and entry bands like the original"
+      ]
+    },
+    "InitSupportBonuses": {
+      "decomp_file": "src/bmreliance.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/SupportReliance.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SupportRelianceDifferentialTest#InitSupportBonuses zeroes bonuses at f1614, f1696, f4210 and f4274"
       ]
     },
     "InitSystemTextFont": {
@@ -8757,6 +8787,16 @@
       "tests": [
         "fe8.testing.MenuDifferentialTest#map menu opens, wraps up to End and closes on A like the game",
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
+      ]
+    },
+    "ProcessTurnSupportExp": {
+      "decomp_file": "src/bmreliance.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/SupportReliance.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SupportRelianceDifferentialTest#ProcessTurnSupportExp reproduces unit supports and total gain at f2768 and f3877"
       ]
     },
     "PushSpriteLayerObjects": {
@@ -11518,6 +11558,16 @@
         "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika matches the game in cancel_end at f1260",
         "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika matches the game in select_move at f1260",
         "fe8.testing.PlayerPhaseSelectDifferentialTest#select Eirika with enemies in reach matches the game in attack at f1260"
+      ]
+    },
+    "UnitGainSupportExp": {
+      "decomp_file": "src/bmreliance.c",
+      "system": "battle_logic",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/SupportReliance.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.SupportRelianceDifferentialTest#ProcessTurnSupportExp reproduces unit supports and total gain at f2768 and f3877"
       ]
     },
     "UnitInitFromDefinition": {

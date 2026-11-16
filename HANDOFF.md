@@ -13,7 +13,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- EP-18, EP-22: owner PC Claude, until ~15:00Z.
+- EP-18 (+EP-21w wiring), EP-25: owner PC Claude, until ~15:00Z.
 
 ## Current state
 

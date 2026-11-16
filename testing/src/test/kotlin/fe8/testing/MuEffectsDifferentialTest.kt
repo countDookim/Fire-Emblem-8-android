@@ -2,6 +2,7 @@ package fe8.testing
 
 import fe8.game.RomView
 import fe8.game.bm.BmSt
+import fe8.game.bm.CallDelayedArg
 import fe8.game.bm.CamMove
 import fe8.game.bm.Mu
 import fe8.game.bm.MuHooks
@@ -56,6 +57,8 @@ class MuEffectsDifferentialTest {
         "MU_StartDeathFade",
         "MuDeathFade_OnLoop",
         "EndMuExt",
+        "CallDelayedArg",
+        "CallDelayedArg_OnLoop",
     )
     fun `MU speed up, hit flash and death fade match the capture f4481 to f4780`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")
@@ -147,9 +150,19 @@ class MuEffectsDifferentialTest {
             step++
             hooks.step = step
             for (tree in 0 until 8) engine.run(engine.root(tree))
-            hooks.runDelayed(step)
             val at = "$RUN step $step"
             val dump = ProcArrayDump.ofWatch(procs, step, names)
+
+            val callDelayedDumps = dump.findAll(PROC_SCR_CALL_DELAYED_ARG)
+            val myDelayed = engine.find(hooks.delayed.script)
+            assertEquals(callDelayedDumps.isNotEmpty(), myDelayed != null, "$at: CallDelayedArg exists")
+            if (callDelayedDumps.isNotEmpty() && myDelayed != null) {
+                val want = callDelayedDumps.single()
+                val state = myDelayed.state as CallDelayedArg.State
+                assertEquals(want.scrCur, myDelayed.scrCur, "$at: CallDelayedArg script position")
+                assertEquals(want.u32(0x30), state.arg, "$at: CallDelayedArg arg")
+                assertEquals(want.u32(0x34), state.clock, "$at: CallDelayedArg clock")
+            }
 
             val flashes = dump.findAll(PROC_SCR_MU_HIT_FLASH)
             val myFlash = engine.find(mu.hitFlashScript)
@@ -249,11 +262,11 @@ class MuEffectsDifferentialTest {
     ) : MuHooks {
         val anims = HashMap<Int, Anim>()
         val fade = PaletteFade(hw, engine)
+        val delayed = CallDelayedArg(engine)
         var ballistaRemovals = 0
         var blendA = 0
         var now = 0
         var step = 0
-        private val delayed = mutableListOf<Triple<Int, (Int) -> Unit, Int>>()
 
         override fun applyPalette(src: Int, bank: Int) {
             rom.pal(src, 16).copyInto(hw.palette, bank * 16)
@@ -286,16 +299,8 @@ class MuEffectsDifferentialTest {
             anims.getValue(anim).objLayer = layer
         }
 
-        // Stand-in for CallDelayedArg (bmlib.c, not ported): the capture's proc starts at the
-        // call frame and the function runs 21 frames later (f4485 -> f4506).
         override fun callDelayedArg(func: (Int) -> Unit, arg: Int, delay: Int) {
-            delayed += Triple(now + delay + 1, func, arg)
-        }
-
-        fun runDelayed(step: Int) {
-            val due = delayed.filter { it.first <= step }
-            delayed.removeAll(due)
-            for (d in due) d.second(d.third)
+            delayed.callDelayedArg(func, arg, delay)
         }
 
         override fun unitState(address: Int): Int = GbaMem.u32(ewram, GbaMem.EWRAM, address + 0x0C)
@@ -319,6 +324,7 @@ class MuEffectsDifferentialTest {
         const val PROC_SCR_MU = 0x089A2C48
         const val PROC_SCR_MU_DEATH_FADE = 0x089A2C80
         const val PROC_SCR_MU_HIT_FLASH = 0x089A2D98
+        const val PROC_SCR_CALL_DELAYED_ARG = 0x0859A110
         const val DYING_MU = 0x02025378
         const val DEATH_FADE = 4742
         val DUMPS = setOf(4490, 4500, 4510, 4600, 4610, 4740, 4750, 4760, 4770, 4780)

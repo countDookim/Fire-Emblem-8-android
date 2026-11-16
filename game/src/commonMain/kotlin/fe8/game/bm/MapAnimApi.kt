@@ -3,6 +3,7 @@ package fe8.game.bm
 import fe8.game.RomView
 import fe8.game.bm.StructCodec.s8
 import fe8.game.bm.StructCodec.u32
+import fe8.game.mapanim.ApProcs
 import gbafe.core.flags.FlagStore
 import gbafe.proc.Proc
 import gbafe.proc.ProcBoolFunc
@@ -161,6 +162,8 @@ public class MapAnimApi(
     camMove: CamMove? = null,
     private val flags: FlagStore? = null,
     private val temporaryLock: TemporaryLock = TemporaryLock(engine),
+    private val spells: SpellAssoc = SpellAssoc(rom),
+    private val apProcs: ApProcs? = null,
 ) {
     /** What the start calls outside the ported functions. */
     public class Hooks {
@@ -233,15 +236,13 @@ public class MapAnimApi(
 
         /**
          * `MapAnim_MoveSubjectsAwayFromTarget` (src/mapanim_spellassoc.c), the command of
-         * `ProcScr_MapAnimDefaultItemEffect` that steps the subjects back. Stand-in until EP-24:
-         * [moveAwayStandIn], which steps each subject 16 units (1 px) per call away from the
-         * target on each axis where they differ, as `MapAnimMoveUnitAwayFromTargetExt` does.
+         * `ProcScr_MapAnimDefaultItemEffect` that steps the subjects back.
          */
         public var moveSubjectsAwayFromTarget: ProcFunc = ProcFunc {}
 
         /**
          * `MapAnim_BeginMISSAnim(unit)` (src/mapanim_specialeffect.c) for the unit at GBA address
-         * `unit`: the "MISS" text. Stand-in until EP-24: nothing happens, no text shows.
+         * `unit`: the "MISS" text.
          */
         public var beginMissAnim: IntConsumer = IntConsumer {}
 
@@ -265,7 +266,8 @@ public class MapAnimApi(
 
         /**
          * `MapAnim_BeginNODAMAGEAnim(unit)` (src/mapanim_specialeffect.c) for the unit at GBA
-         * address `unit`: the "NO DAMAGE" text. Stand-in until EP-24: nothing happens.
+         * address `unit`: the "NO DAMAGE" text. Stand-in until EP-24b (needs a 0-damage hit
+         * capture): nothing happens.
          */
         public var beginNoDamageAnim: IntConsumer = IntConsumer {}
 
@@ -372,7 +374,8 @@ public class MapAnimApi(
         h.moveCameraOntoSubject = ProcFunc { mapAnimMoveCameraOntoSubject(it) }
         h.afterCleanup = { endAnimation() }
         h.roundProcScript = { mapAnimGetRoundProcScript() }
-        h.moveSubjectsAwayFromTarget = ProcFunc { moveAwayStandIn() }
+        h.moveSubjectsAwayFromTarget = ProcFunc { mapAnimMoveSubjectsAwayFromTarget() }
+        h.beginMissAnim = IntConsumer { mapAnimBeginMissAnim(it) }
         h.muStartDeathFade = { p -> mu.muStartDeathFade(p.state as MuProc) }
         h.muDeathFadeExists = { mu.muDeathFadeExists() }
     }
@@ -615,8 +618,6 @@ public class MapAnimApi(
             1 -> setBattleAnimFacing(0, 1, facing)
         }
     }
-
-    private val spells = SpellAssoc(rom)
 
     private val order = IntArray(ManimSt.ACTORS)
 
@@ -912,21 +913,38 @@ public class MapAnimApi(
     }
 
     /**
-     * [Hooks.moveSubjectsAwayFromTarget] until EP-24: moves the subject (and a triangle attack's
-     * partners) 16 units away from the target on each axis where they differ.
+     * Ported from src/mapanim_spellassoc.c: MapAnimMoveUnitAwayFromTargetExt
+     *
+     * Moves [mu1] 16 units (1 px) away from [mu2] on each axis where they differ.
      */
-    private fun moveAwayStandIn() {
-        val target = muProc(state.targetActorId)
-        moveAwayOne(muProc(state.subjectActorId), target)
-        if ((state.hitAttributes and ATTR_TATTACK) != 0) {
-            moveAwayOne(muProc(2), target)
-            moveAwayOne(muProc(3), target)
+    public fun mapAnimMoveUnitAwayFromTargetExt(mu1: MuProc, mu2: MuProc) {
+        val dx = mu1.xQ4 - mu2.xQ4
+        if (dx < 0) {
+            mu1.xQ4 -= 0x10
+        } else if (dx > 0) {
+            mu1.xQ4 += 0x10
+        }
+        val dy = mu1.yQ4 - mu2.yQ4
+        if (dy < 0) {
+            mu1.yQ4 -= 0x10
+        } else if (dy > 0) {
+            mu1.yQ4 += 0x10
         }
     }
 
-    private fun moveAwayOne(m: MuProc, target: MuProc) {
-        m.xQ4 -= Integer.signum(target.xQ4 - m.xQ4) * 0x10
-        m.yQ4 -= Integer.signum(target.yQ4 - m.yQ4) * 0x10
+    /**
+     * Ported from src/mapanim_spellassoc.c: MapAnim_MoveSubjectsAwayFromTarget
+     *
+     * Moves the subject away from the target and, in a triangle attack, its two partners too
+     * (the [ATTR_TATTACK] triangle-attack partner branch is transcribed; no capture exercises it).
+     */
+    public fun mapAnimMoveSubjectsAwayFromTarget() {
+        val target = muProc(state.targetActorId)
+        mapAnimMoveUnitAwayFromTargetExt(muProc(state.subjectActorId), target)
+        if ((state.hitAttributes and ATTR_TATTACK) != 0) {
+            mapAnimMoveUnitAwayFromTargetExt(muProc(2), target)
+            mapAnimMoveUnitAwayFromTargetExt(muProc(3), target)
+        }
     }
 
     /**
@@ -965,8 +983,8 @@ public class MapAnimApi(
      * effect on the target. Verified: the hit and the miss round. The critical hit and the
      * damaged wall / snag branches are 1:1 from the C but no capture runs them (their callees
      * are [Hooks.startMuCritFlash], [Hooks.newBg0Shaker] and [Hooks.beginWallBreakAnim],
-     * stand-ins until EP-23b); the miss and no-damage texts are [Hooks.beginMissAnim] and
-     * [Hooks.beginNoDamageAnim] (EP-24).
+     * stand-ins until EP-23b); the miss text is [Hooks.beginMissAnim] and the uncaptured
+     * no-damage text is [Hooks.beginNoDamageAnim] (EP-24b).
      */
     public fun mapAnimBeginRoundSpecificAnims() {
         val actor = state.subjectActorId
@@ -1034,6 +1052,54 @@ public class MapAnimApi(
         }
         hooks.playSeSpacial.play(sfx, targetX)
         mu.startMuHitFlash(muProc(target), spells.getSpellAssocFlashColor(weapon))
+    }
+
+    /**
+     * Ported from src/mapanim_specialeffect.c: MapAnim_BeginMISSAnim
+     *
+     * Decompresses the MISS graphic into OBJ VRAM and starts the AP proc at the target's screen
+     * position.
+     */
+    public fun mapAnimBeginMissAnim(unitAddress: Int) {
+        val hw = hardware
+        if (hw != null) {
+            rom.decompressInto(
+                IMG_MAP_ANIM_MISS, hw.vram, OBJ_VRAM0 + BM_OBJCHR_BANIM_EFFECT * CHR_SIZE,
+            )
+        }
+        val aps = apProcs ?: return
+        var actor = -1
+        for (i in 0 until state.actorCount) {
+            if (state.unitAddress[i] == unitAddress) {
+                actor = i
+                break
+            }
+        }
+        val unitX: Int
+        val unitY: Int
+        if (actor >= 0) {
+            unitX = x(actor)
+            unitY = y(actor)
+        } else {
+            val offset = unitAddress - UnitTable.BLUE_ADDRESS
+            if (offset in 0 until UnitTable.TOTAL_SIZE) {
+                unitX = units.bytes[offset + OFF_X].toInt()
+                unitY = units.bytes[offset + OFF_Y].toInt()
+            } else {
+                unitX = 0
+                unitY = 0
+            }
+        }
+        val x = 16 * (unitX - (bm.cameraX shr 4)) + 8
+        val y = 16 * (unitY - (bm.cameraY shr 4)) + 16
+        aps.create(
+            definition = OBJ_MAP_ANIM_MISS,
+            x = x,
+            y = y,
+            tileBase = BM_OBJCHR_BANIM_EFFECT,
+            anim = 0,
+            objLayer = 2,
+        )
     }
 
     /**
@@ -1218,6 +1284,11 @@ public class MapAnimApi(
         private const val ITEM_MONSTER_STONE = 0xB5
         private const val BM_OBJPAL_BANIM_SPECIALMU = 8
         private const val PAL_MAP_ANIM_MANAKETE_MU = 0x089A8F74
+        private const val IMG_MAP_ANIM_MISS = 0x089AC0A4
+        private const val OBJ_MAP_ANIM_MISS = 0x089AC194
+        private const val BM_OBJCHR_BANIM_EFFECT = 384
+        private const val OBJ_VRAM0 = 0x10000
+        private const val CHR_SIZE = 0x20
         private val LAYERS = intArrayOf(10, 9, 8, 7)
     }
 }

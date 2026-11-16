@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 226 across 48 Kotlin files.
+Total entries: 222 across 48 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -29,7 +29,7 @@ Total entries: 226 across 48 Kotlin files.
 | EP-19 | 2 |
 | EP-1b | 1 |
 | EP-23b | 4 |
-| EP-24 | 5 |
+| EP-24b | 1 |
 | EP-30 | 2 |
 | EP-36 | 2 |
 | EP-7 | 2 |
@@ -318,15 +318,11 @@ Total entries: 226 across 48 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `newBg0Shaker` | Stand-in until EP-23b: nothing happens, so the screen does not shake. |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `startMuCritFlash` | Stand-in until EP-23b: nothing happens, so a critical hit shows no crit flash. |
 
-## EP-24 (5)
+## EP-24b (1)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `startDelayedCall` | Stand-in until EP-24 (`CallDelayedArg`): runs `func(arg)` after [delay] frames in a proc on tree 3. |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `beginMissAnim` | Stand-in until EP-24: nothing happens, no text shows. |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `beginNoDamageAnim` | Stand-in until EP-24: nothing happens. |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `moveSubjectsAwayFromTarget` | Stand-in until EP-24: [moveAwayStandIn], which steps each subject 16 units (1 px) per call away from the target on each axis where they differ, as `MapAnimMoveUnitAwayFromTargetExt` does. |
-| `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | `callDelayedArg` | Stand-in until EP-24 (its port). |
+| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `beginNoDamageAnim` | Stand-in until EP-24b (needs a 0-damage hit capture): nothing happens. |
 
 ## EP-30 (2)
 

@@ -211,6 +211,8 @@ class MapAnimFlowDifferentialTest {
         "MapAnim_BeginRoundSpecificAnims",
         "RegisterMapHpChangeAnim",
         "MapAnim_WaitForHPToEndChangingMaybe",
+        "MapAnimMoveUnitAwayFromTargetExt",
+        "MapAnim_MoveSubjectsAwayFromTarget",
     )
     fun `map animation battle runs rounds, death and exp bar through the end script f4275 to f4891`() {
         assumeTrue(ref.available && romFile.isFile, "reference data or ROM not present")

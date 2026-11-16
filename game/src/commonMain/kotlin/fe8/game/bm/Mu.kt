@@ -134,7 +134,7 @@ public interface MuHooks {
 
     /**
      * `CallDelayedArg(func, arg, delay)` (bmlib.c): calls [func] with [arg] after [delay]
-     * frames. Stand-in until EP-24 (its port).
+     * frames ([CallDelayedArg]).
      */
     public fun callDelayedArg(func: (Int) -> Unit, arg: Int, delay: Int) {}
 

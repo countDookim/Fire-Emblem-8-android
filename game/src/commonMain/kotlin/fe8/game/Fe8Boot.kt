@@ -7,6 +7,7 @@ import fe8.game.bm.AiIntStep
 import fe8.game.bm.AiStep
 import fe8.game.bm.AiTry
 import fe8.game.bm.BMapMain
+import fe8.game.bm.CallDelayedArg
 import fe8.game.bm.MovementMap
 import fe8.game.bm.PathArrow
 import fe8.game.bm.BattleGenerate
@@ -837,45 +838,11 @@ public class Fe8Boot(
     /** The target palette of a MOVEUNIT palette fade per bank, reused (the fade keeps it). */
     private val fadeTargets = Array(0x40) { ShortArray(16) }
 
-    /** The call a delayed-call proc makes; pooled so starting one allocates nothing. */
-    private class DelayedCall {
-        var func: ((Int) -> Unit)? = null
-        var arg: Int = 0
-    }
+    /** Delayed call procs (`src/bmlib.c`). */
+    public val delayedCalls: CallDelayedArg = CallDelayedArg(engine)
 
-    private val delayedPool = Array(DELAYED_CALLS) { DelayedCall() }
-    private var delayedNext = 0
-    private var delayedPending: DelayedCall? = null
-    private val delayedScripts = HashMap<Int, ProcScript>()
-
-    /**
-     * Stand-in until EP-24 (`CallDelayedArg`): runs `func(arg)` after [delay] frames in a proc on
-     * tree 3. The scripts per delay and the call records are reused, so a call allocates nothing
-     * once its delay has been seen.
-     */
     private fun startDelayedCall(func: (Int) -> Unit, arg: Int, delay: Int) {
-        val script = delayedScripts.getOrPut(delay) {
-            ProcScript(
-                "ProcScr_CallDelayedArg",
-                listOf(
-                    ProcScripts.sleep(delay),
-                    ProcScripts.call(
-                        ProcFunc {
-                            val call = it.state as DelayedCall
-                            call.func!!.invoke(call.arg)
-                        },
-                    ),
-                    ProcScripts.end(),
-                ),
-                { delayedPending!! },
-            )
-        }
-        val call = delayedPool[delayedNext]
-        delayedNext = (delayedNext + 1) % DELAYED_CALLS
-        call.func = func
-        call.arg = arg
-        delayedPending = call
-        engine.start(script, 3)
+        delayedCalls.callDelayedArg(func, arg, delay)
     }
 
     /** MU animation owner retained to flush its registered tile moves during VBlank. */
@@ -1613,9 +1580,6 @@ public class Fe8Boot(
         }
     }
 }
-
-/** Pool size of [Fe8Boot]'s delayed calls (more than can be pending at once). */
-private const val DELAYED_CALLS = 8
 
 /** World map nodes tried by `GetPlayChapterId`. */
 private const val WM_NODE_COUNT = 0x1D

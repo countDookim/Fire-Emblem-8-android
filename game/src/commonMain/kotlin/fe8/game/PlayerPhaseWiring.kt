@@ -410,9 +410,14 @@ internal class PlayerPhaseWiring(
         combat.hooks.doesBmxFadeExist = gbafe.proc.ProcBoolFunc { p ->
             h.doesBmxFadeExist.invoke(p)
         }
+        // Shared AP proc player for map battle effects (EP-24) and level-up labels (MC-18).
+        val apHost = WorldMapApHost(rom, hw, loop.oam)
+        val apPlayer = SpriteAnimPlayer({ rom.u16(it) }, loop.sprites, apHost).also { it.clearAll() }
+        val apProcs = ApProcs(engine, apPlayer)
         // EP-13: the map battle animation start (MOVEUNITs and the animation proc).
         val mapAnim = MapAnimApi(
             engine, bm, battle, battleGenerate, units, unitLoader, mu, rom, hw, camMove, flags,
+            apProcs = apProcs,
         )
         this.mapAnim = mapAnim
         mapAnim.hooks.renderBmMap = { render.renderBmMap() }
@@ -435,12 +440,6 @@ internal class PlayerPhaseWiring(
             infoBox.startMapAnimInfoWindow(x, y, p)
         }
         mapAnim.hooks.endMapAnimInfoWindow = { infoBox.endMapAnimInfoWindow() }
-        val spritePlayer = SpriteAnimPlayer(
-            { rom.u16(it) },
-            loop.sprites,
-            WorldMapApHost(rom, hw, loop.oam),
-        ).also { it.clearAll() }
-        val apProcs = ApProcs(engine, spritePlayer)
         val battles = arrayOf(battle.actor, battle.target)
         val levelUpFrame = MapLevelUpFrame(
             rom,

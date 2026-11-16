@@ -30,6 +30,10 @@ public class ApProcs(
         public var y: Int = 0
     }
 
+    private val pool = Array(POOL_SIZE) { State() }
+    private var next = 0
+    private var pending: State? = null
+
     /** `ProcScr_ApProc`. */
     public val script: ProcScript = ProcScript(
         "ProcScr_ApProc",
@@ -38,7 +42,7 @@ public class ApProcs(
             repeat(ProcFunc { onUpdate(it) }),
             end(),
         ),
-        { State() },
+        { pending ?: State() },
     )
 
     /**
@@ -62,11 +66,14 @@ public class ApProcs(
         // The original writes through the pointer even when the pool was full; a missing handle
         // cannot occur in the captured window.
         if (handle != null) handle.tileBase = tileBase
-        val proc = engine.start(script, 3)
-        val state = proc.state as State
+        val state = pool[next]
+        next = (next + 1) % pool.size
         state.handle = handle
         state.x = x
         state.y = y
+        pending = state
+        val proc = engine.start(script, 3)
+        pending = null
         return proc
     }
 
@@ -99,5 +106,9 @@ public class ApProcs(
      */
     public fun deleteAll() {
         engine.endEach(script)
+    }
+
+    private companion object {
+        const val POOL_SIZE: Int = 16
     }
 }

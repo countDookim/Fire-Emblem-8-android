@@ -13,18 +13,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- Unclaimed, unreviewed work saved on remote branches (free to take; Claude released the claims at wrap-up):
-  - **EP-10c** (turn support exp, bmreliance.c) on `wip/ep10c`: Gemini's uncommitted work as one commit
-    (`SupportReliance.kt` + `SupportRelianceDifferentialTest`, support code moved out of `BmBattle`). Needs: run
-    the test, break-check each Ported claim, `unverified.py`/`standins.py --write`, Dokka, rebase on master.
-  - **EP-20** (map info box A, mapanim_infobox.c) on `wip/ep20`: Gemini's uncommitted work (`MapAnimInfoBox.kt`
-    + test; moves `PutStringCentered` into `gbafe.text.TextSystem`, edits `MapLevelUpFrame`, `MapAnimApi`,
-    `PlayerPhaseWiring`). Same checks; expect rebase conflicts in `PlayerPhaseWiring` (EP-11e/EP-35 changed it).
-    Its `PutStringCentered` @VerifiesPort must be break-checked before keeping the credit.
-  - Local worktrees `.claude/worktrees/ep10c` and `ep20` hold the same commits.
-
-
-
+- EP-10c (wip/ep10c) and EP-20 (wip/ep20): owner PC Claude finishing Gemini's unreviewed work, until ~14:00Z.
 
 ## Current state
 

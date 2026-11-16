@@ -4,6 +4,7 @@ import fe8.game.RomView
 import fe8.game.bm.MAInfoFrameProc
 import fe8.game.bm.ManimSt
 import fe8.game.bm.MapAnimInfoBox
+import fe8.game.bm.MapAnimScanline
 import fe8.game.text.Fe8Text
 import gba.core.VerifiesPort
 import gba.testkit.ReferenceData
@@ -274,7 +275,10 @@ class MapAnimInfoBoxDifferentialTest {
     }
 
     @Test
-    @VerifiesPort("ProcMapInfoBox_OnDraw")
+    @VerifiesPort(
+        "ProcMapInfoBox_OnDraw", "InitScanline", "InitScanlineBuf", "PrepareGradientScanlineBuf",
+        "StartManimFrameGradientScanlineEffect", "SwapScanlineBufs",
+    )
     fun `procMapInfoBoxOnDraw decompresses frame graphics and draws boxes matching f4470`() {
         val run = ref.run("ram_trace_prologue_clear")
         val ewram = run.region("f04470", "ewram")
@@ -287,27 +291,8 @@ class MapAnimInfoBoxDifferentialTest {
 
         setActors(manim, ewram)
 
-        var scanlineInited = false
-        var gradTop = -1
-        var gradBottom = -1
-        var gradColA = -1
-        var gradColB = -1
-        infoBox.hooks.initScanline = { scanlineInited = true }
-        infoBox.hooks.startManimFrameGradientScanlineEffect = { top, bottom, colA, colB ->
-            gradTop = top
-            gradBottom = bottom
-            gradColA = colA
-            gradColB = colB
-        }
-
         val proc = MAInfoFrameProc(x = 15, y = 15)
         infoBox.procMapInfoBoxOnDraw(proc)
-
-        assertTrue(scanlineInited, "initScanline called")
-        assertEquals(120, gradTop, "gradient top (15 * 8)")
-        assertEquals(152, gradBottom, "gradient bottom (120 + 32)")
-        assertEquals(hw.palette[1 * 16 + 1].toInt(), gradColA)
-        assertEquals(hw.palette[2 * 16 + 1].toInt(), gradColB)
 
         // Frame graphics decompressed into VRAM at 0x20
         val expBox = vram.copyOfRange(0x20, 0x400)
@@ -323,6 +308,33 @@ class MapAnimInfoBoxDifferentialTest {
                 assertEquals(exp, act, "BG1 row $r col $c")
             }
         }
+
+        // The scanline effect: both buffers, the swapped buffer order and the installed handler
+        // equal the capture once the box is drawn (f4480; its handler has run, so the active
+        // buffer is the swapped-in one).
+        assertScanlineMatches(infoBox.scanline, run.region("f04480", "ewram"), "f4480")
+        val hblank = checkNotNull(hw.hblank.active) { "the gradient handler is installed" }
+        hblank.onHBlank(160, ByteArray(0x400))
+        assertEquals(
+            (u32(run.region("f04480", "ewram"), SCANLINE_ACTIVE) - EWRAM_BASE - SCANLINE_BUF_A) / 2,
+            infoBox.scanline.activeBuf, "active buffer after the wrap line",
+        )
+    }
+
+    @Test
+    fun `initScanline matches the scanline state the capture holds mid-draw at f4470`() {
+        val ewram = ref.run("ram_trace_prologue_clear").region("f04470", "ewram")
+        val scanline = MapAnimScanline()
+        scanline.initScanline()
+
+        // f4470 is sampled between the gradient fill and the swap: the first buffer holds the
+        // empty window rows, the buffer order and the active buffer are the fresh ones.
+        for (i in 0 until 160) {
+            assertEquals(u16(ewram, SCANLINE_BUF_A + 2 * i), scanline.bufA[i].toInt() and 0xFFFF)
+        }
+        assertEquals(bufIndex(u32(ewram, SCANLINE_BUFS)), scanline.bufs[0])
+        assertEquals(bufIndex(u32(ewram, SCANLINE_BUFS + 4)), scanline.bufs[1])
+        assertEquals(bufIndex(u32(ewram, SCANLINE_ACTIVE)), scanline.activeBuf)
     }
 
     @Test
@@ -346,12 +358,6 @@ class MapAnimInfoBoxDifferentialTest {
         val hw = BgHardware()
         val infoBox = MapAnimInfoBox(engine, manim, rom, createHwText(hw), messages, hw)
         setActors(manim, checkNotNull(ewramAt(4470)))
-        // InitScanline and the gradient effect are EP-22; the effect owns the primary HBlank
-        // handler that ProcMapInfoBox_OnEnd removes, so the test installs a bare one.
-        infoBox.hooks.startManimFrameGradientScanlineEffect = { _, _, _, _ ->
-            hw.hblank.setPrimary { _, _ -> }
-        }
-
         val parent = engine.start(PARENT, 2)
         val infoProc = infoBox.startMapAnimInfoWindow(15, 15, parent)
         assertEquals(MapAnimInfoBox.TREE_INFOBOX, infoProc.rootIndex)
@@ -406,6 +412,9 @@ class MapAnimInfoBoxDifferentialTest {
                     )
                 }
             }
+            if (ewram != null && step in 4480..END_STEP) {
+                assertScanlineMatches(infoBox.scanline, ewram, "step $step")
+            }
             val iwram = iwramAt(step)
             if (iwram != null && step in 4480..END_STEP) {
                 // Shake window at its final band, switched off; the HBlank IRQ bit follows the
@@ -446,6 +455,10 @@ class MapAnimInfoBoxDifferentialTest {
         const val BG0_TILEMAP = 0x22CA8 // gBG0TilemapBuffer
         const val BG1_TILEMAP = 0x234A8 // gBG1TilemapBuffer
         const val MANIM_ST = 0x3E1F0 // gManimSt
+        const val EWRAM_BASE = 0x02000000
+        const val SCANLINE_BUF_A = 0x3E254 // gManimScanlineBufA
+        const val SCANLINE_BUFS = 0x3E754 // gManimScanlineBufs
+        const val SCANLINE_ACTIVE = 0x3E75C // gManimActiveScanlineBuf
         const val LAST_STEP = 4891 // end of the window the acceptance names
         const val END_STEP = 4636 // the step the box is gone and BG0/BG1 are cleared
         const val MANIM_HP_CHANGING = 0x5F // gManimSt.hp_changing
@@ -459,6 +472,21 @@ class MapAnimInfoBoxDifferentialTest {
         const val LCD_WINCNT = 0x34 // gLCDControlBuffer.wincnt
         const val DISPCNT_WIN_MASK = 0xE000 // DISPCNT_WIN0_ON | WIN1_ON | WINOBJ_ON
         const val WIN_LAYERS = 0x1F // win0_enableBg0..Obj / wout_enableBg0..Obj
+
+        /** Index in `gManimScanlineBufA` (halfwords) of the buffer pointer [pointer]. */
+        fun bufIndex(pointer: Int): Int = (pointer - EWRAM_BASE - SCANLINE_BUF_A) / 2
+
+        /** Compares both scanline buffers and the buffer order with the capture's [ewram]. */
+        fun assertScanlineMatches(scanline: MapAnimScanline, ewram: ByteArray, what: String) {
+            for (i in 0 until 640) {
+                assertEquals(
+                    u16(ewram, SCANLINE_BUF_A + 2 * i), scanline.bufA[i].toInt() and 0xFFFF,
+                    "$what gManimScanlineBufA[$i]",
+                )
+            }
+            assertEquals(bufIndex(u32(ewram, SCANLINE_BUFS)), scanline.bufs[0], "$what bufs[0]")
+            assertEquals(bufIndex(u32(ewram, SCANLINE_BUFS + 4)), scanline.bufs[1], "$what bufs[1]")
+        }
 
         /** Fills actor state of [manim] from the capture's gManimSt, units in the same dump. */
         fun setActors(manim: ManimSt, ewram: ByteArray) {

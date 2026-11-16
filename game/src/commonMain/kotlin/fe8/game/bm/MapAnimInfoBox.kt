@@ -44,26 +44,9 @@ public class MapAnimInfoBox(
     private val text: TextSystem,
     private val messages: MsgStrings,
     private val hardware: BgHardware? = null,
+    /** The scanline buffers and gradient effect of the info box. */
+    public val scanline: MapAnimScanline = MapAnimScanline(hardware?.hblank),
 ) {
-    /**
-     * Hooks for unported functions belonging to later milestones (EP-22, the scanline effects).
-     */
-    public class Hooks {
-        /**
-         * Stand-in until EP-22: `InitScanline` (src/mapanim_scanline.c).
-         */
-        public var initScanline: () -> Unit = {}
-
-        /**
-         * Stand-in until EP-22: `StartManimFrameGradientScanlineEffect` (src/mapanim_scanline.c).
-         */
-        public var startManimFrameGradientScanlineEffect:
-            (top: Int, bottom: Int, colorA: Int, colorB: Int) -> Unit = { _, _, _, _ -> }
-    }
-
-    /** The hooks, configurable by callers. */
-    public val hooks: Hooks = Hooks()
-
     private val genericBuffer = ByteArray(GENERIC_BUFFER_SIZE)
 
     /**
@@ -232,11 +215,11 @@ public class MapAnimInfoBox(
             }
         }
 
-        hooks.initScanline()
+        scanline.initScanline()
 
-        val pal1 = hardware?.palette?.get(1 * PALETTE_COLORS + 1)?.toInt() ?: 0
-        val pal2 = hardware?.palette?.get(2 * PALETTE_COLORS + 1)?.toInt() ?: 0
-        hooks.startManimFrameGradientScanlineEffect(
+        val pal1 = hardware?.palette?.get(1 * PALETTE_COLORS + 1)?.toInt()?.and(0xFFFF) ?: 0
+        val pal2 = hardware?.palette?.get(2 * PALETTE_COLORS + 1)?.toInt()?.and(0xFFFF) ?: 0
+        scanline.startManimFrameGradientScanlineEffect(
             manim.hpInfoY[0] * 8,
             manim.hpInfoY[0] * 8 + 0x20,
             pal1,

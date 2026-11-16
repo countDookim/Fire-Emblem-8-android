@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 217 across 49 Kotlin files.
+Total entries: 215 across 48 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -29,7 +29,6 @@ Total entries: 217 across 49 Kotlin files.
 | EP-18 | 4 |
 | EP-1b | 1 |
 | EP-21 | 1 |
-| EP-22 | 2 |
 | EP-30 | 2 |
 | EP-36 | 2 |
 | EP-7 | 2 |
@@ -314,13 +313,6 @@ Total entries: 217 across 49 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `startMapAnimInfoWindow` | Stand-in until EP-21: the port exists ([MapAnimInfoBox.startMapAnimInfoWindow]) but is not wired, because the box cannot yet shake, drain HP or end itself (`MapInfoBoxShake`, `EndMapAnimInfoWindow`). |
-
-## EP-22 (2)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt` | `initScanline` | Stand-in until EP-22: `InitScanline` (src/mapanim_scanline.c). |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt` | `startManimFrameGradientScanlineEffect` | Stand-in until EP-22: `StartManimFrameGradientScanlineEffect` (src/mapanim_scanline.c). |
 
 ## EP-30 (2)
 

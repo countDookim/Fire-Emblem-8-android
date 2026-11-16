@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 222 across 48 Kotlin files.
+Total entries: 220 across 48 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -30,7 +30,6 @@ Total entries: 222 across 48 Kotlin files.
 | EP-1b | 1 |
 | EP-23 | 1 |
 | EP-24 | 1 |
-| EP-25 | 2 |
 | EP-26 | 1 |
 | EP-30 | 2 |
 | EP-36 | 2 |
@@ -322,13 +321,6 @@ Total entries: 222 across 48 Kotlin files.
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/Mu.kt` | `callDelayedArg` | Stand-in until EP-24 (its port). |
-
-## EP-25 (2)
-
-| Kotlin file | Declaration | Stand-in |
-| --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `muDeathFadeExists` | Stand-in until EP-25: never (no fade is started). |
-| `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `muStartDeathFade` | Stand-in until EP-25: nothing happens, so the dead unit's MOVEUNIT does not fade. |
 
 ## EP-26 (1)
 

@@ -245,14 +245,14 @@ public class MapAnimApi(
         public var endMapAnimInfoWindow: () -> Unit = {}
 
         /**
-         * `MU_StartDeathFade(mu)` (src/mu.c) for the `ProcScr_Mu` proc `mu`. Stand-in until EP-25:
-         * nothing happens, so the dead unit's MOVEUNIT does not fade.
+         * `MU_StartDeathFade(mu)` (src/mu.c) for the `ProcScr_Mu` proc `mu`; defaults to
+         * [Mu.muStartDeathFade].
          */
         public var muStartDeathFade: (mu: Proc) -> Unit = {}
 
         /**
-         * `PROC_WHILE_EXISTS(ProcScr_MuDeathFade)`: a death fade proc runs. Stand-in until EP-25:
-         * never (no fade is started).
+         * `PROC_WHILE_EXISTS(ProcScr_MuDeathFade)`: a death fade proc runs; defaults to
+         * [Mu.muDeathFadeExists].
          */
         public var muDeathFadeExists: () -> Boolean = { false }
 
@@ -318,6 +318,8 @@ public class MapAnimApi(
         h.prepareBattleTalk = ProcFunc { mapAnimPrepareBattleTalk() }
         h.moveCameraOntoSubject = ProcFunc { mapAnimMoveCameraOntoSubject(it) }
         h.afterCleanup = { endAnimation() }
+        h.muStartDeathFade = { p -> mu.muStartDeathFade(p.state as MuProc) }
+        h.muDeathFadeExists = { mu.muDeathFadeExists() }
     }
 
     /** `gManimSt`. */

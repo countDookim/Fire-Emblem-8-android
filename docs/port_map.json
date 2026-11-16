@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1381,
+    "verified": 1382,
     "implemented_unverified": 82
   },
   "functions": {
@@ -9893,6 +9893,16 @@
         "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 1 dies as the capture f2018 to f2034",
         "fe8.testing.BmxFadeDifferentialTest#the fade after Soldier 2 dies as the capture f2723 to f2739",
         "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
+      ]
+    },
+    "ResetDialogueScreen": {
+      "decomp_file": "src/eventscr2.c",
+      "system": "events",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapLevelUpAnnouncementDifferentialTest#level-up follows the original every step"
       ]
     },
     "ResetEkrDragonStatus": {

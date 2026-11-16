@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1309,
+    "verified": 1316,
     "implemented_unverified": 79
   },
   "functions": {
@@ -5128,7 +5128,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "implemented",
       "tests": []
     },
@@ -9093,6 +9093,16 @@
         "fe8.testing.ReadGameSaveReferenceTest#reading chapter6 sav slot 1 reproduces the RAM of r01142"
       ]
     },
+    "ReadGameSaveCoreGfx": {
+      "decomp_file": "src/bm.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventEndGraphicsDifferentialTest#the core graphics reset writes the frame, icon and OBJ UI graphics of the capture"
+      ]
+    },
     "ReadGlobalSaveInfo": {
       "decomp_file": "src/bmsave-lib.c",
       "system": "save",
@@ -9639,6 +9649,16 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BanimSetup.kt",
       "status": "implemented",
       "tests": []
+    },
+    "SetBlackPal": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/PaletteFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventEndGraphicsDifferentialTest#the face palette of the talk start is black at step 2972"
+      ]
     },
     "SetBlendConfig": {
       "decomp_file": "src/hardware.c",
@@ -10541,6 +10561,16 @@
         "fe8.testing.MenuDifferentialTest#unit menu opens, moves to Wait and closes on A like the game"
       ]
     },
+    "StartPalFadeToBlack": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "engine/render/src/commonMain/kotlin/gbafe/render/PaletteFade.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventEndGraphicsDifferentialTest#the face fade out follows the captured palette bank per step"
+      ]
+    },
     "StartPlayMuStepSe": {
       "decomp_file": "src/mu.c",
       "system": "battle_map",
@@ -10643,6 +10673,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TalkInterpretDifferentialTest#the first talk runs frame by frame as traced"
+      ]
+    },
+    "StartTemporaryLock": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/TemporaryLock.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventEndGraphicsDifferentialTest#the face fade in lock counts down as the captured lock proc"
       ]
     },
     "StartTitleScreen_FlagTrue": {
@@ -10972,6 +11012,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
+    "TemporaryLock_OnLoop": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "engine/core/src/commonMain/kotlin/gbafe/proc/TemporaryLock.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventEndGraphicsDifferentialTest#the face fade in lock counts down as the captured lock proc"
       ]
     },
     "TerrainDisplay_Init": {
@@ -11572,6 +11622,26 @@
       "tests": [
         "fe8.testing.TalkEventDifferentialTest#the boss turn event talk matches the captured procs and talk state per step",
         "fe8.testing.TalkEventDifferentialTest#the soldiers dialogue in the enemy phase matches the captured procs and talk state"
+      ]
+    },
+    "UnpackUiFrameImage": {
+      "decomp_file": "src/uiutils.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/UiFrame.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventEndGraphicsDifferentialTest#the frame image of the window colour is the BG tile data of f3730"
+      ]
+    },
+    "UnpackUiFramePalette": {
+      "decomp_file": "src/uiutils.c",
+      "system": "menus",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/ui/UiFrame.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.EventEndGraphicsDifferentialTest#the frame palette of the window colour is palette bank 1 of r3721"
       ]
     },
     "UnskipGmNodeIconDisplay": {

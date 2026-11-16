@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1368,
+    "verified": 1373,
     "implemented_unverified": 82
   },
   "functions": {
@@ -19,6 +19,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/ApProcs.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.MapAnimRoundEffectsDifferentialTest#MapAnim_BeginMISSAnim decompresses MISS graphic and runs APProc f4550 to f4577 matching OAM",
         "fe8.testing.MapLevelUpGainLabelsDifferentialTest#label proc animation procs handles tiles and palettes follow the original"
       ]
     },
@@ -39,6 +40,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/ApProcs.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.MapAnimRoundEffectsDifferentialTest#MapAnim_BeginMISSAnim decompresses MISS graphic and runs APProc f4550 to f4577 matching OAM",
         "fe8.testing.MapLevelUpGainLabelsDifferentialTest#label proc animation procs handles tiles and palettes follow the original"
       ]
     },
@@ -49,6 +51,7 @@
       "kotlin_file": "game/src/commonMain/kotlin/fe8/game/mapanim/ApProcs.kt",
       "status": "verified",
       "tests": [
+        "fe8.testing.MapAnimRoundEffectsDifferentialTest#MapAnim_BeginMISSAnim decompresses MISS graphic and runs APProc f4550 to f4577 matching OAM",
         "fe8.testing.MapLevelUpGainLabelsDifferentialTest#label proc animation procs handles tiles and palettes follow the original"
       ]
     },
@@ -1311,6 +1314,28 @@
       "status": "verified",
       "tests": [
         "fe8.testing.WorldMapExitTest#the world map exit matches the capture"
+      ]
+    },
+    "CallDelayedArg": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CallDelayedArg.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimRoundEffectsDifferentialTest#CallDelayedArg and CallDelayedArg_OnLoop reproduce delayed-call procs f4485 to f4611",
+        "fe8.testing.MuEffectsDifferentialTest#MU speed up, hit flash and death fade match the capture f4481 to f4780"
+      ]
+    },
+    "CallDelayedArg_OnLoop": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/CallDelayedArg.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimRoundEffectsDifferentialTest#CallDelayedArg and CallDelayedArg_OnLoop reproduce delayed-call procs f4485 to f4611",
+        "fe8.testing.MuEffectsDifferentialTest#MU speed up, hit flash and death fade match the capture f4481 to f4780"
       ]
     },
     "CamMove_OnInit": {
@@ -5186,7 +5211,7 @@
       "decomp_file": "src/bmbattle.c",
       "system": "battle_logic",
       "in_scope": true,
-      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt",
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/BattleGenerate.kt",
       "status": "implemented",
       "tests": []
     },
@@ -7203,6 +7228,16 @@
         "fe8.testing.EntityBmMapsDifferentialTest#fog maps match the game on chapter 6"
       ]
     },
+    "MapAnimMoveUnitAwayFromTargetExt": {
+      "decomp_file": "src/mapanim_spellassoc.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
+      ]
+    },
     "MapAnimMoveUnitTowardsTargetExt": {
       "decomp_file": "src/mapanim_spellassoc.c",
       "system": "map_anim",
@@ -7221,6 +7256,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.MapAnimFlowDifferentialTest#map animation battle reproduces script positions and gManimSt f4275 to f4484"
+      ]
+    },
+    "MapAnim_BeginMISSAnim": {
+      "decomp_file": "src/mapanim_specialeffect.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimRoundEffectsDifferentialTest#MapAnim_BeginMISSAnim decompresses MISS graphic and runs APProc f4550 to f4577 matching OAM"
       ]
     },
     "MapAnim_BeginRoundSpecificAnims": {
@@ -7331,6 +7376,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.MapAnimFlowDifferentialTest#map animation battle reproduces script positions and gManimSt f4275 to f4484"
+      ]
+    },
+    "MapAnim_MoveSubjectsAwayFromTarget": {
+      "decomp_file": "src/mapanim_spellassoc.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimFlowDifferentialTest#map animation battle runs rounds, death and exp bar through the end script f4275 to f4891"
       ]
     },
     "MapAnim_MoveSubjectsTowardsTarget": {

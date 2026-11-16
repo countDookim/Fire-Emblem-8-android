@@ -8,7 +8,7 @@
     "total": 8352,
     "in_scope_total": 7732,
     "out_of_scope": 620,
-    "verified": 1321,
+    "verified": 1329,
     "implemented_unverified": 81
   },
   "functions": {
@@ -2450,6 +2450,16 @@
         "fe8.testing.BmxFadeDifferentialTest#the fade after the boss moves as the capture f3832 to f3848"
       ]
     },
+    "DisplayBattleInfoBox": {
+      "decomp_file": "src/mapanim_infobox.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#displayBattleInfoBox positions actor info box, applies TSA and palette matching f4470"
+      ]
+    },
     "DisplayBmTile": {
       "decomp_file": "src/bmmap.c",
       "system": "battle_map",
@@ -4195,6 +4205,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
+      ]
+    },
+    "GetBattleInfoPalByFaction": {
+      "decomp_file": "src/mapanim_infobox.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#getBattleInfoPalByFaction gives the palettes of both captured factions"
       ]
     },
     "GetBattleQuoteEntry": {
@@ -7183,6 +7203,16 @@
         "fe8.testing.TargetSelectionDifferentialTest#the target selection follows the game from the pick to B and to A"
       ]
     },
+    "MapInfoBox_PrepareForShake": {
+      "decomp_file": "src/mapanim_infobox.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#mapInfoBoxPrepareForShake resets unk2A and sets the window registers of f4470"
+      ]
+    },
     "MapMUPrim_MakeUnitForClass": {
       "decomp_file": "src/worldmap_mapmu.c",
       "system": "worldmap",
@@ -8595,6 +8625,16 @@
         "fe8.testing.BanimPrepareDifferentialTest#the real chain writes the battle animation variables of the capture"
       ]
     },
+    "PrepareMapBattleBoxNumGfx": {
+      "decomp_file": "src/mapanim_infobox.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#prepareMapBattleBoxNumGfx decompresses HP bar and applies number palette"
+      ]
+    },
     "Proc08AA6D04Main": {
       "decomp_file": "src/opanim-main.c",
       "system": "presentation",
@@ -8614,6 +8654,16 @@
       "tests": [
         "fe8.testing.CamMoveDifferentialTest#ch6 phase start resets the cursor and scrolls the camera",
         "fe8.testing.CamMoveDifferentialTest#first phase resets the cursor without moving the camera"
+      ]
+    },
+    "ProcMapInfoBox_OnDraw": {
+      "decomp_file": "src/mapanim_infobox.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#procMapInfoBoxOnDraw decompresses frame graphics and draws boxes matching f4470"
       ]
     },
     "Proc_BlockEachMarked": {
@@ -9017,6 +9067,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "PutStringCentered": {
+      "decomp_file": "src/bmlib.c",
+      "system": "battle_map",
+      "in_scope": true,
+      "kotlin_file": "engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#putStringCentered matches the name rows of the BG0 tilemap at f4470"
       ]
     },
     "PutTalkBubble": {
@@ -10526,6 +10586,16 @@
         "fe8.testing.MapLevelUpGainLabelsDifferentialTest#label proc animation procs handles tiles and palettes follow the original"
       ]
     },
+    "StartMapAnimInfoWindow": {
+      "decomp_file": "src/mapanim_infobox.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#info box proc follows the capture through steps 4468 to 4480"
+      ]
+    },
     "StartMapSongBgm": {
       "decomp_file": "src/bm.c",
       "system": "battle_map",
@@ -11505,6 +11575,16 @@
       "status": "verified",
       "tests": [
         "fe8.testing.ProcEngineDifferentialTest#intro proc runs frame by frame like the game"
+      ]
+    },
+    "UncompMapBattleBoxNumGfx": {
+      "decomp_file": "src/mapanim_infobox.c",
+      "system": "map_anim",
+      "in_scope": true,
+      "kotlin_file": "game/src/commonMain/kotlin/fe8/game/bm/MapAnimInfoBox.kt",
+      "status": "verified",
+      "tests": [
+        "fe8.testing.MapAnimInfoBoxDifferentialTest#uncompMapBattleBoxNumGfx decompresses numbers into BG0 tile VRAM matching f4470"
       ]
     },
     "UnitActionMenu_Attack": {

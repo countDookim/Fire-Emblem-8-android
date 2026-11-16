@@ -551,6 +551,17 @@ public class PlaySt {
         /** `sizeof(struct PlaySt)` in bytes. */
         public const val SIZE: Int = 0x4C
 
+        /** `speedLookup` of `GetTextDisplaySpeed`: frames per character for `config.textSpeed`. */
+        private val SPEED_LOOKUP = intArrayOf(8, 4, 1, 0)
+
+        /**
+         * `GetTextDisplaySpeed`: the frames per printed character for the text speed option
+         * [textSpeed] (`gPlaySt.config.textSpeed`, 0..3); 0 prints at once.
+         *
+         * Ported from src/bmio.c: GetTextDisplaySpeed
+         */
+        public fun textDisplaySpeed(textSpeed: Int): Int = SPEED_LOOKUP[textSpeed]
+
         /** Length in bytes of the player name character buffer (0x2B - 0x20 = 11 bytes). */
         private const val PLAYER_NAME_SIZE = 0x2B - 0x20
     }

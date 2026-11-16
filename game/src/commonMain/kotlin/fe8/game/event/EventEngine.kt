@@ -372,15 +372,19 @@ public class EventEngine(
      * Whether pressing Start may skip the running event: the engine has run a command, is not
      * already skipping, and the script has not forbidden skipping (`EV_STATE_NOSKIP`).
      *
-     * Partially ported from src/event.c: EventEngine_CanStartSkip. Missing: the
-     * `IsBattleDeamonActive` and `ProcScr_MuDeathFade` checks, which are only behind
-     * [EventEngineHooks.skipBlockedByOthers].
+     * Also no skipping while the battle animations run ([EventEngineHooks.isBattleDeamonActive])
+     * or a unit's death fade does ([EventEngineHooks.muDeathFadeExists]).
+     *
+     * Transcribed from src/event.c: EventEngine_CanStartSkip (not verified: the captured events
+     * never press START, so the result is not observable; the engine only acts on it together
+     * with START).
      */
     public fun canStartSkip(proc: EventEngineProc): Boolean =
         (proc.evStateBits and EV_STATE_0002) != 0 &&
             (proc.evStateBits and EV_STATE_SKIPPING) == 0 &&
             (proc.evStateBits and EV_STATE_NOSKIP) == 0 &&
-            !hooks.skipBlockedByOthers()
+            !hooks.isBattleDeamonActive() &&
+            !hooks.muDeathFadeExists()
 
     /**
      * Starts skipping the event (Start pressed): fades the screen out unless the script forbids

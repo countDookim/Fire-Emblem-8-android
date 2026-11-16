@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 219 across 49 Kotlin files.
+Total entries: 218 across 49 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -19,7 +19,7 @@ Total entries: 219 across 49 Kotlin files.
 | M6-D | 13 |
 | M6-E | 46 |
 | M6-F | 15 |
-| M6-G | 6 |
+| M6-G | 5 |
 | M6-H | 32 |
 | M6-I | 27 |
 | M6-J | 10 |
@@ -158,7 +158,7 @@ Total entries: 219 across 49 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `startStatScreen` | Stand-in until M6-F for `SetStatScreenConfig` and `StartStatScreen(unit, proc)` (unit id [unit]). |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapMain.kt` | `loadLegacyUiFrameGraphics` | `LoadLegacyUiFrameGraphics`: stand-in until M6-F (shared with `ChapterMapGfx`). |
 
-## M6-G (6)
+## M6-G (5)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -167,7 +167,6 @@ Total entries: 219 across 49 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CombatAction.kt` | `getBattleAnimPreconfType` | Stand-in until M6-G (battle animations on): always `PLAY_ANIMCONF_OFF`. |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `battleAnimationsOn` | Stand-in until M6-G for `BeginAnimsOnBattleAnimations` / `sub_8055BC4` (banim-ekrbattle): whether the battle is shown with battle animations ([BanimPrepare.sub8055BC4] exists in fe8.game.bm, left u... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
-| `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | `isBattleDeamonActive` | Stand-in until M6-G: `IsBattleDeamonActive` (the battle animation system) is not ported, so the fixed fight-event bubble is never used. |
 
 ## M6-H (32)
 

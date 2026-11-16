@@ -88,6 +88,13 @@ internal class TalkRig(
     var clock = 0
     var waitSprites = 0
     val tilesChecked = mutableSetOf<Int>()
+
+    /**
+     * Whether [compare] also checks the mouth tiles at every dump. The mouth proc's phase is
+     * not seeded (the original keeps it in reused proc memory), so only windows where it starts
+     * as the Kotlin one does can use it.
+     */
+    var compareMouthTiles = false
     private var io = ByteArray(0x400)
 
     /** `putSprite` calls of a sprite talk (layer, x, y, lutIndex, oam2) since the last clear. */
@@ -298,7 +305,10 @@ internal class TalkRig(
 
     override fun bg1Tilemap() = tm1
 
-    override fun isBattleDeamonActive() = false
+    /** `gBattleDeamonActive`; tests seed it from the dumps. */
+    val battleDeamon = fe8.game.bm.BattleDeamonFlag()
+
+    override fun isBattleDeamonActive() = battleDeamon.isBattleDeamonActive()
 
     override fun toggleInvertedPalette(flag: Int) {}
 
@@ -394,14 +404,11 @@ internal class TalkRig(
 
     val lcg = gbafe.core.rng.LcgRng()
 
-    override fun copyMouthTiles(fid: Int, srcTile: Int, dstTile: Int) {
-        val src = portraitWord(fid, 0x0C) - 0x08000000 + srcTile * 32
-        for (row in 0..1) {
-            rom.copyInto(
-                vram, 0x10000 + (dstTile + row * 32) * 32,
-                src + row * 128, src + (row + 1) * 128,
-            )
-        }
+    override fun portraitMouthImage(fid: Int): Int = portraitWord(fid, 0x0C)
+
+    // The queue is applied at once: the capture dumps are taken after VBlank.
+    override fun registerDataMove(src: Int, dst: Int, size: Int) {
+        rom.copyInto(vram, dst - VRAM_BASE, src - 0x08000000, src - 0x08000000 + size)
     }
 
     override fun advanceLcg(): Int = lcg.advance()
@@ -536,7 +543,13 @@ internal class TalkRig(
             for (slot in 0 until 4) {
                 // Blink and mouth procs (not ported) rewrite eye and mouth tiles later, so each
                 // face's tiles are compared at its first f-dump only.
-                if (face.gFaces[slot] == null || !tilesChecked.add(slot)) continue
+                val faceProc = face.gFaces[slot] ?: continue
+                if (compareMouthTiles) {
+                    compareMouth(v, faceProc.state as FaceState)?.let {
+                        return "f$f slot $slot $it"
+                    }
+                }
+                if (!tilesChecked.add(slot)) continue
                 val base = 0x10000 + FACE_TILES[slot]
                 for (i in 0 until FACE_BYTES) {
                     if (v[base + i] != vram[base + i]) {
@@ -544,6 +557,22 @@ internal class TalkRig(
                             "got ${vram[base + i]}"
                     }
                 }
+            }
+        }
+        return null
+    }
+
+    /**
+     * The 4x2 mouth frame of [face] (`Register2dChrMove` of the mouth proc) at its place in OBJ
+     * VRAM: the tiles of the dump [v] against the rig's, once the mouth proc has run.
+     */
+    private fun compareMouth(v: ByteArray, face: FaceState): String? {
+        if (face.mouthProc == null) return null
+        val base = 0x10000 + ((face.oam2 + 28) and 0x3FF) * 0x20
+        for (row in 0..1) {
+            for (i in 0 until 4 * 0x20) {
+                val at = base + row * 0x400 + i
+                if (v[at] != vram[at]) return "mouth row $row byte $i want ${v[at]} got ${vram[at]}"
             }
         }
         return null

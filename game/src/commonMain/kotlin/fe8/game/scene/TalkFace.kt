@@ -1,5 +1,6 @@
 package fe8.game.scene
 
+import gba.data.ChrMove
 import gbafe.core.math.Interpolate
 import gbafe.proc.Proc
 import gbafe.proc.ProcEngine
@@ -48,11 +49,14 @@ public interface TalkFaceHost {
      */
     public fun portraitByte(fid: Int, offset: Int): Int
 
+    /** `GetPortraitData(fid)->imgMouth`: GBA address of the portrait's mouth tile sheet. */
+    public fun portraitMouthImage(fid: Int): Int
+
     /**
-     * Registers a 4x2 mouth frame for transfer from portrait [fid] at [srcTile] to OBJ VRAM
-     * tile [dstTile]. The production host applies the transfer at VBlank.
+     * `RegisterDataMove(src, dst, size)`: queues a copy of [size] bytes from GBA address [src] to
+     * [dst]. The production host applies the queue at VBlank.
      */
-    public fun copyMouthTiles(fid: Int, srcTile: Int, dstTile: Int)
+    public fun registerDataMove(src: Int, dst: Int, size: Int)
 
     /** `AdvanceGetLCGRNValue()`: the next value of the game's random number generator. */
     public fun advanceLcg(): Int
@@ -451,7 +455,7 @@ public class TalkFace(
         val bits = faceState.displayBits
         val source = if (bits and SMILE != 0) 0 else 24
         if (bits and (TALK_1 or TALK_2) == 0) {
-            faceHost.copyMouthTiles(faceState.faceId, source + 16, (faceState.oam2 + 28) and 0x3FF)
+            registerMouth(faceState, source + 16)
         } else {
             mouth.timer--
             if (mouth.timer < 0) {
@@ -462,9 +466,7 @@ public class TalkFace(
                     2 -> 16
                     else -> 0
                 }
-                faceHost.copyMouthTiles(
-                    faceState.faceId, source + frame, (faceState.oam2 + 28) and 0x3FF,
-                )
+                registerMouth(faceState, source + frame)
             }
         }
         val flipped = bits and 1 != 0
@@ -477,6 +479,20 @@ public class TalkFace(
         faceHost.faceSprite(OBJECT_32X16)?.let {
             faceHost.putFaceSprite(faceState.spriteLayer, x, y, it, faceState.oam2 + 28)
         }
+    }
+
+    /**
+     * `Register2dChrMove(imgMouth + tile * 0x20, OBJ_VRAM0 + ((oam2 + 28) & 0x3FF) * 0x20, 4, 2)`:
+     * queues the 4x2 mouth frame at [tile] of the mouth sheet.
+     */
+    private fun registerMouth(faceState: FaceState, tile: Int) {
+        ChrMove.register2dChrMove(
+            faceHost.portraitMouthImage(faceState.faceId) + tile * 0x20,
+            OBJ_VRAM + ((faceState.oam2 + 28) and 0x3FF) * 0x20,
+            4,
+            2,
+            faceHost::registerDataMove,
+        )
     }
 
     private fun blinkOf(proc: Proc): FaceBlinkState = proc.state as FaceBlinkState

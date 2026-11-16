@@ -1,6 +1,8 @@
 package fe8.game.scene
 
 import fe8.game.RomView
+import fe8.game.bm.BattleDeamonFlag
+import fe8.game.bm.PlaySt
 import fe8.game.text.Fe8Text
 import gbafe.core.rng.LcgRng
 import gbafe.input.KeyStatus
@@ -62,7 +64,7 @@ public fun interface IntConsumer {
  *  - the portrait of the active unit (`GetUnitPortraitId`) and the portrait swap
  *    (`sub_80066E0`) are not ported and fail;
  *  - the face eye states (`sub_80064D4`) are ignored, and the battle animation system
- *    (`IsBattleDeamonActive`, until M6-G) is never active.
+ *    (`gBattleDeamonActive`, until M6-G) is never set.
  */
 public class TalkScene(
     private val rom: RomView,
@@ -79,6 +81,8 @@ public class TalkScene(
     private val setDialogueSkipEvBit: () -> Unit,
     /** The game's single `gLCGRNValue` (shared with the other LCG users). */
     public val lcg: LcgRng,
+    /** `gBattleDeamonActive`: nothing sets it until the battle animations are ported (M6-G). */
+    private val battleDeamon: BattleDeamonFlag = BattleDeamonFlag(),
 ) : TextHost, TalkHost, TalkBubbleHost, TalkFaceHost {
     /** The text system of the talk font (`sTalkFont`'s glyph tables). */
     public val text: TextSystem = TextSystem(romBytes, this, Fe8Text.CONFIG)
@@ -419,7 +423,7 @@ public class TalkScene(
     }
 
     /** `GetTextDisplaySpeed`: the frames per character of `gPlaySt.config.textSpeed`. */
-    override fun textDisplaySpeed(): Int = DISPLAY_SPEED[textSpeed() and 3]
+    override fun textDisplaySpeed(): Int = PlaySt.textDisplaySpeed(textSpeed())
 
     override fun gameClock(): Int = clockFrames()
 
@@ -468,11 +472,7 @@ public class TalkScene(
 
     override fun bg1Tilemap(): ShortArray = hw.mapBuffer(1)
 
-    /**
-     * Stand-in until M6-G: `IsBattleDeamonActive` (the battle animation system) is not ported,
-     * so the fixed fight-event bubble is never used.
-     */
-    override fun isBattleDeamonActive(): Boolean = false
+    override fun isBattleDeamonActive(): Boolean = battleDeamon.isBattleDeamonActive()
 
     /**
      * Transcribed from src/scene.c: TalkToggleInvertedPalette (not verified: no @VerifiesPort test
@@ -559,16 +559,17 @@ public class TalkScene(
     // in registration order.
     private val mouthMoveSources = IntArray(32)
     private val mouthMoveDestinations = IntArray(32)
+    private val mouthMoveSizes = IntArray(32)
     private var mouthMoveCount = 0
 
-    override fun copyMouthTiles(fid: Int, srcTile: Int, dstTile: Int) {
-        check(mouthMoveCount + 2 <= mouthMoveSources.size) { "mouth tile transfer queue overflow" }
-        val src = rom.u32(PortraitData.of(fid) + 0x0C) + srcTile * 32
-        for (row in 0..1) {
-            mouthMoveSources[mouthMoveCount] = src + row * 128
-            mouthMoveDestinations[mouthMoveCount] = 0x10000 + (dstTile + row * 32) * 32
-            mouthMoveCount++
-        }
+    override fun portraitMouthImage(fid: Int): Int = rom.u32(PortraitData.of(fid) + 0x0C)
+
+    override fun registerDataMove(src: Int, dst: Int, size: Int) {
+        check(mouthMoveCount < mouthMoveSources.size) { "mouth tile transfer queue overflow" }
+        mouthMoveSources[mouthMoveCount] = src
+        mouthMoveDestinations[mouthMoveCount] = dst - VRAM_BASE
+        mouthMoveSizes[mouthMoveCount] = size
+        mouthMoveCount++
     }
 
     /** Applies the queued mouth tile rows (what `Register2dChrMove` does at VBlank), in order. */
@@ -576,7 +577,9 @@ public class TalkScene(
         for (i in 0 until mouthMoveCount) {
             val src = mouthMoveSources[i]
             val dst = mouthMoveDestinations[i]
-            for (byte in 0 until 128) hw.vram[dst + byte] = rom.u8(src + byte).toByte()
+            for (byte in 0 until mouthMoveSizes[i]) {
+                hw.vram[dst + byte] = rom.u8(src + byte).toByte()
+            }
         }
         mouthMoveCount = 0
     }
@@ -681,8 +684,5 @@ public class TalkScene(
 
         /** `DPAD_ANY | A_BUTTON | B_BUTTON`: the buttons that make the text print instantly. */
         private const val ANY_KEY = 0xF3
-
-        /** `speedLookup` of `GetTextDisplaySpeed` (`src/bmio.c`): frames per character. */
-        private val DISPLAY_SPEED = intArrayOf(8, 4, 1, 0)
     }
 }

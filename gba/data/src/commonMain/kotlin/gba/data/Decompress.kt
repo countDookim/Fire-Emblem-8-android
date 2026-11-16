@@ -11,7 +11,9 @@ package gba.data
  * checked here), which does not change the output bytes, so this port has one path for either
  * destination.
  *
- * Partially ported from src/bmlib.c: Decompress
+ * Partially ported from src/bmlib.c: Decompress. The raw path into VRAM is checked against the
+ * Prologue boss turn talk's face tiles (f2980); the LZ77 path by other tests; types 0x20 and 0x30
+ * are missing.
  */
 public object Decompress {
     /** Header type value (high nibble, `0x00`) of an uncompressed blob. */
@@ -35,12 +37,7 @@ public object Decompress {
     public fun into(src: ByteArray, offset: Int, dst: ByteArray, dstOffset: Int): Int {
         val type = src[offset].toInt() and HEADER_TYPE_MASK
         return when (type) {
-            TYPE_RAW -> {
-                val size = rawSize(src, offset)
-                val payloadStart = offset + RAW_HEADER_SIZE
-                src.copyInto(dst, dstOffset, payloadStart, payloadStart + size)
-                size
-            }
+            TYPE_RAW -> unpackRaw(src, offset, dst, dstOffset)
             TYPE_LZ77 -> {
                 Lz77.decodeInto(src, offset, dst, dstOffset)
                 Lz77.headerSize(src, offset)
@@ -61,13 +58,32 @@ public object Decompress {
     }
 
     /**
-     * Payload size of a raw blob: the 24-bit little-endian size in header bytes 1..3 (what
-     * `GetDataSize` returns) minus the 4 header bytes, as `UnpackRaw` computes it.
+     * `GetDataSize(data)`: the 24-bit little-endian size in header bytes 1..3 (`TileMapArr.size`).
+     *
+     * Ported from src/bmlib.c: GetDataSize
      */
-    private fun rawSize(src: ByteArray, offset: Int): Int {
+    public fun getDataSize(src: ByteArray, offset: Int): Int {
         val b1 = src[offset + 1].toInt() and 0xFF
         val b2 = src[offset + 2].toInt() and 0xFF
         val b3 = src[offset + 3].toInt() and 0xFF
-        return (b1 or (b2 shl 8) or (b3 shl 16)) - RAW_HEADER_SIZE
+        return b1 or (b2 shl 8) or (b3 shl 16)
     }
+
+    /**
+     * `UnpackRaw(src, dst)`: copies the payload of a raw blob (the size field includes the 4
+     * header bytes); returns the bytes copied. The C picks `CpuCopy16` or `CpuFastCopy` by the
+     * size; both copy the same bytes.
+     *
+     * Ported from src/bmlib.c: UnpackRaw
+     */
+    public fun unpackRaw(src: ByteArray, offset: Int, dst: ByteArray, dstOffset: Int): Int {
+        val size = rawSize(src, offset)
+        val payloadStart = offset + RAW_HEADER_SIZE
+        src.copyInto(dst, dstOffset, payloadStart, payloadStart + size)
+        return size
+    }
+
+    /** Payload size of a raw blob: [getDataSize] minus the 4 header bytes, as `UnpackRaw` does. */
+    private fun rawSize(src: ByteArray, offset: Int): Int =
+        getDataSize(src, offset) - RAW_HEADER_SIZE
 }

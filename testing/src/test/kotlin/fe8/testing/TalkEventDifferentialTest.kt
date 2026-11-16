@@ -1,5 +1,6 @@
 package fe8.testing
 
+import fe8.game.bm.PlaySt
 import fe8.game.event.EventConst.EV_STATE_0002
 import fe8.game.event.EventEngine
 import fe8.game.event.EventEngineProc
@@ -61,6 +62,8 @@ class TalkEventDifferentialTest {
         "StartTalkExt", "GetTalkFaceHPos", "GetTalkChoiceResult", "IsTalkActive", "FaceExists",
         "FindFreeFaceSlot", "GetPortraitData", "GetFaceDisplayBits", "EndFaceIn8Frames",
         "EndFacePtr", "_WhileFace6CExists", "Text_SetColor", "Text_GetCursor",
+        "GetTextDisplaySpeed", "Register2dChrMove", "Decompress",
+        "UnpackRaw", "GetDataSize",
     )
     fun `the boss turn event talk matches the captured procs and talk state per step`() {
         run(Window("ram_trace_prologue_clear", 2964, 2966, 3706, "f02960.io.bin", 3718))
@@ -71,6 +74,8 @@ class TalkEventDifferentialTest {
         "StartTalkExt", "GetTalkFaceHPos", "GetTalkChoiceResult", "IsTalkActive", "FaceExists",
         "FindFreeFaceSlot", "GetPortraitData", "GetFaceDisplayBits", "EndFaceIn8Frames",
         "EndFacePtr", "_WhileFace6CExists", "Text_SetColor", "Text_GetCursor",
+        "GetTextDisplaySpeed", "Register2dChrMove", "Decompress",
+        "UnpackRaw", "GetDataSize",
     )
     fun `the soldiers dialogue in the enemy phase matches the captured procs and talk state`() {
         run(Window("ram_trace_prologue_enemy_phase", 2463, 2465, 2706, "f02460.io.bin", 2718))
@@ -116,7 +121,8 @@ class TalkEventDifferentialTest {
             rom, MsgHuffman(rom, 0x0815A72C - ROM_BASE, root), 0x0815D48C - ROM_BASE,
         )
         val seedEw = trace.ewram(w.seed)
-        val speed = intArrayOf(8, 4, 1, 0)[(seedEw[PLAY_ST + 0x40].toInt() shr 5) and 3]
+        val speed = PlaySt.textDisplaySpeed((seedEw[PLAY_ST + 0x40].toInt() shr 5) and 3)
+        rig.compareMouthTiles = w.run == "ram_trace_prologue_clear"
         rig.seedBeforeEvent(w.seed, messages.buffer, speed, w.ioDump)
 
         val state = EventState()
@@ -164,6 +170,9 @@ class TalkEventDifferentialTest {
             if (dumped) {
                 assertEquals(keys, trace.u16(trace.ewram(f), TalkRig.KEYS + 8), "newKeys at f$f")
                 assertEquals(seedClock + (f - w.seed), trace.clock(f), "gGameClock at f$f")
+            }
+            if (dumped) {
+                rig.battleDeamon.gBattleDeamonActive = trace.u32(trace.ewram(f), BATTLE_DEAMON)
             }
             rig.keys = keys
             rig.clock = seedClock + (f - w.seed)
@@ -230,6 +239,9 @@ class TalkEventDifferentialTest {
         const val FACE_WAIT = 0x08591DE8
         const val FACE_SCRIPT = 0x08591154
         const val PLAY_ST = 0x2BCF0
+
+        /** `gBattleDeamonActive` (`0x0203E0F4`) as an EWRAM offset. */
+        const val BATTLE_DEAMON = 0x3E0F4
         const val SLOTS = 0x438 + 0x80
     }
 }

@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 665 across 94 decomp files (missing reason: 0).
+Total entries: 667 across 95 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -509,6 +509,23 @@ Total entries: 665 across 94 decomp files (missing reason: 0).
 | `StartMidFadeFromBlack` | `engine/render/src/commonMain/kotlin/gbafe/render/ScreenFade.kt` | never called by a traced path |
 | `Copy2dChr` | `game/src/commonMain/kotlin/fe8/game/bm/ChapterMapGfx.kt` | no test checks it against a trace yet |
 
+## src/event.c (12)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `_FreezeMenu` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no menu proc exists when the boss turn event starts at f2964 or the clear event at f4894 of `ram_trace_prologue_clear` |
+| `EventEngine_CreateBattle` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
+| `EventEngineExists` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
+| `BattleEventEngineExists` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
+| `DeleteEventEngines` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
+| `EnqueueEventCall` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
+| `CallNextQueuedEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
+| `CallEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
+| `EventEngine_OnEnd` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
+| `EventEngine_CanStartSkip` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the captured events never press START, so the result is not observable; the engine only acts on it together with START |
+| `SetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | the only reference value is 0, so a no-op survives |
+| `GetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | no test checks it against a trace yet |
+
 ## src/face.c (12)
 
 | Function | Kotlin file | Reason |
@@ -557,22 +574,6 @@ Total entries: 665 across 94 decomp files (missing reason: 0).
 | `AiGetInRangeCombatPositionScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | target weapon range 1 covers candidate distance 1 so the component returns 0, and only one candidate tile (5, 5) reaches the target |
 | `AiGetTerrainCombatPositionScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | only one candidate tile (5, 5) reaches the target, so terrain score differences between tiles are never tested against captured output |
 | `AiGetFriendZoneCombatPositionScoreComponent` | `game/src/commonMain/kotlin/fe8/game/bm/CpBattle.kt` | only one candidate tile (5, 5) reaches the target, so friend zone position score differences between tiles are never tested against captured output |
-
-## src/event.c (11)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `_FreezeMenu` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no menu proc exists when the boss turn event starts at f2964 or the clear event at f4894 of `ram_trace_prologue_clear` |
-| `EventEngine_CreateBattle` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
-| `EventEngineExists` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
-| `BattleEventEngineExists` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
-| `DeleteEventEngines` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | no test checks it against a trace yet |
-| `EnqueueEventCall` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
-| `CallNextQueuedEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
-| `CallEvent` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
-| `EventEngine_OnEnd` | `game/src/commonMain/kotlin/fe8/game/event/EventEngine.kt` | the call queue is empty in the prologue |
-| `SetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | the only reference value is 0, so a no-op survives |
-| `GetEventSlotCounter` | `game/src/commonMain/kotlin/fe8/game/event/EventState.kt` | no test checks it against a trace yet |
 
 ## src/worldmap_main.c (11)
 
@@ -1035,6 +1036,12 @@ Total entries: 665 across 94 decomp files (missing reason: 0).
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
 | `VerifySramFast_Core` | `gba/core/src/commonMain/kotlin/gba/core/sram/SramFast.kt` | in-memory SRAM never mismatches in a reference run, so only a unit test exercises the mismatch result |
+
+## src/banim-ekrbattle.c (1)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `IsBattleDeamonActive` | `game/src/commonMain/kotlin/fe8/game/bm/BattleDeamonFlag.kt` | gBattleDeamonActive is 0 in every captured window; the true branch needs M6-G battle animations |
 
 ## src/bmcamadjust.c (1)
 

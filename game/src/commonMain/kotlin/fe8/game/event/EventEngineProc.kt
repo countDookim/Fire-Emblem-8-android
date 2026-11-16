@@ -243,8 +243,11 @@ public interface EventEngineHooks {
     /** `gKeyStatusPtr->newKeys & START_BUTTON`: Start was pressed this frame (skips the event). */
     public fun startPressed(): Boolean = false
 
-    /** The rest of `EventEngine_CanStartSkip` (`IsBattleDeamonActive`, `ProcScr_MuDeathFade`). */
-    public fun skipBlockedByOthers(): Boolean = false
+    /** `IsBattleDeamonActive`: the battle animation system runs (no skipping then). */
+    public fun isBattleDeamonActive(): Boolean = false
+
+    /** `Proc_Find(ProcScr_MuDeathFade) != 0`: a unit's death fade runs (no skipping then). */
+    public fun muDeathFadeExists(): Boolean = false
 
     /** `WM_Exists`. */
     public fun worldMapExists(): Boolean = false

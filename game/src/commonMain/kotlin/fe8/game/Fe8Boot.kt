@@ -1,6 +1,7 @@
 package fe8.game
 
 import fe8.game.bm.ActiveUnit
+import fe8.game.bm.BattleDeamonFlag
 import fe8.game.bm.AiBattleSimulation
 import fe8.game.bm.AiIntStep
 import fe8.game.bm.AiStep
@@ -307,6 +308,7 @@ public class Fe8Boot(
         val hooks = object : EventEngineHooks {
             override fun startPressed(): Boolean = keys.newKeys and KeyStatus.START_BUTTON != 0
             override fun fadeExists(): Boolean = screenFade.fadeExists()
+            override fun isBattleDeamonActive(): Boolean = battleDeamon.isBattleDeamonActive()
             // `WM_Exists`; a boot that never built the world map has none.
             override fun worldMapExists(): Boolean =
                 worldMapBootDelegate.isInitialized() && worldMapBoot.exists()
@@ -591,8 +593,12 @@ public class Fe8Boot(
                 }
             },
             rng.lcg,
+            battleDeamon,
         )
     }
+
+    /** `gBattleDeamonActive`: the one flag the talk and the event engine read. */
+    private val battleDeamon = BattleDeamonFlag()
 
     /** `gPopupItem`. */
     private var popupItem = 0

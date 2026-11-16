@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-16 13:30Z (owner PC: map battle animation in game: info box, rounds, HP drain, death fade, exp bar; EP-10c support exp; level-up dispatch MC-18f). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-16 13:36Z (owner PC: MC-18 level-up display wired in PlayerPhaseWiring). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -13,10 +13,16 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- `MC-18`: Gemini owner PC, until ~13:45Z (`wip/mc18`).
-- `EP-24`: Gemini owner PC, until ~13:45Z (`wip/ep24`).
+- `EP-24`: Gemini owner PC, until ~14:00Z (`wip/ep24`).
 
 ## Current state
+
+- 2026-11-16 12:48Z – 13:36Z owner PC Gemini (Flash agents): **MC-18 wired (`dc310c29`)** — `PlayerPhaseWiring` now
+  wires `MapLevelUpAnnouncement` (`WorldMapApHost`, `ApProcs`, `MapLevelUpFrame`/`Stats`/`GainLabels`, and
+  `resetDialogueScreen`) into `MapAnimExpBar`. End-to-end replay through `Fe8Boot` matches f6519 BG0/BG1, cleans up
+  BG0/BG1/window enables/scroll offsets, leaves write-back untouched, and passes untargeted `:testing:serialTest`.
+  In game, exp bars reaching 100 now show the level-up banner, panel and stat gains (portrait stays `MC-18d-face`).
+  Next: EP-24 (in progress), MC-18d-face, EP-19, EP-21b, EP-23b.
 
 - 2026-11-16 09:30Z – 13:30Z owner PC Claude (Sonnet agents, two at a time): **map battle animation in game.**
   Finished Gemini's EP-10c (turn support exp; 4 bugs fixed, levels/total Transcribed, EP10c-cap) and EP-20 (info box A).

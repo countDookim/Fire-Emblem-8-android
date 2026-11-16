@@ -43,7 +43,9 @@ from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Onl
   a critical hit has no crit flash or screen shake (EP-23b).
   After the fight, when a player unit gained exp (Eirika attacking, or surviving an enemy attack),
   an exp bar window opens in the middle of the screen and fills from the old to the new exp with a
-  ticking sound, then closes. Limits: a bar that reaches 100 (level up) shows no level-up screen yet.
+  ticking sound, then closes. When the bar reaches 100 (level up, **needs a build with MC-18**), the
+  level-up announcement slides in the stat panel and animates gained stats before closing cleanly.
+  Limits: the unit portrait on the level-up panel is not drawn yet (`MC-18d-face`).
 
 - **PP-17 player phase (Prologue turn 1):**
   1. Resume the Prologue (suspend save) or play New Game to the turn-1 map (Eirika near the
@@ -88,9 +90,8 @@ from this page (history: git log, [HANDOFF](../HANDOFF.md) "Device issues"). Onl
 
 Re-test these only when a change to them is announced.
 
-- **Combat display:** no battle animation, MISS / NO DAMAGE text, crit flash, level-up display (stat gains
-  are applied but not shown), counter animation, weapon-broke or item-drop popups (M6-G, M6-H,
-  MC-18).
+- **Combat display:** no MISS / NO DAMAGE text, crit flash, level-up portrait (`MC-18d-face`),
+  weapon-broke or item-drop popups (M6-G, M6-H).
 - **Commands and screens:** Item answers with the refusal beep; the map menu's Unit, Status, Guide,
   Options and Suspend, and R / L / START on the map do nothing; no help box, inventory or info
   screens (M6-E, M6-F, M6-H). Selecting an enemy shows no range.

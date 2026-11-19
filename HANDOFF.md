@@ -1,6 +1,6 @@
 # HANDOFF
 
-_Updated 2026-11-16 14:41Z (owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
+_Updated 2026-11-19 10:25Z (owner PC: finished Gemini's stopped EP-29b and EP-30; earlier owner PC: MC-18d-face level-up portrait wired, EP-19, EP-24, MC-18 done). Read GPT.md / CLAUDE.md / GEMINI.md for session rules.
 Decisions: [PROJECT_BRIEF](docs/PROJECT_BRIEF.md). Plan: [ROADMAP](docs/plans/ROADMAP.md). Backlog: [TASKS](docs/TASKS.md).
 Reference details: [M5](docs/plans/M5-notes.md), [M6](docs/plans/M6-notes.md)._
 
@@ -13,10 +13,13 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 ## In progress
 
-- `EP-29b`: Gemini owner PC, until ~14:50Z (`wip/ep29b`).
-- `EP-30`: Gemini owner PC, until ~15:10Z (`wip/ep30`).
+Nothing claimed.
 
 ## Current state
+
+- 2026-11-19 owner PC Claude: **EP-29b done (`572cde81`)**, **EP-30 done (`a2f7ed45`)**, both Gemini wip stopped
+  on 11-16. EP-29b: bmunit.c helpers incl. `RefreshAllies` (wired). EP-30: unit menu usability A; Armory check was
+  inverted in the wip. Full `jvmTest` + `:game:dokkaGenerate` green. Next: `EP-31`..`34`, `EP-21b`, `EP-23b`, `EP-24b`.
 
 - 2026-11-16 12:48Z – 14:41Z owner PC Gemini (Flash agents): **MC-18d-face done (`f9f127cf`)**, **EP-19 done
   (`12b51ee4`)**, **EP-24 done (`ce824507`)**, **MC-18 wired (`dc310c29`)**. `MC-18d-face` ported
@@ -26,7 +29,7 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
   popup checks (`f4880..4892`, popups stay M6-H stand-ins). `EP-24` ported `CallDelayedArg`, move-away, and
   `MapAnim_BeginMISSAnim` (`f4485..4611`, miss OAM `f4550..4577`, no-damage deferred to `EP-24b`). `MC-18` wired
   `MapLevelUpAnnouncement` into `PlayerPhaseWiring` (matches `f6519`, preserves write-back). All passed
-  `:game:dokkaGenerate` and untargeted `:testing:serialTest --rerun`. Next: `EP-29b` & `EP-30` (in progress),
+  `:game:dokkaGenerate` and untargeted `:testing:serialTest --rerun`. Next (EP-29b, EP-30 finished 11-19, see below):
   `EP-21b`, `EP-23b`, `EP-24b`, `EP-31`..`34`.
 
 - 2026-11-16 09:30Z – 13:30Z owner PC Claude (Sonnet agents, two at a time): **map battle animation in game.**

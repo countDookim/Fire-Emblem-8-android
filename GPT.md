@@ -13,7 +13,11 @@ Rules marked *(scheduled)* apply only to scheduled runs; everything else applies
    No token/usage reporting (owner, 2026-10-31).
 2. Setup: `tools/setup.sh > /tmp/setup.log 2>&1 &` for scheduled runs (idempotent; poll the log: cold Gradle can
    pass 2 min), then `source .assets.env`; tests: `./gradlew jvmTest`. Scheduled runs never install the Android SDK.
-   Owner-PC sessions use `$HOME/.cache/fe8-tmp` for logs and temporary files; fetch and rebase the existing checkout
+   Owner-PC sessions put logs and temporary files in `$HOME/.cache/fe8-tmp/<task-id>/` (never directly in `~` or
+   the repos) and delete that folder when the task ends; captures worth keeping go to the ROM repo, not there. Keep
+   the WSL disk small (owner, 2026-11-19, after it reached 60 GB): no extra copies of `.assets`/reference data or
+   Gradle homes, no worktree left behind; `~/.local/bin/fe8-prune-disk` (cron, every 6 h) deletes fe8-tmp entries
+   untouched for 3 days. Fetch and rebase the existing checkout
    instead of cloning: `git fetch` then `git rebase --rebase-merges origin/master`. They have no time box unless the
    owner sets one; ask the owner directly instead of NEEDS USER. The SDK is in `~/android-sdk` (export `ANDROID_HOME`
    in non-interactive shells), so `:app` and the android targets build there too. When finished or wrapping up

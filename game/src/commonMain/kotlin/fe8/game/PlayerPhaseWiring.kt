@@ -144,7 +144,8 @@ internal class PlayerPhaseWiring(
 
     private val attackRange =
         AttackRange(map, units, items, entityMaps, unitLoader)
-    private val unitMenu = UnitActionMenu(units, active, items, unitLoader, map, attackRange, hw)
+    private val unitMenu =
+        UnitActionMenu(units, active, items, unitLoader, map, attackRange, hw, bm)
     private val itemLine = ItemMenuLine(
         talk.text, items, talk.messages, hw, rom, drawnIconLookupTable, iconGfxIdLookupTable,
     )
@@ -200,7 +201,7 @@ internal class PlayerPhaseWiring(
     fun wire(phase: PlayerPhase, main: BMapMain, infos: EventInfos) {
         playerPhaseScript = { phase.script }
         wireInterface(phase)
-        wireMenus(phase)
+        wireMenus(phase, infos)
         wireRange(phase)
         wireMovement(phase)
         wireAction(phase, main, infos)
@@ -246,7 +247,7 @@ internal class PlayerPhaseWiring(
         attackSelect = select
     }
 
-    private fun wireMenus(phase: PlayerPhase) {
+    private fun wireMenus(phase: PlayerPhase, infos: EventInfos) {
         wireAttackSelect(phase)
         unitMenu.hooks.weaponTargetCount = { unit, item ->
             attackTargets.makeTargetListForWeapon(unit, item)
@@ -278,6 +279,9 @@ internal class PlayerPhaseWiring(
         unitMenu.hooks.resetTextFont = { talk.text.resetTextFont() }
         // `IsPositionMagicSealed` is not ported: no tile counts as magic-sealed.
         unitMenu.hooks.isPositionMagicSealed = { _, _ -> false }
+        unitMenu.hooks.getAvailableTileEventCommand = { x, y ->
+            infos.getAvailableTileEventCommand(x, y)
+        }
         unitMenu.hooks.resetIconGraphics = resetIcons
         unitMenu.hooks.loadIconPalettes = loadIconPalettes
         unitMenu.hooks.displayMoveRangeGraphics =

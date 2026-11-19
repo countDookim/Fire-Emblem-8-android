@@ -12,11 +12,14 @@ import gbafe.text.Text
 
 /**
  * The unit action menu's item callbacks of src/bmmenu.c (the items of `gUnitActionMenuItems`,
- * src/menu_def.c) for the Prologue: the availability of the Attack (`AttackCommandUsability`)
- * and Item (`ItemCommandUsability`) commands and the effect of Wait (`EffectWait`).
+ * src/menu_def.c) for the Prologue: the availability of the Attack (`AttackCommandUsability`),
+ * Item (`ItemCommandUsability`), usability A commands (`ArenaCommandUsability`,
+ * `ArmoryCommandUsability`, `AttackBallistaCommandUsability`, `ChestCommandUsability`,
+ * `DanceCommandUsability`, `DoorCommandUsability`, `DropUsability`), and the effect of Wait
+ * (`EffectWait`).
  * [install] registers them in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s
- * hold, together with a stand-in for the availability callback of every other command (EP-30,
- * EP-31, EP-32 and EP-33 port the real ones; see [Hooks.unportedUsability]).
+ * hold, together with a stand-in for the availability callback of every other command (EP-31,
+ * EP-32 and EP-33 port the real ones; see [Hooks.unportedUsability]).
  *
  * It also holds the weapon select menu the Attack command opens (`gWeaponSelectMenuDef`): its
  * start, its availability, draw and switch-in callbacks, and its choice and cancel
@@ -37,6 +40,8 @@ public class UnitActionMenu(
     private val range: AttackRange,
     /** The BG tilemaps that [weaponSelectMenuSelected] and [itemMenuButtonBPressed] clear. */
     private val hardware: BgHardware,
+    /** The battle map state (`gBmSt`). */
+    private val bmSt: BmSt = BmSt(),
 ) {
     /** `StartFace(slot, fid, x, y, disp)`. */
     public fun interface FaceStarter {
@@ -79,13 +84,68 @@ public class UnitActionMenu(
 
         /**
          * The availability (`MENU_ENABLED`, `MENU_DISABLED` or `MENU_NOTSHOWN`) of the unit menu
-         * items whose `isAvailable` callbacks are not ported (every item but Attack, Item and
+         * items whose `isAvailable` callbacks are not ported (every item but the ported ones and
          * Wait, whose callback is `MenuAlwaysEnabled`), given the `MenuItemDef` address and the
          * item number. The game's stand-in answers `MENU_NOTSHOWN` for all of them, so only the
-         * three ported commands appear; EP-30 to EP-33 port the real callbacks.
+         * ported commands appear; EP-31 to EP-33 port the remaining callbacks.
          */
         public var unportedUsability: (itemDef: Int, number: Int) -> Int = { _, _ ->
             error("unit menu item availability is not ported")
+        }
+
+        /**
+         * `MakeDropTargetList(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the number
+         * of valid adjacent tiles to drop the rescued unit.
+         * Stand-in until EP-34a ports drop target lists.
+         */
+        public var dropTargetCount: (unit: Int) -> Int = { _ -> 0 }
+
+        /**
+         * `MakeTargetListForRefresh(unit)` then `GetSelectTargetCount()` (src/bmtarget.c): the
+         * number of adjacent allies that can be danced or played for.
+         * Stand-in until M6-H ports target lists for refresh.
+         */
+        public var refreshTargetCount: (unit: Int) -> Int = { _ -> 0 }
+
+        /**
+         * `CanUnitUseItem(unit, item)` (src/bmitemuse.c): whether the unit can use [item].
+         * Stand-in until M6-H ports item use checks.
+         */
+        public var canUnitUseItem: (unit: Int, item: Int) -> Boolean = { _, _ -> false }
+
+        /**
+         * `MakeTargetListForDoorAndBridges(unit, TERRAIN_DOOR)` then `GetSelectTargetCount()`
+         * (src/bmtarget.c): the number of adjacent doors to open.
+         * Stand-in until M6-H ports door target lists.
+         */
+        public var doorTargetCount: (unit: Int) -> Int = { _ -> 0 }
+
+        /**
+         * `CanUnitUseChestKeyItem(unit)` (src/bmitemuse.c): whether [unit] stands on a closed
+         * chest. Stand-in until M6-H ports chest key use.
+         */
+        public var canUnitUseChestKeyItem: (unit: Int) -> Boolean = { _ -> false }
+
+        /**
+         * `GetAvailableTileEventCommand(x, y)`
+         * ([fe8.game.event.EventInfos.getAvailableTileEventCommand]): the tile event command at
+         * tile ([x], [y]), or 0 if none.
+         */
+        public var getAvailableTileEventCommand: (x: Int, y: Int) -> Int = { _, _ -> 0 }
+
+        /**
+         * `ArenaIsUnitAllowed(unit)` (src/bmarena.c): whether the unit may enter an arena.
+         * Stand-in until M6-H ports arena checks.
+         */
+        public var arenaIsUnitAllowed: (unit: Int) -> Boolean = { _ -> false }
+
+        /**
+         * Usability of the ballista attack for a unit in a ballista: `GetTrapAt`, `IsBallista`,
+         * `MakeTargetListForWeapon` and `GetBallistaItemUses`.
+         * Stand-in until EP-12 ports ballista traps.
+         */
+        public var ballistaAttackUsability: (unit: Int, x: Int, y: Int) -> Int = { _, _, _ ->
+            Menu.MENU_NOTSHOWN
         }
 
         /** `ResetIconGraphics`; the game wires [fe8.game.ui.ItemIcon.resetIconGraphics]. */
@@ -218,6 +278,22 @@ public class UnitActionMenu(
             Menu.MenuFunc { _, _, itemDef, number -> attackCommandUsability(itemDef, number) }
         menu.callbacks[ITEM_COMMAND_USABILITY] =
             Menu.MenuFunc { _, _, itemDef, number -> itemCommandUsability(itemDef, number) }
+        menu.callbacks[ARENA_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> arenaCommandUsability(itemDef, number) }
+        menu.callbacks[ARMORY_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> armoryCommandUsability(itemDef, number) }
+        menu.callbacks[ATTACK_BALLISTA_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number ->
+                attackBallistaCommandUsability(itemDef, number)
+            }
+        menu.callbacks[CHEST_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> chestCommandUsability(itemDef, number) }
+        menu.callbacks[DANCE_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> danceCommandUsability(itemDef, number) }
+        menu.callbacks[DOOR_COMMAND_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> doorCommandUsability(itemDef, number) }
+        menu.callbacks[DROP_USABILITY] =
+            Menu.MenuFunc { _, _, itemDef, number -> dropUsability(itemDef, number) }
         menu.callbacks[EFFECT_WAIT] = Menu.MenuFunc { m, item, _, _ -> effectWait(m!!, item!!) }
         menu.callbacks[UNIT_ACTION_MENU_ATTACK] =
             Menu.MenuFunc { m, item, _, _ -> unitActionMenuAttack(m!!, item!!) }
@@ -303,6 +379,193 @@ public class UnitActionMenu(
         }
 
         return Menu.MENU_NOTSHOWN
+    }
+
+    /**
+     * Ported from src/bmmenu.c: DropUsability
+     *
+     * The Drop command is `MENU_NOTSHOWN` if the unit has moved (`US_HAS_MOVED`), is not
+     * rescuing another unit (`US_RESCUING`), or has no adjacent valid drop target tile
+     * ([Hooks.dropTargetCount]). Otherwise returns `MENU_ENABLED`.
+     * At f4181, the active unit has not moved and is not rescuing, returning `MENU_NOTSHOWN` on
+     * `US_RESCUING`. The moved and rescuing branches are unexercised at f4181.
+     */
+    public fun dropUsability(def: Int, number: Int): Int {
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        if (units.state(active.unit) and US_RESCUING == 0) return Menu.MENU_NOTSHOWN
+
+        if (hooks.dropTargetCount(active.unit) == 0) return Menu.MENU_NOTSHOWN
+
+        return Menu.MENU_ENABLED
+    }
+
+    /**
+     * Ported from src/bmmenu.c: DanceCommandUsability
+     *
+     * The Dance command is `MENU_NOTSHOWN` if the unit lacks the `CA_DANCE` character or class
+     * attribute. Otherwise sets `gBmSt.um_tmp_item` to `ITEM_DANCE` and delegates to [sub80230F0].
+     * At f4181, the active unit lacks `CA_DANCE`, returning `MENU_NOTSHOWN`. The `CA_DANCE` branch
+     * and [sub80230F0] are unexercised at f4181.
+     */
+    public fun danceCommandUsability(def: Int, number: Int): Int {
+        if (units.cAttributes(active.unit) and CA_DANCE == 0) return Menu.MENU_NOTSHOWN
+
+        bmSt.umTmpItem = ITEM_DANCE
+
+        return sub80230F0(def)
+    }
+
+    /**
+     * Transcribed from src/bmmenu.c: sub_80230F0 (not verified: no dancer or bard at f4181)
+     *
+     * Common usability check for Play and Dance: `MENU_NOTSHOWN` if the unit has moved
+     * (`US_HAS_MOVED`), `MENU_ENABLED` if an adjacent refreshed target exists
+     * ([Hooks.refreshTargetCount]) or if the unit carries a usable dance/ring item
+     * (`ITYPE_DANCE`, [Hooks.canUnitUseItem]), else `MENU_NOTSHOWN`.
+     */
+    internal fun sub80230F0(def: Int): Int {
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        if (hooks.refreshTargetCount(active.unit) != 0) return Menu.MENU_ENABLED
+
+        val o = units.unitOffset(active.unit)
+        for (i in 0 until UnitLoader.UNIT_ITEM_COUNT) {
+            val item = u16(units.bytes, o + OFF_ITEMS + 2 * i)
+            if (item == 0) break
+
+            if (items.getItemType(item) != ITYPE_DANCE) continue
+
+            if (!hooks.canUnitUseItem(active.unit, item)) continue
+
+            return Menu.MENU_ENABLED
+        }
+
+        return Menu.MENU_NOTSHOWN
+    }
+
+    /**
+     * Ported from src/bmmenu.c: DoorCommandUsability
+     *
+     * The Door command is `MENU_NOTSHOWN` if the unit has moved (`US_HAS_MOVED`) or lacks a
+     * key item usable on a door ([UnitTable.getUnitKeyItemSlotForTerrain]), or if no door target
+     * is adjacent ([Hooks.doorTargetCount]). Otherwise returns `MENU_ENABLED`.
+     * At f4181, the active unit has not moved and holds no door key or lockpick, returning
+     * `MENU_NOTSHOWN` from the key check. The moved and positive key/target branches are
+     * unexercised at f4181.
+     */
+    public fun doorCommandUsability(def: Int, number: Int): Int {
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        if (units.getUnitKeyItemSlotForTerrain(active.unit, UnitTable.TERRAIN_DOOR) < 0) {
+            return Menu.MENU_NOTSHOWN
+        }
+
+        return if (hooks.doorTargetCount(active.unit) != 0) {
+            Menu.MENU_ENABLED
+        } else {
+            Menu.MENU_NOTSHOWN
+        }
+    }
+
+    /**
+     * Ported from src/bmmenu.c: ChestCommandUsability
+     *
+     * The Chest command is `MENU_NOTSHOWN` if the unit has moved (`US_HAS_MOVED`) or lacks a
+     * key item usable on a chest ([UnitTable.getUnitKeyItemSlotForTerrain]), or if the unit
+     * cannot use a chest key at its tile ([Hooks.canUnitUseChestKeyItem]). Otherwise returns
+     * `MENU_ENABLED`.
+     * At f4181, the active unit has not moved and holds no chest key or lockpick, returning
+     * `MENU_NOTSHOWN` from the key check. The moved and positive key/tile branches are
+     * unexercised at f4181.
+     */
+    public fun chestCommandUsability(def: Int, number: Int): Int {
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        if (units.getUnitKeyItemSlotForTerrain(active.unit, UnitTable.TERRAIN_CHEST_FULL) < 0) {
+            return Menu.MENU_NOTSHOWN
+        }
+
+        return if (hooks.canUnitUseChestKeyItem(active.unit)) {
+            Menu.MENU_ENABLED
+        } else {
+            Menu.MENU_NOTSHOWN
+        }
+    }
+
+    /**
+     * Ported from src/bmmenu.c: ArmoryCommandUsability
+     *
+     * The Armory command is `MENU_NOTSHOWN` for a phantom (`CLASS_PHANTOM`), when the unit has
+     * moved (`US_HAS_MOVED`), or when the current tile lacks an armory event command
+     * (`TILE_COMMAND_ARMORY`, [Hooks.getAvailableTileEventCommand]). Otherwise returns
+     * `MENU_ENABLED`.
+     * At f4181, the active unit has not moved, is not a phantom, and tile (8,6) has no tile event,
+     * returning `MENU_NOTSHOWN` from the tile event check. The moved, phantom and armory branches
+     * are unexercised at f4181.
+     */
+    public fun armoryCommandUsability(def: Int, number: Int): Int {
+        if (units.classId(active.unit) == CLASS_PHANTOM) return Menu.MENU_NOTSHOWN
+
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        return if (hooks.getAvailableTileEventCommand(
+                units.xPos(active.unit),
+                units.yPos(active.unit),
+            ) == TILE_COMMAND_ARMORY
+        ) {
+            Menu.MENU_ENABLED
+        } else {
+            Menu.MENU_NOTSHOWN
+        }
+    }
+
+    /**
+     * Ported from src/bmmenu.c: ArenaCommandUsability
+     *
+     * The Arena command is `MENU_NOTSHOWN` for a phantom (`CLASS_PHANTOM`), when the unit has
+     * moved (`US_HAS_MOVED`), or when the tile terrain is not an arena (`TERRAIN_ARENA_REGULAR`).
+     * If on an arena tile, returns `MENU_ENABLED` if the unit is allowed to fight
+     * ([Hooks.arenaIsUnitAllowed]), else `MENU_DISABLED`.
+     * At f4181, the active unit has not moved, is not a phantom, and tile (8,6) is plains,
+     * returning `MENU_NOTSHOWN` from the terrain check. The moved, phantom and arena branches are
+     * unexercised at f4181.
+     */
+    public fun arenaCommandUsability(def: Int, number: Int): Int {
+        if (units.classId(active.unit) == CLASS_PHANTOM) return Menu.MENU_NOTSHOWN
+
+        if (units.state(active.unit) and US_HAS_MOVED != 0) return Menu.MENU_NOTSHOWN
+
+        val terrain = map.terrain[units.yPos(active.unit), units.xPos(active.unit)]
+        if (terrain != TERRAIN_ARENA_REGULAR) {
+            return Menu.MENU_NOTSHOWN
+        }
+
+        return if (hooks.arenaIsUnitAllowed(active.unit)) {
+            Menu.MENU_ENABLED
+        } else {
+            Menu.MENU_DISABLED
+        }
+    }
+
+    /**
+     * Ported from src/bmmenu.c: AttackBallistaCommandUsability
+     *
+     * The Ballista Attack command is `MENU_NOTSHOWN` if the unit is not riding a ballista
+     * (`US_IN_BALLISTA`). If riding a ballista, delegates to [Hooks.ballistaAttackUsability]:
+     * checking the trap at the unit's tile, building the weapon target list for the ballista item,
+     * and returning `MENU_DISABLED` if ammo is exhausted or `MENU_ENABLED` if targets exist.
+     * At f4181, the active unit is not riding a ballista (`US_IN_BALLISTA` is clear), returning
+     * `MENU_NOTSHOWN`. The in-ballista branch is unexercised at f4181.
+     */
+    public fun attackBallistaCommandUsability(def: Int, number: Int): Int {
+        if (units.state(active.unit) and US_IN_BALLISTA == 0) return Menu.MENU_NOTSHOWN
+
+        return hooks.ballistaAttackUsability(
+            active.unit,
+            units.xPos(active.unit),
+            units.yPos(active.unit),
+        )
     }
 
     /**
@@ -612,6 +875,27 @@ public class UnitActionMenu(
         /** ROM address of `EffectWait` (thumb). */
         public const val EFFECT_WAIT: Int = 0x08022739
 
+        /** ROM address of `AttackBallistaCommandUsability` (thumb). */
+        public const val ATTACK_BALLISTA_COMMAND_USABILITY: Int = 0x08024A29
+
+        /** ROM address of `DanceCommandUsability` (thumb). */
+        public const val DANCE_COMMAND_USABILITY: Int = 0x08023195
+
+        /** ROM address of `ChestCommandUsability` (thumb). */
+        public const val CHEST_COMMAND_USABILITY: Int = 0x08023E1D
+
+        /** ROM address of `DoorCommandUsability` (thumb). */
+        public const val DOOR_COMMAND_USABILITY: Int = 0x08023DB5
+
+        /** ROM address of `ArmoryCommandUsability` (thumb). */
+        public const val ARMORY_COMMAND_USABILITY: Int = 0x08023FD9
+
+        /** ROM address of `ArenaCommandUsability` (thumb). */
+        public const val ARENA_COMMAND_USABILITY: Int = 0x080240ED
+
+        /** ROM address of `DropUsability` (thumb). */
+        public const val DROP_USABILITY: Int = 0x08022911
+
         /** ROM address of `UnitActionMenu_Attack` (thumb). */
         public const val UNIT_ACTION_MENU_ATTACK: Int = 0x08022B31
 
@@ -668,6 +952,9 @@ public class UnitActionMenu(
         private const val PANEL_X = 0xF
         private const val PANEL_Y = 0xB
 
+        /** `US_RESCUING` of `Unit.state`. */
+        public const val US_RESCUING: Int = 1 shl 4
+
         /** `US_HAS_MOVED` of `Unit.state`. */
         private const val US_HAS_MOVED = 1 shl 6
 
@@ -676,6 +963,28 @@ public class UnitActionMenu(
 
         /** `CLASS_PHANTOM`. */
         private const val CLASS_PHANTOM = 0x51
+
+
+        /** `CA_DANCE` of character/class attributes. */
+        public const val CA_DANCE: Int = 1 shl 4
+
+        /** `TERRAIN_ARENA_REGULAR`. */
+        public const val TERRAIN_ARENA_REGULAR: Int = 0x08
+
+
+
+        /** `TILE_COMMAND_ARMORY`. */
+        public const val TILE_COMMAND_ARMORY: Int = 0x16
+
+
+
+
+
+        /** `ITEM_DANCE`. */
+        public const val ITEM_DANCE: Int = 0xA5
+
+        /** `ITYPE_DANCE`. */
+        public const val ITYPE_DANCE: Int = 12
 
         /** `Unit.items` (+0x1E): five u16 item words. */
         private const val OFF_ITEMS = 0x1E

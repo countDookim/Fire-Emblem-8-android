@@ -84,6 +84,100 @@ class UnitActionMenuDifferentialTest {
         assertEquals(1, sim.targetCountCalls.size.coerceAtMost(1), "target count asked")
     }
 
+    @Test
+    @VerifiesPort(
+        "ArenaCommandUsability",
+        "ArmoryCommandUsability",
+        "AttackBallistaCommandUsability",
+        "ChestCommandUsability",
+        "DanceCommandUsability",
+        "DoorCommandUsability",
+        "DropUsability",
+    )
+    fun `unit menu build at f4181 evaluates usability A callbacks to NOTSHOWN`() {
+        assumeInputs()
+        val sim = Sim("ram_trace_prologue_clear", 4181)
+        sim.start()
+        assertEquals(listOf(1 to 1, 25 to 1, 28 to 1), sim.items, "items (number to availability)")
+        sim.compareItems()
+
+        assertEquals(
+            Menu.MENU_NOTSHOWN,
+            sim.unitMenu.attackBallistaCommandUsability(0x0859CA7C, 2),
+            "AttackBallistaCommandUsability",
+        )
+        assertEquals(
+            Menu.MENU_NOTSHOWN,
+            sim.unitMenu.danceCommandUsability(0x0859CB30, 7),
+            "DanceCommandUsability",
+        )
+        assertEquals(
+            Menu.MENU_NOTSHOWN,
+            sim.unitMenu.chestCommandUsability(0x0859CC50, 15),
+            "ChestCommandUsability",
+        )
+        assertEquals(
+            Menu.MENU_NOTSHOWN,
+            sim.unitMenu.doorCommandUsability(0x0859CC74, 16),
+            "DoorCommandUsability",
+        )
+        assertEquals(
+            Menu.MENU_NOTSHOWN,
+            sim.unitMenu.armoryCommandUsability(0x0859CC98, 17),
+            "ArmoryCommandUsability",
+        )
+        assertEquals(
+            Menu.MENU_NOTSHOWN,
+            sim.unitMenu.arenaCommandUsability(0x0859CD04, 20),
+            "ArenaCommandUsability",
+        )
+        assertEquals(
+            Menu.MENU_NOTSHOWN,
+            sim.unitMenu.dropUsability(0x0859CD4C, 22),
+            "DropUsability",
+        )
+    }
+
+    @Test
+    fun `usability A callbacks branch coverage`() {
+        assumeInputs()
+        val sim = Sim("ram_trace_prologue_clear", 4181)
+        sim.start()
+        val menu = sim.unitMenu
+
+        // DropUsability
+        sim.unitMenu.hooks.dropTargetCount = { 1 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.dropUsability(0, 22))
+
+        // DanceCommandUsability
+        sim.unitMenu.hooks.refreshTargetCount = { 1 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.danceCommandUsability(0, 7))
+
+        // DoorCommandUsability
+        sim.unitMenu.hooks.doorTargetCount = { 1 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.doorCommandUsability(0, 16))
+
+        // ChestCommandUsability
+        sim.unitMenu.hooks.canUnitUseChestKeyItem = { true }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.chestCommandUsability(0, 15))
+
+        // ArmoryCommandUsability
+        sim.unitMenu.hooks.getAvailableTileEventCommand = { _, _ ->
+            UnitActionMenu.TILE_COMMAND_ARMORY
+        }
+        assertEquals(Menu.MENU_ENABLED, menu.armoryCommandUsability(0, 17))
+        sim.unitMenu.hooks.getAvailableTileEventCommand = { _, _ -> 0 }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.armoryCommandUsability(0, 17))
+
+        // ArenaCommandUsability
+        sim.unitMenu.hooks.arenaIsUnitAllowed = { true }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.arenaCommandUsability(0, 20))
+
+        // AttackBallistaCommandUsability
+        sim.unitMenu.hooks.ballistaAttackUsability = { _, _, _ -> Menu.MENU_ENABLED }
+        assertEquals(Menu.MENU_NOTSHOWN, menu.attackBallistaCommandUsability(0, 2))
+    }
+
     private fun assumeInputs() {
         assumeTrue(ref.available, "mGBA reference data not present (run tools/setup.sh)")
         assumeTrue(romFile.isFile, "ROM not present (run tools/setup.sh)")

@@ -10,7 +10,7 @@ one, else `-`) and the comment sentence. The plan reference is a row id or miles
 same comment; `unassigned` means the comment names none. Regenerate with
 `python3 tools/standins.py --write`; CI runs `--check`. Do not edit by hand.
 
-Total entries: 220 across 47 Kotlin files.
+Total entries: 227 across 47 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
@@ -20,16 +20,17 @@ Total entries: 220 across 47 Kotlin files.
 | M6-E | 43 |
 | M6-F | 16 |
 | M6-G | 5 |
-| M6-H | 36 |
+| M6-H | 41 |
 | M6-I | 27 |
 | M6-J | 10 |
 | D09-3 | 3 |
-| EP-12 | 26 |
+| EP-12 | 27 |
 | EP-13 | 1 |
 | EP-1b | 1 |
 | EP-23b | 4 |
 | EP-24b | 1 |
-| EP-30 | 2 |
+| EP-31 | 2 |
+| EP-34a | 1 |
 | EP-36 | 2 |
 | EP-7 | 2 |
 | IS-2 | 1 |
@@ -165,7 +166,7 @@ Total entries: 220 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `battleAnimationsOn` | Stand-in until M6-G for `BeginAnimsOnBattleAnimations` / `sub_8055BC4` (banim-ekrbattle): whether the battle is shown with battle animations ([BanimPrepare.sub8055BC4] exists in fe8.game.bm, left u... |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `battleAnimPreconfOff` | `GetBattleAnimPreconfType() == PLAY_ANIMCONF_OFF`; stand-in until M6-G, false. |
 
-## M6-H (36)
+## M6-H (41)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -204,6 +205,11 @@ Total entries: 220 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `newBmxFade` | `NewBMXFADE(flag)` (fog chapters only); stand-in until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `renderBmMapOnBg2` | `RenderBmMapOnBg2` (fog chapters only); stand-in until M6-H. |
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `trapTypeAt` | `GetTrapAt(x, y)->type` of src/bmtrick.c; stand-in until M6-H, -1 for no trap. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `arenaIsUnitAllowed` | Stand-in until M6-H ports arena checks. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `canUnitUseChestKeyItem` | Stand-in until M6-H ports chest key use. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `canUnitUseItem` | Stand-in until M6-H ports item use checks. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `doorTargetCount` | Stand-in until M6-H ports door target lists. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `refreshTargetCount` | Stand-in until M6-H ports target lists for refresh. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `fadeOutSe` | `Sound_FadeOutSE(speed)`: stand-in until M6-H (the sound effect players are not in `SoundWrapper` yet; no visible effect in the Prologue, which calls it in the skip branch of [postBeginningEvent] a... |
 
 ## M6-I (27)
@@ -261,7 +267,7 @@ Total entries: 220 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `newPopupItemStealing` | Stand-in until the popups are ported (D09-3; no capture holds a steal): nothing happens. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventGiveItem.kt` | `event37GiveItem` | Host stand-ins (D09-3): the "gold got" popup (`NewPopup_GoldGot`) is not shown and the gold add happens at once. |
 
-## EP-12 (26)
+## EP-12 (27)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -291,6 +297,7 @@ Total entries: 220 across 47 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `battle` | The AI attack search (cp_battle.c, `AiTryDoStaff` of cp_staff.c) and its hooks (EP-12 stand-ins); null (the script attacks nothing) when the constructor got no loader, map and entity maps. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpPhase.kt` | `script` | The AI script interpreter (cp_script.c); its hooks are the EP-12 stand-ins. |
 | `game/src/commonMain/kotlin/fe8/game/bm/CpScript.kt` | `unportedCommand` | Stand-in for a command this class does not write (EP-12 for 00..04, 07..0D, 0F..11, 13..1B and 05 with an ignore list, whose predicates `AiIsUnitEnemyOrInScrList` and `AiIsUnitEnemyAndNotInScrList`... |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `ballistaAttackUsability` | Stand-in until EP-12 ports ballista traps. |
 
 ## EP-13 (1)
 
@@ -319,12 +326,18 @@ Total entries: 220 across 47 Kotlin files.
 | --- | --- | --- |
 | `game/src/commonMain/kotlin/fe8/game/bm/MapAnimApi.kt` | `beginNoDamageAnim` | Stand-in until EP-24b (needs a 0-damage hit capture): nothing happens. |
 
-## EP-30 (2)
+## EP-31 (2)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold, together with a stand-in for the availability callback of every other command (EP-30, EP-31, EP-32 and... |
-| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `unportedUsability` | The game's stand-in answers `MENU_NOTSHOWN` for all of them, so only the three ported commands appear; EP-30 to EP-33 port the real callbacks. |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `UnitActionMenu` | [install] registers them in [Menu.callbacks] under the ROM addresses the `MenuItemDef`s hold, together with a stand-in for the availability callback of every other command (EP-31, EP-32 and EP-33 p... |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `unportedUsability` | The game's stand-in answers `MENU_NOTSHOWN` for all of them, so only the ported commands appear; EP-31 to EP-33 port the remaining callbacks. |
+
+## EP-34a (1)
+
+| Kotlin file | Declaration | Stand-in |
+| --- | --- | --- |
+| `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `dropTargetCount` | Stand-in until EP-34a ports drop target lists. |
 
 ## EP-36 (2)
 

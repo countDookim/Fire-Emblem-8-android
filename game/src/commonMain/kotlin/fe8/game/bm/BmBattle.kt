@@ -880,15 +880,10 @@ public class BmBattle(
      * Transcribed from src/bmitem.c: GetUnitItemSlot
      * (not verified: captured calls have one return value)
      *
-     * Returns the first inventory slot containing [itemIndex], or -1 if absent. The captured
-     * calls only miss; matching slots are transcribed but not verified.
+     * Returns the first inventory slot containing [itemIndex], or -1 if absent.
      */
-    public fun getUnitItemSlot(bytes: ByteArray, offset: Int, itemIndex: Int): Int {
-        for (i in 0 until UnitLoader.UNIT_ITEM_COUNT) {
-            if (items.getItemIndex(u16(bytes, offset + OFF_ITEMS + 2 * i)) == itemIndex) return i
-        }
-        return -1
-    }
+    public fun getUnitItemSlot(bytes: ByteArray, offset: Int, itemIndex: Int): Int =
+        UnitTable.getUnitItemSlot(bytes, offset, itemIndex)
 
     /**
      * Transcribed from src/bmitem.c: IsItemCoveringRange
@@ -1065,11 +1060,7 @@ public class BmBattle(
         StructCodec.put32(tableBytes, offset + OFF_STATE, u32(unitBytes, OFF_STATE))
         arenaLevelLatch = (u32(tableBytes, offset + OFF_STATE) ushr 17) and 0x7
         if (unit.statusOut >= 0) {
-            // SetUnitStatus
-            val index = unit.statusOut
-            // Duration 5 turns in the high nibble; clearing the status clears both nibbles.
-            val statusByte = if (index == 0) 0 else (index and 0xF) or (5 shl 4)
-            put8(tableBytes, offset + OFF_STATUS, statusByte)
+            UnitTable.setUnitStatus(tableBytes, offset, unit.statusOut)
         }
         put8(tableBytes, offset + OFF_MAX_HP, s8(tableBytes, offset + OFF_MAX_HP) + unit.changeHP)
         put8(tableBytes, offset + OFF_POW, s8(tableBytes, offset + OFF_POW) + unit.changePow)

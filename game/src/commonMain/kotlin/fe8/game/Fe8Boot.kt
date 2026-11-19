@@ -1083,6 +1083,13 @@ public class Fe8Boot(
             override fun areAnyEnemyUnitDead(): Boolean = units.areAnyEnemyUnitAlive()
 
             override fun countAvailableBlueUnits(): Int = units.countAvailableBlueUnits()
+
+            override fun refreshAllies() {
+                units.refreshAllies(
+                    refreshEntityBmMaps = { battleEntityMaps.refreshEntityBmMaps() },
+                    refreshUnitSprites = { refreshSprites() },
+                )
+            }
         }
         main.hooks.runPhaseSwitchEvents = { eventInfos.runPhaseSwitchEvents() }
         val start = BattleMapStart(

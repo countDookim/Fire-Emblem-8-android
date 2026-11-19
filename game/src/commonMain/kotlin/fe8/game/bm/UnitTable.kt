@@ -2,6 +2,7 @@ package fe8.game.bm
 
 import fe8.game.RomView
 import fe8.game.bm.StructCodec.s8
+import fe8.game.bm.StructCodec.u16
 import fe8.game.bm.StructCodec.u32
 import fe8.game.bm.StructCodec.u8
 
@@ -238,19 +239,81 @@ public class UnitTable(
      * `UNIT_LEADER_CHARACTER`: `supports[6]` (u8, 0x38) of unit [id], the character id of the
      * leader it follows. (`GetUnitLeaderCharId` returns 0 for blue units; this does not.)
      */
-    public fun leaderCharId(id: Int): Int = u8(bytes, unitOffset(id) + 0x38)
+    public fun leaderCharId(id: Int): Int = u8(bytes, unitOffset(id) + OFF_LEADER)
+
+    /**
+     * Ported from src/bmunit.c: GetUnitLeaderCharId
+     *
+     * The character id of the leader of unit [id]. Blue units (player faction, `index & 0xC0 == 0`)
+     * have no leader and return 0; non-player units return `UNIT_LEADER_CHARACTER` (`supports[6]`).
+     *
+     * Exercised in captures: player unit check (`index & 0xC0 == 0`) returning 0, and non-player
+     *   unit check (`index & 0xC0 != 0`) returning `supports[6]` (0 for O'Neill at `r04274`).
+     * Unexercised in captures: non-player unit with non-zero leader character id.
+     */
+    public fun getUnitLeaderCharId(id: Int): Int = getUnitLeaderCharId(bytes, unitOffset(id))
+
+    /**
+     * Ported from src/bmunit.c: GetUnitLeaderCharId
+     *
+     * [getUnitLeaderCharId] for the unit struct at [offset] in [b].
+     */
+    public fun getUnitLeaderCharId(b: ByteArray, offset: Int): Int {
+        if ((s8(b, offset + OFF_INDEX) and 0xC0) == 0) return 0
+        return u8(b, offset + OFF_LEADER)
+    }
+
+    /** `rescue` (u8, 0x1B) of unit [id]: deployment index of rescued partner, or 0. */
+    public fun rescue(id: Int): Int = u8(bytes, unitOffset(id) + OFF_RESCUE)
+
+    /** Sets `rescue` (u8, 0x1B) of unit [id]. */
+    public fun setRescue(id: Int, value: Int) {
+        bytes[unitOffset(id) + OFF_RESCUE] = value.toByte()
+    }
 
     /** `statusIndex` (low nibble of byte 0x30) of unit [id]. */
-    public fun statusIndex(id: Int): Int = u8(bytes, unitOffset(id) + 0x30) and 0xF
+    public fun statusIndex(id: Int): Int = u8(bytes, unitOffset(id) + OFF_STATUS) and 0xF
+
+    /**
+     * Ported from src/bmunit.c: SetUnitStatus
+     *
+     * Sets status [status] on unit [id]. If [status] is 0, both status index and duration are
+     * cleared to 0. Otherwise, sets the status index to [status] and duration to 5 turns.
+     *
+     * Exercised in captures: status == 0 clearing in [refreshAllies] at chapter win (`f4894`).
+     * Unexercised in captures: status != 0 application (no non-zero status is applied in
+     *   Prologue captures).
+     */
+    public fun setUnitStatus(id: Int, status: Int) {
+        setUnitStatus(bytes, unitOffset(id), status)
+    }
+
+    /**
+     * Transcribed from src/bmunit.c: SetUnitStatusExt (not verified: no Prologue capture applies
+     * non-zero duration status via SetUnitStatusExt)
+     *
+     * Sets status [status] and turn duration [duration] on unit [id].
+     */
+    public fun setUnitStatusExt(id: Int, status: Int, duration: Int) {
+        setUnitStatusExt(bytes, unitOffset(id), status, duration)
+    }
 
     /**
      * `UNIT_CATTRIBUTES`: `pCharacterData->attributes | pClassData->attributes` of unit [id],
      * both read from the ROM.
      */
-    public fun cAttributes(id: Int): Int {
-        val offset = unitOffset(id)
-        return rom.u32(u32(bytes, offset + OFF_CHARACTER) + OFF_ATTRIBUTES) or
-            rom.u32(u32(bytes, offset + OFF_CLASS) + OFF_ATTRIBUTES)
+    public fun cAttributes(id: Int): Int = cAttributes(bytes, unitOffset(id))
+
+    /**
+     * `UNIT_CATTRIBUTES`: `pCharacterData->attributes | pClassData->attributes` of the unit struct
+     * at [offset] in [b].
+     */
+    public fun cAttributes(b: ByteArray, offset: Int): Int {
+        val charPtr = u32(b, offset + OFF_CHARACTER)
+        val classPtr = u32(b, offset + OFF_CLASS)
+        val charAttr = if (charPtr != 0) rom.u32(charPtr + OFF_ATTRIBUTES) else 0
+        val classAttr = if (classPtr != 0) rom.u32(classPtr + OFF_ATTRIBUTES) else 0
+        return charAttr or classAttr
     }
 
     /**
@@ -354,6 +417,113 @@ public class UnitTable(
         return characterId
     }
 
+    /**
+     * Transcribed from src/bmitem.c: GetUnitItemSlot (not verified: captured calls have one
+     * return value; Prologue captures have no matching key/item slot; EP-29a tracks positive
+     * matches under EP-29cap)
+     *
+     * Returns the first inventory slot (0 until [UNIT_ITEM_COUNT]) containing [itemIndex],
+     * or -1 if absent.
+     */
+    public fun getUnitItemSlot(id: Int, itemIndex: Int): Int =
+        getUnitItemSlot(bytes, unitOffset(id), itemIndex)
+
+    /**
+     * Ported from src/bmunit.c: GetUnitKeyItemSlotForTerrain
+     *
+     * Finds an inventory slot with an item capable of unlocking [terrain] (doors or chests).
+     * If the unit has the thief attribute (`CA_THIEF`) and holds a lockpick (`ITEM_LOCKPICK`),
+     * returns the lockpick's slot.
+     * Otherwise:
+     * - For `TERRAIN_CHEST_FULL`: returns the slot of `ITEM_CHESTKEY`, or if absent,
+     *   `ITEM_CHESTKEY_BUNDLE`.
+     * - For `TERRAIN_DOOR`: returns the slot of `ITEM_DOORKEY`.
+     * - For other terrain: returns the first slot holding item 0 (empty slot), or -1 if none.
+     *
+     * Exercised in captures: Seth and Eirika terrain 0 (first empty slot) and missing door/chest
+     *   key (-1) in Prologue clear (`f4181`).
+     * Unexercised in captures: positive door/chest key matches and CA_THIEF lockpick branch
+     *   (Prologue units carry no keys and have no CA_THIEF).
+     */
+    public fun getUnitKeyItemSlotForTerrain(id: Int, terrain: Int): Int =
+        getUnitKeyItemSlotForTerrain(bytes, unitOffset(id), terrain)
+
+    /**
+     * Ported from src/bmunit.c: GetUnitKeyItemSlotForTerrain
+     *
+     * [getUnitKeyItemSlotForTerrain] for the unit struct at [offset] in [b].
+     */
+    public fun getUnitKeyItemSlotForTerrain(b: ByteArray, offset: Int, terrain: Int): Int {
+        if ((cAttributes(b, offset) and CA_THIEF) != 0) {
+            val slot = getUnitItemSlot(b, offset, ITEM_LOCKPICK)
+            if (slot >= 0) return slot
+        }
+        return when (terrain) {
+            TERRAIN_CHEST_FULL -> {
+                val slot = getUnitItemSlot(b, offset, ITEM_CHESTKEY)
+                if (slot < 0) getUnitItemSlot(b, offset, ITEM_CHESTKEY_BUNDLE) else slot
+            }
+            TERRAIN_DOOR -> getUnitItemSlot(b, offset, ITEM_DOORKEY)
+            else -> getUnitItemSlot(b, offset, 0)
+        }
+    }
+
+    /**
+     * Ported from src/bmunit.c: GetUnitSMSId
+     *
+     * Returns the standing map sprite id of unit [id]: its class's `SMSId` (class byte 6), or,
+     * for a unit in a ballista (`US_IN_BALLISTA`), the rider-on-ballista sprite id for the
+     * ballista's item (0x58 regular, 0x59 long, 0x5A killer, 0 for any other item).
+     *
+     * Exercised in captures: non-ballista class SMSId branch for all valid units in Prologue clear
+     *   (`f4181..4274` and `f4894`).
+     * Unexercised in captures: ballista rider SMS branches (no ballistas in Prologue).
+     */
+    public fun getUnitSMSId(id: Int, traps: ByteArray? = null): Int {
+        val offset = unitOffset(id)
+        if ((state(id) and US_IN_BALLISTA) == 0) {
+            val classPtr = u32(bytes, offset + OFF_CLASS)
+            return rom.u8(classPtr + 6)
+        }
+        if (traps == null) return 0
+        val trapOffset = u8(bytes, offset + OFF_BALLISTA) * TRAP_SIZE
+        if (trapOffset + 3 >= traps.size) return 0
+        return when (u8(traps, trapOffset + 3)) {
+            BALLISTA_REGULAR -> 0x58
+            BALLISTA_LONG -> 0x59
+            BALLISTA_KILLER -> 0x5A
+            else -> 0
+        }
+    }
+
+    /**
+     * Ported from src/bmunit.c: RefreshAllies
+     *
+     * After a won chapter, refreshes all blue units (ids 1 until 0x40):
+     * - Clears `US_UNSELECTABLE`, `US_RESCUING`, and `US_RESCUED` from unit state.
+     * - Clears `rescue` (partner unit id) to 0.
+     * - Calls [setUnitStatus] to clear the status to 0.
+     * Finally invokes [refreshEntityBmMaps] and [refreshUnitSprites].
+     *
+     * Exercised in captures: blue unit iteration, status 0 clear, rescue 0 reset, and matching
+     *   `r04901` ground truth EWRAM bytes at chapter win (`f4894`).
+     * Unexercised in captures: `US_RESCUING` and `US_RESCUED` clearing (no units rescued in
+     *   Prologue).
+     */
+    public fun refreshAllies(
+        refreshEntityBmMaps: () -> Unit = {},
+        refreshUnitSprites: () -> Unit = {},
+    ) {
+        for (i in 1 until 0x40) {
+            if (!isValid(i)) continue
+            setState(i, state(i) and (US_UNSELECTABLE or US_RESCUING or US_RESCUED).inv())
+            setRescue(i, 0)
+            setUnitStatus(i, 0)
+        }
+        refreshEntityBmMaps()
+        refreshUnitSprites()
+    }
+
     /** Layout and flag constants. */
     public companion object {
         /** `sizeof(struct Unit)`. */
@@ -387,11 +557,32 @@ public class UnitTable(
         /** `pClassData` in `struct Unit`. */
         public const val OFF_CLASS: Int = 0x04
 
-        /** `attributes` (u32) in both `struct CharacterData` and `struct ClassData`. */
-        private const val OFF_ATTRIBUTES = 0x28
+        /** `index` (s8, 0x0B) in `struct Unit`. */
+        public const val OFF_INDEX: Int = 0x0B
+
+        /** `rescue` (u8, 0x1B) in `struct Unit`. */
+        public const val OFF_RESCUE: Int = 0x1B
+
+        /** `ballistaIndex` (u8, 0x1C) in `struct Unit`. */
+        public const val OFF_BALLISTA: Int = 0x1C
+
+        /** `items[UNIT_ITEM_COUNT]` (u16[5], 0x1E) in `struct Unit`. */
+        public const val OFF_ITEMS: Int = 0x1E
 
         /** `ranks[8]` in `struct Unit`. */
         private const val OFF_RANKS = 0x28
+
+        /** `attributes` (u32) in both `struct CharacterData` and `struct ClassData`. */
+        private const val OFF_ATTRIBUTES = 0x28
+
+        /** `statusIndex` and `statusDuration` (u8, 0x30) in `struct Unit`. */
+        public const val OFF_STATUS: Int = 0x30
+
+        /** `supports[6]` (u8, 0x38, `UNIT_LEADER_CHARACTER`) in `struct Unit`. */
+        public const val OFF_LEADER: Int = 0x38
+
+        /** `UNIT_ITEM_COUNT`: 5 item slots per unit. */
+        public const val UNIT_ITEM_COUNT: Int = 5
 
         /** `ITYPE_STAFF`, `ITYPE_ANIMA`, `ITYPE_LIGHT`, `ITYPE_DARK` (bmitem.h). */
         private const val ITYPE_STAFF = 4
@@ -411,14 +602,20 @@ public class UnitTable(
         /** `US_NOT_DEPLOYED`. */
         private const val US_NOT_DEPLOYED = 1 shl 3
 
+        /** `US_RESCUING`. */
+        public const val US_RESCUING: Int = 1 shl 4
+
         /** `US_RESCUED`. */
-        private const val US_RESCUED = 1 shl 5
+        public const val US_RESCUED: Int = 1 shl 5
 
         /** `US_UNDER_A_ROOF`. */
         private const val US_UNDER_A_ROOF = 1 shl 7
 
         /** `US_BIT8`; `SetAllUnitNotBackSprite` clears it. */
         private const val US_BIT8 = 1 shl 8
+
+        /** `US_IN_BALLISTA`. */
+        public const val US_IN_BALLISTA: Int = 1 shl 11
 
         /** `US_BIT16`, an unnamed state bit that `US_UNAVAILABLE` includes. */
         private const val US_BIT16 = 1 shl 16
@@ -437,8 +634,41 @@ public class UnitTable(
         /** `UNIT_STATUS_BERSERK`. */
         public const val STATUS_BERSERK: Int = 4
 
+        /** `CA_THIEF` (bmunit.h, bit 3). */
+        public const val CA_THIEF: Int = 1 shl 3
+
         /** `CA_UNSELECTABLE`. */
         public const val CA_UNSELECTABLE: Int = 1 shl 20
+
+        /** `ITEM_CHESTKEY` (0x69). */
+        public const val ITEM_CHESTKEY: Int = 0x69
+
+        /** `ITEM_DOORKEY` (0x6A). */
+        public const val ITEM_DOORKEY: Int = 0x6A
+
+        /** `ITEM_LOCKPICK` (0x6B). */
+        public const val ITEM_LOCKPICK: Int = 0x6B
+
+        /** `ITEM_CHESTKEY_BUNDLE` (0x79). */
+        public const val ITEM_CHESTKEY_BUNDLE: Int = 0x79
+
+        /** `TERRAIN_DOOR` (0x1E). */
+        public const val TERRAIN_DOOR: Int = 0x1E
+
+        /** `TERRAIN_CHEST_FULL` (0x21). */
+        public const val TERRAIN_CHEST_FULL: Int = 0x21
+
+        /** `ITEM_BALLISTA_REGULAR` (0x35). */
+        public const val BALLISTA_REGULAR: Int = 0x35
+
+        /** `ITEM_BALLISTA_LONG` (0x36). */
+        public const val BALLISTA_LONG: Int = 0x36
+
+        /** `ITEM_BALLISTA_KILLER` (0x37). */
+        public const val BALLISTA_KILLER: Int = 0x37
+
+        /** `sizeof(struct Trap)`: 8 bytes. */
+        public const val TRAP_SIZE: Int = 8
 
         /** `CHARACTER_EIRIKA`. */
         private const val CHARACTER_EIRIKA = 0x01
@@ -451,5 +681,49 @@ public class UnitTable(
 
         /** `CHAPTER_MODE_EPHRAIM`. */
         private const val CHAPTER_MODE_EPHRAIM = 3
+
+        /**
+         * Transcribed from src/bmitem.c: GetUnitItemSlot (not verified: captured calls have one
+         * return value; Prologue captures have no matching key/item slot; EP-29a tracks positive
+         * matches under EP-29cap)
+         *
+         * Returns the first inventory slot (0 until [UNIT_ITEM_COUNT]) containing [itemIndex],
+         * or -1 if absent.
+         */
+        public fun getUnitItemSlot(b: ByteArray, offset: Int, itemIndex: Int): Int {
+            for (i in 0 until UNIT_ITEM_COUNT) {
+                val item = StructCodec.u16(b, offset + OFF_ITEMS + 2 * i)
+                if ((item and 0xFF) == itemIndex) return i
+            }
+            return -1
+        }
+
+        /**
+         * Ported from src/bmunit.c: SetUnitStatus
+         *
+         * Sets status [status] in byte 0x30 (`statusIndex` in low nibble, `statusDuration` in
+         * high nibble) of unit at [offset] in [b]. Duration is 5 turns if status != 0, or 0
+         * if status == 0.
+         *
+         * Exercised in captures: status == 0 clearing in [refreshAllies] at chapter win (`f4894`).
+         * Unexercised in captures: status != 0 application (no non-zero status is applied in
+         *   Prologue captures).
+         */
+        public fun setUnitStatus(b: ByteArray, offset: Int, status: Int) {
+            b[offset + OFF_STATUS] =
+                if (status == 0) 0 else ((status and 0xF) or (5 shl 4)).toByte()
+        }
+
+        /**
+         * Transcribed from src/bmunit.c: SetUnitStatusExt (not verified: no Prologue capture
+         * applies non-zero duration status via SetUnitStatusExt)
+         *
+         * Sets status [status] and turn duration [duration] in byte 0x30 of unit at [offset]
+         * in [b].
+         */
+        public fun setUnitStatusExt(b: ByteArray, offset: Int, status: Int, duration: Int) {
+            b[offset + OFF_STATUS] =
+                ((status and 0xF) or ((duration and 0xF) shl 4)).toByte()
+        }
     }
 }

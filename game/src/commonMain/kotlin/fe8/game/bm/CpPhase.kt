@@ -335,8 +335,7 @@ public class CpPhase(
      */
     public fun getUnitAiPriority(id: Int): Int {
         var priority = units.movement(id)
-        // `GetUnitLeaderCharId`: player units (deployment ids below 0x40) have no leader.
-        val lead = if (units.index(id) and 0xC0 == 0) 0 else units.leaderCharId(id)
+        val lead = units.getUnitLeaderCharId(id)
         val attributes = units.cAttributes(id)
         if (attributes and (CA_DANCE or CA_PLAY) != 0) return priority - 149
         if (units.aiFlags(id) and AI_UNIT_FLAG_0 == 0) {

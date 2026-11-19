@@ -403,11 +403,91 @@ public class UnitLoader(
      * `maxHP` of the unit at [o] plus the HP bonus of its equipped weapon (the effective maximum
      * HP).
      */
-    internal fun getUnitMaxHp(o: Int): Int = getUnitMaxHp(table.bytes, o)
+    public fun getUnitMaxHp(o: Int): Int = getUnitMaxHp(table.bytes, o)
 
     /** [getUnitMaxHp] for the unit at byte offset [o] of [b] (a unit array or a `BattleUnit`). */
-    internal fun getUnitMaxHp(b: ByteArray, o: Int): Int =
+    public fun getUnitMaxHp(b: ByteArray, o: Int): Int =
         s8(b, o + OFF_MAX_HP) + items.getItemHpBonus(getUnitEquippedWeapon(b, o))
+
+    /**
+     * Ported from src/bmunit.c: GetUnitCurrentHp
+     *
+     * Returns the current HP of the unit at offset [o]. If `curHP` exceeds [getUnitMaxHp], it is
+     * clamped to the maximum and written back to the unit struct.
+     *
+     * Exercised: `curHP <= maxHP` return path on dumped units in `ram_trace_prologue_clear`
+     *   (`f4181..4274` and `f4894`).
+     * Unexercised: `curHP > maxHP` clamping branch (clamping `curHP` down to `maxHP`).
+     */
+    public fun getUnitCurrentHp(o: Int): Int = getUnitCurrentHp(table.bytes, o)
+
+    /**
+     * Ported from src/bmunit.c: GetUnitCurrentHp
+     *
+     * [getUnitCurrentHp] for the unit at byte offset [o] of [b] (a unit array or a `BattleUnit`).
+     */
+    public fun getUnitCurrentHp(b: ByteArray, o: Int): Int {
+        val maxHp = getUnitMaxHp(b, o)
+        var curHp = s8(b, o + OFF_CUR_HP)
+        if (curHp > maxHp) {
+            curHp = maxHp
+            b[o + OFF_CUR_HP] = curHp.toByte()
+        }
+        return curHp
+    }
+
+    /**
+     * Ported from src/bmunit.c: GetUnitCurrentHp
+     *
+     * [getUnitCurrentHp] for unit id [unit].
+     */
+    public fun getUnitCurrentHpById(unit: Int): Int = getUnitCurrentHp(table.unitOffset(unit))
+
+    /**
+     * Ported from src/bmunit.c: SetUnitStatus
+     *
+     * Sets status [status] on the unit at offset [o].
+     *
+     * Exercised in captures: status == 0 clearing in [refreshAllies] at chapter win (`f4894`).
+     * Unexercised in captures: status != 0 application (no non-zero status is applied in
+     *   Prologue captures).
+     */
+    public fun setUnitStatus(o: Int, status: Int) {
+        UnitTable.setUnitStatus(table.bytes, o, status)
+    }
+
+    /**
+     * Ported from src/bmunit.c: SetUnitStatus
+     *
+     * Sets status [status] on the unit at byte offset [o] of [b].
+     *
+     * Exercised in captures: status == 0 clearing in [refreshAllies] at chapter win (`f4894`).
+     * Unexercised in captures: status != 0 application (no non-zero status is applied in
+     *   Prologue captures).
+     */
+    public fun setUnitStatus(b: ByteArray, o: Int, status: Int) {
+        UnitTable.setUnitStatus(b, o, status)
+    }
+
+    /**
+     * Transcribed from src/bmunit.c: SetUnitStatusExt (not verified: no Prologue capture applies
+     * non-zero duration status via SetUnitStatusExt)
+     *
+     * Sets status [status] and duration [duration] on the unit at offset [o].
+     */
+    public fun setUnitStatusExt(o: Int, status: Int, duration: Int) {
+        UnitTable.setUnitStatusExt(table.bytes, o, status, duration)
+    }
+
+    /**
+     * Transcribed from src/bmunit.c: SetUnitStatusExt (not verified: no Prologue capture applies
+     * non-zero duration status via SetUnitStatusExt)
+     *
+     * Sets status [status] and duration [duration] on the unit at byte offset [o] of [b].
+     */
+    public fun setUnitStatusExt(b: ByteArray, o: Int, status: Int, duration: Int) {
+        UnitTable.setUnitStatusExt(b, o, status, duration)
+    }
 
     /**
      * Transcribed from src/bmitem.c: GetUnitEquippedWeapon (not verified: no test checks it against

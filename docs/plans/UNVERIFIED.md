@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 680 across 97 decomp files (missing reason: 0).
+Total entries: 686 across 97 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -49,7 +49,7 @@ Total entries: 680 across 97 decomp files (missing reason: 0).
 | `InitTalkTextWin` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no @VerifiesPort test names it |
 | `TalkOpen_InitBlend` | `game/src/commonMain/kotlin/fe8/game/scene/TalkScene.kt` | no |
 
-## src/bmunit.c (30)
+## src/bmunit.c (34)
 
 | Function | Kotlin file | Reason |
 | --- | --- | --- |
@@ -71,6 +71,8 @@ Total entries: 680 across 97 decomp files (missing reason: 0).
 | `UnitAutolevelWExp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `GetUnitItemCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `GetUnitMaxHp` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `SetUnitStatusExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no Prologue capture applies non-zero duration status via SetUnitStatusExt |
+| `SetUnitStatusExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no Prologue capture applies non-zero duration status via SetUnitStatusExt |
 | `CopyUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `GetUnitFromCharIdAndFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 | `UnitChangeFaction` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
@@ -80,8 +82,10 @@ Total entries: 680 across 97 decomp files (missing reason: 0).
 | `ClearUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | the traced loads fill slots that are already zero, so a skipped clear survives |
 | `FixROMUnitStructPtr` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no traced unit has `CA_BIT_23`, so a broken repoint survives |
 | `UnitCheckStatCaps` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `SetUnitStatusExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no Prologue capture applies non-zero duration status via SetUnitStatusExt |
 | `UnitHasMagicRank` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no unit in the captures has a magic rank, and no captured decision or output depends on it |
 | `SetAllUnitNotBackSprite` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | it runs in the select window, but no unit has `US_BIT8` set there, so the clearing is unobserved |
+| `SetUnitStatusExt` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no Prologue capture applies non-zero duration status via SetUnitStatusExt |
 | `IsUnitSlotAvailable` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic slot fill; no trace comparison yet |
 
 ## src/worldmap_rm.c (29)
@@ -118,6 +122,37 @@ Total entries: 680 across 97 decomp files (missing reason: 0).
 | `GmapRmBorder1_End` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | removing either sprite delete or the pulse end leaves the traced OAM, blend and palette unchanged |
 | `EndGmapRmBorder1` | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapRmBorder.kt` | no traced call |
 
+## src/bmitem.c (26)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `GetUnitEquippedWeaponSlot` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | see [setBattleUnitWeapon] |
+| `GetUnitItemSlot` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
+| `IsItemCoveringRange` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
+| `IsItemEffectiveAgainst` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
+| `IsUnitEffectiveAgainst` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
+| `GetItemIndex` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | a dropped or narrowed mask survives the traced loads |
+| `GetItemRequiredExp` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no test checks it against a trace yet |
+| `GetItemStatBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no test checks it against a trace yet |
+| `GetItemHpBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no test checks it against a trace yet |
+| `GetItemWeight` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no trace output depends on it |
+| `GetItemMaxRange` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | a mask narrowed to 3 bits survives the traced weapons |
+| `GetItemWeaponEffect` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no trace output depends on it |
+| `GetItemEffectiveness` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no trace output depends on it |
+| `GetItemPowBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | the traced weapons have no stat bonuses, so a wrong field offset survives |
+| `GetItemSklBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
+| `GetItemSpdBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
+| `GetItemDefBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
+| `GetItemResBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
+| `GetItemLckBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
+| `CanUnitUseStaff` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `CanUnitUseStaff` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitEquippedWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `CanUnitUseWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `IsItemUnsealedForUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
+| `GetUnitItemSlot` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | captured calls have one return value; Prologue captures have no matching key/item slot; EP-29a tracks positive matches under EP-29cap |
+| `GetUnitItemSlot` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | captured calls have one return value; Prologue captures have no matching key/item slot; EP-29a tracks positive matches under EP-29cap |
+
 ## src/eventscr.c (25)
 
 | Function | Kotlin file | Reason |
@@ -147,35 +182,6 @@ Total entries: 680 across 97 decomp files (missing reason: 0).
 | `ShouldUNITBeLoaded` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | synthetic dead unit and tile cases; no trace comparison yet |
 | `ModifyMoveUnitFlag` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitLoads.kt` | test restates bit combinations; no trace comparison yet |
 | `Event34_MessWithUnitState` | `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | only subs 5, 10 and 15 are compared; breaks in other subs and the CLEA loop survive |
-
-## src/bmitem.c (24)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `GetUnitEquippedWeaponSlot` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | see [setBattleUnitWeapon] |
-| `GetUnitItemSlot` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
-| `IsItemCoveringRange` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
-| `IsItemEffectiveAgainst` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
-| `IsUnitEffectiveAgainst` | `game/src/commonMain/kotlin/fe8/game/bm/BmBattle.kt` | captured calls have one return value |
-| `GetItemIndex` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | a dropped or narrowed mask survives the traced loads |
-| `GetItemRequiredExp` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no test checks it against a trace yet |
-| `GetItemStatBonuses` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no test checks it against a trace yet |
-| `GetItemHpBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no test checks it against a trace yet |
-| `GetItemWeight` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no trace output depends on it |
-| `GetItemMaxRange` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | a mask narrowed to 3 bits survives the traced weapons |
-| `GetItemWeaponEffect` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no trace output depends on it |
-| `GetItemEffectiveness` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | no trace output depends on it |
-| `GetItemPowBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | the traced weapons have no stat bonuses, so a wrong field offset survives |
-| `GetItemSklBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
-| `GetItemSpdBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
-| `GetItemDefBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
-| `GetItemResBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
-| `GetItemLckBonus` | `game/src/commonMain/kotlin/fe8/game/bm/ItemInfo.kt` | see [getItemPowBonus] |
-| `CanUnitUseStaff` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `CanUnitUseStaff` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `GetUnitEquippedWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `CanUnitUseWeapon` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
-| `IsItemUnsealedForUnit` | `game/src/commonMain/kotlin/fe8/game/bm/UnitLoader.kt` | no test checks it against a trace yet |
 
 ## src/eventinfo.c (24)
 

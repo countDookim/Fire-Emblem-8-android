@@ -180,7 +180,7 @@ public class UnitSpriteHandles(
             val handleIndex = addUnitSprite(y * 16)
             putHandleU16(handleIndex * HANDLE_SIZE + 6, y * 16)
             putHandleU16(handleIndex * HANDLE_SIZE + 4, x * 16)
-            val smsId = unitSmsId(i, traps)
+            val smsId = getUnitSMSId(i, traps)
             val paletteBank = getUnitDisplayedSpritePalette(i) and 0xF
             // OAM attribute 2: the sprite's tile (VRAM +0x1000 is OBJ tile 0x80) and the palette
             // bank in bits 12-15.
@@ -260,24 +260,17 @@ public class UnitSpriteHandles(
     private fun iconSize(smsId: Int): Int = rom.u16(ICON_TABLE + 8 * (smsId and 0x7F) + 2)
 
     /**
-     * `GetUnitSMSId` (src/bmunit.c): the sprite id of the unit's class (`SMSId`, class byte 6),
-     * or, for a unit sitting in a ballista (`US_IN_BALLISTA`, bit 11), the rider-on-ballista
-     * sprite of the ballista's item (0x58 / 0x59 / 0x5A for the regular, long and killer ones;
-     * 0 for any other item).
+     * Ported from src/bmunit.c: GetUnitSMSId
+     *
+     * The sprite id of the unit's class (`SMSId`, class byte 6), or, for a unit sitting in a
+     * ballista (`US_IN_BALLISTA`), the rider-on-ballista sprite of the ballista's item
+     * (0x58 regular, 0x59 long, 0x5A killer, 0 for any other item).
+     *
+     * Exercised: non-ballista branch for all valid units in Prologue clear
+     *   (`f4181..4274` and `f4894`).
+     * Unexercised: ballista branches (`ITEM_BALLISTA_REGULAR/LONG/KILLER`).
      */
-    private fun unitSmsId(id: Int, traps: ByteArray): Int {
-        val offset = units.unitOffset(id)
-        if (units.state(id) and (1 shl 11) == 0) {
-            return rom.u8(u32(units.bytes, offset + 4) + 6)
-        }
-        val trapOffset = u8(units.bytes, offset + 0x1C) * TRAP_SIZE
-        return when (u8(traps, trapOffset + 3)) {
-            BALLISTA_REGULAR -> 0x58
-            BALLISTA_LONG -> 0x59
-            BALLISTA_KILLER -> 0x5A
-            else -> 0
-        }
-    }
+    public fun getUnitSMSId(id: Int, traps: ByteArray): Int = units.getUnitSMSId(id, traps)
 
     internal companion object {
         /** Where `gSMSHandleArray` lives in EWRAM on the GBA. */

@@ -15,12 +15,12 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 
 
 - `EP-w`: GPT owner PC Terra, enemy-phase boot replay, until ~19:30Z (2026-11-21).
-- `TEST-6`: owner PC Claude, until ~23:21Z.
+- `TEST-6`: owner PC Claude, until ~00:06Z.
 
 
 
-- `PC-2`: Gemini owner PC, until ~21:30Z (`wip/pc2`).
-- `PC-4a1`: Gemini owner PC, until ~21:30Z (`wip/pc4a1`).
+- `PC-2`: owner PC Claude (finishing Gemini's `wip/pc2`, stopped ~21:08Z), until ~00:06Z.
+- `PC-4a1`: owner PC Claude (finishing Gemini's `wip/pc4a1`, stopped ~21:08Z), until ~00:06Z.
 
 ## Current state
 

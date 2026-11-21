@@ -243,7 +243,9 @@ public class Fe8Boot(
 
     /** The suspend save's RAM, shared by the write hook and the resume read (`actionData`). */
     private val suspendRam: SuspendRam by lazy {
-        SuspendRam(control.playSt, loop.bmSt, rng, units, flags, clock, eventState)
+        SuspendRam(
+            control.playSt, loop.bmSt, rng, units, flags, clock, eventState, gmData = gmData,
+        )
     }
 
     /** Flushes the cartridge SRAM contents to [saveStorage] if configured. */
@@ -1432,11 +1434,11 @@ public class Fe8Boot(
      * `WriteSuspendSave` for [BMapMain.Hooks.writeSuspendSave], on [saveLib].
      *
      * Stand-ins, until the state exists (M6-B: `gActionData`, menu override; M6-H: traps,
-     * convoy; M6-I: world map info, dungeon state): `gActionData` is the [SuspendRam.actionData]
-     * buffer (zeros apart from the RN state the save stores and `suspendPointType`, which is
-     * merged in from [BMapMain.suspendPointType] at offset 0x16); the traps, convoy, menu
-     * override, world map info and dungeon state are the zeroed buffers of [SuspendRam] (their
-     * owners are not ported).
+     * convoy; M6-I: dungeon state): `gActionData` is the [SuspendRam.actionData] buffer (zeros
+     * apart from the RN state the save stores and `suspendPointType`, which is merged in from
+     * [BMapMain.suspendPointType] at offset 0x16); the traps, convoy, menu override and dungeon
+     * state are the zeroed buffers of [SuspendRam] (their owners are not ported); `wmStuff` is
+     * serialized from [gmData] via [BmSaveGmap.writeWorldMapStuff].
      */
     private fun suspendSaveHook(main: BMapMain, rom: RomView): (Int) -> Unit {
         val save = BmSuspendSave(saveLib, rom)

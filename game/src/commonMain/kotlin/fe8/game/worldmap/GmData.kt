@@ -53,7 +53,7 @@ public class GmData(private val iwram: ByteArray, private val rng: RngService) {
      * was won.
      */
     public fun isNodeCleared(node: Int): Boolean =
-        iwram[BASE + NODES + node].toInt() and NODE_STATE_CLEARED != 0
+        iwram[BASE + NODES + node * NODE_SIZE].toInt() and NODE_STATE_CLEARED != 0
 
     /**
      * Reads `gGMData.state.bits.monster_merged` (`GM_STATE_MONSGEN`, bit 1 of the first byte):
@@ -61,6 +61,14 @@ public class GmData(private val iwram: ByteArray, private val rng: RngService) {
      * (`WorldMap_SetMonsterMergedState`).
      */
     public fun monsterMerged(): Boolean = (iwram[BASE].toInt() and 0x02) != 0
+
+    /** `gGMData.state.bits.state_2` (bit 2 of the first byte). */
+    public val state2: Boolean
+        get() = (stateRaw and 0x04) != 0
+
+    /** `gGMData.state.bits.state_4_5` (bits 4..5 of the first byte). */
+    public val state45: Int
+        get() = (stateRaw ushr 4) and 3
 
     /** `gGMData.state.raw` (`u8` at offset 0): the `GM_STATE_*` bits (see `union GMStateBits`). */
     public var stateRaw: Int
@@ -116,12 +124,23 @@ public class GmData(private val iwram: ByteArray, private val rng: RngService) {
         }
 
     /** `gGMData.nodes[node].state` (`u8`): `GM_NODE_STATE_VALID` (bit 0), `_CLEARED` (bit 1). */
-    public fun nodeState(node: Int): Int = iwram[BASE + NODES + node].toInt() and 0xFF
+    public fun nodeState(node: Int): Int =
+        iwram[BASE + NODES + node * NODE_SIZE].toInt() and 0xFF
 
     /** Sets `gGMData.nodes[node].state` to [value] (low 8 bits). */
     public fun setNodeState(node: Int, value: Int) {
-        iwram[BASE + NODES + node] = value.toByte()
+        iwram[BASE + NODES + node * NODE_SIZE] = value.toByte()
     }
+
+    /** `gGMData.unk_c9[index]` (`u8`, offset 0xC9..0xCB): active world map skirmishes. */
+    public fun skirmish(index: Int): Int = iwram[BASE + UNK_C9 + index].toInt() and 0xFF
+
+    /** `gGMData.unk_cc` (`u8`, offset 0xCC): skirmish enemy block state. */
+    public var skirmishState: Int
+        get() = iwram[BASE + UNK_CC].toInt() and 0xFF
+        set(value) {
+            iwram[BASE + UNK_CC] = value.toByte()
+        }
 
     /** `gGMData.openPaths.openPathsLength` (`s8`): how many entries of `openPaths` are in use. */
     public val openPathsLength: Int
@@ -196,15 +215,27 @@ public class GmData(private val iwram: ByteArray, private val rng: RngService) {
         private const val UNIT_SIZE = 4
         private const val UNIT_COUNT = 7
 
-        /** Offset of `nodes` (one `GMNode` state byte each). */
+        /** Offset of `nodes` (`struct GMNode[0x1C]` + `unk_a0`, 4-byte aligned stride). */
         private const val NODES = 0x30
+        private const val NODE_SIZE = 4
+
+        /** Number of node slots read by `WriteWorldMapNodes` (`0x1D`, including `unk_a0`). */
+        public const val NODE_SAVE_COUNT: Int = 0x1D
+
+        /** Number of world map unit slots serialized by `WriteWorldMapUnits` (7 of 8). */
+        public const val UNIT_SAVE_COUNT: Int = UNIT_COUNT
+
+        /** Number of active world map skirmish bytes (`unk_c9[3]`). */
+        public const val SKIRMISH_COUNT: Int = 3
 
         /** Offset of `openPaths` (`s8[0x20]`) and of its `openPathsLength` right after it. */
         private const val OPEN_PATHS = 0xA4
         private const val OPEN_PATHS_SIZE = 0x20
         private const val OPEN_PATHS_LENGTH = 0xC4
 
-        /** Offsets of `unk_cd` and `unk_ce` (the saved RN state, 3 halfwords). */
+        /** Offsets of `unk_c9[3]`, `unk_cc`, `unk_cd`, and `unk_ce` (the saved RN state). */
+        private const val UNK_C9 = 0xC9
+        private const val UNK_CC = 0xCC
         private const val UNK_CD = 0xCD
         private const val UNK_CE = 0xCE
     }

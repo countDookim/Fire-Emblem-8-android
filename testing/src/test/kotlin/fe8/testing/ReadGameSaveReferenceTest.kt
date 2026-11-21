@@ -49,7 +49,7 @@ class ReadGameSaveReferenceTest {
     @Test
     @VerifiesPort(
         "ReadGameSave", "LoadSavedUnit", "ReadPidStats", "ReadPermanentFlags", "InitUnits",
-        "ReadSupplyItems", "ReadChapterStats",
+        "ReadSupplyItems", "ReadChapterStats", "GetConvoyItemArray",
     )
     fun `reading chapter6 sav slot 1 reproduces the RAM of r01142`() {
         val f = fixture()
@@ -123,7 +123,7 @@ class ReadGameSaveReferenceTest {
     // save, so a no-op survives; audit 2026-11-06).
     @VerifiesPort(
         "WriteGameSave", "WriteGameSavePackedUnit", "WriteSupplyItems", "WritePidStats",
-        "WriteChapterStats", "WritePermanentFlags",
+        "WriteChapterStats", "WritePermanentFlags", "GetConvoyItemArray",
     )
     fun `write after read reproduces slot 1 of chapter6 sav`() {
         val f = fixture()

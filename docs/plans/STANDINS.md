@@ -14,14 +14,14 @@ Total entries: 228 across 46 Kotlin files.
 
 | Plan reference | Entries |
 | --- | --- |
-| M6-B | 12 |
+| M6-B | 13 |
 | M6-C | 7 |
 | M6-D | 13 |
 | M6-E | 43 |
 | M6-F | 16 |
 | M6-G | 5 |
 | M6-H | 41 |
-| M6-I | 27 |
+| M6-I | 26 |
 | M6-J | 10 |
 | D09-3 | 3 |
 | EP-12 | 27 |
@@ -40,11 +40,11 @@ Total entries: 228 across 46 Kotlin files.
 | PP-9 | 1 |
 | unassigned | 4 |
 
-## M6-B (12)
+## M6-B (13)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
-| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `suspendSaveHook` | Stand-ins, until the state exists (M6-B: `gActionData`, menu override; M6-H: traps, convoy; M6-I: world map info, dungeon state): `gActionData` is the [SuspendRam.actionData] buffer (zeros apart fr... |
+| `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `suspendSaveHook` | Stand-ins, until the state exists (M6-B: `gActionData`, menu override; M6-H: traps, convoy; M6-I: dungeon state): `gActionData` is the [SuspendRam.actionData] buffer (zeros apart from the RN state... |
 | `game/src/commonMain/kotlin/fe8/game/Fe8Boot.kt` | `unitLookup` | Cursor / camera commands: the camera moves and the cursor proc runs; SetSomeRealCamPos and RenderBmMap keep the default no-op stand-ins (M6-B). |
 | `game/src/commonMain/kotlin/fe8/game/bm/BMapMain.kt` | `suspendPointType` | Stand-in until M6-B. |
 | `game/src/commonMain/kotlin/fe8/game/bm/BattleMapStart.kt` | `resetMenuOverrides` | Stand-in until M6-B. |
@@ -55,7 +55,8 @@ Total entries: 228 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | `MuCtrl` | Stand-ins until M6-B: `SortMus` (called by several steps of these procs in the C; it only orders the MUs' sprite animation `objLayer` values, so it is not called here) and `ClearEventMoveBuffer` (s... |
 | `game/src/commonMain/kotlin/fe8/game/bm/MuCtrl.kt` | `MuCtrl` | Stand-ins until M6-H: `DisableAllLightRunes` / `EnableAllLightRunes` (traps are not ported). |
 | `game/src/commonMain/kotlin/fe8/game/save/BmSuspendSave.kt` | `readSuspendSave` | Ported from src/bmsave.c: ReadSuspendSave Resumes a suspended battle: loads the suspend block of [slot] (`SAVE_ID_SUSPEND`) + `gSuspendSaveIdOffset` (set by [BmSaveLib.isValidSuspendSave]) into [ra... |
-| `game/src/commonMain/kotlin/fe8/game/save/SuspendRam.kt` | `SuspendRam` | The only things held here are buffers that have no owner yet (the stand-ins [actionData] and [menuOverride] until M6-B, [traps] and [convoy] until M6-H, [worldMapStuff] and [dungeonState] until M6-... |
+| `game/src/commonMain/kotlin/fe8/game/save/SuspendRam.kt` | `SuspendRam` | The only things held here are buffers that have no owner yet (the stand-ins [actionData] and [menuOverride] until M6-B, [traps] until M6-H, [worldMapStuff] when [gmData] is null and [dungeonState]... |
+| `game/src/commonMain/kotlin/fe8/game/save/SuspendRam.kt` | `SuspendRam` | The save packs these into 0xB0 bytes. @property gmData Optional `gGMData` world map state; when non-null, `WriteSuspendSave` serializes it via [BmSaveGmap.writeWorldMapStuff] instead of copying the... |
 
 ## M6-C (7)
 
@@ -212,7 +213,7 @@ Total entries: 228 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/UnitActionMenu.kt` | `refreshTargetCount` | Stand-in until M6-H ports target lists for refresh. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `fadeOutSe` | `Sound_FadeOutSE(speed)`: stand-in until M6-H (the sound effect players are not in `SoundWrapper` yet; no visible effect in the Prologue, which calls it in the skip branch of [postBeginningEvent] a... |
 
-## M6-I (27)
+## M6-I (26)
 
 | Kotlin file | Declaration | Stand-in |
 | --- | --- | --- |
@@ -225,13 +226,12 @@ Total entries: 228 across 46 Kotlin files.
 | `game/src/commonMain/kotlin/fe8/game/bm/PlayerPhase.kt` | `canCharacterBePrepMoved` | Stand-in until M6-I for `CanCharacterBePrepMoved(pid)` (only asked on the preparation screen); default false. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | `getUnitStructFromEventParameter` | Pid 0 uses the stand-in (M6-I) [EventUnitStateHooks.playerLeaderPid]. |
 | `game/src/commonMain/kotlin/fe8/game/event/EventUnitState.kt` | `playerLeaderPid` | The default 1 is a stand-in until M6-I (the leader of the save is not modelled here); a caller that needs the real leader overrides it. |
-| `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `GameSaveRam` | The RAM `ReadGameSave` fills and `WriteGameSave` reads, as the objects that own it elsewhere, plus stand-ins for what has no owner yet (the world map and dungeon data, M6-I). @property playSt `gPla... |
+| `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `GameSaveRam` | The RAM `ReadGameSave` fills and `WriteGameSave` reads, as the objects that own it elsewhere, plus stand-ins for what has no owner yet (the world map read fallback and dungeon data, M6-I). @propert... |
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `dungeons` | Stand-in until M6-I for `gDungeonState.dungeon` (`LoadDungeonRecords`): the raw `struct Dungeon[2]`, the saved records of the two dungeons (tower and ruins). |
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `gmMonsterRnState` | Stand-in until M6-I for the random-number state of the world map's wandering monsters in `gGMData` (`unk_ce`, three halfwords), the target of `sub_80A71F8`. |
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `readGameSave` | Ported from src/bmsave.c: ReadGameSave Loads the game save block of [slot] into [ram]: `gPlaySt` (with `gameSaveSlot` = [slot]) and the game clock, the 51 blue units (after `InitUnits`), the monste... |
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `worldMapStuff` | Stand-in until M6-I for what `ReadWorldMapStuff(&src->wmStuff, &gGMData)` decodes (the world map state is not ported): the raw 0x24 bytes of `struct GMapSaveInfo` (world map nodes, paths, units, cu... |
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `writeGameSave` | The world map stuff and dungeon records are written from the stand-ins of [GameSaveRam] (M6-I). |
-| `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `writeGameSave` | WriteWorldMapStuff: not ported (M6-I), the raw stand-in is written. |
 | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | `writeGmMonsterRnState` | Transcribed from src/bmsave.c: WriteGMMonsterRnState (not verified: the world map's RN state is a stand-in and the two trailing stack bytes are not derivable) Writes the 8 bytes (`u32 buf[2]`) that... |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapBeginning.kt` | `hooks` | `sub80BA008` (M6-I) stays a stand-in. |
 | `game/src/commonMain/kotlin/fe8/game/worldmap/WorldMapExit.kt` | `Hooks` | M6-I (the free-roam world map) and M6-H (sound effects) are the milestones that will port the stand-ins. |

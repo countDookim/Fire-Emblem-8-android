@@ -7,7 +7,7 @@ written from the decomp but not covered by a `@VerifiesPort` test. Each row carr
 given in the KDoc `(not verified: ...)`. Regenerate with `python3 tools/unverified.py --write`;
 CI runs `--check`, which also fails when an entry has no `(not verified: ...)` reason.
 
-Total entries: 690 across 98 decomp files (missing reason: 0).
+Total entries: 691 across 98 decomp files (missing reason: 0).
 
 ## src/scene.c (35)
 
@@ -889,6 +889,14 @@ Total entries: 690 across 98 decomp files (missing reason: 0).
 | `CountUnitsInState` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | only reached by the victory-song check; the enemy-phase windows call it, but the result only shows as the song id, which no capture records |
 | `GetPhaseAbleUnitCount` | `game/src/commonMain/kotlin/fe8/game/bm/UnitTable.kt` | no trace has a unit that the asleep/berserk/unselectable/NOT_ABLE exclusions would skip; the enemy-phase windows only show that the count is 0 exactly when the phase has no banner |
 
+## src/bmsave-gmap.c (3)
+
+| Function | Kotlin file | Reason |
+| --- | --- | --- |
+| `ReadWorldMapStuff` | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | partial, the world map state is not ported, so the raw `struct GMapSaveInfo` is kept |
+| `WriteWorldMapSkirmishes` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveGmap.kt` | `gGMData.unk_c9` is all zeros in every reference capture, which proves the 3-byte target write when seeded with sentinel, not non-zero skirmish data |
+| `ClearWorldMapStuff` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | NewGameSaveReferenceTest covers its write but no break-check has been run on it yet |
+
 ## src/cp_order.c (3)
 
 | Function | Kotlin file | Reason |
@@ -951,13 +959,6 @@ Total entries: 690 across 98 decomp files (missing reason: 0).
 | --- | --- | --- |
 | `DecodeString` | `engine/text/src/commonMain/kotlin/gbafe/text/MsgHuffman.kt` | shares its loop with [decode], which carries the verified port tag |
 | `DrawGlyph` | `engine/text/src/commonMain/kotlin/gbafe/text/TextSystem.kt` | exercised only through the Text_DrawCharacter test |
-
-## src/bmsave-gmap.c (2)
-
-| Function | Kotlin file | Reason |
-| --- | --- | --- |
-| `ReadWorldMapStuff` | `game/src/commonMain/kotlin/fe8/game/save/BmGameSave.kt` | partial, the world map state is not ported, so the raw `struct GMapSaveInfo` is kept |
-| `ClearWorldMapStuff` | `game/src/commonMain/kotlin/fe8/game/save/BmSaveLib.kt` | NewGameSaveReferenceTest covers its write but no break-check has been run on it yet |
 
 ## src/cgtext.c (2)
 

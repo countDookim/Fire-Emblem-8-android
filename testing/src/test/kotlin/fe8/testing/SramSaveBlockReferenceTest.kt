@@ -31,6 +31,7 @@ class SramSaveBlockReferenceTest {
     @VerifiesPort(
         "ReadSaveBlockInfo", "IsSaveValid", "SramChecksum32", "VerifySaveBlockChecksum",
         "PopulateSaveBlockChecksum", "WriteSaveBlockInfo", "GetSaveWriteAddr", "GetSaveReadAddr",
+        "SramOffsetToAddr",
     )
     fun `newgame sram has a valid game slot 0 and block info is reproduced`() {
         val dump = "s01230"
@@ -40,6 +41,8 @@ class SramSaveBlockReferenceTest {
         for (i in 1..3) assertFalse(lib.isSaveValid(i), "slot $i")
         assertEquals(L.GAME0_OFFSET, lib.getSaveWriteAddr(0))
         assertEquals(L.GAME0_OFFSET, lib.getSaveReadAddr(0))
+        assertEquals(L.GAME0_OFFSET, lib.sramOffsetToAddr(L.GAME0_OFFSET))
+        assertEquals(L.GAME0_OFFSET, lib.sramOffsetToAddr(0x10000 or L.GAME0_OFFSET))
 
         val chunk = ByteArray(L.BLOCK_INFO_SIZE)
         System.arraycopy(orig, L.blockInfoOffset(0), chunk, 0, L.BLOCK_INFO_SIZE)

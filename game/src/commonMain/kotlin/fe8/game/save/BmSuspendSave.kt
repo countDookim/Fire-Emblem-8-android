@@ -75,6 +75,9 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
     /** The three RN state halfwords of `gActionData._u00` (`LoadRNState` input). */
     private val rnWords = IntArray(3)
 
+    /** World map save serializer (`WriteWorldMapStuff`). */
+    private val worldMapSave = BmSaveGmap()
+
     /**
      * Ported from src/bmsave.c: EncodeSuspendSavePackedUnit
      *
@@ -320,7 +323,7 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
 
         lib.readPidStats(src + S.PID_STATS)
         lib.readChapterStats(src + S.CHAPTER_STATS)
-        lib.readSupplyItems(src + S.SUPPLY, ram.convoy)
+        lib.readSupplyItems(src + S.SUPPLY, ram.container.getConvoyItemArray())
         lib.readPermanentFlags(src + S.PERMANENT_FLAGS, permanentBuf)
         ram.flags.copyInPermanent(permanentBuf)
         lib.readChapterFlags(src + S.CHAPTER_FLAGS, chapterBuf)
@@ -445,7 +448,8 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
             chapterBuf[i] = ram.flags.byteAt(Fe8EventFlags.PERMANENT_STORAGE_BYTES + i).toByte()
         }
         lib.writeChapterFlags(dest + S.CHAPTER_FLAGS, chapterBuf)
-        for (i in supply.indices) supply[i] = StructCodec.u16(ram.convoy, i * 2)
+        val convoy = ram.container.getConvoyItemArray()
+        for (i in supply.indices) supply[i] = StructCodec.u16(convoy, i * 2)
         lib.writeSupplyItems(dest + S.SUPPLY, supply)
         lib.writePidStats(dest + S.PID_STATS)
         lib.writeChapterStats(dest + S.CHAPTER_STATS)
@@ -455,10 +459,14 @@ public class BmSuspendSave(private val lib: BmSaveLib, private val rom: RomView)
             ram.menuOverride, 0, sram, dest + S.MENU_OVERRIDE, S.MENU_OVERRIDE_MAX,
         )
 
-        // WriteWorldMapStuff: not ported, see SuspendRam.worldMapStuff.
-        writeAndVerifySramFast(
-            ram.worldMapStuff, 0, sram, dest + S.WM_STUFF, S.GMAP_SAVE_INFO_SIZE,
-        )
+        val gmData = ram.gmData
+        if (gmData != null) {
+            worldMapSave.writeWorldMapStuff(sram, dest + S.WM_STUFF, gmData)
+        } else {
+            writeAndVerifySramFast(
+                ram.worldMapStuff, 0, sram, dest + S.WM_STUFF, S.GMAP_SAVE_INFO_SIZE,
+            )
+        }
 
         // SaveDungeonRecords: gDungeonState.dungeon[2] into the wmMonsterUnit slot.
         ram.dungeonState.copyInto(dungeon, 0, DUNGEON_RECORDS, DUNGEON_RECORDS + dungeon.size)

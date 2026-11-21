@@ -9,10 +9,12 @@
 
 package fe8.game.save
 
+import fe8.game.bm.BmContainer
 import fe8.game.bm.BmSt
 import fe8.game.bm.PlaySt
 import fe8.game.bm.UnitTable
 import fe8.game.event.EventState
+import fe8.game.worldmap.GmData
 import gbafe.core.flags.EventFlags
 import gbafe.core.rng.RngService
 import gbafe.core.time.GameClock
@@ -20,9 +22,9 @@ import gbafe.core.time.GameClock
 /**
  * The RAM state `WriteSuspendSave` reads and `ReadSuspendSave` restores (and the few things the
  * save changes), as the objects that own it elsewhere. The only things held here are buffers
- * that have no owner yet (the stand-ins [actionData] and [menuOverride] until M6-B, [traps] and
- * [convoy] until M6-H, [worldMapStuff] and [dungeonState] until M6-I, each documented below); no
- * global exists twice.
+ * that have no owner yet (the stand-ins [actionData] and [menuOverride] until M6-B, [traps]
+ * until M6-H, [worldMapStuff] when [gmData] is null and [dungeonState] until M6-I, each
+ * documented below); no global exists twice.
  *
  * `gPidStatsData` and `gChapterStats` are owned by [BmSaveLib] (`pidStatsData`,
  * `chapterStatsData`) and are not repeated here.
@@ -40,6 +42,9 @@ import gbafe.core.time.GameClock
  *   (`GetTrap(0)`).
  * @property convoy Raw `gConvoyItemArray` buffer, 100 little-endian u16 item words (200 bytes;
  *   `CONVOY_ITEM_COUNT`). The save packs these into 0xB0 bytes.
+ * @property gmData Optional `gGMData` world map state; when non-null, `WriteSuspendSave`
+ *   serializes it via [BmSaveGmap.writeWorldMapStuff] instead of copying the raw [worldMapStuff]
+ *   stand-in.
  */
 public class SuspendRam(
     public val playSt: PlaySt,
@@ -54,7 +59,11 @@ public class SuspendRam(
         Fe8SuspendLayout.TRAP_MAX_COUNT * Fe8SuspendLayout.TRAP_SIZE,
     ),
     public val convoy: ByteArray = ByteArray(CONVOY_BYTES),
+    public val gmData: GmData? = null,
 ) {
+    /** Supply convoy accessor over [convoy] (`gConvoyItemArray`). */
+    public val container: BmContainer = BmContainer(convoy)
+
     /**
      * The result of `GetForceDisabledMenuItems` (the `sMenuOverrides` table is not ported): 16
      * command ids of menu items the game forces to be disabled, 0 = `MENU_ITEM_NONE`.
@@ -62,9 +71,9 @@ public class SuspendRam(
     public val menuOverride: ByteArray = ByteArray(Fe8SuspendLayout.MENU_OVERRIDE_MAX)
 
     /**
-     * What `WriteWorldMapStuff(&dest->wmStuff, &gGMData)` would encode (`WriteWorldMapStuff` is
-     * not ported; the world map state is not modelled): the 0x24 bytes of `struct GMapSaveInfo`
-     * (world map nodes, paths, units, cursor, skirmishes). Zero until the world map is ported.
+     * Raw `struct GMapSaveInfo` fallback (0x24 bytes: world map nodes, paths, units, cursor,
+     * skirmishes). `ReadSuspendSave` stores into it until `ReadWorldMapStuff` is ported, and
+     * `WriteSuspendSave` falls back to it when [gmData] is null (M6-I).
      */
     public val worldMapStuff: ByteArray = ByteArray(Fe8SuspendLayout.GMAP_SAVE_INFO_SIZE)
 
@@ -78,6 +87,6 @@ public class SuspendRam(
     /** Size constant of the convoy buffer. */
     public companion object {
         /** Total size in bytes of `gConvoyItemArray` (100 item entries × 2 bytes). */
-        public const val CONVOY_BYTES: Int = 200
+        public const val CONVOY_BYTES: Int = BmContainer.CONVOY_BYTES
     }
 }

@@ -12,6 +12,7 @@
 package fe8.game.save
 
 import fe8.game.RomView
+import fe8.game.bm.BmContainer
 import fe8.game.bm.BmSt
 import fe8.game.bm.PlaySt
 import fe8.game.bm.StructCodec
@@ -31,6 +32,7 @@ import fe8.game.save.BmSaveLib.Companion.GAME_WM_STUFF
 import fe8.game.save.BmSaveLib.Companion.PACKED_UNIT_SIZE
 import fe8.game.save.BmSaveLib.Companion.UNIT_SAVE_AMOUNT_BLUE
 import fe8.game.save.Fe8SramLayout as L
+import fe8.game.worldmap.GmData
 import gba.core.sram.readSramFast
 import gba.core.sram.writeAndVerifySramFast
 import gbafe.core.flags.EventFlags
@@ -38,7 +40,7 @@ import gbafe.core.time.GameClock
 
 /**
  * The RAM `ReadGameSave` fills and `WriteGameSave` reads, as the objects that own it elsewhere,
- * plus stand-ins for what has no owner yet (the world map and dungeon data, M6-I).
+ * plus stand-ins for what has no owner yet (the world map read fallback and dungeon data, M6-I).
  *
  * @property playSt `gPlaySt`, the chapter and settings state stored at the start of the block.
  * @property bmSt `gBmSt`; only `gameStateBits` is read, to decide whether the suspend save is
@@ -48,6 +50,8 @@ import gbafe.core.time.GameClock
  * @property flags the event flag memory (`gPermanentFlagBits`, the flags kept across chapters).
  * @property clock the game's one [GameClock] (`gGameClock`, restored from `gPlaySt.time_saved`).
  * @property convoy `gConvoyItemArray` (the supply convoy) as 100 raw little-endian u16 item words.
+ * @property gmData optional `gGMData` world map state; when non-null, `WriteGameSave` serializes
+ *   it via [BmSaveGmap.writeWorldMapStuff] instead of copying [worldMapStuff].
  */
 public class GameSaveRam(
     public val playSt: PlaySt,
@@ -56,7 +60,11 @@ public class GameSaveRam(
     public val flags: EventFlags,
     public val clock: GameClock,
     public val convoy: ByteArray = ByteArray(SuspendRam.CONVOY_BYTES),
+    public val gmData: GmData? = null,
 ) {
+    /** Supply convoy accessor over [convoy] (`gConvoyItemArray`). */
+    public val container: BmContainer = BmContainer(convoy)
+
     /**
      * Stand-in until M6-I for the random-number state of the world map's wandering monsters in
      * `gGMData` (`unk_ce`, three halfwords), the target of `sub_80A71F8`.
@@ -125,6 +133,9 @@ public class BmGameSave(
 
     /** The all-zero unit stored for an empty unit slot (`ClearUnit(&tmp_unit)`). */
     private val clearUnit = ByteArray(UnitTable.UNIT_SIZE)
+
+    /** World map save serializer (`WriteWorldMapStuff`). */
+    private val worldMapSave = BmSaveGmap()
 
     /**
      * Reads one bit-field of a `struct GameSavePackedUnit`: [bitCount] bits starting at bit
@@ -304,7 +315,7 @@ public class BmGameSave(
         }
 
         readGmMonsterRnState(src + GAME_GM_UNIT, ram)
-        lib.readSupplyItems(src + GAME_SUPPLY, ram.convoy)
+        lib.readSupplyItems(src + GAME_SUPPLY, ram.container.getConvoyItemArray())
         lib.readPermanentFlags(src + GAME_PERMANENT_FLAGS, permanentFlagsIn)
         ram.flags.copyInPermanent(permanentFlagsIn)
         lib.readPidStats(src + GAME_PID_STATS)
@@ -448,7 +459,8 @@ public class BmGameSave(
         }
         lib.writeGlobalSaveInfo(globalInfoBuf)
         writeGmMonsterRnState(dest + GAME_GM_UNIT, ram)
-        for (i in supplyWords.indices) supplyWords[i] = StructCodec.u16(ram.convoy, i * 2)
+        val convoy = ram.container.getConvoyItemArray()
+        for (i in supplyWords.indices) supplyWords[i] = StructCodec.u16(convoy, i * 2)
         lib.writeSupplyItems(dest + GAME_SUPPLY, supplyWords)
         lib.writePidStats(dest + GAME_PID_STATS)
         lib.writeChapterStats(dest + GAME_CHAPTER_STATS)
@@ -456,11 +468,15 @@ public class BmGameSave(
         Fe8EventFlags.getPermanentFlagBits(ram.flags)
             .copyInto(permanentFlagsOut, 0, 0, permanentFlagsOut.size)
         lib.writePermanentFlags(dest + GAME_PERMANENT_FLAGS, permanentFlagsOut)
-        // WriteWorldMapStuff: not ported (M6-I), the raw stand-in is written.
-        writeAndVerifySramFast(
-            ram.worldMapStuff, 0, lib.sram, dest + GAME_WM_STUFF,
-            Fe8SuspendLayout.GMAP_SAVE_INFO_SIZE,
-        )
+        val gmData = ram.gmData
+        if (gmData != null) {
+            worldMapSave.writeWorldMapStuff(lib.sram, dest + GAME_WM_STUFF, gmData)
+        } else {
+            writeAndVerifySramFast(
+                ram.worldMapStuff, 0, lib.sram, dest + GAME_WM_STUFF,
+                Fe8SuspendLayout.GMAP_SAVE_INFO_SIZE,
+            )
+        }
         // SaveDungeonRecords: memcpy from gDungeonState.dungeon.
         ram.dungeons.copyInto(dungeonRecordsBuf)
         writeAndVerifySramFast(dungeonRecordsBuf, 0, lib.sram, dest + GAME_DUNGEONS, DUNGEONS_SIZE)

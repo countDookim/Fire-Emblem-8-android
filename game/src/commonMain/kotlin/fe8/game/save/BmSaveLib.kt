@@ -567,6 +567,14 @@ public class BmSaveLib(public val sram: CartSram) {
     }
 
     /**
+     * Ported from src/bmsave-lib.c: SramOffsetToAddr
+     *
+     * Converts the 16-bit SRAM offset [off] (`u16 off` relative to `gSram` at 0x0E000000 in C)
+     * into the 0-based byte offset within [sram] (`(u8 *)gSram + off`).
+     */
+    public fun sramOffsetToAddr(off: Int): Int = off and 0xFFFF
+
+    /**
      * Ported from src/bmsave-lib.c: GetSaveReadAddr
      *
      * The SRAM offset recorded in descriptor [index], i.e. where the payload was actually
@@ -574,7 +582,7 @@ public class BmSaveLib(public val sram: CartSram) {
      */
     public fun getSaveReadAddr(index: Int): Int {
         readSaveBlockInfo(scratchInfo, index)
-        return u16(scratchInfo, L.INFO_OFFSET)
+        return sramOffsetToAddr(u16(scratchInfo, L.INFO_OFFSET))
     }
 
     /**

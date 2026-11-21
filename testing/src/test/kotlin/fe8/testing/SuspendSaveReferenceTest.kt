@@ -6,11 +6,13 @@ import fe8.game.event.EventState
 import fe8.game.bm.PlaySt
 import fe8.game.bm.UnitTable
 import fe8.game.flags.Fe8EventFlags
+import fe8.game.save.BmSaveGmap
 import fe8.game.save.BmSaveLib
 import fe8.game.save.BmSuspendSave
 import fe8.game.save.Fe8SramLayout as L
 import fe8.game.save.Fe8SuspendLayout as S
 import fe8.game.save.SuspendRam
+import fe8.game.worldmap.GmData
 import gba.core.VerifiesPort
 import gba.core.sram.CartSram
 import gba.testkit.ReferenceData
@@ -83,13 +85,15 @@ class SuspendSaveReferenceTest {
 
     @Test
     // Not @VerifiesPort: WriteTraps and WriteChapterStats (the reference traps and chapter stats
-    // are all zero: target proven, not data), WriteGMMonsterRnState (not in this save).
+    // are all zero: target proven, not data), WriteGMMonsterRnState (not in this save),
+    // WriteWorldMapNodes / WriteWorldMapPaths / WriteWorldMapSkirmishes (all zero in
+    // ram_trace_first_phase; non-zero nodes/paths are verified in BmSaveGmapReferenceTest).
     // Coverage limits: the encode path is checked on non-zero fields only (conBonus,
     // supportBits and the status bits are zero for all 5 units), and for
     // WriteSwappedSuspendSaveId only the 0 -> 1 branch (last_suspend_slot starts 0).
     @VerifiesPort(
         "WriteSuspendSave", "WriteSwappedSuspendSaveId", "WritePidStats", "WriteChapterFlags",
-        "WritePermanentFlags",
+        "WritePermanentFlags", "WriteWorldMapStuff", "WriteWorldMapUnits",
     )
     fun `suspend save from r19315 reproduces the sram of s19316`() {
         val f = fixture()
@@ -112,6 +116,11 @@ class SuspendSaveReferenceTest {
         // the checksum32 recomputed by the library from the patched image and compared (the
         // checksum is checked for consistency with the dump's byte, not independently).
         got[entry + S.SUPPLY + SUPPLY_SIZE - 1] = want[entry + S.SUPPLY + SUPPLY_SIZE - 1]
+        // wmStuff byte 0x1C: WriteWorldMapStuff only writes bits 0..3 (unk_1c_1/2/3); bits 4..7
+        // come from C's uninitialised stack `struct GMapSaveInfo info`. Verify the low nibble.
+        val wm1c = entry + S.WM_STUFF + BmSaveGmap.INFO_BITS_1C
+        assertEquals(want[wm1c].toInt() and 0x0F, got[wm1c].toInt() and 0x0F, "wmStuff bits 0x1C")
+        got[wm1c] = ((got[wm1c].toInt() and 0x0F) or (want[wm1c].toInt() and 0xF0)).toByte()
         val check = BmSaveLib(CartSram().also { it.copyIn(got) })
         val sum = check.sramChecksum32(entry, L.SUSPEND_SIZE)
         for (i in 0 until 4) {
@@ -144,6 +153,7 @@ class SuspendSaveReferenceTest {
         val flags = Fe8EventFlags.create().also { it.copyIn(iwram, GFLAGS - IWRAM) }
         val clock = GameClock()
         val eventState = EventState()
+        val gmData = GmData(iwram.copyOf(0x8000), rng)
         val ram = SuspendRam(
             playSt, bmSt, rng, units, flags, clock, eventState,
             actionData = ewram.copyOfRange(GACTION - EWRAM, GACTION - EWRAM + S.ACTION_SIZE),
@@ -151,6 +161,7 @@ class SuspendSaveReferenceTest {
                 GTRAPS - EWRAM, GTRAPS - EWRAM + S.TRAP_MAX_COUNT * S.TRAP_SIZE,
             ),
             convoy = ewram.copyOfRange(GCONVOY - EWRAM, GCONVOY - EWRAM + SuspendRam.CONVOY_BYTES),
+            gmData = gmData,
         )
         // GetGameClock at the call: r19315's clock is later; gPlaySt.time_saved is what the call
         // stored (r19313..r19315 agree on it).
@@ -189,10 +200,6 @@ class SuspendSaveReferenceTest {
                 entry + S.RED_UNITS + (k + 1) * S.PACKED_UNIT_SIZE,
             )
         }
-        // 2. wmStuff is WriteWorldMapStuff's output (world map not ported, not modelled).
-        want.copyInto(
-            ram.worldMapStuff, 0, entry + S.WM_STUFF, entry + S.WM_STUFF + S.GMAP_SAVE_INFO_SIZE,
-        )
         return Fixture(ram, suspend, sram, want, lib)
     }
 

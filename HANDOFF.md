@@ -18,6 +18,8 @@ Extensive modding scope, separate vanilla tests and replaceable camera/controls/
 - `BUG-evtmenu`: owner PC Claude (ROM release `assets-d978739` published; merging Gemini's fix), until ~01:37Z.
 - `BUG-m4apitch`: owner PC Claude (M4aPitchTest red on `ram_trace_prologue_end` since `49074486`), until ~01:37Z.
 - `EP-w`: owner PC Claude (finishing GPT's unmerged `wip/gpt-nov21-enemy`, claim expired 19:30Z), until ~01:37Z.
+- `PC-4d`: Gemini owner PC, until ~00:00Z (`wip/pc4d`, 2026-11-22).
+- `PC-6i-load`: Gemini owner PC, until ~00:00Z (`wip/pc6i-load`, 2026-11-22).
 
 ## Current state
 

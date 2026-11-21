@@ -115,7 +115,6 @@ public class UnitLoader(
             if ((s8(table.bytes, o + OFF_INDEX) and 0xC0) == FACTION_BLUE) {
                 unitAutolevelRealistic(o)
                 unitAutolevelWExp(o, def)
-                put8(table.bytes, o + OFF_SUPPORTS + 6, def.leaderCharIndex)
             } else {
                 val number = rom.u8(u32(table.bytes, o + OFF_CHARACTER) + 4)
                 if ((cAttributes(o) and CA_BOSS) != 0 || number < 0x40) {

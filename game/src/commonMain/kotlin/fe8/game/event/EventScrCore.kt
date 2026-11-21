@@ -220,7 +220,8 @@ public class EventScrCore(
      * The check commands: test an engine state bit or an event flag.
      *
      * Transcribed from src/eventscr.c: Event03_CheckEvBitOrId (not verified: only sub 0 (EvBit
-     *   check) is traced; a broken sub 1 (flag check) survives)
+     *   check) is traced, including PC-cap1 bits 8, 10 and 11; a broken sub 1 (flag check) and
+     *   negative arg slot-2 fallback survive)
      *
      * Sub command 0 stores whether an `evStateBits` bit is set in slot C, 1 whether an event
      * flag is set.

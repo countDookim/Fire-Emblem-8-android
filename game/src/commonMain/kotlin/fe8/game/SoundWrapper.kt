@@ -198,6 +198,16 @@ public class SoundWrapper(
     }
 
     /**
+     * Ends every running delayed-song proc (`gMusicProc3Script`).
+     *
+     * Transcribed from src/soundwrapper.c: DeleteAll6CWaitMusicRelated (not verified: no capture
+     * calls it while `gMusicProc3Script` is running)
+     */
+    public fun deleteAll6CWaitMusicRelated() {
+        engine.endEach(delayedSongScript)
+    }
+
+    /**
      * `StartOrChangeBgm`: nothing if [song] already plays; unless BGM is disabled, ends pending
      * delayed starts, then either fades the current song out at [speed] and starts [song]
      * `speed * 16` frames later, or starts it at once.
@@ -208,7 +218,7 @@ public class SoundWrapper(
     public fun startOrChangeBgm(song: Int, speed: Int, player: Int) {
         if (isSongPlaying && getCurrentBgmSong() == song) return
         if (config() and GameControl.CONFIG_DISABLE_BGM != 0) return
-        engine.endEach(delayedSongScript) // DeleteAll6CWaitMusicRelated
+        deleteAll6CWaitMusicRelated()
         if (isSongPlaying) {
             fadeOutBgm(speed)
             startSongDelayed(song, speed * 16, player)

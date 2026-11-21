@@ -242,6 +242,15 @@ public class GameControl(
     }
 
     /**
+     * Sets `nextChapter` of the running game control proc.
+     *
+     * Ported from src/gamecontrol.c: SetNextChapterId
+     */
+    public fun setNextChapterId(id: Int) {
+        (engine.find(script)!!.state as State).nextChapter = id and 0xFF
+    }
+
+    /**
      * Clears the `disableBgm` and `disableSoundEffects` option bits.
      *
      * Transcribed from src/gamecontrol.c: GameControl_EnableSoundEffects (not verified: the traced

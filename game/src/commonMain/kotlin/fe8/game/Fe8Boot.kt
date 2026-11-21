@@ -89,6 +89,7 @@ import fe8.game.event.EventUnitLoads
 import fe8.game.event.EventChangeMap
 import fe8.game.event.EventInfoHooks
 import fe8.game.event.EventInfos
+import fe8.game.event.EventMoveToChapter
 import fe8.game.event.EventMoveUnit
 import fe8.game.event.EventMoveUnitHost
 import fe8.game.event.EventUnitLoadsHost
@@ -524,6 +525,15 @@ public class Fe8Boot(
             ).registerOn(it)
             EventFade(memory, screenFade).registerOn(it)
             EventBgm(state, memory, control.sound).registerOn(it)
+            EventMoveToChapter(
+                state,
+                memory,
+                control.playSt,
+                control.sound,
+                setNextGameActionId = { id -> control.setNextGameActionId(id) },
+                setNextChapterId = { id -> control.setNextChapterId(id) },
+                gotoChapterWithoutSave = { id -> bmapMain.gotoChapterWithoutSave(id) },
+            ).registerOn(it)
             registerMoveUnit(it, state, memory, loader) { pid ->
                 unitState.getUnitStructFromEventParameter(pid)
             }

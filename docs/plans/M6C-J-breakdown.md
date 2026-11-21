@@ -1466,3 +1466,122 @@ Boundaries, observed functions, and codebase status (`Ported` / `Transcribed` / 
   - Currently `Transcribed`: `GameCtrl_CheckNewGameAndBranch` (`GameControl`), `BmMain_StartIntroFx` (`BMapMain`), `gProcScr_ChapterIntro` script/skip tail (`ChapterIntro_BeginFadeOut`, `ChapterIntro_BeginFastFadeToMap`, `ChapterIntro_End`), `ClearTraps` (`MapTraps`).
   - `Unported` (2 small `StartBattleMap` hooks): `ClearTemporaryUnits` (`src/bmunit.c`), `ResetMenuOverrides` (`src/uimenu.c`). (`InitMapObstacles` and `LoadChapterTraps` remain M6-H stand-ins since Chapter 1 has no traps/obstacles in `sTrapPool`.)
   - Ends at `f10298` (`gProc_BMapMain@12` starting Chapter 1 `ProcScr_StdEventEngine@5`, boundary of `PC-6i-load`/`PC-6i-event`).
+
+## PC-4i inventory (2026-11-21)
+
+Test: `SaveMenuInventoryTest` (`testing/src/test/kotlin/fe8/testing/SaveMenuInventoryTest.kt`) over
+`ram_trace_prologue_end` (`PC-cap1`), covering ONLY `gProcScr_SaveMenuPostChapter` (`f9444..9862`)
+and its exit back to `gProcScr_GameControl` (`f9863`).
+
+Capture notes:
+- Steps are 1-based (`run.inputs[step - 1]` is the key mask for step `step`). The only non-zero
+  inputs in `9444..9863` are `A_BUTTON` (`0x0001`) at `f9600` (open confirm prompt) and `f9800`
+  (confirm save to slot `0`). No `DPAD`, `B_BUTTON`, or `R_BUTTON` input occurs.
+- SRAM snapshots `s09350..s10100.sram.bin` cover the entire window every frame; dense EWRAM/IWRAM
+  snapshots `r09445..r09862` and boundary graphics dumps `f09444`, `f09494`, `f09600`, `f09799`,
+  `f09800`, `f09802`, `f09863` exist. No function-entry trace covers `f9444..9863`; callbacks are
+  inferred from proc script cursors, watches, dense RAM/SRAM, and pinned `fireemblem8u` source.
+
+Active proc windows (`EnemyPhaseInventoryTest.rows` over `procs` watch, `f9444..9863`):
+
+| Proc row | Steps | Notes |
+|---|---|---|
+| `gProcScr_GameControl <- tree 3` | `9444-9863` | `scrCur = 76`, `lockCnt = 1` (`9444..9862`) -> `0` (`9863`, `nextAction = 2`) |
+| `gProcScr_SaveMenuPostChapter <- gProcScr_GameControl` | `9444-9862` | Entry `9444..9461`, select loop `9494..9802`, slot scroll `9803..9843`, fade-out `9844..9861`, exit `9862` |
+| `ProcScr_savedraw <- gProcScr_SaveMenuPostChapter` | `9459-9862` | Started by `SaveMenu_InitScreen`; ended by `PostSaveMenuHandler` |
+| `ProcScr_ApProc <- tree 3` | `9459-9814` | Suspend bookmark sprite (`sus_slot_cur = 0`), deleted when `unk_44 != 0x100` |
+| `gProcScr_SaveDrawCursor <- ProcScr_savedraw` | `9459-9862` | Started by `SaveDraw_Init`; active every frame (`SaveDrawProc.unk_29 == 1`) |
+| `ProcScr_BmFadeIN <- tree 4` | `9461-9492` | `NewFadeIn(4)` from `PL_SAVEMENU_SAVE_SLOT_SEL_FADEIN` |
+| `ProcScr_BmFadeOUT <- tree 4` | `9845-9860` | `NewFadeOut(8)` from `PL_SAVEMENU_EXIT_FADE` (label 17) |
+
+Observed subwindows, RAM/SRAM timing, and hardware transitions (`PC-cap1`):
+- **Entry (`f9444..9461` -> `f9494`)**:
+  - `f9444`: `Make6C_SaveMenuPostChapter` starts `gProcScr_SaveMenuPostChapter`; `SaveMenuInit` sets
+    `jump_label = 5` (`PL_SAVEMENU_SAVE_SLOT_SEL`), `sus_slot = 0` (`ReadLastGameSaveId() == 0`),
+    `main_options = main_sel_bitfile = 0x40` (`MAIN_MENU_OPTION_INVALID`), `unk_2f = 0xDC`;
+    `SaveMenu_SetLcdChapterIdx` sets `gSaveMenuRTextData = (0, -1, -1)` and LCD/blend state, pausing
+    at `scrCur = 5`. (`gPlaySt.save_menu_type == 2` and `chapterIndex == CHAPTER_L_1`, so the world
+    map / Frelia chapter-override branches are NOT taken.)
+  - `f9445..9458`: `SaveMenu_InitScreen` (`scrCur = 6`) spans 14 frames (VBlank fires mid-call):
+    `f9450` sets `cursor_config = 0`, `cursor_slot = 0xFF`, `unk_44 = 0x100`; `f9451..9455` fill
+    slot metadata (`chapter_idx = [0, 7, 6]`, `unk_3a = [1, 3, 3]`, `played_time = [0, 268746, 148852]`);
+    `f9458` sets `sus_slot_cur = 0`.
+  - `f9459`: `SaveMenu_InitScreen` calls `StartSaveDraw` (`ProcScr_savedraw` -> `SaveDraw_Init` starts
+    `gProcScr_SaveDrawCursor`, `ProcScr_ApProc`, clears `gUnknown_020007E0`, installs
+    `sHBlankHandler1 = HBlank_BgVerticalScroll` `0x08014CC5`, runs `SaveDraw_ScrollFogBG`).
+  - `f9461..9493`: `SaveMenuDirectlySelectSlotOnPrepScreen` (`!(gBmSt.gameStateBits & BM_FLAG_PREPSCREEN)`)
+    jumps to `PL_SAVEMENU_SAVE_SLOT_SEL_FADEIN` (`scrCur = 13`), running `NewFadeIn(4)` (`f9461..9492`).
+    `SaveMenu_SaveSlotSelectLoop` (`scrCur = 16`) begins at `f9494`.
+- **Idle & slot movement (`f9494..9802`)**:
+  - `sus_slot` stays `0` throughout `f9444..9862`; no `DPAD`/`B`/`R` input occurs, so
+    `SaveMenuTryMoveSaveSlotCursor`, `SaveMenuModifySaveSlot`, `LoadSaveMenuInfo`, and `sub_80AB514`
+    never run. `SaveMenuWaitHelpBoxAnim` returns `false` every frame (`ctrl_timer == 0`).
+- **Confirm prompt (`f9600`)**:
+  - `A` at `f9600` calls `ExecSaveMenuMiscOption` (`MAIN_MENU_OPTION_INVALID`, `cursor_config == 0`):
+    sets `cursor_config = 1`, `SaveMenuDrawSubSelBox(proc, 1)` writes 10 non-zero tile entries to
+    `gBG1TilemapBuffer` row 17 cols 7..16 (`r09599` all `0` -> `f09600` `0x4080..0x4092`), and
+    `SaveMenuHandleHelpBox` returns early (`MAIN_MENU_OPTION_INVALID` has no help box).
+- **Confirm & 3-frame SRAM write (`f9800..9802`)**:
+  - `s09350 == s09799`: `s09799` has valid game saves in slots 0..2 (`slot 0`: `chapterIndex = 0`,
+    `time_saved = 0`, `SaveBlockInfo[0].checksum32 = 0x0EF3180F`) and valid suspend saves in slots
+    `3` & `4` (`SAVEBLOCK_KIND_SUSPEND = 1`).
+  - `A` at `f9800` calls `ExecSaveMenuMiscOption` (`cursor_config == 1`) -> `WriteGameSave(0)`,
+    spanning 3 frames (`f9800..9802`):
+    - `s09799 -> s09800`: `gPlaySt.time_saved` updates `5140 -> 10669`; 94 SRAM bytes change
+      (`0x0094..0x00B3` invalidating suspend slots `3` & `4` to `SAVEBLOCK_KIND_INVALID = 0xFF`;
+      `0x3FC4..0x3FDA` and `0x3FF0..0x4057` writing `GAME0` `PlaySt` with `chapterIndex = 1`,
+      `time_saved = 10669`, and first packed units).
+    - `s09800 -> s09801`: 45 SRAM bytes change (`0x473C..0x4743`, `0x480F..0x482C`, `0x4841`,
+      `0x4C70..0x4C72`, `0x4D33..0x4D40`, `0x4D5D..0x4D73` in `GAME0` body).
+    - `s09801 -> s09802`: 4 SRAM bytes change (`0x0070..0x0073`: `SaveBlockInfo[0].checksum32`
+      `0x0EF3180F -> 0x5652A716`); `s09802 == s10100`.
+    - `f9802`: `SaveMenuDrawSubSelBox(proc, 0)` clears `gBG1TilemapBuffer` row 17 cols 7..16 to `0`
+      and sets `cursor_config = 0`; `Proc_Goto(proc, PL_SAVEMENU_SLOT_SELECTED)` sets `scrCur = 17`.
+  - **Existing writer coverage**: `BmGameSave.writeGameSave` (`game/.../save/BmGameSave.kt`)
+    already ports `WriteGameSave` and every callee (`InvalidateSuspendSave`, `WriteGameSavePackedUnit`,
+    `Read/WriteGlobalSaveInfo`, `WriteGMMonsterRnState`, `WriteSupplyItems`, `WritePidStats`,
+    `WriteChapterStats`, `WriteBonusContentClaimFlags`, `WritePermanentFlags`, `WriteWorldMapStuff`,
+    `SaveDungeonRecords`, `WriteSaveBlockInfo`, `WriteLastGameSaveId`). No new `bmsave` writer
+    functions are needed for the slot 0 write.
+- **Post-write slot box scroll & metadata refresh (`f9803..9844`)**:
+  - `f9804`: `SaveMenuRegisterSlotSelected` (`scrCur = 21`, `jump_label = 6`).
+  - `f9805..9843`: `SaveMenuWaitSlotBoxScrolling` (`scrCur = 22`). `SetObjAffine(0, ...)` flips slot 0
+    (`gOam` affine 0 `pd`: `256` -> `2048` at `f9812` -> `256` at `f9822`). At `scroll_cnt == 8`
+    (`f9812..9814`): `SaveMenuInitSaveSlotData(0)` updates `chapter_idx[0]` `0 -> 1`,
+    `played_time[0]` `0 -> 10669`, `gPlayStOptionBits[0]` animation bit `0 -> 2`;
+    `SaveMenuInitSaveSlotData(4)` sees suspend save invalid and sets `unk_44 = 0xF0`;
+    `PutChapterTitleGfx` and `SaveMenuInitSlotPalette(0)` refresh slot 0. At `f9815`, `sub_80AB05C`
+    deletes `ProcScr_ApProc` (`approc = 0`) and `sub_80AACBC` steps `unk_44` (`0xE0..0x00` over
+    `f9815..9829`, rotating `gOam` affine 3) until `sus_slot_cur = 0xFF` at `f9830`.
+  - `f9838..9843`: `scroll_cnt == 0x20` runs `InitSaveMenuChoice` (and `IsExtra*` SRAM scans across
+    frames), then `main_sel_bitfile == MAIN_MENU_OPTION_INVALID` jumps to `PL_SAVEMENU_EXIT_FADE`
+    (`scrCur = 27` at `f9844`).
+- **Exit (`f9844..9863`)**:
+  - `f9845..9860`: `NewFadeOut(8)` / `ProcScr_BmFadeOUT` (`scrCur = 29`).
+  - `f9862`: `PostSaveMenuHandler` (`scrCur = 32`, `main_sel_bitfile = 0x40`) calls `Proc_End(savedraw)`
+    (`SaveDraw_OnEnd` -> `EndBgVerticalScroll`), calls `SetPrimaryHBlankHandler(0)`, and returns early.
+  - `f9863`: save menu procs gone, `sHBlankHandler1 == 0`, `GameControl` unlocked at `scrCur = 76`
+    with `nextAction = 2` (`GAME_ACTION_USR_SKIPPED`).
+
+Existing save-menu / render code already in repo:
+- `WriteGameSave` + all `bmsave` sub-calls (`BmGameSave.kt`, `BmSaveLib.kt`).
+- `PostSaveMenuHandler` (`fe8.game.savemenu.PostSaveMenu`; `Resume`/`Restart` verified, `MAIN_MENU_OPTION_INVALID` branch transcribed/ready to verify on `f9862->9863`).
+- `SaveDraw_ScrollFogBG`, `GetBgVerticalScrollBuffer`, `FlipBgVerticalScroll`, `HBlank_BgVerticalScroll`, `BG_SetPosition` (`SaveDraw.kt`, `BgVerticalScroll.kt`, `LcdControl.kt`).
+- `sub_80895B4`, `PutChapterTitleGfx` (`ChapterTitle.kt`; `sub_80895B4` non-`8` config bits transcribed).
+- `NewFadeIn`, `FadeInExists` (`ArchivedPaletteFade.kt`; `NewFadeOut`, `FadeOutExists` unported).
+
+Corrected `PC-4a..4g` breakdown (splitting rows that exceed `<= 8` unported/transcribed functions):
+
+| Row | Window (`PC-cap1`) | Functions run (unported / transcribed) | Already ported / not run in `PC-cap1` |
+|---|---|---|---|
+| `PC-4a1` (was `PC-4a` part 1) | `f9444`, `f9461..9493` | `Make6C_SaveMenuPostChapter`, `SaveMenuInit`, `SaveMenu_SetLcdChapterIdx`, `SaveMenuDirectlySelectSlotOnPrepScreen`, `InitSaveMenuHelpTextSt`, `ReadLastGameSaveId` (6) | Already `Ported`: `NewFadeIn`, `FadeInExists`. Not run: WM/Frelia chapter branches in `SetLcdChapterIdx`, prep-screen false branch (`NewFadeIn(8)`). |
+| `PC-4a2` (was `PC-4a` part 2) | `f9445..9459` | `SaveMenu_InitScreen`, `SaveMenuPutChapterTitle`, `SaveMenuCopyPalette`, `SaveMenuInitSubBoxText`, `PutChapterTitleBG` (5) | Already `Ported`: `PutChapterTitleGfx`, `SetObjAffine`. |
+| `PC-4b` | `f9459..9862` | `StartSaveDraw`, `SaveDraw_Init`, `SaveDraw_OnEnd`, `sub_80AB548`, `StartBgVerticalScroll`, `SetBgVerticalScrollPosition`, `sub_8014EF4`, `EndBgVerticalScroll` (8) | Already `Ported`: `SaveDraw_ScrollFogBG`, `HBlank_BgVerticalScroll`, `GetBgVerticalScrollBuffer`, `FlipBgVerticalScroll`. |
+| `PC-4c1` (was `PC-4c` part 1) | `f9459..9862` | `SaveDraw_Loop_Main`, `sub_80AB05C`, `sub_80AADE0`, `sub_80AA7EC`, `sub_80AAE90` (early exit), `sub_80AAF6C` (early exit), `BitfileToIndex` (7) | Not run: `sub_80AABC4`, `sub_80AAC40`, `sub_80AB514`, main/extra menu branches, `cursor_config != 0` help-box branch. |
+| `PC-4c2` (was `PC-4c` part 2) | `f9459..9862` | `sub_80AACBC`, `sub_80AA7AC`, `sub_80AB56C` (3; particle RNG uses `AdvanceGetLCGRNValue`) | Already `Ported`: `SaveDraw_ScrollFogBG`. |
+| `PC-4d` | `f9459..9862` | `StartSaveDrawCursor`, `SaveDrawCursor_Init`, `SaveDrawCursor_Loop`, `sub_80AB4F4` (4) | Not run in `PC-cap1` (need slot-nav CAP): `SaveMenuTryMoveSaveSlotCursor`, `SaveMenuModifySaveSlot`, `sub_80AB514`. Moved to `PC-4e2`: `InitSaveMenuChoice`. |
+| `PC-4e1` (was `PC-4e` part 1) | `f9494..9802` | `SaveMenu_SaveSlotSelectLoop`, `SaveMenuWaitHelpBoxAnim`, `ExecSaveMenuMiscOption`, `SaveMenuHandleHelpBox`, `SaveMenuDrawSubSelBox`, `SaveMenuDrawSubSelBoxExt` (6) | Already `Ported`: `WriteGameSave` (`BmGameSave`). Not run: `DPAD`/`B`/`R`, `LoadSaveMenuInfo`, non-`INVALID` options, `cursor_config == 2` cancel. |
+| `PC-4e2` (was `PC-4e` part 2) | `f9803..9861` | `SaveMenuRegisterSlotSelected`, `SaveMenuWaitSlotBoxScrolling`, `InitSaveMenuChoice`, `AddMainMenuOption`, `AddExtraMenuOption`, `NewFadeOut`, `FadeOutExists` (+ `bmsave-lib` `IsExtra*` availability checks if not stubbed) | Already `Ported`: `PutChapterTitleGfx`, `LoadBonusContentData`. Not run: `scroll_cnt == 0x30` branch, `MAIN_MENU_OPTION_NEW_GAME` branch. |
+| `PC-4f` | `f9450..9458`, `f9812..9814` | `SaveMenuInitSaveSlotData`, `SaveMenuInitSlotPalette`, `SaveDrawSetDifficultSlotPalette`, `GetChapterTitleExtra`, `IsGameNotFirstChapter`, `LoadSavedEid8A`, `ReadGameSavePlaySt`, `ReadSuspendSavePlaySt` (8) | Already `Ported`: `IsSaveValid`, `IsValidSuspendSave`, `sub_80895B4` (verify new `config` bits). Not run: `LoadSavedWMStuff`, `GetChapterIndexOnWmNode` (`save_menu_type != 4`), `PLAY_FLAG_HARD` palette pulse. |
+| `PC-4g` | `f9862 -> 9863` | Verification only (`PostSaveMenuHandler` `MAIN_MENU_OPTION_INVALID` branch on `f9862 -> f9863`) | Already `Ported`: `PostSaveMenuHandler` (`PostSaveMenu.kt`). |
+
